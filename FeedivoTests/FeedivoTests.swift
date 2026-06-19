@@ -25,6 +25,44 @@ struct FeedivoTests {
         #expect(AppLanguage.resolved(from: "unbekannt") == .system)
     }
 
+    @Test func readerContentRendererErzeugtAbsaetzeAusHTML() {
+        let blocks = ReaderContentRenderer.blocks(
+            summary: nil,
+            content: "<p>Erster <strong>Absatz</strong>.</p><p>Zweiter Absatz.</p>",
+            fallbackImageURL: nil
+        )
+
+        #expect(blocks == [
+            .paragraph("Erster Absatz."),
+            .paragraph("Zweiter Absatz.")
+        ])
+    }
+
+    @Test func readerContentRendererErkenntBilderUndFallbackSummary() {
+        let imageBlocks = ReaderContentRenderer.blocks(
+            summary: nil,
+            content: #"<p>Text vor dem Bild.</p><img src="https://example.com/bild.jpg" alt="Bild"><p>Text danach.</p>"#,
+            fallbackImageURL: nil
+        )
+
+        #expect(imageBlocks == [
+            .image(urlString: "https://example.com/bild.jpg"),
+            .paragraph("Text vor dem Bild."),
+            .paragraph("Text danach.")
+        ])
+
+        let summaryBlocks = ReaderContentRenderer.blocks(
+            summary: "Nur eine kurze Zusammenfassung.",
+            content: "",
+            fallbackImageURL: "https://example.com/fallback.jpg"
+        )
+
+        #expect(summaryBlocks == [
+            .image(urlString: "https://example.com/fallback.jpg"),
+            .paragraph("Nur eine kurze Zusammenfassung.")
+        ])
+    }
+
     @Test func feedServiceParstRSSTitelUndArtikelMetadaten() async throws {
         let rss = """
         <?xml version="1.0" encoding="UTF-8"?>

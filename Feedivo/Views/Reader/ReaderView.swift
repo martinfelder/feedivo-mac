@@ -3,6 +3,14 @@ import SwiftUI
 struct ReaderView: View {
     let article: Article
 
+    private var contentBlocks: [ReaderContentBlock] {
+        ReaderContentRenderer.blocks(
+            summary: article.summary,
+            content: article.content,
+            fallbackImageURL: article.imageURL
+        )
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
@@ -10,16 +18,16 @@ struct ReaderView: View {
                     .font(.largeTitle)
                     .fontWeight(.bold)
 
-                if let summary = article.summary, !summary.isEmpty {
-                    Text(summary)
-                        .font(.title3)
-                        .foregroundStyle(.secondary)
-                }
-
-                if let content = article.content, !content.isEmpty {
-                    Text(content)
-                        .font(.body)
-                        .textSelection(.enabled)
+                ForEach(Array(contentBlocks.enumerated()), id: \.offset) { _, block in
+                    switch block {
+                    case .paragraph(let text):
+                        Text(text)
+                            .font(.body)
+                            .lineSpacing(4)
+                            .textSelection(.enabled)
+                    case .image(let urlString):
+                        readerImage(urlString: urlString)
+                    }
                 }
 
                 if let link = article.link, let url = URL(string: link) {
@@ -30,5 +38,27 @@ struct ReaderView: View {
             .padding()
         }
         .navigationTitle(article.title)
+    }
+
+    @ViewBuilder
+    private func readerImage(urlString: String) -> some View {
+        if let url = URL(string: urlString) {
+            AsyncImage(url: url) { phase in
+                switch phase {
+                case .success(let image):
+                    image
+                        .resizable()
+                        .scaledToFit()
+                case .failure:
+                    EmptyView()
+                case .empty:
+                    ProgressView()
+                @unknown default:
+                    EmptyView()
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
     }
 }

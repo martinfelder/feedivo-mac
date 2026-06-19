@@ -130,7 +130,8 @@ FeedivoMac/
 │   │   │   ├── ArticleListView.swift   # Mittlere Spalte: echte Feed-Artikel anzeigen ✅
 │   │   │   └── ArticleRowView.swift    # Reichhaltige Artikel-Zeile mit Status/Stern ✅
 │   │   ├── Reader/
-│   │   │   ├── ReaderView.swift        # Rechte Spalte: Artikel-Basisansicht ✅
+│   │   │   ├── ReaderView.swift        # Rechte Spalte: nativer Artikel-Reader ✅
+│   │   │   ├── ReaderContentRenderer.swift # HTML/Text zu Reader-Bloecken ✅
 │   │   │   └── WebContentView.swift    # WKWebView-Wrapper für volle Artikel (TODO)
 │   │   ├── Tags/
 │   │   │   ├── TagManagerView.swift    # Tags erstellen, bearbeiten, löschen (TODO)
@@ -243,8 +244,16 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 - Sprachauswahl: Nach System, Deutsch, Englisch, Französisch, Italienisch
 
 ### ReaderView.swift
-- Zeigt Titel, Summary, gespeicherten Content und Link zum Original
+- Zeigt Titel, native Reader-Bloecke und Link zum Original
+- Nutzt `ReaderContentRenderer`, um Content/Summary in Absätze und Bilder zu wandeln
 - Noch kein WKWebView/Vollseiten-Reader
+
+### ReaderContentRenderer.swift
+- Wandelt HTML-Fragmente oder Plain Text in `ReaderContentBlock`
+- Aktuelle Block-Typen: `.paragraph(String)` und `.image(urlString:)`
+- Nutzt `NSAttributedString` HTML-Konvertierung fuer lesbaren Text
+- Fallback: Wenn `Article.content` leer ist, wird `Article.summary` verwendet
+- Fallback-Bild: Wenn kein HTML-Bild vorhanden ist, kann `Article.imageURL` als Bildblock dienen
 
 ### Lokalisierung / i18n
 - `Feedivo/Resources/Localizable.xcstrings` ist die zentrale String Catalog Datei
@@ -418,7 +427,7 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 
 ### M2 – Core Features ← AKTUELL
 - [x] ArticleListView ausbauen: echte Artikel aus SwiftData anzeigen
-- [x] ReaderView ausbauen: Artikel-Inhalt mit nativen SwiftUI Text-Elementen (Basis)
+- [x] ReaderView ausbauen: nativer Artikel-Renderer fuer Absätze und Bilder (Basis)
 - [x] ArticleRowView: Titel, Datum, gelesen/ungelesen Indikator
 - [x] Gelesen/Ungelesen markieren (Basis per Kontextmenue + Auto-gelesen beim Oeffnen)
 - [x] Artikel mit Stern markieren (Basis per Button/Kontextmenue)
@@ -475,7 +484,7 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 ## Aktuell in Arbeit
 
 - M1 abgeschlossen
-- Aktuell M2: Tastaturkuerzel fuer Artikelaktionen, Menü-Commands und Feed löschen
+- Aktuell M2: Reader-Rendering weiter ausbauen, danach Tastaturkuerzel, Menü-Commands und Feed löschen
 - Feature-Roadmap ist in `docs/FEATURES.md` dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
@@ -505,3 +514,6 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 - 2026-06-19: Sprachauswahl in den Einstellungen ergaenzt: `Nach System` als Default,
   feste Auswahl fuer Deutsch, Englisch, Französisch und Italienisch; Locale wird in
   `FeedivoApp` auf Hauptfenster und Settings angewendet
+- 2026-06-19: Nativer Reader-Renderer ergaenzt: `ReaderContentRenderer` wandelt
+  HTML/Plain-Text in Absätze und Bildbloecke; `ReaderView` rendert diese Bloecke
+  nativ mit SwiftUI statt rohen HTML-/Content-Text anzuzeigen

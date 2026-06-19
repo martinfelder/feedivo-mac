@@ -65,7 +65,8 @@ bei geschlossener App.
 - Feed-Titel wird aus Feed-Metadaten gelesen.
 - Sidebar zeigt gespeicherte Feeds.
 - Artikel-Liste zeigt echte Artikel eines Feeds.
-- Reader zeigt Titel, Summary, gespeicherten Content und Original-Link.
+- Reader zeigt Titel, native Reader-Bloecke und Original-Link.
+- Reader-Rendering wandelt HTML/Plain-Text in Absätze und Bildbloecke.
 - ArticleRowView zeigt Titel, Datum, Summary, optionales Bild, Ungelesen-Punkt
   rechts oben und Stern rechts unten.
 - Artikelbilder werden beim Feed-Parsing robuster aus Media RSS, iTunes Image,
@@ -101,6 +102,13 @@ M2 Core Features:
 - Entscheidung: Standard soll der native SwiftUI Reader sein. WebView ist ein Umschalter
   fuer Originaldarstellung oder Feeds ohne brauchbaren Volltext.
 - Offen: Globaler Modus oder pro Artikel merken. Empfehlung: zuerst global in Einstellungen.
+
+#### 1.1.1 Native Reader Rendering
+- Status: Fertig als Basis
+- Prioritaet: MVP
+- Implementiert: `ReaderContentRenderer` erzeugt Absätze und Bildbloecke aus
+  gespeicherten Feed-Inhalten; `ReaderView` rendert diese Bloecke nativ mit SwiftUI.
+- Naechster Schritt: Links, Listen, Zitate und leere/kaputte Inhalte gezielter darstellen.
 
 #### 1.2 Navigation Vor/Zurueck
 - Status: Entschieden
@@ -142,8 +150,9 @@ M2 Core Features:
 #### 1.8 Safari-Reader-aehnliche Ansicht
 - Status: In Diskussion
 - Prioritaet: Spaeter
-- Empfehlung: Nicht mit dem nativen Feed-Content-Reader verwechseln. Readability/Extraktion
-  erst spaeter, weil es deutlich mehr Fehlerfaelle erzeugt.
+- Empfehlung: Nicht mit dem nativen Feed-Content-Reader verwechseln. Die erste native
+  Rendering-Basis existiert; Readability/Extraktion erst spaeter, weil es deutlich mehr
+  Fehlerfaelle erzeugt.
 
 #### 1.9 Schriftgroesse
 - Status: Entschieden
