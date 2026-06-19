@@ -1,0 +1,614 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		C9102A872FE5A9A300E81C7E /* FeedKit in Frameworks */ = {isa = PBXBuildFile; productRef = C9102A862FE5A9A300E81C7E /* FeedKit */; };
+		C9102A892FE5A9A300E81C7E /* XMLKit in Frameworks */ = {isa = PBXBuildFile; productRef = C9102A882FE5A9A300E81C7E /* XMLKit */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		C9CE92652FE5A90800B9C79A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = C9CE924F2FE5A90700B9C79A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = C9CE92562FE5A90700B9C79A;
+			remoteInfo = Feedivo;
+		};
+		C9CE926F2FE5A90800B9C79A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = C9CE924F2FE5A90700B9C79A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = C9CE92562FE5A90700B9C79A;
+			remoteInfo = Feedivo;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		C9CE92572FE5A90700B9C79A /* Feedivo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Feedivo.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		C9CE92642FE5A90800B9C79A /* FeedivoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FeedivoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		C9CE926E2FE5A90800B9C79A /* FeedivoUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FeedivoUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		C9CE92592FE5A90700B9C79A /* Feedivo */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Feedivo;
+			sourceTree = "<group>";
+		};
+		C9CE92672FE5A90800B9C79A /* FeedivoTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = FeedivoTests;
+			sourceTree = "<group>";
+		};
+		C9CE92712FE5A90800B9C79A /* FeedivoUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = FeedivoUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		C9CE92542FE5A90700B9C79A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C9102A872FE5A9A300E81C7E /* FeedKit in Frameworks */,
+				C9102A892FE5A9A300E81C7E /* XMLKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C9CE92612FE5A90800B9C79A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C9CE926B2FE5A90800B9C79A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		C9CE924E2FE5A90700B9C79A = {
+			isa = PBXGroup;
+			children = (
+				C9CE92592FE5A90700B9C79A /* Feedivo */,
+				C9CE92672FE5A90800B9C79A /* FeedivoTests */,
+				C9CE92712FE5A90800B9C79A /* FeedivoUITests */,
+				C9CE92582FE5A90700B9C79A /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		C9CE92582FE5A90700B9C79A /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				C9CE92572FE5A90700B9C79A /* Feedivo.app */,
+				C9CE92642FE5A90800B9C79A /* FeedivoTests.xctest */,
+				C9CE926E2FE5A90800B9C79A /* FeedivoUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		C9CE92562FE5A90700B9C79A /* Feedivo */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C9CE92782FE5A90800B9C79A /* Build configuration list for PBXNativeTarget "Feedivo" */;
+			buildPhases = (
+				C9CE92532FE5A90700B9C79A /* Sources */,
+				C9CE92542FE5A90700B9C79A /* Frameworks */,
+				C9CE92552FE5A90700B9C79A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				C9CE92592FE5A90700B9C79A /* Feedivo */,
+			);
+			name = Feedivo;
+			packageProductDependencies = (
+				C9102A862FE5A9A300E81C7E /* FeedKit */,
+				C9102A882FE5A9A300E81C7E /* XMLKit */,
+			);
+			productName = Feedivo;
+			productReference = C9CE92572FE5A90700B9C79A /* Feedivo.app */;
+			productType = "com.apple.product-type.application";
+		};
+		C9CE92632FE5A90800B9C79A /* FeedivoTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C9CE927B2FE5A90800B9C79A /* Build configuration list for PBXNativeTarget "FeedivoTests" */;
+			buildPhases = (
+				C9CE92602FE5A90800B9C79A /* Sources */,
+				C9CE92612FE5A90800B9C79A /* Frameworks */,
+				C9CE92622FE5A90800B9C79A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				C9CE92662FE5A90800B9C79A /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				C9CE92672FE5A90800B9C79A /* FeedivoTests */,
+			);
+			name = FeedivoTests;
+			packageProductDependencies = (
+			);
+			productName = FeedivoTests;
+			productReference = C9CE92642FE5A90800B9C79A /* FeedivoTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		C9CE926D2FE5A90800B9C79A /* FeedivoUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C9CE927E2FE5A90800B9C79A /* Build configuration list for PBXNativeTarget "FeedivoUITests" */;
+			buildPhases = (
+				C9CE926A2FE5A90800B9C79A /* Sources */,
+				C9CE926B2FE5A90800B9C79A /* Frameworks */,
+				C9CE926C2FE5A90800B9C79A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				C9CE92702FE5A90800B9C79A /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				C9CE92712FE5A90800B9C79A /* FeedivoUITests */,
+			);
+			name = FeedivoUITests;
+			packageProductDependencies = (
+			);
+			productName = FeedivoUITests;
+			productReference = C9CE926E2FE5A90800B9C79A /* FeedivoUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		C9CE924F2FE5A90700B9C79A /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2650;
+				LastUpgradeCheck = 2650;
+				TargetAttributes = {
+					C9CE92562FE5A90700B9C79A = {
+						CreatedOnToolsVersion = 26.5;
+					};
+					C9CE92632FE5A90800B9C79A = {
+						CreatedOnToolsVersion = 26.5;
+						TestTargetID = C9CE92562FE5A90700B9C79A;
+					};
+					C9CE926D2FE5A90800B9C79A = {
+						CreatedOnToolsVersion = 26.5;
+						TestTargetID = C9CE92562FE5A90700B9C79A;
+					};
+				};
+			};
+			buildConfigurationList = C9CE92522FE5A90700B9C79A /* Build configuration list for PBXProject "Feedivo" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = C9CE924E2FE5A90700B9C79A;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				C9102A852FE5A9A300E81C7E /* XCRemoteSwiftPackageReference "FeedKit" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = C9CE92582FE5A90700B9C79A /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				C9CE92562FE5A90700B9C79A /* Feedivo */,
+				C9CE92632FE5A90800B9C79A /* FeedivoTests */,
+				C9CE926D2FE5A90800B9C79A /* FeedivoUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		C9CE92552FE5A90700B9C79A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C9CE92622FE5A90800B9C79A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C9CE926C2FE5A90800B9C79A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		C9CE92532FE5A90700B9C79A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C9CE92602FE5A90800B9C79A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C9CE926A2FE5A90800B9C79A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		C9CE92662FE5A90800B9C79A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = C9CE92562FE5A90700B9C79A /* Feedivo */;
+			targetProxy = C9CE92652FE5A90800B9C79A /* PBXContainerItemProxy */;
+		};
+		C9CE92702FE5A90800B9C79A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = C9CE92562FE5A90700B9C79A /* Feedivo */;
+			targetProxy = C9CE926F2FE5A90800B9C79A /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		C9CE92762FE5A90800B9C79A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = X72F89J699;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.5;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		C9CE92772FE5A90800B9C79A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = X72F89J699;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.5;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		C9CE92792FE5A90800B9C79A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = X72F89J699;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = ch.martin.Feedivo;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		C9CE927A2FE5A90800B9C79A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = X72F89J699;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = ch.martin.Feedivo;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		C9CE927C2FE5A90800B9C79A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = X72F89J699;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = ch.martin.FeedivoTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Feedivo.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Feedivo";
+			};
+			name = Debug;
+		};
+		C9CE927D2FE5A90800B9C79A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = X72F89J699;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = ch.martin.FeedivoTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Feedivo.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Feedivo";
+			};
+			name = Release;
+		};
+		C9CE927F2FE5A90800B9C79A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = X72F89J699;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = ch.martin.FeedivoUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = Feedivo;
+			};
+			name = Debug;
+		};
+		C9CE92802FE5A90800B9C79A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = X72F89J699;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = ch.martin.FeedivoUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = Feedivo;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		C9CE92522FE5A90700B9C79A /* Build configuration list for PBXProject "Feedivo" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C9CE92762FE5A90800B9C79A /* Debug */,
+				C9CE92772FE5A90800B9C79A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C9CE92782FE5A90800B9C79A /* Build configuration list for PBXNativeTarget "Feedivo" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C9CE92792FE5A90800B9C79A /* Debug */,
+				C9CE927A2FE5A90800B9C79A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C9CE927B2FE5A90800B9C79A /* Build configuration list for PBXNativeTarget "FeedivoTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C9CE927C2FE5A90800B9C79A /* Debug */,
+				C9CE927D2FE5A90800B9C79A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C9CE927E2FE5A90800B9C79A /* Build configuration list for PBXNativeTarget "FeedivoUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C9CE927F2FE5A90800B9C79A /* Debug */,
+				C9CE92802FE5A90800B9C79A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		C9102A852FE5A9A300E81C7E /* XCRemoteSwiftPackageReference "FeedKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/nmdias/FeedKit";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 10.4.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		C9102A862FE5A9A300E81C7E /* FeedKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C9102A852FE5A9A300E81C7E /* XCRemoteSwiftPackageReference "FeedKit" */;
+			productName = FeedKit;
+		};
+		C9102A882FE5A9A300E81C7E /* XMLKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C9102A852FE5A9A300E81C7E /* XCRemoteSwiftPackageReference "FeedKit" */;
+			productName = XMLKit;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = C9CE924F2FE5A90700B9C79A /* Project object */;
+}
