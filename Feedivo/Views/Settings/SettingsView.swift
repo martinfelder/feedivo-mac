@@ -22,6 +22,9 @@ struct SettingsView: View {
     @AppStorage("readerTitleLineSpacing")
     private var readerTitleLineSpacing = ReaderTypography.defaultTitleLineSpacing
 
+    @AppStorage("readerContentWidth")
+    private var readerContentWidth = ReaderTypography.defaultContentWidth
+
     var body: some View {
         Form {
             Section(L10n.settingsLanguageSection) {
@@ -71,6 +74,14 @@ struct SettingsView: View {
                     displayedValue: ReaderTypography.clampedLineSpacing(readerLineSpacing)
                 )
 
+                typographySlider(
+                    L10n.readerContentWidthSlider,
+                    value: $readerContentWidth,
+                    range: ReaderTypography.contentWidthRange,
+                    displayedValue: ReaderTypography.clampedContentWidth(readerContentWidth),
+                    step: ReaderTypography.contentWidthStep
+                )
+
                 Toggle(L10n.settingsMarkReadOnOpenTitle, isOn: $markArticleReadOnSelection)
 
                 Text(L10n.settingsMarkReadOnOpenDescription)
@@ -87,7 +98,8 @@ struct SettingsView: View {
         _ title: LocalizedStringKey,
         value: Binding<Double>,
         range: ClosedRange<Double>,
-        displayedValue: Double
+        displayedValue: Double,
+        step: Double = 1
     ) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
@@ -99,7 +111,7 @@ struct SettingsView: View {
                     .monospacedDigit()
             }
 
-            Slider(value: value, in: range, step: 1)
+            Slider(value: value, in: range, step: step)
         }
     }
 }

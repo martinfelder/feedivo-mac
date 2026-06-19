@@ -22,6 +22,7 @@ enum L10n {
     static let readerBodyFontSizeSlider = LocalizedStringKey("reader.bodyFontSize.slider")
     static let readerTitleLineSpacingSlider = LocalizedStringKey("reader.titleLineSpacing.slider")
     static let readerLineSpacingSlider = LocalizedStringKey("reader.lineSpacing.slider")
+    static let readerContentWidthSlider = LocalizedStringKey("reader.contentWidth.slider")
     static let readerFontSystem = LocalizedStringKey("reader.font.system")
     static let readerFontSerif = LocalizedStringKey("reader.font.serif")
     static let readerFontRounded = LocalizedStringKey("reader.font.rounded")

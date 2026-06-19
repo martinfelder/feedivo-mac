@@ -125,6 +125,13 @@ struct FeedivoTests {
         #expect(ReaderTypography.clampedTitleLineSpacing(20) == 10)
     }
 
+    @Test func readerTypographyBegrenztArtikelbreite() {
+        #expect(ReaderTypography.defaultContentWidth == 720)
+        #expect(ReaderTypography.clampedContentWidth(400) == 520)
+        #expect(ReaderTypography.clampedContentWidth(760) == 760)
+        #expect(ReaderTypography.clampedContentWidth(1200) == 980)
+    }
+
     @Test func readerFontPresetKenntPostScriptKandidaten() {
         #expect(ReaderFontPreset.inter.fontNames.contains("Inter-Regular"))
         #expect(ReaderFontPreset.dmSans.fontNames.contains("DMSans-Regular"))

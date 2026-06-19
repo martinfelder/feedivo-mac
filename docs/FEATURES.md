@@ -83,9 +83,9 @@ bei geschlossener App.
   Franzoesisch oder Italienisch gesetzt werden.
 - In der Artikelansicht koennen Titel- und Fliesstext-Schrift ueber kuratierte
   Presets direkt per Toolbar-Popover und in den Einstellungen getrennt gewaehlt werden;
-  Fliesstext-Groesse sowie Titel- und Fliesstext-Zeilenabstand sind dort ebenfalls
-  einstellbar. Die Metazeile oberhalb des Titels nutzt die Fliesstext-Schrift
-  proportional kleiner.
+  Fliesstext-Groesse, Titel-/Fliesstext-Zeilenabstand und Artikelbreite sind dort
+  ebenfalls einstellbar. Die Metazeile oberhalb des Titels nutzt die
+  Fliesstext-Schrift proportional kleiner.
 - Projekt baut und Unit-Tests laufen; UI-Test-Runner blockierte lokal am 2026-06-19
   vor dem App-Launch an einer alten Feedivo-PID.
 
@@ -190,6 +190,12 @@ M2 Core Features:
 - Implementiert: Separater Titel-Zeilenabstand (0...10 px) und Fliesstext-
   Zeilenabstand (1...12 px) fuer den nativen Reader, direkt im Reader-Popover
   und in den Einstellungen unter Lesen.
+
+#### 1.9.3 Artikelbreite
+- Status: Fertig als Basis
+- Prioritaet: MVP/v1
+- Implementiert: Maximale Breite der Artikelansicht als Slider im Reader-Popover
+  und in den Einstellungen unter Lesen. Default: 720 px, Wertebereich: 520...980 px.
 
 #### 1.10 Link kopieren
 - Status: Entschieden
@@ -317,7 +323,7 @@ M2 Core Features:
 - Status: Fertig als Basis
 - Prioritaet: v1
 - Implementiert: Reader-Schriften, Fliesstext-Groesse sowie Titel- und
-  Fliesstext-Zeilenabstand.
+  Fliesstext-Zeilenabstand und Artikelbreite.
 - Naechster Schritt: Theme System/Hell/Dunkel spaeter.
 
 ### 9. Suche

@@ -249,8 +249,8 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 - `@AppStorage("appLanguage")`
 - Sprachauswahl: Nach System, Deutsch, Englisch, Französisch, Italienisch
 - Reader-Schriftwahl: `readerTitleFontPreset` und `readerBodyFontPreset`
-- Reader-Typografie: `readerBodyFontSize`, `readerTitleLineSpacing` und
-  `readerLineSpacing`
+- Reader-Typografie: `readerBodyFontSize`, `readerTitleLineSpacing`,
+  `readerLineSpacing` und `readerContentWidth`
 - Presets: System, Geist, Inter, Manrope, DM Sans, Literata, Newsreader,
   IBM Plex Sans, Atkinson Hyperlegible, Source Serif 4, Libre Franklin, Lora,
   Merriweather, Noto Sans, Noto Serif, Roboto Slab, Crimson Pro, Fraunces, Serif
@@ -260,9 +260,10 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 - Metazeile: Feedname, ungefaehre Lesezeit und Artikelalter, linksbuendig oberhalb
   des Titels
 - Toolbar-Button `textformat` oeffnet ein Popover fuer Titel-Schrift,
-  Fliesstext-Schrift, Textgroesse sowie Titel- und Fliesstext-Zeilenabstand
+  Fliesstext-Schrift, Textgroesse, Titel-/Fliesstext-Zeilenabstand und Artikelbreite
 - Titel- und Fliesstext-Schrift sowie Textgroesse/Titel-Zeilenabstand/
-  Fliesstext-Zeilenabstand werden getrennt via `@AppStorage` gespeichert
+  Fliesstext-Zeilenabstand/Artikelbreite werden getrennt via `@AppStorage`
+  gespeichert
 - Die Metazeile oberhalb des Titels nutzt die Fliesstext-Schrift proportional kleiner
 - Nutzt `ReaderContentRenderer`, um Content/Summary in Absätze und Bilder zu wandeln
 - Noch kein WKWebView/Vollseiten-Reader
@@ -287,6 +288,7 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 - Fliesstext-Groesse: Default 17 px, Wertebereich 14...24 px
 - Titel-Zeilenabstand: Default 2 px, Wertebereich 0...10 px
 - Fliesstext-Zeilenabstand: Default 5 px, Wertebereich 1...12 px
+- Artikelbreite: Default 720 px, Wertebereich 520...980 px, Schrittweite 20 px
 
 ### ReaderMetadataFormatter.swift
 - Berechnet ungefaehre Lesezeit mit 200 Woertern pro Minute, mindestens 1 Minute
@@ -480,8 +482,8 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 - [x] Artikel mit Stern markieren (Basis per Button/Kontextmenue)
 - [x] i18n Foundation: String Catalog und erste Lokalisierung fuer de/en/fr/it
 - [x] Einstellung fuer App-Sprache: Nach System, Deutsch, Englisch, Französisch, Italienisch
-- [x] Reader-Typografie: Titel-/Fliesstext-Schriften, Fliesstext-Groesse sowie
-  Titel- und Fliesstext-Zeilenabstand
+- [x] Reader-Typografie: Titel-/Fliesstext-Schriften, Fliesstext-Groesse,
+  Titel-/Fliesstext-Zeilenabstand und Artikelbreite
 - [ ] Tastaturkuerzel: `Cmd+Shift+U` gelesen/ungelesen, `Cmd+D` Stern
 - [ ] macOS Menüleiste: `Cmd+R` = Refresh, `Cmd+N` = Feed hinzufügen
 - [ ] Feed löschen (Rechtsklick → Delete, mit Bestätigung)
@@ -584,3 +586,5 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
   registriert; Font-Herkunft/Lizenzen in `docs/THIRD_PARTY_FONTS.md`
 - 2026-06-19: Reader-Titel-Zeilenabstand ergaenzt: Titel und Fliesstext haben nun
   separate Zeilenabstand-Slider im Reader-Popover und in den Einstellungen
+- 2026-06-19: Reader-Artikelbreite ergaenzt: Maximale Artikelbreite kann im
+  Reader-Popover und in den Einstellungen zwischen 520...980 px eingestellt werden

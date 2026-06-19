@@ -3,8 +3,8 @@
 ## Ziel
 
 Die Artikelansicht soll getrennte Schrift-Presets fuer Titel und Fliesstext anbieten.
-Zusätzlich sollen Textgroesse des Fliesstextes sowie Titel- und Fliesstext-
-Zeilenabstand direkt steuerbar sein.
+Zusätzlich sollen Textgroesse des Fliesstextes, Titel- und Fliesstext-
+Zeilenabstand sowie die maximale Artikelbreite direkt steuerbar sein.
 Der Zugriff erfolgt direkt in der Artikelansicht und zusaetzlich in den Einstellungen.
 
 ## Verhalten
@@ -22,14 +22,15 @@ Der Zugriff erfolgt direkt in der Artikelansicht und zusaetzlich in den Einstell
 - Textgroesse wird global gespeichert und auf 14...24 px begrenzt.
 - Titel-Zeilenabstand wird global gespeichert und auf 0...10 px begrenzt.
 - Fliesstext-Zeilenabstand wird global gespeichert und auf 1...12 px begrenzt.
+- Artikelbreite wird global gespeichert und auf 520...980 px begrenzt.
 
 ## Architektur
 
 `ReaderFontPreset` kapselt Preset-Werte, Anzeigenamen, bekannte PostScript-Kandidaten,
 gebundelte Fontdateien und SwiftUI-Font-Erzeugung.
 `ReaderFontRegistry` registriert gebundelte TTF-Dateien beim App-Start via CoreText.
-`ReaderTypography` kapselt Defaults und Grenzwerte fuer Textgroesse sowie Titel- und
-Fliesstext-Zeilenabstand.
+`ReaderTypography` kapselt Defaults und Grenzwerte fuer Textgroesse, Titel- und
+Fliesstext-Zeilenabstand sowie Artikelbreite.
 `ReaderView` nutzt die gespeicherten Werte fuer Titel und Paragraphen.
 `SettingsView` nutzt dieselben AppStorage-Keys und Presets.
 

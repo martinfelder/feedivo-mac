@@ -763,6 +763,34 @@
         }
       }
     },
+    "reader.contentWidth.slider" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Artikelbreite"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Article width"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Largeur de l'article"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Larghezza articolo"
+          }
+        }
+      }
+    },
     "reader.titleLineSpacing.slider" : {
       "localizations" : {
         "de" : {

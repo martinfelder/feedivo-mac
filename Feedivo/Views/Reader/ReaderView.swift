@@ -18,6 +18,9 @@ struct ReaderView: View {
     @AppStorage("readerTitleLineSpacing")
     private var readerTitleLineSpacing = ReaderTypography.defaultTitleLineSpacing
 
+    @AppStorage("readerContentWidth")
+    private var readerContentWidth = ReaderTypography.defaultContentWidth
+
     @State private var isAppearancePopoverPresented = false
 
     private var titleFontPreset: ReaderFontPreset {
@@ -38,6 +41,10 @@ struct ReaderView: View {
 
     private var clampedTitleLineSpacing: CGFloat {
         CGFloat(ReaderTypography.clampedTitleLineSpacing(readerTitleLineSpacing))
+    }
+
+    private var clampedContentWidth: CGFloat {
+        CGFloat(ReaderTypography.clampedContentWidth(readerContentWidth))
     }
 
     private var metadataFontSize: CGFloat {
@@ -99,7 +106,7 @@ struct ReaderView: View {
                     Link(L10n.readerOpenOriginal, destination: url)
                 }
             }
-            .frame(maxWidth: 720, alignment: .leading)
+            .frame(maxWidth: clampedContentWidth, alignment: .leading)
             .padding()
         }
         .navigationTitle(article.title)
@@ -159,16 +166,25 @@ struct ReaderView: View {
                 range: ReaderTypography.lineSpacingRange,
                 displayedValue: ReaderTypography.clampedLineSpacing(readerLineSpacing)
             )
+
+            typographySlider(
+                L10n.readerContentWidthSlider,
+                value: $readerContentWidth,
+                range: ReaderTypography.contentWidthRange,
+                displayedValue: ReaderTypography.clampedContentWidth(readerContentWidth),
+                step: ReaderTypography.contentWidthStep
+            )
         }
         .padding(16)
-        .frame(width: 300)
+        .frame(width: 320)
     }
 
     private func typographySlider(
         _ title: LocalizedStringKey,
         value: Binding<Double>,
         range: ClosedRange<Double>,
-        displayedValue: Double
+        displayedValue: Double,
+        step: Double = 1
     ) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
@@ -180,7 +196,7 @@ struct ReaderView: View {
                     .monospacedDigit()
             }
 
-            Slider(value: value, in: range, step: 1)
+            Slider(value: value, in: range, step: step)
         }
     }
 
