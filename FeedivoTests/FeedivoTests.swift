@@ -11,6 +11,11 @@ import Testing
 
 struct FeedivoTests {
 
+    @Test func feedServiceErrorTexteSindLokalisiert() {
+        #expect(FeedServiceError.invalidURL.errorDescription == "Die Feed-URL ist ungültig.")
+        #expect(FeedServiceError.parsingFailed.errorDescription == "Der Feed konnte nicht gelesen werden.")
+    }
+
     @Test func feedServiceParstRSSTitelUndArtikelMetadaten() async throws {
         let rss = """
         <?xml version="1.0" encoding="UTF-8"?>

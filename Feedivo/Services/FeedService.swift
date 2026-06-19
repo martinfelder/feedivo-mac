@@ -25,9 +25,9 @@ enum FeedServiceError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidURL:
-            return "Die Feed-URL ist ungültig."
+            return L10n.feedErrorInvalidURL
         case .parsingFailed:
-            return "Der Feed konnte nicht gelesen werden."
+            return L10n.feedErrorParsingFailed
         }
     }
 }

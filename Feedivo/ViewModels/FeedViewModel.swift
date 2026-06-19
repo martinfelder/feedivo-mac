@@ -11,7 +11,7 @@ final class FeedViewModel {
     func addFeed(urlString: String, context: ModelContext) async {
         let cleanedURL = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleanedURL.isEmpty else {
-            errorMessage = "Bitte gib eine Feed-URL ein."
+            errorMessage = L10n.feedErrorEmptyURL
             return
         }
 
@@ -42,9 +42,9 @@ final class FeedViewModel {
             context.insert(feed)
             try context.save()
         } catch let error as LocalizedError {
-            errorMessage = error.errorDescription ?? "Der Feed konnte nicht hinzugefügt werden."
+            errorMessage = error.errorDescription ?? L10n.feedErrorAddFailed
         } catch {
-            errorMessage = "Der Feed konnte nicht hinzugefügt werden."
+            errorMessage = L10n.feedErrorAddFailed
         }
 
         isLoading = false
