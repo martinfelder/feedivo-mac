@@ -38,6 +38,49 @@ Electron-App. Echtes AppKit-Feeling via SwiftUI für macOS.
 
 ---
 
+## Codex-Arbeitsregeln und Projektgedächtnis
+
+> **Wichtig:** Diese Regeln gelten fuer jede neue Codex-/Codex.ai-Session. Ziel ist,
+> dass der Projektstand nicht nur im Chat, sondern dauerhaft im Repo-Gedaechtnis bleibt.
+
+### Session-Start-Checkliste
+
+Bei jeder neuen Session zuerst:
+
+1. `AGENTS.md` vollstaendig lesen.
+2. Falls vorhanden `docs/FEATURES.md` lesen, wenn es um Planung, Roadmap oder Features geht.
+3. `git status --short --branch` pruefen.
+4. Relevante Swift-Dateien lesen, bevor Code geaendert wird.
+5. Den aktuellen Milestone und "Aktuell in Arbeit" gegen den Code abgleichen.
+
+### Bei jeder Code- oder Feature-Aenderung
+
+Nach jeder relevanten Aenderung pruefen und bei Bedarf aktualisieren:
+
+1. `AGENTS.md`:
+   - Implementierter Code
+   - Milestone-Plan
+   - Aktuell in Arbeit
+   - Letzte Aenderungen
+   - Bekannte Gotchas / ADRs
+2. `docs/FEATURES.md`:
+   - Feature-Status
+   - Prioritaet
+   - offene Entscheidungen
+   - Empfehlungen oder bewusst zurueckgestellte Punkte
+3. Tests/Build:
+   - Vor Abschluss mindestens den passenden `xcodebuild`-Befehl laufen lassen.
+   - In der finalen Antwort exakt nennen, was geprueft wurde und ob es erfolgreich war.
+
+### Dokumentationsprinzip
+
+- Entscheidungen kurz begruenden, besonders wenn Features verschoben oder vereinfacht werden.
+- Keine Roadmap stillschweigend aendern. Immer in `AGENTS.md` und/oder `docs/FEATURES.md` nachfuehren.
+- Wenn eine User-Entscheidung faellt, diese als Entscheidung dokumentieren, nicht nur im Chat beantworten.
+- Wenn der Code vom Projektgedaechtnis abweicht, zuerst das Projektgedaechtnis korrigieren oder die Abweichung klar melden.
+
+---
+
 ## Technologie-Stack
 
 | Bereich | Technologie | Version / Hinweis |
@@ -113,6 +156,8 @@ FeedivoMac/
 │       └── AGENTS.md                   # Diese Datei
 │
 ├── Feedivo.xcodeproj
+├── docs/
+│   └── FEATURES.md                     # Produkt-Roadmap, priorisierter Feature-Backlog ✅
 └── AGENTS.md                           # Kopie im Root (für Codex CLI)
 ```
 
@@ -282,6 +327,8 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
   nicht an eine View
 - **iCloud Capability:** Muss in Xcode Target → Signing & Capabilities aktiviert sein,
   plus CloudKit Container in developer.apple.com anlegen
+- **Sandbox Netzwerk:** Feed-Downloads brauchen `com.apple.security.network.client` in
+  `Feedivo/Feedivo.entitlements`. Nur ein Build-Setting reicht nicht als Nachweis.
 - **OPML-Format:** XML-basiert — `XMLParser` (built-in) reicht, kein 3rd-Party nötig
 
 ---
@@ -343,6 +390,11 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 
 ## Offene Entscheidungen
 
+- [ ] Reader-Modus global oder pro Artikel speichern?
+- [ ] Artikel automatisch beim Öffnen als gelesen markieren?
+- [ ] Stern und Archiv getrennt halten oder für v1 nur Stern?
+- [ ] OPML-Gruppen später als Ordner oder Tags importieren?
+- [ ] CloudKit Sync-Umfang, insbesondere Artikel-Content
 - [ ] Artikel-Detail: Nur nativer SwiftUI Text-Renderer oder auch WKWebView (volle Webseite)?
 - [ ] Monetarisierung: Kostenlos / einmaliger Kauf / nie im App Store?
 - [ ] Favicon-Strategie: Google S2 API (`https://www.google.com/s2/favicons?domain=`) oder eigene Lösung?
@@ -353,6 +405,8 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 
 - M1 abgeschlossen
 - Aktuell M2: ArticleRowView, Gelesen/Ungelesen, Stern, Menü-Commands und Feed löschen
+- Feature-Roadmap ist in `docs/FEATURES.md` dokumentiert und muss bei Änderungen
+  zusammen mit diesem Projektgedächtnis gepflegt werden
 
 ---
 
@@ -363,3 +417,8 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 - 2026-06-19: FeedService auf FeedKit 10.4.0 umgesetzt, Feed-Titel aus Metadaten,
   ArticleListView/ReaderView mit echten Daten verbunden, macOS Deployment Target auf 14.0
   korrigiert, Netzwerk-Client-Entitlement aktiviert
+- 2026-06-19: Feature-Liste als priorisierte Roadmap in `docs/FEATURES.md`
+  dokumentiert; Codex-Arbeitsregeln fuer Session-Start, Verifikation und
+  Gedaechtnis-Pflege in `AGENTS.md` ergaenzt
+- 2026-06-19: `Feedivo/Feedivo.entitlements` ergaenzt, damit Sandbox-Netzwerkzugriff
+  fuer Feed-Downloads explizit als `com.apple.security.network.client` gesetzt ist
