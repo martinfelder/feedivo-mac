@@ -36,4 +36,8 @@ enum L10n {
     static var feedErrorParsingFailed: String { String(localized: "feed.error.parsingFailed") }
     static var feedErrorEmptyURL: String { String(localized: "feed.error.emptyURL") }
     static var feedErrorAddFailed: String { String(localized: "feed.error.addFailed") }
+
+    static func readerReadingTime(minutes: Int) -> String {
+        String.localizedStringWithFormat(String(localized: "reader.readingTime"), minutes)
+    }
 }

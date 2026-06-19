@@ -65,7 +65,8 @@ bei geschlossener App.
 - Feed-Titel wird aus Feed-Metadaten gelesen.
 - Sidebar zeigt gespeicherte Feeds.
 - Artikel-Liste zeigt echte Artikel eines Feeds.
-- Reader zeigt Titel, native Reader-Bloecke und Original-Link.
+- Reader zeigt Feedname, ungefaehre Lesezeit, Artikelalter, Titel, native
+  Reader-Bloecke und Original-Link.
 - Reader-Rendering wandelt HTML/Plain-Text in Absätze und Bildbloecke.
 - ArticleRowView zeigt Titel, Datum, Summary, optionales Bild, Ungelesen-Punkt
   rechts oben und Stern rechts unten.
@@ -109,6 +110,8 @@ M2 Core Features:
 - Prioritaet: MVP
 - Implementiert: `ReaderContentRenderer` erzeugt Absätze und Bildbloecke aus
   gespeicherten Feed-Inhalten; `ReaderView` rendert diese Bloecke nativ mit SwiftUI.
+- Metadaten: Oberhalb des Titels zeigt `ReaderView` Feedname, ungefaehre Lesezeit
+  und Artikelalter, sofern die Daten vorhanden sind.
 - Naechster Schritt: Links, Listen, Zitate und leere/kaputte Inhalte gezielter darstellen.
 
 #### 1.2 Navigation Vor/Zurueck

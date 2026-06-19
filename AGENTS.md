@@ -132,6 +132,7 @@ FeedivoMac/
 │   │   ├── Reader/
 │   │   │   ├── ReaderView.swift        # Rechte Spalte: nativer Artikel-Reader ✅
 │   │   │   ├── ReaderContentRenderer.swift # HTML/Text zu Reader-Bloecken ✅
+│   │   │   ├── ReaderMetadataFormatter.swift # Feedname/Lesezeit/Alter ✅
 │   │   │   └── WebContentView.swift    # WKWebView-Wrapper für volle Artikel (TODO)
 │   │   ├── Tags/
 │   │   │   ├── TagManagerView.swift    # Tags erstellen, bearbeiten, löschen (TODO)
@@ -246,9 +247,17 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 - Sprachauswahl: Nach System, Deutsch, Englisch, Französisch, Italienisch
 
 ### ReaderView.swift
-- Zeigt Titel, native Reader-Bloecke und Link zum Original
+- Zeigt Metazeile, Titel, native Reader-Bloecke und Link zum Original
+- Metazeile: Feedname, ungefaehre Lesezeit und Artikelalter, linksbuendig oberhalb
+  des Titels
 - Nutzt `ReaderContentRenderer`, um Content/Summary in Absätze und Bilder zu wandeln
 - Noch kein WKWebView/Vollseiten-Reader
+
+### ReaderMetadataFormatter.swift
+- Berechnet ungefaehre Lesezeit mit 200 Woertern pro Minute, mindestens 1 Minute
+- Verwendet `Article.content` vor `Article.summary`
+- Baut Metadaten-Teile so zusammen, dass fehlende Werte ausgelassen werden
+- Sichtbarer Lesezeit-Text ist via `Localizable.xcstrings` und `L10n` lokalisiert
 
 ### ReaderContentRenderer.swift
 - Wandelt HTML-Fragmente oder Plain Text in `ReaderContentBlock`
@@ -523,3 +532,5 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 - 2026-06-19: Artikelbild-Parsing verbessert: Relative Bild-URLs aus HTML und Media RSS
   werden beim Feed-Import gegen die Feed-URL zu absoluten URLs normalisiert, damit
   Artikelliste und Reader die Bilder via `AsyncImage` laden koennen
+- 2026-06-19: Reader-Metazeile ergaenzt: Oberhalb des Titels zeigt die Artikelansicht
+  Feedname, ungefaehre Lesezeit und Artikelalter; Lesezeit ist testbar und lokalisiert

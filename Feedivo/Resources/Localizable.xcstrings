@@ -536,6 +536,34 @@
         }
       }
     },
+    "reader.readingTime" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ca. %lld Min. Lesezeit"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "approx. %lld min read"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "env. %lld min de lecture"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "circa %lld min di lettura"
+          }
+        }
+      }
+    },
     "settings.language.english" : {
       "localizations" : {
         "de" : {

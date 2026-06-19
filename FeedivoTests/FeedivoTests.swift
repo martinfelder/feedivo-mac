@@ -63,6 +63,21 @@ struct FeedivoTests {
         ])
     }
 
+    @Test func readerMetadataBerechnetUngefaehreLesezeit() {
+        let kurzerText = "Ein kurzer Artikel mit nur wenigen Worten."
+        let langerText = Array(repeating: "Wort", count: 420).joined(separator: " ")
+
+        #expect(ReaderMetadataFormatter.readingTimeText(for: kurzerText) == "ca. 1 Min. Lesezeit")
+        #expect(ReaderMetadataFormatter.readingTimeText(for: langerText) == "ca. 3 Min. Lesezeit")
+    }
+
+    @Test func readerMetadataNutztContentVorSummary() {
+        let kurzerSummaryText = "Kurze Summary."
+        let langerContentText = Array(repeating: "Wort", count: 260).joined(separator: " ")
+
+        #expect(ReaderMetadataFormatter.readingTimeText(content: langerContentText, summary: kurzerSummaryText) == "ca. 2 Min. Lesezeit")
+    }
+
     @Test func feedServiceParstRSSTitelUndArtikelMetadaten() async throws {
         let rss = """
         <?xml version="1.0" encoding="UTF-8"?>

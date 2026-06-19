@@ -11,9 +11,29 @@ struct ReaderView: View {
         )
     }
 
+    private var metadataText: String {
+        ReaderMetadataFormatter.metadataParts(
+            feedName: article.feed?.title,
+            readingTime: ReaderMetadataFormatter.readingTimeText(
+                content: article.content,
+                summary: article.summary
+            ),
+            publishedAt: article.publishedAt
+        )
+        .joined(separator: " · ")
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
+                if !metadataText.isEmpty {
+                    Text(metadataText)
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+
                 Text(article.title)
                     .font(.largeTitle)
                     .fontWeight(.bold)
