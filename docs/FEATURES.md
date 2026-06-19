@@ -74,14 +74,14 @@ bei geschlossener App.
   werden.
 - Automatisches Gelesen-Markieren beim Oeffnen ist standardmaessig aktiv und in den
   Einstellungen abschaltbar.
-- Projekt baut und Tests laufen.
+- i18n Foundation ist umgesetzt: String Catalog mit Deutsch, Englisch, Franzoesisch
+  und Italienisch, plus zentraler `L10n.swift` Helper.
+- Projekt baut und Unit-Tests laufen; UI-Test-Runner blockierte lokal am 2026-06-19
+  vor dem App-Launch an einer alten Feedivo-PID.
 
 ### Aktuell in Arbeit
 
 M2 Core Features:
-- ArticleRowView
-- Gelesen/Ungelesen
-- Stern/Favoriten
 - Tastaturkuerzel fuer Artikelaktionen
 - Menue-Commands
 - Feed loeschen
@@ -425,7 +425,28 @@ M2 Core Features:
 
 - Menubar-Icon: Spaeter.
 - Vollstaendige Tastaturnavigation: MVP/v1, weil sehr mac-like.
-- Mehrsprachige Oberflaeche: Spaeter.
+
+### 20. Mehrsprachigkeit
+
+#### 20.1 i18n Foundation
+- Status: Fertig als Basis
+- Prioritaet: v1
+- Implementiert: `Localizable.xcstrings` mit Deutsch, Englisch, Franzoesisch und
+  Italienisch; zentrale Keys in `L10n.swift`; sichtbare Basis-UI und Fehlermeldungen
+  sind lokalisiert.
+- Entscheidung: Neue sichtbare Strings muessen kuenftig in den String Catalog.
+
+#### 20.2 Sprachumschalter in der App
+- Status: In Diskussion
+- Prioritaet: Spaeter
+- Empfehlung: Vorerst macOS-Systemsprache nutzen. Einen eigenen Sprachumschalter erst
+  bauen, wenn Benutzerbedarf klar ist.
+
+#### 20.3 Lokalisierungs-QA
+- Status: In Diskussion
+- Prioritaet: v1
+- Empfehlung: Spaeter pro Sprache Screenshots/Smoke-Test ergaenzen, damit lange Texte
+  in Franzoesisch/Italienisch nicht die macOS-Layouts sprengen.
 
 ---
 
@@ -437,6 +458,7 @@ M2 Core Features:
 4. Favicon-Strategie: eigene Ableitung, Webseite-Metadaten oder externer Dienst?
 5. OPML-Gruppen spaeter als Ordner oder Tags importieren?
 6. CloudKit Sync-Umfang, insbesondere ob Artikel-Content synchronisiert wird.
+7. Eigener Sprachumschalter oder weiterhin nur macOS-Systemsprache?
 
 ---
 

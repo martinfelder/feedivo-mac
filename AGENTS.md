@@ -93,6 +93,7 @@ Nach jeder relevanten Aenderung pruefen und bei Bedarf aktualisieren:
 | Netzwerk | URLSession + async/await | Kein Alamofire, kein Combine |
 | RSS-Parsing | FeedKit | Swift Package, URL: https://github.com/nmdias/FeedKit |
 | Bilder | AsyncImage | Built-in SwiftUI, kein Kingfisher |
+| Lokalisierung | String Catalog + `String(localized:)` | Deutsch, Englisch, Französisch, Italienisch |
 | Background Refresh | BackgroundTasks Framework | BGTaskScheduler — noch nicht implementiert |
 | Mindest-macOS | macOS 14.0 Sonoma | SwiftData + @Observable Macro |
 
@@ -153,6 +154,8 @@ FeedivoMac/
 │   │
 │   └── Resources/
 │       ├── Assets.xcassets
+│       ├── Localizable.xcstrings       # String Catalog fuer de/en/fr/it ✅
+│       ├── L10n.swift                  # Zentraler Zugriff auf lokalisierte Strings ✅
 │       └── AGENTS.md                   # Diese Datei
 │
 ├── Feedivo.xcodeproj
@@ -239,6 +242,14 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 ### ReaderView.swift
 - Zeigt Titel, Summary, gespeicherten Content und Link zum Original
 - Noch kein WKWebView/Vollseiten-Reader
+
+### Lokalisierung / i18n
+- `Feedivo/Resources/Localizable.xcstrings` ist die zentrale String Catalog Datei
+- Erste Sprachen: Deutsch (`de`), Englisch (`en`), Französisch (`fr`), Italienisch (`it`)
+- `Feedivo/Resources/L10n.swift` bündelt lokalisierte Strings fuer ViewModels,
+  Services und Tests
+- SwiftUI-Views verwenden lokalisierte `LocalizedStringKey`/`String(localized:)`
+- Feed- und Parser-Fehlermeldungen sind lokalisiert
 
 ---
 
@@ -336,6 +347,13 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 - **Grund:** Entspricht vielen RSS Readern, bleibt aber Geschmackssache und daher abschaltbar.
 - **Datum:** 2026-06-19
 
+### ADR-008: i18n via String Catalog
+- **Entscheidung:** App-Texte werden ueber `Localizable.xcstrings` lokalisiert.
+- **Sprachen:** Deutsch, Englisch, Französisch, Italienisch.
+- **Grund:** Xcode String Catalog ist der native Weg fuer moderne SwiftUI/macOS Apps
+  und skaliert besser als verstreute harte Strings.
+- **Datum:** 2026-06-19
+
 ---
 
 ## Bekannte Gotchas & Fallstricke
@@ -364,6 +382,13 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 - **SwiftUI Settings auf macOS:** App-weite Einstellungen als eigene `Settings { }`
   Szene in `FeedivoApp.swift` registrieren; Werte koennen mit `@AppStorage` global
   geteilt werden.
+- **Lokalisierung:** Neue sichtbare UI-Texte nicht hart in Views/Services schreiben,
+  sondern zuerst als Key in `Localizable.xcstrings` erfassen und bei Bedarf in `L10n.swift`
+  zentral bereitstellen.
+- **UI-Tests lokal:** Am 2026-06-19 blockierte `xcodebuild test` fuer den UI-Test-Runner
+  vor dem App-Launch an einer alten Feedivo-PID (`Failed to terminate ch.martin.Feedivo:75492`).
+  Build und Unit-Tests waren erfolgreich; UI-Test-Runner bei Bedarf in Xcode/LaunchServices
+  separat bereinigen.
 - **OPML-Format:** XML-basiert — `XMLParser` (built-in) reicht, kein 3rd-Party nötig
 
 ---
@@ -388,6 +413,7 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 - [x] ArticleRowView: Titel, Datum, gelesen/ungelesen Indikator
 - [x] Gelesen/Ungelesen markieren (Basis per Kontextmenue + Auto-gelesen beim Oeffnen)
 - [x] Artikel mit Stern markieren (Basis per Button/Kontextmenue)
+- [x] i18n Foundation: String Catalog und erste Lokalisierung fuer de/en/fr/it
 - [ ] Tastaturkuerzel: `Cmd+Shift+U` gelesen/ungelesen, `Cmd+D` Stern
 - [ ] macOS Menüleiste: `Cmd+R` = Refresh, `Cmd+N` = Feed hinzufügen
 - [ ] Feed löschen (Rechtsklick → Delete, mit Bestätigung)
@@ -463,3 +489,6 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 - 2026-06-19: FeedService liest Artikelbilder robuster aus Media RSS, iTunes Image,
   Bild-Enclosures und HTML-Content; Parser-Tests fuer `media:thumbnail` und
   HTML-`img` ergaenzt
+- 2026-06-19: i18n Foundation umgesetzt: String Catalog `Localizable.xcstrings`,
+  `L10n.swift`, UI-/Fehlertexte fuer Deutsch, Englisch, Französisch und Italienisch;
+  Build und Unit-Tests erfolgreich, UI-Test-Runner lokal durch alte Feedivo-PID blockiert
