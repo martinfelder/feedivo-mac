@@ -76,6 +76,8 @@ bei geschlossener App.
   Einstellungen abschaltbar.
 - i18n Foundation ist umgesetzt: String Catalog mit Deutsch, Englisch, Franzoesisch
   und Italienisch, plus zentraler `L10n.swift` Helper.
+- In den Einstellungen kann die App-Sprache auf `Nach System`, Deutsch, Englisch,
+  Franzoesisch oder Italienisch gesetzt werden.
 - Projekt baut und Unit-Tests laufen; UI-Test-Runner blockierte lokal am 2026-06-19
   vor dem App-Launch an einer alten Feedivo-PID.
 
@@ -437,10 +439,12 @@ M2 Core Features:
 - Entscheidung: Neue sichtbare Strings muessen kuenftig in den String Catalog.
 
 #### 20.2 Sprachumschalter in der App
-- Status: In Diskussion
-- Prioritaet: Spaeter
-- Empfehlung: Vorerst macOS-Systemsprache nutzen. Einen eigenen Sprachumschalter erst
-  bauen, wenn Benutzerbedarf klar ist.
+- Status: Fertig als Basis
+- Prioritaet: v1
+- Implementiert: Picker in den Einstellungen mit `Nach System`, Deutsch, Englisch,
+  Franzoesisch und Italienisch.
+- Entscheidung: `Nach System` bleibt Default; feste Sprachen setzen die SwiftUI-Locale
+  fuer Hauptfenster und Einstellungen.
 
 #### 20.3 Lokalisierungs-QA
 - Status: In Diskussion
@@ -458,7 +462,6 @@ M2 Core Features:
 4. Favicon-Strategie: eigene Ableitung, Webseite-Metadaten oder externer Dienst?
 5. OPML-Gruppen spaeter als Ordner oder Tags importieren?
 6. CloudKit Sync-Umfang, insbesondere ob Artikel-Content synchronisiert wird.
-7. Eigener Sprachumschalter oder weiterhin nur macOS-Systemsprache?
 
 ---
 

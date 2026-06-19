@@ -16,6 +16,13 @@ enum L10n {
     static let articleRowUnread = LocalizedStringKey("articleRow.unread")
     static let readerOpenOriginal = LocalizedStringKey("reader.openOriginal")
     static let settingsReadingSection = LocalizedStringKey("settings.reading.section")
+    static let settingsLanguageSection = LocalizedStringKey("settings.language.section")
+    static let settingsLanguagePickerTitle = LocalizedStringKey("settings.language.picker.title")
+    static let settingsLanguageSystem = LocalizedStringKey("settings.language.system")
+    static let settingsLanguageGerman = LocalizedStringKey("settings.language.german")
+    static let settingsLanguageEnglish = LocalizedStringKey("settings.language.english")
+    static let settingsLanguageFrench = LocalizedStringKey("settings.language.french")
+    static let settingsLanguageItalian = LocalizedStringKey("settings.language.italian")
     static let settingsMarkReadOnOpenTitle = LocalizedStringKey("settings.markReadOnOpen.title")
     static let settingsMarkReadOnOpenDescription = LocalizedStringKey("settings.markReadOnOpen.description")
 

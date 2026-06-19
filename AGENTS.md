@@ -154,6 +154,7 @@ FeedivoMac/
 │   │
 │   └── Resources/
 │       ├── Assets.xcassets
+│       ├── AppLanguage.swift           # Sprachauswahl + Locale-Mapping ✅
 │       ├── Localizable.xcstrings       # String Catalog fuer de/en/fr/it ✅
 │       ├── L10n.swift                  # Zentraler Zugriff auf lokalisierte Strings ✅
 │       └── AGENTS.md                   # Diese Datei
@@ -238,6 +239,8 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 - macOS Settings-Szene in `FeedivoApp.swift`
 - `@AppStorage("markArticleReadOnSelection")`
 - Standard: Artikel beim Oeffnen automatisch als gelesen markieren
+- `@AppStorage("appLanguage")`
+- Sprachauswahl: Nach System, Deutsch, Englisch, Französisch, Italienisch
 
 ### ReaderView.swift
 - Zeigt Titel, Summary, gespeicherten Content und Link zum Original
@@ -246,10 +249,12 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 ### Lokalisierung / i18n
 - `Feedivo/Resources/Localizable.xcstrings` ist die zentrale String Catalog Datei
 - Erste Sprachen: Deutsch (`de`), Englisch (`en`), Französisch (`fr`), Italienisch (`it`)
+- `Feedivo/Resources/AppLanguage.swift` kapselt System-/Sprachauswahl und Locale-Mapping
 - `Feedivo/Resources/L10n.swift` bündelt lokalisierte Strings fuer ViewModels,
   Services und Tests
 - SwiftUI-Views verwenden lokalisierte `LocalizedStringKey`/`String(localized:)`
 - Feed- und Parser-Fehlermeldungen sind lokalisiert
+- Benutzer koennen in den Einstellungen `Nach System` oder eine feste Sprache waehlen
 
 ---
 
@@ -350,6 +355,8 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 ### ADR-008: i18n via String Catalog
 - **Entscheidung:** App-Texte werden ueber `Localizable.xcstrings` lokalisiert.
 - **Sprachen:** Deutsch, Englisch, Französisch, Italienisch.
+- **Sprachauswahl:** Default `Nach System`; Benutzer koennen in den Einstellungen
+  Deutsch, Englisch, Französisch oder Italienisch erzwingen.
 - **Grund:** Xcode String Catalog ist der native Weg fuer moderne SwiftUI/macOS Apps
   und skaliert besser als verstreute harte Strings.
 - **Datum:** 2026-06-19
@@ -385,6 +392,8 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 - **Lokalisierung:** Neue sichtbare UI-Texte nicht hart in Views/Services schreiben,
   sondern zuerst als Key in `Localizable.xcstrings` erfassen und bei Bedarf in `L10n.swift`
   zentral bereitstellen.
+- **Sprachauswahl:** `AppLanguage.system` muss Default bleiben. Unbekannte gespeicherte
+  Werte immer mit `AppLanguage.resolved(from:)` auf `.system` zurueckfallen lassen.
 - **UI-Tests lokal:** Am 2026-06-19 blockierte `xcodebuild test` fuer den UI-Test-Runner
   vor dem App-Launch an einer alten Feedivo-PID (`Failed to terminate ch.martin.Feedivo:75492`).
   Build und Unit-Tests waren erfolgreich; UI-Test-Runner bei Bedarf in Xcode/LaunchServices
@@ -414,6 +423,7 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 - [x] Gelesen/Ungelesen markieren (Basis per Kontextmenue + Auto-gelesen beim Oeffnen)
 - [x] Artikel mit Stern markieren (Basis per Button/Kontextmenue)
 - [x] i18n Foundation: String Catalog und erste Lokalisierung fuer de/en/fr/it
+- [x] Einstellung fuer App-Sprache: Nach System, Deutsch, Englisch, Französisch, Italienisch
 - [ ] Tastaturkuerzel: `Cmd+Shift+U` gelesen/ungelesen, `Cmd+D` Stern
 - [ ] macOS Menüleiste: `Cmd+R` = Refresh, `Cmd+N` = Feed hinzufügen
 - [ ] Feed löschen (Rechtsklick → Delete, mit Bestätigung)
@@ -492,3 +502,6 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 - 2026-06-19: i18n Foundation umgesetzt: String Catalog `Localizable.xcstrings`,
   `L10n.swift`, UI-/Fehlertexte fuer Deutsch, Englisch, Französisch und Italienisch;
   Build und Unit-Tests erfolgreich, UI-Test-Runner lokal durch alte Feedivo-PID blockiert
+- 2026-06-19: Sprachauswahl in den Einstellungen ergaenzt: `Nach System` als Default,
+  feste Auswahl fuer Deutsch, Englisch, Französisch und Italienisch; Locale wird in
+  `FeedivoApp` auf Hauptfenster und Settings angewendet

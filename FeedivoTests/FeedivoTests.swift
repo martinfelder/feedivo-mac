@@ -16,6 +16,15 @@ struct FeedivoTests {
         #expect(FeedServiceError.parsingFailed.errorDescription == "Der Feed konnte nicht gelesen werden.")
     }
 
+    @Test func appLanguageLiefertLocaleUndFallback() {
+        #expect(AppLanguage(rawValue: "de")?.localeIdentifier == "de")
+        #expect(AppLanguage(rawValue: "en")?.localeIdentifier == "en")
+        #expect(AppLanguage(rawValue: "fr")?.localeIdentifier == "fr")
+        #expect(AppLanguage(rawValue: "it")?.localeIdentifier == "it")
+        #expect(AppLanguage(rawValue: "system")?.localeIdentifier == nil)
+        #expect(AppLanguage.resolved(from: "unbekannt") == .system)
+    }
+
     @Test func feedServiceParstRSSTitelUndArtikelMetadaten() async throws {
         let rss = """
         <?xml version="1.0" encoding="UTF-8"?>
