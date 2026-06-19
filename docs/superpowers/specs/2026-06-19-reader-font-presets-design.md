@@ -9,6 +9,8 @@ Der Zugriff erfolgt direkt in der Artikelansicht und zusaetzlich in den Einstell
 ## Verhalten
 
 - Titel und Fliesstext haben je eine eigene Auswahl.
+- Die Metazeile oberhalb des Titels nutzt ebenfalls die Fliesstext-Schrift, aber
+  proportional kleiner.
 - Presets nach UI-Referenz: System, Geist, Inter, Manrope, DM Sans, Literata,
   Newsreader, IBM Plex Sans, Atkinson Hyperlegible, Source Serif 4, Libre Franklin,
   Lora, Merriweather, Noto Sans, Noto Serif, Roboto Slab, Crimson Pro, Fraunces, Serif.
@@ -21,7 +23,8 @@ Der Zugriff erfolgt direkt in der Artikelansicht und zusaetzlich in den Einstell
 
 ## Architektur
 
-`ReaderFontPreset` kapselt Preset-Werte, Anzeigenamen und SwiftUI-Font-Erzeugung.
+`ReaderFontPreset` kapselt Preset-Werte, Anzeigenamen, bekannte PostScript-Kandidaten
+und SwiftUI-Font-Erzeugung.
 `ReaderTypography` kapselt Defaults und Grenzwerte fuer Textgroesse und Zeilenabstand.
 `ReaderView` nutzt die gespeicherten Werte fuer Titel und Paragraphen.
 `SettingsView` nutzt dieselben AppStorage-Keys und Presets.
@@ -30,5 +33,5 @@ Der Zugriff erfolgt direkt in der Artikelansicht und zusaetzlich in den Einstell
 
 - Keine freie Auswahl installierter System-Schriften.
 - Keine pro-Artikel-Schrift.
-- Keine mitgelieferten Font-Dateien in diesem Schritt; Custom-Fonts werden ueber ihren
-  Font-Family-Namen angesprochen und brauchen spaeter ggf. Bundling/Lizenzklaerung.
+- Keine mitgelieferten Font-Dateien in diesem Schritt; Custom-Fonts werden ueber bekannte
+  PostScript-Namen angesprochen und brauchen spaeter ggf. Bundling/Lizenzklaerung.

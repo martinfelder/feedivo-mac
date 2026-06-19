@@ -33,6 +33,10 @@ struct ReaderView: View {
         CGFloat(ReaderTypography.clampedLineSpacing(readerLineSpacing))
     }
 
+    private var metadataFontSize: CGFloat {
+        CGFloat(ReaderTypography.metadataFontSize(forBodyFontSize: readerBodyFontSize))
+    }
+
     private var contentBlocks: [ReaderContentBlock] {
         ReaderContentRenderer.blocks(
             summary: article.summary,
@@ -58,7 +62,7 @@ struct ReaderView: View {
             VStack(alignment: .leading, spacing: 16) {
                 if !metadataText.isEmpty {
                     Text(metadataText)
-                        .font(.caption)
+                        .font(bodyFontPreset.font(size: metadataFontSize, relativeTo: .caption))
                         .fontWeight(.semibold)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
@@ -117,6 +121,7 @@ struct ReaderView: View {
                         .tag(preset.rawValue)
                 }
             }
+            .pickerStyle(.menu)
 
             Picker(L10n.readerBodyFontPicker, selection: $bodyFontPresetRawValue) {
                 ForEach(ReaderFontPreset.allCases) { preset in
@@ -124,6 +129,7 @@ struct ReaderView: View {
                         .tag(preset.rawValue)
                 }
             }
+            .pickerStyle(.menu)
 
             typographySlider(
                 L10n.readerBodyFontSizeSlider,

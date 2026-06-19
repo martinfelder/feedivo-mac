@@ -15,4 +15,8 @@ enum ReaderTypography {
     static func clampedLineSpacing(_ value: Double) -> Double {
         min(max(value, lineSpacingRange.lowerBound), lineSpacingRange.upperBound)
     }
+
+    static func metadataFontSize(forBodyFontSize bodyFontSize: Double) -> Double {
+        max(12, (clampedBodyFontSize(bodyFontSize) * 0.75).rounded())
+    }
 }

@@ -17,7 +17,7 @@
 - Create: `Feedivo/Views/Reader/ReaderTypography.swift`
 - Modify: `FeedivoTests/FeedivoTests.swift`
 
-- [x] Add tests for raw-value fallback, required font list and typography clamping.
+- [x] Add tests for raw-value fallback, required font list, PostScript candidates and typography clamping.
 - [x] Implement `ReaderFontPreset` with the screenshot font list.
 - [x] Implement `ReaderTypography` defaults and clamped ranges.
 - [x] Verify focused tests pass.
@@ -30,6 +30,8 @@
 - [x] Add `@AppStorage` values for title/body presets.
 - [x] Apply title preset to title text and body preset to paragraph text.
 - [x] Add toolbar `textformat` button with popover, two pickers, text-size slider and line-spacing slider.
+- [x] Apply the body font preset to the metadata line above the title.
+- [x] Force font pickers to menu style so the long curated list is shown consistently.
 
 ### Task 3: Settings and Localization
 

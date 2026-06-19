@@ -66,6 +66,47 @@ enum ReaderFontPreset: String, CaseIterable, Identifiable {
         }
     }
 
+    var fontNames: [String] {
+        switch self {
+        case .system, .serif:
+            return []
+        case .geist:
+            return ["Geist-Regular", "Geist"]
+        case .inter:
+            return ["Inter-Regular", "Inter"]
+        case .manrope:
+            return ["Manrope-Regular", "Manrope"]
+        case .dmSans:
+            return ["DMSans-Regular", "DM Sans"]
+        case .literata:
+            return ["Literata-Regular", "Literata"]
+        case .newsreader:
+            return ["Newsreader-Regular", "Newsreader"]
+        case .ibmPlexSans:
+            return ["IBMPlexSans-Regular", "IBM Plex Sans"]
+        case .atkinsonHyperlegible:
+            return ["AtkinsonHyperlegible-Regular", "Atkinson Hyperlegible"]
+        case .sourceSerif4:
+            return ["SourceSerif4-Regular", "Source Serif 4"]
+        case .libreFranklin:
+            return ["LibreFranklin-Regular", "Libre Franklin"]
+        case .lora:
+            return ["Lora-Regular", "Lora"]
+        case .merriweather:
+            return ["Merriweather-Regular", "Merriweather"]
+        case .notoSans:
+            return ["NotoSans-Regular", "Noto Sans"]
+        case .notoSerif:
+            return ["NotoSerif-Regular", "Noto Serif"]
+        case .robotoSlab:
+            return ["RobotoSlab-Regular", "Roboto Slab"]
+        case .crimsonPro:
+            return ["CrimsonPro-Regular", "Crimson Pro"]
+        case .fraunces:
+            return ["Fraunces-Regular", "Fraunces"]
+        }
+    }
+
     func font(size: CGFloat, relativeTo textStyle: Font.TextStyle) -> Font {
         switch self {
         case .system:
@@ -73,7 +114,7 @@ enum ReaderFontPreset: String, CaseIterable, Identifiable {
         case .serif:
             return .system(size: size, design: .serif)
         default:
-            return .custom(title, size: size, relativeTo: textStyle)
+            return .custom(fontNames.first ?? title, size: size, relativeTo: textStyle)
         }
     }
 

@@ -261,6 +261,7 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
   Fliesstext-Schrift, Textgroesse und Zeilenabstand
 - Titel- und Fliesstext-Schrift sowie Textgroesse/Zeilenabstand werden getrennt
   via `@AppStorage` gespeichert
+- Die Metazeile oberhalb des Titels nutzt die Fliesstext-Schrift proportional kleiner
 - Nutzt `ReaderContentRenderer`, um Content/Summary in Absätze und Bilder zu wandeln
 - Noch kein WKWebView/Vollseiten-Reader
 
@@ -269,8 +270,9 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
   System, Geist, Inter, Manrope, DM Sans, Literata, Newsreader, IBM Plex Sans,
   Atkinson Hyperlegible, Source Serif 4, Libre Franklin, Lora, Merriweather,
   Noto Sans, Noto Serif, Roboto Slab, Crimson Pro, Fraunces, Serif
-- Kapselt Anzeigenamen, SwiftUI-Font-Erzeugung und Fallback fuer unbekannte gespeicherte Werte
-- Hinweis: Custom-Fonts werden per Font-Family-Namen angesprochen; falls sie auf dem
+- Kapselt Anzeigenamen, bekannte PostScript-Kandidaten, SwiftUI-Font-Erzeugung und
+  Fallback fuer unbekannte gespeicherte Werte
+- Hinweis: Custom-Fonts werden per PostScript-Namen angesprochen; falls sie auf dem
   Mac nicht vorhanden sind, braucht es spaeter Font-Bundling mit Lizenzklaerung
 
 ### ReaderTypography.swift
@@ -565,3 +567,6 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 - 2026-06-19: Reader-Typografie erweitert: Schriftliste nach UI-Referenz ergaenzt
   sowie Fliesstext-Groesse und Zeilenabstand als Slider im Reader-Popover und in
   den Einstellungen umgesetzt
+- 2026-06-19: Reader-Font-Aufloesung verbessert: Presets nutzen bekannte
+  PostScript-Kandidaten, Picker sind explizit Menues, und die Metazeile oberhalb
+  des Titels folgt nun ebenfalls der Fliesstext-Schrift

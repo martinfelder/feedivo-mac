@@ -117,6 +117,20 @@ struct FeedivoTests {
         #expect(ReaderTypography.clampedLineSpacing(20) == 12)
     }
 
+    @Test func readerFontPresetKenntPostScriptKandidaten() {
+        #expect(ReaderFontPreset.inter.fontNames.contains("Inter-Regular"))
+        #expect(ReaderFontPreset.dmSans.fontNames.contains("DMSans-Regular"))
+        #expect(ReaderFontPreset.ibmPlexSans.fontNames.contains("IBMPlexSans-Regular"))
+        #expect(ReaderFontPreset.notoSans.fontNames.contains("NotoSans-Regular"))
+        #expect(ReaderFontPreset.serif.fontNames.isEmpty)
+    }
+
+    @Test func readerTypographyLeitetMetadatenGroesseVomFliesstextAb() {
+        #expect(ReaderTypography.metadataFontSize(forBodyFontSize: 14) == 12)
+        #expect(ReaderTypography.metadataFontSize(forBodyFontSize: 17) == 13)
+        #expect(ReaderTypography.metadataFontSize(forBodyFontSize: 24) == 18)
+    }
+
     @Test func feedServiceParstRSSTitelUndArtikelMetadaten() async throws {
         let rss = """
         <?xml version="1.0" encoding="UTF-8"?>

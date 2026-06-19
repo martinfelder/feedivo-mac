@@ -37,6 +37,7 @@ struct SettingsView: View {
                             .tag(preset.rawValue)
                     }
                 }
+                .pickerStyle(.menu)
 
                 Picker(L10n.readerBodyFontPicker, selection: $readerBodyFontPresetRawValue) {
                     ForEach(ReaderFontPreset.allCases) { preset in
@@ -44,6 +45,7 @@ struct SettingsView: View {
                             .tag(preset.rawValue)
                     }
                 }
+                .pickerStyle(.menu)
 
                 typographySlider(
                     L10n.readerBodyFontSizeSlider,

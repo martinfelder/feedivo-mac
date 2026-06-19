@@ -83,7 +83,8 @@ bei geschlossener App.
   Franzoesisch oder Italienisch gesetzt werden.
 - In der Artikelansicht koennen Titel- und Fliesstext-Schrift ueber kuratierte
   Presets direkt per Toolbar-Popover und in den Einstellungen getrennt gewaehlt werden;
-  Fliesstext-Groesse und Zeilenabstand sind dort ebenfalls einstellbar.
+  Fliesstext-Groesse und Zeilenabstand sind dort ebenfalls einstellbar. Die Metazeile
+  oberhalb des Titels nutzt die Fliesstext-Schrift proportional kleiner.
 - Projekt baut und Unit-Tests laufen; UI-Test-Runner blockierte lokal am 2026-06-19
   vor dem App-Launch an einer alten Feedivo-PID.
 
@@ -177,8 +178,9 @@ M2 Core Features:
   Roboto Slab, Crimson Pro, Fraunces, Serif.
 - Zugriff: Direkt in der Artikelansicht via Toolbar-Popover und zusaetzlich in den
   Einstellungen unter Lesen.
-- Hinweis: Custom-Fonts werden per Font-Family-Namen verwendet; falls eine Schrift
-  auf dem Mac nicht verfuegbar ist, braucht es spaeter Font-Bundling mit Lizenzklaerung.
+- Hinweis: Custom-Fonts werden per bekannten PostScript-Namen verwendet; falls eine
+  Schrift auf dem Mac nicht verfuegbar ist, braucht es spaeter Font-Bundling mit
+  Lizenzklaerung.
 
 #### 1.9.2 Zeilenabstand
 - Status: Fertig als Basis
