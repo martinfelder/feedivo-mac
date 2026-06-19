@@ -62,6 +62,7 @@ enum FeedService {
 
     private static func parseRSSFeed(_ rssFeed: RSSFeed, sourceURL: String) -> ParsedFeed {
         let channel = rssFeed.channel
+        let baseURL = URL(string: sourceURL)
         let articles = channel?.items?.compactMap { item -> ParsedArticle? in
             guard let title = item.title ?? item.description else {
                 return nil
@@ -73,11 +74,11 @@ enum FeedService {
                 summary: item.description,
                 content: item.content?.encoded,
                 publishedAt: item.pubDate,
-                imageURL: firstImageURL(in: item.media)
-                    ?? item.iTunes?.image?.attributes?.href
-                    ?? firstImageURL(from: item.enclosure)
-                    ?? firstImageURL(inHTML: item.content?.encoded)
-                    ?? firstImageURL(inHTML: item.description)
+                imageURL: firstImageURL(in: item.media, relativeTo: baseURL)
+                    ?? cleanImageURL(item.iTunes?.image?.attributes?.href, relativeTo: baseURL)
+                    ?? firstImageURL(from: item.enclosure, relativeTo: baseURL)
+                    ?? firstImageURL(inHTML: item.content?.encoded, relativeTo: baseURL)
+                    ?? firstImageURL(inHTML: item.description, relativeTo: baseURL)
             )
         } ?? []
 
@@ -90,6 +91,7 @@ enum FeedService {
     }
 
     private static func parseAtomFeed(_ atomFeed: AtomFeed, sourceURL: String) -> ParsedFeed {
+        let baseURL = URL(string: sourceURL)
         let articles = atomFeed.entries?.compactMap { entry -> ParsedArticle? in
             guard let title = entry.title ?? entry.summary?.text else {
                 return nil
@@ -101,9 +103,9 @@ enum FeedService {
                 summary: entry.summary?.text,
                 content: entry.content?.text,
                 publishedAt: entry.published ?? entry.updated,
-                imageURL: firstImageURL(in: entry.media)
-                    ?? firstImageURL(inHTML: entry.content?.text)
-                    ?? firstImageURL(inHTML: entry.summary?.text)
+                imageURL: firstImageURL(in: entry.media, relativeTo: baseURL)
+                    ?? firstImageURL(inHTML: entry.content?.text, relativeTo: baseURL)
+                    ?? firstImageURL(inHTML: entry.summary?.text, relativeTo: baseURL)
             )
         } ?? []
 
@@ -116,6 +118,7 @@ enum FeedService {
     }
 
     private static func parseJSONFeed(_ jsonFeed: JSONFeed, sourceURL: String) -> ParsedFeed {
+        let baseURL = URL(string: sourceURL)
         let articles = jsonFeed.items?.compactMap { item -> ParsedArticle? in
             guard let title = item.title ?? item.summary ?? item.contentText else {
                 return nil
@@ -127,7 +130,8 @@ enum FeedService {
                 summary: item.summary,
                 content: item.contentHtml ?? item.contentText,
                 publishedAt: item.datePublished ?? item.dateModified,
-                imageURL: item.image ?? item.bannerImage
+                imageURL: cleanImageURL(item.image, relativeTo: baseURL)
+                    ?? cleanImageURL(item.bannerImage, relativeTo: baseURL)
             )
         } ?? []
 
@@ -139,32 +143,32 @@ enum FeedService {
         )
     }
 
-    private nonisolated static func firstImageURL(in media: Media?) -> String? {
+    private nonisolated static func firstImageURL(in media: Media?, relativeTo baseURL: URL?) -> String? {
         guard let media else {
             return nil
         }
 
-        if let url = media.thumbnails?.compactMap({ cleanImageURL($0.attributes?.url) }).first {
+        if let url = media.thumbnails?.compactMap({ cleanImageURL($0.attributes?.url, relativeTo: baseURL) }).first {
             return url
         }
 
-        if let url = media.contents?.compactMap(firstImageURL(in:)).first {
+        if let url = media.contents?.compactMap({ firstImageURL(in: $0, relativeTo: baseURL) }).first {
             return url
         }
 
-        if let url = media.group?.thumbnails?.compactMap({ cleanImageURL($0.attributes?.url) }).first {
+        if let url = media.group?.thumbnails?.compactMap({ cleanImageURL($0.attributes?.url, relativeTo: baseURL) }).first {
             return url
         }
 
-        return media.group?.contents?.compactMap(firstImageURL(in:)).first
+        return media.group?.contents?.compactMap { firstImageURL(in: $0, relativeTo: baseURL) }.first
     }
 
-    private nonisolated static func firstImageURL(in content: MediaContent) -> String? {
-        if let url = content.thumbnails?.compactMap({ cleanImageURL($0.attributes?.url) }).first {
+    private nonisolated static func firstImageURL(in content: MediaContent, relativeTo baseURL: URL?) -> String? {
+        if let url = content.thumbnails?.compactMap({ cleanImageURL($0.attributes?.url, relativeTo: baseURL) }).first {
             return url
         }
 
-        guard let url = cleanImageURL(content.attributes?.url) else {
+        guard let url = cleanImageURL(content.attributes?.url, relativeTo: baseURL) else {
             return nil
         }
 
@@ -177,8 +181,8 @@ enum FeedService {
         return nil
     }
 
-    private nonisolated static func firstImageURL(from enclosure: RSSFeedEnclosure?) -> String? {
-        guard let url = cleanImageURL(enclosure?.attributes?.url) else {
+    private nonisolated static func firstImageURL(from enclosure: RSSFeedEnclosure?, relativeTo baseURL: URL?) -> String? {
+        guard let url = cleanImageURL(enclosure?.attributes?.url, relativeTo: baseURL) else {
             return nil
         }
 
@@ -190,7 +194,7 @@ enum FeedService {
         return nil
     }
 
-    private nonisolated static func firstImageURL(inHTML html: String?) -> String? {
+    private nonisolated static func firstImageURL(inHTML html: String?, relativeTo baseURL: URL?) -> String? {
         guard let html, !html.isEmpty else {
             return nil
         }
@@ -209,16 +213,24 @@ enum FeedService {
             return nil
         }
 
-        return cleanImageURL(String(html[srcRange]))
+        return cleanImageURL(String(html[srcRange]), relativeTo: baseURL)
     }
 
-    private nonisolated static func cleanImageURL(_ value: String?) -> String? {
+    private nonisolated static func cleanImageURL(_ value: String?, relativeTo baseURL: URL?) -> String? {
         guard let value else {
             return nil
         }
 
         let cleaned = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        return cleaned.isEmpty ? nil : cleaned
+        guard !cleaned.isEmpty else {
+            return nil
+        }
+
+        guard let url = URL(string: cleaned, relativeTo: baseURL)?.absoluteURL else {
+            return cleaned
+        }
+
+        return url.absoluteString
     }
 
     private nonisolated static func looksLikeImageURL(_ url: String) -> Bool {

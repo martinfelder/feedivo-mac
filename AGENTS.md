@@ -209,6 +209,8 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 - Feed-Titel wird aus Metadaten gelesen, mit URL als Fallback
 - Artikelbilder werden aus Media RSS, iTunes Image, Bild-Enclosures und erstem
   `<img>` in Content/Summary gelesen
+- Relative Artikelbild-URLs werden gegen die Feed-URL zu absoluten URLs aufgeloest,
+  damit `AsyncImage` sie laden kann
 - Eigene `FeedServiceError` enum: `.invalidURL`, `.parsingFailed`
 
 ### FeedViewModel.swift
@@ -384,7 +386,8 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
   Download bleibt bei uns über `URLSession` + async/await.
 - **Artikelbilder in Feeds:** Nicht nur `enclosure` auswerten. Viele Feeds nutzen
   `media:thumbnail`, `media:content`, `itunes:image` oder ein erstes `<img>` in
-  Summary/Content.
+  Summary/Content. Bild-URLs koennen relativ sein und muessen gegen die Feed-URL
+  normalisiert werden.
 - **NavigationView ist deprecated:** Immer `NavigationSplitView` oder `NavigationStack`
 - **WKWebView in SwiftUI:** Braucht einen `NSViewRepresentable`-Wrapper für macOS
 - **Background Refresh macOS:** `BGTaskScheduler` muss in `Info.plist` unter
@@ -484,7 +487,7 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 ## Aktuell in Arbeit
 
 - M1 abgeschlossen
-- Aktuell M2: Reader-Rendering weiter ausbauen, danach Tastaturkuerzel, Menü-Commands und Feed löschen
+- Aktuell M2: Tastaturkuerzel, Menü-Commands, Feed löschen und manuellen Refresh ausbauen
 - Feature-Roadmap ist in `docs/FEATURES.md` dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
@@ -517,3 +520,6 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 - 2026-06-19: Nativer Reader-Renderer ergaenzt: `ReaderContentRenderer` wandelt
   HTML/Plain-Text in Absätze und Bildbloecke; `ReaderView` rendert diese Bloecke
   nativ mit SwiftUI statt rohen HTML-/Content-Text anzuzeigen
+- 2026-06-19: Artikelbild-Parsing verbessert: Relative Bild-URLs aus HTML und Media RSS
+  werden beim Feed-Import gegen die Feed-URL zu absoluten URLs normalisiert, damit
+  Artikelliste und Reader die Bilder via `AsyncImage` laden koennen

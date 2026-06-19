@@ -70,7 +70,8 @@ bei geschlossener App.
 - ArticleRowView zeigt Titel, Datum, Summary, optionales Bild, Ungelesen-Punkt
   rechts oben und Stern rechts unten.
 - Artikelbilder werden beim Feed-Parsing robuster aus Media RSS, iTunes Image,
-  Bild-Enclosures und HTML-Content extrahiert.
+  Bild-Enclosures und HTML-Content extrahiert; relative Bild-URLs werden zu absoluten
+  URLs normalisiert.
 - Artikel koennen per Kontextmenue gelesen/ungelesen und per Stern-Button markiert
   werden.
 - Automatisches Gelesen-Markieren beim Oeffnen ist standardmaessig aktiv und in den
@@ -176,6 +177,8 @@ M2 Core Features:
 - Prioritaet: MVP
 - Implementiert: `ArticleRowView` mit Titel, Datum, Summary, Statuspunkt, Stern und
   optionalem Bild.
+- Bildbasis: `FeedService` speichert absolute `Article.imageURL` Werte aus Media RSS,
+  iTunes Image, Bild-Enclosures, JSON Feed Bildern oder HTML-`img` Quellen.
 
 #### 2.2 Sortierung
 - Status: In Diskussion
