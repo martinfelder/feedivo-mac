@@ -18,5 +18,9 @@ struct FeedivoApp: App {
             Tag.self,
             Rule.self
         ])
+
+        Settings {
+            SettingsView()
+        }
     }
 }

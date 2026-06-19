@@ -16,7 +16,7 @@
 **Entwickler:** Solo (Martin)
 **Plattform:** macOS 14 Sonoma+
 **Status:** In Development
-**Aktueller Milestone:** M1 – Foundation (abgeschlossen)
+**Aktueller Milestone:** M2 – Core Features
 
 Feedivo ist ein nativer macOS RSS Reader mit Tags, automatischen Regeln und iCloud Sync.
 Ziel ist eine schöne, schnelle Mac-App die sich "mac-like" anfühlt — kein iOS-Port, keine
@@ -115,7 +115,7 @@ FeedivoMac/
 │   │
 │   ├── ViewModels/
 │   │   ├── FeedViewModel.swift         # Feed hinzufügen ✅
-│   │   ├── ArticleViewModel.swift      # Artikel filtern, markieren, suchen (TODO)
+│   │   ├── ArticleViewModel.swift      # Artikel gelesen/ungelesen und Stern toggeln ✅
 │   │   ├── TagViewModel.swift          # Tags verwalten (TODO)
 │   │   ├── RuleEngineViewModel.swift   # Regeln auswerten und Tags auto-zuweisen (TODO)
 │   │   └── SyncViewModel.swift         # iCloud Sync Status anzeigen (TODO)
@@ -127,7 +127,7 @@ FeedivoMac/
 │   │   │   └── TagRowView.swift        # Eine Tag-Zeile in der Sidebar (TODO)
 │   │   ├── ArticleList/
 │   │   │   ├── ArticleListView.swift   # Mittlere Spalte: echte Feed-Artikel anzeigen ✅
-│   │   │   └── ArticleRowView.swift    # Eine Artikel-Zeile in der Liste (TODO)
+│   │   │   └── ArticleRowView.swift    # Reichhaltige Artikel-Zeile mit Status/Stern ✅
 │   │   ├── Reader/
 │   │   │   ├── ReaderView.swift        # Rechte Spalte: Artikel-Basisansicht ✅
 │   │   │   └── WebContentView.swift    # WKWebView-Wrapper für volle Artikel (TODO)
@@ -138,7 +138,7 @@ FeedivoMac/
 │   │   │   ├── RuleListView.swift      # Alle Regeln anzeigen und verwalten (TODO)
 │   │   │   └── AddRuleView.swift       # Sheet: neue Regel erstellen (TODO)
 │   │   └── Settings/
-│   │       └── SettingsView.swift      # Einstellungen (Refresh, Darstellung, OPML) (TODO)
+│   │       └── SettingsView.swift      # Erste Einstellung fuer Auto-gelesen ✅
 │   │
 │   ├── Services/
 │   │   ├── FeedService.swift           # FeedKit-Wrapper: RSS/Atom/JSON Feed parsen ✅
@@ -148,7 +148,7 @@ FeedivoMac/
 │   │   └── BackgroundRefreshService.swift  # BGTaskScheduler (TODO)
 │   │
 │   ├── Extensions/
-│   │   ├── Date+Formatted.swift        # Datum formatieren z.B. "vor 2 Stunden" (TODO)
+│   │   ├── Date+RelativeDisplay.swift  # Datum fuer Artikelzeilen formatieren ✅
 │   │   └── URL+Favicon.swift           # Favicon-URL aus Feed-URL ableiten (TODO)
 │   │
 │   └── Resources/
@@ -211,7 +211,28 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 
 ### ArticleListView.swift
 - Zeigt echte Artikel des ausgewählten Feeds aus der `Feed.articles` Relationship
-- Sortiert nach `publishedAt` absteigend, ohne eigenes ViewModel
+- Sortiert nach `publishedAt` absteigend
+- Nutzt `ArticleRowView` fuer Titel, Metadaten, Summary, optionales Bild,
+  Ungelesen-Punkt rechts oben und Stern rechts unten
+- Markiert Artikel beim Auswaehlen automatisch als gelesen, wenn die Einstellung
+  aktiv ist
+
+### ArticleRowView.swift
+- Reichhaltige Artikelzeile mit optionalem `AsyncImage`
+- Platzhalterbild, wenn kein `imageURL` vorhanden ist
+- Kontextmenue fuer gelesen/ungelesen und Stern
+- Gelesene Artikel werden optisch ruhiger dargestellt
+
+### ArticleViewModel.swift
+- `@Observable` class
+- `toggleRead(_:)`
+- `toggleStarred(_:)`
+- `markReadIfNeeded(_:isEnabled:)`
+
+### SettingsView.swift
+- macOS Settings-Szene in `FeedivoApp.swift`
+- `@AppStorage("markArticleReadOnSelection")`
+- Standard: Artikel beim Oeffnen automatisch als gelesen markieren
 
 ### ReaderView.swift
 - Zeigt Titel, Summary, gespeicherten Content und Link zum Original
@@ -307,6 +328,12 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 - **Grund:** CloudKit unterstützt keinen nativen URL-Typ
 - **Datum:** 2026-06-19
 
+### ADR-007: Automatisch gelesen beim Oeffnen, aber konfigurierbar
+- **Entscheidung:** Artikel werden standardmaessig beim Oeffnen als gelesen markiert.
+- **Benutzerkontrolle:** Einstellung `markArticleReadOnSelection` in `SettingsView`
+- **Grund:** Entspricht vielen RSS Readern, bleibt aber Geschmackssache und daher abschaltbar.
+- **Datum:** 2026-06-19
+
 ---
 
 ## Bekannte Gotchas & Fallstricke
@@ -329,6 +356,9 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
   plus CloudKit Container in developer.apple.com anlegen
 - **Sandbox Netzwerk:** Feed-Downloads brauchen `com.apple.security.network.client` in
   `Feedivo/Feedivo.entitlements`. Nur ein Build-Setting reicht nicht als Nachweis.
+- **SwiftUI Settings auf macOS:** App-weite Einstellungen als eigene `Settings { }`
+  Szene in `FeedivoApp.swift` registrieren; Werte koennen mit `@AppStorage` global
+  geteilt werden.
 - **OPML-Format:** XML-basiert — `XMLParser` (built-in) reicht, kein 3rd-Party nötig
 
 ---
@@ -350,9 +380,10 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 ### M2 – Core Features ← AKTUELL
 - [x] ArticleListView ausbauen: echte Artikel aus SwiftData anzeigen
 - [x] ReaderView ausbauen: Artikel-Inhalt mit nativen SwiftUI Text-Elementen (Basis)
-- [ ] ArticleRowView: Titel, Datum, gelesen/ungelesen Indikator
-- [ ] Gelesen/Ungelesen markieren (Klick + `Cmd+Shift+U`)
-- [ ] Artikel mit Stern markieren (`Cmd+D`)
+- [x] ArticleRowView: Titel, Datum, gelesen/ungelesen Indikator
+- [x] Gelesen/Ungelesen markieren (Basis per Kontextmenue + Auto-gelesen beim Oeffnen)
+- [x] Artikel mit Stern markieren (Basis per Button/Kontextmenue)
+- [ ] Tastaturkuerzel: `Cmd+Shift+U` gelesen/ungelesen, `Cmd+D` Stern
 - [ ] macOS Menüleiste: `Cmd+R` = Refresh, `Cmd+N` = Feed hinzufügen
 - [ ] Feed löschen (Rechtsklick → Delete, mit Bestätigung)
 - [ ] Automatischer Refresh (konfigurierbares Intervall)
@@ -384,14 +415,13 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 - **Repo:** https://github.com/martinfelder/feedivo-mac
 - **Issues:** GitHub Issues mit Milestones M1–M4
 - **Labels:** `feature` `bug` `chore` `ui` `networking` `data` `sync` `tags`
-- **Branch-Strategie:** `master` = stabil, `feature/[name]` für neue Features
+- **Branch-Strategie:** `main` = stabil, `feature/[name]` für neue Features
 
 ---
 
 ## Offene Entscheidungen
 
 - [ ] Reader-Modus global oder pro Artikel speichern?
-- [ ] Artikel automatisch beim Öffnen als gelesen markieren?
 - [ ] Stern und Archiv getrennt halten oder für v1 nur Stern?
 - [ ] OPML-Gruppen später als Ordner oder Tags importieren?
 - [ ] CloudKit Sync-Umfang, insbesondere Artikel-Content
@@ -404,7 +434,7 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 ## Aktuell in Arbeit
 
 - M1 abgeschlossen
-- Aktuell M2: ArticleRowView, Gelesen/Ungelesen, Stern, Menü-Commands und Feed löschen
+- Aktuell M2: Tastaturkuerzel fuer Artikelaktionen, Menü-Commands und Feed löschen
 - Feature-Roadmap ist in `docs/FEATURES.md` dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
@@ -422,3 +452,6 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
   Gedaechtnis-Pflege in `AGENTS.md` ergaenzt
 - 2026-06-19: `Feedivo/Feedivo.entitlements` ergaenzt, damit Sandbox-Netzwerkzugriff
   fuer Feed-Downloads explizit als `com.apple.security.network.client` gesetzt ist
+- 2026-06-19: ArticleRowView umgesetzt: reichhaltige Artikelzeile mit optionalem Bild,
+  Ungelesen-Punkt rechts oben, Stern rechts unten, Kontextmenue fuer gelesen/ungelesen
+  und Stern; Auto-gelesen beim Oeffnen ist per Settings-Option konfigurierbar

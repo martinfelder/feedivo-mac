@@ -4,6 +4,9 @@ import SwiftData
 struct ArticleListView: View {
     let feed: Feed
     @Binding var selectedArticle: Article?
+    @AppStorage("markArticleReadOnSelection")
+    private var markArticleReadOnSelection = true
+    @State private var viewModel = ArticleViewModel()
 
     var body: some View {
         List(selection: $selectedArticle) {
@@ -15,24 +18,26 @@ struct ArticleListView: View {
                 )
             } else {
                 ForEach(sortedArticles) { article in
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(article.title)
-                            .font(.headline)
-                            .lineLimit(2)
-
-                        if let summary = article.summary, !summary.isEmpty {
-                            Text(summary)
-                                .font(.callout)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(2)
+                    ArticleRowView(
+                        article: article,
+                        onToggleRead: {
+                            viewModel.toggleRead(article)
+                        },
+                        onToggleStarred: {
+                            viewModel.toggleStarred(article)
                         }
-                    }
-                    .padding(.vertical, 4)
+                    )
                     .tag(article)
                 }
             }
         }
         .navigationTitle(feed.title)
+        .onChange(of: selectedArticle?.persistentModelID) {
+            viewModel.markReadIfNeeded(
+                selectedArticle,
+                isEnabled: markArticleReadOnSelection
+            )
+        }
     }
 
     private var sortedArticles: [Article] {

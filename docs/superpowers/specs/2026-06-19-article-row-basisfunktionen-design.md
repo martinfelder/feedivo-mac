@@ -17,6 +17,8 @@ In Scope:
 - Stern rechts unten.
 - Gelesene Artikel visuell ruhiger als ungelesene Artikel.
 - Direkte Statusaktionen fuer gelesen/ungelesen und Stern.
+- Automatisch als gelesen markieren beim Oeffnen, aber als Benutzereinstellung
+  konfigurierbar.
 - Dokumentation in `AGENTS.md` und `docs/FEATURES.md` nach der Umsetzung.
 
 Nicht in Scope fuer diese erste Welle:
@@ -72,13 +74,20 @@ Aufgaben:
 
 `ArticleListView` nutzt `ArticleRowView` statt inline `VStack`.
 
+### SettingsView
+
+`SettingsView` bekommt eine erste Einstellung:
+- "Artikel beim Oeffnen als gelesen markieren"
+- Speicherung via `@AppStorage("markArticleReadOnSelection")`
+- Standardwert: `true`
+
 ## Interaktionen
 
 Basis fuer diese Welle:
 - Klick auf Stern toggelt `isStarred`.
 - Kontextmenue oder Button-Aktion fuer gelesen/ungelesen toggelt `isRead`.
-- Auswahl eines Artikels kann ihn als gelesen markieren, wenn diese Entscheidung
-  beim Implementieren bestaetigt wird.
+- Auswahl eines Artikels markiert ihn automatisch als gelesen, wenn die Einstellung
+  `markArticleReadOnSelection` aktiv ist.
 
 ## Fehlerfaelle
 
@@ -94,10 +103,7 @@ Mindestens:
   entsteht.
 - Build/Test mit `xcodebuild test -project Feedivo.xcodeproj -scheme Feedivo -destination 'platform=macOS'`.
 
-## Offene Entscheidung vor Implementierung
+## Produktentscheidung
 
-Soll ein Artikel automatisch als gelesen markiert werden, sobald er in der Liste
-ausgewaehlt und im Reader angezeigt wird?
-
-Empfehlung: Ja, weil das dem Verhalten vieler RSS Reader entspricht. Spaeter kann
-das als Einstellung konfigurierbar werden.
+Artikel werden standardmaessig automatisch als gelesen markiert, sobald sie geoeffnet
+werden. Der Benutzer kann dieses Verhalten in den Einstellungen deaktivieren.

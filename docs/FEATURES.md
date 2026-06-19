@@ -45,6 +45,8 @@ RSS Reader machen:
 7. Smart Filter: Alle, Ungelesen, Mit Stern, Heute.
 8. OPML Import.
 9. Einfache Einstellungen: Refresh-Intervall, Standard-Reader-Modus, Schriftgroesse.
+   Erste Einstellung ist bereits vorhanden: Artikel beim Oeffnen automatisch als
+   gelesen markieren.
 
 Nicht in den MVP gehoeren Spotlight, Statistiken, Drittanbieter-Integrationen,
 Feed-Suche per externem Dienst, komplexe intelligente Ordner und Background Refresh
@@ -64,6 +66,12 @@ bei geschlossener App.
 - Sidebar zeigt gespeicherte Feeds.
 - Artikel-Liste zeigt echte Artikel eines Feeds.
 - Reader zeigt Titel, Summary, gespeicherten Content und Original-Link.
+- ArticleRowView zeigt Titel, Datum, Summary, optionales Bild, Ungelesen-Punkt
+  rechts oben und Stern rechts unten.
+- Artikel koennen per Kontextmenue gelesen/ungelesen und per Stern-Button markiert
+  werden.
+- Automatisches Gelesen-Markieren beim Oeffnen ist standardmaessig aktiv und in den
+  Einstellungen abschaltbar.
 - Projekt baut und Tests laufen.
 
 ### Aktuell in Arbeit
@@ -72,6 +80,7 @@ M2 Core Features:
 - ArticleRowView
 - Gelesen/Ungelesen
 - Stern/Favoriten
+- Tastaturkuerzel fuer Artikelaktionen
 - Menue-Commands
 - Feed loeschen
 - Manueller Refresh
@@ -94,12 +103,14 @@ M2 Core Features:
 - Prioritaet: MVP
 - Empfehlung: Buttons und Tastaturkuerzel fuer vorherigen/naechsten Artikel.
 - Verhalten am Listenende: kein Loop, zunaechst stoppen.
-- Offen: Ob Oeffnen automatisch als gelesen markiert. Empfehlung: ja, aber mit spaeterer Einstellung.
+- Entscheidung: Oeffnen markiert standardmaessig automatisch als gelesen. Benutzer
+  koennen die Option in den Einstellungen deaktivieren.
 
 #### 1.3 Gelesen/Ungelesen
 - Status: Entschieden
 - Prioritaet: MVP
-- Empfehlung: Manuell per Button/Kuerzel und automatisch beim Oeffnen.
+- Basis: Manuell per Kontextmenue und automatisch beim Oeffnen mit Einstellung.
+- Naechster Schritt: Tastaturkuerzel `Cmd+Shift+U`.
 - Spaeter: "Alle als gelesen" pro Feed und Smart Filter.
 
 #### 1.4 Stern/Favoriten
@@ -148,9 +159,10 @@ M2 Core Features:
 ### 2. Artikel-Liste
 
 #### 2.1 Artikel anzeigen
-- Status: Fertig als Basis
+- Status: Fertig
 - Prioritaet: MVP
-- Naechster Schritt: eigene `ArticleRowView` mit Titel, Datum, Summary, Status und Stern.
+- Implementiert: `ArticleRowView` mit Titel, Datum, Summary, Statuspunkt, Stern und
+  optionalem Bild.
 
 #### 2.2 Sortierung
 - Status: In Diskussion
@@ -163,10 +175,10 @@ M2 Core Features:
 - Empfehlung: Erst Smart Filter in Sidebar, danach Listenfilter.
 
 #### 2.4 Kontextmenue
-- Status: In Diskussion
+- Status: Fertig als Basis
 - Prioritaet: MVP/v1
-- Empfehlung: Rechtsklick mit gelesen/ungelesen, Stern, Original oeffnen, Link kopieren,
-  Feed loeschen nur auf Feed-Zeilen.
+- Implementiert: Rechtsklick mit gelesen/ungelesen und Stern.
+- Naechster Schritt: Original oeffnen und Link kopieren.
 
 ### 3. Sidebar
 
@@ -248,9 +260,10 @@ M2 Core Features:
 ### 8. Einstellungen
 
 #### 8.1 Allgemein
-- Status: In Diskussion
+- Status: Fertig als Basis
 - Prioritaet: MVP/v1
-- Empfehlung: Refresh-Intervall, Standard-Reader-Modus, Schriftgroesse.
+- Implementiert: Einstellung "Artikel beim Oeffnen als gelesen markieren".
+- Naechster Schritt: Refresh-Intervall, Standard-Reader-Modus, Schriftgroesse.
 - Automatisches Loeschen spaeter.
 
 #### 8.2 Darstellung
@@ -417,12 +430,11 @@ M2 Core Features:
 ## Offene Produktentscheidungen
 
 1. Reader-Modus global oder pro Artikel speichern?
-2. Artikel automatisch beim Oeffnen als gelesen markieren?
-3. Stern und Archiv getrennt halten oder fuer v1 nur Stern?
-4. Smart Filter final: Alle, Heute, Ungelesen, Mit Stern?
-5. Favicon-Strategie: eigene Ableitung, Webseite-Metadaten oder externer Dienst?
-6. OPML-Gruppen spaeter als Ordner oder Tags importieren?
-7. CloudKit Sync-Umfang, insbesondere ob Artikel-Content synchronisiert wird.
+2. Stern und Archiv getrennt halten oder fuer v1 nur Stern?
+3. Smart Filter final: Alle, Heute, Ungelesen, Mit Stern?
+4. Favicon-Strategie: eigene Ableitung, Webseite-Metadaten oder externer Dienst?
+5. OPML-Gruppen spaeter als Ordner oder Tags importieren?
+6. CloudKit Sync-Umfang, insbesondere ob Artikel-Content synchronisiert wird.
 
 ---
 
