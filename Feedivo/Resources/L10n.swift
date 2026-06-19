@@ -21,6 +21,7 @@ enum L10n {
 
     static var articleRowStarRemove: String { String(localized: "articleRow.star.remove") }
     static var articleRowStarAdd: String { String(localized: "articleRow.star.add") }
+    static var articleRowStarredText: String { String(localized: "articleRow.starred") }
     static var articleRowUnreadText: String { String(localized: "articleRow.unread") }
     static var articleRowMarkRead: String { String(localized: "articleRow.markRead") }
     static var articleRowMarkUnread: String { String(localized: "articleRow.markUnread") }

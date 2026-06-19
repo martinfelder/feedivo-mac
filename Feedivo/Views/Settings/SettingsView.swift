@@ -6,10 +6,10 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
-            Section("Lesen") {
-                Toggle("Artikel beim Öffnen als gelesen markieren", isOn: $markArticleReadOnSelection)
+            Section(L10n.settingsReadingSection) {
+                Toggle(L10n.settingsMarkReadOnOpenTitle, isOn: $markArticleReadOnSelection)
 
-                Text("Wenn diese Option aktiv ist, markiert Feedivo einen Artikel als gelesen, sobald du ihn in der Liste öffnest.")
+                Text(L10n.settingsMarkReadOnOpenDescription)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

@@ -12,9 +12,9 @@ struct ArticleListView: View {
         List(selection: $selectedArticle) {
             if sortedArticles.isEmpty {
                 ContentUnavailableView(
-                    "Keine Artikel",
+                    L10n.articleListEmptyTitle,
                     systemImage: "doc.text.magnifyingglass",
-                    description: Text("Dieser Feed hat noch keine gespeicherten Artikel.")
+                    description: Text(L10n.articleListEmptyDescription)
                 )
             } else {
                 ForEach(sortedArticles) { article in

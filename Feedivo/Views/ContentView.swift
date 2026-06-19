@@ -30,9 +30,9 @@ struct ContentView: View {
             } else {
                 // Platzhalter wenn kein Feed ausgewählt ist
                 ContentUnavailableView(
-                    "Kein Feed ausgewählt",
+                    L10n.contentNoFeedSelectedTitle,
                     systemImage: "newspaper",
-                    description: Text("Wähle einen Feed in der Sidebar aus.")
+                    description: Text(L10n.contentNoFeedSelectedDescription)
                 )
                 .navigationSplitViewColumnWidth(min: 280, ideal: 320, max: 400)
             }
@@ -44,9 +44,9 @@ struct ContentView: View {
                 ReaderView(article: article)
             } else {
                 ContentUnavailableView(
-                    "Kein Artikel ausgewählt",
+                    L10n.contentNoArticleSelectedTitle,
                     systemImage: "doc.text",
-                    description: Text("Wähle einen Artikel aus der Liste aus.")
+                    description: Text(L10n.contentNoArticleSelectedDescription)
                 )
             }
 

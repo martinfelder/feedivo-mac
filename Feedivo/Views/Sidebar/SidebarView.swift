@@ -10,7 +10,7 @@ struct SidebarView: View {
     var body: some View {
         List(selection: $selectedFeed) {
             if feeds.isEmpty {
-                Text("Noch keine Feeds")
+                Text(L10n.sidebarEmptyTitle)
                     .foregroundStyle(.secondary)
             } else {
                 ForEach(feeds) { feed in
@@ -25,7 +25,7 @@ struct SidebarView: View {
                 Button {
                     isShowingAddFeedSheet = true
                 } label: {
-                    Label("Feed hinzufügen", systemImage: "plus")
+                    Label(L10n.sidebarAddFeedButton, systemImage: "plus")
                 }
             }
         }
@@ -43,11 +43,11 @@ private struct AddFeedSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Feed hinzufügen")
+            Text(L10n.sidebarAddFeedTitle)
                 .font(.title2)
                 .fontWeight(.semibold)
 
-            TextField("https://example.com/feed.xml", text: $urlString)
+            TextField(L10n.sidebarAddFeedURLPlaceholder, text: $urlString)
                 .textFieldStyle(.roundedBorder)
                 .disabled(viewModel.isLoading)
 
@@ -60,7 +60,7 @@ private struct AddFeedSheet: View {
             HStack {
                 Spacer()
 
-                Button("Abbrechen") {
+                Button(L10n.commonCancel) {
                     dismiss()
                 }
                 .disabled(viewModel.isLoading)
@@ -77,7 +77,7 @@ private struct AddFeedSheet: View {
                         ProgressView()
                             .controlSize(.small)
                     } else {
-                        Text("Hinzufügen")
+                        Text(L10n.commonAdd)
                     }
                 }
                 .buttonStyle(.borderedProminent)

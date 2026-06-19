@@ -44,17 +44,17 @@ struct ArticleRowView: View {
                         .frame(width: 24, height: 24)
                 }
                 .buttonStyle(.plain)
-                .help(article.isStarred ? "Stern entfernen" : "Mit Stern markieren")
+                .help(article.isStarred ? L10n.articleRowStarRemove : L10n.articleRowStarAdd)
             }
             .frame(width: 28, height: 76, alignment: .top)
         }
         .padding(.vertical, 6)
         .contextMenu {
-            Button(article.isRead ? "Als ungelesen markieren" : "Als gelesen markieren") {
+            Button(article.isRead ? L10n.articleRowMarkUnread : L10n.articleRowMarkRead) {
                 onToggleRead()
             }
 
-            Button(article.isStarred ? "Stern entfernen" : "Mit Stern markieren") {
+            Button(article.isStarred ? L10n.articleRowStarRemove : L10n.articleRowStarAdd) {
                 onToggleStarred()
             }
         }
@@ -103,7 +103,7 @@ struct ArticleRowView: View {
             Circle()
                 .fill(.blue)
                 .frame(width: 8, height: 8)
-                .help("Ungelesen")
+                .help(L10n.articleRowUnreadText)
         }
     }
 
@@ -126,11 +126,11 @@ struct ArticleRowView: View {
         var parts = [article.title]
 
         if !article.isRead {
-            parts.append("Ungelesen")
+            parts.append(L10n.articleRowUnreadText)
         }
 
         if article.isStarred {
-            parts.append("Mit Stern")
+            parts.append(L10n.articleRowStarredText)
         }
 
         return parts.joined(separator: ", ")

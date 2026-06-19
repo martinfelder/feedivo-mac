@@ -23,7 +23,7 @@ struct ReaderView: View {
                 }
 
                 if let link = article.link, let url = URL(string: link) {
-                    Link("Original öffnen", destination: url)
+                    Link(L10n.readerOpenOriginal, destination: url)
                 }
             }
             .frame(maxWidth: 720, alignment: .leading)
