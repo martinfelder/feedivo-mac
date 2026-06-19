@@ -23,8 +23,9 @@ Der Zugriff erfolgt direkt in der Artikelansicht und zusaetzlich in den Einstell
 
 ## Architektur
 
-`ReaderFontPreset` kapselt Preset-Werte, Anzeigenamen, bekannte PostScript-Kandidaten
-und SwiftUI-Font-Erzeugung.
+`ReaderFontPreset` kapselt Preset-Werte, Anzeigenamen, bekannte PostScript-Kandidaten,
+gebundelte Fontdateien und SwiftUI-Font-Erzeugung.
+`ReaderFontRegistry` registriert gebundelte TTF-Dateien beim App-Start via CoreText.
 `ReaderTypography` kapselt Defaults und Grenzwerte fuer Textgroesse und Zeilenabstand.
 `ReaderView` nutzt die gespeicherten Werte fuer Titel und Paragraphen.
 `SettingsView` nutzt dieselben AppStorage-Keys und Presets.
@@ -33,5 +34,5 @@ und SwiftUI-Font-Erzeugung.
 
 - Keine freie Auswahl installierter System-Schriften.
 - Keine pro-Artikel-Schrift.
-- Keine mitgelieferten Font-Dateien in diesem Schritt; Custom-Fonts werden ueber bekannte
-  PostScript-Namen angesprochen und brauchen spaeter ggf. Bundling/Lizenzklaerung.
+- Keine Schnitte ausser Regular/Variable Regular in diesem Schritt; Fett/Italic kann
+  spaeter gezielter ergänzt werden.

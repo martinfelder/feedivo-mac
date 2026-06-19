@@ -179,8 +179,9 @@ M2 Core Features:
 - Zugriff: Direkt in der Artikelansicht via Toolbar-Popover und zusaetzlich in den
   Einstellungen unter Lesen.
 - Hinweis: Custom-Fonts werden per bekannten PostScript-Namen verwendet; falls eine
-  Schrift auf dem Mac nicht verfuegbar ist, braucht es spaeter Font-Bundling mit
-  Lizenzklaerung.
+- Schrift auf dem Mac nicht verfuegbar ist, greift die App auf gebundelte Fontdateien
+  aus `Feedivo/Resources/Fonts/` zurueck. Font-Herkunft und Lizenzen sind in
+  `docs/THIRD_PARTY_FONTS.md` dokumentiert.
 
 #### 1.9.2 Zeilenabstand
 - Status: Fertig als Basis

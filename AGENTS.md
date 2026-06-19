@@ -134,6 +134,7 @@ FeedivoMac/
 │   │   │   ├── ReaderContentRenderer.swift # HTML/Text zu Reader-Bloecken ✅
 │   │   │   ├── ReaderMetadataFormatter.swift # Feedname/Lesezeit/Alter ✅
 │   │   │   ├── ReaderFontPreset.swift  # Schrift-Presets fuer Reader ✅
+│   │   │   ├── ReaderFontRegistry.swift # Gebundelte Fonts registrieren ✅
 │   │   │   ├── ReaderTypography.swift  # Textgroesse/Zeilenabstand Defaults ✅
 │   │   │   └── WebContentView.swift    # WKWebView-Wrapper für volle Artikel (TODO)
 │   │   ├── Tags/
@@ -272,8 +273,13 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
   Noto Sans, Noto Serif, Roboto Slab, Crimson Pro, Fraunces, Serif
 - Kapselt Anzeigenamen, bekannte PostScript-Kandidaten, SwiftUI-Font-Erzeugung und
   Fallback fuer unbekannte gespeicherte Werte
-- Hinweis: Custom-Fonts werden per PostScript-Namen angesprochen; falls sie auf dem
-  Mac nicht vorhanden sind, braucht es spaeter Font-Bundling mit Lizenzklaerung
+- Custom-Fonts werden per PostScript-Namen angesprochen und als TTF-Dateien in
+  `Feedivo/Resources/Fonts/` gebundelt
+
+### ReaderFontRegistry.swift
+- Registriert die gebundelten TTF-Dateien beim App-Start via CoreText
+- Sucht Fonts zuerst unter `Fonts/` und danach flach im App-Resource-Bundle, weil Xcode
+  synchronized groups Ressourcen flach kopieren kann
 
 ### ReaderTypography.swift
 - Kapselt Defaults und Grenzwerte fuer Reader-Typografie
@@ -570,3 +576,6 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 - 2026-06-19: Reader-Font-Aufloesung verbessert: Presets nutzen bekannte
   PostScript-Kandidaten, Picker sind explizit Menues, und die Metazeile oberhalb
   des Titels folgt nun ebenfalls der Fliesstext-Schrift
+- 2026-06-19: Reader-Fonts gebundelt: TTF-Dateien fuer die kuratierte Fontliste in
+  `Feedivo/Resources/Fonts/` aufgenommen und per `ReaderFontRegistry` beim App-Start
+  registriert; Font-Herkunft/Lizenzen in `docs/THIRD_PARTY_FONTS.md`

@@ -6,6 +6,10 @@ struct FeedivoApp: App {
     @AppStorage("appLanguage")
     private var appLanguageRawValue = AppLanguage.system.rawValue
 
+    init() {
+        ReaderFontRegistry.registerBundledFonts()
+    }
+
     // modelContainer stellt SwiftData für die ganze App zur Verfügung.
     // Alle 4 Modelle werden hier registriert.
     // isCloudKitEnabled: true aktiviert später die iCloud-Synchronisation —

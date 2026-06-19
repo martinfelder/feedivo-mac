@@ -4,7 +4,7 @@
 
 **Goal:** Add configurable title/body font presets plus body text size and line spacing for the native Reader.
 
-**Architecture:** Use `ReaderFontPreset` for preset resolution and SwiftUI font creation. Use `ReaderTypography` for defaults and clamped ranges. Store title/body choices, body text size and line spacing with `@AppStorage`, expose them in a Reader toolbar popover and in Settings.
+**Architecture:** Use `ReaderFontPreset` for preset resolution, bundled font filenames and SwiftUI font creation. Use `ReaderFontRegistry` to register bundled TTF files at app startup. Use `ReaderTypography` for defaults and clamped ranges. Store title/body choices, body text size and line spacing with `@AppStorage`, expose them in a Reader toolbar popover and in Settings.
 
 **Tech Stack:** SwiftUI, AppStorage, Xcode String Catalog, Swift Testing.
 
@@ -14,11 +14,14 @@
 
 **Files:**
 - Create: `Feedivo/Views/Reader/ReaderFontPreset.swift`
+- Create: `Feedivo/Views/Reader/ReaderFontRegistry.swift`
 - Create: `Feedivo/Views/Reader/ReaderTypography.swift`
 - Modify: `FeedivoTests/FeedivoTests.swift`
 
 - [x] Add tests for raw-value fallback, required font list, PostScript candidates and typography clamping.
 - [x] Implement `ReaderFontPreset` with the screenshot font list.
+- [x] Bundle Regular/Variable TTF files for the curated custom fonts.
+- [x] Register bundled fonts at app startup.
 - [x] Implement `ReaderTypography` defaults and clamped ranges.
 - [x] Verify focused tests pass.
 

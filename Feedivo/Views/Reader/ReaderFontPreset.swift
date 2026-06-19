@@ -77,19 +77,19 @@ enum ReaderFontPreset: String, CaseIterable, Identifiable {
         case .manrope:
             return ["Manrope-Regular", "Manrope"]
         case .dmSans:
-            return ["DMSans-Regular", "DM Sans"]
+            return ["DMSans-9ptRegular", "DMSans-9ptRegular_Regular", "DMSans-Regular", "DM Sans"]
         case .literata:
             return ["Literata-Regular", "Literata"]
         case .newsreader:
-            return ["Newsreader-Regular", "Newsreader"]
+            return ["Newsreader16pt-Regular", "Newsreader-Regular", "Newsreader"]
         case .ibmPlexSans:
             return ["IBMPlexSans-Regular", "IBM Plex Sans"]
         case .atkinsonHyperlegible:
             return ["AtkinsonHyperlegible-Regular", "Atkinson Hyperlegible"]
         case .sourceSerif4:
-            return ["SourceSerif4-Regular", "Source Serif 4"]
+            return ["SourceSerif4Roman-Regular", "SourceSerif4-Regular", "Source Serif 4"]
         case .libreFranklin:
-            return ["LibreFranklin-Regular", "Libre Franklin"]
+            return ["LibreFranklin-Thin_Regular", "LibreFranklin-Regular", "Libre Franklin"]
         case .lora:
             return ["Lora-Regular", "Lora"]
         case .merriweather:
@@ -101,9 +101,18 @@ enum ReaderFontPreset: String, CaseIterable, Identifiable {
         case .robotoSlab:
             return ["RobotoSlab-Regular", "Roboto Slab"]
         case .crimsonPro:
-            return ["CrimsonPro-Regular", "Crimson Pro"]
+            return ["CrimsonPro-Regular", "CrimsonProRoman-Regular", "Crimson Pro"]
         case .fraunces:
             return ["Fraunces-Regular", "Fraunces"]
+        }
+    }
+
+    var bundledFontFileName: String? {
+        switch self {
+        case .system, .serif:
+            return nil
+        default:
+            return "\(title.replacingOccurrences(of: " ", with: "")).ttf"
         }
     }
 

@@ -5,6 +5,7 @@
 //  Created by Martin Felder on 19.06.2026.
 //
 
+import AppKit
 import Foundation
 import Testing
 @testable import Feedivo
@@ -123,6 +124,32 @@ struct FeedivoTests {
         #expect(ReaderFontPreset.ibmPlexSans.fontNames.contains("IBMPlexSans-Regular"))
         #expect(ReaderFontPreset.notoSans.fontNames.contains("NotoSans-Regular"))
         #expect(ReaderFontPreset.serif.fontNames.isEmpty)
+    }
+
+    @Test func readerFontPresetHatBundleDateienFuerCustomFonts() {
+        let customPresets = ReaderFontPreset.allCases.filter { preset in
+            preset != .system && preset != .serif
+        }
+
+        #expect(customPresets.allSatisfy { $0.bundledFontFileName != nil })
+        #expect(customPresets.count == ReaderFontRegistry.fontResourceNames.count)
+    }
+
+    @Test func readerFontsLiegenImAppBundle() throws {
+        for resourceName in ReaderFontRegistry.fontResourceNames {
+            let url = ReaderFontRegistry.fontURL(for: resourceName)
+            #expect(url != nil, "Font fehlt im Bundle: \(resourceName)")
+        }
+    }
+
+    @Test func readerFontRegistryRegistriertBundledFonts() {
+        ReaderFontRegistry.registerBundledFonts()
+
+        let availableFonts = Set(NSFontManager.shared.availableFonts)
+
+        #expect(availableFonts.contains("Inter-Regular"))
+        #expect(availableFonts.contains("Fraunces-Regular"))
+        #expect(availableFonts.contains("SourceSerif4Roman-Regular"))
     }
 
     @Test func readerTypographyLeitetMetadatenGroesseVomFliesstextAb() {
