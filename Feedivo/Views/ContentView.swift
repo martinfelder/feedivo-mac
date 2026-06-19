@@ -51,5 +51,8 @@ struct ContentView: View {
             }
 
         }
+        .onChange(of: selectedFeed?.persistentModelID) {
+            selectedArticle = nil
+        }
     }
 }

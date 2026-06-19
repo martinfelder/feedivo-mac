@@ -20,11 +20,27 @@ class Article {
     @Relationship
     var tags: [Tag]
 
-    init(title: String) {
+    init(
+        title: String,
+        link: String? = nil,
+        summary: String? = nil,
+        content: String? = nil,
+        publishedAt: Date? = nil,
+        imageURL: String? = nil,
+        isRead: Bool = false,
+        isStarred: Bool = false,
+        feed: Feed? = nil
+    ) {
         self.id = UUID()
         self.title = title
-        self.isRead = false
-        self.isStarred = false
+        self.link = link
+        self.summary = summary
+        self.content = content
+        self.publishedAt = publishedAt
+        self.imageURL = imageURL
+        self.isRead = isRead
+        self.isStarred = isStarred
+        self.feed = feed
         self.tags = []
     }
 }

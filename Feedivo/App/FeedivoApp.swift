@@ -2,7 +2,7 @@ import SwiftUI
 import SwiftData
 
 @main
-struct FeedsApp: App {
+struct FeedivoApp: App {
 
     // modelContainer stellt SwiftData für die ganze App zur Verfügung.
     // Alle 4 Modelle werden hier registriert.

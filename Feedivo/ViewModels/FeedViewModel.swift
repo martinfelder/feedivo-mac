@@ -1,0 +1,52 @@
+import Foundation
+import Observation
+import SwiftData
+
+@Observable
+final class FeedViewModel {
+    var isLoading = false
+    var errorMessage: String?
+
+    @MainActor
+    func addFeed(urlString: String, context: ModelContext) async {
+        let cleanedURL = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleanedURL.isEmpty else {
+            errorMessage = "Bitte gib eine Feed-URL ein."
+            return
+        }
+
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            let parsedFeed = try await FeedService.fetchFeed(urlString: cleanedURL)
+            let feed = Feed(
+                url: parsedFeed.sourceURL,
+                title: parsedFeed.title,
+                feedDescription: parsedFeed.description,
+                lastRefreshed: Date()
+            )
+
+            feed.articles = parsedFeed.articles.map { parsedArticle in
+                Article(
+                    title: parsedArticle.title,
+                    link: parsedArticle.link,
+                    summary: parsedArticle.summary,
+                    content: parsedArticle.content,
+                    publishedAt: parsedArticle.publishedAt,
+                    imageURL: parsedArticle.imageURL,
+                    feed: feed
+                )
+            }
+
+            context.insert(feed)
+            try context.save()
+        } catch let error as LocalizedError {
+            errorMessage = error.errorDescription ?? "Der Feed konnte nicht hinzugefügt werden."
+        } catch {
+            errorMessage = "Der Feed konnte nicht hinzugefügt werden."
+        }
+
+        isLoading = false
+    }
+}
