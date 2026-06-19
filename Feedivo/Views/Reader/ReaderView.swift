@@ -9,6 +9,12 @@ struct ReaderView: View {
     @AppStorage("readerBodyFontPreset")
     private var bodyFontPresetRawValue = ReaderFontPreset.system.rawValue
 
+    @AppStorage("readerBodyFontSize")
+    private var readerBodyFontSize = ReaderTypography.defaultBodyFontSize
+
+    @AppStorage("readerLineSpacing")
+    private var readerLineSpacing = ReaderTypography.defaultLineSpacing
+
     @State private var isAppearancePopoverPresented = false
 
     private var titleFontPreset: ReaderFontPreset {
@@ -17,6 +23,14 @@ struct ReaderView: View {
 
     private var bodyFontPreset: ReaderFontPreset {
         ReaderFontPreset.resolved(from: bodyFontPresetRawValue)
+    }
+
+    private var clampedBodyFontSize: CGFloat {
+        CGFloat(ReaderTypography.clampedBodyFontSize(readerBodyFontSize))
+    }
+
+    private var clampedLineSpacing: CGFloat {
+        CGFloat(ReaderTypography.clampedLineSpacing(readerLineSpacing))
     }
 
     private var contentBlocks: [ReaderContentBlock] {
@@ -51,15 +65,18 @@ struct ReaderView: View {
                 }
 
                 Text(article.title)
-                    .font(.system(.largeTitle, design: titleFontPreset.design))
+                    .font(titleFontPreset.font(
+                        size: CGFloat(ReaderTypography.defaultTitleFontSize),
+                        relativeTo: .largeTitle
+                    ))
                     .fontWeight(.bold)
 
                 ForEach(Array(contentBlocks.enumerated()), id: \.offset) { _, block in
                     switch block {
                     case .paragraph(let text):
                         Text(text)
-                            .font(.system(.body, design: bodyFontPreset.design))
-                            .lineSpacing(4)
+                            .font(bodyFontPreset.font(size: clampedBodyFontSize, relativeTo: .body))
+                            .lineSpacing(clampedLineSpacing)
                             .textSelection(.enabled)
                     case .image(let urlString):
                         readerImage(urlString: urlString)
@@ -96,20 +113,54 @@ struct ReaderView: View {
 
             Picker(L10n.readerTitleFontPicker, selection: $titleFontPresetRawValue) {
                 ForEach(ReaderFontPreset.allCases) { preset in
-                    Text(preset.titleKey)
+                    Text(preset.title)
                         .tag(preset.rawValue)
                 }
             }
 
             Picker(L10n.readerBodyFontPicker, selection: $bodyFontPresetRawValue) {
                 ForEach(ReaderFontPreset.allCases) { preset in
-                    Text(preset.titleKey)
+                    Text(preset.title)
                         .tag(preset.rawValue)
                 }
             }
+
+            typographySlider(
+                L10n.readerBodyFontSizeSlider,
+                value: $readerBodyFontSize,
+                range: ReaderTypography.bodyFontSizeRange,
+                displayedValue: ReaderTypography.clampedBodyFontSize(readerBodyFontSize)
+            )
+
+            typographySlider(
+                L10n.readerLineSpacingSlider,
+                value: $readerLineSpacing,
+                range: ReaderTypography.lineSpacingRange,
+                displayedValue: ReaderTypography.clampedLineSpacing(readerLineSpacing)
+            )
         }
         .padding(16)
-        .frame(width: 260)
+        .frame(width: 300)
+    }
+
+    private func typographySlider(
+        _ title: LocalizedStringKey,
+        value: Binding<Double>,
+        range: ClosedRange<Double>,
+        displayedValue: Double
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text(title)
+                Spacer()
+                Text("\(Int(displayedValue)) px")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+            }
+
+            Slider(value: value, in: range, step: 1)
+        }
     }
 
     @ViewBuilder

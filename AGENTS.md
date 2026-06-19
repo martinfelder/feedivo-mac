@@ -134,6 +134,7 @@ FeedivoMac/
 │   │   │   ├── ReaderContentRenderer.swift # HTML/Text zu Reader-Bloecken ✅
 │   │   │   ├── ReaderMetadataFormatter.swift # Feedname/Lesezeit/Alter ✅
 │   │   │   ├── ReaderFontPreset.swift  # Schrift-Presets fuer Reader ✅
+│   │   │   ├── ReaderTypography.swift  # Textgroesse/Zeilenabstand Defaults ✅
 │   │   │   └── WebContentView.swift    # WKWebView-Wrapper für volle Artikel (TODO)
 │   │   ├── Tags/
 │   │   │   ├── TagManagerView.swift    # Tags erstellen, bearbeiten, löschen (TODO)
@@ -247,21 +248,35 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 - `@AppStorage("appLanguage")`
 - Sprachauswahl: Nach System, Deutsch, Englisch, Französisch, Italienisch
 - Reader-Schriftwahl: `readerTitleFontPreset` und `readerBodyFontPreset`
-- Presets: System, Serif, Rounded, Monospace
+- Reader-Typografie: `readerBodyFontSize` und `readerLineSpacing`
+- Presets: System, Geist, Inter, Manrope, DM Sans, Literata, Newsreader,
+  IBM Plex Sans, Atkinson Hyperlegible, Source Serif 4, Libre Franklin, Lora,
+  Merriweather, Noto Sans, Noto Serif, Roboto Slab, Crimson Pro, Fraunces, Serif
 
 ### ReaderView.swift
 - Zeigt Metazeile, Titel, native Reader-Bloecke und Link zum Original
 - Metazeile: Feedname, ungefaehre Lesezeit und Artikelalter, linksbuendig oberhalb
   des Titels
-- Toolbar-Button `textformat` oeffnet ein Popover fuer Titel- und Fliesstext-Schrift
-- Titel- und Fliesstext-Schrift werden getrennt via `@AppStorage` gespeichert
+- Toolbar-Button `textformat` oeffnet ein Popover fuer Titel-Schrift,
+  Fliesstext-Schrift, Textgroesse und Zeilenabstand
+- Titel- und Fliesstext-Schrift sowie Textgroesse/Zeilenabstand werden getrennt
+  via `@AppStorage` gespeichert
 - Nutzt `ReaderContentRenderer`, um Content/Summary in Absätze und Bilder zu wandeln
 - Noch kein WKWebView/Vollseiten-Reader
 
 ### ReaderFontPreset.swift
-- Kuratierte Font-Presets fuer die Artikelansicht: System, Serif, Rounded, Monospace
-- Kapselt `Font.Design`, lokalisierte Label und Fallback fuer unbekannte gespeicherte Werte
-- Keine freie Systemfont-Auswahl im MVP, damit die UI uebersichtlich und robust bleibt
+- Kuratierte Font-Presets fuer die Artikelansicht aus der UI-Referenz:
+  System, Geist, Inter, Manrope, DM Sans, Literata, Newsreader, IBM Plex Sans,
+  Atkinson Hyperlegible, Source Serif 4, Libre Franklin, Lora, Merriweather,
+  Noto Sans, Noto Serif, Roboto Slab, Crimson Pro, Fraunces, Serif
+- Kapselt Anzeigenamen, SwiftUI-Font-Erzeugung und Fallback fuer unbekannte gespeicherte Werte
+- Hinweis: Custom-Fonts werden per Font-Family-Namen angesprochen; falls sie auf dem
+  Mac nicht vorhanden sind, braucht es spaeter Font-Bundling mit Lizenzklaerung
+
+### ReaderTypography.swift
+- Kapselt Defaults und Grenzwerte fuer Reader-Typografie
+- Fliesstext-Groesse: Default 17 px, Wertebereich 14...24 px
+- Zeilenabstand: Default 5 px, Wertebereich 1...12 px
 
 ### ReaderMetadataFormatter.swift
 - Berechnet ungefaehre Lesezeit mit 200 Woertern pro Minute, mindestens 1 Minute
@@ -455,6 +470,7 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 - [x] Artikel mit Stern markieren (Basis per Button/Kontextmenue)
 - [x] i18n Foundation: String Catalog und erste Lokalisierung fuer de/en/fr/it
 - [x] Einstellung fuer App-Sprache: Nach System, Deutsch, Englisch, Französisch, Italienisch
+- [x] Reader-Typografie: Titel-/Fliesstext-Schriften, Fliesstext-Groesse und Zeilenabstand
 - [ ] Tastaturkuerzel: `Cmd+Shift+U` gelesen/ungelesen, `Cmd+D` Stern
 - [ ] macOS Menüleiste: `Cmd+R` = Refresh, `Cmd+N` = Feed hinzufügen
 - [ ] Feed löschen (Rechtsklick → Delete, mit Bestätigung)
@@ -546,3 +562,6 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
   Feedname, ungefaehre Lesezeit und Artikelalter; Lesezeit ist testbar und lokalisiert
 - 2026-06-19: Reader-Schrift-Presets ergaenzt: Titel- und Fliesstext-Schrift koennen
   direkt im Reader-Popover und in den Einstellungen getrennt gewaehlt werden
+- 2026-06-19: Reader-Typografie erweitert: Schriftliste nach UI-Referenz ergaenzt
+  sowie Fliesstext-Groesse und Zeilenabstand als Slider im Reader-Popover und in
+  den Einstellungen umgesetzt

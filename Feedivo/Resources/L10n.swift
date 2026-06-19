@@ -19,6 +19,8 @@ enum L10n {
     static let readerAppearanceTitle = LocalizedStringKey("reader.appearance.title")
     static let readerTitleFontPicker = LocalizedStringKey("reader.titleFont.picker")
     static let readerBodyFontPicker = LocalizedStringKey("reader.bodyFont.picker")
+    static let readerBodyFontSizeSlider = LocalizedStringKey("reader.bodyFontSize.slider")
+    static let readerLineSpacingSlider = LocalizedStringKey("reader.lineSpacing.slider")
     static let readerFontSystem = LocalizedStringKey("reader.font.system")
     static let readerFontSerif = LocalizedStringKey("reader.font.serif")
     static let readerFontRounded = LocalizedStringKey("reader.font.rounded")

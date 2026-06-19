@@ -82,7 +82,8 @@ bei geschlossener App.
 - In den Einstellungen kann die App-Sprache auf `Nach System`, Deutsch, Englisch,
   Franzoesisch oder Italienisch gesetzt werden.
 - In der Artikelansicht koennen Titel- und Fliesstext-Schrift ueber kuratierte
-  Presets direkt per Toolbar-Popover und in den Einstellungen getrennt gewaehlt werden.
+  Presets direkt per Toolbar-Popover und in den Einstellungen getrennt gewaehlt werden;
+  Fliesstext-Groesse und Zeilenabstand sind dort ebenfalls einstellbar.
 - Projekt baut und Unit-Tests laufen; UI-Test-Runner blockierte lokal am 2026-06-19
   vor dem App-Launch an einer alten Feedivo-PID.
 
@@ -161,18 +162,29 @@ M2 Core Features:
   Fehlerfaelle erzeugt.
 
 #### 1.9 Schriftgroesse
-- Status: Entschieden
+- Status: Fertig als Basis
 - Prioritaet: MVP/v1
-- Empfehlung: Feste Stufen Klein/Mittel/Gross, global. Gilt zuerst nur fuer nativen Reader.
+- Implementiert: Globale Fliesstext-Groesse fuer den nativen Reader, direkt im
+  Reader-Popover und in den Einstellungen unter Lesen. Wertebereich: 14...24 px.
+- Entscheidung: Zunaechst nur Fliesstext-Groesse, Titelgroesse bleibt fest.
 
 #### 1.9.1 Schriftarten
 - Status: Fertig als Basis
 - Prioritaet: v1
-- Implementiert: Getrennte Reader-Presets fuer Titel und Fliesstext: System, Serif,
-  Rounded, Monospace.
+- Implementiert: Getrennte Reader-Presets fuer Titel und Fliesstext: System, Geist,
+  Inter, Manrope, DM Sans, Literata, Newsreader, IBM Plex Sans, Atkinson Hyperlegible,
+  Source Serif 4, Libre Franklin, Lora, Merriweather, Noto Sans, Noto Serif,
+  Roboto Slab, Crimson Pro, Fraunces, Serif.
 - Zugriff: Direkt in der Artikelansicht via Toolbar-Popover und zusaetzlich in den
   Einstellungen unter Lesen.
-- Spaeter: Schriftgroesse und Zeilenabstand als eigene Presets ergaenzen.
+- Hinweis: Custom-Fonts werden per Font-Family-Namen verwendet; falls eine Schrift
+  auf dem Mac nicht verfuegbar ist, braucht es spaeter Font-Bundling mit Lizenzklaerung.
+
+#### 1.9.2 Zeilenabstand
+- Status: Fertig als Basis
+- Prioritaet: MVP/v1
+- Implementiert: Globaler Zeilenabstand fuer den nativen Reader, direkt im
+  Reader-Popover und in den Einstellungen unter Lesen. Wertebereich: 1...12 px.
 
 #### 1.10 Link kopieren
 - Status: Entschieden
@@ -293,13 +305,14 @@ M2 Core Features:
 - Status: Fertig als Basis
 - Prioritaet: MVP/v1
 - Implementiert: Einstellung "Artikel beim Oeffnen als gelesen markieren".
-- Naechster Schritt: Refresh-Intervall, Standard-Reader-Modus, Schriftgroesse.
+- Naechster Schritt: Refresh-Intervall und Standard-Reader-Modus.
 - Automatisches Loeschen spaeter.
 
 #### 8.2 Darstellung
-- Status: In Diskussion
+- Status: Fertig als Basis
 - Prioritaet: v1
-- Empfehlung: Schriftgroesse zuerst. Theme System/Hell/Dunkel spaeter.
+- Implementiert: Reader-Schriften, Fliesstext-Groesse und Zeilenabstand.
+- Naechster Schritt: Theme System/Hell/Dunkel spaeter.
 
 ### 9. Suche
 

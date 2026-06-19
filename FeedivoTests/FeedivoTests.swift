@@ -78,12 +78,43 @@ struct FeedivoTests {
         #expect(ReaderMetadataFormatter.readingTimeText(content: langerContentText, summary: kurzerSummaryText) == "ca. 2 Min. Lesezeit")
     }
 
-    @Test func readerFontPresetLoestGespeicherteWerteAuf() {
+    @Test func readerFontPresetEnthaeltGewuenschteSchriften() {
+        #expect(ReaderFontPreset.allCases.map(\.title) == [
+            "System",
+            "Geist",
+            "Inter",
+            "Manrope",
+            "DM Sans",
+            "Literata",
+            "Newsreader",
+            "IBM Plex Sans",
+            "Atkinson Hyperlegible",
+            "Source Serif 4",
+            "Libre Franklin",
+            "Lora",
+            "Merriweather",
+            "Noto Sans",
+            "Noto Serif",
+            "Roboto Slab",
+            "Crimson Pro",
+            "Fraunces",
+            "Serif"
+        ])
+
         #expect(ReaderFontPreset.resolved(from: "system") == .system)
-        #expect(ReaderFontPreset.resolved(from: "serif") == .serif)
-        #expect(ReaderFontPreset.resolved(from: "rounded") == .rounded)
-        #expect(ReaderFontPreset.resolved(from: "monospace") == .monospace)
+        #expect(ReaderFontPreset.resolved(from: "notoSans") == .notoSans)
+        #expect(ReaderFontPreset.resolved(from: "crimsonPro") == .crimsonPro)
         #expect(ReaderFontPreset.resolved(from: "unbekannt") == .system)
+    }
+
+    @Test func readerTypographyBegrenztTextgroesseUndZeilenabstand() {
+        #expect(ReaderTypography.clampedBodyFontSize(10) == 14)
+        #expect(ReaderTypography.clampedBodyFontSize(18) == 18)
+        #expect(ReaderTypography.clampedBodyFontSize(40) == 24)
+
+        #expect(ReaderTypography.clampedLineSpacing(0) == 1)
+        #expect(ReaderTypography.clampedLineSpacing(6) == 6)
+        #expect(ReaderTypography.clampedLineSpacing(20) == 12)
     }
 
     @Test func feedServiceParstRSSTitelUndArtikelMetadaten() async throws {
