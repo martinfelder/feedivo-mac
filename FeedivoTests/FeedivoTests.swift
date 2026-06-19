@@ -38,4 +38,47 @@ struct FeedivoTests {
         #expect(result.articles.first?.summary == "Kurze Zusammenfassung")
     }
 
+    @Test func feedServiceLiestArtikelbildAusMediaThumbnail() throws {
+        let rss = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/">
+            <channel>
+                <title>Feedivo Test Feed</title>
+                <item>
+                    <title>Artikel mit Media-Bild</title>
+                    <link>https://example.com/media-artikel</link>
+                    <media:thumbnail url="https://example.com/bild-media.jpg" width="1200" height="800" />
+                </item>
+            </channel>
+        </rss>
+        """
+
+        let result = try FeedService.parseFeed(data: Data(rss.utf8), sourceURL: "https://example.com/feed.xml")
+
+        #expect(result.articles.first?.imageURL == "https://example.com/bild-media.jpg")
+    }
+
+    @Test func feedServiceLiestArtikelbildAusHTMLDescription() throws {
+        let rss = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <rss version="2.0">
+            <channel>
+                <title>Feedivo Test Feed</title>
+                <item>
+                    <title>Artikel mit HTML-Bild</title>
+                    <link>https://example.com/html-artikel</link>
+                    <description><![CDATA[
+                        <p>Kurzer Einstieg</p>
+                        <img src="https://example.com/bild-html.jpg" alt="Bild">
+                    ]]></description>
+                </item>
+            </channel>
+        </rss>
+        """
+
+        let result = try FeedService.parseFeed(data: Data(rss.utf8), sourceURL: "https://example.com/feed.xml")
+
+        #expect(result.articles.first?.imageURL == "https://example.com/bild-html.jpg")
+    }
+
 }

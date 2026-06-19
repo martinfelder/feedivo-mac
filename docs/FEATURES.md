@@ -68,6 +68,8 @@ bei geschlossener App.
 - Reader zeigt Titel, Summary, gespeicherten Content und Original-Link.
 - ArticleRowView zeigt Titel, Datum, Summary, optionales Bild, Ungelesen-Punkt
   rechts oben und Stern rechts unten.
+- Artikelbilder werden beim Feed-Parsing robuster aus Media RSS, iTunes Image,
+  Bild-Enclosures und HTML-Content extrahiert.
 - Artikel koennen per Kontextmenue gelesen/ungelesen und per Stern-Button markiert
   werden.
 - Automatisches Gelesen-Markieren beim Oeffnen ist standardmaessig aktiv und in den

@@ -202,6 +202,8 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 - Nutzt FeedKit `Feed(data:)` für Parsing und `URLSession` + async/await für Download
 - Gibt `ParsedFeed` mit Feed-Metadaten und `[ParsedArticle]` zurück
 - Feed-Titel wird aus Metadaten gelesen, mit URL als Fallback
+- Artikelbilder werden aus Media RSS, iTunes Image, Bild-Enclosures und erstem
+  `<img>` in Content/Summary gelesen
 - Eigene `FeedServiceError` enum: `.invalidURL`, `.parsingFailed`
 
 ### FeedViewModel.swift
@@ -346,6 +348,9 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
   Default-Wert haben — sonst crasht die CloudKit-Synchronisation
 - **FeedKit Parsing:** FeedKit 10.4.0 kann direkt mit `FeedKit.Feed(data:)` parsen.
   Download bleibt bei uns über `URLSession` + async/await.
+- **Artikelbilder in Feeds:** Nicht nur `enclosure` auswerten. Viele Feeds nutzen
+  `media:thumbnail`, `media:content`, `itunes:image` oder ein erstes `<img>` in
+  Summary/Content.
 - **NavigationView ist deprecated:** Immer `NavigationSplitView` oder `NavigationStack`
 - **WKWebView in SwiftUI:** Braucht einen `NSViewRepresentable`-Wrapper für macOS
 - **Background Refresh macOS:** `BGTaskScheduler` muss in `Info.plist` unter
@@ -455,3 +460,6 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 - 2026-06-19: ArticleRowView umgesetzt: reichhaltige Artikelzeile mit optionalem Bild,
   Ungelesen-Punkt rechts oben, Stern rechts unten, Kontextmenue fuer gelesen/ungelesen
   und Stern; Auto-gelesen beim Oeffnen ist per Settings-Option konfigurierbar
+- 2026-06-19: FeedService liest Artikelbilder robuster aus Media RSS, iTunes Image,
+  Bild-Enclosures und HTML-Content; Parser-Tests fuer `media:thumbnail` und
+  HTML-`img` ergaenzt

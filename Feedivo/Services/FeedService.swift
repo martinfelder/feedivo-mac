@@ -73,7 +73,11 @@ enum FeedService {
                 summary: item.description,
                 content: item.content?.encoded,
                 publishedAt: item.pubDate,
-                imageURL: item.enclosure?.attributes?.url
+                imageURL: firstImageURL(in: item.media)
+                    ?? item.iTunes?.image?.attributes?.href
+                    ?? firstImageURL(from: item.enclosure)
+                    ?? firstImageURL(inHTML: item.content?.encoded)
+                    ?? firstImageURL(inHTML: item.description)
             )
         } ?? []
 
@@ -97,7 +101,9 @@ enum FeedService {
                 summary: entry.summary?.text,
                 content: entry.content?.text,
                 publishedAt: entry.published ?? entry.updated,
-                imageURL: nil
+                imageURL: firstImageURL(in: entry.media)
+                    ?? firstImageURL(inHTML: entry.content?.text)
+                    ?? firstImageURL(inHTML: entry.summary?.text)
             )
         } ?? []
 
@@ -131,5 +137,96 @@ enum FeedService {
             description: jsonFeed.description,
             articles: articles
         )
+    }
+
+    private nonisolated static func firstImageURL(in media: Media?) -> String? {
+        guard let media else {
+            return nil
+        }
+
+        if let url = media.thumbnails?.compactMap({ cleanImageURL($0.attributes?.url) }).first {
+            return url
+        }
+
+        if let url = media.contents?.compactMap(firstImageURL(in:)).first {
+            return url
+        }
+
+        if let url = media.group?.thumbnails?.compactMap({ cleanImageURL($0.attributes?.url) }).first {
+            return url
+        }
+
+        return media.group?.contents?.compactMap(firstImageURL(in:)).first
+    }
+
+    private nonisolated static func firstImageURL(in content: MediaContent) -> String? {
+        if let url = content.thumbnails?.compactMap({ cleanImageURL($0.attributes?.url) }).first {
+            return url
+        }
+
+        guard let url = cleanImageURL(content.attributes?.url) else {
+            return nil
+        }
+
+        let medium = content.attributes?.medium?.lowercased()
+        let type = content.attributes?.type?.lowercased()
+        if medium == "image" || type?.hasPrefix("image/") == true || looksLikeImageURL(url) {
+            return url
+        }
+
+        return nil
+    }
+
+    private nonisolated static func firstImageURL(from enclosure: RSSFeedEnclosure?) -> String? {
+        guard let url = cleanImageURL(enclosure?.attributes?.url) else {
+            return nil
+        }
+
+        let type = enclosure?.attributes?.type?.lowercased()
+        if type?.hasPrefix("image/") == true || looksLikeImageURL(url) {
+            return url
+        }
+
+        return nil
+    }
+
+    private nonisolated static func firstImageURL(inHTML html: String?) -> String? {
+        guard let html, !html.isEmpty else {
+            return nil
+        }
+
+        let pattern = #"<img[^>]+src\s*=\s*["']([^"']+)["']"#
+        guard let expression = try? NSRegularExpression(
+            pattern: pattern,
+            options: [.caseInsensitive]
+        ) else {
+            return nil
+        }
+
+        let range = NSRange(html.startIndex ..< html.endIndex, in: html)
+        guard let match = expression.firstMatch(in: html, range: range),
+              let srcRange = Range(match.range(at: 1), in: html) else {
+            return nil
+        }
+
+        return cleanImageURL(String(html[srcRange]))
+    }
+
+    private nonisolated static func cleanImageURL(_ value: String?) -> String? {
+        guard let value else {
+            return nil
+        }
+
+        let cleaned = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return cleaned.isEmpty ? nil : cleaned
+    }
+
+    private nonisolated static func looksLikeImageURL(_ url: String) -> Bool {
+        guard let components = URLComponents(string: url) else {
+            return false
+        }
+
+        let path = components.path.lowercased()
+        return [".jpg", ".jpeg", ".png", ".gif", ".webp", ".avif"].contains { path.hasSuffix($0) }
     }
 }
