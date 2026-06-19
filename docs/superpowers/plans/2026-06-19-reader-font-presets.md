@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add configurable title/body font presets plus body text size and line spacing for the native Reader.
+**Goal:** Add configurable title/body font presets plus body text size and separate title/body line spacing for the native Reader.
 
-**Architecture:** Use `ReaderFontPreset` for preset resolution, bundled font filenames and SwiftUI font creation. Use `ReaderFontRegistry` to register bundled TTF files at app startup. Use `ReaderTypography` for defaults and clamped ranges. Store title/body choices, body text size and line spacing with `@AppStorage`, expose them in a Reader toolbar popover and in Settings.
+**Architecture:** Use `ReaderFontPreset` for preset resolution, bundled font filenames and SwiftUI font creation. Use `ReaderFontRegistry` to register bundled TTF files at app startup. Use `ReaderTypography` for defaults and clamped ranges. Store title/body choices, body text size and separate title/body line spacing with `@AppStorage`, expose them in a Reader toolbar popover and in Settings.
 
 **Tech Stack:** SwiftUI, AppStorage, Xcode String Catalog, Swift Testing.
 
@@ -33,6 +33,7 @@
 - [x] Add `@AppStorage` values for title/body presets.
 - [x] Apply title preset to title text and body preset to paragraph text.
 - [x] Add toolbar `textformat` button with popover, two pickers, text-size slider and line-spacing slider.
+- [x] Add separate title line-spacing storage, slider and title text rendering.
 - [x] Apply the body font preset to the metadata line above the title.
 - [x] Force font pickers to menu style so the long curated list is shown consistently.
 
@@ -45,6 +46,7 @@
 
 - [x] Add Settings pickers under Reading.
 - [x] Add Settings sliders for text size and line spacing under Reading.
+- [x] Add Settings slider for title line spacing under Reading.
 - [x] Add localized labels for de/en/fr/it.
 
 ### Task 4: Documentation and Verification

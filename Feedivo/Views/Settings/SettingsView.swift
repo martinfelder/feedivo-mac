@@ -19,6 +19,9 @@ struct SettingsView: View {
     @AppStorage("readerLineSpacing")
     private var readerLineSpacing = ReaderTypography.defaultLineSpacing
 
+    @AppStorage("readerTitleLineSpacing")
+    private var readerTitleLineSpacing = ReaderTypography.defaultTitleLineSpacing
+
     var body: some View {
         Form {
             Section(L10n.settingsLanguageSection) {
@@ -52,6 +55,13 @@ struct SettingsView: View {
                     value: $readerBodyFontSize,
                     range: ReaderTypography.bodyFontSizeRange,
                     displayedValue: ReaderTypography.clampedBodyFontSize(readerBodyFontSize)
+                )
+
+                typographySlider(
+                    L10n.readerTitleLineSpacingSlider,
+                    value: $readerTitleLineSpacing,
+                    range: ReaderTypography.titleLineSpacingRange,
+                    displayedValue: ReaderTypography.clampedTitleLineSpacing(readerTitleLineSpacing)
                 )
 
                 typographySlider(

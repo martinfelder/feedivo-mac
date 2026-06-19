@@ -15,6 +15,9 @@ struct ReaderView: View {
     @AppStorage("readerLineSpacing")
     private var readerLineSpacing = ReaderTypography.defaultLineSpacing
 
+    @AppStorage("readerTitleLineSpacing")
+    private var readerTitleLineSpacing = ReaderTypography.defaultTitleLineSpacing
+
     @State private var isAppearancePopoverPresented = false
 
     private var titleFontPreset: ReaderFontPreset {
@@ -31,6 +34,10 @@ struct ReaderView: View {
 
     private var clampedLineSpacing: CGFloat {
         CGFloat(ReaderTypography.clampedLineSpacing(readerLineSpacing))
+    }
+
+    private var clampedTitleLineSpacing: CGFloat {
+        CGFloat(ReaderTypography.clampedTitleLineSpacing(readerTitleLineSpacing))
     }
 
     private var metadataFontSize: CGFloat {
@@ -74,6 +81,7 @@ struct ReaderView: View {
                         relativeTo: .largeTitle
                     ))
                     .fontWeight(.bold)
+                    .lineSpacing(clampedTitleLineSpacing)
 
                 ForEach(Array(contentBlocks.enumerated()), id: \.offset) { _, block in
                     switch block {
@@ -136,6 +144,13 @@ struct ReaderView: View {
                 value: $readerBodyFontSize,
                 range: ReaderTypography.bodyFontSizeRange,
                 displayedValue: ReaderTypography.clampedBodyFontSize(readerBodyFontSize)
+            )
+
+            typographySlider(
+                L10n.readerTitleLineSpacingSlider,
+                value: $readerTitleLineSpacing,
+                range: ReaderTypography.titleLineSpacingRange,
+                displayedValue: ReaderTypography.clampedTitleLineSpacing(readerTitleLineSpacing)
             )
 
             typographySlider(

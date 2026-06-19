@@ -8,12 +8,19 @@ enum ReaderTypography {
     static let defaultLineSpacing = 5.0
     static let lineSpacingRange = 1.0...12.0
 
+    static let defaultTitleLineSpacing = 2.0
+    static let titleLineSpacingRange = 0.0...10.0
+
     static func clampedBodyFontSize(_ value: Double) -> Double {
         min(max(value, bodyFontSizeRange.lowerBound), bodyFontSizeRange.upperBound)
     }
 
     static func clampedLineSpacing(_ value: Double) -> Double {
         min(max(value, lineSpacingRange.lowerBound), lineSpacingRange.upperBound)
+    }
+
+    static func clampedTitleLineSpacing(_ value: Double) -> Double {
+        min(max(value, titleLineSpacingRange.lowerBound), titleLineSpacingRange.upperBound)
     }
 
     static func metadataFontSize(forBodyFontSize bodyFontSize: Double) -> Double {

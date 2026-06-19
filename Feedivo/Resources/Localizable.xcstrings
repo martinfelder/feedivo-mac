@@ -763,6 +763,34 @@
         }
       }
     },
+    "reader.titleLineSpacing.slider" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Titel-Zeilenabstand"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Title line spacing"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interligne du titre"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interlinea titolo"
+          }
+        }
+      }
+    },
     "reader.openOriginal" : {
       "localizations" : {
         "de" : {

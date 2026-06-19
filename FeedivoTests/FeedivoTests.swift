@@ -118,6 +118,13 @@ struct FeedivoTests {
         #expect(ReaderTypography.clampedLineSpacing(20) == 12)
     }
 
+    @Test func readerTypographyBegrenztTitelZeilenabstandSeparat() {
+        #expect(ReaderTypography.defaultTitleLineSpacing == 2)
+        #expect(ReaderTypography.clampedTitleLineSpacing(-4) == 0)
+        #expect(ReaderTypography.clampedTitleLineSpacing(4) == 4)
+        #expect(ReaderTypography.clampedTitleLineSpacing(20) == 10)
+    }
+
     @Test func readerFontPresetKenntPostScriptKandidaten() {
         #expect(ReaderFontPreset.inter.fontNames.contains("Inter-Regular"))
         #expect(ReaderFontPreset.dmSans.fontNames.contains("DMSans-Regular"))
