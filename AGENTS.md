@@ -133,6 +133,7 @@ FeedivoMac/
 │   │   │   ├── ReaderView.swift        # Rechte Spalte: nativer Artikel-Reader ✅
 │   │   │   ├── ReaderContentRenderer.swift # HTML/Text zu Reader-Bloecken ✅
 │   │   │   ├── ReaderMetadataFormatter.swift # Feedname/Lesezeit/Alter ✅
+│   │   │   ├── ReaderFontPreset.swift  # Schrift-Presets fuer Reader ✅
 │   │   │   └── WebContentView.swift    # WKWebView-Wrapper für volle Artikel (TODO)
 │   │   ├── Tags/
 │   │   │   ├── TagManagerView.swift    # Tags erstellen, bearbeiten, löschen (TODO)
@@ -245,13 +246,22 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 - Standard: Artikel beim Oeffnen automatisch als gelesen markieren
 - `@AppStorage("appLanguage")`
 - Sprachauswahl: Nach System, Deutsch, Englisch, Französisch, Italienisch
+- Reader-Schriftwahl: `readerTitleFontPreset` und `readerBodyFontPreset`
+- Presets: System, Serif, Rounded, Monospace
 
 ### ReaderView.swift
 - Zeigt Metazeile, Titel, native Reader-Bloecke und Link zum Original
 - Metazeile: Feedname, ungefaehre Lesezeit und Artikelalter, linksbuendig oberhalb
   des Titels
+- Toolbar-Button `textformat` oeffnet ein Popover fuer Titel- und Fliesstext-Schrift
+- Titel- und Fliesstext-Schrift werden getrennt via `@AppStorage` gespeichert
 - Nutzt `ReaderContentRenderer`, um Content/Summary in Absätze und Bilder zu wandeln
 - Noch kein WKWebView/Vollseiten-Reader
+
+### ReaderFontPreset.swift
+- Kuratierte Font-Presets fuer die Artikelansicht: System, Serif, Rounded, Monospace
+- Kapselt `Font.Design`, lokalisierte Label und Fallback fuer unbekannte gespeicherte Werte
+- Keine freie Systemfont-Auswahl im MVP, damit die UI uebersichtlich und robust bleibt
 
 ### ReaderMetadataFormatter.swift
 - Berechnet ungefaehre Lesezeit mit 200 Woertern pro Minute, mindestens 1 Minute
@@ -534,3 +544,5 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
   Artikelliste und Reader die Bilder via `AsyncImage` laden koennen
 - 2026-06-19: Reader-Metazeile ergaenzt: Oberhalb des Titels zeigt die Artikelansicht
   Feedname, ungefaehre Lesezeit und Artikelalter; Lesezeit ist testbar und lokalisiert
+- 2026-06-19: Reader-Schrift-Presets ergaenzt: Titel- und Fliesstext-Schrift koennen
+  direkt im Reader-Popover und in den Einstellungen getrennt gewaehlt werden

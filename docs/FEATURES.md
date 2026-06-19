@@ -81,6 +81,8 @@ bei geschlossener App.
   und Italienisch, plus zentraler `L10n.swift` Helper.
 - In den Einstellungen kann die App-Sprache auf `Nach System`, Deutsch, Englisch,
   Franzoesisch oder Italienisch gesetzt werden.
+- In der Artikelansicht koennen Titel- und Fliesstext-Schrift ueber kuratierte
+  Presets direkt per Toolbar-Popover und in den Einstellungen getrennt gewaehlt werden.
 - Projekt baut und Unit-Tests laufen; UI-Test-Runner blockierte lokal am 2026-06-19
   vor dem App-Launch an einer alten Feedivo-PID.
 
@@ -162,6 +164,15 @@ M2 Core Features:
 - Status: Entschieden
 - Prioritaet: MVP/v1
 - Empfehlung: Feste Stufen Klein/Mittel/Gross, global. Gilt zuerst nur fuer nativen Reader.
+
+#### 1.9.1 Schriftarten
+- Status: Fertig als Basis
+- Prioritaet: v1
+- Implementiert: Getrennte Reader-Presets fuer Titel und Fliesstext: System, Serif,
+  Rounded, Monospace.
+- Zugriff: Direkt in der Artikelansicht via Toolbar-Popover und zusaetzlich in den
+  Einstellungen unter Lesen.
+- Spaeter: Schriftgroesse und Zeilenabstand als eigene Presets ergaenzen.
 
 #### 1.10 Link kopieren
 - Status: Entschieden

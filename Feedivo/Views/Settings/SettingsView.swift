@@ -7,6 +7,12 @@ struct SettingsView: View {
     @AppStorage("appLanguage")
     private var appLanguageRawValue = AppLanguage.system.rawValue
 
+    @AppStorage("readerTitleFontPreset")
+    private var readerTitleFontPresetRawValue = ReaderFontPreset.system.rawValue
+
+    @AppStorage("readerBodyFontPreset")
+    private var readerBodyFontPresetRawValue = ReaderFontPreset.system.rawValue
+
     var body: some View {
         Form {
             Section(L10n.settingsLanguageSection) {
@@ -19,6 +25,20 @@ struct SettingsView: View {
             }
 
             Section(L10n.settingsReadingSection) {
+                Picker(L10n.readerTitleFontPicker, selection: $readerTitleFontPresetRawValue) {
+                    ForEach(ReaderFontPreset.allCases) { preset in
+                        Text(preset.titleKey)
+                            .tag(preset.rawValue)
+                    }
+                }
+
+                Picker(L10n.readerBodyFontPicker, selection: $readerBodyFontPresetRawValue) {
+                    ForEach(ReaderFontPreset.allCases) { preset in
+                        Text(preset.titleKey)
+                            .tag(preset.rawValue)
+                    }
+                }
+
                 Toggle(L10n.settingsMarkReadOnOpenTitle, isOn: $markArticleReadOnSelection)
 
                 Text(L10n.settingsMarkReadOnOpenDescription)

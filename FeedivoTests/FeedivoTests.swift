@@ -78,6 +78,14 @@ struct FeedivoTests {
         #expect(ReaderMetadataFormatter.readingTimeText(content: langerContentText, summary: kurzerSummaryText) == "ca. 2 Min. Lesezeit")
     }
 
+    @Test func readerFontPresetLoestGespeicherteWerteAuf() {
+        #expect(ReaderFontPreset.resolved(from: "system") == .system)
+        #expect(ReaderFontPreset.resolved(from: "serif") == .serif)
+        #expect(ReaderFontPreset.resolved(from: "rounded") == .rounded)
+        #expect(ReaderFontPreset.resolved(from: "monospace") == .monospace)
+        #expect(ReaderFontPreset.resolved(from: "unbekannt") == .system)
+    }
+
     @Test func feedServiceParstRSSTitelUndArtikelMetadaten() async throws {
         let rss = """
         <?xml version="1.0" encoding="UTF-8"?>
