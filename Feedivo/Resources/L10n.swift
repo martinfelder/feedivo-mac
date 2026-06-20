@@ -49,6 +49,17 @@ enum L10n {
     static var feedErrorParsingFailed: String { String(localized: "feed.error.parsingFailed") }
     static var feedErrorEmptyURL: String { String(localized: "feed.error.emptyURL") }
     static var feedErrorAddFailed: String { String(localized: "feed.error.addFailed") }
+    static var feedCommandsMenu: String { String(localized: "feedCommands.menu") }
+    static var feedDeleteCommand: String { String(localized: "feed.delete.command") }
+    static var feedDeleteConfirmButton: String { String(localized: "feed.delete.confirmButton") }
+    static var feedDeleteConfirmationTitle: String { String(localized: "feed.delete.confirmation.title") }
+
+    static func feedDeleteConfirmationMessage(feedTitle: String) -> String {
+        String.localizedStringWithFormat(
+            String(localized: "feed.delete.confirmation.message"),
+            feedTitle
+        )
+    }
 
     static func readerReadingTime(minutes: Int) -> String {
         String.localizedStringWithFormat(String(localized: "reader.readingTime"), minutes)

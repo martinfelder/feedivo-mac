@@ -2,9 +2,9 @@ import SwiftUI
 import SwiftData
 
 struct SidebarView: View {
-    @Environment(\.modelContext) private var modelContext
     @Query(sort: \Feed.title) private var feeds: [Feed]
     @Binding var selectedFeed: Feed?
+    let onRequestDeleteFeed: (Feed) -> Void
     @State private var isShowingAddFeedSheet = false
 
     var body: some View {
@@ -16,6 +16,13 @@ struct SidebarView: View {
                 ForEach(feeds) { feed in
                     Label(feed.title, systemImage: "dot.radiowaves.left.and.right")
                         .tag(feed)
+                        .contextMenu {
+                            Button(role: .destructive) {
+                                onRequestDeleteFeed(feed)
+                            } label: {
+                                Label(L10n.feedDeleteCommand, systemImage: "trash")
+                            }
+                        }
                 }
             }
         }

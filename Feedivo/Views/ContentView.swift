@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 
 struct ContentView: View {
+    @Environment(\.modelContext) private var modelContext
 
     // columnVisibility steuert ob die Sidebar sichtbar ist.
     // .all bedeutet: alle 3 Spalten beim Start anzeigen.
@@ -15,12 +16,18 @@ struct ContentView: View {
     @State private var selectedArticle: Article? = nil
 
     @State private var articleViewModel = ArticleViewModel()
+    @State private var feedViewModel = FeedViewModel()
+    @State private var feedPendingDeletion: Feed?
+    @State private var isDeleteFeedConfirmationPresented = false
 
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
 
             // SPALTE 1: Sidebar — Liste aller Feeds
-            SidebarView(selectedFeed: $selectedFeed)
+            SidebarView(
+                selectedFeed: $selectedFeed,
+                onRequestDeleteFeed: requestDeleteFeed
+            )
                 .navigationSplitViewColumnWidth(min: 200, ideal: 240, max: 300)
 
         } content: {
@@ -56,6 +63,21 @@ struct ContentView: View {
         .onChange(of: selectedFeed?.persistentModelID) {
             selectedArticle = nil
         }
+        .confirmationDialog(
+            L10n.feedDeleteConfirmationTitle,
+            isPresented: $isDeleteFeedConfirmationPresented,
+            presenting: feedPendingDeletion
+        ) { feed in
+            Button(L10n.feedDeleteConfirmButton, role: .destructive) {
+                deleteFeed(feed)
+            }
+
+            Button(L10n.commonCancel, role: .cancel) {
+                feedPendingDeletion = nil
+            }
+        } message: { feed in
+            Text(L10n.feedDeleteConfirmationMessage(feedTitle: feed.title))
+        }
         .focusedValue(
             \.articleCommandActions,
             ArticleCommandActions(
@@ -68,5 +90,34 @@ struct ContentView: View {
                 }
             )
         )
+        .focusedValue(
+            \.feedCommandActions,
+            FeedCommandActions(
+                selectedFeed: selectedFeed,
+                requestDelete: {
+                    if let selectedFeed {
+                        requestDeleteFeed(selectedFeed)
+                    }
+                }
+            )
+        )
+    }
+
+    private func requestDeleteFeed(_ feed: Feed) {
+        feedPendingDeletion = feed
+        isDeleteFeedConfirmationPresented = true
+    }
+
+    private func deleteFeed(_ feed: Feed) {
+        let shouldClearSelection = selectedFeed?.persistentModelID == feed.persistentModelID
+
+        feedViewModel.deleteFeed(feed, context: modelContext)
+
+        if feedViewModel.errorMessage == nil && shouldClearSelection {
+            selectedArticle = nil
+            selectedFeed = nil
+        }
+
+        feedPendingDeletion = nil
     }
 }

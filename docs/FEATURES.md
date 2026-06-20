@@ -41,7 +41,7 @@ RSS Reader machen:
 3. Artikel mit Stern markieren.
 4. Vorheriger/naechster Artikel, inklusive Tastaturbedienung.
 5. Manueller Refresh fuer aktuellen Feed und alle Feeds.
-6. Feed loeschen mit Bestaetigung.
+6. Feed loeschen mit Bestaetigung. ✅ Basis umgesetzt.
 7. Smart Filter: Alle, Ungelesen, Mit Stern, Heute.
 8. OPML Import.
 9. Einfache Einstellungen: Refresh-Intervall, Standard-Reader-Modus, Schriftgroesse.
@@ -77,6 +77,9 @@ bei geschlossener App.
   werden.
 - Artikelaktionen koennen auch per macOS-Menue `Artikel` und Tastaturkuerzeln
   gesteuert werden: `Cmd+Shift+U` fuer gelesen/ungelesen, `Cmd+D` fuer Stern.
+- Feeds koennen per Rechtsklick in der Sidebar oder ueber das macOS-Menue `Feed`
+  geloescht werden; vor dem Loeschen erscheint eine Bestaetigung mit Hinweis auf
+  die mitgeloeschten Artikel.
 - Automatisches Gelesen-Markieren beim Oeffnen ist standardmaessig aktiv und in den
   Einstellungen abschaltbar.
 - i18n Foundation ist umgesetzt: String Catalog mit Deutsch, Englisch, Franzoesisch
@@ -94,9 +97,8 @@ bei geschlossener App.
 ### Aktuell in Arbeit
 
 M2 Core Features:
-- Feed loeschen
 - Manueller Refresh
-- App-weite Menue-Commands fuer Feed/Refresh
+- App-weite Menue-Commands fuer Feed hinzufuegen/Refresh
 
 ---
 
@@ -265,9 +267,14 @@ M2 Core Features:
 - Empfehlung: Titel und Refresh-Intervall editierbar. URL eher nicht frei aendern ohne erneute Validierung.
 
 #### 4.3 Feed loeschen
-- Status: In Diskussion
+- Status: Fertig als Basis
 - Prioritaet: MVP
-- Empfehlung: Bestaetigungsdialog mit Hinweis, dass alle Artikel geloescht werden.
+- Implementiert: Rechtsklick auf Feed in der Sidebar und macOS-Menue `Feed` mit
+  deaktivierter Aktion ohne Auswahl.
+- Verhalten: Bestaetigungsdialog mit Hinweis, dass alle gespeicherten Artikel des
+  Feeds mitgeloescht werden; bei geloeschter Auswahl werden Feed und Artikel-Detail
+  zurueckgesetzt.
+- Spaeter: Optional Shortcut nur dann pruefen, wenn sich das nicht zu gefaehrlich anfuehlt.
 
 #### 4.4 Manueller Refresh
 - Status: In Diskussion

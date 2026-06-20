@@ -107,7 +107,9 @@ FeedivoMac/
 │   ├── App/
 │   │   ├── FeedivoApp.swift            # @main Entry Point, .modelContainer Setup ✅
 │   │   ├── ArticleCommands.swift       # macOS Artikel-Menue + Tastaturkuerzel ✅
-│   │   └── ArticleCommandActions.swift # FocusedValues fuer Artikelaktionen ✅
+│   │   ├── ArticleCommandActions.swift # FocusedValues fuer Artikelaktionen ✅
+│   │   ├── FeedCommands.swift          # macOS Feed-Menue ✅
+│   │   └── FeedCommandActions.swift    # FocusedValues fuer Feedaktionen ✅
 │   │
 │   ├── Models/                         # SwiftData @Model Klassen — alle fertig ✅
 │   │   ├── Feed.swift
@@ -116,7 +118,7 @@ FeedivoMac/
 │   │   └── Rule.swift
 │   │
 │   ├── ViewModels/
-│   │   ├── FeedViewModel.swift         # Feed hinzufügen ✅
+│   │   ├── FeedViewModel.swift         # Feed hinzufügen und loeschen ✅
 │   │   ├── ArticleViewModel.swift      # Artikel gelesen/ungelesen und Stern toggeln ✅
 │   │   ├── TagViewModel.swift          # Tags verwalten (TODO)
 │   │   ├── RuleEngineViewModel.swift   # Regeln auswerten und Tags auto-zuweisen (TODO)
@@ -174,7 +176,7 @@ FeedivoMac/
 
 ---
 
-## Implementierter Code (Stand 2026-06-19)
+## Implementierter Code (Stand 2026-06-20)
 
 ### FeedivoApp.swift
 ```swift
@@ -207,6 +209,7 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 - Toolbar mit + Button → Sheet `AddFeedSheet`
 - `AddFeedSheet` ist eine separate Struct in derselben Datei
 - Ruft `FeedViewModel.addFeed()` auf
+- Kontextmenue pro Feed ruft das Feed-Loeschen mit Bestaetigung an
 
 ### FeedService.swift
 - Parsed RSS 2.0, Atom und JSON Feed via FeedKit
@@ -222,6 +225,8 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 ### FeedViewModel.swift
 - `@Observable` class
 - `addFeed(urlString:context:)` — lädt Artikel, erstellt Feed, speichert in SwiftData
+- `deleteFeed(_:context:)` — loescht einen Feed aus SwiftData; Artikel werden ueber
+  die Cascade-Relationship mitgeloescht
 - Properties: `isLoading: Bool`, `errorMessage: String?`
 
 ### ArticleListView.swift
@@ -251,6 +256,13 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 - `Cmd+D` toggelt Stern
 - Commands sind deaktiviert, wenn kein Artikel ausgewaehlt ist
 - `ContentView` stellt die Aktionen via SwiftUI `FocusedValues` bereit
+
+### FeedCommands.swift / FeedCommandActions.swift
+- macOS-Menue `Feed` fuer Aktionen auf dem fokussierten/ausgewaehlten Feed
+- Feed loeschen ist deaktiviert, wenn kein Feed ausgewaehlt ist
+- Kein Shortcut fuer Loeschen, damit eine destruktive Aktion bewusst bleibt
+- `ContentView` zeigt vor dem Loeschen einen Bestaetigungsdialog und setzt die
+  Feed-/Artikel-Auswahl nach erfolgreichem Loeschen zurueck
 
 ### SettingsView.swift
 - macOS Settings-Szene in `FeedivoApp.swift`
@@ -496,8 +508,8 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
   Titel-/Fliesstext-Zeilenabstand und Artikelbreite
 - [x] Tastaturkuerzel: `Cmd+Shift+U` gelesen/ungelesen, `Cmd+D` Stern
 - [x] macOS Artikel-Menue fuer gelesen/ungelesen und Stern
+- [x] Feed löschen (Rechtsklick und macOS-Menue `Feed`, mit Bestätigung)
 - [ ] macOS Menüleiste: `Cmd+R` = Refresh, `Cmd+N` = Feed hinzufügen
-- [ ] Feed löschen (Rechtsklick → Delete, mit Bestätigung)
 - [ ] Automatischer Refresh (konfigurierbares Intervall)
 - [ ] Favicons laden und in Sidebar anzeigen
 
@@ -546,7 +558,8 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 ## Aktuell in Arbeit
 
 - M1 abgeschlossen
-- Aktuell M2: Feed löschen, manuellen Refresh und app-weite Menü-Commands ausbauen
+- Aktuell M2: manuellen Refresh und app-weite Menü-Commands fuer Feed hinzufuegen/Refresh
+  ausbauen
 - Feature-Roadmap ist in `docs/FEATURES.md` dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
@@ -601,3 +614,6 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
   Reader-Popover und in den Einstellungen zwischen 520...980 px eingestellt werden
 - 2026-06-20: Artikel-Commands ergaenzt: macOS-Menue `Artikel`, `Cmd+Shift+U`
   fuer gelesen/ungelesen und `Cmd+D` fuer Stern; Commands nutzen SwiftUI FocusedValues
+- 2026-06-20: Feed loeschen als Basis umgesetzt: Rechtsklick in der Sidebar und
+  macOS-Menue `Feed`, jeweils mit Bestaetigungsdialog; `FeedViewModelTests`
+  pruefen Loeschen und fehlende Auswahl

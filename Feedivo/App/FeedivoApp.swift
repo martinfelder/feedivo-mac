@@ -23,6 +23,7 @@ struct FeedivoApp: App {
         }
         .commands {
             ArticleCommands()
+            FeedCommands()
         }
         .modelContainer(for: [
             Feed.self,

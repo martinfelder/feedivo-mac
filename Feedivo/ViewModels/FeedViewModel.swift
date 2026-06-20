@@ -49,4 +49,20 @@ final class FeedViewModel {
 
         isLoading = false
     }
+
+    @MainActor
+    func deleteFeed(_ feed: Feed?, context: ModelContext) {
+        guard let feed else {
+            return
+        }
+
+        errorMessage = nil
+        context.delete(feed)
+
+        do {
+            try context.save()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
 }
