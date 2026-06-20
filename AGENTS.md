@@ -908,3 +908,6 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 - 2026-06-20: Sidebar-Ordner aufklappbar gemacht: Ordnerzeilen haben einen Chevron,
   bleiben standardmaessig geoeffnet und klappen ihre eingerueckten Feeds per Klick
   ein oder aus.
+- 2026-06-20: Interaktive Artikel-Reader-Prototypen erstellt:
+  `docs/design/article-reader-prototypes/index.html` zeigt fuenf moegliche
+  Reader-Darstellungen fuer die spaetere Ueberarbeitung der Artikelansicht.

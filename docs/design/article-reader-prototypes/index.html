@@ -1,0 +1,824 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Feedivo Artikel-Reader Prototypen</title>
+  <style>
+    :root {
+      --bg: #f5f5f3;
+      --surface: #ffffff;
+      --surface-soft: #f0efec;
+      --text: #202124;
+      --muted: #72726d;
+      --line: rgba(35, 35, 32, 0.12);
+      --accent: #0a84ff;
+      --accent-soft: rgba(10, 132, 255, 0.12);
+      --sidebar: #191a1d;
+      --sidebar-line: rgba(255, 255, 255, 0.08);
+      --shadow: 0 24px 80px rgba(20, 20, 20, 0.12);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background: var(--bg);
+    }
+
+    button {
+      font: inherit;
+    }
+
+    .app-shell {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      min-height: 100vh;
+    }
+
+    .variant-nav {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      padding: 22px;
+      color: rgba(255, 255, 255, 0.88);
+      background: var(--sidebar);
+      border-right: 1px solid var(--sidebar-line);
+      overflow: auto;
+    }
+
+    .traffic {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 26px;
+    }
+
+    .traffic span {
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      display: block;
+    }
+
+    .traffic span:nth-child(1) { background: #ff5f57; }
+    .traffic span:nth-child(2) { background: #ffbd2e; }
+    .traffic span:nth-child(3) { background: #28c840; }
+
+    .nav-title {
+      margin-bottom: 22px;
+    }
+
+    .nav-title h1 {
+      margin: 0 0 8px;
+      font-size: 22px;
+      line-height: 1.1;
+      letter-spacing: 0;
+    }
+
+    .nav-title p {
+      margin: 0;
+      color: rgba(255, 255, 255, 0.58);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .variant-list {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+
+    .variant-tab {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 28px 1fr;
+      gap: 10px;
+      align-items: center;
+      padding: 10px;
+      color: rgba(255, 255, 255, 0.68);
+      background: transparent;
+      border: 0;
+      border-radius: 8px;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .variant-tab:hover,
+    .variant-tab.active {
+      color: white;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .variant-tab.active {
+      box-shadow: inset 3px 0 0 var(--accent);
+    }
+
+    .tab-index {
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      border-radius: 7px;
+      background: rgba(255, 255, 255, 0.08);
+      color: rgba(255, 255, 255, 0.78);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .variant-tab strong {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 2px;
+    }
+
+    .variant-tab small {
+      display: block;
+      color: rgba(255, 255, 255, 0.48);
+      font-size: 11px;
+      line-height: 1.25;
+    }
+
+    .controls {
+      padding-top: 18px;
+      border-top: 1px solid var(--sidebar-line);
+    }
+
+    .control-row {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+
+    .control-row label {
+      color: rgba(255, 255, 255, 0.58);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .segmented {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+      padding: 4px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 9px;
+    }
+
+    .segmented button,
+    .icon-button,
+    .pill-button {
+      color: rgba(255, 255, 255, 0.78);
+      background: transparent;
+      border: 0;
+      border-radius: 7px;
+      cursor: pointer;
+    }
+
+    .segmented button {
+      min-height: 30px;
+      font-size: 12px;
+    }
+
+    .segmented button.active {
+      color: white;
+      background: rgba(255, 255, 255, 0.16);
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+    }
+
+    .preview-stage {
+      min-width: 0;
+      padding: 28px;
+      overflow: hidden;
+    }
+
+    .window {
+      height: calc(100vh - 56px);
+      min-height: 720px;
+      display: grid;
+      grid-template-rows: 54px 1fr;
+      overflow: hidden;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 0 18px;
+      background: color-mix(in srgb, var(--surface) 88%, transparent);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .toolbar-left,
+    .toolbar-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .toolbar-title {
+      min-width: 0;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .icon-button {
+      width: 32px;
+      height: 32px;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      background: var(--surface-soft);
+      border: 1px solid transparent;
+    }
+
+    .icon-button:hover,
+    .icon-button.active {
+      color: var(--accent);
+      background: var(--accent-soft);
+      border-color: rgba(10, 132, 255, 0.18);
+    }
+
+    .reader-viewport {
+      min-height: 0;
+      overflow: auto;
+      scroll-behavior: smooth;
+      background: var(--reader-bg, var(--surface));
+    }
+
+    .reader {
+      --reader-width: 760px;
+      --body-size: 20px;
+      --body-leading: 1.62;
+      width: min(var(--reader-width), calc(100% - 64px));
+      margin: 0 auto;
+      padding: 46px 0 80px;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 750;
+      line-height: 1.3;
+    }
+
+    .headline {
+      margin: 14px 0 26px;
+      color: var(--text);
+      font-size: clamp(44px, 5.2vw, 76px);
+      line-height: 1.03;
+      letter-spacing: 0;
+    }
+
+    .hero-img {
+      display: block;
+      width: 100%;
+      max-height: 620px;
+      object-fit: cover;
+      border-radius: 10px;
+      background: #ddd;
+    }
+
+    .caption {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .article-body {
+      margin-top: 28px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: var(--body-size);
+      line-height: var(--body-leading);
+    }
+
+    .article-body p {
+      margin: 0 0 20px;
+    }
+
+    .article-body h2 {
+      margin: 36px 0 14px;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+      font-size: 28px;
+      line-height: 1.15;
+    }
+
+    .article-body blockquote {
+      margin: 26px 0;
+      padding-left: 18px;
+      color: color-mix(in srgb, var(--text) 82%, var(--muted));
+      border-left: 3px solid var(--accent);
+    }
+
+    .original-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+      color: var(--accent);
+      font-size: 16px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .concept {
+      display: none;
+    }
+
+    .concept.active {
+      display: block;
+    }
+
+    .reading-progress {
+      height: 3px;
+      width: var(--progress, 34%);
+      background: var(--accent);
+      border-radius: 999px;
+      transition: width 180ms ease;
+    }
+
+    .reader.focus {
+      --reader-width: 680px;
+      --body-size: 21px;
+    }
+
+    .reader.magazine {
+      --reader-width: 980px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 280px;
+      gap: 34px;
+      align-items: start;
+    }
+
+    .magazine-main {
+      min-width: 0;
+    }
+
+    .side-panel {
+      position: sticky;
+      top: 28px;
+      display: grid;
+      gap: 14px;
+      padding: 16px;
+      background: var(--surface-soft);
+      border-radius: 12px;
+      border: 1px solid var(--line);
+    }
+
+    .side-panel h3 {
+      margin: 0;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+    }
+
+    .fact {
+      display: grid;
+      gap: 4px;
+      padding-top: 12px;
+      border-top: 1px solid var(--line);
+    }
+
+    .fact strong {
+      font-size: 18px;
+    }
+
+    .fact span {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .reader.immersive {
+      --reader-width: 100%;
+      width: 100%;
+      padding: 0 0 80px;
+    }
+
+    .immersive-hero {
+      position: relative;
+      min-height: 76vh;
+      display: grid;
+      align-items: end;
+      padding: 48px;
+      overflow: hidden;
+      color: white;
+      background: #111;
+    }
+
+    .immersive-hero img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      filter: saturate(0.95) brightness(0.72);
+    }
+
+    .immersive-hero::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(0,0,0,0.06), rgba(0,0,0,0.72));
+    }
+
+    .immersive-copy {
+      position: relative;
+      z-index: 1;
+      max-width: 930px;
+    }
+
+    .immersive-copy .meta,
+    .immersive-copy .headline {
+      color: white;
+    }
+
+    .immersive-body {
+      width: min(720px, calc(100% - 64px));
+      margin: 44px auto 0;
+    }
+
+    .reader.compact {
+      --reader-width: 1120px;
+      display: grid;
+      grid-template-columns: 230px minmax(0, 720px);
+      gap: 42px;
+      justify-content: center;
+    }
+
+    .compact-rail {
+      position: sticky;
+      top: 30px;
+      align-self: start;
+      display: grid;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .rail-card {
+      padding: 14px;
+      background: var(--surface-soft);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+    }
+
+    .rail-card strong {
+      display: block;
+      color: var(--text);
+      font-size: 15px;
+      margin-bottom: 8px;
+    }
+
+    .topic-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+
+    .topic-list span {
+      padding: 5px 8px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 12px;
+    }
+
+    .reader.paper {
+      --reader-width: 740px;
+      --reader-bg: #fbfaf7;
+      color: #24231f;
+    }
+
+    .reader.paper .headline {
+      font-family: Georgia, "Times New Roman", serif;
+      font-weight: 700;
+      font-size: clamp(42px, 4.4vw, 64px);
+      line-height: 1.08;
+    }
+
+    .paper-card {
+      padding: 18px 0 26px;
+      border-block: 1px solid var(--line);
+    }
+
+    .paper-card img {
+      filter: saturate(0.9) contrast(0.96);
+    }
+
+    .note-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .pill-button {
+      padding: 8px 10px;
+      color: var(--accent);
+      background: var(--accent-soft);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    body.dark {
+      --bg: #101113;
+      --surface: #17181b;
+      --surface-soft: #222329;
+      --text: #f3f2ee;
+      --muted: #a5a49f;
+      --line: rgba(255, 255, 255, 0.12);
+      --shadow: 0 30px 90px rgba(0, 0, 0, 0.48);
+    }
+
+    body.dark .hero-img {
+      filter: brightness(0.92) saturate(0.92);
+    }
+
+    @media (max-width: 980px) {
+      .app-shell {
+        grid-template-columns: 1fr;
+      }
+
+      .variant-nav {
+        position: static;
+        height: auto;
+      }
+
+      .preview-stage {
+        padding: 16px;
+      }
+
+      .window {
+        height: auto;
+        min-height: 820px;
+      }
+
+      .reader.magazine,
+      .reader.compact {
+        display: block;
+        width: min(760px, calc(100% - 40px));
+      }
+
+      .side-panel,
+      .compact-rail {
+        position: static;
+        margin-top: 28px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="variant-nav">
+      <div class="traffic" aria-hidden="true"><span></span><span></span><span></span></div>
+      <div class="nav-title">
+        <h1>Artikel-Reader Prototypen</h1>
+        <p>Fünf Richtungen für Feedivo. Der Fokus liegt auf Inhalt, Bildführung, Lesbarkeit und macOS-Ruhe.</p>
+      </div>
+
+      <nav class="variant-list" aria-label="Prototypen">
+        <button class="variant-tab active" data-target="classic"><span class="tab-index">1</span><span><strong>Klarer Native Reader</strong><small>Beste Basis für direkte Umsetzung</small></span></button>
+        <button class="variant-tab" data-target="magazine"><span class="tab-index">2</span><span><strong>Magazin mit Kontext</strong><small>Bild + Faktenleiste für Scannen</small></span></button>
+        <button class="variant-tab" data-target="focus"><span class="tab-index">3</span><span><strong>Fokusmodus</strong><small>Schmal, ruhig, typografisch</small></span></button>
+        <button class="variant-tab" data-target="compact"><span class="tab-index">4</span><span><strong>Research Reader</strong><small>Sidebar mit Struktur und Themen</small></span></button>
+        <button class="variant-tab" data-target="immersive"><span class="tab-index">5</span><span><strong>Bildgeführter Einstieg</strong><small>Hero-first, editorialer Einstieg</small></span></button>
+      </nav>
+
+      <div class="controls">
+        <div class="control-row">
+          <label>Darstellung</label>
+          <div class="segmented">
+            <button class="theme-btn active" data-theme="light">Hell</button>
+            <button class="theme-btn" data-theme="paper">Papier</button>
+            <button class="theme-btn" data-theme="dark">Dunkel</button>
+          </div>
+        </div>
+
+        <div class="control-row">
+          <label for="font-size">Textgröße</label>
+          <input id="font-size" type="range" min="17" max="24" value="20">
+        </div>
+
+        <div class="control-row">
+          <label>Artikelstatus</label>
+          <div class="segmented">
+            <button class="state-btn active" data-state="normal">Normal</button>
+            <button class="state-btn" data-state="saved">Stern</button>
+            <button class="state-btn" data-state="read">Gelesen</button>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="preview-stage">
+      <section class="window" aria-label="Feedivo Reader Vorschau">
+        <header class="toolbar">
+          <div class="toolbar-left">
+            <button class="icon-button" title="Vorheriger Artikel">⌃</button>
+            <button class="icon-button" title="Nächster Artikel">⌄</button>
+            <div class="toolbar-title">Caschys Blog · Smartwatch-Markt wächst wieder</div>
+          </div>
+          <div class="toolbar-right">
+            <button class="icon-button save-btn" title="Mit Stern markieren">☆</button>
+            <button class="icon-button" title="Link kopieren">↗</button>
+            <button class="icon-button" title="Original öffnen">◌</button>
+            <button class="icon-button" title="Textoptionen">Aa</button>
+          </div>
+        </header>
+
+        <div class="reader-viewport">
+          <div class="reading-progress"></div>
+
+          <article class="concept active" id="classic">
+            <div class="reader">
+              <div class="meta">Caschys Blog · ca. 1 Min. Lesezeit · vor 29 Min.</div>
+              <h2 class="headline">Smartwatch-Markt wächst wieder: So schaut es aktuell aus</h2>
+              <img class="hero-img" src="assets/smartwatch-hero.png" alt="Smartwatch am Handgelenk vor einer Tastatur">
+              <div class="caption">Großes Artikelbild, aber mit etwas mehr Luft und einer ruhigeren Titelzone als heute.</div>
+              <div class="article-body">
+                <p>Zum Beitrag: Der Smartwatch-Markt wächst wieder. Nach mehreren schwächeren Quartalen zeigt sich die Kategorie erholt, vor allem weil neue Gesundheitsfunktionen und längere Akkulaufzeiten wieder Interesse erzeugen.</p>
+                <p>Für Feedivo bedeutet diese Variante: Die bestehende native Reader-Logik bleibt fast vollständig erhalten, nur Abstände, Bildradius, Metadaten und Textbreite werden feiner austariert.</p>
+                <h2>Warum diese Richtung funktioniert</h2>
+                <p>Der Artikel bleibt vertraut und schnell lesbar. Das Bild ist präsent, aber nicht dominierend. Der größte Gewinn entsteht durch eine bessere Balance zwischen Titel, Medien und Fließtext.</p>
+                <a class="original-link" href="#">Original öffnen →</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="concept" id="magazine">
+            <div class="reader magazine">
+              <div class="magazine-main">
+                <div class="meta">Caschys Blog · Marktbericht · vor 29 Min.</div>
+                <h2 class="headline">Smartwatch-Markt wächst wieder: So schaut es aktuell aus</h2>
+                <img class="hero-img" src="assets/smartwatch-hero.png" alt="Smartwatch am Handgelenk vor einer Tastatur">
+                <div class="article-body">
+                  <p>Diese Variante setzt stärker auf Magazin-Hierarchie: Titel und Bild bleiben groß, aber zusätzliche Kontextdaten wandern in eine rechte Leiste.</p>
+                  <p>Das ist hilfreich bei längeren Artikeln, Tests oder News mit vielen Quellen. Der Lesefluss bleibt mittig, während die rechte Leiste Orientierung bietet.</p>
+                  <blockquote>Gut, wenn Feedivo später Tags, Quellenvertrauen, Regeln oder Zusammenfassungen sichtbar machen soll.</blockquote>
+                  <a class="original-link" href="#">Original öffnen →</a>
+                </div>
+              </div>
+              <aside class="side-panel">
+                <h3>Artikelkontext</h3>
+                <div class="fact"><strong>1 Min.</strong><span>Kurzer Beitrag, ideal für schnelles Durchlesen.</span></div>
+                <div class="fact"><strong>Technik</strong><span>Erkanntes Thema aus Feed und Inhalt.</span></div>
+                <div class="fact"><strong>Heute</strong><span>Frischer Artikel, noch ungelesen.</span></div>
+                <button class="pill-button">Zusammenfassung</button>
+              </aside>
+            </div>
+          </article>
+
+          <article class="concept" id="focus">
+            <div class="reader focus paper">
+              <div class="meta">Caschys Blog · ca. 1 Min. Lesezeit</div>
+              <h2 class="headline">Smartwatch-Markt wächst wieder: So schaut es aktuell aus</h2>
+              <div class="paper-card">
+                <img class="hero-img" src="assets/smartwatch-hero.png" alt="Smartwatch am Handgelenk vor einer Tastatur">
+                <div class="note-bar"><span>Bild aus dem Feed · automatisch gespeichert</span><button class="pill-button">Bild ausblenden</button></div>
+              </div>
+              <div class="article-body">
+                <p>Der Fokusmodus fühlt sich fast wie ein gutes Lesefenster an: schmalere Zeile, Serifentitel, Papierfarbe und weniger sichtbare UI.</p>
+                <p>Diese Richtung eignet sich, wenn Feedivo als ruhiger Reader wahrgenommen werden soll. Die Artikelaktionen bleiben in der Toolbar, treten aber optisch zurück.</p>
+                <p>Die Bildfläche ist weiterhin vorhanden, aber typografisch eingebettet statt als dominanter Block.</p>
+                <a class="original-link" href="#">Original öffnen →</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="concept" id="compact">
+            <div class="reader compact">
+              <aside class="compact-rail">
+                <div class="rail-card">
+                  <strong>Lesefortschritt</strong>
+                  <span>34% · noch etwa 40 Sekunden</span>
+                </div>
+                <div class="rail-card">
+                  <strong>Themen</strong>
+                  <div class="topic-list"><span>Wearables</span><span>Apple</span><span>Markt</span></div>
+                </div>
+                <div class="rail-card">
+                  <strong>Aktionen</strong>
+                  <span>Stern, Link, Original und Textoptionen bleiben schnell erreichbar.</span>
+                </div>
+              </aside>
+              <div>
+                <div class="meta">Caschys Blog · Analyse · Heute</div>
+                <h2 class="headline">Smartwatch-Markt wächst wieder: So schaut es aktuell aus</h2>
+                <img class="hero-img" src="assets/smartwatch-hero.png" alt="Smartwatch am Handgelenk vor einer Tastatur">
+                <div class="article-body">
+                  <p>Der Research Reader ist dichter und stärker für Power-User gedacht. Links steht eine ruhige Navigations- und Kontextleiste, der Artikel selbst bleibt unverändert lesbar.</p>
+                  <p>Diese Variante wäre interessant, wenn Feedivo später Inhaltsverzeichnis, Tags, Regeln oder Notizen bekommt. Für reine News ist sie etwas schwerer, aber sehr praktisch.</p>
+                  <h2>Gute Kandidaten für diese Leiste</h2>
+                  <p>Lesefortschritt, erkannte Tags, Feed-Status, Aktionen, verwandte Artikel und ein kompaktes Inhaltsverzeichnis.</p>
+                  <a class="original-link" href="#">Original öffnen →</a>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="concept" id="immersive">
+            <div class="reader immersive">
+              <section class="immersive-hero">
+                <img src="assets/smartwatch-hero.png" alt="Smartwatch am Handgelenk vor einer Tastatur">
+                <div class="immersive-copy">
+                  <div class="meta">Caschys Blog · ca. 1 Min. Lesezeit · vor 29 Min.</div>
+                  <h2 class="headline">Smartwatch-Markt wächst wieder: So schaut es aktuell aus</h2>
+                </div>
+              </section>
+              <div class="immersive-body article-body">
+                <p>Der bildgeführte Einstieg macht aus dem Feed-Artikel ein stärkeres Editorial-Erlebnis. Das Foto ist der erste Eindruck, Titel und Metadaten liegen direkt darauf.</p>
+                <p>Das wirkt modern und hochwertig, kann bei sehr unterschiedlichen Feed-Bildern aber stärker schwanken. Deshalb eignet es sich besonders als optionaler Reader-Stil oder für bildreiche Feeds.</p>
+                <blockquote>Viel Atmosphäre, aber auch mehr Risiko bei schlechten oder fehlenden Bildern.</blockquote>
+                <a class="original-link" href="#">Original öffnen →</a>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const tabs = [...document.querySelectorAll(".variant-tab")];
+    const concepts = [...document.querySelectorAll(".concept")];
+    const themeButtons = [...document.querySelectorAll(".theme-btn")];
+    const stateButtons = [...document.querySelectorAll(".state-btn")];
+    const fontSlider = document.querySelector("#font-size");
+    const saveButton = document.querySelector(".save-btn");
+    const progress = document.querySelector(".reading-progress");
+    const viewport = document.querySelector(".reader-viewport");
+
+    tabs.forEach((tab, index) => {
+      tab.addEventListener("click", () => {
+        tabs.forEach(item => item.classList.remove("active"));
+        concepts.forEach(item => item.classList.remove("active"));
+        tab.classList.add("active");
+        document.querySelector(`#${tab.dataset.target}`).classList.add("active");
+        progress.style.setProperty("--progress", `${28 + index * 12}%`);
+        viewport.scrollTo({ top: 0, behavior: "smooth" });
+      });
+    });
+
+    themeButtons.forEach(button => {
+      button.addEventListener("click", () => {
+        themeButtons.forEach(item => item.classList.remove("active"));
+        button.classList.add("active");
+        document.body.classList.toggle("dark", button.dataset.theme === "dark");
+        document.documentElement.style.setProperty("--bg", button.dataset.theme === "paper" ? "#efede8" : "");
+      });
+    });
+
+    stateButtons.forEach(button => {
+      button.addEventListener("click", () => {
+        stateButtons.forEach(item => item.classList.remove("active"));
+        button.classList.add("active");
+        saveButton.classList.toggle("active", button.dataset.state === "saved");
+        saveButton.textContent = button.dataset.state === "saved" ? "★" : "☆";
+        document.querySelector(".toolbar-title").textContent =
+          button.dataset.state === "read"
+            ? "Gelesen · Caschys Blog · Smartwatch-Markt wächst wieder"
+            : "Caschys Blog · Smartwatch-Markt wächst wieder";
+      });
+    });
+
+    fontSlider.addEventListener("input", event => {
+      document.documentElement.style.setProperty("--body-size", `${event.target.value}px`);
+      document.querySelectorAll(".reader").forEach(reader => {
+        reader.style.setProperty("--body-size", `${event.target.value}px`);
+      });
+    });
+
+    viewport.addEventListener("scroll", () => {
+      const max = viewport.scrollHeight - viewport.clientHeight;
+      if (max <= 0) return;
+      const value = Math.max(10, Math.min(100, (viewport.scrollTop / max) * 100));
+      progress.style.setProperty("--progress", `${value}%`);
+    });
+  </script>
+</body>
+</html>

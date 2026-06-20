@@ -172,6 +172,9 @@ M2 Core Features:
   diese Bloecke nativ mit SwiftUI.
 - Metadaten: Oberhalb des Titels zeigt `ReaderView` Feedname, ungefaehre Lesezeit
   und Artikelalter, sofern die Daten vorhanden sind.
+- Design-Exploration: Unter `docs/design/article-reader-prototypes/index.html`
+  liegen fuenf interaktive Reader-Varianten als Entscheidungsgrundlage fuer die
+  spaetere visuelle Ueberarbeitung der Artikelansicht.
 - Fallback: Leere strukturierte HTML-Bloecke werden verworfen; kaputte oder unbekannte
   Inhalte fallen auf normale Absätze zurueck.
 - Naechster Schritt: Klickbare Inline-Links separat planen und umsetzen.
