@@ -113,6 +113,51 @@ final class FeedViewModel {
     }
 
     @MainActor
+    func renameFeed(_ feed: Feed?, displayTitle: String, context: ModelContext) {
+        guard let feed else {
+            return
+        }
+
+        let cleanedTitle = displayTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleanedTitle.isEmpty else {
+            errorMessage = L10n.feedRenameEmptyName
+            return
+        }
+
+        errorMessage = nil
+        feed.originalTitle = feed.originalTitle ?? feed.title
+        feed.title = cleanedTitle
+
+        do {
+            try context.save()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    func restoreOriginalFeedTitle(_ feed: Feed?, context: ModelContext) {
+        guard let feed else {
+            return
+        }
+
+        let originalTitle = feed.originalTitle?.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let originalTitle, !originalTitle.isEmpty else {
+            return
+        }
+
+        errorMessage = nil
+        feed.title = originalTitle
+        feed.originalTitle = originalTitle
+
+        do {
+            try context.save()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    @MainActor
     func addFeed(urlString: String, context: ModelContext) async {
         let cleanedURL = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleanedURL.isEmpty else {
@@ -291,7 +336,12 @@ final class FeedViewModel {
             seenArticleKeys.insert(articleIdentity(for: parsedArticle)).inserted
         }
 
-        feed.title = parsedFeed.title
+        let previousOriginalTitle = feed.originalTitle?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let titleWasCustom = previousOriginalTitle.map { !$0.isEmpty && feed.title != $0 } ?? false
+        feed.originalTitle = parsedFeed.title
+        if !titleWasCustom {
+            feed.title = parsedFeed.title
+        }
         feed.feedDescription = parsedFeed.description
         feed.siteURL = parsedFeed.siteURL
         if let faviconURL = await faviconURL(for: parsedFeed) {

@@ -154,6 +154,56 @@ struct FeedViewModelTests {
     }
 
     @MainActor
+    @Test func renameFeedSpeichertAnzeigenamenUndBehältOriginalnamen() throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Original Feed")
+        let viewModel = FeedViewModel()
+        context.insert(feed)
+        try context.save()
+
+        viewModel.renameFeed(feed, displayTitle: "  Mein Feed  ", context: context)
+
+        #expect(feed.title == "Mein Feed")
+        #expect(feed.originalTitle == "Original Feed")
+        #expect(viewModel.errorMessage == nil)
+    }
+
+    @MainActor
+    @Test func restoreOriginalFeedTitleSetztAnzeigenamenZurueck() throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let feed = Feed(
+            url: "https://example.com/feed.xml",
+            title: "Mein Feed",
+            originalTitle: "Original Feed"
+        )
+        let viewModel = FeedViewModel()
+        context.insert(feed)
+        try context.save()
+
+        viewModel.restoreOriginalFeedTitle(feed, context: context)
+
+        #expect(feed.title == "Original Feed")
+        #expect(feed.originalTitle == "Original Feed")
+        #expect(viewModel.errorMessage == nil)
+    }
+
+    @MainActor
     @Test func addFeedSpeichertEntdecktesFavicon() async throws {
         let container = try ModelContainer(
             for: Feed.self,
@@ -327,6 +377,44 @@ struct FeedViewModelTests {
         #expect(feed.logEntries.contains { $0.kind == "info" && $0.message.contains("1") })
         #expect(viewModel.errorMessage == nil)
         #expect(!viewModel.isLoading)
+    }
+
+    @MainActor
+    @Test func refreshFeedBewahrtManuellenAnzeigenamenUndAktualisiertOriginalnamen() async throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let feed = Feed(
+            url: "https://example.com/feed.xml",
+            title: "Mein eigener Name",
+            originalTitle: "Alter Feedname"
+        )
+        let viewModel = FeedViewModel(
+            fetchFeed: { urlString in
+                ParsedFeed(
+                    sourceURL: urlString,
+                    title: "Neuer Originalname",
+                    description: nil,
+                    siteURL: nil,
+                    articles: []
+                )
+            },
+            discoverFaviconURL: { _ in nil }
+        )
+        context.insert(feed)
+        try context.save()
+
+        await viewModel.refreshFeed(feed, context: context)
+
+        #expect(feed.title == "Mein eigener Name")
+        #expect(feed.originalTitle == "Neuer Originalname")
+        #expect(viewModel.errorMessage == nil)
     }
 
     @MainActor

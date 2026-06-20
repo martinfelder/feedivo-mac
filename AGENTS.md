@@ -134,6 +134,7 @@ FeedivoMac/
 │   │   │   ├── FeedFolderOrganizer.swift # Einfache Ordner-Gruppierung fuer Feeds ✅
 │   │   │   ├── FeedRowView.swift       # Feed-Zeile mit Favicon/Fallback ✅
 │   │   │   ├── FeedPropertiesView.swift # Feed-Eigenschaften-Sheet ✅
+│   │   │   ├── FeedRenameView.swift    # Feed-Anzeigename bearbeiten ✅
 │   │   │   ├── FeedPropertiesFormatter.swift # Helper fuer Eigenschaften ✅
 │   │   │   └── TagRowView.swift        # Eine Tag-Zeile in der Sidebar (TODO)
 │   │   ├── ArticleList/
@@ -283,6 +284,12 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
   laeuft bei einzelnen Fehlern weiter und meldet am Ende betroffene Feednamen
 - `deleteFeed(_:context:)` — loescht einen Feed aus SwiftData; Artikel werden ueber
   die Cascade-Relationship mitgeloescht
+- `renameFeed(_:displayTitle:context:)` — speichert einen benutzerdefinierten
+  Anzeigenamen, ohne den urspruenglichen Feed-Namen zu verlieren
+- `restoreOriginalFeedTitle(_:context:)` — setzt den Anzeigenamen wieder auf den
+  gespeicherten Originalnamen zurueck
+- Beim Refresh wird `Feed.originalTitle` mit dem Feed-Metadaten-Titel aktualisiert;
+  ein benutzerdefinierter `Feed.title` bleibt erhalten
 - Der Feed-Fetch ist als Closure injizierbar, damit Refresh-Tests ohne Netzwerk laufen
 - Die Favicon-Discovery ist als Closure injizierbar, damit Tests ohne Netzwerk laufen
 - Properties: `isLoading: Bool`, `errorMessage: String?`
@@ -309,6 +316,13 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
   gespeichert
 - `FeedPropertiesFormatter` kapselt naechsten Abruf, neuesten Artikel, Log-Limit und
   die sichtbare Log-Anzahl, damit diese Logik ohne UI testbar bleibt
+
+### FeedRenameView.swift
+- Rechtsklick auf Feed → `Feed umbenennen...`
+- Sheet zeigt editierbaren Anzeigenamen, gespeicherten urspruenglichen Feed-Namen
+  und einen Button zum Wiederherstellen des Originalnamens.
+- Speichern nutzt `FeedViewModel.renameFeed`, damit Trim, Leerwert-Pruefung und
+  Originalnamen-Erhalt zentral testbar bleiben.
 
 ### FeedFolderOrganizer.swift
 - Kapselt die einfache Feed-Ordnerlogik fuer die Sidebar.
@@ -491,7 +505,8 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 @Model class Feed {
     var id: UUID
     var url: String
-    var title: String
+    var title: String                         // Anzeigename in Feedivo
+    var originalTitle: String?                // Urspruenglicher Titel aus Feed-Metadaten
     var feedDescription: String?
     var faviconURL: String?
     var siteURL: String?
@@ -867,6 +882,9 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
   lokalisiertes Sheet mit Feed-Metadaten, editierbarem Aktualisierungsintervall,
   naechstem Abruf, letztem Artikel und den neuesten 20 Feed-Log-Eintraegen; Feed-Adds
   und Refresh-Erfolge/-Fehler werden in SwiftData protokolliert
+- 2026-06-20: Feed umbenennen umgesetzt: Rechtsklick auf Feed oeffnet ein eigenes
+  Sheet fuer den Anzeigenamen; der urspruengliche Feed-Name wird in `Feed.originalTitle`
+  gespeichert und kann wiederhergestellt werden, Refresh ueberschreibt manuelle Namen nicht
 - 2026-06-20: Feed-Eigenschaften-Sheet ergaenzt: Neben der XML-Adresse gibt es einen
   Icon-Button, der die XML-Adresse in die macOS-Zwischenablage kopiert
 - 2026-06-20: Feed-Eigenschaften-Sheet visuell ueberarbeitet: grosser Feed-Header

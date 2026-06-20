@@ -10,6 +10,7 @@ struct SidebarView: View {
     let onRequestAddFeed: () -> Void
     let onRequestDeleteFeed: (Feed) -> Void
     @State private var feedShowingProperties: Feed?
+    @State private var feedRenaming: Feed?
     @State private var isShowingAddFolderSheet = false
     @State private var collapsedFolderNames: Set<String> = []
 
@@ -31,6 +32,9 @@ struct SidebarView: View {
         .navigationTitle("Feedivo")
         .sheet(item: $feedShowingProperties) { feed in
             FeedPropertiesView(feed: feed)
+        }
+        .sheet(item: $feedRenaming) { feed in
+            FeedRenameView(feed: feed)
         }
         .sheet(isPresented: $isShowingAddFolderSheet) {
             AddFolderSheet(
@@ -144,6 +148,12 @@ struct SidebarView: View {
                 )
             )
             .contextMenu {
+                Button {
+                    feedRenaming = feed
+                } label: {
+                    Label(L10n.feedRenameCommand, systemImage: "pencil")
+                }
+
                 Button {
                     feedShowingProperties = feed
                 } label: {

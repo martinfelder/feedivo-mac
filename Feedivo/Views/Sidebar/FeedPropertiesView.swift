@@ -187,7 +187,7 @@ struct FeedPropertiesView: View {
 
     private var detailsSection: some View {
         sectionContainer(title: L10n.feedPropertiesDetailsTitle) {
-            propertyRow(L10n.feedPropertiesOriginalTitle, value: feed.title)
+            propertyRow(L10n.feedPropertiesOriginalTitle, value: feed.originalTitle ?? feed.title)
             propertyDivider
             propertyRow(L10n.feedPropertiesWebsite, value: feed.siteURL, isLink: true)
             propertyDivider

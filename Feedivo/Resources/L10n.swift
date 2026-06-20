@@ -96,6 +96,18 @@ enum L10n {
     static var feedAddCommand: String { String(localized: "feed.add.command") }
     static var feedRefreshAllCommand: String { String(localized: "feed.refreshAll.command") }
     static var feedRefreshCommand: String { String(localized: "feed.refresh.command") }
+    static var feedRenameCommand: String { String(localized: "feed.rename.command") }
+    static var feedRenameTitle: String { String(localized: "feed.rename.title") }
+    static var feedRenameDescription: String { String(localized: "feed.rename.description") }
+    static var feedRenameDisplayName: String { String(localized: "feed.rename.displayName") }
+    static var feedRenameOriginalName: String { String(localized: "feed.rename.originalName") }
+    static var feedRenameOriginalStored: String { String(localized: "feed.rename.originalStored") }
+    static var feedRenameRestoreOriginal: String { String(localized: "feed.rename.restoreOriginal") }
+    static var feedRenameSave: String { String(localized: "feed.rename.save") }
+    static var feedRenameEmptyName: String { String(localized: "feed.rename.emptyName") }
+    static var feedRenameNoChanges: String { String(localized: "feed.rename.noChanges") }
+    static var feedRenameChanged: String { String(localized: "feed.rename.changed") }
+    static var feedRenameRestored: String { String(localized: "feed.rename.restored") }
     static var feedDeleteCommand: String { String(localized: "feed.delete.command") }
     static var feedImportOPMLCommand: String { String(localized: "feed.importOPML.command") }
     static var feedExportOPMLCommand: String { String(localized: "feed.exportOPML.command") }

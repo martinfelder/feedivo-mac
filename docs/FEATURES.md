@@ -341,9 +341,14 @@ M2 Core Features:
 - Offen: Auto-Erkennung, Vorschau.
 
 #### 4.2 Feed bearbeiten
-- Status: In Diskussion
+- Status: Fertig als Basis
 - Prioritaet: v1
-- Empfehlung: Titel und Refresh-Intervall editierbar. URL eher nicht frei aendern ohne erneute Validierung.
+- Implementiert: Feed kann per Rechtsklick in der Sidebar ueber `Feed umbenennen...`
+  einen eigenen Anzeigenamen bekommen. Der urspruengliche Feed-Name wird separat in
+  `Feed.originalTitle` gespeichert und kann im Dialog wiederhergestellt werden.
+- Entscheidung: Refresh aktualisiert den gespeicherten Originalnamen, ueberschreibt
+  aber keinen manuell gesetzten Anzeigenamen.
+- Offen: URL eher nicht frei aendern ohne erneute Validierung.
 
 #### 4.2.1 Feed Eigenschaften
 - Status: Fertig als Basis
@@ -530,7 +535,8 @@ M2 Core Features:
 - Implementiert: Basis-Metadaten wie Titel, Beschreibung, Website-URL fuer
   Favicon-Discovery und `faviconURL` werden beim Feed-Parsing beziehungsweise
   Hinzufuegen/Aktualisieren gepflegt.
-- Naechster Schritt: Rechtsklick auf Feed -> Info.
+- Hinweis: Der Originaltitel aus den Feed-Metadaten wird getrennt vom Anzeigenamen
+  gespeichert, damit benutzerdefinierte Feed-Namen erhalten bleiben.
 
 #### 13.2 Feed-Gesundheit
 - Status: In Diskussion

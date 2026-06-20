@@ -7,6 +7,7 @@ class Feed {
     var id: UUID
     var url: String
     var title: String
+    var originalTitle: String?
     var feedDescription: String?
     var faviconURL: String?
     var siteURL: String?
@@ -38,6 +39,7 @@ class Feed {
         self.id = UUID()
         self.url = url
         self.title = title
+        self.originalTitle = title
         self.feedDescription = feedDescription
         self.faviconURL = faviconURL
         self.siteURL = siteURL
@@ -48,5 +50,31 @@ class Feed {
         self.articles = []
         self.logEntries = []
         self.tags = []
+    }
+
+    convenience init(
+        url: String,
+        title: String,
+        originalTitle: String?,
+        feedDescription: String? = nil,
+        faviconURL: String? = nil,
+        siteURL: String? = nil,
+        followedAt: Date? = nil,
+        folderName: String? = nil,
+        lastRefreshed: Date? = nil,
+        refreshIntervalMinutes: Int = 60
+    ) {
+        self.init(
+            url: url,
+            title: title,
+            feedDescription: feedDescription,
+            faviconURL: faviconURL,
+            siteURL: siteURL,
+            followedAt: followedAt,
+            folderName: folderName,
+            lastRefreshed: lastRefreshed,
+            refreshIntervalMinutes: refreshIntervalMinutes
+        )
+        self.originalTitle = originalTitle ?? title
     }
 }
