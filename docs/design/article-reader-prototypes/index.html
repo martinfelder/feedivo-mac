@@ -545,6 +545,197 @@
       font-weight: 700;
     }
 
+    .reader.split-lead {
+      --reader-width: 1040px;
+      display: grid;
+      grid-template-columns: minmax(0, 420px) minmax(0, 1fr);
+      gap: 34px;
+      align-items: start;
+    }
+
+    .split-media {
+      position: sticky;
+      top: 34px;
+    }
+
+    .split-media img {
+      height: min(68vh, 620px);
+      object-fit: cover;
+    }
+
+    .split-lead .headline {
+      font-size: clamp(42px, 4.1vw, 64px);
+    }
+
+    .reader.briefing {
+      --reader-width: 920px;
+    }
+
+    .briefing-strip {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin: 22px 0 28px;
+    }
+
+    .briefing-item {
+      min-height: 112px;
+      padding: 14px;
+      background: var(--surface-soft);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+    }
+
+    .briefing-item span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .briefing-item strong {
+      display: block;
+      font-size: 16px;
+      line-height: 1.25;
+    }
+
+    .briefing-image-row {
+      display: grid;
+      grid-template-columns: 190px minmax(0, 1fr);
+      gap: 20px;
+      align-items: center;
+      padding: 16px 0;
+      border-block: 1px solid var(--line);
+    }
+
+    .briefing-image-row img {
+      aspect-ratio: 1.2;
+      max-height: none;
+    }
+
+    .reader.digest {
+      --reader-width: 860px;
+      padding-top: 34px;
+    }
+
+    .digest-header {
+      display: grid;
+      grid-template-columns: 124px minmax(0, 1fr);
+      gap: 22px;
+      align-items: start;
+      padding-bottom: 28px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .digest-thumb {
+      width: 124px;
+      height: 124px;
+      object-fit: cover;
+      border-radius: 14px;
+    }
+
+    .digest .headline {
+      margin-top: 8px;
+      font-size: clamp(36px, 3.7vw, 56px);
+    }
+
+    .digest .article-body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+      font-size: calc(var(--body-size) - 2px);
+      line-height: 1.56;
+    }
+
+    .reader.deck {
+      --reader-width: 980px;
+    }
+
+    .deck-hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(260px, 0.9fr);
+      gap: 28px;
+      align-items: stretch;
+      padding-bottom: 28px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .deck-hero img {
+      height: 100%;
+      min-height: 380px;
+      object-fit: cover;
+    }
+
+    .deck-copy {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .deck-copy .headline {
+      font-size: clamp(38px, 4vw, 62px);
+    }
+
+    .deck-section {
+      display: grid;
+      grid-template-columns: 160px minmax(0, 1fr);
+      gap: 26px;
+      padding: 28px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .deck-kicker {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .reader.timeline {
+      --reader-width: 1000px;
+      display: grid;
+      grid-template-columns: 1fr minmax(0, 720px);
+      gap: 34px;
+    }
+
+    .timeline-track {
+      position: sticky;
+      top: 32px;
+      align-self: start;
+      display: grid;
+      gap: 12px;
+      padding-left: 16px;
+      border-left: 2px solid var(--line);
+    }
+
+    .timeline-step {
+      position: relative;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .timeline-step::before {
+      content: "";
+      position: absolute;
+      left: -22px;
+      top: 4px;
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 5px var(--surface);
+    }
+
+    .timeline-step strong {
+      display: block;
+      color: var(--text);
+      font-size: 14px;
+      margin-bottom: 3px;
+    }
+
     body.dark {
       --bg: #101113;
       --surface: #17181b;
@@ -579,15 +770,27 @@
       }
 
       .reader.magazine,
-      .reader.compact {
+      .reader.compact,
+      .reader.split-lead,
+      .reader.timeline {
         display: block;
         width: min(760px, calc(100% - 40px));
       }
 
       .side-panel,
-      .compact-rail {
+      .compact-rail,
+      .split-media,
+      .timeline-track {
         position: static;
         margin-top: 28px;
+      }
+
+      .briefing-strip,
+      .briefing-image-row,
+      .digest-header,
+      .deck-hero,
+      .deck-section {
+        grid-template-columns: 1fr;
       }
     }
   </style>
@@ -598,7 +801,7 @@
       <div class="traffic" aria-hidden="true"><span></span><span></span><span></span></div>
       <div class="nav-title">
         <h1>Artikel-Reader Prototypen</h1>
-        <p>Fünf Richtungen für Feedivo. Der Fokus liegt auf Inhalt, Bildführung, Lesbarkeit und macOS-Ruhe.</p>
+        <p>Zehn Richtungen für Feedivo. Die neuen Varianten 6-10 probieren bewusst andere Lesemodelle statt nur größere Artikelbilder.</p>
       </div>
 
       <nav class="variant-list" aria-label="Prototypen">
@@ -607,6 +810,11 @@
         <button class="variant-tab" data-target="focus"><span class="tab-index">3</span><span><strong>Fokusmodus</strong><small>Schmal, ruhig, typografisch</small></span></button>
         <button class="variant-tab" data-target="compact"><span class="tab-index">4</span><span><strong>Research Reader</strong><small>Sidebar mit Struktur und Themen</small></span></button>
         <button class="variant-tab" data-target="immersive"><span class="tab-index">5</span><span><strong>Bildgeführter Einstieg</strong><small>Hero-first, editorialer Einstieg</small></span></button>
+        <button class="variant-tab" data-target="split"><span class="tab-index">6</span><span><strong>Split Lead</strong><small>Bild links, Artikel rechts</small></span></button>
+        <button class="variant-tab" data-target="briefing"><span class="tab-index">7</span><span><strong>Briefing Reader</strong><small>Erst Kernaussagen, dann Text</small></span></button>
+        <button class="variant-tab" data-target="digest"><span class="tab-index">8</span><span><strong>Digest News</strong><small>Kompakt, schnell, wenig Bühne</small></span></button>
+        <button class="variant-tab" data-target="deck"><span class="tab-index">9</span><span><strong>Reading Deck</strong><small>Abschnitte statt langer Fläche</small></span></button>
+        <button class="variant-tab" data-target="timeline"><span class="tab-index">10</span><span><strong>Timeline Reader</strong><small>Artikel als Ablauf lesen</small></span></button>
       </nav>
 
       <div class="controls">
@@ -758,6 +966,122 @@
               </div>
             </div>
           </article>
+
+          <article class="concept" id="split">
+            <div class="reader split-lead">
+              <aside class="split-media">
+                <img class="hero-img" src="assets/smartwatch-hero.png" alt="Smartwatch am Handgelenk vor einer Tastatur">
+                <div class="caption">Das Bild bleibt sichtbar, waehrend der Text rechts gelesen wird.</div>
+              </aside>
+              <div>
+                <div class="meta">Caschys Blog · vor 29 Min. · 1 Min.</div>
+                <h2 class="headline">Smartwatch-Markt wächst wieder: So schaut es aktuell aus</h2>
+                <div class="article-body">
+                  <p>Split Lead trennt Medien und Lesetext konsequent. Das Bild ist kein Block im Textfluss, sondern eine ruhige visuelle Referenz links.</p>
+                  <p>Diese Richtung fuehlt sich moderner an, ohne ein Magazin-Layout zu werden. Sie eignet sich vor allem fuer breite Mac-Fenster und Artikel mit starken Bildern.</p>
+                  <h2>Warum anders?</h2>
+                  <p>Der Artikel beginnt schneller, weil Titel und Text nicht erst unter einem riesigen Bild verschwinden. Gleichzeitig bleibt das Foto präsent.</p>
+                  <a class="original-link" href="#">Original öffnen →</a>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="concept" id="briefing">
+            <div class="reader briefing">
+              <div class="meta">Caschys Blog · Kurzmeldung · heute</div>
+              <h2 class="headline">Smartwatch-Markt wächst wieder: So schaut es aktuell aus</h2>
+              <section class="briefing-strip" aria-label="Kernaussagen">
+                <div class="briefing-item"><span>Was passiert</span><strong>Der Wearable-Markt legt nach schwächeren Quartalen wieder zu.</strong></div>
+                <div class="briefing-item"><span>Warum wichtig</span><strong>Gesundheit, Akku und Sensoren werden wieder kaufentscheidend.</strong></div>
+                <div class="briefing-item"><span>Lesemodus</span><strong>Erst Überblick, danach klassischer Artikeltext.</strong></div>
+              </section>
+              <section class="briefing-image-row">
+                <img class="hero-img" src="assets/smartwatch-hero.png" alt="Smartwatch am Handgelenk vor einer Tastatur">
+                <div class="article-body">
+                  <p>Der Briefing Reader behandelt RSS-Artikel wie eine schnelle Morgenübersicht. Die wichtigsten Aussagen stehen oben, das Bild wird kompakter eingebunden.</p>
+                </div>
+              </section>
+              <div class="article-body">
+                <p>Danach folgt der normale Artikel. Diese Variante wäre gut, wenn Feedivo spaeter automatische Zusammenfassungen oder vom Feed extrahierte Kernaussagen bekommt.</p>
+                <blockquote>Mehr Nutzen beim Scannen, weniger Fokus auf grosse Editorial-Wirkung.</blockquote>
+                <a class="original-link" href="#">Original öffnen →</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="concept" id="digest">
+            <div class="reader digest">
+              <header class="digest-header">
+                <img class="digest-thumb" src="assets/smartwatch-hero.png" alt="Smartwatch am Handgelenk vor einer Tastatur">
+                <div>
+                  <div class="meta">Caschys Blog · 29 Min. · ungelesen</div>
+                  <h2 class="headline">Smartwatch-Markt wächst wieder: So schaut es aktuell aus</h2>
+                </div>
+              </header>
+              <div class="article-body">
+                <p>Digest News ist die bewusst kompakte Gegenrichtung: keine grosse Bildbühne, kein Magazin-Gefühl, sondern ein schneller News-Reader.</p>
+                <p>Das Bild funktioniert als Thumbnail neben dem Titel. Dadurch bleibt im oberen Bereich deutlich mehr Text sichtbar. Fuer viele RSS-Feeds koennte das praktischer sein als ein grosser Hero.</p>
+                <h2>Der Vorteil</h2>
+                <p>Man sieht schneller, ob sich der Artikel lohnt. Diese Variante passt gut zu kurzen Blogposts, Patchnotes, Produktnews und stark textlastigen Quellen.</p>
+                <a class="original-link" href="#">Original öffnen →</a>
+              </div>
+            </div>
+          </article>
+
+          <article class="concept" id="deck">
+            <div class="reader deck">
+              <section class="deck-hero">
+                <img class="hero-img" src="assets/smartwatch-hero.png" alt="Smartwatch am Handgelenk vor einer Tastatur">
+                <div class="deck-copy">
+                  <div class="meta">Caschys Blog · Leseansicht</div>
+                  <h2 class="headline">Smartwatch-Markt wächst wieder: So schaut es aktuell aus</h2>
+                  <a class="original-link" href="#">Original öffnen →</a>
+                </div>
+              </section>
+              <section class="deck-section">
+                <div class="deck-kicker">Kurzfassung</div>
+                <div class="article-body">
+                  <p>Der Markt bewegt sich wieder nach oben. Neue Funktionen und bessere Laufzeiten treiben die Nachfrage.</p>
+                </div>
+              </section>
+              <section class="deck-section">
+                <div class="deck-kicker">Einordnung</div>
+                <div class="article-body">
+                  <p>Reading Deck zerlegt den Artikel in ruhig getrennte Abschnitte. Das kann bei laengeren Artikeln helfen, wirkt aber weniger wie klassisches Lesen und mehr wie ein Dossier.</p>
+                </div>
+              </section>
+              <section class="deck-section">
+                <div class="deck-kicker">Umsetzung</div>
+                <div class="article-body">
+                  <p>In SwiftUI waere das gut mit Reader-Bloecken machbar: Heading, Summary, Quote, Image und Paragraph bekommen jeweils klare Abschnittsregeln.</p>
+                </div>
+              </section>
+            </div>
+          </article>
+
+          <article class="concept" id="timeline">
+            <div class="reader timeline">
+              <aside class="timeline-track" aria-label="Artikel-Ablauf">
+                <div class="timeline-step"><strong>Quelle</strong>Caschys Blog · vor 29 Min.</div>
+                <div class="timeline-step"><strong>Bild</strong>Feed-Bild erkannt</div>
+                <div class="timeline-step"><strong>Kernaussage</strong>Smartwatch-Markt waechst</div>
+                <div class="timeline-step"><strong>Aktion</strong>Original oeffnen oder merken</div>
+              </aside>
+              <div>
+                <div class="meta">Timeline Reader · Smart Filter: Heute</div>
+                <h2 class="headline">Smartwatch-Markt wächst wieder: So schaut es aktuell aus</h2>
+                <img class="hero-img" src="assets/smartwatch-hero.png" alt="Smartwatch am Handgelenk vor einer Tastatur">
+                <div class="article-body">
+                  <p>Der Timeline Reader ist stärker strukturiert: Links laeuft eine kleine Spur, rechts bleibt der Artikel. Das ist weniger dekorativ als der Magazin-Ansatz und schneller erfassbar.</p>
+                  <p>Diese Variante koennte interessant werden, wenn Feedivo spaeter Regeln, Tags oder Lesestatus sichtbarer mit dem Artikel verknuepfen soll.</p>
+                  <h2>Wann sie passt</h2>
+                  <p>Bei Artikeln, die man nicht nur lesen, sondern auch einordnen will: Quelle, Zeitpunkt, Thema, Status und naechste Aktion bleiben sichtbar.</p>
+                  <a class="original-link" href="#">Original öffnen →</a>
+                </div>
+              </div>
+            </div>
+          </article>
         </div>
       </section>
     </main>
@@ -779,7 +1103,7 @@
         concepts.forEach(item => item.classList.remove("active"));
         tab.classList.add("active");
         document.querySelector(`#${tab.dataset.target}`).classList.add("active");
-        progress.style.setProperty("--progress", `${28 + index * 12}%`);
+        progress.style.setProperty("--progress", `${Math.min(92, 24 + index * 7)}%`);
         viewport.scrollTo({ top: 0, behavior: "smooth" });
       });
     });

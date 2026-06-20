@@ -173,7 +173,7 @@ M2 Core Features:
 - Metadaten: Oberhalb des Titels zeigt `ReaderView` Feedname, ungefaehre Lesezeit
   und Artikelalter, sofern die Daten vorhanden sind.
 - Design-Exploration: Unter `docs/design/article-reader-prototypes/index.html`
-  liegen fuenf interaktive Reader-Varianten als Entscheidungsgrundlage fuer die
+  liegen zehn interaktive Reader-Varianten als Entscheidungsgrundlage fuer die
   spaetere visuelle Ueberarbeitung der Artikelansicht.
 - Fallback: Leere strukturierte HTML-Bloecke werden verworfen; kaputte oder unbekannte
   Inhalte fallen auf normale Absätze zurueck.

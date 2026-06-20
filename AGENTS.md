@@ -909,5 +909,5 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
   bleiben standardmaessig geoeffnet und klappen ihre eingerueckten Feeds per Klick
   ein oder aus.
 - 2026-06-20: Interaktive Artikel-Reader-Prototypen erstellt:
-  `docs/design/article-reader-prototypes/index.html` zeigt fuenf moegliche
+  `docs/design/article-reader-prototypes/index.html` zeigt zehn moegliche
   Reader-Darstellungen fuer die spaetere Ueberarbeitung der Artikelansicht.
