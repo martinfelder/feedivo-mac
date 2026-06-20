@@ -4,9 +4,15 @@ struct ArticleCommandActions {
     let selectedArticle: Article?
     let toggleRead: () -> Void
     let toggleStarred: () -> Void
+    let copyLink: () -> Void
+    let openOriginal: () -> Void
 
     var canPerformActions: Bool {
         selectedArticle != nil
+    }
+
+    var canPerformLinkActions: Bool {
+        ArticleViewModel().originalURL(for: selectedArticle) != nil
     }
 
     var toggleReadTitle: String {

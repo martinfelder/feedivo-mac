@@ -4,6 +4,8 @@ struct ArticleRowView: View {
     let article: Article
     let onToggleRead: () -> Void
     let onToggleStarred: () -> Void
+    let onCopyLink: () -> Void
+    let onOpenOriginal: () -> Void
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -57,6 +59,18 @@ struct ArticleRowView: View {
             Button(article.isStarred ? L10n.articleRowStarRemove : L10n.articleRowStarAdd) {
                 onToggleStarred()
             }
+
+            Divider()
+
+            Button(L10n.articleCopyLinkCommand) {
+                onCopyLink()
+            }
+            .disabled(!hasOriginalURL)
+
+            Button(L10n.articleOpenOriginalCommand) {
+                onOpenOriginal()
+            }
+            .disabled(!hasOriginalURL)
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityLabel)
@@ -134,5 +148,9 @@ struct ArticleRowView: View {
         }
 
         return parts.joined(separator: ", ")
+    }
+
+    private var hasOriginalURL: Bool {
+        ArticleViewModel().originalURL(for: article) != nil
     }
 }

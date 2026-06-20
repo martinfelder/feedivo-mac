@@ -17,6 +17,18 @@ struct ArticleCommands: Commands {
             }
             .keyboardShortcut("d", modifiers: [.command])
             .disabled(articleCommandActions?.canPerformActions != true)
+
+            Divider()
+
+            Button(L10n.articleCopyLinkCommand) {
+                articleCommandActions?.copyLink()
+            }
+            .disabled(articleCommandActions?.canPerformLinkActions != true)
+
+            Button(L10n.articleOpenOriginalCommand) {
+                articleCommandActions?.openOriginal()
+            }
+            .disabled(articleCommandActions?.canPerformLinkActions != true)
         }
     }
 }

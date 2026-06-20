@@ -54,6 +54,8 @@ enum L10n {
     static var articleRowMarkRead: String { String(localized: "articleRow.markRead") }
     static var articleRowMarkUnread: String { String(localized: "articleRow.markUnread") }
     static var articleCommandsMenu: String { String(localized: "articleCommands.menu") }
+    static var articleCopyLinkCommand: String { String(localized: "article.copyLink.command") }
+    static var articleOpenOriginalCommand: String { String(localized: "article.openOriginal.command") }
     static var feedErrorInvalidURL: String { String(localized: "feed.error.invalidURL") }
     static var feedErrorParsingFailed: String { String(localized: "feed.error.parsingFailed") }
     static var feedErrorEmptyURL: String { String(localized: "feed.error.emptyURL") }

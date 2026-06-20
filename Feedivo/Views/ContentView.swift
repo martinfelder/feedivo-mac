@@ -95,6 +95,12 @@ struct ContentView: View {
                 },
                 toggleStarred: {
                     articleViewModel.toggleStarred(selectedArticle)
+                },
+                copyLink: {
+                    _ = articleViewModel.copyLink(selectedArticle)
+                },
+                openOriginal: {
+                    _ = articleViewModel.openOriginal(selectedArticle)
                 }
             )
         )

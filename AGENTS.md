@@ -591,6 +591,7 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
   `NSBackgroundActivityScheduler`)
 - [x] Favicons laden und in Sidebar anzeigen
 - [x] Smart Filter in Sidebar: Alle Artikel, Ungelesen, Mit Stern, Heute
+- [x] Artikel-Link kopieren und Original im Browser öffnen
 
 ### M3 – Tags, Regeln & Sync
 - [ ] Tag-System: Tags erstellen (Name + Farbe), Feeds und Artikeln manuell zuweisen
@@ -637,8 +638,8 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 ## Aktuell in Arbeit
 
 - M1 abgeschlossen
-- Aktuell M2: Basis-Feed/Reader/Refresh/Favicons und Smart Filter sind umgesetzt;
-  naechster sinnvoller Block ist OPML Import oder Link kopieren/Original oeffnen
+- Aktuell M2: Basis-Feed/Reader/Refresh/Favicons, Smart Filter und Link-Aktionen
+  sind umgesetzt; naechster sinnvoller Block ist OPML Import oder Alle als gelesen
 - Feature-Roadmap ist in `docs/FEATURES.md` dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
@@ -716,3 +717,5 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
   alle gespeicherten Artikel
 - 2026-06-20: Smart-Filter-Icons farbig gemacht: Alle Artikel blau, Ungelesen tuerkis,
   Mit Stern gelb und Heute gruen; die Farbzuordnung liegt testbar an `SmartFilter`
+- 2026-06-20: Artikel-Link-Aktionen umgesetzt: Link kopieren und Original öffnen
+  sind im Artikel-Kontextmenue, Reader-Toolbar und macOS-Menue `Artikel` verfuegbar

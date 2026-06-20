@@ -22,6 +22,7 @@ struct ReaderView: View {
     private var readerContentWidth = ReaderTypography.defaultContentWidth
 
     @State private var isAppearancePopoverPresented = false
+    @State private var viewModel = ArticleViewModel()
 
     private var titleFontPreset: ReaderFontPreset {
         ReaderFontPreset.resolved(from: titleFontPresetRawValue)
@@ -111,6 +112,26 @@ struct ReaderView: View {
         }
         .navigationTitle(article.title)
         .toolbar {
+            ToolbarItem {
+                Button {
+                    _ = viewModel.copyLink(article)
+                } label: {
+                    Image(systemName: "link")
+                }
+                .help(L10n.articleCopyLinkCommand)
+                .disabled(viewModel.originalURL(for: article) == nil)
+            }
+
+            ToolbarItem {
+                Button {
+                    _ = viewModel.openOriginal(article)
+                } label: {
+                    Image(systemName: "safari")
+                }
+                .help(L10n.articleOpenOriginalCommand)
+                .disabled(viewModel.originalURL(for: article) == nil)
+            }
+
             ToolbarItem {
                 Button {
                     isAppearancePopoverPresented.toggle()

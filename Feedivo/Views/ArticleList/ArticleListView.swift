@@ -41,6 +41,12 @@ struct ArticleListView: View {
                         },
                         onToggleStarred: {
                             viewModel.toggleStarred(article)
+                        },
+                        onCopyLink: {
+                            _ = viewModel.copyLink(article)
+                        },
+                        onOpenOriginal: {
+                            _ = viewModel.openOriginal(article)
                         }
                     )
                     .tag(article)

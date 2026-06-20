@@ -108,13 +108,16 @@ bei geschlossener App.
 - Smart Filter sind in der Sidebar umgesetzt: Alle Artikel, Ungelesen, Mit Stern
   und Heute zeigen feeduebergreifend die passenden gespeicherten Artikel. Die
   Filter-Icons haben passende Farben: blau, tuerkis, gelb und gruen.
+- Artikel-Links koennen kopiert und Originalartikel im Standardbrowser geoeffnet
+  werden; die Aktionen sind im Artikel-Kontextmenue, Reader und macOS-Menue `Artikel`
+  verfuegbar.
 - Projekt baut und Unit-Tests laufen; UI-Test-Runner blockierte lokal am 2026-06-19
   vor dem App-Launch an einer alten Feedivo-PID.
 
 ### Aktuell in Arbeit
 
 M2 Core Features:
-- Naechster sinnvoller Block: OPML Import oder Link kopieren/Original oeffnen.
+- Naechster sinnvoller Block: OPML Import oder Alle als gelesen.
 
 ---
 
@@ -172,9 +175,10 @@ M2 Core Features:
 - Empfehlung: macOS Share Sheet mit Titel und URL. Summary optional spaeter.
 
 #### 1.7 Im Browser oeffnen
-- Status: Entschieden
+- Status: Fertig als Basis
 - Prioritaet: MVP
-- Empfehlung: Standard-Browser verwenden, nicht Safari erzwingen.
+- Implementiert: Originalartikel werden ueber den macOS-Standardbrowser geoeffnet.
+  Zugriff in Reader-Toolbar, Artikel-Kontextmenue und macOS-Menue `Artikel`.
 
 #### 1.8 Safari-Reader-aehnliche Ansicht
 - Status: In Diskussion
@@ -218,9 +222,10 @@ M2 Core Features:
   und in den Einstellungen unter Lesen. Default: 720 px, Wertebereich: 520...980 px.
 
 #### 1.10 Link kopieren
-- Status: Entschieden
+- Status: Fertig als Basis
 - Prioritaet: MVP
-- Empfehlung: Direkt umsetzen, klein und nuetzlich.
+- Implementiert: Artikel-Link in die macOS-Zwischenablage kopieren. Zugriff in
+  Reader-Toolbar, Artikel-Kontextmenue und macOS-Menue `Artikel`.
 
 #### 1.11 Regel aus Artikel erstellen
 - Status: Entschieden
@@ -250,8 +255,9 @@ M2 Core Features:
 #### 2.4 Kontextmenue
 - Status: Fertig als Basis
 - Prioritaet: MVP/v1
-- Implementiert: Rechtsklick mit gelesen/ungelesen und Stern.
-- Naechster Schritt: Original oeffnen und Link kopieren.
+- Implementiert: Rechtsklick mit gelesen/ungelesen, Stern, Link kopieren und
+  Original oeffnen.
+- Naechster Schritt: "Alle als gelesen" pro Feed und Smart Filter.
 
 ### 3. Sidebar
 
