@@ -94,6 +94,13 @@ struct ContentView: View {
             \.feedCommandActions,
             FeedCommandActions(
                 selectedFeed: selectedFeed,
+                refreshSelectedFeed: {
+                    if let selectedFeed {
+                        Task {
+                            await feedViewModel.refreshFeed(selectedFeed, context: modelContext)
+                        }
+                    }
+                },
                 requestDelete: {
                     if let selectedFeed {
                         requestDeleteFeed(selectedFeed)

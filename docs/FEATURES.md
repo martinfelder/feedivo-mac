@@ -80,6 +80,8 @@ bei geschlossener App.
 - Feeds koennen per Rechtsklick in der Sidebar oder ueber das macOS-Menue `Feed`
   geloescht werden; vor dem Loeschen erscheint eine Bestaetigung mit Hinweis auf
   die mitgeloeschten Artikel.
+- Der ausgewaehlte Feed kann per macOS-Menue `Feed` oder `Cmd+R` manuell aktualisiert
+  werden; neue Artikel werden ohne Duplikate hinzugefuegt.
 - Automatisches Gelesen-Markieren beim Oeffnen ist standardmaessig aktiv und in den
   Einstellungen abschaltbar.
 - i18n Foundation ist umgesetzt: String Catalog mit Deutsch, Englisch, Franzoesisch
@@ -97,8 +99,9 @@ bei geschlossener App.
 ### Aktuell in Arbeit
 
 M2 Core Features:
-- Manueller Refresh
-- App-weite Menue-Commands fuer Feed hinzufuegen/Refresh
+- Feed hinzufuegen per `Cmd+N`
+- Refresh fuer alle Feeds
+- Automatischer Refresh
 
 ---
 
@@ -277,9 +280,14 @@ M2 Core Features:
 - Spaeter: Optional Shortcut nur dann pruefen, wenn sich das nicht zu gefaehrlich anfuehlt.
 
 #### 4.4 Manueller Refresh
-- Status: In Diskussion
+- Status: Fertig als Basis
 - Prioritaet: MVP
-- Empfehlung: Aktuellen Feed und alle Feeds. Fortschritt einfach halten.
+- Implementiert: Ausgewaehlten Feed ueber macOS-Menue `Feed` oder `Cmd+R`
+  aktualisieren.
+- Verhalten: Feed-Metadaten und `lastRefreshed` werden aktualisiert; neue Artikel
+  werden angehaengt, bestehende Artikel werden anhand Link beziehungsweise
+  Titel+Datum nicht dupliziert.
+- Offen: Alle Feeds aktualisieren und sichtbarer Fortschritt.
 
 #### 4.5 Automatischer Refresh
 - Status: In Diskussion

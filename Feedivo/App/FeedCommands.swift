@@ -6,10 +6,18 @@ struct FeedCommands: Commands {
 
     var body: some Commands {
         CommandMenu(L10n.feedCommandsMenu) {
+            Button(L10n.feedRefreshCommand) {
+                feedCommandActions?.refreshSelectedFeed()
+            }
+            .keyboardShortcut("r", modifiers: [.command])
+            .disabled(feedCommandActions?.canPerformFeedAction != true)
+
+            Divider()
+
             Button(L10n.feedDeleteCommand) {
                 feedCommandActions?.requestDelete()
             }
-            .disabled(feedCommandActions?.canDeleteFeed != true)
+            .disabled(feedCommandActions?.canPerformFeedAction != true)
         }
     }
 }

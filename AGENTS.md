@@ -118,7 +118,7 @@ FeedivoMac/
 │   │   └── Rule.swift
 │   │
 │   ├── ViewModels/
-│   │   ├── FeedViewModel.swift         # Feed hinzufügen und loeschen ✅
+│   │   ├── FeedViewModel.swift         # Feed hinzufügen, aktualisieren, loeschen ✅
 │   │   ├── ArticleViewModel.swift      # Artikel gelesen/ungelesen und Stern toggeln ✅
 │   │   ├── TagViewModel.swift          # Tags verwalten (TODO)
 │   │   ├── RuleEngineViewModel.swift   # Regeln auswerten und Tags auto-zuweisen (TODO)
@@ -225,8 +225,11 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 ### FeedViewModel.swift
 - `@Observable` class
 - `addFeed(urlString:context:)` — lädt Artikel, erstellt Feed, speichert in SwiftData
+- `refreshFeed(_:context:)` — aktualisiert den ausgewaehlten Feed, fuegt nur neue
+  Artikel hinzu und aktualisiert Feed-Metadaten sowie `lastRefreshed`
 - `deleteFeed(_:context:)` — loescht einen Feed aus SwiftData; Artikel werden ueber
   die Cascade-Relationship mitgeloescht
+- Der Feed-Fetch ist als Closure injizierbar, damit Refresh-Tests ohne Netzwerk laufen
 - Properties: `isLoading: Bool`, `errorMessage: String?`
 
 ### ArticleListView.swift
@@ -259,7 +262,8 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 
 ### FeedCommands.swift / FeedCommandActions.swift
 - macOS-Menue `Feed` fuer Aktionen auf dem fokussierten/ausgewaehlten Feed
-- Feed loeschen ist deaktiviert, wenn kein Feed ausgewaehlt ist
+- `Cmd+R` aktualisiert den ausgewaehlten Feed
+- Feed aktualisieren und Feed loeschen sind deaktiviert, wenn kein Feed ausgewaehlt ist
 - Kein Shortcut fuer Loeschen, damit eine destruktive Aktion bewusst bleibt
 - `ContentView` zeigt vor dem Loeschen einen Bestaetigungsdialog und setzt die
   Feed-/Artikel-Auswahl nach erfolgreichem Loeschen zurueck
@@ -509,7 +513,9 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 - [x] Tastaturkuerzel: `Cmd+Shift+U` gelesen/ungelesen, `Cmd+D` Stern
 - [x] macOS Artikel-Menue fuer gelesen/ungelesen und Stern
 - [x] Feed löschen (Rechtsklick und macOS-Menue `Feed`, mit Bestätigung)
-- [ ] macOS Menüleiste: `Cmd+R` = Refresh, `Cmd+N` = Feed hinzufügen
+- [x] Manueller Refresh fuer ausgewaehlten Feed (`Cmd+R`, macOS-Menue `Feed`)
+- [ ] macOS Menüleiste: `Cmd+N` = Feed hinzufügen
+- [ ] Manueller Refresh fuer alle Feeds
 - [ ] Automatischer Refresh (konfigurierbares Intervall)
 - [ ] Favicons laden und in Sidebar anzeigen
 
@@ -558,8 +564,8 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 ## Aktuell in Arbeit
 
 - M1 abgeschlossen
-- Aktuell M2: manuellen Refresh und app-weite Menü-Commands fuer Feed hinzufuegen/Refresh
-  ausbauen
+- Aktuell M2: Feed hinzufuegen per `Cmd+N`, Refresh fuer alle Feeds und automatischen
+  Refresh ausbauen
 - Feature-Roadmap ist in `docs/FEATURES.md` dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
@@ -617,3 +623,6 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 - 2026-06-20: Feed loeschen als Basis umgesetzt: Rechtsklick in der Sidebar und
   macOS-Menue `Feed`, jeweils mit Bestaetigungsdialog; `FeedViewModelTests`
   pruefen Loeschen und fehlende Auswahl
+- 2026-06-20: Manueller Refresh fuer ausgewaehlten Feed umgesetzt: `FeedViewModel`
+  aktualisiert Metadaten, `lastRefreshed` und neue Artikel ohne Duplikate; macOS-Menue
+  `Feed` bietet `Cmd+R` fuer Feed aktualisieren
