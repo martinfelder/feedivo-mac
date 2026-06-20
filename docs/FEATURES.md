@@ -102,13 +102,16 @@ bei geschlossener App.
   kann er aktiviert und auf 15, 30, 60 oder 120 Minuten gestellt werden. Feedivo nutzt
   `NSBackgroundActivityScheduler`; macOS entscheidet den genauen Zeitpunkt und startet
   eine vollstaendig beendete App dafuer nicht neu.
+- Favicons werden beim Hinzufuegen und Aktualisieren per HTML Discovery erkannt,
+  in `Feed.faviconURL` gespeichert und in der Sidebar angezeigt; `/favicon.ico`
+  bleibt Fallback, externe Favicon-Dienste werden nicht genutzt.
 - Projekt baut und Unit-Tests laufen; UI-Test-Runner blockierte lokal am 2026-06-19
   vor dem App-Launch an einer alten Feedivo-PID.
 
 ### Aktuell in Arbeit
 
 M2 Core Features:
-- Favicons in der Sidebar
+- Naechster sinnvoller Block: Smart Filter oder OPML Import.
 
 ---
 
@@ -252,7 +255,9 @@ M2 Core Features:
 #### 3.1 Feed-Liste
 - Status: Fertig als Basis
 - Prioritaet: MVP
-- Offen: Favicon, Ungelesen-Zaehler, Gruppierung.
+- Implementiert: Feed-Titel mit Favicon aus `Feed.faviconURL`; Fallback ist das
+  RSS-Systemsymbol.
+- Offen: Ungelesen-Zaehler, Gruppierung.
 
 #### 3.2 Smart Filter
 - Status: In Diskussion
@@ -270,8 +275,9 @@ M2 Core Features:
 - Status: Fertig als Basis
 - Prioritaet: MVP
 - Implementiert: Sidebar-Plus-Button und macOS-Menue `Feed > Feed hinzufügen...`
-  mit `Cmd+N`; beide Wege oeffnen dasselbe `AddFeedSheet`.
-- Offen: Auto-Erkennung, Vorschau, Favicon.
+  mit `Cmd+N`; beide Wege oeffnen dasselbe `AddFeedSheet`. Beim Speichern wird das
+  Favicon der Website per HTML Discovery ermittelt.
+- Offen: Auto-Erkennung, Vorschau.
 
 #### 4.2 Feed bearbeiten
 - Status: In Diskussion
@@ -433,9 +439,12 @@ M2 Core Features:
 ### 13. Feed-Metadaten
 
 #### 13.1 Feed-Infos
-- Status: Entschieden
+- Status: Fertig als Basis
 - Prioritaet: v1
-- Empfehlung: Rechtsklick auf Feed -> Info.
+- Implementiert: Basis-Metadaten wie Titel, Beschreibung, Website-URL fuer
+  Favicon-Discovery und `faviconURL` werden beim Feed-Parsing beziehungsweise
+  Hinzufuegen/Aktualisieren gepflegt.
+- Naechster Schritt: Rechtsklick auf Feed -> Info.
 
 #### 13.2 Feed-Gesundheit
 - Status: In Diskussion
@@ -547,9 +556,8 @@ M2 Core Features:
 1. Reader-Modus global oder pro Artikel speichern?
 2. Stern und Archiv getrennt halten oder fuer v1 nur Stern?
 3. Smart Filter final: Alle, Heute, Ungelesen, Mit Stern?
-4. Favicon-Strategie: eigene Ableitung, Webseite-Metadaten oder externer Dienst?
-5. OPML-Gruppen spaeter als Ordner oder Tags importieren?
-6. CloudKit Sync-Umfang, insbesondere ob Artikel-Content synchronisiert wird.
+4. OPML-Gruppen spaeter als Ordner oder Tags importieren?
+5. CloudKit Sync-Umfang, insbesondere ob Artikel-Content synchronisiert wird.
 
 ---
 

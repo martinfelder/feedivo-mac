@@ -128,7 +128,7 @@ FeedivoMac/
 │   │   ├── ContentView.swift           # Root: NavigationSplitView (3 Spalten) ✅
 │   │   ├── Sidebar/
 │   │   │   ├── SidebarView.swift       # Linke Spalte: Feeds, + Button, @Query ✅
-│   │   │   ├── FeedRowView.swift       # Eine Feed-Zeile in der Sidebar (TODO)
+│   │   │   ├── FeedRowView.swift       # Feed-Zeile mit Favicon/Fallback ✅
 │   │   │   └── TagRowView.swift        # Eine Tag-Zeile in der Sidebar (TODO)
 │   │   ├── ArticleList/
 │   │   │   ├── ArticleListView.swift   # Mittlere Spalte: echte Feed-Artikel anzeigen ✅
@@ -152,6 +152,7 @@ FeedivoMac/
 │   │
 │   ├── Services/
 │   │   ├── FeedService.swift           # FeedKit-Wrapper: RSS/Atom/JSON Feed parsen ✅
+│   │   ├── FaviconService.swift        # HTML Favicon Discovery + Fallback ✅
 │   │   ├── BackgroundRefreshSettings.swift # Auto-Refresh Settings/Intervalle ✅
 │   │   ├── BackgroundRefreshService.swift  # NSBackgroundActivityScheduler Adapter ✅
 │   │   ├── FeedRefreshService.swift    # Alle Feeds abrufen (async, mit Fortschritt) (TODO)
@@ -159,8 +160,7 @@ FeedivoMac/
 │   │   └── OPMLService.swift           # OPML Import und Export (TODO)
 │   │
 │   ├── Extensions/
-│   │   ├── Date+RelativeDisplay.swift  # Datum fuer Artikelzeilen formatieren ✅
-│   │   └── URL+Favicon.swift           # Favicon-URL aus Feed-URL ableiten (TODO)
+│   │   └── Date+RelativeDisplay.swift  # Datum fuer Artikelzeilen formatieren ✅
 │   │
 │   └── Resources/
 │       ├── Assets.xcassets
@@ -225,11 +225,18 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 - Ruft `FeedViewModel.addFeed()` auf
 - Kontextmenue pro Feed ruft das Feed-Loeschen mit Bestaetigung an
 
+### FeedRowView.swift
+- Zeigt Feed-Titel mit kleinem Favicon aus `Feed.faviconURL`
+- Nutzt `AsyncImage` fuer remote Icons
+- Fallback ist das RSS-Systemsymbol, wenn kein Icon vorhanden ist oder das Laden scheitert
+
 ### FeedService.swift
 - Parsed RSS 2.0, Atom und JSON Feed via FeedKit
 - Nutzt FeedKit `Feed(data:)` für Parsing und `URLSession` + async/await für Download
 - Gibt `ParsedFeed` mit Feed-Metadaten und `[ParsedArticle]` zurück
 - Feed-Titel wird aus Metadaten gelesen, mit URL als Fallback
+- Website-URL fuer Favicon Discovery wird aus Feed-Metadaten gelesen:
+  RSS `channel.link`, Atom `alternate` Link, JSON Feed `home_page_url`
 - Artikelbilder werden aus Media RSS, iTunes Image, Bild-Enclosures und erstem
   `<img>` in Content/Summary gelesen
 - Relative Artikelbild-URLs werden gegen die Feed-URL zu absoluten URLs aufgeloest,
@@ -239,6 +246,8 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 ### FeedViewModel.swift
 - `@Observable` class
 - `addFeed(urlString:context:)` — lädt Artikel, erstellt Feed, speichert in SwiftData
+- Beim Hinzufuegen und Aktualisieren wird `FaviconService` genutzt, um `Feed.faviconURL`
+  aus Website-HTML oder `/favicon.ico` Fallback zu speichern
 - `refreshFeed(_:context:)` — aktualisiert den ausgewaehlten Feed, fuegt nur neue
   Artikel hinzu und aktualisiert Feed-Metadaten sowie `lastRefreshed`
 - `refreshAllFeeds(_:context:)` — aktualisiert alle gespeicherten Feeds nacheinander,
@@ -246,7 +255,18 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 - `deleteFeed(_:context:)` — loescht einen Feed aus SwiftData; Artikel werden ueber
   die Cascade-Relationship mitgeloescht
 - Der Feed-Fetch ist als Closure injizierbar, damit Refresh-Tests ohne Netzwerk laufen
+- Die Favicon-Discovery ist als Closure injizierbar, damit Tests ohne Netzwerk laufen
 - Properties: `isLoading: Bool`, `errorMessage: String?`
+
+### FaviconService.swift
+- Laedt die Website-HTML-Seite eines Feeds und sucht `<link rel="...icon...">`
+- Unterstuetzt `icon`, `shortcut icon`, `apple-touch-icon` und `mask-icon`
+- Normalisiert relative und protokollrelative Icon-URLs zu absoluten URLs
+- Priorisiert Apple-Touch-Icons und groessere `sizes` Werte vor einfachen Icons
+- Fallback: Wenn HTML nicht geladen oder kein Icon gefunden wird, nutzt Feedivo
+  `/favicon.ico` auf der Website-Root
+- Keine externe Google-S2-API; die Favicon-Strategie bleibt eigenstaendig und
+  datensparsamer
 
 ### BackgroundRefreshSettings.swift / BackgroundRefreshService.swift
 - `BackgroundRefreshSettings` kapselt `@AppStorage` Keys, Defaults und erlaubte
@@ -505,6 +525,10 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
   `media:thumbnail`, `media:content`, `itunes:image` oder ein erstes `<img>` in
   Summary/Content. Bild-URLs koennen relativ sein und muessen gegen die Feed-URL
   normalisiert werden.
+- **Favicons:** Nicht nur `/favicon.ico` ableiten. Zuerst Website-HTML lesen und
+  `<link rel="icon">`, `apple-touch-icon`, `shortcut icon` und `mask-icon` auswerten.
+  Relative Icon-URLs muessen gegen die Website-URL normalisiert werden. Wenn HTML
+  nicht geladen werden kann, ist `/favicon.ico` der Fallback.
 - **NavigationView ist deprecated:** Immer `NavigationSplitView` oder `NavigationStack`
 - **WKWebView in SwiftUI:** Braucht einen `NSViewRepresentable`-Wrapper für macOS
 - **Background Refresh macOS:** `BGTaskScheduler`/`BGTask` sind fuer native macOS Apps
@@ -565,7 +589,7 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 - [x] Manueller Refresh fuer alle Feeds (`Cmd+Shift+R`, macOS-Menue `Feed`)
 - [x] Automatischer Refresh (konfigurierbares Intervall via Settings,
   `NSBackgroundActivityScheduler`)
-- [ ] Favicons laden und in Sidebar anzeigen
+- [x] Favicons laden und in Sidebar anzeigen
 
 ### M3 – Tags, Regeln & Sync
 - [ ] Tag-System: Tags erstellen (Name + Farbe), Feeds und Artikeln manuell zuweisen
@@ -606,14 +630,14 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 - [ ] CloudKit Sync-Umfang, insbesondere Artikel-Content
 - [ ] Artikel-Detail: Nur nativer SwiftUI Text-Renderer oder auch WKWebView (volle Webseite)?
 - [ ] Monetarisierung: Kostenlos / einmaliger Kauf / nie im App Store?
-- [ ] Favicon-Strategie: Google S2 API (`https://www.google.com/s2/favicons?domain=`) oder eigene Lösung?
 
 ---
 
 ## Aktuell in Arbeit
 
 - M1 abgeschlossen
-- Aktuell M2: Favicons ausbauen
+- Aktuell M2: Basis-Feed/Reader/Refresh/Favicons sind umgesetzt; naechster sinnvoller
+  Block ist Smart Filter oder OPML Import
 - Feature-Roadmap ist in `docs/FEATURES.md` dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
@@ -683,3 +707,6 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
   `NSBackgroundActivityScheduler` plant periodische Aktualisierungen, Settings bieten
   Ein/Aus und Intervalle 15/30/60/120 Minuten; `BGTaskScheduler` ist fuer native macOS
   unavailable und wird bewusst nicht verwendet
+- 2026-06-20: Favicons in der Sidebar umgesetzt: `FaviconService` erkennt Icons per
+  HTML Discovery, priorisiert Icon-Kandidaten, faellt auf `/favicon.ico` zurueck und
+  `FeedRowView` zeigt gespeicherte Icons mit RSS-Symbol als Fallback

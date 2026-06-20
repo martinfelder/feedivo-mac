@@ -14,7 +14,7 @@ struct SidebarView: View {
                     .foregroundStyle(.secondary)
             } else {
                 ForEach(feeds) { feed in
-                    Label(feed.title, systemImage: "dot.radiowaves.left.and.right")
+                    FeedRowView(feed: feed)
                         .tag(feed)
                         .contextMenu {
                             Button(role: .destructive) {

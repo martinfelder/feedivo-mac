@@ -6,7 +6,22 @@ struct ParsedFeed {
     let sourceURL: String
     let title: String
     let description: String?
+    let siteURL: String?
     let articles: [ParsedArticle]
+
+    init(
+        sourceURL: String,
+        title: String,
+        description: String?,
+        siteURL: String? = nil,
+        articles: [ParsedArticle]
+    ) {
+        self.sourceURL = sourceURL
+        self.title = title
+        self.description = description
+        self.siteURL = siteURL
+        self.articles = articles
+    }
 }
 
 struct ParsedArticle {
@@ -86,6 +101,7 @@ enum FeedService {
             sourceURL: sourceURL,
             title: channel?.title ?? sourceURL,
             description: channel?.description,
+            siteURL: cleanURL(channel?.link, relativeTo: baseURL),
             articles: articles
         )
     }
@@ -113,6 +129,10 @@ enum FeedService {
             sourceURL: sourceURL,
             title: atomFeed.title?.text ?? sourceURL,
             description: atomFeed.subtitle?.text,
+            siteURL: cleanURL(
+                atomFeed.links?.first(where: { $0.attributes?.rel == nil || $0.attributes?.rel == "alternate" })?.attributes?.href,
+                relativeTo: baseURL
+            ),
             articles: articles
         )
     }
@@ -139,6 +159,7 @@ enum FeedService {
             sourceURL: sourceURL,
             title: jsonFeed.title ?? sourceURL,
             description: jsonFeed.description,
+            siteURL: cleanURL(jsonFeed.homePageURL, relativeTo: baseURL),
             articles: articles
         )
     }
@@ -226,11 +247,7 @@ enum FeedService {
             return nil
         }
 
-        guard let url = URL(string: cleaned, relativeTo: baseURL)?.absoluteURL else {
-            return cleaned
-        }
-
-        return url.absoluteString
+        return cleanURL(cleaned, relativeTo: baseURL)
     }
 
     private nonisolated static func looksLikeImageURL(_ url: String) -> Bool {
@@ -240,5 +257,22 @@ enum FeedService {
 
         let path = components.path.lowercased()
         return [".jpg", ".jpeg", ".png", ".gif", ".webp", ".avif"].contains { path.hasSuffix($0) }
+    }
+
+    private nonisolated static func cleanURL(_ value: String?, relativeTo baseURL: URL?) -> String? {
+        guard let value else {
+            return nil
+        }
+
+        let cleaned = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleaned.isEmpty else {
+            return nil
+        }
+
+        guard let url = URL(string: cleaned, relativeTo: baseURL)?.absoluteURL else {
+            return cleaned
+        }
+
+        return url.absoluteString
     }
 }

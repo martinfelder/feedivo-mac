@@ -5,12 +5,19 @@ import SwiftData
 @Observable
 final class FeedViewModel {
     private let fetchFeed: (String) async throws -> ParsedFeed
+    private let discoverFaviconURL: (URL) async -> String?
 
     var isLoading = false
     var errorMessage: String?
 
-    init(fetchFeed: @escaping (String) async throws -> ParsedFeed = FeedService.fetchFeed) {
+    init(
+        fetchFeed: @escaping (String) async throws -> ParsedFeed = FeedService.fetchFeed,
+        discoverFaviconURL: @escaping (URL) async -> String? = { siteURL in
+            await FaviconService.discoverFaviconURL(siteURL: siteURL)
+        }
+    ) {
         self.fetchFeed = fetchFeed
+        self.discoverFaviconURL = discoverFaviconURL
     }
 
     @MainActor
@@ -30,6 +37,7 @@ final class FeedViewModel {
                 url: parsedFeed.sourceURL,
                 title: parsedFeed.title,
                 feedDescription: parsedFeed.description,
+                faviconURL: await faviconURL(for: parsedFeed),
                 lastRefreshed: Date()
             )
 
@@ -148,6 +156,9 @@ final class FeedViewModel {
 
         feed.title = parsedFeed.title
         feed.feedDescription = parsedFeed.description
+        if let faviconURL = await faviconURL(for: parsedFeed) {
+            feed.faviconURL = faviconURL
+        }
         feed.lastRefreshed = Date()
 
         for parsedArticle in newArticles {
@@ -165,5 +176,16 @@ final class FeedViewModel {
         }
 
         try context.save()
+    }
+
+    private func faviconURL(for parsedFeed: ParsedFeed) async -> String? {
+        let parsedSiteURL = parsedFeed.siteURL
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .flatMap(URL.init(string:))
+        guard let siteURL = parsedSiteURL ?? FaviconService.siteURL(from: parsedFeed.sourceURL) else {
+            return nil
+        }
+
+        return await discoverFaviconURL(siteURL)
     }
 }

@@ -6,6 +6,39 @@ import Testing
 struct FeedViewModelTests {
 
     @MainActor
+    @Test func addFeedSpeichertEntdecktesFavicon() async throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let viewModel = FeedViewModel(
+            fetchFeed: { urlString in
+                ParsedFeed(
+                    sourceURL: urlString,
+                    title: "Feed mit Icon",
+                    description: nil,
+                    siteURL: "https://example.com/",
+                    articles: []
+                )
+            },
+            discoverFaviconURL: { siteURL in
+                #expect(siteURL.absoluteString == "https://example.com/")
+                return "https://example.com/apple-touch-icon.png"
+            }
+        )
+
+        await viewModel.addFeed(urlString: "https://example.com/feed.xml", context: context)
+
+        let feeds = try context.fetch(FetchDescriptor<Feed>())
+        #expect(feeds.first?.faviconURL == "https://example.com/apple-touch-icon.png")
+        #expect(viewModel.errorMessage == nil)
+    }
+
+    @MainActor
     @Test func refreshAllFeedsAktualisiertWeiterWennEinFeedFehlschlaegt() async throws {
         let container = try ModelContainer(
             for: Feed.self,
@@ -17,27 +50,33 @@ struct FeedViewModelTests {
         let context = ModelContext(container)
         let failingFeed = Feed(url: "https://example.com/fail.xml", title: "Fehler Feed")
         let successfulFeed = Feed(url: "https://example.com/success.xml", title: "Erfolgreicher Feed")
-        let viewModel = FeedViewModel { urlString in
-            if urlString == failingFeed.url {
-                throw TestFeedRefreshError()
-            }
+        let viewModel = FeedViewModel(
+            fetchFeed: { urlString in
+                if urlString == failingFeed.url {
+                    throw TestFeedRefreshError()
+                }
 
-            return ParsedFeed(
-                sourceURL: urlString,
-                title: "Aktualisierter Feed",
-                description: "Neue Beschreibung",
-                articles: [
-                    ParsedArticle(
-                        title: "Neuer Artikel",
-                        link: "https://example.com/new",
-                        summary: "Neu",
-                        content: nil,
-                        publishedAt: Date(timeIntervalSince1970: 300),
-                        imageURL: nil
-                    )
-                ]
-            )
-        }
+                return ParsedFeed(
+                    sourceURL: urlString,
+                    title: "Aktualisierter Feed",
+                    description: "Neue Beschreibung",
+                    siteURL: "https://example.com/",
+                    articles: [
+                        ParsedArticle(
+                            title: "Neuer Artikel",
+                            link: "https://example.com/new",
+                            summary: "Neu",
+                            content: nil,
+                            publishedAt: Date(timeIntervalSince1970: 300),
+                            imageURL: nil
+                        )
+                    ]
+                )
+            },
+            discoverFaviconURL: { _ in
+                "https://example.com/favicon.png"
+            }
+        )
 
         context.insert(failingFeed)
         context.insert(successfulFeed)
@@ -47,6 +86,7 @@ struct FeedViewModelTests {
 
         #expect(failingFeed.articles.isEmpty)
         #expect(successfulFeed.title == "Aktualisierter Feed")
+        #expect(successfulFeed.faviconURL == "https://example.com/favicon.png")
         #expect(successfulFeed.articles.contains { $0.link == "https://example.com/new" })
         #expect(viewModel.errorMessage?.contains("Fehler Feed") == true)
         #expect(!viewModel.isLoading)
@@ -80,32 +120,38 @@ struct FeedViewModelTests {
             feed: feed
         )
         feed.articles = [existingArticle]
-        let viewModel = FeedViewModel { urlString in
-            #expect(urlString == feed.url)
-            return ParsedFeed(
-                sourceURL: urlString,
-                title: "Neuer Titel",
-                description: "Neue Beschreibung",
-                articles: [
-                    ParsedArticle(
-                        title: "Vorhandener Artikel aus Feed",
-                        link: "https://example.com/1",
-                        summary: "Soll nicht dupliziert werden",
-                        content: nil,
-                        publishedAt: existingPublishedAt,
-                        imageURL: nil
-                    ),
-                    ParsedArticle(
-                        title: "Neuer Artikel",
-                        link: "https://example.com/2",
-                        summary: "Neu",
-                        content: "Inhalt",
-                        publishedAt: newPublishedAt,
-                        imageURL: "https://example.com/image.jpg"
-                    )
-                ]
-            )
-        }
+        let viewModel = FeedViewModel(
+            fetchFeed: { urlString in
+                #expect(urlString == feed.url)
+                return ParsedFeed(
+                    sourceURL: urlString,
+                    title: "Neuer Titel",
+                    description: "Neue Beschreibung",
+                    siteURL: "https://example.com/",
+                    articles: [
+                        ParsedArticle(
+                            title: "Vorhandener Artikel aus Feed",
+                            link: "https://example.com/1",
+                            summary: "Soll nicht dupliziert werden",
+                            content: nil,
+                            publishedAt: existingPublishedAt,
+                            imageURL: nil
+                        ),
+                        ParsedArticle(
+                            title: "Neuer Artikel",
+                            link: "https://example.com/2",
+                            summary: "Neu",
+                            content: "Inhalt",
+                            publishedAt: newPublishedAt,
+                            imageURL: "https://example.com/image.jpg"
+                        )
+                    ]
+                )
+            },
+            discoverFaviconURL: { _ in
+                "https://example.com/favicon.png"
+            }
+        )
 
         context.insert(feed)
         try context.save()
@@ -114,6 +160,7 @@ struct FeedViewModelTests {
 
         #expect(feed.title == "Neuer Titel")
         #expect(feed.feedDescription == "Neue Beschreibung")
+        #expect(feed.faviconURL == "https://example.com/favicon.png")
         #expect(feed.lastRefreshed ?? .distantPast > oldRefreshDate)
         #expect(feed.articles.count == 2)
         #expect(existingArticle.isRead)

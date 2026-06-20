@@ -178,6 +178,7 @@ struct FeedivoTests {
         <rss version="2.0">
             <channel>
                 <title>Feedivo Test Feed</title>
+                <link>https://example.com/</link>
                 <description>Ein Feed fuer Tests</description>
                 <item>
                     <title>Erster Artikel</title>
@@ -193,6 +194,7 @@ struct FeedivoTests {
 
         #expect(result.title == "Feedivo Test Feed")
         #expect(result.description == "Ein Feed fuer Tests")
+        #expect(result.siteURL == "https://example.com/")
         #expect(result.articles.count == 1)
         #expect(result.articles.first?.title == "Erster Artikel")
         #expect(result.articles.first?.link == "https://example.com/erster-artikel")
