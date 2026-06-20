@@ -2,6 +2,8 @@ import SwiftUI
 import SwiftData
 
 struct SidebarView: View {
+    @Environment(\.interfaceTextSize) private var interfaceTextSize
+
     @Query(sort: \Feed.title) private var feeds: [Feed]
     @Query(sort: \FeedFolder.name) private var folders: [FeedFolder]
     @Binding var selection: SidebarSelection?
@@ -43,7 +45,7 @@ struct SidebarView: View {
     private var sidebarHeader: some View {
         HStack {
             Text("Feedivo")
-                .font(.headline)
+                .font(interfaceTextSize.font(size: 15, weight: .semibold))
                 .foregroundStyle(SidebarStyle.darkPrimaryText)
 
             Spacer()
@@ -52,8 +54,11 @@ struct SidebarView: View {
                 onRequestAddFeed()
             } label: {
                 Image(systemName: "plus")
-                    .font(.system(size: 15, weight: .semibold))
-                    .frame(width: 30, height: 30)
+                    .font(interfaceTextSize.font(size: 15, weight: .semibold))
+                    .frame(
+                        width: interfaceTextSize.scaled(30),
+                        height: interfaceTextSize.scaled(30)
+                    )
             }
             .buttonStyle(.plain)
             .foregroundStyle(SidebarStyle.darkPrimaryText)
@@ -94,7 +99,7 @@ struct SidebarView: View {
         } content: {
             if feeds.isEmpty && folders.isEmpty {
                 Text(L10n.sidebarEmptyTitle)
-                    .font(.callout)
+                    .font(interfaceTextSize.font(size: 13))
                     .foregroundStyle(SidebarStyle.darkSecondaryText)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 8)
@@ -168,6 +173,8 @@ struct SidebarView: View {
 }
 
 private struct SidebarSection<Content: View>: View {
+    @Environment(\.interfaceTextSize) private var interfaceTextSize
+
     let title: LocalizedStringKey?
     @ViewBuilder let content: Content
 
@@ -175,7 +182,7 @@ private struct SidebarSection<Content: View>: View {
         VStack(alignment: .leading, spacing: 6) {
             if let title {
                 Text(title)
-                    .font(.caption)
+                    .font(interfaceTextSize.font(size: 11, weight: .bold))
                     .fontWeight(.bold)
                     .textCase(.uppercase)
                     .foregroundStyle(SidebarStyle.darkSectionText)
@@ -188,6 +195,8 @@ private struct SidebarSection<Content: View>: View {
 }
 
 private struct SidebarActionSection<Content: View>: View {
+    @Environment(\.interfaceTextSize) private var interfaceTextSize
+
     let title: LocalizedStringKey
     let actionSystemImage: String
     let actionHelp: LocalizedStringKey
@@ -198,7 +207,7 @@ private struct SidebarActionSection<Content: View>: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Text(title)
-                    .font(.caption)
+                    .font(interfaceTextSize.font(size: 11, weight: .bold))
                     .fontWeight(.bold)
                     .textCase(.uppercase)
 
@@ -206,8 +215,11 @@ private struct SidebarActionSection<Content: View>: View {
 
                 Button(action: action) {
                     Image(systemName: actionSystemImage)
-                        .font(.system(size: 12, weight: .bold))
-                        .frame(width: 22, height: 22)
+                        .font(interfaceTextSize.font(size: 12, weight: .bold))
+                        .frame(
+                            width: interfaceTextSize.scaled(22),
+                            height: interfaceTextSize.scaled(22)
+                        )
                 }
                 .buttonStyle(.plain)
                 .help(actionHelp)
@@ -221,6 +233,8 @@ private struct SidebarActionSection<Content: View>: View {
 }
 
 private struct SidebarFolderSection<Content: View>: View {
+    @Environment(\.interfaceTextSize) private var interfaceTextSize
+
     let title: String
     let isExpanded: Bool
     let toggle: () -> Void
@@ -231,13 +245,14 @@ private struct SidebarFolderSection<Content: View>: View {
             Button(action: toggle) {
                 HStack(spacing: 7) {
                     Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                        .font(.system(size: 10, weight: .bold))
-                        .frame(width: 12)
+                        .font(interfaceTextSize.font(size: 10, weight: .bold))
+                        .frame(width: interfaceTextSize.scaled(12))
 
                     Image(systemName: "folder")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(interfaceTextSize.font(size: 13, weight: .semibold))
 
                     Text(title)
+                        .font(interfaceTextSize.font(size: 11, weight: .bold))
                         .lineLimit(1)
 
                     Spacer(minLength: 0)
@@ -245,7 +260,6 @@ private struct SidebarFolderSection<Content: View>: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .font(.caption)
             .fontWeight(.bold)
             .foregroundStyle(SidebarStyle.darkSectionText)
             .padding(.horizontal, 10)
@@ -257,6 +271,8 @@ private struct SidebarFolderSection<Content: View>: View {
 }
 
 private struct SidebarRow: View {
+    @Environment(\.interfaceTextSize) private var interfaceTextSize
+
     let title: LocalizedStringKey
     let systemImage: String
     let iconColor: Color
@@ -267,12 +283,13 @@ private struct SidebarRow: View {
         Button(action: action) {
             Label {
                 Text(title)
+                    .font(interfaceTextSize.font(size: 13, weight: .semibold))
                     .lineLimit(1)
             } icon: {
                 Image(systemName: systemImage)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(interfaceTextSize.font(size: 14, weight: .semibold))
                     .foregroundStyle(iconColor.opacity(SidebarStyle.darkIconOpacity))
-                    .frame(width: 20)
+                    .frame(width: interfaceTextSize.scaled(20))
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -281,18 +298,20 @@ private struct SidebarRow: View {
 }
 
 private struct SidebarRowButtonStyle: ButtonStyle {
+    @Environment(\.interfaceTextSize) private var interfaceTextSize
+
     let isSelected: Bool
     var leadingIndent: CGFloat = 0
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.callout)
+            .font(interfaceTextSize.font(size: 13, weight: .semibold))
             .fontWeight(.semibold)
             .foregroundStyle(
                 isSelected ? SidebarStyle.darkPrimaryText : SidebarStyle.darkPrimaryText.opacity(0.82)
             )
             .padding(.horizontal, 10)
-            .frame(height: 36)
+            .frame(height: interfaceTextSize.scaled(36))
             .padding(.leading, leadingIndent)
             .background(rowBackground(configuration: configuration))
             .contentShape(RoundedRectangle(cornerRadius: 8))

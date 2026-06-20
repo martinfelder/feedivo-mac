@@ -39,6 +39,15 @@ struct FeedivoTests {
         #expect(InterfaceTextSize.extraLarge.dynamicTypeSize == .xxLarge)
     }
 
+    @Test func interfaceTextSizeSkaliertKonkreteOberflaechenwerte() {
+        let baseSize = 14.0
+
+        #expect(InterfaceTextSize.small.scaled(baseSize) < InterfaceTextSize.standard.scaled(baseSize))
+        #expect(InterfaceTextSize.standard.scaled(baseSize) == baseSize)
+        #expect(InterfaceTextSize.large.scaled(baseSize) > InterfaceTextSize.standard.scaled(baseSize))
+        #expect(InterfaceTextSize.extraLarge.scaled(baseSize) > InterfaceTextSize.large.scaled(baseSize))
+    }
+
     @Test func readerContentRendererErzeugtAbsaetzeAusHTML() {
         let blocks = ReaderContentRenderer.blocks(
             summary: nil,

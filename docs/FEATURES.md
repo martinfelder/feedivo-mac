@@ -97,7 +97,8 @@ bei geschlossener App.
   Franzoesisch oder Italienisch gesetzt werden.
 - In den Einstellungen kann die app-weite Oberflaechenschrift auf Klein, Standard,
   Gross oder Sehr gross gestellt werden. Diese UI-Groesse ist bewusst getrennt von
-  der Reader-Typografie.
+  der Reader-Typografie und skaliert Sidebar, Feed-Zeilen, Artikelzeilen und Settings
+  sichtbar ueber konkrete Font-/Icon-/Zeilenwerte.
 - In der Artikelansicht koennen Titel- und Fliesstext-Schrift ueber kuratierte
   Presets direkt per Toolbar-Popover und in den Einstellungen getrennt gewaehlt werden;
   Fliesstext-Groesse, Titel-/Fliesstext-Zeilenabstand und Artikelbreite sind dort
@@ -449,6 +450,9 @@ M2 Core Features:
 - Entscheidung: UI-Schriftgroesse und Reader-Typografie bleiben getrennt, damit
   die App-Bedienung groesser werden kann, ohne die Artikel-Leseeinstellungen zu
   veraendern.
+- Umsetzung: Die UI-Groesse nutzt `InterfaceTextSize` mit eigenen Skalierungswerten,
+  weil fest gestaltete macOS-Zeilen nicht verlaesslich allein ueber `DynamicTypeSize`
+  sichtbar mitskalieren.
 - Naechster Schritt: Theme System/Hell/Dunkel spaeter.
 
 ### 9. Suche

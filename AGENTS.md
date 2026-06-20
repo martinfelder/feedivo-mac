@@ -395,7 +395,8 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 - Sprachauswahl: Nach System, Deutsch, Englisch, Französisch, Italienisch
 - `@AppStorage("interfaceTextSize")`
 - Oberflaechenschrift: Klein, Standard, Gross, Sehr gross; wirkt app-weit ueber
-  SwiftUI `DynamicTypeSize` auf Hauptfenster und Einstellungen
+  eine eigene `InterfaceTextSize`-Environment und zusaetzlich ueber SwiftUI
+  `DynamicTypeSize`
 - `@AppStorage("backgroundRefresh.isEnabled")`
 - `@AppStorage("backgroundRefresh.intervalMinutes")`
 - Automatischer Refresh ist standardmaessig deaktiviert und kann auf 15, 30, 60
@@ -412,8 +413,11 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 - Gespeicherter Wert: `interfaceTextSize`; Default: `standard`.
 - Werte: Klein, Standard, Gross, Sehr gross; unbekannte gespeicherte Werte fallen
   auf Standard zurueck.
-- Mapping auf SwiftUI `DynamicTypeSize`, damit Sidebar, Artikelliste, Toolbar-nahe
-  UI und Settings gemeinsam skalieren.
+- Mapping auf SwiftUI `DynamicTypeSize` plus eigene konkrete Skalierungswerte fuer
+  fest gestaltete UI-Bereiche.
+- Sidebar, Feed-Zeilen, Artikelzeilen und Settings lesen `interfaceTextSize` aus
+  der SwiftUI-Environment und skalieren Font- sowie wichtige Icon-/Zeilenmasse
+  sichtbar mit.
 
 ### ReaderView.swift
 - Zeigt Metazeile, Titel, native Reader-Bloecke und Link zum Original
@@ -838,6 +842,9 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 - 2026-06-20: App-weite Oberflaechenschriftgroesse ergaenzt: Einstellungen bieten
   Klein, Standard, Gross und Sehr gross; `InterfaceTextSize` mappt diese Werte auf
   SwiftUI `DynamicTypeSize` und `FeedivoApp` wendet sie auf Hauptfenster und Settings an
+- 2026-06-20: Oberflaechenschriftgroesse korrigiert: `InterfaceTextSize` liefert nun
+  eigene Skalierungswerte, die Sidebar, Feed-Zeilen, Artikelzeilen und Settings direkt
+  fuer konkrete Font-/Icon-/Zeilenmasse verwenden; dadurch ist die Einstellung sichtbar
 - 2026-06-20: Smart-Filter-Icons farbig gemacht: Alle Artikel blau, Ungelesen tuerkis,
   Mit Stern gelb und Heute gruen; die Farbzuordnung liegt testbar an `SmartFilter`
 - 2026-06-20: Reader-Redesign-Prototyp Design 11 in der echten App umgesetzt:

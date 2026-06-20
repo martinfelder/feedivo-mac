@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct SettingsView: View {
+    @Environment(\.interfaceTextSize) private var interfaceTextSize
+
     @AppStorage("markArticleReadOnSelection")
     private var markArticleReadOnSelection = true
 
@@ -71,7 +73,7 @@ struct SettingsView: View {
                 .disabled(!backgroundRefreshIsEnabled)
 
                 Text(L10n.settingsAutomaticRefreshDescription)
-                    .font(.caption)
+                    .font(interfaceTextSize.font(size: 11))
                     .foregroundStyle(.secondary)
             }
 
@@ -132,10 +134,11 @@ struct SettingsView: View {
                 Toggle(L10n.settingsMarkReadOnOpenTitle, isOn: $markArticleReadOnSelection)
 
                 Text(L10n.settingsMarkReadOnOpenDescription)
-                    .font(.caption)
+                    .font(interfaceTextSize.font(size: 11))
                     .foregroundStyle(.secondary)
             }
         }
+        .font(interfaceTextSize.font(size: 13))
         .formStyle(.grouped)
         .padding(20)
         .frame(width: 460)
@@ -153,7 +156,7 @@ struct SettingsView: View {
                 Text(title)
                 Spacer()
                 Text("\(Int(displayedValue)) px")
-                    .font(.caption)
+                    .font(interfaceTextSize.font(size: 11))
                     .foregroundStyle(.secondary)
                     .monospacedDigit()
             }

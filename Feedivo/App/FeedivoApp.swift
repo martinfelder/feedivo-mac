@@ -46,6 +46,7 @@ struct FeedivoApp: App {
         WindowGroup {
             ContentView()
                 .environment(\.locale, appLanguage.locale)
+                .environment(\.interfaceTextSize, interfaceTextSize)
                 .dynamicTypeSize(interfaceTextSize.dynamicTypeSize)
                 .task {
                     scheduleBackgroundRefresh()
@@ -66,6 +67,7 @@ struct FeedivoApp: App {
         Settings {
             SettingsView()
                 .environment(\.locale, appLanguage.locale)
+                .environment(\.interfaceTextSize, interfaceTextSize)
                 .dynamicTypeSize(interfaceTextSize.dynamicTypeSize)
         }
     }

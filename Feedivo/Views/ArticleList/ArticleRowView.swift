@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct ArticleRowView: View {
+    @Environment(\.interfaceTextSize) private var interfaceTextSize
+
     let article: Article
     let onToggleRead: () -> Void
     let onToggleStarred: () -> Void
@@ -13,21 +15,21 @@ struct ArticleRowView: View {
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(article.title)
-                    .font(.headline)
+                    .font(interfaceTextSize.font(size: 14, weight: article.isRead ? .regular : .semibold))
                     .fontWeight(article.isRead ? .regular : .semibold)
                     .foregroundStyle(article.isRead ? .secondary : .primary)
                     .lineLimit(2)
 
                 if !metadataText.isEmpty {
                     Text(metadataText)
-                        .font(.caption)
+                        .font(interfaceTextSize.font(size: 11))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
 
                 if let summary = article.summary, !summary.isEmpty {
                     Text(summary)
-                        .font(.callout)
+                        .font(interfaceTextSize.font(size: 13))
                         .foregroundStyle(article.isRead ? .tertiary : .secondary)
                         .lineLimit(2)
                 }
@@ -41,7 +43,7 @@ struct ArticleRowView: View {
 
                 Button(action: onToggleStarred) {
                     Image(systemName: article.isStarred ? "star.fill" : "star")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(interfaceTextSize.font(size: 14, weight: .semibold))
                         .foregroundStyle(article.isStarred ? .yellow : .secondary)
                         .frame(width: 24, height: 24)
                 }
@@ -89,11 +91,17 @@ struct ArticleRowView: View {
                     placeholderImage
                 }
             }
-            .frame(width: 56, height: 56)
+            .frame(
+                width: interfaceTextSize.scaled(56),
+                height: interfaceTextSize.scaled(56)
+            )
             .clipShape(RoundedRectangle(cornerRadius: 6))
         } else {
             placeholderImage
-                .frame(width: 56, height: 56)
+                .frame(
+                    width: interfaceTextSize.scaled(56),
+                    height: interfaceTextSize.scaled(56)
+                )
         }
     }
 
@@ -102,7 +110,7 @@ struct ArticleRowView: View {
             .fill(Color.secondary.opacity(0.12))
             .overlay {
                 Image(systemName: "doc.text")
-                    .font(.system(size: 20))
+                    .font(interfaceTextSize.font(size: 20))
                     .foregroundStyle(.secondary)
             }
     }

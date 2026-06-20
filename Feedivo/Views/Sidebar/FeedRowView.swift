@@ -1,14 +1,20 @@
 import SwiftUI
 
 struct FeedRowView: View {
+    @Environment(\.interfaceTextSize) private var interfaceTextSize
+
     let feed: Feed
 
     var body: some View {
         HStack(spacing: 8) {
             faviconView
-                .frame(width: 16, height: 16)
+                .frame(
+                    width: interfaceTextSize.scaled(16),
+                    height: interfaceTextSize.scaled(16)
+                )
 
             Text(feed.title)
+                .font(interfaceTextSize.font(size: 13, weight: .semibold))
                 .lineLimit(1)
         }
     }
@@ -39,7 +45,7 @@ struct FeedRowView: View {
 
     private var fallbackIcon: some View {
         Image(systemName: "dot.radiowaves.left.and.right")
-            .font(.system(size: 13))
+            .font(interfaceTextSize.font(size: 13))
             .foregroundStyle(.secondary)
     }
 }
