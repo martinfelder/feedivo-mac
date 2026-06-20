@@ -149,15 +149,39 @@ private struct FeedRenameIconView: View {
     let feed: Feed
 
     var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 12)
-                .fill(.blue.gradient)
-
-            Text(feed.title.prefix(1).uppercased())
-                .font(.title3)
-                .fontWeight(.bold)
-                .foregroundStyle(.white)
+        Group {
+            if let faviconURL = feed.faviconURL,
+               let url = URL(string: faviconURL) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFit()
+                            .padding(8)
+                    case .empty:
+                        fallbackIcon
+                    case .failure:
+                        fallbackIcon
+                    @unknown default:
+                        fallbackIcon
+                    }
+                }
+            } else {
+                fallbackIcon
+            }
         }
         .frame(width: 52, height: 52)
+        .background(.background.opacity(0.78), in: RoundedRectangle(cornerRadius: 12))
+        .overlay {
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(.quaternary, lineWidth: 1)
+        }
+    }
+
+    private var fallbackIcon: some View {
+        Image(systemName: "dot.radiowaves.left.and.right")
+            .font(.title3)
+            .foregroundStyle(.secondary)
     }
 }

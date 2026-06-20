@@ -319,6 +319,8 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 
 ### FeedRenameView.swift
 - Rechtsklick auf Feed → `Feed umbenennen...`
+- Links oben im Sheet wird das gespeicherte Feed-Favicon angezeigt; fehlt es oder
+  laedt es nicht, erscheint das RSS-Systemsymbol als Fallback.
 - Sheet zeigt editierbaren Anzeigenamen, gespeicherten urspruenglichen Feed-Namen
   und einen Button zum Wiederherstellen des Originalnamens.
 - Speichern nutzt `FeedViewModel.renameFeed`, damit Trim, Leerwert-Pruefung und
