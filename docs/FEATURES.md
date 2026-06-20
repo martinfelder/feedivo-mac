@@ -39,7 +39,7 @@ RSS Reader machen:
 1. Artikelzeile verbessern: Titel, Datum, Zusammenfassung, ungelesen-Indikator.
 2. Gelesen/Ungelesen markieren, inklusive Tastaturkuerzel.
 3. Artikel mit Stern markieren.
-4. Vorheriger/naechster Artikel, inklusive Tastaturbedienung.
+4. Vorheriger/naechster Artikel, inklusive Tastaturbedienung. ✅ Basis umgesetzt.
 5. Manueller Refresh fuer aktuellen Feed und alle Feeds.
 6. Feed loeschen mit Bestaetigung. ✅ Basis umgesetzt.
 7. Smart Filter: Alle, Ungelesen, Mit Stern, Heute. ✅ Basis umgesetzt.
@@ -68,7 +68,7 @@ bei geschlossener App.
 - Sidebar zeigt gespeicherte Feeds.
 - Artikel-Liste zeigt echte Artikel eines Feeds.
 - Reader zeigt Feedname, ungefaehre Lesezeit, Artikelalter, Titel, native
-  Reader-Bloecke und Original-Link.
+  Reader-Bloecke, Vor/Zurueck-Navigation und Original-Link.
 - Reader-Rendering wandelt HTML/Plain-Text in Absätze und Bildbloecke.
 - ArticleRowView zeigt Titel, Datum, Summary, optionales Bild, Ungelesen-Punkt
   rechts oben und Stern rechts unten.
@@ -112,13 +112,16 @@ bei geschlossener App.
   werden; die Aktionen sind im Artikel-Kontextmenue, Reader und macOS-Menue `Artikel`
   verfuegbar. In der Artikelansicht oeffnet auch ein Klick auf den Titel den
   Originalartikel, sofern ein gueltiger Link vorhanden ist.
+- Vorheriger/naechster Artikel ist als Basis umgesetzt: Reader-Toolbar und
+  macOS-Menue `Artikel` navigieren mit `Cmd+↑`/`Cmd+↓` innerhalb der aktuell sichtbaren
+  Feed- oder Smart-Filter-Liste; am Listenrand gibt es keinen Loop.
 - Projekt baut und Unit-Tests laufen; UI-Test-Runner blockierte lokal am 2026-06-19
   vor dem App-Launch an einer alten Feedivo-PID.
 
 ### Aktuell in Arbeit
 
 M2 Core Features:
-- Naechster Backlog-Ausbau: Navigation Vor/Zurueck fuer Artikel.
+- Naechster Backlog-Ausbau: OPML Import aus dem MVP-Schnitt.
 
 ---
 
@@ -152,10 +155,12 @@ M2 Core Features:
 - Naechster Schritt: Klickbare Inline-Links separat planen und umsetzen.
 
 #### 1.2 Navigation Vor/Zurueck
-- Status: Entschieden
+- Status: Fertig als Basis
 - Prioritaet: MVP
-- Empfehlung: Buttons und Tastaturkuerzel fuer vorherigen/naechsten Artikel.
-- Verhalten am Listenende: kein Loop, zunaechst stoppen.
+- Implementiert: Buttons in der Reader-Toolbar und macOS-Menue `Artikel` mit
+  `Cmd+↑` fuer vorherigen und `Cmd+↓` fuer naechsten Artikel.
+- Verhalten: Navigation laeuft innerhalb der aktuell sichtbaren Feed- oder
+  Smart-Filter-Liste und stoppt am Listenrand ohne Loop.
 - Entscheidung: Oeffnen markiert standardmaessig automatisch als gelesen. Benutzer
   koennen die Option in den Einstellungen deaktivieren.
 

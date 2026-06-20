@@ -125,4 +125,21 @@ struct ArticleViewModelTests {
         #expect(didOpen)
         #expect(opener.openedURL?.absoluteString == "https://example.com/article")
     }
+
+    @Test func navigationFolgtSortierterArtikellisteUndStopptAnDenRaendern() {
+        let newest = Article(title: "Neu", publishedAt: Date(timeIntervalSince1970: 300))
+        let middle = Article(title: "Mitte", publishedAt: Date(timeIntervalSince1970: 200))
+        let oldest = Article(title: "Alt", publishedAt: Date(timeIntervalSince1970: 100))
+        let viewModel = ArticleViewModel()
+
+        let sortedArticles = viewModel.sortedForList([oldest, newest, middle])
+
+        #expect(sortedArticles.map(\.title) == ["Neu", "Mitte", "Alt"])
+        #expect(viewModel.previousArticle(before: newest, in: sortedArticles) == nil)
+        #expect(viewModel.nextArticle(after: newest, in: sortedArticles)?.id == middle.id)
+        #expect(viewModel.previousArticle(before: middle, in: sortedArticles)?.id == newest.id)
+        #expect(viewModel.nextArticle(after: middle, in: sortedArticles)?.id == oldest.id)
+        #expect(viewModel.previousArticle(before: oldest, in: sortedArticles)?.id == middle.id)
+        #expect(viewModel.nextArticle(after: oldest, in: sortedArticles) == nil)
+    }
 }

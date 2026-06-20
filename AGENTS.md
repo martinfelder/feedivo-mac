@@ -300,12 +300,17 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 - `toggleStarred(_:)`
 - Optionale Varianten ignorieren fehlende Auswahl fuer Menue-/Shortcut-Aktionen
 - `markReadIfNeeded(_:isEnabled:)`
+- `sortedForList(_:)`, `previousArticle(before:in:)` und `nextArticle(after:in:)`
+  kapseln die Navigation innerhalb der aktuell sichtbaren Artikelliste
 
 ### ArticleCommands.swift / ArticleCommandActions.swift
 - macOS-Menue `Artikel` fuer Aktionen auf dem fokussierten/ausgewaehlten Artikel
+- `Cmd+↑` springt zum vorherigen sichtbaren Artikel
+- `Cmd+↓` springt zum naechsten sichtbaren Artikel
 - `Cmd+Shift+U` toggelt gelesen/ungelesen
 - `Cmd+D` toggelt Stern
-- Commands sind deaktiviert, wenn kein Artikel ausgewaehlt ist
+- Commands sind deaktiviert, wenn kein Artikel ausgewaehlt ist oder am Listenrand
+  kein vorheriger/naechster Artikel existiert
 - `ContentView` stellt die Aktionen via SwiftUI `FocusedValues` bereit
 
 ### FeedCommands.swift / FeedCommandActions.swift
@@ -339,6 +344,8 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 - Zeigt Metazeile, Titel, native Reader-Bloecke und Link zum Original
 - Metazeile: Feedname, ungefaehre Lesezeit und Artikelalter, linksbuendig oberhalb
   des Titels
+- Toolbar-Buttons fuer vorherigen/naechsten Artikel navigieren innerhalb der aktuell
+  sichtbaren Feed- oder Smart-Filter-Liste und stoppen am Listenrand
 - Toolbar-Button `textformat` oeffnet ein Popover fuer Titel-Schrift,
   Fliesstext-Schrift, Textgroesse, Titel-/Fliesstext-Zeilenabstand und Artikelbreite
 - Titel- und Fliesstext-Schrift sowie Textgroesse/Titel-Zeilenabstand/
@@ -595,6 +602,7 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 - [x] Artikel-Link kopieren und Original im Browser öffnen
 - [x] Reader-Anzeigemodus: global zwischen nativem Reader und Originalansicht wechseln
 - [x] Native Reader Rendering erweitert: Ueberschriften, Zitate und Listenpunkte
+- [x] Navigation Vor/Zurueck fuer Artikel innerhalb der aktuell sichtbaren Liste
 
 ### M3 – Tags, Regeln & Sync
 - [ ] Tag-System: Tags erstellen (Name + Farbe), Feeds und Artikeln manuell zuweisen
@@ -644,7 +652,8 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 - M1 abgeschlossen
 - Aktuell M2/Backlog-Ausbau: Basis-Feed/Reader/Refresh/Favicons, Smart Filter,
   Link-Aktionen, globaler Reader-Anzeigemodus und strukturierte Reader-Bloecke sind
-  umgesetzt; naechster sinnvoller Block ist Navigation Vor/Zurueck fuer Artikel
+  umgesetzt; Navigation Vor/Zurueck fuer Artikel ist ebenfalls als Basis umgesetzt.
+  Naechster sinnvoller Block ist OPML Import aus dem MVP-Schnitt
 - Feature-Roadmap ist in `docs/FEATURES.md` dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
@@ -732,3 +741,6 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 - 2026-06-20: Native Reader Rendering erweitert: `ReaderContentRenderer` erkennt
   Ueberschriften, Zitate und Listenpunkte als eigene Bloecke; `ReaderView` rendert sie
   mit nativer SwiftUI-Darstellung und faellt bei kaputten Inhalten auf Absätze zurueck
+- 2026-06-20: Navigation Vor/Zurueck fuer Artikel umgesetzt: Reader-Toolbar und
+  macOS-Menue `Artikel` navigieren mit `Cmd+↑`/`Cmd+↓` innerhalb der aktuell
+  sichtbaren Feed- oder Smart-Filter-Liste und stoppen am Listenrand

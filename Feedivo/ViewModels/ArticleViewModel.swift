@@ -57,6 +57,40 @@ final class ArticleViewModel {
         article.isRead = true
     }
 
+    func sortedForList(_ articles: [Article]) -> [Article] {
+        articles.sorted {
+            ($0.publishedAt ?? .distantPast) > ($1.publishedAt ?? .distantPast)
+        }
+    }
+
+    func previousArticle(before article: Article?, in articles: [Article]) -> Article? {
+        guard
+            let article,
+            let currentIndex = articles.firstIndex(where: { $0.id == article.id }),
+            currentIndex > articles.startIndex
+        else {
+            return nil
+        }
+
+        return articles[articles.index(before: currentIndex)]
+    }
+
+    func nextArticle(after article: Article?, in articles: [Article]) -> Article? {
+        guard
+            let article,
+            let currentIndex = articles.firstIndex(where: { $0.id == article.id })
+        else {
+            return nil
+        }
+
+        let nextIndex = articles.index(after: currentIndex)
+        guard nextIndex < articles.endIndex else {
+            return nil
+        }
+
+        return articles[nextIndex]
+    }
+
     func originalURL(for article: Article?) -> URL? {
         guard
             let link = article?.link,

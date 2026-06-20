@@ -63,9 +63,7 @@ struct ArticleListView: View {
     }
 
     private var sortedArticles: [Article] {
-        scopedArticles.sorted {
-            ($0.publishedAt ?? .distantPast) > ($1.publishedAt ?? .distantPast)
-        }
+        viewModel.sortedForList(scopedArticles)
     }
 
     private var scopedArticles: [Article] {

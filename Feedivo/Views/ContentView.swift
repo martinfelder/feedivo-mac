@@ -4,6 +4,7 @@ import SwiftData
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Feed.title) private var feeds: [Feed]
+    @Query private var allArticles: [Article]
 
     // columnVisibility steuert ob die Sidebar sichtbar ist.
     // .all bedeutet: alle 3 Spalten beim Start anzeigen.
@@ -55,7 +56,13 @@ struct ContentView: View {
 
             // SPALTE 3: Reader — Inhalt des ausgewählten Artikels
             if let article = selectedArticle {
-                ReaderView(article: article)
+                ReaderView(
+                    article: article,
+                    canSelectPreviousArticle: previousVisibleArticle != nil,
+                    canSelectNextArticle: nextVisibleArticle != nil,
+                    selectPreviousArticle: selectPreviousArticle,
+                    selectNextArticle: selectNextArticle
+                )
             } else {
                 ContentUnavailableView(
                     L10n.contentNoArticleSelectedTitle,
@@ -101,7 +108,11 @@ struct ContentView: View {
                 },
                 openOriginal: {
                     _ = articleViewModel.openOriginal(selectedArticle)
-                }
+                },
+                canSelectPreviousArticle: previousVisibleArticle != nil,
+                canSelectNextArticle: nextVisibleArticle != nil,
+                selectPreviousArticle: selectPreviousArticle,
+                selectNextArticle: selectNextArticle
             )
         )
         .focusedValue(
@@ -152,6 +163,18 @@ struct ContentView: View {
         feedPendingDeletion = nil
     }
 
+    private func selectPreviousArticle() {
+        if let previousVisibleArticle {
+            selectedArticle = previousVisibleArticle
+        }
+    }
+
+    private func selectNextArticle() {
+        if let nextVisibleArticle {
+            selectedArticle = nextVisibleArticle
+        }
+    }
+
     private var selectedFeed: Feed? {
         guard case .feed(let feedID) = sidebarSelection else {
             return nil
@@ -166,5 +189,27 @@ struct ContentView: View {
         }
 
         return smartFilter
+    }
+
+    private var visibleArticles: [Article] {
+        let scopedArticles: [Article]
+
+        if let selectedFeed {
+            scopedArticles = selectedFeed.articles
+        } else if let selectedSmartFilter {
+            scopedArticles = allArticles.filter { selectedSmartFilter.includes($0) }
+        } else {
+            scopedArticles = []
+        }
+
+        return articleViewModel.sortedForList(scopedArticles)
+    }
+
+    private var previousVisibleArticle: Article? {
+        articleViewModel.previousArticle(before: selectedArticle, in: visibleArticles)
+    }
+
+    private var nextVisibleArticle: Article? {
+        articleViewModel.nextArticle(after: selectedArticle, in: visibleArticles)
     }
 }

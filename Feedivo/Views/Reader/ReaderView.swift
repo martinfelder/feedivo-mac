@@ -2,6 +2,24 @@ import SwiftUI
 
 struct ReaderView: View {
     let article: Article
+    let canSelectPreviousArticle: Bool
+    let canSelectNextArticle: Bool
+    let selectPreviousArticle: () -> Void
+    let selectNextArticle: () -> Void
+
+    init(
+        article: Article,
+        canSelectPreviousArticle: Bool = false,
+        canSelectNextArticle: Bool = false,
+        selectPreviousArticle: @escaping () -> Void = {},
+        selectNextArticle: @escaping () -> Void = {}
+    ) {
+        self.article = article
+        self.canSelectPreviousArticle = canSelectPreviousArticle
+        self.canSelectNextArticle = canSelectNextArticle
+        self.selectPreviousArticle = selectPreviousArticle
+        self.selectNextArticle = selectNextArticle
+    }
 
     @AppStorage("readerTitleFontPreset")
     private var titleFontPresetRawValue = ReaderFontPreset.system.rawValue
@@ -97,6 +115,24 @@ struct ReaderView: View {
         }
         .navigationTitle(article.title)
         .toolbar {
+            ToolbarItemGroup {
+                Button {
+                    selectPreviousArticle()
+                } label: {
+                    Image(systemName: "chevron.up")
+                }
+                .help(L10n.articlePreviousCommand)
+                .disabled(!canSelectPreviousArticle)
+
+                Button {
+                    selectNextArticle()
+                } label: {
+                    Image(systemName: "chevron.down")
+                }
+                .help(L10n.articleNextCommand)
+                .disabled(!canSelectNextArticle)
+            }
+
             ToolbarItem {
                 Button {
                     _ = viewModel.copyLink(article)

@@ -6,6 +6,20 @@ struct ArticleCommands: Commands {
 
     var body: some Commands {
         CommandMenu(L10n.articleCommandsMenu) {
+            Button(L10n.articlePreviousCommand) {
+                articleCommandActions?.selectPreviousArticle()
+            }
+            .keyboardShortcut(.upArrow, modifiers: [.command])
+            .disabled(articleCommandActions?.canSelectPreviousArticle != true)
+
+            Button(L10n.articleNextCommand) {
+                articleCommandActions?.selectNextArticle()
+            }
+            .keyboardShortcut(.downArrow, modifiers: [.command])
+            .disabled(articleCommandActions?.canSelectNextArticle != true)
+
+            Divider()
+
             Button(articleCommandActions?.toggleReadTitle ?? L10n.articleRowMarkRead) {
                 articleCommandActions?.toggleRead()
             }
