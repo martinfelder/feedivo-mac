@@ -42,7 +42,7 @@ RSS Reader machen:
 4. Vorheriger/naechster Artikel, inklusive Tastaturbedienung.
 5. Manueller Refresh fuer aktuellen Feed und alle Feeds.
 6. Feed loeschen mit Bestaetigung. ✅ Basis umgesetzt.
-7. Smart Filter: Alle, Ungelesen, Mit Stern, Heute.
+7. Smart Filter: Alle, Ungelesen, Mit Stern, Heute. ✅ Basis umgesetzt.
 8. OPML Import.
 9. Einfache Einstellungen: Refresh-Intervall, Standard-Reader-Modus, Schriftgroesse.
    Erste Einstellung ist bereits vorhanden: Artikel beim Oeffnen automatisch als
@@ -105,13 +105,15 @@ bei geschlossener App.
 - Favicons werden beim Hinzufuegen und Aktualisieren per HTML Discovery erkannt,
   in `Feed.faviconURL` gespeichert und in der Sidebar angezeigt; `/favicon.ico`
   bleibt Fallback, externe Favicon-Dienste werden nicht genutzt.
+- Smart Filter sind in der Sidebar umgesetzt: Alle Artikel, Ungelesen, Mit Stern
+  und Heute zeigen feeduebergreifend die passenden gespeicherten Artikel.
 - Projekt baut und Unit-Tests laufen; UI-Test-Runner blockierte lokal am 2026-06-19
   vor dem App-Launch an einer alten Feedivo-PID.
 
 ### Aktuell in Arbeit
 
 M2 Core Features:
-- Naechster sinnvoller Block: Smart Filter oder OPML Import.
+- Naechster sinnvoller Block: OPML Import oder Link kopieren/Original oeffnen.
 
 ---
 
@@ -260,9 +262,11 @@ M2 Core Features:
 - Offen: Ungelesen-Zaehler, Gruppierung.
 
 #### 3.2 Smart Filter
-- Status: In Diskussion
+- Status: Fertig als Basis
 - Prioritaet: MVP
-- Empfehlung: Alle, Ungelesen, Mit Stern, Heute. Eigene Smart Filter spaeter.
+- Implementiert: Sidebar-Filter fuer Alle Artikel, Ungelesen, Mit Stern und Heute.
+  Die Artikelliste nutzt dafuer alle gespeicherten Artikel statt nur einen Feed.
+- Spaeter: Eigene Smart Filter und weitere Zeitfilter wie Gestern.
 
 #### 3.3 Tag-Abschnitt
 - Status: In Diskussion

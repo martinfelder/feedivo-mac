@@ -9,9 +9,8 @@ struct ContentView: View {
     // .all bedeutet: alle 3 Spalten beim Start anzeigen.
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
 
-    // selectedFeed speichert welcher Feed gerade in der Sidebar ausgewählt ist.
-    // Optional weil beim Start noch nichts ausgewählt ist.
-    @State private var selectedFeed: Feed? = nil
+    // sidebarSelection speichert ob ein Smart Filter oder ein Feed ausgewählt ist.
+    @State private var sidebarSelection: SidebarSelection? = .smartFilter(.allArticles)
 
     // selectedArticle speichert welcher Artikel gerade in der Liste ausgewählt ist.
     @State private var selectedArticle: Article? = nil
@@ -27,7 +26,7 @@ struct ContentView: View {
 
             // SPALTE 1: Sidebar — Liste aller Feeds
             SidebarView(
-                selectedFeed: $selectedFeed,
+                selection: $sidebarSelection,
                 onRequestAddFeed: requestAddFeed,
                 onRequestDeleteFeed: requestDeleteFeed
             )
@@ -35,12 +34,15 @@ struct ContentView: View {
 
         } content: {
 
-            // SPALTE 2: Artikel-Liste des ausgewählten Feeds
-            if let feed = selectedFeed {
+            // SPALTE 2: Artikel-Liste des ausgewählten Feeds oder Smart Filters
+            if let smartFilter = selectedSmartFilter {
+                ArticleListView(smartFilter: smartFilter, selectedArticle: $selectedArticle)
+                    .navigationSplitViewColumnWidth(min: 280, ideal: 320, max: 400)
+            } else if let feed = selectedFeed {
                 ArticleListView(feed: feed, selectedArticle: $selectedArticle)
                     .navigationSplitViewColumnWidth(min: 280, ideal: 320, max: 400)
             } else {
-                // Platzhalter wenn kein Feed ausgewählt ist
+                // Platzhalter wenn kein Feed oder Smart Filter ausgewählt ist
                 ContentUnavailableView(
                     L10n.contentNoFeedSelectedTitle,
                     systemImage: "newspaper",
@@ -63,7 +65,7 @@ struct ContentView: View {
             }
 
         }
-        .onChange(of: selectedFeed?.persistentModelID) {
+        .onChange(of: sidebarSelection) {
             selectedArticle = nil
         }
         .sheet(isPresented: $isShowingAddFeedSheet) {
@@ -138,9 +140,25 @@ struct ContentView: View {
 
         if feedViewModel.errorMessage == nil && shouldClearSelection {
             selectedArticle = nil
-            selectedFeed = nil
+            sidebarSelection = .smartFilter(.allArticles)
         }
 
         feedPendingDeletion = nil
+    }
+
+    private var selectedFeed: Feed? {
+        guard case .feed(let feedID) = sidebarSelection else {
+            return nil
+        }
+
+        return feeds.first { $0.persistentModelID == feedID }
+    }
+
+    private var selectedSmartFilter: SmartFilter? {
+        guard case .smartFilter(let smartFilter) = sidebarSelection else {
+            return nil
+        }
+
+        return smartFilter
     }
 }

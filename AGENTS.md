@@ -590,11 +590,12 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 - [x] Automatischer Refresh (konfigurierbares Intervall via Settings,
   `NSBackgroundActivityScheduler`)
 - [x] Favicons laden und in Sidebar anzeigen
+- [x] Smart Filter in Sidebar: Alle Artikel, Ungelesen, Mit Stern, Heute
 
 ### M3 – Tags, Regeln & Sync
 - [ ] Tag-System: Tags erstellen (Name + Farbe), Feeds und Artikeln manuell zuweisen
 - [ ] Sidebar: Abschnitt "Tags" mit Filterung
-- [ ] Smart Filter in Sidebar: "Alle ungelesen", "Gestern", "Mit Stern"
+- [ ] Erweiterte/eigene Smart Filter spaeter pruefen
 - [ ] `RuleEngine`: Neue Artikel automatisch taggen basierend auf Regeln
 - [ ] Regel-UI: Regeln erstellen, bearbeiten, aktivieren/deaktivieren
 - [ ] iCloud Sync via CloudKit aktivieren und testen
@@ -636,8 +637,8 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 ## Aktuell in Arbeit
 
 - M1 abgeschlossen
-- Aktuell M2: Basis-Feed/Reader/Refresh/Favicons sind umgesetzt; naechster sinnvoller
-  Block ist Smart Filter oder OPML Import
+- Aktuell M2: Basis-Feed/Reader/Refresh/Favicons und Smart Filter sind umgesetzt;
+  naechster sinnvoller Block ist OPML Import oder Link kopieren/Original oeffnen
 - Feature-Roadmap ist in `docs/FEATURES.md` dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
@@ -710,3 +711,6 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 - 2026-06-20: Favicons in der Sidebar umgesetzt: `FaviconService` erkennt Icons per
   HTML Discovery, priorisiert Icon-Kandidaten, faellt auf `/favicon.ico` zurueck und
   `FeedRowView` zeigt gespeicherte Icons mit RSS-Symbol als Fallback
+- 2026-06-20: Smart Filter in der Sidebar umgesetzt: Alle Artikel, Ungelesen,
+  Mit Stern und Heute nutzen `SidebarSelection` und filtern feeduebergreifend ueber
+  alle gespeicherten Artikel

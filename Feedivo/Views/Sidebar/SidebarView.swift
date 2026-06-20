@@ -3,26 +3,39 @@ import SwiftData
 
 struct SidebarView: View {
     @Query(sort: \Feed.title) private var feeds: [Feed]
-    @Binding var selectedFeed: Feed?
+    @Binding var selection: SidebarSelection?
     let onRequestAddFeed: () -> Void
     let onRequestDeleteFeed: (Feed) -> Void
 
     var body: some View {
-        List(selection: $selectedFeed) {
-            if feeds.isEmpty {
-                Text(L10n.sidebarEmptyTitle)
-                    .foregroundStyle(.secondary)
-            } else {
-                ForEach(feeds) { feed in
-                    FeedRowView(feed: feed)
-                        .tag(feed)
-                        .contextMenu {
-                            Button(role: .destructive) {
-                                onRequestDeleteFeed(feed)
-                            } label: {
-                                Label(L10n.feedDeleteCommand, systemImage: "trash")
+        List(selection: $selection) {
+            Section(L10n.sidebarSmartFiltersSection) {
+                ForEach(SmartFilter.allCases) { smartFilter in
+                    Label {
+                        Text(smartFilter.title)
+                    } icon: {
+                        Image(systemName: smartFilter.systemImage)
+                    }
+                    .tag(SidebarSelection.smartFilter(smartFilter))
+                }
+            }
+
+            Section {
+                if feeds.isEmpty {
+                    Text(L10n.sidebarEmptyTitle)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(feeds) { feed in
+                        FeedRowView(feed: feed)
+                            .tag(SidebarSelection.feed(feed.persistentModelID))
+                            .contextMenu {
+                                Button(role: .destructive) {
+                                    onRequestDeleteFeed(feed)
+                                } label: {
+                                    Label(L10n.feedDeleteCommand, systemImage: "trash")
+                                }
                             }
-                        }
+                    }
                 }
             }
         }
