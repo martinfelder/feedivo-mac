@@ -6,8 +6,28 @@ struct FeedivoApp: App {
     @AppStorage("appLanguage")
     private var appLanguageRawValue = AppLanguage.system.rawValue
 
+    @AppStorage(BackgroundRefreshSettings.isEnabledKey)
+    private var backgroundRefreshIsEnabled = BackgroundRefreshSettings.defaultIsEnabled
+
+    @AppStorage(BackgroundRefreshSettings.intervalMinutesKey)
+    private var backgroundRefreshIntervalMinutes = BackgroundRefreshSettings.defaultIntervalMinutes
+
+    private let modelContainer: ModelContainer
+    private let backgroundRefreshScheduler: SystemBackgroundActivityRefreshScheduler
+
     init() {
         ReaderFontRegistry.registerBundledFonts()
+
+        let modelContainer = try! ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self
+        )
+        self.modelContainer = modelContainer
+        self.backgroundRefreshScheduler = SystemBackgroundActivityRefreshScheduler(
+            modelContainer: modelContainer
+        )
     }
 
     // modelContainer stellt SwiftData für die ganze App zur Verfügung.
@@ -20,21 +40,33 @@ struct FeedivoApp: App {
         WindowGroup {
             ContentView()
                 .environment(\.locale, appLanguage.locale)
+                .task {
+                    scheduleBackgroundRefresh()
+                }
+                .onChange(of: backgroundRefreshIsEnabled) {
+                    scheduleBackgroundRefresh()
+                }
+                .onChange(of: backgroundRefreshIntervalMinutes) {
+                    scheduleBackgroundRefresh()
+                }
         }
         .commands {
             ArticleCommands()
             FeedCommands()
         }
-        .modelContainer(for: [
-            Feed.self,
-            Article.self,
-            Tag.self,
-            Rule.self
-        ])
+        .modelContainer(modelContainer)
 
         Settings {
             SettingsView()
                 .environment(\.locale, appLanguage.locale)
         }
+    }
+
+    private func scheduleBackgroundRefresh() {
+        try? BackgroundRefreshService.scheduleNextRefresh(
+            isEnabled: backgroundRefreshIsEnabled,
+            intervalMinutes: backgroundRefreshIntervalMinutes,
+            scheduler: backgroundRefreshScheduler
+        )
     }
 }

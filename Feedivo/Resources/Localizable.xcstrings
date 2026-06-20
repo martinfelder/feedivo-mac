@@ -4,6 +4,34 @@
     "%lld px" : {
 
     },
+    "articleCommands.menu" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Artikel"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Article"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Article"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Articolo"
+          }
+        }
+      }
+    },
     "articleList.empty.description" : {
       "localizations" : {
         "de" : {
@@ -56,34 +84,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nessun articolo"
-          }
-        }
-      }
-    },
-    "articleCommands.menu" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Artikel"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Article"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Article"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Articolo"
           }
         }
       }
@@ -480,34 +480,6 @@
         }
       }
     },
-    "feed.delete.confirmButton" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Feed löschen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete Feed"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Supprimer le flux"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Elimina feed"
-          }
-        }
-      }
-    },
     "feed.delete.confirmation.message" : {
       "localizations" : {
         "de" : {
@@ -560,6 +532,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Eliminare feed?"
+          }
+        }
+      }
+    },
+    "feed.delete.confirmButton" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feed löschen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Feed"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprimer le flux"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elimina feed"
           }
         }
       }
@@ -704,34 +704,6 @@
         }
       }
     },
-    "feed.refreshAll.command" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Alle Feeds aktualisieren"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Refresh All Feeds"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Actualiser tous les flux"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aggiorna tutti i feed"
-          }
-        }
-      }
-    },
     "feed.refresh.command" : {
       "localizations" : {
         "de" : {
@@ -756,6 +728,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aggiorna feed"
+          }
+        }
+      }
+    },
+    "feed.refreshAll.command" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle Feeds aktualisieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Refresh All Feeds"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actualiser tous les flux"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiorna tutti i feed"
           }
         }
       }
@@ -903,6 +903,34 @@
         }
       }
     },
+    "reader.contentWidth.slider" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Artikelbreite"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Article width"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Largeur de l'article"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Larghezza articolo"
+          }
+        }
+      }
+    },
     "reader.font.monospace" : {
       "localizations" : {
         "de" : {
@@ -1043,62 +1071,6 @@
         }
       }
     },
-    "reader.contentWidth.slider" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Artikelbreite"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Article width"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Largeur de l'article"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Larghezza articolo"
-          }
-        }
-      }
-    },
-    "reader.titleLineSpacing.slider" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Titel-Zeilenabstand"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Title line spacing"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Interligne du titre"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Interlinea titolo"
-          }
-        }
-      }
-    },
     "reader.openOriginal" : {
       "localizations" : {
         "de" : {
@@ -1179,6 +1151,146 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Titolo"
+          }
+        }
+      }
+    },
+    "reader.titleLineSpacing.slider" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Titel-Zeilenabstand"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Title line spacing"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interligne du titre"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interlinea titolo"
+          }
+        }
+      }
+    },
+    "settings.automaticRefresh.description" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feedivo plant die Aktualisierung systemfreundlich. macOS entscheidet den genauen Zeitpunkt; vollständig beendete Apps werden dafür nicht neu gestartet."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feedivo schedules refreshes in a system-friendly way. macOS decides the exact time; fully quit apps are not relaunched for this."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feedivo planifie les actualisations de façon adaptée au système. macOS décide du moment exact; les apps complètement quittées ne sont pas relancées pour cela."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feedivo pianifica gli aggiornamenti in modo rispettoso del sistema. macOS decide l'orario esatto; le app chiuse completamente non vengono riavviate per questo."
+          }
+        }
+      }
+    },
+    "settings.automaticRefresh.interval.minutes" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld Minuten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld minutes"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld minutes"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld minuti"
+          }
+        }
+      }
+    },
+    "settings.automaticRefresh.interval.picker" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Intervall"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interval"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Intervalle"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Intervallo"
+          }
+        }
+      }
+    },
+    "settings.automaticRefresh.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feeds automatisch aktualisieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Refresh feeds automatically"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actualiser les flux automatiquement"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiorna automaticamente i feed"
           }
         }
       }
@@ -1459,6 +1571,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Lettura"
+          }
+        }
+      }
+    },
+    "settings.refresh.section" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktualisierung"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Refresh"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actualisation"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiornamento"
           }
         }
       }

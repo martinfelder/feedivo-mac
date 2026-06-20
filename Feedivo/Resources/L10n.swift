@@ -37,6 +37,10 @@ enum L10n {
     static let settingsLanguageItalian = LocalizedStringKey("settings.language.italian")
     static let settingsMarkReadOnOpenTitle = LocalizedStringKey("settings.markReadOnOpen.title")
     static let settingsMarkReadOnOpenDescription = LocalizedStringKey("settings.markReadOnOpen.description")
+    static let settingsRefreshSection = LocalizedStringKey("settings.refresh.section")
+    static let settingsAutomaticRefreshTitle = LocalizedStringKey("settings.automaticRefresh.title")
+    static let settingsAutomaticRefreshIntervalPicker = LocalizedStringKey("settings.automaticRefresh.interval.picker")
+    static let settingsAutomaticRefreshDescription = LocalizedStringKey("settings.automaticRefresh.description")
 
     static var articleRowStarRemove: String { String(localized: "articleRow.star.remove") }
     static var articleRowStarAdd: String { String(localized: "articleRow.star.add") }
@@ -69,6 +73,13 @@ enum L10n {
             String(localized: "feed.error.refreshAllPartial"),
             count,
             feedTitles
+        )
+    }
+
+    static func settingsAutomaticRefreshInterval(minutes: Int) -> String {
+        String.localizedStringWithFormat(
+            String(localized: "settings.automaticRefresh.interval.minutes"),
+            minutes
         )
     }
 

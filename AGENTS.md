@@ -94,7 +94,7 @@ Nach jeder relevanten Aenderung pruefen und bei Bedarf aktualisieren:
 | RSS-Parsing | FeedKit | Swift Package, URL: https://github.com/nmdias/FeedKit |
 | Bilder | AsyncImage | Built-in SwiftUI, kein Kingfisher |
 | Lokalisierung | String Catalog + `String(localized:)` | Deutsch, Englisch, Französisch, Italienisch |
-| Background Refresh | BackgroundTasks Framework | BGTaskScheduler — noch nicht implementiert |
+| Background Refresh | NSBackgroundActivityScheduler | Basis implementiert; läuft systemfreundlich solange App läuft/im Hintergrund ist |
 | Mindest-macOS | macOS 14.0 Sonoma | SwiftData + @Observable Macro |
 
 ---
@@ -148,14 +148,15 @@ FeedivoMac/
 │   │   │   ├── RuleListView.swift      # Alle Regeln anzeigen und verwalten (TODO)
 │   │   │   └── AddRuleView.swift       # Sheet: neue Regel erstellen (TODO)
 │   │   └── Settings/
-│   │       └── SettingsView.swift      # Erste Einstellung fuer Auto-gelesen ✅
+│   │       └── SettingsView.swift      # Lesen, Sprache und Auto-Refresh ✅
 │   │
 │   ├── Services/
 │   │   ├── FeedService.swift           # FeedKit-Wrapper: RSS/Atom/JSON Feed parsen ✅
+│   │   ├── BackgroundRefreshSettings.swift # Auto-Refresh Settings/Intervalle ✅
+│   │   ├── BackgroundRefreshService.swift  # NSBackgroundActivityScheduler Adapter ✅
 │   │   ├── FeedRefreshService.swift    # Alle Feeds abrufen (async, mit Fortschritt) (TODO)
 │   │   ├── RuleEngine.swift            # Regeln auf neue Artikel anwenden (TODO)
-│   │   ├── OPMLService.swift           # OPML Import und Export (TODO)
-│   │   └── BackgroundRefreshService.swift  # BGTaskScheduler (TODO)
+│   │   └── OPMLService.swift           # OPML Import und Export (TODO)
 │   │
 │   ├── Extensions/
 │   │   ├── Date+RelativeDisplay.swift  # Datum fuer Artikelzeilen formatieren ✅
@@ -185,16 +186,27 @@ import SwiftData
 
 @main
 struct FeedivoApp: App {
+    private let modelContainer: ModelContainer
+    private let backgroundRefreshScheduler: SystemBackgroundActivityRefreshScheduler
+
+    init() {
+        let modelContainer = try! ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self
+        )
+        self.modelContainer = modelContainer
+        self.backgroundRefreshScheduler = SystemBackgroundActivityRefreshScheduler(
+            modelContainer: modelContainer
+        )
+    }
+
     var body: some Scene {
         WindowGroup {
             ContentView()
         }
-        .modelContainer(for: [
-            Feed.self,
-            Article.self,
-            Tag.self,
-            Rule.self
-        ])
+        .modelContainer(modelContainer)
     }
 }
 ```
@@ -235,6 +247,18 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
   die Cascade-Relationship mitgeloescht
 - Der Feed-Fetch ist als Closure injizierbar, damit Refresh-Tests ohne Netzwerk laufen
 - Properties: `isLoading: Bool`, `errorMessage: String?`
+
+### BackgroundRefreshSettings.swift / BackgroundRefreshService.swift
+- `BackgroundRefreshSettings` kapselt `@AppStorage` Keys, Defaults und erlaubte
+  Intervalle: 15, 30, 60 oder 120 Minuten.
+- `BackgroundRefreshService.scheduleNextRefresh(...)` plant oder storniert den
+  Auto-Refresh testbar ueber ein kleines Scheduler-Protokoll.
+- `SystemBackgroundActivityRefreshScheduler` nutzt `NSBackgroundActivityScheduler`,
+  weil `BGTaskScheduler` fuer native macOS Apps im SDK nicht verfuegbar ist.
+- Automatischer Refresh nutzt denselben Pfad wie manueller Refresh fuer alle Feeds:
+  `FeedViewModel.refreshAllFeeds(_:context:)`.
+- Wichtig: macOS entscheidet den genauen Zeitpunkt. Eine vollstaendig beendete App
+  wird fuer diese Basis nicht neu gestartet.
 
 ### ArticleListView.swift
 - Zeigt echte Artikel des ausgewählten Feeds aus der `Feed.articles` Relationship
@@ -280,6 +304,10 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 - Standard: Artikel beim Oeffnen automatisch als gelesen markieren
 - `@AppStorage("appLanguage")`
 - Sprachauswahl: Nach System, Deutsch, Englisch, Französisch, Italienisch
+- `@AppStorage("backgroundRefresh.isEnabled")`
+- `@AppStorage("backgroundRefresh.intervalMinutes")`
+- Automatischer Refresh ist standardmaessig deaktiviert und kann auf 15, 30, 60
+  oder 120 Minuten gestellt werden
 - Reader-Schriftwahl: `readerTitleFontPreset` und `readerBodyFontPreset`
 - Reader-Typografie: `readerBodyFontSize`, `readerTitleLineSpacing`,
   `readerLineSpacing` und `readerContentWidth`
@@ -450,6 +478,17 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
   und skaliert besser als verstreute harte Strings.
 - **Datum:** 2026-06-19
 
+### ADR-009: Auto-Refresh mit NSBackgroundActivityScheduler
+- **Entscheidung:** Automatischer Feed-Refresh nutzt auf macOS
+  `NSBackgroundActivityScheduler`, nicht `BGTaskScheduler`.
+- **Grund:** `BGTaskScheduler`, `BGTask` und `BGAppRefreshTaskRequest` sind im
+  macOS SDK fuer native macOS Apps als unavailable markiert. `NSBackgroundActivityScheduler`
+  ist der passende systemfreundliche Mechanismus fuer periodische Arbeit waehrend die
+  App laeuft oder im Hintergrund ist.
+- **Einschraenkung:** Eine vollstaendig beendete App wird fuer diese Basis nicht neu
+  gestartet; macOS bestimmt den exakten Ausfuehrungszeitpunkt.
+- **Datum:** 2026-06-20
+
 ---
 
 ## Bekannte Gotchas & Fallstricke
@@ -468,8 +507,10 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
   normalisiert werden.
 - **NavigationView ist deprecated:** Immer `NavigationSplitView` oder `NavigationStack`
 - **WKWebView in SwiftUI:** Braucht einen `NSViewRepresentable`-Wrapper für macOS
-- **Background Refresh macOS:** `BGTaskScheduler` muss in `Info.plist` unter
-  `BGTaskSchedulerPermittedIdentifiers` registriert sein
+- **Background Refresh macOS:** `BGTaskScheduler`/`BGTask` sind fuer native macOS Apps
+  unavailable. Fuer Feedivo deshalb `NSBackgroundActivityScheduler` verwenden. Dieser
+  plant systemfreundlich, garantiert aber keinen exakten Zeitpunkt und startet eine
+  vollstaendig beendete App nicht neu.
 - **macOS Menüleiste:** Commands werden mit `.commands { }` an die WindowGroup gehängt,
   nicht an eine View
 - **iCloud Capability:** Muss in Xcode Target → Signing & Capabilities aktiviert sein,
@@ -522,7 +563,8 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 - [x] Manueller Refresh fuer ausgewaehlten Feed (`Cmd+R`, macOS-Menue `Feed`)
 - [x] macOS Menüleiste: `Cmd+N` = Feed hinzufügen
 - [x] Manueller Refresh fuer alle Feeds (`Cmd+Shift+R`, macOS-Menue `Feed`)
-- [ ] Automatischer Refresh (konfigurierbares Intervall)
+- [x] Automatischer Refresh (konfigurierbares Intervall via Settings,
+  `NSBackgroundActivityScheduler`)
 - [ ] Favicons laden und in Sidebar anzeigen
 
 ### M3 – Tags, Regeln & Sync
@@ -533,7 +575,8 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 - [ ] Regel-UI: Regeln erstellen, bearbeiten, aktivieren/deaktivieren
 - [ ] iCloud Sync via CloudKit aktivieren und testen
 - [ ] Offline-Unterstützung: Artikel-Content beim Abruf in SwiftData speichern
-- [ ] Background Refresh: `BGTaskScheduler` einrichten
+- [ ] Background Refresh erweitern: Strategie fuer Refresh nach vollstaendig beendeter
+  App pruefen, falls spaeter noetig
 
 ### M4 – Polish & Release
 - [ ] OPML Import (Feeds aus anderem RSS Reader übernehmen)
@@ -570,7 +613,7 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 ## Aktuell in Arbeit
 
 - M1 abgeschlossen
-- Aktuell M2: automatischen Refresh und Favicons ausbauen
+- Aktuell M2: Favicons ausbauen
 - Feature-Roadmap ist in `docs/FEATURES.md` dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
@@ -636,3 +679,7 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 - 2026-06-20: Manueller Refresh fuer ausgewaehlten Feed umgesetzt: `FeedViewModel`
   aktualisiert Metadaten, `lastRefreshed` und neue Artikel ohne Duplikate; macOS-Menue
   `Feed` bietet `Cmd+R` fuer Feed aktualisieren
+- 2026-06-20: Automatischer Refresh als macOS-native Basis umgesetzt:
+  `NSBackgroundActivityScheduler` plant periodische Aktualisierungen, Settings bieten
+  Ein/Aus und Intervalle 15/30/60/120 Minuten; `BGTaskScheduler` ist fuer native macOS
+  unavailable und wird bewusst nicht verwendet

@@ -7,6 +7,12 @@ struct SettingsView: View {
     @AppStorage("appLanguage")
     private var appLanguageRawValue = AppLanguage.system.rawValue
 
+    @AppStorage(BackgroundRefreshSettings.isEnabledKey)
+    private var backgroundRefreshIsEnabled = BackgroundRefreshSettings.defaultIsEnabled
+
+    @AppStorage(BackgroundRefreshSettings.intervalMinutesKey)
+    private var backgroundRefreshIntervalMinutes = BackgroundRefreshSettings.defaultIntervalMinutes
+
     @AppStorage("readerTitleFontPreset")
     private var readerTitleFontPresetRawValue = ReaderFontPreset.system.rawValue
 
@@ -34,6 +40,23 @@ struct SettingsView: View {
                             .tag(language.rawValue)
                     }
                 }
+            }
+
+            Section(L10n.settingsRefreshSection) {
+                Toggle(L10n.settingsAutomaticRefreshTitle, isOn: $backgroundRefreshIsEnabled)
+
+                Picker(L10n.settingsAutomaticRefreshIntervalPicker, selection: $backgroundRefreshIntervalMinutes) {
+                    ForEach(BackgroundRefreshSettings.allowedIntervalMinutes, id: \.self) { intervalMinutes in
+                        Text(L10n.settingsAutomaticRefreshInterval(minutes: intervalMinutes))
+                            .tag(intervalMinutes)
+                    }
+                }
+                .pickerStyle(.menu)
+                .disabled(!backgroundRefreshIsEnabled)
+
+                Text(L10n.settingsAutomaticRefreshDescription)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             Section(L10n.settingsReadingSection) {

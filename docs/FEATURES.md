@@ -46,7 +46,7 @@ RSS Reader machen:
 8. OPML Import.
 9. Einfache Einstellungen: Refresh-Intervall, Standard-Reader-Modus, Schriftgroesse.
    Erste Einstellung ist bereits vorhanden: Artikel beim Oeffnen automatisch als
-   gelesen markieren.
+   gelesen markieren; automatischer Refresh kann ebenfalls konfiguriert werden.
 
 Nicht in den MVP gehoeren Spotlight, Statistiken, Drittanbieter-Integrationen,
 Feed-Suche per externem Dienst, komplexe intelligente Ordner und Background Refresh
@@ -98,13 +98,16 @@ bei geschlossener App.
   Fliesstext-Groesse, Titel-/Fliesstext-Zeilenabstand und Artikelbreite sind dort
   ebenfalls einstellbar. Die Metazeile oberhalb des Titels nutzt die
   Fliesstext-Schrift proportional kleiner.
+- Automatischer Refresh ist als macOS-native Basis umgesetzt: In den Einstellungen
+  kann er aktiviert und auf 15, 30, 60 oder 120 Minuten gestellt werden. Feedivo nutzt
+  `NSBackgroundActivityScheduler`; macOS entscheidet den genauen Zeitpunkt und startet
+  eine vollstaendig beendete App dafuer nicht neu.
 - Projekt baut und Unit-Tests laufen; UI-Test-Runner blockierte lokal am 2026-06-19
   vor dem App-Launch an einer alten Feedivo-PID.
 
 ### Aktuell in Arbeit
 
 M2 Core Features:
-- Automatischer Refresh
 - Favicons in der Sidebar
 
 ---
@@ -300,9 +303,15 @@ M2 Core Features:
 - Offen: Sichtbarer Fortschritt.
 
 #### 4.5 Automatischer Refresh
-- Status: In Diskussion
+- Status: Fertig als Basis
 - Prioritaet: v1
-- Empfehlung: Zuerst nur wenn App laeuft, globales Intervall. Background Refresh spaeter.
+- Implementiert: Globaler automatischer Refresh ueber `NSBackgroundActivityScheduler`
+  mit Einstellung fuer Ein/Aus und Intervalle 15, 30, 60 oder 120 Minuten.
+- Verhalten: Nutzt denselben Refresh-Pfad wie `Alle Feeds aktualisieren`; einzelne
+  Feed-Fehler stoppen den Gesamtlauf nicht.
+- Einschraenkung: macOS bestimmt den exakten Ausfuehrungszeitpunkt. Vollstaendig
+  beendete Apps werden fuer diese Basis nicht neu gestartet, weil `BGTaskScheduler`
+  fuer native macOS Apps nicht verfuegbar ist.
 
 ### 5. Tags und Regeln
 
@@ -342,8 +351,9 @@ M2 Core Features:
 #### 8.1 Allgemein
 - Status: Fertig als Basis
 - Prioritaet: MVP/v1
-- Implementiert: Einstellung "Artikel beim Oeffnen als gelesen markieren".
-- Naechster Schritt: Refresh-Intervall und Standard-Reader-Modus.
+- Implementiert: Einstellung "Artikel beim Oeffnen als gelesen markieren" sowie
+  automatischer Refresh mit Ein/Aus und Intervallauswahl.
+- Naechster Schritt: Standard-Reader-Modus.
 - Automatisches Loeschen spaeter.
 
 #### 8.2 Darstellung
