@@ -62,6 +62,8 @@ bei geschlossener App.
 - FeedKit ist eingebunden.
 - SwiftData Modelle fuer Feed, Article, Tag und Rule existieren.
 - Feed per Feed-URL hinzufuegen funktioniert als Basis.
+- Feeds koennen ueber den Sidebar-Plus-Button oder ueber `Feed > Feed hinzufügen...`
+  mit `Cmd+N` hinzugefuegt werden; beide Wege nutzen dasselbe Sheet.
 - Feed-Titel wird aus Feed-Metadaten gelesen.
 - Sidebar zeigt gespeicherte Feeds.
 - Artikel-Liste zeigt echte Artikel eines Feeds.
@@ -99,9 +101,9 @@ bei geschlossener App.
 ### Aktuell in Arbeit
 
 M2 Core Features:
-- Feed hinzufuegen per `Cmd+N`
 - Refresh fuer alle Feeds
 - Automatischer Refresh
+- Favicons in der Sidebar
 
 ---
 
@@ -262,6 +264,8 @@ M2 Core Features:
 #### 4.1 Feed hinzufuegen
 - Status: Fertig als Basis
 - Prioritaet: MVP
+- Implementiert: Sidebar-Plus-Button und macOS-Menue `Feed > Feed hinzufügen...`
+  mit `Cmd+N`; beide Wege oeffnen dasselbe `AddFeedSheet`.
 - Offen: Auto-Erkennung, Vorschau, Favicon.
 
 #### 4.2 Feed bearbeiten

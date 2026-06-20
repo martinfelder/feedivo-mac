@@ -50,6 +50,7 @@ enum L10n {
     static var feedErrorEmptyURL: String { String(localized: "feed.error.emptyURL") }
     static var feedErrorAddFailed: String { String(localized: "feed.error.addFailed") }
     static var feedCommandsMenu: String { String(localized: "feedCommands.menu") }
+    static var feedAddCommand: String { String(localized: "feed.add.command") }
     static var feedRefreshCommand: String { String(localized: "feed.refresh.command") }
     static var feedDeleteCommand: String { String(localized: "feed.delete.command") }
     static var feedDeleteConfirmButton: String { String(localized: "feed.delete.confirmButton") }

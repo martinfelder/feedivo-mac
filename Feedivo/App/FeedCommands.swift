@@ -6,6 +6,14 @@ struct FeedCommands: Commands {
 
     var body: some Commands {
         CommandMenu(L10n.feedCommandsMenu) {
+            Button(L10n.feedAddCommand) {
+                feedCommandActions?.requestAddFeed()
+            }
+            .keyboardShortcut("n", modifiers: [.command])
+            .disabled(feedCommandActions?.canAddFeed != true)
+
+            Divider()
+
             Button(L10n.feedRefreshCommand) {
                 feedCommandActions?.refreshSelectedFeed()
             }

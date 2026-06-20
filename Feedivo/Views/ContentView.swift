@@ -17,6 +17,7 @@ struct ContentView: View {
 
     @State private var articleViewModel = ArticleViewModel()
     @State private var feedViewModel = FeedViewModel()
+    @State private var isShowingAddFeedSheet = false
     @State private var feedPendingDeletion: Feed?
     @State private var isDeleteFeedConfirmationPresented = false
 
@@ -26,6 +27,7 @@ struct ContentView: View {
             // SPALTE 1: Sidebar — Liste aller Feeds
             SidebarView(
                 selectedFeed: $selectedFeed,
+                onRequestAddFeed: requestAddFeed,
                 onRequestDeleteFeed: requestDeleteFeed
             )
                 .navigationSplitViewColumnWidth(min: 200, ideal: 240, max: 300)
@@ -63,6 +65,9 @@ struct ContentView: View {
         .onChange(of: selectedFeed?.persistentModelID) {
             selectedArticle = nil
         }
+        .sheet(isPresented: $isShowingAddFeedSheet) {
+            AddFeedSheet()
+        }
         .confirmationDialog(
             L10n.feedDeleteConfirmationTitle,
             isPresented: $isDeleteFeedConfirmationPresented,
@@ -94,6 +99,7 @@ struct ContentView: View {
             \.feedCommandActions,
             FeedCommandActions(
                 selectedFeed: selectedFeed,
+                requestAddFeed: requestAddFeed,
                 refreshSelectedFeed: {
                     if let selectedFeed {
                         Task {
@@ -108,6 +114,10 @@ struct ContentView: View {
                 }
             )
         )
+    }
+
+    private func requestAddFeed() {
+        isShowingAddFeedSheet = true
     }
 
     private func requestDeleteFeed(_ feed: Feed) {

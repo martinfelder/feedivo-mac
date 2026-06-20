@@ -4,8 +4,8 @@ import SwiftData
 struct SidebarView: View {
     @Query(sort: \Feed.title) private var feeds: [Feed]
     @Binding var selectedFeed: Feed?
+    let onRequestAddFeed: () -> Void
     let onRequestDeleteFeed: (Feed) -> Void
-    @State private var isShowingAddFeedSheet = false
 
     var body: some View {
         List(selection: $selectedFeed) {
@@ -30,19 +30,16 @@ struct SidebarView: View {
         .toolbar {
             ToolbarItem {
                 Button {
-                    isShowingAddFeedSheet = true
+                    onRequestAddFeed()
                 } label: {
                     Label(L10n.sidebarAddFeedButton, systemImage: "plus")
                 }
             }
         }
-        .sheet(isPresented: $isShowingAddFeedSheet) {
-            AddFeedSheet()
-        }
     }
 }
 
-private struct AddFeedSheet: View {
+struct AddFeedSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @State private var viewModel = FeedViewModel()

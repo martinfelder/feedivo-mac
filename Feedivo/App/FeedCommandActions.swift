@@ -2,8 +2,13 @@ import SwiftUI
 
 struct FeedCommandActions {
     let selectedFeed: Feed?
+    let requestAddFeed: () -> Void
     let refreshSelectedFeed: () -> Void
     let requestDelete: () -> Void
+
+    var canAddFeed: Bool {
+        true
+    }
 
     var canPerformFeedAction: Bool {
         selectedFeed != nil
