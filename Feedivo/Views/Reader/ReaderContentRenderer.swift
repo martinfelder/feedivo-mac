@@ -3,6 +3,9 @@ import Foundation
 
 enum ReaderContentBlock: Equatable {
     case paragraph(String)
+    case heading(String)
+    case quote(String)
+    case listItem(String)
     case image(urlString: String)
 }
 
@@ -10,7 +13,7 @@ enum ReaderContentRenderer {
     static func blocks(summary: String?, content: String?, fallbackImageURL: String?) -> [ReaderContentBlock] {
         let source = preferredText(content: content, summary: summary)
         let imageURLs = imageURLs(inHTML: source)
-        let paragraphBlocks = paragraphs(from: source).map { ReaderContentBlock.paragraph($0) }
+        let textBlocks = structuredTextBlocks(from: source)
 
         let imageBlocks: [ReaderContentBlock]
         if imageURLs.isEmpty, let fallbackImageURL, !fallbackImageURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -19,7 +22,7 @@ enum ReaderContentRenderer {
             imageBlocks = imageURLs.map { .image(urlString: $0) }
         }
 
-        return imageBlocks + paragraphBlocks
+        return imageBlocks + textBlocks
     }
 
     private static func preferredText(content: String?, summary: String?) -> String {
@@ -30,14 +33,70 @@ enum ReaderContentRenderer {
         return summary ?? ""
     }
 
-    private static func paragraphs(from htmlOrText: String) -> [String] {
+    private static func structuredTextBlocks(from htmlOrText: String) -> [ReaderContentBlock] {
         let withoutImages = htmlOrText.replacingOccurrences(
             of: #"<img\b[^>]*>"#,
             with: "",
             options: [.regularExpression, .caseInsensitive]
         )
 
-        let prepared = withoutImages
+        if let blocks = structuredHTMLBlocks(from: withoutImages) {
+            return blocks
+        }
+
+        return paragraphs(fromPreparedHTML: withoutImages).map { .paragraph($0) }
+    }
+
+    private static func structuredHTMLBlocks(from html: String) -> [ReaderContentBlock]? {
+        guard html.contains("<") else {
+            return nil
+        }
+
+        let pattern = #"<(h[1-6]|blockquote|li|p|div)\b[^>]*>(.*?)</\1>"#
+        guard let expression = try? NSRegularExpression(
+            pattern: pattern,
+            options: [.caseInsensitive, .dotMatchesLineSeparators]
+        ) else {
+            return nil
+        }
+
+        let range = NSRange(html.startIndex ..< html.endIndex, in: html)
+        let matches = expression.matches(in: html, range: range)
+        guard !matches.isEmpty else {
+            return nil
+        }
+
+        return matches.compactMap { match in
+            guard
+                let tagRange = Range(match.range(at: 1), in: html),
+                let contentRange = Range(match.range(at: 2), in: html)
+            else {
+                return nil
+            }
+
+            let tag = String(html[tagRange]).lowercased()
+            let text = normalizedWhitespace(htmlToPlainText(String(html[contentRange])))
+            guard !text.isEmpty else {
+                return nil
+            }
+
+            if tag.hasPrefix("h") {
+                return .heading(text)
+            }
+
+            switch tag {
+            case "blockquote":
+                return .quote(text)
+            case "li":
+                return .listItem(text)
+            default:
+                return .paragraph(text)
+            }
+        }
+    }
+
+    private static func paragraphs(fromPreparedHTML htmlOrText: String) -> [String] {
+        let prepared = htmlOrText
             .replacingOccurrences(of: #"</(p|div|h[1-6]|li|blockquote)>"#, with: "\n", options: [.regularExpression, .caseInsensitive])
             .replacingOccurrences(of: #"<br\s*/?>"#, with: "\n", options: [.regularExpression, .caseInsensitive])
 
@@ -82,7 +141,7 @@ enum ReaderContentRenderer {
         }
     }
 
-    private static func normalizedWhitespace(_ text: String) -> String {
+    nonisolated private static func normalizedWhitespace(_ text: String) -> String {
         text
             .components(separatedBy: .whitespacesAndNewlines)
             .filter { !$0.isEmpty }

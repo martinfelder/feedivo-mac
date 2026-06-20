@@ -573,7 +573,8 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 
 ### M2 – Core Features ← AKTUELL
 - [x] ArticleListView ausbauen: echte Artikel aus SwiftData anzeigen
-- [x] ReaderView ausbauen: nativer Artikel-Renderer fuer Absätze und Bilder (Basis)
+- [x] ReaderView ausbauen: nativer Artikel-Renderer fuer Absätze, Ueberschriften,
+  Zitate, Listenpunkte und Bilder (Basis)
 - [x] ArticleRowView: Titel, Datum, gelesen/ungelesen Indikator
 - [x] Gelesen/Ungelesen markieren (Basis per Kontextmenue + Auto-gelesen beim Oeffnen)
 - [x] Artikel mit Stern markieren (Basis per Button/Kontextmenue)
@@ -593,6 +594,7 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 - [x] Smart Filter in Sidebar: Alle Artikel, Ungelesen, Mit Stern, Heute
 - [x] Artikel-Link kopieren und Original im Browser öffnen
 - [x] Reader-Anzeigemodus: global zwischen nativem Reader und Originalansicht wechseln
+- [x] Native Reader Rendering erweitert: Ueberschriften, Zitate und Listenpunkte
 
 ### M3 – Tags, Regeln & Sync
 - [ ] Tag-System: Tags erstellen (Name + Farbe), Feeds und Artikeln manuell zuweisen
@@ -641,8 +643,8 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 
 - M1 abgeschlossen
 - Aktuell M2/Backlog-Ausbau: Basis-Feed/Reader/Refresh/Favicons, Smart Filter,
-  Link-Aktionen und globaler Reader-Anzeigemodus sind umgesetzt; naechster sinnvoller
-  Block ist verbessertes natives Reader Rendering fuer Links, Listen und Zitate
+  Link-Aktionen, globaler Reader-Anzeigemodus und strukturierte Reader-Bloecke sind
+  umgesetzt; naechster sinnvoller Block ist Navigation Vor/Zurueck fuer Artikel
 - Feature-Roadmap ist in `docs/FEATURES.md` dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
@@ -727,3 +729,6 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 - 2026-06-20: Reader-Anzeigemodus umgesetzt: globale Einstellung `readerDisplayMode`
   wechselt zwischen nativem SwiftUI-Reader und Originalansicht per `WKWebView`, mit
   Fallback auf den nativen Reader bei fehlendem Originallink
+- 2026-06-20: Native Reader Rendering erweitert: `ReaderContentRenderer` erkennt
+  Ueberschriften, Zitate und Listenpunkte als eigene Bloecke; `ReaderView` rendert sie
+  mit nativer SwiftUI-Darstellung und faellt bei kaputten Inhalten auf Absätze zurueck

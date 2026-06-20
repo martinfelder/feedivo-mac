@@ -64,6 +64,50 @@ struct FeedivoTests {
         ])
     }
 
+    @Test func readerContentRendererErkenntStrukturierteTextbloecke() {
+        let blocks = ReaderContentRenderer.blocks(
+            summary: nil,
+            content: """
+            <h2>Zwischentitel</h2>
+            <p>Ein normaler Absatz.</p>
+            <blockquote>Ein zitiertes Argument.</blockquote>
+            <ul>
+                <li>Erster Punkt</li>
+                <li>Zweiter Punkt mit <strong>Betonung</strong></li>
+            </ul>
+            """,
+            fallbackImageURL: nil
+        )
+
+        #expect(blocks == [
+            .heading("Zwischentitel"),
+            .paragraph("Ein normaler Absatz."),
+            .quote("Ein zitiertes Argument."),
+            .listItem("Erster Punkt"),
+            .listItem("Zweiter Punkt mit Betonung")
+        ])
+    }
+
+    @Test func readerContentRendererWirftLeereStrukturbloeckeWegUndFaelltAufAbsatzZurueck() {
+        let emptyBlocks = ReaderContentRenderer.blocks(
+            summary: nil,
+            content: "<h2> </h2><blockquote></blockquote><ul><li> </li></ul>",
+            fallbackImageURL: nil
+        )
+
+        #expect(emptyBlocks.isEmpty)
+
+        let brokenBlocks = ReaderContentRenderer.blocks(
+            summary: nil,
+            content: "<section><strong>Kaputter, aber lesbarer Inhalt",
+            fallbackImageURL: nil
+        )
+
+        #expect(brokenBlocks == [
+            .paragraph("Kaputter, aber lesbarer Inhalt")
+        ])
+    }
+
     @Test func readerMetadataBerechnetUngefaehreLesezeit() {
         let kurzerText = "Ein kurzer Artikel mit nur wenigen Worten."
         let langerText = Array(repeating: "Wort", count: 420).joined(separator: " ")

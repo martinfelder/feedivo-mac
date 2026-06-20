@@ -159,10 +159,20 @@ struct ReaderView: View {
                 ForEach(Array(contentBlocks.enumerated()), id: \.offset) { _, block in
                     switch block {
                     case .paragraph(let text):
+                        readerParagraph(text)
+                    case .heading(let text):
                         Text(text)
-                            .font(bodyFontPreset.font(size: clampedBodyFontSize, relativeTo: .body))
+                            .font(bodyFontPreset.font(
+                                size: min(clampedBodyFontSize + 5, CGFloat(ReaderTypography.defaultTitleFontSize - 2)),
+                                relativeTo: .title3
+                            ))
+                            .fontWeight(.semibold)
                             .lineSpacing(clampedLineSpacing)
                             .textSelection(.enabled)
+                    case .quote(let text):
+                        readerQuote(text)
+                    case .listItem(let text):
+                        readerListItem(text)
                     case .image(let urlString):
                         readerImage(urlString: urlString)
                     }
@@ -174,6 +184,42 @@ struct ReaderView: View {
             }
             .frame(maxWidth: clampedContentWidth, alignment: .leading)
             .padding()
+        }
+    }
+
+    private func readerParagraph(_ text: String) -> some View {
+        Text(text)
+            .font(bodyFontPreset.font(size: clampedBodyFontSize, relativeTo: .body))
+            .lineSpacing(clampedLineSpacing)
+            .textSelection(.enabled)
+    }
+
+    private func readerQuote(_ text: String) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Rectangle()
+                .fill(.secondary.opacity(0.35))
+                .frame(width: 3)
+
+            Text(text)
+                .font(bodyFontPreset.font(size: clampedBodyFontSize, relativeTo: .body))
+                .italic()
+                .foregroundStyle(.secondary)
+                .lineSpacing(clampedLineSpacing)
+                .textSelection(.enabled)
+        }
+        .padding(.vertical, 2)
+    }
+
+    private func readerListItem(_ text: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+            Text(verbatim: "•")
+                .font(bodyFontPreset.font(size: clampedBodyFontSize, relativeTo: .body))
+                .foregroundStyle(.secondary)
+
+            Text(text)
+                .font(bodyFontPreset.font(size: clampedBodyFontSize, relativeTo: .body))
+                .lineSpacing(clampedLineSpacing)
+                .textSelection(.enabled)
         }
     }
 

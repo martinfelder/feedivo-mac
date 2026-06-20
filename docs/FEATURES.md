@@ -118,8 +118,7 @@ bei geschlossener App.
 ### Aktuell in Arbeit
 
 M2 Core Features:
-- Naechster Backlog-Ausbau: Native Reader Rendering fuer Links, Listen, Zitate und
-  kaputte/leere Inhalte gezielter verbessern.
+- Naechster Backlog-Ausbau: Navigation Vor/Zurueck fuer Artikel.
 
 ---
 
@@ -143,11 +142,14 @@ M2 Core Features:
 #### 1.1.1 Native Reader Rendering
 - Status: Fertig als Basis
 - Prioritaet: MVP
-- Implementiert: `ReaderContentRenderer` erzeugt Absätze und Bildbloecke aus
-  gespeicherten Feed-Inhalten; `ReaderView` rendert diese Bloecke nativ mit SwiftUI.
+- Implementiert: `ReaderContentRenderer` erzeugt Absätze, Ueberschriften, Zitate,
+  Listenpunkte und Bildbloecke aus gespeicherten Feed-Inhalten; `ReaderView` rendert
+  diese Bloecke nativ mit SwiftUI.
 - Metadaten: Oberhalb des Titels zeigt `ReaderView` Feedname, ungefaehre Lesezeit
   und Artikelalter, sofern die Daten vorhanden sind.
-- Naechster Schritt: Links, Listen, Zitate und leere/kaputte Inhalte gezielter darstellen.
+- Fallback: Leere strukturierte HTML-Bloecke werden verworfen; kaputte oder unbekannte
+  Inhalte fallen auf normale Absätze zurueck.
+- Naechster Schritt: Klickbare Inline-Links separat planen und umsetzen.
 
 #### 1.2 Navigation Vor/Zurueck
 - Status: Entschieden
