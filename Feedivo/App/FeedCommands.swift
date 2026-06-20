@@ -14,6 +14,12 @@ struct FeedCommands: Commands {
 
             Divider()
 
+            Button(L10n.feedRefreshAllCommand) {
+                feedCommandActions?.refreshAllFeeds()
+            }
+            .keyboardShortcut("r", modifiers: [.command, .shift])
+            .disabled(feedCommandActions?.canRefreshAllFeeds != true)
+
             Button(L10n.feedRefreshCommand) {
                 feedCommandActions?.refreshSelectedFeed()
             }

@@ -3,10 +3,15 @@ import SwiftUI
 struct FeedCommandActions {
     let selectedFeed: Feed?
     let requestAddFeed: () -> Void
+    let refreshAllFeeds: () -> Void
     let refreshSelectedFeed: () -> Void
     let requestDelete: () -> Void
 
     var canAddFeed: Bool {
+        true
+    }
+
+    var canRefreshAllFeeds: Bool {
         true
     }
 

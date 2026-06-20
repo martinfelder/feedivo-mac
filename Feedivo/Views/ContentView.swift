@@ -3,6 +3,7 @@ import SwiftData
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
+    @Query(sort: \Feed.title) private var feeds: [Feed]
 
     // columnVisibility steuert ob die Sidebar sichtbar ist.
     // .all bedeutet: alle 3 Spalten beim Start anzeigen.
@@ -100,6 +101,11 @@ struct ContentView: View {
             FeedCommandActions(
                 selectedFeed: selectedFeed,
                 requestAddFeed: requestAddFeed,
+                refreshAllFeeds: {
+                    Task {
+                        await feedViewModel.refreshAllFeeds(feeds, context: modelContext)
+                    }
+                },
                 refreshSelectedFeed: {
                     if let selectedFeed {
                         Task {

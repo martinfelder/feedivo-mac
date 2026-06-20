@@ -10,6 +10,7 @@ struct FeedCommandActionsTests {
             requestAddFeed: {
                 didRequestAddFeed = true
             },
+            refreshAllFeeds: {},
             refreshSelectedFeed: {},
             requestDelete: {}
         )
@@ -20,5 +21,25 @@ struct FeedCommandActionsTests {
         actions.requestAddFeed()
 
         #expect(didRequestAddFeed)
+    }
+
+    @Test func alleFeedsAktualisierenIstOhneAuswahlVerfuegbar() {
+        var didRefreshAllFeeds = false
+        let actions = FeedCommandActions(
+            selectedFeed: nil,
+            requestAddFeed: {},
+            refreshAllFeeds: {
+                didRefreshAllFeeds = true
+            },
+            refreshSelectedFeed: {},
+            requestDelete: {}
+        )
+
+        #expect(actions.canRefreshAllFeeds)
+        #expect(!actions.canPerformFeedAction)
+
+        actions.refreshAllFeeds()
+
+        #expect(didRefreshAllFeeds)
     }
 }

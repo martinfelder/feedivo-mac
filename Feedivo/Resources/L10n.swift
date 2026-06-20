@@ -51,6 +51,7 @@ enum L10n {
     static var feedErrorAddFailed: String { String(localized: "feed.error.addFailed") }
     static var feedCommandsMenu: String { String(localized: "feedCommands.menu") }
     static var feedAddCommand: String { String(localized: "feed.add.command") }
+    static var feedRefreshAllCommand: String { String(localized: "feed.refreshAll.command") }
     static var feedRefreshCommand: String { String(localized: "feed.refresh.command") }
     static var feedDeleteCommand: String { String(localized: "feed.delete.command") }
     static var feedDeleteConfirmButton: String { String(localized: "feed.delete.confirmButton") }
@@ -60,6 +61,14 @@ enum L10n {
         String.localizedStringWithFormat(
             String(localized: "feed.delete.confirmation.message"),
             feedTitle
+        )
+    }
+
+    static func feedErrorRefreshAllPartial(_ count: Int, feedTitles: String) -> String {
+        String.localizedStringWithFormat(
+            String(localized: "feed.error.refreshAllPartial"),
+            count,
+            feedTitles
         )
     }
 

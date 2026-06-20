@@ -6,6 +6,53 @@ import Testing
 struct FeedViewModelTests {
 
     @MainActor
+    @Test func refreshAllFeedsAktualisiertWeiterWennEinFeedFehlschlaegt() async throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let failingFeed = Feed(url: "https://example.com/fail.xml", title: "Fehler Feed")
+        let successfulFeed = Feed(url: "https://example.com/success.xml", title: "Erfolgreicher Feed")
+        let viewModel = FeedViewModel { urlString in
+            if urlString == failingFeed.url {
+                throw TestFeedRefreshError()
+            }
+
+            return ParsedFeed(
+                sourceURL: urlString,
+                title: "Aktualisierter Feed",
+                description: "Neue Beschreibung",
+                articles: [
+                    ParsedArticle(
+                        title: "Neuer Artikel",
+                        link: "https://example.com/new",
+                        summary: "Neu",
+                        content: nil,
+                        publishedAt: Date(timeIntervalSince1970: 300),
+                        imageURL: nil
+                    )
+                ]
+            )
+        }
+
+        context.insert(failingFeed)
+        context.insert(successfulFeed)
+        try context.save()
+
+        await viewModel.refreshAllFeeds([failingFeed, successfulFeed], context: context)
+
+        #expect(failingFeed.articles.isEmpty)
+        #expect(successfulFeed.title == "Aktualisierter Feed")
+        #expect(successfulFeed.articles.contains { $0.link == "https://example.com/new" })
+        #expect(viewModel.errorMessage?.contains("Fehler Feed") == true)
+        #expect(!viewModel.isLoading)
+    }
+
+    @MainActor
     @Test func refreshFeedFuegtNurNeueArtikelHinzuUndAktualisiertMetadaten() async throws {
         let container = try ModelContainer(
             for: Feed.self,
@@ -115,5 +162,11 @@ struct FeedViewModelTests {
         let feeds = try context.fetch(FetchDescriptor<Feed>())
         #expect(feeds.isEmpty)
         #expect(viewModel.errorMessage == nil)
+    }
+}
+
+private struct TestFeedRefreshError: LocalizedError {
+    var errorDescription: String? {
+        "Test refresh failed"
     }
 }

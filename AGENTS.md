@@ -229,6 +229,8 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 - `addFeed(urlString:context:)` — lädt Artikel, erstellt Feed, speichert in SwiftData
 - `refreshFeed(_:context:)` — aktualisiert den ausgewaehlten Feed, fuegt nur neue
   Artikel hinzu und aktualisiert Feed-Metadaten sowie `lastRefreshed`
+- `refreshAllFeeds(_:context:)` — aktualisiert alle gespeicherten Feeds nacheinander,
+  laeuft bei einzelnen Fehlern weiter und meldet am Ende betroffene Feednamen
 - `deleteFeed(_:context:)` — loescht einen Feed aus SwiftData; Artikel werden ueber
   die Cascade-Relationship mitgeloescht
 - Der Feed-Fetch ist als Closure injizierbar, damit Refresh-Tests ohne Netzwerk laufen
@@ -265,6 +267,7 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 ### FeedCommands.swift / FeedCommandActions.swift
 - macOS-Menue `Feed` fuer Aktionen auf dem fokussierten/ausgewaehlten Feed
 - `Cmd+N` oeffnet `Feed hinzufügen...` und nutzt dasselbe Sheet wie der Sidebar-Plus-Button
+- `Cmd+Shift+R` aktualisiert alle Feeds
 - `Cmd+R` aktualisiert den ausgewaehlten Feed
 - Feed aktualisieren und Feed loeschen sind deaktiviert, wenn kein Feed ausgewaehlt ist
 - Kein Shortcut fuer Loeschen, damit eine destruktive Aktion bewusst bleibt
@@ -518,7 +521,7 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 - [x] Feed löschen (Rechtsklick und macOS-Menue `Feed`, mit Bestätigung)
 - [x] Manueller Refresh fuer ausgewaehlten Feed (`Cmd+R`, macOS-Menue `Feed`)
 - [x] macOS Menüleiste: `Cmd+N` = Feed hinzufügen
-- [ ] Manueller Refresh fuer alle Feeds
+- [x] Manueller Refresh fuer alle Feeds (`Cmd+Shift+R`, macOS-Menue `Feed`)
 - [ ] Automatischer Refresh (konfigurierbares Intervall)
 - [ ] Favicons laden und in Sidebar anzeigen
 
@@ -567,7 +570,7 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 ## Aktuell in Arbeit
 
 - M1 abgeschlossen
-- Aktuell M2: Refresh fuer alle Feeds, automatischen Refresh und Favicons ausbauen
+- Aktuell M2: automatischen Refresh und Favicons ausbauen
 - Feature-Roadmap ist in `docs/FEATURES.md` dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
@@ -612,6 +615,9 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
   Reader-Popover und in den Einstellungen umgesetzt
 - 2026-06-20: Feed-hinzufuegen-Befehl umgesetzt: macOS-Menue `Feed > Feed hinzufügen...`
   mit `Cmd+N` oeffnet dasselbe `AddFeedSheet` wie der Sidebar-Plus-Button
+- 2026-06-20: Manueller Refresh fuer alle Feeds umgesetzt: `Cmd+Shift+R` und
+  macOS-Menue `Feed > Alle Feeds aktualisieren`; einzelne Feed-Fehler stoppen den
+  Gesamtlauf nicht und werden gesammelt gemeldet
 - 2026-06-19: Reader-Font-Aufloesung verbessert: Presets nutzen bekannte
   PostScript-Kandidaten, Picker sind explizit Menues, und die Metazeile oberhalb
   des Titels folgt nun ebenfalls der Fliesstext-Schrift

@@ -84,6 +84,9 @@ bei geschlossener App.
   die mitgeloeschten Artikel.
 - Der ausgewaehlte Feed kann per macOS-Menue `Feed` oder `Cmd+R` manuell aktualisiert
   werden; neue Artikel werden ohne Duplikate hinzugefuegt.
+- Alle Feeds koennen per macOS-Menue `Feed` oder `Cmd+Shift+R` manuell aktualisiert
+  werden; einzelne Feed-Fehler stoppen den Gesamtlauf nicht und werden gesammelt
+  gemeldet.
 - Automatisches Gelesen-Markieren beim Oeffnen ist standardmaessig aktiv und in den
   Einstellungen abschaltbar.
 - i18n Foundation ist umgesetzt: String Catalog mit Deutsch, Englisch, Franzoesisch
@@ -101,7 +104,6 @@ bei geschlossener App.
 ### Aktuell in Arbeit
 
 M2 Core Features:
-- Refresh fuer alle Feeds
 - Automatischer Refresh
 - Favicons in der Sidebar
 
@@ -287,11 +289,15 @@ M2 Core Features:
 - Status: Fertig als Basis
 - Prioritaet: MVP
 - Implementiert: Ausgewaehlten Feed ueber macOS-Menue `Feed` oder `Cmd+R`
+  aktualisieren; alle Feeds ueber macOS-Menue `Feed` oder `Cmd+Shift+R`
   aktualisieren.
 - Verhalten: Feed-Metadaten und `lastRefreshed` werden aktualisiert; neue Artikel
   werden angehaengt, bestehende Artikel werden anhand Link beziehungsweise
   Titel+Datum nicht dupliziert.
-- Offen: Alle Feeds aktualisieren und sichtbarer Fortschritt.
+- Verhalten bei allen Feeds: Wenn ein Feed fehlschlaegt, werden die restlichen Feeds
+  weiter aktualisiert; am Ende wird eine Sammelmeldung mit den betroffenen Feednamen
+  gesetzt.
+- Offen: Sichtbarer Fortschritt.
 
 #### 4.5 Automatischer Refresh
 - Status: In Diskussion

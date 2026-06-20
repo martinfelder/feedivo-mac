@@ -66,35 +66,39 @@ final class FeedViewModel {
         errorMessage = nil
 
         do {
-            let parsedFeed = try await fetchFeed(feed.url)
-            var seenArticleKeys = Set(feed.articles.map(articleIdentity))
-            let newArticles = parsedFeed.articles.filter { parsedArticle in
-                seenArticleKeys.insert(articleIdentity(for: parsedArticle)).inserted
-            }
-
-            feed.title = parsedFeed.title
-            feed.feedDescription = parsedFeed.description
-            feed.lastRefreshed = Date()
-
-            for parsedArticle in newArticles {
-                feed.articles.append(
-                    Article(
-                        title: parsedArticle.title,
-                        link: parsedArticle.link,
-                        summary: parsedArticle.summary,
-                        content: parsedArticle.content,
-                        publishedAt: parsedArticle.publishedAt,
-                        imageURL: parsedArticle.imageURL,
-                        feed: feed
-                    )
-                )
-            }
-
-            try context.save()
+            try await refreshFeedContents(feed, context: context)
         } catch let error as LocalizedError {
             errorMessage = error.errorDescription ?? L10n.feedErrorParsingFailed
         } catch {
             errorMessage = L10n.feedErrorParsingFailed
+        }
+
+        isLoading = false
+    }
+
+    @MainActor
+    func refreshAllFeeds(_ feeds: [Feed], context: ModelContext) async {
+        guard !feeds.isEmpty else {
+            return
+        }
+
+        isLoading = true
+        errorMessage = nil
+        var failedFeedTitles: [String] = []
+
+        for feed in feeds {
+            do {
+                try await refreshFeedContents(feed, context: context)
+            } catch {
+                failedFeedTitles.append(feed.title)
+            }
+        }
+
+        if !failedFeedTitles.isEmpty {
+            errorMessage = L10n.feedErrorRefreshAllPartial(
+                failedFeedTitles.count,
+                feedTitles: failedFeedTitles.joined(separator: ", ")
+            )
         }
 
         isLoading = false
@@ -132,5 +136,34 @@ final class FeedViewModel {
         }
 
         return "title-date:\(parsedArticle.title)|\(parsedArticle.publishedAt?.timeIntervalSince1970 ?? 0)"
+    }
+
+    @MainActor
+    private func refreshFeedContents(_ feed: Feed, context: ModelContext) async throws {
+        let parsedFeed = try await fetchFeed(feed.url)
+        var seenArticleKeys = Set(feed.articles.map(articleIdentity))
+        let newArticles = parsedFeed.articles.filter { parsedArticle in
+            seenArticleKeys.insert(articleIdentity(for: parsedArticle)).inserted
+        }
+
+        feed.title = parsedFeed.title
+        feed.feedDescription = parsedFeed.description
+        feed.lastRefreshed = Date()
+
+        for parsedArticle in newArticles {
+            feed.articles.append(
+                Article(
+                    title: parsedArticle.title,
+                    link: parsedArticle.link,
+                    summary: parsedArticle.summary,
+                    content: parsedArticle.content,
+                    publishedAt: parsedArticle.publishedAt,
+                    imageURL: parsedArticle.imageURL,
+                    feed: feed
+                )
+            )
+        }
+
+        try context.save()
     }
 }
