@@ -121,7 +121,8 @@ bei geschlossener App.
 ### Aktuell in Arbeit
 
 M2 Core Features:
-- Naechster Backlog-Ausbau: OPML Import aus dem MVP-Schnitt.
+- Naechster Backlog-Ausbau: Feed Eigenschaften per Kontextmenue; danach OPML Import
+  aus dem MVP-Schnitt.
 
 ---
 
@@ -311,6 +312,16 @@ M2 Core Features:
 - Status: In Diskussion
 - Prioritaet: v1
 - Empfehlung: Titel und Refresh-Intervall editierbar. URL eher nicht frei aendern ohne erneute Validierung.
+
+#### 4.2.1 Feed Eigenschaften
+- Status: Entschieden
+- Prioritaet: MVP/v1
+- Entscheidung: Rechtsklick auf Feed zeigt `Feed Eigenschaften...`. Die erste Version
+  ist eine Informationsansicht mit editierbarem Aktualisierungsintervall.
+- Inhalt: Originaltitel, Website, XML-Adresse, Gefolgt-ab-Datum, Ordner-Platzhalter,
+  letzter Artikel, Aktualisierungsintervall, naechster Abruf, zuletzt aktualisiert und
+  die letzten 20 Feed-Log-Eintraege.
+- Ordner: Sichtbares Feld mit Platzhalter, volle Ordnerverwaltung spaeter separat.
 
 #### 4.3 Feed loeschen
 - Status: Fertig als Basis
