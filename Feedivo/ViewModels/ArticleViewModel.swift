@@ -6,8 +6,24 @@ final class ArticleViewModel {
         article.isRead.toggle()
     }
 
+    func toggleRead(_ article: Article?) {
+        guard let article else {
+            return
+        }
+
+        toggleRead(article)
+    }
+
     func toggleStarred(_ article: Article) {
         article.isStarred.toggle()
+    }
+
+    func toggleStarred(_ article: Article?) {
+        guard let article else {
+            return
+        }
+
+        toggleStarred(article)
     }
 
     func markReadIfNeeded(_ article: Article?, isEnabled: Bool) {

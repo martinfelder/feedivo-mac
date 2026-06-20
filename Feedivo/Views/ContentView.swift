@@ -14,6 +14,8 @@ struct ContentView: View {
     // selectedArticle speichert welcher Artikel gerade in der Liste ausgewählt ist.
     @State private var selectedArticle: Article? = nil
 
+    @State private var articleViewModel = ArticleViewModel()
+
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
 
@@ -54,5 +56,17 @@ struct ContentView: View {
         .onChange(of: selectedFeed?.persistentModelID) {
             selectedArticle = nil
         }
+        .focusedValue(
+            \.articleCommandActions,
+            ArticleCommandActions(
+                selectedArticle: selectedArticle,
+                toggleRead: {
+                    articleViewModel.toggleRead(selectedArticle)
+                },
+                toggleStarred: {
+                    articleViewModel.toggleStarred(selectedArticle)
+                }
+            )
+        )
     }
 }

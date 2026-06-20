@@ -106,7 +106,8 @@ FeedivoMac/
 ├── Feedivo/
 │   ├── App/
 │   │   ├── FeedivoApp.swift            # @main Entry Point, .modelContainer Setup ✅
-│   │   └── ContentView.swift           # Root: NavigationSplitView (3 Spalten) ✅
+│   │   ├── ArticleCommands.swift       # macOS Artikel-Menue + Tastaturkuerzel ✅
+│   │   └── ArticleCommandActions.swift # FocusedValues fuer Artikelaktionen ✅
 │   │
 │   ├── Models/                         # SwiftData @Model Klassen — alle fertig ✅
 │   │   ├── Feed.swift
@@ -122,6 +123,7 @@ FeedivoMac/
 │   │   └── SyncViewModel.swift         # iCloud Sync Status anzeigen (TODO)
 │   │
 │   ├── Views/
+│   │   ├── ContentView.swift           # Root: NavigationSplitView (3 Spalten) ✅
 │   │   ├── Sidebar/
 │   │   │   ├── SidebarView.swift       # Linke Spalte: Feeds, + Button, @Query ✅
 │   │   │   ├── FeedRowView.swift       # Eine Feed-Zeile in der Sidebar (TODO)
@@ -240,7 +242,15 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 - `@Observable` class
 - `toggleRead(_:)`
 - `toggleStarred(_:)`
+- Optionale Varianten ignorieren fehlende Auswahl fuer Menue-/Shortcut-Aktionen
 - `markReadIfNeeded(_:isEnabled:)`
+
+### ArticleCommands.swift / ArticleCommandActions.swift
+- macOS-Menue `Artikel` fuer Aktionen auf dem fokussierten/ausgewaehlten Artikel
+- `Cmd+Shift+U` toggelt gelesen/ungelesen
+- `Cmd+D` toggelt Stern
+- Commands sind deaktiviert, wenn kein Artikel ausgewaehlt ist
+- `ContentView` stellt die Aktionen via SwiftUI `FocusedValues` bereit
 
 ### SettingsView.swift
 - macOS Settings-Szene in `FeedivoApp.swift`
@@ -484,7 +494,8 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 - [x] Einstellung fuer App-Sprache: Nach System, Deutsch, Englisch, Französisch, Italienisch
 - [x] Reader-Typografie: Titel-/Fliesstext-Schriften, Fliesstext-Groesse,
   Titel-/Fliesstext-Zeilenabstand und Artikelbreite
-- [ ] Tastaturkuerzel: `Cmd+Shift+U` gelesen/ungelesen, `Cmd+D` Stern
+- [x] Tastaturkuerzel: `Cmd+Shift+U` gelesen/ungelesen, `Cmd+D` Stern
+- [x] macOS Artikel-Menue fuer gelesen/ungelesen und Stern
 - [ ] macOS Menüleiste: `Cmd+R` = Refresh, `Cmd+N` = Feed hinzufügen
 - [ ] Feed löschen (Rechtsklick → Delete, mit Bestätigung)
 - [ ] Automatischer Refresh (konfigurierbares Intervall)
@@ -535,7 +546,7 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 ## Aktuell in Arbeit
 
 - M1 abgeschlossen
-- Aktuell M2: Tastaturkuerzel, Menü-Commands, Feed löschen und manuellen Refresh ausbauen
+- Aktuell M2: Feed löschen, manuellen Refresh und app-weite Menü-Commands ausbauen
 - Feature-Roadmap ist in `docs/FEATURES.md` dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
@@ -588,3 +599,5 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
   separate Zeilenabstand-Slider im Reader-Popover und in den Einstellungen
 - 2026-06-19: Reader-Artikelbreite ergaenzt: Maximale Artikelbreite kann im
   Reader-Popover und in den Einstellungen zwischen 520...980 px eingestellt werden
+- 2026-06-20: Artikel-Commands ergaenzt: macOS-Menue `Artikel`, `Cmd+Shift+U`
+  fuer gelesen/ungelesen und `Cmd+D` fuer Stern; Commands nutzen SwiftUI FocusedValues

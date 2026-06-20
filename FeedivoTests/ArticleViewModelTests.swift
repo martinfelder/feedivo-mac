@@ -29,6 +29,24 @@ struct ArticleViewModelTests {
         #expect(!article.isStarred)
     }
 
+    @Test func optionaleArtikelAktionenIgnorierenFehlendeAuswahl() {
+        let viewModel = ArticleViewModel()
+
+        viewModel.toggleRead(nil)
+        viewModel.toggleStarred(nil)
+    }
+
+    @Test func optionaleArtikelAktionenSchaltenVorhandenenArtikel() {
+        let article = Article(title: "Test", isRead: false, isStarred: false)
+        let viewModel = ArticleViewModel()
+
+        viewModel.toggleRead(article)
+        viewModel.toggleStarred(article)
+
+        #expect(article.isRead)
+        #expect(article.isStarred)
+    }
+
     @Test func markReadIfNeededBeruecksichtigtEinstellung() {
         let article = Article(title: "Test", isRead: false)
         let viewModel = ArticleViewModel()

@@ -75,6 +75,8 @@ bei geschlossener App.
   URLs normalisiert.
 - Artikel koennen per Kontextmenue gelesen/ungelesen und per Stern-Button markiert
   werden.
+- Artikelaktionen koennen auch per macOS-Menue `Artikel` und Tastaturkuerzeln
+  gesteuert werden: `Cmd+Shift+U` fuer gelesen/ungelesen, `Cmd+D` fuer Stern.
 - Automatisches Gelesen-Markieren beim Oeffnen ist standardmaessig aktiv und in den
   Einstellungen abschaltbar.
 - i18n Foundation ist umgesetzt: String Catalog mit Deutsch, Englisch, Franzoesisch
@@ -92,10 +94,9 @@ bei geschlossener App.
 ### Aktuell in Arbeit
 
 M2 Core Features:
-- Tastaturkuerzel fuer Artikelaktionen
-- Menue-Commands
 - Feed loeschen
 - Manueller Refresh
+- App-weite Menue-Commands fuer Feed/Refresh
 
 ---
 
@@ -128,16 +129,17 @@ M2 Core Features:
   koennen die Option in den Einstellungen deaktivieren.
 
 #### 1.3 Gelesen/Ungelesen
-- Status: Entschieden
+- Status: Fertig als Basis
 - Prioritaet: MVP
-- Basis: Manuell per Kontextmenue und automatisch beim Oeffnen mit Einstellung.
-- Naechster Schritt: Tastaturkuerzel `Cmd+Shift+U`.
+- Basis: Manuell per Kontextmenue, automatisch beim Oeffnen mit Einstellung,
+  per Artikel-Menue und per Tastaturkuerzel `Cmd+Shift+U`.
 - Spaeter: "Alle als gelesen" pro Feed und Smart Filter.
 
 #### 1.4 Stern/Favoriten
-- Status: Entschieden
+- Status: Fertig als Basis
 - Prioritaet: MVP
-- Empfehlung: Stern ist fuer "merken/spaeter lesen". Noch kein separates Archiv im MVP.
+- Implementiert: Stern ist per Button, Kontextmenue, Artikel-Menue und `Cmd+D`
+  schaltbar. Noch kein separates Archiv im MVP.
 - Smart Filter "Mit Stern" gehoert dazu.
 
 #### 1.5 Tags manuell zuweisen

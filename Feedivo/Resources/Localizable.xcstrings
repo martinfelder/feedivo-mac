@@ -60,6 +60,34 @@
         }
       }
     },
+    "articleCommands.menu" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Artikel"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Article"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Article"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Articolo"
+          }
+        }
+      }
+    },
     "articleRow.markRead" : {
       "localizations" : {
         "de" : {

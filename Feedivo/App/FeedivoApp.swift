@@ -21,6 +21,9 @@ struct FeedivoApp: App {
             ContentView()
                 .environment(\.locale, appLanguage.locale)
         }
+        .commands {
+            ArticleCommands()
+        }
         .modelContainer(for: [
             Feed.self,
             Article.self,
