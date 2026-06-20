@@ -424,6 +424,34 @@
         }
       }
     },
+    "common.done" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fertig"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terminé"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fine"
+          }
+        }
+      }
+    },
     "content.noArticleSelected.description" : {
       "localizations" : {
         "de" : {
@@ -674,6 +702,142 @@
             "value" : "Elimina feed"
           }
         }
+      }
+    },
+    "feed.properties.command" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Feed Eigenschaften..." } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Feed Properties..." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Propriétés du flux..." } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Proprietà feed..." } }
+      }
+    },
+    "feed.properties.followedAt" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Gefolgt ab" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Followed since" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Suivi depuis" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Seguito dal" } }
+      }
+    },
+    "feed.properties.folder" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Ordner" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Folder" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Dossier" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Cartella" } }
+      }
+    },
+    "feed.properties.lastRefreshed" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Zuletzt aktualisiert" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Last refreshed" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Dernière actualisation" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Ultimo aggiornamento" } }
+      }
+    },
+    "feed.properties.latestArticle" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Letzter Artikel" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Latest article" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Dernier article" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Ultimo articolo" } }
+      }
+    },
+    "feed.properties.logTitle" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Feed Log" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Feed log" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Journal du flux" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Log del feed" } }
+      }
+    },
+    "feed.properties.nextFetch" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Nächster Abruf" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Next fetch" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Prochaine récupération" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Prossimo recupero" } }
+      }
+    },
+    "feed.properties.noFolder" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Kein Ordner" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "No folder" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Aucun dossier" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Nessuna cartella" } }
+      }
+    },
+    "feed.properties.noLogEntries" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Noch keine Log-Einträge." } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "No log entries yet." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Aucune entrée de journal pour le moment." } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Ancora nessuna voce di log." } }
+      }
+    },
+    "feed.properties.originalTitle" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Original Titel" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Original title" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Titre d’origine" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Titolo originale" } }
+      }
+    },
+    "feed.properties.refreshInterval" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Aktualisierungsintervall" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Refresh interval" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Intervalle d’actualisation" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Intervallo di aggiornamento" } }
+      }
+    },
+    "feed.properties.title" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Feed Eigenschaften" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Feed Properties" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Propriétés du flux" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Proprietà feed" } }
+      }
+    },
+    "feed.properties.unavailable" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Nicht verfügbar" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Unavailable" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Non disponible" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Non disponibile" } }
+      }
+    },
+    "feed.properties.website" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Website" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Website" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Site web" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Sito web" } }
+      }
+    },
+    "feed.properties.xmlAddress" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "XML Adresse" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "XML address" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Adresse XML" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Indirizzo XML" } }
+      }
+    },
+    "feed.log.added" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Feed hinzugefügt" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Feed added" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Flux ajouté" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Feed aggiunto" } }
+      }
+    },
+    "feed.log.refreshed" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Aktualisiert: %lld neue Artikel" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Refreshed: %lld new articles" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Actualisé : %lld nouveaux articles" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Aggiornato: %lld nuovi articoli" } }
       }
     },
     "feed.error.addFailed" : {

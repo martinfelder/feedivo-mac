@@ -16,6 +16,7 @@ enum L10n {
     static let smartFilterToday = LocalizedStringKey("smartFilter.today")
     static let commonCancel = LocalizedStringKey("common.cancel")
     static let commonAdd = LocalizedStringKey("common.add")
+    static let commonDone = LocalizedStringKey("common.done")
     static let articleListEmptyTitle = LocalizedStringKey("articleList.empty.title")
     static let articleListEmptyDescription = LocalizedStringKey("articleList.empty.description")
     static let articleRowUnread = LocalizedStringKey("articleRow.unread")
@@ -49,6 +50,18 @@ enum L10n {
     static let settingsAutomaticRefreshTitle = LocalizedStringKey("settings.automaticRefresh.title")
     static let settingsAutomaticRefreshIntervalPicker = LocalizedStringKey("settings.automaticRefresh.interval.picker")
     static let settingsAutomaticRefreshDescription = LocalizedStringKey("settings.automaticRefresh.description")
+    static let feedPropertiesTitle = LocalizedStringKey("feed.properties.title")
+    static let feedPropertiesOriginalTitle = LocalizedStringKey("feed.properties.originalTitle")
+    static let feedPropertiesWebsite = LocalizedStringKey("feed.properties.website")
+    static let feedPropertiesXMLAddress = LocalizedStringKey("feed.properties.xmlAddress")
+    static let feedPropertiesFollowedAt = LocalizedStringKey("feed.properties.followedAt")
+    static let feedPropertiesFolder = LocalizedStringKey("feed.properties.folder")
+    static let feedPropertiesLatestArticle = LocalizedStringKey("feed.properties.latestArticle")
+    static let feedPropertiesRefreshInterval = LocalizedStringKey("feed.properties.refreshInterval")
+    static let feedPropertiesNextFetch = LocalizedStringKey("feed.properties.nextFetch")
+    static let feedPropertiesLastRefreshed = LocalizedStringKey("feed.properties.lastRefreshed")
+    static let feedPropertiesLogTitle = LocalizedStringKey("feed.properties.logTitle")
+    static let feedPropertiesNoLogEntries = LocalizedStringKey("feed.properties.noLogEntries")
 
     static var articleRowStarRemove: String { String(localized: "articleRow.star.remove") }
     static var articleRowStarAdd: String { String(localized: "articleRow.star.add") }
@@ -71,6 +84,10 @@ enum L10n {
     static var feedRefreshAllCommand: String { String(localized: "feed.refreshAll.command") }
     static var feedRefreshCommand: String { String(localized: "feed.refresh.command") }
     static var feedDeleteCommand: String { String(localized: "feed.delete.command") }
+    static var feedPropertiesCommand: String { String(localized: "feed.properties.command") }
+    static var feedPropertiesNoFolder: String { String(localized: "feed.properties.noFolder") }
+    static var feedPropertiesUnavailable: String { String(localized: "feed.properties.unavailable") }
+    static var feedLogAdded: String { String(localized: "feed.log.added") }
     static var feedDeleteConfirmButton: String { String(localized: "feed.delete.confirmButton") }
     static var feedDeleteConfirmationTitle: String { String(localized: "feed.delete.confirmation.title") }
 
@@ -86,6 +103,13 @@ enum L10n {
             String(localized: "feed.error.refreshAllPartial"),
             count,
             feedTitles
+        )
+    }
+
+    static func feedLogRefreshed(newArticleCount: Int) -> String {
+        String.localizedStringWithFormat(
+            String(localized: "feed.log.refreshed"),
+            newArticleCount
         )
     }
 

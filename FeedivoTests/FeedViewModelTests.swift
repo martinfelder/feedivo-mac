@@ -12,6 +12,7 @@ struct FeedViewModelTests {
             Article.self,
             Tag.self,
             Rule.self,
+            FeedLogEntry.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
         let context = ModelContext(container)
@@ -35,6 +36,9 @@ struct FeedViewModelTests {
 
         let feeds = try context.fetch(FetchDescriptor<Feed>())
         #expect(feeds.first?.faviconURL == "https://example.com/apple-touch-icon.png")
+        #expect(feeds.first?.siteURL == "https://example.com/")
+        #expect(feeds.first?.followedAt != nil)
+        #expect(feeds.first?.logEntries.count == 1)
         #expect(viewModel.errorMessage == nil)
     }
 
@@ -45,6 +49,7 @@ struct FeedViewModelTests {
             Article.self,
             Tag.self,
             Rule.self,
+            FeedLogEntry.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
         let context = ModelContext(container)
@@ -85,9 +90,12 @@ struct FeedViewModelTests {
         await viewModel.refreshAllFeeds([failingFeed, successfulFeed], context: context)
 
         #expect(failingFeed.articles.isEmpty)
+        #expect(failingFeed.logEntries.contains { $0.kind == "error" })
         #expect(successfulFeed.title == "Aktualisierter Feed")
+        #expect(successfulFeed.siteURL == "https://example.com/")
         #expect(successfulFeed.faviconURL == "https://example.com/favicon.png")
         #expect(successfulFeed.articles.contains { $0.link == "https://example.com/new" })
+        #expect(successfulFeed.logEntries.contains { $0.kind == "info" })
         #expect(viewModel.errorMessage?.contains("Fehler Feed") == true)
         #expect(!viewModel.isLoading)
     }
@@ -99,6 +107,7 @@ struct FeedViewModelTests {
             Article.self,
             Tag.self,
             Rule.self,
+            FeedLogEntry.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
         let context = ModelContext(container)
@@ -160,11 +169,13 @@ struct FeedViewModelTests {
 
         #expect(feed.title == "Neuer Titel")
         #expect(feed.feedDescription == "Neue Beschreibung")
+        #expect(feed.siteURL == "https://example.com/")
         #expect(feed.faviconURL == "https://example.com/favicon.png")
         #expect(feed.lastRefreshed ?? .distantPast > oldRefreshDate)
         #expect(feed.articles.count == 2)
         #expect(existingArticle.isRead)
         #expect(feed.articles.contains { $0.link == "https://example.com/2" })
+        #expect(feed.logEntries.contains { $0.kind == "info" && $0.message.contains("1") })
         #expect(viewModel.errorMessage == nil)
         #expect(!viewModel.isLoading)
     }
@@ -176,6 +187,7 @@ struct FeedViewModelTests {
             Article.self,
             Tag.self,
             Rule.self,
+            FeedLogEntry.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
         let context = ModelContext(container)
@@ -199,6 +211,7 @@ struct FeedViewModelTests {
             Article.self,
             Tag.self,
             Rule.self,
+            FeedLogEntry.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
         let context = ModelContext(container)

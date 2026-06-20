@@ -22,7 +22,8 @@ struct FeedivoApp: App {
             for: Feed.self,
             Article.self,
             Tag.self,
-            Rule.self
+            Rule.self,
+            FeedLogEntry.self
         )
         self.modelContainer = modelContainer
         self.backgroundRefreshScheduler = SystemBackgroundActivityRefreshScheduler(

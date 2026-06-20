@@ -112,6 +112,9 @@ bei geschlossener App.
   werden; die Aktionen sind im Artikel-Kontextmenue, Reader und macOS-Menue `Artikel`
   verfuegbar. In der Artikelansicht oeffnet auch ein Klick auf den Titel den
   Originalartikel, sofern ein gueltiger Link vorhanden ist.
+- Feed Eigenschaften sind als Basis umgesetzt: Rechtsklick auf einen Feed oeffnet
+  ein lokalisiertes Sheet mit Metadaten, editierbarem Aktualisierungsintervall,
+  naechstem Abruf, letztem Artikel und den neuesten 20 Feed-Log-Eintraegen.
 - Vorheriger/naechster Artikel ist als Basis umgesetzt: Reader-Toolbar und
   macOS-Menue `Artikel` navigieren mit `Cmd+↑`/`Cmd+↓` innerhalb der aktuell sichtbaren
   Feed- oder Smart-Filter-Liste; am Listenrand gibt es keinen Loop.
@@ -121,8 +124,8 @@ bei geschlossener App.
 ### Aktuell in Arbeit
 
 M2 Core Features:
-- Naechster Backlog-Ausbau: Feed Eigenschaften per Kontextmenue; danach OPML Import
-  aus dem MVP-Schnitt.
+- Naechster Backlog-Ausbau: OPML Import aus dem MVP-Schnitt; danach echte
+  Ordnerverwaltung fuer Feeds oder Tag-/Regel-Basis.
 
 ---
 
@@ -314,13 +317,15 @@ M2 Core Features:
 - Empfehlung: Titel und Refresh-Intervall editierbar. URL eher nicht frei aendern ohne erneute Validierung.
 
 #### 4.2.1 Feed Eigenschaften
-- Status: Entschieden
+- Status: Fertig als Basis
 - Prioritaet: MVP/v1
-- Entscheidung: Rechtsklick auf Feed zeigt `Feed Eigenschaften...`. Die erste Version
+- Implementiert: Rechtsklick auf Feed zeigt `Feed Eigenschaften...`. Die erste Version
   ist eine Informationsansicht mit editierbarem Aktualisierungsintervall.
 - Inhalt: Originaltitel, Website, XML-Adresse, Gefolgt-ab-Datum, Ordner-Platzhalter,
   letzter Artikel, Aktualisierungsintervall, naechster Abruf, zuletzt aktualisiert und
-  die letzten 20 Feed-Log-Eintraege.
+  die neuesten 20 Feed-Log-Eintraege.
+- Log: Feed hinzufuegen, erfolgreiche Aktualisierung und Refresh-Fehler werden in
+  SwiftData als `FeedLogEntry` gespeichert; pro Feed bleiben die neuesten 20 Eintraege.
 - Ordner: Sichtbares Feld mit Platzhalter, volle Ordnerverwaltung spaeter separat.
 
 #### 4.3 Feed loeschen
@@ -597,6 +602,8 @@ M2 Core Features:
 3. Smart Filter final: Alle, Heute, Ungelesen, Mit Stern?
 4. OPML-Gruppen spaeter als Ordner oder Tags importieren?
 5. CloudKit Sync-Umfang, insbesondere ob Artikel-Content synchronisiert wird.
+6. Ordnerverwaltung fuer Feeds: einfache Ordnerliste oder spaeter drag-and-drop
+   Hierarchie?
 
 ---
 

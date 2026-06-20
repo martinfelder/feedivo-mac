@@ -113,6 +113,7 @@ FeedivoMac/
 │   │
 │   ├── Models/                         # SwiftData @Model Klassen — alle fertig ✅
 │   │   ├── Feed.swift
+│   │   ├── FeedLogEntry.swift          # Feed-Abruf- und Fehlerlog ✅
 │   │   ├── Article.swift
 │   │   ├── Tag.swift
 │   │   └── Rule.swift
@@ -129,6 +130,8 @@ FeedivoMac/
 │   │   ├── Sidebar/
 │   │   │   ├── SidebarView.swift       # Linke Spalte: Feeds, + Button, @Query ✅
 │   │   │   ├── FeedRowView.swift       # Feed-Zeile mit Favicon/Fallback ✅
+│   │   │   ├── FeedPropertiesView.swift # Feed-Eigenschaften-Sheet ✅
+│   │   │   ├── FeedPropertiesFormatter.swift # Helper fuer Eigenschaften ✅
 │   │   │   └── TagRowView.swift        # Eine Tag-Zeile in der Sidebar (TODO)
 │   │   ├── ArticleList/
 │   │   │   ├── ArticleListView.swift   # Mittlere Spalte: echte Feed-Artikel anzeigen ✅
@@ -192,6 +195,7 @@ struct FeedivoApp: App {
     init() {
         let modelContainer = try! ModelContainer(
             for: Feed.self,
+            FeedLogEntry.self,
             Article.self,
             Tag.self,
             Rule.self
@@ -224,6 +228,8 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 - `AddFeedSheet` ist eine separate Struct in derselben Datei
 - Ruft `FeedViewModel.addFeed()` auf
 - Kontextmenue pro Feed ruft das Feed-Loeschen mit Bestaetigung an
+- Kontextmenue pro Feed oeffnet `Feed Eigenschaften...` mit Metadaten, Intervall
+  und Feed-Log
 
 ### FeedRowView.swift
 - Zeigt Feed-Titel mit kleinem Favicon aus `Feed.faviconURL`
@@ -250,6 +256,9 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
   aus Website-HTML oder `/favicon.ico` Fallback zu speichern
 - `refreshFeed(_:context:)` — aktualisiert den ausgewaehlten Feed, fuegt nur neue
   Artikel hinzu und aktualisiert Feed-Metadaten sowie `lastRefreshed`
+- Beim Hinzufuegen werden `siteURL`, `followedAt` und ein Info-Log geschrieben
+- Beim Aktualisieren werden Erfolg/Fehler als `FeedLogEntry` protokolliert; pro Feed
+  bleiben die neuesten 20 Log-Eintraege erhalten
 - `refreshAllFeeds(_:context:)` — aktualisiert alle gespeicherten Feeds nacheinander,
   laeuft bei einzelnen Fehlern weiter und meldet am Ende betroffene Feednamen
 - `deleteFeed(_:context:)` — loescht einen Feed aus SwiftData; Artikel werden ueber
@@ -267,6 +276,15 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
   `/favicon.ico` auf der Website-Root
 - Keine externe Google-S2-API; die Favicon-Strategie bleibt eigenstaendig und
   datensparsamer
+
+### FeedPropertiesView.swift / FeedPropertiesFormatter.swift
+- Rechtsklick auf Feed → `Feed Eigenschaften...`
+- Sheet zeigt Originaltitel, Website, XML-Adresse, Gefolgt-ab-Datum, Ordner-Platzhalter,
+  letzten Artikel, Aktualisierungsintervall, naechsten Abruf, zuletzt aktualisiert
+  und die neuesten 20 Feed-Log-Eintraege
+- Aktualisierungsintervall ist direkt im Sheet editierbar und wird in SwiftData gespeichert
+- `FeedPropertiesFormatter` kapselt naechsten Abruf, neuesten Artikel und Log-Limit,
+  damit diese Logik ohne UI testbar bleibt
 
 ### BackgroundRefreshSettings.swift / BackgroundRefreshService.swift
 - `BackgroundRefreshSettings` kapselt `@AppStorage` Keys, Defaults und erlaubte
@@ -415,10 +433,22 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
     var title: String
     var feedDescription: String?
     var faviconURL: String?
+    var siteURL: String?
+    var followedAt: Date?
+    var folderName: String?
     var lastRefreshed: Date?
     var refreshIntervalMinutes: Int          // Default: 60
     @Relationship(deleteRule: .cascade) var articles: [Article]
+    @Relationship(deleteRule: .cascade, inverse: \FeedLogEntry.feed) var logEntries: [FeedLogEntry]
     @Relationship var tags: [Tag]
+}
+
+@Model class FeedLogEntry {
+    var id: UUID
+    var createdAt: Date
+    var kind: String                         // "info" oder "error"
+    var message: String
+    @Relationship var feed: Feed?
 }
 
 @Model class Article {
@@ -603,8 +633,11 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 - [x] Reader-Anzeigemodus: global zwischen nativem Reader und Originalansicht wechseln
 - [x] Native Reader Rendering erweitert: Ueberschriften, Zitate und Listenpunkte
 - [x] Navigation Vor/Zurueck fuer Artikel innerhalb der aktuell sichtbaren Liste
+- [x] Feed Eigenschaften per Rechtsklick: Metadaten, editierbares Refresh-Intervall
+  und Feed-Log als Basis
 
 ### M3 – Tags, Regeln & Sync
+- [ ] Ordner fuer Feeds als eigenes Organisationsfeature ausbauen
 - [ ] Tag-System: Tags erstellen (Name + Farbe), Feeds und Artikeln manuell zuweisen
 - [ ] Sidebar: Abschnitt "Tags" mit Filterung
 - [ ] Erweiterte/eigene Smart Filter spaeter pruefen
@@ -652,8 +685,9 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 - M1 abgeschlossen
 - Aktuell M2/Backlog-Ausbau: Basis-Feed/Reader/Refresh/Favicons, Smart Filter,
   Link-Aktionen, globaler Reader-Anzeigemodus und strukturierte Reader-Bloecke sind
-  umgesetzt; Navigation Vor/Zurueck fuer Artikel ist ebenfalls als Basis umgesetzt.
-  Naechster sinnvoller Block ist OPML Import aus dem MVP-Schnitt
+  umgesetzt; Navigation Vor/Zurueck fuer Artikel und Feed Eigenschaften sind ebenfalls
+  als Basis umgesetzt. Naechster sinnvoller Block ist OPML Import aus dem MVP-Schnitt
+  oder danach die echte Ordnerverwaltung fuer Feeds.
 - Feature-Roadmap ist in `docs/FEATURES.md` dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
@@ -744,3 +778,7 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 - 2026-06-20: Navigation Vor/Zurueck fuer Artikel umgesetzt: Reader-Toolbar und
   macOS-Menue `Artikel` navigieren mit `Cmd+↑`/`Cmd+↓` innerhalb der aktuell
   sichtbaren Feed- oder Smart-Filter-Liste und stoppen am Listenrand
+- 2026-06-20: Feed Eigenschaften umgesetzt: Rechtsklick auf Feed oeffnet ein
+  lokalisiertes Sheet mit Feed-Metadaten, editierbarem Aktualisierungsintervall,
+  naechstem Abruf, letztem Artikel und den neuesten 20 Feed-Log-Eintraegen; Feed-Adds
+  und Refresh-Erfolge/-Fehler werden in SwiftData protokolliert

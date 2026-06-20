@@ -38,6 +38,8 @@ final class FeedViewModel {
                 title: parsedFeed.title,
                 feedDescription: parsedFeed.description,
                 faviconURL: await faviconURL(for: parsedFeed),
+                siteURL: parsedFeed.siteURL,
+                followedAt: Date(),
                 lastRefreshed: Date()
             )
 
@@ -54,6 +56,12 @@ final class FeedViewModel {
             }
 
             context.insert(feed)
+            appendLog(
+                kind: "info",
+                message: L10n.feedLogAdded,
+                to: feed,
+                context: context
+            )
             try context.save()
         } catch let error as LocalizedError {
             errorMessage = error.errorDescription ?? L10n.feedErrorAddFailed
@@ -76,8 +84,22 @@ final class FeedViewModel {
         do {
             try await refreshFeedContents(feed, context: context)
         } catch let error as LocalizedError {
+            appendLog(
+                kind: "error",
+                message: error.errorDescription ?? L10n.feedErrorParsingFailed,
+                to: feed,
+                context: context
+            )
+            try? context.save()
             errorMessage = error.errorDescription ?? L10n.feedErrorParsingFailed
         } catch {
+            appendLog(
+                kind: "error",
+                message: L10n.feedErrorParsingFailed,
+                to: feed,
+                context: context
+            )
+            try? context.save()
             errorMessage = L10n.feedErrorParsingFailed
         }
 
@@ -97,7 +119,23 @@ final class FeedViewModel {
         for feed in feeds {
             do {
                 try await refreshFeedContents(feed, context: context)
+            } catch let error as LocalizedError {
+                appendLog(
+                    kind: "error",
+                    message: error.errorDescription ?? L10n.feedErrorParsingFailed,
+                    to: feed,
+                    context: context
+                )
+                try? context.save()
+                failedFeedTitles.append(feed.title)
             } catch {
+                appendLog(
+                    kind: "error",
+                    message: L10n.feedErrorParsingFailed,
+                    to: feed,
+                    context: context
+                )
+                try? context.save()
                 failedFeedTitles.append(feed.title)
             }
         }
@@ -156,6 +194,7 @@ final class FeedViewModel {
 
         feed.title = parsedFeed.title
         feed.feedDescription = parsedFeed.description
+        feed.siteURL = parsedFeed.siteURL
         if let faviconURL = await faviconURL(for: parsedFeed) {
             feed.faviconURL = faviconURL
         }
@@ -175,7 +214,37 @@ final class FeedViewModel {
             )
         }
 
+        appendLog(
+            kind: "info",
+            message: L10n.feedLogRefreshed(newArticleCount: newArticles.count),
+            to: feed,
+            context: context
+        )
         try context.save()
+    }
+
+    @MainActor
+    private func appendLog(
+        kind: String,
+        message: String,
+        to feed: Feed,
+        context: ModelContext
+    ) {
+        let entry = FeedLogEntry(kind: kind, message: message, feed: feed)
+        context.insert(entry)
+        feed.logEntries.append(entry)
+        pruneLogEntries(for: feed, context: context)
+    }
+
+    @MainActor
+    private func pruneLogEntries(for feed: Feed, context: ModelContext) {
+        let entriesToDelete = feed.logEntries
+            .sorted { $0.createdAt > $1.createdAt }
+            .dropFirst(20)
+
+        for entry in entriesToDelete {
+            context.delete(entry)
+        }
     }
 
     private func faviconURL(for parsedFeed: ParsedFeed) async -> String? {

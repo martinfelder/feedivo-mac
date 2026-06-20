@@ -6,6 +6,7 @@ struct SidebarView: View {
     @Binding var selection: SidebarSelection?
     let onRequestAddFeed: () -> Void
     let onRequestDeleteFeed: (Feed) -> Void
+    @State private var feedShowingProperties: Feed?
 
     var body: some View {
         List(selection: $selection) {
@@ -30,6 +31,14 @@ struct SidebarView: View {
                         FeedRowView(feed: feed)
                             .tag(SidebarSelection.feed(feed.persistentModelID))
                             .contextMenu {
+                                Button {
+                                    feedShowingProperties = feed
+                                } label: {
+                                    Label(L10n.feedPropertiesCommand, systemImage: "info.circle")
+                                }
+
+                                Divider()
+
                                 Button(role: .destructive) {
                                     onRequestDeleteFeed(feed)
                                 } label: {
@@ -41,6 +50,9 @@ struct SidebarView: View {
             }
         }
         .navigationTitle("Feedivo")
+        .sheet(item: $feedShowingProperties) { feed in
+            FeedPropertiesView(feed: feed)
+        }
         .toolbar {
             ToolbarItem {
                 Button {
