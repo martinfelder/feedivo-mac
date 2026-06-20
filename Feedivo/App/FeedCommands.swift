@@ -12,6 +12,16 @@ struct FeedCommands: Commands {
             .keyboardShortcut("n", modifiers: [.command])
             .disabled(feedCommandActions?.canAddFeed != true)
 
+            Button(L10n.feedImportOPMLCommand) {
+                feedCommandActions?.requestImportOPML()
+            }
+            .disabled(feedCommandActions?.canImportOPML != true)
+
+            Button(L10n.feedExportOPMLCommand) {
+                feedCommandActions?.requestExportOPML()
+            }
+            .disabled(feedCommandActions?.canExportOPML != true)
+
             Divider()
 
             Button(L10n.feedRefreshAllCommand) {

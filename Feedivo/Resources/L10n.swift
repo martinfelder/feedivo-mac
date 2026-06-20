@@ -9,6 +9,10 @@ enum L10n {
     static let sidebarAddFeedButton = LocalizedStringKey("sidebar.addFeed.button")
     static let sidebarAddFeedTitle = LocalizedStringKey("sidebar.addFeed.title")
     static let sidebarAddFeedURLPlaceholder = LocalizedStringKey("sidebar.addFeed.url.placeholder")
+    static let sidebarFoldersSection = LocalizedStringKey("sidebar.folders.section")
+    static let sidebarAddFolderButton = LocalizedStringKey("sidebar.addFolder.button")
+    static let sidebarAddFolderTitle = LocalizedStringKey("sidebar.addFolder.title")
+    static let sidebarAddFolderNamePlaceholder = LocalizedStringKey("sidebar.addFolder.name.placeholder")
     static let sidebarSmartFiltersSection = LocalizedStringKey("sidebar.smartFilters.section")
     static let smartFilterAllArticles = LocalizedStringKey("smartFilter.allArticles")
     static let smartFilterUnread = LocalizedStringKey("smartFilter.unread")
@@ -44,6 +48,12 @@ enum L10n {
     static let settingsLanguageEnglish = LocalizedStringKey("settings.language.english")
     static let settingsLanguageFrench = LocalizedStringKey("settings.language.french")
     static let settingsLanguageItalian = LocalizedStringKey("settings.language.italian")
+    static let settingsAppearanceSection = LocalizedStringKey("settings.appearance.section")
+    static let settingsInterfaceTextSizePicker = LocalizedStringKey("settings.interfaceTextSize.picker")
+    static let settingsInterfaceTextSizeSmall = LocalizedStringKey("settings.interfaceTextSize.small")
+    static let settingsInterfaceTextSizeStandard = LocalizedStringKey("settings.interfaceTextSize.standard")
+    static let settingsInterfaceTextSizeLarge = LocalizedStringKey("settings.interfaceTextSize.large")
+    static let settingsInterfaceTextSizeExtraLarge = LocalizedStringKey("settings.interfaceTextSize.extraLarge")
     static let settingsMarkReadOnOpenTitle = LocalizedStringKey("settings.markReadOnOpen.title")
     static let settingsMarkReadOnOpenDescription = LocalizedStringKey("settings.markReadOnOpen.description")
     static let settingsRefreshSection = LocalizedStringKey("settings.refresh.section")
@@ -51,6 +61,7 @@ enum L10n {
     static let settingsAutomaticRefreshIntervalPicker = LocalizedStringKey("settings.automaticRefresh.interval.picker")
     static let settingsAutomaticRefreshDescription = LocalizedStringKey("settings.automaticRefresh.description")
     static let feedPropertiesTitle = LocalizedStringKey("feed.properties.title")
+    static let feedPropertiesDetailsTitle = LocalizedStringKey("feed.properties.detailsTitle")
     static let feedPropertiesOriginalTitle = LocalizedStringKey("feed.properties.originalTitle")
     static let feedPropertiesWebsite = LocalizedStringKey("feed.properties.website")
     static let feedPropertiesXMLAddress = LocalizedStringKey("feed.properties.xmlAddress")
@@ -61,6 +72,7 @@ enum L10n {
     static let feedPropertiesNextFetch = LocalizedStringKey("feed.properties.nextFetch")
     static let feedPropertiesLastRefreshed = LocalizedStringKey("feed.properties.lastRefreshed")
     static let feedPropertiesLogTitle = LocalizedStringKey("feed.properties.logTitle")
+    static let feedPropertiesLogEntries = LocalizedStringKey("feed.properties.logEntries")
     static let feedPropertiesNoLogEntries = LocalizedStringKey("feed.properties.noLogEntries")
 
     static var articleRowStarRemove: String { String(localized: "articleRow.star.remove") }
@@ -75,6 +87,7 @@ enum L10n {
     static var articleCopyLinkCommand: String { String(localized: "article.copyLink.command") }
     static var articleOpenOriginalCommand: String { String(localized: "article.openOriginal.command") }
     static var readerDisplayModeToggleHelp: String { String(localized: "reader.displayMode.toggle.help") }
+    static var sidebarAddFolderDuplicateError: String { String(localized: "sidebar.addFolder.duplicateError") }
     static var feedErrorInvalidURL: String { String(localized: "feed.error.invalidURL") }
     static var feedErrorParsingFailed: String { String(localized: "feed.error.parsingFailed") }
     static var feedErrorEmptyURL: String { String(localized: "feed.error.emptyURL") }
@@ -84,12 +97,26 @@ enum L10n {
     static var feedRefreshAllCommand: String { String(localized: "feed.refreshAll.command") }
     static var feedRefreshCommand: String { String(localized: "feed.refresh.command") }
     static var feedDeleteCommand: String { String(localized: "feed.delete.command") }
+    static var feedImportOPMLCommand: String { String(localized: "feed.importOPML.command") }
+    static var feedExportOPMLCommand: String { String(localized: "feed.exportOPML.command") }
     static var feedPropertiesCommand: String { String(localized: "feed.properties.command") }
+    static var feedPropertiesCopyXMLAddress: String { String(localized: "feed.properties.copyXMLAddress") }
     static var feedPropertiesNoFolder: String { String(localized: "feed.properties.noFolder") }
     static var feedPropertiesUnavailable: String { String(localized: "feed.properties.unavailable") }
     static var feedLogAdded: String { String(localized: "feed.log.added") }
+    static var feedLogImportedFromOPML: String { String(localized: "feed.log.importedFromOPML") }
+    static var opmlImportResultTitle: String { String(localized: "opml.import.result.title") }
+    static var opmlImportFailedTitle: String { String(localized: "opml.import.failed.title") }
     static var feedDeleteConfirmButton: String { String(localized: "feed.delete.confirmButton") }
     static var feedDeleteConfirmationTitle: String { String(localized: "feed.delete.confirmation.title") }
+
+    static func opmlImportResultMessage(imported: Int, skippedDuplicates: Int) -> String {
+        String.localizedStringWithFormat(
+            String(localized: "opml.import.result.message"),
+            imported,
+            skippedDuplicates
+        )
+    }
 
     static func feedDeleteConfirmationMessage(feedTitle: String) -> String {
         String.localizedStringWithFormat(

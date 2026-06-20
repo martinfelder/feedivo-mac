@@ -3,12 +3,23 @@ import SwiftUI
 struct FeedCommandActions {
     let selectedFeed: Feed?
     let requestAddFeed: () -> Void
+    let requestImportOPML: () -> Void
+    let requestExportOPML: () -> Void
     let refreshAllFeeds: () -> Void
     let refreshSelectedFeed: () -> Void
     let requestDelete: () -> Void
+    let hasFeeds: Bool
 
     var canAddFeed: Bool {
         true
+    }
+
+    var canImportOPML: Bool {
+        true
+    }
+
+    var canExportOPML: Bool {
+        hasFeeds
     }
 
     var canRefreshAllFeeds: Bool {

@@ -74,7 +74,9 @@ bei geschlossener App.
   rechts oben und Stern rechts unten.
 - Artikelbilder werden beim Feed-Parsing robuster aus Media RSS, iTunes Image,
   Bild-Enclosures und HTML-Content extrahiert; relative Bild-URLs werden zu absoluten
-  URLs normalisiert.
+  URLs normalisiert. Falls ein Feed-Item kein Bild enthaelt, kann Feedivo die
+  verlinkte Artikelseite pruefen und `og:image`/`twitter:image` als Artikelbild
+  uebernehmen.
 - Artikel koennen per Kontextmenue gelesen/ungelesen und per Stern-Button markiert
   werden.
 - Artikelaktionen koennen auch per macOS-Menue `Artikel` und Tastaturkuerzeln
@@ -93,6 +95,9 @@ bei geschlossener App.
   und Italienisch, plus zentraler `L10n.swift` Helper.
 - In den Einstellungen kann die App-Sprache auf `Nach System`, Deutsch, Englisch,
   Franzoesisch oder Italienisch gesetzt werden.
+- In den Einstellungen kann die app-weite Oberflaechenschrift auf Klein, Standard,
+  Gross oder Sehr gross gestellt werden. Diese UI-Groesse ist bewusst getrennt von
+  der Reader-Typografie.
 - In der Artikelansicht koennen Titel- und Fliesstext-Schrift ueber kuratierte
   Presets direkt per Toolbar-Popover und in den Einstellungen getrennt gewaehlt werden;
   Fliesstext-Groesse, Titel-/Fliesstext-Zeilenabstand und Artikelbreite sind dort
@@ -108,24 +113,36 @@ bei geschlossener App.
 - Smart Filter sind in der Sidebar umgesetzt: Alle Artikel, Ungelesen, Mit Stern
   und Heute zeigen feeduebergreifend die passenden gespeicherten Artikel. Die
   Filter-Icons haben passende Farben: blau, tuerkis, gelb und gruen.
+- Die linke Sidebar nutzt das umgesetzte Design 11 aus den Reader-Prototypen:
+  dunkler Hintergrund, dezente Auswahlflaeche, bestehende Smart-Filter-Icons und
+  weiterhin helle Artikel-Liste/Reader-Spalten.
 - Artikel-Links koennen kopiert und Originalartikel im Standardbrowser geoeffnet
   werden; die Aktionen sind im Artikel-Kontextmenue, Reader und macOS-Menue `Artikel`
   verfuegbar. In der Artikelansicht oeffnet auch ein Klick auf den Titel den
   Originalartikel, sofern ein gueltiger Link vorhanden ist.
 - Feed Eigenschaften sind als Basis umgesetzt: Rechtsklick auf einen Feed oeffnet
-  ein lokalisiertes Sheet mit Metadaten, editierbarem Aktualisierungsintervall,
-  naechstem Abruf, letztem Artikel und den neuesten 20 Feed-Log-Eintraegen.
+  ein lokalisiertes Sheet mit Feed-Header, Statusmetriken, Metadaten, editierbarem
+  Aktualisierungsintervall, naechstem Abruf, letztem Artikel, Kopierbutton fuer die
+  XML-Adresse und den neuesten 20 Feed-Log-Eintraegen.
 - Vorheriger/naechster Artikel ist als Basis umgesetzt: Reader-Toolbar und
   macOS-Menue `Artikel` navigieren mit `Cmd+↑`/`Cmd+↓` innerhalb der aktuell sichtbaren
   Feed- oder Smart-Filter-Liste; am Listenrand gibt es keinen Loop.
+- OPML Import/Export ist umgesetzt: Import liest `.opml`/`.xml`, ueberspringt
+  Duplikate anhand der Feed-URL, uebernimmt OPML-Gruppen als `folderName` und
+  aktualisiert neu importierte Feeds direkt ueber den normalen Refresh-Pfad;
+  Export schreibt die aktuelle Feed-Liste als `Feedivo.opml`.
+- Einfache Ordnerverwaltung ist umgesetzt: Feeds stehen in der Sidebar-Section
+  `Ordner`, der Section-Titel hat einen + Button zum Erstellen neuer Ordner,
+  leere Ordner werden als `FeedFolder` gespeichert, Ordner sind aufklappbar,
+  Feeds in Ordnern sind eingerueckt, und der Ordnername kann in den Feed-Eigenschaften
+  bearbeitet oder geleert werden.
 - Projekt baut und Unit-Tests laufen; UI-Test-Runner blockierte lokal am 2026-06-19
   vor dem App-Launch an einer alten Feedivo-PID.
 
 ### Aktuell in Arbeit
 
 M2 Core Features:
-- Naechster Backlog-Ausbau: OPML Import aus dem MVP-Schnitt; danach echte
-  Ordnerverwaltung fuer Feeds oder Tag-/Regel-Basis.
+- Naechster Backlog-Ausbau: Tag-/Regel-Basis.
 
 ---
 
@@ -260,7 +277,9 @@ M2 Core Features:
 - Implementiert: `ArticleRowView` mit Titel, Datum, Summary, Statuspunkt, Stern und
   optionalem Bild.
 - Bildbasis: `FeedService` speichert absolute `Article.imageURL` Werte aus Media RSS,
-  iTunes Image, Bild-Enclosures, JSON Feed Bildern oder HTML-`img` Quellen.
+  iTunes Image, Bild-Enclosures, JSON Feed Bildern oder HTML-`img` Quellen. Wenn ein
+  RSS-Item kein Bild enthaelt, nutzt `fetchFeed` als Fallback die Metabilder der
+  verlinkten Artikelseite (`og:image`/`twitter:image`).
 
 #### 2.2 Sortierung
 - Status: In Diskussion
@@ -286,7 +305,14 @@ M2 Core Features:
 - Prioritaet: MVP
 - Implementiert: Feed-Titel mit Favicon aus `Feed.faviconURL`; Fallback ist das
   RSS-Systemsymbol.
-- Offen: Ungelesen-Zaehler, Gruppierung.
+- Design: Dunkle linke Sidebar nach Prototyp Design 11; aktive Zeilen werden nur
+  dezent aufgehellt, damit die linke Spalte ruhig bleibt.
+- Ordner: Feeds stehen in der Section `Ordner`; Feeds mit `folderName` werden unter
+  einem Ordnerkopf gruppiert, Feeds ohne Ordner bleiben direkt in dieser Section.
+  Neben dem Section-Titel erstellt ein + Button neue leere Ordner. Feeds innerhalb
+  eines Ordners werden eingerueckt angezeigt; Ordner sind per Chevron auf- und
+  zuklappbar.
+- Offen: Ungelesen-Zaehler, Drag & Drop fuer Ordner.
 
 #### 3.2 Smart Filter
 - Status: Fertig als Basis
@@ -294,6 +320,8 @@ M2 Core Features:
 - Implementiert: Sidebar-Filter fuer Alle Artikel, Ungelesen, Mit Stern und Heute.
   Die Artikelliste nutzt dafuer alle gespeicherten Artikel statt nur einen Feed.
   Die Filter-Icons sind farbig und passen semantisch zum jeweiligen Symbol.
+- Entscheidung: Die bestehenden SF-Symbol-Icons bleiben auch im dunklen Sidebar-Design
+  erhalten; nur Hintergrund und Auswahlstil wurden geaendert.
 - Spaeter: Eigene Smart Filter und weitere Zeitfilter wie Gestern.
 
 #### 3.3 Tag-Abschnitt
@@ -319,14 +347,16 @@ M2 Core Features:
 #### 4.2.1 Feed Eigenschaften
 - Status: Fertig als Basis
 - Prioritaet: MVP/v1
-- Implementiert: Rechtsklick auf Feed zeigt `Feed Eigenschaften...`. Die erste Version
-  ist eine Informationsansicht mit editierbarem Aktualisierungsintervall.
-- Inhalt: Originaltitel, Website, XML-Adresse, Gefolgt-ab-Datum, Ordner-Platzhalter,
-  letzter Artikel, Aktualisierungsintervall, naechster Abruf, zuletzt aktualisiert und
-  die neuesten 20 Feed-Log-Eintraege.
+- Implementiert: Rechtsklick auf Feed zeigt `Feed Eigenschaften...`. Die Ansicht hat
+  einen Feed-Header mit Icon/Favicon-Fallback, Website und Statusmetriken sowie eine
+  gruppierte Detailansicht mit editierbarem Aktualisierungsintervall.
+- Inhalt: Originaltitel, Website, XML-Adresse mit Kopierbutton, Gefolgt-ab-Datum,
+  editierbarer Ordner, letzter Artikel, Aktualisierungsintervall, naechster Abruf,
+  zuletzt aktualisiert und die neuesten 20 Feed-Log-Eintraege.
 - Log: Feed hinzufuegen, erfolgreiche Aktualisierung und Refresh-Fehler werden in
   SwiftData als `FeedLogEntry` gespeichert; pro Feed bleiben die neuesten 20 Eintraege.
-- Ordner: Sichtbares Feld mit Platzhalter, volle Ordnerverwaltung spaeter separat.
+- Ordner: Der Ordnername wird direkt im Sheet bearbeitet; leere Eingaben entfernen
+  den Ordner vom Feed.
 
 #### 4.3 Feed loeschen
 - Status: Fertig als Basis
@@ -387,14 +417,19 @@ M2 Core Features:
 ### 7. OPML
 
 #### 7.1 OPML Import
-- Status: In Diskussion
+- Status: Fertig als Basis
 - Prioritaet: MVP
-- Empfehlung: Frueh bauen. Duplikate anhand Feed-URL erkennen.
+- Umsetzung: macOS-Dateiimport fuer `.opml`/`.xml`; Duplikate werden anhand der
+  normalisierten Feed-URL uebersprungen. Neue Feeds werden direkt nach dem Import
+  ueber den normalen Refresh-Pfad aktualisiert.
+- Hinweis: OPML-Gruppen werden als `Feed.folderName` gespeichert und dadurch direkt
+  in der Sidebar gruppiert.
 
 #### 7.2 OPML Export
-- Status: In Diskussion
+- Status: Fertig als Basis
 - Prioritaet: v1
-- Empfehlung: Nach Import.
+- Umsetzung: Exportiert die aktuelle Feed-Liste als OPML 2.0 mit gruppierten Feeds
+  und XML-escaping.
 
 ### 8. Einstellungen
 
@@ -409,8 +444,11 @@ M2 Core Features:
 #### 8.2 Darstellung
 - Status: Fertig als Basis
 - Prioritaet: v1
-- Implementiert: Reader-Schriften, Fliesstext-Groesse sowie Titel- und
-  Fliesstext-Zeilenabstand und Artikelbreite.
+- Implementiert: App-weite Oberflaechenschriftgroesse, Reader-Schriften,
+  Fliesstext-Groesse sowie Titel- und Fliesstext-Zeilenabstand und Artikelbreite.
+- Entscheidung: UI-Schriftgroesse und Reader-Typografie bleiben getrennt, damit
+  die App-Bedienung groesser werden kann, ohne die Artikel-Leseeinstellungen zu
+  veraendern.
 - Naechster Schritt: Theme System/Hell/Dunkel spaeter.
 
 ### 9. Suche
@@ -513,17 +551,25 @@ M2 Core Features:
 ### 15. Feeds organisieren
 
 #### 15.1 Ordner
-- Status: Entschieden
+- Status: Fertig als Basis
 - Prioritaet: v1/spaeter
-- Empfehlung: Maximal eine Ebene. Feed gehoert zuerst nur in einen Ordner.
+- Implementiert: Maximal eine Ebene. Feed gehoert zuerst nur in einen Ordner.
+  Sidebar zeigt die Section `Ordner` mit + Button fuer neue Ordner; leere Ordner
+  werden als `FeedFolder` gespeichert, Feed-Zuordnung erfolgt weiter ueber
+  `Feed.folderName`; Ordner sind aufklappbar und Feeds innerhalb eines Ordners sind
+  eingerueckt. Bearbeitung der Feed-Zuordnung erfolgt in den Feed-Eigenschaften.
+- Spaeter: Drag & Drop, Umbenennen/Loeschen als eigene Ordneraktionen und
+  Ungelesen-Zaehler pro Ordner.
 
 #### 15.2 Drag & Drop organisieren
 - Status: In Diskussion
 - Prioritaet: Spaeter
 
 #### 15.3 OPML-Gruppen als Ordner
-- Status: In Diskussion
+- Status: Fertig als Basis
 - Prioritaet: v1/spaeter
+- Umsetzung: OPML-Gruppen werden beim Import als `Feed.folderName` gespeichert und
+  dadurch direkt in der Sidebar gruppiert.
 
 ### 16. Intelligente Ordner
 

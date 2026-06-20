@@ -1,0 +1,2116 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Feedivo Reader Prototypen</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #e9edf2;
+      --surface: rgba(255, 255, 255, 0.86);
+      --surface-solid: #ffffff;
+      --line: rgba(25, 32, 45, 0.12);
+      --line-strong: rgba(25, 32, 45, 0.2);
+      --text: #1c1f24;
+      --muted: #717986;
+      --muted-2: #9aa2ad;
+      --blue: #0875f5;
+      --teal: #00a7b5;
+      --green: #24a148;
+      --yellow: #f2b400;
+      --red: #ff5f57;
+      --orange: #ff9f0a;
+      --purple: #7c5cff;
+      --shadow: 0 28px 80px rgba(22, 30, 42, 0.18);
+      --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Helvetica Neue", Arial, sans-serif;
+      --font-reader: "Newsreader", Georgia, "Times New Roman", serif;
+      --reader-size: 19px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        linear-gradient(140deg, #f7f8fb 0%, #dbe4ec 50%, #f4f1ed 100%);
+      color: var(--text);
+      font-family: var(--font-ui);
+      overflow: hidden;
+    }
+
+    button, input {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      color: inherit;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .stage {
+      height: 100vh;
+      padding: 24px;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      gap: 14px;
+    }
+
+    .switcher {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      min-width: 0;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 220px;
+    }
+
+    .brand-mark {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      background: #111827;
+      color: white;
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.2;
+    }
+
+    .brand p {
+      margin: 2px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .variant-tabs {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+      padding: 5px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(24px);
+      box-shadow: 0 10px 35px rgba(25, 32, 45, 0.08);
+      overflow-x: auto;
+    }
+
+    .variant-tab {
+      height: 34px;
+      padding: 0 12px;
+      border-radius: 8px;
+      background: transparent;
+      white-space: nowrap;
+      color: #4b5563;
+      font-weight: 650;
+      font-size: 13px;
+    }
+
+    .variant-tab[aria-selected="true"] {
+      background: #111827;
+      color: #fff;
+      box-shadow: 0 8px 18px rgba(17, 24, 39, 0.2);
+    }
+
+    .global-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .ghost-btn, .icon-btn, .pill-btn {
+      min-width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      display: inline-grid;
+      place-items: center;
+      background: rgba(255, 255, 255, 0.68);
+      border: 1px solid var(--line);
+      color: #313843;
+      font-weight: 700;
+      box-shadow: 0 8px 24px rgba(25, 32, 45, 0.08);
+    }
+
+    .pill-btn {
+      display: inline-flex;
+      gap: 8px;
+      padding: 0 12px;
+      white-space: nowrap;
+      font-size: 13px;
+    }
+
+    .prototype-shell {
+      min-height: 0;
+      border-radius: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.86);
+      background: rgba(255, 255, 255, 0.58);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .prototype {
+      display: none;
+      height: 100%;
+      min-height: 0;
+    }
+
+    .prototype.active {
+      display: grid;
+    }
+
+    .traffic {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .dot.red { background: var(--red); }
+    .dot.yellow { background: #ffbd2e; }
+    .dot.green { background: #28c840; }
+
+    .sidebar {
+      background: rgba(246, 248, 251, 0.86);
+      border-right: 1px solid var(--line);
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .side-top {
+      height: 62px;
+      padding: 18px 18px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .side-section {
+      padding: 10px 14px;
+    }
+
+    .section-label {
+      margin: 10px 8px 7px;
+      color: var(--muted-2);
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .nav-item {
+      width: 100%;
+      height: 36px;
+      border-radius: 8px;
+      padding: 0 10px;
+      display: grid;
+      grid-template-columns: 22px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 8px;
+      background: transparent;
+      color: #303640;
+      text-align: left;
+      font-weight: 650;
+    }
+
+    .nav-item.active {
+      background: rgba(30, 36, 45, 0.1);
+    }
+
+    .nav-item .count {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .feed-dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 5px;
+      display: inline-grid;
+      place-items: center;
+      color: white;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .feed-dot.blue { background: var(--blue); }
+    .feed-dot.teal { background: var(--teal); }
+    .feed-dot.yellow { background: var(--yellow); color: #332600; }
+    .feed-dot.green { background: var(--green); }
+    .feed-dot.dark { background: #172033; }
+
+    .filter-icon {
+      width: 18px;
+      height: 18px;
+      display: inline-grid;
+      place-items: center;
+      position: relative;
+      flex: 0 0 auto;
+    }
+
+    .filter-icon.all::before {
+      content: "";
+      width: 14px;
+      height: 10px;
+      border: 1.8px solid var(--blue);
+      border-radius: 4px;
+      transform: translateY(1px);
+    }
+
+    .filter-icon.all::after {
+      content: "";
+      position: absolute;
+      width: 7px;
+      height: 1.8px;
+      border-radius: 2px;
+      background: var(--blue);
+      top: 5px;
+    }
+
+    .filter-icon.unread::before {
+      content: "";
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--teal);
+    }
+
+    .filter-icon.star::before {
+      content: "★";
+      color: var(--yellow);
+      font-size: 18px;
+      line-height: 1;
+      transform: translateY(-1px);
+    }
+
+    .filter-icon.today::before {
+      content: "";
+      width: 15px;
+      height: 14px;
+      border: 1.8px solid #22c55e;
+      border-radius: 3px;
+    }
+
+    .filter-icon.today::after {
+      content: "";
+      position: absolute;
+      width: 9px;
+      height: 1.8px;
+      top: 6px;
+      background: #22c55e;
+      box-shadow: 0 4px 0 #22c55e;
+      opacity: 0.9;
+    }
+
+    .list {
+      background: rgba(255, 255, 255, 0.72);
+      border-right: 1px solid var(--line);
+      min-width: 0;
+      overflow-y: auto;
+    }
+
+    .list-header {
+      min-height: 62px;
+      padding: 16px 18px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 4;
+      background: rgba(255, 255, 255, 0.82);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(25, 32, 45, 0.06);
+    }
+
+    .list-title {
+      min-width: 0;
+    }
+
+    .list-title h2 {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.1;
+    }
+
+    .list-title p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .search {
+      height: 34px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: rgba(247, 249, 252, 0.88);
+      padding: 0 10px;
+      color: var(--text);
+      min-width: 130px;
+      width: 34%;
+      outline: 0;
+    }
+
+    .article-list {
+      display: grid;
+      gap: 2px;
+      padding: 8px 10px 16px;
+    }
+
+    .article-item {
+      width: 100%;
+      min-height: 86px;
+      border-radius: 8px;
+      padding: 10px;
+      display: grid;
+      grid-template-columns: 66px minmax(0, 1fr) 22px;
+      gap: 12px;
+      align-items: center;
+      text-align: left;
+      background: transparent;
+      border: 1px solid transparent;
+    }
+
+    .article-item:hover {
+      background: rgba(20, 30, 46, 0.045);
+    }
+
+    .article-item.selected {
+      background: var(--blue);
+      color: #fff;
+      box-shadow: 0 10px 24px rgba(8, 117, 245, 0.22);
+    }
+
+    .article-item.selected .meta,
+    .article-item.selected .excerpt,
+    .article-item.selected .feed-name {
+      color: rgba(255, 255, 255, 0.78);
+    }
+
+    .thumb {
+      width: 66px;
+      height: 56px;
+      border-radius: 8px;
+      object-fit: cover;
+      background: #d6dde8;
+    }
+
+    .item-copy { min-width: 0; }
+
+    .item-title {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.22;
+      font-weight: 780;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .feed-name, .meta, .excerpt {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.25;
+    }
+
+    .excerpt {
+      margin-top: 5px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .unread {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--blue);
+      justify-self: center;
+      align-self: start;
+      margin-top: 8px;
+    }
+
+    .article-item.selected .unread { background: rgba(255, 255, 255, 0.78); }
+
+    .reader {
+      min-width: 0;
+      overflow-y: auto;
+      background: var(--surface-solid);
+      position: relative;
+    }
+
+    .reader-toolbar {
+      min-height: 62px;
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      background: rgba(255, 255, 255, 0.74);
+      backdrop-filter: blur(22px);
+      border-bottom: 1px solid rgba(25, 32, 45, 0.06);
+    }
+
+    .segmented {
+      height: 36px;
+      display: flex;
+      gap: 3px;
+      padding: 4px;
+      border-radius: 10px;
+      background: rgba(243, 245, 248, 0.9);
+      border: 1px solid rgba(25, 32, 45, 0.07);
+    }
+
+    .segmented button {
+      min-width: 96px;
+      padding: 0 12px;
+      border-radius: 7px;
+      background: transparent;
+      color: #5b6470;
+      font-size: 13px;
+      font-weight: 750;
+      white-space: nowrap;
+    }
+
+    .segmented button.active {
+      background: #fff;
+      color: #222832;
+      box-shadow: 0 2px 10px rgba(25, 32, 45, 0.12);
+    }
+
+    .reader-body {
+      max-width: var(--reader-width, 760px);
+      margin: 0 auto;
+      padding: 34px 28px 80px;
+    }
+
+    .kicker {
+      color: #7c705f;
+      font-family: var(--font-reader);
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .headline {
+      margin: 16px 0 22px;
+      font-size: clamp(34px, 4vw, 60px);
+      line-height: 1.08;
+      letter-spacing: 0;
+      font-weight: 840;
+    }
+
+    .hero {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      border-radius: 8px;
+      object-fit: cover;
+      display: block;
+      background: #111827;
+    }
+
+    .standfirst {
+      margin: 24px 0 0;
+      font-family: var(--font-reader);
+      font-size: calc(var(--reader-size) + 5px);
+      line-height: 1.35;
+      font-weight: 650;
+      color: #312b25;
+    }
+
+    .reader-text {
+      margin-top: 24px;
+      font-family: var(--font-reader);
+      font-size: var(--reader-size);
+      line-height: 1.72;
+      color: #33363b;
+    }
+
+    .reader-text p {
+      margin: 0 0 18px;
+    }
+
+    .quote {
+      margin: 30px 0;
+      padding: 0 0 0 18px;
+      border-left: 3px solid var(--blue);
+      font-family: var(--font-reader);
+      font-size: calc(var(--reader-size) + 4px);
+      line-height: 1.45;
+      color: #1f2937;
+    }
+
+    .open-link {
+      color: var(--blue);
+      text-decoration: none;
+      font-weight: 760;
+      font-size: 14px;
+    }
+
+    .starred { color: #c98a00; }
+
+    .compact .article-item {
+      min-height: 68px;
+      grid-template-columns: 52px minmax(0, 1fr) 18px;
+      padding: 7px 8px;
+    }
+
+    .compact .thumb {
+      width: 52px;
+      height: 44px;
+    }
+
+    .compact .excerpt {
+      display: none;
+    }
+
+    .sidebar-hidden .classic {
+      grid-template-columns: 0 420px minmax(0, 1fr);
+    }
+
+    .sidebar-hidden .classic .sidebar {
+      border-right: 0;
+      visibility: hidden;
+    }
+
+    .sidebar-hidden .hybrid {
+      grid-template-columns: 0 390px minmax(0, 1fr);
+    }
+
+    .sidebar-hidden .hybrid .sidebar {
+      border-right: 0;
+      visibility: hidden;
+    }
+
+    /* Variant 1: Classic Focus */
+    .classic {
+      grid-template-columns: 238px 390px minmax(0, 1fr);
+      --reader-width: 820px;
+    }
+
+    /* Variant 11: Dark Focus Split */
+    .hybrid {
+      grid-template-columns: 238px 390px minmax(0, 1fr);
+      --reader-width: 820px;
+      background: #f8fafc;
+    }
+
+    .hybrid .sidebar {
+      background: #111827;
+      border-right: 1px solid rgba(255, 255, 255, 0.08);
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .hybrid .side-top {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    .hybrid .icon-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.12);
+      color: rgba(255, 255, 255, 0.8);
+      box-shadow: none;
+    }
+
+    .hybrid .section-label {
+      color: rgba(255, 255, 255, 0.42);
+    }
+
+    .hybrid .nav-item {
+      color: rgba(255, 255, 255, 0.82);
+    }
+
+    .hybrid .nav-item:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .hybrid .nav-item.active {
+      background: rgba(255, 255, 255, 0.11);
+      color: rgba(255, 255, 255, 0.96);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
+    }
+
+    .hybrid .nav-item.active .count {
+      color: rgba(255, 255, 255, 0.54);
+    }
+
+    .hybrid .nav-item .count {
+      color: rgba(255, 255, 255, 0.48);
+    }
+
+    .hybrid .list {
+      background: rgba(255, 255, 255, 0.8);
+    }
+
+    .hybrid .reader {
+      background: #fffdf8;
+    }
+
+    /* Variant 2: Magazine Board */
+    .magazine {
+      grid-template-columns: 78px minmax(370px, 0.92fr) minmax(0, 1.42fr);
+      background: #f8fafc;
+    }
+
+    .magazine .sidebar {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 18px 8px;
+      gap: 12px;
+      background: #111827;
+      color: #fff;
+    }
+
+    .rail-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.82);
+      font-weight: 800;
+    }
+
+    .rail-btn.active {
+      background: #fff;
+      color: #111827;
+    }
+
+    .magazine .list {
+      background: #f3f6f9;
+      padding: 0 14px 18px;
+    }
+
+    .magazine-grid {
+      padding: 14px 0;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .mag-card {
+      min-height: 220px;
+      border-radius: 8px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      text-align: left;
+      box-shadow: 0 10px 28px rgba(25, 32, 45, 0.08);
+    }
+
+    .mag-card.selected {
+      border-color: rgba(8, 117, 245, 0.5);
+      box-shadow: 0 18px 42px rgba(8, 117, 245, 0.18);
+    }
+
+    .mag-card img {
+      width: 100%;
+      aspect-ratio: 1.38 / 1;
+      object-fit: cover;
+      border-radius: 7px;
+    }
+
+    .mag-card h3 {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.2;
+    }
+
+    .mag-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .magazine .reader {
+      background: #fffdf8;
+    }
+
+    .magazine .reader-body {
+      max-width: 900px;
+      padding-top: 18px;
+    }
+
+    .magazine .hero {
+      margin-top: 16px;
+      aspect-ratio: 21 / 9;
+    }
+
+    /* Variant 3: Zen */
+    .zen {
+      grid-template-rows: minmax(0, 1fr) 114px;
+      background: #fbfaf7;
+      --reader-width: 720px;
+    }
+
+    .zen-main {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 1fr minmax(520px, 820px) 1fr;
+      overflow: hidden;
+    }
+
+    .zen .reader {
+      grid-column: 2;
+      background: #fbfaf7;
+      box-shadow: 0 0 0 1px rgba(25, 32, 45, 0.04);
+    }
+
+    .zen-aside {
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.48);
+      border-right: 1px solid rgba(25, 32, 45, 0.07);
+      min-width: 0;
+    }
+
+    .zen-right {
+      border-right: 0;
+      border-left: 1px solid rgba(25, 32, 45, 0.07);
+    }
+
+    .zen-stat {
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid var(--line);
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+
+    .zen-stat strong {
+      display: block;
+      font-size: 24px;
+      margin-bottom: 4px;
+    }
+
+    .zen-stat span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .zen-strip {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(150px, 1fr));
+      gap: 8px;
+      padding: 10px;
+      overflow-x: auto;
+      border-top: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.72);
+    }
+
+    .strip-card {
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.86);
+      display: grid;
+      grid-template-columns: 56px minmax(0, 1fr);
+      align-items: center;
+      gap: 9px;
+      padding: 8px;
+      text-align: left;
+      min-width: 150px;
+    }
+
+    .strip-card.selected {
+      border-color: rgba(8, 117, 245, 0.45);
+      background: #eef6ff;
+    }
+
+    .strip-card img {
+      width: 56px;
+      height: 56px;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+
+    .strip-card span {
+      font-size: 12px;
+      line-height: 1.2;
+      font-weight: 760;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    /* Variant 4: Command Deck */
+    .deck {
+      grid-template-columns: 290px minmax(0, 1fr) 320px;
+      background: #edf2f4;
+      --reader-width: 780px;
+    }
+
+    .deck .list {
+      border-right: 0;
+      background: rgba(247, 249, 251, 0.88);
+    }
+
+    .deck-inbox {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+      padding: 12px;
+    }
+
+    .deck-card {
+      border-radius: 8px;
+      background: #fff;
+      border: 1px solid var(--line);
+      padding: 10px;
+      text-align: left;
+      display: grid;
+      grid-template-columns: 50px minmax(0, 1fr);
+      gap: 10px;
+    }
+
+    .deck-card.selected {
+      background: #172033;
+      color: #fff;
+    }
+
+    .deck-card.selected p {
+      color: rgba(255, 255, 255, 0.68);
+    }
+
+    .deck-card img {
+      width: 50px;
+      height: 50px;
+      border-radius: 8px;
+      object-fit: cover;
+    }
+
+    .deck-card h3 {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.2;
+    }
+
+    .deck-card p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.25;
+    }
+
+    .deck .reader {
+      margin: 12px 0;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      box-shadow: 0 16px 44px rgba(25, 32, 45, 0.1);
+    }
+
+    .inspector {
+      min-width: 0;
+      background: rgba(255, 255, 255, 0.78);
+      border-left: 1px solid var(--line);
+      padding: 18px;
+      overflow-y: auto;
+    }
+
+    .panel {
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: #fff;
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+
+    .panel h3 {
+      margin: 0 0 10px;
+      font-size: 13px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      height: 24px;
+      padding: 0 8px;
+      border-radius: 7px;
+      background: #eef6ff;
+      color: #0758b8;
+      font-size: 12px;
+      font-weight: 750;
+      margin: 0 4px 6px 0;
+    }
+
+    .deck-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .deck-actions button {
+      height: 34px;
+      border-radius: 8px;
+      background: #f3f5f7;
+      border: 1px solid var(--line);
+      font-weight: 750;
+    }
+
+    /* Variant 5: Spatial */
+    .spatial {
+      grid-template-rows: 72px minmax(0, 1fr);
+      background: #f4f6f5;
+      --reader-width: 860px;
+    }
+
+    .spatial-top {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 16px;
+      align-items: center;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.72);
+      backdrop-filter: blur(18px);
+    }
+
+    .feed-tabs {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+    }
+
+    .feed-tab {
+      height: 38px;
+      padding: 0 13px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.78);
+      border: 1px solid var(--line);
+      white-space: nowrap;
+      font-weight: 760;
+    }
+
+    .feed-tab.active {
+      background: #172033;
+      color: #fff;
+    }
+
+    .spatial-main {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(260px, 0.72fr) minmax(0, 1.62fr);
+    }
+
+    .story-rail {
+      padding: 16px;
+      overflow-y: auto;
+      border-right: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.42);
+    }
+
+    .story-card {
+      min-height: 142px;
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      display: grid;
+      grid-template-columns: 96px minmax(0, 1fr);
+      gap: 12px;
+      text-align: left;
+    }
+
+    .story-card.selected {
+      background: #edf7f6;
+      border-color: rgba(0, 167, 181, 0.42);
+    }
+
+    .story-card img {
+      width: 96px;
+      height: 120px;
+      border-radius: 8px;
+      object-fit: cover;
+    }
+
+    .story-card h3 {
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.2;
+    }
+
+    .story-card p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .spatial .reader {
+      background: linear-gradient(90deg, #ffffff 0%, #ffffff 70%, #f4f6f5 100%);
+    }
+
+    .spatial .reader-body {
+      margin-left: max(36px, 7vw);
+      margin-right: auto;
+    }
+
+    .source-preview {
+      display: none;
+      padding: 32px;
+      max-width: 1160px;
+      margin: 0 auto;
+    }
+
+    .source-preview.active {
+      display: block;
+    }
+
+    .source-preview img {
+      width: 100%;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      box-shadow: 0 18px 54px rgba(25, 32, 45, 0.14);
+    }
+
+    /* Variant 6: Editorial Desk */
+    .editorial {
+      grid-template-columns: 310px minmax(0, 1fr);
+      background: #fbfaf7;
+      --reader-width: 760px;
+    }
+
+    .edition {
+      min-width: 0;
+      border-right: 1px solid var(--line);
+      background: #f4f3ee;
+      overflow-y: auto;
+      padding: 18px 18px 24px;
+    }
+
+    .edition h2,
+    .brief h2,
+    .mono-list h2 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.1;
+      letter-spacing: 0;
+    }
+
+    .edition-note {
+      margin: 8px 0 18px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .edition-row {
+      width: 100%;
+      border-radius: 0;
+      border-top: 1px solid rgba(25, 32, 45, 0.12);
+      background: transparent;
+      padding: 14px 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 54px;
+      gap: 12px;
+      text-align: left;
+    }
+
+    .edition-row.selected h3 {
+      color: #0758b8;
+    }
+
+    .edition-row h3 {
+      margin: 0;
+      font-family: var(--font-reader);
+      font-size: 18px;
+      line-height: 1.17;
+    }
+
+    .edition-row p {
+      margin: 7px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .edition-row img {
+      width: 54px;
+      height: 54px;
+      border-radius: 8px;
+      object-fit: cover;
+    }
+
+    .editorial .reader {
+      background: #fffdf8;
+    }
+
+    .editorial .reader-toolbar {
+      justify-content: space-between;
+    }
+
+    /* Variant 7: Briefing Stack */
+    .briefing {
+      grid-template-columns: minmax(360px, 0.72fr) minmax(0, 1.28fr);
+      background: #f7f8fa;
+      --reader-width: 800px;
+    }
+
+    .brief {
+      min-width: 0;
+      overflow-y: auto;
+      padding: 20px;
+      border-right: 1px solid var(--line);
+      background: #ffffff;
+    }
+
+    .brief-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .brief-stack {
+      display: grid;
+      gap: 10px;
+    }
+
+    .brief-row {
+      width: 100%;
+      min-height: 92px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      background: #f4f6f8;
+      padding: 12px;
+      display: grid;
+      grid-template-columns: 28px minmax(0, 1fr);
+      gap: 10px;
+      text-align: left;
+    }
+
+    .brief-row.selected {
+      background: #172033;
+      color: #fff;
+    }
+
+    .brief-row.selected p,
+    .brief-row.selected .rank {
+      color: rgba(255, 255, 255, 0.68);
+    }
+
+    .rank {
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .brief-row h3 {
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.22;
+    }
+
+    .brief-row p {
+      margin: 7px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .briefing .reader {
+      background: #f7f8fa;
+    }
+
+    .briefing .reader-body {
+      background: #fff;
+      margin-top: 22px;
+      margin-bottom: 40px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      box-shadow: 0 18px 56px rgba(25, 32, 45, 0.08);
+    }
+
+    /* Variant 8: Focus Canvas */
+    .canvas {
+      grid-template-columns: 86px minmax(0, 1fr);
+      background: #111827;
+      --reader-width: 900px;
+    }
+
+    .canvas-rail {
+      padding: 18px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: center;
+      background: #0c111d;
+      border-right: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .canvas-rail .traffic {
+      margin-bottom: 18px;
+    }
+
+    .canvas-rail button {
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.08);
+      color: rgba(255, 255, 255, 0.72);
+      font-weight: 800;
+    }
+
+    .canvas-rail button.active {
+      background: #f8fafc;
+      color: #111827;
+    }
+
+    .canvas-main {
+      min-width: 0;
+      min-height: 0;
+      display: grid;
+      grid-template-rows: 112px minmax(0, 1fr);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.05), transparent 32%),
+        #111827;
+    }
+
+    .canvas-strip {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(180px, 1fr));
+      gap: 10px;
+      overflow-x: auto;
+      padding: 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .canvas-chip {
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.06);
+      color: rgba(255, 255, 255, 0.88);
+      padding: 10px;
+      text-align: left;
+      display: grid;
+      grid-template-columns: 48px minmax(0, 1fr);
+      gap: 10px;
+      min-width: 180px;
+    }
+
+    .canvas-chip.selected {
+      background: rgba(255, 255, 255, 0.16);
+      border-color: rgba(255, 255, 255, 0.28);
+    }
+
+    .canvas-chip img {
+      width: 48px;
+      height: 48px;
+      border-radius: 8px;
+      object-fit: cover;
+    }
+
+    .canvas-chip span {
+      font-size: 12px;
+      line-height: 1.25;
+      font-weight: 760;
+    }
+
+    .canvas .reader {
+      background: transparent;
+      color: #f8fafc;
+    }
+
+    .canvas .reader-toolbar {
+      background: rgba(17, 24, 39, 0.74);
+      border-bottom-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .canvas .reader-body {
+      color: #f8fafc;
+    }
+
+    .canvas .kicker,
+    .canvas .reader-text,
+    .canvas .standfirst,
+    .canvas .quote {
+      color: rgba(248, 250, 252, 0.84);
+    }
+
+    /* Variant 9: Mono Inbox */
+    .mono {
+      grid-template-columns: 440px minmax(0, 1fr);
+      background: #f6f7f8;
+      --reader-width: 760px;
+    }
+
+    .mono-list {
+      min-width: 0;
+      overflow-y: auto;
+      border-right: 1px solid #d9dde3;
+      background: #fff;
+      padding: 18px 20px;
+    }
+
+    .mono-row {
+      width: 100%;
+      min-height: 74px;
+      padding: 10px 0;
+      display: grid;
+      grid-template-columns: 14px minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: start;
+      text-align: left;
+      border-top: 1px solid #e3e6eb;
+      background: transparent;
+    }
+
+    .mono-row:first-child {
+      border-top: 0;
+    }
+
+    .mono-row.selected h3 {
+      text-decoration: underline;
+      text-decoration-thickness: 2px;
+      text-underline-offset: 4px;
+    }
+
+    .mono-row h3 {
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.22;
+      font-weight: 760;
+    }
+
+    .mono-row p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .mono-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #111827;
+      margin-top: 5px;
+    }
+
+    .mono-date {
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .mono .reader {
+      background: #f6f7f8;
+    }
+
+    .mono .hero {
+      display: none;
+    }
+
+    /* Variant 10: Shelf Reader */
+    .shelf {
+      grid-template-rows: minmax(0, 1fr) 138px;
+      background: #eef2f5;
+      --reader-width: 820px;
+    }
+
+    .shelf-reader {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 300px;
+    }
+
+    .shelf .reader {
+      background: #fff;
+    }
+
+    .shelf-side {
+      min-width: 0;
+      border-left: 1px solid var(--line);
+      padding: 18px;
+      background: rgba(255, 255, 255, 0.66);
+      overflow-y: auto;
+    }
+
+    .shelf-strip {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(210px, 1fr));
+      gap: 10px;
+      overflow-x: auto;
+      padding: 12px;
+      border-top: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.76);
+    }
+
+    .shelf-card {
+      min-width: 210px;
+      border-radius: 8px;
+      background: #fff;
+      border: 1px solid var(--line);
+      padding: 8px;
+      display: grid;
+      grid-template-columns: 68px minmax(0, 1fr);
+      gap: 10px;
+      text-align: left;
+      box-shadow: 0 10px 28px rgba(25, 32, 45, 0.06);
+    }
+
+    .shelf-card.selected {
+      border-color: rgba(8, 117, 245, 0.45);
+    }
+
+    .shelf-card img {
+      width: 68px;
+      height: 82px;
+      border-radius: 8px;
+      object-fit: cover;
+    }
+
+    .shelf-card h3 {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.2;
+      display: -webkit-box;
+      -webkit-line-clamp: 4;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    @media (max-width: 1160px) {
+      .stage { padding: 12px; }
+      .brand { display: none; }
+      .classic { grid-template-columns: 210px 330px minmax(0, 1fr); }
+      .hybrid { grid-template-columns: 210px 330px minmax(0, 1fr); }
+      .deck { grid-template-columns: 250px minmax(0, 1fr); }
+      .deck .inspector { display: none; }
+      .zen-main { grid-template-columns: 0 minmax(480px, 1fr) 0; }
+      .zen-aside { display: none; }
+      .magazine { grid-template-columns: 64px 330px minmax(0, 1fr); }
+      .magazine-grid { grid-template-columns: 1fr; }
+      .editorial,
+      .briefing,
+      .mono {
+        grid-template-columns: 300px minmax(0, 1fr);
+      }
+      .shelf-reader {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .shelf-side {
+        display: none;
+      }
+    }
+
+    @media (max-width: 860px) {
+      body { overflow: auto; }
+      .stage { min-height: 100vh; height: auto; }
+      .prototype-shell { min-height: 760px; }
+      .classic,
+      .hybrid,
+      .magazine,
+      .deck,
+      .spatial-main,
+      .editorial,
+      .briefing,
+      .canvas,
+      .mono {
+        grid-template-columns: 1fr;
+      }
+      .sidebar, .list, .story-rail, .edition, .brief, .mono-list, .canvas-rail { display: none; }
+      .spatial { grid-template-rows: auto minmax(0, 1fr); }
+      .spatial-top { grid-template-columns: 1fr; }
+      .zen-main { grid-template-columns: 1fr; }
+      .zen .reader { grid-column: 1; }
+      .canvas-main { grid-template-rows: minmax(0, 1fr); }
+      .canvas-strip, .shelf-strip { display: none; }
+      .shelf { grid-template-rows: minmax(0, 1fr); }
+      .headline { font-size: 34px; }
+      .reader-toolbar { justify-content: flex-start; overflow-x: auto; }
+      .switcher { align-items: flex-start; flex-direction: column; }
+      .global-actions { width: 100%; overflow-x: auto; }
+    }
+  </style>
+</head>
+<body>
+  <main class="stage">
+    <header class="switcher">
+      <div class="brand" aria-label="Feedivo">
+        <div class="brand-mark">F</div>
+        <div>
+          <h1>Feedivo Reader Redesign</h1>
+          <p>Elf klickbare Richtungen für die macOS-App</p>
+        </div>
+      </div>
+
+      <nav class="variant-tabs" aria-label="Prototyp wählen">
+        <button class="variant-tab" data-prototype="classic" aria-selected="false">01 Fokus Split</button>
+        <button class="variant-tab" data-prototype="magazine" aria-selected="false">02 Magazin Board</button>
+        <button class="variant-tab" data-prototype="zen" aria-selected="false">03 Zen Reader</button>
+        <button class="variant-tab" data-prototype="deck" aria-selected="false">04 Command Deck</button>
+        <button class="variant-tab" data-prototype="spatial" aria-selected="false">05 Spatial Shelf</button>
+        <button class="variant-tab" data-prototype="editorial" aria-selected="false">06 Editorial Desk</button>
+        <button class="variant-tab" data-prototype="briefing" aria-selected="false">07 Briefing Stack</button>
+        <button class="variant-tab" data-prototype="canvas" aria-selected="false">08 Focus Canvas</button>
+        <button class="variant-tab" data-prototype="mono" aria-selected="false">09 Mono Inbox</button>
+        <button class="variant-tab" data-prototype="shelf" aria-selected="false">10 Shelf Reader</button>
+        <button class="variant-tab" data-prototype="hybrid" aria-selected="true">11 Dark Focus Split</button>
+      </nav>
+
+      <div class="global-actions">
+        <button class="pill-btn" data-action="density">Kompakt</button>
+        <button class="pill-btn" data-action="fontDown">A-</button>
+        <button class="pill-btn" data-action="fontUp">A+</button>
+      </div>
+    </header>
+
+    <section class="prototype-shell" id="prototypeShell">
+      <article class="prototype classic" data-prototype-panel="classic">
+        <aside class="sidebar">
+          <div class="side-top">
+            <div class="traffic"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
+            <button class="icon-btn" data-action="toggleSidebar" title="Sidebar ausblenden">≡</button>
+          </div>
+          <div class="side-section">
+            <div class="section-label">Filter</div>
+            <button class="nav-item active"><span class="filter-icon all" aria-hidden="true"></span><span>Alle Artikel</span><span class="count">128</span></button>
+            <button class="nav-item"><span class="filter-icon unread" aria-hidden="true"></span><span>Ungelesen</span><span class="count">24</span></button>
+            <button class="nav-item"><span class="filter-icon star" aria-hidden="true"></span><span>Mit Stern</span><span class="count">9</span></button>
+            <button class="nav-item"><span class="filter-icon today" aria-hidden="true"></span><span>Heute</span><span class="count">17</span></button>
+            <div class="section-label">Feeds</div>
+            <button class="nav-item"><span class="feed-dot blue">C</span><span>Caschys Blog</span><span></span></button>
+            <button class="nav-item active"><span class="feed-dot dark">h</span><span>heise online News</span><span></span></button>
+          </div>
+        </aside>
+        <section class="list">
+          <div class="list-header">
+            <div class="list-title"><h2>heise online News</h2><p>24 ungelesene Artikel</p></div>
+            <input class="search" type="search" placeholder="Suchen">
+          </div>
+          <div class="article-list" data-list="classic"></div>
+        </section>
+        <section class="reader" data-reader="classic"></section>
+      </article>
+
+      <article class="prototype hybrid active" data-prototype-panel="hybrid">
+        <aside class="sidebar">
+          <div class="side-top">
+            <div class="traffic"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
+            <button class="icon-btn" data-action="toggleSidebar" title="Sidebar ausblenden">≡</button>
+          </div>
+          <div class="side-section">
+            <div class="section-label">Filter</div>
+            <button class="nav-item active"><span class="feed-dot blue">A</span><span>Alle Artikel</span><span class="count">128</span></button>
+            <button class="nav-item"><span class="feed-dot teal">U</span><span>Ungelesen</span><span class="count">24</span></button>
+            <button class="nav-item"><span class="feed-dot yellow">S</span><span>Mit Stern</span><span class="count">9</span></button>
+            <button class="nav-item"><span class="feed-dot green">H</span><span>Heute</span><span class="count">17</span></button>
+            <div class="section-label">Feeds</div>
+            <button class="nav-item"><span class="feed-dot blue">C</span><span>Caschys Blog</span><span></span></button>
+            <button class="nav-item active"><span class="feed-dot dark">h</span><span>heise online News</span><span></span></button>
+          </div>
+        </aside>
+        <section class="list">
+          <div class="list-header">
+            <div class="list-title"><h2>heise online News</h2><p>24 ungelesene Artikel</p></div>
+            <input class="search" type="search" placeholder="Suchen">
+          </div>
+          <div class="article-list" data-list="hybrid"></div>
+        </section>
+        <section class="reader" data-reader="hybrid"></section>
+      </article>
+
+      <article class="prototype magazine" data-prototype-panel="magazine">
+        <aside class="sidebar">
+          <div class="traffic"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
+          <button class="rail-btn active">A</button>
+          <button class="rail-btn">U</button>
+          <button class="rail-btn">S</button>
+          <button class="rail-btn">T</button>
+          <button class="rail-btn">+</button>
+        </aside>
+        <section class="list">
+          <div class="list-header">
+            <div class="list-title"><h2>Heute kuratiert</h2><p>Visuelle Karten für schnelles Scannen</p></div>
+          </div>
+          <div class="magazine-grid" data-list="magazine"></div>
+        </section>
+        <section class="reader" data-reader="magazine"></section>
+      </article>
+
+      <article class="prototype zen" data-prototype-panel="zen">
+        <div class="zen-main">
+          <aside class="zen-aside">
+            <div class="traffic"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
+            <div style="height: 24px"></div>
+            <div class="zen-stat"><strong>24</strong><span>ungelesen</span></div>
+            <div class="zen-stat"><strong>9</strong><span>gespeichert</span></div>
+            <div class="zen-stat"><strong>17</strong><span>heute</span></div>
+          </aside>
+          <section class="reader" data-reader="zen"></section>
+          <aside class="zen-aside zen-right">
+            <div class="panel">
+              <h3>Lesefokus</h3>
+              <div class="tag">Native Ansicht</div>
+              <div class="tag">Breite 720</div>
+              <div class="tag">Serif</div>
+            </div>
+            <div class="panel">
+              <h3>Feed</h3>
+              <p class="meta">heise online News<br>ca. 1 Min. Lesezeit<br>vor 2 Std.</p>
+            </div>
+          </aside>
+        </div>
+        <nav class="zen-strip" data-list="zen"></nav>
+      </article>
+
+      <article class="prototype deck" data-prototype-panel="deck">
+        <section class="list">
+          <div class="list-header">
+            <div class="list-title"><h2>Inbox</h2><p>Operational, dicht, sehr macOS</p></div>
+          </div>
+          <div class="deck-inbox" data-list="deck"></div>
+        </section>
+        <section class="reader" data-reader="deck"></section>
+        <aside class="inspector">
+          <div class="traffic"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
+          <div style="height: 18px"></div>
+          <div class="panel">
+            <h3>Artikelstatus</h3>
+            <div class="deck-actions">
+              <button data-action="toggleRead">Gelesen</button>
+              <button data-action="toggleStar">Stern</button>
+              <button data-action="previous">Zurück</button>
+              <button data-action="next">Weiter</button>
+            </div>
+          </div>
+          <div class="panel">
+            <h3>Tags</h3>
+            <span class="tag">Security</span>
+            <span class="tag">Microsoft</span>
+            <span class="tag">Workshop</span>
+          </div>
+          <div class="panel">
+            <h3>Quelle</h3>
+            <p class="meta">heise online News<br>RSS Feed<br>Heute aktualisiert</p>
+          </div>
+        </aside>
+      </article>
+
+      <article class="prototype spatial" data-prototype-panel="spatial">
+        <header class="spatial-top">
+          <div class="traffic"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
+          <nav class="feed-tabs">
+            <button class="feed-tab active">Alle Artikel</button>
+            <button class="feed-tab">heise online</button>
+            <button class="feed-tab">Caschys Blog</button>
+            <button class="feed-tab">Heute</button>
+            <button class="feed-tab">Mit Stern</button>
+          </nav>
+          <button class="pill-btn" data-action="toggleSource">Quelle</button>
+        </header>
+        <div class="spatial-main">
+          <nav class="story-rail" data-list="spatial"></nav>
+          <section class="reader" data-reader="spatial"></section>
+        </div>
+      </article>
+
+      <article class="prototype editorial" data-prototype-panel="editorial">
+        <aside class="edition">
+          <div class="traffic"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
+          <div style="height: 22px"></div>
+          <h2>Die Ausgabe</h2>
+          <p class="edition-note">Eine ruhigere Zeitungslogik: links nur Priorität und Kontext, rechts der Artikel als Hauptprodukt.</p>
+          <div data-list="editorial"></div>
+        </aside>
+        <section class="reader" data-reader="editorial"></section>
+      </article>
+
+      <article class="prototype briefing" data-prototype-panel="briefing">
+        <aside class="brief">
+          <div class="brief-top">
+            <div>
+              <div class="traffic"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
+              <div style="height: 18px"></div>
+              <h2>Briefing</h2>
+              <p class="edition-note">Alles wird zur Lesereihenfolge. Weniger Feedverwaltung, mehr „was lese ich als Nächstes?“.</p>
+            </div>
+            <button class="pill-btn" data-action="next">Weiter</button>
+          </div>
+          <div class="brief-stack" data-list="briefing"></div>
+        </aside>
+        <section class="reader" data-reader="briefing"></section>
+      </article>
+
+      <article class="prototype canvas" data-prototype-panel="canvas">
+        <aside class="canvas-rail">
+          <div class="traffic"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
+          <button class="active">L</button>
+          <button>F</button>
+          <button>S</button>
+          <button data-action="toggleStar">★</button>
+          <button data-action="fontUp">A</button>
+        </aside>
+        <div class="canvas-main">
+          <nav class="canvas-strip" data-list="canvas"></nav>
+          <section class="reader" data-reader="canvas"></section>
+        </div>
+      </article>
+
+      <article class="prototype mono" data-prototype-panel="mono">
+        <aside class="mono-list">
+          <div class="traffic"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
+          <div style="height: 22px"></div>
+          <h2>Ungelesen</h2>
+          <p class="edition-note">Mail-artig, sehr funktional, fast keine Dekoration. Der Inhalt gewinnt durch Zurückhaltung.</p>
+          <div data-list="mono"></div>
+        </aside>
+        <section class="reader" data-reader="mono"></section>
+      </article>
+
+      <article class="prototype shelf" data-prototype-panel="shelf">
+        <div class="shelf-reader">
+          <section class="reader" data-reader="shelf"></section>
+          <aside class="shelf-side">
+            <div class="traffic"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
+            <div style="height: 18px"></div>
+            <div class="panel">
+              <h3>Lesestapel</h3>
+              <p class="meta">Der Artikel bleibt dominant. Der Rest wartet unten als Ablage, nicht links als Dauerlärm.</p>
+            </div>
+            <div class="panel">
+              <h3>Aktionen</h3>
+              <div class="deck-actions">
+                <button data-action="toggleRead">Gelesen</button>
+                <button data-action="toggleStar">Stern</button>
+                <button data-action="previous">Zurück</button>
+                <button data-action="next">Weiter</button>
+              </div>
+            </div>
+          </aside>
+        </div>
+        <nav class="shelf-strip" data-list="shelf"></nav>
+      </article>
+    </section>
+  </main>
+
+  <script>
+    const assets = "assets/";
+    const articles = [
+      {
+        id: 0,
+        title: "heise-Angebot: iX-Workshop: Identitäten in Entra ID mit Conditional Access Policies schützen",
+        feed: "heise online News",
+        time: "vor 2 Std.",
+        read: false,
+        starred: false,
+        thumb: "thumb-ix.png",
+        hero: "hero-ix-workshop.png",
+        excerpt: "Erfahren Sie, wie Sie die Zero-Trust-Architektur mit Zugriffsrichtlinien in Entra ID umsetzen und so Ihr Unternehmensnetzwerk effektiv schützen.",
+        body: [
+          "Identitäten sind längst nicht mehr nur ein Verwaltungsdetail. Sie bestimmen, wer auf geschäftskritische Systeme zugreifen darf, unter welchen Bedingungen eine Anmeldung akzeptiert wird und wann zusätzliche Schutzmechanismen greifen.",
+          "Conditional Access Policies helfen dabei, Zugriffe anhand von Risiko, Gerät, Standort und Anwendung zu bewerten. Für Administratoren entsteht daraus ein regelbarer Schutzschirm, der sich an reale Arbeitssituationen anpasst.",
+          "Der Workshop führt durch typische Szenarien und zeigt, wie Richtlinien verständlich geplant, getestet und später sicher ausgerollt werden."
+        ]
+      },
+      {
+        id: 1,
+        title: "Neuer S/W-Film, Drohnen-Jagd und Adobes KI-Offensive",
+        feed: "heise online News",
+        time: "vor 2 Std.",
+        read: false,
+        starred: true,
+        thumb: "thumb-film.png",
+        hero: "thumb-film.png",
+        excerpt: "Light Lens Labs bringt einen neuen Schwarzweißfilm, das FBI beschlagnahmt Drohnen und Adobe baut KI-Funktionen aus.",
+        body: ["Eine kompakte Nachrichtenrunde bündelt kurze, relevante Entwicklungen aus Fotografie, Sicherheit und Software.", "Der Fokus liegt auf Einordnung statt Länge: Was ist neu, warum ist es relevant und was sollten Leserinnen und Leser im Blick behalten?"]
+      },
+      {
+        id: 2,
+        title: "Developer-Häppchen fürs Wochenende",
+        feed: "heise online News",
+        time: "vor 3 Std.",
+        read: false,
+        starred: false,
+        thumb: "thumb-food.png",
+        hero: "thumb-food.png",
+        excerpt: "Kleine, aber interessante Meldungshäppchen vom News-Buffet zu GitHub, Frameworks und Developer Tools.",
+        body: ["Für das Wochenende gibt es eine Auswahl kurzer Developer-Meldungen, die schnell gelesen sind und dennoch Substanz haben.", "Solche Sammlungen profitieren von einer Oberfläche, die Scannen, Speichern und ruhiges Weiterlesen gleichermaßen unterstützt."]
+      },
+      {
+        id: 3,
+        title: "Kestra: Ops-Automation jenseits von CI/CD",
+        feed: "heise online News",
+        time: "vor 3 Std.",
+        read: false,
+        starred: false,
+        thumb: "thumb-ops.png",
+        hero: "thumb-ops.png",
+        excerpt: "CI/CD-Pipelines sind für Code-Deployments optimiert. Langlebige Betriebsprozesse brauchen andere Werkzeuge.",
+        body: ["Automatisierung endet nicht beim Deployment. Viele Betriebsabläufe brauchen Zustände, Wiederaufnahmen, Beobachtbarkeit und nachvollziehbare Ausführung.", "Der Artikel betrachtet Werkzeuge, die Operations-Workflows strukturierter und transparenter machen."]
+      },
+      {
+        id: 4,
+        title: "Kommentar: KI - warum Ignorieren und Verbieten nicht helfen",
+        feed: "heise online News",
+        time: "vor 3 Std.",
+        read: true,
+        starred: false,
+        thumb: "thumb-comment.png",
+        hero: "thumb-comment.png",
+        excerpt: "KI nervt, doch der typische deutsche Weg ist mal wieder falsch. Spätestens jetzt braucht es bessere Antworten.",
+        body: ["Der Kommentar plädiert dafür, KI weder reflexhaft zu verbieten noch naiv zu umarmen.", "Für Leser ist hier wichtig, schnell zwischen Meinung, Hintergrund und weiterführenden Quellen wechseln zu können."]
+      },
+      {
+        id: 5,
+        title: "Zweisam, einsam, still: Die Bilder der Woche 25",
+        feed: "heise online News",
+        time: "vor 4 Std.",
+        read: true,
+        starred: true,
+        thumb: "thumb-landscape.png",
+        hero: "thumb-landscape.png",
+        excerpt: "Starke Fluchtpunkte und intensive Farben lenken die Blicke der Betrachtenden in die Tiefe.",
+        body: ["Eine visuelle Strecke braucht eine großzügigere Bühne als kurze Nachrichten.", "Der Reader sollte Bilder atmen lassen, ohne die Navigation komplett aus dem Weg zu räumen."]
+      },
+      {
+        id: 6,
+        title: "Notebook-Prozessoren: Stand der Dinge, Technik und Ausblick",
+        feed: "heise online News",
+        time: "19.06.26",
+        read: true,
+        starred: false,
+        thumb: "thumb-cpu.png",
+        hero: "thumb-cpu.png",
+        excerpt: "Es tut sich was am Markt für Notebookprozessoren. Das ist eine gute Gelegenheit für einen Überblick.",
+        body: ["Techniküberblicke profitieren von Struktur, Zwischenüberschriften und einem Reader, der lange Texte angenehm macht.", "Die Prototypen testen deshalb verschiedene Dichten zwischen Inbox und Magazin."]
+      }
+    ];
+
+    const state = {
+      selected: 0,
+      mode: "native",
+      compact: false,
+      source: false,
+      sidebarHidden: false,
+      readerSize: 19
+    };
+
+    const shell = document.getElementById("prototypeShell");
+
+    function selectedArticle() {
+      return articles.find((article) => article.id === state.selected) || articles[0];
+    }
+
+    function truncate(text, length) {
+      return text.length > length ? `${text.slice(0, length - 1)}…` : text;
+    }
+
+    function itemStatus(article) {
+      return article.read ? "" : "<span class='unread' aria-label='ungelesen'></span>";
+    }
+
+    function renderArticleButton(article, style) {
+      const selected = article.id === state.selected ? " selected" : "";
+      if (style === "magazine") {
+        return `<button class="mag-card${selected}" data-select="${article.id}">
+          <img src="${assets + article.thumb}" alt="">
+          <h3>${article.title}</h3>
+          <p>${article.feed} · ${article.time}</p>
+        </button>`;
+      }
+      if (style === "zen") {
+        return `<button class="strip-card${selected}" data-select="${article.id}">
+          <img src="${assets + article.thumb}" alt="">
+          <span>${article.title}</span>
+        </button>`;
+      }
+      if (style === "deck") {
+        return `<button class="deck-card${selected}" data-select="${article.id}">
+          <img src="${assets + article.thumb}" alt="">
+          <div><h3>${article.title}</h3><p>${article.feed} · ${article.time}</p></div>
+        </button>`;
+      }
+      if (style === "spatial") {
+        return `<button class="story-card${selected}" data-select="${article.id}">
+          <img src="${assets + article.thumb}" alt="">
+          <div><h3>${article.title}</h3><p>${article.excerpt}</p></div>
+        </button>`;
+      }
+      if (style === "editorial") {
+        return `<button class="edition-row${selected}" data-select="${article.id}">
+          <div><h3>${article.title}</h3><p>${article.feed} · ${article.time}<br>${truncate(article.excerpt, 92)}</p></div>
+          <img src="${assets + article.thumb}" alt="">
+        </button>`;
+      }
+      if (style === "briefing") {
+        return `<button class="brief-row${selected}" data-select="${article.id}">
+          <span class="rank">${String(article.id + 1).padStart(2, "0")}</span>
+          <div><h3>${article.title}</h3><p>${truncate(article.excerpt, 118)}</p></div>
+        </button>`;
+      }
+      if (style === "canvas") {
+        return `<button class="canvas-chip${selected}" data-select="${article.id}">
+          <img src="${assets + article.thumb}" alt="">
+          <span>${article.title}</span>
+        </button>`;
+      }
+      if (style === "mono") {
+        return `<button class="mono-row${selected}" data-select="${article.id}">
+          <span class="mono-dot" style="opacity:${article.read ? 0.18 : 1}"></span>
+          <div><h3>${article.title}</h3><p>${article.feed} · ${truncate(article.excerpt, 92)}</p></div>
+          <span class="mono-date">${article.time}</span>
+        </button>`;
+      }
+      if (style === "shelf") {
+        return `<button class="shelf-card${selected}" data-select="${article.id}">
+          <img src="${assets + article.thumb}" alt="">
+          <h3>${article.title}</h3>
+        </button>`;
+      }
+      return `<button class="article-item${selected}" data-select="${article.id}">
+        <img class="thumb" src="${assets + article.thumb}" alt="">
+        <div class="item-copy">
+          <h3 class="item-title">${article.title}</h3>
+          <div class="feed-name">${article.feed} · ${article.time}</div>
+          <div class="excerpt">${article.excerpt}</div>
+        </div>
+        ${itemStatus(article)}
+      </button>`;
+    }
+
+    function renderReader(targetName) {
+      const article = selectedArticle();
+      const sourcePreview = state.source && targetName === "spatial"
+        ? `<div class="source-preview active"><img src="${assets}source-window.png" alt="Originaler Feedivo Screenshot"></div>`
+        : "";
+      const readerContent = state.mode === "original"
+        ? `<div class="reader-body">
+            <div class="kicker">${article.feed} · Originalansicht · ${article.time}</div>
+            <h1 class="headline">${article.title}</h1>
+            <img class="hero" src="${assets + article.hero}" alt="">
+            <p class="standfirst">${article.excerpt}</p>
+            <div class="reader-text">
+              <p>In der Originalansicht würde Feedivo die Webversion im eingebetteten Reader öffnen. Der Prototyp hält die gleiche inhaltliche Bühne, zeigt aber bewusst weniger Browser-Chrom und mehr Artikel.</p>
+            </div>
+          </div>`
+        : `<div class="reader-body">
+            <div class="kicker">${article.feed} · ca. 1 Min. Lesezeit · ${article.time}</div>
+            <h1 class="headline">${article.title}</h1>
+            <img class="hero" src="${assets + article.hero}" alt="">
+            <p class="standfirst">${article.excerpt}</p>
+            <div class="reader-text">
+              <p>${article.body[0] || article.excerpt}</p>
+              <p>${article.body[1] || article.excerpt}</p>
+              <div class="quote">Ein guter RSS-Reader nimmt der Liste Gewicht weg, sobald ein Artikel ausgewählt ist, und gibt dem Inhalt die stärkste Bühne.</div>
+              <p>${article.body[2] || "Der Reader bleibt ruhig, behält aber Navigation, Stern und Lesestatus direkt im Zugriff."}</p>
+              <a class="open-link" href="#">Original öffnen</a>
+            </div>
+          </div>`;
+
+      return `<div class="reader-toolbar">
+        <button class="icon-btn" data-action="previous" title="Vorheriger Artikel">↑</button>
+        <button class="icon-btn" data-action="next" title="Nächster Artikel">↓</button>
+        <button class="icon-btn" data-action="toggleStar" title="Stern">${article.starred ? "<span class='starred'>★</span>" : "☆"}</button>
+        <button class="icon-btn" data-action="toggleRead" title="Gelesen">${article.read ? "✓" : "•"}</button>
+        <div class="segmented">
+          <button class="${state.mode === "native" ? "active" : ""}" data-mode="native">Nativer Reader</button>
+          <button class="${state.mode === "original" ? "active" : ""}" data-mode="original">Originalansicht</button>
+        </div>
+        <button class="icon-btn" data-action="fontUp" title="Schrift größer">Aa</button>
+      </div>
+      ${sourcePreview || readerContent}`;
+    }
+
+    function render() {
+      document.documentElement.style.setProperty("--reader-size", `${state.readerSize}px`);
+      shell.classList.toggle("compact", state.compact);
+      shell.classList.toggle("sidebar-hidden", state.sidebarHidden);
+
+      document.querySelectorAll("[data-list]").forEach((list) => {
+        const style = list.dataset.list;
+        list.innerHTML = articles.map((article) => renderArticleButton(article, style)).join("");
+      });
+
+      document.querySelectorAll("[data-reader]").forEach((reader) => {
+        reader.innerHTML = renderReader(reader.dataset.reader);
+      });
+    }
+
+    function selectPrototype(name) {
+      document.querySelectorAll(".variant-tab").forEach((button) => {
+        button.setAttribute("aria-selected", button.dataset.prototype === name ? "true" : "false");
+      });
+      document.querySelectorAll("[data-prototype-panel]").forEach((panel) => {
+        panel.classList.toggle("active", panel.dataset.prototypePanel === name);
+      });
+    }
+
+    function performAction(action) {
+      const index = articles.findIndex((article) => article.id === state.selected);
+      const article = selectedArticle();
+      if (action === "next") state.selected = articles[Math.min(articles.length - 1, index + 1)].id;
+      if (action === "previous") state.selected = articles[Math.max(0, index - 1)].id;
+      if (action === "toggleStar") article.starred = !article.starred;
+      if (action === "toggleRead") article.read = !article.read;
+      if (action === "density") state.compact = !state.compact;
+      if (action === "fontUp") state.readerSize = Math.min(24, state.readerSize + 1);
+      if (action === "fontDown") state.readerSize = Math.max(15, state.readerSize - 1);
+      if (action === "toggleSource") state.source = !state.source;
+      if (action === "toggleSidebar") state.sidebarHidden = !state.sidebarHidden;
+      render();
+    }
+
+    document.addEventListener("click", (event) => {
+      const prototypeButton = event.target.closest("[data-prototype]");
+      if (prototypeButton) selectPrototype(prototypeButton.dataset.prototype);
+
+      const selectButton = event.target.closest("[data-select]");
+      if (selectButton) {
+        state.selected = Number(selectButton.dataset.select);
+        state.source = false;
+        render();
+      }
+
+      const actionButton = event.target.closest("[data-action]");
+      if (actionButton) performAction(actionButton.dataset.action);
+
+      const modeButton = event.target.closest("[data-mode]");
+      if (modeButton) {
+        state.mode = modeButton.dataset.mode;
+        render();
+      }
+    });
+
+    render();
+  </script>
+</body>
+</html>

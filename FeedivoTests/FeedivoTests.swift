@@ -7,6 +7,7 @@
 
 import AppKit
 import Foundation
+import SwiftUI
 import Testing
 @testable import Feedivo
 
@@ -24,6 +25,18 @@ struct FeedivoTests {
         #expect(AppLanguage(rawValue: "it")?.localeIdentifier == "it")
         #expect(AppLanguage(rawValue: "system")?.localeIdentifier == nil)
         #expect(AppLanguage.resolved(from: "unbekannt") == .system)
+    }
+
+    @Test func interfaceTextSizeLiefertDynamicTypeSizeUndFallback() {
+        #expect(InterfaceTextSize.resolved(from: "small") == .small)
+        #expect(InterfaceTextSize.resolved(from: "standard") == .standard)
+        #expect(InterfaceTextSize.resolved(from: "large") == .large)
+        #expect(InterfaceTextSize.resolved(from: "extraLarge") == .extraLarge)
+        #expect(InterfaceTextSize.resolved(from: "unbekannt") == .standard)
+        #expect(InterfaceTextSize.small.dynamicTypeSize == .medium)
+        #expect(InterfaceTextSize.standard.dynamicTypeSize == .large)
+        #expect(InterfaceTextSize.large.dynamicTypeSize == .xLarge)
+        #expect(InterfaceTextSize.extraLarge.dynamicTypeSize == .xxLarge)
     }
 
     @Test func readerContentRendererErzeugtAbsaetzeAusHTML() {
@@ -329,6 +342,54 @@ struct FeedivoTests {
         let result = try FeedService.parseFeed(data: Data(rss.utf8), sourceURL: "https://example.com/news/feed.xml")
 
         #expect(result.articles.first?.imageURL == "https://example.com/news/bilder/media-bild.jpg")
+    }
+
+    @Test func feedServiceLiestArtikelbildAusVerlinkterArtikelseiteWennFeedKeinBildLiefert() async throws {
+        let rss = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <rss version="2.0">
+            <channel>
+                <title>Feedivo Test Feed</title>
+                <item>
+                    <title>Artikel ohne Feed-Bild</title>
+                    <link>https://example.com/artikel-ohne-feed-bild/</link>
+                    <description>Nur Text ohne Bild</description>
+                </item>
+            </channel>
+        </rss>
+        """
+        let articleHTML = """
+        <!doctype html>
+        <html>
+            <head>
+                <meta property="og:image" content="https://example.com/wp-content/uploads/artikelbild.jpg">
+            </head>
+            <body></body>
+        </html>
+        """
+
+        let result = try await FeedService.fetchFeed(urlString: "https://example.com/feed.xml") { url in
+            let data: Data
+            switch url.absoluteString {
+            case "https://example.com/feed.xml":
+                data = Data(rss.utf8)
+            case "https://example.com/artikel-ohne-feed-bild/":
+                data = Data(articleHTML.utf8)
+            default:
+                Issue.record("Unerwartete URL: \(url.absoluteString)")
+                data = Data()
+            }
+
+            let response = HTTPURLResponse(
+                url: url,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: nil
+            )!
+            return (data, response)
+        }
+
+        #expect(result.articles.first?.imageURL == "https://example.com/wp-content/uploads/artikelbild.jpg")
     }
 
 }

@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import UniformTypeIdentifiers
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
@@ -21,6 +22,10 @@ struct ContentView: View {
     @State private var isShowingAddFeedSheet = false
     @State private var feedPendingDeletion: Feed?
     @State private var isDeleteFeedConfirmationPresented = false
+    @State private var isImportingOPML = false
+    @State private var isExportingOPML = false
+    @State private var opmlExportDocument = OPMLDocument()
+    @State private var opmlAlert: OPMLAlert?
 
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
@@ -93,6 +98,25 @@ struct ContentView: View {
         } message: { feed in
             Text(L10n.feedDeleteConfirmationMessage(feedTitle: feed.title))
         }
+        .fileImporter(
+            isPresented: $isImportingOPML,
+            allowedContentTypes: [.opml, .xml]
+        ) { result in
+            importOPML(from: result)
+        }
+        .fileExporter(
+            isPresented: $isExportingOPML,
+            document: opmlExportDocument,
+            contentType: .opml,
+            defaultFilename: "Feedivo.opml"
+        ) { _ in }
+        .alert(item: $opmlAlert) { alert in
+            Alert(
+                title: Text(alert.title),
+                message: Text(alert.message),
+                dismissButton: .default(Text(L10n.commonDone))
+            )
+        }
         .focusedValue(
             \.articleCommandActions,
             ArticleCommandActions(
@@ -120,6 +144,8 @@ struct ContentView: View {
             FeedCommandActions(
                 selectedFeed: selectedFeed,
                 requestAddFeed: requestAddFeed,
+                requestImportOPML: requestImportOPML,
+                requestExportOPML: requestExportOPML,
                 refreshAllFeeds: {
                     Task {
                         await feedViewModel.refreshAllFeeds(feeds, context: modelContext)
@@ -136,7 +162,8 @@ struct ContentView: View {
                     if let selectedFeed {
                         requestDeleteFeed(selectedFeed)
                     }
-                }
+                },
+                hasFeeds: !feeds.isEmpty
             )
         )
     }
@@ -145,9 +172,53 @@ struct ContentView: View {
         isShowingAddFeedSheet = true
     }
 
+    private func requestImportOPML() {
+        isImportingOPML = true
+    }
+
+    private func requestExportOPML() {
+        let opmlFeeds = feedViewModel.opmlFeedsForExport(from: feeds)
+        opmlExportDocument = OPMLDocument(text: OPMLService.exportFeeds(opmlFeeds))
+        isExportingOPML = true
+    }
+
     private func requestDeleteFeed(_ feed: Feed) {
         feedPendingDeletion = feed
         isDeleteFeedConfirmationPresented = true
+    }
+
+    private func importOPML(from result: Result<URL, Error>) {
+        Task {
+            do {
+                let url = try result.get()
+                let canAccess = url.startAccessingSecurityScopedResource()
+                defer {
+                    if canAccess {
+                        url.stopAccessingSecurityScopedResource()
+                    }
+                }
+
+                let data = try Data(contentsOf: url)
+                let opmlFeeds = try OPMLService.parseFeeds(from: data)
+                let importResult = try await feedViewModel.importOPMLFeeds(
+                    opmlFeeds,
+                    existingFeeds: feeds,
+                    context: modelContext
+                )
+                opmlAlert = OPMLAlert(
+                    title: L10n.opmlImportResultTitle,
+                    message: L10n.opmlImportResultMessage(
+                        imported: importResult.imported,
+                        skippedDuplicates: importResult.skippedDuplicates
+                    )
+                )
+            } catch {
+                opmlAlert = OPMLAlert(
+                    title: L10n.opmlImportFailedTitle,
+                    message: error.localizedDescription
+                )
+            }
+        }
     }
 
     private func deleteFeed(_ feed: Feed) {
@@ -212,4 +283,10 @@ struct ContentView: View {
     private var nextVisibleArticle: Article? {
         articleViewModel.nextArticle(after: selectedArticle, in: visibleArticles)
     }
+}
+
+private struct OPMLAlert: Identifiable {
+    let id = UUID()
+    let title: String
+    let message: String
 }

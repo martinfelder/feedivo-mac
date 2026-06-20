@@ -21,6 +21,98 @@ final class FeedViewModel {
     }
 
     @MainActor
+    func importOPMLFeeds(
+        _ opmlFeeds: [OPMLFeed],
+        existingFeeds: [Feed],
+        context: ModelContext
+    ) async throws -> OPMLImportResult {
+        errorMessage = nil
+        isLoading = true
+        defer {
+            isLoading = false
+        }
+
+        var knownFeedURLs = Set(existingFeeds.map { normalizedFeedURL($0.url) })
+        var importedCount = 0
+        var skippedDuplicateCount = 0
+        var failedFeedTitles: [String] = []
+
+        for opmlFeed in opmlFeeds {
+            let cleanedURL = opmlFeed.xmlURL.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !cleanedURL.isEmpty else {
+                continue
+            }
+
+            let normalizedURL = normalizedFeedURL(cleanedURL)
+            guard knownFeedURLs.insert(normalizedURL).inserted else {
+                skippedDuplicateCount += 1
+                continue
+            }
+
+            let feed = Feed(
+                url: cleanedURL,
+                title: opmlFeed.title.trimmingCharacters(in: .whitespacesAndNewlines),
+                siteURL: opmlFeed.htmlURL,
+                followedAt: Date(),
+                folderName: opmlFeed.folderName
+            )
+            context.insert(feed)
+            appendLog(
+                kind: "info",
+                message: L10n.feedLogImportedFromOPML,
+                to: feed,
+                context: context
+            )
+            importedCount += 1
+
+            do {
+                try await refreshFeedContents(feed, context: context)
+            } catch let error as LocalizedError {
+                appendLog(
+                    kind: "error",
+                    message: error.errorDescription ?? L10n.feedErrorParsingFailed,
+                    to: feed,
+                    context: context
+                )
+                failedFeedTitles.append(feed.title)
+            } catch {
+                appendLog(
+                    kind: "error",
+                    message: L10n.feedErrorParsingFailed,
+                    to: feed,
+                    context: context
+                )
+                failedFeedTitles.append(feed.title)
+            }
+        }
+
+        try context.save()
+        if !failedFeedTitles.isEmpty {
+            errorMessage = L10n.feedErrorRefreshAllPartial(
+                failedFeedTitles.count,
+                feedTitles: failedFeedTitles.joined(separator: ", ")
+            )
+        }
+
+        return OPMLImportResult(
+            total: opmlFeeds.count,
+            imported: importedCount,
+            skippedDuplicates: skippedDuplicateCount
+        )
+    }
+
+    func opmlFeedsForExport(from feeds: [Feed]) -> [OPMLFeed] {
+        feeds.map { feed in
+            OPMLFeed(
+                title: feed.title,
+                xmlURL: feed.url,
+                htmlURL: feed.siteURL,
+                folderName: feed.folderName
+            )
+        }
+    }
+
+    @MainActor
     func addFeed(urlString: String, context: ModelContext) async {
         let cleanedURL = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleanedURL.isEmpty else {
@@ -175,6 +267,12 @@ final class FeedViewModel {
         return "title-date:\(article.title)|\(article.publishedAt?.timeIntervalSince1970 ?? 0)"
     }
 
+    private func normalizedFeedURL(_ urlString: String) -> String {
+        urlString
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+    }
+
     private func articleIdentity(for parsedArticle: ParsedArticle) -> String {
         if let link = parsedArticle.link?.trimmingCharacters(in: .whitespacesAndNewlines),
            !link.isEmpty {
@@ -187,6 +285,7 @@ final class FeedViewModel {
     @MainActor
     private func refreshFeedContents(_ feed: Feed, context: ModelContext) async throws {
         let parsedFeed = try await fetchFeed(feed.url)
+        updateMissingArticleImages(in: feed, from: parsedFeed.articles)
         var seenArticleKeys = Set(feed.articles.map(articleIdentity))
         let newArticles = parsedFeed.articles.filter { parsedArticle in
             seenArticleKeys.insert(articleIdentity(for: parsedArticle)).inserted
@@ -223,6 +322,25 @@ final class FeedViewModel {
         try context.save()
     }
 
+    private func updateMissingArticleImages(in feed: Feed, from parsedArticles: [ParsedArticle]) {
+        var existingArticlesByIdentity: [String: Article] = [:]
+        for article in feed.articles {
+            existingArticlesByIdentity[articleIdentity(article)] = article
+        }
+
+        for parsedArticle in parsedArticles {
+            guard let imageURL = parsedArticle.imageURL?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !imageURL.isEmpty,
+                  let existingArticle = existingArticlesByIdentity[articleIdentity(for: parsedArticle)],
+                  existingArticle.imageURL?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true
+            else {
+                continue
+            }
+
+            existingArticle.imageURL = imageURL
+        }
+    }
+
     @MainActor
     private func appendLog(
         kind: String,
@@ -257,4 +375,10 @@ final class FeedViewModel {
 
         return await discoverFaviconURL(siteURL)
     }
+}
+
+struct OPMLImportResult: Equatable {
+    let total: Int
+    let imported: Int
+    let skippedDuplicates: Int
 }

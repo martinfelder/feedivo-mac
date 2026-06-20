@@ -7,6 +7,9 @@ struct SettingsView: View {
     @AppStorage("appLanguage")
     private var appLanguageRawValue = AppLanguage.system.rawValue
 
+    @AppStorage(InterfaceTextSize.storageKey)
+    private var interfaceTextSizeRawValue = InterfaceTextSize.defaultSize.rawValue
+
     @AppStorage(BackgroundRefreshSettings.isEnabledKey)
     private var backgroundRefreshIsEnabled = BackgroundRefreshSettings.defaultIsEnabled
 
@@ -43,6 +46,16 @@ struct SettingsView: View {
                             .tag(language.rawValue)
                     }
                 }
+            }
+
+            Section(L10n.settingsAppearanceSection) {
+                Picker(L10n.settingsInterfaceTextSizePicker, selection: $interfaceTextSizeRawValue) {
+                    ForEach(InterfaceTextSize.allCases) { textSize in
+                        Text(textSize.titleKey)
+                            .tag(textSize.rawValue)
+                    }
+                }
+                .pickerStyle(.segmented)
             }
 
             Section(L10n.settingsRefreshSection) {

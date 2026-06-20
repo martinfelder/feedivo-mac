@@ -113,6 +113,7 @@ FeedivoMac/
 │   │
 │   ├── Models/                         # SwiftData @Model Klassen — alle fertig ✅
 │   │   ├── Feed.swift
+│   │   ├── FeedFolder.swift            # Leere/angelegte Sidebar-Ordner ✅
 │   │   ├── FeedLogEntry.swift          # Feed-Abruf- und Fehlerlog ✅
 │   │   ├── Article.swift
 │   │   ├── Tag.swift
@@ -128,7 +129,9 @@ FeedivoMac/
 │   ├── Views/
 │   │   ├── ContentView.swift           # Root: NavigationSplitView (3 Spalten) ✅
 │   │   ├── Sidebar/
-│   │   │   ├── SidebarView.swift       # Linke Spalte: Feeds, + Button, @Query ✅
+│   │   │   ├── SidebarView.swift       # Dunkle linke Spalte: Filter, Feeds, + Button, @Query ✅
+│   │   │   ├── SidebarStyle.swift      # Farb-/Auswahlwerte fuer dunkle Sidebar ✅
+│   │   │   ├── FeedFolderOrganizer.swift # Einfache Ordner-Gruppierung fuer Feeds ✅
 │   │   │   ├── FeedRowView.swift       # Feed-Zeile mit Favicon/Fallback ✅
 │   │   │   ├── FeedPropertiesView.swift # Feed-Eigenschaften-Sheet ✅
 │   │   │   ├── FeedPropertiesFormatter.swift # Helper fuer Eigenschaften ✅
@@ -160,7 +163,8 @@ FeedivoMac/
 │   │   ├── BackgroundRefreshService.swift  # NSBackgroundActivityScheduler Adapter ✅
 │   │   ├── FeedRefreshService.swift    # Alle Feeds abrufen (async, mit Fortschritt) (TODO)
 │   │   ├── RuleEngine.swift            # Regeln auf neue Artikel anwenden (TODO)
-│   │   └── OPMLService.swift           # OPML Import und Export (TODO)
+│   │   ├── OPMLService.swift           # OPML Import und Export ✅
+│   │   └── OPMLDocument.swift          # FileDocument fuer OPML Export ✅
 │   │
 │   ├── Extensions/
 │   │   └── Date+RelativeDisplay.swift  # Datum fuer Artikelzeilen formatieren ✅
@@ -168,6 +172,7 @@ FeedivoMac/
 │   └── Resources/
 │       ├── Assets.xcassets
 │       ├── AppLanguage.swift           # Sprachauswahl + Locale-Mapping ✅
+│       ├── InterfaceTextSize.swift     # App-weite UI-Schriftgroesse ✅
 │       ├── Localizable.xcstrings       # String Catalog fuer de/en/fr/it ✅
 │       ├── L10n.swift                  # Zentraler Zugriff auf lokalisierte Strings ✅
 │       └── AGENTS.md                   # Diese Datei
@@ -195,6 +200,7 @@ struct FeedivoApp: App {
     init() {
         let modelContainer = try! ModelContainer(
             for: Feed.self,
+            FeedFolder.self,
             FeedLogEntry.self,
             Article.self,
             Tag.self,
@@ -224,12 +230,24 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 
 ### SidebarView.swift
 - `@Query(sort: \Feed.title)` für automatische Feed-Liste aus SwiftData
-- Toolbar mit + Button → oeffnet zentral praesentiertes `AddFeedSheet`
+- Dunkle, eigene SwiftUI-Sidebar statt Standard-`List`, damit Design 11 aus dem
+  Prototyp umgesetzt ist: dunkle linke Spalte, dezente aktive Auswahl und ruhige
+  Feed-/Filterzeilen
+- Header mit + Button → oeffnet zentral praesentiertes `AddFeedSheet`
 - `AddFeedSheet` ist eine separate Struct in derselben Datei
 - Ruft `FeedViewModel.addFeed()` auf
 - Kontextmenue pro Feed ruft das Feed-Loeschen mit Bestaetigung an
 - Kontextmenue pro Feed oeffnet `Feed Eigenschaften...` mit Metadaten, Intervall
   und Feed-Log
+- Smart-Filter behalten die bestehenden SF-Symbol-Icons (`tray.full`, `circle.fill`,
+  `star.fill`, `calendar`) und ihre Farben; nur die Sidebar-Oberflaeche ist dunkler
+- Feeds stehen in einer Sidebar-Section `Ordner`; neben dem Section-Titel gibt es
+  einen + Button zum Anlegen neuer Ordner
+- Ordner sind per Chevron auf- und zuklappbar; Feeds innerhalb eines Ordners werden
+  eingerueckt angezeigt, damit die Hierarchie in der dunklen Sidebar klarer lesbar ist
+- Angelegte/leere Ordner werden als `FeedFolder` gespeichert; die Zuordnung eines
+  Feeds zu einem Ordner bleibt fuer v1 ueber `Feed.folderName`
+- Ordner sind fuer v1 eine Ebene tief; noch kein Drag & Drop
 
 ### FeedRowView.swift
 - Zeigt Feed-Titel mit kleinem Favicon aus `Feed.faviconURL`
@@ -245,6 +263,8 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
   RSS `channel.link`, Atom `alternate` Link, JSON Feed `home_page_url`
 - Artikelbilder werden aus Media RSS, iTunes Image, Bild-Enclosures und erstem
   `<img>` in Content/Summary gelesen
+- Wenn Feed-Items kein eigenes Bild enthalten, versucht `fetchFeed` als Fallback die
+  verlinkte Artikelseite zu lesen und `og:image`/`twitter:image` zu uebernehmen
 - Relative Artikelbild-URLs werden gegen die Feed-URL zu absoluten URLs aufgeloest,
   damit `AsyncImage` sie laden kann
 - Eigene `FeedServiceError` enum: `.invalidURL`, `.parsingFailed`
@@ -279,12 +299,22 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 
 ### FeedPropertiesView.swift / FeedPropertiesFormatter.swift
 - Rechtsklick auf Feed → `Feed Eigenschaften...`
-- Sheet zeigt Originaltitel, Website, XML-Adresse, Gefolgt-ab-Datum, Ordner-Platzhalter,
-  letzten Artikel, Aktualisierungsintervall, naechsten Abruf, zuletzt aktualisiert
-  und die neuesten 20 Feed-Log-Eintraege
+- Sheet nutzt einen Feed-Header mit Icon/Favicon-Fallback, Website und Statusmetriken
+  fuer Aktualisierungsintervall, naechsten Abruf und sichtbare Log-Eintraege
+- Darunter zeigt es gruppiert Originaltitel, Website, XML-Adresse mit Kopierbutton,
+  Gefolgt-ab-Datum, editierbaren Ordner, letzten Artikel, Aktualisierungsintervall,
+  naechsten Abruf, zuletzt aktualisiert und die neuesten 20 Feed-Log-Eintraege
 - Aktualisierungsintervall ist direkt im Sheet editierbar und wird in SwiftData gespeichert
-- `FeedPropertiesFormatter` kapselt naechsten Abruf, neuesten Artikel und Log-Limit,
-  damit diese Logik ohne UI testbar bleibt
+- Der Ordnername ist direkt im Sheet editierbar; leere Eingaben werden als `nil`
+  gespeichert
+- `FeedPropertiesFormatter` kapselt naechsten Abruf, neuesten Artikel, Log-Limit und
+  die sichtbare Log-Anzahl, damit diese Logik ohne UI testbar bleibt
+
+### FeedFolderOrganizer.swift
+- Kapselt die einfache Feed-Ordnerlogik fuer die Sidebar.
+- Normalisiert Ordnernamen per Trim; leere Namen werden als fehlender Ordner behandelt.
+- Liefert eindeutige, alphabetisch sortierte Ordnernamen und sortierte Feed-Listen
+  pro Ordner beziehungsweise ohne Ordner.
 
 ### BackgroundRefreshSettings.swift / BackgroundRefreshService.swift
 - `BackgroundRefreshSettings` kapselt `@AppStorage` Keys, Defaults und erlaubte
@@ -334,12 +364,28 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 ### FeedCommands.swift / FeedCommandActions.swift
 - macOS-Menue `Feed` fuer Aktionen auf dem fokussierten/ausgewaehlten Feed
 - `Cmd+N` oeffnet `Feed hinzufügen...` und nutzt dasselbe Sheet wie der Sidebar-Plus-Button
+- `OPML importieren...` oeffnet einen macOS-Dateiimport fuer `.opml`/`.xml`
+- Nach dem OPML-Import werden neu angelegte Feeds direkt ueber denselben async
+  Refresh-Kern aktualisiert, damit Titel, Metadaten, Favicons und Artikel gefuellt sind
+- `OPML exportieren...` schreibt die aktuelle Feed-Liste als `Feedivo.opml`
 - `Cmd+Shift+R` aktualisiert alle Feeds
 - `Cmd+R` aktualisiert den ausgewaehlten Feed
 - Feed aktualisieren und Feed loeschen sind deaktiviert, wenn kein Feed ausgewaehlt ist
+- OPML Export ist deaktiviert, solange keine Feeds vorhanden sind
 - Kein Shortcut fuer Loeschen, damit eine destruktive Aktion bewusst bleibt
 - `ContentView` zeigt vor dem Loeschen einen Bestaetigungsdialog und setzt die
   Feed-/Artikel-Auswahl nach erfolgreichem Loeschen zurueck
+
+### OPMLService.swift / OPMLDocument.swift
+- `OPMLService.parseFeeds(from:)` liest OPML 2.0 mit verschachtelten `outline`-Eintraegen
+  ueber `XMLParser`.
+- Feed-Outlines werden aus `xmlUrl`/`xmlURL`, `title`/`text`, `htmlUrl`/`htmlURL`
+  in `OPMLFeed` umgewandelt.
+- Verschachtelte OPML-Gruppen werden fuer v1 als `Feed.folderName` uebernommen,
+  damit die Information erhalten bleibt und importierte Feeds direkt gruppiert sind.
+- `OPMLService.exportFeeds(_:)` schreibt gueltiges OPML mit gruppierten Feeds und
+  XML-escaping fuer Titel, Feed-URL und Website.
+- `OPMLDocument` kapselt den SwiftUI `FileDocument` Export fuer `.opml` und `.xml`.
 
 ### SettingsView.swift
 - macOS Settings-Szene in `FeedivoApp.swift`
@@ -347,6 +393,9 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 - Standard: Artikel beim Oeffnen automatisch als gelesen markieren
 - `@AppStorage("appLanguage")`
 - Sprachauswahl: Nach System, Deutsch, Englisch, Französisch, Italienisch
+- `@AppStorage("interfaceTextSize")`
+- Oberflaechenschrift: Klein, Standard, Gross, Sehr gross; wirkt app-weit ueber
+  SwiftUI `DynamicTypeSize` auf Hauptfenster und Einstellungen
 - `@AppStorage("backgroundRefresh.isEnabled")`
 - `@AppStorage("backgroundRefresh.intervalMinutes")`
 - Automatischer Refresh ist standardmaessig deaktiviert und kann auf 15, 30, 60
@@ -357,6 +406,14 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 - Presets: System, Geist, Inter, Manrope, DM Sans, Literata, Newsreader,
   IBM Plex Sans, Atkinson Hyperlegible, Source Serif 4, Libre Franklin, Lora,
   Merriweather, Noto Sans, Noto Serif, Roboto Slab, Crimson Pro, Fraunces, Serif
+
+### InterfaceTextSize.swift
+- Kapselt die app-weite UI-Schriftgroesse getrennt von der Reader-Typografie.
+- Gespeicherter Wert: `interfaceTextSize`; Default: `standard`.
+- Werte: Klein, Standard, Gross, Sehr gross; unbekannte gespeicherte Werte fallen
+  auf Standard zurueck.
+- Mapping auf SwiftUI `DynamicTypeSize`, damit Sidebar, Artikelliste, Toolbar-nahe
+  UI und Settings gemeinsam skalieren.
 
 ### ReaderView.swift
 - Zeigt Metazeile, Titel, native Reader-Bloecke und Link zum Original
@@ -441,6 +498,12 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
     @Relationship(deleteRule: .cascade) var articles: [Article]
     @Relationship(deleteRule: .cascade, inverse: \FeedLogEntry.feed) var logEntries: [FeedLogEntry]
     @Relationship var tags: [Tag]
+}
+
+@Model class FeedFolder {
+    var id: UUID
+    var name: String
+    var createdAt: Date
 }
 
 @Model class FeedLogEntry {
@@ -562,6 +625,11 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
   `media:thumbnail`, `media:content`, `itunes:image` oder ein erstes `<img>` in
   Summary/Content. Bild-URLs koennen relativ sein und muessen gegen die Feed-URL
   normalisiert werden.
+- **WordPress-Feeds ohne Item-Bilder:** Manche Feeds, z.B.
+  `https://stadt-bremerhaven.de/feed/`, liefern im RSS-Item gar keine Bilder aus.
+  Die Bilder stehen nur auf der Artikelseite als `og:image`/`twitter:image`.
+  `FeedService.fetchFeed` reichert solche Artikel deshalb ueber die verlinkte Seite
+  an; das erzeugt zusaetzliche Netzwerkrequests beim Hinzufuegen/Aktualisieren.
 - **Favicons:** Nicht nur `/favicon.ico` ableiten. Zuerst Website-HTML lesen und
   `<link rel="icon">`, `apple-touch-icon`, `shortcut icon` und `mask-icon` auswerten.
   Relative Icon-URLs muessen gegen die Website-URL normalisiert werden. Wenn HTML
@@ -634,10 +702,12 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 - [x] Native Reader Rendering erweitert: Ueberschriften, Zitate und Listenpunkte
 - [x] Navigation Vor/Zurueck fuer Artikel innerhalb der aktuell sichtbaren Liste
 - [x] Feed Eigenschaften per Rechtsklick: Metadaten, editierbares Refresh-Intervall
-  und Feed-Log als Basis
+  und Feed-Log mit Feed-Header und Statusmetriken als Basis
 
 ### M3 – Tags, Regeln & Sync
-- [ ] Ordner fuer Feeds als eigenes Organisationsfeature ausbauen
+- [x] Ordner fuer Feeds als eigenes Organisationsfeature ausbauen (Basis:
+  eine Ebene, Sidebar-Section `Ordner` mit + Button, leere Ordner als `FeedFolder`,
+  Feed-Zuordnung editierbar in Feed-Eigenschaften)
 - [ ] Tag-System: Tags erstellen (Name + Farbe), Feeds und Artikeln manuell zuweisen
 - [ ] Sidebar: Abschnitt "Tags" mit Filterung
 - [ ] Erweiterte/eigene Smart Filter spaeter pruefen
@@ -649,8 +719,8 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
   App pruefen, falls spaeter noetig
 
 ### M4 – Polish & Release
-- [ ] OPML Import (Feeds aus anderem RSS Reader übernehmen)
-- [ ] OPML Export (Feeds portieren)
+- [x] OPML Import (Feeds aus anderem RSS Reader übernehmen)
+- [x] OPML Export (Feeds portieren)
 - [ ] Einstellungen-Fenster (Refresh-Intervall, Schriftgrösse, Theme)
 - [ ] Share Extension (Artikel teilen via macOS Share Sheet)
 - [ ] App-Icon designen
@@ -673,7 +743,8 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 - [x] Reader-Modus global oder pro Artikel speichern? Entscheidung fuer v1: global per
   Einstellung `readerDisplayMode`; spaeter bei Bedarf pro Artikel/Feed pruefen
 - [ ] Stern und Archiv getrennt halten oder für v1 nur Stern?
-- [ ] OPML-Gruppen später als Ordner oder Tags importieren?
+- [x] OPML-Gruppen spaeter als Ordner oder Tags importieren? Entscheidung fuer v1:
+  als `Feed.folderName` speichern; sichtbare Ordnerverwaltung ist als Basis umgesetzt.
 - [ ] CloudKit Sync-Umfang, insbesondere Artikel-Content
 - [ ] Artikel-Detail: Nur nativer SwiftUI Text-Renderer oder auch WKWebView (volle Webseite)?
 - [ ] Monetarisierung: Kostenlos / einmaliger Kauf / nie im App Store?
@@ -686,8 +757,9 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 - Aktuell M2/Backlog-Ausbau: Basis-Feed/Reader/Refresh/Favicons, Smart Filter,
   Link-Aktionen, globaler Reader-Anzeigemodus und strukturierte Reader-Bloecke sind
   umgesetzt; Navigation Vor/Zurueck fuer Artikel und Feed Eigenschaften sind ebenfalls
-  als Basis umgesetzt. Naechster sinnvoller Block ist OPML Import aus dem MVP-Schnitt
-  oder danach die echte Ordnerverwaltung fuer Feeds.
+  als Basis umgesetzt. OPML Import/Export ist als Paket A umgesetzt. Paket B hat die
+  einfache Ordnerverwaltung fuer Feeds umgesetzt. Naechster sinnvoller Block ist die
+  Tag-/Regel-Basis.
 - Feature-Roadmap ist in `docs/FEATURES.md` dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
@@ -763,8 +835,14 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 - 2026-06-20: Smart Filter in der Sidebar umgesetzt: Alle Artikel, Ungelesen,
   Mit Stern und Heute nutzen `SidebarSelection` und filtern feeduebergreifend ueber
   alle gespeicherten Artikel
+- 2026-06-20: App-weite Oberflaechenschriftgroesse ergaenzt: Einstellungen bieten
+  Klein, Standard, Gross und Sehr gross; `InterfaceTextSize` mappt diese Werte auf
+  SwiftUI `DynamicTypeSize` und `FeedivoApp` wendet sie auf Hauptfenster und Settings an
 - 2026-06-20: Smart-Filter-Icons farbig gemacht: Alle Artikel blau, Ungelesen tuerkis,
   Mit Stern gelb und Heute gruen; die Farbzuordnung liegt testbar an `SmartFilter`
+- 2026-06-20: Reader-Redesign-Prototyp Design 11 in der echten App umgesetzt:
+  linke Sidebar ist dunkel, aktive Auswahl ist dezent, bestehende Smart-Filter-Icons
+  bleiben erhalten; Liste und Reader bleiben im bisherigen hellen 3-Spalten-Aufbau
 - 2026-06-20: Artikel-Link-Aktionen umgesetzt: Link kopieren und Original öffnen
   sind im Artikel-Kontextmenue, Reader-Toolbar und macOS-Menue `Artikel` verfuegbar
 - 2026-06-20: Reader-Titel klickbar gemacht: Klick auf den Artikeltitel oeffnet
@@ -782,3 +860,24 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
   lokalisiertes Sheet mit Feed-Metadaten, editierbarem Aktualisierungsintervall,
   naechstem Abruf, letztem Artikel und den neuesten 20 Feed-Log-Eintraegen; Feed-Adds
   und Refresh-Erfolge/-Fehler werden in SwiftData protokolliert
+- 2026-06-20: Feed-Eigenschaften-Sheet ergaenzt: Neben der XML-Adresse gibt es einen
+  Icon-Button, der die XML-Adresse in die macOS-Zwischenablage kopiert
+- 2026-06-20: Feed-Eigenschaften-Sheet visuell ueberarbeitet: grosser Feed-Header
+  mit Icon/Favicon-Fallback und Statusmetriken, gruppierte Detailansicht,
+  abgesetzter Aktualisierungsblock und kompakter Feed-Log-Verlauf
+- 2026-06-20: Artikelbild-Fallback fuer Feeds ohne Item-Bilder umgesetzt:
+  `FeedService.fetchFeed` liest bei fehlendem Bild die Artikelseite und uebernimmt
+  `og:image`/`twitter:image`; Refresh fuellt fehlende `Article.imageURL` Werte bei
+  bereits gespeicherten Artikeln nach
+- 2026-06-20: Paket B einfache Ordnerverwaltung umgesetzt: Sidebar gruppiert Feeds
+  nach `Feed.folderName`, Ordnernamen sind in den Feed-Eigenschaften editierbar und
+  `FeedFolderOrganizerTests` sichern Trimmen, Sortierung und leere Ordnernamen ab
+- 2026-06-20: Ordnerverwaltung verfeinert: Feeds stehen jetzt in der Sidebar-Section
+  `Ordner`, der Section-Titel hat einen + Button zum Erstellen neuer Ordner und
+  `FeedFolder` speichert angelegte/leere Ordner persistent.
+- 2026-06-20: Ordner- und OPML-Import-Verhalten nachgezogen: Feeds innerhalb eines
+  Ordners werden in der Sidebar eingerueckt, und neu importierte OPML-Feeds werden
+  direkt nach dem Import ueber den normalen Refresh-Kern aktualisiert.
+- 2026-06-20: Sidebar-Ordner aufklappbar gemacht: Ordnerzeilen haben einen Chevron,
+  bleiben standardmaessig geoeffnet und klappen ihre eingerueckten Feeds per Klick
+  ein oder aus.

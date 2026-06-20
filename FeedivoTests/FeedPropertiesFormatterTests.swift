@@ -42,4 +42,22 @@ struct FeedPropertiesFormatterTests {
         #expect(latestEntries.first?.message == "Eintrag 24")
         #expect(latestEntries.last?.message == "Eintrag 5")
     }
+
+    @Test func latestLogEntryCountZaehltNurSichtbareEintraege() {
+        let entries = (0..<25).map { index in
+            FeedLogEntry(
+                createdAt: Date(timeIntervalSince1970: TimeInterval(index)),
+                kind: "info",
+                message: "Eintrag \(index)"
+            )
+        }
+
+        #expect(FeedPropertiesFormatter.latestLogEntryCount(entries) == 20)
+        #expect(FeedPropertiesFormatter.latestLogEntryCount(entries, limit: 3) == 3)
+    }
+
+    @Test func copyableXMLAddressTrimmtAdresseUndIgnoriertLeereWerte() {
+        #expect(FeedPropertiesFormatter.copyableXMLAddress("  https://example.com/feed.xml  ") == "https://example.com/feed.xml")
+        #expect(FeedPropertiesFormatter.copyableXMLAddress("   ") == nil)
+    }
 }

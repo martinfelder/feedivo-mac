@@ -6,6 +6,154 @@ import Testing
 struct FeedViewModelTests {
 
     @MainActor
+    @Test func importOPMLFeedsLegtNeueFeedsAnUndUeberspringtDuplikate() async throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let existingFeed = Feed(
+            url: "https://example.com/existing.xml",
+            title: "Schon da"
+        )
+        context.insert(existingFeed)
+        try context.save()
+
+        let viewModel = FeedViewModel(
+            fetchFeed: { urlString in
+                ParsedFeed(
+                    sourceURL: urlString,
+                    title: "Neu",
+                    description: nil,
+                    siteURL: "https://example.com/new",
+                    articles: []
+                )
+            },
+            discoverFaviconURL: { _ in nil }
+        )
+        let result = try await viewModel.importOPMLFeeds(
+            [
+                OPMLFeed(
+                    title: "Schon da aus OPML",
+                    xmlURL: "https://example.com/existing.xml",
+                    htmlURL: "https://example.com/",
+                    folderName: "Tech"
+                ),
+                OPMLFeed(
+                    title: "Neu",
+                    xmlURL: "https://example.com/new.xml",
+                    htmlURL: "https://example.com/new",
+                    folderName: "News"
+                )
+            ],
+            existingFeeds: [existingFeed],
+            context: context
+        )
+
+        let feeds = try context.fetch(FetchDescriptor<Feed>())
+        #expect(result.total == 2)
+        #expect(result.imported == 1)
+        #expect(result.skippedDuplicates == 1)
+        #expect(feeds.count == 2)
+        #expect(feeds.contains { $0.url == "https://example.com/existing.xml" && $0.title == "Schon da" })
+        #expect(feeds.contains { $0.url == "https://example.com/new.xml" && $0.title == "Neu" && $0.folderName == "News" })
+        #expect(viewModel.errorMessage == nil)
+    }
+
+    @MainActor
+    @Test func importOPMLFeedsAktualisiertNeueFeedsDirektNachDemImport() async throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let viewModel = FeedViewModel(
+            fetchFeed: { urlString in
+                #expect(urlString == "https://example.com/imported.xml")
+                return ParsedFeed(
+                    sourceURL: urlString,
+                    title: "Aktualisierter Import Feed",
+                    description: "Beschreibung aus Feed",
+                    siteURL: "https://example.com/",
+                    articles: [
+                        ParsedArticle(
+                            title: "Importierter Artikel",
+                            link: "https://example.com/article",
+                            summary: "Kurzfassung",
+                            content: "Volltext",
+                            publishedAt: Date(timeIntervalSince1970: 500),
+                            imageURL: "https://example.com/image.jpg"
+                        )
+                    ]
+                )
+            },
+            discoverFaviconURL: { _ in
+                "https://example.com/favicon.png"
+            }
+        )
+
+        let result = try await viewModel.importOPMLFeeds(
+            [
+                OPMLFeed(
+                    title: "Titel aus OPML",
+                    xmlURL: "https://example.com/imported.xml",
+                    htmlURL: "https://example.com/old",
+                    folderName: "News"
+                )
+            ],
+            existingFeeds: [],
+            context: context
+        )
+
+        let feeds = try context.fetch(FetchDescriptor<Feed>())
+        let importedFeed = try #require(feeds.first)
+        #expect(result.imported == 1)
+        #expect(importedFeed.title == "Aktualisierter Import Feed")
+        #expect(importedFeed.feedDescription == "Beschreibung aus Feed")
+        #expect(importedFeed.siteURL == "https://example.com/")
+        #expect(importedFeed.folderName == "News")
+        #expect(importedFeed.faviconURL == "https://example.com/favicon.png")
+        #expect(importedFeed.lastRefreshed != nil)
+        #expect(importedFeed.articles.count == 1)
+        #expect(importedFeed.articles.first?.title == "Importierter Artikel")
+        #expect(importedFeed.logEntries.contains { $0.kind == "info" && $0.message.contains("1") })
+        #expect(viewModel.errorMessage == nil)
+        #expect(!viewModel.isLoading)
+    }
+
+    @MainActor
+    @Test func opmlFeedsForExportNutztAktuelleFeedMetadaten() {
+        let feeds = [
+            Feed(
+                url: "https://example.com/feed.xml",
+                title: "Example",
+                siteURL: "https://example.com/",
+                folderName: "Tech"
+            )
+        ]
+        let viewModel = FeedViewModel()
+
+        let opmlFeeds = viewModel.opmlFeedsForExport(from: feeds)
+
+        #expect(opmlFeeds == [
+            OPMLFeed(
+                title: "Example",
+                xmlURL: "https://example.com/feed.xml",
+                htmlURL: "https://example.com/",
+                folderName: "Tech"
+            )
+        ])
+    }
+
+    @MainActor
     @Test func addFeedSpeichertEntdecktesFavicon() async throws {
         let container = try ModelContainer(
             for: Feed.self,
@@ -144,7 +292,7 @@ struct FeedViewModelTests {
                             summary: "Soll nicht dupliziert werden",
                             content: nil,
                             publishedAt: existingPublishedAt,
-                            imageURL: nil
+                            imageURL: "https://example.com/existing-image.jpg"
                         ),
                         ParsedArticle(
                             title: "Neuer Artikel",
@@ -174,6 +322,7 @@ struct FeedViewModelTests {
         #expect(feed.lastRefreshed ?? .distantPast > oldRefreshDate)
         #expect(feed.articles.count == 2)
         #expect(existingArticle.isRead)
+        #expect(existingArticle.imageURL == "https://example.com/existing-image.jpg")
         #expect(feed.articles.contains { $0.link == "https://example.com/2" })
         #expect(feed.logEntries.contains { $0.kind == "info" && $0.message.contains("1") })
         #expect(viewModel.errorMessage == nil)

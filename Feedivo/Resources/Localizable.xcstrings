@@ -592,6 +592,22 @@
         }
       }
     },
+    "feed.importOPML.command" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "OPML importieren..." } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Import OPML..." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Importer OPML..." } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Importa OPML..." } }
+      }
+    },
+    "feed.exportOPML.command" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "OPML exportieren..." } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Export OPML..." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Exporter OPML..." } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Esporta OPML..." } }
+      }
+    },
     "feed.delete.command" : {
       "localizations" : {
         "de" : {
@@ -712,6 +728,22 @@
         "it" : { "stringUnit" : { "state" : "translated", "value" : "Proprietà feed..." } }
       }
     },
+    "feed.properties.copyXMLAddress" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "XML-Adresse kopieren" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Copy XML address" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Copier l’adresse XML" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Copia indirizzo XML" } }
+      }
+    },
+    "feed.properties.detailsTitle" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Details" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Details" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Détails" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Dettagli" } }
+      }
+    },
     "feed.properties.followedAt" : {
       "localizations" : {
         "de" : { "stringUnit" : { "state" : "translated", "value" : "Gefolgt ab" } },
@@ -750,6 +782,14 @@
         "en" : { "stringUnit" : { "state" : "translated", "value" : "Feed log" } },
         "fr" : { "stringUnit" : { "state" : "translated", "value" : "Journal du flux" } },
         "it" : { "stringUnit" : { "state" : "translated", "value" : "Log del feed" } }
+      }
+    },
+    "feed.properties.logEntries" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Log-Einträge" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Log entries" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Entrées du journal" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Voci di log" } }
       }
     },
     "feed.properties.nextFetch" : {
@@ -832,12 +872,60 @@
         "it" : { "stringUnit" : { "state" : "translated", "value" : "Feed aggiunto" } }
       }
     },
+    "feed.log.importedFromOPML" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Aus OPML importiert" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Imported from OPML" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Importé depuis OPML" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Importato da OPML" } }
+      }
+    },
     "feed.log.refreshed" : {
       "localizations" : {
         "de" : { "stringUnit" : { "state" : "translated", "value" : "Aktualisiert: %lld neue Artikel" } },
         "en" : { "stringUnit" : { "state" : "translated", "value" : "Refreshed: %lld new articles" } },
         "fr" : { "stringUnit" : { "state" : "translated", "value" : "Actualisé : %lld nouveaux articles" } },
         "it" : { "stringUnit" : { "state" : "translated", "value" : "Aggiornato: %lld nuovi articoli" } }
+      }
+    },
+    "opml.import.result.title" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "OPML importiert" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "OPML imported" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "OPML importé" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "OPML importato" } }
+      }
+    },
+    "opml.import.result.message" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "%lld neue Feeds, %lld Duplikate übersprungen." } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "%lld new feeds, %lld duplicates skipped." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "%lld nouveaux flux, %lld doublons ignorés." } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "%lld nuovi feed, %lld duplicati saltati." } }
+      }
+    },
+    "opml.import.failed.title" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "OPML konnte nicht importiert werden" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "OPML could not be imported" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Impossible d'importer OPML" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Impossibile importare OPML" } }
+      }
+    },
+    "opml.error.invalidXML" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Die Datei ist keine gültige OPML- oder XML-Datei." } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "The file is not a valid OPML or XML file." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Le fichier n'est pas un fichier OPML ou XML valide." } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Il file non è un file OPML o XML valido." } }
+      }
+    },
+    "opml.error.noFeedsFound" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "In der OPML-Datei wurden keine Feed-Einträge gefunden." } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "No feed entries were found in the OPML file." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Aucune entrée de flux n'a été trouvée dans le fichier OPML." } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Nel file OPML non è stata trovata alcuna voce feed." } }
       }
     },
     "feed.error.addFailed" : {
@@ -1683,6 +1771,174 @@
         }
       }
     },
+    "settings.appearance.section" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Darstellung"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appearance"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apparence"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aspetto"
+          }
+        }
+      }
+    },
+    "settings.interfaceTextSize.extraLarge" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sehr groß"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Extra Large"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Très grand"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Molto grande"
+          }
+        }
+      }
+    },
+    "settings.interfaceTextSize.large" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Groß"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Large"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grand"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grande"
+          }
+        }
+      }
+    },
+    "settings.interfaceTextSize.picker" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oberflächenschrift"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interface text"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Texte de l'interface"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Testo interfaccia"
+          }
+        }
+      }
+    },
+    "settings.interfaceTextSize.small" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klein"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Small"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Petit"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Piccolo"
+          }
+        }
+      }
+    },
+    "settings.interfaceTextSize.standard" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standard"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standard"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standard"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standard"
+          }
+        }
+      }
+    },
     "settings.language.english" : {
       "localizations" : {
         "de" : {
@@ -2075,6 +2331,118 @@
         }
       }
     },
+    "sidebar.addFolder.button" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ordner hinzufügen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add folder"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajouter un dossier"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi cartella"
+          }
+        }
+      }
+    },
+    "sidebar.addFolder.duplicateError" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieser Ordner existiert bereits."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This folder already exists."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce dossier existe déjà."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questa cartella esiste già."
+          }
+        }
+      }
+    },
+    "sidebar.addFolder.name.placeholder" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ordnername"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Folder name"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nom du dossier"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nome cartella"
+          }
+        }
+      }
+    },
+    "sidebar.addFolder.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ordner erstellen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create folder"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Créer un dossier"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crea cartella"
+          }
+        }
+      }
+    },
     "sidebar.empty.title" : {
       "localizations" : {
         "de" : {
@@ -2099,6 +2467,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ancora nessun feed"
+          }
+        }
+      }
+    },
+    "sidebar.folders.section" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ordner"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Folders"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dossiers"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartelle"
           }
         }
       }

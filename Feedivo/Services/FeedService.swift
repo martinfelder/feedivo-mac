@@ -31,6 +31,17 @@ struct ParsedArticle {
     let content: String?
     let publishedAt: Date?
     let imageURL: String?
+
+    func copy(imageURL: String?) -> ParsedArticle {
+        ParsedArticle(
+            title: title,
+            link: link,
+            summary: summary,
+            content: content,
+            publishedAt: publishedAt,
+            imageURL: imageURL
+        )
+    }
 }
 
 enum FeedServiceError: LocalizedError {
@@ -48,18 +59,30 @@ enum FeedServiceError: LocalizedError {
 }
 
 enum FeedService {
+    typealias FeedDataLoader = (URL) async throws -> (Data, URLResponse)
+
     static func fetchFeed(urlString: String) async throws -> ParsedFeed {
+        try await fetchFeed(urlString: urlString) { url in
+            try await URLSession.shared.data(from: url)
+        }
+    }
+
+    static func fetchFeed(
+        urlString: String,
+        dataLoader: @escaping FeedDataLoader
+    ) async throws -> ParsedFeed {
         guard let url = URL(string: urlString) else {
             throw FeedServiceError.invalidURL
         }
 
-        let (data, response) = try await URLSession.shared.data(from: url)
+        let (data, response) = try await dataLoader(url)
         if let httpResponse = response as? HTTPURLResponse,
            !(200 ... 299).contains(httpResponse.statusCode) {
             throw FeedServiceError.parsingFailed
         }
 
-        return try parseFeed(data: data, sourceURL: urlString)
+        let parsedFeed = try parseFeed(data: data, sourceURL: urlString)
+        return await enrichArticleImagesIfNeeded(in: parsedFeed, dataLoader: dataLoader)
     }
 
     static func parseFeed(data: Data, sourceURL: String) throws -> ParsedFeed {
@@ -235,6 +258,132 @@ enum FeedService {
         }
 
         return cleanImageURL(String(html[srcRange]), relativeTo: baseURL)
+    }
+
+    private static func enrichArticleImagesIfNeeded(
+        in feed: ParsedFeed,
+        dataLoader: @escaping FeedDataLoader
+    ) async -> ParsedFeed {
+        var enrichedArticles = feed.articles
+        let candidates = feed.articles.enumerated().compactMap { index, article -> (index: Int, url: URL)? in
+            guard article.imageURL == nil,
+                  let link = article.link,
+                  let url = URL(string: link),
+                  url.scheme != nil
+            else {
+                return nil
+            }
+
+            return (index, url)
+        }
+
+        guard !candidates.isEmpty else {
+            return feed
+        }
+
+        await withTaskGroup(of: (Int, String?).self) { group in
+            var iterator = candidates.makeIterator()
+            var activeTasks = 0
+
+            for _ in 0 ..< min(4, candidates.count) {
+                guard let candidate = iterator.next() else {
+                    break
+                }
+
+                activeTasks += 1
+                group.addTask {
+                    let imageURL = await articlePageImageURL(candidate.url, dataLoader: dataLoader)
+                    return (candidate.index, imageURL)
+                }
+            }
+
+            while activeTasks > 0, let result = await group.next() {
+                activeTasks -= 1
+
+                if let imageURL = result.1 {
+                    enrichedArticles[result.0] = enrichedArticles[result.0].copy(imageURL: imageURL)
+                }
+
+                if let candidate = iterator.next() {
+                    activeTasks += 1
+                    group.addTask {
+                        let imageURL = await articlePageImageURL(candidate.url, dataLoader: dataLoader)
+                        return (candidate.index, imageURL)
+                    }
+                }
+            }
+        }
+
+        return ParsedFeed(
+            sourceURL: feed.sourceURL,
+            title: feed.title,
+            description: feed.description,
+            siteURL: feed.siteURL,
+            articles: enrichedArticles
+        )
+    }
+
+    private static func articlePageImageURL(
+        _ articleURL: URL,
+        dataLoader: FeedDataLoader
+    ) async -> String? {
+        guard let (data, response) = try? await dataLoader(articleURL),
+              (response as? HTTPURLResponse).map({ (200 ... 299).contains($0.statusCode) }) ?? true,
+              let html = String(data: data, encoding: .utf8)
+        else {
+            return nil
+        }
+
+        return firstMetaImageURL(inHTML: html, relativeTo: articleURL)
+    }
+
+    private nonisolated static func firstMetaImageURL(inHTML html: String, relativeTo baseURL: URL?) -> String? {
+        let pattern = #"<meta\b[^>]*>"#
+        guard let expression = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else {
+            return nil
+        }
+
+        let range = NSRange(html.startIndex ..< html.endIndex, in: html)
+        let matches = expression.matches(in: html, range: range)
+
+        for match in matches {
+            guard let metaRange = Range(match.range, in: html) else {
+                continue
+            }
+
+            let metaTag = String(html[metaRange])
+            let name = attributeValue(named: "property", in: metaTag)
+                ?? attributeValue(named: "name", in: metaTag)
+
+            guard let name,
+                  ["og:image", "twitter:image"].contains(name.lowercased()),
+                  let content = attributeValue(named: "content", in: metaTag),
+                  let imageURL = cleanImageURL(content, relativeTo: baseURL)
+            else {
+                continue
+            }
+
+            return imageURL
+        }
+
+        return nil
+    }
+
+    private nonisolated static func attributeValue(named attributeName: String, in htmlTag: String) -> String? {
+        let pattern = #"\#(attributeName)\s*=\s*["']([^"']+)["']"#
+        guard let expression = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else {
+            return nil
+        }
+
+        let range = NSRange(htmlTag.startIndex ..< htmlTag.endIndex, in: htmlTag)
+        guard let match = expression.firstMatch(in: htmlTag, range: range),
+              let valueRange = Range(match.range(at: 1), in: htmlTag) else {
+            return nil
+        }
+
+        return String(htmlTag[valueRange])
+            .replacingOccurrences(of: "&amp;", with: "&")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private nonisolated static func cleanImageURL(_ value: String?, relativeTo baseURL: URL?) -> String? {
