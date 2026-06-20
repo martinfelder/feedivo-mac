@@ -59,4 +59,4 @@
 - [x] Run `git diff --check`.
 - [x] Run `xcodebuild test -scheme Feedivo -destination 'platform=macOS' -only-testing:FeedivoTests`.
 - [x] Run `xcodebuild build -scheme Feedivo -destination 'platform=macOS'`.
-- [ ] Stage only project files, commit, and push to `main`.
+- [x] Stage only project files, commit, and push to `main`.
