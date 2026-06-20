@@ -1,6 +1,26 @@
 import Foundation
 import SwiftUI
 
+enum SmartFilterIconColor: Hashable {
+    case blue
+    case teal
+    case yellow
+    case green
+
+    var color: Color {
+        switch self {
+        case .blue:
+            return .blue
+        case .teal:
+            return .teal
+        case .yellow:
+            return .yellow
+        case .green:
+            return .green
+        }
+    }
+}
+
 enum SmartFilter: String, CaseIterable, Identifiable, Hashable {
     case allArticles
     case unread
@@ -34,6 +54,19 @@ enum SmartFilter: String, CaseIterable, Identifiable, Hashable {
             return "star.fill"
         case .today:
             return "calendar"
+        }
+    }
+
+    var iconColor: SmartFilterIconColor {
+        switch self {
+        case .allArticles:
+            return .blue
+        case .unread:
+            return .teal
+        case .starred:
+            return .yellow
+        case .today:
+            return .green
         }
     }
 

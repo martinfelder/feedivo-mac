@@ -106,7 +106,8 @@ bei geschlossener App.
   in `Feed.faviconURL` gespeichert und in der Sidebar angezeigt; `/favicon.ico`
   bleibt Fallback, externe Favicon-Dienste werden nicht genutzt.
 - Smart Filter sind in der Sidebar umgesetzt: Alle Artikel, Ungelesen, Mit Stern
-  und Heute zeigen feeduebergreifend die passenden gespeicherten Artikel.
+  und Heute zeigen feeduebergreifend die passenden gespeicherten Artikel. Die
+  Filter-Icons haben passende Farben: blau, tuerkis, gelb und gruen.
 - Projekt baut und Unit-Tests laufen; UI-Test-Runner blockierte lokal am 2026-06-19
   vor dem App-Launch an einer alten Feedivo-PID.
 
@@ -266,6 +267,7 @@ M2 Core Features:
 - Prioritaet: MVP
 - Implementiert: Sidebar-Filter fuer Alle Artikel, Ungelesen, Mit Stern und Heute.
   Die Artikelliste nutzt dafuer alle gespeicherten Artikel statt nur einen Feed.
+  Die Filter-Icons sind farbig und passen semantisch zum jeweiligen Symbol.
 - Spaeter: Eigene Smart Filter und weitere Zeitfilter wie Gestern.
 
 #### 3.3 Tag-Abschnitt

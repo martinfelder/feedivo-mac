@@ -15,6 +15,7 @@ struct SidebarView: View {
                         Text(smartFilter.title)
                     } icon: {
                         Image(systemName: smartFilter.systemImage)
+                            .foregroundStyle(smartFilter.iconColor.color)
                     }
                     .tag(SidebarSelection.smartFilter(smartFilter))
                 }

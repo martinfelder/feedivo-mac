@@ -714,3 +714,5 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 - 2026-06-20: Smart Filter in der Sidebar umgesetzt: Alle Artikel, Ungelesen,
   Mit Stern und Heute nutzen `SidebarSelection` und filtern feeduebergreifend ueber
   alle gespeicherten Artikel
+- 2026-06-20: Smart-Filter-Icons farbig gemacht: Alle Artikel blau, Ungelesen tuerkis,
+  Mit Stern gelb und Heute gruen; die Farbzuordnung liegt testbar an `SmartFilter`

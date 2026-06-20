@@ -57,4 +57,11 @@ struct SmartFilterTests {
         #expect(!SmartFilter.today.includes(yesterday, now: now, calendar: calendar))
         #expect(!SmartFilter.today.includes(missingDate, now: now, calendar: calendar))
     }
+
+    @Test func filterIconsHabenPassendeFarben() {
+        #expect(SmartFilter.allArticles.iconColor == .blue)
+        #expect(SmartFilter.unread.iconColor == .teal)
+        #expect(SmartFilter.starred.iconColor == .yellow)
+        #expect(SmartFilter.today.iconColor == .green)
+    }
 }
