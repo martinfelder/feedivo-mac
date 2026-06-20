@@ -719,3 +719,5 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
   Mit Stern gelb und Heute gruen; die Farbzuordnung liegt testbar an `SmartFilter`
 - 2026-06-20: Artikel-Link-Aktionen umgesetzt: Link kopieren und Original öffnen
   sind im Artikel-Kontextmenue, Reader-Toolbar und macOS-Menue `Artikel` verfuegbar
+- 2026-06-20: Reader-Titel klickbar gemacht: Klick auf den Artikeltitel oeffnet
+  bei gueltigem Originallink den Artikel im Standardbrowser

@@ -83,13 +83,7 @@ struct ReaderView: View {
                         .lineLimit(1)
                 }
 
-                Text(article.title)
-                    .font(titleFontPreset.font(
-                        size: CGFloat(ReaderTypography.defaultTitleFontSize),
-                        relativeTo: .largeTitle
-                    ))
-                    .fontWeight(.bold)
-                    .lineSpacing(clampedTitleLineSpacing)
+                readerTitle
 
                 ForEach(Array(contentBlocks.enumerated()), id: \.offset) { _, block in
                     switch block {
@@ -198,6 +192,31 @@ struct ReaderView: View {
         }
         .padding(16)
         .frame(width: 320)
+    }
+
+    @ViewBuilder
+    private var readerTitle: some View {
+        if viewModel.originalURL(for: article) != nil {
+            Button {
+                _ = viewModel.openOriginal(article)
+            } label: {
+                readerTitleText
+            }
+            .buttonStyle(.plain)
+            .help(L10n.articleOpenOriginalCommand)
+        } else {
+            readerTitleText
+        }
+    }
+
+    private var readerTitleText: some View {
+        Text(article.title)
+            .font(titleFontPreset.font(
+                size: CGFloat(ReaderTypography.defaultTitleFontSize),
+                relativeTo: .largeTitle
+            ))
+            .fontWeight(.bold)
+            .lineSpacing(clampedTitleLineSpacing)
     }
 
     private func typographySlider(

@@ -110,7 +110,8 @@ bei geschlossener App.
   Filter-Icons haben passende Farben: blau, tuerkis, gelb und gruen.
 - Artikel-Links koennen kopiert und Originalartikel im Standardbrowser geoeffnet
   werden; die Aktionen sind im Artikel-Kontextmenue, Reader und macOS-Menue `Artikel`
-  verfuegbar.
+  verfuegbar. In der Artikelansicht oeffnet auch ein Klick auf den Titel den
+  Originalartikel, sofern ein gueltiger Link vorhanden ist.
 - Projekt baut und Unit-Tests laufen; UI-Test-Runner blockierte lokal am 2026-06-19
   vor dem App-Launch an einer alten Feedivo-PID.
 
@@ -178,7 +179,8 @@ M2 Core Features:
 - Status: Fertig als Basis
 - Prioritaet: MVP
 - Implementiert: Originalartikel werden ueber den macOS-Standardbrowser geoeffnet.
-  Zugriff in Reader-Toolbar, Artikel-Kontextmenue und macOS-Menue `Artikel`.
+  Zugriff ueber klickbaren Reader-Titel, Reader-Toolbar, Artikel-Kontextmenue und
+  macOS-Menue `Artikel`.
 
 #### 1.8 Safari-Reader-aehnliche Ansicht
 - Status: In Diskussion
