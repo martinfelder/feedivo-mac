@@ -28,6 +28,9 @@ enum L10n {
     static let readerTitleLineSpacingSlider = LocalizedStringKey("reader.titleLineSpacing.slider")
     static let readerLineSpacingSlider = LocalizedStringKey("reader.lineSpacing.slider")
     static let readerContentWidthSlider = LocalizedStringKey("reader.contentWidth.slider")
+    static let readerDisplayModePicker = LocalizedStringKey("reader.displayMode.picker")
+    static let readerDisplayModeNative = LocalizedStringKey("reader.displayMode.native")
+    static let readerDisplayModeWeb = LocalizedStringKey("reader.displayMode.web")
     static let readerFontSystem = LocalizedStringKey("reader.font.system")
     static let readerFontSerif = LocalizedStringKey("reader.font.serif")
     static let readerFontRounded = LocalizedStringKey("reader.font.rounded")
@@ -56,6 +59,7 @@ enum L10n {
     static var articleCommandsMenu: String { String(localized: "articleCommands.menu") }
     static var articleCopyLinkCommand: String { String(localized: "article.copyLink.command") }
     static var articleOpenOriginalCommand: String { String(localized: "article.openOriginal.command") }
+    static var readerDisplayModeToggleHelp: String { String(localized: "reader.displayMode.toggle.help") }
     static var feedErrorInvalidURL: String { String(localized: "feed.error.invalidURL") }
     static var feedErrorParsingFailed: String { String(localized: "feed.error.parsingFailed") }
     static var feedErrorEmptyURL: String { String(localized: "feed.error.emptyURL") }

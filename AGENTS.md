@@ -592,6 +592,7 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 - [x] Favicons laden und in Sidebar anzeigen
 - [x] Smart Filter in Sidebar: Alle Artikel, Ungelesen, Mit Stern, Heute
 - [x] Artikel-Link kopieren und Original im Browser öffnen
+- [x] Reader-Anzeigemodus: global zwischen nativem Reader und Originalansicht wechseln
 
 ### M3 – Tags, Regeln & Sync
 - [ ] Tag-System: Tags erstellen (Name + Farbe), Feeds und Artikeln manuell zuweisen
@@ -626,7 +627,8 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 
 ## Offene Entscheidungen
 
-- [ ] Reader-Modus global oder pro Artikel speichern?
+- [x] Reader-Modus global oder pro Artikel speichern? Entscheidung fuer v1: global per
+  Einstellung `readerDisplayMode`; spaeter bei Bedarf pro Artikel/Feed pruefen
 - [ ] Stern und Archiv getrennt halten oder für v1 nur Stern?
 - [ ] OPML-Gruppen später als Ordner oder Tags importieren?
 - [ ] CloudKit Sync-Umfang, insbesondere Artikel-Content
@@ -638,8 +640,9 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 ## Aktuell in Arbeit
 
 - M1 abgeschlossen
-- Aktuell M2: Basis-Feed/Reader/Refresh/Favicons, Smart Filter und Link-Aktionen
-  sind umgesetzt; naechster sinnvoller Block ist OPML Import oder Alle als gelesen
+- Aktuell M2/Backlog-Ausbau: Basis-Feed/Reader/Refresh/Favicons, Smart Filter,
+  Link-Aktionen und globaler Reader-Anzeigemodus sind umgesetzt; naechster sinnvoller
+  Block ist verbessertes natives Reader Rendering fuer Links, Listen und Zitate
 - Feature-Roadmap ist in `docs/FEATURES.md` dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
@@ -721,3 +724,6 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
   sind im Artikel-Kontextmenue, Reader-Toolbar und macOS-Menue `Artikel` verfuegbar
 - 2026-06-20: Reader-Titel klickbar gemacht: Klick auf den Artikeltitel oeffnet
   bei gueltigem Originallink den Artikel im Standardbrowser
+- 2026-06-20: Reader-Anzeigemodus umgesetzt: globale Einstellung `readerDisplayMode`
+  wechselt zwischen nativem SwiftUI-Reader und Originalansicht per `WKWebView`, mit
+  Fallback auf den nativen Reader bei fehlendem Originallink

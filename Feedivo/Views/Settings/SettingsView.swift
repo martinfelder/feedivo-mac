@@ -31,6 +31,9 @@ struct SettingsView: View {
     @AppStorage("readerContentWidth")
     private var readerContentWidth = ReaderTypography.defaultContentWidth
 
+    @AppStorage(ReaderDisplayMode.storageKey)
+    private var readerDisplayModeRawValue = ReaderDisplayMode.defaultMode.rawValue
+
     var body: some View {
         Form {
             Section(L10n.settingsLanguageSection) {
@@ -60,6 +63,14 @@ struct SettingsView: View {
             }
 
             Section(L10n.settingsReadingSection) {
+                Picker(L10n.readerDisplayModePicker, selection: $readerDisplayModeRawValue) {
+                    ForEach(ReaderDisplayMode.allCases) { mode in
+                        Text(mode.titleKey)
+                            .tag(mode.rawValue)
+                    }
+                }
+                .pickerStyle(.segmented)
+
                 Picker(L10n.readerTitleFontPicker, selection: $readerTitleFontPresetRawValue) {
                     ForEach(ReaderFontPreset.allCases) { preset in
                         Text(preset.title)

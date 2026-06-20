@@ -21,6 +21,9 @@ struct ReaderView: View {
     @AppStorage("readerContentWidth")
     private var readerContentWidth = ReaderTypography.defaultContentWidth
 
+    @AppStorage(ReaderDisplayMode.storageKey)
+    private var readerDisplayModeRawValue = ReaderDisplayMode.defaultMode.rawValue
+
     @State private var isAppearancePopoverPresented = false
     @State private var viewModel = ArticleViewModel()
 
@@ -52,6 +55,18 @@ struct ReaderView: View {
         CGFloat(ReaderTypography.metadataFontSize(forBodyFontSize: readerBodyFontSize))
     }
 
+    private var readerDisplayMode: ReaderDisplayMode {
+        ReaderDisplayMode.resolved(from: readerDisplayModeRawValue)
+    }
+
+    private var originalURL: URL? {
+        viewModel.originalURL(for: article)
+    }
+
+    private var shouldShowWebView: Bool {
+        readerDisplayMode == .web && originalURL != nil
+    }
+
     private var contentBlocks: [ReaderContentBlock] {
         ReaderContentRenderer.blocks(
             summary: article.summary,
@@ -73,6 +88,62 @@ struct ReaderView: View {
     }
 
     var body: some View {
+        Group {
+            if shouldShowWebView, let originalURL {
+                WebContentView(url: originalURL)
+            } else {
+                nativeReader
+            }
+        }
+        .navigationTitle(article.title)
+        .toolbar {
+            ToolbarItem {
+                Button {
+                    _ = viewModel.copyLink(article)
+                } label: {
+                    Image(systemName: "link")
+                }
+                .help(L10n.articleCopyLinkCommand)
+                .disabled(originalURL == nil)
+            }
+
+            ToolbarItem {
+                Button {
+                    _ = viewModel.openOriginal(article)
+                } label: {
+                    Image(systemName: "safari")
+                }
+                .help(L10n.articleOpenOriginalCommand)
+                .disabled(originalURL == nil)
+            }
+
+            ToolbarItem {
+                Picker(L10n.readerDisplayModePicker, selection: $readerDisplayModeRawValue) {
+                    ForEach(ReaderDisplayMode.allCases) { mode in
+                        Text(mode.titleKey)
+                            .tag(mode.rawValue)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .help(L10n.readerDisplayModeToggleHelp)
+                .disabled(originalURL == nil)
+            }
+
+            ToolbarItem {
+                Button {
+                    isAppearancePopoverPresented.toggle()
+                } label: {
+                    Image(systemName: "textformat")
+                }
+                .help(L10n.readerAppearanceButton)
+                .popover(isPresented: $isAppearancePopoverPresented, arrowEdge: .bottom) {
+                    readerAppearancePopover
+                }
+            }
+        }
+    }
+
+    private var nativeReader: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 if !metadataText.isEmpty {
@@ -103,40 +174,6 @@ struct ReaderView: View {
             }
             .frame(maxWidth: clampedContentWidth, alignment: .leading)
             .padding()
-        }
-        .navigationTitle(article.title)
-        .toolbar {
-            ToolbarItem {
-                Button {
-                    _ = viewModel.copyLink(article)
-                } label: {
-                    Image(systemName: "link")
-                }
-                .help(L10n.articleCopyLinkCommand)
-                .disabled(viewModel.originalURL(for: article) == nil)
-            }
-
-            ToolbarItem {
-                Button {
-                    _ = viewModel.openOriginal(article)
-                } label: {
-                    Image(systemName: "safari")
-                }
-                .help(L10n.articleOpenOriginalCommand)
-                .disabled(viewModel.originalURL(for: article) == nil)
-            }
-
-            ToolbarItem {
-                Button {
-                    isAppearancePopoverPresented.toggle()
-                } label: {
-                    Image(systemName: "textformat")
-                }
-                .help(L10n.readerAppearanceButton)
-                .popover(isPresented: $isAppearancePopoverPresented, arrowEdge: .bottom) {
-                    readerAppearancePopover
-                }
-            }
         }
     }
 
@@ -196,7 +233,7 @@ struct ReaderView: View {
 
     @ViewBuilder
     private var readerTitle: some View {
-        if viewModel.originalURL(for: article) != nil {
+        if originalURL != nil {
             Button {
                 _ = viewModel.openOriginal(article)
             } label: {

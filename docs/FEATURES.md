@@ -118,7 +118,8 @@ bei geschlossener App.
 ### Aktuell in Arbeit
 
 M2 Core Features:
-- Naechster sinnvoller Block: OPML Import oder Alle als gelesen.
+- Naechster Backlog-Ausbau: Native Reader Rendering fuer Links, Listen, Zitate und
+  kaputte/leere Inhalte gezielter verbessern.
 
 ---
 
@@ -127,11 +128,17 @@ M2 Core Features:
 ### 1. Reader
 
 #### 1.1 Anzeigemodus
-- Status: Entschieden
+- Status: Fertig als Basis
 - Prioritaet: v1
-- Entscheidung: Standard soll der native SwiftUI Reader sein. WebView ist ein Umschalter
-  fuer Originaldarstellung oder Feeds ohne brauchbaren Volltext.
-- Offen: Globaler Modus oder pro Artikel merken. Empfehlung: zuerst global in Einstellungen.
+- Implementiert: Standard bleibt der native SwiftUI Reader. Die globale Einstellung
+  `readerDisplayMode` kann zwischen Nativer Reader und Originalansicht wechseln.
+- Originalansicht: `WebContentView` laedt den Originalartikel per `WKWebView`, sofern
+  ein gueltiger Artikellink vorhanden ist.
+- Fallback: Fehlt ein gueltiger Link, zeigt Feedivo automatisch den nativen Reader.
+- Zugriff: Picker in den Einstellungen unter Lesen und segmentierter Umschalter in der
+  Reader-Toolbar.
+- Spaeter: Modus pro Artikel oder pro Feed merken, falls sich das nach Nutzung sinnvoll
+  anfuehlt.
 
 #### 1.1.1 Native Reader Rendering
 - Status: Fertig als Basis
