@@ -122,6 +122,7 @@ FeedivoMac/
 │   ├── ViewModels/
 │   │   ├── FeedViewModel.swift         # Feed hinzufügen, aktualisieren, loeschen ✅
 │   │   ├── ArticleViewModel.swift      # Artikel gelesen/ungelesen und Stern toggeln ✅
+│   │   ├── ArticleNavigationState.swift # Sichtbare Artikel-Navigation effizient berechnen ✅
 │   │   ├── ArticleMetadataEditor.swift # Artikel-Ordner und Tags bearbeiten ✅
 │   │   ├── TagViewModel.swift          # Tags verwalten (TODO)
 │   │   ├── RuleEngineViewModel.swift   # Regeln auswerten und Tags auto-zuweisen (TODO)
@@ -231,6 +232,9 @@ NavigationSplitView mit 3 Spalten. Verwaltet `selectedFeed` und `selectedArticle
 Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 Praesentiert `AddFeedSheet` zentral, damit Sidebar-Plus und macOS-Menue `Feed`
 dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
+Haelt keine pauschale `@Query` auf alle Artikel mehr; die aktuell sichtbare,
+bereits sortierte Artikelliste wird von `ArticleListView` nach oben gemeldet und
+fuer Reader-Vor/Zurueck sowie macOS-Menue-Status wiederverwendet.
 
 ### SidebarView.swift
 - `@Query(sort: \Feed.title)` für automatische Feed-Liste aus SwiftData
@@ -349,11 +353,21 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 
 ### ArticleListView.swift
 - Zeigt echte Artikel des ausgewählten Feeds aus der `Feed.articles` Relationship
+- Feed-Listen laden nicht mehr automatisch alle Artikel per globaler `@Query`;
+  eine feeduebergreifende Query existiert nur noch fuer Smart-Filter-Listen
 - Sortiert nach `publishedAt` absteigend
+- Meldet die bereits sortierten sichtbaren Artikel an `ContentView`, damit
+  Reader-Navigation und Menue-Status nicht erneut filtern und sortieren muessen
 - Nutzt `ArticleRowView` fuer Titel, Metadaten, Summary, optionales Bild,
   Ungelesen-Punkt rechts oben und Stern rechts unten
 - Markiert Artikel beim Auswaehlen automatisch als gelesen, wenn die Einstellung
   aktiv ist
+
+### ArticleNavigationState.swift
+- Berechnet vorherigen und naechsten Artikel aus einer bereits sichtbaren Liste.
+- Sortiert die uebergebene Liste hoechstens einmal und stellt das Ergebnis fuer
+  Reader-Toolbar und macOS-Menue bereit, damit grosse Artikellisten nicht mehrfach
+  pro SwiftUI-Renderdurchlauf verarbeitet werden.
 
 ### ArticleRowView.swift
 - Reichhaltige Artikelzeile mit optionalem `AsyncImage`
@@ -968,3 +982,7 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 - 2026-06-21: Reader-Performance verbessert: Teure Reader-Daten werden pro Artikel
   ueber `ReaderPreparedArticle` vorbereitet und grosse Bilder wieder mit leichterem
   `scaledToFit` statt Zuschnitt gerendert.
+- 2026-06-21: Artikel-/Reader-Performance nachgezogen: `ContentView` beobachtet
+  nicht mehr pauschal alle Artikel; Feed-Listen vermeiden globale Artikel-Queries
+  und die Reader-Navigation nutzt `ArticleNavigationState` mit der bereits sortierten
+  sichtbaren Artikelliste.

@@ -142,4 +142,26 @@ struct ArticleViewModelTests {
         #expect(viewModel.previousArticle(before: oldest, in: sortedArticles)?.id == middle.id)
         #expect(viewModel.nextArticle(after: oldest, in: sortedArticles) == nil)
     }
+
+    @Test func articleNavigationStateSortiertSichtbareArtikelNurEinmal() {
+        let newest = Article(title: "Neu", publishedAt: Date(timeIntervalSince1970: 300))
+        let middle = Article(title: "Mitte", publishedAt: Date(timeIntervalSince1970: 200))
+        let oldest = Article(title: "Alt", publishedAt: Date(timeIntervalSince1970: 100))
+        var sortCallCount = 0
+
+        let state = ArticleNavigationState(
+            articles: [oldest, newest, middle],
+            selectedArticle: middle
+        ) { articles in
+            sortCallCount += 1
+            return articles.sorted {
+                ($0.publishedAt ?? .distantPast) > ($1.publishedAt ?? .distantPast)
+            }
+        }
+
+        #expect(sortCallCount == 1)
+        #expect(state.visibleArticles.map(\.id) == [newest.id, middle.id, oldest.id])
+        #expect(state.previousArticle?.id == newest.id)
+        #expect(state.nextArticle?.id == oldest.id)
+    }
 }

@@ -5,7 +5,6 @@ import UniformTypeIdentifiers
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Feed.title) private var feeds: [Feed]
-    @Query private var allArticles: [Article]
 
     // columnVisibility steuert ob die Sidebar sichtbar ist.
     // .all bedeutet: alle 3 Spalten beim Start anzeigen.
@@ -16,6 +15,7 @@ struct ContentView: View {
 
     // selectedArticle speichert welcher Artikel gerade in der Liste ausgewählt ist.
     @State private var selectedArticle: Article? = nil
+    @State private var visibleArticles: [Article] = []
 
     @State private var articleViewModel = ArticleViewModel()
     @State private var feedViewModel = FeedViewModel()
@@ -28,6 +28,8 @@ struct ContentView: View {
     @State private var opmlAlert: OPMLAlert?
 
     var body: some View {
+        let navigationState = articleNavigationState
+
         NavigationSplitView(columnVisibility: $columnVisibility) {
 
             // SPALTE 1: Sidebar — Liste aller Feeds
@@ -42,10 +44,18 @@ struct ContentView: View {
 
             // SPALTE 2: Artikel-Liste des ausgewählten Feeds oder Smart Filters
             if let smartFilter = selectedSmartFilter {
-                ArticleListView(smartFilter: smartFilter, selectedArticle: $selectedArticle)
+                ArticleListView(
+                    smartFilter: smartFilter,
+                    selectedArticle: $selectedArticle,
+                    visibleArticles: $visibleArticles
+                )
                     .navigationSplitViewColumnWidth(min: 280, ideal: 320, max: 400)
             } else if let feed = selectedFeed {
-                ArticleListView(feed: feed, selectedArticle: $selectedArticle)
+                ArticleListView(
+                    feed: feed,
+                    selectedArticle: $selectedArticle,
+                    visibleArticles: $visibleArticles
+                )
                     .navigationSplitViewColumnWidth(min: 280, ideal: 320, max: 400)
             } else {
                 // Platzhalter wenn kein Feed oder Smart Filter ausgewählt ist
@@ -63,8 +73,8 @@ struct ContentView: View {
             if let article = selectedArticle {
                 ReaderView(
                     article: article,
-                    canSelectPreviousArticle: previousVisibleArticle != nil,
-                    canSelectNextArticle: nextVisibleArticle != nil,
+                    canSelectPreviousArticle: navigationState.previousArticle != nil,
+                    canSelectNextArticle: navigationState.nextArticle != nil,
                     selectPreviousArticle: selectPreviousArticle,
                     selectNextArticle: selectNextArticle
                 )
@@ -79,6 +89,7 @@ struct ContentView: View {
         }
         .onChange(of: sidebarSelection) {
             selectedArticle = nil
+            visibleArticles = []
         }
         .sheet(isPresented: $isShowingAddFeedSheet) {
             AddFeedSheet()
@@ -133,8 +144,8 @@ struct ContentView: View {
                 openOriginal: {
                     _ = articleViewModel.openOriginal(selectedArticle)
                 },
-                canSelectPreviousArticle: previousVisibleArticle != nil,
-                canSelectNextArticle: nextVisibleArticle != nil,
+                canSelectPreviousArticle: navigationState.previousArticle != nil,
+                canSelectNextArticle: navigationState.nextArticle != nil,
                 selectPreviousArticle: selectPreviousArticle,
                 selectNextArticle: selectNextArticle
             )
@@ -235,14 +246,14 @@ struct ContentView: View {
     }
 
     private func selectPreviousArticle() {
-        if let previousVisibleArticle {
-            selectedArticle = previousVisibleArticle
+        if let previousArticle = articleNavigationState.previousArticle {
+            selectedArticle = previousArticle
         }
     }
 
     private func selectNextArticle() {
-        if let nextVisibleArticle {
-            selectedArticle = nextVisibleArticle
+        if let nextArticle = articleNavigationState.nextArticle {
+            selectedArticle = nextArticle
         }
     }
 
@@ -262,26 +273,12 @@ struct ContentView: View {
         return smartFilter
     }
 
-    private var visibleArticles: [Article] {
-        let scopedArticles: [Article]
-
-        if let selectedFeed {
-            scopedArticles = selectedFeed.articles
-        } else if let selectedSmartFilter {
-            scopedArticles = allArticles.filter { selectedSmartFilter.includes($0) }
-        } else {
-            scopedArticles = []
-        }
-
-        return articleViewModel.sortedForList(scopedArticles)
-    }
-
-    private var previousVisibleArticle: Article? {
-        articleViewModel.previousArticle(before: selectedArticle, in: visibleArticles)
-    }
-
-    private var nextVisibleArticle: Article? {
-        articleViewModel.nextArticle(after: selectedArticle, in: visibleArticles)
+    private var articleNavigationState: ArticleNavigationState {
+        ArticleNavigationState(
+            articles: visibleArticles,
+            selectedArticle: selectedArticle,
+            sortArticles: { $0 }
+        )
     }
 }
 

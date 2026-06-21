@@ -9,31 +9,101 @@ struct ArticleListView: View {
 
     private let scope: Scope
     @Binding var selectedArticle: Article?
-    @Query private var allArticles: [Article]
+    @Binding var visibleArticles: [Article]
+
+    init(
+        feed: Feed,
+        selectedArticle: Binding<Article?>,
+        visibleArticles: Binding<[Article]>
+    ) {
+        self.scope = .feed(feed)
+        self._selectedArticle = selectedArticle
+        self._visibleArticles = visibleArticles
+    }
+
+    init(
+        smartFilter: SmartFilter,
+        selectedArticle: Binding<Article?>,
+        visibleArticles: Binding<[Article]>
+    ) {
+        self.scope = .smartFilter(smartFilter)
+        self._selectedArticle = selectedArticle
+        self._visibleArticles = visibleArticles
+    }
+
+    var body: some View {
+        switch scope {
+        case .feed(let feed):
+            ArticleListContent(
+                articles: feed.articles,
+                navigationTitle: Text(feed.title),
+                selectedArticle: $selectedArticle,
+                visibleArticles: $visibleArticles
+            )
+        case .smartFilter(let smartFilter):
+            SmartFilterArticleListContent(
+                smartFilter: smartFilter,
+                selectedArticle: $selectedArticle,
+                visibleArticles: $visibleArticles
+            )
+        }
+    }
+}
+
+private struct SmartFilterArticleListContent: View {
+    let smartFilter: SmartFilter
+    @Binding var selectedArticle: Article?
+    @Binding var visibleArticles: [Article]
+    @Query(sort: \Article.publishedAt, order: .reverse) private var allArticles: [Article]
+
+    var body: some View {
+        ArticleListContent(
+            articles: allArticles.filter { smartFilter.includes($0) },
+            navigationTitle: Text(smartFilter.title),
+            selectedArticle: $selectedArticle,
+            visibleArticles: $visibleArticles,
+            sortArticles: false
+        )
+    }
+}
+
+private struct ArticleListContent: View {
+    let articles: [Article]
+    let navigationTitle: Text
+    let sortArticles: Bool
+    @Binding var selectedArticle: Article?
+    @Binding var visibleArticles: [Article]
     @AppStorage("markArticleReadOnSelection")
     private var markArticleReadOnSelection = true
     @State private var viewModel = ArticleViewModel()
 
-    init(feed: Feed, selectedArticle: Binding<Article?>) {
-        self.scope = .feed(feed)
+    init(
+        articles: [Article],
+        navigationTitle: Text,
+        selectedArticle: Binding<Article?>,
+        visibleArticles: Binding<[Article]>,
+        sortArticles: Bool = true
+    ) {
+        self.articles = articles
+        self.navigationTitle = navigationTitle
         self._selectedArticle = selectedArticle
-    }
-
-    init(smartFilter: SmartFilter, selectedArticle: Binding<Article?>) {
-        self.scope = .smartFilter(smartFilter)
-        self._selectedArticle = selectedArticle
+        self._visibleArticles = visibleArticles
+        self.sortArticles = sortArticles
     }
 
     var body: some View {
+        let articles = sortedArticles
+        let articleIDs = articles.map(\.id)
+
         List(selection: $selectedArticle) {
-            if sortedArticles.isEmpty {
+            if articles.isEmpty {
                 ContentUnavailableView(
                     L10n.articleListEmptyTitle,
                     systemImage: "doc.text.magnifyingglass",
                     description: Text(L10n.articleListEmptyDescription)
                 )
             } else {
-                ForEach(sortedArticles) { article in
+                ForEach(articles) { article in
                     ArticleRowView(
                         article: article,
                         onToggleRead: {
@@ -54,6 +124,12 @@ struct ArticleListView: View {
             }
         }
         .navigationTitle(navigationTitle)
+        .onAppear {
+            visibleArticles = articles
+        }
+        .onChange(of: articleIDs) {
+            visibleArticles = articles
+        }
         .onChange(of: selectedArticle?.persistentModelID) {
             viewModel.markReadIfNeeded(
                 selectedArticle,
@@ -63,24 +139,11 @@ struct ArticleListView: View {
     }
 
     private var sortedArticles: [Article] {
-        viewModel.sortedForList(scopedArticles)
+        guard sortArticles else {
+            return articles
+        }
+
+        return viewModel.sortedForList(articles)
     }
 
-    private var scopedArticles: [Article] {
-        switch scope {
-        case .feed(let feed):
-            return feed.articles
-        case .smartFilter(let smartFilter):
-            return allArticles.filter { smartFilter.includes($0) }
-        }
-    }
-
-    private var navigationTitle: Text {
-        switch scope {
-        case .feed(let feed):
-            return Text(feed.title)
-        case .smartFilter(let smartFilter):
-            return Text(smartFilter.title)
-        }
-    }
 }

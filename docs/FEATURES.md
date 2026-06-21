@@ -204,6 +204,8 @@ M2 Core Features:
   `Cmd+↑` fuer vorherigen und `Cmd+↓` fuer naechsten Artikel.
 - Verhalten: Navigation laeuft innerhalb der aktuell sichtbaren Feed- oder
   Smart-Filter-Liste und stoppt am Listenrand ohne Loop.
+- Performance: Die sichtbare Artikelliste wird einmal sortiert und via
+  `ArticleNavigationState` fuer Toolbar und macOS-Menue wiederverwendet.
 - Entscheidung: Oeffnen markiert standardmaessig automatisch als gelesen. Benutzer
   koennen die Option in den Einstellungen deaktivieren.
 
@@ -300,6 +302,8 @@ M2 Core Features:
 - Prioritaet: MVP
 - Implementiert: `ArticleRowView` mit Titel, Datum, Summary, Statuspunkt, Stern und
   optionalem Bild.
+- Performance: Feed-Listen nutzen direkt `Feed.articles`; eine globale Artikel-Query
+  wird nur noch fuer Smart-Filter-Listen verwendet.
 - Bildbasis: `FeedService` speichert absolute `Article.imageURL` Werte aus Media RSS,
   iTunes Image, Bild-Enclosures, JSON Feed Bildern oder HTML-`img` Quellen. Wenn ein
   RSS-Item kein Bild enthaelt, nutzt `fetchFeed` als Fallback die Metabilder der
