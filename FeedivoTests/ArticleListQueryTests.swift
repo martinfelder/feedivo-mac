@@ -3,6 +3,7 @@ import SwiftData
 import Testing
 @testable import Feedivo
 
+@Suite(.serialized)
 struct ArticleListQueryTests {
     @Test func articleInitialisiertDirekteFeedIDFuerSchnelleListenQueries() throws {
         let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
@@ -136,6 +137,65 @@ struct ArticleListQueryTests {
         )
 
         #expect(articles.map(\.title) == ["Neuer", "Aelter"])
+    }
+
+    @MainActor
+    @Test func tagFetchDescriptorLaedtAuchArtikelAusGetaggtenFeedsOhneDuplikate() throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            FeedFolder.self,
+            FeedLogEntry.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let selectedTag = Tag(name: "Apple", colorHex: "#3B82F6")
+        let taggedFeed = Feed(url: "https://example.com/tagged.xml", title: "Apple Feed")
+        taggedFeed.tags = [selectedTag]
+        let otherFeed = Feed(url: "https://example.com/other.xml", title: "Other Feed")
+        let feedTaggedArticle = Article(
+            title: "Feed-Tag Treffer",
+            publishedAt: Date(timeIntervalSince1970: 300),
+            feed: taggedFeed
+        )
+        let directTaggedArticle = Article(
+            title: "Direkter Treffer",
+            publishedAt: Date(timeIntervalSince1970: 200),
+            feed: otherFeed
+        )
+        directTaggedArticle.tags = [selectedTag]
+        let duplicateArticle = Article(
+            title: "Doppelter Treffer",
+            publishedAt: Date(timeIntervalSince1970: 100),
+            feed: taggedFeed
+        )
+        duplicateArticle.tags = [selectedTag]
+        let unrelatedArticle = Article(
+            title: "Fremd",
+            publishedAt: Date(timeIntervalSince1970: 500),
+            feed: otherFeed
+        )
+
+        context.insert(selectedTag)
+        context.insert(taggedFeed)
+        context.insert(otherFeed)
+        context.insert(feedTaggedArticle)
+        context.insert(directTaggedArticle)
+        context.insert(duplicateArticle)
+        context.insert(unrelatedArticle)
+        try context.save()
+
+        let articles = try context.fetch(
+            ArticleListQuery.tagFetchDescriptor(for: selectedTag)
+        )
+
+        #expect(articles.map(\.title) == [
+            "Feed-Tag Treffer",
+            "Direkter Treffer",
+            "Doppelter Treffer"
+        ])
     }
 
     @MainActor

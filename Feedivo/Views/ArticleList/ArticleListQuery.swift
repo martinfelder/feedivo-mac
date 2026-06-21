@@ -20,18 +20,21 @@ enum ArticleListQuery {
         )
     }
 
-    static func tagPredicate(for tag: Tag) -> Predicate<Article> {
+    static func tagPredicate(for tag: Tag, taggedFeeds: [Feed] = []) -> Predicate<Article> {
         let tagID = tag.id
+        let feedIDs = taggedFeeds.map(\.id)
         return #Predicate<Article> { article in
             article.tags.contains { articleTag in
                 articleTag.id == tagID
-            }
+            } || (article.feedID.flatMap { feedID in
+                feedIDs.contains(feedID)
+            } ?? false)
         }
     }
 
     static func tagFetchDescriptor(for tag: Tag) -> FetchDescriptor<Article> {
         FetchDescriptor(
-            predicate: tagPredicate(for: tag),
+            predicate: tagPredicate(for: tag, taggedFeeds: tag.feeds),
             sortBy: sortDescriptors
         )
     }

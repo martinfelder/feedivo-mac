@@ -165,8 +165,10 @@ bei geschlossener App.
 - Zentrale Tag-Verwaltung und Sidebar-Tag-Filter sind als Basis umgesetzt: Tags
   koennen erstellt, umbenannt, gefaerbt und geloescht werden; die Sidebar zeigt Tags
   als klickbare Zeilen mit Farbindikator und Artikelzaehler und filtert die Artikelliste
-  feeduebergreifend auf Artikel mit dem ausgewaehlten Tag. Nach dem Erstellen wird
-  das neue Tag direkt als Sidebar-Filter ausgewaehlt.
+  feeduebergreifend auf direkt getaggte Artikel sowie Artikel aus Feeds mit diesem
+  Tag. Nach dem Erstellen wird das neue Tag direkt als Sidebar-Filter ausgewaehlt.
+  Feed-Tags werden in den Feed-Eigenschaften bearbeitet; Tag-Badges zaehlen direkte
+  Artikel-Tags und Feed-Tags ohne Duplikate.
 - Automatische Regeln sind als Basis mit UI umgesetzt: Neue Artikel werden beim
   Feed-Refresh automatisch getaggt; Regeln koennen in den Einstellungen erstellt,
   bearbeitet, geloescht und aktiviert/deaktiviert werden. Der Wizard bietet einfache
@@ -180,8 +182,8 @@ bei geschlossener App.
 M3 Tags, Regeln & Sync:
 - M2 Core Features ist abgeschlossen.
 - Tag-Verwaltung, Tag-Sidebar-Filter, RuleEngine und Rule-UI sind als Basis
-  abgeschlossen.
-- Naechster Fokus: Feed-Tags oder iCloud Sync.
+  abgeschlossen; Feed-Tags sind in den Feed-Eigenschaften umgesetzt.
+- Naechster Fokus: iCloud Sync oder Offline-Unterstuetzung.
 
 ---
 
@@ -277,9 +279,9 @@ M3 Tags, Regeln & Sync:
   rechten Inspector als Plus-Chips angezeigt und koennen direkt angeklickt werden.
 - Implementiert: Tag-Farben, zentraler Tag-Manager und Sidebar-Tag-Filter sind als
   Basis umgesetzt. Neu erstellte Tags werden direkt in der Sidebar ausgewaehlt.
-- Implementiert: Tag-Zeilen zeigen rechts eine dezente Badge mit der Anzahl direkt
-  verknuepfter Artikel.
-- Offen: Feed-Tags folgen separat.
+- Implementiert: Feed-Tags koennen in den Feed-Eigenschaften zugewiesen werden.
+  Sidebar-Tag-Filter und Tag-Badges beruecksichtigen direkt getaggte Artikel sowie
+  Artikel aus getaggten Feeds ohne Duplikate.
 
 #### 1.6 Artikel teilen
 - Status: Entschieden
@@ -420,10 +422,10 @@ M3 Tags, Regeln & Sync:
 - Prioritaet: v1
 - Implementiert: Die Sidebar zeigt vorhandene Tags unterhalb der Smart Filter als
   klickbare Zeilen mit Farbindikator. Ein Klick filtert die mittlere Artikelliste
-  feeduebergreifend auf Artikel, denen dieser Tag zugewiesen ist.
-- Implementiert: Tag-Zeilen zeigen eine dezente Artikelanzahl-Badge; Tags ohne
-  Artikel bleiben ohne Badge.
-- Offen: Feed-Tags spaeter separat pruefen.
+  feeduebergreifend auf direkt getaggte Artikel und Artikel aus getaggten Feeds.
+- Implementiert: Tag-Zeilen zeigen eine dezente Artikelanzahl-Badge; direkte
+  Artikel-Tags und Feed-Tags werden ohne Duplikate gezaehlt. Tags ohne Artikel
+  bleiben ohne Badge.
 
 ### 4. Feed-Verwaltung
 
@@ -504,10 +506,12 @@ M3 Tags, Regeln & Sync:
   werden. Tags koennen zentral erstellt, umbenannt, farblich markiert und geloescht
   werden. Die Sidebar kann nach Artikeln mit einem ausgewaehlten Tag filtern; neue
   Tags werden nach dem Erstellen direkt als Sidebar-Filter ausgewaehlt. Sidebar-
-  Tag-Zeilen zeigen die Anzahl direkt verknuepfter Artikel.
+  Tag-Zeilen zeigen die Anzahl passender Artikel.
+- Implementiert: Feed-Tags koennen in den Feed-Eigenschaften zugewiesen und entfernt
+  werden; Sidebar-Tag-Filter und Tag-Badges schliessen Artikel aus getaggten Feeds
+  ein.
 - Implementiert: Neue Artikel koennen beim Refresh ueber einfache Regeln automatisch
   getaggt werden.
-- Offen: Feed-Tags folgen separat.
 
 #### 5.2 Automatische Regeln
 - Status: Fertig als Basis

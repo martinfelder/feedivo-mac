@@ -269,11 +269,13 @@ sichtbar bleibt.
   zentralen `TagManagerView`.
 - Vorhandene Tags werden in der Sidebar als klickbare Zeilen mit Farbindikator aus
   `Tag.colorHex` angezeigt; ein Klick filtert die Artikelliste feeduebergreifend
-  auf Artikel mit diesem Tag.
+  auf Artikel mit diesem Tag. Der Filter umfasst direkt getaggte Artikel und Artikel
+  aus Feeds, denen das Tag zugewiesen ist.
 - Neu erstellte Tags werden nach erfolgreichem Anlegen direkt als Sidebar-Auswahl
   gesetzt, damit der schnelle Tag-Filter sofort sichtbar und nutzbar ist.
-- Tag-Zeilen zeigen rechts eine dezente Badge mit der Anzahl direkt verknuepfter
-  Artikel, wenn der Tag mindestens einen Artikel hat.
+- Tag-Zeilen zeigen rechts eine dezente Badge mit der Anzahl passender Artikel;
+  direkt getaggte Artikel und Artikel aus getaggten Feeds werden ohne Duplikate
+  gezaehlt.
 - Die Sidebar zeigt Regeln nur kompakt als eigenen Abschnitt mit Anzahl aktiver
   Regeln und einem Link, um aus dem aktuell ausgewaehlten Artikel eine neue Regel zu
   erstellen. Die komplette Regelverwaltung liegt bewusst in den Einstellungen.
@@ -298,6 +300,8 @@ sichtbar bleibt.
   Feed-Relationships noch alle ungelesenen Artikel laden muss.
 - Liefert nur fuer positive Zaehler einen sichtbaren Badge-Text, damit Feeds ohne
   ungelesene Artikel ruhig bleiben.
+- `SidebarTagCount` zaehlt direkt getaggte Artikel und Artikel aus getaggten Feeds
+  zusammen, entfernt Duplikate ueber `Article.id` und liefert daraus die Tag-Badge.
 
 ### FeedService.swift
 - Parsed RSS 2.0, Atom und JSON Feed via FeedKit
@@ -431,6 +435,9 @@ sichtbar bleibt.
 - Aktualisierungsintervall ist direkt im Sheet editierbar und wird in SwiftData gespeichert
 - Der Ordnername ist direkt im Sheet editierbar; leere Eingaben werden als `nil`
   gespeichert
+- Feed-Tags sind direkt im Sheet editierbar: Vorhandene globale Tags koennen per
+  Plus-Chip zugewiesen, neue Tags per Eingabe erstellt und zugewiesene Tags wieder
+  entfernt werden.
 - `FeedPropertiesFormatter` kapselt naechsten Abruf, neuesten Artikel, Log-Limit und
   die sichtbare Log-Anzahl sowie gueltige Link-URLs, damit diese Logik ohne UI
   testbar bleibt
@@ -468,9 +475,8 @@ sichtbar bleibt.
 - Feed-Listen laden nicht mehr automatisch alle Artikel per globaler `@Query`;
   Smart-Filter-Listen nutzen gezielte SwiftData-Queries fuer Alle, Ungelesen,
   Mit Stern und Heute statt alle Artikel im Speicher zu filtern
-- Tag-Listen nutzen ebenfalls eine gezielte SwiftData-Query ueber die
-  `Article.tags`-Relationship und zeigen feeduebergreifend Artikel mit dem
-  ausgewaehlten Tag
+- Tag-Listen nutzen ebenfalls eine gezielte SwiftData-Query und zeigen
+  feeduebergreifend direkt getaggte Artikel sowie Artikel aus getaggten Feeds.
 - Sortiert nach `publishedAt` absteigend
 - Meldet nur den `ArticleNavigationState` an `ContentView`, damit Reader-Navigation
   und Menue-Status ohne Kopie der gesamten Artikelliste aktualisiert werden
@@ -485,8 +491,9 @@ sichtbar bleibt.
 - Buendelt Sortierung und Feed-Predicate fuer Artikel-Listen.
 - Feed-Listen filtern ueber `Article.feedID`, damit der Feed-Wechsel nicht ueber die
   `Article.feed`-Relationship predicated werden muss.
-- Tag-Listen filtern ueber `Article.tags.contains { tag.id == selectedTagID }`;
-  dieser Relationship-Predicate ist durch `ArticleListQueryTests` abgesichert.
+- Tag-Listen filtern ueber `Article.tags.contains { tag.id == selectedTagID }` und
+  zusaetzlich ueber die denormalisierte `Article.feedID` fuer getaggte Feeds; diese
+  Predicates sind durch `ArticleListQueryTests` abgesichert.
 
 ### ArticleNavigationState.swift
 - Berechnet vorherigen und naechsten Artikel aus der aktuell sichtbaren Liste.
@@ -979,7 +986,8 @@ sichtbar bleibt.
 - [x] Tag-System ausbauen: Tags mit Farben zentral verwalten ist als Basis umgesetzt
 - [x] Sidebar: Abschnitt "Tags" zeigt den Tag-Manager
 - [x] Sidebar: Tags filtern Artikel feeduebergreifend
-- [ ] Feed-Tags ergaenzen
+- [x] Feed-Tags ergaenzen: Zuweisung in Feed-Eigenschaften, Tag-Filter umfasst
+  Artikel aus getaggten Feeds
 - [x] Tag-Zaehler in der Sidebar anzeigen
 - [ ] Erweiterte/eigene Smart Filter spaeter pruefen
 - [x] `RuleEngine`: Neue Artikel automatisch taggen basierend auf einfachen Regeln
@@ -1030,11 +1038,12 @@ sichtbar bleibt.
 - M1 und M2 sind abgeschlossen.
 - Aktuell M3: Tags, Regeln und Sync. Die erste Artikel-Tag-Basis existiert im
   Reader-Metadaten-Inspector; die zentrale Tag-Verwaltung ist als Basis ueber die
-  Sidebar erreichbar, und Tags koennen in der Sidebar feeduebergreifend als
-  Artikel-Filter genutzt werden. Regeln koennen ueber einen Wizard erstellt, in den
+  Sidebar erreichbar, Tags koennen Feeds in den Feed-Eigenschaften zugewiesen werden,
+  und Tags koennen in der Sidebar feeduebergreifend als Artikel-Filter genutzt werden.
+  Regeln koennen ueber einen Wizard erstellt, in den
   Einstellungen verwaltet und manuell auf vorhandene Artikel angewendet werden;
   Power-User-Regeln unterstuetzen mehrere Bedingungen mit AND/OR. Naechster sinnvoller
-  Block ist Feed-Tags oder iCloud Sync.
+  Block ist iCloud Sync oder Offline-Unterstuetzung.
 - Feature-Roadmap ist in `docs/FEATURES.md` dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
@@ -1228,12 +1237,16 @@ sichtbar bleibt.
   eigener M3-Schritt umgesetzt.
 - 2026-06-21: Sidebar-Tag-Filter umgesetzt: Tags erscheinen als klickbare Zeilen mit
   Farbindikator und filtern `ArticleListView` ueber eine gezielte SwiftData-Query auf
-  `Article.tags`; Feed-Tags und Regeln bleiben separate M3-Schritte.
+  `Article.tags`; Feed-Tags und Regeln wurden danach als separate M3-Schritte
+  umgesetzt.
 - 2026-06-21: Tag-Erstellung verfeinert: Neue Tags werden nach dem Anlegen direkt in
   der Sidebar als aktueller Tag-Filter ausgewaehlt, damit sie sofort sichtbar und
   schnell nutzbar sind.
 - 2026-06-21: Sidebar-Tag-Zaehler umgesetzt: Tags zeigen rechts eine dezente Badge
-  mit der Anzahl direkt verknuepfter Artikel.
+  mit der Anzahl passender Artikel.
+- 2026-06-21: Feed-Tags umgesetzt: Tags koennen in den Feed-Eigenschaften an Feeds
+  gehaengt werden; Sidebar-Tag-Filter und Tag-Badges beruecksichtigen direkt
+  getaggte Artikel sowie Artikel aus getaggten Feeds ohne Duplikate.
 - 2026-06-21: Rechter Artikelinfos-Inspector erweitert: Vorhandene globale Tags, die
   dem Artikel noch nicht zugewiesen sind, erscheinen nun als Plus-Chips und koennen
   direkt angeklickt werden.

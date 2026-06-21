@@ -5,11 +5,14 @@ import SwiftUI
 struct FeedPropertiesView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Query(sort: \Tag.name) private var tags: [Tag]
 
     let feed: Feed
 
     @State private var selectedRefreshInterval = BackgroundRefreshSettings.defaultIntervalMinutes
     @State private var folderName = ""
+    @State private var newTagName = ""
+    @State private var tagViewModel = TagViewModel()
 
     private var latestArticle: Article? {
         FeedPropertiesFormatter.latestArticle(in: feed.articles)
@@ -24,6 +27,19 @@ struct FeedPropertiesView: View {
 
     private var latestLogEntries: [FeedLogEntry] {
         FeedPropertiesFormatter.latestLogEntries(feed.logEntries)
+    }
+
+    private var sortedFeedTags: [Tag] {
+        feed.tags.sorted {
+            $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+        }
+    }
+
+    private var availableTagsToAdd: [Tag] {
+        let assignedTagIDs = Set(feed.tags.map(\.id))
+        return tags
+            .filter { !assignedTagIDs.contains($0.id) }
+            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
 
     var body: some View {
@@ -197,6 +213,8 @@ struct FeedPropertiesView: View {
             propertyDivider
             editableFolderRow
             propertyDivider
+            editableTagsRow
+            propertyDivider
             propertyRow(L10n.feedPropertiesLatestArticle, value: formattedLatestArticle)
 
             refreshDetailsGroup
@@ -241,6 +259,56 @@ struct FeedPropertiesView: View {
         .padding(.vertical, 9)
     }
 
+    private var editableTagsRow: some View {
+        HStack(alignment: .top, spacing: 18) {
+            propertyLabel(L10n.readerInspectorTags)
+                .padding(.top, 7)
+
+            VStack(alignment: .leading, spacing: 10) {
+                if sortedFeedTags.isEmpty {
+                    Text(L10n.readerInspectorNoTags)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                } else {
+                    FlowLayout(spacing: 8) {
+                        ForEach(sortedFeedTags) { tag in
+                            feedTagPill(tag)
+                        }
+                    }
+                }
+
+                HStack(spacing: 8) {
+                    TextField(
+                        L10n.readerInspectorAddTagPlaceholder,
+                        text: $newTagName,
+                        prompt: Text(L10n.readerInspectorAddTagPlaceholder)
+                    )
+                    .textFieldStyle(.roundedBorder)
+                    .frame(maxWidth: 260)
+                    .onSubmit(addTypedTag)
+
+                    Button {
+                        addTypedTag()
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    .buttonStyle(.borderless)
+                    .disabled(TagViewModel.normalizedTagName(newTagName) == nil)
+                }
+
+                if !availableTagsToAdd.isEmpty {
+                    FlowLayout(spacing: 8) {
+                        ForEach(availableTagsToAdd) { tag in
+                            availableFeedTagButton(tag)
+                        }
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.vertical, 9)
+    }
+
     private var refreshDetailsGroup: some View {
         VStack(alignment: .leading, spacing: 0) {
             propertyRow(L10n.feedPropertiesRefreshInterval) {
@@ -270,6 +338,95 @@ struct FeedPropertiesView: View {
             RoundedRectangle(cornerRadius: 10)
                 .stroke(Color(nsColor: .separatorColor).opacity(0.7))
         }
+    }
+
+    private func feedTagPill(_ tag: Tag) -> some View {
+        let tagColor = TagColorPalette.color(for: tag.colorHex)
+
+        return HStack(spacing: 6) {
+            Text("#\(tag.name)")
+                .lineLimit(1)
+
+            Button {
+                removeTag(tag)
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.caption2)
+            }
+            .buttonStyle(.borderless)
+        }
+        .font(.caption)
+        .fontWeight(.semibold)
+        .foregroundStyle(tagColor)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(tagColor.opacity(0.12), in: Capsule())
+        .overlay {
+            Capsule()
+                .stroke(tagColor.opacity(0.22), lineWidth: 1)
+        }
+    }
+
+    private func availableFeedTagButton(_ tag: Tag) -> some View {
+        let tagColor = TagColorPalette.color(for: tag.colorHex)
+
+        return Button {
+            addTag(tag)
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: "plus")
+                    .font(.caption2)
+
+                Text("#\(tag.name)")
+                    .lineLimit(1)
+            }
+            .font(.caption)
+            .fontWeight(.semibold)
+            .foregroundStyle(tagColor)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(tagColor.opacity(0.1), in: Capsule())
+            .overlay {
+                Capsule()
+                    .stroke(tagColor.opacity(0.3), lineWidth: 1)
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func addTypedTag() {
+        guard let normalizedName = TagViewModel.normalizedTagName(newTagName) else {
+            return
+        }
+
+        if let existingTag = tags.first(where: {
+            $0.name.localizedCaseInsensitiveCompare(normalizedName) == .orderedSame
+        }) {
+            addTag(existingTag)
+        } else if let createdTag = tagViewModel.createTag(
+            name: normalizedName,
+            colorHex: TagColorPalette.defaultColorHex,
+            availableTags: tags,
+            context: modelContext
+        ) {
+            addTag(createdTag)
+        }
+
+        newTagName = ""
+    }
+
+    private func addTag(_ tag: Tag) {
+        guard !feed.tags.contains(where: { $0.id == tag.id }) else {
+            return
+        }
+
+        feed.tags.append(tag)
+        try? modelContext.save()
+    }
+
+    private func removeTag(_ tag: Tag) {
+        feed.tags.removeAll { $0.id == tag.id }
+        try? modelContext.save()
     }
 
     private var logSection: some View {

@@ -112,7 +112,7 @@ private struct TagArticleListContent: View {
         self._selectedArticle = selectedArticle
         self._navigationState = navigationState
         self._articles = Query(
-            filter: ArticleListQuery.tagPredicate(for: tag),
+            filter: ArticleListQuery.tagPredicate(for: tag, taggedFeeds: tag.feeds),
             sort: ArticleListQuery.sortDescriptors
         )
     }

@@ -16,7 +16,10 @@ enum SidebarUnreadCount {
 
 enum SidebarTagCount {
     static func articleCount(for tag: Tag) -> Int {
-        tag.articles.count
+        let directArticleIDs = Set(tag.articles.map(\.id))
+        let feedArticleIDs = Set(tag.feeds.flatMap(\.articles).map(\.id))
+
+        return directArticleIDs.union(feedArticleIDs).count
     }
 
     static func badgeText(for tag: Tag) -> String? {

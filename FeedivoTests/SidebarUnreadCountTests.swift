@@ -27,6 +27,22 @@ struct SidebarUnreadCountTests {
     }
 
     @MainActor
+    @Test func tagBadgeTextZaehltArtikelAusGetaggtenFeedsOhneDuplikate() {
+        let tag = Tag(name: "Apple")
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
+        let feedArticle = Article(title: "Feed-Artikel", feed: feed)
+        let duplicateArticle = Article(title: "Doppelt", feed: feed)
+        let directArticle = Article(title: "Direkt")
+        feed.articles = [feedArticle, duplicateArticle]
+        feed.tags = [tag]
+        tag.feeds = [feed]
+        tag.articles = [duplicateArticle, directArticle]
+
+        #expect(SidebarTagCount.articleCount(for: tag) == 3)
+        #expect(SidebarTagCount.badgeText(for: tag) == "3")
+    }
+
+    @MainActor
     @Test func tagBadgeTextIstNurFuerTagsMitArtikelnSichtbar() {
         let tag = Tag(name: "Leer")
 
