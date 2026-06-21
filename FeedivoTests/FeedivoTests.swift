@@ -175,6 +175,7 @@ struct FeedivoTests {
     }
 
     @Test func readerTypographyBegrenztTextgroesseUndZeilenabstand() {
+        #expect(ReaderTypography.defaultTitleFontSize == 31)
         #expect(ReaderTypography.clampedBodyFontSize(10) == 14)
         #expect(ReaderTypography.clampedBodyFontSize(18) == 18)
         #expect(ReaderTypography.clampedBodyFontSize(40) == 24)
@@ -182,6 +183,14 @@ struct FeedivoTests {
         #expect(ReaderTypography.clampedLineSpacing(0) == 1)
         #expect(ReaderTypography.clampedLineSpacing(6) == 6)
         #expect(ReaderTypography.clampedLineSpacing(20) == 12)
+    }
+
+    @Test func readerTypographyDefiniertEditorialReaderRhythmus() {
+        #expect(ReaderTypography.articleVerticalPadding == 28)
+        #expect(ReaderTypography.headerSpacing == 14)
+        #expect(ReaderTypography.contentBlockSpacing == 22)
+        #expect(ReaderTypography.leadImageMaxHeight == 460)
+        #expect(ReaderTypography.footerTopPadding == 12)
     }
 
     @Test func readerTypographyBegrenztTitelZeilenabstandSeparat() {

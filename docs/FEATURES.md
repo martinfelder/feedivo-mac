@@ -69,6 +69,9 @@ bei geschlossener App.
 - Artikel-Liste zeigt echte Artikel eines Feeds.
 - Reader zeigt Feedname, ungefaehre Lesezeit, Artikelalter, Titel, native
   Reader-Bloecke, Vor/Zurueck-Navigation und Original-Link.
+- Die Reader-Darstellung ist als ruhiger Editorial Reader gesetzt: kleinerer
+  semibold Titel, bewusstere Blockabstaende, kontrollierte Lead-Bildhoehe und
+  dezenter Original-Link im Footer.
 - In der Reader-Toolbar kann ein rechter Metadaten-Inspector eingeblendet werden;
   dort sind Feed-Ordner und Artikel-Tags sichtbar und bearbeitbar, waehrend der
   Artikelkopf nur Feedname, Lesezeit und Zeitpunkt zeigt.
@@ -185,6 +188,8 @@ M2 Core Features:
 - Implementierte Richtung: Feedname, Lesezeit und Zeitpunkt bleiben im Artikelkopf;
   Ordner und Tags liegen in einem einblendbaren rechten Inspector und koennen dort
   bearbeitet werden.
+- Visuelle Richtung: Die Artikelansicht bleibt reduziert und inhaltsnah; seltenere
+  Aktionen wie `Link kopieren` liegen im Mehr-Menue, damit die Toolbar ruhiger bleibt.
 - Fallback: Leere strukturierte HTML-Bloecke werden verworfen; kaputte oder unbekannte
   Inhalte fallen auf normale Absätze zurueck.
 - Naechster Schritt: Klickbare Inline-Links separat planen und umsetzen.

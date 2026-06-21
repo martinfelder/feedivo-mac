@@ -450,10 +450,15 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 - Zeigt Metazeile, Titel, native Reader-Bloecke und Link zum Original
 - Metazeile: Feedname, ungefaehre Lesezeit und Artikelalter, linksbuendig oberhalb
   des Titels
+- Nutzt einen ruhigeren Editorial-Rhythmus: etwas kleinerer semibold Titel,
+  groessere Blockabstaende, kontrollierte Lead-Bildhoehe und dezenter Footer fuer
+  `Original öffnen`.
 - Ordner und Tags werden bewusst nicht im Artikelkopf gezeigt, sondern ueber den
   sichtbaren Toolbar-Toggle `Artikelinfos` in einem rechten Inspector verwaltet.
 - Toolbar-Buttons fuer vorherigen/naechsten Artikel navigieren innerhalb der aktuell
   sichtbaren Feed- oder Smart-Filter-Liste und stoppen am Listenrand
+- Seltenere Aktionen wie `Link kopieren` liegen im Reader-Mehr-Menue, damit die
+  Toolbar ruhiger bleibt.
 - Toolbar-Button `textformat` oeffnet ein Popover fuer Titel-Schrift,
   Fliesstext-Schrift, Textgroesse, Titel-/Fliesstext-Zeilenabstand und Artikelbreite
 - Titel- und Fliesstext-Schrift sowie Textgroesse/Titel-Zeilenabstand/
@@ -947,3 +952,6 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 - 2026-06-21: Reader-Metadaten-Inspector in der App umgesetzt: Feedname, Lesezeit
   und Zeitpunkt bleiben oben im Artikelkopf; Ordner und Artikel-Tags werden rechts
   eingeblendet und koennen dort bearbeitet werden.
+- 2026-06-21: Reader-Darstellung ruhiger gesetzt: kleinerer semibold Titel,
+  groessere redaktionelle Abstaende, kontrolliertes Lead-Bild, dezenter Original-Link
+  im Footer und `Link kopieren` ins Reader-Mehr-Menue verschoben.

@@ -70,6 +70,26 @@ struct ReaderView: View {
         CGFloat(ReaderTypography.clampedContentWidth(readerContentWidth))
     }
 
+    private var articleVerticalPadding: CGFloat {
+        CGFloat(ReaderTypography.articleVerticalPadding)
+    }
+
+    private var headerSpacing: CGFloat {
+        CGFloat(ReaderTypography.headerSpacing)
+    }
+
+    private var contentBlockSpacing: CGFloat {
+        CGFloat(ReaderTypography.contentBlockSpacing)
+    }
+
+    private var leadImageMaxHeight: CGFloat {
+        CGFloat(ReaderTypography.leadImageMaxHeight)
+    }
+
+    private var footerTopPadding: CGFloat {
+        CGFloat(ReaderTypography.footerTopPadding)
+    }
+
     private var metadataFontSize: CGFloat {
         CGFloat(ReaderTypography.metadataFontSize(forBodyFontSize: readerBodyFontSize))
     }
@@ -130,16 +150,6 @@ struct ReaderView: View {
 
             ToolbarItem {
                 Button {
-                    _ = viewModel.copyLink(article)
-                } label: {
-                    Image(systemName: "link")
-                }
-                .help(L10n.articleCopyLinkCommand)
-                .disabled(originalURL == nil)
-            }
-
-            ToolbarItem {
-                Button {
                     _ = viewModel.openOriginal(article)
                 } label: {
                     Image(systemName: "safari")
@@ -184,6 +194,20 @@ struct ReaderView: View {
                 .symbolVariant(isMetadataInspectorPresented ? .fill : .none)
                 .help(L10n.readerInspectorButton)
             }
+
+            ToolbarItem {
+                Menu {
+                    Button {
+                        _ = viewModel.copyLink(article)
+                    } label: {
+                        Label(L10n.articleCopyLinkCommand, systemImage: "link")
+                    }
+                    .disabled(originalURL == nil)
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+                .help(L10n.articleCopyLinkCommand)
+            }
         }
     }
 
@@ -215,16 +239,8 @@ struct ReaderView: View {
 
     private var nativeReader: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                if !metadataText.isEmpty {
-                    Text(metadataText)
-                        .font(bodyFontPreset.font(size: metadataFontSize, relativeTo: .caption))
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-
-                readerTitle
+            VStack(alignment: .leading, spacing: contentBlockSpacing) {
+                readerHeader
 
                 ForEach(Array(contentBlocks.enumerated()), id: \.offset) { _, block in
                     switch block {
@@ -248,12 +264,41 @@ struct ReaderView: View {
                     }
                 }
 
-                if let link = article.link, let url = URL(string: link) {
-                    Link(L10n.readerOpenOriginal, destination: url)
-                }
+                readerFooter
             }
             .frame(maxWidth: clampedContentWidth, alignment: .leading)
-            .padding()
+            .padding(.horizontal, 28)
+            .padding(.vertical, articleVerticalPadding)
+        }
+    }
+
+    private var readerHeader: some View {
+        VStack(alignment: .leading, spacing: headerSpacing) {
+            if !metadataText.isEmpty {
+                Text(metadataText)
+                    .font(bodyFontPreset.font(size: metadataFontSize, relativeTo: .caption))
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+
+            readerTitle
+        }
+    }
+
+    @ViewBuilder
+    private var readerFooter: some View {
+        if let link = article.link, let url = URL(string: link) {
+            VStack(alignment: .leading, spacing: 12) {
+                Divider()
+
+                Link(destination: url) {
+                    Label(L10n.readerOpenOriginal, systemImage: "arrow.up.right")
+                        .font(bodyFontPreset.font(size: max(metadataFontSize, 13), relativeTo: .callout))
+                        .fontWeight(.semibold)
+                }
+            }
+            .padding(.top, footerTopPadding)
         }
     }
 
@@ -368,8 +413,9 @@ struct ReaderView: View {
                 size: CGFloat(ReaderTypography.defaultTitleFontSize),
                 relativeTo: .largeTitle
             ))
-            .fontWeight(.bold)
+            .fontWeight(.semibold)
             .lineSpacing(clampedTitleLineSpacing)
+            .textSelection(.enabled)
     }
 
     private func typographySlider(
@@ -401,7 +447,7 @@ struct ReaderView: View {
                 case .success(let image):
                     image
                         .resizable()
-                        .scaledToFit()
+                        .scaledToFill()
                 case .failure:
                     EmptyView()
                 case .empty:
@@ -410,7 +456,8 @@ struct ReaderView: View {
                     EmptyView()
                 }
             }
-            .frame(maxWidth: .infinity)
+            .frame(maxWidth: .infinity, maxHeight: leadImageMaxHeight)
+            .aspectRatio(16 / 9, contentMode: .fit)
             .clipShape(RoundedRectangle(cornerRadius: 8))
         }
     }

@@ -1,7 +1,7 @@
 import Foundation
 
 enum ReaderTypography {
-    static let defaultTitleFontSize = 34.0
+    static let defaultTitleFontSize = 31.0
     static let defaultBodyFontSize = 17.0
     static let bodyFontSizeRange = 14.0...24.0
 
@@ -14,6 +14,12 @@ enum ReaderTypography {
     static let defaultContentWidth = 720.0
     static let contentWidthRange = 520.0...980.0
     static let contentWidthStep = 20.0
+
+    static let articleVerticalPadding = 28.0
+    static let headerSpacing = 14.0
+    static let contentBlockSpacing = 22.0
+    static let leadImageMaxHeight = 460.0
+    static let footerTopPadding = 12.0
 
     static func clampedBodyFontSize(_ value: Double) -> Double {
         min(max(value, bodyFontSizeRange.lowerBound), bodyFontSizeRange.upperBound)
