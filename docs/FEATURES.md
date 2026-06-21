@@ -122,7 +122,8 @@ bei geschlossener App.
   bleibt Fallback, externe Favicon-Dienste werden nicht genutzt.
 - Smart Filter sind in der Sidebar umgesetzt: Alle Artikel, Ungelesen, Mit Stern
   und Heute zeigen feeduebergreifend die passenden gespeicherten Artikel. Die
-  Filter-Icons haben passende Farben: blau, tuerkis, gelb und gruen.
+  Filter-Icons haben passende Farben: blau, tuerkis, gelb und gruen. Der Filter
+  `Ungelesen` zeigt die Gesamtzahl aller ungelesenen Artikel.
 - Die linke Sidebar nutzt das umgesetzte Design 11 aus den Reader-Prototypen:
   dunkler Hintergrund, dezente Auswahlflaeche, bestehende Smart-Filter-Icons und
   weiterhin helle Artikel-Liste/Reader-Spalten.
@@ -338,7 +339,8 @@ M2 Core Features:
 - Status: Fertig als Basis
 - Prioritaet: MVP
 - Implementiert: Feed-Titel mit Favicon aus `Feed.faviconURL`; Fallback ist das
-  RSS-Systemsymbol.
+  RSS-Systemsymbol. Feed-Zeilen zeigen rechts eine dezente Badge mit der Anzahl
+  ungelesener Artikel, sobald der Feed ungelesene Artikel enthaelt.
 - Design: Dunkle linke Sidebar nach Prototyp Design 11; aktive Zeilen werden nur
   dezent aufgehellt, damit die linke Spalte ruhig bleibt.
 - Ordner: Feeds stehen in der Section `Ordner`; Feeds mit `folderName` werden unter
@@ -346,14 +348,15 @@ M2 Core Features:
   Neben dem Section-Titel erstellt ein + Button neue leere Ordner. Feeds innerhalb
   eines Ordners werden eingerueckt angezeigt; Ordner sind per Chevron auf- und
   zuklappbar.
-- Offen: Ungelesen-Zaehler, Drag & Drop fuer Ordner.
+- Offen: Drag & Drop fuer Ordner.
 
 #### 3.2 Smart Filter
 - Status: Fertig als Basis
 - Prioritaet: MVP
 - Implementiert: Sidebar-Filter fuer Alle Artikel, Ungelesen, Mit Stern und Heute.
   Die Artikelliste nutzt dafuer alle gespeicherten Artikel statt nur einen Feed.
-  Die Filter-Icons sind farbig und passen semantisch zum jeweiligen Symbol.
+  Die Filter-Icons sind farbig und passen semantisch zum jeweiligen Symbol. Der
+  Filter `Ungelesen` zeigt rechts die feeduebergreifende Anzahl ungelesener Artikel.
 - Entscheidung: Die bestehenden SF-Symbol-Icons bleiben auch im dunklen Sidebar-Design
   erhalten; nur Hintergrund und Auswahlstil wurden geaendert.
 - Spaeter: Eigene Smart Filter und weitere Zeitfilter wie Gestern.

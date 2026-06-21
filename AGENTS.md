@@ -133,6 +133,7 @@ FeedivoMac/
 │   │   ├── Sidebar/
 │   │   │   ├── SidebarView.swift       # Dunkle linke Spalte: Filter, Feeds, + Button, @Query ✅
 │   │   │   ├── SidebarStyle.swift      # Farb-/Auswahlwerte fuer dunkle Sidebar ✅
+│   │   │   ├── SidebarUnreadCount.swift # Ungelesen-Zaehler fuer Sidebar-Badges ✅
 │   │   │   ├── FeedFolderOrganizer.swift # Einfache Ordner-Gruppierung fuer Feeds ✅
 │   │   │   ├── FeedRowView.swift       # Feed-Zeile mit Favicon/Fallback ✅
 │   │   │   ├── FeedPropertiesView.swift # Feed-Eigenschaften-Sheet ✅
@@ -249,6 +250,8 @@ fuer Reader-Vor/Zurueck sowie macOS-Menue-Status wiederverwendet.
   und Feed-Log
 - Smart-Filter behalten die bestehenden SF-Symbol-Icons (`tray.full`, `circle.fill`,
   `star.fill`, `calendar`) und ihre Farben; nur die Sidebar-Oberflaeche ist dunkler
+- Der Smart-Filter `Ungelesen` zeigt rechts die Gesamtzahl aller ungelesenen Artikel
+  ueber alle Feeds
 - Feeds stehen in einer Sidebar-Section `Ordner`; neben dem Section-Titel gibt es
   einen + Button zum Anlegen neuer Ordner
 - Ordner sind per Chevron auf- und zuklappbar; Feeds innerhalb eines Ordners werden
@@ -261,6 +264,13 @@ fuer Reader-Vor/Zurueck sowie macOS-Menue-Status wiederverwendet.
 - Zeigt Feed-Titel mit kleinem Favicon aus `Feed.faviconURL`
 - Nutzt `AsyncImage` fuer remote Icons
 - Fallback ist das RSS-Systemsymbol, wenn kein Icon vorhanden ist oder das Laden scheitert
+- Zeigt rechts eine dezente Badge mit der Anzahl ungelesener Artikel, wenn der Feed
+  mindestens einen ungelesenen Artikel hat
+
+### SidebarUnreadCount.swift
+- Kapselt die Sidebar-Zaehllogik fuer ungelesene Artikel pro Feed und ueber alle Feeds.
+- Liefert nur fuer positive Zaehler einen sichtbaren Badge-Text, damit Feeds ohne
+  ungelesene Artikel ruhig bleiben.
 
 ### FeedService.swift
 - Parsed RSS 2.0, Atom und JSON Feed via FeedKit
@@ -915,6 +925,9 @@ fuer Reader-Vor/Zurueck sowie macOS-Menue-Status wiederverwendet.
 - 2026-06-20: Smart Filter in der Sidebar umgesetzt: Alle Artikel, Ungelesen,
   Mit Stern und Heute nutzen `SidebarSelection` und filtern feeduebergreifend ueber
   alle gespeicherten Artikel
+- 2026-06-21: Ungelesen-Zaehler in der Sidebar umgesetzt: Feed-Zeilen zeigen rechts
+  die Anzahl ungelesener Artikel, der Smart-Filter `Ungelesen` zeigt die
+  feeduebergreifende Summe und aktualisiert ueber `Article.isRead` automatisch mit.
 - 2026-06-20: App-weite Oberflaechenschriftgroesse ergaenzt: Einstellungen bieten
   Klein, Standard, Gross und Sehr gross; `InterfaceTextSize` mappt diese Werte auf
   SwiftUI `DynamicTypeSize` und `FeedivoApp` wendet sie auf Hauptfenster und Settings an

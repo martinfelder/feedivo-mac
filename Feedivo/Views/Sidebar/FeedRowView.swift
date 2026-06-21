@@ -4,6 +4,7 @@ struct FeedRowView: View {
     @Environment(\.interfaceTextSize) private var interfaceTextSize
 
     let feed: Feed
+    let unreadCount: Int
 
     var body: some View {
         HStack(spacing: 8) {
@@ -16,6 +17,18 @@ struct FeedRowView: View {
             Text(feed.title)
                 .font(interfaceTextSize.font(size: 13, weight: .semibold))
                 .lineLimit(1)
+
+            Spacer(minLength: 8)
+
+            if let badgeText = SidebarUnreadCount.badgeText(for: unreadCount) {
+                Text(badgeText)
+                    .font(interfaceTextSize.font(size: 11, weight: .semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(SidebarStyle.darkSecondaryText)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 2)
+                    .background(SidebarStyle.darkActiveSelection, in: Capsule())
+            }
         }
     }
 

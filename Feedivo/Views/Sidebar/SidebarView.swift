@@ -85,7 +85,12 @@ struct SidebarView: View {
                     title: smartFilter.title,
                     systemImage: smartFilter.systemImage,
                     iconColor: smartFilter.iconColor.color,
-                    isSelected: selection == .smartFilter(smartFilter)
+                    isSelected: selection == .smartFilter(smartFilter),
+                    badgeText: smartFilter == .unread
+                        ? SidebarUnreadCount.badgeText(
+                            for: SidebarUnreadCount.totalUnreadArticleCount(in: feeds)
+                        )
+                        : nil
                 ) {
                     selection = .smartFilter(smartFilter)
                 }
@@ -138,7 +143,10 @@ struct SidebarView: View {
             Button {
                 selection = .feed(feed.persistentModelID)
             } label: {
-                FeedRowView(feed: feed)
+                FeedRowView(
+                    feed: feed,
+                    unreadCount: SidebarUnreadCount.unreadArticleCount(in: feed)
+                )
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             .buttonStyle(
@@ -287,19 +295,32 @@ private struct SidebarRow: View {
     let systemImage: String
     let iconColor: Color
     let isSelected: Bool
+    var badgeText: String? = nil
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            Label {
-                Text(title)
-                    .font(interfaceTextSize.font(size: 13, weight: .semibold))
-                    .lineLimit(1)
-            } icon: {
+            HStack(spacing: 8) {
                 Image(systemName: systemImage)
                     .font(interfaceTextSize.font(size: 14, weight: .semibold))
                     .foregroundStyle(iconColor.opacity(SidebarStyle.darkIconOpacity))
                     .frame(width: interfaceTextSize.scaled(20))
+
+                Text(title)
+                    .font(interfaceTextSize.font(size: 13, weight: .semibold))
+                    .lineLimit(1)
+
+                Spacer(minLength: 8)
+
+                if let badgeText {
+                    Text(badgeText)
+                        .font(interfaceTextSize.font(size: 11, weight: .semibold))
+                        .monospacedDigit()
+                        .foregroundStyle(SidebarStyle.darkSecondaryText)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 2)
+                        .background(SidebarStyle.darkActiveSelection, in: Capsule())
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
