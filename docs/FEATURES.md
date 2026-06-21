@@ -247,7 +247,8 @@ M3 Tags, Regeln & Sync:
 - Implementiert: Artikel-Tags koennen im rechten Reader-Inspector hinzugefuegt und
   vom aktuellen Artikel entfernt werden; vorhandene Tags werden wiederverwendet und
   neue Tags als `Tag` gespeichert.
-- Offen: Tag-Farben, Tag-Manager, Feed-Tags und Sidebar-Filter folgen separat.
+- Implementiert: Tag-Farben und zentraler Tag-Manager sind als Basis umgesetzt.
+- Offen: Feed-Tags und Sidebar-Filter folgen separat.
 
 #### 1.6 Artikel teilen
 - Status: Entschieden

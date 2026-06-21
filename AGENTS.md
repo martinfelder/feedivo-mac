@@ -872,9 +872,10 @@ oben, statt die komplette sichtbare Artikelliste in `ContentView` zu kopieren.
 - [x] Ordner fuer Feeds als eigenes Organisationsfeature ausbauen (Basis:
   eine Ebene, Sidebar-Section `Ordner` mit + Button, leere Ordner als `FeedFolder`,
   Feed-Zuordnung editierbar in Feed-Eigenschaften)
-- [ ] Tag-System ausbauen: Tags mit Farben verwalten ist als Basis umgesetzt;
-  Feeds taggen und Sidebar-Filter ergaenzen folgen separat
-- [ ] Sidebar: Abschnitt "Tags" zeigt den Tag-Manager; Filterung folgt separat
+- [x] Tag-System ausbauen: Tags mit Farben zentral verwalten ist als Basis umgesetzt
+- [x] Sidebar: Abschnitt "Tags" zeigt den Tag-Manager
+- [ ] Feed-Tags ergaenzen
+- [ ] Sidebar: Tags filtern
 - [ ] Erweiterte/eigene Smart Filter spaeter pruefen
 - [ ] `RuleEngine`: Neue Artikel automatisch taggen basierend auf Regeln
 - [ ] Regel-UI: Regeln erstellen, bearbeiten, aktivieren/deaktivieren
