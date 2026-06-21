@@ -135,8 +135,8 @@ FeedivoMac/
 │   ├── Views/
 │   │   ├── ContentView.swift           # Root: NavigationSplitView (3 Spalten) ✅
 │   │   ├── Sidebar/
-│   │   │   ├── SidebarView.swift       # Dunkle linke Spalte: Filter, Tags, Feeds, + Button, @Query ✅
-│   │   │   ├── SidebarStyle.swift      # Farb-/Auswahlwerte fuer dunkle Sidebar ✅
+│   │   │   ├── SidebarView.swift       # Linke Spalte: Filter, Tags, Regeln, Feeds, + Button, @Query ✅
+│   │   │   ├── SidebarStyle.swift      # Farb-/Auswahlwerte fuer helle System-Sidebar ✅
 │   │   │   ├── SidebarUnreadCount.swift # Ungelesen-Zaehler fuer Sidebar-Badges ✅
 │   │   │   ├── FeedFolderOrganizer.swift # Einfache Ordner-Gruppierung fuer Feeds ✅
 │   │   │   ├── FeedRowView.swift       # Feed-Zeile mit Favicon/Fallback ✅
@@ -245,12 +245,14 @@ noch einen kleinen `ArticleNavigationState` mit vorherigem/naechstem Artikel nac
 oben, statt die komplette sichtbare Artikelliste in `ContentView` zu kopieren.
 Praesentiert ausserdem den Regel-Wizard fuer den aktuell ausgewaehlten Artikel,
 wenn die Sidebar-Aktion `Regel aus Artikel erstellen...` genutzt wird.
+Haelt den offenen/geschlossenen Zustand des rechten Artikelinfos-Inspectors auf
+Root-Ebene, damit die eingeblendete Seitenleiste beim Feed- oder Artikelwechsel
+sichtbar bleibt.
 
 ### SidebarView.swift
 - `@Query(sort: \Feed.title)` für automatische Feed-Liste aus SwiftData
-- Dunkle, eigene SwiftUI-Sidebar statt Standard-`List`, damit Design 11 aus dem
-  Prototyp umgesetzt ist: dunkle linke Spalte, dezente aktive Auswahl und ruhige
-  Feed-/Filterzeilen
+- Eigene SwiftUI-Sidebar statt Standard-`List`, aber wieder mit hellem,
+  systemnahem Hintergrund, damit sie zur klassischen macOS-Sidebar passt.
 - Header mit + Button → oeffnet zentral praesentiertes `AddFeedSheet`
 - `AddFeedSheet` ist eine separate Struct in derselben Datei
 - Ruft `FeedViewModel.addFeed()` auf
@@ -258,7 +260,7 @@ wenn die Sidebar-Aktion `Regel aus Artikel erstellen...` genutzt wird.
 - Kontextmenue pro Feed oeffnet `Feed Eigenschaften...` mit Metadaten, Intervall
   und Feed-Log
 - Smart-Filter behalten die bestehenden SF-Symbol-Icons (`tray.full`, `circle.fill`,
-  `star.fill`, `calendar`) und ihre Farben; nur die Sidebar-Oberflaeche ist dunkler
+  `star.fill`, `calendar`) und ihre Farben.
 - Der Smart-Filter `Ungelesen` zeigt rechts die Gesamtzahl aller ungelesenen Artikel
   ueber alle Feeds
 - Ungelesen-Badges basieren auf `Feed.unreadCount`, damit die Sidebar beim Rendern
@@ -268,6 +270,8 @@ wenn die Sidebar-Aktion `Regel aus Artikel erstellen...` genutzt wird.
 - Vorhandene Tags werden in der Sidebar als klickbare Zeilen mit Farbindikator aus
   `Tag.colorHex` angezeigt; ein Klick filtert die Artikelliste feeduebergreifend
   auf Artikel mit diesem Tag.
+- Neu erstellte Tags werden nach erfolgreichem Anlegen direkt als Sidebar-Auswahl
+  gesetzt, damit der schnelle Tag-Filter sofort sichtbar und nutzbar ist.
 - Tag-Zeilen zeigen bewusst noch keine Zaehler, damit die Sidebar keine Artikel ueber
   Tag-Relationships laden muss.
 - Die Sidebar zeigt Regeln nur kompakt als eigenen Abschnitt mit Anzahl aktiver
@@ -276,7 +280,7 @@ wenn die Sidebar-Aktion `Regel aus Artikel erstellen...` genutzt wird.
 - Feeds stehen in einer Sidebar-Section `Ordner`; neben dem Section-Titel gibt es
   einen + Button zum Anlegen neuer Ordner
 - Ordner sind per Chevron auf- und zuklappbar; Feeds innerhalb eines Ordners werden
-  eingerueckt angezeigt, damit die Hierarchie in der dunklen Sidebar klarer lesbar ist
+  eingerueckt angezeigt, damit die Hierarchie klarer lesbar ist
 - Angelegte/leere Ordner werden als `FeedFolder` gespeichert; die Zuordnung eines
   Feeds zu einem Ordner bleibt fuer v1 ueber `Feed.folderName`
 - Ordner sind fuer v1 eine Ebene tief; noch kein Drag & Drop
@@ -508,13 +512,17 @@ wenn die Sidebar-Aktion `Regel aus Artikel erstellen...` genutzt wird.
 - `addTag(named:to:availableTags:context:)` trimmt Tag-Namen, verhindert leere oder
   doppelte Artikel-Tags und verwendet vorhandene Tags wieder, bevor neue Tags
   erstellt werden.
+- `availableTagsToAdd(to:availableTags:)` liefert vorhandene globale Tags, die dem
+  aktuellen Artikel noch nicht zugewiesen sind, alphabetisch sortiert fuer den
+  rechten Inspector.
 - `removeTag(_:from:context:)` entfernt ein Tag nur vom aktuellen Artikel.
 - `setFolderName(_:for:context:)` speichert den getrimmten Ordnernamen am Feed des
   Artikels; leere Eingaben entfernen die Ordnerzuordnung.
 
 ### TagViewModel.swift
 - `@Observable` `@MainActor` class fuer zentrale Tag-Verwaltung.
-- Erstellt Tags mit normalisiertem Namen und normalisierter Hex-Farbe.
+- Erstellt Tags mit normalisiertem Namen und normalisierter Hex-Farbe und gibt das
+  neu erstellte Tag fuer direkte UI-Auswahl zurueck.
 - Verhindert leere und doppelte Tag-Namen case-insensitive beim Erstellen und
   Umbenennen.
 - Aktualisiert Tag-Farben und loescht Tags inklusive vorhandener Artikel- und
@@ -527,6 +535,8 @@ wenn die Sidebar-Aktion `Regel aus Artikel erstellen...` genutzt wird.
   Validierung und Speichern und zeigt Fehler direkt in der jeweiligen Eingabe.
 - Wird aus der Sidebar-Section `Tags` geoeffnet; dieselbe Section zeigt auch
   klickbare Tag-Filterzeilen.
+- Nach dem erfolgreichen Erstellen eines Tags schliesst sich das Sheet und die
+  Sidebar waehlt das neue Tag als aktuellen Filter aus.
 
 ### ArticleCommands.swift / ArticleCommandActions.swift
 - macOS-Menue `Artikel` fuer Aktionen auf dem fokussierten/ausgewaehlten Artikel
@@ -605,6 +615,11 @@ wenn die Sidebar-Aktion `Regel aus Artikel erstellen...` genutzt wird.
   `Original öffnen`.
 - Ordner und Tags werden bewusst nicht im Artikelkopf gezeigt, sondern ueber den
   sichtbaren Toolbar-Toggle `Artikelinfos` in einem rechten Inspector verwaltet.
+- Der offene/geschlossene Inspector-Zustand kommt als Binding aus `ContentView`,
+  damit die rechte Seitenleiste beim Feed- oder Artikelwechsel erhalten bleibt.
+- Der native Artikel-Reader blendet seine vertikale Scrollbar aus, damit der
+  Uebergang zum rechten Liquid-Glass-Inspector ruhiger wirkt; Scrollen bleibt
+  unveraendert moeglich.
 - Toolbar-Buttons fuer vorherigen/naechsten Artikel navigieren innerhalb der aktuell
   sichtbaren Feed- oder Smart-Filter-Liste und stoppen am Listenrand
 - Seltenere Aktionen wie `Link kopieren` liegen im Reader-Mehr-Menue, damit die
@@ -629,10 +644,15 @@ wenn die Sidebar-Aktion `Regel aus Artikel erstellen...` genutzt wird.
 
 ### ArticleMetadataInspectorView.swift
 - Einblendbarer rechter Inspector in der Artikelansicht.
+- Nutzt die Glass-Prototyp-Variante A `Liquid Glass`: eine durchgehende,
+  transluzente `ultraThinMaterial`-Seitenleiste mit heller linker Glass-Kante statt
+  einer harten Split-View-Trennlinie.
 - Zeigt den aktuellen Feed-Ordner als Menu-Picker und schreibt Aenderungen direkt auf
   `Feed.folderName`.
 - Zeigt Artikel-Tags als kompakte Chips; Tags koennen hinzugefuegt oder vom Artikel
   entfernt werden.
+- Zeigt zusaetzlich vorhandene globale Tags, die noch nicht am Artikel haengen, als
+  Plus-Chips an, damit Tags ohne Tippen schnell zugewiesen werden koennen.
 - Neue Tags werden ueber `ArticleMetadataEditor` normalisiert und als globale
   `Tag`-Eintraege wiederverwendet oder neu erstellt.
 
@@ -1186,6 +1206,12 @@ wenn die Sidebar-Aktion `Regel aus Artikel erstellen...` genutzt wird.
 - 2026-06-21: Sidebar-Tag-Filter umgesetzt: Tags erscheinen als klickbare Zeilen mit
   Farbindikator und filtern `ArticleListView` ueber eine gezielte SwiftData-Query auf
   `Article.tags`; Tag-Zaehler, Feed-Tags und Regeln bleiben separate M3-Schritte.
+- 2026-06-21: Tag-Erstellung verfeinert: Neue Tags werden nach dem Anlegen direkt in
+  der Sidebar als aktueller Tag-Filter ausgewaehlt, damit sie sofort sichtbar und
+  schnell nutzbar sind.
+- 2026-06-21: Rechter Artikelinfos-Inspector erweitert: Vorhandene globale Tags, die
+  dem Artikel noch nicht zugewiesen sind, erscheinen nun als Plus-Chips und koennen
+  direkt angeklickt werden.
 - 2026-06-21: Erste RuleEngine-Basis umgesetzt: Neue Artikel werden beim Refresh
   anhand einfacher Regeln (`title`/`summary`/`feedTitle` plus `contains`/
   `startsWith`/`endsWith`) automatisch getaggt; Rule-UI, Regex, Mehrfachbedingungen
@@ -1196,3 +1222,15 @@ wenn die Sidebar-Aktion `Regel aus Artikel erstellen...` genutzt wird.
   Power-User-Regeln mit mehreren Bedingungen und AND/OR. In der Sidebar werden
   Regeln bewusst nur kompakt mit aktivem Zaehler und einem Link `Regel aus Artikel
   erstellen...` fuer den aktuell ausgewaehlten Artikel angezeigt.
+- 2026-06-21: Glass-Design-Prototypen fuer den rechten Artikelinfos-Inspector
+  erstellt: `docs/design/article-info-glass-sidebar-prototypes/index.html` zeigt
+  fuenf konkrete Varianten, wie die Seitenleiste an eine moderne macOS-Glass-
+  Oberflaeche angepasst werden kann.
+- 2026-06-21: Glass-Prototyp Variante A in der App umgesetzt: Der rechte
+  Artikelinfos-Inspector erscheint nun als durchgehende Liquid-Glass-Seitenleiste
+  mit weicher linker Lichtkante, ohne harte Trennlinie zum Reader.
+- 2026-06-21: Native Reader-Scrollbar ausgeblendet, damit der Artikelbereich
+  fliessender in den rechten Liquid-Glass-Inspector uebergeht.
+- 2026-06-21: Linke Sidebar wieder auf einen hellen, systemnahen macOS-Look
+  umgestellt; die dunkle Design-11-Flaeche wurde entfernt, farbige Smart-Filter-
+  Icons und dezente Auswahl bleiben erhalten.

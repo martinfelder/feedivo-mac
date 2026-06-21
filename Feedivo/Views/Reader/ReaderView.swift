@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ReaderView: View {
     let article: Article
+    @Binding var isMetadataInspectorPresented: Bool
     let canSelectPreviousArticle: Bool
     let canSelectNextArticle: Bool
     let selectPreviousArticle: () -> Void
@@ -10,12 +11,14 @@ struct ReaderView: View {
 
     init(
         article: Article,
+        isMetadataInspectorPresented: Binding<Bool>,
         canSelectPreviousArticle: Bool = false,
         canSelectNextArticle: Bool = false,
         selectPreviousArticle: @escaping () -> Void = {},
         selectNextArticle: @escaping () -> Void = {}
     ) {
         self.article = article
+        self._isMetadataInspectorPresented = isMetadataInspectorPresented
         self.canSelectPreviousArticle = canSelectPreviousArticle
         self.canSelectNextArticle = canSelectNextArticle
         self.selectPreviousArticle = selectPreviousArticle
@@ -45,7 +48,6 @@ struct ReaderView: View {
     private var readerDisplayModeRawValue = ReaderDisplayMode.defaultMode.rawValue
 
     @State private var isAppearancePopoverPresented = false
-    @State private var isMetadataInspectorPresented = false
     @State private var viewModel = ArticleViewModel()
 
     private var titleFontPreset: ReaderFontPreset {
@@ -208,8 +210,6 @@ struct ReaderView: View {
                 readerContent
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                Divider()
-
                 ArticleMetadataInspectorView(article: article) {
                     isMetadataInspectorPresented = false
                 }
@@ -230,7 +230,7 @@ struct ReaderView: View {
     }
 
     private var nativeReader: some View {
-        ScrollView {
+        ScrollView(.vertical, showsIndicators: false) {
             VStack(alignment: .leading, spacing: contentBlockSpacing) {
                 readerHeader
 

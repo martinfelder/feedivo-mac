@@ -6,6 +6,8 @@ struct TagManagerView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Tag.name) private var tags: [Tag]
 
+    var onTagCreated: (Tag) -> Void = { _ in }
+
     @State private var viewModel = TagViewModel()
     @State private var newTagName = ""
     @State private var newTagColorHex = TagColorPalette.colors[0]
@@ -119,15 +121,17 @@ struct TagManagerView: View {
     }
 
     private func createTag() {
-        viewModel.createTag(
+        let createdTag = viewModel.createTag(
             name: newTagName,
             colorHex: newTagColorHex,
             availableTags: tags,
             context: modelContext
         )
 
-        if viewModel.errorMessage == nil {
+        if let createdTag {
             newTagName = ""
+            onTagCreated(createdTag)
+            dismiss()
         }
     }
 }

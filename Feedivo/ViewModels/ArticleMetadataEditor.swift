@@ -32,6 +32,19 @@ enum ArticleMetadataEditor {
     }
 
     @MainActor
+    static func availableTagsToAdd(to article: Article, availableTags: [Tag]) -> [Tag] {
+        availableTags
+            .filter { tag in
+                !article.tags.contains { articleTag in
+                    sameTagName(articleTag.name, tag.name)
+                }
+            }
+            .sorted {
+                $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+            }
+    }
+
+    @MainActor
     static func setFolderName(_ folderName: String?, for article: Article, context: ModelContext) {
         article.feed?.folderName = FeedFolderOrganizer.normalizedFolderName(folderName)
         try? context.save()

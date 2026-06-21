@@ -70,6 +70,22 @@ struct ArticleMetadataEditorTests {
     }
 
     @MainActor
+    @Test func availableTagsToAddZeigtNurNochNichtZugewieseneTagsSortiert() throws {
+        let article = Article(title: "Artikel")
+        let swiftTag = Tag(name: "Swift")
+        let appleTag = Tag(name: "Apple")
+        let newsTag = Tag(name: "News")
+        article.tags = [swiftTag]
+
+        let availableTags = ArticleMetadataEditor.availableTagsToAdd(
+            to: article,
+            availableTags: [swiftTag, newsTag, appleTag]
+        )
+
+        #expect(availableTags.map(\.name) == ["Apple", "News"])
+    }
+
+    @MainActor
     @Test func setFolderNameSpeichertGetrimmtenFeedOrdner() throws {
         let context = try testContext()
         let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")

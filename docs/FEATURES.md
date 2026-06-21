@@ -73,9 +73,14 @@ bei geschlossener App.
   semibold Titel, bewusstere Blockabstaende, kontrollierte Lead-Bildhoehe und
   dezenter Original-Link im Footer.
 - In der Reader-Toolbar kann ein rechter Metadaten-Inspector eingeblendet werden;
-  dort sind Feed-Ordner und Artikel-Tags sichtbar und bearbeitbar, waehrend der
-  Artikelkopf nur Feedname, Lesezeit und Zeitpunkt zeigt. Der Inspector sitzt ohne
-  zusaetzliche Restspalte am rechten Rand der Artikelansicht.
+  dort sind Feed-Ordner und Artikel-Tags sichtbar und bearbeitbar. Vorhandene
+  globale Tags, die dem Artikel noch nicht zugewiesen sind, werden dort als
+  anklickbare Plus-Chips angeboten. Der Artikelkopf zeigt nur Feedname, Lesezeit und
+  Zeitpunkt; der Inspector sitzt ohne zusaetzliche Restspalte am rechten Rand der
+  Artikelansicht und bleibt beim Feed- oder Artikelwechsel eingeblendet, wenn er
+  geoeffnet wurde.
+- Die native Artikel-Scrollbar ist ausgeblendet, damit der Artikelbereich optisch
+  fliessender in den rechten Liquid-Glass-Inspector uebergeht.
 - Reader-Rendering wandelt HTML/Plain-Text in Absätze und Bildbloecke; HTML-Bilder
   bleiben dabei an ihrer Position im Artikelinhalt, Fallback-Bilder aus
   `Article.imageURL` werden nur genutzt, wenn der HTML-Inhalt kein Bild enthaelt.
@@ -130,9 +135,8 @@ bei geschlossener App.
   im Speicher zu filtern. Die Filter-Icons haben passende Farben: blau, tuerkis,
   gelb und gruen. Der Filter `Ungelesen` zeigt die Gesamtzahl aller ungelesenen
   Artikel ueber gespeicherte `Feed.unreadCount` Werte.
-- Die linke Sidebar nutzt das umgesetzte Design 11 aus den Reader-Prototypen:
-  dunkler Hintergrund, dezente Auswahlflaeche, bestehende Smart-Filter-Icons und
-  weiterhin helle Artikel-Liste/Reader-Spalten.
+- Die linke Sidebar nutzt wieder einen hellen, systemnahen macOS-Look mit dezenter
+  Auswahlflaeche und bestehenden farbigen Smart-Filter-Icons.
 - Artikel-Links koennen kopiert und Originalartikel im Standardbrowser geoeffnet
   werden; die Aktionen sind im Artikel-Kontextmenue, Reader und macOS-Menue `Artikel`
   verfuegbar. In der Artikelansicht oeffnet auch ein Klick auf den Titel den
@@ -159,7 +163,8 @@ bei geschlossener App.
 - Zentrale Tag-Verwaltung und Sidebar-Tag-Filter sind als Basis umgesetzt: Tags
   koennen erstellt, umbenannt, gefaerbt und geloescht werden; die Sidebar zeigt Tags
   als klickbare Zeilen mit Farbindikator und filtert die Artikelliste
-  feeduebergreifend auf Artikel mit dem ausgewaehlten Tag.
+  feeduebergreifend auf Artikel mit dem ausgewaehlten Tag. Nach dem Erstellen wird
+  das neue Tag direkt als Sidebar-Filter ausgewaehlt.
 - Automatische Regeln sind als Basis mit UI umgesetzt: Neue Artikel werden beim
   Feed-Refresh automatisch getaggt; Regeln koennen in den Einstellungen erstellt,
   bearbeitet, geloescht und aktiviert/deaktiviert werden. Der Wizard bietet einfache
@@ -216,6 +221,14 @@ M3 Tags, Regeln & Sync:
   `docs/design/article-reader-minimal-step/index.html` liegen drei bewusst ruhige
   Varianten fuer die Positionierung von Feedname, Lesezeit, Ordner und Tags, weil
   die Schriftarten selbst bereits individuell konfigurierbar sind.
+- Glass-Inspector-Exploration: Unter
+  `docs/design/article-info-glass-sidebar-prototypes/index.html` liegen fuenf
+  konkrete Varianten fuer eine macOS-Glass-Anpassung der rechten Artikelinfos-
+  Seitenleiste.
+- Umgesetzte Glass-Richtung: Variante A `Liquid Glass` ist fuer den rechten
+  Artikelinfos-Inspector implementiert. Die Seitenleiste wirkt als durchgehende,
+  transluzente Material-Fläche mit heller linker Glass-Kante statt als harte
+  Split-View-Trennlinie.
 - Implementierte Richtung: Feedname, Lesezeit und Zeitpunkt bleiben im Artikelkopf;
   Ordner und Tags liegen in einem einblendbaren rechten Inspector und koennen dort
   bearbeitet werden.
@@ -257,9 +270,10 @@ M3 Tags, Regeln & Sync:
 - Prioritaet: v1
 - Implementiert: Artikel-Tags koennen im rechten Reader-Inspector hinzugefuegt und
   vom aktuellen Artikel entfernt werden; vorhandene Tags werden wiederverwendet und
-  neue Tags als `Tag` gespeichert.
+  neue Tags als `Tag` gespeichert. Noch nicht zugewiesene vorhandene Tags werden im
+  rechten Inspector als Plus-Chips angezeigt und koennen direkt angeklickt werden.
 - Implementiert: Tag-Farben, zentraler Tag-Manager und Sidebar-Tag-Filter sind als
-  Basis umgesetzt.
+  Basis umgesetzt. Neu erstellte Tags werden direkt in der Sidebar ausgewaehlt.
 - Offen: Feed-Tags, Tag-Zaehler in der Sidebar und rueckwirkendes Anwenden von
   Regeln folgen separat.
 
@@ -376,8 +390,8 @@ M3 Tags, Regeln & Sync:
 - Migration: `FeedUnreadCountBackfillService` korrigiert vorhandene Zaehler einmalig
   und merkt den erfolgreichen Durchlauf per `feedUnreadCountBackfillDone_v1`, damit
   nicht bei jedem App-Start alle Feed-Artikel geladen werden.
-- Design: Dunkle linke Sidebar nach Prototyp Design 11; aktive Zeilen werden nur
-  dezent aufgehellt, damit die linke Spalte ruhig bleibt.
+- Design: Helle, systemnahe linke Sidebar; aktive Zeilen werden dezent ueber die
+  Accent-Farbe markiert, damit die linke Spalte ruhig bleibt.
 - Ordner: Feeds stehen in der Section `Ordner`; Feeds mit `folderName` werden unter
   einem Ordnerkopf gruppiert, Feeds ohne Ordner bleiben direkt in dieser Section.
   Neben dem Section-Titel erstellt ein + Button neue leere Ordner. Feeds innerhalb
@@ -393,8 +407,8 @@ M3 Tags, Regeln & Sync:
   statt nur einen Feed oder pauschal alle Artikel im Speicher.
   Die Filter-Icons sind farbig und passen semantisch zum jeweiligen Symbol. Der
   Filter `Ungelesen` zeigt rechts die feeduebergreifende Anzahl ungelesener Artikel.
-- Entscheidung: Die bestehenden SF-Symbol-Icons bleiben auch im dunklen Sidebar-Design
-  erhalten; nur Hintergrund und Auswahlstil wurden geaendert.
+- Entscheidung: Die bestehenden SF-Symbol-Icons bleiben im hellen Sidebar-Design
+  erhalten; Hintergrund und Auswahlstil folgen wieder naeher dem macOS-Standard.
 - Spaeter: Eigene Smart Filter und weitere Zeitfilter wie Gestern.
 
 #### 3.3 Tag-Abschnitt
@@ -484,7 +498,8 @@ M3 Tags, Regeln & Sync:
 - Prioritaet: v1
 - Implementiert: Artikel-Tags koennen im Reader-Inspector hinzugefuegt und entfernt
   werden. Tags koennen zentral erstellt, umbenannt, farblich markiert und geloescht
-  werden. Die Sidebar kann nach Artikeln mit einem ausgewaehlten Tag filtern.
+  werden. Die Sidebar kann nach Artikeln mit einem ausgewaehlten Tag filtern; neue
+  Tags werden nach dem Erstellen direkt als Sidebar-Filter ausgewaehlt.
 - Implementiert: Neue Artikel koennen beim Refresh ueber einfache Regeln automatisch
   getaggt werden.
 - Offen: Feed-Tags, Tag-Zaehler in der Sidebar und rueckwirkendes Anwenden von

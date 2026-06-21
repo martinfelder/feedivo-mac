@@ -16,7 +16,7 @@ struct TagViewModelTests {
         let context = try testContext()
         let viewModel = TagViewModel()
 
-        viewModel.createTag(
+        let createdTag = viewModel.createTag(
             name: "  Swift  ",
             colorHex: "#3B82F6",
             availableTags: [],
@@ -27,6 +27,7 @@ struct TagViewModelTests {
         #expect(tags.count == 1)
         #expect(tags.first?.name == "Swift")
         #expect(tags.first?.colorHex == "#3B82F6")
+        #expect(createdTag?.persistentModelID == tags.first?.persistentModelID)
         #expect(viewModel.errorMessage == nil)
     }
 

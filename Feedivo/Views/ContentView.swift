@@ -28,6 +28,7 @@ struct ContentView: View {
     @State private var opmlExportDocument = OPMLDocument()
     @State private var opmlAlert: OPMLAlert?
     @State private var articleForRuleCreation: Article?
+    @State private var isMetadataInspectorPresented = false
 
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
@@ -82,6 +83,7 @@ struct ContentView: View {
             if let article = selectedArticle {
                 ReaderView(
                     article: article,
+                    isMetadataInspectorPresented: $isMetadataInspectorPresented,
                     canSelectPreviousArticle: articleNavigationState.previousArticle != nil,
                     canSelectNextArticle: articleNavigationState.nextArticle != nil,
                     selectPreviousArticle: selectPreviousArticle,

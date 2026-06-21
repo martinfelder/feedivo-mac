@@ -3,13 +3,13 @@ import Testing
 
 struct SidebarStyleTests {
 
-    @Test func darkSidebarActiveSelectionIsSubtle() {
-        #expect(SidebarStyle.darkActiveSelectionOpacity == 0.11)
-        #expect(SidebarStyle.darkActiveBorderOpacity == 0.07)
+    @Test func lightSidebarActiveSelectionIsSubtle() {
+        #expect(SidebarStyle.activeSelectionOpacity == 0.14)
+        #expect(SidebarStyle.activeBorderOpacity == 0.12)
     }
 
-    @Test func darkSidebarKeepsSmartFilterIconsVisible() {
-        #expect(SidebarStyle.darkIconOpacity == 1.0)
-        #expect(SidebarStyle.darkSecondaryTextOpacity < SidebarStyle.darkPrimaryTextOpacity)
+    @Test func lightSidebarKeepsSmartFilterIconsVisible() {
+        #expect(SidebarStyle.iconOpacity == 1.0)
+        #expect(SidebarStyle.secondaryTextOpacity < SidebarStyle.primaryTextOpacity)
     }
 }

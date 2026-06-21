@@ -35,7 +35,7 @@ struct SidebarView: View {
             }
             .scrollContentBackground(.hidden)
         }
-        .background(SidebarStyle.darkBackground)
+        .background(SidebarStyle.background)
         .navigationTitle("Feedivo")
         .sheet(item: $feedShowingProperties) { feed in
             FeedPropertiesView(feed: feed)
@@ -52,7 +52,9 @@ struct SidebarView: View {
             )
         }
         .sheet(isPresented: $isShowingTagManager) {
-            TagManagerView()
+            TagManagerView { tag in
+                selection = .tag(tag.persistentModelID)
+            }
         }
     }
 
@@ -60,7 +62,7 @@ struct SidebarView: View {
         HStack {
             Text("Feedivo")
                 .font(interfaceTextSize.font(size: 15, weight: .semibold))
-                .foregroundStyle(SidebarStyle.darkPrimaryText)
+                .foregroundStyle(SidebarStyle.primaryText)
 
             Spacer()
 
@@ -75,15 +77,15 @@ struct SidebarView: View {
                     )
             }
             .buttonStyle(.plain)
-            .foregroundStyle(SidebarStyle.darkPrimaryText)
-            .background(SidebarStyle.darkActiveSelection, in: RoundedRectangle(cornerRadius: 8))
+            .foregroundStyle(SidebarStyle.primaryText)
+            .background(SidebarStyle.activeSelection, in: RoundedRectangle(cornerRadius: 8))
             .help(L10n.sidebarAddFeedButton)
         }
         .padding(.horizontal, 18)
         .padding(.vertical, 14)
         .overlay(alignment: .bottom) {
             Rectangle()
-                .fill(SidebarStyle.darkSeparator)
+                .fill(SidebarStyle.separator)
                 .frame(height: 1)
         }
     }
@@ -135,7 +137,7 @@ struct SidebarView: View {
         } content: {
             Text(L10n.sidebarRulesActiveCount(count: rules.filter(\.isEnabled).count))
                 .font(interfaceTextSize.font(size: 13))
-                .foregroundStyle(SidebarStyle.darkSecondaryText)
+                .foregroundStyle(SidebarStyle.secondaryText)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
         }
@@ -152,7 +154,7 @@ struct SidebarView: View {
             if feeds.isEmpty && folders.isEmpty {
                 Text(L10n.sidebarEmptyTitle)
                     .font(interfaceTextSize.font(size: 13))
-                    .foregroundStyle(SidebarStyle.darkSecondaryText)
+                    .foregroundStyle(SidebarStyle.secondaryText)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 8)
             } else {
@@ -286,7 +288,7 @@ private struct SidebarSection<Content: View>: View {
                     .font(interfaceTextSize.font(size: 11, weight: .bold))
                     .fontWeight(.bold)
                     .textCase(.uppercase)
-                    .foregroundStyle(SidebarStyle.darkSectionText)
+                    .foregroundStyle(SidebarStyle.sectionText)
                     .padding(.horizontal, 10)
             }
 
@@ -327,7 +329,7 @@ private struct SidebarActionSection<Content: View>: View {
                 .help(actionHelp)
                 .disabled(isActionDisabled)
             }
-            .foregroundStyle(SidebarStyle.darkSectionText)
+            .foregroundStyle(SidebarStyle.sectionText)
             .padding(.horizontal, 10)
 
             content
@@ -364,7 +366,7 @@ private struct SidebarFolderSection<Content: View>: View {
             }
             .buttonStyle(.plain)
             .fontWeight(.bold)
-            .foregroundStyle(SidebarStyle.darkSectionText)
+            .foregroundStyle(SidebarStyle.sectionText)
             .padding(.horizontal, 10)
             .padding(.top, 8)
 
@@ -388,7 +390,7 @@ private struct SidebarRow: View {
             HStack(spacing: 8) {
                 Image(systemName: systemImage)
                     .font(interfaceTextSize.font(size: 14, weight: .semibold))
-                    .foregroundStyle(iconColor.opacity(SidebarStyle.darkIconOpacity))
+                    .foregroundStyle(iconColor.opacity(SidebarStyle.iconOpacity))
                     .frame(width: interfaceTextSize.scaled(20))
 
                 Text(title)
@@ -401,10 +403,10 @@ private struct SidebarRow: View {
                     Text(badgeText)
                         .font(interfaceTextSize.font(size: 11, weight: .semibold))
                         .monospacedDigit()
-                        .foregroundStyle(SidebarStyle.darkSecondaryText)
+                        .foregroundStyle(SidebarStyle.secondaryText)
                         .padding(.horizontal, 7)
                         .padding(.vertical, 2)
-                        .background(SidebarStyle.darkActiveSelection, in: Capsule())
+                        .background(SidebarStyle.activeSelection, in: Capsule())
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -424,7 +426,7 @@ private struct SidebarRowButtonStyle: ButtonStyle {
             .font(interfaceTextSize.font(size: 13, weight: .semibold))
             .fontWeight(.semibold)
             .foregroundStyle(
-                isSelected ? SidebarStyle.darkPrimaryText : SidebarStyle.darkPrimaryText.opacity(0.82)
+                isSelected ? SidebarStyle.primaryText : SidebarStyle.primaryText.opacity(0.82)
             )
             .padding(.horizontal, 10)
             .frame(height: interfaceTextSize.scaled(36))
@@ -436,9 +438,9 @@ private struct SidebarRowButtonStyle: ButtonStyle {
     @ViewBuilder
     private func rowBackground(configuration: Configuration) -> some View {
         let backgroundColor: Color = if isSelected {
-            SidebarStyle.darkActiveSelection
+            SidebarStyle.activeSelection
         } else if configuration.isPressed {
-            SidebarStyle.darkRowHover
+            SidebarStyle.rowHover
         } else {
             Color.clear
         }
@@ -448,7 +450,7 @@ private struct SidebarRowButtonStyle: ButtonStyle {
             .overlay {
                 RoundedRectangle(cornerRadius: 8)
                     .stroke(
-                        isSelected ? SidebarStyle.darkActiveBorder : Color.clear,
+                        isSelected ? SidebarStyle.activeBorder : Color.clear,
                         lineWidth: 1
                     )
             }

@@ -7,20 +7,21 @@ import SwiftData
 final class TagViewModel {
     var errorMessage: String?
 
+    @discardableResult
     func createTag(
         name: String,
         colorHex: String,
         availableTags: [Tag],
         context: ModelContext
-    ) {
+    ) -> Tag? {
         guard let normalizedName = Self.normalizedTagName(name) else {
             errorMessage = L10n.tagManagerEmptyNameError
-            return
+            return nil
         }
 
         guard !Self.containsTag(named: normalizedName, in: availableTags) else {
             errorMessage = L10n.tagManagerDuplicateNameError
-            return
+            return nil
         }
 
         let tag = Tag(
@@ -29,6 +30,8 @@ final class TagViewModel {
         )
         context.insert(tag)
         save(context)
+
+        return errorMessage == nil ? tag : nil
     }
 
     func renameTag(

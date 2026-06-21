@@ -24,10 +24,10 @@ struct FeedRowView: View {
                 Text(badgeText)
                     .font(interfaceTextSize.font(size: 11, weight: .semibold))
                     .monospacedDigit()
-                    .foregroundStyle(SidebarStyle.darkSecondaryText)
+                    .foregroundStyle(SidebarStyle.secondaryText)
                     .padding(.horizontal, 7)
                     .padding(.vertical, 2)
-                    .background(SidebarStyle.darkActiveSelection, in: Capsule())
+                    .background(SidebarStyle.activeSelection, in: Capsule())
             }
         }
     }
