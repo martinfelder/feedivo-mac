@@ -6,6 +6,7 @@ struct ReaderView: View {
     let canSelectNextArticle: Bool
     let selectPreviousArticle: () -> Void
     let selectNextArticle: () -> Void
+    private let preparedArticle: ReaderPreparedArticle
 
     init(
         article: Article,
@@ -19,6 +20,7 @@ struct ReaderView: View {
         self.canSelectNextArticle = canSelectNextArticle
         self.selectPreviousArticle = selectPreviousArticle
         self.selectNextArticle = selectNextArticle
+        self.preparedArticle = ReaderPreparedArticle(article: article)
     }
 
     @AppStorage("readerTitleFontPreset")
@@ -99,7 +101,7 @@ struct ReaderView: View {
     }
 
     private var originalURL: URL? {
-        viewModel.originalURL(for: article)
+        preparedArticle.originalURL
     }
 
     private var shouldShowWebView: Bool {
@@ -107,23 +109,11 @@ struct ReaderView: View {
     }
 
     private var contentBlocks: [ReaderContentBlock] {
-        ReaderContentRenderer.blocks(
-            summary: article.summary,
-            content: article.content,
-            fallbackImageURL: article.imageURL
-        )
+        preparedArticle.contentBlocks
     }
 
     private var metadataText: String {
-        ReaderMetadataFormatter.metadataParts(
-            feedName: article.feed?.title,
-            readingTime: ReaderMetadataFormatter.readingTimeText(
-                content: article.content,
-                summary: article.summary
-            ),
-            publishedAt: article.publishedAt
-        )
-        .joined(separator: " · ")
+        preparedArticle.metadataText
     }
 
     var body: some View {
@@ -447,7 +437,7 @@ struct ReaderView: View {
                 case .success(let image):
                     image
                         .resizable()
-                        .scaledToFill()
+                        .scaledToFit()
                 case .failure:
                     EmptyView()
                 case .empty:
@@ -456,8 +446,8 @@ struct ReaderView: View {
                     EmptyView()
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: leadImageMaxHeight)
-            .aspectRatio(16 / 9, contentMode: .fit)
+            .frame(maxWidth: .infinity)
+            .frame(maxHeight: leadImageMaxHeight)
             .clipShape(RoundedRectangle(cornerRadius: 8))
         }
     }

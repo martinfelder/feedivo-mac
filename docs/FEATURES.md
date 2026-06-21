@@ -176,6 +176,9 @@ M2 Core Features:
 - Implementiert: `ReaderContentRenderer` erzeugt Absätze, Ueberschriften, Zitate,
   Listenpunkte und Bildbloecke aus gespeicherten Feed-Inhalten; `ReaderView` rendert
   diese Bloecke nativ mit SwiftUI.
+- Performance: `ReaderPreparedArticle` bereitet Content-Bloecke, Metazeile und
+  Original-URL einmal pro ausgewaehltem Artikel vor, damit SwiftUI-Redraws nicht
+  wiederholt HTML/Text neu zerlegen.
 - Metadaten: Oberhalb des Titels zeigt `ReaderView` Feedname, ungefaehre Lesezeit
   und Artikelalter, sofern die Daten vorhanden sind.
 - Design-Exploration: Unter `docs/design/article-reader-prototypes/index.html`

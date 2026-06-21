@@ -193,6 +193,26 @@ struct FeedivoTests {
         #expect(ReaderTypography.footerTopPadding == 12)
     }
 
+    @Test func readerPreparedArticleBerechnetTeureReaderDatenEinmalig() {
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Test Feed")
+        let article = Article(
+            title: "Artikel",
+            link: "https://example.com/artikel",
+            summary: "<p>Zusammenfassung</p>",
+            content: "<p>Absatz</p>",
+            publishedAt: Date(timeIntervalSince1970: 1_700_000_000),
+            imageURL: "https://example.com/image.jpg",
+            feed: feed
+        )
+
+        let preparedArticle = ReaderPreparedArticle(article: article)
+
+        #expect(preparedArticle.contentBlocks == [.image(urlString: "https://example.com/image.jpg"), .paragraph("Absatz")])
+        #expect(preparedArticle.metadataText.contains("Test Feed"))
+        #expect(preparedArticle.metadataText.contains("ca. 1 Min. Lesezeit"))
+        #expect(preparedArticle.originalURL?.absoluteString == "https://example.com/artikel")
+    }
+
     @Test func readerTypographyBegrenztTitelZeilenabstandSeparat() {
         #expect(ReaderTypography.defaultTitleLineSpacing == 2)
         #expect(ReaderTypography.clampedTitleLineSpacing(-4) == 0)

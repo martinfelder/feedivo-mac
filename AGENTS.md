@@ -144,6 +144,7 @@ FeedivoMac/
 │   │   ├── Reader/
 │   │   │   ├── ReaderView.swift        # Rechte Spalte: nativer Artikel-Reader ✅
 │   │   │   ├── ArticleMetadataInspectorView.swift # Rechter Artikelinfos-Inspector ✅
+│   │   │   ├── ReaderPreparedArticle.swift # Vorbereitete Reader-Daten pro Artikel ✅
 │   │   │   ├── ReaderContentRenderer.swift # HTML/Text zu Reader-Bloecken ✅
 │   │   │   ├── ReaderMetadataFormatter.swift # Feedname/Lesezeit/Alter ✅
 │   │   │   ├── ReaderFontPreset.swift  # Schrift-Presets fuer Reader ✅
@@ -465,8 +466,17 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
   Fliesstext-Zeilenabstand/Artikelbreite werden getrennt via `@AppStorage`
   gespeichert
 - Die Metazeile oberhalb des Titels nutzt die Fliesstext-Schrift proportional kleiner
-- Nutzt `ReaderContentRenderer`, um Content/Summary in Absätze und Bilder zu wandeln
+- Nutzt `ReaderPreparedArticle`, damit Content/Summary, Metadaten und Original-URL
+  pro ausgewaehltem Artikel einmal vorbereitet werden und SwiftUI-Redraws kein
+  erneutes HTML-Rendering ausloesen
+- Bilder werden mit `scaledToFit` und begrenzter Maximalhoehe gerendert, damit grosse
+  Feedbilder ruhiger und performanter bleiben
 - Noch kein WKWebView/Vollseiten-Reader
+
+### ReaderPreparedArticle.swift
+- Kapselt die vorbereiteten, teureren Reader-Daten fuer einen Artikel.
+- Berechnet native Content-Bloecke, Metazeile und gueltige Original-URL einmal beim
+  Erzeugen von `ReaderView`, statt diese Werte bei jedem SwiftUI-Redraw neu aufzubauen.
 
 ### ArticleMetadataInspectorView.swift
 - Einblendbarer rechter Inspector in der Artikelansicht.
@@ -955,3 +965,6 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 - 2026-06-21: Reader-Darstellung ruhiger gesetzt: kleinerer semibold Titel,
   groessere redaktionelle Abstaende, kontrolliertes Lead-Bild, dezenter Original-Link
   im Footer und `Link kopieren` ins Reader-Mehr-Menue verschoben.
+- 2026-06-21: Reader-Performance verbessert: Teure Reader-Daten werden pro Artikel
+  ueber `ReaderPreparedArticle` vorbereitet und grosse Bilder wieder mit leichterem
+  `scaledToFit` statt Zuschnitt gerendert.
