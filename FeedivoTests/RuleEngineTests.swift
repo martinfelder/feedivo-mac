@@ -5,6 +5,59 @@ import Testing
 
 struct RuleEngineTests {
     @MainActor
+    @Test func previewMatchingArticleCountZaehltTrefferOhneTagsZuSetzen() throws {
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Mac News")
+        let otherFeed = Feed(url: "https://example.com/other.xml", title: "Other News")
+        let matchingArticle = Article(
+            title: "Swift auf dem Mac",
+            summary: "Neue Tools",
+            feed: feed
+        )
+        let nonMatchingArticle = Article(
+            title: "Swift auf dem Mac",
+            summary: "Neue Tools",
+            feed: otherFeed
+        )
+        let articleWithoutFeed = Article(
+            title: "Swift auf dem Mac",
+            summary: "Neue Tools"
+        )
+
+        let matchingCount = RuleEngine.matchingArticleCount(
+            conditionDrafts: [
+                RuleConditionDraft(field: .title, conditionOperator: .contains, value: "Swift"),
+                RuleConditionDraft(field: .feedTitle, conditionOperator: .contains, value: "Mac")
+            ],
+            matchMode: .all,
+            articles: [matchingArticle, nonMatchingArticle, articleWithoutFeed]
+        )
+
+        #expect(matchingCount == 1)
+        #expect(matchingArticle.tags.isEmpty)
+        #expect(nonMatchingArticle.tags.isEmpty)
+        #expect(articleWithoutFeed.tags.isEmpty)
+    }
+
+    @MainActor
+    @Test func previewMatchingArticleCountUnterstuetztOderBedingungen() throws {
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Mac News")
+        let titleMatch = Article(title: "Swift Update", feed: feed)
+        let feedMatch = Article(title: "Apple News", feed: feed)
+        let noMatch = Article(title: "Windows Update", feed: Feed(url: "https://example.com/other.xml", title: "Other"))
+
+        let matchingCount = RuleEngine.matchingArticleCount(
+            conditionDrafts: [
+                RuleConditionDraft(field: .title, conditionOperator: .contains, value: "Swift"),
+                RuleConditionDraft(field: .feedTitle, conditionOperator: .contains, value: "Mac")
+            ],
+            matchMode: .any,
+            articles: [titleMatch, feedMatch, noMatch]
+        )
+
+        #expect(matchingCount == 2)
+    }
+
+    @MainActor
     @Test func applyRulesUnterstuetztMehrereBedingungenMitAND() throws {
         let tag = Tag(name: "Apple", colorHex: "#3B82F6")
         let rule = Rule(

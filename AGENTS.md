@@ -399,6 +399,8 @@ sichtbar bleibt.
 - Fuegt Tags nur hinzu, wenn der Artikel das Tag noch nicht besitzt.
 - Gibt die Anzahl neu gesetzter Tags zurueck und kann Regeln gesammelt auf vorhandene
   Artikel mit Feed-Bezug anwenden.
+- Zaehlt fuer den Regel-Wizard vorab, wie viele vorhandene Artikel zu den aktuellen
+  Bedingungsentwuerfen passen wuerden, ohne dabei Tags zu setzen.
 
 ### RuleViewModel.swift
 - Kapselt Erstellen, Bearbeiten und Loeschen von Regeln fuer den Wizard.
@@ -423,6 +425,8 @@ sichtbar bleibt.
   einfacher Regel und Power-User-Regel.
 - Einfache Regeln verwenden eine Bedingung; Power-User-Regeln erlauben mehrere
   Bedingungen mit AND- oder OR-Verknuepfung.
+- Der Wizard zeigt live eine Vorschau, wie viele vorhandene Artikel die aktuelle
+  Regel treffen wuerde. Leere Suchwerte zeigen stattdessen einen Hinweis.
 - Der Wizard kann aus der Sidebar mit dem aktuell ausgewaehlten Artikel gestartet
   werden und fuellt dann einen passenden ersten Vorschlag vor.
 
@@ -1278,6 +1282,9 @@ sichtbar bleibt.
   Power-User-Regeln mit mehreren Bedingungen und AND/OR. In der Sidebar werden
   Regeln bewusst nur kompakt mit aktivem Zaehler und einem Link `Regel aus Artikel
   erstellen...` fuer den aktuell ausgewaehlten Artikel angezeigt.
+- 2026-06-21: Regel-Wizard um Live-Preview erweitert: Feedivo zaehlt vorhandene
+  Artikel, die zu den aktuellen Bedingungen passen wuerden, und verwendet dafuer
+  dieselbe Matching-Logik wie die echte RuleEngine ohne Tags zu setzen.
 - 2026-06-21: Glass-Design-Prototypen fuer den rechten Artikelinfos-Inspector
   erstellt: `docs/design/article-info-glass-sidebar-prototypes/index.html` zeigt
   fuenf konkrete Varianten, wie die Seitenleiste an eine moderne macOS-Glass-

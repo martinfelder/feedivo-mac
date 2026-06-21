@@ -531,6 +531,8 @@ M3 Tags, Regeln & Sync:
   geloescht und aktiviert/deaktiviert werden.
 - Implementiert: Der Regel-Wizard unterstuetzt einfache Regeln mit einer Bedingung
   sowie Power-User-Regeln mit mehreren Bedingungen und AND/OR-Verknuepfung.
+- Implementiert: Der Regel-Wizard zeigt eine Live-Vorschau, wie viele vorhandene
+  Artikel die aktuelle Bedingungskombination treffen wuerde, ohne Tags zu setzen.
 - Implementiert: Die Sidebar zeigt Regeln nur kompakt mit aktivem Zaehler und bietet
   `Regel aus Artikel erstellen...` fuer den aktuell ausgewaehlten Artikel an.
 - Implementiert: In den Einstellungen koennen aktive Regeln manuell auf vorhandene

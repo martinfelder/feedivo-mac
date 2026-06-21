@@ -90,6 +90,7 @@ enum L10n {
     static let ruleWizardExistingTag = LocalizedStringKey("ruleWizard.existingTag")
     static let ruleWizardNewTag = LocalizedStringKey("ruleWizard.newTag")
     static let ruleWizardNewTagName = LocalizedStringKey("ruleWizard.newTagName")
+    static let ruleWizardPreviewTitle = LocalizedStringKey("ruleWizard.preview.title")
     static let sidebarRulesSection = LocalizedStringKey("sidebar.rules.section")
     static let settingsReadingSection = LocalizedStringKey("settings.reading.section")
     static let settingsLanguageSection = LocalizedStringKey("settings.language.section")
@@ -234,5 +235,9 @@ enum L10n {
 
     static func ruleApplyExistingResult(count: Int) -> String {
         String.localizedStringWithFormat(String(localized: "rule.applyExisting.result"), count)
+    }
+
+    static func ruleWizardPreviewMatchCount(count: Int) -> String {
+        String.localizedStringWithFormat(String(localized: "ruleWizard.preview.matchCount"), count)
     }
 }

@@ -21,6 +21,7 @@ struct RuleWizardView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Tag.name) private var tags: [Tag]
+    @Query private var articles: [Article]
 
     let rule: Rule?
     let sourceArticle: Article?
@@ -49,6 +50,7 @@ struct RuleWizardView: View {
             modePicker
             ruleBasics
             conditionsEditor
+            rulePreview
             targetEditor
             footer
         }
@@ -188,6 +190,27 @@ struct RuleWizardView: View {
         }
     }
 
+    private var rulePreview: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: previewHasConditions ? "scope" : "exclamationmark.circle")
+                .foregroundStyle(previewHasConditions ? Color.accentColor : Color.secondary)
+                .frame(width: 20)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(L10n.ruleWizardPreviewTitle)
+                    .font(.headline)
+
+                Text(previewDescription)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+        }
+        .padding(12)
+        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
     private var footer: some View {
         HStack {
             Spacer()
@@ -210,6 +233,33 @@ struct RuleWizardView: View {
         }
 
         return tags.first { $0.id == selectedTagID }
+    }
+
+    private var activeConditionDrafts: [RuleConditionDraft] {
+        mode == .simple ? Array(conditionDrafts.prefix(1)) : conditionDrafts
+    }
+
+    private var activeMatchMode: RuleMatchMode {
+        mode == .simple ? .all : matchMode
+    }
+
+    private var previewHasConditions: Bool {
+        activeConditionDrafts.contains { draft in
+            !draft.value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+    }
+
+    private var previewDescription: String {
+        guard previewHasConditions else {
+            return String(localized: "ruleWizard.preview.noConditions")
+        }
+
+        let matchingCount = RuleEngine.matchingArticleCount(
+            conditionDrafts: activeConditionDrafts,
+            matchMode: activeMatchMode,
+            articles: articles
+        )
+        return L10n.ruleWizardPreviewMatchCount(count: matchingCount)
     }
 
     private func loadInitialState() {

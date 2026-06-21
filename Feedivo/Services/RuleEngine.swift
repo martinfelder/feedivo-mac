@@ -1,6 +1,12 @@
 import Foundation
 
 enum RuleEngine {
+    private struct NormalizedCondition {
+        var field: String
+        var conditionOperator: String
+        var value: String
+    }
+
     @discardableResult
     static func applyRules(_ rules: [Rule], to article: Article, feed: Feed) -> Int {
         var appliedTagCount = 0
@@ -31,6 +37,27 @@ enum RuleEngine {
         }
     }
 
+    static func matchingArticleCount(
+        conditionDrafts: [RuleConditionDraft],
+        matchMode: RuleMatchMode,
+        articles: [Article]
+    ) -> Int {
+        let conditions = normalizedConditions(from: conditionDrafts)
+        guard !conditions.isEmpty else {
+            return 0
+        }
+
+        return articles.reduce(0) { count, article in
+            guard let feed = article.feed,
+                  matches(conditions: conditions, matchMode: matchMode, article: article, feed: feed)
+            else {
+                return count
+            }
+
+            return count + 1
+        }
+    }
+
     private static func matches(rule: Rule, article: Article, feed: Feed) -> Bool {
         let conditions = normalizedConditions(for: rule)
         guard !conditions.isEmpty else {
@@ -38,7 +65,16 @@ enum RuleEngine {
         }
 
         let mode = RuleMatchMode.normalized(rule.conditionMatchMode)
-        switch mode {
+        return matches(conditions: conditions, matchMode: mode, article: article, feed: feed)
+    }
+
+    private static func matches(
+        conditions: [NormalizedCondition],
+        matchMode: RuleMatchMode,
+        article: Article,
+        feed: Feed
+    ) -> Bool {
+        switch matchMode {
         case .all:
             return conditions.allSatisfy { condition in
                 matches(condition: condition, article: article, feed: feed)
@@ -50,24 +86,52 @@ enum RuleEngine {
         }
     }
 
-    private static func normalizedConditions(for rule: Rule) -> [RuleCondition] {
+    private static func normalizedConditions(for rule: Rule) -> [NormalizedCondition] {
         rule.conditions
             .sorted { $0.sortOrder < $1.sortOrder }
-            .filter { condition in
-                !condition.value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            .compactMap { condition in
+                normalizedCondition(
+                    field: condition.field,
+                    conditionOperator: condition.conditionOperator,
+                    value: condition.value
+                )
             }
     }
 
-    private static func matches(condition: RuleCondition, article: Article, feed: Feed) -> Bool {
-        let value = condition.value.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !value.isEmpty,
-              let fieldValue = fieldValue(for: condition.field, article: article, feed: feed)
-        else {
+    private static func normalizedConditions(from drafts: [RuleConditionDraft]) -> [NormalizedCondition] {
+        drafts.compactMap { draft in
+            normalizedCondition(
+                field: draft.field.rawValue,
+                conditionOperator: draft.conditionOperator.rawValue,
+                value: draft.value
+            )
+        }
+    }
+
+    private static func normalizedCondition(
+        field: String,
+        conditionOperator: String,
+        value: String
+    ) -> NormalizedCondition? {
+        let trimmedValue = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedValue.isEmpty else {
+            return nil
+        }
+
+        return NormalizedCondition(
+            field: field,
+            conditionOperator: conditionOperator,
+            value: trimmedValue
+        )
+    }
+
+    private static func matches(condition: NormalizedCondition, article: Article, feed: Feed) -> Bool {
+        guard let fieldValue = fieldValue(for: condition.field, article: article, feed: feed) else {
             return false
         }
 
         let normalizedFieldValue = fieldValue.lowercased()
-        let normalizedValue = value.lowercased()
+        let normalizedValue = condition.value.lowercased()
 
         switch condition.conditionOperator {
         case RuleConditionOperator.contains.rawValue:
