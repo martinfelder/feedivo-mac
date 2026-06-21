@@ -136,7 +136,8 @@ bei geschlossener App.
 - Feed Eigenschaften sind als Basis umgesetzt: Rechtsklick auf einen Feed oeffnet
   ein lokalisiertes Sheet mit Feed-Header, Statusmetriken, Metadaten, editierbarem
   Aktualisierungsintervall, naechstem Abruf, letztem Artikel, Kopierbutton fuer die
-  XML-Adresse und den neuesten 20 Feed-Log-Eintraegen.
+  XML-Adresse und den neuesten 20 Feed-Log-Eintraegen. Website und XML-Adresse sind
+  bei gueltigen Webadressen anklickbar.
 - Vorheriger/naechster Artikel ist als Basis umgesetzt: Reader-Toolbar und
   macOS-Menue `Artikel` navigieren mit `Cmd+↑`/`Cmd+↓` innerhalb der aktuell sichtbaren
   Feed- oder Smart-Filter-Liste; am Listenrand gibt es keinen Loop.
@@ -403,7 +404,8 @@ M2 Core Features:
   gruppierte Detailansicht mit editierbarem Aktualisierungsintervall.
 - Inhalt: Originaltitel, Website, XML-Adresse mit Kopierbutton, Gefolgt-ab-Datum,
   editierbarer Ordner, letzter Artikel, Aktualisierungsintervall, naechster Abruf,
-  zuletzt aktualisiert und die neuesten 20 Feed-Log-Eintraege.
+  zuletzt aktualisiert und die neuesten 20 Feed-Log-Eintraege. Website und XML-Adresse
+  sind anklickbar, wenn sie gueltige `http`/`https`-URLs sind.
 - Log: Feed hinzufuegen, erfolgreiche Aktualisierung und Refresh-Fehler werden in
   SwiftData als `FeedLogEntry` gespeichert; pro Feed bleiben die neuesten 20 Eintraege.
 - Ordner: Der Ordnername wird direkt im Sheet bearbeitet; leere Eingaben entfernen

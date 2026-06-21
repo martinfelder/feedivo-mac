@@ -367,9 +367,18 @@ struct FeedPropertiesView: View {
     @ViewBuilder
     private func propertyValue(_ value: String?, isLink: Bool = false) -> some View {
         if let value, !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            Text(value)
-                .foregroundStyle(isLink ? Color.accentColor : Color.primary)
+            if isLink, let url = FeedPropertiesFormatter.linkURL(value) {
+                Link(destination: url) {
+                    Text(value)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
                 .textSelection(.enabled)
+            } else {
+                Text(value)
+                    .foregroundStyle(isLink ? Color.accentColor : Color.primary)
+                    .textSelection(.enabled)
+            }
         } else {
             Text(L10n.feedPropertiesUnavailable)
                 .foregroundStyle(.secondary)

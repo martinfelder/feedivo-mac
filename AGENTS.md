@@ -341,11 +341,14 @@ fuer Reader-Vor/Zurueck sowie macOS-Menue-Status wiederverwendet.
 - Darunter zeigt es gruppiert Originaltitel, Website, XML-Adresse mit Kopierbutton,
   Gefolgt-ab-Datum, editierbaren Ordner, letzten Artikel, Aktualisierungsintervall,
   naechsten Abruf, zuletzt aktualisiert und die neuesten 20 Feed-Log-Eintraege
+- Website und XML-Adresse werden als echte Links im Standardbrowser geoeffnet,
+  sofern sie gueltige `http`/`https`-URLs sind; der XML-Kopierbutton bleibt erhalten
 - Aktualisierungsintervall ist direkt im Sheet editierbar und wird in SwiftData gespeichert
 - Der Ordnername ist direkt im Sheet editierbar; leere Eingaben werden als `nil`
   gespeichert
 - `FeedPropertiesFormatter` kapselt naechsten Abruf, neuesten Artikel, Log-Limit und
-  die sichtbare Log-Anzahl, damit diese Logik ohne UI testbar bleibt
+  die sichtbare Log-Anzahl sowie gueltige Link-URLs, damit diese Logik ohne UI
+  testbar bleibt
 
 ### FeedRenameView.swift
 - Rechtsklick auf Feed → `Feed umbenennen...`
@@ -986,6 +989,8 @@ fuer Reader-Vor/Zurueck sowie macOS-Menue-Status wiederverwendet.
   gespeichert und kann wiederhergestellt werden, Refresh ueberschreibt manuelle Namen nicht
 - 2026-06-20: Feed-Eigenschaften-Sheet ergaenzt: Neben der XML-Adresse gibt es einen
   Icon-Button, der die XML-Adresse in die macOS-Zwischenablage kopiert
+- 2026-06-21: Feed-Eigenschaften-Sheet ergaenzt: Website- und XML-Adresse werden bei
+  gueltigen `http`/`https`-URLs als anklickbare Links im Standardbrowser geoeffnet
 - 2026-06-20: Feed-Eigenschaften-Sheet visuell ueberarbeitet: grosser Feed-Header
   mit Icon/Favicon-Fallback und Statusmetriken, gruppierte Detailansicht,
   abgesetzter Aktualisierungsblock und kompakter Feed-Log-Verlauf

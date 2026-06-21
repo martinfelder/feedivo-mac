@@ -60,4 +60,11 @@ struct FeedPropertiesFormatterTests {
         #expect(FeedPropertiesFormatter.copyableXMLAddress("  https://example.com/feed.xml  ") == "https://example.com/feed.xml")
         #expect(FeedPropertiesFormatter.copyableXMLAddress("   ") == nil)
     }
+
+    @Test func linkURLTrimmtGueltigeWebAdressenUndIgnoriertUngueltigeWerte() {
+        #expect(FeedPropertiesFormatter.linkURL("  https://example.com/feed.xml  ") == URL(string: "https://example.com/feed.xml"))
+        #expect(FeedPropertiesFormatter.linkURL("https://example.com") == URL(string: "https://example.com"))
+        #expect(FeedPropertiesFormatter.linkURL("example.com") == nil)
+        #expect(FeedPropertiesFormatter.linkURL("   ") == nil)
+    }
 }
