@@ -141,45 +141,93 @@ private struct TagManagerRow: View {
     let requestDelete: () -> Void
 
     @State private var draftName = ""
+    @State private var rowErrorMessage: String?
+
+    private var hasNameChanges: Bool {
+        draftName != tag.name
+    }
 
     var body: some View {
-        HStack(spacing: 12) {
-            Circle()
-                .fill(TagColorPalette.color(for: tag.colorHex))
-                .frame(width: 12, height: 12)
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 12) {
+                Circle()
+                    .fill(TagColorPalette.color(for: tag.colorHex))
+                    .frame(width: 12, height: 12)
 
-            TextField(L10n.tagManagerNamePlaceholder, text: $draftName)
-                .textFieldStyle(.roundedBorder)
-                .onAppear {
-                    draftName = tag.name
-                }
-                .onSubmit {
-                    viewModel.renameTag(tag, name: draftName, availableTags: tags, context: modelContext)
-                }
-                .onChange(of: tag.name) {
-                    draftName = tag.name
+                TextField(L10n.tagManagerNamePlaceholder, text: $draftName)
+                    .textFieldStyle(.roundedBorder)
+                    .onAppear {
+                        draftName = tag.name
+                    }
+                    .onChange(of: tag.name) {
+                        draftName = tag.name
+                    }
+                    .onChange(of: draftName) {
+                        rowErrorMessage = nil
+                    }
+
+                if hasNameChanges {
+                    Button {
+                        saveName()
+                    } label: {
+                        Label(L10n.feedRenameSave, systemImage: "checkmark")
+                            .labelStyle(.iconOnly)
+                    }
+                    .buttonStyle(.borderless)
+                    .disabled(TagViewModel.normalizedTagName(draftName) == nil)
+                    .help(L10n.feedRenameSave)
+
+                    Button {
+                        cancelNameEdit()
+                    } label: {
+                        Label(L10n.commonCancel, systemImage: "xmark")
+                            .labelStyle(.iconOnly)
+                    }
+                    .buttonStyle(.borderless)
+                    .help(L10n.commonCancel)
                 }
 
-            ColorSwatchPicker(selection: Binding(
-                get: { tag.colorHex },
-                set: { colorHex in
-                    viewModel.updateColor(tag, colorHex: colorHex, context: modelContext)
+                ColorSwatchPicker(selection: Binding(
+                    get: { tag.colorHex },
+                    set: { colorHex in
+                        viewModel.updateColor(tag, colorHex: colorHex, context: modelContext)
+                    }
+                ))
+
+                Button(role: .destructive) {
+                    requestDelete()
+                } label: {
+                    Image(systemName: "trash")
                 }
-            ))
-
-            Text("\(tag.articles.count)")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .monospacedDigit()
-
-            Button(role: .destructive) {
-                requestDelete()
-            } label: {
-                Image(systemName: "trash")
+                .buttonStyle(.borderless)
             }
-            .buttonStyle(.borderless)
+
+            if let rowErrorMessage {
+                Text(rowErrorMessage)
+                    .font(.callout)
+                    .foregroundStyle(.red)
+                    .padding(.leading, 24)
+            }
         }
         .padding(.vertical, 4)
+    }
+
+    private func saveName() {
+        viewModel.errorMessage = nil
+        viewModel.renameTag(tag, name: draftName, availableTags: tags, context: modelContext)
+
+        if let errorMessage = viewModel.errorMessage {
+            rowErrorMessage = errorMessage
+            viewModel.errorMessage = nil
+        } else {
+            rowErrorMessage = nil
+            draftName = tag.name
+        }
+    }
+
+    private func cancelNameEdit() {
+        draftName = tag.name
+        rowErrorMessage = nil
     }
 }
 
