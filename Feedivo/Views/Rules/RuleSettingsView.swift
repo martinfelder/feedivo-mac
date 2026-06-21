@@ -4,11 +4,13 @@ import SwiftUI
 struct RuleSettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Rule.name) private var rules: [Rule]
+    @Query private var articles: [Article]
 
     @State private var viewModel = RuleViewModel()
     @State private var ruleEditing: Rule?
     @State private var isCreatingRule = false
     @State private var rulePendingDeletion: Rule?
+    @State private var appliedExistingRuleTagCount: Int?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -17,6 +19,11 @@ struct RuleSettingsView: View {
                     .font(.headline)
 
                 Spacer()
+
+                Button(L10n.ruleApplyExistingButton) {
+                    applyRulesToExistingArticles()
+                }
+                .disabled(!canApplyRulesToExistingArticles)
 
                 Button(L10n.ruleCreateButton) {
                     isCreatingRule = true
@@ -35,6 +42,12 @@ struct RuleSettingsView: View {
                     )
                     Divider()
                 }
+            }
+
+            if let appliedExistingRuleTagCount {
+                Text(L10n.ruleApplyExistingResult(count: appliedExistingRuleTagCount))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
         .sheet(isPresented: $isCreatingRule) {
@@ -63,6 +76,21 @@ struct RuleSettingsView: View {
             Button(L10n.commonCancel, role: .cancel) {
                 rulePendingDeletion = nil
             }
+        }
+    }
+
+    private var canApplyRulesToExistingArticles: Bool {
+        !articles.isEmpty && rules.contains { rule in
+            rule.isEnabled
+        }
+    }
+
+    private func applyRulesToExistingArticles() {
+        let appliedTagCount = RuleEngine.applyRulesToExistingArticles(rules, articles: articles)
+        appliedExistingRuleTagCount = appliedTagCount
+
+        if appliedTagCount > 0 {
+            try? modelContext.save()
         }
     }
 }

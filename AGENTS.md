@@ -354,8 +354,8 @@ sichtbar bleibt.
   kontrolliert sequenziell, danach werden die neuen Feeds per `withTaskGroup`
   parallel aktualisiert
 - Beim Refresh werden gespeicherte Regeln ueber `RuleEngine` auf neu eingefuegte
-  Artikel angewendet; bestehende Artikel werden dabei bewusst nicht rueckwirkend
-  getaggt.
+  Artikel angewendet; bestehende Artikel koennen in den Einstellungen manuell
+  rueckwirkend getaggt werden.
 - Properties: `isLoading: Bool`, `errorMessage: String?`
 
 ### FaviconService.swift
@@ -390,8 +390,8 @@ sichtbar bleibt.
 - Vergleicht case-insensitive und ignoriert deaktivierte Regeln, leere Suchwerte,
   unbekannte Felder/Operatoren, Regeln ohne Bedingungen sowie Regeln ohne `assignTag`.
 - Fuegt Tags nur hinzu, wenn der Artikel das Tag noch nicht besitzt.
-- Wird aktuell beim Feed-Refresh nur fuer neue Artikel angewendet; rueckwirkendes
-  Anwenden auf Altbestand bleibt ein separater spaeterer Schritt.
+- Gibt die Anzahl neu gesetzter Tags zurueck und kann Regeln gesammelt auf vorhandene
+  Artikel mit Feed-Bezug anwenden.
 
 ### RuleViewModel.swift
 - Kapselt Erstellen, Bearbeiten und Loeschen von Regeln fuer den Wizard.
@@ -409,6 +409,9 @@ sichtbar bleibt.
 - Einstellungen zeigen eine Liste aller Regeln mit Status, Ziel-Tag und
   Bedingungszusammenfassung; Regeln koennen geoeffnet, bearbeitet oder geloescht
   werden.
+- Einstellungen bieten einen Button `Auf vorhandene Artikel anwenden`, der aktive
+  Regeln manuell auf den gespeicherten Artikelbestand anwendet und danach die Anzahl
+  neu gesetzter Tag-Zuweisungen anzeigt.
 - Neue Regeln werden ueber einen Wizard erstellt. Der Benutzer waehlt zwischen
   einfacher Regel und Power-User-Regel.
 - Einfache Regeln verwenden eine Bedingung; Power-User-Regeln erlauben mehrere
@@ -983,6 +986,7 @@ sichtbar bleibt.
 - [x] Regel-UI: Wizard fuer einfache/Power-User-Regeln, Einstellungen-Liste,
   Bearbeiten, Loeschen und Aktivieren/Deaktivieren
 - [x] Regel-Mehrfachbedingungen mit AND/OR fuer Power-User-Regeln
+- [x] Regeln manuell auf vorhandene Artikel anwenden
 - [ ] iCloud Sync via CloudKit aktivieren und testen
 - [ ] Offline-Unterstützung: Artikel-Content beim Abruf in SwiftData speichern
 - [ ] Background Refresh erweitern: Strategie fuer Refresh nach vollstaendig beendeter
@@ -1027,10 +1031,10 @@ sichtbar bleibt.
 - Aktuell M3: Tags, Regeln und Sync. Die erste Artikel-Tag-Basis existiert im
   Reader-Metadaten-Inspector; die zentrale Tag-Verwaltung ist als Basis ueber die
   Sidebar erreichbar, und Tags koennen in der Sidebar feeduebergreifend als
-  Artikel-Filter genutzt werden. Regeln koennen ueber einen Wizard erstellt und in
-  den Einstellungen verwaltet werden; Power-User-Regeln unterstuetzen mehrere
-  Bedingungen mit AND/OR. Naechster sinnvoller Block ist Feed-Tags, rueckwirkendes
-  Anwenden von Regeln oder iCloud Sync.
+  Artikel-Filter genutzt werden. Regeln koennen ueber einen Wizard erstellt, in den
+  Einstellungen verwaltet und manuell auf vorhandene Artikel angewendet werden;
+  Power-User-Regeln unterstuetzen mehrere Bedingungen mit AND/OR. Naechster sinnvoller
+  Block ist Feed-Tags oder iCloud Sync.
 - Feature-Roadmap ist in `docs/FEATURES.md` dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
@@ -1235,8 +1239,11 @@ sichtbar bleibt.
   direkt angeklickt werden.
 - 2026-06-21: Erste RuleEngine-Basis umgesetzt: Neue Artikel werden beim Refresh
   anhand einfacher Regeln (`title`/`summary`/`feedTitle` plus `contains`/
-  `startsWith`/`endsWith`) automatisch getaggt; Rule-UI, Regex, Mehrfachbedingungen
-  und rueckwirkendes Anwenden bleiben offen.
+  `startsWith`/`endsWith`) automatisch getaggt; Rule-UI, Regex und
+  Mehrfachbedingungen bleiben offen.
+- 2026-06-21: Rueckwirkendes Anwenden von Regeln umgesetzt: In den Einstellungen
+  koennen aktive Regeln manuell auf vorhandene Artikel angewendet werden; bereits
+  gesetzte Tags werden nicht dupliziert.
 - 2026-06-21: Regel-Wizard und Regelverwaltung umgesetzt: Regeln werden in den
   Einstellungen gelistet, koennen dort erstellt, bearbeitet, geloescht und
   aktiviert/deaktiviert werden. Der Wizard bietet einfache Regeln oder

@@ -1,7 +1,10 @@
 import Foundation
 
 enum RuleEngine {
-    static func applyRules(_ rules: [Rule], to article: Article, feed: Feed) {
+    @discardableResult
+    static func applyRules(_ rules: [Rule], to article: Article, feed: Feed) -> Int {
+        var appliedTagCount = 0
+
         for rule in rules where rule.isEnabled {
             guard
                 let tag = rule.assignTag,
@@ -12,6 +15,19 @@ enum RuleEngine {
             }
 
             article.tags.append(tag)
+            appliedTagCount += 1
+        }
+
+        return appliedTagCount
+    }
+
+    static func applyRulesToExistingArticles(_ rules: [Rule], articles: [Article]) -> Int {
+        articles.reduce(0) { appliedTagCount, article in
+            guard let feed = article.feed else {
+                return appliedTagCount
+            }
+
+            return appliedTagCount + applyRules(rules, to: article, feed: feed)
         }
     }
 

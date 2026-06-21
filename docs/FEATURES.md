@@ -170,7 +170,8 @@ bei geschlossener App.
 - Automatische Regeln sind als Basis mit UI umgesetzt: Neue Artikel werden beim
   Feed-Refresh automatisch getaggt; Regeln koennen in den Einstellungen erstellt,
   bearbeitet, geloescht und aktiviert/deaktiviert werden. Der Wizard bietet einfache
-  Regeln sowie Power-User-Regeln mit mehreren Bedingungen und AND/OR.
+  Regeln sowie Power-User-Regeln mit mehreren Bedingungen und AND/OR. Aktive Regeln
+  koennen in den Einstellungen manuell auf vorhandene Artikel angewendet werden.
 - Projekt baut und Unit-Tests laufen; UI-Test-Runner blockierte lokal am 2026-06-19
   vor dem App-Launch an einer alten Feedivo-PID.
 
@@ -180,7 +181,7 @@ M3 Tags, Regeln & Sync:
 - M2 Core Features ist abgeschlossen.
 - Tag-Verwaltung, Tag-Sidebar-Filter, RuleEngine und Rule-UI sind als Basis
   abgeschlossen.
-- Naechster Fokus: Feed-Tags, rueckwirkendes Anwenden von Regeln oder iCloud Sync.
+- Naechster Fokus: Feed-Tags oder iCloud Sync.
 
 ---
 
@@ -278,7 +279,7 @@ M3 Tags, Regeln & Sync:
   Basis umgesetzt. Neu erstellte Tags werden direkt in der Sidebar ausgewaehlt.
 - Implementiert: Tag-Zeilen zeigen rechts eine dezente Badge mit der Anzahl direkt
   verknuepfter Artikel.
-- Offen: Feed-Tags und rueckwirkendes Anwenden von Regeln folgen separat.
+- Offen: Feed-Tags folgen separat.
 
 #### 1.6 Artikel teilen
 - Status: Entschieden
@@ -506,8 +507,7 @@ M3 Tags, Regeln & Sync:
   Tag-Zeilen zeigen die Anzahl direkt verknuepfter Artikel.
 - Implementiert: Neue Artikel koennen beim Refresh ueber einfache Regeln automatisch
   getaggt werden.
-- Offen: Feed-Tags und rueckwirkendes Anwenden von Regeln auf vorhandene Artikel
-  folgen separat.
+- Offen: Feed-Tags folgen separat.
 
 #### 5.2 Automatische Regeln
 - Status: Fertig als Basis
@@ -521,10 +521,12 @@ M3 Tags, Regeln & Sync:
   sowie Power-User-Regeln mit mehreren Bedingungen und AND/OR-Verknuepfung.
 - Implementiert: Die Sidebar zeigt Regeln nur kompakt mit aktivem Zaehler und bietet
   `Regel aus Artikel erstellen...` fuer den aktuell ausgewaehlten Artikel an.
+- Implementiert: In den Einstellungen koennen aktive Regeln manuell auf vorhandene
+  Artikel angewendet werden; bestehende Tag-Zuweisungen werden nicht dupliziert und
+  die Anzahl neu gesetzter Tags wird angezeigt.
 - Verhalten: Deaktivierte Regeln, leere Suchwerte, unbekannte Felder/Operatoren und
   Regeln ohne Ziel-Tag werden ignoriert. Tags werden nicht doppelt zugewiesen.
-- Offen: Regex, Ausblenden/andere Aktionen und rueckwirkendes Anwenden auf vorhandene
-  Artikel.
+- Offen: Regex, Ausblenden und andere Aktionen.
 
 ### 6. iCloud Sync
 

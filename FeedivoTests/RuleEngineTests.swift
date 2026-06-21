@@ -124,6 +124,67 @@ struct RuleEngineTests {
     }
 
     @MainActor
+    @Test func applyRulesGibtAnzahlNeuGesetzterTagsZurueck() throws {
+        let tag = Tag(name: "Swift", colorHex: "#3B82F6")
+        let rule = Rule(
+            name: "Swift",
+            conditionField: "title",
+            conditionOperator: "contains",
+            conditionValue: "Swift"
+        )
+        rule.conditions = [
+            RuleCondition(field: "title", conditionOperator: "contains", value: "Swift")
+        ]
+        rule.assignTag = tag
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
+        let article = Article(title: "Swift News", feed: feed)
+
+        let firstAppliedCount = RuleEngine.applyRules([rule], to: article, feed: feed)
+        let secondAppliedCount = RuleEngine.applyRules([rule], to: article, feed: feed)
+
+        #expect(firstAppliedCount == 1)
+        #expect(secondAppliedCount == 0)
+        #expect(article.tags.map(\.name) == ["Swift"])
+    }
+
+    @MainActor
+    @Test func applyRulesToExistingArticlesTaggtVorhandeneArtikelRueckwirkend() throws {
+        let tag = Tag(name: "Swift", colorHex: "#3B82F6")
+        let rule = Rule(
+            name: "Swift",
+            conditionField: "title",
+            conditionOperator: "contains",
+            conditionValue: "Swift"
+        )
+        rule.conditions = [
+            RuleCondition(field: "title", conditionOperator: "contains", value: "Swift")
+        ]
+        rule.assignTag = tag
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
+        let matchingArticle = Article(title: "Swift News", feed: feed)
+        let existingTaggedArticle = Article(title: "Swift Tipps", feed: feed)
+        existingTaggedArticle.tags = [tag]
+        let unmatchedArticle = Article(title: "Mac News", feed: feed)
+        let articleWithoutFeed = Article(title: "Swift ohne Feed")
+
+        let appliedCount = RuleEngine.applyRulesToExistingArticles(
+            [rule],
+            articles: [
+                matchingArticle,
+                existingTaggedArticle,
+                unmatchedArticle,
+                articleWithoutFeed
+            ]
+        )
+
+        #expect(appliedCount == 1)
+        #expect(matchingArticle.tags.map(\.name) == ["Swift"])
+        #expect(existingTaggedArticle.tags.map(\.name) == ["Swift"])
+        #expect(unmatchedArticle.tags.isEmpty)
+        #expect(articleWithoutFeed.tags.isEmpty)
+    }
+
+    @MainActor
     @Test func applyRulesIgnoriertUngueltigeRegelnUndVerhindertDoppelteTags() throws {
         let tag = Tag(name: "Swift", colorHex: "#3B82F6")
         let activeRule = Rule(

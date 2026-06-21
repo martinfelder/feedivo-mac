@@ -68,6 +68,7 @@ enum L10n {
     static let ruleConditionOperatorStartsWith = LocalizedStringKey("rule.condition.operator.startsWith")
     static let ruleConditionOperatorEndsWith = LocalizedStringKey("rule.condition.operator.endsWith")
     static let settingsRulesSection = LocalizedStringKey("settings.rules.section")
+    static let ruleApplyExistingButton = LocalizedStringKey("rule.applyExisting.button")
     static let ruleCreateButton = LocalizedStringKey("rule.create.button")
     static let ruleEditButton = LocalizedStringKey("rule.edit.button")
     static let ruleDeleteButton = LocalizedStringKey("rule.delete.button")
@@ -219,5 +220,9 @@ enum L10n {
 
     static func sidebarRulesActiveCount(count: Int) -> String {
         String.localizedStringWithFormat(String(localized: "sidebar.rules.activeCount"), count)
+    }
+
+    static func ruleApplyExistingResult(count: Int) -> String {
+        String.localizedStringWithFormat(String(localized: "rule.applyExisting.result"), count)
     }
 }
