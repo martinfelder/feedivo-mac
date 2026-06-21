@@ -119,6 +119,8 @@ enum L10n {
     static let settingsAutomaticRefreshStatusSuccess = LocalizedStringKey("settings.automaticRefresh.status.success")
     static let settingsAutomaticRefreshStatusFailed = LocalizedStringKey("settings.automaticRefresh.status.failed")
     static let settingsAutomaticRefreshStatusNever = LocalizedStringKey("settings.automaticRefresh.status.never")
+    static let feedProgressRefreshAllTitle = String(localized: "feed.progress.refreshAll.title")
+    static let feedProgressOPMLImportTitle = String(localized: "feed.progress.opmlImport.title")
     static let feedPropertiesTitle = LocalizedStringKey("feed.properties.title")
     static let feedPropertiesDetailsTitle = LocalizedStringKey("feed.properties.detailsTitle")
     static let feedPropertiesOriginalTitle = LocalizedStringKey("feed.properties.originalTitle")

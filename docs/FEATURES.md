@@ -486,7 +486,9 @@ M3 Tags, Regeln & Sync:
 - Verhalten bei allen Feeds: Wenn ein Feed fehlschlaegt, werden die restlichen Feeds
   weiter aktualisiert; am Ende wird eine Sammelmeldung mit den betroffenen Feednamen
   gesetzt.
-- Offen: Sichtbarer Fortschritt.
+- Implementiert: Bei `Alle Feeds aktualisieren` und beim Aktualisieren neu
+  importierter OPML-Feeds zeigt Feedivo ein kompaktes Fortschritts-Overlay mit
+  Zaehler und Fortschrittsbalken.
 
 #### 4.5 Automatischer Refresh
 - Status: Fertig als Basis

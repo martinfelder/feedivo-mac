@@ -142,6 +142,14 @@ struct ContentView: View {
                 dismissButton: .default(Text(L10n.commonDone))
             )
         }
+        .overlay(alignment: .bottom) {
+            if let operationProgress = feedViewModel.operationProgress {
+                FeedOperationProgressOverlay(progress: operationProgress)
+                    .padding(.bottom, 18)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .animation(.snappy(duration: 0.18), value: feedViewModel.operationProgress)
         .focusedValue(
             \.articleCommandActions,
             ArticleCommandActions(
@@ -299,6 +307,42 @@ struct ContentView: View {
         return smartFilter
     }
 
+}
+
+private struct FeedOperationProgressOverlay: View {
+    let progress: FeedOperationProgress
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                ProgressView()
+                    .controlSize(.small)
+
+                Text(progress.title)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+
+                Spacer(minLength: 16)
+
+                Text(progress.countText)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+            }
+
+            ProgressView(value: progress.fractionCompleted)
+                .progressViewStyle(.linear)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .frame(width: 320)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(.separator.opacity(0.45), lineWidth: 1)
+        }
+        .shadow(color: .black.opacity(0.12), radius: 18, y: 8)
+    }
 }
 
 private struct OPMLAlert: Identifiable {

@@ -340,6 +340,9 @@ sichtbar bleibt.
   Aenderungen bleiben durch `@MainActor` serialisiert
 - Der Sammel-Refresh laeuft bei einzelnen Fehlern weiter und meldet am Ende
   betroffene Feednamen
+- `operationProgress` liefert fuer Sammel-Refresh und OPML-Import einen sichtbaren
+  Fortschritt mit Titel, erledigten Feeds, Gesamtzahl und Prozentwert; `ContentView`
+  zeigt daraus ein kompaktes Overlay.
 - `deleteFeed(_:context:)` — loescht einen Feed aus SwiftData; Artikel werden ueber
   die Cascade-Relationship mitgeloescht
 - `renameFeed(_:displayTitle:context:)` — speichert einen benutzerdefinierten
@@ -1000,6 +1003,7 @@ sichtbar bleibt.
 - [x] Regeln manuell auf vorhandene Artikel anwenden
 - [x] Background Refresh erweitert: macOS-native Strategie bestaetigt,
   Statusanzeige fuer letzten/naechsten automatischen Refresh ergaenzt
+- [x] Sichtbarer Fortschritt fuer Sammel-Refresh und OPML-Import
 - [ ] iCloud Sync via CloudKit aktivieren und testen
 - [ ] Offline-Unterstützung: Artikel-Content beim Abruf in SwiftData speichern
 
@@ -1265,6 +1269,9 @@ sichtbar bleibt.
   `NSBackgroundActivityScheduler`, speichert letzten automatischen Lauf, Status,
   optionale Fehlermeldung und naechsten geschaetzten Lauf und zeigt diese Werte in
   den Einstellungen.
+- 2026-06-21: Sichtbaren Fortschritt fuer Sammel-Refresh und OPML-Import umgesetzt:
+  `FeedViewModel.operationProgress` zaehlt abgeschlossene Feeds und `ContentView`
+  zeigt waehrend laengerer Feed-Operationen ein kompaktes Fortschritts-Overlay.
 - 2026-06-21: Regel-Wizard und Regelverwaltung umgesetzt: Regeln werden in den
   Einstellungen gelistet, koennen dort erstellt, bearbeitet, geloescht und
   aktiviert/deaktiviert werden. Der Wizard bietet einfache Regeln oder

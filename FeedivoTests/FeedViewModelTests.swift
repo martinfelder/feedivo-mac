@@ -130,6 +130,38 @@ struct FeedViewModelTests {
         #expect(importedFeed.logEntries.contains { $0.kind == "info" && $0.message.contains("1") })
         #expect(viewModel.errorMessage == nil)
         #expect(!viewModel.isLoading)
+        #expect(viewModel.operationProgress == nil)
+    }
+
+    @MainActor
+    @Test func importOPMLFeedsSetztSichtbarenFortschrittZurueck() async throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            RuleCondition.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let viewModel = FeedViewModel(
+            fetchFeed: { urlString in
+                ParsedFeed(sourceURL: urlString, title: "Import Feed", description: nil, articles: [])
+            },
+            discoverFaviconURL: { _ in nil }
+        )
+
+        _ = try await viewModel.importOPMLFeeds(
+            [
+                OPMLFeed(title: "Feed 1", xmlURL: "https://example.com/1.xml", htmlURL: nil, folderName: nil),
+                OPMLFeed(title: "Feed 2", xmlURL: "https://example.com/2.xml", htmlURL: nil, folderName: nil)
+            ],
+            existingFeeds: [],
+            context: context
+        )
+
+        #expect(viewModel.operationProgress == nil)
     }
 
     @MainActor
@@ -304,6 +336,36 @@ struct FeedViewModelTests {
         #expect(successfulFeed.logEntries.contains { $0.kind == "info" })
         #expect(viewModel.errorMessage?.contains("Fehler Feed") == true)
         #expect(!viewModel.isLoading)
+        #expect(viewModel.operationProgress == nil)
+    }
+
+    @MainActor
+    @Test func refreshAllFeedsSetztSichtbarenFortschrittZurueck() async throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            RuleCondition.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let feed1 = Feed(url: "https://example.com/1.xml", title: "Feed 1")
+        let feed2 = Feed(url: "https://example.com/2.xml", title: "Feed 2")
+        context.insert(feed1)
+        context.insert(feed2)
+        try context.save()
+        let viewModel = FeedViewModel(
+            fetchFeed: { urlString in
+                ParsedFeed(sourceURL: urlString, title: "Feed", description: nil, articles: [])
+            },
+            discoverFaviconURL: { _ in nil }
+        )
+
+        await viewModel.refreshAllFeeds([feed1, feed2], context: context)
+
+        #expect(viewModel.operationProgress == nil)
     }
 
     @MainActor

@@ -2,6 +2,24 @@ import Foundation
 import Observation
 import SwiftData
 
+struct FeedOperationProgress: Equatable {
+    var title: String
+    var completedCount: Int
+    var totalCount: Int
+
+    var fractionCompleted: Double {
+        guard totalCount > 0 else {
+            return 0
+        }
+
+        return Double(completedCount) / Double(totalCount)
+    }
+
+    var countText: String {
+        "\(completedCount)/\(totalCount)"
+    }
+}
+
 @Observable
 final class FeedViewModel {
     private let fetchFeed: (String) async throws -> ParsedFeed
@@ -10,6 +28,7 @@ final class FeedViewModel {
 
     var isLoading = false
     var errorMessage: String?
+    var operationProgress: FeedOperationProgress?
 
     init(
         fetchFeed: @escaping (String) async throws -> ParsedFeed = FeedService.fetchFeed,
@@ -33,8 +52,10 @@ final class FeedViewModel {
     ) async throws -> OPMLImportResult {
         errorMessage = nil
         isLoading = true
+        operationProgress = nil
         defer {
             isLoading = false
+            operationProgress = nil
         }
 
         var knownFeedURLs = Set(existingFeeds.map { normalizedFeedURL($0.url) })
@@ -75,6 +96,14 @@ final class FeedViewModel {
         }
 
         // Phase 2: Alle neuen Feeds parallel abrufen (Netzwerk-I/O läuft gleichzeitig)
+        if !feedsToRefresh.isEmpty {
+            operationProgress = FeedOperationProgress(
+                title: L10n.feedProgressOPMLImportTitle,
+                completedCount: 0,
+                totalCount: feedsToRefresh.count
+            )
+        }
+
         await withTaskGroup(of: String?.self) { group in
             for feed in feedsToRefresh {
                 group.addTask { @MainActor in
@@ -107,6 +136,8 @@ final class FeedViewModel {
                 if let failedTitle {
                     failedFeedTitles.append(failedTitle)
                 }
+
+                incrementOperationProgress()
             }
         }
 
@@ -277,7 +308,17 @@ final class FeedViewModel {
 
         isLoading = true
         errorMessage = nil
+        operationProgress = FeedOperationProgress(
+            title: L10n.feedProgressRefreshAllTitle,
+            completedCount: 0,
+            totalCount: feeds.count
+        )
         var failedFeedTitles: [String] = []
+
+        defer {
+            isLoading = false
+            operationProgress = nil
+        }
 
         // Alle Feeds parallel aktualisieren. Jede Task läuft auf dem Main Actor,
         // gibt ihn aber während await-Aufrufen (Netzwerk) frei — so laufen alle
@@ -314,6 +355,8 @@ final class FeedViewModel {
                 if let failedTitle {
                     failedFeedTitles.append(failedTitle)
                 }
+
+                incrementOperationProgress()
             }
         }
 
@@ -323,8 +366,6 @@ final class FeedViewModel {
                 feedTitles: failedFeedTitles.joined(separator: ", ")
             )
         }
-
-        isLoading = false
     }
 
     @MainActor
@@ -356,6 +397,18 @@ final class FeedViewModel {
         urlString
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .lowercased()
+    }
+
+    private func incrementOperationProgress() {
+        guard var operationProgress else {
+            return
+        }
+
+        operationProgress.completedCount = min(
+            operationProgress.completedCount + 1,
+            operationProgress.totalCount
+        )
+        self.operationProgress = operationProgress
     }
 
     private func articleIdentity(for parsedArticle: ParsedArticle) -> String {
