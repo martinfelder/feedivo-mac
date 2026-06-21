@@ -54,11 +54,56 @@ private struct SmartFilterArticleListContent: View {
     let smartFilter: SmartFilter
     @Binding var selectedArticle: Article?
     @Binding var visibleArticles: [Article]
-    @Query(sort: \Article.publishedAt, order: .reverse) private var allArticles: [Article]
+    @Query private var articles: [Article]
+
+    init(
+        smartFilter: SmartFilter,
+        selectedArticle: Binding<Article?>,
+        visibleArticles: Binding<[Article]>
+    ) {
+        self.smartFilter = smartFilter
+        self._selectedArticle = selectedArticle
+        self._visibleArticles = visibleArticles
+
+        let sortDescriptors = [SortDescriptor(\Article.publishedAt, order: .reverse)]
+        switch smartFilter {
+        case .allArticles:
+            self._articles = Query(sort: sortDescriptors)
+        case .unread:
+            self._articles = Query(
+                filter: #Predicate<Article> { article in
+                    !article.isRead
+                },
+                sort: sortDescriptors
+            )
+        case .starred:
+            self._articles = Query(
+                filter: #Predicate<Article> { article in
+                    article.isStarred
+                },
+                sort: sortDescriptors
+            )
+        case .today:
+            let startOfToday = Calendar.current.startOfDay(for: Date())
+            let startOfTomorrow = Calendar.current.date(
+                byAdding: .day,
+                value: 1,
+                to: startOfToday
+            ) ?? startOfToday
+            self._articles = Query(
+                filter: #Predicate<Article> { article in
+                    article.publishedAt != nil
+                        && article.publishedAt! >= startOfToday
+                        && article.publishedAt! < startOfTomorrow
+                },
+                sort: sortDescriptors
+            )
+        }
+    }
 
     var body: some View {
         ArticleListContent(
-            articles: allArticles.filter { smartFilter.includes($0) },
+            articles: articles,
             navigationTitle: Text(smartFilter.title),
             selectedArticle: $selectedArticle,
             visibleArticles: $visibleArticles,

@@ -252,6 +252,9 @@ fuer Reader-Vor/Zurueck sowie macOS-Menue-Status wiederverwendet.
   `star.fill`, `calendar`) und ihre Farben; nur die Sidebar-Oberflaeche ist dunkler
 - Der Smart-Filter `Ungelesen` zeigt rechts die Gesamtzahl aller ungelesenen Artikel
   ueber alle Feeds
+- Ungelesen-Badges basieren auf einer separaten SwiftData-Query nur fuer ungelesene
+  Artikel; daraus wird eine Count-Map pro Feed gebildet, statt pro Feed die komplette
+  `articles`-Relationship zu durchlaufen
 - Feeds stehen in einer Sidebar-Section `Ordner`; neben dem Section-Titel gibt es
   einen + Button zum Anlegen neuer Ordner
 - Ordner sind per Chevron auf- und zuklappbar; Feeds innerhalb eines Ordners werden
@@ -269,6 +272,9 @@ fuer Reader-Vor/Zurueck sowie macOS-Menue-Status wiederverwendet.
 
 ### SidebarUnreadCount.swift
 - Kapselt die Sidebar-Zaehllogik fuer ungelesene Artikel pro Feed und ueber alle Feeds.
+- Erstellt aus der Query-Liste ungelesener Artikel eine Count-Map per
+  `PersistentIdentifier`, damit Sidebar-Zeilen nicht die komplette Feed-Relationship
+  durchsuchen muessen.
 - Liefert nur fuer positive Zaehler einen sichtbaren Badge-Text, damit Feeds ohne
   ungelesene Artikel ruhig bleiben.
 
@@ -281,8 +287,10 @@ fuer Reader-Vor/Zurueck sowie macOS-Menue-Status wiederverwendet.
   RSS `channel.link`, Atom `alternate` Link, JSON Feed `home_page_url`
 - Artikelbilder werden aus Media RSS, iTunes Image, Bild-Enclosures und erstem
   `<img>` in Content/Summary gelesen
-- Wenn Feed-Items kein eigenes Bild enthalten, versucht `fetchFeed` als Fallback die
-  verlinkte Artikelseite zu lesen und `og:image`/`twitter:image` zu uebernehmen
+- `fetchFeed` bleibt ein reiner Feed-Abruf und laedt keine verlinkten Artikelseiten
+  mehr automatisch; fehlende Artikelbilder koennen explizit ueber
+  `enrichArticleImagesIfNeeded` aus `og:image`/`twitter:image` der Artikelseite
+  nachgezogen werden
 - Relative Artikelbild-URLs werden gegen die Feed-URL zu absoluten URLs aufgeloest,
   damit `AsyncImage` sie laden kann
 - Eigene `FeedServiceError` enum: `.invalidURL`, `.parsingFailed`
@@ -309,6 +317,10 @@ fuer Reader-Vor/Zurueck sowie macOS-Menue-Status wiederverwendet.
   ein benutzerdefinierter `Feed.title` bleibt erhalten
 - Der Feed-Fetch ist als Closure injizierbar, damit Refresh-Tests ohne Netzwerk laufen
 - Die Favicon-Discovery ist als Closure injizierbar, damit Tests ohne Netzwerk laufen
+- Die Artikelbild-Anreicherung ist als Closure injizierbar; beim Refresh wird sie nur
+  fuer neue Artikel ohne Feed-Bild und fuer bereits gespeicherte, noch bildlose
+  Artikel aufgerufen, damit bestehende Artikel mit Bild keine unnoetigen
+  Netzwerkrequests mehr ausloesen
 - Properties: `isLoading: Bool`, `errorMessage: String?`
 
 ### FaviconService.swift
@@ -364,7 +376,8 @@ fuer Reader-Vor/Zurueck sowie macOS-Menue-Status wiederverwendet.
 ### ArticleListView.swift
 - Zeigt echte Artikel des ausgewählten Feeds aus der `Feed.articles` Relationship
 - Feed-Listen laden nicht mehr automatisch alle Artikel per globaler `@Query`;
-  eine feeduebergreifende Query existiert nur noch fuer Smart-Filter-Listen
+  Smart-Filter-Listen nutzen gezielte SwiftData-Queries fuer Alle, Ungelesen,
+  Mit Stern und Heute statt alle Artikel im Speicher zu filtern
 - Sortiert nach `publishedAt` absteigend
 - Meldet die bereits sortierten sichtbaren Artikel an `ContentView`, damit
   Reader-Navigation und Menue-Status nicht erneut filtern und sortieren muessen
@@ -714,8 +727,10 @@ fuer Reader-Vor/Zurueck sowie macOS-Menue-Status wiederverwendet.
 - **WordPress-Feeds ohne Item-Bilder:** Manche Feeds, z.B.
   `https://stadt-bremerhaven.de/feed/`, liefern im RSS-Item gar keine Bilder aus.
   Die Bilder stehen nur auf der Artikelseite als `og:image`/`twitter:image`.
-  `FeedService.fetchFeed` reichert solche Artikel deshalb ueber die verlinkte Seite
-  an; das erzeugt zusaetzliche Netzwerkrequests beim Hinzufuegen/Aktualisieren.
+  `FeedService.fetchFeed` bleibt deshalb bewusst leichtgewichtig; `FeedViewModel`
+  ruft die explizite Artikelbild-Anreicherung nur fuer neue oder noch bildlose
+  bestehende Artikel auf. Das vermeidet zusaetzliche Netzwerkrequests fuer bereits
+  bekannte Artikel mit Bild.
 - **Favicons:** Nicht nur `/favicon.ico` ableiten. Zuerst Website-HTML lesen und
   `<link rel="icon">`, `apple-touch-icon`, `shortcut icon` und `mask-icon` auswerten.
   Relative Icon-URLs muessen gegen die Website-URL normalisiert werden. Wenn HTML
@@ -968,9 +983,14 @@ fuer Reader-Vor/Zurueck sowie macOS-Menue-Status wiederverwendet.
   mit Icon/Favicon-Fallback und Statusmetriken, gruppierte Detailansicht,
   abgesetzter Aktualisierungsblock und kompakter Feed-Log-Verlauf
 - 2026-06-20: Artikelbild-Fallback fuer Feeds ohne Item-Bilder umgesetzt:
-  `FeedService.fetchFeed` liest bei fehlendem Bild die Artikelseite und uebernimmt
-  `og:image`/`twitter:image`; Refresh fuellt fehlende `Article.imageURL` Werte bei
+  Feedivo kann bei fehlendem Bild die Artikelseite lesen und `og:image`/
+  `twitter:image` uebernehmen; Refresh fuellt fehlende `Article.imageURL` Werte bei
   bereits gespeicherten Artikeln nach
+- 2026-06-21: P1-Performance umgesetzt: `FeedService.fetchFeed` laedt keine
+  Artikelseiten mehr automatisch; `FeedViewModel` reichert Seitenbilder nur noch fuer
+  neue oder bildlose bestehende Artikel an. Smart-Filter nutzen gezielte SwiftData-
+  Queries, und Sidebar-Ungelesen-Badges basieren auf einer Query nur fuer ungelesene
+  Artikel statt auf kompletten Feed-Relationships.
 - 2026-06-20: Paket B einfache Ordnerverwaltung umgesetzt: Sidebar gruppiert Feeds
   nach `Feed.folderName`, Ordnernamen sind in den Feed-Eigenschaften editierbar und
   `FeedFolderOrganizerTests` sichern Trimmen, Sortierung und leere Ordnernamen ab

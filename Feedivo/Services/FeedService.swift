@@ -81,8 +81,7 @@ enum FeedService {
             throw FeedServiceError.parsingFailed
         }
 
-        let parsedFeed = try parseFeed(data: data, sourceURL: urlString)
-        return await enrichArticleImagesIfNeeded(in: parsedFeed, dataLoader: dataLoader)
+        return try parseFeed(data: data, sourceURL: urlString)
     }
 
     static func parseFeed(data: Data, sourceURL: String) throws -> ParsedFeed {
@@ -260,12 +259,20 @@ enum FeedService {
         return cleanImageURL(String(html[srcRange]), relativeTo: baseURL)
     }
 
-    private static func enrichArticleImagesIfNeeded(
-        in feed: ParsedFeed,
+    static func enrichArticleImagesIfNeeded(
+        in articles: [ParsedArticle]
+    ) async -> [ParsedArticle] {
+        await enrichArticleImagesIfNeeded(in: articles) { url in
+            try await URLSession.shared.data(from: url)
+        }
+    }
+
+    static func enrichArticleImagesIfNeeded(
+        in articles: [ParsedArticle],
         dataLoader: @escaping FeedDataLoader
-    ) async -> ParsedFeed {
-        var enrichedArticles = feed.articles
-        let candidates = feed.articles.enumerated().compactMap { index, article -> (index: Int, url: URL)? in
+    ) async -> [ParsedArticle] {
+        var enrichedArticles = articles
+        let candidates = articles.enumerated().compactMap { index, article -> (index: Int, url: URL)? in
             guard article.imageURL == nil,
                   let link = article.link,
                   let url = URL(string: link),
@@ -278,7 +285,7 @@ enum FeedService {
         }
 
         guard !candidates.isEmpty else {
-            return feed
+            return articles
         }
 
         await withTaskGroup(of: (Int, String?).self) { group in
@@ -314,13 +321,7 @@ enum FeedService {
             }
         }
 
-        return ParsedFeed(
-            sourceURL: feed.sourceURL,
-            title: feed.title,
-            description: feed.description,
-            siteURL: feed.siteURL,
-            articles: enrichedArticles
-        )
+        return enrichedArticles
     }
 
     private static func articlePageImageURL(

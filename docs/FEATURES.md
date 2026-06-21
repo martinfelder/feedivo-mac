@@ -122,8 +122,10 @@ bei geschlossener App.
   bleibt Fallback, externe Favicon-Dienste werden nicht genutzt.
 - Smart Filter sind in der Sidebar umgesetzt: Alle Artikel, Ungelesen, Mit Stern
   und Heute zeigen feeduebergreifend die passenden gespeicherten Artikel. Die
-  Filter-Icons haben passende Farben: blau, tuerkis, gelb und gruen. Der Filter
-  `Ungelesen` zeigt die Gesamtzahl aller ungelesenen Artikel.
+  Artikellisten nutzen dafuer gezielte SwiftData-Queries statt pauschal alle Artikel
+  im Speicher zu filtern. Die Filter-Icons haben passende Farben: blau, tuerkis,
+  gelb und gruen. Der Filter `Ungelesen` zeigt die Gesamtzahl aller ungelesenen
+  Artikel.
 - Die linke Sidebar nutzt das umgesetzte Design 11 aus den Reader-Prototypen:
   dunkler Hintergrund, dezente Auswahlflaeche, bestehende Smart-Filter-Icons und
   weiterhin helle Artikel-Liste/Reader-Spalten.
@@ -310,11 +312,14 @@ M2 Core Features:
 - Implementiert: `ArticleRowView` mit Titel, Datum, Summary, Statuspunkt, Stern und
   optionalem Bild.
 - Performance: Feed-Listen nutzen direkt `Feed.articles`; eine globale Artikel-Query
-  wird nur noch fuer Smart-Filter-Listen verwendet.
+  wird nur noch fuer Smart-Filter-Listen verwendet. Smart-Filter-Listen fragen ihre
+  jeweilige Teilmenge direkt per SwiftData-Predicate ab.
 - Bildbasis: `FeedService` speichert absolute `Article.imageURL` Werte aus Media RSS,
-  iTunes Image, Bild-Enclosures, JSON Feed Bildern oder HTML-`img` Quellen. Wenn ein
-  RSS-Item kein Bild enthaelt, nutzt `fetchFeed` als Fallback die Metabilder der
-  verlinkten Artikelseite (`og:image`/`twitter:image`).
+  iTunes Image, Bild-Enclosures, JSON Feed Bildern oder HTML-`img` Quellen.
+- Performance: Metabilder der verlinkten Artikelseite (`og:image`/`twitter:image`)
+  werden nicht mehr automatisch bei jedem `fetchFeed` geladen. `FeedViewModel` ruft
+  die explizite Artikelbild-Anreicherung nur fuer neue Artikel ohne Feed-Bild und
+  fuer bereits gespeicherte, noch bildlose Artikel auf.
 
 #### 2.2 Sortierung
 - Status: In Diskussion
@@ -341,6 +346,9 @@ M2 Core Features:
 - Implementiert: Feed-Titel mit Favicon aus `Feed.faviconURL`; Fallback ist das
   RSS-Systemsymbol. Feed-Zeilen zeigen rechts eine dezente Badge mit der Anzahl
   ungelesener Artikel, sobald der Feed ungelesene Artikel enthaelt.
+- Performance: Die Badges basieren auf einer SwiftData-Query nur fuer ungelesene
+  Artikel und einer daraus gebildeten Count-Map pro Feed; die Sidebar muss dafuer
+  nicht jede Feed-Relationship komplett durchsuchen.
 - Design: Dunkle linke Sidebar nach Prototyp Design 11; aktive Zeilen werden nur
   dezent aufgehellt, damit die linke Spalte ruhig bleibt.
 - Ordner: Feeds stehen in der Section `Ordner`; Feeds mit `folderName` werden unter
@@ -354,7 +362,8 @@ M2 Core Features:
 - Status: Fertig als Basis
 - Prioritaet: MVP
 - Implementiert: Sidebar-Filter fuer Alle Artikel, Ungelesen, Mit Stern und Heute.
-  Die Artikelliste nutzt dafuer alle gespeicherten Artikel statt nur einen Feed.
+  Die Artikelliste nutzt dafuer gespeicherte Artikel ueber passende SwiftData-Queries
+  statt nur einen Feed oder pauschal alle Artikel im Speicher.
   Die Filter-Icons sind farbig und passen semantisch zum jeweiligen Symbol. Der
   Filter `Ungelesen` zeigt rechts die feeduebergreifende Anzahl ungelesener Artikel.
 - Entscheidung: Die bestehenden SF-Symbol-Icons bleiben auch im dunklen Sidebar-Design

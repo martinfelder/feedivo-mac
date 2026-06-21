@@ -1,10 +1,25 @@
+import SwiftData
+
 enum SidebarUnreadCount {
-    static func unreadArticleCount(in feed: Feed) -> Int {
-        feed.articles.filter { !$0.isRead }.count
+    static func unreadCountsByFeed(in unreadArticles: [Article]) -> [PersistentIdentifier: Int] {
+        unreadArticles.reduce(into: [:]) { counts, article in
+            guard let feed = article.feed else {
+                return
+            }
+
+            counts[feed.persistentModelID, default: 0] += 1
+        }
     }
 
-    static func totalUnreadArticleCount(in feeds: [Feed]) -> Int {
-        feeds.reduce(0) { $0 + unreadArticleCount(in: $1) }
+    static func unreadArticleCount(
+        for feed: Feed,
+        in unreadCountsByFeed: [PersistentIdentifier: Int]
+    ) -> Int {
+        unreadCountsByFeed[feed.persistentModelID, default: 0]
+    }
+
+    static func totalUnreadArticleCount(in unreadArticles: [Article]) -> Int {
+        unreadArticles.count
     }
 
     static func badgeText(for count: Int) -> String? {

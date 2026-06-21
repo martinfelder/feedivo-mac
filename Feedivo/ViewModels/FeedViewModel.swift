@@ -6,6 +6,7 @@ import SwiftData
 final class FeedViewModel {
     private let fetchFeed: (String) async throws -> ParsedFeed
     private let discoverFaviconURL: (URL) async -> String?
+    private let enrichArticleImages: ([ParsedArticle]) async -> [ParsedArticle]
 
     var isLoading = false
     var errorMessage: String?
@@ -14,10 +15,14 @@ final class FeedViewModel {
         fetchFeed: @escaping (String) async throws -> ParsedFeed = FeedService.fetchFeed,
         discoverFaviconURL: @escaping (URL) async -> String? = { siteURL in
             await FaviconService.discoverFaviconURL(siteURL: siteURL)
+        },
+        enrichArticleImages: @escaping ([ParsedArticle]) async -> [ParsedArticle] = { articles in
+            await FeedService.enrichArticleImagesIfNeeded(in: articles)
         }
     ) {
         self.fetchFeed = fetchFeed
         self.discoverFaviconURL = discoverFaviconURL
+        self.enrichArticleImages = enrichArticleImages
     }
 
     @MainActor
@@ -170,6 +175,7 @@ final class FeedViewModel {
 
         do {
             let parsedFeed = try await fetchFeed(cleanedURL)
+            let enrichedArticles = await enrichArticleImagesIfNeeded(parsedFeed.articles)
             let feed = Feed(
                 url: parsedFeed.sourceURL,
                 title: parsedFeed.title,
@@ -180,7 +186,7 @@ final class FeedViewModel {
                 lastRefreshed: Date()
             )
 
-            feed.articles = parsedFeed.articles.map { parsedArticle in
+            feed.articles = enrichedArticles.map { parsedArticle in
                 Article(
                     title: parsedArticle.title,
                     link: parsedArticle.link,
@@ -330,11 +336,34 @@ final class FeedViewModel {
     @MainActor
     private func refreshFeedContents(_ feed: Feed, context: ModelContext) async throws {
         let parsedFeed = try await fetchFeed(feed.url)
-        updateMissingArticleImages(in: feed, from: parsedFeed.articles)
-        var seenArticleKeys = Set(feed.articles.map(articleIdentity))
+        let existingArticlesByIdentity = existingArticlesByIdentity(in: feed)
+        updateMissingArticleImages(
+            in: existingArticlesByIdentity,
+            from: parsedFeed.articles
+        )
+        let existingArticlesNeedingPageImages = parsedFeed.articles.filter { parsedArticle in
+            guard
+                parsedArticleNeedsPageImage(parsedArticle),
+                let existingArticle = existingArticlesByIdentity[articleIdentity(for: parsedArticle)]
+            else {
+                return false
+            }
+
+            return isMissingImage(existingArticle.imageURL)
+        }
+        let enrichedExistingArticles = await enrichArticleImagesIfNeeded(existingArticlesNeedingPageImages)
+        updateMissingArticleImages(
+            in: existingArticlesByIdentity,
+            from: enrichedExistingArticles
+        )
+
+        var seenArticleKeys = Set(existingArticlesByIdentity.keys)
         let newArticles = parsedFeed.articles.filter { parsedArticle in
             seenArticleKeys.insert(articleIdentity(for: parsedArticle)).inserted
         }
+        let enrichedNewArticlesByIdentity = await enrichedArticlesByIdentity(
+            for: newArticles.filter(parsedArticleNeedsPageImage)
+        )
 
         let previousOriginalTitle = feed.originalTitle?.trimmingCharacters(in: .whitespacesAndNewlines)
         let titleWasCustom = previousOriginalTitle.map { !$0.isEmpty && feed.title != $0 } ?? false
@@ -350,14 +379,15 @@ final class FeedViewModel {
         feed.lastRefreshed = Date()
 
         for parsedArticle in newArticles {
+            let articleToInsert = enrichedNewArticlesByIdentity[articleIdentity(for: parsedArticle)] ?? parsedArticle
             feed.articles.append(
                 Article(
-                    title: parsedArticle.title,
-                    link: parsedArticle.link,
-                    summary: parsedArticle.summary,
-                    content: parsedArticle.content,
-                    publishedAt: parsedArticle.publishedAt,
-                    imageURL: parsedArticle.imageURL,
+                    title: articleToInsert.title,
+                    link: articleToInsert.link,
+                    summary: articleToInsert.summary,
+                    content: articleToInsert.content,
+                    publishedAt: articleToInsert.publishedAt,
+                    imageURL: articleToInsert.imageURL,
                     feed: feed
                 )
             )
@@ -372,12 +402,16 @@ final class FeedViewModel {
         try context.save()
     }
 
-    private func updateMissingArticleImages(in feed: Feed, from parsedArticles: [ParsedArticle]) {
-        var existingArticlesByIdentity: [String: Article] = [:]
+    private func existingArticlesByIdentity(in feed: Feed) -> [String: Article] {
+        var articlesByIdentity: [String: Article] = [:]
         for article in feed.articles {
-            existingArticlesByIdentity[articleIdentity(article)] = article
+            articlesByIdentity[articleIdentity(article)] = article
         }
 
+        return articlesByIdentity
+    }
+
+    private func updateMissingArticleImages(in existingArticlesByIdentity: [String: Article], from parsedArticles: [ParsedArticle]) {
         for parsedArticle in parsedArticles {
             guard let imageURL = parsedArticle.imageURL?.trimmingCharacters(in: .whitespacesAndNewlines),
                   !imageURL.isEmpty,
@@ -389,6 +423,27 @@ final class FeedViewModel {
 
             existingArticle.imageURL = imageURL
         }
+    }
+
+    private func enrichedArticlesByIdentity(for articles: [ParsedArticle]) async -> [String: ParsedArticle] {
+        let enrichedArticles = await enrichArticleImagesIfNeeded(articles)
+        return Dictionary(uniqueKeysWithValues: enrichedArticles.map { (articleIdentity(for: $0), $0) })
+    }
+
+    private func enrichArticleImagesIfNeeded(_ articles: [ParsedArticle]) async -> [ParsedArticle] {
+        guard !articles.isEmpty else {
+            return []
+        }
+
+        return await enrichArticleImages(articles)
+    }
+
+    private func parsedArticleNeedsPageImage(_ article: ParsedArticle) -> Bool {
+        isMissingImage(article.imageURL)
+    }
+
+    private func isMissingImage(_ imageURL: String?) -> Bool {
+        imageURL?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true
     }
 
     @MainActor

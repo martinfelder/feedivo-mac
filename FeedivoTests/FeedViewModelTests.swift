@@ -380,6 +380,89 @@ struct FeedViewModelTests {
     }
 
     @MainActor
+    @Test func refreshFeedReichertNurNeueUndBildloseBestehendeArtikelMitSeitenbildernAn() async throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
+        let existingWithImage = Article(
+            title: "Bereits mit Bild",
+            link: "https://example.com/has-image",
+            imageURL: "https://example.com/existing.jpg",
+            feed: feed
+        )
+        let existingWithoutImage = Article(
+            title: "Noch ohne Bild",
+            link: "https://example.com/missing-image",
+            feed: feed
+        )
+        feed.articles = [existingWithImage, existingWithoutImage]
+        context.insert(feed)
+        try context.save()
+
+        var enrichedArticleLinks: [String] = []
+        let viewModel = FeedViewModel(
+            fetchFeed: { urlString in
+                ParsedFeed(
+                    sourceURL: urlString,
+                    title: "Feed",
+                    description: nil,
+                    siteURL: nil,
+                    articles: [
+                        ParsedArticle(
+                            title: "Bereits mit Bild",
+                            link: "https://example.com/has-image",
+                            summary: nil,
+                            content: nil,
+                            publishedAt: nil,
+                            imageURL: nil
+                        ),
+                        ParsedArticle(
+                            title: "Noch ohne Bild",
+                            link: "https://example.com/missing-image",
+                            summary: nil,
+                            content: nil,
+                            publishedAt: nil,
+                            imageURL: nil
+                        ),
+                        ParsedArticle(
+                            title: "Neu ohne Bild",
+                            link: "https://example.com/new",
+                            summary: nil,
+                            content: nil,
+                            publishedAt: nil,
+                            imageURL: nil
+                        )
+                    ]
+                )
+            },
+            discoverFaviconURL: { _ in nil },
+            enrichArticleImages: { articles in
+                enrichedArticleLinks.append(contentsOf: articles.compactMap(\.link))
+                return articles.map { article in
+                    article.copy(imageURL: "\(article.link ?? "missing")/image.jpg")
+                }
+            }
+        )
+
+        await viewModel.refreshFeed(feed, context: context)
+
+        #expect(enrichedArticleLinks == [
+            "https://example.com/missing-image",
+            "https://example.com/new"
+        ])
+        #expect(existingWithImage.imageURL == "https://example.com/existing.jpg")
+        #expect(existingWithoutImage.imageURL == "https://example.com/missing-image/image.jpg")
+        #expect(feed.articles.first { $0.link == "https://example.com/new" }?.imageURL == "https://example.com/new/image.jpg")
+    }
+
+    @MainActor
     @Test func refreshFeedBewahrtManuellenAnzeigenamenUndAktualisiertOriginalnamen() async throws {
         let container = try ModelContainer(
             for: Feed.self,

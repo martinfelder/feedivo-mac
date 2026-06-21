@@ -382,7 +382,7 @@ struct FeedivoTests {
         #expect(result.articles.first?.imageURL == "https://example.com/news/bilder/media-bild.jpg")
     }
 
-    @Test func feedServiceLiestArtikelbildAusVerlinkterArtikelseiteWennFeedKeinBildLiefert() async throws {
+    @Test func feedServiceReichertArtikelbildAusVerlinkterArtikelseiteExplizitAn() async throws {
         let rss = """
         <?xml version="1.0" encoding="UTF-8"?>
         <rss version="2.0">
@@ -406,11 +406,32 @@ struct FeedivoTests {
         </html>
         """
 
-        let result = try await FeedService.fetchFeed(urlString: "https://example.com/feed.xml") { url in
+        let parsedFeed = try await FeedService.fetchFeed(urlString: "https://example.com/feed.xml") { url in
+            guard url.absoluteString == "https://example.com/feed.xml" else {
+                Issue.record("Feed-Abruf sollte keine Artikelseite laden: \(url.absoluteString)")
+                let response = HTTPURLResponse(
+                    url: url,
+                    statusCode: 500,
+                    httpVersion: nil,
+                    headerFields: nil
+                )!
+                return (Data(), response)
+            }
+
+            let response = HTTPURLResponse(
+                url: url,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: nil
+            )!
+            return (Data(rss.utf8), response)
+        }
+
+        #expect(parsedFeed.articles.first?.imageURL == nil)
+
+        let enrichedArticles = await FeedService.enrichArticleImagesIfNeeded(in: parsedFeed.articles) { url in
             let data: Data
             switch url.absoluteString {
-            case "https://example.com/feed.xml":
-                data = Data(rss.utf8)
             case "https://example.com/artikel-ohne-feed-bild/":
                 data = Data(articleHTML.utf8)
             default:
@@ -427,7 +448,7 @@ struct FeedivoTests {
             return (data, response)
         }
 
-        #expect(result.articles.first?.imageURL == "https://example.com/wp-content/uploads/artikelbild.jpg")
+        #expect(enrichedArticles.first?.imageURL == "https://example.com/wp-content/uploads/artikelbild.jpg")
     }
 
 }
