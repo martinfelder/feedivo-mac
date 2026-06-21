@@ -1,9 +1,15 @@
 import Foundation
 
 struct ArticleNavigationState {
-    let visibleArticles: [Article]
+    static let empty = ArticleNavigationState()
+
     let previousArticle: Article?
     let nextArticle: Article?
+
+    init(previousArticle: Article? = nil, nextArticle: Article? = nil) {
+        self.previousArticle = previousArticle
+        self.nextArticle = nextArticle
+    }
 
     init(
         articles: [Article],
@@ -11,7 +17,6 @@ struct ArticleNavigationState {
         sortArticles: ([Article]) -> [Article] = ArticleViewModel().sortedForList
     ) {
         let sortedArticles = sortArticles(articles)
-        self.visibleArticles = sortedArticles
         self.previousArticle = ArticleNavigationState.previousArticle(
             before: selectedArticle,
             in: sortedArticles

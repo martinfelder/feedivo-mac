@@ -1,36 +1,11 @@
 {
   "sourceLanguage" : "de",
   "strings" : {
-    "%lld px" : {
+    "#%@" : {
 
     },
-    "articleCommands.menu" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Artikel"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Article"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Article"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Articolo"
-          }
-        }
-      }
+    "%lld px" : {
+
     },
     "article.copyLink.command" : {
       "localizations" : {
@@ -140,6 +115,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Articolo precedente"
+          }
+        }
+      }
+    },
+    "articleCommands.menu" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Artikel"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Article"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Article"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Articolo"
           }
         }
       }
@@ -592,22 +595,6 @@
         }
       }
     },
-    "feed.importOPML.command" : {
-      "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "OPML importieren..." } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Import OPML..." } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Importer OPML..." } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Importa OPML..." } }
-      }
-    },
-    "feed.exportOPML.command" : {
-      "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "OPML exportieren..." } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Export OPML..." } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Exporter OPML..." } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Esporta OPML..." } }
-      }
-    },
     "feed.delete.command" : {
       "localizations" : {
         "de" : {
@@ -718,214 +705,6 @@
             "value" : "Elimina feed"
           }
         }
-      }
-    },
-    "feed.properties.command" : {
-      "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Feed Eigenschaften..." } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Feed Properties..." } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Propriétés du flux..." } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Proprietà feed..." } }
-      }
-    },
-    "feed.properties.copyXMLAddress" : {
-      "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "XML-Adresse kopieren" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Copy XML address" } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Copier l’adresse XML" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Copia indirizzo XML" } }
-      }
-    },
-    "feed.properties.detailsTitle" : {
-      "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Details" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Details" } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Détails" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Dettagli" } }
-      }
-    },
-    "feed.properties.followedAt" : {
-      "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Gefolgt ab" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Followed since" } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Suivi depuis" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Seguito dal" } }
-      }
-    },
-    "feed.properties.folder" : {
-      "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Ordner" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Folder" } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Dossier" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Cartella" } }
-      }
-    },
-    "feed.properties.lastRefreshed" : {
-      "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Zuletzt aktualisiert" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Last refreshed" } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Dernière actualisation" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Ultimo aggiornamento" } }
-      }
-    },
-    "feed.properties.latestArticle" : {
-      "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Letzter Artikel" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Latest article" } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Dernier article" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Ultimo articolo" } }
-      }
-    },
-    "feed.properties.logTitle" : {
-      "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Feed Log" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Feed log" } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Journal du flux" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Log del feed" } }
-      }
-    },
-    "feed.properties.logEntries" : {
-      "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Log-Einträge" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Log entries" } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Entrées du journal" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Voci di log" } }
-      }
-    },
-    "feed.properties.nextFetch" : {
-      "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Nächster Abruf" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Next fetch" } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Prochaine récupération" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Prossimo recupero" } }
-      }
-    },
-    "feed.properties.noFolder" : {
-      "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Kein Ordner" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "No folder" } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Aucun dossier" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Nessuna cartella" } }
-      }
-    },
-    "feed.properties.noLogEntries" : {
-      "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Noch keine Log-Einträge." } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "No log entries yet." } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Aucune entrée de journal pour le moment." } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Ancora nessuna voce di log." } }
-      }
-    },
-    "feed.properties.originalTitle" : {
-      "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Original Titel" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Original title" } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Titre d’origine" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Titolo originale" } }
-      }
-    },
-    "feed.properties.refreshInterval" : {
-      "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Aktualisierungsintervall" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Refresh interval" } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Intervalle d’actualisation" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Intervallo di aggiornamento" } }
-      }
-    },
-    "feed.properties.title" : {
-      "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Feed Eigenschaften" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Feed Properties" } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Propriétés du flux" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Proprietà feed" } }
-      }
-    },
-    "feed.properties.unavailable" : {
-      "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Nicht verfügbar" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Unavailable" } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Non disponible" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Non disponibile" } }
-      }
-    },
-    "feed.properties.website" : {
-      "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Website" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Website" } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Site web" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Sito web" } }
-      }
-    },
-    "feed.properties.xmlAddress" : {
-      "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "XML Adresse" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "XML address" } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Adresse XML" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Indirizzo XML" } }
-      }
-    },
-    "feed.log.added" : {
-      "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Feed hinzugefügt" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Feed added" } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Flux ajouté" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Feed aggiunto" } }
-      }
-    },
-    "feed.log.importedFromOPML" : {
-      "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Aus OPML importiert" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Imported from OPML" } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Importé depuis OPML" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Importato da OPML" } }
-      }
-    },
-    "feed.log.refreshed" : {
-      "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Aktualisiert: %lld neue Artikel" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Refreshed: %lld new articles" } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Actualisé : %lld nouveaux articles" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Aggiornato: %lld nuovi articoli" } }
-      }
-    },
-    "opml.import.result.title" : {
-      "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "OPML importiert" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "OPML imported" } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "OPML importé" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "OPML importato" } }
-      }
-    },
-    "opml.import.result.message" : {
-      "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "%lld neue Feeds, %lld Duplikate übersprungen." } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "%lld new feeds, %lld duplicates skipped." } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "%lld nouveaux flux, %lld doublons ignorés." } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "%lld nuovi feed, %lld duplicati saltati." } }
-      }
-    },
-    "opml.import.failed.title" : {
-      "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "OPML konnte nicht importiert werden" } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "OPML could not be imported" } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Impossible d'importer OPML" } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Impossibile importare OPML" } }
-      }
-    },
-    "opml.error.invalidXML" : {
-      "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Die Datei ist keine gültige OPML- oder XML-Datei." } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "The file is not a valid OPML or XML file." } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Le fichier n'est pas un fichier OPML ou XML valide." } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Il file non è un file OPML o XML valido." } }
-      }
-    },
-    "opml.error.noFeedsFound" : {
-      "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "In der OPML-Datei wurden keine Feed-Einträge gefunden." } },
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "No feed entries were found in the OPML file." } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Aucune entrée de flux n'a été trouvée dans le fichier OPML." } },
-        "it" : { "stringUnit" : { "state" : "translated", "value" : "Nel file OPML non è stata trovata alcuna voce feed." } }
       }
     },
     "feed.error.addFailed" : {
@@ -1068,6 +847,650 @@
         }
       }
     },
+    "feed.exportOPML.command" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OPML exportieren..."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export OPML..."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exporter OPML..."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esporta OPML..."
+          }
+        }
+      }
+    },
+    "feed.importOPML.command" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OPML importieren..."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import OPML..."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importer OPML..."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importa OPML..."
+          }
+        }
+      }
+    },
+    "feed.log.added" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feed hinzugefügt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feed added"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flux ajouté"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feed aggiunto"
+          }
+        }
+      }
+    },
+    "feed.log.importedFromOPML" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aus OPML importiert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Imported from OPML"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importé depuis OPML"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importato da OPML"
+          }
+        }
+      }
+    },
+    "feed.log.refreshed" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktualisiert: %lld neue Artikel"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Refreshed: %lld new articles"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actualisé : %lld nouveaux articles"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiornato: %lld nuovi articoli"
+          }
+        }
+      }
+    },
+    "feed.properties.command" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feed Eigenschaften..."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feed Properties..."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Propriétés du flux..."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Proprietà feed..."
+          }
+        }
+      }
+    },
+    "feed.properties.copyXMLAddress" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "XML-Adresse kopieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy XML address"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copier l’adresse XML"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copia indirizzo XML"
+          }
+        }
+      }
+    },
+    "feed.properties.detailsTitle" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Details"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Details"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Détails"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dettagli"
+          }
+        }
+      }
+    },
+    "feed.properties.folder" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ordner"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Folder"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dossier"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cartella"
+          }
+        }
+      }
+    },
+    "feed.properties.followedAt" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gefolgt ab"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Followed since"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suivi depuis"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seguito dal"
+          }
+        }
+      }
+    },
+    "feed.properties.lastRefreshed" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zuletzt aktualisiert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Last refreshed"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dernière actualisation"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ultimo aggiornamento"
+          }
+        }
+      }
+    },
+    "feed.properties.latestArticle" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Letzter Artikel"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Latest article"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dernier article"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ultimo articolo"
+          }
+        }
+      }
+    },
+    "feed.properties.logEntries" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Log-Einträge"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Log entries"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entrées du journal"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voci di log"
+          }
+        }
+      }
+    },
+    "feed.properties.logTitle" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feed Log"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feed log"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Journal du flux"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Log del feed"
+          }
+        }
+      }
+    },
+    "feed.properties.nextFetch" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nächster Abruf"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next fetch"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prochaine récupération"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prossimo recupero"
+          }
+        }
+      }
+    },
+    "feed.properties.noFolder" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kein Ordner"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No folder"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun dossier"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessuna cartella"
+          }
+        }
+      }
+    },
+    "feed.properties.noLogEntries" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noch keine Log-Einträge."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No log entries yet."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucune entrée de journal pour le moment."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ancora nessuna voce di log."
+          }
+        }
+      }
+    },
+    "feed.properties.originalTitle" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Original Titel"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Original title"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Titre d’origine"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Titolo originale"
+          }
+        }
+      }
+    },
+    "feed.properties.refreshInterval" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktualisierungsintervall"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Refresh interval"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Intervalle d’actualisation"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Intervallo di aggiornamento"
+          }
+        }
+      }
+    },
+    "feed.properties.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feed Eigenschaften"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feed Properties"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Propriétés du flux"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Proprietà feed"
+          }
+        }
+      }
+    },
+    "feed.properties.unavailable" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nicht verfügbar"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unavailable"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non disponible"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non disponibile"
+          }
+        }
+      }
+    },
+    "feed.properties.website" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Website"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Website"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Site web"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sito web"
+          }
+        }
+      }
+    },
+    "feed.properties.xmlAddress" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "XML Adresse"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "XML address"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adresse XML"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indirizzo XML"
+          }
+        }
+      }
+    },
     "feed.refresh.command" : {
       "localizations" : {
         "de" : {
@@ -1092,6 +1515,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aggiorna feed"
+          }
+        }
+      }
+    },
+    "feed.refreshAll.command" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle Feeds aktualisieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Refresh All Feeds"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actualiser tous les flux"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiorna tutti i feed"
           }
         }
       }
@@ -1432,34 +1883,6 @@
         }
       }
     },
-    "feed.refreshAll.command" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Alle Feeds aktualisieren"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Refresh All Feeds"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Actualiser tous les flux"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aggiorna tutti i feed"
-          }
-        }
-      }
-    },
     "feedCommands.menu" : {
       "localizations" : {
         "de" : {
@@ -1490,6 +1913,146 @@
     },
     "Feedivo" : {
 
+    },
+    "opml.error.invalidXML" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Datei ist keine gültige OPML- oder XML-Datei."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The file is not a valid OPML or XML file."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le fichier n'est pas un fichier OPML ou XML valide."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il file non è un file OPML o XML valido."
+          }
+        }
+      }
+    },
+    "opml.error.noFeedsFound" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In der OPML-Datei wurden keine Feed-Einträge gefunden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No feed entries were found in the OPML file."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucune entrée de flux n'a été trouvée dans le fichier OPML."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nel file OPML non è stata trovata alcuna voce feed."
+          }
+        }
+      }
+    },
+    "opml.import.failed.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OPML konnte nicht importiert werden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OPML could not be imported"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible d'importer OPML"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile importare OPML"
+          }
+        }
+      }
+    },
+    "opml.import.result.message" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld neue Feeds, %lld Duplikate übersprungen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld new feeds, %lld duplicates skipped."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld nouveaux flux, %lld doublons ignorés."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld nuovi feed, %lld duplicati saltati."
+          }
+        }
+      }
+    },
+    "opml.import.result.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OPML importiert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OPML imported"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OPML importé"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OPML importato"
+          }
+        }
+      }
     },
     "reader.appearance.button" : {
       "localizations" : {
@@ -1743,6 +2306,118 @@
         }
       }
     },
+    "reader.font.monospace" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monospace"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monospace"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chasse fixe"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Monospazio"
+          }
+        }
+      }
+    },
+    "reader.font.rounded" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rounded"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rounded"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arrondie"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arrotondato"
+          }
+        }
+      }
+    },
+    "reader.font.serif" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Serif"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Serif"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Serif"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Serif"
+          }
+        }
+      }
+    },
+    "reader.font.system" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Systeme"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sistema"
+          }
+        }
+      }
+    },
     "reader.inspector.addTag.placeholder" : {
       "localizations" : {
         "de" : {
@@ -1967,118 +2642,6 @@
         }
       }
     },
-    "reader.font.monospace" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Monospace"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Monospace"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Chasse fixe"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Monospazio"
-          }
-        }
-      }
-    },
-    "reader.font.rounded" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rounded"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rounded"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Arrondie"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Arrotondato"
-          }
-        }
-      }
-    },
-    "reader.font.serif" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Serif"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Serif"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Serif"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Serif"
-          }
-        }
-      }
-    },
-    "reader.font.system" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "System"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "System"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Systeme"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sistema"
-          }
-        }
-      }
-    },
     "reader.lineSpacing.slider" : {
       "localizations" : {
         "de" : {
@@ -2219,6 +2782,34 @@
         }
       }
     },
+    "settings.appearance.section" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Darstellung"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appearance"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apparence"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aspetto"
+          }
+        }
+      }
+    },
     "settings.automaticRefresh.description" : {
       "localizations" : {
         "de" : {
@@ -2327,34 +2918,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aggiorna automaticamente i feed"
-          }
-        }
-      }
-    },
-    "settings.appearance.section" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Darstellung"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Appearance"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apparence"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aspetto"
           }
         }
       }

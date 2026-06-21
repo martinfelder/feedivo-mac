@@ -237,21 +237,18 @@ enum FeedService {
         return nil
     }
 
+    private nonisolated(unsafe) static let imgSrcExpression = try! NSRegularExpression(
+        pattern: #"<img[^>]+src\s*=\s*["']([^"']+)["']"#,
+        options: [.caseInsensitive]
+    )
+
     private nonisolated static func firstImageURL(inHTML html: String?, relativeTo baseURL: URL?) -> String? {
         guard let html, !html.isEmpty else {
             return nil
         }
 
-        let pattern = #"<img[^>]+src\s*=\s*["']([^"']+)["']"#
-        guard let expression = try? NSRegularExpression(
-            pattern: pattern,
-            options: [.caseInsensitive]
-        ) else {
-            return nil
-        }
-
         let range = NSRange(html.startIndex ..< html.endIndex, in: html)
-        guard let match = expression.firstMatch(in: html, range: range),
+        guard let match = imgSrcExpression.firstMatch(in: html, range: range),
               let srcRange = Range(match.range(at: 1), in: html) else {
             return nil
         }
@@ -338,14 +335,25 @@ enum FeedService {
         return firstMetaImageURL(inHTML: html, relativeTo: articleURL)
     }
 
-    private nonisolated static func firstMetaImageURL(inHTML html: String, relativeTo baseURL: URL?) -> String? {
-        let pattern = #"<meta\b[^>]*>"#
-        guard let expression = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else {
-            return nil
-        }
+    private nonisolated(unsafe) static let metaTagExpression = try! NSRegularExpression(
+        pattern: #"<meta\b[^>]*>"#,
+        options: [.caseInsensitive]
+    )
 
+    // Vorcompilierte Attribut-Regexes für die drei genutzten Meta-Tag-Attribute
+    private nonisolated(unsafe) static let metaAttributeExpressions: [String: NSRegularExpression] = {
+        Dictionary(uniqueKeysWithValues: ["property", "name", "content"].compactMap { name in
+            guard let expr = try? NSRegularExpression(
+                pattern: #"\#(name)\s*=\s*["']([^"']+)["']"#,
+                options: [.caseInsensitive]
+            ) else { return nil }
+            return (name, expr)
+        })
+    }()
+
+    private nonisolated static func firstMetaImageURL(inHTML html: String, relativeTo baseURL: URL?) -> String? {
         let range = NSRange(html.startIndex ..< html.endIndex, in: html)
-        let matches = expression.matches(in: html, range: range)
+        let matches = metaTagExpression.matches(in: html, range: range)
 
         for match in matches {
             guard let metaRange = Range(match.range, in: html) else {
@@ -371,8 +379,7 @@ enum FeedService {
     }
 
     private nonisolated static func attributeValue(named attributeName: String, in htmlTag: String) -> String? {
-        let pattern = #"\#(attributeName)\s*=\s*["']([^"']+)["']"#
-        guard let expression = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else {
+        guard let expression = metaAttributeExpressions[attributeName] else {
             return nil
         }
 

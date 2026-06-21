@@ -11,6 +11,7 @@ class Article {
     var content: String?
     var publishedAt: Date?
     var imageURL: String?
+    var feedID: UUID?
     var isRead: Bool
     var isStarred: Bool
 
@@ -38,6 +39,7 @@ class Article {
         self.content = content
         self.publishedAt = publishedAt
         self.imageURL = imageURL
+        self.feedID = feed?.id
         self.isRead = isRead
         self.isStarred = isStarred
         self.feed = feed

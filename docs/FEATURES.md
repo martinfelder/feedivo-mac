@@ -125,7 +125,7 @@ bei geschlossener App.
   Artikellisten nutzen dafuer gezielte SwiftData-Queries statt pauschal alle Artikel
   im Speicher zu filtern. Die Filter-Icons haben passende Farben: blau, tuerkis,
   gelb und gruen. Der Filter `Ungelesen` zeigt die Gesamtzahl aller ungelesenen
-  Artikel.
+  Artikel ueber gespeicherte `Feed.unreadCount` Werte.
 - Die linke Sidebar nutzt das umgesetzte Design 11 aus den Reader-Prototypen:
   dunkler Hintergrund, dezente Auswahlflaeche, bestehende Smart-Filter-Icons und
   weiterhin helle Artikel-Liste/Reader-Spalten.
@@ -214,8 +214,9 @@ M2 Core Features:
   `Cmd+↑` fuer vorherigen und `Cmd+↓` fuer naechsten Artikel.
 - Verhalten: Navigation laeuft innerhalb der aktuell sichtbaren Feed- oder
   Smart-Filter-Liste und stoppt am Listenrand ohne Loop.
-- Performance: Die sichtbare Artikelliste wird einmal sortiert und via
-  `ArticleNavigationState` fuer Toolbar und macOS-Menue wiederverwendet.
+- Performance: `ArticleListView` berechnet `ArticleNavigationState` aus der sichtbaren
+  Liste und meldet nur vorherigen/naechsten Artikel nach oben, damit `ContentView`
+  beim Feed-Wechsel nicht die komplette Artikelliste kopieren muss.
 - Entscheidung: Oeffnen markiert standardmaessig automatisch als gelesen. Benutzer
   koennen die Option in den Einstellungen deaktivieren.
 
@@ -347,9 +348,8 @@ M2 Core Features:
 - Implementiert: Feed-Titel mit Favicon aus `Feed.faviconURL`; Fallback ist das
   RSS-Systemsymbol. Feed-Zeilen zeigen rechts eine dezente Badge mit der Anzahl
   ungelesener Artikel, sobald der Feed ungelesene Artikel enthaelt.
-- Performance: Die Badges basieren auf einer SwiftData-Query nur fuer ungelesene
-  Artikel und einer daraus gebildeten Count-Map pro Feed; die Sidebar muss dafuer
-  nicht jede Feed-Relationship komplett durchsuchen.
+- Performance: Die Badges basieren auf `Feed.unreadCount`; die Sidebar muss dafuer
+  weder alle ungelesenen Artikel materialisieren noch Feed-Relationships zaehlen.
 - Design: Dunkle linke Sidebar nach Prototyp Design 11; aktive Zeilen werden nur
   dezent aufgehellt, damit die linke Spalte ruhig bleibt.
 - Ordner: Feeds stehen in der Section `Ordner`; Feeds mit `folderName` werden unter

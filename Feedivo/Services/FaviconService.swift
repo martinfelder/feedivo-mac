@@ -64,18 +64,28 @@ enum FaviconService {
         return String(data: data, encoding: .utf8) ?? String(decoding: data, as: UTF8.self)
     }
 
-    private static func faviconCandidates(inHTML html: String, pageURL: URL) -> [FaviconCandidate] {
-        let linkTags = matches(
-            pattern: #"<link\b[^>]*>"#,
-            in: html,
-            options: [.caseInsensitive, .dotMatchesLineSeparators]
-        )
+    // Gecachte Regex-Objekte — einmalig kompiliert statt bei jedem Aufruf neu
+    private static let linkTagExpression = try! NSRegularExpression(
+        pattern: #"<link\b[^>]*>"#,
+        options: [.caseInsensitive, .dotMatchesLineSeparators]
+    )
 
-        return linkTags.compactMap { tag in
-            let attributes = attributes(in: tag)
-            guard let rel = attributes["rel"]?.lowercased(),
+    private static let tagAttributeExpression = try! NSRegularExpression(
+        pattern: #"([a-zA-Z_:][-a-zA-Z0-9_:.]*)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))"#,
+        options: [.caseInsensitive]
+    )
+
+    private static func faviconCandidates(inHTML html: String, pageURL: URL) -> [FaviconCandidate] {
+        let htmlRange = NSRange(html.startIndex ..< html.endIndex, in: html)
+        let linkTagMatches = linkTagExpression.matches(in: html, range: htmlRange)
+
+        return linkTagMatches.compactMap { match -> FaviconCandidate? in
+            guard let tagRange = Range(match.range, in: html) else { return nil }
+            let tag = String(html[tagRange])
+            let attrs = attributes(in: tag)
+            guard let rel = attrs["rel"]?.lowercased(),
                   rel.contains("icon"),
-                  let href = attributes["href"],
+                  let href = attrs["href"],
                   let url = absoluteURL(from: href, relativeTo: pageURL) else {
                 return nil
             }
@@ -83,40 +93,26 @@ enum FaviconService {
             return FaviconCandidate(
                 url: url,
                 rel: rel,
-                sizeScore: sizeScore(from: attributes["sizes"])
+                sizeScore: sizeScore(from: attrs["sizes"])
             )
         }
     }
 
+    // Einzel-Durchlauf mit Capture Groups — kein doppeltes Kompilieren mehr
     private static func attributes(in tag: String) -> [String: String] {
-        let attributeMatches = matches(
-            pattern: #"([a-zA-Z_:][-a-zA-Z0-9_:.]*)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))"#,
-            in: tag,
-            options: [.caseInsensitive]
-        )
+        let range = NSRange(tag.startIndex ..< tag.endIndex, in: tag)
+        let attrMatches = tagAttributeExpression.matches(in: tag, range: range)
 
-        return attributeMatches.reduce(into: [String: String]()) { result, attribute in
-            guard let match = try? NSRegularExpression(
-                pattern: #"([a-zA-Z_:][-a-zA-Z0-9_:.]*)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))"#,
-                options: [.caseInsensitive]
-            ).firstMatch(
-                in: attribute,
-                range: NSRange(attribute.startIndex ..< attribute.endIndex, in: attribute)
-            ),
-                let nameRange = Range(match.range(at: 1), in: attribute) else {
-                return
-            }
+        return attrMatches.reduce(into: [String: String]()) { result, match in
+            guard let nameRange = Range(match.range(at: 1), in: tag) else { return }
 
             let value = (2 ... 4).compactMap { index -> String? in
                 guard match.range(at: index).location != NSNotFound,
-                      let range = Range(match.range(at: index), in: attribute) else {
-                    return nil
-                }
-
-                return String(attribute[range])
+                      let valueRange = Range(match.range(at: index), in: tag) else { return nil }
+                return String(tag[valueRange])
             }.first ?? ""
 
-            result[String(attribute[nameRange]).lowercased()] = value
+            result[String(tag[nameRange]).lowercased()] = value
         }
     }
 
@@ -154,24 +150,6 @@ enum FaviconService {
             .max() ?? 0
     }
 
-    private static func matches(
-        pattern: String,
-        in text: String,
-        options: NSRegularExpression.Options = []
-    ) -> [String] {
-        guard let expression = try? NSRegularExpression(pattern: pattern, options: options) else {
-            return []
-        }
-
-        let range = NSRange(text.startIndex ..< text.endIndex, in: text)
-        return expression.matches(in: text, range: range).compactMap { match in
-            guard let matchRange = Range(match.range, in: text) else {
-                return nil
-            }
-
-            return String(text[matchRange])
-        }
-    }
 }
 
 private struct FaviconCandidate: Comparable {

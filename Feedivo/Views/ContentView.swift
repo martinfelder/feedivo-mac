@@ -15,7 +15,7 @@ struct ContentView: View {
 
     // selectedArticle speichert welcher Artikel gerade in der Liste ausgewählt ist.
     @State private var selectedArticle: Article? = nil
-    @State private var visibleArticles: [Article] = []
+    @State private var articleNavigationState = ArticleNavigationState.empty
 
     @State private var articleViewModel = ArticleViewModel()
     @State private var feedViewModel = FeedViewModel()
@@ -28,8 +28,6 @@ struct ContentView: View {
     @State private var opmlAlert: OPMLAlert?
 
     var body: some View {
-        let navigationState = articleNavigationState
-
         NavigationSplitView(columnVisibility: $columnVisibility) {
 
             // SPALTE 1: Sidebar — Liste aller Feeds
@@ -47,14 +45,14 @@ struct ContentView: View {
                 ArticleListView(
                     smartFilter: smartFilter,
                     selectedArticle: $selectedArticle,
-                    visibleArticles: $visibleArticles
+                    navigationState: $articleNavigationState
                 )
                     .navigationSplitViewColumnWidth(min: 280, ideal: 320, max: 400)
             } else if let feed = selectedFeed {
                 ArticleListView(
                     feed: feed,
                     selectedArticle: $selectedArticle,
-                    visibleArticles: $visibleArticles
+                    navigationState: $articleNavigationState
                 )
                     .navigationSplitViewColumnWidth(min: 280, ideal: 320, max: 400)
             } else {
@@ -73,8 +71,8 @@ struct ContentView: View {
             if let article = selectedArticle {
                 ReaderView(
                     article: article,
-                    canSelectPreviousArticle: navigationState.previousArticle != nil,
-                    canSelectNextArticle: navigationState.nextArticle != nil,
+                    canSelectPreviousArticle: articleNavigationState.previousArticle != nil,
+                    canSelectNextArticle: articleNavigationState.nextArticle != nil,
                     selectPreviousArticle: selectPreviousArticle,
                     selectNextArticle: selectNextArticle
                 )
@@ -89,7 +87,7 @@ struct ContentView: View {
         }
         .onChange(of: sidebarSelection) {
             selectedArticle = nil
-            visibleArticles = []
+            articleNavigationState = .empty
         }
         .sheet(isPresented: $isShowingAddFeedSheet) {
             AddFeedSheet()
@@ -144,8 +142,8 @@ struct ContentView: View {
                 openOriginal: {
                     _ = articleViewModel.openOriginal(selectedArticle)
                 },
-                canSelectPreviousArticle: navigationState.previousArticle != nil,
-                canSelectNextArticle: navigationState.nextArticle != nil,
+                canSelectPreviousArticle: articleNavigationState.previousArticle != nil,
+                canSelectNextArticle: articleNavigationState.nextArticle != nil,
                 selectPreviousArticle: selectPreviousArticle,
                 selectNextArticle: selectNextArticle
             )
@@ -273,13 +271,6 @@ struct ContentView: View {
         return smartFilter
     }
 
-    private var articleNavigationState: ArticleNavigationState {
-        ArticleNavigationState(
-            articles: visibleArticles,
-            selectedArticle: selectedArticle,
-            sortArticles: { $0 }
-        )
-    }
 }
 
 private struct OPMLAlert: Identifiable {

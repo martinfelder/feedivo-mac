@@ -15,6 +15,7 @@ class Feed {
     var folderName: String?
     var lastRefreshed: Date?
     var refreshIntervalMinutes: Int
+    var unreadCount: Int = 0
 
     @Relationship(deleteRule: .cascade)
     var articles: [Article]
@@ -47,6 +48,7 @@ class Feed {
         self.folderName = folderName
         self.lastRefreshed = lastRefreshed
         self.refreshIntervalMinutes = refreshIntervalMinutes
+        self.unreadCount = 0
         self.articles = []
         self.logEntries = []
         self.tags = []

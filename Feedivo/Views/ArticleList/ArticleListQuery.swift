@@ -9,7 +9,7 @@ enum ArticleListQuery {
     static func feedPredicate(for feed: Feed) -> Predicate<Article> {
         let feedID = feed.id
         return #Predicate<Article> { article in
-            article.feed?.id == feedID
+            article.feedID == feedID
         }
     }
 

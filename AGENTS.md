@@ -234,9 +234,9 @@ NavigationSplitView mit 3 Spalten. Verwaltet `selectedFeed` und `selectedArticle
 Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 Praesentiert `AddFeedSheet` zentral, damit Sidebar-Plus und macOS-Menue `Feed`
 dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
-Haelt keine pauschale `@Query` auf alle Artikel mehr; die aktuell sichtbare,
-bereits sortierte Artikelliste wird von `ArticleListView` nach oben gemeldet und
-fuer Reader-Vor/Zurueck sowie macOS-Menue-Status wiederverwendet.
+Haelt keine pauschale `@Query` auf alle Artikel mehr; `ArticleListView` meldet nur
+noch einen kleinen `ArticleNavigationState` mit vorherigem/naechstem Artikel nach
+oben, statt die komplette sichtbare Artikelliste in `ContentView` zu kopieren.
 
 ### SidebarView.swift
 - `@Query(sort: \Feed.title)` für automatische Feed-Liste aus SwiftData
@@ -253,9 +253,8 @@ fuer Reader-Vor/Zurueck sowie macOS-Menue-Status wiederverwendet.
   `star.fill`, `calendar`) und ihre Farben; nur die Sidebar-Oberflaeche ist dunkler
 - Der Smart-Filter `Ungelesen` zeigt rechts die Gesamtzahl aller ungelesenen Artikel
   ueber alle Feeds
-- Ungelesen-Badges basieren auf einer separaten SwiftData-Query nur fuer ungelesene
-  Artikel; daraus wird eine Count-Map pro Feed gebildet, statt pro Feed die komplette
-  `articles`-Relationship zu durchlaufen
+- Ungelesen-Badges basieren auf `Feed.unreadCount`, damit die Sidebar beim Rendern
+  keine separate Query auf alle ungelesenen Artikel mehr materialisieren muss
 - Feeds stehen in einer Sidebar-Section `Ordner`; neben dem Section-Titel gibt es
   einen + Button zum Anlegen neuer Ordner
 - Ordner sind per Chevron auf- und zuklappbar; Feeds innerhalb eines Ordners werden
@@ -273,9 +272,8 @@ fuer Reader-Vor/Zurueck sowie macOS-Menue-Status wiederverwendet.
 
 ### SidebarUnreadCount.swift
 - Kapselt die Sidebar-Zaehllogik fuer ungelesene Artikel pro Feed und ueber alle Feeds.
-- Erstellt aus der Query-Liste ungelesener Artikel eine Count-Map per
-  `PersistentIdentifier`, damit Sidebar-Zeilen nicht die komplette Feed-Relationship
-  durchsuchen muessen.
+- Liest vorberechnete `Feed.unreadCount` Werte, damit die Sidebar weder komplette
+  Feed-Relationships noch alle ungelesenen Artikel laden muss.
 - Liefert nur fuer positive Zaehler einen sichtbaren Badge-Text, damit Feeds ohne
   ungelesene Artikel ruhig bleiben.
 
@@ -304,6 +302,8 @@ fuer Reader-Vor/Zurueck sowie macOS-Menue-Status wiederverwendet.
 - `refreshFeed(_:context:)` — aktualisiert den ausgewaehlten Feed, fuegt nur neue
   Artikel hinzu und aktualisiert Feed-Metadaten sowie `lastRefreshed`
 - Beim Hinzufuegen werden `siteURL`, `followedAt` und ein Info-Log geschrieben
+- Beim Hinzufuegen und Aktualisieren wird `Feed.unreadCount` fuer Sidebar-Badges
+  gepflegt; neue Artikel starten als ungelesen
 - Beim Aktualisieren werden Erfolg/Fehler als `FeedLogEntry` protokolliert; pro Feed
   bleiben die neuesten 20 Log-Eintraege erhalten
 - `refreshAllFeeds(_:context:)` — aktualisiert alle gespeicherten Feeds nacheinander,
@@ -384,8 +384,8 @@ fuer Reader-Vor/Zurueck sowie macOS-Menue-Status wiederverwendet.
   Smart-Filter-Listen nutzen gezielte SwiftData-Queries fuer Alle, Ungelesen,
   Mit Stern und Heute statt alle Artikel im Speicher zu filtern
 - Sortiert nach `publishedAt` absteigend
-- Meldet die bereits sortierten sichtbaren Artikel an `ContentView`, damit
-  Reader-Navigation und Menue-Status nicht erneut filtern und sortieren muessen
+- Meldet nur den `ArticleNavigationState` an `ContentView`, damit Reader-Navigation
+  und Menue-Status ohne Kopie der gesamten Artikelliste aktualisiert werden
 - Nutzt `ArticleRowView` fuer Titel, Metadaten, Summary, optionales Bild,
   Ungelesen-Punkt rechts oben und Stern rechts unten
 - Markiert Artikel beim Auswaehlen automatisch als gelesen, wenn die Einstellung
@@ -393,14 +393,13 @@ fuer Reader-Vor/Zurueck sowie macOS-Menue-Status wiederverwendet.
 
 ### ArticleListQuery.swift
 - Buendelt Sortierung und Feed-Predicate fuer Artikel-Listen.
-- Feed-Listen filtern ueber `Article.feed?.id`, weil SwiftData-Predicates kein
-  erzwungenes Optional-Unwrap unterstuetzen.
+- Feed-Listen filtern ueber `Article.feedID`, damit der Feed-Wechsel nicht ueber die
+  `Article.feed`-Relationship predicated werden muss.
 
 ### ArticleNavigationState.swift
-- Berechnet vorherigen und naechsten Artikel aus einer bereits sichtbaren Liste.
-- Sortiert die uebergebene Liste hoechstens einmal und stellt das Ergebnis fuer
-  Reader-Toolbar und macOS-Menue bereit, damit grosse Artikellisten nicht mehrfach
-  pro SwiftUI-Renderdurchlauf verarbeitet werden.
+- Berechnet vorherigen und naechsten Artikel aus der aktuell sichtbaren Liste.
+- Speichert nur die beiden Nachbar-Artikel und nicht mehr die komplette Liste, damit
+  `ContentView` beim Feed-Wechsel weniger State kopieren muss.
 
 ### ArticleRowView.swift
 - Reichhaltige Artikelzeile mit optionalem `AsyncImage`
@@ -414,6 +413,8 @@ fuer Reader-Vor/Zurueck sowie macOS-Menue-Status wiederverwendet.
 - `toggleStarred(_:)`
 - Optionale Varianten ignorieren fehlende Auswahl fuer Menue-/Shortcut-Aktionen
 - `markReadIfNeeded(_:isEnabled:)`
+- Gelesen/Ungelesen-Aenderungen aktualisieren `Feed.unreadCount`, damit Sidebar-Badges
+  ohne eigene Artikel-Query aktuell bleiben
 - `sortedForList(_:)`, `previousArticle(before:in:)` und `nextArticle(after:in:)`
   kapseln die Navigation innerhalb der aktuell sichtbaren Artikelliste
 
@@ -604,6 +605,7 @@ fuer Reader-Vor/Zurueck sowie macOS-Menue-Status wiederverwendet.
     var folderName: String?
     var lastRefreshed: Date?
     var refreshIntervalMinutes: Int          // Default: 60
+    var unreadCount: Int                     // Vorberechneter Sidebar-Zaehler
     @Relationship(deleteRule: .cascade) var articles: [Article]
     @Relationship(deleteRule: .cascade, inverse: \FeedLogEntry.feed) var logEntries: [FeedLogEntry]
     @Relationship var tags: [Tag]
@@ -631,6 +633,7 @@ fuer Reader-Vor/Zurueck sowie macOS-Menue-Status wiederverwendet.
     var content: String?                     // Volltext für Offline-Lesen
     var publishedAt: Date?
     var imageURL: String?
+    var feedID: UUID?                        // Direkter Query-Key fuer schnelle Feed-Listen
     var isRead: Bool
     var isStarred: Bool
     @Relationship var feed: Feed?
@@ -1001,8 +1004,8 @@ fuer Reader-Vor/Zurueck sowie macOS-Menue-Status wiederverwendet.
 - 2026-06-21: P1-Performance umgesetzt: `FeedService.fetchFeed` laedt keine
   Artikelseiten mehr automatisch; `FeedViewModel` reichert Seitenbilder nur noch fuer
   neue oder bildlose bestehende Artikel an. Smart-Filter nutzen gezielte SwiftData-
-  Queries, und Sidebar-Ungelesen-Badges basieren auf einer Query nur fuer ungelesene
-  Artikel statt auf kompletten Feed-Relationships.
+  Queries; Sidebar-Ungelesen-Badges wurden spaeter auf gespeicherte `Feed.unreadCount`
+  Werte umgestellt.
 - 2026-06-21: P2-Performance umgesetzt: Feed-Artikellisten nutzen eine gezielte
   SwiftData-Query pro Feed statt `feed.articles`, und die gemeinsame Artikelsortierung
   liegt in `ArticleListQuery`.
@@ -1041,6 +1044,11 @@ fuer Reader-Vor/Zurueck sowie macOS-Menue-Status wiederverwendet.
   nicht mehr pauschal alle Artikel; Feed-Listen vermeiden globale Artikel-Queries
   und die Reader-Navigation nutzt `ArticleNavigationState` mit der bereits sortierten
   sichtbaren Artikelliste.
+- 2026-06-21: Feed-Wechsel-Performance verbessert: `Article.feedID` ersetzt das
+  Relationship-Predicate fuer Feed-Listen, `ContentView` speichert nur noch
+  vorherigen/naechsten Artikel statt der sichtbaren Artikelliste, und Sidebar-Badges
+  lesen `Feed.unreadCount` statt alle ungelesenen Artikel zu materialisieren. Alte
+  Datensaetze werden beim App-Start per Backfill nachgezogen.
 - 2026-06-21: Reader-Inspector-Layout korrigiert: Bei geoeffnetem Artikelinfos-Panel
   fuellt der Reader-Bereich die verbleibende Detailbreite, damit rechts neben dem
   Inspector keine leere weisse Restflaeche bleibt.

@@ -197,6 +197,7 @@ final class FeedViewModel {
                     feed: feed
                 )
             }
+            feed.unreadCount = feed.articles.filter { !$0.isRead }.count
 
             context.insert(feed)
             appendLog(
@@ -259,27 +260,41 @@ final class FeedViewModel {
         errorMessage = nil
         var failedFeedTitles: [String] = []
 
-        for feed in feeds {
-            do {
-                try await refreshFeedContents(feed, context: context)
-            } catch let error as LocalizedError {
-                appendLog(
-                    kind: "error",
-                    message: error.errorDescription ?? L10n.feedErrorParsingFailed,
-                    to: feed,
-                    context: context
-                )
-                try? context.save()
-                failedFeedTitles.append(feed.title)
-            } catch {
-                appendLog(
-                    kind: "error",
-                    message: L10n.feedErrorParsingFailed,
-                    to: feed,
-                    context: context
-                )
-                try? context.save()
-                failedFeedTitles.append(feed.title)
+        // Alle Feeds parallel aktualisieren. Jede Task läuft auf dem Main Actor,
+        // gibt ihn aber während await-Aufrufen (Netzwerk) frei — so laufen alle
+        // Netzwerkabrufe gleichzeitig, ohne SwiftData-Zugriffe zu verparallelisieren.
+        await withTaskGroup(of: String?.self) { group in
+            for feed in feeds {
+                group.addTask { @MainActor in
+                    do {
+                        try await self.refreshFeedContents(feed, context: context)
+                        return nil
+                    } catch let error as LocalizedError {
+                        self.appendLog(
+                            kind: "error",
+                            message: error.errorDescription ?? L10n.feedErrorParsingFailed,
+                            to: feed,
+                            context: context
+                        )
+                        try? context.save()
+                        return feed.title
+                    } catch {
+                        self.appendLog(
+                            kind: "error",
+                            message: L10n.feedErrorParsingFailed,
+                            to: feed,
+                            context: context
+                        )
+                        try? context.save()
+                        return feed.title
+                    }
+                }
+            }
+
+            for await failedTitle in group {
+                if let failedTitle {
+                    failedFeedTitles.append(failedTitle)
+                }
             }
         }
 
@@ -392,6 +407,7 @@ final class FeedViewModel {
                 )
             )
         }
+        feed.unreadCount += newArticles.count
 
         appendLog(
             kind: "info",

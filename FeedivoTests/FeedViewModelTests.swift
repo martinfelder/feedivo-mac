@@ -123,6 +123,7 @@ struct FeedViewModelTests {
         #expect(importedFeed.faviconURL == "https://example.com/favicon.png")
         #expect(importedFeed.lastRefreshed != nil)
         #expect(importedFeed.articles.count == 1)
+        #expect(importedFeed.unreadCount == 1)
         #expect(importedFeed.articles.first?.title == "Importierter Artikel")
         #expect(importedFeed.logEntries.contains { $0.kind == "info" && $0.message.contains("1") })
         #expect(viewModel.errorMessage == nil)
@@ -293,6 +294,7 @@ struct FeedViewModelTests {
         #expect(successfulFeed.siteURL == "https://example.com/")
         #expect(successfulFeed.faviconURL == "https://example.com/favicon.png")
         #expect(successfulFeed.articles.contains { $0.link == "https://example.com/new" })
+        #expect(successfulFeed.unreadCount == 1)
         #expect(successfulFeed.logEntries.contains { $0.kind == "info" })
         #expect(viewModel.errorMessage?.contains("Fehler Feed") == true)
         #expect(!viewModel.isLoading)
@@ -371,6 +373,7 @@ struct FeedViewModelTests {
         #expect(feed.faviconURL == "https://example.com/favicon.png")
         #expect(feed.lastRefreshed ?? .distantPast > oldRefreshDate)
         #expect(feed.articles.count == 2)
+        #expect(feed.unreadCount == 1)
         #expect(existingArticle.isRead)
         #expect(existingArticle.imageURL == "https://example.com/existing-image.jpg")
         #expect(feed.articles.contains { $0.link == "https://example.com/2" })
@@ -542,6 +545,54 @@ struct FeedViewModelTests {
         let feeds = try context.fetch(FetchDescriptor<Feed>())
         #expect(feeds.isEmpty)
         #expect(viewModel.errorMessage == nil)
+    }
+    @MainActor
+    @Test func refreshAllFeedsAktualisiertFeedsParallel() async throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+
+        let feed1 = Feed(url: "https://example.com/1.xml", title: "Feed 1")
+        let feed2 = Feed(url: "https://example.com/2.xml", title: "Feed 2")
+        let feed3 = Feed(url: "https://example.com/3.xml", title: "Feed 3")
+        context.insert(feed1)
+        context.insert(feed2)
+        context.insert(feed3)
+        try context.save()
+
+        actor ConcurrencyTracker {
+            var active = 0
+            var peak = 0
+            func fetchStarted() { active += 1; peak = max(peak, active) }
+            func fetchEnded() { active -= 1 }
+        }
+        let tracker = ConcurrencyTracker()
+
+        let viewModel = FeedViewModel(
+            fetchFeed: { urlString in
+                await tracker.fetchStarted()
+                try await Task.sleep(for: .milliseconds(100))
+                await tracker.fetchEnded()
+                return ParsedFeed(
+                    sourceURL: urlString,
+                    title: "Feed",
+                    description: nil,
+                    articles: []
+                )
+            },
+            discoverFaviconURL: { _ in nil }
+        )
+
+        await viewModel.refreshAllFeeds([feed1, feed2, feed3], context: context)
+
+        let peak = await tracker.peak
+        #expect(peak > 1, "Feeds sollten parallel aktualisiert werden, nicht nacheinander")
     }
 }
 

@@ -160,8 +160,14 @@ struct ArticleViewModelTests {
         }
 
         #expect(sortCallCount == 1)
-        #expect(state.visibleArticles.map(\.id) == [newest.id, middle.id, oldest.id])
         #expect(state.previousArticle?.id == newest.id)
         #expect(state.nextArticle?.id == oldest.id)
+    }
+
+    @Test func articleNavigationStateHatLeerenStartzustandOhneArtikelliste() {
+        let state = ArticleNavigationState.empty
+
+        #expect(state.previousArticle == nil)
+        #expect(state.nextArticle == nil)
     }
 }

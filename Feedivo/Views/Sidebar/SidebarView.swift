@@ -6,9 +6,6 @@ struct SidebarView: View {
 
     @Query(sort: \Feed.title) private var feeds: [Feed]
     @Query(sort: \FeedFolder.name) private var folders: [FeedFolder]
-    @Query(filter: #Predicate<Article> { article in
-        !article.isRead
-    }) private var unreadArticles: [Article]
     @Binding var selection: SidebarSelection?
     let onRequestAddFeed: () -> Void
     let onRequestDeleteFeed: (Feed) -> Void
@@ -91,7 +88,7 @@ struct SidebarView: View {
                     isSelected: selection == .smartFilter(smartFilter),
                     badgeText: smartFilter == .unread
                         ? SidebarUnreadCount.badgeText(
-                            for: SidebarUnreadCount.totalUnreadArticleCount(in: unreadArticles)
+                            for: SidebarUnreadCount.totalUnreadArticleCount(in: feeds)
                         )
                         : nil
                 ) {
@@ -142,20 +139,15 @@ struct SidebarView: View {
     }
 
     private func feedRows(_ feeds: [Feed], isIndented: Bool = false) -> some View {
-        let unreadCountsByFeed = SidebarUnreadCount.unreadCountsByFeed(in: unreadArticles)
-
-        return ForEach(feeds) { feed in
+        ForEach(feeds) { feed in
             Button {
                 selection = .feed(feed.persistentModelID)
             } label: {
                 FeedRowView(
                     feed: feed,
-                    unreadCount: SidebarUnreadCount.unreadArticleCount(
-                        for: feed,
-                        in: unreadCountsByFeed
-                    )
+                    unreadCount: SidebarUnreadCount.unreadArticleCount(for: feed)
                 )
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
             .buttonStyle(
                 SidebarRowButtonStyle(

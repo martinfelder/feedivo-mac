@@ -49,6 +49,7 @@ struct FeedivoApp: App {
                 .environment(\.interfaceTextSize, interfaceTextSize)
                 .dynamicTypeSize(interfaceTextSize.dynamicTypeSize)
                 .task {
+                    backfillStoredArticleMetadataIfNeeded()
                     scheduleBackgroundRefresh()
                 }
                 .onChange(of: backgroundRefreshIsEnabled) {
@@ -78,5 +79,11 @@ struct FeedivoApp: App {
             intervalMinutes: backgroundRefreshIntervalMinutes,
             scheduler: backgroundRefreshScheduler
         )
+    }
+
+    @MainActor
+    private func backfillStoredArticleMetadataIfNeeded() {
+        _ = try? ArticleFeedIDBackfillService.backfillMissingFeedIDs(in: modelContainer.mainContext)
+        _ = try? FeedUnreadCountBackfillService.backfillUnreadCounts(in: modelContainer.mainContext)
     }
 }

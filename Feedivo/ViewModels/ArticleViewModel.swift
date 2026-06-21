@@ -26,7 +26,9 @@ struct SystemArticleURLOpener: ArticleURLOpener {
 @Observable
 final class ArticleViewModel {
     func toggleRead(_ article: Article) {
+        let wasRead = article.isRead
         article.isRead.toggle()
+        updateUnreadCount(for: article, wasRead: wasRead, isRead: article.isRead)
     }
 
     func toggleRead(_ article: Article?) {
@@ -54,7 +56,9 @@ final class ArticleViewModel {
             return
         }
 
+        let wasRead = article.isRead
         article.isRead = true
+        updateUnreadCount(for: article, wasRead: wasRead, isRead: article.isRead)
     }
 
     func sortedForList(_ articles: [Article]) -> [Article] {
@@ -125,5 +129,17 @@ final class ArticleViewModel {
 
         opener.open(url)
         return true
+    }
+
+    private func updateUnreadCount(for article: Article, wasRead: Bool, isRead: Bool) {
+        guard wasRead != isRead, let feed = article.feed else {
+            return
+        }
+
+        if isRead {
+            feed.unreadCount = max(0, feed.unreadCount - 1)
+        } else {
+            feed.unreadCount += 1
+        }
     }
 }

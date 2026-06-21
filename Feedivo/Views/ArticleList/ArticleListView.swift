@@ -9,26 +9,26 @@ struct ArticleListView: View {
 
     private let scope: Scope
     @Binding var selectedArticle: Article?
-    @Binding var visibleArticles: [Article]
+    @Binding var navigationState: ArticleNavigationState
 
     init(
         feed: Feed,
         selectedArticle: Binding<Article?>,
-        visibleArticles: Binding<[Article]>
+        navigationState: Binding<ArticleNavigationState>
     ) {
         self.scope = .feed(feed)
         self._selectedArticle = selectedArticle
-        self._visibleArticles = visibleArticles
+        self._navigationState = navigationState
     }
 
     init(
         smartFilter: SmartFilter,
         selectedArticle: Binding<Article?>,
-        visibleArticles: Binding<[Article]>
+        navigationState: Binding<ArticleNavigationState>
     ) {
         self.scope = .smartFilter(smartFilter)
         self._selectedArticle = selectedArticle
-        self._visibleArticles = visibleArticles
+        self._navigationState = navigationState
     }
 
     var body: some View {
@@ -37,13 +37,13 @@ struct ArticleListView: View {
             FeedArticleListContent(
                 feed: feed,
                 selectedArticle: $selectedArticle,
-                visibleArticles: $visibleArticles
+                navigationState: $navigationState
             )
         case .smartFilter(let smartFilter):
             SmartFilterArticleListContent(
                 smartFilter: smartFilter,
                 selectedArticle: $selectedArticle,
-                visibleArticles: $visibleArticles
+                navigationState: $navigationState
             )
         }
     }
@@ -52,17 +52,17 @@ struct ArticleListView: View {
 private struct FeedArticleListContent: View {
     let feed: Feed
     @Binding var selectedArticle: Article?
-    @Binding var visibleArticles: [Article]
+    @Binding var navigationState: ArticleNavigationState
     @Query private var articles: [Article]
 
     init(
         feed: Feed,
         selectedArticle: Binding<Article?>,
-        visibleArticles: Binding<[Article]>
+        navigationState: Binding<ArticleNavigationState>
     ) {
         self.feed = feed
         self._selectedArticle = selectedArticle
-        self._visibleArticles = visibleArticles
+        self._navigationState = navigationState
         self._articles = Query(
             filter: ArticleListQuery.feedPredicate(for: feed),
             sort: ArticleListQuery.sortDescriptors
@@ -74,7 +74,7 @@ private struct FeedArticleListContent: View {
             articles: articles,
             navigationTitle: Text(feed.title),
             selectedArticle: $selectedArticle,
-            visibleArticles: $visibleArticles,
+            navigationState: $navigationState,
             sortArticles: false
         )
     }
@@ -83,17 +83,17 @@ private struct FeedArticleListContent: View {
 private struct SmartFilterArticleListContent: View {
     let smartFilter: SmartFilter
     @Binding var selectedArticle: Article?
-    @Binding var visibleArticles: [Article]
+    @Binding var navigationState: ArticleNavigationState
     @Query private var articles: [Article]
 
     init(
         smartFilter: SmartFilter,
         selectedArticle: Binding<Article?>,
-        visibleArticles: Binding<[Article]>
+        navigationState: Binding<ArticleNavigationState>
     ) {
         self.smartFilter = smartFilter
         self._selectedArticle = selectedArticle
-        self._visibleArticles = visibleArticles
+        self._navigationState = navigationState
 
         switch smartFilter {
         case .allArticles:
@@ -135,7 +135,7 @@ private struct SmartFilterArticleListContent: View {
             articles: articles,
             navigationTitle: Text(smartFilter.title),
             selectedArticle: $selectedArticle,
-            visibleArticles: $visibleArticles,
+            navigationState: $navigationState,
             sortArticles: false
         )
     }
@@ -146,7 +146,7 @@ private struct ArticleListContent: View {
     let navigationTitle: Text
     let sortArticles: Bool
     @Binding var selectedArticle: Article?
-    @Binding var visibleArticles: [Article]
+    @Binding var navigationState: ArticleNavigationState
     @AppStorage("markArticleReadOnSelection")
     private var markArticleReadOnSelection = true
     @State private var viewModel = ArticleViewModel()
@@ -155,19 +155,18 @@ private struct ArticleListContent: View {
         articles: [Article],
         navigationTitle: Text,
         selectedArticle: Binding<Article?>,
-        visibleArticles: Binding<[Article]>,
+        navigationState: Binding<ArticleNavigationState>,
         sortArticles: Bool = true
     ) {
         self.articles = articles
         self.navigationTitle = navigationTitle
         self._selectedArticle = selectedArticle
-        self._visibleArticles = visibleArticles
+        self._navigationState = navigationState
         self.sortArticles = sortArticles
     }
 
     var body: some View {
         let articles = sortedArticles
-        let articleIDs = articles.map(\.id)
 
         List(selection: $selectedArticle) {
             if articles.isEmpty {
@@ -199,12 +198,13 @@ private struct ArticleListContent: View {
         }
         .navigationTitle(navigationTitle)
         .onAppear {
-            visibleArticles = articles
+            updateNavigationState(in: articles)
         }
-        .onChange(of: articleIDs) {
-            visibleArticles = articles
+        .onChange(of: articles) {
+            updateNavigationState(in: articles)
         }
         .onChange(of: selectedArticle?.persistentModelID) {
+            updateNavigationState(in: articles)
             viewModel.markReadIfNeeded(
                 selectedArticle,
                 isEnabled: markArticleReadOnSelection
@@ -218,6 +218,14 @@ private struct ArticleListContent: View {
         }
 
         return viewModel.sortedForList(articles)
+    }
+
+    private func updateNavigationState(in articles: [Article]) {
+        navigationState = ArticleNavigationState(
+            articles: articles,
+            selectedArticle: selectedArticle,
+            sortArticles: { $0 }
+        )
     }
 
 }

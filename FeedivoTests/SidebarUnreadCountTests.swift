@@ -3,21 +3,11 @@ import Testing
 
 struct SidebarUnreadCountTests {
     @MainActor
-    @Test func feedUnreadCountNutztVorberechneteUngelesenMapUndReagiertAufStatuswechsel() {
+    @Test func feedUnreadCountNutztGespeichertenFeedZaehler() {
         let feed = Feed(url: "https://example.com/feed.xml", title: "Test Feed")
-        let firstUnreadArticle = Article(title: "Ungelesen 1", isRead: false, feed: feed)
-        let secondUnreadArticle = Article(title: "Ungelesen 2", isRead: false, feed: feed)
+        feed.unreadCount = 2
 
-        var unreadArticles = [firstUnreadArticle, secondUnreadArticle]
-        var unreadCountsByFeed = SidebarUnreadCount.unreadCountsByFeed(in: unreadArticles)
-
-        #expect(SidebarUnreadCount.unreadArticleCount(for: feed, in: unreadCountsByFeed) == 2)
-
-        firstUnreadArticle.isRead = true
-        unreadArticles = [secondUnreadArticle]
-        unreadCountsByFeed = SidebarUnreadCount.unreadCountsByFeed(in: unreadArticles)
-
-        #expect(SidebarUnreadCount.unreadArticleCount(for: feed, in: unreadCountsByFeed) == 1)
+        #expect(SidebarUnreadCount.unreadArticleCount(for: feed) == 2)
     }
 
     @Test func badgeTextIstNurFuerPositiveZaehlerSichtbar() {
@@ -26,15 +16,30 @@ struct SidebarUnreadCountTests {
     }
 
     @MainActor
-    @Test func totalUnreadCountZaehltUngeleseneArtikelDirekt() {
+    @Test func totalUnreadCountZaehltGespeicherteFeedZaehler() {
         let firstFeed = Feed(url: "https://example.com/first.xml", title: "First")
         let secondFeed = Feed(url: "https://example.com/second.xml", title: "Second")
-        let unreadArticles = [
-            Article(title: "Ungelesen", isRead: false, feed: firstFeed),
-            Article(title: "Ungelesen 1", isRead: false, feed: secondFeed),
-            Article(title: "Ungelesen 2", isRead: false, feed: secondFeed)
-        ]
+        firstFeed.unreadCount = 1
+        secondFeed.unreadCount = 2
 
-        #expect(SidebarUnreadCount.totalUnreadArticleCount(in: unreadArticles) == 3)
+        #expect(SidebarUnreadCount.totalUnreadArticleCount(in: [firstFeed, secondFeed]) == 3)
+    }
+
+    @MainActor
+    @Test func articleViewModelHaeltFeedZaehlerBeiStatuswechselAktuell() {
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
+        let article = Article(title: "Ungelesen", isRead: false, feed: feed)
+        feed.unreadCount = 1
+        let viewModel = ArticleViewModel()
+
+        viewModel.markReadIfNeeded(article, isEnabled: true)
+
+        #expect(article.isRead)
+        #expect(feed.unreadCount == 0)
+
+        viewModel.toggleRead(article)
+
+        #expect(!article.isRead)
+        #expect(feed.unreadCount == 1)
     }
 }
