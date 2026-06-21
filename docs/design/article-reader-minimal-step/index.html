@@ -157,16 +157,43 @@
       font-weight: 750;
     }
 
-    .meta-pill {
+    .folder-chip,
+    .tag-pill {
       display: inline-flex;
       align-items: center;
       min-height: 24px;
       padding: 3px 8px;
-      color: #55554f;
-      background: #f0efec;
       border-radius: 999px;
       font-size: 13px;
       font-weight: 650;
+    }
+
+    .folder-chip {
+      gap: 6px;
+      color: #2f5d7c;
+      background: rgba(64, 156, 214, 0.11);
+      border: 1px solid rgba(64, 156, 214, 0.22);
+    }
+
+    .folder-chip::before {
+      content: "Ordner";
+      color: rgba(47, 93, 124, 0.72);
+      font-size: 11px;
+      font-weight: 760;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .tag-pill {
+      color: #4f5f3f;
+      background: rgba(112, 142, 78, 0.13);
+      border: 1px solid rgba(112, 142, 78, 0.18);
+    }
+
+    .tag-pill::before {
+      content: "#";
+      margin-right: 3px;
+      color: rgba(79, 95, 63, 0.68);
     }
 
     .meta-divider {
@@ -347,13 +374,12 @@
           <div class="meta-row" aria-label="Artikel-Metadaten">
             <span class="meta-label">Caschys Blog</span>
             <span class="meta-divider">·</span>
-            <span>Ordner: Technik</span>
-            <span class="meta-divider">·</span>
             <span>ca. 1 Min.</span>
             <span class="meta-divider">·</span>
             <span>vor 29 Min.</span>
-            <span class="meta-pill">Wearables</span>
-            <span class="meta-pill">Smartwatch</span>
+            <span class="folder-chip">Technik</span>
+            <span class="tag-pill">Wearables</span>
+            <span class="tag-pill">Smartwatch</span>
           </div>
           <h1>Smartwatch-Markt wächst wieder: So schaut es aktuell aus</h1>
           <img class="hero" src="assets/smartwatch-hero.png" alt="Smartwatch am Handgelenk vor einer Tastatur">
@@ -372,13 +398,12 @@
           <div class="context-line" aria-label="Artikel-Metadaten">
             <span class="meta-label">Caschys Blog</span>
             <span class="meta-divider">·</span>
-            <span>Technik</span>
-            <span class="meta-divider">·</span>
             <span>1 Min. Lesezeit</span>
             <span class="meta-divider">·</span>
             <span>vor 29 Min.</span>
-            <span class="meta-pill">Wearables</span>
-            <span class="meta-pill">Markt</span>
+            <span class="folder-chip">Technik</span>
+            <span class="tag-pill">Wearables</span>
+            <span class="tag-pill">Markt</span>
           </div>
           <img class="hero" src="assets/smartwatch-hero.png" alt="Smartwatch am Handgelenk vor einer Tastatur">
           <div class="body">
@@ -402,9 +427,9 @@
               <span>ca. 1 Min. Lesezeit</span>
             </div>
             <div class="meta-row">
-              <span>Ordner: Technik</span>
-              <span class="meta-pill">Wearables</span>
-              <span class="meta-pill">Smartwatch</span>
+              <span class="folder-chip">Technik</span>
+              <span class="tag-pill">Wearables</span>
+              <span class="tag-pill">Smartwatch</span>
             </div>
           </div>
           <div class="lead">Der Smartwatch-Markt wächst wieder. Feedivo zeigt in dieser Variante zuerst den Artikeltext und behandelt das Bild nur als unterstützendes Medium.</div>
