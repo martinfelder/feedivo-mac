@@ -6,6 +6,7 @@ struct SidebarView: View {
 
     @Query(sort: \Feed.title) private var feeds: [Feed]
     @Query(sort: \FeedFolder.name) private var folders: [FeedFolder]
+    @Query(sort: \Tag.name) private var tags: [Tag]
     @Binding var selection: SidebarSelection?
     let onRequestAddFeed: () -> Void
     let onRequestDeleteFeed: (Feed) -> Void
@@ -111,7 +112,9 @@ struct SidebarView: View {
         ) {
             isShowingTagManager = true
         } content: {
-            EmptyView()
+            if !tags.isEmpty {
+                tagRows(tags)
+            }
         }
     }
 
@@ -196,6 +199,22 @@ struct SidebarView: View {
         }
     }
 
+    private func tagRows(_ tags: [Tag]) -> some View {
+        ForEach(tags) { tag in
+            Button {
+                selection = .tag(tag.persistentModelID)
+            } label: {
+                TagSidebarRow(tag: tag)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(
+                SidebarRowButtonStyle(
+                    isSelected: selection == .tag(tag.persistentModelID)
+                )
+            )
+        }
+    }
+
     private func toggleFolder(named folderName: String) {
         withAnimation(.easeInOut(duration: 0.16)) {
             if collapsedFolderNames.contains(folderName) {
@@ -203,6 +222,30 @@ struct SidebarView: View {
             } else {
                 collapsedFolderNames.insert(folderName)
             }
+        }
+    }
+}
+
+private struct TagSidebarRow: View {
+    @Environment(\.interfaceTextSize) private var interfaceTextSize
+
+    let tag: Tag
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Circle()
+                .fill(TagColorPalette.color(for: tag.colorHex))
+                .frame(
+                    width: interfaceTextSize.scaled(9),
+                    height: interfaceTextSize.scaled(9)
+                )
+                .frame(width: interfaceTextSize.scaled(20))
+
+            Text(tag.name)
+                .font(interfaceTextSize.font(size: 13, weight: .semibold))
+                .lineLimit(1)
+
+            Spacer(minLength: 8)
         }
     }
 }

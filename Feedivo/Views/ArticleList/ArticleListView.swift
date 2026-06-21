@@ -5,6 +5,7 @@ struct ArticleListView: View {
     private enum Scope {
         case feed(Feed)
         case smartFilter(SmartFilter)
+        case tag(Tag)
     }
 
     private let scope: Scope
@@ -31,6 +32,16 @@ struct ArticleListView: View {
         self._navigationState = navigationState
     }
 
+    init(
+        tag: Tag,
+        selectedArticle: Binding<Article?>,
+        navigationState: Binding<ArticleNavigationState>
+    ) {
+        self.scope = .tag(tag)
+        self._selectedArticle = selectedArticle
+        self._navigationState = navigationState
+    }
+
     var body: some View {
         switch scope {
         case .feed(let feed):
@@ -42,6 +53,12 @@ struct ArticleListView: View {
         case .smartFilter(let smartFilter):
             SmartFilterArticleListContent(
                 smartFilter: smartFilter,
+                selectedArticle: $selectedArticle,
+                navigationState: $navigationState
+            )
+        case .tag(let tag):
+            TagArticleListContent(
+                tag: tag,
                 selectedArticle: $selectedArticle,
                 navigationState: $navigationState
             )
@@ -73,6 +90,37 @@ private struct FeedArticleListContent: View {
         ArticleListContent(
             articles: articles,
             navigationTitle: Text(feed.title),
+            selectedArticle: $selectedArticle,
+            navigationState: $navigationState,
+            sortArticles: false
+        )
+    }
+}
+
+private struct TagArticleListContent: View {
+    let tag: Tag
+    @Binding var selectedArticle: Article?
+    @Binding var navigationState: ArticleNavigationState
+    @Query private var articles: [Article]
+
+    init(
+        tag: Tag,
+        selectedArticle: Binding<Article?>,
+        navigationState: Binding<ArticleNavigationState>
+    ) {
+        self.tag = tag
+        self._selectedArticle = selectedArticle
+        self._navigationState = navigationState
+        self._articles = Query(
+            filter: ArticleListQuery.tagPredicate(for: tag),
+            sort: ArticleListQuery.sortDescriptors
+        )
+    }
+
+    var body: some View {
+        ArticleListContent(
+            articles: articles,
+            navigationTitle: Text(tag.name),
             selectedArticle: $selectedArticle,
             navigationState: $navigationState,
             sortArticles: false

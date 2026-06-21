@@ -95,6 +95,50 @@ struct ArticleListQueryTests {
     }
 
     @MainActor
+    @Test func tagFetchDescriptorLaedtNurArtikelMitAusgewaehltemTagSortiert() throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            FeedFolder.self,
+            FeedLogEntry.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let selectedTag = Tag(name: "Swift", colorHex: "#3B82F6")
+        let otherTag = Tag(name: "Mac", colorHex: "#22C55E")
+        let olderArticle = Article(
+            title: "Aelter",
+            publishedAt: Date(timeIntervalSince1970: 100)
+        )
+        olderArticle.tags = [selectedTag]
+        let newerArticle = Article(
+            title: "Neuer",
+            publishedAt: Date(timeIntervalSince1970: 300)
+        )
+        newerArticle.tags = [selectedTag, otherTag]
+        let unrelatedArticle = Article(
+            title: "Fremd",
+            publishedAt: Date(timeIntervalSince1970: 500)
+        )
+        unrelatedArticle.tags = [otherTag]
+
+        context.insert(selectedTag)
+        context.insert(otherTag)
+        context.insert(olderArticle)
+        context.insert(newerArticle)
+        context.insert(unrelatedArticle)
+        try context.save()
+
+        let articles = try context.fetch(
+            ArticleListQuery.tagFetchDescriptor(for: selectedTag)
+        )
+
+        #expect(articles.map(\.title) == ["Neuer", "Aelter"])
+    }
+
+    @MainActor
     @Test func backfillSetztFehlendeDirekteFeedIDsAusDerRelationship() throws {
         let container = try ModelContainer(
             for: Feed.self,

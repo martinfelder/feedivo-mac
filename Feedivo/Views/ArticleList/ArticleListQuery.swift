@@ -19,4 +19,20 @@ enum ArticleListQuery {
             sortBy: sortDescriptors
         )
     }
+
+    static func tagPredicate(for tag: Tag) -> Predicate<Article> {
+        let tagID = tag.id
+        return #Predicate<Article> { article in
+            article.tags.contains { articleTag in
+                articleTag.id == tagID
+            }
+        }
+    }
+
+    static func tagFetchDescriptor(for tag: Tag) -> FetchDescriptor<Article> {
+        FetchDescriptor(
+            predicate: tagPredicate(for: tag),
+            sortBy: sortDescriptors
+        )
+    }
 }

@@ -131,15 +131,14 @@ FeedivoMac/
 │   ├── Views/
 │   │   ├── ContentView.swift           # Root: NavigationSplitView (3 Spalten) ✅
 │   │   ├── Sidebar/
-│   │   │   ├── SidebarView.swift       # Dunkle linke Spalte: Filter, Feeds, + Button, @Query ✅
+│   │   │   ├── SidebarView.swift       # Dunkle linke Spalte: Filter, Tags, Feeds, + Button, @Query ✅
 │   │   │   ├── SidebarStyle.swift      # Farb-/Auswahlwerte fuer dunkle Sidebar ✅
 │   │   │   ├── SidebarUnreadCount.swift # Ungelesen-Zaehler fuer Sidebar-Badges ✅
 │   │   │   ├── FeedFolderOrganizer.swift # Einfache Ordner-Gruppierung fuer Feeds ✅
 │   │   │   ├── FeedRowView.swift       # Feed-Zeile mit Favicon/Fallback ✅
 │   │   │   ├── FeedPropertiesView.swift # Feed-Eigenschaften-Sheet ✅
 │   │   │   ├── FeedRenameView.swift    # Feed-Anzeigename bearbeiten ✅
-│   │   │   ├── FeedPropertiesFormatter.swift # Helper fuer Eigenschaften ✅
-│   │   │   └── TagRowView.swift        # Eine Tag-Zeile in der Sidebar (TODO)
+│   │   │   └── FeedPropertiesFormatter.swift # Helper fuer Eigenschaften ✅
 │   │   ├── ArticleList/
 │   │   │   ├── ArticleListView.swift   # Mittlere Spalte: echte Feed-Artikel anzeigen ✅
 │   │   │   ├── ArticleListQuery.swift  # SwiftData-Queries fuer Feed-/Artikel-Listen ✅
@@ -183,8 +182,7 @@ FeedivoMac/
 │       ├── AppLanguage.swift           # Sprachauswahl + Locale-Mapping ✅
 │       ├── InterfaceTextSize.swift     # App-weite UI-Schriftgroesse ✅
 │       ├── Localizable.xcstrings       # String Catalog fuer de/en/fr/it ✅
-│       ├── L10n.swift                  # Zentraler Zugriff auf lokalisierte Strings ✅
-│       └── AGENTS.md                   # Diese Datei
+│       └── L10n.swift                  # Zentraler Zugriff auf lokalisierte Strings ✅
 │
 ├── Feedivo.xcodeproj
 ├── docs/
@@ -258,7 +256,12 @@ oben, statt die komplette sichtbare Artikelliste in `ContentView` zu kopieren.
 - Ungelesen-Badges basieren auf `Feed.unreadCount`, damit die Sidebar beim Rendern
   keine separate Query auf alle ungelesenen Artikel mehr materialisieren muss
 - Die Sidebar zeigt eine eigene `Tags`-Section mit Tag-Icon; der Button oeffnet den
-  zentralen `TagManagerView`. Tag-Filterung in der Sidebar folgt separat.
+  zentralen `TagManagerView`.
+- Vorhandene Tags werden in der Sidebar als klickbare Zeilen mit Farbindikator aus
+  `Tag.colorHex` angezeigt; ein Klick filtert die Artikelliste feeduebergreifend
+  auf Artikel mit diesem Tag.
+- Tag-Zeilen zeigen bewusst noch keine Zaehler, damit die Sidebar keine Artikel ueber
+  Tag-Relationships laden muss.
 - Feeds stehen in einer Sidebar-Section `Ordner`; neben dem Section-Titel gibt es
   einen + Button zum Anlegen neuer Ordner
 - Ordner sind per Chevron auf- und zuklappbar; Feeds innerhalb eines Ordners werden
@@ -409,6 +412,9 @@ oben, statt die komplette sichtbare Artikelliste in `ContentView` zu kopieren.
 - Feed-Listen laden nicht mehr automatisch alle Artikel per globaler `@Query`;
   Smart-Filter-Listen nutzen gezielte SwiftData-Queries fuer Alle, Ungelesen,
   Mit Stern und Heute statt alle Artikel im Speicher zu filtern
+- Tag-Listen nutzen ebenfalls eine gezielte SwiftData-Query ueber die
+  `Article.tags`-Relationship und zeigen feeduebergreifend Artikel mit dem
+  ausgewaehlten Tag
 - Sortiert nach `publishedAt` absteigend
 - Meldet nur den `ArticleNavigationState` an `ContentView`, damit Reader-Navigation
   und Menue-Status ohne Kopie der gesamten Artikelliste aktualisiert werden
@@ -423,6 +429,8 @@ oben, statt die komplette sichtbare Artikelliste in `ContentView` zu kopieren.
 - Buendelt Sortierung und Feed-Predicate fuer Artikel-Listen.
 - Feed-Listen filtern ueber `Article.feedID`, damit der Feed-Wechsel nicht ueber die
   `Article.feed`-Relationship predicated werden muss.
+- Tag-Listen filtern ueber `Article.tags.contains { tag.id == selectedTagID }`;
+  dieser Relationship-Predicate ist durch `ArticleListQueryTests` abgesichert.
 
 ### ArticleNavigationState.swift
 - Berechnet vorherigen und naechsten Artikel aus der aktuell sichtbaren Liste.
@@ -468,8 +476,8 @@ oben, statt die komplette sichtbare Artikelliste in `ContentView` zu kopieren.
   Tags.
 - Nutzt eine SwiftData-`@Query` auf `Tag.name`, wiederverwendet `TagViewModel` fuer
   Validierung und Speichern und zeigt Fehler direkt in der jeweiligen Eingabe.
-- Wird aus der Sidebar-Section `Tags` geoeffnet; Sidebar-Filterung nach Tags bleibt
-  fuer einen separaten Schritt offen.
+- Wird aus der Sidebar-Section `Tags` geoeffnet; dieselbe Section zeigt auch
+  klickbare Tag-Filterzeilen.
 
 ### ArticleCommands.swift / ArticleCommandActions.swift
 - macOS-Menue `Artikel` fuer Aktionen auf dem fokussierten/ausgewaehlten Artikel
@@ -874,8 +882,9 @@ oben, statt die komplette sichtbare Artikelliste in `ContentView` zu kopieren.
   Feed-Zuordnung editierbar in Feed-Eigenschaften)
 - [x] Tag-System ausbauen: Tags mit Farben zentral verwalten ist als Basis umgesetzt
 - [x] Sidebar: Abschnitt "Tags" zeigt den Tag-Manager
+- [x] Sidebar: Tags filtern Artikel feeduebergreifend
 - [ ] Feed-Tags ergaenzen
-- [ ] Sidebar: Tags filtern
+- [ ] Tag-Zaehler in der Sidebar spaeter pruefen
 - [ ] Erweiterte/eigene Smart Filter spaeter pruefen
 - [ ] `RuleEngine`: Neue Artikel automatisch taggen basierend auf Regeln
 - [ ] Regel-UI: Regeln erstellen, bearbeiten, aktivieren/deaktivieren
@@ -922,8 +931,9 @@ oben, statt die komplette sichtbare Artikelliste in `ContentView` zu kopieren.
 - M1 und M2 sind abgeschlossen.
 - Aktuell M3: Tags, Regeln und Sync. Die erste Artikel-Tag-Basis existiert im
   Reader-Metadaten-Inspector; die zentrale Tag-Verwaltung ist als Basis ueber die
-  Sidebar erreichbar. Naechster sinnvoller Block sind Feed-Tags, Tag-Sidebar-Filter
-  und danach automatische Regeln.
+  Sidebar erreichbar, und Tags koennen in der Sidebar feeduebergreifend als
+  Artikel-Filter genutzt werden. Naechster sinnvoller Block sind Feed-Tags oder
+  die erste einfache Regel-Engine fuer automatische Tag-Zuweisung.
 - Feature-Roadmap ist in `docs/FEATURES.md` dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
@@ -1107,5 +1117,8 @@ oben, statt die komplette sichtbare Artikelliste in `ContentView` zu kopieren.
   und Sync umgestellt; naechster Fokus ist Tag-Verwaltung, Tag-Sidebar und danach
   automatische Regeln.
 - 2026-06-21: Tag-Manager in der Sidebar verdrahtet: Die neue Section `Tags` oeffnet
-  das zentrale Tag-Verwaltungs-Sheet; Tag-Filterung bleibt bewusst ein separater
-  M3-Schritt.
+  das zentrale Tag-Verwaltungs-Sheet; die eigentliche Tag-Filterung wurde danach als
+  eigener M3-Schritt umgesetzt.
+- 2026-06-21: Sidebar-Tag-Filter umgesetzt: Tags erscheinen als klickbare Zeilen mit
+  Farbindikator und filtern `ArticleListView` ueber eine gezielte SwiftData-Query auf
+  `Article.tags`; Tag-Zaehler, Feed-Tags und Regeln bleiben separate M3-Schritte.

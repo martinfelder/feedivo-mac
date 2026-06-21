@@ -156,6 +156,10 @@ bei geschlossener App.
   leere Ordner werden als `FeedFolder` gespeichert, Ordner sind aufklappbar,
   Feeds in Ordnern sind eingerueckt, und der Ordnername kann in den Feed-Eigenschaften
   bearbeitet oder geleert werden.
+- Zentrale Tag-Verwaltung und Sidebar-Tag-Filter sind als Basis umgesetzt: Tags
+  koennen erstellt, umbenannt, gefaerbt und geloescht werden; die Sidebar zeigt Tags
+  als klickbare Zeilen mit Farbindikator und filtert die Artikelliste
+  feeduebergreifend auf Artikel mit dem ausgewaehlten Tag.
 - Projekt baut und Unit-Tests laufen; UI-Test-Runner blockierte lokal am 2026-06-19
   vor dem App-Launch an einer alten Feedivo-PID.
 
@@ -163,7 +167,8 @@ bei geschlossener App.
 
 M3 Tags, Regeln & Sync:
 - M2 Core Features ist abgeschlossen.
-- Naechster Fokus: Tag-Verwaltung, Tag-Sidebar-Filter und danach automatische Regeln.
+- Tag-Verwaltung und Tag-Sidebar-Filter sind als Basis abgeschlossen.
+- Naechster Fokus: Feed-Tags oder erste einfache automatische Regeln.
 
 ---
 
@@ -247,8 +252,9 @@ M3 Tags, Regeln & Sync:
 - Implementiert: Artikel-Tags koennen im rechten Reader-Inspector hinzugefuegt und
   vom aktuellen Artikel entfernt werden; vorhandene Tags werden wiederverwendet und
   neue Tags als `Tag` gespeichert.
-- Implementiert: Tag-Farben und zentraler Tag-Manager sind als Basis umgesetzt.
-- Offen: Feed-Tags und Sidebar-Filter folgen separat.
+- Implementiert: Tag-Farben, zentraler Tag-Manager und Sidebar-Tag-Filter sind als
+  Basis umgesetzt.
+- Offen: Feed-Tags, Tag-Zaehler in der Sidebar und automatische Regeln folgen separat.
 
 #### 1.6 Artikel teilen
 - Status: Entschieden
@@ -385,9 +391,14 @@ M3 Tags, Regeln & Sync:
 - Spaeter: Eigene Smart Filter und weitere Zeitfilter wie Gestern.
 
 #### 3.3 Tag-Abschnitt
-- Status: In Diskussion
+- Status: Fertig als Basis
 - Prioritaet: v1
-- Empfehlung: Unterhalb von Smart Filtern und Feeds, feeduebergreifend.
+- Implementiert: Die Sidebar zeigt vorhandene Tags unterhalb der Smart Filter als
+  klickbare Zeilen mit Farbindikator. Ein Klick filtert die mittlere Artikelliste
+  feeduebergreifend auf Artikel, denen dieser Tag zugewiesen ist.
+- Performance: Tag-Zeilen zeigen noch keine Zaehler, damit die Sidebar nicht bei
+  jedem Render Artikel ueber Tag-Relationships laden muss.
+- Offen: Feed-Tags und Tag-Zaehler spaeter separat pruefen.
 
 ### 4. Feed-Verwaltung
 
@@ -466,8 +477,9 @@ M3 Tags, Regeln & Sync:
 - Prioritaet: v1
 - Implementiert: Artikel-Tags koennen im Reader-Inspector hinzugefuegt und entfernt
   werden. Tags koennen zentral erstellt, umbenannt, farblich markiert und geloescht
-  werden.
-- Offen: Feed-Tags und Tags in der Sidebar filtern folgen separat.
+  werden. Die Sidebar kann nach Artikeln mit einem ausgewaehlten Tag filtern.
+- Offen: Feed-Tags, Tag-Zaehler in der Sidebar und automatische Tag-Zuweisung durch
+  Regeln folgen separat.
 
 #### 5.2 Automatische Regeln
 - Status: Entschieden

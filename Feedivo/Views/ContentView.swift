@@ -5,6 +5,7 @@ import UniformTypeIdentifiers
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Feed.title) private var feeds: [Feed]
+    @Query(sort: \Tag.name) private var tags: [Tag]
 
     // columnVisibility steuert ob die Sidebar sichtbar ist.
     // .all bedeutet: alle 3 Spalten beim Start anzeigen.
@@ -51,6 +52,13 @@ struct ContentView: View {
             } else if let feed = selectedFeed {
                 ArticleListView(
                     feed: feed,
+                    selectedArticle: $selectedArticle,
+                    navigationState: $articleNavigationState
+                )
+                    .navigationSplitViewColumnWidth(min: 280, ideal: 320, max: 400)
+            } else if let tag = selectedTag {
+                ArticleListView(
+                    tag: tag,
                     selectedArticle: $selectedArticle,
                     navigationState: $articleNavigationState
                 )
@@ -261,6 +269,14 @@ struct ContentView: View {
         }
 
         return feeds.first { $0.persistentModelID == feedID }
+    }
+
+    private var selectedTag: Tag? {
+        guard case .tag(let tagID) = sidebarSelection else {
+            return nil
+        }
+
+        return tags.first { $0.persistentModelID == tagID }
     }
 
     private var selectedSmartFilter: SmartFilter? {
