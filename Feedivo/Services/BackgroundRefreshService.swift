@@ -34,7 +34,10 @@ final class SystemBackgroundActivityRefreshScheduler: BackgroundRefreshSchedulin
         scheduler.tolerance = TimeInterval(max(60, request.intervalMinutes * 60 / 4))
         scheduler.schedule { [modelContainer] completionHandler in
             Task { @MainActor in
-                await BackgroundRefreshService.refreshAllFeeds(modelContainer: modelContainer)
+                await BackgroundRefreshService.refreshAllFeeds(
+                    modelContainer: modelContainer,
+                    intervalMinutes: request.intervalMinutes
+                )
                 completionHandler(.finished)
             }
         }
@@ -59,7 +62,8 @@ enum BackgroundRefreshService {
         isEnabled: Bool,
         intervalMinutes: Int,
         now: Date = Date(),
-        scheduler: BackgroundRefreshScheduling
+        scheduler: BackgroundRefreshScheduling,
+        userDefaults: UserDefaults = .standard
     ) throws {
         let clampedIntervalMinutes = BackgroundRefreshSettings.clampedIntervalMinutes(intervalMinutes)
         guard let earliestBeginDate = BackgroundRefreshSettings.earliestBeginDate(
@@ -68,16 +72,29 @@ enum BackgroundRefreshService {
             now: now
         ) else {
             scheduler.cancel(identifier: taskIdentifier)
+            userDefaults.removeObject(forKey: BackgroundRefreshSettings.nextAutomaticRefreshDateKey)
             return
         }
 
-        try scheduler.submit(
-            BackgroundRefreshRequest(
-                identifier: taskIdentifier,
-                intervalMinutes: clampedIntervalMinutes,
-                earliestBeginDate: earliestBeginDate
+        do {
+            try scheduler.submit(
+                BackgroundRefreshRequest(
+                    identifier: taskIdentifier,
+                    intervalMinutes: clampedIntervalMinutes,
+                    earliestBeginDate: earliestBeginDate
+                )
             )
-        )
+            userDefaults.set(
+                earliestBeginDate.timeIntervalSince1970,
+                forKey: BackgroundRefreshSettings.nextAutomaticRefreshDateKey
+            )
+        } catch {
+            userDefaults.removeObject(forKey: BackgroundRefreshSettings.nextAutomaticRefreshDateKey)
+            userDefaults.set(now.timeIntervalSince1970, forKey: BackgroundRefreshSettings.lastAutomaticRefreshDateKey)
+            userDefaults.set(BackgroundRefreshSettings.statusFailed, forKey: BackgroundRefreshSettings.lastAutomaticRefreshStatusKey)
+            userDefaults.set(error.localizedDescription, forKey: BackgroundRefreshSettings.lastAutomaticRefreshErrorKey)
+            throw error
+        }
     }
 
     @MainActor
@@ -94,16 +111,63 @@ enum BackgroundRefreshService {
         try? scheduleNextRefresh(
             isEnabled: isEnabled,
             intervalMinutes: intervalMinutes,
-            scheduler: scheduler
+            scheduler: scheduler,
+            userDefaults: userDefaults
         )
     }
 
     @MainActor
-    static func refreshAllFeeds(modelContainer: ModelContainer) async {
+    static func refreshAllFeeds(
+        modelContainer: ModelContainer,
+        intervalMinutes: Int = 60,
+        userDefaults: UserDefaults = .standard
+    ) async {
         let context = ModelContext(modelContainer)
         let feeds = (try? context.fetch(FetchDescriptor<Feed>())) ?? []
         let viewModel = FeedViewModel()
 
         await viewModel.refreshAllFeeds(feeds, context: context)
+
+        if let errorMessage = viewModel.errorMessage {
+            recordRefreshFailure(
+                errorMessage,
+                intervalMinutes: intervalMinutes,
+                userDefaults: userDefaults
+            )
+        } else {
+            recordRefreshSuccess(
+                intervalMinutes: intervalMinutes,
+                userDefaults: userDefaults
+            )
+        }
+    }
+
+    static func recordRefreshSuccess(
+        now: Date = Date(),
+        intervalMinutes: Int,
+        userDefaults: UserDefaults = .standard
+    ) {
+        userDefaults.set(now.timeIntervalSince1970, forKey: BackgroundRefreshSettings.lastAutomaticRefreshDateKey)
+        userDefaults.set(BackgroundRefreshSettings.statusSuccess, forKey: BackgroundRefreshSettings.lastAutomaticRefreshStatusKey)
+        userDefaults.removeObject(forKey: BackgroundRefreshSettings.lastAutomaticRefreshErrorKey)
+        userDefaults.set(
+            BackgroundRefreshSettings.nextScheduledRefreshDate(intervalMinutes: intervalMinutes, now: now).timeIntervalSince1970,
+            forKey: BackgroundRefreshSettings.nextAutomaticRefreshDateKey
+        )
+    }
+
+    static func recordRefreshFailure(
+        _ message: String,
+        now: Date = Date(),
+        intervalMinutes: Int,
+        userDefaults: UserDefaults = .standard
+    ) {
+        userDefaults.set(now.timeIntervalSince1970, forKey: BackgroundRefreshSettings.lastAutomaticRefreshDateKey)
+        userDefaults.set(BackgroundRefreshSettings.statusFailed, forKey: BackgroundRefreshSettings.lastAutomaticRefreshStatusKey)
+        userDefaults.set(message, forKey: BackgroundRefreshSettings.lastAutomaticRefreshErrorKey)
+        userDefaults.set(
+            BackgroundRefreshSettings.nextScheduledRefreshDate(intervalMinutes: intervalMinutes, now: now).timeIntervalSince1970,
+            forKey: BackgroundRefreshSettings.nextAutomaticRefreshDateKey
+        )
     }
 }

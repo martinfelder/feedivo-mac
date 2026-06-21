@@ -35,4 +35,22 @@ struct BackgroundRefreshSettingsTests {
 
         #expect(earliestBeginDate == now.addingTimeInterval(30 * 60))
     }
+
+    @Test func nextScheduledRefreshDateNutztGeklemmtesIntervall() {
+        let now = Date(timeIntervalSince1970: 1_000)
+
+        let nextRefreshDate = BackgroundRefreshSettings.nextScheduledRefreshDate(
+            intervalMinutes: 44,
+            now: now
+        )
+
+        #expect(nextRefreshDate == now.addingTimeInterval(30 * 60))
+    }
+
+    @Test func statusTextBeschreibtGespeichertenStatus() {
+        #expect(BackgroundRefreshSettings.statusText(for: BackgroundRefreshSettings.statusSuccess) == "Erfolgreich")
+        #expect(BackgroundRefreshSettings.statusText(for: BackgroundRefreshSettings.statusFailed) == "Fehlgeschlagen")
+        #expect(BackgroundRefreshSettings.statusText(for: nil) == "Noch nicht gelaufen")
+        #expect(BackgroundRefreshSettings.statusText(for: "unbekannt") == "Noch nicht gelaufen")
+    }
 }

@@ -183,6 +183,8 @@ M3 Tags, Regeln & Sync:
 - M2 Core Features ist abgeschlossen.
 - Tag-Verwaltung, Tag-Sidebar-Filter, RuleEngine und Rule-UI sind als Basis
   abgeschlossen; Feed-Tags sind in den Feed-Eigenschaften umgesetzt.
+- Background Refresh bleibt macOS-nativ und zeigt den letzten sowie naechsten
+  automatischen Lauf kompakt in den Einstellungen.
 - Naechster Fokus: iCloud Sync oder Offline-Unterstuetzung.
 
 ---
@@ -493,6 +495,10 @@ M3 Tags, Regeln & Sync:
   mit Einstellung fuer Ein/Aus und Intervalle 15, 30, 60 oder 120 Minuten.
 - Verhalten: Nutzt denselben Refresh-Pfad wie `Alle Feeds aktualisieren`; einzelne
   Feed-Fehler stoppen den Gesamtlauf nicht.
+- Implementiert: Feedivo speichert den letzten automatischen Refresh-Zeitpunkt,
+  den Status, eine optionale letzte Fehlermeldung und den naechsten geschaetzten
+  automatischen Lauf. Die Einstellungen zeigen diese Werte kompakt unter dem
+  Auto-Refresh-Schalter.
 - Einschraenkung: macOS bestimmt den exakten Ausfuehrungszeitpunkt. Vollstaendig
   beendete Apps werden fuer diese Basis nicht neu gestartet, weil `BGTaskScheduler`
   fuer native macOS Apps nicht verfuegbar ist.

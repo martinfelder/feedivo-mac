@@ -459,9 +459,12 @@ sichtbar bleibt.
 
 ### BackgroundRefreshSettings.swift / BackgroundRefreshService.swift
 - `BackgroundRefreshSettings` kapselt `@AppStorage` Keys, Defaults und erlaubte
-  Intervalle: 15, 30, 60 oder 120 Minuten.
+  Intervalle: 15, 30, 60 oder 120 Minuten sowie Statuswerte fuer letzten
+  automatischen Refresh, letzten Fehler und naechsten geschaetzten Lauf.
 - `BackgroundRefreshService.scheduleNextRefresh(...)` plant oder storniert den
   Auto-Refresh testbar ueber ein kleines Scheduler-Protokoll.
+- Beim Planen, nach erfolgreichem Lauf und nach Fehlern speichert der Service
+  Statusdaten in UserDefaults; die Einstellungen zeigen diese kompakt an.
 - `SystemBackgroundActivityRefreshScheduler` nutzt `NSBackgroundActivityScheduler`,
   weil `BGTaskScheduler` fuer native macOS Apps im SDK nicht verfuegbar ist.
 - Automatischer Refresh nutzt denselben Pfad wie manueller Refresh fuer alle Feeds:
@@ -995,10 +998,10 @@ sichtbar bleibt.
   Bearbeiten, Loeschen und Aktivieren/Deaktivieren
 - [x] Regel-Mehrfachbedingungen mit AND/OR fuer Power-User-Regeln
 - [x] Regeln manuell auf vorhandene Artikel anwenden
+- [x] Background Refresh erweitert: macOS-native Strategie bestaetigt,
+  Statusanzeige fuer letzten/naechsten automatischen Refresh ergaenzt
 - [ ] iCloud Sync via CloudKit aktivieren und testen
 - [ ] Offline-Unterstützung: Artikel-Content beim Abruf in SwiftData speichern
-- [ ] Background Refresh erweitern: Strategie fuer Refresh nach vollstaendig beendeter
-  App pruefen, falls spaeter noetig
 
 ### M4 – Polish & Release
 - [x] OPML Import (Feeds aus anderem RSS Reader übernehmen)
@@ -1042,8 +1045,9 @@ sichtbar bleibt.
   und Tags koennen in der Sidebar feeduebergreifend als Artikel-Filter genutzt werden.
   Regeln koennen ueber einen Wizard erstellt, in den
   Einstellungen verwaltet und manuell auf vorhandene Artikel angewendet werden;
-  Power-User-Regeln unterstuetzen mehrere Bedingungen mit AND/OR. Naechster sinnvoller
-  Block ist iCloud Sync oder Offline-Unterstuetzung.
+  Power-User-Regeln unterstuetzen mehrere Bedingungen mit AND/OR. Background Refresh
+  bleibt macOS-nativ und zeigt letzten/naechsten automatischen Lauf in den
+  Einstellungen. Naechster sinnvoller Block ist iCloud Sync oder Offline-Unterstuetzung.
 - Feature-Roadmap ist in `docs/FEATURES.md` dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
@@ -1257,6 +1261,10 @@ sichtbar bleibt.
 - 2026-06-21: Rueckwirkendes Anwenden von Regeln umgesetzt: In den Einstellungen
   koennen aktive Regeln manuell auf vorhandene Artikel angewendet werden; bereits
   gesetzte Tags werden nicht dupliziert.
+- 2026-06-21: Background Refresh M3 erweitert: Feedivo bleibt bei
+  `NSBackgroundActivityScheduler`, speichert letzten automatischen Lauf, Status,
+  optionale Fehlermeldung und naechsten geschaetzten Lauf und zeigt diese Werte in
+  den Einstellungen.
 - 2026-06-21: Regel-Wizard und Regelverwaltung umgesetzt: Regeln werden in den
   Einstellungen gelistet, koennen dort erstellt, bearbeitet, geloescht und
   aktiviert/deaktiviert werden. Der Wizard bietet einfache Regeln oder

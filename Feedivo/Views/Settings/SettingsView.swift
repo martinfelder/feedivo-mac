@@ -18,6 +18,18 @@ struct SettingsView: View {
     @AppStorage(BackgroundRefreshSettings.intervalMinutesKey)
     private var backgroundRefreshIntervalMinutes = BackgroundRefreshSettings.defaultIntervalMinutes
 
+    @AppStorage(BackgroundRefreshSettings.lastAutomaticRefreshDateKey)
+    private var lastAutomaticRefreshTimestamp = 0.0
+
+    @AppStorage(BackgroundRefreshSettings.lastAutomaticRefreshStatusKey)
+    private var lastAutomaticRefreshStatus = ""
+
+    @AppStorage(BackgroundRefreshSettings.lastAutomaticRefreshErrorKey)
+    private var lastAutomaticRefreshError = ""
+
+    @AppStorage(BackgroundRefreshSettings.nextAutomaticRefreshDateKey)
+    private var nextAutomaticRefreshTimestamp = 0.0
+
     @AppStorage("readerTitleFontPreset")
     private var readerTitleFontPresetRawValue = ReaderFontPreset.system.rawValue
 
@@ -75,6 +87,33 @@ struct SettingsView: View {
                 Text(L10n.settingsAutomaticRefreshDescription)
                     .font(interfaceTextSize.font(size: 11))
                     .foregroundStyle(.secondary)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    LabeledContent(L10n.settingsAutomaticRefreshLastRun) {
+                        Text(formattedRefreshDate(lastAutomaticRefreshTimestamp))
+                            .foregroundStyle(.secondary)
+                    }
+
+                    LabeledContent(L10n.settingsAutomaticRefreshStatus) {
+                        Text(automaticRefreshStatusText)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    LabeledContent(L10n.settingsAutomaticRefreshNextRun) {
+                        Text(formattedRefreshDate(nextAutomaticRefreshTimestamp))
+                            .foregroundStyle(.secondary)
+                    }
+
+                    if lastAutomaticRefreshStatus == BackgroundRefreshSettings.statusFailed,
+                       !lastAutomaticRefreshError.isEmpty {
+                        LabeledContent(L10n.settingsAutomaticRefreshLastError) {
+                            Text(lastAutomaticRefreshError)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(2)
+                        }
+                    }
+                }
+                .font(interfaceTextSize.font(size: 12))
             }
 
             Section {
@@ -146,6 +185,28 @@ struct SettingsView: View {
         .formStyle(.grouped)
         .padding(20)
         .frame(width: 460)
+    }
+
+    private var automaticRefreshStatusText: LocalizedStringKey {
+        switch lastAutomaticRefreshStatus {
+        case BackgroundRefreshSettings.statusSuccess:
+            L10n.settingsAutomaticRefreshStatusSuccess
+        case BackgroundRefreshSettings.statusFailed:
+            L10n.settingsAutomaticRefreshStatusFailed
+        default:
+            L10n.settingsAutomaticRefreshStatusNever
+        }
+    }
+
+    private func formattedRefreshDate(_ timestamp: Double) -> String {
+        guard timestamp > 0 else {
+            return String(localized: "settings.automaticRefresh.noDate")
+        }
+
+        return Date(timeIntervalSince1970: timestamp).formatted(
+            date: .abbreviated,
+            time: .shortened
+        )
     }
 
     private func typographySlider(
