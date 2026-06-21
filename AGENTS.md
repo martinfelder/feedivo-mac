@@ -532,9 +532,13 @@ fuer Reader-Vor/Zurueck sowie macOS-Menue-Status wiederverwendet.
 ### ReaderContentRenderer.swift
 - Wandelt HTML-Fragmente oder Plain Text in `ReaderContentBlock`
 - Aktuelle Block-Typen: `.paragraph(String)` und `.image(urlString:)`
+- Erkennt Absätze, Ueberschriften, Zitate, Listenpunkte und Bildbloecke
 - Nutzt `NSAttributedString` HTML-Konvertierung fuer lesbaren Text
+- Erhaelt die Reihenfolge von HTML-`img`-Tags im Artikelinhalt; Bilder werden nicht
+  mehr gesammelt an den Artikelanfang verschoben
 - Fallback: Wenn `Article.content` leer ist, wird `Article.summary` verwendet
-- Fallback-Bild: Wenn kein HTML-Bild vorhanden ist, kann `Article.imageURL` als Bildblock dienen
+- Fallback-Bild: Wenn kein HTML-Bild vorhanden ist, kann `Article.imageURL` als
+  Lead-Bild am Anfang dienen
 
 ### Lokalisierung / i18n
 - `Feedivo/Resources/Localizable.xcstrings` ist die zentrale String Catalog Datei
@@ -932,6 +936,9 @@ fuer Reader-Vor/Zurueck sowie macOS-Menue-Status wiederverwendet.
 - 2026-06-20: Native Reader Rendering erweitert: `ReaderContentRenderer` erkennt
   Ueberschriften, Zitate und Listenpunkte als eigene Bloecke; `ReaderView` rendert sie
   mit nativer SwiftUI-Darstellung und faellt bei kaputten Inhalten auf Absätze zurueck
+- 2026-06-21: Reader-Bildreihenfolge korrigiert: `ReaderContentRenderer` erhaelt
+  HTML-`img`-Tags an ihrer Position im Artikelinhalt; nur echte Fallback-Bilder aus
+  `Article.imageURL` bleiben als Lead-Bild am Anfang
 - 2026-06-20: Navigation Vor/Zurueck fuer Artikel umgesetzt: Reader-Toolbar und
   macOS-Menue `Artikel` navigieren mit `Cmd+↑`/`Cmd+↓` innerhalb der aktuell
   sichtbaren Feed- oder Smart-Filter-Liste und stoppen am Listenrand

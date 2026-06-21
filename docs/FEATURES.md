@@ -75,7 +75,9 @@ bei geschlossener App.
 - In der Reader-Toolbar kann ein rechter Metadaten-Inspector eingeblendet werden;
   dort sind Feed-Ordner und Artikel-Tags sichtbar und bearbeitbar, waehrend der
   Artikelkopf nur Feedname, Lesezeit und Zeitpunkt zeigt.
-- Reader-Rendering wandelt HTML/Plain-Text in Absätze und Bildbloecke.
+- Reader-Rendering wandelt HTML/Plain-Text in Absätze und Bildbloecke; HTML-Bilder
+  bleiben dabei an ihrer Position im Artikelinhalt, Fallback-Bilder aus
+  `Article.imageURL` werden nur genutzt, wenn der HTML-Inhalt kein Bild enthaelt.
 - ArticleRowView zeigt Titel, Datum, Summary, optionales Bild, Ungelesen-Punkt
   rechts oben und Stern rechts unten.
 - Artikelbilder werden beim Feed-Parsing robuster aus Media RSS, iTunes Image,
@@ -176,6 +178,9 @@ M2 Core Features:
 - Implementiert: `ReaderContentRenderer` erzeugt Absätze, Ueberschriften, Zitate,
   Listenpunkte und Bildbloecke aus gespeicherten Feed-Inhalten; `ReaderView` rendert
   diese Bloecke nativ mit SwiftUI.
+- Bildposition: HTML-`img`-Tags bleiben im nativen Reader an ihrer Position im
+  Artikelinhalt; ein gespeichertes `Article.imageURL` dient nur dann als Lead-Bild,
+  wenn im HTML selbst kein Bild vorhanden ist.
 - Performance: `ReaderPreparedArticle` bereitet Content-Bloecke, Metazeile und
   Original-URL einmal pro ausgewaehltem Artikel vor, damit SwiftUI-Redraws nicht
   wiederholt HTML/Text neu zerlegen.

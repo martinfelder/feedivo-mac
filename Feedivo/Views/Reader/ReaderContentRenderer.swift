@@ -12,17 +12,17 @@ enum ReaderContentBlock: Equatable {
 enum ReaderContentRenderer {
     static func blocks(summary: String?, content: String?, fallbackImageURL: String?) -> [ReaderContentBlock] {
         let source = preferredText(content: content, summary: summary)
-        let imageURLs = imageURLs(inHTML: source)
-        let textBlocks = structuredTextBlocks(from: source)
+        let contentBlocks = structuredContentBlocks(from: source)
 
-        let imageBlocks: [ReaderContentBlock]
-        if imageURLs.isEmpty, let fallbackImageURL, !fallbackImageURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            imageBlocks = [.image(urlString: fallbackImageURL)]
-        } else {
-            imageBlocks = imageURLs.map { .image(urlString: $0) }
+        if contentBlocks.contains(where: \.isImage) {
+            return contentBlocks
         }
 
-        return imageBlocks + textBlocks
+        guard let fallbackImageURL, !fallbackImageURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return contentBlocks
+        }
+
+        return [.image(urlString: fallbackImageURL)] + contentBlocks
     }
 
     private static func preferredText(content: String?, summary: String?) -> String {
@@ -33,18 +33,12 @@ enum ReaderContentRenderer {
         return summary ?? ""
     }
 
-    private static func structuredTextBlocks(from htmlOrText: String) -> [ReaderContentBlock] {
-        let withoutImages = htmlOrText.replacingOccurrences(
-            of: #"<img\b[^>]*>"#,
-            with: "",
-            options: [.regularExpression, .caseInsensitive]
-        )
-
-        if let blocks = structuredHTMLBlocks(from: withoutImages) {
+    private static func structuredContentBlocks(from htmlOrText: String) -> [ReaderContentBlock] {
+        if let blocks = structuredHTMLBlocks(from: htmlOrText) {
             return blocks
         }
 
-        return paragraphs(fromPreparedHTML: withoutImages).map { .paragraph($0) }
+        return paragraphs(fromPreparedHTML: htmlOrText).map { .paragraph($0) }
     }
 
     private static func structuredHTMLBlocks(from html: String) -> [ReaderContentBlock]? {
@@ -52,7 +46,7 @@ enum ReaderContentRenderer {
             return nil
         }
 
-        let pattern = #"<(h[1-6]|blockquote|li|p|div)\b[^>]*>(.*?)</\1>"#
+        let pattern = #"<img\b[^>]*>|<(h[1-6]|blockquote|li|p|div)\b[^>]*>(.*?)</\1>"#
         guard let expression = try? NSRegularExpression(
             pattern: pattern,
             options: [.caseInsensitive, .dotMatchesLineSeparators]
@@ -66,32 +60,116 @@ enum ReaderContentRenderer {
             return nil
         }
 
-        return matches.compactMap { match in
+        var blocks: [ReaderContentBlock] = []
+        var currentIndex = html.startIndex
+
+        for match in matches {
+            guard let matchRange = Range(match.range, in: html) else {
+                continue
+            }
+
+            appendTextBlocks(
+                from: String(html[currentIndex ..< matchRange.lowerBound]),
+                to: &blocks
+            )
+
+            let matchedHTML = String(html[matchRange])
+            if matchedHTML.range(of: #"<img\b"#, options: [.regularExpression, .caseInsensitive]) != nil {
+                appendImageBlock(from: matchedHTML, to: &blocks)
+                currentIndex = matchRange.upperBound
+                continue
+            }
+
             guard
                 let tagRange = Range(match.range(at: 1), in: html),
                 let contentRange = Range(match.range(at: 2), in: html)
             else {
-                return nil
+                currentIndex = matchRange.upperBound
+                continue
             }
 
             let tag = String(html[tagRange]).lowercased()
-            let text = normalizedWhitespace(htmlToPlainText(String(html[contentRange])))
-            guard !text.isEmpty else {
-                return nil
+            appendInlineBlocks(
+                from: String(html[contentRange]),
+                tag: tag,
+                to: &blocks
+            )
+            currentIndex = matchRange.upperBound
+        }
+
+        appendTextBlocks(
+            from: String(html[currentIndex ..< html.endIndex]),
+            to: &blocks
+        )
+
+        return blocks
+    }
+
+    private static func appendInlineBlocks(from html: String, tag: String, to blocks: inout [ReaderContentBlock]) {
+        let pattern = #"<img\b[^>]*>"#
+        guard
+            let expression = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive])
+        else {
+            appendTextBlock(from: html, tag: tag, to: &blocks)
+            return
+        }
+
+        let range = NSRange(html.startIndex ..< html.endIndex, in: html)
+        let matches = expression.matches(in: html, range: range)
+        guard !matches.isEmpty else {
+            appendTextBlock(from: html, tag: tag, to: &blocks)
+            return
+        }
+
+        var currentIndex = html.startIndex
+        for match in matches {
+            guard let matchRange = Range(match.range, in: html) else {
+                continue
             }
 
-            if tag.hasPrefix("h") {
-                return .heading(text)
-            }
+            appendTextBlock(
+                from: String(html[currentIndex ..< matchRange.lowerBound]),
+                tag: tag,
+                to: &blocks
+            )
+            appendImageBlock(from: String(html[matchRange]), to: &blocks)
+            currentIndex = matchRange.upperBound
+        }
 
-            switch tag {
-            case "blockquote":
-                return .quote(text)
-            case "li":
-                return .listItem(text)
-            default:
-                return .paragraph(text)
-            }
+        appendTextBlock(
+            from: String(html[currentIndex ..< html.endIndex]),
+            tag: tag,
+            to: &blocks
+        )
+    }
+
+    private static func appendTextBlocks(from html: String, to blocks: inout [ReaderContentBlock]) {
+        let htmlWithoutListContainers = html
+            .replacingOccurrences(of: #"</?(ul|ol)\b[^>]*>"#, with: "", options: [.regularExpression, .caseInsensitive])
+
+        for paragraph in paragraphs(fromPreparedHTML: htmlWithoutListContainers) where paragraph != "•" {
+            blocks.append(.paragraph(paragraph))
+        }
+    }
+
+    private static func appendTextBlock(from html: String, tag: String, to blocks: inout [ReaderContentBlock]) {
+        let text = normalizedWhitespace(htmlToPlainText(html))
+        guard !text.isEmpty else {
+            return
+        }
+
+        if tag.hasPrefix("h") {
+            blocks.append(.heading(text))
+            return
+        }
+
+        switch tag {
+        case "blockquote":
+            blocks.append(.quote(text))
+        case "li":
+            blocks.append(.listItem(text))
+        default:
+            blocks.append(.paragraph(text))
         }
     }
 
@@ -124,20 +202,19 @@ enum ReaderContentRenderer {
         return attributedString.string
     }
 
-    private static func imageURLs(inHTML html: String) -> [String] {
+    private static func appendImageBlock(from html: String, to blocks: inout [ReaderContentBlock]) {
         let pattern = #"<img[^>]+src\s*=\s*["']([^"']+)["']"#
-        guard let expression = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else {
-            return []
+        guard
+            let expression = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]),
+            let match = expression.firstMatch(in: html, range: NSRange(html.startIndex ..< html.endIndex, in: html)),
+            let srcRange = Range(match.range(at: 1), in: html)
+        else {
+            return
         }
 
-        let range = NSRange(html.startIndex ..< html.endIndex, in: html)
-        return expression.matches(in: html, range: range).compactMap { match in
-            guard let srcRange = Range(match.range(at: 1), in: html) else {
-                return nil
-            }
-
-            let value = String(html[srcRange]).trimmingCharacters(in: .whitespacesAndNewlines)
-            return value.isEmpty ? nil : value
+        let value = String(html[srcRange]).trimmingCharacters(in: .whitespacesAndNewlines)
+        if !value.isEmpty {
+            blocks.append(.image(urlString: value))
         }
     }
 
@@ -146,5 +223,15 @@ enum ReaderContentRenderer {
             .components(separatedBy: .whitespacesAndNewlines)
             .filter { !$0.isEmpty }
             .joined(separator: " ")
+    }
+}
+
+private extension ReaderContentBlock {
+    var isImage: Bool {
+        if case .image = self {
+            return true
+        }
+
+        return false
     }
 }

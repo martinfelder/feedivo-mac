@@ -69,8 +69,8 @@ struct FeedivoTests {
         )
 
         #expect(imageBlocks == [
-            .image(urlString: "https://example.com/bild.jpg"),
             .paragraph("Text vor dem Bild."),
+            .image(urlString: "https://example.com/bild.jpg"),
             .paragraph("Text danach.")
         ])
 
