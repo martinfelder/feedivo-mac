@@ -82,6 +82,13 @@ struct TagViewModelTests {
     }
 
     @MainActor
+    @Test func normalizedColorHexValidiertUndNormalisiertFarben() {
+        #expect(TagViewModel.normalizedColorHex("#22c55e") == "#22C55E")
+        #expect(TagViewModel.normalizedColorHex("3B82F6") == "#3B82F6")
+        #expect(TagViewModel.normalizedColorHex("not-a-color") == "#888888")
+    }
+
+    @MainActor
     @Test func deleteTagEntferntNurTagNichtArtikel() throws {
         let context = try testContext()
         let tag = Tag(name: "Swift", colorHex: "#3B82F6")
