@@ -229,7 +229,10 @@ struct SidebarView: View {
             Button {
                 selection = .tag(tag.persistentModelID)
             } label: {
-                TagSidebarRow(tag: tag)
+                TagSidebarRow(
+                    tag: tag,
+                    badgeText: SidebarTagCount.badgeText(for: tag)
+                )
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             .buttonStyle(
@@ -255,6 +258,7 @@ private struct TagSidebarRow: View {
     @Environment(\.interfaceTextSize) private var interfaceTextSize
 
     let tag: Tag
+    let badgeText: String?
 
     var body: some View {
         HStack(spacing: 8) {
@@ -271,6 +275,16 @@ private struct TagSidebarRow: View {
                 .lineLimit(1)
 
             Spacer(minLength: 8)
+
+            if let badgeText {
+                Text(badgeText)
+                    .font(interfaceTextSize.font(size: 11, weight: .semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(SidebarStyle.secondaryText)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 2)
+                    .background(SidebarStyle.activeSelection, in: Capsule())
+            }
         }
     }
 }

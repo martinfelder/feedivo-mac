@@ -16,6 +16,25 @@ struct SidebarUnreadCountTests {
     }
 
     @MainActor
+    @Test func tagBadgeTextZaehltVerknuepfteArtikel() {
+        let tag = Tag(name: "Swift")
+        let firstArticle = Article(title: "Erster Artikel")
+        let secondArticle = Article(title: "Zweiter Artikel")
+        tag.articles = [firstArticle, secondArticle]
+
+        #expect(SidebarTagCount.articleCount(for: tag) == 2)
+        #expect(SidebarTagCount.badgeText(for: tag) == "2")
+    }
+
+    @MainActor
+    @Test func tagBadgeTextIstNurFuerTagsMitArtikelnSichtbar() {
+        let tag = Tag(name: "Leer")
+
+        #expect(SidebarTagCount.articleCount(for: tag) == 0)
+        #expect(SidebarTagCount.badgeText(for: tag) == nil)
+    }
+
+    @MainActor
     @Test func totalUnreadCountZaehltGespeicherteFeedZaehler() {
         let firstFeed = Feed(url: "https://example.com/first.xml", title: "First")
         let secondFeed = Feed(url: "https://example.com/second.xml", title: "Second")

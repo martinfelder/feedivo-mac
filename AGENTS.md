@@ -272,8 +272,8 @@ sichtbar bleibt.
   auf Artikel mit diesem Tag.
 - Neu erstellte Tags werden nach erfolgreichem Anlegen direkt als Sidebar-Auswahl
   gesetzt, damit der schnelle Tag-Filter sofort sichtbar und nutzbar ist.
-- Tag-Zeilen zeigen bewusst noch keine Zaehler, damit die Sidebar keine Artikel ueber
-  Tag-Relationships laden muss.
+- Tag-Zeilen zeigen rechts eine dezente Badge mit der Anzahl direkt verknuepfter
+  Artikel, wenn der Tag mindestens einen Artikel hat.
 - Die Sidebar zeigt Regeln nur kompakt als eigenen Abschnitt mit Anzahl aktiver
   Regeln und einem Link, um aus dem aktuell ausgewaehlten Artikel eine neue Regel zu
   erstellen. Die komplette Regelverwaltung liegt bewusst in den Einstellungen.
@@ -977,7 +977,7 @@ sichtbar bleibt.
 - [x] Sidebar: Abschnitt "Tags" zeigt den Tag-Manager
 - [x] Sidebar: Tags filtern Artikel feeduebergreifend
 - [ ] Feed-Tags ergaenzen
-- [ ] Tag-Zaehler in der Sidebar spaeter pruefen
+- [x] Tag-Zaehler in der Sidebar anzeigen
 - [ ] Erweiterte/eigene Smart Filter spaeter pruefen
 - [x] `RuleEngine`: Neue Artikel automatisch taggen basierend auf einfachen Regeln
 - [x] Regel-UI: Wizard fuer einfache/Power-User-Regeln, Einstellungen-Liste,
@@ -1029,8 +1029,8 @@ sichtbar bleibt.
   Sidebar erreichbar, und Tags koennen in der Sidebar feeduebergreifend als
   Artikel-Filter genutzt werden. Regeln koennen ueber einen Wizard erstellt und in
   den Einstellungen verwaltet werden; Power-User-Regeln unterstuetzen mehrere
-  Bedingungen mit AND/OR. Naechster sinnvoller Block ist Feed-Tags, Tag-Zaehler/
-  Rueckwirkendes Anwenden von Regeln oder iCloud Sync.
+  Bedingungen mit AND/OR. Naechster sinnvoller Block ist Feed-Tags, rueckwirkendes
+  Anwenden von Regeln oder iCloud Sync.
 - Feature-Roadmap ist in `docs/FEATURES.md` dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
@@ -1224,10 +1224,12 @@ sichtbar bleibt.
   eigener M3-Schritt umgesetzt.
 - 2026-06-21: Sidebar-Tag-Filter umgesetzt: Tags erscheinen als klickbare Zeilen mit
   Farbindikator und filtern `ArticleListView` ueber eine gezielte SwiftData-Query auf
-  `Article.tags`; Tag-Zaehler, Feed-Tags und Regeln bleiben separate M3-Schritte.
+  `Article.tags`; Feed-Tags und Regeln bleiben separate M3-Schritte.
 - 2026-06-21: Tag-Erstellung verfeinert: Neue Tags werden nach dem Anlegen direkt in
   der Sidebar als aktueller Tag-Filter ausgewaehlt, damit sie sofort sichtbar und
   schnell nutzbar sind.
+- 2026-06-21: Sidebar-Tag-Zaehler umgesetzt: Tags zeigen rechts eine dezente Badge
+  mit der Anzahl direkt verknuepfter Artikel.
 - 2026-06-21: Rechter Artikelinfos-Inspector erweitert: Vorhandene globale Tags, die
   dem Artikel noch nicht zugewiesen sind, erscheinen nun als Plus-Chips und koennen
   direkt angeklickt werden.

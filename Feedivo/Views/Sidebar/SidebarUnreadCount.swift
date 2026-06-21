@@ -13,3 +13,13 @@ enum SidebarUnreadCount {
         count > 0 ? "\(count)" : nil
     }
 }
+
+enum SidebarTagCount {
+    static func articleCount(for tag: Tag) -> Int {
+        tag.articles.count
+    }
+
+    static func badgeText(for tag: Tag) -> String? {
+        SidebarUnreadCount.badgeText(for: articleCount(for: tag))
+    }
+}
