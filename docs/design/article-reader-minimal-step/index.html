@@ -13,6 +13,7 @@
       --line: rgba(32, 33, 36, 0.12);
       --accent: #0a84ff;
       --reader-width: 760px;
+      --inspector-width: 320px;
       --body-size: 19px;
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
     }
@@ -78,7 +79,7 @@
     }
 
     .tab {
-      min-width: 118px;
+      min-width: 132px;
       min-height: 32px;
       padding: 0 11px;
       color: #5f5f5a;
@@ -86,6 +87,7 @@
       border: 0;
       border-radius: 7px;
       cursor: pointer;
+      white-space: nowrap;
     }
 
     .tab.active {
@@ -118,9 +120,15 @@
     }
 
     .stage {
+      position: relative;
       min-width: 0;
       overflow: auto;
       background: var(--surface);
+      transition: padding-right 180ms ease;
+    }
+
+    body.inspector-open .stage {
+      padding-right: var(--inspector-width);
     }
 
     .reader {
@@ -199,6 +207,136 @@
     .meta-divider {
       color: #b6b5af;
       font-weight: 500;
+    }
+
+    .inspector {
+      position: fixed;
+      top: 58px;
+      right: 0;
+      bottom: 0;
+      z-index: 8;
+      width: var(--inspector-width);
+      display: flex;
+      flex-direction: column;
+      background: #fbfbfa;
+      border-left: 1px solid var(--line);
+      box-shadow: -18px 0 48px rgba(0, 0, 0, 0.08);
+      transform: translateX(100%);
+      transition: transform 180ms ease;
+    }
+
+    body.inspector-open .inspector {
+      transform: translateX(0);
+    }
+
+    .inspector-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .inspector-header strong {
+      display: block;
+      font-size: 15px;
+    }
+
+    .inspector-header span {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .inspector-body {
+      display: grid;
+      gap: 20px;
+      padding: 16px;
+      overflow: auto;
+    }
+
+    .field {
+      display: grid;
+      gap: 8px;
+    }
+
+    .field label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 760;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .select-like,
+    .tag-input {
+      width: 100%;
+      min-height: 32px;
+      padding: 6px 9px;
+      color: var(--text);
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      font: inherit;
+      font-size: 14px;
+    }
+
+    .tag-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+
+    .editable-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 26px;
+      padding: 4px 7px 4px 9px;
+      color: #4f5f3f;
+      background: rgba(112, 142, 78, 0.13);
+      border: 1px solid rgba(112, 142, 78, 0.18);
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    .editable-tag button {
+      width: 16px;
+      height: 16px;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      color: rgba(79, 95, 63, 0.72);
+      background: transparent;
+      border: 0;
+      border-radius: 999px;
+      cursor: pointer;
+    }
+
+    .add-tag-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+    }
+
+    .small-button {
+      min-height: 32px;
+      padding: 0 10px;
+      color: var(--accent);
+      background: rgba(10, 132, 255, 0.1);
+      border: 0;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .inspector-note {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
     }
 
     .context-line {
@@ -343,15 +481,33 @@
         width: min(var(--reader-width), calc(100% - 36px));
         padding-top: 30px;
       }
+
+      body.inspector-open .stage {
+        padding-right: 0;
+      }
+
+      .inspector {
+        top: auto;
+        left: 0;
+        width: 100%;
+        max-height: 55vh;
+        border-left: 0;
+        border-top: 1px solid var(--line);
+        transform: translateY(100%);
+      }
+
+      body.inspector-open .inspector {
+        transform: translateY(0);
+      }
     }
   </style>
 </head>
-<body>
+<body class="inspector-open">
   <main class="prototype">
     <header class="topbar">
       <div class="title-block">
         <strong>Feedivo Reader - reduzierter Schritt</strong>
-        <span>Positionierung von Feed, Lesezeit, Ordner und Tags.</span>
+        <span>Feed, Lesezeit und Zeitpunkt im Artikel; Ordner und Tags im rechten Inspector.</span>
       </div>
 
       <nav class="tabs" aria-label="Reader Varianten">
@@ -364,6 +520,7 @@
         <button class="icon" title="Vorheriger Artikel">⌃</button>
         <button class="icon" title="Nächster Artikel">⌄</button>
         <button class="icon star" title="Mit Stern markieren">☆</button>
+        <button class="icon info-toggle active" title="Ordner und Tags bearbeiten">ⓘ</button>
         <button class="icon" title="Original öffnen">↗</button>
       </div>
     </header>
@@ -377,9 +534,6 @@
             <span>ca. 1 Min.</span>
             <span class="meta-divider">·</span>
             <span>vor 29 Min.</span>
-            <span class="folder-chip">Technik</span>
-            <span class="tag-pill">Wearables</span>
-            <span class="tag-pill">Smartwatch</span>
           </div>
           <h1>Smartwatch-Markt wächst wieder: So schaut es aktuell aus</h1>
           <img class="hero" src="assets/smartwatch-hero.png" alt="Smartwatch am Handgelenk vor einer Tastatur">
@@ -401,9 +555,6 @@
             <span>1 Min. Lesezeit</span>
             <span class="meta-divider">·</span>
             <span>vor 29 Min.</span>
-            <span class="folder-chip">Technik</span>
-            <span class="tag-pill">Wearables</span>
-            <span class="tag-pill">Markt</span>
           </div>
           <img class="hero" src="assets/smartwatch-hero.png" alt="Smartwatch am Handgelenk vor einer Tastatur">
           <div class="body">
@@ -426,11 +577,6 @@
               <span class="meta-divider">·</span>
               <span>ca. 1 Min. Lesezeit</span>
             </div>
-            <div class="meta-row">
-              <span class="folder-chip">Technik</span>
-              <span class="tag-pill">Wearables</span>
-              <span class="tag-pill">Smartwatch</span>
-            </div>
           </div>
           <div class="lead">Der Smartwatch-Markt wächst wieder. Feedivo zeigt in dieser Variante zuerst den Artikeltext und behandelt das Bild nur als unterstützendes Medium.</div>
           <img class="hero" src="assets/smartwatch-hero.png" alt="Smartwatch am Handgelenk vor einer Tastatur">
@@ -443,12 +589,53 @@
         </div>
       </article>
     </section>
+
+    <aside class="inspector" aria-label="Artikelinformationen bearbeiten">
+      <div class="inspector-header">
+        <div>
+          <strong>Artikelinfos</strong>
+          <span>Ordner und Tags bearbeiten</span>
+        </div>
+        <button class="icon close-inspector" title="Seitenmenü schließen">×</button>
+      </div>
+
+      <div class="inspector-body">
+        <div class="field">
+          <label for="folder">Ordner</label>
+          <select class="select-like" id="folder">
+            <option>Technik</option>
+            <option>Apple</option>
+            <option>Private Feeds</option>
+            <option>Ohne Ordner</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Tags</label>
+          <div class="tag-list" id="tag-list">
+            <span class="editable-tag">Wearables <button aria-label="Tag Wearables entfernen">×</button></span>
+            <span class="editable-tag">Smartwatch <button aria-label="Tag Smartwatch entfernen">×</button></span>
+          </div>
+          <div class="add-tag-row">
+            <input class="tag-input" id="tag-input" type="text" placeholder="Tag hinzufügen">
+            <button class="small-button" id="add-tag">Hinzufügen</button>
+          </div>
+        </div>
+
+        <p class="inspector-note">Die Artikelansicht bleibt sauber. Organisierende Informationen liegen im rechten Inspector und können dort geändert werden.</p>
+      </div>
+    </aside>
   </main>
 
   <script>
     const tabs = [...document.querySelectorAll(".tab")];
     const variants = [...document.querySelectorAll(".variant")];
     const star = document.querySelector(".star");
+    const infoToggle = document.querySelector(".info-toggle");
+    const closeInspector = document.querySelector(".close-inspector");
+    const tagList = document.querySelector("#tag-list");
+    const tagInput = document.querySelector("#tag-input");
+    const addTag = document.querySelector("#add-tag");
 
     tabs.forEach(tab => {
       tab.addEventListener("click", () => {
@@ -463,6 +650,44 @@
       star.classList.toggle("active");
       star.textContent = star.classList.contains("active") ? "★" : "☆";
     });
+
+    const setInspectorOpen = isOpen => {
+      document.body.classList.toggle("inspector-open", isOpen);
+      infoToggle.classList.toggle("active", isOpen);
+    };
+
+    infoToggle.addEventListener("click", () => {
+      setInspectorOpen(!document.body.classList.contains("inspector-open"));
+    });
+
+    closeInspector.addEventListener("click", () => {
+      setInspectorOpen(false);
+    });
+
+    tagList.addEventListener("click", event => {
+      if (event.target.tagName === "BUTTON") {
+        event.target.closest(".editable-tag").remove();
+      }
+    });
+
+    addTag.addEventListener("click", () => {
+      const value = tagInput.value.trim();
+      if (!value) return;
+
+      const tag = document.createElement("span");
+      tag.className = "editable-tag";
+      tag.innerHTML = `${value} <button aria-label="Tag ${value} entfernen">×</button>`;
+      tagList.append(tag);
+      tagInput.value = "";
+    });
+
+    tagInput.addEventListener("keydown", event => {
+      if (event.key === "Enter") {
+        addTag.click();
+      }
+    });
+
+    setInspectorOpen(true);
   </script>
 </body>
 </html>

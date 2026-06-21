@@ -179,6 +179,9 @@ M2 Core Features:
   `docs/design/article-reader-minimal-step/index.html` liegen drei bewusst ruhige
   Varianten fuer die Positionierung von Feedname, Lesezeit, Ordner und Tags, weil
   die Schriftarten selbst bereits individuell konfigurierbar sind.
+- Aktuelle Richtung: Feedname, Lesezeit und Zeitpunkt bleiben im Artikelkopf;
+  Ordner und Tags sollen stattdessen in einem einblendbaren rechten Inspector
+  sichtbar und bearbeitbar sein.
 - Fallback: Leere strukturierte HTML-Bloecke werden verworfen; kaputte oder unbekannte
   Inhalte fallen auf normale Absätze zurueck.
 - Naechster Schritt: Klickbare Inline-Links separat planen und umsetzen.

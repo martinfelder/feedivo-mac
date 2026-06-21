@@ -915,3 +915,6 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
   `docs/design/article-reader-minimal-step/index.html` fokussiert auf drei ruhige
   Varianten fuer die Positionierung von Feedname, Lesezeit, Ordner und Tags:
   Meta oben, Meta nach Titel und Meta kompakt.
+- 2026-06-21: Minimal-Reader-Prototyp verfeinert: Ordner und Tags wurden aus dem
+  Artikelkopf entfernt und liegen jetzt in einem einblendbaren rechten Inspector,
+  in dem Ordner und Tags bearbeitet werden koennen.
