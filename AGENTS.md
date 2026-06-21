@@ -124,7 +124,7 @@ FeedivoMac/
 │   │   ├── ArticleViewModel.swift      # Artikel gelesen/ungelesen und Stern toggeln ✅
 │   │   ├── ArticleNavigationState.swift # Sichtbare Artikel-Navigation effizient berechnen ✅
 │   │   ├── ArticleMetadataEditor.swift # Artikel-Ordner und Tags bearbeiten ✅
-│   │   ├── TagViewModel.swift          # Tags verwalten (TODO)
+│   │   ├── TagViewModel.swift          # Tags verwalten ✅
 │   │   ├── RuleEngineViewModel.swift   # Regeln auswerten und Tags auto-zuweisen (TODO)
 │   │   └── SyncViewModel.swift         # iCloud Sync Status anzeigen (TODO)
 │   │
@@ -155,8 +155,8 @@ FeedivoMac/
 │   │   │   ├── ReaderTypography.swift  # Textgroesse/Zeilenabstand Defaults ✅
 │   │   │   └── WebContentView.swift    # WKWebView-Wrapper für volle Artikel (TODO)
 │   │   ├── Tags/
-│   │   │   ├── TagManagerView.swift    # Tags erstellen, bearbeiten, löschen (TODO)
-│   │   │   └── AddTagView.swift        # Sheet: neuen Tag erstellen (TODO)
+│   │   │   ├── TagManagerView.swift    # Tags erstellen, bearbeiten, loeschen ✅
+│   │   │   └── AddTagView.swift        # bleibt vorerst nicht separat noetig; TagManagerView erstellt Tags direkt
 │   │   ├── Rules/
 │   │   │   ├── RuleListView.swift      # Alle Regeln anzeigen und verwalten (TODO)
 │   │   │   └── AddRuleView.swift       # Sheet: neue Regel erstellen (TODO)
@@ -257,6 +257,8 @@ oben, statt die komplette sichtbare Artikelliste in `ContentView` zu kopieren.
   ueber alle Feeds
 - Ungelesen-Badges basieren auf `Feed.unreadCount`, damit die Sidebar beim Rendern
   keine separate Query auf alle ungelesenen Artikel mehr materialisieren muss
+- Die Sidebar zeigt eine eigene `Tags`-Section mit Tag-Icon; der Button oeffnet den
+  zentralen `TagManagerView`. Tag-Filterung in der Sidebar folgt separat.
 - Feeds stehen in einer Sidebar-Section `Ordner`; neben dem Section-Titel gibt es
   einen + Button zum Anlegen neuer Ordner
 - Ordner sind per Chevron auf- und zuklappbar; Feeds innerhalb eines Ordners werden
@@ -452,6 +454,22 @@ oben, statt die komplette sichtbare Artikelliste in `ContentView` zu kopieren.
 - `removeTag(_:from:context:)` entfernt ein Tag nur vom aktuellen Artikel.
 - `setFolderName(_:for:context:)` speichert den getrimmten Ordnernamen am Feed des
   Artikels; leere Eingaben entfernen die Ordnerzuordnung.
+
+### TagViewModel.swift
+- `@Observable` `@MainActor` class fuer zentrale Tag-Verwaltung.
+- Erstellt Tags mit normalisiertem Namen und normalisierter Hex-Farbe.
+- Verhindert leere und doppelte Tag-Namen case-insensitive beim Erstellen und
+  Umbenennen.
+- Aktualisiert Tag-Farben und loescht Tags inklusive vorhandener Artikel- und
+  Feed-Verknuepfungen.
+
+### TagManagerView.swift
+- Zentrales Sheet zum Erstellen, Umbenennen, farblichen Markieren und Loeschen von
+  Tags.
+- Nutzt eine SwiftData-`@Query` auf `Tag.name`, wiederverwendet `TagViewModel` fuer
+  Validierung und Speichern und zeigt Fehler direkt in der jeweiligen Eingabe.
+- Wird aus der Sidebar-Section `Tags` geoeffnet; Sidebar-Filterung nach Tags bleibt
+  fuer einen separaten Schritt offen.
 
 ### ArticleCommands.swift / ArticleCommandActions.swift
 - macOS-Menue `Artikel` fuer Aktionen auf dem fokussierten/ausgewaehlten Artikel
@@ -854,9 +872,9 @@ oben, statt die komplette sichtbare Artikelliste in `ContentView` zu kopieren.
 - [x] Ordner fuer Feeds als eigenes Organisationsfeature ausbauen (Basis:
   eine Ebene, Sidebar-Section `Ordner` mit + Button, leere Ordner als `FeedFolder`,
   Feed-Zuordnung editierbar in Feed-Eigenschaften)
-- [ ] Tag-System ausbauen: Tags mit Farben verwalten, Feeds taggen und Sidebar-Filter
-  ergaenzen; Basis fuer Artikel-Tags ist im Reader-Inspector umgesetzt
-- [ ] Sidebar: Abschnitt "Tags" mit Filterung
+- [ ] Tag-System ausbauen: Tags mit Farben verwalten ist als Basis umgesetzt;
+  Feeds taggen und Sidebar-Filter ergaenzen folgen separat
+- [ ] Sidebar: Abschnitt "Tags" zeigt den Tag-Manager; Filterung folgt separat
 - [ ] Erweiterte/eigene Smart Filter spaeter pruefen
 - [ ] `RuleEngine`: Neue Artikel automatisch taggen basierend auf Regeln
 - [ ] Regel-UI: Regeln erstellen, bearbeiten, aktivieren/deaktivieren
@@ -902,8 +920,9 @@ oben, statt die komplette sichtbare Artikelliste in `ContentView` zu kopieren.
 
 - M1 und M2 sind abgeschlossen.
 - Aktuell M3: Tags, Regeln und Sync. Die erste Artikel-Tag-Basis existiert im
-  Reader-Metadaten-Inspector; naechster sinnvoller Block ist der Ausbau von
-  Tag-Verwaltung, Tag-Sidebar-Filtern und danach automatischen Regeln.
+  Reader-Metadaten-Inspector; die zentrale Tag-Verwaltung ist als Basis ueber die
+  Sidebar erreichbar. Naechster sinnvoller Block sind Feed-Tags, Tag-Sidebar-Filter
+  und danach automatische Regeln.
 - Feature-Roadmap ist in `docs/FEATURES.md` dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
@@ -1086,3 +1105,6 @@ oben, statt die komplette sichtbare Artikelliste in `ContentView` zu kopieren.
 - 2026-06-21: M2 offiziell abgeschlossen und aktiven Milestone auf M3 Tags, Regeln
   und Sync umgestellt; naechster Fokus ist Tag-Verwaltung, Tag-Sidebar und danach
   automatische Regeln.
+- 2026-06-21: Tag-Manager in der Sidebar verdrahtet: Die neue Section `Tags` oeffnet
+  das zentrale Tag-Verwaltungs-Sheet; Tag-Filterung bleibt bewusst ein separater
+  M3-Schritt.

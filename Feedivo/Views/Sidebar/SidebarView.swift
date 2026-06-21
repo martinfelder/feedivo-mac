@@ -12,6 +12,7 @@ struct SidebarView: View {
     @State private var feedShowingProperties: Feed?
     @State private var feedRenaming: Feed?
     @State private var isShowingAddFolderSheet = false
+    @State private var isShowingTagManager = false
     @State private var collapsedFolderNames: Set<String> = []
 
     var body: some View {
@@ -21,6 +22,7 @@ struct SidebarView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     smartFiltersSection
+                    tagsSection
                     foldersSection
                 }
                 .padding(.horizontal, 14)
@@ -43,6 +45,9 @@ struct SidebarView: View {
                     folders: folders
                 )
             )
+        }
+        .sheet(isPresented: $isShowingTagManager) {
+            TagManagerView()
         }
     }
 
@@ -95,6 +100,18 @@ struct SidebarView: View {
                     selection = .smartFilter(smartFilter)
                 }
             }
+        }
+    }
+
+    private var tagsSection: some View {
+        SidebarActionSection(
+            title: L10n.sidebarTagsSection,
+            actionSystemImage: "tag",
+            actionHelp: L10n.tagManagerManageButton
+        ) {
+            isShowingTagManager = true
+        } content: {
+            EmptyView()
         }
     }
 

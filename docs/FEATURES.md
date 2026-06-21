@@ -461,11 +461,12 @@ M3 Tags, Regeln & Sync:
 ### 5. Tags und Regeln
 
 #### 5.1 Tags verwalten
-- Status: In Arbeit
+- Status: Fertig als Basis
 - Prioritaet: v1
-- Stand: Artikel-Tags koennen im Reader-Inspector als Basis hinzugefuegt und
-  entfernt werden.
-- Offen: Name/Farbe zentral verwalten, Feeds taggen und Tags in der Sidebar filtern.
+- Implementiert: Artikel-Tags koennen im Reader-Inspector hinzugefuegt und entfernt
+  werden. Tags koennen zentral erstellt, umbenannt, farblich markiert und geloescht
+  werden.
+- Offen: Feed-Tags und Tags in der Sidebar filtern folgen separat.
 
 #### 5.2 Automatische Regeln
 - Status: Entschieden
