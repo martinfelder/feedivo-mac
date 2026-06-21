@@ -170,7 +170,7 @@ FeedivoMac/
 │   │   ├── ArticleFeedIDBackfillService.swift # feedID fuer alte Artikel nachfuellen ✅
 │   │   ├── FeedUnreadCountBackfillService.swift # unreadCount einmalig korrigieren ✅
 │   │   ├── FeedRefreshService.swift    # Alle Feeds abrufen (async, mit Fortschritt) (TODO)
-│   │   ├── RuleEngine.swift            # Regeln auf neue Artikel anwenden (TODO)
+│   │   ├── RuleEngine.swift            # Einfache Regeln auf neue Artikel anwenden ✅
 │   │   ├── OPMLService.swift           # OPML Import und Export ✅
 │   │   └── OPMLDocument.swift          # FileDocument fuer OPML Export ✅
 │   │
@@ -338,6 +338,9 @@ oben, statt die komplette sichtbare Artikelliste in `ContentView` zu kopieren.
 - Der OPML-Import arbeitet zweiphasig: Feed-URL-Deduplizierung und Feed-Anlage laufen
   kontrolliert sequenziell, danach werden die neuen Feeds per `withTaskGroup`
   parallel aktualisiert
+- Beim Refresh werden gespeicherte Regeln ueber `RuleEngine` auf neu eingefuegte
+  Artikel angewendet; bestehende Artikel werden dabei bewusst nicht rueckwirkend
+  getaggt.
 - Properties: `isLoading: Bool`, `errorMessage: String?`
 
 ### FaviconService.swift
@@ -362,6 +365,16 @@ oben, statt die komplette sichtbare Artikelliste in `ContentView` zu kopieren.
   kontrolliert werden kann.
 - Nach erfolgreichem Durchlauf wird beim App-Start nicht mehr pro Feed die komplette
   `articles`-Relationship geladen, nur um den Sidebar-Zaehler zu verifizieren.
+
+### RuleEngine.swift
+- Stateless Service fuer einfache automatische Tag-Zuweisung.
+- Unterstuetzt die Felder `title`, `summary` und `feedTitle`.
+- Unterstuetzt die Operatoren `contains`, `startsWith` und `endsWith`.
+- Vergleicht case-insensitive und ignoriert deaktivierte Regeln, leere Suchwerte,
+  unbekannte Felder/Operatoren sowie Regeln ohne `assignTag`.
+- Fuegt Tags nur hinzu, wenn der Artikel das Tag noch nicht besitzt.
+- Wird aktuell beim Feed-Refresh nur fuer neue Artikel angewendet; Rueckwirkendes
+  Anwenden auf Altbestand und die Regel-UI bleiben separate M3-Schritte.
 
 ### FeedPropertiesView.swift / FeedPropertiesFormatter.swift
 - Rechtsklick auf Feed → `Feed Eigenschaften...`
@@ -886,7 +899,7 @@ oben, statt die komplette sichtbare Artikelliste in `ContentView` zu kopieren.
 - [ ] Feed-Tags ergaenzen
 - [ ] Tag-Zaehler in der Sidebar spaeter pruefen
 - [ ] Erweiterte/eigene Smart Filter spaeter pruefen
-- [ ] `RuleEngine`: Neue Artikel automatisch taggen basierend auf Regeln
+- [x] `RuleEngine`: Neue Artikel automatisch taggen basierend auf einfachen Regeln
 - [ ] Regel-UI: Regeln erstellen, bearbeiten, aktivieren/deaktivieren
 - [ ] iCloud Sync via CloudKit aktivieren und testen
 - [ ] Offline-Unterstützung: Artikel-Content beim Abruf in SwiftData speichern
@@ -932,8 +945,9 @@ oben, statt die komplette sichtbare Artikelliste in `ContentView` zu kopieren.
 - Aktuell M3: Tags, Regeln und Sync. Die erste Artikel-Tag-Basis existiert im
   Reader-Metadaten-Inspector; die zentrale Tag-Verwaltung ist als Basis ueber die
   Sidebar erreichbar, und Tags koennen in der Sidebar feeduebergreifend als
-  Artikel-Filter genutzt werden. Naechster sinnvoller Block sind Feed-Tags oder
-  die erste einfache Regel-Engine fuer automatische Tag-Zuweisung.
+  Artikel-Filter genutzt werden. Die erste RuleEngine-Basis taggt neue Artikel beim
+  Refresh automatisch nach einfachen Regeln. Naechster sinnvoller Block ist die
+  Regel-UI oder Feed-Tags.
 - Feature-Roadmap ist in `docs/FEATURES.md` dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
@@ -1122,3 +1136,7 @@ oben, statt die komplette sichtbare Artikelliste in `ContentView` zu kopieren.
 - 2026-06-21: Sidebar-Tag-Filter umgesetzt: Tags erscheinen als klickbare Zeilen mit
   Farbindikator und filtern `ArticleListView` ueber eine gezielte SwiftData-Query auf
   `Article.tags`; Tag-Zaehler, Feed-Tags und Regeln bleiben separate M3-Schritte.
+- 2026-06-21: Erste RuleEngine-Basis umgesetzt: Neue Artikel werden beim Refresh
+  anhand einfacher Regeln (`title`/`summary`/`feedTitle` plus `contains`/
+  `startsWith`/`endsWith`) automatisch getaggt; Rule-UI, Regex, Mehrfachbedingungen
+  und rueckwirkendes Anwenden bleiben offen.

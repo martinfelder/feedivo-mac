@@ -398,6 +398,9 @@ final class FeedViewModel {
         let enrichedNewArticlesByIdentity = await enrichedArticlesByIdentity(
             for: newArticles.filter(parsedArticleNeedsPageImage)
         )
+        let rules = newArticles.isEmpty
+            ? []
+            : try context.fetch(FetchDescriptor<Rule>())
 
         let previousOriginalTitle = feed.originalTitle?.trimmingCharacters(in: .whitespacesAndNewlines)
         let titleWasCustom = previousOriginalTitle.map { !$0.isEmpty && feed.title != $0 } ?? false
@@ -414,17 +417,17 @@ final class FeedViewModel {
 
         for parsedArticle in newArticles {
             let articleToInsert = enrichedNewArticlesByIdentity[articleIdentity(for: parsedArticle)] ?? parsedArticle
-            feed.articles.append(
-                Article(
-                    title: articleToInsert.title,
-                    link: articleToInsert.link,
-                    summary: articleToInsert.summary,
-                    content: articleToInsert.content,
-                    publishedAt: articleToInsert.publishedAt,
-                    imageURL: articleToInsert.imageURL,
-                    feed: feed
-                )
+            let article = Article(
+                title: articleToInsert.title,
+                link: articleToInsert.link,
+                summary: articleToInsert.summary,
+                content: articleToInsert.content,
+                publishedAt: articleToInsert.publishedAt,
+                imageURL: articleToInsert.imageURL,
+                feed: feed
             )
+            RuleEngine.applyRules(rules, to: article, feed: feed)
+            feed.articles.append(article)
         }
         feed.unreadCount += newArticles.count
 

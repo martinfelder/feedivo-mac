@@ -160,6 +160,8 @@ bei geschlossener App.
   koennen erstellt, umbenannt, gefaerbt und geloescht werden; die Sidebar zeigt Tags
   als klickbare Zeilen mit Farbindikator und filtert die Artikelliste
   feeduebergreifend auf Artikel mit dem ausgewaehlten Tag.
+- Erste automatische Regeln sind als Logik-Basis umgesetzt: Neue Artikel werden beim
+  Feed-Refresh anhand einfacher Regeln automatisch getaggt.
 - Projekt baut und Unit-Tests laufen; UI-Test-Runner blockierte lokal am 2026-06-19
   vor dem App-Launch an einer alten Feedivo-PID.
 
@@ -167,8 +169,9 @@ bei geschlossener App.
 
 M3 Tags, Regeln & Sync:
 - M2 Core Features ist abgeschlossen.
-- Tag-Verwaltung und Tag-Sidebar-Filter sind als Basis abgeschlossen.
-- Naechster Fokus: Feed-Tags oder erste einfache automatische Regeln.
+- Tag-Verwaltung, Tag-Sidebar-Filter und erste RuleEngine-Logik sind als Basis
+  abgeschlossen.
+- Naechster Fokus: Regel-UI oder Feed-Tags.
 
 ---
 
@@ -254,7 +257,8 @@ M3 Tags, Regeln & Sync:
   neue Tags als `Tag` gespeichert.
 - Implementiert: Tag-Farben, zentraler Tag-Manager und Sidebar-Tag-Filter sind als
   Basis umgesetzt.
-- Offen: Feed-Tags, Tag-Zaehler in der Sidebar und automatische Regeln folgen separat.
+- Offen: Feed-Tags, Tag-Zaehler in der Sidebar, Regel-UI und komplexere Regeln folgen
+  separat.
 
 #### 1.6 Artikel teilen
 - Status: Entschieden
@@ -478,14 +482,20 @@ M3 Tags, Regeln & Sync:
 - Implementiert: Artikel-Tags koennen im Reader-Inspector hinzugefuegt und entfernt
   werden. Tags koennen zentral erstellt, umbenannt, farblich markiert und geloescht
   werden. Die Sidebar kann nach Artikeln mit einem ausgewaehlten Tag filtern.
-- Offen: Feed-Tags, Tag-Zaehler in der Sidebar und automatische Tag-Zuweisung durch
-  Regeln folgen separat.
+- Implementiert: Neue Artikel koennen beim Refresh ueber einfache Regeln automatisch
+  getaggt werden.
+- Offen: Feed-Tags, Tag-Zaehler in der Sidebar und die Regel-UI folgen separat.
 
 #### 5.2 Automatische Regeln
-- Status: Entschieden
+- Status: Fertig als Logik-Basis
 - Prioritaet: v1
-- Empfehlung: Erst einfache Regeln: Feld, Operator, Wert, Aktion "Tag zuweisen".
-- Regex, Mehrfachbedingungen und Ausblenden spaeter.
+- Implementiert: `RuleEngine` wertet einfache Regeln fuer neue Artikel beim
+  Feed-Refresh aus. Unterstuetzte Felder sind `title`, `summary` und `feedTitle`;
+  unterstuetzte Operatoren sind `contains`, `startsWith` und `endsWith`.
+- Verhalten: Deaktivierte Regeln, leere Suchwerte, unbekannte Felder/Operatoren und
+  Regeln ohne Ziel-Tag werden ignoriert. Tags werden nicht doppelt zugewiesen.
+- Offen: Regel-UI, Regex, Mehrfachbedingungen, Ausblenden und rueckwirkendes Anwenden
+  auf vorhandene Artikel.
 
 ### 6. iCloud Sync
 

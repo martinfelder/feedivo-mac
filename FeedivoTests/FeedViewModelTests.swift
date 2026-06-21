@@ -383,6 +383,74 @@ struct FeedViewModelTests {
     }
 
     @MainActor
+    @Test func refreshFeedWendetRegelnAufNeueArtikelAn() async throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Alter Feed")
+        let existingArticle = Article(
+            title: "Swift Altbestand",
+            link: "https://example.com/old",
+            feed: feed
+        )
+        feed.articles = [existingArticle]
+        let tag = Tag(name: "Swift", colorHex: "#3B82F6")
+        let rule = Rule(
+            name: "Swift Titel",
+            conditionField: "title",
+            conditionOperator: "contains",
+            conditionValue: "swift"
+        )
+        rule.assignTag = tag
+        context.insert(feed)
+        context.insert(tag)
+        context.insert(rule)
+        try context.save()
+
+        let viewModel = FeedViewModel(
+            fetchFeed: { urlString in
+                ParsedFeed(
+                    sourceURL: urlString,
+                    title: "Neuer Feed",
+                    description: nil,
+                    siteURL: nil,
+                    articles: [
+                        ParsedArticle(
+                            title: "Swift Altbestand",
+                            link: "https://example.com/old",
+                            summary: nil,
+                            content: nil,
+                            publishedAt: nil,
+                            imageURL: nil
+                        ),
+                        ParsedArticle(
+                            title: "Swift Neuer Artikel",
+                            link: "https://example.com/new",
+                            summary: nil,
+                            content: nil,
+                            publishedAt: nil,
+                            imageURL: nil
+                        )
+                    ]
+                )
+            },
+            discoverFaviconURL: { _ in nil }
+        )
+
+        await viewModel.refreshFeed(feed, context: context)
+
+        let newArticle = try #require(feed.articles.first { $0.link == "https://example.com/new" })
+        #expect(newArticle.tags.map(\.name) == ["Swift"])
+        #expect(existingArticle.tags.isEmpty)
+    }
+
+    @MainActor
     @Test func refreshFeedReichertNurNeueUndBildloseBestehendeArtikelMitSeitenbildernAn() async throws {
         let container = try ModelContainer(
             for: Feed.self,
