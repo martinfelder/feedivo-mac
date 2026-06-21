@@ -86,6 +86,9 @@ bei geschlossener App.
   URLs normalisiert. Falls ein Feed-Item kein Bild enthaelt, kann Feedivo die
   verlinkte Artikelseite pruefen und `og:image`/`twitter:image` als Artikelbild
   uebernehmen.
+- Feed- und Favicon-HTML-Regulaerausdruecke werden statisch gecacht, damit
+  `NSRegularExpression` nicht bei jedem Artikel, Feed-Refresh oder Favicon-Link-Tag
+  neu kompiliert wird.
 - Artikel koennen per Kontextmenue gelesen/ungelesen und per Stern-Button markiert
   werden.
 - Artikelaktionen koennen auch per macOS-Menue `Artikel` und Tastaturkuerzeln
@@ -97,7 +100,8 @@ bei geschlossener App.
   werden; neue Artikel werden ohne Duplikate hinzugefuegt.
 - Alle Feeds koennen per macOS-Menue `Feed` oder `Cmd+Shift+R` manuell aktualisiert
   werden; einzelne Feed-Fehler stoppen den Gesamtlauf nicht und werden gesammelt
-  gemeldet.
+  gemeldet. Der Sammel-Refresh nutzt `withTaskGroup`, damit Netzwerkrequests fuer
+  mehrere Feeds parallel laufen koennen.
 - Automatisches Gelesen-Markieren beim Oeffnen ist standardmaessig aktiv und in den
   Einstellungen abschaltbar.
 - i18n Foundation ist umgesetzt: String Catalog mit Deutsch, Englisch, Franzoesisch
@@ -143,8 +147,10 @@ bei geschlossener App.
   Feed- oder Smart-Filter-Liste; am Listenrand gibt es keinen Loop.
 - OPML Import/Export ist umgesetzt: Import liest `.opml`/`.xml`, ueberspringt
   Duplikate anhand der Feed-URL, uebernimmt OPML-Gruppen als `folderName` und
-  aktualisiert neu importierte Feeds direkt ueber den normalen Refresh-Pfad;
-  Export schreibt die aktuelle Feed-Liste als `Feedivo.opml`.
+  aktualisiert neu importierte Feeds direkt ueber den normalen Refresh-Pfad. Die
+  Anlage/Deduplizierung laeuft sequenziell, der anschliessende Refresh der neuen
+  Feeds parallel per `withTaskGroup`; Export schreibt die aktuelle Feed-Liste als
+  `Feedivo.opml`.
 - Einfache Ordnerverwaltung ist umgesetzt: Feeds stehen in der Sidebar-Section
   `Ordner`, der Section-Titel hat einen + Button zum Erstellen neuer Ordner,
   leere Ordner werden als `FeedFolder` gespeichert, Ordner sind aufklappbar,
@@ -155,8 +161,9 @@ bei geschlossener App.
 
 ### Aktuell in Arbeit
 
-M2 Core Features:
-- Naechster Backlog-Ausbau: Tag-/Regel-Basis.
+M3 Tags, Regeln & Sync:
+- M2 Core Features ist abgeschlossen.
+- Naechster Fokus: Tag-Verwaltung, Tag-Sidebar-Filter und danach automatische Regeln.
 
 ---
 
@@ -315,7 +322,9 @@ M2 Core Features:
   optionalem Bild.
 - Performance: Feed-Listen und Smart-Filter-Listen fragen ihre jeweilige Teilmenge
   direkt per SwiftData-Predicate ab. Feed-Listen nutzen nicht mehr die komplette
-  `Feed.articles` Relationship, sondern eine Query auf `Article.feed`.
+  `Feed.articles` Relationship, sondern eine Query auf `Article.feedID`.
+- Performance: `ArticleListView` reagiert direkt auf `.onChange(of: articles)` und
+  erzeugt kein separates UUID-Array mehr bei jedem SwiftUI-Renderdurchlauf.
 - Bildbasis: `FeedService` speichert absolute `Article.imageURL` Werte aus Media RSS,
   iTunes Image, Bild-Enclosures, JSON Feed Bildern oder HTML-`img` Quellen.
 - Performance: Metabilder der verlinkten Artikelseite (`og:image`/`twitter:image`)
@@ -350,6 +359,9 @@ M2 Core Features:
   ungelesener Artikel, sobald der Feed ungelesene Artikel enthaelt.
 - Performance: Die Badges basieren auf `Feed.unreadCount`; die Sidebar muss dafuer
   weder alle ungelesenen Artikel materialisieren noch Feed-Relationships zaehlen.
+- Migration: `FeedUnreadCountBackfillService` korrigiert vorhandene Zaehler einmalig
+  und merkt den erfolgreichen Durchlauf per `feedUnreadCountBackfillDone_v1`, damit
+  nicht bei jedem App-Start alle Feed-Artikel geladen werden.
 - Design: Dunkle linke Sidebar nach Prototyp Design 11; aktive Zeilen werden nur
   dezent aufgehellt, damit die linke Spalte ruhig bleibt.
 - Ordner: Feeds stehen in der Section `Ordner`; Feeds mit `folderName` werden unter
@@ -476,7 +488,8 @@ M2 Core Features:
 - Prioritaet: MVP
 - Umsetzung: macOS-Dateiimport fuer `.opml`/`.xml`; Duplikate werden anhand der
   normalisierten Feed-URL uebersprungen. Neue Feeds werden direkt nach dem Import
-  ueber den normalen Refresh-Pfad aktualisiert.
+  ueber den normalen Refresh-Pfad aktualisiert; nach der sequenziellen Anlage laeuft
+  dieser Refresh parallel per `withTaskGroup`.
 - Hinweis: OPML-Gruppen werden als `Feed.folderName` gespeichert und dadurch direkt
   in der Sidebar gruppiert.
 

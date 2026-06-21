@@ -16,7 +16,7 @@
 **Entwickler:** Solo (Martin)
 **Plattform:** macOS 14 Sonoma+
 **Status:** In Development
-**Aktueller Milestone:** M2 – Core Features
+**Aktueller Milestone:** M3 – Tags, Regeln & Sync
 
 Feedivo ist ein nativer macOS RSS Reader mit Tags, automatischen Regeln und iCloud Sync.
 Ziel ist eine schöne, schnelle Mac-App die sich "mac-like" anfühlt — kein iOS-Port, keine
@@ -168,6 +168,8 @@ FeedivoMac/
 │   │   ├── FaviconService.swift        # HTML Favicon Discovery + Fallback ✅
 │   │   ├── BackgroundRefreshSettings.swift # Auto-Refresh Settings/Intervalle ✅
 │   │   ├── BackgroundRefreshService.swift  # NSBackgroundActivityScheduler Adapter ✅
+│   │   ├── ArticleFeedIDBackfillService.swift # feedID fuer alte Artikel nachfuellen ✅
+│   │   ├── FeedUnreadCountBackfillService.swift # unreadCount einmalig korrigieren ✅
 │   │   ├── FeedRefreshService.swift    # Alle Feeds abrufen (async, mit Fortschritt) (TODO)
 │   │   ├── RuleEngine.swift            # Regeln auf neue Artikel anwenden (TODO)
 │   │   ├── OPMLService.swift           # OPML Import und Export ✅
@@ -292,6 +294,9 @@ oben, statt die komplette sichtbare Artikelliste in `ContentView` zu kopieren.
   nachgezogen werden
 - Relative Artikelbild-URLs werden gegen die Feed-URL zu absoluten URLs aufgeloest,
   damit `AsyncImage` sie laden kann
+- HTML-Regulaerausdruecke fuer Artikelbilder und Meta-Tags werden als statische
+  `NSRegularExpression` Instanzen gecacht, damit sie nicht pro Artikel oder Refresh
+  neu kompiliert werden muessen
 - Eigene `FeedServiceError` enum: `.invalidURL`, `.parsingFailed`
 
 ### FeedViewModel.swift
@@ -306,8 +311,11 @@ oben, statt die komplette sichtbare Artikelliste in `ContentView` zu kopieren.
   gepflegt; neue Artikel starten als ungelesen
 - Beim Aktualisieren werden Erfolg/Fehler als `FeedLogEntry` protokolliert; pro Feed
   bleiben die neuesten 20 Log-Eintraege erhalten
-- `refreshAllFeeds(_:context:)` — aktualisiert alle gespeicherten Feeds nacheinander,
-  laeuft bei einzelnen Fehlern weiter und meldet am Ende betroffene Feednamen
+- `refreshAllFeeds(_:context:)` — aktualisiert alle gespeicherten Feeds per
+  `withTaskGroup` parallel; Netzwerk-awaits koennen sich ueberlappen, SwiftData-
+  Aenderungen bleiben durch `@MainActor` serialisiert
+- Der Sammel-Refresh laeuft bei einzelnen Fehlern weiter und meldet am Ende
+  betroffene Feednamen
 - `deleteFeed(_:context:)` — loescht einen Feed aus SwiftData; Artikel werden ueber
   die Cascade-Relationship mitgeloescht
 - `renameFeed(_:displayTitle:context:)` — speichert einen benutzerdefinierten
@@ -322,6 +330,9 @@ oben, statt die komplette sichtbare Artikelliste in `ContentView` zu kopieren.
   fuer neue Artikel ohne Feed-Bild und fuer bereits gespeicherte, noch bildlose
   Artikel aufgerufen, damit bestehende Artikel mit Bild keine unnoetigen
   Netzwerkrequests mehr ausloesen
+- Der OPML-Import arbeitet zweiphasig: Feed-URL-Deduplizierung und Feed-Anlage laufen
+  kontrolliert sequenziell, danach werden die neuen Feeds per `withTaskGroup`
+  parallel aktualisiert
 - Properties: `isLoading: Bool`, `errorMessage: String?`
 
 ### FaviconService.swift
@@ -329,10 +340,23 @@ oben, statt die komplette sichtbare Artikelliste in `ContentView` zu kopieren.
 - Unterstuetzt `icon`, `shortcut icon`, `apple-touch-icon` und `mask-icon`
 - Normalisiert relative und protokollrelative Icon-URLs zu absoluten URLs
 - Priorisiert Apple-Touch-Icons und groessere `sizes` Werte vor einfachen Icons
+- HTML-Regulaerausdruecke fuer Link-Tags und Attribute werden statisch gecacht;
+  Attributwerte werden in einem Durchlauf mit Capture Groups gelesen
 - Fallback: Wenn HTML nicht geladen oder kein Icon gefunden wird, nutzt Feedivo
   `/favicon.ico` auf der Website-Root
 - Keine externe Google-S2-API; die Favicon-Strategie bleibt eigenstaendig und
   datensparsamer
+
+### ArticleFeedIDBackfillService.swift / FeedUnreadCountBackfillService.swift
+- `ArticleFeedIDBackfillService` fuellt `Article.feedID` fuer alte Artikel nach, die
+  vor der Denormalisierung gespeichert wurden; die Abfrage sucht gezielt nur Artikel
+  mit `feedID == nil`.
+- `FeedUnreadCountBackfillService` korrigiert `Feed.unreadCount` fuer vorhandene Feeds
+  einmalig und setzt danach das UserDefaults-Flag `feedUnreadCountBackfillDone_v1`.
+- Das UserDefaults-Objekt ist injizierbar, damit der einmalige Backfill in Tests
+  kontrolliert werden kann.
+- Nach erfolgreichem Durchlauf wird beim App-Start nicht mehr pro Feed die komplette
+  `articles`-Relationship geladen, nur um den Sidebar-Zaehler zu verifizieren.
 
 ### FeedPropertiesView.swift / FeedPropertiesFormatter.swift
 - Rechtsklick auf Feed → `Feed Eigenschaften...`
@@ -386,6 +410,8 @@ oben, statt die komplette sichtbare Artikelliste in `ContentView` zu kopieren.
 - Sortiert nach `publishedAt` absteigend
 - Meldet nur den `ArticleNavigationState` an `ContentView`, damit Reader-Navigation
   und Menue-Status ohne Kopie der gesamten Artikelliste aktualisiert werden
+- Reagiert mit `.onChange(of: articles)` auf Listen-Aenderungen und erzeugt kein
+  separates `articleIDs = articles.map(\.id)` Array mehr pro SwiftUI-Renderdurchlauf
 - Nutzt `ArticleRowView` fuer Titel, Metadaten, Summary, optionales Bild,
   Ungelesen-Punkt rechts oben und Stern rechts unten
 - Markiert Artikel beim Auswaehlen automatisch als gelesen, wenn die Einstellung
@@ -748,6 +774,10 @@ oben, statt die komplette sichtbare Artikelliste in `ContentView` zu kopieren.
   `<link rel="icon">`, `apple-touch-icon`, `shortcut icon` und `mask-icon` auswerten.
   Relative Icon-URLs muessen gegen die Website-URL normalisiert werden. Wenn HTML
   nicht geladen werden kann, ist `/favicon.ico` der Fallback.
+- **Performance bei Feed-Wechsel:** Keine komplette `Feed.articles` Relationship fuer
+  Listen oder Sidebar-Zaehler laden. Feed-Listen ueber `Article.feedID` filtern,
+  Sidebar-Zaehler aus `Feed.unreadCount` lesen und SwiftUI-Renderpfade nicht mit
+  neuen ID-Arrays oder neu kompilierten Regexes belasten.
 - **NavigationView ist deprecated:** Immer `NavigationSplitView` oder `NavigationStack`
 - **WKWebView in SwiftUI:** Braucht einen `NSViewRepresentable`-Wrapper für macOS
 - **Background Refresh macOS:** `BGTaskScheduler`/`BGTask` sind fuer native macOS Apps
@@ -790,7 +820,7 @@ oben, statt die komplette sichtbare Artikelliste in `ContentView` zu kopieren.
 - [x] GitHub Repo erstellen und ersten Commit machen
 - [x] AGENTS.md ins Repo committen
 
-### M2 – Core Features ← AKTUELL
+### M2 – Core Features ✅ ABGESCHLOSSEN
 - [x] ArticleListView ausbauen: echte Artikel aus SwiftData anzeigen
 - [x] ReaderView ausbauen: nativer Artikel-Renderer fuer Absätze, Ueberschriften,
   Zitate, Listenpunkte und Bilder (Basis)
@@ -820,7 +850,7 @@ oben, statt die komplette sichtbare Artikelliste in `ContentView` zu kopieren.
 - [x] Reader-Metadaten-Inspector: Ordner und Artikel-Tags rechts einblendbar und
   dort bearbeitbar; Feedname, Lesezeit und Zeitpunkt bleiben oben im Artikelkopf
 
-### M3 – Tags, Regeln & Sync
+### M3 – Tags, Regeln & Sync ← AKTUELL
 - [x] Ordner fuer Feeds als eigenes Organisationsfeature ausbauen (Basis:
   eine Ebene, Sidebar-Section `Ordner` mit + Button, leere Ordner als `FeedFolder`,
   Feed-Zuordnung editierbar in Feed-Eigenschaften)
@@ -870,14 +900,10 @@ oben, statt die komplette sichtbare Artikelliste in `ContentView` zu kopieren.
 
 ## Aktuell in Arbeit
 
-- M1 abgeschlossen
-- Aktuell M2/Backlog-Ausbau: Basis-Feed/Reader/Refresh/Favicons, Smart Filter,
-  Link-Aktionen, globaler Reader-Anzeigemodus und strukturierte Reader-Bloecke sind
-  umgesetzt; Navigation Vor/Zurueck fuer Artikel und Feed Eigenschaften sind ebenfalls
-  als Basis umgesetzt. OPML Import/Export ist als Paket A umgesetzt. Paket B hat die
-  einfache Ordnerverwaltung fuer Feeds umgesetzt. Der Reader-Metadaten-Inspector
-  setzt die erste Artikel-Tag-Basis um; naechster sinnvoller Block ist der Ausbau von
-  Tag-Verwaltung, Tag-Filtern und Regeln.
+- M1 und M2 sind abgeschlossen.
+- Aktuell M3: Tags, Regeln und Sync. Die erste Artikel-Tag-Basis existiert im
+  Reader-Metadaten-Inspector; naechster sinnvoller Block ist der Ausbau von
+  Tag-Verwaltung, Tag-Sidebar-Filtern und danach automatischen Regeln.
 - Feature-Roadmap ist in `docs/FEATURES.md` dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
@@ -1049,6 +1075,14 @@ oben, statt die komplette sichtbare Artikelliste in `ContentView` zu kopieren.
   vorherigen/naechsten Artikel statt der sichtbaren Artikelliste, und Sidebar-Badges
   lesen `Feed.unreadCount` statt alle ungelesenen Artikel zu materialisieren. Alte
   Datensaetze werden beim App-Start per Backfill nachgezogen.
+- 2026-06-21: Weitere Performance-Optimierungen nachgefuehrt: Feed-/Favicon-Regexes
+  werden statisch gecacht, `refreshAllFeeds` und der OPML-Nachimport aktualisieren
+  Feeds parallel per `withTaskGroup`, `ArticleListView` nutzt `.onChange(of: articles)`
+  statt eines pro Render neu erzeugten ID-Arrays, und `FeedUnreadCountBackfillService`
+  laeuft per UserDefaults-Flag `feedUnreadCountBackfillDone_v1` nur einmal.
 - 2026-06-21: Reader-Inspector-Layout korrigiert: Bei geoeffnetem Artikelinfos-Panel
   fuellt der Reader-Bereich die verbleibende Detailbreite, damit rechts neben dem
   Inspector keine leere weisse Restflaeche bleibt.
+- 2026-06-21: M2 offiziell abgeschlossen und aktiven Milestone auf M3 Tags, Regeln
+  und Sync umgestellt; naechster Fokus ist Tag-Verwaltung, Tag-Sidebar und danach
+  automatische Regeln.
