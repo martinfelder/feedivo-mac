@@ -142,6 +142,7 @@ FeedivoMac/
 │   │   │   └── TagRowView.swift        # Eine Tag-Zeile in der Sidebar (TODO)
 │   │   ├── ArticleList/
 │   │   │   ├── ArticleListView.swift   # Mittlere Spalte: echte Feed-Artikel anzeigen ✅
+│   │   │   ├── ArticleListQuery.swift  # SwiftData-Queries fuer Feed-/Artikel-Listen ✅
 │   │   │   └── ArticleRowView.swift    # Reichhaltige Artikel-Zeile mit Status/Stern ✅
 │   │   ├── Reader/
 │   │   │   ├── ReaderView.swift        # Rechte Spalte: nativer Artikel-Reader ✅
@@ -374,7 +375,8 @@ fuer Reader-Vor/Zurueck sowie macOS-Menue-Status wiederverwendet.
   wird fuer diese Basis nicht neu gestartet.
 
 ### ArticleListView.swift
-- Zeigt echte Artikel des ausgewählten Feeds aus der `Feed.articles` Relationship
+- Zeigt echte Artikel des ausgewählten Feeds ueber eine gezielte SwiftData-Query
+  statt ueber die komplette `Feed.articles` Relationship
 - Feed-Listen laden nicht mehr automatisch alle Artikel per globaler `@Query`;
   Smart-Filter-Listen nutzen gezielte SwiftData-Queries fuer Alle, Ungelesen,
   Mit Stern und Heute statt alle Artikel im Speicher zu filtern
@@ -385,6 +387,11 @@ fuer Reader-Vor/Zurueck sowie macOS-Menue-Status wiederverwendet.
   Ungelesen-Punkt rechts oben und Stern rechts unten
 - Markiert Artikel beim Auswaehlen automatisch als gelesen, wenn die Einstellung
   aktiv ist
+
+### ArticleListQuery.swift
+- Buendelt Sortierung und Feed-Predicate fuer Artikel-Listen.
+- Feed-Listen filtern ueber `Article.feed?.id`, weil SwiftData-Predicates kein
+  erzwungenes Optional-Unwrap unterstuetzen.
 
 ### ArticleNavigationState.swift
 - Berechnet vorherigen und naechsten Artikel aus einer bereits sichtbaren Liste.
@@ -991,6 +998,9 @@ fuer Reader-Vor/Zurueck sowie macOS-Menue-Status wiederverwendet.
   neue oder bildlose bestehende Artikel an. Smart-Filter nutzen gezielte SwiftData-
   Queries, und Sidebar-Ungelesen-Badges basieren auf einer Query nur fuer ungelesene
   Artikel statt auf kompletten Feed-Relationships.
+- 2026-06-21: P2-Performance umgesetzt: Feed-Artikellisten nutzen eine gezielte
+  SwiftData-Query pro Feed statt `feed.articles`, und die gemeinsame Artikelsortierung
+  liegt in `ArticleListQuery`.
 - 2026-06-20: Paket B einfache Ordnerverwaltung umgesetzt: Sidebar gruppiert Feeds
   nach `Feed.folderName`, Ordnernamen sind in den Feed-Eigenschaften editierbar und
   `FeedFolderOrganizerTests` sichern Trimmen, Sortierung und leere Ordnernamen ab

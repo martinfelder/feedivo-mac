@@ -311,9 +311,9 @@ M2 Core Features:
 - Prioritaet: MVP
 - Implementiert: `ArticleRowView` mit Titel, Datum, Summary, Statuspunkt, Stern und
   optionalem Bild.
-- Performance: Feed-Listen nutzen direkt `Feed.articles`; eine globale Artikel-Query
-  wird nur noch fuer Smart-Filter-Listen verwendet. Smart-Filter-Listen fragen ihre
-  jeweilige Teilmenge direkt per SwiftData-Predicate ab.
+- Performance: Feed-Listen und Smart-Filter-Listen fragen ihre jeweilige Teilmenge
+  direkt per SwiftData-Predicate ab. Feed-Listen nutzen nicht mehr die komplette
+  `Feed.articles` Relationship, sondern eine Query auf `Article.feed`.
 - Bildbasis: `FeedService` speichert absolute `Article.imageURL` Werte aus Media RSS,
   iTunes Image, Bild-Enclosures, JSON Feed Bildern oder HTML-`img` Quellen.
 - Performance: Metabilder der verlinkten Artikelseite (`og:image`/`twitter:image`)

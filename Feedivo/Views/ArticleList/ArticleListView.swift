@@ -34,9 +34,8 @@ struct ArticleListView: View {
     var body: some View {
         switch scope {
         case .feed(let feed):
-            ArticleListContent(
-                articles: feed.articles,
-                navigationTitle: Text(feed.title),
+            FeedArticleListContent(
+                feed: feed,
                 selectedArticle: $selectedArticle,
                 visibleArticles: $visibleArticles
             )
@@ -47,6 +46,37 @@ struct ArticleListView: View {
                 visibleArticles: $visibleArticles
             )
         }
+    }
+}
+
+private struct FeedArticleListContent: View {
+    let feed: Feed
+    @Binding var selectedArticle: Article?
+    @Binding var visibleArticles: [Article]
+    @Query private var articles: [Article]
+
+    init(
+        feed: Feed,
+        selectedArticle: Binding<Article?>,
+        visibleArticles: Binding<[Article]>
+    ) {
+        self.feed = feed
+        self._selectedArticle = selectedArticle
+        self._visibleArticles = visibleArticles
+        self._articles = Query(
+            filter: ArticleListQuery.feedPredicate(for: feed),
+            sort: ArticleListQuery.sortDescriptors
+        )
+    }
+
+    var body: some View {
+        ArticleListContent(
+            articles: articles,
+            navigationTitle: Text(feed.title),
+            selectedArticle: $selectedArticle,
+            visibleArticles: $visibleArticles,
+            sortArticles: false
+        )
     }
 }
 
@@ -65,23 +95,22 @@ private struct SmartFilterArticleListContent: View {
         self._selectedArticle = selectedArticle
         self._visibleArticles = visibleArticles
 
-        let sortDescriptors = [SortDescriptor(\Article.publishedAt, order: .reverse)]
         switch smartFilter {
         case .allArticles:
-            self._articles = Query(sort: sortDescriptors)
+            self._articles = Query(sort: ArticleListQuery.sortDescriptors)
         case .unread:
             self._articles = Query(
                 filter: #Predicate<Article> { article in
                     !article.isRead
                 },
-                sort: sortDescriptors
+                sort: ArticleListQuery.sortDescriptors
             )
         case .starred:
             self._articles = Query(
                 filter: #Predicate<Article> { article in
                     article.isStarred
                 },
-                sort: sortDescriptors
+                sort: ArticleListQuery.sortDescriptors
             )
         case .today:
             let startOfToday = Calendar.current.startOfDay(for: Date())
@@ -96,7 +125,7 @@ private struct SmartFilterArticleListContent: View {
                         && article.publishedAt! >= startOfToday
                         && article.publishedAt! < startOfTomorrow
                 },
-                sort: sortDescriptors
+                sort: ArticleListQuery.sortDescriptors
             )
         }
     }
