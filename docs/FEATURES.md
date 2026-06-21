@@ -177,7 +177,8 @@ M2 Core Features:
   spaetere visuelle Ueberarbeitung der Artikelansicht.
 - Reduzierte Folge-Exploration: Unter
   `docs/design/article-reader-minimal-step/index.html` liegen drei bewusst ruhige
-  Varianten ohne Zusatz-UI, weil die ersten Entwuerfe zu verspielt wirkten.
+  Varianten fuer die Positionierung von Feedname, Lesezeit, Ordner und Tags, weil
+  die Schriftarten selbst bereits individuell konfigurierbar sind.
 - Fallback: Leere strukturierte HTML-Bloecke werden verworfen; kaputte oder unbekannte
   Inhalte fallen auf normale Absätze zurueck.
 - Naechster Schritt: Klickbare Inline-Links separat planen und umsetzen.

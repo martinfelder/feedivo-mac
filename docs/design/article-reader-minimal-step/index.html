@@ -137,6 +137,69 @@
       line-height: 1.35;
     }
 
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 7px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 650;
+      line-height: 1.35;
+    }
+
+    .meta-row + h1 {
+      margin-top: 14px;
+    }
+
+    .meta-label {
+      color: var(--text);
+      font-weight: 750;
+    }
+
+    .meta-pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 3px 8px;
+      color: #55554f;
+      background: #f0efec;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    .meta-divider {
+      color: #b6b5af;
+      font-weight: 500;
+    }
+
+    .context-line {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin: 18px 0 2px;
+      padding-top: 14px;
+      color: var(--muted);
+      border-top: 1px solid var(--line);
+      font-size: 14px;
+      line-height: 1.35;
+    }
+
+    .quiet-stack {
+      display: grid;
+      gap: 7px;
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.35;
+    }
+
+    .quiet-stack .meta-row {
+      font-size: 14px;
+    }
+
     h1 {
       margin: 0;
       color: var(--text);
@@ -197,7 +260,7 @@
 
     .compact .hero {
       max-height: 300px;
-      margin-top: 24px;
+      margin-top: 18px;
     }
 
     .text-first {
@@ -261,13 +324,13 @@
     <header class="topbar">
       <div class="title-block">
         <strong>Feedivo Reader - reduzierter Schritt</strong>
-        <span>Weniger UI, weniger Spielerei, mehr Artikel.</span>
+        <span>Positionierung von Feed, Lesezeit, Ordner und Tags.</span>
       </div>
 
       <nav class="tabs" aria-label="Reader Varianten">
-        <button class="tab active" data-target="clean">Clean Native</button>
-        <button class="tab" data-target="compact">Compact Article</button>
-        <button class="tab" data-target="text-first">Text First</button>
+        <button class="tab active" data-target="clean">Meta oben</button>
+        <button class="tab" data-target="compact">Meta nach Titel</button>
+        <button class="tab" data-target="text-first">Meta kompakt</button>
       </nav>
 
       <div class="actions" aria-label="Artikelaktionen">
@@ -281,7 +344,17 @@
     <section class="stage">
       <article class="variant active" id="clean">
         <div class="reader clean">
-          <div class="meta">Caschys Blog · ca. 1 Min. Lesezeit · vor 29 Min.</div>
+          <div class="meta-row" aria-label="Artikel-Metadaten">
+            <span class="meta-label">Caschys Blog</span>
+            <span class="meta-divider">·</span>
+            <span>Ordner: Technik</span>
+            <span class="meta-divider">·</span>
+            <span>ca. 1 Min.</span>
+            <span class="meta-divider">·</span>
+            <span>vor 29 Min.</span>
+            <span class="meta-pill">Wearables</span>
+            <span class="meta-pill">Smartwatch</span>
+          </div>
           <h1>Smartwatch-Markt wächst wieder: So schaut es aktuell aus</h1>
           <img class="hero" src="assets/smartwatch-hero.png" alt="Smartwatch am Handgelenk vor einer Tastatur">
           <div class="body">
@@ -289,28 +362,51 @@
             <p>Diese Variante bleibt nah am heutigen nativen Reader, nimmt aber das Bild etwas zurück und gibt dem Text eine ruhigere Breite.</p>
             <p><a href="#">Original öffnen</a></p>
           </div>
-          <div class="note">Richtung: Der naheliegendste Kandidat, wenn Feedivo weiterhin sehr macOS-nativ und unaufgeregt wirken soll.</div>
+          <div class="note">Richtung: Alles Relevante steht oberhalb des Titels. Das ist klassisch, ruhig und schnell scannbar.</div>
         </div>
       </article>
 
       <article class="variant" id="compact">
         <div class="reader compact">
-          <div class="meta">Caschys Blog · vor 29 Min. · 1 Min.</div>
           <h1>Smartwatch-Markt wächst wieder: So schaut es aktuell aus</h1>
+          <div class="context-line" aria-label="Artikel-Metadaten">
+            <span class="meta-label">Caschys Blog</span>
+            <span class="meta-divider">·</span>
+            <span>Technik</span>
+            <span class="meta-divider">·</span>
+            <span>1 Min. Lesezeit</span>
+            <span class="meta-divider">·</span>
+            <span>vor 29 Min.</span>
+            <span class="meta-pill">Wearables</span>
+            <span class="meta-pill">Markt</span>
+          </div>
           <img class="hero" src="assets/smartwatch-hero.png" alt="Smartwatch am Handgelenk vor einer Tastatur">
           <div class="body">
             <p>Zum Beitrag: Der Smartwatch-Markt wächst wieder. Nach mehreren schwächeren Quartalen zeigt sich die Kategorie erholt.</p>
             <p>Compact Article zeigt schneller den eigentlichen Inhalt. Titel und Bild sind kleiner, dadurch wirkt die Ansicht weniger wie eine Website und mehr wie ein Reader.</p>
             <p><a href="#">Original öffnen</a></p>
           </div>
-          <div class="note">Richtung: Gut fuer kurze RSS-Artikel, bei denen ein riesiger Hero eher bremst als hilft.</div>
+          <div class="note">Richtung: Der Titel bleibt zuerst im Fokus; Quelle, Ordner, Zeit und Tags bilden danach eine dezente Kontextzeile.</div>
         </div>
       </article>
 
       <article class="variant" id="text-first">
         <div class="reader text-first">
-          <div class="meta">Caschys Blog · ca. 1 Min. Lesezeit · vor 29 Min.</div>
           <h1>Smartwatch-Markt wächst wieder: So schaut es aktuell aus</h1>
+          <div class="quiet-stack" aria-label="Artikel-Metadaten">
+            <div class="meta-row">
+              <span class="meta-label">Caschys Blog</span>
+              <span class="meta-divider">·</span>
+              <span>vor 29 Min.</span>
+              <span class="meta-divider">·</span>
+              <span>ca. 1 Min. Lesezeit</span>
+            </div>
+            <div class="meta-row">
+              <span>Ordner: Technik</span>
+              <span class="meta-pill">Wearables</span>
+              <span class="meta-pill">Smartwatch</span>
+            </div>
+          </div>
           <div class="lead">Der Smartwatch-Markt wächst wieder. Feedivo zeigt in dieser Variante zuerst den Artikeltext und behandelt das Bild nur als unterstützendes Medium.</div>
           <img class="hero" src="assets/smartwatch-hero.png" alt="Smartwatch am Handgelenk vor einer Tastatur">
           <div class="body">
@@ -318,7 +414,7 @@
             <p>Die Oberfläche bleibt fast unsichtbar. Keine Zusatzkarten, keine Kontextspalten, keine visuelle Bühne. Nur Lesen.</p>
             <p><a href="#">Original öffnen</a></p>
           </div>
-          <div class="note">Richtung: Der klassischste Reader-Ansatz und am wenigsten verspielt.</div>
+          <div class="note">Richtung: Quelle/Zeit und Ordner/Tags sind getrennt. Das wirkt aufgeräumter, wenn später mehrere Tags dazukommen.</div>
         </div>
       </article>
     </section>

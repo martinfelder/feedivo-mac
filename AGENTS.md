@@ -913,4 +913,5 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
   Reader-Darstellungen fuer die spaetere Ueberarbeitung der Artikelansicht.
 - 2026-06-21: Reduzierte Step-by-Step-Reader-Prototypen ergaenzt:
   `docs/design/article-reader-minimal-step/index.html` fokussiert auf drei ruhige
-  Varianten ohne Zusatz-UI: Clean Native, Compact Article und Text First.
+  Varianten fuer die Positionierung von Feedname, Lesezeit, Ordner und Tags:
+  Meta oben, Meta nach Titel und Meta kompakt.
