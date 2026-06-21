@@ -892,13 +892,13 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Un tag portant ce nom existe deja."
+            "value" : "Un tag portant ce nom existe déjà."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Esiste gia un tag con questo nome."
+            "value" : "Esiste già un tag con questo nome."
           }
         }
       }
@@ -920,13 +920,13 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Le nom du tag ne peut pas etre vide."
+            "value" : "Le nom du tag ne peut pas être vide."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Il nome del tag non puo essere vuoto."
+            "value" : "Il nome del tag non può essere vuoto."
           }
         }
       }
