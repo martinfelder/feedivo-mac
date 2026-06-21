@@ -450,8 +450,8 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 - Zeigt Metazeile, Titel, native Reader-Bloecke und Link zum Original
 - Metazeile: Feedname, ungefaehre Lesezeit und Artikelalter, linksbuendig oberhalb
   des Titels
-- Ordner und Tags werden bewusst nicht im Artikelkopf gezeigt, sondern ueber einen
-  einblendbaren rechten Inspector verwaltet.
+- Ordner und Tags werden bewusst nicht im Artikelkopf gezeigt, sondern ueber den
+  sichtbaren Toolbar-Toggle `Artikelinfos` in einem rechten Inspector verwaltet.
 - Toolbar-Buttons fuer vorherigen/naechsten Artikel navigieren innerhalb der aktuell
   sichtbaren Feed- oder Smart-Filter-Liste und stoppen am Listenrand
 - Toolbar-Button `textformat` oeffnet ein Popover fuer Titel-Schrift,

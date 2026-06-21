@@ -176,8 +176,12 @@ struct ReaderView: View {
                 Button {
                     isMetadataInspectorPresented.toggle()
                 } label: {
-                    Image(systemName: "info.circle")
+                    Label(L10n.readerInspectorButton, systemImage: "sidebar.right")
                 }
+                .labelStyle(.titleAndIcon)
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .symbolVariant(isMetadataInspectorPresented ? .fill : .none)
                 .help(L10n.readerInspectorButton)
             }
         }
