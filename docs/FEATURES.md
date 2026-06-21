@@ -69,6 +69,9 @@ bei geschlossener App.
 - Artikel-Liste zeigt echte Artikel eines Feeds.
 - Reader zeigt Feedname, ungefaehre Lesezeit, Artikelalter, Titel, native
   Reader-Bloecke, Vor/Zurueck-Navigation und Original-Link.
+- In der Reader-Toolbar kann ein rechter Metadaten-Inspector eingeblendet werden;
+  dort sind Feed-Ordner und Artikel-Tags sichtbar und bearbeitbar, waehrend der
+  Artikelkopf nur Feedname, Lesezeit und Zeitpunkt zeigt.
 - Reader-Rendering wandelt HTML/Plain-Text in Absätze und Bildbloecke.
 - ArticleRowView zeigt Titel, Datum, Summary, optionales Bild, Ungelesen-Punkt
   rechts oben und Stern rechts unten.
@@ -179,9 +182,9 @@ M2 Core Features:
   `docs/design/article-reader-minimal-step/index.html` liegen drei bewusst ruhige
   Varianten fuer die Positionierung von Feedname, Lesezeit, Ordner und Tags, weil
   die Schriftarten selbst bereits individuell konfigurierbar sind.
-- Aktuelle Richtung: Feedname, Lesezeit und Zeitpunkt bleiben im Artikelkopf;
-  Ordner und Tags sollen stattdessen in einem einblendbaren rechten Inspector
-  sichtbar und bearbeitbar sein.
+- Implementierte Richtung: Feedname, Lesezeit und Zeitpunkt bleiben im Artikelkopf;
+  Ordner und Tags liegen in einem einblendbaren rechten Inspector und koennen dort
+  bearbeitet werden.
 - Fallback: Leere strukturierte HTML-Bloecke werden verworfen; kaputte oder unbekannte
   Inhalte fallen auf normale Absätze zurueck.
 - Naechster Schritt: Klickbare Inline-Links separat planen und umsetzen.
@@ -211,10 +214,12 @@ M2 Core Features:
 - Smart Filter "Mit Stern" gehoert dazu.
 
 #### 1.5 Tags manuell zuweisen
-- Status: Entschieden
+- Status: Fertig als Basis
 - Prioritaet: v1
-- Empfehlung: Erst nach stabilen Basisaktionen. Popover im Reader ist wahrscheinlich besser
-  als ein grosses Sheet.
+- Implementiert: Artikel-Tags koennen im rechten Reader-Inspector hinzugefuegt und
+  vom aktuellen Artikel entfernt werden; vorhandene Tags werden wiederverwendet und
+  neue Tags als `Tag` gespeichert.
+- Offen: Tag-Farben, Tag-Manager, Feed-Tags und Sidebar-Filter folgen separat.
 
 #### 1.6 Artikel teilen
 - Status: Entschieden
@@ -412,9 +417,11 @@ M2 Core Features:
 ### 5. Tags und Regeln
 
 #### 5.1 Tags verwalten
-- Status: In Diskussion
+- Status: In Arbeit
 - Prioritaet: v1
-- Empfehlung: Name und Farbe, Verwaltung in Sidebar/Sheet.
+- Stand: Artikel-Tags koennen im Reader-Inspector als Basis hinzugefuegt und
+  entfernt werden.
+- Offen: Name/Farbe zentral verwalten, Feeds taggen und Tags in der Sidebar filtern.
 
 #### 5.2 Automatische Regeln
 - Status: Entschieden

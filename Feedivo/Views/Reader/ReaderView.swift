@@ -43,6 +43,7 @@ struct ReaderView: View {
     private var readerDisplayModeRawValue = ReaderDisplayMode.defaultMode.rawValue
 
     @State private var isAppearancePopoverPresented = false
+    @State private var isMetadataInspectorPresented = false
     @State private var viewModel = ArticleViewModel()
 
     private var titleFontPreset: ReaderFontPreset {
@@ -106,13 +107,7 @@ struct ReaderView: View {
     }
 
     var body: some View {
-        Group {
-            if shouldShowWebView, let originalURL {
-                WebContentView(url: originalURL)
-            } else {
-                nativeReader
-            }
-        }
+        readerWithOptionalInspector
         .navigationTitle(article.title)
         .toolbar {
             ToolbarItemGroup {
@@ -176,6 +171,41 @@ struct ReaderView: View {
                     readerAppearancePopover
                 }
             }
+
+            ToolbarItem {
+                Button {
+                    isMetadataInspectorPresented.toggle()
+                } label: {
+                    Image(systemName: "info.circle")
+                }
+                .help(L10n.readerInspectorButton)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var readerWithOptionalInspector: some View {
+        if isMetadataInspectorPresented {
+            HStack(spacing: 0) {
+                readerContent
+
+                Divider()
+
+                ArticleMetadataInspectorView(article: article) {
+                    isMetadataInspectorPresented = false
+                }
+            }
+        } else {
+            readerContent
+        }
+    }
+
+    @ViewBuilder
+    private var readerContent: some View {
+        if shouldShowWebView, let originalURL {
+            WebContentView(url: originalURL)
+        } else {
+            nativeReader
         }
     }
 

@@ -122,6 +122,7 @@ FeedivoMac/
 │   ├── ViewModels/
 │   │   ├── FeedViewModel.swift         # Feed hinzufügen, aktualisieren, loeschen ✅
 │   │   ├── ArticleViewModel.swift      # Artikel gelesen/ungelesen und Stern toggeln ✅
+│   │   ├── ArticleMetadataEditor.swift # Artikel-Ordner und Tags bearbeiten ✅
 │   │   ├── TagViewModel.swift          # Tags verwalten (TODO)
 │   │   ├── RuleEngineViewModel.swift   # Regeln auswerten und Tags auto-zuweisen (TODO)
 │   │   └── SyncViewModel.swift         # iCloud Sync Status anzeigen (TODO)
@@ -142,6 +143,7 @@ FeedivoMac/
 │   │   │   └── ArticleRowView.swift    # Reichhaltige Artikel-Zeile mit Status/Stern ✅
 │   │   ├── Reader/
 │   │   │   ├── ReaderView.swift        # Rechte Spalte: nativer Artikel-Reader ✅
+│   │   │   ├── ArticleMetadataInspectorView.swift # Rechter Artikelinfos-Inspector ✅
 │   │   │   ├── ReaderContentRenderer.swift # HTML/Text zu Reader-Bloecken ✅
 │   │   │   ├── ReaderMetadataFormatter.swift # Feedname/Lesezeit/Alter ✅
 │   │   │   ├── ReaderFontPreset.swift  # Schrift-Presets fuer Reader ✅
@@ -186,7 +188,7 @@ FeedivoMac/
 
 ---
 
-## Implementierter Code (Stand 2026-06-20)
+## Implementierter Code (Stand 2026-06-21)
 
 ### FeedivoApp.swift
 ```swift
@@ -367,6 +369,15 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 - `sortedForList(_:)`, `previousArticle(before:in:)` und `nextArticle(after:in:)`
   kapseln die Navigation innerhalb der aktuell sichtbaren Artikelliste
 
+### ArticleMetadataEditor.swift
+- Kapselt die Bearbeitung der Artikel-Metadaten fuer den Reader-Inspector.
+- `addTag(named:to:availableTags:context:)` trimmt Tag-Namen, verhindert leere oder
+  doppelte Artikel-Tags und verwendet vorhandene Tags wieder, bevor neue Tags
+  erstellt werden.
+- `removeTag(_:from:context:)` entfernt ein Tag nur vom aktuellen Artikel.
+- `setFolderName(_:for:context:)` speichert den getrimmten Ordnernamen am Feed des
+  Artikels; leere Eingaben entfernen die Ordnerzuordnung.
+
 ### ArticleCommands.swift / ArticleCommandActions.swift
 - macOS-Menue `Artikel` fuer Aktionen auf dem fokussierten/ausgewaehlten Artikel
 - `Cmd+↑` springt zum vorherigen sichtbaren Artikel
@@ -439,6 +450,8 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 - Zeigt Metazeile, Titel, native Reader-Bloecke und Link zum Original
 - Metazeile: Feedname, ungefaehre Lesezeit und Artikelalter, linksbuendig oberhalb
   des Titels
+- Ordner und Tags werden bewusst nicht im Artikelkopf gezeigt, sondern ueber einen
+  einblendbaren rechten Inspector verwaltet.
 - Toolbar-Buttons fuer vorherigen/naechsten Artikel navigieren innerhalb der aktuell
   sichtbaren Feed- oder Smart-Filter-Liste und stoppen am Listenrand
 - Toolbar-Button `textformat` oeffnet ein Popover fuer Titel-Schrift,
@@ -449,6 +462,15 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 - Die Metazeile oberhalb des Titels nutzt die Fliesstext-Schrift proportional kleiner
 - Nutzt `ReaderContentRenderer`, um Content/Summary in Absätze und Bilder zu wandeln
 - Noch kein WKWebView/Vollseiten-Reader
+
+### ArticleMetadataInspectorView.swift
+- Einblendbarer rechter Inspector in der Artikelansicht.
+- Zeigt den aktuellen Feed-Ordner als Menu-Picker und schreibt Aenderungen direkt auf
+  `Feed.folderName`.
+- Zeigt Artikel-Tags als kompakte Chips; Tags koennen hinzugefuegt oder vom Artikel
+  entfernt werden.
+- Neue Tags werden ueber `ArticleMetadataEditor` normalisiert und als globale
+  `Tag`-Eintraege wiederverwendet oder neu erstellt.
 
 ### ReaderFontPreset.swift
 - Kuratierte Font-Presets fuer die Artikelansicht aus der UI-Referenz:
@@ -724,12 +746,15 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 - [x] Navigation Vor/Zurueck fuer Artikel innerhalb der aktuell sichtbaren Liste
 - [x] Feed Eigenschaften per Rechtsklick: Metadaten, editierbares Refresh-Intervall
   und Feed-Log mit Feed-Header und Statusmetriken als Basis
+- [x] Reader-Metadaten-Inspector: Ordner und Artikel-Tags rechts einblendbar und
+  dort bearbeitbar; Feedname, Lesezeit und Zeitpunkt bleiben oben im Artikelkopf
 
 ### M3 – Tags, Regeln & Sync
 - [x] Ordner fuer Feeds als eigenes Organisationsfeature ausbauen (Basis:
   eine Ebene, Sidebar-Section `Ordner` mit + Button, leere Ordner als `FeedFolder`,
   Feed-Zuordnung editierbar in Feed-Eigenschaften)
-- [ ] Tag-System: Tags erstellen (Name + Farbe), Feeds und Artikeln manuell zuweisen
+- [ ] Tag-System ausbauen: Tags mit Farben verwalten, Feeds taggen und Sidebar-Filter
+  ergaenzen; Basis fuer Artikel-Tags ist im Reader-Inspector umgesetzt
 - [ ] Sidebar: Abschnitt "Tags" mit Filterung
 - [ ] Erweiterte/eigene Smart Filter spaeter pruefen
 - [ ] `RuleEngine`: Neue Artikel automatisch taggen basierend auf Regeln
@@ -779,8 +804,9 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
   Link-Aktionen, globaler Reader-Anzeigemodus und strukturierte Reader-Bloecke sind
   umgesetzt; Navigation Vor/Zurueck fuer Artikel und Feed Eigenschaften sind ebenfalls
   als Basis umgesetzt. OPML Import/Export ist als Paket A umgesetzt. Paket B hat die
-  einfache Ordnerverwaltung fuer Feeds umgesetzt. Naechster sinnvoller Block ist die
-  Tag-/Regel-Basis.
+  einfache Ordnerverwaltung fuer Feeds umgesetzt. Der Reader-Metadaten-Inspector
+  setzt die erste Artikel-Tag-Basis um; naechster sinnvoller Block ist der Ausbau von
+  Tag-Verwaltung, Tag-Filtern und Regeln.
 - Feature-Roadmap ist in `docs/FEATURES.md` dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
@@ -918,3 +944,6 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 - 2026-06-21: Minimal-Reader-Prototyp verfeinert: Ordner und Tags wurden aus dem
   Artikelkopf entfernt und liegen jetzt in einem einblendbaren rechten Inspector,
   in dem Ordner und Tags bearbeitet werden koennen.
+- 2026-06-21: Reader-Metadaten-Inspector in der App umgesetzt: Feedname, Lesezeit
+  und Zeitpunkt bleiben oben im Artikelkopf; Ordner und Artikel-Tags werden rechts
+  eingeblendet und koennen dort bearbeitet werden.
