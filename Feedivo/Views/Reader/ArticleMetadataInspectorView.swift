@@ -132,7 +132,9 @@ struct ArticleMetadataInspectorView: View {
     }
 
     private func tagPill(_ tag: Tag) -> some View {
-        HStack(spacing: 6) {
+        let tagColor = TagColorPalette.color(for: tag.colorHex)
+
+        return HStack(spacing: 6) {
             Text("#\(tag.name)")
                 .lineLimit(1)
 
@@ -146,10 +148,10 @@ struct ArticleMetadataInspectorView: View {
         }
         .font(.caption)
         .fontWeight(.semibold)
-        .foregroundStyle(.green)
+        .foregroundStyle(tagColor)
         .padding(.horizontal, 9)
         .padding(.vertical, 5)
-        .background(.green.opacity(0.12), in: Capsule())
+        .background(tagColor.opacity(0.12), in: Capsule())
     }
 
     private func addTag() {

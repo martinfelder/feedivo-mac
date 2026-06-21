@@ -18,6 +18,22 @@ struct ArticleMetadataEditorTests {
         let tags = try context.fetch(FetchDescriptor<Feedivo.Tag>())
         #expect(tags.count == 1)
         #expect(article.tags.map(\.name) == ["Wearables"])
+        #expect(article.tags.first?.colorHex == "#888888")
+    }
+
+    @MainActor
+    @Test func addTagBewahrtFarbeVorhandenerTags() throws {
+        let context = try testContext()
+        let article = Article(title: "Artikel")
+        let existingTag = Tag(name: "Swift", colorHex: "#3B82F6")
+        context.insert(article)
+        context.insert(existingTag)
+        try context.save()
+
+        ArticleMetadataEditor.addTag(named: "swift", to: article, availableTags: [existingTag], context: context)
+
+        #expect(article.tags.first?.name == "Swift")
+        #expect(article.tags.first?.colorHex == "#3B82F6")
     }
 
     @MainActor
