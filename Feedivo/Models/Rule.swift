@@ -10,9 +10,13 @@ class Rule {
     var conditionField: String      // "title", "summary", "feedTitle"
     var conditionOperator: String   // "contains", "startsWith", "endsWith"
     var conditionValue: String      // z.B. "Apple", "WWDC"
+    var conditionMatchMode: String  // "all" oder "any"
 
     @Relationship
     var assignTag: Tag?
+
+    @Relationship(deleteRule: .cascade, inverse: \RuleCondition.rule)
+    var conditions: [RuleCondition]
 
     init(name: String, conditionField: String,
          conditionOperator: String, conditionValue: String) {
@@ -22,5 +26,7 @@ class Rule {
         self.conditionField = conditionField
         self.conditionOperator = conditionOperator
         self.conditionValue = conditionValue
+        self.conditionMatchMode = RuleMatchMode.all.rawValue
+        self.conditions = []
     }
 }

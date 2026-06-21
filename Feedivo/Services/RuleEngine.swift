@@ -16,33 +16,62 @@ enum RuleEngine {
     }
 
     private static func matches(rule: Rule, article: Article, feed: Feed) -> Bool {
-        let value = rule.conditionValue.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !value.isEmpty, let fieldValue = fieldValue(for: rule, article: article, feed: feed) else {
+        let conditions = normalizedConditions(for: rule)
+        guard !conditions.isEmpty else {
+            return false
+        }
+
+        let mode = RuleMatchMode.normalized(rule.conditionMatchMode)
+        switch mode {
+        case .all:
+            return conditions.allSatisfy { condition in
+                matches(condition: condition, article: article, feed: feed)
+            }
+        case .any:
+            return conditions.contains { condition in
+                matches(condition: condition, article: article, feed: feed)
+            }
+        }
+    }
+
+    private static func normalizedConditions(for rule: Rule) -> [RuleCondition] {
+        rule.conditions
+            .sorted { $0.sortOrder < $1.sortOrder }
+            .filter { condition in
+                !condition.value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            }
+    }
+
+    private static func matches(condition: RuleCondition, article: Article, feed: Feed) -> Bool {
+        let value = condition.value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !value.isEmpty,
+              let fieldValue = fieldValue(for: condition.field, article: article, feed: feed)
+        else {
             return false
         }
 
         let normalizedFieldValue = fieldValue.lowercased()
         let normalizedValue = value.lowercased()
 
-        switch rule.conditionOperator {
-        case "contains":
+        switch condition.conditionOperator {
+        case RuleConditionOperator.contains.rawValue:
             return normalizedFieldValue.contains(normalizedValue)
-        case "startsWith":
+        case RuleConditionOperator.startsWith.rawValue:
             return normalizedFieldValue.hasPrefix(normalizedValue)
-        case "endsWith":
+        case RuleConditionOperator.endsWith.rawValue:
             return normalizedFieldValue.hasSuffix(normalizedValue)
         default:
             return false
         }
     }
 
-    private static func fieldValue(for rule: Rule, article: Article, feed: Feed) -> String? {
-        switch rule.conditionField {
-        case "title":
+    private static func fieldValue(for field: String, article: Article, feed: Feed) -> String? {
+        switch field {
+        case RuleConditionField.title.rawValue:
             return article.title
-        case "summary":
+        case RuleConditionField.summary.rawValue:
             return article.summary
-        case "feedTitle":
+        case RuleConditionField.feedTitle.rawValue:
             return feed.title
         default:
             return nil

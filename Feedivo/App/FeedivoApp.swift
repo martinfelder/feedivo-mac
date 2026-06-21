@@ -27,6 +27,7 @@ struct FeedivoApp: App {
             Article.self,
             Tag.self,
             Rule.self,
+            RuleCondition.self,
             FeedLogEntry.self
         )
         self.modelContainer = modelContainer
@@ -36,7 +37,7 @@ struct FeedivoApp: App {
     }
 
     // modelContainer stellt SwiftData für die ganze App zur Verfügung.
-    // Alle 4 Modelle werden hier registriert.
+    // Alle SwiftData-Modelle werden hier registriert.
     // isCloudKitEnabled: true aktiviert später die iCloud-Synchronisation —
     // dafür brauchen wir noch die iCloud-Capability, aber der Code ist schon bereit.
     var body: some Scene {
