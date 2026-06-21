@@ -610,11 +610,13 @@ sichtbar bleibt.
 - Zeigt Metazeile, Titel, native Reader-Bloecke und Link zum Original
 - Metazeile: Feedname, ungefaehre Lesezeit und Artikelalter, linksbuendig oberhalb
   des Titels
+- Nach dem Lead-Bild erscheint ein feiner Trenner, bevor der Fliesstext beginnt.
 - Nutzt einen ruhigeren Editorial-Rhythmus: etwas kleinerer semibold Titel,
   groessere Blockabstaende, kontrollierte Lead-Bildhoehe und dezenter Footer fuer
   `Original öffnen`.
-- Ordner und Tags werden bewusst nicht im Artikelkopf gezeigt, sondern ueber den
-  sichtbaren Toolbar-Toggle `Artikelinfos` in einem rechten Inspector verwaltet.
+- Ordner und Tags werden direkt unter dem Titel als dezente Chips angezeigt; die
+  Bearbeitung bleibt ueber den sichtbaren Toolbar-Toggle `Artikelinfos` im rechten
+  Inspector.
 - Der offene/geschlossene Inspector-Zustand kommt als Binding aus `ContentView`,
   damit die rechte Seitenleiste beim Feed- oder Artikelwechsel erhalten bleibt.
 - Die rechte Seitenleiste wird ueber SwiftUIs native `.inspector`-Spalte angezeigt;
@@ -632,7 +634,9 @@ sichtbar bleibt.
 - Titel- und Fliesstext-Schrift sowie Textgroesse/Titel-Zeilenabstand/
   Fliesstext-Zeilenabstand/Artikelbreite werden getrennt via `@AppStorage`
   gespeichert
-- Die Metazeile oberhalb des Titels nutzt die Fliesstext-Schrift proportional kleiner
+- Die Metazeile oberhalb des Titels sowie Ordner-/Tag-Chips nutzen die App-
+  Oberflaechenschrift (`interfaceTextSize`) statt der Reader-Schriftwahl, damit sie
+  optisch zur restlichen App passen.
 - Nutzt `ReaderPreparedArticle`, damit Content/Summary, Metadaten und Original-URL
   pro ausgewaehltem Artikel einmal vorbereitet werden und SwiftUI-Redraws kein
   erneutes HTML-Rendering ausloesen
@@ -657,6 +661,8 @@ sichtbar bleibt.
   Plus-Chips an, damit Tags ohne Tippen schnell zugewiesen werden koennen.
 - Neue Tags werden ueber `ArticleMetadataEditor` normalisiert und als globale
   `Tag`-Eintraege wiederverwendet oder neu erstellt.
+- Stellt `FlowLayout` modulweit bereit, damit Reader und Inspector dieselbe
+  umbruchfaehige Chip-Anordnung verwenden.
 
 ### ReaderFontPreset.swift
 - Kuratierte Font-Presets fuer die Artikelansicht aus der UI-Referenz:
@@ -681,6 +687,8 @@ sichtbar bleibt.
 - Artikelbreite: Default 720 px, Wertebereich 520...980 px, Schrittweite 20 px
 - Artikelabstand: oben 44 px, unten 28 px, damit der Artikelkopf ruhiger unter der
   Toolbar startet.
+- Reader-Trenner: feine Linie mit 0.18 Opazitaet; Abstand zwischen Lead-Bild und
+  Bild/Text-Trenner 14 px.
 
 ### ReaderMetadataFormatter.swift
 - Berechnet ungefaehre Lesezeit mit 200 Woertern pro Minute, mindestens 1 Minute
@@ -1071,8 +1079,7 @@ sichtbar bleibt.
   macOS-Menue `Feed > Alle Feeds aktualisieren`; einzelne Feed-Fehler stoppen den
   Gesamtlauf nicht und werden gesammelt gemeldet
 - 2026-06-19: Reader-Font-Aufloesung verbessert: Presets nutzen bekannte
-  PostScript-Kandidaten, Picker sind explizit Menues, und die Metazeile oberhalb
-  des Titels folgt nun ebenfalls der Fliesstext-Schrift
+  PostScript-Kandidaten und Picker sind explizit Menues.
 - 2026-06-19: Reader-Fonts gebundelt: TTF-Dateien fuer die kuratierte Fontliste in
   `Feedivo/Resources/Fonts/` aufgenommen und per `ReaderFontRegistry` beim App-Start
   registriert; Font-Herkunft/Lizenzen in `docs/THIRD_PARTY_FONTS.md`
@@ -1125,6 +1132,13 @@ sichtbar bleibt.
 - 2026-06-21: Reader-Bildreihenfolge angepasst: Das Artikelbild erscheint im nativen
   Reader immer als erster Content-Block direkt unter dem Titel. `Article.imageURL`
   gewinnt vor HTML-Bildern; fehlt es, wird das erste HTML-`img` nach vorne gezogen.
+- 2026-06-21: Reader-Trenner ergaenzt: feiner Querstrich zwischen Lead-Bild und
+  erstem Fliesstext.
+- 2026-06-21: Ordner und Artikel-Tags wieder direkt im Reader unter dem Titel
+  sichtbar gemacht; Bearbeitung bleibt im rechten Artikelinfos-Inspector.
+- 2026-06-21: Reader-Metadaten optisch an die App angepasst: Feedname/Lesezeit/Alter
+  und Ordner-/Tag-Chips nutzen die App-Oberflaechenschrift statt der Reader-
+  Schriftwahl.
 - 2026-06-20: Navigation Vor/Zurueck fuer Artikel umgesetzt: Reader-Toolbar und
   macOS-Menue `Artikel` navigieren mit `Cmd+↑`/`Cmd+↓` innerhalb der aktuell
   sichtbaren Feed- oder Smart-Filter-Liste und stoppen am Listenrand

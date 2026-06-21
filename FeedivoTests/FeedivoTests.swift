@@ -204,6 +204,8 @@ struct FeedivoTests {
         #expect(ReaderTypography.articleBottomPadding == 28)
         #expect(ReaderTypography.headerSpacing == 14)
         #expect(ReaderTypography.contentBlockSpacing == 22)
+        #expect(ReaderTypography.imageTextDividerSpacing == 14)
+        #expect(ReaderTypography.readerDividerOpacity == 0.18)
         #expect(ReaderTypography.leadImageMaxHeight == 460)
         #expect(ReaderTypography.footerTopPadding == 12)
     }

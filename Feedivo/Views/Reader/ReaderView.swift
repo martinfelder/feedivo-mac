@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct ReaderView: View {
+    @Environment(\.interfaceTextSize) private var interfaceTextSize
+
     let article: Article
     @Binding var isMetadataInspectorPresented: Bool
     let canSelectPreviousArticle: Bool
@@ -90,6 +92,10 @@ struct ReaderView: View {
         CGFloat(ReaderTypography.contentBlockSpacing)
     }
 
+    private var imageTextDividerSpacing: CGFloat {
+        CGFloat(ReaderTypography.imageTextDividerSpacing)
+    }
+
     private var leadImageMaxHeight: CGFloat {
         CGFloat(ReaderTypography.leadImageMaxHeight)
     }
@@ -120,6 +126,20 @@ struct ReaderView: View {
 
     private var metadataText: String {
         preparedArticle.metadataText
+    }
+
+    private var normalizedFolderName: String? {
+        FeedFolderOrganizer.normalizedFolderName(article.feed?.folderName)
+    }
+
+    private var sortedArticleTags: [Tag] {
+        article.tags.sorted {
+            $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+        }
+    }
+
+    private var hasVisibleArticleMetadata: Bool {
+        normalizedFolderName != nil || !sortedArticleTags.isEmpty
     }
 
     var body: some View {
@@ -227,25 +247,13 @@ struct ReaderView: View {
             VStack(alignment: .leading, spacing: contentBlockSpacing) {
                 readerHeader
 
-                ForEach(Array(contentBlocks.enumerated()), id: \.offset) { _, block in
-                    switch block {
-                    case .paragraph(let text):
-                        readerParagraph(text)
-                    case .heading(let text):
-                        Text(text)
-                            .font(bodyFontPreset.font(
-                                size: min(clampedBodyFontSize + 5, CGFloat(ReaderTypography.defaultTitleFontSize - 2)),
-                                relativeTo: .title3
-                            ))
-                            .fontWeight(.semibold)
-                            .lineSpacing(clampedLineSpacing)
-                            .textSelection(.enabled)
-                    case .quote(let text):
-                        readerQuote(text)
-                    case .listItem(let text):
-                        readerListItem(text)
-                    case .image(let urlString):
-                        readerImage(urlString: urlString)
+                ForEach(contentBlocks.indices, id: \.self) { index in
+                    VStack(alignment: .leading, spacing: imageTextDividerSpacing) {
+                        readerContentBlock(contentBlocks[index])
+
+                        if shouldShowImageTextDivider(after: index) {
+                            readerSectionDivider
+                        }
                     }
                 }
 
@@ -262,13 +270,16 @@ struct ReaderView: View {
         VStack(alignment: .leading, spacing: headerSpacing) {
             if !metadataText.isEmpty {
                 Text(metadataText)
-                    .font(bodyFontPreset.font(size: metadataFontSize, relativeTo: .caption))
-                    .fontWeight(.semibold)
+                    .font(interfaceTextSize.font(size: 13, weight: .semibold))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
 
             readerTitle
+
+            if hasVisibleArticleMetadata {
+                readerArticleMetadata
+            }
         }
     }
 
@@ -322,6 +333,57 @@ struct ReaderView: View {
                 .lineSpacing(clampedLineSpacing)
                 .textSelection(.enabled)
         }
+    }
+
+    @ViewBuilder
+    private func readerContentBlock(_ block: ReaderContentBlock) -> some View {
+        switch block {
+        case .paragraph(let text):
+            readerParagraph(text)
+        case .heading(let text):
+            Text(text)
+                .font(bodyFontPreset.font(
+                    size: min(clampedBodyFontSize + 5, CGFloat(ReaderTypography.defaultTitleFontSize - 2)),
+                    relativeTo: .title3
+                ))
+                .fontWeight(.semibold)
+                .lineSpacing(clampedLineSpacing)
+                .textSelection(.enabled)
+        case .quote(let text):
+            readerQuote(text)
+        case .listItem(let text):
+            readerListItem(text)
+        case .image(let urlString):
+            readerImage(urlString: urlString)
+        }
+    }
+
+    private var readerSectionDivider: some View {
+        Rectangle()
+            .fill(.secondary.opacity(ReaderTypography.readerDividerOpacity))
+            .frame(height: 1)
+            .frame(maxWidth: .infinity)
+    }
+
+    private func shouldShowImageTextDivider(after index: Int) -> Bool {
+        guard contentBlocks.indices.contains(index), isImageBlock(contentBlocks[index]) else {
+            return false
+        }
+
+        let nextIndex = contentBlocks.index(after: index)
+        guard contentBlocks.indices.contains(nextIndex) else {
+            return false
+        }
+
+        return !isImageBlock(contentBlocks[nextIndex])
+    }
+
+    private func isImageBlock(_ block: ReaderContentBlock) -> Bool {
+        if case .image = block {
+            return true
+        }
+
+        return false
     }
 
     private var readerAppearancePopover: some View {
@@ -402,6 +464,53 @@ struct ReaderView: View {
             .fontWeight(.semibold)
             .lineSpacing(clampedTitleLineSpacing)
             .textSelection(.enabled)
+    }
+
+    private var readerArticleMetadata: some View {
+        FlowLayout(spacing: 8) {
+            if let normalizedFolderName {
+                readerFolderChip(normalizedFolderName)
+            }
+
+            ForEach(sortedArticleTags) { tag in
+                readerTagChip(tag)
+            }
+        }
+    }
+
+    private func readerFolderChip(_ folderName: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: "folder")
+                .font(.caption2)
+
+            Text(folderName)
+                .lineLimit(1)
+        }
+        .font(interfaceTextSize.font(size: 12, weight: .semibold))
+        .foregroundStyle(.secondary)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(.secondary.opacity(0.08), in: Capsule())
+        .overlay {
+            Capsule()
+                .stroke(.secondary.opacity(0.16), lineWidth: 1)
+        }
+    }
+
+    private func readerTagChip(_ tag: Tag) -> some View {
+        let tagColor = TagColorPalette.color(for: tag.colorHex)
+
+        return Text("#\(tag.name)")
+            .lineLimit(1)
+            .font(interfaceTextSize.font(size: 12, weight: .semibold))
+            .foregroundStyle(tagColor)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(tagColor.opacity(0.1), in: Capsule())
+            .overlay {
+                Capsule()
+                    .stroke(tagColor.opacity(0.24), lineWidth: 1)
+            }
     }
 
     private func typographySlider(

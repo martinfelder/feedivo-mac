@@ -72,12 +72,13 @@ bei geschlossener App.
 - Die Reader-Darstellung ist als ruhiger Editorial Reader gesetzt: kleinerer
   semibold Titel, bewusstere Blockabstaende, kontrollierte Lead-Bildhoehe und
   dezenter Original-Link im Footer. Der Artikelkopf startet mit etwas mehr Abstand
-  zur Toolbar.
+  zur Toolbar und nutzt einen feinen Querstrich zwischen Lead-Bild und Fliesstext.
 - In der Reader-Toolbar kann ein rechter Metadaten-Inspector eingeblendet werden;
   dort sind Feed-Ordner und Artikel-Tags sichtbar und bearbeitbar. Vorhandene
   globale Tags, die dem Artikel noch nicht zugewiesen sind, werden dort als
-  anklickbare Plus-Chips angeboten. Der Artikelkopf zeigt nur Feedname, Lesezeit und
-  Zeitpunkt; der Inspector wird als native rechte macOS-Inspector-Spalte angezeigt,
+  anklickbare Plus-Chips angeboten. Der Artikelkopf zeigt Feedname, Lesezeit,
+  Zeitpunkt sowie Ordner und Artikel-Tags als dezente Chips direkt unter dem Titel;
+  der Inspector wird als native rechte macOS-Inspector-Spalte angezeigt,
   nutzt denselben hellen Stil wie die linke Sidebar und bleibt beim Feed- oder
   Artikelwechsel eingeblendet, wenn er geoeffnet wurde.
 - Die native Artikel-Scrollbar ist ausgeblendet, damit der Artikelbereich optisch
@@ -121,8 +122,8 @@ bei geschlossener App.
 - In der Artikelansicht koennen Titel- und Fliesstext-Schrift ueber kuratierte
   Presets direkt per Toolbar-Popover und in den Einstellungen getrennt gewaehlt werden;
   Fliesstext-Groesse, Titel-/Fliesstext-Zeilenabstand und Artikelbreite sind dort
-  ebenfalls einstellbar. Die Metazeile oberhalb des Titels nutzt die
-  Fliesstext-Schrift proportional kleiner.
+  ebenfalls einstellbar. Metazeile, Ordner-Chip und Tag-Chips nutzen bewusst die
+  App-Oberflaechenschrift statt der Reader-Schriftwahl.
 - Automatischer Refresh ist als macOS-native Basis umgesetzt: In den Einstellungen
   kann er aktiviert und auf 15, 30, 60 oder 120 Minuten gestellt werden. Feedivo nutzt
   `NSBackgroundActivityScheduler`; macOS entscheidet den genauen Zeitpunkt und startet
@@ -210,11 +211,13 @@ M3 Tags, Regeln & Sync:
 - Bildposition: Das erste sichtbare Bild steht im nativen Reader immer direkt unter
   dem Titel. Ein gespeichertes `Article.imageURL` hat Vorrang; wenn es fehlt, wird
   das erste HTML-`img` aus dem Artikelinhalt nach vorne gezogen.
+- Visueller Rhythmus: Ein feiner Trenner erscheint nach dem Lead-Bild, wenn danach
+  Fliesstext folgt.
 - Performance: `ReaderPreparedArticle` bereitet Content-Bloecke, Metazeile und
   Original-URL einmal pro ausgewaehltem Artikel vor, damit SwiftUI-Redraws nicht
   wiederholt HTML/Text neu zerlegen.
 - Metadaten: Oberhalb des Titels zeigt `ReaderView` Feedname, ungefaehre Lesezeit
-  und Artikelalter, sofern die Daten vorhanden sind.
+  und Artikelalter in der App-Oberflaechenschrift, sofern die Daten vorhanden sind.
 - Design-Exploration: Unter `docs/design/article-reader-prototypes/index.html`
   liegen zehn interaktive Reader-Varianten als Entscheidungsgrundlage fuer die
   spaetere visuelle Ueberarbeitung der Artikelansicht.
@@ -230,8 +233,8 @@ M3 Tags, Regeln & Sync:
   `.inspector`-Spalte und denselben hellen, systemnahen Stil wie die linke Sidebar.
   Beim Einblenden rueckt der Reader inklusive Toolbar nach links.
 - Implementierte Richtung: Feedname, Lesezeit und Zeitpunkt bleiben im Artikelkopf;
-  Ordner und Tags liegen in einem einblendbaren rechten Inspector und koennen dort
-  bearbeitet werden.
+  Ordner und Tags werden unter dem Titel angezeigt und koennen im einblendbaren
+  rechten Inspector bearbeitet werden.
 - Visuelle Richtung: Die Artikelansicht bleibt reduziert und inhaltsnah; seltenere
   Aktionen wie `Link kopieren` liegen im Mehr-Menue, damit die Toolbar ruhiger bleibt.
 - Fallback: Leere strukturierte HTML-Bloecke werden verworfen; kaputte oder unbekannte
