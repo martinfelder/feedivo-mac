@@ -117,7 +117,11 @@ FeedivoMac/
 │   │   ├── FeedLogEntry.swift          # Feed-Abruf- und Fehlerlog ✅
 │   │   ├── Article.swift
 │   │   ├── Tag.swift
-│   │   └── Rule.swift
+│   │   ├── Rule.swift
+│   │   ├── RuleCondition.swift         # Mehrfachbedingungen fuer Regeln ✅
+│   │   ├── RuleMatchMode.swift         # AND/OR-Auswertung fuer Regeln ✅
+│   │   ├── RuleConditionField.swift    # Regel-Felder title/summary/feedTitle ✅
+│   │   └── RuleConditionOperator.swift # Regel-Operatoren ✅
 │   │
 │   ├── ViewModels/
 │   │   ├── FeedViewModel.swift         # Feed hinzufügen, aktualisieren, loeschen ✅
@@ -125,7 +129,7 @@ FeedivoMac/
 │   │   ├── ArticleNavigationState.swift # Sichtbare Artikel-Navigation effizient berechnen ✅
 │   │   ├── ArticleMetadataEditor.swift # Artikel-Ordner und Tags bearbeiten ✅
 │   │   ├── TagViewModel.swift          # Tags verwalten ✅
-│   │   ├── RuleEngineViewModel.swift   # Regeln auswerten und Tags auto-zuweisen (TODO)
+│   │   ├── RuleViewModel.swift         # Regeln erstellen, bearbeiten, loeschen ✅
 │   │   └── SyncViewModel.swift         # iCloud Sync Status anzeigen (TODO)
 │   │
 │   ├── Views/
@@ -157,10 +161,10 @@ FeedivoMac/
 │   │   │   ├── TagManagerView.swift    # Tags erstellen, bearbeiten, loeschen ✅
 │   │   │   └── AddTagView.swift        # bleibt vorerst nicht separat noetig; TagManagerView erstellt Tags direkt
 │   │   ├── Rules/
-│   │   │   ├── RuleListView.swift      # Alle Regeln anzeigen und verwalten (TODO)
-│   │   │   └── AddRuleView.swift       # Sheet: neue Regel erstellen (TODO)
+│   │   │   ├── RuleSettingsView.swift  # Alle Regeln in Einstellungen verwalten ✅
+│   │   │   └── RuleWizardView.swift    # Wizard fuer einfache/Power-User-Regeln ✅
 │   │   └── Settings/
-│   │       └── SettingsView.swift      # Lesen, Sprache und Auto-Refresh ✅
+│   │       └── SettingsView.swift      # Lesen, Regeln, Sprache und Auto-Refresh ✅
 │   │
 │   ├── Services/
 │   │   ├── FeedService.swift           # FeedKit-Wrapper: RSS/Atom/JSON Feed parsen ✅
@@ -169,8 +173,9 @@ FeedivoMac/
 │   │   ├── BackgroundRefreshService.swift  # NSBackgroundActivityScheduler Adapter ✅
 │   │   ├── ArticleFeedIDBackfillService.swift # feedID fuer alte Artikel nachfuellen ✅
 │   │   ├── FeedUnreadCountBackfillService.swift # unreadCount einmalig korrigieren ✅
+│   │   ├── RuleConditionBackfillService.swift # alte Rule-Felder in Conditions migrieren ✅
 │   │   ├── FeedRefreshService.swift    # Alle Feeds abrufen (async, mit Fortschritt) (TODO)
-│   │   ├── RuleEngine.swift            # Einfache Regeln auf neue Artikel anwenden ✅
+│   │   ├── RuleEngine.swift            # Mehrfach-Regeln auf neue Artikel anwenden ✅
 │   │   ├── OPMLService.swift           # OPML Import und Export ✅
 │   │   └── OPMLDocument.swift          # FileDocument fuer OPML Export ✅
 │   │
@@ -211,7 +216,8 @@ struct FeedivoApp: App {
             FeedLogEntry.self,
             Article.self,
             Tag.self,
-            Rule.self
+            Rule.self,
+            RuleCondition.self
         )
         self.modelContainer = modelContainer
         self.backgroundRefreshScheduler = SystemBackgroundActivityRefreshScheduler(
@@ -237,6 +243,8 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 Haelt keine pauschale `@Query` auf alle Artikel mehr; `ArticleListView` meldet nur
 noch einen kleinen `ArticleNavigationState` mit vorherigem/naechstem Artikel nach
 oben, statt die komplette sichtbare Artikelliste in `ContentView` zu kopieren.
+Praesentiert ausserdem den Regel-Wizard fuer den aktuell ausgewaehlten Artikel,
+wenn die Sidebar-Aktion `Regel aus Artikel erstellen...` genutzt wird.
 
 ### SidebarView.swift
 - `@Query(sort: \Feed.title)` für automatische Feed-Liste aus SwiftData
@@ -262,6 +270,9 @@ oben, statt die komplette sichtbare Artikelliste in `ContentView` zu kopieren.
   auf Artikel mit diesem Tag.
 - Tag-Zeilen zeigen bewusst noch keine Zaehler, damit die Sidebar keine Artikel ueber
   Tag-Relationships laden muss.
+- Die Sidebar zeigt Regeln nur kompakt als eigenen Abschnitt mit Anzahl aktiver
+  Regeln und einem Link, um aus dem aktuell ausgewaehlten Artikel eine neue Regel zu
+  erstellen. Die komplette Regelverwaltung liegt bewusst in den Einstellungen.
 - Feeds stehen in einer Sidebar-Section `Ordner`; neben dem Section-Titel gibt es
   einen + Button zum Anlegen neuer Ordner
 - Ordner sind per Chevron auf- und zuklappbar; Feeds innerhalb eines Ordners werden
@@ -367,14 +378,39 @@ oben, statt die komplette sichtbare Artikelliste in `ContentView` zu kopieren.
   `articles`-Relationship geladen, nur um den Sidebar-Zaehler zu verifizieren.
 
 ### RuleEngine.swift
-- Stateless Service fuer einfache automatische Tag-Zuweisung.
+- Stateless Service fuer automatische Tag-Zuweisung.
+- Unterstuetzt mehrere Bedingungen pro Regel und wertet sie je nach
+  `RuleMatchMode` als `all` (AND) oder `any` (OR) aus.
 - Unterstuetzt die Felder `title`, `summary` und `feedTitle`.
 - Unterstuetzt die Operatoren `contains`, `startsWith` und `endsWith`.
 - Vergleicht case-insensitive und ignoriert deaktivierte Regeln, leere Suchwerte,
-  unbekannte Felder/Operatoren sowie Regeln ohne `assignTag`.
+  unbekannte Felder/Operatoren, Regeln ohne Bedingungen sowie Regeln ohne `assignTag`.
 - Fuegt Tags nur hinzu, wenn der Artikel das Tag noch nicht besitzt.
-- Wird aktuell beim Feed-Refresh nur fuer neue Artikel angewendet; Rueckwirkendes
-  Anwenden auf Altbestand und die Regel-UI bleiben separate M3-Schritte.
+- Wird aktuell beim Feed-Refresh nur fuer neue Artikel angewendet; rueckwirkendes
+  Anwenden auf Altbestand bleibt ein separater spaeterer Schritt.
+
+### RuleViewModel.swift
+- Kapselt Erstellen, Bearbeiten und Loeschen von Regeln fuer den Wizard.
+- Validiert Name, Ziel-Tag und mindestens eine nichtleere Bedingung.
+- Speichert neue Mehrfachbedingungen als `RuleCondition` und pflegt die alten
+  `conditionField`/`conditionOperator`/`conditionValue` Felder fuer Kompatibilitaet
+  mit bestehenden Daten weiter.
+
+### RuleConditionBackfillService.swift
+- Migriert alte Regeln mit nur einem gespeicherten Legacy-Bedingungsfeld beim
+  App-Start in die neue `Rule.conditions` Relationship.
+- Ueberspringt Regeln mit bereits vorhandenen Conditions oder leerem Suchwert.
+
+### RuleSettingsView.swift / RuleWizardView.swift
+- Einstellungen zeigen eine Liste aller Regeln mit Status, Ziel-Tag und
+  Bedingungszusammenfassung; Regeln koennen geoeffnet, bearbeitet oder geloescht
+  werden.
+- Neue Regeln werden ueber einen Wizard erstellt. Der Benutzer waehlt zwischen
+  einfacher Regel und Power-User-Regel.
+- Einfache Regeln verwenden eine Bedingung; Power-User-Regeln erlauben mehrere
+  Bedingungen mit AND- oder OR-Verknuepfung.
+- Der Wizard kann aus der Sidebar mit dem aktuell ausgewaehlten Artikel gestartet
+  werden und fuellt dann einen passenden ersten Vorschlag vor.
 
 ### FeedPropertiesView.swift / FeedPropertiesFormatter.swift
 - Rechtsklick auf Feed → `Feed Eigenschaften...`
@@ -717,10 +753,21 @@ oben, statt die komplette sichtbare Artikelliste in `ContentView` zu kopieren.
     var id: UUID
     var name: String
     var isEnabled: Bool
-    var conditionField: String               // "title", "summary", "feedTitle"
-    var conditionOperator: String            // "contains", "startsWith", "endsWith"
-    var conditionValue: String
+    var conditionField: String               // Legacy: erste Bedingung
+    var conditionOperator: String            // Legacy: erste Bedingung
+    var conditionValue: String               // Legacy: erste Bedingung
+    var conditionMatchMode: String           // "all" oder "any"
     @Relationship var assignTag: Tag?
+    @Relationship(deleteRule: .cascade, inverse: \RuleCondition.rule) var conditions: [RuleCondition]
+}
+
+@Model class RuleCondition {
+    var id: UUID
+    var field: String                        // "title", "summary", "feedTitle"
+    var comparisonOperator: String           // "contains", "startsWith", "endsWith"
+    var value: String
+    var sortOrder: Int
+    @Relationship var rule: Rule?
 }
 ```
 
@@ -900,7 +947,9 @@ oben, statt die komplette sichtbare Artikelliste in `ContentView` zu kopieren.
 - [ ] Tag-Zaehler in der Sidebar spaeter pruefen
 - [ ] Erweiterte/eigene Smart Filter spaeter pruefen
 - [x] `RuleEngine`: Neue Artikel automatisch taggen basierend auf einfachen Regeln
-- [ ] Regel-UI: Regeln erstellen, bearbeiten, aktivieren/deaktivieren
+- [x] Regel-UI: Wizard fuer einfache/Power-User-Regeln, Einstellungen-Liste,
+  Bearbeiten, Loeschen und Aktivieren/Deaktivieren
+- [x] Regel-Mehrfachbedingungen mit AND/OR fuer Power-User-Regeln
 - [ ] iCloud Sync via CloudKit aktivieren und testen
 - [ ] Offline-Unterstützung: Artikel-Content beim Abruf in SwiftData speichern
 - [ ] Background Refresh erweitern: Strategie fuer Refresh nach vollstaendig beendeter
@@ -945,9 +994,10 @@ oben, statt die komplette sichtbare Artikelliste in `ContentView` zu kopieren.
 - Aktuell M3: Tags, Regeln und Sync. Die erste Artikel-Tag-Basis existiert im
   Reader-Metadaten-Inspector; die zentrale Tag-Verwaltung ist als Basis ueber die
   Sidebar erreichbar, und Tags koennen in der Sidebar feeduebergreifend als
-  Artikel-Filter genutzt werden. Die erste RuleEngine-Basis taggt neue Artikel beim
-  Refresh automatisch nach einfachen Regeln. Naechster sinnvoller Block ist die
-  Regel-UI oder Feed-Tags.
+  Artikel-Filter genutzt werden. Regeln koennen ueber einen Wizard erstellt und in
+  den Einstellungen verwaltet werden; Power-User-Regeln unterstuetzen mehrere
+  Bedingungen mit AND/OR. Naechster sinnvoller Block ist Feed-Tags, Tag-Zaehler/
+  Rueckwirkendes Anwenden von Regeln oder iCloud Sync.
 - Feature-Roadmap ist in `docs/FEATURES.md` dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
@@ -1140,3 +1190,9 @@ oben, statt die komplette sichtbare Artikelliste in `ContentView` zu kopieren.
   anhand einfacher Regeln (`title`/`summary`/`feedTitle` plus `contains`/
   `startsWith`/`endsWith`) automatisch getaggt; Rule-UI, Regex, Mehrfachbedingungen
   und rueckwirkendes Anwenden bleiben offen.
+- 2026-06-21: Regel-Wizard und Regelverwaltung umgesetzt: Regeln werden in den
+  Einstellungen gelistet, koennen dort erstellt, bearbeitet, geloescht und
+  aktiviert/deaktiviert werden. Der Wizard bietet einfache Regeln oder
+  Power-User-Regeln mit mehreren Bedingungen und AND/OR. In der Sidebar werden
+  Regeln bewusst nur kompakt mit aktivem Zaehler und einem Link `Regel aus Artikel
+  erstellen...` fuer den aktuell ausgewaehlten Artikel angezeigt.
