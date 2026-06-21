@@ -42,6 +42,8 @@ final class FeedViewModel {
         var skippedDuplicateCount = 0
         var failedFeedTitles: [String] = []
 
+        // Phase 1: Deduplizierung und Feed-Erstellung (sequenziell — URL-Set darf nicht concurrent mutiert werden)
+        var feedsToRefresh: [Feed] = []
         for opmlFeed in opmlFeeds {
             let cleanedURL = opmlFeed.xmlURL.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !cleanedURL.isEmpty else {
@@ -69,25 +71,42 @@ final class FeedViewModel {
                 context: context
             )
             importedCount += 1
+            feedsToRefresh.append(feed)
+        }
 
-            do {
-                try await refreshFeedContents(feed, context: context)
-            } catch let error as LocalizedError {
-                appendLog(
-                    kind: "error",
-                    message: error.errorDescription ?? L10n.feedErrorParsingFailed,
-                    to: feed,
-                    context: context
-                )
-                failedFeedTitles.append(feed.title)
-            } catch {
-                appendLog(
-                    kind: "error",
-                    message: L10n.feedErrorParsingFailed,
-                    to: feed,
-                    context: context
-                )
-                failedFeedTitles.append(feed.title)
+        // Phase 2: Alle neuen Feeds parallel abrufen (Netzwerk-I/O läuft gleichzeitig)
+        await withTaskGroup(of: String?.self) { group in
+            for feed in feedsToRefresh {
+                group.addTask { @MainActor in
+                    do {
+                        try await self.refreshFeedContents(feed, context: context)
+                        return nil
+                    } catch let error as LocalizedError {
+                        self.appendLog(
+                            kind: "error",
+                            message: error.errorDescription ?? L10n.feedErrorParsingFailed,
+                            to: feed,
+                            context: context
+                        )
+                        try? context.save()
+                        return feed.title
+                    } catch {
+                        self.appendLog(
+                            kind: "error",
+                            message: L10n.feedErrorParsingFailed,
+                            to: feed,
+                            context: context
+                        )
+                        try? context.save()
+                        return feed.title
+                    }
+                }
+            }
+
+            for await failedTitle in group {
+                if let failedTitle {
+                    failedFeedTitles.append(failedTitle)
+                }
             }
         }
 

@@ -547,6 +547,50 @@ struct FeedViewModelTests {
         #expect(viewModel.errorMessage == nil)
     }
     @MainActor
+    @Test func importOPMLFeedsAktualisiertNeueFeedsParallel() async throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+
+        actor ConcurrencyTracker {
+            var active = 0
+            var peak = 0
+            func fetchStarted() { active += 1; peak = max(peak, active) }
+            func fetchEnded() { active -= 1 }
+        }
+        let tracker = ConcurrencyTracker()
+
+        let viewModel = FeedViewModel(
+            fetchFeed: { urlString in
+                await tracker.fetchStarted()
+                try await Task.sleep(for: .milliseconds(100))
+                await tracker.fetchEnded()
+                return ParsedFeed(sourceURL: urlString, title: "Feed", description: nil, articles: [])
+            },
+            discoverFaviconURL: { _ in nil }
+        )
+
+        _ = try await viewModel.importOPMLFeeds(
+            [
+                OPMLFeed(title: "Feed 1", xmlURL: "https://example.com/1.xml", htmlURL: nil, folderName: nil),
+                OPMLFeed(title: "Feed 2", xmlURL: "https://example.com/2.xml", htmlURL: nil, folderName: nil),
+                OPMLFeed(title: "Feed 3", xmlURL: "https://example.com/3.xml", htmlURL: nil, folderName: nil)
+            ],
+            existingFeeds: [],
+            context: context
+        )
+
+        let peak = await tracker.peak
+        #expect(peak > 1, "OPML-Import sollte Feeds parallel abrufen, nicht nacheinander")
+    }
+
+    @MainActor
     @Test func refreshAllFeedsAktualisiertFeedsParallel() async throws {
         let container = try ModelContainer(
             for: Feed.self,
