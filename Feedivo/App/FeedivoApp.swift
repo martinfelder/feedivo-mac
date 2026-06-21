@@ -86,5 +86,6 @@ struct FeedivoApp: App {
     private func backfillStoredArticleMetadataIfNeeded() {
         _ = try? ArticleFeedIDBackfillService.backfillMissingFeedIDs(in: modelContainer.mainContext)
         _ = try? FeedUnreadCountBackfillService.backfillUnreadCounts(in: modelContainer.mainContext)
+        _ = try? RuleConditionBackfillService.backfillMissingConditions(context: modelContainer.mainContext)
     }
 }
