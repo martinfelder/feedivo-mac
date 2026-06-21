@@ -67,6 +67,29 @@ enum L10n {
     static let ruleConditionOperatorContains = LocalizedStringKey("rule.condition.operator.contains")
     static let ruleConditionOperatorStartsWith = LocalizedStringKey("rule.condition.operator.startsWith")
     static let ruleConditionOperatorEndsWith = LocalizedStringKey("rule.condition.operator.endsWith")
+    static let settingsRulesSection = LocalizedStringKey("settings.rules.section")
+    static let ruleCreateButton = LocalizedStringKey("rule.create.button")
+    static let ruleEditButton = LocalizedStringKey("rule.edit.button")
+    static let ruleDeleteButton = LocalizedStringKey("rule.delete.button")
+    static let ruleNoRules = LocalizedStringKey("rule.noRules")
+    static let ruleEnabled = LocalizedStringKey("rule.enabled")
+    static let ruleWizardCreateTitle = LocalizedStringKey("ruleWizard.title.create")
+    static let ruleWizardEditTitle = LocalizedStringKey("ruleWizard.title.edit")
+    static let ruleWizardModeTitle = LocalizedStringKey("ruleWizard.mode.title")
+    static let ruleWizardModeSimple = LocalizedStringKey("ruleWizard.mode.simple")
+    static let ruleWizardModePower = LocalizedStringKey("ruleWizard.mode.power")
+    static let ruleWizardConditionsTitle = LocalizedStringKey("ruleWizard.conditions.title")
+    static let ruleWizardTargetTitle = LocalizedStringKey("ruleWizard.target.title")
+    static let ruleWizardSummaryTitle = LocalizedStringKey("ruleWizard.summary.title")
+    static let ruleWizardNamePlaceholder = LocalizedStringKey("ruleWizard.name.placeholder")
+    static let ruleWizardValuePlaceholder = LocalizedStringKey("ruleWizard.value.placeholder")
+    static let ruleWizardAddCondition = LocalizedStringKey("ruleWizard.addCondition")
+    static let ruleWizardRemoveCondition = LocalizedStringKey("ruleWizard.removeCondition")
+    static let ruleWizardSave = LocalizedStringKey("ruleWizard.save")
+    static let ruleWizardExistingTag = LocalizedStringKey("ruleWizard.existingTag")
+    static let ruleWizardNewTag = LocalizedStringKey("ruleWizard.newTag")
+    static let ruleWizardNewTagName = LocalizedStringKey("ruleWizard.newTagName")
+    static let sidebarRulesSection = LocalizedStringKey("sidebar.rules.section")
     static let settingsReadingSection = LocalizedStringKey("settings.reading.section")
     static let settingsLanguageSection = LocalizedStringKey("settings.language.section")
     static let settingsLanguagePickerTitle = LocalizedStringKey("settings.language.picker.title")
@@ -118,6 +141,7 @@ enum L10n {
     static var tagManagerEmptyNameError: String { String(localized: "tagManager.emptyName.error") }
     static var tagManagerDuplicateNameError: String { String(localized: "tagManager.duplicateName.error") }
     static var ruleValidationError: String { String(localized: "rule.validation.error") }
+    static var ruleCreateFromArticle: String { String(localized: "rule.createFromArticle") }
     static var feedErrorInvalidURL: String { String(localized: "feed.error.invalidURL") }
     static var feedErrorParsingFailed: String { String(localized: "feed.error.parsingFailed") }
     static var feedErrorEmptyURL: String { String(localized: "feed.error.emptyURL") }
@@ -191,5 +215,9 @@ enum L10n {
 
     static func readerReadingTime(minutes: Int) -> String {
         String.localizedStringWithFormat(String(localized: "reader.readingTime"), minutes)
+    }
+
+    static func sidebarRulesActiveCount(count: Int) -> String {
+        String.localizedStringWithFormat(String(localized: "sidebar.rules.activeCount"), count)
     }
 }

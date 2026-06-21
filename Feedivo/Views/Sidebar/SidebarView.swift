@@ -7,9 +7,12 @@ struct SidebarView: View {
     @Query(sort: \Feed.title) private var feeds: [Feed]
     @Query(sort: \FeedFolder.name) private var folders: [FeedFolder]
     @Query(sort: \Tag.name) private var tags: [Tag]
+    @Query(sort: \Rule.name) private var rules: [Rule]
     @Binding var selection: SidebarSelection?
+    let selectedArticle: Article?
     let onRequestAddFeed: () -> Void
     let onRequestDeleteFeed: (Feed) -> Void
+    let onRequestCreateRuleFromArticle: (Article) -> Void
     @State private var feedShowingProperties: Feed?
     @State private var feedRenaming: Feed?
     @State private var isShowingAddFolderSheet = false
@@ -24,6 +27,7 @@ struct SidebarView: View {
                 VStack(alignment: .leading, spacing: 18) {
                     smartFiltersSection
                     tagsSection
+                    rulesSection
                     foldersSection
                 }
                 .padding(.horizontal, 14)
@@ -108,7 +112,7 @@ struct SidebarView: View {
         SidebarActionSection(
             title: L10n.sidebarTagsSection,
             actionSystemImage: "tag",
-            actionHelp: L10n.tagManagerManageButton
+            actionHelp: String(localized: "tagManager.manage.button")
         ) {
             isShowingTagManager = true
         } content: {
@@ -118,11 +122,30 @@ struct SidebarView: View {
         }
     }
 
+    private var rulesSection: some View {
+        SidebarActionSection(
+            title: L10n.sidebarRulesSection,
+            actionSystemImage: "slider.horizontal.3",
+            actionHelp: L10n.ruleCreateFromArticle,
+            isActionDisabled: selectedArticle == nil
+        ) {
+            if let selectedArticle {
+                onRequestCreateRuleFromArticle(selectedArticle)
+            }
+        } content: {
+            Text(L10n.sidebarRulesActiveCount(count: rules.filter(\.isEnabled).count))
+                .font(interfaceTextSize.font(size: 13))
+                .foregroundStyle(SidebarStyle.darkSecondaryText)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+        }
+    }
+
     private var foldersSection: some View {
         SidebarActionSection(
             title: L10n.sidebarFoldersSection,
             actionSystemImage: "plus",
-            actionHelp: L10n.sidebarAddFolderButton
+            actionHelp: String(localized: "sidebar.addFolder.button")
         ) {
             isShowingAddFolderSheet = true
         } content: {
@@ -277,7 +300,8 @@ private struct SidebarActionSection<Content: View>: View {
 
     let title: LocalizedStringKey
     let actionSystemImage: String
-    let actionHelp: LocalizedStringKey
+    let actionHelp: String
+    var isActionDisabled = false
     let action: () -> Void
     @ViewBuilder let content: Content
 
@@ -301,6 +325,7 @@ private struct SidebarActionSection<Content: View>: View {
                 }
                 .buttonStyle(.plain)
                 .help(actionHelp)
+                .disabled(isActionDisabled)
             }
             .foregroundStyle(SidebarStyle.darkSectionText)
             .padding(.horizontal, 10)

@@ -231,7 +231,7 @@ private struct TagManagerRow: View {
     }
 }
 
-private struct ColorSwatchPicker: View {
+struct ColorSwatchPicker: View {
     @Binding var selection: String
 
     var body: some View {

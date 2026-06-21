@@ -12,6 +12,7 @@ struct FeedViewModelTests {
             Article.self,
             Tag.self,
             Rule.self,
+            RuleCondition.self,
             FeedLogEntry.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
@@ -71,6 +72,7 @@ struct FeedViewModelTests {
             Article.self,
             Tag.self,
             Rule.self,
+            RuleCondition.self,
             FeedLogEntry.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
@@ -161,6 +163,7 @@ struct FeedViewModelTests {
             Article.self,
             Tag.self,
             Rule.self,
+            RuleCondition.self,
             FeedLogEntry.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
@@ -184,6 +187,7 @@ struct FeedViewModelTests {
             Article.self,
             Tag.self,
             Rule.self,
+            RuleCondition.self,
             FeedLogEntry.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
@@ -211,6 +215,7 @@ struct FeedViewModelTests {
             Article.self,
             Tag.self,
             Rule.self,
+            RuleCondition.self,
             FeedLogEntry.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
@@ -248,6 +253,7 @@ struct FeedViewModelTests {
             Article.self,
             Tag.self,
             Rule.self,
+            RuleCondition.self,
             FeedLogEntry.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
@@ -307,6 +313,7 @@ struct FeedViewModelTests {
             Article.self,
             Tag.self,
             Rule.self,
+            RuleCondition.self,
             FeedLogEntry.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
@@ -389,6 +396,7 @@ struct FeedViewModelTests {
             Article.self,
             Tag.self,
             Rule.self,
+            RuleCondition.self,
             FeedLogEntry.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
@@ -407,6 +415,9 @@ struct FeedViewModelTests {
             conditionOperator: "contains",
             conditionValue: "swift"
         )
+        rule.conditions = [
+            RuleCondition(field: "title", conditionOperator: "contains", value: "swift")
+        ]
         rule.assignTag = tag
         context.insert(feed)
         context.insert(tag)
@@ -457,6 +468,7 @@ struct FeedViewModelTests {
             Article.self,
             Tag.self,
             Rule.self,
+            RuleCondition.self,
             FeedLogEntry.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
@@ -540,6 +552,7 @@ struct FeedViewModelTests {
             Article.self,
             Tag.self,
             Rule.self,
+            RuleCondition.self,
             FeedLogEntry.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
@@ -578,6 +591,7 @@ struct FeedViewModelTests {
             Article.self,
             Tag.self,
             Rule.self,
+            RuleCondition.self,
             FeedLogEntry.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
@@ -602,6 +616,7 @@ struct FeedViewModelTests {
             Article.self,
             Tag.self,
             Rule.self,
+            RuleCondition.self,
             FeedLogEntry.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
@@ -621,6 +636,7 @@ struct FeedViewModelTests {
             Article.self,
             Tag.self,
             Rule.self,
+            RuleCondition.self,
             FeedLogEntry.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
@@ -665,6 +681,7 @@ struct FeedViewModelTests {
             Article.self,
             Tag.self,
             Rule.self,
+            RuleCondition.self,
             FeedLogEntry.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )

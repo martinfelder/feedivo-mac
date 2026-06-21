@@ -27,6 +27,7 @@ struct ContentView: View {
     @State private var isExportingOPML = false
     @State private var opmlExportDocument = OPMLDocument()
     @State private var opmlAlert: OPMLAlert?
+    @State private var articleForRuleCreation: Article?
 
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
@@ -34,8 +35,10 @@ struct ContentView: View {
             // SPALTE 1: Sidebar — Liste aller Feeds
             SidebarView(
                 selection: $sidebarSelection,
+                selectedArticle: selectedArticle,
                 onRequestAddFeed: requestAddFeed,
-                onRequestDeleteFeed: requestDeleteFeed
+                onRequestDeleteFeed: requestDeleteFeed,
+                onRequestCreateRuleFromArticle: requestCreateRuleFromArticle
             )
                 .navigationSplitViewColumnWidth(min: 200, ideal: 240, max: 300)
 
@@ -99,6 +102,9 @@ struct ContentView: View {
         }
         .sheet(isPresented: $isShowingAddFeedSheet) {
             AddFeedSheet()
+        }
+        .sheet(item: $articleForRuleCreation) { article in
+            RuleWizardView(sourceArticle: article)
         }
         .confirmationDialog(
             L10n.feedDeleteConfirmationTitle,
@@ -202,6 +208,10 @@ struct ContentView: View {
     private func requestDeleteFeed(_ feed: Feed) {
         feedPendingDeletion = feed
         isDeleteFeedConfirmationPresented = true
+    }
+
+    private func requestCreateRuleFromArticle(_ article: Article) {
+        articleForRuleCreation = article
     }
 
     private func importOPML(from result: Result<URL, Error>) {

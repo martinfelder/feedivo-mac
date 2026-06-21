@@ -93,6 +93,7 @@ struct ArticleMetadataEditorTests {
             Article.self,
             Tag.self,
             Rule.self,
+            RuleCondition.self,
             FeedLogEntry.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
