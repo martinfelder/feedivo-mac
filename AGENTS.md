@@ -993,3 +993,6 @@ fuer Reader-Vor/Zurueck sowie macOS-Menue-Status wiederverwendet.
   nicht mehr pauschal alle Artikel; Feed-Listen vermeiden globale Artikel-Queries
   und die Reader-Navigation nutzt `ArticleNavigationState` mit der bereits sortierten
   sichtbaren Artikelliste.
+- 2026-06-21: Reader-Inspector-Layout korrigiert: Bei geoeffnetem Artikelinfos-Panel
+  fuellt der Reader-Bereich die verbleibende Detailbreite, damit rechts neben dem
+  Inspector keine leere weisse Restflaeche bleibt.

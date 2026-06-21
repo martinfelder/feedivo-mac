@@ -74,7 +74,8 @@ bei geschlossener App.
   dezenter Original-Link im Footer.
 - In der Reader-Toolbar kann ein rechter Metadaten-Inspector eingeblendet werden;
   dort sind Feed-Ordner und Artikel-Tags sichtbar und bearbeitbar, waehrend der
-  Artikelkopf nur Feedname, Lesezeit und Zeitpunkt zeigt.
+  Artikelkopf nur Feedname, Lesezeit und Zeitpunkt zeigt. Der Inspector sitzt ohne
+  zusaetzliche Restspalte am rechten Rand der Artikelansicht.
 - Reader-Rendering wandelt HTML/Plain-Text in Absätze und Bildbloecke; HTML-Bilder
   bleiben dabei an ihrer Position im Artikelinhalt, Fallback-Bilder aus
   `Article.imageURL` werden nur genutzt, wenn der HTML-Inhalt kein Bild enthaelt.

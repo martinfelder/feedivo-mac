@@ -206,6 +206,7 @@ struct ReaderView: View {
         if isMetadataInspectorPresented {
             HStack(spacing: 0) {
                 readerContent
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
 
                 Divider()
 
@@ -213,6 +214,7 @@ struct ReaderView: View {
                     isMetadataInspectorPresented = false
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             readerContent
         }
