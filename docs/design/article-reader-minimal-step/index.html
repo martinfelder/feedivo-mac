@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Feedivo Minimal Reader Step</title>
+  <style>
+    :root {
+      --bg: #f4f4f2;
+      --surface: #ffffff;
+      --text: #202124;
+      --muted: #777770;
+      --line: rgba(32, 33, 36, 0.12);
+      --accent: #0a84ff;
+      --reader-width: 760px;
+      --body-size: 19px;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background: var(--bg);
+    }
+
+    button {
+      font: inherit;
+    }
+
+    .prototype {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      min-height: 58px;
+      padding: 10px 22px;
+      background: color-mix(in srgb, var(--surface) 92%, transparent);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(18px);
+    }
+
+    .title-block {
+      min-width: 0;
+    }
+
+    .title-block strong {
+      display: block;
+      font-size: 14px;
+    }
+
+    .title-block span {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 6px;
+      padding: 4px;
+      background: #ededeb;
+      border-radius: 9px;
+    }
+
+    .tab {
+      min-width: 118px;
+      min-height: 32px;
+      padding: 0 11px;
+      color: #5f5f5a;
+      background: transparent;
+      border: 0;
+      border-radius: 7px;
+      cursor: pointer;
+    }
+
+    .tab.active {
+      color: var(--text);
+      background: var(--surface);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+    }
+
+    .actions {
+      display: flex;
+      gap: 7px;
+    }
+
+    .icon {
+      width: 32px;
+      height: 32px;
+      display: grid;
+      place-items: center;
+      color: #686864;
+      background: #eeeeeb;
+      border: 0;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .icon:hover,
+    .icon.active {
+      color: var(--accent);
+      background: rgba(10, 132, 255, 0.12);
+    }
+
+    .stage {
+      min-width: 0;
+      overflow: auto;
+      background: var(--surface);
+    }
+
+    .reader {
+      width: min(var(--reader-width), calc(100% - 64px));
+      margin: 0 auto;
+      padding: 46px 0 82px;
+    }
+
+    .meta {
+      margin-bottom: 14px;
+      color: var(--muted);
+      font-size: 15px;
+      font-weight: 650;
+      line-height: 1.35;
+    }
+
+    h1 {
+      margin: 0;
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+      font-size: clamp(42px, 4.8vw, 66px);
+      font-weight: 780;
+      line-height: 1.06;
+      letter-spacing: 0;
+    }
+
+    .hero {
+      width: 100%;
+      display: block;
+      margin: 30px 0 26px;
+      object-fit: cover;
+      background: #ddd;
+      border-radius: 8px;
+    }
+
+    .body {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: var(--body-size);
+      line-height: 1.62;
+    }
+
+    .body p {
+      margin: 0 0 20px;
+    }
+
+    .body a {
+      color: var(--accent);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+      font-size: 16px;
+      font-weight: 650;
+      text-decoration: none;
+    }
+
+    .variant {
+      display: none;
+    }
+
+    .variant.active {
+      display: block;
+    }
+
+    .clean .hero {
+      max-height: 470px;
+    }
+
+    .compact {
+      --reader-width: 720px;
+    }
+
+    .compact h1 {
+      font-size: clamp(36px, 3.9vw, 52px);
+      line-height: 1.09;
+    }
+
+    .compact .hero {
+      max-height: 300px;
+      margin-top: 24px;
+    }
+
+    .text-first {
+      --reader-width: 700px;
+    }
+
+    .text-first h1 {
+      font-size: clamp(38px, 4vw, 56px);
+    }
+
+    .text-first .lead {
+      margin-top: 26px;
+      padding-block: 22px;
+      border-block: 1px solid var(--line);
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: calc(var(--body-size) + 1px);
+      line-height: 1.58;
+    }
+
+    .text-first .hero {
+      max-height: 260px;
+      margin: 24px 0;
+      opacity: 0.92;
+    }
+
+    .note {
+      margin-top: 24px;
+      padding-top: 14px;
+      color: var(--muted);
+      border-top: 1px solid var(--line);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    @media (max-width: 820px) {
+      .topbar {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .tabs,
+      .actions {
+        width: 100%;
+      }
+
+      .tab {
+        min-width: 0;
+        flex: 1;
+      }
+
+      .reader {
+        width: min(var(--reader-width), calc(100% - 36px));
+        padding-top: 30px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="prototype">
+    <header class="topbar">
+      <div class="title-block">
+        <strong>Feedivo Reader - reduzierter Schritt</strong>
+        <span>Weniger UI, weniger Spielerei, mehr Artikel.</span>
+      </div>
+
+      <nav class="tabs" aria-label="Reader Varianten">
+        <button class="tab active" data-target="clean">Clean Native</button>
+        <button class="tab" data-target="compact">Compact Article</button>
+        <button class="tab" data-target="text-first">Text First</button>
+      </nav>
+
+      <div class="actions" aria-label="Artikelaktionen">
+        <button class="icon" title="Vorheriger Artikel">⌃</button>
+        <button class="icon" title="Nächster Artikel">⌄</button>
+        <button class="icon star" title="Mit Stern markieren">☆</button>
+        <button class="icon" title="Original öffnen">↗</button>
+      </div>
+    </header>
+
+    <section class="stage">
+      <article class="variant active" id="clean">
+        <div class="reader clean">
+          <div class="meta">Caschys Blog · ca. 1 Min. Lesezeit · vor 29 Min.</div>
+          <h1>Smartwatch-Markt wächst wieder: So schaut es aktuell aus</h1>
+          <img class="hero" src="assets/smartwatch-hero.png" alt="Smartwatch am Handgelenk vor einer Tastatur">
+          <div class="body">
+            <p>Zum Beitrag: Der Smartwatch-Markt wächst wieder. Nach mehreren schwächeren Quartalen zeigt sich die Kategorie erholt, vor allem weil neue Gesundheitsfunktionen und längere Akkulaufzeiten wieder Interesse erzeugen.</p>
+            <p>Diese Variante bleibt nah am heutigen nativen Reader, nimmt aber das Bild etwas zurück und gibt dem Text eine ruhigere Breite.</p>
+            <p><a href="#">Original öffnen</a></p>
+          </div>
+          <div class="note">Richtung: Der naheliegendste Kandidat, wenn Feedivo weiterhin sehr macOS-nativ und unaufgeregt wirken soll.</div>
+        </div>
+      </article>
+
+      <article class="variant" id="compact">
+        <div class="reader compact">
+          <div class="meta">Caschys Blog · vor 29 Min. · 1 Min.</div>
+          <h1>Smartwatch-Markt wächst wieder: So schaut es aktuell aus</h1>
+          <img class="hero" src="assets/smartwatch-hero.png" alt="Smartwatch am Handgelenk vor einer Tastatur">
+          <div class="body">
+            <p>Zum Beitrag: Der Smartwatch-Markt wächst wieder. Nach mehreren schwächeren Quartalen zeigt sich die Kategorie erholt.</p>
+            <p>Compact Article zeigt schneller den eigentlichen Inhalt. Titel und Bild sind kleiner, dadurch wirkt die Ansicht weniger wie eine Website und mehr wie ein Reader.</p>
+            <p><a href="#">Original öffnen</a></p>
+          </div>
+          <div class="note">Richtung: Gut fuer kurze RSS-Artikel, bei denen ein riesiger Hero eher bremst als hilft.</div>
+        </div>
+      </article>
+
+      <article class="variant" id="text-first">
+        <div class="reader text-first">
+          <div class="meta">Caschys Blog · ca. 1 Min. Lesezeit · vor 29 Min.</div>
+          <h1>Smartwatch-Markt wächst wieder: So schaut es aktuell aus</h1>
+          <div class="lead">Der Smartwatch-Markt wächst wieder. Feedivo zeigt in dieser Variante zuerst den Artikeltext und behandelt das Bild nur als unterstützendes Medium.</div>
+          <img class="hero" src="assets/smartwatch-hero.png" alt="Smartwatch am Handgelenk vor einer Tastatur">
+          <div class="body">
+            <p>Für viele Feeds ist diese Reihenfolge angenehmer: Erst Überschrift und Kernaussage, dann Bild, dann restlicher Text.</p>
+            <p>Die Oberfläche bleibt fast unsichtbar. Keine Zusatzkarten, keine Kontextspalten, keine visuelle Bühne. Nur Lesen.</p>
+            <p><a href="#">Original öffnen</a></p>
+          </div>
+          <div class="note">Richtung: Der klassischste Reader-Ansatz und am wenigsten verspielt.</div>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <script>
+    const tabs = [...document.querySelectorAll(".tab")];
+    const variants = [...document.querySelectorAll(".variant")];
+    const star = document.querySelector(".star");
+
+    tabs.forEach(tab => {
+      tab.addEventListener("click", () => {
+        tabs.forEach(item => item.classList.remove("active"));
+        variants.forEach(item => item.classList.remove("active"));
+        tab.classList.add("active");
+        document.querySelector(`#${tab.dataset.target}`).classList.add("active");
+      });
+    });
+
+    star.addEventListener("click", () => {
+      star.classList.toggle("active");
+      star.textContent = star.classList.contains("active") ? "★" : "☆";
+    });
+  </script>
+</body>
+</html>

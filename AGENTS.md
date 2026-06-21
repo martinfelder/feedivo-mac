@@ -911,3 +911,6 @@ dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 - 2026-06-20: Interaktive Artikel-Reader-Prototypen erstellt:
   `docs/design/article-reader-prototypes/index.html` zeigt zehn moegliche
   Reader-Darstellungen fuer die spaetere Ueberarbeitung der Artikelansicht.
+- 2026-06-21: Reduzierte Step-by-Step-Reader-Prototypen ergaenzt:
+  `docs/design/article-reader-minimal-step/index.html` fokussiert auf drei ruhige
+  Varianten ohne Zusatz-UI: Clean Native, Compact Article und Text First.

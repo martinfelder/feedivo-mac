@@ -175,6 +175,9 @@ M2 Core Features:
 - Design-Exploration: Unter `docs/design/article-reader-prototypes/index.html`
   liegen zehn interaktive Reader-Varianten als Entscheidungsgrundlage fuer die
   spaetere visuelle Ueberarbeitung der Artikelansicht.
+- Reduzierte Folge-Exploration: Unter
+  `docs/design/article-reader-minimal-step/index.html` liegen drei bewusst ruhige
+  Varianten ohne Zusatz-UI, weil die ersten Entwuerfe zu verspielt wirkten.
 - Fallback: Leere strukturierte HTML-Bloecke werden verworfen; kaputte oder unbekannte
   Inhalte fallen auf normale Absätze zurueck.
 - Naechster Schritt: Klickbare Inline-Links separat planen und umsetzen.
