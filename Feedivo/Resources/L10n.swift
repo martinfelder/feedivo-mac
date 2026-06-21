@@ -96,6 +96,8 @@ enum L10n {
     static var articleOpenOriginalCommand: String { String(localized: "article.openOriginal.command") }
     static var readerDisplayModeToggleHelp: String { String(localized: "reader.displayMode.toggle.help") }
     static var sidebarAddFolderDuplicateError: String { String(localized: "sidebar.addFolder.duplicateError") }
+    static var tagManagerEmptyNameError: String { String(localized: "tagManager.emptyName.error") }
+    static var tagManagerDuplicateNameError: String { String(localized: "tagManager.duplicateName.error") }
     static var feedErrorInvalidURL: String { String(localized: "feed.error.invalidURL") }
     static var feedErrorParsingFailed: String { String(localized: "feed.error.parsingFailed") }
     static var feedErrorEmptyURL: String { String(localized: "feed.error.emptyURL") }

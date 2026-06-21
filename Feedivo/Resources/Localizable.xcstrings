@@ -875,6 +875,62 @@
         }
       }
     },
+    "tagManager.duplicateName.error" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein Tag mit diesem Namen existiert bereits."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A tag with this name already exists."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un tag portant ce nom existe deja."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esiste gia un tag con questo nome."
+          }
+        }
+      }
+    },
+    "tagManager.emptyName.error" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tag-Name darf nicht leer sein."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tag name cannot be empty."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le nom du tag ne peut pas etre vide."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il nome del tag non puo essere vuoto."
+          }
+        }
+      }
+    },
     "feed.importOPML.command" : {
       "localizations" : {
         "de" : {
