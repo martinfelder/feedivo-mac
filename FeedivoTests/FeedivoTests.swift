@@ -69,8 +69,8 @@ struct FeedivoTests {
         )
 
         #expect(imageBlocks == [
-            .paragraph("Text vor dem Bild."),
             .image(urlString: "https://example.com/bild.jpg"),
+            .paragraph("Text vor dem Bild."),
             .paragraph("Text danach.")
         ])
 
@@ -83,6 +83,20 @@ struct FeedivoTests {
         #expect(summaryBlocks == [
             .image(urlString: "https://example.com/fallback.jpg"),
             .paragraph("Nur eine kurze Zusammenfassung.")
+        ])
+    }
+
+    @Test func readerContentRendererNutztArticleImageURLAlsLeadBildUndEntferntDuplikat() {
+        let blocks = ReaderContentRenderer.blocks(
+            summary: nil,
+            content: #"<p>Intro</p><img src="https://example.com/lead.jpg"><p>Text</p>"#,
+            fallbackImageURL: " https://example.com/lead.jpg "
+        )
+
+        #expect(blocks == [
+            .image(urlString: "https://example.com/lead.jpg"),
+            .paragraph("Intro"),
+            .paragraph("Text")
         ])
     }
 
@@ -186,7 +200,8 @@ struct FeedivoTests {
     }
 
     @Test func readerTypographyDefiniertEditorialReaderRhythmus() {
-        #expect(ReaderTypography.articleVerticalPadding == 28)
+        #expect(ReaderTypography.articleTopPadding == 44)
+        #expect(ReaderTypography.articleBottomPadding == 28)
         #expect(ReaderTypography.headerSpacing == 14)
         #expect(ReaderTypography.contentBlockSpacing == 22)
         #expect(ReaderTypography.leadImageMaxHeight == 460)

@@ -617,9 +617,12 @@ sichtbar bleibt.
   sichtbaren Toolbar-Toggle `Artikelinfos` in einem rechten Inspector verwaltet.
 - Der offene/geschlossene Inspector-Zustand kommt als Binding aus `ContentView`,
   damit die rechte Seitenleiste beim Feed- oder Artikelwechsel erhalten bleibt.
+- Die rechte Seitenleiste wird ueber SwiftUIs native `.inspector`-Spalte angezeigt;
+  dadurch verschiebt sich die Reader-Toolbar beim Einblenden nach links wie bei
+  einer normalen macOS-Inspector-Leiste.
 - Der native Artikel-Reader blendet seine vertikale Scrollbar aus, damit der
-  Uebergang zum rechten Liquid-Glass-Inspector ruhiger wirkt; Scrollen bleibt
-  unveraendert moeglich.
+  Uebergang zur rechten Inspector-Leiste ruhiger wirkt; Scrollen bleibt unveraendert
+  moeglich.
 - Toolbar-Buttons fuer vorherigen/naechsten Artikel navigieren innerhalb der aktuell
   sichtbaren Feed- oder Smart-Filter-Liste und stoppen am Listenrand
 - Seltenere Aktionen wie `Link kopieren` liegen im Reader-Mehr-Menue, damit die
@@ -644,9 +647,8 @@ sichtbar bleibt.
 
 ### ArticleMetadataInspectorView.swift
 - Einblendbarer rechter Inspector in der Artikelansicht.
-- Nutzt die Glass-Prototyp-Variante A `Liquid Glass`: eine durchgehende,
-  transluzente `ultraThinMaterial`-Seitenleiste mit heller linker Glass-Kante statt
-  einer harten Split-View-Trennlinie.
+- Nutzt denselben hellen, systemnahen Sidebar-Stil wie die linke Seitenleiste und
+  teilt sich die Farbwerte aus `SidebarStyle`.
 - Zeigt den aktuellen Feed-Ordner als Menu-Picker und schreibt Aenderungen direkt auf
   `Feed.folderName`.
 - Zeigt Artikel-Tags als kompakte Chips; Tags koennen hinzugefuegt oder vom Artikel
@@ -677,6 +679,8 @@ sichtbar bleibt.
 - Titel-Zeilenabstand: Default 2 px, Wertebereich 0...10 px
 - Fliesstext-Zeilenabstand: Default 5 px, Wertebereich 1...12 px
 - Artikelbreite: Default 720 px, Wertebereich 520...980 px, Schrittweite 20 px
+- Artikelabstand: oben 44 px, unten 28 px, damit der Artikelkopf ruhiger unter der
+  Toolbar startet.
 
 ### ReaderMetadataFormatter.swift
 - Berechnet ungefaehre Lesezeit mit 200 Woertern pro Minute, mindestens 1 Minute
@@ -689,11 +693,12 @@ sichtbar bleibt.
 - Aktuelle Block-Typen: `.paragraph(String)` und `.image(urlString:)`
 - Erkennt Absätze, Ueberschriften, Zitate, Listenpunkte und Bildbloecke
 - Nutzt `NSAttributedString` HTML-Konvertierung fuer lesbaren Text
-- Erhaelt die Reihenfolge von HTML-`img`-Tags im Artikelinhalt; Bilder werden nicht
-  mehr gesammelt an den Artikelanfang verschoben
+- Setzt das Lead-Bild immer als ersten Content-Block direkt unter den Titel:
+  `Article.imageURL` gewinnt, sonst wird das erste HTML-`img` aus dem Inhalt nach
+  vorne gezogen.
 - Fallback: Wenn `Article.content` leer ist, wird `Article.summary` verwendet
-- Fallback-Bild: Wenn kein HTML-Bild vorhanden ist, kann `Article.imageURL` als
-  Lead-Bild am Anfang dienen
+- Doppelte Bilder mit derselben URL wie `Article.imageURL` werden aus dem restlichen
+  Content entfernt.
 
 ### Lokalisierung / i18n
 - `Feedivo/Resources/Localizable.xcstrings` ist die zentrale String Catalog Datei
@@ -1117,9 +1122,9 @@ sichtbar bleibt.
 - 2026-06-20: Native Reader Rendering erweitert: `ReaderContentRenderer` erkennt
   Ueberschriften, Zitate und Listenpunkte als eigene Bloecke; `ReaderView` rendert sie
   mit nativer SwiftUI-Darstellung und faellt bei kaputten Inhalten auf Absätze zurueck
-- 2026-06-21: Reader-Bildreihenfolge korrigiert: `ReaderContentRenderer` erhaelt
-  HTML-`img`-Tags an ihrer Position im Artikelinhalt; nur echte Fallback-Bilder aus
-  `Article.imageURL` bleiben als Lead-Bild am Anfang
+- 2026-06-21: Reader-Bildreihenfolge angepasst: Das Artikelbild erscheint im nativen
+  Reader immer als erster Content-Block direkt unter dem Titel. `Article.imageURL`
+  gewinnt vor HTML-Bildern; fehlt es, wird das erste HTML-`img` nach vorne gezogen.
 - 2026-06-20: Navigation Vor/Zurueck fuer Artikel umgesetzt: Reader-Toolbar und
   macOS-Menue `Artikel` navigieren mit `Cmd+↑`/`Cmd+↓` innerhalb der aktuell
   sichtbaren Feed- oder Smart-Filter-Liste und stoppen am Listenrand
@@ -1226,11 +1231,14 @@ sichtbar bleibt.
   erstellt: `docs/design/article-info-glass-sidebar-prototypes/index.html` zeigt
   fuenf konkrete Varianten, wie die Seitenleiste an eine moderne macOS-Glass-
   Oberflaeche angepasst werden kann.
-- 2026-06-21: Glass-Prototyp Variante A in der App umgesetzt: Der rechte
-  Artikelinfos-Inspector erscheint nun als durchgehende Liquid-Glass-Seitenleiste
-  mit weicher linker Lichtkante, ohne harte Trennlinie zum Reader.
+- 2026-06-21: Glass-Prototyp Variante A wurde kurzzeitig fuer den rechten
+  Artikelinfos-Inspector umgesetzt und spaeter durch die native macOS-Inspector-
+  Spalte im hellen Sidebar-Stil ersetzt.
 - 2026-06-21: Native Reader-Scrollbar ausgeblendet, damit der Artikelbereich
-  fliessender in den rechten Liquid-Glass-Inspector uebergeht.
+  fliessender in die rechte Inspector-Leiste uebergeht.
 - 2026-06-21: Linke Sidebar wieder auf einen hellen, systemnahen macOS-Look
   umgestellt; die dunkle Design-11-Flaeche wurde entfernt, farbige Smart-Filter-
   Icons und dezente Auswahl bleiben erhalten.
+- 2026-06-21: Rechten Artikelinfos-Inspector auf SwiftUIs native `.inspector`-
+  Seitenleiste umgestellt und visuell an die helle linke Sidebar angepasst; beim
+  Einblenden rueckt der Reader inklusive Toolbar nach links.

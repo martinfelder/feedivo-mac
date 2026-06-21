@@ -71,19 +71,20 @@ bei geschlossener App.
   Reader-Bloecke, Vor/Zurueck-Navigation und Original-Link.
 - Die Reader-Darstellung ist als ruhiger Editorial Reader gesetzt: kleinerer
   semibold Titel, bewusstere Blockabstaende, kontrollierte Lead-Bildhoehe und
-  dezenter Original-Link im Footer.
+  dezenter Original-Link im Footer. Der Artikelkopf startet mit etwas mehr Abstand
+  zur Toolbar.
 - In der Reader-Toolbar kann ein rechter Metadaten-Inspector eingeblendet werden;
   dort sind Feed-Ordner und Artikel-Tags sichtbar und bearbeitbar. Vorhandene
   globale Tags, die dem Artikel noch nicht zugewiesen sind, werden dort als
   anklickbare Plus-Chips angeboten. Der Artikelkopf zeigt nur Feedname, Lesezeit und
-  Zeitpunkt; der Inspector sitzt ohne zusaetzliche Restspalte am rechten Rand der
-  Artikelansicht und bleibt beim Feed- oder Artikelwechsel eingeblendet, wenn er
-  geoeffnet wurde.
+  Zeitpunkt; der Inspector wird als native rechte macOS-Inspector-Spalte angezeigt,
+  nutzt denselben hellen Stil wie die linke Sidebar und bleibt beim Feed- oder
+  Artikelwechsel eingeblendet, wenn er geoeffnet wurde.
 - Die native Artikel-Scrollbar ist ausgeblendet, damit der Artikelbereich optisch
-  fliessender in den rechten Liquid-Glass-Inspector uebergeht.
-- Reader-Rendering wandelt HTML/Plain-Text in Absätze und Bildbloecke; HTML-Bilder
-  bleiben dabei an ihrer Position im Artikelinhalt, Fallback-Bilder aus
-  `Article.imageURL` werden nur genutzt, wenn der HTML-Inhalt kein Bild enthaelt.
+  fliessender in die rechte Inspector-Leiste uebergeht.
+- Reader-Rendering wandelt HTML/Plain-Text in Absätze und Bildbloecke; das Lead-Bild
+  steht immer direkt unter dem Titel. `Article.imageURL` gewinnt, sonst wird das
+  erste HTML-Bild nach vorne gezogen.
 - ArticleRowView zeigt Titel, Datum, Summary, optionales Bild, Ungelesen-Punkt
   rechts oben und Stern rechts unten.
 - Artikelbilder werden beim Feed-Parsing robuster aus Media RSS, iTunes Image,
@@ -206,9 +207,9 @@ M3 Tags, Regeln & Sync:
 - Implementiert: `ReaderContentRenderer` erzeugt Absätze, Ueberschriften, Zitate,
   Listenpunkte und Bildbloecke aus gespeicherten Feed-Inhalten; `ReaderView` rendert
   diese Bloecke nativ mit SwiftUI.
-- Bildposition: HTML-`img`-Tags bleiben im nativen Reader an ihrer Position im
-  Artikelinhalt; ein gespeichertes `Article.imageURL` dient nur dann als Lead-Bild,
-  wenn im HTML selbst kein Bild vorhanden ist.
+- Bildposition: Das erste sichtbare Bild steht im nativen Reader immer direkt unter
+  dem Titel. Ein gespeichertes `Article.imageURL` hat Vorrang; wenn es fehlt, wird
+  das erste HTML-`img` aus dem Artikelinhalt nach vorne gezogen.
 - Performance: `ReaderPreparedArticle` bereitet Content-Bloecke, Metazeile und
   Original-URL einmal pro ausgewaehltem Artikel vor, damit SwiftUI-Redraws nicht
   wiederholt HTML/Text neu zerlegen.
@@ -225,10 +226,9 @@ M3 Tags, Regeln & Sync:
   `docs/design/article-info-glass-sidebar-prototypes/index.html` liegen fuenf
   konkrete Varianten fuer eine macOS-Glass-Anpassung der rechten Artikelinfos-
   Seitenleiste.
-- Umgesetzte Glass-Richtung: Variante A `Liquid Glass` ist fuer den rechten
-  Artikelinfos-Inspector implementiert. Die Seitenleiste wirkt als durchgehende,
-  transluzente Material-Fläche mit heller linker Glass-Kante statt als harte
-  Split-View-Trennlinie.
+- Umgesetzte Richtung: Der rechte Artikelinfos-Inspector nutzt SwiftUIs native
+  `.inspector`-Spalte und denselben hellen, systemnahen Stil wie die linke Sidebar.
+  Beim Einblenden rueckt der Reader inklusive Toolbar nach links.
 - Implementierte Richtung: Feedname, Lesezeit und Zeitpunkt bleiben im Artikelkopf;
   Ordner und Tags liegen in einem einblendbaren rechten Inspector und koennen dort
   bearbeitet werden.

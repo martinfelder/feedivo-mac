@@ -3,6 +3,7 @@ import SwiftUI
 
 struct ArticleMetadataInspectorView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.interfaceTextSize) private var interfaceTextSize
     @Query(sort: \Feed.title) private var feeds: [Feed]
     @Query(sort: \FeedFolder.name) private var folders: [FeedFolder]
     @Query(sort: \Tag.name) private var tags: [Tag]
@@ -39,58 +40,34 @@ struct ArticleMetadataInspectorView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
+        VStack(alignment: .leading, spacing: 0) {
             header
 
-            VStack(alignment: .leading, spacing: 24) {
+            VStack(alignment: .leading, spacing: 18) {
                 folderSection
                 tagSection
             }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
 
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 22)
-        .frame(width: 318)
+        .frame(minWidth: 280, idealWidth: 318, maxWidth: 360)
         .frame(maxHeight: .infinity, alignment: .top)
-        .background {
-            Rectangle()
-                .fill(.ultraThinMaterial)
-                .overlay {
-                    LinearGradient(
-                        colors: [
-                            Color.white.opacity(0.38),
-                            Color.white.opacity(0.16)
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                }
-        }
-        .overlay(alignment: .leading) {
-            Rectangle()
-                .fill(Color.white.opacity(0.68))
-                .frame(width: 1)
-        }
-        .overlay(alignment: .leading) {
-            Rectangle()
-                .fill(Color.white.opacity(0.48))
-                .frame(width: 1)
-                .offset(x: 1)
-        }
-        .shadow(color: Color.black.opacity(0.12), radius: 30, x: -18, y: 0)
+        .background(SidebarStyle.background)
     }
 
     private var header: some View {
         HStack(alignment: .top, spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(L10n.readerInspectorTitle)
-                    .font(.system(size: 24, weight: .bold))
+                    .font(interfaceTextSize.font(size: 15, weight: .semibold))
+                    .foregroundStyle(SidebarStyle.primaryText)
 
                 Text(L10n.readerInspectorDescription)
-                    .font(.callout)
+                    .font(interfaceTextSize.font(size: 12))
                     .fontWeight(.medium)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(SidebarStyle.secondaryText)
             }
 
             Spacer()
@@ -99,12 +76,24 @@ struct ArticleMetadataInspectorView: View {
                 close()
             } label: {
                 Image(systemName: "xmark")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(interfaceTextSize.font(size: 12, weight: .semibold))
             }
             .buttonStyle(.plain)
-            .frame(width: 30, height: 30)
-            .background(Color.white.opacity(0.2), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .foregroundStyle(SidebarStyle.primaryText)
+            .frame(
+                width: interfaceTextSize.scaled(30),
+                height: interfaceTextSize.scaled(30)
+            )
+            .background(SidebarStyle.activeSelection, in: RoundedRectangle(cornerRadius: 8))
+            .contentShape(RoundedRectangle(cornerRadius: 8))
+            .help(L10n.readerInspectorButton)
+        }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 14)
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(SidebarStyle.separator)
+                .frame(height: 1)
         }
     }
 
@@ -124,7 +113,7 @@ struct ArticleMetadataInspectorView: View {
             .labelsHidden()
             .pickerStyle(.menu)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .glassControl()
+            .inspectorControl()
         }
     }
 
@@ -134,8 +123,8 @@ struct ArticleMetadataInspectorView: View {
 
             if sortedArticleTags.isEmpty {
                 Text(L10n.readerInspectorNoTags)
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(.secondary)
+                    .font(interfaceTextSize.font(size: 13))
+                    .foregroundStyle(SidebarStyle.secondaryText)
             } else {
                 FlowLayout(spacing: 8) {
                     ForEach(sortedArticleTags) { tag in
@@ -147,23 +136,30 @@ struct ArticleMetadataInspectorView: View {
             HStack(spacing: 8) {
                 TextField(L10n.readerInspectorAddTagPlaceholder, text: $newTagName)
                     .textFieldStyle(.plain)
-                    .font(.system(size: 15, weight: .medium))
+                    .font(interfaceTextSize.font(size: 13))
                     .padding(.horizontal, 12)
-                    .frame(height: 40)
-                    .glassControl()
+                    .frame(height: interfaceTextSize.scaled(36))
+                    .inspectorControl()
                     .onSubmit(addTag)
 
                 Button {
                     addTag()
                 } label: {
                     Image(systemName: "plus")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(interfaceTextSize.font(size: 13, weight: .semibold))
                 }
                 .disabled(ArticleMetadataEditor.normalizedTagName(newTagName) == nil)
                 .buttonStyle(.plain)
-                .frame(width: 42, height: 38)
-                .background(Color.black.opacity(0.05), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
-                .foregroundStyle(ArticleMetadataEditor.normalizedTagName(newTagName) == nil ? .secondary : .primary)
+                .frame(
+                    width: interfaceTextSize.scaled(36),
+                    height: interfaceTextSize.scaled(36)
+                )
+                .background(SidebarStyle.activeSelection, in: RoundedRectangle(cornerRadius: 8))
+                .foregroundStyle(
+                    ArticleMetadataEditor.normalizedTagName(newTagName) == nil
+                    ? SidebarStyle.secondaryText
+                    : SidebarStyle.primaryText
+                )
             }
 
             if !availableTagsToAdd.isEmpty {
@@ -180,7 +176,9 @@ struct ArticleMetadataInspectorView: View {
         Text(title)
             .font(.caption)
             .fontWeight(.bold)
-            .foregroundStyle(.secondary)
+            .textCase(.uppercase)
+            .foregroundStyle(SidebarStyle.sectionText)
+            .padding(.horizontal, 10)
     }
 
     private func tagPill(_ tag: Tag) -> some View {
@@ -254,12 +252,12 @@ struct ArticleMetadataInspectorView: View {
 }
 
 private extension View {
-    func glassControl() -> some View {
+    func inspectorControl() -> some View {
         self
-            .background(Color.white.opacity(0.55), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+            .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             .overlay {
-                RoundedRectangle(cornerRadius: 11, style: .continuous)
-                    .stroke(Color.white.opacity(0.62), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(SidebarStyle.separator, lineWidth: 1)
             }
     }
 }

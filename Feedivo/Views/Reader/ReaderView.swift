@@ -74,8 +74,12 @@ struct ReaderView: View {
         CGFloat(ReaderTypography.clampedContentWidth(readerContentWidth))
     }
 
-    private var articleVerticalPadding: CGFloat {
-        CGFloat(ReaderTypography.articleVerticalPadding)
+    private var articleTopPadding: CGFloat {
+        CGFloat(ReaderTypography.articleTopPadding)
+    }
+
+    private var articleBottomPadding: CGFloat {
+        CGFloat(ReaderTypography.articleBottomPadding)
     }
 
     private var headerSpacing: CGFloat {
@@ -119,7 +123,13 @@ struct ReaderView: View {
     }
 
     var body: some View {
-        readerWithOptionalInspector
+        readerContent
+        .inspector(isPresented: $isMetadataInspectorPresented) {
+            ArticleMetadataInspectorView(article: article) {
+                isMetadataInspectorPresented = false
+            }
+            .inspectorColumnWidth(min: 280, ideal: 318, max: 360)
+        }
         .navigationTitle(article.title)
         .toolbar {
             ToolbarItemGroup {
@@ -204,23 +214,6 @@ struct ReaderView: View {
     }
 
     @ViewBuilder
-    private var readerWithOptionalInspector: some View {
-        if isMetadataInspectorPresented {
-            HStack(spacing: 0) {
-                readerContent
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-                ArticleMetadataInspectorView(article: article) {
-                    isMetadataInspectorPresented = false
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else {
-            readerContent
-        }
-    }
-
-    @ViewBuilder
     private var readerContent: some View {
         if shouldShowWebView, let originalURL {
             WebContentView(url: originalURL)
@@ -260,7 +253,8 @@ struct ReaderView: View {
             }
             .frame(maxWidth: clampedContentWidth, alignment: .leading)
             .padding(.horizontal, 28)
-            .padding(.vertical, articleVerticalPadding)
+            .padding(.top, articleTopPadding)
+            .padding(.bottom, articleBottomPadding)
         }
     }
 

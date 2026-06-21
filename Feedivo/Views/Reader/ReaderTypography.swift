@@ -15,7 +15,8 @@ enum ReaderTypography {
     static let contentWidthRange = 520.0...980.0
     static let contentWidthStep = 20.0
 
-    static let articleVerticalPadding = 28.0
+    static let articleTopPadding = 44.0
+    static let articleBottomPadding = 28.0
     static let headerSpacing = 14.0
     static let contentBlockSpacing = 22.0
     static let leadImageMaxHeight = 460.0

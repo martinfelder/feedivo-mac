@@ -13,16 +13,21 @@ enum ReaderContentRenderer {
     static func blocks(summary: String?, content: String?, fallbackImageURL: String?) -> [ReaderContentBlock] {
         let source = preferredText(content: content, summary: summary)
         let contentBlocks = structuredContentBlocks(from: source)
+        let normalizedFallbackImageURL = normalizedImageURL(fallbackImageURL)
 
-        if contentBlocks.contains(where: \.isImage) {
+        if let normalizedFallbackImageURL {
+            return [.image(urlString: normalizedFallbackImageURL)] + contentBlocks.filter {
+                $0.imageURL != normalizedFallbackImageURL
+            }
+        }
+
+        guard let firstImageIndex = contentBlocks.firstIndex(where: \.isImage) else {
             return contentBlocks
         }
 
-        guard let fallbackImageURL, !fallbackImageURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            return contentBlocks
-        }
-
-        return [.image(urlString: fallbackImageURL)] + contentBlocks
+        var reorderedBlocks = contentBlocks
+        let firstImageBlock = reorderedBlocks.remove(at: firstImageIndex)
+        return [firstImageBlock] + reorderedBlocks
     }
 
     private static func preferredText(content: String?, summary: String?) -> String {
@@ -218,6 +223,15 @@ enum ReaderContentRenderer {
         }
     }
 
+    private static func normalizedImageURL(_ urlString: String?) -> String? {
+        guard let urlString else {
+            return nil
+        }
+
+        let value = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
+        return value.isEmpty ? nil : value
+    }
+
     nonisolated private static func normalizedWhitespace(_ text: String) -> String {
         text
             .components(separatedBy: .whitespacesAndNewlines)
@@ -233,5 +247,13 @@ private extension ReaderContentBlock {
         }
 
         return false
+    }
+
+    var imageURL: String? {
+        if case .image(let urlString) = self {
+            return urlString
+        }
+
+        return nil
     }
 }
