@@ -164,7 +164,8 @@ FeedivoMac/
 │   │   │   ├── RuleSettingsView.swift  # Alle Regeln in Einstellungen verwalten ✅
 │   │   │   └── RuleWizardView.swift    # Wizard fuer einfache/Power-User-Regeln ✅
 │   │   └── Settings/
-│   │       └── SettingsView.swift      # Lesen, Regeln, Sprache und Auto-Refresh ✅
+│   │       ├── SettingsView.swift      # Strukturierte Settings-Shell mit linker Navigation ✅
+│   │       └── FeedManagementSettingsState.swift # Suche/Auswahl fuer Feed-Verwaltung ✅
 │   │
 │   ├── Services/
 │   │   ├── FeedService.swift           # FeedKit-Wrapper: RSS/Atom/JSON Feed parsen ✅
@@ -261,6 +262,9 @@ sichtbar bleibt.
   und Feed-Log
 - Smart-Filter behalten die bestehenden SF-Symbol-Icons (`tray.full`, `circle.fill`,
   `star.fill`, `calendar`) und ihre Farben.
+- Die Hauptbereiche `Filter`, `Tags`, `Regeln` und `Ordner` sind per Chevron
+  einklappbar; der Zustand wird per `@AppStorage` gespeichert und bleibt damit
+  ueber Feedwechsel und App-Neustarts erhalten.
 - Der Smart-Filter `Ungelesen` zeigt rechts die Gesamtzahl aller ungelesenen Artikel
   ueber alle Feeds
 - Ungelesen-Badges basieren auf `Feed.unreadCount`, damit die Sidebar beim Rendern
@@ -596,6 +600,15 @@ sichtbar bleibt.
 
 ### SettingsView.swift
 - macOS Settings-Szene in `FeedivoApp.swift`
+- Nutzt eine linke Kategorienavigation nach Prototyp Variante A statt eines langen
+  Formulars. Bereiche: Allgemein, Darstellung, Feeds, Aktualisierung, Tags & Regeln
+  und Sync.
+- Bestehende Optionen wurden aufgeteilt: Sprache/Standardverhalten unter
+  Allgemein, UI-/Reader-Darstellung unter Darstellung, Auto-Refresh unter
+  Aktualisierung und Regelverwaltung unter Tags & Regeln.
+- Der Bereich `Feeds` zeigt eine Feed-Verwaltung mit Suche, Mehrfachauswahl,
+  `Alle sichtbaren auswählen`, `Auswahl aufheben` und destruktiver
+  Loeschbestaetigung fuer die ausgewaehlten Feeds.
 - `@AppStorage("markArticleReadOnSelection")`
 - Standard: Artikel beim Oeffnen automatisch als gelesen markieren
 - `@AppStorage("appLanguage")`
@@ -1300,3 +1313,14 @@ sichtbar bleibt.
 - 2026-06-21: Rechten Artikelinfos-Inspector auf SwiftUIs native `.inspector`-
   Seitenleiste umgestellt und visuell an die helle linke Sidebar angepasst; beim
   Einblenden rueckt der Reader inklusive Toolbar nach links.
+- 2026-06-21: Linke Sidebar-Sections einklappbar gemacht: `Filter`, `Tags`,
+  `Regeln` und `Ordner` nutzen einen gemeinsamen Chevron-Header und merken ihren
+  offenen/geschlossenen Zustand per `@AppStorage`.
+- 2026-06-21: Fuenf interaktive Settings-Struktur-Prototypen erstellt:
+  `docs/design/settings-structure-prototypes/index.html` vergleicht klassische
+  Settings-Sidebar, Toolbar-Tabs, Icon-Rail, suchzentrierte Einstellungen und
+  setup-orientierte Kategorien.
+- 2026-06-21: Settings-Struktur Variante A umgesetzt: Das macOS-Settings-Fenster
+  hat nun eine linke Kategorienavigation mit Allgemein, Darstellung, Feeds,
+  Aktualisierung, Tags & Regeln und Sync. Der neue Bereich `Feeds` bietet Suche,
+  Mehrfachauswahl und Loeschen ausgewaehlter Feeds mit Bestaetigungsdialog.

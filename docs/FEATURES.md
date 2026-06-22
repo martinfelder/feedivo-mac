@@ -119,6 +119,9 @@ bei geschlossener App.
   Gross oder Sehr gross gestellt werden. Diese UI-Groesse ist bewusst getrennt von
   der Reader-Typografie und skaliert Sidebar, Feed-Zeilen, Artikelzeilen und Settings
   sichtbar ueber konkrete Font-/Icon-/Zeilenwerte.
+- Das Settings-Fenster nutzt nun eine linke Kategorienavigation nach Variante A:
+  Allgemein, Darstellung, Feeds, Aktualisierung, Tags & Regeln und Sync sind klar
+  getrennte Bereiche statt eines langen Formulars.
 - In der Artikelansicht koennen Titel- und Fliesstext-Schrift ueber kuratierte
   Presets direkt per Toolbar-Popover und in den Einstellungen getrennt gewaehlt werden;
   Fliesstext-Groesse, Titel-/Fliesstext-Zeilenabstand und Artikelbreite sind dort
@@ -139,6 +142,8 @@ bei geschlossener App.
   Artikel ueber gespeicherte `Feed.unreadCount` Werte.
 - Die linke Sidebar nutzt wieder einen hellen, systemnahen macOS-Look mit dezenter
   Auswahlflaeche und bestehenden farbigen Smart-Filter-Icons.
+- Die Hauptbereiche der linken Sidebar (`Filter`, `Tags`, `Regeln`, `Ordner`) sind
+  einklappbar und merken ihren Zustand ueber Feedwechsel und App-Neustarts.
 - Artikel-Links koennen kopiert und Originalartikel im Standardbrowser geoeffnet
   werden; die Aktionen sind im Artikel-Kontextmenue, Reader und macOS-Menue `Artikel`
   verfuegbar. In der Artikelansicht oeffnet auch ein Klick auf den Titel den
@@ -469,6 +474,9 @@ M3 Tags, Regeln & Sync:
 - Prioritaet: MVP
 - Implementiert: Rechtsklick auf Feed in der Sidebar und macOS-Menue `Feed` mit
   deaktivierter Aktion ohne Auswahl.
+- Implementiert: In den Einstellungen gibt es im Bereich `Feeds` eine
+  Feed-Verwaltung mit Suche, Mehrfachauswahl, `Alle sichtbaren auswählen`,
+  `Auswahl aufheben` und destruktiver Loeschbestaetigung fuer mehrere Feeds.
 - Verhalten: Bestaetigungsdialog mit Hinweis, dass alle gespeicherten Artikel des
   Feeds mitgeloescht werden; bei geloeschter Auswahl werden Feed und Artikel-Detail
   zurueckgesetzt.

@@ -13,6 +13,14 @@ struct SidebarView: View {
     let onRequestAddFeed: () -> Void
     let onRequestDeleteFeed: (Feed) -> Void
     let onRequestCreateRuleFromArticle: (Article) -> Void
+    @AppStorage(SidebarSectionCollapseState.Section.smartFilters.storageKey)
+    private var isSmartFiltersCollapsed = false
+    @AppStorage(SidebarSectionCollapseState.Section.tags.storageKey)
+    private var isTagsCollapsed = false
+    @AppStorage(SidebarSectionCollapseState.Section.rules.storageKey)
+    private var isRulesCollapsed = false
+    @AppStorage(SidebarSectionCollapseState.Section.folders.storageKey)
+    private var isFoldersCollapsed = false
     @State private var feedShowingProperties: Feed?
     @State private var feedRenaming: Feed?
     @State private var isShowingAddFolderSheet = false
@@ -91,7 +99,10 @@ struct SidebarView: View {
     }
 
     private var smartFiltersSection: some View {
-        SidebarSection(title: L10n.sidebarSmartFiltersSection) {
+        CollapsibleSidebarSection(
+            title: L10n.sidebarSmartFiltersSection,
+            isCollapsed: $isSmartFiltersCollapsed
+        ) {
             ForEach(SmartFilter.allCases) { smartFilter in
                 SidebarRow(
                     title: smartFilter.title,
@@ -111,8 +122,9 @@ struct SidebarView: View {
     }
 
     private var tagsSection: some View {
-        SidebarActionSection(
+        CollapsibleSidebarSection(
             title: L10n.sidebarTagsSection,
+            isCollapsed: $isTagsCollapsed,
             actionSystemImage: "tag",
             actionHelp: String(localized: "tagManager.manage.button")
         ) {
@@ -125,8 +137,9 @@ struct SidebarView: View {
     }
 
     private var rulesSection: some View {
-        SidebarActionSection(
+        CollapsibleSidebarSection(
             title: L10n.sidebarRulesSection,
+            isCollapsed: $isRulesCollapsed,
             actionSystemImage: "slider.horizontal.3",
             actionHelp: L10n.ruleCreateFromArticle,
             isActionDisabled: selectedArticle == nil
@@ -144,8 +157,9 @@ struct SidebarView: View {
     }
 
     private var foldersSection: some View {
-        SidebarActionSection(
+        CollapsibleSidebarSection(
             title: L10n.sidebarFoldersSection,
+            isCollapsed: $isFoldersCollapsed,
             actionSystemImage: "plus",
             actionHelp: String(localized: "sidebar.addFolder.button")
         ) {
@@ -289,64 +303,61 @@ private struct TagSidebarRow: View {
     }
 }
 
-private struct SidebarSection<Content: View>: View {
-    @Environment(\.interfaceTextSize) private var interfaceTextSize
-
-    let title: LocalizedStringKey?
-    @ViewBuilder let content: Content
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            if let title {
-                Text(title)
-                    .font(interfaceTextSize.font(size: 11, weight: .bold))
-                    .fontWeight(.bold)
-                    .textCase(.uppercase)
-                    .foregroundStyle(SidebarStyle.sectionText)
-                    .padding(.horizontal, 10)
-            }
-
-            content
-        }
-    }
-}
-
-private struct SidebarActionSection<Content: View>: View {
+private struct CollapsibleSidebarSection<Content: View>: View {
     @Environment(\.interfaceTextSize) private var interfaceTextSize
 
     let title: LocalizedStringKey
-    let actionSystemImage: String
-    let actionHelp: String
+    @Binding var isCollapsed: Bool
+    var actionSystemImage: String?
+    var actionHelp: String?
     var isActionDisabled = false
-    let action: () -> Void
+    var action: (() -> Void)?
     @ViewBuilder let content: Content
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text(title)
-                    .font(interfaceTextSize.font(size: 11, weight: .bold))
-                    .fontWeight(.bold)
-                    .textCase(.uppercase)
+                Button {
+                    withAnimation(.easeInOut(duration: 0.16)) {
+                        isCollapsed.toggle()
+                    }
+                } label: {
+                    HStack(spacing: 7) {
+                        Image(systemName: isCollapsed ? "chevron.right" : "chevron.down")
+                            .font(interfaceTextSize.font(size: 10, weight: .bold))
+                            .frame(width: interfaceTextSize.scaled(12))
+
+                        Text(title)
+                            .font(interfaceTextSize.font(size: 11, weight: .bold))
+                            .fontWeight(.bold)
+                            .textCase(.uppercase)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
 
                 Spacer()
 
-                Button(action: action) {
-                    Image(systemName: actionSystemImage)
-                        .font(interfaceTextSize.font(size: 12, weight: .bold))
-                        .frame(
-                            width: interfaceTextSize.scaled(22),
-                            height: interfaceTextSize.scaled(22)
-                        )
+                if let actionSystemImage, let action {
+                    Button(action: action) {
+                        Image(systemName: actionSystemImage)
+                            .font(interfaceTextSize.font(size: 12, weight: .bold))
+                            .frame(
+                                width: interfaceTextSize.scaled(22),
+                                height: interfaceTextSize.scaled(22)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .help(actionHelp ?? "")
+                    .disabled(isActionDisabled)
                 }
-                .buttonStyle(.plain)
-                .help(actionHelp)
-                .disabled(isActionDisabled)
             }
             .foregroundStyle(SidebarStyle.sectionText)
             .padding(.horizontal, 10)
 
-            content
+            if !isCollapsed {
+                content
+            }
         }
     }
 }

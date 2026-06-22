@@ -120,6 +120,25 @@ enum L10n {
     static let settingsAutomaticRefreshStatusSuccess = LocalizedStringKey("settings.automaticRefresh.status.success")
     static let settingsAutomaticRefreshStatusFailed = LocalizedStringKey("settings.automaticRefresh.status.failed")
     static let settingsAutomaticRefreshStatusNever = LocalizedStringKey("settings.automaticRefresh.status.never")
+    static let settingsGeneralSection = LocalizedStringKey("settings.general.section")
+    static let settingsGeneralDescription = LocalizedStringKey("settings.general.description")
+    static let settingsAppearanceDescription = LocalizedStringKey("settings.appearance.description")
+    static let settingsFeedsSection = LocalizedStringKey("settings.feeds.section")
+    static let settingsFeedsDescription = LocalizedStringKey("settings.feeds.description")
+    static let settingsFeedsSearchPlaceholder = LocalizedStringKey("settings.feeds.search.placeholder")
+    static let settingsFeedsSelectVisible = LocalizedStringKey("settings.feeds.selectVisible")
+    static let settingsFeedsClearSelection = LocalizedStringKey("settings.feeds.clearSelection")
+    static let settingsFeedsNoFeeds = LocalizedStringKey("settings.feeds.noFeeds")
+    static let settingsFeedsNoMatches = LocalizedStringKey("settings.feeds.noMatches")
+    static let settingsFeedsDeleteSelected = LocalizedStringKey("settings.feeds.deleteSelected")
+    static let settingsFeedsDeleteConfirmationTitle = LocalizedStringKey("settings.feeds.deleteConfirmation.title")
+    static let settingsRefreshDescription = LocalizedStringKey("settings.refresh.description")
+    static let settingsAutomationSection = LocalizedStringKey("settings.automation.section")
+    static let settingsAutomationDescription = LocalizedStringKey("settings.automation.description")
+    static let settingsSyncSection = LocalizedStringKey("settings.sync.section")
+    static let settingsSyncDescription = LocalizedStringKey("settings.sync.description")
+    static let settingsSyncUnavailableTitle = LocalizedStringKey("settings.sync.unavailable.title")
+    static let settingsSyncUnavailableDescription = LocalizedStringKey("settings.sync.unavailable.description")
     static let feedProgressRefreshAllTitle = String(localized: "feed.progress.refreshAll.title")
     static let feedProgressOPMLImportTitle = String(localized: "feed.progress.opmlImport.title")
     static let feedPropertiesTitle = LocalizedStringKey("feed.properties.title")
@@ -187,6 +206,7 @@ enum L10n {
     static var opmlImportFailedTitle: String { String(localized: "opml.import.failed.title") }
     static var feedDeleteConfirmButton: String { String(localized: "feed.delete.confirmButton") }
     static var feedDeleteConfirmationTitle: String { String(localized: "feed.delete.confirmation.title") }
+    static var settingsFeedsArticleCountHelp: String { String(localized: "settings.feeds.articleCount.help") }
 
     static func opmlImportResultMessage(imported: Int, skippedDuplicates: Int) -> String {
         String.localizedStringWithFormat(
@@ -239,5 +259,13 @@ enum L10n {
 
     static func ruleWizardPreviewMatchCount(count: Int) -> String {
         String.localizedStringWithFormat(String(localized: "ruleWizard.preview.matchCount"), count)
+    }
+
+    static func settingsFeedsSelectedCount(count: Int) -> String {
+        String.localizedStringWithFormat(String(localized: "settings.feeds.selectedCount"), count)
+    }
+
+    static func settingsFeedsDeleteConfirmationMessage(count: Int) -> String {
+        String.localizedStringWithFormat(String(localized: "settings.feeds.deleteConfirmation.message"), count)
     }
 }
