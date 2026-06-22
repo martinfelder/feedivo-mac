@@ -228,6 +228,21 @@ struct FeedivoTests {
         #expect(preparedArticle.metadataText.contains("Test Feed"))
         #expect(preparedArticle.metadataText.contains("ca. 1 Min. Lesezeit"))
         #expect(preparedArticle.originalURL?.absoluteString == "https://example.com/artikel")
+        #expect(preparedArticle.offlineAvailability == .feedContent)
+    }
+
+    @Test func readerPreparedArticleErkenntSummaryOnlyOfflineFallback() {
+        let article = Article(
+            title: "Artikel",
+            link: "https://example.com/artikel",
+            summary: "Nur Kurzfassung",
+            content: nil
+        )
+
+        let preparedArticle = ReaderPreparedArticle(article: article)
+
+        #expect(preparedArticle.contentBlocks == [.paragraph("Nur Kurzfassung")])
+        #expect(preparedArticle.offlineAvailability == .summaryOnly)
     }
 
     @Test func readerTypographyBegrenztTitelZeilenabstandSeparat() {

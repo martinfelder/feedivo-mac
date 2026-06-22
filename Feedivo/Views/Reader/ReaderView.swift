@@ -124,6 +124,10 @@ struct ReaderView: View {
         preparedArticle.contentBlocks
     }
 
+    private var shouldShowSummaryOnlyOfflineNotice: Bool {
+        preparedArticle.offlineAvailability == .summaryOnly
+    }
+
     private var metadataText: String {
         preparedArticle.metadataText
     }
@@ -247,6 +251,10 @@ struct ReaderView: View {
             VStack(alignment: .leading, spacing: contentBlockSpacing) {
                 readerHeader
 
+                if shouldShowSummaryOnlyOfflineNotice {
+                    summaryOnlyOfflineNotice
+                }
+
                 ForEach(contentBlocks.indices, id: \.self) { index in
                     VStack(alignment: .leading, spacing: imageTextDividerSpacing) {
                         readerContentBlock(contentBlocks[index])
@@ -264,6 +272,15 @@ struct ReaderView: View {
             .padding(.top, articleTopPadding)
             .padding(.bottom, articleBottomPadding)
         }
+    }
+
+    private var summaryOnlyOfflineNotice: some View {
+        Label(L10n.readerSummaryOnlyOfflineNotice, systemImage: "info.circle")
+            .font(interfaceTextSize.font(size: 12, weight: .medium))
+            .foregroundStyle(.secondary)
+            .padding(.vertical, 8)
+            .padding(.horizontal, 10)
+            .background(.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
     }
 
     private var readerHeader: some View {

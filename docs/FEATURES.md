@@ -86,6 +86,10 @@ bei geschlossener App.
 - Reader-Rendering wandelt HTML/Plain-Text in Absätze und Bildbloecke; das Lead-Bild
   steht immer direkt unter dem Titel. `Article.imageURL` gewinnt, sonst wird das
   erste HTML-Bild nach vorne gezogen.
+- Offline-Basis ist umgesetzt: Feed-gelieferter `Article.content` wird in SwiftData
+  gespeichert, spaeter gelieferter Volltext wird bei bestehenden Artikeln
+  nachgetragen, und der Reader zeigt einen dezenten Hinweis, wenn offline nur die
+  Feed-Zusammenfassung vorhanden ist.
 - ArticleRowView zeigt Titel, Datum, Summary, optionales Bild, Ungelesen-Punkt
   rechts oben und Stern rechts unten.
 - Artikelbilder werden beim Feed-Parsing robuster aus Media RSS, iTunes Image,
@@ -190,7 +194,7 @@ M3 Tags, Regeln & Sync:
   abgeschlossen; Feed-Tags sind in den Feed-Eigenschaften umgesetzt.
 - Background Refresh bleibt macOS-nativ und zeigt den letzten sowie naechsten
   automatischen Lauf kompakt in den Einstellungen.
-- Naechster Fokus: iCloud Sync oder Offline-Unterstuetzung.
+- Naechster Fokus: iCloud Sync.
 
 ---
 
@@ -353,6 +357,23 @@ M3 Tags, Regeln & Sync:
 - Status: Entschieden
 - Prioritaet: v1
 - Empfehlung: Erst nach Tag- und Regel-Basis. Vorausfuellen aus Feed, Titel-Wort und URL.
+
+#### 1.12 Offline-Basis
+- Status: Fertig als Basis
+- Prioritaet: M3/v1
+- Implementiert: Feed-gelieferter Volltext/HTML-Content wird als `Article.content`
+  in SwiftData gespeichert und vom nativen Reader vor der Summary genutzt.
+- Implementiert: Wenn ein bestehender Artikel beim spaeteren Refresh erstmals
+  Volltext vom Feed liefert, wird fehlender lokaler `Article.content` nachgetragen;
+  vorhandener Content wird nicht durch leere Feed-Werte ersetzt.
+- Implementiert: Wenn nur eine Summary offline vorhanden ist, zeigt der native Reader
+  einen dezenten Hinweis und verweist auf `Original oeffnen` fuer den vollstaendigen
+  Artikel.
+- Bewusst nicht in M3: Automatisches Herunterladen und Extrahieren kompletter
+  Webseiten. Das bleibt wegen Paywalls, Cookie-Bannern, kaputtem HTML, Performance
+  und Quellen-Unterschieden ein separates spaeteres Thema.
+- Abgrenzung: Bilddaten bleiben nicht in SwiftData; lokaler Bild- und Favicon-Cache
+  ist als M4-Thema separat geplant.
 
 ### 2. Artikel-Liste
 
@@ -556,7 +577,9 @@ M3 Tags, Regeln & Sync:
 - Status: In Diskussion
 - Prioritaet: v1/spaeter
 - Empfehlung: Erst aktivieren, wenn Datenmodell und Grundfeatures stabil sind.
-- Sync-Umfang: Feeds, gelesen, Stern, Tags, Regeln. Artikel-Content genau pruefen wegen Speicher.
+- Sync-Umfang: Feeds, gelesen, Stern, Tags, Regeln. Artikel-Content ist nun als
+  Offline-Basis gespeichert und muss wegen Speicher/CloudKit-Volumen bewusst
+  geprueft werden.
 
 ### 7. OPML
 
@@ -570,7 +593,25 @@ M3 Tags, Regeln & Sync:
 - Hinweis: OPML-Gruppen werden als `Feed.folderName` gespeichert und dadurch direkt
   in der Sidebar gruppiert.
 
-#### 7.2 OPML Export
+#### 7.2 Erweiterter OPML-Import-Dialog
+- Status: Entschieden
+- Prioritaet: M4/v1
+- Ziel: Vor dem Import soll Feedivo die ausgelesenen Feeds und OPML-Ordner anzeigen,
+  damit der Benutzer den Import prüfen und gezielt anpassen kann.
+- Geplant: Liste der erkannten Feeds mit Titel, Feed-URL, Website falls vorhanden,
+  Duplikat-Hinweis und aktueller/aus OPML gelesener Ordnerzuordnung.
+- Geplant: Ordnerzuordnung pro Feed im Dialog ändern; vorhandene Ordner auswählen
+  und neue Ordner direkt im Import-Dialog erstellen.
+- Geplant: Option, ob neu importierte Feeds direkt aktualisiert werden sollen. Wenn
+  deaktiviert, werden nur Feeds und Ordner importiert; das ist schneller und der
+  Refresh kann spaeter manuell erfolgen.
+- Geplant: Nach dem Import eine Zusammenfassung anzeigen, z.B. importierte Feeds,
+  übersprungene Duplikate, angelegte Ordner, Refresh aktiviert/deaktiviert und
+  fehlgeschlagene Aktualisierungen.
+- Hinweis: Die bestehende OPML-Service-Basis bleibt erhalten; erweitert wird vor
+  allem der Import-Workflow und die UI rund um Preview, Auswahl und Ergebnis.
+
+#### 7.3 OPML Export
 - Status: Fertig als Basis
 - Prioritaet: v1
 - Umsetzung: Exportiert die aktuelle Feed-Liste als OPML 2.0 mit gruppierten Feeds
@@ -764,9 +805,27 @@ M3 Tags, Regeln & Sync:
 - Menubar-Icon: Spaeter.
 - Vollstaendige Tastaturnavigation: MVP/v1, weil sehr mac-like.
 
-### 20. Mehrsprachigkeit
+### 20. Bild- und Favicon-Cache
 
-#### 20.1 i18n Foundation
+#### 20.1 Lokaler Bildcache
+- Status: Entschieden
+- Prioritaet: M4/v1
+- Ziel: Artikelbilder und Favicons sollen nach dem ersten Laden lokal verfuegbar
+  bleiben, damit Feedivo sie beim App-Start, Feedwechsel und Scrollen nicht immer
+  erneut aus dem Netz laden muss.
+- Empfehlung: Eigener `ImageCacheService` mit Disk-Cache im macOS-Cache- oder
+  Application-Support-Verzeichnis plus kleinem `NSCache` im Speicher. Die Views
+  nutzen spaeter eine gemeinsame `CachedImageView` statt direktem `AsyncImage`.
+- Umfang: Artikelbilder in Liste und Reader sowie Favicons in Sidebar, Feed-
+  Eigenschaften und Umbenennen-Sheet.
+- Entscheidung: Bilddaten nicht in SwiftData speichern. SwiftData bleibt fuer
+  URLs, Artikel, Tags, Regeln und Feed-Metadaten; grosse Bild-BLOBs wuerden die
+  Datenbank und spaeter CloudKit unnoetig belasten.
+- Spaeter: Einstellung zum Cache-Leeren und optionales Cache-Limit, z.B. 500 MB.
+
+### 21. Mehrsprachigkeit
+
+#### 21.1 i18n Foundation
 - Status: Fertig als Basis
 - Prioritaet: v1
 - Implementiert: `Localizable.xcstrings` mit Deutsch, Englisch, Franzoesisch und
@@ -774,7 +833,7 @@ M3 Tags, Regeln & Sync:
   sind lokalisiert.
 - Entscheidung: Neue sichtbare Strings muessen kuenftig in den String Catalog.
 
-#### 20.2 Sprachumschalter in der App
+#### 21.2 Sprachumschalter in der App
 - Status: Fertig als Basis
 - Prioritaet: v1
 - Implementiert: Picker in den Einstellungen mit `Nach System`, Deutsch, Englisch,
@@ -782,7 +841,7 @@ M3 Tags, Regeln & Sync:
 - Entscheidung: `Nach System` bleibt Default; feste Sprachen setzen die SwiftUI-Locale
   fuer Hauptfenster und Einstellungen.
 
-#### 20.3 Lokalisierungs-QA
+#### 21.3 Lokalisierungs-QA
 - Status: In Diskussion
 - Prioritaet: v1
 - Empfehlung: Spaeter pro Sprache Screenshots/Smoke-Test ergaenzen, damit lange Texte

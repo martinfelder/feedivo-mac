@@ -443,6 +443,10 @@ final class FeedViewModel {
             in: existingArticlesByIdentity,
             from: enrichedExistingArticles
         )
+        updateStoredArticleContent(
+            in: existingArticlesByIdentity,
+            from: parsedFeed.articles
+        )
 
         var seenArticleKeys = Set(existingArticlesByIdentity.keys)
         let newArticles = parsedFeed.articles.filter { parsedArticle in
@@ -516,6 +520,23 @@ final class FeedViewModel {
         }
     }
 
+    private func updateStoredArticleContent(in existingArticlesByIdentity: [String: Article], from parsedArticles: [ParsedArticle]) {
+        for parsedArticle in parsedArticles {
+            guard let existingArticle = existingArticlesByIdentity[articleIdentity(for: parsedArticle)] else {
+                continue
+            }
+
+            if let summary = nonEmptyText(parsedArticle.summary) {
+                existingArticle.summary = summary
+            }
+
+            if isMissingText(existingArticle.content),
+               let content = nonEmptyText(parsedArticle.content) {
+                existingArticle.content = content
+            }
+        }
+    }
+
     private func enrichedArticlesByIdentity(for articles: [ParsedArticle]) async -> [String: ParsedArticle] {
         let enrichedArticles = await enrichArticleImagesIfNeeded(articles)
         return Dictionary(uniqueKeysWithValues: enrichedArticles.map { (articleIdentity(for: $0), $0) })
@@ -535,6 +556,19 @@ final class FeedViewModel {
 
     private func isMissingImage(_ imageURL: String?) -> Bool {
         imageURL?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true
+    }
+
+    private func isMissingText(_ text: String?) -> Bool {
+        text?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true
+    }
+
+    private func nonEmptyText(_ text: String?) -> String? {
+        let trimmedText = text?.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let trimmedText, !trimmedText.isEmpty else {
+            return nil
+        }
+
+        return text
     }
 
     @MainActor

@@ -452,6 +452,60 @@ struct FeedViewModelTests {
     }
 
     @MainActor
+    @Test func refreshFeedTraegtSpaeterGeliefertenOfflineContentBeiBestehendenArtikelnNach() async throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            RuleCondition.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let publishedAt = Date(timeIntervalSince1970: 100)
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
+        let existingArticle = Article(
+            title: "Vorhandener Artikel",
+            link: "https://example.com/1",
+            summary: "Kurzfassung",
+            content: nil,
+            publishedAt: publishedAt,
+            feed: feed
+        )
+        feed.articles = [existingArticle]
+        let viewModel = FeedViewModel(
+            fetchFeed: { urlString in
+                ParsedFeed(
+                    sourceURL: urlString,
+                    title: "Feed",
+                    description: nil,
+                    articles: [
+                        ParsedArticle(
+                            title: "Vorhandener Artikel",
+                            link: "https://example.com/1",
+                            summary: "Aktualisierte Kurzfassung",
+                            content: "<p>Nachgelieferter Volltext</p>",
+                            publishedAt: publishedAt,
+                            imageURL: nil
+                        )
+                    ]
+                )
+            },
+            discoverFaviconURL: { _ in nil }
+        )
+
+        context.insert(feed)
+        try context.save()
+
+        await viewModel.refreshFeed(feed, context: context)
+
+        #expect(feed.articles.count == 1)
+        #expect(existingArticle.content == "<p>Nachgelieferter Volltext</p>")
+        #expect(existingArticle.summary == "Aktualisierte Kurzfassung")
+    }
+
+    @MainActor
     @Test func refreshFeedWendetRegelnAufNeueArtikelAn() async throws {
         let container = try ModelContainer(
             for: Feed.self,

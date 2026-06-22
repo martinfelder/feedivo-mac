@@ -2365,6 +2365,34 @@
         }
       }
     },
+    "reader.summaryOnlyOffline.notice" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Offline ist nur die Feed-Zusammenfassung gespeichert. Den vollstaendigen Artikel kannst du ueber Original oeffnen lesen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only the feed summary is saved offline. Open the original to read the full article."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seul le resume du flux est enregistre hors ligne. Ouvrez l'original pour lire l'article complet."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Offline e salvato solo il riepilogo del feed. Apri l'originale per leggere l'articolo completo."
+          }
+        }
+      }
+    },
     "reader.font.monospace" : {
       "localizations" : {
         "de" : {

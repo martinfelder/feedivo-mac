@@ -72,6 +72,7 @@ struct FeedivoApp: App {
                 .environment(\.interfaceTextSize, interfaceTextSize)
                 .dynamicTypeSize(interfaceTextSize.dynamicTypeSize)
         }
+        .modelContainer(modelContainer)
     }
 
     private func scheduleBackgroundRefresh() {

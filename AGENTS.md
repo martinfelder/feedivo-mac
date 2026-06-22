@@ -355,6 +355,9 @@ sichtbar bleibt.
   gespeicherten Originalnamen zurueck
 - Beim Refresh wird `Feed.originalTitle` mit dem Feed-Metadaten-Titel aktualisiert;
   ein benutzerdefinierter `Feed.title` bleibt erhalten
+- Beim Refresh werden Summary und fehlender `Article.content` fuer bestehende Artikel
+  aus spaeter gelieferten Feed-Daten nachgetragen, damit Offline-Content nicht nur
+  fuer neue Artikel gespeichert wird
 - Der Feed-Fetch ist als Closure injizierbar, damit Refresh-Tests ohne Netzwerk laufen
 - Die Favicon-Discovery ist als Closure injizierbar, damit Tests ohne Netzwerk laufen
 - Die Artikelbild-Anreicherung ist als Closure injizierbar; beim Refresh wird sie nur
@@ -658,6 +661,9 @@ sichtbar bleibt.
 - Der native Artikel-Reader blendet seine vertikale Scrollbar aus, damit der
   Uebergang zur rechten Inspector-Leiste ruhiger wirkt; Scrollen bleibt unveraendert
   moeglich.
+- Wenn ein Feed nur eine Summary, aber keinen Volltext liefert, zeigt der native
+  Reader einen dezenten Hinweis, dass offline nur die Feed-Zusammenfassung gespeichert
+  ist und der vollstaendige Artikel ueber `Original oeffnen` gelesen werden kann.
 - Toolbar-Buttons fuer vorherigen/naechsten Artikel navigieren innerhalb der aktuell
   sichtbaren Feed- oder Smart-Filter-Liste und stoppen am Listenrand
 - Seltenere Aktionen wie `Link kopieren` liegen im Reader-Mehr-Menue, damit die
@@ -681,6 +687,8 @@ sichtbar bleibt.
 - Kapselt die vorbereiteten, teureren Reader-Daten fuer einen Artikel.
 - Berechnet native Content-Bloecke, Metazeile und gueltige Original-URL einmal beim
   Erzeugen von `ReaderView`, statt diese Werte bei jedem SwiftUI-Redraw neu aufzubauen.
+- Erkennt, ob offline echter Feed-Content, nur eine Summary oder gar kein Text
+  verfuegbar ist; der Reader nutzt diese Information fuer den Summary-Hinweis.
 
 ### ArticleMetadataInspectorView.swift
 - Einblendbarer rechter Inspector in der Artikelansicht.
@@ -1022,12 +1030,19 @@ sichtbar bleibt.
   Statusanzeige fuer letzten/naechsten automatischen Refresh ergaenzt
 - [x] Sichtbarer Fortschritt fuer Sammel-Refresh und OPML-Import
 - [ ] iCloud Sync via CloudKit aktivieren und testen
-- [ ] Offline-Unterstützung: Artikel-Content beim Abruf in SwiftData speichern
+- [x] Offline-Unterstützung: Feed-gelieferten Artikel-Content in SwiftData speichern,
+  spaeter gelieferten Content fuer bestehende Artikel nachtragen und Summary-only
+  Artikel im Reader kennzeichnen
 
 ### M4 – Polish & Release
 - [x] OPML Import (Feeds aus anderem RSS Reader übernehmen)
 - [x] OPML Export (Feeds portieren)
+- [ ] Erweiterter OPML-Import-Dialog: ausgelesene Feeds und Ordner vor dem Import
+  anzeigen, Ordnerzugehörigkeit bearbeiten/Ordner erstellen, optionalen Refresh
+  nach Import wählen und Import-Zusammenfassung anzeigen
 - [ ] Einstellungen-Fenster (Refresh-Intervall, Schriftgrösse, Theme)
+- [ ] Bild- und Favicon-Cache: geladene Bilder lokal cachen, damit Artikelbilder
+  und Favicons nach App-Neustart nicht jedes Mal neu geladen werden muessen
 - [ ] Share Extension (Artikel teilen via macOS Share Sheet)
 - [ ] App-Icon designen
 - [ ] Onboarding (erster Start ohne Feeds)
@@ -1068,7 +1083,8 @@ sichtbar bleibt.
   Einstellungen verwaltet und manuell auf vorhandene Artikel angewendet werden;
   Power-User-Regeln unterstuetzen mehrere Bedingungen mit AND/OR. Background Refresh
   bleibt macOS-nativ und zeigt letzten/naechsten automatischen Lauf in den
-  Einstellungen. Naechster sinnvoller Block ist iCloud Sync oder Offline-Unterstuetzung.
+  Einstellungen. Die Offline-Basis speichert Feed-gelieferten Content und markiert
+  Summary-only Artikel im Reader; naechster sinnvoller M3-Block ist iCloud Sync.
 - Feature-Roadmap ist in `docs/FEATURES.md` dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
@@ -1324,3 +1340,16 @@ sichtbar bleibt.
   hat nun eine linke Kategorienavigation mit Allgemein, Darstellung, Feeds,
   Aktualisierung, Tags & Regeln und Sync. Der neue Bereich `Feeds` bietet Suche,
   Mehrfachauswahl und Loeschen ausgewaehlter Feeds mit Bestaetigungsdialog.
+- 2026-06-22: Settings-Feedverwaltung korrigiert: Das macOS-Settings-Scene bekommt
+  nun denselben SwiftData-`modelContainer` wie das Hauptfenster, damit abonnierte
+  Feeds in den Einstellungen per `@Query` sichtbar sind.
+- 2026-06-22: Bild- und Favicon-Caching als M4-Thema aufgenommen. Empfehlung:
+  eigener Disk-Cache plus kleiner Memory-Cache fuer Artikelbilder und Favicons,
+  keine Bild-BLOBs in SwiftData.
+- 2026-06-22: Erweiterter OPML-Import-Dialog als M4-Thema aufgenommen: Import soll
+  Feeds/Ordner vorab zeigen, Ordnerzuweisung und neue Ordner erlauben, optionalen
+  Feed-Refresh anbieten und nach dem Import eine Zusammenfassung anzeigen.
+- 2026-06-22: M3-Offline-Basis umgesetzt: Feedivo speichert Feed-gelieferten
+  Artikel-Content weiter in SwiftData, traegt spaeter gelieferten Volltext fuer
+  bestehende Artikel nach und zeigt im Reader einen Hinweis, wenn offline nur die
+  Feed-Zusammenfassung vorhanden ist.

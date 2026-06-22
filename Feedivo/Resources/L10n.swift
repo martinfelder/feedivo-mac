@@ -37,6 +37,7 @@ enum L10n {
     static let readerDisplayModePicker = LocalizedStringKey("reader.displayMode.picker")
     static let readerDisplayModeNative = LocalizedStringKey("reader.displayMode.native")
     static let readerDisplayModeWeb = LocalizedStringKey("reader.displayMode.web")
+    static let readerSummaryOnlyOfflineNotice = LocalizedStringKey("reader.summaryOnlyOffline.notice")
     static let readerInspectorButton = LocalizedStringKey("reader.inspector.button")
     static let readerInspectorTitle = LocalizedStringKey("reader.inspector.title")
     static let readerInspectorDescription = LocalizedStringKey("reader.inspector.description")
