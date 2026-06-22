@@ -165,6 +165,106 @@ struct FeedViewModelTests {
     }
 
     @MainActor
+    @Test func opmlImportPreviewMarkiertDuplikateUndNichtErreichbareFeeds() async throws {
+        let existingFeed = Feed(url: "https://example.com/existing.xml", title: "Schon da")
+        let viewModel = FeedViewModel(
+            fetchFeed: { urlString in
+                if urlString == "https://example.com/broken.xml" {
+                    throw FeedServiceError.parsingFailed
+                }
+
+                return ParsedFeed(sourceURL: urlString, title: "OK", description: nil, articles: [])
+            },
+            discoverFaviconURL: { _ in nil }
+        )
+
+        let rows = await viewModel.opmlImportPreviewRows(
+            for: [
+                OPMLFeed(title: "Neu", xmlURL: "https://example.com/new.xml", htmlURL: nil, folderName: "News"),
+                OPMLFeed(title: "Schon da", xmlURL: "https://example.com/existing.xml", htmlURL: nil, folderName: "Tech"),
+                OPMLFeed(title: "Kaputt", xmlURL: "https://example.com/broken.xml", htmlURL: nil, folderName: "News")
+            ],
+            existingFeeds: [existingFeed]
+        )
+
+        #expect(rows.map(\.status) == [.available, .duplicate, .unreachable])
+        #expect(rows.map(\.isSelected) == [true, false, false])
+    }
+
+    @MainActor
+    @Test func opmlImportPreviewMeldetSichtbarenPrueffortschritt() async throws {
+        let viewModel = FeedViewModel(
+            fetchFeed: { urlString in
+                ParsedFeed(sourceURL: urlString, title: "OK", description: nil, articles: [])
+            },
+            discoverFaviconURL: { _ in nil }
+        )
+        var progressEvents: [OPMLImportPreviewProgress] = []
+
+        _ = await viewModel.opmlImportPreviewRows(
+            for: [
+                OPMLFeed(title: "Erster Feed", xmlURL: "https://example.com/1.xml", htmlURL: nil, folderName: nil),
+                OPMLFeed(title: "Zweiter Feed", xmlURL: "https://example.com/2.xml", htmlURL: nil, folderName: nil)
+            ],
+            existingFeeds: [],
+            onProgress: { progressEvents.append($0) }
+        )
+
+        #expect(progressEvents.map(\.currentFeedTitle) == ["Erster Feed", "Zweiter Feed"])
+        #expect(progressEvents.map(\.displayText) == [
+            "Feed 1 von 2 wird geprüft: Erster Feed",
+            "Feed 2 von 2 wird geprüft: Zweiter Feed"
+        ])
+    }
+
+    @MainActor
+    @Test func importOPMLFeedsKannDuplikateBewusstImportierenUndRefreshUeberspringen() async throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            RuleCondition.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let existingFeed = Feed(url: "https://example.com/existing.xml", title: "Schon da")
+        context.insert(existingFeed)
+        try context.save()
+        var refreshCallCount = 0
+        let viewModel = FeedViewModel(
+            fetchFeed: { urlString in
+                refreshCallCount += 1
+                return ParsedFeed(sourceURL: urlString, title: "Soll nicht aktualisieren", description: nil, articles: [])
+            },
+            discoverFaviconURL: { _ in nil }
+        )
+
+        let result = try await viewModel.importOPMLFeeds(
+            [
+                OPMLFeed(
+                    title: "Duplikat bewusst",
+                    xmlURL: "https://example.com/existing.xml",
+                    htmlURL: nil,
+                    folderName: "Tech"
+                )
+            ],
+            existingFeeds: [existingFeed],
+            allowsDuplicates: true,
+            refreshAfterImport: false,
+            context: context
+        )
+
+        let feeds = try context.fetch(FetchDescriptor<Feed>())
+        #expect(result.imported == 1)
+        #expect(result.skippedDuplicates == 0)
+        #expect(refreshCallCount == 0)
+        #expect(feeds.count == 2)
+        #expect(feeds.contains { $0.title == "Duplikat bewusst" && $0.url == "https://example.com/existing.xml" })
+    }
+
+    @MainActor
     @Test func opmlFeedsForExportNutztAktuelleFeedMetadaten() {
         let feeds = [
             Feed(

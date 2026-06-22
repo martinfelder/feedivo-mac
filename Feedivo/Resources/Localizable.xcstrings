@@ -4,10 +4,22 @@
     "" : {
 
     },
+    ".opml und .xml werden unterstützt" : {
+
+    },
     "#%@" : {
 
     },
     "%lld px" : {
+
+    },
+    "Abbrechen" : {
+
+    },
+    "Alle abwählen" : {
+
+    },
+    "Alle auswählen" : {
 
     },
     "article.copyLink.command" : {
@@ -569,6 +581,18 @@
           }
         }
       }
+    },
+    "Datei auswählen..." : {
+
+    },
+    "Duplikate importieren" : {
+
+    },
+    "Entfernen" : {
+
+    },
+    "Feed" : {
+
     },
     "feed.add.command" : {
       "localizations" : {
@@ -1973,6 +1997,30 @@
     "Feedivo" : {
 
     },
+    "Feeds aus OPML importieren" : {
+
+    },
+    "Feeds nach Import direkt aktualisieren" : {
+
+    },
+    "Import-Vorschau wird vorbereitet" : {
+
+    },
+    "Neuer Ordner" : {
+
+    },
+    "Nicht erreichbare Feeds importieren" : {
+
+    },
+    "Ohne Ordner" : {
+
+    },
+    "OPML" : {
+
+    },
+    "OPML-Datei hier ablegen" : {
+
+    },
     "opml.error.invalidXML" : {
       "localizations" : {
         "de" : {
@@ -2112,6 +2160,15 @@
           }
         }
       }
+    },
+    "Ordner" : {
+
+    },
+    "Ordner erstellen" : {
+
+    },
+    "Prüfe die erkannten Feeds, passe Ordner an und entscheide, ob Feedivo direkt aktualisieren soll." : {
+
     },
     "reader.appearance.button" : {
       "localizations" : {
@@ -2361,34 +2418,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Vista originale"
-          }
-        }
-      }
-    },
-    "reader.summaryOnlyOffline.notice" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Offline ist nur die Feed-Zusammenfassung gespeichert. Den vollstaendigen Artikel kannst du ueber Original oeffnen lesen."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Only the feed summary is saved offline. Open the original to read the full article."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Seul le resume du flux est enregistre hors ligne. Ouvrez l'original pour lire l'article complet."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Offline e salvato solo il riepilogo del feed. Apri l'originale per leggere l'articolo completo."
           }
         }
       }
@@ -2809,6 +2838,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "circa %lld min di lettura"
+          }
+        }
+      }
+    },
+    "reader.summaryOnlyOffline.notice" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Offline ist nur die Feed-Zusammenfassung gespeichert. Den vollstaendigen Artikel kannst du ueber Original oeffnen lesen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only the feed summary is saved offline. Open the original to read the full article."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seul le resume du flux est enregistre hors ligne. Ouvrez l'original pour lire l'article complet."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Offline e salvato solo il riepilogo del feed. Apri l'originale per leggere l'articolo completo."
           }
         }
       }
@@ -5809,6 +5866,9 @@
         }
       }
     },
+    "Status" : {
+
+    },
     "tagManager.color" : {
       "localizations" : {
         "de" : {
@@ -6144,6 +6204,9 @@
           }
         }
       }
+    },
+    "Website" : {
+
     }
   },
   "version" : "1.0"

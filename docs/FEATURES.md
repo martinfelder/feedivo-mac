@@ -188,13 +188,14 @@ bei geschlossener App.
 
 ### Aktuell in Arbeit
 
-M3 Tags, Regeln & Sync:
-- M2 Core Features ist abgeschlossen.
-- Tag-Verwaltung, Tag-Sidebar-Filter, RuleEngine und Rule-UI sind als Basis
-  abgeschlossen; Feed-Tags sind in den Feed-Eigenschaften umgesetzt.
-- Background Refresh bleibt macOS-nativ und zeigt den letzten sowie naechsten
-  automatischen Lauf kompakt in den Einstellungen.
-- Naechster Fokus: iCloud Sync.
+M4 Polish & Release:
+- M1, M2 und M3 sind abgeschlossen.
+- Tag-Verwaltung, Tag-Sidebar-Filter, Feed-Tags, RuleEngine, Rule-UI,
+  Background-Refresh-Status und Offline-Basis sind als M3-Basis abgeschlossen.
+- iCloud Sync wurde bewusst nach M4 verschoben, damit Sync zusammen mit Release-,
+  Cache- und Import-Polish geplant und getestet werden kann.
+- Naechster Fokus: M4-Prioritaet festlegen, z.B. erweiterter OPML-Import,
+  Bild-/Favicon-Cache, Onboarding oder iCloud Sync.
 
 ---
 
@@ -443,7 +444,10 @@ M3 Tags, Regeln & Sync:
   Filter `Ungelesen` zeigt rechts die feeduebergreifende Anzahl ungelesener Artikel.
 - Entscheidung: Die bestehenden SF-Symbol-Icons bleiben im hellen Sidebar-Design
   erhalten; Hintergrund und Auswahlstil folgen wieder naeher dem macOS-Standard.
-- Spaeter: Eigene Smart Filter und weitere Zeitfilter wie Gestern.
+- Entscheidung: Erweiterte/eigene Smart Filter wurden fuer M3 geprueft und bewusst
+  zurueckgestellt. Die M3-Basis bleibt bei Alle Artikel, Ungelesen, Mit Stern und Heute.
+- Spaeter: Eigene Smart Filter, weitere Zeitfilter wie Gestern und eventuell
+  gespeicherte Filterregeln erst nach Suche/Filter-Polish erneut planen.
 
 #### 3.3 Tag-Abschnitt
 - Status: Fertig als Basis
@@ -575,8 +579,9 @@ M3 Tags, Regeln & Sync:
 
 #### 6.1 CloudKit Sync
 - Status: In Diskussion
-- Prioritaet: v1/spaeter
+- Prioritaet: M4/v1
 - Empfehlung: Erst aktivieren, wenn Datenmodell und Grundfeatures stabil sind.
+- Entscheidung: Am 2026-06-22 bewusst von M3 nach M4 verschoben.
 - Sync-Umfang: Feeds, gelesen, Stern, Tags, Regeln. Artikel-Content ist nun als
   Offline-Basis gespeichert und muss wegen Speicher/CloudKit-Volumen bewusst
   geprueft werden.
@@ -594,22 +599,54 @@ M3 Tags, Regeln & Sync:
   in der Sidebar gruppiert.
 
 #### 7.2 Erweiterter OPML-Import-Dialog
-- Status: Entschieden
+- Status: Fertig als M4-Basis
 - Prioritaet: M4/v1
 - Ziel: Vor dem Import soll Feedivo die ausgelesenen Feeds und OPML-Ordner anzeigen,
   damit der Benutzer den Import prüfen und gezielt anpassen kann.
-- Geplant: Liste der erkannten Feeds mit Titel, Feed-URL, Website falls vorhanden,
+- Umsetzung: Liste der erkannten Feeds mit Titel, Feed-URL, Website falls vorhanden,
   Duplikat-Hinweis und aktueller/aus OPML gelesener Ordnerzuordnung.
-- Geplant: Ordnerzuordnung pro Feed im Dialog ändern; vorhandene Ordner auswählen
+- Umsetzung: Ordnerzuordnung pro Feed im Dialog ändern; vorhandene Ordner auswählen
   und neue Ordner direkt im Import-Dialog erstellen.
-- Geplant: Option, ob neu importierte Feeds direkt aktualisiert werden sollen. Wenn
+- Umsetzung: Option, ob neu importierte Feeds direkt aktualisiert werden sollen. Wenn
   deaktiviert, werden nur Feeds und Ordner importiert; das ist schneller und der
   Refresh kann spaeter manuell erfolgen.
-- Geplant: Nach dem Import eine Zusammenfassung anzeigen, z.B. importierte Feeds,
+- Umsetzung: Nach dem Import eine Zusammenfassung anzeigen, z.B. importierte Feeds,
   übersprungene Duplikate, angelegte Ordner, Refresh aktiviert/deaktiviert und
   fehlgeschlagene Aktualisierungen.
+- Design-Exploration: Unter `docs/design/opml-import-dialog-prototypes/index.html`
+  liegen fuenf interaktive Varianten: Review Table, Guided Wizard, Split Inspector,
+  Batch Editor und Import Center.
+- Entscheidung: Variante A / Review Table ist die bevorzugte Umsetzungsrichtung.
+  Die OPML-Datei soll im selben Dialog ausgewaehlt oder gewechselt werden; danach
+  erscheinen Preview, Ordnerbearbeitung, Refresh-Option und Import-Zusammenfassung
+  ohne zweiten separaten Dialog.
+- Umsetzung: Die OPML-Datei kann per Button ausgewaehlt oder direkt auf das
+  Importfenster gezogen werden. Drag & Drop akzeptiert `.opml` und `.xml` und nutzt
+  denselben Preview-Pfad wie die Datei-Auswahl.
+- Entscheidung: Die Preview soll aus der wirklich ausgewaehlten OPML-Datei erzeugt
+  werden. Importiert werden nur ausgewaehlte importierbare Feeds; Duplikate und
+  nicht erreichbare/problematische Feeds bleiben in der Liste sichtbar und werden
+  klar markiert.
+- Option: Im Import-Dialog kann der Benutzer bewusst erlauben, dass Duplikate
+  ebenfalls importiert werden. Standard bleibt, Duplikate zu ueberspringen.
+- Option: Nicht erreichbare oder problematische Feeds koennen ebenfalls bewusst
+  importiert werden. Standard bleibt, diese Feeds sichtbar zu markieren, aber nicht
+  auszuwaehlen.
+- UI-Regel: Auch bei vielen Feeds bleibt das Dialogfenster stabil gross; die
+  Feed-Tabelle scrollt intern. Lange Feednamen und URLs werden einzeilig mit
+  Ellipsis gekuerzt.
+- UI-Regel: Die echte SwiftUI-Umsetzung orientiert sich visuell an Variante A des
+  Prototyps: Header mit Status-Badge, Datei-Kachel, Review-Table mit festen Spalten,
+  kompakte Status-Pills und Footer-Optionen im selben Dialog.
+- UI-Regel: Die Review-Tabelle hat ein Status-Dropdown fuer alle, neue, doppelte
+  oder nicht erreichbare Feeds. Der Filter darf die Import-Zeilen nicht neu erzeugen;
+  Auswahl- und Ordner-Aenderungen bleiben erhalten, wenn der Filter geloescht wird.
+- UI-Regel: Waehrend Feedivo die Preview vorbereitet, steht der Ladezustand mittig
+  in der spaeteren Feed-Tabelle und nennt den konkreten Prueffortschritt, damit
+  bei groesseren OPML-Dateien klar sichtbar ist, dass weiter gearbeitet wird.
 - Hinweis: Die bestehende OPML-Service-Basis bleibt erhalten; erweitert wird vor
   allem der Import-Workflow und die UI rund um Preview, Auswahl und Ergebnis.
+  Der alte direkte Dateiimport wurde durch `OPMLImportReviewView` ersetzt.
 
 #### 7.3 OPML Export
 - Status: Fertig als Basis

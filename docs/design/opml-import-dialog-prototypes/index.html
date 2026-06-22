@@ -1,0 +1,1379 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Feedivo OPML Import Dialog Prototypes</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f5f7;
+      --panel: #fbfbfd;
+      --panel-2: #f1f2f5;
+      --line: rgba(32, 35, 41, .12);
+      --line-strong: rgba(32, 35, 41, .20);
+      --text: #20242b;
+      --muted: #6b717a;
+      --soft: #8a9099;
+      --blue: #0a84ff;
+      --blue-soft: rgba(10, 132, 255, .12);
+      --green: #248a3d;
+      --green-soft: rgba(36, 138, 61, .12);
+      --orange: #b85d00;
+      --orange-soft: rgba(184, 93, 0, .12);
+      --red: #c93535;
+      --red-soft: rgba(201, 53, 53, .10);
+      --shadow: 0 22px 70px rgba(24, 28, 36, .16);
+      --radius: 10px;
+      --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.72), rgba(244,245,247,.94)),
+        radial-gradient(circle at 18% 0%, rgba(10,132,255,.10), transparent 34%),
+        var(--bg);
+      color: var(--text);
+    }
+
+    button, input, select {
+      font: inherit;
+    }
+
+    .page {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 26px 28px 34px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 18px;
+    }
+
+    .title h1 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.15;
+      letter-spacing: 0;
+    }
+
+    .title p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .variant-tabs {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px;
+      gap: 2px;
+      background: rgba(255,255,255,.72);
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    }
+
+    .tab {
+      min-width: 42px;
+      border: 0;
+      border-radius: 7px;
+      padding: 6px 10px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .tab.active {
+      color: var(--text);
+      background: #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,.10);
+    }
+
+    .prototype {
+      display: none;
+    }
+
+    .prototype.active {
+      display: block;
+    }
+
+    .prototype-label {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 16px;
+      margin: 0 0 12px;
+    }
+
+    .prototype-label h2 {
+      margin: 0;
+      font-size: 16px;
+      letter-spacing: 0;
+    }
+
+    .prototype-label p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .window {
+      overflow: hidden;
+      background: rgba(251,251,253,.92);
+      border: 1px solid var(--line-strong);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+    }
+
+    .window-head {
+      height: 48px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 16px;
+      background: rgba(245,246,248,.86);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .traffic {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .traffic.red { background: #ff5f57; }
+    .traffic.yellow { background: #febc2e; }
+    .traffic.green { background: #28c840; }
+
+    .window-title {
+      flex: 1;
+      text-align: center;
+      margin-right: 66px;
+      font-size: 13px;
+      font-weight: 650;
+      color: #3c4148;
+    }
+
+    .sheet {
+      width: min(980px, calc(100vw - 68px));
+      margin: 30px auto 34px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      box-shadow: 0 16px 42px rgba(20,24,31,.12);
+      overflow: hidden;
+    }
+
+    .sheet.compact {
+      width: min(760px, calc(100vw - 68px));
+    }
+
+    .sheet-header {
+      padding: 18px 20px 16px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255,255,255,.78), rgba(247,248,250,.92));
+    }
+
+    .sheet-header-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .sheet h3 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    .sheet .sub {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .pill, .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 4px 9px;
+      background: rgba(255,255,255,.76);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .status.ok { color: var(--green); background: var(--green-soft); border-color: rgba(36,138,61,.18); }
+    .status.warn { color: var(--orange); background: var(--orange-soft); border-color: rgba(184,93,0,.20); }
+    .status.dup { color: var(--red); background: var(--red-soft); border-color: rgba(201,53,53,.16); }
+    .status.bad { color: var(--red); background: var(--red-soft); border-color: rgba(201,53,53,.16); }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .content {
+      padding: 16px 18px 18px;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .file-picker {
+      display: grid;
+      grid-template-columns: 44px minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 14px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.82), rgba(247,248,250,.88));
+    }
+
+    .file-icon {
+      width: 44px;
+      height: 44px;
+      display: grid;
+      place-items: center;
+      border-radius: 9px;
+      background: var(--blue-soft);
+      color: var(--blue);
+      font-weight: 800;
+      font-size: 13px;
+      border: 1px solid rgba(10,132,255,.14);
+    }
+
+    .file-name {
+      margin: 0;
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1.25;
+    }
+
+    .file-meta {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .file-input {
+      position: absolute;
+      inline-size: 1px;
+      block-size: 1px;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .review-panel {
+      transition: opacity .16s ease;
+    }
+
+    .review-panel.empty {
+      opacity: .55;
+    }
+
+    .search {
+      display: flex;
+      align-items: center;
+      min-width: 260px;
+      gap: 8px;
+      padding: 7px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--soft);
+      font-size: 13px;
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .button {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #fff;
+      color: var(--text);
+      padding: 6px 11px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      min-height: 30px;
+    }
+
+    .button.primary {
+      background: var(--blue);
+      border-color: rgba(10,132,255,.9);
+      color: #fff;
+    }
+
+    .button:active {
+      transform: translateY(1px);
+    }
+
+    .toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text);
+      font-size: 13px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .toggle input, .feed-check input {
+      accent-color: var(--blue);
+    }
+
+    .table {
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .table-scroll {
+      max-height: 336px;
+      overflow-y: auto;
+      scrollbar-gutter: stable;
+    }
+
+    .table-head, .feed-row {
+      display: grid;
+      grid-template-columns: 34px 1.4fr 1fr 154px 100px;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .table-head > *,
+    .feed-row > * {
+      min-width: 0;
+    }
+
+    .table-head {
+      min-height: 34px;
+      padding: 0 12px;
+      background: var(--panel-2);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .02em;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .feed-row {
+      min-height: 58px;
+      padding: 9px 12px;
+      border-bottom: 1px solid rgba(32,35,41,.08);
+    }
+
+    .feed-row:last-child {
+      border-bottom: 0;
+    }
+
+    .feed-row.muted {
+      color: var(--muted);
+      background: rgba(247,248,250,.74);
+    }
+
+    .feed-row.problematic {
+      background: rgba(255, 246, 235, .72);
+    }
+
+    .feed-title {
+      font-size: 13px;
+      font-weight: 650;
+      line-height: 1.25;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .feed-url, .small {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.25;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .folder-select {
+      width: 100%;
+      min-height: 29px;
+      border-radius: 7px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--text);
+      padding: 4px 8px;
+      font-size: 13px;
+    }
+
+    .footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 14px 18px;
+      border-top: 1px solid var(--line);
+      background: rgba(247,248,250,.90);
+    }
+
+    .summary {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      flex-wrap: wrap;
+    }
+
+    .result {
+      display: none;
+      margin-top: 12px;
+      padding: 13px 14px;
+      border-radius: 9px;
+      border: 1px solid rgba(36,138,61,.20);
+      background: var(--green-soft);
+      color: #1f6f33;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .result.show {
+      display: block;
+    }
+
+    .layout-split {
+      display: grid;
+      grid-template-columns: 220px minmax(0, 1fr) 245px;
+      min-height: 560px;
+    }
+
+    .rail, .inspector {
+      background: rgba(246,247,249,.90);
+      border-right: 1px solid var(--line);
+      padding: 14px;
+    }
+
+    .inspector {
+      border-right: 0;
+      border-left: 1px solid var(--line);
+    }
+
+    .rail-title {
+      font-size: 11px;
+      font-weight: 750;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin: 7px 0 8px;
+    }
+
+    .source-item, .folder-chip-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 7px 8px;
+      border-radius: 7px;
+      color: var(--text);
+      font-size: 13px;
+    }
+
+    .source-item.active {
+      background: var(--blue-soft);
+      color: #064f9e;
+      font-weight: 650;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fff;
+      padding: 13px;
+      min-height: 118px;
+    }
+
+    .card h4, .inspector h4 {
+      margin: 0 0 7px;
+      font-size: 13px;
+    }
+
+    .card p, .inspector p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .metric-row {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .metric {
+      padding: 11px 12px;
+      border-radius: 9px;
+      background: #fff;
+      border: 1px solid var(--line);
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 20px;
+      line-height: 1.1;
+    }
+
+    .metric span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .steps {
+      display: flex;
+      gap: 8px;
+      padding: 14px 18px 0;
+    }
+
+    .step {
+      flex: 1;
+      height: 5px;
+      border-radius: 99px;
+      background: rgba(32,35,41,.12);
+    }
+
+    .step.active {
+      background: var(--blue);
+    }
+
+    .wizard-body {
+      display: grid;
+      grid-template-columns: 1fr 270px;
+      gap: 16px;
+      padding: 16px 18px 18px;
+    }
+
+    .option-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .option-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: #fff;
+    }
+
+    .mini-table .feed-row,
+    .mini-table .table-head {
+      grid-template-columns: 34px 1.3fr 130px 94px;
+    }
+
+    .batch-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .batch-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .batch-item {
+      display: grid;
+      grid-template-columns: 28px 1fr 138px;
+      gap: 8px;
+      align-items: center;
+      padding: 9px 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    .problem-list {
+      display: grid;
+      gap: 9px;
+    }
+
+    .problem {
+      display: grid;
+      grid-template-columns: 26px 1fr auto;
+      gap: 9px;
+      align-items: center;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: #fff;
+    }
+
+    .icon-box {
+      width: 26px;
+      height: 26px;
+      display: grid;
+      place-items: center;
+      border-radius: 7px;
+      background: var(--blue-soft);
+      color: var(--blue);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    @media (max-width: 900px) {
+      .topbar, .prototype-label, .toolbar, .footer {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .file-picker {
+        grid-template-columns: 44px minmax(0, 1fr);
+      }
+
+      .file-picker .actions {
+        grid-column: 1 / -1;
+        justify-content: flex-start;
+      }
+
+      .sheet {
+        width: calc(100vw - 28px);
+        margin: 18px auto 24px;
+      }
+
+      .table-head {
+        display: none;
+      }
+
+      .feed-row {
+        grid-template-columns: 28px 1fr;
+      }
+
+      .feed-row > :nth-child(n+3) {
+        grid-column: 2;
+      }
+
+      .layout-split, .wizard-body, .batch-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .rail, .inspector {
+        border: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .metric-row, .cards {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="topbar">
+      <div class="title">
+        <h1>OPML Import Dialog</h1>
+        <p>Fuenf interaktive Richtungen fuer Feedivo M4.</p>
+      </div>
+      <nav class="variant-tabs" aria-label="Varianten">
+        <button class="tab active" data-tab="a">A</button>
+        <button class="tab" data-tab="b">B</button>
+        <button class="tab" data-tab="c">C</button>
+        <button class="tab" data-tab="d">D</button>
+        <button class="tab" data-tab="e">E</button>
+      </nav>
+    </div>
+
+    <section class="prototype active" data-prototype="a">
+      <div class="prototype-label">
+        <div>
+          <h2>A - Review Table</h2>
+          <p>Ein klassischer macOS-Sheet mit kompletter Feed-Liste, ideal fuer schnelle Massenpruefung.</p>
+        </div>
+        <span class="pill">Empfehlung: klarster MVP</span>
+      </div>
+      <div class="window">
+        <div class="window-head">
+          <span class="traffic red"></span><span class="traffic yellow"></span><span class="traffic green"></span>
+          <div class="window-title">Feedivo</div>
+        </div>
+        <div class="sheet">
+          <div class="sheet-header">
+            <div class="sheet-header-row">
+              <div>
+                <h3>Feeds aus OPML importieren</h3>
+                <p class="sub">Pruefe die erkannten Feeds, passe Ordner an und entscheide, ob Feedivo direkt aktualisieren soll.</p>
+              </div>
+              <span class="status warn" data-import-status><span class="dot"></span>2 Duplikate</span>
+            </div>
+          </div>
+          <div class="content">
+            <div class="file-picker" data-file-picker>
+              <div class="file-icon">OPML</div>
+              <div>
+                <p class="file-name" data-file-name>Feedly-Export.opml</p>
+                <div class="file-meta" data-file-meta>18 Feeds erkannt · 5 Ordner · zuletzt geoeffnet vor wenigen Sekunden</div>
+              </div>
+              <div class="actions">
+                <input class="file-input" type="file" accept=".opml,.xml" data-file-input>
+                <button class="button" data-choose-file>Datei auswaehlen...</button>
+                <button class="button" data-clear-file>Entfernen</button>
+              </div>
+            </div>
+            <div class="review-panel" data-review-panel>
+              <div class="toolbar">
+                <div class="search">Suchen: Microsoft, AI, Technik</div>
+                <div class="actions">
+                  <button class="button" data-select-all>Alle auswaehlen</button>
+                  <button class="button" data-create-folder>Ordner erstellen</button>
+                </div>
+              </div>
+              <div class="table" data-feed-table>
+                <div class="table-head"><span></span><span>Feed</span><span>Website</span><span>Ordner</span><span>Status</span></div>
+                <div class="table-scroll">
+                  <div class="feed-row">
+                    <label class="feed-check"><input type="checkbox" checked></label>
+                    <div><div class="feed-title">Microsoft News</div><div class="feed-url">https://blogs.microsoft.com/feed</div></div>
+                    <div class="feed-url">blogs.microsoft.com</div>
+                    <select class="folder-select"><option>Microsoft News</option><option>Tech</option><option>KI</option></select>
+                    <span class="status ok">Neu</span>
+                  </div>
+                  <div class="feed-row">
+                    <label class="feed-check"><input type="checkbox" checked></label>
+                    <div><div class="feed-title">The Verge</div><div class="feed-url">https://www.theverge.com/rss/index.xml</div></div>
+                    <div class="feed-url">theverge.com</div>
+                    <select class="folder-select"><option>Tech</option><option>News</option><option>Apple</option></select>
+                    <span class="status ok">Neu</span>
+                  </div>
+                  <div class="feed-row muted">
+                    <label class="feed-check"><input type="checkbox"></label>
+                    <div><div class="feed-title">MacRumors</div><div class="feed-url">https://www.macrumors.com/macrumors.xml</div></div>
+                    <div class="feed-url">macrumors.com</div>
+                    <select class="folder-select"><option>Apple</option><option>Tech</option></select>
+                    <span class="status dup">Duplikat</span>
+                  </div>
+                  <div class="feed-row">
+                    <label class="feed-check"><input type="checkbox" checked></label>
+                    <div><div class="feed-title">AI Weekly</div><div class="feed-url">https://ai.example.com/rss</div></div>
+                    <div class="feed-url">ai.example.com</div>
+                    <select class="folder-select"><option>KI</option><option>Tech</option><option>Neu...</option></select>
+                    <span class="status ok">Neu</span>
+                  </div>
+                </div>
+              </div>
+              <div class="result">Import abgeschlossen: 3 Feeds importiert, 1 Duplikat uebersprungen, 3 Ordner verwendet. Direktes Aktualisieren ist aktiv.</div>
+            </div>
+          </div>
+          <div class="footer">
+            <div class="actions">
+              <label class="toggle"><input type="checkbox" checked data-refresh-toggle> Feeds nach Import direkt aktualisieren</label>
+              <label class="toggle"><input type="checkbox" data-allow-duplicates> Duplikate importieren</label>
+            </div>
+            <div class="actions"><button class="button">Abbrechen</button><button class="button primary" data-import>3 Feeds importieren</button></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="prototype" data-prototype="b">
+      <div class="prototype-label">
+        <div>
+          <h2>B - Guided Wizard</h2>
+          <p>Ein gefuehrter Ablauf mit klaren Schritten: Datei, Pruefen, Optionen, Ergebnis.</p>
+        </div>
+        <span class="pill">Empfehlung: freundlich fuer neue Nutzer</span>
+      </div>
+      <div class="window">
+        <div class="window-head"><span class="traffic red"></span><span class="traffic yellow"></span><span class="traffic green"></span><div class="window-title">Feedivo</div></div>
+        <div class="sheet compact">
+          <div class="steps"><div class="step active"></div><div class="step active"></div><div class="step active"></div><div class="step"></div></div>
+          <div class="sheet-header">
+            <h3>OPML-Import vorbereiten</h3>
+            <p class="sub">Feedivo hat 18 Feeds in 5 Ordnern erkannt. Lege fest, was importiert und aktualisiert wird.</p>
+          </div>
+          <div class="wizard-body">
+            <div class="option-list">
+              <div class="option-row">
+                <div><div class="feed-title">Neue Feeds importieren</div><div class="small">16 neue Feeds werden angelegt, 2 Duplikate bleiben deaktiviert.</div></div>
+                <span class="status ok">Bereit</span>
+              </div>
+              <div class="option-row">
+                <div><div class="feed-title">Ordner uebernehmen</div><div class="small">OPML-Gruppen werden als Feedivo-Ordner gespeichert.</div></div>
+                <button class="button" data-create-folder>Ordner bearbeiten</button>
+              </div>
+              <div class="option-row">
+                <div><div class="feed-title">Direkt aktualisieren</div><div class="small">Laedt Titel, Favicons und erste Artikel. Dauert laenger.</div></div>
+                <label class="toggle"><input type="checkbox" checked data-refresh-toggle> Aktiv</label>
+              </div>
+            </div>
+            <aside class="card">
+              <h4>Erkannt</h4>
+              <p>18 Feeds<br>5 Ordner<br>2 Duplikate<br>0 ungueltige Eintraege</p>
+              <div class="result">Fertig: 16 Feeds importiert und aktualisiert.</div>
+            </aside>
+          </div>
+          <div class="footer">
+            <button class="button">Zurueck</button>
+            <div class="actions"><button class="button">Abbrechen</button><button class="button primary" data-import>Import starten</button></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="prototype" data-prototype="c">
+      <div class="prototype-label">
+        <div>
+          <h2>C - Split Inspector</h2>
+          <p>Eine Power-User-Variante mit OPML-Ordnern links, Feed-Liste in der Mitte und Details rechts.</p>
+        </div>
+        <span class="pill">Empfehlung: beste Kontrolle</span>
+      </div>
+      <div class="window">
+        <div class="window-head"><span class="traffic red"></span><span class="traffic yellow"></span><span class="traffic green"></span><div class="window-title">Feedivo</div></div>
+        <div class="sheet">
+          <div class="sheet-header">
+            <h3>Import aus Feedly.opml</h3>
+            <p class="sub">Waehle Ordner, pruefe Feeds und korrigiere Details vor dem Import.</p>
+          </div>
+          <div class="layout-split">
+            <aside class="rail">
+              <div class="rail-title">OPML-Ordner</div>
+              <div class="source-item active">Tech <span>8</span></div>
+              <div class="source-item">Apple <span>4</span></div>
+              <div class="source-item">KI <span>3</span></div>
+              <div class="source-item">News <span>3</span></div>
+              <button class="button" data-create-folder style="margin-top:12px;width:100%">Neuer Ordner</button>
+            </aside>
+            <div class="content" style="min-width:0">
+              <div class="toolbar"><div class="search">Tech durchsuchen</div><label class="toggle"><input type="checkbox" checked data-refresh-toggle> Nach Import aktualisieren</label></div>
+              <div class="table mini-table">
+                <div class="table-head"><span></span><span>Feed</span><span>Ordner</span><span>Status</span></div>
+                <div class="feed-row"><input type="checkbox" checked><div><div class="feed-title">Ars Technica</div><div class="feed-url">feeds.arstechnica.com/arstechnica</div></div><select class="folder-select"><option>Tech</option><option>News</option></select><span class="status ok">Neu</span></div>
+                <div class="feed-row"><input type="checkbox" checked><div><div class="feed-title">Wired</div><div class="feed-url">wired.com/feed/rss</div></div><select class="folder-select"><option>Tech</option><option>KI</option></select><span class="status ok">Neu</span></div>
+                <div class="feed-row muted"><input type="checkbox"><div><div class="feed-title">Heise Online</div><div class="feed-url">heise.de/rss/heise-atom.xml</div></div><select class="folder-select"><option>Tech</option></select><span class="status dup">Duplikat</span></div>
+              </div>
+              <div class="result">Import abgeschlossen: Ordner Tech wurde mit 2 neuen Feeds importiert.</div>
+            </div>
+            <aside class="inspector">
+              <h4>Ausgewaehlter Feed</h4>
+              <p><strong>Ars Technica</strong><br>Website erkannt<br>Ordner: Tech<br>Status: Neuer Feed</p>
+              <div style="height:12px"></div>
+              <h4>Import-Optionen</h4>
+              <p>Duplikate werden standardmaessig uebersprungen. Ordner koennen vor dem Import umbenannt werden.</p>
+            </aside>
+          </div>
+          <div class="footer"><span class="summary">2 von 3 sichtbaren Feeds ausgewaehlt</span><div class="actions"><button class="button">Abbrechen</button><button class="button primary" data-import>Auswahl importieren</button></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="prototype" data-prototype="d">
+      <div class="prototype-label">
+        <div>
+          <h2>D - Batch Editor</h2>
+          <p>Ein kompakter Dialog mit Feed-Liste links und Sammelaktionen fuer Ordner und Refresh rechts.</p>
+        </div>
+        <span class="pill">Empfehlung: schnellster Workflow</span>
+      </div>
+      <div class="window">
+        <div class="window-head"><span class="traffic red"></span><span class="traffic yellow"></span><span class="traffic green"></span><div class="window-title">Feedivo</div></div>
+        <div class="sheet">
+          <div class="sheet-header"><h3>18 Feeds importieren</h3><p class="sub">Bearbeite mehrere Feeds gleichzeitig und starte danach den Import.</p></div>
+          <div class="content">
+            <div class="metric-row">
+              <div class="metric"><strong>18</strong><span>erkannt</span></div>
+              <div class="metric"><strong>16</strong><span>neu</span></div>
+              <div class="metric"><strong>2</strong><span>Duplikate</span></div>
+              <div class="metric"><strong>5</strong><span>Ordner</span></div>
+            </div>
+            <div class="batch-grid">
+              <div class="batch-list">
+                <div class="batch-item"><input type="checkbox" checked><div><div class="feed-title">Microsoft News</div><div class="small">blogs.microsoft.com/feed</div></div><select class="folder-select"><option>Microsoft</option><option>Tech</option></select></div>
+                <div class="batch-item"><input type="checkbox" checked><div><div class="feed-title">AI Weekly</div><div class="small">ai.example.com/rss</div></div><select class="folder-select"><option>KI</option><option>Tech</option></select></div>
+                <div class="batch-item"><input type="checkbox"><div><div class="feed-title">MacRumors</div><div class="small">Duplikat vorhanden</div></div><select class="folder-select"><option>Apple</option></select></div>
+                <div class="batch-item"><input type="checkbox" checked><div><div class="feed-title">The Verge</div><div class="small">theverge.com/rss</div></div><select class="folder-select"><option>Tech</option></select></div>
+              </div>
+              <aside class="card">
+                <h4>Sammelaktionen</h4>
+                <p>Alle ausgewaehlten Feeds koennen einem Ordner zugewiesen werden.</p>
+                <div style="height:12px"></div>
+                <select class="folder-select"><option>Ordner beibehalten</option><option>Tech</option><option>News</option><option>Neuer Ordner...</option></select>
+                <div style="height:10px"></div>
+                <label class="toggle"><input type="checkbox" checked data-refresh-toggle> Nach Import aktualisieren</label>
+                <div class="result">Import erledigt: 3 Feeds importiert, 1 Duplikat ignoriert.</div>
+              </aside>
+            </div>
+          </div>
+          <div class="footer"><span class="summary">Aenderungen werden erst beim Import gespeichert.</span><div class="actions"><button class="button">Abbrechen</button><button class="button primary" data-import>Importieren</button></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="prototype" data-prototype="e">
+      <div class="prototype-label">
+        <div>
+          <h2>E - Import Center</h2>
+          <p>Eine dashboardartige Variante mit Problemen, Entscheidungen und Ergebnis als klare Bloecke.</p>
+        </div>
+        <span class="pill">Empfehlung: beste Fehlerkommunikation</span>
+      </div>
+      <div class="window">
+        <div class="window-head"><span class="traffic red"></span><span class="traffic yellow"></span><span class="traffic green"></span><div class="window-title">Feedivo</div></div>
+        <div class="sheet">
+          <div class="sheet-header"><h3>OPML Import Center</h3><p class="sub">Feedivo hat die Datei gelesen. Loese offene Punkte und starte dann den Import.</p></div>
+          <div class="content">
+            <div class="cards">
+              <div class="card"><h4>Feeds</h4><p><strong>16 neue</strong><br>2 Duplikate werden uebersprungen.</p></div>
+              <div class="card"><h4>Ordner</h4><p><strong>5 erkannt</strong><br>1 neuer Ordner kann angelegt werden.</p></div>
+              <div class="card"><h4>Aktualisierung</h4><p><strong>Optional</strong><br>Direkt laden oder spaeter manuell aktualisieren.</p></div>
+            </div>
+            <div style="height:14px"></div>
+            <div class="problem-list">
+              <div class="problem"><div class="icon-box">1</div><div><div class="feed-title">2 Feeds sind bereits vorhanden</div><div class="small">MacRumors und Heise werden standardmaessig nicht erneut importiert.</div></div><button class="button">Ansehen</button></div>
+              <div class="problem"><div class="icon-box">2</div><div><div class="feed-title">Ordner "AI" passt zu bestehendem Ordner "KI"</div><div class="small">Du kannst ihn zusammenfuehren oder als neuen Ordner anlegen.</div></div><select class="folder-select"><option>Mit KI zusammenfuehren</option><option>AI neu erstellen</option></select></div>
+              <div class="problem"><div class="icon-box">3</div><div><div class="feed-title">Feeds nach Import aktualisieren?</div><div class="small">Aktiviert: dauert laenger, aber Artikel und Favicons sind sofort da.</div></div><label class="toggle"><input type="checkbox" checked data-refresh-toggle> Aktiv</label></div>
+            </div>
+            <div class="result">Zusammenfassung: 16 Feeds importiert, 2 Duplikate uebersprungen, 1 Ordner zusammengefuehrt, Refresh gestartet.</div>
+          </div>
+          <div class="footer"><span class="summary">Alle offenen Punkte sind geloest.</span><div class="actions"><button class="button">Abbrechen</button><button class="button primary" data-import>Import starten</button></div></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const tabs = document.querySelectorAll("[data-tab]");
+    const prototypes = document.querySelectorAll("[data-prototype]");
+    const existingFeedURLs = new Set([
+      "https://www.macrumors.com/macrumors.xml",
+      "https://heise.de/rss/heise-atom.xml"
+    ]);
+    const sampleFeeds = [
+      {
+        title: "Microsoft News",
+        xmlUrl: "https://blogs.microsoft.com/feed",
+        htmlUrl: "https://blogs.microsoft.com",
+        folder: "Microsoft News"
+      },
+      {
+        title: "The Verge",
+        xmlUrl: "https://www.theverge.com/rss/index.xml",
+        htmlUrl: "https://www.theverge.com",
+        folder: "Tech"
+      },
+      {
+        title: "MacRumors",
+        xmlUrl: "https://www.macrumors.com/macrumors.xml",
+        htmlUrl: "https://www.macrumors.com",
+        folder: "Apple"
+      },
+      {
+        title: "Nicht erreichbarer Feed",
+        xmlUrl: "https://broken.example.invalid/rss.xml",
+        htmlUrl: "https://broken.example.invalid",
+        folder: "KI"
+      }
+    ];
+
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        const target = tab.dataset.tab;
+        tabs.forEach((item) => item.classList.toggle("active", item === tab));
+        prototypes.forEach((prototype) => {
+          prototype.classList.toggle("active", prototype.dataset.prototype === target);
+        });
+      });
+    });
+
+    document.querySelectorAll("[data-import]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const prototype = button.closest("[data-prototype]");
+        const result = prototype.querySelector(".result");
+        if (prototype.dataset.prototype === "a") {
+          updateImportResult(prototype);
+        } else if (result) {
+          result.classList.add("show");
+        }
+        button.textContent = "Import abgeschlossen";
+        button.disabled = true;
+      });
+    });
+
+    document.querySelectorAll("[data-choose-file]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const picker = button.closest("[data-file-picker]");
+        const input = picker.querySelector("[data-file-input]");
+        input.click();
+      });
+    });
+
+    document.querySelectorAll("[data-file-input]").forEach((input) => {
+      input.addEventListener("change", () => {
+        const prototype = input.closest("[data-prototype]");
+        const file = input.files && input.files[0];
+        if (!file) return;
+        const name = prototype.querySelector("[data-file-name]");
+        const meta = prototype.querySelector("[data-file-meta]");
+        name.textContent = file.name;
+        meta.textContent = "Datei wird gelesen...";
+        readOPMLFile(file)
+          .then((feeds) => {
+            renderOPMLPreview(prototype, feeds, file.name);
+          })
+          .catch(() => {
+            renderOPMLError(prototype, file.name);
+          });
+      });
+    });
+
+    document.querySelectorAll("[data-clear-file]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const prototype = button.closest("[data-prototype]");
+        const name = prototype.querySelector("[data-file-name]");
+        const meta = prototype.querySelector("[data-file-meta]");
+        const panel = prototype.querySelector("[data-review-panel]");
+        const input = prototype.querySelector("[data-file-input]");
+        const importButton = prototype.querySelector("[data-import]");
+        const status = prototype.querySelector("[data-import-status]");
+        const result = prototype.querySelector(".result");
+        name.textContent = "Keine OPML-Datei ausgewaehlt";
+        meta.textContent = "Waehle eine .opml- oder .xml-Datei, danach erscheint hier die Import-Vorschau.";
+        input.value = "";
+        panel.classList.add("empty");
+        importButton.disabled = true;
+        importButton.textContent = "Datei zuerst auswaehlen";
+        if (status) {
+          status.className = "status warn";
+          status.innerHTML = '<span class="dot"></span>Keine Datei';
+        }
+        if (result) result.classList.remove("show");
+      });
+    });
+
+    document.querySelectorAll("[data-select-all]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const prototype = button.closest("[data-prototype]");
+        const allowDuplicates = prototype.querySelector("[data-allow-duplicates]")?.checked;
+        prototype.querySelectorAll("input[type='checkbox']").forEach((checkbox) => {
+          const row = checkbox.closest(".feed-row");
+          const canSelect = row?.dataset.status === "new" || (allowDuplicates && row?.dataset.status === "duplicate");
+          if (canSelect) checkbox.checked = true;
+        });
+        updateImportButton(prototype);
+      });
+    });
+
+    document.querySelectorAll("[data-create-folder]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const name = window.prompt("Neuen Ordner erstellen", "Research");
+        if (!name) return;
+        document.querySelectorAll(".folder-select").forEach((select) => {
+          const exists = Array.from(select.options).some((option) => option.value === name);
+          if (!exists) select.add(new Option(name, name));
+        });
+      });
+    });
+
+    document.querySelectorAll("[data-refresh-toggle]").forEach((toggle) => {
+      toggle.addEventListener("change", () => {
+        const prototype = toggle.closest("[data-prototype]");
+        const summary = prototype.querySelector(".summary");
+        if (summary) {
+          summary.textContent = toggle.checked
+            ? "Feeds werden nach dem Import direkt aktualisiert."
+            : "Feeds und Ordner werden importiert; Aktualisierung erfolgt spaeter manuell.";
+        }
+      });
+    });
+
+    document.querySelectorAll("[data-feed-table]").forEach((table) => {
+      table.addEventListener("change", () => updateImportButton(table.closest("[data-prototype]")));
+    });
+
+    document.querySelectorAll("[data-allow-duplicates]").forEach((toggle) => {
+      toggle.addEventListener("change", () => {
+        const prototype = toggle.closest("[data-prototype]");
+        prototype.querySelectorAll('[data-status="duplicate"] input[type="checkbox"]').forEach((checkbox) => {
+          checkbox.checked = toggle.checked;
+        });
+        updateImportButton(prototype);
+      });
+    });
+
+    function readOPMLFile(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            resolve(parseOPML(String(reader.result || "")));
+          } catch {
+            reject();
+          }
+        };
+        reader.onerror = reject;
+        reader.readAsText(file);
+      });
+    }
+
+    function parseOPML(xmlText) {
+      const documentXML = new DOMParser().parseFromString(xmlText, "application/xml");
+      if (documentXML.querySelector("parsererror")) throw new Error("Invalid OPML");
+      const feeds = [];
+
+      function readOutline(outline, folderName) {
+        const xmlUrl = getAttribute(outline, ["xmlUrl", "xmlURL", "xmlurl"]);
+        const title = getAttribute(outline, ["title", "text"]) || "Unbenannter Feed";
+        const htmlUrl = getAttribute(outline, ["htmlUrl", "htmlURL", "htmlurl"]);
+        const children = Array.from(outline.children).filter((child) => child.tagName.toLowerCase() === "outline");
+
+        if (xmlUrl) {
+          feeds.push({
+            title,
+            xmlUrl,
+            htmlUrl,
+            folder: folderName || ""
+          });
+        }
+
+        const nextFolder = xmlUrl ? folderName : title;
+        children.forEach((child) => readOutline(child, nextFolder));
+      }
+
+      documentXML.querySelectorAll("body > outline").forEach((outline) => readOutline(outline, ""));
+      return feeds;
+    }
+
+    function getAttribute(element, names) {
+      for (const name of names) {
+        const value = element.getAttribute(name);
+        if (value) return value.trim();
+      }
+      return "";
+    }
+
+    function renderOPMLPreview(prototype, feeds, fileName) {
+      const panel = prototype.querySelector("[data-review-panel]");
+      const meta = prototype.querySelector("[data-file-meta]");
+      const table = prototype.querySelector("[data-feed-table]");
+      const result = prototype.querySelector(".result");
+      const analyzedFeeds = analyzeFeeds(feeds.length ? feeds : sampleFeeds);
+      const folders = uniqueFolders(analyzedFeeds);
+      const duplicateCount = analyzedFeeds.filter((feed) => feed.status === "duplicate").length;
+      const unreachableCount = analyzedFeeds.filter((feed) => feed.status === "unreachable").length;
+      const importableCount = analyzedFeeds.filter((feed) => feed.isSelected).length;
+
+      meta.textContent = `${analyzedFeeds.length} Feeds erkannt · ${folders.length || 1} Ordner · ${fileName}`;
+      table.innerHTML = buildTableHTML(analyzedFeeds, folders);
+      panel.classList.remove("empty");
+      if (result) result.classList.remove("show");
+      updateStatusBadge(prototype, duplicateCount, unreachableCount);
+      updateImportButton(prototype, importableCount);
+    }
+
+    function renderOPMLError(prototype, fileName) {
+      const meta = prototype.querySelector("[data-file-meta]");
+      const table = prototype.querySelector("[data-feed-table]");
+      const panel = prototype.querySelector("[data-review-panel]");
+      const importButton = prototype.querySelector("[data-import]");
+      const status = prototype.querySelector("[data-import-status]");
+      meta.textContent = `${fileName} konnte nicht gelesen werden. Bitte eine gueltige OPML- oder XML-Datei waehlen.`;
+      table.innerHTML = '<div class="table-head"><span></span><span>Feed</span><span>Website</span><span>Ordner</span><span>Status</span></div>';
+      panel.classList.add("empty");
+      importButton.disabled = true;
+      importButton.textContent = "Keine importierbaren Feeds";
+      status.className = "status bad";
+      status.innerHTML = '<span class="dot"></span>Fehler';
+    }
+
+    function analyzeFeeds(feeds) {
+      const seen = new Set();
+      return feeds.map((feed) => {
+        const normalizedURL = normalizeFeedURL(feed.xmlUrl);
+        const isDuplicate = existingFeedURLs.has(normalizedURL) || seen.has(normalizedURL);
+        if (normalizedURL) seen.add(normalizedURL);
+        const isUnreachable = !normalizedURL || looksUnreachable(feed.xmlUrl);
+        const status = isUnreachable ? "unreachable" : isDuplicate ? "duplicate" : "new";
+        return {
+          ...feed,
+          normalizedURL,
+          status,
+          isSelected: status === "new"
+        };
+      });
+    }
+
+    function normalizeFeedURL(value) {
+      try {
+        const url = new URL(value);
+        url.hash = "";
+        url.search = "";
+        return url.href.replace(/\/$/, "").toLowerCase();
+      } catch {
+        return "";
+      }
+    }
+
+    function looksUnreachable(value) {
+      try {
+        const url = new URL(value);
+        const marker = `${url.hostname}${url.pathname}`.toLowerCase();
+        return ["broken", "invalid", "unreachable", "404", "dead"].some((part) => marker.includes(part));
+      } catch {
+        return true;
+      }
+    }
+
+    function uniqueFolders(feeds) {
+      const folders = feeds.map((feed) => feed.folder || "Ohne Ordner");
+      return Array.from(new Set(folders)).sort((a, b) => a.localeCompare(b));
+    }
+
+    function buildTableHTML(feeds, folders) {
+      const rows = feeds.map((feed) => {
+        const rowClass = feed.status === "duplicate" ? "feed-row muted" : feed.status === "unreachable" ? "feed-row problematic" : "feed-row";
+        const statusClass = feed.status === "duplicate" ? "status dup" : feed.status === "unreachable" ? "status bad" : "status ok";
+        const statusText = feed.status === "duplicate" ? "Duplikat" : feed.status === "unreachable" ? "Nicht erreichbar" : "Neu";
+        const checked = feed.isSelected ? " checked" : "";
+        const site = feed.htmlUrl ? hostnameLabel(feed.htmlUrl) : hostnameLabel(feed.xmlUrl);
+        return `
+          <div class="${rowClass}" data-status="${feed.status}">
+            <label class="feed-check"><input type="checkbox"${checked}></label>
+            <div><div class="feed-title">${escapeHTML(feed.title)}</div><div class="feed-url">${escapeHTML(feed.xmlUrl)}</div></div>
+            <div class="feed-url">${escapeHTML(site)}</div>
+            <select class="folder-select">${folderOptions(folders, feed.folder || "Ohne Ordner")}</select>
+            <span class="${statusClass}">${statusText}</span>
+          </div>
+        `;
+      }).join("");
+      return `
+        <div class="table-head"><span></span><span>Feed</span><span>Website</span><span>Ordner</span><span>Status</span></div>
+        <div class="table-scroll">
+          ${rows || '<div class="feed-row muted"><span></span><div><div class="feed-title">Keine Feeds gefunden</div><div class="feed-url">Diese OPML-Datei enthaelt keine Feed-Outlines.</div></div><div></div><div></div><span class="status warn">Leer</span></div>'}
+        </div>
+      `;
+    }
+
+    function folderOptions(folders, selectedFolder) {
+      return folders.map((folder) => {
+        const selected = folder === selectedFolder ? " selected" : "";
+        return `<option${selected}>${escapeHTML(folder)}</option>`;
+      }).join("");
+    }
+
+    function hostnameLabel(value) {
+      try {
+        return new URL(value).hostname.replace(/^www\./, "");
+      } catch {
+        return "ungueltige URL";
+      }
+    }
+
+    function updateImportButton(prototype, forcedCount) {
+      const importButton = prototype.querySelector("[data-import]");
+      if (!importButton || prototype.dataset.prototype !== "a") return;
+      const count = forcedCount ?? selectedImportableRows(prototype).length;
+      importButton.disabled = count === 0;
+      importButton.textContent = count === 1 ? "1 Feed importieren" : `${count} Feeds importieren`;
+    }
+
+    function updateImportResult(prototype) {
+      const result = prototype.querySelector(".result");
+      const selectedRows = selectedImportableRows(prototype);
+      const duplicateCount = prototype.querySelectorAll('[data-status="duplicate"]').length;
+      const selectedDuplicateCount = selectedRows.filter((row) => row.dataset.status === "duplicate").length;
+      const unreachableCount = prototype.querySelectorAll('[data-status="unreachable"]').length;
+      const folders = new Set(selectedRows.map((row) => row.querySelector(".folder-select")?.value || "Ohne Ordner"));
+      const refresh = prototype.querySelector("[data-refresh-toggle]")?.checked;
+      const duplicateText = selectedDuplicateCount > 0
+        ? `${selectedDuplicateCount} Duplikate bewusst importiert`
+        : `${duplicateCount} Duplikate angezeigt und uebersprungen`;
+      result.textContent = `Import abgeschlossen: ${selectedRows.length} Feeds importiert, ${duplicateText}, ${unreachableCount} nicht erreichbare Feeds angezeigt, ${folders.size} Ordner verwendet. ${refresh ? "Direktes Aktualisieren ist aktiv." : "Aktualisierung erfolgt spaeter manuell."}`;
+      result.classList.add("show");
+    }
+
+    function selectedImportableRows(prototype) {
+      const allowDuplicates = prototype.querySelector("[data-allow-duplicates]")?.checked;
+      return Array.from(prototype.querySelectorAll("[data-feed-table] .feed-row")).filter((row) => {
+        const status = row.dataset.status;
+        const checkbox = row.querySelector('input[type="checkbox"]');
+        return checkbox?.checked && (status === "new" || (allowDuplicates && status === "duplicate"));
+      });
+    }
+
+    function updateStatusBadge(prototype, duplicateCount, unreachableCount) {
+      const status = prototype.querySelector("[data-import-status]");
+      const problemCount = duplicateCount + unreachableCount;
+      if (!status) return;
+      if (problemCount === 0) {
+        status.className = "status ok";
+        status.innerHTML = '<span class="dot"></span>Bereit';
+        return;
+      }
+      status.className = unreachableCount > 0 ? "status bad" : "status warn";
+      const duplicateText = duplicateCount === 1 ? "1 Duplikat" : `${duplicateCount} Duplikate`;
+      const unreachableText = unreachableCount === 1 ? "1 nicht erreichbar" : `${unreachableCount} nicht erreichbar`;
+      status.innerHTML = `<span class="dot"></span>${[duplicateCount ? duplicateText : "", unreachableCount ? unreachableText : ""].filter(Boolean).join(" · ")}`;
+    }
+
+    function escapeHTML(value) {
+      return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    const reviewPrototype = document.querySelector('[data-prototype="a"]');
+    if (reviewPrototype) {
+      renderOPMLPreview(reviewPrototype, sampleFeeds, "Feedly-Export.opml");
+    }
+  </script>
+</body>
+</html>

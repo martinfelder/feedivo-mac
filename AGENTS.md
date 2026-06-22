@@ -16,7 +16,7 @@
 **Entwickler:** Solo (Martin)
 **Plattform:** macOS 14 Sonoma+
 **Status:** In Development
-**Aktueller Milestone:** M3 – Tags, Regeln & Sync
+**Aktueller Milestone:** M4 – Polish & Release
 
 Feedivo ist ein nativer macOS RSS Reader mit Tags, automatischen Regeln und iCloud Sync.
 Ziel ist eine schöne, schnelle Mac-App die sich "mac-like" anfühlt — kein iOS-Port, keine
@@ -578,9 +578,14 @@ sichtbar bleibt.
 ### FeedCommands.swift / FeedCommandActions.swift
 - macOS-Menue `Feed` fuer Aktionen auf dem fokussierten/ausgewaehlten Feed
 - `Cmd+N` oeffnet `Feed hinzufügen...` und nutzt dasselbe Sheet wie der Sidebar-Plus-Button
-- `OPML importieren...` oeffnet einen macOS-Dateiimport fuer `.opml`/`.xml`
-- Nach dem OPML-Import werden neu angelegte Feeds direkt ueber denselben async
-  Refresh-Kern aktualisiert, damit Titel, Metadaten, Favicons und Artikel gefuellt sind
+- `OPML importieren...` oeffnet den erweiterten OPML-Import-Dialog: Datei waehlen,
+  erkannte Feeds pruefen, einzelne Feeds auswaehlen, Ordner zuweisen, neue Ordner
+  anlegen, Duplikate optional erlauben und entscheiden, ob direkt aktualisiert wird
+- Vor dem Import prueft Feedivo neue Feed-URLs ueber denselben Feed-Abrufpfad und
+  markiert Duplikate sowie nicht erreichbare/problematische Feeds in der Review-Liste
+- Nach dem OPML-Import koennen neu angelegte Feeds direkt ueber denselben async
+  Refresh-Kern aktualisiert werden, damit Titel, Metadaten, Favicons und Artikel
+  gefuellt sind; dieser Schritt ist im Dialog abschaltbar
 - `OPML exportieren...` schreibt die aktuelle Feed-Liste als `Feedivo.opml`
 - `Cmd+Shift+R` aktualisiert alle Feeds
 - `Cmd+R` aktualisiert den ausgewaehlten Feed
@@ -600,6 +605,29 @@ sichtbar bleibt.
 - `OPMLService.exportFeeds(_:)` schreibt gueltiges OPML mit gruppierten Feeds und
   XML-escaping fuer Titel, Feed-URL und Website.
 - `OPMLDocument` kapselt den SwiftUI `FileDocument` Export fuer `.opml` und `.xml`.
+
+### OPMLImportReviewView.swift
+- Eigenstaendiger SwiftUI-Dialog fuer den erweiterten OPML-Import nach Prototyp
+  Variante A.
+- Die OPML-Datei wird im Dialog ausgewaehlt und geparst; danach werden Feed-Titel,
+  Feed-URL, Website, Ordner und Status in einer intern scrollenden Review-Tabelle
+  angezeigt.
+- Alternativ zur Datei-Auswahl kann eine `.opml`- oder `.xml`-Datei direkt auf das
+  Importfenster gezogen werden; der Drop nutzt denselben Preview- und Pruefpfad wie
+  der Button `Datei auswählen...`.
+- Lange Feednamen und URLs werden einzeilig gekuerzt, damit das Dialogfenster auch
+  bei vielen oder langen Feeds stabil bleibt.
+- Der Benutzer kann nur ausgewaehlte Feeds importieren, vorhandene/neu erstellte
+  Ordner pro Feed zuweisen, Duplikate und nicht erreichbare Feeds bewusst erlauben
+  und den Refresh nach Import ein- oder ausschalten.
+- Ein Status-Dropdown filtert die sichtbare Tabelle nach allen, neuen, doppelten
+  oder nicht erreichbaren Feeds. Der Filter veraendert nur die Sichtbarkeit; Auswahl
+  und Ordner-Aenderungen an Zeilen bleiben beim Zurueckstellen auf alle erhalten.
+- Waehrend die Import-Vorschau vorbereitet wird, zeigt die Tabellenflaeche selbst
+  einen mittig platzierten Ladezustand mit konkretem Prueffortschritt
+  (`Feed x von y wird geprueft: ...`), damit der Benutzer sieht, dass Feedivo
+  weiterhin arbeitet.
+- Nach dem Import bleibt eine Zusammenfassung im Dialog sichtbar.
 
 ### SettingsView.swift
 - macOS Settings-Szene in `FeedivoApp.swift`
@@ -1010,7 +1038,7 @@ sichtbar bleibt.
 - [x] Reader-Metadaten-Inspector: Ordner und Artikel-Tags rechts einblendbar und
   dort bearbeitbar; Feedname, Lesezeit und Zeitpunkt bleiben oben im Artikelkopf
 
-### M3 – Tags, Regeln & Sync ← AKTUELL
+### M3 – Tags, Regeln & Sync ✅ ABGESCHLOSSEN
 - [x] Ordner fuer Feeds als eigenes Organisationsfeature ausbauen (Basis:
   eine Ebene, Sidebar-Section `Ordner` mit + Button, leere Ordner als `FeedFolder`,
   Feed-Zuordnung editierbar in Feed-Eigenschaften)
@@ -1020,7 +1048,9 @@ sichtbar bleibt.
 - [x] Feed-Tags ergaenzen: Zuweisung in Feed-Eigenschaften, Tag-Filter umfasst
   Artikel aus getaggten Feeds
 - [x] Tag-Zaehler in der Sidebar anzeigen
-- [ ] Erweiterte/eigene Smart Filter spaeter pruefen
+- [x] Erweiterte/eigene Smart Filter fuer M3 geprueft und bewusst zurueckgestellt:
+  bestehende Smart Filter bleiben Alle, Ungelesen, Mit Stern und Heute; eigene Smart
+  Filter bleiben im Backlog fuer spaeter.
 - [x] `RuleEngine`: Neue Artikel automatisch taggen basierend auf einfachen Regeln
 - [x] Regel-UI: Wizard fuer einfache/Power-User-Regeln, Einstellungen-Liste,
   Bearbeiten, Loeschen und Aktivieren/Deaktivieren
@@ -1029,17 +1059,20 @@ sichtbar bleibt.
 - [x] Background Refresh erweitert: macOS-native Strategie bestaetigt,
   Statusanzeige fuer letzten/naechsten automatischen Refresh ergaenzt
 - [x] Sichtbarer Fortschritt fuer Sammel-Refresh und OPML-Import
-- [ ] iCloud Sync via CloudKit aktivieren und testen
 - [x] Offline-Unterstützung: Feed-gelieferten Artikel-Content in SwiftData speichern,
   spaeter gelieferten Content fuer bestehende Artikel nachtragen und Summary-only
   Artikel im Reader kennzeichnen
 
-### M4 – Polish & Release
+### M4 – Polish & Release ← AKTUELL
 - [x] OPML Import (Feeds aus anderem RSS Reader übernehmen)
 - [x] OPML Export (Feeds portieren)
-- [ ] Erweiterter OPML-Import-Dialog: ausgelesene Feeds und Ordner vor dem Import
-  anzeigen, Ordnerzugehörigkeit bearbeiten/Ordner erstellen, optionalen Refresh
-  nach Import wählen und Import-Zusammenfassung anzeigen
+- [ ] iCloud Sync via CloudKit aktivieren und testen
+- [x] Erweiterter OPML-Import-Dialog: ausgelesene Feeds und Ordner vor dem Import
+  anzeigen, OPML-Datei direkt im selben Dialog auswählen/wechseln,
+  Ordnerzugehörigkeit bearbeiten/Ordner erstellen, optionalen Refresh nach Import
+  wählen, Duplikate/nicht erreichbare Feeds sichtbar markieren, optionalen
+  Duplikat- und Problemfeed-Import erlauben, Statusfilter im Review-Table nutzen
+  und Import-Zusammenfassung anzeigen
 - [ ] Einstellungen-Fenster (Refresh-Intervall, Schriftgrösse, Theme)
 - [ ] Bild- und Favicon-Cache: geladene Bilder lokal cachen, damit Artikelbilder
   und Favicons nach App-Neustart nicht jedes Mal neu geladen werden muessen
@@ -1074,17 +1107,12 @@ sichtbar bleibt.
 
 ## Aktuell in Arbeit
 
-- M1 und M2 sind abgeschlossen.
-- Aktuell M3: Tags, Regeln und Sync. Die erste Artikel-Tag-Basis existiert im
-  Reader-Metadaten-Inspector; die zentrale Tag-Verwaltung ist als Basis ueber die
-  Sidebar erreichbar, Tags koennen Feeds in den Feed-Eigenschaften zugewiesen werden,
-  und Tags koennen in der Sidebar feeduebergreifend als Artikel-Filter genutzt werden.
-  Regeln koennen ueber einen Wizard erstellt, in den
-  Einstellungen verwaltet und manuell auf vorhandene Artikel angewendet werden;
-  Power-User-Regeln unterstuetzen mehrere Bedingungen mit AND/OR. Background Refresh
-  bleibt macOS-nativ und zeigt letzten/naechsten automatischen Lauf in den
-  Einstellungen. Die Offline-Basis speichert Feed-gelieferten Content und markiert
-  Summary-only Artikel im Reader; naechster sinnvoller M3-Block ist iCloud Sync.
+- M1, M2 und M3 sind abgeschlossen.
+- Aktuell M4: Polish & Release. iCloud Sync wurde bewusst aus M3 nach M4 verschoben,
+  damit Tags, Regeln, Background-Refresh-Status und Offline-Basis als abgeschlossene
+  M3-Basis stabil bleiben. M4 umfasst jetzt iCloud Sync, erweiterten OPML-Import,
+  Bild-/Favicon-Cache, Settings-Polish, Share Extension, App-Icon, Onboarding und
+  Release-Vorbereitung.
 - Feature-Roadmap ist in `docs/FEATURES.md` dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
@@ -1353,3 +1381,48 @@ sichtbar bleibt.
   Artikel-Content weiter in SwiftData, traegt spaeter gelieferten Volltext fuer
   bestehende Artikel nach und zeigt im Reader einen Hinweis, wenn offline nur die
   Feed-Zusammenfassung vorhanden ist.
+- 2026-06-22: iCloud Sync bewusst von M3 nach M4 verschoben. M3 gilt damit als
+  abgeschlossen; M4 ist nun der aktive Milestone fuer Polish, Sync und Release-
+  Vorbereitung.
+- 2026-06-22: Letzten offenen M3-Restpunkt abgeschlossen: Erweiterte/eigene Smart
+  Filter wurden fuer M3 geprueft und bewusst auf spaeter verschoben. M3 bleibt damit
+  vollstaendig abgeschlossen.
+- 2026-06-22: Fuenf interaktive Prototypen fuer den erweiterten OPML-Import-Dialog
+  erstellt: `docs/design/opml-import-dialog-prototypes/index.html` zeigt Review
+  Table, Guided Wizard, Split Inspector, Batch Editor und Import Center.
+- 2026-06-22: OPML-Import-Prototyp Variante A erweitert: Die Datei-Auswahl ist nun
+  Teil desselben Dialogs; danach folgen Preview, Ordnerbearbeitung, optionale
+  Aktualisierung und Zusammenfassung in einem durchgehenden Sheet.
+- 2026-06-22: OPML-Import-Prototyp Variante A interaktiv gemacht: Ausgewaehlte
+  OPML-Dateien werden lokal gelesen, Feed-Outlines dynamisch in der Review-Tabelle
+  angezeigt, Duplikate und nicht erreichbare/problematische Feeds markiert und nur
+  ausgewaehlte importierbare Feeds in der Zusammenfassung gezaehlt.
+- 2026-06-22: OPML-Import-Prototyp Variante A fuer grosse Imports verfeinert:
+  Die Feed-Tabelle scrollt intern, damit das Dialogfenster nicht mitwaechst; lange
+  Feednamen und URLs werden einzeilig mit Ellipsis gekuerzt.
+- 2026-06-22: OPML-Import-Prototyp Variante A um Option `Duplikate importieren`
+  erweitert. Standardmaessig bleiben Duplikate uebersprungen; aktiviert der
+  Benutzer die Option, werden ausgewaehlte Duplikat-Zeilen in der Import-Anzahl und
+  Zusammenfassung mitgezaehlt.
+- 2026-06-22: Erweiterter OPML-Import-Dialog in der App umgesetzt:
+  `OPMLImportReviewView` ersetzt den direkten Dateiimport durch Datei-Auswahl im
+  Dialog, dynamische Feed-Pruefung, Auswahl einzelner Feeds, Ordnerzuordnung,
+  Ordneranlage, optionalen Refresh, optionalen Duplikat- und Problemfeed-Import
+  und sichtbare Import-Zusammenfassung.
+- 2026-06-22: `OPMLImportReviewView` visuell naeher an Prototyp Variante A
+  nachgezogen: macOS-Sheet-Container, ruhiger Header mit Status-Badge, Datei-Kachel,
+  Toolbar im Review-Table-Stil, feste Tabellenspalten, kompakte Status-Pills und
+  Footer-Optionen im gleichen Layout wie der HTML-Prototyp.
+- 2026-06-22: Statusfilter im OPML-Import-Dialog ergaenzt: Dropdown fuer alle, neue,
+  doppelte und nicht erreichbare Feeds; der Filter arbeitet nur auf sichtbaren IDs,
+  damit Auswahl- und Ordner-Mutationen beim Entfernen des Filters erhalten bleiben.
+- 2026-06-22: OPML-Import-Preview mit konkretem Prueffortschritt verbessert:
+  `FeedViewModel.opmlImportPreviewRows` kann Fortschritt pro Feed melden, und
+  `OPMLImportReviewView` zeigt diesen Zustand horizontal und vertikal zentriert in
+  der spaeteren Feed-Tabelle.
+- 2026-06-22: OPML-Import-Dialog erweitert: Nicht erreichbare Feeds bleiben
+  standardmaessig abgewählt, koennen aber ueber eine eigene Checkbox bewusst
+  ausgewaehlt und importiert werden.
+- 2026-06-22: OPML-Import-Dialog um Drag & Drop erweitert: `.opml`- und `.xml`-
+  Dateien koennen direkt auf das Importfenster gezogen werden und starten dieselbe
+  Preview wie die manuelle Datei-Auswahl.

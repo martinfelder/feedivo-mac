@@ -20,6 +20,29 @@ struct FeedOperationProgress: Equatable {
     }
 }
 
+enum OPMLImportFeedStatus: Equatable {
+    case available
+    case duplicate
+    case unreachable
+}
+
+struct OPMLImportPreviewRow: Identifiable, Equatable {
+    let id = UUID()
+    var feed: OPMLFeed
+    var status: OPMLImportFeedStatus
+    var isSelected: Bool
+}
+
+struct OPMLImportPreviewProgress: Equatable {
+    var currentFeedTitle: String
+    var currentIndex: Int
+    var totalCount: Int
+
+    var displayText: String {
+        "Feed \(currentIndex) von \(totalCount) wird geprüft: \(currentFeedTitle)"
+    }
+}
+
 @Observable
 final class FeedViewModel {
     private let fetchFeed: (String) async throws -> ParsedFeed
@@ -45,9 +68,66 @@ final class FeedViewModel {
     }
 
     @MainActor
+    func opmlImportPreviewRows(
+        for opmlFeeds: [OPMLFeed],
+        existingFeeds: [Feed],
+        onProgress: ((OPMLImportPreviewProgress) -> Void)? = nil
+    ) async -> [OPMLImportPreviewRow] {
+        var knownFeedURLs = Set(existingFeeds.map { normalizedFeedURL($0.url) })
+        var rows: [OPMLImportPreviewRow] = []
+
+        for (index, opmlFeed) in opmlFeeds.enumerated() {
+            onProgress?(
+                OPMLImportPreviewProgress(
+                    currentFeedTitle: opmlFeed.title.trimmingCharacters(in: .whitespacesAndNewlines),
+                    currentIndex: index + 1,
+                    totalCount: opmlFeeds.count
+                )
+            )
+            let cleanedURL = opmlFeed.xmlURL.trimmingCharacters(in: .whitespacesAndNewlines)
+            let normalizedURL = normalizedFeedURL(cleanedURL)
+            let isDuplicate = !knownFeedURLs.insert(normalizedURL).inserted
+
+            if isDuplicate {
+                rows.append(
+                    OPMLImportPreviewRow(
+                        feed: opmlFeed,
+                        status: .duplicate,
+                        isSelected: false
+                    )
+                )
+                continue
+            }
+
+            do {
+                _ = try await fetchFeed(cleanedURL)
+                rows.append(
+                    OPMLImportPreviewRow(
+                        feed: opmlFeed,
+                        status: .available,
+                        isSelected: true
+                    )
+                )
+            } catch {
+                rows.append(
+                    OPMLImportPreviewRow(
+                        feed: opmlFeed,
+                        status: .unreachable,
+                        isSelected: false
+                    )
+                )
+            }
+        }
+
+        return rows
+    }
+
+    @MainActor
     func importOPMLFeeds(
         _ opmlFeeds: [OPMLFeed],
         existingFeeds: [Feed],
+        allowsDuplicates: Bool = false,
+        refreshAfterImport: Bool = true,
         context: ModelContext
     ) async throws -> OPMLImportResult {
         errorMessage = nil
@@ -72,7 +152,7 @@ final class FeedViewModel {
             }
 
             let normalizedURL = normalizedFeedURL(cleanedURL)
-            guard knownFeedURLs.insert(normalizedURL).inserted else {
+            guard allowsDuplicates || knownFeedURLs.insert(normalizedURL).inserted else {
                 skippedDuplicateCount += 1
                 continue
             }
@@ -96,7 +176,7 @@ final class FeedViewModel {
         }
 
         // Phase 2: Alle neuen Feeds parallel abrufen (Netzwerk-I/O läuft gleichzeitig)
-        if !feedsToRefresh.isEmpty {
+        if refreshAfterImport && !feedsToRefresh.isEmpty {
             operationProgress = FeedOperationProgress(
                 title: L10n.feedProgressOPMLImportTitle,
                 completedCount: 0,
@@ -104,40 +184,42 @@ final class FeedViewModel {
             )
         }
 
-        await withTaskGroup(of: String?.self) { group in
-            for feed in feedsToRefresh {
-                group.addTask { @MainActor in
-                    do {
-                        try await self.refreshFeedContents(feed, context: context)
-                        return nil
-                    } catch let error as LocalizedError {
-                        self.appendLog(
-                            kind: "error",
-                            message: error.errorDescription ?? L10n.feedErrorParsingFailed,
-                            to: feed,
-                            context: context
-                        )
-                        try? context.save()
-                        return feed.title
-                    } catch {
-                        self.appendLog(
-                            kind: "error",
-                            message: L10n.feedErrorParsingFailed,
-                            to: feed,
-                            context: context
-                        )
-                        try? context.save()
-                        return feed.title
+        if refreshAfterImport {
+            await withTaskGroup(of: String?.self) { group in
+                for feed in feedsToRefresh {
+                    group.addTask { @MainActor in
+                        do {
+                            try await self.refreshFeedContents(feed, context: context)
+                            return nil
+                        } catch let error as LocalizedError {
+                            self.appendLog(
+                                kind: "error",
+                                message: error.errorDescription ?? L10n.feedErrorParsingFailed,
+                                to: feed,
+                                context: context
+                            )
+                            try? context.save()
+                            return feed.title
+                        } catch {
+                            self.appendLog(
+                                kind: "error",
+                                message: L10n.feedErrorParsingFailed,
+                                to: feed,
+                                context: context
+                            )
+                            try? context.save()
+                            return feed.title
+                        }
                     }
                 }
-            }
 
-            for await failedTitle in group {
-                if let failedTitle {
-                    failedFeedTitles.append(failedTitle)
+                for await failedTitle in group {
+                    if let failedTitle {
+                        failedFeedTitles.append(failedTitle)
+                    }
+
+                    incrementOperationProgress()
                 }
-
-                incrementOperationProgress()
             }
         }
 
