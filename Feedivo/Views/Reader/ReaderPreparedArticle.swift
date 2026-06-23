@@ -1,6 +1,6 @@
 import Foundation
 
-enum ReaderOfflineAvailability: Equatable {
+enum ReaderContentAvailability: Equatable {
     case fullText
     case feedContent
     case summaryOnly
@@ -11,7 +11,7 @@ enum ReaderOfflineAvailability: Equatable {
         offlineContent: String?,
         content: String?,
         summary: String?
-    ) -> ReaderOfflineAvailability {
+    ) -> ReaderContentAvailability {
         if offlineState == .fullText, hasText(offlineContent) {
             return .fullText
         }
@@ -40,7 +40,8 @@ struct ReaderPreparedArticle {
     let contentBlocks: [ReaderContentBlock]
     let metadataText: String
     let originalURL: URL?
-    let offlineAvailability: ReaderOfflineAvailability
+    let contentAvailability: ReaderContentAvailability
+    let shouldShowSummaryOnlyNotice: Bool
 
     init(article: Article) {
         let preferredContent = ReaderPreparedArticle.preferredContent(for: article)
@@ -50,12 +51,13 @@ struct ReaderPreparedArticle {
             content: preferredContent,
             fallbackImageURL: article.imageURL
         )
-        self.offlineAvailability = ReaderOfflineAvailability.resolved(
+        self.contentAvailability = ReaderContentAvailability.resolved(
             offlineState: article.offlineState,
             offlineContent: article.offlineContent,
             content: article.content,
             summary: article.summary
         )
+        self.shouldShowSummaryOnlyNotice = false
 
         self.metadataText = ReaderMetadataFormatter.metadataParts(
             feedName: article.feed?.title,

@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import Network
 import UniformTypeIdentifiers
 
 struct ContentView: View {
@@ -32,6 +33,7 @@ struct ContentView: View {
     @State private var isMetadataInspectorPresented = false
     @State private var isShowingFirstRunWizard = false
     @State private var isFirstRunWizardDismissedForSession = false
+    @State private var networkMonitor = NetworkConnectionStatusMonitor()
 
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
@@ -168,6 +170,11 @@ struct ContentView: View {
                     .padding(.bottom, 18)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
+        }
+        .overlay(alignment: .bottomTrailing) {
+            NetworkConnectionStatusIndicator(status: networkMonitor.status)
+                .padding(.trailing, 18)
+                .padding(.bottom, 16)
         }
         .animation(.snappy(duration: 0.18), value: feedViewModel.operationProgress)
         .focusedValue(
@@ -334,6 +341,97 @@ struct ContentView: View {
         return smartFilter
     }
 
+}
+
+enum NetworkConnectionStatus: Equatable {
+    case online
+    case offline
+
+    var localizationKey: String {
+        switch self {
+        case .online:
+            "networkStatus.online"
+        case .offline:
+            "networkStatus.offline"
+        }
+    }
+
+    var titleKey: LocalizedStringKey {
+        switch self {
+        case .online:
+            L10n.networkStatusOnline
+        case .offline:
+            L10n.networkStatusOffline
+        }
+    }
+
+    var systemImageName: String {
+        switch self {
+        case .online:
+            "wifi"
+        case .offline:
+            "wifi.slash"
+        }
+    }
+
+    var tintColor: Color {
+        switch self {
+        case .online:
+            .green
+        case .offline:
+            .red
+        }
+    }
+}
+
+@Observable
+final class NetworkConnectionStatusMonitor {
+    private let monitor: NWPathMonitor
+    private let queue = DispatchQueue(label: "ch.martin.Feedivo.network-status")
+
+    private(set) var status: NetworkConnectionStatus = .online
+
+    init(monitor: NWPathMonitor = NWPathMonitor()) {
+        self.monitor = monitor
+        self.monitor.pathUpdateHandler = { [weak self] path in
+            let status: NetworkConnectionStatus = path.status == .satisfied ? .online : .offline
+
+            Task { @MainActor in
+                self?.status = status
+            }
+        }
+        self.monitor.start(queue: queue)
+    }
+
+    deinit {
+        monitor.cancel()
+    }
+}
+
+private struct NetworkConnectionStatusIndicator: View {
+    let status: NetworkConnectionStatus
+    @Environment(\.interfaceTextSize) private var interfaceTextSize
+
+    var body: some View {
+        Label {
+            Text(status.titleKey)
+        } icon: {
+            Image(systemName: status.systemImageName)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(status.tintColor)
+        }
+        .font(interfaceTextSize.font(size: 11, weight: .medium))
+        .foregroundStyle(.secondary)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(.regularMaterial, in: Capsule())
+        .overlay {
+            Capsule()
+                .stroke(.separator.opacity(0.35), lineWidth: 1)
+        }
+        .accessibilityLabel(Text(status.titleKey))
+        .help(status.titleKey)
+    }
 }
 
 private struct FeedOperationProgressOverlay: View {

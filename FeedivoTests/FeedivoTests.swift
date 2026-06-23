@@ -48,6 +48,13 @@ struct FeedivoTests {
         #expect(InterfaceTextSize.extraLarge.scaled(baseSize) > InterfaceTextSize.large.scaled(baseSize))
     }
 
+    @Test func networkConnectionStatusLiefertAnzeigeDaten() {
+        #expect(NetworkConnectionStatus.online.localizationKey == "networkStatus.online")
+        #expect(NetworkConnectionStatus.online.systemImageName == "wifi")
+        #expect(NetworkConnectionStatus.offline.localizationKey == "networkStatus.offline")
+        #expect(NetworkConnectionStatus.offline.systemImageName == "wifi.slash")
+    }
+
     @Test func readerContentRendererErzeugtAbsaetzeAusHTML() {
         let blocks = ReaderContentRenderer.blocks(
             summary: nil,
@@ -159,6 +166,47 @@ struct FeedivoTests {
         #expect(ReaderMetadataFormatter.readingTimeText(content: langerContentText, summary: kurzerSummaryText) == "ca. 2 Min. Lesezeit")
     }
 
+    @Test func articleInspectorFormatterBereitetArtikelstatusAuf() {
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Example Feed")
+        let article = Article(
+            title: "Artikel",
+            link: "https://example.com/artikel",
+            summary: " Kurze Zusammenfassung mit genug Text fuer den oberen Artikelkontext. ",
+            content: nil,
+            publishedAt: Date(timeIntervalSince1970: 1_700_000_000),
+            isRead: false,
+            isStarred: true,
+            feed: feed
+        )
+        article.offlineState = .failed
+        article.offlineErrorMessage = "Timeout"
+
+        let details = ArticleInspectorFormatter.details(for: article)
+
+        #expect(details.title == "Artikel")
+        #expect(details.summaryExcerpt == "Kurze Zusammenfassung mit genug Text fuer den oberen Artikelkontext.")
+        #expect(details.feedName == "Example Feed")
+        #expect(details.feedInitial == "E")
+        #expect(details.readingTime == "ca. 1 Min. Lesezeit")
+        #expect(details.readStateKey == "reader.inspector.unread")
+        #expect(details.starStateKey == "reader.inspector.starred")
+        #expect(details.offlineStateKey == "reader.offline.failed")
+        #expect(details.offlineActionKey == "reader.offline.save")
+        #expect(details.offlineDetail == "Timeout")
+        #expect(details.hasOriginalURL == true)
+    }
+
+    @Test func articleInspectorTypographyIstKompakt() {
+        #expect(ArticleInspectorTypography.titleFontSize == 15)
+        #expect(ArticleInspectorTypography.sectionTitleFontSize == 13)
+        #expect(ArticleInspectorTypography.primaryValueFontSize == 12)
+        #expect(ArticleInspectorTypography.controlFontSize == 11.5)
+        #expect(ArticleInspectorTypography.labelFontSize == 11)
+        #expect(ArticleInspectorTypography.secondaryFontSize == 11)
+        #expect(ArticleInspectorTypography.chipFontSize == 11)
+        #expect(ArticleInspectorTypography.iconFontSize == 12)
+    }
+
     @Test func readerFontPresetEnthaeltGewuenschteSchriften() {
         #expect(ReaderFontPreset.allCases.map(\.title) == [
             "System",
@@ -228,10 +276,10 @@ struct FeedivoTests {
         #expect(preparedArticle.metadataText.contains("Test Feed"))
         #expect(preparedArticle.metadataText.contains("ca. 1 Min. Lesezeit"))
         #expect(preparedArticle.originalURL?.absoluteString == "https://example.com/artikel")
-        #expect(preparedArticle.offlineAvailability == .feedContent)
+        #expect(preparedArticle.contentAvailability == .feedContent)
     }
 
-    @Test func readerPreparedArticleErkenntSummaryOnlyOfflineFallback() {
+    @Test func readerPreparedArticleErkenntSummaryOnlyFeedInhalt() {
         let article = Article(
             title: "Artikel",
             link: "https://example.com/artikel",
@@ -242,7 +290,8 @@ struct FeedivoTests {
         let preparedArticle = ReaderPreparedArticle(article: article)
 
         #expect(preparedArticle.contentBlocks == [.paragraph("Nur Kurzfassung")])
-        #expect(preparedArticle.offlineAvailability == .summaryOnly)
+        #expect(preparedArticle.contentAvailability == .summaryOnly)
+        #expect(preparedArticle.shouldShowSummaryOnlyNotice == false)
     }
 
     @Test func readerPreparedArticleBevorzugtGespeichertenOfflineVolltext() {
@@ -258,7 +307,7 @@ struct FeedivoTests {
         let preparedArticle = ReaderPreparedArticle(article: article)
 
         #expect(preparedArticle.contentBlocks == [.paragraph("Gespeicherter Volltext")])
-        #expect(preparedArticle.offlineAvailability == .fullText)
+        #expect(preparedArticle.contentAvailability == .fullText)
     }
 
     @Test func readerTypographyBegrenztTitelZeilenabstandSeparat() {

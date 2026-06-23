@@ -74,13 +74,34 @@ bei geschlossener App.
   dezenter Original-Link im Footer. Der Artikelkopf startet mit etwas mehr Abstand
   zur Toolbar und nutzt einen feinen Querstrich zwischen Lead-Bild und Fliesstext.
 - In der Reader-Toolbar kann ein rechter Metadaten-Inspector eingeblendet werden;
-  dort sind Feed-Ordner und Artikel-Tags sichtbar und bearbeitbar. Vorhandene
-  globale Tags, die dem Artikel noch nicht zugewiesen sind, werden dort als
-  anklickbare Plus-Chips angeboten. Der Artikelkopf zeigt Feedname, Lesezeit,
-  Zeitpunkt sowie Ordner und Artikel-Tags als dezente Chips direkt unter dem Titel;
-  der Inspector wird als native rechte macOS-Inspector-Spalte angezeigt,
-  nutzt denselben hellen Stil wie die linke Sidebar und bleibt beim Feed- oder
-  Artikelwechsel eingeblendet, wenn er geoeffnet wurde.
+  dort sind kompakte Artikeldetails, Feed-Ordner und Artikel-Tags sichtbar; Ordner
+  und Tags sind direkt bearbeitbar. Globale Tags werden wie im Prototyp als
+  anklickbare Toggle-Pills angeboten, aktive Tags sind getoent und inaktive Tags
+  bleiben weiss. Der
+  Inspector folgt der gewaehlten Product-Design-Richtung `Calm Actions`
+  (Variante 1): kompakter Kopf mit Artikeltitel und Status-Strip, direkte
+  Aktionsleiste fuer Favorit, Gelesen/Ungelesen, Offline und Link-Kopieren, danach
+  einklappbare weisse Karten-Sections fuer Feed-Ordner, Tags, Kontext und Quelle.
+  Die Section-Header nutzen nur Chevron und Titel, ohne zusaetzliche Icons. Quelle
+  folgt dem Prototyp als reine Aktions-Section mit zwei breiten Zeilen fuer
+  `Link kopieren` und `Original oeffnen`, ohne URL-Textbox.
+  Neue Feed-Ordner koennen direkt angelegt und dem Feed zugewiesen werden; neue Tags
+  koennen direkt mit Farbe erstellt und dem Artikel zugewiesen werden. Der
+  Inspector wird als native rechte macOS-Inspector-Spalte angezeigt, nutzt
+  denselben hellen Stil wie die linke Sidebar und bleibt beim Feed- oder
+  Artikelwechsel eingeblendet, wenn er geoeffnet wurde. Die Inspector-Typografie
+  folgt einer kompakten Skala: 11 pt Labels/Chips, 11.5 pt Controls, 12 pt Werte,
+  13 pt Section-Titel und 15 pt Artikelkopf.
+- Eine neue Product-Design-Exploration unter
+  `docs/design/article-info-interactive-sidebar-prototypes/` prueft drei ruhigere
+  und staerker interaktive Inspector-Richtungen, in denen Favorit, Gelesen-Status,
+  Offline-Speicher, Tags, Ordner und Link-Aktionen direkt in der Seitenleiste
+  bedienbar sind. Neue Tags koennen im Prototyp mit eigener Farbe erstellt und
+  direkt dem Artikel zugewiesen werden. Die Ordnerauswahl ist dort als
+  `Feed-Ordner` gekennzeichnet, weil sie den Feed in der linken Sidebar sortiert
+  und keine artikelbezogene Ablage ist; neue Feed-Ordner koennen im Prototyp direkt
+  im Inspector erstellt und sofort ausgewaehlt werden. Feed-Ordner und Tags sind
+  als getrennte Sections dargestellt.
 - Die native Artikel-Scrollbar ist ausgeblendet, damit der Artikelbereich optisch
   fliessender in die rechte Inspector-Leiste uebergeht.
 - Reader-Rendering wandelt HTML/Plain-Text in Absätze und Bildbloecke; das Lead-Bild
@@ -246,12 +267,27 @@ M4 Polish & Release:
   `docs/design/article-info-glass-sidebar-prototypes/index.html` liegen fuenf
   konkrete Varianten fuer eine macOS-Glass-Anpassung der rechten Artikelinfos-
   Seitenleiste.
+- Interaktive Inspector-Exploration: Unter
+  `docs/design/article-info-interactive-sidebar-prototypes/` liegen drei React/Vite-
+  Prototypen fuer eine ruhigere rechte Seitenleiste mit direkter Interaktion:
+  `Calm Actions`, `Section Studio` und `Command Inspector`. Die Prototypen testen
+  auch Tag-Erstellung mit Farbauswahl und eine klarere Beschriftung der
+  Feed-Ordner-Zuordnung inklusive direkter Anlage neuer Feed-Ordner. Feed-Ordner
+  und Tags sind dabei getrennte Sections, damit Feed-Eigenschaften und Artikel-
+  Tags klar getrennt bleiben.
+- Umgesetzte Richtung: Variante 1 `Calm Actions` ist in SwiftUI umgesetzt und
+  ersetzt die vorherige gemischte Organisations-Section durch getrennte Karten fuer
+  Feed-Ordner und Tags. Die native Umsetzung wurde nachgeschaerft, damit sie dem
+  Prototyp folgt: kompakter Kopf, Status-Strip, vier Aktionsbuttons und
+  einklappbare Karten statt grossem Artikel-Hero.
 - Umgesetzte Richtung: Der rechte Artikelinfos-Inspector nutzt SwiftUIs native
   `.inspector`-Spalte und denselben hellen, systemnahen Stil wie die linke Sidebar.
   Beim Einblenden rueckt der Reader inklusive Toolbar nach links.
 - Implementierte Richtung: Feedname, Lesezeit und Zeitpunkt bleiben im Artikelkopf;
-  Ordner und Tags werden unter dem Titel angezeigt und koennen im einblendbaren
-  rechten Inspector bearbeitet werden.
+  Feed-Ordner und Tags werden im einblendbaren rechten Inspector bearbeitet. Der
+  Inspector nutzt die interaktive Variante 1 `Calm Actions` mit kompaktem
+  Artikelkopf, direkter Aktionsleiste, getrennten einklappbaren Karten fuer
+  Feed-Ordner, Tags, Kontext und Quelle.
 - Visuelle Richtung: Die Artikelansicht bleibt reduziert und inhaltsnah; seltenere
   Aktionen wie `Link kopieren` liegen im Mehr-Menue, damit die Toolbar ruhiger bleibt.
 - Fallback: Leere strukturierte HTML-Bloecke werden verworfen; kaputte oder unbekannte
@@ -370,9 +406,6 @@ M4 Polish & Release:
 - Implementiert: Wenn ein bestehender Artikel beim spaeteren Refresh erstmals
   Volltext vom Feed liefert, wird fehlender lokaler `Article.content` nachgetragen;
   vorhandener Content wird nicht durch leere Feed-Werte ersetzt.
-- Implementiert: Wenn nur eine Summary offline vorhanden ist, zeigt der native Reader
-  einen dezenten Hinweis und verweist auf `Original oeffnen` fuer den vollstaendigen
-  Artikel.
 - Implementiert: Artikel koennen im Reader manuell offline gespeichert oder wieder
   entfernt werden. Bestehender Feed-Content kann fuer diese bewusste Aktion als
   Offline-Kopie genutzt werden; fehlt Feed-Content, laedt `OfflineDownloadService`
@@ -395,6 +428,18 @@ M4 Polish & Release:
   Offline-Lesen ist eine bewusste Artikelaktion. Eine eigene Settings-Rubrik
   `Offline-Lesen` erklaert diesen Stand und haelt Offline-Automatik sichtbar
   zurueck.
+- Reader-Verhalten: Wenn ein Feed nur eine Zusammenfassung liefert, zeigt der
+  native Reader diese Zusammenfassung direkt ohne zusaetzliche Hinweisbox. Das ist
+  bewusst kein Offline-Status.
+
+#### 1.13 Netzwerkstatus
+- Status: Fertig als Basis
+- Prioritaet: M4/v1
+- Implementiert: `ContentView` zeigt unten rechts im Hauptfenster einen dezenten
+  Online-/Offline-Indikator. Die Erkennung nutzt `NWPathMonitor` und beschreibt nur
+  die aktuelle Netzwerkverbindung.
+- Entscheidung: Dieser Netzwerkstatus ist getrennt vom Artikel-Offline-Status fuer
+  manuell gespeicherte Artikel.
 
 ### 2. Artikel-Liste
 

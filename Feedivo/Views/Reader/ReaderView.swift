@@ -128,10 +128,6 @@ struct ReaderView: View {
         preparedArticle.contentBlocks
     }
 
-    private var shouldShowSummaryOnlyOfflineNotice: Bool {
-        preparedArticle.offlineAvailability == .summaryOnly
-    }
-
     private var shouldShowOfflineStatusNotice: Bool {
         isOfflineOperationInProgress || article.offlineState != .none
     }
@@ -169,9 +165,18 @@ struct ReaderView: View {
     var body: some View {
         readerContent
         .inspector(isPresented: $isMetadataInspectorPresented) {
-            ArticleMetadataInspectorView(article: article) {
-                isMetadataInspectorPresented = false
-            }
+            ArticleMetadataInspectorView(
+                article: article,
+                close: {
+                    isMetadataInspectorPresented = false
+                },
+                isOfflineOperationInProgress: isOfflineOperationInProgress,
+                toggleOfflineAvailability: {
+                    Task {
+                        await toggleOfflineAvailability()
+                    }
+                }
+            )
             .inspectorColumnWidth(min: 280, ideal: 318, max: 360)
         }
         .onChange(of: article.persistentModelID) {
@@ -291,10 +296,6 @@ struct ReaderView: View {
             VStack(alignment: .leading, spacing: contentBlockSpacing) {
                 readerHeader
 
-                if shouldShowSummaryOnlyOfflineNotice {
-                    summaryOnlyOfflineNotice
-                }
-
                 if shouldShowOfflineStatusNotice {
                     offlineStatusNotice
                 }
@@ -316,15 +317,6 @@ struct ReaderView: View {
             .padding(.top, articleTopPadding)
             .padding(.bottom, articleBottomPadding)
         }
-    }
-
-    private var summaryOnlyOfflineNotice: some View {
-        Label(L10n.readerSummaryOnlyOfflineNotice, systemImage: "info.circle")
-            .font(interfaceTextSize.font(size: 12, weight: .medium))
-            .foregroundStyle(.secondary)
-            .padding(.vertical, 8)
-            .padding(.horizontal, 10)
-            .background(.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
     }
 
     private var offlineStatusNotice: some View {

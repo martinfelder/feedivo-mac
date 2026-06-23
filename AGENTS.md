@@ -263,6 +263,9 @@ sichtbar bleibt.
 Zeigt beim Start automatisch den First-Run-Wizard, sobald keine Feeds vorhanden
 sind. Ein frueheres Abschluss-Flag blockiert eine wieder vollstaendig leere App
 nicht mehr; `Später` blendet den Wizard nur fuer die aktuelle Sitzung aus.
+Zeigt unten rechts im Hauptfenster einen dezenten Online-/Offline-Indikator ueber
+`NWPathMonitor`. Dieser Netzwerkstatus ist bewusst getrennt vom Artikel-Status fuer
+manuell offline gespeicherte Inhalte.
 
 ### FirstRunWizardView.swift / FirstRunWizardState.swift
 - First-Run-Wizard nach Prototyp Variante A fuer leere App-Starts ohne Feeds.
@@ -741,8 +744,8 @@ nicht mehr; `Später` blendet den Wizard nur fuer die aktuelle Sitzung aus.
   Uebergang zur rechten Inspector-Leiste ruhiger wirkt; Scrollen bleibt unveraendert
   moeglich.
 - Wenn ein Feed nur eine Summary, aber keinen Volltext liefert, zeigt der native
-  Reader einen dezenten Hinweis, dass offline nur die Feed-Zusammenfassung gespeichert
-  ist und der vollstaendige Artikel ueber `Original oeffnen` gelesen werden kann.
+  Reader die vorhandene Zusammenfassung direkt ohne zusaetzliche Hinweisbox.
+  Volltexte aus der Original-Webseite bleiben ueber `Original oeffnen` erreichbar.
 - Toolbar-Buttons fuer vorherigen/naechsten Artikel navigieren innerhalb der aktuell
   sichtbaren Feed- oder Smart-Filter-Liste und stoppen am Listenrand
 - Seltenere Aktionen wie `Link kopieren` liegen im Reader-Mehr-Menue, damit die
@@ -842,12 +845,46 @@ nicht mehr; `Später` blendet den Wizard nur fuer die aktuelle Sitzung aus.
 - Einblendbarer rechter Inspector in der Artikelansicht.
 - Nutzt denselben hellen, systemnahen Sidebar-Stil wie die linke Seitenleiste und
   teilt sich die Farbwerte aus `SidebarStyle`.
-- Zeigt den aktuellen Feed-Ordner als Menu-Picker und schreibt Aenderungen direkt auf
-  `Feed.folderName`.
-- Zeigt Artikel-Tags als kompakte Chips; Tags koennen hinzugefuegt oder vom Artikel
-  entfernt werden.
-- Zeigt zusaetzlich vorhandene globale Tags, die noch nicht am Artikel haengen, als
-  Plus-Chips an, damit Tags ohne Tippen schnell zugewiesen werden koennen.
+- Nutzt seit 2026-06-23 die gewaehlte Product-Design-Richtung
+  `Calm Actions` aus den interaktiven Inspector-Prototypen: Oben stehen kompakt
+  `Artikelinfos`, der Artikeltitel und ein Status-Strip fuer gelesen/ungelesen und
+  Favorit; direkt darunter liegt eine vierteilige Aktionsleiste fuer Favorit,
+  Gelesen/Ungelesen, Offline-Speichern und Link-Kopieren.
+- Die Inspector-Typografie ist bewusst kompakter als der Reader-Text; zentrale
+  Groessen liegen in `ArticleInspectorTypography`, damit die rechte Leiste ruhig
+  und uebersichtlich bleibt. Die aktuelle Skala nutzt 11 pt fuer Labels/Chips,
+  11.5 pt fuer Controls, 12 pt fuer Werte, 13 pt fuer Section-Titel und 15 pt nur
+  fuer den Artikelkopf.
+- Zeigt den aktuellen Feed-Ordner in einer eigenen weissen Karten-Section als
+  Menu-Picker, schreibt Aenderungen direkt auf `Feed.folderName` und kann neue
+  Feed-Ordner direkt anlegen und auswaehlen.
+- Zeigt globale Tags in einer eigenen weissen Karten-Section als Toggle-Pills wie
+  im Prototyp; aktive Tags sind getoent, inaktive Tags bleiben weiss. Ein Klick
+  setzt oder entfernt das Tag direkt am Artikel.
+- Nutzt einklappbare weisse Karten-Sections mit Chevron und ohne zusaetzliche
+  Section-Icons fuer `Feed-Ordner`, `Tags`, `Kontext` und `Quelle`. Der Kontext
+  zeigt Feed, Quelle, Veroeffentlichung, Lesezeit und Offline-Status in einer
+  kompakten Metadatenliste.
+- Die Quelle ist standardmaessig eingeklappt und folgt dem Prototyp als reine
+  Aktions-Section mit zwei breiten Zeilen fuer `Link kopieren` und `Original
+  oeffnen`; die URL selbst wird dort bewusst nicht mehr als Textbox gezeigt.
+- Neue interaktive Product-Design-Exploration fuer eine ruhigere, staerker
+  bedienbare Inspector-Seitenleiste liegt unter
+  `docs/design/article-info-interactive-sidebar-prototypes/`: drei React/Vite-
+  Prototypen testen Favorit-, Gelesen-, Offline-, Tag-, Ordner- und Link-Aktionen
+  direkt in der rechten Seitenleiste; Tags koennen im Prototyp mit eigener Farbe
+  neu erstellt und sofort dem Artikel zugewiesen werden. Der Ordner wird dort
+  bewusst als `Feed-Ordner` bezeichnet, weil er die Feed-Zuordnung und nicht eine
+  einzelne Artikelablage veraendert; neue Feed-Ordner koennen im Prototyp direkt
+  erstellt und sofort fuer den Feed ausgewaehlt werden. Feed-Ordner und Tags sind
+  im Prototyp bewusst als getrennte Sections angelegt.
+- Umgesetzte Richtung in SwiftUI ist Variante 1 `Calm Actions`: ruhige weisse
+  Karten-Sections mit runden Ecken, separatem Feed-Ordner und Tags-Bereich sowie
+  direkter Aktionsleiste oben. Die fruehere Hero-/Timeline-Anmutung wurde entfernt,
+  damit die native App dem ausgewaehlten Prototyp klarer entspricht.
+- `ArticleInspectorFormatter` kapselt die Anzeigeaufbereitung fuer Status, URL,
+  Titel-/Summary-Kontext, Lesezeit und Verfuegbarkeit, damit die Inspector-View
+  keine Fachlogik verteilt.
 - Neue Tags werden ueber `ArticleMetadataEditor` normalisiert und als globale
   `Tag`-Eintraege wiederverwendet oder neu erstellt.
 - Stellt `FlowLayout` modulweit bereit, damit Reader und Inspector dieselbe
@@ -1509,9 +1546,8 @@ nicht mehr; `Später` blendet den Wizard nur fuer die aktuelle Sitzung aus.
   Feeds/Ordner vorab zeigen, Ordnerzuweisung und neue Ordner erlauben, optionalen
   Feed-Refresh anbieten und nach dem Import eine Zusammenfassung anzeigen.
 - 2026-06-22: M3-Offline-Basis umgesetzt: Feedivo speichert Feed-gelieferten
-  Artikel-Content weiter in SwiftData, traegt spaeter gelieferten Volltext fuer
-  bestehende Artikel nach und zeigt im Reader einen Hinweis, wenn offline nur die
-  Feed-Zusammenfassung vorhanden ist.
+  Artikel-Content weiter in SwiftData und traegt spaeter gelieferten Volltext fuer
+  bestehende Artikel nach.
 - 2026-06-22: iCloud Sync bewusst von M3 nach M4 verschoben. M3 gilt damit als
   abgeschlossen; M4 ist nun der aktive Milestone fuer Polish, Sync und Release-
   Vorbereitung.
@@ -1579,6 +1615,43 @@ nicht mehr; `Später` blendet den Wizard nur fuer die aktuelle Sitzung aus.
   und bewusste Offline-Kopien sind nun in UI und Settings getrennt. Die neue
   Settings-Rubrik `Offline-Lesen` erklaert den manuellen Artikel-Flow und haelt
   Offline-Automatik als spaeteren M4-Folgepunkt sichtbar zurueck.
+- 2026-06-23: Reader-Summary-Hinweis entfernt: Artikel ohne Feed-Volltext zeigen
+  die vorhandene Feed-Zusammenfassung direkt ohne zusaetzliche Hinweisbox. Der
+  interne Reader-Zustand heisst `contentAvailability`, damit normaler Feed-Inhalt
+  und bewusste Offline-Kopien getrennt bleiben.
+- 2026-06-23: Fensterweiter Online-/Offline-Indikator ergaenzt: `ContentView`
+  beobachtet den Netzwerkpfad per `NWPathMonitor` und zeigt unten rechts Online
+  oder Offline an. Der Status beschreibt nur die aktuelle Netzwerkverbindung, nicht
+  den Artikel-Offline-Speicher.
+- 2026-06-23: Rechten Artikelinfos-Inspector zunaechst nach Product-Design-
+  Variante 3 `Editorial Companion` umgebaut; spaeter am selben Tag wurde die
+  interaktive Variante 1 `Calm Actions` als aktuelle SwiftUI-Richtung umgesetzt.
+  Die Anzeigeaufbereitung liegt weiter in `ArticleInspectorFormatter`.
+- 2026-06-23: Typografie der rechten Artikelinfos-Seitenleiste verkleinert und in
+  `ArticleInspectorTypography` zentralisiert, damit die Sidebar weniger dominant
+  wirkt und besser zum ruhigen Reader passt. Die Skala ist nun auf 11 pt
+  Labels/Chips, 11.5 pt Controls, 12 pt Werte, 13 pt Section-Titel und 15 pt
+  Artikelkopf vereinheitlicht.
+- 2026-06-23: Drei neue interaktive Product-Design-Prototypen fuer eine ruhigere
+  und bedienbarere rechte Artikelinfos-Seitenleiste erstellt:
+  `docs/design/article-info-interactive-sidebar-prototypes/` enthaelt die Varianten
+  `Calm Actions`, `Section Studio` und `Command Inspector` mit klickbarem Status,
+  Favorit, Offline, Tags, Ordner, Link-Kopieren sowie Tag-Erstellung mit
+  Farbauswahl. Die Ordnerauswahl wurde im Prototyp als `Feed-Ordner` gekennzeichnet,
+  damit klar ist, dass sie den Feed und nicht nur den Artikel betrifft; ausserdem
+  koennen neue Feed-Ordner direkt aus dem Inspector-Prototyp angelegt werden.
+  Feed-Ordner und Tags wurden als eigene Sections getrennt, damit Feed-Eigenschaften
+  und Artikel-Tags nicht vermischt werden.
+- 2026-06-23: Prototyp-Variante 1 `Calm Actions` in der echten SwiftUI-
+  Inspector-Seitenleiste nachgeschaerft: kompakter Kopf mit Titel und Status-Strip,
+  obere Aktionsleiste fuer Favorit, Gelesen/Ungelesen, Offline und Link-Kopieren,
+  einklappbare weisse Karten-Sections fuer Feed-Ordner, Tags, Kontext und Quelle.
+  Die Quelle ist als reine Zwei-Button-Section fuer Link-Kopieren und
+  Original-Oeffnen ohne URL-Textbox umgesetzt.
+  Die Section-Header nutzen wie der Prototyp nur Chevron und Titel; Tags
+  sind eine gemeinsame Toggle-Pill-Liste statt getrennten aktuellen/verfuegbaren
+  Chips. Neue Feed-Ordner koennen direkt angelegt werden, neue Tags koennen beim
+  Anlegen eine Farbe bekommen.
 - 2026-06-23: Cache Mode vervollstaendigt: `ImageCacheService` raeumt nach
   erfolgreichen Bilddownloads automatisch auf das eingestellte Speicherlimit auf;
   `FeedivoApp` wendet dasselbe Limit beim App-Start an. Cache bleibt bewusst ein

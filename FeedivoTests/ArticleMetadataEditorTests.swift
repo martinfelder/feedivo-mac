@@ -37,6 +37,25 @@ struct ArticleMetadataEditorTests {
     }
 
     @MainActor
+    @Test func addTagErstelltNeuenTagMitGewaehlterFarbe() throws {
+        let context = try testContext()
+        let article = Article(title: "Artikel")
+        context.insert(article)
+        try context.save()
+
+        ArticleMetadataEditor.addTag(
+            named: "Design",
+            colorHex: "#8b5cf6",
+            to: article,
+            availableTags: [],
+            context: context
+        )
+
+        #expect(article.tags.map(\.name) == ["Design"])
+        #expect(article.tags.first?.colorHex == "#8b5cf6")
+    }
+
+    @MainActor
     @Test func addTagIgnoriertLeereUndDoppelteTags() throws {
         let context = try testContext()
         let article = Article(title: "Artikel")
@@ -99,6 +118,27 @@ struct ArticleMetadataEditorTests {
 
         ArticleMetadataEditor.setFolderName(" ", for: article, context: context)
         #expect(feed.folderName == nil)
+    }
+
+    @MainActor
+    @Test func createFolderAndAssignLegtNeuenFeedOrdnerAnUndWaehltIhnAus() throws {
+        let context = try testContext()
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
+        let article = Article(title: "Artikel", feed: feed)
+        context.insert(feed)
+        context.insert(article)
+        try context.save()
+
+        ArticleMetadataEditor.createFolderAndAssign(
+            named: " Research ",
+            to: article,
+            existingFolders: [],
+            context: context
+        )
+
+        #expect(feed.folderName == "Research")
+        let folders = try context.fetch(FetchDescriptor<FeedFolder>())
+        #expect(folders.map(\.name) == ["Research"])
     }
 
     @MainActor
