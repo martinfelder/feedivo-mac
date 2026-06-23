@@ -174,6 +174,9 @@ struct ReaderView: View {
             }
             .inspectorColumnWidth(min: 280, ideal: 318, max: 360)
         }
+        .onChange(of: article.persistentModelID) {
+            preparedArticle = ReaderPreparedArticle(article: article)
+        }
         .navigationTitle(article.title)
         .toolbar {
             ToolbarItemGroup {

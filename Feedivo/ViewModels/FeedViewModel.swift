@@ -457,9 +457,21 @@ final class FeedViewModel {
         }
 
         errorMessage = nil
-        context.delete(feed)
-
         do {
+            let feedID = feed.id
+            let descriptor = FetchDescriptor<Article>(
+                predicate: #Predicate<Article> { article in
+                    article.feedID == feedID
+                }
+            )
+            let articles = try context.fetch(descriptor)
+
+            for article in articles {
+                context.delete(article)
+            }
+
+            context.delete(feed)
+
             try context.save()
         } catch {
             errorMessage = error.localizedDescription

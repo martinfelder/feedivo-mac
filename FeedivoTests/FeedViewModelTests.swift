@@ -826,6 +826,63 @@ struct FeedViewModelTests {
     }
 
     @MainActor
+    @Test func deleteFeedEntferntZugehoerigeArtikelAusSwiftData() throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            RuleCondition.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Test Feed")
+        let article = Article(title: "Offline Rest", feed: feed)
+        article.offlineState = .feedContent
+        feed.articles = [article]
+        let viewModel = FeedViewModel()
+
+        context.insert(feed)
+        try context.save()
+
+        viewModel.deleteFeed(feed, context: context)
+
+        let articles = try context.fetch(FetchDescriptor<Article>())
+        #expect(articles.isEmpty)
+        #expect(viewModel.errorMessage == nil)
+    }
+
+    @MainActor
+    @Test func deleteFeedEntferntAuchArtikelMitNurDirekterFeedID() throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            RuleCondition.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Test Feed")
+        let article = Article(title: "Direkter Rest")
+        article.feedID = feed.id
+        article.offlineState = .feedContent
+        let viewModel = FeedViewModel()
+
+        context.insert(feed)
+        context.insert(article)
+        try context.save()
+
+        viewModel.deleteFeed(feed, context: context)
+
+        let articles = try context.fetch(FetchDescriptor<Article>())
+        #expect(articles.isEmpty)
+        #expect(viewModel.errorMessage == nil)
+    }
+
+    @MainActor
     @Test func deleteFeedIgnoriertFehlendeAuswahl() throws {
         let container = try ModelContainer(
             for: Feed.self,

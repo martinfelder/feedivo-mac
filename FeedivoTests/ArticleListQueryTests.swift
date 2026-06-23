@@ -255,4 +255,36 @@ struct ArticleListQueryTests {
         #expect(updatedCount == 1)
         #expect(feed.unreadCount == 1)
     }
+
+    @MainActor
+    @Test func orphanedArticleCleanupEntferntArtikelOhneExistierendenFeed() throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            FeedFolder.self,
+            FeedLogEntry.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
+        let validArticle = Article(title: "Gueltig", feed: feed)
+        let staleArticle = Article(title: "Alter Offline-Rest")
+        staleArticle.feedID = UUID()
+        staleArticle.offlineState = .feedContent
+        let articleWithoutFeed = Article(title: "Ohne Feed")
+
+        context.insert(feed)
+        context.insert(validArticle)
+        context.insert(staleArticle)
+        context.insert(articleWithoutFeed)
+        try context.save()
+
+        let removedCount = try OrphanedArticleCleanupService.removeArticlesWithoutExistingFeed(in: context)
+        let articles = try context.fetch(FetchDescriptor<Article>())
+
+        #expect(removedCount == 2)
+        #expect(articles.map(\.title) == ["Gueltig"])
+    }
 }

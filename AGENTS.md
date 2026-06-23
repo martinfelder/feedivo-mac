@@ -134,6 +134,9 @@ FeedivoMac/
 │   │
 │   ├── Views/
 │   │   ├── ContentView.swift           # Root: NavigationSplitView (3 Spalten) ✅
+│   │   ├── FirstRun/
+│   │   │   ├── FirstRunWizardView.swift # Erster-Start-Wizard fuer Feed/OPML/Defaults ✅
+│   │   │   └── FirstRunWizardState.swift # Anzeige-/Abschlusslogik fuer Wizard ✅
 │   │   ├── Sidebar/
 │   │   │   ├── SidebarView.swift       # Linke Spalte: Filter, Tags, Regeln, Feeds, + Button, @Query ✅
 │   │   │   ├── SidebarStyle.swift      # Farb-/Auswahlwerte fuer helle System-Sidebar ✅
@@ -160,6 +163,8 @@ FeedivoMac/
 │   │   ├── Tags/
 │   │   │   ├── TagManagerView.swift    # Tags erstellen, bearbeiten, loeschen ✅
 │   │   │   └── AddTagView.swift        # bleibt vorerst nicht separat noetig; TagManagerView erstellt Tags direkt
+│   │   ├── OPMLImport/
+│   │   │   └── OPMLImportReviewView.swift # Erweiterter OPML-Import-Dialog ✅
 │   │   ├── Shared/
 │   │   │   └── CachedRemoteImageView.swift # Gemeinsame gecachte Remote-Bild-View ✅
 │   │   ├── Rules/
@@ -175,6 +180,7 @@ FeedivoMac/
 │   │   ├── BackgroundRefreshSettings.swift # Auto-Refresh Settings/Intervalle ✅
 │   │   ├── BackgroundRefreshService.swift  # NSBackgroundActivityScheduler Adapter ✅
 │   │   ├── ArticleFeedIDBackfillService.swift # feedID fuer alte Artikel nachfuellen ✅
+│   │   ├── OrphanedArticleCleanupService.swift # verwaiste Artikel ohne existierenden Feed entfernen ✅
 │   │   ├── FeedUnreadCountBackfillService.swift # unreadCount einmalig korrigieren ✅
 │   │   ├── RuleConditionBackfillService.swift # alte Rule-Felder in Conditions migrieren ✅
 │   │   ├── OfflineDownloadService.swift # Manueller Offline-Download pro Artikel ✅
@@ -254,6 +260,39 @@ wenn die Sidebar-Aktion `Regel aus Artikel erstellen...` genutzt wird.
 Haelt den offenen/geschlossenen Zustand des rechten Artikelinfos-Inspectors auf
 Root-Ebene, damit die eingeblendete Seitenleiste beim Feed- oder Artikelwechsel
 sichtbar bleibt.
+Zeigt beim Start automatisch den First-Run-Wizard, sobald keine Feeds vorhanden
+sind. Ein frueheres Abschluss-Flag blockiert eine wieder vollstaendig leere App
+nicht mehr; `Später` blendet den Wizard nur fuer die aktuelle Sitzung aus.
+
+### FirstRunWizardView.swift / FirstRunWizardState.swift
+- First-Run-Wizard nach Prototyp Variante A fuer leere App-Starts ohne Feeds.
+- Die echte SwiftUI-Oberflaeche bildet die Prototyp-Struktur nach: macOS-artige
+  Titlebar mit Traffic-Lights, linke Step-Rail, rechts H1/Lead-Inhalt und Footer
+  mit `Später`, `Zurück` und Primaeraktion.
+- Startscreen bietet `Feed hinzufügen`, `OPML importieren` und `Später einrichten`.
+- Einzelner Feed und OPML-Datei laufen zuerst in dieselbe Import-Oberflaeche:
+  Feed-Pruefung, Statusfilter, Auswahl einzelner Feeds, Ordnerzuordnung,
+  Ordneranlage, Duplikat-Import und Import nicht erreichbarer Feeds.
+- Die Review ist bewusst nur eine Zusammenfassung der vorherigen Auswahl und bietet
+  einen Link zurueck zur Import-Oberflaeche; die Feed-Liste wird dort nicht erneut
+  gezeigt.
+- Die Wizard-Texte sind bewusst handlungsorientiert formuliert: Sie erklaeren pro
+  Schritt, was der Benutzer sieht, was geaendert werden kann und was beim naechsten
+  Klick passiert. Interne Begriffe wie `Review`, `Defaults` oder `Import-Engine`
+  werden in der sichtbaren UI vermieden.
+- OPML-Dateien koennen im Wizard ausgewaehlt oder direkt per Drag & Drop ins Fenster
+  gezogen werden.
+- Abschlussschritt setzt erste Defaults wie `Artikel beim Öffnen als gelesen
+  markieren` und automatischen Background Refresh.
+- Nach erfolgreichem Import zeigt der Wizard einen Fertig-Screen mit importierten
+  Feeds, verwendeten Ordnern und Hinweisen zu Duplikaten, nicht erreichbaren Feeds
+  oder Refresh-/Speicherproblemen; das Fenster schliesst erst bei `Starten`.
+- `FirstRunWizardState` kapselt die Anzeigeentscheidung, das
+  `@AppStorage`-Abschluss-Flag `firstRunWizard.completed` und die Sitzungslogik:
+  leerer Feedbestand zeigt den Wizard wieder, ausser er wurde in der aktuellen
+  Sitzung bewusst per `Später` ausgeblendet. Ein bereits sichtbarer Wizard bleibt
+  nach dem Import offen, auch wenn dadurch Feeds entstehen und ein frueheres
+  Abschluss-Flag bereits gesetzt war; geschlossen wird erst durch `Starten`.
 
 ### SidebarView.swift
 - `@Query(sort: \Feed.title)` für automatische Feed-Liste aus SwiftData
@@ -720,6 +759,9 @@ sichtbar bleibt.
 - Nutzt `ReaderPreparedArticle`, damit Content/Summary, Metadaten und Original-URL
   pro ausgewaehltem Artikel einmal vorbereitet werden und SwiftUI-Redraws kein
   erneutes HTML-Rendering ausloesen
+- Aktualisiert `ReaderPreparedArticle` bei Wechsel von `article.persistentModelID`,
+  damit Bild, Text, Metadaten und Original-Link nicht vom zuvor ausgewaehlten
+  Artikel im SwiftUI-`@State` haengen bleiben
 - Bilder werden mit `scaledToFit` und begrenzter Maximalhoehe gerendert, damit grosse
   Feedbilder ruhiger und performanter bleiben
 - Noch kein WKWebView/Vollseiten-Reader
@@ -747,6 +789,17 @@ sichtbar bleibt.
   Bildcache weiter.
 - Entfernt Offline-Daten bewusst getrennt von normalem Feed-Content, damit Feedivo
   die vom Feed gelieferten Inhalte nicht verliert.
+
+### ArticleFeedIDBackfillService.swift / OrphanedArticleCleanupService.swift
+- `ArticleFeedIDBackfillService` fuellt bei alten Artikeln die direkte `feedID`
+  aus einer noch vorhandenen `Article.feed`-Relationship nach.
+- `OrphanedArticleCleanupService` laeuft danach beim App-Start und entfernt Artikel,
+  deren `feedID` zu keinem existierenden Feed mehr gehoert oder ganz fehlt.
+- Hintergrund: Smart-Filter fragen Artikel direkt ab. Verwaiste Altartikel koennen
+  sonst sichtbar bleiben, obwohl links keine Feeds mehr vorhanden sind.
+- `FeedViewModel.deleteFeed` loescht zusaetzlich explizit alle Artikel mit passender
+  `feedID`, damit kuenftige Feed-Loeschungen nicht nur von SwiftData-Cascade
+  abhaengen.
 
 ### ImageCacheService.swift / ImageCacheSettings.swift
 - `ImageCacheService` ist der zentrale lokale Cache fuer Artikelbilder und Favicons.
@@ -1136,7 +1189,8 @@ sichtbar bleibt.
   und Favicons nach App-Neustart nicht jedes Mal neu geladen werden muessen
 - [ ] Share Extension (Artikel teilen via macOS Share Sheet)
 - [ ] App-Icon designen
-- [ ] Onboarding (erster Start ohne Feeds)
+- [x] Onboarding (erster Start ohne Feeds): Wizard mit Feed hinzufügen,
+  OPML-Import, gemeinsamem Review/Statusfilter und Start-Defaults
 - [ ] App Store Vorbereitung oder privat verteilen
 
 ---
@@ -1169,8 +1223,8 @@ sichtbar bleibt.
 - Aktuell M4: Polish & Release. iCloud Sync wurde bewusst aus M3 nach M4 verschoben,
   damit Tags, Regeln, Background-Refresh-Status und Offline-Basis als abgeschlossene
   M3-Basis stabil bleiben. M4 umfasst jetzt iCloud Sync, erweiterten OPML-Import,
-  manuellen Offline Mode, Settings-Polish, Share Extension, App-Icon, Onboarding
-  und Release-Vorbereitung. Bild-/Favicon-Cache ist als M4-Basis umgesetzt.
+  manuellen Offline Mode, Settings-Polish, Share Extension, App-Icon und Release-
+  Vorbereitung. Bild-/Favicon-Cache und Onboarding sind als M4-Basis umgesetzt.
 - Feature-Roadmap ist in `docs/FEATURES.md` dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
@@ -1484,6 +1538,24 @@ sichtbar bleibt.
 - 2026-06-22: OPML-Import-Dialog um Drag & Drop erweitert: `.opml`- und `.xml`-
   Dateien koennen direkt auf das Importfenster gezogen werden und starten dieselbe
   Preview wie die manuelle Datei-Auswahl.
+- 2026-06-23: First-Run-Wizard nach Prototyp Variante A umgesetzt: Bei leerem
+  Feedbestand zeigt Feedivo einen Wizard mit Auswahl zwischen einzelner Feed-URL,
+  OPML-Import oder spaeterem Einrichten. Feed- und OPML-Pfad nutzen denselben
+  Review-Flow wie der erweiterte OPML-Import inklusive Statusfilter, Ordnern,
+  Duplikat-/Problemfeed-Optionen, optionalem Refresh und Start-Defaults.
+- 2026-06-23: First-Run-Wizard-Abschlussflow verfeinert: Die Feed-Liste bleibt im
+  Import-/Pruefschritt, die Review zeigt nur eine Zusammenfassung mit Link zurueck,
+  und der Fertig-Screen bleibt nach dem Import sichtbar, bis der Benutzer aktiv
+  `Starten` drueckt. Importierte Feeds, verwendete Ordner und Hinweise zu
+  Duplikaten, nicht erreichbaren Feeds oder Refresh-/Speicherproblemen werden dort
+  angezeigt.
+- 2026-06-23: First-Run-Wizard-Schliesslogik korrigiert: Ein sichtbarer Wizard wird
+  nicht mehr automatisch geschlossen, wenn nach `Import starten` Feeds angelegt
+  werden und `firstRunWizard.completed` aus einem frueheren Lauf bereits true ist.
+- 2026-06-23: First-Run-Wizard-Copy geschaerft: Sichtbare Texte erklaeren nun
+  direkt, was der Benutzer einstellt, sieht und mit dem naechsten Schritt ausloest.
+  Prototyp-/Implementierungsbegriffe wie `Review`, `Defaults` und `Import-Engine`
+  wurden aus der UI entfernt.
 - 2026-06-22: Offline Mode Phase 1 umgesetzt: Artikel koennen im Reader manuell
   offline gespeichert oder wieder entfernt werden. Feed-gelieferter Volltext wird
   direkt als Offline-Content markiert; falls kein Feed-Content vorhanden ist, wird

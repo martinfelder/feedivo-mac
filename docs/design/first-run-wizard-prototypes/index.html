@@ -1,0 +1,1334 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Feedivo First Run Wizard Prototypes</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #eef0f3;
+      --surface: rgba(255, 255, 255, 0.72);
+      --surface-strong: rgba(255, 255, 255, 0.9);
+      --line: rgba(48, 52, 58, 0.14);
+      --line-strong: rgba(48, 52, 58, 0.22);
+      --text: #202327;
+      --muted: #666d76;
+      --soft: #f6f7f8;
+      --accent: #177a73;
+      --accent-2: #2f6fc7;
+      --green: #2f8d54;
+      --orange: #c77722;
+      --red: #bf4c42;
+      --shadow: 0 24px 70px rgba(38, 45, 54, 0.18);
+      --radius: 12px;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        linear-gradient(120deg, rgba(255,255,255,0.45), rgba(255,255,255,0) 45%),
+        radial-gradient(circle at 18% 8%, rgba(47, 111, 199, 0.16), transparent 26%),
+        radial-gradient(circle at 88% 18%, rgba(23, 122, 115, 0.12), transparent 28%),
+        var(--bg);
+      color: var(--text);
+      letter-spacing: 0;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    .page {
+      display: grid;
+      grid-template-columns: 260px minmax(0, 1fr);
+      min-height: 100vh;
+    }
+
+    .rail {
+      border-right: 1px solid var(--line);
+      background: rgba(248, 249, 250, 0.66);
+      backdrop-filter: blur(28px) saturate(1.25);
+      padding: 24px 18px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 28px;
+      padding-inline: 6px;
+    }
+
+    .brand-mark {
+      width: 32px;
+      height: 32px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: linear-gradient(145deg, #fbfcfd, #dce2e6);
+      border: 1px solid rgba(0,0,0,0.1);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.8);
+      color: var(--accent);
+      font-weight: 800;
+    }
+
+    .brand-title {
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .brand-subtitle {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .nav-label {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 0 8px 8px;
+    }
+
+    .variant-button {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 44px;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--text);
+      text-align: left;
+      padding: 8px 10px;
+      margin-bottom: 4px;
+      cursor: pointer;
+    }
+
+    .variant-button:hover {
+      background: rgba(0,0,0,0.045);
+    }
+
+    .variant-button.active {
+      background: rgba(23, 122, 115, 0.13);
+      color: #0f615c;
+    }
+
+    .variant-icon {
+      width: 26px;
+      height: 26px;
+      border-radius: 7px;
+      display: grid;
+      place-items: center;
+      background: rgba(255,255,255,0.78);
+      border: 1px solid var(--line);
+      font-size: 14px;
+      flex: 0 0 auto;
+    }
+
+    .variant-title {
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .variant-copy {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 1px;
+    }
+
+    .rail-note {
+      margin-top: 28px;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.56);
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .stage {
+      padding: 32px;
+      display: grid;
+      align-content: center;
+      justify-items: center;
+    }
+
+    .prototype {
+      width: min(980px, 100%);
+      display: none;
+    }
+
+    .prototype.active {
+      display: block;
+    }
+
+    .window {
+      height: 680px;
+      display: grid;
+      grid-template-rows: 48px minmax(0, 1fr);
+      border: 1px solid rgba(255,255,255,0.75);
+      border-radius: var(--radius);
+      background: rgba(255,255,255,0.62);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      backdrop-filter: blur(34px) saturate(1.35);
+    }
+
+    .titlebar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(248, 249, 250, 0.72);
+      padding: 0 16px;
+    }
+
+    .traffic {
+      display: flex;
+      gap: 7px;
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 1px solid rgba(0,0,0,0.08);
+    }
+
+    .red { background: #ff6159; }
+    .yellow { background: #ffbd2e; }
+    .green-dot { background: #28c840; }
+
+    .titlebar-title {
+      font-size: 13px;
+      color: var(--muted);
+      flex: 1;
+      text-align: center;
+      padding-right: 72px;
+    }
+
+    .wizard {
+      display: grid;
+      grid-template-columns: 230px minmax(0, 1fr);
+      min-height: 0;
+    }
+
+    .steps {
+      border-right: 1px solid var(--line);
+      background: rgba(243, 245, 247, 0.58);
+      padding: 22px 18px;
+    }
+
+    .step-item {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      padding: 10px 8px;
+      border-radius: 8px;
+      color: var(--muted);
+    }
+
+    .step-item.active {
+      background: rgba(23, 122, 115, 0.12);
+      color: var(--text);
+    }
+
+    .step-index {
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line-strong);
+      font-size: 11px;
+      font-weight: 700;
+      flex: 0 0 auto;
+      background: rgba(255,255,255,0.72);
+    }
+
+    .step-item.active .step-index {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+
+    .step-title {
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .step-subtitle {
+      font-size: 11px;
+      margin-top: 2px;
+    }
+
+    .content {
+      min-width: 0;
+      padding: 30px 34px;
+      display: grid;
+      grid-template-rows: minmax(0, 1fr) auto;
+      gap: 22px;
+    }
+
+    .panel {
+      min-width: 0;
+      display: none;
+      align-content: start;
+    }
+
+    .panel.active {
+      display: grid;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.16;
+      font-weight: 760;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+      max-width: 620px;
+    }
+
+    .hero-row {
+      margin-top: 28px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .choice-card,
+    .feed-card,
+    .settings-line,
+    .review-card {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.72);
+      border-radius: 8px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.75);
+    }
+
+    .choice-card {
+      padding: 15px;
+      cursor: pointer;
+      min-height: 128px;
+    }
+
+    .choice-card.selected {
+      border-color: rgba(23, 122, 115, 0.46);
+      background: rgba(232, 249, 246, 0.78);
+    }
+
+    .choice-symbol {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      background: #eef4f3;
+      color: var(--accent);
+      font-weight: 800;
+      margin-bottom: 12px;
+    }
+
+    .choice-title {
+      font-size: 14px;
+      font-weight: 760;
+      margin-bottom: 4px;
+    }
+
+    .choice-copy {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .input-row {
+      margin-top: 26px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+    }
+
+    .text-input {
+      height: 38px;
+      border-radius: 8px;
+      border: 1px solid var(--line-strong);
+      background: rgba(255,255,255,0.86);
+      padding: 0 12px;
+      color: var(--text);
+      outline: 0;
+    }
+
+    .text-input:focus {
+      border-color: rgba(23, 122, 115, 0.56);
+      box-shadow: 0 0 0 3px rgba(23, 122, 115, 0.12);
+    }
+
+    .primary,
+    .secondary,
+    .ghost {
+      height: 32px;
+      border-radius: 7px;
+      padding: 0 13px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .primary {
+      color: white;
+      background: var(--accent);
+      border-color: rgba(0,0,0,0.08);
+    }
+
+    .primary:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+
+    .secondary {
+      color: var(--text);
+      background: rgba(255,255,255,0.82);
+      border-color: var(--line-strong);
+    }
+
+    .ghost {
+      color: var(--muted);
+      background: transparent;
+    }
+
+    .footer {
+      border-top: 1px solid var(--line);
+      padding-top: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .footer-left {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .footer-step-options {
+      display: none;
+      align-items: center;
+      gap: 14px;
+      color: var(--text);
+      font-size: 12px;
+    }
+
+    .footer-step-options.active {
+      display: flex;
+    }
+
+    .footer-check {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .footer-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .settings-list {
+      margin-top: 28px;
+      display: grid;
+      gap: 10px;
+      max-width: 620px;
+    }
+
+    .settings-line {
+      min-height: 52px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .line-title {
+      font-size: 13px;
+      font-weight: 720;
+    }
+
+    .line-copy {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .switch {
+      width: 40px;
+      height: 22px;
+      border-radius: 999px;
+      border: 0;
+      background: #cfd4da;
+      position: relative;
+      cursor: pointer;
+      flex: 0 0 auto;
+    }
+
+    .switch::after {
+      content: "";
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: white;
+      position: absolute;
+      left: 2px;
+      top: 2px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.22);
+      transition: transform 0.16s ease;
+    }
+
+    .switch.on {
+      background: var(--accent);
+    }
+
+    .switch.on::after {
+      transform: translateX(18px);
+    }
+
+    .select {
+      height: 30px;
+      min-width: 130px;
+      border-radius: 7px;
+      border: 1px solid var(--line-strong);
+      background: rgba(255,255,255,0.85);
+      padding-inline: 8px;
+    }
+
+    .finish-box {
+      margin-top: 30px;
+      border: 1px solid rgba(23, 122, 115, 0.26);
+      background: rgba(232, 249, 246, 0.7);
+      border-radius: 8px;
+      padding: 16px;
+      max-width: 640px;
+    }
+
+    .drop-zone {
+      margin-top: 26px;
+      height: 180px;
+      border: 1.5px dashed rgba(47, 111, 199, 0.42);
+      background: rgba(239, 245, 254, 0.7);
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      padding: 18px;
+      color: var(--muted);
+      cursor: pointer;
+    }
+
+    .drop-zone.active {
+      background: rgba(228, 241, 255, 0.95);
+      border-color: var(--accent-2);
+    }
+
+    .import-table {
+      margin-top: 20px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: rgba(255,255,255,0.78);
+      max-height: 280px;
+      overflow-y: auto;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1.2fr) 120px 110px;
+      align-items: center;
+      gap: 10px;
+      min-height: 42px;
+      padding: 0 12px;
+      border-bottom: 1px solid var(--line);
+      font-size: 12px;
+    }
+
+    .row.header {
+      background: rgba(243,245,247,0.76);
+      color: var(--muted);
+      font-weight: 700;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    .row:last-child {
+      border-bottom: 0;
+    }
+
+    .cell-title {
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      font-weight: 650;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 22px;
+      padding: 0 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 720;
+      background: #edf1f4;
+      color: var(--muted);
+      width: fit-content;
+    }
+
+    .pill.ok { background: rgba(47, 141, 84, 0.12); color: var(--green); }
+    .pill.warn { background: rgba(199, 119, 34, 0.13); color: var(--orange); }
+    .pill.bad { background: rgba(191, 76, 66, 0.12); color: var(--red); }
+
+    .filters {
+      display: flex;
+      gap: 8px;
+      margin-top: 22px;
+      flex-wrap: wrap;
+    }
+
+    .seg {
+      height: 28px;
+      border-radius: 7px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.72);
+      padding: 0 10px;
+      cursor: pointer;
+      color: var(--muted);
+    }
+
+    .seg.active {
+      color: white;
+      background: var(--accent-2);
+      border-color: var(--accent-2);
+    }
+
+    .topic-grid {
+      margin-top: 26px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .topic {
+      min-height: 84px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255,255,255,0.72);
+      padding: 12px;
+      cursor: pointer;
+    }
+
+    .topic.active {
+      border-color: rgba(23, 122, 115, 0.52);
+      background: rgba(232, 249, 246, 0.78);
+    }
+
+    .topic-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 6px;
+      font-size: 13px;
+      font-weight: 760;
+    }
+
+    .topic-count {
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 650;
+    }
+
+    .feed-grid {
+      margin-top: 22px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      max-height: 286px;
+      overflow-y: auto;
+      padding-right: 2px;
+    }
+
+    .feed-card {
+      min-height: 72px;
+      padding: 12px;
+      display: grid;
+      grid-template-columns: 22px minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: start;
+    }
+
+    .feed-card input {
+      margin-top: 2px;
+    }
+
+    .feed-name {
+      font-size: 13px;
+      font-weight: 760;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .feed-url {
+      font-size: 11px;
+      color: var(--muted);
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      margin-top: 3px;
+    }
+
+    .folder-chip {
+      height: 22px;
+      padding: 0 8px;
+      border-radius: 999px;
+      background: #eef1f3;
+      color: var(--muted);
+      font-size: 11px;
+      display: inline-flex;
+      align-items: center;
+      max-width: 96px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .review-grid {
+      margin-top: 26px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .summary-panel {
+      margin-top: 28px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.72);
+      border-radius: 8px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.75);
+      padding: 16px;
+    }
+
+    .summary-top {
+      display: grid;
+      grid-template-columns: 42px minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .summary-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 9px;
+      display: grid;
+      place-items: center;
+      background: rgba(23, 122, 115, 0.11);
+      color: var(--accent);
+      font-weight: 800;
+    }
+
+    .summary-title {
+      font-size: 15px;
+      font-weight: 760;
+    }
+
+    .summary-copy {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .summary-link {
+      border: 0;
+      background: transparent;
+      color: var(--accent);
+      padding: 4px 0;
+      font-weight: 650;
+      white-space: nowrap;
+    }
+
+    .summary-grid {
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .review-card {
+      padding: 14px;
+      min-height: 100px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .review-number {
+      font-size: 28px;
+      font-weight: 780;
+      line-height: 1;
+      height: 32px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .review-label {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 6px;
+      line-height: 1.25;
+      height: 32px;
+      max-width: 100%;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .toast {
+      display: none;
+      position: fixed;
+      right: 28px;
+      bottom: 24px;
+      min-width: 280px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255,255,255,0.92);
+      box-shadow: 0 18px 44px rgba(0,0,0,0.18);
+      padding: 12px 14px;
+      color: var(--text);
+      font-size: 13px;
+      backdrop-filter: blur(20px);
+    }
+
+    .toast.show {
+      display: block;
+    }
+
+    @media (max-width: 900px) {
+      .page {
+        grid-template-columns: 1fr;
+      }
+
+      .rail {
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .stage {
+        padding: 18px;
+      }
+
+      .window {
+        height: auto;
+        min-height: 760px;
+      }
+
+      .wizard {
+        grid-template-columns: 1fr;
+      }
+
+      .steps {
+        display: flex;
+        gap: 6px;
+        overflow-x: auto;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .step-item {
+        min-width: 160px;
+      }
+
+      .hero-row,
+      .topic-grid,
+      .review-grid,
+      .summary-grid,
+      .feed-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <aside class="rail">
+      <div class="brand">
+        <div class="brand-mark">F</div>
+        <div>
+          <div class="brand-title">Feedivo</div>
+          <div class="brand-subtitle">1st Run Wizard</div>
+        </div>
+      </div>
+
+      <div class="nav-label">Varianten</div>
+      <button class="variant-button active" data-variant="a">
+        <span class="variant-icon">1</span>
+        <span>
+          <span class="variant-title">A Quick Start</span>
+          <span class="variant-copy">Schnell zum ersten Feed</span>
+        </span>
+      </button>
+      <button class="variant-button" data-variant="b">
+        <span class="variant-icon">2</span>
+        <span>
+          <span class="variant-title">B Import First</span>
+          <span class="variant-copy">OPML als Hauptpfad</span>
+        </span>
+      </button>
+      <button class="variant-button" data-variant="c">
+        <span class="variant-icon">3</span>
+        <span>
+          <span class="variant-title">C Starter Feeds</span>
+          <span class="variant-copy">Kuratierte Auswahl</span>
+        </span>
+      </button>
+
+      <div class="rail-note">
+        Bedingung fuer die echte App: Wizard erscheint nur, wenn noch keine Feeds vorhanden sind.
+        Danach kann er ueber Einstellungen oder Hilfe erneut geoeffnet werden.
+      </div>
+    </aside>
+
+    <main class="stage">
+      <section class="prototype active" id="variant-a">
+        <div class="window" data-wizard="a">
+          <div class="titlebar">
+            <div class="traffic"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green-dot"></span></div>
+            <div class="titlebar-title">Feedivo einrichten</div>
+          </div>
+          <div class="wizard">
+            <aside class="steps">
+              <div class="step-item active" data-step-label="0"><span class="step-index">1</span><span><span class="step-title">Start</span><span class="step-subtitle">Was moechtest du tun?</span></span></div>
+              <div class="step-item" data-step-label="1"><span class="step-index">2</span><span><span class="step-title">Feed</span><span class="step-subtitle">Einzelne URL</span></span></div>
+              <div class="step-item" data-step-label="2"><span class="step-index">3</span><span><span class="step-title">OPML</span><span class="step-subtitle">Datei importieren</span></span></div>
+              <div class="step-item" data-step-label="3"><span class="step-index">4</span><span><span class="step-title">Pruefen</span><span class="step-subtitle">Auswahl bestaetigen</span></span></div>
+              <div class="step-item" data-step-label="4"><span class="step-index">5</span><span><span class="step-title">Einstellungen</span><span class="step-subtitle">Lesen und Refresh</span></span></div>
+              <div class="step-item" data-step-label="5"><span class="step-index">6</span><span><span class="step-title">Fertig</span><span class="step-subtitle">Direkt loslegen</span></span></div>
+            </aside>
+            <div class="content">
+              <div>
+                <div class="panel active" data-step="0">
+                  <h1>Willkommen in Feedivo.</h1>
+                  <p class="lead">Waehle, wie du starten moechtest. Du kannst einen einzelnen Feed hinzufuegen, viele Feeds aus einer OPML-Datei uebernehmen oder Feedivo erst einmal leer oeffnen.</p>
+                  <div class="hero-row">
+                    <div class="choice-card selected" data-choice="single" data-jump-step="1"><div class="choice-symbol">+</div><div class="choice-title">Feed hinzufuegen</div><div class="choice-copy">Eine RSS-Adresse pruefen, optional einem Ordner zuweisen und importieren.</div></div>
+                    <div class="choice-card" data-choice="opml" data-jump-step="2"><div class="choice-symbol">OP</div><div class="choice-title">OPML importieren</div><div class="choice-copy">Viele Feeds und vorhandene Ordner aus einem anderen RSS-Reader uebernehmen.</div></div>
+                    <div class="choice-card" data-choice="later"><div class="choice-symbol">..</div><div class="choice-title">Spaeter einrichten</div><div class="choice-copy">Feedivo ohne Feeds oeffnen. Du kannst spaeter jederzeit neue Feeds hinzufuegen.</div></div>
+                  </div>
+                </div>
+                <div class="panel" data-step="1" data-next-step="3">
+                  <h1>Feed hinzufuegen.</h1>
+                  <p class="lead">Gib die Adresse eines RSS- oder Atom-Feeds ein. Feedivo prueft die Quelle, zeigt den Status und laesst dich direkt einen Ordner zuweisen.</p>
+                  <div class="input-row">
+                    <input class="text-input" value="https://stadt-bremerhaven.de/feed/" aria-label="Feed URL">
+                    <button class="primary" data-demo-toast="Feed erreichbar: Stadt Bremerhaven">Feed pruefen</button>
+                  </div>
+                  <div class="import-table">
+                    <div class="row header"><span></span><span>Feed</span><span>Ordner</span><span>Status</span></div>
+                    <div class="row" data-status="new"><input type="checkbox" checked><span class="cell-title">Stadt Bremerhaven</span><select class="select"><option>Tech</option><option>Apple</option><option>News</option><option>Neuer Ordner...</option></select><span class="pill ok">Erreichbar</span></div>
+                  </div>
+                  <div class="settings-list">
+                    <div class="settings-line"><div><div class="line-title">Feed nach Import direkt aktualisieren</div><div class="line-copy">Laedt direkt Titel, Favicon und erste Artikel. Das dauert etwas laenger.</div></div><button class="switch on" aria-label="Toggle"></button></div>
+                    <div class="settings-line"><div><div class="line-title">Duplikat trotzdem importieren</div><div class="line-copy">Nutze das nur, wenn du dieselbe Quelle bewusst ein zweites Mal haben moechtest.</div></div><button class="switch" aria-label="Toggle"></button></div>
+                  </div>
+                </div>
+                <div class="panel" data-step="2" data-next-step="3">
+                  <h1>OPML importieren.</h1>
+                  <p class="lead">Lege eine OPML- oder XML-Datei ab oder waehle sie aus. Danach siehst du alle gefundenen Feeds, Ordner, Duplikate und nicht erreichbare Quellen, bevor etwas gespeichert wird.</p>
+                  <div class="drop-zone" data-load-import>
+                    <div>
+                      <strong>OPML oder XML hier ablegen</strong><br>
+                      oder Datei auswaehlen. Feedivo zeigt dir danach zuerst eine Vorschau.
+                    </div>
+                  </div>
+                  <div class="import-table">
+                    <div class="row header"><span></span><span>Feed</span><span>Ordner</span><span>Status</span></div>
+                    <div class="row" data-status="new"><input type="checkbox" checked><span class="cell-title">MacRumors</span><select class="select"><option>Apple</option><option>Tech</option><option>Neuer Ordner...</option></select><span class="pill ok">Neu</span></div>
+                    <div class="row" data-status="duplicate"><input type="checkbox"><span class="cell-title">The Verge</span><select class="select"><option>News</option><option>Tech</option></select><span class="pill warn">Duplikat</span></div>
+                    <div class="row" data-status="error"><input type="checkbox"><span class="cell-title">Alter Feed mit sehr langem Namen der gekuerzt wird</span><select class="select"><option>Archiv</option><option>Neuer Ordner...</option></select><span class="pill bad">Fehler</span></div>
+                  </div>
+                </div>
+                <div class="panel" data-step="3">
+                  <h1>Auswahl pruefen.</h1>
+                  <p class="lead">Kontrolliere die vorbereitete Auswahl. Die vollstaendige Feed-Liste kannst du bei Bedarf noch einmal oeffnen und aendern.</p>
+                  <div class="summary-panel">
+                    <div class="summary-top">
+                      <div class="summary-icon">✓</div>
+                      <div>
+                        <div class="summary-title">Import-Zusammenfassung</div>
+                        <div class="summary-copy">Diese Feeds werden gespeichert, wenn du fortfaehrst. Ueber Auswahl bearbeiten kommst du zurueck zur Liste.</div>
+                      </div>
+                      <button class="summary-link" data-jump-to-input>Auswahl bearbeiten</button>
+                    </div>
+                    <div class="summary-grid">
+                      <div class="review-card"><div class="review-number">2</div><div class="review-label">ausgewaehlte Feeds</div></div>
+                      <div class="review-card"><div class="review-number">2</div><div class="review-label">Ordner</div></div>
+                      <div class="review-card"><div class="review-number">1</div><div class="review-label">Duplikat erkannt</div></div>
+                      <div class="review-card"><div class="review-number">1</div><div class="review-label">nicht erreichbar</div></div>
+                    </div>
+                  </div>
+                  <div class="settings-list">
+                    <div class="settings-line"><div><div class="line-title">Feeds nach Import direkt aktualisieren</div><div class="line-copy">Laedt direkt Titel, Favicons und erste Artikel. Das dauert etwas laenger.</div></div><button class="switch on" aria-label="Toggle"></button></div>
+                  </div>
+                </div>
+                <div class="panel" data-step="4">
+                  <h1>Start-Einstellungen waehlen.</h1>
+                  <p class="lead">Lege die wichtigsten Startwerte fest. Diese Einstellungen kannst du spaeter jederzeit in den Einstellungen aendern.</p>
+                  <div class="settings-list">
+                    <div class="settings-line"><div><div class="line-title">Artikel beim Oeffnen als gelesen markieren</div><div class="line-copy">Wenn du einen Artikel auswaehlst, verschwindet er automatisch aus Ungelesen.</div></div><button class="switch on" aria-label="Toggle"></button></div>
+                    <div class="settings-line"><div><div class="line-title">Automatisch aktualisieren</div><div class="line-copy">Feedivo prueft deine Feeds regelmaessig, solange die App laufen darf.</div></div><button class="switch" aria-label="Toggle"></button></div>
+                    <div class="settings-line"><div><div class="line-title">Refresh-Intervall</div><div class="line-copy">Gibt an, wie oft Feedivo nach neuen Artikeln suchen soll.</div></div><select class="select"><option>60 Minuten</option><option>30 Minuten</option><option>120 Minuten</option></select></div>
+                  </div>
+                </div>
+                <div class="panel" data-step="5">
+                  <h1>Feedivo ist bereit.</h1>
+                  <p class="lead">Pruefe die Zusammenfassung des Imports. Feedivo oeffnet sich erst, wenn du aktiv auf Starten klickst.</p>
+                  <div class="summary-panel">
+                    <div class="summary-top">
+                      <div class="summary-icon">✓</div>
+                      <div>
+                        <div class="summary-title">Import abgeschlossen</div>
+                        <div class="summary-copy">Die ausgewaehlten Feeds wurden gespeichert. Hinweise zeigen dir, was noch Aufmerksamkeit braucht.</div>
+                      </div>
+                    </div>
+                    <div class="summary-grid">
+                      <div class="review-card"><div class="review-number">2</div><div class="review-label">Feeds importiert</div></div>
+                      <div class="review-card"><div class="review-number">2</div><div class="review-label">Ordner angelegt</div></div>
+                      <div class="review-card"><div class="review-number">0</div><div class="review-label">Duplikate importiert</div></div>
+                      <div class="review-card"><div class="review-number">1</div><div class="review-label">Hinweis</div></div>
+                    </div>
+                  </div>
+                  <div class="finish-box">
+                    <strong>Hinweis:</strong> 1 nicht erreichbarer Feed wurde bewusst importiert und kann spaeter erneut aktualisiert werden.
+                  </div>
+                </div>
+              </div>
+              <div class="footer">
+                <div class="footer-left">
+                  <div class="footer-step-options" data-footer-step="2">
+                    <label class="footer-check"><input type="checkbox"> Duplikate importieren</label>
+                    <label class="footer-check"><input type="checkbox"> Nicht erreichbare importieren</label>
+                  </div>
+                </div>
+                <div class="footer-actions">
+                  <button class="ghost" data-demo-toast="Feedivo wird ohne Feeds geoeffnet">Spaeter</button>
+                  <button class="secondary" data-prev>Zurueck</button>
+                  <button class="primary" data-next>Weiter</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="prototype" id="variant-b">
+        <div class="window" data-wizard="b">
+          <div class="titlebar">
+            <div class="traffic"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green-dot"></span></div>
+            <div class="titlebar-title">Feeds importieren</div>
+          </div>
+          <div class="wizard">
+            <aside class="steps">
+              <div class="step-item active" data-step-label="0"><span class="step-index">1</span><span><span class="step-title">OPML</span><span class="step-subtitle">Datei waehlen</span></span></div>
+              <div class="step-item" data-step-label="1"><span class="step-index">2</span><span><span class="step-title">Pruefen</span><span class="step-subtitle">Status sehen</span></span></div>
+              <div class="step-item" data-step-label="2"><span class="step-index">3</span><span><span class="step-title">Import</span><span class="step-subtitle">Optionen</span></span></div>
+            </aside>
+            <div class="content">
+              <div>
+                <div class="panel active" data-step="0">
+                  <h1>Zieh deine OPML-Datei hier hinein.</h1>
+                  <p class="lead">Diese Variante nimmt an, dass viele Menschen bereits einen Feed-Bestand aus einem anderen Reader mitbringen.</p>
+                  <div class="drop-zone" data-load-import>
+                    <div>
+                      <strong>OPML oder XML ablegen</strong><br>
+                      Klick simuliert eine ausgewaehlte Datei.
+                    </div>
+                  </div>
+                </div>
+                <div class="panel" data-step="1">
+                  <h1>Import-Vorschau.</h1>
+                  <p class="lead">Du siehst sofort, was importiert wird und welche Feeds Aufmerksamkeit brauchen.</p>
+                  <div class="filters">
+                    <button class="seg active" data-filter="all">Alle</button>
+                    <button class="seg" data-filter="new">Neu</button>
+                    <button class="seg" data-filter="duplicate">Duplikate</button>
+                    <button class="seg" data-filter="error">Nicht erreichbar</button>
+                  </div>
+                  <div class="import-table">
+                    <div class="row header"><span></span><span>Feed</span><span>Ordner</span><span>Status</span></div>
+                    <div class="row" data-status="new"><input type="checkbox" checked><span class="cell-title">MacRumors</span><span>Apple</span><span class="pill ok">Neu</span></div>
+                    <div class="row" data-status="new"><input type="checkbox" checked><span class="cell-title">Stadt Bremerhaven</span><span>Tech</span><span class="pill ok">Neu</span></div>
+                    <div class="row" data-status="duplicate"><input type="checkbox"><span class="cell-title">The Verge</span><span>News</span><span class="pill warn">Duplikat</span></div>
+                    <div class="row" data-status="error"><input type="checkbox"><span class="cell-title">Alter Feed mit sehr langem Namen der gekuerzt wird</span><span>Archiv</span><span class="pill bad">Fehler</span></div>
+                    <div class="row" data-status="new"><input type="checkbox" checked><span class="cell-title">Heise Online</span><span>Tech</span><span class="pill ok">Neu</span></div>
+                    <div class="row" data-status="new"><input type="checkbox" checked><span class="cell-title">9to5Mac</span><span>Apple</span><span class="pill ok">Neu</span></div>
+                  </div>
+                </div>
+                <div class="panel" data-step="2">
+                  <h1>Import starten.</h1>
+                  <p class="lead">Die Optionen sind die gleichen wie im spaeteren OPML-Import, nur fuer den ersten Start schlanker praesentiert.</p>
+                  <div class="settings-list">
+                    <div class="settings-line"><div><div class="line-title">Feeds nach Import direkt aktualisieren</div><div class="line-copy">Laedt Titel, Favicons und erste Artikel.</div></div><button class="switch on"></button></div>
+                  </div>
+                  <div class="review-grid">
+                    <div class="review-card"><div class="review-number">4</div><div class="review-label">ausgewaehlte Feeds</div></div>
+                    <div class="review-card"><div class="review-number">2</div><div class="review-label">Ordner</div></div>
+                    <div class="review-card"><div class="review-number">1</div><div class="review-label">Problemfeed</div></div>
+                  </div>
+                </div>
+              </div>
+              <div class="footer">
+                <div class="footer-left">
+                  <div class="footer-step-options" data-footer-step="0">
+                    <label class="footer-check"><input type="checkbox"> Duplikate importieren</label>
+                    <label class="footer-check"><input type="checkbox"> Nicht erreichbare importieren</label>
+                  </div>
+                </div>
+                <div class="footer-actions">
+                  <button class="ghost" data-demo-toast="Einzelnen Feed hinzufuegen">Keine OPML-Datei</button>
+                  <button class="secondary" data-prev>Zurueck</button>
+                  <button class="primary" data-next>Weiter</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="prototype" id="variant-c">
+        <div class="window" data-wizard="c">
+          <div class="titlebar">
+            <div class="traffic"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green-dot"></span></div>
+            <div class="titlebar-title">Starter-Feeds auswaehlen</div>
+          </div>
+          <div class="wizard">
+            <aside class="steps">
+              <div class="step-item active" data-step-label="0"><span class="step-index">1</span><span><span class="step-title">Interessen</span><span class="step-subtitle">Themen waehlen</span></span></div>
+              <div class="step-item" data-step-label="1"><span class="step-index">2</span><span><span class="step-title">Feeds</span><span class="step-subtitle">Auswahl pruefen</span></span></div>
+              <div class="step-item" data-step-label="2"><span class="step-index">3</span><span><span class="step-title">Fertig</span><span class="step-subtitle">Starter-Set</span></span></div>
+            </aside>
+            <div class="content">
+              <div>
+                <div class="panel active" data-step="0">
+                  <h1>Womit moechtest du starten?</h1>
+                  <p class="lead">Diese Variante hilft Menschen, die neu mit RSS starten. Feedivo bietet ein kleines Starter-Set an, ohne zu einer Registrierung oder Account-Erstellung zu draengen.</p>
+                  <div class="topic-grid">
+                    <div class="topic active" data-topic="apple"><div class="topic-top">Apple <span class="topic-count">4 Feeds</span></div><div class="choice-copy">Mac, iOS, Hardware, Geruechte.</div></div>
+                    <div class="topic active" data-topic="tech"><div class="topic-top">Tech <span class="topic-count">5 Feeds</span></div><div class="choice-copy">Software, Web, Security, Gadgets.</div></div>
+                    <div class="topic" data-topic="news"><div class="topic-top">News <span class="topic-count">3 Feeds</span></div><div class="choice-copy">Allgemeine Nachrichten.</div></div>
+                    <div class="topic" data-topic="design"><div class="topic-top">Design <span class="topic-count">3 Feeds</span></div><div class="choice-copy">Product, UX und Interfaces.</div></div>
+                    <div class="topic" data-topic="swiss"><div class="topic-top">Schweiz <span class="topic-count">3 Feeds</span></div><div class="choice-copy">Lokale und regionale Quellen.</div></div>
+                    <div class="topic" data-topic="custom"><div class="topic-top">Eigene URL <span class="topic-count">+</span></div><div class="choice-copy">Direkt einen eigenen Feed eintragen.</div></div>
+                  </div>
+                </div>
+                <div class="panel" data-step="1">
+                  <h1>Vorgeschlagene Feeds.</h1>
+                  <p class="lead">Du kannst Feeds abwaehlen, bevor irgendetwas gespeichert wird. Feednamen werden bei langen Titeln sauber gekuerzt.</p>
+                  <div class="feed-grid">
+                    <div class="feed-card"><input type="checkbox" checked><div><div class="feed-name">MacRumors</div><div class="feed-url">https://www.macrumors.com/macrumors.xml</div></div><span class="folder-chip">Apple</span></div>
+                    <div class="feed-card"><input type="checkbox" checked><div><div class="feed-name">9to5Mac</div><div class="feed-url">https://9to5mac.com/feed/</div></div><span class="folder-chip">Apple</span></div>
+                    <div class="feed-card"><input type="checkbox" checked><div><div class="feed-name">Stadt Bremerhaven</div><div class="feed-url">https://stadt-bremerhaven.de/feed/</div></div><span class="folder-chip">Tech</span></div>
+                    <div class="feed-card"><input type="checkbox" checked><div><div class="feed-name">Heise Online</div><div class="feed-url">https://www.heise.de/rss/heise-atom.xml</div></div><span class="folder-chip">Tech</span></div>
+                    <div class="feed-card"><input type="checkbox"><div><div class="feed-name">The Verge</div><div class="feed-url">https://www.theverge.com/rss/index.xml</div></div><span class="folder-chip">News</span></div>
+                    <div class="feed-card"><input type="checkbox"><div><div class="feed-name">Smashing Magazine</div><div class="feed-url">https://www.smashingmagazine.com/feed/</div></div><span class="folder-chip">Design</span></div>
+                  </div>
+                </div>
+                <div class="panel" data-step="2">
+                  <h1>Starter-Set wird angelegt.</h1>
+                  <p class="lead">Diese Variante sollte nur umgesetzt werden, wenn wir eine bewusst kuratierte, wartbare Feed-Liste pflegen wollen.</p>
+                  <div class="review-grid">
+                    <div class="review-card"><div class="review-number">4</div><div class="review-label">Feeds ausgewaehlt</div></div>
+                    <div class="review-card"><div class="review-number">2</div><div class="review-label">Ordner werden erstellt</div></div>
+                    <div class="review-card"><div class="review-number">60</div><div class="review-label">Minuten Refresh-Default</div></div>
+                  </div>
+                  <div class="finish-box">
+                    <strong>Risiko:</strong> Feed-Empfehlungen muessen gepflegt werden. Sonst fuehlt sich der Einstieg schnell alt an.
+                  </div>
+                </div>
+              </div>
+              <div class="footer">
+                <div class="footer-left">Variante C: freundlich fuer neue RSS-Leser</div>
+                <div class="footer-actions">
+                  <button class="ghost" data-demo-toast="Stattdessen OPML importieren">OPML importieren</button>
+                  <button class="secondary" data-prev>Zurueck</button>
+                  <button class="primary" data-next>Weiter</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast" id="toast">Aktion</div>
+
+  <script>
+    const toast = document.getElementById("toast");
+    let toastTimer = null;
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove("show"), 1800);
+    }
+
+    document.querySelectorAll(".variant-button").forEach((button) => {
+      button.addEventListener("click", () => {
+        const variant = button.dataset.variant;
+        document.querySelectorAll(".variant-button").forEach((item) => item.classList.remove("active"));
+        document.querySelectorAll(".prototype").forEach((item) => item.classList.remove("active"));
+        button.classList.add("active");
+        document.getElementById(`variant-${variant}`).classList.add("active");
+      });
+    });
+
+    document.querySelectorAll("[data-wizard]").forEach((wizard) => {
+      let step = 0;
+      let inputStep = 2;
+      const panels = Array.from(wizard.querySelectorAll(".panel"));
+      const labels = Array.from(wizard.querySelectorAll(".step-item"));
+      const prev = wizard.querySelector("[data-prev]");
+      const next = wizard.querySelector("[data-next]");
+      const footerOptions = Array.from(wizard.querySelectorAll("[data-footer-step]"));
+
+      function render() {
+        panels.forEach((panel, index) => panel.classList.toggle("active", index === step));
+        labels.forEach((label, index) => label.classList.toggle("active", index === step));
+        footerOptions.forEach((item) => item.classList.toggle("active", Number(item.dataset.footerStep) === step));
+        prev.disabled = step === 0;
+        next.textContent = step === panels.length - 1 ? "Starten" : "Weiter";
+      }
+
+      prev.addEventListener("click", () => {
+        step = Math.max(0, step - 1);
+        render();
+      });
+
+      next.addEventListener("click", () => {
+        if (step === panels.length - 1) {
+          showToast("Wizard abgeschlossen");
+          return;
+        }
+
+        const activePanel = panels[step];
+        const selectedStartChoice = activePanel.querySelector(".choice-card.selected[data-jump-step]");
+        if (selectedStartChoice) {
+          const targetStep = Number(selectedStartChoice.dataset.jumpStep);
+          inputStep = targetStep;
+          step = targetStep;
+          render();
+          return;
+        }
+
+        if (activePanel.dataset.nextStep) {
+          const nextStep = Number(activePanel.dataset.nextStep);
+          inputStep = step;
+          step = nextStep;
+          render();
+          return;
+        }
+
+        step = Math.min(panels.length - 1, step + 1);
+        render();
+      });
+
+      wizard.querySelectorAll("[data-jump-to-input]").forEach((button) => {
+        button.addEventListener("click", () => {
+          step = inputStep;
+          render();
+        });
+      });
+
+      labels.forEach((label, index) => {
+        label.addEventListener("click", () => {
+          step = index;
+          render();
+        });
+      });
+
+      render();
+    });
+
+    document.querySelectorAll(".choice-card").forEach((card) => {
+      card.addEventListener("click", () => {
+        card.parentElement.querySelectorAll(".choice-card").forEach((item) => item.classList.remove("selected"));
+        card.classList.add("selected");
+      });
+    });
+
+    document.querySelectorAll(".switch").forEach((button) => {
+      button.addEventListener("click", () => button.classList.toggle("on"));
+    });
+
+    document.querySelectorAll("[data-demo-toast]").forEach((element) => {
+      element.addEventListener("click", () => showToast(element.dataset.demoToast));
+    });
+
+    document.querySelectorAll("[data-load-import]").forEach((dropZone) => {
+      dropZone.addEventListener("click", () => {
+        dropZone.classList.add("active");
+        showToast("OPML-Vorschau wird vorbereitet");
+      });
+    });
+
+    document.querySelectorAll(".seg").forEach((button) => {
+      button.addEventListener("click", () => {
+        const filter = button.dataset.filter;
+        const panel = button.closest(".panel");
+        panel.querySelectorAll(".seg").forEach((item) => item.classList.remove("active"));
+        button.classList.add("active");
+        panel.querySelectorAll(".row[data-status]").forEach((row) => {
+          row.style.display = filter === "all" || row.dataset.status === filter ? "grid" : "none";
+        });
+      });
+    });
+
+    document.querySelectorAll(".topic").forEach((topic) => {
+      topic.addEventListener("click", () => topic.classList.toggle("active"));
+    });
+  </script>
+</body>
+</html>

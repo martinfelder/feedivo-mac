@@ -195,8 +195,10 @@ M4 Polish & Release:
 - iCloud Sync wurde bewusst nach M4 verschoben, damit Sync zusammen mit Release-,
   Cache- und Import-Polish geplant und getestet werden kann.
 - M4-Basis umgesetzt: Erweiterter OPML-Import-Dialog, Offline Mode Phase 1
-  mit manuellem Speichern/Entfernen einzelner Artikel und Bild-/Favicon-Cache.
-- Naechster Fokus: Offline-Automatik/Speicherverwaltung, Onboarding oder iCloud Sync.
+  mit manuellem Speichern/Entfernen einzelner Artikel, Bild-/Favicon-Cache und
+  First-Run-Wizard fuer den leeren App-Start.
+- Naechster Fokus: Offline-Automatik/Speicherverwaltung, iCloud Sync oder Release-
+  Vorbereitung.
 
 ---
 
@@ -379,12 +381,15 @@ M4 Polish & Release:
   `offlineSavedAt` und `offlineErrorMessage` halten den Offline-Zustand pro Artikel
   nachvollziehbar fest. Reader und Artikelliste zeigen verfuegbar/fehlgeschlagen
   sichtbar an.
-- Bewusst nicht in Phase 1: Automatisches Herunterladen, Readability-Extraktion,
-  Bild-/Favicon-Cache, Speicherlimit und Cache-Aufraeumen. Diese Punkte bleiben
-  wegen Paywalls, Cookie-Bannern, kaputtem HTML, Performance, Speicher und
-  Quellen-Unterschieden eigene M4-Folgepunkte.
+- Implementiert: Beim Feed-Loeschen werden Artikel mit passender `feedID` explizit
+  entfernt. Beim App-Start entfernt `OrphanedArticleCleanupService` verwaiste
+  Artikel, deren `feedID` zu keinem existierenden Feed mehr gehoert, damit Smart-
+  Filter keine alten Offline-Reste anzeigen.
+- Bewusst nicht in Phase 1: Automatisches Herunterladen und Readability-Extraktion.
+  Diese Punkte bleiben wegen Paywalls, Cookie-Bannern, kaputtem HTML, Performance,
+  Speicher und Quellen-Unterschieden eigene M4-Folgepunkte.
 - Abgrenzung: Bilddaten bleiben nicht in SwiftData; lokaler Bild- und Favicon-Cache
-  ist als M4-Thema separat geplant.
+  ist inzwischen als M4-Basis umgesetzt.
 
 ### 2. Artikel-Liste
 
@@ -663,6 +668,34 @@ M4 Polish & Release:
 - Prioritaet: v1
 - Umsetzung: Exportiert die aktuelle Feed-Liste als OPML 2.0 mit gruppierten Feeds
   und XML-escaping.
+
+### 7.4 First-Run-Wizard / Onboarding
+- Status: Fertig als M4-Basis
+- Prioritaet: M4/v1
+- Umsetzung: Wenn Feedivo ohne Feeds startet, erscheint ein First-Run-Wizard nach
+  Prototyp Variante A. Ein frueherer Abschluss verhindert den Wizard nicht, wenn
+  die App wieder vollstaendig leer ist.
+- UI: Die App-Umsetzung folgt der Prototyp-Struktur mit macOS-artiger Titlebar,
+  linker Step-Rail, rechtem H1/Lead-Content und Footer-Aktionen.
+- Flow: Startscreen mit `Feed hinzufügen`, `OPML importieren` und `Später
+  einrichten`; einzelner Feed und OPML-Datei muenden zuerst in denselben
+  Import-/Pruefschritt und danach in eine kompakte Review.
+- Import/Pruefung: Feed-Pruefung, Statusfilter fuer neue/Duplikate/nicht erreichbare
+  Feeds, Auswahl einzelner Feeds, Ordnerzuordnung, Ordneranlage, optionaler Import
+  von Duplikaten und nicht erreichbaren Feeds.
+- Review: Zeigt nur eine Zusammenfassung der vorherigen Auswahl und einen Link
+  zurueck zur Import-Oberflaeche; die Feed-Liste wird nicht erneut dupliziert.
+- Copy: Die sichtbaren Texte erklaeren pro Schritt, was der Benutzer sieht,
+  einstellt und beim naechsten Klick ausloest. Interne Prototyp-/Technikbegriffe
+  werden in der UI vermieden.
+- Datei-Handling: OPML-Dateien koennen im Wizard ausgewaehlt oder direkt per Drag &
+  Drop abgelegt werden.
+- Abschluss: Wizard bietet erste Defaults fuer Auto-Gelesen-Markierung und
+  Background Refresh. Nach dem Import folgt ein Fertig-Screen mit Zusammenfassung
+  importierter Feeds, verwendeter Ordner und Hinweisen zu Duplikaten, nicht
+  erreichbaren Feeds oder Refresh-/Speicherproblemen. Das `@AppStorage`-Flag wird
+  erst gesetzt, wenn der Benutzer aktiv auf `Starten` klickt; `Später` blendet den
+  Wizard nur fuer die aktuelle App-Sitzung aus.
 
 ### 8. Einstellungen
 

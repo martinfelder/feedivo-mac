@@ -10,6 +10,9 @@
     "#%@" : {
 
     },
+    "%lld" : {
+
+    },
     "%lld px" : {
 
     },
@@ -20,6 +23,9 @@
 
     },
     "Alle auswählen" : {
+
+    },
+    "Andere OPML wählen" : {
 
     },
     "article.copyLink.command" : {
@@ -414,90 +420,6 @@
         }
       }
     },
-    "offline.error.emptyDownloadedContent" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Der geladene Artikel enthält keinen lesbaren Inhalt."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The downloaded article has no readable content."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "L'article téléchargé ne contient aucun contenu lisible."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "L'articolo scaricato non contiene contenuti leggibili."
-          }
-        }
-      }
-    },
-    "offline.error.missingOriginalURL" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Der Artikel hat keine gültige Original-Adresse."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The article has no valid original URL."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "L'article n'a pas d'adresse originale valide."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "L'articolo non ha un indirizzo originale valido."
-          }
-        }
-      }
-    },
-    "offline.error.unreachable" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Der Artikel ist nicht erreichbar (HTTP %lld)."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The article is unreachable (HTTP %lld)."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "L'article est inaccessible (HTTP %lld)."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "L'articolo non è raggiungibile (HTTP %lld)."
-          }
-        }
-      }
-    },
     "articleRow.unread" : {
       "localizations" : {
         "de" : {
@@ -525,6 +447,9 @@
           }
         }
       }
+    },
+    "Auswahl bearbeiten" : {
+
     },
     "common.add" : {
       "localizations" : {
@@ -725,6 +650,12 @@
     "Datei auswählen..." : {
 
     },
+    "Die ausgewählten Feeds wurden gespeichert. Hinweise zeigen dir, was noch Aufmerksamkeit braucht." : {
+
+    },
+    "Diese Feeds werden gespeichert, wenn du fortfährst. Über „Auswahl bearbeiten“ kommst du zurück zur Liste." : {
+
+    },
     "Duplikate importieren" : {
 
     },
@@ -732,6 +663,9 @@
 
     },
     "Feed" : {
+
+    },
+    "Feed prüfen" : {
 
     },
     "feed.add.command" : {
@@ -2137,13 +2071,31 @@
     "Feedivo" : {
 
     },
+    "Feedivo einrichten" : {
+
+    },
     "Feeds aus OPML importieren" : {
 
     },
     "Feeds nach Import direkt aktualisieren" : {
 
     },
+    "Hinweise" : {
+
+    },
+    "https://example.com/feed.xml" : {
+
+    },
+    "Import abgeschlossen" : {
+
+    },
+    "Import abgeschlossen mit Hinweisen" : {
+
+    },
     "Import-Vorschau wird vorbereitet" : {
+
+    },
+    "Import-Zusammenfassung" : {
 
     },
     "Neuer Ordner" : {
@@ -2152,10 +2104,103 @@
     "Nicht erreichbare Feeds importieren" : {
 
     },
+    "Nicht erreichbare importieren" : {
+
+    },
+    "oder Datei auswählen. Feedivo zeigt dir danach zuerst eine Vorschau." : {
+
+    },
+    "offline.error.emptyDownloadedContent" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der geladene Artikel enthält keinen lesbaren Inhalt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The downloaded article has no readable content."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'article téléchargé ne contient aucun contenu lisible."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'articolo scaricato non contiene contenuti leggibili."
+          }
+        }
+      }
+    },
+    "offline.error.missingOriginalURL" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Artikel hat keine gültige Original-Adresse."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The article has no valid original URL."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'article n'a pas d'adresse originale valide."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'articolo non ha un indirizzo originale valido."
+          }
+        }
+      }
+    },
+    "offline.error.unreachable" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Artikel ist nicht erreichbar (HTTP %lld)."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The article is unreachable (HTTP %lld)."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'article est inaccessible (HTTP %lld)."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'articolo non è raggiungibile (HTTP %lld)."
+          }
+        }
+      }
+    },
     "Ohne Ordner" : {
 
     },
     "OPML" : {
+
+    },
+    "OPML oder XML hier ablegen" : {
 
     },
     "OPML-Datei hier ablegen" : {
@@ -2926,34 +2971,6 @@
         }
       }
     },
-    "reader.openOriginal" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Original öffnen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Open original"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ouvrir l'original"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apri originale"
-          }
-        }
-      }
-    },
     "reader.offline.failed" : {
       "localizations" : {
         "de" : {
@@ -3150,6 +3167,34 @@
         }
       }
     },
+    "reader.openOriginal" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Original öffnen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open original"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir l'original"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apri originale"
+          }
+        }
+      }
+    },
     "reader.readingTime" : {
       "localizations" : {
         "de" : {
@@ -3261,6 +3306,9 @@
           }
         }
       }
+    },
+    "Refresh-Intervall" : {
+
     },
     "rule.applyExisting.button" : {
       "localizations" : {
@@ -4718,118 +4766,6 @@
         }
       }
     },
-    "settings.feeds.articleCount.help" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Artikelanzahl"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Article count"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nombre d'articles"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Numero articoli"
-          }
-        }
-      }
-    },
-    "settings.feeds.clearSelection" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Auswahl aufheben"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Clear selection"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Effacer la sélection"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cancella selezione"
-          }
-        }
-      }
-    },
-    "settings.feeds.deleteConfirmation.message" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld Feed(s) und deren Artikel werden gelöscht."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld feed(s) and their articles will be deleted."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld flux et leurs articles seront supprimés."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld feed e i relativi articoli saranno eliminati."
-          }
-        }
-      }
-    },
-    "settings.feeds.deleteConfirmation.title" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Feeds löschen?"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete feeds?"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Supprimer les flux ?"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Eliminare i feed?"
-          }
-        }
-      }
-    },
     "settings.cache.clear" : {
       "localizations" : {
         "de" : {
@@ -5078,6 +5014,118 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cache"
+          }
+        }
+      }
+    },
+    "settings.feeds.articleCount.help" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Artikelanzahl"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Article count"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nombre d'articles"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Numero articoli"
+          }
+        }
+      }
+    },
+    "settings.feeds.clearSelection" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auswahl aufheben"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear selection"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Effacer la sélection"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancella selezione"
+          }
+        }
+      }
+    },
+    "settings.feeds.deleteConfirmation.message" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld Feed(s) und deren Artikel werden gelöscht."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld feed(s) and their articles will be deleted."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld flux et leurs articles seront supprimés."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld feed e i relativi articoli saranno eliminati."
+          }
+        }
+      }
+    },
+    "settings.feeds.deleteConfirmation.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feeds löschen?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete feeds?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprimer les flux ?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminare i feed?"
           }
         }
       }
@@ -6454,7 +6502,13 @@
         }
       }
     },
+    "Später" : {
+
+    },
     "Status" : {
+
+    },
+    "Statusfilter" : {
 
     },
     "tagManager.color" : {
@@ -6794,6 +6848,9 @@
       }
     },
     "Website" : {
+
+    },
+    "Zurück" : {
 
     }
   },

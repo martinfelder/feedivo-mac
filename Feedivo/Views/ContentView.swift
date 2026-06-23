@@ -4,6 +4,7 @@ import UniformTypeIdentifiers
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
+    @AppStorage(FirstRunWizardState.completionStorageKey) private var hasCompletedFirstRunWizard = false
     @Query(sort: \Feed.title) private var feeds: [Feed]
     @Query(sort: \Tag.name) private var tags: [Tag]
 
@@ -29,6 +30,8 @@ struct ContentView: View {
     @State private var opmlAlert: OPMLAlert?
     @State private var articleForRuleCreation: Article?
     @State private var isMetadataInspectorPresented = false
+    @State private var isShowingFirstRunWizard = false
+    @State private var isFirstRunWizardDismissedForSession = false
 
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
@@ -102,6 +105,15 @@ struct ContentView: View {
             selectedArticle = nil
             articleNavigationState = .empty
         }
+        .onAppear {
+            updateFirstRunWizardPresentation()
+        }
+        .onChange(of: feeds.count) {
+            updateFirstRunWizardPresentation()
+        }
+        .onChange(of: hasCompletedFirstRunWizard) {
+            updateFirstRunWizardPresentation()
+        }
         .sheet(isPresented: $isShowingAddFeedSheet) {
             AddFeedSheet()
         }
@@ -109,6 +121,14 @@ struct ContentView: View {
             OPMLImportReviewView(
                 feeds: feeds,
                 feedViewModel: feedViewModel
+            )
+        }
+        .sheet(isPresented: $isShowingFirstRunWizard) {
+            FirstRunWizardView(
+                feeds: feeds,
+                feedViewModel: feedViewModel,
+                onSkip: skipFirstRunWizardForSession,
+                onComplete: completeFirstRunWizard
             )
         }
         .sheet(item: $articleForRuleCreation) { article in
@@ -202,10 +222,12 @@ struct ContentView: View {
     }
 
     private func requestAddFeed() {
+        isShowingFirstRunWizard = false
         isShowingAddFeedSheet = true
     }
 
     private func requestImportOPML() {
+        isShowingFirstRunWizard = false
         isShowingOPMLImportReview = true
     }
 
@@ -222,6 +244,45 @@ struct ContentView: View {
 
     private func requestCreateRuleFromArticle(_ article: Article) {
         articleForRuleCreation = article
+    }
+
+    private func updateFirstRunWizardPresentation() {
+        if FirstRunWizardState.shouldKeepPresentedUntilUserStarts(
+            isPresented: isShowingFirstRunWizard,
+            wasDismissedThisSession: isFirstRunWizardDismissedForSession
+        ) {
+            return
+        }
+
+        let shouldShowWizard = FirstRunWizardState.shouldPresent(
+            feedCount: feeds.count,
+            hasCompletedWizard: hasCompletedFirstRunWizard,
+            wasDismissedThisSession: isFirstRunWizardDismissedForSession
+        )
+
+        if feeds.count > 0 {
+            isFirstRunWizardDismissedForSession = false
+        }
+
+        guard shouldShowWizard else {
+            isShowingFirstRunWizard = false
+            return
+        }
+
+        if !isShowingAddFeedSheet && !isShowingOPMLImportReview && articleForRuleCreation == nil {
+            isShowingFirstRunWizard = true
+        }
+    }
+
+    private func completeFirstRunWizard() {
+        FirstRunWizardState.markCompleted(&hasCompletedFirstRunWizard)
+        isFirstRunWizardDismissedForSession = true
+        isShowingFirstRunWizard = false
+    }
+
+    private func skipFirstRunWizardForSession() {
+        isFirstRunWizardDismissedForSession = true
+        isShowingFirstRunWizard = false
     }
 
     private func deleteFeed(_ feed: Feed) {
