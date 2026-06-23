@@ -1,7 +1,9 @@
 import SwiftUI
+import SwiftData
 
 struct ReaderView: View {
     @Environment(\.interfaceTextSize) private var interfaceTextSize
+    @Environment(\.modelContext) private var modelContext
 
     let article: Article
     @Binding var isMetadataInspectorPresented: Bool
@@ -9,7 +11,7 @@ struct ReaderView: View {
     let canSelectNextArticle: Bool
     let selectPreviousArticle: () -> Void
     let selectNextArticle: () -> Void
-    private let preparedArticle: ReaderPreparedArticle
+    @State private var preparedArticle: ReaderPreparedArticle
 
     init(
         article: Article,
@@ -25,7 +27,7 @@ struct ReaderView: View {
         self.canSelectNextArticle = canSelectNextArticle
         self.selectPreviousArticle = selectPreviousArticle
         self.selectNextArticle = selectNextArticle
-        self.preparedArticle = ReaderPreparedArticle(article: article)
+        self._preparedArticle = State(initialValue: ReaderPreparedArticle(article: article))
     }
 
     @AppStorage("readerTitleFontPreset")
@@ -51,6 +53,8 @@ struct ReaderView: View {
 
     @State private var isAppearancePopoverPresented = false
     @State private var viewModel = ArticleViewModel()
+    @State private var offlineDownloadService = OfflineDownloadService()
+    @State private var isOfflineOperationInProgress = false
 
     private var titleFontPreset: ReaderFontPreset {
         ReaderFontPreset.resolved(from: titleFontPresetRawValue)
@@ -128,6 +132,22 @@ struct ReaderView: View {
         preparedArticle.offlineAvailability == .summaryOnly
     }
 
+    private var shouldShowOfflineStatusNotice: Bool {
+        isOfflineOperationInProgress || article.offlineState != .none
+    }
+
+    private var offlineActionTitle: LocalizedStringKey {
+        article.offlineState.isAvailable ? L10n.readerOfflineRemove : L10n.readerOfflineSave
+    }
+
+    private var offlineActionSystemImage: String {
+        if isOfflineOperationInProgress {
+            return "arrow.down.circle"
+        }
+
+        return article.offlineState.isAvailable ? "checkmark.circle.fill" : "arrow.down.circle"
+    }
+
     private var metadataText: String {
         preparedArticle.metadataText
     }
@@ -182,6 +202,23 @@ struct ReaderView: View {
                 }
                 .help(L10n.articleOpenOriginalCommand)
                 .disabled(originalURL == nil)
+            }
+
+            ToolbarItem {
+                Button {
+                    Task {
+                        await toggleOfflineAvailability()
+                    }
+                } label: {
+                    if isOfflineOperationInProgress {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else {
+                        Image(systemName: offlineActionSystemImage)
+                    }
+                }
+                .help(offlineActionTitle)
+                .disabled(isOfflineOperationInProgress)
             }
 
             ToolbarItem {
@@ -255,6 +292,10 @@ struct ReaderView: View {
                     summaryOnlyOfflineNotice
                 }
 
+                if shouldShowOfflineStatusNotice {
+                    offlineStatusNotice
+                }
+
                 ForEach(contentBlocks.indices, id: \.self) { index in
                     VStack(alignment: .leading, spacing: imageTextDividerSpacing) {
                         readerContentBlock(contentBlocks[index])
@@ -281,6 +322,86 @@ struct ReaderView: View {
             .padding(.vertical, 8)
             .padding(.horizontal, 10)
             .background(.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    private var offlineStatusNotice: some View {
+        Label {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(offlineStatusTitle)
+
+                if let message = offlineStatusDetail {
+                    Text(message)
+                        .font(interfaceTextSize.font(size: 11))
+                        .foregroundStyle(.secondary)
+                }
+            }
+        } icon: {
+            Image(systemName: offlineStatusSystemImage)
+        }
+        .font(interfaceTextSize.font(size: 12, weight: .medium))
+        .foregroundStyle(offlineStatusForegroundStyle)
+        .padding(.vertical, 8)
+        .padding(.horizontal, 10)
+        .background(offlineStatusBackgroundStyle, in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    private var offlineStatusTitle: LocalizedStringKey {
+        if isOfflineOperationInProgress {
+            return L10n.readerOfflineSaving
+        }
+
+        switch article.offlineState {
+        case .fullText:
+            return L10n.readerOfflineFullTextAvailable
+        case .feedContent:
+            return L10n.readerOfflineFeedContentAvailable
+        case .failed:
+            return L10n.readerOfflineFailed
+        case .none:
+            return L10n.readerOfflineNotSaved
+        }
+    }
+
+    private var offlineStatusDetail: String? {
+        if article.offlineState == .failed {
+            return article.offlineErrorMessage
+        }
+
+        guard let savedAt = article.offlineSavedAt else {
+            return nil
+        }
+
+        return savedAt.feedivoRelativeDisplay
+    }
+
+    private var offlineStatusSystemImage: String {
+        if isOfflineOperationInProgress {
+            return "arrow.down.circle"
+        }
+
+        switch article.offlineState {
+        case .fullText, .feedContent:
+            return "checkmark.circle.fill"
+        case .failed:
+            return "exclamationmark.triangle.fill"
+        case .none:
+            return "arrow.down.circle"
+        }
+    }
+
+    private var offlineStatusForegroundStyle: Color {
+        switch article.offlineState {
+        case .failed:
+            return .orange
+        case .fullText, .feedContent:
+            return .green
+        case .none:
+            return .secondary
+        }
+    }
+
+    private var offlineStatusBackgroundStyle: Color {
+        offlineStatusForegroundStyle.opacity(0.1)
     }
 
     private var readerHeader: some View {
@@ -572,5 +693,23 @@ struct ReaderView: View {
             .frame(maxHeight: leadImageMaxHeight)
             .clipShape(RoundedRectangle(cornerRadius: 8))
         }
+    }
+
+    private func toggleOfflineAvailability() async {
+        guard !isOfflineOperationInProgress else {
+            return
+        }
+
+        isOfflineOperationInProgress = true
+
+        if article.offlineState.isAvailable {
+            offlineDownloadService.removeOfflineContent(from: article)
+        } else {
+            await offlineDownloadService.saveForOffline(article)
+        }
+
+        preparedArticle = ReaderPreparedArticle(article: article)
+        try? modelContext.save()
+        isOfflineOperationInProgress = false
     }
 }

@@ -39,6 +39,8 @@ struct ArticleRowView: View {
             VStack {
                 unreadIndicator
 
+                offlineIndicator
+
                 Spacer(minLength: 8)
 
                 Button(action: onToggleStarred) {
@@ -126,6 +128,24 @@ struct ArticleRowView: View {
                 .fill(.blue)
                 .frame(width: 8, height: 8)
                 .help(L10n.articleRowUnreadText)
+        }
+    }
+
+    @ViewBuilder
+    private var offlineIndicator: some View {
+        switch article.offlineState {
+        case .fullText, .feedContent:
+            Image(systemName: "arrow.down.circle.fill")
+                .font(interfaceTextSize.font(size: 11, weight: .semibold))
+                .foregroundStyle(.green)
+                .help(L10n.articleRowOfflineAvailable)
+        case .failed:
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(interfaceTextSize.font(size: 10, weight: .semibold))
+                .foregroundStyle(.orange)
+                .help(L10n.articleRowOfflineFailed)
+        case .none:
+            EmptyView()
         }
     }
 

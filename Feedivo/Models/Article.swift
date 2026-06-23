@@ -1,6 +1,17 @@
 import Foundation
 import SwiftData
 
+enum ArticleOfflineState: String, CaseIterable, Codable {
+    case none
+    case feedContent
+    case fullText
+    case failed
+
+    var isAvailable: Bool {
+        self == .feedContent || self == .fullText
+    }
+}
+
 // Article repräsentiert einen einzelnen Artikel aus einem Feed
 @Model
 class Article {
@@ -14,6 +25,20 @@ class Article {
     var feedID: UUID?
     var isRead: Bool
     var isStarred: Bool
+    var offlineStateRaw: String = ArticleOfflineState.none.rawValue
+    var offlineContent: String?
+    var offlineRequestedAt: Date?
+    var offlineSavedAt: Date?
+    var offlineErrorMessage: String?
+
+    var offlineState: ArticleOfflineState {
+        get {
+            ArticleOfflineState(rawValue: offlineStateRaw) ?? .none
+        }
+        set {
+            offlineStateRaw = newValue.rawValue
+        }
+    }
 
     @Relationship
     var feed: Feed?
@@ -42,6 +67,11 @@ class Article {
         self.feedID = feed?.id
         self.isRead = isRead
         self.isStarred = isStarred
+        self.offlineStateRaw = ArticleOfflineState.none.rawValue
+        self.offlineContent = nil
+        self.offlineRequestedAt = nil
+        self.offlineSavedAt = nil
+        self.offlineErrorMessage = nil
         self.feed = feed
         self.tags = []
     }

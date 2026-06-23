@@ -86,10 +86,10 @@ bei geschlossener App.
 - Reader-Rendering wandelt HTML/Plain-Text in Absätze und Bildbloecke; das Lead-Bild
   steht immer direkt unter dem Titel. `Article.imageURL` gewinnt, sonst wird das
   erste HTML-Bild nach vorne gezogen.
-- Offline-Basis ist umgesetzt: Feed-gelieferter `Article.content` wird in SwiftData
-  gespeichert, spaeter gelieferter Volltext wird bei bestehenden Artikeln
-  nachgetragen, und der Reader zeigt einen dezenten Hinweis, wenn offline nur die
-  Feed-Zusammenfassung vorhanden ist.
+- Offline Mode Phase 1 ist umgesetzt: Feed-gelieferter `Article.content` wird in
+  SwiftData gespeichert, spaeter gelieferter Volltext wird bei bestehenden Artikeln
+  nachgetragen, Artikel koennen im Reader manuell offline gespeichert/entfernt
+  werden, und Reader sowie Artikelliste zeigen den Offline-Status.
 - ArticleRowView zeigt Titel, Datum, Summary, optionales Bild, Ungelesen-Punkt
   rechts oben und Stern rechts unten.
 - Artikelbilder werden beim Feed-Parsing robuster aus Media RSS, iTunes Image,
@@ -194,8 +194,10 @@ M4 Polish & Release:
   Background-Refresh-Status und Offline-Basis sind als M3-Basis abgeschlossen.
 - iCloud Sync wurde bewusst nach M4 verschoben, damit Sync zusammen mit Release-,
   Cache- und Import-Polish geplant und getestet werden kann.
-- Naechster Fokus: M4-Prioritaet festlegen, z.B. erweiterter OPML-Import,
-  Bild-/Favicon-Cache, Onboarding oder iCloud Sync.
+- M4-Basis umgesetzt: Erweiterter OPML-Import-Dialog und Offline Mode Phase 1
+  mit manuellem Speichern/Entfernen einzelner Artikel.
+- Naechster Fokus: Bild-/Favicon-Cache, Offline-Automatik/Speicherverwaltung,
+  Onboarding oder iCloud Sync.
 
 ---
 
@@ -359,9 +361,9 @@ M4 Polish & Release:
 - Prioritaet: v1
 - Empfehlung: Erst nach Tag- und Regel-Basis. Vorausfuellen aus Feed, Titel-Wort und URL.
 
-#### 1.12 Offline-Basis
-- Status: Fertig als Basis
-- Prioritaet: M3/v1
+#### 1.12 Offline Mode
+- Status: Fertig als Phase 1
+- Prioritaet: M4/v1
 - Implementiert: Feed-gelieferter Volltext/HTML-Content wird als `Article.content`
   in SwiftData gespeichert und vom nativen Reader vor der Summary genutzt.
 - Implementiert: Wenn ein bestehender Artikel beim spaeteren Refresh erstmals
@@ -370,9 +372,18 @@ M4 Polish & Release:
 - Implementiert: Wenn nur eine Summary offline vorhanden ist, zeigt der native Reader
   einen dezenten Hinweis und verweist auf `Original oeffnen` fuer den vollstaendigen
   Artikel.
-- Bewusst nicht in M3: Automatisches Herunterladen und Extrahieren kompletter
-  Webseiten. Das bleibt wegen Paywalls, Cookie-Bannern, kaputtem HTML, Performance
-  und Quellen-Unterschieden ein separates spaeteres Thema.
+- Implementiert: Artikel koennen im Reader manuell offline gespeichert oder wieder
+  entfernt werden. Bestehender Feed-Content wird direkt als Offline-Kopie markiert;
+  fehlt Feed-Content, laedt `OfflineDownloadService` die Original-URL und speichert
+  den geladenen HTML/Text in `Article.offlineContent`.
+- Implementiert: `Article.offlineStateRaw`, `offlineContent`, `offlineRequestedAt`,
+  `offlineSavedAt` und `offlineErrorMessage` halten den Offline-Zustand pro Artikel
+  nachvollziehbar fest. Reader und Artikelliste zeigen verfuegbar/fehlgeschlagen
+  sichtbar an.
+- Bewusst nicht in Phase 1: Automatisches Herunterladen, Readability-Extraktion,
+  Bild-/Favicon-Cache, Speicherlimit und Cache-Aufraeumen. Diese Punkte bleiben
+  wegen Paywalls, Cookie-Bannern, kaputtem HTML, Performance, Speicher und
+  Quellen-Unterschieden eigene M4-Folgepunkte.
 - Abgrenzung: Bilddaten bleiben nicht in SwiftData; lokaler Bild- und Favicon-Cache
   ist als M4-Thema separat geplant.
 

@@ -38,6 +38,13 @@ enum L10n {
     static let readerDisplayModeNative = LocalizedStringKey("reader.displayMode.native")
     static let readerDisplayModeWeb = LocalizedStringKey("reader.displayMode.web")
     static let readerSummaryOnlyOfflineNotice = LocalizedStringKey("reader.summaryOnlyOffline.notice")
+    static let readerOfflineSave = LocalizedStringKey("reader.offline.save")
+    static let readerOfflineRemove = LocalizedStringKey("reader.offline.remove")
+    static let readerOfflineSaving = LocalizedStringKey("reader.offline.saving")
+    static let readerOfflineFullTextAvailable = LocalizedStringKey("reader.offline.fullTextAvailable")
+    static let readerOfflineFeedContentAvailable = LocalizedStringKey("reader.offline.feedContentAvailable")
+    static let readerOfflineFailed = LocalizedStringKey("reader.offline.failed")
+    static let readerOfflineNotSaved = LocalizedStringKey("reader.offline.notSaved")
     static let readerInspectorButton = LocalizedStringKey("reader.inspector.button")
     static let readerInspectorTitle = LocalizedStringKey("reader.inspector.title")
     static let readerInspectorDescription = LocalizedStringKey("reader.inspector.description")
@@ -161,6 +168,8 @@ enum L10n {
     static var articleRowStarAdd: String { String(localized: "articleRow.star.add") }
     static var articleRowStarredText: String { String(localized: "articleRow.starred") }
     static var articleRowUnreadText: String { String(localized: "articleRow.unread") }
+    static var articleRowOfflineAvailable: String { String(localized: "articleRow.offline.available") }
+    static var articleRowOfflineFailed: String { String(localized: "articleRow.offline.failed") }
     static var articleRowMarkRead: String { String(localized: "articleRow.markRead") }
     static var articleRowMarkUnread: String { String(localized: "articleRow.markUnread") }
     static var articleCommandsMenu: String { String(localized: "articleCommands.menu") }

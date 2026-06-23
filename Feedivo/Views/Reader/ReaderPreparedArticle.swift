@@ -1,11 +1,25 @@
 import Foundation
 
 enum ReaderOfflineAvailability: Equatable {
+    case fullText
     case feedContent
     case summaryOnly
     case empty
 
-    static func resolved(content: String?, summary: String?) -> ReaderOfflineAvailability {
+    static func resolved(
+        offlineState: ArticleOfflineState,
+        offlineContent: String?,
+        content: String?,
+        summary: String?
+    ) -> ReaderOfflineAvailability {
+        if offlineState == .fullText, hasText(offlineContent) {
+            return .fullText
+        }
+
+        if offlineState == .feedContent, hasText(offlineContent) {
+            return .feedContent
+        }
+
         if hasText(content) {
             return .feedContent
         }
@@ -29,12 +43,16 @@ struct ReaderPreparedArticle {
     let offlineAvailability: ReaderOfflineAvailability
 
     init(article: Article) {
+        let preferredContent = ReaderPreparedArticle.preferredContent(for: article)
+
         self.contentBlocks = ReaderContentRenderer.blocks(
             summary: article.summary,
-            content: article.content,
+            content: preferredContent,
             fallbackImageURL: article.imageURL
         )
         self.offlineAvailability = ReaderOfflineAvailability.resolved(
+            offlineState: article.offlineState,
+            offlineContent: article.offlineContent,
             content: article.content,
             summary: article.summary
         )
@@ -42,7 +60,7 @@ struct ReaderPreparedArticle {
         self.metadataText = ReaderMetadataFormatter.metadataParts(
             feedName: article.feed?.title,
             readingTime: ReaderMetadataFormatter.readingTimeText(
-                content: article.content,
+                content: preferredContent,
                 summary: article.summary
             ),
             publishedAt: article.publishedAt
@@ -54,5 +72,23 @@ struct ReaderPreparedArticle {
         } else {
             self.originalURL = nil
         }
+    }
+
+    private static func preferredContent(for article: Article) -> String? {
+        if article.offlineState.isAvailable,
+           let offlineContent = normalizedText(article.offlineContent) {
+            return offlineContent
+        }
+
+        return article.content
+    }
+
+    private static func normalizedText(_ value: String?) -> String? {
+        guard let value else {
+            return nil
+        }
+
+        let trimmedValue = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmedValue.isEmpty ? nil : trimmedValue
     }
 }

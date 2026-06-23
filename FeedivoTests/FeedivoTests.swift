@@ -245,6 +245,22 @@ struct FeedivoTests {
         #expect(preparedArticle.offlineAvailability == .summaryOnly)
     }
 
+    @Test func readerPreparedArticleBevorzugtGespeichertenOfflineVolltext() {
+        let article = Article(
+            title: "Artikel",
+            link: "https://example.com/artikel",
+            summary: "Nur Kurzfassung",
+            content: "<p>Feed Text</p>"
+        )
+        article.offlineState = .fullText
+        article.offlineContent = "<article><p>Gespeicherter Volltext</p></article>"
+
+        let preparedArticle = ReaderPreparedArticle(article: article)
+
+        #expect(preparedArticle.contentBlocks == [.paragraph("Gespeicherter Volltext")])
+        #expect(preparedArticle.offlineAvailability == .fullText)
+    }
+
     @Test func readerTypographyBegrenztTitelZeilenabstandSeparat() {
         #expect(ReaderTypography.defaultTitleLineSpacing == 2)
         #expect(ReaderTypography.clampedTitleLineSpacing(-4) == 0)

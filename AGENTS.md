@@ -175,6 +175,7 @@ FeedivoMac/
 │   │   ├── ArticleFeedIDBackfillService.swift # feedID fuer alte Artikel nachfuellen ✅
 │   │   ├── FeedUnreadCountBackfillService.swift # unreadCount einmalig korrigieren ✅
 │   │   ├── RuleConditionBackfillService.swift # alte Rule-Felder in Conditions migrieren ✅
+│   │   ├── OfflineDownloadService.swift # Manueller Offline-Download pro Artikel ✅
 │   │   ├── FeedRefreshService.swift    # Alle Feeds abrufen (async, mit Fortschritt) (TODO)
 │   │   ├── RuleEngine.swift            # Mehrfach-Regeln auf neue Artikel anwenden ✅
 │   │   ├── OPMLService.swift           # OPML Import und Export ✅
@@ -704,6 +705,11 @@ sichtbar bleibt.
 - Die Metazeile oberhalb des Titels sowie Ordner-/Tag-Chips nutzen die App-
   Oberflaechenschrift (`interfaceTextSize`) statt der Reader-Schriftwahl, damit sie
   optisch zur restlichen App passen.
+- Toolbar-Button `arrow.down.circle` speichert den aktuellen Artikel manuell fuer
+  Offline-Lesen oder entfernt die Offline-Kopie wieder. Waehrend des Downloads zeigt
+  der Button einen Fortschrittsindikator.
+- Der Reader zeigt einen kompakten Offline-Status: Feed-Inhalt offline verfuegbar,
+  Volltext offline verfuegbar oder Fehler inklusive Fehlermeldung.
 - Nutzt `ReaderPreparedArticle`, damit Content/Summary, Metadaten und Original-URL
   pro ausgewaehltem Artikel einmal vorbereitet werden und SwiftUI-Redraws kein
   erneutes HTML-Rendering ausloesen
@@ -715,8 +721,22 @@ sichtbar bleibt.
 - Kapselt die vorbereiteten, teureren Reader-Daten fuer einen Artikel.
 - Berechnet native Content-Bloecke, Metazeile und gueltige Original-URL einmal beim
   Erzeugen von `ReaderView`, statt diese Werte bei jedem SwiftUI-Redraw neu aufzubauen.
-- Erkennt, ob offline echter Feed-Content, nur eine Summary oder gar kein Text
-  verfuegbar ist; der Reader nutzt diese Information fuer den Summary-Hinweis.
+- Bevorzugt explizit gespeicherten `Article.offlineContent` vor Feed-Content und
+  Summary, damit manuell offline gespeicherte Artikel direkt im nativen Reader
+  erscheinen.
+- Erkennt, ob offline geladener Volltext, Feed-Content, nur eine Summary oder gar
+  kein Text verfuegbar ist; der Reader nutzt diese Information fuer Statushinweise.
+
+### OfflineDownloadService.swift
+- Speichert Artikel manuell fuer Offline-Lesen.
+- Nutzt vorhandenen `Article.content` sofort als Offline-Content, wenn der Feed
+  bereits Volltext liefert.
+- Laedt andernfalls die Original-URL per `URLSession` und speichert den geladenen
+  HTML/Text in `Article.offlineContent`.
+- Schreibt Status, Zeitpunkt und Fehlermeldung direkt auf den Artikel:
+  `none`, `feedContent`, `fullText` oder `failed`.
+- Entfernt Offline-Daten bewusst getrennt von normalem Feed-Content, damit Feedivo
+  die vom Feed gelieferten Inhalte nicht verliert.
 
 ### ArticleMetadataInspectorView.swift
 - Einblendbarer rechter Inspector in der Artikelansicht.
@@ -839,6 +859,11 @@ sichtbar bleibt.
     var feedID: UUID?                        // Direkter Query-Key fuer schnelle Feed-Listen
     var isRead: Bool
     var isStarred: Bool
+    var offlineStateRaw: String              // none/feedContent/fullText/failed
+    var offlineContent: String?
+    var offlineRequestedAt: Date?
+    var offlineSavedAt: Date?
+    var offlineErrorMessage: String?
     @Relationship var feed: Feed?
     @Relationship var tags: [Tag]
 }
@@ -1073,6 +1098,9 @@ sichtbar bleibt.
   wählen, Duplikate/nicht erreichbare Feeds sichtbar markieren, optionalen
   Duplikat- und Problemfeed-Import erlauben, Statusfilter im Review-Table nutzen
   und Import-Zusammenfassung anzeigen
+- [x] Offline Mode Phase 1: Artikel manuell offline speichern/entfernen, Status im
+  Reader und in der Artikelliste anzeigen, Feed-Content oder geladene Originalseite
+  als `offlineContent` speichern
 - [ ] Einstellungen-Fenster (Refresh-Intervall, Schriftgrösse, Theme)
 - [ ] Bild- und Favicon-Cache: geladene Bilder lokal cachen, damit Artikelbilder
   und Favicons nach App-Neustart nicht jedes Mal neu geladen werden muessen
@@ -1111,8 +1139,8 @@ sichtbar bleibt.
 - Aktuell M4: Polish & Release. iCloud Sync wurde bewusst aus M3 nach M4 verschoben,
   damit Tags, Regeln, Background-Refresh-Status und Offline-Basis als abgeschlossene
   M3-Basis stabil bleiben. M4 umfasst jetzt iCloud Sync, erweiterten OPML-Import,
-  Bild-/Favicon-Cache, Settings-Polish, Share Extension, App-Icon, Onboarding und
-  Release-Vorbereitung.
+  manuellen Offline Mode, Bild-/Favicon-Cache, Settings-Polish, Share Extension,
+  App-Icon, Onboarding und Release-Vorbereitung.
 - Feature-Roadmap ist in `docs/FEATURES.md` dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
@@ -1426,3 +1454,8 @@ sichtbar bleibt.
 - 2026-06-22: OPML-Import-Dialog um Drag & Drop erweitert: `.opml`- und `.xml`-
   Dateien koennen direkt auf das Importfenster gezogen werden und starten dieselbe
   Preview wie die manuelle Datei-Auswahl.
+- 2026-06-22: Offline Mode Phase 1 umgesetzt: Artikel koennen im Reader manuell
+  offline gespeichert oder wieder entfernt werden. Feed-gelieferter Volltext wird
+  direkt als Offline-Content markiert; falls kein Feed-Content vorhanden ist, wird
+  die Original-URL geladen und in `Article.offlineContent` gespeichert. Reader und
+  Artikelliste zeigen Offline-Status beziehungsweise Fehler sichtbar an.
