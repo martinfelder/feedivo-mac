@@ -6,6 +6,7 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
     case appearance
     case feeds
     case cache
+    case offline
     case refresh
     case automation
     case sync
@@ -22,6 +23,8 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
             L10n.settingsFeedsSection
         case .cache:
             L10n.settingsCacheSection
+        case .offline:
+            L10n.settingsOfflineSection
         case .refresh:
             L10n.settingsRefreshSection
         case .automation:
@@ -41,6 +44,8 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
             "list.bullet.rectangle"
         case .cache:
             "photo.stack"
+        case .offline:
+            "arrow.down.circle"
         case .refresh:
             "arrow.clockwise"
         case .automation:
@@ -107,6 +112,8 @@ struct SettingsView: View {
             FeedManagementSettingsView()
         case .cache:
             CacheSettingsView()
+        case .offline:
+            OfflineReadingSettingsView()
         case .refresh:
             RefreshSettingsView()
         case .automation:
@@ -410,6 +417,66 @@ private struct CacheSettingsView: View {
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+}
+
+private struct OfflineReadingSettingsView: View {
+    var body: some View {
+        Form {
+            SettingsSectionHeader(
+                title: L10n.settingsOfflineSection,
+                description: L10n.settingsOfflineDescription
+            )
+
+            Section {
+                SettingsInformationRow(
+                    iconName: "arrow.down.circle",
+                    title: L10n.settingsOfflineManualTitle,
+                    description: L10n.settingsOfflineManualDescription
+                )
+
+                SettingsInformationRow(
+                    iconName: "doc.text",
+                    title: L10n.settingsOfflineFeedContentTitle,
+                    description: L10n.settingsOfflineFeedContentDescription
+                )
+
+                SettingsInformationRow(
+                    iconName: "gearshape.2",
+                    title: L10n.settingsOfflineAutomationTitle,
+                    description: L10n.settingsOfflineAutomationDescription
+                )
+            }
+        }
+        .formStyle(.grouped)
+    }
+}
+
+private struct SettingsInformationRow: View {
+    @Environment(\.interfaceTextSize) private var interfaceTextSize
+
+    let iconName: String
+    let title: LocalizedStringKey
+    let description: LocalizedStringKey
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: iconName)
+                .font(interfaceTextSize.font(size: 15, weight: .semibold))
+                .foregroundStyle(Color.accentColor)
+                .frame(width: 28, height: 28)
+                .background(Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 7))
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(interfaceTextSize.font(size: 13, weight: .semibold))
+                Text(description)
+                    .font(interfaceTextSize.font(size: 12))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(.vertical, 3)
     }
 }
 

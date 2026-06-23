@@ -285,25 +285,25 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Offline verfügbar"
+            "value" : "Offline-Kopie verfügbar"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Available offline"
+            "value" : "Offline copy available"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Disponible hors ligne"
+            "value" : "Copie hors ligne disponible"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Disponibile offline"
+            "value" : "Copia offline disponibile"
           }
         }
       }
@@ -3004,25 +3004,25 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Feed-Inhalt offline verfügbar"
+            "value" : "Feed-Inhalt lokal verfügbar"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Feed content available offline"
+            "value" : "Feed content available locally"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Contenu du flux disponible hors ligne"
+            "value" : "Contenu du flux disponible localement"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Contenuto del feed disponibile offline"
+            "value" : "Contenuto del feed disponibile localmente"
           }
         }
       }
@@ -3228,25 +3228,25 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Offline ist nur die Feed-Zusammenfassung gespeichert. Den vollstaendigen Artikel kannst du ueber Original oeffnen lesen."
+            "value" : "Vom Feed ist nur die Zusammenfassung vorhanden. Den vollständigen Artikel kannst du über Original öffnen lesen oder bewusst offline speichern."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Only the feed summary is saved offline. Open the original to read the full article."
+            "value" : "Only the feed summary is available. Open the original to read the full article, or save the article offline explicitly."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Seul le resume du flux est enregistre hors ligne. Ouvrez l'original pour lire l'article complet."
+            "value" : "Seul le résumé du flux est disponible. Ouvrez l’original pour lire l’article complet ou enregistrez-le explicitement hors ligne."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Offline e salvato solo il riepilogo del feed. Apri l'originale per leggere l'articolo completo."
+            "value" : "È disponibile solo il riepilogo del feed. Apri l’originale per leggere l’articolo completo oppure salvalo esplicitamente offline."
           }
         }
       }
@@ -5014,6 +5014,230 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cache"
+          }
+        }
+      }
+    },
+    "settings.offline.automation.description" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatisches Offline-Speichern nach Feed, Stern, Ungelesen-Status oder Zeitraum ist als eigener M4-Folgepunkt geplant."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatic offline saving by feed, star, unread state, or time range is planned as a separate M4 follow-up."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’enregistrement hors ligne automatique par flux, étoile, état non lu ou période est prévu comme suite M4 séparée."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il salvataggio offline automatico per feed, stella, stato non letto o periodo è previsto come seguito M4 separato."
+          }
+        }
+      }
+    },
+    "settings.offline.automation.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatik später"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automation later"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatisation plus tard"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automazione più avanti"
+          }
+        }
+      }
+    },
+    "settings.offline.description" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erklärt, was Feedivo wirklich offline speichert und was nur normal lokal verfügbar ist."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Explains what Feedivo really saves offline and what is only normally available locally."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Explique ce que Feedivo enregistre vraiment hors ligne et ce qui est seulement disponible localement."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spiega cosa Feedivo salva davvero offline e cosa è solo disponibile localmente."
+          }
+        }
+      }
+    },
+    "settings.offline.feedContent.description" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wenn ein Feed Volltext liefert, speichert Feedivo diesen Artikelinhalt normal in der Datenbank. Das ist keine bewusste Offline-Kopie."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When a feed provides full text, Feedivo stores that article content normally in the database. That is not an explicit offline copy."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lorsqu’un flux fournit le texte complet, Feedivo stocke normalement ce contenu dans la base de données. Ce n’est pas une copie hors ligne explicite."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quando un feed fornisce il testo completo, Feedivo salva normalmente quel contenuto nel database. Non è una copia offline esplicita."
+          }
+        }
+      }
+    },
+    "settings.offline.feedContent.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feed-Inhalt ist Basisinhalt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feed content is base content"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le contenu du flux est le contenu de base"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il contenuto del feed è contenuto di base"
+          }
+        }
+      }
+    },
+    "settings.offline.manual.description" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Reader-Button Offline speichern legt eine bewusste Kopie für genau diesen Artikel an und zeigt danach einen Status am Artikel."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The reader button Save offline creates an explicit copy for that article and then shows article-level status."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le bouton Enregistrer hors ligne du lecteur crée une copie explicite pour cet article et affiche ensuite son état."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il pulsante Salva offline nel reader crea una copia esplicita per quell’articolo e poi mostra lo stato dell’articolo."
+          }
+        }
+      }
+    },
+    "settings.offline.manual.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manuell pro Artikel"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manual per article"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manuel par article"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manuale per articolo"
+          }
+        }
+      }
+    },
+    "settings.offline.section" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Offline-Lesen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Offline Reading"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lecture hors ligne"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lettura offline"
           }
         }
       }

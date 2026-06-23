@@ -676,8 +676,8 @@ nicht mehr; `Später` blendet den Wizard nur fuer die aktuelle Sitzung aus.
 ### SettingsView.swift
 - macOS Settings-Szene in `FeedivoApp.swift`
 - Nutzt eine linke Kategorienavigation nach Prototyp Variante A statt eines langen
-  Formulars. Bereiche: Allgemein, Darstellung, Feeds, Cache, Aktualisierung,
-  Tags & Regeln und Sync.
+  Formulars. Bereiche: Allgemein, Darstellung, Feeds, Cache, Offline-Lesen,
+  Aktualisierung, Tags & Regeln und Sync.
 - Bestehende Optionen wurden aufgeteilt: Sprache/Standardverhalten unter
   Allgemein, UI-/Reader-Darstellung unter Darstellung, Auto-Refresh unter
   Aktualisierung und Regelverwaltung unter Tags & Regeln.
@@ -687,6 +687,10 @@ nicht mehr; `Später` blendet den Wizard nur fuer die aktuelle Sitzung aus.
 - Der Bereich `Cache` zeigt aktuelle Bild-/Favicon-Cache-Groesse, ein Speicherlimit
   mit erlaubten Werten 100 MB, 250 MB, 500 MB, 1 GB und 2 GB, sowie Aktionen zum
   Aktualisieren der Groessenanzeige und zum Leeren des Cache.
+- Der Bereich `Offline-Lesen` trennt bewusst zwischen Cache, normal lokal
+  gespeichertem Feed-Inhalt und echten Offline-Kopien: Offline ist eine manuelle
+  Artikelaktion, Feed-Content ist Basisinhalt, Automatik bleibt ein spaeterer M4-
+  Folgepunkt.
 - `@AppStorage("markArticleReadOnSelection")`
 - Standard: Artikel beim Oeffnen automatisch als gelesen markieren
 - `@AppStorage("appLanguage")`
@@ -754,8 +758,13 @@ nicht mehr; `Später` blendet den Wizard nur fuer die aktuelle Sitzung aus.
 - Toolbar-Button `arrow.down.circle` speichert den aktuellen Artikel manuell fuer
   Offline-Lesen oder entfernt die Offline-Kopie wieder. Waehrend des Downloads zeigt
   der Button einen Fortschrittsindikator.
-- Der Reader zeigt einen kompakten Offline-Status: Feed-Inhalt offline verfuegbar,
-  Volltext offline verfuegbar oder Fehler inklusive Fehlermeldung.
+- Der Reader zeigt einen kompakten Offline-Status nur fuer bewusst gespeicherte
+  Artikel: Feed-Inhalt lokal verfuegbar, Volltext offline verfuegbar oder Fehler
+  inklusive Fehlermeldung.
+- Produktbegriff: Normaler Feed-Content ist nicht automatisch eine Offline-Kopie.
+  Nur ein bewusst per Reader-Button gespeicherter Artikel zeigt einen Offline-
+  Status am Artikel; vorhandener Feed-Content wird im Reader als lokal verfuegbarer
+  Basisinhalt beschrieben.
 - Nutzt `ReaderPreparedArticle`, damit Content/Summary, Metadaten und Original-URL
   pro ausgewaehltem Artikel einmal vorbereitet werden und SwiftUI-Redraws kein
   erneutes HTML-Rendering ausloesen
@@ -789,6 +798,9 @@ nicht mehr; `Später` blendet den Wizard nur fuer die aktuelle Sitzung aus.
   Bildcache weiter.
 - Entfernt Offline-Daten bewusst getrennt von normalem Feed-Content, damit Feedivo
   die vom Feed gelieferten Inhalte nicht verliert.
+- Offline-Automatik ist absichtlich nicht Teil dieses Services. Sie soll spaeter
+  als eigene Strategie mit Feed-/Zeit-/Stern-/Ungelesen-Regeln und Speichergrenzen
+  gebaut werden.
 
 ### ArticleFeedIDBackfillService.swift / OrphanedArticleCleanupService.swift
 - `ArticleFeedIDBackfillService` fuellt bei alten Artikeln die direkte `feedID`
@@ -813,6 +825,11 @@ nicht mehr; `Später` blendet den Wizard nur fuer die aktuelle Sitzung aus.
   Einstellungen verwendet.
 - `ImageCacheSettings` kapselt erlaubte Speicherlimits, Default 500 MB und
   formatierte Groessenanzeige.
+- Feedivo raeumt den Bildcache beim App-Start auf das aktuell gesetzte Limit auf,
+  nach jeder Limit-Aenderung in den Einstellungen und nach jedem erfolgreichen
+  neuen Bilddownload.
+- Der Cache ist bewusst ein Performance-Cache. Er macht Bilder schneller und
+  netzwerksparender, ist aber keine Garantie fuer eine echte Offline-Kopie.
 
 ### CachedRemoteImageView.swift
 - Gemeinsame SwiftUI-Bildkomponente fuer remote Bilder mit lokalem Cache.
@@ -1186,7 +1203,9 @@ nicht mehr; `Später` blendet den Wizard nur fuer die aktuelle Sitzung aus.
   als `offlineContent` speichern
 - [ ] Einstellungen-Fenster (Refresh-Intervall, Schriftgrösse, Theme)
 - [x] Bild- und Favicon-Cache: geladene Bilder lokal cachen, damit Artikelbilder
-  und Favicons nach App-Neustart nicht jedes Mal neu geladen werden muessen
+  und Favicons nach App-Neustart nicht jedes Mal neu geladen werden muessen;
+  Speicherlimit wird beim App-Start, nach Limit-Aenderung und nach neuen Downloads
+  automatisch eingehalten
 - [ ] Share Extension (Artikel teilen via macOS Share Sheet)
 - [ ] App-Icon designen
 - [x] Onboarding (erster Start ohne Feeds): Wizard mit Feed hinzufügen,
@@ -1556,8 +1575,18 @@ nicht mehr; `Später` blendet den Wizard nur fuer die aktuelle Sitzung aus.
   direkt, was der Benutzer einstellt, sieht und mit dem naechsten Schritt ausloest.
   Prototyp-/Implementierungsbegriffe wie `Review`, `Defaults` und `Import-Engine`
   wurden aus der UI entfernt.
+- 2026-06-23: Offline-Begriffe geschaerft: Cache, normal gespeicherter Feed-Inhalt
+  und bewusste Offline-Kopien sind nun in UI und Settings getrennt. Die neue
+  Settings-Rubrik `Offline-Lesen` erklaert den manuellen Artikel-Flow und haelt
+  Offline-Automatik als spaeteren M4-Folgepunkt sichtbar zurueck.
+- 2026-06-23: Cache Mode vervollstaendigt: `ImageCacheService` raeumt nach
+  erfolgreichen Bilddownloads automatisch auf das eingestellte Speicherlimit auf;
+  `FeedivoApp` wendet dasselbe Limit beim App-Start an. Cache bleibt bewusst ein
+  Performance-Cache, echte automatische Offline-Pakete bleiben ein separater
+  M4-Folgepunkt.
 - 2026-06-22: Offline Mode Phase 1 umgesetzt: Artikel koennen im Reader manuell
-  offline gespeichert oder wieder entfernt werden. Feed-gelieferter Volltext wird
-  direkt als Offline-Content markiert; falls kein Feed-Content vorhanden ist, wird
-  die Original-URL geladen und in `Article.offlineContent` gespeichert. Reader und
-  Artikelliste zeigen Offline-Status beziehungsweise Fehler sichtbar an.
+  offline gespeichert oder wieder entfernt werden. Vorhandener Feed-Volltext kann
+  dafuer als manuelle Offline-Kopie genutzt werden; falls kein Feed-Content
+  vorhanden ist, wird die Original-URL geladen und in `Article.offlineContent`
+  gespeichert. Reader und Artikelliste zeigen Offline-Status beziehungsweise Fehler
+  sichtbar an.

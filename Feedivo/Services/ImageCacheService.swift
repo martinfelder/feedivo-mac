@@ -25,16 +25,19 @@ final class ImageCacheService: @unchecked Sendable {
     private let cacheDirectory: URL
     private let dataLoader: ImageDataLoading
     private let fileManager: FileManager
+    private let autoTrimLimitInBytes: @Sendable () -> Int64?
     private let memoryCache = NSCache<NSURL, NSImage>()
 
     init(
         cacheDirectory: URL = ImageCacheService.defaultCacheDirectory(),
         dataLoader: ImageDataLoading = URLSessionImageDataLoader(),
-        fileManager: FileManager = .default
+        fileManager: FileManager = .default,
+        autoTrimLimitInBytes: @escaping @Sendable () -> Int64? = { ImageCacheSettings.currentLimitInBytes }
     ) {
         self.cacheDirectory = cacheDirectory
         self.dataLoader = dataLoader
         self.fileManager = fileManager
+        self.autoTrimLimitInBytes = autoTrimLimitInBytes
         try? fileManager.createDirectory(at: cacheDirectory, withIntermediateDirectories: true)
     }
 
@@ -76,6 +79,7 @@ final class ImageCacheService: @unchecked Sendable {
             try? fileManager.createDirectory(at: cacheDirectory, withIntermediateDirectories: true)
             try? data.write(to: fileURL, options: .atomic)
             memoryCache.setObject(image, forKey: cacheKey)
+            trimCacheAfterWriteIfNeeded()
             return image
         } catch {
             return nil
@@ -169,6 +173,14 @@ final class ImageCacheService: @unchecked Sendable {
             [.modificationDate: Date()],
             ofItemAtPath: fileURL.path
         )
+    }
+
+    private func trimCacheAfterWriteIfNeeded() {
+        guard let limitInBytes = autoTrimLimitInBytes() else {
+            return
+        }
+
+        try? trimCache(toLimitInBytes: limitInBytes)
     }
 }
 

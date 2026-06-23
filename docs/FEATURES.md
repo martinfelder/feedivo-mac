@@ -374,9 +374,9 @@ M4 Polish & Release:
   einen dezenten Hinweis und verweist auf `Original oeffnen` fuer den vollstaendigen
   Artikel.
 - Implementiert: Artikel koennen im Reader manuell offline gespeichert oder wieder
-  entfernt werden. Bestehender Feed-Content wird direkt als Offline-Kopie markiert;
-  fehlt Feed-Content, laedt `OfflineDownloadService` die Original-URL und speichert
-  den geladenen HTML/Text in `Article.offlineContent`.
+  entfernt werden. Bestehender Feed-Content kann fuer diese bewusste Aktion als
+  Offline-Kopie genutzt werden; fehlt Feed-Content, laedt `OfflineDownloadService`
+  die Original-URL und speichert den geladenen HTML/Text in `Article.offlineContent`.
 - Implementiert: `Article.offlineStateRaw`, `offlineContent`, `offlineRequestedAt`,
   `offlineSavedAt` und `offlineErrorMessage` halten den Offline-Zustand pro Artikel
   nachvollziehbar fest. Reader und Artikelliste zeigen verfuegbar/fehlgeschlagen
@@ -390,6 +390,11 @@ M4 Polish & Release:
   Speicher und Quellen-Unterschieden eigene M4-Folgepunkte.
 - Abgrenzung: Bilddaten bleiben nicht in SwiftData; lokaler Bild- und Favicon-Cache
   ist inzwischen als M4-Basis umgesetzt.
+- Produktentscheidung: Cache, normal gespeicherter Feed-Inhalt und echte Offline-
+  Kopien bleiben getrennt. Feed-Content ist Basisinhalt, Cache ist Performance,
+  Offline-Lesen ist eine bewusste Artikelaktion. Eine eigene Settings-Rubrik
+  `Offline-Lesen` erklaert diesen Stand und haelt Offline-Automatik sichtbar
+  zurueck.
 
 ### 2. Artikel-Liste
 
@@ -900,13 +905,15 @@ M4 Polish & Release:
   Eigenschaften und Umbenennen-Sheet.
 - Einstellungen: Eigene Cache-Rubrik mit aktueller Groesse, Speicherlimit
   100 MB/250 MB/500 MB/1 GB/2 GB und Cache-leeren-Aktion.
+- Speicherverwaltung: Feedivo trimmt den Cache beim App-Start, nach Aenderung des
+  Speicherlimits und nach erfolgreichen neuen Bilddownloads automatisch auf das
+  eingestellte Limit.
 - Offline-Anbindung: Manuell offline gespeicherte Artikel geben bekannte Lead- und
   Inline-Bild-URLs an den Cache weiter.
 - Entscheidung: Bilddaten nicht in SwiftData speichern. SwiftData bleibt fuer
   URLs, Artikel, Tags, Regeln und Feed-Metadaten; grosse Bild-BLOBs wuerden die
   Datenbank und spaeter CloudKit unnoetig belasten.
-- Offen: Automatische Offline-Pakete und weitergehende Speicherverwaltung bleiben
-  eigene M4-Folgepunkte.
+- Offen: Automatische Offline-Pakete bleiben ein eigener M4-Folgepunkt.
 
 ### 21. Mehrsprachigkeit
 

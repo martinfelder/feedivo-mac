@@ -51,6 +51,7 @@ struct FeedivoApp: App {
                 .dynamicTypeSize(interfaceTextSize.dynamicTypeSize)
                 .task {
                     backfillStoredArticleMetadataIfNeeded()
+                    trimImageCacheToSelectedLimit()
                     scheduleBackgroundRefresh()
                 }
                 .onChange(of: backgroundRefreshIsEnabled) {
@@ -80,6 +81,12 @@ struct FeedivoApp: App {
             isEnabled: backgroundRefreshIsEnabled,
             intervalMinutes: backgroundRefreshIntervalMinutes,
             scheduler: backgroundRefreshScheduler
+        )
+    }
+
+    private func trimImageCacheToSelectedLimit() {
+        try? ImageCacheService.shared.trimCache(
+            toLimitInBytes: ImageCacheSettings.currentLimitInBytes
         )
     }
 

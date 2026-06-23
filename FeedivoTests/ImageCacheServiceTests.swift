@@ -106,6 +106,32 @@ struct ImageCacheServiceTests {
         #expect(try service.cacheSizeInBytes() == 12)
     }
 
+    @Test func imageTrimmtCacheNachErfolgreichemDownloadAufLimit() async throws {
+        let cacheDirectory = try Self.temporaryCacheDirectory()
+        let oldURL = try #require(URL(string: "https://example.com/old.png"))
+        let downloadedURL = try #require(URL(string: "https://example.com/downloaded.png"))
+        let downloadedData = try Self.pngData()
+        let loader = StubImageDataLoader(responses: [downloadedURL: downloadedData])
+        let service = ImageCacheService(
+            cacheDirectory: cacheDirectory,
+            dataLoader: loader,
+            autoTrimLimitInBytes: { Int64(downloadedData.count) }
+        )
+        let oldFile = service.cachedFileURL(for: oldURL)
+        try Data(repeating: 1, count: downloadedData.count).write(to: oldFile)
+        try FileManager.default.setAttributes(
+            [.modificationDate: Date(timeIntervalSince1970: 100)],
+            ofItemAtPath: oldFile.path
+        )
+
+        let image = await service.image(for: downloadedURL)
+
+        #expect(image != nil)
+        #expect(!FileManager.default.fileExists(atPath: oldFile.path))
+        #expect(FileManager.default.fileExists(atPath: service.cachedFileURL(for: downloadedURL).path))
+        #expect(try service.cacheSizeInBytes() <= Int64(downloadedData.count))
+    }
+
     private static func temporaryCacheDirectory() throws -> URL {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
