@@ -36,20 +36,13 @@ struct FeedRowView: View {
     private var faviconView: some View {
         if let faviconURL = feed.faviconURL,
            let url = URL(string: faviconURL) {
-            AsyncImage(url: url) { phase in
-                switch phase {
-                case .success(let image):
-                    image
-                        .resizable()
-                        .scaledToFit()
-                        .clipShape(RoundedRectangle(cornerRadius: 3))
-                case .empty:
-                    fallbackIcon
-                case .failure:
-                    fallbackIcon
-                @unknown default:
-                    fallbackIcon
-                }
+            CachedRemoteImageView(url: url) { image in
+                image
+                    .resizable()
+                    .scaledToFit()
+                    .clipShape(RoundedRectangle(cornerRadius: 3))
+            } placeholder: {
+                fallbackIcon
             }
         } else {
             fallbackIcon

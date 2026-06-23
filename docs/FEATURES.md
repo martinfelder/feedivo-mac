@@ -194,10 +194,9 @@ M4 Polish & Release:
   Background-Refresh-Status und Offline-Basis sind als M3-Basis abgeschlossen.
 - iCloud Sync wurde bewusst nach M4 verschoben, damit Sync zusammen mit Release-,
   Cache- und Import-Polish geplant und getestet werden kann.
-- M4-Basis umgesetzt: Erweiterter OPML-Import-Dialog und Offline Mode Phase 1
-  mit manuellem Speichern/Entfernen einzelner Artikel.
-- Naechster Fokus: Bild-/Favicon-Cache, Offline-Automatik/Speicherverwaltung,
-  Onboarding oder iCloud Sync.
+- M4-Basis umgesetzt: Erweiterter OPML-Import-Dialog, Offline Mode Phase 1
+  mit manuellem Speichern/Entfernen einzelner Artikel und Bild-/Favicon-Cache.
+- Naechster Fokus: Offline-Automatik/Speicherverwaltung, Onboarding oder iCloud Sync.
 
 ---
 
@@ -856,20 +855,25 @@ M4 Polish & Release:
 ### 20. Bild- und Favicon-Cache
 
 #### 20.1 Lokaler Bildcache
-- Status: Entschieden
+- Status: Fertig als M4-Basis
 - Prioritaet: M4/v1
 - Ziel: Artikelbilder und Favicons sollen nach dem ersten Laden lokal verfuegbar
   bleiben, damit Feedivo sie beim App-Start, Feedwechsel und Scrollen nicht immer
   erneut aus dem Netz laden muss.
-- Empfehlung: Eigener `ImageCacheService` mit Disk-Cache im macOS-Cache- oder
-  Application-Support-Verzeichnis plus kleinem `NSCache` im Speicher. Die Views
-  nutzen spaeter eine gemeinsame `CachedImageView` statt direktem `AsyncImage`.
+- Umsetzung: `ImageCacheService` nutzt einen Disk-Cache unter dem macOS-Caches-
+  Verzeichnis plus `NSCache` im Speicher. `CachedRemoteImageView` ersetzt direkte
+  `AsyncImage`-Nutzung.
 - Umfang: Artikelbilder in Liste und Reader sowie Favicons in Sidebar, Feed-
   Eigenschaften und Umbenennen-Sheet.
+- Einstellungen: Eigene Cache-Rubrik mit aktueller Groesse, Speicherlimit
+  100 MB/250 MB/500 MB/1 GB/2 GB und Cache-leeren-Aktion.
+- Offline-Anbindung: Manuell offline gespeicherte Artikel geben bekannte Lead- und
+  Inline-Bild-URLs an den Cache weiter.
 - Entscheidung: Bilddaten nicht in SwiftData speichern. SwiftData bleibt fuer
   URLs, Artikel, Tags, Regeln und Feed-Metadaten; grosse Bild-BLOBs wuerden die
   Datenbank und spaeter CloudKit unnoetig belasten.
-- Spaeter: Einstellung zum Cache-Leeren und optionales Cache-Limit, z.B. 500 MB.
+- Offen: Automatische Offline-Pakete und weitergehende Speicherverwaltung bleiben
+  eigene M4-Folgepunkte.
 
 ### 21. Mehrsprachigkeit
 

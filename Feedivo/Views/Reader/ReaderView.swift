@@ -675,19 +675,12 @@ struct ReaderView: View {
     @ViewBuilder
     private func readerImage(urlString: String) -> some View {
         if let url = URL(string: urlString) {
-            AsyncImage(url: url) { phase in
-                switch phase {
-                case .success(let image):
-                    image
-                        .resizable()
-                        .scaledToFit()
-                case .failure:
-                    EmptyView()
-                case .empty:
-                    ProgressView()
-                @unknown default:
-                    EmptyView()
-                }
+            CachedRemoteImageView(url: url) { image in
+                image
+                    .resizable()
+                    .scaledToFit()
+            } placeholder: {
+                ProgressView()
             }
             .frame(maxWidth: .infinity)
             .frame(maxHeight: leadImageMaxHeight)

@@ -139,16 +139,13 @@ struct FeedPropertiesView: View {
                 .shadow(color: .black.opacity(0.08), radius: 8, y: 3)
 
             if let faviconURL = feed.faviconURL, let url = URL(string: faviconURL) {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFit()
-                            .padding(12)
-                    default:
-                        fallbackFeedIcon
-                    }
+                CachedRemoteImageView(url: url) { image in
+                    image
+                        .resizable()
+                        .scaledToFit()
+                        .padding(12)
+                } placeholder: {
+                    fallbackFeedIcon
                 }
             } else {
                 fallbackFeedIcon

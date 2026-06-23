@@ -152,20 +152,13 @@ private struct FeedRenameIconView: View {
         Group {
             if let faviconURL = feed.faviconURL,
                let url = URL(string: faviconURL) {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFit()
-                            .padding(8)
-                    case .empty:
-                        fallbackIcon
-                    case .failure:
-                        fallbackIcon
-                    @unknown default:
-                        fallbackIcon
-                    }
+                CachedRemoteImageView(url: url) { image in
+                    image
+                        .resizable()
+                        .scaledToFit()
+                        .padding(8)
+                } placeholder: {
+                    fallbackIcon
                 }
             } else {
                 fallbackIcon

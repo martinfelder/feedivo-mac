@@ -140,6 +140,13 @@ enum L10n {
     static let settingsFeedsNoMatches = LocalizedStringKey("settings.feeds.noMatches")
     static let settingsFeedsDeleteSelected = LocalizedStringKey("settings.feeds.deleteSelected")
     static let settingsFeedsDeleteConfirmationTitle = LocalizedStringKey("settings.feeds.deleteConfirmation.title")
+    static let settingsCacheSection = LocalizedStringKey("settings.cache.section")
+    static let settingsCacheDescription = LocalizedStringKey("settings.cache.description")
+    static let settingsCacheCurrentSize = LocalizedStringKey("settings.cache.currentSize")
+    static let settingsCacheLimitPicker = LocalizedStringKey("settings.cache.limit.picker")
+    static let settingsCacheDescriptionDetail = LocalizedStringKey("settings.cache.description.detail")
+    static let settingsCacheRefreshSize = LocalizedStringKey("settings.cache.refreshSize")
+    static let settingsCacheClear = LocalizedStringKey("settings.cache.clear")
     static let settingsRefreshDescription = LocalizedStringKey("settings.refresh.description")
     static let settingsAutomationSection = LocalizedStringKey("settings.automation.section")
     static let settingsAutomationDescription = LocalizedStringKey("settings.automation.description")
@@ -252,6 +259,20 @@ enum L10n {
         String.localizedStringWithFormat(
             String(localized: "settings.automaticRefresh.interval.minutes"),
             minutes
+        )
+    }
+
+    static func settingsCacheLimit(megabytes: Int) -> String {
+        if megabytes >= 1_024, megabytes.isMultiple(of: 1_024) {
+            return String.localizedStringWithFormat(
+                String(localized: "settings.cache.limit.gigabytes"),
+                megabytes / 1_024
+            )
+        }
+
+        return String.localizedStringWithFormat(
+            String(localized: "settings.cache.limit.megabytes"),
+            megabytes
         )
     }
 

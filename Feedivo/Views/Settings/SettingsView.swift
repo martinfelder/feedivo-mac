@@ -5,6 +5,7 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
     case general
     case appearance
     case feeds
+    case cache
     case refresh
     case automation
     case sync
@@ -19,6 +20,8 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
             L10n.settingsAppearanceSection
         case .feeds:
             L10n.settingsFeedsSection
+        case .cache:
+            L10n.settingsCacheSection
         case .refresh:
             L10n.settingsRefreshSection
         case .automation:
@@ -36,6 +39,8 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
             "paintbrush"
         case .feeds:
             "list.bullet.rectangle"
+        case .cache:
+            "photo.stack"
         case .refresh:
             "arrow.clockwise"
         case .automation:
@@ -100,6 +105,8 @@ struct SettingsView: View {
             AppearanceSettingsView()
         case .feeds:
             FeedManagementSettingsView()
+        case .cache:
+            CacheSettingsView()
         case .refresh:
             RefreshSettingsView()
         case .automation:
@@ -309,6 +316,99 @@ private struct AppearanceSettingsView: View {
             }
 
             Slider(value: value, in: range, step: step)
+        }
+    }
+}
+
+private struct CacheSettingsView: View {
+    @Environment(\.interfaceTextSize) private var interfaceTextSize
+
+    @AppStorage(ImageCacheSettings.limitMegabytesKey)
+    private var cacheLimitMegabytes = ImageCacheSettings.defaultLimitMegabytes
+
+    @State private var cacheSizeInBytes: Int64 = 0
+    @State private var errorMessage: String?
+
+    var body: some View {
+        Form {
+            SettingsSectionHeader(
+                title: L10n.settingsCacheSection,
+                description: L10n.settingsCacheDescription
+            )
+
+            Section {
+                LabeledContent(L10n.settingsCacheCurrentSize) {
+                    Text(ImageCacheSettings.formattedByteCount(cacheSizeInBytes))
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                }
+
+                Picker(L10n.settingsCacheLimitPicker, selection: $cacheLimitMegabytes) {
+                    ForEach(ImageCacheSettings.allowedLimitMegabytes, id: \.self) { limitMegabytes in
+                        Text(L10n.settingsCacheLimit(megabytes: limitMegabytes))
+                            .tag(limitMegabytes)
+                    }
+                }
+                .pickerStyle(.menu)
+                .onChange(of: cacheLimitMegabytes) { _, newValue in
+                    cacheLimitMegabytes = ImageCacheSettings.resolvedLimitMegabytes(newValue)
+                    trimCacheToSelectedLimit()
+                }
+
+                Text(L10n.settingsCacheDescriptionDetail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                HStack {
+                    Button(L10n.settingsCacheRefreshSize) {
+                        refreshCacheSize()
+                    }
+
+                    Button(L10n.settingsCacheClear, role: .destructive) {
+                        clearCache()
+                    }
+                    .disabled(cacheSizeInBytes == 0)
+                }
+
+                if let errorMessage {
+                    Text(errorMessage)
+                        .font(interfaceTextSize.font(size: 12))
+                        .foregroundStyle(.red)
+                }
+            }
+        }
+        .formStyle(.grouped)
+        .task {
+            refreshCacheSize()
+        }
+    }
+
+    private func refreshCacheSize() {
+        do {
+            cacheSizeInBytes = try ImageCacheService.shared.cacheSizeInBytes()
+            errorMessage = nil
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func clearCache() {
+        do {
+            try ImageCacheService.shared.clearCache()
+            refreshCacheSize()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func trimCacheToSelectedLimit() {
+        do {
+            try ImageCacheService.shared.trimCache(
+                toLimitInBytes: ImageCacheSettings.bytes(forMegabytes: cacheLimitMegabytes)
+            )
+            refreshCacheSize()
+        } catch {
+            errorMessage = error.localizedDescription
         }
     }
 }

@@ -4,6 +4,10 @@ protocol OfflineArticleContentFetching: Sendable {
     func content(from url: URL) async throws -> String
 }
 
+protocol OfflineArticleImageCaching: Sendable {
+    func cacheImages(from urls: [URL]) async
+}
+
 struct URLSessionOfflineArticleContentFetcher: OfflineArticleContentFetching, Sendable {
     func content(from url: URL) async throws -> String {
         let (data, response) = try await URLSession.shared.data(from: url)
@@ -40,13 +44,21 @@ enum OfflineDownloadError: LocalizedError {
 @MainActor
 final class OfflineDownloadService {
     private let fetcher: OfflineArticleContentFetching
+    private let imageCache: OfflineArticleImageCaching
 
     init() {
         self.fetcher = URLSessionOfflineArticleContentFetcher()
+        self.imageCache = ImageCacheService.shared
     }
 
     init(fetcher: OfflineArticleContentFetching) {
         self.fetcher = fetcher
+        self.imageCache = ImageCacheService.shared
+    }
+
+    init(fetcher: OfflineArticleContentFetching, imageCache: OfflineArticleImageCaching) {
+        self.fetcher = fetcher
+        self.imageCache = imageCache
     }
 
     func saveForOffline(_ article: Article) async {
@@ -55,6 +67,7 @@ final class OfflineDownloadService {
 
         if let feedContent = normalizedText(article.content) {
             markSaved(article, state: .feedContent, content: feedContent)
+            await cacheArticleImages(for: article, content: feedContent)
             return
         }
 
@@ -71,6 +84,7 @@ final class OfflineDownloadService {
             }
 
             markSaved(article, state: .fullText, content: normalizedContent)
+            await cacheArticleImages(for: article, content: normalizedContent)
         } catch {
             markFailed(article, error: error)
         }
@@ -110,6 +124,44 @@ final class OfflineDownloadService {
         return url
     }
 
+    private func cacheArticleImages(for article: Article, content: String) async {
+        let urls = imageURLs(for: article, content: content)
+        guard !urls.isEmpty else {
+            return
+        }
+
+        await imageCache.cacheImages(from: urls)
+    }
+
+    private func imageURLs(for article: Article, content: String) -> [URL] {
+        var urls: [URL] = []
+        var seenURLs = Set<String>()
+
+        func appendURL(_ urlString: String?) {
+            guard
+                let trimmedURLString = normalizedText(urlString),
+                let url = URL(string: trimmedURLString),
+                url.scheme != nil,
+                !seenURLs.contains(url.absoluteString)
+            else {
+                return
+            }
+
+            seenURLs.insert(url.absoluteString)
+            urls.append(url)
+        }
+
+        appendURL(article.imageURL)
+
+        for block in ReaderContentRenderer.blocks(summary: nil, content: content, fallbackImageURL: nil) {
+            if case .image(let urlString) = block {
+                appendURL(urlString)
+            }
+        }
+
+        return urls
+    }
+
     private func normalizedText(_ value: String?) -> String? {
         guard let value else {
             return nil
@@ -119,3 +171,5 @@ final class OfflineDownloadService {
         return trimmedValue.isEmpty ? nil : trimmedValue
     }
 }
+
+extension ImageCacheService: OfflineArticleImageCaching {}

@@ -92,7 +92,7 @@ Nach jeder relevanten Aenderung pruefen und bei Bedarf aktualisieren:
 | iCloud Sync | CloudKit via SwiftData | `isCloudKitEnabled: true` — noch nicht aktiviert |
 | Netzwerk | URLSession + async/await | Kein Alamofire, kein Combine |
 | RSS-Parsing | FeedKit | Swift Package, URL: https://github.com/nmdias/FeedKit |
-| Bilder | AsyncImage | Built-in SwiftUI, kein Kingfisher |
+| Bilder | CachedRemoteImageView + ImageCacheService | Lokaler Disk-Cache + NSCache, kein Kingfisher |
 | Lokalisierung | String Catalog + `String(localized:)` | Deutsch, Englisch, Französisch, Italienisch |
 | Background Refresh | NSBackgroundActivityScheduler | Basis implementiert; läuft systemfreundlich solange App läuft/im Hintergrund ist |
 | Mindest-macOS | macOS 14.0 Sonoma | SwiftData + @Observable Macro |
@@ -160,6 +160,8 @@ FeedivoMac/
 │   │   ├── Tags/
 │   │   │   ├── TagManagerView.swift    # Tags erstellen, bearbeiten, loeschen ✅
 │   │   │   └── AddTagView.swift        # bleibt vorerst nicht separat noetig; TagManagerView erstellt Tags direkt
+│   │   ├── Shared/
+│   │   │   └── CachedRemoteImageView.swift # Gemeinsame gecachte Remote-Bild-View ✅
 │   │   ├── Rules/
 │   │   │   ├── RuleSettingsView.swift  # Alle Regeln in Einstellungen verwalten ✅
 │   │   │   └── RuleWizardView.swift    # Wizard fuer einfache/Power-User-Regeln ✅
@@ -176,6 +178,8 @@ FeedivoMac/
 │   │   ├── FeedUnreadCountBackfillService.swift # unreadCount einmalig korrigieren ✅
 │   │   ├── RuleConditionBackfillService.swift # alte Rule-Felder in Conditions migrieren ✅
 │   │   ├── OfflineDownloadService.swift # Manueller Offline-Download pro Artikel ✅
+│   │   ├── ImageCacheService.swift     # Memory-/Disk-Cache fuer Bilder und Favicons ✅
+│   │   ├── ImageCacheSettings.swift    # Cache-Limits und Groessenformatierung ✅
 │   │   ├── FeedRefreshService.swift    # Alle Feeds abrufen (async, mit Fortschritt) (TODO)
 │   │   ├── RuleEngine.swift            # Mehrfach-Regeln auf neue Artikel anwenden ✅
 │   │   ├── OPMLService.swift           # OPML Import und Export ✅
@@ -633,14 +637,17 @@ sichtbar bleibt.
 ### SettingsView.swift
 - macOS Settings-Szene in `FeedivoApp.swift`
 - Nutzt eine linke Kategorienavigation nach Prototyp Variante A statt eines langen
-  Formulars. Bereiche: Allgemein, Darstellung, Feeds, Aktualisierung, Tags & Regeln
-  und Sync.
+  Formulars. Bereiche: Allgemein, Darstellung, Feeds, Cache, Aktualisierung,
+  Tags & Regeln und Sync.
 - Bestehende Optionen wurden aufgeteilt: Sprache/Standardverhalten unter
   Allgemein, UI-/Reader-Darstellung unter Darstellung, Auto-Refresh unter
   Aktualisierung und Regelverwaltung unter Tags & Regeln.
 - Der Bereich `Feeds` zeigt eine Feed-Verwaltung mit Suche, Mehrfachauswahl,
   `Alle sichtbaren auswählen`, `Auswahl aufheben` und destruktiver
   Loeschbestaetigung fuer die ausgewaehlten Feeds.
+- Der Bereich `Cache` zeigt aktuelle Bild-/Favicon-Cache-Groesse, ein Speicherlimit
+  mit erlaubten Werten 100 MB, 250 MB, 500 MB, 1 GB und 2 GB, sowie Aktionen zum
+  Aktualisieren der Groessenanzeige und zum Leeren des Cache.
 - `@AppStorage("markArticleReadOnSelection")`
 - Standard: Artikel beim Oeffnen automatisch als gelesen markieren
 - `@AppStorage("appLanguage")`
@@ -735,8 +742,31 @@ sichtbar bleibt.
   HTML/Text in `Article.offlineContent`.
 - Schreibt Status, Zeitpunkt und Fehlermeldung direkt auf den Artikel:
   `none`, `feedContent`, `fullText` oder `failed`.
+- Sammelt beim Offline-Speichern die bekannte Lead-Bild-URL (`Article.imageURL`)
+  und Inline-Bilder aus dem gespeicherten Content und gibt sie an den lokalen
+  Bildcache weiter.
 - Entfernt Offline-Daten bewusst getrennt von normalem Feed-Content, damit Feedivo
   die vom Feed gelieferten Inhalte nicht verliert.
+
+### ImageCacheService.swift / ImageCacheSettings.swift
+- `ImageCacheService` ist der zentrale lokale Cache fuer Artikelbilder und Favicons.
+- Nutzt `NSCache<NSURL, NSImage>` fuer schnelle Wiederverwendung waehrend der App-
+  Laufzeit und einen Disk-Cache unter dem macOS-Caches-Verzeichnis fuer Neustarts.
+- Cache-Dateinamen werden aus einem SHA-256-Hash der Bild-URL gebildet, damit
+  Sonderzeichen, Query-Parameter und lange URLs keine Dateisystemprobleme machen.
+- Netzwerkabrufe laufen ueber ein kleines `ImageDataLoading`-Protokoll, damit der
+  Cache ohne echtes Netzwerk getestet werden kann.
+- Cache-Groesse, Leeren und Trimmen nach Limit sind testbar und werden in den
+  Einstellungen verwendet.
+- `ImageCacheSettings` kapselt erlaubte Speicherlimits, Default 500 MB und
+  formatierte Groessenanzeige.
+
+### CachedRemoteImageView.swift
+- Gemeinsame SwiftUI-Bildkomponente fuer remote Bilder mit lokalem Cache.
+- Ersetzt direkte `AsyncImage`-Nutzung in Artikelliste, Reader, Sidebar-Favicons,
+  Feed-Eigenschaften und Feed-Umbenennen-Sheet.
+- Views liefern nur Darstellung und Platzhalter; Laden, Memory-Cache und Disk-Cache
+  bleiben im `ImageCacheService`.
 
 ### ArticleMetadataInspectorView.swift
 - Einblendbarer rechter Inspector in der Artikelansicht.
@@ -1102,7 +1132,7 @@ sichtbar bleibt.
   Reader und in der Artikelliste anzeigen, Feed-Content oder geladene Originalseite
   als `offlineContent` speichern
 - [ ] Einstellungen-Fenster (Refresh-Intervall, Schriftgrösse, Theme)
-- [ ] Bild- und Favicon-Cache: geladene Bilder lokal cachen, damit Artikelbilder
+- [x] Bild- und Favicon-Cache: geladene Bilder lokal cachen, damit Artikelbilder
   und Favicons nach App-Neustart nicht jedes Mal neu geladen werden muessen
 - [ ] Share Extension (Artikel teilen via macOS Share Sheet)
 - [ ] App-Icon designen
@@ -1139,8 +1169,8 @@ sichtbar bleibt.
 - Aktuell M4: Polish & Release. iCloud Sync wurde bewusst aus M3 nach M4 verschoben,
   damit Tags, Regeln, Background-Refresh-Status und Offline-Basis als abgeschlossene
   M3-Basis stabil bleiben. M4 umfasst jetzt iCloud Sync, erweiterten OPML-Import,
-  manuellen Offline Mode, Bild-/Favicon-Cache, Settings-Polish, Share Extension,
-  App-Icon, Onboarding und Release-Vorbereitung.
+  manuellen Offline Mode, Settings-Polish, Share Extension, App-Icon, Onboarding
+  und Release-Vorbereitung. Bild-/Favicon-Cache ist als M4-Basis umgesetzt.
 - Feature-Roadmap ist in `docs/FEATURES.md` dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 

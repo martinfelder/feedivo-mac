@@ -10,6 +10,14 @@ private struct StubOfflineContentFetcher: OfflineArticleContentFetching {
     }
 }
 
+private final class StubOfflineImageCache: OfflineArticleImageCaching, @unchecked Sendable {
+    private(set) var cachedURLs: [URL] = []
+
+    func cacheImages(from urls: [URL]) async {
+        cachedURLs.append(contentsOf: urls)
+    }
+}
+
 private struct OfflineTestError: LocalizedError {
     var errorDescription: String? {
         "Server nicht erreichbar"
@@ -53,6 +61,27 @@ struct OfflineDownloadServiceTests {
         #expect(article.offlineContent == "<article>Geladener Volltext</article>")
         #expect(article.offlineErrorMessage == nil)
         #expect(article.offlineSavedAt != nil)
+    }
+
+    @Test func saveForOfflineCachesKnownArticleImages() async throws {
+        let leadImageURL = try #require(URL(string: "https://example.com/lead.jpg"))
+        let inlineImageURL = try #require(URL(string: "https://example.com/inline.jpg"))
+        let article = Article(
+            title: "Bilder",
+            link: "https://example.com/article",
+            imageURL: leadImageURL.absoluteString
+        )
+        let imageCache = StubOfflineImageCache()
+        let service = OfflineDownloadService(
+            fetcher: StubOfflineContentFetcher(
+                result: .success(#"<article><img src="https://example.com/inline.jpg"><p>Text</p></article>"#)
+            ),
+            imageCache: imageCache
+        )
+
+        await service.saveForOffline(article)
+
+        #expect(imageCache.cachedURLs == [leadImageURL, inlineImageURL])
     }
 
     @Test func saveForOfflineStoresFailureWhenOriginalArticleCannotBeFetched() async {

@@ -83,15 +83,12 @@ struct ArticleRowView: View {
     @ViewBuilder
     private var previewImage: some View {
         if let imageURL = article.imageURL, let url = URL(string: imageURL) {
-            AsyncImage(url: url) { phase in
-                switch phase {
-                case .success(let image):
-                    image
-                        .resizable()
-                        .scaledToFill()
-                default:
-                    placeholderImage
-                }
+            CachedRemoteImageView(url: url) { image in
+                image
+                    .resizable()
+                    .scaledToFill()
+            } placeholder: {
+                placeholderImage
             }
             .frame(
                 width: interfaceTextSize.scaled(56),
