@@ -64,6 +64,7 @@ struct FeedivoApp: App {
         .commands {
             ArticleCommands()
             FeedCommands()
+            ViewCommands()
         }
         .modelContainer(modelContainer)
 

@@ -74,6 +74,41 @@ struct ArticleListQueryTests {
         #expect(!state.shouldShowReadArticlesButton)
     }
 
+    @Test func articleSortOptionSortiertArtikelNachBenutzerauswahl() {
+        let feedA = Feed(url: "https://example.com/a.xml", title: "Alpha")
+        let feedB = Feed(url: "https://example.com/b.xml", title: "Beta")
+        let newest = Article(
+            title: "Zebra",
+            summary: Array(repeating: "wort", count: 220).joined(separator: " "),
+            publishedAt: Date(timeIntervalSince1970: 300),
+            feed: feedB
+        )
+        let oldest = Article(
+            title: "Apfel",
+            summary: "eins",
+            publishedAt: Date(timeIntervalSince1970: 100),
+            feed: feedA
+        )
+        let middle = Article(
+            title: "Mitte",
+            summary: Array(repeating: "wort", count: 420).joined(separator: " "),
+            publishedAt: Date(timeIntervalSince1970: 200),
+            feed: feedA
+        )
+        let articles = [middle, newest, oldest]
+
+        #expect(ArticleSortOption.newestFirst.sorted(articles).map(\.title) == ["Zebra", "Mitte", "Apfel"])
+        #expect(ArticleSortOption.oldestFirst.sorted(articles).map(\.title) == ["Apfel", "Mitte", "Zebra"])
+        #expect(ArticleSortOption.feed.sorted(articles).map(\.title) == ["Mitte", "Apfel", "Zebra"])
+        #expect(ArticleSortOption.title.sorted(articles).map(\.title) == ["Apfel", "Mitte", "Zebra"])
+        #expect(ArticleSortOption.shortReadingTimeFirst.sorted(articles).map(\.title) == ["Apfel", "Zebra", "Mitte"])
+    }
+
+    @Test func articleSortOptionFaelltBeiUngueltigemRawValueAufStandardZurueck() {
+        #expect(ArticleSortOption.resolved(from: "kaputt") == .newestFirst)
+        #expect(ArticleSortOption.resolved(from: ArticleSortOption.title.rawValue) == .title)
+    }
+
     @Test func articleInitialisiertDirekteFeedIDFuerSchnelleListenQueries() throws {
         let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
         let article = Article(title: "Artikel", feed: feed)

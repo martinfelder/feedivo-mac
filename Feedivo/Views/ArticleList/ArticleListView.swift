@@ -105,8 +105,7 @@ private struct FeedArticleListContent: View {
             navigationTitle: Text(feed.title),
             selectedArticle: $selectedArticle,
             navigationState: $navigationState,
-            onRequestCreateRuleFromArticle: onRequestCreateRuleFromArticle,
-            sortArticles: false
+            onRequestCreateRuleFromArticle: onRequestCreateRuleFromArticle
         )
         .id(feed.id)
     }
@@ -141,8 +140,7 @@ private struct TagArticleListContent: View {
             navigationTitle: Text(tag.name),
             selectedArticle: $selectedArticle,
             navigationState: $navigationState,
-            onRequestCreateRuleFromArticle: onRequestCreateRuleFromArticle,
-            sortArticles: false
+            onRequestCreateRuleFromArticle: onRequestCreateRuleFromArticle
         )
         .id(tag.id)
     }
@@ -207,8 +205,7 @@ private struct SmartFilterArticleListContent: View {
             navigationTitle: Text(smartFilter.title),
             selectedArticle: $selectedArticle,
             navigationState: $navigationState,
-            onRequestCreateRuleFromArticle: onRequestCreateRuleFromArticle,
-            sortArticles: false
+            onRequestCreateRuleFromArticle: onRequestCreateRuleFromArticle
         )
         .id(smartFilter)
     }
@@ -228,6 +225,8 @@ private struct ArticleListContent: View {
     @State private var viewModel = ArticleViewModel()
     @State private var offlineDownloadService = OfflineDownloadService()
     @State private var showsReadArticles = false
+    @AppStorage(ArticleSortOption.storageKey)
+    private var articleSortRawValue = ArticleSortOption.newestFirst.rawValue
 
     init(
         articles: [Article],
@@ -328,6 +327,14 @@ private struct ArticleListContent: View {
         .onChange(of: visibleArticles) {
             updateNavigationState(in: visibleArticles)
         }
+        .onChange(of: articleSortRawValue) {
+            let displayState = ArticleListDisplayState(
+                articles: sortedArticles,
+                showsReadArticles: showsReadArticles,
+                selectedArticle: selectedArticle
+            )
+            updateNavigationState(in: displayState.visibleArticles)
+        }
         .onChange(of: selectedArticle?.persistentModelID) {
             let displayState = ArticleListDisplayState(
                 articles: sortedArticles,
@@ -339,6 +346,11 @@ private struct ArticleListContent: View {
                 selectedArticle,
                 isEnabled: markArticleReadOnSelection
             )
+        }
+        .toolbar {
+            ToolbarItem {
+                sortMenu
+            }
         }
     }
 
@@ -370,7 +382,30 @@ private struct ArticleListContent: View {
             return articles
         }
 
-        return viewModel.sortedForList(articles)
+        return articleSortOption.sorted(articles)
+    }
+
+    private var articleSortOption: ArticleSortOption {
+        ArticleSortOption.resolved(from: articleSortRawValue)
+    }
+
+    private var sortMenu: some View {
+        Menu {
+            ForEach(ArticleSortOption.allCases) { sortOption in
+                Button {
+                    articleSortRawValue = sortOption.rawValue
+                } label: {
+                    if sortOption == articleSortOption {
+                        Label(sortOption.label, systemImage: "checkmark")
+                    } else {
+                        Text(sortOption.label)
+                    }
+                }
+            }
+        } label: {
+            Label(L10n.articleSortMenuTitle, systemImage: "arrow.up.arrow.down")
+        }
+        .help(L10n.articleSortMenuTitle)
     }
 
     private func updateNavigationState(in articles: [Article]) {

@@ -223,6 +223,13 @@ enum L10n {
     static var articleShareCommand: String { String(localized: "article.share.command") }
     static var articleDeleteCommand: String { String(localized: "article.delete.command") }
     static var articleMarkAllReadCommand: String { String(localized: "article.markAllRead.command") }
+    static var viewCommandsMenu: String { String(localized: "viewCommands.menu") }
+    static var articleSortMenuTitle: String { String(localized: "articleSort.menu.title") }
+    static var articleSortNewestFirst: String { String(localized: "articleSort.newestFirst") }
+    static var articleSortOldestFirst: String { String(localized: "articleSort.oldestFirst") }
+    static var articleSortFeed: String { String(localized: "articleSort.feed") }
+    static var articleSortTitle: String { String(localized: "articleSort.title") }
+    static var articleSortShortReadingTimeFirst: String { String(localized: "articleSort.shortReadingTimeFirst") }
     static var readerDisplayModeToggleHelp: String { String(localized: "reader.displayMode.toggle.help") }
     static var sidebarAddFolderDuplicateError: String { String(localized: "sidebar.addFolder.duplicateError") }
     static var tagManagerEmptyNameError: String { String(localized: "tagManager.emptyName.error") }

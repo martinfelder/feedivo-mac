@@ -108,6 +108,7 @@ FeedivoMac/
 │   │   ├── FeedivoApp.swift            # @main Entry Point, .modelContainer Setup ✅
 │   │   ├── ArticleCommands.swift       # macOS Artikel-Menue + Tastaturkuerzel ✅
 │   │   ├── ArticleCommandActions.swift # FocusedValues fuer Artikelaktionen ✅
+│   │   ├── ViewCommands.swift          # macOS Darstellung-Menue fuer Artikelsortierung ✅
 │   │   ├── FeedCommands.swift          # macOS Feed-Menue ✅
 │   │   └── FeedCommandActions.swift    # FocusedValues fuer Feedaktionen ✅
 │   │
@@ -148,6 +149,7 @@ FeedivoMac/
 │   │   ├── ArticleList/
 │   │   │   ├── ArticleListView.swift   # Mittlere Spalte: echte Feed-Artikel anzeigen ✅
 │   │   │   ├── ArticleListQuery.swift  # SwiftData-Queries fuer Feed-/Artikel-Listen ✅
+│   │   │   ├── ArticleSortOption.swift # Globale Artikellisten-Sortierung ✅
 │   │   │   └── ArticleRowView.swift    # Reichhaltige Artikel-Zeile mit Status/Stern ✅
 │   │   ├── Reader/
 │   │   │   ├── ReaderView.swift        # Rechte Spalte: nativer Artikel-Reader ✅
@@ -541,7 +543,12 @@ manuell offline gespeicherte Inhalte.
   Mit Stern und Heute statt alle Artikel im Speicher zu filtern
 - Tag-Listen nutzen ebenfalls eine gezielte SwiftData-Query und zeigen
   feeduebergreifend direkt getaggte Artikel sowie Artikel aus getaggten Feeds.
-- Sortiert nach `publishedAt` absteigend
+- Sortierung ist global per `@AppStorage(ArticleSortOption.storageKey)` gespeichert
+  und gilt fuer Feed-, Tag- und Smartfilter-Listen.
+- Toolbar-Menue `Sortieren nach` ist der primaere Einstieg fuer die Sortierung;
+  die Menueleiste bietet dieselben Optionen unter `Darstellung > Sortieren nach`.
+- Unterstuetzte Sortierungen: Neueste zuerst, Aelteste zuerst, Nach Feed, Nach
+  Titel A-Z und Nach Lesezeit kurze zuerst.
 - Meldet nur den `ArticleNavigationState` an `ContentView`, damit Reader-Navigation
   und Menue-Status ohne Kopie der gesamten Artikelliste aktualisiert werden
 - Reagiert mit `.onChange(of: articles)` auf Listen-Aenderungen und erzeugt kein
@@ -568,6 +575,14 @@ manuell offline gespeicherte Inhalte.
   gelesener Artikel und die Button-Entscheidung fuer Feature 2.5 testbar ohne UI.
 - `ArticleListDisplayState` blendet `isHidden`-Artikel aus normalen Listen aus; die
   Regel-Aktion zum Setzen dieses Status bleibt ein eigener Feature-16.3-Schritt.
+
+### ArticleSortOption.swift
+- Kapselt die globale Sortierauswahl fuer Artikellisten inklusive `@AppStorage`-Key,
+  Labels und testbarer Sortierlogik.
+- `newestFirst` ist der Default und Fallback fuer unbekannte gespeicherte Werte.
+- Sortiert optionale Datumswerte so, dass Artikel ohne Datum nach datierten
+  Artikeln stehen; Lesezeit basiert auf Content, sonst Summary, mit 200 Woertern
+  pro Minute.
 
 ### ArticleNavigationState.swift
 - Berechnet vorherigen und naechsten Artikel aus der aktuell sichtbaren Liste.
@@ -597,8 +612,9 @@ manuell offline gespeicherte Inhalte.
   kleine Protokolle fuer Pasteboard, URL-Oeffnen und Share-Picker.
 - Gelesen/Ungelesen-Aenderungen aktualisieren `Feed.unreadCount`, damit Sidebar-Badges
   ohne eigene Artikel-Query aktuell bleiben
-- `sortedForList(_:)`, `previousArticle(before:in:)` und `nextArticle(after:in:)`
-  kapseln die Navigation innerhalb der aktuell sichtbaren Artikelliste
+- `sortedForList(_:)` nutzt `ArticleSortOption.newestFirst`; `previousArticle(before:in:)`
+  und `nextArticle(after:in:)` kapseln die Navigation innerhalb der aktuell sichtbaren
+  Artikelliste.
 
 ### ArticleMetadataEditor.swift
 - Kapselt die Bearbeitung der Artikel-Metadaten fuer den Reader-Inspector.
@@ -1334,6 +1350,10 @@ manuell offline gespeicherte Inhalte.
 
 ## Letzte Änderungen
 
+- 2026-06-24: Feature 2.2 abgeschlossen: Artikellisten haben jetzt eine globale
+  Sortierung per Toolbar-Menue und Menueleiste `Darstellung > Sortieren nach`.
+  Die Auswahl wird per `@AppStorage` gespeichert; `ArticleSortOption` kapselt
+  Neueste zuerst, Aelteste zuerst, Feed, Titel A-Z und kurze Lesezeit zuerst.
 - 2026-06-24: Feature 22.1 abgeschlossen: Archivieren ist jetzt mit explizitem
   Offline-Content verknuepft, Archiv entfernen loescht nur lokale Offline-Daten
   und setzt `isArchived` zurueck, und `isHidden` wird aus normalen Artikellisten

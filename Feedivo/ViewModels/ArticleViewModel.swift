@@ -109,9 +109,7 @@ final class ArticleViewModel {
     }
 
     func sortedForList(_ articles: [Article]) -> [Article] {
-        articles.sorted {
-            ($0.publishedAt ?? .distantPast) > ($1.publishedAt ?? .distantPast)
-        }
+        ArticleSortOption.newestFirst.sorted(articles)
     }
 
     func previousArticle(before article: Article?, in articles: [Article]) -> Article? {

@@ -75,13 +75,13 @@
 - **Umgesetzt:** `ArticleRowView`, `ArticleListView` mit SwiftData-Query
 
 ### 2.2 Sortierung GUI
-- **Status:** ✅ Entschieden — bereit zur Implementierung
-- **Umgesetzt:** Logik vorhanden (neueste zuerst)
-- **Zu implementieren:**
-  - Toolbar-Button mit Dropdown-Menü in der Artikel-Liste (primärer Weg)
-  - Menüleiste `Darstellung → Sortieren nach` (zusätzlich)
-  - Sortieroptionen: Neueste zuerst (Standard) / Älteste zuerst / Nach Feed / Nach Titel A→Z / Nach Lesezeit kurze zuerst
-  - Sortierung gilt global (nicht pro Feed), gespeichert via `@AppStorage`
+- **Status:** ✔️ Fertig
+- **Umgesetzt:**
+  - Toolbar-Menü in der Artikel-Liste als primärer Weg
+  - Menüleiste `Darstellung → Sortieren nach`
+  - Sortieroptionen: Neueste zuerst (Standard) / Älteste zuerst / Nach Feed / Nach Titel A-Z / Nach Lesezeit kurze zuerst
+  - Sortierung gilt global, wird per `@AppStorage` gespeichert und von allen Artikellisten genutzt
+  - `ArticleSortOption` kapselt Sortierlogik und Labels testbar
 
 ### 2.3 Filterung GUI
 - **Status:** ✅ Entschieden — bereit zur Implementierung
@@ -657,7 +657,7 @@ Folgende Reihenfolge berücksichtigt Abhängigkeiten. Features mit (*) sind Vora
 1. **Feature 22.1** * — Artikel-Modell erweitern (`isArchived`, `isHidden`) — erledigt
 2. **Feature 2.5** — Artikel-Liste Anzeige-Logik (gelesene ausblenden, Button am Ende) — erledigt
 3. **Feature 2.4** — Kontextmenü vollständig ausbauen (inkl. Archivieren, Exportieren, Teilen)
-4. **Feature 2.2** — Sortierung GUI (Toolbar-Dropdown + Menüleiste)
+4. **Feature 2.2** — Sortierung GUI (Toolbar-Dropdown + Menüleiste) — erledigt
 5. **Feature 2.3** — Filterung GUI (Toolbar-Dropdown)
 
 ### Phase 2 — Regeln & Intelligente Ordner
