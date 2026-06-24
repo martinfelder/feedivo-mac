@@ -44,19 +44,22 @@ struct ArticleListDisplayState {
     let articles: [Article]
     let showsReadArticles: Bool
     let selectedArticle: Article?
+    let showsHiddenArticles: Bool
 
     init(
         articles: [Article],
         showsReadArticles: Bool,
-        selectedArticle: Article? = nil
+        selectedArticle: Article? = nil,
+        showsHiddenArticles: Bool = false
     ) {
         self.articles = articles
         self.showsReadArticles = showsReadArticles
         self.selectedArticle = selectedArticle
+        self.showsHiddenArticles = showsHiddenArticles
     }
 
     var visibleArticles: [Article] {
-        let visibleArticles = articles.filter { !$0.isHidden }
+        let visibleArticles = showsHiddenArticles ? articles : articles.filter { !$0.isHidden }
 
         guard !showsReadArticles else {
             return visibleArticles
@@ -73,7 +76,7 @@ struct ArticleListDisplayState {
         }
 
         return articles.reduce(0) { count, article in
-            guard !article.isHidden else {
+            guard showsHiddenArticles || !article.isHidden else {
                 return count
             }
 

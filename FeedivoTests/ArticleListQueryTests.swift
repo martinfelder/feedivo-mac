@@ -74,6 +74,20 @@ struct ArticleListQueryTests {
         #expect(!state.shouldShowReadArticlesButton)
     }
 
+    @Test func displayStateZeigtHiddenArtikelWennExplizitErlaubt() {
+        let visibleArticle = Article(title: "Sichtbar", isRead: false)
+        let hiddenArticle = Article(title: "Ausgeblendet", isRead: false, isHidden: true)
+
+        let state = ArticleListDisplayState(
+            articles: [visibleArticle, hiddenArticle],
+            showsReadArticles: true,
+            showsHiddenArticles: true
+        )
+
+        #expect(state.visibleArticles.map(\.title) == ["Sichtbar", "Ausgeblendet"])
+        #expect(!state.shouldShowReadArticlesButton)
+    }
+
     @Test func articleSortOptionSortiertArtikelNachBenutzerauswahl() {
         let feedA = Feed(url: "https://example.com/a.xml", title: "Alpha")
         let feedB = Feed(url: "https://example.com/b.xml", title: "Beta")

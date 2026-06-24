@@ -129,9 +129,9 @@
 
 ### 3.2 Smart Filter
 - **Status:** ✅ Entschieden — bereit zur Implementierung
-- **Umgesetzt:** Alle / Ungelesen / Mit Stern / Heute
+- **Umgesetzt:** Alle / Ungelesen / Mit Stern / Heute / Ausgeblendet
 - **Zu implementieren:**
-  - Neue Smart Filter: Diese Woche / Letzte 30 Tage / Archiviert / Ausgeblendet
+  - Neue Smart Filter: Diese Woche / Letzte 30 Tage / Archiviert
   - Alle Smart Filter standardmässig sichtbar
   - Einstellungen → Sidebar: User kann jeden Smart Filter ein- und ausblenden
 
@@ -189,10 +189,10 @@
   - `+` Button für neue Regel
   - "Alle Regeln jetzt anwenden" Button (rückwirkend auf bestehende Artikel)
   - Anzahl betroffener Artikel pro Regel anzeigen (z.B. "42 Artikel")
-- **Regel-Aktionen (alle drei implementieren):**
+- **Regel-Aktionen:**
   - Tag zuweisen (bereits vorhanden)
   - Benachrichtigung auslösen (neu — siehe Feature 10.2)
-  - Artikel ausblenden (neu — siehe Feature 16.3)
+  - Artikel ausblenden (umgesetzt — siehe Feature 16.3)
 - **Noch offen (nicht jetzt implementieren):**
   - Regex als Operator
 
@@ -419,13 +419,13 @@
   - Intelligente Ordner: umbenennbar, löschbar, duplizierbar (Rechtsklick in Sidebar)
 
 ### 16.3 Artikel ausblenden via Regel
-- **Status:** ✅ Entschieden — bereit zur Implementierung
-- **Zu implementieren:**
-  - "Ausblenden" als Regel-Aktion im RuleWizard (gleichwertig zu Tag zuweisen / Benachrichtigung)
-  - Ausgeblendete Artikel erscheinen nicht in normaler Artikel-Liste
-  - Smart Filter "Ausgeblendet" in Sidebar zeigt alle ausgeblendeten Artikel
-  - User entscheidet bei der Regel ob sie rückwirkend angewendet wird
-  - Manuelles Einblenden einzelner Artikel: nicht in v1
+- **Status:** ✔️ Fertig
+- **Umgesetzt:**
+  - "Artikel ausblenden" als Regel-Aktion im RuleWizard neben "Tag zuweisen"
+  - Ausgeblendete Artikel erscheinen nicht in normalen Feed-/Tag-/Smart-Filter-Listen
+  - Smart Filter "Ausgeblendet" in der Sidebar zeigt ausgeblendete Artikel
+  - Rückwirkendes Anwenden läuft über den bestehenden Button "Auf vorhandene Artikel anwenden"
+  - Manuelles Einblenden einzelner Artikel bleibt bewusst nicht in v1
 
 ---
 
@@ -661,7 +661,7 @@ Folgende Reihenfolge berücksichtigt Abhängigkeiten. Features mit (*) sind Vora
 5. **Feature 2.3** — Filterung GUI (Toolbar-Dropdown) — erledigt
 
 ### Phase 2 — Regeln & Intelligente Ordner
-6. **Feature 16.3** * — Artikel ausblenden via Regel + Smart Filter "Ausgeblendet"
+6. **Feature 16.3** * — Artikel ausblenden via Regel + Smart Filter "Ausgeblendet" — erledigt
 7. **Feature 5.2** — Regeln Settings-Design (Drag & Drop Liste, alle 3 Aktionen)
 8. **Feature 16.1/16.2** — Intelligente Ordner (eigener Sidebar-Abschnitt, Sheet, Live-Vorschau, 3 vordefinierte)
 9. **Feature 3.2** — Smart Filter erweitern (Diese Woche, Letzte 30 Tage, Archiviert, Ausgeblendet, ein/ausblendbar)

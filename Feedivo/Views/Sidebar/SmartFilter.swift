@@ -6,6 +6,7 @@ enum SmartFilterIconColor: Hashable {
     case teal
     case yellow
     case green
+    case gray
 
     var color: Color {
         switch self {
@@ -17,6 +18,8 @@ enum SmartFilterIconColor: Hashable {
             return .yellow
         case .green:
             return .green
+        case .gray:
+            return .gray
         }
     }
 }
@@ -26,6 +29,7 @@ enum SmartFilter: String, CaseIterable, Identifiable, Hashable {
     case unread
     case starred
     case today
+    case hidden
 
     var id: String {
         rawValue
@@ -41,6 +45,8 @@ enum SmartFilter: String, CaseIterable, Identifiable, Hashable {
             return L10n.smartFilterStarred
         case .today:
             return L10n.smartFilterToday
+        case .hidden:
+            return L10n.smartFilterHidden
         }
     }
 
@@ -54,6 +60,8 @@ enum SmartFilter: String, CaseIterable, Identifiable, Hashable {
             return "star.fill"
         case .today:
             return "calendar"
+        case .hidden:
+            return "eye.slash"
         }
     }
 
@@ -67,6 +75,8 @@ enum SmartFilter: String, CaseIterable, Identifiable, Hashable {
             return .yellow
         case .today:
             return .green
+        case .hidden:
+            return .gray
         }
     }
 
@@ -88,6 +98,8 @@ enum SmartFilter: String, CaseIterable, Identifiable, Hashable {
             }
 
             return calendar.isDate(publishedAt, inSameDayAs: now)
+        case .hidden:
+            return article.isHidden
         }
     }
 }

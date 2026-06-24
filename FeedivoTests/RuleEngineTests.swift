@@ -238,6 +238,58 @@ struct RuleEngineTests {
     }
 
     @MainActor
+    @Test func applyRulesBlendetArtikelBeiHideAktionAus() throws {
+        let rule = Rule(
+            name: "Spoiler ausblenden",
+            conditionField: "title",
+            conditionOperator: "contains",
+            conditionValue: "Spoiler"
+        )
+        rule.actionRaw = RuleAction.hideArticle.rawValue
+        rule.conditions = [
+            RuleCondition(field: "title", conditionOperator: "contains", value: "Spoiler")
+        ]
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
+        let article = Article(title: "Spoiler zum Film", feed: feed)
+
+        let appliedCount = RuleEngine.applyRules([rule], to: article, feed: feed)
+        let secondAppliedCount = RuleEngine.applyRules([rule], to: article, feed: feed)
+
+        #expect(appliedCount == 1)
+        #expect(secondAppliedCount == 0)
+        #expect(article.isHidden)
+        #expect(article.tags.isEmpty)
+    }
+
+    @MainActor
+    @Test func applyRulesToExistingArticlesBlendetPassendeArtikelRueckwirkendAus() throws {
+        let rule = Rule(
+            name: "Spoiler ausblenden",
+            conditionField: "title",
+            conditionOperator: "contains",
+            conditionValue: "Spoiler"
+        )
+        rule.actionRaw = RuleAction.hideArticle.rawValue
+        rule.conditions = [
+            RuleCondition(field: "title", conditionOperator: "contains", value: "Spoiler")
+        ]
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
+        let matchingArticle = Article(title: "Spoiler zum Film", feed: feed)
+        let alreadyHiddenArticle = Article(title: "Spoiler alt", isHidden: true, feed: feed)
+        let unmatchedArticle = Article(title: "Normale News", feed: feed)
+
+        let appliedCount = RuleEngine.applyRulesToExistingArticles(
+            [rule],
+            articles: [matchingArticle, alreadyHiddenArticle, unmatchedArticle]
+        )
+
+        #expect(appliedCount == 1)
+        #expect(matchingArticle.isHidden)
+        #expect(alreadyHiddenArticle.isHidden)
+        #expect(!unmatchedArticle.isHidden)
+    }
+
+    @MainActor
     @Test func applyRulesIgnoriertUngueltigeRegelnUndVerhindertDoppelteTags() throws {
         let tag = Tag(name: "Swift", colorHex: "#3B82F6")
         let activeRule = Rule(

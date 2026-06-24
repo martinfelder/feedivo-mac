@@ -119,6 +119,7 @@ FeedivoMac/
 │   │   ├── Article.swift
 │   │   ├── Tag.swift
 │   │   ├── Rule.swift
+│   │   ├── RuleAction.swift            # Regel-Aktionen Tag zuweisen / Artikel ausblenden ✅
 │   │   ├── RuleCondition.swift         # Mehrfachbedingungen fuer Regeln ✅
 │   │   ├── RuleMatchMode.swift         # AND/OR-Auswertung fuer Regeln ✅
 │   │   ├── RuleConditionField.swift    # Regel-Felder title/summary/feedTitle ✅
@@ -453,22 +454,26 @@ manuell offline gespeicherte Inhalte.
   `articles`-Relationship geladen, nur um den Sidebar-Zaehler zu verifizieren.
 
 ### RuleEngine.swift
-- Stateless Service fuer automatische Tag-Zuweisung.
+- Stateless Service fuer automatische Regel-Aktionen.
 - Unterstuetzt mehrere Bedingungen pro Regel und wertet sie je nach
   `RuleMatchMode` als `all` (AND) oder `any` (OR) aus.
 - Unterstuetzt die Felder `title`, `summary` und `feedTitle`.
 - Unterstuetzt die Operatoren `contains`, `startsWith` und `endsWith`.
 - Vergleicht case-insensitive und ignoriert deaktivierte Regeln, leere Suchwerte,
-  unbekannte Felder/Operatoren, Regeln ohne Bedingungen sowie Regeln ohne `assignTag`.
-- Fuegt Tags nur hinzu, wenn der Artikel das Tag noch nicht besitzt.
-- Gibt die Anzahl neu gesetzter Tags zurueck und kann Regeln gesammelt auf vorhandene
-  Artikel mit Feed-Bezug anwenden.
+  unbekannte Felder/Operatoren und Regeln ohne Bedingungen.
+- Unterstuetzt `RuleAction.assignTag` und `RuleAction.hideArticle`; unbekannte oder
+  alte Regeln fallen auf `assignTag` zurueck.
+- Fuegt Tags nur hinzu, wenn der Artikel das Tag noch nicht besitzt, und setzt
+  `Article.isHidden` nur, wenn der Artikel noch nicht ausgeblendet ist.
+- Gibt die Anzahl neu angewendeter Aktionen zurueck und kann Regeln gesammelt auf
+  vorhandene Artikel mit Feed-Bezug anwenden.
 - Zaehlt fuer den Regel-Wizard vorab, wie viele vorhandene Artikel zu den aktuellen
   Bedingungsentwuerfen passen wuerden, ohne dabei Tags zu setzen.
 
 ### RuleViewModel.swift
 - Kapselt Erstellen, Bearbeiten und Loeschen von Regeln fuer den Wizard.
-- Validiert Name, Ziel-Tag und mindestens eine nichtleere Bedingung.
+- Validiert Name, Aktion und mindestens eine nichtleere Bedingung; ein Ziel-Tag ist
+  nur fuer die Aktion `Tag zuweisen` Pflicht.
 - Speichert neue Mehrfachbedingungen als `RuleCondition` und pflegt die alten
   `conditionField`/`conditionOperator`/`conditionValue` Felder fuer Kompatibilitaet
   mit bestehenden Daten weiter.
@@ -484,9 +489,11 @@ manuell offline gespeicherte Inhalte.
   werden.
 - Einstellungen bieten einen Button `Auf vorhandene Artikel anwenden`, der aktive
   Regeln manuell auf den gespeicherten Artikelbestand anwendet und danach die Anzahl
-  neu gesetzter Tag-Zuweisungen anzeigt.
+  neu angewendeter Regelaktionen anzeigt.
 - Neue Regeln werden ueber einen Wizard erstellt. Der Benutzer waehlt zwischen
   einfacher Regel und Power-User-Regel.
+- Der Wizard bietet als Aktion `Tag zuweisen` oder `Artikel ausblenden`; bei
+  Ausblenden wird kein Ziel-Tag benoetigt.
 - Einfache Regeln verwenden eine Bedingung; Power-User-Regeln erlauben mehrere
   Bedingungen mit AND- oder OR-Verknuepfung.
 - Der Wizard zeigt live eine Vorschau, wie viele vorhandene Artikel die aktuelle
@@ -548,9 +555,11 @@ manuell offline gespeicherte Inhalte.
   statt ueber die komplette `Feed.articles` Relationship
 - Feed-Listen laden nicht mehr automatisch alle Artikel per globaler `@Query`;
   Smart-Filter-Listen nutzen gezielte SwiftData-Queries fuer Alle, Ungelesen,
-  Mit Stern und Heute statt alle Artikel im Speicher zu filtern
+  Mit Stern, Heute und Ausgeblendet statt alle Artikel im Speicher zu filtern
 - Tag-Listen nutzen ebenfalls eine gezielte SwiftData-Query und zeigen
   feeduebergreifend direkt getaggte Artikel sowie Artikel aus getaggten Feeds.
+- Normale Feed-, Tag- und Smart-Filter-Listen blenden `Article.isHidden` aus; der
+  Smart-Filter `Ausgeblendet` zeigt diese Artikel explizit wieder.
 - Sortierung ist global per `@AppStorage(ArticleSortOption.storageKey)` gespeichert
   und gilt fuer Feed-, Tag- und Smartfilter-Listen.
 - Toolbar-Menue `Sortieren nach` ist der primaere Einstieg fuer die Sortierung;
@@ -1395,6 +1404,12 @@ manuell offline gespeicherte Inhalte.
 
 ## Letzte Änderungen
 
+- 2026-06-24: Feature 16.3 umgesetzt: Regeln haben jetzt `RuleAction` mit
+  `Tag zuweisen` und `Artikel ausblenden`. Die RuleEngine setzt je nach Aktion Tags
+  oder `Article.isHidden`, rueckwirkendes Anwenden zaehlt allgemein Regelaktionen,
+  normale Artikellisten blenden ausgeblendete Artikel aus, und der neue Smart-Filter
+  `Ausgeblendet` zeigt sie gezielt wieder an.
+
 - 2026-06-24: Feature 2.4 abgeschlossen: Das Artikel-Kontextmenue bietet jetzt
   `Exportieren...` als Markdown-Export mit Metadaten und lesbarem Artikeltext.
   Der Export bevorzugt gespeicherten Offline-Content und nutzt eine sichere
@@ -1416,7 +1431,8 @@ manuell offline gespeicherte Inhalte.
 - 2026-06-24: Feature 22.1 abgeschlossen: Archivieren ist jetzt mit explizitem
   Offline-Content verknuepft, Archiv entfernen loescht nur lokale Offline-Daten
   und setzt `isArchived` zurueck, und `isHidden` wird aus normalen Artikellisten
-  ausgeblendet. Die Regel-Aktion zum Ausblenden bleibt Phase 2.
+  ausgeblendet. Die Regel-Aktion zum Ausblenden wurde danach mit Feature 16.3
+  umgesetzt.
 - 2026-06-24: Feature 2.4 als erster Kontextmenue-Slice umgesetzt: Artikelzeilen
   bieten jetzt Archivieren, Tag-Zuweisung, Regel-Erstellung aus Artikel, Teilen,
   Offline speichern/entfernen, Artikel loeschen und alle sichtbaren Artikel als

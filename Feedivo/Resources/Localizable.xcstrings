@@ -5089,25 +5089,81 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld Tag-Zuweisungen angewendet."
+            "value" : "%lld Regelaktionen angewendet."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Applied %lld tag assignments."
+            "value" : "Applied %lld rule actions."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld attributions de tag appliquées."
+            "value" : "%lld actions de règle appliquées."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld assegnazioni di tag applicate."
+            "value" : "%lld azioni regola applicate."
+          }
+        }
+      }
+    },
+    "rule.action.assignTag" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tag zuweisen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Assign tag"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Attribuer un tag"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Assegna tag"
+          }
+        }
+      }
+    },
+    "rule.action.hideArticle" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Artikel ausblenden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hide article"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Masquer l’article"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nascondi articolo"
           }
         }
       }
@@ -5509,25 +5565,25 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bitte Name, Ziel-Tag und mindestens eine Bedingung ausfuellen."
+            "value" : "Bitte Name, Aktion und mindestens eine Bedingung ausfuellen. Bei Tag-Regeln muss ein Ziel-Tag gewaehlt sein."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Please fill in a name, target tag, and at least one condition."
+            "value" : "Please fill in a name, action, and at least one condition. Tag rules need a target tag."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Veuillez renseigner un nom, un tag cible et au moins une condition."
+            "value" : "Veuillez renseigner un nom, une action et au moins une condition. Les règles de tag nécessitent un tag cible."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Inserisci un nome, un tag di destinazione e almeno una condizione."
+            "value" : "Inserisci un nome, un'azione e almeno una condizione. Le regole tag richiedono un tag di destinazione."
           }
         }
       }
@@ -5924,30 +5980,58 @@
         }
       }
     },
-    "ruleWizard.summary.title" : {
+    "ruleWizard.action.title" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lege fest, wann Feedivo automatisch ein Tag zuweist."
+            "value" : "Aktion"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Define when Feedivo automatically assigns a tag."
+            "value" : "Action"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Définissez quand Feedivo attribue automatiquement un tag."
+            "value" : "Action"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Definisci quando Feedivo assegna automaticamente un tag."
+            "value" : "Azione"
+          }
+        }
+      }
+    },
+    "ruleWizard.summary.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lege fest, was Feedivo automatisch mit passenden Artikeln macht."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Define what Feedivo automatically does with matching articles."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Définissez ce que Feedivo fait automatiquement avec les articles correspondants."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Definisci cosa fa automaticamente Feedivo con gli articoli corrispondenti."
           }
         }
       }
@@ -8384,6 +8468,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tutti gli articoli"
+          }
+        }
+      }
+    },
+    "smartFilter.hidden" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ausgeblendet"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hidden"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Masqués"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nascosti"
           }
         }
       }

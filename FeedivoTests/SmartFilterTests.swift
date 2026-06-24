@@ -58,10 +58,20 @@ struct SmartFilterTests {
         #expect(!SmartFilter.today.includes(missingDate, now: now, calendar: calendar))
     }
 
+    @MainActor
+    @Test func hiddenFilterZeigtNurAusgeblendeteArtikel() {
+        let visibleArticle = Article(title: "Sichtbar", isHidden: false)
+        let hiddenArticle = Article(title: "Ausgeblendet", isHidden: true)
+
+        #expect(!SmartFilter.hidden.includes(visibleArticle))
+        #expect(SmartFilter.hidden.includes(hiddenArticle))
+    }
+
     @Test func filterIconsHabenPassendeFarben() {
         #expect(SmartFilter.allArticles.iconColor == .blue)
         #expect(SmartFilter.unread.iconColor == .teal)
         #expect(SmartFilter.starred.iconColor == .yellow)
         #expect(SmartFilter.today.iconColor == .green)
+        #expect(SmartFilter.hidden.iconColor == .gray)
     }
 }

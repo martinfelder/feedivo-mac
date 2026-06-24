@@ -10,7 +10,7 @@ struct RuleSettingsView: View {
     @State private var ruleEditing: Rule?
     @State private var isCreatingRule = false
     @State private var rulePendingDeletion: Rule?
-    @State private var appliedExistingRuleTagCount: Int?
+    @State private var appliedExistingRuleActionCount: Int?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -44,8 +44,8 @@ struct RuleSettingsView: View {
                 }
             }
 
-            if let appliedExistingRuleTagCount {
-                Text(L10n.ruleApplyExistingResult(count: appliedExistingRuleTagCount))
+            if let appliedExistingRuleActionCount {
+                Text(L10n.ruleApplyExistingResult(count: appliedExistingRuleActionCount))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -86,10 +86,10 @@ struct RuleSettingsView: View {
     }
 
     private func applyRulesToExistingArticles() {
-        let appliedTagCount = RuleEngine.applyRulesToExistingArticles(rules, articles: articles)
-        appliedExistingRuleTagCount = appliedTagCount
+        let appliedActionCount = RuleEngine.applyRulesToExistingArticles(rules, articles: articles)
+        appliedExistingRuleActionCount = appliedActionCount
 
-        if appliedTagCount > 0 {
+        if appliedActionCount > 0 {
             try? modelContext.save()
         }
     }
@@ -133,7 +133,13 @@ private struct RuleSettingsRow: View {
 
     private var summary: String {
         let mode = RuleMatchMode.normalized(rule.conditionMatchMode) == .all ? "AND" : "OR"
-        let tagName = rule.assignTag?.name ?? "-"
-        return "\(rule.conditions.count) Bedingungen · \(mode) · Tag: \(tagName)"
+        let action = RuleAction.normalized(rule.actionRaw)
+        switch action {
+        case .assignTag:
+            let tagName = rule.assignTag?.name ?? "-"
+            return "\(rule.conditions.count) Bedingungen · \(mode) · Tag: \(tagName)"
+        case .hideArticle:
+            return "\(rule.conditions.count) Bedingungen · \(mode) · Ausblenden"
+        }
     }
 }

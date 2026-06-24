@@ -1,7 +1,7 @@
 import Foundation
 import SwiftData
 
-// Rule definiert eine Bedingung die automatisch Tags an Artikel vergibt
+// Rule definiert eine Bedingung, die automatisch eine Aktion auf Artikel anwendet
 @Model
 class Rule {
     var id: UUID
@@ -11,6 +11,7 @@ class Rule {
     var conditionOperator: String   // "contains", "startsWith", "endsWith"
     var conditionValue: String      // z.B. "Apple", "WWDC"
     var conditionMatchMode: String  // "all" oder "any"
+    var actionRaw: String = RuleAction.assignTag.rawValue
 
     @Relationship
     var assignTag: Tag?
@@ -27,6 +28,7 @@ class Rule {
         self.conditionOperator = conditionOperator
         self.conditionValue = conditionValue
         self.conditionMatchMode = RuleMatchMode.all.rawValue
+        self.actionRaw = RuleAction.assignTag.rawValue
         self.conditions = []
     }
 }

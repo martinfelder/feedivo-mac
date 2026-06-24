@@ -9,31 +9,43 @@ enum RuleEngine {
 
     @discardableResult
     static func applyRules(_ rules: [Rule], to article: Article, feed: Feed) -> Int {
-        var appliedTagCount = 0
+        var appliedActionCount = 0
 
         for rule in rules where rule.isEnabled {
-            guard
-                let tag = rule.assignTag,
-                matches(rule: rule, article: article, feed: feed),
-                !article.tags.contains(where: { $0.id == tag.id })
-            else {
+            guard matches(rule: rule, article: article, feed: feed) else {
                 continue
             }
 
-            article.tags.append(tag)
-            appliedTagCount += 1
+            switch RuleAction.normalized(rule.actionRaw) {
+            case .assignTag:
+                guard let tag = rule.assignTag,
+                      !article.tags.contains(where: { $0.id == tag.id })
+                else {
+                    continue
+                }
+
+                article.tags.append(tag)
+                appliedActionCount += 1
+            case .hideArticle:
+                guard !article.isHidden else {
+                    continue
+                }
+
+                article.isHidden = true
+                appliedActionCount += 1
+            }
         }
 
-        return appliedTagCount
+        return appliedActionCount
     }
 
     static func applyRulesToExistingArticles(_ rules: [Rule], articles: [Article]) -> Int {
-        articles.reduce(0) { appliedTagCount, article in
+        articles.reduce(0) { appliedActionCount, article in
             guard let feed = article.feed else {
-                return appliedTagCount
+                return appliedActionCount
             }
 
-            return appliedTagCount + applyRules(rules, to: article, feed: feed)
+            return appliedActionCount + applyRules(rules, to: article, feed: feed)
         }
     }
 

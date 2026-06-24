@@ -119,7 +119,8 @@ private struct FeedArticleListContent: View {
             selectedArticle: $selectedArticle,
             navigationState: $navigationState,
             onRequestCreateRuleFromArticle: onRequestCreateRuleFromArticle,
-            onRequestExportArticle: onRequestExportArticle
+            onRequestExportArticle: onRequestExportArticle,
+            showsHiddenArticles: false
         )
         .id(feed.id)
     }
@@ -158,7 +159,8 @@ private struct TagArticleListContent: View {
             selectedArticle: $selectedArticle,
             navigationState: $navigationState,
             onRequestCreateRuleFromArticle: onRequestCreateRuleFromArticle,
-            onRequestExportArticle: onRequestExportArticle
+            onRequestExportArticle: onRequestExportArticle,
+            showsHiddenArticles: false
         )
         .id(tag.id)
     }
@@ -217,6 +219,13 @@ private struct SmartFilterArticleListContent: View {
                 },
                 sort: ArticleListQuery.sortDescriptors
             )
+        case .hidden:
+            self._articles = Query(
+                filter: #Predicate<Article> { article in
+                    article.isHidden
+                },
+                sort: ArticleListQuery.sortDescriptors
+            )
         }
     }
 
@@ -227,7 +236,8 @@ private struct SmartFilterArticleListContent: View {
             selectedArticle: $selectedArticle,
             navigationState: $navigationState,
             onRequestCreateRuleFromArticle: onRequestCreateRuleFromArticle,
-            onRequestExportArticle: onRequestExportArticle
+            onRequestExportArticle: onRequestExportArticle,
+            showsHiddenArticles: smartFilter == .hidden
         )
         .id(smartFilter)
     }
@@ -240,6 +250,7 @@ private struct ArticleListContent: View {
     let onRequestCreateRuleFromArticle: (Article) -> Void
     let onRequestExportArticle: (Article) -> Void
     let sortArticles: Bool
+    let showsHiddenArticles: Bool
     @Binding var selectedArticle: Article?
     @Binding var navigationState: ArticleNavigationState
     @Query(sort: \Tag.name) private var tags: [Tag]
@@ -260,7 +271,8 @@ private struct ArticleListContent: View {
         navigationState: Binding<ArticleNavigationState>,
         onRequestCreateRuleFromArticle: @escaping (Article) -> Void,
         onRequestExportArticle: @escaping (Article) -> Void,
-        sortArticles: Bool = true
+        sortArticles: Bool = true,
+        showsHiddenArticles: Bool = false
     ) {
         self.articles = articles
         self.navigationTitle = navigationTitle
@@ -269,6 +281,7 @@ private struct ArticleListContent: View {
         self._selectedArticle = selectedArticle
         self._navigationState = navigationState
         self.sortArticles = sortArticles
+        self.showsHiddenArticles = showsHiddenArticles
     }
 
     var body: some View {
@@ -277,7 +290,8 @@ private struct ArticleListContent: View {
         let displayState = ArticleListDisplayState(
             articles: filteredArticles,
             showsReadArticles: showsReadArticles,
-            selectedArticle: selectedArticle
+            selectedArticle: selectedArticle,
+            showsHiddenArticles: showsHiddenArticles
         )
         let visibleArticles = displayState.visibleArticles
 
@@ -362,7 +376,8 @@ private struct ArticleListContent: View {
             let displayState = ArticleListDisplayState(
                 articles: filteredArticles,
                 showsReadArticles: showsReadArticles,
-                selectedArticle: selectedArticle
+                selectedArticle: selectedArticle,
+                showsHiddenArticles: showsHiddenArticles
             )
             updateNavigationState(in: displayState.visibleArticles)
         }
@@ -370,7 +385,8 @@ private struct ArticleListContent: View {
             let displayState = ArticleListDisplayState(
                 articles: filteredArticles,
                 showsReadArticles: showsReadArticles,
-                selectedArticle: selectedArticle
+                selectedArticle: selectedArticle,
+                showsHiddenArticles: showsHiddenArticles
             )
             updateNavigationState(in: displayState.visibleArticles)
         }
@@ -378,7 +394,8 @@ private struct ArticleListContent: View {
             let displayState = ArticleListDisplayState(
                 articles: sortedArticles,
                 showsReadArticles: showsReadArticles,
-                selectedArticle: selectedArticle
+                selectedArticle: selectedArticle,
+                showsHiddenArticles: showsHiddenArticles
             )
             updateNavigationState(in: displayState.visibleArticles)
             viewModel.markReadIfNeeded(

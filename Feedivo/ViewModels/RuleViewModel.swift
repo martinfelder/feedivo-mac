@@ -17,15 +17,20 @@ final class RuleViewModel {
     func createRule(
         name: String,
         isEnabled: Bool,
+        action: RuleAction = .assignTag,
         matchMode: RuleMatchMode,
         conditionDrafts: [RuleConditionDraft],
         assignTag: Tag?,
         context: ModelContext
     ) {
         guard let normalizedName = normalizedName(name),
-              let assignTag,
               let conditions = normalizedConditions(from: conditionDrafts)
         else {
+            errorMessage = L10n.ruleValidationError
+            return
+        }
+
+        guard action != .assignTag || assignTag != nil else {
             errorMessage = L10n.ruleValidationError
             return
         }
@@ -38,8 +43,9 @@ final class RuleViewModel {
             conditionValue: firstCondition.value
         )
         rule.isEnabled = isEnabled
+        rule.actionRaw = action.rawValue
         rule.conditionMatchMode = matchMode.rawValue
-        rule.assignTag = assignTag
+        rule.assignTag = action == .assignTag ? assignTag : nil
         rule.conditions = conditions.enumerated().map { index, condition in
             RuleCondition(
                 field: condition.field,
@@ -57,23 +63,29 @@ final class RuleViewModel {
         _ rule: Rule,
         name: String,
         isEnabled: Bool,
+        action: RuleAction = .assignTag,
         matchMode: RuleMatchMode,
         conditionDrafts: [RuleConditionDraft],
         assignTag: Tag?,
         context: ModelContext
     ) {
         guard let normalizedName = normalizedName(name),
-              let assignTag,
               let conditions = normalizedConditions(from: conditionDrafts)
         else {
             errorMessage = L10n.ruleValidationError
             return
         }
 
+        guard action != .assignTag || assignTag != nil else {
+            errorMessage = L10n.ruleValidationError
+            return
+        }
+
         rule.name = normalizedName
         rule.isEnabled = isEnabled
+        rule.actionRaw = action.rawValue
         rule.conditionMatchMode = matchMode.rawValue
-        rule.assignTag = assignTag
+        rule.assignTag = action == .assignTag ? assignTag : nil
         rule.conditionField = conditions[0].field
         rule.conditionOperator = conditions[0].conditionOperator
         rule.conditionValue = conditions[0].value

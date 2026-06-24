@@ -31,6 +31,7 @@ struct RuleWizardView: View {
     @State private var mode: RuleWizardMode = .simple
     @State private var name = ""
     @State private var isEnabled = true
+    @State private var action = RuleAction.assignTag
     @State private var matchMode = RuleMatchMode.all
     @State private var conditionDrafts = [
         RuleConditionDraft(field: .title, conditionOperator: .contains, value: "")
@@ -51,7 +52,9 @@ struct RuleWizardView: View {
             ruleBasics
             conditionsEditor
             rulePreview
+            actionEditor
             targetEditor
+            ruleErrorMessage
             footer
         }
         .padding(24)
@@ -182,11 +185,37 @@ struct RuleWizardView: View {
                 .disabled(TagViewModel.normalizedTagName(newTagName) == nil)
             }
 
-            if let errorMessage = tagViewModel.errorMessage ?? viewModel.errorMessage {
+            if let errorMessage = tagViewModel.errorMessage {
                 Text(errorMessage)
                     .font(.callout)
                     .foregroundStyle(.red)
             }
+        }
+        .disabled(action != .assignTag)
+        .opacity(action == .assignTag ? 1 : 0.45)
+    }
+
+    private var actionEditor: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(L10n.ruleWizardActionTitle)
+                .font(.headline)
+
+            Picker(L10n.ruleWizardActionTitle, selection: $action) {
+                ForEach(RuleAction.allCases) { action in
+                    Text(action.titleKey)
+                        .tag(action)
+                }
+            }
+            .pickerStyle(.segmented)
+        }
+    }
+
+    @ViewBuilder
+    private var ruleErrorMessage: some View {
+        if let errorMessage = viewModel.errorMessage {
+            Text(errorMessage)
+                .font(.callout)
+                .foregroundStyle(.red)
         }
     }
 
@@ -273,6 +302,7 @@ struct RuleWizardView: View {
     private func load(_ rule: Rule) {
         name = rule.name
         isEnabled = rule.isEnabled
+        action = RuleAction.normalized(rule.actionRaw)
         matchMode = RuleMatchMode.normalized(rule.conditionMatchMode)
         conditionDrafts = rule.conditions
             .sorted { $0.sortOrder < $1.sortOrder }
@@ -352,6 +382,7 @@ struct RuleWizardView: View {
                 rule,
                 name: name,
                 isEnabled: isEnabled,
+                action: action,
                 matchMode: matchMode,
                 conditionDrafts: drafts,
                 assignTag: selectedTag,
@@ -361,6 +392,7 @@ struct RuleWizardView: View {
             viewModel.createRule(
                 name: name,
                 isEnabled: isEnabled,
+                action: action,
                 matchMode: matchMode,
                 conditionDrafts: drafts,
                 assignTag: selectedTag,
