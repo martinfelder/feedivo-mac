@@ -5,6 +5,62 @@ import Testing
 
 @Suite(.serialized)
 struct ArticleListQueryTests {
+    @Test func displayStateBlendetGeleseneArtikelStandardmaessigAus() {
+        let unreadNewest = Article(
+            title: "Ungelesen neu",
+            publishedAt: Date(timeIntervalSince1970: 300),
+            isRead: false
+        )
+        let readMiddle = Article(
+            title: "Gelesen",
+            publishedAt: Date(timeIntervalSince1970: 200),
+            isRead: true
+        )
+        let unreadOldest = Article(
+            title: "Ungelesen alt",
+            publishedAt: Date(timeIntervalSince1970: 100),
+            isRead: false
+        )
+
+        let state = ArticleListDisplayState(
+            articles: [unreadNewest, readMiddle, unreadOldest],
+            showsReadArticles: false
+        )
+
+        #expect(state.visibleArticles.map(\.title) == ["Ungelesen neu", "Ungelesen alt"])
+        #expect(state.hiddenReadArticleCount == 1)
+        #expect(state.shouldShowReadArticlesButton)
+    }
+
+    @Test func displayStateZeigtAlleArtikelNachAktivierung() {
+        let unreadArticle = Article(title: "Ungelesen", isRead: false)
+        let readArticle = Article(title: "Gelesen", isRead: true)
+
+        let state = ArticleListDisplayState(
+            articles: [unreadArticle, readArticle],
+            showsReadArticles: true
+        )
+
+        #expect(state.visibleArticles.map(\.title) == ["Ungelesen", "Gelesen"])
+        #expect(state.hiddenReadArticleCount == 0)
+        #expect(!state.shouldShowReadArticlesButton)
+    }
+
+    @Test func displayStateHaeltAusgewaehltenGelesenenArtikelSichtbar() {
+        let unreadArticle = Article(title: "Ungelesen", isRead: false)
+        let selectedReadArticle = Article(title: "Ausgewaehlt", isRead: true)
+        let hiddenReadArticle = Article(title: "Verborgen", isRead: true)
+
+        let state = ArticleListDisplayState(
+            articles: [unreadArticle, selectedReadArticle, hiddenReadArticle],
+            showsReadArticles: false,
+            selectedArticle: selectedReadArticle
+        )
+
+        #expect(state.visibleArticles.map(\.title) == ["Ungelesen", "Ausgewaehlt"])
+        #expect(state.hiddenReadArticleCount == 1)
+    }
+
     @Test func articleInitialisiertDirekteFeedIDFuerSchnelleListenQueries() throws {
         let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
         let article = Article(title: "Artikel", feed: feed)

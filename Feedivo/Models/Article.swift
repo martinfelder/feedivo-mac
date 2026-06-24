@@ -25,6 +25,8 @@ class Article {
     var feedID: UUID?
     var isRead: Bool
     var isStarred: Bool
+    var isArchived: Bool = false
+    var isHidden: Bool = false
     var offlineStateRaw: String = ArticleOfflineState.none.rawValue
     var offlineContent: String?
     var offlineRequestedAt: Date?
@@ -55,6 +57,8 @@ class Article {
         imageURL: String? = nil,
         isRead: Bool = false,
         isStarred: Bool = false,
+        isArchived: Bool = false,
+        isHidden: Bool = false,
         feed: Feed? = nil
     ) {
         self.id = UUID()
@@ -67,6 +71,8 @@ class Article {
         self.feedID = feed?.id
         self.isRead = isRead
         self.isStarred = isStarred
+        self.isArchived = isArchived
+        self.isHidden = isHidden
         self.offlineStateRaw = ArticleOfflineState.none.rawValue
         self.offlineContent = nil
         self.offlineRequestedAt = nil

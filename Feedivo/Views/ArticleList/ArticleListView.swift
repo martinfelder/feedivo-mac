@@ -94,6 +94,7 @@ private struct FeedArticleListContent: View {
             navigationState: $navigationState,
             sortArticles: false
         )
+        .id(feed.id)
     }
 }
 
@@ -125,6 +126,7 @@ private struct TagArticleListContent: View {
             navigationState: $navigationState,
             sortArticles: false
         )
+        .id(tag.id)
     }
 }
 
@@ -186,6 +188,7 @@ private struct SmartFilterArticleListContent: View {
             navigationState: $navigationState,
             sortArticles: false
         )
+        .id(smartFilter)
     }
 }
 
@@ -198,6 +201,7 @@ private struct ArticleListContent: View {
     @AppStorage("markArticleReadOnSelection")
     private var markArticleReadOnSelection = true
     @State private var viewModel = ArticleViewModel()
+    @State private var showsReadArticles = false
 
     init(
         articles: [Article],
@@ -214,17 +218,23 @@ private struct ArticleListContent: View {
     }
 
     var body: some View {
-        let articles = sortedArticles
+        let sortedArticles = sortedArticles
+        let displayState = ArticleListDisplayState(
+            articles: sortedArticles,
+            showsReadArticles: showsReadArticles,
+            selectedArticle: selectedArticle
+        )
+        let visibleArticles = displayState.visibleArticles
 
         List(selection: $selectedArticle) {
-            if articles.isEmpty {
+            if sortedArticles.isEmpty {
                 ContentUnavailableView(
                     L10n.articleListEmptyTitle,
                     systemImage: "doc.text.magnifyingglass",
                     description: Text(L10n.articleListEmptyDescription)
                 )
             } else {
-                ForEach(articles) { article in
+                ForEach(visibleArticles) { article in
                     ArticleRowView(
                         article: article,
                         onToggleRead: {
@@ -242,22 +252,54 @@ private struct ArticleListContent: View {
                     )
                     .tag(article)
                 }
+
+                if displayState.shouldShowReadArticlesButton {
+                    showReadArticlesButton(count: displayState.hiddenReadArticleCount)
+                }
             }
         }
         .navigationTitle(navigationTitle)
         .onAppear {
-            updateNavigationState(in: articles)
+            updateNavigationState(in: visibleArticles)
         }
-        .onChange(of: articles) {
-            updateNavigationState(in: articles)
+        .onChange(of: visibleArticles) {
+            updateNavigationState(in: visibleArticles)
         }
         .onChange(of: selectedArticle?.persistentModelID) {
-            updateNavigationState(in: articles)
+            let displayState = ArticleListDisplayState(
+                articles: sortedArticles,
+                showsReadArticles: showsReadArticles,
+                selectedArticle: selectedArticle
+            )
+            updateNavigationState(in: displayState.visibleArticles)
             viewModel.markReadIfNeeded(
                 selectedArticle,
                 isEnabled: markArticleReadOnSelection
             )
         }
+    }
+
+    private func showReadArticlesButton(count: Int) -> some View {
+        HStack {
+            Spacer()
+
+            Button {
+                showsReadArticles = true
+            } label: {
+                Label(
+                    String.localizedStringWithFormat(
+                        L10n.articleListShowReadButtonFormat,
+                        count
+                    ),
+                    systemImage: "eye"
+                )
+            }
+            .buttonStyle(.borderless)
+            .foregroundStyle(.secondary)
+
+            Spacer()
+        }
+        .padding(.vertical, 10)
     }
 
     private var sortedArticles: [Article] {

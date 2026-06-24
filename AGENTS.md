@@ -48,7 +48,7 @@ Electron-App. Echtes AppKit-Feeling via SwiftUI für macOS.
 Bei jeder neuen Session zuerst:
 
 1. `AGENTS.md` vollstaendig lesen.
-2. Falls vorhanden `docs/FEATURES.md` lesen, wenn es um Planung, Roadmap oder Features geht.
+2. Falls vorhanden `FEATURES.md` im Root lesen, wenn es um Planung, Roadmap oder Features geht.
 3. `git status --short --branch` pruefen.
 4. Relevante Swift-Dateien lesen, bevor Code geaendert wird.
 5. Den aktuellen Milestone und "Aktuell in Arbeit" gegen den Code abgleichen.
@@ -63,7 +63,7 @@ Nach jeder relevanten Aenderung pruefen und bei Bedarf aktualisieren:
    - Aktuell in Arbeit
    - Letzte Aenderungen
    - Bekannte Gotchas / ADRs
-2. `docs/FEATURES.md`:
+2. `FEATURES.md`:
    - Feature-Status
    - Prioritaet
    - offene Entscheidungen
@@ -75,7 +75,7 @@ Nach jeder relevanten Aenderung pruefen und bei Bedarf aktualisieren:
 ### Dokumentationsprinzip
 
 - Entscheidungen kurz begruenden, besonders wenn Features verschoben oder vereinfacht werden.
-- Keine Roadmap stillschweigend aendern. Immer in `AGENTS.md` und/oder `docs/FEATURES.md` nachfuehren.
+- Keine Roadmap stillschweigend aendern. Immer in `AGENTS.md` und/oder `FEATURES.md` nachfuehren.
 - Wenn eine User-Entscheidung faellt, diese als Entscheidung dokumentieren, nicht nur im Chat beantworten.
 - Wenn der Code vom Projektgedaechtnis abweicht, zuerst das Projektgedaechtnis korrigieren oder die Abweichung klar melden.
 
@@ -89,7 +89,7 @@ Nach jeder relevanten Aenderung pruefen und bei Bedarf aktualisieren:
 | Architektur | MVVM | `@Observable` Macro (kein ObservableObject) |
 | Navigation | NavigationSplitView | 3-Spalten: Sidebar / Liste / Detail |
 | Persistenz | SwiftData | Kein Core Data |
-| iCloud Sync | CloudKit via SwiftData | `isCloudKitEnabled: true` — noch nicht aktiviert |
+| iCloud Sync | CloudKit via SwiftData | Geplant fuer M4 — noch nicht aktiviert |
 | Netzwerk | URLSession + async/await | Kein Alamofire, kein Combine |
 | RSS-Parsing | FeedKit | Swift Package, URL: https://github.com/nmdias/FeedKit |
 | Bilder | CachedRemoteImageView + ImageCacheService | Lokaler Disk-Cache + NSCache, kein Kingfisher |
@@ -129,8 +129,7 @@ FeedivoMac/
 │   │   ├── ArticleNavigationState.swift # Sichtbare Artikel-Navigation effizient berechnen ✅
 │   │   ├── ArticleMetadataEditor.swift # Artikel-Ordner und Tags bearbeiten ✅
 │   │   ├── TagViewModel.swift          # Tags verwalten ✅
-│   │   ├── RuleViewModel.swift         # Regeln erstellen, bearbeiten, loeschen ✅
-│   │   └── SyncViewModel.swift         # iCloud Sync Status anzeigen (TODO)
+│   │   └── RuleViewModel.swift         # Regeln erstellen, bearbeiten, loeschen ✅
 │   │
 │   ├── Views/
 │   │   ├── ContentView.swift           # Root: NavigationSplitView (3 Spalten) ✅
@@ -159,7 +158,7 @@ FeedivoMac/
 │   │   │   ├── ReaderFontPreset.swift  # Schrift-Presets fuer Reader ✅
 │   │   │   ├── ReaderFontRegistry.swift # Gebundelte Fonts registrieren ✅
 │   │   │   ├── ReaderTypography.swift  # Textgroesse/Zeilenabstand Defaults ✅
-│   │   │   └── WebContentView.swift    # WKWebView-Wrapper für volle Artikel (TODO)
+│   │   │   └── WebContentView.swift    # WKWebView-Wrapper fuer Originalansicht ✅
 │   │   ├── Tags/
 │   │   │   ├── TagManagerView.swift    # Tags erstellen, bearbeiten, loeschen ✅
 │   │   │   └── AddTagView.swift        # bleibt vorerst nicht separat noetig; TagManagerView erstellt Tags direkt
@@ -186,7 +185,6 @@ FeedivoMac/
 │   │   ├── OfflineDownloadService.swift # Manueller Offline-Download pro Artikel ✅
 │   │   ├── ImageCacheService.swift     # Memory-/Disk-Cache fuer Bilder und Favicons ✅
 │   │   ├── ImageCacheSettings.swift    # Cache-Limits und Groessenformatierung ✅
-│   │   ├── FeedRefreshService.swift    # Alle Feeds abrufen (async, mit Fortschritt) (TODO)
 │   │   ├── RuleEngine.swift            # Mehrfach-Regeln auf neue Artikel anwenden ✅
 │   │   ├── OPMLService.swift           # OPML Import und Export ✅
 │   │   └── OPMLDocument.swift          # FileDocument fuer OPML Export ✅
@@ -202,8 +200,10 @@ FeedivoMac/
 │       └── L10n.swift                  # Zentraler Zugriff auf lokalisierte Strings ✅
 │
 ├── Feedivo.xcodeproj
+├── FEATURES.md                         # Massgebliche Produkt-Roadmap und Implementierungs-Reihenfolge ✅
 ├── docs/
-│   └── FEATURES.md                     # Produkt-Roadmap, priorisierter Feature-Backlog ✅
+│   └── archive/
+│       └── FEATURES-legacy-2026-06-24.md # Alte Roadmap, nur Archiv/Referenz
 └── AGENTS.md                           # Kopie im Root (für Codex CLI)
 ```
 
@@ -550,6 +550,12 @@ manuell offline gespeicherte Inhalte.
   Ungelesen-Punkt rechts oben und Stern rechts unten
 - Markiert Artikel beim Auswaehlen automatisch als gelesen, wenn die Einstellung
   aktiv ist
+- Gelesene Artikel werden in Feed-, Tag- und Smartfilter-Listen standardmaessig
+  ausgeblendet; am Listenende blendet ein Button `X gelesene Artikel anzeigen`
+  die versteckten gelesenen Artikel fuer die aktuelle Liste ein.
+- Der aktuell ausgewaehlte Artikel bleibt sichtbar, auch wenn er beim Oeffnen
+  automatisch als gelesen markiert wird. So verschwindet die ausgewaehlte Zeile
+  nicht direkt nach dem Klick.
 
 ### ArticleListQuery.swift
 - Buendelt Sortierung und Feed-Predicate fuer Artikel-Listen.
@@ -558,6 +564,8 @@ manuell offline gespeicherte Inhalte.
 - Tag-Listen filtern ueber `Article.tags.contains { tag.id == selectedTagID }` und
   zusaetzlich ueber die denormalisierte `Article.feedID` fuer getaggte Feeds; diese
   Predicates sind durch `ArticleListQueryTests` abgesichert.
+- `ArticleListDisplayState` kapselt die sichtbaren Artikel, die Anzahl versteckter
+  gelesener Artikel und die Button-Entscheidung fuer Feature 2.5 testbar ohne UI.
 
 ### ArticleNavigationState.swift
 - Berechnet vorherigen und naechsten Artikel aus der aktuell sichtbaren Liste.
@@ -776,7 +784,9 @@ manuell offline gespeicherte Inhalte.
   Artikel im SwiftUI-`@State` haengen bleiben
 - Bilder werden mit `scaledToFit` und begrenzter Maximalhoehe gerendert, damit grosse
   Feedbilder ruhiger und performanter bleiben
-- Noch kein WKWebView/Vollseiten-Reader
+- Noch kein eigener Vollartikel-Lade-/Extraktionsmodus fuer den nativen Reader.
+  `WKWebView` existiert bereits als Originalansicht; Vollartikel-Laden mit fair
+  erhaltener Anbieterstruktur bleibt ein eigener M4/v1-Produktpunkt.
 
 ### ReaderPreparedArticle.swift
 - Kapselt die vorbereiteten, teureren Reader-Daten fuer einen Artikel.
@@ -996,6 +1006,8 @@ manuell offline gespeicherte Inhalte.
     var feedID: UUID?                        // Direkter Query-Key fuer schnelle Feed-Listen
     var isRead: Bool
     var isStarred: Bool
+    var isArchived: Bool                     // Archivstatus, Default: false
+    var isHidden: Bool                       // Aus Listen ausblendbar, Default: false
     var offlineStateRaw: String              // none/feedContent/fullText/failed
     var offlineContent: String?
     var offlineRequestedAt: Date?
@@ -1238,16 +1250,21 @@ manuell offline gespeicherte Inhalte.
 - [x] Offline Mode Phase 1: Artikel manuell offline speichern/entfernen, Status im
   Reader und in der Artikelliste anzeigen, Feed-Content oder geladene Originalseite
   als `offlineContent` speichern
-- [ ] Einstellungen-Fenster (Refresh-Intervall, Schriftgrösse, Theme)
+- [ ] Einstellungen-Fenster final diskutieren und polishen: Struktur, Gewichtung,
+  Sync-/Offline-/Cache-Bereiche und macOS-Gefuehl erneut pruefen
+- [ ] Vollartikel laden, wenn Feed/Quelle es erlauben; Grundstruktur, Werbung und
+  Anbieterlinks fair erhalten und Darstellungsumfang im nativen Reader definieren
+- [ ] Theme System/Hell/Dunkel als Settings-Polish
 - [x] Bild- und Favicon-Cache: geladene Bilder lokal cachen, damit Artikelbilder
   und Favicons nach App-Neustart nicht jedes Mal neu geladen werden muessen;
   Speicherlimit wird beim App-Start, nach Limit-Aenderung und nach neuen Downloads
   automatisch eingehalten
-- [ ] Share Extension (Artikel teilen via macOS Share Sheet)
+- [ ] Artikel teilen via macOS Share Sheet
 - [ ] App-Icon designen
 - [x] Onboarding (erster Start ohne Feeds): Wizard mit Feed hinzufügen,
   OPML-Import, gemeinsamem Review/Statusfilter und Start-Defaults
-- [ ] App Store Vorbereitung oder privat verteilen
+- [ ] Release-Vorbereitung: App Store oder private Verteilung entscheiden,
+  Build/Test/QA abschliessen
 
 ---
 
@@ -1267,8 +1284,11 @@ manuell offline gespeicherte Inhalte.
 - [ ] Stern und Archiv getrennt halten oder für v1 nur Stern?
 - [x] OPML-Gruppen spaeter als Ordner oder Tags importieren? Entscheidung fuer v1:
   als `Feed.folderName` speichern; sichtbare Ordnerverwaltung ist als Basis umgesetzt.
-- [ ] CloudKit Sync-Umfang, insbesondere Artikel-Content
-- [ ] Artikel-Detail: Nur nativer SwiftUI Text-Renderer oder auch WKWebView (volle Webseite)?
+- [ ] CloudKit Sync-Umfang, insbesondere Artikel-Content und Offline-Content
+- [ ] Vollartikel-Laden: Was wird im nativen Reader angezeigt, wenn Feedivo den
+  ganzen Artikel von der Quelle laden darf?
+- [x] Artikel-Detail: Nativer SwiftUI Reader bleibt Standard, Originalansicht per
+  `WKWebView` ist als globaler Reader-Modus verfuegbar.
 - [ ] Monetarisierung: Kostenlos / einmaliger Kauf / nie im App Store?
 
 ---
@@ -1279,15 +1299,45 @@ manuell offline gespeicherte Inhalte.
 - Aktuell M4: Polish & Release. iCloud Sync wurde bewusst aus M3 nach M4 verschoben,
   damit Tags, Regeln, Background-Refresh-Status und Offline-Basis als abgeschlossene
   M3-Basis stabil bleiben. M4 umfasst jetzt iCloud Sync, erweiterten OPML-Import,
-  manuellen Offline Mode, Settings-Polish, Share Extension, App-Icon und Release-
+  manuellen Offline Mode, Settings-Polish, Artikel-Teilen, App-Icon und Release-
   Vorbereitung. Bild-/Favicon-Cache und Onboarding sind als M4-Basis umgesetzt.
-- Feature-Roadmap ist in `docs/FEATURES.md` dokumentiert und muss bei Änderungen
+- Naechster sinnvoller Fokus: Settings-Fenster gemeinsam neu bewerten und als
+  M4-Polish sauber festziehen; danach CloudKit-Sync-Umfang klaeren und Sync
+  technisch aktivieren/testen.
+- Neuer offener M4/v1-Punkt: Vollartikel laden, wenn moeglich und erlaubt. Dabei
+  bleibt Feedivo fair gegenueber Feed-Anbietern: Artikelstruktur, Werbung und
+  Anbieterlinks duerfen nicht pauschal entfernt werden; die konkrete Reader-
+  Darstellung muss noch gemeinsam definiert werden.
+- Feature-Roadmap ist in `FEATURES.md` im Root dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
 ---
 
 ## Letzte Änderungen
 
+- 2026-06-24: Feature 2.5 umgesetzt: Artikel-Listen zeigen ungelesene Artikel
+  standardmaessig weiter und blenden gelesene Artikel aus. Ein Button am Listenende
+  zeigt die gelesenen Artikel fuer die aktuelle Liste an; ausgewaehlte Artikel
+  bleiben sichtbar, wenn sie automatisch als gelesen markiert werden.
+- 2026-06-24: Phase 1 fuer Archiv-/Aufraeum-Basis umgesetzt:
+  `Article` speichert jetzt `isArchived` und `isHidden` mit Default `false`.
+  Die Felder sind bewusst nur Modellgrundlage; UI, Filterlogik und Archivkonzept
+  folgen in spaeteren Phasen.
+- 2026-06-24: User-Entscheidung erfasst: Die von Claude erstellte
+  `FEATURES.md` im Root ist ab jetzt die massgebliche Produkt-Roadmap und
+  Implementierungs-Reihenfolge. Die bisherige `docs/FEATURES.md` wurde als
+  `docs/archive/FEATURES-legacy-2026-06-24.md` archiviert.
+- 2026-06-23: Roadmap/Projektgedaechtnis bereinigt: nicht vorhandene TODO-Dateien
+  aus der Projektstruktur entfernt, WebContentView und Settings-Status an den Code
+  angepasst, M4-Restpunkte auf CloudKit Sync, Theme-Polish, Artikel-Teilen, App-Icon
+  und Release-Vorbereitung geschaerft.
+- 2026-06-23: User-Entscheidung nachgezogen: Das Settings-Fenster gilt nicht als
+  abgeschlossen. Es wird in M4 nochmals gemeinsam diskutiert und gepolisht, bevor
+  Sync- und Release-Arbeiten daran anschliessen.
+- 2026-06-23: User-Entscheidung erfasst: Feedivo soll ganze Artikel laden koennen,
+  wenn Feed/Quelle es erlauben. Dabei sollen Grundstruktur, Werbung und Anbieterlinks
+  fair erhalten bleiben; offen ist noch, welche geladenen Inhalte der native Reader
+  konkret anzeigen soll.
 - 2026-06-19: Projekt erstellt, SwiftData Modelle, NavigationSplitView,
   FeedService + FeedViewModel + SidebarView mit AddFeedSheet implementiert
 - 2026-06-19: FeedService auf FeedKit 10.4.0 umgesetzt, Feed-Titel aus Metadaten,

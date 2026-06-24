@@ -210,6 +210,7 @@ enum L10n {
     static var articleRowOfflineFailed: String { String(localized: "articleRow.offline.failed") }
     static var articleRowMarkRead: String { String(localized: "articleRow.markRead") }
     static var articleRowMarkUnread: String { String(localized: "articleRow.markUnread") }
+    static var articleListShowReadButtonFormat: String { String(localized: "articleList.showRead.button") }
     static var articleCommandsMenu: String { String(localized: "articleCommands.menu") }
     static var articlePreviousCommand: String { String(localized: "article.previous.command") }
     static var articleNextCommand: String { String(localized: "article.next.command") }

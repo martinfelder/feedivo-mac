@@ -1,0 +1,728 @@
+# Feedivo macOS — Feature Liste
+> **Für Codex:** Diese Datei ist die massgebliche Quelle für alle Features.
+> Implementiere nur Features mit Status ✅ Entschieden oder 🔨 In Arbeit.
+> Features mit 💬 In Diskussion noch NICHT implementieren — warten auf Entscheid.
+> Features mit ⏸️ Zurückgestellt kommen nach v1.
+>
+> Status-Legende:
+> ✔️ Fertig | 🔨 In Arbeit (teilweise umgesetzt) | ✅ Entschieden (bereit zur Implementierung) | 💬 In Diskussion | ⏸️ Zurückgestellt
+>
+> Zuletzt aktualisiert: 2026-06-24
+
+---
+
+## 1. Reader
+
+### 1.1 Anzeigemodus
+- **Status:** ✔️ Fertig
+- **Umgesetzt:** Beide Modi implementiert — nativer SwiftUI Text-Renderer + `WebContentView` (NSViewRepresentable-Wrapper für WKWebView)
+
+### 1.2 Navigation (Vor / Zurück)
+- **Status:** ✔️ Fertig
+- **Umgesetzt:** `ArticleNavigationState`, Toolbar-Buttons, `Cmd+↑` / `Cmd+↓`
+
+### 1.3 Gelesen / Ungelesen markieren
+- **Status:** ✔️ Fertig
+- **Umgesetzt:** `ArticleViewModel.toggleRead`, `markReadIfNeeded`, `Cmd+Shift+U`
+
+### 1.4 Stern / Favoriten
+- **Status:** ✔️ Fertig
+- **Umgesetzt:** `ArticleViewModel.toggleStarred`, `Cmd+D`, Smart Filter "Mit Stern"
+
+### 1.5 Tag manuell zuweisen
+- **Status:** ✔️ Fertig
+- **Umgesetzt:** `ArticleMetadataInspectorView` — Toggle-Pills, neue Tags direkt erstellbar
+
+### 1.6 Artikel teilen
+- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Zu implementieren:**
+  - Teilen via macOS Share Sheet — ausgelöst aus Kontextmenü (Feature 2.4)
+  - Kein separater Teilen-Button im Reader
+  - Geteilt wird: Titel + URL des Artikels
+
+### 1.7 Im Browser öffnen
+- **Status:** ✔️ Fertig
+- **Umgesetzt:** `Original öffnen` im Inspector, nutzt Standard-Browser
+
+### 1.8 Reader-Ansicht (Vollartikel-Extraktion)
+- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Zu implementieren:**
+  - Dritter Modus im Reader (neben nativem SwiftUI Text und WKWebView)
+  - Toggle in der Reader-Toolbar zum Wechseln zwischen den 3 Modi
+  - Technisch: Readability.js via WKWebView (Option A — Mozilla Standard)
+  - Extraktion startet erst wenn User explizit auf "Artikel laden" Button klickt
+  - Braucht Internet-Verbindung — lädt Originalseite und extrahiert Hauptinhalt
+  - Keine automatische Extraktion beim Moduswechsel
+
+### 1.9 Schriftgrösse / Font anpassen
+- **Status:** ✔️ Fertig
+- **Umgesetzt:** `ReaderFontPreset` (18 Presets), `ReaderTypography`
+
+### 1.10 Link in Zwischenablage kopieren
+- **Status:** ✔️ Fertig
+- **Umgesetzt:** Inspector + `Cmd+L`
+
+### 1.11 Regel erstellen aus Artikel
+- **Status:** ✔️ Fertig
+- **Umgesetzt:** `RuleWizardView` vorausgefüllt aus Artikel-Kontext
+
+---
+
+## 2. Artikel-Liste
+
+### 2.1 Artikel anzeigen
+- **Status:** ✔️ Fertig
+- **Umgesetzt:** `ArticleRowView`, `ArticleListView` mit SwiftData-Query
+
+### 2.2 Sortierung GUI
+- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Umgesetzt:** Logik vorhanden (neueste zuerst)
+- **Zu implementieren:**
+  - Toolbar-Button mit Dropdown-Menü in der Artikel-Liste (primärer Weg)
+  - Menüleiste `Darstellung → Sortieren nach` (zusätzlich)
+  - Sortieroptionen: Neueste zuerst (Standard) / Älteste zuerst / Nach Feed / Nach Titel A→Z / Nach Lesezeit kurze zuerst
+  - Sortierung gilt global (nicht pro Feed), gespeichert via `@AppStorage`
+
+### 2.3 Filterung GUI
+- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Umgesetzt:** Smart Filter in Sidebar vorhanden
+- **Zu implementieren:**
+  - Filter-Icon mit Dropdown in der Toolbar der Artikel-Liste (Schnellzugriff)
+  - Filter-Optionen: Alle / Ungelesen / Mit Stern / Archiviert / Heute
+  - Filter gilt global, gespeichert via `@AppStorage`
+  - Sidebar bleibt primärer Weg
+
+### 2.4 Kontextmenü
+- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Umgesetzt:** Basis vorhanden (gelesen/ungelesen, Stern)
+- **Zu implementieren — komplette Menüstruktur (Rechtsklick auf Artikel):**
+  1. Als gelesen markieren / Als ungelesen markieren
+  2. Stern setzen / Stern entfernen
+  3. Archivieren / Aus Archiv entfernen
+  4. Tag zuweisen... (Popover mit Tag-Liste)
+  5. Regel erstellen... (RuleWizard vorausgefüllt)
+  6. Im Browser öffnen
+  7. Link kopieren
+  8. Teilen... (macOS Share Sheet)
+  9. Offline speichern
+  10. Exportieren... (PDF / DOCX etc.)
+  11. Artikel löschen
+  12. ─────────────────
+  13. Alle als gelesen markieren (gilt für aktuellen Feed / Filter)
+
+### 2.5 Artikel-Liste Anzeige-Logik
+- **Status:** ✔️ Fertig
+- **Umgesetzt:**
+  - Ungelesene Artikel: immer angezeigt, unabhängig vom Alter
+  - Gelesene Artikel: standardmässig ausgeblendet in der Liste
+  - Am Ende der Liste: Button "X gelesene Artikel anzeigen" — Klick blendet alle gelesenen Artikel ein
+  - Gelesene Artikel bleiben verfügbar bis automatisches Löschen greift (Standard 90 Tage)
+  - Der aktuell ausgewählte Artikel bleibt sichtbar, wenn er beim Öffnen automatisch als gelesen markiert wird
+
+---
+
+## 3. Sidebar
+
+### 3.1 Feed-Liste
+- **Status:** ✔️ Fertig
+- **Umgesetzt:** `SidebarView`, `FeedRowView`, `FeedFolderOrganizer`, `SidebarUnreadCount`
+
+### 3.2 Smart Filter
+- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Umgesetzt:** Alle / Ungelesen / Mit Stern / Heute
+- **Zu implementieren:**
+  - Neue Smart Filter: Diese Woche / Letzte 30 Tage / Archiviert / Ausgeblendet
+  - Alle Smart Filter standardmässig sichtbar
+  - Einstellungen → Sidebar: User kann jeden Smart Filter ein- und ausblenden
+
+### 3.3 Tag-Abschnitt
+- **Status:** ✔️ Fertig
+- **Umgesetzt:** Eigene Section, feedübergreifende Filterung
+
+---
+
+## 4. Feed-Verwaltung
+
+### 4.1 Feed hinzufügen — Website Feed-Suche
+- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Umgesetzt:** Direkte Feed-URL funktioniert vollständig
+- **Zu implementieren:**
+  - Automatische Erkennung ob Eingabe eine direkte Feed-URL oder Website-URL ist
+  - Bei Website-URL: HTML-Head nach `<link rel="alternate" type="application/rss+xml">` durchsuchen
+  - Suche startet automatisch sobald eine gültige URL erkannt wird (kein separater Button)
+  - Einen Feed gefunden → direkt vorschlagen mit Titel und Vorschau
+  - Mehrere Feeds gefunden → vollständige Liste zur Auswahl (kein Maximum)
+  - Keinen Feed gefunden → klare Fehlermeldung
+
+### 4.2 Feed bearbeiten
+- **Status:** ✔️ Fertig
+- **Umgesetzt:** `FeedPropertiesView`, `FeedRenameView`
+
+### 4.3 Feed löschen
+- **Status:** ✔️ Fertig
+- **Umgesetzt:** `FeedViewModel.deleteFeed`, Bestätigungsdialog
+
+### 4.4 Manueller Refresh
+- **Status:** ✔️ Fertig
+- **Umgesetzt:** `refreshFeed` / `refreshAllFeeds`, `operationProgress` Overlay
+
+### 4.5 Automatischer Refresh
+- **Status:** ✔️ Fertig
+- **Umgesetzt:** `NSBackgroundActivityScheduler`, 15/30/60/120 Min.
+
+---
+
+## 5. Tags & Regeln
+
+### 5.1 Tags erstellen und verwalten
+- **Status:** ✔️ Fertig
+- **Umgesetzt:** `TagManagerView`, `TagViewModel`, Farbauswahl
+
+### 5.2 Automatische Regeln — Settings-Design
+- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Umgesetzt:** `RuleEngine`, `RuleWizardView`, Live-Vorschau, rückwirkend anwendbar
+- **Zu implementieren — Regelliste in Einstellungen:**
+  - Jede Regel als Zeile: Toggle (aktiv/inaktiv) — Name — Bedingung zusammengefasst — Tag als farbige Pill
+  - Reihenfolge per Drag & Drop änderbar (Regeln werden von oben nach unten ausgewertet)
+  - Doppelklick öffnet RuleWizard zum Bearbeiten
+  - Rechtsklick: Bearbeiten / Duplizieren / Löschen
+  - `+` Button für neue Regel
+  - "Alle Regeln jetzt anwenden" Button (rückwirkend auf bestehende Artikel)
+  - Anzahl betroffener Artikel pro Regel anzeigen (z.B. "42 Artikel")
+- **Regel-Aktionen (alle drei implementieren):**
+  - Tag zuweisen (bereits vorhanden)
+  - Benachrichtigung auslösen (neu — siehe Feature 10.2)
+  - Artikel ausblenden (neu — siehe Feature 16.3)
+- **Noch offen (nicht jetzt implementieren):**
+  - Regex als Operator
+
+---
+
+## 6. iCloud Sync
+
+### 6.1 Sync via CloudKit
+- **Status:** ⏸️ Zurückgestellt (M4)
+- **Grund:** Core-Features haben Vorrang — nach v1
+
+---
+
+## 7. OPML
+
+### 7.1 OPML Import
+- **Status:** ✔️ Fertig
+- **Umgesetzt:** `OPMLImportReviewView`, zweiphasiger Import, Drag & Drop
+
+### 7.2 OPML Export
+- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Umgesetzt:** `OPMLService`, `OPMLDocument` technisch vorhanden
+- **Zu implementieren:**
+  - Auslösen via Menüleiste `Datei → Exportieren → OPML...` UND Einstellungen-Button
+  - Export-Dialog öffnet sich mit folgenden Optionen (Checkboxen):
+    - Feed-URLs + Titel (immer aktiviert, nicht deaktivierbar)
+    - Ordner-Struktur als OPML-Gruppen
+    - Tags (als Kategorie-Attribut)
+    - Feed-Beschreibung (Metadaten)
+  - Standard-Dateiname: `Feedivo-Export-YYYY-MM-DD.opml`
+  - Favorisierte Artikel werden NICHT im OPML exportiert — das ist Sache von Feature 18
+
+---
+
+## 8. Einstellungen
+
+### 8.1 Bestehendes Settings-Fenster
+- **Status:** ✔️ Fertig
+- **Umgesetzt:** Kategoriennavigation (Allgemein, Darstellung, Feeds, Aktualisierung, Tags & Regeln, Sync, Offline-Lesen)
+
+### 8.2 Neue Einstellungs-Kategorien (zu implementieren)
+- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Zu implementieren — neue oder erweiterte Kategorien:**
+  - **Benachrichtigungen:** Globale Einstellungen (Badge-Zähler, Stille Stunden)
+  - **Artikel:** Auto-Löschen (Standard 90 Tage), Anzeige-Logik, Vorschautext-Zeilen
+  - **Menubar:** Anzahl Artikel im Dropdown, Klick-Verhalten (Feedivo / Browser), Dock-Icon ausblenden
+  - **Darstellung (erweitern):** Vorschaubild an/aus, Bildposition (links/rechts), Reader-Textbreite, Favicons, Ungelesen-Zähler
+
+---
+
+## 9. Suche
+
+### 9.1 Volltext-Suche
+- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Zu implementieren:**
+  - Globale Suche via `Cmd+F` in der Toolbar (immer sichtbar)
+  - Schnellfilter oben in der Artikel-Liste (kontextuell)
+  - User kann Suchbereich einschränken: Titel / Zusammenfassung / Volltext / Alles
+  - User kann Umfang wählen: nur aktueller Feed oder feedübergreifend
+  - Suchresultate in der Artikel-Liste anzeigen
+
+### 9.2 Suchfilter
+- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Zu implementieren:**
+  - Filteroptionen in der Suche: Feed / Tag / Zeitraum / Status (gelesen/ungelesen)
+  - Suchbereich-Auswahl: Titel / Zusammenfassung / Volltext
+  - Umfang: aktueller Feed oder alle Feeds
+
+### 9.3 Spotlight-Integration
+- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Zu implementieren:**
+  - Artikel als Core Spotlight Items indexieren via `CSSearchableItem`
+  - Klick auf Spotlight-Resultat öffnet Feedivo direkt beim Artikel (Deep Link)
+  - Einstellungen → Suche: Toggle "Artikel in Spotlight indexieren" (an/aus)
+
+---
+
+## 10. Benachrichtigungen
+
+### 10.1 Feed-Benachrichtigungen
+- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Zu implementieren:**
+  - Toggle "Benachrichtigung" pro Feed in Feed-Eigenschaften (`FeedPropertiesView`)
+  - Zusammenfassung pro Refresh: "5 neue Artikel in Heise, Mac & i, 9to5Mac"
+  - Klick auf Benachrichtigung öffnet den entsprechenden Feed in Feedivo
+- **Noch offen (nicht blockierend):**
+  - Benachrichtigungen wenn App geschlossen: ja, in v1 — via `UNUserNotificationCenter` + bestehender `NSBackgroundActivityScheduler`
+
+### 10.2 Regelbasierte Benachrichtigungen
+- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Zu implementieren:**
+  - "Benachrichtigung auslösen" als Regel-Aktion im RuleWizard (neben Tag zuweisen / Ausblenden)
+  - Zusammenfassung wenn mehrere Artikel dieselbe Regel auslösen: "3 neue Apple-Artikel"
+  - Unabhängig von Feed-Benachrichtigungen (10.1)
+  - Benachrichtigungs-Text anpassbar pro Regel (z.B. "🔴 Breaking: {Titel}")
+  - Priorität pro Regel wählbar: Normal / Kritisch (Kritisch kommt auch durch Nicht-Stören)
+
+### 10.3 Benachrichtigungs-Einstellungen
+- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Zu implementieren:**
+  - Badge-Zähler auf App-Icon — Anzahl ungelesener Artikel
+  - Einstellungs-Kategorie "Benachrichtigungen" im Settings-Fenster
+- **Noch offen (nicht jetzt):**
+  - Stille Stunden
+  - Benachrichtigungen auf iPhone/iPad (abhängig von iCloud Sync — Feature 6.1)
+
+---
+
+## 11. Lesedauer-Schätzung
+
+### 11.1 Lesedauer pro Artikel
+- **Status:** 🔨 In Arbeit
+- **Umgesetzt:** Lesezeit-Berechnung in `ReaderMetadataFormatter` vorhanden
+- **Zu implementieren:**
+  - Lesedauer auch in der Artikel-Liste anzeigen (nicht nur im Reader)
+
+### 11.2 Lesefortschritt
+- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Zu implementieren:**
+  - Fortschrittsbalken oben im Reader (dünne Linie die sich beim Scrollen füllt)
+  - Lesefortschritt wird gespeichert — beim erneuten Öffnen startet der Artikel an der gleichen Stelle
+  - Technisch: Scroll-Position in `Article` speichern (SwiftData)
+
+---
+
+## 12. Feed hinzufügen (erweitert)
+
+### 12.1 Website Feed-Suche
+- **Status:** ✅ Entschieden — siehe Feature 4.1
+
+### 12.2 Feed-Suche (Discover)
+- **Status:** ⏸️ Zurückgestellt
+- **Grund:** Feedly API kostenpflichtig — nach v1 evaluieren. In v1 reicht URL/Website-Erkennung (Feature 4.1)
+
+### 12.4 Feed-Vorschau vor dem Abonnieren
+- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Zu implementieren:**
+  - Vorschau nach URL-Eingabe: Titel, Icon und letzte 5 Artikel anzeigen
+  - Vorschau erscheint im gleichen Sheet wie URL-Eingabe (kein separater Schritt)
+  - User bestätigt mit "Abonnieren" oder bricht ab
+
+---
+
+## 13. Feed-Metadaten
+
+### 13.1 Feed-Infos anzeigen
+- **Status:** ✔️ Fertig
+- **Umgesetzt:** `FeedPropertiesView`, `FeedPropertiesFormatter`
+
+### 13.2 Feed-Gesundheit
+- **Status:** ✔️ Fertig
+- **Umgesetzt:** `FeedLogEntry`, Log der letzten 20 Abrufe
+
+---
+
+## 14. Statistiken
+
+### 14.1 Lese-Statistiken
+- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Zu implementieren:**
+  - Separates Fenster — auslösbar via Menüleiste oder `Cmd+Shift+S`
+  - Statistiken:
+    - Artikel gelesen heute / diese Woche / gesamt
+    - Meistgelesene Feeds (Top 5)
+    - Aktivste Lesetage (Heatmap à la GitHub)
+    - Durchschnittliche Lesezeit pro Tag
+    - Meistgenutzte Tags
+  - Zeitraum wählbar: 7 Tage / 30 Tage / Gesamt
+
+### 14.2 Feed-Statistiken
+- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Zu implementieren:**
+  - In `FeedPropertiesView` integrieren (bestehende Feed-Info-Ansicht)
+  - Artikel pro Woche (Durchschnitt)
+  - Lese-Prozentsatz (wie viel % der Artikel werden gelesen)
+  - Durchschnittliche Lesedauer für diesen Feed
+
+### 14.3 Statistik-Daten exportieren
+- **Status:** 💬 In Diskussion — noch nicht implementieren
+
+---
+
+## 15. Feeds organisieren (Ordner)
+
+### 15.1 Ordner erstellen und verwalten
+- **Status:** ✔️ Fertig
+- **Umgesetzt:** `FeedFolder`, `FeedFolderOrganizer`
+
+### 15.2 Feeds per Drag & Drop organisieren
+- **Status:** ⏸️ Zurückgestellt
+- **Grund:** Hoher Aufwand — nach v1
+
+### 15.3 OPML-Gruppen als Ordner
+- **Status:** ✔️ Fertig
+
+---
+
+## 16. Intelligente Ordner
+
+### 16.1 Intelligenter Ordner
+- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Zu implementieren:**
+  - Eigener Abschnitt "Intelligente Ordner" in der Sidebar (unter normalen Ordnern)
+  - Dynamische Ansicht — befüllt sich automatisch nach Bedingungen
+  - Verfügbare Bedingungen:
+    - Tag ist X
+    - Feed ist Y / Feed ist in Ordner Z
+    - Datum (heute / diese Woche / älter als X Tage)
+    - Status (ungelesen / mit Stern / archiviert / ausgeblendet)
+    - Titel enthält Text
+    - Text im Artikel enthält (Volltext-Suche)
+    - Autor ist / enthält
+  - UND / ODER Verknüpfung zwischen Bedingungen
+  - Beim ersten App-Start 3 vordefinierte Intelligente Ordner erstellen: "Heute", "Diese Woche", "Gespeichert"
+
+### 16.2 Intelligenten Ordner erstellen/bearbeiten
+- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Zu implementieren:**
+  - Sheet ähnlich macOS Smart Mailboxes (Mail.app)
+  - Name des Ordners oben
+  - UND / ODER Auswahl: "Erfülle alle / eine der folgenden Bedingungen"
+  - Bedingungszeilen mit + / − Buttons
+  - Live-Vorschau der Resultate direkt im Sheet
+  - Intelligente Ordner: umbenennbar, löschbar, duplizierbar (Rechtsklick in Sidebar)
+
+### 16.3 Artikel ausblenden via Regel
+- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Zu implementieren:**
+  - "Ausblenden" als Regel-Aktion im RuleWizard (gleichwertig zu Tag zuweisen / Benachrichtigung)
+  - Ausgeblendete Artikel erscheinen nicht in normaler Artikel-Liste
+  - Smart Filter "Ausgeblendet" in Sidebar zeigt alle ausgeblendeten Artikel
+  - User entscheidet bei der Regel ob sie rückwirkend angewendet wird
+  - Manuelles Einblenden einzelner Artikel: nicht in v1
+
+---
+
+## 17. Artikel archivieren
+
+### 17.1 Offline speichern (manuell + automatisch)
+- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Umgesetzt:** `OfflineDownloadService`, `Article.offlineContent`, manuell via Kontextmenü
+- **Zu implementieren:**
+  - Einstellungen → Offline-Lesen: Toggle "Artikel mit Stern automatisch offline speichern"
+
+### 17.2 Artikel-Zustände
+- **Status:** ✅ Entschieden — siehe Feature 22.1
+
+### 17.3 Automatisches Löschen
+- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Zu implementieren:**
+  - Globale Einstellung: Artikel nach X Tagen löschen (Standard: 90 Tage)
+  - Pro Feed überschreibbar in Feed-Eigenschaften
+  - Alle Artikel werden gelöscht — unabhängig ob gelesen oder ungelesen
+  - Ausnahmen (niemals auto-gelöscht): Archivierte Artikel, Artikel mit Stern
+  - Einstellungs-Kategorie "Artikel" im Settings-Fenster
+
+### 17.4 Artikel-Liste Anzeige-Logik
+- **Status:** ✅ Entschieden — siehe Feature 2.5
+
+---
+
+## 18. Artikel exportieren
+
+### 18.1 Einzelnen Artikel exportieren
+- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Zu implementieren:**
+  - Auslösen: via Kontextmenü (Feature 2.4) und Reader-Toolbar
+  - Export-Dialog mit Format-Auswahl:
+    - PDF — 1:1 Reader-Darstellung (so wie Artikel im Reader erscheint)
+    - DOCX — mit Checkbox "Bilder einbetten" (User entscheidet)
+    - Markdown, Plain Text, HTML (in v1 wenn machbar, sonst nach v1)
+  - Metadaten mitexportieren: optionale Checkbox im Export-Dialog (Titel, Autor, Datum, Feed-Name, URL, Tags)
+  - Export via eigenem Dialog (PDF/DOCX mit Optionen) UND macOS Share Sheet (Schnellzugriff)
+
+### 18.2 Mehrere Artikel exportieren (Batch)
+- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Zu implementieren:**
+  - Mehrfachauswahl in der Artikel-Liste via `Cmd+Klick`
+  - Export-Dialog mit Ausgabe-Wahl: ein Dokument pro Artikel (ZIP) oder alles in eine Datei
+  - Gilt für alle Formate aus Feature 18.1
+
+### 18.3 Drittanbieter-Integration
+- **Status:** ⏸️ Zurückgestellt
+- **Grund:** In v1 reicht macOS Share Sheet — direkte Integrationen (Readwise, Obsidian, Pocket) nach v1
+
+---
+
+## 19. Oberflächen-Anpassung (Customization)
+
+### 19.1 Artikel-Liste anpassen
+- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Zu implementieren (Einstellungen → Darstellung):**
+  - Vorschautext-Zeilen: 0–3 (Stepper), Standard: 2 — 0 = nur Titel + Datum
+  - Vorschaubilder in der Liste: anzeigen / ausblenden
+  - Vorschaubild-Position: Links oder Rechts
+  - Summary anzeigen / ausblenden
+- **Noch offen (nicht jetzt) — jetzt auch entschieden:**
+  - Datum-Format: User wählt in Einstellungen (relativ "vor 2 Stunden" oder absolut "23.06.2026")
+  - Feed-Name pro Artikel: anzeigen / ausblenden in Einstellungen (nützlich in "Alle" / Smart Filter)
+  - Ungelesen-Markierung: fetter Text + farbiger Punkt (beides zusammen)
+
+### 19.2 Sidebar anpassen
+- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Zu implementieren:**
+  - Ungelesen-Zähler pro Feed: anzeigen / ausblenden
+  - Favicons: anzeigen / ausblenden
+- **Noch offen (nicht jetzt):**
+  - Sidebar-Sections komplett ausblenden
+
+### 19.3 Reader anpassen
+- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Zu implementieren:**
+  - Maximale Textbreite: schmal / mittel / breit
+  - Artikelbild im Reader: anzeigen / ausblenden (separat von Vorschaubildern)
+- **Nicht umsetzen:** Hintergrundbild / Sepia-Modus
+
+### 19.4 Toolbar anpassen
+- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Zu implementieren:**
+  - macOS-Standard `Symbolleiste anpassen...` via Rechtsklick auf Toolbar
+  - User kann Items frei hinzufügen / entfernen / umsortieren
+
+### 19.5 Allgemeines Verhalten
+- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Zu implementieren:**
+  - Artikel beim Öffnen automatisch als gelesen markieren: an/aus
+  - Externe Links: Im Standard-Browser oder in Feedivo WebView
+  - Vorschaubilder in Liste laden: an/aus (separat von Reader-Bildern)
+  - Bilder im Reader laden: an/aus
+- **Noch offen (nicht jetzt) — jetzt auch entschieden:**
+  - Beim App-Start: letzten Feed öffnen (Standard) — wählbar in Einstellungen (letzter Feed / Alle-Ansicht)
+  - Beim Vor/Zurück navigieren: folgt der globalen Einstellung "Artikel beim Öffnen automatisch als gelesen markieren" — keine separate Einstellung
+
+### 19.6 Wo
+- Alle Customization-Optionen im Einstellungen-Fenster unter "Darstellung" (bestehend erweitern)
+
+---
+
+## 20. Fehler- und Problembehandlung
+
+### 20.1 Fehler-UX Konzept
+- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Zu implementieren:**
+  - Feed nicht erreichbar: Fehler-Badge (⚠️) beim Feed in der Sidebar UND Inline-Meldung in der Artikel-Liste mit "Erneut versuchen" Button
+  - Netzwerk offline: Globaler Banner oben in der App
+  - Download-Fehler: Inline-Meldung mit Retry-Option
+  - Fehler-Log bleibt in Feed-Eigenschaften (bereits vorhanden)
+
+### 20.2 Leere Zustände (Empty States)
+- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Zu implementieren:**
+  - Keine Feeds: First-Run-Wizard auslösen (bereits vorhanden)
+  - Feed hat keine Artikel: Erklärung + "Feed aktualisieren" Button
+  - Suche ohne Resultate: Hinweis mit Suchbegriff und Vorschlag Suchbereich zu erweitern
+  - Tag ohne Artikel: Hinweis dass noch keine Artikel diesen Tag haben
+
+---
+
+## 21. Menubar-App
+
+### 21.1 Menubar-Icon
+- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Zu implementieren:**
+  - Menubar-Icon mit Dropdown (neueste X Artikel + "Feedivo öffnen" Button)
+  - Anzahl Artikel im Dropdown: konfigurierbar in Einstellungen
+  - Schnellaktionen im Dropdown: Refresh, Alle als gelesen markieren
+  - Badge-Zähler auf Menubar-Icon: Anzahl ungelesener Artikel
+  - App ohne Dock-Icon betreibbar: Einstellung in Einstellungen (LSUIElement)
+  - Klick auf Artikel im Dropdown: In Feedivo öffnen oder im Browser — konfigurierbar
+
+---
+
+## 22. Artikel-Zustände
+
+### 22.1 Explizite Artikel-Zustände
+- **Status:** 🔨 In Arbeit
+- **Umgesetzt:** `Article` hat `isArchived` und `isHidden` als persistierte Bool-Felder mit Default `false`
+- **Zu implementieren — 4 kombinierbare Zustände:**
+  - `isRead: Bool` — gelesen/ungelesen (bereits vorhanden)
+  - `isStarred: Bool` — Favorit/Stern (bereits vorhanden)
+  - `isArchived: Bool` — Modellfeld vorhanden; später mit vollständigem lokalem Inhalt / Auto-Löschen verknüpfen
+  - `isHidden: Bool` — Modellfeld vorhanden; später durch Regel ausblenden
+- **Kombinierbar:** Alle 4 Zustände sind unabhängig und kombinierbar
+- **Archivierte Artikel löschen:** Manuell möglich — entfernt `isArchived` + lokalen Inhalt, Artikel bleibt in Liste
+- **Technisch:** `isArchived` verknüpfen mit `offlineContent` in `OfflineDownloadService`
+- **SwiftData:** `Article` Modell ist um `isArchived` und `isHidden` erweitert
+
+---
+
+## 23. Share Extension / Deep Links
+
+### 23.1 Share Extension (empfangen)
+- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Zu implementieren:**
+  - "In Feedivo öffnen" im macOS Share Sheet anderer Apps (Safari, Browser etc.)
+  - Feed-URL aus beliebiger App direkt in Feedivo abonnieren
+  - Artikel-URL aus beliebiger App in Feedivo öffnen zum Lesen
+
+### 23.2 URL-Schema (Deep Links)
+- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Zu implementieren:**
+  - `feedivo://add?url=https://...` — Feed direkt hinzufügen
+  - `feedivo://article?id=...` — direkt zu einem Artikel springen
+  - Nützlich für macOS Shortcuts, Raycast, Alfred, Automator
+  - URL-Schema in `Info.plist` registrieren
+
+---
+
+## 24. Mehrfenster-Unterstützung
+
+### 24.1 Mehrere Fenster
+- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Zu implementieren:**
+  - Artikel in separatem Fenster öffnen via `Cmd+Return` und Kontextmenü
+  - Fenster-Zustand beim Beenden speichern und beim Start wiederherstellen
+  - `WindowGroup` in SwiftUI aktivieren für Mehrfenster-Unterstützung
+
+---
+
+## 25. Drucken
+
+### 25.1 Artikel drucken
+- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Zu implementieren:**
+  - `Cmd+P` druckt den aktuellen Artikel
+  - Im Druckdialog wählt der User: Reader-Darstellung oder Original-Webseite
+  - Metadaten (Datum, Feed-Name, URL) im Druckbild optional
+
+---
+
+## 26. Barrierefreiheit & Qualität
+
+### 26.1 Barrierefreiheit (Accessibility)
+- **Status:** ⏸️ Zurückgestellt
+- **Grund:** Nach v1 — VoiceOver und Reduce Motion werden später berücksichtigt
+
+### 26.2 Performance bei vielen Feeds
+- **Status:** ✅ Entschieden — Qualitätsziel für Codex
+- **Ziel:** 500 Feeds / 100'000 Artikel flüssig
+- **Zu beachten:**
+  - SwiftData-Queries immer mit gezielten Predicates — nie alle Artikel auf einmal laden
+  - Artikel-Liste mit Paginierung (50 Artikel pro Batch, mehr beim Scrollen)
+  - Lazy Loading für Bilder und Inhalte
+  - Spotlight-Index im Hintergrund aufbauen (nicht im Main Thread)
+  - Automatisches Datenbank-Cleanup via Feature 17.3
+
+### 26.3 Shortcuts / Automator-Integration
+- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Zu implementieren via `AppIntents` Framework (macOS 13+):**
+  - Feed aktualisieren
+  - Feed hinzufügen
+  - Artikel als gelesen markieren
+  - Artikel exportieren
+
+---
+
+## Implementierungs-Reihenfolge (Empfehlung für Codex)
+
+Folgende Reihenfolge berücksichtigt Abhängigkeiten. Features mit (*) sind Voraussetzung für nachfolgende.
+
+### Phase 1 — Fundament & Artikel-Modell
+1. **Feature 22.1** * — Artikel-Modell erweitern (`isArchived`, `isHidden`) — erledigt als Modell-Fundament
+2. **Feature 2.5** — Artikel-Liste Anzeige-Logik (gelesene ausblenden, Button am Ende) — erledigt
+3. **Feature 2.4** — Kontextmenü vollständig ausbauen (inkl. Archivieren, Exportieren, Teilen)
+4. **Feature 2.2** — Sortierung GUI (Toolbar-Dropdown + Menüleiste)
+5. **Feature 2.3** — Filterung GUI (Toolbar-Dropdown)
+
+### Phase 2 — Regeln & Intelligente Ordner
+6. **Feature 16.3** * — Artikel ausblenden via Regel + Smart Filter "Ausgeblendet"
+7. **Feature 5.2** — Regeln Settings-Design (Drag & Drop Liste, alle 3 Aktionen)
+8. **Feature 16.1/16.2** — Intelligente Ordner (eigener Sidebar-Abschnitt, Sheet, Live-Vorschau, 3 vordefinierte)
+9. **Feature 3.2** — Smart Filter erweitern (Diese Woche, Letzte 30 Tage, Archiviert, Ausgeblendet, ein/ausblendbar)
+
+### Phase 3 — Benachrichtigungen
+10. **Feature 10.3** * — Badge-Zähler App-Icon + Einstellungs-Kategorie Benachrichtigungen
+11. **Feature 10.1** — Feed-Benachrichtigungen pro Feed (Toggle in Feed-Eigenschaften, Zusammenfassung, auch wenn App geschlossen)
+12. **Feature 10.2** — Regelbasierte Benachrichtigungen (Aktion im RuleWizard, anpassbarer Text, Priorität Normal/Kritisch)
+
+### Phase 4 — Feed hinzufügen & Verwaltung
+13. **Feature 4.1** — Website Feed-Suche (Auto-Erkennung, Liste gefundener Feeds)
+14. **Feature 12.4** — Feed-Vorschau vor dem Abonnieren (5 Artikel im Sheet)
+15. **Feature 17.3** — Automatisches Löschen (90 Tage Standard, pro Feed, Ausnahmen Stern + Archiv)
+16. **Feature 17.1** — Automatisches Offline-Speichern bei Stern (Toggle in Einstellungen)
+
+### Phase 5 — Export & Teilen
+17. **Feature 18.1** — Artikel exportieren (Export-Dialog: PDF, DOCX mit Bilder-Checkbox, Metadaten-Checkbox, Share Sheet)
+18. **Feature 18.2** — Batch-Export (Cmd+Klick Mehrfachauswahl, ZIP oder eine Datei)
+19. **Feature 7.2** — OPML Export-Dialog (Checkboxen, Menüleiste + Einstellungen)
+
+### Phase 6 — Suche
+20. **Feature 9.1/9.2** — Volltext-Suche (Cmd+F global + Schnellfilter in Liste, Bereich wählbar)
+21. **Feature 9.3** — Spotlight-Integration (CSSearchableItem, Toggle in Einstellungen)
+
+### Phase 7 — Customization & Einstellungen
+22. **Feature 8.2** — Neue Einstellungs-Kategorien (Benachrichtigungen, Artikel, Menubar, Darstellung erweitern)
+23. **Feature 19.1** — Artikel-Liste anpassen (Vorschautext-Zeilen, Bildposition, Datum-Format, Feed-Name, Ungelesen-Markierung)
+24. **Feature 19.2** — Sidebar anpassen (Zähler, Favicons, Smart Filter ein/ausblenden)
+25. **Feature 19.3** — Reader anpassen (Textbreite, Artikelbild)
+26. **Feature 19.4** — Toolbar anpassen (macOS Standard `Symbolleiste anpassen...`)
+27. **Feature 19.5** — Verhalten (Gelesen beim Öffnen, externe Links, Bilder laden, App-Start)
+
+### Phase 8 — Menubar & Fenster
+28. **Feature 21.1** — Menubar-App (Dropdown, Badge, ohne Dock, konfigurierbar)
+29. **Feature 24.1** — Mehrfenster (Cmd+Return + Kontextmenü, Fenster-Zustand speichern)
+
+### Phase 9 — Reader Features
+30. **Feature 11.1** — Lesedauer in Artikel-Liste anzeigen
+31. **Feature 11.2** — Lesefortschritt (Fortschrittsbalken, Scroll-Position speichern)
+32. **Feature 1.8** — Vollartikel-Extraktion (Readability.js, dritter Reader-Modus)
+
+### Phase 10 — Statistiken
+32. **Feature 14.1** — Lese-Statistiken (separates Fenster, Heatmap, Top Feeds, Cmd+Shift+S)
+33. **Feature 14.2** — Feed-Statistiken in Feed-Info-Ansicht integrieren
+
+### Phase 11 — Deep Links & Shortcuts
+34. **Feature 23.1** — Share Extension (In Feedivo öffnen aus anderen Apps)
+35. **Feature 23.2** — URL-Schema `feedivo://` (add, article)
+36. **Feature 26.3** — AppIntents / Shortcuts Integration (Feed aktualisieren, hinzufügen, gelesen, exportieren)
+
+### Phase 12 — Drucken & Qualität
+37. **Feature 25.1** — Drucken via Cmd+P (Reader oder Original, User wählt im Druckdialog)
+38. **Feature 26.2** — Performance-Optimierung (Paginierung, Lazy Loading, Query-Optimierung für 500 Feeds / 100'000 Artikel)
+
+---
+
+## Zurückgestellt (nach v1)
+
+- **Feature 6.1** — iCloud Sync via CloudKit
+- **Feature 12.2** — Feed-Suche via Discover (Feedly API kostenpflichtig)
+- **Feature 14.3** — Statistik-Daten exportieren
+- **Feature 15.2** — Feeds per Drag & Drop umsortieren
+- **Feature 18.3** — Drittanbieter-Integration (Readwise, Obsidian, Pocket)
+- **Feature 26.1** — Barrierefreiheit / VoiceOver

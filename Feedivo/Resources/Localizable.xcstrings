@@ -224,6 +224,34 @@
         }
       }
     },
+    "articleList.showRead.button" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld gelesene Artikel anzeigen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show %lld read articles"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher %lld articles lus"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra %lld articoli letti"
+          }
+        }
+      }
+    },
     "articleRow.markRead" : {
       "localizations" : {
         "de" : {

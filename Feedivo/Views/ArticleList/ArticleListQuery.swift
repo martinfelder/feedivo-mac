@@ -39,3 +39,47 @@ enum ArticleListQuery {
         )
     }
 }
+
+struct ArticleListDisplayState {
+    let articles: [Article]
+    let showsReadArticles: Bool
+    let selectedArticle: Article?
+
+    init(
+        articles: [Article],
+        showsReadArticles: Bool,
+        selectedArticle: Article? = nil
+    ) {
+        self.articles = articles
+        self.showsReadArticles = showsReadArticles
+        self.selectedArticle = selectedArticle
+    }
+
+    var visibleArticles: [Article] {
+        guard !showsReadArticles else {
+            return articles
+        }
+
+        return articles.filter { article in
+            !article.isRead || isSelected(article)
+        }
+    }
+
+    var hiddenReadArticleCount: Int {
+        guard !showsReadArticles else {
+            return 0
+        }
+
+        return articles.reduce(0) { count, article in
+            count + (article.isRead && !isSelected(article) ? 1 : 0)
+        }
+    }
+
+    var shouldShowReadArticlesButton: Bool {
+        hiddenReadArticleCount > 0
+    }
+
+    private func isSelected(_ article: Article) -> Bool {
+        selectedArticle?.persistentModelID == article.persistentModelID
+    }
+}

@@ -1,5 +1,9 @@
 # Feedivo macOS - Feature Roadmap
 
+> Archiviert am 2026-06-24.
+> Diese Datei ist nur noch historische Referenz. Die massgebliche Roadmap ist
+> `FEATURES.md` im Repository-Root.
+
 > Diese Datei ist die versionierte Produkt-Roadmap fuer Feedivo.
 > Sie fasst die Feature-Liste, Codex-Feedback und die aktuelle Priorisierung zusammen.
 > Bei jeder Feature-, Architektur- oder Roadmap-Aenderung muss diese Datei geprueft
@@ -218,8 +222,13 @@ M4 Polish & Release:
 - M4-Basis umgesetzt: Erweiterter OPML-Import-Dialog, Offline Mode Phase 1
   mit manuellem Speichern/Entfernen einzelner Artikel, Bild-/Favicon-Cache und
   First-Run-Wizard fuer den leeren App-Start.
-- Naechster Fokus: Offline-Automatik/Speicherverwaltung, iCloud Sync oder Release-
-  Vorbereitung.
+- Naechster Fokus: Settings-Fenster gemeinsam neu bewerten und als M4-Polish
+  sauber festziehen. Danach folgen CloudKit-Sync-Umfang, Artikel-Teilen, App-Icon
+  und Release-QA. Offline-Automatik bleibt sichtbar, aber erst nach der Sync-
+  Entscheidung sinnvoll, weil Offline-Content direkt CloudKit-Volumen beruehrt.
+- Neu offener Reader-Punkt: Vollartikel laden, wenn Feed/Quelle es erlauben, dabei
+  Anbieterstruktur, Werbung und Anbieterlinks fair erhalten und erst danach genau
+  definieren, welcher Inhalt im nativen Reader angezeigt wird.
 
 ---
 
@@ -352,6 +361,10 @@ M4 Polish & Release:
 - Empfehlung: Nicht mit dem nativen Feed-Content-Reader verwechseln. Die erste native
   Rendering-Basis existiert; Readability/Extraktion erst spaeter, weil es deutlich mehr
   Fehlerfaelle erzeugt.
+- Abgrenzung: Eine spaetere Vollartikel-Funktion darf nicht als aggressiver
+  Ad-/Link-Entferner verstanden werden. Wenn der Anbieter Werbung, Quellenlinks,
+  Newsletter-Hinweise oder verwandte Links im Artikelinhalt mitliefert, sollen diese
+  fair erhalten bleiben, solange sie zur gelieferten Artikelstruktur gehoeren.
 
 #### 1.9 Schriftgroesse
 - Status: Fertig als Basis
@@ -440,6 +453,23 @@ M4 Polish & Release:
   die aktuelle Netzwerkverbindung.
 - Entscheidung: Dieser Netzwerkstatus ist getrennt vom Artikel-Offline-Status fuer
   manuell gespeicherte Artikel.
+
+#### 1.14 Vollartikel laden
+- Status: Entschieden, Details offen
+- Prioritaet: M4/v1
+- Ziel: Feedivo soll einen ganzen Artikel laden koennen, wenn das technisch moeglich
+  ist und die Quelle beziehungsweise der Feed dies zulaesst.
+- Fairness-Prinzip: Feedivo soll Anbieter nicht benachteiligen. Die Grundstruktur des
+  Artikels bleibt erhalten; Werbung, Anbieterlinks, Quellenhinweise, Newsletter-
+  Boxen oder verwandte Links werden nicht pauschal entfernt, wenn sie Teil des
+  gelieferten Artikelinhalts sind.
+- Offene Produktfrage: Es muss noch definiert werden, was genau im nativen Reader
+  angezeigt wird, wenn Vollartikel-HTML geladen wurde: komplette Seite, ein
+  erkannter Artikelbereich mit erhaltenen Anbieter-Elementen oder eine Umschaltung
+  zwischen Feed-Inhalt, geladener Artikelansicht und Original-Webseite.
+- Technische Abgrenzung: Diese Funktion ist nicht dasselbe wie der bestehende
+  `WKWebView`-Modus fuer die Originalseite und nicht dasselbe wie manuelles
+  Offline-Speichern. Sie braucht eine eigene Produkt- und Darstellungsentscheidung.
 
 ### 2. Artikel-Liste
 
@@ -750,15 +780,18 @@ M4 Polish & Release:
 ### 8. Einstellungen
 
 #### 8.1 Allgemein
-- Status: Fertig als Basis
+- Status: In Arbeit
 - Prioritaet: MVP/v1
-- Implementiert: Einstellung "Artikel beim Oeffnen als gelesen markieren" sowie
-  automatischer Refresh mit Ein/Aus und Intervallauswahl.
-- Naechster Schritt: Standard-Reader-Modus.
+- Implementiert: Einstellung "Artikel beim Oeffnen als gelesen markieren",
+  Standard-Reader-Modus sowie automatischer Refresh mit Ein/Aus und
+  Intervallauswahl.
+- Entscheidung 2026-06-23: Das Settings-Fenster gilt nicht als abgeschlossen. Die
+  vorhandene Struktur ist eine Basis, muss aber in M4 nochmals gemeinsam auf
+  macOS-Gefuehl, Informationsgewichtung und Release-Tauglichkeit geprueft werden.
 - Automatisches Loeschen spaeter.
 
 #### 8.2 Darstellung
-- Status: Fertig als Basis
+- Status: In Arbeit
 - Prioritaet: v1
 - Implementiert: App-weite Oberflaechenschriftgroesse, Reader-Schriften,
   Fliesstext-Groesse sowie Titel- und Fliesstext-Zeilenabstand und Artikelbreite.
@@ -768,7 +801,8 @@ M4 Polish & Release:
 - Umsetzung: Die UI-Groesse nutzt `InterfaceTextSize` mit eigenen Skalierungswerten,
   weil fest gestaltete macOS-Zeilen nicht verlaesslich allein ueber `DynamicTypeSize`
   sichtbar mitskalieren.
-- Naechster Schritt: Theme System/Hell/Dunkel spaeter.
+- Naechster Schritt: Darstellung und Settings-Struktur gemeinsam neu bewerten;
+  Theme System/Hell/Dunkel bleibt ein moeglicher M4-Polish-Punkt.
 
 ### 9. Suche
 
@@ -984,17 +1018,33 @@ M4 Polish & Release:
 - Empfehlung: Spaeter pro Sprache Screenshots/Smoke-Test ergaenzen, damit lange Texte
   in Franzoesisch/Italienisch nicht die macOS-Layouts sprengen.
 
+### 22. Implementierungs-Reihenfolge Archiv/Aufraeumen
+
+#### 22.1 Artikel-Modell erweitern
+- Status: Fertig als Phase 1
+- Prioritaet: M4/v1
+- Implementiert: `Article` hat jetzt die persistierten Bool-Felder `isArchived` und
+  `isHidden`, beide mit Default `false`.
+- Entscheidung: Diese Phase aendert noch keine sichtbare UI und keine Listenfilter.
+  Die Felder schaffen nur die sichere SwiftData-Grundlage fuer spaetere Archiv-,
+  Ausblenden- oder Aufraeum-Funktionen.
+
 ---
 
 ## Offene Produktentscheidungen
 
-1. Reader-Modus global oder pro Artikel speichern?
-2. Stern und Archiv getrennt halten oder fuer v1 nur Stern?
-3. Smart Filter final: Alle, Heute, Ungelesen, Mit Stern?
-4. OPML-Gruppen spaeter als Ordner oder Tags importieren?
-5. CloudKit Sync-Umfang, insbesondere ob Artikel-Content synchronisiert wird.
-6. Ordnerverwaltung fuer Feeds: einfache Ordnerliste oder spaeter drag-and-drop
+1. Stern und Archiv getrennt halten oder fuer v1 nur Stern?
+2. CloudKit Sync-Umfang, insbesondere ob Artikel-Content und Offline-Content
+   synchronisiert werden.
+3. Ordnerverwaltung fuer Feeds: einfache Ordnerliste oder spaeter drag-and-drop
    Hierarchie?
+
+Bereits entschieden:
+- Reader-Modus bleibt fuer v1 global: nativer Reader als Standard,
+  Originalansicht per `WKWebView` als globaler Modus.
+- Smart Filter bleiben fuer die Basis: Alle Artikel, Ungelesen, Mit Stern und Heute.
+- OPML-Gruppen werden fuer v1 als `Feed.folderName` importiert und in der Sidebar
+  als einfache Ordner angezeigt.
 
 ---
 
