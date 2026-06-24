@@ -4,10 +4,18 @@ struct ArticleRowView: View {
     @Environment(\.interfaceTextSize) private var interfaceTextSize
 
     let article: Article
+    let availableTags: [Tag]
     let onToggleRead: () -> Void
     let onToggleStarred: () -> Void
+    let onToggleArchived: () -> Void
+    let onAssignTag: (Tag) -> Void
+    let onCreateRule: () -> Void
     let onCopyLink: () -> Void
     let onOpenOriginal: () -> Void
+    let onShareOriginal: () -> Void
+    let onSaveOrRemoveOffline: () -> Void
+    let onDelete: () -> Void
+    let onMarkAllRead: () -> Void
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -66,6 +74,25 @@ struct ArticleRowView: View {
 
             Divider()
 
+            Button(article.isArchived ? L10n.articleUnarchiveCommand : L10n.articleArchiveCommand) {
+                onToggleArchived()
+            }
+
+            Menu(L10n.articleAssignTagCommand) {
+                ForEach(availableTags) { tag in
+                    Button(tag.name) {
+                        onAssignTag(tag)
+                    }
+                }
+            }
+            .disabled(availableTags.isEmpty)
+
+            Button(L10n.articleCreateRuleCommand) {
+                onCreateRule()
+            }
+
+            Divider()
+
             Button(L10n.articleCopyLinkCommand) {
                 onCopyLink()
             }
@@ -75,6 +102,27 @@ struct ArticleRowView: View {
                 onOpenOriginal()
             }
             .disabled(!hasOriginalURL)
+
+            Button(L10n.articleShareCommand) {
+                onShareOriginal()
+            }
+            .disabled(!hasOriginalURL)
+
+            Button(article.offlineState.isAvailable ? L10n.readerOfflineRemove : L10n.readerOfflineSave) {
+                onSaveOrRemoveOffline()
+            }
+
+            Divider()
+
+            Button(L10n.articleDeleteCommand, role: .destructive) {
+                onDelete()
+            }
+
+            Divider()
+
+            Button(L10n.articleMarkAllReadCommand) {
+                onMarkAllRead()
+            }
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityLabel)

@@ -1,4 +1,5 @@
 import Foundation
+import SwiftData
 import Testing
 @testable import Feedivo
 
@@ -15,6 +16,14 @@ private final class CapturingURLOpener: ArticleURLOpener {
 
     func open(_ url: URL) {
         openedURL = url
+    }
+}
+
+private final class CapturingArticleSharingPresenter: ArticleSharingPresenter {
+    var sharedURL: URL?
+
+    func share(_ url: URL) {
+        sharedURL = url
     }
 }
 
@@ -44,6 +53,19 @@ struct ArticleViewModelTests {
         viewModel.toggleStarred(article)
 
         #expect(!article.isStarred)
+    }
+
+    @Test func toggleArchivedWechseltArchivStatus() {
+        let article = Article(title: "Test", isArchived: false)
+        let viewModel = ArticleViewModel()
+
+        viewModel.toggleArchived(article)
+
+        #expect(article.isArchived)
+
+        viewModel.toggleArchived(article)
+
+        #expect(!article.isArchived)
     }
 
     @Test func optionaleArtikelAktionenIgnorierenFehlendeAuswahl() {
@@ -126,6 +148,53 @@ struct ArticleViewModelTests {
         #expect(opener.openedURL?.absoluteString == "https://example.com/article")
     }
 
+    @Test func shareOriginalTeiltGueltigenLink() {
+        let article = Article(title: "Test", link: "https://example.com/article")
+        let presenter = CapturingArticleSharingPresenter()
+        let viewModel = ArticleViewModel()
+
+        let didShare = viewModel.shareOriginal(article, presenter: presenter)
+
+        #expect(didShare)
+        #expect(presenter.sharedURL?.absoluteString == "https://example.com/article")
+    }
+
+    @MainActor
+    @Test func markAllReadMarkiertArtikelUndKorrigiertFeedZaehler() throws {
+        let context = try testContext()
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
+        feed.unreadCount = 2
+        let unreadArticle = Article(title: "Ungelesen", isRead: false, feed: feed)
+        let readArticle = Article(title: "Gelesen", isRead: true, feed: feed)
+        context.insert(feed)
+        context.insert(unreadArticle)
+        context.insert(readArticle)
+        try context.save()
+
+        ArticleViewModel().markAllRead([unreadArticle, readArticle])
+
+        #expect(unreadArticle.isRead)
+        #expect(readArticle.isRead)
+        #expect(feed.unreadCount == 1)
+    }
+
+    @MainActor
+    @Test func deleteArticleEntferntArtikelUndKorrigiertFeedZaehler() throws {
+        let context = try testContext()
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
+        feed.unreadCount = 1
+        let article = Article(title: "Ungelesen", isRead: false, feed: feed)
+        context.insert(feed)
+        context.insert(article)
+        try context.save()
+
+        ArticleViewModel().deleteArticle(article, context: context)
+
+        let articles = try context.fetch(FetchDescriptor<Article>())
+        #expect(articles.isEmpty)
+        #expect(feed.unreadCount == 0)
+    }
+
     @Test func navigationFolgtSortierterArtikellisteUndStopptAnDenRaendern() {
         let newest = Article(title: "Neu", publishedAt: Date(timeIntervalSince1970: 300))
         let middle = Article(title: "Mitte", publishedAt: Date(timeIntervalSince1970: 200))
@@ -169,5 +238,21 @@ struct ArticleViewModelTests {
 
         #expect(state.previousArticle == nil)
         #expect(state.nextArticle == nil)
+    }
+
+    @MainActor
+    private func testContext() throws -> ModelContext {
+        let container = try ModelContainer(
+            for: Feed.self,
+            FeedFolder.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            RuleCondition.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+
+        return ModelContext(container)
     }
 }

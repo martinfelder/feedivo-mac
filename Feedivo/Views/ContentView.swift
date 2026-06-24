@@ -55,21 +55,24 @@ struct ContentView: View {
                 ArticleListView(
                     smartFilter: smartFilter,
                     selectedArticle: $selectedArticle,
-                    navigationState: $articleNavigationState
+                    navigationState: $articleNavigationState,
+                    onRequestCreateRuleFromArticle: requestCreateRuleFromArticle
                 )
                     .navigationSplitViewColumnWidth(min: 280, ideal: 320, max: 400)
             } else if let feed = selectedFeed {
                 ArticleListView(
                     feed: feed,
                     selectedArticle: $selectedArticle,
-                    navigationState: $articleNavigationState
+                    navigationState: $articleNavigationState,
+                    onRequestCreateRuleFromArticle: requestCreateRuleFromArticle
                 )
                     .navigationSplitViewColumnWidth(min: 280, ideal: 320, max: 400)
             } else if let tag = selectedTag {
                 ArticleListView(
                     tag: tag,
                     selectedArticle: $selectedArticle,
-                    navigationState: $articleNavigationState
+                    navigationState: $articleNavigationState,
+                    onRequestCreateRuleFromArticle: requestCreateRuleFromArticle
                 )
                     .navigationSplitViewColumnWidth(min: 280, ideal: 320, max: 400)
             } else {
@@ -187,11 +190,17 @@ struct ContentView: View {
                 toggleStarred: {
                     articleViewModel.toggleStarred(selectedArticle)
                 },
+                toggleArchived: {
+                    articleViewModel.toggleArchived(selectedArticle)
+                },
                 copyLink: {
                     _ = articleViewModel.copyLink(selectedArticle)
                 },
                 openOriginal: {
                     _ = articleViewModel.openOriginal(selectedArticle)
+                },
+                shareOriginal: {
+                    _ = articleViewModel.shareOriginal(selectedArticle)
                 },
                 canSelectPreviousArticle: articleNavigationState.previousArticle != nil,
                 canSelectNextArticle: articleNavigationState.nextArticle != nil,

@@ -575,15 +575,24 @@ manuell offline gespeicherte Inhalte.
 ### ArticleRowView.swift
 - Reichhaltige Artikelzeile mit optionalem `AsyncImage`
 - Platzhalterbild, wenn kein `imageURL` vorhanden ist
-- Kontextmenue fuer gelesen/ungelesen und Stern
+- Kontextmenue fuer gelesen/ungelesen, Stern, Archivieren, Tag zuweisen,
+  Regel erstellen, Link kopieren, Original oeffnen, Teilen, Offline speichern/
+  entfernen, Artikel loeschen und alle sichtbaren Artikel als gelesen markieren
 - Gelesene Artikel werden optisch ruhiger dargestellt
 
 ### ArticleViewModel.swift
 - `@Observable` class
 - `toggleRead(_:)`
 - `toggleStarred(_:)`
+- `toggleArchived(_:)`
 - Optionale Varianten ignorieren fehlende Auswahl fuer Menue-/Shortcut-Aktionen
 - `markReadIfNeeded(_:isEnabled:)`
+- `markAllRead(_:)` markiert eine sichtbare Artikelliste als gelesen und pflegt
+  dabei die Feed-Zaehler.
+- `deleteArticle(_:context:)` loescht einen Artikel aus SwiftData und korrigiert
+  bei ungelesenen Artikeln den Feed-Zaehler.
+- `copyLink`, `openOriginal` und `shareOriginal` kapseln Link-Aktionen testbar ueber
+  kleine Protokolle fuer Pasteboard, URL-Oeffnen und Share-Picker.
 - Gelesen/Ungelesen-Aenderungen aktualisieren `Feed.unreadCount`, damit Sidebar-Badges
   ohne eigene Artikel-Query aktuell bleiben
 - `sortedForList(_:)`, `previousArticle(before:in:)` und `nextArticle(after:in:)`
@@ -626,6 +635,8 @@ manuell offline gespeicherte Inhalte.
 - `Cmd+↓` springt zum naechsten sichtbaren Artikel
 - `Cmd+Shift+U` toggelt gelesen/ungelesen
 - `Cmd+D` toggelt Stern
+- Archivieren und Teilen sind ebenfalls im Artikel-Menue verfuegbar; Exportieren
+  bleibt fuer Feature 2.4 noch als eigener Export-Slice offen.
 - Commands sind deaktiviert, wenn kein Artikel ausgewaehlt ist oder am Listenrand
   kein vorheriger/naechster Artikel existiert
 - `ContentView` stellt die Aktionen via SwiftUI `FocusedValues` bereit
@@ -1315,6 +1326,11 @@ manuell offline gespeicherte Inhalte.
 
 ## Letzte Änderungen
 
+- 2026-06-24: Feature 2.4 als erster Kontextmenue-Slice umgesetzt: Artikelzeilen
+  bieten jetzt Archivieren, Tag-Zuweisung, Regel-Erstellung aus Artikel, Teilen,
+  Offline speichern/entfernen, Artikel loeschen und alle sichtbaren Artikel als
+  gelesen markieren. Exportieren nach PDF/DOCX bleibt bewusst als eigener sauberer
+  Restpunkt in Feature 2.4 offen.
 - 2026-06-24: Feature 2.5 umgesetzt: Artikel-Listen zeigen ungelesene Artikel
   standardmaessig weiter und blenden gelesene Artikel aus. Ein Button am Listenende
   zeigt die gelesenen Artikel fuer die aktuelle Liste an; ausgewaehlte Artikel

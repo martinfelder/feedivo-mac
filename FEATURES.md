@@ -93,22 +93,22 @@
   - Sidebar bleibt primärer Weg
 
 ### 2.4 Kontextmenü
-- **Status:** ✅ Entschieden — bereit zur Implementierung
-- **Umgesetzt:** Basis vorhanden (gelesen/ungelesen, Stern)
-- **Zu implementieren — komplette Menüstruktur (Rechtsklick auf Artikel):**
+- **Status:** 🔨 In Arbeit
+- **Umgesetzt:**
   1. Als gelesen markieren / Als ungelesen markieren
   2. Stern setzen / Stern entfernen
   3. Archivieren / Aus Archiv entfernen
-  4. Tag zuweisen... (Popover mit Tag-Liste)
+  4. Tag zuweisen... (Tag-Liste als Untermenü)
   5. Regel erstellen... (RuleWizard vorausgefüllt)
   6. Im Browser öffnen
   7. Link kopieren
   8. Teilen... (macOS Share Sheet)
-  9. Offline speichern
-  10. Exportieren... (PDF / DOCX etc.)
-  11. Artikel löschen
-  12. ─────────────────
-  13. Alle als gelesen markieren (gilt für aktuellen Feed / Filter)
+  9. Offline speichern / Offline-Kopie entfernen
+  10. Artikel löschen
+  11. ─────────────────
+  12. Alle als gelesen markieren (gilt für aktuell sichtbare Liste)
+- **Noch offen:**
+  - Exportieren... (PDF / DOCX etc.) als eigener Export-Slice, damit keine halbe Menüfunktion entsteht
 
 ### 2.5 Artikel-Liste Anzeige-Logik
 - **Status:** ✔️ Fertig

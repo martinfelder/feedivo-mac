@@ -4,8 +4,10 @@ struct ArticleCommandActions {
     let selectedArticle: Article?
     let toggleRead: () -> Void
     let toggleStarred: () -> Void
+    let toggleArchived: () -> Void
     let copyLink: () -> Void
     let openOriginal: () -> Void
+    let shareOriginal: () -> Void
     let canSelectPreviousArticle: Bool
     let canSelectNextArticle: Bool
     let selectPreviousArticle: () -> Void
@@ -15,8 +17,10 @@ struct ArticleCommandActions {
         selectedArticle: Article?,
         toggleRead: @escaping () -> Void,
         toggleStarred: @escaping () -> Void,
+        toggleArchived: @escaping () -> Void = {},
         copyLink: @escaping () -> Void,
         openOriginal: @escaping () -> Void,
+        shareOriginal: @escaping () -> Void = {},
         canSelectPreviousArticle: Bool = false,
         canSelectNextArticle: Bool = false,
         selectPreviousArticle: @escaping () -> Void = {},
@@ -25,8 +29,10 @@ struct ArticleCommandActions {
         self.selectedArticle = selectedArticle
         self.toggleRead = toggleRead
         self.toggleStarred = toggleStarred
+        self.toggleArchived = toggleArchived
         self.copyLink = copyLink
         self.openOriginal = openOriginal
+        self.shareOriginal = shareOriginal
         self.canSelectPreviousArticle = canSelectPreviousArticle
         self.canSelectNextArticle = canSelectNextArticle
         self.selectPreviousArticle = selectPreviousArticle
@@ -55,6 +61,14 @@ struct ArticleCommandActions {
         }
 
         return selectedArticle.isStarred ? L10n.articleRowStarRemove : L10n.articleRowStarAdd
+    }
+
+    var toggleArchivedTitle: String {
+        guard let selectedArticle else {
+            return L10n.articleArchiveCommand
+        }
+
+        return selectedArticle.isArchived ? L10n.articleUnarchiveCommand : L10n.articleArchiveCommand
     }
 }
 

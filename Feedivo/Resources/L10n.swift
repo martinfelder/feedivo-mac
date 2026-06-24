@@ -216,6 +216,13 @@ enum L10n {
     static var articleNextCommand: String { String(localized: "article.next.command") }
     static var articleCopyLinkCommand: String { String(localized: "article.copyLink.command") }
     static var articleOpenOriginalCommand: String { String(localized: "article.openOriginal.command") }
+    static var articleArchiveCommand: String { String(localized: "article.archive.command") }
+    static var articleUnarchiveCommand: String { String(localized: "article.unarchive.command") }
+    static var articleAssignTagCommand: String { String(localized: "article.assignTag.command") }
+    static var articleCreateRuleCommand: String { String(localized: "article.createRule.command") }
+    static var articleShareCommand: String { String(localized: "article.share.command") }
+    static var articleDeleteCommand: String { String(localized: "article.delete.command") }
+    static var articleMarkAllReadCommand: String { String(localized: "article.markAllRead.command") }
     static var readerDisplayModeToggleHelp: String { String(localized: "reader.displayMode.toggle.help") }
     static var sidebarAddFolderDuplicateError: String { String(localized: "sidebar.addFolder.duplicateError") }
     static var tagManagerEmptyNameError: String { String(localized: "tagManager.emptyName.error") }

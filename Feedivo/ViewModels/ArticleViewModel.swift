@@ -1,6 +1,7 @@
 import AppKit
 import Foundation
 import Observation
+import SwiftData
 
 protocol ArticleLinkPasteboard {
     func copy(_ string: String)
@@ -20,6 +21,24 @@ protocol ArticleURLOpener {
 struct SystemArticleURLOpener: ArticleURLOpener {
     func open(_ url: URL) {
         NSWorkspace.shared.open(url)
+    }
+}
+
+protocol ArticleSharingPresenter {
+    func share(_ url: URL)
+}
+
+struct SystemArticleSharingPresenter: ArticleSharingPresenter {
+    func share(_ url: URL) {
+        guard let contentView = NSApp.keyWindow?.contentView else {
+            return
+        }
+
+        NSSharingServicePicker(items: [url]).show(
+            relativeTo: contentView.bounds,
+            of: contentView,
+            preferredEdge: .minY
+        )
     }
 }
 
@@ -51,6 +70,18 @@ final class ArticleViewModel {
         toggleStarred(article)
     }
 
+    func toggleArchived(_ article: Article) {
+        article.isArchived.toggle()
+    }
+
+    func toggleArchived(_ article: Article?) {
+        guard let article else {
+            return
+        }
+
+        toggleArchived(article)
+    }
+
     func markReadIfNeeded(_ article: Article?, isEnabled: Bool) {
         guard isEnabled, let article, !article.isRead else {
             return
@@ -59,6 +90,22 @@ final class ArticleViewModel {
         let wasRead = article.isRead
         article.isRead = true
         updateUnreadCount(for: article, wasRead: wasRead, isRead: article.isRead)
+    }
+
+    func markAllRead(_ articles: [Article]) {
+        for article in articles where !article.isRead {
+            let wasRead = article.isRead
+            article.isRead = true
+            updateUnreadCount(for: article, wasRead: wasRead, isRead: article.isRead)
+        }
+    }
+
+    @MainActor
+    func deleteArticle(_ article: Article, context: ModelContext) {
+        let wasRead = article.isRead
+        updateUnreadCount(for: article, wasRead: wasRead, isRead: true)
+        context.delete(article)
+        try? context.save()
     }
 
     func sortedForList(_ articles: [Article]) -> [Article] {
@@ -128,6 +175,18 @@ final class ArticleViewModel {
         }
 
         opener.open(url)
+        return true
+    }
+
+    func shareOriginal(
+        _ article: Article?,
+        presenter: ArticleSharingPresenter = SystemArticleSharingPresenter()
+    ) -> Bool {
+        guard let url = originalURL(for: article) else {
+            return false
+        }
+
+        presenter.share(url)
         return true
     }
 

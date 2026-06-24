@@ -32,6 +32,11 @@ struct ArticleCommands: Commands {
             .keyboardShortcut("d", modifiers: [.command])
             .disabled(articleCommandActions?.canPerformActions != true)
 
+            Button(articleCommandActions?.toggleArchivedTitle ?? L10n.articleArchiveCommand) {
+                articleCommandActions?.toggleArchived()
+            }
+            .disabled(articleCommandActions?.canPerformActions != true)
+
             Divider()
 
             Button(L10n.articleCopyLinkCommand) {
@@ -41,6 +46,11 @@ struct ArticleCommands: Commands {
 
             Button(L10n.articleOpenOriginalCommand) {
                 articleCommandActions?.openOriginal()
+            }
+            .disabled(articleCommandActions?.canPerformLinkActions != true)
+
+            Button(L10n.articleShareCommand) {
+                articleCommandActions?.shareOriginal()
             }
             .disabled(articleCommandActions?.canPerformLinkActions != true)
         }
