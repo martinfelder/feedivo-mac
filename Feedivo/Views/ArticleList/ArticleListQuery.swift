@@ -56,11 +56,13 @@ struct ArticleListDisplayState {
     }
 
     var visibleArticles: [Article] {
+        let visibleArticles = articles.filter { !$0.isHidden }
+
         guard !showsReadArticles else {
-            return articles
+            return visibleArticles
         }
 
-        return articles.filter { article in
+        return visibleArticles.filter { article in
             !article.isRead || isSelected(article)
         }
     }
@@ -71,7 +73,11 @@ struct ArticleListDisplayState {
         }
 
         return articles.reduce(0) { count, article in
-            count + (article.isRead && !isSelected(article) ? 1 : 0)
+            guard !article.isHidden else {
+                return count
+            }
+
+            return count + (article.isRead && !isSelected(article) ? 1 : 0)
         }
     }
 

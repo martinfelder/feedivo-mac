@@ -276,7 +276,9 @@ private struct ArticleListContent: View {
                             viewModel.toggleStarred(article)
                         },
                         onToggleArchived: {
-                            viewModel.toggleArchived(article)
+                            Task {
+                                await archiveOrRemoveArchive(article)
+                            }
                         },
                         onAssignTag: { tag in
                             ArticleMetadataEditor.addTag(
@@ -385,6 +387,17 @@ private struct ArticleListContent: View {
             offlineDownloadService.removeOfflineContent(from: article)
         } else {
             await offlineDownloadService.saveForOffline(article)
+        }
+
+        try? modelContext.save()
+    }
+
+    @MainActor
+    private func archiveOrRemoveArchive(_ article: Article) async {
+        if article.isArchived {
+            offlineDownloadService.removeArchive(from: article)
+        } else {
+            await offlineDownloadService.archiveForOffline(article)
         }
 
         try? modelContext.save()

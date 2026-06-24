@@ -568,17 +568,17 @@
 ## 22. Artikel-Zustände
 
 ### 22.1 Explizite Artikel-Zustände
-- **Status:** 🔨 In Arbeit
-- **Umgesetzt:** `Article` hat `isArchived` und `isHidden` als persistierte Bool-Felder mit Default `false`
-- **Zu implementieren — 4 kombinierbare Zustände:**
+- **Status:** ✔️ Fertig
+- **Umgesetzt — 4 kombinierbare Zustände:**
   - `isRead: Bool` — gelesen/ungelesen (bereits vorhanden)
   - `isStarred: Bool` — Favorit/Stern (bereits vorhanden)
-  - `isArchived: Bool` — Modellfeld vorhanden; später mit vollständigem lokalem Inhalt / Auto-Löschen verknüpfen
-  - `isHidden: Bool` — Modellfeld vorhanden; später durch Regel ausblenden
+  - `isArchived: Bool` — Archivstatus, mit expliziter Offline-Kopie verknüpft
+  - `isHidden: Bool` — versteckte Artikel werden aus normalen Listen ausgeblendet
 - **Kombinierbar:** Alle 4 Zustände sind unabhängig und kombinierbar
-- **Archivierte Artikel löschen:** Manuell möglich — entfernt `isArchived` + lokalen Inhalt, Artikel bleibt in Liste
-- **Technisch:** `isArchived` verknüpfen mit `offlineContent` in `OfflineDownloadService`
-- **SwiftData:** `Article` Modell ist um `isArchived` und `isHidden` erweitert
+- **Archivieren:** Speichert eine Offline-Kopie und setzt `isArchived` nur, wenn Offline-Content verfügbar ist
+- **Archivierte Artikel löschen:** `removeArchive` entfernt `isArchived` + lokalen Offline-Inhalt, Artikel bleibt in Liste
+- **Technisch:** `OfflineDownloadService` verknüpft Archivstatus mit `offlineContent`; Entfernen von Offline-Content löscht auch den Archivstatus
+- **Abgrenzung:** Regel-Aktion "Ausblenden" und Smart Filter "Ausgeblendet" bleiben Feature 16.3/3.2
 
 ---
 
@@ -654,7 +654,7 @@
 Folgende Reihenfolge berücksichtigt Abhängigkeiten. Features mit (*) sind Voraussetzung für nachfolgende.
 
 ### Phase 1 — Fundament & Artikel-Modell
-1. **Feature 22.1** * — Artikel-Modell erweitern (`isArchived`, `isHidden`) — erledigt als Modell-Fundament
+1. **Feature 22.1** * — Artikel-Modell erweitern (`isArchived`, `isHidden`) — erledigt
 2. **Feature 2.5** — Artikel-Liste Anzeige-Logik (gelesene ausblenden, Button am Ende) — erledigt
 3. **Feature 2.4** — Kontextmenü vollständig ausbauen (inkl. Archivieren, Exportieren, Teilen)
 4. **Feature 2.2** — Sortierung GUI (Toolbar-Dropdown + Menüleiste)

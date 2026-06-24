@@ -103,12 +103,65 @@ struct OfflineDownloadServiceTests {
         #expect(article.offlineRequestedAt != nil)
     }
 
+    @Test func archiveForOfflineSpeichertOfflineKopieUndSetztArchivstatus() async {
+        let article = Article(
+            title: "Archiv",
+            link: "https://example.com/article",
+            content: "<p>Archivierter Volltext.</p>"
+        )
+        let service = OfflineDownloadService(
+            fetcher: StubOfflineContentFetcher(result: .success("<p>Webseite</p>"))
+        )
+
+        await service.archiveForOffline(article)
+
+        #expect(article.isArchived)
+        #expect(article.offlineState == .feedContent)
+        #expect(article.offlineContent == "<p>Archivierter Volltext.</p>")
+    }
+
+    @Test func archiveForOfflineSetztArchivstatusNichtBeiFehler() async {
+        let article = Article(
+            title: "Defekt",
+            link: "https://example.com/article"
+        )
+        let service = OfflineDownloadService(
+            fetcher: StubOfflineContentFetcher(result: .failure(OfflineTestError()))
+        )
+
+        await service.archiveForOffline(article)
+
+        #expect(!article.isArchived)
+        #expect(article.offlineState == .failed)
+    }
+
+    @Test func removeArchiveEntferntArchivstatusUndOfflineKopieAberNichtDenArtikel() async {
+        let article = Article(
+            title: "Archiviert",
+            link: "https://example.com/article",
+            isArchived: true
+        )
+        article.offlineState = .fullText
+        article.offlineContent = "<article>Volltext</article>"
+        article.offlineRequestedAt = Date()
+        article.offlineSavedAt = Date()
+
+        let service = OfflineDownloadService()
+        service.removeArchive(from: article)
+
+        #expect(!article.isArchived)
+        #expect(article.offlineState == .none)
+        #expect(article.offlineContent == nil)
+        #expect(article.title == "Archiviert")
+    }
+
     @Test func removeOfflineContentClearsOfflineFields() async {
         let article = Article(
             title: "Gespeichert",
             link: "https://example.com/article",
             content: "<p>Text</p>"
         )
+        article.isArchived = true
         article.offlineState = .feedContent
         article.offlineContent = "<p>Text</p>"
         article.offlineErrorMessage = "Alter Fehler"
@@ -123,5 +176,6 @@ struct OfflineDownloadServiceTests {
         #expect(article.offlineErrorMessage == nil)
         #expect(article.offlineRequestedAt == nil)
         #expect(article.offlineSavedAt == nil)
+        #expect(!article.isArchived)
     }
 }

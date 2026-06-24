@@ -21,6 +21,7 @@ struct ContentView: View {
     @State private var articleNavigationState = ArticleNavigationState.empty
 
     @State private var articleViewModel = ArticleViewModel()
+    @State private var offlineDownloadService = OfflineDownloadService()
     @State private var feedViewModel = FeedViewModel()
     @State private var isShowingAddFeedSheet = false
     @State private var feedPendingDeletion: Feed?
@@ -191,7 +192,9 @@ struct ContentView: View {
                     articleViewModel.toggleStarred(selectedArticle)
                 },
                 toggleArchived: {
-                    articleViewModel.toggleArchived(selectedArticle)
+                    Task {
+                        await archiveOrRemoveArchive(selectedArticle)
+                    }
                 },
                 copyLink: {
                     _ = articleViewModel.copyLink(selectedArticle)
@@ -260,6 +263,21 @@ struct ContentView: View {
 
     private func requestCreateRuleFromArticle(_ article: Article) {
         articleForRuleCreation = article
+    }
+
+    @MainActor
+    private func archiveOrRemoveArchive(_ article: Article?) async {
+        guard let article else {
+            return
+        }
+
+        if article.isArchived {
+            offlineDownloadService.removeArchive(from: article)
+        } else {
+            await offlineDownloadService.archiveForOffline(article)
+        }
+
+        try? modelContext.save()
     }
 
     private func updateFirstRunWizardPresentation() {

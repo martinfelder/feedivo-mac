@@ -61,6 +61,19 @@ struct ArticleListQueryTests {
         #expect(state.hiddenReadArticleCount == 1)
     }
 
+    @Test func displayStateBlendetHiddenArtikelAusNormalenListenAus() {
+        let visibleArticle = Article(title: "Sichtbar", isRead: false)
+        let hiddenArticle = Article(title: "Ausgeblendet", isRead: false, isHidden: true)
+
+        let state = ArticleListDisplayState(
+            articles: [visibleArticle, hiddenArticle],
+            showsReadArticles: true
+        )
+
+        #expect(state.visibleArticles.map(\.title) == ["Sichtbar"])
+        #expect(!state.shouldShowReadArticlesButton)
+    }
+
     @Test func articleInitialisiertDirekteFeedIDFuerSchnelleListenQueries() throws {
         let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
         let article = Article(title: "Artikel", feed: feed)

@@ -566,6 +566,8 @@ manuell offline gespeicherte Inhalte.
   Predicates sind durch `ArticleListQueryTests` abgesichert.
 - `ArticleListDisplayState` kapselt die sichtbaren Artikel, die Anzahl versteckter
   gelesener Artikel und die Button-Entscheidung fuer Feature 2.5 testbar ohne UI.
+- `ArticleListDisplayState` blendet `isHidden`-Artikel aus normalen Listen aus; die
+  Regel-Aktion zum Setzen dieses Status bleibt ein eigener Feature-16.3-Schritt.
 
 ### ArticleNavigationState.swift
 - Berechnet vorherigen und naechsten Artikel aus der aktuell sichtbaren Liste.
@@ -822,6 +824,12 @@ manuell offline gespeicherte Inhalte.
   Bildcache weiter.
 - Entfernt Offline-Daten bewusst getrennt von normalem Feed-Content, damit Feedivo
   die vom Feed gelieferten Inhalte nicht verliert.
+- `archiveForOffline(_:)` speichert eine explizite Offline-Kopie und setzt
+  `Article.isArchived` nur, wenn Offline-Content verfuegbar ist.
+- `removeArchive(from:)` entfernt Archivstatus und Offline-Kopie, laesst den Artikel
+  selbst aber in SwiftData bestehen.
+- `removeOfflineContent(from:)` setzt ebenfalls `isArchived = false`, damit kein
+  Archivstatus ohne lokale Kopie stehen bleibt.
 - Offline-Automatik ist absichtlich nicht Teil dieses Services. Sie soll spaeter
   als eigene Strategie mit Feed-/Zeit-/Stern-/Ungelesen-Regeln und Speichergrenzen
   gebaut werden.
@@ -1326,6 +1334,10 @@ manuell offline gespeicherte Inhalte.
 
 ## Letzte Änderungen
 
+- 2026-06-24: Feature 22.1 abgeschlossen: Archivieren ist jetzt mit explizitem
+  Offline-Content verknuepft, Archiv entfernen loescht nur lokale Offline-Daten
+  und setzt `isArchived` zurueck, und `isHidden` wird aus normalen Artikellisten
+  ausgeblendet. Die Regel-Aktion zum Ausblenden bleibt Phase 2.
 - 2026-06-24: Feature 2.4 als erster Kontextmenue-Slice umgesetzt: Artikelzeilen
   bieten jetzt Archivieren, Tag-Zuweisung, Regel-Erstellung aus Artikel, Teilen,
   Offline speichern/entfernen, Artikel loeschen und alle sichtbaren Artikel als

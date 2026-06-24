@@ -90,7 +90,20 @@ final class OfflineDownloadService {
         }
     }
 
+    func archiveForOffline(_ article: Article) async {
+        if !article.offlineState.isAvailable {
+            await saveForOffline(article)
+        }
+
+        article.isArchived = article.offlineState.isAvailable
+    }
+
+    func removeArchive(from article: Article) {
+        removeOfflineContent(from: article)
+    }
+
     func removeOfflineContent(from article: Article) {
+        article.isArchived = false
         article.offlineState = .none
         article.offlineContent = nil
         article.offlineRequestedAt = nil
