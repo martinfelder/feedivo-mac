@@ -93,7 +93,7 @@
   - Sidebar bleibt primärer Weg
 
 ### 2.4 Kontextmenü
-- **Status:** 🔨 In Arbeit
+- **Status:** ✔️ Fertig
 - **Umgesetzt:**
   1. Als gelesen markieren / Als ungelesen markieren
   2. Stern setzen / Stern entfernen
@@ -105,10 +105,10 @@
   8. Teilen... (macOS Share Sheet)
   9. Offline speichern / Offline-Kopie entfernen
   10. Artikel löschen
-  11. ─────────────────
-  12. Alle als gelesen markieren (gilt für aktuell sichtbare Liste)
-- **Noch offen:**
-  - Exportieren... (PDF / DOCX etc.) als eigener Export-Slice, damit keine halbe Menüfunktion entsteht
+  11. Exportieren... als Markdown-Datei (`.md`) mit Metadaten und lesbarem Artikeltext
+  12. ─────────────────
+  13. Alle als gelesen markieren (gilt für aktuell sichtbare Liste)
+- **Bewusst später / optional:** PDF- und DOCX-Export als eigene Formate, falls nach dem Markdown-Slice noch gewünscht.
 
 ### 2.5 Artikel-Liste Anzeige-Logik
 - **Status:** ✔️ Fertig
@@ -656,7 +656,7 @@ Folgende Reihenfolge berücksichtigt Abhängigkeiten. Features mit (*) sind Vora
 ### Phase 1 — Fundament & Artikel-Modell
 1. **Feature 22.1** * — Artikel-Modell erweitern (`isArchived`, `isHidden`) — erledigt
 2. **Feature 2.5** — Artikel-Liste Anzeige-Logik (gelesene ausblenden, Button am Ende) — erledigt
-3. **Feature 2.4** — Kontextmenü vollständig ausbauen (inkl. Archivieren, Exportieren, Teilen)
+3. **Feature 2.4** — Kontextmenü vollständig ausbauen (inkl. Archivieren, Exportieren, Teilen) — erledigt
 4. **Feature 2.2** — Sortierung GUI (Toolbar-Dropdown + Menüleiste) — erledigt
 5. **Feature 2.3** — Filterung GUI (Toolbar-Dropdown) — erledigt
 

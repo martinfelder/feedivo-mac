@@ -151,6 +151,7 @@ FeedivoMac/
 │   │   │   ├── ArticleListQuery.swift  # SwiftData-Queries fuer Feed-/Artikel-Listen ✅
 │   │   │   ├── ArticleSortOption.swift # Globale Artikellisten-Sortierung ✅
 │   │   │   ├── ArticleFilterOption.swift # Globale Artikellisten-Filterung ✅
+│   │   │   ├── ArticleExportSheet.swift # Praesentationsanker fuer Artikel-Dateiexport ✅
 │   │   │   └── ArticleRowView.swift    # Reichhaltige Artikel-Zeile mit Status/Stern ✅
 │   │   ├── Reader/
 │   │   │   ├── ReaderView.swift        # Rechte Spalte: nativer Artikel-Reader ✅
@@ -182,6 +183,8 @@ FeedivoMac/
 │   │   ├── BackgroundRefreshSettings.swift # Auto-Refresh Settings/Intervalle ✅
 │   │   ├── BackgroundRefreshService.swift  # NSBackgroundActivityScheduler Adapter ✅
 │   │   ├── ArticleFeedIDBackfillService.swift # feedID fuer alte Artikel nachfuellen ✅
+│   │   ├── ArticleExportService.swift # Markdown-Export fuer Artikel ✅
+│   │   ├── ArticleMarkdownDocument.swift # FileDocument fuer Artikel-Markdown-Export ✅
 │   │   ├── OrphanedArticleCleanupService.swift # verwaiste Artikel ohne existierenden Feed entfernen ✅
 │   │   ├── FeedUnreadCountBackfillService.swift # unreadCount einmalig korrigieren ✅
 │   │   ├── RuleConditionBackfillService.swift # alte Rule-Felder in Conditions migrieren ✅
@@ -260,6 +263,10 @@ noch einen kleinen `ArticleNavigationState` mit vorherigem/naechstem Artikel nac
 oben, statt die komplette sichtbare Artikelliste in `ContentView` zu kopieren.
 Praesentiert ausserdem den Regel-Wizard fuer den aktuell ausgewaehlten Artikel,
 wenn die Sidebar-Aktion `Regel aus Artikel erstellen...` genutzt wird.
+Startet den Artikel-Export zentral auf Root-Ebene als kurzlebiges SwiftUI-Sheet und
+erst im naechsten Main-Runloop. Das Sheet dient als stabiler Praesentationsanker fuer
+SwiftUIs `.fileExporter`, damit der Export nicht direkt aus einer Kontextmenue-Aktion
+oder einer kurzlebigen Listen-Unteransicht geoeffnet wird.
 Haelt den offenen/geschlossenen Zustand des rechten Artikelinfos-Inspectors auf
 Root-Ebene, damit die eingeblendete Seitenleiste beim Feed- oder Artikelwechsel
 sichtbar bleibt.
@@ -561,6 +568,8 @@ manuell offline gespeicherte Inhalte.
   separates `articleIDs = articles.map(\.id)` Array mehr pro SwiftUI-Renderdurchlauf
 - Nutzt `ArticleRowView` fuer Titel, Metadaten, Summary, optionales Bild,
   Ungelesen-Punkt rechts oben und Stern rechts unten
+- Meldet `Exportieren...` aus dem Artikel-Kontextmenue nach oben an `ContentView`;
+  der Markdown-Inhalt kommt aus `ArticleExportService`.
 - Markiert Artikel beim Auswaehlen automatisch als gelesen, wenn die Einstellung
   aktiv ist
 - Gelesene Artikel werden in Feed-, Tag- und Smartfilter-Listen standardmaessig
@@ -839,6 +848,24 @@ manuell offline gespeicherte Inhalte.
   erscheinen.
 - Erkennt, ob offline geladener Volltext, Feed-Content, nur eine Summary oder gar
   kein Text verfuegbar ist; der Reader nutzt diese Information fuer Statushinweise.
+
+### ArticleExportService.swift / ArticleMarkdownDocument.swift
+- `ArticleExportService` erzeugt Markdown fuer einzelne Artikel mit Titel,
+  Veroeffentlichungsdatum, Original-Link und lesbarem Artikeltext.
+- `ArticleExportSnapshot` loest die benoetigten Primitive vor dem Dateidialog aus dem
+  SwiftData-Modell, damit der Export nicht an spaeteren Model-Faults oder
+  Relationships haengt.
+- Der Export nutzt bewusst keinen AppKit-/WebKit-HTML-Importer, sondern eine
+  einfache sichere HTML-zu-Markdown-Konvertierung, damit fremdes Feed-HTML beim
+  Export keinen harten AppKit-Trap ausloest.
+- Der Export bevorzugt gespeicherten Offline-Content vor Feed-Content und Summary.
+- `defaultFilename(for:)` erzeugt kurze, dateisystemtaugliche `.md`-Dateinamen aus
+  dem Artikeltitel.
+- `ArticleMarkdownDocument` kapselt den SwiftUI-`FileDocument` fuer den nativen
+  Speichern-Dialog.
+- `ArticleExportSheet` ist ein kleiner Praesentationsanker fuer `.fileExporter`;
+  der Export wird dadurch nach der Kontextmenue-Aktion aus einer stabilen SwiftUI-
+  Sheet-Hierarchie gestartet.
 
 ### OfflineDownloadService.swift
 - Speichert Artikel manuell fuer Offline-Lesen.
@@ -1200,6 +1227,11 @@ manuell offline gespeicherte Inhalte.
   plus CloudKit Container in developer.apple.com anlegen
 - **Sandbox Netzwerk:** Feed-Downloads brauchen `com.apple.security.network.client` in
   `Feedivo/Feedivo.entitlements`. Nur ein Build-Setting reicht nicht als Nachweis.
+- **Sandbox Dateiexport:** OPML- und Artikel-Export brauchen
+  `com.apple.security.files.user-selected.read-write`. `read-only` reicht nur fuer
+  Import/Dateiauswahl und deckt Speichern-Dialoge nicht korrekt ab. In
+  `Feedivo.xcodeproj` muss `ENABLE_USER_SELECTED_FILES = readwrite` gesetzt sein,
+  sonst generiert Xcode zusaetzlich ein widerspruechliches `read-only` Entitlement.
 - **SwiftUI Settings auf macOS:** App-weite Einstellungen als eigene `Settings { }`
   Szene in `FeedivoApp.swift` registrieren; Werte koennen mit `@AppStorage` global
   geteilt werden.
@@ -1363,6 +1395,16 @@ manuell offline gespeicherte Inhalte.
 
 ## Letzte Änderungen
 
+- 2026-06-24: Feature 2.4 abgeschlossen: Das Artikel-Kontextmenue bietet jetzt
+  `Exportieren...` als Markdown-Export mit Metadaten und lesbarem Artikeltext.
+  Der Export bevorzugt gespeicherten Offline-Content und nutzt eine sichere
+  Markdown-Konvertierung ohne AppKit-HTML-Importer. Die Exportdaten werden vor dem
+  Dateidialog als Snapshot aus dem SwiftData-Artikel geloest. Der Dialog laeuft fuer
+  Artikel ueber ein kurzlebiges Export-Sheet mit SwiftUI `.fileExporter`, nicht mehr
+  direkt aus dem Kontextmenue. Das App-Sandbox-Entitlement wurde fuer Benutzerdateien
+  von `read-only` auf `read-write` korrigiert und `ENABLE_USER_SELECTED_FILES` auf
+  `readwrite` gesetzt, damit Exporte speichern duerfen;
+  PDF/DOCX bleiben optionale spaetere Exportformate.
 - 2026-06-24: Feature 2.3 abgeschlossen: Artikellisten haben jetzt ein globales
   Filter-Menue in der Toolbar mit Alle, Ungelesen, Mit Stern, Archiviert und Heute.
   Die Auswahl wird per `@AppStorage` gespeichert und `ArticleFilterOption` kapselt
@@ -1378,8 +1420,7 @@ manuell offline gespeicherte Inhalte.
 - 2026-06-24: Feature 2.4 als erster Kontextmenue-Slice umgesetzt: Artikelzeilen
   bieten jetzt Archivieren, Tag-Zuweisung, Regel-Erstellung aus Artikel, Teilen,
   Offline speichern/entfernen, Artikel loeschen und alle sichtbaren Artikel als
-  gelesen markieren. Exportieren nach PDF/DOCX bleibt bewusst als eigener sauberer
-  Restpunkt in Feature 2.4 offen.
+  gelesen markieren. Der spaetere Markdown-Export schliesst Feature 2.4 ab.
 - 2026-06-24: Feature 2.5 umgesetzt: Artikel-Listen zeigen ungelesene Artikel
   standardmaessig weiter und blenden gelesene Artikel aus. Ein Button am Listenende
   zeigt die gelesenen Artikel fuer die aktuelle Liste an; ausgewaehlte Artikel

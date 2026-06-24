@@ -29,6 +29,7 @@ struct ContentView: View {
     @State private var isShowingOPMLImportReview = false
     @State private var isExportingOPML = false
     @State private var opmlExportDocument = OPMLDocument()
+    @State private var articleExportRequest: ArticleExportRequest?
     @State private var opmlAlert: OPMLAlert?
     @State private var articleForRuleCreation: Article?
     @State private var isMetadataInspectorPresented = false
@@ -57,7 +58,8 @@ struct ContentView: View {
                     smartFilter: smartFilter,
                     selectedArticle: $selectedArticle,
                     navigationState: $articleNavigationState,
-                    onRequestCreateRuleFromArticle: requestCreateRuleFromArticle
+                    onRequestCreateRuleFromArticle: requestCreateRuleFromArticle,
+                    onRequestExportArticle: requestExportArticle
                 )
                     .navigationSplitViewColumnWidth(min: 280, ideal: 320, max: 400)
             } else if let feed = selectedFeed {
@@ -65,7 +67,8 @@ struct ContentView: View {
                     feed: feed,
                     selectedArticle: $selectedArticle,
                     navigationState: $articleNavigationState,
-                    onRequestCreateRuleFromArticle: requestCreateRuleFromArticle
+                    onRequestCreateRuleFromArticle: requestCreateRuleFromArticle,
+                    onRequestExportArticle: requestExportArticle
                 )
                     .navigationSplitViewColumnWidth(min: 280, ideal: 320, max: 400)
             } else if let tag = selectedTag {
@@ -73,7 +76,8 @@ struct ContentView: View {
                     tag: tag,
                     selectedArticle: $selectedArticle,
                     navigationState: $articleNavigationState,
-                    onRequestCreateRuleFromArticle: requestCreateRuleFromArticle
+                    onRequestCreateRuleFromArticle: requestCreateRuleFromArticle,
+                    onRequestExportArticle: requestExportArticle
                 )
                     .navigationSplitViewColumnWidth(min: 280, ideal: 320, max: 400)
             } else {
@@ -139,6 +143,11 @@ struct ContentView: View {
         }
         .sheet(item: $articleForRuleCreation) { article in
             RuleWizardView(sourceArticle: article)
+        }
+        .sheet(item: $articleExportRequest) { request in
+            ArticleExportSheet(request: request) {
+                articleExportRequest = nil
+            }
         }
         .confirmationDialog(
             L10n.feedDeleteConfirmationTitle,
@@ -254,6 +263,22 @@ struct ContentView: View {
         let opmlFeeds = feedViewModel.opmlFeedsForExport(from: feeds)
         opmlExportDocument = OPMLDocument(text: OPMLService.exportFeeds(opmlFeeds))
         isExportingOPML = true
+    }
+
+    private func requestExportArticle(_ article: Article) {
+        let snapshot = ArticleExportSnapshot(article: article)
+        let request = ArticleExportRequest(
+            document: ArticleMarkdownDocument(
+                text: ArticleExportService.markdown(for: snapshot)
+            ),
+            defaultFilename: ArticleExportService.defaultFilename(for: snapshot)
+        )
+
+        // Der Export kommt aus einem Kontextmenü. Der nächste Main-Runloop verhindert,
+        // dass das Export-Sheet noch während der Menüaktion präsentiert wird.
+        DispatchQueue.main.async {
+            articleExportRequest = request
+        }
     }
 
     private func requestDeleteFeed(_ feed: Feed) {

@@ -12,41 +12,48 @@ struct ArticleListView: View {
     @Binding var selectedArticle: Article?
     @Binding var navigationState: ArticleNavigationState
     private let onRequestCreateRuleFromArticle: (Article) -> Void
+    private let onRequestExportArticle: (Article) -> Void
 
     init(
         feed: Feed,
         selectedArticle: Binding<Article?>,
         navigationState: Binding<ArticleNavigationState>,
-        onRequestCreateRuleFromArticle: @escaping (Article) -> Void = { _ in }
+        onRequestCreateRuleFromArticle: @escaping (Article) -> Void = { _ in },
+        onRequestExportArticle: @escaping (Article) -> Void = { _ in }
     ) {
         self.scope = .feed(feed)
         self._selectedArticle = selectedArticle
         self._navigationState = navigationState
         self.onRequestCreateRuleFromArticle = onRequestCreateRuleFromArticle
+        self.onRequestExportArticle = onRequestExportArticle
     }
 
     init(
         smartFilter: SmartFilter,
         selectedArticle: Binding<Article?>,
         navigationState: Binding<ArticleNavigationState>,
-        onRequestCreateRuleFromArticle: @escaping (Article) -> Void = { _ in }
+        onRequestCreateRuleFromArticle: @escaping (Article) -> Void = { _ in },
+        onRequestExportArticle: @escaping (Article) -> Void = { _ in }
     ) {
         self.scope = .smartFilter(smartFilter)
         self._selectedArticle = selectedArticle
         self._navigationState = navigationState
         self.onRequestCreateRuleFromArticle = onRequestCreateRuleFromArticle
+        self.onRequestExportArticle = onRequestExportArticle
     }
 
     init(
         tag: Tag,
         selectedArticle: Binding<Article?>,
         navigationState: Binding<ArticleNavigationState>,
-        onRequestCreateRuleFromArticle: @escaping (Article) -> Void = { _ in }
+        onRequestCreateRuleFromArticle: @escaping (Article) -> Void = { _ in },
+        onRequestExportArticle: @escaping (Article) -> Void = { _ in }
     ) {
         self.scope = .tag(tag)
         self._selectedArticle = selectedArticle
         self._navigationState = navigationState
         self.onRequestCreateRuleFromArticle = onRequestCreateRuleFromArticle
+        self.onRequestExportArticle = onRequestExportArticle
     }
 
     var body: some View {
@@ -56,21 +63,24 @@ struct ArticleListView: View {
                 feed: feed,
                 selectedArticle: $selectedArticle,
                 navigationState: $navigationState,
-                onRequestCreateRuleFromArticle: onRequestCreateRuleFromArticle
+                onRequestCreateRuleFromArticle: onRequestCreateRuleFromArticle,
+                onRequestExportArticle: onRequestExportArticle
             )
         case .smartFilter(let smartFilter):
             SmartFilterArticleListContent(
                 smartFilter: smartFilter,
                 selectedArticle: $selectedArticle,
                 navigationState: $navigationState,
-                onRequestCreateRuleFromArticle: onRequestCreateRuleFromArticle
+                onRequestCreateRuleFromArticle: onRequestCreateRuleFromArticle,
+                onRequestExportArticle: onRequestExportArticle
             )
         case .tag(let tag):
             TagArticleListContent(
                 tag: tag,
                 selectedArticle: $selectedArticle,
                 navigationState: $navigationState,
-                onRequestCreateRuleFromArticle: onRequestCreateRuleFromArticle
+                onRequestCreateRuleFromArticle: onRequestCreateRuleFromArticle,
+                onRequestExportArticle: onRequestExportArticle
             )
         }
     }
@@ -79,6 +89,7 @@ struct ArticleListView: View {
 private struct FeedArticleListContent: View {
     let feed: Feed
     let onRequestCreateRuleFromArticle: (Article) -> Void
+    let onRequestExportArticle: (Article) -> Void
     @Binding var selectedArticle: Article?
     @Binding var navigationState: ArticleNavigationState
     @Query private var articles: [Article]
@@ -87,10 +98,12 @@ private struct FeedArticleListContent: View {
         feed: Feed,
         selectedArticle: Binding<Article?>,
         navigationState: Binding<ArticleNavigationState>,
-        onRequestCreateRuleFromArticle: @escaping (Article) -> Void
+        onRequestCreateRuleFromArticle: @escaping (Article) -> Void,
+        onRequestExportArticle: @escaping (Article) -> Void
     ) {
         self.feed = feed
         self.onRequestCreateRuleFromArticle = onRequestCreateRuleFromArticle
+        self.onRequestExportArticle = onRequestExportArticle
         self._selectedArticle = selectedArticle
         self._navigationState = navigationState
         self._articles = Query(
@@ -105,7 +118,8 @@ private struct FeedArticleListContent: View {
             navigationTitle: Text(feed.title),
             selectedArticle: $selectedArticle,
             navigationState: $navigationState,
-            onRequestCreateRuleFromArticle: onRequestCreateRuleFromArticle
+            onRequestCreateRuleFromArticle: onRequestCreateRuleFromArticle,
+            onRequestExportArticle: onRequestExportArticle
         )
         .id(feed.id)
     }
@@ -114,6 +128,7 @@ private struct FeedArticleListContent: View {
 private struct TagArticleListContent: View {
     let tag: Tag
     let onRequestCreateRuleFromArticle: (Article) -> Void
+    let onRequestExportArticle: (Article) -> Void
     @Binding var selectedArticle: Article?
     @Binding var navigationState: ArticleNavigationState
     @Query private var articles: [Article]
@@ -122,10 +137,12 @@ private struct TagArticleListContent: View {
         tag: Tag,
         selectedArticle: Binding<Article?>,
         navigationState: Binding<ArticleNavigationState>,
-        onRequestCreateRuleFromArticle: @escaping (Article) -> Void
+        onRequestCreateRuleFromArticle: @escaping (Article) -> Void,
+        onRequestExportArticle: @escaping (Article) -> Void
     ) {
         self.tag = tag
         self.onRequestCreateRuleFromArticle = onRequestCreateRuleFromArticle
+        self.onRequestExportArticle = onRequestExportArticle
         self._selectedArticle = selectedArticle
         self._navigationState = navigationState
         self._articles = Query(
@@ -140,7 +157,8 @@ private struct TagArticleListContent: View {
             navigationTitle: Text(tag.name),
             selectedArticle: $selectedArticle,
             navigationState: $navigationState,
-            onRequestCreateRuleFromArticle: onRequestCreateRuleFromArticle
+            onRequestCreateRuleFromArticle: onRequestCreateRuleFromArticle,
+            onRequestExportArticle: onRequestExportArticle
         )
         .id(tag.id)
     }
@@ -149,6 +167,7 @@ private struct TagArticleListContent: View {
 private struct SmartFilterArticleListContent: View {
     let smartFilter: SmartFilter
     let onRequestCreateRuleFromArticle: (Article) -> Void
+    let onRequestExportArticle: (Article) -> Void
     @Binding var selectedArticle: Article?
     @Binding var navigationState: ArticleNavigationState
     @Query private var articles: [Article]
@@ -157,10 +176,12 @@ private struct SmartFilterArticleListContent: View {
         smartFilter: SmartFilter,
         selectedArticle: Binding<Article?>,
         navigationState: Binding<ArticleNavigationState>,
-        onRequestCreateRuleFromArticle: @escaping (Article) -> Void
+        onRequestCreateRuleFromArticle: @escaping (Article) -> Void,
+        onRequestExportArticle: @escaping (Article) -> Void
     ) {
         self.smartFilter = smartFilter
         self.onRequestCreateRuleFromArticle = onRequestCreateRuleFromArticle
+        self.onRequestExportArticle = onRequestExportArticle
         self._selectedArticle = selectedArticle
         self._navigationState = navigationState
 
@@ -205,7 +226,8 @@ private struct SmartFilterArticleListContent: View {
             navigationTitle: Text(smartFilter.title),
             selectedArticle: $selectedArticle,
             navigationState: $navigationState,
-            onRequestCreateRuleFromArticle: onRequestCreateRuleFromArticle
+            onRequestCreateRuleFromArticle: onRequestCreateRuleFromArticle,
+            onRequestExportArticle: onRequestExportArticle
         )
         .id(smartFilter)
     }
@@ -216,6 +238,7 @@ private struct ArticleListContent: View {
     let articles: [Article]
     let navigationTitle: Text
     let onRequestCreateRuleFromArticle: (Article) -> Void
+    let onRequestExportArticle: (Article) -> Void
     let sortArticles: Bool
     @Binding var selectedArticle: Article?
     @Binding var navigationState: ArticleNavigationState
@@ -236,11 +259,13 @@ private struct ArticleListContent: View {
         selectedArticle: Binding<Article?>,
         navigationState: Binding<ArticleNavigationState>,
         onRequestCreateRuleFromArticle: @escaping (Article) -> Void,
+        onRequestExportArticle: @escaping (Article) -> Void,
         sortArticles: Bool = true
     ) {
         self.articles = articles
         self.navigationTitle = navigationTitle
         self.onRequestCreateRuleFromArticle = onRequestCreateRuleFromArticle
+        self.onRequestExportArticle = onRequestExportArticle
         self._selectedArticle = selectedArticle
         self._navigationState = navigationState
         self.sortArticles = sortArticles
@@ -301,6 +326,9 @@ private struct ArticleListContent: View {
                         },
                         onShareOriginal: {
                             _ = viewModel.shareOriginal(article)
+                        },
+                        onExport: {
+                            onRequestExportArticle(article)
                         },
                         onSaveOrRemoveOffline: {
                             Task {

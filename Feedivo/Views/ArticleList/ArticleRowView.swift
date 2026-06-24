@@ -13,6 +13,7 @@ struct ArticleRowView: View {
     let onCopyLink: () -> Void
     let onOpenOriginal: () -> Void
     let onShareOriginal: () -> Void
+    let onExport: () -> Void
     let onSaveOrRemoveOffline: () -> Void
     let onDelete: () -> Void
     let onMarkAllRead: () -> Void
@@ -107,6 +108,10 @@ struct ArticleRowView: View {
                 onShareOriginal()
             }
             .disabled(!hasOriginalURL)
+
+            Button(L10n.articleExportCommand) {
+                onExport()
+            }
 
             Button(article.offlineState.isAvailable ? L10n.readerOfflineRemove : L10n.readerOfflineSave) {
                 onSaveOrRemoveOffline()
