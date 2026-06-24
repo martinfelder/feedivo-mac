@@ -109,6 +109,52 @@ struct ArticleListQueryTests {
         #expect(ArticleSortOption.resolved(from: ArticleSortOption.title.rawValue) == .title)
     }
 
+    @Test func articleFilterOptionFiltertArtikelNachBenutzerauswahl() {
+        let now = Date(timeIntervalSince1970: 1_000_000)
+        let calendar = Calendar(identifier: .gregorian)
+        let unreadArticle = Article(title: "Ungelesen", isRead: false)
+        let readArticle = Article(title: "Gelesen", isRead: true)
+        let starredArticle = Article(title: "Stern", isStarred: true)
+        let archivedArticle = Article(title: "Archiv", isArchived: true)
+        let todayArticle = Article(title: "Heute", publishedAt: now)
+        let oldArticle = Article(
+            title: "Alt",
+            publishedAt: calendar.date(byAdding: .day, value: -2, to: now)
+        )
+        let articles = [
+            unreadArticle,
+            readArticle,
+            starredArticle,
+            archivedArticle,
+            todayArticle,
+            oldArticle
+        ]
+
+        #expect(ArticleFilterOption.all.filtered(articles, now: now, calendar: calendar).map(\.title) == [
+            "Ungelesen",
+            "Gelesen",
+            "Stern",
+            "Archiv",
+            "Heute",
+            "Alt"
+        ])
+        #expect(ArticleFilterOption.unread.filtered(articles, now: now, calendar: calendar).map(\.title) == [
+            "Ungelesen",
+            "Stern",
+            "Archiv",
+            "Heute",
+            "Alt"
+        ])
+        #expect(ArticleFilterOption.starred.filtered(articles, now: now, calendar: calendar).map(\.title) == ["Stern"])
+        #expect(ArticleFilterOption.archived.filtered(articles, now: now, calendar: calendar).map(\.title) == ["Archiv"])
+        #expect(ArticleFilterOption.today.filtered(articles, now: now, calendar: calendar).map(\.title) == ["Heute"])
+    }
+
+    @Test func articleFilterOptionFaelltBeiUngueltigemRawValueAufStandardZurueck() {
+        #expect(ArticleFilterOption.resolved(from: "kaputt") == .all)
+        #expect(ArticleFilterOption.resolved(from: ArticleFilterOption.archived.rawValue) == .archived)
+    }
+
     @Test func articleInitialisiertDirekteFeedIDFuerSchnelleListenQueries() throws {
         let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
         let article = Article(title: "Artikel", feed: feed)

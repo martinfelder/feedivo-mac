@@ -150,6 +150,7 @@ FeedivoMac/
 │   │   │   ├── ArticleListView.swift   # Mittlere Spalte: echte Feed-Artikel anzeigen ✅
 │   │   │   ├── ArticleListQuery.swift  # SwiftData-Queries fuer Feed-/Artikel-Listen ✅
 │   │   │   ├── ArticleSortOption.swift # Globale Artikellisten-Sortierung ✅
+│   │   │   ├── ArticleFilterOption.swift # Globale Artikellisten-Filterung ✅
 │   │   │   └── ArticleRowView.swift    # Reichhaltige Artikel-Zeile mit Status/Stern ✅
 │   │   ├── Reader/
 │   │   │   ├── ReaderView.swift        # Rechte Spalte: nativer Artikel-Reader ✅
@@ -549,6 +550,11 @@ manuell offline gespeicherte Inhalte.
   die Menueleiste bietet dieselben Optionen unter `Darstellung > Sortieren nach`.
 - Unterstuetzte Sortierungen: Neueste zuerst, Aelteste zuerst, Nach Feed, Nach
   Titel A-Z und Nach Lesezeit kurze zuerst.
+- Filterung ist global per `@AppStorage(ArticleFilterOption.storageKey)` gespeichert
+  und wird nach der Sortierung auf Feed-, Tag- und Smartfilter-Listen angewendet.
+- Toolbar-Menue `Filtern` bietet als Schnellzugriff Alle, Ungelesen, Mit Stern,
+  Archiviert und Heute. Die Sidebar bleibt weiterhin der primaere Einstieg fuer
+  dauerhafte Smartfilter.
 - Meldet nur den `ArticleNavigationState` an `ContentView`, damit Reader-Navigation
   und Menue-Status ohne Kopie der gesamten Artikelliste aktualisiert werden
 - Reagiert mit `.onChange(of: articles)` auf Listen-Aenderungen und erzeugt kein
@@ -583,6 +589,13 @@ manuell offline gespeicherte Inhalte.
 - Sortiert optionale Datumswerte so, dass Artikel ohne Datum nach datierten
   Artikeln stehen; Lesezeit basiert auf Content, sonst Summary, mit 200 Woertern
   pro Minute.
+
+### ArticleFilterOption.swift
+- Kapselt die globale Filterauswahl fuer Artikellisten inklusive `@AppStorage`-Key,
+  Labels, SF-Symbolen und testbarer Filterlogik.
+- `all` ist der Default und Fallback fuer unbekannte gespeicherte Werte.
+- Unterstuetzt Alle, Ungelesen, Mit Stern, Archiviert und Heute; der Heute-Filter
+  vergleicht den `publishedAt`-Tag gegen das aktuelle Datum.
 
 ### ArticleNavigationState.swift
 - Berechnet vorherigen und naechsten Artikel aus der aktuell sichtbaren Liste.
@@ -1350,6 +1363,10 @@ manuell offline gespeicherte Inhalte.
 
 ## Letzte Änderungen
 
+- 2026-06-24: Feature 2.3 abgeschlossen: Artikellisten haben jetzt ein globales
+  Filter-Menue in der Toolbar mit Alle, Ungelesen, Mit Stern, Archiviert und Heute.
+  Die Auswahl wird per `@AppStorage` gespeichert und `ArticleFilterOption` kapselt
+  Labels, Symbole und Filterlogik testbar.
 - 2026-06-24: Feature 2.2 abgeschlossen: Artikellisten haben jetzt eine globale
   Sortierung per Toolbar-Menue und Menueleiste `Darstellung > Sortieren nach`.
   Die Auswahl wird per `@AppStorage` gespeichert; `ArticleSortOption` kapselt

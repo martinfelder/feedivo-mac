@@ -227,6 +227,8 @@ private struct ArticleListContent: View {
     @State private var showsReadArticles = false
     @AppStorage(ArticleSortOption.storageKey)
     private var articleSortRawValue = ArticleSortOption.newestFirst.rawValue
+    @AppStorage(ArticleFilterOption.storageKey)
+    private var articleFilterRawValue = ArticleFilterOption.all.rawValue
 
     init(
         articles: [Article],
@@ -246,15 +248,16 @@ private struct ArticleListContent: View {
 
     var body: some View {
         let sortedArticles = sortedArticles
+        let filteredArticles = filteredArticles
         let displayState = ArticleListDisplayState(
-            articles: sortedArticles,
+            articles: filteredArticles,
             showsReadArticles: showsReadArticles,
             selectedArticle: selectedArticle
         )
         let visibleArticles = displayState.visibleArticles
 
         List(selection: $selectedArticle) {
-            if sortedArticles.isEmpty {
+            if filteredArticles.isEmpty {
                 ContentUnavailableView(
                     L10n.articleListEmptyTitle,
                     systemImage: "doc.text.magnifyingglass",
@@ -329,7 +332,15 @@ private struct ArticleListContent: View {
         }
         .onChange(of: articleSortRawValue) {
             let displayState = ArticleListDisplayState(
-                articles: sortedArticles,
+                articles: filteredArticles,
+                showsReadArticles: showsReadArticles,
+                selectedArticle: selectedArticle
+            )
+            updateNavigationState(in: displayState.visibleArticles)
+        }
+        .onChange(of: articleFilterRawValue) {
+            let displayState = ArticleListDisplayState(
+                articles: filteredArticles,
                 showsReadArticles: showsReadArticles,
                 selectedArticle: selectedArticle
             )
@@ -348,7 +359,8 @@ private struct ArticleListContent: View {
             )
         }
         .toolbar {
-            ToolbarItem {
+            ToolbarItemGroup {
+                filterMenu
                 sortMenu
             }
         }
@@ -385,8 +397,35 @@ private struct ArticleListContent: View {
         return articleSortOption.sorted(articles)
     }
 
+    private var filteredArticles: [Article] {
+        articleFilterOption.filtered(sortedArticles)
+    }
+
     private var articleSortOption: ArticleSortOption {
         ArticleSortOption.resolved(from: articleSortRawValue)
+    }
+
+    private var articleFilterOption: ArticleFilterOption {
+        ArticleFilterOption.resolved(from: articleFilterRawValue)
+    }
+
+    private var filterMenu: some View {
+        Menu {
+            ForEach(ArticleFilterOption.allCases) { filterOption in
+                Button {
+                    articleFilterRawValue = filterOption.rawValue
+                } label: {
+                    if filterOption == articleFilterOption {
+                        Label(filterOption.label, systemImage: "checkmark")
+                    } else {
+                        Label(filterOption.label, systemImage: filterOption.systemImage)
+                    }
+                }
+            }
+        } label: {
+            Label(L10n.articleFilterMenuTitle, systemImage: "line.3.horizontal.decrease.circle")
+        }
+        .help(L10n.articleFilterMenuTitle)
     }
 
     private var sortMenu: some View {

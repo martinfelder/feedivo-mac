@@ -230,6 +230,12 @@ enum L10n {
     static var articleSortFeed: String { String(localized: "articleSort.feed") }
     static var articleSortTitle: String { String(localized: "articleSort.title") }
     static var articleSortShortReadingTimeFirst: String { String(localized: "articleSort.shortReadingTimeFirst") }
+    static var articleFilterMenuTitle: String { String(localized: "articleFilter.menu.title") }
+    static var articleFilterAll: String { String(localized: "articleFilter.all") }
+    static var articleFilterUnread: String { String(localized: "articleFilter.unread") }
+    static var articleFilterStarred: String { String(localized: "articleFilter.starred") }
+    static var articleFilterArchived: String { String(localized: "articleFilter.archived") }
+    static var articleFilterToday: String { String(localized: "articleFilter.today") }
     static var readerDisplayModeToggleHelp: String { String(localized: "reader.displayMode.toggle.help") }
     static var sidebarAddFolderDuplicateError: String { String(localized: "sidebar.addFolder.duplicateError") }
     static var tagManagerEmptyNameError: String { String(localized: "tagManager.emptyName.error") }

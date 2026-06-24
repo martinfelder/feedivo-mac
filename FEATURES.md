@@ -84,9 +84,9 @@
   - `ArticleSortOption` kapselt Sortierlogik und Labels testbar
 
 ### 2.3 Filterung GUI
-- **Status:** ✅ Entschieden — bereit zur Implementierung
-- **Umgesetzt:** Smart Filter in Sidebar vorhanden
-- **Zu implementieren:**
+- **Status:** ✔️ Fertig
+- **Umgesetzt:**
+  - Smart Filter in Sidebar vorhanden
   - Filter-Icon mit Dropdown in der Toolbar der Artikel-Liste (Schnellzugriff)
   - Filter-Optionen: Alle / Ungelesen / Mit Stern / Archiviert / Heute
   - Filter gilt global, gespeichert via `@AppStorage`
@@ -658,7 +658,7 @@ Folgende Reihenfolge berücksichtigt Abhängigkeiten. Features mit (*) sind Vora
 2. **Feature 2.5** — Artikel-Liste Anzeige-Logik (gelesene ausblenden, Button am Ende) — erledigt
 3. **Feature 2.4** — Kontextmenü vollständig ausbauen (inkl. Archivieren, Exportieren, Teilen)
 4. **Feature 2.2** — Sortierung GUI (Toolbar-Dropdown + Menüleiste) — erledigt
-5. **Feature 2.3** — Filterung GUI (Toolbar-Dropdown)
+5. **Feature 2.3** — Filterung GUI (Toolbar-Dropdown) — erledigt
 
 ### Phase 2 — Regeln & Intelligente Ordner
 6. **Feature 16.3** * — Artikel ausblenden via Regel + Smart Filter "Ausgeblendet"
