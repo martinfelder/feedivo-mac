@@ -184,7 +184,9 @@ struct ReaderView: View {
         }
         .navigationTitle(article.title)
         .toolbar {
-            ToolbarItemGroup {
+            ToolbarItemGroup(placement: .primaryAction) {
+                Spacer()
+
                 Button {
                     selectPreviousArticle()
                 } label: {
@@ -200,9 +202,7 @@ struct ReaderView: View {
                 }
                 .help(L10n.articleNextCommand)
                 .disabled(!canSelectNextArticle)
-            }
-
-            ToolbarItem {
+                
                 Button {
                     _ = viewModel.openOriginal(article)
                 } label: {
@@ -210,9 +210,7 @@ struct ReaderView: View {
                 }
                 .help(L10n.articleOpenOriginalCommand)
                 .disabled(originalURL == nil)
-            }
 
-            ToolbarItem {
                 Button {
                     Task {
                         await toggleOfflineAvailability()
@@ -227,9 +225,7 @@ struct ReaderView: View {
                 }
                 .help(offlineActionTitle)
                 .disabled(isOfflineOperationInProgress)
-            }
 
-            ToolbarItem {
                 Picker(L10n.readerDisplayModePicker, selection: $readerDisplayModeRawValue) {
                     ForEach(ReaderDisplayMode.allCases) { mode in
                         Text(mode.titleKey)
@@ -239,9 +235,7 @@ struct ReaderView: View {
                 .pickerStyle(.segmented)
                 .help(L10n.readerDisplayModeToggleHelp)
                 .disabled(originalURL == nil)
-            }
 
-            ToolbarItem {
                 Button {
                     isAppearancePopoverPresented.toggle()
                 } label: {
@@ -251,9 +245,7 @@ struct ReaderView: View {
                 .popover(isPresented: $isAppearancePopoverPresented, arrowEdge: .bottom) {
                     readerAppearancePopover
                 }
-            }
 
-            ToolbarItem {
                 Button {
                     isMetadataInspectorPresented.toggle()
                 } label: {
@@ -264,9 +256,7 @@ struct ReaderView: View {
                 .controlSize(.small)
                 .symbolVariant(isMetadataInspectorPresented ? .fill : .none)
                 .help(L10n.readerInspectorButton)
-            }
 
-            ToolbarItem {
                 Menu {
                     Button {
                         _ = viewModel.copyLink(article)
