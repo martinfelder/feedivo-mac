@@ -36,6 +36,8 @@ final class RuleViewModel {
         matchMode: RuleMatchMode,
         conditionDrafts: [RuleConditionDraft],
         assignTag: Tag?,
+        notificationTemplate: String = "{Titel}",
+        notificationPriority: RuleNotificationPriority = .normal,
         existingRules: [Rule] = [],
         context: ModelContext
     ) {
@@ -60,6 +62,8 @@ final class RuleViewModel {
         )
         rule.isEnabled = isEnabled
         rule.actionRaw = action.rawValue
+        rule.notificationTemplate = normalizedNotificationTemplate(notificationTemplate)
+        rule.notificationPriorityRaw = notificationPriority.rawValue
         rule.conditionMatchMode = matchMode.rawValue
         rule.assignTag = action == .assignTag ? assignTag : nil
         rule.sortOrder = nextSortOrder(after: existingRules)
@@ -92,6 +96,8 @@ final class RuleViewModel {
         )
         duplicate.isEnabled = false
         duplicate.actionRaw = rule.actionRaw
+        duplicate.notificationTemplate = rule.notificationTemplate
+        duplicate.notificationPriorityRaw = rule.notificationPriorityRaw
         duplicate.conditionMatchMode = rule.conditionMatchMode
         duplicate.assignTag = RuleAction.normalized(rule.actionRaw) == .assignTag ? rule.assignTag : nil
         duplicate.conditions = conditions.enumerated().map { index, condition in
@@ -154,6 +160,8 @@ final class RuleViewModel {
         matchMode: RuleMatchMode,
         conditionDrafts: [RuleConditionDraft],
         assignTag: Tag?,
+        notificationTemplate: String = "{Titel}",
+        notificationPriority: RuleNotificationPriority = .normal,
         context: ModelContext
     ) {
         guard let normalizedName = normalizedName(name),
@@ -171,6 +179,8 @@ final class RuleViewModel {
         rule.name = normalizedName
         rule.isEnabled = isEnabled
         rule.actionRaw = action.rawValue
+        rule.notificationTemplate = normalizedNotificationTemplate(notificationTemplate)
+        rule.notificationPriorityRaw = notificationPriority.rawValue
         rule.conditionMatchMode = matchMode.rawValue
         rule.assignTag = action == .assignTag ? assignTag : nil
         rule.conditionField = conditions[0].field
@@ -239,6 +249,11 @@ final class RuleViewModel {
         }
 
         return conditions.isEmpty ? nil : conditions
+    }
+
+    private func normalizedNotificationTemplate(_ template: String) -> String {
+        let trimmed = template.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? "{Titel}" : trimmed
     }
 
     private func save(_ context: ModelContext) {

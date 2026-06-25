@@ -12,6 +12,8 @@ class Rule {
     var conditionValue: String      // z.B. "Apple", "WWDC"
     var conditionMatchMode: String  // "all" oder "any"
     var actionRaw: String = RuleAction.assignTag.rawValue
+    var notificationTemplate: String = "{Titel}"
+    var notificationPriorityRaw: String = RuleNotificationPriority.normal.rawValue
     var sortOrder: Int
 
     @Relationship
@@ -30,6 +32,8 @@ class Rule {
         self.conditionValue = conditionValue
         self.conditionMatchMode = RuleMatchMode.all.rawValue
         self.actionRaw = RuleAction.assignTag.rawValue
+        self.notificationTemplate = "{Titel}"
+        self.notificationPriorityRaw = RuleNotificationPriority.normal.rawValue
         self.sortOrder = 0
         self.conditions = []
     }

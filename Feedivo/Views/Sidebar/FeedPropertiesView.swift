@@ -212,6 +212,8 @@ struct FeedPropertiesView: View {
             propertyDivider
             editableTagsRow
             propertyDivider
+            notificationToggleRow
+            propertyDivider
             propertyRow(L10n.feedPropertiesLatestArticle, value: formattedLatestArticle)
 
             refreshDetailsGroup
@@ -335,6 +337,34 @@ struct FeedPropertiesView: View {
             RoundedRectangle(cornerRadius: 10)
                 .stroke(Color(nsColor: .separatorColor).opacity(0.7))
         }
+    }
+
+    private var notificationToggleRow: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 18) {
+            propertyLabel(L10n.feedPropertiesNotificationsEnabled)
+
+            VStack(alignment: .leading, spacing: 5) {
+                Toggle(
+                    L10n.feedPropertiesNotificationsEnabled,
+                    isOn: Binding(
+                        get: {
+                            feed.isNotificationEnabled
+                        },
+                        set: { isEnabled in
+                            feed.isNotificationEnabled = isEnabled
+                            try? modelContext.save()
+                        }
+                    )
+                )
+                .labelsHidden()
+
+                Text(L10n.feedPropertiesNotificationsDescription)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.vertical, 9)
     }
 
     private func feedTagPill(_ tag: Tag) -> some View {

@@ -294,6 +294,12 @@ private struct RuleActionPill: View {
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
                 .background(Color.orange.opacity(0.14), in: Capsule())
+        case .notify:
+            Label(L10n.ruleActionNotify, systemImage: "bell.badge")
+                .font(.caption.weight(.semibold))
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.blue.opacity(0.14), in: Capsule())
         }
     }
 }

@@ -1,6 +1,11 @@
 import Foundation
 
 enum RuleEngine {
+    struct RuleApplicationResult: Equatable {
+        var appliedActionCount: Int
+        var notifications: [RuleNotificationResult]
+    }
+
     private struct NormalizedCondition {
         var field: String
         var conditionOperator: String
@@ -9,7 +14,12 @@ enum RuleEngine {
 
     @discardableResult
     static func applyRules(_ rules: [Rule], to article: Article, feed: Feed) -> Int {
+        applyRulesWithNotifications(rules, to: article, feed: feed).appliedActionCount
+    }
+
+    static func applyRulesWithNotifications(_ rules: [Rule], to article: Article, feed: Feed) -> RuleApplicationResult {
         var appliedActionCount = 0
+        var notifications: [RuleNotificationResult] = []
 
         for rule in sortedRules(rules) where rule.isEnabled {
             guard matches(rule: rule, article: article, feed: feed) else {
@@ -33,10 +43,16 @@ enum RuleEngine {
 
                 article.isHidden = true
                 appliedActionCount += 1
+            case .notify:
+                notifications.append(notificationResult(for: rule, article: article, feed: feed))
+                appliedActionCount += 1
             }
         }
 
-        return appliedActionCount
+        return RuleApplicationResult(
+            appliedActionCount: appliedActionCount,
+            notifications: notifications
+        )
     }
 
     static func applyRulesToExistingArticles(_ rules: [Rule], articles: [Article]) -> Int {
@@ -178,5 +194,26 @@ enum RuleEngine {
         default:
             return nil
         }
+    }
+
+    private static func notificationResult(for rule: Rule, article: Article, feed: Feed) -> RuleNotificationResult {
+        RuleNotificationResult(
+            ruleID: rule.id,
+            ruleName: rule.name,
+            message: notificationMessage(for: rule, article: article, feed: feed),
+            articleTitle: article.title,
+            feedTitle: feed.title,
+            priority: RuleNotificationPriority.normalized(rule.notificationPriorityRaw)
+        )
+    }
+
+    private static func notificationMessage(for rule: Rule, article: Article, feed: Feed) -> String {
+        let template = rule.notificationTemplate.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedTemplate = template.isEmpty ? "{Titel}" : template
+
+        return normalizedTemplate
+            .replacingOccurrences(of: "{Titel}", with: article.title)
+            .replacingOccurrences(of: "{Feed}", with: feed.title)
+            .replacingOccurrences(of: "{Regel}", with: rule.name)
     }
 }

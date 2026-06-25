@@ -474,6 +474,7 @@ private struct OfflineReadingSettingsView: View {
 private struct NotificationSettingsView: View {
     @AppStorage(AppIconBadgeSettings.isEnabledKey)
     private var appIconBadgeIsEnabled = AppIconBadgeSettings.defaultIsEnabled
+    @State private var feedNotificationAuthorizationStatus: FeedNotificationAuthorizationStatus = .unknown
 
     var body: some View {
         Form {
@@ -497,6 +498,32 @@ private struct NotificationSettingsView: View {
                     description: L10n.settingsNotificationsFeedDescription
                 )
 
+                HStack(alignment: .top, spacing: 12) {
+                    Image(systemName: "bell.badge")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Color.accentColor)
+                        .frame(width: 28, height: 28)
+                        .background(Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 7))
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(L10n.settingsNotificationsPermissionTitle)
+                            .font(.system(size: 13, weight: .semibold))
+
+                        Text(notificationPermissionDescription)
+                            .font(.system(size: 12))
+                            .foregroundStyle(.secondary)
+
+                        if feedNotificationAuthorizationStatus == .notDetermined {
+                            Button(L10n.settingsNotificationsPermissionRequest) {
+                                Task {
+                                    _ = await FeedNotificationService.requestAuthorization()
+                                    await refreshNotificationAuthorizationStatus()
+                                }
+                            }
+                        }
+                    }
+                }
+
                 SettingsInformationRow(
                     iconName: "slider.horizontal.3",
                     title: L10n.settingsNotificationsRulesTitle,
@@ -505,6 +532,26 @@ private struct NotificationSettingsView: View {
             }
         }
         .formStyle(.grouped)
+        .task {
+            await refreshNotificationAuthorizationStatus()
+        }
+    }
+
+    private var notificationPermissionDescription: LocalizedStringKey {
+        switch feedNotificationAuthorizationStatus {
+        case .authorized, .provisional, .ephemeral:
+            L10n.settingsNotificationsPermissionAllowed
+        case .denied:
+            L10n.settingsNotificationsPermissionDenied
+        case .notDetermined:
+            L10n.settingsNotificationsPermissionNotDetermined
+        case .unknown:
+            L10n.settingsNotificationsPermissionUnknown
+        }
+    }
+
+    private func refreshNotificationAuthorizationStatus() async {
+        feedNotificationAuthorizationStatus = await FeedNotificationService.authorizationStatus()
     }
 }
 

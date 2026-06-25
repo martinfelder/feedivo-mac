@@ -150,15 +150,15 @@
 ## 4. Feed-Verwaltung
 
 ### 4.1 Feed hinzufügen — Website Feed-Suche
-- **Status:** ✅ Entschieden — bereit zur Implementierung
-- **Umgesetzt:** Direkte Feed-URL funktioniert vollständig
-- **Zu implementieren:**
-  - Automatische Erkennung ob Eingabe eine direkte Feed-URL oder Website-URL ist
-  - Bei Website-URL: HTML-Head nach `<link rel="alternate" type="application/rss+xml">` durchsuchen
-  - Suche startet automatisch sobald eine gültige URL erkannt wird (kein separater Button)
-  - Einen Feed gefunden → direkt vorschlagen mit Titel und Vorschau
-  - Mehrere Feeds gefunden → vollständige Liste zur Auswahl (kein Maximum)
-  - Keinen Feed gefunden → klare Fehlermeldung
+- **Status:** ✔️ Fertig
+- **Umgesetzt:**
+  - `FeedDiscoveryService` erkennt direkte Feed-URLs und normale Website-URLs
+  - Bei Website-URL wird HTML nach `<link rel="alternate">` Feeds für RSS, Atom und JSON Feed durchsucht
+  - Relative Feed-URLs werden gegen die Website-URL aufgelöst und Duplikate entfernt
+  - Ein gefundener Feed wird im `AddFeedSheet` direkt vorausgewählt
+  - Mehrere gefundene Feeds werden als vollständige Auswahlliste angezeigt
+  - Kein Feed gefunden → klare Fehlermeldung
+- **Entscheidung:** Die Suche startet per Button `Suchen`, nicht automatisch beim Tippen, damit keine unnötigen Netzwerkabrufe pro Tastendruck entstehen.
 
 ### 4.2 Feed bearbeiten
 - **Status:** ✔️ Fertig
@@ -283,22 +283,27 @@
 ## 10. Benachrichtigungen
 
 ### 10.1 Feed-Benachrichtigungen
-- **Status:** ✅ Entschieden — bereit zur Implementierung
-- **Zu implementieren:**
+- **Status:** ✔️ Fertig
+- **Umgesetzt:**
   - Toggle "Benachrichtigung" pro Feed in Feed-Eigenschaften (`FeedPropertiesView`)
-  - Zusammenfassung pro Refresh: "5 neue Artikel in Heise, Mac & i, 9to5Mac"
-  - Klick auf Benachrichtigung öffnet den entsprechenden Feed in Feedivo
-- **Noch offen (nicht blockierend):**
-  - Benachrichtigungen wenn App geschlossen: ja, in v1 — via `UNUserNotificationCenter` + bestehender `NSBackgroundActivityScheduler`
+  - `Feed.isNotificationEnabled` als SwiftData-Feld mit sicherem Default `false`
+  - Zusammenfassung pro Refresh über `FeedNotificationService`, z.B. `5 neue Artikel` mit Feed-Liste `Heise, Mac & i`
+  - `refreshFeed` und `refreshAllFeeds` melden neue Artikel nach erfolgreichem Speichern an den Notification-Service
+  - Einstellungen zeigen den macOS-Erlaubnisstatus und können die Benachrichtigungs-Erlaubnis anfragen
+  - Klick auf Benachrichtigung öffnet Feedivo; präzise Feed-Navigation folgt mit Deep-Linking/Command-Routing (Feature 23.2)
+- **Bewusst später:**
+  - Benachrichtigungen aus einer vollständig beendeten App heraus bleiben abhängig von der bestehenden macOS-Refresh-Basis und werden erst nach weiterem Background-Testing final bewertet.
 
 ### 10.2 Regelbasierte Benachrichtigungen
-- **Status:** ✅ Entschieden — bereit zur Implementierung
-- **Zu implementieren:**
-  - "Benachrichtigung auslösen" als Regel-Aktion im RuleWizard (neben Tag zuweisen / Ausblenden)
-  - Zusammenfassung wenn mehrere Artikel dieselbe Regel auslösen: "3 neue Apple-Artikel"
-  - Unabhängig von Feed-Benachrichtigungen (10.1)
-  - Benachrichtigungs-Text anpassbar pro Regel (z.B. "🔴 Breaking: {Titel}")
-  - Priorität pro Regel wählbar: Normal / Kritisch (Kritisch kommt auch durch Nicht-Stören)
+- **Status:** ✔️ Fertig
+- **Umgesetzt:**
+  - `Benachrichtigung auslösen` als Regel-Aktion im RuleWizard neben `Tag zuweisen` und `Artikel ausblenden`
+  - Benachrichtigungs-Text pro Regel mit Platzhaltern `{Titel}`, `{Feed}` und `{Regel}`
+  - Priorität pro Regel: Normal / Kritisch; Kritisch wird aktuell als zeitkritische lokale macOS-Benachrichtigung vorbereitet
+  - `RuleEngine.applyRulesWithNotifications` liefert Regel-Treffer zurück, ohne die bestehende Tag-/Ausblenden-Logik zu brechen
+  - `refreshFeed` und `refreshAllFeeds` sammeln Regel-Treffer für neue Artikel und melden sie an `FeedNotificationService`
+  - Zusammenfassung wenn mehrere Artikel dieselbe Regel auslösen, z.B. `3 neue Apple-Artikel`
+  - Unabhängig von Feed-Benachrichtigungen (10.1); rückwirkendes Anwenden bestehender Regeln löst keine macOS-Benachrichtigungen aus
 
 ### 10.3 Benachrichtigungs-Einstellungen
 - **Status:** ✔️ Fertig
@@ -691,11 +696,11 @@ Folgende Reihenfolge berücksichtigt Abhängigkeiten. Features mit (*) sind Vora
 
 ### Phase 3 — Benachrichtigungen
 10. **Feature 10.3** * — Badge-Zähler App-Icon + Einstellungs-Kategorie Benachrichtigungen — erledigt
-11. **Feature 10.1** — Feed-Benachrichtigungen pro Feed (Toggle in Feed-Eigenschaften, Zusammenfassung, auch wenn App geschlossen)
-12. **Feature 10.2** — Regelbasierte Benachrichtigungen (Aktion im RuleWizard, anpassbarer Text, Priorität Normal/Kritisch)
+11. **Feature 10.1** — Feed-Benachrichtigungen pro Feed (Toggle in Feed-Eigenschaften, Zusammenfassung) — erledigt
+12. **Feature 10.2** — Regelbasierte Benachrichtigungen (Aktion im RuleWizard, anpassbarer Text, Priorität Normal/Kritisch) — erledigt
 
 ### Phase 4 — Feed hinzufügen & Verwaltung
-13. **Feature 4.1** — Website Feed-Suche (Auto-Erkennung, Liste gefundener Feeds)
+13. **Feature 4.1** — Website Feed-Suche (Auto-Erkennung, Liste gefundener Feeds) — erledigt
 14. **Feature 12.4** — Feed-Vorschau vor dem Abonnieren (5 Artikel im Sheet)
 15. **Feature 17.3** — Automatisches Löschen (90 Tage Standard, pro Feed, Ausnahmen Stern + Archiv)
 16. **Feature 17.1** — Automatisches Offline-Speichern bei Stern (Toggle in Einstellungen)

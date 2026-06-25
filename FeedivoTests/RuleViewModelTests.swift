@@ -209,6 +209,43 @@ struct RuleViewModelTests {
     }
 
     @MainActor
+    @Test func createRuleSpeichertBenachrichtigungsAktionMitTextUndPrioritaet() throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            RuleCondition.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let viewModel = RuleViewModel()
+
+        viewModel.createRule(
+            name: "Breaking",
+            isEnabled: true,
+            action: .notify,
+            matchMode: .all,
+            conditionDrafts: [
+                RuleConditionDraft(field: .title, conditionOperator: .contains, value: "Swift")
+            ],
+            assignTag: nil,
+            notificationTemplate: "Breaking: {Titel}",
+            notificationPriority: .critical,
+            context: context
+        )
+
+        let rules = try context.fetch(FetchDescriptor<Rule>())
+        let rule = try #require(rules.first)
+        #expect(rule.actionRaw == RuleAction.notify.rawValue)
+        #expect(rule.assignTag == nil)
+        #expect(rule.notificationTemplate == "Breaking: {Titel}")
+        #expect(rule.notificationPriorityRaw == RuleNotificationPriority.critical.rawValue)
+        #expect(viewModel.errorMessage == nil)
+    }
+
+    @MainActor
     @Test func createRuleVerhindertUngueltigeEingaben() throws {
         let container = try ModelContainer(
             for: Feed.self,

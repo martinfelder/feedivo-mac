@@ -27,6 +27,12 @@ struct FeedivoTests {
         #expect(ausgeblendeterArchivArtikel.isHidden)
     }
 
+    @Test func feedBenachrichtigungenSindStandardmaessigDeaktiviert() {
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Beispiel")
+
+        #expect(!feed.isNotificationEnabled)
+    }
+
     @Test func feedServiceErrorTexteSindLokalisiert() {
         #expect(FeedServiceError.invalidURL.errorDescription == "Die Feed-URL ist ungültig.")
         #expect(FeedServiceError.parsingFailed.errorDescription == "Der Feed konnte nicht gelesen werden.")

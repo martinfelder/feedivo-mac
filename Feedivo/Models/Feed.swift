@@ -15,6 +15,7 @@ class Feed {
     var folderName: String?
     var lastRefreshed: Date?
     var refreshIntervalMinutes: Int
+    var isNotificationEnabled: Bool = false
     var unreadCount: Int = 0
 
     @Relationship(deleteRule: .cascade)
@@ -35,7 +36,8 @@ class Feed {
         followedAt: Date? = nil,
         folderName: String? = nil,
         lastRefreshed: Date? = nil,
-        refreshIntervalMinutes: Int = 60
+        refreshIntervalMinutes: Int = 60,
+        isNotificationEnabled: Bool = false
     ) {
         self.id = UUID()
         self.url = url
@@ -48,6 +50,7 @@ class Feed {
         self.folderName = folderName
         self.lastRefreshed = lastRefreshed
         self.refreshIntervalMinutes = refreshIntervalMinutes
+        self.isNotificationEnabled = isNotificationEnabled
         self.unreadCount = 0
         self.articles = []
         self.logEntries = []
@@ -64,7 +67,8 @@ class Feed {
         followedAt: Date? = nil,
         folderName: String? = nil,
         lastRefreshed: Date? = nil,
-        refreshIntervalMinutes: Int = 60
+        refreshIntervalMinutes: Int = 60,
+        isNotificationEnabled: Bool = false
     ) {
         self.init(
             url: url,
@@ -75,7 +79,8 @@ class Feed {
             followedAt: followedAt,
             folderName: folderName,
             lastRefreshed: lastRefreshed,
-            refreshIntervalMinutes: refreshIntervalMinutes
+            refreshIntervalMinutes: refreshIntervalMinutes,
+            isNotificationEnabled: isNotificationEnabled
         )
         self.originalTitle = originalTitle ?? title
     }

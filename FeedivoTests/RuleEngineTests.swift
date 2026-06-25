@@ -405,4 +405,38 @@ struct RuleEngineTests {
 
         #expect(article.tags.map(\.name) == ["Swift"])
     }
+
+    @MainActor
+    @Test func applyRulesErzeugtRegelBenachrichtigungOhneArtikelZuVeraendern() throws {
+        let rule = Rule(
+            name: "Breaking",
+            conditionField: "title",
+            conditionOperator: "contains",
+            conditionValue: "Swift"
+        )
+        rule.actionRaw = RuleAction.notify.rawValue
+        rule.notificationTemplate = "Breaking: {Titel} aus {Feed}"
+        rule.notificationPriorityRaw = RuleNotificationPriority.critical.rawValue
+        rule.conditions = [
+            RuleCondition(field: "title", conditionOperator: "contains", value: "Swift")
+        ]
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Mac News")
+        let article = Article(title: "Swift 7 ist da", feed: feed)
+
+        let result = RuleEngine.applyRulesWithNotifications([rule], to: article, feed: feed)
+
+        #expect(result.appliedActionCount == 1)
+        #expect(article.tags.isEmpty)
+        #expect(!article.isHidden)
+        #expect(result.notifications == [
+            RuleNotificationResult(
+                ruleID: rule.id,
+                ruleName: "Breaking",
+                message: "Breaking: Swift 7 ist da aus Mac News",
+                articleTitle: "Swift 7 ist da",
+                feedTitle: "Mac News",
+                priority: .critical
+            )
+        ])
+    }
 }

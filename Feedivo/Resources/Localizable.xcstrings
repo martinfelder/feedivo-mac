@@ -1908,6 +1908,90 @@
         }
       }
     },
+    "feedDiscovery.error.noFeedsFound" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auf dieser Website wurde kein Feed gefunden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No feed was found on this website."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun flux n’a été trouvé sur ce site."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun feed trovato su questo sito."
+          }
+        }
+      }
+    },
+    "feedDiscovery.results.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gefundene Feeds"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Found feeds"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flux trouvés"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feed trovati"
+          }
+        }
+      }
+    },
+    "feedDiscovery.search.button" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suchen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechercher"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cerca"
+          }
+        }
+      }
+    },
     "feed.error.parsingFailed" : {
       "localizations" : {
         "de" : {
@@ -2436,6 +2520,62 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Prossimo recupero"
+          }
+        }
+      }
+    },
+    "feed.properties.notifications.description" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wenn beim Aktualisieren neue Artikel gefunden werden, zeigt Feedivo eine macOS-Benachrichtigung für diesen Feed."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When refresh finds new articles, Feedivo shows a macOS notification for this feed."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lorsque l’actualisation trouve de nouveaux articles, Feedivo affiche une notification macOS pour ce flux."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quando l’aggiornamento trova nuovi articoli, Feedivo mostra una notifica macOS per questo feed."
+          }
+        }
+      }
+    },
+    "feed.properties.notifications.enabled" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Benachrichtigung"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notification"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notification"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notifica"
           }
         }
       }
@@ -3202,6 +3342,90 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Online"
+          }
+        }
+      }
+    },
+    "notification.feedRefresh.summary.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld neue Artikel"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld new articles"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld nouveaux articles"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld nuovi articoli"
+          }
+        }
+      }
+    },
+    "notification.rule.fallbackRuleName" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Regel"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rule"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Règle"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Regola"
+          }
+        }
+      }
+    },
+    "notification.rule.summary.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld neue %@-Artikel"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld new %@ articles"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld nouveaux articles %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld nuovi articoli %@"
           }
         }
       }
@@ -5482,6 +5706,34 @@
         }
       }
     },
+    "rule.action.notify" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Benachrichtigung auslösen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trigger notification"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Déclencher une notification"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Attiva notifica"
+          }
+        }
+      }
+    },
     "rule.applyExisting.button" : {
       "localizations" : {
         "de" : {
@@ -5930,6 +6182,62 @@
         }
       }
     },
+    "rule.notification.priority.critical" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kritisch"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Critical"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Critique"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Critica"
+          }
+        }
+      }
+    },
+    "rule.notification.priority.normal" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Normal"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Normal"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Normale"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Normale"
+          }
+        }
+      }
+    },
     "rule.validation.error" : {
       "localizations" : {
         "de" : {
@@ -6234,6 +6542,118 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nuovo tag"
+          }
+        }
+      }
+    },
+    "ruleWizard.notification.priority" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Priorität"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Priority"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Priorité"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Priorità"
+          }
+        }
+      }
+    },
+    "ruleWizard.notification.template" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Benachrichtigungstext"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notification text"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Texte de notification"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Testo notifica"
+          }
+        }
+      }
+    },
+    "ruleWizard.notification.template.help" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Platzhalter: {Titel}, {Feed}, {Regel}"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Placeholders: {Titel}, {Feed}, {Regel}"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Espaces réservés : {Titel}, {Feed}, {Regel}"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Segnaposto: {Titel}, {Feed}, {Regel}"
+          }
+        }
+      }
+    },
+    "ruleWizard.notification.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Benachrichtigung"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notification"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notification"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notifica"
           }
         }
       }
@@ -8315,25 +8735,25 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Feed-Benachrichtigungen werden im nächsten Paket pro Feed in den Feed-Eigenschaften aktiviert."
+            "value" : "Feed-Benachrichtigungen werden pro Feed in den Feed-Eigenschaften aktiviert."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Feed notifications will be enabled per feed in Feed Properties in the next package."
+            "value" : "Feed notifications are enabled per feed in Feed Properties."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Les notifications de flux seront activées par flux dans les propriétés du flux lors du prochain paquet."
+            "value" : "Les notifications de flux sont activées par flux dans les propriétés du flux."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Le notifiche dei feed saranno attivate per singolo feed nelle proprietà del feed nel prossimo pacchetto."
+            "value" : "Le notifiche dei feed si attivano per singolo feed nelle proprietà del feed."
           }
         }
       }
@@ -8362,6 +8782,202 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Notifiche dei feed"
+          }
+        }
+      }
+    },
+    "settings.notifications.permission.allowed" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS erlaubt Feedivo, Benachrichtigungen anzuzeigen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS allows Feedivo to show notifications."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS autorise Feedivo à afficher des notifications."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS consente a Feedivo di mostrare notifiche."
+          }
+        }
+      }
+    },
+    "settings.notifications.permission.denied" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS blockiert Benachrichtigungen für Feedivo. Du kannst das in den Systemeinstellungen ändern."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS blocks notifications for Feedivo. You can change this in System Settings."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS bloque les notifications pour Feedivo. Tu peux modifier cela dans Réglages Système."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS blocca le notifiche per Feedivo. Puoi modificarlo nelle Impostazioni di Sistema."
+          }
+        }
+      }
+    },
+    "settings.notifications.permission.description" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feed-Benachrichtigungen brauchen zusätzlich die macOS-Erlaubnis."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feed notifications also need macOS permission."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les notifications de flux nécessitent aussi l’autorisation de macOS."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le notifiche dei feed richiedono anche l’autorizzazione di macOS."
+          }
+        }
+      }
+    },
+    "settings.notifications.permission.notDetermined" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feedivo hat macOS noch nicht um Erlaubnis gefragt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feedivo has not asked macOS for permission yet."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feedivo n’a pas encore demandé l’autorisation à macOS."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feedivo non ha ancora chiesto l’autorizzazione a macOS."
+          }
+        }
+      }
+    },
+    "settings.notifications.permission.request" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erlaubnis anfragen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Request Permission"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Demander l’autorisation"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Richiedi autorizzazione"
+          }
+        }
+      }
+    },
+    "settings.notifications.permission.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS-Erlaubnis"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS Permission"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autorisation macOS"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autorizzazione macOS"
+          }
+        }
+      }
+    },
+    "settings.notifications.permission.unknown" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der aktuelle Benachrichtigungsstatus konnte noch nicht gelesen werden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The current notification status could not be read yet."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’état actuel des notifications n’a pas encore pu être lu."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lo stato attuale delle notifiche non è ancora stato letto."
           }
         }
       }
@@ -8761,6 +9377,34 @@
         }
       }
     },
+    "sidebar.addFeed.description" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gib eine Website oder eine direkte Feed-URL ein. Feedivo sucht nach passenden RSS-, Atom- oder JSON-Feeds und zeigt gefundene Feeds zur Auswahl an."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter a website or a direct feed URL. Feedivo searches for matching RSS, Atom, or JSON feeds and shows found feeds for selection."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saisis un site web ou une URL directe de flux. Feedivo recherche les flux RSS, Atom ou JSON correspondants et affiche les flux trouvés."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inserisci un sito web o un URL diretto del feed. Feedivo cerca feed RSS, Atom o JSON corrispondenti e mostra quelli trovati."
+          }
+        }
+      }
+    },
     "sidebar.addFeed.title" : {
       "localizations" : {
         "de" : {
@@ -8794,25 +9438,25 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "https://example.com/feed.xml"
+            "value" : "Website oder Feed-URL"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "https://example.com/feed.xml"
+            "value" : "Website or feed URL"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "https://example.com/feed.xml"
+            "value" : "Site web ou URL du flux"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "https://example.com/feed.xml"
+            "value" : "Sito web o URL del feed"
           }
         }
       }

@@ -43,11 +43,23 @@ struct OPMLImportPreviewProgress: Equatable {
     }
 }
 
+private struct FeedRefreshResult {
+    var feedNotification: FeedRefreshNotificationResult
+    var ruleNotifications: [RuleNotificationResult]
+}
+
+private enum FeedRefreshOutcome {
+    case success(FeedRefreshResult)
+    case failure(String)
+}
+
 @Observable
 final class FeedViewModel {
     private let fetchFeed: (String) async throws -> ParsedFeed
     private let discoverFaviconURL: (URL) async -> String?
     private let enrichArticleImages: ([ParsedArticle]) async -> [ParsedArticle]
+    private let notifyFeedRefresh: ([FeedRefreshNotificationResult]) async -> Void
+    private let notifyRuleNotifications: ([RuleNotificationResult]) async -> Void
 
     var isLoading = false
     var errorMessage: String?
@@ -60,11 +72,19 @@ final class FeedViewModel {
         },
         enrichArticleImages: @escaping ([ParsedArticle]) async -> [ParsedArticle] = { articles in
             await FeedService.enrichArticleImagesIfNeeded(in: articles)
+        },
+        notifyFeedRefresh: @escaping ([FeedRefreshNotificationResult]) async -> Void = { results in
+            await FeedNotificationService.presentRefreshSummary(for: results)
+        },
+        notifyRuleNotifications: @escaping ([RuleNotificationResult]) async -> Void = { results in
+            await FeedNotificationService.presentRuleSummary(for: results)
         }
     ) {
         self.fetchFeed = fetchFeed
         self.discoverFaviconURL = discoverFaviconURL
         self.enrichArticleImages = enrichArticleImages
+        self.notifyFeedRefresh = notifyFeedRefresh
+        self.notifyRuleNotifications = notifyRuleNotifications
     }
 
     @MainActor
@@ -191,7 +211,7 @@ final class FeedViewModel {
                 for feed in feedsToRefresh {
                     group.addTask { @MainActor in
                         do {
-                            try await self.refreshFeedContents(feed, context: context)
+                            _ = try await self.refreshFeedContents(feed, context: context)
                             return nil
                         } catch let error as LocalizedError {
                             self.appendLog(
@@ -360,7 +380,9 @@ final class FeedViewModel {
         errorMessage = nil
 
         do {
-            try await refreshFeedContents(feed, context: context)
+            let result = try await refreshFeedContents(feed, context: context)
+            await notifyFeedRefresh([result.feedNotification])
+            await notifyRuleNotifications(result.ruleNotifications)
         } catch let error as LocalizedError {
             appendLog(
                 kind: "error",
@@ -398,6 +420,8 @@ final class FeedViewModel {
             totalCount: feeds.count
         )
         var failedFeedTitles: [String] = []
+        var notificationResults: [FeedRefreshNotificationResult] = []
+        var ruleNotificationResults: [RuleNotificationResult] = []
 
         defer {
             isLoading = false
@@ -407,12 +431,12 @@ final class FeedViewModel {
         // Alle Feeds parallel aktualisieren. Jede Task läuft auf dem Main Actor,
         // gibt ihn aber während await-Aufrufen (Netzwerk) frei — so laufen alle
         // Netzwerkabrufe gleichzeitig, ohne SwiftData-Zugriffe zu verparallelisieren.
-        await withTaskGroup(of: String?.self) { group in
+        await withTaskGroup(of: FeedRefreshOutcome.self) { group in
             for feed in feeds {
                 group.addTask { @MainActor in
                     do {
-                        try await self.refreshFeedContents(feed, context: context)
-                        return nil
+                        let result = try await self.refreshFeedContents(feed, context: context)
+                        return .success(result)
                     } catch let error as LocalizedError {
                         self.appendLog(
                             kind: "error",
@@ -421,7 +445,7 @@ final class FeedViewModel {
                             context: context
                         )
                         try? context.save()
-                        return feed.title
+                        return .failure(feed.title)
                     } catch {
                         self.appendLog(
                             kind: "error",
@@ -430,19 +454,26 @@ final class FeedViewModel {
                             context: context
                         )
                         try? context.save()
-                        return feed.title
+                        return .failure(feed.title)
                     }
                 }
             }
 
-            for await failedTitle in group {
-                if let failedTitle {
+            for await outcome in group {
+                switch outcome {
+                case .success(let result):
+                    notificationResults.append(result.feedNotification)
+                    ruleNotificationResults.append(contentsOf: result.ruleNotifications)
+                case .failure(let failedTitle):
                     failedFeedTitles.append(failedTitle)
                 }
 
                 incrementOperationProgress()
             }
         }
+
+        await notifyFeedRefresh(notificationResults)
+        await notifyRuleNotifications(ruleNotificationResults)
 
         if !failedFeedTitles.isEmpty {
             errorMessage = L10n.feedErrorRefreshAllPartial(
@@ -517,7 +548,7 @@ final class FeedViewModel {
     }
 
     @MainActor
-    private func refreshFeedContents(_ feed: Feed, context: ModelContext) async throws {
+    private func refreshFeedContents(_ feed: Feed, context: ModelContext) async throws -> FeedRefreshResult {
         let parsedFeed = try await fetchFeed(feed.url)
         let existingArticlesByIdentity = existingArticlesByIdentity(in: feed)
         updateMissingArticleImages(
@@ -554,6 +585,7 @@ final class FeedViewModel {
         let rules = newArticles.isEmpty
             ? []
             : try context.fetch(FetchDescriptor<Rule>())
+        var ruleNotifications: [RuleNotificationResult] = []
 
         let previousOriginalTitle = feed.originalTitle?.trimmingCharacters(in: .whitespacesAndNewlines)
         let titleWasCustom = previousOriginalTitle.map { !$0.isEmpty && feed.title != $0 } ?? false
@@ -579,7 +611,8 @@ final class FeedViewModel {
                 imageURL: articleToInsert.imageURL,
                 feed: feed
             )
-            RuleEngine.applyRules(rules, to: article, feed: feed)
+            let ruleResult = RuleEngine.applyRulesWithNotifications(rules, to: article, feed: feed)
+            ruleNotifications.append(contentsOf: ruleResult.notifications)
             feed.articles.append(article)
         }
         feed.unreadCount += newArticles.count
@@ -591,6 +624,15 @@ final class FeedViewModel {
             context: context
         )
         try context.save()
+
+        return FeedRefreshResult(
+            feedNotification: FeedRefreshNotificationResult(
+                feedTitle: feed.title,
+                newArticleCount: newArticles.count,
+                isNotificationEnabled: feed.isNotificationEnabled
+            ),
+            ruleNotifications: ruleNotifications
+        )
     }
 
     private func existingArticlesByIdentity(in feed: Feed) -> [String: Article] {

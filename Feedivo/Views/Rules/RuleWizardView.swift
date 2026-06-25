@@ -40,6 +40,8 @@ struct RuleWizardView: View {
     @State private var selectedTagID: UUID?
     @State private var newTagName = ""
     @State private var newTagColorHex = TagColorPalette.colors[0]
+    @State private var notificationTemplate = "{Titel}"
+    @State private var notificationPriority = RuleNotificationPriority.normal
 
     init(rule: Rule? = nil, sourceArticle: Article? = nil) {
         self.rule = rule
@@ -54,7 +56,12 @@ struct RuleWizardView: View {
             conditionsEditor
             rulePreview
             actionEditor
-            targetEditor
+            if action == .assignTag {
+                targetEditor
+            }
+            if action == .notify {
+                notificationEditor
+            }
             ruleErrorMessage
             footer
         }
@@ -192,8 +199,6 @@ struct RuleWizardView: View {
                     .foregroundStyle(.red)
             }
         }
-        .disabled(action != .assignTag)
-        .opacity(action == .assignTag ? 1 : 0.45)
     }
 
     private var actionEditor: some View {
@@ -205,6 +210,28 @@ struct RuleWizardView: View {
                 ForEach(RuleAction.allCases) { action in
                     Text(action.titleKey)
                         .tag(action)
+                }
+            }
+            .pickerStyle(.segmented)
+        }
+    }
+
+    private var notificationEditor: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(L10n.ruleWizardNotificationTitle)
+                .font(.headline)
+
+            TextField(L10n.ruleWizardNotificationTemplate, text: $notificationTemplate)
+                .textFieldStyle(.roundedBorder)
+
+            Text(L10n.ruleWizardNotificationTemplateHelp)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            Picker(L10n.ruleWizardNotificationPriority, selection: $notificationPriority) {
+                ForEach(RuleNotificationPriority.allCases) { priority in
+                    Text(priority.titleKey)
+                        .tag(priority)
                 }
             }
             .pickerStyle(.segmented)
@@ -328,6 +355,8 @@ struct RuleWizardView: View {
         }
 
         selectedTagID = rule.assignTag?.id
+        notificationTemplate = rule.notificationTemplate
+        notificationPriority = RuleNotificationPriority.normalized(rule.notificationPriorityRaw)
         mode = conditionDrafts.count > 1 ? .power : .simple
     }
 
@@ -387,6 +416,8 @@ struct RuleWizardView: View {
                 matchMode: matchMode,
                 conditionDrafts: drafts,
                 assignTag: selectedTag,
+                notificationTemplate: notificationTemplate,
+                notificationPriority: notificationPriority,
                 context: modelContext
             )
         } else {
@@ -397,6 +428,8 @@ struct RuleWizardView: View {
                 matchMode: matchMode,
                 conditionDrafts: drafts,
                 assignTag: selectedTag,
+                notificationTemplate: notificationTemplate,
+                notificationPriority: notificationPriority,
                 existingRules: existingRules,
                 context: modelContext
             )

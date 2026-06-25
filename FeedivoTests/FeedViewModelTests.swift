@@ -1034,6 +1034,141 @@ struct FeedViewModelTests {
         let peak = await tracker.peak
         #expect(peak > 1, "Feeds sollten parallel aktualisiert werden, nicht nacheinander")
     }
+
+    @MainActor
+    @Test func refreshFeedMeldetNeueArtikelFuerFeedBenachrichtigung() async throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            RuleCondition.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Alter Titel")
+        feed.isNotificationEnabled = true
+        context.insert(feed)
+        try context.save()
+
+        var capturedResults: [FeedRefreshNotificationResult] = []
+        let viewModel = FeedViewModel(
+            fetchFeed: { urlString in
+                ParsedFeed(
+                    sourceURL: urlString,
+                    title: "Aktueller Titel",
+                    description: nil,
+                    articles: [
+                        ParsedArticle(
+                            title: "Neuer Artikel 1",
+                            link: "https://example.com/1",
+                            summary: nil,
+                            content: nil,
+                            publishedAt: Date(timeIntervalSince1970: 100),
+                            imageURL: nil
+                        ),
+                        ParsedArticle(
+                            title: "Neuer Artikel 2",
+                            link: "https://example.com/2",
+                            summary: nil,
+                            content: nil,
+                            publishedAt: Date(timeIntervalSince1970: 200),
+                            imageURL: nil
+                        )
+                    ]
+                )
+            },
+            discoverFaviconURL: { _ in nil },
+            notifyFeedRefresh: { results in
+                capturedResults = results
+            }
+        )
+
+        await viewModel.refreshFeed(feed, context: context)
+
+        #expect(capturedResults == [
+            FeedRefreshNotificationResult(
+                feedTitle: "Aktueller Titel",
+                newArticleCount: 2,
+                isNotificationEnabled: true
+            )
+        ])
+    }
+
+    @MainActor
+    @Test func refreshFeedMeldetRegelBenachrichtigungenFuerNeueArtikel() async throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            RuleCondition.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Mac News")
+        let rule = Rule(
+            name: "Breaking",
+            conditionField: RuleConditionField.title.rawValue,
+            conditionOperator: RuleConditionOperator.contains.rawValue,
+            conditionValue: "Swift"
+        )
+        rule.actionRaw = RuleAction.notify.rawValue
+        rule.notificationTemplate = "Breaking: {Titel}"
+        rule.notificationPriorityRaw = RuleNotificationPriority.critical.rawValue
+        rule.conditions = [
+            RuleCondition(
+                field: RuleConditionField.title.rawValue,
+                conditionOperator: RuleConditionOperator.contains.rawValue,
+                value: "Swift",
+                sortOrder: 0
+            )
+        ]
+        context.insert(feed)
+        context.insert(rule)
+        try context.save()
+
+        var capturedRuleNotifications: [RuleNotificationResult] = []
+        let viewModel = FeedViewModel(
+            fetchFeed: { urlString in
+                ParsedFeed(
+                    sourceURL: urlString,
+                    title: "Mac News",
+                    description: nil,
+                    articles: [
+                        ParsedArticle(
+                            title: "Swift 7 ist da",
+                            link: "https://example.com/swift",
+                            summary: nil,
+                            content: nil,
+                            publishedAt: Date(timeIntervalSince1970: 100),
+                            imageURL: nil
+                        )
+                    ]
+                )
+            },
+            discoverFaviconURL: { _ in nil },
+            notifyFeedRefresh: { _ in },
+            notifyRuleNotifications: { results in
+                capturedRuleNotifications = results
+            }
+        )
+
+        await viewModel.refreshFeed(feed, context: context)
+
+        #expect(capturedRuleNotifications == [
+            RuleNotificationResult(
+                ruleID: rule.id,
+                ruleName: "Breaking",
+                message: "Breaking: Swift 7 ist da",
+                articleTitle: "Swift 7 ist da",
+                feedTitle: "Mac News",
+                priority: .critical
+            )
+        ])
+    }
 }
 
 private struct TestFeedRefreshError: LocalizedError {

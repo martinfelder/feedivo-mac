@@ -590,6 +590,11 @@ struct AddFeedSheet: View {
     @Environment(\.modelContext) private var modelContext
     @State private var viewModel = FeedViewModel()
     @State private var urlString = ""
+    @State private var discoveryResults: [FeedDiscoveryResult] = []
+    @State private var selectedFeedURL: String?
+    @State private var discoveryErrorMessage: String?
+    @State private var isDiscovering = false
+    private let discoveryService = FeedDiscoveryService()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -597,11 +602,20 @@ struct AddFeedSheet: View {
                 .font(.title2)
                 .fontWeight(.semibold)
 
+            Text(L10n.sidebarAddFeedDescription)
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
             TextField(L10n.sidebarAddFeedURLPlaceholder, text: $urlString)
                 .textFieldStyle(.roundedBorder)
-                .disabled(viewModel.isLoading)
+                .disabled(isBusy)
 
-            if let errorMessage = viewModel.errorMessage {
+            if !discoveryResults.isEmpty {
+                discoveryResultList
+            }
+
+            if let errorMessage = discoveryErrorMessage ?? viewModel.errorMessage {
                 Text(errorMessage)
                     .foregroundStyle(.red)
                     .font(.callout)
@@ -613,29 +627,115 @@ struct AddFeedSheet: View {
                 Button(L10n.commonCancel) {
                     dismiss()
                 }
-                .disabled(viewModel.isLoading)
+                .disabled(isBusy)
 
                 Button {
                     Task {
-                        await viewModel.addFeed(urlString: urlString, context: modelContext)
-                        if viewModel.errorMessage == nil {
-                            dismiss()
-                        }
+                        await performPrimaryAction()
                     }
                 } label: {
-                    if viewModel.isLoading {
+                    if isBusy {
                         ProgressView()
                             .controlSize(.small)
                     } else {
-                        Text(L10n.commonAdd)
+                        Text(primaryButtonTitle)
                     }
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(viewModel.isLoading || urlString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .disabled(isBusy || urlString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
         }
         .padding(24)
-        .frame(width: 420)
+        .frame(width: 460)
+        .onChange(of: urlString) {
+            resetDiscovery()
+        }
+    }
+
+    private var discoveryResultList: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(L10n.feedDiscoveryResultsTitle)
+                .font(.headline)
+
+            ForEach(discoveryResults) { result in
+                Button {
+                    selectedFeedURL = result.feedURL
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: selectedFeedURL == result.feedURL ? "checkmark.circle.fill" : "circle")
+                            .foregroundStyle(selectedFeedURL == result.feedURL ? Color.accentColor : Color.secondary)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(result.title)
+                                .font(.callout.weight(.medium))
+                                .foregroundStyle(.primary)
+                                .lineLimit(1)
+
+                            Text(result.feedURL)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        }
+
+                        Spacer()
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .padding(10)
+                .background(
+                    selectedFeedURL == result.feedURL ? Color.accentColor.opacity(0.12) : Color.secondary.opacity(0.08),
+                    in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+                )
+            }
+        }
+    }
+
+    private var isBusy: Bool {
+        isDiscovering || viewModel.isLoading
+    }
+
+    private var primaryButtonTitle: LocalizedStringKey {
+        selectedFeedURL == nil ? L10n.feedDiscoverySearchButton : L10n.commonAdd
+    }
+
+    private func performPrimaryAction() async {
+        if let selectedFeedURL {
+            await addFeed(urlString: selectedFeedURL)
+        } else {
+            await discoverFeeds()
+        }
+    }
+
+    private func discoverFeeds() async {
+        isDiscovering = true
+        discoveryErrorMessage = nil
+        viewModel.errorMessage = nil
+
+        do {
+            let results = try await discoveryService.discoverFeeds(from: urlString)
+            discoveryResults = results
+            selectedFeedURL = results.first?.feedURL
+        } catch let error as LocalizedError {
+            discoveryErrorMessage = error.errorDescription ?? L10n.feedDiscoveryErrorNoFeedsFound
+        } catch {
+            discoveryErrorMessage = L10n.feedDiscoveryErrorNoFeedsFound
+        }
+
+        isDiscovering = false
+    }
+
+    private func addFeed(urlString: String) async {
+        await viewModel.addFeed(urlString: urlString, context: modelContext)
+        if viewModel.errorMessage == nil {
+            dismiss()
+        }
+    }
+
+    private func resetDiscovery() {
+        discoveryResults = []
+        selectedFeedURL = nil
+        discoveryErrorMessage = nil
     }
 }
 

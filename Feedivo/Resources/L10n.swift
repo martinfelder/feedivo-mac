@@ -8,7 +8,10 @@ enum L10n {
     static let sidebarEmptyTitle = LocalizedStringKey("sidebar.empty.title")
     static let sidebarAddFeedButton = LocalizedStringKey("sidebar.addFeed.button")
     static let sidebarAddFeedTitle = LocalizedStringKey("sidebar.addFeed.title")
+    static let sidebarAddFeedDescription = LocalizedStringKey("sidebar.addFeed.description")
     static let sidebarAddFeedURLPlaceholder = LocalizedStringKey("sidebar.addFeed.url.placeholder")
+    static let feedDiscoveryResultsTitle = LocalizedStringKey("feedDiscovery.results.title")
+    static let feedDiscoverySearchButton = LocalizedStringKey("feedDiscovery.search.button")
     static let sidebarFoldersSection = LocalizedStringKey("sidebar.folders.section")
     static let sidebarAddFolderButton = LocalizedStringKey("sidebar.addFolder.button")
     static let sidebarAddFolderTitle = LocalizedStringKey("sidebar.addFolder.title")
@@ -123,9 +126,16 @@ enum L10n {
     static let ruleWizardExistingTag = LocalizedStringKey("ruleWizard.existingTag")
     static let ruleWizardNewTag = LocalizedStringKey("ruleWizard.newTag")
     static let ruleWizardNewTagName = LocalizedStringKey("ruleWizard.newTagName")
+    static let ruleWizardNotificationTitle = LocalizedStringKey("ruleWizard.notification.title")
+    static let ruleWizardNotificationTemplate = LocalizedStringKey("ruleWizard.notification.template")
+    static let ruleWizardNotificationTemplateHelp = LocalizedStringKey("ruleWizard.notification.template.help")
+    static let ruleWizardNotificationPriority = LocalizedStringKey("ruleWizard.notification.priority")
     static let ruleWizardPreviewTitle = LocalizedStringKey("ruleWizard.preview.title")
     static let ruleActionAssignTag = LocalizedStringKey("rule.action.assignTag")
     static let ruleActionHideArticle = LocalizedStringKey("rule.action.hideArticle")
+    static let ruleActionNotify = LocalizedStringKey("rule.action.notify")
+    static let ruleNotificationPriorityNormal = LocalizedStringKey("rule.notification.priority.normal")
+    static let ruleNotificationPriorityCritical = LocalizedStringKey("rule.notification.priority.critical")
     static let settingsReadingSection = LocalizedStringKey("settings.reading.section")
     static let settingsLanguageSection = LocalizedStringKey("settings.language.section")
     static let settingsLanguagePickerTitle = LocalizedStringKey("settings.language.picker.title")
@@ -189,6 +199,13 @@ enum L10n {
     static let settingsNotificationsAppIconBadgeDescription = LocalizedStringKey("settings.notifications.appIconBadge.description")
     static let settingsNotificationsFeedTitle = LocalizedStringKey("settings.notifications.feed.title")
     static let settingsNotificationsFeedDescription = LocalizedStringKey("settings.notifications.feed.description")
+    static let settingsNotificationsPermissionTitle = LocalizedStringKey("settings.notifications.permission.title")
+    static let settingsNotificationsPermissionDescription = LocalizedStringKey("settings.notifications.permission.description")
+    static let settingsNotificationsPermissionRequest = LocalizedStringKey("settings.notifications.permission.request")
+    static let settingsNotificationsPermissionAllowed = LocalizedStringKey("settings.notifications.permission.allowed")
+    static let settingsNotificationsPermissionDenied = LocalizedStringKey("settings.notifications.permission.denied")
+    static let settingsNotificationsPermissionNotDetermined = LocalizedStringKey("settings.notifications.permission.notDetermined")
+    static let settingsNotificationsPermissionUnknown = LocalizedStringKey("settings.notifications.permission.unknown")
     static let settingsNotificationsRulesTitle = LocalizedStringKey("settings.notifications.rules.title")
     static let settingsNotificationsRulesDescription = LocalizedStringKey("settings.notifications.rules.description")
     static let settingsRefreshDescription = LocalizedStringKey("settings.refresh.description")
@@ -214,6 +231,8 @@ enum L10n {
     static let feedPropertiesLogTitle = LocalizedStringKey("feed.properties.logTitle")
     static let feedPropertiesLogEntries = LocalizedStringKey("feed.properties.logEntries")
     static let feedPropertiesNoLogEntries = LocalizedStringKey("feed.properties.noLogEntries")
+    static let feedPropertiesNotificationsEnabled = LocalizedStringKey("feed.properties.notifications.enabled")
+    static let feedPropertiesNotificationsDescription = LocalizedStringKey("feed.properties.notifications.description")
 
     static var articleRowStarRemove: String { String(localized: "articleRow.star.remove") }
     static var articleRowStarAdd: String { String(localized: "articleRow.star.add") }
@@ -274,6 +293,7 @@ enum L10n {
     static var feedErrorParsingFailed: String { String(localized: "feed.error.parsingFailed") }
     static var feedErrorEmptyURL: String { String(localized: "feed.error.emptyURL") }
     static var feedErrorAddFailed: String { String(localized: "feed.error.addFailed") }
+    static var feedDiscoveryErrorNoFeedsFound: String { String(localized: "feedDiscovery.error.noFeedsFound") }
     static var feedCommandsMenu: String { String(localized: "feedCommands.menu") }
     static var feedAddCommand: String { String(localized: "feed.add.command") }
     static var feedRefreshAllCommand: String { String(localized: "feed.refreshAll.command") }
@@ -297,6 +317,20 @@ enum L10n {
     static var feedPropertiesCopyXMLAddress: String { String(localized: "feed.properties.copyXMLAddress") }
     static var feedPropertiesNoFolder: String { String(localized: "feed.properties.noFolder") }
     static var feedPropertiesUnavailable: String { String(localized: "feed.properties.unavailable") }
+    static func feedNotificationSummaryTitle(_ newArticleCount: Int) -> String {
+        String.localizedStringWithFormat(
+            String(localized: "notification.feedRefresh.summary.title"),
+            newArticleCount
+        )
+    }
+    static var ruleNotificationFallbackRuleName: String { String(localized: "notification.rule.fallbackRuleName") }
+    static func ruleNotificationSummaryTitle(count: Int, ruleName: String) -> String {
+        String.localizedStringWithFormat(
+            String(localized: "notification.rule.summary.title"),
+            count,
+            ruleName
+        )
+    }
     static var feedLogAdded: String { String(localized: "feed.log.added") }
     static var feedLogImportedFromOPML: String { String(localized: "feed.log.importedFromOPML") }
     static var opmlImportResultTitle: String { String(localized: "opml.import.result.title") }

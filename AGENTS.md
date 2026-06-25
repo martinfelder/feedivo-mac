@@ -121,7 +121,8 @@ FeedivoMac/
 │   │   ├── Article.swift
 │   │   ├── Tag.swift
 │   │   ├── Rule.swift                 # Regeln inkl. sortOrder für Auswertungsreihenfolge ✅
-│   │   ├── RuleAction.swift            # Regel-Aktionen Tag zuweisen / Artikel ausblenden ✅
+│   │   ├── RuleAction.swift            # Regel-Aktionen Tag zuweisen / Artikel ausblenden / Benachrichtigung ✅
+│   │   ├── RuleNotificationPriority.swift # Priorität für Regel-Benachrichtigungen ✅
 │   │   ├── RuleCondition.swift         # Mehrfachbedingungen für Regeln ✅
 │   │   ├── RuleMatchMode.swift         # AND/OR-Auswertung für Regeln ✅
 │   │   ├── RuleConditionField.swift    # Regel-Felder title/summary/feedTitle ✅
@@ -195,9 +196,11 @@ FeedivoMac/
 │   │
 │   ├── Services/
 │   │   ├── FeedService.swift           # FeedKit-Wrapper: RSS/Atom/JSON Feed parsen ✅
+│   │   ├── FeedDiscoveryService.swift  # Website-/Feed-URL-Erkennung für Feed hinzufügen ✅
 │   │   ├── FaviconService.swift        # HTML Favicon Discovery + Fallback ✅
 │   │   ├── AppIconBadgeSettings.swift  # App-Icon-Badge Settings-Key ✅
 │   │   ├── AppIconBadgeService.swift   # Dock-Badge für ungelesene Artikel ✅
+│   │   ├── FeedNotificationService.swift # Feed-Benachrichtigungen pro Refresh ✅
 │   │   ├── BackgroundRefreshSettings.swift # Auto-Refresh Settings/Intervalle ✅
 │   │   ├── BackgroundRefreshService.swift  # NSBackgroundActivityScheduler Adapter ✅
 │   │   ├── ArticleFeedIDBackfillService.swift # feedID für alte Artikel nachfuellen ✅
@@ -376,7 +379,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   systemnahem Hintergrund, damit sie zur klassischen macOS-Sidebar passt.
 - Header mit + Button → öffnet zentral praesentiertes `AddFeedSheet`
 - `AddFeedSheet` ist eine separate Struct in derselben Datei
-- Ruft `FeedViewModel.addFeed()` auf
+- `AddFeedSheet` nutzt `FeedDiscoveryService`: Der Benutzer kann eine Website oder
+  Feed-URL eingeben, per `Suchen` Feeds erkennen lassen, einen gefundenen Feed aus
+  der Liste auswählen und diesen anschließend hinzufügen.
+- Ruft für das eigentliche Speichern weiterhin `FeedViewModel.addFeed()` auf
 - Kontextmenü pro Feed ruft das Feed-Löschen mit Bestätigung an
 - Kontextmenü pro Feed öffnet `Feed Eigenschaften...` mit Metadaten, Intervall
   und Feed-Log
@@ -460,6 +466,17 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   neu kompiliert werden müssen
 - Eigene `FeedServiceError` enum: `.invalidURL`, `.parsingFailed`
 
+### FeedDiscoveryService.swift
+- Erkennt beim Hinzufügen neuer Feeds direkte Feed-URLs und normale Website-URLs.
+- Versucht zuerst, die Eingabe direkt mit `FeedService.fetchFeed` zu parsen.
+- Wenn das kein Feed ist, lädt der Service die Website und sucht
+  `<link rel="alternate">` Einträge für RSS, Atom und JSON Feed.
+- Relative Feed-URLs werden gegen die Website-URL aufgelöst, doppelte URLs werden
+  entfernt und die gefundenen Feeds werden zur Auswahl im Add-Feed-Sheet
+  zurückgegeben.
+- Eingaben ohne Schema werden als `https://...` interpretiert. Wenn keine Feeds
+  gefunden werden, liefert der Service eine lokalisierte Fehlermeldung.
+
 ### FeedViewModel.swift
 - `@Observable` class
 - `addFeed(urlString:context:)` — lädt Artikel, erstellt Feed, speichert in SwiftData
@@ -470,6 +487,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Beim Hinzufuegen werden `siteURL`, `followedAt` und ein Info-Log geschrieben
 - Beim Hinzufuegen und Aktualisieren wird `Feed.unreadCount` für Sidebar-Badges
   gepflegt; neue Artikel starten als ungelesen
+- Beim Aktualisieren liefert `FeedViewModel` pro Feed ein
+  `FeedRefreshNotificationResult` mit Feed-Titel, Anzahl neuer Artikel und
+  `Feed.isNotificationEnabled`; `FeedNotificationService` entscheidet daraus, ob
+  eine macOS-Benachrichtigung angezeigt wird.
 - Beim Aktualisieren werden Erfolg/Fehler als `FeedLogEntry` protokolliert; pro Feed
   bleiben die neuesten 20 Log-Eintraege erhalten
 - `refreshAllFeeds(_:context:)` — aktualisiert alle gespeicherten Feeds per
@@ -502,8 +523,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   parallel aktualisiert. Neu angelegte OPML-Feeds erhalten das gewählte bzw.
   gespeicherte Aktualisierungsintervall, begrenzt auf erlaubte Werte.
 - Beim Refresh werden gespeicherte Regeln über `RuleEngine` auf neu eingefügte
-  Artikel angewendet; bestehende Artikel können in den Einstellungen manuell
-  rueckwirkend getaggt werden.
+  Artikel angewendet; Benachrichtigungs-Regeln werden für neue Artikel gesammelt
+  und nach erfolgreichem Speichern an `FeedNotificationService` gemeldet.
+  Bestehende Artikel können in den Einstellungen manuell rückwirkend verarbeitet
+  werden, ohne macOS-Benachrichtigungen auszulösen.
 - Properties: `isLoading: Bool`, `errorMessage: String?`
 
 ### FaviconService.swift
@@ -537,14 +560,18 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Unterstützt die Operatoren `contains`, `startsWith` und `endsWith`.
 - Vergleicht case-insensitive und ignoriert deaktivierte Regeln, leere Suchwerte,
   unbekannte Felder/Operatoren und Regeln ohne Bedingungen.
-- Unterstützt `RuleAction.assignTag` und `RuleAction.hideArticle`; unbekannte oder
-  alte Regeln fallen auf `assignTag` zurück.
+- Unterstützt `RuleAction.assignTag`, `RuleAction.hideArticle` und
+  `RuleAction.notify`; unbekannte oder alte Regeln fallen auf `assignTag` zurück.
 - Wertet Regeln deterministisch nach `Rule.sortOrder` von oben nach unten aus; bei
   gleicher Reihenfolge dient der Name als stabiler Fallback.
 - Fuegt Tags nur hinzu, wenn der Artikel das Tag noch nicht besitzt, und setzt
   `Article.isHidden` nur, wenn der Artikel noch nicht ausgeblendet ist.
-- Gibt die Anzahl neu angewendeter Aktionen zurück und kann Regeln gesammelt auf
-  vorhandene Artikel mit Feed-Bezug anwenden.
+- Gibt die Anzahl neu angewendeter Aktionen zurück; der neue
+  `applyRulesWithNotifications` Pfad liefert zusätzlich
+  `RuleNotificationResult` Werte für Benachrichtigungs-Regeln.
+- Regeln können gesammelt auf vorhandene Artikel mit Feed-Bezug angewendet werden;
+  dieser rückwirkende Pfad zählt Benachrichtigungs-Aktionen mit, zeigt aber keine
+  macOS-Benachrichtigungen an.
 - Zaehlt für den Regel-Wizard vorab, wie viele vorhandene Artikel zu den aktuellen
   Bedingungsentwuerfen passen würden, ohne dabei Tags zu setzen.
 
@@ -552,6 +579,8 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Kapselt Erstellen, Bearbeiten und Löschen von Regeln für den Wizard.
 - Validiert Name, Aktion und mindestens eine nichtleere Bedingung; ein Ziel-Tag ist
   nur für die Aktion `Tag zuweisen` Pflicht.
+- Speichert für `Benachrichtigung auslösen` zusätzlich Textvorlage und Priorität;
+  leere Textvorlagen fallen auf `{Titel}` zurück.
 - Neue Regeln bekommen die nächste `sortOrder`; vorhandene Regeln können über
   das ViewModel dupliziert und per Hoch-/Runter-Aktion umsortiert werden.
 - Speichert neue Mehrfachbedingungen als `RuleCondition` und pflegt die alten
@@ -568,6 +597,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Status, Name, Bedingungszusammenfassung, Aktion und Trefferanzahl.
 - Regeln können per Hoch-/Runter-Button umsortiert werden; Doppelklick öffnet den
   Wizard, Rechtsklick bietet Bearbeiten, Duplizieren und Löschen.
+- Der Wizard zeigt je nach Aktion entweder Ziel-Tag-Felder oder
+  Benachrichtigungsfelder. Benachrichtigungstexte unterstützen die Platzhalter
+  `{Titel}`, `{Feed}` und `{Regel}` sowie die Prioritäten `Normal` und `Kritisch`.
 - Einstellungen bieten einen Button `Auf vorhandene Artikel anwenden`, der aktive
   Regeln manuell auf den gespeicherten Artikelbestand anwendet und danach die Anzahl
   neu angewendeter Regelaktionen anzeigt.
@@ -685,9 +717,27 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - `updateBadge` setzt `NSApp.dockTile.badgeLabel` über einen kleinen
   `AppIconBadgeUpdating` Adapter; dadurch ist die Entscheidung `Zahl anzeigen` oder
   `Badge leeren` ohne AppKit testbar.
-- Der Dock-Badge ist bewusst Feature 10.3 und noch keine echte
-  System-Benachrichtigung. Feed- und regelbasierte Benachrichtigungen folgen in
-  10.1 und 10.2.
+- Der Dock-Badge ist bewusst Feature 10.3 und getrennt von echten
+  System-Benachrichtigungen.
+
+### FeedNotificationService.swift
+- `FeedRefreshNotificationResult` beschreibt ein Refresh-Ergebnis pro Feed:
+  Feed-Titel, Anzahl neuer Artikel und ob Feed-Benachrichtigungen aktiv sind.
+- `FeedNotificationService.summary(from:)` filtert deaktivierte Feeds und Feeds
+  ohne neue Artikel heraus und fasst mehrere Feeds zu einer Benachrichtigung
+  zusammen, z.B. Titel `5 neue Artikel`, Body `Heise, Mac & i`.
+- `presentRefreshSummary(for:)` nutzt `UNUserNotificationCenter`, fragt bei Bedarf
+  einmalig die macOS-Erlaubnis an und zeigt danach eine lokale Benachrichtigung.
+  Wenn macOS die Erlaubnis verweigert oder keine passenden neuen Artikel vorhanden
+  sind, bleibt Feedivo still.
+- `RuleNotificationResult` und `ruleSummary(from:)` fassen Regel-Treffer zusammen:
+  ein einzelner Treffer nutzt den Regeltext direkt, mehrere Treffer derselben Regel
+  werden z.B. zu `3 neue Apple-Artikel` gruppiert.
+- `presentRuleSummary(for:)` zeigt regelbasierte lokale Benachrichtigungen. Kritisch
+  markierte Regeln werden aktuell als zeitkritisch vorbereitet; eine echte
+  Critical-Alert-Entitlement-Entscheidung bleibt bewusst später.
+- Klick auf die Benachrichtigung öffnet aktuell Feedivo. Präzise Navigation zu
+  Feed oder Artikel bleibt für Deep-Linking/Command-Routing später.
 
 ### ArticleListView.swift
 - Zeigt echte Artikel des ausgewählten Feeds über eine gezielte SwiftData-Query
@@ -920,9 +970,11 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   gespeichertem Feed-Inhalt und echten Offline-Kopien: Offline ist eine manuelle
   Artikelaktion, Feed-Content ist Basisinhalt, Automatik bleibt ein späterer M4-
   Folgepunkt.
-- Der Bereich `Benachrichtigungen` enthält in Feature 10.3 den Toggle
-  `Badge-Zähler am App-Icon anzeigen` und zeigt vorbereitende Hinweise für Feed-
-  und Regel-Benachrichtigungen aus Feature 10.1/10.2.
+- Der Bereich `Benachrichtigungen` enthält den Toggle
+  `Badge-Zähler am App-Icon anzeigen`, einen Hinweis auf Feed-Benachrichtigungen
+  pro Feed, den macOS-Erlaubnisstatus für Benachrichtigungen und einen Button zum
+  Anfragen der Erlaubnis, solange macOS noch nicht gefragt wurde. Regel-
+  Benachrichtigungen nutzen dieselbe macOS-Erlaubnis.
 - `@AppStorage("markArticleReadOnSelection")`
 - Standard: Artikel beim Oeffnen automatisch als gelesen markieren
 - `@AppStorage("appLanguage")`
@@ -1554,9 +1606,8 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   M3-Basis stabil bleiben. M4 umfasst jetzt iCloud Sync, erweiterten OPML-Import,
   manuellen Offline Mode, Settings-Polish, Artikel-Teilen, App-Icon und Release-
   Vorbereitung. Bild-/Favicon-Cache und Onboarding sind als M4-Basis umgesetzt.
-- Naechster sinnvoller Fokus: Settings-Fenster gemeinsam neu bewerten und als
-  M4-Polish sauber festziehen; danach Feature 3.2 aus der Roadmap oder
-  CloudKit-Sync-Umfang klären und Sync technisch aktivieren/testen.
+- Naechster sinnvoller Fokus: Feature 12.4 Feed-Vorschau vor dem Abonnieren oder
+  ein kleines Benachrichtigungs-Polish-Paket für spätere Deep-Link-Navigation.
 - Neuer offener M4/v1-Punkt: Vollartikel laden, wenn moeglich und erlaubt. Dabei
   bleibt Feedivo fair gegenüber Feed-Anbietern: Artikelstruktur, Werbung und
   Anbieterlinks dürfen nicht pauschal entfernt werden; die konkrete Reader-
@@ -1567,6 +1618,30 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 ---
 
 ## Letzte Änderungen
+
+- 2026-06-25: Feature 4.1 umgesetzt: `FeedDiscoveryService` erkennt direkte
+  Feed-URLs und Website-URLs, liest RSS-/Atom-/JSON-Feed-Links aus
+  `<link rel="alternate">`, löst relative URLs auf und entfernt Duplikate.
+  `AddFeedSheet` bietet nun eine `Suchen`-Aktion, zeigt gefundene Feeds als
+  auswählbare Liste und fügt den ausgewählten Feed über den bestehenden
+  `FeedViewModel.addFeed` Pfad hinzu. Die Suche läuft bewusst nicht automatisch
+  bei jedem Tastendruck, um unnötige Netzwerkabrufe zu vermeiden.
+
+- 2026-06-25: Feature 10.2 umgesetzt: Regeln haben jetzt die dritte Aktion
+  `Benachrichtigung auslösen`. Der RuleWizard zeigt dafür eine Textvorlage mit
+  `{Titel}`, `{Feed}` und `{Regel}` sowie die Priorität `Normal`/`Kritisch`.
+  `RuleEngine.applyRulesWithNotifications` liefert Regel-Treffer zurück, und
+  `FeedViewModel.refreshFeed`/`refreshAllFeeds` melden diese Treffer nach dem
+  Speichern an `FeedNotificationService`, der einzelne oder gruppierte lokale
+  macOS-Benachrichtigungen vorbereitet. Rückwirkendes Anwenden bestehender Regeln
+  löst bewusst keine macOS-Benachrichtigungen aus.
+
+- 2026-06-25: Feature 10.1 umgesetzt: Feeds haben `isNotificationEnabled`
+  mit Default `false`; `FeedPropertiesView` zeigt den Toggle `Benachrichtigung`.
+  `FeedViewModel.refreshFeed` und `refreshAllFeeds` melden neue Artikel nach
+  erfolgreichem Speichern an `FeedNotificationService`, der aktive Feeds zu einer
+  lokalen macOS-Benachrichtigung zusammenfasst. Die Einstellungen zeigen zusätzlich
+  den macOS-Erlaubnisstatus und können die Benachrichtigungs-Erlaubnis anfragen.
 
 - 2026-06-25: Feature 10.3 umgesetzt: Einstellungen haben eine neue Kategorie
   `Benachrichtigungen` mit Toggle `Badge-Zähler am App-Icon anzeigen`. Der Dock-
