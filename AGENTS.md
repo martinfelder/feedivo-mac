@@ -1254,7 +1254,11 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Wandelt HTML-Fragmente oder Plain Text in `ReaderContentBlock`
 - Aktuelle Block-Typen: `.paragraph(String)` und `.image(urlString:)`
 - Erkennt Absätze, Überschriften, Zitate, Listenpunkte und Bildbloecke
-- Nutzt `NSAttributedString` HTML-Konvertierung für lesbaren Text
+- Cacht die verwendeten `NSRegularExpression` Instanzen statisch, damit beim
+  Artikelwechsel keine Regexes neu kompiliert werden.
+- Wandelt HTML-Textblöcke mit einem schnellen Tag-Stripper und Entity-Decoder in
+  Plain Text um; der frühere `NSAttributedString`/WebKit-Pfad pro Textblock wird
+  nicht mehr genutzt.
 - Setzt das Lead-Bild immer als ersten Content-Block direkt unter den Titel:
   `Article.imageURL` gewinnt, sonst wird das erste HTML-`img` aus dem Inhalt nach
   vorne gezogen.
@@ -1636,6 +1640,13 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 ---
 
 ## Letzte Änderungen
+
+- 2026-06-25: Reader-Performance Paket 1 umgesetzt: `ReaderContentRenderer`
+  kompiliert seine HTML-/Bild-RegExes nicht mehr pro Artikel neu, sondern nutzt
+  gecachte statische `NSRegularExpression` Instanzen. `htmlToPlainText` startet
+  keinen `NSAttributedString`/WebKit-HTML-Parser mehr pro Textblock, sondern nutzt
+  einen schnellen Tag-Stripper plus HTML-Entity-Decoder für benannte, dezimale und
+  hexadezimale Entities.
 
 - 2026-06-25: Performance-Slice für Artikel-Navigation nach großen Imports
   umgesetzt: `ArticleListDisplayState` erzeugt jetzt einen gemeinsamen Snapshot

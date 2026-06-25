@@ -171,6 +171,34 @@ struct FeedivoTests {
         ])
     }
 
+    @Test func readerContentRendererDekodiertHTMLEntitiesOhneWebKitPfad() {
+        let blocks = ReaderContentRenderer.blocks(
+            summary: nil,
+            content: """
+            <p>AT&amp;T &lt; Telekom&nbsp;— &#8230;</p>
+            <p>Link: <a href="https://example.com">öffnen</a><br>Neue Zeile</p>
+            """,
+            fallbackImageURL: nil
+        )
+
+        #expect(blocks == [
+            .paragraph("AT&T < Telekom — …"),
+            .paragraph("Link: öffnen Neue Zeile")
+        ])
+    }
+
+    @Test func readerContentRendererDekodiertEntitiesAuchInTextOhneTags() {
+        let blocks = ReaderContentRenderer.blocks(
+            summary: nil,
+            content: "AT&amp;T&nbsp;News &#8230;",
+            fallbackImageURL: nil
+        )
+
+        #expect(blocks == [
+            .paragraph("AT&T News …")
+        ])
+    }
+
     @Test func readerMetadataBerechnetUngefaehreLesezeit() {
         let kurzerText = "Ein kurzer Artikel mit nur wenigen Worten."
         let langerText = Array(repeating: "Wort", count: 420).joined(separator: " ")

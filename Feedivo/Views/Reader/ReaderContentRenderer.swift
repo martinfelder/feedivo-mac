@@ -1,4 +1,3 @@
-import AppKit
 import Foundation
 
 enum ReaderContentBlock: Equatable {
@@ -10,6 +9,39 @@ enum ReaderContentBlock: Equatable {
 }
 
 enum ReaderContentRenderer {
+    private static let structuredBlockExpression = try! NSRegularExpression(
+        pattern: #"<img\b[^>]*>|<(h[1-6]|blockquote|li|p|div)\b[^>]*>(.*?)</\1>"#,
+        options: [.caseInsensitive, .dotMatchesLineSeparators]
+    )
+    private static let inlineImageExpression = try! NSRegularExpression(
+        pattern: #"<img\b[^>]*>"#,
+        options: [.caseInsensitive]
+    )
+    private static let imageSourceExpression = try! NSRegularExpression(
+        pattern: #"<img[^>]+src\s*=\s*["']([^"']+)["']"#,
+        options: [.caseInsensitive]
+    )
+    private static let listContainerExpression = try! NSRegularExpression(
+        pattern: #"</?(ul|ol)\b[^>]*>"#,
+        options: [.caseInsensitive]
+    )
+    private static let blockClosingExpression = try! NSRegularExpression(
+        pattern: #"</(p|div|h[1-6]|li|blockquote)>"#,
+        options: [.caseInsensitive]
+    )
+    private static let lineBreakExpression = try! NSRegularExpression(
+        pattern: #"<br\s*/?>"#,
+        options: [.caseInsensitive]
+    )
+    private static let tagExpression = try! NSRegularExpression(
+        pattern: #"<[^>]+>"#,
+        options: [.caseInsensitive, .dotMatchesLineSeparators]
+    )
+    private static let entityExpression = try! NSRegularExpression(
+        pattern: #"&(#x[0-9A-Fa-f]+|#[0-9]+|[A-Za-z][A-Za-z0-9]+);"#,
+        options: []
+    )
+
     static func blocks(summary: String?, content: String?, fallbackImageURL: String?) -> [ReaderContentBlock] {
         let source = preferredText(content: content, summary: summary)
         let contentBlocks = structuredContentBlocks(from: source)
@@ -51,16 +83,8 @@ enum ReaderContentRenderer {
             return nil
         }
 
-        let pattern = #"<img\b[^>]*>|<(h[1-6]|blockquote|li|p|div)\b[^>]*>(.*?)</\1>"#
-        guard let expression = try? NSRegularExpression(
-            pattern: pattern,
-            options: [.caseInsensitive, .dotMatchesLineSeparators]
-        ) else {
-            return nil
-        }
-
         let range = NSRange(html.startIndex ..< html.endIndex, in: html)
-        let matches = expression.matches(in: html, range: range)
+        let matches = structuredBlockExpression.matches(in: html, range: range)
         guard !matches.isEmpty else {
             return nil
         }
@@ -111,16 +135,8 @@ enum ReaderContentRenderer {
     }
 
     private static func appendInlineBlocks(from html: String, tag: String, to blocks: inout [ReaderContentBlock]) {
-        let pattern = #"<img\b[^>]*>"#
-        guard
-            let expression = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive])
-        else {
-            appendTextBlock(from: html, tag: tag, to: &blocks)
-            return
-        }
-
         let range = NSRange(html.startIndex ..< html.endIndex, in: html)
-        let matches = expression.matches(in: html, range: range)
+        let matches = inlineImageExpression.matches(in: html, range: range)
         guard !matches.isEmpty else {
             appendTextBlock(from: html, tag: tag, to: &blocks)
             return
@@ -149,8 +165,11 @@ enum ReaderContentRenderer {
     }
 
     private static func appendTextBlocks(from html: String, to blocks: inout [ReaderContentBlock]) {
-        let htmlWithoutListContainers = html
-            .replacingOccurrences(of: #"</?(ul|ol)\b[^>]*>"#, with: "", options: [.regularExpression, .caseInsensitive])
+        let htmlWithoutListContainers = stringByReplacingMatches(
+            in: html,
+            expression: listContainerExpression,
+            replacement: ""
+        )
 
         for paragraph in paragraphs(fromPreparedHTML: htmlWithoutListContainers) where paragraph != "•" {
             blocks.append(.paragraph(paragraph))
@@ -179,9 +198,16 @@ enum ReaderContentRenderer {
     }
 
     private static func paragraphs(fromPreparedHTML htmlOrText: String) -> [String] {
-        let prepared = htmlOrText
-            .replacingOccurrences(of: #"</(p|div|h[1-6]|li|blockquote)>"#, with: "\n", options: [.regularExpression, .caseInsensitive])
-            .replacingOccurrences(of: #"<br\s*/?>"#, with: "\n", options: [.regularExpression, .caseInsensitive])
+        let withBlockBreaks = stringByReplacingMatches(
+            in: htmlOrText,
+            expression: blockClosingExpression,
+            replacement: "\n"
+        )
+        let prepared = stringByReplacingMatches(
+            in: withBlockBreaks,
+            expression: lineBreakExpression,
+            replacement: "\n"
+        )
 
         let plainText = htmlToPlainText(prepared)
         return plainText
@@ -191,27 +217,22 @@ enum ReaderContentRenderer {
     }
 
     private static func htmlToPlainText(_ html: String) -> String {
-        guard html.contains("<"), let data = html.data(using: .utf8) else {
-            return html
-        }
-
-        let options: [NSAttributedString.DocumentReadingOptionKey: Any] = [
-            .documentType: NSAttributedString.DocumentType.html,
-            .characterEncoding: String.Encoding.utf8.rawValue
-        ]
-
-        guard let attributedString = try? NSAttributedString(data: data, options: options, documentAttributes: nil) else {
-            return html.replacingOccurrences(of: #"<[^>]+>"#, with: "", options: .regularExpression)
-        }
-
-        return attributedString.string
+        let withLineBreakSpaces = stringByReplacingMatches(
+            in: html,
+            expression: lineBreakExpression,
+            replacement: " "
+        )
+        let withoutTags = stringByReplacingMatches(
+            in: withLineBreakSpaces,
+            expression: tagExpression,
+            replacement: ""
+        )
+        return decodedHTMLEntities(in: withoutTags)
     }
 
     private static func appendImageBlock(from html: String, to blocks: inout [ReaderContentBlock]) {
-        let pattern = #"<img[^>]+src\s*=\s*["']([^"']+)["']"#
         guard
-            let expression = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]),
-            let match = expression.firstMatch(in: html, range: NSRange(html.startIndex ..< html.endIndex, in: html)),
+            let match = imageSourceExpression.firstMatch(in: html, range: NSRange(html.startIndex ..< html.endIndex, in: html)),
             let srcRange = Range(match.range(at: 1), in: html)
         else {
             return
@@ -230,6 +251,91 @@ enum ReaderContentRenderer {
 
         let value = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
         return value.isEmpty ? nil : value
+    }
+
+    private static func stringByReplacingMatches(
+        in text: String,
+        expression: NSRegularExpression,
+        replacement: String
+    ) -> String {
+        expression.stringByReplacingMatches(
+            in: text,
+            range: NSRange(text.startIndex ..< text.endIndex, in: text),
+            withTemplate: replacement
+        )
+    }
+
+    private static func decodedHTMLEntities(in text: String) -> String {
+        let nsText = text as NSString
+        let range = NSRange(location: 0, length: nsText.length)
+        let matches = entityExpression.matches(in: text, range: range)
+        guard !matches.isEmpty else {
+            return text
+        }
+
+        var decodedText = text
+        for match in matches.reversed() {
+            let entity = nsText.substring(with: match.range)
+            let decodedEntity = decodedHTMLEntity(entity) ?? entity
+            if let range = Range(match.range, in: decodedText) {
+                decodedText.replaceSubrange(range, with: decodedEntity)
+            }
+        }
+
+        return decodedText
+    }
+
+    private static func decodedHTMLEntity(_ entity: String) -> String? {
+        switch entity {
+        case "&amp;":
+            return "&"
+        case "&lt;":
+            return "<"
+        case "&gt;":
+            return ">"
+        case "&quot;":
+            return "\""
+        case "&apos;":
+            return "'"
+        case "&nbsp;":
+            return " "
+        case "&ndash;":
+            return "–"
+        case "&mdash;":
+            return "—"
+        case "&hellip;":
+            return "…"
+        case "&copy;":
+            return "©"
+        case "&reg;":
+            return "®"
+        case "&trade;":
+            return "™"
+        default:
+            return decodedNumericHTMLEntity(entity)
+        }
+    }
+
+    private static func decodedNumericHTMLEntity(_ entity: String) -> String? {
+        guard entity.hasPrefix("&#"), entity.hasSuffix(";") else {
+            return nil
+        }
+
+        let value = entity.dropFirst(2).dropLast()
+        let scalarValue: UInt32?
+        if value.lowercased().hasPrefix("x") {
+            scalarValue = UInt32(value.dropFirst(), radix: 16)
+        } else {
+            scalarValue = UInt32(value, radix: 10)
+        }
+
+        guard let scalarValue,
+              let scalar = UnicodeScalar(scalarValue)
+        else {
+            return nil
+        }
+
+        return String(Character(scalar))
     }
 
     nonisolated private static func normalizedWhitespace(_ text: String) -> String {

@@ -668,6 +668,7 @@
   - Artikel-Listen berechnen sichtbare Artikel und die Anzahl ausgeblendeter gelesener Artikel in einem Durchlauf
   - Tag-Zuweisungsoptionen werden in Artikelzeilen erst im Kontextmenü berechnet, nicht mehr bei jedem Zeilen-Render
   - Vordefinierte/einfache intelligente Ordner nutzen gezielte SwiftData-Queries statt alle Artikel im Speicher zu filtern
+  - Reader-HTML-Parsing cached `NSRegularExpression` Instanzen und wandelt Textblöcke ohne `NSAttributedString`/WebKit in Plain Text um
 - **Zu beachten:**
   - SwiftData-Queries immer mit gezielten Predicates — nie alle Artikel auf einmal laden
   - Artikel-Liste mit Paginierung (50 Artikel pro Batch, mehr beim Scrollen)
