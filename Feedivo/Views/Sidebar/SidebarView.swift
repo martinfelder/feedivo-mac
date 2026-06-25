@@ -2,31 +2,33 @@ import SwiftUI
 import SwiftData
 
 struct SidebarView: View {
+    @Environment(\.modelContext) private var modelContext
     @Environment(\.interfaceTextSize) private var interfaceTextSize
 
     @Query(sort: \Feed.title) private var feeds: [Feed]
     @Query(sort: \FeedFolder.name) private var folders: [FeedFolder]
     @Query(sort: \Tag.name) private var tags: [Tag]
-    @Query(sort: \Rule.name) private var rules: [Rule]
+    @Query(sort: \SmartFolder.sortOrder) private var smartFolders: [SmartFolder]
+    @Query(sort: \Article.publishedAt, order: .reverse) private var articles: [Article]
     @Binding var selection: SidebarSelection?
-    let selectedArticle: Article?
     let onRequestAddFeed: () -> Void
     let onRequestDeleteFeed: (Feed) -> Void
-    let onRequestCreateRuleFromArticle: (Article) -> Void
-    @AppStorage(SidebarSectionCollapseState.Section.smartFilters.storageKey)
-    private var isSmartFiltersCollapsed = false
     @AppStorage(SidebarSectionCollapseState.Section.tags.storageKey)
     private var isTagsCollapsed = false
-    @AppStorage(SidebarSectionCollapseState.Section.rules.storageKey)
-    private var isRulesCollapsed = false
     @AppStorage(SidebarSectionCollapseState.Section.folders.storageKey)
     private var isFoldersCollapsed = false
+    @AppStorage(SidebarSectionCollapseState.Section.smartFolders.storageKey)
+    private var isSmartFoldersCollapsed = false
     @AppStorage(SidebarFeedVisibilitySettings.showsReadFeedsKey)
     private var showsReadFeedsInSidebar = SidebarFeedVisibilitySettings.defaultShowsReadFeeds
     @State private var feedShowingProperties: Feed?
     @State private var feedRenaming: Feed?
     @State private var isShowingAddFolderSheet = false
     @State private var isShowingTagManager = false
+    @State private var smartFolderEditing: SmartFolder?
+    @State private var smartFolderPendingDeletion: SmartFolder?
+    @State private var isCreatingSmartFolder = false
+    @State private var smartFolderViewModel = SmartFolderViewModel()
     @State private var collapsedFolderNames: Set<String> = []
 
     var body: some View {
@@ -35,9 +37,8 @@ struct SidebarView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    smartFiltersSection
+                    smartFoldersSection
                     tagsSection
-                    rulesSection
                     foldersSection
                 }
                 .padding(.horizontal, 14)
@@ -64,6 +65,35 @@ struct SidebarView: View {
         .sheet(isPresented: $isShowingTagManager) {
             TagManagerView { tag in
                 selection = .tag(tag.persistentModelID)
+            }
+        }
+        .sheet(isPresented: $isCreatingSmartFolder) {
+            SmartFolderEditorView(existingFolders: smartFolders)
+        }
+        .sheet(item: $smartFolderEditing) { smartFolder in
+            SmartFolderEditorView(folder: smartFolder, existingFolders: smartFolders)
+        }
+        .confirmationDialog(
+            "Intelligenten Ordner löschen",
+            isPresented: Binding(
+                get: { smartFolderPendingDeletion != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        smartFolderPendingDeletion = nil
+                    }
+                }
+            ),
+            presenting: smartFolderPendingDeletion
+        ) { smartFolder in
+            Button("Löschen", role: .destructive) {
+                smartFolderViewModel.deleteFolder(smartFolder, context: modelContext)
+                if selection == .smartFolder(smartFolder.persistentModelID) {
+                    selection = defaultSmartFolderSelection(excluding: smartFolder)
+                }
+                smartFolderPendingDeletion = nil
+            }
+            Button(L10n.commonCancel, role: .cancel) {
+                smartFolderPendingDeletion = nil
             }
         }
     }
@@ -100,29 +130,6 @@ struct SidebarView: View {
         }
     }
 
-    private var smartFiltersSection: some View {
-        CollapsibleSidebarSection(
-            title: L10n.sidebarSmartFiltersSection,
-            isCollapsed: $isSmartFiltersCollapsed
-        ) {
-            ForEach(SmartFilter.allCases) { smartFilter in
-                SidebarRow(
-                    title: smartFilter.title,
-                    systemImage: smartFilter.systemImage,
-                    iconColor: smartFilter.iconColor.color,
-                    isSelected: selection == .smartFilter(smartFilter),
-                    badgeText: smartFilter == .unread
-                        ? SidebarUnreadCount.badgeText(
-                            for: SidebarUnreadCount.totalUnreadArticleCount(in: feeds)
-                        )
-                        : nil
-                ) {
-                    selection = .smartFilter(smartFilter)
-                }
-            }
-        }
-    }
-
     private var tagsSection: some View {
         CollapsibleSidebarSection(
             title: L10n.sidebarTagsSection,
@@ -135,26 +142,6 @@ struct SidebarView: View {
             if !tags.isEmpty {
                 tagRows(tags)
             }
-        }
-    }
-
-    private var rulesSection: some View {
-        CollapsibleSidebarSection(
-            title: L10n.sidebarRulesSection,
-            isCollapsed: $isRulesCollapsed,
-            actionSystemImage: "slider.horizontal.3",
-            actionHelp: L10n.ruleCreateFromArticle,
-            isActionDisabled: selectedArticle == nil
-        ) {
-            if let selectedArticle {
-                onRequestCreateRuleFromArticle(selectedArticle)
-            }
-        } content: {
-            Text(L10n.sidebarRulesActiveCount(count: rules.filter(\.isEnabled).count))
-                .font(interfaceTextSize.font(size: 13))
-                .foregroundStyle(SidebarStyle.secondaryText)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
         }
     }
 
@@ -202,6 +189,83 @@ struct SidebarView: View {
                 }
             }
         }
+    }
+
+    private var smartFoldersSection: some View {
+        CollapsibleSidebarSection(
+            title: "Intelligente Ordner",
+            isCollapsed: $isSmartFoldersCollapsed,
+            actionSystemImage: "plus",
+            actionHelp: "Intelligenten Ordner erstellen"
+        ) {
+            isCreatingSmartFolder = true
+        } content: {
+            let visibleSmartFolders = SmartFolderViewModel.sortedFolders(smartFolders)
+                .filter(\.isShownInSidebar)
+
+            if visibleSmartFolders.isEmpty {
+                Text("Keine intelligenten Ordner")
+                    .font(interfaceTextSize.font(size: 13))
+                    .foregroundStyle(SidebarStyle.secondaryText)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
+            } else {
+                ForEach(visibleSmartFolders) { smartFolder in
+                    Button {
+                        selection = .smartFolder(smartFolder.persistentModelID)
+                    } label: {
+                        SmartFolderSidebarRow(
+                            smartFolder: smartFolder,
+                            badgeText: SidebarUnreadCount.badgeText(
+                                for: SmartFolderEngine.matchingArticleCount(folder: smartFolder, articles: articles)
+                            )
+                        )
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .buttonStyle(
+                        SidebarRowButtonStyle(
+                            isSelected: selection == .smartFolder(smartFolder.persistentModelID)
+                        )
+                    )
+                    .contextMenu {
+                        Button {
+                            smartFolderEditing = smartFolder
+                        } label: {
+                            Label(L10n.ruleEditButton, systemImage: "pencil")
+                        }
+
+                        Button {
+                            smartFolderViewModel.duplicateFolder(
+                                smartFolder,
+                                existingFolders: smartFolders,
+                                context: modelContext
+                            )
+                        } label: {
+                            Label("Duplizieren", systemImage: "plus.square.on.square")
+                        }
+
+                        Divider()
+
+                        Button(role: .destructive) {
+                            smartFolderPendingDeletion = smartFolder
+                        } label: {
+                            Label(L10n.ruleDeleteButton, systemImage: "trash")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func defaultSmartFolderSelection(excluding deletedFolder: SmartFolder? = nil) -> SidebarSelection? {
+        SmartFolderViewModel.sortedFolders(smartFolders)
+            .filter(\.isShownInSidebar)
+            .first { folder in
+                deletedFolder?.persistentModelID != folder.persistentModelID
+            }
+            .map { folder in
+                .smartFolder(folder.persistentModelID)
+            }
     }
 
     private func feedRows(_ feeds: [Feed], isIndented: Bool = false) -> some View {
@@ -270,6 +334,38 @@ struct SidebarView: View {
                 collapsedFolderNames.remove(folderName)
             } else {
                 collapsedFolderNames.insert(folderName)
+            }
+        }
+    }
+}
+
+private struct SmartFolderSidebarRow: View {
+    @Environment(\.interfaceTextSize) private var interfaceTextSize
+
+    let smartFolder: SmartFolder
+    let badgeText: String?
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: SmartFolderFormatter.systemImage(for: smartFolder))
+                .font(interfaceTextSize.font(size: 14, weight: .semibold))
+                .foregroundStyle(SmartFolderFormatter.color(for: smartFolder).opacity(SidebarStyle.iconOpacity))
+                .frame(width: interfaceTextSize.scaled(20))
+
+            Text(smartFolder.name)
+                .font(interfaceTextSize.font(size: 13, weight: .semibold))
+                .lineLimit(1)
+
+            Spacer(minLength: 8)
+
+            if let badgeText {
+                Text(badgeText)
+                    .font(interfaceTextSize.font(size: 11, weight: .semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(SidebarStyle.secondaryText)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 2)
+                    .background(SidebarStyle.activeSelection, in: Capsule())
             }
         }
     }

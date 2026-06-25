@@ -8,13 +8,14 @@ struct ContentView: View {
     @AppStorage(FirstRunWizardState.completionStorageKey) private var hasCompletedFirstRunWizard = false
     @Query(sort: \Feed.title) private var feeds: [Feed]
     @Query(sort: \Tag.name) private var tags: [Tag]
+    @Query(sort: \SmartFolder.sortOrder) private var smartFolders: [SmartFolder]
 
     // columnVisibility steuert ob die Sidebar sichtbar ist.
     // .all bedeutet: alle 3 Spalten beim Start anzeigen.
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
 
-    // sidebarSelection speichert ob ein Smart Filter oder ein Feed ausgewählt ist.
-    @State private var sidebarSelection: SidebarSelection? = .smartFilter(.allArticles)
+    // sidebarSelection speichert, welche Sidebar-Zeile ausgewählt ist.
+    @State private var sidebarSelection: SidebarSelection?
 
     // selectedArticle speichert welcher Artikel gerade in der Liste ausgewählt ist.
     @State private var selectedArticle: Article? = nil
@@ -43,19 +44,17 @@ struct ContentView: View {
             // SPALTE 1: Sidebar — Liste aller Feeds
             SidebarView(
                 selection: $sidebarSelection,
-                selectedArticle: selectedArticle,
                 onRequestAddFeed: requestAddFeed,
-                onRequestDeleteFeed: requestDeleteFeed,
-                onRequestCreateRuleFromArticle: requestCreateRuleFromArticle
+                onRequestDeleteFeed: requestDeleteFeed
             )
                 .navigationSplitViewColumnWidth(min: 200, ideal: 240, max: 300)
 
         } content: {
 
             // SPALTE 2: Artikel-Liste des ausgewählten Feeds oder Smart Filters
-            if let smartFilter = selectedSmartFilter {
+            if let smartFolder = selectedSmartFolder {
                 ArticleListView(
-                    smartFilter: smartFilter,
+                    smartFolder: smartFolder,
                     selectedArticle: $selectedArticle,
                     navigationState: $articleNavigationState,
                     onRequestCreateRuleFromArticle: requestCreateRuleFromArticle,
@@ -74,6 +73,15 @@ struct ContentView: View {
             } else if let tag = selectedTag {
                 ArticleListView(
                     tag: tag,
+                    selectedArticle: $selectedArticle,
+                    navigationState: $articleNavigationState,
+                    onRequestCreateRuleFromArticle: requestCreateRuleFromArticle,
+                    onRequestExportArticle: requestExportArticle
+                )
+                    .navigationSplitViewColumnWidth(min: 280, ideal: 320, max: 400)
+            } else if let smartFilter = selectedSmartFilter {
+                ArticleListView(
+                    smartFilter: smartFilter,
                     selectedArticle: $selectedArticle,
                     navigationState: $articleNavigationState,
                     onRequestCreateRuleFromArticle: requestCreateRuleFromArticle,
@@ -100,7 +108,8 @@ struct ContentView: View {
                     canSelectPreviousArticle: articleNavigationState.previousArticle != nil,
                     canSelectNextArticle: articleNavigationState.nextArticle != nil,
                     selectPreviousArticle: selectPreviousArticle,
-                    selectNextArticle: selectNextArticle
+                    selectNextArticle: selectNextArticle,
+                    onRequestCreateRuleFromArticle: requestCreateRuleFromArticle
                 )
             } else {
                 ContentUnavailableView(
@@ -117,6 +126,10 @@ struct ContentView: View {
         }
         .onAppear {
             updateFirstRunWizardPresentation()
+            selectDefaultSmartFolderIfNeeded()
+        }
+        .onChange(of: smartFolders.count) {
+            selectDefaultSmartFolderIfNeeded()
         }
         .onChange(of: feeds.count) {
             updateFirstRunWizardPresentation()
@@ -391,6 +404,28 @@ struct ContentView: View {
         }
 
         return smartFilter
+    }
+
+    private var selectedSmartFolder: SmartFolder? {
+        guard case .smartFolder(let smartFolderID) = sidebarSelection else {
+            return nil
+        }
+
+        return smartFolders.first { $0.persistentModelID == smartFolderID }
+    }
+
+    private func selectDefaultSmartFolderIfNeeded() {
+        guard sidebarSelection == nil || selectedSmartFilter != nil else {
+            return
+        }
+
+        guard let defaultFolder = SmartFolderViewModel.sortedFolders(smartFolders)
+            .first(where: \.isShownInSidebar)
+        else {
+            return
+        }
+
+        sidebarSelection = .smartFolder(defaultFolder.persistentModelID)
     }
 
 }

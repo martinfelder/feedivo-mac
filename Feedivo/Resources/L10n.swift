@@ -126,7 +126,6 @@ enum L10n {
     static let ruleWizardPreviewTitle = LocalizedStringKey("ruleWizard.preview.title")
     static let ruleActionAssignTag = LocalizedStringKey("rule.action.assignTag")
     static let ruleActionHideArticle = LocalizedStringKey("rule.action.hideArticle")
-    static let sidebarRulesSection = LocalizedStringKey("sidebar.rules.section")
     static let settingsReadingSection = LocalizedStringKey("settings.reading.section")
     static let settingsLanguageSection = LocalizedStringKey("settings.language.section")
     static let settingsLanguagePickerTitle = LocalizedStringKey("settings.language.picker.title")
@@ -343,10 +342,6 @@ enum L10n {
 
     static func readerReadingTime(minutes: Int) -> String {
         String.localizedStringWithFormat(String(localized: "reader.readingTime"), minutes)
-    }
-
-    static func sidebarRulesActiveCount(count: Int) -> String {
-        String.localizedStringWithFormat(String(localized: "sidebar.rules.activeCount"), count)
     }
 
     static func ruleApplyExistingResult(count: Int) -> String {

@@ -6,6 +6,7 @@ struct ArticleListView: View {
         case feed(Feed)
         case smartFilter(SmartFilter)
         case tag(Tag)
+        case smartFolder(SmartFolder)
     }
 
     private let scope: Scope
@@ -56,6 +57,20 @@ struct ArticleListView: View {
         self.onRequestExportArticle = onRequestExportArticle
     }
 
+    init(
+        smartFolder: SmartFolder,
+        selectedArticle: Binding<Article?>,
+        navigationState: Binding<ArticleNavigationState>,
+        onRequestCreateRuleFromArticle: @escaping (Article) -> Void = { _ in },
+        onRequestExportArticle: @escaping (Article) -> Void = { _ in }
+    ) {
+        self.scope = .smartFolder(smartFolder)
+        self._selectedArticle = selectedArticle
+        self._navigationState = navigationState
+        self.onRequestCreateRuleFromArticle = onRequestCreateRuleFromArticle
+        self.onRequestExportArticle = onRequestExportArticle
+    }
+
     var body: some View {
         switch scope {
         case .feed(let feed):
@@ -77,6 +92,14 @@ struct ArticleListView: View {
         case .tag(let tag):
             TagArticleListContent(
                 tag: tag,
+                selectedArticle: $selectedArticle,
+                navigationState: $navigationState,
+                onRequestCreateRuleFromArticle: onRequestCreateRuleFromArticle,
+                onRequestExportArticle: onRequestExportArticle
+            )
+        case .smartFolder(let smartFolder):
+            SmartFolderArticleListContent(
+                smartFolder: smartFolder,
                 selectedArticle: $selectedArticle,
                 navigationState: $navigationState,
                 onRequestCreateRuleFromArticle: onRequestCreateRuleFromArticle,
@@ -240,6 +263,42 @@ private struct SmartFilterArticleListContent: View {
             showsHiddenArticles: smartFilter == .hidden
         )
         .id(smartFilter)
+    }
+}
+
+private struct SmartFolderArticleListContent: View {
+    let smartFolder: SmartFolder
+    let onRequestCreateRuleFromArticle: (Article) -> Void
+    let onRequestExportArticle: (Article) -> Void
+    @Binding var selectedArticle: Article?
+    @Binding var navigationState: ArticleNavigationState
+    @Query(sort: \Article.publishedAt, order: .reverse) private var articles: [Article]
+
+    init(
+        smartFolder: SmartFolder,
+        selectedArticle: Binding<Article?>,
+        navigationState: Binding<ArticleNavigationState>,
+        onRequestCreateRuleFromArticle: @escaping (Article) -> Void,
+        onRequestExportArticle: @escaping (Article) -> Void
+    ) {
+        self.smartFolder = smartFolder
+        self.onRequestCreateRuleFromArticle = onRequestCreateRuleFromArticle
+        self.onRequestExportArticle = onRequestExportArticle
+        self._selectedArticle = selectedArticle
+        self._navigationState = navigationState
+    }
+
+    var body: some View {
+        ArticleListContent(
+            articles: SmartFolderEngine.matchingArticles(folder: smartFolder, articles: articles),
+            navigationTitle: Text(smartFolder.name),
+            selectedArticle: $selectedArticle,
+            navigationState: $navigationState,
+            onRequestCreateRuleFromArticle: onRequestCreateRuleFromArticle,
+            onRequestExportArticle: onRequestExportArticle,
+            showsHiddenArticles: SmartFolderFormatter.includesHiddenStatus(smartFolder)
+        )
+        .id(smartFolder.id)
     }
 }
 

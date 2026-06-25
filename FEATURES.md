@@ -7,7 +7,7 @@
 > Status-Legende:
 > ✔️ Fertig | 🔨 In Arbeit (teilweise umgesetzt) | ✅ Entschieden (bereit zur Implementierung) | 💬 In Diskussion | ⏸️ Zurückgestellt
 >
-> Zuletzt aktualisiert: 2026-06-24
+> Zuletzt aktualisiert: 2026-06-25
 
 ---
 
@@ -99,7 +99,7 @@
   2. Stern setzen / Stern entfernen
   3. Archivieren / Aus Archiv entfernen
   4. Tag zuweisen... (Tag-Liste als Untermenü)
-  5. Regel erstellen... (RuleWizard vorausgefüllt)
+  5. Regel erstellen... (RuleWizard vorausgefüllt; zusätzlich im Menü der Artikelansicht)
   6. Im Browser öffnen
   7. Link kopieren
   8. Teilen... (macOS Share Sheet)
@@ -114,7 +114,7 @@
 - **Status:** ✔️ Fertig
 - **Umgesetzt:**
   - Ungelesene Artikel: immer angezeigt, unabhängig vom Alter
-  - Gelesene Artikel: standardmässig ausgeblendet in der Liste
+  - Gelesene Artikel: standardmäßig ausgeblendet in der Liste
   - Am Ende der Liste: Button "X gelesene Artikel anzeigen" — Klick blendet alle gelesenen Artikel ein
   - Filtermenü bietet zusätzlich "Gelesene ausblenden" und "Gelesene und ungelesene anzeigen"
   - Artikel, die durch "beim Öffnen als gelesen markieren" automatisch gelesen werden, bleiben bis zum Feed-/Listenwechsel sichtbar
@@ -130,12 +130,11 @@
 - **Umgesetzt:** `SidebarView`, `FeedRowView`, `FeedFolderOrganizer`, `SidebarUnreadCount`
 
 ### 3.2 Smart Filter
-- **Status:** ✅ Entschieden — bereit zur Implementierung
-- **Umgesetzt:** Alle / Ungelesen / Mit Stern / Heute / Ausgeblendet
-- **Zu implementieren:**
-  - Neue Smart Filter: Diese Woche / Letzte 30 Tage / Archiviert
-  - Alle Smart Filter standardmässig sichtbar
-  - Einstellungen → Sidebar: User kann jeden Smart Filter ein- und ausblenden
+- **Status:** ↪️ Ersetzt durch Intelligente Ordner
+- **Entscheidung:** Die festen Smart Filter werden nicht weiter ausgebaut. Alle
+  Standardansichten laufen künftig als vordefinierte Intelligente Ordner.
+- **Abgedeckt durch Intelligente Ordner:** Alle Artikel, Ungelesen, Mit Stern,
+  Heute, Ausgeblendet, Archiviert, Diese Woche und Gespeichert.
 
 ### 3.3 Tag-Abschnitt
 - **Status:** ✔️ Fertig
@@ -196,7 +195,7 @@
   - Benachrichtigung auslösen (neu — siehe Feature 10.2)
   - Artikel ausblenden (umgesetzt — siehe Feature 16.3)
 - **Noch offen (nicht jetzt implementieren):**
-  - Echtes Drag & Drop fuer die Reihenfolge; fuer v1 bewusst stabile Reihenfolge-Buttons
+  - Echtes Drag & Drop für die Reihenfolge; für v1 bewusst stabile Reihenfolge-Buttons
   - Regex als Operator
 
 ---
@@ -214,7 +213,7 @@
 ### 7.1 OPML Import
 - **Status:** ✔️ Fertig
 - **Umgesetzt:** `OPMLImportReviewView`, zweiphasiger Import, Drag & Drop,
-  Uebernahme des gewaehlten bzw. gespeicherten Aktualisierungsintervalls fuer neu
+  Übernahme des gewählten bzw. gespeicherten Aktualisierungsintervalls für neu
   importierte Feeds
 
 ### 7.2 OPML Export
@@ -399,9 +398,9 @@
 ## 16. Intelligente Ordner
 
 ### 16.1 Intelligenter Ordner
-- **Status:** ✅ Entschieden — bereit zur Implementierung
-- **Zu implementieren:**
-  - Eigener Abschnitt "Intelligente Ordner" in der Sidebar (unter normalen Ordnern)
+- **Status:** ✔️ Fertig
+- **Umgesetzt:**
+  - Eigener Abschnitt "Intelligente Ordner" ganz oben in der Sidebar
   - Dynamische Ansicht — befüllt sich automatisch nach Bedingungen
   - Verfügbare Bedingungen:
     - Tag ist X
@@ -411,18 +410,28 @@
     - Titel enthält Text
     - Text im Artikel enthält (Volltext-Suche)
     - Autor ist / enthält
-  - UND / ODER Verknüpfung zwischen Bedingungen
-  - Beim ersten App-Start 3 vordefinierte Intelligente Ordner erstellen: "Heute", "Diese Woche", "Gespeichert"
+  - UND / ODER Verknüpfung zwischen Bedingungen als globale Auswahl pro Ordner
+  - Vordefinierte Intelligente Ordner erstellen: "Alle Artikel", "Ungelesen",
+    "Mit Stern", "Heute", "Ausgeblendet", "Archiviert", "Diese Woche", "Gespeichert"
+  - Ein Intelligenter Ordner ohne Bedingungen bedeutet "Alle Artikel"
+  - Vordefinierte Ordner speichern Icon und Farbe wie normale intelligente Ordner
+  - V1-Entscheidung: Gemischte Operatoren oder Bedingungsgruppen werden bewusst noch nicht umgesetzt.
 
 ### 16.2 Intelligenten Ordner erstellen/bearbeiten
-- **Status:** ✅ Entschieden — bereit zur Implementierung
-- **Zu implementieren:**
+- **Status:** ✔️ Fertig
+- **Umgesetzt:**
   - Sheet ähnlich macOS Smart Mailboxes (Mail.app)
   - Name des Ordners oben
   - UND / ODER Auswahl: "Erfülle alle / eine der folgenden Bedingungen"
   - Bedingungszeilen mit + / − Buttons
   - Live-Vorschau der Resultate direkt im Sheet
   - Intelligente Ordner: umbenennbar, löschbar, duplizierbar (Rechtsklick in Sidebar)
+  - Verwaltung in den Einstellungen im Stil der Regelverwaltung: Liste mit Reihenfolge,
+    Sidebar-Sichtbarkeit, Trefferanzahl, Bearbeiten, Duplizieren, Löschen und Defaults wiederherstellen
+  - Reihenfolge per Hamburger-Handle und Live-Drag-&-Drop; die ganze Zeile rutscht
+    während des Ziehens sichtbar an die neue Position, Pfeilbuttons werden bewusst nicht verwendet
+  - Beim Erstellen/Bearbeiten können Icon und Farbe gewählt werden; Sidebar und Settings nutzen diese Darstellung
+  - Grafischer Prototyp: `docs/design/smart-folders-prototype/index.html`
 
 ### 16.3 Artikel ausblenden via Regel
 - **Status:** ✔️ Fertig
@@ -669,9 +678,9 @@ Folgende Reihenfolge berücksichtigt Abhängigkeiten. Features mit (*) sind Vora
 
 ### Phase 2 — Regeln & Intelligente Ordner
 6. **Feature 16.3** * — Artikel ausblenden via Regel + Smart Filter "Ausgeblendet" — erledigt
-7. **Feature 5.2** — Regeln Settings-Design (Drag & Drop Liste, alle 3 Aktionen)
-8. **Feature 16.1/16.2** — Intelligente Ordner (eigener Sidebar-Abschnitt, Sheet, Live-Vorschau, 3 vordefinierte)
-9. **Feature 3.2** — Smart Filter erweitern (Diese Woche, Letzte 30 Tage, Archiviert, Ausgeblendet, ein/ausblendbar)
+7. **Feature 5.2** — Regeln Settings-Design (Drag & Drop Liste, alle 3 Aktionen) — erledigt
+8. **Feature 16.1/16.2** — Intelligente Ordner (eigener Sidebar-Abschnitt, Sheet, Live-Vorschau, 3 vordefinierte) — erledigt
+9. **Feature 3.2** — Smart Filter erweitern — entfällt, durch Intelligente Ordner ersetzt
 
 ### Phase 3 — Benachrichtigungen
 10. **Feature 10.3** * — Badge-Zähler App-Icon + Einstellungs-Kategorie Benachrichtigungen

@@ -9,15 +9,15 @@ struct SidebarSectionCollapseStateTests {
         SidebarSectionCollapseState.toggle(.tags, in: &collapsedSections)
         #expect(collapsedSections.isEmpty)
 
-        SidebarSectionCollapseState.toggle(.rules, in: &collapsedSections)
-        #expect(collapsedSections == [.rules])
+        SidebarSectionCollapseState.toggle(.folders, in: &collapsedSections)
+        #expect(collapsedSections == [.folders])
     }
 
     @MainActor
     @Test func appStorageKeysBleibenStabil() {
         #expect(SidebarSectionCollapseState.Section.smartFilters.storageKey == "sidebar.section.smartFilters.isCollapsed")
         #expect(SidebarSectionCollapseState.Section.tags.storageKey == "sidebar.section.tags.isCollapsed")
-        #expect(SidebarSectionCollapseState.Section.rules.storageKey == "sidebar.section.rules.isCollapsed")
         #expect(SidebarSectionCollapseState.Section.folders.storageKey == "sidebar.section.folders.isCollapsed")
+        #expect(SidebarSectionCollapseState.Section.smartFolders.storageKey == "sidebar.section.smartFolders.isCollapsed")
     }
 }

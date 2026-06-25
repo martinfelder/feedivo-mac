@@ -20,6 +20,7 @@ class Article {
     var link: String?
     var summary: String?
     var content: String?
+    var author: String?
     var publishedAt: Date?
     var imageURL: String?
     var feedID: UUID?
@@ -53,6 +54,7 @@ class Article {
         link: String? = nil,
         summary: String? = nil,
         content: String? = nil,
+        author: String? = nil,
         publishedAt: Date? = nil,
         imageURL: String? = nil,
         isRead: Bool = false,
@@ -66,6 +68,7 @@ class Article {
         self.link = link
         self.summary = summary
         self.content = content
+        self.author = author
         self.publishedAt = publishedAt
         self.imageURL = imageURL
         self.feedID = feed?.id

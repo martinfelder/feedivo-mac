@@ -4,8 +4,8 @@ enum SidebarSectionCollapseState {
     enum Section: CaseIterable, Hashable {
         case smartFilters
         case tags
-        case rules
         case folders
+        case smartFolders
 
         var storageKey: String {
             switch self {
@@ -13,10 +13,10 @@ enum SidebarSectionCollapseState {
                 "sidebar.section.smartFilters.isCollapsed"
             case .tags:
                 "sidebar.section.tags.isCollapsed"
-            case .rules:
-                "sidebar.section.rules.isCollapsed"
             case .folders:
                 "sidebar.section.folders.isCollapsed"
+            case .smartFolders:
+                "sidebar.section.smartFolders.isCollapsed"
             }
         }
     }

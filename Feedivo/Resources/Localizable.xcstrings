@@ -13,6 +13,9 @@
     "%lld" : {
 
     },
+    "%lld Artikel passen aktuell zu diesem intelligenten Ordner." : {
+
+    },
     "%lld px" : {
 
     },
@@ -1213,6 +1216,12 @@
     "Auswahl bearbeiten" : {
 
     },
+    "Bedingung hinzufügen" : {
+
+    },
+    "Bedingungen" : {
+
+    },
     "common.add" : {
       "localizations" : {
         "de" : {
@@ -1409,6 +1418,9 @@
         }
       }
     },
+    "Darstellung" : {
+
+    },
     "Datei auswählen..." : {
 
     },
@@ -1424,7 +1436,22 @@
     "Duplizieren" : {
 
     },
+    "Dynamische Artikelansicht mit globalem UND/ODER-Operator." : {
+
+    },
+    "Dynamische Ordner werden in der Sidebar angezeigt und filtern Artikel automatisch." : {
+
+    },
+    "Eigener Ordner" : {
+
+    },
     "Entfernen" : {
+
+    },
+    "Erfülle alle Bedingungen" : {
+
+    },
+    "Erfülle eine Bedingung" : {
 
     },
     "Feed" : {
@@ -2851,6 +2878,9 @@
     "https://example.com/feed.xml" : {
 
     },
+    "Icon" : {
+
+    },
     "Import abgeschlossen" : {
 
     },
@@ -2863,10 +2893,37 @@
     "Import-Zusammenfassung" : {
 
     },
+    "In Sidebar anzeigen" : {
+
+    },
+    "Intelligente Ordner" : {
+
+    },
+    "Intelligenten Ordner bearbeiten" : {
+
+    },
+    "Intelligenten Ordner erstellen" : {
+
+    },
+    "Intelligenten Ordner löschen" : {
+
+    },
+    "Keine intelligenten Ordner" : {
+
+    },
+    "Live-Vorschau" : {
+
+    },
+    "Löschen" : {
+
+    },
     "Nach oben" : {
 
     },
     "Nach unten" : {
+
+    },
+    "Name" : {
 
     },
     "networkStatus.offline" : {
@@ -2932,6 +2989,9 @@
 
     },
     "Nicht erreichbare importieren" : {
+
+    },
+    "ODER" : {
 
     },
     "oder Datei auswählen. Feedivo zeigt dir danach zuerst eine Vorschau." : {
@@ -3021,7 +3081,13 @@
         }
       }
     },
+    "Ohne Bedingungen werden alle Artikel angezeigt." : {
+
+    },
     "Ohne Ordner" : {
+
+    },
+    "Operator" : {
 
     },
     "OPML" : {
@@ -3720,7 +3786,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Feedivo hat fuer diesen Artikel noch keinen lesbaren Inhalt."
+            "value" : "Feedivo hat für diesen Artikel noch keinen lesbaren Inhalt."
           }
         },
         "en" : {
@@ -5477,7 +5543,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Loeschen"
+            "value" : "Löschen"
           }
         },
         "en" : {
@@ -5645,7 +5711,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bitte Name, Aktion und mindestens eine Bedingung ausfuellen. Bei Tag-Regeln muss ein Ziel-Tag gewaehlt sein."
+            "value" : "Bitte Name, Aktion und mindestens eine Bedingung ausfüllen. Bei Tag-Regeln muss ein Ziel-Tag gewählt sein."
           }
         },
         "en" : {
@@ -8216,6 +8282,9 @@
         }
       }
     },
+    "Sidebar" : {
+
+    },
     "sidebar.addFeed.button" : {
       "localizations" : {
         "de" : {
@@ -8468,62 +8537,6 @@
         }
       }
     },
-    "sidebar.rules.activeCount" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld aktive Regeln"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld active rules"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld règles actives"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld regole attive"
-          }
-        }
-      }
-    },
-    "sidebar.rules.section" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Regeln"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rules"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Règles"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Regole"
-          }
-        }
-      }
-    },
     "sidebar.smartFilters.section" : {
       "localizations" : {
         "de" : {
@@ -8721,6 +8734,15 @@
       }
     },
     "Später" : {
+
+    },
+    "Speichern" : {
+
+    },
+    "Standardordner" : {
+
+    },
+    "Standardordner wiederherstellen" : {
 
     },
     "Status" : {
@@ -9071,6 +9093,9 @@
     "Treffer" : {
 
     },
+    "UND" : {
+
+    },
     "viewCommands.menu" : {
       "localizations" : {
         "de" : {
@@ -9100,6 +9125,9 @@
       }
     },
     "Website" : {
+
+    },
+    "Zum Sortieren ziehen" : {
 
     },
     "Zurück" : {

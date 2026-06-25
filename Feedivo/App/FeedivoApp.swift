@@ -28,6 +28,8 @@ struct FeedivoApp: App {
             Tag.self,
             Rule.self,
             RuleCondition.self,
+            SmartFolder.self,
+            SmartFolderCondition.self,
             FeedLogEntry.self
         )
         self.modelContainer = modelContainer
@@ -97,5 +99,13 @@ struct FeedivoApp: App {
         _ = try? OrphanedArticleCleanupService.removeArticlesWithoutExistingFeed(in: modelContainer.mainContext)
         _ = try? FeedUnreadCountBackfillService.backfillUnreadCounts(in: modelContainer.mainContext)
         _ = try? RuleConditionBackfillService.backfillMissingConditions(context: modelContainer.mainContext)
+        restoreDefaultSmartFoldersIfNeeded()
+    }
+
+    @MainActor
+    private func restoreDefaultSmartFoldersIfNeeded() {
+        let context = modelContainer.mainContext
+        let folders = (try? context.fetch(FetchDescriptor<SmartFolder>())) ?? []
+        SmartFolderViewModel().restoreDefaultFolders(existingFolders: folders, context: context)
     }
 }

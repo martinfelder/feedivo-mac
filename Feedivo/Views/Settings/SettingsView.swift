@@ -758,6 +758,10 @@ private struct AutomationSettingsView: View {
             )
 
             RuleSettingsView()
+
+            Divider()
+
+            SmartFolderSettingsView()
         }
     }
 }

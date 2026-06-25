@@ -11,6 +11,7 @@ struct ReaderView: View {
     let canSelectNextArticle: Bool
     let selectPreviousArticle: () -> Void
     let selectNextArticle: () -> Void
+    let onRequestCreateRuleFromArticle: (Article) -> Void
     @State private var preparedArticle: ReaderPreparedArticle
 
     init(
@@ -19,7 +20,8 @@ struct ReaderView: View {
         canSelectPreviousArticle: Bool = false,
         canSelectNextArticle: Bool = false,
         selectPreviousArticle: @escaping () -> Void = {},
-        selectNextArticle: @escaping () -> Void = {}
+        selectNextArticle: @escaping () -> Void = {},
+        onRequestCreateRuleFromArticle: @escaping (Article) -> Void = { _ in }
     ) {
         self.article = article
         self._isMetadataInspectorPresented = isMetadataInspectorPresented
@@ -27,6 +29,7 @@ struct ReaderView: View {
         self.canSelectNextArticle = canSelectNextArticle
         self.selectPreviousArticle = selectPreviousArticle
         self.selectNextArticle = selectNextArticle
+        self.onRequestCreateRuleFromArticle = onRequestCreateRuleFromArticle
         self._preparedArticle = State(initialValue: ReaderPreparedArticle(article: article))
     }
 
@@ -258,6 +261,12 @@ struct ReaderView: View {
                 .help(L10n.readerInspectorButton)
 
                 Menu {
+                    Button {
+                        onRequestCreateRuleFromArticle(article)
+                    } label: {
+                        Label(L10n.articleCreateRuleCommand, systemImage: "slider.horizontal.3")
+                    }
+
                     Button {
                         _ = viewModel.copyLink(article)
                     } label: {
