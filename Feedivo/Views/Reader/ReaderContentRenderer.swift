@@ -103,7 +103,7 @@ enum ReaderContentRenderer {
             )
 
             let matchedHTML = String(html[matchRange])
-            if matchedHTML.range(of: #"<img\b"#, options: [.regularExpression, .caseInsensitive]) != nil {
+            if isImageHTMLBlock(matchedHTML) {
                 appendImageBlock(from: matchedHTML, to: &blocks)
                 currentIndex = matchRange.upperBound
                 continue
@@ -132,6 +132,10 @@ enum ReaderContentRenderer {
         )
 
         return blocks
+    }
+
+    static func isImageHTMLBlock(_ html: String) -> Bool {
+        html.range(of: "<img", options: [.caseInsensitive]) != nil
     }
 
     private static func appendInlineBlocks(from html: String, tag: String, to blocks: inout [ReaderContentBlock]) {

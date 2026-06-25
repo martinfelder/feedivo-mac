@@ -671,6 +671,9 @@
   - Reader-HTML-Parsing cached `NSRegularExpression` Instanzen und wandelt Textblöcke ohne `NSAttributedString`/WebKit in Plain Text um
   - Artikel-Listen bereiten Sortierung und Filterung gemeinsam vor, damit pro Render nicht doppelt sortiert wird
   - Artikelzeilen prüfen Original-Links über einen stateless Resolver statt pro Kontextmenü-Zugriff eine neue `ArticleViewModel`-Instanz zu erzeugen
+  - Artikelwechsel aktualisiert die Navigation aus der sichtbaren Liste, ohne Sortierung/Filterung erneut anzustoßen
+  - Komplexe intelligente Ordner sortieren Bedingungen einmal vor dem Artikel-Loop und verwenden einen vorbereiteten Matcher
+  - Reader-Bildblock-Erkennung nutzt eine einfache case-insensitive Suche statt einer Regex-Kompilierung im Loop
 - **Zu beachten:**
   - SwiftData-Queries immer mit gezielten Predicates — nie alle Artikel auf einmal laden
   - Artikel-Liste mit Paginierung (50 Artikel pro Batch, mehr beim Scrollen)

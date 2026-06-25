@@ -7,21 +7,11 @@ enum SmartFolderEngine {
         now: Date = Date(),
         calendar: Calendar = .current
     ) -> Bool {
-        let conditions = sortedConditions(for: folder)
-        guard !conditions.isEmpty else {
-            return true
-        }
-
-        let matchesCondition: (SmartFolderCondition) -> Bool = { condition in
-            matches(condition: condition, article: article, now: now, calendar: calendar)
-        }
-
-        switch RuleMatchMode.normalized(folder.matchModeRaw) {
-        case .all:
-            return conditions.allSatisfy(matchesCondition)
-        case .any:
-            return conditions.contains(where: matchesCondition)
-        }
+        SmartFolderPreparedMatcher(folder: folder).matches(
+            article,
+            now: now,
+            calendar: calendar
+        )
     }
 
     static func matchingArticles(
@@ -30,9 +20,11 @@ enum SmartFolderEngine {
         now: Date = Date(),
         calendar: Calendar = .current
     ) -> [Article] {
-        articles.filter { article in
-            matches(folder: folder, article: article, now: now, calendar: calendar)
-        }
+        SmartFolderPreparedMatcher(folder: folder).matchingArticles(
+            articles,
+            now: now,
+            calendar: calendar
+        )
     }
 
     static func matchingArticleCount(
@@ -41,16 +33,20 @@ enum SmartFolderEngine {
         now: Date = Date(),
         calendar: Calendar = .current
     ) -> Int {
-        matchingArticles(folder: folder, articles: articles, now: now, calendar: calendar).count
+        SmartFolderPreparedMatcher(folder: folder).matchingArticleCount(
+            articles,
+            now: now,
+            calendar: calendar
+        )
     }
 
-    private static func sortedConditions(for folder: SmartFolder) -> [SmartFolderCondition] {
+    fileprivate static func sortedConditions(for folder: SmartFolder) -> [SmartFolderCondition] {
         folder.conditions.sorted { firstCondition, secondCondition in
             firstCondition.sortOrder < secondCondition.sortOrder
         }
     }
 
-    private static func matches(
+    fileprivate static func matches(
         condition: SmartFolderCondition,
         article: Article,
         now: Date,
@@ -208,5 +204,61 @@ enum SmartFolderEngine {
         ]
         .compactMap { $0 }
         .joined(separator: " ")
+    }
+}
+
+struct SmartFolderPreparedMatcher {
+    let conditions: [SmartFolderCondition]
+    private let matchMode: RuleMatchMode
+
+    init(folder: SmartFolder) {
+        self.conditions = SmartFolderEngine.sortedConditions(for: folder)
+        self.matchMode = RuleMatchMode.normalized(folder.matchModeRaw)
+    }
+
+    func matchingArticles(
+        _ articles: [Article],
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) -> [Article] {
+        articles.filter { article in
+            matches(article, now: now, calendar: calendar)
+        }
+    }
+
+    func matchingArticleCount(
+        _ articles: [Article],
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) -> Int {
+        articles.reduce(0) { count, article in
+            matches(article, now: now, calendar: calendar) ? count + 1 : count
+        }
+    }
+
+    func matches(
+        _ article: Article,
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) -> Bool {
+        guard !conditions.isEmpty else {
+            return true
+        }
+
+        let matchesCondition: (SmartFolderCondition) -> Bool = { condition in
+            SmartFolderEngine.matches(
+                condition: condition,
+                article: article,
+                now: now,
+                calendar: calendar
+            )
+        }
+
+        switch matchMode {
+        case .all:
+            return conditions.allSatisfy(matchesCondition)
+        case .any:
+            return conditions.contains(where: matchesCondition)
+        }
     }
 }

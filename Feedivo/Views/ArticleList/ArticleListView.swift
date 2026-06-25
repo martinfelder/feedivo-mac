@@ -422,15 +422,7 @@ private struct ArticleListContent: View {
         .onChange(of: selectedArticle?.persistentModelID) {
             rememberAutoReadArticleIfNeeded(selectedArticle)
 
-            let preparedArticles = makePreparedArticles()
-            let displayState = ArticleListDisplayState(
-                articles: preparedArticles.filtered,
-                showsReadArticles: showsReadArticles,
-                selectedArticle: selectedArticle,
-                showsHiddenArticles: showsHiddenArticles,
-                temporarilyVisibleReadArticleIDs: temporarilyVisibleReadArticleIDs
-            )
-            updateNavigationState(in: displayState.visibleArticles)
+            updateNavigationState(in: visibleArticles)
             viewModel.markReadIfNeeded(
                 selectedArticle,
                 isEnabled: markArticleReadOnSelection

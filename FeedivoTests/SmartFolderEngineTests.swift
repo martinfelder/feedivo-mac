@@ -99,6 +99,37 @@ struct SmartFolderEngineTests {
     }
 
     @MainActor
+    @Test func vorbereiteterMatcherSortiertBedingungenVorDemArtikelLoop() {
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Feed", folderName: "Entwicklung")
+        let matchingArticle = Article(title: "Swift 6.2", isRead: false, feed: feed)
+        let readArticle = Article(title: "Swift 6.2 gelesen", isRead: true, feed: feed)
+        let folder = SmartFolder(
+            name: "Ungelesene Entwicklung",
+            matchMode: .all,
+            conditions: [
+                SmartFolderCondition(
+                    field: .status,
+                    conditionOperator: .is,
+                    value: SmartFolderStatusValue.unread.rawValue,
+                    sortOrder: 2
+                ),
+                SmartFolderCondition(
+                    field: .feedFolder,
+                    conditionOperator: .is,
+                    value: "Entwicklung",
+                    sortOrder: 1
+                )
+            ]
+        )
+
+        let matcher = SmartFolderPreparedMatcher(folder: folder)
+        let matches = matcher.matchingArticles([matchingArticle, readArticle])
+
+        #expect(matcher.conditions.map(\.sortOrder) == [1, 2])
+        #expect(matches.map(\.title) == ["Swift 6.2"])
+    }
+
+    @MainActor
     @Test func sidebarBadgeCountNutztFeedUnreadCountFuerUngelesenOrdner() {
         let firstFeed = Feed(url: "https://example.com/1.xml", title: "Feed 1")
         firstFeed.unreadCount = 3

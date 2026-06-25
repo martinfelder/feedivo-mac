@@ -640,6 +640,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   `gelesen`, `mit Stern`, `archiviert`, `ausgeblendet`.
 - Textvergleiche laufen case-insensitive; der Artikeltext umfasst Titel, Summary,
   Content und Offline-Content.
+- `SmartFolderPreparedMatcher` sortiert Bedingungen einmal pro Ordner-Auswertung
+  und wird von `matchingArticles`/`matchingArticleCount` verwendet, damit komplexe
+  Ordner im Artikel-Loop nicht pro Artikel dieselben Conditions neu sortieren.
 
 ### SmartFolderViewModel.swift
 - Kapselt Erstellen, Bearbeiten, Löschen, Duplizieren und Umsortieren
@@ -768,6 +771,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Sortierung und Filterung werden gemeinsam über `ArticleListPreparedArticles`
   vorbereitet, damit die Artikelliste pro SwiftUI-Render nur einmal sortiert und
   danach auf derselben sortierten Liste filtert.
+- Beim Wechsel des ausgewählten Artikels nutzt die Navigation die bereits sichtbare
+  Artikelliste aus dem aktuellen Render und stößt keine neue Sortierung/Filterung
+  an.
 - Tag-Zuweisungsoptionen pro Artikelzeile werden erst beim Öffnen des
   Kontextmenüs berechnet; die Liste filtert nicht mehr für jede sichtbare Zeile
   vorab alle verfügbaren Tags.
@@ -1266,6 +1272,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Erkennt Absätze, Überschriften, Zitate, Listenpunkte und Bildbloecke
 - Cacht die verwendeten `NSRegularExpression` Instanzen statisch, damit beim
   Artikelwechsel keine Regexes neu kompiliert werden.
+- Die Erkennung, ob ein bereits per Regex gefundenes HTML-Segment ein Bildblock
+  ist, nutzt eine einfache case-insensitive Suche nach `<img` statt einer weiteren
+  Regex-Auswertung im Loop.
 - Wandelt HTML-Textblöcke mit einem schnellen Tag-Stripper und Entity-Decoder in
   Plain Text um; der frühere `NSAttributedString`/WebKit-Pfad pro Textblock wird
   nicht mehr genutzt.
@@ -1650,6 +1659,12 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 ---
 
 ## Letzte Änderungen
+
+- 2026-06-25: Performance Paket 4 umgesetzt: Artikelwechsel in der Liste
+  aktualisieren die Navigation ohne erneutes Sortieren/Filtern,
+  `SmartFolderPreparedMatcher` sortiert Conditions komplexer intelligenter Ordner
+  nur einmal vor dem Artikel-Loop, und `ReaderContentRenderer` erkennt Bildblöcke
+  im Loop ohne zusätzliche Regex-Auswertung.
 
 - 2026-06-25: Performance Paket 3 umgesetzt: `ArticleRowView` erzeugt für die
   Original-Link-Prüfung im Kontextmenü keine neue `ArticleViewModel`-Instanz mehr.

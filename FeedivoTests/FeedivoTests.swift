@@ -89,6 +89,9 @@ struct FeedivoTests {
     }
 
     @Test func readerContentRendererErkenntBilderUndFallbackSummary() {
+        #expect(ReaderContentRenderer.isImageHTMLBlock(#"<IMG src="https://example.com/bild.jpg">"#))
+        #expect(!ReaderContentRenderer.isImageHTMLBlock("<p>Nur Text</p>"))
+
         let imageBlocks = ReaderContentRenderer.blocks(
             summary: nil,
             content: #"<p>Text vor dem Bild.</p><img src="https://example.com/bild.jpg" alt="Bild"><p>Text danach.</p>"#,
