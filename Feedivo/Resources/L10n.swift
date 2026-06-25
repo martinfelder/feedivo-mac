@@ -235,6 +235,14 @@ enum L10n {
     static var articleShareCommand: String { String(localized: "article.share.command") }
     static var articleDeleteCommand: String { String(localized: "article.delete.command") }
     static var articleMarkAllReadCommand: String { String(localized: "article.markAllRead.command") }
+    static var articleMarkReadMenuTitle: String { String(localized: "article.markRead.menu.title") }
+    static var articleMarkReadOlderThanOneDay: String { String(localized: "article.markRead.olderThanOneDay") }
+    static var articleMarkReadOlderThanTwoDays: String { String(localized: "article.markRead.olderThanTwoDays") }
+    static var articleMarkReadOlderThanThreeDays: String { String(localized: "article.markRead.olderThanThreeDays") }
+    static var articleMarkReadOlderThanFourDays: String { String(localized: "article.markRead.olderThanFourDays") }
+    static var articleMarkReadOlderThanOneWeek: String { String(localized: "article.markRead.olderThanOneWeek") }
+    static var articleMarkReadOlderThanTwoWeeks: String { String(localized: "article.markRead.olderThanTwoWeeks") }
+    static var articleMarkReadAllVisible: String { String(localized: "article.markRead.allVisible") }
     static var viewCommandsMenu: String { String(localized: "viewCommands.menu") }
     static var articleSortMenuTitle: String { String(localized: "articleSort.menu.title") }
     static var articleSortNewestFirst: String { String(localized: "articleSort.newestFirst") }

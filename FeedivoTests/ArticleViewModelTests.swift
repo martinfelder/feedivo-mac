@@ -179,6 +179,108 @@ struct ArticleViewModelTests {
     }
 
     @MainActor
+    @Test func markReadMitZeitoptionMarkiertNurPassendeUngeleseneArtikel() throws {
+        let context = try testContext()
+        let calendar = Calendar(identifier: .gregorian)
+        let now = try #require(calendar.date(from: DateComponents(
+            year: 2026,
+            month: 6,
+            day: 25,
+            hour: 12
+        )))
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
+        feed.unreadCount = 3
+        let oldUnreadArticle = Article(
+            title: "Alt und ungelesen",
+            publishedAt: now.addingTimeInterval(-3 * 24 * 60 * 60),
+            isRead: false,
+            feed: feed
+        )
+        let newUnreadArticle = Article(
+            title: "Neu und ungelesen",
+            publishedAt: now.addingTimeInterval(-12 * 60 * 60),
+            isRead: false,
+            feed: feed
+        )
+        let oldReadArticle = Article(
+            title: "Alt und gelesen",
+            publishedAt: now.addingTimeInterval(-3 * 24 * 60 * 60),
+            isRead: true,
+            feed: feed
+        )
+        context.insert(feed)
+        context.insert(oldUnreadArticle)
+        context.insert(newUnreadArticle)
+        context.insert(oldReadArticle)
+        try context.save()
+
+        ArticleViewModel().markRead(
+            [oldUnreadArticle, newUnreadArticle, oldReadArticle],
+            matching: .olderThanTwoDays,
+            now: now,
+            calendar: calendar
+        )
+
+        #expect(oldUnreadArticle.isRead)
+        #expect(!newUnreadArticle.isRead)
+        #expect(oldReadArticle.isRead)
+        #expect(feed.unreadCount == 2)
+    }
+
+    @Test func articleMarkReadOptionenFilternNachAlterUndIgnorierenGeleseneArtikel() throws {
+        let calendar = Calendar(identifier: .gregorian)
+        let now = try #require(calendar.date(from: DateComponents(
+            year: 2026,
+            month: 6,
+            day: 25,
+            hour: 12
+        )))
+        let recentUnreadArticle = Article(
+            title: "Neu",
+            publishedAt: now.addingTimeInterval(-12 * 60 * 60),
+            isRead: false
+        )
+        let twoDaysOldUnreadArticle = Article(
+            title: "Zwei Tage",
+            publishedAt: now.addingTimeInterval(-49 * 60 * 60),
+            isRead: false
+        )
+        let threeDaysOldReadArticle = Article(
+            title: "Gelesen",
+            publishedAt: now.addingTimeInterval(-72 * 60 * 60),
+            isRead: true
+        )
+        let undatedUnreadArticle = Article(title: "Ohne Datum", isRead: false)
+        let articles = [
+            recentUnreadArticle,
+            twoDaysOldUnreadArticle,
+            threeDaysOldReadArticle,
+            undatedUnreadArticle
+        ]
+
+        #expect(ArticleMarkReadOption.olderThanOneDay.matchingArticles(
+            in: articles,
+            now: now,
+            calendar: calendar
+        ).map(\.title) == ["Zwei Tage"])
+        #expect(ArticleMarkReadOption.olderThanTwoDays.matchingArticles(
+            in: articles,
+            now: now,
+            calendar: calendar
+        ).map(\.title) == ["Zwei Tage"])
+        #expect(ArticleMarkReadOption.olderThanThreeDays.matchingArticles(
+            in: articles,
+            now: now,
+            calendar: calendar
+        ).isEmpty)
+        #expect(ArticleMarkReadOption.allVisible.matchingArticles(
+            in: articles,
+            now: now,
+            calendar: calendar
+        ).map(\.title) == ["Neu", "Zwei Tage", "Ohne Datum"])
+    }
+
+    @MainActor
     @Test func deleteArticleEntferntArtikelUndKorrigiertFeedZaehler() throws {
         let context = try testContext()
         let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")

@@ -120,6 +120,11 @@
   - Artikel, die durch "beim Öffnen als gelesen markieren" automatisch gelesen werden, bleiben bis zum Feed-/Listenwechsel sichtbar
   - Gelesene Artikel bleiben verfügbar bis automatisches Löschen greift (Standard 90 Tage)
   - Der aktuell ausgewählte Artikel bleibt sichtbar, wenn er beim Öffnen automatisch als gelesen markiert wird
+  - Toolbar-Menü `Als gelesen markieren` markiert nur Artikel der aktuell angezeigten Liste
+    als gelesen: aktueller Feed oder aktueller intelligenter Ordner. Optionen:
+    `Älter als ein Tag`, `Älter als zwei Tage`, `Älter als drei Tage`,
+    `Älter als vier Tage`, `Älter als eine Woche`, `Älter als zwei Wochen` und
+    `Alle sichtbaren Artikel`.
 
 ---
 

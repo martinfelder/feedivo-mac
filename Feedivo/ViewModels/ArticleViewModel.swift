@@ -100,6 +100,15 @@ final class ArticleViewModel {
         }
     }
 
+    func markRead(
+        _ articles: [Article],
+        matching option: ArticleMarkReadOption,
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) {
+        markAllRead(option.matchingArticles(in: articles, now: now, calendar: calendar))
+    }
+
     @MainActor
     func deleteArticle(_ article: Article, context: ModelContext) {
         let wasRead = article.isRead

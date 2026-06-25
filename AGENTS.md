@@ -162,6 +162,7 @@ FeedivoMac/
 │   │   │   ├── ArticleListQuery.swift  # SwiftData-Queries für Feed-/Artikel-Listen ✅
 │   │   │   ├── ArticleSortOption.swift # Globale Artikellisten-Sortierung ✅
 │   │   │   ├── ArticleFilterOption.swift # Globale Artikellisten-Filterung ✅
+│   │   │   ├── ArticleMarkReadOption.swift # Zeitbereiche für Massenaktion "Als gelesen markieren" ✅
 │   │   │   ├── ArticleExportSheet.swift # Präsentationsanker für Artikel-Dateiexport ✅
 │   │   │   └── ArticleRowView.swift    # Reichhaltige Artikel-Zeile mit Status/Stern ✅
 │   │   ├── Reader/
@@ -698,6 +699,10 @@ manuell offline gespeicherte Inhalte.
 - Im Filtermenue gibt es zusätzlich die Leseanzeige `Gelesene ausblenden` bzw.
   `Gelesene und ungelesene anzeigen`; diese Umschaltung gilt für die aktuelle
   Liste.
+- Toolbar-Menü `Als gelesen markieren` bietet Massenaktionen für die aktuell
+  sichtbare Liste: älter als ein Tag, zwei Tage, drei Tage, vier Tage, eine Woche,
+  zwei Wochen oder alle sichtbaren Artikel. Die Aktion wirkt nur auf den aktuell
+  ausgewählten Feed beziehungsweise den aktuell ausgewählten intelligenten Ordner.
 - Meldet nur den `ArticleNavigationState` an `ContentView`, damit Reader-Navigation
   und Menü-Status ohne Kopie der gesamten Artikelliste aktualisiert werden
 - Reagiert mit `.onChange(of: articles)` auf Listen-Änderungen und erzeugt kein
@@ -765,6 +770,9 @@ manuell offline gespeicherte Inhalte.
 - `markReadIfNeeded(_:isEnabled:)`
 - `markAllRead(_:)` markiert eine sichtbare Artikelliste als gelesen und pflegt
   dabei die Feed-Zähler.
+- `markRead(_:matching:now:calendar:)` markiert nur die sichtbaren Artikel als
+  gelesen, die zur gewählten Zeitoption aus `ArticleMarkReadOption` passen, und
+  pflegt ebenfalls die Feed-Zähler.
 - `deleteArticle(_:context:)` löscht einen Artikel aus SwiftData und korrigiert
   bei ungelesenen Artikeln den Feed-Zähler.
 - `copyLink`, `openOriginal` und `shareOriginal` kapseln Link-Aktionen testbar über
@@ -1539,6 +1547,14 @@ manuell offline gespeicherte Inhalte.
 ---
 
 ## Letzte Änderungen
+
+- 2026-06-25: Artikellisten-Toolbar um `Als gelesen markieren` erweitert. Die
+  Massenaktion wirkt nur auf die aktuell sichtbare Liste des ausgewählten Feeds
+  oder intelligenten Ordners und bietet die Optionen `Älter als ein Tag`, `Älter
+  als zwei Tage`, `Älter als drei Tage`, `Älter als vier Tage`, `Älter als eine
+  Woche`, `Älter als zwei Wochen` und `Alle sichtbaren Artikel`. Die Logik liegt
+  in `ArticleMarkReadOption`, die Statusänderung inklusive Feed-Zählerpflege in
+  `ArticleViewModel`.
 
 - 2026-06-25: Feature 16.1/16.2 umgesetzt: Intelligente Ordner haben eigene
   SwiftData-Modelle, Default-Ordner (`Alle Artikel`, `Ungelesen`, `Mit Stern`,

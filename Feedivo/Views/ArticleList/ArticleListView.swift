@@ -471,6 +471,7 @@ private struct ArticleListContent: View {
         }
         .toolbar {
             ToolbarItemGroup {
+                markReadMenu(visibleArticles: visibleArticles)
                 filterMenu
                 sortMenu
             }
@@ -518,6 +519,29 @@ private struct ArticleListContent: View {
 
     private var articleFilterOption: ArticleFilterOption {
         ArticleFilterOption.resolved(from: articleFilterRawValue)
+    }
+
+    private func markReadMenu(visibleArticles: [Article]) -> some View {
+        Menu {
+            ForEach(ArticleMarkReadOption.allCases) { option in
+                let matchingArticles = option.matchingArticles(in: visibleArticles)
+
+                Button {
+                    markRead(visibleArticles, matching: option)
+                } label: {
+                    Text(option.label)
+                }
+                .disabled(matchingArticles.isEmpty)
+            }
+        } label: {
+            Label(L10n.articleMarkReadMenuTitle, systemImage: "checkmark.circle")
+        }
+        .help(L10n.articleMarkReadMenuTitle)
+    }
+
+    private func markRead(_ articles: [Article], matching option: ArticleMarkReadOption) {
+        viewModel.markRead(articles, matching: option)
+        try? modelContext.save()
     }
 
     private var filterMenu: some View {
