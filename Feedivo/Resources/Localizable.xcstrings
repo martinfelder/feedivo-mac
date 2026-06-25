@@ -19,6 +19,12 @@
     "Abbrechen" : {
 
     },
+    "Aktion" : {
+
+    },
+    "Aktiv" : {
+
+    },
     "Alle abwählen" : {
 
     },
@@ -336,62 +342,6 @@
         }
       }
     },
-    "article.share.command" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Teilen..."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Share..."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Partager..."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Condividi..."
-          }
-        }
-      }
-    },
-    "article.unarchive.command" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aus Archiv entfernen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Remove from archive"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Retirer de l'archive"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rimuovi dall'archivio"
-          }
-        }
-      }
-    },
     "article.openOriginal.command" : {
       "localizations" : {
         "de" : {
@@ -448,6 +398,62 @@
         }
       }
     },
+    "article.share.command" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Teilen..."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share..."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Partager..."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Condividi..."
+          }
+        }
+      }
+    },
+    "article.unarchive.command" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aus Archiv entfernen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove from archive"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retirer de l'archive"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rimuovi dall'archivio"
+          }
+        }
+      }
+    },
     "articleCommands.menu" : {
       "localizations" : {
         "de" : {
@@ -472,90 +478,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Articolo"
-          }
-        }
-      }
-    },
-    "articleList.empty.description" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dieser Feed hat noch keine gespeicherten Artikel."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This feed has no saved articles yet."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ce flux n'a pas encore d'articles enregistrés."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Questo feed non ha ancora articoli salvati."
-          }
-        }
-      }
-    },
-    "articleList.empty.title" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Keine Artikel"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No articles"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aucun article"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nessun articolo"
-          }
-        }
-      }
-    },
-    "articleList.showRead.button" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld gelesene Artikel anzeigen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Show %lld read articles"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Afficher %lld articles lus"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mostra %lld articoli letti"
           }
         }
       }
@@ -728,170 +650,170 @@
         }
       }
     },
-    "articleSort.feed" : {
+    "articleList.empty.description" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nach Feed"
+            "value" : "Dieser Feed hat noch keine gespeicherten Artikel."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "By feed"
+            "value" : "This feed has no saved articles yet."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Par flux"
+            "value" : "Ce flux n'a pas encore d'articles enregistrés."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Per feed"
+            "value" : "Questo feed non ha ancora articoli salvati."
           }
         }
       }
     },
-    "articleSort.menu.title" : {
+    "articleList.empty.title" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sortieren nach"
+            "value" : "Keine Artikel"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sort by"
+            "value" : "No articles"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Trier par"
+            "value" : "Aucun article"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ordina per"
+            "value" : "Nessun articolo"
           }
         }
       }
     },
-    "articleSort.newestFirst" : {
+    "articleList.readDisplay.all" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Neueste zuerst"
+            "value" : "Gelesene und ungelesene anzeigen"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Newest first"
+            "value" : "Show read and unread"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plus récents d'abord"
+            "value" : "Afficher lus et non lus"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Più recenti prima"
+            "value" : "Mostra letti e non letti"
           }
         }
       }
     },
-    "articleSort.oldestFirst" : {
+    "articleList.readDisplay.title" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Älteste zuerst"
+            "value" : "Leseanzeige"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Oldest first"
+            "value" : "Read display"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plus anciens d'abord"
+            "value" : "Affichage de lecture"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Meno recenti prima"
+            "value" : "Vista lettura"
           }
         }
       }
     },
-    "articleSort.shortReadingTimeFirst" : {
+    "articleList.readDisplay.unreadOnly" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nach Lesezeit kurze zuerst"
+            "value" : "Gelesene ausblenden"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "By reading time, shortest first"
+            "value" : "Hide read articles"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Par temps de lecture, courts d'abord"
+            "value" : "Masquer les articles lus"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Per tempo di lettura, brevi prima"
+            "value" : "Nascondi articoli letti"
           }
         }
       }
     },
-    "articleSort.title" : {
+    "articleList.showRead.button" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nach Titel A-Z"
+            "value" : "%lld gelesene Artikel anzeigen"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "By title A-Z"
+            "value" : "Show %lld read articles"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Par titre A-Z"
+            "value" : "Afficher %lld articles lus"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Per titolo A-Z"
+            "value" : "Mostra %lld articoli letti"
           }
         }
       }
@@ -1120,6 +1042,174 @@
         }
       }
     },
+    "articleSort.feed" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nach Feed"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "By feed"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Par flux"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per feed"
+          }
+        }
+      }
+    },
+    "articleSort.menu.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sortieren nach"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sort by"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trier par"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ordina per"
+          }
+        }
+      }
+    },
+    "articleSort.newestFirst" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neueste zuerst"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Newest first"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plus récents d'abord"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Più recenti prima"
+          }
+        }
+      }
+    },
+    "articleSort.oldestFirst" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Älteste zuerst"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oldest first"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plus anciens d'abord"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meno recenti prima"
+          }
+        }
+      }
+    },
+    "articleSort.shortReadingTimeFirst" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nach Lesezeit kurze zuerst"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "By reading time, shortest first"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Par temps de lecture, courts d'abord"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per tempo di lettura, brevi prima"
+          }
+        }
+      }
+    },
+    "articleSort.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nach Titel A-Z"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "By title A-Z"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Par titre A-Z"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per titolo A-Z"
+          }
+        }
+      }
+    },
     "Auswahl bearbeiten" : {
 
     },
@@ -1329,6 +1419,9 @@
 
     },
     "Duplikate importieren" : {
+
+    },
+    "Duplizieren" : {
 
     },
     "Entfernen" : {
@@ -2770,6 +2863,12 @@
     "Import-Zusammenfassung" : {
 
     },
+    "Nach oben" : {
+
+    },
+    "Nach unten" : {
+
+    },
     "networkStatus.offline" : {
       "localizations" : {
         "de" : {
@@ -3331,34 +3430,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Vista originale"
-          }
-        }
-      }
-    },
-    "viewCommands.menu" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Darstellung"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "View"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Présentation"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vista"
           }
         }
       }
@@ -5056,61 +5127,14 @@
     "Refresh-Intervall" : {
 
     },
-    "rule.applyExisting.button" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Auf vorhandene Artikel anwenden"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apply to existing articles"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Appliquer aux articles existants"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Applica agli articoli esistenti"
-          }
-        }
-      }
+    "Regel" : {
+
     },
-    "rule.applyExisting.result" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld Regelaktionen angewendet."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Applied %lld rule actions."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld actions de règle appliquées."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld azioni regola applicate."
-          }
-        }
-      }
+    "Regeln werden von oben nach unten angewendet." : {
+
+    },
+    "Reihenfolge" : {
+
     },
     "rule.action.assignTag" : {
       "localizations" : {
@@ -5164,6 +5188,62 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nascondi articolo"
+          }
+        }
+      }
+    },
+    "rule.applyExisting.button" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auf vorhandene Artikel anwenden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apply to existing articles"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Appliquer aux articles existants"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Applica agli articoli esistenti"
+          }
+        }
+      }
+    },
+    "rule.applyExisting.result" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld Regelaktionen angewendet."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Applied %lld rule actions."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld actions de règle appliquées."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld azioni regola applicate."
           }
         }
       }
@@ -5588,6 +5668,34 @@
         }
       }
     },
+    "ruleWizard.action.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktion"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Action"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Action"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Azione"
+          }
+        }
+      }
+    },
     "ruleWizard.addCondition" : {
       "localizations" : {
         "de" : {
@@ -5976,34 +6084,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Salva"
-          }
-        }
-      }
-    },
-    "ruleWizard.action.title" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aktion"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Action"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Action"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Azione"
           }
         }
       }
@@ -7968,6 +8048,62 @@
         }
       }
     },
+    "settings.sidebar.showsReadFeeds.description" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ausgeschaltet bleiben Feeds ohne ungelesene Artikel in der Seitenleiste verborgen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When off, feeds without unread articles stay hidden in the sidebar."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si cette option est désactivée, les flux sans articles non lus restent masqués dans la barre latérale."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se disattivata, i feed senza articoli non letti restano nascosti nella barra laterale."
+          }
+        }
+      }
+    },
+    "settings.sidebar.showsReadFeeds.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gelesene Feeds in der Seitenleiste anzeigen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show read feeds in the sidebar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher les flux lus dans la barre latérale"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra i feed letti nella barra laterale"
+          }
+        }
+      }
+    },
     "settings.sync.description" : {
       "localizations" : {
         "de" : {
@@ -8593,6 +8729,9 @@
     "Statusfilter" : {
 
     },
+    "Tag fehlt" : {
+
+    },
     "tagManager.color" : {
       "localizations" : {
         "de" : {
@@ -8925,6 +9064,37 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Gestisci tag"
+          }
+        }
+      }
+    },
+    "Treffer" : {
+
+    },
+    "viewCommands.menu" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Darstellung"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Présentation"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vista"
           }
         }
       }

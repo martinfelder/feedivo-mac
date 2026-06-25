@@ -141,6 +141,8 @@ enum L10n {
     static let settingsInterfaceTextSizeStandard = LocalizedStringKey("settings.interfaceTextSize.standard")
     static let settingsInterfaceTextSizeLarge = LocalizedStringKey("settings.interfaceTextSize.large")
     static let settingsInterfaceTextSizeExtraLarge = LocalizedStringKey("settings.interfaceTextSize.extraLarge")
+    static let settingsSidebarShowsReadFeedsTitle = LocalizedStringKey("settings.sidebar.showsReadFeeds.title")
+    static let settingsSidebarShowsReadFeedsDescription = LocalizedStringKey("settings.sidebar.showsReadFeeds.description")
     static let settingsMarkReadOnOpenTitle = LocalizedStringKey("settings.markReadOnOpen.title")
     static let settingsMarkReadOnOpenDescription = LocalizedStringKey("settings.markReadOnOpen.description")
     static let settingsRefreshSection = LocalizedStringKey("settings.refresh.section")
@@ -215,6 +217,9 @@ enum L10n {
     static var articleRowMarkRead: String { String(localized: "articleRow.markRead") }
     static var articleRowMarkUnread: String { String(localized: "articleRow.markUnread") }
     static var articleListShowReadButtonFormat: String { String(localized: "articleList.showRead.button") }
+    static var articleListReadDisplayTitle: String { String(localized: "articleList.readDisplay.title") }
+    static var articleListReadDisplayUnreadOnly: String { String(localized: "articleList.readDisplay.unreadOnly") }
+    static var articleListReadDisplayAll: String { String(localized: "articleList.readDisplay.all") }
     static var articleCommandsMenu: String { String(localized: "articleCommands.menu") }
     static var articlePreviousCommand: String { String(localized: "article.previous.command") }
     static var articleNextCommand: String { String(localized: "article.next.command") }

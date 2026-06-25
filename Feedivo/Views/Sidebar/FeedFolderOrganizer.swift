@@ -1,5 +1,10 @@
 import Foundation
 
+enum SidebarFeedVisibilitySettings {
+    static let showsReadFeedsKey = "sidebar.showsReadFeeds"
+    static let defaultShowsReadFeeds = true
+}
+
 enum FeedFolderOrganizer {
 
     static func folderNames(in feeds: [Feed], folders: [FeedFolder] = []) -> [String] {
@@ -21,6 +26,16 @@ enum FeedFolderOrganizer {
     static func feedsWithoutFolder(from feeds: [Feed]) -> [Feed] {
         sortedFeeds(
             feeds.filter { normalizedFolderName($0.folderName) == nil }
+        )
+    }
+
+    static func visibleFeeds(from feeds: [Feed], showsReadFeeds: Bool) -> [Feed] {
+        guard !showsReadFeeds else {
+            return sortedFeeds(feeds)
+        }
+
+        return sortedFeeds(
+            feeds.filter { $0.unreadCount > 0 }
         )
     }
 

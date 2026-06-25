@@ -134,6 +134,44 @@ struct FeedViewModelTests {
     }
 
     @MainActor
+    @Test func importOPMLFeedsSpeichertGewaehltesAktualisierungsintervall() async throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            RuleCondition.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let viewModel = FeedViewModel(
+            fetchFeed: { urlString in
+                ParsedFeed(sourceURL: urlString, title: "Import Feed", description: nil, articles: [])
+            },
+            discoverFaviconURL: { _ in nil }
+        )
+
+        _ = try await viewModel.importOPMLFeeds(
+            [
+                OPMLFeed(
+                    title: "Intervall Feed",
+                    xmlURL: "https://example.com/interval.xml",
+                    htmlURL: nil,
+                    folderName: nil
+                )
+            ],
+            existingFeeds: [],
+            refreshIntervalMinutes: 15,
+            context: context
+        )
+
+        let feeds = try context.fetch(FetchDescriptor<Feed>())
+        let importedFeed = try #require(feeds.first)
+        #expect(importedFeed.refreshIntervalMinutes == 15)
+    }
+
+    @MainActor
     @Test func importOPMLFeedsSetztSichtbarenFortschrittZurueck() async throws {
         let container = try ModelContainer(
             for: Feed.self,

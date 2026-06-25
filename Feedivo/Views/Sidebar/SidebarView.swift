@@ -21,6 +21,8 @@ struct SidebarView: View {
     private var isRulesCollapsed = false
     @AppStorage(SidebarSectionCollapseState.Section.folders.storageKey)
     private var isFoldersCollapsed = false
+    @AppStorage(SidebarFeedVisibilitySettings.showsReadFeedsKey)
+    private var showsReadFeedsInSidebar = SidebarFeedVisibilitySettings.defaultShowsReadFeeds
     @State private var feedShowingProperties: Feed?
     @State private var feedRenaming: Feed?
     @State private var isShowingAddFolderSheet = false
@@ -165,19 +167,24 @@ struct SidebarView: View {
         ) {
             isShowingAddFolderSheet = true
         } content: {
-            if feeds.isEmpty && folders.isEmpty {
+            let visibleFeeds = FeedFolderOrganizer.visibleFeeds(
+                from: feeds,
+                showsReadFeeds: showsReadFeedsInSidebar
+            )
+
+            if visibleFeeds.isEmpty && folders.isEmpty {
                 Text(L10n.sidebarEmptyTitle)
                     .font(interfaceTextSize.font(size: 13))
                     .foregroundStyle(SidebarStyle.secondaryText)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 8)
             } else {
-                let feedsWithoutFolder = FeedFolderOrganizer.feedsWithoutFolder(from: feeds)
+                let feedsWithoutFolder = FeedFolderOrganizer.feedsWithoutFolder(from: visibleFeeds)
                 if !feedsWithoutFolder.isEmpty {
                     feedRows(feedsWithoutFolder)
                 }
 
-                ForEach(FeedFolderOrganizer.folderNames(in: feeds, folders: folders), id: \.self) { folderName in
+                ForEach(FeedFolderOrganizer.folderNames(in: visibleFeeds, folders: folders), id: \.self) { folderName in
                     let isExpanded = !collapsedFolderNames.contains(folderName)
                     SidebarFolderSection(
                         title: folderName,
@@ -187,7 +194,7 @@ struct SidebarView: View {
                     } content: {
                         if isExpanded {
                             feedRows(
-                                FeedFolderOrganizer.feeds(in: folderName, from: feeds),
+                                FeedFolderOrganizer.feeds(in: folderName, from: visibleFeeds),
                                 isIndented: true
                             )
                         }

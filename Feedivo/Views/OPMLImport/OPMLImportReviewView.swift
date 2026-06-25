@@ -98,6 +98,8 @@ struct OPMLImportReviewView: View {
     @State private var statusFilter: OPMLImportStatusFilter = .all
     @State private var resultMessage: String?
     @State private var errorMessage: String?
+    @AppStorage(BackgroundRefreshSettings.intervalMinutesKey)
+    private var backgroundRefreshIntervalMinutes = BackgroundRefreshSettings.defaultIntervalMinutes
 
     private var selectedImportRows: [OPMLImportPreviewRow] {
         rows.filter { row in
@@ -649,6 +651,7 @@ struct OPMLImportReviewView: View {
                     existingFeeds: feeds,
                     allowsDuplicates: allowsDuplicates,
                     refreshAfterImport: refreshAfterImport,
+                    refreshIntervalMinutes: backgroundRefreshIntervalMinutes,
                     context: modelContext
                 )
                 let importedDuplicateCount = selectedImportRows.filter { $0.status == .duplicate }.count

@@ -1143,6 +1143,7 @@ struct FirstRunWizardView: View {
                     existingFeeds: feeds,
                     allowsDuplicates: allowsDuplicates,
                     refreshAfterImport: refreshAfterImport,
+                    refreshIntervalMinutes: backgroundRefreshIntervalMinutes,
                     context: modelContext
                 )
                 completionSummary = FirstRunCompletionSummary(

@@ -1,0 +1,1241 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Feedivo Rule Settings and Wizard Prototype</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f5f7;
+      --panel: rgba(252, 252, 253, .94);
+      --panel-soft: rgba(246, 247, 249, .88);
+      --sidebar: rgba(239, 241, 244, .74);
+      --line: rgba(30, 34, 42, .12);
+      --line-strong: rgba(30, 34, 42, .2);
+      --text: #20242b;
+      --muted: #69707a;
+      --soft: #8b929d;
+      --accent: #1f7a73;
+      --accent-soft: rgba(31, 122, 115, .12);
+      --blue: #0a84ff;
+      --blue-soft: rgba(10, 132, 255, .12);
+      --green: #248a3d;
+      --green-soft: rgba(36, 138, 61, .12);
+      --orange: #a15c12;
+      --orange-soft: rgba(161, 92, 18, .12);
+      --red: #bc2f32;
+      --red-soft: rgba(188, 47, 50, .10);
+      --shadow: 0 22px 70px rgba(24, 28, 36, .16);
+      --radius: 8px;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, .74), rgba(244, 245, 247, .96)),
+        radial-gradient(circle at 18% 0%, rgba(31, 122, 115, .12), transparent 34%),
+        var(--bg);
+      color: var(--text);
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .page {
+      width: min(1260px, calc(100vw - 48px));
+      margin: 26px auto 34px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 18px;
+    }
+
+    .title h1 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.15;
+      letter-spacing: 0;
+    }
+
+    .title p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .mode-tabs {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      padding: 3px;
+      background: rgba(255, 255, 255, .72);
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, .04);
+    }
+
+    .mode-tabs button {
+      min-width: 112px;
+      border: 0;
+      border-radius: 7px;
+      padding: 6px 10px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    .mode-tabs button.active {
+      color: var(--text);
+      background: #fff;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, .1);
+    }
+
+    .window {
+      overflow: hidden;
+      min-height: 760px;
+      background: rgba(251, 251, 253, .9);
+      border: 1px solid var(--line-strong);
+      border-radius: 13px;
+      box-shadow: var(--shadow);
+    }
+
+    .window-head {
+      height: 48px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 16px;
+      background: rgba(245, 246, 248, .86);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .traffic {
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      display: inline-block;
+    }
+
+    .traffic.red { background: #ff5f57; }
+    .traffic.yellow { background: #febc2e; }
+    .traffic.green { background: #28c840; }
+
+    .window-title {
+      flex: 1;
+      margin-right: 66px;
+      text-align: center;
+      color: #3c4148;
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    .settings {
+      display: grid;
+      grid-template-columns: 234px 1fr;
+      min-height: 712px;
+    }
+
+    .settings-sidebar {
+      padding: 18px 12px;
+      background: var(--sidebar);
+      border-right: 1px solid var(--line);
+    }
+
+    .category {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      min-height: 36px;
+      padding: 8px 10px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--text);
+      text-align: left;
+      font-size: 13px;
+    }
+
+    .category .symbol {
+      width: 22px;
+      color: var(--accent);
+      text-align: center;
+    }
+
+    .category.active {
+      background: var(--accent-soft);
+      border-color: rgba(31, 122, 115, .22);
+      color: var(--accent);
+      font-weight: 650;
+    }
+
+    .main {
+      padding: 24px 28px 28px;
+      overflow: auto;
+    }
+
+    .main-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    .sub {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .button,
+    .icon-button {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: rgba(255, 255, 255, .82);
+      color: var(--text);
+      min-height: 30px;
+      padding: 6px 11px;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, .04);
+    }
+
+    .button.primary {
+      color: #fff;
+      background: var(--accent);
+      border-color: rgba(0, 0, 0, .08);
+    }
+
+    .button.danger {
+      color: var(--red);
+      background: var(--red-soft);
+      border-color: rgba(188, 47, 50, .16);
+    }
+
+    .icon-button {
+      width: 30px;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .rules-shell {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .rules-head {
+      display: grid;
+      grid-template-columns: 44px 56px minmax(190px, 1fr) minmax(260px, 1.3fr) 150px 92px 130px;
+      gap: 12px;
+      align-items: center;
+      padding: 9px 14px;
+      background: var(--panel-soft);
+      border-bottom: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .rule-row {
+      display: grid;
+      grid-template-columns: 44px 56px minmax(190px, 1fr) minmax(260px, 1.3fr) 150px 92px 130px;
+      gap: 12px;
+      align-items: center;
+      min-height: 72px;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, .52);
+    }
+
+    .rule-row:last-child {
+      border-bottom: 0;
+    }
+
+    .rule-row.selected {
+      background: rgba(31, 122, 115, .08);
+      box-shadow: inset 3px 0 0 var(--accent);
+    }
+
+    .order-controls {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      color: var(--soft);
+    }
+
+    .handle {
+      width: 14px;
+      line-height: 11px;
+      font-size: 14px;
+      letter-spacing: 0;
+      color: #a0a6af;
+      user-select: none;
+    }
+
+    .stack-buttons {
+      display: grid;
+      gap: 3px;
+    }
+
+    .tiny {
+      width: 22px;
+      height: 20px;
+      padding: 0;
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      background: rgba(255, 255, 255, .78);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .toggle {
+      position: relative;
+      display: inline-block;
+      width: 38px;
+      height: 22px;
+    }
+
+    .toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      inset: 0;
+      border-radius: 999px;
+      background: #c7ccd2;
+      transition: .16s ease;
+    }
+
+    .slider:before {
+      content: "";
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      left: 2px;
+      top: 2px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, .22);
+      transition: .16s ease;
+    }
+
+    .toggle input:checked + .slider {
+      background: var(--accent);
+    }
+
+    .toggle input:checked + .slider:before {
+      transform: translateX(16px);
+    }
+
+    .rule-name {
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.25;
+    }
+
+    .rule-meta {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .condition {
+      color: #3f4650;
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .condition strong {
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      width: fit-content;
+      max-width: 100%;
+      min-height: 25px;
+      padding: 4px 9px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, .7);
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .pill.hide {
+      color: var(--orange);
+      background: var(--orange-soft);
+      border-color: rgba(161, 92, 18, .18);
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      background: var(--blue);
+    }
+
+    .dot.green { background: var(--green); }
+    .dot.orange { background: var(--orange); }
+
+    .count {
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 650;
+    }
+
+    .row-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      justify-content: flex-end;
+    }
+
+    .settings-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .status-line {
+      min-height: 18px;
+    }
+
+    .wizard-backdrop {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 28px;
+      background: rgba(24, 28, 36, .18);
+      backdrop-filter: blur(7px);
+      z-index: 10;
+    }
+
+    .wizard-backdrop.open {
+      display: flex;
+    }
+
+    .wizard {
+      width: min(980px, calc(100vw - 52px));
+      max-height: calc(100vh - 56px);
+      display: grid;
+      grid-template-columns: 218px 1fr;
+      overflow: hidden;
+      background: var(--panel);
+      border: 1px solid var(--line-strong);
+      border-radius: 13px;
+      box-shadow: 0 28px 80px rgba(20, 24, 31, .24);
+    }
+
+    .wizard-rail {
+      padding: 22px 14px;
+      background: var(--sidebar);
+      border-right: 1px solid var(--line);
+    }
+
+    .wizard-title {
+      padding: 0 8px 16px;
+    }
+
+    .wizard-title h3 {
+      margin: 0;
+      font-size: 17px;
+      line-height: 1.2;
+    }
+
+    .wizard-title p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .step {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      min-height: 38px;
+      margin-bottom: 5px;
+      padding: 8px 9px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--muted);
+      text-align: left;
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    .step.active {
+      color: var(--accent);
+      background: var(--accent-soft);
+      border-color: rgba(31, 122, 115, .2);
+    }
+
+    .step span:first-child {
+      width: 21px;
+      height: 21px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .86);
+      border: 1px solid var(--line);
+      font-size: 12px;
+    }
+
+    .wizard-main {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      min-height: 620px;
+      max-height: calc(100vh - 56px);
+    }
+
+    .wizard-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 22px 24px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .wizard-head h2 {
+      font-size: 21px;
+    }
+
+    .wizard-content {
+      padding: 20px 24px;
+      overflow: auto;
+    }
+
+    .wizard-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      border-top: 1px solid var(--line);
+      background: var(--panel-soft);
+    }
+
+    .footer-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    input,
+    select {
+      width: 100%;
+      min-height: 32px;
+      padding: 6px 9px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: rgba(255, 255, 255, .82);
+      color: var(--text);
+    }
+
+    .segmented {
+      display: inline-grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3px;
+      padding: 3px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, .72);
+    }
+
+    .segmented button {
+      border: 0;
+      border-radius: 6px;
+      padding: 7px 11px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .segmented button.active {
+      background: #fff;
+      color: var(--text);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, .1);
+    }
+
+    .condition-list {
+      display: grid;
+      gap: 9px;
+      margin-top: 8px;
+    }
+
+    .condition-row {
+      display: grid;
+      grid-template-columns: 150px 150px 1fr 32px;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .preview-box {
+      margin-top: 14px;
+      padding: 13px 14px;
+      border: 1px solid rgba(31, 122, 115, .18);
+      border-radius: 8px;
+      background: var(--accent-soft);
+      color: #22534f;
+      font-size: 13px;
+    }
+
+    .preview-box strong {
+      color: var(--accent);
+    }
+
+    .tag-picker {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .selectable-pill {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 6px 10px;
+      background: rgba(255, 255, 255, .74);
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .selectable-pill.active {
+      color: var(--accent);
+      background: var(--accent-soft);
+      border-color: rgba(31, 122, 115, .22);
+    }
+
+    .wizard-page {
+      display: none;
+    }
+
+    .wizard-page.active {
+      display: block;
+    }
+
+    .summary-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .summary-item {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 11px 0;
+      border-bottom: 1px solid var(--line);
+      font-size: 13px;
+    }
+
+    .summary-item:last-child {
+      border-bottom: 0;
+    }
+
+    .summary-item span:first-child {
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .summary-item span:last-child {
+      text-align: right;
+      font-weight: 650;
+    }
+
+    @media (max-width: 980px) {
+      .page {
+        width: calc(100vw - 24px);
+        margin-top: 12px;
+      }
+
+      .topbar,
+      .main-header {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .settings {
+        grid-template-columns: 1fr;
+      }
+
+      .settings-sidebar {
+        display: none;
+      }
+
+      .rules-head {
+        display: none;
+      }
+
+      .rule-row {
+        grid-template-columns: 38px 48px 1fr;
+        gap: 10px;
+      }
+
+      .rule-row .condition,
+      .rule-row .pill,
+      .rule-row .count,
+      .rule-row .row-actions {
+        grid-column: 3;
+      }
+
+      .wizard {
+        grid-template-columns: 1fr;
+      }
+
+      .wizard-rail {
+        display: none;
+      }
+
+      .form-grid,
+      .condition-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="topbar">
+      <div class="title">
+        <h1>Regeln: Liste und Wizard</h1>
+        <p>Klickbarer Feedivo-Prototyp fuer Reihenfolge, Aktionen und Regelbearbeitung.</p>
+      </div>
+      <div class="mode-tabs" aria-label="Ansicht wechseln">
+        <button class="active" data-demo="settings">Einstellungen</button>
+        <button data-demo="wizard">Wizard Sheet</button>
+      </div>
+    </div>
+
+    <section class="window">
+      <div class="window-head">
+        <span class="traffic red"></span>
+        <span class="traffic yellow"></span>
+        <span class="traffic green"></span>
+        <div class="window-title">Feedivo Einstellungen</div>
+      </div>
+
+      <div class="settings">
+        <aside class="settings-sidebar">
+          <button class="category"><span class="symbol">G</span><span>Allgemein</span></button>
+          <button class="category"><span class="symbol">D</span><span>Darstellung</span></button>
+          <button class="category"><span class="symbol">F</span><span>Feeds</span></button>
+          <button class="category"><span class="symbol">A</span><span>Aktualisierung</span></button>
+          <button class="category active"><span class="symbol">R</span><span>Tags & Regeln</span></button>
+          <button class="category"><span class="symbol">S</span><span>Sync</span></button>
+        </aside>
+
+        <section class="main">
+          <div class="main-header">
+            <div>
+              <h2>Automatische Regeln</h2>
+              <p class="sub">Regeln werden von oben nach unten ausgewertet. Die Reihenfolge ist Teil der Logik.</p>
+            </div>
+            <div class="toolbar">
+              <button class="button" id="applyRules">Alle Regeln jetzt anwenden</button>
+              <button class="button primary" id="createRule">+ Neue Regel</button>
+            </div>
+          </div>
+
+          <div class="rules-shell">
+            <div class="rules-head">
+              <span></span>
+              <span>Aktiv</span>
+              <span>Name</span>
+              <span>Bedingungen</span>
+              <span>Aktion</span>
+              <span>Treffer</span>
+              <span></span>
+            </div>
+            <div id="rulesList"></div>
+          </div>
+
+          <div class="settings-footer">
+            <div class="status-line" id="statusLine">Zuletzt angewendet: vor 12 Minuten, 18 Aktionen.</div>
+            <div>3 aktive Regeln · 1 deaktiviert · 119 passende Artikel</div>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <div class="wizard-backdrop" id="wizardBackdrop" role="dialog" aria-modal="true">
+    <section class="wizard">
+      <aside class="wizard-rail">
+        <div class="wizard-title">
+          <h3 id="wizardRailTitle">Neue Regel</h3>
+          <p>Der Wizard fuehrt durch Name, Bedingungen, Aktion und Vorschau.</p>
+        </div>
+        <button class="step active" data-step="0"><span>1</span><span>Basis</span></button>
+        <button class="step" data-step="1"><span>2</span><span>Bedingungen</span></button>
+        <button class="step" data-step="2"><span>3</span><span>Aktion</span></button>
+        <button class="step" data-step="3"><span>4</span><span>Vorschau</span></button>
+      </aside>
+
+      <div class="wizard-main">
+        <header class="wizard-head">
+          <div>
+            <h2 id="wizardTitle">Neue Regel erstellen</h2>
+            <p class="sub" id="wizardSubtitle">Einfache Regel fuer typische Feedivo-Automation.</p>
+          </div>
+          <button class="icon-button" id="closeWizard" aria-label="Schliessen">x</button>
+        </header>
+
+        <div class="wizard-content">
+          <section class="wizard-page active" data-page="0">
+            <div class="form-grid">
+              <div class="field full">
+                <label for="ruleName">Regelname</label>
+                <input id="ruleName" value="Apple Artikel markieren">
+              </div>
+              <div class="field">
+                <label>Modus</label>
+                <div class="segmented">
+                  <button class="active" id="simpleMode">Einfach</button>
+                  <button id="powerMode">Power-User</button>
+                </div>
+              </div>
+              <div class="field">
+                <label>Status</label>
+                <div>
+                  <label class="toggle" aria-label="Regel aktiv">
+                    <input type="checkbox" checked>
+                    <span class="slider"></span>
+                  </label>
+                </div>
+              </div>
+            </div>
+            <div class="preview-box">
+              Die Regel wird in der Liste mit Toggle, Zusammenfassung und Trefferanzahl angezeigt.
+            </div>
+          </section>
+
+          <section class="wizard-page" data-page="1">
+            <div class="field">
+              <label>Verknuepfung</label>
+              <div class="segmented">
+                <button class="active" id="allMode">Alle Bedingungen</button>
+                <button id="anyMode">Eine Bedingung reicht</button>
+              </div>
+            </div>
+            <div class="condition-list" id="wizardConditions">
+              <div class="condition-row">
+                <select>
+                  <option>Titel</option>
+                  <option>Summary</option>
+                  <option>Feed</option>
+                </select>
+                <select>
+                  <option>enthaelt</option>
+                  <option>beginnt mit</option>
+                  <option>endet mit</option>
+                </select>
+                <input value="Apple">
+                <button class="icon-button" disabled>-</button>
+              </div>
+            </div>
+            <button class="button" id="addCondition" style="margin-top: 10px;">+ Bedingung</button>
+            <div class="preview-box">
+              Live-Vorschau: <strong>42 Artikel</strong> wuerden aktuell passen.
+            </div>
+          </section>
+
+          <section class="wizard-page" data-page="2">
+            <div class="field">
+              <label>Aktion</label>
+              <div class="segmented">
+                <button class="active" id="tagAction">Tag zuweisen</button>
+                <button id="hideAction">Artikel ausblenden</button>
+              </div>
+            </div>
+            <div class="field" style="margin-top: 14px;" id="tagTarget">
+              <label>Ziel-Tag</label>
+              <div class="tag-picker">
+                <button class="selectable-pill active"><span class="dot"></span> Apple</button>
+                <button class="selectable-pill"><span class="dot green"></span> Security</button>
+                <button class="selectable-pill"><span class="dot orange"></span> KI</button>
+                <button class="selectable-pill">+ Neues Tag</button>
+              </div>
+            </div>
+            <div class="preview-box" id="actionPreview">
+              Passende Artikel bekommen automatisch das Tag <strong>Apple</strong>.
+            </div>
+          </section>
+
+          <section class="wizard-page" data-page="3">
+            <div class="summary-list">
+              <div class="summary-item"><span>Name</span><span id="summaryName">Apple Artikel markieren</span></div>
+              <div class="summary-item"><span>Bedingungen</span><span>Titel enthaelt "Apple"</span></div>
+              <div class="summary-item"><span>Aktion</span><span id="summaryAction">Tag zuweisen: Apple</span></div>
+              <div class="summary-item"><span>Treffer</span><span>42 Artikel im aktuellen Bestand</span></div>
+            </div>
+            <div class="preview-box">
+              Nach dem Speichern erscheint die Regel oben in der Liste. Die Reihenfolge kann danach direkt angepasst werden.
+            </div>
+          </section>
+        </div>
+
+        <footer class="wizard-footer">
+          <button class="button" id="backStep">Zurueck</button>
+          <div class="footer-actions">
+            <button class="button" id="cancelWizard">Abbrechen</button>
+            <button class="button primary" id="nextStep">Weiter</button>
+          </div>
+        </footer>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const initialRules = [
+      {
+        name: "Security sofort hervorheben",
+        enabled: true,
+        mode: "Eine Bedingung",
+        condition: "Titel enthaelt \"CVE\" oder Summary enthaelt \"Zero-Day\"",
+        action: "Tag",
+        tag: "Security",
+        color: "green",
+        count: 31
+      },
+      {
+        name: "Apple Artikel markieren",
+        enabled: true,
+        mode: "Alle Bedingungen",
+        condition: "Titel enthaelt \"Apple\" und Feed enthaelt \"Mac\"",
+        action: "Tag",
+        tag: "Apple",
+        color: "blue",
+        count: 42
+      },
+      {
+        name: "Sport ausblenden",
+        enabled: true,
+        mode: "Eine Bedingung",
+        condition: "Feed enthaelt \"Sport\" oder Titel enthaelt \"Transfer\"",
+        action: "Hide",
+        tag: "Ausblenden",
+        color: "orange",
+        count: 46
+      },
+      {
+        name: "Alte Promo-Artikel",
+        enabled: false,
+        mode: "Alle Bedingungen",
+        condition: "Summary enthaelt \"sponsored\" und Titel enthaelt \"deal\"",
+        action: "Tag",
+        tag: "Promo",
+        color: "orange",
+        count: 0
+      }
+    ];
+
+    let rules = [...initialRules];
+    let selectedIndex = 1;
+    let wizardStep = 0;
+    let wizardAction = "tag";
+
+    const rulesList = document.getElementById("rulesList");
+    const statusLine = document.getElementById("statusLine");
+    const wizardBackdrop = document.getElementById("wizardBackdrop");
+    const pages = [...document.querySelectorAll(".wizard-page")];
+    const steps = [...document.querySelectorAll(".step")];
+
+    function renderRules() {
+      rulesList.innerHTML = "";
+      rules.forEach((rule, index) => {
+        const row = document.createElement("div");
+        row.className = `rule-row ${index === selectedIndex ? "selected" : ""}`;
+        row.innerHTML = `
+          <div class="order-controls">
+            <span class="handle">::</span>
+            <div class="stack-buttons">
+              <button class="tiny" data-action="up" data-index="${index}" ${index === 0 ? "disabled" : ""}>^</button>
+              <button class="tiny" data-action="down" data-index="${index}" ${index === rules.length - 1 ? "disabled" : ""}>v</button>
+            </div>
+          </div>
+          <label class="toggle" aria-label="Regel aktiv">
+            <input type="checkbox" ${rule.enabled ? "checked" : ""} data-action="toggle" data-index="${index}">
+            <span class="slider"></span>
+          </label>
+          <div>
+            <div class="rule-name">${rule.name}</div>
+            <div class="rule-meta">${index + 1}. Regel · ${rule.mode}</div>
+          </div>
+          <div class="condition"><strong>Wenn</strong> ${rule.condition}</div>
+          <div>${actionPill(rule)}</div>
+          <div class="count">${rule.count} Artikel</div>
+          <div class="row-actions">
+            <button class="icon-button" data-action="edit" data-index="${index}" aria-label="Bearbeiten">E</button>
+            <button class="icon-button" data-action="duplicate" data-index="${index}" aria-label="Duplizieren">D</button>
+            <button class="icon-button" data-action="delete" data-index="${index}" aria-label="Loeschen">-</button>
+          </div>
+        `;
+        row.addEventListener("click", (event) => {
+          if (event.target.closest("button") || event.target.closest("input")) return;
+          selectedIndex = index;
+          renderRules();
+        });
+        row.addEventListener("dblclick", () => openWizard("edit", index));
+        rulesList.appendChild(row);
+      });
+    }
+
+    function actionPill(rule) {
+      if (rule.action === "Hide") {
+        return `<span class="pill hide"><span class="dot orange"></span>Artikel ausblenden</span>`;
+      }
+      return `<span class="pill"><span class="dot ${rule.color}"></span>${rule.tag}</span>`;
+    }
+
+    rulesList.addEventListener("click", (event) => {
+      const target = event.target.closest("[data-action]");
+      if (!target) return;
+
+      const action = target.dataset.action;
+      const index = Number(target.dataset.index);
+
+      if (action === "up" && index > 0) {
+        [rules[index - 1], rules[index]] = [rules[index], rules[index - 1]];
+        selectedIndex = index - 1;
+        statusLine.textContent = "Reihenfolge geaendert. Regeln werden von oben nach unten ausgewertet.";
+      }
+
+      if (action === "down" && index < rules.length - 1) {
+        [rules[index + 1], rules[index]] = [rules[index], rules[index + 1]];
+        selectedIndex = index + 1;
+        statusLine.textContent = "Reihenfolge geaendert. Regeln werden von oben nach unten ausgewertet.";
+      }
+
+      if (action === "toggle") {
+        rules[index].enabled = target.checked;
+        statusLine.textContent = rules[index].enabled ? "Regel aktiviert." : "Regel deaktiviert.";
+      }
+
+      if (action === "edit") {
+        openWizard("edit", index);
+      }
+
+      if (action === "duplicate") {
+        const copy = { ...rules[index], name: `${rules[index].name} Kopie`, enabled: false };
+        rules.splice(index + 1, 0, copy);
+        selectedIndex = index + 1;
+        statusLine.textContent = "Regel dupliziert und deaktiviert eingefuegt.";
+      }
+
+      if (action === "delete") {
+        rules.splice(index, 1);
+        selectedIndex = Math.max(0, Math.min(selectedIndex, rules.length - 1));
+        statusLine.textContent = "Regel geloescht.";
+      }
+
+      renderRules();
+    });
+
+    document.getElementById("applyRules").addEventListener("click", () => {
+      statusLine.textContent = "Alle aktiven Regeln angewendet: 119 Artikel geprueft, 23 Aktionen ausgefuehrt.";
+    });
+
+    document.getElementById("createRule").addEventListener("click", () => openWizard("create"));
+
+    document.querySelectorAll(".mode-tabs button").forEach((button) => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll(".mode-tabs button").forEach((tab) => tab.classList.remove("active"));
+        button.classList.add("active");
+        if (button.dataset.demo === "wizard") {
+          openWizard("create");
+        } else {
+          closeWizard();
+        }
+      });
+    });
+
+    function openWizard(mode, index = selectedIndex) {
+      selectedIndex = index;
+      const rule = rules[index] || initialRules[1];
+      wizardStep = 0;
+      wizardAction = rule.action === "Hide" ? "hide" : "tag";
+      document.getElementById("wizardTitle").textContent = mode === "edit" ? "Regel bearbeiten" : "Neue Regel erstellen";
+      document.getElementById("wizardRailTitle").textContent = mode === "edit" ? "Regel bearbeiten" : "Neue Regel";
+      document.getElementById("ruleName").value = mode === "edit" ? rule.name : "Neue Regel";
+      updateActionState();
+      updateWizard();
+      wizardBackdrop.classList.add("open");
+      renderRules();
+    }
+
+    function closeWizard() {
+      wizardBackdrop.classList.remove("open");
+      document.querySelectorAll(".mode-tabs button").forEach((tab) => tab.classList.remove("active"));
+      document.querySelector('[data-demo="settings"]').classList.add("active");
+    }
+
+    function updateWizard() {
+      pages.forEach((page, index) => page.classList.toggle("active", index === wizardStep));
+      steps.forEach((step, index) => step.classList.toggle("active", index === wizardStep));
+      document.getElementById("backStep").disabled = wizardStep === 0;
+      document.getElementById("nextStep").textContent = wizardStep === pages.length - 1 ? "Speichern" : "Weiter";
+      document.getElementById("summaryName").textContent = document.getElementById("ruleName").value || "Neue Regel";
+    }
+
+    function updateActionState() {
+      const tagTarget = document.getElementById("tagTarget");
+      const actionPreview = document.getElementById("actionPreview");
+      const summaryAction = document.getElementById("summaryAction");
+      document.getElementById("tagAction").classList.toggle("active", wizardAction === "tag");
+      document.getElementById("hideAction").classList.toggle("active", wizardAction === "hide");
+      tagTarget.style.opacity = wizardAction === "tag" ? "1" : ".45";
+      tagTarget.style.pointerEvents = wizardAction === "tag" ? "auto" : "none";
+      if (wizardAction === "tag") {
+        actionPreview.innerHTML = 'Passende Artikel bekommen automatisch das Tag <strong>Apple</strong>.';
+        summaryAction.textContent = "Tag zuweisen: Apple";
+      } else {
+        actionPreview.innerHTML = 'Passende Artikel werden automatisch <strong>aus normalen Listen ausgeblendet</strong>.';
+        summaryAction.textContent = "Artikel ausblenden";
+      }
+    }
+
+    document.getElementById("closeWizard").addEventListener("click", closeWizard);
+    document.getElementById("cancelWizard").addEventListener("click", closeWizard);
+    document.getElementById("backStep").addEventListener("click", () => {
+      wizardStep = Math.max(0, wizardStep - 1);
+      updateWizard();
+    });
+    document.getElementById("nextStep").addEventListener("click", () => {
+      if (wizardStep === pages.length - 1) {
+        statusLine.textContent = "Regel gespeichert. Vorschau: 42 passende Artikel.";
+        closeWizard();
+        return;
+      }
+      wizardStep += 1;
+      updateWizard();
+    });
+    steps.forEach((step) => {
+      step.addEventListener("click", () => {
+        wizardStep = Number(step.dataset.step);
+        updateWizard();
+      });
+    });
+
+    document.getElementById("ruleName").addEventListener("input", updateWizard);
+    document.getElementById("tagAction").addEventListener("click", () => {
+      wizardAction = "tag";
+      updateActionState();
+    });
+    document.getElementById("hideAction").addEventListener("click", () => {
+      wizardAction = "hide";
+      updateActionState();
+    });
+    document.getElementById("addCondition").addEventListener("click", () => {
+      const row = document.createElement("div");
+      row.className = "condition-row";
+      row.innerHTML = `
+        <select><option>Summary</option><option>Titel</option><option>Feed</option></select>
+        <select><option>enthaelt</option><option>beginnt mit</option><option>endet mit</option></select>
+        <input value="macOS">
+        <button class="icon-button">-</button>
+      `;
+      row.querySelector("button").addEventListener("click", () => row.remove());
+      document.getElementById("wizardConditions").appendChild(row);
+    });
+
+    document.getElementById("simpleMode").addEventListener("click", () => {
+      document.getElementById("simpleMode").classList.add("active");
+      document.getElementById("powerMode").classList.remove("active");
+    });
+    document.getElementById("powerMode").addEventListener("click", () => {
+      document.getElementById("powerMode").classList.add("active");
+      document.getElementById("simpleMode").classList.remove("active");
+    });
+    document.getElementById("allMode").addEventListener("click", () => {
+      document.getElementById("allMode").classList.add("active");
+      document.getElementById("anyMode").classList.remove("active");
+    });
+    document.getElementById("anyMode").addEventListener("click", () => {
+      document.getElementById("anyMode").classList.add("active");
+      document.getElementById("allMode").classList.remove("active");
+    });
+
+    renderRules();
+  </script>
+</body>
+</html>

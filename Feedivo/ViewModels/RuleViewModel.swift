@@ -9,10 +9,25 @@ struct RuleConditionDraft: Identifiable, Equatable {
     var value: String
 }
 
+enum RuleMoveDirection {
+    case up
+    case down
+}
+
 @Observable
 @MainActor
 final class RuleViewModel {
     var errorMessage: String?
+
+    static func sortedRules(_ rules: [Rule]) -> [Rule] {
+        rules.sorted { firstRule, secondRule in
+            if firstRule.sortOrder == secondRule.sortOrder {
+                return firstRule.name.localizedCaseInsensitiveCompare(secondRule.name) == .orderedAscending
+            }
+
+            return firstRule.sortOrder < secondRule.sortOrder
+        }
+    }
 
     func createRule(
         name: String,
@@ -21,6 +36,7 @@ final class RuleViewModel {
         matchMode: RuleMatchMode,
         conditionDrafts: [RuleConditionDraft],
         assignTag: Tag?,
+        existingRules: [Rule] = [],
         context: ModelContext
     ) {
         guard let normalizedName = normalizedName(name),
@@ -46,6 +62,7 @@ final class RuleViewModel {
         rule.actionRaw = action.rawValue
         rule.conditionMatchMode = matchMode.rawValue
         rule.assignTag = action == .assignTag ? assignTag : nil
+        rule.sortOrder = nextSortOrder(after: existingRules)
         rule.conditions = conditions.enumerated().map { index, condition in
             RuleCondition(
                 field: condition.field,
@@ -57,6 +74,76 @@ final class RuleViewModel {
 
         context.insert(rule)
         save(context)
+    }
+
+    func duplicateRule(_ rule: Rule, existingRules: [Rule], context: ModelContext) {
+        let conditions = sortedConditions(for: rule)
+        guard !conditions.isEmpty else {
+            errorMessage = L10n.ruleValidationError
+            return
+        }
+
+        let firstCondition = conditions[0]
+        let duplicate = Rule(
+            name: "\(rule.name) Kopie",
+            conditionField: firstCondition.field,
+            conditionOperator: firstCondition.conditionOperator,
+            conditionValue: firstCondition.value
+        )
+        duplicate.isEnabled = false
+        duplicate.actionRaw = rule.actionRaw
+        duplicate.conditionMatchMode = rule.conditionMatchMode
+        duplicate.assignTag = RuleAction.normalized(rule.actionRaw) == .assignTag ? rule.assignTag : nil
+        duplicate.conditions = conditions.enumerated().map { index, condition in
+            RuleCondition(
+                field: condition.field,
+                conditionOperator: condition.conditionOperator,
+                value: condition.value,
+                sortOrder: index
+            )
+        }
+
+        context.insert(duplicate)
+
+        let orderedRules = Self.sortedRules(existingRules)
+        let originalIndex = orderedRules.firstIndex { $0.id == rule.id } ?? orderedRules.endIndex
+        var reorderedRules = orderedRules
+        reorderedRules.insert(duplicate, at: min(originalIndex + 1, reorderedRules.count))
+        normalizeSortOrder(in: reorderedRules)
+        save(context)
+    }
+
+    func moveRule(
+        _ rule: Rule,
+        direction: RuleMoveDirection,
+        existingRules: [Rule],
+        context: ModelContext?
+    ) {
+        var orderedRules = Self.sortedRules(existingRules)
+        guard let currentIndex = orderedRules.firstIndex(where: { $0.id == rule.id }) else {
+            return
+        }
+
+        let destinationIndex: Int
+        switch direction {
+        case .up:
+            destinationIndex = max(0, currentIndex - 1)
+        case .down:
+            destinationIndex = min(orderedRules.count - 1, currentIndex + 1)
+        }
+
+        guard currentIndex != destinationIndex else {
+            return
+        }
+
+        orderedRules.swapAt(currentIndex, destinationIndex)
+        normalizeSortOrder(in: orderedRules)
+
+        if let context {
+            save(context)
+        } else {
+            errorMessage = nil
+        }
     }
 
     func updateRule(
@@ -105,6 +192,35 @@ final class RuleViewModel {
     func deleteRule(_ rule: Rule, context: ModelContext) {
         context.delete(rule)
         save(context)
+    }
+
+    private func nextSortOrder(after rules: [Rule]) -> Int {
+        (rules.map(\.sortOrder).max() ?? -1) + 1
+    }
+
+    private func normalizeSortOrder(in rules: [Rule]) {
+        for (index, rule) in rules.enumerated() {
+            rule.sortOrder = index
+        }
+    }
+
+    private func sortedConditions(for rule: Rule) -> [RuleCondition] {
+        let sortedConditions = rule.conditions.sorted { firstCondition, secondCondition in
+            firstCondition.sortOrder < secondCondition.sortOrder
+        }
+
+        if !sortedConditions.isEmpty {
+            return sortedConditions
+        }
+
+        return [
+            RuleCondition(
+                field: rule.conditionField,
+                conditionOperator: rule.conditionOperator,
+                value: rule.conditionValue,
+                sortOrder: 0
+            )
+        ]
     }
 
     private func normalizedName(_ name: String) -> String? {

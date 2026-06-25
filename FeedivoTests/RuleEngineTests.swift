@@ -201,6 +201,40 @@ struct RuleEngineTests {
     }
 
     @MainActor
+    @Test func applyRulesWertetRegelnNachSortOrderAus() throws {
+        let firstTag = Tag(name: "Erste Aktion", colorHex: "#3B82F6")
+        let secondTag = Tag(name: "Zweite Aktion", colorHex: "#22C55E")
+        let firstRule = Rule(
+            name: "Erste Regel",
+            conditionField: "title",
+            conditionOperator: "contains",
+            conditionValue: "Swift"
+        )
+        firstRule.sortOrder = 0
+        firstRule.conditions = [
+            RuleCondition(field: "title", conditionOperator: "contains", value: "Swift")
+        ]
+        firstRule.assignTag = firstTag
+        let secondRule = Rule(
+            name: "Zweite Regel",
+            conditionField: "title",
+            conditionOperator: "contains",
+            conditionValue: "Swift"
+        )
+        secondRule.sortOrder = 1
+        secondRule.conditions = [
+            RuleCondition(field: "title", conditionOperator: "contains", value: "Swift")
+        ]
+        secondRule.assignTag = secondTag
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
+        let article = Article(title: "Swift News", feed: feed)
+
+        RuleEngine.applyRules([secondRule, firstRule], to: article, feed: feed)
+
+        #expect(article.tags.map(\.name) == ["Erste Aktion", "Zweite Aktion"])
+    }
+
+    @MainActor
     @Test func applyRulesToExistingArticlesTaggtVorhandeneArtikelRueckwirkend() throws {
         let tag = Tag(name: "Swift", colorHex: "#3B82F6")
         let rule = Rule(

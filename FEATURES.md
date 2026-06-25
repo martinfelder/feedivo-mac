@@ -116,6 +116,8 @@
   - Ungelesene Artikel: immer angezeigt, unabhängig vom Alter
   - Gelesene Artikel: standardmässig ausgeblendet in der Liste
   - Am Ende der Liste: Button "X gelesene Artikel anzeigen" — Klick blendet alle gelesenen Artikel ein
+  - Filtermenü bietet zusätzlich "Gelesene ausblenden" und "Gelesene und ungelesene anzeigen"
+  - Artikel, die durch "beim Öffnen als gelesen markieren" automatisch gelesen werden, bleiben bis zum Feed-/Listenwechsel sichtbar
   - Gelesene Artikel bleiben verfügbar bis automatisches Löschen greift (Standard 90 Tage)
   - Der aktuell ausgewählte Artikel bleibt sichtbar, wenn er beim Öffnen automatisch als gelesen markiert wird
 
@@ -179,21 +181,22 @@
 - **Umgesetzt:** `TagManagerView`, `TagViewModel`, Farbauswahl
 
 ### 5.2 Automatische Regeln — Settings-Design
-- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Status:** ✔️ Fertig
 - **Umgesetzt:** `RuleEngine`, `RuleWizardView`, Live-Vorschau, rückwirkend anwendbar
-- **Zu implementieren — Regelliste in Einstellungen:**
-  - Jede Regel als Zeile: Toggle (aktiv/inaktiv) — Name — Bedingung zusammengefasst — Tag als farbige Pill
-  - Reihenfolge per Drag & Drop änderbar (Regeln werden von oben nach unten ausgewertet)
+- **Umgesetzt — Regelliste in Einstellungen:**
+  - Jede Regel als Zeile: Toggle (aktiv/inaktiv) — Name — Bedingung zusammengefasst — Aktion als Pill
+  - Reihenfolge per Hoch-/Runter-Buttons änderbar; Regeln werden von oben nach unten ausgewertet
   - Doppelklick öffnet RuleWizard zum Bearbeiten
   - Rechtsklick: Bearbeiten / Duplizieren / Löschen
   - `+` Button für neue Regel
   - "Alle Regeln jetzt anwenden" Button (rückwirkend auf bestehende Artikel)
-  - Anzahl betroffener Artikel pro Regel anzeigen (z.B. "42 Artikel")
+  - Anzahl betroffener Artikel pro Regel anzeigen
 - **Regel-Aktionen:**
   - Tag zuweisen (bereits vorhanden)
   - Benachrichtigung auslösen (neu — siehe Feature 10.2)
   - Artikel ausblenden (umgesetzt — siehe Feature 16.3)
 - **Noch offen (nicht jetzt implementieren):**
+  - Echtes Drag & Drop fuer die Reihenfolge; fuer v1 bewusst stabile Reihenfolge-Buttons
   - Regex als Operator
 
 ---
@@ -210,7 +213,9 @@
 
 ### 7.1 OPML Import
 - **Status:** ✔️ Fertig
-- **Umgesetzt:** `OPMLImportReviewView`, zweiphasiger Import, Drag & Drop
+- **Umgesetzt:** `OPMLImportReviewView`, zweiphasiger Import, Drag & Drop,
+  Uebernahme des gewaehlten bzw. gespeicherten Aktualisierungsintervalls fuer neu
+  importierte Feeds
 
 ### 7.2 OPML Export
 - **Status:** ✅ Entschieden — bereit zur Implementierung
@@ -240,6 +245,7 @@
   - **Artikel:** Auto-Löschen (Standard 90 Tage), Anzeige-Logik, Vorschautext-Zeilen
   - **Menubar:** Anzahl Artikel im Dropdown, Klick-Verhalten (Feedivo / Browser), Dock-Icon ausblenden
   - **Darstellung (erweitern):** Vorschaubild an/aus, Bildposition (links/rechts), Reader-Textbreite, Favicons, Ungelesen-Zähler
+  - **Umgesetzt:** Option `Gelesene Feeds in der Seitenleiste anzeigen`
 
 ---
 
@@ -485,6 +491,7 @@
 ### 19.1 Artikel-Liste anpassen
 - **Status:** ✅ Entschieden — bereit zur Implementierung
 - **Zu implementieren (Einstellungen → Darstellung):**
+  - Feeds ohne ungelesene Artikel in der Seitenleiste anzeigen / ausblenden — umgesetzt
   - Vorschautext-Zeilen: 0–3 (Stepper), Standard: 2 — 0 = nur Titel + Datum
   - Vorschaubilder in der Liste: anzeigen / ausblenden
   - Vorschaubild-Position: Links oder Rechts

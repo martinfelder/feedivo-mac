@@ -61,6 +61,34 @@ struct ArticleListQueryTests {
         #expect(state.hiddenReadArticleCount == 1)
     }
 
+    @Test func displayStateHaeltAutomatischGeleseneArtikelSichtbar() {
+        let unreadArticle = Article(title: "Ungelesen", isRead: false)
+        let autoReadArticle = Article(title: "Automatisch gelesen", isRead: true)
+        let regularReadArticle = Article(title: "Vorher gelesen", isRead: true)
+
+        let state = ArticleListDisplayState(
+            articles: [unreadArticle, autoReadArticle, regularReadArticle],
+            showsReadArticles: false,
+            temporarilyVisibleReadArticleIDs: [autoReadArticle.persistentModelID]
+        )
+
+        #expect(state.visibleArticles.map(\.title) == ["Ungelesen", "Automatisch gelesen"])
+        #expect(state.hiddenReadArticleCount == 1)
+    }
+
+    @Test func displayStateIgnoriertTemporärSichtbareUngeleseneArtikelBeimZaehlen() {
+        let unreadArticle = Article(title: "Ungelesen", isRead: false)
+
+        let state = ArticleListDisplayState(
+            articles: [unreadArticle],
+            showsReadArticles: false,
+            temporarilyVisibleReadArticleIDs: [unreadArticle.persistentModelID]
+        )
+
+        #expect(state.visibleArticles.map(\.title) == ["Ungelesen"])
+        #expect(state.hiddenReadArticleCount == 0)
+    }
+
     @Test func displayStateBlendetHiddenArtikelAusNormalenListenAus() {
         let visibleArticle = Article(title: "Sichtbar", isRead: false)
         let hiddenArticle = Article(title: "Ausgeblendet", isRead: false, isHidden: true)

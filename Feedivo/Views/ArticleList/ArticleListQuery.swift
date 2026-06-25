@@ -45,17 +45,20 @@ struct ArticleListDisplayState {
     let showsReadArticles: Bool
     let selectedArticle: Article?
     let showsHiddenArticles: Bool
+    let temporarilyVisibleReadArticleIDs: Set<PersistentIdentifier>
 
     init(
         articles: [Article],
         showsReadArticles: Bool,
         selectedArticle: Article? = nil,
-        showsHiddenArticles: Bool = false
+        showsHiddenArticles: Bool = false,
+        temporarilyVisibleReadArticleIDs: Set<PersistentIdentifier> = []
     ) {
         self.articles = articles
         self.showsReadArticles = showsReadArticles
         self.selectedArticle = selectedArticle
         self.showsHiddenArticles = showsHiddenArticles
+        self.temporarilyVisibleReadArticleIDs = temporarilyVisibleReadArticleIDs
     }
 
     var visibleArticles: [Article] {
@@ -66,7 +69,7 @@ struct ArticleListDisplayState {
         }
 
         return visibleArticles.filter { article in
-            !article.isRead || isSelected(article)
+            !article.isRead || isSelected(article) || isTemporarilyVisibleReadArticle(article)
         }
     }
 
@@ -80,7 +83,7 @@ struct ArticleListDisplayState {
                 return count
             }
 
-            return count + (article.isRead && !isSelected(article) ? 1 : 0)
+            return count + (article.isRead && !isSelected(article) && !isTemporarilyVisibleReadArticle(article) ? 1 : 0)
         }
     }
 
@@ -90,5 +93,9 @@ struct ArticleListDisplayState {
 
     private func isSelected(_ article: Article) -> Bool {
         selectedArticle?.persistentModelID == article.persistentModelID
+    }
+
+    private func isTemporarilyVisibleReadArticle(_ article: Article) -> Bool {
+        article.isRead && temporarilyVisibleReadArticleIDs.contains(article.persistentModelID)
     }
 }

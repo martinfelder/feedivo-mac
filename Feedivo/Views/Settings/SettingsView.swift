@@ -73,7 +73,7 @@ struct SettingsView: View {
             }
         }
         .font(interfaceTextSize.font(size: 13))
-        .frame(width: 760, height: 620)
+        .frame(width: 980, height: 720)
     }
 
     private var settingsSidebar: some View {
@@ -220,6 +220,9 @@ private struct AppearanceSettingsView: View {
     @AppStorage(InterfaceTextSize.storageKey)
     private var interfaceTextSizeRawValue = InterfaceTextSize.defaultSize.rawValue
 
+    @AppStorage(SidebarFeedVisibilitySettings.showsReadFeedsKey)
+    private var showsReadFeedsInSidebar = SidebarFeedVisibilitySettings.defaultShowsReadFeeds
+
     @AppStorage("readerTitleFontPreset")
     private var readerTitleFontPresetRawValue = ReaderFontPreset.system.rawValue
 
@@ -253,6 +256,15 @@ private struct AppearanceSettingsView: View {
                     }
                 }
                 .pickerStyle(.segmented)
+
+                Toggle(isOn: $showsReadFeedsInSidebar) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(L10n.settingsSidebarShowsReadFeedsTitle)
+                        Text(L10n.settingsSidebarShowsReadFeedsDescription)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
             }
 
             Section(L10n.settingsReadingSection) {

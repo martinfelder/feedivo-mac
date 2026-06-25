@@ -11,7 +11,7 @@ enum RuleEngine {
     static func applyRules(_ rules: [Rule], to article: Article, feed: Feed) -> Int {
         var appliedActionCount = 0
 
-        for rule in rules where rule.isEnabled {
+        for rule in sortedRules(rules) where rule.isEnabled {
             guard matches(rule: rule, article: article, feed: feed) else {
                 continue
             }
@@ -95,6 +95,16 @@ enum RuleEngine {
             return conditions.contains { condition in
                 matches(condition: condition, article: article, feed: feed)
             }
+        }
+    }
+
+    private static func sortedRules(_ rules: [Rule]) -> [Rule] {
+        rules.sorted { firstRule, secondRule in
+            if firstRule.sortOrder == secondRule.sortOrder {
+                return firstRule.name.localizedCaseInsensitiveCompare(secondRule.name) == .orderedAscending
+            }
+
+            return firstRule.sortOrder < secondRule.sortOrder
         }
     }
 

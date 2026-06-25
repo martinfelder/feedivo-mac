@@ -21,6 +21,7 @@ struct RuleWizardView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Tag.name) private var tags: [Tag]
+    @Query(sort: \Rule.sortOrder) private var existingRules: [Rule]
     @Query private var articles: [Article]
 
     let rule: Rule?
@@ -396,6 +397,7 @@ struct RuleWizardView: View {
                 matchMode: matchMode,
                 conditionDrafts: drafts,
                 assignTag: selectedTag,
+                existingRules: existingRules,
                 context: modelContext
             )
         }

@@ -38,6 +38,28 @@ struct FeedFolderOrganizerTests {
         #expect(titles == ["A", "B"])
     }
 
+    @Test func visibleFeedsBlendetGeleseneFeedsOptionalAus() {
+        let unreadFeed = Feed(url: "https://example.com/unread.xml", title: "Ungelesen")
+        unreadFeed.unreadCount = 2
+        let readFeed = Feed(url: "https://example.com/read.xml", title: "Gelesen")
+        readFeed.unreadCount = 0
+
+        #expect(
+            FeedFolderOrganizer.visibleFeeds(
+                from: [readFeed, unreadFeed],
+                showsReadFeeds: true
+            )
+            .map(\.title) == ["Gelesen", "Ungelesen"]
+        )
+        #expect(
+            FeedFolderOrganizer.visibleFeeds(
+                from: [readFeed, unreadFeed],
+                showsReadFeeds: false
+            )
+            .map(\.title) == ["Ungelesen"]
+        )
+    }
+
     @Test func normalizeFolderNameSpeichertNilFuerLeereEingaben() {
         #expect(FeedFolderOrganizer.normalizedFolderName(" News ") == "News")
         #expect(FeedFolderOrganizer.normalizedFolderName(" ") == nil)

@@ -128,6 +128,7 @@ final class FeedViewModel {
         existingFeeds: [Feed],
         allowsDuplicates: Bool = false,
         refreshAfterImport: Bool = true,
+        refreshIntervalMinutes: Int = 60,
         context: ModelContext
     ) async throws -> OPMLImportResult {
         errorMessage = nil
@@ -162,7 +163,8 @@ final class FeedViewModel {
                 title: opmlFeed.title.trimmingCharacters(in: .whitespacesAndNewlines),
                 siteURL: opmlFeed.htmlURL,
                 followedAt: Date(),
-                folderName: opmlFeed.folderName
+                folderName: opmlFeed.folderName,
+                refreshIntervalMinutes: BackgroundRefreshSettings.clampedIntervalMinutes(refreshIntervalMinutes)
             )
             context.insert(feed)
             appendLog(

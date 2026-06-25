@@ -259,6 +259,7 @@ private struct ArticleListContent: View {
     @State private var viewModel = ArticleViewModel()
     @State private var offlineDownloadService = OfflineDownloadService()
     @State private var showsReadArticles = false
+    @State private var temporarilyVisibleReadArticleIDs = Set<PersistentIdentifier>()
     @AppStorage(ArticleSortOption.storageKey)
     private var articleSortRawValue = ArticleSortOption.newestFirst.rawValue
     @AppStorage(ArticleFilterOption.storageKey)
@@ -291,7 +292,8 @@ private struct ArticleListContent: View {
             articles: filteredArticles,
             showsReadArticles: showsReadArticles,
             selectedArticle: selectedArticle,
-            showsHiddenArticles: showsHiddenArticles
+            showsHiddenArticles: showsHiddenArticles,
+            temporarilyVisibleReadArticleIDs: temporarilyVisibleReadArticleIDs
         )
         let visibleArticles = displayState.visibleArticles
 
@@ -377,7 +379,8 @@ private struct ArticleListContent: View {
                 articles: filteredArticles,
                 showsReadArticles: showsReadArticles,
                 selectedArticle: selectedArticle,
-                showsHiddenArticles: showsHiddenArticles
+                showsHiddenArticles: showsHiddenArticles,
+                temporarilyVisibleReadArticleIDs: temporarilyVisibleReadArticleIDs
             )
             updateNavigationState(in: displayState.visibleArticles)
         }
@@ -386,16 +389,20 @@ private struct ArticleListContent: View {
                 articles: filteredArticles,
                 showsReadArticles: showsReadArticles,
                 selectedArticle: selectedArticle,
-                showsHiddenArticles: showsHiddenArticles
+                showsHiddenArticles: showsHiddenArticles,
+                temporarilyVisibleReadArticleIDs: temporarilyVisibleReadArticleIDs
             )
             updateNavigationState(in: displayState.visibleArticles)
         }
         .onChange(of: selectedArticle?.persistentModelID) {
+            rememberAutoReadArticleIfNeeded(selectedArticle)
+
             let displayState = ArticleListDisplayState(
                 articles: sortedArticles,
                 showsReadArticles: showsReadArticles,
                 selectedArticle: selectedArticle,
-                showsHiddenArticles: showsHiddenArticles
+                showsHiddenArticles: showsHiddenArticles,
+                temporarilyVisibleReadArticleIDs: temporarilyVisibleReadArticleIDs
             )
             updateNavigationState(in: displayState.visibleArticles)
             viewModel.markReadIfNeeded(
@@ -456,6 +463,30 @@ private struct ArticleListContent: View {
 
     private var filterMenu: some View {
         Menu {
+            Section(L10n.articleListReadDisplayTitle) {
+                Button {
+                    showsReadArticles = false
+                } label: {
+                    if showsReadArticles {
+                        Text(L10n.articleListReadDisplayUnreadOnly)
+                    } else {
+                        Label(L10n.articleListReadDisplayUnreadOnly, systemImage: "checkmark")
+                    }
+                }
+
+                Button {
+                    showsReadArticles = true
+                } label: {
+                    if showsReadArticles {
+                        Label(L10n.articleListReadDisplayAll, systemImage: "checkmark")
+                    } else {
+                        Text(L10n.articleListReadDisplayAll)
+                    }
+                }
+            }
+
+            Divider()
+
             ForEach(ArticleFilterOption.allCases) { filterOption in
                 Button {
                     articleFilterRawValue = filterOption.rawValue
@@ -498,6 +529,17 @@ private struct ArticleListContent: View {
             selectedArticle: selectedArticle,
             sortArticles: { $0 }
         )
+    }
+
+    private func rememberAutoReadArticleIfNeeded(_ article: Article?) {
+        guard markArticleReadOnSelection,
+              let article,
+              !article.isRead
+        else {
+            return
+        }
+
+        temporarilyVisibleReadArticleIDs.insert(article.persistentModelID)
     }
 
     @MainActor

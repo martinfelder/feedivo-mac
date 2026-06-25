@@ -12,6 +12,7 @@ class Rule {
     var conditionValue: String      // z.B. "Apple", "WWDC"
     var conditionMatchMode: String  // "all" oder "any"
     var actionRaw: String = RuleAction.assignTag.rawValue
+    var sortOrder: Int
 
     @Relationship
     var assignTag: Tag?
@@ -29,6 +30,7 @@ class Rule {
         self.conditionValue = conditionValue
         self.conditionMatchMode = RuleMatchMode.all.rawValue
         self.actionRaw = RuleAction.assignTag.rawValue
+        self.sortOrder = 0
         self.conditions = []
     }
 }

@@ -118,7 +118,7 @@ FeedivoMac/
 │   │   ├── FeedLogEntry.swift          # Feed-Abruf- und Fehlerlog ✅
 │   │   ├── Article.swift
 │   │   ├── Tag.swift
-│   │   ├── Rule.swift
+│   │   ├── Rule.swift                 # Regeln inkl. sortOrder fuer Auswertungsreihenfolge ✅
 │   │   ├── RuleAction.swift            # Regel-Aktionen Tag zuweisen / Artikel ausblenden ✅
 │   │   ├── RuleCondition.swift         # Mehrfachbedingungen fuer Regeln ✅
 │   │   ├── RuleMatchMode.swift         # AND/OR-Auswertung fuer Regeln ✅
@@ -131,7 +131,7 @@ FeedivoMac/
 │   │   ├── ArticleNavigationState.swift # Sichtbare Artikel-Navigation effizient berechnen ✅
 │   │   ├── ArticleMetadataEditor.swift # Artikel-Ordner und Tags bearbeiten ✅
 │   │   ├── TagViewModel.swift          # Tags verwalten ✅
-│   │   └── RuleViewModel.swift         # Regeln erstellen, bearbeiten, loeschen ✅
+│   │   └── RuleViewModel.swift         # Regeln erstellen, duplizieren, sortieren, loeschen ✅
 │   │
 │   ├── Views/
 │   │   ├── ContentView.swift           # Root: NavigationSplitView (3 Spalten) ✅
@@ -297,7 +297,8 @@ manuell offline gespeicherte Inhalte.
 - OPML-Dateien koennen im Wizard ausgewaehlt oder direkt per Drag & Drop ins Fenster
   gezogen werden.
 - Abschlussschritt setzt erste Defaults wie `Artikel beim Öffnen als gelesen
-  markieren` und automatischen Background Refresh.
+  markieren` und automatischen Background Refresh; das gewaehlte
+  Aktualisierungsintervall wird direkt auf per OPML importierte Feeds uebernommen.
 - Nach erfolgreichem Import zeigt der Wizard einen Fertig-Screen mit importierten
   Feeds, verwendeten Ordnern und Hinweisen zu Duplikaten, nicht erreichbaren Feeds
   oder Refresh-/Speicherproblemen; das Fenster schliesst erst bei `Starten`.
@@ -327,6 +328,8 @@ manuell offline gespeicherte Inhalte.
   ueber alle Feeds
 - Ungelesen-Badges basieren auf `Feed.unreadCount`, damit die Sidebar beim Rendern
   keine separate Query auf alle ungelesenen Artikel mehr materialisieren muss
+- Per Darstellungseinstellung `sidebar.showsReadFeeds` koennen Feeds ohne
+  ungelesene Artikel in der Sidebar ausgeblendet werden; Standard bleibt anzeigen.
 - Die Sidebar zeigt eine eigene `Tags`-Section mit Tag-Icon; der Button oeffnet den
   zentralen `TagManagerView`.
 - Vorhandene Tags werden in der Sidebar als klickbare Zeilen mit Farbindikator aus
@@ -424,7 +427,8 @@ manuell offline gespeicherte Inhalte.
   Netzwerkrequests mehr ausloesen
 - Der OPML-Import arbeitet zweiphasig: Feed-URL-Deduplizierung und Feed-Anlage laufen
   kontrolliert sequenziell, danach werden die neuen Feeds per `withTaskGroup`
-  parallel aktualisiert
+  parallel aktualisiert. Neu angelegte OPML-Feeds erhalten das gewaehlte bzw.
+  gespeicherte Aktualisierungsintervall, begrenzt auf erlaubte Werte.
 - Beim Refresh werden gespeicherte Regeln ueber `RuleEngine` auf neu eingefuegte
   Artikel angewendet; bestehende Artikel koennen in den Einstellungen manuell
   rueckwirkend getaggt werden.
@@ -463,6 +467,8 @@ manuell offline gespeicherte Inhalte.
   unbekannte Felder/Operatoren und Regeln ohne Bedingungen.
 - Unterstuetzt `RuleAction.assignTag` und `RuleAction.hideArticle`; unbekannte oder
   alte Regeln fallen auf `assignTag` zurueck.
+- Wertet Regeln deterministisch nach `Rule.sortOrder` von oben nach unten aus; bei
+  gleicher Reihenfolge dient der Name als stabiler Fallback.
 - Fuegt Tags nur hinzu, wenn der Artikel das Tag noch nicht besitzt, und setzt
   `Article.isHidden` nur, wenn der Artikel noch nicht ausgeblendet ist.
 - Gibt die Anzahl neu angewendeter Aktionen zurueck und kann Regeln gesammelt auf
@@ -474,6 +480,8 @@ manuell offline gespeicherte Inhalte.
 - Kapselt Erstellen, Bearbeiten und Loeschen von Regeln fuer den Wizard.
 - Validiert Name, Aktion und mindestens eine nichtleere Bedingung; ein Ziel-Tag ist
   nur fuer die Aktion `Tag zuweisen` Pflicht.
+- Neue Regeln bekommen die naechste `sortOrder`; vorhandene Regeln koennen ueber
+  das ViewModel dupliziert und per Hoch-/Runter-Aktion umsortiert werden.
 - Speichert neue Mehrfachbedingungen als `RuleCondition` und pflegt die alten
   `conditionField`/`conditionOperator`/`conditionValue` Felder fuer Kompatibilitaet
   mit bestehenden Daten weiter.
@@ -484,9 +492,10 @@ manuell offline gespeicherte Inhalte.
 - Ueberspringt Regeln mit bereits vorhandenen Conditions oder leerem Suchwert.
 
 ### RuleSettingsView.swift / RuleWizardView.swift
-- Einstellungen zeigen eine Liste aller Regeln mit Status, Ziel-Tag und
-  Bedingungszusammenfassung; Regeln koennen geoeffnet, bearbeitet oder geloescht
-  werden.
+- Einstellungen zeigen eine kompakte Tabellenliste aller Regeln mit Reihenfolge,
+  Status, Name, Bedingungszusammenfassung, Aktion und Trefferanzahl.
+- Regeln koennen per Hoch-/Runter-Button umsortiert werden; Doppelklick oeffnet den
+  Wizard, Rechtsklick bietet Bearbeiten, Duplizieren und Loeschen.
 - Einstellungen bieten einen Button `Auf vorhandene Artikel anwenden`, der aktive
   Regeln manuell auf den gespeicherten Artikelbestand anwendet und danach die Anzahl
   neu angewendeter Regelaktionen anzeigt.
@@ -571,6 +580,9 @@ manuell offline gespeicherte Inhalte.
 - Toolbar-Menue `Filtern` bietet als Schnellzugriff Alle, Ungelesen, Mit Stern,
   Archiviert und Heute. Die Sidebar bleibt weiterhin der primaere Einstieg fuer
   dauerhafte Smartfilter.
+- Im Filtermenue gibt es zusaetzlich die Leseanzeige `Gelesene ausblenden` bzw.
+  `Gelesene und ungelesene anzeigen`; diese Umschaltung gilt fuer die aktuelle
+  Liste.
 - Meldet nur den `ArticleNavigationState` an `ContentView`, damit Reader-Navigation
   und Menue-Status ohne Kopie der gesamten Artikelliste aktualisiert werden
 - Reagiert mit `.onChange(of: articles)` auf Listen-Aenderungen und erzeugt kein
@@ -584,9 +596,10 @@ manuell offline gespeicherte Inhalte.
 - Gelesene Artikel werden in Feed-, Tag- und Smartfilter-Listen standardmaessig
   ausgeblendet; am Listenende blendet ein Button `X gelesene Artikel anzeigen`
   die versteckten gelesenen Artikel fuer die aktuelle Liste ein.
-- Der aktuell ausgewaehlte Artikel bleibt sichtbar, auch wenn er beim Oeffnen
-  automatisch als gelesen markiert wird. So verschwindet die ausgewaehlte Zeile
-  nicht direkt nach dem Klick.
+- Artikel, die durch `Artikel beim Oeffnen als gelesen markieren` automatisch
+  gelesen werden, bleiben in der aktuellen Liste sichtbar, bis der Feed, Tag oder
+  Smartfilter gewechselt wird. So verschwindet die gelesene Zeile nicht direkt nach
+  dem Klick, raeumt sich aber beim Listenwechsel wieder auf.
 
 ### ArticleListQuery.swift
 - Buendelt Sortierung und Feed-Predicate fuer Artikel-Listen.
@@ -735,6 +748,9 @@ manuell offline gespeicherte Inhalte.
 - Der Benutzer kann nur ausgewaehlte Feeds importieren, vorhandene/neu erstellte
   Ordner pro Feed zuweisen, Duplikate und nicht erreichbare Feeds bewusst erlauben
   und den Refresh nach Import ein- oder ausschalten.
+- Neu importierte Feeds uebernehmen das aktuell gespeicherte globale
+  Aktualisierungsintervall, damit der OPML-Import nicht unbemerkt auf den
+  Feed-Default von 60 Minuten zurueckfaellt.
 - Ein Status-Dropdown filtert die sichtbare Tabelle nach allen, neuen, doppelten
   oder nicht erreichbaren Feeds. Der Filter veraendert nur die Sichtbarkeit; Auswahl
   und Ordner-Aenderungen an Zeilen bleiben beim Zurueckstellen auf alle erhalten.
@@ -749,6 +765,8 @@ manuell offline gespeicherte Inhalte.
 - Nutzt eine linke Kategorienavigation nach Prototyp Variante A statt eines langen
   Formulars. Bereiche: Allgemein, Darstellung, Feeds, Cache, Offline-Lesen,
   Aktualisierung, Tags & Regeln und Sync.
+- Das Settings-Fenster ist groesser dimensioniert (980 x 720), damit die
+  Regelverwaltung und Feed-Verwaltung weniger gedrungen wirken.
 - Bestehende Optionen wurden aufgeteilt: Sprache/Standardverhalten unter
   Allgemein, UI-/Reader-Darstellung unter Darstellung, Auto-Refresh unter
   Aktualisierung und Regelverwaltung unter Tags & Regeln.
@@ -770,6 +788,9 @@ manuell offline gespeicherte Inhalte.
 - Oberflaechenschrift: Klein, Standard, Gross, Sehr gross; wirkt app-weit ueber
   eine eigene `InterfaceTextSize`-Environment und zusaetzlich ueber SwiftUI
   `DynamicTypeSize`
+- `@AppStorage("sidebar.showsReadFeeds")`
+- Standard: Gelesene Feeds in der Seitenleiste anzeigen; ausgeschaltet bleiben
+  Feeds ohne ungelesene Artikel in der Sidebar verborgen
 - `@AppStorage("backgroundRefresh.isEnabled")`
 - `@AppStorage("backgroundRefresh.intervalMinutes")`
 - Automatischer Refresh ist standardmaessig deaktiviert und kann auf 15, 30, 60
@@ -1404,6 +1425,18 @@ manuell offline gespeicherte Inhalte.
 
 ## Letzte Änderungen
 
+- 2026-06-24: Darstellungseinstellung fuer die Sidebar ergaenzt: Unter
+  `Einstellungen > Darstellung` kann nun gesteuert werden, ob Feeds ohne
+  ungelesene Artikel in der Seitenleiste sichtbar bleiben. Die Filterlogik liegt in
+  `FeedFolderOrganizer.visibleFeeds`, nutzt `Feed.unreadCount` und ist per Test
+  abgesichert.
+
+- 2026-06-24: OPML-Import-Bug behoben: Wenn im First-Run-Wizard ein
+  Aktualisierungsintervall wie 15 Minuten gewaehlt wird, wird dieses Intervall nun
+  an `FeedViewModel.importOPMLFeeds` uebergeben und beim Anlegen der importierten
+  Feeds gespeichert. Der normale OPML-Dialog uebernimmt analog das gespeicherte
+  globale Intervall.
+
 - 2026-06-24: Feature 16.3 umgesetzt: Regeln haben jetzt `RuleAction` mit
   `Tag zuweisen` und `Artikel ausblenden`. Die RuleEngine setzt je nach Aktion Tags
   oder `Article.isHidden`, rueckwirkendes Anwenden zaehlt allgemein Regelaktionen,
@@ -1439,8 +1472,9 @@ manuell offline gespeicherte Inhalte.
   gelesen markieren. Der spaetere Markdown-Export schliesst Feature 2.4 ab.
 - 2026-06-24: Feature 2.5 umgesetzt: Artikel-Listen zeigen ungelesene Artikel
   standardmaessig weiter und blenden gelesene Artikel aus. Ein Button am Listenende
-  zeigt die gelesenen Artikel fuer die aktuelle Liste an; ausgewaehlte Artikel
-  bleiben sichtbar, wenn sie automatisch als gelesen markiert werden.
+  zeigt die gelesenen Artikel fuer die aktuelle Liste an; das Filtermenue bietet
+  dieselbe Umschaltung. Automatisch beim Oeffnen gelesene Artikel bleiben bis zum
+  Feed-/Listenwechsel sichtbar.
 - 2026-06-24: Phase 1 fuer Archiv-/Aufraeum-Basis umgesetzt:
   `Article` speichert jetzt `isArchived` und `isHidden` mit Default `false`.
   Die Felder sind bewusst nur Modellgrundlage; UI, Filterlogik und Archivkonzept
