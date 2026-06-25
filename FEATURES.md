@@ -301,10 +301,12 @@
   - Priorität pro Regel wählbar: Normal / Kritisch (Kritisch kommt auch durch Nicht-Stören)
 
 ### 10.3 Benachrichtigungs-Einstellungen
-- **Status:** ✅ Entschieden — bereit zur Implementierung
-- **Zu implementieren:**
+- **Status:** ✔️ Fertig
+- **Umgesetzt:**
   - Badge-Zähler auf App-Icon — Anzahl ungelesener Artikel
   - Einstellungs-Kategorie "Benachrichtigungen" im Settings-Fenster
+  - Toggle `Badge-Zähler am App-Icon anzeigen`
+  - Badge wird bei App-Start, geänderten Feed-Zählern und beim Umschalten der Einstellung aktualisiert
 - **Noch offen (nicht jetzt):**
   - Stille Stunden
   - Benachrichtigungen auf iPhone/iPad (abhängig von iCloud Sync — Feature 6.1)
@@ -688,7 +690,7 @@ Folgende Reihenfolge berücksichtigt Abhängigkeiten. Features mit (*) sind Vora
 9. **Feature 3.2** — Smart Filter erweitern — entfällt, durch Intelligente Ordner ersetzt
 
 ### Phase 3 — Benachrichtigungen
-10. **Feature 10.3** * — Badge-Zähler App-Icon + Einstellungs-Kategorie Benachrichtigungen
+10. **Feature 10.3** * — Badge-Zähler App-Icon + Einstellungs-Kategorie Benachrichtigungen — erledigt
 11. **Feature 10.1** — Feed-Benachrichtigungen pro Feed (Toggle in Feed-Eigenschaften, Zusammenfassung, auch wenn App geschlossen)
 12. **Feature 10.2** — Regelbasierte Benachrichtigungen (Aktion im RuleWizard, anpassbarer Text, Priorität Normal/Kritisch)
 

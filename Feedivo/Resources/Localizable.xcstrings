@@ -8226,6 +8226,230 @@
         }
       }
     },
+    "settings.notifications.appIconBadge.description" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zeigt die Anzahl ungelesener Artikel als Badge am Dock-Icon. Wird der Schalter deaktiviert, wird der Badge sofort ausgeblendet."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shows the number of unread articles as a badge on the Dock icon. When disabled, the badge is hidden immediately."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Affiche le nombre d’articles non lus comme badge sur l’icône du Dock. Si l’option est désactivée, le badge disparaît immédiatement."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra il numero di articoli non letti come badge sull’icona del Dock. Se disattivato, il badge viene nascosto subito."
+          }
+        }
+      }
+    },
+    "settings.notifications.appIconBadge.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Badge-Zähler am App-Icon anzeigen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show badge count on app icon"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher le compteur sur l’icône de l’app"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra il badge sull’icona dell’app"
+          }
+        }
+      }
+    },
+    "settings.notifications.description" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Steuert sichtbare Hinweise wie den App-Icon-Badge und bereitet Feed- und Regel-Benachrichtigungen vor."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controls visible alerts such as the app icon badge and prepares feed and rule notifications."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contrôle les indications visibles comme le badge de l’icône de l’app et prépare les notifications de flux et de règles."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controlla gli avvisi visibili come il badge dell’icona dell’app e prepara le notifiche di feed e regole."
+          }
+        }
+      }
+    },
+    "settings.notifications.feed.description" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feed-Benachrichtigungen werden im nächsten Paket pro Feed in den Feed-Eigenschaften aktiviert."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feed notifications will be enabled per feed in Feed Properties in the next package."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les notifications de flux seront activées par flux dans les propriétés du flux lors du prochain paquet."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le notifiche dei feed saranno attivate per singolo feed nelle proprietà del feed nel prossimo pacchetto."
+          }
+        }
+      }
+    },
+    "settings.notifications.feed.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feed-Benachrichtigungen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feed notifications"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notifications de flux"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notifiche dei feed"
+          }
+        }
+      }
+    },
+    "settings.notifications.rules.description" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Regelbasierte Benachrichtigungen werden danach als eigene Regel-Aktion im RuleWizard ergänzt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rule-based notifications will then be added as a dedicated rule action in the Rule Wizard."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les notifications basées sur des règles seront ensuite ajoutées comme action dédiée dans l’assistant de règles."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le notifiche basate su regole saranno poi aggiunte come azione dedicata nel wizard delle regole."
+          }
+        }
+      }
+    },
+    "settings.notifications.rules.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Regel-Benachrichtigungen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rule notifications"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notifications de règles"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notifiche delle regole"
+          }
+        }
+      }
+    },
+    "settings.notifications.section" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Benachrichtigungen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notifications"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notifications"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notifiche"
+          }
+        }
+      }
+    },
     "settings.reading.section" : {
       "localizations" : {
         "de" : {

@@ -6,6 +6,8 @@ import UniformTypeIdentifiers
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @AppStorage(FirstRunWizardState.completionStorageKey) private var hasCompletedFirstRunWizard = false
+    @AppStorage(AppIconBadgeSettings.isEnabledKey)
+    private var appIconBadgeIsEnabled = AppIconBadgeSettings.defaultIsEnabled
     @Query(sort: \Feed.title) private var feeds: [Feed]
     @Query(sort: \Tag.name) private var tags: [Tag]
     @Query(sort: \SmartFolder.sortOrder) private var smartFolders: [SmartFolder]
@@ -127,12 +129,20 @@ struct ContentView: View {
         .onAppear {
             updateFirstRunWizardPresentation()
             selectDefaultSmartFolderIfNeeded()
+            updateAppIconBadge()
         }
         .onChange(of: smartFolders.count) {
             selectDefaultSmartFolderIfNeeded()
         }
         .onChange(of: feeds.count) {
             updateFirstRunWizardPresentation()
+            updateAppIconBadge()
+        }
+        .onChange(of: unreadArticleCount) {
+            updateAppIconBadge()
+        }
+        .onChange(of: appIconBadgeIsEnabled) {
+            updateAppIconBadge()
         }
         .onChange(of: hasCompletedFirstRunWizard) {
             updateFirstRunWizardPresentation()
@@ -426,6 +436,19 @@ struct ContentView: View {
         }
 
         sidebarSelection = .smartFolder(defaultFolder.persistentModelID)
+    }
+
+    private var unreadArticleCount: Int {
+        AppIconBadgeService.unreadCount(in: feeds)
+    }
+
+    private func updateAppIconBadge() {
+        var updater = DockTileBadgeUpdater()
+        AppIconBadgeService.updateBadge(
+            unreadCount: unreadArticleCount,
+            isEnabled: appIconBadgeIsEnabled,
+            updater: &updater
+        )
     }
 
 }

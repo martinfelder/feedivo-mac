@@ -196,6 +196,8 @@ FeedivoMac/
 │   ├── Services/
 │   │   ├── FeedService.swift           # FeedKit-Wrapper: RSS/Atom/JSON Feed parsen ✅
 │   │   ├── FaviconService.swift        # HTML Favicon Discovery + Fallback ✅
+│   │   ├── AppIconBadgeSettings.swift  # App-Icon-Badge Settings-Key ✅
+│   │   ├── AppIconBadgeService.swift   # Dock-Badge für ungelesene Artikel ✅
 │   │   ├── BackgroundRefreshSettings.swift # Auto-Refresh Settings/Intervalle ✅
 │   │   ├── BackgroundRefreshService.swift  # NSBackgroundActivityScheduler Adapter ✅
 │   │   ├── ArticleFeedIDBackfillService.swift # feedID für alte Artikel nachfuellen ✅
@@ -333,6 +335,9 @@ nicht mehr; `Später` blendet den Wizard nur für die aktuelle Sitzung aus.
 Zeigt unten rechts im Hauptfenster einen dezenten Online-/Offline-Indikator über
 `NWPathMonitor`. Dieser Netzwerkstatus ist bewusst getrennt vom Artikel-Status für
 manuell offline gespeicherte Inhalte.
+Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
+`AppIconBadgeService`, sobald Feed-Zähler oder die Einstellung
+`notifications.appIconBadge.isEnabled` geändert werden.
 
 ### FirstRunWizardView.swift / FirstRunWizardState.swift
 - First-Run-Wizard nach Prototyp Variante A für leere App-Starts ohne Feeds.
@@ -672,6 +677,18 @@ manuell offline gespeicherte Inhalte.
 - Wichtig: macOS entscheidet den genauen Zeitpunkt. Eine vollständig beendete App
   wird für diese Basis nicht neu gestartet.
 
+### AppIconBadgeSettings.swift / AppIconBadgeService.swift
+- `AppIconBadgeSettings` kapselt den `@AppStorage` Key
+  `notifications.appIconBadge.isEnabled`; Default ist aktiv.
+- `AppIconBadgeService.unreadCount(in:)` summiert `Feed.unreadCount` und nutzt damit
+  dieselbe vorberechnete Zählerbasis wie Sidebar-Badges.
+- `updateBadge` setzt `NSApp.dockTile.badgeLabel` über einen kleinen
+  `AppIconBadgeUpdating` Adapter; dadurch ist die Entscheidung `Zahl anzeigen` oder
+  `Badge leeren` ohne AppKit testbar.
+- Der Dock-Badge ist bewusst Feature 10.3 und noch keine echte
+  System-Benachrichtigung. Feed- und regelbasierte Benachrichtigungen folgen in
+  10.1 und 10.2.
+
 ### ArticleListView.swift
 - Zeigt echte Artikel des ausgewählten Feeds über eine gezielte SwiftData-Query
   statt über die komplette `Feed.articles` Relationship
@@ -887,7 +904,7 @@ manuell offline gespeicherte Inhalte.
 - macOS Settings-Szene in `FeedivoApp.swift`
 - Nutzt eine linke Kategorienavigation nach Prototyp Variante A statt eines langen
   Formulars. Bereiche: Allgemein, Darstellung, Feeds, Cache, Offline-Lesen,
-  Aktualisierung, Tags & Regeln und Sync.
+  Benachrichtigungen, Aktualisierung, Tags & Regeln und Sync.
 - Das Settings-Fenster ist größer dimensioniert (980 x 720), damit die
   Regelverwaltung und Feed-Verwaltung weniger gedrungen wirken.
 - Bestehende Optionen wurden aufgeteilt: Sprache/Standardverhalten unter
@@ -903,6 +920,9 @@ manuell offline gespeicherte Inhalte.
   gespeichertem Feed-Inhalt und echten Offline-Kopien: Offline ist eine manuelle
   Artikelaktion, Feed-Content ist Basisinhalt, Automatik bleibt ein späterer M4-
   Folgepunkt.
+- Der Bereich `Benachrichtigungen` enthält in Feature 10.3 den Toggle
+  `Badge-Zähler am App-Icon anzeigen` und zeigt vorbereitende Hinweise für Feed-
+  und Regel-Benachrichtigungen aus Feature 10.1/10.2.
 - `@AppStorage("markArticleReadOnSelection")`
 - Standard: Artikel beim Oeffnen automatisch als gelesen markieren
 - `@AppStorage("appLanguage")`
@@ -1547,6 +1567,13 @@ manuell offline gespeicherte Inhalte.
 ---
 
 ## Letzte Änderungen
+
+- 2026-06-25: Feature 10.3 umgesetzt: Einstellungen haben eine neue Kategorie
+  `Benachrichtigungen` mit Toggle `Badge-Zähler am App-Icon anzeigen`. Der Dock-
+  Badge zeigt die Summe aus `Feed.unreadCount`, aktualisiert sich beim App-Start,
+  bei geänderten Feed-Zählern und beim Umschalten der Einstellung, und wird bei 0
+  ungelesenen Artikeln oder deaktivierter Einstellung geleert. Die testbare Logik
+  liegt in `AppIconBadgeService`.
 
 - 2026-06-25: Artikellisten-Toolbar um `Als gelesen markieren` erweitert. Die
   Massenaktion wirkt nur auf die aktuell sichtbare Liste des ausgewählten Feeds

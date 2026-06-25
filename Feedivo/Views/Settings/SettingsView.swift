@@ -7,6 +7,7 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
     case feeds
     case cache
     case offline
+    case notifications
     case refresh
     case automation
     case sync
@@ -25,6 +26,8 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
             L10n.settingsCacheSection
         case .offline:
             L10n.settingsOfflineSection
+        case .notifications:
+            L10n.settingsNotificationsSection
         case .refresh:
             L10n.settingsRefreshSection
         case .automation:
@@ -46,6 +49,8 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
             "photo.stack"
         case .offline:
             "arrow.down.circle"
+        case .notifications:
+            "bell.badge"
         case .refresh:
             "arrow.clockwise"
         case .automation:
@@ -114,6 +119,8 @@ struct SettingsView: View {
             CacheSettingsView()
         case .offline:
             OfflineReadingSettingsView()
+        case .notifications:
+            NotificationSettingsView()
         case .refresh:
             RefreshSettingsView()
         case .automation:
@@ -457,6 +464,43 @@ private struct OfflineReadingSettingsView: View {
                     iconName: "gearshape.2",
                     title: L10n.settingsOfflineAutomationTitle,
                     description: L10n.settingsOfflineAutomationDescription
+                )
+            }
+        }
+        .formStyle(.grouped)
+    }
+}
+
+private struct NotificationSettingsView: View {
+    @AppStorage(AppIconBadgeSettings.isEnabledKey)
+    private var appIconBadgeIsEnabled = AppIconBadgeSettings.defaultIsEnabled
+
+    var body: some View {
+        Form {
+            SettingsSectionHeader(
+                title: L10n.settingsNotificationsSection,
+                description: L10n.settingsNotificationsDescription
+            )
+
+            Section {
+                Toggle(L10n.settingsNotificationsAppIconBadgeTitle, isOn: $appIconBadgeIsEnabled)
+
+                Text(L10n.settingsNotificationsAppIconBadgeDescription)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section {
+                SettingsInformationRow(
+                    iconName: "dot.radiowaves.left.and.right",
+                    title: L10n.settingsNotificationsFeedTitle,
+                    description: L10n.settingsNotificationsFeedDescription
+                )
+
+                SettingsInformationRow(
+                    iconName: "slider.horizontal.3",
+                    title: L10n.settingsNotificationsRulesTitle,
+                    description: L10n.settingsNotificationsRulesDescription
                 )
             }
         }
