@@ -97,4 +97,30 @@ struct SmartFolderEngineTests {
 
         #expect(count == 1)
     }
+
+    @MainActor
+    @Test func sidebarBadgeCountNutztFeedUnreadCountFuerUngelesenOrdner() {
+        let firstFeed = Feed(url: "https://example.com/1.xml", title: "Feed 1")
+        firstFeed.unreadCount = 3
+        let secondFeed = Feed(url: "https://example.com/2.xml", title: "Feed 2")
+        secondFeed.unreadCount = 4
+        let unreadFolder = SmartFolder(
+            name: "Ungelesen",
+            matchMode: .all,
+            conditions: [
+                SmartFolderCondition(
+                    field: .status,
+                    conditionOperator: .is,
+                    value: SmartFolderStatusValue.unread.rawValue
+                )
+            ]
+        )
+
+        let badgeText = SmartFolderSidebarBadge.badgeText(
+            for: unreadFolder,
+            feeds: [firstFeed, secondFeed]
+        )
+
+        #expect(badgeText == "7")
+    }
 }

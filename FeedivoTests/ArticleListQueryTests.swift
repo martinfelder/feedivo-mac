@@ -32,6 +32,24 @@ struct ArticleListQueryTests {
         #expect(state.shouldShowReadArticlesButton)
     }
 
+    @Test func displaySnapshotBerechnetSichtbareArtikelUndZaehlerGemeinsam() {
+        let unreadArticle = Article(title: "Ungelesen", isRead: false)
+        let selectedReadArticle = Article(title: "Ausgewaehlt", isRead: true)
+        let hiddenReadArticle = Article(title: "Verborgen", isRead: true)
+
+        let state = ArticleListDisplayState(
+            articles: [unreadArticle, selectedReadArticle, hiddenReadArticle],
+            showsReadArticles: false,
+            selectedArticle: selectedReadArticle
+        )
+
+        let snapshot = state.snapshot
+
+        #expect(snapshot.visibleArticles.map(\.title) == ["Ungelesen", "Ausgewaehlt"])
+        #expect(snapshot.hiddenReadArticleCount == 1)
+        #expect(snapshot.shouldShowReadArticlesButton)
+    }
+
     @Test func displayStateZeigtAlleArtikelNachAktivierung() {
         let unreadArticle = Article(title: "Ungelesen", isRead: false)
         let readArticle = Article(title: "Gelesen", isRead: true)
@@ -388,6 +406,127 @@ struct ArticleListQueryTests {
             "Direkter Treffer",
             "Doppelter Treffer"
         ])
+    }
+
+    @MainActor
+    @Test func smartFolderFetchDescriptorLaedtUngeleseneArtikelDirektPerQuery() throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            FeedFolder.self,
+            FeedLogEntry.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let unreadOlderArticle = Article(
+            title: "Ungelesen alt",
+            publishedAt: Date(timeIntervalSince1970: 100),
+            isRead: false
+        )
+        let unreadNewerArticle = Article(
+            title: "Ungelesen neu",
+            publishedAt: Date(timeIntervalSince1970: 300),
+            isRead: false
+        )
+        let readArticle = Article(
+            title: "Gelesen",
+            publishedAt: Date(timeIntervalSince1970: 500),
+            isRead: true
+        )
+        let folder = SmartFolder(
+            name: "Ungelesen",
+            matchMode: .all,
+            conditions: [
+                SmartFolderCondition(
+                    field: .status,
+                    conditionOperator: .is,
+                    value: SmartFolderStatusValue.unread.rawValue
+                )
+            ]
+        )
+
+        context.insert(unreadOlderArticle)
+        context.insert(unreadNewerArticle)
+        context.insert(readArticle)
+        try context.save()
+
+        let descriptor = try #require(ArticleListQuery.smartFolderFetchDescriptor(for: folder))
+        let articles = try context.fetch(descriptor)
+
+        #expect(articles.map(\.title) == ["Ungelesen neu", "Ungelesen alt"])
+    }
+
+    @MainActor
+    @Test func smartFolderFetchDescriptorLaedtGespeicherteArtikelDirektPerQuery() throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            FeedFolder.self,
+            FeedLogEntry.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let starredArticle = Article(
+            title: "Stern",
+            publishedAt: Date(timeIntervalSince1970: 100),
+            isStarred: true
+        )
+        let archivedArticle = Article(
+            title: "Archiv",
+            publishedAt: Date(timeIntervalSince1970: 300),
+            isArchived: true
+        )
+        let regularArticle = Article(
+            title: "Normal",
+            publishedAt: Date(timeIntervalSince1970: 500)
+        )
+        let folder = SmartFolder(
+            name: "Gespeichert",
+            matchMode: .any,
+            conditions: [
+                SmartFolderCondition(
+                    field: .status,
+                    conditionOperator: .is,
+                    value: SmartFolderStatusValue.starred.rawValue
+                ),
+                SmartFolderCondition(
+                    field: .status,
+                    conditionOperator: .is,
+                    value: SmartFolderStatusValue.archived.rawValue
+                )
+            ]
+        )
+
+        context.insert(starredArticle)
+        context.insert(archivedArticle)
+        context.insert(regularArticle)
+        try context.save()
+
+        let descriptor = try #require(ArticleListQuery.smartFolderFetchDescriptor(for: folder))
+        let articles = try context.fetch(descriptor)
+
+        #expect(articles.map(\.title) == ["Archiv", "Stern"])
+    }
+
+    @MainActor
+    @Test func smartFolderFetchDescriptorFaelltFuerKomplexeTextOrdnerAufEngineZurueck() {
+        let folder = SmartFolder(
+            name: "Swift",
+            matchMode: .all,
+            conditions: [
+                SmartFolderCondition(
+                    field: .title,
+                    conditionOperator: .contains,
+                    value: "Swift"
+                )
+            ]
+        )
+
+        #expect(ArticleListQuery.smartFolderFetchDescriptor(for: folder) == nil)
     }
 
     @MainActor

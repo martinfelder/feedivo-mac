@@ -270,9 +270,10 @@ private struct SmartFolderArticleListContent: View {
     let smartFolder: SmartFolder
     let onRequestCreateRuleFromArticle: (Article) -> Void
     let onRequestExportArticle: (Article) -> Void
+    private let usesOptimizedQuery: Bool
     @Binding var selectedArticle: Article?
     @Binding var navigationState: ArticleNavigationState
-    @Query(sort: \Article.publishedAt, order: .reverse) private var articles: [Article]
+    @Query private var articles: [Article]
 
     init(
         smartFolder: SmartFolder,
@@ -286,11 +287,19 @@ private struct SmartFolderArticleListContent: View {
         self.onRequestExportArticle = onRequestExportArticle
         self._selectedArticle = selectedArticle
         self._navigationState = navigationState
+
+        if let descriptor = ArticleListQuery.smartFolderFetchDescriptor(for: smartFolder) {
+            self.usesOptimizedQuery = true
+            self._articles = Query(descriptor)
+        } else {
+            self.usesOptimizedQuery = false
+            self._articles = Query(sort: ArticleListQuery.sortDescriptors)
+        }
     }
 
     var body: some View {
         ArticleListContent(
-            articles: SmartFolderEngine.matchingArticles(folder: smartFolder, articles: articles),
+            articles: displayedArticles,
             navigationTitle: Text(smartFolder.name),
             selectedArticle: $selectedArticle,
             navigationState: $navigationState,
@@ -299,6 +308,12 @@ private struct SmartFolderArticleListContent: View {
             showsHiddenArticles: SmartFolderFormatter.includesHiddenStatus(smartFolder)
         )
         .id(smartFolder.id)
+    }
+
+    private var displayedArticles: [Article] {
+        usesOptimizedQuery
+            ? articles
+            : SmartFolderEngine.matchingArticles(folder: smartFolder, articles: articles)
     }
 }
 
@@ -354,7 +369,8 @@ private struct ArticleListContent: View {
             showsHiddenArticles: showsHiddenArticles,
             temporarilyVisibleReadArticleIDs: temporarilyVisibleReadArticleIDs
         )
-        let visibleArticles = displayState.visibleArticles
+        let displaySnapshot = displayState.snapshot
+        let visibleArticles = displaySnapshot.visibleArticles
 
         List(selection: $selectedArticle) {
             if filteredArticles.isEmpty {
@@ -367,10 +383,7 @@ private struct ArticleListContent: View {
                 ForEach(visibleArticles) { article in
                     ArticleRowView(
                         article: article,
-                        availableTags: ArticleMetadataEditor.availableTagsToAdd(
-                            to: article,
-                            availableTags: tags
-                        ),
+                        availableTags: tags,
                         onToggleRead: {
                             viewModel.toggleRead(article)
                         },
@@ -421,8 +434,8 @@ private struct ArticleListContent: View {
                     .tag(article)
                 }
 
-                if displayState.shouldShowReadArticlesButton {
-                    showReadArticlesButton(count: displayState.hiddenReadArticleCount)
+                if displaySnapshot.shouldShowReadArticlesButton {
+                    showReadArticlesButton(count: displaySnapshot.hiddenReadArticleCount)
                 }
             }
         }

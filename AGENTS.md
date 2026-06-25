@@ -381,7 +381,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - `AddFeedSheet` ist eine separate Struct in derselben Datei
 - `AddFeedSheet` nutzt `FeedDiscoveryService`: Der Benutzer kann eine Website oder
   Feed-URL eingeben, per `Suchen` Feeds erkennen lassen, einen gefundenen Feed aus
-  der Liste auswählen und diesen anschließend hinzufügen.
+  der Liste auswählen und anschließend im gleichen Sheet eine Vorschau mit Feed-
+  Icon, Titel, Website und den letzten fünf Artikeln prüfen. Nach erfolgreicher
+  Suche heißt die Primäraktion `Abonnieren`.
 - Ruft für das eigentliche Speichern weiterhin `FeedViewModel.addFeed()` auf
 - Kontextmenü pro Feed ruft das Feed-Löschen mit Bestätigung an
 - Kontextmenü pro Feed öffnet `Feed Eigenschaften...` mit Metadaten, Intervall
@@ -395,6 +397,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   über alle Feeds
 - Ungelesen-Badges basieren auf `Feed.unreadCount`, damit die Sidebar beim Rendern
   keine separate Query auf alle ungelesenen Artikel mehr materialisieren muss
+- Die Sidebar hält bewusst keine globale `@Query` auf alle Artikel mehr. Badge-
+  Werte für intelligente Ordner werden nur angezeigt, wenn sie günstig berechnet
+  werden können; `Ungelesen` nutzt dafür `Feed.unreadCount`.
 - Per Darstellungseinstellung `sidebar.showsReadFeeds` können Feeds ohne
   ungelesene Artikel in der Sidebar ausgeblendet werden; Standard bleibt anzeigen.
 - Die Sidebar zeigt eine eigene `Tags`-Section mit Tag-Icon; der Button öffnet den
@@ -474,6 +479,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Relative Feed-URLs werden gegen die Website-URL aufgelöst, doppelte URLs werden
   entfernt und die gefundenen Feeds werden zur Auswahl im Add-Feed-Sheet
   zurückgegeben.
+- Jedes Discovery-Ergebnis enthält außerdem eine Vorschau: Favicon-Fallback,
+  Website, Feed-Titel und maximal fünf Artikel, nach Veröffentlichungsdatum
+  absteigend sortiert.
 - Eingaben ohne Schema werden als `https://...` interpretiert. Wenn keine Feeds
   gefunden werden, liefert der Service eine lokalisierte Fehlermeldung.
 
@@ -519,9 +527,11 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Artikel aufgerufen, damit bestehende Artikel mit Bild keine unnoetigen
   Netzwerkrequests mehr ausloesen
 - Der OPML-Import arbeitet zweiphasig: Feed-URL-Deduplizierung und Feed-Anlage laufen
-  kontrolliert sequenziell, danach werden die neuen Feeds per `withTaskGroup`
-  parallel aktualisiert. Neu angelegte OPML-Feeds erhalten das gewählte bzw.
-  gespeicherte Aktualisierungsintervall, begrenzt auf erlaubte Werte.
+  kontrolliert sequenziell, danach werden die neuen Feeds begrenzt parallel
+  aktualisiert. `FeedViewModel.maxConcurrentFeedRefreshes` verhindert, dass große
+  OPML-Imports alle Feed-Abrufe gleichzeitig starten. Neu angelegte OPML-Feeds
+  erhalten das gewählte bzw. gespeicherte Aktualisierungsintervall, begrenzt auf
+  erlaubte Werte.
 - Beim Refresh werden gespeicherte Regeln über `RuleEngine` auf neu eingefügte
   Artikel angewendet; Benachrichtigungs-Regeln werden für neue Artikel gesammelt
   und nach erfolgreichem Speichern an `FeedNotificationService` gemeldet.
@@ -747,9 +757,17 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Mit Stern, Heute und Ausgeblendet statt alle Artikel im Speicher zu filtern
 - Tag-Listen nutzen ebenfalls eine gezielte SwiftData-Query und zeigen
   feedübergreifend direkt getaggte Artikel sowie Artikel aus getaggten Feeds.
-- Intelligente Ordner nutzen eine eigene Listenansicht, die Artikel nach
-  `SmartFolderEngine` filtert und die Treffer dynamisch aus gespeicherten Artikeln
-  berechnet.
+- Intelligente Ordner nutzen für einfache/vordefinierte Fälle gezielte
+  SwiftData-Queries statt pauschal alle Artikel zu laden: Alle Artikel,
+  Ungelesen, Gelesen, Mit Stern, Archiviert, Ausgeblendet, Gespeichert, Heute und
+  Diese Woche. Komplexere benutzerdefinierte Ordner fallen weiterhin auf
+  `SmartFolderEngine` mit In-Memory-Filterung zurück.
+- Die Anzeige-Logik berechnet sichtbare Artikel und die Anzahl ausgeblendeter
+  gelesener Artikel gemeinsam in `ArticleListDisplaySnapshot`, damit große Listen
+  nicht mehrfach durchlaufen werden.
+- Tag-Zuweisungsoptionen pro Artikelzeile werden erst beim Öffnen des
+  Kontextmenüs berechnet; die Liste filtert nicht mehr für jede sichtbare Zeile
+  vorab alle verfügbaren Tags.
 - Normale Feed-, Tag- und Smart-Filter-Listen blenden `Article.isHidden` aus; der
   Smart-Filter `Ausgeblendet` zeigt diese Artikel explizit wieder.
 - Sortierung ist global per `@AppStorage(ArticleSortOption.storageKey)` gespeichert
@@ -1606,8 +1624,8 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   M3-Basis stabil bleiben. M4 umfasst jetzt iCloud Sync, erweiterten OPML-Import,
   manuellen Offline Mode, Settings-Polish, Artikel-Teilen, App-Icon und Release-
   Vorbereitung. Bild-/Favicon-Cache und Onboarding sind als M4-Basis umgesetzt.
-- Naechster sinnvoller Fokus: Feature 12.4 Feed-Vorschau vor dem Abonnieren oder
-  ein kleines Benachrichtigungs-Polish-Paket für spätere Deep-Link-Navigation.
+- Nächster sinnvoller Fokus: Feature 17.3 Automatisches Löschen oder Feature 17.1
+  Automatisches Offline-Speichern bei Stern.
 - Neuer offener M4/v1-Punkt: Vollartikel laden, wenn moeglich und erlaubt. Dabei
   bleibt Feedivo fair gegenüber Feed-Anbietern: Artikelstruktur, Werbung und
   Anbieterlinks dürfen nicht pauschal entfernt werden; die konkrete Reader-
@@ -1618,6 +1636,29 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 ---
 
 ## Letzte Änderungen
+
+- 2026-06-25: Performance-Slice für Artikel-Navigation nach großen Imports
+  umgesetzt: `ArticleListDisplayState` erzeugt jetzt einen gemeinsamen Snapshot
+  für sichtbare Artikel und ausgeblendete gelesene Artikel, `ArticleRowView`
+  berechnet mögliche Tag-Zuweisungen erst im Kontextmenü, und einfache
+  intelligente Ordner nutzen gezielte SwiftData-Queries statt alle Artikel über
+  `SmartFolderEngine` im Speicher zu filtern. Feature 26.2 bleibt weiterhin offen
+  für echte Paginierung und weitere Reader-/Bild-Lazy-Loading-Arbeit.
+
+- 2026-06-25: Performance-Slice für große OPML-Imports umgesetzt: Das mitgelieferte
+  Inoreader-OPML enthält 75 Feed-URLs. `importOPMLFeeds` und `refreshAllFeeds`
+  aktualisieren Feeds jetzt in begrenzten Gruppen statt alle Feeds gleichzeitig
+  anzustoßen. Außerdem lädt `SidebarView` keine globale Artikelliste mehr nur für
+  Smart-Folder-Badges; die `Ungelesen`-Badge nutzt stattdessen die gespeicherten
+  `Feed.unreadCount` Werte. Das vollständige Performance-Ziel 26.2 bleibt
+  weiterhin offen für Paginierung und weitere Query-Optimierungen.
+
+- 2026-06-25: Feature 12.4 umgesetzt: `FeedDiscoveryService` liefert pro
+  gefundenem Feed jetzt eine Vorschau mit Favicon-Fallback und maximal fünf
+  Artikeln, nach Veröffentlichungsdatum absteigend sortiert. `AddFeedSheet` zeigt
+  nach der Suche im gleichen Sheet eine Feed-Vorschau mit Icon, Titel, Website und
+  letzten Artikeln; bei mehreren gefundenen Feeds wechselt die Vorschau mit der
+  Auswahl. Die Primäraktion heißt nach erfolgreicher Suche `Abonnieren`.
 
 - 2026-06-25: Feature 4.1 umgesetzt: `FeedDiscoveryService` erkennt direkte
   Feed-URLs und Website-URLs, liest RSS-/Atom-/JSON-Feed-Links aus

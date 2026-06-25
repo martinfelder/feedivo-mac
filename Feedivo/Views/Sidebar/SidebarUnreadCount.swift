@@ -26,3 +26,25 @@ enum SidebarTagCount {
         SidebarUnreadCount.badgeText(for: articleCount(for: tag))
     }
 }
+
+@MainActor
+enum SmartFolderSidebarBadge {
+    static func badgeText(for folder: SmartFolder, feeds: [Feed]) -> String? {
+        badgeCount(for: folder, feeds: feeds).flatMap(SidebarUnreadCount.badgeText)
+    }
+
+    private static func badgeCount(for folder: SmartFolder, feeds: [Feed]) -> Int? {
+        let conditions = folder.conditions.sorted { $0.sortOrder < $1.sortOrder }
+        guard conditions.count == 1,
+              RuleMatchMode.normalized(folder.matchModeRaw) == .all,
+              let condition = conditions.first,
+              condition.fieldRaw == SmartFolderConditionField.status.rawValue,
+              condition.operatorRaw == SmartFolderConditionOperator.is.rawValue,
+              condition.value == SmartFolderStatusValue.unread.rawValue
+        else {
+            return nil
+        }
+
+        return SidebarUnreadCount.totalUnreadArticleCount(in: feeds)
+    }
+}

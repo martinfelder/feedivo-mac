@@ -5,6 +5,16 @@ struct FeedDiscoveryResult: Identifiable, Equatable, Sendable {
     var title: String
     var feedURL: String
     var siteURL: String?
+    var faviconURL: String?
+    var previewArticles: [FeedDiscoveryPreviewArticle] = []
+}
+
+struct FeedDiscoveryPreviewArticle: Identifiable, Equatable, Sendable {
+    var id: String { link ?? "\(title)-\(publishedAt?.timeIntervalSince1970 ?? 0)" }
+    var title: String
+    var link: String?
+    var summary: String?
+    var publishedAt: Date?
 }
 
 enum FeedDiscoveryError: LocalizedError, Equatable {
@@ -50,7 +60,9 @@ struct FeedDiscoveryService {
                 FeedDiscoveryResult(
                     title: directFeed.title,
                     feedURL: directFeed.sourceURL,
-                    siteURL: directFeed.siteURL
+                    siteURL: directFeed.siteURL,
+                    faviconURL: Self.faviconURL(for: directFeed),
+                    previewArticles: Self.previewArticles(from: directFeed.articles)
                 )
             ]
         }
@@ -71,7 +83,9 @@ struct FeedDiscoveryService {
                     FeedDiscoveryResult(
                         title: parsedFeed.title.isEmpty ? candidate.title ?? candidate.urlString : parsedFeed.title,
                         feedURL: parsedFeed.sourceURL,
-                        siteURL: parsedFeed.siteURL ?? websiteURL.absoluteString
+                        siteURL: parsedFeed.siteURL ?? websiteURL.absoluteString,
+                        faviconURL: Self.faviconURL(for: parsedFeed, fallbackSiteURL: websiteURL),
+                        previewArticles: Self.previewArticles(from: parsedFeed.articles)
                     )
                 )
             } catch {
@@ -181,5 +195,42 @@ struct FeedDiscoveryService {
         }
 
         return url
+    }
+
+    private static func previewArticles(from articles: [ParsedArticle]) -> [FeedDiscoveryPreviewArticle] {
+        articles
+            .sorted { lhs, rhs in
+                switch (lhs.publishedAt, rhs.publishedAt) {
+                case let (lhsDate?, rhsDate?):
+                    return lhsDate > rhsDate
+                case (_?, nil):
+                    return true
+                case (nil, _?):
+                    return false
+                case (nil, nil):
+                    return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
+                }
+            }
+            .prefix(5)
+            .map { article in
+                FeedDiscoveryPreviewArticle(
+                    title: article.title,
+                    link: article.link,
+                    summary: article.summary,
+                    publishedAt: article.publishedAt
+                )
+            }
+    }
+
+    private static func faviconURL(for feed: ParsedFeed, fallbackSiteURL: URL? = nil) -> String? {
+        if let siteURL = FaviconService.siteURL(from: feed.siteURL) {
+            return FaviconService.fallbackFaviconURL(for: siteURL)?.absoluteString
+        }
+
+        if let fallbackSiteURL {
+            return FaviconService.fallbackFaviconURL(for: fallbackSiteURL)?.absoluteString
+        }
+
+        return nil
     }
 }

@@ -27,7 +27,8 @@ struct FeedDiscoveryServiceTests {
             FeedDiscoveryResult(
                 title: "Direkter Feed",
                 feedURL: "https://example.com/feed.xml",
-                siteURL: "https://example.com"
+                siteURL: "https://example.com",
+                faviconURL: "https://example.com/favicon.ico"
             )
         ])
     }
@@ -66,7 +67,8 @@ struct FeedDiscoveryServiceTests {
             FeedDiscoveryResult(
                 title: "Website Feed",
                 feedURL: "https://example.com/feed.xml",
-                siteURL: "https://example.com"
+                siteURL: "https://example.com",
+                faviconURL: "https://example.com/favicon.ico"
             )
         ])
     }
@@ -117,5 +119,44 @@ struct FeedDiscoveryServiceTests {
         await #expect(throws: FeedDiscoveryError.noFeedsFound) {
             try await service.discoverFeeds(from: "https://example.com")
         }
+    }
+
+    @Test func discoverFeedsLiefertMaximalFuenfVorschauArtikelNeuesteZuerst() async throws {
+        let calendar = Calendar(identifier: .gregorian)
+        let service = FeedDiscoveryService(
+            fetchFeed: { urlString in
+                ParsedFeed(
+                    sourceURL: urlString,
+                    title: "Vorschau Feed",
+                    description: nil,
+                    siteURL: "https://example.com",
+                    articles: (1 ... 7).map { day in
+                        ParsedArticle(
+                            title: "Artikel \(day)",
+                            link: "https://example.com/\(day)",
+                            summary: day == 7 ? "Neuester Artikel" : nil,
+                            content: nil,
+                            publishedAt: calendar.date(from: DateComponents(year: 2026, month: 6, day: day)),
+                            imageURL: nil
+                        )
+                    }
+                )
+            },
+            loadWebsiteHTML: { _ in
+                Issue.record("Website sollte nicht geladen werden, wenn die Eingabe direkt ein Feed ist.")
+                return ""
+            }
+        )
+
+        let result = try await service.discoverFeeds(from: "https://example.com/feed.xml")
+
+        #expect(result.first?.previewArticles.map(\.title) == [
+            "Artikel 7",
+            "Artikel 6",
+            "Artikel 5",
+            "Artikel 4",
+            "Artikel 3"
+        ])
+        #expect(result.first?.previewArticles.first?.summary == "Neuester Artikel")
     }
 }

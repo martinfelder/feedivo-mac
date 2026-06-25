@@ -345,11 +345,12 @@
 - **Grund:** Feedly API kostenpflichtig — nach v1 evaluieren. In v1 reicht URL/Website-Erkennung (Feature 4.1)
 
 ### 12.4 Feed-Vorschau vor dem Abonnieren
-- **Status:** ✅ Entschieden — bereit zur Implementierung
-- **Zu implementieren:**
+- **Status:** ✔️ Fertig
+- **Umgesetzt:**
   - Vorschau nach URL-Eingabe: Titel, Icon und letzte 5 Artikel anzeigen
   - Vorschau erscheint im gleichen Sheet wie URL-Eingabe (kein separater Schritt)
-  - User bestätigt mit "Abonnieren" oder bricht ab
+  - User bestätigt mit `Abonnieren` oder bricht ab
+  - Mehrere gefundene Feeds bleiben auswählbar; die Vorschau wechselt mit der Auswahl
 
 ---
 
@@ -658,8 +659,15 @@
 - **Grund:** Nach v1 — VoiceOver und Reduce Motion werden später berücksichtigt
 
 ### 26.2 Performance bei vielen Feeds
-- **Status:** ✅ Entschieden — Qualitätsziel für Codex
+- **Status:** 🔨 In Arbeit — Qualitätsziel für Codex
 - **Ziel:** 500 Feeds / 100'000 Artikel flüssig
+- **Umgesetzt:**
+  - OPML-Import und `Alle Feeds aktualisieren` rufen Feeds nur noch begrenzt parallel ab
+  - Sidebar lädt keine globale Artikelliste mehr nur für Smart-Folder-Badges
+  - `Ungelesen`-Badge der intelligenten Ordner nutzt die gespeicherten `Feed.unreadCount` Werte
+  - Artikel-Listen berechnen sichtbare Artikel und die Anzahl ausgeblendeter gelesener Artikel in einem Durchlauf
+  - Tag-Zuweisungsoptionen werden in Artikelzeilen erst im Kontextmenü berechnet, nicht mehr bei jedem Zeilen-Render
+  - Vordefinierte/einfache intelligente Ordner nutzen gezielte SwiftData-Queries statt alle Artikel im Speicher zu filtern
 - **Zu beachten:**
   - SwiftData-Queries immer mit gezielten Predicates — nie alle Artikel auf einmal laden
   - Artikel-Liste mit Paginierung (50 Artikel pro Batch, mehr beim Scrollen)
@@ -701,7 +709,7 @@ Folgende Reihenfolge berücksichtigt Abhängigkeiten. Features mit (*) sind Vora
 
 ### Phase 4 — Feed hinzufügen & Verwaltung
 13. **Feature 4.1** — Website Feed-Suche (Auto-Erkennung, Liste gefundener Feeds) — erledigt
-14. **Feature 12.4** — Feed-Vorschau vor dem Abonnieren (5 Artikel im Sheet)
+14. **Feature 12.4** — Feed-Vorschau vor dem Abonnieren (5 Artikel im Sheet) — erledigt
 15. **Feature 17.3** — Automatisches Löschen (90 Tage Standard, pro Feed, Ausnahmen Stern + Archiv)
 16. **Feature 17.1** — Automatisches Offline-Speichern bei Stern (Toggle in Einstellungen)
 

@@ -79,14 +79,15 @@ struct ArticleRowView: View {
                 onToggleArchived()
             }
 
+            let tagsToAssign = assignableTags
             Menu(L10n.articleAssignTagCommand) {
-                ForEach(availableTags) { tag in
+                ForEach(tagsToAssign) { tag in
                     Button(tag.name) {
                         onAssignTag(tag)
                     }
                 }
             }
-            .disabled(availableTags.isEmpty)
+            .disabled(tagsToAssign.isEmpty)
 
             Button(L10n.articleCreateRuleCommand) {
                 onCreateRule()
@@ -230,5 +231,12 @@ struct ArticleRowView: View {
 
     private var hasOriginalURL: Bool {
         ArticleViewModel().originalURL(for: article) != nil
+    }
+
+    private var assignableTags: [Tag] {
+        ArticleMetadataEditor.availableTagsToAdd(
+            to: article,
+            availableTags: availableTags
+        )
     }
 }

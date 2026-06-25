@@ -941,7 +941,7 @@ struct FeedViewModelTests {
         #expect(viewModel.errorMessage == nil)
     }
     @MainActor
-    @Test func importOPMLFeedsAktualisiertNeueFeedsParallel() async throws {
+    @Test func importOPMLFeedsAktualisiertNeueFeedsMitBegrenzterParallelitaet() async throws {
         let container = try ModelContainer(
             for: Feed.self,
             Article.self,
@@ -972,21 +972,25 @@ struct FeedViewModelTests {
         )
 
         _ = try await viewModel.importOPMLFeeds(
-            [
-                OPMLFeed(title: "Feed 1", xmlURL: "https://example.com/1.xml", htmlURL: nil, folderName: nil),
-                OPMLFeed(title: "Feed 2", xmlURL: "https://example.com/2.xml", htmlURL: nil, folderName: nil),
-                OPMLFeed(title: "Feed 3", xmlURL: "https://example.com/3.xml", htmlURL: nil, folderName: nil)
-            ],
+            (1 ... 10).map { index in
+                OPMLFeed(
+                    title: "Feed \(index)",
+                    xmlURL: "https://example.com/\(index).xml",
+                    htmlURL: nil,
+                    folderName: nil
+                )
+            },
             existingFeeds: [],
             context: context
         )
 
         let peak = await tracker.peak
-        #expect(peak > 1, "OPML-Import sollte Feeds parallel abrufen, nicht nacheinander")
+        #expect(peak > 1, "OPML-Import sollte Feeds weiterhin parallel abrufen.")
+        #expect(peak <= FeedViewModel.maxConcurrentFeedRefreshes, "OPML-Import darf nicht alle Feeds gleichzeitig abrufen.")
     }
 
     @MainActor
-    @Test func refreshAllFeedsAktualisiertFeedsParallel() async throws {
+    @Test func refreshAllFeedsAktualisiertFeedsMitBegrenzterParallelitaet() async throws {
         let container = try ModelContainer(
             for: Feed.self,
             Article.self,
@@ -998,12 +1002,12 @@ struct FeedViewModelTests {
         )
         let context = ModelContext(container)
 
-        let feed1 = Feed(url: "https://example.com/1.xml", title: "Feed 1")
-        let feed2 = Feed(url: "https://example.com/2.xml", title: "Feed 2")
-        let feed3 = Feed(url: "https://example.com/3.xml", title: "Feed 3")
-        context.insert(feed1)
-        context.insert(feed2)
-        context.insert(feed3)
+        let feeds = (1 ... 10).map { index in
+            Feed(url: "https://example.com/\(index).xml", title: "Feed \(index)")
+        }
+        for feed in feeds {
+            context.insert(feed)
+        }
         try context.save()
 
         actor ConcurrencyTracker {
@@ -1029,10 +1033,11 @@ struct FeedViewModelTests {
             discoverFaviconURL: { _ in nil }
         )
 
-        await viewModel.refreshAllFeeds([feed1, feed2, feed3], context: context)
+        await viewModel.refreshAllFeeds(feeds, context: context)
 
         let peak = await tracker.peak
-        #expect(peak > 1, "Feeds sollten parallel aktualisiert werden, nicht nacheinander")
+        #expect(peak > 1, "Feeds sollten weiterhin parallel aktualisiert werden.")
+        #expect(peak <= FeedViewModel.maxConcurrentFeedRefreshes, "Refresh darf nicht alle Feeds gleichzeitig abrufen.")
     }
 
     @MainActor

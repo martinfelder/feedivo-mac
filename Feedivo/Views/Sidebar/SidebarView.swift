@@ -9,7 +9,6 @@ struct SidebarView: View {
     @Query(sort: \FeedFolder.name) private var folders: [FeedFolder]
     @Query(sort: \Tag.name) private var tags: [Tag]
     @Query(sort: \SmartFolder.sortOrder) private var smartFolders: [SmartFolder]
-    @Query(sort: \Article.publishedAt, order: .reverse) private var articles: [Article]
     @Binding var selection: SidebarSelection?
     let onRequestAddFeed: () -> Void
     let onRequestDeleteFeed: (Feed) -> Void
@@ -216,8 +215,9 @@ struct SidebarView: View {
                     } label: {
                         SmartFolderSidebarRow(
                             smartFolder: smartFolder,
-                            badgeText: SidebarUnreadCount.badgeText(
-                                for: SmartFolderEngine.matchingArticleCount(folder: smartFolder, articles: articles)
+                            badgeText: SmartFolderSidebarBadge.badgeText(
+                                for: smartFolder,
+                                feeds: feeds
                             )
                         )
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -615,6 +615,10 @@ struct AddFeedSheet: View {
                 discoveryResultList
             }
 
+            if let selectedFeedPreview {
+                feedPreview(for: selectedFeedPreview)
+            }
+
             if let errorMessage = discoveryErrorMessage ?? viewModel.errorMessage {
                 Text(errorMessage)
                     .foregroundStyle(.red)
@@ -646,7 +650,7 @@ struct AddFeedSheet: View {
             }
         }
         .padding(24)
-        .frame(width: 460)
+        .frame(width: 520)
         .onChange(of: urlString) {
             resetDiscovery()
         }
@@ -691,12 +695,106 @@ struct AddFeedSheet: View {
         }
     }
 
+    private var selectedFeedPreview: FeedDiscoveryResult? {
+        guard let selectedFeedURL else {
+            return nil
+        }
+
+        return discoveryResults.first { $0.feedURL == selectedFeedURL }
+    }
+
+    private func feedPreview(for result: FeedDiscoveryResult) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 12) {
+                feedPreviewIcon(urlString: result.faviconURL)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(result.title)
+                        .font(.headline)
+                        .lineLimit(1)
+
+                    if let siteURL = result.siteURL {
+                        Text(siteURL)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+
+                Spacer()
+            }
+
+            if result.previewArticles.isEmpty {
+                Text("Dieser Feed liefert aktuell keine Artikel für die Vorschau.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            } else {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Letzte Artikel")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.secondary)
+
+                    ForEach(result.previewArticles) { article in
+                        feedPreviewArticleRow(article)
+                    }
+                }
+            }
+        }
+        .padding(12)
+        .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+
+    private func feedPreviewIcon(urlString: String?) -> some View {
+        let url = urlString.flatMap(URL.init(string:))
+
+        return CachedRemoteImageView(url: url) { image in
+            image
+                .resizable()
+                .scaledToFit()
+        } placeholder: {
+            Image(systemName: "dot.radiowaves.left.and.right")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(Color.accentColor)
+        }
+        .frame(width: 34, height: 34)
+        .padding(7)
+        .background(Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+
+    private func feedPreviewArticleRow(_ article: FeedDiscoveryPreviewArticle) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(article.title)
+                    .font(.callout.weight(.medium))
+                    .lineLimit(1)
+
+                Spacer(minLength: 8)
+
+                if let publishedAt = article.publishedAt {
+                    Text(publishedAt.feedivoRelativeDisplay)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+            }
+
+            if let summary = article.summary?.trimmingCharacters(in: .whitespacesAndNewlines),
+               !summary.isEmpty {
+                Text(summary)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
     private var isBusy: Bool {
         isDiscovering || viewModel.isLoading
     }
 
     private var primaryButtonTitle: LocalizedStringKey {
-        selectedFeedURL == nil ? L10n.feedDiscoverySearchButton : L10n.commonAdd
+        selectedFeedURL == nil ? L10n.feedDiscoverySearchButton : "Abonnieren"
     }
 
     private func performPrimaryAction() async {

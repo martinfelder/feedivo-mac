@@ -55,6 +55,8 @@ private enum FeedRefreshOutcome {
 
 @Observable
 final class FeedViewModel {
+    static let maxConcurrentFeedRefreshes = 6
+
     private let fetchFeed: (String) async throws -> ParsedFeed
     private let discoverFaviconURL: (URL) async -> String?
     private let enrichArticleImages: ([ParsedArticle]) async -> [ParsedArticle]
@@ -197,7 +199,8 @@ final class FeedViewModel {
             feedsToRefresh.append(feed)
         }
 
-        // Phase 2: Alle neuen Feeds parallel abrufen (Netzwerk-I/O läuft gleichzeitig)
+        // Phase 2: Neue Feeds in begrenzten Gruppen abrufen. So bleibt Netzwerk-I/O
+        // parallel, ohne bei großen OPML-Imports alle Feeds gleichzeitig anzustoßen.
         if refreshAfterImport && !feedsToRefresh.isEmpty {
             operationProgress = FeedOperationProgress(
                 title: L10n.feedProgressOPMLImportTitle,
@@ -207,40 +210,42 @@ final class FeedViewModel {
         }
 
         if refreshAfterImport {
-            await withTaskGroup(of: String?.self) { group in
-                for feed in feedsToRefresh {
-                    group.addTask { @MainActor in
-                        do {
-                            _ = try await self.refreshFeedContents(feed, context: context)
-                            return nil
-                        } catch let error as LocalizedError {
-                            self.appendLog(
-                                kind: "error",
-                                message: error.errorDescription ?? L10n.feedErrorParsingFailed,
-                                to: feed,
-                                context: context
-                            )
-                            try? context.save()
-                            return feed.title
-                        } catch {
-                            self.appendLog(
-                                kind: "error",
-                                message: L10n.feedErrorParsingFailed,
-                                to: feed,
-                                context: context
-                            )
-                            try? context.save()
-                            return feed.title
+            for feedBatch in feedBatches(from: feedsToRefresh) {
+                await withTaskGroup(of: String?.self) { group in
+                    for feed in feedBatch {
+                        group.addTask { @MainActor in
+                            do {
+                                _ = try await self.refreshFeedContents(feed, context: context)
+                                return nil
+                            } catch let error as LocalizedError {
+                                self.appendLog(
+                                    kind: "error",
+                                    message: error.errorDescription ?? L10n.feedErrorParsingFailed,
+                                    to: feed,
+                                    context: context
+                                )
+                                try? context.save()
+                                return feed.title
+                            } catch {
+                                self.appendLog(
+                                    kind: "error",
+                                    message: L10n.feedErrorParsingFailed,
+                                    to: feed,
+                                    context: context
+                                )
+                                try? context.save()
+                                return feed.title
+                            }
                         }
                     }
-                }
 
-                for await failedTitle in group {
-                    if let failedTitle {
-                        failedFeedTitles.append(failedTitle)
+                    for await failedTitle in group {
+                        if let failedTitle {
+                            failedFeedTitles.append(failedTitle)
+                        }
+
+                        incrementOperationProgress()
                     }
-
-                    incrementOperationProgress()
                 }
             }
         }
@@ -428,47 +433,48 @@ final class FeedViewModel {
             operationProgress = nil
         }
 
-        // Alle Feeds parallel aktualisieren. Jede Task läuft auf dem Main Actor,
-        // gibt ihn aber während await-Aufrufen (Netzwerk) frei — so laufen alle
-        // Netzwerkabrufe gleichzeitig, ohne SwiftData-Zugriffe zu verparallelisieren.
-        await withTaskGroup(of: FeedRefreshOutcome.self) { group in
-            for feed in feeds {
-                group.addTask { @MainActor in
-                    do {
-                        let result = try await self.refreshFeedContents(feed, context: context)
-                        return .success(result)
-                    } catch let error as LocalizedError {
-                        self.appendLog(
-                            kind: "error",
-                            message: error.errorDescription ?? L10n.feedErrorParsingFailed,
-                            to: feed,
-                            context: context
-                        )
-                        try? context.save()
-                        return .failure(feed.title)
-                    } catch {
-                        self.appendLog(
-                            kind: "error",
-                            message: L10n.feedErrorParsingFailed,
-                            to: feed,
-                            context: context
-                        )
-                        try? context.save()
-                        return .failure(feed.title)
+        // Feed-Refresh läuft bewusst gedrosselt. Bei vielen Feeds bleibt die App
+        // dadurch bedienbarer und Server werden weniger hart getroffen.
+        for feedBatch in feedBatches(from: feeds) {
+            await withTaskGroup(of: FeedRefreshOutcome.self) { group in
+                for feed in feedBatch {
+                    group.addTask { @MainActor in
+                        do {
+                            let result = try await self.refreshFeedContents(feed, context: context)
+                            return .success(result)
+                        } catch let error as LocalizedError {
+                            self.appendLog(
+                                kind: "error",
+                                message: error.errorDescription ?? L10n.feedErrorParsingFailed,
+                                to: feed,
+                                context: context
+                            )
+                            try? context.save()
+                            return .failure(feed.title)
+                        } catch {
+                            self.appendLog(
+                                kind: "error",
+                                message: L10n.feedErrorParsingFailed,
+                                to: feed,
+                                context: context
+                            )
+                            try? context.save()
+                            return .failure(feed.title)
+                        }
                     }
                 }
-            }
 
-            for await outcome in group {
-                switch outcome {
-                case .success(let result):
-                    notificationResults.append(result.feedNotification)
-                    ruleNotificationResults.append(contentsOf: result.ruleNotifications)
-                case .failure(let failedTitle):
-                    failedFeedTitles.append(failedTitle)
+                for await outcome in group {
+                    switch outcome {
+                    case .success(let result):
+                        notificationResults.append(result.feedNotification)
+                        ruleNotificationResults.append(contentsOf: result.ruleNotifications)
+                    case .failure(let failedTitle):
+                        failedFeedTitles.append(failedTitle)
+                    }
+
+                    incrementOperationProgress()
                 }
-
-                incrementOperationProgress()
             }
         }
 
@@ -480,6 +486,12 @@ final class FeedViewModel {
                 failedFeedTitles.count,
                 feedTitles: failedFeedTitles.joined(separator: ", ")
             )
+        }
+    }
+
+    private func feedBatches(from feeds: [Feed]) -> [[Feed]] {
+        stride(from: 0, to: feeds.count, by: Self.maxConcurrentFeedRefreshes).map { startIndex in
+            Array(feeds[startIndex ..< min(startIndex + Self.maxConcurrentFeedRefreshes, feeds.count)])
         }
     }
 
