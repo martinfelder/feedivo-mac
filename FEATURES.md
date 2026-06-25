@@ -674,6 +674,10 @@
   - Artikelwechsel aktualisiert die Navigation aus der sichtbaren Liste, ohne Sortierung/Filterung erneut anzustoßen
   - Komplexe intelligente Ordner sortieren Bedingungen einmal vor dem Artikel-Loop und verwenden einen vorbereiteten Matcher
   - Reader-Bildblock-Erkennung nutzt eine einfache case-insensitive Suche statt einer Regex-Kompilierung im Loop
+  - Tag-Badges in der Sidebar zählen per SwiftData-`fetchCount` über denselben Tag-Predicate wie die Artikelliste, statt Tag-/Feed-Artikel-Relationships zu traversieren
+  - Lesestatus-Aktionen aktualisieren `Feed.unreadCount` auch dann über `Article.feedID`, wenn die `Article.feed`-Relationship im schnellen Query-Pfad nicht geladen ist
+  - Bulk-Aktionen wie `Alle als gelesen markieren` synchronisieren betroffene Feed-Zähler per SwiftData-`fetchCount`, damit bereits falsch gespeicherte Badges wieder auf den echten ungelesenen Bestand fallen
+  - Das Artikelansicht-Menü zeigt die Bulk-Option ausdrücklich als `Alle als gelesen markieren`
 - **Zu beachten:**
   - SwiftData-Queries immer mit gezielten Predicates — nie alle Artikel auf einmal laden
   - Artikel-Liste mit Paginierung (50 Artikel pro Batch, mehr beim Scrollen)

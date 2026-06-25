@@ -1,3 +1,4 @@
+import SwiftData
 import Testing
 @testable import Feedivo
 
@@ -16,38 +17,79 @@ struct SidebarUnreadCountTests {
     }
 
     @MainActor
-    @Test func tagBadgeTextZaehltVerknuepfteArtikel() {
+    @Test func tagBadgeTextZaehltVerknuepfteArtikel() throws {
+        let context = try testContext()
         let tag = Tag(name: "Swift")
         let firstArticle = Article(title: "Erster Artikel")
         let secondArticle = Article(title: "Zweiter Artikel")
-        tag.articles = [firstArticle, secondArticle]
+        firstArticle.tags = [tag]
+        secondArticle.tags = [tag]
+        context.insert(tag)
+        context.insert(firstArticle)
+        context.insert(secondArticle)
+        try context.save()
 
-        #expect(SidebarTagCount.articleCount(for: tag) == 2)
-        #expect(SidebarTagCount.badgeText(for: tag) == "2")
+        #expect(try SidebarTagCount.articleCount(for: tag, context: context) == 2)
+        #expect(try SidebarTagCount.badgeText(for: tag, context: context) == "2")
     }
 
     @MainActor
-    @Test func tagBadgeTextZaehltArtikelAusGetaggtenFeedsOhneDuplikate() {
+    @Test func tagBadgeTextZaehltArtikelAusGetaggtenFeedsOhneDuplikate() throws {
+        let context = try testContext()
         let tag = Tag(name: "Apple")
         let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
         let feedArticle = Article(title: "Feed-Artikel", feed: feed)
         let duplicateArticle = Article(title: "Doppelt", feed: feed)
         let directArticle = Article(title: "Direkt")
-        feed.articles = [feedArticle, duplicateArticle]
         feed.tags = [tag]
-        tag.feeds = [feed]
-        tag.articles = [duplicateArticle, directArticle]
+        duplicateArticle.tags = [tag]
+        directArticle.tags = [tag]
+        context.insert(tag)
+        context.insert(feed)
+        context.insert(feedArticle)
+        context.insert(duplicateArticle)
+        context.insert(directArticle)
+        try context.save()
 
-        #expect(SidebarTagCount.articleCount(for: tag) == 3)
-        #expect(SidebarTagCount.badgeText(for: tag) == "3")
+        #expect(try SidebarTagCount.articleCount(for: tag, context: context) == 3)
+        #expect(try SidebarTagCount.badgeText(for: tag, context: context) == "3")
     }
 
     @MainActor
-    @Test func tagBadgeTextIstNurFuerTagsMitArtikelnSichtbar() {
-        let tag = Tag(name: "Leer")
+    @Test func tagBadgeTextZaehltArtikelPerSwiftDataQueryOhneRelationshipTraversal() throws {
+        let context = try testContext()
+        let tag = Tag(name: "Apple")
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
+        let feedArticle = Article(title: "Feed-Artikel", feed: feed)
+        let duplicateArticle = Article(title: "Doppelt", feed: feed)
+        let directArticle = Article(title: "Direkt")
+        let unrelatedArticle = Article(title: "Anderer Artikel")
+        feed.tags = [tag]
+        tag.feeds = [feed]
+        duplicateArticle.tags = [tag]
+        directArticle.tags = [tag]
 
-        #expect(SidebarTagCount.articleCount(for: tag) == 0)
-        #expect(SidebarTagCount.badgeText(for: tag) == nil)
+        context.insert(tag)
+        context.insert(feed)
+        context.insert(feedArticle)
+        context.insert(duplicateArticle)
+        context.insert(directArticle)
+        context.insert(unrelatedArticle)
+        try context.save()
+
+        #expect(try SidebarTagCount.articleCount(for: tag, context: context) == 3)
+        #expect(try SidebarTagCount.badgeText(for: tag, context: context) == "3")
+    }
+
+    @MainActor
+    @Test func tagBadgeTextIstNurFuerTagsMitArtikelnSichtbar() throws {
+        let context = try testContext()
+        let tag = Tag(name: "Leer")
+        context.insert(tag)
+        try context.save()
+
+        #expect(try SidebarTagCount.articleCount(for: tag, context: context) == 0)
+        #expect(try SidebarTagCount.badgeText(for: tag, context: context) == nil)
     }
 
     @MainActor
@@ -76,5 +118,21 @@ struct SidebarUnreadCountTests {
 
         #expect(!article.isRead)
         #expect(feed.unreadCount == 1)
+    }
+
+    @MainActor
+    private func testContext() throws -> ModelContext {
+        let container = try ModelContainer(
+            for: Feed.self,
+            FeedFolder.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            RuleCondition.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+
+        return ModelContext(container)
     }
 }

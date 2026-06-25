@@ -443,13 +443,14 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   mindestens einen ungelesenen Artikel hat
 
 ### SidebarUnreadCount.swift
-- Kapselt die Sidebar-Zaehllogik für ungelesene Artikel pro Feed und über alle Feeds.
+- Kapselt die Sidebar-Zähllogik für ungelesene Artikel pro Feed und über alle Feeds.
 - Liest vorberechnete `Feed.unreadCount` Werte, damit die Sidebar weder komplette
   Feed-Relationships noch alle ungelesenen Artikel laden muss.
 - Liefert nur für positive Zähler einen sichtbaren Badge-Text, damit Feeds ohne
   ungelesene Artikel ruhig bleiben.
 - `SidebarTagCount` zählt direkt getaggte Artikel und Artikel aus getaggten Feeds
-  zusammen, entfernt Duplikate über `Article.id` und liefert daraus die Tag-Badge.
+  per SwiftData-`fetchCount` über denselben Tag-Predicate wie die Artikelliste,
+  statt Tag-/Feed-Artikel-Relationships bei jedem Sidebar-Render zu traversieren.
 
 ### FeedService.swift
 - Parsed RSS 2.0, Atom und JSON Feed via FeedKit
@@ -871,6 +872,15 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - `markRead(_:matching:now:calendar:)` markiert nur die sichtbaren Artikel als
   gelesen, die zur gewählten Zeitoption aus `ArticleMarkReadOption` passen, und
   pflegt ebenfalls die Feed-Zähler.
+- Die context-basierten Lesestatus-Varianten korrigieren `Feed.unreadCount` über
+  `Article.feedID`, wenn die `Article.feed`-Relationship im schnellen Query-Pfad
+  nicht geladen ist.
+- Bulk-Lesestatus-Aktionen synchronisieren die betroffenen Feed-Zähler nach dem
+  Markieren per SwiftData-`fetchCount`, damit bereits falsch gespeicherte
+  `Feed.unreadCount` Werte wieder dem echten ungelesenen Bestand entsprechen.
+- Die `ArticleMarkReadOption.allVisible`-Option wird in der Artikelansicht als
+  `Alle als gelesen markieren` angezeigt, damit sie als Bulk-Aktion klar erkennbar
+  ist.
 - `deleteArticle(_:context:)` löscht einen Artikel aus SwiftData und korrigiert
   bei ungelesenen Artikeln den Feed-Zähler.
 - `ArticleOriginalURLResolver` kapselt die stateless Validierung absoluter
@@ -1659,6 +1669,20 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 ---
 
 ## Letzte Änderungen
+
+- 2026-06-25: Feed-Badge-Zähler nach „Als gelesen markieren“ korrigiert:
+  `ArticleViewModel` kann den zugehörigen Feed jetzt über `Article.feedID` aus dem
+  SwiftData-Kontext holen, wenn `Article.feed` nicht geladen ist. Die Menü-,
+  Toolbar-, Zeilen-, Inspector- und Auto-gelesen-Aktionen nutzen diesen
+  context-basierten Pfad und speichern die Änderung sofort. Bulk-Aktionen
+  synchronisieren betroffene Feed-Zähler zusätzlich per `fetchCount`, damit auch
+  bereits falsch gespeicherte Badges wieder korrigiert werden. Die entsprechende
+  Menüoption in der Artikelansicht heißt explizit `Alle als gelesen markieren`.
+
+- 2026-06-25: Performance Paket 5 umgesetzt: Tag-Badges in der Sidebar zählen
+  passende Artikel jetzt per SwiftData-`fetchCount` und wiederverwenden den
+  Tag-Predicate der Artikelliste. Dadurch traversiert die Sidebar beim Rendern
+  nicht mehr die Artikel-Relationships von Tags und getaggten Feeds.
 
 - 2026-06-25: Performance Paket 4 umgesetzt: Artikelwechsel in der Liste
   aktualisieren die Navigation ohne erneutes Sortieren/Filtern,

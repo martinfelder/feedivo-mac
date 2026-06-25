@@ -316,7 +316,7 @@ struct SidebarView: View {
             } label: {
                 TagSidebarRow(
                     tag: tag,
-                    badgeText: SidebarTagCount.badgeText(for: tag)
+                    badgeText: try? SidebarTagCount.badgeText(for: tag, context: modelContext)
                 )
                     .frame(maxWidth: .infinity, alignment: .leading)
             }

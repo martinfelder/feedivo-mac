@@ -64,12 +64,28 @@ final class ArticleViewModel {
         updateUnreadCount(for: article, wasRead: wasRead, isRead: article.isRead)
     }
 
+    @MainActor
+    func toggleRead(_ article: Article, context: ModelContext) {
+        let wasRead = article.isRead
+        article.isRead.toggle()
+        updateUnreadCount(for: article, wasRead: wasRead, isRead: article.isRead, context: context)
+    }
+
     func toggleRead(_ article: Article?) {
         guard let article else {
             return
         }
 
         toggleRead(article)
+    }
+
+    @MainActor
+    func toggleRead(_ article: Article?, context: ModelContext) {
+        guard let article else {
+            return
+        }
+
+        toggleRead(article, context: context)
     }
 
     func toggleStarred(_ article: Article) {
@@ -106,12 +122,34 @@ final class ArticleViewModel {
         updateUnreadCount(for: article, wasRead: wasRead, isRead: article.isRead)
     }
 
+    @MainActor
+    func markReadIfNeeded(_ article: Article?, isEnabled: Bool, context: ModelContext) {
+        guard isEnabled, let article, !article.isRead else {
+            return
+        }
+
+        let wasRead = article.isRead
+        article.isRead = true
+        updateUnreadCount(for: article, wasRead: wasRead, isRead: article.isRead, context: context)
+    }
+
     func markAllRead(_ articles: [Article]) {
         for article in articles where !article.isRead {
             let wasRead = article.isRead
             article.isRead = true
             updateUnreadCount(for: article, wasRead: wasRead, isRead: article.isRead)
         }
+    }
+
+    @MainActor
+    func markAllRead(_ articles: [Article], context: ModelContext) {
+        for article in articles where !article.isRead {
+            let wasRead = article.isRead
+            article.isRead = true
+            updateUnreadCount(for: article, wasRead: wasRead, isRead: article.isRead, context: context)
+        }
+
+        synchronizeUnreadCounts(for: articles, context: context)
     }
 
     func markRead(
@@ -124,9 +162,27 @@ final class ArticleViewModel {
     }
 
     @MainActor
+    func markRead(
+        _ articles: [Article],
+        matching option: ArticleMarkReadOption,
+        now: Date = Date(),
+        calendar: Calendar = .current,
+        context: ModelContext
+    ) {
+        let candidateArticles = articles.filter { article in
+            option.includes(article, now: now, calendar: calendar)
+        }
+
+        markAllRead(
+            candidateArticles,
+            context: context
+        )
+    }
+
+    @MainActor
     func deleteArticle(_ article: Article, context: ModelContext) {
         let wasRead = article.isRead
-        updateUnreadCount(for: article, wasRead: wasRead, isRead: true)
+        updateUnreadCount(for: article, wasRead: wasRead, isRead: true, context: context)
         context.delete(article)
         try? context.save()
     }
@@ -213,5 +269,81 @@ final class ArticleViewModel {
         } else {
             feed.unreadCount += 1
         }
+    }
+
+    @MainActor
+    private func updateUnreadCount(
+        for article: Article,
+        wasRead: Bool,
+        isRead: Bool,
+        context: ModelContext
+    ) {
+        guard wasRead != isRead, let feed = try? feed(for: article, context: context) else {
+            return
+        }
+
+        if isRead {
+            feed.unreadCount = max(0, feed.unreadCount - 1)
+        } else {
+            feed.unreadCount += 1
+        }
+    }
+
+    @MainActor
+    private func feed(for article: Article, context: ModelContext) throws -> Feed? {
+        if let feed = article.feed {
+            return feed
+        }
+
+        guard let feedID = article.feedID else {
+            return nil
+        }
+
+        var descriptor = FetchDescriptor<Feed>(
+            predicate: #Predicate<Feed> { feed in
+                feed.id == feedID
+            }
+        )
+        descriptor.fetchLimit = 1
+
+        return try context.fetch(descriptor).first
+    }
+
+    @MainActor
+    private func synchronizeUnreadCounts(for articles: [Article], context: ModelContext) {
+        let feedIDs = Set(articles.compactMap { article in
+            article.feedID ?? article.feed?.id
+        })
+
+        for feedID in feedIDs {
+            guard let feed = try? feed(withID: feedID, context: context) else {
+                continue
+            }
+
+            feed.unreadCount = unreadArticleCount(forFeedID: feedID, context: context)
+        }
+    }
+
+    @MainActor
+    private func feed(withID feedID: UUID, context: ModelContext) throws -> Feed? {
+        var descriptor = FetchDescriptor<Feed>(
+            predicate: #Predicate<Feed> { feed in
+                feed.id == feedID
+            }
+        )
+        descriptor.fetchLimit = 1
+
+        return try context.fetch(descriptor).first
+    }
+
+    @MainActor
+    private func unreadArticleCount(forFeedID feedID: UUID, context: ModelContext) -> Int {
+        let descriptor = FetchDescriptor<Article>(
+            predicate: #Predicate<Article> { article in
+                article.feedID == feedID && !article.isRead
+            }
+        )
+
+        return (try? context.fetchCount(descriptor)) ?? 0
     }
 }

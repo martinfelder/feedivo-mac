@@ -188,6 +188,44 @@ struct ArticleViewModelTests {
     }
 
     @MainActor
+    @Test func markAllReadKorrigiertFeedZaehlerUeberFeedIDWennRelationshipFehlt() throws {
+        let context = try testContext()
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
+        feed.unreadCount = 1
+        let article = Article(title: "Ungelesen", isRead: false)
+        article.feedID = feed.id
+        context.insert(feed)
+        context.insert(article)
+        try context.save()
+
+        ArticleViewModel().markAllRead([article], context: context)
+
+        #expect(article.isRead)
+        #expect(feed.unreadCount == 0)
+    }
+
+    @MainActor
+    @Test func markAllReadSynchronisiertBereitsFalschenFeedZaehler() throws {
+        let context = try testContext()
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
+        feed.unreadCount = 1000
+        let firstArticle = Article(title: "Schon gelesen 1", isRead: true)
+        let secondArticle = Article(title: "Schon gelesen 2", isRead: true)
+        firstArticle.feedID = feed.id
+        secondArticle.feedID = feed.id
+        context.insert(feed)
+        context.insert(firstArticle)
+        context.insert(secondArticle)
+        try context.save()
+
+        ArticleViewModel().markAllRead([firstArticle, secondArticle], context: context)
+
+        #expect(firstArticle.isRead)
+        #expect(secondArticle.isRead)
+        #expect(feed.unreadCount == 0)
+    }
+
+    @MainActor
     @Test func markReadMitZeitoptionMarkiertNurPassendeUngeleseneArtikel() throws {
         let context = try testContext()
         let calendar = Calendar(identifier: .gregorian)
@@ -287,6 +325,10 @@ struct ArticleViewModelTests {
             now: now,
             calendar: calendar
         ).map(\.title) == ["Neu", "Zwei Tage", "Ohne Datum"])
+    }
+
+    @Test func articleMarkReadAlleOptionVerwendetKlarenBefehlstext() {
+        #expect(ArticleMarkReadOption.allVisible.label == L10n.articleMarkAllReadCommand)
     }
 
     @MainActor

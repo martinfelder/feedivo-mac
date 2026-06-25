@@ -218,7 +218,8 @@ struct ContentView: View {
             ArticleCommandActions(
                 selectedArticle: selectedArticle,
                 toggleRead: {
-                    articleViewModel.toggleRead(selectedArticle)
+                    articleViewModel.toggleRead(selectedArticle, context: modelContext)
+                    try? modelContext.save()
                 },
                 toggleStarred: {
                     articleViewModel.toggleStarred(selectedArticle)

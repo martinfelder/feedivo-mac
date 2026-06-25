@@ -43,7 +43,7 @@ enum ArticleMarkReadOption: CaseIterable, Identifiable {
         case .olderThanTwoWeeks:
             L10n.articleMarkReadOlderThanTwoWeeks
         case .allVisible:
-            L10n.articleMarkReadAllVisible
+            L10n.articleMarkAllReadCommand
         }
     }
 

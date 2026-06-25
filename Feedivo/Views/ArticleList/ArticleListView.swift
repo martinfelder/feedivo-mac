@@ -425,8 +425,10 @@ private struct ArticleListContent: View {
             updateNavigationState(in: visibleArticles)
             viewModel.markReadIfNeeded(
                 selectedArticle,
-                isEnabled: markArticleReadOnSelection
+                isEnabled: markArticleReadOnSelection,
+                context: modelContext
             )
+            try? modelContext.save()
         }
         .toolbar {
             ToolbarItemGroup {
@@ -465,7 +467,8 @@ private struct ArticleListContent: View {
             article: article,
             availableTags: tags,
             onToggleRead: {
-                viewModel.toggleRead(article)
+                viewModel.toggleRead(article, context: modelContext)
+                try? modelContext.save()
             },
             onToggleStarred: {
                 viewModel.toggleStarred(article)
@@ -507,7 +510,7 @@ private struct ArticleListContent: View {
                 deleteArticle(article)
             },
             onMarkAllRead: {
-                viewModel.markAllRead(visibleArticles)
+                viewModel.markAllRead(visibleArticles, context: modelContext)
                 try? modelContext.save()
             }
         )
@@ -533,14 +536,16 @@ private struct ArticleListContent: View {
     private func markReadMenu(visibleArticles: [Article]) -> some View {
         Menu {
             ForEach(ArticleMarkReadOption.allCases) { option in
-                let matchingArticles = option.matchingArticles(in: visibleArticles)
+                let candidateArticles = visibleArticles.filter { article in
+                    option.includes(article)
+                }
 
                 Button {
                     markRead(visibleArticles, matching: option)
                 } label: {
                     Text(option.label)
                 }
-                .disabled(matchingArticles.isEmpty)
+                .disabled(candidateArticles.isEmpty)
             }
         } label: {
             Label(L10n.articleMarkReadMenuTitle, systemImage: "checkmark.circle")
@@ -549,7 +554,7 @@ private struct ArticleListContent: View {
     }
 
     private func markRead(_ articles: [Article], matching option: ArticleMarkReadOption) {
-        viewModel.markRead(articles, matching: option)
+        viewModel.markRead(articles, matching: option, context: modelContext)
         try? modelContext.save()
     }
 

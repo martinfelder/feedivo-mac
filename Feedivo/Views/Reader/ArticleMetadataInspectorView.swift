@@ -209,7 +209,8 @@ struct ArticleMetadataInspectorView: View {
                 activeTint: .green,
                 help: L10n.readerInspectorReadStatus
             ) {
-                articleViewModel.toggleRead(article)
+                articleViewModel.toggleRead(article, context: modelContext)
+                try? modelContext.save()
             }
 
             actionIconButton(

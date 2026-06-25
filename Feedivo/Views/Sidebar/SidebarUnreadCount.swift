@@ -1,3 +1,5 @@
+import SwiftData
+
 enum SidebarUnreadCount {
     static func unreadArticleCount(for feed: Feed) -> Int {
         feed.unreadCount
@@ -15,15 +17,18 @@ enum SidebarUnreadCount {
 }
 
 enum SidebarTagCount {
-    static func articleCount(for tag: Tag) -> Int {
-        let directArticleIDs = Set(tag.articles.map(\.id))
-        let feedArticleIDs = Set(tag.feeds.flatMap(\.articles).map(\.id))
+    @MainActor
+    static func articleCount(for tag: Tag, context: ModelContext) throws -> Int {
+        let descriptor = FetchDescriptor<Article>(
+            predicate: ArticleListQuery.tagPredicate(for: tag, taggedFeeds: tag.feeds)
+        )
 
-        return directArticleIDs.union(feedArticleIDs).count
+        return try context.fetchCount(descriptor)
     }
 
-    static func badgeText(for tag: Tag) -> String? {
-        SidebarUnreadCount.badgeText(for: articleCount(for: tag))
+    @MainActor
+    static func badgeText(for tag: Tag, context: ModelContext) throws -> String? {
+        try SidebarUnreadCount.badgeText(for: articleCount(for: tag, context: context))
     }
 }
 
