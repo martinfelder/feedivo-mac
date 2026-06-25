@@ -230,7 +230,7 @@ struct ArticleRowView: View {
     }
 
     private var hasOriginalURL: Bool {
-        ArticleViewModel().originalURL(for: article) != nil
+        ArticleOriginalURLResolver.url(for: article) != nil
     }
 
     private var assignableTags: [Tag] {

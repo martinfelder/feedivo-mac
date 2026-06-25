@@ -215,6 +215,46 @@ struct ArticleListQueryTests {
         #expect(ArticleFilterOption.resolved(from: ArticleFilterOption.archived.rawValue) == .archived)
     }
 
+    @Test func articleListPreparedArticlesSortiertNurEinmalVorDemFiltern() {
+        let oldUnreadArticle = Article(
+            title: "Alt ungelesen",
+            publishedAt: Date(timeIntervalSince1970: 100),
+            isRead: false
+        )
+        let newReadArticle = Article(
+            title: "Neu gelesen",
+            publishedAt: Date(timeIntervalSince1970: 300),
+            isRead: true
+        )
+        let middleUnreadArticle = Article(
+            title: "Mitte ungelesen",
+            publishedAt: Date(timeIntervalSince1970: 200),
+            isRead: false
+        )
+        var sortCallCount = 0
+
+        let preparedArticles = ArticleListPreparedArticles.prepare(
+            articles: [oldUnreadArticle, newReadArticle, middleUnreadArticle],
+            sortArticles: true,
+            filterOption: .unread,
+            sorter: { articles in
+                sortCallCount += 1
+                return ArticleSortOption.newestFirst.sorted(articles)
+            }
+        )
+
+        #expect(sortCallCount == 1)
+        #expect(preparedArticles.sorted.map(\.title) == [
+            "Neu gelesen",
+            "Mitte ungelesen",
+            "Alt ungelesen"
+        ])
+        #expect(preparedArticles.filtered.map(\.title) == [
+            "Mitte ungelesen",
+            "Alt ungelesen"
+        ])
+    }
+
     @Test func articleInitialisiertDirekteFeedIDFuerSchnelleListenQueries() throws {
         let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
         let article = Article(title: "Artikel", feed: feed)

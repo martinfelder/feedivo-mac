@@ -116,6 +116,15 @@ struct ArticleViewModelTests {
         #expect(url.absoluteString == "https://example.com/article")
     }
 
+    @Test func originalURLResolverPrueftLinksOhneViewModelInstanz() throws {
+        let article = Article(title: "Test", link: "https://example.com/article")
+
+        let url = try #require(ArticleOriginalURLResolver.url(for: article))
+
+        #expect(url.absoluteString == "https://example.com/article")
+        #expect(ArticleOriginalURLResolver.url(for: Article(title: "Relativ", link: "/artikel")) == nil)
+    }
+
     @Test func copyLinkSchreibtGueltigenLinkInPasteboard() {
         let article = Article(title: "Test", link: "https://example.com/article")
         let pasteboard = CapturingPasteboard()

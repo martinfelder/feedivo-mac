@@ -765,6 +765,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Die Anzeige-Logik berechnet sichtbare Artikel und die Anzahl ausgeblendeter
   gelesener Artikel gemeinsam in `ArticleListDisplaySnapshot`, damit große Listen
   nicht mehrfach durchlaufen werden.
+- Sortierung und Filterung werden gemeinsam über `ArticleListPreparedArticles`
+  vorbereitet, damit die Artikelliste pro SwiftUI-Render nur einmal sortiert und
+  danach auf derselben sortierten Liste filtert.
 - Tag-Zuweisungsoptionen pro Artikelzeile werden erst beim Öffnen des
   Kontextmenüs berechnet; die Liste filtert nicht mehr für jede sichtbare Zeile
   vorab alle verfügbaren Tags.
@@ -817,6 +820,8 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   gelesener Artikel und die Button-Entscheidung für Feature 2.5 testbar ohne UI.
 - `ArticleListDisplayState` blendet `isHidden`-Artikel aus normalen Listen aus; die
   Regel-Aktion zum Setzen dieses Status bleibt ein eigener Feature-16.3-Schritt.
+- `ArticleListPreparedArticles` kapselt die gemeinsame Vorbereitung aus Sortierung
+  und Filterung und ist mit einem Test gegen doppelte Sortierungen abgesichert.
 
 ### ArticleSortOption.swift
 - Kapselt die globale Sortierauswahl für Artikellisten inklusive `@AppStorage`-Key,
@@ -844,6 +849,8 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Kontextmenü für gelesen/ungelesen, Stern, Archivieren, Tag zuweisen,
   Regel erstellen, Link kopieren, Original oeffnen, Teilen, Offline speichern/
   entfernen, Artikel löschen und alle sichtbaren Artikel als gelesen markieren
+- Prüft, ob Link-Aktionen verfügbar sind, über `ArticleOriginalURLResolver` und
+  erzeugt dafür keine eigene `ArticleViewModel`-Instanz pro Kontextmenü-Aufbau.
 - Gelesene Artikel werden optisch ruhiger dargestellt
 
 ### ArticleViewModel.swift
@@ -860,6 +867,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   pflegt ebenfalls die Feed-Zähler.
 - `deleteArticle(_:context:)` löscht einen Artikel aus SwiftData und korrigiert
   bei ungelesenen Artikeln den Feed-Zähler.
+- `ArticleOriginalURLResolver` kapselt die stateless Validierung absoluter
+  Artikel-Links. `ArticleViewModel.originalURL(for:)` nutzt denselben Helper, damit
+  UI-Status und Aktionen dieselbe Logik teilen.
 - `copyLink`, `openOriginal` und `shareOriginal` kapseln Link-Aktionen testbar über
   kleine Protokolle für Pasteboard, URL-Oeffnen und Share-Picker.
 - Gelesen/Ungelesen-Änderungen aktualisieren `Feed.unreadCount`, damit Sidebar-Badges
@@ -1640,6 +1650,16 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 ---
 
 ## Letzte Änderungen
+
+- 2026-06-25: Performance Paket 3 umgesetzt: `ArticleRowView` erzeugt für die
+  Original-Link-Prüfung im Kontextmenü keine neue `ArticleViewModel`-Instanz mehr.
+  Die gemeinsame URL-Validierung liegt jetzt in `ArticleOriginalURLResolver`, den
+  auch `ArticleViewModel.originalURL(for:)` verwendet.
+
+- 2026-06-25: Performance Paket 2 umgesetzt: `ArticleListContent` nutzt
+  `ArticleListPreparedArticles`, damit Sortierung und Filterung aus einem
+  vorbereiteten Ergebnis kommen. Dadurch wird pro Render nur einmal sortiert und
+  die Navigation arbeitet mit der tatsächlich sichtbaren gefilterten Liste.
 
 - 2026-06-25: Reader-Performance Paket 1 umgesetzt: `ReaderContentRenderer`
   kompiliert seine HTML-/Bild-RegExes nicht mehr pro Artikel neu, sondern nutzt

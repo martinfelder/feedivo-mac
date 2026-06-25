@@ -360,8 +360,8 @@ private struct ArticleListContent: View {
     }
 
     var body: some View {
-        let sortedArticles = sortedArticles
-        let filteredArticles = filteredArticles
+        let preparedArticles = makePreparedArticles()
+        let filteredArticles = preparedArticles.filtered
         let displayState = ArticleListDisplayState(
             articles: filteredArticles,
             showsReadArticles: showsReadArticles,
@@ -381,57 +381,8 @@ private struct ArticleListContent: View {
                 )
             } else {
                 ForEach(visibleArticles) { article in
-                    ArticleRowView(
-                        article: article,
-                        availableTags: tags,
-                        onToggleRead: {
-                            viewModel.toggleRead(article)
-                        },
-                        onToggleStarred: {
-                            viewModel.toggleStarred(article)
-                        },
-                        onToggleArchived: {
-                            Task {
-                                await archiveOrRemoveArchive(article)
-                            }
-                        },
-                        onAssignTag: { tag in
-                            ArticleMetadataEditor.addTag(
-                                named: tag.name,
-                                to: article,
-                                availableTags: tags,
-                                context: modelContext
-                            )
-                        },
-                        onCreateRule: {
-                            onRequestCreateRuleFromArticle(article)
-                        },
-                        onCopyLink: {
-                            _ = viewModel.copyLink(article)
-                        },
-                        onOpenOriginal: {
-                            _ = viewModel.openOriginal(article)
-                        },
-                        onShareOriginal: {
-                            _ = viewModel.shareOriginal(article)
-                        },
-                        onExport: {
-                            onRequestExportArticle(article)
-                        },
-                        onSaveOrRemoveOffline: {
-                            Task {
-                                await saveOrRemoveOffline(article)
-                            }
-                        },
-                        onDelete: {
-                            deleteArticle(article)
-                        },
-                        onMarkAllRead: {
-                            viewModel.markAllRead(visibleArticles)
-                            try? modelContext.save()
-                        }
-                    )
-                    .tag(article)
+                    articleRow(article, visibleArticles: visibleArticles)
+                        .tag(article)
                 }
 
                 if displaySnapshot.shouldShowReadArticlesButton {
@@ -447,8 +398,9 @@ private struct ArticleListContent: View {
             updateNavigationState(in: visibleArticles)
         }
         .onChange(of: articleSortRawValue) {
+            let preparedArticles = makePreparedArticles()
             let displayState = ArticleListDisplayState(
-                articles: filteredArticles,
+                articles: preparedArticles.filtered,
                 showsReadArticles: showsReadArticles,
                 selectedArticle: selectedArticle,
                 showsHiddenArticles: showsHiddenArticles,
@@ -457,8 +409,9 @@ private struct ArticleListContent: View {
             updateNavigationState(in: displayState.visibleArticles)
         }
         .onChange(of: articleFilterRawValue) {
+            let preparedArticles = makePreparedArticles()
             let displayState = ArticleListDisplayState(
-                articles: filteredArticles,
+                articles: preparedArticles.filtered,
                 showsReadArticles: showsReadArticles,
                 selectedArticle: selectedArticle,
                 showsHiddenArticles: showsHiddenArticles,
@@ -469,8 +422,9 @@ private struct ArticleListContent: View {
         .onChange(of: selectedArticle?.persistentModelID) {
             rememberAutoReadArticleIfNeeded(selectedArticle)
 
+            let preparedArticles = makePreparedArticles()
             let displayState = ArticleListDisplayState(
-                articles: sortedArticles,
+                articles: preparedArticles.filtered,
                 showsReadArticles: showsReadArticles,
                 selectedArticle: selectedArticle,
                 showsHiddenArticles: showsHiddenArticles,
@@ -514,16 +468,66 @@ private struct ArticleListContent: View {
         .padding(.vertical, 10)
     }
 
-    private var sortedArticles: [Article] {
-        guard sortArticles else {
-            return articles
-        }
-
-        return articleSortOption.sorted(articles)
+    private func articleRow(_ article: Article, visibleArticles: [Article]) -> ArticleRowView {
+        ArticleRowView(
+            article: article,
+            availableTags: tags,
+            onToggleRead: {
+                viewModel.toggleRead(article)
+            },
+            onToggleStarred: {
+                viewModel.toggleStarred(article)
+            },
+            onToggleArchived: {
+                Task {
+                    await archiveOrRemoveArchive(article)
+                }
+            },
+            onAssignTag: { tag in
+                ArticleMetadataEditor.addTag(
+                    named: tag.name,
+                    to: article,
+                    availableTags: tags,
+                    context: modelContext
+                )
+            },
+            onCreateRule: {
+                onRequestCreateRuleFromArticle(article)
+            },
+            onCopyLink: {
+                _ = viewModel.copyLink(article)
+            },
+            onOpenOriginal: {
+                _ = viewModel.openOriginal(article)
+            },
+            onShareOriginal: {
+                _ = viewModel.shareOriginal(article)
+            },
+            onExport: {
+                onRequestExportArticle(article)
+            },
+            onSaveOrRemoveOffline: {
+                Task {
+                    await saveOrRemoveOffline(article)
+                }
+            },
+            onDelete: {
+                deleteArticle(article)
+            },
+            onMarkAllRead: {
+                viewModel.markAllRead(visibleArticles)
+                try? modelContext.save()
+            }
+        )
     }
 
-    private var filteredArticles: [Article] {
-        articleFilterOption.filtered(sortedArticles)
+    private func makePreparedArticles() -> ArticleListPreparedArticles {
+        ArticleListPreparedArticles.prepare(
+            articles: articles,
+            sortArticles: sortArticles,
+            filterOption: articleFilterOption,
+            sorter: articleSortOption.sorted
+        )
     }
 
     private var articleSortOption: ArticleSortOption {

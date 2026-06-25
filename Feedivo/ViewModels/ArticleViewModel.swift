@@ -42,6 +42,20 @@ struct SystemArticleSharingPresenter: ArticleSharingPresenter {
     }
 }
 
+enum ArticleOriginalURLResolver {
+    static func url(for article: Article?) -> URL? {
+        guard
+            let link = article?.link,
+            let url = URL(string: link),
+            url.scheme != nil
+        else {
+            return nil
+        }
+
+        return url
+    }
+}
+
 @Observable
 final class ArticleViewModel {
     func toggleRead(_ article: Article) {
@@ -150,15 +164,7 @@ final class ArticleViewModel {
     }
 
     func originalURL(for article: Article?) -> URL? {
-        guard
-            let link = article?.link,
-            let url = URL(string: link),
-            url.scheme != nil
-        else {
-            return nil
-        }
-
-        return url
+        ArticleOriginalURLResolver.url(for: article)
     }
 
     func copyLink(

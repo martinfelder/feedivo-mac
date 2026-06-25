@@ -280,3 +280,22 @@ struct ArticleListDisplaySnapshot {
         hiddenReadArticleCount > 0
     }
 }
+
+struct ArticleListPreparedArticles {
+    let sorted: [Article]
+    let filtered: [Article]
+
+    static func prepare(
+        articles: [Article],
+        sortArticles: Bool,
+        filterOption: ArticleFilterOption,
+        sorter: ([Article]) -> [Article]
+    ) -> ArticleListPreparedArticles {
+        let sortedArticles = sortArticles ? sorter(articles) : articles
+        let filteredArticles = filterOption.filtered(sortedArticles)
+        return ArticleListPreparedArticles(
+            sorted: sortedArticles,
+            filtered: filteredArticles
+        )
+    }
+}
