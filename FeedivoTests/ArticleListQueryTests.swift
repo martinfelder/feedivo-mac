@@ -215,6 +215,52 @@ struct ArticleListQueryTests {
         #expect(ArticleFilterOption.resolved(from: ArticleFilterOption.archived.rawValue) == .archived)
     }
 
+    @Test func articleSearchQuerySuchtInTitelZusammenfassungUndInhalt() {
+        let titleArticle = Article(title: "SwiftUI Suche", summary: "Andere Worte", content: "Noch mehr Text")
+        let summaryArticle = Article(title: "Nachrichten", summary: "Apple veröffentlicht Beta", content: "Noch mehr Text")
+        let contentArticle = Article(title: "Analyse", summary: "Andere Worte", content: "Readability extrahiert Volltext")
+        let unrelatedArticle = Article(title: "Sport", summary: "Fussball", content: "Resultate")
+        let articles = [titleArticle, summaryArticle, contentArticle, unrelatedArticle]
+
+        #expect(
+            ArticleSearchQuery(text: "swiftui", field: .title)
+                .filtered(articles)
+                .map(\.title) == ["SwiftUI Suche"]
+        )
+        #expect(
+            ArticleSearchQuery(text: "BETA", field: .summary)
+                .filtered(articles)
+                .map(\.title) == ["Nachrichten"]
+        )
+        #expect(
+            ArticleSearchQuery(text: "volltext", field: .content)
+                .filtered(articles)
+                .map(\.title) == ["Analyse"]
+        )
+        #expect(
+            ArticleSearchQuery(text: "apple", field: .all)
+                .filtered(articles)
+                .map(\.title) == ["Nachrichten"]
+        )
+    }
+
+    @Test func articleSearchQueryIgnoriertLeerzeichenUndLeereSucheFiltertNicht() {
+        let firstArticle = Article(title: "Erster Treffer", summary: "Swift", content: nil)
+        let secondArticle = Article(title: "Zweiter Treffer", summary: "Mac", content: nil)
+        let articles = [firstArticle, secondArticle]
+
+        #expect(
+            ArticleSearchQuery(text: "  swift  ", field: .all)
+                .filtered(articles)
+                .map(\.title) == ["Erster Treffer"]
+        )
+        #expect(
+            ArticleSearchQuery(text: "   ", field: .all)
+                .filtered(articles)
+                .map(\.title) == ["Erster Treffer", "Zweiter Treffer"]
+        )
+    }
+
     @Test func articleListPreparedArticlesSortiertNurEinmalVorDemFiltern() {
         let oldUnreadArticle = Article(
             title: "Alt ungelesen",
@@ -253,6 +299,42 @@ struct ArticleListQueryTests {
             "Mitte ungelesen",
             "Alt ungelesen"
         ])
+    }
+
+    @Test func articleListPreparedArticlesKombiniertFilterSortierungUndSuche() {
+        let unreadNewest = Article(
+            title: "Swift Suche",
+            summary: "Mac",
+            publishedAt: Date(timeIntervalSince1970: 300),
+            isRead: false
+        )
+        let readMiddle = Article(
+            title: "Swift gelesen",
+            summary: "Mac",
+            publishedAt: Date(timeIntervalSince1970: 200),
+            isRead: true
+        )
+        let unreadOldest = Article(
+            title: "Andere Meldung",
+            summary: "Mac",
+            publishedAt: Date(timeIntervalSince1970: 100),
+            isRead: false
+        )
+
+        let preparedArticles = ArticleListPreparedArticles.prepare(
+            articles: [unreadOldest, readMiddle, unreadNewest],
+            sortArticles: true,
+            filterOption: .unread,
+            searchQuery: ArticleSearchQuery(text: "swift", field: .title),
+            sorter: ArticleSortOption.newestFirst.sorted
+        )
+
+        #expect(preparedArticles.sorted.map(\.title) == [
+            "Swift Suche",
+            "Swift gelesen",
+            "Andere Meldung"
+        ])
+        #expect(preparedArticles.filtered.map(\.title) == ["Swift Suche"])
     }
 
     @Test func articleInitialisiertDirekteFeedIDFuerSchnelleListenQueries() throws {

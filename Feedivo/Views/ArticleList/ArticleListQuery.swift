@@ -278,6 +278,101 @@ struct ArticleListDisplaySnapshot {
     }
 }
 
+enum ArticleSearchField: String, CaseIterable, Identifiable {
+    case all
+    case title
+    case summary
+    case content
+
+    var id: String {
+        rawValue
+    }
+
+    static func resolved(from rawValue: String) -> ArticleSearchField {
+        ArticleSearchField(rawValue: rawValue) ?? .all
+    }
+}
+
+enum ArticleSearchScope: String, CaseIterable, Identifiable {
+    case currentView
+    case allArticles
+
+    var id: String {
+        rawValue
+    }
+
+    static func resolved(from rawValue: String) -> ArticleSearchScope {
+        ArticleSearchScope(rawValue: rawValue) ?? .currentView
+    }
+}
+
+struct ArticleSearchQuery: Equatable {
+    var text: String
+    var field: ArticleSearchField
+    var scope: ArticleSearchScope
+
+    init(
+        text: String = "",
+        field: ArticleSearchField = .all,
+        scope: ArticleSearchScope = .currentView
+    ) {
+        self.text = text
+        self.field = field
+        self.scope = scope
+    }
+
+    var normalizedText: String {
+        text.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    var isActive: Bool {
+        !normalizedText.isEmpty
+    }
+
+    func includes(_ article: Article) -> Bool {
+        guard isActive else {
+            return true
+        }
+
+        let needle = normalizedText
+        switch field {
+        case .all:
+            return contains(needle, in: article.title)
+                || contains(needle, in: article.summary)
+                || contains(needle, in: article.content)
+                || contains(needle, in: article.offlineContent)
+        case .title:
+            return contains(needle, in: article.title)
+        case .summary:
+            return contains(needle, in: article.summary)
+        case .content:
+            return contains(needle, in: article.content)
+                || contains(needle, in: article.offlineContent)
+        }
+    }
+
+    func filtered(_ articles: [Article]) -> [Article] {
+        guard isActive else {
+            return articles
+        }
+
+        return articles.filter { article in
+            includes(article)
+        }
+    }
+
+    private func contains(_ needle: String, in haystack: String?) -> Bool {
+        guard let haystack else {
+            return false
+        }
+
+        return haystack.range(
+            of: needle,
+            options: [.caseInsensitive, .diacriticInsensitive]
+        ) != nil
+    }
+}
+
 struct ArticleListPreparedArticles {
     let sorted: [Article]
     let filtered: [Article]
@@ -286,10 +381,11 @@ struct ArticleListPreparedArticles {
         articles: [Article],
         sortArticles: Bool,
         filterOption: ArticleFilterOption,
+        searchQuery: ArticleSearchQuery = ArticleSearchQuery(),
         sorter: ([Article]) -> [Article]
     ) -> ArticleListPreparedArticles {
         let sortedArticles = sortArticles ? sorter(articles) : articles
-        let filteredArticles = filterOption.filtered(sortedArticles)
+        let filteredArticles = searchQuery.filtered(filterOption.filtered(sortedArticles))
         return ArticleListPreparedArticles(
             sorted: sortedArticles,
             filtered: filteredArticles
