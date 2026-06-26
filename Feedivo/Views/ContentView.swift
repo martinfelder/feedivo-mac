@@ -24,6 +24,7 @@ struct ContentView: View {
     // selectedArticle speichert welcher Artikel gerade in der Liste ausgewählt ist.
     @State private var selectedArticle: Article? = nil
     @State private var articleNavigationState = ArticleNavigationState.empty
+    @State private var articleSearchFocusRequest = 0
 
     @State private var articleViewModel = ArticleViewModel()
     @State private var offlineDownloadService = OfflineDownloadService()
@@ -60,6 +61,7 @@ struct ContentView: View {
                     smartFolder: smartFolder,
                     selectedArticle: $selectedArticle,
                     navigationState: $articleNavigationState,
+                    searchFocusRequest: $articleSearchFocusRequest,
                     onRequestCreateRuleFromArticle: requestCreateRuleFromArticle,
                     onRequestExportArticle: requestExportArticle
                 )
@@ -69,6 +71,7 @@ struct ContentView: View {
                     feed: feed,
                     selectedArticle: $selectedArticle,
                     navigationState: $articleNavigationState,
+                    searchFocusRequest: $articleSearchFocusRequest,
                     onRequestCreateRuleFromArticle: requestCreateRuleFromArticle,
                     onRequestExportArticle: requestExportArticle
                 )
@@ -78,6 +81,7 @@ struct ContentView: View {
                     tag: tag,
                     selectedArticle: $selectedArticle,
                     navigationState: $articleNavigationState,
+                    searchFocusRequest: $articleSearchFocusRequest,
                     onRequestCreateRuleFromArticle: requestCreateRuleFromArticle,
                     onRequestExportArticle: requestExportArticle
                 )
@@ -87,6 +91,7 @@ struct ContentView: View {
                     smartFilter: smartFilter,
                     selectedArticle: $selectedArticle,
                     navigationState: $articleNavigationState,
+                    searchFocusRequest: $articleSearchFocusRequest,
                     onRequestCreateRuleFromArticle: requestCreateRuleFromArticle,
                     onRequestExportArticle: requestExportArticle
                 )
@@ -282,6 +287,12 @@ struct ContentView: View {
                 },
                 hasFeeds: !feeds.isEmpty
             )
+        )
+        .focusedValue(
+            \.articleSearchCommandActions,
+            ArticleSearchCommandActions {
+                articleSearchFocusRequest += 1
+            }
         )
     }
 

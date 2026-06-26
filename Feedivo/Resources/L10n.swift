@@ -263,6 +263,15 @@ enum L10n {
     static var articleListReadDisplayTitle: String { String(localized: "articleList.readDisplay.title") }
     static var articleListReadDisplayUnreadOnly: String { String(localized: "articleList.readDisplay.unreadOnly") }
     static var articleListReadDisplayAll: String { String(localized: "articleList.readDisplay.all") }
+    static var articleSearchPlaceholder: String { String(localized: "article.search.placeholder") }
+    static var articleSearchClear: String { String(localized: "article.search.clear") }
+    static var articleSearchFieldAll: String { String(localized: "article.search.field.all") }
+    static var articleSearchFieldTitle: String { String(localized: "article.search.field.title") }
+    static var articleSearchFieldSummary: String { String(localized: "article.search.field.summary") }
+    static var articleSearchFieldContent: String { String(localized: "article.search.field.content") }
+    static var articleSearchScopeCurrentView: String { String(localized: "article.search.scope.currentView") }
+    static var articleSearchScopeAllArticles: String { String(localized: "article.search.scope.allArticles") }
+    static var articleSearchNoResultsTitle: String { String(localized: "article.search.noResults.title") }
     static var articleCommandsMenu: String { String(localized: "articleCommands.menu") }
     static var articlePreviousCommand: String { String(localized: "article.previous.command") }
     static var articleNextCommand: String { String(localized: "article.next.command") }
@@ -520,6 +529,13 @@ enum L10n {
 
     static func settingsFeedsSelectedCount(count: Int) -> String {
         String.localizedStringWithFormat(String(localized: "settings.feeds.selectedCount"), count)
+    }
+
+    static func articleSearchNoResultsDescription(_ query: String) -> String {
+        String.localizedStringWithFormat(
+            String(localized: "article.search.noResults.description"),
+            query
+        )
     }
 
     static func settingsFeedsDeleteConfirmationMessage(count: Int) -> String {
