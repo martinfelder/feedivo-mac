@@ -1,4 +1,5 @@
 import Foundation
+import PDFKit
 import Testing
 @testable import Feedivo
 
@@ -270,6 +271,223 @@ struct ArticleExportServiceTests {
         #expect(document.data == archiveData)
     }
 
+    @Test func artikelExportDocumentSchreibtBinaereDokumentdatenUnveraendert() throws {
+        let documentData = Data("%PDF-1.7\n".utf8)
+        let document = ArticleExportDocument(data: documentData)
+
+        #expect(document.data == documentData)
+    }
+
+    @Test func pdfExportErzeugtGueltigePDFDaten() {
+        let article = Article(
+            title: "PDF Export",
+            link: "https://example.com/pdf",
+            content: "<h2>Untertitel</h2><p>Ein lesbarer Absatz.</p>"
+        )
+
+        let data = ArticleExportService.data(
+            for: ArticleExportSnapshot(article: article),
+            options: ArticleExportOptions(format: .pdf, includesMetadata: true)
+        )
+
+        #expect(data.starts(with: Data("%PDF".utf8)))
+        #expect(data.count > 500)
+    }
+
+    @Test func pdfHTMLVerwendetReaderTypografieUndEingebetteteBilder() {
+        let style = ArticlePDFExportStyle(
+            titleFontFamily: "Literata",
+            bodyFontFamily: "Inter",
+            titleFontIsBold: true,
+            bodyFontIsBold: false,
+            titleFontSize: 33,
+            bodyFontSize: 19,
+            lineSpacing: 8,
+            titleLineSpacing: 4,
+            contentWidth: 680
+        )
+
+        let html = ArticlePDFExportRenderer.html(
+            fromExportedHTML: #"<body><h1>PDF mit Bild</h1><p>Intro</p><img src="Pictures/image-1.png"><p>Outro</p></body>"#,
+            style: style,
+            assets: [
+                ArticleExportPackageAsset(path: "Pictures/image-1.png", data: Data([0x01, 0x02]))
+            ]
+        )
+
+        #expect(html.contains("font-family: Inter"))
+        #expect(html.contains("font-size: 19px"))
+        #expect(html.contains("line-height: 27px"))
+        #expect(html.contains("font-family: Literata"))
+        #expect(html.contains("font-size: 33px"))
+        #expect(html.contains(#"<img src="data:image/png;base64,AQI=">"#))
+        #expect(html.contains("Intro"))
+        #expect(html.contains("Outro"))
+    }
+
+    @Test func pdfHTMLEnthaeltReaderHeaderUndSichtbareMetadaten() {
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Example Feed")
+        let article = Article(
+            title: "PDF Metadaten",
+            link: "https://example.com/pdf",
+            content: "<p>Ein lesbarer Absatz.</p>",
+            author: "Ada",
+            publishedAt: Date(timeIntervalSince1970: 1_700_000_000),
+            feed: feed
+        )
+        article.tags = [
+            Tag(name: "Swift"),
+            Tag(name: "RSS")
+        ]
+
+        let html = ArticlePDFExportRenderer.html(
+            for: ArticleExportSnapshot(article: article),
+            options: ArticleExportOptions(format: .pdf, includesMetadata: true),
+            style: .default,
+            assets: []
+        )
+
+        #expect(html.contains(#"<p class="reader-metadata">Example Feed"#))
+        #expect(html.contains(#"<h1 class="reader-title">PDF Metadaten</h1>"#))
+        #expect(html.contains(#"<section class="export-metadata""#))
+        #expect(html.contains("<strong>Autor:</strong> Ada"))
+        #expect(html.contains("<strong>Veröffentlicht:</strong> 2023-11-14T22:13:20Z"))
+        #expect(html.contains("<strong>Feed:</strong> Example Feed"))
+        #expect(html.contains("<strong>Link:</strong> <a href=\"https://example.com/pdf\">https://example.com/pdf</a>"))
+        #expect(html.contains("<strong>Tags:</strong> RSS, Swift"))
+        #expect(html.contains("Ein lesbarer Absatz."))
+    }
+
+    @Test func pdfPaketLaedtArtikelbilderAutomatischUndBleibtEinPDFDokument() async throws {
+        let article = Article(
+            title: "PDF Bilder",
+            content: #"<p>Intro</p><img src="https://example.com/photo.png"><p>Outro</p>"#
+        )
+        let imageURL = try #require(URL(string: "https://example.com/photo.png"))
+        var progressEvents: [ArticleExportPackageProgress] = []
+
+        let package = await ArticleExportPackageBuilder.package(
+            for: ArticleExportSnapshot(article: article),
+            options: ArticleExportOptions(format: .pdf, includesMetadata: false),
+            includesOfflineImages: false,
+            imageLoader: StubArticleExportImageLoader(payloads: [
+                imageURL: Data([0x01, 0x02, 0x03])
+            ]),
+            progress: { progressEvents.append($0) }
+        )
+
+        #expect(package.filename == "PDF Bilder.pdf")
+        #expect(package.contentType == .document)
+        #expect(package.archiveData.starts(with: Data("%PDF".utf8)))
+        #expect(package.assets.map(\.path) == ["Pictures/image-1.png"])
+        #expect(package.failedImageURLs.isEmpty)
+        #expect(progressEvents == [
+            .preparingDocument,
+            .downloadingImage(current: 1, total: 1),
+            .creatingArchive
+        ])
+    }
+
+    @Test func pdfExportPaginatesLangeArtikelUeberMehrereSeiten() {
+        let paragraphs = (1 ... 180)
+            .map { "<p>Absatz \($0): Dies ist bewusst langer Exporttext für die PDF-Paginierung.</p>" }
+            .joined()
+        let article = Article(
+            title: "Langer PDF Export",
+            content: paragraphs
+        )
+
+        let data = ArticleExportService.data(
+            for: ArticleExportSnapshot(article: article),
+            options: ArticleExportOptions(format: .pdf, includesMetadata: false)
+        )
+
+        #expect(pdfPageCount(in: data) > 1)
+    }
+
+    @Test func pdfExportBehältLesereihenfolgeUndStartetObenAufErsterSeite() throws {
+        let paragraphs = (1 ... 120)
+            .map { "<p>Absatz-\($0) Lesereihenfolge im PDF Export.</p>" }
+            .joined()
+        let article = Article(
+            title: "PDF Reihenfolge",
+            content: paragraphs
+        )
+        let data = ArticleExportService.data(
+            for: ArticleExportSnapshot(article: article),
+            options: ArticleExportOptions(format: .pdf, includesMetadata: false)
+        )
+        let document = try #require(PDFDocument(data: data))
+        let firstPage = try #require(document.page(at: 0))
+        let lastPage = try #require(document.page(at: document.pageCount - 1))
+        let firstPageText = firstPage.string ?? ""
+        let lastPageText = lastPage.string ?? ""
+        let titleSelection = try #require(document.findString("PDF Reihenfolge", withOptions: []).first)
+        let titleBounds = titleSelection.bounds(for: firstPage)
+        let pageBounds = firstPage.bounds(for: .mediaBox)
+
+        #expect(firstPageText.contains("PDF Reihenfolge"))
+        #expect(firstPageText.contains("Absatz-1"))
+        #expect(!firstPageText.contains("Absatz-120"))
+        #expect(lastPageText.contains("Absatz-120"))
+        #expect(titleBounds.midY > pageBounds.height * 0.65)
+    }
+
+    @Test func docxExportErzeugtOpenXMLDokumentMitArtikeltext() {
+        let article = Article(
+            title: "DOCX & Export",
+            link: "https://example.com/docx",
+            content: "<p>Ein <strong>lesbarer</strong> Absatz.</p><script>bad()</script>"
+        )
+
+        let data = ArticleExportService.data(
+            for: ArticleExportSnapshot(article: article),
+            options: ArticleExportOptions(format: .docx, includesMetadata: true)
+        )
+        let archiveText = String(decoding: data, as: UTF8.self)
+
+        #expect(data.starts(with: Data([0x50, 0x4b, 0x03, 0x04])))
+        #expect(archiveText.contains("[Content_Types].xml"))
+        #expect(archiveText.contains("word/document.xml"))
+        #expect(archiveText.contains("DOCX &amp; Export"))
+        #expect(archiveText.contains("Ein lesbarer Absatz."))
+        #expect(!archiveText.contains("bad()"))
+    }
+
+    @Test func packageBuilderGibtPDFAlsNormalesDokumentZurueck() async {
+        let article = Article(
+            title: "PDF Paket",
+            content: "<p>Artikeltext</p>"
+        )
+
+        let package = await ArticleExportPackageBuilder.package(
+            for: ArticleExportSnapshot(article: article),
+            options: ArticleExportOptions(format: .pdf, includesMetadata: false),
+            includesOfflineImages: true
+        )
+
+        #expect(package.filename == "PDF Paket.pdf")
+        #expect(package.contentType == .document)
+        #expect(package.archiveData.starts(with: Data("%PDF".utf8)))
+    }
+
+    @Test func packageBuilderGibtDOCXAlsNormalesDokumentZurueck() async {
+        let article = Article(
+            title: "DOCX Paket",
+            content: "<p>Artikeltext</p>"
+        )
+
+        let package = await ArticleExportPackageBuilder.package(
+            for: ArticleExportSnapshot(article: article),
+            options: ArticleExportOptions(format: .docx, includesMetadata: false),
+            includesOfflineImages: true
+        )
+
+        #expect(package.filename == "DOCX Paket.docx")
+        #expect(package.contentType == .document)
+        #expect(package.archiveData.starts(with: Data([0x50, 0x4b, 0x03, 0x04])))
+    }
+
     @Test func metadatenEnthaltenAutorFeedUndTags() {
         let feed = Feed(url: "https://example.com/feed.xml", title: "Example Feed")
         let article = Article(
@@ -299,6 +517,14 @@ struct ArticleExportServiceTests {
         #expect(ArticleExportService.defaultFilename(for: snapshot, format: .markdown) == "Swift-RSS- Was ist neu.md")
         #expect(ArticleExportService.defaultFilename(for: snapshot, format: .plainText) == "Swift-RSS- Was ist neu.txt")
         #expect(ArticleExportService.defaultFilename(for: snapshot, format: .html) == "Swift-RSS- Was ist neu.html")
+        #expect(ArticleExportService.defaultFilename(for: snapshot, format: .pdf) == "Swift-RSS- Was ist neu.pdf")
+        #expect(ArticleExportService.defaultFilename(for: snapshot, format: .docx) == "Swift-RSS- Was ist neu.docx")
+    }
+
+    @Test func exportDialogBietetVorerstNurMarkdownTextUndHTMLAn() {
+        #expect(ArticleExportFormat.dialogFormats == [.markdown, .plainText, .html])
+        #expect(!ArticleExportFormat.dialogFormats.contains(.pdf))
+        #expect(!ArticleExportFormat.dialogFormats.contains(.docx))
     }
 }
 
@@ -312,4 +538,10 @@ private struct StubArticleExportImageLoader: ArticleExportImageDataLoading {
 
         return data
     }
+}
+
+private func pdfPageCount(in data: Data) -> Int {
+    String(decoding: data, as: UTF8.self)
+        .components(separatedBy: "/Type /Page")
+        .count - 1
 }

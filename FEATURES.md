@@ -7,7 +7,7 @@
 > Status-Legende:
 > ✔️ Fertig | 🔨 In Arbeit (teilweise umgesetzt) | ✅ Entschieden (bereit zur Implementierung) | 💬 In Diskussion | ⏸️ Zurückgestellt
 >
-> Zuletzt aktualisiert: 2026-06-25
+> Zuletzt aktualisiert: 2026-06-26
 
 ---
 
@@ -111,8 +111,8 @@
   12. ─────────────────
   13. Alle als gelesen markieren (gilt für aktuell sichtbare Liste)
 - **Hinweis:** Das normale `Teilen...` nutzt das macOS Share Sheet für Artikel-
-  Links. Export via Share Sheet, PDF/DOCX und Bilder-Optionen bleiben spätere
-  Export-Slices.
+  Links. Datei-Teilen für vorbereitete Exporte läuft im Exportdialog; Batch-
+  Export bleibt ein späterer Export-Slice.
 
 ### 2.5 Artikel-Liste Anzeige-Logik
 - **Status:** ✔️ Fertig
@@ -513,7 +513,7 @@
 ## 18. Artikel exportieren
 
 ### 18.1 Einzelnen Artikel exportieren
-- **Status:** 🔨 Markdown/Text/HTML-Slice inkl. Offline-Bilder umgesetzt / weiter ausbaubar
+- **Status:** 🔨 Markdown/Text/HTML inkl. Offline-Bilder umgesetzt / PDF und DOCX zurückgestellt
 - **Umgesetzt 18.1a:**
   - Einzelartikel-Export über Artikel-Kontextmenü, Reader-Toolbar und macOS-Menü
     `Artikel`.
@@ -540,7 +540,16 @@
     Bild-Download, ZIP-Erstellung und Öffnen des Speichern-Dialogs.
   - ZIP und Text laufen über denselben stabilen FileDocument-Exportpfad; dadurch
     vermeidet der Dialog konkurrierende `.fileExporter` Präsentationen.
-- **Später:** PDF, DOCX, Share Sheet und Batch-Export bleiben eigene Slices.
+- **Zurückgestellt 18.1c: PDF und DOCX**
+  - PDF (`.pdf`) und Word-Dokument (`.docx`) werden vorerst nicht mehr im
+    Exportdialog angeboten.
+  - Grund: PDF-Layout und DOCX-Ausgabe brauchen einen eigenen späteren Slice mit
+    klarerem Layout-Anspruch statt weiterem Polish im aktuellen Exportdialog.
+- **Umgesetzt 18.1d: Datei teilen**
+  - Im Vorschau-Schritt kann die vorbereitete Exportdatei über `Teilen...` an das
+    macOS Share Sheet übergeben werden.
+- **Später:** PDF, DOCX, Batch-Export und ggf. reichere DOCX-Layouts bleiben
+  eigene Slices.
 
 ### 18.2 Mehrere Artikel exportieren (Batch)
 - **Status:** ✅ Entschieden — bereit zur Implementierung
@@ -774,7 +783,7 @@ Folgende Reihenfolge berücksichtigt Abhängigkeiten. Features mit (*) sind Vora
 16. **Feature 17.1** — Automatisches Offline-Speichern bei Stern (Toggle in Einstellungen) — erledigt
 
 ### Phase 5 — Export & Teilen
-17. **Feature 18.1** — Artikel exportieren (Markdown/Text/HTML mit Vorschau erledigt; Offline-Bilder für Markdown/HTML als ZIP-Paket erledigt; PDF, DOCX und Share Sheet offen)
+17. **Feature 18.1** — Artikel exportieren (Markdown/Text/HTML mit Vorschau erledigt; Offline-Bilder für Markdown/HTML als ZIP-Paket erledigt; Datei-Teilen erledigt; PDF/DOCX zurückgestellt)
 18. **Feature 18.2** — Batch-Export (Cmd+Klick Mehrfachauswahl, ZIP oder eine Datei)
 19. **Feature 7.2** — OPML Export-Dialog (Checkboxen, Menüleiste + Einstellungen) — erledigt
 

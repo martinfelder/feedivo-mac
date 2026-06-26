@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
 import WebKit
@@ -31,9 +32,39 @@ struct ArticleExportSheet: View {
     @State private var isExporting = false
     @State private var preparedPackage: ArticleExportPackage?
     @State private var exportStatus: ArticleExportStatus = .idle
+    @AppStorage("readerTitleFontPreset")
+    private var readerTitleFontPresetRawValue = ReaderFontPreset.system.rawValue
+    @AppStorage("readerBodyFontPreset")
+    private var readerBodyFontPresetRawValue = ReaderFontPreset.system.rawValue
+    @AppStorage("readerTitleFontIsBold")
+    private var readerTitleFontIsBold = ReaderTypography.defaultTitleFontIsBold
+    @AppStorage("readerBodyFontIsBold")
+    private var readerBodyFontIsBold = ReaderTypography.defaultBodyFontIsBold
+    @AppStorage("readerBodyFontSize")
+    private var readerBodyFontSize = ReaderTypography.defaultBodyFontSize
+    @AppStorage("readerLineSpacing")
+    private var readerLineSpacing = ReaderTypography.defaultLineSpacing
+    @AppStorage("readerTitleLineSpacing")
+    private var readerTitleLineSpacing = ReaderTypography.defaultTitleLineSpacing
+    @AppStorage("readerContentWidth")
+    private var readerContentWidth = ReaderTypography.defaultContentWidth
 
     private var options: ArticleExportOptions {
         ArticleExportOptions(format: selectedFormat, includesMetadata: includesMetadata)
+    }
+
+    private var pdfStyle: ArticlePDFExportStyle {
+        ArticlePDFExportStyle(
+            titleFontFamily: pdfFontFamily(for: ReaderFontPreset.resolved(from: readerTitleFontPresetRawValue)),
+            bodyFontFamily: pdfFontFamily(for: ReaderFontPreset.resolved(from: readerBodyFontPresetRawValue)),
+            titleFontIsBold: readerTitleFontIsBold,
+            bodyFontIsBold: readerBodyFontIsBold,
+            titleFontSize: ReaderTypography.defaultTitleFontSize,
+            bodyFontSize: ReaderTypography.clampedBodyFontSize(readerBodyFontSize),
+            lineSpacing: ReaderTypography.clampedLineSpacing(readerLineSpacing),
+            titleLineSpacing: ReaderTypography.clampedTitleLineSpacing(readerTitleLineSpacing),
+            contentWidth: ReaderTypography.clampedContentWidth(readerContentWidth)
+        )
     }
 
     private var exportText: String {
@@ -57,12 +88,13 @@ struct ArticleExportSheet: View {
     }
 
     private var document: ArticleExportDocument {
-        if preparedPackage?.contentType == .zipArchive,
-           let archiveData = preparedPackage?.archiveData {
-            return ArticleExportDocument(data: archiveData)
+        if let preparedPackage {
+            return ArticleExportDocument(data: preparedPackage.archiveData)
         }
 
-        return ArticleExportDocument(text: preparedPackage?.text ?? exportText)
+        return ArticleExportDocument(
+            data: ArticleExportService.data(for: request.snapshot, options: options)
+        )
     }
 
     private var canIncludeOfflineImages: Bool {
@@ -118,19 +150,19 @@ struct ArticleExportSheet: View {
 
             VStack(alignment: .leading, spacing: 18) {
             VStack(spacing: 0) {
-                ForEach(ArticleExportFormat.allCases) { format in
+                ForEach(ArticleExportFormat.dialogFormats) { format in
                     ArticleExportFormatRow(
                         format: format,
                         isSelected: selectedFormat == format
                     ) {
                         selectedFormat = format
                         preparedPackage = nil
-                        if format == .plainText {
+                        if !canManuallyIncludeOfflineImages(for: format) {
                             includesOfflineImages = false
                         }
                     }
 
-                    if format.id != ArticleExportFormat.allCases.last?.id {
+                    if format.id != ArticleExportFormat.dialogFormats.last?.id {
                         Divider()
                             .padding(.leading, 44)
                     }
@@ -254,6 +286,10 @@ struct ArticleExportSheet: View {
                 Button(L10n.commonCancel) {
                     onClose()
                 }
+                Button(L10n.articleShareCommand) {
+                    sharePreparedExport()
+                }
+                .disabled(exportStatus.isBusy)
                 Button(L10n.articleExportSaveButton) {
                     exportStatus = .openingSaveDialog
                     isExporting = true
@@ -296,6 +332,23 @@ struct ArticleExportSheet: View {
                     assets: preparedPackage?.assets ?? []
                 )
             )
+        case .pdf:
+            ArticleExportHTMLPreview(
+                html: preparedPackage?.text ?? ArticlePDFExportRenderer.html(
+                    for: request.snapshot,
+                    options: options,
+                    style: pdfStyle,
+                    assets: []
+                )
+            )
+        case .docx:
+            ScrollView {
+                Text(previewText)
+                    .font(.system(.caption, design: .serif))
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(12)
+            }
         }
     }
 
@@ -308,7 +361,7 @@ struct ArticleExportSheet: View {
             Divider()
                 .padding(.leading, 92)
             exportSummaryRow(label: L10n.articleExportSummarySource, value: contentSourceLabel)
-            if let preparedPackage, preparedPackage.contentType == .zipArchive {
+            if let preparedPackage, preparedPackage.hasImageSummary {
                 Divider()
                     .padding(.leading, 92)
                 exportSummaryRow(label: L10n.articleExportSummaryImages, value: imageSummary(for: preparedPackage))
@@ -378,6 +431,21 @@ struct ArticleExportSheet: View {
         current == 1 ? L10n.articleExportStepOne : L10n.articleExportStepTwo
     }
 
+    private func canManuallyIncludeOfflineImages(for format: ArticleExportFormat) -> Bool {
+        format == .markdown || format == .html
+    }
+
+    private func pdfFontFamily(for preset: ReaderFontPreset) -> String {
+        switch preset {
+        case .system:
+            "-apple-system"
+        case .serif:
+            "New York, Georgia, serif"
+        default:
+            "\(preset.fontNames.first ?? preset.title), -apple-system"
+        }
+    }
+
     private func preparePackageAndShowPreview() {
         exportStatus = .preparingDocument
         preparedPackage = nil
@@ -387,6 +455,7 @@ struct ArticleExportSheet: View {
                 for: request.snapshot,
                 options: options,
                 includesOfflineImages: includesOfflineImages && canIncludeOfflineImages,
+                pdfStyle: pdfStyle,
                 progress: { progress in
                     exportStatus = ArticleExportStatus(progress: progress)
                 }
@@ -411,6 +480,34 @@ struct ArticleExportSheet: View {
             package.assets.count,
             package.failedImageURLs.count
         )
+    }
+
+    private func sharePreparedExport() {
+        guard let preparedPackage else { return }
+
+        do {
+            let directoryURL = FileManager.default.temporaryDirectory
+                .appendingPathComponent("FeedivoArticleExports", isDirectory: true)
+            try FileManager.default.createDirectory(
+                at: directoryURL,
+                withIntermediateDirectories: true
+            )
+
+            let fileURL = directoryURL.appendingPathComponent(preparedPackage.filename)
+            try preparedPackage.archiveData.write(to: fileURL, options: .atomic)
+
+            guard let contentView = NSApp.keyWindow?.contentView else {
+                return
+            }
+
+            NSSharingServicePicker(items: [fileURL]).show(
+                relativeTo: contentView.bounds,
+                of: contentView,
+                preferredEdge: .minY
+            )
+        } catch {
+            exportStatus = .idle
+        }
     }
 }
 
@@ -530,6 +627,10 @@ private extension ArticleExportFormat {
             L10n.articleExportFormatPlainText
         case .html:
             L10n.articleExportFormatHTML
+        case .pdf:
+            L10n.articleExportFormatPDF
+        case .docx:
+            L10n.articleExportFormatDOCX
         }
     }
 
@@ -541,6 +642,10 @@ private extension ArticleExportFormat {
             L10n.articleExportFormatPlainTextDescription
         case .html:
             L10n.articleExportFormatHTMLDescription
+        case .pdf:
+            L10n.articleExportFormatPDFDescription
+        case .docx:
+            L10n.articleExportFormatDOCXDescription
         }
     }
 
@@ -552,6 +657,10 @@ private extension ArticleExportFormat {
             L10n.articleExportPlainTextPreview
         case .html:
             L10n.articleExportHTMLPreview
+        case .pdf:
+            L10n.articleExportPDFPreview
+        case .docx:
+            L10n.articleExportDOCXPreview
         }
     }
 }
