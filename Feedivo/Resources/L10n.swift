@@ -278,17 +278,32 @@ enum L10n {
     static var articleExportPrepareMessage: String { String(localized: "article.export.prepare.message") }
     static var articleExportPreviewTitle: String { String(localized: "article.export.preview.title") }
     static var articleExportPreviewMessage: String { String(localized: "article.export.preview.message") }
+    static var articleExportStepOne: String { String(localized: "article.export.step.one") }
+    static var articleExportStepTwo: String { String(localized: "article.export.step.two") }
     static var articleExportFormatMarkdown: String { String(localized: "article.export.format.markdown") }
     static var articleExportFormatMarkdownDescription: String { String(localized: "article.export.format.markdown.description") }
+    static var articleExportMarkdownPreview: String { String(localized: "article.export.preview.markdown") }
     static var articleExportFormatPlainText: String { String(localized: "article.export.format.plainText") }
     static var articleExportFormatPlainTextDescription: String { String(localized: "article.export.format.plainText.description") }
+    static var articleExportPlainTextPreview: String { String(localized: "article.export.preview.plainText") }
     static var articleExportFormatHTML: String { String(localized: "article.export.format.html") }
     static var articleExportFormatHTMLDescription: String { String(localized: "article.export.format.html.description") }
+    static var articleExportHTMLPreview: String { String(localized: "article.export.preview.html") }
     static var articleExportMetadataToggle: String { String(localized: "article.export.metadata.toggle") }
     static var articleExportMetadataDescription: String { String(localized: "article.export.metadata.description") }
+    static var articleExportOfflineImagesToggle: String { String(localized: "article.export.offlineImages.toggle") }
+    static var articleExportOfflineImagesDescription: String { String(localized: "article.export.offlineImages.description") }
+    static var articleExportOfflineImagesLoading: String { String(localized: "article.export.offlineImages.loading") }
+    static var articleExportStatusPreparingDocument: String { String(localized: "article.export.status.preparingDocument") }
+    static var articleExportStatusDownloadingImage: String { String(localized: "article.export.status.downloadingImage") }
+    static var articleExportStatusCreatingArchive: String { String(localized: "article.export.status.creatingArchive") }
+    static var articleExportStatusOpeningSaveDialog: String { String(localized: "article.export.status.openingSaveDialog") }
     static var articleExportSummaryFormat: String { String(localized: "article.export.summary.format") }
     static var articleExportSummaryMetadata: String { String(localized: "article.export.summary.metadata") }
     static var articleExportSummarySource: String { String(localized: "article.export.summary.source") }
+    static var articleExportSummaryImages: String { String(localized: "article.export.summary.images") }
+    static var articleExportSummaryImagesSaved: String { String(localized: "article.export.summary.images.saved") }
+    static var articleExportSummaryImagesPartial: String { String(localized: "article.export.summary.images.partial") }
     static var articleExportSourceOffline: String { String(localized: "article.export.source.offline") }
     static var articleExportSourceFeedContent: String { String(localized: "article.export.source.feedContent") }
     static var articleExportSourceSummary: String { String(localized: "article.export.source.summary") }

@@ -205,7 +205,8 @@ FeedivoMac/
 │   │   ├── BackgroundRefreshService.swift  # NSBackgroundActivityScheduler Adapter ✅
 │   │   ├── ArticleFeedIDBackfillService.swift # feedID für alte Artikel nachfuellen ✅
 │   │   ├── ArticleExportService.swift # Markdown/Text/HTML-Export für Artikel ✅
-│   │   ├── ArticleExportDocument.swift # FileDocument für Artikel-Dateiexport ✅
+│   │   ├── ArticleExportDocument.swift # FileDocument für Artikel-/ZIP-Dateiexport ✅
+│   │   ├── ArticleExportPackageBuilder.swift # ZIP-Paket mit Offline-Bildern ✅
 │   │   ├── ArticleRetentionSettings.swift # Artikel-Aufbewahrung Settings-Keys ✅
 │   │   ├── ArticleRetentionCleanupService.swift # Automatisches Löschen alter Artikel ✅
 │   │   ├── OrphanedArticleCleanupService.swift # verwaiste Artikel ohne existierenden Feed entfernen ✅
@@ -1180,12 +1181,28 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - `defaultFilename(for:format:)` erzeugt kurze, dateisystemtaugliche Dateinamen
   mit `.md`, `.txt` oder `.html` aus dem Artikeltitel.
 - `ArticleExportDocument` kapselt den SwiftUI-`FileDocument` für den nativen
-  Speichern-Dialog und unterstützt Markdown, Plain Text und HTML.
+  Speichern-Dialog und unterstützt Markdown, Plain Text, HTML und ZIP-Daten.
+  Text- und ZIP-Export laufen bewusst über denselben FileDocument-Pfad, damit das
+  Export-Sheet nicht mehrere `.fileExporter` Präsentationen gegeneinander schaltet.
+- `ArticleExportPackageBuilder` baut für Markdown-/HTML-Exporte optional ein
+  ZIP-Paket: Die Artikeldatei liegt im ZIP-Root, Bilder liegen im festen
+  Unterordner `Pictures`, und Bildpfade in Markdown/HTML werden relativ auf diese
+  Dateien umgeschrieben. Nicht ladbare Bilder blockieren
+  den Export nicht und werden im Paket-Ergebnis für den Dialog mitgezählt. Der
+  Builder meldet Fortschritt für Dokumentvorbereitung, Bild-Download und
+  ZIP-Erstellung, damit der Dialog den aktuellen Arbeitsschritt anzeigen kann.
+  Die Vorschau bettet geladene Paketbilder temporär als `data:`-URLs ein, damit
+  relative Exportpfade wie `Pictures/image-1.jpg` in WebKit sichtbar sind, ohne
+  den eigentlichen Markdown-/HTML-Export zu verändern.
 - `ArticleExportSheet` ist ein zweistufiger Exportdialog nach Product-Design-
   Variante B: zuerst Format und Metadaten wählen, dann Vorschau prüfen und mit
-  `Sichern...` den nativen `.fileExporter` öffnen. Die Präsentation bleibt über
-  `ContentView` stabil, damit der Export nicht direkt aus kurzlebigen Kontextmenüs
-  oder Unteransichten gestartet wird.
+  `Sichern...` den nativen `.fileExporter` öffnen. Markdown und HTML werden in
+  der Vorschau gerendert, Plain Text bleibt als monospaced Textvorschau sichtbar.
+  Die Markdown-Vorschau läuft über `ArticleExportPreviewRenderer`, der den
+  Markdown-Export für die Vorschau in ein kleines, sicheres HTML-Dokument
+  übersetzt und dieses wie die HTML-Vorschau in WebKit rendert.
+  Die Präsentation bleibt über `ContentView` stabil, damit der Export nicht direkt
+  aus kurzlebigen Kontextmenüs oder Unteransichten gestartet wird.
 
 ### OfflineDownloadService.swift
 - Speichert Artikel manuell für Offline-Lesen.
@@ -1726,12 +1743,16 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Stern-Aktionen aus Artikelzeile, Inspector und Menü/Shortcut stoßen bei aktivem
   Toggle `OfflineDownloadService.saveForOffline` an. Entsternen löscht die
   Offline-Kopie bewusst nicht automatisch.
-- Feature 18.1a Einzelnen Artikel exportieren ist umgesetzt: Markdown, Plain Text
-  und HTML laufen über einen zweistufigen Dialog mit Metadaten-Option und Vorschau.
-  PDF, DOCX, Bilder-Optionen, Share Sheet und Batch-Export bleiben spätere
-  Export-Slices.
-- Nächster sinnvoller Fokus: Feature 18.1 weiter ausbauen (PDF/DOCX/Share) oder
-  ein kleiner OPML-Export-Polish-Slice.
+- Feature 18.1 Einzelnen Artikel exportieren ist für Markdown, Plain Text und HTML
+  umgesetzt: zweistufiger Dialog mit Metadaten-Option, gerenderter Markdown-/HTML-
+  Vorschau und optionalem ZIP-Paket für Offline-Bilder bei Markdown/HTML. Im ZIP
+  liegt die Artikeldatei im Root, Bilder liegen im festen Unterordner `Pictures`,
+  und die Bildpfade werden relativ umgeschrieben. Der Dialog zeigt
+  Statusmeldungen für Vorbereitung, Bild-Download, ZIP-Erstellung und Öffnen des
+  Speichern-Dialogs. PDF, DOCX, Share-Sheet-Export und Batch-Export bleiben
+  spätere Export-Slices.
+- Nächster sinnvoller Fokus: PDF/DOCX/Share-Sheet als weiterer Export-Slice,
+  Batch-Export oder ein kleiner OPML-Export-Polish-Slice.
 - Neuer offener M4/v1-Punkt: Vollartikel laden, wenn moeglich und erlaubt. Dabei
   bleibt Feedivo fair gegenüber Feed-Anbietern: Artikelstruktur, Werbung und
   Anbieterlinks dürfen nicht pauschal entfernt werden; die konkrete Reader-
@@ -1747,11 +1768,23 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Kontextmenü, Reader-Toolbar und macOS-Menü `Artikel` exportiert werden. Der neue
   zweistufige Dialog nach Product-Design-Variante B bietet Markdown (`.md`),
   Plain Text (`.txt`) und HTML (`.html`), optional einschließbare Metadaten und
-  eine Textvorschau vor dem nativen Speichern-Dialog. `ArticleExportService`
-  arbeitet format- und
-  optionsgesteuert, bevorzugt gespeicherten Offline-Content und schützt HTML-
-  Metadatenlinks gegen unsichere Linkziele. `ArticleExportDocument` ersetzt das
-  frühere Markdown-spezifische FileDocument.
+  eine gerenderte Markdown-/HTML-Vorschau vor dem nativen Speichern-Dialog; Plain
+  Text bleibt als monospaced Textvorschau sichtbar. `ArticleExportService` arbeitet
+  format- und optionsgesteuert, bevorzugt gespeicherten Offline-Content und schützt
+  HTML-Metadatenlinks gegen unsichere Linkziele. `ArticleExportDocument` ersetzt
+  das frühere Markdown-spezifische FileDocument.
+
+- 2026-06-26: Feature 18.1b umgesetzt: Markdown- und HTML-Export können optional
+  Offline-Bilder als ZIP-Paket mitliefern. Die Artikeldatei liegt im ZIP-Root,
+  Bilder liegen im festen Unterordner `Pictures`, und alle Bildpfade in
+  Markdown/HTML werden relativ auf diesen Unterordner umgeschrieben. Nicht ladbare
+  Bilder blockieren den Export nicht; die Vorschau-Zusammenfassung zeigt
+  gespeicherte und fehlgeschlagene Bilder. Bugfix: ZIP- und Text-Export laufen
+  über einen gemeinsamen `ArticleExportDocument` Datenpfad statt über zwei
+  konkurrierende `.fileExporter`; der Dialog zeigt nun Statusmeldungen für
+  Dokumentvorbereitung, Bild-Download, ZIP-Erstellung und Speichern-Dialog.
+  Bugfix: Die Markdown-/HTML-Vorschau ersetzt relative Paketbildpfade in-memory
+  durch `data:`-URLs, damit Offline-Bilder bereits in der Vorschau sichtbar sind.
 
 - 2026-06-26: Feature 17.1 umgesetzt: In Einstellungen → Offline-Lesen gibt es
   jetzt den Toggle `Artikel mit Stern automatisch offline speichern`. Wenn aktiv,

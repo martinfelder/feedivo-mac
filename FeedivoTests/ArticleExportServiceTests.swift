@@ -77,6 +77,50 @@ struct ArticleExportServiceTests {
         #expect(!text.contains("Veröffentlicht:"))
     }
 
+    @Test func markdownVorschauRendertBlockMarkdownAlsHTML() {
+        let markdown = """
+        # Swift & RSS
+
+        Autor: Ada
+
+        ---
+
+        ## Untertitel
+
+        - Erster Punkt
+        - Zweiter Punkt
+
+        > Zitat
+        """
+
+        let html = ArticleExportPreviewRenderer.htmlForMarkdownPreview(markdown)
+
+        #expect(html.contains("<h1>Swift &amp; RSS</h1>"))
+        #expect(html.contains("<hr>"))
+        #expect(html.contains("<h2>Untertitel</h2>"))
+        #expect(html.contains("<ul>"))
+        #expect(html.contains("<li>Erster Punkt</li>"))
+        #expect(html.contains("<blockquote>"))
+        #expect(!html.contains("# Swift & RSS"))
+    }
+
+    @Test func markdownVorschauRendertOfflineBilderAusExportPaket() {
+        let markdown = """
+        # Bild
+
+        ![](Pictures/image-1.png)
+        """
+        let html = ArticleExportPreviewRenderer.htmlForMarkdownPreview(
+            markdown,
+            assets: [
+                ArticleExportPackageAsset(path: "Pictures/image-1.png", data: Data([0x01, 0x02]))
+            ]
+        )
+
+        #expect(html.contains(#"<img src="data:image/png;base64,AQI=" alt="">"#))
+        #expect(!html.contains(#"src="Pictures/image-1.png""#))
+    }
+
     @Test func plainTextExportEnthaeltKeineMarkdownSyntax() {
         let article = Article(
             title: "Swift & RSS",
@@ -133,6 +177,99 @@ struct ArticleExportServiceTests {
         #expect(html.contains("<p>Link: javascript:alert(1)</p>"))
     }
 
+    @Test func htmlExportErhaeltSichereArtikelbilder() {
+        let article = Article(
+            title: "Bild",
+            content: #"<p>Intro</p><img src="https://example.com/photo.jpg" alt="Foto" onclick="bad()">"#
+        )
+
+        let html = ArticleExportService.text(
+            for: ArticleExportSnapshot(article: article),
+            options: ArticleExportOptions(format: .html, includesMetadata: false)
+        )
+
+        #expect(html.contains(#"<img src="https://example.com/photo.jpg">"#))
+        #expect(!html.contains("onclick"))
+    }
+
+    @Test func offlineBildPaketSchreibtMarkdownPfadeRelativUndZipptAssets() async throws {
+        let article = Article(
+            title: "Bilder Export",
+            content: #"<p>Intro</p><img src="https://example.com/photo.jpg">"#
+        )
+        let imageURL = try #require(URL(string: "https://example.com/photo.jpg"))
+        let package = await ArticleExportPackageBuilder.package(
+            for: ArticleExportSnapshot(article: article),
+            options: ArticleExportOptions(format: .markdown, includesMetadata: false),
+            includesOfflineImages: true,
+            imageLoader: StubArticleExportImageLoader(payloads: [
+                imageURL: Data([0x01, 0x02, 0x03])
+            ])
+        )
+
+        #expect(package.filename == "Bilder Export.zip")
+        #expect(package.text.contains("![](Pictures/image-1.jpg)"))
+        #expect(package.assets.map(\.path) == ["Pictures/image-1.jpg"])
+        #expect(package.failedImageURLs.isEmpty)
+        #expect(package.archiveData.contains(Data("Bilder Export.md".utf8)))
+        #expect(package.archiveData.contains(Data("Pictures/image-1.jpg".utf8)))
+    }
+
+    @Test func offlineBildPaketSchreibtHTMLPfadeRelativUndMeldetFehlendeBilder() async throws {
+        let article = Article(
+            title: "HTML Export",
+            content: #"<p>Intro</p><img src="https://example.com/photo.jpg"><img src="https://example.com/missing.png">"#
+        )
+        let imageURL = try #require(URL(string: "https://example.com/photo.jpg"))
+        let missingURL = try #require(URL(string: "https://example.com/missing.png"))
+        let package = await ArticleExportPackageBuilder.package(
+            for: ArticleExportSnapshot(article: article),
+            options: ArticleExportOptions(format: .html, includesMetadata: false),
+            includesOfflineImages: true,
+            imageLoader: StubArticleExportImageLoader(payloads: [
+                imageURL: Data([0x04, 0x05, 0x06])
+            ])
+        )
+
+        #expect(package.filename == "HTML Export.zip")
+        #expect(package.text.contains(#"<img src="Pictures/image-1.jpg">"#))
+        #expect(package.text.contains(#"<img src="https://example.com/missing.png">"#))
+        #expect(package.assets.map(\.path) == ["Pictures/image-1.jpg"])
+        #expect(package.failedImageURLs == [missingURL])
+    }
+
+    @Test func offlineBildPaketMeldetFortschrittFuerBildDownloadUndArchiv() async throws {
+        let article = Article(
+            title: "Status Export",
+            content: #"<p>Intro</p><img src="https://example.com/photo.jpg">"#
+        )
+        let imageURL = try #require(URL(string: "https://example.com/photo.jpg"))
+        var progressEvents: [ArticleExportPackageProgress] = []
+
+        _ = await ArticleExportPackageBuilder.package(
+            for: ArticleExportSnapshot(article: article),
+            options: ArticleExportOptions(format: .html, includesMetadata: false),
+            includesOfflineImages: true,
+            imageLoader: StubArticleExportImageLoader(payloads: [
+                imageURL: Data([0x01])
+            ]),
+            progress: { progressEvents.append($0) }
+        )
+
+        #expect(progressEvents == [
+            .preparingDocument,
+            .downloadingImage(current: 1, total: 1),
+            .creatingArchive
+        ])
+    }
+
+    @Test func artikelExportDocumentSchreibtZipDatenUnveraendert() throws {
+        let archiveData = Data([0x50, 0x4b, 0x03, 0x04])
+        let document = ArticleExportDocument(data: archiveData)
+
+        #expect(document.data == archiveData)
+    }
+
     @Test func metadatenEnthaltenAutorFeedUndTags() {
         let feed = Feed(url: "https://example.com/feed.xml", title: "Example Feed")
         let article = Article(
@@ -162,5 +299,17 @@ struct ArticleExportServiceTests {
         #expect(ArticleExportService.defaultFilename(for: snapshot, format: .markdown) == "Swift-RSS- Was ist neu.md")
         #expect(ArticleExportService.defaultFilename(for: snapshot, format: .plainText) == "Swift-RSS- Was ist neu.txt")
         #expect(ArticleExportService.defaultFilename(for: snapshot, format: .html) == "Swift-RSS- Was ist neu.html")
+    }
+}
+
+private struct StubArticleExportImageLoader: ArticleExportImageDataLoading {
+    let payloads: [URL: Data]
+
+    func data(from url: URL) async throws -> Data {
+        guard let data = payloads[url] else {
+            throw URLError(.fileDoesNotExist)
+        }
+
+        return data
     }
 }

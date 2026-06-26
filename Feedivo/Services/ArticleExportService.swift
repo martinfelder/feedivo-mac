@@ -85,7 +85,11 @@ enum ArticleExportService {
     }
 
     static func previewText(for snapshot: ArticleExportSnapshot, options: ArticleExportOptions) -> String {
-        let lines = text(for: snapshot, options: options)
+        previewText(from: text(for: snapshot, options: options))
+    }
+
+    static func previewText(from text: String) -> String {
+        let lines = text
             .components(separatedBy: .newlines)
             .prefix(40)
         return lines.joined(separator: "\n")
@@ -403,7 +407,7 @@ enum ArticleExportService {
 
         let allowedTags: Set<String> = [
             "a", "blockquote", "br", "code", "div", "em", "h1", "h2", "h3", "h4", "h5", "h6",
-            "li", "ol", "p", "pre", "section", "strong", "ul"
+            "img", "li", "ol", "p", "pre", "section", "strong", "ul"
         ]
 
         var result = ""
@@ -432,6 +436,8 @@ enum ArticleExportService {
                 replacement = ""
             } else if tag == "br" {
                 replacement = "<br>"
+            } else if tag == "img" {
+                replacement = slash == "/" ? "" : safeImageTag(from: attributes)
             } else if slash == "/" {
                 replacement = "</\(tag)>"
             } else if tag == "a" {
@@ -461,6 +467,18 @@ enum ArticleExportService {
         }
 
         return "<a href=\"\(escapedHTMLAttribute(normalizedHref))\">"
+    }
+
+    private static func safeImageTag(from attributes: String) -> String {
+        guard
+            let src = htmlAttributeValue(named: "src", in: attributes),
+            let normalizedSource = normalizedText(decodedHTMLEntities(in: src)),
+            isSafeImageSource(normalizedSource)
+        else {
+            return ""
+        }
+
+        return "<img src=\"\(escapedHTMLAttribute(normalizedSource))\">"
     }
 
     private static func htmlAttributeValue(named name: String, in attributes: String) -> String? {
@@ -496,6 +514,16 @@ enum ArticleExportService {
         }
 
         return ["http", "https", "mailto"].contains(scheme)
+    }
+
+    private static func isSafeImageSource(_ value: String) -> Bool {
+        guard let url = URL(string: value),
+              let scheme = url.scheme?.lowercased()
+        else {
+            return false
+        }
+
+        return ["http", "https"].contains(scheme)
     }
 
     private static func replacingImages(in html: String) -> String {
@@ -618,5 +646,183 @@ enum ArticleExportService {
             .components(separatedBy: .whitespacesAndNewlines)
             .filter { !$0.isEmpty }
             .joined(separator: " ")
+    }
+}
+
+enum ArticleExportPreviewRenderer {
+    static func htmlForMarkdownPreview(_ markdown: String, assets: [ArticleExportPackageAsset] = []) -> String {
+        let body = markdownBodyHTML(from: markdown, assetDataURLs: assetDataURLs(from: assets))
+
+        return """
+        <!doctype html>
+        <html lang="de">
+        <head>
+        <meta charset="utf-8">
+        <style>
+        :root { color-scheme: light dark; }
+        body {
+            font: -apple-system-body;
+            margin: 14px;
+            line-height: 1.45;
+            color: CanvasText;
+            background: transparent;
+        }
+        h1, h2, h3 {
+            line-height: 1.2;
+            margin: 0 0 10px;
+        }
+        h1 { font-size: 24px; }
+        h2 { font-size: 19px; margin-top: 18px; }
+        h3 { font-size: 16px; margin-top: 16px; }
+        p, ul, ol, blockquote { margin: 0 0 12px; }
+        ul, ol { padding-left: 22px; }
+        blockquote {
+            border-left: 3px solid color-mix(in srgb, CanvasText 25%, transparent);
+            padding-left: 10px;
+            color: color-mix(in srgb, CanvasText 78%, transparent);
+        }
+        hr {
+            border: 0;
+            border-top: 1px solid color-mix(in srgb, CanvasText 18%, transparent);
+            margin: 16px 0;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+        </style>
+        </head>
+        <body>
+        \(body)
+        </body>
+        </html>
+        """
+    }
+
+    static func htmlForHTMLPreview(_ html: String, assets: [ArticleExportPackageAsset] = []) -> String {
+        htmlByReplacingAssetPaths(in: html, assetDataURLs: assetDataURLs(from: assets))
+    }
+
+    private static func markdownBodyHTML(from markdown: String, assetDataURLs: [String: String]) -> String {
+        var html: [String] = []
+        var paragraphLines: [String] = []
+        var listItems: [String] = []
+        var blockquoteLines: [String] = []
+
+        func flushParagraph() {
+            guard !paragraphLines.isEmpty else { return }
+            html.append("<p>\(inlineHTML(paragraphLines.joined(separator: " ")))</p>")
+            paragraphLines.removeAll()
+        }
+
+        func flushList() {
+            guard !listItems.isEmpty else { return }
+            html.append("<ul>\(listItems.joined())</ul>")
+            listItems.removeAll()
+        }
+
+        func flushBlockquote() {
+            guard !blockquoteLines.isEmpty else { return }
+            html.append("<blockquote><p>\(inlineHTML(blockquoteLines.joined(separator: " ")))</p></blockquote>")
+            blockquoteLines.removeAll()
+        }
+
+        func flushBlocks() {
+            flushParagraph()
+            flushList()
+            flushBlockquote()
+        }
+
+        for rawLine in markdown.components(separatedBy: .newlines) {
+            let line = rawLine.trimmingCharacters(in: .whitespaces)
+
+            guard !line.isEmpty else {
+                flushBlocks()
+                continue
+            }
+
+            if line == "---" {
+                flushBlocks()
+                html.append("<hr>")
+            } else if line.hasPrefix("### ") {
+                flushBlocks()
+                html.append("<h3>\(inlineHTML(String(line.dropFirst(4))))</h3>")
+            } else if line.hasPrefix("## ") {
+                flushBlocks()
+                html.append("<h2>\(inlineHTML(String(line.dropFirst(3))))</h2>")
+            } else if line.hasPrefix("# ") {
+                flushBlocks()
+                html.append("<h1>\(inlineHTML(String(line.dropFirst(2))))</h1>")
+            } else if line.hasPrefix("- ") {
+                flushParagraph()
+                flushBlockquote()
+                listItems.append("<li>\(inlineHTML(String(line.dropFirst(2))))</li>")
+            } else if line.hasPrefix("> ") {
+                flushParagraph()
+                flushList()
+                blockquoteLines.append(String(line.dropFirst(2)))
+            } else if line.hasPrefix("![]("), line.hasSuffix(")") {
+                flushBlocks()
+                let source = String(line.dropFirst(4).dropLast())
+                let previewSource = assetDataURLs[source] ?? source
+                html.append("<img src=\"\(escapedHTMLAttribute(previewSource))\" alt=\"\">")
+            } else {
+                flushList()
+                flushBlockquote()
+                paragraphLines.append(line)
+            }
+        }
+
+        flushBlocks()
+        return html.joined(separator: "\n")
+    }
+
+    private static func htmlByReplacingAssetPaths(in html: String, assetDataURLs: [String: String]) -> String {
+        assetDataURLs.reduce(html) { partialResult, replacement in
+            partialResult.replacingOccurrences(of: replacement.key, with: replacement.value)
+        }
+    }
+
+    private static func assetDataURLs(from assets: [ArticleExportPackageAsset]) -> [String: String] {
+        Dictionary(uniqueKeysWithValues: assets.map { asset in
+            let encodedData = asset.data.base64EncodedString()
+            return (asset.path, "data:\(mimeType(for: asset.path));base64,\(encodedData)")
+        })
+    }
+
+    private static func mimeType(for path: String) -> String {
+        switch URL(fileURLWithPath: path).pathExtension.lowercased() {
+        case "avif":
+            "image/avif"
+        case "gif":
+            "image/gif"
+        case "jpeg", "jpg":
+            "image/jpeg"
+        case "png":
+            "image/png"
+        case "svg":
+            "image/svg+xml"
+        case "webp":
+            "image/webp"
+        default:
+            "application/octet-stream"
+        }
+    }
+
+    private static func inlineHTML(_ text: String) -> String {
+        escapedHTML(text)
+    }
+
+    private static func escapedHTML(_ text: String) -> String {
+        text
+            .replacingOccurrences(of: "&", with: "&amp;")
+            .replacingOccurrences(of: "<", with: "&lt;")
+            .replacingOccurrences(of: ">", with: "&gt;")
+    }
+
+    private static func escapedHTMLAttribute(_ text: String) -> String {
+        escapedHTML(text)
+            .replacingOccurrences(of: "\"", with: "&quot;")
+            .replacingOccurrences(of: "'", with: "&#39;")
     }
 }

@@ -8,30 +8,32 @@ extension UTType {
 
 struct ArticleExportDocument: FileDocument {
     static var readableContentTypes: [UTType] {
-        [.markdownText, .plainText, .html]
+        [.markdownText, .plainText, .html, .zip]
     }
 
     static var writableContentTypes: [UTType] {
-        [.markdownText, .plainText, .html]
+        [.markdownText, .plainText, .html, .zip]
     }
 
-    var text: String
+    var data: Data
 
     init(text: String = "") {
-        self.text = text
+        self.data = Data(text.utf8)
+    }
+
+    init(data: Data) {
+        self.data = data
     }
 
     init(configuration: ReadConfiguration) throws {
-        guard let data = configuration.file.regularFileContents,
-              let text = String(data: data, encoding: .utf8)
-        else {
+        guard let data = configuration.file.regularFileContents else {
             throw CocoaError(.fileReadCorruptFile)
         }
 
-        self.text = text
+        self.data = data
     }
 
     func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
-        FileWrapper(regularFileWithContents: Data(text.utf8))
+        FileWrapper(regularFileWithContents: data)
     }
 }

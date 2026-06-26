@@ -512,19 +512,34 @@
 ## 18. Artikel exportieren
 
 ### 18.1 Einzelnen Artikel exportieren
-- **Status:** 🔨 Erster Slice umgesetzt / weiter ausbaubar
+- **Status:** 🔨 Markdown/Text/HTML-Slice inkl. Offline-Bilder umgesetzt / weiter ausbaubar
 - **Umgesetzt 18.1a:**
   - Einzelartikel-Export über Artikel-Kontextmenü, Reader-Toolbar und macOS-Menü
     `Artikel`.
   - Zweistufiger Export-Dialog nach Product-Design-Variante B: Format wählen,
     Metadaten-Option setzen, dann Vorschau prüfen und `Sichern...`.
   - Formate: Markdown (`.md`), Plain Text (`.txt`) und HTML (`.html`).
+  - Markdown und HTML werden in der Vorschau gerendert; Plain Text bleibt als
+    monospaced Textvorschau sichtbar.
   - Optional einschließbare Metadaten: Titel, Autor, Veröffentlichungsdatum,
     Feed-Name, URL und Tags.
   - Export bevorzugt gespeicherten Offline-Inhalt, fällt sonst auf Feed-Inhalt
     oder Summary zurück.
-- **Später:** PDF, DOCX, Bilder-Optionen, Share Sheet und Batch-Export bleiben
-  eigene Slices.
+- **Umgesetzt 18.1b: Offline-Bilder für Markdown/HTML-Export**
+  - Bei Markdown und HTML gibt es eine Option, Bilder offline einzuschließen.
+  - Der Export erzeugt dafür ein ZIP-Paket mit der Artikeldatei im Root und dem
+    festen Unterordner `Pictures/` für Bilder.
+  - Bildpfade in der Markdown- oder HTML-Datei werden relativ auf diesen
+    Unterordner umgeschrieben, damit der Export ohne Online-Zugang funktioniert.
+  - Die Vorschau bettet bereits geladene Bilder temporär als `data:`-URLs ein,
+    damit Markdown- und HTML-Vorschau trotz relativer Exportpfade Bilder anzeigen.
+  - Fehlende Bilder blockieren den Export nicht; die Vorschau-Zusammenfassung zeigt,
+    wie viele Bilder gespeichert wurden und wie viele nicht geladen werden konnten.
+  - Der Dialog zeigt während der Vorbereitung Statusmeldungen für Dokument,
+    Bild-Download, ZIP-Erstellung und Öffnen des Speichern-Dialogs.
+  - ZIP und Text laufen über denselben stabilen FileDocument-Exportpfad; dadurch
+    vermeidet der Dialog konkurrierende `.fileExporter` Präsentationen.
+- **Später:** PDF, DOCX, Share Sheet und Batch-Export bleiben eigene Slices.
 
 ### 18.2 Mehrere Artikel exportieren (Batch)
 - **Status:** ✅ Entschieden — bereit zur Implementierung
@@ -758,7 +773,7 @@ Folgende Reihenfolge berücksichtigt Abhängigkeiten. Features mit (*) sind Vora
 16. **Feature 17.1** — Automatisches Offline-Speichern bei Stern (Toggle in Einstellungen) — erledigt
 
 ### Phase 5 — Export & Teilen
-17. **Feature 18.1** — Artikel exportieren (18.1a Markdown/Text/HTML mit Vorschau erledigt; PDF, DOCX, Bilder-Optionen und Share Sheet offen)
+17. **Feature 18.1** — Artikel exportieren (Markdown/Text/HTML mit Vorschau erledigt; Offline-Bilder für Markdown/HTML als ZIP-Paket erledigt; PDF, DOCX und Share Sheet offen)
 18. **Feature 18.2** — Batch-Export (Cmd+Klick Mehrfachauswahl, ZIP oder eine Datei)
 19. **Feature 7.2** — OPML Export-Dialog (Checkboxen, Menüleiste + Einstellungen)
 
