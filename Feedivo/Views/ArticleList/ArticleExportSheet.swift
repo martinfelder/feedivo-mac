@@ -3,7 +3,7 @@ import UniformTypeIdentifiers
 
 struct ArticleExportRequest: Identifiable {
     let id = UUID()
-    let document: ArticleMarkdownDocument
+    let document: ArticleExportDocument
     let defaultFilename: String
 }
 

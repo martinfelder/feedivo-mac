@@ -300,7 +300,7 @@ struct ContentView: View {
     private func requestExportArticle(_ article: Article) {
         let snapshot = ArticleExportSnapshot(article: article)
         let request = ArticleExportRequest(
-            document: ArticleMarkdownDocument(
+            document: ArticleExportDocument(
                 text: ArticleExportService.markdown(for: snapshot)
             ),
             defaultFilename: ArticleExportService.defaultFilename(for: snapshot)

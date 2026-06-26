@@ -6,13 +6,13 @@ extension UTType {
     static let markdownText = UTType(filenameExtension: "md") ?? .plainText
 }
 
-struct ArticleMarkdownDocument: FileDocument {
+struct ArticleExportDocument: FileDocument {
     static var readableContentTypes: [UTType] {
-        [.markdownText, .plainText]
+        [.markdownText, .plainText, .html]
     }
 
     static var writableContentTypes: [UTType] {
-        [.markdownText, .plainText]
+        [.markdownText, .plainText, .html]
     }
 
     var text: String
