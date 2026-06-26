@@ -358,6 +358,7 @@ private struct ArticleListContent: View {
     @Binding var selectedArticle: Article?
     @Binding var navigationState: ArticleNavigationState
     @Binding var searchFocusRequest: Int
+    @Query(sort: \Feed.title) private var feeds: [Feed]
     @Query(sort: \Tag.name) private var tags: [Tag]
     @Query(sort: \Article.publishedAt, order: .reverse)
     private var allArticles: [Article]
@@ -372,6 +373,10 @@ private struct ArticleListContent: View {
     @State private var isSearchPresented = false
     @State private var searchField = ArticleSearchField.all
     @State private var searchScope = ArticleSearchScope.currentView
+    @State private var searchFeedID: UUID?
+    @State private var searchTagID: UUID?
+    @State private var searchDateFilter = ArticleSearchDateFilter.anytime
+    @State private var searchStatusFilter = ArticleSearchStatusFilter.all
     @State private var temporarilyVisibleReadArticleIDs = Set<PersistentIdentifier>()
     @FocusState private var isSearchFieldFocused: Bool
     @AppStorage(ArticleSortOption.storageKey)
@@ -496,39 +501,94 @@ private struct ArticleListContent: View {
     }
 
     private var articleSearchBar: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "magnifyingglass")
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(.secondary)
+
+                TextField(L10n.articleSearchPlaceholder, text: $searchText)
+                    .textFieldStyle(.plain)
+                    .focused($isSearchFieldFocused)
+
+                Picker("", selection: $searchField) {
+                    ForEach(ArticleSearchField.allCases) { field in
+                        Text(label(for: field)).tag(field)
+                    }
+                }
+                .labelsHidden()
+                .frame(width: 128)
+
+                Picker("", selection: $searchScope) {
+                    ForEach(ArticleSearchScope.allCases) { scope in
+                        Text(label(for: scope)).tag(scope)
+                    }
+                }
+                .labelsHidden()
+                .frame(width: 140)
+
+                Button {
+                    clearArticleSearch()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                }
+                .buttonStyle(.borderless)
                 .foregroundStyle(.secondary)
-
-            TextField(L10n.articleSearchPlaceholder, text: $searchText)
-                .textFieldStyle(.plain)
-                .focused($isSearchFieldFocused)
-
-            Picker("", selection: $searchField) {
-                ForEach(ArticleSearchField.allCases) { field in
-                    Text(label(for: field)).tag(field)
-                }
+                .help(L10n.articleSearchClear)
             }
-            .labelsHidden()
-            .frame(width: 128)
 
-            Picker("", selection: $searchScope) {
-                ForEach(ArticleSearchScope.allCases) { scope in
-                    Text(label(for: scope)).tag(scope)
-                }
+            HStack(spacing: 8) {
+                searchFeedPicker
+                searchTagPicker
+                searchDatePicker
+                searchStatusPicker
             }
-            .labelsHidden()
-            .frame(width: 140)
-
-            Button {
-                clearArticleSearch()
-            } label: {
-                Image(systemName: "xmark.circle.fill")
-            }
-            .buttonStyle(.borderless)
-            .foregroundStyle(.secondary)
-            .help(L10n.articleSearchClear)
+            .controlSize(.small)
+            .font(.caption)
         }
+    }
+
+    private var searchFeedPicker: some View {
+        Picker("", selection: $searchFeedID) {
+            Text(L10n.articleSearchFeedAll).tag(UUID?.none)
+
+            ForEach(feeds) { feed in
+                Text(feed.title).tag(Optional(feed.id))
+            }
+        }
+        .labelsHidden()
+        .frame(width: 150)
+    }
+
+    private var searchTagPicker: some View {
+        Picker("", selection: $searchTagID) {
+            Text(L10n.articleSearchTagAll).tag(UUID?.none)
+
+            ForEach(tags) { tag in
+                Text(tag.name).tag(Optional(tag.id))
+            }
+        }
+        .labelsHidden()
+        .frame(width: 136)
+    }
+
+    private var searchDatePicker: some View {
+        Picker("", selection: $searchDateFilter) {
+            ForEach(ArticleSearchDateFilter.allCases) { dateFilter in
+                Text(label(for: dateFilter)).tag(dateFilter)
+            }
+        }
+        .labelsHidden()
+        .frame(width: 120)
+    }
+
+    private var searchStatusPicker: some View {
+        Picker("", selection: $searchStatusFilter) {
+            ForEach(ArticleSearchStatusFilter.allCases) { statusFilter in
+                Text(label(for: statusFilter)).tag(statusFilter)
+            }
+        }
+        .labelsHidden()
+        .frame(width: 122)
     }
 
     private func articleListEmptyState(isSearching: Bool) -> some View {
@@ -644,7 +704,13 @@ private struct ArticleListContent: View {
         ArticleSearchQuery(
             text: searchText,
             field: searchField,
-            scope: searchScope
+            scope: searchScope,
+            filters: ArticleSearchFilters(
+                feedID: searchFeedID,
+                tagID: searchTagID,
+                date: searchDateFilter,
+                status: searchStatusFilter
+            )
         )
     }
 
@@ -760,6 +826,10 @@ private struct ArticleListContent: View {
         searchText = ""
         searchField = .all
         searchScope = .currentView
+        searchFeedID = nil
+        searchTagID = nil
+        searchDateFilter = .anytime
+        searchStatusFilter = .all
         isSearchFieldFocused = true
     }
 
@@ -773,6 +843,32 @@ private struct ArticleListContent: View {
             return L10n.articleSearchFieldSummary
         case .content:
             return L10n.articleSearchFieldContent
+        }
+    }
+
+    private func label(for dateFilter: ArticleSearchDateFilter) -> String {
+        switch dateFilter {
+        case .anytime:
+            return L10n.articleSearchDateAnytime
+        case .today:
+            return L10n.articleSearchDateToday
+        case .thisWeek:
+            return L10n.articleSearchDateThisWeek
+        }
+    }
+
+    private func label(for statusFilter: ArticleSearchStatusFilter) -> String {
+        switch statusFilter {
+        case .all:
+            return L10n.articleSearchStatusAll
+        case .unread:
+            return L10n.articleSearchStatusUnread
+        case .read:
+            return L10n.articleSearchStatusRead
+        case .starred:
+            return L10n.articleSearchStatusStarred
+        case .archived:
+            return L10n.articleSearchStatusArchived
         }
     }
 

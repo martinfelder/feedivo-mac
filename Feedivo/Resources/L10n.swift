@@ -271,6 +271,16 @@ enum L10n {
     static var articleSearchFieldContent: String { String(localized: "article.search.field.content") }
     static var articleSearchScopeCurrentView: String { String(localized: "article.search.scope.currentView") }
     static var articleSearchScopeAllArticles: String { String(localized: "article.search.scope.allArticles") }
+    static var articleSearchFeedAll: String { String(localized: "article.search.feed.all") }
+    static var articleSearchTagAll: String { String(localized: "article.search.tag.all") }
+    static var articleSearchDateAnytime: String { String(localized: "article.search.date.anytime") }
+    static var articleSearchDateToday: String { String(localized: "article.search.date.today") }
+    static var articleSearchDateThisWeek: String { String(localized: "article.search.date.thisWeek") }
+    static var articleSearchStatusAll: String { String(localized: "article.search.status.all") }
+    static var articleSearchStatusUnread: String { String(localized: "article.search.status.unread") }
+    static var articleSearchStatusRead: String { String(localized: "article.search.status.read") }
+    static var articleSearchStatusStarred: String { String(localized: "article.search.status.starred") }
+    static var articleSearchStatusArchived: String { String(localized: "article.search.status.archived") }
     static var articleSearchNoResultsTitle: String { String(localized: "article.search.noResults.title") }
     static var articleCommandsMenu: String { String(localized: "articleCommands.menu") }
     static var articlePreviousCommand: String { String(localized: "article.previous.command") }
