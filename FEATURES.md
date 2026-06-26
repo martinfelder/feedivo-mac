@@ -34,11 +34,13 @@
 - **Umgesetzt:** `ArticleMetadataInspectorView` — Toggle-Pills, neue Tags direkt erstellbar
 
 ### 1.6 Artikel teilen
-- **Status:** ✅ Entschieden — bereit zur Implementierung
-- **Zu implementieren:**
+- **Status:** ✔️ Fertig
+- **Umgesetzt:**
   - Teilen via macOS Share Sheet — ausgelöst aus Kontextmenü (Feature 2.4)
   - Kein separater Teilen-Button im Reader
   - Geteilt wird: Titel + URL des Artikels
+- **Hinweis:** Export via Share Sheet ist nicht dasselbe wie Artikel-Link teilen
+  und bleibt ein späterer Export-Slice.
 
 ### 1.7 Im Browser öffnen
 - **Status:** ✔️ Fertig
@@ -105,10 +107,12 @@
   8. Teilen... (macOS Share Sheet)
   9. Offline speichern / Offline-Kopie entfernen
   10. Artikel löschen
-  11. Exportieren... als Markdown-Datei (`.md`) mit Metadaten und lesbarem Artikeltext
+  11. Exportieren... öffnet den Artikel-Exportdialog aus Feature 18.1a
   12. ─────────────────
   13. Alle als gelesen markieren (gilt für aktuell sichtbare Liste)
-- **Bewusst später / optional:** PDF- und DOCX-Export als eigene Formate, falls nach dem Markdown-Slice noch gewünscht.
+- **Hinweis:** Das normale `Teilen...` nutzt das macOS Share Sheet für Artikel-
+  Links. Export via Share Sheet, PDF/DOCX und Bilder-Optionen bleiben spätere
+  Export-Slices.
 
 ### 2.5 Artikel-Liste Anzeige-Logik
 - **Status:** ✔️ Fertig
@@ -508,15 +512,18 @@
 ## 18. Artikel exportieren
 
 ### 18.1 Einzelnen Artikel exportieren
-- **Status:** ✅ Entschieden — bereit zur Implementierung
-- **Zu implementieren:**
-  - Auslösen: via Kontextmenü (Feature 2.4) und Reader-Toolbar
-  - Export-Dialog mit Format-Auswahl:
-    - PDF — 1:1 Reader-Darstellung (so wie Artikel im Reader erscheint)
-    - DOCX — mit Checkbox "Bilder einbetten" (User entscheidet)
-    - Markdown, Plain Text, HTML (in v1 wenn machbar, sonst nach v1)
-  - Metadaten mitexportieren: optionale Checkbox im Export-Dialog (Titel, Autor, Datum, Feed-Name, URL, Tags)
-  - Export via eigenem Dialog (PDF/DOCX mit Optionen) UND macOS Share Sheet (Schnellzugriff)
+- **Status:** 🔨 Erster Slice umgesetzt / weiter ausbaubar
+- **Umgesetzt 18.1a:**
+  - Einzelartikel-Export über Artikel-Kontextmenü und Reader-Toolbar.
+  - Zweistufiger Export-Dialog nach Product-Design-Variante B: Format wählen,
+    Metadaten-Option setzen, dann Vorschau prüfen und `Sichern...`.
+  - Formate: Markdown (`.md`), Plain Text (`.txt`) und HTML (`.html`).
+  - Optional einschließbare Metadaten: Titel, Autor, Veröffentlichungsdatum,
+    Feed-Name, URL und Tags.
+  - Export bevorzugt gespeicherten Offline-Inhalt, fällt sonst auf Feed-Inhalt
+    oder Summary zurück.
+- **Später:** PDF, DOCX, Bilder-Optionen, Share Sheet und Batch-Export bleiben
+  eigene Slices.
 
 ### 18.2 Mehrere Artikel exportieren (Batch)
 - **Status:** ✅ Entschieden — bereit zur Implementierung
@@ -750,7 +757,7 @@ Folgende Reihenfolge berücksichtigt Abhängigkeiten. Features mit (*) sind Vora
 16. **Feature 17.1** — Automatisches Offline-Speichern bei Stern (Toggle in Einstellungen) — erledigt
 
 ### Phase 5 — Export & Teilen
-17. **Feature 18.1** — Artikel exportieren (Export-Dialog: PDF, DOCX mit Bilder-Checkbox, Metadaten-Checkbox, Share Sheet)
+17. **Feature 18.1** — Artikel exportieren (18.1a Markdown/Text/HTML mit Vorschau erledigt; PDF, DOCX, Bilder-Optionen und Share Sheet offen)
 18. **Feature 18.2** — Batch-Export (Cmd+Klick Mehrfachauswahl, ZIP oder eine Datei)
 19. **Feature 7.2** — OPML Export-Dialog (Checkboxen, Menüleiste + Einstellungen)
 

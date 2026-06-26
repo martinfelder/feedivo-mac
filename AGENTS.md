@@ -164,7 +164,7 @@ FeedivoMac/
 │   │   │   ├── ArticleSortOption.swift # Globale Artikellisten-Sortierung ✅
 │   │   │   ├── ArticleFilterOption.swift # Globale Artikellisten-Filterung ✅
 │   │   │   ├── ArticleMarkReadOption.swift # Zeitbereiche für Massenaktion "Als gelesen markieren" ✅
-│   │   │   ├── ArticleExportSheet.swift # Präsentationsanker für Artikel-Dateiexport ✅
+│   │   │   ├── ArticleExportSheet.swift # Zweistufiger Artikel-Exportdialog mit Vorschau ✅
 │   │   │   └── ArticleRowView.swift    # Reichhaltige Artikel-Zeile mit Status/Stern ✅
 │   │   ├── Reader/
 │   │   │   ├── ReaderView.swift        # Rechte Spalte: nativer Artikel-Reader ✅
@@ -204,8 +204,8 @@ FeedivoMac/
 │   │   ├── BackgroundRefreshSettings.swift # Auto-Refresh Settings/Intervalle ✅
 │   │   ├── BackgroundRefreshService.swift  # NSBackgroundActivityScheduler Adapter ✅
 │   │   ├── ArticleFeedIDBackfillService.swift # feedID für alte Artikel nachfuellen ✅
-│   │   ├── ArticleExportService.swift # Markdown-Export für Artikel ✅
-│   │   ├── ArticleMarkdownDocument.swift # FileDocument für Artikel-Markdown-Export ✅
+│   │   ├── ArticleExportService.swift # Markdown/Text/HTML-Export für Artikel ✅
+│   │   ├── ArticleExportDocument.swift # FileDocument für Artikel-Dateiexport ✅
 │   │   ├── ArticleRetentionSettings.swift # Artikel-Aufbewahrung Settings-Keys ✅
 │   │   ├── ArticleRetentionCleanupService.swift # Automatisches Löschen alter Artikel ✅
 │   │   ├── OrphanedArticleCleanupService.swift # verwaiste Artikel ohne existierenden Feed entfernen ✅
@@ -839,7 +839,8 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Nutzt `ArticleRowView` für Titel, Metadaten, Summary, optionales Bild,
   Ungelesen-Punkt rechts oben und Stern rechts unten
 - Meldet `Exportieren...` aus dem Artikel-Kontextmenü nach oben an `ContentView`;
-  der Markdown-Inhalt kommt aus `ArticleExportService`.
+  `ArticleExportSheet` erzeugt daraus format- und optionsgesteuert Markdown,
+  Plain Text oder HTML über `ArticleExportService`.
 - Markiert Artikel beim Auswaehlen automatisch als gelesen, wenn die Einstellung
   aktiv ist
 - Gelesene Artikel werden in Feed-, Tag- und Smartfilter-Listen standardmäßig
@@ -965,8 +966,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - `Cmd+↓` springt zum nächsten sichtbaren Artikel
 - `Cmd+Shift+U` toggelt gelesen/ungelesen
 - `Cmd+D` toggelt Stern
-- Archivieren und Teilen sind ebenfalls im Artikel-Menü verfuegbar; Exportieren
-  bleibt für Feature 2.4 noch als eigener Export-Slice offen.
+- Archivieren und Teilen sind ebenfalls im Artikel-Menü verfuegbar.
+- Der Exportdialog aus Feature 18.1a läuft über `ContentView` und ist über
+  Artikel-Kontextmenü sowie Reader-Toolbar erreichbar; Export via Share Sheet
+  bleibt ein späterer Export-Slice.
 - Commands sind deaktiviert, wenn kein Artikel ausgewählt ist oder am Listenrand
   kein vorheriger/nächster Artikel existiert
 - `ContentView` stellt die Aktionen via SwiftUI `FocusedValues` bereit
@@ -1161,23 +1164,28 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Erkennt, ob offline geladener Volltext, Feed-Content, nur eine Summary oder gar
   kein Text verfuegbar ist; der Reader nutzt diese Information für Statushinweise.
 
-### ArticleExportService.swift / ArticleMarkdownDocument.swift
-- `ArticleExportService` erzeugt Markdown für einzelne Artikel mit Titel,
-  Veroeffentlichungsdatum, Original-Link und lesbarem Artikeltext.
+### ArticleExportService.swift / ArticleExportDocument.swift
+- `ArticleExportService` erzeugt Markdown, Plain Text und HTML für einzelne
+  Artikel. Der Export ist format- und optionsgesteuert; Metadaten können ein- oder
+  ausgeblendet werden.
 - `ArticleExportSnapshot` loest die benoetigten Primitive vor dem Dateidialog aus dem
   SwiftData-Modell, damit der Export nicht an späteren Model-Faults oder
-  Relationships haengt.
-- Der Export nutzt bewusst keinen AppKit-/WebKit-HTML-Importer, sondern eine
-  einfache sichere HTML-zu-Markdown-Konvertierung, damit fremdes Feed-HTML beim
-  Export keinen harten AppKit-Trap ausloest.
+  Relationships haengt. Er enthält Titel, Autor, Datum, Feedname, Link, Tags sowie
+  die verfügbaren Artikeltexte.
+- Der Export nutzt bewusst keinen AppKit-/WebKit-HTML-Importer, sondern einfache
+  sichere HTML-Konvertierung und Sanitizing-Helpers, damit fremdes Feed-HTML beim
+  Export keinen harten AppKit-Trap ausloest. Unsichere Links werden im HTML-Export
+  nicht als klickbare Links ausgegeben.
 - Der Export bevorzugt gespeicherten Offline-Content vor Feed-Content und Summary.
-- `defaultFilename(for:)` erzeugt kurze, dateisystemtaugliche `.md`-Dateinamen aus
-  dem Artikeltitel.
-- `ArticleMarkdownDocument` kapselt den SwiftUI-`FileDocument` für den nativen
-  Speichern-Dialog.
-- `ArticleExportSheet` ist ein kleiner Präsentationsanker für `.fileExporter`;
-  der Export wird dadurch nach der Kontextmenü-Aktion aus einer stabilen SwiftUI-
-  Sheet-Hierarchie gestartet.
+- `defaultFilename(for:format:)` erzeugt kurze, dateisystemtaugliche Dateinamen
+  mit `.md`, `.txt` oder `.html` aus dem Artikeltitel.
+- `ArticleExportDocument` kapselt den SwiftUI-`FileDocument` für den nativen
+  Speichern-Dialog und unterstützt Markdown, Plain Text und HTML.
+- `ArticleExportSheet` ist ein zweistufiger Exportdialog nach Product-Design-
+  Variante B: zuerst Format und Metadaten wählen, dann Vorschau prüfen und mit
+  `Sichern...` den nativen `.fileExporter` öffnen. Die Präsentation bleibt über
+  `ContentView` stabil, damit der Export nicht direkt aus kurzlebigen Kontextmenüs
+  oder Unteransichten gestartet wird.
 
 ### OfflineDownloadService.swift
 - Speichert Artikel manuell für Offline-Lesen.
@@ -1667,7 +1675,8 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   und Favicons nach App-Neustart nicht jedes Mal neu geladen werden müssen;
   Speicherlimit wird beim App-Start, nach Limit-Änderung und nach neuen Downloads
   automatisch eingehalten
-- [ ] Artikel teilen via macOS Share Sheet
+- [x] Artikel-Link teilen via macOS Share Sheet; Export via Share Sheet bleibt
+  späterer Export-Slice
 - [ ] App-Icon designen
 - [x] Onboarding (erster Start ohne Feeds): Wizard mit Feed hinzufügen,
   OPML-Import, gemeinsamem Review/Statusfilter und Start-Defaults
@@ -1717,8 +1726,12 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Stern-Aktionen aus Artikelzeile, Inspector und Menü/Shortcut stoßen bei aktivem
   Toggle `OfflineDownloadService.saveForOffline` an. Entsternen löscht die
   Offline-Kopie bewusst nicht automatisch.
-- Nächster sinnvoller Fokus: Feature 18.1 Einzelnen Artikel exportieren oder
-  ein kleiner Share-/OPML-Export-Polish-Slice.
+- Feature 18.1a Einzelnen Artikel exportieren ist umgesetzt: Markdown, Plain Text
+  und HTML laufen über einen zweistufigen Dialog mit Metadaten-Option und Vorschau.
+  PDF, DOCX, Bilder-Optionen, Share Sheet und Batch-Export bleiben spätere
+  Export-Slices.
+- Nächster sinnvoller Fokus: Feature 18.1 weiter ausbauen (PDF/DOCX/Share) oder
+  ein kleiner OPML-Export-Polish-Slice.
 - Neuer offener M4/v1-Punkt: Vollartikel laden, wenn moeglich und erlaubt. Dabei
   bleibt Feedivo fair gegenüber Feed-Anbietern: Artikelstruktur, Werbung und
   Anbieterlinks dürfen nicht pauschal entfernt werden; die konkrete Reader-
@@ -1729,6 +1742,15 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 ---
 
 ## Letzte Änderungen
+
+- 2026-06-26: Feature 18.1a umgesetzt: Einzelartikel können jetzt über
+  Kontextmenü und Reader-Toolbar exportiert werden. Der neue zweistufige Dialog
+  nach Product-Design-Variante B bietet Markdown (`.md`), Plain Text (`.txt`) und
+  HTML (`.html`), optional einschließbare Metadaten und eine Textvorschau vor dem
+  nativen Speichern-Dialog. `ArticleExportService` arbeitet format- und
+  optionsgesteuert, bevorzugt gespeicherten Offline-Content und schützt HTML-
+  Metadatenlinks gegen unsichere Linkziele. `ArticleExportDocument` ersetzt das
+  frühere Markdown-spezifische FileDocument.
 
 - 2026-06-26: Feature 17.1 umgesetzt: In Einstellungen → Offline-Lesen gibt es
   jetzt den Toggle `Artikel mit Stern automatisch offline speichern`. Wenn aktiv,
@@ -1900,15 +1922,16 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   `Ausgeblendet` zeigt sie gezielt wieder an.
 
 - 2026-06-24: Feature 2.4 abgeschlossen: Das Artikel-Kontextmenü bietet jetzt
-  `Exportieren...` als Markdown-Export mit Metadaten und lesbarem Artikeltext.
-  Der Export bevorzugt gespeicherten Offline-Content und nutzt eine sichere
-  Markdown-Konvertierung ohne AppKit-HTML-Importer. Die Exportdaten werden vor dem
-  Dateidialog als Snapshot aus dem SwiftData-Artikel geloest. Der Dialog laeuft für
-  Artikel über ein kurzlebiges Export-Sheet mit SwiftUI `.fileExporter`, nicht mehr
-  direkt aus dem Kontextmenü. Das App-Sandbox-Entitlement wurde für Benutzerdateien
-  von `read-only` auf `read-write` korrigiert und `ENABLE_USER_SELECTED_FILES` auf
-  `readwrite` gesetzt, damit Exporte speichern dürfen;
-  PDF/DOCX bleiben optionale spätere Exportformate.
+  `Exportieren...` als Einstieg in den Artikel-Export. Der Export bevorzugt
+  gespeicherten Offline-Content und nutzt eine sichere Konvertierung ohne
+  AppKit-HTML-Importer. Die Exportdaten werden vor dem Dateidialog als Snapshot aus
+  dem SwiftData-Artikel geloest. Der Dialog laeuft für Artikel über ein kurzlebiges
+  Export-Sheet mit SwiftUI `.fileExporter`, nicht mehr direkt aus dem Kontextmenü.
+  Das App-Sandbox-Entitlement wurde für Benutzerdateien von `read-only` auf
+  `read-write` korrigiert und `ENABLE_USER_SELECTED_FILES` auf `readwrite` gesetzt,
+  damit Exporte speichern dürfen. Feature 18.1a erweitert diesen Einstieg jetzt
+  auf Markdown, Plain Text und HTML mit Vorschau; PDF/DOCX, Bilder-Optionen und
+  Export via Share Sheet bleiben spätere Export-Slices.
 - 2026-06-24: Feature 2.3 abgeschlossen: Artikellisten haben jetzt ein globales
   Filter-Menü in der Toolbar mit Alle, Ungelesen, Mit Stern, Archiviert und Heute.
   Die Auswahl wird per `@AppStorage` gespeichert und `ArticleFilterOption` kapselt
@@ -1925,7 +1948,8 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - 2026-06-24: Feature 2.4 als erster Kontextmenü-Slice umgesetzt: Artikelzeilen
   bieten jetzt Archivieren, Tag-Zuweisung, Regel-Erstellung aus Artikel, Teilen,
   Offline speichern/entfernen, Artikel löschen und alle sichtbaren Artikel als
-  gelesen markieren. Der spätere Markdown-Export schliesst Feature 2.4 ab.
+  gelesen markieren. Der spätere Artikel-Exportdialog schliesst den Export-
+  Einstieg aus Feature 2.4 ab.
 - 2026-06-24: Feature 2.5 umgesetzt: Artikel-Listen zeigen ungelesene Artikel
   standardmäßig weiter und blenden gelesene Artikel aus. Ein Button am Listenende
   zeigt die gelesenen Artikel für die aktuelle Liste an; das Filtermenue bietet
