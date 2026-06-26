@@ -195,6 +195,8 @@ enum L10n {
     static let settingsOfflineFeedContentDescription = LocalizedStringKey("settings.offline.feedContent.description")
     static let settingsOfflineAutomationTitle = LocalizedStringKey("settings.offline.automation.title")
     static let settingsOfflineAutomationDescription = LocalizedStringKey("settings.offline.automation.description")
+    static let settingsOfflineAutoSaveStarredTitle = LocalizedStringKey("settings.offline.autoSaveStarred.title")
+    static let settingsOfflineAutoSaveStarredDescription = LocalizedStringKey("settings.offline.autoSaveStarred.description")
     static let settingsNotificationsSection = LocalizedStringKey("settings.notifications.section")
     static let settingsNotificationsDescription = LocalizedStringKey("settings.notifications.description")
     static let settingsNotificationsAppIconBadgeTitle = LocalizedStringKey("settings.notifications.appIconBadge.title")

@@ -8,6 +8,8 @@ struct ContentView: View {
     @AppStorage(FirstRunWizardState.completionStorageKey) private var hasCompletedFirstRunWizard = false
     @AppStorage(AppIconBadgeSettings.isEnabledKey)
     private var appIconBadgeIsEnabled = AppIconBadgeSettings.defaultIsEnabled
+    @AppStorage(OfflineReadingSettings.automaticallySaveStarredArticlesKey)
+    private var automaticallySaveStarredArticles = OfflineReadingSettings.defaultAutomaticallySaveStarredArticles
     @Query(sort: \Feed.title) private var feeds: [Feed]
     @Query(sort: \Tag.name) private var tags: [Tag]
     @Query(sort: \SmartFolder.sortOrder) private var smartFolders: [SmartFolder]
@@ -222,7 +224,13 @@ struct ContentView: View {
                     try? modelContext.save()
                 },
                 toggleStarred: {
-                    articleViewModel.toggleStarred(selectedArticle)
+                    Task {
+                        await articleViewModel.toggleStarred(
+                            selectedArticle,
+                            automaticallySaveForOffline: automaticallySaveStarredArticles,
+                            offlineSaver: offlineDownloadService
+                        )
+                    }
                 },
                 toggleArchived: {
                     Task {

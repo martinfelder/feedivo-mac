@@ -8,6 +8,16 @@ protocol OfflineArticleImageCaching: Sendable {
     func cacheImages(from urls: [URL]) async
 }
 
+@MainActor
+protocol ArticleOfflineSaving {
+    func saveForOffline(_ article: Article) async
+}
+
+enum OfflineReadingSettings {
+    static let automaticallySaveStarredArticlesKey = "offline.automaticallySaveStarredArticles"
+    static let defaultAutomaticallySaveStarredArticles = false
+}
+
 struct URLSessionOfflineArticleContentFetcher: OfflineArticleContentFetching, Sendable {
     func content(from url: URL) async throws -> String {
         let (data, response) = try await URLSession.shared.data(from: url)
@@ -184,5 +194,7 @@ final class OfflineDownloadService {
         return trimmedValue.isEmpty ? nil : trimmedValue
     }
 }
+
+extension OfflineDownloadService: ArticleOfflineSaving {}
 
 extension ImageCacheService: OfflineArticleImageCaching {}

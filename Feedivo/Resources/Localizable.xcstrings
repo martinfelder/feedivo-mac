@@ -9220,25 +9220,81 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Automatisches Offline-Speichern nach Feed, Stern, Ungelesen-Status oder Zeitraum ist als eigener M4-Folgepunkt geplant."
+            "value" : "Stern-Artikel können jetzt automatisch gespeichert werden. Weitere Regeln nach Feed, Ungelesen-Status oder Zeitraum bleiben ein späterer M4-Folgepunkt."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Automatic offline saving by feed, star, unread state, or time range is planned as a separate M4 follow-up."
+            "value" : "Starred articles can now be saved automatically. More rules by feed, unread state, or time range remain a later M4 follow-up."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "L’enregistrement hors ligne automatique par flux, étoile, état non lu ou période est prévu comme suite M4 séparée."
+            "value" : "Les articles avec étoile peuvent maintenant être enregistrés automatiquement. D’autres règles par flux, état non lu ou période restent prévues pour plus tard dans M4."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Il salvataggio offline automatico per feed, stella, stato non letto o periodo è previsto come seguito M4 separato."
+            "value" : "Gli articoli con stella ora possono essere salvati automaticamente. Altre regole per feed, stato non letto o periodo restano un seguito M4 successivo."
+          }
+        }
+      }
+    },
+    "settings.offline.autoSaveStarred.description" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wenn du einem Artikel einen Stern gibst, legt Feedivo automatisch eine Offline-Kopie an. Beim Entfernen des Sterns bleibt die Kopie erhalten."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When you star an article, Feedivo automatically creates an offline copy. Removing the star keeps the copy."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quand vous ajoutez une étoile à un article, Feedivo crée automatiquement une copie hors ligne. Retirer l’étoile conserve la copie."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quando aggiungi una stella a un articolo, Feedivo crea automaticamente una copia offline. Rimuovere la stella mantiene la copia."
+          }
+        }
+      }
+    },
+    "settings.offline.autoSaveStarred.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Artikel mit Stern automatisch offline speichern"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatically save starred articles offline"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistrer automatiquement hors ligne les articles avec étoile"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Salva automaticamente offline gli articoli con stella"
           }
         }
       }
@@ -9248,25 +9304,25 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Automatik später"
+            "value" : "Automatisches Speichern"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Automation later"
+            "value" : "Automatic saving"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Automatisation plus tard"
+            "value" : "Enregistrement automatique"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Automazione più avanti"
+            "value" : "Salvataggio automatico"
           }
         }
       }

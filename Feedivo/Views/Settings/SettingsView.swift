@@ -450,6 +450,9 @@ private struct CacheSettingsView: View {
 }
 
 private struct OfflineReadingSettingsView: View {
+    @AppStorage(OfflineReadingSettings.automaticallySaveStarredArticlesKey)
+    private var automaticallySaveStarredArticles = OfflineReadingSettings.defaultAutomaticallySaveStarredArticles
+
     var body: some View {
         Form {
             SettingsSectionHeader(
@@ -475,6 +478,12 @@ private struct OfflineReadingSettingsView: View {
                     title: L10n.settingsOfflineAutomationTitle,
                     description: L10n.settingsOfflineAutomationDescription
                 )
+
+                Toggle(L10n.settingsOfflineAutoSaveStarredTitle, isOn: $automaticallySaveStarredArticles)
+
+                Text(L10n.settingsOfflineAutoSaveStarredDescription)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)

@@ -1712,8 +1712,13 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Feature 17.3 Automatisches Löschen ist umgesetzt: globale Einstellung,
   Stern-/Archiv-Schutz mit Zusatzoption und pro-Feed-Überschreibung in den
   Feed-Eigenschaften.
-- Nächster sinnvoller Fokus: Feature 17.1 Automatisches Offline-Speichern bei Stern
-  oder Feature 18.1 Einzelnen Artikel exportieren.
+- Feature 17.1 Automatisches Offline-Speichern bei Stern ist umgesetzt:
+  Einstellungen → Offline-Lesen bietet einen standardmäßig deaktivierten Toggle;
+  Stern-Aktionen aus Artikelzeile, Inspector und Menü/Shortcut stoßen bei aktivem
+  Toggle `OfflineDownloadService.saveForOffline` an. Entsternen löscht die
+  Offline-Kopie bewusst nicht automatisch.
+- Nächster sinnvoller Fokus: Feature 18.1 Einzelnen Artikel exportieren oder
+  ein kleiner Share-/OPML-Export-Polish-Slice.
 - Neuer offener M4/v1-Punkt: Vollartikel laden, wenn moeglich und erlaubt. Dabei
   bleibt Feedivo fair gegenüber Feed-Anbietern: Artikelstruktur, Werbung und
   Anbieterlinks dürfen nicht pauschal entfernt werden; die konkrete Reader-
@@ -1724,6 +1729,13 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 ---
 
 ## Letzte Änderungen
+
+- 2026-06-26: Feature 17.1 umgesetzt: In Einstellungen → Offline-Lesen gibt es
+  jetzt den Toggle `Artikel mit Stern automatisch offline speichern`. Wenn aktiv,
+  speichern Stern-Aktionen aus Artikelzeile, Inspector und Menü/Shortcut den
+  Artikel über `OfflineDownloadService.saveForOffline` offline. Beim Entfernen des
+  Sterns bleibt eine vorhandene Offline-Kopie erhalten; Löschen bleibt eine
+  explizite Offline-Aktion.
 
 - 2026-06-26: Bugfix für Artikel-Aufbewahrung und Refresh: Abgelaufene Feed-
   Einträge werden bei aktiver globaler oder Feed-eigener Aufbewahrung nicht mehr

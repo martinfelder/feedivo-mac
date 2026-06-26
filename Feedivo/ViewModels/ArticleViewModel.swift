@@ -92,12 +92,45 @@ final class ArticleViewModel {
         article.isStarred.toggle()
     }
 
+    @MainActor
+    func toggleStarred(
+        _ article: Article,
+        automaticallySaveForOffline: Bool,
+        offlineSaver: ArticleOfflineSaving? = nil
+    ) async {
+        article.isStarred.toggle()
+
+        guard automaticallySaveForOffline, article.isStarred, !article.offlineState.isAvailable else {
+            return
+        }
+
+        let resolvedOfflineSaver = offlineSaver ?? OfflineDownloadService()
+        await resolvedOfflineSaver.saveForOffline(article)
+    }
+
     func toggleStarred(_ article: Article?) {
         guard let article else {
             return
         }
 
         toggleStarred(article)
+    }
+
+    @MainActor
+    func toggleStarred(
+        _ article: Article?,
+        automaticallySaveForOffline: Bool,
+        offlineSaver: ArticleOfflineSaving? = nil
+    ) async {
+        guard let article else {
+            return
+        }
+
+        await toggleStarred(
+            article,
+            automaticallySaveForOffline: automaticallySaveForOffline,
+            offlineSaver: offlineSaver
+        )
     }
 
     func toggleArchived(_ article: Article) {

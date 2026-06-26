@@ -27,6 +27,17 @@ private final class CapturingArticleSharingPresenter: ArticleSharingPresenter {
     }
 }
 
+@MainActor
+private final class CapturingArticleOfflineSaver: ArticleOfflineSaving {
+    private(set) var savedArticleTitles: [String] = []
+
+    func saveForOffline(_ article: Article) async {
+        savedArticleTitles.append(article.title)
+        article.offlineState = .feedContent
+        article.offlineContent = article.content
+    }
+}
+
 struct ArticleViewModelTests {
 
     @Test func toggleReadWechseltGelesenStatus() {
@@ -53,6 +64,50 @@ struct ArticleViewModelTests {
         viewModel.toggleStarred(article)
 
         #expect(!article.isStarred)
+    }
+
+    @MainActor
+    @Test func toggleStarredSpeichertBeiAktiverAutomatikOffline() async {
+        let article = Article(title: "Test", content: "<p>Offline</p>", isStarred: false)
+        let offlineSaver = CapturingArticleOfflineSaver()
+        let viewModel = ArticleViewModel()
+
+        await viewModel.toggleStarred(
+            article,
+            automaticallySaveForOffline: true,
+            offlineSaver: offlineSaver
+        )
+
+        #expect(article.isStarred)
+        #expect(offlineSaver.savedArticleTitles == ["Test"])
+        #expect(article.offlineState == .feedContent)
+
+        await viewModel.toggleStarred(
+            article,
+            automaticallySaveForOffline: true,
+            offlineSaver: offlineSaver
+        )
+
+        #expect(!article.isStarred)
+        #expect(offlineSaver.savedArticleTitles == ["Test"])
+        #expect(article.offlineState == .feedContent)
+    }
+
+    @MainActor
+    @Test func toggleStarredFordertOhneAktiveAutomatikKeineOfflineKopieAn() async {
+        let article = Article(title: "Test", content: "<p>Offline</p>", isStarred: false)
+        let offlineSaver = CapturingArticleOfflineSaver()
+        let viewModel = ArticleViewModel()
+
+        await viewModel.toggleStarred(
+            article,
+            automaticallySaveForOffline: false,
+            offlineSaver: offlineSaver
+        )
+
+        #expect(article.isStarred)
+        #expect(offlineSaver.savedArticleTitles.isEmpty)
+        #expect(article.offlineState == .none)
     }
 
     @Test func toggleArchivedWechseltArchivStatus() {

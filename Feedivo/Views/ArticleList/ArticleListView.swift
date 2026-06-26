@@ -331,6 +331,8 @@ private struct ArticleListContent: View {
     @Query(sort: \Tag.name) private var tags: [Tag]
     @AppStorage("markArticleReadOnSelection")
     private var markArticleReadOnSelection = true
+    @AppStorage(OfflineReadingSettings.automaticallySaveStarredArticlesKey)
+    private var automaticallySaveStarredArticles = OfflineReadingSettings.defaultAutomaticallySaveStarredArticles
     @State private var viewModel = ArticleViewModel()
     @State private var offlineDownloadService = OfflineDownloadService()
     @State private var showsReadArticles = false
@@ -474,7 +476,13 @@ private struct ArticleListContent: View {
                 try? modelContext.save()
             },
             onToggleStarred: {
-                viewModel.toggleStarred(article)
+                Task {
+                    await viewModel.toggleStarred(
+                        article,
+                        automaticallySaveForOffline: automaticallySaveStarredArticles,
+                        offlineSaver: offlineDownloadService
+                    )
+                }
             },
             onToggleArchived: {
                 Task {

@@ -465,10 +465,15 @@
 ## 17. Artikel archivieren
 
 ### 17.1 Offline speichern (manuell + automatisch)
-- **Status:** ✅ Entschieden — bereit zur Implementierung
-- **Umgesetzt:** `OfflineDownloadService`, `Article.offlineContent`, manuell via Kontextmenü
-- **Zu implementieren:**
+- **Status:** ✔️ Fertig
+- **Umgesetzt:**
+  - `OfflineDownloadService`, `Article.offlineContent`, manuell via Kontextmenü
   - Einstellungen → Offline-Lesen: Toggle "Artikel mit Stern automatisch offline speichern"
+  - Wenn der Toggle aktiv ist, stoßen Stern-Aktionen aus Artikelzeile,
+    Inspector und Menü/Shortcut automatisch `OfflineDownloadService.saveForOffline`
+    an
+  - Entfernen des Sterns löscht die Offline-Kopie bewusst nicht automatisch; dafür
+    bleibt die explizite Offline-Entfernen-Aktion zuständig
 
 ### 17.2 Artikel-Zustände
 - **Status:** ✅ Entschieden — siehe Feature 22.1
@@ -742,7 +747,7 @@ Folgende Reihenfolge berücksichtigt Abhängigkeiten. Features mit (*) sind Vora
 13. **Feature 4.1** — Website Feed-Suche (Auto-Erkennung, Liste gefundener Feeds) — erledigt
 14. **Feature 12.4** — Feed-Vorschau vor dem Abonnieren (5 Artikel im Sheet) — erledigt
 15. **Feature 17.3** — Automatisches Löschen (90 Tage Standard, pro Feed, Ausnahmen Stern + Archiv)
-16. **Feature 17.1** — Automatisches Offline-Speichern bei Stern (Toggle in Einstellungen)
+16. **Feature 17.1** — Automatisches Offline-Speichern bei Stern (Toggle in Einstellungen) — erledigt
 
 ### Phase 5 — Export & Teilen
 17. **Feature 18.1** — Artikel exportieren (Export-Dialog: PDF, DOCX mit Bilder-Checkbox, Metadaten-Checkbox, Share Sheet)

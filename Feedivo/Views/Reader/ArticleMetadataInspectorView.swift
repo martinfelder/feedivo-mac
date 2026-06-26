@@ -27,10 +27,13 @@ struct ArticleMetadataInspectorView: View {
     @State private var newTagColorHex = TagColorPalette.defaultColorHex
     @State private var newFolderName = ""
     @State private var articleViewModel = ArticleViewModel()
+    @State private var offlineDownloadService = OfflineDownloadService()
     @State private var isFeedFolderSectionExpanded = true
     @State private var isTagSectionExpanded = true
     @State private var isContextSectionExpanded = true
     @State private var isSourceSectionExpanded = false
+    @AppStorage(OfflineReadingSettings.automaticallySaveStarredArticlesKey)
+    private var automaticallySaveStarredArticles = OfflineReadingSettings.defaultAutomaticallySaveStarredArticles
 
     let article: Article
     let close: () -> Void
@@ -199,7 +202,13 @@ struct ArticleMetadataInspectorView: View {
                 activeTint: .yellow,
                 help: L10n.readerInspectorStarStatus
             ) {
-                articleViewModel.toggleStarred(article)
+                Task {
+                    await articleViewModel.toggleStarred(
+                        article,
+                        automaticallySaveForOffline: automaticallySaveStarredArticles,
+                        offlineSaver: offlineDownloadService
+                    )
+                }
             }
 
             actionIconButton(
