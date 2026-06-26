@@ -261,7 +261,7 @@
 ## 9. Suche
 
 ### 9.1 Volltext-Suche
-- **Status:** 🔨 In Arbeit — Core-Slice umgesetzt
+- **Status:** ✔️ Fertig
 - **Umgesetzt:**
   - `Cmd+F` öffnet und fokussiert eine kompakte Suche oberhalb der Artikelliste.
   - Suchbereiche: Alles, Titel, Zusammenfassung und Inhalt.
@@ -269,15 +269,16 @@
   - Suchresultate erscheinen direkt in der bestehenden Artikelliste.
   - Bestehende Sortierung, bestehender Filter und die Logik für gelesene sowie
     ausgeblendete Artikel bleiben erhalten.
-- **Noch offen:**
-  - Erweiterte Suchfilter aus Feature 9.2.
-  - Spotlight-Integration aus Feature 9.3.
+  - Erweiterte Suchfilter aus Feature 9.2 sind ergänzt.
 
 ### 9.2 Suchfilter
-- **Status:** ✅ Entschieden — nächster Such-Slice
-- **Zu implementieren:**
-  - Filteroptionen in der Suche: Feed / Tag / Zeitraum / Status (gelesen/ungelesen)
-  - Die Suchbereich-Auswahl und der Umfang sind im Core-Slice bereits vorhanden.
+- **Status:** ✔️ Fertig
+- **Umgesetzt:**
+  - Filteroptionen in der Suche: Feed, Tag, Zeitraum und Status.
+  - Zeitraum: jederzeit, heute, diese Woche.
+  - Status: alle, ungelesen, gelesen, mit Stern, archiviert.
+  - Filter funktionieren auch ohne Suchtext und lassen sich mit Suchtext, Bereich
+    und Umfang kombinieren.
 
 ### 9.3 Spotlight-Integration
 - **Status:** ✅ Entschieden — bereit zur Implementierung
@@ -794,7 +795,7 @@ Folgende Reihenfolge berücksichtigt Abhängigkeiten. Features mit (*) sind Vora
 
 ### Phase 6 — Suche
 20. **Feature 9.1** — Volltext-Suche Core-Slice (Cmd+F, Suchleiste, Bereich und Umfang) — erledigt
-20a. **Feature 9.2** — Erweiterte Suchfilter (Feed, Tag, Zeitraum, Status)
+20a. **Feature 9.2** — Erweiterte Suchfilter (Feed, Tag, Zeitraum, Status) — erledigt
 21. **Feature 9.3** — Spotlight-Integration (CSSearchableItem, Toggle in Einstellungen)
 
 ### Phase 7 — Customization & Einstellungen

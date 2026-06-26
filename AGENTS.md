@@ -818,6 +818,11 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   werden. Bei `Alle Artikel` nutzt `ArticleListView` eine separate globale
   SwiftData-Query als Suchquelle; Anzeige-Filter, Sortierung, gelesene Artikel und
   `isHidden`-Logik laufen danach weiter über die bestehende Listenpipeline.
+- Die Suchleiste bietet außerdem kompakte Filter für Feed, Tag, Zeitraum und
+  Status. Filter funktionieren auch ohne Suchtext und werden mit Suchtext, Bereich
+  und Umfang kombiniert. Zeitraum unterstützt `Jederzeit`, `Heute` und
+  `Diese Woche`; Status unterstützt `Alle`, `Ungelesen`, `Gelesen`, `Mit Stern`
+  und `Archiviert`.
 - Beim Wechsel des ausgewählten Artikels nutzt die Navigation die bereits sichtbare
   Artikelliste aus dem aktuellen Render und stößt keine neue Sortierung/Filterung
   an.
@@ -874,9 +879,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   gelesener Artikel und die Button-Entscheidung für Feature 2.5 testbar ohne UI.
 - `ArticleListDisplayState` blendet `isHidden`-Artikel aus normalen Listen aus; die
   Regel-Aktion zum Setzen dieses Status bleibt ein eigener Feature-16.3-Schritt.
-- `ArticleSearchQuery`, `ArticleSearchField` und `ArticleSearchScope` kapseln den
-  testbaren Core-Slice der Artikelsuche inklusive case-/diakritik-insensitiver
-  Textsuche.
+- `ArticleSearchQuery`, `ArticleSearchField`, `ArticleSearchScope` und
+  `ArticleSearchFilters` kapseln den testbaren Core-Slice der Artikelsuche
+  inklusive case-/diakritik-insensitiver Textsuche sowie Filterung nach Feed, Tag,
+  Zeitraum und Status.
 - `ArticleListPreparedArticles` kapselt die gemeinsame Vorbereitung aus Sortierung,
   Filterung und aktiver Suche und ist mit Tests gegen doppelte Sortierungen sowie
   für Suchkombinationen abgesichert.
