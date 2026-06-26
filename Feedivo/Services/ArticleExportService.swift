@@ -5,6 +5,14 @@ enum ArticleExportFormat: String, CaseIterable, Identifiable {
     case markdown
     case plainText
     case html
+    case pdf
+    case docx
+
+    static let dialogFormats: [ArticleExportFormat] = [
+        .markdown,
+        .plainText,
+        .html
+    ]
 
     var id: String { rawValue }
 
@@ -16,6 +24,10 @@ enum ArticleExportFormat: String, CaseIterable, Identifiable {
             "txt"
         case .html:
             "html"
+        case .pdf:
+            "pdf"
+        case .docx:
+            "docx"
         }
     }
 
@@ -27,6 +39,10 @@ enum ArticleExportFormat: String, CaseIterable, Identifiable {
             .plainText
         case .html:
             .html
+        case .pdf:
+            .pdf
+        case .docx:
+            .docxDocument
         }
     }
 }
@@ -81,6 +97,19 @@ enum ArticleExportService {
             plainText(for: snapshot, includesMetadata: options.includesMetadata)
         case .html:
             htmlText(for: snapshot, includesMetadata: options.includesMetadata)
+        case .pdf, .docx:
+            plainText(for: snapshot, includesMetadata: options.includesMetadata)
+        }
+    }
+
+    static func data(for snapshot: ArticleExportSnapshot, options: ArticleExportOptions) -> Data {
+        switch options.format {
+        case .markdown, .plainText, .html:
+            Data(text(for: snapshot, options: options).utf8)
+        case .pdf:
+            ArticlePDFExportRenderer.data(for: snapshot, options: options)
+        case .docx:
+            ArticleDOCXExportRenderer.data(for: snapshot, options: options)
         }
     }
 

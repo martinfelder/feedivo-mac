@@ -4,15 +4,19 @@ import UniformTypeIdentifiers
 
 extension UTType {
     static let markdownText = UTType(filenameExtension: "md") ?? .plainText
+    static let docxDocument = UTType(
+        filenameExtension: "docx",
+        conformingTo: .zip
+    ) ?? .zip
 }
 
 struct ArticleExportDocument: FileDocument {
     static var readableContentTypes: [UTType] {
-        [.markdownText, .plainText, .html, .zip]
+        [.markdownText, .plainText, .html, .pdf, .docxDocument, .zip]
     }
 
     static var writableContentTypes: [UTType] {
-        [.markdownText, .plainText, .html, .zip]
+        [.markdownText, .plainText, .html, .pdf, .docxDocument, .zip]
     }
 
     var data: Data

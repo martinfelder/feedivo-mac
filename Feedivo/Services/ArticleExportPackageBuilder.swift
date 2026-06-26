@@ -31,9 +31,13 @@ struct ArticleExportPackage: Sendable {
     let assets: [ArticleExportPackageAsset]
     let failedImageURLs: [URL]
     let archiveData: Data
+
+    var hasImageSummary: Bool {
+        !assets.isEmpty || !failedImageURLs.isEmpty
+    }
 }
 
-enum ArticleExportPackageContentType: Sendable {
+enum ArticleExportPackageContentType: Equatable, Sendable {
     case document
     case zipArchive
 }
@@ -50,12 +54,49 @@ enum ArticleExportPackageBuilder {
         options: ArticleExportOptions,
         includesOfflineImages: Bool,
         imageLoader: ArticleExportImageDataLoading = URLSessionArticleExportImageDataLoader(),
+        pdfStyle: ArticlePDFExportStyle = .default,
         progress: @MainActor @escaping (ArticleExportPackageProgress) -> Void = { _ in }
     ) async -> ArticleExportPackage {
         progress(.preparingDocument)
 
         let originalText = ArticleExportService.text(for: snapshot, options: options)
         let documentFilename = ArticleExportService.defaultFilename(for: snapshot, format: options.format)
+
+        if options.format == .pdf {
+            let sourceHTML = ArticleExportService.text(
+                for: snapshot,
+                options: ArticleExportOptions(format: .html, includesMetadata: options.includesMetadata)
+            )
+            let imagePackage = await imagePackage(
+                from: sourceHTML,
+                imageLoader: imageLoader,
+                progress: progress
+            )
+            let rewrittenHTML = textByReplacingImageURLs(in: sourceHTML, replacements: imagePackage.replacements)
+            progress(.creatingArchive)
+            let pdfData = ArticlePDFExportRenderer.data(
+                fromHTML: ArticlePDFExportRenderer.html(
+                    fromExportedHTML: rewrittenHTML,
+                    style: pdfStyle,
+                    assets: imagePackage.assets
+                )
+            )
+
+            let previewHTML = ArticlePDFExportRenderer.html(
+                fromExportedHTML: rewrittenHTML,
+                style: pdfStyle,
+                assets: imagePackage.assets
+            )
+
+            return ArticleExportPackage(
+                filename: documentFilename,
+                contentType: .document,
+                text: previewHTML,
+                assets: imagePackage.assets,
+                failedImageURLs: imagePackage.failedImageURLs,
+                archiveData: pdfData
+            )
+        }
 
         guard includesOfflineImages, options.format.supportsOfflineImagePackage else {
             return ArticleExportPackage(
@@ -64,12 +105,39 @@ enum ArticleExportPackageBuilder {
                 text: originalText,
                 assets: [],
                 failedImageURLs: [],
-                archiveData: Data(originalText.utf8)
+                archiveData: ArticleExportService.data(for: snapshot, options: options)
             )
         }
 
+        let imagePackage = await imagePackage(
+            from: originalText,
+            imageLoader: imageLoader,
+            progress: progress
+        )
+        let rewrittenText = textByReplacingImageURLs(in: originalText, replacements: imagePackage.replacements)
+        progress(.creatingArchive)
+
+        let archiveFiles = [ArticleExportZIPFile(path: documentFilename, data: Data(rewrittenText.utf8))]
+            + imagePackage.assets.map { ArticleExportZIPFile(path: $0.path, data: $0.data) }
+        let archiveData = ArticleExportZIPArchive.data(files: archiveFiles)
+
+        return ArticleExportPackage(
+            filename: "\(filenameBase(from: documentFilename)).zip",
+            contentType: .zipArchive,
+            text: rewrittenText,
+            assets: imagePackage.assets,
+            failedImageURLs: imagePackage.failedImageURLs,
+            archiveData: archiveData
+        )
+    }
+
+    private static func imagePackage(
+        from text: String,
+        imageLoader: ArticleExportImageDataLoading,
+        progress: @MainActor @escaping (ArticleExportPackageProgress) -> Void
+    ) async -> (replacements: [String: String], assets: [ArticleExportPackageAsset], failedImageURLs: [URL]) {
         let assetFolderName = "Pictures"
-        let imageURLs = imageURLs(in: originalText)
+        let imageURLs = imageURLs(in: text)
         var replacements: [String: String] = [:]
         var assets: [ArticleExportPackageAsset] = []
         var failedImageURLs: [URL] = []
@@ -87,21 +155,7 @@ enum ArticleExportPackageBuilder {
             }
         }
 
-        let rewrittenText = textByReplacingImageURLs(in: originalText, replacements: replacements)
-        progress(.creatingArchive)
-
-        let archiveFiles = [ArticleExportZIPFile(path: documentFilename, data: Data(rewrittenText.utf8))]
-            + assets.map { ArticleExportZIPFile(path: $0.path, data: $0.data) }
-        let archiveData = ArticleExportZIPArchive.data(files: archiveFiles)
-
-        return ArticleExportPackage(
-            filename: "\(filenameBase(from: documentFilename)).zip",
-            contentType: .zipArchive,
-            text: rewrittenText,
-            assets: assets,
-            failedImageURLs: failedImageURLs,
-            archiveData: archiveData
-        )
+        return (replacements, assets, failedImageURLs)
     }
 
     private static func imageURLs(in text: String) -> [URL] {
@@ -175,7 +229,7 @@ enum ArticleExportPackageBuilder {
 
 private extension ArticleExportFormat {
     var supportsOfflineImagePackage: Bool {
-        self == .markdown || self == .html
+        self == .markdown || self == .html || self == .pdf
     }
 }
 

@@ -289,6 +289,12 @@ enum L10n {
     static var articleExportFormatHTML: String { String(localized: "article.export.format.html") }
     static var articleExportFormatHTMLDescription: String { String(localized: "article.export.format.html.description") }
     static var articleExportHTMLPreview: String { String(localized: "article.export.preview.html") }
+    static var articleExportFormatPDF: String { String(localized: "article.export.format.pdf") }
+    static var articleExportFormatPDFDescription: String { String(localized: "article.export.format.pdf.description") }
+    static var articleExportPDFPreview: String { String(localized: "article.export.preview.pdf") }
+    static var articleExportFormatDOCX: String { String(localized: "article.export.format.docx") }
+    static var articleExportFormatDOCXDescription: String { String(localized: "article.export.format.docx.description") }
+    static var articleExportDOCXPreview: String { String(localized: "article.export.preview.docx") }
     static var articleExportMetadataToggle: String { String(localized: "article.export.metadata.toggle") }
     static var articleExportMetadataDescription: String { String(localized: "article.export.metadata.description") }
     static var articleExportOfflineImagesToggle: String { String(localized: "article.export.offlineImages.toggle") }
