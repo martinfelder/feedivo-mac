@@ -33,7 +33,9 @@ enum L10n {
     static let readerAppearanceButton = LocalizedStringKey("reader.appearance.button")
     static let readerAppearanceTitle = LocalizedStringKey("reader.appearance.title")
     static let readerTitleFontPicker = LocalizedStringKey("reader.titleFont.picker")
+    static let readerTitleFontBoldToggle = LocalizedStringKey("reader.titleFont.bold.toggle")
     static let readerBodyFontPicker = LocalizedStringKey("reader.bodyFont.picker")
+    static let readerBodyFontBoldToggle = LocalizedStringKey("reader.bodyFont.bold.toggle")
     static let readerBodyFontSizeSlider = LocalizedStringKey("reader.bodyFontSize.slider")
     static let readerTitleLineSpacingSlider = LocalizedStringKey("reader.titleLineSpacing.slider")
     static let readerLineSpacingSlider = LocalizedStringKey("reader.lineSpacing.slider")
@@ -211,6 +213,11 @@ enum L10n {
     static let settingsRefreshDescription = LocalizedStringKey("settings.refresh.description")
     static let settingsAutomationSection = LocalizedStringKey("settings.automation.section")
     static let settingsAutomationDescription = LocalizedStringKey("settings.automation.description")
+    static let settingsArticleRetentionTitle = LocalizedStringKey("settings.articleRetention.title")
+    static let settingsArticleRetentionIntervalPicker = LocalizedStringKey("settings.articleRetention.interval.picker")
+    static let settingsArticleRetentionIncludesProtectedArticles = LocalizedStringKey("settings.articleRetention.includesProtectedArticles")
+    static let settingsArticleRetentionDescription = LocalizedStringKey("settings.articleRetention.description")
+    static let settingsArticleRetentionRunNow = LocalizedStringKey("settings.articleRetention.runNow")
     static let settingsSyncSection = LocalizedStringKey("settings.sync.section")
     static let settingsSyncDescription = LocalizedStringKey("settings.sync.description")
     static let settingsSyncUnavailableTitle = LocalizedStringKey("settings.sync.unavailable.title")
@@ -233,6 +240,10 @@ enum L10n {
     static let feedPropertiesNoLogEntries = LocalizedStringKey("feed.properties.noLogEntries")
     static let feedPropertiesNotificationsEnabled = LocalizedStringKey("feed.properties.notifications.enabled")
     static let feedPropertiesNotificationsDescription = LocalizedStringKey("feed.properties.notifications.description")
+    static let feedPropertiesArticleRetention = LocalizedStringKey("feed.properties.articleRetention")
+    static let feedPropertiesArticleRetentionOverride = LocalizedStringKey("feed.properties.articleRetention.override")
+    static let feedPropertiesArticleRetentionInherited = LocalizedStringKey("feed.properties.articleRetention.inherited")
+    static let feedPropertiesArticleRetentionEnabled = LocalizedStringKey("feed.properties.articleRetention.enabled")
 
     static var articleRowStarRemove: String { String(localized: "articleRow.star.remove") }
     static var articleRowStarAdd: String { String(localized: "articleRow.star.add") }
@@ -373,6 +384,20 @@ enum L10n {
         String.localizedStringWithFormat(
             String(localized: "settings.automaticRefresh.interval.minutes"),
             minutes
+        )
+    }
+
+    static func settingsArticleRetentionInterval(days: Int) -> String {
+        String.localizedStringWithFormat(
+            String(localized: "settings.articleRetention.interval.days"),
+            days
+        )
+    }
+
+    static func settingsArticleRetentionResult(count: Int) -> String {
+        String.localizedStringWithFormat(
+            String(localized: "settings.articleRetention.result"),
+            count
         )
     }
 

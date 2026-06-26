@@ -52,12 +52,9 @@ enum ArticleListQuery {
         case .all:
             return FetchDescriptor(sortBy: sortDescriptors)
         case .unread:
-            return FetchDescriptor(
-                predicate: #Predicate<Article> { article in
-                    !article.isRead
-                },
-                sortBy: sortDescriptors
-            )
+            // Ungelesen lädt wie ein Feed alle Artikel. Die Anzeigeebene blendet
+            // gelesene Artikel aus und hält gerade geöffnete Artikel sichtbar.
+            return FetchDescriptor(sortBy: sortDescriptors)
         case .read:
             return FetchDescriptor(
                 predicate: #Predicate<Article> { article in

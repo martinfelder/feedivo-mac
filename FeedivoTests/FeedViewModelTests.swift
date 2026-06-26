@@ -3,7 +3,41 @@ import SwiftData
 import Testing
 @testable import Feedivo
 
+@Suite(.serialized)
 struct FeedViewModelTests {
+    private let articleRetentionDefaults: UserDefaults
+
+    init() {
+        let suiteName = "FeedivoTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defaults.removePersistentDomain(forName: suiteName)
+        self.articleRetentionDefaults = defaults
+    }
+
+    private func makeViewModel(
+        fetchFeed: @escaping (String) async throws -> ParsedFeed = FeedService.fetchFeed,
+        discoverFaviconURL: @escaping (URL) async -> String? = { siteURL in
+            await FaviconService.discoverFaviconURL(siteURL: siteURL)
+        },
+        enrichArticleImages: @escaping ([ParsedArticle]) async -> [ParsedArticle] = { articles in
+            await FeedService.enrichArticleImagesIfNeeded(in: articles)
+        },
+        notifyFeedRefresh: @escaping ([FeedRefreshNotificationResult]) async -> Void = { results in
+            await FeedNotificationService.presentRefreshSummary(for: results)
+        },
+        notifyRuleNotifications: @escaping ([RuleNotificationResult]) async -> Void = { results in
+            await FeedNotificationService.presentRuleSummary(for: results)
+        }
+    ) -> FeedViewModel {
+        FeedViewModel(
+            fetchFeed: fetchFeed,
+            discoverFaviconURL: discoverFaviconURL,
+            enrichArticleImages: enrichArticleImages,
+            notifyFeedRefresh: notifyFeedRefresh,
+            notifyRuleNotifications: notifyRuleNotifications,
+            articleRetentionDefaults: articleRetentionDefaults
+        )
+    }
 
     @MainActor
     @Test func importOPMLFeedsLegtNeueFeedsAnUndUeberspringtDuplikate() async throws {
@@ -24,7 +58,7 @@ struct FeedViewModelTests {
         context.insert(existingFeed)
         try context.save()
 
-        let viewModel = FeedViewModel(
+        let viewModel = makeViewModel(
             fetchFeed: { urlString in
                 ParsedFeed(
                     sourceURL: urlString,
@@ -77,7 +111,7 @@ struct FeedViewModelTests {
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
         let context = ModelContext(container)
-        let viewModel = FeedViewModel(
+        let viewModel = makeViewModel(
             fetchFeed: { urlString in
                 #expect(urlString == "https://example.com/imported.xml")
                 return ParsedFeed(
@@ -145,7 +179,7 @@ struct FeedViewModelTests {
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
         let context = ModelContext(container)
-        let viewModel = FeedViewModel(
+        let viewModel = makeViewModel(
             fetchFeed: { urlString in
                 ParsedFeed(sourceURL: urlString, title: "Import Feed", description: nil, articles: [])
             },
@@ -183,7 +217,7 @@ struct FeedViewModelTests {
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
         let context = ModelContext(container)
-        let viewModel = FeedViewModel(
+        let viewModel = makeViewModel(
             fetchFeed: { urlString in
                 ParsedFeed(sourceURL: urlString, title: "Import Feed", description: nil, articles: [])
             },
@@ -205,7 +239,7 @@ struct FeedViewModelTests {
     @MainActor
     @Test func opmlImportPreviewMarkiertDuplikateUndNichtErreichbareFeeds() async throws {
         let existingFeed = Feed(url: "https://example.com/existing.xml", title: "Schon da")
-        let viewModel = FeedViewModel(
+        let viewModel = makeViewModel(
             fetchFeed: { urlString in
                 if urlString == "https://example.com/broken.xml" {
                     throw FeedServiceError.parsingFailed
@@ -231,7 +265,7 @@ struct FeedViewModelTests {
 
     @MainActor
     @Test func opmlImportPreviewMeldetSichtbarenPrueffortschritt() async throws {
-        let viewModel = FeedViewModel(
+        let viewModel = makeViewModel(
             fetchFeed: { urlString in
                 ParsedFeed(sourceURL: urlString, title: "OK", description: nil, articles: [])
             },
@@ -271,7 +305,7 @@ struct FeedViewModelTests {
         context.insert(existingFeed)
         try context.save()
         var refreshCallCount = 0
-        let viewModel = FeedViewModel(
+        let viewModel = makeViewModel(
             fetchFeed: { urlString in
                 refreshCallCount += 1
                 return ParsedFeed(sourceURL: urlString, title: "Soll nicht aktualisieren", description: nil, articles: [])
@@ -312,7 +346,7 @@ struct FeedViewModelTests {
                 folderName: "Tech"
             )
         ]
-        let viewModel = FeedViewModel()
+        let viewModel = makeViewModel()
 
         let opmlFeeds = viewModel.opmlFeedsForExport(from: feeds)
 
@@ -339,7 +373,7 @@ struct FeedViewModelTests {
         )
         let context = ModelContext(container)
         let feed = Feed(url: "https://example.com/feed.xml", title: "Original Feed")
-        let viewModel = FeedViewModel()
+        let viewModel = makeViewModel()
         context.insert(feed)
         try context.save()
 
@@ -367,7 +401,7 @@ struct FeedViewModelTests {
             title: "Mein Feed",
             originalTitle: "Original Feed"
         )
-        let viewModel = FeedViewModel()
+        let viewModel = makeViewModel()
         context.insert(feed)
         try context.save()
 
@@ -390,7 +424,7 @@ struct FeedViewModelTests {
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
         let context = ModelContext(container)
-        let viewModel = FeedViewModel(
+        let viewModel = makeViewModel(
             fetchFeed: { urlString in
                 ParsedFeed(
                     sourceURL: urlString,
@@ -430,7 +464,7 @@ struct FeedViewModelTests {
         let context = ModelContext(container)
         let failingFeed = Feed(url: "https://example.com/fail.xml", title: "Fehler Feed")
         let successfulFeed = Feed(url: "https://example.com/success.xml", title: "Erfolgreicher Feed")
-        let viewModel = FeedViewModel(
+        let viewModel = makeViewModel(
             fetchFeed: { urlString in
                 if urlString == failingFeed.url {
                     throw TestFeedRefreshError()
@@ -494,7 +528,7 @@ struct FeedViewModelTests {
         context.insert(feed1)
         context.insert(feed2)
         try context.save()
-        let viewModel = FeedViewModel(
+        let viewModel = makeViewModel(
             fetchFeed: { urlString in
                 ParsedFeed(sourceURL: urlString, title: "Feed", description: nil, articles: [])
             },
@@ -536,7 +570,7 @@ struct FeedViewModelTests {
             feed: feed
         )
         feed.articles = [existingArticle]
-        let viewModel = FeedViewModel(
+        let viewModel = makeViewModel(
             fetchFeed: { urlString in
                 #expect(urlString == feed.url)
                 return ParsedFeed(
@@ -590,6 +624,232 @@ struct FeedViewModelTests {
     }
 
     @MainActor
+    @Test func refreshFeedBewahrtGelesenStatusBeiStabilerQuelleUndGeaendertemLink() async throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            RuleCondition.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let publishedAt = Date(timeIntervalSince1970: 100)
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
+        let existingArticle = Article(
+            title: "Schon gelesener Artikel",
+            link: "https://example.com/1?utm_source=feedivo",
+            summary: "Lokale Kurzfassung",
+            publishedAt: publishedAt,
+            sourceID: "artikel-1",
+            isRead: true,
+            feed: feed
+        )
+        feed.articles = [existingArticle]
+        feed.unreadCount = 0
+
+        context.insert(feed)
+        try context.save()
+
+        let viewModel = makeViewModel(
+            fetchFeed: { urlString in
+                ParsedFeed(
+                    sourceURL: urlString,
+                    title: "Feed",
+                    description: nil,
+                    articles: [
+                        ParsedArticle(
+                            title: "Schon gelesener Artikel",
+                            sourceID: "artikel-1",
+                            link: "https://example.com/1?utm_source=newsletter",
+                            summary: "Aktualisierte Kurzfassung",
+                            content: nil,
+                            publishedAt: publishedAt,
+                            imageURL: nil
+                        )
+                    ]
+                )
+            },
+            discoverFaviconURL: { _ in nil }
+        )
+
+        await viewModel.refreshFeed(feed, context: context)
+
+        #expect(feed.articles.count == 1)
+        #expect(existingArticle.isRead)
+        #expect(existingArticle.summary == "Aktualisierte Kurzfassung")
+        #expect(feed.unreadCount == 0)
+    }
+
+    @MainActor
+    @Test func refreshFeedErkenntAltbestandOhneQuellenIDUeberTitelUndDatum() async throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            RuleCondition.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let publishedAt = Date(timeIntervalSince1970: 100)
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
+        let existingArticle = Article(
+            title: "Schon gelesener Artikel",
+            link: "https://example.com/1?utm_source=alt",
+            summary: "Lokale Kurzfassung",
+            publishedAt: publishedAt,
+            isRead: true,
+            feed: feed
+        )
+        feed.articles = [existingArticle]
+        feed.unreadCount = 0
+
+        context.insert(feed)
+        try context.save()
+
+        let viewModel = makeViewModel(
+            fetchFeed: { urlString in
+                ParsedFeed(
+                    sourceURL: urlString,
+                    title: "Feed",
+                    description: nil,
+                    articles: [
+                        ParsedArticle(
+                            title: "Schon gelesener Artikel",
+                            sourceID: "artikel-1",
+                            link: "https://example.com/1?utm_source=neu",
+                            summary: "Aktualisierte Kurzfassung",
+                            content: nil,
+                            publishedAt: publishedAt,
+                            imageURL: nil
+                        )
+                    ]
+                )
+            },
+            discoverFaviconURL: { _ in nil }
+        )
+
+        await viewModel.refreshFeed(feed, context: context)
+
+        #expect(feed.articles.count == 1)
+        #expect(existingArticle.isRead)
+        #expect(existingArticle.sourceID == "artikel-1")
+        #expect(existingArticle.summary == "Aktualisierte Kurzfassung")
+        #expect(feed.unreadCount == 0)
+    }
+
+    @MainActor
+    @Test func refreshFeedImportiertAbgelaufeneArtikelBeiAktiverAufbewahrungNicht() async throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            RuleCondition.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let now = Date(timeIntervalSince1970: 10_000_000)
+        let oldPublishedAt = now.addingTimeInterval(-40 * 24 * 60 * 60)
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
+        feed.articleRetentionOverridesGlobalSetting = true
+        feed.articleRetentionIsEnabled = true
+        feed.articleRetentionDays = 30
+        feed.unreadCount = 0
+
+        context.insert(feed)
+        try context.save()
+
+        let viewModel = makeViewModel(
+            fetchFeed: { urlString in
+                ParsedFeed(
+                    sourceURL: urlString,
+                    title: "Feed",
+                    description: nil,
+                    articles: [
+                        ParsedArticle(
+                            title: "Alter gelesener Artikel",
+                            sourceID: "old-1",
+                            link: "https://example.com/old",
+                            summary: "Noch im Feed enthalten",
+                            content: nil,
+                            publishedAt: oldPublishedAt,
+                            imageURL: nil
+                        )
+                    ]
+                )
+            },
+            discoverFaviconURL: { _ in nil }
+        )
+
+        await viewModel.refreshFeed(feed, context: context)
+
+        let feedID = feed.id
+        let articlesAfterRefresh = try context.fetch(
+            FetchDescriptor<Article>(
+                predicate: #Predicate<Article> { article in
+                    article.feedID == feedID
+                }
+            )
+        )
+        #expect(articlesAfterRefresh.isEmpty)
+        #expect(feed.unreadCount == 0)
+    }
+
+    @MainActor
+    @Test func refreshFeedImportiertAbgelaufeneArtikelBeiGlobalAktiverAufbewahrungNicht() async throws {
+        articleRetentionDefaults.set(true, forKey: ArticleRetentionSettings.isEnabledKey)
+        articleRetentionDefaults.set(30, forKey: ArticleRetentionSettings.retentionDaysKey)
+
+        let container = try ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            RuleCondition.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let oldPublishedAt = Date().addingTimeInterval(-40 * 24 * 60 * 60)
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
+
+        context.insert(feed)
+        try context.save()
+
+        let viewModel = makeViewModel(
+            fetchFeed: { urlString in
+                ParsedFeed(
+                    sourceURL: urlString,
+                    title: "Feed",
+                    description: nil,
+                    articles: [
+                        ParsedArticle(
+                            title: "Alter Artikel aus globaler Aufbewahrung",
+                            sourceID: "old-global-1",
+                            link: "https://example.com/old-global",
+                            summary: "Noch im Feed enthalten",
+                            content: nil,
+                            publishedAt: oldPublishedAt,
+                            imageURL: nil
+                        )
+                    ]
+                )
+            },
+            discoverFaviconURL: { _ in nil }
+        )
+
+        await viewModel.refreshFeed(feed, context: context)
+
+        #expect(feed.articles.isEmpty)
+        #expect(feed.unreadCount == 0)
+    }
+
+    @MainActor
     @Test func refreshFeedTraegtSpaeterGeliefertenOfflineContentBeiBestehendenArtikelnNach() async throws {
         let container = try ModelContainer(
             for: Feed.self,
@@ -612,7 +872,7 @@ struct FeedViewModelTests {
             feed: feed
         )
         feed.articles = [existingArticle]
-        let viewModel = FeedViewModel(
+        let viewModel = makeViewModel(
             fetchFeed: { urlString in
                 ParsedFeed(
                     sourceURL: urlString,
@@ -678,7 +938,7 @@ struct FeedViewModelTests {
         context.insert(rule)
         try context.save()
 
-        let viewModel = FeedViewModel(
+        let viewModel = makeViewModel(
             fetchFeed: { urlString in
                 ParsedFeed(
                     sourceURL: urlString,
@@ -744,7 +1004,7 @@ struct FeedViewModelTests {
         try context.save()
 
         var enrichedArticleLinks: [String] = []
-        let viewModel = FeedViewModel(
+        let viewModel = makeViewModel(
             fetchFeed: { urlString in
                 ParsedFeed(
                     sourceURL: urlString,
@@ -816,7 +1076,7 @@ struct FeedViewModelTests {
             title: "Mein eigener Name",
             originalTitle: "Alter Feedname"
         )
-        let viewModel = FeedViewModel(
+        let viewModel = makeViewModel(
             fetchFeed: { urlString in
                 ParsedFeed(
                     sourceURL: urlString,
@@ -851,7 +1111,7 @@ struct FeedViewModelTests {
         )
         let context = ModelContext(container)
         let feed = Feed(url: "https://example.com/feed.xml", title: "Test Feed")
-        let viewModel = FeedViewModel()
+        let viewModel = makeViewModel()
 
         context.insert(feed)
         try context.save()
@@ -879,7 +1139,7 @@ struct FeedViewModelTests {
         let article = Article(title: "Offline Rest", feed: feed)
         article.offlineState = .feedContent
         feed.articles = [article]
-        let viewModel = FeedViewModel()
+        let viewModel = makeViewModel()
 
         context.insert(feed)
         try context.save()
@@ -907,7 +1167,7 @@ struct FeedViewModelTests {
         let article = Article(title: "Direkter Rest")
         article.feedID = feed.id
         article.offlineState = .feedContent
-        let viewModel = FeedViewModel()
+        let viewModel = makeViewModel()
 
         context.insert(feed)
         context.insert(article)
@@ -932,7 +1192,7 @@ struct FeedViewModelTests {
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
         let context = ModelContext(container)
-        let viewModel = FeedViewModel()
+        let viewModel = makeViewModel()
 
         viewModel.deleteFeed(nil, context: context)
 
@@ -961,7 +1221,7 @@ struct FeedViewModelTests {
         }
         let tracker = ConcurrencyTracker()
 
-        let viewModel = FeedViewModel(
+        let viewModel = makeViewModel(
             fetchFeed: { urlString in
                 await tracker.fetchStarted()
                 try await Task.sleep(for: .milliseconds(100))
@@ -1018,7 +1278,7 @@ struct FeedViewModelTests {
         }
         let tracker = ConcurrencyTracker()
 
-        let viewModel = FeedViewModel(
+        let viewModel = makeViewModel(
             fetchFeed: { urlString in
                 await tracker.fetchStarted()
                 try await Task.sleep(for: .milliseconds(100))
@@ -1058,7 +1318,7 @@ struct FeedViewModelTests {
         try context.save()
 
         var capturedResults: [FeedRefreshNotificationResult] = []
-        let viewModel = FeedViewModel(
+        let viewModel = makeViewModel(
             fetchFeed: { urlString in
                 ParsedFeed(
                     sourceURL: urlString,
@@ -1136,7 +1396,7 @@ struct FeedViewModelTests {
         try context.save()
 
         var capturedRuleNotifications: [RuleNotificationResult] = []
-        let viewModel = FeedViewModel(
+        let viewModel = makeViewModel(
             fetchFeed: { urlString in
                 ParsedFeed(
                     sourceURL: urlString,

@@ -449,7 +449,7 @@ struct ArticleListQueryTests {
     }
 
     @MainActor
-    @Test func smartFolderFetchDescriptorLaedtUngeleseneArtikelDirektPerQuery() throws {
+    @Test func smartFolderFetchDescriptorLaedtFuerUngelesenAlleArtikelFuerFeedAehnlichesVerhalten() throws {
         let container = try ModelContainer(
             for: Feed.self,
             FeedFolder.self,
@@ -494,8 +494,19 @@ struct ArticleListQueryTests {
 
         let descriptor = try #require(ArticleListQuery.smartFolderFetchDescriptor(for: folder))
         let articles = try context.fetch(descriptor)
+        let hiddenState = ArticleListDisplayState(
+            articles: articles,
+            showsReadArticles: false
+        )
+        let selectedState = ArticleListDisplayState(
+            articles: articles,
+            showsReadArticles: false,
+            selectedArticle: readArticle
+        )
 
-        #expect(articles.map(\.title) == ["Ungelesen neu", "Ungelesen alt"])
+        #expect(articles.map(\.title) == ["Gelesen", "Ungelesen neu", "Ungelesen alt"])
+        #expect(hiddenState.visibleArticles.map(\.title) == ["Ungelesen neu", "Ungelesen alt"])
+        #expect(selectedState.visibleArticles.map(\.title) == ["Gelesen", "Ungelesen neu", "Ungelesen alt"])
     }
 
     @MainActor

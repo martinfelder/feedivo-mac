@@ -62,6 +62,7 @@ final class FeedViewModel {
     private let enrichArticleImages: ([ParsedArticle]) async -> [ParsedArticle]
     private let notifyFeedRefresh: ([FeedRefreshNotificationResult]) async -> Void
     private let notifyRuleNotifications: ([RuleNotificationResult]) async -> Void
+    private let articleRetentionDefaults: UserDefaults
 
     var isLoading = false
     var errorMessage: String?
@@ -80,13 +81,15 @@ final class FeedViewModel {
         },
         notifyRuleNotifications: @escaping ([RuleNotificationResult]) async -> Void = { results in
             await FeedNotificationService.presentRuleSummary(for: results)
-        }
+        },
+        articleRetentionDefaults: UserDefaults = .standard
     ) {
         self.fetchFeed = fetchFeed
         self.discoverFaviconURL = discoverFaviconURL
         self.enrichArticleImages = enrichArticleImages
         self.notifyFeedRefresh = notifyFeedRefresh
         self.notifyRuleNotifications = notifyRuleNotifications
+        self.articleRetentionDefaults = articleRetentionDefaults
     }
 
     @MainActor
@@ -353,6 +356,7 @@ final class FeedViewModel {
                     content: parsedArticle.content,
                     publishedAt: parsedArticle.publishedAt,
                     imageURL: parsedArticle.imageURL,
+                    sourceID: parsedArticle.sourceID,
                     feed: feed
                 )
             }
@@ -523,13 +527,22 @@ final class FeedViewModel {
         }
     }
 
-    private func articleIdentity(_ article: Article) -> String {
-        if let link = article.link?.trimmingCharacters(in: .whitespacesAndNewlines),
-           !link.isEmpty {
-            return "link:\(link)"
+    private func articleIdentityKeys(_ article: Article) -> [String] {
+        var keys: [String] = []
+
+        if let sourceID = cleanedIdentityValue(article.sourceID) {
+            keys.append("source:\(sourceID)")
         }
 
-        return "title-date:\(article.title)|\(article.publishedAt?.timeIntervalSince1970 ?? 0)"
+        if let link = cleanedIdentityValue(article.link) {
+            keys.append("link:\(link)")
+        }
+
+        if let titleDateKey = titleDateIdentityKey(title: article.title, publishedAt: article.publishedAt) {
+            keys.append(titleDateKey)
+        }
+
+        return keys.isEmpty ? ["title:\(article.title)"] : keys
     }
 
     private func normalizedFeedURL(_ urlString: String) -> String {
@@ -550,17 +563,48 @@ final class FeedViewModel {
         self.operationProgress = operationProgress
     }
 
-    private func articleIdentity(for parsedArticle: ParsedArticle) -> String {
-        if let link = parsedArticle.link?.trimmingCharacters(in: .whitespacesAndNewlines),
-           !link.isEmpty {
-            return "link:\(link)"
+    private func articleIdentityKeys(for parsedArticle: ParsedArticle) -> [String] {
+        var keys: [String] = []
+
+        if let sourceID = cleanedIdentityValue(parsedArticle.sourceID) {
+            keys.append("source:\(sourceID)")
         }
 
-        return "title-date:\(parsedArticle.title)|\(parsedArticle.publishedAt?.timeIntervalSince1970 ?? 0)"
+        if let link = cleanedIdentityValue(parsedArticle.link) {
+            keys.append("link:\(link)")
+        }
+
+        if let titleDateKey = titleDateIdentityKey(title: parsedArticle.title, publishedAt: parsedArticle.publishedAt) {
+            keys.append(titleDateKey)
+        }
+
+        return keys.isEmpty ? ["title:\(parsedArticle.title)"] : keys
+    }
+
+    private func primaryArticleIdentity(for parsedArticle: ParsedArticle) -> String {
+        articleIdentityKeys(for: parsedArticle)[0]
+    }
+
+    private func cleanedIdentityValue(_ value: String?) -> String? {
+        let cleaned = value?.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let cleaned, !cleaned.isEmpty else {
+            return nil
+        }
+
+        return cleaned
+    }
+
+    private func titleDateIdentityKey(title: String, publishedAt: Date?) -> String? {
+        guard let publishedAt else {
+            return nil
+        }
+
+        return "title-date:\(title)|\(publishedAt.timeIntervalSince1970)"
     }
 
     @MainActor
     private func refreshFeedContents(_ feed: Feed, context: ModelContext) async throws -> FeedRefreshResult {
+        let refreshDate = Date()
         let parsedFeed = try await fetchFeed(feed.url)
         let existingArticlesByIdentity = existingArticlesByIdentity(in: feed)
         updateMissingArticleImages(
@@ -570,7 +614,7 @@ final class FeedViewModel {
         let existingArticlesNeedingPageImages = parsedFeed.articles.filter { parsedArticle in
             guard
                 parsedArticleNeedsPageImage(parsedArticle),
-                let existingArticle = existingArticlesByIdentity[articleIdentity(for: parsedArticle)]
+                let existingArticle = existingArticle(in: existingArticlesByIdentity, for: parsedArticle)
             else {
                 return false
             }
@@ -589,7 +633,19 @@ final class FeedViewModel {
 
         var seenArticleKeys = Set(existingArticlesByIdentity.keys)
         let newArticles = parsedFeed.articles.filter { parsedArticle in
-            seenArticleKeys.insert(articleIdentity(for: parsedArticle)).inserted
+            let articleKeys = articleIdentityKeys(for: parsedArticle)
+            let isKnownArticle = articleKeys.contains { seenArticleKeys.contains($0) }
+            seenArticleKeys.formUnion(articleKeys)
+            guard !isKnownArticle else {
+                return false
+            }
+
+            return ArticleRetentionSettings.canImportParsedArticle(
+                parsedArticle,
+                for: feed,
+                defaults: articleRetentionDefaults,
+                now: refreshDate
+            )
         }
         let enrichedNewArticlesByIdentity = await enrichedArticlesByIdentity(
             for: newArticles.filter(parsedArticleNeedsPageImage)
@@ -610,10 +666,10 @@ final class FeedViewModel {
         if let faviconURL = await faviconURL(for: parsedFeed) {
             feed.faviconURL = faviconURL
         }
-        feed.lastRefreshed = Date()
+        feed.lastRefreshed = refreshDate
 
         for parsedArticle in newArticles {
-            let articleToInsert = enrichedNewArticlesByIdentity[articleIdentity(for: parsedArticle)] ?? parsedArticle
+            let articleToInsert = enrichedNewArticlesByIdentity[primaryArticleIdentity(for: parsedArticle)] ?? parsedArticle
             let article = Article(
                 title: articleToInsert.title,
                 link: articleToInsert.link,
@@ -621,6 +677,7 @@ final class FeedViewModel {
                 content: articleToInsert.content,
                 publishedAt: articleToInsert.publishedAt,
                 imageURL: articleToInsert.imageURL,
+                sourceID: articleToInsert.sourceID,
                 feed: feed
             )
             let ruleResult = RuleEngine.applyRulesWithNotifications(rules, to: article, feed: feed)
@@ -650,17 +707,29 @@ final class FeedViewModel {
     private func existingArticlesByIdentity(in feed: Feed) -> [String: Article] {
         var articlesByIdentity: [String: Article] = [:]
         for article in feed.articles {
-            articlesByIdentity[articleIdentity(article)] = article
+            for identityKey in articleIdentityKeys(article) where articlesByIdentity[identityKey] == nil {
+                articlesByIdentity[identityKey] = article
+            }
         }
 
         return articlesByIdentity
+    }
+
+    private func existingArticle(in existingArticlesByIdentity: [String: Article], for parsedArticle: ParsedArticle) -> Article? {
+        for identityKey in articleIdentityKeys(for: parsedArticle) {
+            if let article = existingArticlesByIdentity[identityKey] {
+                return article
+            }
+        }
+
+        return nil
     }
 
     private func updateMissingArticleImages(in existingArticlesByIdentity: [String: Article], from parsedArticles: [ParsedArticle]) {
         for parsedArticle in parsedArticles {
             guard let imageURL = parsedArticle.imageURL?.trimmingCharacters(in: .whitespacesAndNewlines),
                   !imageURL.isEmpty,
-                  let existingArticle = existingArticlesByIdentity[articleIdentity(for: parsedArticle)],
+                  let existingArticle = existingArticle(in: existingArticlesByIdentity, for: parsedArticle),
                   existingArticle.imageURL?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true
             else {
                 continue
@@ -672,8 +741,18 @@ final class FeedViewModel {
 
     private func updateStoredArticleContent(in existingArticlesByIdentity: [String: Article], from parsedArticles: [ParsedArticle]) {
         for parsedArticle in parsedArticles {
-            guard let existingArticle = existingArticlesByIdentity[articleIdentity(for: parsedArticle)] else {
+            guard let existingArticle = existingArticle(in: existingArticlesByIdentity, for: parsedArticle) else {
                 continue
+            }
+
+            if isMissingText(existingArticle.sourceID),
+               let sourceID = nonEmptyText(parsedArticle.sourceID) {
+                existingArticle.sourceID = sourceID
+            }
+
+            if isMissingText(existingArticle.link),
+               let link = nonEmptyText(parsedArticle.link) {
+                existingArticle.link = link
             }
 
             if let summary = nonEmptyText(parsedArticle.summary) {
@@ -689,7 +768,10 @@ final class FeedViewModel {
 
     private func enrichedArticlesByIdentity(for articles: [ParsedArticle]) async -> [String: ParsedArticle] {
         let enrichedArticles = await enrichArticleImagesIfNeeded(articles)
-        return Dictionary(uniqueKeysWithValues: enrichedArticles.map { (articleIdentity(for: $0), $0) })
+        return Dictionary(
+            enrichedArticles.map { (primaryArticleIdentity(for: $0), $0) },
+            uniquingKeysWith: { first, _ in first }
+        )
     }
 
     private func enrichArticleImagesIfNeeded(_ articles: [ParsedArticle]) async -> [ParsedArticle] {

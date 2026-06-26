@@ -298,6 +298,11 @@ struct FeedivoTests {
         #expect(ReaderTypography.clampedLineSpacing(20) == 12)
     }
 
+    @Test func readerTypographyDefiniertBoldDefaults() {
+        #expect(!ReaderTypography.defaultTitleFontIsBold)
+        #expect(!ReaderTypography.defaultBodyFontIsBold)
+    }
+
     @Test func readerTypographyDefiniertEditorialReaderRhythmus() {
         #expect(ReaderTypography.articleTopPadding == 44)
         #expect(ReaderTypography.articleBottomPadding == 28)
@@ -528,6 +533,28 @@ struct FeedivoTests {
         let result = try FeedService.parseFeed(data: Data(rss.utf8), sourceURL: "https://example.com/news/feed.xml")
 
         #expect(result.articles.first?.imageURL == "https://example.com/news/bilder/media-bild.jpg")
+    }
+
+    @Test func feedServiceLiestRSSGuidAlsStabileArtikelQuelle() throws {
+        let rss = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <rss version="2.0">
+            <channel>
+                <title>Feedivo Test Feed</title>
+                <item>
+                    <title>Artikel mit GUID</title>
+                    <guid isPermaLink="false">artikel-123</guid>
+                    <link>https://example.com/artikel?utm_source=feed</link>
+                    <description>Kurzer Einstieg</description>
+                </item>
+            </channel>
+        </rss>
+        """
+
+        let result = try FeedService.parseFeed(data: Data(rss.utf8), sourceURL: "https://example.com/feed.xml")
+
+        #expect(result.articles.first?.sourceID == "artikel-123")
+        #expect(result.articles.first?.link == "https://example.com/artikel?utm_source=feed")
     }
 
     @Test func feedServiceReichertArtikelbildAusVerlinkterArtikelseiteExplizitAn() async throws {

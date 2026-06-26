@@ -236,6 +236,12 @@ private struct AppearanceSettingsView: View {
     @AppStorage("readerBodyFontPreset")
     private var readerBodyFontPresetRawValue = ReaderFontPreset.system.rawValue
 
+    @AppStorage("readerTitleFontIsBold")
+    private var readerTitleFontIsBold = ReaderTypography.defaultTitleFontIsBold
+
+    @AppStorage("readerBodyFontIsBold")
+    private var readerBodyFontIsBold = ReaderTypography.defaultBodyFontIsBold
+
     @AppStorage("readerBodyFontSize")
     private var readerBodyFontSize = ReaderTypography.defaultBodyFontSize
 
@@ -283,6 +289,8 @@ private struct AppearanceSettingsView: View {
                 }
                 .pickerStyle(.menu)
 
+                Toggle(L10n.readerTitleFontBoldToggle, isOn: $readerTitleFontIsBold)
+
                 Picker(L10n.readerBodyFontPicker, selection: $readerBodyFontPresetRawValue) {
                     ForEach(ReaderFontPreset.allCases) { preset in
                         Text(preset.title)
@@ -290,6 +298,8 @@ private struct AppearanceSettingsView: View {
                     }
                 }
                 .pickerStyle(.menu)
+
+                Toggle(L10n.readerBodyFontBoldToggle, isOn: $readerBodyFontIsBold)
 
                 typographySlider(
                     L10n.readerBodyFontSizeSlider,
@@ -841,6 +851,21 @@ private struct RefreshSettingsView: View {
 }
 
 private struct AutomationSettingsView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.interfaceTextSize) private var interfaceTextSize
+
+    @AppStorage(ArticleRetentionSettings.isEnabledKey)
+    private var articleRetentionIsEnabled = ArticleRetentionSettings.defaultIsEnabled
+
+    @AppStorage(ArticleRetentionSettings.retentionDaysKey)
+    private var articleRetentionDays = ArticleRetentionSettings.defaultRetentionDays
+
+    @AppStorage(ArticleRetentionSettings.includesProtectedArticlesKey)
+    private var articleRetentionIncludesProtectedArticles = ArticleRetentionSettings.defaultIncludesProtectedArticles
+
+    @State private var retentionCleanupResult: String?
+    @State private var retentionCleanupError: String?
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             SettingsSectionHeader(
@@ -848,11 +873,73 @@ private struct AutomationSettingsView: View {
                 description: L10n.settingsAutomationDescription
             )
 
+            Form {
+                Section {
+                    Toggle(L10n.settingsArticleRetentionTitle, isOn: $articleRetentionIsEnabled)
+
+                    Picker(L10n.settingsArticleRetentionIntervalPicker, selection: $articleRetentionDays) {
+                        ForEach(ArticleRetentionSettings.allowedRetentionDays, id: \.self) { days in
+                            Text(L10n.settingsArticleRetentionInterval(days: days))
+                                .tag(days)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .disabled(!articleRetentionIsEnabled)
+                    .onChange(of: articleRetentionDays) {
+                        articleRetentionDays = ArticleRetentionSettings.clampedRetentionDays(articleRetentionDays)
+                    }
+
+                    Toggle(
+                        L10n.settingsArticleRetentionIncludesProtectedArticles,
+                        isOn: $articleRetentionIncludesProtectedArticles
+                    )
+                    .disabled(!articleRetentionIsEnabled)
+
+                    Text(L10n.settingsArticleRetentionDescription)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    Button(L10n.settingsArticleRetentionRunNow) {
+                        runArticleRetentionCleanup()
+                    }
+                    .disabled(!articleRetentionIsEnabled)
+
+                    if let retentionCleanupResult {
+                        Text(retentionCleanupResult)
+                            .font(interfaceTextSize.font(size: 12))
+                            .foregroundStyle(.secondary)
+                    }
+
+                    if let retentionCleanupError {
+                        Text(retentionCleanupError)
+                            .font(interfaceTextSize.font(size: 12))
+                            .foregroundStyle(.red)
+                    }
+                }
+            }
+            .formStyle(.grouped)
+
             RuleSettingsView()
 
             Divider()
 
             SmartFolderSettingsView()
+        }
+    }
+
+    private func runArticleRetentionCleanup() {
+        do {
+            let removedCount = try ArticleRetentionCleanupService.removeExpiredArticles(
+                in: modelContext,
+                isEnabled: articleRetentionIsEnabled,
+                retentionDays: articleRetentionDays,
+                includeProtectedArticles: articleRetentionIncludesProtectedArticles
+            )
+            retentionCleanupResult = L10n.settingsArticleRetentionResult(count: removedCount)
+            retentionCleanupError = nil
+        } catch {
+            retentionCleanupResult = nil
+            retentionCleanupError = error.localizedDescription
         }
     }
 }

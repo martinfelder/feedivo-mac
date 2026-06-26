@@ -3,6 +3,8 @@ import Foundation
 enum ReaderTypography {
     static let defaultTitleFontSize = 31.0
     static let defaultBodyFontSize = 17.0
+    static let defaultTitleFontIsBold = false
+    static let defaultBodyFontIsBold = false
     static let bodyFontSizeRange = 14.0...24.0
 
     static let defaultLineSpacing = 5.0

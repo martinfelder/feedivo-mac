@@ -23,6 +23,7 @@ class Article {
     var author: String?
     var publishedAt: Date?
     var imageURL: String?
+    var sourceID: String?
     var feedID: UUID?
     var isRead: Bool
     var isStarred: Bool
@@ -57,6 +58,7 @@ class Article {
         author: String? = nil,
         publishedAt: Date? = nil,
         imageURL: String? = nil,
+        sourceID: String? = nil,
         isRead: Bool = false,
         isStarred: Bool = false,
         isArchived: Bool = false,
@@ -71,6 +73,7 @@ class Article {
         self.author = author
         self.publishedAt = publishedAt
         self.imageURL = imageURL
+        self.sourceID = sourceID
         self.feedID = feed?.id
         self.isRead = isRead
         self.isStarred = isStarred

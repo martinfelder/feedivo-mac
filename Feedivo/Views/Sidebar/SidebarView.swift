@@ -217,7 +217,8 @@ struct SidebarView: View {
                             smartFolder: smartFolder,
                             badgeText: SmartFolderSidebarBadge.badgeText(
                                 for: smartFolder,
-                                feeds: feeds
+                                feeds: feeds,
+                                context: modelContext
                             )
                         )
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -282,7 +283,7 @@ struct SidebarView: View {
             .buttonStyle(
                 SidebarRowButtonStyle(
                     isSelected: selection == .feed(feed.persistentModelID),
-                    leadingIndent: isIndented ? 18 : 0
+                    leadingIndent: isIndented ? 32 : 0
                 )
             )
             .contextMenu {
@@ -476,16 +477,16 @@ private struct SidebarFolderSection<Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Button(action: toggle) {
-                HStack(spacing: 7) {
+                HStack(spacing: 8) {
                     Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
                         .font(interfaceTextSize.font(size: 10, weight: .bold))
                         .frame(width: interfaceTextSize.scaled(12))
 
                     Image(systemName: "folder")
-                        .font(interfaceTextSize.font(size: 13, weight: .semibold))
+                        .font(interfaceTextSize.font(size: 13, weight: .medium))
 
                     Text(title)
-                        .font(interfaceTextSize.font(size: 11, weight: .bold))
+                        .font(interfaceTextSize.font(size: 12, weight: .medium))
                         .lineLimit(1)
 
                     Spacer(minLength: 0)
@@ -493,8 +494,7 @@ private struct SidebarFolderSection<Content: View>: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .fontWeight(.bold)
-            .foregroundStyle(SidebarStyle.sectionText)
+            .foregroundStyle(SidebarStyle.primaryText.opacity(0.76))
             .padding(.horizontal, 10)
             .padding(.top, 8)
 

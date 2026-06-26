@@ -49,7 +49,7 @@ struct ContentView: View {
                 onRequestAddFeed: requestAddFeed,
                 onRequestDeleteFeed: requestDeleteFeed
             )
-                .navigationSplitViewColumnWidth(min: 200, ideal: 240, max: 300)
+                .navigationSplitViewColumnWidth(min: 200, ideal: 260, max: 420)
 
         } content: {
 

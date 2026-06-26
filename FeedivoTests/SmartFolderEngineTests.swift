@@ -1,4 +1,5 @@
 import Foundation
+import SwiftData
 import Testing
 @testable import Feedivo
 
@@ -130,7 +131,18 @@ struct SmartFolderEngineTests {
     }
 
     @MainActor
-    @Test func sidebarBadgeCountNutztFeedUnreadCountFuerUngelesenOrdner() {
+    @Test func sidebarBadgeCountNutztFeedUnreadCountFuerUngelesenOrdner() throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            FeedFolder.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            RuleCondition.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
         let firstFeed = Feed(url: "https://example.com/1.xml", title: "Feed 1")
         firstFeed.unreadCount = 3
         let secondFeed = Feed(url: "https://example.com/2.xml", title: "Feed 2")
@@ -149,9 +161,68 @@ struct SmartFolderEngineTests {
 
         let badgeText = SmartFolderSidebarBadge.badgeText(
             for: unreadFolder,
-            feeds: [firstFeed, secondFeed]
+            feeds: [firstFeed, secondFeed],
+            context: context
         )
 
         #expect(badgeText == "7")
+    }
+
+    @MainActor
+    @Test func formatterZeigtGeleseneArtikelFuerSternAusgeblendetUndGespeichertStandardmaessig() {
+        let starredFolder = SmartFolder(
+            name: "Mit Stern",
+            matchMode: .all,
+            conditions: [
+                SmartFolderCondition(
+                    field: .status,
+                    conditionOperator: .is,
+                    value: SmartFolderStatusValue.starred.rawValue
+                )
+            ]
+        )
+        let hiddenFolder = SmartFolder(
+            name: "Ausgeblendet",
+            matchMode: .all,
+            conditions: [
+                SmartFolderCondition(
+                    field: .status,
+                    conditionOperator: .is,
+                    value: SmartFolderStatusValue.hidden.rawValue
+                )
+            ]
+        )
+        let savedFolder = SmartFolder(
+            name: "Gespeichert",
+            matchMode: .any,
+            conditions: [
+                SmartFolderCondition(
+                    field: .status,
+                    conditionOperator: .is,
+                    value: SmartFolderStatusValue.starred.rawValue
+                ),
+                SmartFolderCondition(
+                    field: .status,
+                    conditionOperator: .is,
+                    value: SmartFolderStatusValue.archived.rawValue
+                )
+            ]
+        )
+        let unreadFolder = SmartFolder(
+            name: "Ungelesen",
+            matchMode: .all,
+            conditions: [
+                SmartFolderCondition(
+                    field: .status,
+                    conditionOperator: .is,
+                    value: SmartFolderStatusValue.unread.rawValue
+                )
+            ]
+        )
+
+        #expect(SmartFolderFormatter.showsReadArticlesByDefault(starredFolder))
+        #expect(SmartFolderFormatter.showsReadArticlesByDefault(hiddenFolder))
+        #expect(SmartFolderFormatter.showsReadArticlesByDefault(savedFolder))
+        #expect(!SmartFolderFormatter.showsReadArticlesByDefault(unreadFolder))
     }
 }

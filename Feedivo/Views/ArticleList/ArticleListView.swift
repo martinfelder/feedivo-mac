@@ -305,7 +305,8 @@ private struct SmartFolderArticleListContent: View {
             navigationState: $navigationState,
             onRequestCreateRuleFromArticle: onRequestCreateRuleFromArticle,
             onRequestExportArticle: onRequestExportArticle,
-            showsHiddenArticles: SmartFolderFormatter.includesHiddenStatus(smartFolder)
+            showsHiddenArticles: SmartFolderFormatter.includesHiddenStatus(smartFolder),
+            showsReadArticlesInitially: SmartFolderFormatter.showsReadArticlesByDefault(smartFolder)
         )
         .id(smartFolder.id)
     }
@@ -347,7 +348,8 @@ private struct ArticleListContent: View {
         onRequestCreateRuleFromArticle: @escaping (Article) -> Void,
         onRequestExportArticle: @escaping (Article) -> Void,
         sortArticles: Bool = true,
-        showsHiddenArticles: Bool = false
+        showsHiddenArticles: Bool = false,
+        showsReadArticlesInitially: Bool = false
     ) {
         self.articles = articles
         self.navigationTitle = navigationTitle
@@ -357,6 +359,7 @@ private struct ArticleListContent: View {
         self._navigationState = navigationState
         self.sortArticles = sortArticles
         self.showsHiddenArticles = showsHiddenArticles
+        self._showsReadArticles = State(initialValue: showsReadArticlesInitially)
     }
 
     var body: some View {

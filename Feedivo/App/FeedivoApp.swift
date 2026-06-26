@@ -15,6 +15,15 @@ struct FeedivoApp: App {
     @AppStorage(BackgroundRefreshSettings.intervalMinutesKey)
     private var backgroundRefreshIntervalMinutes = BackgroundRefreshSettings.defaultIntervalMinutes
 
+    @AppStorage(ArticleRetentionSettings.isEnabledKey)
+    private var articleRetentionIsEnabled = ArticleRetentionSettings.defaultIsEnabled
+
+    @AppStorage(ArticleRetentionSettings.retentionDaysKey)
+    private var articleRetentionDays = ArticleRetentionSettings.defaultRetentionDays
+
+    @AppStorage(ArticleRetentionSettings.includesProtectedArticlesKey)
+    private var articleRetentionIncludesProtectedArticles = ArticleRetentionSettings.defaultIncludesProtectedArticles
+
     private let modelContainer: ModelContainer
     private let backgroundRefreshScheduler: SystemBackgroundActivityRefreshScheduler
 
@@ -53,6 +62,7 @@ struct FeedivoApp: App {
                 .dynamicTypeSize(interfaceTextSize.dynamicTypeSize)
                 .task {
                     backfillStoredArticleMetadataIfNeeded()
+                    cleanupExpiredArticlesIfNeeded()
                     trimImageCacheToSelectedLimit()
                     scheduleBackgroundRefresh()
                 }
@@ -61,6 +71,15 @@ struct FeedivoApp: App {
                 }
                 .onChange(of: backgroundRefreshIntervalMinutes) {
                     scheduleBackgroundRefresh()
+                }
+                .onChange(of: articleRetentionIsEnabled) {
+                    cleanupExpiredArticlesIfNeeded()
+                }
+                .onChange(of: articleRetentionDays) {
+                    cleanupExpiredArticlesIfNeeded()
+                }
+                .onChange(of: articleRetentionIncludesProtectedArticles) {
+                    cleanupExpiredArticlesIfNeeded()
                 }
         }
         .commands {
@@ -90,6 +109,16 @@ struct FeedivoApp: App {
     private func trimImageCacheToSelectedLimit() {
         try? ImageCacheService.shared.trimCache(
             toLimitInBytes: ImageCacheSettings.currentLimitInBytes
+        )
+    }
+
+    @MainActor
+    private func cleanupExpiredArticlesIfNeeded() {
+        _ = try? ArticleRetentionCleanupService.removeExpiredArticles(
+            in: modelContainer.mainContext,
+            isEnabled: articleRetentionIsEnabled,
+            retentionDays: articleRetentionDays,
+            includeProtectedArticles: articleRetentionIncludesProtectedArticles
         )
     }
 

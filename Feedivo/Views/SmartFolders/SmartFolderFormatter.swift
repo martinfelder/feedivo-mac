@@ -24,6 +24,39 @@ enum SmartFolderFormatter {
         }
     }
 
+    static func showsReadArticlesByDefault(_ folder: SmartFolder) -> Bool {
+        let conditions = sortedConditions(for: folder)
+
+        if RuleMatchMode.normalized(folder.matchModeRaw) == .all,
+           conditions.count == 1,
+           let condition = conditions.first,
+           condition.fieldRaw == SmartFolderConditionField.status.rawValue,
+           condition.operatorRaw == SmartFolderConditionOperator.is.rawValue,
+           let statusValue = SmartFolderStatusValue(rawValue: condition.value) {
+            switch statusValue {
+            case .starred, .hidden:
+                return true
+            case .unread, .read, .archived:
+                return false
+            }
+        }
+
+        if RuleMatchMode.normalized(folder.matchModeRaw) == .any,
+           conditions.count == 2,
+           conditions.allSatisfy({ condition in
+               condition.fieldRaw == SmartFolderConditionField.status.rawValue
+                   && condition.operatorRaw == SmartFolderConditionOperator.is.rawValue
+           }) {
+            let values = Set(conditions.map(\.value))
+            return values == Set([
+                SmartFolderStatusValue.starred.rawValue,
+                SmartFolderStatusValue.archived.rawValue
+            ])
+        }
+
+        return false
+    }
+
     static func systemImage(for folder: SmartFolder) -> String {
         SmartFolderAppearance.normalizedIconName(folder.iconName)
     }

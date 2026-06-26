@@ -116,12 +116,16 @@ enum ReaderFontPreset: String, CaseIterable, Identifiable {
         }
     }
 
-    func font(size: CGFloat, relativeTo textStyle: Font.TextStyle) -> Font {
+    func font(
+        size: CGFloat,
+        relativeTo textStyle: Font.TextStyle,
+        weight: Font.Weight? = nil
+    ) -> Font {
         switch self {
         case .system:
-            return .system(size: size)
+            return .system(size: size, weight: weight)
         case .serif:
-            return .system(size: size, design: .serif)
+            return .system(size: size, weight: weight, design: .serif)
         default:
             return .custom(fontNames.first ?? title, size: size, relativeTo: textStyle)
         }

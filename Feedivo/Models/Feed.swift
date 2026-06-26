@@ -16,6 +16,10 @@ class Feed {
     var lastRefreshed: Date?
     var refreshIntervalMinutes: Int
     var isNotificationEnabled: Bool = false
+    var articleRetentionOverridesGlobalSetting: Bool = false
+    var articleRetentionIsEnabled: Bool = false
+    var articleRetentionDays: Int = 90
+    var articleRetentionIncludesProtectedArticles: Bool = false
     var unreadCount: Int = 0
 
     @Relationship(deleteRule: .cascade)
@@ -37,7 +41,11 @@ class Feed {
         folderName: String? = nil,
         lastRefreshed: Date? = nil,
         refreshIntervalMinutes: Int = 60,
-        isNotificationEnabled: Bool = false
+        isNotificationEnabled: Bool = false,
+        articleRetentionOverridesGlobalSetting: Bool = false,
+        articleRetentionIsEnabled: Bool = false,
+        articleRetentionDays: Int = 90,
+        articleRetentionIncludesProtectedArticles: Bool = false
     ) {
         self.id = UUID()
         self.url = url
@@ -51,6 +59,10 @@ class Feed {
         self.lastRefreshed = lastRefreshed
         self.refreshIntervalMinutes = refreshIntervalMinutes
         self.isNotificationEnabled = isNotificationEnabled
+        self.articleRetentionOverridesGlobalSetting = articleRetentionOverridesGlobalSetting
+        self.articleRetentionIsEnabled = articleRetentionIsEnabled
+        self.articleRetentionDays = articleRetentionDays
+        self.articleRetentionIncludesProtectedArticles = articleRetentionIncludesProtectedArticles
         self.unreadCount = 0
         self.articles = []
         self.logEntries = []
@@ -68,7 +80,11 @@ class Feed {
         folderName: String? = nil,
         lastRefreshed: Date? = nil,
         refreshIntervalMinutes: Int = 60,
-        isNotificationEnabled: Bool = false
+        isNotificationEnabled: Bool = false,
+        articleRetentionOverridesGlobalSetting: Bool = false,
+        articleRetentionIsEnabled: Bool = false,
+        articleRetentionDays: Int = 90,
+        articleRetentionIncludesProtectedArticles: Bool = false
     ) {
         self.init(
             url: url,
@@ -80,7 +96,11 @@ class Feed {
             folderName: folderName,
             lastRefreshed: lastRefreshed,
             refreshIntervalMinutes: refreshIntervalMinutes,
-            isNotificationEnabled: isNotificationEnabled
+            isNotificationEnabled: isNotificationEnabled,
+            articleRetentionOverridesGlobalSetting: articleRetentionOverridesGlobalSetting,
+            articleRetentionIsEnabled: articleRetentionIsEnabled,
+            articleRetentionDays: articleRetentionDays,
+            articleRetentionIncludesProtectedArticles: articleRetentionIncludesProtectedArticles
         )
         self.originalTitle = originalTitle ?? title
     }

@@ -103,6 +103,96 @@ struct SidebarUnreadCountTests {
     }
 
     @MainActor
+    @Test func smartFolderBadgeZaehltSternArtikelGelesenUndUngelesen() throws {
+        let context = try testContext()
+        let readStarredArticle = Article(title: "Gelesener Stern", isRead: true, isStarred: true)
+        let unreadStarredArticle = Article(title: "Ungelesener Stern", isRead: false, isStarred: true)
+        let regularArticle = Article(title: "Normal", isRead: false)
+        let folder = SmartFolder(
+            name: "Mit Stern",
+            matchMode: .all,
+            conditions: [
+                SmartFolderCondition(
+                    field: .status,
+                    conditionOperator: .is,
+                    value: SmartFolderStatusValue.starred.rawValue
+                )
+            ]
+        )
+
+        context.insert(readStarredArticle)
+        context.insert(unreadStarredArticle)
+        context.insert(regularArticle)
+        try context.save()
+
+        #expect(SmartFolderSidebarBadge.badgeText(for: folder, feeds: [], context: context) == "2")
+    }
+
+    @MainActor
+    @Test func smartFolderBadgeZaehltAusgeblendeteArtikelGelesenUndUngelesen() throws {
+        let context = try testContext()
+        let readHiddenArticle = Article(title: "Gelesen ausgeblendet", isRead: true, isHidden: true)
+        let unreadHiddenArticle = Article(title: "Ungelesen ausgeblendet", isRead: false, isHidden: true)
+        let visibleArticle = Article(title: "Sichtbar", isRead: false)
+        let folder = SmartFolder(
+            name: "Ausgeblendet",
+            matchMode: .all,
+            conditions: [
+                SmartFolderCondition(
+                    field: .status,
+                    conditionOperator: .is,
+                    value: SmartFolderStatusValue.hidden.rawValue
+                )
+            ]
+        )
+
+        context.insert(readHiddenArticle)
+        context.insert(unreadHiddenArticle)
+        context.insert(visibleArticle)
+        try context.save()
+
+        #expect(SmartFolderSidebarBadge.badgeText(for: folder, feeds: [], context: context) == "2")
+    }
+
+    @MainActor
+    @Test func smartFolderBadgeZaehltGespeicherteArtikelOhneDoppelteTreffer() throws {
+        let context = try testContext()
+        let starredArticle = Article(title: "Stern", isRead: true, isStarred: true)
+        let archivedArticle = Article(title: "Archiv", isRead: false, isArchived: true)
+        let starredArchivedArticle = Article(
+            title: "Stern und Archiv",
+            isRead: true,
+            isStarred: true,
+            isArchived: true
+        )
+        let regularArticle = Article(title: "Normal", isRead: false)
+        let folder = SmartFolder(
+            name: "Gespeichert",
+            matchMode: .any,
+            conditions: [
+                SmartFolderCondition(
+                    field: .status,
+                    conditionOperator: .is,
+                    value: SmartFolderStatusValue.starred.rawValue
+                ),
+                SmartFolderCondition(
+                    field: .status,
+                    conditionOperator: .is,
+                    value: SmartFolderStatusValue.archived.rawValue
+                )
+            ]
+        )
+
+        context.insert(starredArticle)
+        context.insert(archivedArticle)
+        context.insert(starredArchivedArticle)
+        context.insert(regularArticle)
+        try context.save()
+
+        #expect(SmartFolderSidebarBadge.badgeText(for: folder, feeds: [], context: context) == "3")
+    }
+
+    @MainActor
     @Test func articleViewModelHaeltFeedZaehlerBeiStatuswechselAktuell() {
         let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
         let article = Article(title: "Ungelesen", isRead: false, feed: feed)

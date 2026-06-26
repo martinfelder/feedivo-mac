@@ -26,15 +26,35 @@ struct ParsedFeed {
 
 struct ParsedArticle {
     let title: String
+    let sourceID: String?
     let link: String?
     let summary: String?
     let content: String?
     let publishedAt: Date?
     let imageURL: String?
 
+    init(
+        title: String,
+        sourceID: String? = nil,
+        link: String?,
+        summary: String?,
+        content: String?,
+        publishedAt: Date?,
+        imageURL: String?
+    ) {
+        self.title = title
+        self.sourceID = sourceID
+        self.link = link
+        self.summary = summary
+        self.content = content
+        self.publishedAt = publishedAt
+        self.imageURL = imageURL
+    }
+
     func copy(imageURL: String?) -> ParsedArticle {
         ParsedArticle(
             title: title,
+            sourceID: sourceID,
             link: link,
             summary: summary,
             content: content,
@@ -107,6 +127,7 @@ enum FeedService {
 
             return ParsedArticle(
                 title: title,
+                sourceID: item.guid?.text,
                 link: item.link,
                 summary: item.description,
                 content: item.content?.encoded,
@@ -137,6 +158,7 @@ enum FeedService {
 
             return ParsedArticle(
                 title: title,
+                sourceID: entry.id,
                 link: entry.links?.first(where: { $0.attributes?.rel == nil || $0.attributes?.rel == "alternate" })?.attributes?.href,
                 summary: entry.summary?.text,
                 content: entry.content?.text,
@@ -168,6 +190,7 @@ enum FeedService {
 
             return ParsedArticle(
                 title: title,
+                sourceID: item.id,
                 link: item.url ?? item.externalURL,
                 summary: item.summary,
                 content: item.contentHtml ?? item.contentText,

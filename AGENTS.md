@@ -206,6 +206,8 @@ FeedivoMac/
 │   │   ├── ArticleFeedIDBackfillService.swift # feedID für alte Artikel nachfuellen ✅
 │   │   ├── ArticleExportService.swift # Markdown-Export für Artikel ✅
 │   │   ├── ArticleMarkdownDocument.swift # FileDocument für Artikel-Markdown-Export ✅
+│   │   ├── ArticleRetentionSettings.swift # Artikel-Aufbewahrung Settings-Keys ✅
+│   │   ├── ArticleRetentionCleanupService.swift # Automatisches Löschen alter Artikel ✅
 │   │   ├── OrphanedArticleCleanupService.swift # verwaiste Artikel ohne existierenden Feed entfernen ✅
 │   │   ├── FeedUnreadCountBackfillService.swift # unreadCount einmalig korrigieren ✅
 │   │   ├── RuleConditionBackfillService.swift # alte Rule-Felder in Conditions migrieren ✅
@@ -317,7 +319,7 @@ struct FeedivoApp: App {
 ### ContentView.swift
 NavigationSplitView mit 3 Spalten. Verwaltet `selectedFeed` und `selectedArticle` als
 `@State`. Zeigt `ContentUnavailableView` wenn nichts ausgewählt ist.
-Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
+Spaltenbreiten: Sidebar 200–420px, ArticleList 280–400px, Detail flexibel.
 Präsentiert `AddFeedSheet` zentral, damit Sidebar-Plus und macOS-Menü `Feed`
 dieselbe Feed-hinzufuegen-Oberflaeche verwenden.
 Haelt keine pauschale `@Query` auf alle Artikel mehr; `ArticleListView` meldet nur
@@ -399,7 +401,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   keine separate Query auf alle ungelesenen Artikel mehr materialisieren muss
 - Die Sidebar hält bewusst keine globale `@Query` auf alle Artikel mehr. Badge-
   Werte für intelligente Ordner werden nur angezeigt, wenn sie günstig berechnet
-  werden können; `Ungelesen` nutzt dafür `Feed.unreadCount`.
+  werden können; `Ungelesen` nutzt dafür `Feed.unreadCount`. Die Default-Ordner
+  `Mit Stern`, `Ausgeblendet` und `Gespeichert` zählen ihre Treffer per
+  SwiftData-`fetchCount`, damit gelesene und ungelesene passende Artikel in der
+  Badge enthalten sind.
 - Per Darstellungseinstellung `sidebar.showsReadFeeds` können Feeds ohne
   ungelesene Artikel in der Sidebar ausgeblendet werden; Standard bleibt anzeigen.
 - Die Sidebar zeigt eine eigene `Tags`-Section mit Tag-Icon; der Button öffnet den
@@ -418,8 +423,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   `Regel erstellen...` sitzt im Menü der Artikelansicht.
 - Feeds stehen in einer Sidebar-Section `Ordner`; neben dem Section-Titel gibt es
   einen + Button zum Anlegen neuer Ordner
-- Ordner sind per Chevron auf- und zuklappbar; Feeds innerhalb eines Ordners werden
-  eingerückt angezeigt, damit die Hierarchie klarer lesbar ist
+- Ordner sind per Chevron auf- und zuklappbar; Ordnernamen werden mit etwas
+  größerer, aber nicht fetter Schrift dezent markanter als Gruppenköpfe
+  dargestellt. Feeds innerhalb eines Ordners werden deutlich eingerückt angezeigt,
+  damit die Hierarchie klarer lesbar ist.
 - Angelegte/leere Ordner werden als `FeedFolder` gespeichert; die Zuordnung eines
   Feeds zu einem Ordner bleibt für v1 über `Feed.folderName`
 - Ordner sind für v1 eine Ebene tief; noch kein Drag & Drop
@@ -451,6 +458,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - `SidebarTagCount` zählt direkt getaggte Artikel und Artikel aus getaggten Feeds
   per SwiftData-`fetchCount` über denselben Tag-Predicate wie die Artikelliste,
   statt Tag-/Feed-Artikel-Relationships bei jedem Sidebar-Render zu traversieren.
+- `SmartFolderSidebarBadge` nutzt für `Ungelesen` weiterhin die summierten
+  `Feed.unreadCount` Werte und zählt `Mit Stern`, `Ausgeblendet` und
+  `Gespeichert` per SwiftData-`fetchCount`, inklusive gelesener und ungelesener
+  Treffer.
 
 ### FeedService.swift
 - Parsed RSS 2.0, Atom und JSON Feed via FeedKit
@@ -459,6 +470,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Feed-Titel wird aus Metadaten gelesen, mit URL als Fallback
 - Website-URL für Favicon Discovery wird aus Feed-Metadaten gelesen:
   RSS `channel.link`, Atom `alternate` Link, JSON Feed `home_page_url`
+- Artikel erhalten zusätzlich eine stabile Quellen-ID aus RSS `guid`, Atom `id`
+  beziehungsweise JSON-Feed `id`, wenn der Feed diese liefert. Diese ID wird für
+  die Wiedererkennung beim Refresh genutzt, weil manche Feeds ihre Artikel-Links
+  oder Tracking-Parameter nachträglich ändern.
 - Artikelbilder werden aus Media RSS, iTunes Image, Bild-Enclosures und erstem
   `<img>` in Content/Summary gelesen
 - `fetchFeed` bleibt ein reiner Feed-Abruf und laedt keine verlinkten Artikelseiten
@@ -493,6 +508,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   aus Website-HTML oder `/favicon.ico` Fallback zu speichern
 - `refreshFeed(_:context:)` — aktualisiert den ausgewählten Feed, fügt nur neue
   Artikel hinzu und aktualisiert Feed-Metadaten sowie `lastRefreshed`
+- Beim Refresh werden bestehende Artikel über mehrere Schlüssel wiedererkannt:
+  stabile Quellen-ID, Link und als migrationsfreundlicher Fallback Titel plus
+  Veröffentlichungsdatum. Dadurch bleiben Lesestatus und Stern/Archiv erhalten,
+  auch wenn ein Feed denselben Artikel später mit leicht geändertem Link liefert.
 - Beim Hinzufuegen werden `siteURL`, `followedAt` und ein Info-Log geschrieben
 - Beim Hinzufuegen und Aktualisieren wird `Feed.unreadCount` für Sidebar-Badges
   gepflegt; neue Artikel starten als ungelesen
@@ -538,6 +557,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   und nach erfolgreichem Speichern an `FeedNotificationService` gemeldet.
   Bestehende Artikel können in den Einstellungen manuell rückwirkend verarbeitet
   werden, ohne macOS-Benachrichtigungen auszulösen.
+- Der Refresh respektiert die Artikel-Aufbewahrung bereits beim Import: Wenn ein
+  Feed-Eintrag älter als die aktive globale oder Feed-eigene Aufbewahrungsgrenze
+  ist, wird er nicht erneut gespeichert. So tauchen zuvor bereinigte alte Artikel
+  nicht wieder als ungelesene Artikel auf, solange sie noch im RSS-Feed stehen.
 - Properties: `isLoading: Bool`, `errorMessage: String?`
 
 ### FaviconService.swift
@@ -689,6 +712,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Feed-Tags sind direkt im Sheet editierbar: Vorhandene globale Tags können per
   Plus-Chip zugewiesen, neue Tags per Eingabe erstellt und zugewiesene Tags wieder
   entfernt werden.
+- Die globale Artikel-Aufbewahrung kann pro Feed überschrieben werden: Standard
+  ist `Globale Einstellung verwenden`; bei aktiver Überschreibung kann der Feed
+  eigene Aktivierung, eigene Aufbewahrungstage und das Mitlöschen von Stern-/
+  Archivartikeln speichern.
 - `FeedPropertiesFormatter` kapselt nächsten Abruf, neuesten Artikel, Log-Limit und
   die sichtbare Log-Anzahl sowie gueltige Link-URLs, damit diese Logik ohne UI
   testbar bleibt
@@ -766,6 +793,13 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Ungelesen, Gelesen, Mit Stern, Archiviert, Ausgeblendet, Gespeichert, Heute und
   Diese Woche. Komplexere benutzerdefinierte Ordner fallen weiterhin auf
   `SmartFolderEngine` mit In-Memory-Filterung zurück.
+- Der intelligente Ordner `Ungelesen` lädt bewusst dieselbe Artikelauswahl wie
+  `Alle Artikel`; `ArticleListDisplayState` blendet gelesene Artikel aus und hält
+  gerade automatisch gelesene Artikel sichtbar. Dadurch verhält sich `Ungelesen`
+  beim Lesen wie normale Feed-Listen.
+- Die intelligenten Ordner `Mit Stern`, `Ausgeblendet` und `Gespeichert` starten
+  in der Artikelliste mit gelesenen und ungelesenen Artikeln sichtbar. Der
+  vorhandene Filter-Menüpunkt kann danach weiterhin manuell umgeschaltet werden.
 - Die Anzeige-Logik berechnet sichtbare Artikel und die Anzahl ausgeblendeter
   gelesener Artikel gemeinsam in `ArticleListDisplaySnapshot`, damit große Listen
   nicht mehrfach durchlaufen werden.
@@ -1010,6 +1044,13 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Der Bereich `Cache` zeigt aktuelle Bild-/Favicon-Cache-Groesse, ein Speicherlimit
   mit erlaubten Werten 100 MB, 250 MB, 500 MB, 1 GB und 2 GB, sowie Aktionen zum
   Aktualisieren der Groessenanzeige und zum Leeren des Cache.
+- Der Bereich `Tags & Regeln` enthält als ersten Slice von Feature 17.3 eine globale
+  Artikel-Aufbewahrung: Alte Artikel können nach 30, 60, 90, 180 oder 365 Tagen
+  automatisch gelöscht werden. Die Einstellung ist standardmäßig ausgeschaltet.
+  Artikel mit Stern oder Archivstatus bleiben standardmäßig geschützt; in derselben
+  Einstellung kann bewusst aktiviert werden, dass auch diese Artikel mitgelöscht
+  werden. Ein Button `Jetzt bereinigen` startet dieselbe Logik manuell. Einzelne
+  Feeds können diese globale Einstellung in `Feed Eigenschaften...` überschreiben.
 - Der Bereich `Offline-Lesen` trennt bewusst zwischen Cache, normal lokal
   gespeichertem Feed-Inhalt und echten Offline-Kopien: Offline ist eine manuelle
   Artikelaktion, Feed-Content ist Basisinhalt, Automatik bleibt ein späterer M4-
@@ -1035,6 +1076,7 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Automatischer Refresh ist standardmäßig deaktiviert und kann auf 15, 30, 60
   oder 120 Minuten gestellt werden
 - Reader-Schriftwahl: `readerTitleFontPreset` und `readerBodyFontPreset`
+- Reader-Fettoptionen: `readerTitleFontIsBold` und `readerBodyFontIsBold`
 - Reader-Typografie: `readerBodyFontSize`, `readerTitleLineSpacing`,
   `readerLineSpacing` und `readerContentWidth`
 - Presets: System, Geist, Inter, Manrope, DM Sans, Literata, Newsreader,
@@ -1079,10 +1121,11 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Seltenere Aktionen wie `Link kopieren` liegen im Reader-Mehr-Menü, damit die
   Toolbar ruhiger bleibt.
 - Toolbar-Button `textformat` öffnet ein Popover für Titel-Schrift,
-  Fließtext-Schrift, Textgroesse, Titel-/Fließtext-Zeilenabstand und Artikelbreite
+  Titel-Fett, Fließtext-Schrift, Fließtext-Fett, Textgroesse,
+  Titel-/Fließtext-Zeilenabstand und Artikelbreite
 - Titel- und Fließtext-Schrift sowie Textgroesse/Titel-Zeilenabstand/
   Fließtext-Zeilenabstand/Artikelbreite werden getrennt via `@AppStorage`
-  gespeichert
+  gespeichert. Titel und Artikeltext haben zusätzlich getrennte Fett-Schalter.
 - Die Metazeile oberhalb des Titels sowie Ordner-/Tag-Chips nutzen die App-
   Oberflaechenschrift (`interfaceTextSize`) statt der Reader-Schriftwahl, damit sie
   optisch zur restlichen App passen.
@@ -1251,6 +1294,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Noto Sans, Noto Serif, Roboto Slab, Crimson Pro, Fraunces, Serif
 - Kapselt Anzeigenamen, bekannte PostScript-Kandidaten, SwiftUI-Font-Erzeugung und
   Fallback für unbekannte gespeicherte Werte
+- System- und Serif-Presets nehmen optionales Font-Weight direkt in der Font-
+  Erzeugung an; Custom-Fonts bleiben über PostScript-Namen adressiert und werden
+  zusätzlich per SwiftUI-`fontWeight` gewichtet.
 - Custom-Fonts werden per PostScript-Namen angesprochen und als TTF-Dateien in
   `Feedivo/Resources/Fonts/` gebundelt
 
@@ -1261,6 +1307,8 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 
 ### ReaderTypography.swift
 - Kapselt Defaults und Grenzwerte für Reader-Typografie
+- Fett-Defaults: Titel und Artikeltext sind standardmässig nicht auf Bold gestellt;
+  der Titel bleibt ohne Option semibold, der Artikeltext regular.
 - Fließtext-Groesse: Default 17 px, Wertebereich 14...24 px
 - Titel-Zeilenabstand: Default 2 px, Wertebereich 0...10 px
 - Fließtext-Zeilenabstand: Default 5 px, Wertebereich 1...12 px
@@ -1326,6 +1374,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
     var folderName: String?
     var lastRefreshed: Date?
     var refreshIntervalMinutes: Int          // Default: 60
+    var articleRetentionOverridesGlobalSetting: Bool // Default: false
+    var articleRetentionIsEnabled: Bool      // Feed-eigene Aufbewahrung aktiv
+    var articleRetentionDays: Int            // Feed-eigene Tage, Default: 90
+    var articleRetentionIncludesProtectedArticles: Bool // Stern/Archiv mitlöschen
     var unreadCount: Int                     // Vorberechneter Sidebar-Zähler
     @Relationship(deleteRule: .cascade) var articles: [Article]
     @Relationship(deleteRule: .cascade, inverse: \FeedLogEntry.feed) var logEntries: [FeedLogEntry]
@@ -1657,8 +1709,11 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   M3-Basis stabil bleiben. M4 umfasst jetzt iCloud Sync, erweiterten OPML-Import,
   manuellen Offline Mode, Settings-Polish, Artikel-Teilen, App-Icon und Release-
   Vorbereitung. Bild-/Favicon-Cache und Onboarding sind als M4-Basis umgesetzt.
-- Nächster sinnvoller Fokus: Feature 17.3 Automatisches Löschen oder Feature 17.1
-  Automatisches Offline-Speichern bei Stern.
+- Feature 17.3 Automatisches Löschen ist umgesetzt: globale Einstellung,
+  Stern-/Archiv-Schutz mit Zusatzoption und pro-Feed-Überschreibung in den
+  Feed-Eigenschaften.
+- Nächster sinnvoller Fokus: Feature 17.1 Automatisches Offline-Speichern bei Stern
+  oder Feature 18.1 Einzelnen Artikel exportieren.
 - Neuer offener M4/v1-Punkt: Vollartikel laden, wenn moeglich und erlaubt. Dabei
   bleibt Feedivo fair gegenüber Feed-Anbietern: Artikelstruktur, Werbung und
   Anbieterlinks dürfen nicht pauschal entfernt werden; die konkrete Reader-
@@ -1669,6 +1724,32 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 ---
 
 ## Letzte Änderungen
+
+- 2026-06-26: Bugfix für Artikel-Aufbewahrung und Refresh: Abgelaufene Feed-
+  Einträge werden bei aktiver globaler oder Feed-eigener Aufbewahrung nicht mehr
+  erneut importiert. Damit erscheinen alte, bereits bereinigte Artikel nach dem
+  nächsten Feed-Abruf nicht wieder als neue ungelesene Artikel.
+
+- 2026-06-26: Refresh-Deduplizierung für Feeds mit wechselnden Artikel-Links
+  korrigiert: Feedivo speichert nun stabile Artikel-Quellen-IDs aus RSS `guid`,
+  Atom `id` und JSON-Feed `id`. Der Refresh vergleicht Altbestand über Quellen-ID,
+  Link und bei bestehenden Daten ohne Quellen-ID über Titel plus
+  Veröffentlichungsdatum. Damit werden bereits gelesene Artikel nicht erneut als
+  neue ungelesene Artikel angelegt, wenn ein Feed Tracking-Parameter oder Links
+  verändert.
+
+- 2026-06-26: Automatisches Löschen pro Feed fertiggestellt: `Feed` speichert nun
+  optionale Aufbewahrungs-Overrides. `Feed Eigenschaften...` bietet dafür direkt
+  im Details-Bereich `Globale Einstellung überschreiben`, eigene Aktivierung,
+  eigene Tage und die Stern-/Archiv-Mitlöschoption. Der Cleanup-Service wertet pro
+  Artikel zuerst den Feed-Override und sonst die globale Einstellung aus; ein Feed
+  kann seine Aufbewahrung auch aktivieren, wenn die globale Einstellung aus ist.
+
+- 2026-06-26: Automatisches Löschen erweitert: In den Einstellungen unter
+  `Tags & Regeln` gibt es jetzt direkt bei der Artikel-Aufbewahrung eine
+  Zusatzoption, um auch Artikel mit Stern und archivierte Artikel in die
+  Bereinigung einzubeziehen. Standard bleibt geschützt; ohne die Zusatzoption
+  werden Stern- und Archivartikel weiterhin nicht automatisch gelöscht.
 
 - 2026-06-25: Feed-Badge-Zähler nach „Als gelesen markieren“ korrigiert:
   `ArticleViewModel` kann den zugehörigen Feed jetzt über `Article.feedID` aus dem
@@ -1714,6 +1795,12 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   intelligente Ordner nutzen gezielte SwiftData-Queries statt alle Artikel über
   `SmartFolderEngine` im Speicher zu filtern. Feature 26.2 bleibt weiterhin offen
   für echte Paginierung und weitere Reader-/Bild-Lazy-Loading-Arbeit.
+
+- 2026-06-25: Bugfix für intelligente Ordner: `Ungelesen` verhält sich beim
+  automatischen Gelesen-Markieren jetzt wie Feed-Listen und hält den gerade
+  geöffneten Artikel sichtbar, bis die Liste gewechselt wird. Außerdem zeigen
+  `Mit Stern`, `Ausgeblendet` und `Gespeichert` Sidebar-Badges und Artikellisten
+  für alle passenden Artikel, also gelesene und ungelesene Treffer.
 
 - 2026-06-25: Performance-Slice für große OPML-Imports umgesetzt: Das mitgelieferte
   Inoreader-OPML enthält 75 Feed-URLs. `importOPMLFeeds` und `refreshAllFeeds`
@@ -2009,6 +2096,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - 2026-06-21: Reader-Darstellung ruhiger gesetzt: kleinerer semibold Titel,
   größere redaktionelle Abstaende, kontrolliertes Lead-Bild, dezenter Original-Link
   im Footer und `Link kopieren` ins Reader-Mehr-Menü verschoben.
+- 2026-06-25: Reader-Typografie erweitert: Titel und Artikeltext haben getrennte
+  Bold-Schalter in Reader-Popover und Darstellungseinstellungen. Die Werte werden
+  über `readerTitleFontIsBold` und `readerBodyFontIsBold` gespeichert.
 - 2026-06-21: Reader-Performance verbessert: Teure Reader-Daten werden pro Artikel
   über `ReaderPreparedArticle` vorbereitet und grosse Bilder wieder mit leichterem
   `scaledToFit` statt Zuschnitt gerendert.

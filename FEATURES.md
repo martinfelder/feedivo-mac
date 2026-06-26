@@ -428,6 +428,11 @@
     "Mit Stern", "Heute", "Ausgeblendet", "Archiviert", "Diese Woche", "Gespeichert"
   - Ein Intelligenter Ordner ohne Bedingungen bedeutet "Alle Artikel"
   - Vordefinierte Ordner speichern Icon und Farbe wie normale intelligente Ordner
+  - `Ungelesen` verhält sich beim automatischen Gelesen-Markieren wie Feed-Listen:
+    der gerade gelesene Artikel bleibt bis zum Listenwechsel sichtbar.
+  - `Mit Stern`, `Ausgeblendet` und `Gespeichert` zeigen Sidebar-Badges und
+    Artikellisten mit allen passenden Artikeln, also gelesenen und ungelesenen
+    Treffern.
   - V1-Entscheidung: Gemischte Operatoren oder Bedingungsgruppen werden bewusst noch nicht umgesetzt.
 
 ### 16.2 Intelligenten Ordner erstellen/bearbeiten
@@ -469,13 +474,26 @@
 - **Status:** ✅ Entschieden — siehe Feature 22.1
 
 ### 17.3 Automatisches Löschen
-- **Status:** ✅ Entschieden — bereit zur Implementierung
-- **Zu implementieren:**
-  - Globale Einstellung: Artikel nach X Tagen löschen (Standard: 90 Tage)
-  - Pro Feed überschreibbar in Feed-Eigenschaften
-  - Alle Artikel werden gelöscht — unabhängig ob gelesen oder ungelesen
-  - Ausnahmen (niemals auto-gelöscht): Archivierte Artikel, Artikel mit Stern
-  - Einstellungs-Kategorie "Artikel" im Settings-Fenster
+- **Status:** ✅ Umgesetzt
+- **Umgesetzt:**
+  - Globale Einstellung: Artikel nach X Tagen löschen, Standardwert 90 Tage
+  - Standardmäßig deaktiviert, damit Feedivo nie ungefragt Artikel entfernt
+  - Manueller Button "Jetzt bereinigen" in Einstellungen → Tags & Regeln
+  - App-Start und Einstellungsänderung führen die Bereinigung aus, wenn aktiv
+  - Ausnahmen: Archivierte Artikel und Artikel mit Stern bleiben standardmäßig
+    erhalten
+  - Option in derselben Einstellung: Auch Artikel mit Stern und archivierte Artikel
+    können bewusst mitgelöscht werden
+  - Pro Feed in `Feed Eigenschaften...` überschreibbar: Feed kann global erben,
+    eigene Aufbewahrung aktivieren/deaktivieren, eigene Tage wählen und Stern/
+    Archivartikel optional mitlöschen
+  - Ungelesen-Zähler betroffener Feeds werden nach dem Löschen korrigiert
+  - Der Feed-Refresh importiert abgelaufene Feed-Einträge bei aktiver Aufbewahrung
+    nicht erneut, damit gelöschte alte Artikel nicht wieder als ungelesen
+    auftauchen
+- **Später prüfen:**
+  - Eigene Einstellungs-Kategorie "Artikel", sobald mehr Artikeloptionen aus
+    Feature 19.1/19.5 zusammenkommen
 
 ### 17.4 Artikel-Liste Anzeige-Logik
 - **Status:** ✅ Entschieden — siehe Feature 2.5
@@ -534,7 +552,8 @@
 ### 19.3 Reader anpassen
 - **Status:** ✅ Entschieden — bereit zur Implementierung
 - **Zu implementieren:**
-  - Maximale Textbreite: schmal / mittel / breit
+  - Maximale Textbreite: umgesetzt als stufenloser Regler
+  - Titel und Artikeltext separat fett darstellen: umgesetzt in Reader-Popover und Einstellungen → Darstellung
   - Artikelbild im Reader: anzeigen / ausblenden (separat von Vorschaubildern)
 - **Nicht umsetzen:** Hintergrundbild / Sepia-Modus
 
@@ -665,6 +684,8 @@
   - OPML-Import und `Alle Feeds aktualisieren` rufen Feeds nur noch begrenzt parallel ab
   - Sidebar lädt keine globale Artikelliste mehr nur für Smart-Folder-Badges
   - `Ungelesen`-Badge der intelligenten Ordner nutzt die gespeicherten `Feed.unreadCount` Werte
+  - `Mit Stern`, `Ausgeblendet` und `Gespeichert` zählen ihre Sidebar-Badges per SwiftData-`fetchCount`
+  - `Ungelesen` lädt für die Artikelliste bewusst alle Artikel und überlässt das Ausblenden gelesener Artikel der Anzeigeebene, damit gerade gelesene Artikel sichtbar bleiben können
   - Artikel-Listen berechnen sichtbare Artikel und die Anzahl ausgeblendeter gelesener Artikel in einem Durchlauf
   - Tag-Zuweisungsoptionen werden in Artikelzeilen erst im Kontextmenü berechnet, nicht mehr bei jedem Zeilen-Render
   - Vordefinierte/einfache intelligente Ordner nutzen gezielte SwiftData-Queries statt alle Artikel im Speicher zu filtern
@@ -679,7 +700,7 @@
   - Bulk-Aktionen wie `Alle als gelesen markieren` synchronisieren betroffene Feed-Zähler per SwiftData-`fetchCount`, damit bereits falsch gespeicherte Badges wieder auf den echten ungelesenen Bestand fallen
   - Das Artikelansicht-Menü zeigt die Bulk-Option ausdrücklich als `Alle als gelesen markieren`
 - **Zu beachten:**
-  - SwiftData-Queries immer mit gezielten Predicates — nie alle Artikel auf einmal laden
+  - SwiftData-Queries immer mit gezielten Predicates; bewusste Ausnahme ist der Default-Ordner `Ungelesen`, weil dort die Anzeigeebene gelesene Artikel für Feed-ähnliches Verhalten temporär sichtbar halten muss
   - Artikel-Liste mit Paginierung (50 Artikel pro Batch, mehr beim Scrollen)
   - Lazy Loading für Bilder und Inhalte
   - Spotlight-Index im Hintergrund aufbauen (nicht im Main Thread)

@@ -39,6 +39,12 @@ struct ReaderView: View {
     @AppStorage("readerBodyFontPreset")
     private var bodyFontPresetRawValue = ReaderFontPreset.system.rawValue
 
+    @AppStorage("readerTitleFontIsBold")
+    private var readerTitleFontIsBold = ReaderTypography.defaultTitleFontIsBold
+
+    @AppStorage("readerBodyFontIsBold")
+    private var readerBodyFontIsBold = ReaderTypography.defaultBodyFontIsBold
+
     @AppStorage("readerBodyFontSize")
     private var readerBodyFontSize = ReaderTypography.defaultBodyFontSize
 
@@ -65,6 +71,18 @@ struct ReaderView: View {
 
     private var bodyFontPreset: ReaderFontPreset {
         ReaderFontPreset.resolved(from: bodyFontPresetRawValue)
+    }
+
+    private var titleFontWeight: Font.Weight {
+        readerTitleFontIsBold ? .bold : .semibold
+    }
+
+    private var bodyFontWeight: Font.Weight {
+        readerBodyFontIsBold ? .bold : .regular
+    }
+
+    private var contentHeadingFontWeight: Font.Weight {
+        readerBodyFontIsBold ? .bold : .semibold
     }
 
     private var clampedBodyFontSize: CGFloat {
@@ -433,7 +451,8 @@ struct ReaderView: View {
 
     private func readerParagraph(_ text: String) -> some View {
         Text(text)
-            .font(bodyFontPreset.font(size: clampedBodyFontSize, relativeTo: .body))
+            .font(bodyFontPreset.font(size: clampedBodyFontSize, relativeTo: .body, weight: bodyFontWeight))
+            .fontWeight(bodyFontWeight)
             .lineSpacing(clampedLineSpacing)
             .textSelection(.enabled)
     }
@@ -445,7 +464,8 @@ struct ReaderView: View {
                 .frame(width: 3)
 
             Text(text)
-                .font(bodyFontPreset.font(size: clampedBodyFontSize, relativeTo: .body))
+                .font(bodyFontPreset.font(size: clampedBodyFontSize, relativeTo: .body, weight: bodyFontWeight))
+                .fontWeight(bodyFontWeight)
                 .italic()
                 .foregroundStyle(.secondary)
                 .lineSpacing(clampedLineSpacing)
@@ -457,11 +477,13 @@ struct ReaderView: View {
     private func readerListItem(_ text: String) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 10) {
             Text(verbatim: "•")
-                .font(bodyFontPreset.font(size: clampedBodyFontSize, relativeTo: .body))
+                .font(bodyFontPreset.font(size: clampedBodyFontSize, relativeTo: .body, weight: bodyFontWeight))
+                .fontWeight(bodyFontWeight)
                 .foregroundStyle(.secondary)
 
             Text(text)
-                .font(bodyFontPreset.font(size: clampedBodyFontSize, relativeTo: .body))
+                .font(bodyFontPreset.font(size: clampedBodyFontSize, relativeTo: .body, weight: bodyFontWeight))
+                .fontWeight(bodyFontWeight)
                 .lineSpacing(clampedLineSpacing)
                 .textSelection(.enabled)
         }
@@ -476,9 +498,10 @@ struct ReaderView: View {
             Text(text)
                 .font(bodyFontPreset.font(
                     size: min(clampedBodyFontSize + 5, CGFloat(ReaderTypography.defaultTitleFontSize - 2)),
-                    relativeTo: .title3
+                    relativeTo: .title3,
+                    weight: contentHeadingFontWeight
                 ))
-                .fontWeight(.semibold)
+                .fontWeight(contentHeadingFontWeight)
                 .lineSpacing(clampedLineSpacing)
                 .textSelection(.enabled)
         case .quote(let text):
@@ -531,6 +554,8 @@ struct ReaderView: View {
             }
             .pickerStyle(.menu)
 
+            Toggle(L10n.readerTitleFontBoldToggle, isOn: $readerTitleFontIsBold)
+
             Picker(L10n.readerBodyFontPicker, selection: $bodyFontPresetRawValue) {
                 ForEach(ReaderFontPreset.allCases) { preset in
                     Text(preset.title)
@@ -538,6 +563,8 @@ struct ReaderView: View {
                 }
             }
             .pickerStyle(.menu)
+
+            Toggle(L10n.readerBodyFontBoldToggle, isOn: $readerBodyFontIsBold)
 
             typographySlider(
                 L10n.readerBodyFontSizeSlider,
@@ -591,9 +618,10 @@ struct ReaderView: View {
         Text(article.title)
             .font(titleFontPreset.font(
                 size: CGFloat(ReaderTypography.defaultTitleFontSize),
-                relativeTo: .largeTitle
+                relativeTo: .largeTitle,
+                weight: titleFontWeight
             ))
-            .fontWeight(.semibold)
+            .fontWeight(titleFontWeight)
             .lineSpacing(clampedTitleLineSpacing)
             .textSelection(.enabled)
     }

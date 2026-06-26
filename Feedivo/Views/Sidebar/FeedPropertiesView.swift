@@ -7,9 +7,22 @@ struct FeedPropertiesView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Tag.name) private var tags: [Tag]
 
+    @AppStorage(ArticleRetentionSettings.isEnabledKey)
+    private var globalArticleRetentionIsEnabled = ArticleRetentionSettings.defaultIsEnabled
+
+    @AppStorage(ArticleRetentionSettings.retentionDaysKey)
+    private var globalArticleRetentionDays = ArticleRetentionSettings.defaultRetentionDays
+
+    @AppStorage(ArticleRetentionSettings.includesProtectedArticlesKey)
+    private var globalArticleRetentionIncludesProtectedArticles = ArticleRetentionSettings.defaultIncludesProtectedArticles
+
     let feed: Feed
 
     @State private var selectedRefreshInterval = BackgroundRefreshSettings.defaultIntervalMinutes
+    @State private var feedRetentionOverridesGlobalSetting = false
+    @State private var feedRetentionIsEnabled = false
+    @State private var feedRetentionDays = ArticleRetentionSettings.defaultRetentionDays
+    @State private var feedRetentionIncludesProtectedArticles = ArticleRetentionSettings.defaultIncludesProtectedArticles
     @State private var folderName = ""
     @State private var newTagName = ""
     @State private var tagViewModel = TagViewModel()
@@ -71,6 +84,10 @@ struct FeedPropertiesView: View {
             selectedRefreshInterval = BackgroundRefreshSettings.clampedIntervalMinutes(
                 feed.refreshIntervalMinutes
             )
+            feedRetentionOverridesGlobalSetting = feed.articleRetentionOverridesGlobalSetting
+            feedRetentionIsEnabled = feed.articleRetentionIsEnabled
+            feedRetentionDays = ArticleRetentionSettings.clampedRetentionDays(feed.articleRetentionDays)
+            feedRetentionIncludesProtectedArticles = feed.articleRetentionIncludesProtectedArticles
             folderName = feed.folderName ?? ""
         }
         .onChange(of: selectedRefreshInterval) {
@@ -80,6 +97,19 @@ struct FeedPropertiesView: View {
         .onChange(of: folderName) {
             feed.folderName = FeedFolderOrganizer.normalizedFolderName(folderName)
             try? modelContext.save()
+        }
+        .onChange(of: feedRetentionOverridesGlobalSetting) {
+            syncFeedRetentionSettings()
+        }
+        .onChange(of: feedRetentionIsEnabled) {
+            syncFeedRetentionSettings()
+        }
+        .onChange(of: feedRetentionDays) {
+            feedRetentionDays = ArticleRetentionSettings.clampedRetentionDays(feedRetentionDays)
+            syncFeedRetentionSettings()
+        }
+        .onChange(of: feedRetentionIncludesProtectedArticles) {
+            syncFeedRetentionSettings()
         }
     }
 
@@ -213,6 +243,8 @@ struct FeedPropertiesView: View {
             editableTagsRow
             propertyDivider
             notificationToggleRow
+            propertyDivider
+            articleRetentionRow
             propertyDivider
             propertyRow(L10n.feedPropertiesLatestArticle, value: formattedLatestArticle)
 
@@ -367,6 +399,49 @@ struct FeedPropertiesView: View {
         .padding(.vertical, 9)
     }
 
+    private var articleRetentionRow: some View {
+        HStack(alignment: .top, spacing: 18) {
+            propertyLabel(L10n.feedPropertiesArticleRetention)
+                .padding(.top, 2)
+
+            VStack(alignment: .leading, spacing: 10) {
+                Toggle(
+                    L10n.feedPropertiesArticleRetentionOverride,
+                    isOn: $feedRetentionOverridesGlobalSetting
+                )
+
+                if feedRetentionOverridesGlobalSetting {
+                    Toggle(
+                        L10n.feedPropertiesArticleRetentionEnabled,
+                        isOn: $feedRetentionIsEnabled
+                    )
+
+                    Picker(L10n.settingsArticleRetentionIntervalPicker, selection: $feedRetentionDays) {
+                        ForEach(ArticleRetentionSettings.allowedRetentionDays, id: \.self) { days in
+                            Text(L10n.settingsArticleRetentionInterval(days: days))
+                                .tag(days)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .disabled(!feedRetentionIsEnabled)
+                    .frame(width: 180, alignment: .leading)
+
+                    Toggle(
+                        L10n.settingsArticleRetentionIncludesProtectedArticles,
+                        isOn: $feedRetentionIncludesProtectedArticles
+                    )
+                    .disabled(!feedRetentionIsEnabled)
+                } else {
+                    Text(L10n.feedPropertiesArticleRetentionInherited)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.vertical, 9)
+    }
+
     private func feedTagPill(_ tag: Tag) -> some View {
         let tagColor = TagColorPalette.color(for: tag.colorHex)
 
@@ -454,6 +529,21 @@ struct FeedPropertiesView: View {
     private func removeTag(_ tag: Tag) {
         feed.tags.removeAll { $0.id == tag.id }
         try? modelContext.save()
+    }
+
+    private func syncFeedRetentionSettings() {
+        feed.articleRetentionOverridesGlobalSetting = feedRetentionOverridesGlobalSetting
+        feed.articleRetentionIsEnabled = feedRetentionIsEnabled
+        feed.articleRetentionDays = ArticleRetentionSettings.clampedRetentionDays(feedRetentionDays)
+        feed.articleRetentionIncludesProtectedArticles = feedRetentionIncludesProtectedArticles
+        try? modelContext.save()
+
+        _ = try? ArticleRetentionCleanupService.removeExpiredArticles(
+            in: modelContext,
+            isEnabled: globalArticleRetentionIsEnabled,
+            retentionDays: globalArticleRetentionDays,
+            includeProtectedArticles: globalArticleRetentionIncludesProtectedArticles
+        )
     }
 
     private var logSection: some View {
