@@ -247,6 +247,11 @@ struct ContentView: View {
                 shareOriginal: {
                     _ = articleViewModel.shareOriginal(selectedArticle)
                 },
+                requestExport: {
+                    if let selectedArticle {
+                        requestExportArticle(selectedArticle)
+                    }
+                },
                 canSelectPreviousArticle: articleNavigationState.previousArticle != nil,
                 canSelectNextArticle: articleNavigationState.nextArticle != nil,
                 selectPreviousArticle: selectPreviousArticle,

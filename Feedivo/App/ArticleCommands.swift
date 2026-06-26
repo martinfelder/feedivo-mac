@@ -53,6 +53,11 @@ struct ArticleCommands: Commands {
                 articleCommandActions?.shareOriginal()
             }
             .disabled(articleCommandActions?.canPerformLinkActions != true)
+
+            Button(L10n.articleExportCommand) {
+                articleCommandActions?.requestExport()
+            }
+            .disabled(articleCommandActions?.canPerformActions != true)
         }
     }
 }

@@ -966,10 +966,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - `Cmd+↓` springt zum nächsten sichtbaren Artikel
 - `Cmd+Shift+U` toggelt gelesen/ungelesen
 - `Cmd+D` toggelt Stern
-- Archivieren und Teilen sind ebenfalls im Artikel-Menü verfuegbar.
+- Archivieren, Teilen und Exportieren sind ebenfalls im Artikel-Menü verfuegbar.
 - Der Exportdialog aus Feature 18.1a läuft über `ContentView` und ist über
-  Artikel-Kontextmenü sowie Reader-Toolbar erreichbar; Export via Share Sheet
-  bleibt ein späterer Export-Slice.
+  Artikel-Menü, Artikel-Kontextmenü sowie Reader-Toolbar erreichbar; Export via
+  Share Sheet bleibt ein späterer Export-Slice.
 - Commands sind deaktiviert, wenn kein Artikel ausgewählt ist oder am Listenrand
   kein vorheriger/nächster Artikel existiert
 - `ContentView` stellt die Aktionen via SwiftUI `FocusedValues` bereit
@@ -1744,10 +1744,11 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 ## Letzte Änderungen
 
 - 2026-06-26: Feature 18.1a umgesetzt: Einzelartikel können jetzt über
-  Kontextmenü und Reader-Toolbar exportiert werden. Der neue zweistufige Dialog
-  nach Product-Design-Variante B bietet Markdown (`.md`), Plain Text (`.txt`) und
-  HTML (`.html`), optional einschließbare Metadaten und eine Textvorschau vor dem
-  nativen Speichern-Dialog. `ArticleExportService` arbeitet format- und
+  Kontextmenü, Reader-Toolbar und macOS-Menü `Artikel` exportiert werden. Der neue
+  zweistufige Dialog nach Product-Design-Variante B bietet Markdown (`.md`),
+  Plain Text (`.txt`) und HTML (`.html`), optional einschließbare Metadaten und
+  eine Textvorschau vor dem nativen Speichern-Dialog. `ArticleExportService`
+  arbeitet format- und
   optionsgesteuert, bevorzugt gespeicherten Offline-Content und schützt HTML-
   Metadatenlinks gegen unsichere Linkziele. `ArticleExportDocument` ersetzt das
   frühere Markdown-spezifische FileDocument.

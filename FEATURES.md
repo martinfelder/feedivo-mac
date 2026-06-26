@@ -514,7 +514,8 @@
 ### 18.1 Einzelnen Artikel exportieren
 - **Status:** 🔨 Erster Slice umgesetzt / weiter ausbaubar
 - **Umgesetzt 18.1a:**
-  - Einzelartikel-Export über Artikel-Kontextmenü und Reader-Toolbar.
+  - Einzelartikel-Export über Artikel-Kontextmenü, Reader-Toolbar und macOS-Menü
+    `Artikel`.
   - Zweistufiger Export-Dialog nach Product-Design-Variante B: Format wählen,
     Metadaten-Option setzen, dann Vorschau prüfen und `Sichern...`.
   - Formate: Markdown (`.md`), Plain Text (`.txt`) und HTML (`.html`).

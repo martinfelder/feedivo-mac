@@ -35,6 +35,7 @@ struct ArticleCommandActionsTests {
         var didCopyLink = false
         var didOpenOriginal = false
         var didShare = false
+        var didRequestExport = false
         let actions = ArticleCommandActions(
             selectedArticle: Article(title: "Original", link: "https://example.com/article"),
             toggleRead: {},
@@ -47,16 +48,21 @@ struct ArticleCommandActionsTests {
             },
             shareOriginal: {
                 didShare = true
+            },
+            requestExport: {
+                didRequestExport = true
             }
         )
 
         actions.copyLink()
         actions.openOriginal()
         actions.shareOriginal()
+        actions.requestExport()
 
         #expect(didCopyLink)
         #expect(didOpenOriginal)
         #expect(didShare)
+        #expect(didRequestExport)
     }
 
     @Test func archivAktionNutztPassendenTitel() {
