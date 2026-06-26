@@ -3,6 +3,8 @@ import SwiftUI
 struct ArticleCommands: Commands {
     @FocusedValue(\.articleCommandActions)
     private var articleCommandActions
+    @FocusedValue(\.articleSearchCommandActions)
+    private var articleSearchCommandActions
 
     var body: some Commands {
         CommandMenu(L10n.articleCommandsMenu) {
@@ -17,6 +19,13 @@ struct ArticleCommands: Commands {
             }
             .keyboardShortcut(.downArrow, modifiers: [.command])
             .disabled(articleCommandActions?.canSelectNextArticle != true)
+
+            Divider()
+
+            Button(L10n.articleSearchCommand) {
+                articleSearchCommandActions?.focusSearch()
+            }
+            .keyboardShortcut("f", modifiers: [.command])
 
             Divider()
 

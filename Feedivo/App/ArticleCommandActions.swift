@@ -85,3 +85,22 @@ extension FocusedValues {
         set { self[ArticleCommandActionsKey.self] = newValue }
     }
 }
+
+struct ArticleSearchCommandActions {
+    let focusSearch: () -> Void
+
+    init(focusSearch: @escaping () -> Void = {}) {
+        self.focusSearch = focusSearch
+    }
+}
+
+private struct ArticleSearchCommandActionsKey: FocusedValueKey {
+    typealias Value = ArticleSearchCommandActions
+}
+
+extension FocusedValues {
+    var articleSearchCommandActions: ArticleSearchCommandActions? {
+        get { self[ArticleSearchCommandActionsKey.self] }
+        set { self[ArticleSearchCommandActionsKey.self] = newValue }
+    }
+}

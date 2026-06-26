@@ -266,6 +266,7 @@ enum L10n {
     static var articleCommandsMenu: String { String(localized: "articleCommands.menu") }
     static var articlePreviousCommand: String { String(localized: "article.previous.command") }
     static var articleNextCommand: String { String(localized: "article.next.command") }
+    static var articleSearchCommand: String { String(localized: "article.search.command") }
     static var articleCopyLinkCommand: String { String(localized: "article.copyLink.command") }
     static var articleOpenOriginalCommand: String { String(localized: "article.openOriginal.command") }
     static var articleArchiveCommand: String { String(localized: "article.archive.command") }
