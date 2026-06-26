@@ -337,6 +337,154 @@ struct ArticleListQueryTests {
         #expect(preparedArticles.filtered.map(\.title) == ["Swift Suche"])
     }
 
+    @Test func articleSearchFiltersFilternNachFeedUndTag() {
+        let selectedFeed = Feed(url: "https://example.com/swift.xml", title: "Swift Feed")
+        let otherFeed = Feed(url: "https://example.com/mac.xml", title: "Mac Feed")
+        let selectedTag = Tag(name: "Apple", colorHex: "#3B82F6")
+        let feedTaggedFeed = Feed(url: "https://example.com/tagged.xml", title: "Tagged Feed")
+        feedTaggedFeed.tags = [selectedTag]
+
+        let feedArticle = Article(title: "Feed Treffer", feed: selectedFeed)
+        let otherArticle = Article(title: "Anderer Feed", feed: otherFeed)
+        let directTaggedArticle = Article(title: "Direktes Tag", feed: otherFeed)
+        directTaggedArticle.tags = [selectedTag]
+        let feedTaggedArticle = Article(title: "Feed Tag", feed: feedTaggedFeed)
+        let unrelatedArticle = Article(title: "Ohne Treffer", feed: otherFeed)
+        let articles = [
+            feedArticle,
+            otherArticle,
+            directTaggedArticle,
+            feedTaggedArticle,
+            unrelatedArticle
+        ]
+
+        #expect(
+            ArticleSearchQuery(
+                filters: ArticleSearchFilters(feedID: selectedFeed.id)
+            )
+            .filtered(articles)
+            .map(\.title) == ["Feed Treffer"]
+        )
+        #expect(
+            ArticleSearchQuery(
+                filters: ArticleSearchFilters(tagID: selectedTag.id)
+            )
+            .filtered(articles)
+            .map(\.title) == ["Direktes Tag", "Feed Tag"]
+        )
+    }
+
+    @Test func articleSearchFiltersFilternNachZeitraumUndStatus() {
+        let now = Date(timeIntervalSince1970: 1_000_000)
+        let calendar = Calendar(identifier: .gregorian)
+        let todayArticle = Article(title: "Heute", publishedAt: now)
+        let yesterdayArticle = Article(
+            title: "Gestern",
+            publishedAt: calendar.date(byAdding: .day, value: -1, to: now)
+        )
+        let lastWeekArticle = Article(
+            title: "Letzte Woche",
+            publishedAt: calendar.date(byAdding: .day, value: -8, to: now)
+        )
+        let readArticle = Article(title: "Gelesen", isRead: true)
+        let starredArticle = Article(title: "Stern", isStarred: true)
+        let archivedArticle = Article(title: "Archiv", isArchived: true)
+        let articles = [
+            todayArticle,
+            yesterdayArticle,
+            lastWeekArticle,
+            readArticle,
+            starredArticle,
+            archivedArticle
+        ]
+
+        #expect(
+            ArticleSearchQuery(
+                filters: ArticleSearchFilters(date: .today),
+                now: now,
+                calendar: calendar
+            )
+            .filtered(articles)
+            .map(\.title) == ["Heute"]
+        )
+        #expect(
+            ArticleSearchQuery(
+                filters: ArticleSearchFilters(date: .thisWeek),
+                now: now,
+                calendar: calendar
+            )
+            .filtered(articles)
+            .map(\.title) == ["Heute", "Gestern"]
+        )
+        #expect(
+            ArticleSearchQuery(filters: ArticleSearchFilters(status: .read))
+                .filtered(articles)
+                .map(\.title) == ["Gelesen"]
+        )
+        #expect(
+            ArticleSearchQuery(filters: ArticleSearchFilters(status: .starred))
+                .filtered(articles)
+                .map(\.title) == ["Stern"]
+        )
+        #expect(
+            ArticleSearchQuery(filters: ArticleSearchFilters(status: .archived))
+                .filtered(articles)
+                .map(\.title) == ["Archiv"]
+        )
+    }
+
+    @Test func articleSearchFiltersKombinierenTextFeedTagUndStatus() {
+        let feed = Feed(url: "https://example.com/swift.xml", title: "Swift Feed")
+        let otherFeed = Feed(url: "https://example.com/mac.xml", title: "Mac Feed")
+        let tag = Tag(name: "Release", colorHex: "#3B82F6")
+        let matchingArticle = Article(
+            title: "Swift Release",
+            summary: "Neue Version",
+            isRead: false,
+            feed: feed
+        )
+        matchingArticle.tags = [tag]
+        let readArticle = Article(
+            title: "Swift Release gelesen",
+            summary: "Neue Version",
+            isRead: true,
+            feed: feed
+        )
+        readArticle.tags = [tag]
+        let wrongFeedArticle = Article(
+            title: "Swift Release",
+            summary: "Neue Version",
+            isRead: false,
+            feed: otherFeed
+        )
+        wrongFeedArticle.tags = [tag]
+        let wrongTextArticle = Article(
+            title: "Andere Meldung",
+            summary: "Neue Version",
+            isRead: false,
+            feed: feed
+        )
+        wrongTextArticle.tags = [tag]
+        let articles = [
+            matchingArticle,
+            readArticle,
+            wrongFeedArticle,
+            wrongTextArticle
+        ]
+
+        let query = ArticleSearchQuery(
+            text: "swift",
+            field: .title,
+            filters: ArticleSearchFilters(
+                feedID: feed.id,
+                tagID: tag.id,
+                status: .unread
+            )
+        )
+
+        #expect(query.filtered(articles).map(\.title) == ["Swift Release"])
+    }
+
     @Test func articleInitialisiertDirekteFeedIDFuerSchnelleListenQueries() throws {
         let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
         let article = Article(title: "Artikel", feed: feed)

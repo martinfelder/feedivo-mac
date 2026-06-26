@@ -306,19 +306,146 @@ enum ArticleSearchScope: String, CaseIterable, Identifiable {
     }
 }
 
+enum ArticleSearchDateFilter: String, CaseIterable, Identifiable {
+    case anytime
+    case today
+    case thisWeek
+
+    var id: String {
+        rawValue
+    }
+}
+
+enum ArticleSearchStatusFilter: String, CaseIterable, Identifiable {
+    case all
+    case unread
+    case read
+    case starred
+    case archived
+
+    var id: String {
+        rawValue
+    }
+}
+
+struct ArticleSearchFilters: Equatable {
+    var feedID: UUID?
+    var tagID: UUID?
+    var date: ArticleSearchDateFilter
+    var status: ArticleSearchStatusFilter
+
+    init(
+        feedID: UUID? = nil,
+        tagID: UUID? = nil,
+        date: ArticleSearchDateFilter = .anytime,
+        status: ArticleSearchStatusFilter = .all
+    ) {
+        self.feedID = feedID
+        self.tagID = tagID
+        self.date = date
+        self.status = status
+    }
+
+    var isActive: Bool {
+        feedID != nil || tagID != nil || date != .anytime || status != .all
+    }
+
+    func includes(
+        _ article: Article,
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) -> Bool {
+        matchesFeed(article)
+            && matchesTag(article)
+            && matchesDate(article, now: now, calendar: calendar)
+            && matchesStatus(article)
+    }
+
+    private func matchesFeed(_ article: Article) -> Bool {
+        guard let feedID else {
+            return true
+        }
+
+        return article.feedID == feedID || article.feed?.id == feedID
+    }
+
+    private func matchesTag(_ article: Article) -> Bool {
+        guard let tagID else {
+            return true
+        }
+
+        if article.tags.contains(where: { $0.id == tagID }) {
+            return true
+        }
+
+        return article.feed?.tags.contains(where: { $0.id == tagID }) ?? false
+    }
+
+    private func matchesDate(
+        _ article: Article,
+        now: Date,
+        calendar: Calendar
+    ) -> Bool {
+        guard date != .anytime else {
+            return true
+        }
+
+        guard let publishedAt = article.publishedAt else {
+            return false
+        }
+
+        switch date {
+        case .anytime:
+            return true
+        case .today:
+            return calendar.isDate(publishedAt, inSameDayAs: now)
+        case .thisWeek:
+            return calendar.isDate(
+                publishedAt,
+                equalTo: now,
+                toGranularity: .weekOfYear
+            )
+        }
+    }
+
+    private func matchesStatus(_ article: Article) -> Bool {
+        switch status {
+        case .all:
+            return true
+        case .unread:
+            return !article.isRead
+        case .read:
+            return article.isRead
+        case .starred:
+            return article.isStarred
+        case .archived:
+            return article.isArchived
+        }
+    }
+}
+
 struct ArticleSearchQuery: Equatable {
     var text: String
     var field: ArticleSearchField
     var scope: ArticleSearchScope
+    var filters: ArticleSearchFilters
+    var now: Date
+    var calendar: Calendar
 
     init(
         text: String = "",
         field: ArticleSearchField = .all,
-        scope: ArticleSearchScope = .currentView
+        scope: ArticleSearchScope = .currentView,
+        filters: ArticleSearchFilters = ArticleSearchFilters(),
+        now: Date = Date(),
+        calendar: Calendar = .current
     ) {
         self.text = text
         self.field = field
         self.scope = scope
+        self.filters = filters
+        self.now = now
+        self.calendar = calendar
     }
 
     var normalizedText: String {
@@ -326,11 +453,33 @@ struct ArticleSearchQuery: Equatable {
     }
 
     var isActive: Bool {
-        !normalizedText.isEmpty
+        !normalizedText.isEmpty || filters.isActive
     }
 
     func includes(_ article: Article) -> Bool {
         guard isActive else {
+            return true
+        }
+
+        guard textIncludes(article) else {
+            return false
+        }
+
+        return filters.includes(article, now: now, calendar: calendar)
+    }
+
+    func filtered(_ articles: [Article]) -> [Article] {
+        guard isActive else {
+            return articles
+        }
+
+        return articles.filter { article in
+            includes(article)
+        }
+    }
+
+    private func textIncludes(_ article: Article) -> Bool {
+        guard !normalizedText.isEmpty else {
             return true
         }
 
@@ -348,16 +497,6 @@ struct ArticleSearchQuery: Equatable {
         case .content:
             return contains(needle, in: article.content)
                 || contains(needle, in: article.offlineContent)
-        }
-    }
-
-    func filtered(_ articles: [Article]) -> [Article] {
-        guard isActive else {
-            return articles
-        }
-
-        return articles.filter { article in
-            includes(article)
         }
     }
 
