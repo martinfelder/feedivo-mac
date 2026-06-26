@@ -261,20 +261,23 @@
 ## 9. Suche
 
 ### 9.1 Volltext-Suche
-- **Status:** ✅ Entschieden — bereit zur Implementierung
-- **Zu implementieren:**
-  - Globale Suche via `Cmd+F` in der Toolbar (immer sichtbar)
-  - Schnellfilter oben in der Artikel-Liste (kontextuell)
-  - User kann Suchbereich einschränken: Titel / Zusammenfassung / Volltext / Alles
-  - User kann Umfang wählen: nur aktueller Feed oder feedübergreifend
-  - Suchresultate in der Artikel-Liste anzeigen
+- **Status:** 🔨 In Arbeit — Core-Slice umgesetzt
+- **Umgesetzt:**
+  - `Cmd+F` öffnet und fokussiert eine kompakte Suche oberhalb der Artikelliste.
+  - Suchbereiche: Alles, Titel, Zusammenfassung und Inhalt.
+  - Suchumfang: aktuelle Ansicht oder alle Artikel.
+  - Suchresultate erscheinen direkt in der bestehenden Artikelliste.
+  - Bestehende Sortierung, bestehender Filter und die Logik für gelesene sowie
+    ausgeblendete Artikel bleiben erhalten.
+- **Noch offen:**
+  - Erweiterte Suchfilter aus Feature 9.2.
+  - Spotlight-Integration aus Feature 9.3.
 
 ### 9.2 Suchfilter
-- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Status:** ✅ Entschieden — nächster Such-Slice
 - **Zu implementieren:**
   - Filteroptionen in der Suche: Feed / Tag / Zeitraum / Status (gelesen/ungelesen)
-  - Suchbereich-Auswahl: Titel / Zusammenfassung / Volltext
-  - Umfang: aktueller Feed oder alle Feeds
+  - Die Suchbereich-Auswahl und der Umfang sind im Core-Slice bereits vorhanden.
 
 ### 9.3 Spotlight-Integration
 - **Status:** ✅ Entschieden — bereit zur Implementierung
@@ -790,7 +793,8 @@ Folgende Reihenfolge berücksichtigt Abhängigkeiten. Features mit (*) sind Vora
 19. **Feature 7.2** — OPML Export-Dialog (Checkboxen, Menüleiste + Einstellungen) — erledigt
 
 ### Phase 6 — Suche
-20. **Feature 9.1/9.2** — Volltext-Suche (Cmd+F global + Schnellfilter in Liste, Bereich wählbar)
+20. **Feature 9.1** — Volltext-Suche Core-Slice (Cmd+F, Suchleiste, Bereich und Umfang) — erledigt
+20a. **Feature 9.2** — Erweiterte Suchfilter (Feed, Tag, Zeitraum, Status)
 21. **Feature 9.3** — Spotlight-Integration (CSSearchableItem, Toggle in Einstellungen)
 
 ### Phase 7 — Customization & Einstellungen

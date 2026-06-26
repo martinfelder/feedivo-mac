@@ -810,6 +810,14 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Sortierung und Filterung werden gemeinsam über `ArticleListPreparedArticles`
   vorbereitet, damit die Artikelliste pro SwiftUI-Render nur einmal sortiert und
   danach auf derselben sortierten Liste filtert.
+- Die Artikelliste bietet den Core-Slice der Suche: `Cmd+F` öffnet eine kompakte
+  Suchleiste oberhalb der mittleren Spalte, fokussiert das Suchfeld auch dann,
+  wenn gerade der Reader aktiv ist, und sucht in der aktuellen Ansicht oder über
+  alle Artikel.
+- Die Suche kann auf Alles, Titel, Zusammenfassung oder Inhalt eingeschränkt
+  werden. Bei `Alle Artikel` nutzt `ArticleListView` eine separate globale
+  SwiftData-Query als Suchquelle; Anzeige-Filter, Sortierung, gelesene Artikel und
+  `isHidden`-Logik laufen danach weiter über die bestehende Listenpipeline.
 - Beim Wechsel des ausgewählten Artikels nutzt die Navigation die bereits sichtbare
   Artikelliste aus dem aktuellen Render und stößt keine neue Sortierung/Filterung
   an.
@@ -866,8 +874,12 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   gelesener Artikel und die Button-Entscheidung für Feature 2.5 testbar ohne UI.
 - `ArticleListDisplayState` blendet `isHidden`-Artikel aus normalen Listen aus; die
   Regel-Aktion zum Setzen dieses Status bleibt ein eigener Feature-16.3-Schritt.
-- `ArticleListPreparedArticles` kapselt die gemeinsame Vorbereitung aus Sortierung
-  und Filterung und ist mit einem Test gegen doppelte Sortierungen abgesichert.
+- `ArticleSearchQuery`, `ArticleSearchField` und `ArticleSearchScope` kapseln den
+  testbaren Core-Slice der Artikelsuche inklusive case-/diakritik-insensitiver
+  Textsuche.
+- `ArticleListPreparedArticles` kapselt die gemeinsame Vorbereitung aus Sortierung,
+  Filterung und aktiver Suche und ist mit Tests gegen doppelte Sortierungen sowie
+  für Suchkombinationen abgesichert.
 
 ### ArticleSortOption.swift
 - Kapselt die globale Sortierauswahl für Artikellisten inklusive `@AppStorage`-Key,
