@@ -545,6 +545,8 @@
     Exportdialog angeboten.
   - Grund: PDF-Layout und DOCX-Ausgabe brauchen einen eigenen späteren Slice mit
     klarerem Layout-Anspruch statt weiterem Polish im aktuellen Exportdialog.
+  - Entscheidung vom 2026-06-26: PDF und DOCX bleiben auf Weiteres
+    zurückgestellt.
 - **Umgesetzt 18.1d: Datei teilen**
   - Im Vorschau-Schritt kann die vorbereitete Exportdatei über `Teilen...` an das
     macOS Share Sheet übergeben werden.
@@ -829,5 +831,6 @@ Folgende Reihenfolge berücksichtigt Abhängigkeiten. Features mit (*) sind Vora
 - **Feature 12.2** — Feed-Suche via Discover (Feedly API kostenpflichtig)
 - **Feature 14.3** — Statistik-Daten exportieren
 - **Feature 15.2** — Feeds per Drag & Drop umsortieren
+- **Feature 18.1c** — PDF- und DOCX-Export für einzelne Artikel
 - **Feature 18.3** — Drittanbieter-Integration (Readwise, Obsidian, Pocket)
 - **Feature 26.1** — Barrierefreiheit / VoiceOver
