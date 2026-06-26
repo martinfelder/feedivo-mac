@@ -12,6 +12,7 @@ struct ReaderView: View {
     let selectPreviousArticle: () -> Void
     let selectNextArticle: () -> Void
     let onRequestCreateRuleFromArticle: (Article) -> Void
+    let onRequestExportArticle: (Article) -> Void
     @State private var preparedArticle: ReaderPreparedArticle
 
     init(
@@ -21,7 +22,8 @@ struct ReaderView: View {
         canSelectNextArticle: Bool = false,
         selectPreviousArticle: @escaping () -> Void = {},
         selectNextArticle: @escaping () -> Void = {},
-        onRequestCreateRuleFromArticle: @escaping (Article) -> Void = { _ in }
+        onRequestCreateRuleFromArticle: @escaping (Article) -> Void = { _ in },
+        onRequestExportArticle: @escaping (Article) -> Void = { _ in }
     ) {
         self.article = article
         self._isMetadataInspectorPresented = isMetadataInspectorPresented
@@ -30,6 +32,7 @@ struct ReaderView: View {
         self.selectPreviousArticle = selectPreviousArticle
         self.selectNextArticle = selectNextArticle
         self.onRequestCreateRuleFromArticle = onRequestCreateRuleFromArticle
+        self.onRequestExportArticle = onRequestExportArticle
         self._preparedArticle = State(initialValue: ReaderPreparedArticle(article: article))
     }
 
@@ -231,6 +234,13 @@ struct ReaderView: View {
                 }
                 .help(L10n.articleOpenOriginalCommand)
                 .disabled(originalURL == nil)
+
+                Button {
+                    onRequestExportArticle(article)
+                } label: {
+                    Image(systemName: "square.and.arrow.up")
+                }
+                .help(L10n.articleExportCommand)
 
                 Button {
                     Task {

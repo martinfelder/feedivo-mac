@@ -113,7 +113,8 @@ struct ContentView: View {
                     canSelectNextArticle: articleNavigationState.nextArticle != nil,
                     selectPreviousArticle: selectPreviousArticle,
                     selectNextArticle: selectNextArticle,
-                    onRequestCreateRuleFromArticle: requestCreateRuleFromArticle
+                    onRequestCreateRuleFromArticle: requestCreateRuleFromArticle,
+                    onRequestExportArticle: requestExportArticle
                 )
             } else {
                 ContentUnavailableView(
