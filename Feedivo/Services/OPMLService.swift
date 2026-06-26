@@ -5,6 +5,30 @@ struct OPMLFeed: Equatable {
     let xmlURL: String
     let htmlURL: String?
     let folderName: String?
+    let description: String?
+    let tagNames: [String]
+
+    init(
+        title: String,
+        xmlURL: String,
+        htmlURL: String?,
+        folderName: String?,
+        description: String? = nil,
+        tagNames: [String] = []
+    ) {
+        self.title = title
+        self.xmlURL = xmlURL
+        self.htmlURL = htmlURL
+        self.folderName = folderName
+        self.description = description
+        self.tagNames = tagNames
+    }
+}
+
+struct OPMLExportOptions: Equatable {
+    var includesFolders = true
+    var includesTags = false
+    var includesDescriptions = false
 }
 
 enum OPMLServiceError: Error, Equatable, LocalizedError {
@@ -39,7 +63,10 @@ enum OPMLService {
         return parserDelegate.feeds
     }
 
-    static func exportFeeds(_ feeds: [OPMLFeed]) -> String {
+    static func exportFeeds(
+        _ feeds: [OPMLFeed],
+        options: OPMLExportOptions = OPMLExportOptions()
+    ) -> String {
         var lines = [
             #"<?xml version="1.0" encoding="UTF-8"?>"#,
             #"<opml version="2.0">"#,
@@ -49,6 +76,34 @@ enum OPMLService {
             "  <body>"
         ]
 
+        if options.includesFolders {
+            appendGroupedFeeds(feeds, to: &lines, options: options)
+        } else {
+            for feed in feeds {
+                lines.append(outlineLine(for: feed, indent: "    ", options: options))
+            }
+        }
+
+        lines.append("  </body>")
+        lines.append("</opml>")
+
+        return lines.joined(separator: "\n")
+    }
+
+    static func defaultExportFilename(date: Date = Date()) -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd"
+
+        return "Feedivo-Export-\(formatter.string(from: date)).opml"
+    }
+
+    private static func appendGroupedFeeds(
+        _ feeds: [OPMLFeed],
+        to lines: inout [String],
+        options: OPMLExportOptions
+    ) {
         var emittedFolders: [String] = []
         let feedsWithoutFolder = feeds.filter { trimmed($0.folderName) == nil }
 
@@ -63,23 +118,22 @@ enum OPMLService {
             lines.append("    <outline text=\"\(escaped(folderName))\">")
 
             for folderFeed in feeds.filter({ trimmed($0.folderName) == folderName }) {
-                lines.append(outlineLine(for: folderFeed, indent: "      "))
+                lines.append(outlineLine(for: folderFeed, indent: "      ", options: options))
             }
 
             lines.append("    </outline>")
         }
 
         for feed in feedsWithoutFolder {
-            lines.append(outlineLine(for: feed, indent: "    "))
+            lines.append(outlineLine(for: feed, indent: "    ", options: options))
         }
-
-        lines.append("  </body>")
-        lines.append("</opml>")
-
-        return lines.joined(separator: "\n")
     }
 
-    private static func outlineLine(for feed: OPMLFeed, indent: String) -> String {
+    private static func outlineLine(
+        for feed: OPMLFeed,
+        indent: String,
+        options: OPMLExportOptions
+    ) -> String {
         var attributes = [
             "text=\"\(escaped(feed.title))\"",
             "title=\"\(escaped(feed.title))\"",
@@ -89,6 +143,20 @@ enum OPMLService {
 
         if let htmlURL = trimmed(feed.htmlURL) {
             attributes.append("htmlUrl=\"\(escaped(htmlURL))\"")
+        }
+
+        if options.includesTags {
+            let tagNames = feed.tagNames.compactMap { value in
+                trimmed(value)
+            }
+            if !tagNames.isEmpty {
+                attributes.append("category=\"\(escaped(tagNames.joined(separator: ",")))\"")
+            }
+        }
+
+        if options.includesDescriptions,
+           let description = trimmed(feed.description) {
+            attributes.append("description=\"\(escaped(description))\"")
         }
 
         return "\(indent)<outline \(attributes.joined(separator: " ")) />"

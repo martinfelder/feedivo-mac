@@ -181,6 +181,8 @@ FeedivoMac/
 │   │   │   └── AddTagView.swift        # bleibt vorerst nicht separat noetig; TagManagerView erstellt Tags direkt
 │   │   ├── OPMLImport/
 │   │   │   └── OPMLImportReviewView.swift # Erweiterter OPML-Import-Dialog ✅
+│   │   ├── OPMLExport/
+│   │   │   └── OPMLExportSheet.swift # OPML-Exportdialog mit Optionen ✅
 │   │   ├── Shared/
 │   │   │   └── CachedRemoteImageView.swift # Gemeinsame gecachte Remote-Bild-View ✅
 │   │   ├── Rules/
@@ -986,7 +988,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Nach dem OPML-Import können neu angelegte Feeds direkt über denselben async
   Refresh-Kern aktualisiert werden, damit Titel, Metadaten, Favicons und Artikel
   gefüllt sind; dieser Schritt ist im Dialog abschaltbar
-- `OPML exportieren...` schreibt die aktuelle Feed-Liste als `Feedivo.opml`
+- `OPML exportieren...` öffnet den OPML-Exportdialog mit Optionen für Ordner,
+  Tags und Feed-Beschreibungen und verwendet den Dateinamen
+  `Feedivo-Export-YYYY-MM-DD.opml`
 - `Cmd+Shift+R` aktualisiert alle Feeds
 - `Cmd+R` aktualisiert den ausgewählten Feed
 - Feed aktualisieren und Feed löschen sind deaktiviert, wenn kein Feed ausgewählt ist
@@ -1002,9 +1006,22 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   in `OPMLFeed` umgewandelt.
 - Verschachtelte OPML-Gruppen werden für v1 als `Feed.folderName` übernommen,
   damit die Information erhalten bleibt und importierte Feeds direkt gruppiert sind.
-- `OPMLService.exportFeeds(_:)` schreibt gueltiges OPML mit gruppierten Feeds und
-  XML-escaping für Titel, Feed-URL und Website.
+- `OPMLService.exportFeeds(_:options:)` schreibt gueltiges OPML mit optionalen
+  OPML-Gruppen, optionalen Feed-Tags als `category`, optionaler Feed-Beschreibung
+  als `description` und XML-escaping für alle Attributwerte.
+- `OPMLService.defaultExportFilename(date:)` erzeugt den v1-Dateinamen
+  `Feedivo-Export-YYYY-MM-DD.opml`.
 - `OPMLDocument` kapselt den SwiftUI `FileDocument` Export für `.opml` und `.xml`.
+
+### OPMLExportSheet.swift
+- Wiederverwendbarer SwiftUI-Dialog für den OPML-Export, ausgelöst aus dem
+  Feed-Menü und aus Einstellungen → Feeds.
+- Bildet den freigegebenen Product-Design-Prototyp ab: Header mit Feed-Anzahl,
+  links Checkbox-Optionen, rechts Live-Zusammenfassung und unten `Abbrechen` /
+  `Sichern...`.
+- `Feed-URLs und Titel` ist sichtbar, aber immer aktiv; Ordner-Struktur, Tags und
+  Feed-Beschreibungen können einzeln ein- oder ausgeschaltet werden.
+- Der Dialog exportiert nur Abonnements, keine Artikel und keine Favoriten.
 
 ### OPMLImportReviewView.swift
 - Eigenstaendiger SwiftUI-Dialog für den erweiterten OPML-Import nach Prototyp
@@ -1673,6 +1690,7 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 ### M4 – Polish & Release ← AKTUELL
 - [x] OPML Import (Feeds aus anderem RSS Reader übernehmen)
 - [x] OPML Export (Feeds portieren)
+- [x] OPML-Exportdialog mit Optionen für Ordner, Tags und Feed-Beschreibungen
 - [ ] iCloud Sync via CloudKit aktivieren und testen
 - [x] Erweiterter OPML-Import-Dialog: ausgelesene Feeds und Ordner vor dem Import
   anzeigen, OPML-Datei direkt im selben Dialog auswählen/wechseln,

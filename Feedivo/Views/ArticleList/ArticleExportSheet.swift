@@ -96,7 +96,7 @@ struct ArticleExportSheet: View {
             }
         }
         .frame(width: 520)
-        .padding(22)
+        .background(.background)
         .fileExporter(
             isPresented: $isExporting,
             document: document,
@@ -109,13 +109,14 @@ struct ArticleExportSheet: View {
     }
 
     private var prepareStep: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(spacing: 0) {
             sheetHeader(
                 stepText: stepText(current: 1),
                 title: L10n.articleExportPrepareTitle,
                 message: L10n.articleExportPrepareMessage
             )
 
+            VStack(alignment: .leading, spacing: 18) {
             VStack(spacing: 0) {
                 ForEach(ArticleExportFormat.allCases) { format in
                     ArticleExportFormatRow(
@@ -203,17 +204,20 @@ struct ArticleExportSheet: View {
                 .keyboardShortcut(.defaultAction)
                 .buttonStyle(.borderedProminent)
             }
+            }
+            .padding(22)
         }
     }
 
     private var previewStep: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(spacing: 0) {
             sheetHeader(
                 stepText: stepText(current: 2),
                 title: L10n.articleExportPreviewTitle,
                 message: L10n.articleExportPreviewMessage
             )
 
+            VStack(alignment: .leading, spacing: 18) {
             VStack(alignment: .leading, spacing: 0) {
                 HStack {
                     Text(previewHeadline)
@@ -258,6 +262,8 @@ struct ArticleExportSheet: View {
                 .keyboardShortcut(.defaultAction)
                 .buttonStyle(.borderedProminent)
             }
+            }
+            .padding(22)
         }
     }
 
@@ -345,6 +351,13 @@ struct ArticleExportSheet: View {
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 22)
+        .padding(.vertical, 18)
+        .background(.ultraThinMaterial)
+        .overlay(alignment: .bottom) {
+            Divider()
         }
     }
 

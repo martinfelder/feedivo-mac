@@ -611,6 +611,7 @@ private struct FeedManagementSettingsView: View {
     @State private var searchText = ""
     @State private var selectedFeedIDs: Set<UUID> = []
     @State private var isShowingDeleteConfirmation = false
+    @State private var isShowingOPMLExportSheet = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -635,6 +636,11 @@ private struct FeedManagementSettingsView: View {
                     FeedManagementSettingsState.clearSelection(&selectedFeedIDs)
                 }
                 .disabled(selectedFeedIDs.isEmpty)
+
+                Button(L10n.feedExportOPMLCommand) {
+                    isShowingOPMLExportSheet = true
+                }
+                .disabled(feeds.isEmpty)
             }
 
             if feeds.isEmpty {
@@ -701,6 +707,11 @@ private struct FeedManagementSettingsView: View {
             Button(L10n.commonCancel, role: .cancel) {}
         } message: {
             Text(L10n.settingsFeedsDeleteConfirmationMessage(count: selectedFeeds.count))
+        }
+        .sheet(isPresented: $isShowingOPMLExportSheet) {
+            OPMLExportSheet(feeds: feeds) {
+                isShowingOPMLExportSheet = false
+            }
         }
     }
 

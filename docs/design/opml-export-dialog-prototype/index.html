@@ -1,0 +1,637 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Feedivo · OPML Exportdialog Prototyp</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #eef1f4;
+      --window: #f7f8fa;
+      --sheet: #fbfbfd;
+      --panel: #ffffff;
+      --panel-soft: #f2f3f6;
+      --line: rgba(28, 33, 40, 0.12);
+      --line-strong: rgba(28, 33, 40, 0.2);
+      --text: #20242a;
+      --muted: #69717c;
+      --soft: #8b929c;
+      --blue: #0a84ff;
+      --blue-dark: #0068d9;
+      --blue-soft: rgba(10, 132, 255, 0.12);
+      --green: #248a3d;
+      --green-soft: rgba(36, 138, 61, 0.12);
+      --shadow: 0 26px 80px rgba(22, 27, 35, 0.18);
+      --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      font-family: var(--font);
+      color: var(--text);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(238, 241, 244, 0.96)),
+        var(--bg);
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      color: inherit;
+      cursor: pointer;
+    }
+
+    .stage {
+      width: min(1120px, calc(100vw - 42px));
+      height: min(760px, calc(100vh - 42px));
+      display: grid;
+      grid-template-rows: 52px minmax(0, 1fr);
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.86);
+      border-radius: 18px;
+      background: var(--window);
+      box-shadow: var(--shadow);
+    }
+
+    .titlebar {
+      display: grid;
+      grid-template-columns: 130px 1fr 130px;
+      align-items: center;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(247, 248, 250, 0.86);
+      backdrop-filter: blur(18px);
+    }
+
+    .lights {
+      display: flex;
+      gap: 8px;
+    }
+
+    .light {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+
+    .red { background: #ff5f57; }
+    .yellow { background: #febc2e; }
+    .green { background: #28c840; }
+
+    .window-title {
+      justify-self: center;
+      color: #3b4047;
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    .app {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 250px minmax(0, 1fr);
+      position: relative;
+    }
+
+    .sidebar {
+      padding: 16px 12px;
+      background: #f0f2f5;
+      border-right: 1px solid var(--line);
+    }
+
+    .section-title {
+      margin: 14px 10px 7px;
+      color: var(--soft);
+      font-size: 11px;
+      font-weight: 760;
+      text-transform: uppercase;
+      letter-spacing: 0;
+    }
+
+    .side-row {
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 0 10px;
+      border-radius: 8px;
+      color: #414850;
+      font-size: 13px;
+      font-weight: 620;
+    }
+
+    .side-row.active {
+      background: rgba(10, 132, 255, 0.12);
+      color: #075db7;
+    }
+
+    .badge {
+      min-width: 21px;
+      height: 19px;
+      display: inline-grid;
+      place-items: center;
+      padding: 0 6px;
+      border-radius: 999px;
+      background: rgba(33, 38, 45, 0.1);
+      color: #5d646d;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .content {
+      min-width: 0;
+      padding: 22px;
+      background: #fff;
+    }
+
+    .settings-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .settings-head h1 {
+      margin: 0;
+      font-size: 20px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    .settings-head p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .toolbar-button {
+      min-height: 30px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #f8f9fb;
+      color: #2e343b;
+      font-size: 13px;
+      font-weight: 620;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    }
+
+    .feed-list {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    .feed-row {
+      height: 46px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 12px;
+      padding: 0 13px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .feed-row:last-child {
+      border-bottom: 0;
+    }
+
+    .feed-title {
+      min-width: 0;
+    }
+
+    .feed-title strong {
+      display: block;
+      overflow: hidden;
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 650;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .feed-title span {
+      display: block;
+      overflow: hidden;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 11px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .modal-layer {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 32px;
+      background: rgba(246, 247, 249, 0.62);
+      backdrop-filter: blur(8px);
+    }
+
+    .sheet {
+      width: min(760px, 100%);
+      overflow: hidden;
+      border: 1px solid var(--line-strong);
+      border-radius: 12px;
+      background: var(--sheet);
+      box-shadow: 0 18px 60px rgba(18, 24, 32, 0.2);
+    }
+
+    .sheet-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 20px 22px 17px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(246, 247, 249, 0.94));
+    }
+
+    .sheet-header h2 {
+      margin: 0;
+      font-size: 19px;
+      line-height: 1.22;
+      letter-spacing: 0;
+    }
+
+    .sheet-header p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.38;
+    }
+
+    .count-pill {
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      min-height: 27px;
+      padding: 0 10px;
+      border: 1px solid rgba(36, 138, 61, 0.18);
+      border-radius: 999px;
+      background: var(--green-soft);
+      color: var(--green);
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .sheet-body {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 260px;
+      gap: 16px;
+      padding: 18px;
+    }
+
+    .option-list,
+    .preview-panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    .option-row {
+      display: grid;
+      grid-template-columns: 22px minmax(0, 1fr);
+      gap: 10px;
+      min-height: 62px;
+      padding: 12px 13px;
+      border-bottom: 1px solid var(--line);
+      cursor: pointer;
+    }
+
+    .option-row:last-child {
+      border-bottom: 0;
+    }
+
+    .option-row input {
+      width: 15px;
+      height: 15px;
+      margin-top: 2px;
+      accent-color: var(--blue);
+    }
+
+    .option-row.locked {
+      cursor: default;
+      background: rgba(242, 243, 246, 0.7);
+    }
+
+    .option-title {
+      display: block;
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 680;
+      line-height: 1.25;
+    }
+
+    .option-text {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .preview-panel {
+      padding: 13px;
+    }
+
+    .preview-panel h3 {
+      margin: 0 0 9px;
+      color: #3c4249;
+      font-size: 13px;
+      letter-spacing: 0;
+    }
+
+    .summary-list {
+      display: grid;
+      gap: 9px;
+      margin-bottom: 13px;
+    }
+
+    .summary-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 12px;
+    }
+
+    .summary-row span:first-child {
+      color: var(--muted);
+    }
+
+    .summary-row span:last-child {
+      color: var(--text);
+      font-weight: 650;
+      text-align: right;
+    }
+
+    .filename {
+      overflow-wrap: anywhere;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--panel-soft);
+      color: #3b4148;
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      font-size: 11px;
+      line-height: 1.35;
+    }
+
+    .sheet-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      min-height: 58px;
+      padding: 12px 18px;
+      border-top: 1px solid var(--line);
+      background: rgba(246, 247, 249, 0.92);
+    }
+
+    .footer-note {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .footer-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .secondary,
+    .primary {
+      min-width: 92px;
+      min-height: 30px;
+      padding: 0 13px;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    .secondary {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: #30363d;
+    }
+
+    .primary {
+      background: var(--blue);
+      color: #fff;
+      box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.16);
+    }
+
+    .primary:hover {
+      background: var(--blue-dark);
+    }
+
+    @media (max-width: 760px) {
+      .stage {
+        width: 100vw;
+        height: 100vh;
+        border-radius: 0;
+      }
+
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        display: none;
+      }
+
+      .modal-layer {
+        padding: 14px;
+      }
+
+      .sheet-body {
+        grid-template-columns: 1fr;
+      }
+
+      .preview-panel {
+        order: -1;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="stage">
+    <div class="titlebar">
+      <div class="lights" aria-hidden="true">
+        <span class="light red"></span>
+        <span class="light yellow"></span>
+        <span class="light green"></span>
+      </div>
+      <div class="window-title">Feedivo Einstellungen</div>
+      <div></div>
+    </div>
+
+    <section class="app" aria-label="Feedivo Einstellungen mit geöffnetem OPML Exportdialog">
+      <aside class="sidebar">
+        <div class="section-title">Einstellungen</div>
+        <div class="side-row">Allgemein</div>
+        <div class="side-row">Darstellung</div>
+        <div class="side-row active">Feeds <span class="badge">42</span></div>
+        <div class="side-row">Cache</div>
+        <div class="side-row">Offline-Lesen</div>
+        <div class="side-row">Benachrichtigungen</div>
+        <div class="side-row">Aktualisierung</div>
+        <div class="side-row">Tags & Regeln</div>
+        <div class="side-row">Sync</div>
+      </aside>
+
+      <div class="content">
+        <div class="settings-head">
+          <div>
+            <h1>Feeds</h1>
+            <p>Verwalte abonnierte Feeds, Suche und Import-/Export-Aktionen.</p>
+          </div>
+          <button class="toolbar-button" type="button">OPML exportieren...</button>
+        </div>
+
+        <div class="feed-list" aria-hidden="true">
+          <div class="feed-row">
+            <div class="feed-title">
+              <strong>Mac & i</strong>
+              <span>https://www.heise.de/mac-and-i/rss/news-atom.xml</span>
+            </div>
+            <span class="badge">12</span>
+          </div>
+          <div class="feed-row">
+            <div class="feed-title">
+              <strong>Heise Online</strong>
+              <span>https://www.heise.de/rss/heise-atom.xml</span>
+            </div>
+            <span class="badge">7</span>
+          </div>
+          <div class="feed-row">
+            <div class="feed-title">
+              <strong>Swift by Sundell</strong>
+              <span>https://swiftbysundell.com/feed.rss</span>
+            </div>
+            <span class="badge">3</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-layer">
+        <section class="sheet" role="dialog" aria-modal="true" aria-labelledby="dialog-title">
+          <header class="sheet-header">
+            <div>
+              <h2 id="dialog-title">OPML exportieren</h2>
+              <p>Erstelle eine OPML-Datei mit deinen Feed-Abonnements. Die Datei kann später wieder in Feedivo oder andere RSS-Reader importiert werden.</p>
+            </div>
+            <div class="count-pill">42 Feeds</div>
+          </header>
+
+          <div class="sheet-body">
+            <div class="option-list" aria-label="Exportoptionen">
+              <label class="option-row locked">
+                <input type="checkbox" checked disabled>
+                <span>
+                  <span class="option-title">Feed-URLs und Titel</span>
+                  <span class="option-text">Immer enthalten. Das ist die Grundlage jeder OPML-Datei.</span>
+                </span>
+              </label>
+
+              <label class="option-row">
+                <input id="folders" type="checkbox" checked>
+                <span>
+                  <span class="option-title">Ordner-Struktur einschließen</span>
+                  <span class="option-text">Feeds werden in OPML-Gruppen exportiert, damit deine Sidebar-Struktur erhalten bleibt.</span>
+                </span>
+              </label>
+
+              <label class="option-row">
+                <input id="tags" type="checkbox" checked>
+                <span>
+                  <span class="option-title">Tags einschließen</span>
+                  <span class="option-text">Feed-Tags werden als Kategorie-Attribut mitgeschrieben.</span>
+                </span>
+              </label>
+
+              <label class="option-row">
+                <input id="descriptions" type="checkbox">
+                <span>
+                  <span class="option-title">Feed-Beschreibungen einschließen</span>
+                  <span class="option-text">Optional für Reader, die Feed-Metadaten beim Import übernehmen.</span>
+                </span>
+              </label>
+            </div>
+
+            <aside class="preview-panel" aria-label="Exportzusammenfassung">
+              <h3>Zusammenfassung</h3>
+              <div class="summary-list">
+                <div class="summary-row">
+                  <span>Feeds</span>
+                  <span>42</span>
+                </div>
+                <div class="summary-row">
+                  <span>Ordner</span>
+                  <span id="folder-summary">8 Gruppen</span>
+                </div>
+                <div class="summary-row">
+                  <span>Tags</span>
+                  <span id="tag-summary">15 Tags</span>
+                </div>
+                <div class="summary-row">
+                  <span>Beschreibungen</span>
+                  <span id="description-summary">Aus</span>
+                </div>
+              </div>
+
+              <div class="filename" id="filename">Feedivo-Export-2026-06-26.opml</div>
+            </aside>
+          </div>
+
+          <footer class="sheet-footer">
+            <div class="footer-note">Exportiert nur Abonnements, keine Artikel und keine Favoriten.</div>
+            <div class="footer-actions">
+              <button class="secondary" type="button">Abbrechen</button>
+              <button class="primary" type="button">Sichern...</button>
+            </div>
+          </footer>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const folders = document.querySelector("#folders");
+    const tags = document.querySelector("#tags");
+    const descriptions = document.querySelector("#descriptions");
+    const folderSummary = document.querySelector("#folder-summary");
+    const tagSummary = document.querySelector("#tag-summary");
+    const descriptionSummary = document.querySelector("#description-summary");
+
+    function updateSummary() {
+      folderSummary.textContent = folders.checked ? "8 Gruppen" : "Aus";
+      tagSummary.textContent = tags.checked ? "15 Tags" : "Aus";
+      descriptionSummary.textContent = descriptions.checked ? "Ein" : "Aus";
+    }
+
+    [folders, tags, descriptions].forEach((checkbox) => {
+      checkbox.addEventListener("change", updateSummary);
+    });
+
+    updateSummary();
+  </script>
+</body>
+</html>

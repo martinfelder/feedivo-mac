@@ -363,6 +363,23 @@ enum L10n {
     static var feedDeleteCommand: String { String(localized: "feed.delete.command") }
     static var feedImportOPMLCommand: String { String(localized: "feed.importOPML.command") }
     static var feedExportOPMLCommand: String { String(localized: "feed.exportOPML.command") }
+    static var opmlExportTitle: String { String(localized: "opml.export.title") }
+    static var opmlExportDescription: String { String(localized: "opml.export.description") }
+    static var opmlExportFeedsAndTitles: String { String(localized: "opml.export.feedsAndTitles") }
+    static var opmlExportFeedsAndTitlesDescription: String { String(localized: "opml.export.feedsAndTitles.description") }
+    static var opmlExportFolders: String { String(localized: "opml.export.folders") }
+    static var opmlExportFoldersDescription: String { String(localized: "opml.export.folders.description") }
+    static var opmlExportTags: String { String(localized: "opml.export.tags") }
+    static var opmlExportTagsDescription: String { String(localized: "opml.export.tags.description") }
+    static var opmlExportDescriptions: String { String(localized: "opml.export.descriptions") }
+    static var opmlExportDescriptionsDescription: String { String(localized: "opml.export.descriptions.description") }
+    static var opmlExportSummaryTitle: String { String(localized: "opml.export.summary.title") }
+    static var opmlExportSummaryFeeds: String { String(localized: "opml.export.summary.feeds") }
+    static var opmlExportSummaryFolders: String { String(localized: "opml.export.summary.folders") }
+    static var opmlExportSummaryTags: String { String(localized: "opml.export.summary.tags") }
+    static var opmlExportSummaryDescriptions: String { String(localized: "opml.export.summary.descriptions") }
+    static var opmlExportFooterNote: String { String(localized: "opml.export.footerNote") }
+    static var opmlExportSaveButton: String { String(localized: "opml.export.saveButton") }
     static var feedPropertiesCommand: String { String(localized: "feed.properties.command") }
     static var feedPropertiesCopyXMLAddress: String { String(localized: "feed.properties.copyXMLAddress") }
     static var feedPropertiesNoFolder: String { String(localized: "feed.properties.noFolder") }
@@ -394,6 +411,34 @@ enum L10n {
             String(localized: "opml.import.result.message"),
             imported,
             skippedDuplicates
+        )
+    }
+
+    static func opmlExportFeedCount(_ count: Int) -> String {
+        String.localizedStringWithFormat(
+            String(localized: "opml.export.feedCount"),
+            count
+        )
+    }
+
+    static func opmlExportFolderCount(_ count: Int) -> String {
+        String.localizedStringWithFormat(
+            String(localized: "opml.export.folderCount"),
+            count
+        )
+    }
+
+    static func opmlExportTagCount(_ count: Int) -> String {
+        String.localizedStringWithFormat(
+            String(localized: "opml.export.tagCount"),
+            count
+        )
+    }
+
+    static func opmlExportDescriptionCount(_ count: Int) -> String {
+        String.localizedStringWithFormat(
+            String(localized: "opml.export.descriptionCount"),
+            count
         )
     }
 

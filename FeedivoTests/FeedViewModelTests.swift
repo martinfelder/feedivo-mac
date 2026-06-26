@@ -342,9 +342,14 @@ struct FeedViewModelTests {
             Feed(
                 url: "https://example.com/feed.xml",
                 title: "Example",
+                feedDescription: "Example Feed",
                 siteURL: "https://example.com/",
                 folderName: "Tech"
             )
+        ]
+        feeds[0].tags = [
+            Tag(name: "Swift"),
+            Tag(name: "Apple")
         ]
         let viewModel = makeViewModel()
 
@@ -355,7 +360,9 @@ struct FeedViewModelTests {
                 title: "Example",
                 xmlURL: "https://example.com/feed.xml",
                 htmlURL: "https://example.com/",
-                folderName: "Tech"
+                folderName: "Tech",
+                description: "Example Feed",
+                tagNames: ["Apple", "Swift"]
             )
         ])
     }

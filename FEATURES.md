@@ -226,17 +226,18 @@
   importierte Feeds
 
 ### 7.2 OPML Export
-- **Status:** ✅ Entschieden — bereit zur Implementierung
-- **Umgesetzt:** `OPMLService`, `OPMLDocument` technisch vorhanden
-- **Zu implementieren:**
-  - Auslösen via Menüleiste `Datei → Exportieren → OPML...` UND Einstellungen-Button
-  - Export-Dialog öffnet sich mit folgenden Optionen (Checkboxen):
-    - Feed-URLs + Titel (immer aktiviert, nicht deaktivierbar)
-    - Ordner-Struktur als OPML-Gruppen
-    - Tags (als Kategorie-Attribut)
-    - Feed-Beschreibung (Metadaten)
-  - Standard-Dateiname: `Feedivo-Export-YYYY-MM-DD.opml`
-  - Favorisierte Artikel werden NICHT im OPML exportiert — das ist Sache von Feature 18
+- **Status:** ✔️ Fertig
+- **Umgesetzt:**
+  - Wiederverwendbarer `OPMLExportSheet` nach freigegebenem Product-Design-Prototyp.
+  - Auslösen via Menüleiste `Feed → OPML exportieren...` und Einstellungen → Feeds.
+  - Export-Optionen:
+    - Feed-URLs + Titel immer aktiv und nicht deaktivierbar.
+    - Ordner-Struktur als OPML-Gruppen optional.
+    - Tags optional als `category`-Attribut.
+    - Feed-Beschreibung optional als `description`-Attribut.
+  - Live-Zusammenfassung im Dialog mit Feed-, Ordner-, Tag- und Beschreibungsanzahl.
+  - Standard-Dateiname: `Feedivo-Export-YYYY-MM-DD.opml`.
+  - Favorisierte Artikel werden bewusst nicht im OPML exportiert; das bleibt Sache von Feature 18.
 
 ---
 
@@ -775,7 +776,7 @@ Folgende Reihenfolge berücksichtigt Abhängigkeiten. Features mit (*) sind Vora
 ### Phase 5 — Export & Teilen
 17. **Feature 18.1** — Artikel exportieren (Markdown/Text/HTML mit Vorschau erledigt; Offline-Bilder für Markdown/HTML als ZIP-Paket erledigt; PDF, DOCX und Share Sheet offen)
 18. **Feature 18.2** — Batch-Export (Cmd+Klick Mehrfachauswahl, ZIP oder eine Datei)
-19. **Feature 7.2** — OPML Export-Dialog (Checkboxen, Menüleiste + Einstellungen)
+19. **Feature 7.2** — OPML Export-Dialog (Checkboxen, Menüleiste + Einstellungen) — erledigt
 
 ### Phase 6 — Suche
 20. **Feature 9.1/9.2** — Volltext-Suche (Cmd+F global + Schnellfilter in Liste, Bereich wählbar)

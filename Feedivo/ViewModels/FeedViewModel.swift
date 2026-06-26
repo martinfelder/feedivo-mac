@@ -274,7 +274,11 @@ final class FeedViewModel {
                 title: feed.title,
                 xmlURL: feed.url,
                 htmlURL: feed.siteURL,
-                folderName: feed.folderName
+                folderName: feed.folderName,
+                description: feed.feedDescription,
+                tagNames: feed.tags.map(\.name).sorted {
+                    $0.localizedCaseInsensitiveCompare($1) == .orderedAscending
+                }
             )
         }
     }

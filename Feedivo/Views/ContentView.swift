@@ -32,8 +32,7 @@ struct ContentView: View {
     @State private var feedPendingDeletion: Feed?
     @State private var isDeleteFeedConfirmationPresented = false
     @State private var isShowingOPMLImportReview = false
-    @State private var isExportingOPML = false
-    @State private var opmlExportDocument = OPMLDocument()
+    @State private var isShowingOPMLExportSheet = false
     @State private var articleExportRequest: ArticleExportRequest?
     @State private var opmlAlert: OPMLAlert?
     @State private var articleForRuleCreation: Article?
@@ -159,6 +158,11 @@ struct ContentView: View {
                 feedViewModel: feedViewModel
             )
         }
+        .sheet(isPresented: $isShowingOPMLExportSheet) {
+            OPMLExportSheet(feeds: feeds) {
+                isShowingOPMLExportSheet = false
+            }
+        }
         .sheet(isPresented: $isShowingFirstRunWizard) {
             FirstRunWizardView(
                 feeds: feeds,
@@ -190,12 +194,6 @@ struct ContentView: View {
         } message: { feed in
             Text(L10n.feedDeleteConfirmationMessage(feedTitle: feed.title))
         }
-        .fileExporter(
-            isPresented: $isExportingOPML,
-            document: opmlExportDocument,
-            contentType: .opml,
-            defaultFilename: "Feedivo.opml"
-        ) { _ in }
         .alert(item: $opmlAlert) { alert in
             Alert(
                 title: Text(alert.title),
@@ -298,9 +296,7 @@ struct ContentView: View {
     }
 
     private func requestExportOPML() {
-        let opmlFeeds = feedViewModel.opmlFeedsForExport(from: feeds)
-        opmlExportDocument = OPMLDocument(text: OPMLService.exportFeeds(opmlFeeds))
-        isExportingOPML = true
+        isShowingOPMLExportSheet = true
     }
 
     private func requestExportArticle(_ article: Article) {
