@@ -240,7 +240,11 @@ enum ArticleExportService {
         }
 
         if let link = normalizedText(snapshot.link) {
-            paragraphs.append("<p>Link: <a href=\"\(escapedHTMLAttribute(link))\">\(escapedHTML(link))</a></p>")
+            if isSafeLinkTarget(link) {
+                paragraphs.append("<p>Link: <a href=\"\(escapedHTMLAttribute(link))\">\(escapedHTML(link))</a></p>")
+            } else {
+                paragraphs.append("<p>Link: \(escapedHTML(link))</p>")
+            }
         }
 
         let tagNames = snapshot.tagNames.compactMap { normalizedText($0) }

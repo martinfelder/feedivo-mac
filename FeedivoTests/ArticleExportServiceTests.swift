@@ -117,6 +117,22 @@ struct ArticleExportServiceTests {
         #expect(html.contains("<strong>lesbarer</strong>"))
     }
 
+    @Test func htmlExportRendertUnsichereMetadatenLinksNurAlsText() {
+        let article = Article(
+            title: "Unsicherer Link",
+            link: "javascript:alert(1)",
+            content: "<p>Artikeltext</p>"
+        )
+
+        let html = ArticleExportService.text(
+            for: ArticleExportSnapshot(article: article),
+            options: ArticleExportOptions(format: .html, includesMetadata: true)
+        )
+
+        #expect(!html.contains("href=\"javascript:alert(1)\""))
+        #expect(html.contains("<p>Link: javascript:alert(1)</p>"))
+    }
+
     @Test func metadatenEnthaltenAutorFeedUndTags() {
         let feed = Feed(url: "https://example.com/feed.xml", title: "Example Feed")
         let article = Article(
