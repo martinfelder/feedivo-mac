@@ -298,13 +298,7 @@ struct ContentView: View {
     }
 
     private func requestExportArticle(_ article: Article) {
-        let snapshot = ArticleExportSnapshot(article: article)
-        let request = ArticleExportRequest(
-            document: ArticleExportDocument(
-                text: ArticleExportService.markdown(for: snapshot)
-            ),
-            defaultFilename: ArticleExportService.defaultFilename(for: snapshot)
-        )
+        let request = ArticleExportRequest(snapshot: ArticleExportSnapshot(article: article))
 
         // Der Export kommt aus einem Kontextmenü. Der nächste Main-Runloop verhindert,
         // dass das Export-Sheet noch während der Menüaktion präsentiert wird.

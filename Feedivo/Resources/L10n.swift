@@ -26,6 +26,10 @@ enum L10n {
     static let commonCancel = LocalizedStringKey("common.cancel")
     static let commonAdd = LocalizedStringKey("common.add")
     static let commonDone = LocalizedStringKey("common.done")
+    static var commonNext: String { String(localized: "common.next") }
+    static var commonBack: String { String(localized: "common.back") }
+    static var commonOn: String { String(localized: "common.on") }
+    static var commonOff: String { String(localized: "common.off") }
     static let articleListEmptyTitle = LocalizedStringKey("articleList.empty.title")
     static let articleListEmptyDescription = LocalizedStringKey("articleList.empty.description")
     static let articleRowUnread = LocalizedStringKey("articleRow.unread")
@@ -270,6 +274,24 @@ enum L10n {
     static var articleExportPreparingTitle: String { String(localized: "article.export.preparing.title") }
     static var articleExportPreparingMessage: String { String(localized: "article.export.preparing.message") }
     static var articleExportSaveButton: String { String(localized: "article.export.save.button") }
+    static var articleExportPrepareTitle: String { String(localized: "article.export.prepare.title") }
+    static var articleExportPrepareMessage: String { String(localized: "article.export.prepare.message") }
+    static var articleExportPreviewTitle: String { String(localized: "article.export.preview.title") }
+    static var articleExportPreviewMessage: String { String(localized: "article.export.preview.message") }
+    static var articleExportFormatMarkdown: String { String(localized: "article.export.format.markdown") }
+    static var articleExportFormatMarkdownDescription: String { String(localized: "article.export.format.markdown.description") }
+    static var articleExportFormatPlainText: String { String(localized: "article.export.format.plainText") }
+    static var articleExportFormatPlainTextDescription: String { String(localized: "article.export.format.plainText.description") }
+    static var articleExportFormatHTML: String { String(localized: "article.export.format.html") }
+    static var articleExportFormatHTMLDescription: String { String(localized: "article.export.format.html.description") }
+    static var articleExportMetadataToggle: String { String(localized: "article.export.metadata.toggle") }
+    static var articleExportMetadataDescription: String { String(localized: "article.export.metadata.description") }
+    static var articleExportSummaryFormat: String { String(localized: "article.export.summary.format") }
+    static var articleExportSummaryMetadata: String { String(localized: "article.export.summary.metadata") }
+    static var articleExportSummarySource: String { String(localized: "article.export.summary.source") }
+    static var articleExportSourceOffline: String { String(localized: "article.export.source.offline") }
+    static var articleExportSourceFeedContent: String { String(localized: "article.export.source.feedContent") }
+    static var articleExportSourceSummary: String { String(localized: "article.export.source.summary") }
     static var articleAssignTagCommand: String { String(localized: "article.assignTag.command") }
     static var articleCreateRuleCommand: String { String(localized: "article.createRule.command") }
     static var articleShareCommand: String { String(localized: "article.share.command") }
