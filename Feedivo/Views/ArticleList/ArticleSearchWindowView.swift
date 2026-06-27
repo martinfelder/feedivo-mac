@@ -14,8 +14,23 @@ struct ArticleSearchWindowView: View {
     @State private var searchState = ArticleSearchWindowState()
     @State private var viewModel = ArticleViewModel()
 
+    /// P4: Debounced Suchtext — das TextField bleibt an `searchState.searchText`
+    /// gebunden (so tippt der Nutzer flüssig), aber Filterung/Sortierung laufen
+    /// erst nach einer kurzen Typ-Pause (250 ms) über den committeten Text statt
+    /// bei jedem Tastendruck über alle Artikel. Picker (Feed/Tag/Datum/Status)
+    /// ändern `searchState` direkt und bleiben sofort wirksam.
+    @State private var debouncedSearchText: String = ""
+
+    /// Such-State mit committetem (debounced) Text — die Filter-Picker kommen
+    /// weiter live aus `searchState`, nur der Text ist debounced.
+    private var committedState: ArticleSearchWindowState {
+        var state = searchState
+        state.searchText = debouncedSearchText
+        return state
+    }
+
     private var filteredArticles: [Article] {
-        searchState.filteredArticles(from: articles)
+        committedState.filteredArticles(from: articles)
     }
 
     var body: some View {
@@ -31,6 +46,20 @@ struct ArticleSearchWindowView: View {
             }
         }
         .frame(minWidth: 620, minHeight: 460)
+        // P4: Debounce des Suchtextes. `.task(id:)` bricht die vorherige Aufgabe
+        // ab, sobald sich der Text ändert — committet nur nach 250 ms ohne
+        // weiteren Tastendruck. Leeres Feld wird sofort committet (kein Lag beim
+        // Löschen/Freimachen).
+        .task(id: searchState.searchText) {
+            if searchState.searchText.isEmpty {
+                debouncedSearchText = ""
+                return
+            }
+            try? await Task.sleep(nanoseconds: 250_000_000)
+            if !Task.isCancelled {
+                debouncedSearchText = searchState.searchText
+            }
+        }
     }
 
     private var searchHeader: some View {
@@ -172,7 +201,7 @@ struct ArticleSearchWindowView: View {
 
     private var emptyState: some View {
         Group {
-            if searchState.query.normalizedText.isEmpty {
+            if committedState.query.normalizedText.isEmpty {
                 ContentUnavailableView(
                     L10n.articleSearchNoResultsTitle,
                     systemImage: "magnifyingglass",
@@ -182,7 +211,7 @@ struct ArticleSearchWindowView: View {
                 ContentUnavailableView(
                     L10n.articleSearchNoResultsTitle,
                     systemImage: "magnifyingglass",
-                    description: Text(L10n.articleSearchNoResultsDescription(searchState.query.normalizedText))
+                    description: Text(L10n.articleSearchNoResultsDescription(committedState.query.normalizedText))
                 )
             }
         }
@@ -191,6 +220,9 @@ struct ArticleSearchWindowView: View {
 
     private func clearSearch() {
         searchState = ArticleSearchWindowState()
+        // P4: debounced Text sofort zurücksetzen, damit Treffer/Leer-Zustand ohne
+        // 250 ms Lag folgen.
+        debouncedSearchText = ""
     }
 
     private func label(for field: ArticleSearchField) -> String {
