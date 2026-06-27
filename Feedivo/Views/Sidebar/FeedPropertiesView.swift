@@ -28,7 +28,9 @@ struct FeedPropertiesView: View {
     @State private var tagViewModel = TagViewModel()
 
     private var latestArticle: Article? {
-        FeedPropertiesFormatter.latestArticle(in: feed.articles)
+        // P7: Nur eine einzige Artikelzeile per fetchLimit laden statt
+        // alle feed.articles in den Speicher zu faulten.
+        FeedPropertiesQuery.latestArticle(in: modelContext, for: feed)
     }
 
     private var nextRefreshDate: Date? {
@@ -39,7 +41,9 @@ struct FeedPropertiesView: View {
     }
 
     private var latestLogEntries: [FeedLogEntry] {
-        FeedPropertiesFormatter.latestLogEntries(feed.logEntries)
+        // P7: Maximal 20 Log-Einträge per fetchLimit laden statt alle
+        // feed.logEntries in den Speicher zu faulten.
+        FeedPropertiesQuery.latestLogEntries(in: modelContext, for: feed)
     }
 
     private var sortedFeedTags: [Tag] {
@@ -153,7 +157,7 @@ struct FeedPropertiesView: View {
 
                 statusMetric(
                     icon: "checkmark.circle",
-                    value: "\(FeedPropertiesFormatter.latestLogEntryCount(feed.logEntries))",
+                    value: "\(FeedPropertiesQuery.latestLogEntryCount(in: modelContext, for: feed))",
                     title: L10n.feedPropertiesLogEntries,
                     tint: .green
                 )
