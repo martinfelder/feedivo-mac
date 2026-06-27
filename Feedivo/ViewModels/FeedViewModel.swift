@@ -583,6 +583,12 @@ final class FeedViewModel {
                 context.delete(article)
             }
 
+            // .nullify statt .cascade (CloudKit-kompatibel): LogEntries manuell
+            // löschen, sonst verwaisten sie nach dem Feed-Löschen.
+            for entry in Array(feed.logEntries) {
+                context.delete(entry)
+            }
+
             context.delete(feed)
 
             try context.save()

@@ -200,6 +200,11 @@ final class RuleViewModel {
     }
 
     func deleteRule(_ rule: Rule, context: ModelContext) {
+        // .nullify statt .cascade (CloudKit-kompatibel): SwiftData würde die
+        // Conditions nur verwaisten lassen — deshalb hier manuell löschen.
+        for condition in Array(rule.conditions) {
+            context.delete(condition)
+        }
         context.delete(rule)
         save(context)
     }

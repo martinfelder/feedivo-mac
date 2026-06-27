@@ -274,4 +274,50 @@ struct RuleViewModelTests {
         #expect(rules.isEmpty)
         #expect(viewModel.errorMessage != nil)
     }
+
+    @MainActor
+    @Test func deleteRuleEntferntZugehoerigeConditions() throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            RuleCondition.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let rule = Rule(
+            name: "Regel",
+            conditionField: RuleConditionField.title.rawValue,
+            conditionOperator: RuleConditionOperator.contains.rawValue,
+            conditionValue: "Swift"
+        )
+        rule.conditions = [
+            RuleCondition(
+                field: RuleConditionField.title.rawValue,
+                conditionOperator: RuleConditionOperator.contains.rawValue,
+                value: "Swift",
+                sortOrder: 0
+            ),
+            RuleCondition(
+                field: RuleConditionField.summary.rawValue,
+                conditionOperator: RuleConditionOperator.contains.rawValue,
+                value: "Mac",
+                sortOrder: 1
+            )
+        ]
+        context.insert(rule)
+        try context.save()
+        let viewModel = RuleViewModel()
+
+        viewModel.deleteRule(rule, context: context)
+
+        let rules = try context.fetch(FetchDescriptor<Rule>())
+        #expect(rules.isEmpty)
+        // Mit .nullify statt .cascade würde SwiftData die Conditions nur
+        // verwaisten lassen — das manuelle Cascade im Code muss sie löschen.
+        let conditions = try context.fetch(FetchDescriptor<RuleCondition>())
+        #expect(conditions.isEmpty, "Conditions müssen mit der Regel gelöscht werden")
+    }
 }

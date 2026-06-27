@@ -19,7 +19,7 @@ class Rule {
     @Relationship
     var assignTag: Tag?
 
-    @Relationship(deleteRule: .cascade, inverse: \RuleCondition.rule)
+    @Relationship(deleteRule: .nullify, inverse: \RuleCondition.rule)
     var conditions: [RuleCondition] = []
 
     init(name: String, conditionField: String,

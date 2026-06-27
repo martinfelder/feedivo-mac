@@ -247,6 +247,11 @@ final class SmartFolderViewModel {
     }
 
     func deleteFolder(_ folder: SmartFolder, context: ModelContext) {
+        // .nullify statt .cascade (CloudKit-kompatibel): SwiftData würde die
+        // Conditions nur verwaisten lassen — deshalb hier manuell löschen.
+        for condition in Array(folder.conditions) {
+            context.delete(condition)
+        }
         context.delete(folder)
         save(context)
     }

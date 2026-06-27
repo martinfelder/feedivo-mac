@@ -186,4 +186,45 @@ struct SmartFolderViewModelTests {
         #expect(folder.iconName == "tag")
         #expect(folder.colorHex == "#F97316")
     }
+
+    @MainActor
+    @Test func deleteFolderEntferntZugehoerigeConditions() throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            RuleCondition.self,
+            SmartFolder.self,
+            SmartFolderCondition.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let folder = SmartFolder(name: "Smart", matchMode: .all, conditions: [
+            SmartFolderCondition(
+                field: .title,
+                conditionOperator: .contains,
+                value: "Swift",
+                sortOrder: 0
+            ),
+            SmartFolderCondition(
+                field: .text,
+                conditionOperator: .contains,
+                value: "Mac",
+                sortOrder: 1
+            )
+        ])
+        context.insert(folder)
+        try context.save()
+        let viewModel = SmartFolderViewModel()
+
+        viewModel.deleteFolder(folder, context: context)
+
+        let folders = try context.fetch(FetchDescriptor<SmartFolder>())
+        #expect(folders.isEmpty)
+        // .nullify statt .cascade — manuelles Cascade muss die Conditions löschen.
+        let conditions = try context.fetch(FetchDescriptor<SmartFolderCondition>())
+        #expect(conditions.isEmpty, "Conditions müssen mit dem Ordner gelöscht werden")
+    }
 }

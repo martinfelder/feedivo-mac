@@ -1536,6 +1536,34 @@ struct FeedViewModelTests {
             )
         ])
     }
+
+    @MainActor
+    @Test func deleteFeedEntferntAuchZugehoerigeLogEntries() throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            RuleCondition.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Test Feed")
+        feed.logEntries = [
+            FeedLogEntry(createdAt: Date(), kind: .info, message: "Abruf ok"),
+            FeedLogEntry(createdAt: Date(), kind: .error, message: "Abruf fehlerhaft")
+        ]
+        context.insert(feed)
+        try context.save()
+        let viewModel = makeViewModel()
+
+        viewModel.deleteFeed(feed, context: context)
+
+        let entries = try context.fetch(FetchDescriptor<FeedLogEntry>())
+        #expect(entries.isEmpty, "LogEntries müssen mit dem Feed gelöscht werden")
+        #expect(viewModel.errorMessage == nil)
+    }
 }
 
 private struct TestFeedRefreshError: LocalizedError {

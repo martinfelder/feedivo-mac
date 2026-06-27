@@ -22,7 +22,7 @@ class SmartFolder {
         set { colorHexRaw = SmartFolderAppearance.normalizedColorHex(newValue) }
     }
 
-    @Relationship(deleteRule: .cascade, inverse: \SmartFolderCondition.smartFolder)
+    @Relationship(deleteRule: .nullify, inverse: \SmartFolderCondition.smartFolder)
     var conditions: [SmartFolderCondition] = []
 
     init(
