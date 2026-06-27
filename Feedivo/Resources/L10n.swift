@@ -23,14 +23,14 @@ enum L10n {
     static let smartFilterStarred = LocalizedStringKey("smartFilter.starred")
     static let smartFilterToday = LocalizedStringKey("smartFilter.today")
     static let smartFilterHidden = LocalizedStringKey("smartFilter.hidden")
-    static var smartFolderErrorNameRequired: String { String(localized: "smartFolder.error.nameRequired") }
+    static let smartFolderErrorNameRequired = String(localized: "smartFolder.error.nameRequired")
     static let commonCancel = LocalizedStringKey("common.cancel")
     static let commonAdd = LocalizedStringKey("common.add")
     static let commonDone = LocalizedStringKey("common.done")
-    static var commonNext: String { String(localized: "common.next") }
-    static var commonBack: String { String(localized: "common.back") }
-    static var commonOn: String { String(localized: "common.on") }
-    static var commonOff: String { String(localized: "common.off") }
+    static let commonNext = String(localized: "common.next")
+    static let commonBack = String(localized: "common.back")
+    static let commonOn = String(localized: "common.on")
+    static let commonOff = String(localized: "common.off")
     static let articleListEmptyTitle = LocalizedStringKey("articleList.empty.title")
     static let articleListEmptyDescription = LocalizedStringKey("articleList.empty.description")
     static let articleRowUnread = LocalizedStringKey("articleRow.unread")
@@ -252,129 +252,129 @@ enum L10n {
     static let feedPropertiesArticleRetentionInherited = LocalizedStringKey("feed.properties.articleRetention.inherited")
     static let feedPropertiesArticleRetentionEnabled = LocalizedStringKey("feed.properties.articleRetention.enabled")
 
-    static var articleRowStarRemove: String { String(localized: "articleRow.star.remove") }
-    static var articleRowStarAdd: String { String(localized: "articleRow.star.add") }
-    static var articleRowStarredText: String { String(localized: "articleRow.starred") }
-    static var articleRowUnreadText: String { String(localized: "articleRow.unread") }
-    static var articleRowOfflineAvailable: String { String(localized: "articleRow.offline.available") }
-    static var articleRowOfflineFailed: String { String(localized: "articleRow.offline.failed") }
-    static var articleRowMarkRead: String { String(localized: "articleRow.markRead") }
-    static var articleRowMarkUnread: String { String(localized: "articleRow.markUnread") }
-    static var articleListShowReadButtonFormat: String { String(localized: "articleList.showRead.button") }
-    static var articleListReadDisplayTitle: String { String(localized: "articleList.readDisplay.title") }
-    static var articleListReadDisplayUnreadOnly: String { String(localized: "articleList.readDisplay.unreadOnly") }
-    static var articleListReadDisplayAll: String { String(localized: "articleList.readDisplay.all") }
-    static var articleSearchPlaceholder: String { String(localized: "article.search.placeholder") }
-    static var articleSearchClear: String { String(localized: "article.search.clear") }
-    static var articleSearchFieldAll: String { String(localized: "article.search.field.all") }
-    static var articleSearchFieldTitle: String { String(localized: "article.search.field.title") }
-    static var articleSearchFieldSummary: String { String(localized: "article.search.field.summary") }
-    static var articleSearchFieldContent: String { String(localized: "article.search.field.content") }
-    static var articleSearchScopeCurrentView: String { String(localized: "article.search.scope.currentView") }
-    static var articleSearchScopeAllArticles: String { String(localized: "article.search.scope.allArticles") }
-    static var articleSearchFeedAll: String { String(localized: "article.search.feed.all") }
-    static var articleSearchTagAll: String { String(localized: "article.search.tag.all") }
-    static var articleSearchDateAnytime: String { String(localized: "article.search.date.anytime") }
-    static var articleSearchDateToday: String { String(localized: "article.search.date.today") }
-    static var articleSearchDateThisWeek: String { String(localized: "article.search.date.thisWeek") }
-    static var articleSearchStatusAll: String { String(localized: "article.search.status.all") }
-    static var articleSearchStatusUnread: String { String(localized: "article.search.status.unread") }
-    static var articleSearchStatusRead: String { String(localized: "article.search.status.read") }
-    static var articleSearchStatusStarred: String { String(localized: "article.search.status.starred") }
-    static var articleSearchStatusArchived: String { String(localized: "article.search.status.archived") }
-    static var articleSearchNoResultsTitle: String { String(localized: "article.search.noResults.title") }
-    static var articleCommandsMenu: String { String(localized: "articleCommands.menu") }
-    static var articlePreviousCommand: String { String(localized: "article.previous.command") }
-    static var articleNextCommand: String { String(localized: "article.next.command") }
-    static var articleSearchCommand: String { String(localized: "article.search.command") }
-    static var articleCopyLinkCommand: String { String(localized: "article.copyLink.command") }
-    static var articleOpenOriginalCommand: String { String(localized: "article.openOriginal.command") }
-    static var articleArchiveCommand: String { String(localized: "article.archive.command") }
-    static var articleUnarchiveCommand: String { String(localized: "article.unarchive.command") }
-    static var articleExportCommand: String { String(localized: "article.export.command") }
-    static var articleExportPreparingTitle: String { String(localized: "article.export.preparing.title") }
-    static var articleExportPreparingMessage: String { String(localized: "article.export.preparing.message") }
-    static var articleExportSaveButton: String { String(localized: "article.export.save.button") }
-    static var articleExportPrepareTitle: String { String(localized: "article.export.prepare.title") }
-    static var articleExportPrepareMessage: String { String(localized: "article.export.prepare.message") }
-    static var articleExportPreviewTitle: String { String(localized: "article.export.preview.title") }
-    static var articleExportPreviewMessage: String { String(localized: "article.export.preview.message") }
-    static var articleExportStepOne: String { String(localized: "article.export.step.one") }
-    static var articleExportStepTwo: String { String(localized: "article.export.step.two") }
-    static var articleExportFormatMarkdown: String { String(localized: "article.export.format.markdown") }
-    static var articleExportFormatMarkdownDescription: String { String(localized: "article.export.format.markdown.description") }
-    static var articleExportMarkdownPreview: String { String(localized: "article.export.preview.markdown") }
-    static var articleExportFormatPlainText: String { String(localized: "article.export.format.plainText") }
-    static var articleExportFormatPlainTextDescription: String { String(localized: "article.export.format.plainText.description") }
-    static var articleExportPlainTextPreview: String { String(localized: "article.export.preview.plainText") }
-    static var articleExportFormatHTML: String { String(localized: "article.export.format.html") }
-    static var articleExportFormatHTMLDescription: String { String(localized: "article.export.format.html.description") }
-    static var articleExportHTMLPreview: String { String(localized: "article.export.preview.html") }
-    static var articleExportFormatPDF: String { String(localized: "article.export.format.pdf") }
-    static var articleExportFormatPDFDescription: String { String(localized: "article.export.format.pdf.description") }
-    static var articleExportPDFPreview: String { String(localized: "article.export.preview.pdf") }
-    static var articleExportFormatDOCX: String { String(localized: "article.export.format.docx") }
-    static var articleExportFormatDOCXDescription: String { String(localized: "article.export.format.docx.description") }
-    static var articleExportDOCXPreview: String { String(localized: "article.export.preview.docx") }
-    static var articleExportMetadataToggle: String { String(localized: "article.export.metadata.toggle") }
-    static var articleExportMetadataDescription: String { String(localized: "article.export.metadata.description") }
-    static var articleExportOfflineImagesToggle: String { String(localized: "article.export.offlineImages.toggle") }
-    static var articleExportOfflineImagesDescription: String { String(localized: "article.export.offlineImages.description") }
-    static var articleExportOfflineImagesLoading: String { String(localized: "article.export.offlineImages.loading") }
-    static var articleExportStatusPreparingDocument: String { String(localized: "article.export.status.preparingDocument") }
-    static var articleExportStatusDownloadingImage: String { String(localized: "article.export.status.downloadingImage") }
-    static var articleExportStatusCreatingArchive: String { String(localized: "article.export.status.creatingArchive") }
-    static var articleExportStatusOpeningSaveDialog: String { String(localized: "article.export.status.openingSaveDialog") }
-    static var articleExportSummaryFormat: String { String(localized: "article.export.summary.format") }
-    static var articleExportSummaryMetadata: String { String(localized: "article.export.summary.metadata") }
-    static var articleExportSummarySource: String { String(localized: "article.export.summary.source") }
-    static var articleExportSummaryImages: String { String(localized: "article.export.summary.images") }
-    static var articleExportSummaryImagesSaved: String { String(localized: "article.export.summary.images.saved") }
-    static var articleExportSummaryImagesPartial: String { String(localized: "article.export.summary.images.partial") }
-    static var articleExportSourceOffline: String { String(localized: "article.export.source.offline") }
-    static var articleExportSourceFeedContent: String { String(localized: "article.export.source.feedContent") }
-    static var articleExportSourceSummary: String { String(localized: "article.export.source.summary") }
-    static var articleAssignTagCommand: String { String(localized: "article.assignTag.command") }
-    static var articleCreateRuleCommand: String { String(localized: "article.createRule.command") }
-    static var articleShareCommand: String { String(localized: "article.share.command") }
-    static var articleDeleteCommand: String { String(localized: "article.delete.command") }
-    static var articleMarkAllReadCommand: String { String(localized: "article.markAllRead.command") }
-    static var articleMarkReadMenuTitle: String { String(localized: "article.markRead.menu.title") }
-    static var articleMarkReadOlderThanOneDay: String { String(localized: "article.markRead.olderThanOneDay") }
-    static var articleMarkReadOlderThanTwoDays: String { String(localized: "article.markRead.olderThanTwoDays") }
-    static var articleMarkReadOlderThanThreeDays: String { String(localized: "article.markRead.olderThanThreeDays") }
-    static var articleMarkReadOlderThanFourDays: String { String(localized: "article.markRead.olderThanFourDays") }
-    static var articleMarkReadOlderThanOneWeek: String { String(localized: "article.markRead.olderThanOneWeek") }
-    static var articleMarkReadOlderThanTwoWeeks: String { String(localized: "article.markRead.olderThanTwoWeeks") }
-    static var articleMarkReadAllVisible: String { String(localized: "article.markRead.allVisible") }
-    static var viewCommandsMenu: String { String(localized: "viewCommands.menu") }
-    static var articleSortMenuTitle: String { String(localized: "articleSort.menu.title") }
-    static var articleSortNewestFirst: String { String(localized: "articleSort.newestFirst") }
-    static var articleSortOldestFirst: String { String(localized: "articleSort.oldestFirst") }
-    static var articleSortFeed: String { String(localized: "articleSort.feed") }
-    static var articleSortTitle: String { String(localized: "articleSort.title") }
-    static var articleSortShortReadingTimeFirst: String { String(localized: "articleSort.shortReadingTimeFirst") }
-    static var articleFilterMenuTitle: String { String(localized: "articleFilter.menu.title") }
-    static var articleFilterAll: String { String(localized: "articleFilter.all") }
-    static var articleFilterUnread: String { String(localized: "articleFilter.unread") }
-    static var articleFilterStarred: String { String(localized: "articleFilter.starred") }
-    static var articleFilterArchived: String { String(localized: "articleFilter.archived") }
-    static var articleFilterToday: String { String(localized: "articleFilter.today") }
-    static var readerDisplayModeToggleHelp: String { String(localized: "reader.displayMode.toggle.help") }
-    static var sidebarAddFolderDuplicateError: String { String(localized: "sidebar.addFolder.duplicateError") }
-    static var tagManagerEmptyNameError: String { String(localized: "tagManager.emptyName.error") }
-    static var tagManagerDuplicateNameError: String { String(localized: "tagManager.duplicateName.error") }
-    static var ruleValidationError: String { String(localized: "rule.validation.error") }
-    static var ruleCreateFromArticle: String { String(localized: "rule.createFromArticle") }
-    static var feedErrorInvalidURL: String { String(localized: "feed.error.invalidURL") }
-    static var feedErrorParsingFailed: String { String(localized: "feed.error.parsingFailed") }
+    static let articleRowStarRemove = String(localized: "articleRow.star.remove")
+    static let articleRowStarAdd = String(localized: "articleRow.star.add")
+    static let articleRowStarredText = String(localized: "articleRow.starred")
+    static let articleRowUnreadText = String(localized: "articleRow.unread")
+    static let articleRowOfflineAvailable = String(localized: "articleRow.offline.available")
+    static let articleRowOfflineFailed = String(localized: "articleRow.offline.failed")
+    static let articleRowMarkRead = String(localized: "articleRow.markRead")
+    static let articleRowMarkUnread = String(localized: "articleRow.markUnread")
+    static let articleListShowReadButtonFormat = String(localized: "articleList.showRead.button")
+    static let articleListReadDisplayTitle = String(localized: "articleList.readDisplay.title")
+    static let articleListReadDisplayUnreadOnly = String(localized: "articleList.readDisplay.unreadOnly")
+    static let articleListReadDisplayAll = String(localized: "articleList.readDisplay.all")
+    static let articleSearchPlaceholder = String(localized: "article.search.placeholder")
+    static let articleSearchClear = String(localized: "article.search.clear")
+    static let articleSearchFieldAll = String(localized: "article.search.field.all")
+    static let articleSearchFieldTitle = String(localized: "article.search.field.title")
+    static let articleSearchFieldSummary = String(localized: "article.search.field.summary")
+    static let articleSearchFieldContent = String(localized: "article.search.field.content")
+    static let articleSearchScopeCurrentView = String(localized: "article.search.scope.currentView")
+    static let articleSearchScopeAllArticles = String(localized: "article.search.scope.allArticles")
+    static let articleSearchFeedAll = String(localized: "article.search.feed.all")
+    static let articleSearchTagAll = String(localized: "article.search.tag.all")
+    static let articleSearchDateAnytime = String(localized: "article.search.date.anytime")
+    static let articleSearchDateToday = String(localized: "article.search.date.today")
+    static let articleSearchDateThisWeek = String(localized: "article.search.date.thisWeek")
+    static let articleSearchStatusAll = String(localized: "article.search.status.all")
+    static let articleSearchStatusUnread = String(localized: "article.search.status.unread")
+    static let articleSearchStatusRead = String(localized: "article.search.status.read")
+    static let articleSearchStatusStarred = String(localized: "article.search.status.starred")
+    static let articleSearchStatusArchived = String(localized: "article.search.status.archived")
+    static let articleSearchNoResultsTitle = String(localized: "article.search.noResults.title")
+    static let articleCommandsMenu = String(localized: "articleCommands.menu")
+    static let articlePreviousCommand = String(localized: "article.previous.command")
+    static let articleNextCommand = String(localized: "article.next.command")
+    static let articleSearchCommand = String(localized: "article.search.command")
+    static let articleCopyLinkCommand = String(localized: "article.copyLink.command")
+    static let articleOpenOriginalCommand = String(localized: "article.openOriginal.command")
+    static let articleArchiveCommand = String(localized: "article.archive.command")
+    static let articleUnarchiveCommand = String(localized: "article.unarchive.command")
+    static let articleExportCommand = String(localized: "article.export.command")
+    static let articleExportPreparingTitle = String(localized: "article.export.preparing.title")
+    static let articleExportPreparingMessage = String(localized: "article.export.preparing.message")
+    static let articleExportSaveButton = String(localized: "article.export.save.button")
+    static let articleExportPrepareTitle = String(localized: "article.export.prepare.title")
+    static let articleExportPrepareMessage = String(localized: "article.export.prepare.message")
+    static let articleExportPreviewTitle = String(localized: "article.export.preview.title")
+    static let articleExportPreviewMessage = String(localized: "article.export.preview.message")
+    static let articleExportStepOne = String(localized: "article.export.step.one")
+    static let articleExportStepTwo = String(localized: "article.export.step.two")
+    static let articleExportFormatMarkdown = String(localized: "article.export.format.markdown")
+    static let articleExportFormatMarkdownDescription = String(localized: "article.export.format.markdown.description")
+    static let articleExportMarkdownPreview = String(localized: "article.export.preview.markdown")
+    static let articleExportFormatPlainText = String(localized: "article.export.format.plainText")
+    static let articleExportFormatPlainTextDescription = String(localized: "article.export.format.plainText.description")
+    static let articleExportPlainTextPreview = String(localized: "article.export.preview.plainText")
+    static let articleExportFormatHTML = String(localized: "article.export.format.html")
+    static let articleExportFormatHTMLDescription = String(localized: "article.export.format.html.description")
+    static let articleExportHTMLPreview = String(localized: "article.export.preview.html")
+    static let articleExportFormatPDF = String(localized: "article.export.format.pdf")
+    static let articleExportFormatPDFDescription = String(localized: "article.export.format.pdf.description")
+    static let articleExportPDFPreview = String(localized: "article.export.preview.pdf")
+    static let articleExportFormatDOCX = String(localized: "article.export.format.docx")
+    static let articleExportFormatDOCXDescription = String(localized: "article.export.format.docx.description")
+    static let articleExportDOCXPreview = String(localized: "article.export.preview.docx")
+    static let articleExportMetadataToggle = String(localized: "article.export.metadata.toggle")
+    static let articleExportMetadataDescription = String(localized: "article.export.metadata.description")
+    static let articleExportOfflineImagesToggle = String(localized: "article.export.offlineImages.toggle")
+    static let articleExportOfflineImagesDescription = String(localized: "article.export.offlineImages.description")
+    static let articleExportOfflineImagesLoading = String(localized: "article.export.offlineImages.loading")
+    static let articleExportStatusPreparingDocument = String(localized: "article.export.status.preparingDocument")
+    static let articleExportStatusDownloadingImage = String(localized: "article.export.status.downloadingImage")
+    static let articleExportStatusCreatingArchive = String(localized: "article.export.status.creatingArchive")
+    static let articleExportStatusOpeningSaveDialog = String(localized: "article.export.status.openingSaveDialog")
+    static let articleExportSummaryFormat = String(localized: "article.export.summary.format")
+    static let articleExportSummaryMetadata = String(localized: "article.export.summary.metadata")
+    static let articleExportSummarySource = String(localized: "article.export.summary.source")
+    static let articleExportSummaryImages = String(localized: "article.export.summary.images")
+    static let articleExportSummaryImagesSaved = String(localized: "article.export.summary.images.saved")
+    static let articleExportSummaryImagesPartial = String(localized: "article.export.summary.images.partial")
+    static let articleExportSourceOffline = String(localized: "article.export.source.offline")
+    static let articleExportSourceFeedContent = String(localized: "article.export.source.feedContent")
+    static let articleExportSourceSummary = String(localized: "article.export.source.summary")
+    static let articleAssignTagCommand = String(localized: "article.assignTag.command")
+    static let articleCreateRuleCommand = String(localized: "article.createRule.command")
+    static let articleShareCommand = String(localized: "article.share.command")
+    static let articleDeleteCommand = String(localized: "article.delete.command")
+    static let articleMarkAllReadCommand = String(localized: "article.markAllRead.command")
+    static let articleMarkReadMenuTitle = String(localized: "article.markRead.menu.title")
+    static let articleMarkReadOlderThanOneDay = String(localized: "article.markRead.olderThanOneDay")
+    static let articleMarkReadOlderThanTwoDays = String(localized: "article.markRead.olderThanTwoDays")
+    static let articleMarkReadOlderThanThreeDays = String(localized: "article.markRead.olderThanThreeDays")
+    static let articleMarkReadOlderThanFourDays = String(localized: "article.markRead.olderThanFourDays")
+    static let articleMarkReadOlderThanOneWeek = String(localized: "article.markRead.olderThanOneWeek")
+    static let articleMarkReadOlderThanTwoWeeks = String(localized: "article.markRead.olderThanTwoWeeks")
+    static let articleMarkReadAllVisible = String(localized: "article.markRead.allVisible")
+    static let viewCommandsMenu = String(localized: "viewCommands.menu")
+    static let articleSortMenuTitle = String(localized: "articleSort.menu.title")
+    static let articleSortNewestFirst = String(localized: "articleSort.newestFirst")
+    static let articleSortOldestFirst = String(localized: "articleSort.oldestFirst")
+    static let articleSortFeed = String(localized: "articleSort.feed")
+    static let articleSortTitle = String(localized: "articleSort.title")
+    static let articleSortShortReadingTimeFirst = String(localized: "articleSort.shortReadingTimeFirst")
+    static let articleFilterMenuTitle = String(localized: "articleFilter.menu.title")
+    static let articleFilterAll = String(localized: "articleFilter.all")
+    static let articleFilterUnread = String(localized: "articleFilter.unread")
+    static let articleFilterStarred = String(localized: "articleFilter.starred")
+    static let articleFilterArchived = String(localized: "articleFilter.archived")
+    static let articleFilterToday = String(localized: "articleFilter.today")
+    static let readerDisplayModeToggleHelp = String(localized: "reader.displayMode.toggle.help")
+    static let sidebarAddFolderDuplicateError = String(localized: "sidebar.addFolder.duplicateError")
+    static let tagManagerEmptyNameError = String(localized: "tagManager.emptyName.error")
+    static let tagManagerDuplicateNameError = String(localized: "tagManager.duplicateName.error")
+    static let ruleValidationError = String(localized: "rule.validation.error")
+    static let ruleCreateFromArticle = String(localized: "rule.createFromArticle")
+    static let feedErrorInvalidURL = String(localized: "feed.error.invalidURL")
+    static let feedErrorParsingFailed = String(localized: "feed.error.parsingFailed")
 
     /// HTTP-Statuscode einer fehlgeschlagenen Feed-Abrufantwort (M6).
     static func feedErrorHTTPStatus(_ statusCode: Int) -> String {
         String.localizedStringWithFormat(String(localized: "feed.error.httpError"), statusCode)
     }
-    static var feedErrorEmptyURL: String { String(localized: "feed.error.emptyURL") }
-    static var feedErrorAddFailed: String { String(localized: "feed.error.addFailed") }
+    static let feedErrorEmptyURL = String(localized: "feed.error.emptyURL")
+    static let feedErrorAddFailed = String(localized: "feed.error.addFailed")
     static var feedErrorDuplicate: String {
         String(localized: "feed.error.duplicate", defaultValue: "Dieser Feed wird bereits abonniert.")
     }
@@ -400,54 +400,54 @@ enum L10n {
     static var feedImportAlreadyRunning: String {
         String(localized: "feed.import.alreadyRunning", defaultValue: "Ein Import läuft bereits. Bitte warte, bis er abgeschlossen ist.")
     }
-    static var feedDiscoveryErrorNoFeedsFound: String { String(localized: "feedDiscovery.error.noFeedsFound") }
-    static var feedCommandsMenu: String { String(localized: "feedCommands.menu") }
-    static var feedAddCommand: String { String(localized: "feed.add.command") }
-    static var feedRefreshAllCommand: String { String(localized: "feed.refreshAll.command") }
-    static var feedRefreshCommand: String { String(localized: "feed.refresh.command") }
-    static var feedRenameCommand: String { String(localized: "feed.rename.command") }
-    static var feedRenameTitle: String { String(localized: "feed.rename.title") }
-    static var feedRenameDescription: String { String(localized: "feed.rename.description") }
-    static var feedRenameDisplayName: String { String(localized: "feed.rename.displayName") }
-    static var feedRenameOriginalName: String { String(localized: "feed.rename.originalName") }
-    static var feedRenameOriginalStored: String { String(localized: "feed.rename.originalStored") }
-    static var feedRenameRestoreOriginal: String { String(localized: "feed.rename.restoreOriginal") }
-    static var feedRenameSave: String { String(localized: "feed.rename.save") }
-    static var feedRenameEmptyName: String { String(localized: "feed.rename.emptyName") }
-    static var feedRenameNoChanges: String { String(localized: "feed.rename.noChanges") }
-    static var feedRenameChanged: String { String(localized: "feed.rename.changed") }
-    static var feedRenameRestored: String { String(localized: "feed.rename.restored") }
-    static var feedDeleteCommand: String { String(localized: "feed.delete.command") }
-    static var feedImportOPMLCommand: String { String(localized: "feed.importOPML.command") }
-    static var feedExportOPMLCommand: String { String(localized: "feed.exportOPML.command") }
-    static var opmlExportTitle: String { String(localized: "opml.export.title") }
-    static var opmlExportDescription: String { String(localized: "opml.export.description") }
-    static var opmlExportFeedsAndTitles: String { String(localized: "opml.export.feedsAndTitles") }
-    static var opmlExportFeedsAndTitlesDescription: String { String(localized: "opml.export.feedsAndTitles.description") }
-    static var opmlExportFolders: String { String(localized: "opml.export.folders") }
-    static var opmlExportFoldersDescription: String { String(localized: "opml.export.folders.description") }
-    static var opmlExportTags: String { String(localized: "opml.export.tags") }
-    static var opmlExportTagsDescription: String { String(localized: "opml.export.tags.description") }
-    static var opmlExportDescriptions: String { String(localized: "opml.export.descriptions") }
-    static var opmlExportDescriptionsDescription: String { String(localized: "opml.export.descriptions.description") }
-    static var opmlExportSummaryTitle: String { String(localized: "opml.export.summary.title") }
-    static var opmlExportSummaryFeeds: String { String(localized: "opml.export.summary.feeds") }
-    static var opmlExportSummaryFolders: String { String(localized: "opml.export.summary.folders") }
-    static var opmlExportSummaryTags: String { String(localized: "opml.export.summary.tags") }
-    static var opmlExportSummaryDescriptions: String { String(localized: "opml.export.summary.descriptions") }
-    static var opmlExportFooterNote: String { String(localized: "opml.export.footerNote") }
-    static var opmlExportSaveButton: String { String(localized: "opml.export.saveButton") }
-    static var feedPropertiesCommand: String { String(localized: "feed.properties.command") }
-    static var feedPropertiesCopyXMLAddress: String { String(localized: "feed.properties.copyXMLAddress") }
-    static var feedPropertiesNoFolder: String { String(localized: "feed.properties.noFolder") }
-    static var feedPropertiesUnavailable: String { String(localized: "feed.properties.unavailable") }
+    static let feedDiscoveryErrorNoFeedsFound = String(localized: "feedDiscovery.error.noFeedsFound")
+    static let feedCommandsMenu = String(localized: "feedCommands.menu")
+    static let feedAddCommand = String(localized: "feed.add.command")
+    static let feedRefreshAllCommand = String(localized: "feed.refreshAll.command")
+    static let feedRefreshCommand = String(localized: "feed.refresh.command")
+    static let feedRenameCommand = String(localized: "feed.rename.command")
+    static let feedRenameTitle = String(localized: "feed.rename.title")
+    static let feedRenameDescription = String(localized: "feed.rename.description")
+    static let feedRenameDisplayName = String(localized: "feed.rename.displayName")
+    static let feedRenameOriginalName = String(localized: "feed.rename.originalName")
+    static let feedRenameOriginalStored = String(localized: "feed.rename.originalStored")
+    static let feedRenameRestoreOriginal = String(localized: "feed.rename.restoreOriginal")
+    static let feedRenameSave = String(localized: "feed.rename.save")
+    static let feedRenameEmptyName = String(localized: "feed.rename.emptyName")
+    static let feedRenameNoChanges = String(localized: "feed.rename.noChanges")
+    static let feedRenameChanged = String(localized: "feed.rename.changed")
+    static let feedRenameRestored = String(localized: "feed.rename.restored")
+    static let feedDeleteCommand = String(localized: "feed.delete.command")
+    static let feedImportOPMLCommand = String(localized: "feed.importOPML.command")
+    static let feedExportOPMLCommand = String(localized: "feed.exportOPML.command")
+    static let opmlExportTitle = String(localized: "opml.export.title")
+    static let opmlExportDescription = String(localized: "opml.export.description")
+    static let opmlExportFeedsAndTitles = String(localized: "opml.export.feedsAndTitles")
+    static let opmlExportFeedsAndTitlesDescription = String(localized: "opml.export.feedsAndTitles.description")
+    static let opmlExportFolders = String(localized: "opml.export.folders")
+    static let opmlExportFoldersDescription = String(localized: "opml.export.folders.description")
+    static let opmlExportTags = String(localized: "opml.export.tags")
+    static let opmlExportTagsDescription = String(localized: "opml.export.tags.description")
+    static let opmlExportDescriptions = String(localized: "opml.export.descriptions")
+    static let opmlExportDescriptionsDescription = String(localized: "opml.export.descriptions.description")
+    static let opmlExportSummaryTitle = String(localized: "opml.export.summary.title")
+    static let opmlExportSummaryFeeds = String(localized: "opml.export.summary.feeds")
+    static let opmlExportSummaryFolders = String(localized: "opml.export.summary.folders")
+    static let opmlExportSummaryTags = String(localized: "opml.export.summary.tags")
+    static let opmlExportSummaryDescriptions = String(localized: "opml.export.summary.descriptions")
+    static let opmlExportFooterNote = String(localized: "opml.export.footerNote")
+    static let opmlExportSaveButton = String(localized: "opml.export.saveButton")
+    static let feedPropertiesCommand = String(localized: "feed.properties.command")
+    static let feedPropertiesCopyXMLAddress = String(localized: "feed.properties.copyXMLAddress")
+    static let feedPropertiesNoFolder = String(localized: "feed.properties.noFolder")
+    static let feedPropertiesUnavailable = String(localized: "feed.properties.unavailable")
     static func feedNotificationSummaryTitle(_ newArticleCount: Int) -> String {
         String.localizedStringWithFormat(
             String(localized: "notification.feedRefresh.summary.title"),
             newArticleCount
         )
     }
-    static var ruleNotificationFallbackRuleName: String { String(localized: "notification.rule.fallbackRuleName") }
+    static let ruleNotificationFallbackRuleName = String(localized: "notification.rule.fallbackRuleName")
     static func ruleNotificationSummaryTitle(count: Int, ruleName: String) -> String {
         String.localizedStringWithFormat(
             String(localized: "notification.rule.summary.title"),
@@ -455,13 +455,13 @@ enum L10n {
             ruleName
         )
     }
-    static var feedLogAdded: String { String(localized: "feed.log.added") }
-    static var feedLogImportedFromOPML: String { String(localized: "feed.log.importedFromOPML") }
-    static var opmlImportResultTitle: String { String(localized: "opml.import.result.title") }
-    static var opmlImportFailedTitle: String { String(localized: "opml.import.failed.title") }
-    static var feedDeleteConfirmButton: String { String(localized: "feed.delete.confirmButton") }
-    static var feedDeleteConfirmationTitle: String { String(localized: "feed.delete.confirmation.title") }
-    static var settingsFeedsArticleCountHelp: String { String(localized: "settings.feeds.articleCount.help") }
+    static let feedLogAdded = String(localized: "feed.log.added")
+    static let feedLogImportedFromOPML = String(localized: "feed.log.importedFromOPML")
+    static let opmlImportResultTitle = String(localized: "opml.import.result.title")
+    static let opmlImportFailedTitle = String(localized: "opml.import.failed.title")
+    static let feedDeleteConfirmButton = String(localized: "feed.delete.confirmButton")
+    static let feedDeleteConfirmationTitle = String(localized: "feed.delete.confirmation.title")
+    static let settingsFeedsArticleCountHelp = String(localized: "settings.feeds.articleCount.help")
 
     static func opmlImportResultMessage(imported: Int, skippedDuplicates: Int) -> String {
         String.localizedStringWithFormat(
