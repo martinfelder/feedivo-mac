@@ -136,7 +136,7 @@ enum ArticleRetentionCleanupService {
         var unreadCounts: [UUID: Int] = [:]
 
         for article in articles
-        where !articlesToRemove.contains(where: { $0 === article }) && !article.isRead {
+        where !articlesToRemove.contains(where: { $0 === article }) && !article.isRead && !article.isHidden {
             if let feedID = article.feedID {
                 unreadCounts[feedID, default: 0] += 1
             }

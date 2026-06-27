@@ -296,7 +296,10 @@ final class ArticleViewModel {
     }
 
     private func updateUnreadCount(for article: Article, wasRead: Bool, isRead: Bool) {
-        guard wasRead != isRead, let feed = article.feed else {
+        // Versteckte Artikel zählen nicht als ungelesen — sie werden in der
+        // Artikelliste ausgeblendet und würden sonst ein Badge ohne sichtbare
+        // Artikel erzeugen.
+        guard wasRead != isRead, !article.isHidden, let feed = article.feed else {
             return
         }
 
@@ -314,7 +317,7 @@ final class ArticleViewModel {
         isRead: Bool,
         context: ModelContext
     ) {
-        guard wasRead != isRead, let feed = try? feed(for: article, context: context) else {
+        guard wasRead != isRead, !article.isHidden, let feed = try? feed(for: article, context: context) else {
             return
         }
 
@@ -376,7 +379,7 @@ final class ArticleViewModel {
     private func unreadArticleCount(forFeedID feedID: UUID, context: ModelContext) -> Int {
         let descriptor = FetchDescriptor<Article>(
             predicate: #Predicate<Article> { article in
-                article.feedID == feedID && !article.isRead
+                article.feedID == feedID && !article.isRead && !article.isHidden
             }
         )
 

@@ -2,7 +2,9 @@ import Foundation
 import SwiftData
 
 enum FeedUnreadCountBackfillService {
-    private static let backfillDoneKey = "feedUnreadCountBackfillDone_v1"
+    // v2: nach Fix, dass versteckte (isHidden) Artikel nicht mehr als
+    // ungelesen zählen — einmaliger Re-Sync bestehender Zähler.
+    private static let backfillDoneKey = "feedUnreadCountBackfillDone_v2"
 
     @MainActor
     @discardableResult
@@ -18,7 +20,7 @@ enum FeedUnreadCountBackfillService {
         var updatedCount = 0
 
         for feed in feeds {
-            let unreadCount = feed.articles.filter { !$0.isRead }.count
+            let unreadCount = feed.articles.filter { !$0.isRead && !$0.isHidden }.count
             guard feed.unreadCount != unreadCount else {
                 continue
             }
