@@ -4,23 +4,23 @@ import SwiftData
 // Rule definiert eine Bedingung, die automatisch eine Aktion auf Artikel anwendet
 @Model
 class Rule {
-    var id: UUID
-    var name: String
-    var isEnabled: Bool
-    var conditionField: String      // "title", "summary", "feedTitle"
-    var conditionOperator: String   // "contains", "startsWith", "endsWith"
-    var conditionValue: String      // z.B. "Apple", "WWDC"
-    var conditionMatchMode: String  // "all" oder "any"
+    var id: UUID = UUID()
+    var name: String = ""
+    var isEnabled: Bool = true
+    var conditionField: String = ""      // "title", "summary", "feedTitle"
+    var conditionOperator: String = ""   // "contains", "startsWith", "endsWith"
+    var conditionValue: String = ""      // z.B. "Apple", "WWDC"
+    var conditionMatchMode: String = RuleMatchMode.all.rawValue  // "all" oder "any"
     var actionRaw: String = RuleAction.assignTag.rawValue
     var notificationTemplate: String = "{Titel}"
     var notificationPriorityRaw: String = RuleNotificationPriority.normal.rawValue
-    var sortOrder: Int
+    var sortOrder: Int = 0
 
     @Relationship
     var assignTag: Tag?
 
     @Relationship(deleteRule: .cascade, inverse: \RuleCondition.rule)
-    var conditions: [RuleCondition]
+    var conditions: [RuleCondition] = []
 
     init(name: String, conditionField: String,
          conditionOperator: String, conditionValue: String) {

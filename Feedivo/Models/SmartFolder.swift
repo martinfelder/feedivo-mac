@@ -3,12 +3,12 @@ import SwiftData
 
 @Model
 class SmartFolder {
-    var id: UUID
-    var name: String
-    var matchModeRaw: String
-    var isShownInSidebar: Bool
-    var isDefault: Bool
-    var sortOrder: Int
+    var id: UUID = UUID()
+    var name: String = ""
+    var matchModeRaw: String = RuleMatchMode.all.rawValue
+    var isShownInSidebar: Bool = true
+    var isDefault: Bool = false
+    var sortOrder: Int = 0
     var iconNameRaw: String?
     var colorHexRaw: String?
 
@@ -23,7 +23,7 @@ class SmartFolder {
     }
 
     @Relationship(deleteRule: .cascade, inverse: \SmartFolderCondition.smartFolder)
-    var conditions: [SmartFolderCondition]
+    var conditions: [SmartFolderCondition] = []
 
     init(
         name: String,

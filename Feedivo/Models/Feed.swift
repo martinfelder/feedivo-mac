@@ -4,9 +4,9 @@ import SwiftData
 // Feed repräsentiert einen abonnierten RSS-Kanal
 @Model
 class Feed {
-    var id: UUID
-    var url: String
-    var title: String
+    var id: UUID = UUID()
+    var url: String = ""
+    var title: String = ""
     var originalTitle: String?
     var feedDescription: String?
     var faviconURL: String?
@@ -14,7 +14,7 @@ class Feed {
     var followedAt: Date?
     var folderName: String?
     var lastRefreshed: Date?
-    var refreshIntervalMinutes: Int
+    var refreshIntervalMinutes: Int = 60
     var isNotificationEnabled: Bool = false
     var articleRetentionOverridesGlobalSetting: Bool = false
     var articleRetentionIsEnabled: Bool = false
@@ -23,13 +23,13 @@ class Feed {
     var unreadCount: Int = 0
 
     @Relationship(deleteRule: .cascade)
-    var articles: [Article]
+    var articles: [Article] = []
 
     @Relationship(deleteRule: .cascade, inverse: \FeedLogEntry.feed)
-    var logEntries: [FeedLogEntry]
+    var logEntries: [FeedLogEntry] = []
 
     @Relationship
-    var tags: [Tag]
+    var tags: [Tag] = []
 
     init(
         url: String,

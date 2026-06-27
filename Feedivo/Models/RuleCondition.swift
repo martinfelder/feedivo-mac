@@ -3,11 +3,11 @@ import SwiftData
 
 @Model
 class RuleCondition {
-    var id: UUID
-    var field: String
-    var conditionOperator: String
-    var value: String
-    var sortOrder: Int
+    var id: UUID = UUID()
+    var field: String = ""
+    var conditionOperator: String = ""
+    var value: String = ""
+    var sortOrder: Int = 0
 
     @Relationship
     var rule: Rule?

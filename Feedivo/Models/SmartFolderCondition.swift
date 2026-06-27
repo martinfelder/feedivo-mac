@@ -3,11 +3,11 @@ import SwiftData
 
 @Model
 class SmartFolderCondition {
-    var id: UUID
-    var fieldRaw: String
-    var operatorRaw: String
-    var value: String
-    var sortOrder: Int
+    var id: UUID = UUID()
+    var fieldRaw: String = ""
+    var operatorRaw: String = ""
+    var value: String = ""
+    var sortOrder: Int = 0
 
     @Relationship
     var smartFolder: SmartFolder?

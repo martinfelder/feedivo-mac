@@ -12,10 +12,10 @@ enum FeedLogEntryKind: String {
 // FeedLogEntry protokolliert Feed-Abrufe und Fehler fuer die Eigenschaftenansicht.
 @Model
 class FeedLogEntry {
-    var id: UUID
-    var createdAt: Date
-    var kind: String
-    var message: String
+    var id: UUID = UUID()
+    var createdAt: Date = Date()
+    var kind: String = FeedLogEntryKind.info.rawValue
+    var message: String = ""
 
     @Relationship
     var feed: Feed?

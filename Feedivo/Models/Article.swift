@@ -15,8 +15,8 @@ enum ArticleOfflineState: String, CaseIterable, Codable {
 // Article repräsentiert einen einzelnen Artikel aus einem Feed
 @Model
 class Article {
-    var id: UUID
-    var title: String
+    var id: UUID = UUID()
+    var title: String = ""
     var link: String?
     var summary: String?
     var content: String?
@@ -25,8 +25,8 @@ class Article {
     var imageURL: String?
     var sourceID: String?
     var feedID: UUID?
-    var isRead: Bool
-    var isStarred: Bool
+    var isRead: Bool = false
+    var isStarred: Bool = false
     var isArchived: Bool = false
     var isHidden: Bool = false
     var offlineStateRaw: String = ArticleOfflineState.none.rawValue
@@ -66,7 +66,7 @@ class Article {
     }
 
     @Relationship
-    var tags: [Tag]
+    var tags: [Tag] = []
 
     init(
         title: String,
