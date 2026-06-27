@@ -227,4 +227,48 @@ struct SmartFolderViewModelTests {
         let conditions = try context.fetch(FetchDescriptor<SmartFolderCondition>())
         #expect(conditions.isEmpty, "Conditions müssen mit dem Ordner gelöscht werden")
     }
+
+    @MainActor
+    @Test func updateFolderLoeschtAlteConditionsStattSieZuVerwaisten() throws {
+        let container = try ModelContainer(
+            for: Feed.self, Article.self, Tag.self, Rule.self, RuleCondition.self,
+            SmartFolder.self, SmartFolderCondition.self, FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let viewModel = SmartFolderViewModel()
+
+        viewModel.createFolder(
+            name: "Alt",
+            matchMode: .all,
+            isShownInSidebar: true,
+            iconName: "tray",
+            colorHex: "#3B82F6",
+            conditionDrafts: [
+                SmartFolderConditionDraft(field: .title, conditionOperator: .contains, value: "A"),
+                SmartFolderConditionDraft(field: .title, conditionOperator: .contains, value: "B")
+            ],
+            existingFolders: [],
+            context: context
+        )
+        let folder = try #require(context.fetch(FetchDescriptor<SmartFolder>()).first)
+
+        viewModel.updateFolder(
+            folder,
+            name: "Neu",
+            matchMode: .all,
+            isShownInSidebar: true,
+            iconName: "tray",
+            colorHex: "#3B82F6",
+            conditionDrafts: [
+                SmartFolderConditionDraft(field: .title, conditionOperator: .contains, value: "C")
+            ],
+            context: context
+        )
+
+        let allConditions = try context.fetch(FetchDescriptor<SmartFolderCondition>())
+        #expect(allConditions.count == 1)
+        #expect(folder.conditions.count == 1)
+        #expect(allConditions.first?.smartFolder != nil)
+    }
 }

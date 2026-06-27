@@ -99,7 +99,12 @@ final class SmartFolderViewModel {
         folder.isShownInSidebar = isShownInSidebar
         folder.iconName = SmartFolderAppearance.normalizedIconName(iconName)
         folder.colorHex = SmartFolderAppearance.normalizedColorHex(colorHex)
-        folder.conditions.removeAll()
+        // .nullify statt .cascade (CloudKit-kompatibel): removeAll würde die
+        // alten Conditions nur verwaisten lassen — deshalb manuell löschen,
+        // analog deleteFolder.
+        for condition in Array(folder.conditions) {
+            context.delete(condition)
+        }
         folder.conditions = conditions
         save(context)
     }
