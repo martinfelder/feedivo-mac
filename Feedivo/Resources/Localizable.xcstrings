@@ -3712,6 +3712,34 @@
         }
       }
     },
+    "feed.error.httpError" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Feed konnte nicht geladen werden (HTTP %lld)."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The feed could not be loaded (HTTP %lld)."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le flux n'a pas pu être chargé (HTTP %lld)."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile caricare il feed (HTTP %lld)."
+          }
+        }
+      }
+    },
     "feed.error.invalidURL" : {
       "localizations" : {
         "de" : {

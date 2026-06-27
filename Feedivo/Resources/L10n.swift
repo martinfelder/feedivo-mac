@@ -367,6 +367,11 @@ enum L10n {
     static var ruleCreateFromArticle: String { String(localized: "rule.createFromArticle") }
     static var feedErrorInvalidURL: String { String(localized: "feed.error.invalidURL") }
     static var feedErrorParsingFailed: String { String(localized: "feed.error.parsingFailed") }
+
+    /// HTTP-Statuscode einer fehlgeschlagenen Feed-Abrufantwort (M6).
+    static func feedErrorHTTPStatus(_ statusCode: Int) -> String {
+        String.localizedStringWithFormat(String(localized: "feed.error.httpError"), statusCode)
+    }
     static var feedErrorEmptyURL: String { String(localized: "feed.error.emptyURL") }
     static var feedErrorAddFailed: String { String(localized: "feed.error.addFailed") }
     static var feedErrorDuplicate: String {

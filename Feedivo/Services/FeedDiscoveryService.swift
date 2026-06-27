@@ -20,6 +20,8 @@ struct FeedDiscoveryPreviewArticle: Identifiable, Equatable, Sendable {
 enum FeedDiscoveryError: LocalizedError, Equatable {
     case invalidURL
     case noFeedsFound
+    /// HTTP-Antwortstatus außerhalb 200…299 beim Laden der Website-HTML (M6).
+    case httpError(Int)
 
     var errorDescription: String? {
         switch self {
@@ -27,6 +29,8 @@ enum FeedDiscoveryError: LocalizedError, Equatable {
             return L10n.feedErrorInvalidURL
         case .noFeedsFound:
             return L10n.feedDiscoveryErrorNoFeedsFound
+        case .httpError(let statusCode):
+            return L10n.feedErrorHTTPStatus(statusCode)
         }
     }
 }
@@ -104,7 +108,7 @@ struct FeedDiscoveryService {
         let (data, response) = try await URLSession.shared.data(from: url)
         if let httpResponse = response as? HTTPURLResponse,
            !(200 ... 299).contains(httpResponse.statusCode) {
-            throw FeedDiscoveryError.noFeedsFound
+            throw FeedDiscoveryError.httpError(httpResponse.statusCode)
         }
 
         return String(data: data, encoding: .utf8) ?? String(decoding: data, as: UTF8.self)

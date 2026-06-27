@@ -36,6 +36,23 @@ struct FeedivoTests {
     @Test func feedServiceErrorTexteSindLokalisiert() {
         #expect(FeedServiceError.invalidURL.errorDescription == "Die Feed-URL ist ungültig.")
         #expect(FeedServiceError.parsingFailed.errorDescription == "Der Feed konnte nicht gelesen werden.")
+        #expect(FeedServiceError.httpError(404).errorDescription == "Der Feed konnte nicht geladen werden (HTTP 404).")
+        #expect(FeedDiscoveryError.httpError(503).errorDescription == "Der Feed konnte nicht geladen werden (HTTP 503).")
+    }
+
+    @Test func fetchFeedWirftHTTPErrorBeiNicht2xxStatus() async throws {
+        let response = HTTPURLResponse(
+            url: URL(string: "https://example.com/feed.xml")!,
+            statusCode: 404,
+            httpVersion: nil,
+            headerFields: nil
+        )!
+
+        await #expect(throws: FeedServiceError.httpError(404)) {
+            _ = try await FeedService.fetchFeed(urlString: "https://example.com/feed.xml") { _ in
+                (Data(), response)
+            }
+        }
     }
 
     @Test func appLanguageLiefertLocaleUndFallback() {

@@ -64,9 +64,12 @@ struct ParsedArticle {
     }
 }
 
-enum FeedServiceError: LocalizedError {
+enum FeedServiceError: LocalizedError, Equatable {
     case invalidURL
     case parsingFailed
+    /// HTTP-Antwortstatus außerhalb 200…299 — eigenständiger Fall statt
+    /// misleading als `.parsingFailed` ausgewiesen (M6).
+    case httpError(Int)
 
     var errorDescription: String? {
         switch self {
@@ -74,6 +77,8 @@ enum FeedServiceError: LocalizedError {
             return L10n.feedErrorInvalidURL
         case .parsingFailed:
             return L10n.feedErrorParsingFailed
+        case .httpError(let statusCode):
+            return L10n.feedErrorHTTPStatus(statusCode)
         }
     }
 }
@@ -98,7 +103,7 @@ enum FeedService {
         let (data, response) = try await dataLoader(url)
         if let httpResponse = response as? HTTPURLResponse,
            !(200 ... 299).contains(httpResponse.statusCode) {
-            throw FeedServiceError.parsingFailed
+            throw FeedServiceError.httpError(httpResponse.statusCode)
         }
 
         return try parseFeed(data: data, sourceURL: urlString)
