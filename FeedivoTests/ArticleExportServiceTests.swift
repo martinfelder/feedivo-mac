@@ -264,6 +264,32 @@ struct ArticleExportServiceTests {
         ])
     }
 
+    @Test func offlineBildPaketLaedtBilderParallelMitDrosselungUndErhaeltReihenfolge() async throws {
+        // Mehr Bilder als das Drossel-Limit, damit ohne Drosselung alle gleichzeitig laden.
+        let count = 12
+        let imageTags = (0 ..< count).map { offset in
+            "<img src=\"https://example.com/bild-\(offset).png\">"
+        }.joined()
+        let article = Article(title: "Export", content: "<p>Intro</p>\(imageTags)")
+
+        let loader = ConcurrencyTrackingArticleExportImageLoader()
+        let package = await ArticleExportPackageBuilder.package(
+            for: ArticleExportSnapshot(article: article),
+            options: ArticleExportOptions(format: .html, includesMetadata: false),
+            includesOfflineImages: true,
+            imageLoader: loader
+        )
+
+        // Gleichzeitigkeit wird auf das Drossel-Limit beschränkt (nicht alle 12 auf einmal).
+        #expect(loader.maxInFlight <= ArticleExportPackageBuilder.maxConcurrentImageDownloads, "maxInFlight=\(loader.maxInFlight) – Gleichzeitigkeit nicht gedrosselt")
+        // Alle Bilder wurden ausgelöst und geladen.
+        #expect(loader.completedCount == count)
+        #expect(package.failedImageURLs.isEmpty)
+        // Asset-Pfade behalten die Dokumentenreihenfolge (image-1 … image-12).
+        let expectedPaths = (1 ... count).map { "Pictures/image-\($0).png" }
+        #expect(package.assets.map(\.path) == expectedPaths)
+    }
+
     @Test func artikelExportDocumentSchreibtZipDatenUnveraendert() throws {
         let archiveData = Data([0x50, 0x4b, 0x03, 0x04])
         let document = ArticleExportDocument(data: archiveData)
@@ -537,6 +563,36 @@ private struct StubArticleExportImageLoader: ArticleExportImageDataLoading {
         }
 
         return data
+    }
+}
+
+/// Zählt, wie viele Ladevorgänge gleichzeitig aktiv sind, um eine Drosselung
+/// der Gleichzeitigkeit im Export-Builder verifizieren zu können. Analog zum
+/// `ConcurrencyTrackingImageDataLoader` der `ImageCacheServiceTests`.
+private final class ConcurrencyTrackingArticleExportImageLoader: ArticleExportImageDataLoading, @unchecked Sendable {
+    private let lock = NSLock()
+    private var inFlight = 0
+    private(set) var maxInFlight = 0
+    private(set) var completedCount = 0
+
+    nonisolated init() {}
+
+    func data(from url: URL) async throws -> Data {
+        lock.lock()
+        inFlight += 1
+        if inFlight > maxInFlight {
+            maxInFlight = inFlight
+        }
+        lock.unlock()
+
+        try await Task.sleep(nanoseconds: 30_000_000)
+
+        lock.lock()
+        inFlight -= 1
+        completedCount += 1
+        lock.unlock()
+
+        return Data(repeating: 1, count: 8)
     }
 }
 

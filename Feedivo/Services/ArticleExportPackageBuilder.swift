@@ -131,6 +131,12 @@ enum ArticleExportPackageBuilder {
         )
     }
 
+    /// Maximale Anzahl gleichzeitig laufender Bild-Downloads im Export-Paket.
+    /// Verhindert, dass bei vielen Bildern Dutzend Requests gleichzeitig feuern
+    /// (Server-Ratelimiting, Memory-Spitzen). Analog zum Drossel-Pattern in
+    /// `ImageCacheService.cacheImages`.
+    static let maxConcurrentImageDownloads = 4
+
     private static func imagePackage(
         from text: String,
         imageLoader: ArticleExportImageDataLoading,
@@ -138,24 +144,85 @@ enum ArticleExportPackageBuilder {
     ) async -> (replacements: [String: String], assets: [ArticleExportPackageAsset], failedImageURLs: [URL]) {
         let assetFolderName = "Pictures"
         let imageURLs = imageURLs(in: text)
+
+        guard !imageURLs.isEmpty else {
+            return ([:], [], [])
+        }
+
+        // Parallele Downloads mit Drosselung (Sliding-Window) statt sequenziell.
+        // Jeder Task kennt seinen Original-Index, damit Asset-Pfade stabil
+        // "image-N" heißen und `assets`/`failedImageURLs` in Dokumentenreihenfolge bleiben.
+        var collected: [IndexedImageDownload] = []
+
+        await withTaskGroup(of: IndexedImageDownload.self) { group in
+            var iterator = imageURLs.enumerated().makeIterator()
+            var activeTasks = 0
+
+            // Start-Window: bis zu `maxConcurrentImageDownloads` Tasks gleichzeitig.
+            for _ in 0 ..< min(Self.maxConcurrentImageDownloads, imageURLs.count) {
+                guard let entry = iterator.next() else {
+                    break
+                }
+
+                activeTasks += 1
+                group.addTask {
+                    let data = try? await imageLoader.data(from: entry.element)
+                    return IndexedImageDownload(index: entry.offset, url: entry.element, data: data)
+                }
+            }
+
+            // Sobald ein Task endet, nächsten aus der Warteschlange starten.
+            // Fortschritt meldet die Anzahl abgeschlossener Downloads.
+            var completed = 0
+            while activeTasks > 0 {
+                guard let result = await group.next() else {
+                    break
+                }
+
+                activeTasks -= 1
+                collected.append(result)
+                completed += 1
+                await progress(.downloadingImage(current: completed, total: imageURLs.count))
+
+                if let next = iterator.next() {
+                    activeTasks += 1
+                    group.addTask {
+                        let data = try? await imageLoader.data(from: next.element)
+                        return IndexedImageDownload(index: next.offset, url: next.element, data: data)
+                    }
+                }
+            }
+        }
+
+        // Original-Reihenfolge wiederherstellen (Tasks enden nicht zwingend
+        // in Start-Reihenfolge).
+        collected.sort { $0.index < $1.index }
+
         var replacements: [String: String] = [:]
         var assets: [ArticleExportPackageAsset] = []
         var failedImageURLs: [URL] = []
 
-        for (index, imageURL) in imageURLs.enumerated() {
-            await progress(.downloadingImage(current: index + 1, total: imageURLs.count))
+        for result in collected {
+            let assetPath = "\(assetFolderName)/image-\(result.index + 1).\(fileExtension(for: result.url))"
 
-            do {
-                let data = try await imageLoader.data(from: imageURL)
-                let assetPath = "\(assetFolderName)/image-\(index + 1).\(fileExtension(for: imageURL))"
-                replacements[imageURL.absoluteString] = assetPath
+            if let data = result.data {
+                replacements[result.url.absoluteString] = assetPath
                 assets.append(ArticleExportPackageAsset(path: assetPath, data: data))
-            } catch {
-                failedImageURLs.append(imageURL)
+            } else {
+                failedImageURLs.append(result.url)
             }
         }
 
         return (replacements, assets, failedImageURLs)
+    }
+
+    /// Ein heruntergeladenes (oder fehlgeschlagenes) Bild inklusive seines
+    /// Original-Index in der Quell-URL-Liste, damit die Asset-Pfade stabil
+    /// bleiben und das Ergebnis nach Download sortiert werden kann.
+    private struct IndexedImageDownload: Sendable {
+        let index: Int
+        let url: URL
+        let data: Data?
     }
 
     private static func imageURLs(in text: String) -> [URL] {
