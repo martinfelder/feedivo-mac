@@ -155,7 +155,7 @@ final class OfflineDownloadService {
     }
 
     private func cacheArticleImages(for article: Article, content: String) async {
-        let urls = imageURLs(for: article, content: content)
+        let urls = await imageURLs(for: article, content: content)
         guard !urls.isEmpty else {
             return
         }
@@ -163,7 +163,19 @@ final class OfflineDownloadService {
         await imageCache.cacheImages(from: urls)
     }
 
-    private func imageURLs(for article: Article, content: String) -> [URL] {
+    private func imageURLs(for article: Article, content: String) async -> [URL] {
+        // Lead-URL ist ein SwiftData-Model-Zugriff und muss auf dem MainActor
+        // stattfinden. Deshalb VOR dem Parsen lesen.
+        let leadImageURLString = article.imageURL
+
+        // HTML-Block-Parsing ist reine CPU-Arbeit und berührt kein SwiftData-Model.
+        // Vom MainActor ausgelagert (Task.detached), damit die UI beim
+        // Offline-Speichern großer Artikel nicht blockiert. Nach dem `await`
+        // läuft die Auswertung wieder auf dem MainActor.
+        let contentBlocks = await Task.detached(priority: .userInitiated) {
+            ReaderContentRenderer.blocks(summary: nil, content: content, fallbackImageURL: nil)
+        }.value
+
         var urls: [URL] = []
         var seenURLs = Set<String>()
 
@@ -181,9 +193,9 @@ final class OfflineDownloadService {
             urls.append(url)
         }
 
-        appendURL(article.imageURL)
+        appendURL(leadImageURLString)
 
-        for block in ReaderContentRenderer.blocks(summary: nil, content: content, fallbackImageURL: nil) {
+        for block in contentBlocks {
             if case .image(let urlString) = block {
                 appendURL(urlString)
             }

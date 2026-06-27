@@ -1,6 +1,6 @@
 import Foundation
 
-enum ReaderContentBlock: Equatable {
+enum ReaderContentBlock: Equatable, Sendable {
     case paragraph(String)
     case heading(String)
     case quote(String)
