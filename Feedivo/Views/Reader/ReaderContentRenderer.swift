@@ -8,6 +8,27 @@ enum ReaderContentBlock: Equatable {
     case image(urlString: String)
 }
 
+extension ReaderContentBlock: Identifiable {
+    // Stabile, inhaltsbasierte Identität (statt Positions-Index). Früher nutzte
+    // ForEach `contentBlocks.indices, id: \.self` — wenn der Inhalt per Refresh
+    // verschoben wurde, blieb die Identität an der Position hängen → veraltete
+    // Darstellung/Animationen. Die ID aus Case + Inhalt verfolgt den Block.
+    var id: String {
+        switch self {
+        case .paragraph(let text):
+            return "paragraph:\(text)"
+        case .heading(let text):
+            return "heading:\(text)"
+        case .quote(let text):
+            return "quote:\(text)"
+        case .listItem(let text):
+            return "listItem:\(text)"
+        case .image(let urlString):
+            return "image:\(urlString)"
+        }
+    }
+}
+
 enum ReaderContentRenderer {
     private static let structuredBlockExpression = try! NSRegularExpression(
         pattern: #"<img\b[^>]*>|<(h[1-6]|blockquote|li|p|div)\b[^>]*>(.*?)</\1>"#,

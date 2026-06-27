@@ -36,6 +36,7 @@ struct ContentView: View {
     @State private var isShowingOPMLExportSheet = false
     @State private var articleExportRequest: ArticleExportRequest?
     @State private var opmlAlert: OPMLAlert?
+    @State private var offlineArchiveError: OPMLAlert?
     @State private var articleForRuleCreation: Article?
     @State private var isMetadataInspectorPresented = false
     @State private var isShowingFirstRunWizard = false
@@ -202,6 +203,13 @@ struct ContentView: View {
                 dismissButton: .default(Text(L10n.commonDone))
             )
         }
+        .alert(item: $offlineArchiveError) { alert in
+            Alert(
+                title: Text(alert.title),
+                message: Text(alert.message),
+                dismissButton: .default(Text(L10n.commonDone))
+            )
+        }
         .overlay(alignment: .bottom) {
             if let operationProgress = feedViewModel.operationProgress {
                 FeedOperationProgressOverlay(progress: operationProgress)
@@ -228,6 +236,7 @@ struct ContentView: View {
                         await articleViewModel.toggleStarred(
                             selectedArticle,
                             automaticallySaveForOffline: automaticallySaveStarredArticles,
+                            context: modelContext,
                             offlineSaver: offlineDownloadService
                         )
                     }
@@ -328,7 +337,15 @@ struct ContentView: View {
         if article.isArchived {
             offlineDownloadService.removeArchive(from: article)
         } else {
-            await offlineDownloadService.archiveForOffline(article)
+            let success = await offlineDownloadService.archiveForOffline(article)
+            if !success {
+                // Speichern fehlgeschlagen (z.B. URL nicht erreichbar) —
+                // vorher blieb das lautlos: isArchived false, kein Hinweis.
+                offlineArchiveError = OPMLAlert(
+                    title: L10n.offlineArchiveErrorTitle,
+                    message: article.offlineErrorMessage ?? L10n.offlineArchiveErrorMessage
+                )
+            }
         }
 
         try? modelContext.save()
@@ -374,12 +391,26 @@ struct ContentView: View {
     }
 
     private func deleteFeed(_ feed: Feed) {
-        let shouldClearSelection = selectedFeed?.persistentModelID == feed.persistentModelID
+        let deletedFeedID = feed.persistentModelID
+        let shouldClearFeedSelection = selectedFeed?.persistentModelID == deletedFeedID
+        // Auch bei Smart-Filtern (z.B. „Alle Artikel") kann der gerade
+        // selektierte Artikel zum gelöschten Feed gehören — dann bliebe eine
+        // Tombstone-Selektion zurück (potenzieller Crash beim Zugriff). Deshalb
+        // VOR dem Löschen erfassen und Auswahl bereinigen.
+        let selectedArticleBelongsToDeletedFeed = selectedArticle?.feed?.persistentModelID == deletedFeedID
 
         feedViewModel.deleteFeed(feed, context: modelContext)
 
-        if feedViewModel.errorMessage == nil && shouldClearSelection {
+        guard feedViewModel.errorMessage == nil else {
+            feedPendingDeletion = nil
+            return
+        }
+
+        if selectedArticleBelongsToDeletedFeed {
             selectedArticle = nil
+        }
+
+        if shouldClearFeedSelection {
             sidebarSelection = .smartFilter(.allArticles)
         }
 

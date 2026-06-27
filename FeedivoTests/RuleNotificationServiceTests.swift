@@ -59,4 +59,47 @@ struct RuleNotificationServiceTests {
         #expect(summary.body == "Artikel 1, Artikel 2, Artikel 3")
         #expect(summary.priority == .critical)
     }
+
+    @Test func summaryFasstArtikelAllerRegelGruppenZusammen() throws {
+        // Regression: früher wurde im Body nur die größte Regel-Gruppe gezeigt,
+        // Artikel kleinerer Gruppen fielen weg. Hier greifen zwei Regeln
+        // (Apple 2×, Swift 1×) — alle drei Artikel müssen im Body stehen.
+        let ruleA = UUID()
+        let ruleB = UUID()
+        let results = [
+            RuleNotificationResult(
+                ruleID: ruleA,
+                ruleName: "Apple",
+                message: "Apple: A1",
+                articleTitle: "A1",
+                feedTitle: "Feed A",
+                priority: .normal
+            ),
+            RuleNotificationResult(
+                ruleID: ruleA,
+                ruleName: "Apple",
+                message: "Apple: A2",
+                articleTitle: "A2",
+                feedTitle: "Feed A",
+                priority: .normal
+            ),
+            RuleNotificationResult(
+                ruleID: ruleB,
+                ruleName: "Swift",
+                message: "Swift: S1",
+                articleTitle: "S1",
+                feedTitle: "Feed B",
+                priority: .normal
+            )
+        ]
+
+        let summary = try #require(FeedNotificationService.ruleSummary(from: results))
+
+        // Größte Gruppe (Apple, 2 Treffer) bestimmt den Titel.
+        #expect(summary.title == "2 neue Apple-Artikel")
+        // Aber alle Artikel erscheinen im Body — auch S1 der kleineren Gruppe.
+        #expect(summary.body == "A1, A2, S1")
+        #expect(summary.priority == .normal)
+        #expect(Set(summary.ruleIDs) == Set([ruleA, ruleB]))
+    }
 }

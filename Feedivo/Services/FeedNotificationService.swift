@@ -111,9 +111,23 @@ enum FeedNotificationService {
         let ruleName = largestGroup.first?.ruleName ?? L10n.ruleNotificationFallbackRuleName
         let priority = results.contains { $0.priority == .critical } ? RuleNotificationPriority.critical : .normal
 
+        // Bisher wurde im Body nur die größte Regel-Gruppe gezeigt — Artikel
+        // kleinerer Gruppen fielen komplett unter den Tisch. Stattdessen alle
+        // gemeldeten Artikel (Gruppen absteigend nach Größe) auflisten, damit
+        // keine Notification-Inhalte verloren gehen.
+        let sortedGroups = groupedResults.values.sorted { firstGroup, secondGroup in
+            if firstGroup.count == secondGroup.count {
+                return (firstGroup.first?.ruleName ?? "") < (secondGroup.first?.ruleName ?? "")
+            }
+
+            return firstGroup.count > secondGroup.count
+        }
+        let body = sortedGroups.flatMap { $0.map(\.articleTitle) }
+            .joined(separator: ", ")
+
         return RuleNotificationSummary(
             title: L10n.ruleNotificationSummaryTitle(count: largestGroup.count, ruleName: ruleName),
-            body: largestGroup.map(\.articleTitle).joined(separator: ", "),
+            body: body,
             priority: priority,
             ruleIDs: Array(Set(results.map(\.ruleID)))
         )

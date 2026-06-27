@@ -354,6 +354,7 @@ private struct ArticleListContent: View {
     // niemals direkt im Body (sonst "modifying state during view update").
     @State private var cachedPreparedArticles: ArticleListPreparedArticles?
     @State private var cachedPreparedKey: PreparedArticlesCacheKey?
+    @State private var offlineArchiveError: OfflineArchiveErrorAlert?
 
     init(
         articles: [Article],
@@ -441,6 +442,13 @@ private struct ArticleListContent: View {
                 filterMenu
                 sortMenu
             }
+        }
+        .alert(item: $offlineArchiveError) { alert in
+            Alert(
+                title: Text(L10n.offlineArchiveErrorTitle),
+                message: Text(alert.message),
+                dismissButton: .default(Text(L10n.commonDone))
+            )
         }
         .task(id: preparedArticlesKey) {
             // Cache asynchron befüllen, nachdem der Body mit dem neuen Key
@@ -534,6 +542,7 @@ private struct ArticleListContent: View {
                     await viewModel.toggleStarred(
                         article,
                         automaticallySaveForOffline: automaticallySaveStarredArticles,
+                        context: modelContext,
                         offlineSaver: offlineDownloadService
                     )
                 }
@@ -779,7 +788,14 @@ private struct ArticleListContent: View {
         if article.isArchived {
             offlineDownloadService.removeArchive(from: article)
         } else {
-            await offlineDownloadService.archiveForOffline(article)
+            let success = await offlineDownloadService.archiveForOffline(article)
+            if !success {
+                // Speichern fehlgeschlagen — vorher lautlos (isArchived false,
+                // kein Hinweis). Fehlerdetails stehen in article.offlineErrorMessage.
+                offlineArchiveError = OfflineArchiveErrorAlert(
+                    message: article.offlineErrorMessage ?? L10n.offlineArchiveErrorMessage
+                )
+            }
         }
 
         try? modelContext.save()
@@ -808,4 +824,10 @@ private struct PreparedArticlesCacheKey: Equatable, Hashable {
     let sortRawValue: String
     let filterRawValue: String
     let sortArticles: Bool
+}
+
+// Identifiable-Wrapper für den Alert bei fehlgeschlagenem Offline-Archivieren.
+private struct OfflineArchiveErrorAlert: Identifiable {
+    let id = UUID()
+    let message: String
 }

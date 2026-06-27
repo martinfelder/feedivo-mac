@@ -3673,6 +3673,17 @@
         }
       }
     },
+    "feed.error.duplicate" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Dieser Feed wird bereits abonniert."
+          }
+        }
+      }
+    },
     "feed.error.emptyURL" : {
       "localizations" : {
         "de" : {
@@ -5391,6 +5402,28 @@
     },
     "oder Datei auswählen. Feedivo zeigt dir danach zuerst eine Vorschau." : {
 
+    },
+    "offline.archive.error.message" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Die Offline-Kopie konnte nicht gespeichert werden."
+          }
+        }
+      }
+    },
+    "offline.archive.error.title" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Archivieren fehlgeschlagen"
+          }
+        }
+      }
     },
     "offline.error.emptyDownloadedContent" : {
       "localizations" : {

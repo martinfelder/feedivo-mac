@@ -40,6 +40,74 @@ struct FeedViewModelTests {
     }
 
     @MainActor
+    @Test func addFeedLehntDuplikatMitBekannterUrlAb() async throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            RuleCondition.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let existingFeed = Feed(url: "https://example.com/feed.xml", title: "Schon da")
+        context.insert(existingFeed)
+        try context.save()
+
+        let viewModel = makeViewModel(
+            fetchFeed: { _ in
+                ParsedFeed(
+                    sourceURL: "https://example.com/feed.xml",
+                    title: "Duplikat",
+                    description: nil,
+                    siteURL: "https://example.com/",
+                    articles: []
+                )
+            },
+            discoverFaviconURL: { _ in nil }
+        )
+
+        await viewModel.addFeed(urlString: "https://example.com/feed.xml", context: context)
+
+        #expect(try context.fetch(FetchDescriptor<Feed>()).count == 1)
+        #expect(viewModel.errorMessage == L10n.feedErrorDuplicate)
+    }
+
+    @MainActor
+    @Test func addFeedLegtNeuenFeedAnWennUrlNochUnbekannt() async throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            RuleCondition.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+
+        let viewModel = makeViewModel(
+            fetchFeed: { _ in
+                ParsedFeed(
+                    sourceURL: "https://example.com/new.xml",
+                    title: "Neu",
+                    description: nil,
+                    siteURL: "https://example.com/",
+                    articles: []
+                )
+            },
+            discoverFaviconURL: { _ in nil },
+            enrichArticleImages: { articles in articles }
+        )
+
+        await viewModel.addFeed(urlString: "https://example.com/new.xml", context: context)
+
+        #expect(try context.fetch(FetchDescriptor<Feed>()).count == 1)
+        #expect(viewModel.errorMessage == nil)
+    }
+
+    @MainActor
     @Test func importOPMLFeedsLegtNeueFeedsAnUndUeberspringtDuplikate() async throws {
         let container = try ModelContainer(
             for: Feed.self,

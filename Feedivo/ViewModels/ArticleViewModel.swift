@@ -97,16 +97,20 @@ final class ArticleViewModel {
     func toggleStarred(
         _ article: Article,
         automaticallySaveForOffline: Bool,
+        context: ModelContext? = nil,
         offlineSaver: ArticleOfflineSaving? = nil
     ) async {
         article.isStarred.toggle()
 
-        guard automaticallySaveForOffline, article.isStarred, !article.offlineState.isAvailable else {
-            return
+        if automaticallySaveForOffline, article.isStarred, !article.offlineState.isAvailable {
+            let resolvedOfflineSaver = offlineSaver ?? OfflineDownloadService()
+            await resolvedOfflineSaver.saveForOffline(article)
         }
 
-        let resolvedOfflineSaver = offlineSaver ?? OfflineDownloadService()
-        await resolvedOfflineSaver.saveForOffline(article)
+        // Stern-Status (und ggf. Offline-Kopie) persistieren — analog zu
+        // toggleRead(_:context:), das ebenfalls sichert. Ohne Save bliebe die
+        // isStarred-Änderung beim App-Neustart verloren.
+        try? context?.save()
     }
 
     func toggleStarred(_ article: Article?) {
@@ -121,6 +125,7 @@ final class ArticleViewModel {
     func toggleStarred(
         _ article: Article?,
         automaticallySaveForOffline: Bool,
+        context: ModelContext? = nil,
         offlineSaver: ArticleOfflineSaving? = nil
     ) async {
         guard let article else {
@@ -130,6 +135,7 @@ final class ArticleViewModel {
         await toggleStarred(
             article,
             automaticallySaveForOffline: automaticallySaveForOffline,
+            context: context,
             offlineSaver: offlineSaver
         )
     }

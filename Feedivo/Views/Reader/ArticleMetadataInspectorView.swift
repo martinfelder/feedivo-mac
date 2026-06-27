@@ -206,6 +206,7 @@ struct ArticleMetadataInspectorView: View {
                     await articleViewModel.toggleStarred(
                         article,
                         automaticallySaveForOffline: automaticallySaveStarredArticles,
+                        context: modelContext,
                         offlineSaver: offlineDownloadService
                     )
                 }
