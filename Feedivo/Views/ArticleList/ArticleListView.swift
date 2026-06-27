@@ -229,20 +229,10 @@ private struct SmartFilterArticleListContent: View {
                 sort: ArticleListQuery.sortDescriptors
             )
         case .today:
-            let startOfToday = Calendar.current.startOfDay(for: Date())
-            let startOfTomorrow = Calendar.current.date(
-                byAdding: .day,
-                value: 1,
-                to: startOfToday
-            ) ?? startOfToday
-            self._articles = Query(
-                filter: #Predicate<Article> { article in
-                    article.publishedAt != nil
-                        && article.publishedAt! >= startOfToday
-                        && article.publishedAt! < startOfTomorrow
-                },
-                sort: ArticleListQuery.sortDescriptors
-            )
+            // Datum-Filter in-memory (siehe displayedArticles): SwiftData
+            // unterstützt keinen Predicate-Force-Unwrap von `publishedAt!`
+            // (Runtime-Fault), `Date? >= Date` kompiliert nicht.
+            self._articles = Query(sort: ArticleListQuery.sortDescriptors)
         case .hidden:
             self._articles = Query(
                 filter: #Predicate<Article> { article in
@@ -255,7 +245,7 @@ private struct SmartFilterArticleListContent: View {
 
     var body: some View {
         ArticleListContent(
-            articles: articles,
+            articles: displayedArticles,
             navigationTitle: Text(smartFilter.title),
             selectedArticle: $selectedArticle,
             navigationState: $navigationState,
@@ -264,6 +254,22 @@ private struct SmartFilterArticleListContent: View {
             showsHiddenArticles: smartFilter == .hidden
         )
         .id(smartFilter)
+    }
+
+    private var displayedArticles: [Article] {
+        guard smartFilter == .today else {
+            return articles
+        }
+        let startOfToday = Calendar.current.startOfDay(for: Date())
+        let startOfTomorrow = Calendar.current.date(
+            byAdding: .day,
+            value: 1,
+            to: startOfToday
+        ) ?? startOfToday
+        return articles.filter { article in
+            guard let publishedAt = article.publishedAt else { return false }
+            return publishedAt >= startOfToday && publishedAt < startOfTomorrow
+        }
     }
 }
 
@@ -413,28 +419,11 @@ private struct ArticleListContent: View {
         .onChange(of: visibleArticles) {
             updateNavigationState(in: visibleArticles)
         }
-        .onChange(of: articleSortRawValue) {
-            let preparedArticles = makePreparedArticles()
-            let displayState = ArticleListDisplayState(
-                articles: preparedArticles.filtered,
-                showsReadArticles: showsReadArticles,
-                selectedArticle: selectedArticle,
-                showsHiddenArticles: showsHiddenArticles,
-                temporarilyVisibleReadArticleIDs: temporarilyVisibleReadArticleIDs
-            )
-            updateNavigationState(in: displayState.visibleArticles)
-        }
-        .onChange(of: articleFilterRawValue) {
-            let preparedArticles = makePreparedArticles()
-            let displayState = ArticleListDisplayState(
-                articles: preparedArticles.filtered,
-                showsReadArticles: showsReadArticles,
-                selectedArticle: selectedArticle,
-                showsHiddenArticles: showsHiddenArticles,
-                temporarilyVisibleReadArticleIDs: temporarilyVisibleReadArticleIDs
-            )
-            updateNavigationState(in: displayState.visibleArticles)
-        }
+        // Sortier-/Filterwechsel: keine separaten Handler mehr — der Body
+        // berechnet `visibleArticles` neu (Cache-Miss wegen geändertem Key),
+        // und `.onChange(of: visibleArticles)` aktualisiert den NavigationState.
+        // Früher wurde makePreparedArticles() hier bis zu 2× redundant
+        // (zusätzlich zum Body + .task) berechnet.
         .onChange(of: selectedArticle?.persistentModelID) {
             rememberAutoReadArticleIfNeeded(selectedArticle)
 

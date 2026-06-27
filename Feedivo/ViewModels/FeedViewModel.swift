@@ -156,8 +156,11 @@ final class FeedViewModel {
         refreshIntervalMinutes: Int = 60,
         context: ModelContext
     ) async throws -> OPMLImportResult {
+        // Statt eines vorgetäuschten Erfolgs (imported: 0) werfen — beide Aufrufer
+        // (FirstRunWizard, OPMLImportReview) nutzen `try` und zeigen den Fehler
+        // über ihre catch-Pfade sichtbar an.
         guard !isLoading else {
-            return OPMLImportResult(total: opmlFeeds.count, imported: 0, skippedDuplicates: 0)
+            throw FeedImportError.alreadyRunning
         }
 
         errorMessage = nil
@@ -390,6 +393,9 @@ final class FeedViewModel {
     @MainActor
     func refreshFeed(_ feed: Feed?, context: ModelContext) async {
         guard !isLoading else {
+            // Statt stillen Drops: Nutzer bekommt Feedback, dass bereits
+            // aktualisiert wird, und sein Aufruf nicht verloren geht.
+            errorMessage = L10n.feedErrorAlreadyRunning
             return
         }
 
@@ -430,6 +436,7 @@ final class FeedViewModel {
     @MainActor
     func refreshAllFeeds(_ feeds: [Feed], context: ModelContext) async {
         guard !isLoading else {
+            errorMessage = L10n.feedErrorAlreadyRunning
             return
         }
 
@@ -684,6 +691,10 @@ final class FeedViewModel {
         }
         feed.lastRefreshed = refreshDate
 
+        // Neue Artikel erst vollständig erzeugen, dann Regeln im Batch anwenden:
+        // `preparedRules` wird dadurch nur einmal pro Feed berechnet statt pro
+        // Artikel (Sortierung + normalisierte Conditions).
+        var newArticleObjects: [Article] = []
         for parsedArticle in newArticles {
             let articleToInsert = enrichedNewArticlesByIdentity[primaryArticleIdentity(for: parsedArticle)] ?? parsedArticle
             let article = Article(
@@ -696,10 +707,11 @@ final class FeedViewModel {
                 sourceID: articleToInsert.sourceID,
                 feed: feed
             )
-            let ruleResult = RuleEngine.applyRulesWithNotifications(rules, to: article, feed: feed)
-            ruleNotifications.append(contentsOf: ruleResult.notifications)
-            feed.articles.append(article)
+            newArticleObjects.append(article)
         }
+        let ruleResult = RuleEngine.applyRulesWithNotifications(rules, to: newArticleObjects, feed: feed)
+        ruleNotifications.append(contentsOf: ruleResult.notifications)
+        feed.articles.append(contentsOf: newArticleObjects)
         feed.unreadCount += newArticles.count
 
         appendLog(
@@ -859,4 +871,15 @@ struct OPMLImportResult: Equatable {
     let total: Int
     let imported: Int
     let skippedDuplicates: Int
+}
+
+/// Fehler beim OPML-Import. `alreadyRunning` signalisiert Aufrufern, dass bereits
+/// ein Import/Refresh läuft — statt wie bisher einen leeren Erfolgs-Result
+/// (imported: 0) zurückzugeben, der als Erfolg fehlinterpretiert wurde.
+struct FeedImportError: LocalizedError {
+    let errorDescription: String?
+
+    static let alreadyRunning = FeedImportError(
+        errorDescription: L10n.feedImportAlreadyRunning
+    )
 }

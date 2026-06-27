@@ -42,12 +42,14 @@ enum ArticleMetadataEditor {
         }
 
         article.tags.append(tag)
+        SidebarBadgeInvalidation.bumpDirectTagVersion()
         try? context.save()
     }
 
     @MainActor
     static func removeTag(_ tag: Tag, from article: Article, context: ModelContext) {
         article.tags.removeAll { $0.id == tag.id }
+        SidebarBadgeInvalidation.bumpDirectTagVersion()
         try? context.save()
     }
 

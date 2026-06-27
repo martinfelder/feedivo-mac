@@ -90,35 +90,12 @@ enum ArticleListQuery {
                 },
                 sortBy: sortDescriptors
             )
-        case .today:
-            let startOfToday = calendar.startOfDay(for: now)
-            let startOfTomorrow = calendar.date(
-                byAdding: .day,
-                value: 1,
-                to: startOfToday
-            ) ?? startOfToday
-            return FetchDescriptor(
-                predicate: #Predicate<Article> { article in
-                    article.publishedAt != nil
-                        && article.publishedAt! >= startOfToday
-                        && article.publishedAt! < startOfTomorrow
-                },
-                sortBy: sortDescriptors
-            )
-        case .thisWeek:
-            guard let weekInterval = calendar.dateInterval(of: .weekOfYear, for: now) else {
-                return nil
-            }
-            let startOfWeek = weekInterval.start
-            let startOfNextWeek = weekInterval.end
-            return FetchDescriptor(
-                predicate: #Predicate<Article> { article in
-                    article.publishedAt != nil
-                        && article.publishedAt! >= startOfWeek
-                        && article.publishedAt! < startOfNextWeek
-                },
-                sortBy: sortDescriptors
-            )
+        case .today, .thisWeek:
+            // Kein optimierter Predicate: SwiftData unterstützt keinen Force-Unwrap
+            // von `publishedAt!` (Runtime-Fault), und `Date? >= Date` kompiliert
+            // nicht. Datum-Filter wird in-memory via SmartFolderEngine gelöst
+            // (Fallback-Pfad in SmartFolderArticleListContent).
+            return nil
         }
     }
 }

@@ -111,6 +111,35 @@ struct SidebarBadgeCounts: Equatable {
     static let empty = SidebarBadgeCounts(tagCounts: [:], starred: 0, hidden: 0, saved: 0)
 }
 
+/// Signatur für das Sidebar-Badge-Caching. Erfasst alle Änderungen, die die
+/// Zähler beeinflussen: Artikel-Zahl, Status-Counts (Stern/versteckt/archiviert),
+/// Feed→Tag-Zuordnungen, Anzahl Feeds/Tags sowie direkte Artikel→Tag-Zuweisungen
+/// (`directTagVersion`). Unverändert → Cache trifft → keine Neuberechnung.
+struct SidebarBadgeSignature: Equatable, Hashable {
+    let articleCount: Int
+    let starredCount: Int
+    let hiddenCount: Int
+    let archivedCount: Int
+    let tagFeedMembershipHash: Int
+    let tagCount: Int
+    let feedCount: Int
+    let directTagVersion: Int
+}
+
+/// Invalidierung für das Sidebar-Badge-Caching. Direkte Artikel→Tag-Zuweisungen
+/// (nicht über den Feed) werden nicht von den Skalar-Counts oder den beobachteten
+/// @Querys erfasst — daher bumpen die Zuweisungs-Stellen diesen Zähler, worauf
+/// die Sidebar ihre Badges neu berechnet. UserDefaults ist thread-sicher, daher
+/// nonisolated aufrufbar (auch aus dem RuleEngine-Pfad).
+enum SidebarBadgeInvalidation {
+    static let directTagVersionKey = "sidebarBadgeDirectTagVersion"
+
+    static func bumpDirectTagVersion() {
+        let defaults = UserDefaults.standard
+        defaults.set(defaults.integer(forKey: directTagVersionKey) + 1, forKey: directTagVersionKey)
+    }
+}
+
 private enum SmartFolderSidebarBadgeKind {
     case unread
     case starred

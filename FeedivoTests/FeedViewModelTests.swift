@@ -100,6 +100,35 @@ struct FeedViewModelTests {
     }
 
     @MainActor
+    @Test func importOPMLFeedsWirftWennBereitsEinImportLaeuft() async throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            RuleCondition.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let viewModel = makeViewModel()
+
+        // isLoading simuliert einen laufenden Import/Refresh — der Aufruf darf
+        // keinen vorgetäuschten Erfolg (imported: 0) zurückgeben, sondern muss
+        // werfen, damit die Aufrufer den Zustand sichtbar melden.
+        viewModel.isLoading = true
+
+        await #expect(throws: FeedImportError.self) {
+            try await viewModel.importOPMLFeeds(
+                [OPMLFeed(title: "Blockiert", xmlURL: "https://example.com/x.xml", htmlURL: nil, folderName: nil)],
+                existingFeeds: [],
+                refreshAfterImport: false,
+                context: context
+            )
+        }
+    }
+
+    @MainActor
     @Test func importOPMLFeedsAktualisiertNeueFeedsDirektNachDemImport() async throws {
         let container = try ModelContainer(
             for: Feed.self,

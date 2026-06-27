@@ -3662,6 +3662,17 @@
         }
       }
     },
+    "feed.error.alreadyRunning" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Eine Aktualisierung läuft bereits. Bitte warte, bis sie abgeschlossen ist."
+          }
+        }
+      }
+    },
     "feed.error.emptyURL" : {
       "localizations" : {
         "de" : {
@@ -3798,6 +3809,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Esporta OPML..."
+          }
+        }
+      }
+    },
+    "feed.import.alreadyRunning" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Ein Import läuft bereits. Bitte warte, bis er abgeschlossen ist."
           }
         }
       }

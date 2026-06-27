@@ -31,6 +31,27 @@ enum RuleEngine {
         applyPreparedRulesWithNotifications(preparedRules(rules), to: article, feed: feed)
     }
 
+    /// Wendet Regeln auf mehrere Artikel eines Feeds an. `preparedRules` wird nur
+    /// einmal berechnet (Sortierung + normalisierte Conditions) statt pro Artikel
+    /// neu aufgebaut — das war vorher im Refresh-Pfad pro neuem Artikel der Fall.
+    @MainActor
+    static func applyRulesWithNotifications(_ rules: [Rule], to articles: [Article], feed: Feed) -> RuleApplicationResult {
+        let prepared = preparedRules(rules)
+        var appliedActionCount = 0
+        var notifications: [RuleNotificationResult] = []
+
+        for article in articles {
+            let result = applyPreparedRulesWithNotifications(prepared, to: article, feed: feed)
+            appliedActionCount += result.appliedActionCount
+            notifications.append(contentsOf: result.notifications)
+        }
+
+        return RuleApplicationResult(
+            appliedActionCount: appliedActionCount,
+            notifications: notifications
+        )
+    }
+
     @MainActor
     static func applyRulesToExistingArticles(_ rules: [Rule], articles: [Article]) -> Int {
         // Regeln einmalig vorbereiten (Sortierung + normalisierte Conditions),
@@ -100,6 +121,7 @@ enum RuleEngine {
                 }
 
                 article.tags.append(tag)
+                SidebarBadgeInvalidation.bumpDirectTagVersion()
                 appliedActionCount += 1
             case .hideArticle:
                 guard !article.isHidden else {
