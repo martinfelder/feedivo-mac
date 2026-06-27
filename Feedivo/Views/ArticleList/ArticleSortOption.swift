@@ -33,7 +33,17 @@ enum ArticleSortOption: String, CaseIterable, Identifiable {
     }
 
     func sorted(_ articles: [Article]) -> [Article] {
-        articles.sorted { first, second in
+        // P3: Lesezeit einmal pro Artikel pre-computen (Dictionary über die id)
+        // und im Komparator per Lookup verwenden, statt bei jedem der O(N·logN)
+        // Vergleiche den Text neu in Wörter zu zerlegen. Nur für
+        // .shortReadingTimeFirst relevant — für die anderen Sortierungen bleibt
+        // die Map leer und kostet nichts.
+        let readingMinutesByID: [UUID: Int] =
+            self == .shortReadingTimeFirst
+            ? Dictionary(articles.map { ($0.id, readingMinutes(for: $0)) }, uniquingKeysWith: { first, _ in first })
+            : [:]
+
+        return articles.sorted { first, second in
             switch self {
             case .newestFirst:
                 newestFirst(first, second)
@@ -44,7 +54,8 @@ enum ArticleSortOption: String, CaseIterable, Identifiable {
             case .title:
                 compareText(first.title, second.title) ?? newestFirst(first, second)
             case .shortReadingTimeFirst:
-                compareNumber(readingMinutes(for: first), readingMinutes(for: second)) ?? newestFirst(first, second)
+                compareNumber(readingMinutesByID[first.id] ?? Int.max, readingMinutesByID[second.id] ?? Int.max)
+                    ?? newestFirst(first, second)
             }
         }
     }
