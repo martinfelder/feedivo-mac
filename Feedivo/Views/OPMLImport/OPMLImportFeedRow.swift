@@ -29,13 +29,18 @@ struct OPMLImportFeedRow: View {
         selectionOptions.canImport(row.status)
     }
 
+    // Interner Sentinel für „Ohne Ordner": leerer String statt des Display-
+    // Literals. Ein realer Ordner kann nicht "" heißen (`createFolder` lehnt
+    // leere Namen ab), daher kein Kollisionsrisiko wie beim alten Literal
+    // „Ohne Ordner" — dort setzte die Wahl eines echten Ordners dieses Namens
+    // folderName=nil (Datenverlust).
     private var folderBinding: Binding<String> {
         Binding(
             get: {
-                trimmedFolderName(row.feed.folderName) ?? "Ohne Ordner"
+                trimmedFolderName(row.feed.folderName) ?? ""
             },
             set: { newValue in
-                let folderName = newValue == "Ohne Ordner" ? nil : newValue
+                let folderName = newValue.isEmpty ? nil : newValue
                 row.feed = OPMLFeed(
                     title: row.feed.title,
                     xmlURL: row.feed.xmlURL,
@@ -52,6 +57,7 @@ struct OPMLImportFeedRow: View {
                 .labelsHidden()
                 .toggleStyle(.checkbox)
                 .disabled(!isSelectable)
+                .accessibilityLabel("\(row.feed.title) importieren")
                 .frame(width: 34, alignment: .leading)
 
             feedText
@@ -67,13 +73,14 @@ struct OPMLImportFeedRow: View {
             }
 
             Picker("", selection: folderBinding) {
-                Text("Ohne Ordner").tag("Ohne Ordner")
+                Text("Ohne Ordner").tag("")
                 ForEach(availableFolders, id: \.self) { folder in
                     Text(folder).tag(folder)
                 }
             }
             .labelsHidden()
             .controlSize(.small)
+            .accessibilityLabel("Ordner für \(row.feed.title)")
             .frame(width: layout.folderWidth, alignment: .leading)
 
             statusBadge

@@ -161,4 +161,28 @@ struct OPMLImportPreviewControllerTests {
         // Task-Handle ist nach reset wieder nil (kein aktiver Preview).
         #expect(controller.previewTask == nil)
     }
+
+    @Test func applyToggleSelectionToRowsSetztDuplikateBeiOffenemFilter() {
+        let controller = OPMLImportPreviewController()
+        controller.rows = [
+            makeRow(title: "A", xmlURL: "https://a.example.com/feed.xml", status: .duplicate, isSelected: false),
+            makeRow(title: "U", xmlURL: "https://u.example.com/feed.xml", status: .unreachable, isSelected: true)
+        ]
+        controller.allowsDuplicates = true
+        controller.allowsUnreachable = false
+
+        controller.applyToggleSelectionToRows()
+
+        #expect(controller.rows[0].isSelected == true)   // Duplikat → selected
+        #expect(controller.rows[1].isSelected == false)  // Unreachable → abgewählt
+    }
+
+    @Test func resetSetztSelectedFileNameAufInitialwertZurueck() {
+        let controller = OPMLImportPreviewController(configuration: .importSheet)
+        controller.selectedFileName = "alt.opml"
+
+        controller.reset()
+
+        #expect(controller.selectedFileName == "Keine OPML-Datei ausgewählt")
+    }
 }

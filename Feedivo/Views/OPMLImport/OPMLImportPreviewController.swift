@@ -105,8 +105,11 @@ final class OPMLImportPreviewController {
     var isFileImporterPresented = false
     var isDropTargeted = false
 
-    // Nur-Lesen für Views, geschrieben von Controller-Methoden:
-    var selectedFileName: String
+    // Nur-Lesen für Views, geschrieben von Controller-Methoden.
+    // `selectedFileName` ist `internal(set)`, damit `reset()` es zurücksetzen
+    // kann, ohne dass Views es direkt versehentlich setzen müssen (Reset war
+    // zuvor in OPMLImportReviewView.resetFile dupliziert).
+    internal(set) var selectedFileName: String
     internal(set) var sourceDescription: String
     internal(set) var previewProgressText: String
     var errorMessage: String?
@@ -196,6 +199,24 @@ final class OPMLImportPreviewController {
         }
     }
 
+    /// Konsistente Auswahl-Synchronisation, wenn allowsDuplicates/Unreachable
+    /// getoggelt werden: Duplikate werden auf allowsDuplicates gesetzt, nicht
+    /// erreichbare auf allowsUnreachable. Zuvor in beiden Views (OPMLImport-
+    /// ReviewView und FirstRunWizardView) dupliziert → hier die einzige Stelle,
+    /// damit sie nicht auseinanderdriften.
+    func applyToggleSelectionToRows() {
+        for index in rows.indices {
+            switch rows[index].status {
+            case .duplicate:
+                rows[index].isSelected = allowsDuplicates
+            case .unreachable:
+                rows[index].isSelected = allowsUnreachable
+            case .available:
+                continue
+            }
+        }
+    }
+
     func createFolder() {
         let folderName = newFolderName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !folderName.isEmpty else { return }
@@ -217,6 +238,7 @@ final class OPMLImportPreviewController {
         errorMessage = nil
         resultMessage = nil
         isPreparingPreview = false
+        selectedFileName = configuration.initialSelectedFileName
         sourceDescription = configuration.initialSourceDescription
         previewProgressText = configuration.initialPreviewProgressText
         statusFilter = .all
