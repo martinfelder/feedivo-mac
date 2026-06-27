@@ -465,4 +465,42 @@ struct RuleEngineTests {
         #expect(matching.tags.map(\.name) == ["Swift"])
         #expect(nonMatching.tags.isEmpty)
     }
+
+    @MainActor
+    @Test func matchingCountsLiefertTrefferProRegelInEinerMap() throws {
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Mac News")
+        let articles = [
+            Article(title: "Swift auf dem Mac", feed: feed),
+            Article(title: "Windows News", feed: feed),
+            Article(title: "Swift 7 ist da", feed: feed)
+        ]
+
+        let swiftRule = Rule(
+            name: "Swift",
+            conditionField: "title",
+            conditionOperator: "contains",
+            conditionValue: "Swift"
+        )
+        swiftRule.conditionMatchMode = RuleMatchMode.all.rawValue
+        swiftRule.conditions = [
+            RuleCondition(field: "title", conditionOperator: "contains", value: "Swift", sortOrder: 0)
+        ]
+
+        let windowsRule = Rule(
+            name: "Windows",
+            conditionField: "title",
+            conditionOperator: "contains",
+            conditionValue: "Windows"
+        )
+        windowsRule.conditionMatchMode = RuleMatchMode.all.rawValue
+        windowsRule.conditions = [
+            RuleCondition(field: "title", conditionOperator: "contains", value: "Windows", sortOrder: 0)
+        ]
+
+        let counts = RuleSettingsFormatter.matchingCounts(for: [swiftRule, windowsRule], articles: articles)
+
+        #expect(counts[swiftRule.id] == 2)
+        #expect(counts[windowsRule.id] == 1)
+        #expect(counts.count == 2)
+    }
 }

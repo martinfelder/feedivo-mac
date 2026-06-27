@@ -40,6 +40,27 @@ enum SmartFolderEngine {
         )
     }
 
+    /// Berechnet die Trefferzahl für alle Ordner in einem Durchlauf und liefert sie
+    /// als Map `folder.id → Trefferzahl`. So wird pro Render nur einmal pro Ordner
+    /// über die Artikel iteriert statt pro Zeile (P2: zuvor N × O(articles) im ForEach).
+    static func matchingArticleCounts(
+        for folders: [SmartFolder],
+        articles: [Article],
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) -> [UUID: Int] {
+        var counts: [UUID: Int] = [:]
+        for folder in folders {
+            counts[folder.id] = matchingArticleCount(
+                folder: folder,
+                articles: articles,
+                now: now,
+                calendar: calendar
+            )
+        }
+        return counts
+    }
+
     fileprivate static func sortedConditions(for folder: SmartFolder) -> [SmartFolderCondition] {
         folder.conditions.sorted { firstCondition, secondCondition in
             firstCondition.sortOrder < secondCondition.sortOrder

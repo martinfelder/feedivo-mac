@@ -225,4 +225,44 @@ struct SmartFolderEngineTests {
         #expect(SmartFolderFormatter.showsReadArticlesByDefault(savedFolder))
         #expect(!SmartFolderFormatter.showsReadArticlesByDefault(unreadFolder))
     }
+
+    @MainActor
+    @Test func matchingArticleCountsLiefertTrefferProOrdnerInEinerMap() {
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
+        let unreadArticle = Article(title: "Ungelesen", isRead: false, feed: feed)
+        let readArticle = Article(title: "Gelesen", isRead: true, feed: feed)
+        let starredArticle = Article(title: "Stern", isRead: true, isStarred: true, feed: feed)
+
+        let unreadFolder = SmartFolder(
+            name: "Ungelesen",
+            matchMode: .all,
+            conditions: [
+                SmartFolderCondition(
+                    field: .status,
+                    conditionOperator: .is,
+                    value: SmartFolderStatusValue.unread.rawValue
+                )
+            ]
+        )
+        let starredFolder = SmartFolder(
+            name: "Mit Stern",
+            matchMode: .all,
+            conditions: [
+                SmartFolderCondition(
+                    field: .status,
+                    conditionOperator: .is,
+                    value: SmartFolderStatusValue.starred.rawValue
+                )
+            ]
+        )
+
+        let counts = SmartFolderEngine.matchingArticleCounts(
+            for: [unreadFolder, starredFolder],
+            articles: [unreadArticle, readArticle, starredArticle]
+        )
+
+        #expect(counts[unreadFolder.id] == 1)
+        #expect(counts[starredFolder.id] == 1)
+        #expect(counts.count == 2)
+    }
 }

@@ -81,13 +81,17 @@ struct SmartFolderSettingsView: View {
     }
 
     private var folderList: some View {
-        VStack(spacing: 0) {
+        // Treffer pro Ordner einmal pro Render berechnen (Map), statt pro Zeile
+        // jeweils über alle Artikel zu iterieren (P2: N × O(articles) im ForEach).
+        let matchingCounts = SmartFolderEngine.matchingArticleCounts(for: orderedFolders, articles: articles)
+
+        return VStack(spacing: 0) {
             SmartFolderSettingsListHeader()
 
             ForEach(Array(orderedFolders.enumerated()), id: \.element.id) { index, folder in
                 SmartFolderSettingsRow(
                     folder: folder,
-                    matchingArticleCount: SmartFolderEngine.matchingArticleCount(folder: folder, articles: articles),
+                    matchingArticleCount: matchingCounts[folder.id] ?? 0,
                     isDragged: draggedFolderID == folder.id,
                     edit: { folderEditing = folder },
                     duplicate: { duplicate(folder) },

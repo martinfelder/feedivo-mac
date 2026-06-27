@@ -88,13 +88,17 @@ struct RuleSettingsView: View {
     }
 
     private var ruleList: some View {
-        VStack(spacing: 0) {
+        // Treffer pro Regel einmal pro Render berechnen (Map), statt pro Zeile
+        // jeweils über alle Artikel zu iterieren (P2: N × O(articles) im ForEach).
+        let matchingCounts = RuleSettingsFormatter.matchingCounts(for: orderedRules, articles: articles)
+
+        return VStack(spacing: 0) {
             RuleSettingsListHeader()
 
             ForEach(Array(orderedRules.enumerated()), id: \.element.id) { index, rule in
                 RuleSettingsRow(
                     rule: rule,
-                    matchingArticleCount: RuleSettingsFormatter.matchingArticleCount(for: rule, articles: articles),
+                    matchingArticleCount: matchingCounts[rule.id] ?? 0,
                     isFirst: index == 0,
                     isLast: index == orderedRules.count - 1,
                     moveUp: { move(rule, direction: .up) },
@@ -304,7 +308,7 @@ private struct RuleActionPill: View {
     }
 }
 
-private enum RuleSettingsFormatter {
+enum RuleSettingsFormatter {
     static func conditionSummary(for rule: Rule) -> String {
         let conditionDrafts = conditionDrafts(for: rule)
         guard !conditionDrafts.isEmpty else {
@@ -325,6 +329,17 @@ private enum RuleSettingsFormatter {
             matchMode: RuleMatchMode.normalized(rule.conditionMatchMode),
             articles: articles
         )
+    }
+
+    /// Berechnet die Trefferzahl für alle Regeln in einem Durchlauf und liefert sie
+    /// als Map `rule.id → Trefferzahl`. So wird pro Render nur einmal über die
+    /// Artikel iteriert statt pro Regelzeile (P2: zuvor N × O(articles) im ForEach).
+    static func matchingCounts(for rules: [Rule], articles: [Article]) -> [UUID: Int] {
+        var counts: [UUID: Int] = [:]
+        for rule in rules {
+            counts[rule.id] = matchingArticleCount(for: rule, articles: articles)
+        }
+        return counts
     }
 
     private static func conditionDrafts(for rule: Rule) -> [RuleConditionDraft] {

@@ -17,6 +17,40 @@ private final class StubImageDataLoader: ImageDataLoading, @unchecked Sendable {
     }
 }
 
+/// Zählt, wie viele Ladevorgänge gleichzeitig aktiv sind, um eine
+/// Drosselung der Gleichzeitigkeit in `cacheImages` verifizieren zu können.
+final class ConcurrencyTrackingImageDataLoader: ImageDataLoading, @unchecked Sendable {
+    private let lock = NSLock()
+    private var inFlight = 0
+    private(set) var maxInFlight = 0
+    private(set) var completedCount = 0
+    private let delayNanoseconds: UInt64
+    private let data: Data
+
+    init(delayNanoseconds: UInt64 = 30_000_000, data: Data = Data(repeating: 1, count: 8)) {
+        self.delayNanoseconds = delayNanoseconds
+        self.data = data
+    }
+
+    func data(from url: URL) async throws -> Data {
+        lock.lock()
+        inFlight += 1
+        if inFlight > maxInFlight {
+            maxInFlight = inFlight
+        }
+        lock.unlock()
+
+        try await Task.sleep(nanoseconds: delayNanoseconds)
+
+        lock.lock()
+        inFlight -= 1
+        completedCount += 1
+        lock.unlock()
+
+        return data
+    }
+}
+
 @MainActor
 struct ImageCacheServiceTests {
     @Test func cacheFileNameIstStabilUndDateisystemfreundlich() throws {
@@ -130,6 +164,24 @@ struct ImageCacheServiceTests {
         #expect(!FileManager.default.fileExists(atPath: oldFile.path))
         #expect(FileManager.default.fileExists(atPath: service.cachedFileURL(for: downloadedURL).path))
         #expect(try service.cacheSizeInBytes() <= Int64(downloadedData.count))
+    }
+
+    @Test func cacheImagesDrosseltGleichzeitigeDownloadsAufMaxConcurrency() async throws {
+        let cacheDirectory = try Self.temporaryCacheDirectory()
+        let loader = ConcurrencyTrackingImageDataLoader()
+        let service = ImageCacheService(cacheDirectory: cacheDirectory, dataLoader: loader)
+
+        // Mehr URLs als das Drossel-Limit, damit ohne Drosselung alle gleichzeitig laden.
+        let urls = (0 ..< 12).map { offset in
+            URL(string: "https://example.com/image-\(offset).png")!
+        }
+
+        await service.cacheImages(from: urls)
+
+        // Alle Requests wurden ausgelöst und abgeschlossen.
+        #expect(loader.completedCount == urls.count)
+        // Gleichzeitigkeit wird auf das Drossel-Limit beschränkt (nicht alle 12 auf einmal).
+        #expect(loader.maxInFlight <= ImageCacheService.maxConcurrentImageDownloads, "maxInFlight=\(loader.maxInFlight) – Gleichzeitigkeit nicht gedrosselt")
     }
 
     private static func temporaryCacheDirectory() throws -> URL {

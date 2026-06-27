@@ -91,11 +91,43 @@ final class ImageCacheService: @unchecked Sendable {
         await image(for: url) != nil
     }
 
+    /// Maximale Anzahl gleichzeitig laufender Bild-Downloads in `cacheImages`.
+    /// Verhindert, dass bei vielen URLs Dutzend Downloads gleichzeitig feuern
+    /// (Server-Ratelimiting, Memory-Spitzen). Analog zum Drossel-Pattern in
+    /// `FeedService.enrichArticleImagesIfNeeded`.
+    static let maxConcurrentImageDownloads = 4
+
     func cacheImages(from urls: [URL]) async {
+        guard !urls.isEmpty else {
+            return
+        }
+
         await withTaskGroup(of: Void.self) { group in
-            for url in urls {
+            var iterator = urls.makeIterator()
+            var activeTasks = 0
+
+            // Start-Window: bis zu `maxConcurrentImageDownloads` Tasks gleichzeitig.
+            for _ in 0 ..< min(Self.maxConcurrentImageDownloads, urls.count) {
+                guard let url = iterator.next() else {
+                    break
+                }
+
+                activeTasks += 1
                 group.addTask {
                     await self.cacheImageIfNeeded(from: url)
+                }
+            }
+
+            // Sobald ein Task endet, den nächsten aus der Warteschlange starten.
+            while activeTasks > 0 {
+                _ = await group.next()
+                activeTasks -= 1
+
+                if let url = iterator.next() {
+                    activeTasks += 1
+                    group.addTask {
+                        await self.cacheImageIfNeeded(from: url)
+                    }
                 }
             }
         }
