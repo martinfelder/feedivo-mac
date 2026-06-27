@@ -172,6 +172,7 @@ enum L10n {
     static let settingsAutomaticRefreshNoDate = LocalizedStringKey("settings.automaticRefresh.noDate")
     static let settingsAutomaticRefreshStatusSuccess = LocalizedStringKey("settings.automaticRefresh.status.success")
     static let settingsAutomaticRefreshStatusFailed = LocalizedStringKey("settings.automaticRefresh.status.failed")
+    static let settingsAutomaticRefreshStatusPartial = LocalizedStringKey("settings.automaticRefresh.status.partial")
     static let settingsAutomaticRefreshStatusNever = LocalizedStringKey("settings.automaticRefresh.status.never")
     static let settingsGeneralSection = LocalizedStringKey("settings.general.section")
     static let settingsGeneralDescription = LocalizedStringKey("settings.general.description")

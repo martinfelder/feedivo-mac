@@ -12,6 +12,7 @@ enum BackgroundRefreshSettings {
     static let allowedIntervalMinutes = [15, 30, 60, 120]
     static let statusSuccess = "success"
     static let statusFailed = "failed"
+    static let statusPartial = "partial"
 
     static func clampedIntervalMinutes(_ intervalMinutes: Int) -> Int {
         allowedIntervalMinutes.min { first, second in

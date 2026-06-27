@@ -832,7 +832,8 @@ private struct RefreshSettingsView: View {
                             .foregroundStyle(.secondary)
                     }
 
-                    if lastAutomaticRefreshStatus == BackgroundRefreshSettings.statusFailed,
+                    if (lastAutomaticRefreshStatus == BackgroundRefreshSettings.statusFailed
+                        || lastAutomaticRefreshStatus == BackgroundRefreshSettings.statusPartial),
                        !lastAutomaticRefreshError.isEmpty {
                         LabeledContent(L10n.settingsAutomaticRefreshLastError) {
                             Text(lastAutomaticRefreshError)
@@ -853,6 +854,8 @@ private struct RefreshSettingsView: View {
             L10n.settingsAutomaticRefreshStatusSuccess
         case BackgroundRefreshSettings.statusFailed:
             L10n.settingsAutomaticRefreshStatusFailed
+        case BackgroundRefreshSettings.statusPartial:
+            L10n.settingsAutomaticRefreshStatusPartial
         default:
             L10n.settingsAutomaticRefreshStatusNever
         }

@@ -67,6 +67,17 @@ final class FeedViewModel {
     var isLoading = false
     var errorMessage: String?
     var operationProgress: FeedOperationProgress?
+    /// Ergebnis des letzten `refreshAllFeeds`-Aufrufs. Unterscheidet totalen
+    /// Misserfolg (.failure) von teilweisem (.partial) — zuvor wurde jeder
+    /// Feed-Fehler als gesamter Refresh-Fehler gewertet (BackgroundRefreshService
+    /// zeigte „Fehlgeschlagen", obwohl die meisten Feeds aktualisiert wurden).
+    private(set) var lastRefreshOutcome: RefreshOutcome?
+
+    enum RefreshOutcome: Equatable {
+        case success
+        case partial(failedCount: Int)
+        case failure
+    }
 
     init(
         fetchFeed: @escaping (String) async throws -> ParsedFeed = FeedService.fetchFeed,
@@ -527,7 +538,18 @@ final class FeedViewModel {
         await notifyFeedRefresh(notificationResults)
         await notifyRuleNotifications(ruleNotificationResults)
 
-        if !failedFeedTitles.isEmpty {
+        if failedFeedTitles.isEmpty {
+            lastRefreshOutcome = .success
+        } else if failedFeedTitles.count < feeds.count {
+            // Teilfehler: einige Feeds konnten nicht aktualisiert werden, der
+            // Rest aber schon. Status „partial" statt pauschal „failed".
+            lastRefreshOutcome = .partial(failedCount: failedFeedTitles.count)
+            errorMessage = L10n.feedErrorRefreshAllPartial(
+                failedFeedTitles.count,
+                feedTitles: failedFeedTitles.joined(separator: ", ")
+            )
+        } else {
+            lastRefreshOutcome = .failure
             errorMessage = L10n.feedErrorRefreshAllPartial(
                 failedFeedTitles.count,
                 feedTitles: failedFeedTitles.joined(separator: ", ")

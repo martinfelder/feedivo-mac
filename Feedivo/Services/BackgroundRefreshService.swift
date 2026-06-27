@@ -128,13 +128,24 @@ enum BackgroundRefreshService {
 
         await viewModel.refreshAllFeeds(feeds, context: context)
 
-        if let errorMessage = viewModel.errorMessage {
+        // Unterscheidung zwischen Erfolg / Teilfehler / totaler Misserfolg statt
+        // zuvor pauschal „errorMessage != nil → failed". Ein Teilfehler (ein paar
+        // Feeds nicht erreichbar, der Rest aktualisiert) ist kein Gesamtversagen.
+        switch viewModel.lastRefreshOutcome {
+        case .failure:
             recordRefreshFailure(
-                errorMessage,
+                viewModel.errorMessage ?? "",
                 intervalMinutes: intervalMinutes,
                 userDefaults: userDefaults
             )
-        } else {
+        case .partial(let failedCount):
+            recordRefreshPartial(
+                viewModel.errorMessage ?? "",
+                failedCount: failedCount,
+                intervalMinutes: intervalMinutes,
+                userDefaults: userDefaults
+            )
+        case .success, nil:
             recordRefreshSuccess(
                 intervalMinutes: intervalMinutes,
                 userDefaults: userDefaults
@@ -164,6 +175,25 @@ enum BackgroundRefreshService {
     ) {
         userDefaults.set(now.timeIntervalSince1970, forKey: BackgroundRefreshSettings.lastAutomaticRefreshDateKey)
         userDefaults.set(BackgroundRefreshSettings.statusFailed, forKey: BackgroundRefreshSettings.lastAutomaticRefreshStatusKey)
+        userDefaults.set(message, forKey: BackgroundRefreshSettings.lastAutomaticRefreshErrorKey)
+        userDefaults.set(
+            BackgroundRefreshSettings.nextScheduledRefreshDate(intervalMinutes: intervalMinutes, now: now).timeIntervalSince1970,
+            forKey: BackgroundRefreshSettings.nextAutomaticRefreshDateKey
+        )
+    }
+
+    /// Teilfehler: der Refresh ist gelaufen, einige Feeds konnten aber nicht
+    /// aktualisiert werden. Status „partial" statt „failed" — die meisten Feeds
+    /// wurden erfolgreich aktualisiert, nur eine Teilmenge ist fehlgeschlagen.
+    static func recordRefreshPartial(
+        _ message: String,
+        failedCount: Int,
+        now: Date = Date(),
+        intervalMinutes: Int,
+        userDefaults: UserDefaults = .standard
+    ) {
+        userDefaults.set(now.timeIntervalSince1970, forKey: BackgroundRefreshSettings.lastAutomaticRefreshDateKey)
+        userDefaults.set(BackgroundRefreshSettings.statusPartial, forKey: BackgroundRefreshSettings.lastAutomaticRefreshStatusKey)
         userDefaults.set(message, forKey: BackgroundRefreshSettings.lastAutomaticRefreshErrorKey)
         userDefaults.set(
             BackgroundRefreshSettings.nextScheduledRefreshDate(intervalMinutes: intervalMinutes, now: now).timeIntervalSince1970,

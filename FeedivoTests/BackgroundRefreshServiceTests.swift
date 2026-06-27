@@ -108,6 +108,24 @@ struct BackgroundRefreshServiceTests {
         #expect(defaults.string(forKey: BackgroundRefreshSettings.lastAutomaticRefreshErrorKey) == "Netzwerkfehler")
         #expect(defaults.double(forKey: BackgroundRefreshSettings.nextAutomaticRefreshDateKey) == now.addingTimeInterval(30 * 60).timeIntervalSince1970)
     }
+
+    @Test func recordRefreshPartialSpeichertStatusPartialUndMeldung() throws {
+        let defaults = try temporaryUserDefaults()
+        let now = Date(timeIntervalSince1970: 1_000)
+
+        BackgroundRefreshService.recordRefreshPartial(
+            "2 Feeds nicht erreichbar",
+            failedCount: 2,
+            now: now,
+            intervalMinutes: 30,
+            userDefaults: defaults
+        )
+
+        #expect(defaults.double(forKey: BackgroundRefreshSettings.lastAutomaticRefreshDateKey) == now.timeIntervalSince1970)
+        #expect(defaults.string(forKey: BackgroundRefreshSettings.lastAutomaticRefreshStatusKey) == BackgroundRefreshSettings.statusPartial)
+        #expect(defaults.string(forKey: BackgroundRefreshSettings.lastAutomaticRefreshErrorKey) == "2 Feeds nicht erreichbar")
+        #expect(defaults.double(forKey: BackgroundRefreshSettings.nextAutomaticRefreshDateKey) == now.addingTimeInterval(30 * 60).timeIntervalSince1970)
+    }
 }
 
 private func temporaryUserDefaults() throws -> UserDefaults {
