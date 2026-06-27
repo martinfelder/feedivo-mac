@@ -164,7 +164,6 @@ struct FeedivoApp: App {
         _ = try? ArticleFeedIDBackfillService.backfillMissingFeedIDs(in: modelContainer.mainContext)
         _ = try? OrphanedArticleCleanupService.removeArticlesWithoutExistingFeed(in: modelContainer.mainContext)
         _ = try? FeedUnreadCountBackfillService.backfillUnreadCounts(in: modelContainer.mainContext)
-        _ = try? RuleConditionBackfillService.backfillMissingConditions(context: modelContainer.mainContext)
         restoreDefaultSmartFoldersIfNeeded()
     }
 

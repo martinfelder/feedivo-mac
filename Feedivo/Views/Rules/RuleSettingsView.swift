@@ -350,41 +350,21 @@ enum RuleSettingsFormatter {
     }
 
     private static func conditionDrafts(for rule: Rule) -> [RuleConditionDraft] {
-        let sortedConditions = rule.conditions.sorted { firstCondition, secondCondition in
-            firstCondition.sortOrder < secondCondition.sortOrder
-        }
+        rule.conditions
+            .sorted { $0.sortOrder < $1.sortOrder }
+            .compactMap { condition -> RuleConditionDraft? in
+                guard let field = RuleConditionField(rawValue: condition.field),
+                      let conditionOperator = RuleConditionOperator(rawValue: condition.conditionOperator)
+                else {
+                    return nil
+                }
 
-        let conditionDrafts = sortedConditions.compactMap { condition -> RuleConditionDraft? in
-            guard let field = RuleConditionField(rawValue: condition.field),
-                  let conditionOperator = RuleConditionOperator(rawValue: condition.conditionOperator)
-            else {
-                return nil
+                return RuleConditionDraft(
+                    field: field,
+                    conditionOperator: conditionOperator,
+                    value: condition.value
+                )
             }
-
-            return RuleConditionDraft(
-                field: field,
-                conditionOperator: conditionOperator,
-                value: condition.value
-            )
-        }
-
-        if !conditionDrafts.isEmpty {
-            return conditionDrafts
-        }
-
-        guard let field = RuleConditionField(rawValue: rule.conditionField),
-              let conditionOperator = RuleConditionOperator(rawValue: rule.conditionOperator)
-        else {
-            return []
-        }
-
-        return [
-            RuleConditionDraft(
-                field: field,
-                conditionOperator: conditionOperator,
-                value: rule.conditionValue
-            )
-        ]
     }
 
     private static func conditionDescription(_ draft: RuleConditionDraft) -> String {

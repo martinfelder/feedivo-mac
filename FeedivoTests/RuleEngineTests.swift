@@ -60,12 +60,7 @@ struct RuleEngineTests {
     @MainActor
     @Test func applyRulesUnterstuetztMehrereBedingungenMitAND() throws {
         let tag = Tag(name: "Apple", colorHex: "#3B82F6")
-        let rule = Rule(
-            name: "Apple Mac",
-            conditionField: "title",
-            conditionOperator: "contains",
-            conditionValue: "Apple"
-        )
+        let rule = Rule(name: "Apple Mac")
         rule.conditionMatchMode = RuleMatchMode.all.rawValue
         rule.conditions = [
             RuleCondition(field: "title", conditionOperator: "contains", value: "Apple", sortOrder: 0),
@@ -87,12 +82,7 @@ struct RuleEngineTests {
     @MainActor
     @Test func applyRulesUnterstuetztMehrereBedingungenMitOR() throws {
         let tag = Tag(name: "Apple", colorHex: "#3B82F6")
-        let rule = Rule(
-            name: "Apple oder Mac",
-            conditionField: "title",
-            conditionOperator: "contains",
-            conditionValue: "Apple"
-        )
+        let rule = Rule(name: "Apple oder Mac")
         rule.conditionMatchMode = RuleMatchMode.any.rawValue
         rule.conditions = [
             RuleCondition(field: "title", conditionOperator: "contains", value: "Apple", sortOrder: 0),
@@ -110,12 +100,7 @@ struct RuleEngineTests {
     @MainActor
     @Test func applyRulesIgnoriertRegelnOhneGueltigeConditions() throws {
         let tag = Tag(name: "Swift", colorHex: "#3B82F6")
-        let rule = Rule(
-            name: "Leer",
-            conditionField: "title",
-            conditionOperator: "contains",
-            conditionValue: "Swift"
-        )
+        let rule = Rule(name: "Leer")
         rule.conditions = [
             RuleCondition(field: "title", conditionOperator: "contains", value: "   ", sortOrder: 0),
             RuleCondition(field: "author", conditionOperator: "contains", value: "Swift", sortOrder: 1)
@@ -134,32 +119,17 @@ struct RuleEngineTests {
         let swiftTag = Tag(name: "Swift", colorHex: "#3B82F6")
         let macTag = Tag(name: "Mac", colorHex: "#22C55E")
         let newsTag = Tag(name: "News", colorHex: "#F59E0B")
-        let titleRule = Rule(
-            name: "Swift Titel",
-            conditionField: "title",
-            conditionOperator: "contains",
-            conditionValue: "swift"
-        )
+        let titleRule = Rule(name: "Swift Titel")
         titleRule.conditions = [
             RuleCondition(field: "title", conditionOperator: "contains", value: "swift")
         ]
         titleRule.assignTag = swiftTag
-        let summaryRule = Rule(
-            name: "Summary Start",
-            conditionField: "summary",
-            conditionOperator: "startsWith",
-            conditionValue: "breaking"
-        )
+        let summaryRule = Rule(name: "Summary Start")
         summaryRule.conditions = [
             RuleCondition(field: "summary", conditionOperator: "startsWith", value: "breaking")
         ]
         summaryRule.assignTag = newsTag
-        let feedRule = Rule(
-            name: "Feed Ende",
-            conditionField: "feedTitle",
-            conditionOperator: "endsWith",
-            conditionValue: "weekly"
-        )
+        let feedRule = Rule(name: "Feed Ende")
         feedRule.conditions = [
             RuleCondition(field: "feedTitle", conditionOperator: "endsWith", value: "weekly")
         ]
@@ -179,12 +149,7 @@ struct RuleEngineTests {
     @MainActor
     @Test func applyRulesGibtAnzahlNeuGesetzterTagsZurueck() throws {
         let tag = Tag(name: "Swift", colorHex: "#3B82F6")
-        let rule = Rule(
-            name: "Swift",
-            conditionField: "title",
-            conditionOperator: "contains",
-            conditionValue: "Swift"
-        )
+        let rule = Rule(name: "Swift")
         rule.conditions = [
             RuleCondition(field: "title", conditionOperator: "contains", value: "Swift")
         ]
@@ -204,23 +169,13 @@ struct RuleEngineTests {
     @Test func applyRulesWertetRegelnNachSortOrderAus() throws {
         let firstTag = Tag(name: "Erste Aktion", colorHex: "#3B82F6")
         let secondTag = Tag(name: "Zweite Aktion", colorHex: "#22C55E")
-        let firstRule = Rule(
-            name: "Erste Regel",
-            conditionField: "title",
-            conditionOperator: "contains",
-            conditionValue: "Swift"
-        )
+        let firstRule = Rule(name: "Erste Regel")
         firstRule.sortOrder = 0
         firstRule.conditions = [
             RuleCondition(field: "title", conditionOperator: "contains", value: "Swift")
         ]
         firstRule.assignTag = firstTag
-        let secondRule = Rule(
-            name: "Zweite Regel",
-            conditionField: "title",
-            conditionOperator: "contains",
-            conditionValue: "Swift"
-        )
+        let secondRule = Rule(name: "Zweite Regel")
         secondRule.sortOrder = 1
         secondRule.conditions = [
             RuleCondition(field: "title", conditionOperator: "contains", value: "Swift")
@@ -237,12 +192,7 @@ struct RuleEngineTests {
     @MainActor
     @Test func applyRulesToExistingArticlesTaggtVorhandeneArtikelRueckwirkend() throws {
         let tag = Tag(name: "Swift", colorHex: "#3B82F6")
-        let rule = Rule(
-            name: "Swift",
-            conditionField: "title",
-            conditionOperator: "contains",
-            conditionValue: "Swift"
-        )
+        let rule = Rule(name: "Swift")
         rule.conditions = [
             RuleCondition(field: "title", conditionOperator: "contains", value: "Swift")
         ]
@@ -273,12 +223,7 @@ struct RuleEngineTests {
 
     @MainActor
     @Test func applyRulesBlendetArtikelBeiHideAktionAus() throws {
-        let rule = Rule(
-            name: "Spoiler ausblenden",
-            conditionField: "title",
-            conditionOperator: "contains",
-            conditionValue: "Spoiler"
-        )
+        let rule = Rule(name: "Spoiler ausblenden")
         rule.actionRaw = RuleAction.hideArticle.rawValue
         rule.conditions = [
             RuleCondition(field: "title", conditionOperator: "contains", value: "Spoiler")
@@ -297,12 +242,7 @@ struct RuleEngineTests {
 
     @MainActor
     @Test func applyRulesToExistingArticlesBlendetPassendeArtikelRueckwirkendAus() throws {
-        let rule = Rule(
-            name: "Spoiler ausblenden",
-            conditionField: "title",
-            conditionOperator: "contains",
-            conditionValue: "Spoiler"
-        )
+        let rule = Rule(name: "Spoiler ausblenden")
         rule.actionRaw = RuleAction.hideArticle.rawValue
         rule.conditions = [
             RuleCondition(field: "title", conditionOperator: "contains", value: "Spoiler")
@@ -326,62 +266,32 @@ struct RuleEngineTests {
     @MainActor
     @Test func applyRulesIgnoriertUngueltigeRegelnUndVerhindertDoppelteTags() throws {
         let tag = Tag(name: "Swift", colorHex: "#3B82F6")
-        let activeRule = Rule(
-            name: "Swift",
-            conditionField: "title",
-            conditionOperator: "contains",
-            conditionValue: "Swift"
-        )
+        let activeRule = Rule(name: "Swift")
         activeRule.conditions = [
             RuleCondition(field: "title", conditionOperator: "contains", value: "Swift")
         ]
         activeRule.assignTag = tag
-        let disabledRule = Rule(
-            name: "Aus",
-            conditionField: "title",
-            conditionOperator: "contains",
-            conditionValue: "Swift"
-        )
+        let disabledRule = Rule(name: "Aus")
         disabledRule.isEnabled = false
         disabledRule.conditions = [
             RuleCondition(field: "title", conditionOperator: "contains", value: "Swift")
         ]
         disabledRule.assignTag = Tag(name: "Disabled")
-        let emptyValueRule = Rule(
-            name: "Leer",
-            conditionField: "title",
-            conditionOperator: "contains",
-            conditionValue: "   "
-        )
+        let emptyValueRule = Rule(name: "Leer")
         emptyValueRule.conditions = [
             RuleCondition(field: "title", conditionOperator: "contains", value: "   ")
         ]
         emptyValueRule.assignTag = Tag(name: "Leer")
-        let missingTagRule = Rule(
-            name: "Ohne Tag",
-            conditionField: "title",
-            conditionOperator: "contains",
-            conditionValue: "Swift"
-        )
+        let missingTagRule = Rule(name: "Ohne Tag")
         missingTagRule.conditions = [
             RuleCondition(field: "title", conditionOperator: "contains", value: "Swift")
         ]
-        let unknownFieldRule = Rule(
-            name: "Feld",
-            conditionField: "author",
-            conditionOperator: "contains",
-            conditionValue: "Swift"
-        )
+        let unknownFieldRule = Rule(name: "Feld")
         unknownFieldRule.conditions = [
             RuleCondition(field: "author", conditionOperator: "contains", value: "Swift")
         ]
         unknownFieldRule.assignTag = Tag(name: "Autor")
-        let unknownOperatorRule = Rule(
-            name: "Operator",
-            conditionField: "title",
-            conditionOperator: "regex",
-            conditionValue: "Swift"
-        )
+        let unknownOperatorRule = Rule(name: "Operator")
         unknownOperatorRule.conditions = [
             RuleCondition(field: "title", conditionOperator: "regex", value: "Swift")
         ]
@@ -408,12 +318,7 @@ struct RuleEngineTests {
 
     @MainActor
     @Test func applyRulesErzeugtRegelBenachrichtigungOhneArtikelZuVeraendern() throws {
-        let rule = Rule(
-            name: "Breaking",
-            conditionField: "title",
-            conditionOperator: "contains",
-            conditionValue: "Swift"
-        )
+        let rule = Rule(name: "Breaking")
         rule.actionRaw = RuleAction.notify.rawValue
         rule.notificationTemplate = "Breaking: {Titel} aus {Feed}"
         rule.notificationPriorityRaw = RuleNotificationPriority.critical.rawValue
@@ -442,12 +347,7 @@ struct RuleEngineTests {
 
     @MainActor
     @Test func applyRulesBatchWendetRegelAufAllePassendenArtikelAn() throws {
-        let rule = Rule(
-            name: "Swift",
-            conditionField: "title",
-            conditionOperator: "contains",
-            conditionValue: "Swift"
-        )
+        let rule = Rule(name: "Swift")
         rule.actionRaw = RuleAction.assignTag.rawValue
         rule.conditions = [
             RuleCondition(field: "title", conditionOperator: "contains", value: "Swift")
@@ -475,23 +375,13 @@ struct RuleEngineTests {
             Article(title: "Swift 7 ist da", feed: feed)
         ]
 
-        let swiftRule = Rule(
-            name: "Swift",
-            conditionField: "title",
-            conditionOperator: "contains",
-            conditionValue: "Swift"
-        )
+        let swiftRule = Rule(name: "Swift")
         swiftRule.conditionMatchMode = RuleMatchMode.all.rawValue
         swiftRule.conditions = [
             RuleCondition(field: "title", conditionOperator: "contains", value: "Swift", sortOrder: 0)
         ]
 
-        let windowsRule = Rule(
-            name: "Windows",
-            conditionField: "title",
-            conditionOperator: "contains",
-            conditionValue: "Windows"
-        )
+        let windowsRule = Rule(name: "Windows")
         windowsRule.conditionMatchMode = RuleMatchMode.all.rawValue
         windowsRule.conditions = [
             RuleCondition(field: "title", conditionOperator: "contains", value: "Windows", sortOrder: 0)

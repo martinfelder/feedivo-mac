@@ -53,13 +53,7 @@ final class RuleViewModel {
             return
         }
 
-        let firstCondition = conditions[0]
-        let rule = Rule(
-            name: normalizedName,
-            conditionField: firstCondition.field,
-            conditionOperator: firstCondition.conditionOperator,
-            conditionValue: firstCondition.value
-        )
+        let rule = Rule(name: normalizedName)
         rule.isEnabled = isEnabled
         rule.actionRaw = action.rawValue
         rule.notificationTemplate = normalizedNotificationTemplate(notificationTemplate)
@@ -87,13 +81,7 @@ final class RuleViewModel {
             return
         }
 
-        let firstCondition = conditions[0]
-        let duplicate = Rule(
-            name: "\(rule.name) Kopie",
-            conditionField: firstCondition.field,
-            conditionOperator: firstCondition.conditionOperator,
-            conditionValue: firstCondition.value
-        )
+        let duplicate = Rule(name: "\(rule.name) Kopie")
         duplicate.isEnabled = false
         duplicate.actionRaw = rule.actionRaw
         duplicate.notificationTemplate = rule.notificationTemplate
@@ -183,9 +171,6 @@ final class RuleViewModel {
         rule.notificationPriorityRaw = notificationPriority.rawValue
         rule.conditionMatchMode = matchMode.rawValue
         rule.assignTag = action == .assignTag ? assignTag : nil
-        rule.conditionField = conditions[0].field
-        rule.conditionOperator = conditions[0].conditionOperator
-        rule.conditionValue = conditions[0].value
         rule.conditions.removeAll()
         rule.conditions = conditions.enumerated().map { index, condition in
             RuleCondition(
@@ -220,22 +205,7 @@ final class RuleViewModel {
     }
 
     private func sortedConditions(for rule: Rule) -> [RuleCondition] {
-        let sortedConditions = rule.conditions.sorted { firstCondition, secondCondition in
-            firstCondition.sortOrder < secondCondition.sortOrder
-        }
-
-        if !sortedConditions.isEmpty {
-            return sortedConditions
-        }
-
-        return [
-            RuleCondition(
-                field: rule.conditionField,
-                conditionOperator: rule.conditionOperator,
-                value: rule.conditionValue,
-                sortOrder: 0
-            )
-        ]
+        rule.conditions.sorted { $0.sortOrder < $1.sortOrder }
     }
 
     private func normalizedName(_ name: String) -> String? {

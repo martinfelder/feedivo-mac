@@ -56,12 +56,7 @@ struct RuleViewModelTests {
         let context = ModelContext(container)
         let tag = Tag(name: "Swift", colorHex: "#3B82F6")
         context.insert(tag)
-        let firstRule = Rule(
-            name: "Vorhanden",
-            conditionField: RuleConditionField.title.rawValue,
-            conditionOperator: RuleConditionOperator.contains.rawValue,
-            conditionValue: "Swift"
-        )
+        let firstRule = Rule(name: "Vorhanden")
         firstRule.sortOrder = 4
         context.insert(firstRule)
         let viewModel = RuleViewModel()
@@ -98,12 +93,7 @@ struct RuleViewModelTests {
         let context = ModelContext(container)
         let tag = Tag(name: "Swift", colorHex: "#3B82F6")
         context.insert(tag)
-        let firstRule = Rule(
-            name: "Erste Regel",
-            conditionField: RuleConditionField.title.rawValue,
-            conditionOperator: RuleConditionOperator.contains.rawValue,
-            conditionValue: "Swift"
-        )
+        let firstRule = Rule(name: "Erste Regel")
         firstRule.sortOrder = 0
         firstRule.assignTag = tag
         firstRule.conditions = [
@@ -114,12 +104,7 @@ struct RuleViewModelTests {
                 sortOrder: 0
             )
         ]
-        let secondRule = Rule(
-            name: "Zweite Regel",
-            conditionField: RuleConditionField.summary.rawValue,
-            conditionOperator: RuleConditionOperator.contains.rawValue,
-            conditionValue: "Mac"
-        )
+        let secondRule = Rule(name: "Zweite Regel")
         secondRule.sortOrder = 1
         context.insert(firstRule)
         context.insert(secondRule)
@@ -139,26 +124,11 @@ struct RuleViewModelTests {
 
     @MainActor
     @Test func moveRuleAktualisiertSortierreihenfolge() throws {
-        let firstRule = Rule(
-            name: "A",
-            conditionField: RuleConditionField.title.rawValue,
-            conditionOperator: RuleConditionOperator.contains.rawValue,
-            conditionValue: "A"
-        )
+        let firstRule = Rule(name: "A")
         firstRule.sortOrder = 0
-        let secondRule = Rule(
-            name: "B",
-            conditionField: RuleConditionField.title.rawValue,
-            conditionOperator: RuleConditionOperator.contains.rawValue,
-            conditionValue: "B"
-        )
+        let secondRule = Rule(name: "B")
         secondRule.sortOrder = 1
-        let thirdRule = Rule(
-            name: "C",
-            conditionField: RuleConditionField.title.rawValue,
-            conditionOperator: RuleConditionOperator.contains.rawValue,
-            conditionValue: "C"
-        )
+        let thirdRule = Rule(name: "C")
         thirdRule.sortOrder = 2
         let viewModel = RuleViewModel()
 
@@ -287,12 +257,7 @@ struct RuleViewModelTests {
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
         let context = ModelContext(container)
-        let rule = Rule(
-            name: "Regel",
-            conditionField: RuleConditionField.title.rawValue,
-            conditionOperator: RuleConditionOperator.contains.rawValue,
-            conditionValue: "Swift"
-        )
+        let rule = Rule(name: "Regel")
         rule.conditions = [
             RuleCondition(
                 field: RuleConditionField.title.rawValue,

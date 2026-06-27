@@ -1025,12 +1025,7 @@ struct FeedViewModelTests {
         )
         feed.articles = [existingArticle]
         let tag = Tag(name: "Swift", colorHex: "#3B82F6")
-        let rule = Rule(
-            name: "Swift Titel",
-            conditionField: "title",
-            conditionOperator: "contains",
-            conditionValue: "swift"
-        )
+        let rule = Rule(name: "Swift Titel")
         rule.conditions = [
             RuleCondition(field: "title", conditionOperator: "contains", value: "swift")
         ]
@@ -1476,12 +1471,7 @@ struct FeedViewModelTests {
         )
         let context = ModelContext(container)
         let feed = Feed(url: "https://example.com/feed.xml", title: "Mac News")
-        let rule = Rule(
-            name: "Breaking",
-            conditionField: RuleConditionField.title.rawValue,
-            conditionOperator: RuleConditionOperator.contains.rawValue,
-            conditionValue: "Swift"
-        )
+        let rule = Rule(name: "Breaking")
         rule.actionRaw = RuleAction.notify.rawValue
         rule.notificationTemplate = "Breaking: {Titel}"
         rule.notificationPriorityRaw = RuleNotificationPriority.critical.rawValue
