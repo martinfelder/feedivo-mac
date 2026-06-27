@@ -361,7 +361,13 @@ struct FeedViewModelTests {
     }
 
     @MainActor
-    @Test func opmlImportPreviewMeldetSichtbarenPrueffortschritt() async throws {
+    @Test func opmlImportPreviewMeldetSichtbarenPrueffortschrittInBeidePhasen() async throws {
+        // Phase 1 (Duplikat-Schau) feuert onProgress pro Feed in Eingabe-Reihenfolge
+        // (deterministisch: Titel + currentIndex 1..n). Phase 2 (paralleler Abruf)
+        // feuert pro Completion einen Event; da die Completion-Reihenfolge nicht
+        // deterministisch ist, wird hier nur die Anzahl (= Anzahl nicht-Duplikat-
+        // Feeds) und das Set der currentIndex-Werte (1..k) geprüft — nicht die
+        // Titel-Reihenfolge.
         let viewModel = makeViewModel(
             fetchFeed: { urlString in
                 ParsedFeed(sourceURL: urlString, title: "OK", description: nil, articles: [])
@@ -379,11 +385,24 @@ struct FeedViewModelTests {
             onProgress: { progressEvents.append($0) }
         )
 
-        #expect(progressEvents.map(\.currentFeedTitle) == ["Erster Feed", "Zweiter Feed"])
-        #expect(progressEvents.map(\.displayText) == [
+        // Phase 1: beide Feeds sind keine Duplikate → zwei Events in
+        // Eingabe-Reihenfolge mit currentIndex 1 und 2.
+        let phase1Events = progressEvents.prefix(2)
+        #expect(phase1Events.map(\.currentFeedTitle) == ["Erster Feed", "Zweiter Feed"])
+        #expect(phase1Events.map(\.currentIndex) == [1, 2])
+        #expect(phase1Events.map(\.displayText) == [
             "Feed 1 von 2 wird geprüft: Erster Feed",
             "Feed 2 von 2 wird geprüft: Zweiter Feed"
         ])
+
+        // Phase 2: zwei Abrufe → zwei weitere Events. Titel-Reihenfolge nicht
+        // deterministisch (parallele Tasks), daher nur Anzahl und das Set der
+        // currentIndex-Werte (1, 2 — deterministischer MainActor-Zähler, der
+        // pro Completion hochzählt). totalCount bleibt über beide Phasen 2.
+        let phase2Events = progressEvents.dropFirst(2)
+        #expect(phase2Events.count == 2)
+        #expect(Set(phase2Events.map(\.currentIndex)) == Set(1...2))
+        #expect(phase2Events.allSatisfy { $0.totalCount == 2 })
     }
 
     @MainActor

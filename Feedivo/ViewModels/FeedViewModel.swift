@@ -153,9 +153,14 @@ final class FeedViewModel {
         // (gleiche Drosselung wie importOPMLFeeds/refreshAllFeeds). Ergebnisse
         // werden indexiert in `rowsByIndex` einsortiert, nicht in eine gemeinsam
         // mutierte Liste appendet — so bleibt die Original-Reihenfolge erhalten.
-        // onProgress wird bewusst nicht erneut aufgerufen: Die bestehende
-        // Vorschau gibt genau eine Fortschritts-Meldung je Feed aus (Phase 1),
-        // dieses Verhalten bleibt unverändert erhalten.
+        //
+        // Fortschritts-Updates in Phase 2: Pro abgeschlossenem Abruf feuern wir
+        // onProgress. `completedFetches` ist ein monotoner MainActor-Zähler, der
+        // unabhängig von der Completion-Reihenfolge der Tasks deterministisch
+        // 1..k hochzählt. Ohne diese Updates würde der Fortschrittsbalken während
+        // der langsamen Abruf-Phase (dem Punkt der Parallelisierung) sichtbar
+        // „einfrieren" — Phase 1 ist reine Duplikat-Schau ohne Netzwerk-I/O.
+        var completedFetches = 0
         for batch in feedBatches(from: pending) {
             await withTaskGroup(of: (Int, OPMLImportFeedStatus).self) { group in
                 for item in batch {
@@ -169,11 +174,24 @@ final class FeedViewModel {
                     }
                 }
                 for await (index, status) in group {
+                    completedFetches += 1
                     let isSelected = (status == .available)
                     rowsByIndex[index] = OPMLImportPreviewRow(
                         feed: opmlFeeds[index],
                         status: status,
                         isSelected: isSelected
+                    )
+                    // currentIndex nutzt den deterministischen MainActor-Zähler
+                    // (1..k), nicht den Index im opmlFeeds-Array — so bleibt die
+                    // Progress-Anzeige stabil unabhängig davon, welcher Task
+                    // zuerst fertig wird. totalCount bezieht sich wie in Phase 1
+                    // auf alle Feeds im OPML-Import.
+                    onProgress?(
+                        OPMLImportPreviewProgress(
+                            currentFeedTitle: opmlFeeds[index].title.trimmingCharacters(in: .whitespacesAndNewlines),
+                            currentIndex: completedFetches,
+                            totalCount: opmlFeeds.count
+                        )
                     )
                 }
             }
