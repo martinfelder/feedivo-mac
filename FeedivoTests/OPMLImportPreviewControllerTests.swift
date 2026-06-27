@@ -146,4 +146,19 @@ struct OPMLImportPreviewControllerTests {
         #expect(controller.previewProgressText == initialProgress)
         #expect(controller.errorMessage == nil)
     }
+
+    @Test func resetBrichtLaufendenPreviewAbUndSetztStateZurueck() async {
+        let controller = OPMLImportPreviewController()
+        controller.isPreparingPreview = true
+        controller.rows = [makeRow(title: "A", xmlURL: "https://a.example.com/feed.xml", status: .available, isSelected: true)]
+        controller.sourceDescription = "Zwischenstand"
+        controller.previewProgressText = "Zwischenstand"
+
+        controller.reset()
+
+        #expect(controller.isPreparingPreview == false)
+        #expect(controller.rows == [])
+        // Task-Handle ist nach reset wieder nil (kein aktiver Preview).
+        #expect(controller.previewTask == nil)
+    }
 }

@@ -215,6 +215,7 @@ struct OPMLImportReviewView: View {
                 previewController.isFileImporterPresented = true
             }
             .buttonStyle(OPMLSecondaryButtonStyle())
+            .disabled(previewController.isPreparingPreview)
 
             Button("Entfernen") {
                 resetFile()

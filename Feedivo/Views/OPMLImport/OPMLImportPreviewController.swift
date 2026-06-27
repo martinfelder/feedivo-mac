@@ -111,8 +111,15 @@ final class OPMLImportPreviewController {
     internal(set) var previewProgressText: String
     var errorMessage: String?
     var resultMessage: String?
-    private(set) var isPreparingPreview = false
+    internal(set) var isPreparingPreview = false
     internal(set) var customFolders: [String] = []
+
+    /// Handle des aktuell laufenden Preview-Tasks. Wird vor jedem neuen Start
+    /// und in `reset()` gecancelt und auf nil gesetzt — verhindert, dass zwei
+    /// Tasks gleichzeitig `rows`/`sourceDescription` überschreiben.
+    /// Nach natürlichem Abschluss bleibt das Handle stehen (cancel auf eine
+    /// beendete Task ist ein No-Op); der nächste Start/reset bereinigt es.
+    private(set) var previewTask: Task<Void, Never>?
 
     private let configuration: OPMLImportPreviewConfiguration
 
@@ -202,6 +209,10 @@ final class OPMLImportPreviewController {
     /// View-spezifische Extras (selectedFileName, completionSummary, step)
     /// werden von den Views zusätzlich behandelt.
     func reset() {
+        // Laufenden Preview-Task abbrechen, damit kein konkurrierender
+        // Task nachfolgend den zurückgesetzten State überschreibt.
+        previewTask?.cancel()
+        previewTask = nil
         rows = []
         errorMessage = nil
         resultMessage = nil
@@ -220,7 +231,10 @@ final class OPMLImportPreviewController {
     // MARK: Async Preview-Flow
 
     func loadOPML(from result: Result<URL, Error>, existingFeeds: [Feed], feedViewModel: FeedViewModel) {
-        Task { @MainActor in
+        // Vorherigen Preview-Task abbrechen, bevor eine neue Datei geladen wird —
+        // verhindert konkurrierende Tasks am gemeinsamen State.
+        previewTask?.cancel()
+        let task = Task { @MainActor in
             do {
                 let url = try result.get()
                 let canAccess = url.startAccessingSecurityScopedResource()
@@ -240,6 +254,7 @@ final class OPMLImportPreviewController {
 
                 let data = try Data(contentsOf: url)
                 let opmlFeeds = try OPMLService.parseFeeds(from: data)
+                try Task.checkCancellation()
                 sourceDescription = "\(opmlFeeds.count) Feeds erkannt. Feed-Adressen werden geprüft..."
                 previewProgressText = "\(opmlFeeds.count) Feeds erkannt. Prüfung startet..."
                 rows = await feedViewModel.opmlImportPreviewRows(
@@ -250,9 +265,15 @@ final class OPMLImportPreviewController {
                         self.sourceDescription = progress.displayText
                     }
                 )
+                guard !Task.isCancelled else { return }
                 sourceDescription = "\(rows.count) Feeds erkannt · \(Set(rows.map { trimmedFolderName($0.feed.folderName) ?? "Ohne Ordner" }).count) Ordner · \(url.lastPathComponent)"
                 previewProgressText = "Prüfung abgeschlossen."
                 isPreparingPreview = false
+            } catch is CancellationError {
+                // Abbruch ist kein Fehler — State wird vom nachfolgenden Start
+                // oder reset bereinigt; hier nur Vorschau-Indikator zurücksetzen.
+                isPreparingPreview = false
+                rows = []
             } catch {
                 isPreparingPreview = false
                 rows = []
@@ -261,11 +282,14 @@ final class OPMLImportPreviewController {
                 previewProgressText = "Die Datei konnte nicht gelesen werden."
             }
         }
+        previewTask = task
     }
 
     /// FirstRun: Vorschau für manuell eingegebene Feed-Adresse (Einzel-Feed).
     func preparePreview(feeds: [OPMLFeed], existingFeeds: [Feed], feedViewModel: FeedViewModel, sourceText: String) {
-        Task { @MainActor in
+        // Vorherigen Preview-Task abbrechen, bevor eine neue Vorschau startet.
+        previewTask?.cancel()
+        let task = Task { @MainActor in
             errorMessage = nil
             resultMessage = nil
             rows = []
@@ -281,11 +305,12 @@ final class OPMLImportPreviewController {
                     self.sourceDescription = progress.displayText
                 }
             )
-
+            guard !Task.isCancelled else { return }
             sourceDescription = "\(rows.count) Feeds geprüft."
             previewProgressText = "Prüfung abgeschlossen."
             isPreparingPreview = false
         }
+        previewTask = task
     }
 
     /// Drop-Verarbeitung. `onValidFile` wird auf Main nach URL-Validierung
