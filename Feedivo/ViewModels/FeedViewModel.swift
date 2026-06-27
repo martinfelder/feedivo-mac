@@ -475,6 +475,10 @@ final class FeedViewModel {
             operationProgress = nil
         }
 
+        // M4: Regeln einmal für den gesamten Refresh holen statt pro Feed neu
+        // zu fetchen. Wird an refreshFeedContents weitergereicht.
+        let refreshRules = (try? context.fetch(FetchDescriptor<Rule>())) ?? []
+
         // Feed-Refresh läuft bewusst gedrosselt. Bei vielen Feeds bleibt die App
         // dadurch bedienbarer und Server werden weniger hart getroffen.
         for feedBatch in feedBatches(from: feeds) {
@@ -482,7 +486,7 @@ final class FeedViewModel {
                 for feed in feedBatch {
                     group.addTask { @MainActor in
                         do {
-                            let result = try await self.refreshFeedContents(feed, context: context)
+                            let result = try await self.refreshFeedContents(feed, context: context, rules: refreshRules)
                             return .success(result)
                         } catch let error as LocalizedError {
                             self.appendLog(
@@ -641,7 +645,11 @@ final class FeedViewModel {
     }
 
     @MainActor
-    private func refreshFeedContents(_ feed: Feed, context: ModelContext) async throws -> FeedRefreshResult {
+    private func refreshFeedContents(
+        _ feed: Feed,
+        context: ModelContext,
+        rules providedRules: [Rule]? = nil
+    ) async throws -> FeedRefreshResult {
         let refreshDate = Date()
         let parsedFeed = try await fetchFeed(feed.url)
         let existingArticlesByIdentity = existingArticlesByIdentity(in: feed)
@@ -688,9 +696,18 @@ final class FeedViewModel {
         let enrichedNewArticlesByIdentity = await enrichedArticlesByIdentity(
             for: newArticles.filter(parsedArticleNeedsPageImage)
         )
-        let rules = newArticles.isEmpty
-            ? []
-            : try context.fetch(FetchDescriptor<Rule>())
+        // M4: Regeln werden in refreshAllFeeds einmal geholt und weitergereicht
+        // (providedRules != nil) statt pro Feed neu zu fetchen. Der Einzel-Feed-
+        // Pfad (refreshFeed) übergibt nil und holt selbst — so bleibt das
+        // Verhalten für einen einzelnen Feed unverändert.
+        let rules: [Rule]
+        if newArticles.isEmpty {
+            rules = []
+        } else if let providedRules {
+            rules = providedRules
+        } else {
+            rules = try context.fetch(FetchDescriptor<Rule>())
+        }
         var ruleNotifications: [RuleNotificationResult] = []
 
         let previousOriginalTitle = feed.originalTitle?.trimmingCharacters(in: .whitespacesAndNewlines)
