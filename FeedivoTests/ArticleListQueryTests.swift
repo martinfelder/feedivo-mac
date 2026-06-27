@@ -485,6 +485,65 @@ struct ArticleListQueryTests {
         #expect(query.filtered(articles).map(\.title) == ["Swift Release"])
     }
 
+    @Test func articleSearchWindowStateLiefertGlobalGefilterteUndSortierteTreffer() {
+        let feed = Feed(url: "https://example.com/swift.xml", title: "Swift Feed")
+        let otherFeed = Feed(url: "https://example.com/mac.xml", title: "Mac Feed")
+        let tag = Tag(name: "Release", colorHex: "#3B82F6")
+        let olderMatch = Article(
+            title: "Swift Release alt",
+            summary: "Update",
+            publishedAt: Date(timeIntervalSince1970: 100),
+            isRead: false,
+            feed: feed
+        )
+        olderMatch.tags = [tag]
+        let newerMatch = Article(
+            title: "Swift Release neu",
+            summary: "Update",
+            publishedAt: Date(timeIntervalSince1970: 300),
+            isRead: false,
+            feed: feed
+        )
+        newerMatch.tags = [tag]
+        let wrongFeedArticle = Article(
+            title: "Swift Release anderer Feed",
+            summary: "Update",
+            publishedAt: Date(timeIntervalSince1970: 400),
+            isRead: false,
+            feed: otherFeed
+        )
+        wrongFeedArticle.tags = [tag]
+        let readArticle = Article(
+            title: "Swift Release gelesen",
+            summary: "Update",
+            publishedAt: Date(timeIntervalSince1970: 500),
+            isRead: true,
+            feed: feed
+        )
+        readArticle.tags = [tag]
+
+        let state = ArticleSearchWindowState(
+            searchText: "swift",
+            field: .title,
+            feedID: feed.id,
+            tagID: tag.id,
+            statusFilter: .unread
+        )
+
+        #expect(
+            state.filteredArticles(from: [
+                olderMatch,
+                wrongFeedArticle,
+                readArticle,
+                newerMatch
+            ])
+            .map(\.title) == [
+                "Swift Release neu",
+                "Swift Release alt"
+            ]
+        )
+    }
+
     @Test func articleInitialisiertDirekteFeedIDFuerSchnelleListenQueries() throws {
         let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
         let article = Article(title: "Artikel", feed: feed)

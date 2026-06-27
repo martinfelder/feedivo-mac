@@ -61,7 +61,6 @@ struct ContentView: View {
                     smartFolder: smartFolder,
                     selectedArticle: $selectedArticle,
                     navigationState: $articleNavigationState,
-                    searchFocusRequest: $articleSearchFocusRequest,
                     onRequestCreateRuleFromArticle: requestCreateRuleFromArticle,
                     onRequestExportArticle: requestExportArticle
                 )
@@ -71,7 +70,6 @@ struct ContentView: View {
                     feed: feed,
                     selectedArticle: $selectedArticle,
                     navigationState: $articleNavigationState,
-                    searchFocusRequest: $articleSearchFocusRequest,
                     onRequestCreateRuleFromArticle: requestCreateRuleFromArticle,
                     onRequestExportArticle: requestExportArticle
                 )
@@ -81,7 +79,6 @@ struct ContentView: View {
                     tag: tag,
                     selectedArticle: $selectedArticle,
                     navigationState: $articleNavigationState,
-                    searchFocusRequest: $articleSearchFocusRequest,
                     onRequestCreateRuleFromArticle: requestCreateRuleFromArticle,
                     onRequestExportArticle: requestExportArticle
                 )
@@ -91,7 +88,6 @@ struct ContentView: View {
                     smartFilter: smartFilter,
                     selectedArticle: $selectedArticle,
                     navigationState: $articleNavigationState,
-                    searchFocusRequest: $articleSearchFocusRequest,
                     onRequestCreateRuleFromArticle: requestCreateRuleFromArticle,
                     onRequestExportArticle: requestExportArticle
                 )
@@ -287,12 +283,6 @@ struct ContentView: View {
                 },
                 hasFeeds: !feeds.isEmpty
             )
-        )
-        .focusedValue(
-            \.articleSearchCommandActions,
-            ArticleSearchCommandActions {
-                articleSearchFocusRequest += 1
-            }
         )
     }
 

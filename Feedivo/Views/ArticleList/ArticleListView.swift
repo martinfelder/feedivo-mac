@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import AppKit
 
 struct ArticleListView: View {
     private enum Scope {
@@ -12,7 +13,6 @@ struct ArticleListView: View {
     private let scope: Scope
     @Binding var selectedArticle: Article?
     @Binding var navigationState: ArticleNavigationState
-    @Binding var searchFocusRequest: Int
     private let onRequestCreateRuleFromArticle: (Article) -> Void
     private let onRequestExportArticle: (Article) -> Void
 
@@ -20,14 +20,12 @@ struct ArticleListView: View {
         feed: Feed,
         selectedArticle: Binding<Article?>,
         navigationState: Binding<ArticleNavigationState>,
-        searchFocusRequest: Binding<Int> = .constant(0),
         onRequestCreateRuleFromArticle: @escaping (Article) -> Void = { _ in },
         onRequestExportArticle: @escaping (Article) -> Void = { _ in }
     ) {
         self.scope = .feed(feed)
         self._selectedArticle = selectedArticle
         self._navigationState = navigationState
-        self._searchFocusRequest = searchFocusRequest
         self.onRequestCreateRuleFromArticle = onRequestCreateRuleFromArticle
         self.onRequestExportArticle = onRequestExportArticle
     }
@@ -36,14 +34,12 @@ struct ArticleListView: View {
         smartFilter: SmartFilter,
         selectedArticle: Binding<Article?>,
         navigationState: Binding<ArticleNavigationState>,
-        searchFocusRequest: Binding<Int> = .constant(0),
         onRequestCreateRuleFromArticle: @escaping (Article) -> Void = { _ in },
         onRequestExportArticle: @escaping (Article) -> Void = { _ in }
     ) {
         self.scope = .smartFilter(smartFilter)
         self._selectedArticle = selectedArticle
         self._navigationState = navigationState
-        self._searchFocusRequest = searchFocusRequest
         self.onRequestCreateRuleFromArticle = onRequestCreateRuleFromArticle
         self.onRequestExportArticle = onRequestExportArticle
     }
@@ -52,14 +48,12 @@ struct ArticleListView: View {
         tag: Tag,
         selectedArticle: Binding<Article?>,
         navigationState: Binding<ArticleNavigationState>,
-        searchFocusRequest: Binding<Int> = .constant(0),
         onRequestCreateRuleFromArticle: @escaping (Article) -> Void = { _ in },
         onRequestExportArticle: @escaping (Article) -> Void = { _ in }
     ) {
         self.scope = .tag(tag)
         self._selectedArticle = selectedArticle
         self._navigationState = navigationState
-        self._searchFocusRequest = searchFocusRequest
         self.onRequestCreateRuleFromArticle = onRequestCreateRuleFromArticle
         self.onRequestExportArticle = onRequestExportArticle
     }
@@ -68,14 +62,12 @@ struct ArticleListView: View {
         smartFolder: SmartFolder,
         selectedArticle: Binding<Article?>,
         navigationState: Binding<ArticleNavigationState>,
-        searchFocusRequest: Binding<Int> = .constant(0),
         onRequestCreateRuleFromArticle: @escaping (Article) -> Void = { _ in },
         onRequestExportArticle: @escaping (Article) -> Void = { _ in }
     ) {
         self.scope = .smartFolder(smartFolder)
         self._selectedArticle = selectedArticle
         self._navigationState = navigationState
-        self._searchFocusRequest = searchFocusRequest
         self.onRequestCreateRuleFromArticle = onRequestCreateRuleFromArticle
         self.onRequestExportArticle = onRequestExportArticle
     }
@@ -87,7 +79,6 @@ struct ArticleListView: View {
                 feed: feed,
                 selectedArticle: $selectedArticle,
                 navigationState: $navigationState,
-                searchFocusRequest: $searchFocusRequest,
                 onRequestCreateRuleFromArticle: onRequestCreateRuleFromArticle,
                 onRequestExportArticle: onRequestExportArticle
             )
@@ -96,7 +87,6 @@ struct ArticleListView: View {
                 smartFilter: smartFilter,
                 selectedArticle: $selectedArticle,
                 navigationState: $navigationState,
-                searchFocusRequest: $searchFocusRequest,
                 onRequestCreateRuleFromArticle: onRequestCreateRuleFromArticle,
                 onRequestExportArticle: onRequestExportArticle
             )
@@ -105,7 +95,6 @@ struct ArticleListView: View {
                 tag: tag,
                 selectedArticle: $selectedArticle,
                 navigationState: $navigationState,
-                searchFocusRequest: $searchFocusRequest,
                 onRequestCreateRuleFromArticle: onRequestCreateRuleFromArticle,
                 onRequestExportArticle: onRequestExportArticle
             )
@@ -114,7 +103,6 @@ struct ArticleListView: View {
                 smartFolder: smartFolder,
                 selectedArticle: $selectedArticle,
                 navigationState: $navigationState,
-                searchFocusRequest: $searchFocusRequest,
                 onRequestCreateRuleFromArticle: onRequestCreateRuleFromArticle,
                 onRequestExportArticle: onRequestExportArticle
             )
@@ -128,14 +116,12 @@ private struct FeedArticleListContent: View {
     let onRequestExportArticle: (Article) -> Void
     @Binding var selectedArticle: Article?
     @Binding var navigationState: ArticleNavigationState
-    @Binding var searchFocusRequest: Int
     @Query private var articles: [Article]
 
     init(
         feed: Feed,
         selectedArticle: Binding<Article?>,
         navigationState: Binding<ArticleNavigationState>,
-        searchFocusRequest: Binding<Int>,
         onRequestCreateRuleFromArticle: @escaping (Article) -> Void,
         onRequestExportArticle: @escaping (Article) -> Void
     ) {
@@ -144,7 +130,6 @@ private struct FeedArticleListContent: View {
         self.onRequestExportArticle = onRequestExportArticle
         self._selectedArticle = selectedArticle
         self._navigationState = navigationState
-        self._searchFocusRequest = searchFocusRequest
         self._articles = Query(
             filter: ArticleListQuery.feedPredicate(for: feed),
             sort: ArticleListQuery.sortDescriptors
@@ -157,7 +142,6 @@ private struct FeedArticleListContent: View {
             navigationTitle: Text(feed.title),
             selectedArticle: $selectedArticle,
             navigationState: $navigationState,
-            searchFocusRequest: $searchFocusRequest,
             onRequestCreateRuleFromArticle: onRequestCreateRuleFromArticle,
             onRequestExportArticle: onRequestExportArticle,
             showsHiddenArticles: false
@@ -172,14 +156,12 @@ private struct TagArticleListContent: View {
     let onRequestExportArticle: (Article) -> Void
     @Binding var selectedArticle: Article?
     @Binding var navigationState: ArticleNavigationState
-    @Binding var searchFocusRequest: Int
     @Query private var articles: [Article]
 
     init(
         tag: Tag,
         selectedArticle: Binding<Article?>,
         navigationState: Binding<ArticleNavigationState>,
-        searchFocusRequest: Binding<Int>,
         onRequestCreateRuleFromArticle: @escaping (Article) -> Void,
         onRequestExportArticle: @escaping (Article) -> Void
     ) {
@@ -188,7 +170,6 @@ private struct TagArticleListContent: View {
         self.onRequestExportArticle = onRequestExportArticle
         self._selectedArticle = selectedArticle
         self._navigationState = navigationState
-        self._searchFocusRequest = searchFocusRequest
         self._articles = Query(
             filter: ArticleListQuery.tagPredicate(for: tag, taggedFeeds: tag.feeds),
             sort: ArticleListQuery.sortDescriptors
@@ -201,7 +182,6 @@ private struct TagArticleListContent: View {
             navigationTitle: Text(tag.name),
             selectedArticle: $selectedArticle,
             navigationState: $navigationState,
-            searchFocusRequest: $searchFocusRequest,
             onRequestCreateRuleFromArticle: onRequestCreateRuleFromArticle,
             onRequestExportArticle: onRequestExportArticle,
             showsHiddenArticles: false
@@ -216,14 +196,12 @@ private struct SmartFilterArticleListContent: View {
     let onRequestExportArticle: (Article) -> Void
     @Binding var selectedArticle: Article?
     @Binding var navigationState: ArticleNavigationState
-    @Binding var searchFocusRequest: Int
     @Query private var articles: [Article]
 
     init(
         smartFilter: SmartFilter,
         selectedArticle: Binding<Article?>,
         navigationState: Binding<ArticleNavigationState>,
-        searchFocusRequest: Binding<Int>,
         onRequestCreateRuleFromArticle: @escaping (Article) -> Void,
         onRequestExportArticle: @escaping (Article) -> Void
     ) {
@@ -232,7 +210,6 @@ private struct SmartFilterArticleListContent: View {
         self.onRequestExportArticle = onRequestExportArticle
         self._selectedArticle = selectedArticle
         self._navigationState = navigationState
-        self._searchFocusRequest = searchFocusRequest
 
         switch smartFilter {
         case .allArticles:
@@ -282,7 +259,6 @@ private struct SmartFilterArticleListContent: View {
             navigationTitle: Text(smartFilter.title),
             selectedArticle: $selectedArticle,
             navigationState: $navigationState,
-            searchFocusRequest: $searchFocusRequest,
             onRequestCreateRuleFromArticle: onRequestCreateRuleFromArticle,
             onRequestExportArticle: onRequestExportArticle,
             showsHiddenArticles: smartFilter == .hidden
@@ -298,14 +274,12 @@ private struct SmartFolderArticleListContent: View {
     private let usesOptimizedQuery: Bool
     @Binding var selectedArticle: Article?
     @Binding var navigationState: ArticleNavigationState
-    @Binding var searchFocusRequest: Int
     @Query private var articles: [Article]
 
     init(
         smartFolder: SmartFolder,
         selectedArticle: Binding<Article?>,
         navigationState: Binding<ArticleNavigationState>,
-        searchFocusRequest: Binding<Int>,
         onRequestCreateRuleFromArticle: @escaping (Article) -> Void,
         onRequestExportArticle: @escaping (Article) -> Void
     ) {
@@ -314,7 +288,6 @@ private struct SmartFolderArticleListContent: View {
         self.onRequestExportArticle = onRequestExportArticle
         self._selectedArticle = selectedArticle
         self._navigationState = navigationState
-        self._searchFocusRequest = searchFocusRequest
 
         if let descriptor = ArticleListQuery.smartFolderFetchDescriptor(for: smartFolder) {
             self.usesOptimizedQuery = true
@@ -331,7 +304,6 @@ private struct SmartFolderArticleListContent: View {
             navigationTitle: Text(smartFolder.name),
             selectedArticle: $selectedArticle,
             navigationState: $navigationState,
-            searchFocusRequest: $searchFocusRequest,
             onRequestCreateRuleFromArticle: onRequestCreateRuleFromArticle,
             onRequestExportArticle: onRequestExportArticle,
             showsHiddenArticles: SmartFolderFormatter.includesHiddenStatus(smartFolder),
@@ -357,11 +329,7 @@ private struct ArticleListContent: View {
     let showsHiddenArticles: Bool
     @Binding var selectedArticle: Article?
     @Binding var navigationState: ArticleNavigationState
-    @Binding var searchFocusRequest: Int
-    @Query(sort: \Feed.title) private var feeds: [Feed]
     @Query(sort: \Tag.name) private var tags: [Tag]
-    @Query(sort: \Article.publishedAt, order: .reverse)
-    private var allArticles: [Article]
     @AppStorage("markArticleReadOnSelection")
     private var markArticleReadOnSelection = true
     @AppStorage(OfflineReadingSettings.automaticallySaveStarredArticlesKey)
@@ -370,15 +338,7 @@ private struct ArticleListContent: View {
     @State private var offlineDownloadService = OfflineDownloadService()
     @State private var showsReadArticles = false
     @State private var searchText = ""
-    @State private var isSearchPresented = false
-    @State private var searchField = ArticleSearchField.all
-    @State private var searchScope = ArticleSearchScope.currentView
-    @State private var searchFeedID: UUID?
-    @State private var searchTagID: UUID?
-    @State private var searchDateFilter = ArticleSearchDateFilter.anytime
-    @State private var searchStatusFilter = ArticleSearchStatusFilter.all
     @State private var temporarilyVisibleReadArticleIDs = Set<PersistentIdentifier>()
-    @FocusState private var isSearchFieldFocused: Bool
     @AppStorage(ArticleSortOption.storageKey)
     private var articleSortRawValue = ArticleSortOption.newestFirst.rawValue
     @AppStorage(ArticleFilterOption.storageKey)
@@ -389,7 +349,6 @@ private struct ArticleListContent: View {
         navigationTitle: Text,
         selectedArticle: Binding<Article?>,
         navigationState: Binding<ArticleNavigationState>,
-        searchFocusRequest: Binding<Int>,
         onRequestCreateRuleFromArticle: @escaping (Article) -> Void,
         onRequestExportArticle: @escaping (Article) -> Void,
         sortArticles: Bool = true,
@@ -402,7 +361,6 @@ private struct ArticleListContent: View {
         self.onRequestExportArticle = onRequestExportArticle
         self._selectedArticle = selectedArticle
         self._navigationState = navigationState
-        self._searchFocusRequest = searchFocusRequest
         self.sortArticles = sortArticles
         self.showsHiddenArticles = showsHiddenArticles
         self._showsReadArticles = State(initialValue: showsReadArticlesInitially)
@@ -422,12 +380,10 @@ private struct ArticleListContent: View {
         let visibleArticles = displaySnapshot.visibleArticles
 
         VStack(spacing: 0) {
-            if isSearchPresented {
-                articleSearchBar
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 8)
-                    .background(.bar)
-            }
+            articleSearchBar
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(.bar)
 
             List(selection: $selectedArticle) {
                 if filteredArticles.isEmpty {
@@ -473,9 +429,6 @@ private struct ArticleListContent: View {
             )
             updateNavigationState(in: displayState.visibleArticles)
         }
-        .onChange(of: searchFocusRequest) {
-            focusArticleSearch()
-        }
         .onChange(of: selectedArticle?.persistentModelID) {
             rememberAutoReadArticleIfNeeded(selectedArticle)
 
@@ -494,38 +447,18 @@ private struct ArticleListContent: View {
                 sortMenu
             }
         }
-        .focusedValue(
-            \.articleSearchCommandActions,
-            ArticleSearchCommandActions(focusSearch: focusArticleSearch)
-        )
     }
 
     private var articleSearchBar: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(.secondary)
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
 
-                TextField(L10n.articleSearchPlaceholder, text: $searchText)
-                    .textFieldStyle(.plain)
-                    .focused($isSearchFieldFocused)
+            TextField(L10n.articleSearchPlaceholder, text: $searchText)
+                .textFieldStyle(.plain)
+                .font(.body)
 
-                Picker("", selection: $searchField) {
-                    ForEach(ArticleSearchField.allCases) { field in
-                        Text(label(for: field)).tag(field)
-                    }
-                }
-                .labelsHidden()
-                .frame(width: 128)
-
-                Picker("", selection: $searchScope) {
-                    ForEach(ArticleSearchScope.allCases) { scope in
-                        Text(label(for: scope)).tag(scope)
-                    }
-                }
-                .labelsHidden()
-                .frame(width: 140)
-
+            if !searchText.isEmpty {
                 Button {
                     clearArticleSearch()
                 } label: {
@@ -535,60 +468,15 @@ private struct ArticleListContent: View {
                 .foregroundStyle(.secondary)
                 .help(L10n.articleSearchClear)
             }
-
-            HStack(spacing: 8) {
-                searchFeedPicker
-                searchTagPicker
-                searchDatePicker
-                searchStatusPicker
-            }
-            .controlSize(.small)
-            .font(.caption)
         }
-    }
-
-    private var searchFeedPicker: some View {
-        Picker("", selection: $searchFeedID) {
-            Text(L10n.articleSearchFeedAll).tag(UUID?.none)
-
-            ForEach(feeds) { feed in
-                Text(feed.title).tag(Optional(feed.id))
-            }
+        .controlSize(.small)
+        .padding(.horizontal, 10)
+        .frame(height: 28)
+        .background(Color(nsColor: .controlBackgroundColor), in: Capsule())
+        .overlay {
+            Capsule()
+                .stroke(.separator.opacity(0.5), lineWidth: 1)
         }
-        .labelsHidden()
-        .frame(width: 150)
-    }
-
-    private var searchTagPicker: some View {
-        Picker("", selection: $searchTagID) {
-            Text(L10n.articleSearchTagAll).tag(UUID?.none)
-
-            ForEach(tags) { tag in
-                Text(tag.name).tag(Optional(tag.id))
-            }
-        }
-        .labelsHidden()
-        .frame(width: 136)
-    }
-
-    private var searchDatePicker: some View {
-        Picker("", selection: $searchDateFilter) {
-            ForEach(ArticleSearchDateFilter.allCases) { dateFilter in
-                Text(label(for: dateFilter)).tag(dateFilter)
-            }
-        }
-        .labelsHidden()
-        .frame(width: 120)
-    }
-
-    private var searchStatusPicker: some View {
-        Picker("", selection: $searchStatusFilter) {
-            ForEach(ArticleSearchStatusFilter.allCases) { statusFilter in
-                Text(label(for: statusFilter)).tag(statusFilter)
-            }
-        }
-        .labelsHidden()
-        .frame(width: 122)
     }
 
     private func articleListEmptyState(isSearching: Bool) -> some View {
@@ -692,7 +580,7 @@ private struct ArticleListContent: View {
 
     private func makePreparedArticles() -> ArticleListPreparedArticles {
         ArticleListPreparedArticles.prepare(
-            articles: sourceArticlesForCurrentSearch,
+            articles: articles,
             sortArticles: sortArticles,
             filterOption: articleFilterOption,
             searchQuery: activeSearchQuery,
@@ -703,21 +591,9 @@ private struct ArticleListContent: View {
     private var activeSearchQuery: ArticleSearchQuery {
         ArticleSearchQuery(
             text: searchText,
-            field: searchField,
-            scope: searchScope,
-            filters: ArticleSearchFilters(
-                feedID: searchFeedID,
-                tagID: searchTagID,
-                date: searchDateFilter,
-                status: searchStatusFilter
-            )
+            field: .all,
+            scope: .currentView
         )
-    }
-
-    private var sourceArticlesForCurrentSearch: [Article] {
-        activeSearchQuery.scope == .allArticles && activeSearchQuery.isActive
-            ? allArticles
-            : articles
     }
 
     private var articleSortOption: ArticleSortOption {
@@ -815,70 +691,8 @@ private struct ArticleListContent: View {
         .help(L10n.articleSortMenuTitle)
     }
 
-    private func focusArticleSearch() {
-        isSearchPresented = true
-        DispatchQueue.main.async {
-            isSearchFieldFocused = true
-        }
-    }
-
     private func clearArticleSearch() {
         searchText = ""
-        searchField = .all
-        searchScope = .currentView
-        searchFeedID = nil
-        searchTagID = nil
-        searchDateFilter = .anytime
-        searchStatusFilter = .all
-        isSearchFieldFocused = true
-    }
-
-    private func label(for field: ArticleSearchField) -> String {
-        switch field {
-        case .all:
-            return L10n.articleSearchFieldAll
-        case .title:
-            return L10n.articleSearchFieldTitle
-        case .summary:
-            return L10n.articleSearchFieldSummary
-        case .content:
-            return L10n.articleSearchFieldContent
-        }
-    }
-
-    private func label(for dateFilter: ArticleSearchDateFilter) -> String {
-        switch dateFilter {
-        case .anytime:
-            return L10n.articleSearchDateAnytime
-        case .today:
-            return L10n.articleSearchDateToday
-        case .thisWeek:
-            return L10n.articleSearchDateThisWeek
-        }
-    }
-
-    private func label(for statusFilter: ArticleSearchStatusFilter) -> String {
-        switch statusFilter {
-        case .all:
-            return L10n.articleSearchStatusAll
-        case .unread:
-            return L10n.articleSearchStatusUnread
-        case .read:
-            return L10n.articleSearchStatusRead
-        case .starred:
-            return L10n.articleSearchStatusStarred
-        case .archived:
-            return L10n.articleSearchStatusArchived
-        }
-    }
-
-    private func label(for scope: ArticleSearchScope) -> String {
-        switch scope {
-        case .currentView:
-            return L10n.articleSearchScopeCurrentView
-        case .allArticles:
-            return L10n.articleSearchScopeAllArticles
-        }
     }
 
     private func updateNavigationState(in articles: [Article]) {

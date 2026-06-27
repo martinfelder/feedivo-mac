@@ -89,6 +89,15 @@ struct FeedivoApp: App {
         }
         .modelContainer(modelContainer)
 
+        Window(L10n.articleSearchCommand, id: ArticleSearchWindowView.windowID) {
+            ArticleSearchWindowView()
+                .environment(\.locale, appLanguage.locale)
+                .environment(\.interfaceTextSize, interfaceTextSize)
+                .dynamicTypeSize(interfaceTextSize.dynamicTypeSize)
+        }
+        .defaultSize(width: 760, height: 560)
+        .modelContainer(modelContainer)
+
         Settings {
             SettingsView()
                 .environment(\.locale, appLanguage.locale)

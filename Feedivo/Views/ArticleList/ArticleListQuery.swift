@@ -512,6 +512,57 @@ struct ArticleSearchQuery: Equatable {
     }
 }
 
+struct ArticleSearchWindowState: Equatable {
+    var searchText: String
+    var field: ArticleSearchField
+    var feedID: UUID?
+    var tagID: UUID?
+    var dateFilter: ArticleSearchDateFilter
+    var statusFilter: ArticleSearchStatusFilter
+    var now: Date
+    var calendar: Calendar
+
+    init(
+        searchText: String = "",
+        field: ArticleSearchField = .all,
+        feedID: UUID? = nil,
+        tagID: UUID? = nil,
+        dateFilter: ArticleSearchDateFilter = .anytime,
+        statusFilter: ArticleSearchStatusFilter = .all,
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) {
+        self.searchText = searchText
+        self.field = field
+        self.feedID = feedID
+        self.tagID = tagID
+        self.dateFilter = dateFilter
+        self.statusFilter = statusFilter
+        self.now = now
+        self.calendar = calendar
+    }
+
+    var query: ArticleSearchQuery {
+        ArticleSearchQuery(
+            text: searchText,
+            field: field,
+            scope: .allArticles,
+            filters: ArticleSearchFilters(
+                feedID: feedID,
+                tagID: tagID,
+                date: dateFilter,
+                status: statusFilter
+            ),
+            now: now,
+            calendar: calendar
+        )
+    }
+
+    func filteredArticles(from articles: [Article]) -> [Article] {
+        ArticleSortOption.newestFirst.sorted(query.filtered(articles))
+    }
+}
+
 struct ArticleListPreparedArticles {
     let sorted: [Article]
     let filtered: [Article]

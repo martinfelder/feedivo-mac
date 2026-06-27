@@ -810,19 +810,14 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Sortierung und Filterung werden gemeinsam über `ArticleListPreparedArticles`
   vorbereitet, damit die Artikelliste pro SwiftUI-Render nur einmal sortiert und
   danach auf derselben sortierten Liste filtert.
-- Die Artikelliste bietet den Core-Slice der Suche: `Cmd+F` öffnet eine kompakte
-  Suchleiste oberhalb der mittleren Spalte, fokussiert das Suchfeld auch dann,
-  wenn gerade der Reader aktiv ist, und sucht in der aktuellen Ansicht oder über
-  alle Artikel.
-- Die Suche kann auf Alles, Titel, Zusammenfassung oder Inhalt eingeschränkt
-  werden. Bei `Alle Artikel` nutzt `ArticleListView` eine separate globale
-  SwiftData-Query als Suchquelle; Anzeige-Filter, Sortierung, gelesene Artikel und
-  `isHidden`-Logik laufen danach weiter über die bestehende Listenpipeline.
-- Die Suchleiste bietet außerdem kompakte Filter für Feed, Tag, Zeitraum und
-  Status. Filter funktionieren auch ohne Suchtext und werden mit Suchtext, Bereich
-  und Umfang kombiniert. Zeitraum unterstützt `Jederzeit`, `Heute` und
-  `Diese Woche`; Status unterstützt `Alle`, `Ungelesen`, `Gelesen`, `Mit Stern`
-  und `Archiviert`.
+- Die Artikelliste bietet nur noch eine einfache, kompakte Suche oberhalb der
+  mittleren Spalte. Sie durchsucht bewusst nur die bereits geladenen Artikel der
+  aktuell ausgewählten Liste und nutzt dafür den Bereich `Alles` (Titel,
+  Zusammenfassung und Inhalt). Die frühere große Suchmaske wurde aus der
+  Artikelliste entfernt, damit die mittlere Spalte leicht bleibt.
+- `Cmd+F` öffnet ein separates Artikelsuche-Fenster. Dort liegen die erweiterte
+  Suche über alle gespeicherten Artikel, Suchbereiche, Feed-/Tag-/Zeitraum- und
+  Statusfilter sowie eine eigene Ergebnisliste.
 - Beim Wechsel des ausgewählten Artikels nutzt die Navigation die bereits sichtbare
   Artikelliste aus dem aktuellen Render und stößt keine neue Sortierung/Filterung
   an.
@@ -883,6 +878,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   `ArticleSearchFilters` kapseln den testbaren Core-Slice der Artikelsuche
   inklusive case-/diakritik-insensitiver Textsuche sowie Filterung nach Feed, Tag,
   Zeitraum und Status.
+- `ArticleSearchWindowState` kapselt die globale Suchfenster-Logik und sortiert
+  Treffer standardmäßig nach neuesten Artikeln zuerst. Die Artikelliste selbst
+  nutzt denselben Suchkern nur noch mit `scope: .currentView`.
 - `ArticleListPreparedArticles` kapselt die gemeinsame Vorbereitung aus Sortierung,
   Filterung und aktiver Suche und ist mit Tests gegen doppelte Sortierungen sowie
   für Suchkombinationen abgesichert.
@@ -1819,6 +1817,13 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 ---
 
 ## Letzte Änderungen
+
+- 2026-06-26: Such-UX nach Nutzerfeedback getrennt: Die Artikelliste zeigt nur
+  noch ein einzelnes kompaktes Suchfeld und filtert ausschließlich die aktuell
+  geladene Feed-/Tag-/Smartfolder-Liste. Die bisherige große Suchmaske mit
+  Suchbereich, Feed, Tag, Zeitraum und Status wurde in ein eigenes
+  Artikelsuche-Fenster verschoben, das per `Cmd+F` geöffnet wird und eine eigene
+  Ergebnisliste über alle gespeicherten Artikel zeigt.
 
 - 2026-06-26: Feature 18.1a umgesetzt: Einzelartikel können jetzt über
   Kontextmenü, Reader-Toolbar und macOS-Menü `Artikel` exportiert werden. Der neue

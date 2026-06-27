@@ -1,10 +1,9 @@
 import SwiftUI
 
 struct ArticleCommands: Commands {
+    @Environment(\.openWindow) private var openWindow
     @FocusedValue(\.articleCommandActions)
     private var articleCommandActions
-    @FocusedValue(\.articleSearchCommandActions)
-    private var articleSearchCommandActions
 
     var body: some Commands {
         CommandMenu(L10n.articleCommandsMenu) {
@@ -23,7 +22,7 @@ struct ArticleCommands: Commands {
             Divider()
 
             Button(L10n.articleSearchCommand) {
-                articleSearchCommandActions?.focusSearch()
+                openWindow(id: ArticleSearchWindowView.windowID)
             }
             .keyboardShortcut("f", modifiers: [.command])
 

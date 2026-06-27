@@ -263,22 +263,25 @@
 ### 9.1 Volltext-Suche
 - **Status:** ✔️ Fertig
 - **Umgesetzt:**
-  - `Cmd+F` öffnet und fokussiert eine kompakte Suche oberhalb der Artikelliste.
-  - Suchbereiche: Alles, Titel, Zusammenfassung und Inhalt.
-  - Suchumfang: aktuelle Ansicht oder alle Artikel.
-  - Suchresultate erscheinen direkt in der bestehenden Artikelliste.
+  - Die Artikelliste zeigt ein einzelnes kompaktes Suchfeld.
+  - Die Suche filtert nur die bereits geladenen Artikel der aktuell ausgewählten
+    Liste: aktueller Feed, Tag, Smart Filter oder intelligenter Ordner.
+  - Suchbereich in der Liste ist bewusst einfach: Alles, also Titel,
+    Zusammenfassung und Inhalt.
   - Bestehende Sortierung, bestehender Filter und die Logik für gelesene sowie
     ausgeblendete Artikel bleiben erhalten.
-  - Erweiterte Suchfilter aus Feature 9.2 sind ergänzt.
 
 ### 9.2 Suchfilter
 - **Status:** ✔️ Fertig
 - **Umgesetzt:**
+  - `Cmd+F` öffnet ein separates Suchfenster mit eigener Ergebnisliste.
+  - Das Suchfenster durchsucht alle gespeicherten Artikel.
+  - Suchbereiche: Alles, Titel, Zusammenfassung und Inhalt.
   - Filteroptionen in der Suche: Feed, Tag, Zeitraum und Status.
   - Zeitraum: jederzeit, heute, diese Woche.
   - Status: alle, ungelesen, gelesen, mit Stern, archiviert.
-  - Filter funktionieren auch ohne Suchtext und lassen sich mit Suchtext, Bereich
-    und Umfang kombinieren.
+  - Filter funktionieren auch ohne Suchtext und lassen sich mit Suchtext und
+    Suchbereich kombinieren.
 
 ### 9.3 Spotlight-Integration
 - **Status:** ✅ Entschieden — bereit zur Implementierung
