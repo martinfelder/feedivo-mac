@@ -200,7 +200,7 @@ final class FeedViewModel {
             )
             context.insert(feed)
             appendLog(
-                kind: "info",
+                kind: .info,
                 message: L10n.feedLogImportedFromOPML,
                 to: feed,
                 context: context
@@ -229,7 +229,7 @@ final class FeedViewModel {
                                 return nil
                             } catch let error as LocalizedError {
                                 self.appendLog(
-                                    kind: "error",
+                                    kind: .error,
                                     message: error.errorDescription ?? L10n.feedErrorParsingFailed,
                                     to: feed,
                                     context: context
@@ -238,7 +238,7 @@ final class FeedViewModel {
                                 return feed.title
                             } catch {
                                 self.appendLog(
-                                    kind: "error",
+                                    kind: .error,
                                     message: L10n.feedErrorParsingFailed,
                                     to: feed,
                                     context: context
@@ -390,7 +390,7 @@ final class FeedViewModel {
 
             context.insert(feed)
             appendLog(
-                kind: "info",
+                kind: .info,
                 message: L10n.feedLogAdded,
                 to: feed,
                 context: context
@@ -427,7 +427,7 @@ final class FeedViewModel {
             await notifyRuleNotifications(result.ruleNotifications)
         } catch let error as LocalizedError {
             appendLog(
-                kind: "error",
+                kind: .error,
                 message: error.errorDescription ?? L10n.feedErrorParsingFailed,
                 to: feed,
                 context: context
@@ -436,7 +436,7 @@ final class FeedViewModel {
             errorMessage = error.errorDescription ?? L10n.feedErrorParsingFailed
         } catch {
             appendLog(
-                kind: "error",
+                kind: .error,
                 message: L10n.feedErrorParsingFailed,
                 to: feed,
                 context: context
@@ -490,7 +490,7 @@ final class FeedViewModel {
                             return .success(result)
                         } catch let error as LocalizedError {
                             self.appendLog(
-                                kind: "error",
+                                kind: .error,
                                 message: error.errorDescription ?? L10n.feedErrorParsingFailed,
                                 to: feed,
                                 context: context
@@ -499,7 +499,7 @@ final class FeedViewModel {
                             return .failure(feed.title)
                         } catch {
                             self.appendLog(
-                                kind: "error",
+                                kind: .error,
                                 message: L10n.feedErrorParsingFailed,
                                 to: feed,
                                 context: context
@@ -757,7 +757,7 @@ final class FeedViewModel {
         feed.unreadCount += newArticleObjects.filter { !$0.isHidden }.count
 
         appendLog(
-            kind: "info",
+            kind: .info,
             message: L10n.feedLogRefreshed(newArticleCount: newArticles.count),
             to: feed,
             context: context
@@ -875,7 +875,7 @@ final class FeedViewModel {
 
     @MainActor
     private func appendLog(
-        kind: String,
+        kind: FeedLogEntryKind,
         message: String,
         to feed: Feed,
         context: ModelContext

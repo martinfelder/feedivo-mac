@@ -82,7 +82,7 @@ struct FeedPropertiesQueryTests {
         let entries = (0..<25).map { index in
             FeedLogEntry(
                 createdAt: Date(timeIntervalSince1970: TimeInterval(index)),
-                kind: "info",
+                kind: .info,
                 message: "Eintrag \(index)",
                 feed: feed
             )
@@ -106,10 +106,10 @@ struct FeedPropertiesQueryTests {
         try context.save()
 
         (0..<3).forEach { index in
-            context.insert(FeedLogEntry(createdAt: Date(timeIntervalSince1970: TimeInterval(index)), kind: "info", message: "A\(index)", feed: feedA))
+            context.insert(FeedLogEntry(createdAt: Date(timeIntervalSince1970: TimeInterval(index)), kind: .info, message: "A\(index)", feed: feedA))
         }
         (0..<2).forEach { index in
-            context.insert(FeedLogEntry(createdAt: Date(timeIntervalSince1970: TimeInterval(index)), kind: "info", message: "B\(index)", feed: feedB))
+            context.insert(FeedLogEntry(createdAt: Date(timeIntervalSince1970: TimeInterval(index)), kind: .info, message: "B\(index)", feed: feedB))
         }
         try context.save()
 
@@ -139,7 +139,7 @@ struct FeedPropertiesQueryTests {
         try context.save()
 
         (0..<25).forEach { index in
-            context.insert(FeedLogEntry(createdAt: Date(timeIntervalSince1970: TimeInterval(index)), kind: "info", message: "Eintrag \(index)", feed: feed))
+            context.insert(FeedLogEntry(createdAt: Date(timeIntervalSince1970: TimeInterval(index)), kind: .info, message: "Eintrag \(index)", feed: feed))
         }
         try context.save()
 
@@ -154,7 +154,7 @@ struct FeedPropertiesQueryTests {
         try context.save()
 
         (0..<5).forEach { index in
-            context.insert(FeedLogEntry(createdAt: Date(timeIntervalSince1970: TimeInterval(index)), kind: "info", message: "Eintrag \(index)", feed: feed))
+            context.insert(FeedLogEntry(createdAt: Date(timeIntervalSince1970: TimeInterval(index)), kind: .info, message: "Eintrag \(index)", feed: feed))
         }
         try context.save()
 

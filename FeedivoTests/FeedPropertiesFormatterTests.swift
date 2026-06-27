@@ -31,7 +31,7 @@ struct FeedPropertiesFormatterTests {
         let entries = (0..<25).map { index in
             FeedLogEntry(
                 createdAt: Date(timeIntervalSince1970: TimeInterval(index)),
-                kind: "info",
+                kind: .info,
                 message: "Eintrag \(index)"
             )
         }
@@ -47,7 +47,7 @@ struct FeedPropertiesFormatterTests {
         let entries = (0..<25).map { index in
             FeedLogEntry(
                 createdAt: Date(timeIntervalSince1970: TimeInterval(index)),
-                kind: "info",
+                kind: .info,
                 message: "Eintrag \(index)"
             )
         }

@@ -104,23 +104,32 @@ enum OPMLService {
         to lines: inout [String],
         options: OPMLExportOptions
     ) {
-        var emittedFolders: [String] = []
-        let feedsWithoutFolder = feeds.filter { trimmed($0.folderName) == nil }
+        // Feeds pro Ordner in einem Durchlauf gruppieren statt pro Ordner die
+        // gesamte Feed-Liste zu filtern (zuvor O(Ordner × Feeds), jetzt O(Feeds)).
+        // Einfügereihenfolge der Ordner = erstes Auftreten in `feeds`.
+        var groupedByFolder: [(name: String, feeds: [OPMLFeed])] = []
+        var folderIndex: [String: Int] = [:]
+        var feedsWithoutFolder: [OPMLFeed] = []
 
         for feed in feeds {
-            guard let folderName = trimmed(feed.folderName),
-                  !emittedFolders.contains(folderName)
-            else {
+            guard let folderName = trimmed(feed.folderName) else {
+                feedsWithoutFolder.append(feed)
                 continue
             }
 
-            emittedFolders.append(folderName)
-            lines.append("    <outline text=\"\(escaped(folderName))\">")
+            if let index = folderIndex[folderName] {
+                groupedByFolder[index].feeds.append(feed)
+            } else {
+                folderIndex[folderName] = groupedByFolder.count
+                groupedByFolder.append((name: folderName, feeds: [feed]))
+            }
+        }
 
-            for folderFeed in feeds.filter({ trimmed($0.folderName) == folderName }) {
+        for (folderName, folderFeeds) in groupedByFolder {
+            lines.append("    <outline text=\"\(escaped(folderName))\">")
+            for folderFeed in folderFeeds {
                 lines.append(outlineLine(for: folderFeed, indent: "      ", options: options))
             }
-
             lines.append("    </outline>")
         }
 

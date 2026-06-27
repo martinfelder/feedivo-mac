@@ -909,43 +909,6 @@ struct FirstRunWizardView: View {
         }
     }
 
-    private func sourcePanel<Action: View>(
-        iconName: String,
-        title: String,
-        description: String,
-        @ViewBuilder
-        action: () -> Action
-    ) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: iconName)
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(Color.accentColor)
-                .frame(width: 42, height: 42)
-                .background(Color.accentColor.opacity(0.11), in: RoundedRectangle(cornerRadius: 9))
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text(title)
-                    .font(.system(size: 13, weight: .semibold))
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                Text(description)
-                    .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
-            }
-
-            Spacer()
-
-            action()
-        }
-        .padding(12)
-        .background(Color.white.opacity(0.68), in: RoundedRectangle(cornerRadius: 10))
-        .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(Color.secondary.opacity(0.16))
-        )
-    }
-
     private func centeredMessage(title: String, subtitle: String, showsProgress: Bool) -> some View {
         VStack(spacing: 10) {
             if showsProgress {

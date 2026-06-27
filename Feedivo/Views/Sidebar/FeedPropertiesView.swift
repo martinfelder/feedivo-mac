@@ -664,10 +664,11 @@ struct FeedPropertiesView: View {
     }
 
     private func logRow(_ entry: FeedLogEntry) -> some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: entry.kind == "error" ? "exclamationmark.triangle" : "checkmark.circle")
+        let isError = entry.kindEnum == .error
+        return HStack(alignment: .top, spacing: 12) {
+            Image(systemName: isError ? "exclamationmark.triangle" : "checkmark.circle")
                 .font(.system(size: 20, weight: .medium))
-                .foregroundStyle(entry.kind == "error" ? .red : .green)
+                .foregroundStyle(isError ? .red : .green)
                 .frame(width: 24)
 
             VStack(alignment: .leading, spacing: 3) {

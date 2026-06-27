@@ -845,47 +845,29 @@ private extension ArticleOfflineState {
     }
 }
 
-private struct TimelineStripe: View {
-    var body: some View {
-        VStack(spacing: 0) {
-            Circle()
-                .stroke(.blue, lineWidth: 2)
-                .frame(width: 8, height: 8)
-
-            Rectangle()
-                .fill(SidebarStyle.separator)
-                .frame(width: 1)
-
-            Circle()
-                .stroke(SidebarStyle.secondaryText.opacity(0.55), lineWidth: 2)
-                .frame(width: 8, height: 8)
-
-            Rectangle()
-                .fill(SidebarStyle.separator)
-                .frame(width: 1)
-
-            Circle()
-                .stroke(SidebarStyle.secondaryText.opacity(0.55), lineWidth: 2)
-                .frame(width: 8, height: 8)
-        }
-    }
-}
-
 struct FlowLayout: Layout {
     var spacing: CGFloat
 
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+    func makeCache(subviews: Subviews) -> Cache {
+        Cache()
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout Cache) -> CGSize {
         let width = proposal.width ?? 0
-        let rows = rows(in: width, subviews: subviews)
+        cache.computedWidth = width
+        cache.rows = rows(in: width, subviews: subviews)
         return CGSize(
             width: width,
-            height: rows.reduce(0) { $0 + $1.height } + CGFloat(max(rows.count - 1, 0)) * spacing
+            height: cache.rows.reduce(0) { $0 + $1.height } + CGFloat(max(cache.rows.count - 1, 0)) * spacing
         )
     }
 
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout Cache) {
+        // rows wurde in sizeThatFits berechnet und im Cache abgelegt — hier nur
+        // noch platzieren, statt die Zeilen ein zweites Mal aufzubauen.
+        let rows = bounds.width == cache.computedWidth ? cache.rows : rows(in: bounds.width, subviews: subviews)
         var origin = bounds.origin
-        for row in rows(in: bounds.width, subviews: subviews) {
+        for row in rows {
             origin.x = bounds.minX
             for element in row.elements {
                 element.subview.place(
@@ -896,6 +878,11 @@ struct FlowLayout: Layout {
             }
             origin.y += row.height + spacing
         }
+    }
+
+    struct Cache {
+        var computedWidth: CGFloat = -1
+        var rows: [Row] = []
     }
 
     private func rows(in width: CGFloat, subviews: Subviews) -> [Row] {
@@ -919,7 +906,7 @@ struct FlowLayout: Layout {
         return rows
     }
 
-    private struct Row {
+    struct Row {
         var elements: [(subview: LayoutSubview, size: CGSize)] = []
         var width: CGFloat = 0
         var height: CGFloat = 0

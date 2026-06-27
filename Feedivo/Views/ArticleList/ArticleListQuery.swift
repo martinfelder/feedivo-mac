@@ -20,7 +20,11 @@ enum ArticleListQuery {
         )
     }
 
-    static func tagPredicate(for tag: Tag, taggedFeeds: [Feed] = []) -> Predicate<Article> {
+    // Kein Default für `taggedFeeds`: ohne die Feed-Liste matcht der Predicate
+    // nur Artikel mit direkter Tag-Zuweisung, nicht aber Artikel, deren Feed
+    // getaggt ist — das wäre ein stiller Fehler. Aufrufer müssen die Feeds
+    // explizit übergeben (i.d.R. `tag.feeds`).
+    static func tagPredicate(for tag: Tag, taggedFeeds: [Feed]) -> Predicate<Article> {
         let tagID = tag.id
         let feedIDs = taggedFeeds.map(\.id)
         return #Predicate<Article> { article in

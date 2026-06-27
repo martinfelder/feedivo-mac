@@ -32,14 +32,18 @@ final class SmartFolderViewModel {
     func restoreDefaultFolders(existingFolders: [SmartFolder], context: ModelContext) {
         let existingNames = Set(existingFolders.map(\.name))
         var folders = Self.sortedFolders(existingFolders)
+        // `defaultFolders` erzeugt 8 @Model-Instanzen pro Zugriff — einmal
+        // erfassen und an `foldersSortedWithDefaultsFirst` weiterreichen statt
+        // es dort erneut zu konstruieren.
+        let defaults = Self.defaultFolders
 
-        for defaultFolder in Self.defaultFolders where !existingNames.contains(defaultFolder.name) {
+        for defaultFolder in defaults where !existingNames.contains(defaultFolder.name) {
             defaultFolder.sortOrder = folders.count
             context.insert(defaultFolder)
             folders.append(defaultFolder)
         }
 
-        normalizeSortOrder(in: foldersSortedWithDefaultsFirst(folders))
+        normalizeSortOrder(in: foldersSortedWithDefaultsFirst(folders, defaults: defaults))
         save(context)
     }
 
@@ -331,9 +335,12 @@ final class SmartFolderViewModel {
         ]
     }
 
-    private func foldersSortedWithDefaultsFirst(_ folders: [SmartFolder]) -> [SmartFolder] {
+    private func foldersSortedWithDefaultsFirst(
+        _ folders: [SmartFolder],
+        defaults: [SmartFolder]
+    ) -> [SmartFolder] {
         let defaultOrder = Dictionary(
-            uniqueKeysWithValues: Self.defaultFolders.enumerated().map { index, folder in
+            uniqueKeysWithValues: defaults.enumerated().map { index, folder in
                 (folder.name, index)
             }
         )
