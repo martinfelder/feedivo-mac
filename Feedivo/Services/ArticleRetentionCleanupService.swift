@@ -11,7 +11,12 @@ enum ArticleRetentionCleanupService {
         includeProtectedArticles: Bool = false,
         now: Date = Date()
     ) throws -> Int {
-        let articles = try context.fetch(FetchDescriptor<Article>())
+        // P6: Nur Skalar-Attribute laden (ohne die großen content/offlineContent-
+        // Blobs) — die Cleanup-Logik liest nur publishedAt/feedID/isStarred/
+        // isArchived/isRead/isHidden. Ein Date-Prädikat zur Vorfilterung ist in
+        // SwiftData nicht möglich (Optional<Date> im #Predicate → Runtime-Fault
+        // bzw. Compile-Fehler), daher Reduktion über propertiesToFetch.
+        let articles = try context.fetch(Article.lightFetchDescriptor())
         let feedsByID = try feedsByID(in: context)
         let articlesToRemove = articles.filter {
             let configuration = retentionConfiguration(
@@ -133,10 +138,13 @@ enum ArticleRetentionCleanupService {
         afterRemoving articlesToRemove: [Article],
         from articles: [Article]
     ) -> [UUID: Int] {
+        // P6: Identitäts-Membership per Set<ObjectIdentifier> (O(1)-Lookup) statt
+        // O(n·m) `contains(where: ===)` pro Artikel.
+        let removeIDs = Set(articlesToRemove.map { ObjectIdentifier($0) })
         var unreadCounts: [UUID: Int] = [:]
 
         for article in articles
-        where !articlesToRemove.contains(where: { $0 === article }) && !article.isRead && !article.isHidden {
+        where !removeIDs.contains(ObjectIdentifier(article)) && !article.isRead && !article.isHidden {
             if let feedID = article.feedID {
                 unreadCounts[feedID, default: 0] += 1
             }
