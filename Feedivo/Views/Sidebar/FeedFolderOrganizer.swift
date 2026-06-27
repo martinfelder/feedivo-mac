@@ -49,6 +49,32 @@ enum FeedFolderOrganizer {
         )
     }
 
+    /// Feeds pro Ordnername in einem Durchlauf gruppieren (M9) — statt für
+    /// jeden Ordnernamen `feeds(in:from:)` (je O(F)) aufzurufen. Liefert die
+    /// Paare in derselben Reihenfolge wie `folderNames(in:folders:)`, also
+    /// alphabetisch nach kanonischem (getrimmtem) Ordnernamen. Ordner, die nur
+    /// in `folders` angelegt, aber keiner Feed zugeordnet sind, enthalten ein
+    /// leeres Feed-Array, damit der Sidebar-Abschnitt trotzdem gerendert wird.
+    static func feedsByFolderName(
+        in feeds: [Feed],
+        folders: [FeedFolder] = []
+    ) -> [(folderName: String, feeds: [Feed])] {
+        let orderedFolderNames = folderNames(in: feeds, folders: folders)
+
+        var feedsByLowercasedName: [String: [Feed]] = [:]
+        for feed in feeds {
+            guard let normalizedName = normalizedFolderName(feed.folderName) else {
+                continue
+            }
+            feedsByLowercasedName[normalizedName.lowercased(), default: []].append(feed)
+        }
+
+        return orderedFolderNames.map { folderName in
+            let grouped = feedsByLowercasedName[folderName.lowercased()] ?? []
+            return (folderName, sortedFeeds(grouped))
+        }
+    }
+
     static func normalizedFolderName(_ folderName: String?) -> String? {
         guard let trimmedName = folderName?.trimmingCharacters(in: .whitespacesAndNewlines),
               !trimmedName.isEmpty

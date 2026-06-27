@@ -211,17 +211,19 @@ struct SidebarView: View {
                     feedRows(feedsWithoutFolder)
                 }
 
-                ForEach(FeedFolderOrganizer.folderNames(in: visibleFeeds, folders: folders), id: \.self) { folderName in
-                    let isExpanded = !collapsedFolderNames.contains(folderName)
+                // M9: Feeds einmal pro Ordner gruppieren statt pro Ordnername
+                // neu zu filtern (O(Folders·F) → O(F)).
+                ForEach(FeedFolderOrganizer.feedsByFolderName(in: visibleFeeds, folders: folders), id: \.folderName) { entry in
+                    let isExpanded = !collapsedFolderNames.contains(entry.folderName)
                     SidebarFolderSection(
-                        title: folderName,
+                        title: entry.folderName,
                         isExpanded: isExpanded
                     ) {
-                        toggleFolder(named: folderName)
+                        toggleFolder(named: entry.folderName)
                     } content: {
                         if isExpanded {
                             feedRows(
-                                FeedFolderOrganizer.feeds(in: folderName, from: visibleFeeds),
+                                entry.feeds,
                                 isIndented: true
                             )
                         }

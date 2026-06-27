@@ -65,4 +65,24 @@ struct FeedFolderOrganizerTests {
         #expect(FeedFolderOrganizer.normalizedFolderName(" ") == nil)
         #expect(FeedFolderOrganizer.normalizedFolderName(nil) == nil)
     }
+
+    @Test func feedsByFolderNameGruppiertInEinemDurchlaufUndErhaeltLeereOrdner() {
+        let feeds = [
+            Feed(url: "https://example.com/a.xml", title: "A", folderName: "Tech"),
+            Feed(url: "https://example.com/b.xml", title: "B", folderName: "tech"),
+            Feed(url: "https://example.com/c.xml", title: "C", folderName: "News"),
+            Feed(url: "https://example.com/d.xml", title: "D", folderName: nil)
+        ]
+        let folders = [
+            FeedFolder(name: "Later")
+        ]
+
+        let grouped = FeedFolderOrganizer.feedsByFolderName(in: feeds, folders: folders)
+
+        #expect(grouped.map(\.folderName) == ["Later", "News", "Tech"])
+        #expect(grouped.first { $0.folderName == "Later" }?.feeds.isEmpty == true)
+        #expect(grouped.first { $0.folderName == "News" }?.feeds.map(\.title) == ["C"])
+        // "Tech" und "tech" werden case-insensitive zusammengefasst (kanonischer Name "Tech").
+        #expect(grouped.first { $0.folderName == "Tech" }?.feeds.map(\.title) == ["A", "B"])
+    }
 }
