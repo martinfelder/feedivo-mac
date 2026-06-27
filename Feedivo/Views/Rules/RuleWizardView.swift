@@ -46,6 +46,9 @@ struct RuleWizardView: View {
     init(rule: Rule? = nil, sourceArticle: Article? = nil) {
         self.rule = rule
         self.sourceArticle = sourceArticle
+        // Artikel ohne die großen content/offlineContent-Blobs laden — beim
+        // Regel-Preview wird nur über title/summary/feed-Titel gematcht (P1).
+        _articles = Query(Article.lightFetchDescriptor())
     }
 
     var body: some View {

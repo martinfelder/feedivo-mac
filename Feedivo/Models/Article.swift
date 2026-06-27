@@ -47,6 +47,24 @@ class Article {
     @Relationship
     var feed: Feed?
 
+    /// FetchDescriptor, das alle Skalar-Attribute lädt außer den großen Blobs
+    /// `content` und `offlineContent`. Diese werden beim Regel-Matching
+    /// (RuleEngine) nicht gebraucht — sie faulten nur bei tatsächlichem Zugriff.
+    /// Beziehungen (feed, tags) bleiben ohnehin lazy. Spart residenten Speicher,
+    /// wenn eine View viele Artikel nur zum Zählen/Hooken braucht (P1).
+    static func lightFetchDescriptor(
+        sortBy sortDescriptors: [SortDescriptor<Article>] = []
+    ) -> FetchDescriptor<Article> {
+        var descriptor = FetchDescriptor<Article>(sortBy: sortDescriptors)
+        descriptor.propertiesToFetch = [
+            \.id, \.title, \.link, \.summary, \.author, \.publishedAt,
+            \.imageURL, \.sourceID, \.feedID, \.isRead, \.isStarred,
+            \.isArchived, \.isHidden, \.offlineStateRaw,
+            \.offlineRequestedAt, \.offlineSavedAt, \.offlineErrorMessage
+        ]
+        return descriptor
+    }
+
     @Relationship
     var tags: [Tag]
 

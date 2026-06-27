@@ -12,6 +12,13 @@ struct RuleSettingsView: View {
     @State private var rulePendingDeletion: Rule?
     @State private var appliedExistingRuleActionCount: Int?
 
+    init() {
+        // Artikel ohne die großen content/offlineContent-Blobs laden — beim
+        // Treffer-Zählen und Anwenden der Regeln wird nur title/summary/feed-Titel
+        // sowie tags/isHidden gebraucht, nie der Volltext (P1).
+        _articles = Query(Article.lightFetchDescriptor())
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             header
