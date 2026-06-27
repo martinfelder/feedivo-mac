@@ -40,6 +40,7 @@ private final class CapturingArticleOfflineSaver: ArticleOfflineSaving {
 
 struct ArticleViewModelTests {
 
+    @MainActor
     @Test func toggleReadWechseltGelesenStatus() {
         let article = Article(title: "Test", isRead: false)
         let viewModel = ArticleViewModel()
@@ -53,6 +54,7 @@ struct ArticleViewModelTests {
         #expect(!article.isRead)
     }
 
+    @MainActor
     @Test func toggleStarredWechseltSternStatus() {
         let article = Article(title: "Test", isStarred: false)
         let viewModel = ArticleViewModel()
@@ -143,6 +145,7 @@ struct ArticleViewModelTests {
         #expect(article.offlineState == .none)
     }
 
+    @MainActor
     @Test func toggleArchivedWechseltArchivStatus() {
         let article = Article(title: "Test", isArchived: false)
         let viewModel = ArticleViewModel()
@@ -156,6 +159,7 @@ struct ArticleViewModelTests {
         #expect(!article.isArchived)
     }
 
+    @MainActor
     @Test func optionaleArtikelAktionenIgnorierenFehlendeAuswahl() {
         let viewModel = ArticleViewModel()
 
@@ -163,6 +167,7 @@ struct ArticleViewModelTests {
         viewModel.toggleStarred(nil)
     }
 
+    @MainActor
     @Test func optionaleArtikelAktionenSchaltenVorhandenenArtikel() {
         let article = Article(title: "Test", isRead: false, isStarred: false)
         let viewModel = ArticleViewModel()
@@ -174,6 +179,7 @@ struct ArticleViewModelTests {
         #expect(article.isStarred)
     }
 
+    @MainActor
     @Test func markReadIfNeededBeruecksichtigtEinstellung() {
         let article = Article(title: "Test", isRead: false)
         let viewModel = ArticleViewModel()

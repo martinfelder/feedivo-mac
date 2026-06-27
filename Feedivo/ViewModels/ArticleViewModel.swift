@@ -58,6 +58,9 @@ enum ArticleOriginalURLResolver {
 
 @Observable
 final class ArticleViewModel {
+    // M3: Auch die nicht-persistenten Varianten mutieren @Model-Objekte und
+    // daher auf dem MainActor isolieren — Swift 6 verlangt das für Korrektheit.
+    @MainActor
     func toggleRead(_ article: Article) {
         let wasRead = article.isRead
         article.isRead.toggle()
@@ -72,6 +75,7 @@ final class ArticleViewModel {
         try? context.save()
     }
 
+    @MainActor
     func toggleRead(_ article: Article?) {
         guard let article else {
             return
@@ -89,6 +93,7 @@ final class ArticleViewModel {
         toggleRead(article, context: context)
     }
 
+    @MainActor
     func toggleStarred(_ article: Article) {
         article.isStarred.toggle()
     }
@@ -113,6 +118,7 @@ final class ArticleViewModel {
         try? context?.save()
     }
 
+    @MainActor
     func toggleStarred(_ article: Article?) {
         guard let article else {
             return
@@ -140,10 +146,12 @@ final class ArticleViewModel {
         )
     }
 
+    @MainActor
     func toggleArchived(_ article: Article) {
         article.isArchived.toggle()
     }
 
+    @MainActor
     func toggleArchived(_ article: Article?) {
         guard let article else {
             return
@@ -152,6 +160,7 @@ final class ArticleViewModel {
         toggleArchived(article)
     }
 
+    @MainActor
     func markReadIfNeeded(_ article: Article?, isEnabled: Bool) {
         guard isEnabled, let article, !article.isRead else {
             return
@@ -174,6 +183,7 @@ final class ArticleViewModel {
         try? context.save()
     }
 
+    @MainActor
     func markAllRead(_ articles: [Article]) {
         for article in articles where !article.isRead {
             let wasRead = article.isRead
@@ -195,6 +205,7 @@ final class ArticleViewModel {
         try? context.save()
     }
 
+    @MainActor
     func markRead(
         _ articles: [Article],
         matching option: ArticleMarkReadOption,
