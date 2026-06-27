@@ -700,8 +700,15 @@ final class FeedViewModel {
             feed.title = parsedFeed.title
         }
         feed.feedDescription = parsedFeed.description
+        let previousSiteURL = feed.siteURL
         feed.siteURL = parsedFeed.siteURL
-        if let faviconURL = await faviconURL(for: parsedFeed) {
+        // M5: Favicon nur neu ermitteln, wenn noch keines vorhanden ist oder
+        // sich die siteURL geändert hat — sonst war jeder Refresh ein
+        // Favicon-Discovery-Roundtrip (HTML-Laden + Parsen) trotz stabiler
+        // Website.
+        let needsFaviconDiscovery = (feed.faviconURL?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+            || previousSiteURL != feed.siteURL
+        if needsFaviconDiscovery, let faviconURL = await faviconURL(for: parsedFeed) {
             feed.faviconURL = faviconURL
         }
         feed.lastRefreshed = refreshDate
