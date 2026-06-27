@@ -39,6 +39,13 @@ enum SmartFolderSidebarBadge {
         badgeCount(for: folder, feeds: feeds, context: context).flatMap(SidebarUnreadCount.badgeText)
     }
 
+    /// In-Memory-Variante: statt N `fetchCount`-Queries pro Sidebar-Render werden
+    /// die Zähler einmal zentral über alle Artikel gebündelt (Batching) und hier
+    /// nur noch zugewiesen. Kein Stale-Risiko, da kein Cache.
+    static func badgeText(for folder: SmartFolder, feeds: [Feed], counts: SidebarBadgeCounts) -> String? {
+        badgeCount(for: folder, feeds: feeds, counts: counts).flatMap(SidebarUnreadCount.badgeText)
+    }
+
     private static func badgeCount(for folder: SmartFolder, feeds: [Feed], context: ModelContext) -> Int? {
         guard let badgeKind = SmartFolderSidebarBadgeKind(folder: folder) else {
             return nil
@@ -73,6 +80,35 @@ enum SmartFolderSidebarBadge {
             )
         }
     }
+
+    private static func badgeCount(for folder: SmartFolder, feeds: [Feed], counts: SidebarBadgeCounts) -> Int? {
+        guard let badgeKind = SmartFolderSidebarBadgeKind(folder: folder) else {
+            return nil
+        }
+
+        switch badgeKind {
+        case .unread:
+            return SidebarUnreadCount.totalUnreadArticleCount(in: feeds)
+        case .starred:
+            return counts.starred
+        case .hidden:
+            return counts.hidden
+        case .saved:
+            return counts.saved
+        }
+    }
+}
+
+/// Zentral gebündelte Badge-Zähler der Sidebar. `tagCounts` liefert pro Tag die
+/// Artikel-Anzahl (Tag direkt am Artikel ODER am Feed des Artikels), die
+/// Status-Zähler decken die SmartFolder-Badges ab.
+struct SidebarBadgeCounts: Equatable {
+    let tagCounts: [PersistentIdentifier: Int]
+    let starred: Int
+    let hidden: Int
+    let saved: Int
+
+    static let empty = SidebarBadgeCounts(tagCounts: [:], starred: 0, hidden: 0, saved: 0)
 }
 
 private enum SmartFolderSidebarBadgeKind {

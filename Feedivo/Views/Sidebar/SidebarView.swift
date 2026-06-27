@@ -9,6 +9,9 @@ struct SidebarView: View {
     @Query(sort: \FeedFolder.name) private var folders: [FeedFolder]
     @Query(sort: \Tag.name) private var tags: [Tag]
     @Query(sort: \SmartFolder.sortOrder) private var smartFolders: [SmartFolder]
+    // Alle Artikel einmal laden; Badges werden daraus zentral In-Memory gezählt
+    // (Batching) statt N einzelner fetchCount-Queries pro Sidebar-Render.
+    @Query private var allArticles: [Article]
     @Binding var selection: SidebarSelection?
     let onRequestAddFeed: () -> Void
     let onRequestDeleteFeed: (Feed) -> Void
@@ -31,13 +34,15 @@ struct SidebarView: View {
     @State private var collapsedFolderNames: Set<String> = []
 
     var body: some View {
-        VStack(spacing: 0) {
+        let badgeCounts = sidebarBadgeCounts
+
+        return VStack(spacing: 0) {
             sidebarHeader
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    smartFoldersSection
-                    tagsSection
+                    smartFoldersSection(badgeCounts: badgeCounts)
+                    tagsSection(badgeCounts: badgeCounts)
                     foldersSection
                 }
                 .padding(.horizontal, 14)
@@ -129,7 +134,7 @@ struct SidebarView: View {
         }
     }
 
-    private var tagsSection: some View {
+    private func tagsSection(badgeCounts: SidebarBadgeCounts) -> some View {
         CollapsibleSidebarSection(
             title: L10n.sidebarTagsSection,
             isCollapsed: $isTagsCollapsed,
@@ -139,7 +144,7 @@ struct SidebarView: View {
             isShowingTagManager = true
         } content: {
             if !tags.isEmpty {
-                tagRows(tags)
+                tagRows(tags, badgeCounts: badgeCounts)
             }
         }
     }
@@ -190,7 +195,7 @@ struct SidebarView: View {
         }
     }
 
-    private var smartFoldersSection: some View {
+    private func smartFoldersSection(badgeCounts: SidebarBadgeCounts) -> some View {
         CollapsibleSidebarSection(
             title: "Intelligente Ordner",
             isCollapsed: $isSmartFoldersCollapsed,
@@ -218,7 +223,7 @@ struct SidebarView: View {
                             badgeText: SmartFolderSidebarBadge.badgeText(
                                 for: smartFolder,
                                 feeds: feeds,
-                                context: modelContext
+                                counts: badgeCounts
                             )
                         )
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -310,14 +315,16 @@ struct SidebarView: View {
         }
     }
 
-    private func tagRows(_ tags: [Tag]) -> some View {
+    private func tagRows(_ tags: [Tag], badgeCounts: SidebarBadgeCounts) -> some View {
         ForEach(tags) { tag in
             Button {
                 selection = .tag(tag.persistentModelID)
             } label: {
                 TagSidebarRow(
                     tag: tag,
-                    badgeText: try? SidebarTagCount.badgeText(for: tag, context: modelContext)
+                    badgeText: SidebarUnreadCount.badgeText(
+                        for: badgeCounts.tagCounts[tag.persistentModelID] ?? 0
+                    )
                 )
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -327,6 +334,43 @@ struct SidebarView: View {
                 )
             )
         }
+    }
+
+    /// Ein einziger Durchlauf über alle Artikel bündelt alle Badge-Zähler
+    /// (Tags + SmartFolder-Status). Ersetzt N `fetchCount`-Queries pro Render.
+    private var sidebarBadgeCounts: SidebarBadgeCounts {
+        var tagCounts: [PersistentIdentifier: Int] = [:]
+        var starred = 0
+        var hidden = 0
+        var saved = 0
+
+        for article in allArticles {
+            if article.isStarred { starred += 1 }
+            if article.isHidden { hidden += 1 }
+            if article.isStarred || article.isArchived { saved += 1 }
+
+            // Ein Artikel trifft auf einen Tag zu, wenn er direkt getaggt ist
+            // ODER sein Feed dem Tag zugeordnet ist (OR, nur einfach zählen).
+            var matchingTagIDs = Set<PersistentIdentifier>()
+            for tag in article.tags {
+                matchingTagIDs.insert(tag.persistentModelID)
+            }
+            if let feedTags = article.feed?.tags {
+                for tag in feedTags {
+                    matchingTagIDs.insert(tag.persistentModelID)
+                }
+            }
+            for tagID in matchingTagIDs {
+                tagCounts[tagID, default: 0] += 1
+            }
+        }
+
+        return SidebarBadgeCounts(
+            tagCounts: tagCounts,
+            starred: starred,
+            hidden: hidden,
+            saved: saved
+        )
     }
 
     private func toggleFolder(named folderName: String) {
