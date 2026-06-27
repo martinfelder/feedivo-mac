@@ -23,6 +23,7 @@ enum L10n {
     static let smartFilterStarred = LocalizedStringKey("smartFilter.starred")
     static let smartFilterToday = LocalizedStringKey("smartFilter.today")
     static let smartFilterHidden = LocalizedStringKey("smartFilter.hidden")
+    static var smartFolderErrorNameRequired: String { String(localized: "smartFolder.error.nameRequired") }
     static let commonCancel = LocalizedStringKey("common.cancel")
     static let commonAdd = LocalizedStringKey("common.add")
     static let commonDone = LocalizedStringKey("common.done")

@@ -149,37 +149,16 @@ enum FeedNotificationService {
             return
         }
 
-        let status = await authorizationStatus()
-        let isAuthorized: Bool
-        switch status {
-        case .authorized, .provisional, .ephemeral:
-            isAuthorized = true
-        case .notDetermined:
-            isAuthorized = await requestAuthorization()
-        case .denied, .unknown:
-            isAuthorized = false
-        }
-
-        guard isAuthorized else {
-            return
-        }
-
-        let content = UNMutableNotificationContent()
-        content.title = summary.title
-        content.body = summary.body
-        content.sound = .default
-        content.userInfo = [
-            "feedivoNotificationType": "feedRefresh",
-            "feedTitles": summary.feedTitles
-        ]
-
-        let request = UNNotificationRequest(
-            identifier: "feed-refresh-\(UUID().uuidString)",
-            content: content,
-            trigger: nil
+        await present(
+            title: summary.title,
+            body: summary.body,
+            userInfo: [
+                "feedivoNotificationType": "feedRefresh",
+                "feedTitles": summary.feedTitles
+            ],
+            identifierPrefix: "feed-refresh",
+            isCritical: false
         )
-
-        try? await UNUserNotificationCenter.current().add(request)
     }
 
     static func presentRuleSummary(for results: [RuleNotificationResult]) async {
@@ -187,40 +166,64 @@ enum FeedNotificationService {
             return
         }
 
-        let status = await authorizationStatus()
-        let isAuthorized: Bool
-        switch status {
-        case .authorized, .provisional, .ephemeral:
-            isAuthorized = true
-        case .notDetermined:
-            isAuthorized = await requestAuthorization()
-        case .denied, .unknown:
-            isAuthorized = false
-        }
+        await present(
+            title: summary.title,
+            body: summary.body,
+            userInfo: [
+                "feedivoNotificationType": "rule",
+                "ruleIDs": summary.ruleIDs.map(\.uuidString)
+            ],
+            identifierPrefix: "rule",
+            isCritical: summary.priority == .critical
+        )
+    }
 
-        guard isAuthorized else {
+    /// Gemeinsame Delivery-Pipeline für Feed-Refresh- und Regel-Notifications.
+    /// Zuvor stand die Identische Authorisierungs-+Zustell-Logik doppelt in
+    /// `presentRefreshSummary` und `presentRuleSummary`.
+    private static func present(
+        title: String,
+        body: String,
+        userInfo: [String: Any],
+        identifierPrefix: String,
+        isCritical: Bool
+    ) async {
+        guard await isAuthorized() else {
             return
         }
 
         let content = UNMutableNotificationContent()
-        content.title = summary.title
-        content.body = summary.body
+        content.title = title
+        content.body = body
         content.sound = .default
-        content.userInfo = [
-            "feedivoNotificationType": "rule",
-            "ruleIDs": summary.ruleIDs.map(\.uuidString)
-        ]
+        content.userInfo = userInfo
 
-        if summary.priority == .critical {
+        if isCritical {
             content.interruptionLevel = .timeSensitive
         }
 
         let request = UNNotificationRequest(
-            identifier: "rule-\(UUID().uuidString)",
+            identifier: "\(identifierPrefix)-\(UUID().uuidString)",
             content: content,
             trigger: nil
         )
 
+        // Zustellfehler bewusst als try? — eine fehlschlagende Notification soll
+        // nicht den Refresh-Flow abbrechen; der User merkt ohnehin nur die
+        // ausbleibende Benachrichtigung.
         try? await UNUserNotificationCenter.current().add(request)
+    }
+
+    /// Löst die Authorisierung auf und fragt ggf. nach, falls noch nicht
+    /// entschieden. Wurde zuvor in beiden present-Methoden identisch geführt.
+    private static func isAuthorized() async -> Bool {
+        switch await authorizationStatus() {
+        case .authorized, .provisional, .ephemeral:
+            return true
+        case .notDetermined:
+            return await requestAuthorization()
+        case .denied, .unknown:
+            return false
+        }
     }
 }

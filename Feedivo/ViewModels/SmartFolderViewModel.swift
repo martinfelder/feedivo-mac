@@ -60,7 +60,7 @@ final class SmartFolderViewModel {
         guard let normalizedName = normalizedName(name),
               let conditions = normalizedConditions(from: conditionDrafts)
         else {
-            errorMessage = "Bitte einen Namen eingeben."
+            errorMessage = L10n.smartFolderErrorNameRequired
             return
         }
 
@@ -90,7 +90,7 @@ final class SmartFolderViewModel {
         guard let normalizedName = normalizedName(name),
               let conditions = normalizedConditions(from: conditionDrafts)
         else {
-            errorMessage = "Bitte einen Namen eingeben."
+            errorMessage = L10n.smartFolderErrorNameRequired
             return
         }
 

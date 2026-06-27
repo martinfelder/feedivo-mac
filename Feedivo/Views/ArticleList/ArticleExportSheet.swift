@@ -602,7 +602,9 @@ private struct ArticleExportHTMLPreview: NSViewRepresentable {
         configuration.defaultWebpagePreferences.allowsContentJavaScript = false
 
         let webView = WKWebView(frame: .zero, configuration: configuration)
-        webView.setValue(false, forKey: "drawsBackground")
+        // Statt des privaten KVC-Zugriffs `setValue(false, forKey: "drawsBackground")`
+        // die öffentliche WKWebView-API nutzen: transparenter Seitenhintergrund.
+        webView.underPageBackgroundColor = .clear
         return webView
     }
 
