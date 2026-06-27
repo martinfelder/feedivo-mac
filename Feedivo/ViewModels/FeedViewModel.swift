@@ -275,7 +275,7 @@ final class FeedViewModel {
         )
     }
 
-    func opmlFeedsForExport(from feeds: [Feed]) -> [OPMLFeed] {
+    static func opmlFeedsForExport(from feeds: [Feed]) -> [OPMLFeed] {
         feeds.map { feed in
             OPMLFeed(
                 title: feed.title,

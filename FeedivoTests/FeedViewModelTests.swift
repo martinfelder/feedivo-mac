@@ -448,9 +448,7 @@ struct FeedViewModelTests {
             Tag(name: "Swift"),
             Tag(name: "Apple")
         ]
-        let viewModel = makeViewModel()
-
-        let opmlFeeds = viewModel.opmlFeedsForExport(from: feeds)
+        let opmlFeeds = FeedViewModel.opmlFeedsForExport(from: feeds)
 
         #expect(opmlFeeds == [
             OPMLFeed(

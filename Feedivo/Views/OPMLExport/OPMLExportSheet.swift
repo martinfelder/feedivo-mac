@@ -9,9 +9,15 @@ struct OPMLExportSheet: View {
     @State private var includesDescriptions = false
     @State private var isExporting = false
 
-    private var opmlFeeds: [OPMLFeed] {
-        FeedViewModel().opmlFeedsForExport(from: feeds)
-    }
+    /// P8: Feedliste einmalig beim Erstellen des Sheets cachen statt pro Render
+    /// neu zu mappen (und jedes Mal einen `FeedViewModel` zu instanziieren).
+    /// `opmlFeedsForExport` ist rein → static ohne Instanz.
+    @State private var opmlFeeds: [OPMLFeed] = []
+
+    /// P8: Das XML-Dokument wird erst beim Speichern generiert, nicht bei jedem
+    /// Render. Vorher liefert `document` eine leere Hülle (Exporter ist dann
+    /// ohnehin nicht sichtbar).
+    @State private var exportDocument: OPMLDocument?
 
     private var options: OPMLExportOptions {
         OPMLExportOptions(
@@ -22,7 +28,13 @@ struct OPMLExportSheet: View {
     }
 
     private var document: OPMLDocument {
-        OPMLDocument(text: OPMLService.exportFeeds(opmlFeeds, options: options))
+        exportDocument ?? OPMLDocument(text: "")
+    }
+
+    init(feeds: [Feed], onClose: @escaping () -> Void) {
+        self.feeds = feeds
+        self.onClose = onClose
+        _opmlFeeds = State(initialValue: FeedViewModel.opmlFeedsForExport(from: feeds))
     }
 
     private var folderCount: Int {
@@ -182,6 +194,9 @@ struct OPMLExportSheet: View {
             }
 
             Button(L10n.opmlExportSaveButton) {
+                // P8: XML erst hier beim Speichern generieren (mit aktuellen
+                // Optionen), nicht bei jedem Render.
+                exportDocument = OPMLDocument(text: OPMLService.exportFeeds(opmlFeeds, options: options))
                 isExporting = true
             }
             .keyboardShortcut(.defaultAction)
