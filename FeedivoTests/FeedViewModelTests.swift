@@ -1587,6 +1587,50 @@ struct FeedViewModelTests {
         #expect(viewModel.errorMessage == L10n.feedErrorAlreadyRunning)
         #expect(try context.fetch(FetchDescriptor<Feed>()).count == 0)
     }
+
+    @MainActor
+    @Test func opmlImportPreviewRowsParalleelisiertBehaeltReihenfolgeUndStatus() async throws {
+        // Charakterisierungs-Test: Die Vorschau muss Reihenfolge und Status pro
+        // Zeile bewahren, auch wenn der Abruf parallelisiert in Batches läuft.
+        // 6 Feeds, einer ("fail://broken") ist nicht erreichbar, Rest available.
+        let viewModel = makeViewModel(
+            fetchFeed: { urlString in
+                if urlString.hasPrefix("fail://") {
+                    throw FeedServiceError.parsingFailed
+                }
+                return ParsedFeed(
+                    sourceURL: urlString,
+                    title: urlString,
+                    description: nil,
+                    articles: []
+                )
+            },
+            discoverFaviconURL: { _ in nil }
+        )
+        // F3 (Index 2) ist nicht erreichbar — xmlURL ist `let`, daher wird der
+        // dritte Eintrag direkt mit der fail://-URL erzeugt statt nachträglich
+        // mutiert.
+        let opmlFeeds: [OPMLFeed] = [
+            OPMLFeed(title: "F1", xmlURL: "https://f1.example.com/feed.xml", htmlURL: nil, folderName: nil),
+            OPMLFeed(title: "F2", xmlURL: "https://f2.example.com/feed.xml", htmlURL: nil, folderName: nil),
+            OPMLFeed(title: "F3", xmlURL: "fail://broken", htmlURL: nil, folderName: nil),
+            OPMLFeed(title: "F4", xmlURL: "https://f4.example.com/feed.xml", htmlURL: nil, folderName: nil),
+            OPMLFeed(title: "F5", xmlURL: "https://f5.example.com/feed.xml", htmlURL: nil, folderName: nil),
+            OPMLFeed(title: "F6", xmlURL: "https://f6.example.com/feed.xml", htmlURL: nil, folderName: nil)
+        ]
+
+        let rows = await viewModel.opmlImportPreviewRows(for: opmlFeeds, existingFeeds: [])
+
+        #expect(rows.count == 6)
+        #expect(rows.map(\.feed.title) == ["F1", "F2", "F3", "F4", "F5", "F6"])
+        #expect(rows[0].status == .available)
+        #expect(rows[1].status == .available)
+        #expect(rows[2].status == .unreachable)
+        #expect(rows[3].status == .available)
+        #expect(rows[4].status == .available)
+        #expect(rows[5].status == .available)
+        #expect(rows.allSatisfy { $0.status != .duplicate })
+    }
 }
 
 private struct TestFeedRefreshError: LocalizedError {

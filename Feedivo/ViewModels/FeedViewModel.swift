@@ -110,7 +110,21 @@ final class FeedViewModel {
         onProgress: ((OPMLImportPreviewProgress) -> Void)? = nil
     ) async -> [OPMLImportPreviewRow] {
         var knownFeedURLs = Set(existingFeeds.map { normalizedFeedURL($0.url) })
-        var rows: [OPMLImportPreviewRow] = []
+
+        // Phase 1 — sequenziell: Duplikat-Status feststellen und Abruf-Bedarf
+        // sammeln. Das URL-Set darf nicht concurrent mutiert werden, daher bleibt
+        // diese Phase bewusst seriell. Der onProgress-Callback wird hier pro
+        // Feed in Original-Reihenfolge aufgerufen (bestehendes Verhalten: eine
+        // Meldung je Feed vor dem Abruf). Die Reihenfolge der zurückgegebenen
+        // Rows entspricht der Reihenfolge von `opmlFeeds`.
+        struct PendingFeed {
+            let index: Int
+            let cleanedURL: String
+        }
+        var pending: [PendingFeed] = []
+        // Indexiertes Ergebnis-Array, damit die Abrufe in Phase 2 parallel laufen
+        // können, ohne die Original-Reihenfolge zu verlieren.
+        var rowsByIndex = Array<OPMLImportPreviewRow?>(repeating: nil, count: opmlFeeds.count)
 
         for (index, opmlFeed) in opmlFeeds.enumerated() {
             onProgress?(
@@ -125,37 +139,47 @@ final class FeedViewModel {
             let isDuplicate = !knownFeedURLs.insert(normalizedURL).inserted
 
             if isDuplicate {
-                rows.append(
-                    OPMLImportPreviewRow(
-                        feed: opmlFeed,
-                        status: .duplicate,
-                        isSelected: false
-                    )
+                rowsByIndex[index] = OPMLImportPreviewRow(
+                    feed: opmlFeed,
+                    status: .duplicate,
+                    isSelected: false
                 )
-                continue
-            }
-
-            do {
-                _ = try await fetchFeed(cleanedURL)
-                rows.append(
-                    OPMLImportPreviewRow(
-                        feed: opmlFeed,
-                        status: .available,
-                        isSelected: true
-                    )
-                )
-            } catch {
-                rows.append(
-                    OPMLImportPreviewRow(
-                        feed: opmlFeed,
-                        status: .unreachable,
-                        isSelected: false
-                    )
-                )
+            } else {
+                pending.append(PendingFeed(index: index, cleanedURL: cleanedURL))
             }
         }
 
-        return rows
+        // Phase 2 — parallel: Erreichbarkeit prüfen, in begrenzten Gruppen
+        // (gleiche Drosselung wie importOPMLFeeds/refreshAllFeeds). Ergebnisse
+        // werden indexiert in `rowsByIndex` einsortiert, nicht in eine gemeinsam
+        // mutierte Liste appendet — so bleibt die Original-Reihenfolge erhalten.
+        // onProgress wird bewusst nicht erneut aufgerufen: Die bestehende
+        // Vorschau gibt genau eine Fortschritts-Meldung je Feed aus (Phase 1),
+        // dieses Verhalten bleibt unverändert erhalten.
+        for batch in feedBatches(from: pending) {
+            await withTaskGroup(of: (Int, OPMLImportFeedStatus).self) { group in
+                for item in batch {
+                    group.addTask { @MainActor in
+                        do {
+                            _ = try await self.fetchFeed(item.cleanedURL)
+                            return (item.index, .available)
+                        } catch {
+                            return (item.index, .unreachable)
+                        }
+                    }
+                }
+                for await (index, status) in group {
+                    let isSelected = (status == .available)
+                    rowsByIndex[index] = OPMLImportPreviewRow(
+                        feed: opmlFeeds[index],
+                        status: status,
+                        isSelected: isSelected
+                    )
+                }
+            }
+        }
+
+        return rowsByIndex.compactMap { $0 }
     }
 
     @MainActor
@@ -565,9 +589,16 @@ final class FeedViewModel {
         }
     }
 
-    private func feedBatches(from feeds: [Feed]) -> [[Feed]] {
-        stride(from: 0, to: feeds.count, by: Self.maxConcurrentFeedRefreshes).map { startIndex in
-            Array(feeds[startIndex ..< min(startIndex + Self.maxConcurrentFeedRefreshes, feeds.count)])
+    // Generisches Chunking in Batches der Größe `maxConcurrentFeedRefreshes`.
+    // Enthält bewusst keine Feed-spezifische Logik, sodass es neben `importOPMLFeeds`
+    // und `refreshAllFeeds` auch für den OPML-Vorschau-Abruf wiederverwendet
+    // werden kann (DRY — vorher war die Methode auf `[Feed]` festgelegt).
+    private func feedBatches<T>(from items: [T]) -> [[T]] {
+        guard !items.isEmpty else {
+            return []
+        }
+        return stride(from: 0, to: items.count, by: Self.maxConcurrentFeedRefreshes).map { startIndex in
+            Array(items[startIndex ..< min(startIndex + Self.maxConcurrentFeedRefreshes, items.count)])
         }
     }
 
