@@ -5,6 +5,7 @@ import UniformTypeIdentifiers
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(DatabaseLoadState.self) private var databaseLoadState
     @AppStorage(FirstRunWizardState.completionStorageKey) private var hasCompletedFirstRunWizard = false
     @AppStorage(AppIconBadgeSettings.isEnabledKey)
     private var appIconBadgeIsEnabled = AppIconBadgeSettings.defaultIsEnabled
@@ -209,6 +210,31 @@ struct ContentView: View {
                 message: Text(alert.message),
                 dismissButton: .default(Text(L10n.commonDone))
             )
+        }
+        // M11: Wenn die SwiftData-Datenbank beim Start nicht geöffnet werden
+        // konnte, läuft die App mit einem leeren In-Memory-Fallback. Dieser
+        // Alarm erklärt das einmalig, statt die App ohne Erklärung abstürzen
+        // zu lassen. Nach dem Schließen wird der Fehler verworfen.
+        .alert(
+            L10n.databaseInitErrorTitle,
+            isPresented: Binding(
+                get: { databaseLoadState.initializationError != nil },
+                set: { newValue in
+                    if !newValue {
+                        databaseLoadState.initializationError = nil
+                    }
+                }
+            )
+        ) {
+            Button(L10n.commonDone) {
+                databaseLoadState.initializationError = nil
+            }
+        } message: {
+            if let detail = databaseLoadState.initializationError {
+                Text(verbatim: "\(L10n.databaseInitErrorMessage)\n\n\(detail)")
+            } else {
+                Text(L10n.databaseInitErrorMessage)
+            }
         }
         .overlay(alignment: .bottom) {
             if let operationProgress = feedViewModel.operationProgress {

@@ -383,6 +383,16 @@ enum L10n {
     static var offlineArchiveErrorMessage: String {
         String(localized: "offline.archive.error.message", defaultValue: "Die Offline-Kopie konnte nicht gespeichert werden.")
     }
+    /// Titel des Alarms, wenn die SwiftData-Datenbank beim Start nicht geöffnet
+    /// werden konnte und auf den In-Memory-Fallback ausgewichen wurde (M11).
+    static var databaseInitErrorTitle: String {
+        String(localized: "database.init.error.title", defaultValue: "Datenbank konnte nicht geladen werden")
+    }
+    /// Erläuterungstext zum Datenbank-Ladefehler im In-Memory-Fallback (M11).
+    /// Im Alert wird die technische Fehlermeldung des Frameworks angehängt.
+    static var databaseInitErrorMessage: String {
+        String(localized: "database.init.error.message", defaultValue: "Deine gespeicherten Feeds sind vorerst nicht verfügbar. Die App läuft mit einer leeren, temporären Datenbank. Bitte starte die App neu.")
+    }
     static var feedErrorAlreadyRunning: String {
         String(localized: "feed.error.alreadyRunning", defaultValue: "Eine Aktualisierung läuft bereits. Bitte warte, bis sie abgeschlossen ist.")
     }

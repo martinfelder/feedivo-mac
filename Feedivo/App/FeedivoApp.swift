@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import Observation
 
 @main
 struct FeedivoApp: App {
@@ -26,25 +27,51 @@ struct FeedivoApp: App {
 
     private let modelContainer: ModelContainer
     private let backgroundRefreshScheduler: SystemBackgroundActivityRefreshScheduler
+    private let databaseLoadState = DatabaseLoadState()
+
+    // Alle SwiftData-Modelle an einer Stelle — so gibt es genau eine
+    // Wahrheitsquelle für den Schema-Bestand, genutzt vom normalen Container
+    // wie auch vom In-Memory-Fallback (M11).
+    private static let schema = Schema([
+        Feed.self,
+        FeedFolder.self,
+        Article.self,
+        Tag.self,
+        Rule.self,
+        RuleCondition.self,
+        SmartFolder.self,
+        SmartFolderCondition.self,
+        FeedLogEntry.self
+    ])
 
     init() {
         ReaderFontRegistry.registerBundledFonts()
 
-        let modelContainer = try! ModelContainer(
-            for: Feed.self,
-            FeedFolder.self,
-            Article.self,
-            Tag.self,
-            Rule.self,
-            RuleCondition.self,
-            SmartFolder.self,
-            SmartFolderCondition.self,
-            FeedLogEntry.self
-        )
-        self.modelContainer = modelContainer
+        let loadedContainer: ModelContainer
+        var loadError: String?
+
+        do {
+            // Normalfall: on-disk-Container für die persistente Datenbank.
+            loadedContainer = try ModelContainer(for: Self.schema)
+        } catch {
+            // Lässt sich die Datenbank nicht öffnen (z. B. beschädigt oder
+            // inkompatibles Schema nach einem Update), stürzen wir nicht mehr
+            // per `try!` ohne Erklärung ab. Stattdessen starten wir mit einem
+            // leeren In-Memory-Container, damit die App benutzbar bleibt, und
+            // zeigen den Fehler in der UI als Alarm an (M11). Die echten Daten
+            // bleiben unangetastet auf der Platte und sind nach einem Neustart
+            // (oder nach Reparatur) wieder verfügbar.
+            let inMemoryConfiguration = ModelConfiguration(isStoredInMemoryOnly: true)
+            // In-Memory-Konfiguration ohne Datei-Backing kann nicht fehlschlagen.
+            loadedContainer = try! ModelContainer(for: Self.schema, configurations: [inMemoryConfiguration])
+            loadError = error.localizedDescription
+        }
+
+        self.modelContainer = loadedContainer
         self.backgroundRefreshScheduler = SystemBackgroundActivityRefreshScheduler(
-            modelContainer: modelContainer
+            modelContainer: loadedContainer
         )
+        self.databaseLoadState.initializationError = loadError
     }
 
     // modelContainer stellt SwiftData für die ganze App zur Verfügung.
@@ -59,6 +86,7 @@ struct FeedivoApp: App {
             ContentView()
                 .environment(\.locale, appLanguage.locale)
                 .environment(\.interfaceTextSize, interfaceTextSize)
+                .environment(databaseLoadState)
                 .dynamicTypeSize(interfaceTextSize.dynamicTypeSize)
                 .task {
                     backfillStoredArticleMetadataIfNeeded()
@@ -146,4 +174,13 @@ struct FeedivoApp: App {
         let folders = (try? context.fetch(FetchDescriptor<SmartFolder>())) ?? []
         SmartFolderViewModel().restoreDefaultFolders(existingFolders: folders, context: context)
     }
+}
+
+// Hält den Status des Datenbank-Ladevorgangs beim App-Start. Bleibt `nil`,
+// wenn die on-disk-Datenbank normal geöffnet wurde; wird gesetzt, sobald auf
+// den In-Memory-Fallback ausgewichen wurde (M11). Über `.environment` an die
+// ContentView gereicht, die ihn einmalig als Alarm anzeigt.
+@Observable
+final class DatabaseLoadState {
+    var initializationError: String?
 }
