@@ -1554,6 +1554,21 @@ struct FeedViewModelTests {
         #expect(entries.isEmpty, "LogEntries müssen mit dem Feed gelöscht werden")
         #expect(viewModel.errorMessage == nil)
     }
+
+    @MainActor
+    @Test func unreadIncrementZaehltKeineGelesenenOderVerstecktenArtikel() {
+        // Konsistenz mit dem addFeed-Pfad (Z. 400: `!isRead && !isHidden`):
+        // Gelesene und versteckte Artikel dürfen den Ungelesen-Zähler nicht
+        // erhöhen — nur frische, ungelesene Artikel zählen.
+        let readArticle = Article(title: "Gelesen", isRead: true)
+        let hiddenArticle = Article(title: "Versteckt", isHidden: true)
+        let freshArticle = Article(title: "Neu")
+
+        #expect(FeedViewModel.unreadIncrement(for: [readArticle]) == 0)
+        #expect(FeedViewModel.unreadIncrement(for: [hiddenArticle]) == 0)
+        #expect(FeedViewModel.unreadIncrement(for: [freshArticle]) == 1)
+        #expect(FeedViewModel.unreadIncrement(for: [readArticle, hiddenArticle, freshArticle]) == 1)
+    }
 }
 
 private struct TestFeedRefreshError: LocalizedError {

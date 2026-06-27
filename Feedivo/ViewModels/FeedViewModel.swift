@@ -397,7 +397,7 @@ final class FeedViewModel {
                     feed: feed
                 )
             }
-            feed.unreadCount = feed.articles.filter { !$0.isRead && !$0.isHidden }.count
+            feed.unreadCount = Self.unreadIncrement(for: feed.articles)
 
             context.insert(feed)
             appendLog(
@@ -782,7 +782,10 @@ final class FeedViewModel {
         // Nur nicht-versteckte neue Artikel erhöhen den Ungelesen-Zähler —
         // versteckte (z.B. per Regel ausgeblendete) werden in der Liste nicht
         // angezeigt und würden sonst ein Badge ohne sichtbare Artikel erzeugen.
-        feed.unreadCount += newArticleObjects.filter { !$0.isHidden }.count
+        // Konsistent zum addFeed-Pfad (Z. 400) über die geteilte static
+        // `unreadIncrement(for:)` — verhindert Drift, sobald je ein neuer
+        // Artikel mit isRead=true importiert oder gelesen markiert wird.
+        feed.unreadCount += Self.unreadIncrement(for: newArticleObjects)
 
         appendLog(
             kind: .info,
@@ -800,6 +803,14 @@ final class FeedViewModel {
             ),
             ruleNotifications: ruleNotifications
         )
+    }
+
+    /// Anzahl neuer Artikel, die den Ungelesen-Zähler erhöhen: nur nicht
+    /// gelesene UND nicht versteckte. Konsistent zum addFeed-Pfad
+    /// (Z. 400) — verhindert Drift, sobald jemals Artikel mit isRead=true
+    /// importiert oder per Regel gelesen markiert werden.
+    static func unreadIncrement(for articles: [Article]) -> Int {
+        articles.filter { !$0.isRead && !$0.isHidden }.count
     }
 
     private func existingArticlesByIdentity(in feed: Feed) -> [String: Article] {
