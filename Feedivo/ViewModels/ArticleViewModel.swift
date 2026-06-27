@@ -184,10 +184,11 @@ final class ArticleViewModel {
 
     @MainActor
     func markAllRead(_ articles: [Article], context: ModelContext) {
+        // M8: Die per-Article updateUnreadCount im Loop ist redundant —
+        // synchronizeUnreadCounts stellt die Feed-Zähler anschließend aus dem
+        // Bestand neu auf. Nur isRead setzen, dann einmal synchronisieren.
         for article in articles where !article.isRead {
-            let wasRead = article.isRead
             article.isRead = true
-            updateUnreadCount(for: article, wasRead: wasRead, isRead: article.isRead, context: context)
         }
 
         synchronizeUnreadCounts(for: articles, context: context)
