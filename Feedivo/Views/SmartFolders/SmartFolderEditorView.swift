@@ -341,21 +341,21 @@ struct SmartFolderEditorView: View {
     private func valuePlaceholder(for field: SmartFolderConditionField) -> String {
         switch field {
         case .tag:
-            "Tag-Name oder ID"
+            L10n.smartFolderPlaceholderTag
         case .feed:
-            "Feed-Name oder ID"
+            L10n.smartFolderPlaceholderFeed
         case .feedFolder:
-            "Ordnername"
+            L10n.smartFolderPlaceholderFeedFolder
         case .date:
-            "Tage"
+            L10n.smartFolderPlaceholderDate
         case .status:
-            "Status"
+            L10n.smartFolderPlaceholderStatus
         case .title:
-            "Titeltext"
+            L10n.smartFolderPlaceholderTitle
         case .text:
-            "Suchtext"
+            L10n.smartFolderPlaceholderText
         case .author:
-            "Autor"
+            L10n.smartFolderPlaceholderAuthor
         }
     }
 

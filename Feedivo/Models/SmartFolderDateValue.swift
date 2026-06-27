@@ -7,9 +7,9 @@ enum SmartFolderDateValue: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .today:
-            "heute"
+            L10n.smartFolderDateToday
         case .thisWeek:
-            "diese Woche"
+            L10n.smartFolderDateThisWeek
         }
     }
 }

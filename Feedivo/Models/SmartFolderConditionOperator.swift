@@ -9,13 +9,13 @@ enum SmartFolderConditionOperator: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .is:
-            "ist"
+            L10n.smartFolderOperatorIs
         case .isNot:
-            "ist nicht"
+            L10n.smartFolderOperatorIsNot
         case .contains:
-            "enthaelt"
+            L10n.smartFolderOperatorContains
         case .olderThanDays:
-            "aelter als Tage"
+            L10n.smartFolderOperatorOlderThanDays
         }
     }
 }

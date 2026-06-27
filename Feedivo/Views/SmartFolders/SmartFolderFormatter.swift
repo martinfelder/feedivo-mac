@@ -5,10 +5,10 @@ enum SmartFolderFormatter {
     static func conditionSummary(for folder: SmartFolder) -> String {
         let conditions = sortedConditions(for: folder)
         guard !conditions.isEmpty else {
-            return "Alle Artikel"
+            return L10n.smartFolderSummaryAllArticles
         }
 
-        let connector = RuleMatchMode.normalized(folder.matchModeRaw) == .all ? "UND" : "ODER"
+        let connector = RuleMatchMode.normalized(folder.matchModeRaw) == .all ? L10n.smartFolderSummaryAll : L10n.smartFolderSummaryAny
         return conditions
             .map { condition in
                 conditionDescription(condition)

@@ -15,21 +15,21 @@ enum SmartFolderConditionField: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .tag:
-            "Tag"
+            L10n.smartFolderFieldTag
         case .feed:
-            "Feed"
+            L10n.smartFolderFieldFeed
         case .feedFolder:
-            "Feed-Ordner"
+            L10n.smartFolderFieldFeedFolder
         case .date:
-            "Datum"
+            L10n.smartFolderFieldDate
         case .status:
-            "Status"
+            L10n.smartFolderFieldStatus
         case .title:
-            "Titel"
+            L10n.smartFolderFieldTitle
         case .text:
-            "Text"
+            L10n.smartFolderFieldText
         case .author:
-            "Autor"
+            L10n.smartFolderFieldAuthor
         }
     }
 }

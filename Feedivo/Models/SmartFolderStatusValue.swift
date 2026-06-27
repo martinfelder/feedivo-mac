@@ -10,15 +10,15 @@ enum SmartFolderStatusValue: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .unread:
-            "ungelesen"
+            L10n.smartFolderStatusUnread
         case .read:
-            "gelesen"
+            L10n.smartFolderStatusRead
         case .starred:
-            "mit Stern"
+            L10n.smartFolderStatusStarred
         case .archived:
-            "archiviert"
+            L10n.smartFolderStatusArchived
         case .hidden:
-            "ausgeblendet"
+            L10n.smartFolderStatusHidden
         }
     }
 }

@@ -319,10 +319,10 @@ enum RuleSettingsFormatter {
     static func conditionSummary(for rule: Rule) -> String {
         let conditionDrafts = conditionDrafts(for: rule)
         guard !conditionDrafts.isEmpty else {
-            return "Keine Bedingung"
+            return L10n.ruleSummaryNoCondition
         }
 
-        let connector = RuleMatchMode.normalized(rule.conditionMatchMode) == .all ? "UND" : "ODER"
+        let connector = RuleMatchMode.normalized(rule.conditionMatchMode) == .all ? L10n.ruleSummaryAll : L10n.ruleSummaryAny
         return conditionDrafts
             .map { draft in
                 conditionDescription(draft)
@@ -376,22 +376,22 @@ enum RuleSettingsFormatter {
     private static func fieldTitle(_ field: RuleConditionField) -> String {
         switch field {
         case .title:
-            return "Titel"
+            return L10n.ruleFieldTitle
         case .summary:
-            return "Zusammenfassung"
+            return L10n.ruleFieldSummary
         case .feedTitle:
-            return "Feed"
+            return L10n.ruleFieldFeedTitle
         }
     }
 
     private static func operatorTitle(_ conditionOperator: RuleConditionOperator) -> String {
         switch conditionOperator {
         case .contains:
-            return "enthält"
+            return L10n.ruleOperatorContains
         case .startsWith:
-            return "beginnt mit"
+            return L10n.ruleOperatorStartsWith
         case .endsWith:
-            return "endet mit"
+            return L10n.ruleOperatorEndsWith
         }
     }
 }

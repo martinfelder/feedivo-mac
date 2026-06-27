@@ -583,4 +583,49 @@ enum L10n {
     static func settingsFeedsDeleteConfirmationMessage(count: Int) -> String {
         String.localizedStringWithFormat(String(localized: "settings.feeds.deleteConfirmation.message"), count)
     }
+
+    // SmartFolder-Condition-Felder/Operatoren/Werte (berechnete Enum-Titel,
+    // nicht auto-extrahiert) sowie Formatter-Kleber. Als `String(localized:)`,
+    // weil sie z. T. in zusammengesetzten Summaries genutzt werden.
+    static let smartFolderFieldTag = String(localized: "smartfolder.field.tag")
+    static let smartFolderFieldFeed = String(localized: "smartfolder.field.feed")
+    static let smartFolderFieldFeedFolder = String(localized: "smartfolder.field.feedFolder")
+    static let smartFolderFieldDate = String(localized: "smartfolder.field.date")
+    static let smartFolderFieldStatus = String(localized: "smartfolder.field.status")
+    static let smartFolderFieldTitle = String(localized: "smartfolder.field.title")
+    static let smartFolderFieldText = String(localized: "smartfolder.field.text")
+    static let smartFolderFieldAuthor = String(localized: "smartfolder.field.author")
+    static let smartFolderOperatorIs = String(localized: "smartfolder.operator.is")
+    static let smartFolderOperatorIsNot = String(localized: "smartfolder.operator.isNot")
+    static let smartFolderOperatorContains = String(localized: "smartfolder.operator.contains")
+    static let smartFolderOperatorOlderThanDays = String(localized: "smartfolder.operator.olderThanDays")
+    static let smartFolderStatusUnread = String(localized: "smartfolder.status.unread")
+    static let smartFolderStatusRead = String(localized: "smartfolder.status.read")
+    static let smartFolderStatusStarred = String(localized: "smartfolder.status.starred")
+    static let smartFolderStatusArchived = String(localized: "smartfolder.status.archived")
+    static let smartFolderStatusHidden = String(localized: "smartfolder.status.hidden")
+    static let smartFolderDateToday = String(localized: "smartfolder.date.today")
+    static let smartFolderDateThisWeek = String(localized: "smartfolder.date.thisWeek")
+    static let smartFolderSummaryAllArticles = String(localized: "smartfolder.summary.allArticles")
+    static let smartFolderSummaryAll = String(localized: "smartfolder.summary.all")
+    static let smartFolderSummaryAny = String(localized: "smartfolder.summary.any")
+    static let smartFolderPlaceholderTag = String(localized: "smartfolder.placeholder.tag")
+    static let smartFolderPlaceholderFeed = String(localized: "smartfolder.placeholder.feed")
+    static let smartFolderPlaceholderFeedFolder = String(localized: "smartfolder.placeholder.feedFolder")
+    static let smartFolderPlaceholderDate = String(localized: "smartfolder.placeholder.date")
+    static let smartFolderPlaceholderStatus = String(localized: "smartfolder.placeholder.status")
+    static let smartFolderPlaceholderTitle = String(localized: "smartfolder.placeholder.title")
+    static let smartFolderPlaceholderText = String(localized: "smartfolder.placeholder.text")
+    static let smartFolderPlaceholderAuthor = String(localized: "smartfolder.placeholder.author")
+
+    // RuleSettingsFormatter: berechnete Feld/Operator-Titel + Summary-Kleber.
+    static let ruleFieldTitle = String(localized: "rule.field.title")
+    static let ruleFieldSummary = String(localized: "rule.field.summary")
+    static let ruleFieldFeedTitle = String(localized: "rule.field.feedTitle")
+    static let ruleOperatorContains = String(localized: "rule.operator.contains")
+    static let ruleOperatorStartsWith = String(localized: "rule.operator.startsWith")
+    static let ruleOperatorEndsWith = String(localized: "rule.operator.endsWith")
+    static let ruleSummaryNoCondition = String(localized: "rule.summary.noCondition")
+    static let ruleSummaryAll = String(localized: "rule.summary.all")
+    static let ruleSummaryAny = String(localized: "rule.summary.any")
 }
