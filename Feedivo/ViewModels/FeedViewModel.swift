@@ -156,6 +156,10 @@ final class FeedViewModel {
         refreshIntervalMinutes: Int = 60,
         context: ModelContext
     ) async throws -> OPMLImportResult {
+        guard !isLoading else {
+            return OPMLImportResult(total: opmlFeeds.count, imported: 0, skippedDuplicates: 0)
+        }
+
         errorMessage = nil
         isLoading = true
         operationProgress = nil
@@ -385,6 +389,10 @@ final class FeedViewModel {
 
     @MainActor
     func refreshFeed(_ feed: Feed?, context: ModelContext) async {
+        guard !isLoading else {
+            return
+        }
+
         guard let feed else {
             return
         }
@@ -421,6 +429,10 @@ final class FeedViewModel {
 
     @MainActor
     func refreshAllFeeds(_ feeds: [Feed], context: ModelContext) async {
+        guard !isLoading else {
+            return
+        }
+
         guard !feeds.isEmpty else {
             return
         }

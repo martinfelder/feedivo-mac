@@ -69,6 +69,7 @@ final class ArticleViewModel {
         let wasRead = article.isRead
         article.isRead.toggle()
         updateUnreadCount(for: article, wasRead: wasRead, isRead: article.isRead, context: context)
+        try? context.save()
     }
 
     func toggleRead(_ article: Article?) {
@@ -164,6 +165,7 @@ final class ArticleViewModel {
         let wasRead = article.isRead
         article.isRead = true
         updateUnreadCount(for: article, wasRead: wasRead, isRead: article.isRead, context: context)
+        try? context.save()
     }
 
     func markAllRead(_ articles: [Article]) {
@@ -183,6 +185,7 @@ final class ArticleViewModel {
         }
 
         synchronizeUnreadCounts(for: articles, context: context)
+        try? context.save()
     }
 
     func markRead(

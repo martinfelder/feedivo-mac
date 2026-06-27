@@ -2,6 +2,7 @@ import Foundation
 import SwiftData
 
 enum RuleConditionBackfillService {
+    @MainActor
     static func backfillMissingConditions(context: ModelContext) throws {
         let rules = try context.fetch(FetchDescriptor<Rule>())
 

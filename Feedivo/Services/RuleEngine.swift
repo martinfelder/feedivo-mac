@@ -9,20 +9,85 @@ enum RuleEngine {
     private struct NormalizedCondition {
         var field: String
         var conditionOperator: String
-        var value: String
+        var lowercasedValue: String
+    }
+
+    /// Vorbereitete Regel: Sortierung, Conditions und Match-Modus werden einmalig
+    /// vor der Artikel-Schleife berechnet, statt pro Artikel neu aufgebaut zu werden.
+    private struct PreparedRule {
+        let rule: Rule
+        let conditions: [NormalizedCondition]
+        let matchMode: RuleMatchMode
     }
 
     @discardableResult
+    @MainActor
     static func applyRules(_ rules: [Rule], to article: Article, feed: Feed) -> Int {
         applyRulesWithNotifications(rules, to: article, feed: feed).appliedActionCount
     }
 
+    @MainActor
     static func applyRulesWithNotifications(_ rules: [Rule], to article: Article, feed: Feed) -> RuleApplicationResult {
+        applyPreparedRulesWithNotifications(preparedRules(rules), to: article, feed: feed)
+    }
+
+    @MainActor
+    static func applyRulesToExistingArticles(_ rules: [Rule], articles: [Article]) -> Int {
+        // Regeln einmalig vorbereiten (Sortierung + normalisierte Conditions),
+        // damit pro Artikel nur noch die vorbereitete Struktur ausgewertet wird.
+        let preparedRules = preparedRules(rules)
+
+        return articles.reduce(0) { appliedActionCount, article in
+            guard let feed = article.feed else {
+                return appliedActionCount
+            }
+
+            return appliedActionCount + applyPreparedRulesWithNotifications(
+                preparedRules,
+                to: article,
+                feed: feed
+            ).appliedActionCount
+        }
+    }
+
+    @MainActor
+    static func matchingArticleCount(
+        conditionDrafts: [RuleConditionDraft],
+        matchMode: RuleMatchMode,
+        articles: [Article]
+    ) -> Int {
+        let conditions = normalizedConditions(from: conditionDrafts)
+        guard !conditions.isEmpty else {
+            return 0
+        }
+
+        return articles.reduce(0) { count, article in
+            guard let feed = article.feed,
+                  matches(conditions: conditions, matchMode: matchMode, article: article, feed: feed)
+            else {
+                return count
+            }
+
+            return count + 1
+        }
+    }
+
+    private static func applyPreparedRulesWithNotifications(
+        _ preparedRules: [PreparedRule],
+        to article: Article,
+        feed: Feed
+    ) -> RuleApplicationResult {
         var appliedActionCount = 0
         var notifications: [RuleNotificationResult] = []
 
-        for rule in sortedRules(rules) where rule.isEnabled {
-            guard matches(rule: rule, article: article, feed: feed) else {
+        for preparedRule in preparedRules {
+            let rule = preparedRule.rule
+            guard matches(
+                conditions: preparedRule.conditions,
+                matchMode: preparedRule.matchMode,
+                article: article,
+                feed: feed
+            ) else {
                 continue
             }
 
@@ -55,45 +120,23 @@ enum RuleEngine {
         )
     }
 
-    static func applyRulesToExistingArticles(_ rules: [Rule], articles: [Article]) -> Int {
-        articles.reduce(0) { appliedActionCount, article in
-            guard let feed = article.feed else {
-                return appliedActionCount
+    private static func preparedRules(_ rules: [Rule]) -> [PreparedRule] {
+        sortedRules(rules).compactMap { rule in
+            guard rule.isEnabled else {
+                return nil
             }
 
-            return appliedActionCount + applyRules(rules, to: article, feed: feed)
-        }
-    }
-
-    static func matchingArticleCount(
-        conditionDrafts: [RuleConditionDraft],
-        matchMode: RuleMatchMode,
-        articles: [Article]
-    ) -> Int {
-        let conditions = normalizedConditions(from: conditionDrafts)
-        guard !conditions.isEmpty else {
-            return 0
-        }
-
-        return articles.reduce(0) { count, article in
-            guard let feed = article.feed,
-                  matches(conditions: conditions, matchMode: matchMode, article: article, feed: feed)
-            else {
-                return count
+            let conditions = normalizedConditions(for: rule)
+            guard !conditions.isEmpty else {
+                return nil
             }
 
-            return count + 1
+            return PreparedRule(
+                rule: rule,
+                conditions: conditions,
+                matchMode: RuleMatchMode.normalized(rule.conditionMatchMode)
+            )
         }
-    }
-
-    private static func matches(rule: Rule, article: Article, feed: Feed) -> Bool {
-        let conditions = normalizedConditions(for: rule)
-        guard !conditions.isEmpty else {
-            return false
-        }
-
-        let mode = RuleMatchMode.normalized(rule.conditionMatchMode)
-        return matches(conditions: conditions, matchMode: mode, article: article, feed: feed)
     }
 
     private static func matches(
@@ -159,7 +202,9 @@ enum RuleEngine {
         return NormalizedCondition(
             field: field,
             conditionOperator: conditionOperator,
-            value: trimmedValue
+            // Wert einmalig kleinschreiben — er ist statisch zur Laufzeit und
+            // wird sonst bei jedem Artikel-Vergleich neu lowercased.
+            lowercasedValue: trimmedValue.lowercased()
         )
     }
 
@@ -169,15 +214,14 @@ enum RuleEngine {
         }
 
         let normalizedFieldValue = fieldValue.lowercased()
-        let normalizedValue = condition.value.lowercased()
 
         switch condition.conditionOperator {
         case RuleConditionOperator.contains.rawValue:
-            return normalizedFieldValue.contains(normalizedValue)
+            return normalizedFieldValue.contains(condition.lowercasedValue)
         case RuleConditionOperator.startsWith.rawValue:
-            return normalizedFieldValue.hasPrefix(normalizedValue)
+            return normalizedFieldValue.hasPrefix(condition.lowercasedValue)
         case RuleConditionOperator.endsWith.rawValue:
-            return normalizedFieldValue.hasSuffix(normalizedValue)
+            return normalizedFieldValue.hasSuffix(condition.lowercasedValue)
         default:
             return false
         }
