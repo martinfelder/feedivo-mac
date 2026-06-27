@@ -361,7 +361,13 @@ struct FeedViewModelTests {
     }
 
     @MainActor
-    @Test func opmlImportPreviewMeldetSichtbarenPrueffortschritt() async throws {
+    @Test func opmlImportPreviewMeldetSichtbarenPrueffortschrittInBeidePhasen() async throws {
+        // Phase 1 (Duplikat-Schau) feuert onProgress pro Feed in Eingabe-Reihenfolge
+        // (deterministisch: Titel + currentIndex 1..n). Phase 2 (paralleler Abruf)
+        // feuert pro Completion einen Event; da die Completion-Reihenfolge nicht
+        // deterministisch ist, wird hier nur die Anzahl (= Anzahl nicht-Duplikat-
+        // Feeds) und das Set der currentIndex-Werte (1..k) geprüft — nicht die
+        // Titel-Reihenfolge.
         let viewModel = makeViewModel(
             fetchFeed: { urlString in
                 ParsedFeed(sourceURL: urlString, title: "OK", description: nil, articles: [])
@@ -379,11 +385,24 @@ struct FeedViewModelTests {
             onProgress: { progressEvents.append($0) }
         )
 
-        #expect(progressEvents.map(\.currentFeedTitle) == ["Erster Feed", "Zweiter Feed"])
-        #expect(progressEvents.map(\.displayText) == [
+        // Phase 1: beide Feeds sind keine Duplikate → zwei Events in
+        // Eingabe-Reihenfolge mit currentIndex 1 und 2.
+        let phase1Events = progressEvents.prefix(2)
+        #expect(phase1Events.map(\.currentFeedTitle) == ["Erster Feed", "Zweiter Feed"])
+        #expect(phase1Events.map(\.currentIndex) == [1, 2])
+        #expect(phase1Events.map(\.displayText) == [
             "Feed 1 von 2 wird geprüft: Erster Feed",
             "Feed 2 von 2 wird geprüft: Zweiter Feed"
         ])
+
+        // Phase 2: zwei Abrufe → zwei weitere Events. Titel-Reihenfolge nicht
+        // deterministisch (parallele Tasks), daher nur Anzahl und das Set der
+        // currentIndex-Werte (1, 2 — deterministischer MainActor-Zähler, der
+        // pro Completion hochzählt). totalCount bleibt über beide Phasen 2.
+        let phase2Events = progressEvents.dropFirst(2)
+        #expect(phase2Events.count == 2)
+        #expect(Set(phase2Events.map(\.currentIndex)) == Set(1...2))
+        #expect(phase2Events.allSatisfy { $0.totalCount == 2 })
     }
 
     @MainActor
@@ -1553,6 +1572,83 @@ struct FeedViewModelTests {
         let entries = try context.fetch(FetchDescriptor<FeedLogEntry>())
         #expect(entries.isEmpty, "LogEntries müssen mit dem Feed gelöscht werden")
         #expect(viewModel.errorMessage == nil)
+    }
+
+    @MainActor
+    @Test func unreadIncrementZaehltKeineGelesenenOderVerstecktenArtikel() {
+        // Konsistenz mit dem addFeed-Pfad (Z. 400: `!isRead && !isHidden`):
+        // Gelesene und versteckte Artikel dürfen den Ungelesen-Zähler nicht
+        // erhöhen — nur frische, ungelesene Artikel zählen.
+        let readArticle = Article(title: "Gelesen", isRead: true)
+        let hiddenArticle = Article(title: "Versteckt", isHidden: true)
+        let freshArticle = Article(title: "Neu")
+
+        #expect(FeedViewModel.unreadIncrement(for: [readArticle]) == 0)
+        #expect(FeedViewModel.unreadIncrement(for: [hiddenArticle]) == 0)
+        #expect(FeedViewModel.unreadIncrement(for: [freshArticle]) == 1)
+        #expect(FeedViewModel.unreadIncrement(for: [readArticle, hiddenArticle, freshArticle]) == 1)
+    }
+
+    @MainActor
+    @Test func addFeedLehntAbWennBereitsEinLaufenderRefreshAktivIst() async throws {
+        let container = try ModelContainer(
+            for: Feed.self, Article.self, Tag.self, Rule.self,
+            RuleCondition.self, FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let viewModel = makeViewModel()
+        viewModel.isLoading = true  // simuliert laufenden Hintergrund-Refresh
+
+        await viewModel.addFeed(urlString: "https://example.com/feed.xml", context: context)
+
+        // Guard triggert: kein Fetch, Fehlermeldung gesetzt, isLoading bleibt true.
+        #expect(viewModel.errorMessage == L10n.feedErrorAlreadyRunning)
+        #expect(try context.fetch(FetchDescriptor<Feed>()).count == 0)
+    }
+
+    @MainActor
+    @Test func opmlImportPreviewRowsParalleelisiertBehaeltReihenfolgeUndStatus() async throws {
+        // Charakterisierungs-Test: Die Vorschau muss Reihenfolge und Status pro
+        // Zeile bewahren, auch wenn der Abruf parallelisiert in Batches läuft.
+        // 6 Feeds, einer ("fail://broken") ist nicht erreichbar, Rest available.
+        let viewModel = makeViewModel(
+            fetchFeed: { urlString in
+                if urlString.hasPrefix("fail://") {
+                    throw FeedServiceError.parsingFailed
+                }
+                return ParsedFeed(
+                    sourceURL: urlString,
+                    title: urlString,
+                    description: nil,
+                    articles: []
+                )
+            },
+            discoverFaviconURL: { _ in nil }
+        )
+        // F3 (Index 2) ist nicht erreichbar — xmlURL ist `let`, daher wird der
+        // dritte Eintrag direkt mit der fail://-URL erzeugt statt nachträglich
+        // mutiert.
+        let opmlFeeds: [OPMLFeed] = [
+            OPMLFeed(title: "F1", xmlURL: "https://f1.example.com/feed.xml", htmlURL: nil, folderName: nil),
+            OPMLFeed(title: "F2", xmlURL: "https://f2.example.com/feed.xml", htmlURL: nil, folderName: nil),
+            OPMLFeed(title: "F3", xmlURL: "fail://broken", htmlURL: nil, folderName: nil),
+            OPMLFeed(title: "F4", xmlURL: "https://f4.example.com/feed.xml", htmlURL: nil, folderName: nil),
+            OPMLFeed(title: "F5", xmlURL: "https://f5.example.com/feed.xml", htmlURL: nil, folderName: nil),
+            OPMLFeed(title: "F6", xmlURL: "https://f6.example.com/feed.xml", htmlURL: nil, folderName: nil)
+        ]
+
+        let rows = await viewModel.opmlImportPreviewRows(for: opmlFeeds, existingFeeds: [])
+
+        #expect(rows.count == 6)
+        #expect(rows.map(\.feed.title) == ["F1", "F2", "F3", "F4", "F5", "F6"])
+        #expect(rows[0].status == .available)
+        #expect(rows[1].status == .available)
+        #expect(rows[2].status == .unreachable)
+        #expect(rows[3].status == .available)
+        #expect(rows[4].status == .available)
+        #expect(rows[5].status == .available)
+        #expect(rows.allSatisfy { $0.status != .duplicate })
     }
 }
 

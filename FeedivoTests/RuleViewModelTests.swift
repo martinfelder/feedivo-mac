@@ -285,4 +285,48 @@ struct RuleViewModelTests {
         let conditions = try context.fetch(FetchDescriptor<RuleCondition>())
         #expect(conditions.isEmpty, "Conditions müssen mit der Regel gelöscht werden")
     }
+
+    @MainActor
+    @Test func updateRuleLoeschtAlteConditionsStattSieZuVerwaisten() throws {
+        let container = try ModelContainer(
+            for: Feed.self, Article.self, Tag.self, Rule.self,
+            RuleCondition.self, FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let tag = Tag(name: "Swift", colorHex: "#3B82F6")
+        context.insert(tag)
+        let viewModel = RuleViewModel()
+
+        viewModel.createRule(
+            name: "Alt",
+            isEnabled: true,
+            matchMode: .all,
+            conditionDrafts: [
+                RuleConditionDraft(field: .title, conditionOperator: .contains, value: "A"),
+                RuleConditionDraft(field: .title, conditionOperator: .contains, value: "B")
+            ],
+            assignTag: tag,
+            context: context
+        )
+        let rule = try #require(context.fetch(FetchDescriptor<Rule>()).first)
+
+        viewModel.updateRule(
+            rule,
+            name: "Neu",
+            isEnabled: true,
+            matchMode: .all,
+            conditionDrafts: [
+                RuleConditionDraft(field: .title, conditionOperator: .contains, value: "C")
+            ],
+            assignTag: tag,
+            context: context
+        )
+
+        // .nullify würde 2 Orphans + 1 neue = 3 hinterlassen; korrekt ist nur die 1 neue.
+        let allConditions = try context.fetch(FetchDescriptor<RuleCondition>())
+        #expect(allConditions.count == 1)
+        #expect(rule.conditions.count == 1)
+        #expect(allConditions.first?.rule != nil)
+    }
 }

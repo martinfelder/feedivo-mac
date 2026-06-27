@@ -171,7 +171,12 @@ final class RuleViewModel {
         rule.notificationPriorityRaw = notificationPriority.rawValue
         rule.conditionMatchMode = matchMode.rawValue
         rule.assignTag = action == .assignTag ? assignTag : nil
-        rule.conditions.removeAll()
+        // .nullify statt .cascade (CloudKit-kompatibel): removeAll würde die
+        // alten Conditions nur verwaisten lassen — deshalb manuell löschen,
+        // analog deleteRule.
+        for condition in Array(rule.conditions) {
+            context.delete(condition)
+        }
         rule.conditions = conditions.enumerated().map { index, condition in
             RuleCondition(
                 field: condition.field,

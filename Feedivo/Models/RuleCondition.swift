@@ -24,4 +24,9 @@ class RuleCondition {
         self.value = value
         self.sortOrder = sortOrder
     }
+
+    // Typsicherer Zugriff — ungültige Raw-Values (z.B. nach Refactor verwaist)
+    // fallen hier früh auf nil statt still zu matchen.
+    var fieldEnum: RuleConditionField? { RuleConditionField(rawValue: field) }
+    var operatorEnum: RuleConditionOperator? { RuleConditionOperator(rawValue: conditionOperator) }
 }

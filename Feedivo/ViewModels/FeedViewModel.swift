@@ -110,7 +110,21 @@ final class FeedViewModel {
         onProgress: ((OPMLImportPreviewProgress) -> Void)? = nil
     ) async -> [OPMLImportPreviewRow] {
         var knownFeedURLs = Set(existingFeeds.map { normalizedFeedURL($0.url) })
-        var rows: [OPMLImportPreviewRow] = []
+
+        // Phase 1 — sequenziell: Duplikat-Status feststellen und Abruf-Bedarf
+        // sammeln. Das URL-Set darf nicht concurrent mutiert werden, daher bleibt
+        // diese Phase bewusst seriell. Der onProgress-Callback wird hier pro
+        // Feed in Original-Reihenfolge aufgerufen (bestehendes Verhalten: eine
+        // Meldung je Feed vor dem Abruf). Die Reihenfolge der zurückgegebenen
+        // Rows entspricht der Reihenfolge von `opmlFeeds`.
+        struct PendingFeed {
+            let index: Int
+            let cleanedURL: String
+        }
+        var pending: [PendingFeed] = []
+        // Indexiertes Ergebnis-Array, damit die Abrufe in Phase 2 parallel laufen
+        // können, ohne die Original-Reihenfolge zu verlieren.
+        var rowsByIndex = Array<OPMLImportPreviewRow?>(repeating: nil, count: opmlFeeds.count)
 
         for (index, opmlFeed) in opmlFeeds.enumerated() {
             onProgress?(
@@ -125,37 +139,65 @@ final class FeedViewModel {
             let isDuplicate = !knownFeedURLs.insert(normalizedURL).inserted
 
             if isDuplicate {
-                rows.append(
-                    OPMLImportPreviewRow(
-                        feed: opmlFeed,
-                        status: .duplicate,
-                        isSelected: false
-                    )
+                rowsByIndex[index] = OPMLImportPreviewRow(
+                    feed: opmlFeed,
+                    status: .duplicate,
+                    isSelected: false
                 )
-                continue
-            }
-
-            do {
-                _ = try await fetchFeed(cleanedURL)
-                rows.append(
-                    OPMLImportPreviewRow(
-                        feed: opmlFeed,
-                        status: .available,
-                        isSelected: true
-                    )
-                )
-            } catch {
-                rows.append(
-                    OPMLImportPreviewRow(
-                        feed: opmlFeed,
-                        status: .unreachable,
-                        isSelected: false
-                    )
-                )
+            } else {
+                pending.append(PendingFeed(index: index, cleanedURL: cleanedURL))
             }
         }
 
-        return rows
+        // Phase 2 — parallel: Erreichbarkeit prüfen, in begrenzten Gruppen
+        // (gleiche Drosselung wie importOPMLFeeds/refreshAllFeeds). Ergebnisse
+        // werden indexiert in `rowsByIndex` einsortiert, nicht in eine gemeinsam
+        // mutierte Liste appendet — so bleibt die Original-Reihenfolge erhalten.
+        //
+        // Fortschritts-Updates in Phase 2: Pro abgeschlossenem Abruf feuern wir
+        // onProgress. `completedFetches` ist ein monotoner MainActor-Zähler, der
+        // unabhängig von der Completion-Reihenfolge der Tasks deterministisch
+        // 1..k hochzählt. Ohne diese Updates würde der Fortschrittsbalken während
+        // der langsamen Abruf-Phase (dem Punkt der Parallelisierung) sichtbar
+        // „einfrieren" — Phase 1 ist reine Duplikat-Schau ohne Netzwerk-I/O.
+        var completedFetches = 0
+        for batch in feedBatches(from: pending) {
+            await withTaskGroup(of: (Int, OPMLImportFeedStatus).self) { group in
+                for item in batch {
+                    group.addTask { @MainActor in
+                        do {
+                            _ = try await self.fetchFeed(item.cleanedURL)
+                            return (item.index, .available)
+                        } catch {
+                            return (item.index, .unreachable)
+                        }
+                    }
+                }
+                for await (index, status) in group {
+                    completedFetches += 1
+                    let isSelected = (status == .available)
+                    rowsByIndex[index] = OPMLImportPreviewRow(
+                        feed: opmlFeeds[index],
+                        status: status,
+                        isSelected: isSelected
+                    )
+                    // currentIndex nutzt den deterministischen MainActor-Zähler
+                    // (1..k), nicht den Index im opmlFeeds-Array — so bleibt die
+                    // Progress-Anzeige stabil unabhängig davon, welcher Task
+                    // zuerst fertig wird. totalCount bezieht sich wie in Phase 1
+                    // auf alle Feeds im OPML-Import.
+                    onProgress?(
+                        OPMLImportPreviewProgress(
+                            currentFeedTitle: opmlFeeds[index].title.trimmingCharacters(in: .whitespacesAndNewlines),
+                            currentIndex: completedFetches,
+                            totalCount: opmlFeeds.count
+                        )
+                    )
+                }
+            }
+        }
+
+        return rowsByIndex.compactMap { $0 }
     }
 
     @MainActor
@@ -354,6 +396,14 @@ final class FeedViewModel {
             return
         }
 
+        // Reentrancy-Guard — konsistent mit refreshFeed/refreshAllFeeds/importOPMLFeeds:
+        // ein parallel laufender Refresh würde sonst isLoading überschreiben und die
+        // UI fälschlich „nicht lädt" zeigen, während der Hintergrund-Refresh weiterläuft.
+        guard !isLoading else {
+            errorMessage = L10n.feedErrorAlreadyRunning
+            return
+        }
+
         isLoading = true
         errorMessage = nil
 
@@ -397,7 +447,7 @@ final class FeedViewModel {
                     feed: feed
                 )
             }
-            feed.unreadCount = feed.articles.filter { !$0.isRead && !$0.isHidden }.count
+            feed.unreadCount = Self.unreadIncrement(for: feed.articles)
 
             context.insert(feed)
             appendLog(
@@ -557,9 +607,16 @@ final class FeedViewModel {
         }
     }
 
-    private func feedBatches(from feeds: [Feed]) -> [[Feed]] {
-        stride(from: 0, to: feeds.count, by: Self.maxConcurrentFeedRefreshes).map { startIndex in
-            Array(feeds[startIndex ..< min(startIndex + Self.maxConcurrentFeedRefreshes, feeds.count)])
+    // Generisches Chunking in Batches der Größe `maxConcurrentFeedRefreshes`.
+    // Enthält bewusst keine Feed-spezifische Logik, sodass es neben `importOPMLFeeds`
+    // und `refreshAllFeeds` auch für den OPML-Vorschau-Abruf wiederverwendet
+    // werden kann (DRY — vorher war die Methode auf `[Feed]` festgelegt).
+    private func feedBatches<T>(from items: [T]) -> [[T]] {
+        guard !items.isEmpty else {
+            return []
+        }
+        return stride(from: 0, to: items.count, by: Self.maxConcurrentFeedRefreshes).map { startIndex in
+            Array(items[startIndex ..< min(startIndex + Self.maxConcurrentFeedRefreshes, items.count)])
         }
     }
 
@@ -782,7 +839,10 @@ final class FeedViewModel {
         // Nur nicht-versteckte neue Artikel erhöhen den Ungelesen-Zähler —
         // versteckte (z.B. per Regel ausgeblendete) werden in der Liste nicht
         // angezeigt und würden sonst ein Badge ohne sichtbare Artikel erzeugen.
-        feed.unreadCount += newArticleObjects.filter { !$0.isHidden }.count
+        // Konsistent zum addFeed-Pfad (Z. 400) über die geteilte static
+        // `unreadIncrement(for:)` — verhindert Drift, sobald je ein neuer
+        // Artikel mit isRead=true importiert oder gelesen markiert wird.
+        feed.unreadCount += Self.unreadIncrement(for: newArticleObjects)
 
         appendLog(
             kind: .info,
@@ -800,6 +860,14 @@ final class FeedViewModel {
             ),
             ruleNotifications: ruleNotifications
         )
+    }
+
+    /// Anzahl neuer Artikel, die den Ungelesen-Zähler erhöhen: nur nicht
+    /// gelesene UND nicht versteckte. Konsistent zum addFeed-Pfad
+    /// (Z. 400) — verhindert Drift, sobald jemals Artikel mit isRead=true
+    /// importiert oder per Regel gelesen markiert werden.
+    static func unreadIncrement(for articles: [Article]) -> Int {
+        articles.filter { !$0.isRead && !$0.isHidden }.count
     }
 
     private func existingArticlesByIdentity(in feed: Feed) -> [String: Article] {

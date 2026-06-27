@@ -48,14 +48,10 @@ struct OPMLImportReviewView: View {
             previewController.handleDroppedFiles(providers, existingFeeds: feeds, feedViewModel: feedViewModel)
         }
         .onChange(of: previewController.allowsDuplicates) {
-            for index in previewController.rows.indices where previewController.rows[index].status == .duplicate {
-                previewController.rows[index].isSelected = previewController.allowsDuplicates
-            }
+            previewController.applyToggleSelectionToRows()
         }
         .onChange(of: previewController.allowsUnreachable) {
-            for index in previewController.rows.indices where previewController.rows[index].status == .unreachable {
-                previewController.rows[index].isSelected = previewController.allowsUnreachable
-            }
+            previewController.applyToggleSelectionToRows()
         }
     }
 
@@ -215,6 +211,7 @@ struct OPMLImportReviewView: View {
                 previewController.isFileImporterPresented = true
             }
             .buttonStyle(OPMLSecondaryButtonStyle())
+            .disabled(previewController.isPreparingPreview)
 
             Button("Entfernen") {
                 resetFile()
@@ -443,10 +440,10 @@ struct OPMLImportReviewView: View {
         return "Ausgewählt: \(previewController.selectedImportRows.count) von \(previewController.visibleRowCount) sichtbar"
     }
 
-    /// Setzt den Controller zurück und zeigt den Leer-String für die Datei-Auswahl an.
+    /// Setzt den Controller zurück. `selectedFileName` wird von `reset()` selbst
+    /// auf `configuration.initialSelectedFileName` zurückgesetzt (siehe Controller).
     private func resetFile() {
         previewController.reset()
-        previewController.selectedFileName = "Keine OPML-Datei ausgewählt"
     }
 
     /// Importiert die ausgewählten Feeds. Bleibt in der View, weil die

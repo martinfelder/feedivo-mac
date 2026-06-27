@@ -24,4 +24,9 @@ class SmartFolderCondition {
         self.value = value
         self.sortOrder = sortOrder
     }
+
+    // Typsicherer Zugriff — ungültige Raw-Values (z.B. nach Refactor verwaist)
+    // fallen hier früh auf nil statt still zu matchen.
+    var fieldEnum: SmartFolderConditionField? { SmartFolderConditionField(rawValue: fieldRaw) }
+    var operatorEnum: SmartFolderConditionOperator? { SmartFolderConditionOperator(rawValue: operatorRaw) }
 }

@@ -92,14 +92,10 @@ struct FirstRunWizardView: View {
             }
         }
         .onChange(of: previewController.allowsDuplicates) {
-            for index in previewController.rows.indices where previewController.rows[index].status == .duplicate {
-                previewController.rows[index].isSelected = previewController.allowsDuplicates
-            }
+            previewController.applyToggleSelectionToRows()
         }
         .onChange(of: previewController.allowsUnreachable) {
-            for index in previewController.rows.indices where previewController.rows[index].status == .unreachable {
-                previewController.rows[index].isSelected = previewController.allowsUnreachable
-            }
+            previewController.applyToggleSelectionToRows()
         }
         .interactiveDismissDisabled()
     }

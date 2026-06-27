@@ -88,8 +88,8 @@ enum SmartFolderFormatter {
     }
 
     private static func conditionDescription(_ condition: SmartFolderCondition) -> String {
-        let field = SmartFolderConditionField(rawValue: condition.fieldRaw)?.title ?? condition.fieldRaw
-        let conditionOperator = SmartFolderConditionOperator(rawValue: condition.operatorRaw)?.title ?? condition.operatorRaw
+        let field = condition.fieldEnum?.title ?? condition.fieldRaw
+        let conditionOperator = condition.operatorEnum?.title ?? condition.operatorRaw
         let value = displayedValue(fieldRaw: condition.fieldRaw, value: condition.value)
         return "\(field) \(conditionOperator) \"\(value)\""
     }
