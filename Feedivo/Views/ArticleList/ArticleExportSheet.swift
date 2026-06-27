@@ -32,21 +32,21 @@ struct ArticleExportSheet: View {
     @State private var isExporting = false
     @State private var preparedPackage: ArticleExportPackage?
     @State private var exportStatus: ArticleExportStatus = .idle
-    @AppStorage("readerTitleFontPreset")
+    @AppStorage(ReaderTypographySettings.titleFontPresetKey)
     private var readerTitleFontPresetRawValue = ReaderFontPreset.system.rawValue
-    @AppStorage("readerBodyFontPreset")
+    @AppStorage(ReaderTypographySettings.bodyFontPresetKey)
     private var readerBodyFontPresetRawValue = ReaderFontPreset.system.rawValue
-    @AppStorage("readerTitleFontIsBold")
+    @AppStorage(ReaderTypographySettings.titleFontIsBoldKey)
     private var readerTitleFontIsBold = ReaderTypography.defaultTitleFontIsBold
-    @AppStorage("readerBodyFontIsBold")
+    @AppStorage(ReaderTypographySettings.bodyFontIsBoldKey)
     private var readerBodyFontIsBold = ReaderTypography.defaultBodyFontIsBold
-    @AppStorage("readerBodyFontSize")
+    @AppStorage(ReaderTypographySettings.bodyFontSizeKey)
     private var readerBodyFontSize = ReaderTypography.defaultBodyFontSize
-    @AppStorage("readerLineSpacing")
+    @AppStorage(ReaderTypographySettings.lineSpacingKey)
     private var readerLineSpacing = ReaderTypography.defaultLineSpacing
-    @AppStorage("readerTitleLineSpacing")
+    @AppStorage(ReaderTypographySettings.titleLineSpacingKey)
     private var readerTitleLineSpacing = ReaderTypography.defaultTitleLineSpacing
-    @AppStorage("readerContentWidth")
+    @AppStorage(ReaderTypographySettings.contentWidthKey)
     private var readerContentWidth = ReaderTypography.defaultContentWidth
 
     private var options: ArticleExportOptions {

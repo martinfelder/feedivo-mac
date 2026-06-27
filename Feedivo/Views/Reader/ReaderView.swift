@@ -36,28 +36,28 @@ struct ReaderView: View {
         self._preparedArticle = State(initialValue: ReaderPreparedArticle(article: article))
     }
 
-    @AppStorage("readerTitleFontPreset")
+    @AppStorage(ReaderTypographySettings.titleFontPresetKey)
     private var titleFontPresetRawValue = ReaderFontPreset.system.rawValue
 
-    @AppStorage("readerBodyFontPreset")
+    @AppStorage(ReaderTypographySettings.bodyFontPresetKey)
     private var bodyFontPresetRawValue = ReaderFontPreset.system.rawValue
 
-    @AppStorage("readerTitleFontIsBold")
+    @AppStorage(ReaderTypographySettings.titleFontIsBoldKey)
     private var readerTitleFontIsBold = ReaderTypography.defaultTitleFontIsBold
 
-    @AppStorage("readerBodyFontIsBold")
+    @AppStorage(ReaderTypographySettings.bodyFontIsBoldKey)
     private var readerBodyFontIsBold = ReaderTypography.defaultBodyFontIsBold
 
-    @AppStorage("readerBodyFontSize")
+    @AppStorage(ReaderTypographySettings.bodyFontSizeKey)
     private var readerBodyFontSize = ReaderTypography.defaultBodyFontSize
 
-    @AppStorage("readerLineSpacing")
+    @AppStorage(ReaderTypographySettings.lineSpacingKey)
     private var readerLineSpacing = ReaderTypography.defaultLineSpacing
 
-    @AppStorage("readerTitleLineSpacing")
+    @AppStorage(ReaderTypographySettings.titleLineSpacingKey)
     private var readerTitleLineSpacing = ReaderTypography.defaultTitleLineSpacing
 
-    @AppStorage("readerContentWidth")
+    @AppStorage(ReaderTypographySettings.contentWidthKey)
     private var readerContentWidth = ReaderTypography.defaultContentWidth
 
     @AppStorage(ReaderDisplayMode.storageKey)
