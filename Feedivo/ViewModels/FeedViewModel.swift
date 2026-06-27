@@ -371,7 +371,7 @@ final class FeedViewModel {
                     feed: feed
                 )
             }
-            feed.unreadCount = feed.articles.filter { !$0.isRead }.count
+            feed.unreadCount = feed.articles.filter { !$0.isRead && !$0.isHidden }.count
 
             context.insert(feed)
             appendLog(
@@ -712,7 +712,10 @@ final class FeedViewModel {
         let ruleResult = RuleEngine.applyRulesWithNotifications(rules, to: newArticleObjects, feed: feed)
         ruleNotifications.append(contentsOf: ruleResult.notifications)
         feed.articles.append(contentsOf: newArticleObjects)
-        feed.unreadCount += newArticles.count
+        // Nur nicht-versteckte neue Artikel erhöhen den Ungelesen-Zähler —
+        // versteckte (z.B. per Regel ausgeblendete) werden in der Liste nicht
+        // angezeigt und würden sonst ein Badge ohne sichtbare Artikel erzeugen.
+        feed.unreadCount += newArticleObjects.filter { !$0.isHidden }.count
 
         appendLog(
             kind: "info",

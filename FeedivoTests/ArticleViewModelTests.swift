@@ -154,6 +154,31 @@ struct ArticleViewModelTests {
         #expect(article.isRead)
     }
 
+    @MainActor
+    @Test func ungelesenZaehlerSchliesstVersteckteArtikelAus() throws {
+        // Regression-Test: `feed.unreadCount` darf versteckte (isHidden)
+        // ungelesene Artikel nicht zählen — die Artikelliste blendet sie aus,
+        // sonst zeigt das Badge ungelesen an, obwohl keine sichtbar sind.
+        let context = try testContext()
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
+        let visibleArticle = Article(title: "Sichtbar", isRead: false, feed: feed)
+        let hiddenArticle = Article(title: "Versteckt", isRead: false, feed: feed)
+        hiddenArticle.isHidden = true
+        context.insert(feed)
+        [visibleArticle, hiddenArticle].forEach { context.insert($0) }
+        try context.save()
+
+        // Simuliert den Zustand nach einem Refresh, der beide gezählt hat.
+        feed.unreadCount = 2
+
+        let viewModel = ArticleViewModel()
+        viewModel.markAllRead([visibleArticle], context: context)
+
+        // Sichtbarer ist nun gelesen; der versteckte bleibt ungelesen, zählt
+        // aber nicht mehr als ungelesen im Badge.
+        #expect(feed.unreadCount == 0)
+    }
+
     @Test func originalURLIgnoriertFehlendenOderUngueltigenLink() {
         let viewModel = ArticleViewModel()
 
