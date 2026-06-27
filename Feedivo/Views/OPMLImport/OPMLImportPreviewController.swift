@@ -265,7 +265,14 @@ final class OPMLImportPreviewController {
                         self.sourceDescription = progress.displayText
                     }
                 )
-                guard !Task.isCancelled else { return }
+                // Später Abbruch (Cancel trifft nach dem await, awaited-Funktion
+                // wirft nicht) — State bereinigen wie im CancellationError-catch,
+                // sonst bleibt der Datei-Picker-Button blockiert.
+                guard !Task.isCancelled else {
+                    isPreparingPreview = false
+                    rows = []
+                    return
+                }
                 sourceDescription = "\(rows.count) Feeds erkannt · \(Set(rows.map { trimmedFolderName($0.feed.folderName) ?? "Ohne Ordner" }).count) Ordner · \(url.lastPathComponent)"
                 previewProgressText = "Prüfung abgeschlossen."
                 isPreparingPreview = false
@@ -305,7 +312,14 @@ final class OPMLImportPreviewController {
                     self.sourceDescription = progress.displayText
                 }
             )
-            guard !Task.isCancelled else { return }
+            // Später Abbruch (Cancel trifft nach dem await, awaited-Funktion
+            // wirft nicht) — State bereinigen wie im CancellationError-catch,
+            // sonst bleibt der Datei-Picker-Button blockiert.
+            guard !Task.isCancelled else {
+                isPreparingPreview = false
+                rows = []
+                return
+            }
             sourceDescription = "\(rows.count) Feeds geprüft."
             previewProgressText = "Prüfung abgeschlossen."
             isPreparingPreview = false
