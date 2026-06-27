@@ -354,6 +354,14 @@ final class FeedViewModel {
             return
         }
 
+        // Reentrancy-Guard — konsistent mit refreshFeed/refreshAllFeeds/importOPMLFeeds:
+        // ein parallel laufender Refresh würde sonst isLoading überschreiben und die
+        // UI fälschlich „nicht lädt" zeigen, während der Hintergrund-Refresh weiterläuft.
+        guard !isLoading else {
+            errorMessage = L10n.feedErrorAlreadyRunning
+            return
+        }
+
         isLoading = true
         errorMessage = nil
 

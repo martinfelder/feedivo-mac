@@ -1569,6 +1569,24 @@ struct FeedViewModelTests {
         #expect(FeedViewModel.unreadIncrement(for: [freshArticle]) == 1)
         #expect(FeedViewModel.unreadIncrement(for: [readArticle, hiddenArticle, freshArticle]) == 1)
     }
+
+    @MainActor
+    @Test func addFeedLehntAbWennBereitsEinLaufenderRefreshAktivIst() async throws {
+        let container = try ModelContainer(
+            for: Feed.self, Article.self, Tag.self, Rule.self,
+            RuleCondition.self, FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let viewModel = makeViewModel()
+        viewModel.isLoading = true  // simuliert laufenden Hintergrund-Refresh
+
+        await viewModel.addFeed(urlString: "https://example.com/feed.xml", context: context)
+
+        // Guard triggert: kein Fetch, Fehlermeldung gesetzt, isLoading bleibt true.
+        #expect(viewModel.errorMessage == L10n.feedErrorAlreadyRunning)
+        #expect(try context.fetch(FetchDescriptor<Feed>()).count == 0)
+    }
 }
 
 private struct TestFeedRefreshError: LocalizedError {
