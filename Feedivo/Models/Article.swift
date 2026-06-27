@@ -92,7 +92,6 @@ class Article {
         self.publishedAt = publishedAt
         self.imageURL = imageURL
         self.sourceID = sourceID
-        self.feedID = feed?.id
         self.isRead = isRead
         self.isStarred = isStarred
         self.isArchived = isArchived
@@ -102,7 +101,16 @@ class Article {
         self.offlineRequestedAt = nil
         self.offlineSavedAt = nil
         self.offlineErrorMessage = nil
-        self.feed = feed
         self.tags = []
+        assign(feed: feed)
+    }
+
+    /// `feed` und `feedID` atomar setzen (M10) — hält beide Referenzen
+    /// synchron. Direkte Zuweisungen an nur eine der beiden Properties sind
+    /// die Ursache für Divergenz (Relationship intakt, feedID kaputt oder
+    /// umgekehrt), die sonst nur per Backfill repariert wird.
+    func assign(feed: Feed?) {
+        self.feed = feed
+        self.feedID = feed?.id
     }
 }

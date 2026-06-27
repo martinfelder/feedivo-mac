@@ -522,3 +522,20 @@ struct ArticleViewModelTests {
         return ModelContext(container)
     }
 }
+
+extension ArticleViewModelTests {
+    @Test func assignFeedSetztFeedUndFeedIDAtomar() {
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
+        let article = Article(title: "Artikel")
+
+        article.assign(feed: feed)
+
+        #expect(article.feed?.id == feed.id)
+        #expect(article.feedID == feed.id)
+
+        article.assign(feed: nil)
+
+        #expect(article.feed == nil)
+        #expect(article.feedID == nil)
+    }
+}
