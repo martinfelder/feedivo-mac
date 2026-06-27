@@ -9,44 +9,41 @@ enum RuleEngine {
     private struct NormalizedCondition {
         var field: String
         var conditionOperator: String
-        var value: String
+        var lowercasedValue: String
+    }
+
+    /// Vorbereitete Regel: Sortierung, Conditions und Match-Modus werden einmalig
+    /// vor der Artikel-Schleife berechnet, statt pro Artikel neu aufgebaut zu werden.
+    private struct PreparedRule {
+        let rule: Rule
+        let conditions: [NormalizedCondition]
+        let matchMode: RuleMatchMode
     }
 
     @discardableResult
+    @MainActor
     static func applyRules(_ rules: [Rule], to article: Article, feed: Feed) -> Int {
         applyRulesWithNotifications(rules, to: article, feed: feed).appliedActionCount
     }
 
+    @MainActor
     static func applyRulesWithNotifications(_ rules: [Rule], to article: Article, feed: Feed) -> RuleApplicationResult {
+        applyPreparedRulesWithNotifications(preparedRules(rules), to: article, feed: feed)
+    }
+
+    /// Wendet Regeln auf mehrere Artikel eines Feeds an. `preparedRules` wird nur
+    /// einmal berechnet (Sortierung + normalisierte Conditions) statt pro Artikel
+    /// neu aufgebaut — das war vorher im Refresh-Pfad pro neuem Artikel der Fall.
+    @MainActor
+    static func applyRulesWithNotifications(_ rules: [Rule], to articles: [Article], feed: Feed) -> RuleApplicationResult {
+        let prepared = preparedRules(rules)
         var appliedActionCount = 0
         var notifications: [RuleNotificationResult] = []
 
-        for rule in sortedRules(rules) where rule.isEnabled {
-            guard matches(rule: rule, article: article, feed: feed) else {
-                continue
-            }
-
-            switch RuleAction.normalized(rule.actionRaw) {
-            case .assignTag:
-                guard let tag = rule.assignTag,
-                      !article.tags.contains(where: { $0.id == tag.id })
-                else {
-                    continue
-                }
-
-                article.tags.append(tag)
-                appliedActionCount += 1
-            case .hideArticle:
-                guard !article.isHidden else {
-                    continue
-                }
-
-                article.isHidden = true
-                appliedActionCount += 1
-            case .notify:
-                notifications.append(notificationResult(for: rule, article: article, feed: feed))
-                appliedActionCount += 1
-            }
+        for article in articles {
+            let result = applyPreparedRulesWithNotifications(prepared, to: article, feed: feed)
+            appliedActionCount += result.appliedActionCount
+            notifications.append(contentsOf: result.notifications)
         }
 
         return RuleApplicationResult(
@@ -55,16 +52,26 @@ enum RuleEngine {
         )
     }
 
+    @MainActor
     static func applyRulesToExistingArticles(_ rules: [Rule], articles: [Article]) -> Int {
-        articles.reduce(0) { appliedActionCount, article in
+        // Regeln einmalig vorbereiten (Sortierung + normalisierte Conditions),
+        // damit pro Artikel nur noch die vorbereitete Struktur ausgewertet wird.
+        let preparedRules = preparedRules(rules)
+
+        return articles.reduce(0) { appliedActionCount, article in
             guard let feed = article.feed else {
                 return appliedActionCount
             }
 
-            return appliedActionCount + applyRules(rules, to: article, feed: feed)
+            return appliedActionCount + applyPreparedRulesWithNotifications(
+                preparedRules,
+                to: article,
+                feed: feed
+            ).appliedActionCount
         }
     }
 
+    @MainActor
     static func matchingArticleCount(
         conditionDrafts: [RuleConditionDraft],
         matchMode: RuleMatchMode,
@@ -86,14 +93,72 @@ enum RuleEngine {
         }
     }
 
-    private static func matches(rule: Rule, article: Article, feed: Feed) -> Bool {
-        let conditions = normalizedConditions(for: rule)
-        guard !conditions.isEmpty else {
-            return false
+    private static func applyPreparedRulesWithNotifications(
+        _ preparedRules: [PreparedRule],
+        to article: Article,
+        feed: Feed
+    ) -> RuleApplicationResult {
+        var appliedActionCount = 0
+        var notifications: [RuleNotificationResult] = []
+
+        for preparedRule in preparedRules {
+            let rule = preparedRule.rule
+            guard matches(
+                conditions: preparedRule.conditions,
+                matchMode: preparedRule.matchMode,
+                article: article,
+                feed: feed
+            ) else {
+                continue
+            }
+
+            switch RuleAction.normalized(rule.actionRaw) {
+            case .assignTag:
+                guard let tag = rule.assignTag,
+                      !article.tags.contains(where: { $0.id == tag.id })
+                else {
+                    continue
+                }
+
+                article.tags.append(tag)
+                SidebarBadgeInvalidation.bumpDirectTagVersion()
+                appliedActionCount += 1
+            case .hideArticle:
+                guard !article.isHidden else {
+                    continue
+                }
+
+                article.isHidden = true
+                appliedActionCount += 1
+            case .notify:
+                notifications.append(notificationResult(for: rule, article: article, feed: feed))
+                appliedActionCount += 1
+            }
         }
 
-        let mode = RuleMatchMode.normalized(rule.conditionMatchMode)
-        return matches(conditions: conditions, matchMode: mode, article: article, feed: feed)
+        return RuleApplicationResult(
+            appliedActionCount: appliedActionCount,
+            notifications: notifications
+        )
+    }
+
+    private static func preparedRules(_ rules: [Rule]) -> [PreparedRule] {
+        sortedRules(rules).compactMap { rule in
+            guard rule.isEnabled else {
+                return nil
+            }
+
+            let conditions = normalizedConditions(for: rule)
+            guard !conditions.isEmpty else {
+                return nil
+            }
+
+            return PreparedRule(
+                rule: rule,
+                conditions: conditions,
+                matchMode: RuleMatchMode.normalized(rule.conditionMatchMode)
+            )
+        }
     }
 
     private static func matches(
@@ -159,7 +224,9 @@ enum RuleEngine {
         return NormalizedCondition(
             field: field,
             conditionOperator: conditionOperator,
-            value: trimmedValue
+            // Wert einmalig kleinschreiben — er ist statisch zur Laufzeit und
+            // wird sonst bei jedem Artikel-Vergleich neu lowercased.
+            lowercasedValue: trimmedValue.lowercased()
         )
     }
 
@@ -169,15 +236,14 @@ enum RuleEngine {
         }
 
         let normalizedFieldValue = fieldValue.lowercased()
-        let normalizedValue = condition.value.lowercased()
 
         switch condition.conditionOperator {
         case RuleConditionOperator.contains.rawValue:
-            return normalizedFieldValue.contains(normalizedValue)
+            return normalizedFieldValue.contains(condition.lowercasedValue)
         case RuleConditionOperator.startsWith.rawValue:
-            return normalizedFieldValue.hasPrefix(normalizedValue)
+            return normalizedFieldValue.hasPrefix(condition.lowercasedValue)
         case RuleConditionOperator.endsWith.rawValue:
-            return normalizedFieldValue.hasSuffix(normalizedValue)
+            return normalizedFieldValue.hasSuffix(condition.lowercasedValue)
         default:
             return false
         }

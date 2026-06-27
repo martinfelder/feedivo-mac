@@ -229,20 +229,10 @@ private struct SmartFilterArticleListContent: View {
                 sort: ArticleListQuery.sortDescriptors
             )
         case .today:
-            let startOfToday = Calendar.current.startOfDay(for: Date())
-            let startOfTomorrow = Calendar.current.date(
-                byAdding: .day,
-                value: 1,
-                to: startOfToday
-            ) ?? startOfToday
-            self._articles = Query(
-                filter: #Predicate<Article> { article in
-                    article.publishedAt != nil
-                        && article.publishedAt! >= startOfToday
-                        && article.publishedAt! < startOfTomorrow
-                },
-                sort: ArticleListQuery.sortDescriptors
-            )
+            // Datum-Filter in-memory (siehe displayedArticles): SwiftData
+            // unterstützt keinen Predicate-Force-Unwrap von `publishedAt!`
+            // (Runtime-Fault), `Date? >= Date` kompiliert nicht.
+            self._articles = Query(sort: ArticleListQuery.sortDescriptors)
         case .hidden:
             self._articles = Query(
                 filter: #Predicate<Article> { article in
@@ -255,7 +245,7 @@ private struct SmartFilterArticleListContent: View {
 
     var body: some View {
         ArticleListContent(
-            articles: articles,
+            articles: displayedArticles,
             navigationTitle: Text(smartFilter.title),
             selectedArticle: $selectedArticle,
             navigationState: $navigationState,
@@ -264,6 +254,22 @@ private struct SmartFilterArticleListContent: View {
             showsHiddenArticles: smartFilter == .hidden
         )
         .id(smartFilter)
+    }
+
+    private var displayedArticles: [Article] {
+        guard smartFilter == .today else {
+            return articles
+        }
+        let startOfToday = Calendar.current.startOfDay(for: Date())
+        let startOfTomorrow = Calendar.current.date(
+            byAdding: .day,
+            value: 1,
+            to: startOfToday
+        ) ?? startOfToday
+        return articles.filter { article in
+            guard let publishedAt = article.publishedAt else { return false }
+            return publishedAt >= startOfToday && publishedAt < startOfTomorrow
+        }
     }
 }
 
@@ -343,6 +349,11 @@ private struct ArticleListContent: View {
     private var articleSortRawValue = ArticleSortOption.newestFirst.rawValue
     @AppStorage(ArticleFilterOption.storageKey)
     private var articleFilterRawValue = ArticleFilterOption.all.rawValue
+    // Cache für makePreparedArticles(): reiner Selektionswechsel soll keine
+    // O(n log n)-Sortierung auslösen. Befüllt ausschließlich asynchron via .task(id:),
+    // niemals direkt im Body (sonst "modifying state during view update").
+    @State private var cachedPreparedArticles: ArticleListPreparedArticles?
+    @State private var cachedPreparedKey: PreparedArticlesCacheKey?
 
     init(
         articles: [Article],
@@ -367,7 +378,8 @@ private struct ArticleListContent: View {
     }
 
     var body: some View {
-        let preparedArticles = makePreparedArticles()
+        let preparedArticlesKey = makePreparedArticlesKey()
+        let preparedArticles = preparedArticles(for: preparedArticlesKey)
         let filteredArticles = preparedArticles.filtered
         let displayState = ArticleListDisplayState(
             articles: filteredArticles,
@@ -407,28 +419,11 @@ private struct ArticleListContent: View {
         .onChange(of: visibleArticles) {
             updateNavigationState(in: visibleArticles)
         }
-        .onChange(of: articleSortRawValue) {
-            let preparedArticles = makePreparedArticles()
-            let displayState = ArticleListDisplayState(
-                articles: preparedArticles.filtered,
-                showsReadArticles: showsReadArticles,
-                selectedArticle: selectedArticle,
-                showsHiddenArticles: showsHiddenArticles,
-                temporarilyVisibleReadArticleIDs: temporarilyVisibleReadArticleIDs
-            )
-            updateNavigationState(in: displayState.visibleArticles)
-        }
-        .onChange(of: articleFilterRawValue) {
-            let preparedArticles = makePreparedArticles()
-            let displayState = ArticleListDisplayState(
-                articles: preparedArticles.filtered,
-                showsReadArticles: showsReadArticles,
-                selectedArticle: selectedArticle,
-                showsHiddenArticles: showsHiddenArticles,
-                temporarilyVisibleReadArticleIDs: temporarilyVisibleReadArticleIDs
-            )
-            updateNavigationState(in: displayState.visibleArticles)
-        }
+        // Sortier-/Filterwechsel: keine separaten Handler mehr — der Body
+        // berechnet `visibleArticles` neu (Cache-Miss wegen geändertem Key),
+        // und `.onChange(of: visibleArticles)` aktualisiert den NavigationState.
+        // Früher wurde makePreparedArticles() hier bis zu 2× redundant
+        // (zusätzlich zum Body + .task) berechnet.
         .onChange(of: selectedArticle?.persistentModelID) {
             rememberAutoReadArticleIfNeeded(selectedArticle)
 
@@ -446,6 +441,14 @@ private struct ArticleListContent: View {
                 filterMenu
                 sortMenu
             }
+        }
+        .task(id: preparedArticlesKey) {
+            // Cache asynchron befüllen, nachdem der Body mit dem neuen Key
+            // gerendert wurde. Bei Cache-Treffer (gleicher Key) startet die
+            // Task nicht neu → reiner Selektionswechsel kostet keine Sortierung.
+            guard let preparedArticlesKey else { return }
+            cachedPreparedArticles = makePreparedArticles()
+            cachedPreparedKey = preparedArticlesKey
         }
     }
 
@@ -586,6 +589,52 @@ private struct ArticleListContent: View {
             searchQuery: activeSearchQuery,
             sorter: articleSortOption.sorted
         )
+    }
+
+    /// Baut den Cache-Key für makePreparedArticles(). Läuft pro Body-Eval einmal
+    /// als O(n)-Durchlauf für die Counts — deutlich billiger als die O(n log n)-
+    /// Sortierung in prepare(). Liefert nil für Pfade ohne sicheres
+    /// Invalidierungssignal (Suche, "heute"-Filter, kurze Lesezeit-Sortierung);
+    /// diese werden immer frisch berechnet und nicht gecacht.
+    private func makePreparedArticlesKey() -> PreparedArticlesCacheKey? {
+        if activeSearchQuery.isActive
+            || articleFilterOption == .today
+            || articleSortOption == .shortReadingTimeFirst {
+            return nil
+        }
+
+        var unreadCount = 0
+        var starredCount = 0
+        var archivedCount = 0
+        for article in articles {
+            if !article.isRead { unreadCount += 1 }
+            if article.isStarred { starredCount += 1 }
+            if article.isArchived { archivedCount += 1 }
+        }
+
+        return PreparedArticlesCacheKey(
+            articleCount: articles.count,
+            unreadCount: unreadCount,
+            starredCount: starredCount,
+            archivedCount: archivedCount,
+            sortRawValue: articleSortRawValue,
+            filterRawValue: articleFilterRawValue,
+            sortArticles: sortArticles
+        )
+    }
+
+    /// Liefert vorbereitete Artikel — aus dem Cache wenn der Key trifft, sonst
+    /// frisch berechnet. Key nil (Bypass) wird immer frisch berechnet.
+    private func preparedArticles(for key: PreparedArticlesCacheKey?) -> ArticleListPreparedArticles {
+        guard let key else {
+            return makePreparedArticles()
+        }
+
+        if cachedPreparedKey == key, let cached = cachedPreparedArticles {
+            return cached
+        }
+
+        return makePreparedArticles()
     }
 
     private var activeSearchQuery: ArticleSearchQuery {
@@ -745,4 +794,18 @@ private struct ArticleListContent: View {
         viewModel.deleteArticle(article, context: modelContext)
     }
 
+}
+
+/// Cache-Key für vorbereitete Artikel. Erfasst alle Status-Änderungen, die das
+/// Sortier-/Filterergebnis beeinflussen (Lese-/Stern-/Archiv-Status, Anzahl,
+/// Sortierung, Filter). Statusunabhängige Pfade (Suche, "heute", kurze Lesezeit)
+/// werden über nil umgangen und nicht gecacht.
+private struct PreparedArticlesCacheKey: Equatable, Hashable {
+    let articleCount: Int
+    let unreadCount: Int
+    let starredCount: Int
+    let archivedCount: Int
+    let sortRawValue: String
+    let filterRawValue: String
+    let sortArticles: Bool
 }

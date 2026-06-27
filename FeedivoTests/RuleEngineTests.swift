@@ -439,4 +439,30 @@ struct RuleEngineTests {
             )
         ])
     }
+
+    @MainActor
+    @Test func applyRulesBatchWendetRegelAufAllePassendenArtikelAn() throws {
+        let rule = Rule(
+            name: "Swift",
+            conditionField: "title",
+            conditionOperator: "contains",
+            conditionValue: "Swift"
+        )
+        rule.actionRaw = RuleAction.assignTag.rawValue
+        rule.conditions = [
+            RuleCondition(field: "title", conditionOperator: "contains", value: "Swift")
+        ]
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Mac News")
+        let tag = Tag(name: "Swift", colorHex: "#FF0000")
+        rule.assignTag = tag
+
+        let matching = Article(title: "Swift 7 ist da", feed: feed)
+        let nonMatching = Article(title: "Sonstiges", feed: feed)
+
+        let result = RuleEngine.applyRulesWithNotifications([rule], to: [matching, nonMatching], feed: feed)
+
+        #expect(result.appliedActionCount == 1)
+        #expect(matching.tags.map(\.name) == ["Swift"])
+        #expect(nonMatching.tags.isEmpty)
+    }
 }

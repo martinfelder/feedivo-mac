@@ -9,9 +9,40 @@ struct SidebarView: View {
     @Query(sort: \FeedFolder.name) private var folders: [FeedFolder]
     @Query(sort: \Tag.name) private var tags: [Tag]
     @Query(sort: \SmartFolder.sortOrder) private var smartFolders: [SmartFolder]
+    // Artikel für die Badge-Zählung. Über einen FetchDescriptor mit
+    // propertiesToFetch geladen, sodass nur die Skalar-Attribute resident sind —
+    // content/summary/offlineContent-Strings bleiben ungefaultet (Memory bei
+    // großem Datenbestand). Die tags-Relationship faultet nur während der
+    // (seltenen) Neuberechnung, nicht pro Render.
+    @Query private var allArticles: [Article]
     @Binding var selection: SidebarSelection?
     let onRequestAddFeed: () -> Void
     let onRequestDeleteFeed: (Feed) -> Void
+    // Bump bei direkter Artikel→Tag-Zuweisung (siehe SidebarBadgeInvalidation).
+    // Status-Toggles, Artikel-Zahl und Feed/Tag-Struktur werden automatisch über
+    // die Signatur bzw. die beobachteten @Querys erfasst.
+    @AppStorage(SidebarBadgeInvalidation.directTagVersionKey)
+    private var directTagVersion = 0
+    // Cache für die Badge-Zähler: nur bei Signaturänderung neu berechnet.
+    // Reiner Selektionswechsel trifft den Cache → kein O(n)-Scan pro Render.
+    @State private var cachedBadgeCounts: SidebarBadgeCounts?
+    @State private var cachedBadgeSignature: SidebarBadgeSignature?
+
+    init(
+        selection: Binding<SidebarSelection?>,
+        onRequestAddFeed: @escaping () -> Void,
+        onRequestDeleteFeed: @escaping (Feed) -> Void
+    ) {
+        self._selection = selection
+        self.onRequestAddFeed = onRequestAddFeed
+        self.onRequestDeleteFeed = onRequestDeleteFeed
+
+        var descriptor = FetchDescriptor<Article>()
+        descriptor.propertiesToFetch = [
+            \.id, \.feedID, \.isRead, \.isStarred, \.isArchived, \.isHidden
+        ]
+        _allArticles = Query(descriptor)
+    }
     @AppStorage(SidebarSectionCollapseState.Section.tags.storageKey)
     private var isTagsCollapsed = false
     @AppStorage(SidebarSectionCollapseState.Section.folders.storageKey)
@@ -31,13 +62,16 @@ struct SidebarView: View {
     @State private var collapsedFolderNames: Set<String> = []
 
     var body: some View {
-        VStack(spacing: 0) {
+        let signature = sidebarBadgeSignature
+        let badgeCounts = badgeCounts(for: signature)
+
+        return VStack(spacing: 0) {
             sidebarHeader
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    smartFoldersSection
-                    tagsSection
+                    smartFoldersSection(badgeCounts: badgeCounts)
+                    tagsSection(badgeCounts: badgeCounts)
                     foldersSection
                 }
                 .padding(.horizontal, 14)
@@ -95,6 +129,13 @@ struct SidebarView: View {
                 smartFolderPendingDeletion = nil
             }
         }
+        .task(id: signature) {
+            // Cache asynchron befüllen, nachdem der Body mit der neuen Signatur
+            // gerendert wurde. Bei identischer Signatur (z. B. reinem
+            // Selektionswechsel) startet die Task nicht neu → keine Neuberechnung.
+            cachedBadgeCounts = computeSidebarBadgeCounts()
+            cachedBadgeSignature = signature
+        }
     }
 
     private var sidebarHeader: some View {
@@ -129,7 +170,7 @@ struct SidebarView: View {
         }
     }
 
-    private var tagsSection: some View {
+    private func tagsSection(badgeCounts: SidebarBadgeCounts) -> some View {
         CollapsibleSidebarSection(
             title: L10n.sidebarTagsSection,
             isCollapsed: $isTagsCollapsed,
@@ -139,7 +180,7 @@ struct SidebarView: View {
             isShowingTagManager = true
         } content: {
             if !tags.isEmpty {
-                tagRows(tags)
+                tagRows(tags, badgeCounts: badgeCounts)
             }
         }
     }
@@ -190,7 +231,7 @@ struct SidebarView: View {
         }
     }
 
-    private var smartFoldersSection: some View {
+    private func smartFoldersSection(badgeCounts: SidebarBadgeCounts) -> some View {
         CollapsibleSidebarSection(
             title: "Intelligente Ordner",
             isCollapsed: $isSmartFoldersCollapsed,
@@ -218,7 +259,7 @@ struct SidebarView: View {
                             badgeText: SmartFolderSidebarBadge.badgeText(
                                 for: smartFolder,
                                 feeds: feeds,
-                                context: modelContext
+                                counts: badgeCounts
                             )
                         )
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -310,14 +351,16 @@ struct SidebarView: View {
         }
     }
 
-    private func tagRows(_ tags: [Tag]) -> some View {
+    private func tagRows(_ tags: [Tag], badgeCounts: SidebarBadgeCounts) -> some View {
         ForEach(tags) { tag in
             Button {
                 selection = .tag(tag.persistentModelID)
             } label: {
                 TagSidebarRow(
                     tag: tag,
-                    badgeText: try? SidebarTagCount.badgeText(for: tag, context: modelContext)
+                    badgeText: SidebarUnreadCount.badgeText(
+                        for: badgeCounts.tagCounts[tag.persistentModelID] ?? 0
+                    )
                 )
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -327,6 +370,98 @@ struct SidebarView: View {
                 )
             )
         }
+    }
+
+    /// Signatur, die alle Badge-relevanten Änderungen erfasst. Läuft pro Body-
+    /// Eval als O(n)-Durchlauf über Skalar-Attribute (kein Relationship-Faulting)
+    /// — deutlich billiger als die volle Badge-Berechnung. Status-Toggles
+    /// (gelesen/Stern/Archiv/versteckt) werden über die Counts automatisch
+    /// abgedeckt; direkte Artikel→Tag-Zuweisungen über `directTagVersion`;
+    /// Feed/Tag-Struktur über die beobachteten @Querys.
+    private var sidebarBadgeSignature: SidebarBadgeSignature {
+        var starredCount = 0
+        var hiddenCount = 0
+        var archivedCount = 0
+        for article in allArticles {
+            if article.isStarred { starredCount += 1 }
+            if article.isHidden { hiddenCount += 1 }
+            if article.isArchived { archivedCount += 1 }
+        }
+
+        return SidebarBadgeSignature(
+            articleCount: allArticles.count,
+            starredCount: starredCount,
+            hiddenCount: hiddenCount,
+            archivedCount: archivedCount,
+            tagFeedMembershipHash: tagFeedMembershipHash,
+            tagCount: tags.count,
+            feedCount: feeds.count,
+            directTagVersion: directTagVersion
+        )
+    }
+
+    /// Hash der Feed→Tag-Zuordnungen. Ändert sich, wenn einem Feed ein Tag
+    /// zugewiesen/entfernt wird (über `feed.tags`, beobachtet via @Query feeds).
+    private var tagFeedMembershipHash: Int {
+        var hash = feeds.count &* 31 &+ tags.count
+        for feed in feeds {
+            hash = hash &* 31 &+ feed.tags.count
+        }
+        return hash
+    }
+
+    /// Liefert die Badge-Zähler — aus dem Cache wenn die Signatur trifft, sonst
+    /// frisch berechnet (und asynchron via .task erneut abgelegt).
+    private func badgeCounts(for signature: SidebarBadgeSignature) -> SidebarBadgeCounts {
+        if cachedBadgeSignature == signature, let cached = cachedBadgeCounts {
+            return cached
+        }
+        return computeSidebarBadgeCounts()
+    }
+
+    /// Ein einziger Durchlauf über alle Artikel bündelt alle Badge-Zähler
+    /// (Tags + SmartFolder-Status). Läuft nur bei Signaturänderung, nicht pro
+    /// Render.
+    private func computeSidebarBadgeCounts() -> SidebarBadgeCounts {
+        // feedID → Set der Tag-IDs, deren Feeds diesen Feed enthalten. Entspricht
+        // ArticleListQuery.tagPredicate (matcht article.feedID, nicht die
+        // feed-Relationship) — konsistent mit der Artikelliste, auch bei
+        // verwaisten Artikeln (feedID gesetzt, feed == nil).
+        var feedTagIDsByFeedID: [UUID: Set<PersistentIdentifier>] = [:]
+        for feed in feeds {
+            feedTagIDsByFeedID[feed.id] = Set(feed.tags.map(\.persistentModelID))
+        }
+
+        var tagCounts: [PersistentIdentifier: Int] = [:]
+        var starred = 0
+        var hidden = 0
+        var saved = 0
+
+        for article in allArticles {
+            if article.isStarred { starred += 1 }
+            if article.isHidden { hidden += 1 }
+            if article.isStarred || article.isArchived { saved += 1 }
+
+            // Ein Artikel trifft auf einen Tag zu, wenn er direkt getaggt ist
+            // ODER sein Feed dem Tag zugeordnet ist (OR, nur einfach zählen).
+            var matchingTagIDs = Set<PersistentIdentifier>()
+            for tag in article.tags {
+                matchingTagIDs.insert(tag.persistentModelID)
+            }
+            if let feedID = article.feedID {
+                matchingTagIDs.formUnion(feedTagIDsByFeedID[feedID] ?? [])
+            }
+            for tagID in matchingTagIDs {
+                tagCounts[tagID, default: 0] += 1
+            }
+        }
+
+        return SidebarBadgeCounts(
+            tagCounts: tagCounts,
+            starred: starred,
+            hidden: hidden,
+            saved: saved
+        )
     }
 
     private func toggleFolder(named folderName: String) {

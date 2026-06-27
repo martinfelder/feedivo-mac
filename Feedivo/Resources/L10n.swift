@@ -369,6 +369,12 @@ enum L10n {
     static var feedErrorParsingFailed: String { String(localized: "feed.error.parsingFailed") }
     static var feedErrorEmptyURL: String { String(localized: "feed.error.emptyURL") }
     static var feedErrorAddFailed: String { String(localized: "feed.error.addFailed") }
+    static var feedErrorAlreadyRunning: String {
+        String(localized: "feed.error.alreadyRunning", defaultValue: "Eine Aktualisierung läuft bereits. Bitte warte, bis sie abgeschlossen ist.")
+    }
+    static var feedImportAlreadyRunning: String {
+        String(localized: "feed.import.alreadyRunning", defaultValue: "Ein Import läuft bereits. Bitte warte, bis er abgeschlossen ist.")
+    }
     static var feedDiscoveryErrorNoFeedsFound: String { String(localized: "feedDiscovery.error.noFeedsFound") }
     static var feedCommandsMenu: String { String(localized: "feedCommands.menu") }
     static var feedAddCommand: String { String(localized: "feed.add.command") }

@@ -42,6 +42,15 @@ struct CachedRemoteImageView<Content: View, Placeholder: View>: View {
             return
         }
 
-        nsImage = await imageCache.image(for: url)
+        let loadedImage = await imageCache.image(for: url)
+
+        // Prüfen nach dem await: Wenn die URL sich geändert oder der Task
+        // abgebrochen wurde, dürfen wir das Bild der alten URL nicht mehr setzen
+        // — sonst flackert beim schnellen Scrollen kurz ein falsches Bild auf.
+        guard !Task.isCancelled, url == self.url else {
+            return
+        }
+
+        nsImage = loadedImage
     }
 }
