@@ -11,67 +11,11 @@ struct OPMLImportReviewView: View {
     let feeds: [Feed]
     let feedViewModel: FeedViewModel
 
-    @State private var isFileImporterPresented = false
-    @State private var isDropTargeted = false
-    @State private var selectedFileName = "Keine OPML-Datei ausgewählt"
-    @State private var fileDescription = "Wähle eine .opml- oder .xml-Datei, danach erscheint hier die Import-Vorschau."
-    @State private var previewProgressText = "Noch keine Datei ausgewählt."
-    @State private var rows: [OPMLImportPreviewRow] = []
-    @State private var isPreparingPreview = false
-    @State private var allowsDuplicates = false
-    @State private var allowsUnreachable = false
-    @State private var refreshAfterImport = true
-    @State private var newFolderName = ""
-    @State private var customFolders: [String] = []
-    @State private var statusFilter: OPMLImportStatusFilter = .all
-    @State private var resultMessage: String?
-    @State private var errorMessage: String?
+    // Einziger OPML-State: Controller hält rows, Toggles, Picker, Import-Status etc.
+    @State private var previewController = OPMLImportPreviewController(configuration: .importSheet)
+
     @AppStorage(BackgroundRefreshSettings.intervalMinutesKey)
     private var backgroundRefreshIntervalMinutes = BackgroundRefreshSettings.defaultIntervalMinutes
-
-    private var selectedImportRows: [OPMLImportPreviewRow] {
-        rows.filter { row in
-            guard row.isSelected else {
-                return false
-            }
-
-            return selectionOptions.canImport(row.status)
-        }
-    }
-
-    private var selectionOptions: OPMLImportSelectionOptions {
-        OPMLImportSelectionOptions(
-            allowsDuplicates: allowsDuplicates,
-            allowsUnreachable: allowsUnreachable
-        )
-    }
-
-    private var duplicateCount: Int {
-        rows.filter { $0.status == .duplicate }.count
-    }
-
-    private var unreachableCount: Int {
-        rows.filter { $0.status == .unreachable }.count
-    }
-
-    private var folderCount: Int {
-        Set(selectedImportRows.map { trimmedFolderName($0.feed.folderName) ?? "Ohne Ordner" }).count
-    }
-
-    private var availableFolders: [String] {
-        let existingFolderNames = feeds.compactMap { trimmedFolderName($0.folderName) }
-        let previewFolderNames = rows.compactMap { trimmedFolderName($0.feed.folderName) }
-        return Array(Set(existingFolderNames + previewFolderNames + customFolders))
-            .sorted { $0.localizedStandardCompare($1) == .orderedAscending }
-    }
-
-    private var visibleRowIDs: Set<OPMLImportPreviewRow.ID> {
-        Set(statusFilter.filteredRows(from: rows).map(\.id))
-    }
-
-    private var visibleRowCount: Int {
-        visibleRowIDs.count
-    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -95,22 +39,22 @@ struct OPMLImportReviewView: View {
         .frame(width: 1080, height: 680)
         .overlay(dropOverlay)
         .fileImporter(
-            isPresented: $isFileImporterPresented,
+            isPresented: $previewController.isFileImporterPresented,
             allowedContentTypes: [.opml, .xml]
         ) { result in
-            loadOPML(from: result)
+            previewController.loadOPML(from: result, existingFeeds: feeds, feedViewModel: feedViewModel)
         }
-        .onDrop(of: [UTType.fileURL.identifier], isTargeted: $isDropTargeted) { providers in
-            handleDroppedFiles(providers)
+        .onDrop(of: [UTType.fileURL.identifier], isTargeted: $previewController.isDropTargeted) { providers in
+            previewController.handleDroppedFiles(providers, existingFeeds: feeds, feedViewModel: feedViewModel)
         }
-        .onChange(of: allowsDuplicates) {
-            for index in rows.indices where rows[index].status == .duplicate {
-                rows[index].isSelected = allowsDuplicates
+        .onChange(of: previewController.allowsDuplicates) {
+            for index in previewController.rows.indices where previewController.rows[index].status == .duplicate {
+                previewController.rows[index].isSelected = previewController.allowsDuplicates
             }
         }
-        .onChange(of: allowsUnreachable) {
-            for index in rows.indices where rows[index].status == .unreachable {
-                rows[index].isSelected = allowsUnreachable
+        .onChange(of: previewController.allowsUnreachable) {
+            for index in previewController.rows.indices where previewController.rows[index].status == .unreachable {
+                previewController.rows[index].isSelected = previewController.allowsUnreachable
             }
         }
     }
@@ -158,16 +102,17 @@ struct OPMLImportReviewView: View {
         .overlay(Capsule().stroke(statusColor.opacity(0.18)))
     }
 
+    // View-Chrome: liest vom Controller, bleibt hier weil Darstellung.
     private var statusColor: Color {
-        if unreachableCount > 0 {
+        if previewController.unreachableCount > 0 {
             return .red
         }
 
-        if duplicateCount > 0 {
+        if previewController.duplicateCount > 0 {
             return .orange
         }
 
-        if rows.isEmpty {
+        if previewController.rows.isEmpty {
             return .secondary
         }
 
@@ -175,16 +120,16 @@ struct OPMLImportReviewView: View {
     }
 
     private var statusText: String {
-        if rows.isEmpty {
+        if previewController.rows.isEmpty {
             return "Keine Datei"
         }
 
         var parts: [String] = []
-        if duplicateCount > 0 {
-            parts.append("\(duplicateCount) Duplikat\(duplicateCount == 1 ? "" : "e")")
+        if previewController.duplicateCount > 0 {
+            parts.append("\(previewController.duplicateCount) Duplikat\(previewController.duplicateCount == 1 ? "" : "e")")
         }
-        if unreachableCount > 0 {
-            parts.append("\(unreachableCount) nicht erreichbar")
+        if previewController.unreachableCount > 0 {
+            parts.append("\(previewController.unreachableCount) nicht erreichbar")
         }
 
         return parts.isEmpty ? "Bereit" : parts.joined(separator: " · ")
@@ -196,7 +141,7 @@ struct OPMLImportReviewView: View {
             toolbar
             feedTable
 
-            if let resultMessage {
+            if let resultMessage = previewController.resultMessage {
                 Text(resultMessage)
                     .font(.callout)
                     .foregroundStyle(.green)
@@ -205,7 +150,7 @@ struct OPMLImportReviewView: View {
                     .background(Color.green.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
             }
 
-            if let errorMessage {
+            if let errorMessage = previewController.errorMessage {
                 Text(errorMessage)
                     .font(.callout)
                     .foregroundStyle(.red)
@@ -220,7 +165,7 @@ struct OPMLImportReviewView: View {
 
     @ViewBuilder
     private var dropOverlay: some View {
-        if isDropTargeted {
+        if previewController.isDropTargeted {
             RoundedRectangle(cornerRadius: 12)
                 .stroke(Color.accentColor, lineWidth: 3)
                 .background(Color.accentColor.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
@@ -253,11 +198,11 @@ struct OPMLImportReviewView: View {
                 )
 
             VStack(alignment: .leading, spacing: 3) {
-                Text(selectedFileName)
+                Text(previewController.selectedFileName)
                     .font(.system(size: 13, weight: .semibold))
                     .lineLimit(1)
                     .truncationMode(.middle)
-                Text(fileDescription)
+                Text(previewController.sourceDescription)
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -267,7 +212,7 @@ struct OPMLImportReviewView: View {
             Spacer()
 
             Button("Datei auswählen...") {
-                isFileImporterPresented = true
+                previewController.isFileImporterPresented = true
             }
             .buttonStyle(OPMLSecondaryButtonStyle())
 
@@ -275,7 +220,7 @@ struct OPMLImportReviewView: View {
                 resetFile()
             }
             .buttonStyle(OPMLSecondaryButtonStyle())
-            .disabled(rows.isEmpty && errorMessage == nil)
+            .disabled(previewController.rows.isEmpty && previewController.errorMessage == nil)
         }
         .padding(12)
         .background(
@@ -315,7 +260,7 @@ struct OPMLImportReviewView: View {
 
             Spacer()
 
-            Picker("Status", selection: $statusFilter) {
+            Picker("Status", selection: $previewController.statusFilter) {
                 ForEach(OPMLImportStatusFilter.allCases) { filter in
                     Text(filter.title).tag(filter)
                 }
@@ -325,29 +270,29 @@ struct OPMLImportReviewView: View {
             .frame(width: 142)
 
             Button("Alle auswählen") {
-                selectAllImportableRows()
+                previewController.selectAllImportableRows()
             }
             .buttonStyle(OPMLSecondaryButtonStyle())
-            .disabled(rows.isEmpty)
+            .disabled(previewController.rows.isEmpty)
 
             Button("Alle abwählen") {
-                deselectVisibleRows()
+                previewController.deselectVisibleRows()
             }
             .buttonStyle(OPMLSecondaryButtonStyle())
-            .disabled(rows.isEmpty)
+            .disabled(previewController.rows.isEmpty)
 
             Divider()
                 .frame(height: 18)
 
-            TextField("Neuer Ordner", text: $newFolderName)
+            TextField("Neuer Ordner", text: $previewController.newFolderName)
                 .textFieldStyle(.roundedBorder)
                 .frame(width: 150)
 
             Button("Ordner erstellen") {
-                createFolder()
+                previewController.createFolder()
             }
             .buttonStyle(OPMLSecondaryButtonStyle())
-            .disabled(newFolderName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .disabled(previewController.newFolderName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
     }
 
@@ -357,19 +302,19 @@ struct OPMLImportReviewView: View {
 
             ScrollView {
                 LazyVStack(spacing: 0) {
-                    if isPreparingPreview {
+                    if previewController.isPreparingPreview {
                         previewProgressRow
-                    } else if rows.isEmpty {
+                    } else if previewController.rows.isEmpty {
                         emptyRow
-                    } else if visibleRowIDs.isEmpty {
+                    } else if previewController.visibleRowIDs.isEmpty {
                         emptyFilterRow
                     } else {
-                        ForEach($rows) { $row in
-                            if visibleRowIDs.contains(row.id) {
+                        ForEach($previewController.rows) { $row in
+                            if previewController.visibleRowIDs.contains(row.id) {
                                 OPMLImportFeedRow(
                                     row: $row,
-                                    selectionOptions: selectionOptions,
-                                    availableFolders: availableFolders,
+                                    selectionOptions: previewController.selectionOptions,
+                                    availableFolders: previewController.availableFolders(existingFeeds: feeds),
                                     layout: .importSheet
                                 )
                                 Divider()
@@ -432,7 +377,7 @@ struct OPMLImportReviewView: View {
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(.primary)
                     .multilineTextAlignment(.center)
-                Text(previewProgressText)
+                Text(previewController.previewProgressText)
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -461,11 +406,11 @@ struct OPMLImportReviewView: View {
 
     private var footer: some View {
         HStack(spacing: 16) {
-            Toggle("Feeds nach Import direkt aktualisieren", isOn: $refreshAfterImport)
+            Toggle("Feeds nach Import direkt aktualisieren", isOn: $previewController.refreshAfterImport)
                 .toggleStyle(.checkbox)
-            Toggle("Duplikate importieren", isOn: $allowsDuplicates)
+            Toggle("Duplikate importieren", isOn: $previewController.allowsDuplicates)
                 .toggleStyle(.checkbox)
-            Toggle("Nicht erreichbare Feeds importieren", isOn: $allowsUnreachable)
+            Toggle("Nicht erreichbare Feeds importieren", isOn: $previewController.allowsUnreachable)
                 .toggleStyle(.checkbox)
 
             Spacer()
@@ -478,175 +423,62 @@ struct OPMLImportReviewView: View {
                 importSelectedFeeds()
             }
             .buttonStyle(OPMLPrimaryButtonStyle())
-            .disabled(selectedImportRows.isEmpty || isPreparingPreview || feedViewModel.isLoading)
+            .disabled(previewController.selectedImportRows.isEmpty || previewController.isPreparingPreview || feedViewModel.isLoading)
         }
         .padding(18)
         .background(Color(nsColor: .controlBackgroundColor).opacity(0.9))
     }
 
     private var importButtonTitle: String {
-        let count = selectedImportRows.count
+        let count = previewController.selectedImportRows.count
         return count == 1 ? "1 Feed importieren" : "\(count) Feeds importieren"
     }
 
+    // View-Chrome: Zusammenfassungstext bleibt in der View, liest vom Controller.
     private var selectionSummaryText: String {
-        if statusFilter == .all {
-            return "Ausgewählt: \(selectedImportRows.count) von \(rows.count)"
+        if previewController.statusFilter == .all {
+            return "Ausgewählt: \(previewController.selectedImportRows.count) von \(previewController.rows.count)"
         }
 
-        return "Ausgewählt: \(selectedImportRows.count) von \(visibleRowCount) sichtbar"
+        return "Ausgewählt: \(previewController.selectedImportRows.count) von \(previewController.visibleRowCount) sichtbar"
     }
 
-    private func loadOPML(from result: Result<URL, Error>) {
-        Task {
-            do {
-                let url = try result.get()
-                let canAccess = url.startAccessingSecurityScopedResource()
-                defer {
-                    if canAccess {
-                        url.stopAccessingSecurityScopedResource()
-                    }
-                }
-
-                selectedFileName = url.lastPathComponent
-                fileDescription = "Datei wird gelesen..."
-                previewProgressText = "OPML-Datei wird gelesen und vorbereitet."
-                errorMessage = nil
-                resultMessage = nil
-                rows = []
-                isPreparingPreview = true
-
-                let data = try Data(contentsOf: url)
-                let opmlFeeds = try OPMLService.parseFeeds(from: data)
-                fileDescription = "\(opmlFeeds.count) Feeds erkannt. Feed-Adressen werden geprüft..."
-                previewProgressText = "\(opmlFeeds.count) Feeds erkannt. Prüfung startet..."
-                rows = await feedViewModel.opmlImportPreviewRows(
-                    for: opmlFeeds,
-                    existingFeeds: feeds,
-                    onProgress: { progress in
-                        previewProgressText = progress.displayText
-                        fileDescription = progress.displayText
-                    }
-                )
-                fileDescription = "\(rows.count) Feeds erkannt · \(Set(rows.map { trimmedFolderName($0.feed.folderName) ?? "Ohne Ordner" }).count) Ordner · \(url.lastPathComponent)"
-                previewProgressText = "Prüfung abgeschlossen."
-                isPreparingPreview = false
-            } catch {
-                isPreparingPreview = false
-                rows = []
-                errorMessage = error.localizedDescription
-                fileDescription = "Die Datei konnte nicht gelesen werden."
-                previewProgressText = "Die Datei konnte nicht gelesen werden."
-            }
-        }
+    /// Setzt den Controller zurück und zeigt den Leer-String für die Datei-Auswahl an.
+    private func resetFile() {
+        previewController.reset()
+        previewController.selectedFileName = "Keine OPML-Datei ausgewählt"
     }
 
-    private func handleDroppedFiles(_ providers: [NSItemProvider]) -> Bool {
-        guard let provider = providers.first(where: {
-            $0.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier)
-        }) else {
-            return false
-        }
-
-        provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, error in
-            DispatchQueue.main.async {
-                if let error {
-                    errorMessage = error.localizedDescription
-                    return
-                }
-
-                guard let url = OPMLImportDroppedFile.url(from: item),
-                      OPMLImportDroppedFile.isSupported(url)
-                else {
-                    errorMessage = "Bitte eine OPML- oder XML-Datei ablegen."
-                    return
-                }
-
-                loadOPML(from: .success(url))
-            }
-        }
-
-        return true
-    }
-
+    /// Importiert die ausgewählten Feeds. Bleibt in der View, weil die
+    /// resultMessage hier pro View divergiert (andere Formatierung/Texte).
     private func importSelectedFeeds() {
         Task {
             do {
-                errorMessage = nil
-                resultMessage = nil
-                let selectedFeeds = selectedImportRows.map(\.feed)
+                previewController.errorMessage = nil
+                previewController.resultMessage = nil
+                let selectedRows = previewController.selectedImportRows
+                let selectedFeeds = selectedRows.map(\.feed)
                 let result = try await feedViewModel.importOPMLFeeds(
                     selectedFeeds,
                     existingFeeds: feeds,
-                    allowsDuplicates: allowsDuplicates,
-                    refreshAfterImport: refreshAfterImport,
+                    allowsDuplicates: previewController.allowsDuplicates,
+                    refreshAfterImport: previewController.refreshAfterImport,
                     refreshIntervalMinutes: backgroundRefreshIntervalMinutes,
                     context: modelContext
                 )
-                let importedDuplicateCount = selectedImportRows.filter { $0.status == .duplicate }.count
+                let importedDuplicateCount = selectedRows.filter { $0.status == .duplicate }.count
                 let duplicateText = importedDuplicateCount > 0
                     ? "\(importedDuplicateCount) Duplikate bewusst importiert"
-                    : "\(duplicateCount) Duplikate angezeigt und übersprungen"
-                let importedUnreachableCount = selectedImportRows.filter { $0.status == .unreachable }.count
+                    : "\(previewController.duplicateCount) Duplikate angezeigt und übersprungen"
+                let importedUnreachableCount = selectedRows.filter { $0.status == .unreachable }.count
                 let unreachableText = importedUnreachableCount > 0
                     ? "\(importedUnreachableCount) nicht erreichbare Feeds bewusst importiert"
-                    : "\(unreachableCount) nicht erreichbare Feeds angezeigt und übersprungen"
-                resultMessage = "Import abgeschlossen: \(result.imported) Feeds importiert, \(duplicateText), \(unreachableText), \(folderCount) Ordner verwendet. \(refreshAfterImport ? "Direktes Aktualisieren ist aktiv." : "Aktualisierung erfolgt später manuell.")"
+                    : "\(previewController.unreachableCount) nicht erreichbare Feeds angezeigt und übersprungen"
+                previewController.resultMessage = "Import abgeschlossen: \(result.imported) Feeds importiert, \(duplicateText), \(unreachableText), \(previewController.folderCount) Ordner verwendet. \(previewController.refreshAfterImport ? "Direktes Aktualisieren ist aktiv." : "Aktualisierung erfolgt später manuell.")"
             } catch {
-                errorMessage = error.localizedDescription
+                previewController.errorMessage = error.localizedDescription
             }
         }
-    }
-
-    private func selectAllImportableRows() {
-        for index in rows.indices {
-            guard visibleRowIDs.contains(rows[index].id) else {
-                continue
-            }
-
-            let status = rows[index].status
-            rows[index].isSelected = selectionOptions.canImport(status)
-        }
-    }
-
-    private func deselectVisibleRows() {
-        for index in rows.indices where visibleRowIDs.contains(rows[index].id) {
-            rows[index].isSelected = false
-        }
-    }
-
-    private func resetFile() {
-        rows = []
-        selectedFileName = "Keine OPML-Datei ausgewählt"
-        fileDescription = "Wähle eine .opml- oder .xml-Datei, danach erscheint hier die Import-Vorschau."
-        previewProgressText = "Noch keine Datei ausgewählt."
-        errorMessage = nil
-        resultMessage = nil
-        allowsDuplicates = false
-        allowsUnreachable = false
-        statusFilter = .all
-    }
-
-    private func createFolder() {
-        let folderName = newFolderName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !folderName.isEmpty else {
-            return
-        }
-
-        if !customFolders.contains(where: { $0.caseInsensitiveCompare(folderName) == .orderedSame }) {
-            customFolders.append(folderName)
-        }
-        newFolderName = ""
-    }
-
-    private func trimmedFolderName(_ value: String?) -> String? {
-        guard let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !trimmed.isEmpty
-        else {
-            return nil
-        }
-
-        return trimmed
     }
 }
 
