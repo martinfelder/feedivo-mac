@@ -22,7 +22,7 @@ class Feed {
     var articleRetentionIncludesProtectedArticles: Bool = false
     var unreadCount: Int = 0
 
-    @Relationship(deleteRule: .cascade)
+    @Relationship(deleteRule: .cascade, inverse: \Article.feed)
     var articles: [Article] = []
 
     @Relationship(deleteRule: .cascade, inverse: \FeedLogEntry.feed)

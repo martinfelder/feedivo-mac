@@ -14,6 +14,9 @@ class Tag {
     @Relationship(inverse: \Article.tags)
     var articles: [Article] = []
 
+    @Relationship(inverse: \Rule.assignTag)
+    var rules: [Rule] = []
+
     init(name: String, colorHex: String = "#888888") {
         self.id = UUID()
         self.name = name
