@@ -104,4 +104,71 @@ struct ArticleSortOptionTests {
 
         #expect(sortiert == ["ContentKurz", "SummaryLang"])
     }
+
+    /// Artikel werden nach Feed-Titel aufsteigend gruppiert
+    /// (localizedStandardCompare). „Alpha" vor „Beta".
+    @Test func feedSortGruppiertArtikelNachFeedTitelAufsteigend() {
+        let feedAlpha = Feed(url: "https://a.example/a.xml", title: "Alpha")
+        let feedBeta = Feed(url: "https://b.example/b.xml", title: "Beta")
+        let ausAlpha = Article(
+            title: "AusAlpha",
+            publishedAt: Date(timeIntervalSince1970: 100),
+            feed: feedAlpha
+        )
+        let ausBeta = Article(
+            title: "AusBeta",
+            publishedAt: Date(timeIntervalSince1970: 300),
+            feed: feedBeta
+        )
+
+        let sortiert = ArticleSortOption.feed.sorted([ausBeta, ausAlpha]).map(\.title)
+
+        #expect(sortiert == ["AusAlpha", "AusBeta"])
+    }
+
+    /// Artikel ohne Feed (feed?.title == nil) sortieren hinter Artikel mit Feed.
+    @Test func feedSortSetztArtikelOhneFeedHinterArtikelMitFeed() {
+        let feed = Feed(url: "https://a.example/a.xml", title: "Alpha")
+        let mitFeed = Article(
+            title: "MitFeed",
+            publishedAt: Date(timeIntervalSince1970: 100),
+            feed: feed
+        )
+        let ohneFeedNeu = Article(
+            title: "OhneFeedNeu",
+            publishedAt: Date(timeIntervalSince1970: 300)
+        )
+        let ohneFeedAlt = Article(
+            title: "OhneFeedAlt",
+            publishedAt: Date(timeIntervalSince1970: 200)
+        )
+
+        let sortiert = ArticleSortOption.feed
+            .sorted([ohneFeedAlt, ohneFeedNeu, mitFeed])
+            .map(\.title)
+
+        // MitFeed (Feed-Titel „Alpha") zuerst, dann die feedlosen nach
+        // newestFirst-Tiebreak (neu vor alt).
+        #expect(sortiert == ["MitFeed", "OhneFeedNeu", "OhneFeedAlt"])
+    }
+
+    /// Gleicher Feed-Titel → compareText liefert nil → newestFirst-Tiebreak
+    /// (neuere publishedAt zuerst).
+    @Test func feedSortBrichtGleichstandGleicherFeedMitNewestFirstAuf() {
+        let feed = Feed(url: "https://a.example/a.xml", title: "Alpha")
+        let aelter = Article(
+            title: "Aelter",
+            publishedAt: Date(timeIntervalSince1970: 100),
+            feed: feed
+        )
+        let neuer = Article(
+            title: "Neuer",
+            publishedAt: Date(timeIntervalSince1970: 300),
+            feed: feed
+        )
+
+        let sortiert = ArticleSortOption.feed.sorted([aelter, neuer]).map(\.title)
+
+        #expect(sortiert == ["Neuer", "Aelter"])
+    }
 }

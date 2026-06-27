@@ -43,6 +43,25 @@ enum ArticleSortOption: String, CaseIterable, Identifiable {
             ? Dictionary(articles.map { ($0.id, readingMinutes(for: $0)) }, uniquingKeysWith: { first, _ in first })
             : [:]
 
+        // P9: Feed-Titel einmal pro vorhandenem Feed in eine Map ablegen und im
+        // Komparator per feedID-Lookup verwenden, statt bei jedem Vergleich die
+        // feed-Relationship (`first.feed?.title`) neu zu faulten. Nur für .feed
+        // relevant — sonst bleibt die Map leer. Ein Titel wird gesetzt, sobald ein
+        // Artikel mit intaktem Feed ihn liefert; das lässt den seltenen Fall
+        // „feedID gesetzt, feed-Relationship kaputt (orphaned)" unverändert
+        // (Titel nil), ohne einen späteren intakten Artikel zu blockieren.
+        let feedTitleByFeedID: [UUID: String] = {
+            guard self == .feed else { return [:] }
+            var map: [UUID: String] = [:]
+            for article in articles {
+                guard let feedID = article.feedID, map[feedID] == nil else { continue }
+                if let title = article.feed?.title {
+                    map[feedID] = title
+                }
+            }
+            return map
+        }()
+
         return articles.sorted { first, second in
             switch self {
             case .newestFirst:
@@ -50,7 +69,8 @@ enum ArticleSortOption: String, CaseIterable, Identifiable {
             case .oldestFirst:
                 oldestFirst(first, second)
             case .feed:
-                compareText(first.feed?.title, second.feed?.title) ?? newestFirst(first, second)
+                compareText(first.feedID.flatMap { feedTitleByFeedID[$0] }, second.feedID.flatMap { feedTitleByFeedID[$0] })
+                    ?? newestFirst(first, second)
             case .title:
                 compareText(first.title, second.title) ?? newestFirst(first, second)
             case .shortReadingTimeFirst:
