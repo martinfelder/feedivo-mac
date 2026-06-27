@@ -100,12 +100,19 @@ final class OfflineDownloadService {
         }
     }
 
-    func archiveForOffline(_ article: Article) async {
+    @discardableResult
+    func archiveForOffline(_ article: Article) async -> Bool {
         if !article.offlineState.isAvailable {
             await saveForOffline(article)
         }
 
+        // Archiviert nur, wenn tatsächlich eine Offline-Kopie vorliegt. Schlägt
+        // saveForOffline fehl (offlineState == .failed, Fehler in
+        // article.offlineErrorMessage), bleibt isArchived false. Vorher war das
+        // ein lautloser Misserfolg — jetzt geben wir den Status an den Aufrufer
+        // zurück, damit er den Nutzer informieren kann.
         article.isArchived = article.offlineState.isAvailable
+        return article.isArchived
     }
 
     func removeArchive(from article: Article) {

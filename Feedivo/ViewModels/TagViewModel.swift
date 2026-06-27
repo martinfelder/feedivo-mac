@@ -31,7 +31,15 @@ final class TagViewModel {
         context.insert(tag)
         save(context)
 
-        return errorMessage == nil ? tag : nil
+        // Rollback: wenn das Speichern scheitert, bleibt der Tag sonst als
+        // ungespeichertes, aber insertetes Objekt im Context hängen und taucht
+        // in @Query-Beobachtungen auf. Deshalb wieder entfernen.
+        guard errorMessage == nil else {
+            context.delete(tag)
+            return nil
+        }
+
+        return tag
     }
 
     func renameTag(

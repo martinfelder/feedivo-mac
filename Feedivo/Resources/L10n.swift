@@ -369,6 +369,15 @@ enum L10n {
     static var feedErrorParsingFailed: String { String(localized: "feed.error.parsingFailed") }
     static var feedErrorEmptyURL: String { String(localized: "feed.error.emptyURL") }
     static var feedErrorAddFailed: String { String(localized: "feed.error.addFailed") }
+    static var feedErrorDuplicate: String {
+        String(localized: "feed.error.duplicate", defaultValue: "Dieser Feed wird bereits abonniert.")
+    }
+    static var offlineArchiveErrorTitle: String {
+        String(localized: "offline.archive.error.title", defaultValue: "Archivieren fehlgeschlagen")
+    }
+    static var offlineArchiveErrorMessage: String {
+        String(localized: "offline.archive.error.message", defaultValue: "Die Offline-Kopie konnte nicht gespeichert werden.")
+    }
     static var feedErrorAlreadyRunning: String {
         String(localized: "feed.error.alreadyRunning", defaultValue: "Eine Aktualisierung läuft bereits. Bitte warte, bis sie abgeschlossen ist.")
     }

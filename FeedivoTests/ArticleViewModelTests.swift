@@ -94,6 +94,39 @@ struct ArticleViewModelTests {
     }
 
     @MainActor
+    @Test func toggleStarredPersistiertSternStatusImContext() async throws {
+        // Regression: toggleStarred sicherte früher nicht (anders als toggleRead).
+        // Neuer Context auf demselben In-Memory-Store sieht den Stern nur,
+        // wenn save() wirklich aufgerufen wurde.
+        let container = try ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            RuleCondition.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let article = Article(title: "Test", isStarred: false)
+        context.insert(article)
+        try context.save()
+        let viewModel = ArticleViewModel()
+
+        await viewModel.toggleStarred(
+            article,
+            automaticallySaveForOffline: false,
+            context: context
+        )
+
+        #expect(article.isStarred)
+
+        let verifyContext = ModelContext(container)
+        let fetched = try #require(try verifyContext.fetch(FetchDescriptor<Article>()).first)
+        #expect(fetched.isStarred)
+    }
+
+    @MainActor
     @Test func toggleStarredFordertOhneAktiveAutomatikKeineOfflineKopieAn() async {
         let article = Article(title: "Test", content: "<p>Offline</p>", isStarred: false)
         let offlineSaver = CapturingArticleOfflineSaver()

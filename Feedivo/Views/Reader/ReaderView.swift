@@ -204,7 +204,26 @@ struct ReaderView: View {
             .inspectorColumnWidth(min: 280, ideal: 318, max: 360)
         }
         .onChange(of: article.persistentModelID) {
-            preparedArticle = ReaderPreparedArticle(article: article)
+            refreshPreparedArticle()
+        }
+        // Hintergrund-Refresh oder Offline-Save ändern Content/Summary/
+        // Offline-Inhalt ohne die persistentModelID zu berühren — früher blieb
+        // preparedArticle dann veraltet (alter Text). Jetzt auf allen
+        // inhaltsrelevanten Feldern erneuern.
+        .onChange(of: article.content) {
+            refreshPreparedArticle()
+        }
+        .onChange(of: article.summary) {
+            refreshPreparedArticle()
+        }
+        .onChange(of: article.imageURL) {
+            refreshPreparedArticle()
+        }
+        .onChange(of: article.offlineContent) {
+            refreshPreparedArticle()
+        }
+        .onChange(of: article.offlineStateRaw) {
+            refreshPreparedArticle()
         }
         .navigationTitle(article.title)
         .toolbar {
@@ -327,9 +346,9 @@ struct ReaderView: View {
                     offlineStatusNotice
                 }
 
-                ForEach(contentBlocks.indices, id: \.self) { index in
+                ForEach(Array(contentBlocks.enumerated()), id: \.element.id) { index, block in
                     VStack(alignment: .leading, spacing: imageTextDividerSpacing) {
-                        readerContentBlock(contentBlocks[index])
+                        readerContentBlock(block)
 
                         if shouldShowImageTextDivider(after: index) {
                             readerSectionDivider
@@ -720,6 +739,11 @@ struct ReaderView: View {
         }
     }
 
+    private func refreshPreparedArticle() {
+        preparedArticle = ReaderPreparedArticle(article: article)
+    }
+
+    @MainActor
     private func toggleOfflineAvailability() async {
         guard !isOfflineOperationInProgress else {
             return

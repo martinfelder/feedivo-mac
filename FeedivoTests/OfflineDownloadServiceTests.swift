@@ -135,6 +135,38 @@ struct OfflineDownloadServiceTests {
         #expect(article.offlineState == .failed)
     }
 
+    @Test func archiveForOfflineMeldetErfolgWennKopieErstelltWurde() async {
+        let article = Article(
+            title: "Archiv",
+            link: "https://example.com/article",
+            content: "<p>Archivierter Volltext.</p>"
+        )
+        let service = OfflineDownloadService(
+            fetcher: StubOfflineContentFetcher(result: .success("<p>Webseite</p>"))
+        )
+
+        let success = await service.archiveForOffline(article)
+
+        #expect(success)
+        #expect(article.isArchived)
+    }
+
+    @Test func archiveForOfflineMeldetMisserfolgWennSpeichernScheitert() async {
+        let article = Article(
+            title: "Defekt",
+            link: "https://example.com/article"
+        )
+        let service = OfflineDownloadService(
+            fetcher: StubOfflineContentFetcher(result: .failure(OfflineTestError()))
+        )
+
+        let success = await service.archiveForOffline(article)
+
+        #expect(!success)
+        #expect(!article.isArchived)
+        #expect(article.offlineErrorMessage == "Server nicht erreichbar")
+    }
+
     @Test func removeArchiveEntferntArchivstatusUndOfflineKopieAberNichtDenArtikel() async {
         let article = Article(
             title: "Archiviert",

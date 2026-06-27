@@ -348,6 +348,21 @@ final class FeedViewModel {
 
         do {
             let parsedFeed = try await fetchFeed(cleanedURL)
+
+            // Duplikat-Prüfung — konsistent zum OPML-Pfad (importOPMLFeeds):
+            // ein bereits abonnierter Feed mit derselben normalisierten URL
+            // wird nicht erneut hinzugefügt. Prüfung nach fetchFeed, weil erst
+            // dann die kanonische sourceURL feststeht.
+            let knownFeedURLs = Set(
+                ((try? context.fetch(FetchDescriptor<Feed>())) ?? [])
+                    .map { normalizedFeedURL($0.url) }
+            )
+            if knownFeedURLs.contains(normalizedFeedURL(parsedFeed.sourceURL)) {
+                errorMessage = L10n.feedErrorDuplicate
+                isLoading = false
+                return
+            }
+
             let enrichedArticles = await enrichArticleImagesIfNeeded(parsedFeed.articles)
             let feed = Feed(
                 url: parsedFeed.sourceURL,

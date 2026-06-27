@@ -201,9 +201,15 @@ final class SmartFolderViewModel {
             return
         }
 
+        // Drag-Reorder: nach unten gezogen (source < target) → hinter dem Ziel
+        // einfügen; nach oben gezogen (source > target) → vor dem Ziel. Beide
+        // Fälle landen nach dem remove() auf demselben Index, weil das Ziel bei
+        // Aufwärts-Bewegung bereits um eins nach vorne gerutscht ist. Der
+        // frühere Ternary `source < target ? targetIndex : targetIndex` war ein
+        // toter Zweig (beide Äste identisch) — Verhalten bleibt gleich, Code
+        // wird klarer. (Siehe moveFolderToPositionOfTargetVerschiebtZeileBeimDragNachUnten.)
         let movedFolder = orderedFolders.remove(at: sourceIndex)
-        let insertionIndex = sourceIndex < targetIndex ? targetIndex : targetIndex
-        orderedFolders.insert(movedFolder, at: insertionIndex)
+        orderedFolders.insert(movedFolder, at: targetIndex)
         normalizeSortOrder(in: orderedFolders)
 
         if let context {
