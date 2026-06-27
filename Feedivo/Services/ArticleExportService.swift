@@ -294,6 +294,39 @@ enum ArticleExportService {
         return formatter
     }()
 
+    // M7: Reguläre Ausdrücke werden einmal pro App-Lebensdauer kompiliert
+    // statt bei jedem Export-Aufruf neu. Die Muster sind konstant und
+    // NSRegularExpression ist beim Matchen unveränderlich sowie threadsicher.
+    // `try?` liefert nur nil, falls ein festes Literalmuster ungültig wäre —
+    // die jeweiligen Aufrufer haben wie bisher einen nil-Fallback-Pfad.
+    private static let safeTagExpression: NSRegularExpression? = try? NSRegularExpression(
+        pattern: #"<(/?)([a-zA-Z][a-zA-Z0-9]*)([^>]*)>"#,
+        options: [.caseInsensitive]
+    )
+
+    private static let imageTagExpression: NSRegularExpression? = try? NSRegularExpression(
+        pattern: #"<img[^>]+src\s*=\s*["']([^"']+)["'][^>]*>"#,
+        options: [.caseInsensitive]
+    )
+
+    private static let hrefAttributeExpression: NSRegularExpression? = try? NSRegularExpression(
+        pattern: #"\bhref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))"#,
+        options: [.caseInsensitive]
+    )
+
+    private static let srcAttributeExpression: NSRegularExpression? = try? NSRegularExpression(
+        pattern: #"\bsrc\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))"#,
+        options: [.caseInsensitive]
+    )
+
+    private static let numericEntityDecimalExpression: NSRegularExpression? = try? NSRegularExpression(
+        pattern: #"&#(\d+);"#
+    )
+
+    private static let numericEntityHexExpression: NSRegularExpression? = try? NSRegularExpression(
+        pattern: #"&#x([0-9a-fA-F]+);"#
+    )
+
     private static func preferredContent(for snapshot: ArticleExportSnapshot) -> String? {
         if snapshot.offlineState.isAvailable,
            let offlineContent = normalizedText(snapshot.offlineContent) {
@@ -427,10 +460,7 @@ enum ArticleExportService {
     }
 
     private static func replacingHTMLTagsWithSafeSubset(in html: String) -> String {
-        guard let expression = try? NSRegularExpression(
-            pattern: #"<(/?)([a-zA-Z][a-zA-Z0-9]*)([^>]*)>"#,
-            options: [.caseInsensitive]
-        ) else {
+        guard let expression = safeTagExpression else {
             return escapedHTML(html)
         }
 
@@ -488,7 +518,7 @@ enum ArticleExportService {
 
     private static func safeLinkTag(from attributes: String) -> String {
         guard
-            let href = htmlAttributeValue(named: "href", in: attributes),
+            let href = htmlAttributeValue(expression: hrefAttributeExpression, in: attributes),
             let normalizedHref = normalizedText(decodedHTMLEntities(in: href)),
             isSafeLinkTarget(normalizedHref)
         else {
@@ -500,7 +530,7 @@ enum ArticleExportService {
 
     private static func safeImageTag(from attributes: String) -> String {
         guard
-            let src = htmlAttributeValue(named: "src", in: attributes),
+            let src = htmlAttributeValue(expression: srcAttributeExpression, in: attributes),
             let normalizedSource = normalizedText(decodedHTMLEntities(in: src)),
             isSafeImageSource(normalizedSource)
         else {
@@ -510,9 +540,8 @@ enum ArticleExportService {
         return "<img src=\"\(escapedHTMLAttribute(normalizedSource))\">"
     }
 
-    private static func htmlAttributeValue(named name: String, in attributes: String) -> String? {
-        let pattern = #"\b\#(name)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))"#
-        guard let expression = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else {
+    private static func htmlAttributeValue(expression: NSRegularExpression?, in attributes: String) -> String? {
+        guard let expression else {
             return nil
         }
 
@@ -556,10 +585,7 @@ enum ArticleExportService {
     }
 
     private static func replacingImages(in html: String) -> String {
-        guard let expression = try? NSRegularExpression(
-            pattern: #"<img[^>]+src\s*=\s*["']([^"']+)["'][^>]*>"#,
-            options: [.caseInsensitive]
-        ) else {
+        guard let expression = imageTagExpression else {
             return html
         }
 
@@ -616,8 +642,8 @@ enum ArticleExportService {
             .replacingOccurrences(of: "&#39;", with: "'")
             .replacingOccurrences(of: "&apos;", with: "'")
 
-        decoded = replacingNumericEntities(in: decoded, pattern: #"&#(\d+);"#, radix: 10)
-        decoded = replacingNumericEntities(in: decoded, pattern: #"&#x([0-9a-fA-F]+);"#, radix: 16)
+        decoded = replacingNumericEntities(in: decoded, expression: numericEntityDecimalExpression, radix: 10)
+        decoded = replacingNumericEntities(in: decoded, expression: numericEntityHexExpression, radix: 16)
         return decoded
     }
 
@@ -634,8 +660,8 @@ enum ArticleExportService {
             .replacingOccurrences(of: "'", with: "&#39;")
     }
 
-    private static func replacingNumericEntities(in text: String, pattern: String, radix: Int) -> String {
-        guard let expression = try? NSRegularExpression(pattern: pattern) else {
+    private static func replacingNumericEntities(in text: String, expression: NSRegularExpression?, radix: Int) -> String {
+        guard let expression else {
             return text
         }
 
