@@ -119,8 +119,8 @@ final class SmartFolderViewModel {
             colorHex: folder.colorHex,
             conditions: sortedConditions(for: folder).enumerated().map { index, condition in
                 SmartFolderCondition(
-                    field: SmartFolderConditionField(rawValue: condition.fieldRaw) ?? .title,
-                    conditionOperator: SmartFolderConditionOperator(rawValue: condition.operatorRaw) ?? .contains,
+                    field: condition.fieldEnum ?? .title,
+                    conditionOperator: condition.operatorEnum ?? .contains,
                     value: condition.value,
                     sortOrder: index
                 )
