@@ -17,6 +17,20 @@ enum L10n {
     static let sidebarAddFolderTitle = LocalizedStringKey("sidebar.addFolder.title")
     static let sidebarAddFolderNamePlaceholder = LocalizedStringKey("sidebar.addFolder.name.placeholder")
     static let sidebarSmartFiltersSection = LocalizedStringKey("sidebar.smartFilters.section")
+    // Parallele Keys für die Smart-Folder-Sektion. Der alte Key
+    // `sidebar.smartFilters.section` bleibt erhalten, wird aber nach diesem
+    // Task nirgends mehr referenziert. Neue View-Stellen nutzen den
+    // sprachlich konsistenteren Key `sidebar.smartFolders.section`.
+    static let sidebarSmartFoldersSection = LocalizedStringKey("sidebar.smartFolders.section")
+    static let sidebarSmartFoldersEmpty = LocalizedStringKey("sidebar.smartFolders.empty")
+    static let sidebarSmartFolderCreate = LocalizedStringKey("sidebar.smartFolder.create")
+    static let sidebarSmartFolderDelete = LocalizedStringKey("sidebar.smartFolder.delete")
+    static let sidebarSmartFolderDuplicate = LocalizedStringKey("sidebar.smartFolder.duplicate")
+    static let sidebarFeedPreviewEmpty = LocalizedStringKey("sidebar.feedPreview.empty")
+    static let sidebarFeedPreviewRecent = LocalizedStringKey("sidebar.feedPreview.recent")
+    static let sidebarSubscribe = LocalizedStringKey("sidebar.subscribe")
+    static let commonDelete = LocalizedStringKey("common.delete")
+    static let commonDuplicate = LocalizedStringKey("common.duplicate")
     static let sidebarTagsSection = LocalizedStringKey("sidebar.tags.section")
     static let smartFilterAllArticles = LocalizedStringKey("smartFilter.allArticles")
     static let smartFilterUnread = LocalizedStringKey("smartFilter.unread")
