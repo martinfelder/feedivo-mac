@@ -1,0 +1,4 @@
+key	de_one	de_other	en_one	en_other	fr_one	fr_other	it_one	it_many
+firstRun.selectedCount	Ausgewählt: %1$lld von %2$lld	Ausgewählt: %1$lld von %2$lld	Selected: %1$lld of %2$lld	Selected: %1$lld of %2$lld	Sélectionnés : %1$lld sur %2$lld	Sélectionnés : %1$lld sur %2$lld	Selezionati: %1$lld di %2$lld	Selezionati: %1$lld di %2$lld
+firstRun.intervalMinutes	%lld Minute	%lld Minuten	%lld minute	%lld minutes	%lld minute	%lld minutes	%lld minuto	%lld minuti
+firstRun.problem.skippedDuplicates	%lld doppelte Feed wurde nicht importiert.	%lld doppelte Feeds wurden nicht importiert.	%lld duplicate feed was not imported.	%lld duplicate feeds were not imported.	%lld flux en double n'a pas été importé.	%lld flux en double n'ont pas été importés.	%lld feed duplicato non importato.	%lld feed duplicati non importati.
