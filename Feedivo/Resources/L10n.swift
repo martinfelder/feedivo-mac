@@ -460,6 +460,44 @@ enum L10n {
     static let feedLogImportedFromOPML = String(localized: "feed.log.importedFromOPML")
     static let opmlImportResultTitle = String(localized: "opml.import.result.title")
     static let opmlImportFailedTitle = String(localized: "opml.import.failed.title")
+
+    // MARK: OPML-Import-Preview-Controller (Plain-Strings)
+    // Diese Strings sind Plain-String-Zuweisungen an Controller-Properties
+    // (keine `Text(...)`-Views) und werden von Xcode deshalb nicht auto-
+    // extrahiert. Zugriff hier über `String(localized:)`.
+    // Plural-Keys (feedsRecognized/checkStart/feedsChecked) liegen als
+    // `variations.plural` in der xcstrings; Aufruf via
+    // `String.localizedStringWithFormat(String(localized:), count)`.
+    static let opmlImportFilterAll = String(localized: "opml.import.filter.all")
+    static let opmlImportFilterAvailable = String(localized: "opml.import.filter.available")
+    static let opmlImportFilterDuplicates = String(localized: "opml.import.filter.duplicates")
+    static let opmlImportFilterUnreachable = String(localized: "opml.import.filter.unreachable")
+    static let opmlImportSheetSourceDescription = String(localized: "opml.import.sheet.sourceDescription")
+    static let opmlImportSheetProgressEmpty = String(localized: "opml.import.sheet.progressEmpty")
+    static let opmlImportSheetNoFileName = String(localized: "opml.import.sheet.noFileName")
+    static let opmlImportFirstRunSourceDescription = String(localized: "opml.import.firstRun.sourceDescription")
+    static let opmlImportFirstRunProgressEmpty = String(localized: "opml.import.firstRun.progressEmpty")
+    static let opmlImportProgressReadingFile = String(localized: "opml.import.progress.readingFile")
+    static let opmlImportProgressPreparing = String(localized: "opml.import.progress.preparing")
+    static let opmlImportProgressFeedsRecognized = String(localized: "opml.import.progress.feedsRecognized")
+    static let opmlImportProgressCheckStart = String(localized: "opml.import.progress.checkStart")
+    static let opmlImportProgressCheckDone = String(localized: "opml.import.progress.checkDone")
+    static let opmlImportProgressFeedsChecked = String(localized: "opml.import.progress.feedsChecked")
+    static let opmlImportErrorUnreadable = String(localized: "opml.import.error.unreadable")
+    static let opmlImportErrorDropFormat = String(localized: "opml.import.error.dropFormat")
+    static let opmlImportSummaryFeedsChecked = String(localized: "opml.import.summary.feedsChecked")
+    static let opmlImportSummaryDuplicates = String(localized: "opml.import.summary.duplicates")
+    static let opmlImportSummaryUnreachable = String(localized: "opml.import.summary.unreachable")
+    static let opmlImportSummarySelected = String(localized: "opml.import.summary.selected")
+    static let opmlImportNewFolder = String(localized: "opml.import.newFolder")
+    static let opmlImportCreateFolder = String(localized: "opml.import.createFolder")
+    static let opmlImportSelectAll = String(localized: "opml.import.selectAll")
+    static let opmlImportDeselectAll = String(localized: "opml.import.deselectAll")
+
+    /// Zusammengesetzte Source-Description für die fertige Vorschau-Zeile
+    /// (`%lld Feeds · %lld Ordner · Dateiname`). Eigener Plain-Key vermeidet
+    /// String-Zerlegung via `components(separatedBy:)`.
+    static let opmlImportProgressRecognizedWithFolders = String(localized: "opml.import.progress.recognizedWithFolders")
     static let feedDeleteConfirmButton = String(localized: "feed.delete.confirmButton")
     static let feedDeleteConfirmationTitle = String(localized: "feed.delete.confirmation.title")
     static let settingsFeedsArticleCountHelp = String(localized: "settings.feeds.articleCount.help")

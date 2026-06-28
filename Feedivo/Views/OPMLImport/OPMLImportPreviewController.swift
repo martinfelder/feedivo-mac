@@ -13,12 +13,16 @@ enum OPMLImportStatusFilter: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var title: String {
+    /// Lokalisierter Titel für die Filter-Auswahl. Aufrufer in
+    /// `OPMLImportReviewView` nutzen `filter.localizedTitle` (ab hier
+    /// Plain-String-basiert, damit Xcode den Key nicht auto-extrahiert —
+    /// die Übersetzung liegt in `Localizable.xcstrings`).
+    var localizedTitle: String {
         switch self {
-        case .all: "Alle Stati"
-        case .available: "Neue Feeds"
-        case .duplicates: "Duplikate"
-        case .unreachable: "Nicht erreichbar"
+        case .all: L10n.opmlImportFilterAll
+        case .available: L10n.opmlImportFilterAvailable
+        case .duplicates: L10n.opmlImportFilterDuplicates
+        case .unreachable: L10n.opmlImportFilterUnreachable
         }
     }
 
@@ -73,16 +77,16 @@ struct OPMLImportPreviewConfiguration: Equatable {
 
     /// Default: OPML-Import-Sheet.
     static let importSheet = OPMLImportPreviewConfiguration(
-        initialSourceDescription: "Wähle eine .opml- oder .xml-Datei, danach erscheint hier die Import-Vorschau.",
-        initialPreviewProgressText: "Noch keine Datei ausgewählt.",
-        initialSelectedFileName: "Keine OPML-Datei ausgewählt"
+        initialSourceDescription: L10n.opmlImportSheetSourceDescription,
+        initialPreviewProgressText: L10n.opmlImportSheetProgressEmpty,
+        initialSelectedFileName: L10n.opmlImportSheetNoFileName
     )
 
     /// FirstRun-Wizard-Varianten der Leer-Texte.
     static let firstRun = OPMLImportPreviewConfiguration(
-        initialSourceDescription: "Wähle aus, wie du deine ersten Feeds hinzufügen möchtest.",
-        initialPreviewProgressText: "Noch keine Feeds geprüft.",
-        initialSelectedFileName: "Keine OPML-Datei ausgewählt"
+        initialSourceDescription: L10n.opmlImportFirstRunSourceDescription,
+        initialPreviewProgressText: L10n.opmlImportFirstRunProgressEmpty,
+        initialSelectedFileName: L10n.opmlImportSheetNoFileName
     )
 }
 
@@ -267,8 +271,8 @@ final class OPMLImportPreviewController {
                 }
 
                 selectedFileName = url.lastPathComponent
-                sourceDescription = "Datei wird gelesen..."
-                previewProgressText = "OPML-Datei wird gelesen und vorbereitet."
+                sourceDescription = L10n.opmlImportProgressReadingFile
+                previewProgressText = L10n.opmlImportProgressPreparing
                 errorMessage = nil
                 resultMessage = nil
                 rows = []
@@ -277,8 +281,12 @@ final class OPMLImportPreviewController {
                 let data = try Data(contentsOf: url)
                 let opmlFeeds = try OPMLService.parseFeeds(from: data)
                 try Task.checkCancellation()
-                sourceDescription = "\(opmlFeeds.count) Feeds erkannt. Feed-Adressen werden geprüft..."
-                previewProgressText = "\(opmlFeeds.count) Feeds erkannt. Prüfung startet..."
+                sourceDescription = String.localizedStringWithFormat(
+                    String(localized: "opml.import.progress.feedsRecognized"),
+                    opmlFeeds.count)
+                previewProgressText = String.localizedStringWithFormat(
+                    String(localized: "opml.import.progress.checkStart"),
+                    opmlFeeds.count)
                 rows = await feedViewModel.opmlImportPreviewRows(
                     for: opmlFeeds,
                     existingFeeds: existingFeeds,
@@ -295,8 +303,13 @@ final class OPMLImportPreviewController {
                     rows = []
                     return
                 }
-                sourceDescription = "\(rows.count) Feeds erkannt · \(Set(rows.map { trimmedFolderName($0.feed.folderName) ?? "Ohne Ordner" }).count) Ordner · \(url.lastPathComponent)"
-                previewProgressText = "Prüfung abgeschlossen."
+                // Sentinel „Ohne Ordner" bleibt bewusst nicht lokalisiert —
+                // interner Daten-Schlüssel für folderCount (Spec Observation 1060).
+                let folderCount = Set(rows.map { trimmedFolderName($0.feed.folderName) ?? "Ohne Ordner" }).count
+                sourceDescription = String.localizedStringWithFormat(
+                    String(localized: "opml.import.progress.recognizedWithFolders"),
+                    rows.count, folderCount, url.lastPathComponent)
+                previewProgressText = L10n.opmlImportProgressCheckDone
                 isPreparingPreview = false
             } catch is CancellationError {
                 // Abbruch ist kein Fehler — State wird vom nachfolgenden Start
@@ -307,8 +320,8 @@ final class OPMLImportPreviewController {
                 isPreparingPreview = false
                 rows = []
                 errorMessage = error.localizedDescription
-                sourceDescription = "Die Datei konnte nicht gelesen werden."
-                previewProgressText = "Die Datei konnte nicht gelesen werden."
+                sourceDescription = L10n.opmlImportErrorUnreadable
+                previewProgressText = L10n.opmlImportErrorUnreadable
             }
         }
         previewTask = task
@@ -342,8 +355,10 @@ final class OPMLImportPreviewController {
                 rows = []
                 return
             }
-            sourceDescription = "\(rows.count) Feeds geprüft."
-            previewProgressText = "Prüfung abgeschlossen."
+            sourceDescription = String.localizedStringWithFormat(
+                String(localized: "opml.import.progress.feedsChecked"),
+                rows.count)
+            previewProgressText = L10n.opmlImportProgressCheckDone
             isPreparingPreview = false
         }
         previewTask = task
@@ -373,7 +388,7 @@ final class OPMLImportPreviewController {
                 guard let url = OPMLImportDroppedFile.url(from: item),
                       OPMLImportDroppedFile.isSupported(url)
                 else {
-                    self.errorMessage = "Bitte eine OPML- oder XML-Datei ablegen."
+                    self.errorMessage = L10n.opmlImportErrorDropFormat
                     return
                 }
                 onValidFile?(url)

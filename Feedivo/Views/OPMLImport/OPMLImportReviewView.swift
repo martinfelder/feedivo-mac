@@ -259,7 +259,7 @@ struct OPMLImportReviewView: View {
 
             Picker("Status", selection: $previewController.statusFilter) {
                 ForEach(OPMLImportStatusFilter.allCases) { filter in
-                    Text(filter.title).tag(filter)
+                    Text(filter.localizedTitle).tag(filter)
                 }
             }
             .labelsHidden()
