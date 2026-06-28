@@ -5609,13 +5609,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "HTTP-Fehler %lld"
+                  "value": "Der Feed konnte nicht geladen werden (HTTP %lld)."
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "HTTP-Fehler %lld"
+                  "value": "Der Feed konnte nicht geladen werden (HTTP %lld)."
                 }
               }
             }
@@ -5627,13 +5627,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "HTTP error %lld"
+                  "value": "The feed could not be loaded (HTTP %lld)."
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "HTTP error %lld"
+                  "value": "The feed could not be loaded (HTTP %lld)."
                 }
               }
             }
@@ -5645,13 +5645,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "Erreur HTTP %lld"
+                  "value": "Le flux n'a pas pu être chargé (HTTP %lld)."
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "Erreur HTTP %lld"
+                  "value": "Le flux n'a pas pu être chargé (HTTP %lld)."
                 }
               }
             }
@@ -5663,13 +5663,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "Errore HTTP %lld"
+                  "value": "Impossibile caricare il feed (HTTP %lld)."
                 }
               },
               "many": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "Errore HTTP %lld"
+                  "value": "Impossibile caricare il feed (HTTP %lld)."
                 }
               }
             }
@@ -10101,13 +10101,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld Treffer für „%2$@“"
+                  "value": "%lld neue %@-Artikel"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld Treffer für „%2$@“"
+                  "value": "%lld neue %@-Artikel"
                 }
               }
             }
@@ -10119,13 +10119,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld match for “%2$@”"
+                  "value": "%lld new %@ articles"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld matches for “%2$@”"
+                  "value": "%lld new %@ articles"
                 }
               }
             }
@@ -10137,13 +10137,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld correspondance pour « %2$@ »"
+                  "value": "%lld nouveaux articles %@"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld correspondances pour « %2$@ »"
+                  "value": "%lld nouveaux articles %@"
                 }
               }
             }
@@ -10155,13 +10155,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld corrispondenza per “%2$@”"
+                  "value": "%lld nuovi articoli %@"
                 }
               },
               "many": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld corrispondenze per “%2$@”"
+                  "value": "%lld nuovi articoli %@"
                 }
               }
             }
