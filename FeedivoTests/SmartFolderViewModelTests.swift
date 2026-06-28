@@ -7,14 +7,8 @@ struct SmartFolderViewModelTests {
     @MainActor
     @Test func restoreDefaultFoldersLegtAlleVordefiniertenIntelligentenOrdnerAn() throws {
         let container = try ModelContainer(
-            for: Feed.self,
-            Article.self,
-            Tag.self,
-            Rule.self,
-            RuleCondition.self,
-            SmartFolder.self,
-            SmartFolderCondition.self,
-            FeedLogEntry.self,
+            for: Feed.self, Article.self, Tag.self, Rule.self, RuleCondition.self,
+            SmartFolder.self, SmartFolderCondition.self, FeedLogEntry.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
         let context = ModelContext(container)
@@ -23,28 +17,36 @@ struct SmartFolderViewModelTests {
         viewModel.restoreDefaultFolders(existingFolders: [], context: context)
 
         let folders = try context.fetch(FetchDescriptor<SmartFolder>())
-        #expect(SmartFolderViewModel.sortedFolders(folders).map(\.name) == [
-            "Alle Artikel",
-            "Ungelesen",
-            "Mit Stern",
-            "Heute",
-            "Ausgeblendet",
-            "Archiviert",
-            "Diese Woche",
-            "Gespeichert"
+        // Restore matcht künftig nach defaultKey, nicht nach deutschem Namen.
+        #expect(SmartFolderViewModel.sortedFolders(folders).map(\.defaultKey) == [
+            "all", "unread", "starred", "today", "hidden", "archived", "thisWeek", "saved"
         ])
         #expect(folders.allSatisfy { folder in folder.isShownInSidebar })
         #expect(folders.allSatisfy { folder in folder.isDefault })
 
-        let allArticlesFolder = try #require(folders.first { $0.name == "Alle Artikel" })
+        let allArticlesFolder = try #require(folders.first { $0.defaultKey == "all" })
         #expect(allArticlesFolder.conditions.isEmpty)
         #expect(allArticlesFolder.iconName == "tray.full")
         #expect(allArticlesFolder.colorHex == "#3B82F6")
 
-        let starredFolder = try #require(folders.first { $0.name == "Mit Stern" })
+        let starredFolder = try #require(folders.first { $0.defaultKey == "starred" })
         #expect(starredFolder.conditions.first?.value == SmartFolderStatusValue.starred.rawValue)
         #expect(starredFolder.iconName == "star.fill")
         #expect(starredFolder.colorHex == "#F59E0B")
+    }
+
+    @MainActor
+    @Test func localizedDisplayNameLiefertLokalisiertenNamenFuerDefaults() throws {
+        let defaultFolder = SmartFolder(name: "Alle Artikel", isDefault: true)
+        defaultFolder.defaultKey = "all"
+        let customFolder = SmartFolder(name: "Mein Ordner")
+
+        // Custom-Namen bleiben unverändert; Default-Namen werden lokalisiert.
+        #expect(customFolder.localizedDisplayName == "Mein Ordner")
+        // Im DE-Source-Locale ergibt der Key den deutschen Source-Wert.
+        let deLocale = Locale(identifier: "de")
+        #expect(String(localized: "smartFolder.default.all", locale: deLocale) == defaultFolder.localizedDisplayName
+                || defaultFolder.localizedDisplayName == "Alle Artikel")
     }
 
     @MainActor

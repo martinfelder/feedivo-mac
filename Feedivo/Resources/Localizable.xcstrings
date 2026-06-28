@@ -2,36 +2,6 @@
   "sourceLanguage": "de",
   "strings": {
     "": {},
-    ".%@": {},
-    ".opml und .xml werden unterstützt": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": ".opml und .xml werden unterstützt"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": ".opml and .xml are supported"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": ".opml et .xml sont pris en charge"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": ".opml e .xml sono supportati"
-          }
-        }
-      }
-    },
-    "·": {},
     "#%@": {},
     "%lld": {},
     "%lld Artikel passen aktuell zu diesem intelligenten Ordner.": {
@@ -62,8 +32,37 @@
         }
       }
     },
-    "%lld px": {},
     "%lld Treffer": {},
+    "%lld px": {},
+    ".%@": {},
+    ".opml und .xml werden unterstützt": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": ".opml und .xml werden unterstützt"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": ".opml and .xml are supported"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": ".opml et .xml sont pris en charge"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": ".opml e .xml sono supportati"
+          }
+        }
+      }
+    },
     "Abbrechen": {
       "localizations": {
         "de": {
@@ -229,6 +228,1589 @@
           "stringUnit": {
             "state": "translated",
             "value": "Scegli un altro OPML"
+          }
+        }
+      }
+    },
+    "Auswahl bearbeiten": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auswahl bearbeiten"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit selection"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modifier la sélection"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modifica selezione"
+          }
+        }
+      }
+    },
+    "Bedingung hinzufügen": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bedingung hinzufügen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add condition"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajouter une condition"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aggiungi condizione"
+          }
+        }
+      }
+    },
+    "Bedingungen": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bedingungen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conditions"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conditions"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Condizioni"
+          }
+        }
+      }
+    },
+    "Darstellung": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Darstellung"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Appearance"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apparence"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aspetto"
+          }
+        }
+      }
+    },
+    "Datei auswählen...": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Datei auswählen..."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose file..."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choisir un fichier..."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scegli file..."
+          }
+        }
+      }
+    },
+    "Die ausgewählten Feeds wurden gespeichert. Hinweise zeigen dir, was noch Aufmerksamkeit braucht.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die ausgewählten Feeds wurden gespeichert. Hinweise zeigen dir, was noch Aufmerksamkeit braucht."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The selected feeds have been saved. Hints show what still needs attention."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les flux sélectionnés ont été enregistrés. Les indications montrent ce qui requiert encore de l'attention."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I feed selezionati sono stati salvati. Gli avvisi mostrano cosa richiede ancora attenzione."
+          }
+        }
+      }
+    },
+    "Diese Feeds werden gespeichert, wenn du fortfährst. Über „Auswahl bearbeiten“ kommst du zurück zur Liste.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diese Feeds werden gespeichert, wenn du fortfährst. Über „Auswahl bearbeiten“ kommst du zurück zur Liste."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "These feeds will be saved when you continue. Use “Edit selection” to return to the list."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ces flux seront enregistrés lorsque vous continuerez. Utilisez « Modifier la sélection » pour revenir à la liste."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questi feed verranno salvati quando continui. Usa «Modifica selezione» per tornare alla lista."
+          }
+        }
+      }
+    },
+    "Dieser Feed liefert aktuell keine Artikel für die Vorschau.": {},
+    "Duplikate importieren": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Duplikate importieren"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import duplicates"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importer les doublons"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importa duplicati"
+          }
+        }
+      }
+    },
+    "Duplizieren": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Duplizieren"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Duplicate"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dupliquer"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Duplica"
+          }
+        }
+      }
+    },
+    "Durchsuche alle gespeicherten Artikel und grenze die Resultate mit Feed, Tag, Zeitraum oder Status ein.": {},
+    "Dynamische Artikelansicht mit globalem UND/ODER-Operator.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dynamische Artikelansicht mit globalem UND/ODER-Operator."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dynamic article view with global AND/OR operator."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vue d'articles dynamique avec opérateur ET/OU global."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vista articoli dinamica con operatore E/O globale."
+          }
+        }
+      }
+    },
+    "Dynamische Ordner werden in der Sidebar angezeigt und filtern Artikel automatisch.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dynamische Ordner werden in der Sidebar angezeigt und filtern Artikel automatisch."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dynamic folders are shown in the sidebar and filter articles automatically."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les dossiers dynamiques sont affichés dans la barre latérale et filtrent les articles automatiquement."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le cartelle dinamiche vengono mostrate nella barra laterale e filtrano gli articoli automaticamente."
+          }
+        }
+      }
+    },
+    "Eigener Ordner": {},
+    "Entfernen": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entfernen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Supprimer"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rimuovi"
+          }
+        }
+      }
+    },
+    "Erfülle alle Bedingungen": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erfülle alle Bedingungen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Match all conditions"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remplir toutes les conditions"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Soddisfa tutte le condizioni"
+          }
+        }
+      }
+    },
+    "Erfülle eine Bedingung": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erfülle eine Bedingung"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Match any condition"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remplir une condition"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Soddisfa una condizione"
+          }
+        }
+      }
+    },
+    "Feed": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feed"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feed"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Flux"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feed"
+          }
+        }
+      }
+    },
+    "Feed prüfen": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feed prüfen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check feed"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vérifier le flux"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verifica feed"
+          }
+        }
+      }
+    },
+    "Feedivo": {},
+    "Feedivo einrichten": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feedivo einrichten"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Set up Feedivo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Configurer Feedivo"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Configura Feedivo"
+          }
+        }
+      }
+    },
+    "Feeds aus OPML importieren": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feeds aus OPML importieren"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import feeds from OPML"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importer des flux depuis OPML"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importa feed da OPML"
+          }
+        }
+      }
+    },
+    "Feeds nach Import direkt aktualisieren": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feeds nach Import direkt aktualisieren"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refresh feeds immediately after import"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rafraîchir les flux directement après l'importation"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aggiorna i feed subito dopo l'importazione"
+          }
+        }
+      }
+    },
+    "Hinweise": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hinweise"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hints"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Indications"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suggerimenti"
+          }
+        }
+      }
+    },
+    "Icon": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Icon"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Icon"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Icône"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Icona"
+          }
+        }
+      }
+    },
+    "Import abgeschlossen": {},
+    "Import abgeschlossen mit Hinweisen": {},
+    "Import-Vorschau wird vorbereitet": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import-Vorschau wird vorbereitet"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preparing import preview"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Préparation de l'aperçu d'importation"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preparazione anteprima importazione"
+          }
+        }
+      }
+    },
+    "Import-Zusammenfassung": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import-Zusammenfassung"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import summary"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Résumé d'importation"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Riepilogo importazione"
+          }
+        }
+      }
+    },
+    "In Sidebar anzeigen": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In Sidebar anzeigen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show in sidebar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Afficher dans la barre latérale"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostra nella barra laterale"
+          }
+        }
+      }
+    },
+    "Intelligente Ordner": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Intelligente Ordner"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Smart folders"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dossiers intelligents"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cartelle intelligenti"
+          }
+        }
+      }
+    },
+    "Intelligenten Ordner bearbeiten": {},
+    "Intelligenten Ordner erstellen": {},
+    "Intelligenten Ordner löschen": {},
+    "Keine intelligenten Ordner": {},
+    "Letzte Artikel": {},
+    "Live-Vorschau": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live-Vorschau"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live preview"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aperçu en direct"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anteprima dal vivo"
+          }
+        }
+      }
+    },
+    "Löschen": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Löschen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Supprimer"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elimina"
+          }
+        }
+      }
+    },
+    "Nach oben": {},
+    "Nach unten": {},
+    "Name": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Name"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Name"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nom"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nome"
+          }
+        }
+      }
+    },
+    "Neuer Ordner": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neuer Ordner"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New folder"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nouveau dossier"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nuova cartella"
+          }
+        }
+      }
+    },
+    "Nicht erreichbare Feeds importieren": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nicht erreichbare Feeds importieren"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import unreachable feeds"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importer les flux inaccessibles"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importa feed non raggiungibili"
+          }
+        }
+      }
+    },
+    "Nicht erreichbare importieren": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nicht erreichbare importieren"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import unreachable"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importer les inaccessibles"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importa non raggiungibili"
+          }
+        }
+      }
+    },
+    "ODER": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ODER"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OR"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OU"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O"
+          }
+        }
+      }
+    },
+    "OPML": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OPML"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OPML"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OPML"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OPML"
+          }
+        }
+      }
+    },
+    "OPML oder XML hier ablegen": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OPML oder XML hier ablegen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drop OPML or XML here"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Déposez OPML ou XML ici"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trascina qui OPML o XML"
+          }
+        }
+      }
+    },
+    "OPML-Datei hier ablegen": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OPML-Datei hier ablegen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drop OPML file here"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Déposez le fichier OPML ici"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trascina qui il file OPML"
+          }
+        }
+      }
+    },
+    "Ohne Bedingungen werden alle Artikel angezeigt.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ohne Bedingungen werden alle Artikel angezeigt."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Without conditions, all articles are shown."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sans conditions, tous les articles sont affichés."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Senza condizioni, vengono mostrati tutti gli articoli."
+          }
+        }
+      }
+    },
+    "Ohne Ordner": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ohne Ordner"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No folder"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sans dossier"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nessuna cartella"
+          }
+        }
+      }
+    },
+    "Operator": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Operator"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Operator"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opérateur"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Operatore"
+          }
+        }
+      }
+    },
+    "Ordner": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ordner"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Folder"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dossier"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cartella"
+          }
+        }
+      }
+    },
+    "Ordner erstellen": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ordner erstellen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create folder"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Créer un dossier"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crea cartella"
+          }
+        }
+      }
+    },
+    "Prüfe die erkannten Feeds, passe Ordner an und entscheide, ob Feedivo direkt aktualisieren soll.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prüfe die erkannten Feeds, passe Ordner an und entscheide, ob Feedivo direkt aktualisieren soll."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Review the detected feeds, adjust folders, and decide whether Feedivo should refresh immediately."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vérifiez les flux détectés, ajustez les dossiers et décidez si Feedivo doit se rafraîchir directement."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Controlla i feed rilevati, regola le cartelle e decidi se Feedivo deve aggiornarsi direttamente."
+          }
+        }
+      }
+    },
+    "Refresh-Intervall": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refresh-Intervall"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refresh interval"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Intervalle de rafraîchissement"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Intervallo di aggiornamento"
+          }
+        }
+      }
+    },
+    "Regel": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Regel"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rule"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Règle"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Regola"
+          }
+        }
+      }
+    },
+    "Regeln werden von oben nach unten angewendet.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Regeln werden von oben nach unten angewendet."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rules are applied from top to bottom."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les règles sont appliquées de haut en bas."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le regole vengono applicate dall'alto al basso."
+          }
+        }
+      }
+    },
+    "Reihenfolge": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reihenfolge"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Order"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ordre"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ordine"
+          }
+        }
+      }
+    },
+    "Sidebar": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sidebar"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sidebar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Barre latérale"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Barra laterale"
+          }
+        }
+      }
+    },
+    "Speichern": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Speichern"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enregistrer"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salva"
+          }
+        }
+      }
+    },
+    "Später": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Später"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Later"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plus tard"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Più tardi"
+          }
+        }
+      }
+    },
+    "Standardordner": {},
+    "Standardordner wiederherstellen": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Standardordner wiederherstellen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restore default folders"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restaurer les dossiers par défaut"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ripristina cartelle predefinite"
+          }
+        }
+      }
+    },
+    "Status": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Status"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Status"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Statut"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stato"
+          }
+        }
+      }
+    },
+    "Statusfilter": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Statusfilter"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Status filter"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filtre de statut"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filtro di stato"
+          }
+        }
+      }
+    },
+    "Tag fehlt": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tag fehlt"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tag missing"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Étiquette manquante"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Etichetta mancante"
+          }
+        }
+      }
+    },
+    "Treffer": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Treffer"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Matches"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Correspondances"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Corrispondenze"
+          }
+        }
+      }
+    },
+    "UND": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "UND"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AND"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ET"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "E"
+          }
+        }
+      }
+    },
+    "Website": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Website"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Website"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Site web"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sito web"
+          }
+        }
+      }
+    },
+    "Zum Sortieren ziehen": {},
+    "Zurück": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zurück"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Back"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retour"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Indietro"
           }
         }
       }
@@ -3313,90 +4895,6 @@
         }
       }
     },
-    "Auswahl bearbeiten": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Auswahl bearbeiten"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Edit selection"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Modifier la sélection"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Modifica selezione"
-          }
-        }
-      }
-    },
-    "Bedingung hinzufügen": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bedingung hinzufügen"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Add condition"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ajouter une condition"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aggiungi condizione"
-          }
-        }
-      }
-    },
-    "Bedingungen": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bedingungen"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Conditions"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Conditions"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Condizioni"
-          }
-        }
-      }
-    },
     "common.add": {
       "localizations": {
         "de": {
@@ -3705,369 +5203,58 @@
         }
       }
     },
-    "Darstellung": {
+    "database.init.error.message": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Darstellung"
+            "value": "Deine gespeicherten Feeds sind vorerst nicht verfügbar. Die App läuft mit einer leeren, temporären Datenbank. Bitte starte die App neu."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Appearance"
+            "value": "Your saved feeds are temporarily unavailable. The app is running with an empty, temporary database. Please restart the app."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Apparence"
+            "value": "Vos flux enregistrés sont temporairement indisponibles. L'application fonctionne avec une base de données temporaire vide. Veuillez redémarrer l'application."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aspetto"
+            "value": "I tuoi feed salvati sono temporaneamente non disponibili. L'app viene eseguita con un database temporaneo vuoto. Riavvia l'app."
           }
         }
       }
     },
-    "Datei auswählen...": {
+    "database.init.error.title": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Datei auswählen..."
+            "value": "Datenbank konnte nicht geladen werden"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Choose file..."
+            "value": "Database could not be loaded"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Choisir un fichier..."
+            "value": "La base de données n'a pas pu être chargée"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Scegli file..."
-          }
-        }
-      }
-    },
-    "Die ausgewählten Feeds wurden gespeichert. Hinweise zeigen dir, was noch Aufmerksamkeit braucht.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Die ausgewählten Feeds wurden gespeichert. Hinweise zeigen dir, was noch Aufmerksamkeit braucht."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The selected feeds have been saved. Hints show what still needs attention."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Les flux sélectionnés ont été enregistrés. Les indications montrent ce qui requiert encore de l'attention."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "I feed selezionati sono stati salvati. Gli avvisi mostrano cosa richiede ancora attenzione."
-          }
-        }
-      }
-    },
-    "Diese Feeds werden gespeichert, wenn du fortfährst. Über „Auswahl bearbeiten“ kommst du zurück zur Liste.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Diese Feeds werden gespeichert, wenn du fortfährst. Über „Auswahl bearbeiten“ kommst du zurück zur Liste."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "These feeds will be saved when you continue. Use “Edit selection” to return to the list."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ces flux seront enregistrés lorsque vous continuerez. Utilisez « Modifier la sélection » pour revenir à la liste."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Questi feed verranno salvati quando continui. Usa «Modifica selezione» per tornare alla lista."
-          }
-        }
-      }
-    },
-    "Dieser Feed liefert aktuell keine Artikel für die Vorschau.": {},
-    "Duplikate importieren": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Duplikate importieren"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Import duplicates"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Importer les doublons"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Importa duplicati"
-          }
-        }
-      }
-    },
-    "Duplizieren": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Duplizieren"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Duplicate"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dupliquer"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Duplica"
-          }
-        }
-      }
-    },
-    "Durchsuche alle gespeicherten Artikel und grenze die Resultate mit Feed, Tag, Zeitraum oder Status ein.": {},
-    "Dynamische Artikelansicht mit globalem UND/ODER-Operator.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dynamische Artikelansicht mit globalem UND/ODER-Operator."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dynamic article view with global AND/OR operator."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vue d'articles dynamique avec opérateur ET/OU global."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vista articoli dinamica con operatore E/O globale."
-          }
-        }
-      }
-    },
-    "Dynamische Ordner werden in der Sidebar angezeigt und filtern Artikel automatisch.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dynamische Ordner werden in der Sidebar angezeigt und filtern Artikel automatisch."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dynamic folders are shown in the sidebar and filter articles automatically."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Les dossiers dynamiques sont affichés dans la barre latérale et filtrent les articles automatiquement."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Le cartelle dinamiche vengono mostrate nella barra laterale e filtrano gli articoli automaticamente."
-          }
-        }
-      }
-    },
-    "Eigener Ordner": {},
-    "Entfernen": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Entfernen"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Remove"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Supprimer"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Rimuovi"
-          }
-        }
-      }
-    },
-    "Erfülle alle Bedingungen": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Erfülle alle Bedingungen"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Match all conditions"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Remplir toutes les conditions"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Soddisfa tutte le condizioni"
-          }
-        }
-      }
-    },
-    "Erfülle eine Bedingung": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Erfülle eine Bedingung"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Match any condition"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Remplir une condition"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Soddisfa una condizione"
-          }
-        }
-      }
-    },
-    "Feed": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Feed"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Feed"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Flux"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Feed"
-          }
-        }
-      }
-    },
-    "Feed prüfen": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Feed prüfen"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Check feed"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vérifier le flux"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Verifica feed"
+            "value": "Impossibile caricare il database"
           }
         }
       }
@@ -4128,6 +5315,34 @@
         }
       }
     },
+    "feed.delete.confirmButton": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feed löschen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete Feed"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Supprimer le flux"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elimina feed"
+          }
+        }
+      }
+    },
     "feed.delete.confirmation.message": {
       "localizations": {
         "de": {
@@ -4180,34 +5395,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Eliminare feed?"
-          }
-        }
-      }
-    },
-    "feed.delete.confirmButton": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Feed löschen"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Delete Feed"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Supprimer le flux"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Elimina feed"
           }
         }
       }
@@ -5561,34 +6748,6 @@
         }
       }
     },
-    "feed.rename.restored": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Der Originalname wird wieder verwendet."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The original name will be used again."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Le nom d’origine sera réutilisé."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Il nome originale verrà usato di nuovo."
-          }
-        }
-      }
-    },
     "feed.rename.restoreOriginal": {
       "localizations": {
         "de": {
@@ -5613,6 +6772,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Originale"
+          }
+        }
+      }
+    },
+    "feed.rename.restored": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Originalname wird wieder verwendet."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The original name will be used again."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le nom d’origine sera réutilisé."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il nome originale verrà usato di nuovo."
           }
         }
       }
@@ -5785,353 +6972,7 @@
         }
       }
     },
-    "Feedivo": {},
-    "Feedivo einrichten": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Feedivo einrichten"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Set up Feedivo"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Configurer Feedivo"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Configura Feedivo"
-          }
-        }
-      }
-    },
-    "Feeds aus OPML importieren": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Feeds aus OPML importieren"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Import feeds from OPML"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Importer des flux depuis OPML"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Importa feed da OPML"
-          }
-        }
-      }
-    },
-    "Feeds nach Import direkt aktualisieren": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Feeds nach Import direkt aktualisieren"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Refresh feeds immediately after import"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Rafraîchir les flux directement après l'importation"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aggiorna i feed subito dopo l'importazione"
-          }
-        }
-      }
-    },
-    "Hinweise": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hinweise"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hints"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Indications"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Suggerimenti"
-          }
-        }
-      }
-    },
     "https://example.com/feed.xml": {},
-    "Icon": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Icon"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Icon"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Icône"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Icona"
-          }
-        }
-      }
-    },
-    "Import abgeschlossen": {},
-    "Import abgeschlossen mit Hinweisen": {},
-    "Import-Vorschau wird vorbereitet": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Import-Vorschau wird vorbereitet"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Preparing import preview"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Préparation de l'aperçu d'importation"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Preparazione anteprima importazione"
-          }
-        }
-      }
-    },
-    "Import-Zusammenfassung": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Import-Zusammenfassung"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Import summary"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Résumé d'importation"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Riepilogo importazione"
-          }
-        }
-      }
-    },
-    "In Sidebar anzeigen": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "In Sidebar anzeigen"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Show in sidebar"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Afficher dans la barre latérale"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mostra nella barra laterale"
-          }
-        }
-      }
-    },
-    "Intelligente Ordner": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Intelligente Ordner"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Smart folders"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dossiers intelligents"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cartelle intelligenti"
-          }
-        }
-      }
-    },
-    "Intelligenten Ordner bearbeiten": {},
-    "Intelligenten Ordner erstellen": {},
-    "Intelligenten Ordner löschen": {},
-    "Keine intelligenten Ordner": {},
-    "Letzte Artikel": {},
-    "Live-Vorschau": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Live-Vorschau"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Live preview"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aperçu en direct"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Anteprima dal vivo"
-          }
-        }
-      }
-    },
-    "Löschen": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Löschen"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Delete"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Supprimer"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Elimina"
-          }
-        }
-      }
-    },
-    "Nach oben": {},
-    "Nach unten": {},
-    "Name": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Name"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Name"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nom"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nome"
-          }
-        }
-      }
-    },
     "networkStatus.offline": {
       "localizations": {
         "de": {
@@ -6184,90 +7025,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Online"
-          }
-        }
-      }
-    },
-    "Neuer Ordner": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Neuer Ordner"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "New folder"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nouveau dossier"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nuova cartella"
-          }
-        }
-      }
-    },
-    "Nicht erreichbare Feeds importieren": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nicht erreichbare Feeds importieren"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Import unreachable feeds"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Importer les flux inaccessibles"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Importa feed non raggiungibili"
-          }
-        }
-      }
-    },
-    "Nicht erreichbare importieren": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nicht erreichbare importieren"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Import unreachable"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Importer les inaccessibles"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Importa non raggiungibili"
           }
         }
       }
@@ -6352,34 +7109,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "%lld nuovi articoli %@"
-          }
-        }
-      }
-    },
-    "ODER": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ODER"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "OR"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "OU"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "O"
           }
         }
       }
@@ -6514,174 +7243,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "L'articolo non è raggiungibile (HTTP %lld)."
-          }
-        }
-      }
-    },
-    "Ohne Bedingungen werden alle Artikel angezeigt.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ohne Bedingungen werden alle Artikel angezeigt."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Without conditions, all articles are shown."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sans conditions, tous les articles sont affichés."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Senza condizioni, vengono mostrati tutti gli articoli."
-          }
-        }
-      }
-    },
-    "Ohne Ordner": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ohne Ordner"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No folder"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sans dossier"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nessuna cartella"
-          }
-        }
-      }
-    },
-    "Operator": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Operator"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Operator"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Opérateur"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Operatore"
-          }
-        }
-      }
-    },
-    "OPML": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "OPML"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "OPML"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "OPML"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "OPML"
-          }
-        }
-      }
-    },
-    "OPML oder XML hier ablegen": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "OPML oder XML hier ablegen"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Drop OPML or XML here"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Déposez OPML ou XML ici"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Trascina qui OPML o XML"
-          }
-        }
-      }
-    },
-    "OPML-Datei hier ablegen": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "OPML-Datei hier ablegen"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Drop OPML file here"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Déposez le fichier OPML ici"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Trascina qui il file OPML"
           }
         }
       }
@@ -7410,90 +7971,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "OPML importato"
-          }
-        }
-      }
-    },
-    "Ordner": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ordner"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Folder"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dossier"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cartella"
-          }
-        }
-      }
-    },
-    "Ordner erstellen": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ordner erstellen"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Create folder"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Créer un dossier"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Crea cartella"
-          }
-        }
-      }
-    },
-    "Prüfe die erkannten Feeds, passe Ordner an und entscheide, ob Feedivo direkt aktualisieren soll.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Prüfe die erkannten Feeds, passe Ordner an und entscheide, ob Feedivo direkt aktualisieren soll."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Review the detected feeds, adjust folders, and decide whether Feedivo should refresh immediately."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vérifiez les flux détectés, ajustez les dossiers et décidez si Feedivo doit se rafraîchir directement."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Controlla i feed rilevati, regola le cartelle e decidi se Feedivo deve aggiornarsi direttamente."
           }
         }
       }
@@ -8878,34 +9355,6 @@
         }
       }
     },
-    "reader.inspector.readingTime": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lesezeit"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Reading time"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Temps de lecture"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tempo di lettura"
-          }
-        }
-      }
-    },
     "reader.inspector.readStatus": {
       "localizations": {
         "de": {
@@ -8930,6 +9379,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Stato lettura"
+          }
+        }
+      }
+    },
+    "reader.inspector.readingTime": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lesezeit"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reading time"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Temps de lecture"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tempo di lettura"
           }
         }
       }
@@ -8962,6 +9439,34 @@
         }
       }
     },
+    "reader.inspector.starStatus": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stern"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Star"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Étoile"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stella"
+          }
+        }
+      }
+    },
     "reader.inspector.starred": {
       "extractionState": "stale",
       "localizations": {
@@ -8987,34 +9492,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Con stella"
-          }
-        }
-      }
-    },
-    "reader.inspector.starStatus": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Stern"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Star"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Étoile"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Stella"
           }
         }
       }
@@ -9496,118 +9973,6 @@
         }
       }
     },
-    "Refresh-Intervall": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Refresh-Intervall"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Refresh interval"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Intervalle de rafraîchissement"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Intervallo di aggiornamento"
-          }
-        }
-      }
-    },
-    "Regel": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Regel"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Rule"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Règle"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Regola"
-          }
-        }
-      }
-    },
-    "Regeln werden von oben nach unten angewendet.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Regeln werden von oben nach unten angewendet."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Rules are applied from top to bottom."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Les règles sont appliquées de haut en bas."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Le regole vengono applicate dall'alto al basso."
-          }
-        }
-      }
-    },
-    "Reihenfolge": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Reihenfolge"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Order"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ordre"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ordine"
-          }
-        }
-      }
-    },
     "rule.action.assignTag": {
       "localizations": {
         "de": {
@@ -10056,6 +10421,90 @@
         }
       }
     },
+    "rule.field.feedTitle": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feed"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feed"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Flux"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feed"
+          }
+        }
+      }
+    },
+    "rule.field.summary": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zusammenfassung"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Summary"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Résumé"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Riepilogo"
+          }
+        }
+      }
+    },
+    "rule.field.title": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Titel"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Title"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Titre"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Titolo"
+          }
+        }
+      }
+    },
     "rule.matchMode.all": {
       "localizations": {
         "de": {
@@ -10192,6 +10641,174 @@
           "stringUnit": {
             "state": "translated",
             "value": "Normale"
+          }
+        }
+      }
+    },
+    "rule.operator.contains": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "enthält"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "contains"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "contient"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "contiene"
+          }
+        }
+      }
+    },
+    "rule.operator.endsWith": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "endet mit"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ends with"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "se termine par"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "finisce con"
+          }
+        }
+      }
+    },
+    "rule.operator.startsWith": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "beginnt mit"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "starts with"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "commence par"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "inizia con"
+          }
+        }
+      }
+    },
+    "rule.summary.all": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "UND"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AND"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ET"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "E"
+          }
+        }
+      }
+    },
+    "rule.summary.any": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ODER"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OR"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OU"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O"
+          }
+        }
+      }
+    },
+    "rule.summary.noCondition": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine Bedingung"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No condition"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucune condition"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nessuna condizione"
           }
         }
       }
@@ -11428,6 +12045,34 @@
         }
       }
     },
+    "settings.automaticRefresh.status.partial": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Teilweise fehlgeschlagen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Partially failed"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Partiellement échoué"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Parzialmente non riuscito"
+          }
+        }
+      }
+    },
     "settings.automaticRefresh.status.success": {
       "localizations": {
         "de": {
@@ -12072,34 +12717,6 @@
         }
       }
     },
-    "settings.feeds.selectedCount": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld ausgewählt"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld selected"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld sélectionné(s)"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld selezionati"
-          }
-        }
-      }
-    },
     "settings.feeds.selectVisible": {
       "localizations": {
         "de": {
@@ -12124,6 +12741,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Seleziona visibili"
+          }
+        }
+      }
+    },
+    "settings.feeds.selectedCount": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld ausgewählt"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld selected"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld sélectionné(s)"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld selezionati"
           }
         }
       }
@@ -12996,62 +13641,6 @@
         }
       }
     },
-    "settings.offline.automation.description": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Stern-Artikel können jetzt automatisch gespeichert werden. Weitere Regeln nach Feed, Ungelesen-Status oder Zeitraum bleiben ein späterer M4-Folgepunkt."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Starred articles can now be saved automatically. More rules by feed, unread state, or time range remain a later M4 follow-up."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Les articles avec étoile peuvent maintenant être enregistrés automatiquement. D’autres règles par flux, état non lu ou période restent prévues pour plus tard dans M4."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gli articoli con stella ora possono essere salvati automaticamente. Altre regole per feed, stato non letto o periodo restano un seguito M4 successivo."
-          }
-        }
-      }
-    },
-    "settings.offline.automation.title": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Automatisches Speichern"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Automatic saving"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Enregistrement automatique"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Salvataggio automatico"
-          }
-        }
-      }
-    },
     "settings.offline.autoSaveStarred.description": {
       "localizations": {
         "de": {
@@ -13104,6 +13693,62 @@
           "stringUnit": {
             "state": "translated",
             "value": "Salva automaticamente offline gli articoli con stella"
+          }
+        }
+      }
+    },
+    "settings.offline.automation.description": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stern-Artikel können jetzt automatisch gespeichert werden. Weitere Regeln nach Feed, Ungelesen-Status oder Zeitraum bleiben ein späterer M4-Folgepunkt."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Starred articles can now be saved automatically. More rules by feed, unread state, or time range remain a later M4 follow-up."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les articles avec étoile peuvent maintenant être enregistrés automatiquement. D’autres règles par flux, état non lu ou période restent prévues pour plus tard dans M4."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gli articoli con stella ora possono essere salvati automaticamente. Altre regole per feed, stato non letto o periodo restano un seguito M4 successivo."
+          }
+        }
+      }
+    },
+    "settings.offline.automation.title": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatisches Speichern"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatic saving"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enregistrement automatique"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salvataggio automatico"
           }
         }
       }
@@ -13552,34 +14197,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sync non ancora attivo"
-          }
-        }
-      }
-    },
-    "Sidebar": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sidebar"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sidebar"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Barre latérale"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Barra laterale"
           }
         }
       }
@@ -14060,92 +14677,427 @@
         }
       }
     },
-    "Später": {
+    "smartFolder.default.all": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Später"
+            "value": "Alle Artikel"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Later"
+            "value": "All articles"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Plus tard"
+            "value": "Tous les articles"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Più tardi"
+            "value": "Tutti gli articoli"
           }
         }
       }
     },
-    "Speichern": {
+    "smartFolder.default.archived": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Speichern"
+            "value": "Archiviert"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Save"
+            "value": "Archived"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Enregistrer"
+            "value": "Archivés"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Salva"
+            "value": "Archiviati"
           }
         }
       }
     },
-    "Standardordner": {},
-    "Standardordner wiederherstellen": {
+    "smartFolder.default.hidden": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Standardordner wiederherstellen"
+            "value": "Ausgeblendet"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Restore default folders"
+            "value": "Hidden"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Restaurer les dossiers par défaut"
+            "value": "Masqués"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ripristina cartelle predefinite"
+            "value": "Nascosti"
           }
         }
       }
     },
-    "Status": {
+    "smartFolder.default.saved": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gespeichert"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saved"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enregistrés"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salvati"
+          }
+        }
+      }
+    },
+    "smartFolder.default.starred": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mit Stern"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Starred"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Favoris"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preferiti"
+          }
+        }
+      }
+    },
+    "smartFolder.default.thisWeek": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diese Woche"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This week"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cette semaine"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questa settimana"
+          }
+        }
+      }
+    },
+    "smartFolder.default.today": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Heute"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Today"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aujourd'hui"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oggi"
+          }
+        }
+      }
+    },
+    "smartFolder.default.unread": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ungelesen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unread"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non lus"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non letti"
+          }
+        }
+      }
+    },
+    "smartFolder.error.nameRequired": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bitte einen Namen eingeben."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Please enter a name."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Veuillez saisir un nom."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inserisci un nome."
+          }
+        }
+      }
+    },
+    "smartfolder.date.thisWeek": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "diese Woche"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "this week"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "cette semaine"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "questa settimana"
+          }
+        }
+      }
+    },
+    "smartfolder.date.today": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "heute"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "today"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "aujourd'hui"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "oggi"
+          }
+        }
+      }
+    },
+    "smartfolder.field.author": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Autor"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Author"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auteur"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Autore"
+          }
+        }
+      }
+    },
+    "smartfolder.field.date": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Datum"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Date"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Date"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Data"
+          }
+        }
+      }
+    },
+    "smartfolder.field.feed": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feed"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feed"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Flux"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feed"
+          }
+        }
+      }
+    },
+    "smartfolder.field.feedFolder": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feed-Ordner"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feed folder"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dossier de flux"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cartella feed"
+          }
+        }
+      }
+    },
+    "smartfolder.field.status": {
       "localizations": {
         "de": {
           "stringUnit": {
@@ -14173,58 +15125,646 @@
         }
       }
     },
-    "Statusfilter": {
+    "smartfolder.field.tag": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Statusfilter"
+            "value": "Tag"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Status filter"
+            "value": "Tag"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Filtre de statut"
+            "value": "Tag"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Filtro di stato"
+            "value": "Tag"
           }
         }
       }
     },
-    "Tag fehlt": {
+    "smartfolder.field.text": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tag fehlt"
+            "value": "Text"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tag missing"
+            "value": "Text"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Étiquette manquante"
+            "value": "Texte"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Etichetta mancante"
+            "value": "Testo"
+          }
+        }
+      }
+    },
+    "smartfolder.field.title": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Titel"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Title"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Titre"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Titolo"
+          }
+        }
+      }
+    },
+    "smartfolder.operator.contains": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "enthält"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "contains"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "contient"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "contiene"
+          }
+        }
+      }
+    },
+    "smartfolder.operator.is": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ist"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "is"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "est"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "è"
+          }
+        }
+      }
+    },
+    "smartfolder.operator.isNot": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ist nicht"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "is not"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "n'est pas"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "non è"
+          }
+        }
+      }
+    },
+    "smartfolder.operator.olderThanDays": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "älter als (Tage)"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "older than (days)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "plus ancien que (jours)"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "più vecchio di (giorni)"
+          }
+        }
+      }
+    },
+    "smartfolder.placeholder.author": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Autor"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Author"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auteur"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Autore"
+          }
+        }
+      }
+    },
+    "smartfolder.placeholder.date": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tage"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Days"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jours"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Giorni"
+          }
+        }
+      }
+    },
+    "smartfolder.placeholder.feed": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feed-Name oder ID"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feed name or ID"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nom ou ID du flux"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nome o ID del feed"
+          }
+        }
+      }
+    },
+    "smartfolder.placeholder.feedFolder": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ordnername"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Folder name"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nom du dossier"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nome cartella"
+          }
+        }
+      }
+    },
+    "smartfolder.placeholder.status": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Status"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Status"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Statut"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stato"
+          }
+        }
+      }
+    },
+    "smartfolder.placeholder.tag": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tag-Name oder ID"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tag name or ID"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nom ou ID de l'étiquette"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nome o ID dell'etichetta"
+          }
+        }
+      }
+    },
+    "smartfolder.placeholder.text": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suchtext"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search text"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Texte de recherche"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Testo di ricerca"
+          }
+        }
+      }
+    },
+    "smartfolder.placeholder.title": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Titeltext"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Title text"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Texte du titre"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Testo del titolo"
+          }
+        }
+      }
+    },
+    "smartfolder.status.archived": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "archiviert"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "archived"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "archivé"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "archiviato"
+          }
+        }
+      }
+    },
+    "smartfolder.status.hidden": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ausgeblendet"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "hidden"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "masqué"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "nascosto"
+          }
+        }
+      }
+    },
+    "smartfolder.status.read": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "gelesen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "read"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "lu"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "letto"
+          }
+        }
+      }
+    },
+    "smartfolder.status.starred": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "mit Stern"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "starred"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "favori"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "con stella"
+          }
+        }
+      }
+    },
+    "smartfolder.status.unread": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ungelesen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "unread"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "non lu"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "non letto"
+          }
+        }
+      }
+    },
+    "smartfolder.summary.all": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "UND"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AND"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ET"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "E"
+          }
+        }
+      }
+    },
+    "smartfolder.summary.allArticles": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alle Artikel"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All articles"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tous les articles"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tutti gli articoli"
+          }
+        }
+      }
+    },
+    "smartfolder.summary.any": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ODER"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OR"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OU"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O"
           }
         }
       }
@@ -14565,62 +16105,6 @@
         }
       }
     },
-    "Treffer": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Treffer"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Matches"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Correspondances"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Corrispondenze"
-          }
-        }
-      }
-    },
-    "UND": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "UND"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "AND"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ET"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "E"
-          }
-        }
-      }
-    },
     "viewCommands.menu": {
       "localizations": {
         "de": {
@@ -14649,1267 +16133,7 @@
         }
       }
     },
-    "Website": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Website"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Website"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Site web"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sito web"
-          }
-        }
-      }
-    },
-    "Zum Sortieren ziehen": {},
-    "Zurück": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Zurück"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Back"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Retour"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Indietro"
-          }
-        }
-      }
-    },
-    "database.init.error.title": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Datenbank konnte nicht geladen werden"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Database could not be loaded"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "La base de données n'a pas pu être chargée"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Impossibile caricare il database"
-          }
-        }
-      }
-    },
-    "database.init.error.message": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Deine gespeicherten Feeds sind vorerst nicht verfügbar. Die App läuft mit einer leeren, temporären Datenbank. Bitte starte die App neu."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Your saved feeds are temporarily unavailable. The app is running with an empty, temporary database. Please restart the app."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vos flux enregistrés sont temporairement indisponibles. L'application fonctionne avec une base de données temporaire vide. Veuillez redémarrer l'application."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "I tuoi feed salvati sono temporaneamente non disponibili. L'app viene eseguita con un database temporaneo vuoto. Riavvia l'app."
-          }
-        }
-      }
-    },
-    "smartFolder.error.nameRequired": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bitte einen Namen eingeben."
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Please enter a name."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Veuillez saisir un nom."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Inserisci un nome."
-          }
-        }
-      }
-    },
-    "settings.automaticRefresh.status.partial": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Teilweise fehlgeschlagen"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Partially failed"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Partiellement échoué"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Parzialmente non riuscito"
-          }
-        }
-      }
-    },
-    "smartfolder.field.tag": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tag"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tag"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tag"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tag"
-          }
-        }
-      }
-    },
-    "smartfolder.field.feed": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Feed"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Feed"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Flux"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Feed"
-          }
-        }
-      }
-    },
-    "smartfolder.field.feedFolder": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Feed-Ordner"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Feed folder"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dossier de flux"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cartella feed"
-          }
-        }
-      }
-    },
-    "smartfolder.field.date": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Datum"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Date"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Date"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Data"
-          }
-        }
-      }
-    },
-    "smartfolder.field.status": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Status"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Status"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Statut"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Stato"
-          }
-        }
-      }
-    },
-    "smartfolder.field.title": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Titel"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Title"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Titre"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Titolo"
-          }
-        }
-      }
-    },
-    "smartfolder.field.text": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Text"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Text"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Texte"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Testo"
-          }
-        }
-      }
-    },
-    "smartfolder.field.author": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Autor"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Author"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Auteur"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Autore"
-          }
-        }
-      }
-    },
-    "smartfolder.operator.is": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ist"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "is"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "est"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "è"
-          }
-        }
-      }
-    },
-    "smartfolder.operator.isNot": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ist nicht"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "is not"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "n'est pas"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "non è"
-          }
-        }
-      }
-    },
-    "smartfolder.operator.contains": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "enthält"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "contains"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "contient"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "contiene"
-          }
-        }
-      }
-    },
-    "smartfolder.operator.olderThanDays": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "älter als (Tage)"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "older than (days)"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "plus ancien que (jours)"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "più vecchio di (giorni)"
-          }
-        }
-      }
-    },
-    "smartfolder.status.unread": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ungelesen"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "unread"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "non lu"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "non letto"
-          }
-        }
-      }
-    },
-    "smartfolder.status.read": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "gelesen"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "read"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "lu"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "letto"
-          }
-        }
-      }
-    },
-    "smartfolder.status.starred": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "mit Stern"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "starred"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "favori"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "con stella"
-          }
-        }
-      }
-    },
-    "smartfolder.status.archived": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "archiviert"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "archived"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "archivé"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "archiviato"
-          }
-        }
-      }
-    },
-    "smartfolder.status.hidden": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ausgeblendet"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "hidden"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "masqué"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "nascosto"
-          }
-        }
-      }
-    },
-    "smartfolder.date.today": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "heute"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "today"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "aujourd'hui"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "oggi"
-          }
-        }
-      }
-    },
-    "smartfolder.date.thisWeek": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "diese Woche"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "this week"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "cette semaine"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "questa settimana"
-          }
-        }
-      }
-    },
-    "smartfolder.summary.allArticles": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Alle Artikel"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "All articles"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tous les articles"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tutti gli articoli"
-          }
-        }
-      }
-    },
-    "smartfolder.summary.all": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "UND"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "AND"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ET"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "E"
-          }
-        }
-      }
-    },
-    "smartfolder.summary.any": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ODER"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "OR"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "OU"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "O"
-          }
-        }
-      }
-    },
-    "smartfolder.placeholder.tag": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tag-Name oder ID"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tag name or ID"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nom ou ID de l'étiquette"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nome o ID dell'etichetta"
-          }
-        }
-      }
-    },
-    "smartfolder.placeholder.feed": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Feed-Name oder ID"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Feed name or ID"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nom ou ID du flux"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nome o ID del feed"
-          }
-        }
-      }
-    },
-    "smartfolder.placeholder.feedFolder": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ordnername"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Folder name"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nom du dossier"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nome cartella"
-          }
-        }
-      }
-    },
-    "smartfolder.placeholder.date": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tage"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Days"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Jours"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Giorni"
-          }
-        }
-      }
-    },
-    "smartfolder.placeholder.status": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Status"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Status"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Statut"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Stato"
-          }
-        }
-      }
-    },
-    "smartfolder.placeholder.title": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Titeltext"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Title text"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Texte du titre"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Testo del titolo"
-          }
-        }
-      }
-    },
-    "smartfolder.placeholder.text": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Suchtext"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Search text"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Texte de recherche"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Testo di ricerca"
-          }
-        }
-      }
-    },
-    "smartfolder.placeholder.author": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Autor"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Author"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Auteur"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Autore"
-          }
-        }
-      }
-    },
-    "rule.field.title": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Titel"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Title"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Titre"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Titolo"
-          }
-        }
-      }
-    },
-    "rule.field.summary": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Zusammenfassung"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Summary"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Résumé"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Riepilogo"
-          }
-        }
-      }
-    },
-    "rule.field.feedTitle": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Feed"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Feed"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Flux"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Feed"
-          }
-        }
-      }
-    },
-    "rule.operator.contains": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "enthält"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "contains"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "contient"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "contiene"
-          }
-        }
-      }
-    },
-    "rule.operator.startsWith": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "beginnt mit"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "starts with"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "commence par"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "inizia con"
-          }
-        }
-      }
-    },
-    "rule.operator.endsWith": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "endet mit"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ends with"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "se termine par"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "finisce con"
-          }
-        }
-      }
-    },
-    "rule.summary.noCondition": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Keine Bedingung"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No condition"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aucune condition"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nessuna condizione"
-          }
-        }
-      }
-    },
-    "rule.summary.all": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "UND"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "AND"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ET"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "E"
-          }
-        }
-      }
-    },
-    "rule.summary.any": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ODER"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "OR"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "OU"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "O"
-          }
-        }
-      }
-    }
+    "·": {}
   },
   "version": "1.0"
 }

@@ -170,6 +170,7 @@ struct FeedivoApp: App {
     @MainActor
     private func restoreDefaultSmartFoldersIfNeeded() {
         let context = modelContainer.mainContext
+        _ = try? SmartFolderDefaultKeyBackfillService.backfillDefaultKeys(in: context)
         let folders = (try? context.fetch(FetchDescriptor<SmartFolder>())) ?? []
         SmartFolderViewModel().restoreDefaultFolders(existingFolders: folders, context: context)
     }
