@@ -1,0 +1,24 @@
+key	de_one	de_other	en_one	en_other	fr_one	fr_other	it_one	it_many
+reader.readingTime	ca. %lld Min. Lesezeit	ca. %lld Min. Lesezeit	approx. %lld min read	approx. %lld min read	env. %lld min de lecture	env. %lld min de lecture	circa %lld min di lettura	circa %lld min di lettura
+feed.log.refreshed	Aktualisiert: %lld neuer Artikel	Aktualisiert: %lld neue Artikel	Refreshed: %lld new article	Refreshed: %lld new articles	Actualisé : %lld nouvel article	Actualisé : %lld nouveaux articles	Aggiornato: %lld nuovo articolo	Aggiornato: %lld nuovi articoli
+notification.feedRefresh.summary.title	%lld neuer Artikel	%lld neue Artikel	%lld new article	%lld new articles	%lld nouvel article	%lld nouveaux articles	%lld nuovo articolo	%lld nuovi articoli
+notification.rule.summary.title	%lld Treffer für „%2$@“	%lld Treffer für „%2$@“	%lld match for “%2$@”	%lld matches for “%2$@”	%lld correspondance pour « %2$@ »	%lld correspondances pour « %2$@ »	%lld corrispondenza per “%2$@”	%lld corrispondenze per “%2$@”
+feed.error.refreshAllPartial	%lld Feed konnte nicht aktualisiert werden: %2$@	%lld Feeds konnten nicht aktualisiert werden: %2$@	%lld feed failed to refresh: %2$@	%lld feeds failed to refresh: %2$@	%lld flux n'a pas pu être actualisé : %2$@	%lld flux n'ont pas pu être actualisés : %2$@	%lld feed non aggiornato: %2$@	%lld feed non aggiornati: %2$@
+feed.error.httpError	HTTP-Fehler %lld	HTTP-Fehler %lld	HTTP error %lld	HTTP error %lld	Erreur HTTP %lld	Erreur HTTP %lld	Errore HTTP %lld	Errore HTTP %lld
+opml.import.result.message	%1$lld Feed importiert, %2$lld übersprungen	%1$lld Feeds importiert, %2$lld übersprungen	%1$lld feed imported, %2$lld skipped	%1$lld feeds imported, %2$lld skipped	%1$lld flux importé, %2$lld ignoré	%1$lld flux importés, %2$lld ignorés	%1$lld feed importato, %2$lld saltato	%1$lld feed importati, %2$lld saltati
+opml.export.feedCount	%lld Feed	%lld Feeds	%lld feed	%lld feeds	%lld flux	%lld flux	%lld feed	%lld feed
+opml.export.folderCount	%lld Ordner	%lld Ordner	%lld folder	%lld folders	%lld dossier	%lld dossiers	%lld cartella	%lld cartelle
+opml.export.tagCount	%lld Tag	%lld Tags	%lld tag	%lld tags	%lld étiquette	%lld étiquettes	%lld etichetta	%lld etichette
+opml.export.descriptionCount	%lld Beschreibung	%lld Beschreibungen	%lld description	%lld descriptions	%lld description	%lld descriptions	%lld descrizione	%lld descrizioni
+settings.articleRetention.interval.days	%lld Tag	%lld Tage	%lld day	%lld days	%lld jour	%lld jours	%lld giorno	%lld giorni
+settings.articleRetention.result	%lld Artikel entfernt	%lld Artikel entfernt	%lld article removed	%lld articles removed	%lld article supprimé	%lld articles supprimés	%lld articolo rimosso	%lld articoli rimossi
+settings.automaticRefresh.interval.minutes	%lld Minute	%lld Minuten	%lld minute	%lld minutes	%lld minute	%lld minutes	%lld minuto	%lld minuti
+settings.cache.limit.gigabytes	%lld GB	%lld GB	%lld GB	%lld GB	%lld Go	%lld Go	%lld GB	%lld GB
+settings.cache.limit.megabytes	%lld MB	%lld MB	%lld MB	%lld MB	%lld Mo	%lld Mo	%lld MB	%lld MB
+settings.feeds.deleteConfirmation.message	%lld Feed wird gelöscht	%lld Feeds werden gelöscht	%lld feed will be deleted	%lld feeds will be deleted	%lld flux sera supprimé	%lld flux seront supprimés	%lld feed verrà eliminato	%lld feed verranno eliminati
+settings.feeds.selectedCount	%lld ausgewählt	%lld ausgewählt	%lld selected	%lld selected	%lld sélectionné	%lld sélectionnés	%lld selezionato	%lld selezionati
+articleList.showRead.button	%lld gelesener Artikel	%lld gelesene Artikel	%lld read article	%lld read articles	%lld article lu	%lld articles lus	%lld articolo letto	%lld articoli letti
+rule.applyExisting.result	%lld Aktion angewendet	%lld Aktionen angewendet	%lld action applied	%lld actions applied	%lld action appliquée	%lld actions appliquées	%lld azione applicata	%lld azioni applicate
+ruleWizard.preview.matchCount	%lld Artikel passt	%lld Artikel passen	%lld article matches	%lld articles match	%lld article correspond	%lld articles correspondent	%lld articolo corrisponde	%lld articoli corrispondono
+article.export.status.downloadingImage	Bild %lld von %lld wird geladen...	Bilder %lld von %lld werden geladen...	Image %lld of %lld downloading	Images %lld of %lld downloading	Image %lld sur %lld en téléchargement	Images %lld sur %lld en téléchargement	Immagine %lld di %lld in download	Immagini %lld di %lld in download
+offline.error.unreachable	%lld Quelle nicht erreichbar	%lld Quellen nicht erreichbar	%lld source unreachable	%lld sources unreachable	%lld source inaccessible	%lld sources inaccessibles	%lld fonte non raggiungibile	%lld fonti non raggiungibili
