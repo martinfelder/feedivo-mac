@@ -512,6 +512,48 @@ enum L10n {
     /// (`%lld Feeds · %lld Ordner · Dateiname`). Eigener Plain-Key vermeidet
     /// String-Zerlegung via `components(separatedBy:)`.
     static let opmlImportProgressRecognizedWithFolders = String(localized: "opml.import.progress.recognizedWithFolders")
+
+    // MARK: OPMLImportReview-Cluster (Task 8): Header, Status, Drop-Overlay,
+    // FilePicker, Toolbar, TableHeader, Empty/EmptyFilter, Preparing, Footer
+    // Toggles, Cancel, Selection-Summary, Result-Bausteine.
+    // `opmlImportSelectAll`/`DeselectAll`/`NewFolder`/`CreateFolder` kommen aus
+    // Task 9 (oben). Die drei Plural-Strings `opml.import.status.duplicate`,
+    // `opml.import.status.unreachable`, `opml.import.button.import` werden
+    // inline via `String.localizedStringWithFormat(String(localized:), count)`
+    // aufgerufen und haben bewusst keinen Accessor.
+    static let opmlImportAllowDuplicates = String(localized: "opml.import.allowDuplicates")
+    static let opmlImportAllowUnreachable = String(localized: "opml.import.allowUnreachable")
+    static let opmlImportCancel = String(localized: "opml.import.cancel")
+    static let opmlImportChooseFile = String(localized: "opml.import.chooseFile")
+    static let opmlImportDescription = String(localized: "opml.import.description")
+    static let opmlImportDropOverlayHint = String(localized: "opml.import.dropOverlay.hint")
+    static let opmlImportDropOverlayTitle = String(localized: "opml.import.dropOverlay.title")
+    static let opmlImportEmptyFilterSubtitle = String(localized: "opml.import.emptyFilter.subtitle")
+    static let opmlImportEmptyFilterTitle = String(localized: "opml.import.emptyFilter.title")
+    static let opmlImportEmptySubtitle = String(localized: "opml.import.empty.subtitle")
+    static let opmlImportEmptyTitle = String(localized: "opml.import.empty.title")
+    static let opmlImportPreparing = String(localized: "opml.import.preparing")
+    static let opmlImportRefreshAfter = String(localized: "opml.import.refreshAfter")
+    static let opmlImportRemoveFile = String(localized: "opml.import.removeFile")
+    static let opmlImportResultComplete = String(localized: "opml.import.result.complete")
+    static let opmlImportResultDuplicatesImported = String(localized: "opml.import.result.duplicatesImported")
+    static let opmlImportResultDuplicatesSkipped = String(localized: "opml.import.result.duplicatesSkipped")
+    static let opmlImportResultFoldersUsed = String(localized: "opml.import.result.foldersUsed")
+    static let opmlImportResultRefreshOff = String(localized: "opml.import.result.refreshOff")
+    static let opmlImportResultRefreshOn = String(localized: "opml.import.result.refreshOn")
+    static let opmlImportResultUnreachableImported = String(localized: "opml.import.result.unreachableImported")
+    static let opmlImportResultUnreachableSkipped = String(localized: "opml.import.result.unreachableSkipped")
+    static let opmlImportSelectionAll = String(localized: "opml.import.selection.all")
+    static let opmlImportSelectionVisible = String(localized: "opml.import.selection.visible")
+    static let opmlImportStatusLabel = String(localized: "opml.import.statusLabel")
+    static let opmlImportStatusNoFile = String(localized: "opml.import.status.noFile")
+    static let opmlImportStatusReady = String(localized: "opml.import.status.ready")
+    static let opmlImportTableHeaderFeed = String(localized: "opml.import.tableHeader.feed")
+    static let opmlImportTableHeaderFolder = String(localized: "opml.import.tableHeader.folder")
+    static let opmlImportTableHeaderStatus = String(localized: "opml.import.tableHeader.status")
+    static let opmlImportTableHeaderWebsite = String(localized: "opml.import.tableHeader.website")
+    static let opmlImportTitle = String(localized: "opml.import.title")
+
     static let feedDeleteConfirmButton = String(localized: "feed.delete.confirmButton")
     static let feedDeleteConfirmationTitle = String(localized: "feed.delete.confirmation.title")
     static let settingsFeedsArticleCountHelp = String(localized: "settings.feeds.articleCount.help")

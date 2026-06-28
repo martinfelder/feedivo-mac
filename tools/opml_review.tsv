@@ -1,0 +1,33 @@
+key	de	en	fr	it
+opml.import.title	Feeds aus OPML importieren	Import feeds from OPML	Importer des flux depuis OPML	Importa feed da OPML
+opml.import.description	Prüfe die erkannten Feeds, passe Ordner an und entscheide, ob Feedivo direkt aktualisieren soll.	Review detected feeds, adjust folders, and decide whether Feedivo should refresh right away.	Vérifiez les flux détectés, ajustez les dossiers et décidez si Feedivo doit actualiser directement.	Verifica i feed trovati, regola le cartelle e decidi se Feedivo deve aggiornare subito.
+opml.import.status.noFile	Keine Datei	No file	Aucun fichier	Nessun file
+opml.import.status.ready	Bereit	Ready	Prêt	Pronto
+opml.import.chooseFile	Datei auswählen...	Choose file...	Choisir le fichier...	Scegli file...
+opml.import.removeFile	Entfernen	Remove	Supprimer	Rimuovi
+opml.import.statusLabel	Status	Status	Statut	Stato
+opml.import.tableHeader.feed	Feed	Feed	Flux	Feed
+opml.import.tableHeader.website	Website	Website	Site Web	Sito web
+opml.import.tableHeader.folder	Ordner	Folder	Dossier	Cartella
+opml.import.tableHeader.status	Status	Status	Statut	Stato
+opml.import.empty.title	Noch keine Datei ausgewählt.	No file selected yet.	Aucun fichier sélectionné.	Nessun file selezionato.
+opml.import.empty.subtitle	Wähle eine OPML-Datei, danach erscheint hier die Import-Vorschau.	Choose an OPML file, then the import preview appears here.	Choisissez un fichier OPML, puis l'aperçu d'import apparaît ici.	Scegli un file OPML, poi l'anteprima di import apparirà qui.
+opml.import.emptyFilter.title	Keine Feeds für diesen Status.	No feeds for this status.	Aucun flux pour ce statut.	Nessun feed per questo stato.
+opml.import.emptyFilter.subtitle	Ändere den Statusfilter, um wieder mehr Feeds zu sehen.	Change the status filter to see more feeds.	Modifiez le filtre de statut pour voir plus de flux.	Cambia il filtro di stato per vedere più feed.
+opml.import.preparing	Import-Vorschau wird vorbereitet	Preparing import preview	Préparation de l'aperçu d'import	Preparazione anteprima import
+opml.import.refreshAfter	Feeds nach Import direkt aktualisieren	Refresh feeds right after import	Actualiser les flux juste après l'import	Aggiorna i feed subito dopo l'import
+opml.import.allowDuplicates	Duplikate importieren	Import duplicates	Importer les doublons	Importa duplicati
+opml.import.allowUnreachable	Nicht erreichbare Feeds importieren	Import unreachable feeds	Importer les flux inaccessibles	Importa feed non raggiungibili
+opml.import.cancel	Abbrechen	Cancel	Annuler	Annulla
+opml.import.dropOverlay.title	OPML-Datei hier ablegen	Drop OPML file here	Déposer le fichier OPML ici	Trascina qui il file OPML
+opml.import.dropOverlay.hint	.opml und .xml werden unterstützt	.opml and .xml are supported	.opml et .xml sont pris en charge	.opml e .xml sono supportati
+opml.import.selection.all	Ausgewählt: %1$lld von %2$lld	Selected: %1$lld of %2$lld	Sélectionnés : %1$lld sur %2$lld	Selezionati: %1$lld di %2$lld
+opml.import.selection.visible	Ausgewählt: %1$lld von %2$lld sichtbar	Selected: %1$lld of %2$lld visible	Sélectionnés : %1$lld sur %2$lld visibles	Selezionati: %1$lld di %2$lld visibili
+opml.import.result.complete	Import abgeschlossen	Import complete	Import terminé	Import completato
+opml.import.result.duplicatesImported	%lld Duplikate bewusst importiert	%lld duplicates deliberately imported	%lld doublons importés délibérément	%lld duplicati importati deliberatamente
+opml.import.result.duplicatesSkipped	%lld Duplikate angezeigt und übersprungen	%lld duplicates shown and skipped	%lld doublons affichés et ignorés	%lld duplicati mostrati e saltati
+opml.import.result.unreachableImported	%lld nicht erreichbare Feeds bewusst importiert	%lld unreachable feeds deliberately imported	%lld flux inaccessibles importés délibérément	%lld feed non raggiungibili importati deliberatamente
+opml.import.result.unreachableSkipped	%lld nicht erreichbare Feeds angezeigt und übersprungen	%lld unreachable feeds shown and skipped	%lld flux inaccessibles affichés et ignorés	%lld feed non raggiungibili mostrati e saltati
+opml.import.result.refreshOn	Direktes Aktualisieren ist aktiv.	Direct refresh is on.	L'actualisation directe est activée.	L'aggiornamento diretto è attivo.
+opml.import.result.refreshOff	Aktualisierung erfolgt später manuell.	Refresh happens later manually.	L'actualisation se fera plus tard manuellement.	L'aggiornamento avverrà più tardi manualmente.
+opml.import.result.foldersUsed	%lld Ordner verwendet	%lld Folders used	%lld Dossiers utilisés	%lld Cartelle usate

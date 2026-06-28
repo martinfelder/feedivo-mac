@@ -1,0 +1,4 @@
+key	de_one	de_other	en_one	en_other	fr_one	fr_other	it_one	it_many
+opml.import.status.duplicate	%lld Duplikat	%lld Duplikate	%lld duplicate	%lld duplicates	%lld doublon	%lld doublons	%lld duplicato	%lld duplicati
+opml.import.status.unreachable	%lld nicht erreichbar	%lld nicht erreichbar	%lld unreachable	%lld unreachable	%lld inaccessible	%lld inaccessibles	%lld non raggiungibile	%lld non raggiungibili
+opml.import.button.import	%lld Feed importieren	%lld Feeds importieren	Import %lld feed	Import %lld feeds	Importer %lld flux	Importer %lld flux	Importa %lld feed	Importa %lld feed
