@@ -343,6 +343,11 @@ private struct ArticleListContent: View {
     @State private var viewModel = ArticleViewModel()
     @State private var offlineDownloadService = OfflineDownloadService()
     @State private var showsReadArticles = false
+    // Entbunden: markReadIfNeeded sichert nicht sofort pro Auswahl, sondern
+    // debounced. Schnelles Weiter-/Zurück-Navigieren löst so nicht jede
+    // Auswahl eine @Query-Refetch-Kaskade aus; UI-Updates kommen über
+    // @Model-Beobachtung der In-Memory-Mutation (kein Save nötig).
+    @State private var pendingReadPersistenceTask: Task<Void, Never>?
     @State private var searchText = ""
     @State private var temporarilyVisibleReadArticleIDs = Set<PersistentIdentifier>()
     @AppStorage(ArticleSortOption.storageKey)
@@ -417,6 +422,11 @@ private struct ArticleListContent: View {
         .onAppear {
             updateNavigationState(in: visibleArticles)
         }
+        .onDisappear {
+            // Ausstehende Lese-Markierungen sofort persistieren, bevor die
+            // Liste verlassen wird (kein Datenverlust beim Wechsel/App-Quit).
+            flushPendingReadPersistenceSave()
+        }
         .onChange(of: visibleArticles) {
             updateNavigationState(in: visibleArticles)
         }
@@ -439,7 +449,10 @@ private struct ArticleListContent: View {
                 context: modelContext
             )
             if didMarkRead {
-                try? modelContext.save()
+                // Save entbunden: In-Memory-Mutation reicht für die UI; erst
+                // nach einer kurzen Pause sichern, damit @Query-Refetches
+                // (feeds/articles/sidebar) nicht pro Auswahl feuern.
+                scheduleReadPersistenceSave()
             }
         }
         .toolbar {
@@ -793,6 +806,26 @@ private struct ArticleListContent: View {
         }
 
         temporarilyVisibleReadArticleIDs.insert(article.persistentModelID)
+    }
+
+    /// Sichert ausstehende Lese-Status-Änderungen entbunden: nach kurzer Pause
+    /// ohne weitere Auswahl. Schnelles Navigieren koalesziert viele
+    /// Einzelmarkierungen zu einem Save (und damit einer @Query-Refetch-Runde).
+    private func scheduleReadPersistenceSave() {
+        pendingReadPersistenceTask?.cancel()
+        pendingReadPersistenceTask = Task {
+            try? await Task.sleep(nanoseconds: 600_000_000)
+            guard !Task.isCancelled else { return }
+            try? modelContext.save()
+        }
+    }
+
+    /// Flusht ausstehende Lese-Markierungen sofort (z. B. beim Verlassen der
+    /// Liste), damit beim App-Wechsel nichts verloren geht.
+    private func flushPendingReadPersistenceSave() {
+        pendingReadPersistenceTask?.cancel()
+        pendingReadPersistenceTask = nil
+        try? modelContext.save()
     }
 
     @MainActor
