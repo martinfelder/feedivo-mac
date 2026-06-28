@@ -13,7 +13,15 @@ struct ReaderView: View {
     let selectNextArticle: () -> Void
     let onRequestCreateRuleFromArticle: (Article) -> Void
     let onRequestExportArticle: (Article) -> Void
-    @State private var preparedArticle: ReaderPreparedArticle
+    // preparedArticle wird asynchron und ausserhalb des MainActors gebaut
+    // (siehe buildPreparedArticle()). Im init steht nur ein leerer Platzhalter,
+    // damit der teure HTML-Parse nicht bei jeder Body-Eval des Parents
+    // synchron in ReaderView.init laeuft (frueher via State(initialValue:)).
+    @State private var preparedArticle: ReaderPreparedArticle = .empty
+    @State private var isBuildingPreparedArticle = false
+    // contentRevision treibt den .task(id:)-Refresh bei Inhaltsaenderungen
+    // (Content/Summary/Offline …) an, ohne persistentModelID zu beruehren.
+    @State private var contentRevision = 0
 
     init(
         article: Article,
@@ -33,7 +41,7 @@ struct ReaderView: View {
         self.selectNextArticle = selectNextArticle
         self.onRequestCreateRuleFromArticle = onRequestCreateRuleFromArticle
         self.onRequestExportArticle = onRequestExportArticle
-        self._preparedArticle = State(initialValue: ReaderPreparedArticle(article: article))
+        self._preparedArticle = State(initialValue: .empty)
     }
 
     @AppStorage(ReaderTypographySettings.titleFontPresetKey)
@@ -141,7 +149,7 @@ struct ReaderView: View {
     }
 
     private var originalURL: URL? {
-        preparedArticle.originalURL
+        ArticleOriginalURLResolver.url(for: article)
     }
 
     private var shouldShowWebView: Bool {
@@ -203,27 +211,27 @@ struct ReaderView: View {
             )
             .inspectorColumnWidth(min: 280, ideal: 318, max: 360)
         }
-        .onChange(of: article.persistentModelID) {
-            refreshPreparedArticle()
+        .task(id: preparedArticleRefreshToken) {
+            await buildPreparedArticle()
         }
         // Hintergrund-Refresh oder Offline-Save ändern Content/Summary/
-        // Offline-Inhalt ohne die persistentModelID zu berühren — früher blieb
-        // preparedArticle dann veraltet (alter Text). Jetzt auf allen
-        // inhaltsrelevanten Feldern erneuern.
+        // Offline-Inhalt, ohne die persistentModelID zu berühren. Statt den
+        // Reader synchron neu zu parsen, bumpen wir contentRevision — der
+        // .task(id:)-Modifier startet den asynchronen Build danach neu.
         .onChange(of: article.content) {
-            refreshPreparedArticle()
+            contentRevision += 1
         }
         .onChange(of: article.summary) {
-            refreshPreparedArticle()
+            contentRevision += 1
         }
         .onChange(of: article.imageURL) {
-            refreshPreparedArticle()
+            contentRevision += 1
         }
         .onChange(of: article.offlineContent) {
-            refreshPreparedArticle()
+            contentRevision += 1
         }
         .onChange(of: article.offlineStateRaw) {
-            refreshPreparedArticle()
+            contentRevision += 1
         }
         .navigationTitle(article.title)
         .toolbar {
@@ -344,6 +352,12 @@ struct ReaderView: View {
 
                 if shouldShowOfflineStatusNotice {
                     offlineStatusNotice
+                }
+
+                if contentBlocks.isEmpty, isBuildingPreparedArticle {
+                    ProgressView()
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, 24)
                 }
 
                 ForEach(Array(contentBlocks.enumerated()), id: \.element.id) { index, block in
@@ -739,8 +753,45 @@ struct ReaderView: View {
         }
     }
 
-    private func refreshPreparedArticle() {
-        preparedArticle = ReaderPreparedArticle(article: article)
+    private var preparedArticleRefreshToken: ReaderRefreshToken {
+        ReaderRefreshToken(articleID: article.persistentModelID, revision: contentRevision)
+    }
+
+    @MainActor
+    private func buildPreparedArticle() async {
+        let token = preparedArticleRefreshToken
+        let input = ReaderArticleInput.make(from: article)
+
+        // Hebel 5: Bereits geparsten Artikel aus dem Cache übernehmen, wenn
+        // sich die inhaltsbestimmenden Felder nicht geändert haben (z. B.
+        // Vor-/Zurück-Navigation). Dann entfällt der Parse komplett.
+        if let cached = ReaderPreparedArticleCache.shared.prepared(for: input) {
+            guard !Task.isCancelled, token == preparedArticleRefreshToken else {
+                return
+            }
+            preparedArticle = cached
+            isBuildingPreparedArticle = false
+            return
+        }
+
+        isBuildingPreparedArticle = true
+
+        // Parse ausserhalb des MainActors: reine Datenverarbeitung ohne UI-/
+        // Modellzugriff. Der MainThread bleibt beim Artikelwechsel frei.
+        let prepared = await Task.detached(priority: .userInitiated) {
+            ReaderPreparedArticle(input: input)
+        }.value
+
+        // Veraltete Ergebnisse verwerfen, wenn Artikel oder Inhalt seit dem
+        // Start gewechselt wurde (.task(id:) bricht den alten Task ab).
+        guard !Task.isCancelled, token == preparedArticleRefreshToken else {
+            isBuildingPreparedArticle = false
+            return
+        }
+
+        ReaderPreparedArticleCache.shared.store(prepared, for: input)
+        preparedArticle = prepared
+        isBuildingPreparedArticle = false
     }
 
     @MainActor
@@ -757,8 +808,19 @@ struct ReaderView: View {
             await offlineDownloadService.saveForOffline(article)
         }
 
-        preparedArticle = ReaderPreparedArticle(article: article)
         try? modelContext.save()
+        // Offline-Inhalt hat sich geaendert — asynchroner Rebuild ueber
+        // contentRevision (die .onChange-Handler bumpen ohnehin; expliziter
+        // Bump ist idempotent und robust gegen Reihenfolge).
+        contentRevision += 1
         isOfflineOperationInProgress = false
     }
+}
+
+// Treiber fuer .task(id:): wechselt bei Artikelwechsel (persistentModelID)
+// oder Inhaltsaenderung (contentRevision). Equatable, damit SwiftUI den Task
+// nur bei echten Wechseln neu startet.
+private struct ReaderRefreshToken: Equatable {
+    let articleID: PersistentIdentifier
+    let revision: Int
 }

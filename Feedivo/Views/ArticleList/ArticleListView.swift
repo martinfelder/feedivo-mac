@@ -343,6 +343,11 @@ private struct ArticleListContent: View {
     @State private var viewModel = ArticleViewModel()
     @State private var offlineDownloadService = OfflineDownloadService()
     @State private var showsReadArticles = false
+    // Entbunden: markReadIfNeeded sichert nicht sofort pro Auswahl, sondern
+    // debounced. Schnelles Weiter-/Zurück-Navigieren löst so nicht jede
+    // Auswahl eine @Query-Refetch-Kaskade aus; UI-Updates kommen über
+    // @Model-Beobachtung der In-Memory-Mutation (kein Save nötig).
+    @State private var pendingReadPersistenceTask: Task<Void, Never>?
     @State private var searchText = ""
     @State private var temporarilyVisibleReadArticleIDs = Set<PersistentIdentifier>()
     @AppStorage(ArticleSortOption.storageKey)
@@ -417,6 +422,11 @@ private struct ArticleListContent: View {
         .onAppear {
             updateNavigationState(in: visibleArticles)
         }
+        .onDisappear {
+            // Ausstehende Lese-Markierungen sofort persistieren, bevor die
+            // Liste verlassen wird (kein Datenverlust beim Wechsel/App-Quit).
+            flushPendingReadPersistenceSave()
+        }
         .onChange(of: visibleArticles) {
             updateNavigationState(in: visibleArticles)
         }
@@ -429,12 +439,21 @@ private struct ArticleListContent: View {
             rememberAutoReadArticleIfNeeded(selectedArticle)
 
             updateNavigationState(in: visibleArticles)
-            viewModel.markReadIfNeeded(
+            // Hebel 4: Nur sichern, wenn tatsächlich ein ungelesener Artikel
+            // als gelesen markiert wurde. Navigieren zwischen bereits gelesenen
+            // Artikeln löst so keine Save-Kaskade (Feed.unreadCount-
+            // Änderung -> @Query-Refetch -> Re-Render) mehr aus.
+            let didMarkRead = viewModel.markReadIfNeeded(
                 selectedArticle,
                 isEnabled: markArticleReadOnSelection,
                 context: modelContext
             )
-            try? modelContext.save()
+            if didMarkRead {
+                // Save entbunden: In-Memory-Mutation reicht für die UI; erst
+                // nach einer kurzen Pause sichern, damit @Query-Refetches
+                // (feeds/articles/sidebar) nicht pro Auswahl feuern.
+                scheduleReadPersistenceSave()
+            }
         }
         .toolbar {
             ToolbarItemGroup {
@@ -600,11 +619,20 @@ private struct ArticleListContent: View {
         )
     }
 
-    /// Baut den Cache-Key für makePreparedArticles(). Läuft pro Body-Eval einmal
-    /// als O(n)-Durchlauf für die Counts — deutlich billiger als die O(n log n)-
-    /// Sortierung in prepare(). Liefert nil für Pfade ohne sicheres
-    /// Invalidierungssignal (Suche, "heute"-Filter, kurze Lesezeit-Sortierung);
-    /// diese werden immer frisch berechnet und nicht gecacht.
+    /// Baut den Cache-Key für makePreparedArticles(). Liefert nil für Pfade
+    /// ohne sicheres Invalidierungssignal (Suche, "heute"-Filter, kurze
+    /// Lesezeit-Sortierung); diese werden immer frisch berechnet.
+    ///
+    /// Wichtig: In den Key wird nur die Status-Zählung aufgenommen, die das
+    /// Filterergebnis tatsächlich beeinflusst. Für `.all` hängt das Ergebnis
+    /// ausschließlich von Sortierung + Artikelzahl ab — ein Selektionswechsel
+    /// (Artikel wird als gelesen markiert, unreadCount sinkt) invalisiert den
+    /// Cache dann nicht mehr. Ohne diesen Schutz würde jede Auswahl bei
+    /// `markArticleReadOnSelection` einen Cache-Miss auslösen und die komplette
+    /// Liste im Body synchron neu sortieren — genau in dem Moment, in dem die
+    /// Liste zum neu ausgewählten Artikel scrollt. Das äußerte sich als kurzes
+    /// Flackern, sobald der nächste Artikel unterhalb des sichtbaren Bereichs
+    /// lag.
     private func makePreparedArticlesKey() -> PreparedArticlesCacheKey? {
         if activeSearchQuery.isActive
             || articleFilterOption == .today
@@ -615,10 +643,18 @@ private struct ArticleListContent: View {
         var unreadCount = 0
         var starredCount = 0
         var archivedCount = 0
-        for article in articles {
-            if !article.isRead { unreadCount += 1 }
-            if article.isStarred { starredCount += 1 }
-            if article.isArchived { archivedCount += 1 }
+        switch articleFilterOption {
+        case .all:
+            // Filterergebnis ist unabhängig vom Lese-/Stern-/Archiv-Status.
+            break
+        case .unread:
+            for article in articles where !article.isRead { unreadCount += 1 }
+        case .starred:
+            for article in articles where article.isStarred { starredCount += 1 }
+        case .archived:
+            for article in articles where article.isArchived { archivedCount += 1 }
+        case .today:
+            return nil
         }
 
         return PreparedArticlesCacheKey(
@@ -770,6 +806,26 @@ private struct ArticleListContent: View {
         }
 
         temporarilyVisibleReadArticleIDs.insert(article.persistentModelID)
+    }
+
+    /// Sichert ausstehende Lese-Status-Änderungen entbunden: nach kurzer Pause
+    /// ohne weitere Auswahl. Schnelles Navigieren koalesziert viele
+    /// Einzelmarkierungen zu einem Save (und damit einer @Query-Refetch-Runde).
+    private func scheduleReadPersistenceSave() {
+        pendingReadPersistenceTask?.cancel()
+        pendingReadPersistenceTask = Task {
+            try? await Task.sleep(nanoseconds: 600_000_000)
+            guard !Task.isCancelled else { return }
+            try? modelContext.save()
+        }
+    }
+
+    /// Flusht ausstehende Lese-Markierungen sofort (z. B. beim Verlassen der
+    /// Liste), damit beim App-Wechsel nichts verloren geht.
+    private func flushPendingReadPersistenceSave() {
+        pendingReadPersistenceTask?.cancel()
+        pendingReadPersistenceTask = nil
+        try? modelContext.save()
     }
 
     @MainActor

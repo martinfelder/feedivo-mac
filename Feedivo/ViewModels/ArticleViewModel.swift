@@ -161,26 +161,35 @@ final class ArticleViewModel {
     }
 
     @MainActor
-    func markReadIfNeeded(_ article: Article?, isEnabled: Bool) {
+    @discardableResult
+    func markReadIfNeeded(_ article: Article?, isEnabled: Bool) -> Bool {
         guard isEnabled, let article, !article.isRead else {
-            return
+            return false
         }
 
         let wasRead = article.isRead
         article.isRead = true
         updateUnreadCount(for: article, wasRead: wasRead, isRead: article.isRead)
+        return true
     }
 
     @MainActor
-    func markReadIfNeeded(_ article: Article?, isEnabled: Bool, context: ModelContext) {
+    @discardableResult
+    func markReadIfNeeded(_ article: Article?, isEnabled: Bool, context: ModelContext) -> Bool {
         guard isEnabled, let article, !article.isRead else {
-            return
+            return false
         }
 
         let wasRead = article.isRead
         article.isRead = true
         updateUnreadCount(for: article, wasRead: wasRead, isRead: article.isRead, context: context)
-        try? context.save()
+        // Kein expliziter save() hier: das Sichern wird vom Aufrufer gesteuert
+        // (z. B. entbunden/debounced), damit schnelle Artikelwechsel nicht jede
+        // Auswahl sofort persistieren und eine @Query-Refetch-Kaskade
+        // (feeds/articles/sidebar) auslösen. Die UI-Updates (Lese-Status der
+        // Zeile, Sidebar-Unread-Badge) kommen über die @Model-Beobachtung der
+        // In-Memory-Mutation, ohne Save.
+        return true
     }
 
     @MainActor

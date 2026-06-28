@@ -258,11 +258,8 @@ struct SidebarView: View {
                     } label: {
                         SmartFolderSidebarRow(
                             smartFolder: smartFolder,
-                            badgeText: SmartFolderSidebarBadge.badgeText(
-                                for: smartFolder,
-                                feeds: feeds,
-                                counts: badgeCounts
-                            )
+                            feeds: feeds,
+                            counts: badgeCounts
                         )
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
@@ -318,8 +315,7 @@ struct SidebarView: View {
                 selection = .feed(feed.persistentModelID)
             } label: {
                 FeedRowView(
-                    feed: feed,
-                    unreadCount: SidebarUnreadCount.unreadArticleCount(for: feed)
+                    feed: feed
                 )
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -481,7 +477,17 @@ private struct SmartFolderSidebarRow: View {
     @Environment(\.interfaceTextSize) private var interfaceTextSize
 
     let smartFolder: SmartFolder
-    let badgeText: String?
+    let feeds: [Feed]
+    let counts: SidebarBadgeCounts
+
+    // Badge bewusst hier im Body berechnen: für 'Ungelesen' summiert das
+    // SmartFolderSidebarBadge die feed.unreadCount — diese Beobachtung lebt
+    // nur in dieser Zeile, nicht in der gesamten Sidebar. Status-Badges
+    // (Stern/Versteckt/Gespeichert) greifen auf die übergebenen counts zu und
+    // beobachten feed.unreadCount nicht.
+    private var badgeText: String? {
+        SmartFolderSidebarBadge.badgeText(for: smartFolder, feeds: feeds, counts: counts)
+    }
 
     var body: some View {
         HStack(spacing: 8) {
