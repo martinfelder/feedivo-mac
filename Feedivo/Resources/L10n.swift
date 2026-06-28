@@ -298,6 +298,7 @@ enum L10n {
     static let articleSearchStatusStarred = String(localized: "article.search.status.starred")
     static let articleSearchStatusArchived = String(localized: "article.search.status.archived")
     static let articleSearchNoResultsTitle = String(localized: "article.search.noResults.title")
+    static let articleSearchWindowDescription = LocalizedStringKey("article.search.window.description")
     static let articleCommandsMenu = String(localized: "articleCommands.menu")
     static let articlePreviousCommand = String(localized: "article.previous.command")
     static let articleNextCommand = String(localized: "article.next.command")
@@ -672,6 +673,11 @@ enum L10n {
             String(localized: "article.search.noResults.description"),
             query
         )
+    }
+
+    /// Trefferanzahl im Suchfenster (`%lld Treffer` / `%lld matches`) — Plural-Key.
+    static func articleSearchMatchCount(_ count: Int) -> String {
+        String.localizedStringWithFormat(String(localized: "article.search.matchCount"), count)
     }
 
     static func settingsFeedsDeleteConfirmationMessage(count: Int) -> String {

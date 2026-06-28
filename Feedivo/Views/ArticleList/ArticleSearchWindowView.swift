@@ -75,7 +75,7 @@ struct ArticleSearchWindowView: View {
                     Text(L10n.articleSearchCommand)
                         .font(.headline)
 
-                    Text("Durchsuche alle gespeicherten Artikel und grenze die Resultate mit Feed, Tag, Zeitraum oder Status ein.")
+                    Text(L10n.articleSearchWindowDescription)
                         .font(.callout)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -83,7 +83,7 @@ struct ArticleSearchWindowView: View {
 
                 Spacer(minLength: 0)
 
-                Text("\(filteredArticles.count) Treffer")
+                Text(L10n.articleSearchMatchCount(filteredArticles.count))
                     .font(.caption)
                     .fontWeight(.semibold)
                     .foregroundStyle(.blue)

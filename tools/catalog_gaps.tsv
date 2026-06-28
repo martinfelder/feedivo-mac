@@ -1,0 +1,7 @@
+key	de	en	fr	it
+article.search.window.description	Durchsuche alle gespeicherten Artikel und grenze die Resultate mit Feed, Tag, Zeitraum oder Status ein.	Search all saved articles and refine the results by feed, tag, time range or status.	Recherchez dans tous les articles enregistrés et affinez les résultats par flux, étiquette, période ou statut.	Cerca in tutti gli articoli salvati e affina i risultati per feed, tag, intervallo di tempo o stato.
+feed.error.alreadyRunning	Eine Aktualisierung läuft bereits. Bitte warte, bis sie abgeschlossen ist.	An update is already running. Please wait until it completes.	Une mise à jour est déjà en cours. Veuillez patienter jusqu'à la fin de celle-ci.	Un aggiornamento è già in corso. Attendi il completamento.
+feed.error.duplicate	Dieser Feed wird bereits abonniert.	This feed is already subscribed.	Ce flux est déjà abonné.	Questo feed è già sottoscritto.
+feed.import.alreadyRunning	Ein Import läuft bereits. Bitte warte, bis er abgeschlossen ist.	An import is already running. Please wait until it completes.	Un import est déjà en cours. Veuillez patienter jusqu'à la fin de celui-ci.	Un'importazione è già in corso. Attendi il completamento.
+offline.archive.error.message	Die Offline-Kopie konnte nicht gespeichert werden.	The offline copy could not be saved.	La copie hors ligne n'a pas pu être enregistrée.	La copia offline non ha potuto essere salvata.
+offline.archive.error.title	Archivieren fehlgeschlagen	Archiving failed	Échec de l'archivage	Archiviazione non riuscita

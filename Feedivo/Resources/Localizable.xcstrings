@@ -4,7 +4,6 @@
     "": {},
     "#%@": {},
     "%lld": {},
-    "%lld Treffer": {},
     "%lld px": {},
     ".%@": {},
     ".opml und .xml werden unterstützt": {
@@ -63,7 +62,6 @@
         }
       }
     },
-    "Abonnieren": {},
     "Aktion": {
       "localizations": {
         "de": {
@@ -400,7 +398,6 @@
         }
       }
     },
-    "Dieser Feed liefert aktuell keine Artikel für die Vorschau.": {},
     "Duplikate importieren": {
       "localizations": {
         "de": {
@@ -457,7 +454,6 @@
         }
       }
     },
-    "Durchsuche alle gespeicherten Artikel und grenze die Resultate mit Feed, Tag, Zeitraum oder Status ein.": {},
     "Dynamische Artikelansicht mit globalem UND/ODER-Operator.": {
       "localizations": {
         "de": {
@@ -514,7 +510,6 @@
         }
       }
     },
-    "Eigener Ordner": {},
     "Entfernen": {
       "localizations": {
         "de": {
@@ -796,8 +791,6 @@
         }
       }
     },
-    "Import abgeschlossen": {},
-    "Import abgeschlossen mit Hinweisen": {},
     "Import-Vorschau wird vorbereitet": {
       "localizations": {
         "de": {
@@ -910,11 +903,6 @@
         }
       }
     },
-    "Intelligenten Ordner bearbeiten": {},
-    "Intelligenten Ordner erstellen": {},
-    "Intelligenten Ordner löschen": {},
-    "Keine intelligenten Ordner": {},
-    "Letzte Artikel": {},
     "Live-Vorschau": {
       "localizations": {
         "de": {
@@ -971,8 +959,6 @@
         }
       }
     },
-    "Nach oben": {},
-    "Nach unten": {},
     "Name": {
       "localizations": {
         "de": {
@@ -1561,7 +1547,6 @@
         }
       }
     },
-    "Standardordner": {},
     "Standardordner wiederherstellen": {
       "localizations": {
         "de": {
@@ -1758,7 +1743,6 @@
         }
       }
     },
-    "Zum Sortieren ziehen": {},
     "Zurück": {
       "localizations": {
         "de": {
@@ -3795,6 +3779,82 @@
         }
       }
     },
+    "article.search.matchCount": {
+      "localizations": {
+        "de": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Treffer"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Treffer"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld match"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld matches"
+                }
+              }
+            }
+          }
+        },
+        "fr": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld résultat"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld résultats"
+                }
+              }
+            }
+          }
+        },
+        "it": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld risultato"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld risultati"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "article.search.noResults.description": {
       "localizations": {
         "de": {
@@ -4099,6 +4159,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tutti i tag"
+          }
+        }
+      }
+    },
+    "article.search.window.description": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Durchsuche alle gespeicherten Artikel und grenze die Resultate mit Feed, Tag, Zeitraum oder Status ein."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search all saved articles and refine the results by feed, tag, time range or status."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recherchez dans tous les articles enregistrés et affinez les résultats par flux, étiquette, période ou statut."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cerca in tutti gli articoli salvati e affina i risultati per feed, tag, intervallo di tempo o stato."
           }
         }
       }
@@ -5556,8 +5644,26 @@
       "localizations": {
         "de": {
           "stringUnit": {
-            "state": "new",
+            "state": "translated",
             "value": "Eine Aktualisierung läuft bereits. Bitte warte, bis sie abgeschlossen ist."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "An update is already running. Please wait until it completes."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Une mise à jour est déjà en cours. Veuillez patienter jusqu'à la fin de celle-ci."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un aggiornamento è già in corso. Attendi il completamento."
           }
         }
       }
@@ -5567,8 +5673,26 @@
       "localizations": {
         "de": {
           "stringUnit": {
-            "state": "new",
+            "state": "translated",
             "value": "Dieser Feed wird bereits abonniert."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This feed is already subscribed."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce flux est déjà abonné."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questo feed è già sottoscritto."
           }
         }
       }
@@ -5842,8 +5966,26 @@
       "localizations": {
         "de": {
           "stringUnit": {
-            "state": "new",
+            "state": "translated",
             "value": "Ein Import läuft bereits. Bitte warte, bis er abgeschlossen ist."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "An import is already running. Please wait until it completes."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un import est déjà en cours. Veuillez patienter jusqu'à la fin de celui-ci."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un'importazione è già in corso. Attendi il completamento."
           }
         }
       }
@@ -10202,8 +10344,26 @@
       "localizations": {
         "de": {
           "stringUnit": {
-            "state": "new",
+            "state": "translated",
             "value": "Die Offline-Kopie konnte nicht gespeichert werden."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The offline copy could not be saved."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La copie hors ligne n'a pas pu être enregistrée."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La copia offline non ha potuto essere salvata."
           }
         }
       }
@@ -10213,8 +10373,26 @@
       "localizations": {
         "de": {
           "stringUnit": {
-            "state": "new",
+            "state": "translated",
             "value": "Archivieren fehlgeschlagen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Archiving failed"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Échec de l'archivage"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Archiviazione non riuscita"
           }
         }
       }
