@@ -696,4 +696,26 @@ enum L10n {
     static let smartFolderStandardFolder = LocalizedStringKey("smartFolder.standardFolder")
     static let smartFolderCustomFolder = LocalizedStringKey("smartFolder.customFolder")
     static let smartFolderDragToSort = LocalizedStringKey("smartFolder.dragToSort")
+
+    // SmartFolderEditor-Cluster (Task 5): Editor-Titel, Beschreibung,
+    // Name-Placeholder, Appearance, Match-Mode-Operator, Bedingungen,
+    // UND/ODER, Live-Vorschau, Speichern. `smartFolder.preview.matches`
+    // ist ein Plural-Key (Aufruf via `String.localizedStringWithFormat`).
+    static let smartFolderEditorCreate = LocalizedStringKey("smartFolder.editor.create")
+    static let smartFolderEditorEdit = LocalizedStringKey("smartFolder.editor.edit")
+    static let smartFolderEditorDescription = LocalizedStringKey("smartFolder.editor.description")
+    static let smartFolderFieldName = LocalizedStringKey("smartFolder.field.name")
+    static let smartFolderAppearance = LocalizedStringKey("smartFolder.appearance")
+    static let smartFolderAppearanceIcon = LocalizedStringKey("smartFolder.appearance.icon")
+    static let smartFolderMatchModeOperator = LocalizedStringKey("smartFolder.matchMode.operator")
+    static let smartFolderMatchModeAll = LocalizedStringKey("smartFolder.matchMode.all")
+    static let smartFolderMatchModeAny = LocalizedStringKey("smartFolder.matchMode.any")
+    static let smartFolderConditions = LocalizedStringKey("smartFolder.conditions")
+    static let smartFolderConditionsEmpty = LocalizedStringKey("smartFolder.conditions.empty")
+    static let smartFolderConditionsAdd = LocalizedStringKey("smartFolder.conditions.add")
+    static let smartFolderOperatorAnd = LocalizedStringKey("smartFolder.operator.and")
+    static let smartFolderOperatorOr = LocalizedStringKey("smartFolder.operator.or")
+    static let smartFolderPreview = LocalizedStringKey("smartFolder.preview")
+    static let smartFolderPreviewMatches = LocalizedStringKey("smartFolder.preview.matches")
+    static let smartFolderSave = LocalizedStringKey("smartFolder.save")
 }
