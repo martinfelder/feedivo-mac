@@ -26,3 +26,27 @@
 ## Plural-Strings (24) — siehe Task 2
 
 Gesamt echte Lücken: 67 Literale + 24 Plural-Strings + 8 Default-Namen (Task 1).
+
+## Verifikationsstand (Task 10, 2026-06-28)
+
+Alle Cluster-Tasks 0–9 sind committet (HEAD: 56663901).
+
+Katalog (`Feedivo/Resources/Localizable.xcstrings`):
+- Total Keys: 803
+- Vollständig übersetzt (de+en+fr+it): 774
+- Fehlende EN/FR/IT: 29 distinct Keys (87 Sprach-Paare).
+
+Offene Lücken (vom Cluster-Work nicht erfasst — zur Behebung an Controller delegiert):
+- Rohe DE-Literale im Code (leere Katalog-Einträge, auto-extrahiert, keine L10n-Accessor-Nutzung):
+  `Abonnieren`, `Letzte Artikel`, `Standardordner`, `Eigener Ordner`,
+  `Intelligenten Ordner bearbeiten/erstellen/löschen`, `Keine intelligenten Ordner`,
+  `Import abgeschlossen`, `Import abgeschlossen mit Hinweisen`,
+  `Durchsuche alle gespeicherten Artikel …`, `Nach oben`, `Nach unten`,
+  `Zum Sortieren ziehen`, `%lld Treffer`, `%lld px`, `#%@`, `.%@`, `·`, ``
+- Benannte Keys nur mit DE (state "new"), ohne en/fr/it:
+  `feed.error.alreadyRunning`, `feed.error.duplicate`, `feed.import.alreadyRunning`,
+  `offline.archive.error.message`, `offline.archive.error.title`
+- Proper-Noun/Format-Strings (bewusst nicht lokalisiert):
+  `Feedivo`, `https://example.com/feed.xml`
+
+Build: SUCCEEDED. Tests: BLOCKED — 3 fehlschlagende Tests (siehe Task-10-Report).
