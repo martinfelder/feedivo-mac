@@ -718,4 +718,17 @@ enum L10n {
     static let smartFolderPreview = LocalizedStringKey("smartFolder.preview")
     static let smartFolderPreviewMatches = LocalizedStringKey("smartFolder.preview.matches")
     static let smartFolderSave = LocalizedStringKey("smartFolder.save")
+
+    // RuleSettings-Cluster (Task 6): Beschreibung, ListHeader (Reihenfolge,
+    // Aktiv, Regel, Aktion, Treffer), fehlendes Tag, Nach-oben/Nach-unten-Help.
+    // `common.duplicate` für den Duplizieren-Button wird aus Task 3 weiterverwendet.
+    static let ruleSettingsDescription = LocalizedStringKey("rule.settings.description")
+    static let ruleListHeaderOrder = LocalizedStringKey("rule.listHeader.order")
+    static let ruleListHeaderActive = LocalizedStringKey("rule.listHeader.active")
+    static let ruleListHeaderRule = LocalizedStringKey("rule.listHeader.rule")
+    static let ruleListHeaderAction = LocalizedStringKey("rule.listHeader.action")
+    static let ruleListHeaderMatches = LocalizedStringKey("rule.listHeader.matches")
+    static let ruleActionMissingTag = LocalizedStringKey("rule.action.missingTag")
+    static let ruleMoveUp = LocalizedStringKey("rule.moveUp")
+    static let ruleMoveDown = LocalizedStringKey("rule.moveDown")
 }
