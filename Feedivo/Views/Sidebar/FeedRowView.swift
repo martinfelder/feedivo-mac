@@ -4,7 +4,14 @@ struct FeedRowView: View {
     @Environment(\.interfaceTextSize) private var interfaceTextSize
 
     let feed: Feed
-    let unreadCount: Int
+
+    // unreadCount wird bewusst hier im Body aus feed gelesen, nicht vom Parent
+    // übergeben. Dadurch beobachtet nur diese Zeile feed.unreadCount — ein
+    // Als-gelesen-markieren wertet nur die eine Feed-Zeile neu aus, nicht die
+    // gesamte Sidebar (inkl. O(n)-Badge-Signatur über alle Artikel).
+    private var unreadCount: Int {
+        SidebarUnreadCount.unreadArticleCount(for: feed)
+    }
 
     var body: some View {
         HStack(spacing: 8) {
