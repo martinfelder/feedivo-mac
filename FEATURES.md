@@ -7,7 +7,7 @@
 > Status-Legende:
 > ✔️ Fertig | 🔨 In Arbeit (teilweise umgesetzt) | ✅ Entschieden (bereit zur Implementierung) | 💬 In Diskussion | ⏸️ Zurückgestellt
 >
-> Zuletzt aktualisiert: 2026-06-26
+> Zuletzt aktualisiert: 2026-06-28
 
 ---
 
@@ -224,6 +224,11 @@
 - **Umgesetzt:** `OPMLImportReviewView`, zweiphasiger Import, Drag & Drop,
   Übernahme des gewählten bzw. gespeicherten Aktualisierungsintervalls für neu
   importierte Feeds
+- **Refactor (2026-06-27):** Der OPML-Preview-Flow wurde aus Review-View und
+  First-Run-Wizard in einen gemeinsamen `OPMLImportPreviewController` plus
+  einheitlicher `OPMLImportFeedRow` extrahiert, sodass Wizard und Settings-Import
+  dieselbe Vorschau-/Auswahl-/Ordnerlogik nutzen. Controller-Logik ist über
+  `OPMLImportPreviewControllerTests` testbar abgesichert.
 
 ### 7.2 OPML Export
 - **Status:** ✔️ Fertig

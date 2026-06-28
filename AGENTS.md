@@ -175,11 +175,14 @@ FeedivoMac/
 │   │   │   ├── ReaderFontPreset.swift  # Schrift-Presets für Reader ✅
 │   │   │   ├── ReaderFontRegistry.swift # Gebundelte Fonts registrieren ✅
 │   │   │   ├── ReaderTypography.swift  # Textgroesse/Zeilenabstand Defaults ✅
+│   │   │   ├── ReaderTypographySettings.swift # Reader-Schriftgroesse als Settings-Rubrik ✅
 │   │   │   └── WebContentView.swift    # WKWebView-Wrapper für Originalansicht ✅
 │   │   ├── Tags/
 │   │   │   ├── TagManagerView.swift    # Tags erstellen, bearbeiten, löschen ✅
 │   │   │   └── AddTagView.swift        # bleibt vorerst nicht separat noetig; TagManagerView erstellt Tags direkt
 │   │   ├── OPMLImport/
+│   │   │   ├── OPMLImportPreviewController.swift # Gemeinsamer Preview-Controller für Wizard + Review ✅
+│   │   │   ├── OPMLImportFeedRow.swift # Einheitliche Feed-Zeile für Wizard + Review ✅
 │   │   │   └── OPMLImportReviewView.swift # Erweiterter OPML-Import-Dialog ✅
 │   │   ├── OPMLExport/
 │   │   │   └── OPMLExportSheet.swift # OPML-Exportdialog mit Optionen ✅
@@ -214,7 +217,7 @@ FeedivoMac/
 │   │   ├── ArticleRetentionCleanupService.swift # Automatisches Löschen alter Artikel ✅
 │   │   ├── OrphanedArticleCleanupService.swift # verwaiste Artikel ohne existierenden Feed entfernen ✅
 │   │   ├── FeedUnreadCountBackfillService.swift # unreadCount einmalig korrigieren ✅
-│   │   ├── RuleConditionBackfillService.swift # alte Rule-Felder in Conditions migrieren ✅
+│   │   ├── SmartFolderDefaultKeyBackfillService.swift # defaultKey für alte SmartFolder migrieren ✅
 │   │   ├── OfflineDownloadService.swift # Manueller Offline-Download pro Artikel ✅
 │   │   ├── ImageCacheService.swift     # Memory-/Disk-Cache für Bilder und Favicons ✅
 │   │   ├── ImageCacheSettings.swift    # Cache-Limits und Groessenformatierung ✅
@@ -243,7 +246,7 @@ FeedivoMac/
 
 ---
 
-## Implementierter Code (Stand 2026-06-25)
+## Implementierter Code (Stand 2026-06-28)
 
 ### FeedivoApp.swift
 ```swift
@@ -625,10 +628,14 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   `conditionField`/`conditionOperator`/`conditionValue` Felder für Kompatibilitaet
   mit bestehenden Daten weiter.
 
-### RuleConditionBackfillService.swift
-- Migriert alte Regeln mit nur einem gespeicherten Legacy-Bedingungsfeld beim
-  App-Start in die neue `Rule.conditions` Relationship.
-- Überspringt Regeln mit bereits vorhandenen Conditions oder leerem Suchwert.
+### SmartFolderDefaultKeyBackfillService.swift
+- Einmaliger Backfill beim App-Start: bestehende Default-Ordner (`isDefault==true`)
+  ohne `defaultKey` erhalten anhand ihres deutschen Namens den passenden `defaultKey`
+  (8 bekannte Namen wie `Alle Artikel` -> `all`, `Ungelesen` -> `unread`).
+- Läuft nur einmal pro Gerät (`smartFolderDefaultKeyBackfillDone_v1`); überspringt
+  Ordner, die bereits einen `defaultKey` besitzen.
+- Ersetzt den früheren `RuleConditionBackfillService`, der mit der M2-Entfernung
+  der Legacy-Regelspalten überflüssig wurde und gelöscht wurde.
 
 ### RuleSettingsView.swift / RuleWizardView.swift
 - Einstellungen zeigen eine kompakte Tabellenliste aller Regeln mit Reihenfolge,
@@ -1589,6 +1596,34 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   gestartet; macOS bestimmt den exakten Ausfuehrungszeitpunkt.
 - **Datum:** 2026-06-20
 
+### ADR: Reader-/Listen-Performance — Parsing entkoppeln, Persistenz debouncen, Sidebar-Beobachtung isolieren
+- **Kontext:** Beim Wechseln zum nächsten Artikel (nativer Reader) und beim
+  Scrollen der Artikelliste ruckelte die App; bei grossem Datenbestand stark.
+- **Entscheidung:**
+  1. Der Reader parst HTML/Reader-Vorbereitung asynchron in `Task.detached`
+     (ausserhalb des MainActors), gestartet über `.task(id:)`. `ReaderView.init`
+     hält nur einen leeren Platzhalter (`ReaderPreparedArticle.empty`), kein
+     synchrones Parse im Init (früher via `State(initialValue:)` pro Body-Eval
+     verworfen mitgelaufen). Geparste Ergebnisse werden pro Artikel gecacht.
+  2. `markReadIfNeeded(_:context:)` sichert den Kontext nicht mehr selbst.
+     Die Artikelliste persistiert Lese-Markierungen debounced (~0.6s) statt
+     pro Auswahl, damit schnelles Navigieren keine @Query-Refetch-Kaskade
+     (feeds/articles/Sidebar-allArticles) pro Artikelwechsel auslöst. UI-
+     Updates (Zeile, Sidebar-Unread-Badge) kommen über `@Model`-Beobachtung
+     der In-Memory-Mutation. Flush auf `.onDisappear` verhindert Datenverlust.
+  3. `feed.unreadCount` wird nur in Blatt-Zeilen (`FeedRowView`,
+     `SmartFolderSidebarRow`) gelesen, nicht im `SidebarView`-Body. Damit
+     triggert ein Als-gelesen-markieren nicht die gesamte Sidebar-Body-
+     Neuauswertung inkl. `sidebarBadgeSignature` (O(n) über alle Artikel).
+  4. Cache-Key für `makePreparedArticles` enthält nur die zum aktiven Filter
+     relevante Status-Zählung (Standard `Alle` → unabhängig vom Lese-Status),
+     damit eine Auswahl keinen Cache-Miss und keine synchrone Neu-Sortierung
+     im Body auslöst.
+- **Konsequenz:** Navigation bleibt auch bei grossem Datenbestand flüssig;
+  Lese-Status wird verzögert (≤0.6s) persistiert, was für einen RSS-Reader
+  akzeptabel ist und auf `.onDisappear` sofort geflusht wird.
+- **Datum:** 2026-06-28
+
 ---
 
 ## Bekannte Gotchas & Fallstricke
@@ -1750,8 +1785,21 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - [ ] App-Icon designen
 - [x] Onboarding (erster Start ohne Feeds): Wizard mit Feed hinzufügen,
   OPML-Import, gemeinsamem Review/Statusfilter und Start-Defaults
+- [x] Lokalisierung abgeschlossen: de/en/fr/it String Catalog vollständig;
+  defaultKey-Modell für lokalisierte Default-SmartFolder-Namen, Plural-Varianten
+  für Count-Strings und cluster-weise Lokalisierung der verbliebenen Literale
+- [x] CloudKit-Vorbereitung (Blocker B2/B3): `.cascade` durch `.nullify` +
+  manuelles Cascade ersetzt, explizite inverse-Referenzen ergänzt (Voraussetzung
+  für iCloud Sync; Sync selbst bleibt offen)
+- [x] OPML-Import-Dedup-Refactor: gemeinsamer `OPMLImportPreviewController` +
+  einheitliche Feed-Zeile für Wizard und Settings-Import, testbar abgesichert
+- [x] Reader-/Listen-Navigations-Performance: asynchroner Reader-Parse
+  ausserhalb des MainActors, geparste Blocks cachen, Lese-Persistenz debouncen,
+  Sidebar-`feed.unreadCount`-Beobachtung in Zeilen isolieren, Cache-Key nur
+  mit filterrelevanter Status-Zählung
 - [ ] Release-Vorbereitung: App Store oder private Verteilung entscheiden,
-  Build/Test/QA abschliessen
+  Build/Test/QA abschliessen (Build/Tests laut Inventar grün, Xcode-Verifikation
+  noch offen)
 
 ---
 
@@ -1783,6 +1831,12 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 ## Aktuell in Arbeit
 
 - M1, M2 und M3 sind abgeschlossen.
+- 2026-06-27/28 abgeschlossen: OPML-Import-Dedup-Refactor (gemeinsamer
+  `OPMLImportPreviewController`), Review-Followup-Fixes (7 Tasks) und
+  L10n-Abschluss (defaultKey-Modell, Plural-Varianten, Cluster-Lokalisierung,
+  Katalog-Lücken). Build und Tests sind laut `docs/superpowers/l10n/inventar.md`
+  grün; eine unabhängige Verifikation in Xcode steht noch aus, da die Codex-
+  Sandbox die Swift-Toolchain nicht laden kann.
 - Aktuell M4: Polish & Release. iCloud Sync wurde bewusst aus M3 nach M4 verschoben,
   damit Tags, Regeln, Background-Refresh-Status und Offline-Basis als abgeschlossene
   M3-Basis stabil bleiben. M4 umfasst jetzt iCloud Sync, erweiterten OPML-Import,
@@ -1817,6 +1871,70 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 ---
 
 ## Letzte Änderungen
+
+- 2026-06-28: Reader-/Listen-Navigation-Performance (Branch
+  `perf/native-reader-navigation`, gemerged nach main). Hebt Trägheit und
+  Ruckeln beim Wechseln zum nächsten Artikel (nativer Reader) und beim
+  Scrollen der Artikelliste auf:
+  - Reader: HTML-Parse aus `ReaderView.init` raus und asynchron in
+    `Task.detached` ausserhalb des MainActors; geparste Blocks pro Artikel
+    cachen (`ReaderPreparedArticleCache`); `originalURL` direkt aus
+    `article.link`, Loading-Placeholder beim ersten Build.
+  - Artikelliste: Cache-Key für `makePreparedArticles` nur noch mit der
+    filterrelevanten Status-Zählung (Standardfilter `Alle` → kein Cache-Miss
+    pro Auswahl → keine synchrone Neu-Sortierung beim Scrollen).
+  - Persistenz: `markReadIfNeeded(_:context:)` sichert nicht mehr selbst;
+    Artikelliste sichert Lese-Markierungen debounced (~0.6s) statt pro Auswahl,
+    Flush auf `.onDisappear`. UI-Updates kommen über `@Model`-Beobachtung der
+    In-Memory-Mutation, ohne Save.
+  - Sidebar: `feed.unreadCount` wird nur noch in den Blatt-Zeilen gelesen
+    (`FeedRowView`, `SmartFolderSidebarRow`), nicht im Sidebar-Body. Ein
+    Als-gelesen-markieren wertet damit nur die betroffenen Badge-Zeilen neu
+    aus, nicht die gesamte Sidebar inkl. O(n)-Badge-Signatur über alle
+    Artikel. Das war der Hauptverursacher des Ruckelns bei grossem Datenbestand.
+  - `build/` zur `.gitignore` hinzugefügt.
+  Build + Tests grün.
+
+- 2026-06-28: L10n-Abschluss abgeschlossen (16 Commits, Subagent-Driven nach
+  Design-Spec). Neues `defaultKey`-Modell + `localizedDisplayName` + Migration für
+  die 8 Default-SmartFolder-Namen, damit Standardordner pro Sprache korrekt
+  angezeigt werden, ohne den gespeicherten deutschen Namen zu verändern. Plural-
+  Varianten für 24 Count-Strings. Cluster-weise Lokalisierung der verbliebenen
+  hartcodierten Literale (Sidebar, SmartFolderSettings, SmartFolderEditor,
+  RuleSettings, FirstRun, OPMLImportReview, OPMLImportPreviewController). Folge-
+  Task: 26 Katalog-Lücken geschlossen, 5 DE-only-Keys übersetzt, 16 leere
+  Ghost-Einträge bereinigt. Werkzeugbau: `tools/l10n_inject.py` + TSV-Cluster +
+  `docs/superpowers/l10n/inventar.md`. Build und Tests laut Inventar grün.
+
+- 2026-06-28: M12 Lokalisierungslücken geschlossen (SmartFolder/OPML/Rule plus
+  Datum-Formatter) als Vorarbeit zum L10n-Abschluss.
+
+- 2026-06-27: Review-Followup-Fixes abgeschlossen (7 TDD-Tasks nach Code-Review
+  des OPML-Refactors). Verwaiste Conditions werden bei `updateRule`/`updateFolder`
+  gelöscht; OPML-Vorschau-Task ist abbruchbar und sperrt die UI, der Cancel-Guard
+  setzt `isPreparingPreview` zurück; `Feed.unreadCount`-Increment ist konsistent
+  mit dem `isRead`-Filter; `addFeed` hat einen `!isLoading`-Reentrancy-Guard;
+  Vorschau-Zeilen sind parallelisiert mit Phase-2-Progress; typsichere Getter für
+  `RuleCondition`/`SmartFolderCondition`; Accessibility/Reset/Sentinel nachgezogen.
+
+- 2026-06-27: M1 OPML-Import-Dedup (Refactor): Der OPML-Preview-Flow wurde aus
+  `OPMLImportReviewView` und `FirstRunWizardView` in einen gemeinsamen
+  `OPMLImportPreviewController` plus einheitlicher `OPMLImportFeedRow` extrahiert,
+  damit Wizard und Settings-Import dieselbe Vorschau-, Auswahl- und
+  Ordnerlogik nutzen. Controller-Logik ist über `OPMLImportPreviewControllerTests`
+  testbar abgesichert.
+
+- 2026-06-27: M2 Legacy-Regel-Spalten entfernt (eine Source of Truth): Die alten
+  einzelnen `conditionField`/`conditionOperator`/`conditionValue` Spalten an
+  `Rule` wurden gelöscht; Regeln nutzen ausschließlich die `Rule.conditions`
+  Relationship. Der davon überflüssige `RuleConditionBackfillService` wurde
+  entfernt.
+
+- 2026-06-27: CloudKit-Blocker B2/B3 als Vorbereitung auf iCloud Sync behoben:
+  `.cascade`-Delete-Regeln wurden durch `.nullify` + manuelles Cascade ersetzt
+  (CloudKit verträgt keine `.cascade`), und es wurden explizite inverse-Referenzen
+  ergänzt. iCloud Sync selbst bleibt im M4-Checklist noch offen.
+
 
 - 2026-06-26: Such-UX nach Nutzerfeedback getrennt: Die Artikelliste zeigt nur
   noch ein einzelnes kompaktes Suchfeld und filtert ausschließlich die aktuell
