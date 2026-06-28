@@ -680,4 +680,20 @@ enum L10n {
     static let ruleSummaryNoCondition = String(localized: "rule.summary.noCondition")
     static let ruleSummaryAll = String(localized: "rule.summary.all")
     static let ruleSummaryAny = String(localized: "rule.summary.any")
+
+    // SmartFolderSettings-Cluster (Task 4): Titel, Beschreibung, Aktionen,
+    // ListHeader, Standard-/Eigener Ordner, Drag-Help.
+    static let smartFolderSettingsTitle = LocalizedStringKey("smartFolder.settings.title")
+    static let smartFolderSettingsDescription = LocalizedStringKey("smartFolder.settings.description")
+    static let smartFolderRestoreDefaults = LocalizedStringKey("smartFolder.restoreDefaults")
+    static let smartFolderNewFolder = LocalizedStringKey("smartFolder.newFolder")
+    static let smartFolderListHeaderOrder = LocalizedStringKey("smartFolder.listHeader.order")
+    static let smartFolderListHeaderSidebar = LocalizedStringKey("smartFolder.listHeader.sidebar")
+    static let smartFolderListHeaderName = LocalizedStringKey("smartFolder.listHeader.name")
+    static let smartFolderListHeaderConditions = LocalizedStringKey("smartFolder.listHeader.conditions")
+    static let smartFolderListHeaderMatches = LocalizedStringKey("smartFolder.listHeader.matches")
+    static let smartFolderShowInSidebar = LocalizedStringKey("smartFolder.showInSidebar")
+    static let smartFolderStandardFolder = LocalizedStringKey("smartFolder.standardFolder")
+    static let smartFolderCustomFolder = LocalizedStringKey("smartFolder.customFolder")
+    static let smartFolderDragToSort = LocalizedStringKey("smartFolder.dragToSort")
 }

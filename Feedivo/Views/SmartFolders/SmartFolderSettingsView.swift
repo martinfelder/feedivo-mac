@@ -18,7 +18,7 @@ struct SmartFolderSettingsView: View {
             header
 
             if orderedFolders.isEmpty {
-                ContentUnavailableView("Keine intelligenten Ordner", systemImage: "folder.badge.gearshape")
+                ContentUnavailableView(L10n.sidebarSmartFoldersEmpty, systemImage: "folder.badge.gearshape")
                     .frame(maxWidth: .infinity, minHeight: 140)
             } else {
                 folderList
@@ -31,7 +31,7 @@ struct SmartFolderSettingsView: View {
             SmartFolderEditorView(folder: folder, existingFolders: folders)
         }
         .confirmationDialog(
-            "Intelligenten Ordner löschen",
+            L10n.sidebarSmartFolderDelete,
             isPresented: Binding(
                 get: { folderPendingDeletion != nil },
                 set: { isPresented in
@@ -42,7 +42,7 @@ struct SmartFolderSettingsView: View {
             ),
             presenting: folderPendingDeletion
         ) { folder in
-            Button("Löschen", role: .destructive) {
+            Button(L10n.commonDelete, role: .destructive) {
                 viewModel.deleteFolder(folder, context: modelContext)
                 folderPendingDeletion = nil
             }
@@ -55,10 +55,10 @@ struct SmartFolderSettingsView: View {
     private var header: some View {
         HStack(alignment: .firstTextBaseline) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Intelligente Ordner")
+                Text(L10n.smartFolderSettingsTitle)
                     .font(.headline)
 
-                Text("Dynamische Ordner werden in der Sidebar angezeigt und filtern Artikel automatisch.")
+                Text(L10n.smartFolderSettingsDescription)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -68,13 +68,13 @@ struct SmartFolderSettingsView: View {
             Button {
                 viewModel.restoreDefaultFolders(existingFolders: folders, context: modelContext)
             } label: {
-                Label("Standardordner wiederherstellen", systemImage: "arrow.clockwise")
+                Label(L10n.smartFolderRestoreDefaults, systemImage: "arrow.clockwise")
             }
 
             Button {
                 isCreatingFolder = true
             } label: {
-                Label("Neuer Ordner", systemImage: "plus")
+                Label(L10n.smartFolderNewFolder, systemImage: "plus")
             }
             .buttonStyle(.borderedProminent)
         }
@@ -138,15 +138,15 @@ struct SmartFolderSettingsView: View {
 private struct SmartFolderSettingsListHeader: View {
     var body: some View {
         HStack(spacing: 12) {
-            Text("Reihenfolge")
+            Text(L10n.smartFolderListHeaderOrder)
                 .frame(width: 58, alignment: .leading)
-            Text("Sidebar")
+            Text(L10n.smartFolderListHeaderSidebar)
                 .frame(width: 60, alignment: .leading)
-            Text("Name")
+            Text(L10n.smartFolderListHeaderName)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            Text("Bedingungen")
+            Text(L10n.smartFolderListHeaderConditions)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            Text("Treffer")
+            Text(L10n.smartFolderListHeaderMatches)
                 .frame(width: 72, alignment: .trailing)
             Text("")
                 .frame(width: 82)
@@ -214,7 +214,7 @@ private struct SmartFolderSettingsRow: View {
         HStack(spacing: 12) {
             dragHandle
 
-            Toggle("In Sidebar anzeigen", isOn: Binding(
+            Toggle(L10n.smartFolderShowInSidebar, isOn: Binding(
                 get: { folder.isShownInSidebar },
                 set: { isShown in
                     folder.isShownInSidebar = isShown
@@ -230,12 +230,12 @@ private struct SmartFolderSettingsRow: View {
                         .foregroundStyle(SmartFolderFormatter.color(for: folder))
                         .frame(width: 18)
 
-                    Text(folder.name)
+                    Text(folder.localizedDisplayName)
                         .font(.body.weight(.semibold))
                         .lineLimit(1)
                 }
 
-                Text(folder.isDefault ? "Standardordner" : "Eigener Ordner")
+                Text(folder.defaultKey != nil ? L10n.smartFolderStandardFolder : L10n.smartFolderCustomFolder)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -273,7 +273,7 @@ private struct SmartFolderSettingsRow: View {
         .onTapGesture(count: 2, perform: edit)
         .contextMenu {
             Button(L10n.ruleEditButton, action: edit)
-            Button("Duplizieren", action: duplicate)
+            Button(L10n.commonDuplicate, action: duplicate)
             Divider()
             Button(L10n.ruleDeleteButton, role: .destructive, action: delete)
         }
@@ -285,7 +285,7 @@ private struct SmartFolderSettingsRow: View {
                 .foregroundStyle(.tertiary)
         }
         .frame(width: 58, alignment: .leading)
-        .help("Zum Sortieren ziehen")
+        .help(L10n.smartFolderDragToSort)
     }
 }
 
@@ -296,7 +296,7 @@ private struct SmartFolderDragPreview: View {
         HStack(spacing: 8) {
             Image(systemName: SmartFolderFormatter.systemImage(for: folder))
                 .foregroundStyle(SmartFolderFormatter.color(for: folder))
-            Text(folder.name)
+            Text(folder.localizedDisplayName)
                 .font(.callout.weight(.semibold))
         }
         .padding(.horizontal, 12)

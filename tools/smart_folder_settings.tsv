@@ -1,0 +1,15 @@
+key	de	en	fr	it
+smartFolder.settings.empty	Keine intelligenten Ordner	No smart folders	Aucun dossier intelligent	Nessuna cartella smart
+smartFolder.settings.title	Intelligente Ordner	Smart folders	Dossiers intelligents	Cartelle smart
+smartFolder.settings.description	Dynamische Ordner werden in der Sidebar angezeigt und filtern Artikel automatisch.	Dynamic folders appear in the sidebar and filter articles automatically.	Les dossiers dynamiques s'affichent dans la barre latérale et filtrent les articles automatiquement.	Le cartelle dinamiche vengono mostrate nella barra laterale e filtrano gli articoli automaticamente.
+smartFolder.restoreDefaults	Standardordner wiederherstellen	Restore default folders	Restaurer les dossiers par défaut	Ripristina cartelle predefinite
+smartFolder.newFolder	Neuer Ordner	New folder	Nouveau dossier	Nuova cartella
+smartFolder.listHeader.order	Reihenfolge	Order	Ordre	Ordine
+smartFolder.listHeader.sidebar	Sidebar	Sidebar	Barre latérale	Barra laterale
+smartFolder.listHeader.name	Name	Name	Nom	Nome
+smartFolder.listHeader.conditions	Bedingungen	Conditions	Conditions	Condizioni
+smartFolder.listHeader.matches	Treffer	Matches	Correspondances	Corrispondenze
+smartFolder.showInSidebar	In Sidebar anzeigen	Show in sidebar	Afficher dans la barre latérale	Mostra nella barra laterale
+smartFolder.standardFolder	Standardordner	Default folder	Dossier par défaut	Cartella predefinita
+smartFolder.customFolder	Eigener Ordner	Custom folder	Dossier personnalisé	Cartella personalizzata
+smartFolder.dragToSort	Zum Sortieren ziehen	Drag to sort	Glisser pour trier	Trascina per ordinare
