@@ -1,3 +1,6 @@
 .DS_Store
 .superpowers/
 .worktrees/
+
+build/
+*.log

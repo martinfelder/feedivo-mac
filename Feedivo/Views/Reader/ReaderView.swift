@@ -761,6 +761,19 @@ struct ReaderView: View {
     private func buildPreparedArticle() async {
         let token = preparedArticleRefreshToken
         let input = ReaderArticleInput.make(from: article)
+
+        // Hebel 5: Bereits geparsten Artikel aus dem Cache übernehmen, wenn
+        // sich die inhaltsbestimmenden Felder nicht geändert haben (z. B.
+        // Vor-/Zurück-Navigation). Dann entfällt der Parse komplett.
+        if let cached = ReaderPreparedArticleCache.shared.prepared(for: input) {
+            guard !Task.isCancelled, token == preparedArticleRefreshToken else {
+                return
+            }
+            preparedArticle = cached
+            isBuildingPreparedArticle = false
+            return
+        }
+
         isBuildingPreparedArticle = true
 
         // Parse ausserhalb des MainActors: reine Datenverarbeitung ohne UI-/
@@ -776,6 +789,7 @@ struct ReaderView: View {
             return
         }
 
+        ReaderPreparedArticleCache.shared.store(prepared, for: input)
         preparedArticle = prepared
         isBuildingPreparedArticle = false
     }

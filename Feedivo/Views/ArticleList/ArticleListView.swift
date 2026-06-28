@@ -429,12 +429,18 @@ private struct ArticleListContent: View {
             rememberAutoReadArticleIfNeeded(selectedArticle)
 
             updateNavigationState(in: visibleArticles)
-            viewModel.markReadIfNeeded(
+            // Hebel 4: Nur sichern, wenn tatsächlich ein ungelesener Artikel
+            // als gelesen markiert wurde. Navigieren zwischen bereits gelesenen
+            // Artikeln löst so keine Save-Kaskade (Feed.unreadCount-
+            // Änderung -> @Query-Refetch -> Re-Render) mehr aus.
+            let didMarkRead = viewModel.markReadIfNeeded(
                 selectedArticle,
                 isEnabled: markArticleReadOnSelection,
                 context: modelContext
             )
-            try? modelContext.save()
+            if didMarkRead {
+                try? modelContext.save()
+            }
         }
         .toolbar {
             ToolbarItemGroup {

@@ -161,26 +161,30 @@ final class ArticleViewModel {
     }
 
     @MainActor
-    func markReadIfNeeded(_ article: Article?, isEnabled: Bool) {
+    @discardableResult
+    func markReadIfNeeded(_ article: Article?, isEnabled: Bool) -> Bool {
         guard isEnabled, let article, !article.isRead else {
-            return
+            return false
         }
 
         let wasRead = article.isRead
         article.isRead = true
         updateUnreadCount(for: article, wasRead: wasRead, isRead: article.isRead)
+        return true
     }
 
     @MainActor
-    func markReadIfNeeded(_ article: Article?, isEnabled: Bool, context: ModelContext) {
+    @discardableResult
+    func markReadIfNeeded(_ article: Article?, isEnabled: Bool, context: ModelContext) -> Bool {
         guard isEnabled, let article, !article.isRead else {
-            return
+            return false
         }
 
         let wasRead = article.isRead
         article.isRead = true
         updateUnreadCount(for: article, wasRead: wasRead, isRead: article.isRead, context: context)
         try? context.save()
+        return true
     }
 
     @MainActor

@@ -154,3 +154,64 @@ struct ReaderPreparedArticle: Sendable {
         return trimmedValue.isEmpty ? nil : trimmedValue
     }
 }
+
+/// Cache-Schlüssel aus den inhaltsbestimmenden Feldern. Sind alle Felder
+/// identisch, liefert der Reader dasselbe Ergebnis — dann kann der Parse
+/// übersprungen werden (Hebel 5). Content-Änderungen durch Refresh führen zu
+/// einem anderen Schlüssel -> Cache-Miss -> neu parsen.
+struct ReaderArticleCacheKey: Hashable, Sendable {
+    let summary: String?
+    let content: String?
+    let imageURL: String?
+    let offlineContent: String?
+    let offlineStateRaw: String?
+    let link: String?
+    let feedTitle: String?
+    let publishedAt: Date?
+}
+
+extension ReaderArticleInput {
+    var cacheKey: ReaderArticleCacheKey {
+        ReaderArticleCacheKey(
+            summary: summary,
+            content: content,
+            imageURL: imageURL,
+            offlineContent: offlineContent,
+            offlineStateRaw: offlineStateRaw,
+            link: link,
+            feedTitle: feedTitle,
+            publishedAt: publishedAt
+        )
+    }
+}
+
+/// MainActor-isolierter, grössenbegrenzter Cache für bereits geparste
+/// Reader-Artikel. Hält die letzten ~24 Einträge, damit Vor-/Zurück-
+/// Navigation zwischen kürzlich gelesenen Artikeln ohne erneutes Parsen
+/// sofort anzeigt.
+@MainActor
+final class ReaderPreparedArticleCache {
+    static let shared = ReaderPreparedArticleCache()
+
+    private let limit = 24
+    private var entries: [ReaderArticleCacheKey: ReaderPreparedArticle] = [:]
+    private var insertionOrder: [ReaderArticleCacheKey] = []
+
+    func prepared(for input: ReaderArticleInput) -> ReaderPreparedArticle? {
+        entries[input.cacheKey]
+    }
+
+    func store(_ prepared: ReaderPreparedArticle, for input: ReaderArticleInput) {
+        let key = input.cacheKey
+
+        if entries[key] == nil {
+            if insertionOrder.count >= limit, let oldest = insertionOrder.first {
+                entries.removeValue(forKey: oldest)
+                insertionOrder.removeFirst()
+            }
+            insertionOrder.append(key)
+        }
+
+        entries[key] = prepared
+    }
+}
