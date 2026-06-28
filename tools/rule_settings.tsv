@@ -1,0 +1,11 @@
+key	de	en	fr	it
+rule.settings.description	Regeln werden von oben nach unten angewendet.	Rules are applied top to bottom.	Les règles sont appliquées de haut en bas.	Le regole vengono applicate dall'alto al basso.
+rule.listHeader.order	Reihenfolge	Order	Ordre	Ordine
+rule.listHeader.active	Aktiv	Active	Actif	Attivo
+rule.listHeader.rule	Regel	Rule	Règle	Regola
+rule.listHeader.action	Aktion	Action	Action	Azione
+rule.listHeader.matches	Treffer	Matches	Corrispondenze	Corrispondenze
+rule.action.missingTag	Tag fehlt	Tag missing	Étiquette manquante	Etichetta mancante
+rule.moveUp	Nach oben	Move up	Vers le haut	Su
+rule.moveDown	Nach unten	Move down	Vers le bas	Giù
+common.duplicate	Duplizieren	Duplicate	Dupliquer	Duplica

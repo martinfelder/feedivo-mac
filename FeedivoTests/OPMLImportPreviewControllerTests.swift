@@ -122,6 +122,10 @@ struct OPMLImportPreviewControllerTests {
         #expect(controller.duplicateCount == 1)
         #expect(controller.unreachableCount == 1)
         #expect(controller.selectedImportRows.count == 2)
+        // `folderCount` nutzt den Sentinel „Ohne Ordner" bewusst NICHT lokalisiert —
+        // er ist interner Daten-Schlüssel (Spec Observation 1060), keine Anzeige-
+        // Zeichenkette. Der lokalisierte Anzeige-String für „ohne Ordner" liegt
+        // separat in `Localizable.xcstrings` und wird in der View-Schicht verwendet.
         #expect(controller.folderCount == 1)
     }
 

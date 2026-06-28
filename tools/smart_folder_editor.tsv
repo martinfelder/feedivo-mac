@@ -1,0 +1,17 @@
+key	de	en	fr	it
+smartFolder.editor.create	Intelligenten Ordner erstellen	Create smart folder	Créer un dossier intelligent	Crea cartella smart
+smartFolder.editor.edit	Intelligenten Ordner bearbeiten	Edit smart folder	Modifier le dossier intelligent	Modifica cartella smart
+smartFolder.editor.description	Dynamische Artikelansicht mit globalem UND/ODER-Operator.	Dynamic article view with global AND/OR operator.	Vue d'articles dynamique avec opérateur ET/OU global.	Vista articoli dinamica con operatore E/O globale.
+smartFolder.field.name	Name	Name	Nom	Nome
+smartFolder.appearance	Darstellung	Appearance	Apparence	Aspetto
+smartFolder.appearance.icon	Icon	Icon	Icône	Icona
+smartFolder.matchMode.operator	Operator	Operator	Opérateur	Operatore
+smartFolder.matchMode.all	Erfülle alle Bedingungen	Match all conditions	Toutes les conditions	Tutte le condizioni
+smartFolder.matchMode.any	Erfülle eine Bedingung	Match any condition	Une condition quelconque	Almeno una condizione
+smartFolder.conditions	Bedingungen	Conditions	Conditions	Condizioni
+smartFolder.conditions.empty	Ohne Bedingungen werden alle Artikel angezeigt.	Without conditions, all articles are shown.	Sans condition, tous les articles sont affichés.	Senza condizioni, vengono mostrati tutti gli articoli.
+smartFolder.conditions.add	Bedingung hinzufügen	Add condition	Ajouter une condition	Aggiungi condizione
+smartFolder.operator.and	UND	AND	ET	E
+smartFolder.operator.or	ODER	OR	OU	O
+smartFolder.preview	Live-Vorschau	Live preview	Aperçu en direct	Anteprima live
+smartFolder.save	Speichern	Save	Enregistrer	Salva

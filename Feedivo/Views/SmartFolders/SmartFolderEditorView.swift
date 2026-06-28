@@ -42,11 +42,11 @@ struct SmartFolderEditorView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(folder == nil ? "Intelligenten Ordner erstellen" : "Intelligenten Ordner bearbeiten")
+            Text(folder == nil ? L10n.smartFolderEditorCreate : L10n.smartFolderEditorEdit)
                 .font(.title2)
                 .fontWeight(.semibold)
 
-            Text("Dynamische Artikelansicht mit globalem UND/ODER-Operator.")
+            Text(L10n.smartFolderEditorDescription)
                 .font(.callout)
                 .foregroundStyle(.secondary)
         }
@@ -54,16 +54,27 @@ struct SmartFolderEditorView: View {
 
     private var basics: some View {
         VStack(alignment: .leading, spacing: 10) {
-            TextField("Name", text: $name)
-                .textFieldStyle(.roundedBorder)
+            // Default-Ordner (defaultKey != nil) haben einen festen,
+            // lokalisierten Anzeigenamen — das Name-Feld ist deaktiviert
+            // und zeigt den lokalisierten Display-Namen statt des TextFields.
+            if folder?.defaultKey != nil {
+                Text(folder?.localizedDisplayName ?? "")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.vertical, 6)
+                    .padding(.horizontal, 8)
+                    .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 6))
+            } else {
+                TextField(L10n.smartFolderFieldName, text: $name)
+                    .textFieldStyle(.roundedBorder)
+            }
 
-            Toggle("In Sidebar anzeigen", isOn: $isShownInSidebar)
+            Toggle(L10n.smartFolderShowInSidebar, isOn: $isShownInSidebar)
         }
     }
 
     private var appearanceEditor: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Darstellung")
+            Text(L10n.smartFolderAppearance)
                 .font(.headline)
 
             HStack(spacing: 14) {
@@ -76,7 +87,7 @@ struct SmartFolderEditorView: View {
                         in: RoundedRectangle(cornerRadius: 8, style: .continuous)
                     )
 
-                Picker("Icon", selection: $iconName) {
+                Picker(L10n.smartFolderAppearanceIcon, selection: $iconName) {
                     ForEach(SmartFolderAppearance.iconNames, id: \.self) { iconName in
                         Image(systemName: iconName)
                             .tag(iconName)
@@ -108,10 +119,10 @@ struct SmartFolderEditorView: View {
     }
 
     private var matchModePicker: some View {
-        Picker("Operator", selection: $matchMode) {
-            Text("Erfülle alle Bedingungen")
+        Picker(L10n.smartFolderMatchModeOperator, selection: $matchMode) {
+            Text(L10n.smartFolderMatchModeAll)
                 .tag(RuleMatchMode.all)
-            Text("Erfülle eine Bedingung")
+            Text(L10n.smartFolderMatchModeAny)
                 .tag(RuleMatchMode.any)
         }
         .pickerStyle(.segmented)
@@ -119,21 +130,21 @@ struct SmartFolderEditorView: View {
 
     private var conditionsEditor: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Bedingungen")
+            Text(L10n.smartFolderConditions)
                 .font(.headline)
 
             if conditionDrafts.isEmpty {
                 HStack(spacing: 10) {
                     Image(systemName: "tray.full")
                         .foregroundStyle(Color.accentColor)
-                    Text("Ohne Bedingungen werden alle Artikel angezeigt.")
+                    Text(L10n.smartFolderConditionsEmpty)
                         .font(.callout)
                         .foregroundStyle(.secondary)
                     Spacer()
                     Button {
                         addCondition()
                     } label: {
-                        Label("Bedingung hinzufügen", systemImage: "plus.circle")
+                        Label(L10n.smartFolderConditionsAdd, systemImage: "plus.circle")
                     }
                     .buttonStyle(.borderless)
                 }
@@ -147,7 +158,7 @@ struct SmartFolderEditorView: View {
                         Rectangle()
                             .fill(Color.primary.opacity(0.12))
                             .frame(height: 1)
-                        Text(matchMode == .all ? "UND" : "ODER")
+                        Text(matchMode == .all ? L10n.smartFolderOperatorAnd : L10n.smartFolderOperatorOr)
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(Color.accentColor)
                             .padding(.horizontal, 8)
@@ -244,10 +255,10 @@ struct SmartFolderEditorView: View {
                 .frame(width: 20)
 
             VStack(alignment: .leading, spacing: 3) {
-                Text("Live-Vorschau")
+                Text(L10n.smartFolderPreview)
                     .font(.headline)
 
-                Text("\(matchingCount) Artikel passen aktuell zu diesem intelligenten Ordner.")
+                Text(String.localizedStringWithFormat(String(localized: "smartFolder.preview.matches"), matchingCount))
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }
@@ -275,7 +286,7 @@ struct SmartFolderEditorView: View {
                 dismiss()
             }
 
-            Button("Speichern") {
+            Button(L10n.smartFolderSave) {
                 save()
             }
             .buttonStyle(.borderedProminent)

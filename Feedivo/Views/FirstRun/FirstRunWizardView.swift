@@ -37,7 +37,9 @@ struct FirstRunWizardView: View {
     }
 
     private var selectedCountText: String {
-        "Ausgewählt: \(previewController.selectedImportRows.count) von \(previewController.rows.count)"
+        String.localizedStringWithFormat(String(localized: "firstRun.selectedCount"),
+                                         previewController.selectedImportRows.count,
+                                         previewController.rows.count)
     }
 
     var body: some View {
@@ -108,7 +110,7 @@ struct FirstRunWizardView: View {
                 FirstRunTrafficDot(color: Color(red: 0.16, green: 0.78, blue: 0.25))
             }
 
-            Text("Feedivo einrichten")
+            Text(L10n.firstRunTitlebarTitle)
                 .font(.system(size: 13))
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity)
@@ -189,45 +191,45 @@ struct FirstRunWizardView: View {
     private var stepTitle: String {
         switch step {
         case .welcome:
-            "Willkommen in Feedivo."
+            L10n.firstRunStepWelcomeTitle
         case .addFeed:
-            "Feed hinzufügen."
+            L10n.firstRunStepAddFeedTitle
         case .importOPML:
-            "OPML importieren."
+            L10n.firstRunStepImportOPMLTitle
         case .review:
-            "Auswahl prüfen."
+            L10n.firstRunStepReviewTitle
         case .defaults:
-            "Start-Einstellungen wählen."
+            L10n.firstRunStepDefaultsTitle
         case .finish:
-            "Feedivo ist bereit."
+            L10n.firstRunStepFinishTitle
         }
     }
 
     private var stepLead: String {
         switch step {
         case .welcome:
-            "Wähle, wie du starten möchtest. Du kannst einen einzelnen Feed hinzufügen, viele Feeds aus einer OPML-Datei übernehmen oder Feedivo erst einmal leer öffnen."
+            L10n.firstRunStepWelcomeLead
         case .addFeed:
-            "Gib die Adresse eines RSS- oder Atom-Feeds ein. Feedivo prüft die Quelle, zeigt den Status und lässt dich direkt einen Ordner zuweisen."
+            L10n.firstRunStepAddFeedLead
         case .importOPML:
-            "Lege eine OPML- oder XML-Datei ab oder wähle sie aus. Danach siehst du alle gefundenen Feeds, Ordner, Duplikate und nicht erreichbare Quellen, bevor etwas gespeichert wird."
+            L10n.firstRunStepImportOPMLLead
         case .review:
-            "Kontrolliere die vorbereitete Auswahl. Die vollständige Feed-Liste kannst du bei Bedarf noch einmal öffnen und ändern."
+            L10n.firstRunStepReviewLead
         case .defaults:
-            "Lege die wichtigsten Startwerte fest. Diese Einstellungen kannst du später jederzeit in den Einstellungen ändern."
+            L10n.firstRunStepDefaultsLead
         case .finish:
-            "Prüfe die Zusammenfassung des Imports. Feedivo öffnet sich erst, wenn du aktiv auf Starten klickst."
+            L10n.firstRunStepFinishLead
         }
     }
 
     private var stepItems: [FirstRunStepItem] {
         [
-            FirstRunStepItem(index: 1, step: .welcome, title: "Start", subtitle: "Was möchtest du tun?"),
-            FirstRunStepItem(index: 2, step: .addFeed, title: "Feed", subtitle: "Adresse prüfen"),
-            FirstRunStepItem(index: 3, step: .importOPML, title: "OPML", subtitle: "Datei einlesen"),
-            FirstRunStepItem(index: 4, step: .review, title: "Prüfen", subtitle: "Auswahl bestätigen"),
-            FirstRunStepItem(index: 5, step: .defaults, title: "Einstellungen", subtitle: "Lesen und Refresh"),
-            FirstRunStepItem(index: 6, step: .finish, title: "Fertig", subtitle: "Direkt loslegen")
+            FirstRunStepItem(index: 1, step: .welcome, title: L10n.firstRunRailStartTitle, subtitle: L10n.firstRunRailStartSubtitle),
+            FirstRunStepItem(index: 2, step: .addFeed, title: L10n.firstRunRailFeedTitle, subtitle: L10n.firstRunRailFeedSubtitle),
+            FirstRunStepItem(index: 3, step: .importOPML, title: L10n.firstRunRailOPMLTitle, subtitle: L10n.firstRunRailOPMLSubtitle),
+            FirstRunStepItem(index: 4, step: .review, title: L10n.firstRunRailReviewTitle, subtitle: L10n.firstRunRailReviewSubtitle),
+            FirstRunStepItem(index: 5, step: .defaults, title: L10n.firstRunRailDefaultsTitle, subtitle: L10n.firstRunRailDefaultsSubtitle),
+            FirstRunStepItem(index: 6, step: .finish, title: L10n.firstRunRailFinishTitle, subtitle: L10n.firstRunRailFinishSubtitle)
         ]
     }
 
@@ -235,8 +237,8 @@ struct FirstRunWizardView: View {
         HStack(spacing: 14) {
             FirstRunChoiceCard(
                 iconName: "plus.circle.fill",
-                title: "Feed hinzufügen",
-                subtitle: "Eine RSS-Adresse prüfen, optional einem Ordner zuweisen und importieren."
+                title: L10n.firstRunCardAddFeedTitle,
+                subtitle: L10n.firstRunCardAddFeedSubtitle
             ) {
                 resetPreview()
                 inputStep = .addFeed
@@ -245,8 +247,8 @@ struct FirstRunWizardView: View {
 
             FirstRunChoiceCard(
                 iconName: "tray.and.arrow.down.fill",
-                title: "OPML importieren",
-                subtitle: "Viele Feeds und vorhandene Ordner aus einem anderen RSS-Reader übernehmen."
+                title: L10n.firstRunCardImportOPMLTitle,
+                subtitle: L10n.firstRunCardImportOPMLSubtitle
             ) {
                 resetPreview()
                 inputStep = .importOPML
@@ -255,8 +257,8 @@ struct FirstRunWizardView: View {
 
             FirstRunChoiceCard(
                 iconName: "clock.fill",
-                title: "Später einrichten",
-                subtitle: "Feedivo ohne Feeds öffnen. Du kannst später jederzeit neue Feeds hinzufügen."
+                title: L10n.firstRunCardLaterTitle,
+                subtitle: L10n.firstRunCardLaterSubtitle
             ) {
                 onSkip()
             }
@@ -272,7 +274,7 @@ struct FirstRunWizardView: View {
                     .frame(height: 38)
                     .disabled(previewController.isPreparingPreview)
 
-                Button("Feed prüfen") {
+                Button(L10n.firstRunFeedCheck) {
                     prepareSingleFeedPreview()
                 }
                 .buttonStyle(.borderedProminent)
@@ -318,10 +320,10 @@ struct FirstRunWizardView: View {
 
     private var opmlImportOptions: some View {
         HStack(spacing: 18) {
-            Toggle("Duplikate importieren", isOn: $previewController.allowsDuplicates)
+            Toggle(L10n.opmlImportAllowDuplicates, isOn: $previewController.allowsDuplicates)
                 .toggleStyle(.checkbox)
 
-            Toggle("Nicht erreichbare importieren", isOn: $previewController.allowsUnreachable)
+            Toggle(L10n.opmlImportAllowUnreachable, isOn: $previewController.allowsUnreachable)
                 .toggleStyle(.checkbox)
         }
         .font(.system(size: 12, weight: .medium))
@@ -355,7 +357,7 @@ struct FirstRunWizardView: View {
 
                 Spacer()
 
-                Button("Andere OPML wählen") {
+                Button(L10n.firstRunOtherOPML) {
                     previewController.isFileImporterPresented = true
                 }
                 .disabled(previewController.isPreparingPreview)
@@ -376,9 +378,9 @@ struct FirstRunWizardView: View {
             VStack(spacing: 8) {
                 Image(systemName: "arrow.down.doc")
                     .font(.system(size: 22, weight: .semibold))
-                Text("OPML oder XML hier ablegen")
+                Text(L10n.firstRunDropHere)
                     .font(.system(size: 14, weight: .semibold))
-                Text("oder Datei auswählen. Feedivo zeigt dir danach zuerst eine Vorschau.")
+                Text(L10n.firstRunDropHint)
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
             }
@@ -396,8 +398,8 @@ struct FirstRunWizardView: View {
         VStack(alignment: .leading, spacing: 18) {
             VStack(alignment: .leading, spacing: 14) {
                 FirstRunSettingsLine(
-                    title: "Artikel beim Öffnen als gelesen markieren",
-                    subtitle: "Wenn du einen Artikel auswählst, verschwindet er automatisch aus Ungelesen."
+                    title: L10n.firstRunSettingsMarkReadTitle,
+                    subtitle: L10n.firstRunSettingsMarkReadSubtitle
                 ) {
                     Toggle("", isOn: $markArticleReadOnSelection)
                         .labelsHidden()
@@ -405,8 +407,8 @@ struct FirstRunWizardView: View {
                 }
 
                 FirstRunSettingsLine(
-                    title: "Automatisch aktualisieren",
-                    subtitle: "Feedivo prüft deine Feeds regelmäßig, solange die App laufen darf."
+                    title: L10n.firstRunSettingsAutoRefreshTitle,
+                    subtitle: L10n.firstRunSettingsAutoRefreshSubtitle
                 ) {
                     Toggle("", isOn: $isBackgroundRefreshEnabled)
                         .labelsHidden()
@@ -414,8 +416,8 @@ struct FirstRunWizardView: View {
                 }
 
                 FirstRunSettingsLine(
-                    title: "Refresh-Intervall",
-                    subtitle: "Gibt an, wie oft Feedivo nach neuen Artikeln suchen soll."
+                    title: L10n.firstRunSettingsIntervalTitle,
+                    subtitle: L10n.firstRunSettingsIntervalSubtitle
                 ) {
                     refreshIntervalPicker
                 }
@@ -441,7 +443,7 @@ struct FirstRunWizardView: View {
     }
 
     private var refreshIntervalPicker: some View {
-        Picker("Refresh-Intervall", selection: $backgroundRefreshIntervalMinutes) {
+        Picker(L10n.firstRunSettingsIntervalTitle, selection: $backgroundRefreshIntervalMinutes) {
             ForEach(BackgroundRefreshSettings.allowedIntervalMinutes, id: \.self) { interval in
                 Text(intervalTitle(interval)).tag(interval)
             }
@@ -453,7 +455,7 @@ struct FirstRunWizardView: View {
     private var reviewToolbar: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 12) {
-                Picker("Statusfilter", selection: $previewController.statusFilter) {
+                Picker(L10n.firstRunStatusfilter, selection: $previewController.statusFilter) {
                     ForEach(OPMLImportStatusFilter.allCases) { filter in
                         Text(filterButtonTitle(filter)).tag(filter)
                     }
@@ -472,22 +474,22 @@ struct FirstRunWizardView: View {
             }
 
             HStack(spacing: 8) {
-                Button("Alle auswählen") {
+                Button(L10n.firstRunSelectAll) {
                     previewController.selectAllImportableRows()
                 }
                 .disabled(previewController.rows.isEmpty || previewController.isPreparingPreview)
 
-                Button("Alle abwählen") {
+                Button(L10n.firstRunDeselectAll) {
                     previewController.deselectVisibleRows()
                 }
                 .disabled(previewController.rows.isEmpty || previewController.isPreparingPreview)
 
-                TextField("Neuer Ordner", text: $previewController.newFolderName)
+                TextField(L10n.opmlImportNewFolder, text: $previewController.newFolderName)
                     .textFieldStyle(.roundedBorder)
                     .frame(width: 210)
                     .disabled(previewController.isPreparingPreview)
 
-                Button("Ordner erstellen") {
+                Button(L10n.firstRunCreateFolder) {
                     previewController.createFolder()
                 }
                 .disabled(previewController.newFolderName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || previewController.isPreparingPreview)
@@ -496,7 +498,11 @@ struct FirstRunWizardView: View {
     }
 
     private var previewSummaryText: String {
-        "\(previewController.rows.count) Feeds geprüft · \(previewController.duplicateCount) Duplikate · \(previewController.unreachableCount) nicht erreichbar · \(previewController.selectedImportRows.count) ausgewählt"
+        let rows = previewController.rows.count
+        let dups = previewController.duplicateCount
+        let unreach = previewController.unreachableCount
+        let selected = previewController.selectedImportRows.count
+        return "\(rows) \(L10n.opmlImportSummaryFeedsChecked) · \(dups) \(L10n.opmlImportSummaryDuplicates) · \(unreach) \(L10n.opmlImportSummaryUnreachable) · \(selected) \(L10n.opmlImportSummarySelected)"
     }
 
     private var reviewSummaryCard: some View {
@@ -509,9 +515,9 @@ struct FirstRunWizardView: View {
                     .background(Color.accentColor.opacity(0.11), in: RoundedRectangle(cornerRadius: 9))
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Import-Zusammenfassung")
+                    Text(L10n.firstRunImportSummaryTitle)
                         .font(.system(size: 15, weight: .semibold))
-                    Text("Diese Feeds werden gespeichert, wenn du fortfährst. Über „Auswahl bearbeiten“ kommst du zurück zur Liste.")
+                    Text(L10n.firstRunImportSummaryDescription)
                         .font(.system(size: 12))
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -519,7 +525,7 @@ struct FirstRunWizardView: View {
 
                 Spacer()
 
-                Button("Auswahl bearbeiten") {
+                Button(L10n.firstRunEditSelection) {
                     step = inputStep
                 }
                 .buttonStyle(.link)
@@ -527,10 +533,10 @@ struct FirstRunWizardView: View {
             }
 
             LazyVGrid(columns: summaryMetricColumns, spacing: 10) {
-                reviewSummaryMetric(value: "\(previewController.selectedImportRows.count)", label: "ausgewählte Feeds")
-                reviewSummaryMetric(value: "\(previewController.folderCount)", label: "Ordner")
-                reviewSummaryMetric(value: "\(previewController.duplicateCount)", label: "Duplikate erkannt")
-                reviewSummaryMetric(value: "\(previewController.unreachableCount)", label: "nicht erreichbar")
+                reviewSummaryMetric(value: "\(previewController.selectedImportRows.count)", label: L10n.firstRunMetricSelectedFeeds)
+                reviewSummaryMetric(value: "\(previewController.folderCount)", label: L10n.firstRunMetricFolders)
+                reviewSummaryMetric(value: "\(previewController.duplicateCount)", label: L10n.firstRunMetricDuplicates)
+                reviewSummaryMetric(value: "\(previewController.unreachableCount)", label: L10n.firstRunMetricUnreachable)
             }
         }
         .padding(16)
@@ -582,24 +588,24 @@ struct FirstRunWizardView: View {
                         )
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(completionSummary.hasProblems ? "Import abgeschlossen mit Hinweisen" : "Import abgeschlossen")
+                        Text(completionSummary.hasProblems ? L10n.firstRunFinishProblemsTitle : L10n.firstRunFinishOkTitle)
                             .font(.system(size: 15, weight: .semibold))
-                        Text("Die ausgewählten Feeds wurden gespeichert. Hinweise zeigen dir, was noch Aufmerksamkeit braucht.")
+                        Text(L10n.firstRunFinishDescription)
                             .font(.system(size: 12))
                             .foregroundStyle(.secondary)
                     }
                 }
 
                 LazyVGrid(columns: summaryMetricColumns, spacing: 10) {
-                    reviewSummaryMetric(value: "\(completionSummary.importedFeeds)", label: "Feeds importiert")
-                    reviewSummaryMetric(value: "\(completionSummary.folderCount)", label: "Ordner angelegt/verwendet")
-                    reviewSummaryMetric(value: "\(completionSummary.importedDuplicates)", label: "Duplikate importiert")
-                    reviewSummaryMetric(value: "\(completionSummary.importedUnreachable)", label: "nicht erreichbare importiert")
+                    reviewSummaryMetric(value: "\(completionSummary.importedFeeds)", label: L10n.firstRunMetricFeedsImported)
+                    reviewSummaryMetric(value: "\(completionSummary.folderCount)", label: L10n.firstRunMetricFoldersUsed)
+                    reviewSummaryMetric(value: "\(completionSummary.importedDuplicates)", label: L10n.firstRunMetricDuplicatesImported)
+                    reviewSummaryMetric(value: "\(completionSummary.importedUnreachable)", label: L10n.firstRunMetricUnreachableImported)
                 }
 
                 if !completionSummary.problemMessages.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Hinweise")
+                        Text(L10n.firstRunHintsTitle)
                             .font(.system(size: 13, weight: .semibold))
 
                         ForEach(completionSummary.problemMessages, id: \.self) { message in
@@ -626,8 +632,8 @@ struct FirstRunWizardView: View {
             )
         } else {
             centeredMessage(
-                title: "Noch kein Import gestartet.",
-                subtitle: "Gehe zurück und starte den Import oder öffne Feedivo ohne Feeds.",
+                title: L10n.firstRunNoImportTitle,
+                subtitle: L10n.firstRunNoImportSubtitle,
                 showsProgress: false
             )
         }
@@ -644,13 +650,13 @@ struct FirstRunWizardView: View {
                     LazyVStack(spacing: 0) {
                         if previewController.rows.isEmpty {
                             centeredTableMessage(
-                                title: "Noch keine Feeds geprüft.",
-                                subtitle: "Gib eine Feed-Adresse ein oder wähle eine OPML-Datei aus."
+                                title: L10n.firstRunEmptyPreviewTitle,
+                                subtitle: L10n.firstRunEmptyPreviewSubtitle
                             )
                         } else if previewController.visibleRowIDs.isEmpty {
                             centeredTableMessage(
-                                title: "Keine Feeds für diesen Status.",
-                                subtitle: "Wähle im Filter einen anderen Status, um weitere Feeds zu sehen."
+                                title: L10n.firstRunEmptyFilterTitle,
+                                subtitle: L10n.firstRunEmptyFilterSubtitle
                             )
                         } else {
                             ForEach($previewController.rows) { $row in
@@ -684,7 +690,7 @@ struct FirstRunWizardView: View {
                 .controlSize(.small)
 
             VStack(spacing: 5) {
-                Text("Import-Vorschau wird vorbereitet")
+                Text(L10n.firstRunPreparingTitle)
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(.primary)
                     .multilineTextAlignment(.center)
@@ -703,11 +709,11 @@ struct FirstRunWizardView: View {
         HStack(spacing: 10) {
             Text("")
                 .frame(width: 34, alignment: .leading)
-            Text("Feed")
+            Text(L10n.firstRunTableHeaderFeed)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            Text("Ordner")
+            Text(L10n.firstRunTableHeaderFolder)
                 .frame(width: 140, alignment: .leading)
-            Text("Status")
+            Text(L10n.firstRunTableHeaderStatus)
                 .frame(width: 110, alignment: .leading)
         }
         .font(.system(size: 11, weight: .bold))
@@ -721,8 +727,8 @@ struct FirstRunWizardView: View {
     private var optionToggles: some View {
         VStack(spacing: 10) {
             FirstRunSettingsLine(
-                title: "Feeds nach Import direkt aktualisieren",
-                subtitle: "Lädt direkt Titel, Favicons und erste Artikel. Das dauert etwas länger."
+                title: L10n.firstRunRefreshAfterTitle,
+                subtitle: L10n.firstRunRefreshAfterSubtitle
             ) {
                 Toggle("", isOn: $previewController.refreshAfterImport)
                     .labelsHidden()
@@ -766,9 +772,9 @@ struct FirstRunWizardView: View {
                     VStack(spacing: 8) {
                         Image(systemName: "tray.and.arrow.down")
                             .font(.system(size: 26, weight: .semibold))
-                        Text("OPML-Datei hier ablegen")
+                        Text(L10n.firstRunDropOverlayTitle)
                             .font(.system(size: 15, weight: .semibold))
-                        Text(".opml und .xml werden unterstützt")
+                        Text(L10n.firstRunDropOverlayHint)
                             .font(.system(size: 12))
                             .foregroundStyle(.secondary)
                     }
@@ -786,14 +792,14 @@ struct FirstRunWizardView: View {
 
             Spacer()
 
-            Button("Später") {
+            Button(L10n.firstRunLater) {
                 onSkip()
             }
             .buttonStyle(.plain)
             .foregroundStyle(.secondary)
             .disabled(previewController.isPreparingPreview || feedViewModel.isLoading)
 
-            Button("Zurück") {
+            Button(L10n.firstRunBack) {
                 goBack()
             }
             .disabled(step == .welcome || previewController.isPreparingPreview || feedViewModel.isLoading)
@@ -816,17 +822,15 @@ struct FirstRunWizardView: View {
     private var primaryButtonTitle: String {
         switch step {
         case .welcome:
-            "Weiter"
-        case .addFeed:
-            "Auswahl prüfen"
-        case .importOPML:
-            "Auswahl prüfen"
+            L10n.firstRunPrimaryWelcome
+        case .addFeed, .importOPML:
+            L10n.firstRunPrimaryCheck
         case .review:
-            "Einstellungen wählen"
+            L10n.firstRunPrimarySettings
         case .defaults:
-            previewController.selectedImportRows.isEmpty ? "Fertig anzeigen" : "Import starten"
+            previewController.selectedImportRows.isEmpty ? L10n.firstRunPrimaryFinishShow : L10n.firstRunPrimaryImport
         case .finish:
-            "Starten"
+            L10n.firstRunPrimaryStart
         }
     }
 
@@ -846,23 +850,27 @@ struct FirstRunWizardView: View {
     }
 
     private var importSummaryText: String {
-        "\(previewController.selectedImportRows.count) Feeds werden gespeichert. \(previewController.folderCount) Ordner werden verwendet. \(previewController.refreshAfterImport ? "Feedivo lädt danach direkt die ersten Artikel." : "Die Artikel werden später manuell aktualisiert.")"
+        let rows = previewController.rows.count
+        let dups = previewController.duplicateCount
+        let unreach = previewController.unreachableCount
+        let selected = previewController.selectedImportRows.count
+        return "\(rows) \(L10n.opmlImportSummaryFeedsChecked) · \(dups) \(L10n.opmlImportSummaryDuplicates) · \(unreach) \(L10n.opmlImportSummaryUnreachable) · \(selected) \(L10n.opmlImportSummarySelected)"
     }
 
     private func intervalTitle(_ interval: Int) -> String {
-        "\(interval) Minuten"
+        String.localizedStringWithFormat(String(localized: "firstRun.intervalMinutes"), interval)
     }
 
     private func filterButtonTitle(_ filter: OPMLImportStatusFilter) -> String {
         switch filter {
         case .all:
-            "Alle"
+            L10n.firstRunFilterAll
         case .available:
-            "Neu"
+            L10n.firstRunFilterNew
         case .duplicates:
-            "Duplikate"
+            L10n.firstRunFilterDuplicates
         case .unreachable:
-            "Nicht erreichbar"
+            L10n.firstRunFilterUnreachable
         }
     }
 
@@ -950,7 +958,7 @@ struct FirstRunWizardView: View {
             feeds: [feed],
             existingFeeds: feeds,
             feedViewModel: feedViewModel,
-            sourceText: "Feed-Adresse wird geprüft..."
+            sourceText: L10n.firstRunFeedAddressChecking
         )
     }
 
@@ -1077,11 +1085,11 @@ private struct FirstRunCompletionSummary: Equatable {
         var messages: [String] = []
 
         if skippedDuplicates > 0 {
-            messages.append("\(skippedDuplicates) doppelte Feeds wurden nicht importiert.")
+            messages.append(String.localizedStringWithFormat(L10n.firstRunProblemSkippedDuplicates, skippedDuplicates))
         }
 
         if !refreshAfterImport {
-            messages.append("Feeds wurden importiert, aber noch nicht aktualisiert.")
+            messages.append(L10n.firstRunProblemNotRefreshed)
         }
 
         if let refreshProblemMessage,

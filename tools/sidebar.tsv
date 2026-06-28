@@ -1,0 +1,11 @@
+key	de	en	fr	it
+sidebar.smartFolders.section	Intelligente Ordner	Smart folders	Dossiers intelligents	Cartelle smart
+sidebar.smartFolders.empty	Keine intelligenten Ordner	No smart folders	Aucun dossier intelligent	Nessuna cartella smart
+sidebar.smartFolder.create	Intelligenten Ordner erstellen	Create smart folder	Créer un dossier intelligent	Crea cartella smart
+sidebar.smartFolder.delete	Intelligenten Ordner löschen	Delete smart folder	Supprimer le dossier intelligent	Elimina cartella smart
+sidebar.smartFolder.duplicate	Duplizieren	Duplicate	Dupliquer	Duplica
+sidebar.feedPreview.empty	Dieser Feed liefert aktuell keine Artikel für die Vorschau.	This feed currently provides no preview articles.	Ce flux ne fournit actuellement aucun article d'aperçu.	Questo feed non fornisce articoli di anteprima.
+sidebar.feedPreview.recent	Letzte Artikel	Recent articles	Articles récents	Articoli recenti
+sidebar.subscribe	Abonnieren	Subscribe	S'abonner	Iscriviti
+common.delete	Löschen	Delete	Supprimer	Elimina
+common.duplicate	Duplizieren	Duplicate	Dupliquer	Duplica

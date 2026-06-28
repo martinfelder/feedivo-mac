@@ -30,14 +30,14 @@ final class SmartFolderViewModel {
     }
 
     func restoreDefaultFolders(existingFolders: [SmartFolder], context: ModelContext) {
-        let existingNames = Set(existingFolders.map(\.name))
+        let existingDefaultKeys = Set(existingFolders.compactMap(\.defaultKey))
         var folders = Self.sortedFolders(existingFolders)
         // `defaultFolders` erzeugt 8 @Model-Instanzen pro Zugriff — einmal
         // erfassen und an `foldersSortedWithDefaultsFirst` weiterreichen statt
         // es dort erneut zu konstruieren.
         let defaults = Self.defaultFolders
 
-        for defaultFolder in defaults where !existingNames.contains(defaultFolder.name) {
+        for defaultFolder in defaults where !existingDefaultKeys.contains(defaultFolder.defaultKey ?? "") {
             defaultFolder.sortOrder = folders.count
             context.insert(defaultFolder)
             folders.append(defaultFolder)
@@ -269,6 +269,7 @@ final class SmartFolderViewModel {
                 isDefault: true,
                 iconName: "tray.full",
                 colorHex: "#3B82F6",
+                defaultKey: "all",
                 conditions: []
             ),
             SmartFolder(
@@ -277,6 +278,7 @@ final class SmartFolderViewModel {
                 isDefault: true,
                 iconName: "circle.fill",
                 colorHex: "#14B8A6",
+                defaultKey: "unread",
                 conditions: [
                     SmartFolderCondition(field: .status, conditionOperator: .is, value: SmartFolderStatusValue.unread.rawValue)
                 ]
@@ -287,6 +289,7 @@ final class SmartFolderViewModel {
                 isDefault: true,
                 iconName: "star.fill",
                 colorHex: "#F59E0B",
+                defaultKey: "starred",
                 conditions: [
                     SmartFolderCondition(field: .status, conditionOperator: .is, value: SmartFolderStatusValue.starred.rawValue)
                 ]
@@ -297,6 +300,7 @@ final class SmartFolderViewModel {
                 isDefault: true,
                 iconName: "calendar",
                 colorHex: "#22C55E",
+                defaultKey: "today",
                 conditions: [
                     SmartFolderCondition(field: .date, conditionOperator: .is, value: SmartFolderDateValue.today.rawValue)
                 ]
@@ -307,6 +311,7 @@ final class SmartFolderViewModel {
                 isDefault: true,
                 iconName: "eye.slash",
                 colorHex: "#6B7280",
+                defaultKey: "hidden",
                 conditions: [
                     SmartFolderCondition(field: .status, conditionOperator: .is, value: SmartFolderStatusValue.hidden.rawValue)
                 ]
@@ -317,6 +322,7 @@ final class SmartFolderViewModel {
                 isDefault: true,
                 iconName: "archivebox",
                 colorHex: "#8B5CF6",
+                defaultKey: "archived",
                 conditions: [
                     SmartFolderCondition(field: .status, conditionOperator: .is, value: SmartFolderStatusValue.archived.rawValue)
                 ]
@@ -327,6 +333,7 @@ final class SmartFolderViewModel {
                 isDefault: true,
                 iconName: "calendar",
                 colorHex: "#22C55E",
+                defaultKey: "thisWeek",
                 conditions: [
                     SmartFolderCondition(field: .date, conditionOperator: .is, value: SmartFolderDateValue.thisWeek.rawValue)
                 ]
@@ -337,6 +344,7 @@ final class SmartFolderViewModel {
                 isDefault: true,
                 iconName: "bookmark",
                 colorHex: "#F97316",
+                defaultKey: "saved",
                 conditions: [
                     SmartFolderCondition(field: .status, conditionOperator: .is, value: SmartFolderStatusValue.starred.rawValue),
                     SmartFolderCondition(field: .status, conditionOperator: .is, value: SmartFolderStatusValue.archived.rawValue)
@@ -351,15 +359,18 @@ final class SmartFolderViewModel {
     ) -> [SmartFolder] {
         let defaultOrder = Dictionary(
             uniqueKeysWithValues: defaults.enumerated().map { index, folder in
-                (folder.name, index)
+                (folder.defaultKey ?? folder.name, index)
             }
         )
         let defaultFolders = folders
-            .filter { defaultOrder[$0.name] != nil }
+            .filter { (defaultOrder[$0.defaultKey ?? ""] ?? defaultOrder[$0.name]) != nil }
             .sorted { firstFolder, secondFolder in
-                (defaultOrder[firstFolder.name] ?? Int.max) < (defaultOrder[secondFolder.name] ?? Int.max)
+                (defaultOrder[firstFolder.defaultKey ?? ""] ?? defaultOrder[firstFolder.name] ?? Int.max)
+                < (defaultOrder[secondFolder.defaultKey ?? ""] ?? defaultOrder[secondFolder.name] ?? Int.max)
             }
-        let customFolders = Self.sortedFolders(folders.filter { defaultOrder[$0.name] == nil })
+        let customFolders = Self.sortedFolders(folders.filter {
+            (defaultOrder[$0.defaultKey ?? ""] ?? defaultOrder[$0.name]) == nil
+        })
 
         return defaultFolders + customFolders
     }

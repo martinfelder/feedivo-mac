@@ -107,7 +107,7 @@ struct SidebarView: View {
             SmartFolderEditorView(folder: smartFolder, existingFolders: smartFolders)
         }
         .confirmationDialog(
-            "Intelligenten Ordner löschen",
+            L10n.sidebarSmartFolderDelete,
             isPresented: Binding(
                 get: { smartFolderPendingDeletion != nil },
                 set: { isPresented in
@@ -118,7 +118,7 @@ struct SidebarView: View {
             ),
             presenting: smartFolderPendingDeletion
         ) { smartFolder in
-            Button("Löschen", role: .destructive) {
+            Button(L10n.commonDelete, role: .destructive) {
                 smartFolderViewModel.deleteFolder(smartFolder, context: modelContext)
                 if selection == .smartFolder(smartFolder.persistentModelID) {
                     selection = defaultSmartFolderSelection(excluding: smartFolder)
@@ -235,10 +235,10 @@ struct SidebarView: View {
 
     private func smartFoldersSection(badgeCounts: SidebarBadgeCounts) -> some View {
         CollapsibleSidebarSection(
-            title: "Intelligente Ordner",
+            title: L10n.sidebarSmartFoldersSection,
             isCollapsed: $isSmartFoldersCollapsed,
             actionSystemImage: "plus",
-            actionHelp: "Intelligenten Ordner erstellen"
+            actionHelp: String(localized: "sidebar.smartFolder.create")
         ) {
             isCreatingSmartFolder = true
         } content: {
@@ -246,7 +246,7 @@ struct SidebarView: View {
                 .filter(\.isShownInSidebar)
 
             if visibleSmartFolders.isEmpty {
-                Text("Keine intelligenten Ordner")
+                Text(L10n.sidebarSmartFoldersEmpty)
                     .font(interfaceTextSize.font(size: 13))
                     .foregroundStyle(SidebarStyle.secondaryText)
                     .padding(.horizontal, 10)
@@ -285,7 +285,7 @@ struct SidebarView: View {
                                 context: modelContext
                             )
                         } label: {
-                            Label("Duplizieren", systemImage: "plus.square.on.square")
+                            Label(L10n.commonDuplicate, systemImage: "plus.square.on.square")
                         }
 
                         Divider()
@@ -490,7 +490,7 @@ private struct SmartFolderSidebarRow: View {
                 .foregroundStyle(SmartFolderFormatter.color(for: smartFolder).opacity(SidebarStyle.iconOpacity))
                 .frame(width: interfaceTextSize.scaled(20))
 
-            Text(smartFolder.name)
+            Text(smartFolder.localizedDisplayName)
                 .font(interfaceTextSize.font(size: 13, weight: .semibold))
                 .lineLimit(1)
 
@@ -862,12 +862,12 @@ struct AddFeedSheet: View {
             }
 
             if result.previewArticles.isEmpty {
-                Text("Dieser Feed liefert aktuell keine Artikel für die Vorschau.")
+                Text(L10n.sidebarFeedPreviewEmpty)
                     .font(.callout)
                     .foregroundStyle(.secondary)
             } else {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Letzte Artikel")
+                    Text(L10n.sidebarFeedPreviewRecent)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.secondary)
 
@@ -931,7 +931,7 @@ struct AddFeedSheet: View {
     }
 
     private var primaryButtonTitle: LocalizedStringKey {
-        selectedFeedURL == nil ? L10n.feedDiscoverySearchButton : "Abonnieren"
+        selectedFeedURL == nil ? L10n.feedDiscoverySearchButton : L10n.sidebarSubscribe
     }
 
     private func performPrimaryAction() async {

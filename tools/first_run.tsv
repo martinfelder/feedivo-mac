@@ -1,0 +1,90 @@
+key	de	en	fr	it
+firstRun.titlebar.title	Feedivo einrichten	Set up Feedivo	Configurer Feedivo	Configura Feedivo
+firstRun.step.welcome.title	Willkommen in Feedivo.	Welcome to Feedivo.	Bienvenue dans Feedivo.	Benvenuto in Feedivo.
+firstRun.step.addFeed.title	Feed hinzufügen.	Add a feed.	Ajouter un flux.	Aggiungi un feed.
+firstRun.step.importOPML.title	OPML importieren.	Import OPML.	Importer OPML.	Importa OPML.
+firstRun.step.review.title	Auswahl prüfen.	Review selection.	Vérifier la sélection.	Verifica la selezione.
+firstRun.step.defaults.title	Start-Einstellungen wählen.	Choose start settings.	Choisir les réglages de départ.	Scegli le impostazioni iniziali.
+firstRun.step.finish.title	Feedivo ist bereit.	Feedivo is ready.	Feedivo est prêt.	Feedivo è pronto.
+firstRun.step.welcome.lead	Wähle, wie du starten möchtest. Du kannst einen einzelnen Feed hinzufügen, viele Feeds aus einer OPML-Datei übernehmen oder Feedivo erst einmal leer öffnen.	Choose how to start. Add a single feed, import many feeds from an OPML file, or open Feedivo empty for now.	Choisissez comment démarrer. Ajoutez un flux, importez plusieurs flux depuis un fichier OPML, ou ouvrez Feedivo vide pour l'instant.	Scegli come iniziare. Aggiungi un feed, importa molti feed da un file OPML, oppure apri Feedivo vuoto per ora.
+firstRun.step.addFeed.lead	Gib die Adresse eines RSS- oder Atom-Feeds ein. Feedivo prüft die Quelle, zeigt den Status und lässt dich direkt einen Ordner zuweisen.	Enter the address of an RSS or Atom feed. Feedivo checks the source, shows the status, and lets you assign a folder directly.	Saisissez l'adresse d'un flux RSS ou Atom. Feedivo vérifie la source, affiche le statut et vous permet d'attribuer un dossier directement.	Inserisci l'indirizzo di un feed RSS o Atom. Feedivo verifica la fonte, mostra lo stato e ti permette di assegnare una cartella direttamente.
+firstRun.step.importOPML.lead	Lege eine OPML- oder XML-Datei ab oder wähle sie aus. Danach siehst du alle gefundenen Feeds, Ordner, Duplikate und nicht erreichbare Quellen, bevor etwas gespeichert wird.	Drop or select an OPML or XML file. You'll see all discovered feeds, folders, duplicates, and unreachable sources before anything is saved.	Déposez ou sélectionnez un fichier OPML ou XML. Vous verrez tous les flux trouvés, dossiers, doublons et sources inaccessibles avant tout enregistrement.	Trascina o seleziona un file OPML o XML. Vedrai tutti i feed trovati, le cartelle, i duplicati e le fonti non raggiungibili prima di salvare.
+firstRun.step.review.lead	Kontrolliere die vorbereitete Auswahl. Die vollständige Feed-Liste kannst du bei Bedarf noch einmal öffnen und ändern.	Review the prepared selection. You can reopen and change the full feed list if needed.	Vérifiez la sélection préparée. Vous pouvez rouvrir et modifier la liste complète des flux si nécessaire.	Controlla la selezione preparata. Puoi riaprire e modificare la lista completa dei feed se necessario.
+firstRun.step.defaults.lead	Lege die wichtigsten Startwerte fest. Diese Einstellungen kannst du später jederzeit in den Einstellungen ändern.	Set the most important start values. You can change these settings later anytime in Preferences.	Définissez les valeurs de départ les plus importantes. Vous pourrez modifier ces réglages plus tard dans les Préférences.	Imposta i valori iniziali più importanti. Potrai modificare queste impostazioni in seguito nelle Preferenze.
+firstRun.step.finish.lead	Prüfe die Zusammenfassung des Imports. Feedivo öffnet sich erst, wenn du aktiv auf Starten klickst.	Review the import summary. Feedivo only opens once you click Start.	Vérifiez le résumé de l'import. Feedivo ne s'ouvre qu'une fois que vous cliquez sur Démarrer.	Verifica il riepilogo dell'import. Feedivo si apre solo quando clicchi Avvia.
+firstRun.rail.start.title	Start	Start	Démarrer	Avvia
+firstRun.rail.start.subtitle	Was möchtest du tun?	What do you want to do?	Que voulez-vous faire ?	Cosa vuoi fare?
+firstRun.rail.feed.title	Feed	Feed	Flux	Feed
+firstRun.rail.feed.subtitle	Adresse prüfen	Check address	Vérifier l'adresse	Verifica indirizzo
+firstRun.rail.opml.title	OPML	OPML	OPML	OPML
+firstRun.rail.opml.subtitle	Datei einlesen	Read file	Lire le fichier	Leggi file
+firstRun.rail.review.title	Prüfen	Review	Vérifier	Verifica
+firstRun.rail.review.subtitle	Auswahl bestätigen	Confirm selection	Confirmer la sélection	Conferma selezione
+firstRun.rail.defaults.title	Einstellungen	Settings	Réglages	Impostazioni
+firstRun.rail.defaults.subtitle	Lesen und Refresh	Read and refresh	Lecture et actualisation	Lettura e aggiornamento
+firstRun.rail.finish.title	Fertig	Done	Terminé	Fatto
+firstRun.rail.finish.subtitle	Direkt loslegen	Get started right away	Commencer directement	Inizia subito
+firstRun.card.addFeed.title	Feed hinzufügen	Add a feed	Ajouter un flux	Aggiungi un feed
+firstRun.card.addFeed.subtitle	Eine RSS-Adresse prüfen, optional einem Ordner zuweisen und importieren.	Check an RSS address, optionally assign a folder, and import.	Vérifier une adresse RSS, attribuer optionnellement un dossier, et importer.	Verifica un indirizzo RSS, assegna facoltativamente una cartella e importa.
+firstRun.card.importOPML.title	OPML importieren	Import OPML	Importer OPML	Importa OPML
+firstRun.card.importOPML.subtitle	Viele Feeds und vorhandene Ordner aus einem anderen RSS-Reader übernehmen.	Bring many feeds and existing folders from another RSS reader.	Reprendre plusieurs flux et dossiers existants d'un autre lecteur RSS.	Porta molti feed e cartelle esistenti da un altro lettore RSS.
+firstRun.card.later.title	Später einrichten	Set up later	Configurer plus tard	Configura più tardi
+firstRun.card.later.subtitle	Feedivo ohne Feeds öffnen. Du kannst später jederzeit neue Feeds hinzufügen.	Open Feedivo without feeds. You can add new feeds anytime later.	Ouvrir Feedivo sans flux. Vous pourrez ajouter des flux plus tard.	Apri Feedivo senza feed. Puoi aggiungere nuovi feed in qualsiasi momento.
+firstRun.feedCheck	Feed prüfen	Check feed	Vérifier le flux	Verifica feed
+firstRun.otherOPML	Andere OPML wählen	Choose other OPML	Choisir un autre OPML	Scegli altro OPML
+firstRun.dropHere	OPML oder XML hier ablegen	Drop OPML or XML here	Déposer OPML ou XML ici	Trascina qui OPML o XML
+firstRun.dropHint	oder Datei auswählen. Feedivo zeigt dir danach zuerst eine Vorschau.	or select a file. Feedivo shows a preview first.	ou sélectionner un fichier. Feedivo affiche d'abord un aperçu.	o seleziona un file. Feedivo mostra prima un'anteprima.
+firstRun.dropOverlay.title	OPML-Datei hier ablegen	Drop OPML file here	Déposer le fichier OPML ici	Trascina qui il file OPML
+firstRun.dropOverlay.hint	.opml und .xml werden unterstützt	.opml and .xml are supported	.opml et .xml sont pris en charge	.opml e .xml sono supportati
+firstRun.settings.markRead.title	Artikel beim Öffnen als gelesen markieren	Mark articles read when opened	Marquer les articles comme lus à l'ouverture	Segna gli articoli come letti all'apertura
+firstRun.settings.markRead.subtitle	Wenn du einen Artikel auswählst, verschwindet er automatisch aus Ungelesen.	When you select an article, it automatically leaves Unread.	Quando selezioni un articolo, lascia automatiquement Non lu.	Quando selezioni un articolo, lascia automaticamente Non letti.
+firstRun.settings.autoRefresh.title	Automatisch aktualisieren	Refresh automatically	Actualiser automatiquement	Aggiorna automaticamente
+firstRun.settings.autoRefresh.subtitle	Feedivo prüft deine Feeds regelmäßig, solange die App laufen darf.	Feedivo checks your feeds regularly while the app may run.	Feedivo vérifie régulièrement vos flux tant que l'app peut tourner.	Feedivo controlla regolarmente i feed finché l'app può girare.
+firstRun.settings.interval.title	Refresh-Intervall	Refresh interval	Intervalle d'actualisation	Intervallo di aggiornamento
+firstRun.settings.interval.subtitle	Gibt an, wie oft Feedivo nach neuen Artikeln suchen soll.	How often Feedivo should look for new articles.	À quelle fréquence Feedivo doit chercher de nouveaux articles.	Quanto spesso Feedivo deve cercare nuovi articoli.
+firstRun.refreshAfter.title	Feeds nach Import direkt aktualisieren	Refresh feeds right after import	Actualiser les flux juste après l'import	Aggiorna i feed subito dopo l'import
+firstRun.refreshAfter.subtitle	Lädt direkt Titel, Favicons und erste Artikel. Das dauert etwas länger.	Loads titles, favicons, and first articles directly. Takes a bit longer.	Charge titres, favicons et premiers articles directement. Prend un peu plus de temps.	Carica titoli, favicon e primi articoli direttamente. Richiede un po' più di tempo.
+firstRun.statusfilter	Statusfilter	Status filter	Filtre de statut	Filtro di stato
+firstRun.selectAll	Alle auswählen	Select all	Tout sélectionner	Seleziona tutti
+firstRun.deselectAll	Alle abwählen	Deselect all	Tout désélectionner	Deseleziona tutti
+firstRun.createFolder	Ordner erstellen	Create folder	Créer le dossier	Crea cartella
+firstRun.importSummary.title	Import-Zusammenfassung	Import summary	Résumé de l'import	Riepilogo import
+firstRun.importSummary.description	Diese Feeds werden gespeichert, wenn du fortfährst. Über „Auswahl bearbeiten" kommst du zurück zur Liste.	These feeds are saved when you continue. Use “Edit selection” to return to the list.	Ces flux sont enregistrés si vous continuez. « Modifier la sélection » revient à la liste.	Questi feed vengono salvati quando prosegui. « Modifica selezione » torna alla lista.
+firstRun.editSelection	Auswahl bearbeiten	Edit selection	Modifier la sélection	Modifica selezione
+firstRun.metric.selectedFeeds	ausgewählte Feeds	selected feeds	flux sélectionnés	feed selezionati
+firstRun.metric.folders	Ordner	Folders	Dossiers	Cartelle
+firstRun.metric.duplicates	Duplikate erkannt	Duplicates detected	Doublons détectés	Duplicati rilevati
+firstRun.metric.unreachable	nicht erreichbar	unreachable	inaccessibles	non raggiungibili
+firstRun.finish.problems.title	Import abgeschlossen mit Hinweisen	Import complete with notes	Import terminé avec des remarques	Import completato con note
+firstRun.finish.ok.title	Import abgeschlossen	Import complete	Import terminé	Import completato
+firstRun.finish.description	Die ausgewählten Feeds wurden gespeichert. Hinweise zeigen dir, was noch Aufmerksamkeit braucht.	The selected feeds have been saved. Notes show what still needs attention.	Les flux sélectionnés ont été enregistrés. Les remarques indiquent ce qui requiert attention.	I feed selezionati sono stati salvati. Le note indicano cosa richiede attenzione.
+firstRun.metric.feedsImported	Feeds importiert	Feeds imported	Flux importés	Feed importati
+firstRun.metric.foldersUsed	Ordner angelegt/verwendet	Folders created/used	Dossiers créés/utilisés	Cartelle create/usate
+firstRun.metric.duplicatesImported	Duplikate importiert	Duplicates imported	Doublons importés	Duplicati importati
+firstRun.metric.unreachableImported	nicht erreichbare importiert	Unreachable imported	Inaccessibles importés	Non raggiungibili importati
+firstRun.hints.title	Hinweise	Notes	Remarques	Note
+firstRun.noImport.title	Noch kein Import gestartet.	No import started yet.	Aucun import démarré.	Nessun import avviato.
+firstRun.noImport.subtitle	Gehe zurück und starte den Import oder öffne Feedivo ohne Feeds.	Go back and start the import or open Feedivo without feeds.	Revenez en arrière et lancez l'import ou ouvrez Feedivo sans flux.	Torna indietro e avvia l'import oppure apri Feedivo senza feed.
+firstRun.tableHeader.feed	Feed	Feed	Flux	Feed
+firstRun.tableHeader.folder	Ordner	Folder	Dossier	Cartella
+firstRun.tableHeader.status	Status	Status	Statut	Stato
+firstRun.emptyPreview.title	Noch keine Feeds geprüft.	No feeds checked yet.	Aucun flux vérifié.	Nessun feed verificato.
+firstRun.emptyPreview.subtitle	Gib eine Feed-Adresse ein oder wähle eine OPML-Datei aus.	Enter a feed address or select an OPML file.	Saisissez une adresse de flux ou sélectionnez un fichier OPML.	Inserisci un indirizzo feed o seleziona un file OPML.
+firstRun.emptyFilter.title	Keine Feeds für diesen Status.	No feeds for this status.	Aucun flux pour ce statut.	Nessun feed per questo stato.
+firstRun.emptyFilter.subtitle	Wähle im Filter einen anderen Status, um weitere Feeds zu sehen.	Choose another status in the filter to see more feeds.	Choisissez un autre statut dans le filtre pour voir plus de flux.	Scegli un altro stato nel filtro per vedere più feed.
+firstRun.preparing.title	Import-Vorschau wird vorbereitet	Preparing import preview	Préparation de l'aperçu d'import	Preparazione anteprima import
+firstRun.later	Später	Later	Plus tard	Più tardi
+firstRun.back	Zurück	Back	Retour	Indietro
+firstRun.primary.welcome	Weiter	Next	Continuer	Avanti
+firstRun.primary.check	Auswahl prüfen	Check selection	Vérifier la sélection	Verifica selezione
+firstRun.primary.settings	Einstellungen wählen	Choose settings	Choisir les réglages	Scegli impostazioni
+firstRun.primary.finishShow	Fertig anzeigen	Show summary	Afficher le résumé	Mostra riepilogo
+firstRun.primary.import	Import starten	Start import	Lancer l'import	Avvia import
+firstRun.primary.start	Starten	Start	Démarrer	Avvia
+firstRun.feedAddress.checking	Feed-Adresse wird geprüft...	Checking feed address...	Vérification de l'adresse du flux...	Verifica indirizzo feed...
+firstRun.filter.all	Alle	All	Tous	Tutti
+firstRun.filter.new	Neu	New	Nouveau	Nuovo
+firstRun.filter.duplicates	Duplikate	Duplicates	Doublons	Duplicati
+firstRun.filter.unreachable	Nicht erreichbar	Unreachable	Inaccessibles	Non raggiungibili
+firstRun.problem.skippedDuplicates	%lld doppelte Feeds wurden nicht importiert.	%lld duplicate feeds were not imported.	%lld flux en double n'ont pas été importés.	%lld feed duplicati non importati.
+firstRun.problem.notRefreshed	Feeds wurden importiert, aber noch nicht aktualisiert.	Feeds were imported but not yet refreshed.	Les flux ont été importés mais pas encore actualisés.	I feed sono stati importati ma non ancora aggiornati.

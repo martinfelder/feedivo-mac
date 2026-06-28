@@ -1,0 +1,27 @@
+key	de	en	fr	it
+opml.import.filter.all	Alle Stati	All statuses	Tous les statuts	Tutti gli stati
+opml.import.filter.available	Neue Feeds	New feeds	Nouveaux flux	Nuovi feed
+opml.import.filter.duplicates	Duplikate	Duplicates	Doublons	Duplicati
+opml.import.filter.unreachable	Nicht erreichbar	Unreachable	Inaccessibles	Non raggiungibili
+opml.import.sheet.sourceDescription	Wähle eine .opml- oder .xml-Datei, danach erscheint hier die Import-Vorschau.	Choose a .opml or .xml file, then the import preview appears here.	Choisissez un fichier .opml ou .xml, puis l'aperçu d'import apparaît ici.	Scegli un file .opml o .xml, poi l'anteprima di import apparirà qui.
+opml.import.sheet.progressEmpty	Noch keine Datei ausgewählt.	No file selected yet.	Aucun fichier sélectionné.	Nessun file selezionato.
+opml.import.sheet.noFileName	Keine OPML-Datei ausgewählt	No OPML file selected	Aucun fichier OPML sélectionné	Nessun file OPML selezionato
+opml.import.firstRun.sourceDescription	Wähle aus, wie du deine ersten Feeds hinzufügen möchtest.	Choose how to add your first feeds.	Choisissez comment ajouter vos premiers flux.	Scegli come aggiungere i tuoi primi feed.
+opml.import.firstRun.progressEmpty	Noch keine Feeds geprüft.	No feeds checked yet.	Aucun flux vérifié.	Nessun feed verificato.
+opml.import.progress.readingFile	Datei wird gelesen...	Reading file...	Lecture du fichier...	Lettura del file...
+opml.import.progress.preparing	OPML-Datei wird gelesen und vorbereitet.	Reading and preparing OPML file.	Lecture et préparation du fichier OPML.	Lettura e preparazione del file OPML.
+opml.import.progress.feedsRecognized	%lld Feeds erkannt. Feed-Adressen werden geprüft...	%lld feeds found. Checking feed addresses...	%lld flux trouvés. Vérification des adresses...	%lld feed trovati. Verifica degli indirizzi...
+opml.import.progress.checkStart	%lld Feeds erkannt. Prüfung startet...	%lld feeds found. Check starting...	%lld flux trouvés. Vérification en cours...	%lld feed trovati. Verifica in corso...
+opml.import.progress.checkDone	Prüfung abgeschlossen.	Check complete.	Vérification terminée.	Verifica completata.
+opml.import.progress.feedsChecked	%lld Feeds geprüft.	%lld feeds checked.	%lld flux vérifiés.	%lld feed verificati.
+opml.import.progress.recognizedWithFolders	%1$lld Feeds erkannt · %2$lld Ordner · %3$@	%1$lld feeds found · %2$lld folders · %3$@	%1$lld flux trouvés · %2$lld dossiers · %3$@	%1$lld feed trovati · %2$lld cartelle · %3$@
+opml.import.error.unreadable	Die Datei konnte nicht gelesen werden.	The file could not be read.	Le fichier n'a pas pu être lu.	Il file non può essere letto.
+opml.import.error.dropFormat	Bitte eine OPML- oder XML-Datei ablegen.	Please drop an OPML or XML file.	Veuillez déposer un fichier OPML ou XML.	Trascina un file OPML o XML.
+opml.import.summary.feedsChecked	Feeds geprüft	feeds checked	flux vérifiés	feed verificati
+opml.import.summary.duplicates	Duplikate	duplicates	doublons	duplicati
+opml.import.summary.unreachable	nicht erreichbar	unreachable	inaccessibles	non raggiungibili
+opml.import.summary.selected	ausgewählt	selected	sélectionnés	selezionati
+opml.import.newFolder	Neuer Ordner	New folder	Nouveau dossier	Nuova cartella
+opml.import.createFolder	Ordner erstellen	Create folder	Créer le dossier	Crea cartella
+opml.import.selectAll	Alle auswählen	Select all	Tout sélectionner	Seleziona tutti
+opml.import.deselectAll	Alle abwählen	Deselect all	Tout désélectionner	Deseleziona tutti

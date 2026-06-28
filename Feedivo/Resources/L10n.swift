@@ -17,6 +17,20 @@ enum L10n {
     static let sidebarAddFolderTitle = LocalizedStringKey("sidebar.addFolder.title")
     static let sidebarAddFolderNamePlaceholder = LocalizedStringKey("sidebar.addFolder.name.placeholder")
     static let sidebarSmartFiltersSection = LocalizedStringKey("sidebar.smartFilters.section")
+    // Parallele Keys für die Smart-Folder-Sektion. Der alte Key
+    // `sidebar.smartFilters.section` bleibt erhalten, wird aber nach diesem
+    // Task nirgends mehr referenziert. Neue View-Stellen nutzen den
+    // sprachlich konsistenteren Key `sidebar.smartFolders.section`.
+    static let sidebarSmartFoldersSection = LocalizedStringKey("sidebar.smartFolders.section")
+    static let sidebarSmartFoldersEmpty = LocalizedStringKey("sidebar.smartFolders.empty")
+    static let sidebarSmartFolderCreate = LocalizedStringKey("sidebar.smartFolder.create")
+    static let sidebarSmartFolderDelete = LocalizedStringKey("sidebar.smartFolder.delete")
+    static let sidebarSmartFolderDuplicate = LocalizedStringKey("sidebar.smartFolder.duplicate")
+    static let sidebarFeedPreviewEmpty = LocalizedStringKey("sidebar.feedPreview.empty")
+    static let sidebarFeedPreviewRecent = LocalizedStringKey("sidebar.feedPreview.recent")
+    static let sidebarSubscribe = LocalizedStringKey("sidebar.subscribe")
+    static let commonDelete = LocalizedStringKey("common.delete")
+    static let commonDuplicate = LocalizedStringKey("common.duplicate")
     static let sidebarTagsSection = LocalizedStringKey("sidebar.tags.section")
     static let smartFilterAllArticles = LocalizedStringKey("smartFilter.allArticles")
     static let smartFilterUnread = LocalizedStringKey("smartFilter.unread")
@@ -284,6 +298,7 @@ enum L10n {
     static let articleSearchStatusStarred = String(localized: "article.search.status.starred")
     static let articleSearchStatusArchived = String(localized: "article.search.status.archived")
     static let articleSearchNoResultsTitle = String(localized: "article.search.noResults.title")
+    static let articleSearchWindowDescription = LocalizedStringKey("article.search.window.description")
     static let articleCommandsMenu = String(localized: "articleCommands.menu")
     static let articlePreviousCommand = String(localized: "article.previous.command")
     static let articleNextCommand = String(localized: "article.next.command")
@@ -460,6 +475,86 @@ enum L10n {
     static let feedLogImportedFromOPML = String(localized: "feed.log.importedFromOPML")
     static let opmlImportResultTitle = String(localized: "opml.import.result.title")
     static let opmlImportFailedTitle = String(localized: "opml.import.failed.title")
+
+    // MARK: OPML-Import-Preview-Controller (Plain-Strings)
+    // Diese Strings sind Plain-String-Zuweisungen an Controller-Properties
+    // (keine `Text(...)`-Views) und werden von Xcode deshalb nicht auto-
+    // extrahiert. Zugriff hier über `String(localized:)`.
+    // Plural-Keys (feedsRecognized/checkStart/feedsChecked) liegen als
+    // `variations.plural` in der xcstrings; Aufruf via
+    // `String.localizedStringWithFormat(String(localized:), count)`.
+    static let opmlImportFilterAll = String(localized: "opml.import.filter.all")
+    static let opmlImportFilterAvailable = String(localized: "opml.import.filter.available")
+    static let opmlImportFilterDuplicates = String(localized: "opml.import.filter.duplicates")
+    static let opmlImportFilterUnreachable = String(localized: "opml.import.filter.unreachable")
+    static let opmlImportSheetSourceDescription = String(localized: "opml.import.sheet.sourceDescription")
+    static let opmlImportSheetProgressEmpty = String(localized: "opml.import.sheet.progressEmpty")
+    static let opmlImportSheetNoFileName = String(localized: "opml.import.sheet.noFileName")
+    static let opmlImportFirstRunSourceDescription = String(localized: "opml.import.firstRun.sourceDescription")
+    static let opmlImportFirstRunProgressEmpty = String(localized: "opml.import.firstRun.progressEmpty")
+    static let opmlImportProgressReadingFile = String(localized: "opml.import.progress.readingFile")
+    static let opmlImportProgressPreparing = String(localized: "opml.import.progress.preparing")
+    static let opmlImportProgressFeedsRecognized = String(localized: "opml.import.progress.feedsRecognized")
+    static let opmlImportProgressCheckStart = String(localized: "opml.import.progress.checkStart")
+    static let opmlImportProgressCheckDone = String(localized: "opml.import.progress.checkDone")
+    static let opmlImportProgressFeedsChecked = String(localized: "opml.import.progress.feedsChecked")
+    static let opmlImportErrorUnreadable = String(localized: "opml.import.error.unreadable")
+    static let opmlImportErrorDropFormat = String(localized: "opml.import.error.dropFormat")
+    static let opmlImportSummaryFeedsChecked = String(localized: "opml.import.summary.feedsChecked")
+    static let opmlImportSummaryDuplicates = String(localized: "opml.import.summary.duplicates")
+    static let opmlImportSummaryUnreachable = String(localized: "opml.import.summary.unreachable")
+    static let opmlImportSummarySelected = String(localized: "opml.import.summary.selected")
+    static let opmlImportNewFolder = String(localized: "opml.import.newFolder")
+    static let opmlImportCreateFolder = String(localized: "opml.import.createFolder")
+    static let opmlImportSelectAll = String(localized: "opml.import.selectAll")
+    static let opmlImportDeselectAll = String(localized: "opml.import.deselectAll")
+
+    /// Zusammengesetzte Source-Description für die fertige Vorschau-Zeile
+    /// (`%lld Feeds · %lld Ordner · Dateiname`). Eigener Plain-Key vermeidet
+    /// String-Zerlegung via `components(separatedBy:)`.
+    static let opmlImportProgressRecognizedWithFolders = String(localized: "opml.import.progress.recognizedWithFolders")
+
+    // MARK: OPMLImportReview-Cluster (Task 8): Header, Status, Drop-Overlay,
+    // FilePicker, Toolbar, TableHeader, Empty/EmptyFilter, Preparing, Footer
+    // Toggles, Cancel, Selection-Summary, Result-Bausteine.
+    // `opmlImportSelectAll`/`DeselectAll`/`NewFolder`/`CreateFolder` kommen aus
+    // Task 9 (oben). Die drei Plural-Strings `opml.import.status.duplicate`,
+    // `opml.import.status.unreachable`, `opml.import.button.import` werden
+    // inline via `String.localizedStringWithFormat(String(localized:), count)`
+    // aufgerufen und haben bewusst keinen Accessor.
+    static let opmlImportAllowDuplicates = String(localized: "opml.import.allowDuplicates")
+    static let opmlImportAllowUnreachable = String(localized: "opml.import.allowUnreachable")
+    static let opmlImportCancel = String(localized: "opml.import.cancel")
+    static let opmlImportChooseFile = String(localized: "opml.import.chooseFile")
+    static let opmlImportDescription = String(localized: "opml.import.description")
+    static let opmlImportDropOverlayHint = String(localized: "opml.import.dropOverlay.hint")
+    static let opmlImportDropOverlayTitle = String(localized: "opml.import.dropOverlay.title")
+    static let opmlImportEmptyFilterSubtitle = String(localized: "opml.import.emptyFilter.subtitle")
+    static let opmlImportEmptyFilterTitle = String(localized: "opml.import.emptyFilter.title")
+    static let opmlImportEmptySubtitle = String(localized: "opml.import.empty.subtitle")
+    static let opmlImportEmptyTitle = String(localized: "opml.import.empty.title")
+    static let opmlImportPreparing = String(localized: "opml.import.preparing")
+    static let opmlImportRefreshAfter = String(localized: "opml.import.refreshAfter")
+    static let opmlImportRemoveFile = String(localized: "opml.import.removeFile")
+    static let opmlImportResultComplete = String(localized: "opml.import.result.complete")
+    static let opmlImportResultDuplicatesImported = String(localized: "opml.import.result.duplicatesImported")
+    static let opmlImportResultDuplicatesSkipped = String(localized: "opml.import.result.duplicatesSkipped")
+    static let opmlImportResultFoldersUsed = String(localized: "opml.import.result.foldersUsed")
+    static let opmlImportResultRefreshOff = String(localized: "opml.import.result.refreshOff")
+    static let opmlImportResultRefreshOn = String(localized: "opml.import.result.refreshOn")
+    static let opmlImportResultUnreachableImported = String(localized: "opml.import.result.unreachableImported")
+    static let opmlImportResultUnreachableSkipped = String(localized: "opml.import.result.unreachableSkipped")
+    static let opmlImportSelectionAll = String(localized: "opml.import.selection.all")
+    static let opmlImportSelectionVisible = String(localized: "opml.import.selection.visible")
+    static let opmlImportStatusLabel = String(localized: "opml.import.statusLabel")
+    static let opmlImportStatusNoFile = String(localized: "opml.import.status.noFile")
+    static let opmlImportStatusReady = String(localized: "opml.import.status.ready")
+    static let opmlImportTableHeaderFeed = String(localized: "opml.import.tableHeader.feed")
+    static let opmlImportTableHeaderFolder = String(localized: "opml.import.tableHeader.folder")
+    static let opmlImportTableHeaderStatus = String(localized: "opml.import.tableHeader.status")
+    static let opmlImportTableHeaderWebsite = String(localized: "opml.import.tableHeader.website")
+    static let opmlImportTitle = String(localized: "opml.import.title")
+
     static let feedDeleteConfirmButton = String(localized: "feed.delete.confirmButton")
     static let feedDeleteConfirmationTitle = String(localized: "feed.delete.confirmation.title")
     static let settingsFeedsArticleCountHelp = String(localized: "settings.feeds.articleCount.help")
@@ -580,6 +675,11 @@ enum L10n {
         )
     }
 
+    /// Trefferanzahl im Suchfenster (`%lld Treffer` / `%lld matches`) — Plural-Key.
+    static func articleSearchMatchCount(_ count: Int) -> String {
+        String.localizedStringWithFormat(String(localized: "article.search.matchCount"), count)
+    }
+
     static func settingsFeedsDeleteConfirmationMessage(count: Int) -> String {
         String.localizedStringWithFormat(String(localized: "settings.feeds.deleteConfirmation.message"), count)
     }
@@ -628,4 +728,152 @@ enum L10n {
     static let ruleSummaryNoCondition = String(localized: "rule.summary.noCondition")
     static let ruleSummaryAll = String(localized: "rule.summary.all")
     static let ruleSummaryAny = String(localized: "rule.summary.any")
+
+    // SmartFolderSettings-Cluster (Task 4): Titel, Beschreibung, Aktionen,
+    // ListHeader, Standard-/Eigener Ordner, Drag-Help.
+    static let smartFolderSettingsTitle = LocalizedStringKey("smartFolder.settings.title")
+    static let smartFolderSettingsDescription = LocalizedStringKey("smartFolder.settings.description")
+    static let smartFolderRestoreDefaults = LocalizedStringKey("smartFolder.restoreDefaults")
+    static let smartFolderNewFolder = LocalizedStringKey("smartFolder.newFolder")
+    static let smartFolderListHeaderOrder = LocalizedStringKey("smartFolder.listHeader.order")
+    static let smartFolderListHeaderSidebar = LocalizedStringKey("smartFolder.listHeader.sidebar")
+    static let smartFolderListHeaderName = LocalizedStringKey("smartFolder.listHeader.name")
+    static let smartFolderListHeaderConditions = LocalizedStringKey("smartFolder.listHeader.conditions")
+    static let smartFolderListHeaderMatches = LocalizedStringKey("smartFolder.listHeader.matches")
+    static let smartFolderShowInSidebar = LocalizedStringKey("smartFolder.showInSidebar")
+    static let smartFolderStandardFolder = LocalizedStringKey("smartFolder.standardFolder")
+    static let smartFolderCustomFolder = LocalizedStringKey("smartFolder.customFolder")
+    static let smartFolderDragToSort = LocalizedStringKey("smartFolder.dragToSort")
+
+    // SmartFolderEditor-Cluster (Task 5): Editor-Titel, Beschreibung,
+    // Name-Placeholder, Appearance, Match-Mode-Operator, Bedingungen,
+    // UND/ODER, Live-Vorschau, Speichern. `smartFolder.preview.matches`
+    // ist ein Plural-Key (Aufruf via `String.localizedStringWithFormat`).
+    static let smartFolderEditorCreate = LocalizedStringKey("smartFolder.editor.create")
+    static let smartFolderEditorEdit = LocalizedStringKey("smartFolder.editor.edit")
+    static let smartFolderEditorDescription = LocalizedStringKey("smartFolder.editor.description")
+    static let smartFolderFieldName = LocalizedStringKey("smartFolder.field.name")
+    static let smartFolderAppearance = LocalizedStringKey("smartFolder.appearance")
+    static let smartFolderAppearanceIcon = LocalizedStringKey("smartFolder.appearance.icon")
+    static let smartFolderMatchModeOperator = LocalizedStringKey("smartFolder.matchMode.operator")
+    static let smartFolderMatchModeAll = LocalizedStringKey("smartFolder.matchMode.all")
+    static let smartFolderMatchModeAny = LocalizedStringKey("smartFolder.matchMode.any")
+    static let smartFolderConditions = LocalizedStringKey("smartFolder.conditions")
+    static let smartFolderConditionsEmpty = LocalizedStringKey("smartFolder.conditions.empty")
+    static let smartFolderConditionsAdd = LocalizedStringKey("smartFolder.conditions.add")
+    static let smartFolderOperatorAnd = LocalizedStringKey("smartFolder.operator.and")
+    static let smartFolderOperatorOr = LocalizedStringKey("smartFolder.operator.or")
+    static let smartFolderPreview = LocalizedStringKey("smartFolder.preview")
+    static let smartFolderPreviewMatches = LocalizedStringKey("smartFolder.preview.matches")
+    static let smartFolderSave = LocalizedStringKey("smartFolder.save")
+
+    // RuleSettings-Cluster (Task 6): Beschreibung, ListHeader (Reihenfolge,
+    // Aktiv, Regel, Aktion, Treffer), fehlendes Tag, Nach-oben/Nach-unten-Help.
+    // `common.duplicate` für den Duplizieren-Button wird aus Task 3 weiterverwendet.
+    static let ruleSettingsDescription = LocalizedStringKey("rule.settings.description")
+    static let ruleListHeaderOrder = LocalizedStringKey("rule.listHeader.order")
+    static let ruleListHeaderActive = LocalizedStringKey("rule.listHeader.active")
+    static let ruleListHeaderRule = LocalizedStringKey("rule.listHeader.rule")
+    static let ruleListHeaderAction = LocalizedStringKey("rule.listHeader.action")
+    static let ruleListHeaderMatches = LocalizedStringKey("rule.listHeader.matches")
+    static let ruleActionMissingTag = LocalizedStringKey("rule.action.missingTag")
+    static let ruleMoveUp = LocalizedStringKey("rule.moveUp")
+    static let ruleMoveDown = LocalizedStringKey("rule.moveDown")
+
+    // MARK: FirstRun-Cluster (Task 7): Titel, Leads, Rail, Karten, Drop-Zone,
+    // Settings-Lines, Refresh-After, Toolbar, Summary-Metrics, Finish-Card,
+    // Hints, Empty/EmptyFilter, Preparing, Footer, Primary-Button, Filter,
+    // Problem-Meldungen. Alle als Plain-`String(localized:)` angelegt, da sie
+    // teilweise in zusammengesetzten Strings/Kontrollern genutzt werden.
+    // `firstRun.selectedCount`/`intervalMinutes`/`problem.skippedDuplicates`
+    // sind Plural-Keys (Aufruf via `String.localizedStringWithFormat`).
+    static let firstRunBack = String(localized: "firstRun.back")
+    static let firstRunCardAddFeedSubtitle = String(localized: "firstRun.card.addFeed.subtitle")
+    static let firstRunCardAddFeedTitle = String(localized: "firstRun.card.addFeed.title")
+    static let firstRunCardImportOPMLSubtitle = String(localized: "firstRun.card.importOPML.subtitle")
+    static let firstRunCardImportOPMLTitle = String(localized: "firstRun.card.importOPML.title")
+    static let firstRunCardLaterSubtitle = String(localized: "firstRun.card.later.subtitle")
+    static let firstRunCardLaterTitle = String(localized: "firstRun.card.later.title")
+    static let firstRunCreateFolder = String(localized: "firstRun.createFolder")
+    static let firstRunDeselectAll = String(localized: "firstRun.deselectAll")
+    static let firstRunDropHere = String(localized: "firstRun.dropHere")
+    static let firstRunDropHint = String(localized: "firstRun.dropHint")
+    static let firstRunDropOverlayHint = String(localized: "firstRun.dropOverlay.hint")
+    static let firstRunDropOverlayTitle = String(localized: "firstRun.dropOverlay.title")
+    static let firstRunEditSelection = String(localized: "firstRun.editSelection")
+    static let firstRunEmptyFilterSubtitle = String(localized: "firstRun.emptyFilter.subtitle")
+    static let firstRunEmptyFilterTitle = String(localized: "firstRun.emptyFilter.title")
+    static let firstRunEmptyPreviewSubtitle = String(localized: "firstRun.emptyPreview.subtitle")
+    static let firstRunEmptyPreviewTitle = String(localized: "firstRun.emptyPreview.title")
+    static let firstRunFeedAddressChecking = String(localized: "firstRun.feedAddress.checking")
+    static let firstRunFeedCheck = String(localized: "firstRun.feedCheck")
+    static let firstRunFilterAll = String(localized: "firstRun.filter.all")
+    static let firstRunFilterDuplicates = String(localized: "firstRun.filter.duplicates")
+    static let firstRunFilterNew = String(localized: "firstRun.filter.new")
+    static let firstRunFilterUnreachable = String(localized: "firstRun.filter.unreachable")
+    static let firstRunFinishDescription = String(localized: "firstRun.finish.description")
+    static let firstRunFinishOkTitle = String(localized: "firstRun.finish.ok.title")
+    static let firstRunFinishProblemsTitle = String(localized: "firstRun.finish.problems.title")
+    static let firstRunHintsTitle = String(localized: "firstRun.hints.title")
+    static let firstRunImportSummaryDescription = String(localized: "firstRun.importSummary.description")
+    static let firstRunImportSummaryTitle = String(localized: "firstRun.importSummary.title")
+    static let firstRunLater = String(localized: "firstRun.later")
+    static let firstRunMetricDuplicates = String(localized: "firstRun.metric.duplicates")
+    static let firstRunMetricDuplicatesImported = String(localized: "firstRun.metric.duplicatesImported")
+    static let firstRunMetricFolders = String(localized: "firstRun.metric.folders")
+    static let firstRunMetricFoldersUsed = String(localized: "firstRun.metric.foldersUsed")
+    static let firstRunMetricFeedsImported = String(localized: "firstRun.metric.feedsImported")
+    static let firstRunMetricSelectedFeeds = String(localized: "firstRun.metric.selectedFeeds")
+    static let firstRunMetricUnreachable = String(localized: "firstRun.metric.unreachable")
+    static let firstRunMetricUnreachableImported = String(localized: "firstRun.metric.unreachableImported")
+    static let firstRunNoImportSubtitle = String(localized: "firstRun.noImport.subtitle")
+    static let firstRunNoImportTitle = String(localized: "firstRun.noImport.title")
+    static let firstRunOtherOPML = String(localized: "firstRun.otherOPML")
+    static let firstRunPreparingTitle = String(localized: "firstRun.preparing.title")
+    static let firstRunPrimaryCheck = String(localized: "firstRun.primary.check")
+    static let firstRunPrimaryFinishShow = String(localized: "firstRun.primary.finishShow")
+    static let firstRunPrimaryImport = String(localized: "firstRun.primary.import")
+    static let firstRunPrimarySettings = String(localized: "firstRun.primary.settings")
+    static let firstRunPrimaryStart = String(localized: "firstRun.primary.start")
+    static let firstRunPrimaryWelcome = String(localized: "firstRun.primary.welcome")
+    static let firstRunProblemNotRefreshed = String(localized: "firstRun.problem.notRefreshed")
+    static let firstRunProblemSkippedDuplicates = String(localized: "firstRun.problem.skippedDuplicates")
+    static let firstRunRailDefaultsSubtitle = String(localized: "firstRun.rail.defaults.subtitle")
+    static let firstRunRailDefaultsTitle = String(localized: "firstRun.rail.defaults.title")
+    static let firstRunRailFeedSubtitle = String(localized: "firstRun.rail.feed.subtitle")
+    static let firstRunRailFeedTitle = String(localized: "firstRun.rail.feed.title")
+    static let firstRunRailFinishSubtitle = String(localized: "firstRun.rail.finish.subtitle")
+    static let firstRunRailFinishTitle = String(localized: "firstRun.rail.finish.title")
+    static let firstRunRailOPMLSubtitle = String(localized: "firstRun.rail.opml.subtitle")
+    static let firstRunRailOPMLTitle = String(localized: "firstRun.rail.opml.title")
+    static let firstRunRailReviewSubtitle = String(localized: "firstRun.rail.review.subtitle")
+    static let firstRunRailReviewTitle = String(localized: "firstRun.rail.review.title")
+    static let firstRunRailStartSubtitle = String(localized: "firstRun.rail.start.subtitle")
+    static let firstRunRailStartTitle = String(localized: "firstRun.rail.start.title")
+    static let firstRunRefreshAfterSubtitle = String(localized: "firstRun.refreshAfter.subtitle")
+    static let firstRunRefreshAfterTitle = String(localized: "firstRun.refreshAfter.title")
+    static let firstRunSelectAll = String(localized: "firstRun.selectAll")
+    static let firstRunSettingsAutoRefreshSubtitle = String(localized: "firstRun.settings.autoRefresh.subtitle")
+    static let firstRunSettingsAutoRefreshTitle = String(localized: "firstRun.settings.autoRefresh.title")
+    static let firstRunSettingsIntervalSubtitle = String(localized: "firstRun.settings.interval.subtitle")
+    static let firstRunSettingsIntervalTitle = String(localized: "firstRun.settings.interval.title")
+    static let firstRunSettingsMarkReadSubtitle = String(localized: "firstRun.settings.markRead.subtitle")
+    static let firstRunSettingsMarkReadTitle = String(localized: "firstRun.settings.markRead.title")
+    static let firstRunStatusfilter = String(localized: "firstRun.statusfilter")
+    static let firstRunStepAddFeedLead = String(localized: "firstRun.step.addFeed.lead")
+    static let firstRunStepAddFeedTitle = String(localized: "firstRun.step.addFeed.title")
+    static let firstRunStepDefaultsLead = String(localized: "firstRun.step.defaults.lead")
+    static let firstRunStepDefaultsTitle = String(localized: "firstRun.step.defaults.title")
+    static let firstRunStepFinishLead = String(localized: "firstRun.step.finish.lead")
+    static let firstRunStepFinishTitle = String(localized: "firstRun.step.finish.title")
+    static let firstRunStepImportOPMLLead = String(localized: "firstRun.step.importOPML.lead")
+    static let firstRunStepImportOPMLTitle = String(localized: "firstRun.step.importOPML.title")
+    static let firstRunStepReviewLead = String(localized: "firstRun.step.review.lead")
+    static let firstRunStepReviewTitle = String(localized: "firstRun.step.review.title")
+    static let firstRunStepWelcomeLead = String(localized: "firstRun.step.welcome.lead")
+    static let firstRunStepWelcomeTitle = String(localized: "firstRun.step.welcome.title")
+    static let firstRunTableHeaderFeed = String(localized: "firstRun.tableHeader.feed")
+    static let firstRunTableHeaderFolder = String(localized: "firstRun.tableHeader.folder")
+    static let firstRunTableHeaderStatus = String(localized: "firstRun.tableHeader.status")
+    static let firstRunTitlebarTitle = String(localized: "firstRun.titlebar.title")
 }

@@ -71,7 +71,7 @@ struct RuleSettingsView: View {
                 Text(L10n.settingsRulesSection)
                     .font(.headline)
 
-                Text("Regeln werden von oben nach unten angewendet.")
+                Text(L10n.ruleSettingsDescription)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -158,15 +158,15 @@ struct RuleSettingsView: View {
 private struct RuleSettingsListHeader: View {
     var body: some View {
         HStack(spacing: 12) {
-            Text("Reihenfolge")
+            Text(L10n.ruleListHeaderOrder)
                 .frame(width: 78, alignment: .leading)
-            Text("Aktiv")
+            Text(L10n.ruleListHeaderActive)
                 .frame(width: 44, alignment: .leading)
-            Text("Regel")
+            Text(L10n.ruleListHeaderRule)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            Text("Aktion")
+            Text(L10n.ruleListHeaderAction)
                 .frame(width: 150, alignment: .leading)
-            Text("Treffer")
+            Text(L10n.ruleListHeaderMatches)
                 .frame(width: 72, alignment: .trailing)
             Text("")
                 .frame(width: 82)
@@ -246,7 +246,7 @@ private struct RuleSettingsRow: View {
         .onTapGesture(count: 2, perform: edit)
         .contextMenu {
             Button(L10n.ruleEditButton, action: edit)
-            Button("Duplizieren", action: duplicate)
+            Button(L10n.commonDuplicate, action: duplicate)
             Divider()
             Button(L10n.ruleDeleteButton, role: .destructive, action: delete)
         }
@@ -262,13 +262,13 @@ private struct RuleSettingsRow: View {
                     Image(systemName: "chevron.up")
                 }
                 .disabled(isFirst)
-                .help("Nach oben")
+                .help(L10n.ruleMoveUp)
 
                 Button(action: moveDown) {
                     Image(systemName: "chevron.down")
                 }
                 .disabled(isLast)
-                .help("Nach unten")
+                .help(L10n.ruleMoveDown)
             }
             .buttonStyle(.borderless)
         }
@@ -295,7 +295,7 @@ private struct RuleActionPill: View {
                 .padding(.vertical, 4)
                 .background(Color.primary.opacity(0.06), in: Capsule())
             } else {
-                Text("Tag fehlt")
+                Text(L10n.ruleActionMissingTag)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
