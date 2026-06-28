@@ -606,11 +606,20 @@ private struct ArticleListContent: View {
         )
     }
 
-    /// Baut den Cache-Key für makePreparedArticles(). Läuft pro Body-Eval einmal
-    /// als O(n)-Durchlauf für die Counts — deutlich billiger als die O(n log n)-
-    /// Sortierung in prepare(). Liefert nil für Pfade ohne sicheres
-    /// Invalidierungssignal (Suche, "heute"-Filter, kurze Lesezeit-Sortierung);
-    /// diese werden immer frisch berechnet und nicht gecacht.
+    /// Baut den Cache-Key für makePreparedArticles(). Liefert nil für Pfade
+    /// ohne sicheres Invalidierungssignal (Suche, "heute"-Filter, kurze
+    /// Lesezeit-Sortierung); diese werden immer frisch berechnet.
+    ///
+    /// Wichtig: In den Key wird nur die Status-Zählung aufgenommen, die das
+    /// Filterergebnis tatsächlich beeinflusst. Für `.all` hängt das Ergebnis
+    /// ausschließlich von Sortierung + Artikelzahl ab — ein Selektionswechsel
+    /// (Artikel wird als gelesen markiert, unreadCount sinkt) invalisiert den
+    /// Cache dann nicht mehr. Ohne diesen Schutz würde jede Auswahl bei
+    /// `markArticleReadOnSelection` einen Cache-Miss auslösen und die komplette
+    /// Liste im Body synchron neu sortieren — genau in dem Moment, in dem die
+    /// Liste zum neu ausgewählten Artikel scrollt. Das äußerte sich als kurzes
+    /// Flackern, sobald der nächste Artikel unterhalb des sichtbaren Bereichs
+    /// lag.
     private func makePreparedArticlesKey() -> PreparedArticlesCacheKey? {
         if activeSearchQuery.isActive
             || articleFilterOption == .today
@@ -621,10 +630,18 @@ private struct ArticleListContent: View {
         var unreadCount = 0
         var starredCount = 0
         var archivedCount = 0
-        for article in articles {
-            if !article.isRead { unreadCount += 1 }
-            if article.isStarred { starredCount += 1 }
-            if article.isArchived { archivedCount += 1 }
+        switch articleFilterOption {
+        case .all:
+            // Filterergebnis ist unabhängig vom Lese-/Stern-/Archiv-Status.
+            break
+        case .unread:
+            for article in articles where !article.isRead { unreadCount += 1 }
+        case .starred:
+            for article in articles where article.isStarred { starredCount += 1 }
+        case .archived:
+            for article in articles where article.isArchived { archivedCount += 1 }
+        case .today:
+            return nil
         }
 
         return PreparedArticlesCacheKey(
