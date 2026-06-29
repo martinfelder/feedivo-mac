@@ -347,6 +347,10 @@ nicht mehr; `Später` blendet den Wizard nur für die aktuelle Sitzung aus.
 Zeigt unten rechts im Hauptfenster einen dezenten Online-/Offline-Indikator über
 `NWPathMonitor`. Dieser Netzwerkstatus ist bewusst getrennt vom Artikel-Status für
 manuell offline gespeicherte Inhalte.
+Roadmap: Neben diesem Online-/Offline-Indikator soll später ein zweiter
+Refresh-Status erscheinen, wenn `Alle Feeds aktualisieren` läuft. Dieser soll den
+Fortschritt anzeigen und nach Abschluss kurz melden, wie viele Artikel insgesamt
+neu geladen wurden.
 Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 `AppIconBadgeService`, sobald Feed-Zähler oder die Einstellung
 `notifications.appIconBadge.isEnabled` geändert werden.
@@ -536,6 +540,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - `operationProgress` liefert für Sammel-Refresh und OPML-Import einen sichtbaren
   Fortschritt mit Titel, erledigten Feeds, Gesamtzahl und Prozentwert; `ContentView`
   zeigt daraus ein kompaktes Overlay.
+- Roadmap: Der Sammel-Refresh-Fortschritt soll später nicht mehr nur als Overlay,
+  sondern unten rechts neben dem Online-/Offline-Status sichtbar sein und nach
+  Abschluss die Gesamtzahl neu geladener Artikel melden.
 - `deleteFeed(_:context:)` — löscht einen Feed aus SwiftData; Artikel werden über
   die Cascade-Relationship mitgelöscht
 - `renameFeed(_:displayTitle:context:)` — speichert einen benutzerdefinierten
@@ -587,7 +594,8 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   vor der Denormalisierung gespeichert wurden; die Abfrage sucht gezielt nur Artikel
   mit `feedID == nil`.
 - `FeedUnreadCountBackfillService` korrigiert `Feed.unreadCount` für vorhandene Feeds
-  einmalig und setzt danach das UserDefaults-Flag `feedUnreadCountBackfillDone_v1`.
+  einmalig und setzt danach das aktuelle UserDefaults-Flag
+  `feedUnreadCountBackfillDone_v3`.
 - Das UserDefaults-Objekt ist injizierbar, damit der einmalige Backfill in Tests
   kontrolliert werden kann.
 - Nach erfolgreichem Durchlauf wird beim App-Start nicht mehr pro Feed die komplette
@@ -607,6 +615,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   gleicher Reihenfolge dient der Name als stabiler Fallback.
 - Fuegt Tags nur hinzu, wenn der Artikel das Tag noch nicht besitzt, und setzt
   `Article.isHidden` nur, wenn der Artikel noch nicht ausgeblendet ist.
+- Bei rückwirkendem Anwenden von Hide-Regeln synchronisiert die Engine die
+  betroffenen `Feed.unreadCount` Werte neu, damit Sidebar-Badges versteckte
+  ungelesene Artikel nicht weiter mitzählen.
 - Gibt die Anzahl neu angewendeter Aktionen zurück; der neue
   `applyRulesWithNotifications` Pfad liefert zusätzlich
   `RuleNotificationResult` Werte für Benachrichtigungs-Regeln.
@@ -1073,29 +1084,51 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   weiterhin arbeitet.
 - Nach dem Import bleibt eine Zusammenfassung im Dialog sichtbar.
 
-### SettingsView.swift
-- macOS Settings-Szene in `FeedivoApp.swift`
-- Nutzt eine linke Kategorienavigation nach Prototyp Variante A statt eines langen
-  Formulars. Bereiche: Allgemein, Darstellung, Feeds, Cache, Offline-Lesen,
-  Benachrichtigungen, Aktualisierung, Tags & Regeln und Sync.
-- Das Settings-Fenster ist größer dimensioniert (980 x 720), damit die
-  Regelverwaltung und Feed-Verwaltung weniger gedrungen wirken.
+### SettingsView.swift / NewSettingsView.swift
+- `FeedivoApp.swift` stellt zwei Settings-Fenster bereit: `Einstellungen alt`
+  öffnet die bestehende Sidebar-Fassung, `Einstellungen neu` öffnet die neue
+  Toolbar-Fassung nach dem aktuellen Settings-Dialog-Prototyp.
+- Die neue Toolbar-Fassung ist wieder die echte SwiftUI-`Settings`-Scene, damit
+  der systemeigene macOS-Menüeintrag stabil bleibt. `SettingsCommands` ergänzt
+  `Einstellungen alt` direkt nach dem systemeigenen Einstellungen-Eintrag im
+  App-Menü und bietet zusätzlich ein eigenes Menü `Einstellungen` mit
+  `Einstellungen alt` und `Einstellungen neu`; `.appSettings` wird nicht ersetzt,
+  weil das einen AppKit-Menü-Crash beim Öffnen des App-Menüs ausgelöst hat.
+- Nutzt eine kompakte macOS-Toolbar statt eines langen Formulars oder einer linken
+  Kategorienavigation.
+- `NewSettingsView` nutzt die Bereiche Allgemein, Anzeige, Feeds, Ordner, Cache,
+  Offline, Benachrichtigungen, Aktualisierung, Automatisierung, Sync und Über.
+  Die neue Fassung verwendet dieselben echten Settings-Bindings und
+  Verwaltungsviews, damit beide Fenster dieselben Daten ändern.
+- Die neue Fassung rendert die Kernbereiche nicht mehr über die alten
+  `Form`-Views, sondern über screenshot-nahe `NewSettingsBlock`- und
+  `NewSettingRow`-Bausteine mit kompakter Toolbar, ausgewählter Kachel,
+  linksbündigem Titel/Subtext und rechts stehenden Controls. Die neue Fassung ist
+  breit genug für Toolbar und Feed-/Ordnerverwaltung, behält aber die kleine
+  macOS-Settings-Skalierung des Referenzscreenshots bei.
 - Bestehende Optionen wurden aufgeteilt: Sprache/Standardverhalten unter
   Allgemein, UI-/Reader-Darstellung unter Darstellung, Auto-Refresh unter
-  Aktualisierung sowie Regelverwaltung und intelligente Ordner unter Tags & Regeln.
+  Aktualisierung, Artikel-Aufbewahrung unter Bereinigung sowie Regelverwaltung
+  separat unter Regeln.
 - Der Bereich `Feeds` zeigt eine Feed-Verwaltung mit Suche, Mehrfachauswahl,
   `Alle sichtbaren auswählen`, `Auswahl aufheben` und destruktiver
   Löschbestätigung für die ausgewählten Feeds.
 - Der Bereich `Cache` zeigt aktuelle Bild-/Favicon-Cache-Groesse, ein Speicherlimit
   mit erlaubten Werten 100 MB, 250 MB, 500 MB, 1 GB und 2 GB, sowie Aktionen zum
   Aktualisieren der Groessenanzeige und zum Leeren des Cache.
-- Der Bereich `Tags & Regeln` enthält als ersten Slice von Feature 17.3 eine globale
+- Der Bereich `Bereinigung` enthält als ersten Slice von Feature 17.3 eine globale
   Artikel-Aufbewahrung: Alte Artikel können nach 30, 60, 90, 180 oder 365 Tagen
   automatisch gelöscht werden. Die Einstellung ist standardmäßig ausgeschaltet.
   Artikel mit Stern oder Archivstatus bleiben standardmäßig geschützt; in derselben
   Einstellung kann bewusst aktiviert werden, dass auch diese Artikel mitgelöscht
   werden. Ein Button `Jetzt bereinigen` startet dieselbe Logik manuell. Einzelne
   Feeds können diese globale Einstellung in `Feed Eigenschaften...` überschreiben.
+- Geplanter späterer Ausbau für `Bereinigung`: History der letzten 10
+  Bereinigungen mit Zeitpunkt und Anzahl gelöschter Artikel, konfigurierbarer
+  automatischer Ausführungszeitpunkt (Wochentag/Uhrzeit, App-Start oder
+  App-Beenden) und ein sichtbarer In-App-Hinweis, wenn eine Bereinigung
+  ausgeführt wurde.
+- Der Bereich `Regeln` enthält ausschließlich die Regelverwaltung.
 - Der Bereich `Offline-Lesen` trennt bewusst zwischen Cache, normal lokal
   gespeichertem Feed-Inhalt und echten Offline-Kopien: Offline ist eine manuelle
   Artikelaktion, Feed-Content ist Basisinhalt, Automatik bleibt ein späterer M4-
@@ -1120,6 +1153,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - `@AppStorage("backgroundRefresh.intervalMinutes")`
 - Automatischer Refresh ist standardmäßig deaktiviert und kann auf 15, 30, 60
   oder 120 Minuten gestellt werden
+- Roadmap: Unter `Allgemein` soll eine separate Option `Feeds beim Start
+  aktualisieren` hinzukommen. Diese steuert nur den Sammel-Refresh direkt nach dem
+  App-Start und bleibt getrennt vom periodischen Auto-Refresh-Intervall.
 - Reader-Schriftwahl: `readerTitleFontPreset` und `readerBodyFontPreset`
 - Reader-Fettoptionen: `readerTitleFontIsBold` und `readerBodyFontIsBold`
 - Reader-Typografie: `readerBodyFontSize`, `readerTitleLineSpacing`,
@@ -1845,6 +1881,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Feature 17.3 Automatisches Löschen ist umgesetzt: globale Einstellung,
   Stern-/Archiv-Schutz mit Zusatzoption und pro-Feed-Überschreibung in den
   Feed-Eigenschaften.
+- Neuer zurückgestellter Roadmap-Punkt 17.3a: Bereinigungs-History, planbare
+  automatische Bereinigung nach Wochentag/Uhrzeit oder beim Starten/Beenden der
+  App sowie sichtbarer In-App-Hinweis bei ausgeführter Bereinigung.
 - Feature 17.1 Automatisches Offline-Speichern bei Stern ist umgesetzt:
   Einstellungen → Offline-Lesen bietet einen standardmäßig deaktivierten Toggle;
   Stern-Aktionen aus Artikelzeile, Inspector und Menü/Shortcut stoßen bei aktivem
@@ -1871,6 +1910,37 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 ---
 
 ## Letzte Änderungen
+
+- 2026-06-29: Roadmap um Refresh-Status und Start-Refresh erweitert: Beim
+  Aktualisieren aller Feeds soll unten rechts neben dem Online-/Offline-Status ein
+  Fortschrittsstatus erscheinen und nach Abschluss die Gesamtzahl neu geladener
+  Artikel anzeigen. Zusätzlich ist für Einstellungen → Allgemein eine Option
+  `Feeds beim Start aktualisieren` vorgemerkt, getrennt vom periodischen
+  Auto-Refresh.
+
+- 2026-06-29: Fehler in Sidebar-Ungelesen-Badges behoben: Wenn bestehende
+  ungelesene Artikel durch rückwirkend angewendete Regeln ausgeblendet werden,
+  synchronisiert `RuleEngine.applyRulesToExistingArticles` nun die betroffenen
+  `Feed.unreadCount` Werte. Der einmalige `FeedUnreadCountBackfillService` wurde
+  auf `feedUnreadCountBackfillDone_v3` erhöht, damit bereits falsch gespeicherte
+  Zähler beim nächsten App-Start korrigiert werden.
+
+- 2026-06-29: Roadmap für Bereinigung erweitert: Die neue Settings-Toolbar trennt
+  Artikel-Aufbewahrung in den eigenen Menüpunkt `Bereinigung` und die bisherige
+  Kombirubrik `Tags & Regeln` wird künftig als `Regeln` geführt. Für später ist
+  Feature 17.3a vorgemerkt: History der letzten 10 Bereinigungen mit Zeitpunkt
+  und Anzahl gelöschter Artikel, automatische Bereinigung nach Wochentag/Uhrzeit
+  oder beim Starten/Beenden der App sowie ein sichtbarer In-App-Hinweis, wenn eine
+  Bereinigung ausgeführt wurde.
+
+- 2026-06-28: Settings-Polish als Parallelbetrieb umgesetzt: Im App-Menü gibt es
+  jetzt `Einstellungen alt` und `Einstellungen neu`. Die alte Sidebar-basierte
+  Settings-Fassung bleibt unverändert verfügbar; die neue Toolbar-Fassung
+  (`NewSettingsView`) nutzt dieselben echten Settings-Bindings und trennt die
+  Bereiche in Allgemein, Anzeige, Feeds, Ordner, Cache, Offline,
+  Benachrichtigungen, Aktualisierung, Automatisierung, Sync und Über. Nach
+  Review wurde die neue Fassung visuell nachgebessert: eigene screenshot-nahe
+  Sections/Rows ersetzen die alten `Form`-Views in den Kernbereichen.
 
 - 2026-06-28: Reader-/Listen-Navigation-Performance (Branch
   `perf/native-reader-navigation`, gemerged nach main). Hebt Trägheit und

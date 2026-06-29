@@ -251,6 +251,7 @@ struct RuleEngineTests {
         let matchingArticle = Article(title: "Spoiler zum Film", feed: feed)
         let alreadyHiddenArticle = Article(title: "Spoiler alt", isHidden: true, feed: feed)
         let unmatchedArticle = Article(title: "Normale News", feed: feed)
+        feed.unreadCount = 2
 
         let appliedCount = RuleEngine.applyRulesToExistingArticles(
             [rule],
@@ -261,6 +262,7 @@ struct RuleEngineTests {
         #expect(matchingArticle.isHidden)
         #expect(alreadyHiddenArticle.isHidden)
         #expect(!unmatchedArticle.isHidden)
+        #expect(feed.unreadCount == 1)
     }
 
     @MainActor

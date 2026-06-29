@@ -7,7 +7,7 @@
 > Status-Legende:
 > ✔️ Fertig | 🔨 In Arbeit (teilweise umgesetzt) | ✅ Entschieden (bereit zur Implementierung) | 💬 In Diskussion | ⏸️ Zurückgestellt
 >
-> Zuletzt aktualisiert: 2026-06-28
+> Zuletzt aktualisiert: 2026-06-29
 
 ---
 
@@ -180,6 +180,33 @@
 - **Status:** ✔️ Fertig
 - **Umgesetzt:** `NSBackgroundActivityScheduler`, 15/30/60/120 Min.
 
+### 4.6 Refresh-Status im unteren Statusbereich
+- **Status:** ⏸️ Zurückgestellt — späterer Ausbau, nicht jetzt implementieren
+- **Geplant:**
+  - Während `Alle Feeds aktualisieren` läuft, soll unten rechts neben dem
+    Online-/Offline-Status ein zweiter Status erscheinen.
+  - Der Status zeigt den Fortschritt des Sammel-Refresh, z.B. aktualisierte Feeds
+    von Gesamtzahl und/oder Prozent.
+  - Nach Abschluss soll der Status kurz anzeigen, wie viele Artikel insgesamt neu
+    geladen wurden, z.B. `12 neue Artikel`.
+  - Bei teilweisen Fehlern soll der Status nicht nur `fertig` melden, sondern eine
+    knappe Problem-Markierung ermöglichen; Details bleiben weiterhin in Feed-Logs
+    beziehungsweise bestehenden Fehlermeldungen.
+- **Hinweis:** Bestehende Basis ist `FeedViewModel.operationProgress`; für die
+  Roadmap ist die gewünschte Platzierung im unteren Statusbereich neben `Online`
+  entscheidend, nicht mehr als separates Overlay.
+
+### 4.7 Feeds beim App-Start aktualisieren
+- **Status:** ⏸️ Zurückgestellt — späterer Ausbau, nicht jetzt implementieren
+- **Geplant:**
+  - In Einstellungen → Allgemein kommt eine Option `Feeds beim Start aktualisieren`.
+  - Wenn aktiv, startet Feedivo nach dem App-Start automatisch einen Sammel-Refresh
+    aller Feeds.
+  - Wenn deaktiviert, findet beim App-Start kein zusätzlicher Sammel-Refresh statt;
+    der bestehende periodische automatische Refresh bleibt davon getrennt.
+  - Der Start-Refresh soll denselben Fortschrittsstatus aus Feature 4.6 nutzen und
+    am Ende ebenfalls die Gesamtzahl neu geladener Artikel anzeigen.
+
 ---
 
 ## 5. Tags & Regeln
@@ -251,15 +278,28 @@
 ### 8.1 Bestehendes Settings-Fenster
 - **Status:** ✔️ Fertig
 - **Umgesetzt:** Kategoriennavigation (Allgemein, Darstellung, Feeds, Aktualisierung, Tags & Regeln, Sync, Offline-Lesen)
+- **Entscheidung 2026-06-28:** Das bestehende Settings-Fenster bleibt als
+  `Einstellungen alt` erhalten. Die neue Toolbar-Variante wird parallel als
+  `Einstellungen neu` im App-Menü geöffnet, damit beide Fassungen während des
+  M4-Polish verglichen werden können.
 
-### 8.2 Neue Einstellungs-Kategorien (zu implementieren)
-- **Status:** ✅ Entschieden — bereit zur Implementierung
-- **Zu implementieren — neue oder erweiterte Kategorien:**
-  - **Benachrichtigungen:** Globale Einstellungen (Badge-Zähler, Stille Stunden)
-  - **Artikel:** Auto-Löschen (Standard 90 Tage), Anzeige-Logik, Vorschautext-Zeilen
-  - **Menubar:** Anzahl Artikel im Dropdown, Klick-Verhalten (Feedivo / Browser), Dock-Icon ausblenden
-  - **Darstellung (erweitern):** Vorschaubild an/aus, Bildposition (links/rechts), Reader-Textbreite, Favicons, Ungelesen-Zähler
-  - **Umgesetzt:** Option `Gelesene Feeds in der Seitenleiste anzeigen`
+### 8.2 Neue Settings-Toolbar-Variante
+- **Status:** 🔨 In Arbeit
+- **Umgesetzt:** Zweites Settings-Fenster `Einstellungen neu` mit macOS-artiger
+  Icon-Toolbar. Bereiche: Allgemein, Anzeige, Feeds, Ordner, Offline-Lesen,
+  Benachrichtigungen, Aktualisierung, Bereinigung, Regeln, Sync und Über.
+- **Bewusst:** Die neue Oberfläche nutzt dieselben echten Settings-Bindings und
+  Verwaltungsviews wie die alte Fassung; die alte bleibt unverändert verfügbar.
+- **Entscheidung 2026-06-29:** Die neue Oberfläche bleibt die echte
+  SwiftUI-`Settings`-Scene. Die alte Fassung wird als separates Fenster geöffnet;
+  `Einstellungen alt` steht direkt nach dem systemeigenen Einstellungen-Eintrag
+  im App-Menü. Ein zusätzliches Menü `Einstellungen` bietet beide Varianten, ohne
+  die systemeigene `.appSettings`-Menügruppe zu ersetzen. Das vermeidet einen
+  AppKit-Menü-Crash.
+- **Design-Ziel:** Kompakte macOS-Settings-Skalierung nach Referenzscreen:
+  breites Fenster für Toolbar und Verwaltungsbereiche, aber kleinere
+  Toolbar-Kacheln, kleine Controls, enge Zeilenabstände und screenshot-nahe
+  Typografie statt groß skaliertem Formular-Look.
 
 ---
 
@@ -500,7 +540,7 @@
 - **Umgesetzt:**
   - Globale Einstellung: Artikel nach X Tagen löschen, Standardwert 90 Tage
   - Standardmäßig deaktiviert, damit Feedivo nie ungefragt Artikel entfernt
-  - Manueller Button "Jetzt bereinigen" in Einstellungen → Tags & Regeln
+  - Manueller Button "Jetzt bereinigen" in Einstellungen → Bereinigung
   - App-Start und Einstellungsänderung führen die Bereinigung aus, wenn aktiv
   - Ausnahmen: Archivierte Artikel und Artikel mit Stern bleiben standardmäßig
     erhalten
@@ -513,9 +553,27 @@
   - Der Feed-Refresh importiert abgelaufene Feed-Einträge bei aktiver Aufbewahrung
     nicht erneut, damit gelöschte alte Artikel nicht wieder als ungelesen
     auftauchen
-- **Später prüfen:**
-  - Eigene Einstellungs-Kategorie "Artikel", sobald mehr Artikeloptionen aus
-    Feature 19.1/19.5 zusammenkommen
+- **Hinweis 2026-06-29:** Die neue Settings-Toolbar trennt die Artikel-
+  Aufbewahrung in den eigenen Bereich `Bereinigung`; die Regelverwaltung liegt
+  separat unter `Regeln`.
+
+### 17.3a Bereinigung — History, Zeitplan und Hinweis
+- **Status:** ⏸️ Zurückgestellt — späterer Ausbau, nicht jetzt implementieren
+- **Geplant:**
+  - History der letzten 10 Bereinigungen im Bereich `Bereinigung`
+  - Pro History-Eintrag: Zeitpunkt der Ausführung und Anzahl gelöschter Artikel
+  - Konfigurierbarer Zeitpunkt für automatische Bereinigung:
+    - bestimmter Wochentag und Uhrzeit
+    - beim Starten der App
+    - beim Beenden der App
+  - Wenn eine Bereinigung ausgeführt wird, soll Feedivo einen sichtbaren Hinweis
+    auf dem Bildschirm anzeigen, inklusive Ergebnis beziehungsweise gelöschter
+    Artikelanzahl.
+- **Offene Umsetzungsdetails:**
+  - Persistenzmodell für die letzten 10 Läufe festlegen (`@AppStorage` reicht
+    eventuell für kompakte History, SwiftData wäre robuster).
+  - Klären, ob der Bildschirmhinweis als Toast/Overlay im Hauptfenster oder als
+    macOS-Benachrichtigung plus In-App-Hinweis erscheinen soll.
 
 ### 17.4 Artikel-Liste Anzeige-Logik
 - **Status:** ✅ Entschieden — siehe Feature 2.5
@@ -750,6 +808,7 @@
   - Tag-Badges in der Sidebar zählen per SwiftData-`fetchCount` über denselben Tag-Predicate wie die Artikelliste, statt Tag-/Feed-Artikel-Relationships zu traversieren
   - Lesestatus-Aktionen aktualisieren `Feed.unreadCount` auch dann über `Article.feedID`, wenn die `Article.feed`-Relationship im schnellen Query-Pfad nicht geladen ist
   - Bulk-Aktionen wie `Alle als gelesen markieren` synchronisieren betroffene Feed-Zähler per SwiftData-`fetchCount`, damit bereits falsch gespeicherte Badges wieder auf den echten ungelesenen Bestand fallen
+  - Rückwirkend angewendete Hide-Regeln synchronisieren betroffene `Feed.unreadCount` Werte; der v3-Backfill korrigiert bestehende gespeicherte Sidebar-Zähler beim App-Start
   - Das Artikelansicht-Menü zeigt die Bulk-Option ausdrücklich als `Alle als gelesen markieren`
 - **Zu beachten:**
   - SwiftData-Queries immer mit gezielten Predicates; bewusste Ausnahme ist der Default-Ordner `Ungelesen`, weil dort die Anzeigeebene gelesene Artikel für Feed-ähnliches Verhalten temporär sichtbar halten muss

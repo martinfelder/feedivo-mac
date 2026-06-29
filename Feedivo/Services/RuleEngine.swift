@@ -57,18 +57,32 @@ enum RuleEngine {
         // Regeln einmalig vorbereiten (Sortierung + normalisierte Conditions),
         // damit pro Artikel nur noch die vorbereitete Struktur ausgewertet wird.
         let preparedRules = preparedRules(rules)
+        var appliedActionCount = 0
+        var feedsToResync: [UUID: Feed] = [:]
 
-        return articles.reduce(0) { appliedActionCount, article in
+        for article in articles {
             guard let feed = article.feed else {
-                return appliedActionCount
+                continue
             }
 
-            return appliedActionCount + applyPreparedRulesWithNotifications(
+            let wasVisibleUnreadArticle = !article.isRead && !article.isHidden
+            let result = applyPreparedRulesWithNotifications(
                 preparedRules,
                 to: article,
                 feed: feed
-            ).appliedActionCount
+            )
+            appliedActionCount += result.appliedActionCount
+
+            if wasVisibleUnreadArticle, article.isHidden {
+                feedsToResync[feed.id] = feed
+            }
         }
+
+        for feed in feedsToResync.values {
+            synchronizeUnreadCount(for: feed)
+        }
+
+        return appliedActionCount
     }
 
     @MainActor
@@ -140,6 +154,13 @@ enum RuleEngine {
             appliedActionCount: appliedActionCount,
             notifications: notifications
         )
+    }
+
+    @MainActor
+    private static func synchronizeUnreadCount(for feed: Feed) {
+        feed.unreadCount = feed.articles.filter { article in
+            !article.isRead && !article.isHidden
+        }.count
     }
 
     private static func preparedRules(_ rules: [Rule]) -> [PreparedRule] {

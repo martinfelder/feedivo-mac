@@ -2,9 +2,9 @@ import Foundation
 import SwiftData
 
 enum FeedUnreadCountBackfillService {
-    // v2: nach Fix, dass versteckte (isHidden) Artikel nicht mehr als
-    // ungelesen zählen — einmaliger Re-Sync bestehender Zähler.
-    private static let backfillDoneKey = "feedUnreadCountBackfillDone_v2"
+    // v3: nach Fix, dass rückwirkend ausgeblendete ungelesene Artikel den
+    // gespeicherten Feed-Zähler neu synchronisieren.
+    private static let backfillDoneKey = "feedUnreadCountBackfillDone_v3"
 
     @MainActor
     @discardableResult
