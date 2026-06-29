@@ -91,7 +91,7 @@ Nach jeder relevanten Änderung prüfen und bei Bedarf aktualisieren:
 | Architektur | MVVM | `@Observable` Macro (kein ObservableObject) |
 | Navigation | NavigationSplitView | 3-Spalten: Sidebar / Liste / Detail |
 | Persistenz | SwiftData | Kein Core Data |
-| iCloud Sync | CloudKit via SwiftData | Geplant für M4 — noch nicht aktiviert |
+| iCloud Sync | CloudKit via SwiftData | Nach v1 zurückgestellt; CloudKit-Vorbereitung erledigt |
 | Netzwerk | URLSession + async/await | Kein Alamofire, kein Combine |
 | RSS-Parsing | FeedKit | Swift Package, URL: https://github.com/nmdias/FeedKit |
 | Bilder | CachedRemoteImageView + ImageCacheService | Lokaler Disk-Cache + NSCache, kein Kingfisher |
@@ -725,7 +725,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   für Aktualisierungsintervall, nächsten Abruf und sichtbare Log-Eintraege
 - Darunter zeigt es gruppiert Originaltitel, Website, XML-Adresse mit Kopierbutton,
   Gefolgt-ab-Datum, editierbaren Ordner, letzten Artikel, Aktualisierungsintervall,
-  nächsten Abruf, zuletzt aktualisiert und die neuesten 20 Feed-Log-Eintraege
+  nächsten Abruf und die neuesten 20 Feed-Log-Eintraege
+- Eine eigene Section `Aktivität` zeigt, wie viele Artikel der Feed in den letzten
+  7 Tagen veröffentlicht hat, sowie wann der Feed zuletzt aktualisiert wurde.
 - Website und XML-Adresse werden als echte Links im Standardbrowser geöffnet,
   sofern sie gueltige `http`/`https`-URLs sind; der XML-Kopierbutton bleibt erhalten
 - Aktualisierungsintervall ist direkt im Sheet editierbar und wird in SwiftData gespeichert
@@ -738,9 +740,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   ist `Globale Einstellung verwenden`; bei aktiver Überschreibung kann der Feed
   eigene Aktivierung, eigene Aufbewahrungstage und das Mitlöschen von Stern-/
   Archivartikeln speichern.
-- `FeedPropertiesFormatter` kapselt nächsten Abruf, neuesten Artikel, Log-Limit und
-  die sichtbare Log-Anzahl sowie gueltige Link-URLs, damit diese Logik ohne UI
-  testbar bleibt
+- `FeedPropertiesFormatter` kapselt nächsten Abruf, neuesten Artikel, Artikelanzahl
+  der letzten 7 Tage, Log-Limit und die sichtbare Log-Anzahl sowie gueltige
+  Link-URLs, damit diese Logik ohne UI testbar bleibt
 
 ### FeedRenameView.swift
 - Rechtsklick auf Feed → `Feed umbenennen...`
@@ -1085,21 +1087,17 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Nach dem Import bleibt eine Zusammenfassung im Dialog sichtbar.
 
 ### SettingsView.swift / NewSettingsView.swift
-- `FeedivoApp.swift` stellt zwei Settings-Fenster bereit: `Einstellungen alt`
-  öffnet die bestehende Sidebar-Fassung, `Einstellungen neu` öffnet die neue
-  Toolbar-Fassung nach dem aktuellen Settings-Dialog-Prototyp.
-- Die neue Toolbar-Fassung ist wieder die echte SwiftUI-`Settings`-Scene, damit
-  der systemeigene macOS-Menüeintrag stabil bleibt. `SettingsCommands` ergänzt
-  `Einstellungen alt` direkt nach dem systemeigenen Einstellungen-Eintrag im
-  App-Menü und bietet zusätzlich ein eigenes Menü `Einstellungen` mit
-  `Einstellungen alt` und `Einstellungen neu`; `.appSettings` wird nicht ersetzt,
-  weil das einen AppKit-Menü-Crash beim Öffnen des App-Menüs ausgelöst hat.
+- `FeedivoApp.swift` nutzt nur noch die systemeigene SwiftUI-`Settings`-Scene.
+  Diese öffnet direkt `NewSettingsView` mit der neuen Toolbar-Oberfläche.
+- Die alte Sidebar-/Form-Fassung wurde am 2026-06-29 entfernt, nachdem alle
+  Inhalte in die neue Settings-Oberfläche migriert wurden. Es gibt kein
+  zusätzliches `SettingsCommands`-Menü und kein separates Fenster
+  `Einstellungen alt` mehr.
 - Nutzt eine kompakte macOS-Toolbar statt eines langen Formulars oder einer linken
   Kategorienavigation.
 - `NewSettingsView` nutzt die Bereiche Allgemein, Anzeige, Feeds, Ordner, Cache,
   Offline, Benachrichtigungen, Aktualisierung, Automatisierung, Sync und Über.
-  Die neue Fassung verwendet dieselben echten Settings-Bindings und
-  Verwaltungsviews, damit beide Fenster dieselben Daten ändern.
+  Die Oberfläche verwendet die echten Settings-Bindings und Verwaltungsviews.
 - Die neue Fassung rendert die Kernbereiche nicht mehr über die alten
   `Form`-Views, sondern über screenshot-nahe `NewSettingsBlock`- und
   `NewSettingRow`-Bausteine mit kompakter Toolbar, ausgewählter Kachel,
@@ -1112,10 +1110,15 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   separat unter Regeln.
 - Der Bereich `Feeds` zeigt eine Feed-Verwaltung mit Suche, Mehrfachauswahl,
   `Alle sichtbaren auswählen`, `Auswahl aufheben` und destruktiver
-  Löschbestätigung für die ausgewählten Feeds.
+  Löschbestätigung für die ausgewählten Feeds. Jede Feed-Zeile zeigt zusätzlich
+  die Artikelanzahl der letzten 7 Tage und den Zeitpunkt der letzten
+  Aktualisierung.
 - Der Bereich `Cache` zeigt aktuelle Bild-/Favicon-Cache-Groesse, ein Speicherlimit
   mit erlaubten Werten 100 MB, 250 MB, 500 MB, 1 GB und 2 GB, sowie Aktionen zum
-  Aktualisieren der Groessenanzeige und zum Leeren des Cache.
+  Aktualisieren der Groessenanzeige und zum Leeren des Cache. Zusätzlich zeigt er
+  die Anzahl bewusst offline gespeicherter Artikel und deren Textspeicherbedarf
+  aus `Article.offlineContent`; diese Offline-Kopien können dort getrennt vom
+  normalen Bild-/Favicon-Cache gelöscht werden.
 - Der Bereich `Bereinigung` enthält als ersten Slice von Feature 17.3 eine globale
   Artikel-Aufbewahrung: Alte Artikel können nach 30, 60, 90, 180 oder 365 Tagen
   automatisch gelöscht werden. Die Einstellung ist standardmäßig ausgeschaltet.
@@ -1318,6 +1321,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   selbst aber in SwiftData bestehen.
 - `removeOfflineContent(from:)` setzt ebenfalls `isArchived = false`, damit kein
   Archivstatus ohne lokale Kopie stehen bleibt.
+- `OfflineArticleStorage` kapselt die Zaehllogik und das Sammel-Loeschen fuer die
+  neuen Cache-Einstellungen. Es zaehlt nur Artikel mit verfuegbarem
+  Offline-Status (`feedContent`/`fullText`) und misst bewusst nur
+  `Article.offlineContent`, nicht den gemeinsamen Bild-/Favicon-Cache.
 - Offline-Automatik ist absichtlich nicht Teil dieses Services. Sie soll später
   als eigene Strategie mit Feed-/Zeit-/Stern-/Ungelesen-Regeln und Speichergrenzen
   gebaut werden.
@@ -1443,6 +1450,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Verwendet `Article.content` vor `Article.summary`
 - Baut Metadaten-Teile so zusammen, dass fehlende Werte ausgelassen werden
 - Sichtbarer Lesezeit-Text ist via `Localizable.xcstrings` und `L10n` lokalisiert
+- Produktentscheidung 2026-06-29: Die Lesezeit bleibt im Reader sichtbar, wird aber
+  bewusst nicht in der Artikelliste angezeigt, weil sie dort kein relevantes
+  Scanning-Signal fuer den User ist.
 
 ### ReaderContentRenderer.swift
 - Wandelt HTML-Fragmente oder Plain Text in `ReaderContentBlock`
@@ -1797,7 +1807,8 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - [x] OPML Import (Feeds aus anderem RSS Reader übernehmen)
 - [x] OPML Export (Feeds portieren)
 - [x] OPML-Exportdialog mit Optionen für Ordner, Tags und Feed-Beschreibungen
-- [ ] iCloud Sync via CloudKit aktivieren und testen
+- [x] iCloud Sync via CloudKit für v1 bewusst zurückgestellt; CloudKit-
+  Vorbereitung ist erledigt, Aktivierung und End-to-End-Test folgen nach v1
 - [x] Erweiterter OPML-Import-Dialog: ausgelesene Feeds und Ordner vor dem Import
   anzeigen, OPML-Datei direkt im selben Dialog auswählen/wechseln,
   Ordnerzugehörigkeit bearbeiten/Ordner erstellen, optionalen Refresh nach Import
@@ -1812,6 +1823,12 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - [ ] Vollartikel laden, wenn Feed/Quelle es erlauben; Grundstruktur, Werbung und
   Anbieterlinks fair erhalten und Darstellungsumfang im nativen Reader definieren
 - [ ] Theme System/Hell/Dunkel als Settings-Polish
+- [ ] Mehrfenster-Unterstützung für Artikel: `Cmd+Return` und Kontextmenü öffnen
+  einen Artikel in einem eigenen Reader-Fenster mit optionalem rechten
+  Artikel-Inspector. Vorheriger/nächster Artikel soll im Artikelfenster
+  funktionieren; bereits geöffnete Artikelfenster werden fokussiert statt
+  dupliziert. Die Wiederherstellung offener Artikelfenster beim App-Start wird in
+  Einstellungen → Allgemein gesteuert und ist standardmäßig ausgeschaltet.
 - [x] Bild- und Favicon-Cache: geladene Bilder lokal cachen, damit Artikelbilder
   und Favicons nach App-Neustart nicht jedes Mal neu geladen werden müssen;
   Speicherlimit wird beim App-Start, nach Limit-Änderung und nach neuen Downloads
@@ -1873,11 +1890,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Katalog-Lücken). Build und Tests sind laut `docs/superpowers/l10n/inventar.md`
   grün; eine unabhängige Verifikation in Xcode steht noch aus, da die Codex-
   Sandbox die Swift-Toolchain nicht laden kann.
-- Aktuell M4: Polish & Release. iCloud Sync wurde bewusst aus M3 nach M4 verschoben,
-  damit Tags, Regeln, Background-Refresh-Status und Offline-Basis als abgeschlossene
-  M3-Basis stabil bleiben. M4 umfasst jetzt iCloud Sync, erweiterten OPML-Import,
-  manuellen Offline Mode, Settings-Polish, Artikel-Teilen, App-Icon und Release-
-  Vorbereitung. Bild-/Favicon-Cache und Onboarding sind als M4-Basis umgesetzt.
+- Aktuell M4: Polish & Release. iCloud Sync ist für v1 bewusst zurückgestellt,
+  damit Release-Polish, Settings, Offline-Basis, Export, Onboarding und App-Icon
+  Vorrang haben. Die technische CloudKit-Vorbereitung ist erledigt; Aktivierung,
+  Sync-Umfang und End-to-End-Test folgen nach v1.
 - Feature 17.3 Automatisches Löschen ist umgesetzt: globale Einstellung,
   Stern-/Archiv-Schutz mit Zusatzoption und pro-Feed-Überschreibung in den
   Feed-Eigenschaften.
@@ -1898,6 +1914,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Erstellung und Öffnen des Speichern-Dialogs. Im Vorschau-Schritt kann die
   vorbereitete Exportdatei außerdem über `Teilen...` ans macOS Share Sheet
   übergeben werden. PDF, DOCX und Batch-Export bleiben spätere Export-Slices.
+- Feature 11.1 Lesedauer pro Artikel ist abgeschlossen: Die Lesezeit bleibt im
+  Reader sichtbar und lokalisiert. Eine Anzeige in der Artikelliste wird bewusst
+  nicht umgesetzt, weil die Liste kompakt bleiben und bessere Scanning-Signale
+  priorisieren soll.
 - Nächster sinnvoller Fokus: Batch-Export, Suche oder ein kleiner Export-Polish-
   Slice.
 - Neuer offener M4/v1-Punkt: Vollartikel laden, wenn moeglich und erlaubt. Dabei
@@ -1910,6 +1930,33 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 ---
 
 ## Letzte Änderungen
+
+- 2026-06-29: Mehrfenster-Entscheidung konkretisiert: Feedivo öffnet keine
+  zusätzlichen Hauptfenster, sondern dedizierte Artikelfenster mit Reader und
+  optionalem rechten Artikel-Inspector. `Cmd+Return` und Kontextmenü öffnen den
+  Artikel; Vor/Zurück im Artikelfenster, Duplikat-Fokus und optionale
+  Wiederherstellung offener Artikelfenster sind Teil des ersten Slices. Die
+  Einstellung `Artikelfenster beim Start wiederherstellen` liegt unter
+  Allgemein und ist standardmäßig ausgeschaltet.
+
+- 2026-06-29: Feed-Verwaltung und Feed-Eigenschaften um Aktivitätsinfos erweitert:
+  Einstellungen → Feeds zeigt pro Feed Artikel der letzten 7 Tage und letzte
+  Aktualisierung; `Feed Eigenschaften...` zeigt dieselben Werte in einer eigenen
+  Section `Aktivität`.
+
+- 2026-06-29: Roadmap-Konsistenz bereinigt: iCloud Sync ist nicht mehr M4-offen,
+  sondern bewusst nach v1 zurückgestellt. Die CloudKit-Vorbereitung bleibt als
+  erledigte technische Vorarbeit dokumentiert.
+
+- 2026-06-29: Produktentscheidung zur Lesedauer dokumentiert: Lesezeit bleibt im
+  Reader sichtbar, wird aber nicht in der Artikelliste angezeigt, weil sie dort für
+  den User nicht relevant genug ist.
+
+- 2026-06-29: Neue Einstellungen → Allgemein → Cache zeigt jetzt zusätzlich
+  `Offline-Artikel` mit Anzahl und Speichergrösse der bewusst offline gespeicherten
+  Artikelinhalte. Der Button `Offline-Kopien löschen` entfernt diese lokalen
+  Kopien gesammelt, ohne normale Feed-Inhalte oder den Bild-/Favicon-Cache zu
+  löschen.
 
 - 2026-06-29: Roadmap um Refresh-Status und Start-Refresh erweitert: Beim
   Aktualisieren aller Feeds soll unten rechts neben dem Online-/Offline-Status ein
@@ -1933,14 +1980,16 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   oder beim Starten/Beenden der App sowie ein sichtbarer In-App-Hinweis, wenn eine
   Bereinigung ausgeführt wurde.
 
+- 2026-06-29: Alte Settings-Fassung entfernt. Die systemeigene SwiftUI-
+  `Settings`-Scene öffnet jetzt ausschließlich `NewSettingsView`; das frühere
+  Zusatzfenster `Einstellungen alt`, `SettingsCommands` und die alten
+  Form-basierten Settings-Views wurden gelöscht, weil alle Inhalte in die neue
+  Toolbar-Oberfläche migriert sind.
+
 - 2026-06-28: Settings-Polish als Parallelbetrieb umgesetzt: Im App-Menü gibt es
-  jetzt `Einstellungen alt` und `Einstellungen neu`. Die alte Sidebar-basierte
-  Settings-Fassung bleibt unverändert verfügbar; die neue Toolbar-Fassung
-  (`NewSettingsView`) nutzt dieselben echten Settings-Bindings und trennt die
-  Bereiche in Allgemein, Anzeige, Feeds, Ordner, Cache, Offline,
-  Benachrichtigungen, Aktualisierung, Automatisierung, Sync und Über. Nach
-  Review wurde die neue Fassung visuell nachgebessert: eigene screenshot-nahe
-  Sections/Rows ersetzen die alten `Form`-Views in den Kernbereichen.
+  vorübergehend `Einstellungen alt` und `Einstellungen neu`. Dieser
+  Parallelbetrieb wurde am 2026-06-29 wieder entfernt; die neue Toolbar-Fassung
+  (`NewSettingsView`) ist nun die einzige Settings-Oberfläche.
 
 - 2026-06-28: Reader-/Listen-Navigation-Performance (Branch
   `perf/native-reader-navigation`, gemerged nach main). Hebt Trägheit und
@@ -2003,7 +2052,7 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - 2026-06-27: CloudKit-Blocker B2/B3 als Vorbereitung auf iCloud Sync behoben:
   `.cascade`-Delete-Regeln wurden durch `.nullify` + manuelles Cascade ersetzt
   (CloudKit verträgt keine `.cascade`), und es wurden explizite inverse-Referenzen
-  ergänzt. iCloud Sync selbst bleibt im M4-Checklist noch offen.
+  ergänzt. iCloud Sync selbst bleibt bis nach v1 zurückgestellt.
 
 
 - 2026-06-26: Such-UX nach Nutzerfeedback getrennt: Die Artikelliste zeigt nur

@@ -40,6 +40,22 @@ enum FeedPropertiesFormatter {
         .first
     }
 
+    static func recentArticleCount(
+        in articles: [Article],
+        now: Date = Date(),
+        days: Int = 7
+    ) -> Int {
+        let cutoffDate = now.addingTimeInterval(-TimeInterval(days * 24 * 60 * 60))
+        return articles.filter { article in
+            guard let publishedAt = article.publishedAt else {
+                return false
+            }
+
+            return publishedAt >= cutoffDate && publishedAt <= now
+        }
+        .count
+    }
+
     static func latestLogEntries(_ entries: [FeedLogEntry], limit: Int = 20) -> [FeedLogEntry] {
         Array(
             entries

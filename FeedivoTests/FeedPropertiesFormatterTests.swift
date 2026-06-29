@@ -27,6 +27,21 @@ struct FeedPropertiesFormatterTests {
         #expect(FeedPropertiesFormatter.latestArticle(in: [undated])?.id == undated.id)
     }
 
+    @Test func recentArticleCountZaehltNurArtikelDerLetztenSiebenTage() {
+        let now = Date(timeIntervalSince1970: 1_000_000)
+        let insideWindow = Article(title: "Neu", publishedAt: now.addingTimeInterval(-2 * 24 * 60 * 60))
+        let onBoundary = Article(title: "Grenze", publishedAt: now.addingTimeInterval(-7 * 24 * 60 * 60))
+        let outsideWindow = Article(title: "Alt", publishedAt: now.addingTimeInterval(-8 * 24 * 60 * 60))
+        let undated = Article(title: "Ohne Datum")
+
+        let count = FeedPropertiesFormatter.recentArticleCount(
+            in: [insideWindow, onBoundary, outsideWindow, undated],
+            now: now
+        )
+
+        #expect(count == 2)
+    }
+
     @Test func latestLogEntriesBegrenztAufZwanzigNeuesteEintraege() {
         let entries = (0..<25).map { index in
             FeedLogEntry(

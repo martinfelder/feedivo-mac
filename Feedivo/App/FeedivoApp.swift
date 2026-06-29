@@ -114,7 +114,6 @@ struct FeedivoApp: App {
             ArticleCommands()
             FeedCommands()
             ViewCommands()
-            SettingsCommands()
         }
         .modelContainer(modelContainer)
 
@@ -134,15 +133,6 @@ struct FeedivoApp: App {
                 .dynamicTypeSize(interfaceTextSize.dynamicTypeSize)
         }
         .defaultSize(width: 1040, height: 640)
-        .modelContainer(modelContainer)
-
-        Window("Einstellungen alt", id: SettingsView.oldWindowID) {
-            SettingsView()
-                .environment(\.locale, appLanguage.locale)
-                .environment(\.interfaceTextSize, interfaceTextSize)
-                .dynamicTypeSize(interfaceTextSize.dynamicTypeSize)
-        }
-        .defaultSize(width: 980, height: 720)
         .modelContainer(modelContainer)
     }
 
@@ -194,27 +184,4 @@ struct FeedivoApp: App {
 @Observable
 final class DatabaseLoadState {
     var initializationError: String?
-}
-
-struct SettingsCommands: Commands {
-    @Environment(\.openWindow) private var openWindow
-    @Environment(\.openSettings) private var openSettings
-
-    var body: some Commands {
-        CommandGroup(after: .appSettings) {
-            Button("Einstellungen alt") {
-                openWindow(id: SettingsView.oldWindowID)
-            }
-        }
-
-        CommandMenu("Einstellungen") {
-            Button("Einstellungen alt") {
-                openWindow(id: SettingsView.oldWindowID)
-            }
-
-            Button("Einstellungen neu") {
-                openSettings()
-            }
-        }
-    }
 }

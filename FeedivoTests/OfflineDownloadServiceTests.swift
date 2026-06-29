@@ -210,4 +210,50 @@ struct OfflineDownloadServiceTests {
         #expect(article.offlineSavedAt == nil)
         #expect(!article.isArchived)
     }
+
+    @Test func offlineArticleStorageSummaryZaehltNurVerfuegbareOfflineKopien() {
+        let firstArticle = Article(title: "Eins")
+        firstArticle.offlineState = .feedContent
+        firstArticle.offlineContent = "Äpfel"
+
+        let secondArticle = Article(title: "Zwei")
+        secondArticle.offlineState = .fullText
+        secondArticle.offlineContent = "<p>Text</p>"
+
+        let failedArticle = Article(title: "Fehler")
+        failedArticle.offlineState = .failed
+        failedArticle.offlineErrorMessage = "Nicht erreichbar"
+
+        let normalArticle = Article(title: "Normal")
+        normalArticle.content = "<p>Feed Content ist keine Offline-Kopie</p>"
+
+        let summary = OfflineArticleStorage.summary(
+            for: [firstArticle, secondArticle, failedArticle, normalArticle]
+        )
+
+        #expect(summary.articleCount == 2)
+        #expect(summary.sizeInBytes == 17)
+    }
+
+    @Test func offlineArticleStorageEntferntNurVerfuegbareOfflineKopien() {
+        let offlineArticle = Article(title: "Offline", isArchived: true)
+        offlineArticle.offlineState = .fullText
+        offlineArticle.offlineContent = "<article>Volltext</article>"
+        offlineArticle.offlineSavedAt = Date()
+
+        let failedArticle = Article(title: "Fehler")
+        failedArticle.offlineState = .failed
+        failedArticle.offlineErrorMessage = "Nicht erreichbar"
+
+        let removedCount = OfflineArticleStorage.removeOfflineCopies(
+            from: [offlineArticle, failedArticle]
+        )
+
+        #expect(removedCount == 1)
+        #expect(offlineArticle.offlineState == .none)
+        #expect(offlineArticle.offlineContent == nil)
+        #expect(!offlineArticle.isArchived)
+        #expect(failedArticle.offlineState == .failed)
+        #expect(failedArticle.offlineErrorMessage == "Nicht erreichbar")
+    }
 }

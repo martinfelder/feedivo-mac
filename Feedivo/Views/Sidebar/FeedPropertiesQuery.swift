@@ -83,4 +83,25 @@ enum FeedPropertiesQuery {
         let total = (try? context.fetchCount(descriptor)) ?? 0
         return min(total, limit)
     }
+
+    /// Anzahl Artikel dieses Feeds seit einem Grenzdatum. Undatierte Artikel
+    /// zählen nicht, weil "veröffentlicht in der letzten Woche" ein Datum
+    /// voraussetzt.
+    static func recentArticleCount(
+        in context: ModelContext,
+        for feed: Feed,
+        since cutoffDate: Date,
+        until endDate: Date = Date()
+    ) -> Int {
+        let feedID = feed.id
+        var descriptor = FetchDescriptor<Article>()
+        descriptor.predicate = #Predicate<Article> { article in
+            if let publishedAt = article.publishedAt {
+                article.feedID == feedID && publishedAt >= cutoffDate && publishedAt <= endDate
+            } else {
+                false
+            }
+        }
+        return (try? context.fetchCount(descriptor)) ?? 0
+    }
 }

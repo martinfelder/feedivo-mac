@@ -161,6 +161,37 @@ struct FeedPropertiesQueryTests {
         #expect(FeedPropertiesQuery.latestLogEntryCount(in: context, for: feed) == 5)
     }
 
+    // MARK: - recentArticleCount
+
+    @Test func recentArticleCountZaehltNurDiesenFeedSeitGrenzdatum() throws {
+        let context = try testContext()
+        let feedA = Feed(url: "https://a.example.com/feed", title: "A")
+        let feedB = Feed(url: "https://b.example.com/feed", title: "B")
+        context.insert(feedA)
+        context.insert(feedB)
+        try context.save()
+
+        let now = Date(timeIntervalSince1970: 1_000_000)
+        let cutoffDate = now.addingTimeInterval(-7 * 24 * 60 * 60)
+        let recentA = Article(title: "A neu", publishedAt: now.addingTimeInterval(-60), feed: feedA)
+        let boundaryA = Article(title: "A Grenze", publishedAt: cutoffDate, feed: feedA)
+        let oldA = Article(title: "A alt", publishedAt: cutoffDate.addingTimeInterval(-1), feed: feedA)
+        let undatedA = Article(title: "A ohne Datum", feed: feedA)
+        let futureA = Article(title: "A Zukunft", publishedAt: now.addingTimeInterval(60), feed: feedA)
+        let recentB = Article(title: "B neu", publishedAt: now, feed: feedB)
+        [recentA, boundaryA, oldA, undatedA, futureA, recentB].forEach { context.insert($0) }
+        try context.save()
+
+        let count = FeedPropertiesQuery.recentArticleCount(
+            in: context,
+            for: feedA,
+            since: cutoffDate,
+            until: now
+        )
+
+        #expect(count == 2)
+    }
+
     // MARK: - Konsistenz mit Formatter
 
     @Test func latestArticleKonsistentMitFormatterBeiGemischtenArtikeln() throws {

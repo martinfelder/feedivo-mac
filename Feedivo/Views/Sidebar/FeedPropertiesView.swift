@@ -46,6 +46,14 @@ struct FeedPropertiesView: View {
         FeedPropertiesQuery.latestLogEntries(in: modelContext, for: feed)
     }
 
+    private var articlesLastWeek: Int {
+        FeedPropertiesQuery.recentArticleCount(
+            in: modelContext,
+            for: feed,
+            since: Date().addingTimeInterval(-7 * 24 * 60 * 60)
+        )
+    }
+
     private var sortedFeedTags: [Tag] {
         feed.tags.sorted {
             $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
@@ -65,6 +73,7 @@ struct FeedPropertiesView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     feedHeader
                     detailsSection
+                    activitySection
                     logSection
                 }
                 .padding(24)
@@ -257,6 +266,17 @@ struct FeedPropertiesView: View {
         }
     }
 
+    private var activitySection: some View {
+        sectionContainer(title: L10n.feedPropertiesActivityTitle) {
+            propertyRow(
+                L10n.feedPropertiesArticlesLastWeek,
+                value: L10n.feedPropertiesArticlesLastWeekCount(articlesLastWeek)
+            )
+            propertyDivider
+            propertyRow(L10n.feedPropertiesLastRefreshed, value: formattedDate(feed.lastRefreshed))
+        }
+    }
+
     private var xmlAddressRow: some View {
         HStack(alignment: .firstTextBaseline, spacing: 18) {
             propertyLabel(L10n.feedPropertiesXMLAddress)
@@ -360,8 +380,6 @@ struct FeedPropertiesView: View {
 
             propertyDivider
             propertyRow(L10n.feedPropertiesNextFetch, value: formattedDate(nextRefreshDate))
-            propertyDivider
-            propertyRow(L10n.feedPropertiesLastRefreshed, value: formattedDate(feed.lastRefreshed))
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)

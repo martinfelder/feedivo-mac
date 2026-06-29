@@ -3635,6 +3635,9 @@
     "Bereinigung direkt mit den aktuellen Einstellungen starten." : {
 
     },
+    "Bewusst offline gespeicherte Artikelinhalte." : {
+
+    },
     "Breite der Lesespalte im Reader." : {
 
     },
@@ -4292,15 +4295,6 @@
           }
         }
       }
-    },
-    "Einstellungen" : {
-
-    },
-    "Einstellungen alt" : {
-
-    },
-    "Einstellungen neu" : {
-
     },
     "Entfernen" : {
       "extractionState" : "stale",
@@ -5182,6 +5176,34 @@
         }
       }
     },
+    "feed.properties.activityTitle" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktivität"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activity"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activité"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Attività"
+          }
+        }
+      }
+    },
     "feed.properties.articleRetention" : {
       "localizations" : {
         "de" : {
@@ -5290,6 +5312,110 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sovrascrivi impostazione globale"
+          }
+        }
+      }
+    },
+    "feed.properties.articlesLastWeek" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Artikel letzte 7 Tage"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Articles in last 7 days"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Articles des 7 derniers jours"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Articoli degli ultimi 7 giorni"
+          }
+        }
+      }
+    },
+    "feed.properties.articlesLastWeek.count" : {
+      "localizations" : {
+        "de" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Artikel letzte 7 Tage"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Artikel letzte 7 Tage"
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld article in last 7 days"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld articles in last 7 days"
+                }
+              }
+            }
+          }
+        },
+        "fr" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld article en 7 jours"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld articles en 7 jours"
+                }
+              }
+            }
+          }
+        },
+        "it" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld articolo negli ultimi 7 giorni"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld articoli negli ultimi 7 giorni"
+                }
+              }
+            }
           }
         }
       }
@@ -9814,6 +9940,12 @@
           }
         }
       }
+    },
+    "Offline-Artikel" : {
+
+    },
+    "Offline-Kopien löschen" : {
+
     },
     "offline.archive.error.message" : {
       "localizations" : {

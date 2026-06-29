@@ -216,4 +216,39 @@ final class OfflineDownloadService {
 
 extension OfflineDownloadService: ArticleOfflineSaving {}
 
+struct OfflineArticleStorageSummary: Equatable {
+    var articleCount: Int
+    var sizeInBytes: Int64
+}
+
+@MainActor
+enum OfflineArticleStorage {
+    static func summary(for articles: [Article]) -> OfflineArticleStorageSummary {
+        articles.reduce(OfflineArticleStorageSummary(articleCount: 0, sizeInBytes: 0)) { summary, article in
+            guard article.offlineState.isAvailable else {
+                return summary
+            }
+
+            let contentSize = Int64(article.offlineContent?.data(using: .utf8)?.count ?? 0)
+            return OfflineArticleStorageSummary(
+                articleCount: summary.articleCount + 1,
+                sizeInBytes: summary.sizeInBytes + contentSize
+            )
+        }
+    }
+
+    @discardableResult
+    static func removeOfflineCopies(from articles: [Article]) -> Int {
+        let service = OfflineDownloadService()
+        var removedCount = 0
+
+        for article in articles where article.offlineState.isAvailable {
+            service.removeOfflineContent(from: article)
+            removedCount += 1
+        }
+
+        return removedCount
+    }
+}
+
 extension ImageCacheService: OfflineArticleImageCaching {}

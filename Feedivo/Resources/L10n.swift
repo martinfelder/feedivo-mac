@@ -254,6 +254,8 @@ enum L10n {
     static let feedPropertiesFollowedAt = LocalizedStringKey("feed.properties.followedAt")
     static let feedPropertiesFolder = LocalizedStringKey("feed.properties.folder")
     static let feedPropertiesLatestArticle = LocalizedStringKey("feed.properties.latestArticle")
+    static let feedPropertiesActivityTitle = LocalizedStringKey("feed.properties.activityTitle")
+    static let feedPropertiesArticlesLastWeek = LocalizedStringKey("feed.properties.articlesLastWeek")
     static let feedPropertiesRefreshInterval = LocalizedStringKey("feed.properties.refreshInterval")
     static let feedPropertiesNextFetch = LocalizedStringKey("feed.properties.nextFetch")
     static let feedPropertiesLastRefreshed = LocalizedStringKey("feed.properties.lastRefreshed")
@@ -666,6 +668,10 @@ enum L10n {
 
     static func settingsFeedsSelectedCount(count: Int) -> String {
         String.localizedStringWithFormat(String(localized: "settings.feeds.selectedCount"), count)
+    }
+
+    static func feedPropertiesArticlesLastWeekCount(_ count: Int) -> String {
+        String.localizedStringWithFormat(String(localized: "feed.properties.articlesLastWeek.count"), count)
     }
 
     static func articleSearchNoResultsDescription(_ query: String) -> String {

@@ -16,6 +16,21 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(settingsSource.contains(".modelContainer(modelContainer)"))
     }
 
+    @Test func settingsSceneUsesOnlyNewSettingsView() throws {
+        let testFileURL = URL(fileURLWithPath: #filePath)
+        let projectRoot = testFileURL
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let appSourceURL = projectRoot.appendingPathComponent("Feedivo/App/FeedivoApp.swift")
+        let appSource = try String(contentsOf: appSourceURL, encoding: .utf8)
+
+        #expect(appSource.contains("Settings {"))
+        #expect(appSource.contains("NewSettingsView()"))
+        #expect(!appSource.contains("SettingsCommands()"))
+        #expect(!appSource.contains("Einstellungen alt"))
+        #expect(!appSource.contains("SettingsView.oldWindowID"))
+    }
+
     @Test func startupTaskTrimsImageCacheToSelectedLimit() throws {
         let testFileURL = URL(fileURLWithPath: #filePath)
         let projectRoot = testFileURL

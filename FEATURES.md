@@ -239,7 +239,7 @@
 ## 6. iCloud Sync
 
 ### 6.1 Sync via CloudKit
-- **Status:** ⏸️ Zurückgestellt (M4)
+- **Status:** ⏸️ Zurückgestellt — nach v1
 - **Grund:** Core-Features haben Vorrang — nach v1
 
 ---
@@ -276,26 +276,26 @@
 ## 8. Einstellungen
 
 ### 8.1 Bestehendes Settings-Fenster
-- **Status:** ✔️ Fertig
-- **Umgesetzt:** Kategoriennavigation (Allgemein, Darstellung, Feeds, Aktualisierung, Tags & Regeln, Sync, Offline-Lesen)
-- **Entscheidung 2026-06-28:** Das bestehende Settings-Fenster bleibt als
-  `Einstellungen alt` erhalten. Die neue Toolbar-Variante wird parallel als
-  `Einstellungen neu` im App-Menü geöffnet, damit beide Fassungen während des
-  M4-Polish verglichen werden können.
+- **Status:** ✔️ Ersetzt
+- **Umgesetzt:** Die frühere Sidebar-/Form-Fassung wurde durch die neue
+  Toolbar-Oberfläche ersetzt.
+- **Entscheidung 2026-06-29:** Die alten Settings können weg, weil alle Inhalte
+  in die neue Oberfläche migriert sind. Es gibt kein separates
+  `Einstellungen alt`-Fenster und kein zusätzliches Settings-Menü mehr.
 
-### 8.2 Neue Settings-Toolbar-Variante
+### 8.2 Settings-Toolbar
 - **Status:** 🔨 In Arbeit
-- **Umgesetzt:** Zweites Settings-Fenster `Einstellungen neu` mit macOS-artiger
-  Icon-Toolbar. Bereiche: Allgemein, Anzeige, Feeds, Ordner, Offline-Lesen,
+- **Umgesetzt:** Einziges Settings-Fenster mit macOS-artiger Icon-Toolbar.
+  Bereiche: Allgemein, Anzeige, Feeds, Ordner, Offline-Lesen,
   Benachrichtigungen, Aktualisierung, Bereinigung, Regeln, Sync und Über.
-- **Bewusst:** Die neue Oberfläche nutzt dieselben echten Settings-Bindings und
-  Verwaltungsviews wie die alte Fassung; die alte bleibt unverändert verfügbar.
+- **Umgesetzt — Feeds:** Die Feedliste zeigt pro Feed neben Titel und URL auch
+  die Anzahl veröffentlichter Artikel der letzten 7 Tage und den Zeitpunkt der
+  letzten Aktualisierung.
+- **Bewusst:** Die Oberfläche nutzt die echten Settings-Bindings und
+  Verwaltungsviews; es gibt keinen Parallelbetrieb mit der alten Fassung mehr.
 - **Entscheidung 2026-06-29:** Die neue Oberfläche bleibt die echte
-  SwiftUI-`Settings`-Scene. Die alte Fassung wird als separates Fenster geöffnet;
-  `Einstellungen alt` steht direkt nach dem systemeigenen Einstellungen-Eintrag
-  im App-Menü. Ein zusätzliches Menü `Einstellungen` bietet beide Varianten, ohne
-  die systemeigene `.appSettings`-Menügruppe zu ersetzen. Das vermeidet einen
-  AppKit-Menü-Crash.
+  SwiftUI-`Settings`-Scene. Der systemeigene macOS-Einstellungen-Eintrag öffnet
+  direkt diese Oberfläche.
 - **Design-Ziel:** Kompakte macOS-Settings-Skalierung nach Referenzscreen:
   breites Fenster für Toolbar und Verwaltungsbereiche, aber kleinere
   Toolbar-Kacheln, kleine Controls, enge Zeilenabstände und screenshot-nahe
@@ -378,10 +378,11 @@
 ## 11. Lesedauer-Schätzung
 
 ### 11.1 Lesedauer pro Artikel
-- **Status:** 🔨 In Arbeit
-- **Umgesetzt:** Lesezeit-Berechnung in `ReaderMetadataFormatter` vorhanden
-- **Zu implementieren:**
-  - Lesedauer auch in der Artikel-Liste anzeigen (nicht nur im Reader)
+- **Status:** ✔️ Fertig
+- **Umgesetzt:** Lesezeit-Berechnung in `ReaderMetadataFormatter` vorhanden und im Reader sichtbar
+- **Entscheidung 2026-06-29:** Die Lesedauer wird bewusst nicht in der Artikel-Liste
+  angezeigt, weil sie dort für den User nicht relevant genug ist. Die Artikel-Liste
+  soll kompakt bleiben und wichtige Scanning-Signale priorisieren.
 
 ### 11.2 Lesefortschritt
 - **Status:** ✅ Entschieden — bereit zur Implementierung
@@ -416,6 +417,8 @@
 ### 13.1 Feed-Infos anzeigen
 - **Status:** ✔️ Fertig
 - **Umgesetzt:** `FeedPropertiesView`, `FeedPropertiesFormatter`
+- **Umgesetzt 2026-06-29:** `Feed Eigenschaften...` enthält eine eigene Section
+  `Aktivität` mit Artikelanzahl der letzten 7 Tage und letzter Aktualisierung.
 
 ### 13.2 Feed-Gesundheit
 - **Status:** ✔️ Fertig
@@ -531,6 +534,10 @@
     an
   - Entfernen des Sterns löscht die Offline-Kopie bewusst nicht automatisch; dafür
     bleibt die explizite Offline-Entfernen-Aktion zuständig
+  - Neue Einstellungen → Allgemein → Cache zeigt Anzahl und Speichergrösse der
+    bewusst offline gespeicherten Artikelinhalte und bietet
+    `Offline-Kopien löschen`. Gezählt wird `Article.offlineContent`; Bilder bleiben
+    Teil des gemeinsamen Bild-/Favicon-Caches.
 
 ### 17.2 Artikel-Zustände
 - **Status:** ✅ Entschieden — siehe Feature 22.1
@@ -764,9 +771,19 @@
 ### 24.1 Mehrere Fenster
 - **Status:** ✅ Entschieden — bereit zur Implementierung
 - **Zu implementieren:**
-  - Artikel in separatem Fenster öffnen via `Cmd+Return` und Kontextmenü
-  - Fenster-Zustand beim Beenden speichern und beim Start wiederherstellen
-  - `WindowGroup` in SwiftUI aktivieren für Mehrfenster-Unterstützung
+  - Artikel in separatem Artikelfenster öffnen via `Cmd+Return` und Kontextmenü
+  - Kein zweites Hauptfenster: Das neue Fenster zeigt den Reader für genau einen
+    Artikel
+  - Rechte Artikel-Seitenleiste/Inspector kann eingeblendet werden, damit Feed,
+    Ordner, Tags, Lesestatus, Stern, Archiv/Offline und Quelle direkt bearbeitet
+    werden können
+  - Vorheriger/nächster Artikel funktioniert auch im Artikelfenster
+  - Wenn derselbe Artikel bereits in einem Artikelfenster geöffnet ist, wird dieses
+    Fenster fokussiert statt ein Duplikat zu öffnen
+  - Fenster-Zustand beim Beenden speichern und beim Start optional wiederherstellen
+  - Einstellung unter `Allgemein`: `Artikelfenster beim Start wiederherstellen`
+    mit Standard **aus**
+  - `WindowGroup` in SwiftUI für die Artikelfenster nutzen
 
 ---
 
@@ -878,7 +895,7 @@ Folgende Reihenfolge berücksichtigt Abhängigkeiten. Features mit (*) sind Vora
 29. **Feature 24.1** — Mehrfenster (Cmd+Return + Kontextmenü, Fenster-Zustand speichern)
 
 ### Phase 9 — Reader Features
-30. **Feature 11.1** — Lesedauer in Artikel-Liste anzeigen
+30. **Feature 11.1** — Lesedauer im Reader anzeigen — erledigt; keine Anzeige in der Artikel-Liste
 31. **Feature 11.2** — Lesefortschritt (Fortschrittsbalken, Scroll-Position speichern)
 32. **Feature 1.8** — Vollartikel-Extraktion (Readability.js, dritter Reader-Modus)
 
