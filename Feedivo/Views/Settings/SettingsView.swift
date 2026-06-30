@@ -253,6 +253,9 @@ private struct NewGeneralSettingsView: View {
     @AppStorage(ReaderDisplayMode.storageKey)
     private var readerDisplayModeRawValue = ReaderDisplayMode.defaultMode.rawValue
 
+    @AppStorage(ArticleWindowSettings.restoreOpenArticleWindowsOnLaunchKey)
+    private var restoreOpenArticleWindowsOnLaunch = ArticleWindowSettings.defaultRestoreOpenArticleWindowsOnLaunch
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             NewSettingsBlock(eyebrow: "System") {
@@ -291,6 +294,14 @@ private struct NewGeneralSettingsView: View {
                     description: L10n.settingsMarkReadOnOpenDescription
                 ) {
                     Toggle("", isOn: $markArticleReadOnSelection)
+                        .labelsHidden()
+                }
+
+                NewSettingRow(
+                    title: L10n.settingsRestoreArticleWindowsTitle,
+                    description: L10n.settingsRestoreArticleWindowsDescription
+                ) {
+                    Toggle("", isOn: $restoreOpenArticleWindowsOnLaunch)
                         .labelsHidden()
                 }
             }

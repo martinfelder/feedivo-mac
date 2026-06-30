@@ -327,6 +327,7 @@ private struct SmartFolderArticleListContent: View {
 
 private struct ArticleListContent: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.openWindow) private var openWindow
     let articles: [Article]
     let navigationTitle: Text
     let onRequestCreateRuleFromArticle: (Article) -> Void
@@ -591,6 +592,9 @@ private struct ArticleListContent: View {
             onShareOriginal: {
                 _ = viewModel.shareOriginal(article)
             },
+            onOpenInWindow: {
+                openArticleInWindow(article)
+            },
             onExport: {
                 onRequestExportArticle(article)
             },
@@ -607,6 +611,10 @@ private struct ArticleListContent: View {
                 try? modelContext.save()
             }
         )
+    }
+
+    private func openArticleInWindow(_ article: Article) {
+        openWindow(value: ArticleWindowRequest(articleID: article.id))
     }
 
     private func makePreparedArticles() -> ArticleListPreparedArticles {

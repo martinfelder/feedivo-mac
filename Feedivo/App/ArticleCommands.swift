@@ -47,6 +47,12 @@ struct ArticleCommands: Commands {
 
             Divider()
 
+            Button(L10n.articleOpenInWindowCommand) {
+                articleCommandActions?.openInArticleWindow()
+            }
+            .keyboardShortcut(.return, modifiers: [.command])
+            .disabled(articleCommandActions?.canPerformActions != true)
+
             Button(L10n.articleCopyLinkCommand) {
                 articleCommandActions?.copyLink()
             }

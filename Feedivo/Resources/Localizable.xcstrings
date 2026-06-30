@@ -1925,6 +1925,34 @@
         }
       }
     },
+    "article.openInWindow.command" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In neuem Fenster öffnen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open in New Window"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir dans une nouvelle fenêtre"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apri in nuova finestra"
+          }
+        }
+      }
+    },
     "article.openOriginal.command" : {
       "localizations" : {
         "de" : {
@@ -14965,6 +14993,62 @@
         }
       }
     },
+    "article.window.missing.description" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Artikel wurde gelöscht oder ist nicht mehr verfügbar."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The article was deleted or is no longer available."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'article a été supprimé ou n'est plus disponible."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'articolo è stato eliminato o non è più disponibile."
+          }
+        }
+      }
+    },
+    "article.window.missing.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Artikel nicht verfügbar"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Article Unavailable"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Article indisponible"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Articolo non disponibile"
+          }
+        }
+      }
+    },
     "reader.inspector.unread" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -19462,6 +19546,62 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Segna gli articoli come letti all'apertura"
+          }
+        }
+      }
+    },
+    "settings.restoreArticleWindows.description" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Öffnet beim Start die zuletzt geöffneten Artikelfenster erneut."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reopens the article windows that were open last time."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rouvre au démarrage les fenêtres d'article ouvertes précédemment."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riapre all'avvio le finestre articolo aperte in precedenza."
+          }
+        }
+      }
+    },
+    "settings.restoreArticleWindows.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Artikelfenster beim Start wiederherstellen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore article windows on launch"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restaurer les fenêtres d'article au lancement"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ripristina finestre articolo all'avvio"
           }
         }
       }

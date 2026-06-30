@@ -126,6 +126,23 @@ struct FeedivoApp: App {
         .defaultSize(width: 760, height: 560)
         .modelContainer(modelContainer)
 
+        WindowGroup(for: ArticleWindowRequest.self) { $request in
+            if let request {
+                ArticleWindowView(request: request)
+                    .environment(\.locale, appLanguage.locale)
+                    .environment(\.interfaceTextSize, interfaceTextSize)
+                    .dynamicTypeSize(interfaceTextSize.dynamicTypeSize)
+            } else {
+                ContentUnavailableView(
+                    L10n.articleWindowMissingTitle,
+                    systemImage: "doc.text.magnifyingglass",
+                    description: Text(L10n.articleWindowMissingDescription)
+                )
+            }
+        }
+        .defaultSize(width: 900, height: 720)
+        .modelContainer(modelContainer)
+
         Settings {
             NewSettingsView()
                 .environment(\.locale, appLanguage.locale)

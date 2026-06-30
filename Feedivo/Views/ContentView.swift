@@ -5,12 +5,15 @@ import UniformTypeIdentifiers
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.openWindow) private var openWindow
     @Environment(DatabaseLoadState.self) private var databaseLoadState
     @AppStorage(FirstRunWizardState.completionStorageKey) private var hasCompletedFirstRunWizard = false
     @AppStorage(AppIconBadgeSettings.isEnabledKey)
     private var appIconBadgeIsEnabled = AppIconBadgeSettings.defaultIsEnabled
     @AppStorage(OfflineReadingSettings.automaticallySaveStarredArticlesKey)
     private var automaticallySaveStarredArticles = OfflineReadingSettings.defaultAutomaticallySaveStarredArticles
+    @AppStorage(ArticleWindowSettings.restoreOpenArticleWindowsOnLaunchKey)
+    private var restoreOpenArticleWindowsOnLaunch = ArticleWindowSettings.defaultRestoreOpenArticleWindowsOnLaunch
     @Query(sort: \Feed.title) private var feeds: [Feed]
     @Query(sort: \Tag.name) private var tags: [Tag]
     @Query(sort: \SmartFolder.sortOrder) private var smartFolders: [SmartFolder]
@@ -42,6 +45,7 @@ struct ContentView: View {
     @State private var isMetadataInspectorPresented = false
     @State private var isShowingFirstRunWizard = false
     @State private var isFirstRunWizardDismissedForSession = false
+    @State private var didRestoreArticleWindowsForLaunch = false
     @State private var networkMonitor = NetworkConnectionStatusMonitor()
 
     var body: some View {
@@ -135,6 +139,7 @@ struct ContentView: View {
             updateFirstRunWizardPresentation()
             selectDefaultSmartFolderIfNeeded()
             updateAppIconBadge()
+            restoreArticleWindowsIfNeeded()
         }
         .onChange(of: smartFolders.count) {
             selectDefaultSmartFolderIfNeeded()
@@ -281,6 +286,9 @@ struct ContentView: View {
                 shareOriginal: {
                     _ = articleViewModel.shareOriginal(selectedArticle)
                 },
+                openInArticleWindow: {
+                    openArticleInWindow(selectedArticle)
+                },
                 requestExport: {
                     if let selectedArticle {
                         requestExportArticle(selectedArticle)
@@ -342,6 +350,25 @@ struct ContentView: View {
         // dass das Export-Sheet noch während der Menüaktion präsentiert wird.
         DispatchQueue.main.async {
             articleExportRequest = request
+        }
+    }
+
+    private func openArticleInWindow(_ article: Article?) {
+        guard let article else {
+            return
+        }
+
+        openWindow(value: ArticleWindowRequest(articleID: article.id))
+    }
+
+    private func restoreArticleWindowsIfNeeded() {
+        guard restoreOpenArticleWindowsOnLaunch, !didRestoreArticleWindowsForLaunch else {
+            return
+        }
+
+        didRestoreArticleWindowsForLaunch = true
+        for articleID in ArticleWindowSettings.openArticleIDs() {
+            openWindow(value: ArticleWindowRequest(articleID: articleID))
         }
     }
 

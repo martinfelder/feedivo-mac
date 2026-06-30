@@ -169,6 +169,7 @@ FeedivoMac/
 │   │   ├── Reader/
 │   │   │   ├── ReaderView.swift        # Rechte Spalte: nativer Artikel-Reader ✅
 │   │   │   ├── ArticleMetadataInspectorView.swift # Rechter Artikelinfos-Inspector ✅
+│   │   │   ├── ArticleWindowView.swift # Eigenes Artikelfenster mit Reader + Inspector ✅
 │   │   │   ├── ReaderPreparedArticle.swift # Vorbereitete Reader-Daten pro Artikel ✅
 │   │   │   ├── ReaderContentRenderer.swift # HTML/Text zu Reader-Bloecken ✅
 │   │   │   ├── ReaderMetadataFormatter.swift # Feedname/Lesezeit/Alter ✅
@@ -215,6 +216,7 @@ FeedivoMac/
 │   │   ├── ArticleExportPackageBuilder.swift # ZIP-Paket mit Offline-Bildern ✅
 │   │   ├── ArticleRetentionSettings.swift # Artikel-Aufbewahrung Settings-Keys ✅
 │   │   ├── ArticleRetentionCleanupService.swift # Automatisches Löschen alter Artikel ✅
+│   │   ├── ArticleWindowSettings.swift # Artikelfenster-Wiederherstellung Settings/IDs ✅
 │   │   ├── OrphanedArticleCleanupService.swift # verwaiste Artikel ohne existierenden Feed entfernen ✅
 │   │   ├── FeedUnreadCountBackfillService.swift # unreadCount einmalig korrigieren ✅
 │   │   ├── SmartFolderDefaultKeyBackfillService.swift # defaultKey für alte SmartFolder migrieren ✅
@@ -307,12 +309,24 @@ struct FeedivoApp: App {
         }
         .modelContainer(modelContainer)
 
+        WindowGroup(for: ArticleWindowRequest.self) { $request in
+            if let request {
+                ArticleWindowView(request: request)
+                    .environment(\.locale, appLanguage.locale)
+                    .environment(\.interfaceTextSize, interfaceTextSize)
+                    .dynamicTypeSize(interfaceTextSize.dynamicTypeSize)
+            }
+        }
+        .defaultSize(width: 900, height: 720)
+        .modelContainer(modelContainer)
+
         Settings {
-            SettingsView()
+            NewSettingsView()
                 .environment(\.locale, appLanguage.locale)
                 .environment(\.interfaceTextSize, interfaceTextSize)
                 .dynamicTypeSize(interfaceTextSize.dynamicTypeSize)
         }
+        .defaultSize(width: 1040, height: 640)
         .modelContainer(modelContainer)
     }
 }
@@ -322,6 +336,9 @@ struct FeedivoApp: App {
 - Beim App-Start laufen Backfills für alte Artikel-/Regeldaten und die drei
   Default-Ordner `Heute`, `Diese Woche` und `Gespeichert` werden bei Bedarf wieder
   angelegt.
+- Registriert zusätzlich eine `WindowGroup(for: ArticleWindowRequest.self)` für
+  dedizierte Artikelfenster. Diese öffnen `ArticleWindowView` mit gemeinsamem
+  ModelContainer, Locale und Interface-Textgröße.
 
 ### ContentView.swift
 NavigationSplitView mit 3 Spalten. Verwaltet `selectedFeed` und `selectedArticle` als
@@ -1007,6 +1024,8 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - `Cmd+Shift+U` toggelt gelesen/ungelesen
 - `Cmd+D` toggelt Stern
 - Archivieren, Teilen und Exportieren sind ebenfalls im Artikel-Menü verfuegbar.
+- `Cmd+Return` öffnet den ausgewählten Artikel in einem dedizierten
+  Artikelfenster.
 - Der Exportdialog aus Feature 18.1a läuft über `ContentView` und ist über
   Artikel-Menü, Artikel-Kontextmenü sowie Reader-Toolbar erreichbar; Export via
   Share Sheet bleibt ein späterer Export-Slice.
@@ -1098,6 +1117,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - `NewSettingsView` nutzt die Bereiche Allgemein, Anzeige, Feeds, Ordner, Cache,
   Offline, Benachrichtigungen, Aktualisierung, Automatisierung, Sync und Über.
   Die Oberfläche verwendet die echten Settings-Bindings und Verwaltungsviews.
+- Allgemein enthält zusätzlich den Toggle `Artikelfenster beim Start
+  wiederherstellen`, gebunden an
+  `ArticleWindowSettings.restoreOpenArticleWindowsOnLaunchKey`; Standard ist aus.
 - Die neue Fassung rendert die Kernbereiche nicht mehr über die alten
   `Form`-Views, sondern über screenshot-nahe `NewSettingsBlock`- und
   `NewSettingRow`-Bausteine mit kompakter Toolbar, ausgewählter Kachel,
@@ -1413,6 +1435,22 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   `Tag`-Eintraege wiederverwendet oder neu erstellt.
 - Stellt `FlowLayout` modulweit bereit, damit Reader und Inspector dieselbe
   umbruchfaehige Chip-Anordnung verwenden.
+
+### ArticleWindowView.swift / ArticleWindowSettings.swift
+- `ArticleWindowView` ist das dedizierte Mehrfenster-Reader-Fenster für einzelne
+  Artikel. Es nutzt `ReaderView` wieder, hält den rechten Artikel-Inspector als
+  fensterlokalen Zustand und zeigt einen leeren Zustand, wenn der Artikel nicht
+  mehr existiert.
+- Das Fenster wird über `ArticleWindowRequest(articleID:)` geöffnet; `FeedivoApp`
+  registriert dafür `WindowGroup(for: ArticleWindowRequest.self)`. Gleiche
+  Artikel-IDs laufen über denselben SwiftUI-WindowGroup-Wert, damit macOS
+  bestehende Artikelfenster fokussieren kann.
+- Vorheriger/nächster Artikel funktioniert im Artikelfenster über die globale
+  Artikel-Sortierung aus `ArticleListQuery.sortDescriptors`.
+- `ArticleWindowSettings` speichert die zuletzt offenen Artikelfenster als
+  Artikel-UUIDs und stellt den Settings-Key für die optionale Wiederherstellung
+  bereit. Beim Navigieren im Artikelfenster wird die gespeicherte ID vom alten auf
+  den neuen Artikel umgezogen.
 
 ### ReaderFontPreset.swift
 - Kuratierte Font-Presets für die Artikelansicht aus der UI-Referenz:
@@ -1823,7 +1861,7 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - [ ] Vollartikel laden, wenn Feed/Quelle es erlauben; Grundstruktur, Werbung und
   Anbieterlinks fair erhalten und Darstellungsumfang im nativen Reader definieren
 - [ ] Theme System/Hell/Dunkel als Settings-Polish
-- [ ] Mehrfenster-Unterstützung für Artikel: `Cmd+Return` und Kontextmenü öffnen
+- [x] Mehrfenster-Unterstützung für Artikel: `Cmd+Return` und Kontextmenü öffnen
   einen Artikel in einem eigenen Reader-Fenster mit optionalem rechten
   Artikel-Inspector. Vorheriger/nächster Artikel soll im Artikelfenster
   funktionieren; bereits geöffnete Artikelfenster werden fokussiert statt
@@ -1930,6 +1968,15 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 ---
 
 ## Letzte Änderungen
+
+- 2026-06-29: Mehrfenster-Unterstützung für Artikel umgesetzt. `Cmd+Return` und
+  das Artikel-Kontextmenü öffnen den ausgewählten Artikel in einem eigenen
+  `ArticleWindowView` über `WindowGroup(for: ArticleWindowRequest.self)`. Das
+  Fenster nutzt den bestehenden `ReaderView` mit optionalem rechten
+  Artikel-Inspector, unterstützt Vor/Zurück-Navigation, merkt die zuletzt offenen
+  Artikelfenster über `ArticleWindowSettings` und bietet unter Einstellungen →
+  Allgemein den standardmäßig ausgeschalteten Toggle
+  `Artikelfenster beim Start wiederherstellen`.
 
 - 2026-06-29: Mehrfenster-Entscheidung konkretisiert: Feedivo öffnet keine
   zusätzlichen Hauptfenster, sondern dedizierte Artikelfenster mit Reader und

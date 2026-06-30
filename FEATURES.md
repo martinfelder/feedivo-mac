@@ -769,8 +769,8 @@
 ## 24. Mehrfenster-Unterstützung
 
 ### 24.1 Mehrere Fenster
-- **Status:** ✅ Entschieden — bereit zur Implementierung
-- **Zu implementieren:**
+- **Status:** ✔️ Fertig
+- **Umgesetzt:**
   - Artikel in separatem Artikelfenster öffnen via `Cmd+Return` und Kontextmenü
   - Kein zweites Hauptfenster: Das neue Fenster zeigt den Reader für genau einen
     Artikel

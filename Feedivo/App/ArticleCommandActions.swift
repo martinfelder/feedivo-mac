@@ -8,6 +8,7 @@ struct ArticleCommandActions {
     let copyLink: () -> Void
     let openOriginal: () -> Void
     let shareOriginal: () -> Void
+    let openInArticleWindow: () -> Void
     let requestExport: () -> Void
     let canSelectPreviousArticle: Bool
     let canSelectNextArticle: Bool
@@ -22,6 +23,7 @@ struct ArticleCommandActions {
         copyLink: @escaping () -> Void,
         openOriginal: @escaping () -> Void,
         shareOriginal: @escaping () -> Void = {},
+        openInArticleWindow: @escaping () -> Void = {},
         requestExport: @escaping () -> Void = {},
         canSelectPreviousArticle: Bool = false,
         canSelectNextArticle: Bool = false,
@@ -35,6 +37,7 @@ struct ArticleCommandActions {
         self.copyLink = copyLink
         self.openOriginal = openOriginal
         self.shareOriginal = shareOriginal
+        self.openInArticleWindow = openInArticleWindow
         self.requestExport = requestExport
         self.canSelectPreviousArticle = canSelectPreviousArticle
         self.canSelectNextArticle = canSelectNextArticle
