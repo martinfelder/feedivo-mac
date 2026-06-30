@@ -167,9 +167,14 @@ FeedivoMac/
 │   │   │   ├── ArticleExportSheet.swift # Zweistufiger Artikel-Exportdialog mit Vorschau ✅
 │   │   │   └── ArticleRowView.swift    # Reichhaltige Artikel-Zeile mit Status/Stern ✅
 │   │   ├── Reader/
-│   │   │   ├── ReaderView.swift        # Rechte Spalte: nativer Artikel-Reader ✅
+│   │   │   ├── ReaderView.swift        # Rechte Spalte: nativer Artikel-Reader inkl. Vollartikel-Modus ✅
 │   │   │   ├── ArticleMetadataInspectorView.swift # Rechter Artikelinfos-Inspector ✅
 │   │   │   ├── ArticleWindowView.swift # Eigenes Artikelfenster mit Reader + Inspector ✅
+│   │   │   ├── ReadabilityExtractionView.swift # WKWebView-basierte Vollartikel-Extraktion ✅
+│   │   │   ├── ReadabilityExtractedArticle.swift # Dekodiertes Readability-Ergebnis ✅
+│   │   │   ├── ReadabilityFailureNotice.swift # Respektvoller Hinweis bei blockiertem Vollartikel ✅
+│   │   │   ├── ReadabilityLoadDecision.swift # Startlogik für automatisches Vollartikel-Laden ✅
+│   │   │   ├── ReadabilityScriptProvider.swift # Gebündeltes Readability.js + Extraktionsscript ✅
 │   │   │   ├── ReaderPreparedArticle.swift # Vorbereitete Reader-Daten pro Artikel ✅
 │   │   │   ├── ReaderContentRenderer.swift # HTML/Text zu Reader-Bloecken ✅
 │   │   │   ├── ReaderMetadataFormatter.swift # Feedname/Lesezeit/Alter ✅
@@ -1230,7 +1235,18 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   moeglich.
 - Wenn ein Feed nur eine Summary, aber keinen Volltext liefert, zeigt der native
   Reader die vorhandene Zusammenfassung direkt ohne zusaetzliche Hinweisbox.
-  Volltexte aus der Original-Webseite bleiben über `Original oeffnen` erreichbar.
+- Reader-Modi: `Nativer Reader`, `Vollartikel` und `Originalansicht`. Der
+  Vollartikel-Modus nutzt Readability.js in einem versteckten `WKWebView`, startet
+  automatisch beim Auswählen des Modus und beim Artikelwechsel, solange für die
+  aktuelle URL noch kein Vollartikel geladen wird oder geladen ist.
+- Entscheidung 2026-06-30: Der per Readability extrahierte Vollartikel wird nur
+  temporär im Reader angezeigt. Er wird nicht als `Article.content` oder
+  `offlineContent` gespeichert; dauerhaftes Speichern bleibt der manuellen
+  Offline-Funktion vorbehalten.
+- Entscheidung 2026-06-30: Wenn ein Vollartikel nicht geladen werden kann, zeigt
+  der Reader einen respektvollen Hinweis, dass der Anbieter das Laden nicht
+  zulässt und Feedivo diese Vorgabe respektiert. Technische Fehlerdetails stehen
+  nicht im Vordergrund der UI.
 - Toolbar-Buttons für vorherigen/nächsten Artikel navigieren innerhalb der aktuell
   sichtbaren Feed- oder Smart-Filter-Liste und stoppen am Listenrand
 - Seltenere Aktionen wie `Link kopieren` liegen im Reader-Mehr-Menü, damit die
@@ -1262,10 +1278,6 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Artikel im SwiftUI-`@State` haengen bleiben
 - Bilder werden mit `scaledToFit` und begrenzter Maximalhoehe gerendert, damit grosse
   Feedbilder ruhiger und performanter bleiben
-- Noch kein eigener Vollartikel-Lade-/Extraktionsmodus für den nativen Reader.
-  `WKWebView` existiert bereits als Originalansicht; Vollartikel-Laden mit fair
-  erhaltener Anbieterstruktur bleibt ein eigener M4/v1-Produktpunkt.
-
 ### ReaderPreparedArticle.swift
 - Kapselt die vorbereiteten, teureren Reader-Daten für einen Artikel.
 - Berechnet native Content-Bloecke, Metazeile und gueltige Original-URL einmal beim
@@ -1503,7 +1515,8 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 
 ### ReaderContentRenderer.swift
 - Wandelt HTML-Fragmente oder Plain Text in `ReaderContentBlock`
-- Aktuelle Block-Typen: `.paragraph(String)` und `.image(urlString:)`
+- Aktuelle Block-Typen: `.paragraph(String)`, `.heading(String)`, `.quote(String)`,
+  `.listItem(String)` und `.image(urlString:)`
 - Erkennt Absätze, Überschriften, Zitate, Listenpunkte und Bildbloecke
 - Cacht die verwendeten `NSRegularExpression` Instanzen statisch, damit beim
   Artikelwechsel keine Regexes neu kompiliert werden.
@@ -1867,8 +1880,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   als `offlineContent` speichern
 - [x] Einstellungen-Fenster final diskutiert und übernommen: Struktur, Gewichtung,
   Sync-/Offline-/Cache-Bereiche und macOS-Gefuehl passen für v1
-- [ ] Vollartikel laden, wenn Feed/Quelle es erlauben; Grundstruktur, Werbung und
-  Anbieterlinks fair erhalten und Darstellungsumfang im nativen Reader definieren
+- [x] Vollartikel laden, wenn Feed/Quelle es erlauben: dritter Reader-Modus
+  `Vollartikel`, Readability.js via WKWebView, automatischer Start beim Auswählen
+  des Modus und temporäre Anzeige im nativen Reader ohne Speicherung im Artikelmodell
 - [ ] Theme System/Hell/Dunkel als Settings-Polish
 - [x] Mehrfenster-Unterstützung für Artikel: `Cmd+Return` und Kontextmenü öffnen
   einen Artikel in einem eigenen Reader-Fenster mit optionalem rechten
@@ -1920,8 +1934,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - [x] OPML-Gruppen später als Ordner oder Tags importieren? Entscheidung für v1:
   als `Feed.folderName` speichern; sichtbare Ordnerverwaltung ist als Basis umgesetzt.
 - [ ] CloudKit Sync-Umfang, insbesondere Artikel-Content und Offline-Content
-- [ ] Vollartikel-Laden: Was wird im nativen Reader angezeigt, wenn Feedivo den
-  ganzen Artikel von der Quelle laden darf?
+- [x] Vollartikel-Laden: Entscheidung 2026-06-30: Readability.js extrahiert den
+  Hauptinhalt aus der Originalseite; angezeigt wird das Ergebnis im nativen
+  Reader-Layout, temporär und ohne Persistenz.
 - [x] Artikel-Detail: Nativer SwiftUI Reader bleibt Standard, Originalansicht per
   `WKWebView` ist als globaler Reader-Modus verfuegbar.
 - [ ] Monetarisierung: Kostenlos / einmaliger Kauf / nie im App Store?
@@ -1977,6 +1992,14 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 ---
 
 ## Letzte Änderungen
+
+- 2026-06-30: Feature 1.8 Vollartikel-Extraktion umgesetzt. Der Reader hat nun
+  neben `Nativer Reader` und `Originalansicht` den Modus `Vollartikel`; beim
+  Auswählen dieses Modus wird die Originalseite automatisch in einem versteckten
+  `WKWebView` geladen, mit gebündeltem Mozilla Readability.js extrahiert und
+  temporär im nativen Reader-Layout angezeigt. Der extrahierte Inhalt wird bewusst
+  nicht im Artikelmodell gespeichert. Wenn der Anbieter das Laden nicht zulässt,
+  zeigt Feedivo einen respektvollen Hinweis statt eines technischen Fehlertexts.
 
 - 2026-06-30: Regelliste in den Einstellungen um Drag & Drop für die Reihenfolge
   erweitert. Die bestehende `sortOrder`-Logik bleibt die Quelle der Wahrheit;

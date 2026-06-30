@@ -75,6 +75,11 @@ struct ReaderView: View {
     @State private var viewModel = ArticleViewModel()
     @State private var offlineDownloadService = OfflineDownloadService()
     @State private var isOfflineOperationInProgress = false
+    @State private var readabilityArticle: ReadabilityExtractedArticle?
+    @State private var readabilityRequestedURL: URL?
+    @State private var readabilityLoadedURL: URL?
+    @State private var isReadabilityExtractionInProgress = false
+    @State private var readabilityFailureNotice: ReadabilityFailureNotice?
 
     private var titleFontPreset: ReaderFontPreset {
         ReaderFontPreset.resolved(from: titleFontPresetRawValue)
@@ -156,8 +161,24 @@ struct ReaderView: View {
         readerDisplayMode == .web && originalURL != nil
     }
 
+    private var shouldShowReadabilityMode: Bool {
+        readerDisplayMode == .readability && originalURL != nil
+    }
+
     private var contentBlocks: [ReaderContentBlock] {
         preparedArticle.contentBlocks
+    }
+
+    private var readabilityContentBlocks: [ReaderContentBlock] {
+        guard let readabilityArticle else {
+            return []
+        }
+
+        return ReaderContentRenderer.blocks(
+            summary: nil,
+            content: readabilityArticle.normalizedContentHTML,
+            fallbackImageURL: article.imageURL
+        )
     }
 
     private var shouldShowOfflineStatusNotice: Bool {
@@ -214,6 +235,9 @@ struct ReaderView: View {
         .task(id: preparedArticleRefreshToken) {
             await buildPreparedArticle()
         }
+        .onAppear {
+            startReadabilityExtractionIfNeeded()
+        }
         // Hintergrund-Refresh oder Offline-Save ändern Content/Summary/
         // Offline-Inhalt, ohne die persistentModelID zu berühren. Statt den
         // Reader synchron neu zu parsen, bumpen wir contentRevision — der
@@ -232,6 +256,13 @@ struct ReaderView: View {
         }
         .onChange(of: article.offlineStateRaw) {
             contentRevision += 1
+        }
+        .onChange(of: article.link) {
+            resetReadabilityState()
+            startReadabilityExtractionIfNeeded()
+        }
+        .onChange(of: readerDisplayModeRawValue) {
+            startReadabilityExtractionIfNeeded()
         }
         .navigationTitle(article.title)
         .toolbar {
@@ -340,6 +371,8 @@ struct ReaderView: View {
     private var readerContent: some View {
         if shouldShowWebView, let originalURL {
             WebContentView(url: originalURL)
+        } else if shouldShowReadabilityMode, let originalURL {
+            readabilityReader(originalURL: originalURL)
         } else {
             nativeReader
         }
@@ -364,7 +397,7 @@ struct ReaderView: View {
                     VStack(alignment: .leading, spacing: imageTextDividerSpacing) {
                         readerContentBlock(block)
 
-                        if shouldShowImageTextDivider(after: index) {
+                        if shouldShowImageTextDivider(after: index, in: contentBlocks) {
                             readerSectionDivider
                         }
                     }
@@ -377,6 +410,141 @@ struct ReaderView: View {
             .padding(.top, articleTopPadding)
             .padding(.bottom, articleBottomPadding)
         }
+    }
+
+    private func readabilityReader(originalURL: URL) -> some View {
+        ZStack(alignment: .topLeading) {
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: contentBlockSpacing) {
+                    readerHeader
+                    readabilityStatusNotice
+
+                    let blocks = readabilityContentBlocks
+                    ForEach(Array(blocks.enumerated()), id: \.element.id) { index, block in
+                        VStack(alignment: .leading, spacing: imageTextDividerSpacing) {
+                            readerContentBlock(block)
+
+                            if shouldShowImageTextDivider(after: index, in: blocks) {
+                                readerSectionDivider
+                            }
+                        }
+                    }
+
+                    readerFooter
+                }
+                .frame(maxWidth: clampedContentWidth, alignment: .leading)
+                .padding(.horizontal, 28)
+                .padding(.top, articleTopPadding)
+                .padding(.bottom, articleBottomPadding)
+            }
+
+            if readabilityRequestedURL == originalURL {
+                ReadabilityExtractionView(url: originalURL) { result in
+                    handleReadabilityExtraction(result, for: originalURL)
+                }
+                .frame(width: 1, height: 1)
+                .opacity(0.01)
+                .accessibilityHidden(true)
+            }
+        }
+    }
+
+    private var readabilityStatusNotice: some View {
+        Label {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(readabilityStatusTitle)
+
+                if let readabilityFailureNotice {
+                    Text(LocalizedStringKey(readabilityFailureNotice.detailKey))
+                        .font(interfaceTextSize.font(size: 11))
+                        .foregroundStyle(.secondary)
+                } else if let message = readabilityStatusDetail {
+                    Text(message)
+                        .font(interfaceTextSize.font(size: 11))
+                        .foregroundStyle(.secondary)
+                }
+
+                if readabilityFailureNotice != nil {
+                    Button(L10n.readerReadabilityRetryButton) {
+                        startReadabilityExtraction()
+                    }
+                    .controlSize(.small)
+                    .disabled(isReadabilityExtractionInProgress || originalURL == nil)
+                }
+            }
+        } icon: {
+            if isReadabilityExtractionInProgress {
+                ProgressView()
+                    .controlSize(.small)
+            } else {
+                Image(systemName: readabilityStatusSystemImage)
+            }
+        }
+        .font(interfaceTextSize.font(size: 12, weight: .medium))
+        .foregroundStyle(readabilityStatusForegroundStyle)
+        .padding(.vertical, 8)
+        .padding(.horizontal, 10)
+        .background(readabilityStatusBackgroundStyle, in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    private var readabilityStatusTitle: LocalizedStringKey {
+        if isReadabilityExtractionInProgress {
+            return L10n.readerReadabilityLoading
+        }
+
+        if readabilityFailureNotice != nil {
+            return L10n.readerReadabilityFailed
+        }
+
+        if readabilityLoadedURL != nil {
+            return L10n.readerReadabilityLoaded
+        }
+
+        return L10n.readerReadabilityIdleTitle
+    }
+
+    private var readabilityStatusDetail: LocalizedStringKey? {
+        if isReadabilityExtractionInProgress {
+            return L10n.readerReadabilityLoadingDescription
+        }
+
+        if readabilityFailureNotice != nil {
+            return nil
+        }
+
+        if readabilityLoadedURL == nil {
+            return L10n.readerReadabilityIdleDescription
+        }
+
+        return nil
+    }
+
+    private var readabilityStatusSystemImage: String {
+        if readabilityFailureNotice != nil {
+            return "exclamationmark.triangle.fill"
+        }
+
+        if readabilityLoadedURL != nil {
+            return "doc.text.magnifyingglass"
+        }
+
+        return "arrow.down.doc"
+    }
+
+    private var readabilityStatusForegroundStyle: Color {
+        if readabilityFailureNotice != nil {
+            return .orange
+        }
+
+        if readabilityLoadedURL != nil {
+            return .green
+        }
+
+        return .secondary
+    }
+
+    private var readabilityStatusBackgroundStyle: Color {
+        readabilityStatusForegroundStyle.opacity(0.1)
     }
 
     private var offlineStatusNotice: some View {
@@ -563,17 +731,17 @@ struct ReaderView: View {
             .frame(maxWidth: .infinity)
     }
 
-    private func shouldShowImageTextDivider(after index: Int) -> Bool {
-        guard contentBlocks.indices.contains(index), isImageBlock(contentBlocks[index]) else {
+    private func shouldShowImageTextDivider(after index: Int, in blocks: [ReaderContentBlock]) -> Bool {
+        guard blocks.indices.contains(index), isImageBlock(blocks[index]) else {
             return false
         }
 
-        let nextIndex = contentBlocks.index(after: index)
-        guard contentBlocks.indices.contains(nextIndex) else {
+        let nextIndex = blocks.index(after: index)
+        guard blocks.indices.contains(nextIndex) else {
             return false
         }
 
-        return !isImageBlock(contentBlocks[nextIndex])
+        return !isImageBlock(blocks[nextIndex])
     }
 
     private func isImageBlock(_ block: ReaderContentBlock) -> Bool {
@@ -751,6 +919,60 @@ struct ReaderView: View {
             .frame(maxHeight: leadImageMaxHeight)
             .clipShape(RoundedRectangle(cornerRadius: 8))
         }
+    }
+
+    private func startReadabilityExtraction() {
+        guard let originalURL else {
+            return
+        }
+
+        readabilityArticle = nil
+        readabilityLoadedURL = nil
+        readabilityFailureNotice = nil
+        isReadabilityExtractionInProgress = true
+        readabilityRequestedURL = originalURL
+    }
+
+    private func startReadabilityExtractionIfNeeded() {
+        guard ReadabilityLoadDecision.shouldStartExtraction(
+            mode: readerDisplayMode,
+            originalURL: originalURL,
+            requestedURL: readabilityRequestedURL,
+            loadedURL: readabilityLoadedURL,
+            isInProgress: isReadabilityExtractionInProgress
+        ) else {
+            return
+        }
+
+        startReadabilityExtraction()
+    }
+
+    private func handleReadabilityExtraction(_ result: Result<ReadabilityExtractedArticle, Error>, for url: URL) {
+        guard readabilityRequestedURL == url else {
+            return
+        }
+
+        readabilityRequestedURL = nil
+        isReadabilityExtractionInProgress = false
+
+        switch result {
+        case .success(let article):
+            readabilityArticle = article
+            readabilityLoadedURL = url
+            readabilityFailureNotice = nil
+        case .failure(let error):
+            readabilityArticle = nil
+            readabilityLoadedURL = nil
+            readabilityFailureNotice = ReadabilityFailureNotice.make(for: error)
+        }
+    }
+
+    private func resetReadabilityState() {
+        readabilityArticle = nil
+        readabilityRequestedURL = nil
+        readabilityLoadedURL = nil
+        isReadabilityExtractionInProgress = false
+        readabilityFailureNotice = nil
     }
 
     private var preparedArticleRefreshToken: ReaderRefreshToken {

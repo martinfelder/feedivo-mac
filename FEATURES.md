@@ -7,7 +7,7 @@
 > Status-Legende:
 > ✔️ Fertig | 🔨 In Arbeit (teilweise umgesetzt) | ✅ Entschieden (bereit zur Implementierung) | 💬 In Diskussion | ⏸️ Zurückgestellt
 >
-> Zuletzt aktualisiert: 2026-06-29
+> Zuletzt aktualisiert: 2026-06-30
 
 ---
 
@@ -47,14 +47,18 @@
 - **Umgesetzt:** `Original öffnen` im Inspector, nutzt Standard-Browser
 
 ### 1.8 Reader-Ansicht (Vollartikel-Extraktion)
-- **Status:** ✅ Entschieden — bereit zur Implementierung
-- **Zu implementieren:**
+- **Status:** ✔️ Fertig
+- **Umgesetzt:**
   - Dritter Modus im Reader (neben nativem SwiftUI Text und WKWebView)
   - Toggle in der Reader-Toolbar zum Wechseln zwischen den 3 Modi
   - Technisch: Readability.js via WKWebView (Option A — Mozilla Standard)
-  - Extraktion startet erst wenn User explizit auf "Artikel laden" Button klickt
+  - Extraktion startet automatisch, sobald der User den Modus `Vollartikel` auswählt
   - Braucht Internet-Verbindung — lädt Originalseite und extrahiert Hauptinhalt
-  - Keine automatische Extraktion beim Moduswechsel
+  - Kein zusätzlicher Bestätigungsbutton vor dem Laden
+  - Wenn der Vollartikel nicht geladen werden kann, zeigt Feedivo einen Hinweis,
+    dass der Anbieter dies nicht zulässt und diese Vorgabe zu respektieren ist
+  - Entscheidung: extrahierter Vollartikel wird temporär im Reader angezeigt und
+    nicht als Artikel-/Offline-Content gespeichert
 
 ### 1.9 Schriftgrösse / Font anpassen
 - **Status:** ✔️ Fertig
