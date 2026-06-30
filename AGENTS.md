@@ -623,7 +623,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Unterstützt mehrere Bedingungen pro Regel und wertet sie je nach
   `RuleMatchMode` als `all` (AND) oder `any` (OR) aus.
 - Unterstützt die Felder `title`, `summary` und `feedTitle`.
-- Unterstützt die Operatoren `contains`, `startsWith` und `endsWith`.
+- Unterstützt die Operatoren `contains`, `startsWith`, `endsWith` und `regex`.
+- Regex-Bedingungen werden case-insensitive per `NSRegularExpression` ausgewertet;
+  ungültige Patterns matchen nicht und werden beim Speichern im `RuleViewModel`
+  abgelehnt.
 - Vergleicht case-insensitive und ignoriert deaktivierte Regeln, leere Suchwerte,
   unbekannte Felder/Operatoren und Regeln ohne Bedingungen.
 - Unterstützt `RuleAction.assignTag`, `RuleAction.hideArticle` und
@@ -648,10 +651,13 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Kapselt Erstellen, Bearbeiten und Löschen von Regeln für den Wizard.
 - Validiert Name, Aktion und mindestens eine nichtleere Bedingung; ein Ziel-Tag ist
   nur für die Aktion `Tag zuweisen` Pflicht.
+- Regex-Bedingungen müssen ein gültiges Pattern enthalten; ungültige Regexe werden
+  nicht still als Teilregel gespeichert.
 - Speichert für `Benachrichtigung auslösen` zusätzlich Textvorlage und Priorität;
   leere Textvorlagen fallen auf `{Titel}` zurück.
 - Neue Regeln bekommen die nächste `sortOrder`; vorhandene Regeln können über
-  das ViewModel dupliziert und per Hoch-/Runter-Aktion umsortiert werden.
+  das ViewModel dupliziert und per Hoch-/Runter-Aktion oder Drag & Drop
+  umsortiert werden.
 - Speichert neue Mehrfachbedingungen als `RuleCondition` und pflegt die alten
   `conditionField`/`conditionOperator`/`conditionValue` Felder für Kompatibilitaet
   mit bestehenden Daten weiter.
@@ -668,8 +674,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 ### RuleSettingsView.swift / RuleWizardView.swift
 - Einstellungen zeigen eine kompakte Tabellenliste aller Regeln mit Reihenfolge,
   Status, Name, Bedingungszusammenfassung, Aktion und Trefferanzahl.
-- Regeln können per Hoch-/Runter-Button umsortiert werden; Doppelklick öffnet den
-  Wizard, Rechtsklick bietet Bearbeiten, Duplizieren und Löschen.
+- Regeln können per Hoch-/Runter-Button oder Drag & Drop umsortiert werden;
+  Doppelklick öffnet den Wizard, Rechtsklick bietet Bearbeiten, Duplizieren und
+  Löschen.
 - Der Wizard zeigt je nach Aktion entweder Ziel-Tag-Felder oder
   Benachrichtigungsfelder. Benachrichtigungstexte unterstützen die Platzhalter
   `{Titel}`, `{Feed}` und `{Regel}` sowie die Prioritäten `Normal` und `Kritisch`.
@@ -682,6 +689,8 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Ausblenden wird kein Ziel-Tag benoetigt.
 - Einfache Regeln verwenden eine Bedingung; Power-User-Regeln erlauben mehrere
   Bedingungen mit AND- oder OR-Verknuepfung.
+- Wenn im Operator-Dropdown `Regex` gewählt ist, zeigt der Wizard rechts oberhalb
+  des Eingabefelds den Textbutton `Regex Beispiele` mit kurzer Regex-Hilfe.
 - Der Wizard zeigt live eine Vorschau, wie viele vorhandene Artikel die aktuelle
   Regel treffen wuerde. Leere Suchwerte zeigen stattdessen einen Hinweis.
 - Der Wizard kann aus der Sidebar mit dem aktuell ausgewählten Artikel gestartet
@@ -1856,8 +1865,8 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - [x] Offline Mode Phase 1: Artikel manuell offline speichern/entfernen, Status im
   Reader und in der Artikelliste anzeigen, Feed-Content oder geladene Originalseite
   als `offlineContent` speichern
-- [ ] Einstellungen-Fenster final diskutieren und polishen: Struktur, Gewichtung,
-  Sync-/Offline-/Cache-Bereiche und macOS-Gefuehl erneut prüfen
+- [x] Einstellungen-Fenster final diskutiert und übernommen: Struktur, Gewichtung,
+  Sync-/Offline-/Cache-Bereiche und macOS-Gefuehl passen für v1
 - [ ] Vollartikel laden, wenn Feed/Quelle es erlauben; Grundstruktur, Werbung und
   Anbieterlinks fair erhalten und Darstellungsumfang im nativen Reader definieren
 - [ ] Theme System/Hell/Dunkel als Settings-Polish
@@ -1968,6 +1977,20 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 ---
 
 ## Letzte Änderungen
+
+- 2026-06-30: Regelliste in den Einstellungen um Drag & Drop für die Reihenfolge
+  erweitert. Die bestehende `sortOrder`-Logik bleibt die Quelle der Wahrheit;
+  Hoch-/Runter-Buttons bleiben als präzise Alternative erhalten.
+
+- 2026-06-30: Regex als letzter offener 5.2-Operator umgesetzt. RuleWizard,
+  RuleEngine, Live-Vorschau und rückwirkendes Anwenden verwenden nun denselben
+  case-insensitive Regex-Pfad; ungültige Patterns werden beim Speichern
+  abgelehnt. Bei ausgewähltem Regex-Operator zeigt der RuleWizard oberhalb des
+  Eingabefelds `Regex Beispiele` mit den wichtigsten Regex-Regeln.
+
+- 2026-06-30: Einstellungen-Fenster für v1 übernommen. Die neue Toolbar-
+  Oberfläche gilt nach Review als ausreichend final; der offene M4-Punkt
+  `Einstellungen-Fenster final diskutieren und polishen` ist abgeschlossen.
 
 - 2026-06-29: Mehrfenster-Unterstützung für Artikel umgesetzt. `Cmd+Return` und
   das Artikel-Kontextmenü öffnen den ausgewählten Artikel in einem eigenen
@@ -2595,8 +2618,8 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   direkt angeklickt werden.
 - 2026-06-21: Erste RuleEngine-Basis umgesetzt: Neue Artikel werden beim Refresh
   anhand einfacher Regeln (`title`/`summary`/`feedTitle` plus `contains`/
-  `startsWith`/`endsWith`) automatisch getaggt; Rule-UI, Regex und
-  Mehrfachbedingungen bleiben offen.
+  `startsWith`/`endsWith`) automatisch getaggt. Regel-UI, Regex und
+  Mehrfachbedingungen wurden später in M3/M4 ergänzt.
 - 2026-06-21: Rueckwirkendes Anwenden von Regeln umgesetzt: In den Einstellungen
   können aktive Regeln manuell auf vorhandene Artikel angewendet werden; bereits
   gesetzte Tags werden nicht dupliziert.

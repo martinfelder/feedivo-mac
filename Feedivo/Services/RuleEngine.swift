@@ -10,6 +10,7 @@ enum RuleEngine {
         var field: String
         var conditionOperator: String
         var lowercasedValue: String
+        var regularExpression: NSRegularExpression?
     }
 
     /// Vorbereitete Regel: Sortierung, Conditions und Match-Modus werden einmalig
@@ -242,18 +243,37 @@ enum RuleEngine {
             return nil
         }
 
+        let expression = regularExpression(
+            for: conditionOperator,
+            pattern: trimmedValue
+        )
+        if conditionOperator == RuleConditionOperator.regex.rawValue,
+           expression == nil {
+            return nil
+        }
+
         return NormalizedCondition(
             field: field,
             conditionOperator: conditionOperator,
             // Wert einmalig kleinschreiben — er ist statisch zur Laufzeit und
             // wird sonst bei jedem Artikel-Vergleich neu lowercased.
-            lowercasedValue: trimmedValue.lowercased()
+            lowercasedValue: trimmedValue.lowercased(),
+            regularExpression: expression
         )
     }
 
     private static func matches(condition: NormalizedCondition, article: Article, feed: Feed) -> Bool {
         guard let fieldValue = fieldValue(for: condition.field, article: article, feed: feed) else {
             return false
+        }
+
+        if condition.conditionOperator == RuleConditionOperator.regex.rawValue {
+            guard let regularExpression = condition.regularExpression else {
+                return false
+            }
+
+            let range = NSRange(location: 0, length: fieldValue.utf16.count)
+            return regularExpression.firstMatch(in: fieldValue, range: range) != nil
         }
 
         let normalizedFieldValue = fieldValue.lowercased()
@@ -268,6 +288,17 @@ enum RuleEngine {
         default:
             return false
         }
+    }
+
+    private static func regularExpression(
+        for conditionOperator: String,
+        pattern: String
+    ) -> NSRegularExpression? {
+        guard conditionOperator == RuleConditionOperator.regex.rawValue else {
+            return nil
+        }
+
+        return try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive])
     }
 
     private static func fieldValue(for field: String, article: Article, feed: Feed) -> String? {

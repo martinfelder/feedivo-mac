@@ -42,6 +42,7 @@ struct RuleWizardView: View {
     @State private var newTagColorHex = TagColorPalette.colors[0]
     @State private var notificationTemplate = "{Titel}"
     @State private var notificationPriority = RuleNotificationPriority.normal
+    @State private var regexHelpDraftID: UUID?
 
     init(rule: Rule? = nil, sourceArticle: Article? = nil) {
         self.rule = rule
@@ -122,7 +123,7 @@ struct RuleWizardView: View {
                 .font(.headline)
 
             ForEach($conditionDrafts) { $draft in
-                HStack(spacing: 8) {
+                HStack(alignment: .bottom, spacing: 8) {
                     Picker("", selection: $draft.field) {
                         ForEach(RuleConditionField.allCases) { field in
                             Text(field.titleKey)
@@ -141,8 +142,15 @@ struct RuleWizardView: View {
                     .labelsHidden()
                     .frame(width: 150)
 
-                    TextField(L10n.ruleWizardValuePlaceholder, text: $draft.value)
-                        .textFieldStyle(.roundedBorder)
+                    VStack(alignment: .trailing, spacing: 3) {
+                        if draft.conditionOperator == .regex {
+                            regexHelpButton(for: draft.id)
+                        }
+
+                        TextField(L10n.ruleWizardValuePlaceholder, text: $draft.value)
+                            .textFieldStyle(.roundedBorder)
+                    }
+                    .frame(maxWidth: .infinity)
 
                     if mode == .power && conditionDrafts.count > 1 {
                         Button {
@@ -165,6 +173,29 @@ struct RuleWizardView: View {
                     Label(L10n.ruleWizardAddCondition, systemImage: "plus")
                 }
             }
+        }
+    }
+
+    private func regexHelpButton(for draftID: UUID) -> some View {
+        Button {
+            regexHelpDraftID = draftID
+        } label: {
+            Text(L10n.ruleWizardRegexHelpButton)
+                .font(.caption)
+        }
+        .buttonStyle(.borderless)
+        .foregroundStyle(.secondary)
+        .help(L10n.ruleWizardRegexHelpButton)
+        .popover(
+            isPresented: Binding(
+                get: { regexHelpDraftID == draftID },
+                set: { isPresented in
+                    regexHelpDraftID = isPresented ? draftID : nil
+                }
+            ),
+            arrowEdge: .top
+        ) {
+            RegexHelpPopoverView()
         }
     }
 
@@ -441,5 +472,56 @@ struct RuleWizardView: View {
         if viewModel.errorMessage == nil {
             dismiss()
         }
+    }
+}
+
+private struct RegexHelpPopoverView: View {
+    private let rows: [(pattern: String, explanation: LocalizedStringKey)] = [
+        (".", L10n.ruleWizardRegexHelpDot),
+        (".*", L10n.ruleWizardRegexHelpAny),
+        ("\\d", L10n.ruleWizardRegexHelpDigit),
+        ("\\s", L10n.ruleWizardRegexHelpWhitespace),
+        ("^", L10n.ruleWizardRegexHelpStart),
+        ("$", L10n.ruleWizardRegexHelpEnd)
+    ]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(L10n.ruleWizardRegexHelpTitle)
+                .font(.headline)
+
+            Text(L10n.ruleWizardRegexHelpIntro)
+                .font(.callout)
+                .foregroundStyle(.secondary)
+
+            VStack(alignment: .leading, spacing: 6) {
+                ForEach(rows, id: \.pattern) { row in
+                    HStack(alignment: .firstTextBaseline, spacing: 10) {
+                        Text(row.pattern)
+                            .font(.system(.callout, design: .monospaced))
+                            .frame(width: 34, alignment: .leading)
+
+                        Text(row.explanation)
+                            .font(.callout)
+                    }
+                }
+            }
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text(L10n.ruleWizardRegexHelpExamplesTitle)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+
+                Text(L10n.ruleWizardRegexHelpExampleSwift)
+                    .font(.callout)
+
+                Text(L10n.ruleWizardRegexHelpExampleBreaking)
+                    .font(.callout)
+            }
+        }
+        .padding(14)
+        .frame(width: 300)
     }
 }

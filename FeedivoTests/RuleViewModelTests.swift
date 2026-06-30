@@ -146,6 +146,36 @@ struct RuleViewModelTests {
     }
 
     @MainActor
+    @Test func moveRuleToPositionOfTargetVerschiebtZeileBeimDragNachUnten() {
+        let firstRule = Rule(name: "A")
+        firstRule.sortOrder = 0
+        let secondRule = Rule(name: "B")
+        secondRule.sortOrder = 1
+        let thirdRule = Rule(name: "C")
+        thirdRule.sortOrder = 2
+        let viewModel = RuleViewModel()
+
+        viewModel.moveRule(firstRule, toPositionOf: thirdRule, existingRules: [firstRule, secondRule, thirdRule], context: nil)
+
+        #expect(RuleViewModel.sortedRules([firstRule, secondRule, thirdRule]).map(\.name) == ["B", "C", "A"])
+    }
+
+    @MainActor
+    @Test func moveRuleToPositionOfTargetVerschiebtZeileBeimDragNachOben() {
+        let firstRule = Rule(name: "A")
+        firstRule.sortOrder = 0
+        let secondRule = Rule(name: "B")
+        secondRule.sortOrder = 1
+        let thirdRule = Rule(name: "C")
+        thirdRule.sortOrder = 2
+        let viewModel = RuleViewModel()
+
+        viewModel.moveRule(thirdRule, toPositionOf: firstRule, existingRules: [firstRule, secondRule, thirdRule], context: nil)
+
+        #expect(RuleViewModel.sortedRules([firstRule, secondRule, thirdRule]).map(\.name) == ["C", "A", "B"])
+    }
+
+    @MainActor
     @Test func createRuleSpeichertHideAktionOhneZielTag() throws {
         let container = try ModelContainer(
             for: Feed.self,
@@ -237,6 +267,38 @@ struct RuleViewModelTests {
                 RuleConditionDraft(field: .title, conditionOperator: .contains, value: "Swift")
             ],
             assignTag: nil,
+            context: context
+        )
+
+        let rules = try context.fetch(FetchDescriptor<Rule>())
+        #expect(rules.isEmpty)
+        #expect(viewModel.errorMessage != nil)
+    }
+
+    @MainActor
+    @Test func createRuleVerhindertUngueltigeRegexBedingung() throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            RuleCondition.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let tag = Tag(name: "Swift", colorHex: "#3B82F6")
+        context.insert(tag)
+        let viewModel = RuleViewModel()
+
+        viewModel.createRule(
+            name: "Regex",
+            isEnabled: true,
+            matchMode: .all,
+            conditionDrafts: [
+                RuleConditionDraft(field: .title, conditionOperator: .regex, value: "[")
+            ],
+            assignTag: tag,
             context: context
         )
 

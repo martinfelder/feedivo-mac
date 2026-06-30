@@ -1,5 +1,6 @@
 import SwiftData
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct RuleSettingsView: View {
     @Environment(\.modelContext) private var modelContext
@@ -11,6 +12,7 @@ struct RuleSettingsView: View {
     @State private var isCreatingRule = false
     @State private var rulePendingDeletion: Rule?
     @State private var appliedExistingRuleActionCount: Int?
+    @State private var draggedRuleID: UUID?
 
     init() {
         // Artikel ohne die großen content/offlineContent-Blobs laden — beim
@@ -106,6 +108,7 @@ struct RuleSettingsView: View {
                 RuleSettingsRow(
                     rule: rule,
                     matchingArticleCount: matchingCounts[rule.id] ?? 0,
+                    isDragged: draggedRuleID == rule.id,
                     isFirst: index == 0,
                     isLast: index == orderedRules.count - 1,
                     moveUp: { move(rule, direction: .up) },
@@ -113,6 +116,22 @@ struct RuleSettingsView: View {
                     edit: { ruleEditing = rule },
                     duplicate: { duplicate(rule) },
                     delete: { rulePendingDeletion = rule }
+                )
+                .onDrag {
+                    draggedRuleID = rule.id
+                    return NSItemProvider(object: rule.id.uuidString as NSString)
+                } preview: {
+                    RuleDragPreview(rule: rule)
+                }
+                .onDrop(
+                    of: [.text],
+                    delegate: RuleRowDropDelegate(
+                        targetRule: rule,
+                        orderedRules: orderedRules,
+                        draggedRuleID: $draggedRuleID,
+                        viewModel: viewModel,
+                        modelContext: modelContext
+                    )
                 )
 
                 if index < orderedRules.count - 1 {
@@ -155,6 +174,47 @@ struct RuleSettingsView: View {
     }
 }
 
+private struct RuleRowDropDelegate: DropDelegate {
+    let targetRule: Rule
+    let orderedRules: [Rule]
+    @Binding var draggedRuleID: UUID?
+    let viewModel: RuleViewModel
+    let modelContext: ModelContext
+
+    func validateDrop(info: DropInfo) -> Bool {
+        draggedRuleID != nil
+    }
+
+    func dropEntered(info: DropInfo) {
+        guard let draggedRuleID,
+              draggedRuleID != targetRule.id,
+              let sourceRule = orderedRules.first(where: { $0.id == draggedRuleID })
+        else {
+            return
+        }
+
+        withAnimation(.easeInOut(duration: 0.16)) {
+            viewModel.moveRule(
+                sourceRule,
+                toPositionOf: targetRule,
+                existingRules: orderedRules,
+                context: modelContext
+            )
+        }
+    }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        DropProposal(operation: .move)
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+        draggedRuleID = nil
+        return true
+    }
+
+    func dropExited(info: DropInfo) {}
+}
+
 private struct RuleSettingsListHeader: View {
     var body: some View {
         HStack(spacing: 12) {
@@ -184,6 +244,7 @@ private struct RuleSettingsRow: View {
 
     let rule: Rule
     let matchingArticleCount: Int
+    let isDragged: Bool
     let isFirst: Bool
     let isLast: Bool
     let moveUp: () -> Void
@@ -242,6 +303,7 @@ private struct RuleSettingsRow: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 11)
+        .opacity(isDragged ? 0.55 : 1)
         .contentShape(Rectangle())
         .onTapGesture(count: 2, perform: edit)
         .contextMenu {
@@ -273,6 +335,24 @@ private struct RuleSettingsRow: View {
             .buttonStyle(.borderless)
         }
         .frame(width: 78, alignment: .leading)
+        .help(L10n.smartFolderDragToSort)
+    }
+}
+
+private struct RuleDragPreview: View {
+    let rule: Rule
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "line.3.horizontal")
+                .foregroundStyle(.secondary)
+
+            Text(rule.name)
+                .font(.callout.weight(.semibold))
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 }
 
@@ -392,6 +472,8 @@ enum RuleSettingsFormatter {
             return L10n.ruleOperatorStartsWith
         case .endsWith:
             return L10n.ruleOperatorEndsWith
+        case .regex:
+            return L10n.ruleOperatorRegex
         }
     }
 }

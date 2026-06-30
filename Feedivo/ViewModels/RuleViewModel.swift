@@ -140,6 +140,31 @@ final class RuleViewModel {
         }
     }
 
+    func moveRule(
+        _ rule: Rule,
+        toPositionOf targetRule: Rule,
+        existingRules: [Rule],
+        context: ModelContext?
+    ) {
+        var orderedRules = Self.sortedRules(existingRules)
+        guard let sourceIndex = orderedRules.firstIndex(where: { $0.id == rule.id }),
+              let targetIndex = orderedRules.firstIndex(where: { $0.id == targetRule.id }),
+              sourceIndex != targetIndex
+        else {
+            return
+        }
+
+        let movedRule = orderedRules.remove(at: sourceIndex)
+        orderedRules.insert(movedRule, at: targetIndex)
+        normalizeSortOrder(in: orderedRules)
+
+        if let context {
+            save(context)
+        } else {
+            errorMessage = nil
+        }
+    }
+
     func updateRule(
         _ rule: Rule,
         name: String,
@@ -219,13 +244,20 @@ final class RuleViewModel {
     }
 
     private func normalizedConditions(from drafts: [RuleConditionDraft]) -> [(field: String, conditionOperator: String, value: String)]? {
-        let conditions = drafts.compactMap { draft -> (field: String, conditionOperator: String, value: String)? in
+        var conditions: [(field: String, conditionOperator: String, value: String)] = []
+
+        for draft in drafts {
             let value = draft.value.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !value.isEmpty else {
+                continue
+            }
+
+            if draft.conditionOperator == .regex,
+               !RuleConditionOperator.isValidRegexPattern(value) {
                 return nil
             }
 
-            return (draft.field.rawValue, draft.conditionOperator.rawValue, value)
+            conditions.append((draft.field.rawValue, draft.conditionOperator.rawValue, value))
         }
 
         return conditions.isEmpty ? nil : conditions

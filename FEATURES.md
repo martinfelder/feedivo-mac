@@ -221,18 +221,17 @@
 - **Umgesetzt — Regelliste in Einstellungen:**
   - Jede Regel als Zeile: Toggle (aktiv/inaktiv) — Name — Bedingung zusammengefasst — Aktion als Pill
   - Reihenfolge per Hoch-/Runter-Buttons änderbar; Regeln werden von oben nach unten ausgewertet
+  - Echtes Drag & Drop für die Reihenfolge
   - Doppelklick öffnet RuleWizard zum Bearbeiten
   - Rechtsklick: Bearbeiten / Duplizieren / Löschen
   - `+` Button für neue Regel
   - "Alle Regeln jetzt anwenden" Button (rückwirkend auf bestehende Artikel)
   - Anzahl betroffener Artikel pro Regel anzeigen
+  - Regex als Operator mit kurzer Hilfe direkt im RuleWizard
 - **Regel-Aktionen:**
   - Tag zuweisen (bereits vorhanden)
   - Benachrichtigung auslösen (neu — siehe Feature 10.2)
   - Artikel ausblenden (umgesetzt — siehe Feature 16.3)
-- **Noch offen (nicht jetzt implementieren):**
-  - Echtes Drag & Drop für die Reihenfolge; für v1 bewusst stabile Reihenfolge-Buttons
-  - Regex als Operator
 
 ---
 
@@ -284,7 +283,7 @@
   `Einstellungen alt`-Fenster und kein zusätzliches Settings-Menü mehr.
 
 ### 8.2 Settings-Toolbar
-- **Status:** 🔨 In Arbeit
+- **Status:** ✔️ Fertig
 - **Umgesetzt:** Einziges Settings-Fenster mit macOS-artiger Icon-Toolbar.
   Bereiche: Allgemein, Anzeige, Feeds, Ordner, Offline-Lesen,
   Benachrichtigungen, Aktualisierung, Bereinigung, Regeln, Sync und Über.
@@ -296,6 +295,8 @@
 - **Entscheidung 2026-06-29:** Die neue Oberfläche bleibt die echte
   SwiftUI-`Settings`-Scene. Der systemeigene macOS-Einstellungen-Eintrag öffnet
   direkt diese Oberfläche.
+- **Entscheidung 2026-06-30:** Das Einstellungen-Fenster ist in dieser Form
+  übernommen und gilt für v1 als ausreichend final.
 - **Design-Ziel:** Kompakte macOS-Settings-Skalierung nach Referenzscreen:
   breites Fenster für Toolbar und Verwaltungsbereiche, aber kleinere
   Toolbar-Kacheln, kleine Controls, enge Zeilenabstände und screenshot-nahe

@@ -12,9 +12,9 @@ struct RuleConditionTests {
 
     @Test func fieldEnumLiefertEnumFuerBekanntenRawValue() {
         let condition = RuleCondition(field: RuleConditionField.title.rawValue,
-                                       conditionOperator: RuleConditionOperator.contains.rawValue,
+                                       conditionOperator: RuleConditionOperator.regex.rawValue,
                                        value: "x")
         #expect(condition.fieldEnum == .title)
-        #expect(condition.operatorEnum == .contains)
+        #expect(condition.operatorEnum == .regex)
     }
 }

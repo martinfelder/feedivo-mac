@@ -58,6 +58,39 @@ struct RuleEngineTests {
     }
 
     @MainActor
+    @Test func previewMatchingArticleCountUnterstuetztRegexOperator() throws {
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Mac News")
+        let matchingArticle = Article(title: "Swift 7 erscheint", feed: feed)
+        let nonMatchingArticle = Article(title: "Swift erscheint", feed: feed)
+
+        let matchingCount = RuleEngine.matchingArticleCount(
+            conditionDrafts: [
+                RuleConditionDraft(field: .title, conditionOperator: .regex, value: #"swift\s+\d+"#)
+            ],
+            matchMode: .all,
+            articles: [matchingArticle, nonMatchingArticle]
+        )
+
+        #expect(matchingCount == 1)
+    }
+
+    @MainActor
+    @Test func previewMatchingArticleCountIgnoriertUngueltigeRegexPatterns() throws {
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Mac News")
+        let article = Article(title: "Swift 7 erscheint", feed: feed)
+
+        let matchingCount = RuleEngine.matchingArticleCount(
+            conditionDrafts: [
+                RuleConditionDraft(field: .title, conditionOperator: .regex, value: "[")
+            ],
+            matchMode: .all,
+            articles: [article]
+        )
+
+        #expect(matchingCount == 0)
+    }
+
+    @MainActor
     @Test func applyRulesUnterstuetztMehrereBedingungenMitAND() throws {
         let tag = Tag(name: "Apple", colorHex: "#3B82F6")
         let rule = Rule(name: "Apple Mac")
@@ -295,9 +328,9 @@ struct RuleEngineTests {
         unknownFieldRule.assignTag = Tag(name: "Autor")
         let unknownOperatorRule = Rule(name: "Operator")
         unknownOperatorRule.conditions = [
-            RuleCondition(field: "title", conditionOperator: "regex", value: "Swift")
+            RuleCondition(field: "title", conditionOperator: "unknown", value: "Swift")
         ]
-        unknownOperatorRule.assignTag = Tag(name: "Regex")
+        unknownOperatorRule.assignTag = Tag(name: "Unbekannt")
         let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
         let article = Article(title: "Swift News", feed: feed)
         article.tags = [tag]
