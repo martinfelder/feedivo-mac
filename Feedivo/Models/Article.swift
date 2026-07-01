@@ -52,16 +52,18 @@ class Article {
     /// (RuleEngine) nicht gebraucht — sie faulten nur bei tatsächlichem Zugriff.
     /// Beziehungen (feed, tags) bleiben ohnehin lazy. Spart residenten Speicher,
     /// wenn eine View viele Artikel nur zum Zählen/Hooken braucht (P1).
+    static let lightPropertiesToFetch: [PartialKeyPath<Article>] = [
+        \.id, \.title, \.link, \.summary, \.author, \.publishedAt,
+        \.imageURL, \.sourceID, \.feedID, \.isRead, \.isStarred,
+        \.isArchived, \.isHidden, \.offlineStateRaw,
+        \.offlineRequestedAt, \.offlineSavedAt, \.offlineErrorMessage
+    ]
+
     static func lightFetchDescriptor(
         sortBy sortDescriptors: [SortDescriptor<Article>] = []
     ) -> FetchDescriptor<Article> {
         var descriptor = FetchDescriptor<Article>(sortBy: sortDescriptors)
-        descriptor.propertiesToFetch = [
-            \.id, \.title, \.link, \.summary, \.author, \.publishedAt,
-            \.imageURL, \.sourceID, \.feedID, \.isRead, \.isStarred,
-            \.isArchived, \.isHidden, \.offlineStateRaw,
-            \.offlineRequestedAt, \.offlineSavedAt, \.offlineErrorMessage
-        ]
+        descriptor.propertiesToFetch = lightPropertiesToFetch
         return descriptor
     }
 

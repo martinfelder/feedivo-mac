@@ -6,6 +6,12 @@ enum ArticleListQuery {
         SortDescriptor<Article>(\.publishedAt, order: .reverse)
     ]
 
+    static let listPropertiesToFetch = Article.lightPropertiesToFetch
+
+    static func allFetchDescriptor() -> FetchDescriptor<Article> {
+        listFetchDescriptor()
+    }
+
     static func feedPredicate(for feed: Feed) -> Predicate<Article> {
         let feedID = feed.id
         return #Predicate<Article> { article in
@@ -14,10 +20,7 @@ enum ArticleListQuery {
     }
 
     static func feedFetchDescriptor(for feed: Feed) -> FetchDescriptor<Article> {
-        FetchDescriptor(
-            predicate: feedPredicate(for: feed),
-            sortBy: sortDescriptors
-        )
+        listFetchDescriptor(predicate: feedPredicate(for: feed))
     }
 
     // Kein Default für `taggedFeeds`: ohne die Feed-Liste matcht der Predicate
@@ -37,10 +40,36 @@ enum ArticleListQuery {
     }
 
     static func tagFetchDescriptor(for tag: Tag) -> FetchDescriptor<Article> {
-        FetchDescriptor(
-            predicate: tagPredicate(for: tag, taggedFeeds: tag.feeds ?? []),
-            sortBy: sortDescriptors
-        )
+        listFetchDescriptor(predicate: tagPredicate(for: tag, taggedFeeds: tag.feeds ?? []))
+    }
+
+    static func smartFilterFetchDescriptor(for smartFilter: SmartFilter) -> FetchDescriptor<Article> {
+        switch smartFilter {
+        case .allArticles:
+            return listFetchDescriptor()
+        case .unread:
+            return listFetchDescriptor(
+                predicate: #Predicate<Article> { article in
+                    !article.isRead
+                }
+            )
+        case .starred:
+            return listFetchDescriptor(
+                predicate: #Predicate<Article> { article in
+                    article.isStarred
+                }
+            )
+        case .today:
+            // Datum-Filter bleibt in-memory: SwiftData unterstützt hier keinen
+            // stabilen optionalen Date-Vergleich. Der Fetch bleibt trotzdem leicht.
+            return listFetchDescriptor()
+        case .hidden:
+            return listFetchDescriptor(
+                predicate: #Predicate<Article> { article in
+                    article.isHidden
+                }
+            )
+        }
     }
 
     static func smartFolderFetchDescriptor(
@@ -54,45 +83,40 @@ enum ArticleListQuery {
 
         switch queryKind {
         case .all:
-            return FetchDescriptor(sortBy: sortDescriptors)
+            return listFetchDescriptor()
         case .unread:
             // Ungelesen lädt wie ein Feed alle Artikel. Die Anzeigeebene blendet
             // gelesene Artikel aus und hält gerade geöffnete Artikel sichtbar.
-            return FetchDescriptor(sortBy: sortDescriptors)
+            return listFetchDescriptor()
         case .read:
-            return FetchDescriptor(
+            return listFetchDescriptor(
                 predicate: #Predicate<Article> { article in
                     article.isRead
-                },
-                sortBy: sortDescriptors
+                }
             )
         case .starred:
-            return FetchDescriptor(
+            return listFetchDescriptor(
                 predicate: #Predicate<Article> { article in
                     article.isStarred
-                },
-                sortBy: sortDescriptors
+                }
             )
         case .archived:
-            return FetchDescriptor(
+            return listFetchDescriptor(
                 predicate: #Predicate<Article> { article in
                     article.isArchived
-                },
-                sortBy: sortDescriptors
+                }
             )
         case .hidden:
-            return FetchDescriptor(
+            return listFetchDescriptor(
                 predicate: #Predicate<Article> { article in
                     article.isHidden
-                },
-                sortBy: sortDescriptors
+                }
             )
         case .saved:
-            return FetchDescriptor(
+            return listFetchDescriptor(
                 predicate: #Predicate<Article> { article in
                     article.isStarred || article.isArchived
-                },
-                sortBy: sortDescriptors
+                }
             )
         case .today, .thisWeek:
             // Kein optimierter Predicate: SwiftData unterstützt keinen Force-Unwrap
@@ -101,6 +125,17 @@ enum ArticleListQuery {
             // (Fallback-Pfad in SmartFolderArticleListContent).
             return nil
         }
+    }
+
+    private static func listFetchDescriptor(
+        predicate: Predicate<Article>? = nil
+    ) -> FetchDescriptor<Article> {
+        var descriptor = FetchDescriptor(
+            predicate: predicate,
+            sortBy: sortDescriptors
+        )
+        descriptor.propertiesToFetch = listPropertiesToFetch
+        return descriptor
     }
 }
 

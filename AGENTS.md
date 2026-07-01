@@ -869,6 +869,11 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Feed-Listen laden nicht mehr automatisch alle Artikel per globaler `@Query`;
   Smart-Filter-Listen nutzen gezielte SwiftData-Queries für Alle, Ungelesen,
   Mit Stern, Heute und Ausgeblendet statt alle Artikel im Speicher zu filtern
+- Feed-, Tag-, Smart-Filter- und einfache Smart-Folder-Listen nutzen leichte
+  `FetchDescriptor` mit `propertiesToFetch`, damit große Volltextfelder
+  `Article.content` und `Article.offlineContent` beim normalen Listenrender nicht
+  vorgeladen werden. Volltexte faulten erst bei Suche, Reader, Export oder
+  Offline-Aktionen nach.
 - Tag-Listen nutzen ebenfalls eine gezielte SwiftData-Query und zeigen
   feedübergreifend direkt getaggte Artikel sowie Artikel aus getaggten Feeds.
 - Intelligente Ordner nutzen für einfache/vordefinierte Fälle gezielte
@@ -944,6 +949,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 
 ### ArticleListQuery.swift
 - Buendelt Sortierung und Feed-Predicate für Artikel-Listen.
+- Kapselt die leichten Listen-`FetchDescriptor` und verwendet dafür dieselbe
+  Property-Liste wie `Article.lightFetchDescriptor`. Tests sichern ab, dass
+  `content` und `offlineContent` nicht im Standard-Listenfetch enthalten sind.
 - Feed-Listen filtern über `Article.feedID`, damit der Feed-Wechsel nicht über die
   `Article.feed`-Relationship predicated werden muss.
 - Tag-Listen filtern über `Article.tags.contains { tag.id == selectedTagID }` und

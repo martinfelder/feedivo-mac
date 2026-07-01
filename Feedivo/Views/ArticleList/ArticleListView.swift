@@ -130,10 +130,7 @@ private struct FeedArticleListContent: View {
         self.onRequestExportArticle = onRequestExportArticle
         self._selectedArticle = selectedArticle
         self._navigationState = navigationState
-        self._articles = Query(
-            filter: ArticleListQuery.feedPredicate(for: feed),
-            sort: ArticleListQuery.sortDescriptors
-        )
+        self._articles = Query(ArticleListQuery.feedFetchDescriptor(for: feed))
     }
 
     var body: some View {
@@ -170,10 +167,7 @@ private struct TagArticleListContent: View {
         self.onRequestExportArticle = onRequestExportArticle
         self._selectedArticle = selectedArticle
         self._navigationState = navigationState
-        self._articles = Query(
-            filter: ArticleListQuery.tagPredicate(for: tag, taggedFeeds: tag.feeds ?? []),
-            sort: ArticleListQuery.sortDescriptors
-        )
+        self._articles = Query(ArticleListQuery.tagFetchDescriptor(for: tag))
     }
 
     var body: some View {
@@ -210,37 +204,7 @@ private struct SmartFilterArticleListContent: View {
         self.onRequestExportArticle = onRequestExportArticle
         self._selectedArticle = selectedArticle
         self._navigationState = navigationState
-
-        switch smartFilter {
-        case .allArticles:
-            self._articles = Query(sort: ArticleListQuery.sortDescriptors)
-        case .unread:
-            self._articles = Query(
-                filter: #Predicate<Article> { article in
-                    !article.isRead
-                },
-                sort: ArticleListQuery.sortDescriptors
-            )
-        case .starred:
-            self._articles = Query(
-                filter: #Predicate<Article> { article in
-                    article.isStarred
-                },
-                sort: ArticleListQuery.sortDescriptors
-            )
-        case .today:
-            // Datum-Filter in-memory (siehe displayedArticles): SwiftData
-            // unterstützt keinen Predicate-Force-Unwrap von `publishedAt!`
-            // (Runtime-Fault), `Date? >= Date` kompiliert nicht.
-            self._articles = Query(sort: ArticleListQuery.sortDescriptors)
-        case .hidden:
-            self._articles = Query(
-                filter: #Predicate<Article> { article in
-                    article.isHidden
-                },
-                sort: ArticleListQuery.sortDescriptors
-            )
-        }
+        self._articles = Query(ArticleListQuery.smartFilterFetchDescriptor(for: smartFilter))
     }
 
     var body: some View {
@@ -300,7 +264,7 @@ private struct SmartFolderArticleListContent: View {
             self._articles = Query(descriptor)
         } else {
             self.usesOptimizedQuery = false
-            self._articles = Query(sort: ArticleListQuery.sortDescriptors)
+            self._articles = Query(ArticleListQuery.allFetchDescriptor())
         }
     }
 

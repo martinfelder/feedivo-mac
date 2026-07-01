@@ -552,6 +552,33 @@ struct ArticleListQueryTests {
     }
 
     @MainActor
+    @Test func listFetchDescriptorsLadenKeineSchwerenVolltextfelder() throws {
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
+        let tag = Tag(name: "Swift")
+        let folder = SmartFolder(
+            name: "Mit Stern",
+            matchMode: .all,
+            conditions: [
+                SmartFolderCondition(
+                    field: .status,
+                    conditionOperator: .is,
+                    value: SmartFolderStatusValue.starred.rawValue
+                )
+            ]
+        )
+
+        let feedDescriptor = ArticleListQuery.feedFetchDescriptor(for: feed)
+        let tagDescriptor = ArticleListQuery.tagFetchDescriptor(for: tag)
+        let folderDescriptor = try #require(ArticleListQuery.smartFolderFetchDescriptor(for: folder))
+
+        #expect(feedDescriptor.propertiesToFetch == ArticleListQuery.listPropertiesToFetch)
+        #expect(tagDescriptor.propertiesToFetch == ArticleListQuery.listPropertiesToFetch)
+        #expect(folderDescriptor.propertiesToFetch == ArticleListQuery.listPropertiesToFetch)
+        #expect(!ArticleListQuery.listPropertiesToFetch.contains(\Article.content))
+        #expect(!ArticleListQuery.listPropertiesToFetch.contains(\Article.offlineContent))
+    }
+
+    @MainActor
     @Test func feedFetchDescriptorLaedtNurArtikelDesAusgewaehltenFeedsSortiert() throws {
         let container = try ModelContainer(
             for: Feed.self,

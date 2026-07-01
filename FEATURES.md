@@ -845,6 +845,9 @@
   - Das Artikelansicht-Menü zeigt die Bulk-Option ausdrücklich als `Alle als gelesen markieren`
   - Feed-Refreshes laden bestehende Artikel per gezieltem `Article.feedID`-Fetch
     mit schlankem Property-Set statt über die komplette `feed.articles`-Relationship
+  - Feed-, Tag-, Smart-Filter- und einfache Smart-Folder-Artikellisten verwenden
+    leichte `FetchDescriptor` mit `propertiesToFetch`; `Article.content` und
+    `Article.offlineContent` bleiben aus dem Standard-Listenfetch heraus
   - Sammel-Refreshes speichern Änderungen pro Batch statt pro Feed, um SwiftData-
     Query-Invalidierungen während laufender Aktualisierungen zu reduzieren
   - Start-Backfills und Orphan-Cleanup vermeiden vollständige
