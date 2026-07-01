@@ -119,6 +119,16 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(settingsSource.contains(".environment(databaseLoadState)"))
     }
 
+    @Test func entitlementsDeclareCloudKitContainer() throws {
+        let projectRoot = projectRootURL()
+        let entitlementsSource = try source(at: "Feedivo/Feedivo.entitlements", projectRoot: projectRoot)
+
+        #expect(entitlementsSource.contains("com.apple.developer.icloud-services"))
+        #expect(entitlementsSource.contains("<string>CloudKit</string>"))
+        #expect(entitlementsSource.contains("com.apple.developer.icloud-container-identifiers"))
+        #expect(entitlementsSource.contains("<string>iCloud.ch.martin.Feedivo</string>"))
+    }
+
     private func projectRootURL() -> URL {
         URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
