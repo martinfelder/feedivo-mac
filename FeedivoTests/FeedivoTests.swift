@@ -105,6 +105,13 @@ struct FeedivoTests {
         ])
     }
 
+    @Test func readerContentBlockIDBleibtKompaktFuerLangeArtikeltexte() {
+        let longParagraph = String(repeating: "Langer Artikeltext ", count: 200)
+        let block = ReaderContentBlock.paragraph(longParagraph)
+
+        #expect(block.id.count < 80)
+    }
+
     @Test func readerContentRendererErkenntBilderUndFallbackSummary() {
         #expect(ReaderContentRenderer.isImageHTMLBlock(#"<IMG src="https://example.com/bild.jpg">"#))
         #expect(!ReaderContentRenderer.isImageHTMLBlock("<p>Nur Text</p>"))
@@ -429,6 +436,18 @@ struct FeedivoTests {
         #expect(availableFonts.contains("Inter-Regular"))
         #expect(availableFonts.contains("Fraunces-Regular"))
         #expect(availableFonts.contains("SourceSerif4Roman-Regular"))
+    }
+
+    @Test func readerFontPresetWaehltRegistriertenPostScriptNamen() {
+        ReaderFontRegistry.registerBundledFonts()
+
+        let customPresets = ReaderFontPreset.allCases.filter { preset in
+            preset != .system && preset != .serif
+        }
+
+        for preset in customPresets {
+            #expect(preset.availableFontName() != nil, "Kein registrierter Font für \(preset.title)")
+        }
     }
 
     @Test func readerTypographyLeitetMetadatenGroesseVomFliesstextAb() {

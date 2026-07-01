@@ -73,8 +73,8 @@ final class TagViewModel {
     }
 
     func deleteTag(_ tag: Tag, context: ModelContext) {
-        tag.articles.removeAll()
-        tag.feeds.removeAll()
+        tag.articles = []
+        tag.feeds = []
         context.delete(tag)
         save(context)
     }

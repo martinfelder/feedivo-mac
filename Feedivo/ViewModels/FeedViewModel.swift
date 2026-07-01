@@ -20,6 +20,39 @@ struct FeedOperationProgress: Equatable {
     }
 }
 
+struct FeedRefreshStatusSummary: Identifiable, Equatable {
+    let id = UUID()
+    var newArticleCount: Int
+    var failedFeedCount: Int
+    var totalFeedCount: Int
+
+    var hasFailures: Bool {
+        failedFeedCount > 0
+    }
+
+    var isFullFailure: Bool {
+        failedFeedCount >= totalFeedCount
+    }
+}
+
+enum FeedRefreshItemStatus: Equatable {
+    case pending
+    case refreshing
+    case succeeded
+    case failed
+}
+
+struct FeedRefreshItem: Identifiable, Equatable {
+    var id: UUID {
+        feedID
+    }
+
+    var feedID: UUID
+    var feedTitle: String
+    var feedURL: String
+    var status: FeedRefreshItemStatus
+}
+
 enum OPMLImportFeedStatus: Equatable {
     case available
     case duplicate
@@ -63,10 +96,13 @@ final class FeedViewModel {
     private let notifyFeedRefresh: ([FeedRefreshNotificationResult]) async -> Void
     private let notifyRuleNotifications: ([RuleNotificationResult]) async -> Void
     private let articleRetentionDefaults: UserDefaults
+    private let minimumRefreshStatusDuration: Duration
 
     var isLoading = false
     var errorMessage: String?
     var operationProgress: FeedOperationProgress?
+    private(set) var refreshItems: [FeedRefreshItem] = []
+    private(set) var recentRefreshStatus: FeedRefreshStatusSummary?
     /// Ergebnis des letzten `refreshAllFeeds`-Aufrufs. Unterscheidet totalen
     /// Misserfolg (.failure) von teilweisem (.partial) — zuvor wurde jeder
     /// Feed-Fehler als gesamter Refresh-Fehler gewertet (BackgroundRefreshService
@@ -93,7 +129,8 @@ final class FeedViewModel {
         notifyRuleNotifications: @escaping ([RuleNotificationResult]) async -> Void = { results in
             await FeedNotificationService.presentRuleSummary(for: results)
         },
-        articleRetentionDefaults: UserDefaults = .standard
+        articleRetentionDefaults: UserDefaults = .standard,
+        minimumRefreshStatusDuration: Duration = .milliseconds(700)
     ) {
         self.fetchFeed = fetchFeed
         self.discoverFaviconURL = discoverFaviconURL
@@ -101,6 +138,7 @@ final class FeedViewModel {
         self.notifyFeedRefresh = notifyFeedRefresh
         self.notifyRuleNotifications = notifyRuleNotifications
         self.articleRetentionDefaults = articleRetentionDefaults
+        self.minimumRefreshStatusDuration = minimumRefreshStatusDuration
     }
 
     @MainActor
@@ -336,7 +374,7 @@ final class FeedViewModel {
                 htmlURL: feed.siteURL,
                 folderName: feed.folderName,
                 description: feed.feedDescription,
-                tagNames: feed.tags.map(\.name).sorted {
+                tagNames: (feed.tags ?? []).map(\.name).sorted {
                     $0.localizedCaseInsensitiveCompare($1) == .orderedAscending
                 }
             )
@@ -447,7 +485,7 @@ final class FeedViewModel {
                     feed: feed
                 )
             }
-            feed.unreadCount = Self.unreadIncrement(for: feed.articles)
+            feed.unreadCount = Self.unreadIncrement(for: feed.articles ?? [])
 
             context.insert(feed)
             appendLog(
@@ -522,6 +560,16 @@ final class FeedViewModel {
 
         isLoading = true
         errorMessage = nil
+        recentRefreshStatus = nil
+        refreshItems = feeds.map { feed in
+            FeedRefreshItem(
+                feedID: feed.id,
+                feedTitle: feed.title,
+                feedURL: feed.url,
+                status: .pending
+            )
+        }
+        let refreshStatusStart = ContinuousClock().now
         operationProgress = FeedOperationProgress(
             title: L10n.feedProgressRefreshAllTitle,
             completedCount: 0,
@@ -546,8 +594,16 @@ final class FeedViewModel {
             await withTaskGroup(of: FeedRefreshOutcome.self) { group in
                 for feed in feedBatch {
                     group.addTask { @MainActor in
+                        self.updateRefreshItemStatus(for: feed.id, status: .refreshing)
+
                         do {
-                            let result = try await self.refreshFeedContents(feed, context: context, rules: refreshRules)
+                            let result = try await self.refreshFeedContents(
+                                feed,
+                                context: context,
+                                rules: refreshRules,
+                                savesImmediately: false
+                            )
+                            self.updateRefreshItemStatus(for: feed.id, status: .succeeded)
                             return .success(result)
                         } catch let error as LocalizedError {
                             self.appendLog(
@@ -556,7 +612,7 @@ final class FeedViewModel {
                                 to: feed,
                                 context: context
                             )
-                            try? context.save()
+                            self.updateRefreshItemStatus(for: feed.id, status: .failed)
                             return .failure(feed.title)
                         } catch {
                             self.appendLog(
@@ -565,7 +621,7 @@ final class FeedViewModel {
                                 to: feed,
                                 context: context
                             )
-                            try? context.save()
+                            self.updateRefreshItemStatus(for: feed.id, status: .failed)
                             return .failure(feed.title)
                         }
                     }
@@ -583,10 +639,19 @@ final class FeedViewModel {
                     incrementOperationProgress()
                 }
             }
+
+            try? context.save()
         }
 
         await notifyFeedRefresh(notificationResults)
         await notifyRuleNotifications(ruleNotificationResults)
+        await waitForMinimumRefreshStatusDuration(since: refreshStatusStart)
+
+        recentRefreshStatus = FeedRefreshStatusSummary(
+            newArticleCount: notificationResults.reduce(0) { $0 + $1.newArticleCount },
+            failedFeedCount: failedFeedTitles.count,
+            totalFeedCount: feeds.count
+        )
 
         if failedFeedTitles.isEmpty {
             lastRefreshOutcome = .success
@@ -605,6 +670,33 @@ final class FeedViewModel {
                 feedTitles: failedFeedTitles.joined(separator: ", ")
             )
         }
+    }
+
+    @MainActor
+    func clearRecentRefreshStatus() {
+        recentRefreshStatus = nil
+        refreshItems = []
+    }
+
+    private func waitForMinimumRefreshStatusDuration(since start: ContinuousClock.Instant) async {
+        guard minimumRefreshStatusDuration > .zero else {
+            return
+        }
+
+        let elapsed = start.duration(to: ContinuousClock().now)
+        guard elapsed < minimumRefreshStatusDuration else {
+            return
+        }
+
+        try? await Task.sleep(for: minimumRefreshStatusDuration - elapsed)
+    }
+
+    private func updateRefreshItemStatus(for feedID: UUID, status: FeedRefreshItemStatus) {
+        guard let index = refreshItems.firstIndex(where: { $0.feedID == feedID }) else {
+            return
+        }
+
+        refreshItems[index].status = status
     }
 
     // Generisches Chunking in Batches der Größe `maxConcurrentFeedRefreshes`.
@@ -642,7 +734,7 @@ final class FeedViewModel {
 
             // .nullify statt .cascade (CloudKit-kompatibel): LogEntries manuell
             // löschen, sonst verwaisten sie nach dem Feed-Löschen.
-            for entry in Array(feed.logEntries) {
+            for entry in feed.logEntries ?? [] {
                 context.delete(entry)
             }
 
@@ -733,11 +825,12 @@ final class FeedViewModel {
     private func refreshFeedContents(
         _ feed: Feed,
         context: ModelContext,
-        rules providedRules: [Rule]? = nil
+        rules providedRules: [Rule]? = nil,
+        savesImmediately: Bool = true
     ) async throws -> FeedRefreshResult {
         let refreshDate = Date()
         let parsedFeed = try await fetchFeed(feed.url)
-        let existingArticlesByIdentity = existingArticlesByIdentity(in: feed)
+        let existingArticlesByIdentity = try existingArticlesByIdentity(for: feed, context: context)
         updateMissingArticleImages(
             in: existingArticlesByIdentity,
             from: parsedFeed.articles
@@ -831,11 +924,11 @@ final class FeedViewModel {
                 sourceID: articleToInsert.sourceID,
                 feed: feed
             )
+            context.insert(article)
             newArticleObjects.append(article)
         }
         let ruleResult = RuleEngine.applyRulesWithNotifications(rules, to: newArticleObjects, feed: feed)
         ruleNotifications.append(contentsOf: ruleResult.notifications)
-        feed.articles.append(contentsOf: newArticleObjects)
         // Nur nicht-versteckte neue Artikel erhöhen den Ungelesen-Zähler —
         // versteckte (z.B. per Regel ausgeblendete) werden in der Liste nicht
         // angezeigt und würden sonst ein Badge ohne sichtbare Artikel erzeugen.
@@ -850,7 +943,9 @@ final class FeedViewModel {
             to: feed,
             context: context
         )
-        try context.save()
+        if savesImmediately {
+            try context.save()
+        }
 
         return FeedRefreshResult(
             feedNotification: FeedRefreshNotificationResult(
@@ -870,9 +965,31 @@ final class FeedViewModel {
         articles.filter { !$0.isRead && !$0.isHidden }.count
     }
 
-    private func existingArticlesByIdentity(in feed: Feed) -> [String: Article] {
+    private func existingArticlesByIdentity(for feed: Feed, context: ModelContext) throws -> [String: Article] {
+        let feedID = Optional(feed.id)
+        var descriptor = FetchDescriptor<Article>(
+            predicate: #Predicate<Article> { article in
+                article.feedID == feedID
+            }
+        )
+        descriptor.propertiesToFetch = [
+            \.id,
+            \.title,
+            \.link,
+            \.summary,
+            \.content,
+            \.publishedAt,
+            \.imageURL,
+            \.sourceID,
+            \.feedID,
+            \.isRead,
+            \.isStarred,
+            \.isArchived,
+            \.isHidden
+        ]
+        let articles = try context.fetch(descriptor)
         var articlesByIdentity: [String: Article] = [:]
-        for article in feed.articles {
+        for article in articles {
             for identityKey in articleIdentityKeys(article) where articlesByIdentity[identityKey] == nil {
                 articlesByIdentity[identityKey] = article
             }
@@ -978,13 +1095,15 @@ final class FeedViewModel {
     ) {
         let entry = FeedLogEntry(kind: kind, message: message, feed: feed)
         context.insert(entry)
-        feed.logEntries.append(entry)
+        var logEntries = feed.logEntries ?? []
+        logEntries.append(entry)
+        feed.logEntries = logEntries
         pruneLogEntries(for: feed, context: context)
     }
 
     @MainActor
     private func pruneLogEntries(for feed: Feed, context: ModelContext) {
-        let entriesToDelete = feed.logEntries
+        let entriesToDelete = (feed.logEntries ?? [])
             .sorted { $0.createdAt > $1.createdAt }
             .dropFirst(20)
 

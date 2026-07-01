@@ -72,6 +72,15 @@ enum L10n {
     static let readerReadabilityRetryButton = LocalizedStringKey("reader.readability.retryButton")
     static let networkStatusOnline = LocalizedStringKey("networkStatus.online")
     static let networkStatusOffline = LocalizedStringKey("networkStatus.offline")
+    static let refreshStatusDetailsTitle = String(localized: "refreshStatus.details.title")
+    static let refreshStatusExpand = String(localized: "refreshStatus.expand")
+    static let refreshStatusCollapse = String(localized: "refreshStatus.collapse")
+    static let refreshStatusDismiss = String(localized: "refreshStatus.dismiss")
+    static let refreshStatusItemPending = String(localized: "refreshStatus.item.pending")
+    static let refreshStatusItemRefreshing = String(localized: "refreshStatus.item.refreshing")
+    static let refreshStatusItemSucceeded = String(localized: "refreshStatus.item.succeeded")
+    static let refreshStatusItemFailed = String(localized: "refreshStatus.item.failed")
+    static let refreshStatusNoNewArticles = String(localized: "refreshStatus.noNewArticles")
     static let readerOfflineSave = LocalizedStringKey("reader.offline.save")
     static let readerOfflineRemove = LocalizedStringKey("reader.offline.remove")
     static let readerOfflineSaving = LocalizedStringKey("reader.offline.saving")
@@ -202,6 +211,8 @@ enum L10n {
     static let settingsRestoreArticleWindowsDescription = LocalizedStringKey("settings.restoreArticleWindows.description")
     static let settingsRefreshSection = LocalizedStringKey("settings.refresh.section")
     static let settingsAutomaticRefreshTitle = LocalizedStringKey("settings.automaticRefresh.title")
+    static let settingsRefreshOnLaunchTitle = LocalizedStringKey("settings.refreshOnLaunch.title")
+    static let settingsRefreshOnLaunchDescription = LocalizedStringKey("settings.refreshOnLaunch.description")
     static let settingsAutomaticRefreshIntervalPicker = LocalizedStringKey("settings.automaticRefresh.interval.picker")
     static let settingsAutomaticRefreshDescription = LocalizedStringKey("settings.automaticRefresh.description")
     static let settingsAutomaticRefreshLastRun = LocalizedStringKey("settings.automaticRefresh.lastRun")
@@ -653,6 +664,28 @@ enum L10n {
         String.localizedStringWithFormat(
             String(localized: "feed.log.refreshed"),
             newArticleCount
+        )
+    }
+
+    static func refreshStatusRunning(_ countText: String) -> String {
+        String.localizedStringWithFormat(
+            String(localized: "refreshStatus.running"),
+            countText
+        )
+    }
+
+    static func refreshStatusNewArticles(_ count: Int) -> String {
+        String.localizedStringWithFormat(
+            String(localized: "refreshStatus.newArticles"),
+            count
+        )
+    }
+
+    static func refreshStatusPartial(newArticleCount: Int, failedFeedCount: Int) -> String {
+        String.localizedStringWithFormat(
+            String(localized: "refreshStatus.partial"),
+            newArticleCount,
+            failedFeedCount
         )
     }
 

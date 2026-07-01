@@ -55,13 +55,13 @@ struct FeedPropertiesView: View {
     }
 
     private var sortedFeedTags: [Tag] {
-        feed.tags.sorted {
+        (feed.tags ?? []).sorted {
             $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
         }
     }
 
     private var availableTagsToAdd: [Tag] {
-        let assignedTagIDs = Set(feed.tags.map(\.id))
+        let assignedTagIDs = Set((feed.tags ?? []).map(\.id))
         return tags
             .filter { !assignedTagIDs.contains($0.id) }
             .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
@@ -540,16 +540,20 @@ struct FeedPropertiesView: View {
     }
 
     private func addTag(_ tag: Tag) {
-        guard !feed.tags.contains(where: { $0.id == tag.id }) else {
+        guard !(feed.tags ?? []).contains(where: { $0.id == tag.id }) else {
             return
         }
 
-        feed.tags.append(tag)
+        var tags = feed.tags ?? []
+        tags.append(tag)
+        feed.tags = tags
         try? modelContext.save()
     }
 
     private func removeTag(_ tag: Tag) {
-        feed.tags.removeAll { $0.id == tag.id }
+        var tags = feed.tags ?? []
+        tags.removeAll { $0.id == tag.id }
+        feed.tags = tags
         try? modelContext.save()
     }
 

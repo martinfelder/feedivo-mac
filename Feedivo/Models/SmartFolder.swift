@@ -27,7 +27,7 @@ class SmartFolder {
     }
 
     @Relationship(deleteRule: .nullify, inverse: \SmartFolderCondition.smartFolder)
-    var conditions: [SmartFolderCondition] = []
+    var conditions: [SmartFolderCondition]? = []
 
     init(
         name: String,

@@ -430,7 +430,7 @@ enum RuleSettingsFormatter {
     }
 
     private static func conditionDrafts(for rule: Rule) -> [RuleConditionDraft] {
-        rule.conditions
+        (rule.conditions ?? [])
             .sorted { $0.sortOrder < $1.sortOrder }
             .compactMap { condition -> RuleConditionDraft? in
                 guard let field = RuleConditionField(rawValue: condition.field),

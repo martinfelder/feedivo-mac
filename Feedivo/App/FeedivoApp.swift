@@ -28,6 +28,7 @@ struct FeedivoApp: App {
     private let modelContainer: ModelContainer
     private let backgroundRefreshScheduler: SystemBackgroundActivityRefreshScheduler
     private let databaseLoadState = DatabaseLoadState()
+    private let feedViewModel = FeedViewModel()
 
     // Alle SwiftData-Modelle an einer Stelle — so gibt es genau eine
     // Wahrheitsquelle für den Schema-Bestand, genutzt vom normalen Container
@@ -69,7 +70,8 @@ struct FeedivoApp: App {
 
         self.modelContainer = loadedContainer
         self.backgroundRefreshScheduler = SystemBackgroundActivityRefreshScheduler(
-            modelContainer: loadedContainer
+            modelContainer: loadedContainer,
+            feedViewModel: feedViewModel
         )
         self.databaseLoadState.initializationError = loadError
         self.databaseLoadState.isCloudSyncEnabledAtLaunch = cloudSyncIsEnabled && loadError == nil
@@ -84,11 +86,13 @@ struct FeedivoApp: App {
         let interfaceTextSize = InterfaceTextSize.resolved(from: interfaceTextSizeRawValue)
 
         WindowGroup {
-            ContentView()
+            ContentView(feedViewModel: feedViewModel)
                 .environment(\.locale, appLanguage.locale)
                 .environment(\.interfaceTextSize, interfaceTextSize)
                 .environment(databaseLoadState)
                 .dynamicTypeSize(interfaceTextSize.dynamicTypeSize)
+                .toolbarBackground(.ultraThinMaterial, for: .windowToolbar)
+                .toolbarBackground(.visible, for: .windowToolbar)
                 .task {
                     backfillStoredArticleMetadataIfNeeded()
                     cleanupExpiredArticlesIfNeeded()

@@ -19,10 +19,12 @@ extension BackgroundRefreshScheduling {
 @MainActor
 final class SystemBackgroundActivityRefreshScheduler: BackgroundRefreshScheduling {
     private let modelContainer: ModelContainer
+    private let feedViewModel: FeedViewModel
     private var scheduler: NSBackgroundActivityScheduler?
 
-    init(modelContainer: ModelContainer) {
+    init(modelContainer: ModelContainer, feedViewModel: FeedViewModel) {
         self.modelContainer = modelContainer
+        self.feedViewModel = feedViewModel
     }
 
     func submit(_ request: BackgroundRefreshRequest) throws {
@@ -32,11 +34,12 @@ final class SystemBackgroundActivityRefreshScheduler: BackgroundRefreshSchedulin
         scheduler.repeats = true
         scheduler.interval = TimeInterval(request.intervalMinutes * 60)
         scheduler.tolerance = TimeInterval(max(60, request.intervalMinutes * 60 / 4))
-        scheduler.schedule { [modelContainer] completionHandler in
+        scheduler.schedule { [modelContainer, feedViewModel] completionHandler in
             Task { @MainActor in
                 await BackgroundRefreshService.refreshAllFeeds(
                     modelContainer: modelContainer,
-                    intervalMinutes: request.intervalMinutes
+                    intervalMinutes: request.intervalMinutes,
+                    feedViewModel: feedViewModel
                 )
                 completionHandler(.finished)
             }
@@ -120,14 +123,26 @@ enum BackgroundRefreshService {
     static func refreshAllFeeds(
         modelContainer: ModelContainer,
         intervalMinutes: Int = 60,
-        userDefaults: UserDefaults = .standard
+        userDefaults: UserDefaults = .standard,
+        feedViewModel: FeedViewModel
     ) async {
         let context = ModelContext(modelContainer)
         let feeds = (try? context.fetch(FetchDescriptor<Feed>())) ?? []
-        let viewModel = FeedViewModel()
 
-        await viewModel.refreshAllFeeds(feeds, context: context)
+        await feedViewModel.refreshAllFeeds(feeds, context: context)
 
+        recordRefreshOutcome(
+            from: feedViewModel,
+            intervalMinutes: intervalMinutes,
+            userDefaults: userDefaults
+        )
+    }
+
+    static func recordRefreshOutcome(
+        from viewModel: FeedViewModel,
+        intervalMinutes: Int,
+        userDefaults: UserDefaults = .standard
+    ) {
         // Unterscheidung zwischen Erfolg / Teilfehler / totaler Misserfolg statt
         // zuvor pauschal „errorMessage != nil → failed". Ein Teilfehler (ein paar
         // Feeds nicht erreichbar, der Rest aktualisiert) ist kein Gesamtversagen.

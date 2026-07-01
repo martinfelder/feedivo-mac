@@ -206,7 +206,7 @@ struct ReaderView: View {
     }
 
     private var sortedArticleTags: [Tag] {
-        article.tags.sorted {
+        (article.tags ?? []).sorted {
             $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
         }
     }
@@ -410,6 +410,7 @@ struct ReaderView: View {
             .padding(.top, articleTopPadding)
             .padding(.bottom, articleBottomPadding)
         }
+        .id(article.persistentModelID)
     }
 
     private func readabilityReader(originalURL: URL) -> some View {
@@ -437,6 +438,7 @@ struct ReaderView: View {
                 .padding(.top, articleTopPadding)
                 .padding(.bottom, articleBottomPadding)
             }
+            .id(article.persistentModelID)
 
             if readabilityRequestedURL == originalURL {
                 ReadabilityExtractionView(url: originalURL) { result in

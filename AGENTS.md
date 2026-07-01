@@ -369,10 +369,15 @@ nicht mehr; `Später` blendet den Wizard nur für die aktuelle Sitzung aus.
 Zeigt unten rechts im Hauptfenster einen dezenten Online-/Offline-Indikator über
 `NWPathMonitor`. Dieser Netzwerkstatus ist bewusst getrennt vom Artikel-Status für
 manuell offline gespeicherte Inhalte.
-Roadmap: Neben diesem Online-/Offline-Indikator soll später ein zweiter
-Refresh-Status erscheinen, wenn `Alle Feeds aktualisieren` läuft. Dieser soll den
-Fortschritt anzeigen und nach Abschluss kurz melden, wie viele Artikel insgesamt
-neu geladen wurden.
+Neben diesem Online-/Offline-Indikator erscheint beim Sammel-Refresh ein zweiter
+Status: während `Alle Feeds aktualisieren` läuft mit Fortschritt `erledigt/gesamt`,
+nach Abschluss mit Anzahl neuer Artikel oder knapper Fehler-Markierung. Der Status
+hat einen Chevron und kann zu einem Detailpanel aufgeklappt werden, das pro Feed
+wartend, aktualisierend, erfolgreich (grünes Checkmark) oder fehlgeschlagen
+(rotes X) zeigt. Fehlerfreie Ergebnisse verschwinden nach 2 Minuten; Ergebnisse
+mit Fehlern bleiben stehen, bis der User sie schließt oder ein neuer
+Sammel-Refresh startet. Damit der Fortschritt auch bei sehr schnellen Feeds
+sichtbar wird, hält `FeedViewModel` den laufenden Status mindestens kurz offen.
 Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 `AppIconBadgeService`, sobald Feed-Zähler oder die Einstellung
 `notifications.appIconBadge.isEnabled` geändert werden.
@@ -432,12 +437,13 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   über alle Feeds
 - Ungelesen-Badges basieren auf `Feed.unreadCount`, damit die Sidebar beim Rendern
   keine separate Query auf alle ungelesenen Artikel mehr materialisieren muss
-- Die Sidebar hält bewusst keine globale `@Query` auf alle Artikel mehr. Badge-
-  Werte für intelligente Ordner werden nur angezeigt, wenn sie günstig berechnet
-  werden können; `Ungelesen` nutzt dafür `Feed.unreadCount`. Die Default-Ordner
-  `Mit Stern`, `Ausgeblendet` und `Gespeichert` zählen ihre Treffer per
-  SwiftData-`fetchCount`, damit gelesene und ungelesene passende Artikel in der
-  Badge enthalten sind.
+- Die Sidebar nutzt für Badge-Signaturen eine leichte globale Artikel-Query mit
+  `propertiesToFetch` auf Skalarwerte; große Inhalte und Relationships bleiben
+  dabei ungefaultet. `Ungelesen` nutzt weiter `Feed.unreadCount`.
+- Tag-Badges und Status-Badges sind getrennt gecacht: Stern-/Archiv-/Hidden-
+  Änderungen aktualisieren nur die günstigen Status-Zähler, während die teurere
+  Artikel→Tag-Relationship-Auswertung nur bei Tag-, Feed-Tag- oder FeedID-
+  relevanten Änderungen läuft.
 - Per Darstellungseinstellung `sidebar.showsReadFeeds` können Feeds ohne
   ungelesene Artikel in der Sidebar ausgeblendet werden; Standard bleibt anzeigen.
 - Die Sidebar zeigt eine eigene `Tags`-Section mit Tag-Icon; der Button öffnet den
@@ -492,9 +498,13 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   per SwiftData-`fetchCount` über denselben Tag-Predicate wie die Artikelliste,
   statt Tag-/Feed-Artikel-Relationships bei jedem Sidebar-Render zu traversieren.
 - `SmartFolderSidebarBadge` nutzt für `Ungelesen` weiterhin die summierten
-  `Feed.unreadCount` Werte und zählt `Mit Stern`, `Ausgeblendet` und
-  `Gespeichert` per SwiftData-`fetchCount`, inklusive gelesener und ungelesener
-  Treffer.
+  `Feed.unreadCount` Werte; `Mit Stern`, `Ausgeblendet` und `Gespeichert`
+  werden im Sidebar-Render aus den gebündelten Status-Zählern gelesen, inklusive
+  gelesener und ungelesener Treffer.
+- `SidebarBadgeSignatureBuilder` trennt Status-Signatur und Tag-Signatur. Damit
+  löst ein reiner Stern-/Archiv-Klick keine neue Tag-Badge-Berechnung und keine
+  Artikel→Tag-Relationship-Faults aus; ein Feed-Tag-Wechsel mit gleicher
+  Tag-Anzahl invalidiert den Tag-Cache trotzdem korrekt.
 
 ### FeedService.swift
 - Parsed RSS 2.0, Atom und JSON Feed via FeedKit
@@ -545,6 +555,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   stabile Quellen-ID, Link und als migrationsfreundlicher Fallback Titel plus
   Veröffentlichungsdatum. Dadurch bleiben Lesestatus und Stern/Archiv erhalten,
   auch wenn ein Feed denselben Artikel später mit leicht geändertem Link liefert.
+- Der Refresh lädt den Altbestand eines Feeds nicht mehr über die komplette
+  `feed.articles`-Relationship, sondern per gezieltem `FetchDescriptor<Article>`
+  über `Article.feedID` mit schlankem `propertiesToFetch`. Das vermeidet große
+  Relationship-Faults während der Aktualisierung und hält die UI reaktionsfähiger.
 - Beim Hinzufuegen werden `siteURL`, `followedAt` und ein Info-Log geschrieben
 - Beim Hinzufuegen und Aktualisieren wird `Feed.unreadCount` für Sidebar-Badges
   gepflegt; neue Artikel starten als ungelesen
@@ -557,14 +571,21 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - `refreshAllFeeds(_:context:)` — aktualisiert alle gespeicherten Feeds per
   `withTaskGroup` parallel; Netzwerk-awaits können sich überlappen, SwiftData-
   Änderungen bleiben durch `@MainActor` serialisiert
+- Beim Sammel-Refresh wird nicht mehr nach jedem erfolgreichen Feed gespeichert,
+  sondern pro Feed-Batch. Dadurch werden SwiftData-`@Query`-Invalidierungen in
+  Sidebar und Artikelliste deutlich seltener ausgelöst.
 - Der Sammel-Refresh laeuft bei einzelnen Fehlern weiter und meldet am Ende
   betroffene Feednamen
 - `operationProgress` liefert für Sammel-Refresh und OPML-Import einen sichtbaren
-  Fortschritt mit Titel, erledigten Feeds, Gesamtzahl und Prozentwert; `ContentView`
-  zeigt daraus ein kompaktes Overlay.
-- Roadmap: Der Sammel-Refresh-Fortschritt soll später nicht mehr nur als Overlay,
-  sondern unten rechts neben dem Online-/Offline-Status sichtbar sein und nach
-  Abschluss die Gesamtzahl neu geladener Artikel melden.
+  Fortschritt mit Titel, erledigten Feeds, Gesamtzahl und Prozentwert. Für
+  `refreshAllFeeds` setzt `FeedViewModel` nach Abschluss zusätzlich
+  `recentRefreshStatus` mit Anzahl neuer Artikel, Fehleranzahl und Gesamtzahl.
+  `refreshItems` hält die Live-Zeilen pro Feed mit Status `pending`, `refreshing`,
+  `succeeded` oder `failed`; `ContentView` zeigt daraus unten rechts neben dem
+  Online-/Offline-Status ein aufklappbares Detailpanel. Fehlerfreie Ergebnisse
+  verschwinden nach 2 Minuten automatisch, Fehler-Ergebnisse bleiben sichtbar.
+  Der laufende Refresh-Status hat eine minimale Sichtbarkeitsdauer, damit schnelle
+  Refreshes nicht nur als unsichtbarer State-Wechsel durchlaufen.
 - `deleteFeed(_:context:)` — löscht einen Feed aus SwiftData; Artikel werden über
   die Cascade-Relationship mitgelöscht
 - `renameFeed(_:displayTitle:context:)` — speichert einen benutzerdefinierten
@@ -618,6 +639,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - `FeedUnreadCountBackfillService` korrigiert `Feed.unreadCount` für vorhandene Feeds
   einmalig und setzt danach das aktuelle UserDefaults-Flag
   `feedUnreadCountBackfillDone_v3`.
+- Der Backfill zählt ungelesene Artikel per direktem `Article.feedID`-Fetch und
+  baut daraus eine kleine Feed-ID-Map, statt pro Feed die komplette
+  `feed.articles`-Relationship zu faulten.
 - Das UserDefaults-Objekt ist injizierbar, damit der einmalige Backfill in Tests
   kontrolliert werden kann.
 - Nach erfolgreichem Durchlauf wird beim App-Start nicht mehr pro Feed die komplette
@@ -793,7 +817,8 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 ### BackgroundRefreshSettings.swift / BackgroundRefreshService.swift
 - `BackgroundRefreshSettings` kapselt `@AppStorage` Keys, Defaults und erlaubte
   Intervalle: 15, 30, 60 oder 120 Minuten sowie Statuswerte für letzten
-  automatischen Refresh, letzten Fehler und nächsten geschaetzten Lauf.
+  automatischen Refresh, letzten Fehler, nächsten geschaetzten Lauf und die
+  separate Option `Feeds beim Start aktualisieren` (Standard aus).
 - `BackgroundRefreshService.scheduleNextRefresh(...)` plant oder storniert den
   Auto-Refresh testbar über ein kleines Scheduler-Protokoll.
 - Beim Planen, nach erfolgreichem Lauf und nach Fehlern speichert der Service
@@ -801,7 +826,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - `SystemBackgroundActivityRefreshScheduler` nutzt `NSBackgroundActivityScheduler`,
   weil `BGTaskScheduler` für native macOS Apps im SDK nicht verfuegbar ist.
 - Automatischer Refresh nutzt denselben Pfad wie manueller Refresh für alle Feeds:
-  `FeedViewModel.refreshAllFeeds(_:context:)`.
+  `FeedViewModel.refreshAllFeeds(_:context:)`. `FeedivoApp` teilt ein
+  `FeedViewModel` zwischen Hauptfenster und Background-Scheduler, damit
+  automatische Refreshes bei offenem Hauptfenster dieselbe sichtbare
+  Fortschrittsanzeige nutzen.
 - Wichtig: macOS entscheidet den genauen Zeitpunkt. Eine vollständig beendete App
   wird für diese Basis nicht neu gestartet.
 
@@ -1189,12 +1217,14 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Standard: Gelesene Feeds in der Seitenleiste anzeigen; ausgeschaltet bleiben
   Feeds ohne ungelesene Artikel in der Sidebar verborgen
 - `@AppStorage("backgroundRefresh.isEnabled")`
+- `@AppStorage("backgroundRefresh.refreshOnLaunchIsEnabled")`
 - `@AppStorage("backgroundRefresh.intervalMinutes")`
 - Automatischer Refresh ist standardmäßig deaktiviert und kann auf 15, 30, 60
   oder 120 Minuten gestellt werden
-- Roadmap: Unter `Allgemein` soll eine separate Option `Feeds beim Start
-  aktualisieren` hinzukommen. Diese steuert nur den Sammel-Refresh direkt nach dem
-  App-Start und bleibt getrennt vom periodischen Auto-Refresh-Intervall.
+- `Feeds beim Start aktualisieren` ist eine separate, standardmäßig deaktivierte
+  Option in `Einstellungen → Aktualisierung`. Wenn aktiv, startet Feedivo nach
+  dem Öffnen des Hauptfensters einmalig einen sichtbaren Sammel-Refresh mit der
+  aufklappbaren Fortschrittsanzeige aus Feature 4.6.
 - Reader-Schriftwahl: `readerTitleFontPreset` und `readerBodyFontPreset`
 - Reader-Fettoptionen: `readerTitleFontIsBold` und `readerBodyFontIsBold`
 - Reader-Typografie: `readerBodyFontSize`, `readerTitleLineSpacing`,
@@ -1233,6 +1263,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Der native Artikel-Reader blendet seine vertikale Scrollbar aus, damit der
   Übergang zur rechten Inspector-Leiste ruhiger wirkt; Scrollen bleibt unveraendert
   moeglich.
+- Native Reader-ScrollViews sind an `article.persistentModelID` gebunden, damit
+  ein Artikelwechsel immer oben im neuen Artikel startet und nicht den
+  Scroll-Offset des vorherigen Artikels übernimmt.
 - Wenn ein Feed nur eine Summary, aber keinen Volltext liefert, zeigt der native
   Reader die vorhandene Zusammenfassung direkt ohne zusaetzliche Hinweisbox.
 - Reader-Modi: `Nativer Reader`, `Vollartikel` und `Originalansicht`. Der
@@ -1376,7 +1409,12 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - `ArticleFeedIDBackfillService` füllt bei alten Artikeln die direkte `feedID`
   aus einer noch vorhandenen `Article.feed`-Relationship nach.
 - `OrphanedArticleCleanupService` laeuft danach beim App-Start und entfernt Artikel,
-  deren `feedID` zu keinem existierenden Feed mehr gehoert oder ganz fehlt.
+  deren `feedID` zu keinem existierenden Feed mehr gehoert. Artikel ohne `feedID`
+  bleiben erhalten, wenn ihre alte `Article.feed`-Relationship noch auf einen
+  existierenden Feed zeigt.
+- Der Cleanup nutzt einen schlanken `FetchDescriptor<Article>` mit `id` und
+  `feedID`; die Relationship wird nur als Fallback für migrationsnahen Altbestand
+  berührt.
 - Hintergrund: Smart-Filter fragen Artikel direkt ab. Verwaiste Altartikel können
   sonst sichtbar bleiben, obwohl links keine Feeds mehr vorhanden sind.
 - `FeedViewModel.deleteFeed` löscht zusätzlich explizit alle Artikel mit passender
@@ -1483,6 +1521,11 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - System- und Serif-Presets nehmen optionales Font-Weight direkt in der Font-
   Erzeugung an; Custom-Fonts bleiben über PostScript-Namen adressiert und werden
   zusätzlich per SwiftUI-`fontWeight` gewichtet.
+- Custom-Fonts registrieren die gebündelten Fonts beim Erzeugen der SwiftUI-Font
+  sicherheitshalber erneut und wählen den ersten tatsächlich verfügbaren
+  PostScript-Namen aus der Kandidatenliste. Dadurch bleibt die Schriftwahl robust,
+  wenn die App nach Neustart/Build zuerst einen Reader mit gespeicherter Custom-
+  Schrift öffnet.
 - Custom-Fonts werden per PostScript-Namen angesprochen und als TTF-Dateien in
   `Feedivo/Resources/Fonts/` gebundelt
 
@@ -1549,6 +1592,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 
 > **Wichtig für CloudKit:** Alle Properties müssen `Optional` sein ODER einen Default-Wert
 > haben — sonst crasht die CloudKit-Synchronisation.
+> Alle SwiftData-Relationships, die in den CloudKit-Sync laufen, müssen optional
+> sein (`[Article]?`, `[Tag]?`, ...). CloudKit lädt den Store sonst mit
+> `SwiftDataError 1` / CoreData `134060` nicht.
 > URLs werden als `String` gespeichert (CloudKit unterstützt keinen nativen URL-Typ).
 
 ```swift
@@ -1740,6 +1786,11 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   `FeedKit.Feed`. Im Service deshalb explizit `FeedKit.Feed(data:)` verwenden.
 - **CloudKit + SwiftData:** Alle `@Model`-Properties müssen `Optional` sein ODER einen
   Default-Wert haben — sonst crasht die CloudKit-Synchronisation
+- **CloudKit + SwiftData Relationships:** Syncbare Relationships müssen optional
+  sein. Nicht-optionale To-Many-Beziehungen wie `Feed.articles: [Article]`
+  verhindern das Laden des CloudKit-Stores (`SwiftDataError 1`, CoreData 134060).
+  Im App-Code deshalb immer mit `relationship ?? []` lesen und beim Anhängen eine
+  lokale Kopie zurückschreiben.
 - **FeedKit Parsing:** FeedKit 10.4.0 kann direkt mit `FeedKit.Feed(data:)` parsen.
   Download bleibt bei uns über `URLSession` + async/await.
 - **Artikelbilder in Feeds:** Nicht nur `enclosure` auswerten. Viele Feeds nutzen
@@ -1985,18 +2036,64 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Reader sichtbar und lokalisiert. Eine Anzeige in der Artikelliste wird bewusst
   nicht umgesetzt, weil die Liste kompakt bleiben und bessere Scanning-Signale
   priorisieren soll.
-- Nächster sinnvoller Fokus: Batch-Export, Suche oder ein kleiner Export-Polish-
-  Slice.
-- Neuer offener M4/v1-Punkt: Vollartikel laden, wenn moeglich und erlaubt. Dabei
-  bleibt Feedivo fair gegenüber Feed-Anbietern: Artikelstruktur, Werbung und
-  Anbieterlinks dürfen nicht pauschal entfernt werden; die konkrete Reader-
-  Darstellung muss noch gemeinsam definiert werden.
+- Feature 11.2 Lesefortschritt ist zurückgestellt: Der erste SwiftUI/AppKit-
+  Scrollbeobachter-Ansatz hat das Scrollgefühl im Reader verschlechtert und wurde
+  wieder entfernt. Für v1 bleibt der Reader ohne Lesefortschritt.
+- Nächster sinnvoller Fokus: Batch-Export, Suche, Start-Refresh oder ein kleiner
+  Export-Polish-Slice.
 - Feature-Roadmap ist in `FEATURES.md` im Root dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
 ---
 
 ## Letzte Änderungen
+
+- 2026-07-01: Lesefortschritt wieder entfernt und Feature 11.2 zurückgestellt.
+  Der erste Ansatz mit Fortschrittsbalken, gespeicherter Scrollposition und
+  Scrollbeobachtung im Reader hat das Scrollgefühl verschlechtert. Entfernt wurden
+  `Article.readingProgress`, der Settings-Toggle für automatisches Fortsetzen,
+  die Scrollbeobachtung und die zugehörigen Tests/Helper-Dateien.
+
+- 2026-07-01: Reader-Artikelwechsel beschleunigt. `ReaderContentBlock.id` nutzt
+  jetzt kompakte, inhaltsbasierte IDs aus Blocktyp, Textlänge und Hash, statt den
+  kompletten Absatztext als SwiftUI-ID zu duplizieren. Das reduziert unnötige
+  Arbeit beim Wechsel zwischen Artikeln, besonders bei langen Texten.
+
+- 2026-07-01: Reader-Font-Auswahl nach Mac-Neustart gehärtet. `ReaderFontPreset`
+  registriert die gebündelten TTF-Dateien jetzt auch beim tatsächlichen
+  Font-Erzeugen idempotent und nutzt nur einen aktuell verfügbaren
+  PostScript-Namen. Regressionstests prüfen, dass die Font-Dateien im App-Bundle
+  liegen, registriert werden und jedes Custom-Preset einen registrierten Namen
+  findet.
+
+- 2026-07-01: Datenbank-Ladefehler bei aktivem iCloud Sync behoben.
+  Ursache war, dass SwiftData/CloudKit nicht-optionale Relationships
+  (`Feed.articles`, `Article.tags`, `Rule.conditions`, `SmartFolder.conditions`,
+  `Tag.feeds` usw.) ablehnt. Diese Beziehungen sind jetzt optional und alle
+  App-/Test-Zugriffe sind nil-sicher. Ein Regressionstest stellt sicher, dass
+  syncbare Relationships optional bleiben.
+
+- 2026-07-01: Sidebar-Ordner optisch stärker an die macOS-Quellenlisten-
+  Darstellung angeglichen. Ordnerzeilen zeigen Chevron, blaues Ordner-Symbol und
+  einen kompakten Ordnernamen; Feeds innerhalb eines Ordners bleiben eingerückt,
+  nutzen aber wieder normale Sidebar-Icongrößen, eine kleinere Feed-Schrift,
+  dichtere Zeilenhöhe und einen reduzierten Einzug, damit das Menü nicht zu groß
+  wirkt. Der Sidebar-Kopf zeigt keinen App-Namen mehr; die Sidebar-Toolbar zeigt
+  direkt rechts neben dem macOS-Sidebar-Schalter einen Refresh-Button und das
+  Plus-Menü für Feed und Ordner.
+
+- 2026-07-01: Hauptfenster-Toolbar optisch an die gewünschte transparente
+  macOS-Toolbar angepasst. Der Toolbar-Hintergrund nutzt nativ
+  `.ultraThinMaterial`, damit Inhalt beim Hochscrollen leicht unscharf unter die
+  Toolbar läuft und die Icons lesbar bleiben; eigene Content-Overlays in
+  Artikelliste oder Reader werden bewusst vermieden.
+
+- 2026-07-01: Interaktiver Product-Design-Prototyp für eine kompaktere Reader-
+  Toolbar unter `docs/design/reader-toolbar-compact-prototype/` in eine zweite
+  Designrunde überführt. Die erste Richtung Balance/Kompakt/Fokus wurde verworfen;
+  die neue Version zeigt stattdessen die Ansätze Modus-Pill, Zwei Gruppen und
+  Command-Bar mit klickbaren Lesemodus-, Inspector- und Offline-Zuständen. Noch
+  keine Produktiv-UI-Umsetzung.
 
 - 2026-07-01: iCloud Sync wieder aufgenommen: Entscheidung für Ansatz 1
   (SwiftData + CloudKit) als bewusst aktivierbare Beta. Erster Produktumfang ist
@@ -2005,6 +2102,30 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   über `FeedivoModelContainerFactory` konfiguriert; Tests für CloudKitDatabase
   prüfen eine eigene `StoreMode`-Repräsentation, weil SwiftDatas
   `CloudKitDatabase` im aktuellen SDK nicht `Equatable` ist.
+
+- 2026-07-01: Refresh-Performance optimiert. `FeedViewModel.refreshFeedContents`
+  baut den bestehenden Artikelbestand jetzt per gezieltem `Article.feedID`-Fetch
+  statt über `feed.articles` auf; `refreshAllFeeds` speichert Änderungen nur noch
+  pro Batch statt pro Feed. Ziel: weniger MainActor-Faulting und weniger SwiftData-
+  Query-Invalidierungen, damit die App während Feed-Aktualisierungen bedienbarer
+  bleibt.
+
+- 2026-07-01: Feature 4.7 Feeds beim App-Start aktualisieren umgesetzt. In
+  `Einstellungen → Aktualisierung` gibt es nun die separate Option `Feeds beim
+  Start aktualisieren` (Standard aus). Wenn aktiv, startet Feedivo nach dem
+  Öffnen des Hauptfensters einmalig einen Sammel-Refresh und nutzt dieselbe
+  aufklappbare Fortschrittsanzeige wie manuelle und periodische Sammel-Refreshes.
+  `FeedivoApp` teilt dafür ein `FeedViewModel` zwischen Hauptfenster und
+  Background-Scheduler.
+
+- 2026-06-30: Feature 4.6 Refresh-Status im unteren Statusbereich umgesetzt.
+  Beim Sammel-Refresh erscheint unten rechts neben dem Online-/Offline-Status ein
+  kompakter Fortschrittsstatus mit Chevron. Aufgeklappt zeigt Feedivo live jeden
+  Feed mit Wartestatus, Spinner, grünem Checkmark oder rotem X. Nach fehlerfreiem
+  Abschluss bleibt die Summary 2 Minuten sichtbar; bei Teilfehlern bleibt sie
+  stehen, bis der User sie schließt oder der nächste Sammel-Refresh startet.
+  Nach User-Feedback bleibt der laufende Status auch bei sehr schnellen Refreshes
+  mindestens kurz sichtbar.
 
 - 2026-06-30: Feature 1.8 Vollartikel-Extraktion umgesetzt. Der Reader hat nun
   neben `Nativer Reader` und `Originalansicht` den Modus `Vollartikel`; beim

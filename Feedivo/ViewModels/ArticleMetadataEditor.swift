@@ -28,7 +28,7 @@ enum ArticleMetadataEditor {
         context: ModelContext
     ) {
         guard let normalizedName = normalizedTagName(name),
-              !article.tags.contains(where: { sameTagName($0.name, normalizedName) })
+              !(article.tags ?? []).contains(where: { sameTagName($0.name, normalizedName) })
         else {
             return
         }
@@ -41,14 +41,18 @@ enum ArticleMetadataEditor {
             context.insert(tag)
         }
 
-        article.tags.append(tag)
+        var tags = article.tags ?? []
+        tags.append(tag)
+        article.tags = tags
         SidebarBadgeInvalidation.bumpDirectTagVersion()
         try? context.save()
     }
 
     @MainActor
     static func removeTag(_ tag: Tag, from article: Article, context: ModelContext) {
-        article.tags.removeAll { $0.id == tag.id }
+        var tags = article.tags ?? []
+        tags.removeAll { $0.id == tag.id }
+        article.tags = tags
         SidebarBadgeInvalidation.bumpDirectTagVersion()
         try? context.save()
     }
@@ -57,7 +61,7 @@ enum ArticleMetadataEditor {
     static func availableTagsToAdd(to article: Article, availableTags: [Tag]) -> [Tag] {
         availableTags
             .filter { tag in
-                !article.tags.contains { articleTag in
+                !(article.tags ?? []).contains { articleTag in
                     sameTagName(articleTag.name, tag.name)
                 }
             }

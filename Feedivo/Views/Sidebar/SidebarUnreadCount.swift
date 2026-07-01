@@ -21,7 +21,7 @@ enum SidebarTagCount {
     @MainActor
     static func articleCount(for tag: Tag, context: ModelContext) throws -> Int {
         let descriptor = FetchDescriptor<Article>(
-            predicate: ArticleListQuery.tagPredicate(for: tag, taggedFeeds: tag.feeds)
+            predicate: ArticleListQuery.tagPredicate(for: tag, taggedFeeds: tag.feeds ?? [])
         )
 
         return try context.fetchCount(descriptor)
@@ -111,19 +111,80 @@ struct SidebarBadgeCounts: Equatable {
     static let empty = SidebarBadgeCounts(tagCounts: [:], starred: 0, hidden: 0, saved: 0)
 }
 
-/// Signatur für das Sidebar-Badge-Caching. Erfasst alle Änderungen, die die
-/// Zähler beeinflussen: Artikel-Zahl, Status-Counts (Stern/versteckt/archiviert),
-/// Feed→Tag-Zuordnungen, Anzahl Feeds/Tags sowie direkte Artikel→Tag-Zuweisungen
-/// (`directTagVersion`). Unverändert → Cache trifft → keine Neuberechnung.
-struct SidebarBadgeSignature: Equatable, Hashable {
+/// Signatur für günstige Status-Badges. Sie nutzt nur skalare Artikelwerte und
+/// kann deshalb pro Body-Auswertung laufen, ohne Relationships zu faulten.
+struct SidebarStatusBadgeSignature: Equatable, Hashable {
     let articleCount: Int
     let starredCount: Int
     let hiddenCount: Int
-    let archivedCount: Int
+    let savedCount: Int
+}
+
+/// Signatur für Tag-Badges. Nur Änderungen, die Tag-Zuordnung oder Feed-Bezug
+/// betreffen, invalidieren den Relationship-heavy Tag-Cache.
+struct SidebarTagBadgeSignature: Equatable, Hashable {
+    let articleCount: Int
+    let articleFeedMembershipHash: Int
     let tagFeedMembershipHash: Int
     let tagCount: Int
     let feedCount: Int
     let directTagVersion: Int
+}
+
+enum SidebarBadgeSignatureBuilder {
+    static func statusSignature(articles: [Article]) -> SidebarStatusBadgeSignature {
+        var starredCount = 0
+        var hiddenCount = 0
+        var savedCount = 0
+
+        for article in articles {
+            if article.isStarred { starredCount += 1 }
+            if article.isHidden { hiddenCount += 1 }
+            if article.isStarred || article.isArchived { savedCount += 1 }
+        }
+
+        return SidebarStatusBadgeSignature(
+            articleCount: articles.count,
+            starredCount: starredCount,
+            hiddenCount: hiddenCount,
+            savedCount: savedCount
+        )
+    }
+
+    static func tagSignature(
+        articles: [Article],
+        feeds: [Feed],
+        tags: [Tag],
+        directTagVersion: Int
+    ) -> SidebarTagBadgeSignature {
+        SidebarTagBadgeSignature(
+            articleCount: articles.count,
+            articleFeedMembershipHash: articleFeedMembershipHash(articles),
+            tagFeedMembershipHash: tagFeedMembershipHash(feeds),
+            tagCount: tags.count,
+            feedCount: feeds.count,
+            directTagVersion: directTagVersion
+        )
+    }
+
+    private static func articleFeedMembershipHash(_ articles: [Article]) -> Int {
+        var hash = articles.count
+        for article in articles {
+            hash = hash &* 31 &+ (article.feedID?.hashValue ?? 0)
+        }
+        return hash
+    }
+
+    private static func tagFeedMembershipHash(_ feeds: [Feed]) -> Int {
+        var hash = feeds.count
+        for feed in feeds {
+            hash = hash &* 31 &+ feed.id.hashValue
+            for tag in (feed.tags ?? []).sorted(by: { $0.id.uuidString < $1.id.uuidString }) {
+                hash = hash &* 31 &+ tag.id.hashValue
+            }
+        }
+        return hash
+    }
 }
 
 /// Invalidierung für das Sidebar-Badge-Caching. Direkte Artikel→Tag-Zuweisungen
@@ -147,7 +208,7 @@ private enum SmartFolderSidebarBadgeKind {
     case saved
 
     init?(folder: SmartFolder) {
-        let conditions = folder.conditions.sorted { $0.sortOrder < $1.sortOrder }
+        let conditions = (folder.conditions ?? []).sorted { $0.sortOrder < $1.sortOrder }
 
         if RuleMatchMode.normalized(folder.matchModeRaw) == .all,
            conditions.count == 1,

@@ -104,7 +104,7 @@ struct TagViewModelTests {
 
         #expect(try context.fetch(FetchDescriptor<Feedivo.Tag>()).isEmpty)
         #expect(try context.fetch(FetchDescriptor<Article>()).count == 1)
-        #expect(article.tags.isEmpty)
+        #expect((article.tags ?? []).isEmpty)
     }
 
     @MainActor

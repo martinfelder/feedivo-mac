@@ -14,6 +14,10 @@ struct ContentView: View {
     private var automaticallySaveStarredArticles = OfflineReadingSettings.defaultAutomaticallySaveStarredArticles
     @AppStorage(ArticleWindowSettings.restoreOpenArticleWindowsOnLaunchKey)
     private var restoreOpenArticleWindowsOnLaunch = ArticleWindowSettings.defaultRestoreOpenArticleWindowsOnLaunch
+    @AppStorage(BackgroundRefreshSettings.refreshOnLaunchIsEnabledKey)
+    private var refreshOnLaunchIsEnabled = BackgroundRefreshSettings.defaultRefreshOnLaunchIsEnabled
+    @AppStorage(BackgroundRefreshSettings.intervalMinutesKey)
+    private var backgroundRefreshIntervalMinutes = BackgroundRefreshSettings.defaultIntervalMinutes
     @Query(sort: \Feed.title) private var feeds: [Feed]
     @Query(sort: \Tag.name) private var tags: [Tag]
     @Query(sort: \SmartFolder.sortOrder) private var smartFolders: [SmartFolder]
@@ -32,7 +36,7 @@ struct ContentView: View {
 
     @State private var articleViewModel = ArticleViewModel()
     @State private var offlineDownloadService = OfflineDownloadService()
-    @State private var feedViewModel = FeedViewModel()
+    @State private var feedViewModel: FeedViewModel
     @State private var isShowingAddFeedSheet = false
     @State private var feedPendingDeletion: Feed?
     @State private var isDeleteFeedConfirmationPresented = false
@@ -46,7 +50,13 @@ struct ContentView: View {
     @State private var isShowingFirstRunWizard = false
     @State private var isFirstRunWizardDismissedForSession = false
     @State private var didRestoreArticleWindowsForLaunch = false
+    @State private var didRunRefreshForLaunch = false
+    @State private var isRefreshStatusExpanded = false
     @State private var networkMonitor = NetworkConnectionStatusMonitor()
+
+    init(feedViewModel: FeedViewModel = FeedViewModel()) {
+        _feedViewModel = State(initialValue: feedViewModel)
+    }
 
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
@@ -55,6 +65,7 @@ struct ContentView: View {
             SidebarView(
                 selection: $sidebarSelection,
                 onRequestAddFeed: requestAddFeed,
+                onRequestRefreshAllFeeds: requestRefreshAllFeeds,
                 onRequestDeleteFeed: requestDeleteFeed
             )
                 .navigationSplitViewColumnWidth(min: 200, ideal: 260, max: 420)
@@ -131,32 +142,13 @@ struct ContentView: View {
             }
 
         }
-        .onChange(of: sidebarSelection) {
-            selectedArticle = nil
-            articleNavigationState = .empty
-        }
-        .onAppear {
-            updateFirstRunWizardPresentation()
-            selectDefaultSmartFolderIfNeeded()
-            updateAppIconBadge()
-            restoreArticleWindowsIfNeeded()
-        }
-        .onChange(of: smartFolders.count) {
-            selectDefaultSmartFolderIfNeeded()
-        }
-        .onChange(of: feeds.count) {
-            updateFirstRunWizardPresentation()
-            updateAppIconBadge()
-        }
-        .onChange(of: unreadArticleCount) {
-            updateAppIconBadge()
-        }
-        .onChange(of: appIconBadgeIsEnabled) {
-            updateAppIconBadge()
-        }
-        .onChange(of: hasCompletedFirstRunWizard) {
-            updateFirstRunWizardPresentation()
-        }
+        .onChange(of: sidebarSelection, handleSidebarSelectionChange)
+        .onAppear(perform: handleContentAppear)
+        .onChange(of: smartFolders.count, handleSmartFolderCountChange)
+        .onChange(of: feeds.count, handleFeedCountChange)
+        .onChange(of: unreadArticleCount, handleUnreadArticleCountChange)
+        .onChange(of: appIconBadgeIsEnabled, handleAppIconBadgeSettingChange)
+        .onChange(of: hasCompletedFirstRunWizard, handleFirstRunCompletionChange)
         .sheet(isPresented: $isShowingAddFeedSheet) {
             AddFeedSheet()
         }
@@ -241,19 +233,24 @@ struct ContentView: View {
                 Text(L10n.databaseInitErrorMessage)
             }
         }
-        .overlay(alignment: .bottom) {
-            if let operationProgress = feedViewModel.operationProgress {
-                FeedOperationProgressOverlay(progress: operationProgress)
-                    .padding(.bottom, 18)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
-        }
         .overlay(alignment: .bottomTrailing) {
-            NetworkConnectionStatusIndicator(status: networkMonitor.status)
+            BottomStatusIndicators(
+                refreshProgress: feedViewModel.operationProgress,
+                refreshSummary: feedViewModel.recentRefreshStatus,
+                refreshItems: feedViewModel.refreshItems,
+                isRefreshStatusExpanded: $isRefreshStatusExpanded,
+                networkStatus: networkMonitor.status,
+                dismissRefreshStatus: dismissRefreshStatus
+            )
                 .padding(.trailing, 18)
                 .padding(.bottom, 16)
         }
+        .task(id: recentRefreshStatusID) {
+            await clearRecentRefreshStatusIfNeeded()
+        }
         .animation(.snappy(duration: 0.18), value: feedViewModel.operationProgress)
+        .animation(.snappy(duration: 0.18), value: feedViewModel.recentRefreshStatus)
+        .animation(.snappy(duration: 0.18), value: isRefreshStatusExpanded)
         .focusedValue(
             \.articleCommandActions,
             ArticleCommandActions(
@@ -334,6 +331,59 @@ struct ContentView: View {
         isShowingAddFeedSheet = true
     }
 
+    private func handleSidebarSelectionChange() {
+        selectedArticle = nil
+        articleNavigationState = .empty
+    }
+
+    private func handleContentAppear() {
+        updateFirstRunWizardPresentation()
+        selectDefaultSmartFolderIfNeeded()
+        updateAppIconBadge()
+        restoreArticleWindowsIfNeeded()
+        refreshFeedsOnLaunchIfNeeded()
+    }
+
+    private func handleSmartFolderCountChange() {
+        selectDefaultSmartFolderIfNeeded()
+    }
+
+    private func handleFeedCountChange() {
+        updateFirstRunWizardPresentation()
+        updateAppIconBadge()
+        refreshFeedsOnLaunchIfNeeded()
+    }
+
+    private func handleUnreadArticleCountChange() {
+        updateAppIconBadge()
+    }
+
+    private func handleAppIconBadgeSettingChange() {
+        updateAppIconBadge()
+    }
+
+    private func handleFirstRunCompletionChange() {
+        updateFirstRunWizardPresentation()
+    }
+
+    private var recentRefreshStatusID: UUID? {
+        feedViewModel.recentRefreshStatus?.id
+    }
+
+    private func clearRecentRefreshStatusIfNeeded() async {
+        guard let statusID = recentRefreshStatusID else {
+            return
+        }
+
+        await clearRecentRefreshStatus(after: statusID)
+    }
+
+    private func requestRefreshAllFeeds() {
+        Task {
+            await feedViewModel.refreshAllFeeds(feeds, context: modelContext)
+        }
+    }
+
     private func requestImportOPML() {
         isShowingFirstRunWizard = false
         isShowingOPMLImportReview = true
@@ -369,6 +419,21 @@ struct ContentView: View {
         didRestoreArticleWindowsForLaunch = true
         for articleID in ArticleWindowSettings.openArticleIDs() {
             openWindow(value: ArticleWindowRequest(articleID: articleID))
+        }
+    }
+
+    private func refreshFeedsOnLaunchIfNeeded() {
+        guard refreshOnLaunchIsEnabled, !didRunRefreshForLaunch, !feeds.isEmpty else {
+            return
+        }
+
+        didRunRefreshForLaunch = true
+        Task {
+            await feedViewModel.refreshAllFeeds(feeds, context: modelContext)
+            BackgroundRefreshService.recordRefreshOutcome(
+                from: feedViewModel,
+                intervalMinutes: backgroundRefreshIntervalMinutes
+            )
         }
     }
 
@@ -541,6 +606,26 @@ struct ContentView: View {
         )
     }
 
+    private func clearRecentRefreshStatus(after statusID: UUID) async {
+        guard feedViewModel.recentRefreshStatus?.hasFailures == false else {
+            return
+        }
+
+        try? await Task.sleep(for: .seconds(120))
+        guard feedViewModel.recentRefreshStatus?.id == statusID,
+              feedViewModel.recentRefreshStatus?.hasFailures == false
+        else {
+            return
+        }
+
+        dismissRefreshStatus()
+    }
+
+    private func dismissRefreshStatus() {
+        isRefreshStatusExpanded = false
+        feedViewModel.clearRecentRefreshStatus()
+    }
+
 }
 
 enum NetworkConnectionStatus: Equatable {
@@ -634,39 +719,263 @@ private struct NetworkConnectionStatusIndicator: View {
     }
 }
 
-private struct FeedOperationProgressOverlay: View {
-    let progress: FeedOperationProgress
+private struct BottomStatusIndicators: View {
+    let refreshProgress: FeedOperationProgress?
+    let refreshSummary: FeedRefreshStatusSummary?
+    let refreshItems: [FeedRefreshItem]
+    @Binding var isRefreshStatusExpanded: Bool
+    let networkStatus: NetworkConnectionStatus
+    let dismissRefreshStatus: () -> Void
+
+    private var hasRefreshStatus: Bool {
+        refreshProgress != nil || refreshSummary != nil
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 10) {
-                ProgressView()
-                    .controlSize(.small)
-
-                Text(progress.title)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-
-                Spacer(minLength: 16)
-
-                Text(progress.countText)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .monospacedDigit()
+        VStack(alignment: .trailing, spacing: 8) {
+            if hasRefreshStatus, isRefreshStatusExpanded {
+                FeedRefreshDetailPanel(
+                    progress: refreshProgress,
+                    summary: refreshSummary,
+                    items: refreshItems,
+                    dismiss: dismissRefreshStatus
+                )
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
 
-            ProgressView(value: progress.fractionCompleted)
-                .progressViewStyle(.linear)
+            HStack(spacing: 8) {
+                if hasRefreshStatus {
+                    FeedRefreshStatusControl(
+                        progress: refreshProgress,
+                        summary: refreshSummary,
+                        isExpanded: $isRefreshStatusExpanded
+                    )
+                    .transition(.move(edge: .trailing).combined(with: .opacity))
+                }
+
+                NetworkConnectionStatusIndicator(status: networkStatus)
+            }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-        .frame(width: 320)
+    }
+}
+
+private struct FeedRefreshStatusControl: View {
+    let progress: FeedOperationProgress?
+    let summary: FeedRefreshStatusSummary?
+    @Binding var isExpanded: Bool
+    @Environment(\.interfaceTextSize) private var interfaceTextSize
+
+    var body: some View {
+        HStack(spacing: 8) {
+            statusIcon
+
+            Text(title)
+                .monospacedDigit()
+
+            Button {
+                isExpanded.toggle()
+            } label: {
+                Image(systemName: isExpanded ? "chevron.down" : "chevron.up")
+                    .font(.system(size: 10, weight: .bold))
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+            .help(isExpanded ? L10n.refreshStatusCollapse : L10n.refreshStatusExpand)
+            .accessibilityLabel(Text(isExpanded ? L10n.refreshStatusCollapse : L10n.refreshStatusExpand))
+        }
+        .font(interfaceTextSize.font(size: 11, weight: .medium))
+        .foregroundStyle(.secondary)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(.regularMaterial, in: Capsule())
+        .overlay {
+            Capsule()
+                .stroke(.separator.opacity(0.35), lineWidth: 1)
+        }
+        .accessibilityLabel(Text(title))
+        .help(title)
+    }
+
+    @ViewBuilder
+    private var statusIcon: some View {
+        if progress != nil {
+            ProgressView()
+                .controlSize(.small)
+                .frame(width: 12, height: 12)
+        } else {
+            Image(systemName: summarySystemImageName)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(summaryTintColor)
+        }
+    }
+
+    private var title: String {
+        if let progress {
+            return L10n.refreshStatusRunning(progress.countText)
+        }
+
+        guard let summary else {
+            return ""
+        }
+
+        if summary.hasFailures {
+            return L10n.refreshStatusPartial(
+                newArticleCount: summary.newArticleCount,
+                failedFeedCount: summary.failedFeedCount
+            )
+        }
+
+        if summary.newArticleCount == 0 {
+            return L10n.refreshStatusNoNewArticles
+        }
+
+        return L10n.refreshStatusNewArticles(summary.newArticleCount)
+    }
+
+    private var summarySystemImageName: String {
+        if summary?.isFullFailure == true {
+            return "exclamationmark.triangle.fill"
+        }
+
+        if summary?.hasFailures == true {
+            return "exclamationmark.circle.fill"
+        }
+
+        return "checkmark.circle.fill"
+    }
+
+    private var summaryTintColor: Color {
+        if summary?.isFullFailure == true {
+            return .red
+        }
+
+        if summary?.hasFailures == true {
+            return .orange
+        }
+
+        return .green
+    }
+}
+
+private struct FeedRefreshDetailPanel: View {
+    let progress: FeedOperationProgress?
+    let summary: FeedRefreshStatusSummary?
+    let items: [FeedRefreshItem]
+    let dismiss: () -> Void
+    @Environment(\.interfaceTextSize) private var interfaceTextSize
+
+    private var isRunning: Bool {
+        progress != nil
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                Text(L10n.refreshStatusDetailsTitle)
+                    .font(interfaceTextSize.font(size: 12, weight: .semibold))
+
+                Spacer(minLength: 12)
+
+                if let progress {
+                    Text(progress.countText)
+                        .font(interfaceTextSize.font(size: 11, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                }
+
+                if !isRunning {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 10, weight: .bold))
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.secondary)
+                    .help(L10n.refreshStatusDismiss)
+                    .accessibilityLabel(Text(L10n.refreshStatusDismiss))
+                }
+            }
+
+            Divider()
+
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 8) {
+                    ForEach(items) { item in
+                        FeedRefreshItemRow(item: item)
+                    }
+                }
+                .padding(.vertical, 1)
+            }
+            .frame(maxHeight: 220)
+        }
+        .padding(12)
+        .frame(width: 340)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .stroke(.separator.opacity(0.45), lineWidth: 1)
         }
         .shadow(color: .black.opacity(0.12), radius: 18, y: 8)
+    }
+}
+
+private struct FeedRefreshItemRow: View {
+    let item: FeedRefreshItem
+    @Environment(\.interfaceTextSize) private var interfaceTextSize
+
+    var body: some View {
+        HStack(spacing: 8) {
+            statusIcon
+                .frame(width: 14, height: 14)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.feedTitle)
+                    .font(interfaceTextSize.font(size: 11, weight: .medium))
+                    .lineLimit(1)
+
+                Text(statusText)
+                    .font(interfaceTextSize.font(size: 10, weight: .regular))
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer(minLength: 8)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    @ViewBuilder
+    private var statusIcon: some View {
+        switch item.status {
+        case .pending:
+            Image(systemName: "circle")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(.tertiary)
+        case .refreshing:
+            ProgressView()
+                .controlSize(.small)
+        case .succeeded:
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.green)
+        case .failed:
+            Image(systemName: "xmark.circle.fill")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.red)
+        }
+    }
+
+    private var statusText: String {
+        switch item.status {
+        case .pending:
+            L10n.refreshStatusItemPending
+        case .refreshing:
+            L10n.refreshStatusItemRefreshing
+        case .succeeded:
+            L10n.refreshStatusItemSucceeded
+        case .failed:
+            L10n.refreshStatusItemFailed
+        }
     }
 }
 

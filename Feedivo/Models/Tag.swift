@@ -9,13 +9,13 @@ class Tag {
     var colorHex: String = "#888888"
 
     @Relationship(inverse: \Feed.tags)
-    var feeds: [Feed] = []
+    var feeds: [Feed]? = []
 
     @Relationship(inverse: \Article.tags)
-    var articles: [Article] = []
+    var articles: [Article]? = []
 
     @Relationship(inverse: \Rule.assignTag)
-    var rules: [Rule] = []
+    var rules: [Rule]? = []
 
     init(name: String, colorHex: String = "#888888") {
         self.id = UUID()
@@ -23,5 +23,6 @@ class Tag {
         self.colorHex = colorHex
         self.feeds = []
         self.articles = []
+        self.rules = []
     }
 }

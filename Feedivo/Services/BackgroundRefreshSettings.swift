@@ -2,12 +2,14 @@ import Foundation
 
 enum BackgroundRefreshSettings {
     static let isEnabledKey = "backgroundRefresh.isEnabled"
+    static let refreshOnLaunchIsEnabledKey = "backgroundRefresh.refreshOnLaunchIsEnabled"
     static let intervalMinutesKey = "backgroundRefresh.intervalMinutes"
     static let lastAutomaticRefreshDateKey = "backgroundRefresh.lastAutomaticRefreshDate"
     static let lastAutomaticRefreshStatusKey = "backgroundRefresh.lastAutomaticRefreshStatus"
     static let lastAutomaticRefreshErrorKey = "backgroundRefresh.lastAutomaticRefreshError"
     static let nextAutomaticRefreshDateKey = "backgroundRefresh.nextAutomaticRefreshDate"
     static let defaultIsEnabled = false
+    static let defaultRefreshOnLaunchIsEnabled = false
     static let defaultIntervalMinutes = 60
     static let allowedIntervalMinutes = [15, 30, 60, 120]
     static let statusSuccess = "success"

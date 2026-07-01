@@ -23,13 +23,13 @@ class Feed {
     var unreadCount: Int = 0
 
     @Relationship(deleteRule: .nullify, inverse: \Article.feed)
-    var articles: [Article] = []
+    var articles: [Article]? = []
 
     @Relationship(deleteRule: .nullify, inverse: \FeedLogEntry.feed)
-    var logEntries: [FeedLogEntry] = []
+    var logEntries: [FeedLogEntry]? = []
 
     @Relationship
-    var tags: [Tag] = []
+    var tags: [Tag]? = []
 
     init(
         url: String,

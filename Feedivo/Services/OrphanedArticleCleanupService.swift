@@ -7,7 +7,7 @@ enum OrphanedArticleCleanupService {
     static func removeArticlesWithoutExistingFeed(in context: ModelContext) throws -> Int {
         let feeds = try context.fetch(FetchDescriptor<Feed>())
         let existingFeedIDs = Set(feeds.map(\.id))
-        let articles = try context.fetch(FetchDescriptor<Article>())
+        let articles = try context.fetch(articleCleanupFetchDescriptor())
         var removedCount = 0
 
         for article in articles where shouldRemove(article, existingFeedIDs: existingFeedIDs) {
@@ -22,14 +22,26 @@ enum OrphanedArticleCleanupService {
         return removedCount
     }
 
+    private static func articleCleanupFetchDescriptor() -> FetchDescriptor<Article> {
+        var descriptor = FetchDescriptor<Article>()
+        descriptor.propertiesToFetch = [
+            \.id,
+            \.feedID
+        ]
+        return descriptor
+    }
+
     private static func shouldRemove(_ article: Article, existingFeedIDs: Set<UUID>) -> Bool {
-        guard
-            let feedID = article.feedID,
-            existingFeedIDs.contains(feedID)
-        else {
+        if let feedID = article.feedID {
+            return !existingFeedIDs.contains(feedID)
+        }
+
+        // Fallback für Altbestand während Migrationen: Wenn die Relationship noch
+        // intakt ist, aber feedID fehlt, darf der Artikel nicht gelöscht werden.
+        guard let relatedFeedID = article.feed?.id else {
             return true
         }
 
-        return false
+        return !existingFeedIDs.contains(relatedFeedID)
     }
 }

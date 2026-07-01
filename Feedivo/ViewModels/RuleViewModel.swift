@@ -199,7 +199,7 @@ final class RuleViewModel {
         // .nullify statt .cascade (CloudKit-kompatibel): removeAll würde die
         // alten Conditions nur verwaisten lassen — deshalb manuell löschen,
         // analog deleteRule.
-        for condition in Array(rule.conditions) {
+        for condition in rule.conditions ?? [] {
             context.delete(condition)
         }
         rule.conditions = conditions.enumerated().map { index, condition in
@@ -217,7 +217,7 @@ final class RuleViewModel {
     func deleteRule(_ rule: Rule, context: ModelContext) {
         // .nullify statt .cascade (CloudKit-kompatibel): SwiftData würde die
         // Conditions nur verwaisten lassen — deshalb hier manuell löschen.
-        for condition in Array(rule.conditions) {
+        for condition in rule.conditions ?? [] {
             context.delete(condition)
         }
         context.delete(rule)
@@ -235,7 +235,7 @@ final class RuleViewModel {
     }
 
     private func sortedConditions(for rule: Rule) -> [RuleCondition] {
-        rule.conditions.sorted { $0.sortOrder < $1.sortOrder }
+        (rule.conditions ?? []).sorted { $0.sortOrder < $1.sortOrder }
     }
 
     private func normalizedName(_ name: String) -> String? {

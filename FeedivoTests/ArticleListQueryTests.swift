@@ -928,6 +928,37 @@ struct ArticleListQueryTests {
     }
 
     @MainActor
+    @Test func unreadCountBackfillZaehltArtikelUeberFeedIDOderRelationship() throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            FeedFolder.self,
+            FeedLogEntry.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
+        let articleWithOnlyFeedID = Article(title: "Nur FeedID", isRead: false)
+        articleWithOnlyFeedID.feedID = feed.id
+        feed.unreadCount = 0
+
+        context.insert(feed)
+        context.insert(articleWithOnlyFeedID)
+        try context.save()
+
+        let testDefaults = UserDefaults(suiteName: "test-unread-backfill-feedid-\(UUID())")!
+        let updatedCount = try FeedUnreadCountBackfillService.backfillUnreadCounts(
+            in: context,
+            defaults: testDefaults
+        )
+
+        #expect(updatedCount == 1)
+        #expect(feed.unreadCount == 1)
+    }
+
+    @MainActor
     @Test func orphanedArticleCleanupEntferntArtikelOhneExistierendenFeed() throws {
         let container = try ModelContainer(
             for: Feed.self,
@@ -957,5 +988,32 @@ struct ArticleListQueryTests {
 
         #expect(removedCount == 2)
         #expect(articles.map(\.title) == ["Gueltig"])
+    }
+
+    @MainActor
+    @Test func orphanedArticleCleanupBewahrtArtikelMitIntakterFeedRelationship() throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            FeedFolder.self,
+            FeedLogEntry.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
+        let article = Article(title: "Relationship intakt", feed: feed)
+        article.feedID = nil
+
+        context.insert(feed)
+        context.insert(article)
+        try context.save()
+
+        let removedCount = try OrphanedArticleCleanupService.removeArticlesWithoutExistingFeed(in: context)
+        let articles = try context.fetch(FetchDescriptor<Article>())
+
+        #expect(removedCount == 0)
+        #expect(articles.map(\.title) == ["Relationship intakt"])
     }
 }

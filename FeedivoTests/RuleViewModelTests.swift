@@ -36,7 +36,7 @@ struct RuleViewModelTests {
         #expect(rules.count == 1)
         #expect(rules.first?.name == "Swift Mac")
         #expect(rules.first?.conditionMatchMode == RuleMatchMode.all.rawValue)
-        #expect(rules.first?.conditions.count == 2)
+        #expect((rules.first?.conditions ?? []).count == 2)
         #expect(rules.first?.assignTag?.name == "Swift")
         #expect(rules.first?.actionRaw == RuleAction.assignTag.rawValue)
         #expect(viewModel.errorMessage == nil)
@@ -118,7 +118,7 @@ struct RuleViewModelTests {
         let duplicate = try #require(rules.first { $0.name == "Erste Regel Kopie" })
         #expect(duplicate.sortOrder == 1)
         #expect(duplicate.assignTag?.name == "Swift")
-        #expect(duplicate.conditions.count == 1)
+        #expect((duplicate.conditions ?? []).count == 1)
         #expect(viewModel.errorMessage == nil)
     }
 
@@ -388,7 +388,7 @@ struct RuleViewModelTests {
         // .nullify würde 2 Orphans + 1 neue = 3 hinterlassen; korrekt ist nur die 1 neue.
         let allConditions = try context.fetch(FetchDescriptor<RuleCondition>())
         #expect(allConditions.count == 1)
-        #expect(rule.conditions.count == 1)
+        #expect((rule.conditions ?? []).count == 1)
         #expect(allConditions.first?.rule != nil)
     }
 }

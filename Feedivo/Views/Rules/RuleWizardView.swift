@@ -366,7 +366,7 @@ struct RuleWizardView: View {
         isEnabled = rule.isEnabled
         action = RuleAction.normalized(rule.actionRaw)
         matchMode = RuleMatchMode.normalized(rule.conditionMatchMode)
-        conditionDrafts = rule.conditions
+        conditionDrafts = (rule.conditions ?? [])
             .sorted { $0.sortOrder < $1.sortOrder }
             .compactMap { condition in
                 guard let field = RuleConditionField(rawValue: condition.field),

@@ -25,12 +25,12 @@ struct SmartFolderViewModelTests {
         #expect(folders.allSatisfy { folder in folder.isDefault })
 
         let allArticlesFolder = try #require(folders.first { $0.defaultKey == "all" })
-        #expect(allArticlesFolder.conditions.isEmpty)
+        #expect((allArticlesFolder.conditions ?? []).isEmpty)
         #expect(allArticlesFolder.iconName == "tray.full")
         #expect(allArticlesFolder.colorHex == "#3B82F6")
 
         let starredFolder = try #require(folders.first { $0.defaultKey == "starred" })
-        #expect(starredFolder.conditions.first?.value == SmartFolderStatusValue.starred.rawValue)
+        #expect((starredFolder.conditions ?? []).first?.value == SmartFolderStatusValue.starred.rawValue)
         #expect(starredFolder.iconName == "star.fill")
         #expect(starredFolder.colorHex == "#F59E0B")
     }
@@ -91,7 +91,7 @@ struct SmartFolderViewModelTests {
         #expect(SmartFolderViewModel.sortedFolders(folders).map(\.name) == ["Swift", "Swift Kopie", "Apple"])
         let duplicate = try #require(folders.first { $0.name == "Swift Kopie" })
         #expect(duplicate.sortOrder == 1)
-        #expect(duplicate.conditions.count == 1)
+        #expect((duplicate.conditions ?? []).count == 1)
         #expect(duplicate.isDefault == false)
         #expect(duplicate.iconName == "tag")
         #expect(duplicate.colorHex == "#F97316")
@@ -270,7 +270,7 @@ struct SmartFolderViewModelTests {
 
         let allConditions = try context.fetch(FetchDescriptor<SmartFolderCondition>())
         #expect(allConditions.count == 1)
-        #expect(folder.conditions.count == 1)
+        #expect((folder.conditions ?? []).count == 1)
         #expect(allConditions.first?.smartFolder != nil)
     }
 }

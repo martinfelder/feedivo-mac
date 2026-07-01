@@ -684,6 +684,9 @@ private struct NewRefreshSettingsView: View {
     @AppStorage(BackgroundRefreshSettings.intervalMinutesKey)
     private var backgroundRefreshIntervalMinutes = BackgroundRefreshSettings.defaultIntervalMinutes
 
+    @AppStorage(BackgroundRefreshSettings.refreshOnLaunchIsEnabledKey)
+    private var refreshOnLaunchIsEnabled = BackgroundRefreshSettings.defaultRefreshOnLaunchIsEnabled
+
     @AppStorage(BackgroundRefreshSettings.lastAutomaticRefreshDateKey)
     private var lastAutomaticRefreshTimestamp = 0.0
 
@@ -701,6 +704,11 @@ private struct NewRefreshSettingsView: View {
             NewSettingsBlock(eyebrow: L10n.settingsRefreshSection) {
                 NewSettingRow(title: L10n.settingsAutomaticRefreshTitle, description: L10n.settingsAutomaticRefreshDescription) {
                     Toggle("", isOn: $backgroundRefreshIsEnabled)
+                        .labelsHidden()
+                }
+
+                NewSettingRow(title: L10n.settingsRefreshOnLaunchTitle, description: L10n.settingsRefreshOnLaunchDescription) {
+                    Toggle("", isOn: $refreshOnLaunchIsEnabled)
                         .labelsHidden()
                 }
 

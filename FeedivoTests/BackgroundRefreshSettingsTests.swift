@@ -53,4 +53,9 @@ struct BackgroundRefreshSettingsTests {
         #expect(BackgroundRefreshSettings.statusText(for: nil) == "Noch nicht gelaufen")
         #expect(BackgroundRefreshSettings.statusText(for: "unbekannt") == "Noch nicht gelaufen")
     }
+
+    @Test func refreshOnLaunchIstStandardmaessigAus() {
+        #expect(BackgroundRefreshSettings.refreshOnLaunchIsEnabledKey == "backgroundRefresh.refreshOnLaunchIsEnabled")
+        #expect(BackgroundRefreshSettings.defaultRefreshOnLaunchIsEnabled == false)
+    }
 }

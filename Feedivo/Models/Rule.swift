@@ -26,7 +26,7 @@ class Rule {
     var assignTag: Tag?
 
     @Relationship(deleteRule: .nullify, inverse: \RuleCondition.rule)
-    var conditions: [RuleCondition] = []
+    var conditions: [RuleCondition]? = []
 
     init(name: String) {
         self.id = UUID()

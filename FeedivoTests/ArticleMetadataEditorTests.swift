@@ -17,8 +17,8 @@ struct ArticleMetadataEditorTests {
 
         let tags = try context.fetch(FetchDescriptor<Feedivo.Tag>())
         #expect(tags.count == 1)
-        #expect(article.tags.map(\.name) == ["Wearables"])
-        #expect(article.tags.first?.colorHex == "#888888")
+        #expect((article.tags ?? []).map(\.name) == ["Wearables"])
+        #expect((article.tags ?? []).first?.colorHex == "#888888")
     }
 
     @MainActor
@@ -32,8 +32,8 @@ struct ArticleMetadataEditorTests {
 
         ArticleMetadataEditor.addTag(named: "swift", to: article, availableTags: [existingTag], context: context)
 
-        #expect(article.tags.first?.name == "Swift")
-        #expect(article.tags.first?.colorHex == "#3B82F6")
+        #expect((article.tags ?? []).first?.name == "Swift")
+        #expect((article.tags ?? []).first?.colorHex == "#3B82F6")
     }
 
     @MainActor
@@ -51,8 +51,8 @@ struct ArticleMetadataEditorTests {
             context: context
         )
 
-        #expect(article.tags.map(\.name) == ["Design"])
-        #expect(article.tags.first?.colorHex == "#8b5cf6")
+        #expect((article.tags ?? []).map(\.name) == ["Design"])
+        #expect((article.tags ?? []).first?.colorHex == "#8b5cf6")
     }
 
     @MainActor
@@ -68,7 +68,7 @@ struct ArticleMetadataEditorTests {
         ArticleMetadataEditor.addTag(named: " ", to: article, availableTags: [tag], context: context)
         ArticleMetadataEditor.addTag(named: "smartwatch", to: article, availableTags: [tag], context: context)
 
-        #expect(article.tags.map(\.name) == ["Smartwatch"])
+        #expect((article.tags ?? []).map(\.name) == ["Smartwatch"])
     }
 
     @MainActor
@@ -85,7 +85,7 @@ struct ArticleMetadataEditorTests {
 
         ArticleMetadataEditor.removeTag(firstTag, from: article, context: context)
 
-        #expect(article.tags.map(\.name) == ["Smartwatch"])
+        #expect((article.tags ?? []).map(\.name) == ["Smartwatch"])
     }
 
     @MainActor

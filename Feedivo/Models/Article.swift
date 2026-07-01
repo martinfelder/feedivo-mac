@@ -66,7 +66,7 @@ class Article {
     }
 
     @Relationship
-    var tags: [Tag] = []
+    var tags: [Tag]? = []
 
     init(
         title: String,

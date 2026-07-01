@@ -72,7 +72,7 @@ struct ArticleExportSnapshot {
         self.author = article.author
         self.publishedAt = article.publishedAt
         self.feedTitle = article.feed?.title
-        self.tagNames = article.tags.map(\.name).sorted {
+        self.tagNames = (article.tags ?? []).map(\.name).sorted {
             $0.localizedCaseInsensitiveCompare($1) == .orderedAscending
         }
         self.offlineState = article.offlineState

@@ -28,9 +28,9 @@ enum ArticleListQuery {
         let tagID = tag.id
         let feedIDs = taggedFeeds.map(\.id)
         return #Predicate<Article> { article in
-            article.tags.contains { articleTag in
+            (article.tags?.contains { articleTag in
                 articleTag.id == tagID
-            } || (article.feedID.flatMap { feedID in
+            } ?? false) || (article.feedID.flatMap { feedID in
                 feedIDs.contains(feedID)
             } ?? false)
         }
@@ -38,7 +38,7 @@ enum ArticleListQuery {
 
     static func tagFetchDescriptor(for tag: Tag) -> FetchDescriptor<Article> {
         FetchDescriptor(
-            predicate: tagPredicate(for: tag, taggedFeeds: tag.feeds),
+            predicate: tagPredicate(for: tag, taggedFeeds: tag.feeds ?? []),
             sortBy: sortDescriptors
         )
     }
@@ -116,7 +116,7 @@ private enum SmartFolderOptimizedQueryKind {
     case thisWeek
 
     init?(folder: SmartFolder) {
-        let conditions = folder.conditions.sorted { firstCondition, secondCondition in
+        let conditions = (folder.conditions ?? []).sorted { firstCondition, secondCondition in
             firstCondition.sortOrder < secondCondition.sortOrder
         }
 
@@ -355,11 +355,11 @@ struct ArticleSearchFilters: Equatable {
             return true
         }
 
-        if article.tags.contains(where: { $0.id == tagID }) {
+        if (article.tags ?? []).contains(where: { $0.id == tagID }) {
             return true
         }
 
-        return article.feed?.tags.contains(where: { $0.id == tagID }) ?? false
+        return article.feed?.tags?.contains(where: { $0.id == tagID }) ?? false
     }
 
     private func matchesDate(

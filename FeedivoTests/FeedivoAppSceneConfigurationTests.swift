@@ -44,6 +44,19 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(appSource.contains("ImageCacheSettings.currentLimitInBytes"))
     }
 
+    @Test func appSharesFeedViewModelForVisibleAndAutomaticRefresh() throws {
+        let projectRoot = projectRootURL()
+        let appSource = try source(at: "Feedivo/App/FeedivoApp.swift", projectRoot: projectRoot)
+        let contentSource = try source(at: "Feedivo/Views/ContentView.swift", projectRoot: projectRoot)
+        let schedulerSource = try source(at: "Feedivo/Services/BackgroundRefreshService.swift", projectRoot: projectRoot)
+
+        #expect(appSource.contains("private let feedViewModel"))
+        #expect(appSource.contains("ContentView(feedViewModel: feedViewModel)"))
+        #expect(appSource.contains("feedViewModel: feedViewModel"))
+        #expect(contentSource.contains("refreshFeedsOnLaunchIfNeeded()"))
+        #expect(schedulerSource.contains("feedViewModel: FeedViewModel"))
+    }
+
     @Test func appRegistersArticleWindowGroup() throws {
         let projectRoot = projectRootURL()
         let appSource = try source(at: "Feedivo/App/FeedivoApp.swift", projectRoot: projectRoot)
@@ -99,6 +112,14 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(articleWindowSource.contains("ArticleWindowSettings.forgetOpenArticleID(selectedArticleID)"))
     }
 
+    @Test func readerScrollViewsResetWhenArticleChanges() throws {
+        let projectRoot = projectRootURL()
+        let readerSource = try source(at: "Feedivo/Views/Reader/ReaderView.swift", projectRoot: projectRoot)
+        let articleIdentityCount = readerSource.components(separatedBy: ".id(article.persistentModelID)").count - 1
+
+        #expect(articleIdentityCount >= 2)
+    }
+
     @Test func appUsesCloudSyncSettingsForModelContainer() throws {
         let projectRoot = projectRootURL()
         let appSource = try source(at: "Feedivo/App/FeedivoApp.swift", projectRoot: projectRoot)
@@ -140,6 +161,27 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(settingsSource.contains("CloudSyncSettings.statusLocalizationKey"))
         #expect(settingsSource.contains("L10n.settingsSyncDatabaseTitle"))
         #expect(settingsSource.contains("Toggle(\"\", isOn: $cloudSyncIsEnabled)"))
+    }
+
+    @Test func cloudKitSyncedRelationshipsAreOptional() throws {
+        let projectRoot = projectRootURL()
+
+        let expectedRelationships: [(path: String, declaration: String)] = [
+            ("Feedivo/Models/Article.swift", "var tags: [Tag]?"),
+            ("Feedivo/Models/Feed.swift", "var articles: [Article]?"),
+            ("Feedivo/Models/Feed.swift", "var logEntries: [FeedLogEntry]?"),
+            ("Feedivo/Models/Feed.swift", "var tags: [Tag]?"),
+            ("Feedivo/Models/Rule.swift", "var conditions: [RuleCondition]?"),
+            ("Feedivo/Models/SmartFolder.swift", "var conditions: [SmartFolderCondition]?"),
+            ("Feedivo/Models/Tag.swift", "var articles: [Article]?"),
+            ("Feedivo/Models/Tag.swift", "var feeds: [Feed]?"),
+            ("Feedivo/Models/Tag.swift", "var rules: [Rule]?")
+        ]
+
+        for expectedRelationship in expectedRelationships {
+            let modelSource = try source(at: expectedRelationship.path, projectRoot: projectRoot)
+            #expect(modelSource.contains(expectedRelationship.declaration))
+        }
     }
 
     private func projectRootURL() -> URL {

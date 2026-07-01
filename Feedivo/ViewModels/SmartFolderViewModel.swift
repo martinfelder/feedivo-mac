@@ -102,7 +102,7 @@ final class SmartFolderViewModel {
         // .nullify statt .cascade (CloudKit-kompatibel): removeAll würde die
         // alten Conditions nur verwaisten lassen — deshalb manuell löschen,
         // analog deleteFolder.
-        for condition in Array(folder.conditions) {
+        for condition in folder.conditions ?? [] {
             context.delete(condition)
         }
         folder.conditions = conditions
@@ -254,7 +254,7 @@ final class SmartFolderViewModel {
     func deleteFolder(_ folder: SmartFolder, context: ModelContext) {
         // .nullify statt .cascade (CloudKit-kompatibel): SwiftData würde die
         // Conditions nur verwaisten lassen — deshalb hier manuell löschen.
-        for condition in Array(folder.conditions) {
+        for condition in folder.conditions ?? [] {
             context.delete(condition)
         }
         context.delete(folder)
@@ -409,7 +409,7 @@ final class SmartFolderViewModel {
     }
 
     private func sortedConditions(for folder: SmartFolder) -> [SmartFolderCondition] {
-        folder.conditions.sorted { firstCondition, secondCondition in
+        (folder.conditions ?? []).sorted { firstCondition, secondCondition in
             firstCondition.sortOrder < secondCondition.sortOrder
         }
     }

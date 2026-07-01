@@ -62,7 +62,7 @@ enum SmartFolderEngine {
     }
 
     fileprivate static func sortedConditions(for folder: SmartFolder) -> [SmartFolderCondition] {
-        folder.conditions.sorted { firstCondition, secondCondition in
+        (folder.conditions ?? []).sorted { firstCondition, secondCondition in
             firstCondition.sortOrder < secondCondition.sortOrder
         }
     }
@@ -81,7 +81,7 @@ enum SmartFolderEngine {
 
         switch field {
         case .tag:
-            let hasTag = article.tags.contains { tag in
+            let hasTag = (article.tags ?? []).contains { tag in
                 tag.id.uuidString == condition.value
                     || tag.name.localizedCaseInsensitiveCompare(condition.value) == .orderedSame
             }

@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 enum ReaderFontPreset: String, CaseIterable, Identifiable {
@@ -127,7 +128,16 @@ enum ReaderFontPreset: String, CaseIterable, Identifiable {
         case .serif:
             return .system(size: size, weight: weight, design: .serif)
         default:
-            return .custom(fontNames.first ?? title, size: size, relativeTo: textStyle)
+            ReaderFontRegistry.registerBundledFonts()
+            return .custom(availableFontName() ?? fontNames.first ?? title, size: size, relativeTo: textStyle)
+        }
+    }
+
+    func availableFontName() -> String? {
+        let availableFonts = Set(NSFontManager.shared.availableFonts)
+
+        return fontNames.first { fontName in
+            availableFonts.contains(fontName) || NSFont(name: fontName, size: 16) != nil
         }
     }
 

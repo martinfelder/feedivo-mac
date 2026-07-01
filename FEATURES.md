@@ -7,7 +7,7 @@
 > Status-Legende:
 > ✔️ Fertig | 🔨 In Arbeit (teilweise umgesetzt) | ✅ Entschieden (bereit zur Implementierung) | 💬 In Diskussion | ⏸️ Zurückgestellt
 >
-> Zuletzt aktualisiert: 2026-06-30
+> Zuletzt aktualisiert: 2026-07-01
 
 ---
 
@@ -63,6 +63,9 @@
 ### 1.9 Schriftgrösse / Font anpassen
 - **Status:** ✔️ Fertig
 - **Umgesetzt:** `ReaderFontPreset` (18 Presets), `ReaderTypography`
+- **Robustheit:** Gebündelte Custom-Fonts werden beim App-Start und beim
+  tatsächlichen Erzeugen der Reader-Schrift registriert; Presets wählen einen
+  aktuell verfügbaren PostScript-Namen statt blind den ersten Kandidaten.
 
 ### 1.10 Link in Zwischenablage kopieren
 - **Status:** ✔️ Fertig
@@ -178,38 +181,36 @@
 
 ### 4.4 Manueller Refresh
 - **Status:** ✔️ Fertig
-- **Umgesetzt:** `refreshFeed` / `refreshAllFeeds`, `operationProgress` Overlay
+- **Umgesetzt:** `refreshFeed` / `refreshAllFeeds`, Fortschritt im unteren Statusbereich
+- **Performance:** Der Refresh erkennt bestehende Artikel über einen gezielten
+  `Article.feedID`-Fetch statt über die vollständige `feed.articles`-Relationship.
+  Sammel-Refreshes speichern pro Batch statt pro Feed, damit SwiftData-Queries in
+  Sidebar und Artikelliste seltener invalidiert werden.
 
 ### 4.5 Automatischer Refresh
 - **Status:** ✔️ Fertig
 - **Umgesetzt:** `NSBackgroundActivityScheduler`, 15/30/60/120 Min.
 
 ### 4.6 Refresh-Status im unteren Statusbereich
-- **Status:** ⏸️ Zurückgestellt — späterer Ausbau, nicht jetzt implementieren
-- **Geplant:**
-  - Während `Alle Feeds aktualisieren` läuft, soll unten rechts neben dem
-    Online-/Offline-Status ein zweiter Status erscheinen.
-  - Der Status zeigt den Fortschritt des Sammel-Refresh, z.B. aktualisierte Feeds
-    von Gesamtzahl und/oder Prozent.
-  - Nach Abschluss soll der Status kurz anzeigen, wie viele Artikel insgesamt neu
-    geladen wurden, z.B. `12 neue Artikel`.
-  - Bei teilweisen Fehlern soll der Status nicht nur `fertig` melden, sondern eine
-    knappe Problem-Markierung ermöglichen; Details bleiben weiterhin in Feed-Logs
-    beziehungsweise bestehenden Fehlermeldungen.
-- **Hinweis:** Bestehende Basis ist `FeedViewModel.operationProgress`; für die
-  Roadmap ist die gewünschte Platzierung im unteren Statusbereich neben `Online`
-  entscheidend, nicht mehr als separates Overlay.
+- **Status:** ✔️ Fertig
+- **Umgesetzt:** Während `Alle Feeds aktualisieren` läuft, erscheint unten rechts
+  neben dem Online-/Offline-Status ein kompakter Fortschrittsstatus mit
+  aktualisierten Feeds von Gesamtzahl und einem Chevron zum Aufklappen. Das
+  Detailpanel zeigt live jeden Feed als wartend, aktualisierend, erfolgreich
+  (grünes Checkmark) oder fehlgeschlagen (rotes X). Nach fehlerfreiem Abschluss
+  bleibt die Summary 2 Minuten sichtbar; bei Teilfehlern bleibt sie stehen, bis
+  der User sie schließt oder der nächste Sammel-Refresh startet. Der laufende
+  Status bleibt auch bei sehr schnellen Refreshes mindestens kurz sichtbar.
+  Details bleiben weiterhin in Feed-Logs und bestehender Fehlermeldung.
 
 ### 4.7 Feeds beim App-Start aktualisieren
-- **Status:** ⏸️ Zurückgestellt — späterer Ausbau, nicht jetzt implementieren
-- **Geplant:**
-  - In Einstellungen → Allgemein kommt eine Option `Feeds beim Start aktualisieren`.
-  - Wenn aktiv, startet Feedivo nach dem App-Start automatisch einen Sammel-Refresh
-    aller Feeds.
-  - Wenn deaktiviert, findet beim App-Start kein zusätzlicher Sammel-Refresh statt;
-    der bestehende periodische automatische Refresh bleibt davon getrennt.
-  - Der Start-Refresh soll denselben Fortschrittsstatus aus Feature 4.6 nutzen und
-    am Ende ebenfalls die Gesamtzahl neu geladener Artikel anzeigen.
+- **Status:** ✔️ Fertig
+- **Umgesetzt:** In den Einstellungen → Aktualisierung gibt es die Option
+  `Feeds beim Start aktualisieren` (Standard aus). Wenn aktiv, startet Feedivo
+  nach dem Öffnen des Hauptfensters einmalig einen Sammel-Refresh aller Feeds und
+  nutzt dieselbe aufklappbare Fortschrittsanzeige aus 4.6. Der periodische
+  Background-Refresh teilt sich dasselbe `FeedViewModel`, damit automatische
+  Refreshes im laufenden Hauptfenster ebenfalls sichtbar werden.
 
 ---
 
@@ -250,6 +251,9 @@
   Feed-Logs sind kein Produktversprechen der ersten Beta.
 - **Hinweis:** Änderung des Sync-Schalters wird erst nach einem Neustart wirksam,
   weil der SwiftData-Container beim App-Start konfiguriert wird.
+- **Schema-Status:** CloudKit-Schema-Blocker durch nicht-optionale SwiftData-
+  Relationships ist behoben; syncbare Beziehungen bleiben optional und werden im
+  Code nil-sicher gelesen.
 
 ---
 
@@ -396,11 +400,9 @@
   soll kompakt bleiben und wichtige Scanning-Signale priorisieren.
 
 ### 11.2 Lesefortschritt
-- **Status:** ✅ Entschieden — bereit zur Implementierung
-- **Zu implementieren:**
-  - Fortschrittsbalken oben im Reader (dünne Linie die sich beim Scrollen füllt)
-  - Lesefortschritt wird gespeichert — beim erneuten Öffnen startet der Artikel an der gleichen Stelle
-  - Technisch: Scroll-Position in `Article` speichern (SwiftData)
+- **Status:** ⏸️ Zurückgestellt
+- **Entscheidung 2026-07-01:** Der erste Ansatz mit Fortschrittsbalken, gespeicherter Scrollposition und Scrollbeobachtung im Reader wurde entfernt, weil er das Scrollgefühl verschlechtert hat.
+- **Empfehlung:** Für v1 ohne Lesefortschritt bleiben. Ein späterer Versuch sollte erst mit einem performanten, isolierten Reader-Scroll-Konzept prototypisiert werden.
 
 ---
 
@@ -820,9 +822,12 @@
 - **Ziel:** 500 Feeds / 100'000 Artikel flüssig
 - **Umgesetzt:**
   - OPML-Import und `Alle Feeds aktualisieren` rufen Feeds nur noch begrenzt parallel ab
-  - Sidebar lädt keine globale Artikelliste mehr nur für Smart-Folder-Badges
+  - Sidebar lädt für Badge-Signaturen nur eine leichte Artikel-Query mit
+    Skalarwerten; große Inhalte und Relationships bleiben aus dem Standard-Render
+    heraus
   - `Ungelesen`-Badge der intelligenten Ordner nutzt die gespeicherten `Feed.unreadCount` Werte
-  - `Mit Stern`, `Ausgeblendet` und `Gespeichert` zählen ihre Sidebar-Badges per SwiftData-`fetchCount`
+  - `Mit Stern`, `Ausgeblendet` und `Gespeichert` lesen ihre Sidebar-Badges aus
+    gebündelten Status-Zählern
   - `Ungelesen` lädt für die Artikelliste bewusst alle Artikel und überlässt das Ausblenden gelesener Artikel der Anzeigeebene, damit gerade gelesene Artikel sichtbar bleiben können
   - Artikel-Listen berechnen sichtbare Artikel und die Anzahl ausgeblendeter gelesener Artikel in einem Durchlauf
   - Tag-Zuweisungsoptionen werden in Artikelzeilen erst im Kontextmenü berechnet, nicht mehr bei jedem Zeilen-Render
@@ -838,6 +843,16 @@
   - Bulk-Aktionen wie `Alle als gelesen markieren` synchronisieren betroffene Feed-Zähler per SwiftData-`fetchCount`, damit bereits falsch gespeicherte Badges wieder auf den echten ungelesenen Bestand fallen
   - Rückwirkend angewendete Hide-Regeln synchronisieren betroffene `Feed.unreadCount` Werte; der v3-Backfill korrigiert bestehende gespeicherte Sidebar-Zähler beim App-Start
   - Das Artikelansicht-Menü zeigt die Bulk-Option ausdrücklich als `Alle als gelesen markieren`
+  - Feed-Refreshes laden bestehende Artikel per gezieltem `Article.feedID`-Fetch
+    mit schlankem Property-Set statt über die komplette `feed.articles`-Relationship
+  - Sammel-Refreshes speichern Änderungen pro Batch statt pro Feed, um SwiftData-
+    Query-Invalidierungen während laufender Aktualisierungen zu reduzieren
+  - Start-Backfills und Orphan-Cleanup vermeiden vollständige
+    `feed.articles`-Relationship-Faults; `Article.feed` wird dort nur noch als
+    Fallback für alten Datenbestand ohne `feedID` berührt
+  - Sidebar-Badge-Caching trennt Status-Signatur und Tag-Signatur; reine Stern-,
+    Archiv- oder Hidden-Änderungen lösen keine neue Artikel→Tag-Relationship-
+    Auswertung aus
 - **Zu beachten:**
   - SwiftData-Queries immer mit gezielten Predicates; bewusste Ausnahme ist der Default-Ordner `Ungelesen`, weil dort die Anzeigeebene gelesene Artikel für Feed-ähnliches Verhalten temporär sichtbar halten muss
   - Artikel-Liste mit Paginierung (50 Artikel pro Batch, mehr beim Scrollen)
@@ -907,7 +922,7 @@ Folgende Reihenfolge berücksichtigt Abhängigkeiten. Features mit (*) sind Vora
 
 ### Phase 9 — Reader Features
 30. **Feature 11.1** — Lesedauer im Reader anzeigen — erledigt; keine Anzeige in der Artikel-Liste
-31. **Feature 11.2** — Lesefortschritt (Fortschrittsbalken, Scroll-Position speichern)
+31. **Feature 11.2** — Lesefortschritt (Fortschrittsbalken, Scroll-Position speichern) — zurückgestellt
 32. **Feature 1.8** — Vollartikel-Extraktion (Readability.js, dritter Reader-Modus)
 
 ### Phase 10 — Statistiken

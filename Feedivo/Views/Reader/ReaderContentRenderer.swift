@@ -10,22 +10,27 @@ enum ReaderContentBlock: Equatable, Sendable {
 
 extension ReaderContentBlock: Identifiable {
     // Stabile, inhaltsbasierte Identität (statt Positions-Index). Früher nutzte
-    // ForEach `contentBlocks.indices, id: \.self` — wenn der Inhalt per Refresh
-    // verschoben wurde, blieb die Identität an der Position hängen → veraltete
-    // Darstellung/Animationen. Die ID aus Case + Inhalt verfolgt den Block.
+    // ForEach `contentBlocks.indices, id: \.self`. Wenn der Inhalt per Refresh
+    // verschoben wurde, blieb die Identität an der Position hängen und veraltete
+    // Darstellung/Animationen. Die kompakte ID aus Case + Inhaltshash verfolgt
+    // den Block, ohne lange Artikeltexte als SwiftUI-ID zu duplizieren.
     var id: String {
         switch self {
         case .paragraph(let text):
-            return "paragraph:\(text)"
+            return compactID(prefix: "p", value: text)
         case .heading(let text):
-            return "heading:\(text)"
+            return compactID(prefix: "h", value: text)
         case .quote(let text):
-            return "quote:\(text)"
+            return compactID(prefix: "q", value: text)
         case .listItem(let text):
-            return "listItem:\(text)"
+            return compactID(prefix: "li", value: text)
         case .image(let urlString):
-            return "image:\(urlString)"
+            return compactID(prefix: "img", value: urlString)
         }
+    }
+
+    private func compactID(prefix: String, value: String) -> String {
+        "\(prefix):\(value.count):\(value.hashValue)"
     }
 }
 

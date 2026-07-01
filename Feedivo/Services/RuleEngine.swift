@@ -80,7 +80,7 @@ enum RuleEngine {
         }
 
         for feed in feedsToResync.values {
-            synchronizeUnreadCount(for: feed)
+            synchronizeUnreadCount(for: feed, articles: articles)
         }
 
         return appliedActionCount
@@ -130,12 +130,14 @@ enum RuleEngine {
             switch RuleAction.normalized(rule.actionRaw) {
             case .assignTag:
                 guard let tag = rule.assignTag,
-                      !article.tags.contains(where: { $0.id == tag.id })
+                      !(article.tags ?? []).contains(where: { $0.id == tag.id })
                 else {
                     continue
                 }
 
-                article.tags.append(tag)
+                var tags = article.tags ?? []
+                tags.append(tag)
+                article.tags = tags
                 SidebarBadgeInvalidation.bumpDirectTagVersion()
                 appliedActionCount += 1
             case .hideArticle:
@@ -158,10 +160,18 @@ enum RuleEngine {
     }
 
     @MainActor
-    private static func synchronizeUnreadCount(for feed: Feed) {
-        feed.unreadCount = feed.articles.filter { article in
-            !article.isRead && !article.isHidden
-        }.count
+    private static func synchronizeUnreadCount(for feed: Feed, articles: [Article]) {
+        let feedID = feed.id
+        feed.unreadCount = articles.reduce(0) { count, article in
+            guard article.feedID == feedID || article.feed?.id == feedID,
+                  !article.isRead,
+                  !article.isHidden
+            else {
+                return count
+            }
+
+            return count + 1
+        }
     }
 
     private static func preparedRules(_ rules: [Rule]) -> [PreparedRule] {
@@ -212,7 +222,7 @@ enum RuleEngine {
     }
 
     private static func normalizedConditions(for rule: Rule) -> [NormalizedCondition] {
-        rule.conditions
+        (rule.conditions ?? [])
             .sorted { $0.sortOrder < $1.sortOrder }
             .compactMap { condition in
                 normalizedCondition(

@@ -93,6 +93,65 @@ struct SidebarUnreadCountTests {
     }
 
     @MainActor
+    @Test func badgeTagSignatureBleibtBeiReinemStatuswechselStabil() {
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
+        let tag = Tag(name: "Swift")
+        feed.tags = [tag]
+        let article = Article(title: "Artikel", feed: feed)
+        let initialTagSignature = SidebarBadgeSignatureBuilder.tagSignature(
+            articles: [article],
+            feeds: [feed],
+            tags: [tag],
+            directTagVersion: 0
+        )
+        let initialStatusSignature = SidebarBadgeSignatureBuilder.statusSignature(
+            articles: [article]
+        )
+
+        article.isStarred = true
+        article.isArchived = true
+
+        let changedTagSignature = SidebarBadgeSignatureBuilder.tagSignature(
+            articles: [article],
+            feeds: [feed],
+            tags: [tag],
+            directTagVersion: 0
+        )
+        let changedStatusSignature = SidebarBadgeSignatureBuilder.statusSignature(
+            articles: [article]
+        )
+
+        #expect(changedTagSignature == initialTagSignature)
+        #expect(changedStatusSignature != initialStatusSignature)
+    }
+
+    @MainActor
+    @Test func badgeTagSignatureAendertSichBeiFeedTagWechselMitGleicherAnzahl() {
+        let firstTag = Tag(name: "Swift")
+        let secondTag = Tag(name: "Apple")
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
+        feed.tags = [firstTag]
+        let article = Article(title: "Artikel", feed: feed)
+        let initialSignature = SidebarBadgeSignatureBuilder.tagSignature(
+            articles: [article],
+            feeds: [feed],
+            tags: [firstTag, secondTag],
+            directTagVersion: 0
+        )
+
+        feed.tags = [secondTag]
+
+        let changedSignature = SidebarBadgeSignatureBuilder.tagSignature(
+            articles: [article],
+            feeds: [feed],
+            tags: [firstTag, secondTag],
+            directTagVersion: 0
+        )
+
+        #expect(changedSignature != initialSignature)
+    }
+
+    @MainActor
     @Test func totalUnreadCountZaehltGespeicherteFeedZaehler() {
         let firstFeed = Feed(url: "https://example.com/first.xml", title: "First")
         let secondFeed = Feed(url: "https://example.com/second.xml", title: "Second")

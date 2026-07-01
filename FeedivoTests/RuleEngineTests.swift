@@ -33,9 +33,9 @@ struct RuleEngineTests {
         )
 
         #expect(matchingCount == 1)
-        #expect(matchingArticle.tags.isEmpty)
-        #expect(nonMatchingArticle.tags.isEmpty)
-        #expect(articleWithoutFeed.tags.isEmpty)
+        #expect((matchingArticle.tags ?? []).isEmpty)
+        #expect((nonMatchingArticle.tags ?? []).isEmpty)
+        #expect((articleWithoutFeed.tags ?? []).isEmpty)
     }
 
     @MainActor
@@ -108,8 +108,8 @@ struct RuleEngineTests {
         RuleEngine.applyRules([rule], to: matchingArticle, feed: feed)
         RuleEngine.applyRules([rule], to: nonMatchingArticle, feed: otherFeed)
 
-        #expect(matchingArticle.tags.map(\.name) == ["Apple"])
-        #expect(nonMatchingArticle.tags.isEmpty)
+        #expect((matchingArticle.tags ?? []).map(\.name) == ["Apple"])
+        #expect((nonMatchingArticle.tags ?? []).isEmpty)
     }
 
     @MainActor
@@ -127,7 +127,7 @@ struct RuleEngineTests {
 
         RuleEngine.applyRules([rule], to: article, feed: feed)
 
-        #expect(article.tags.map(\.name) == ["Apple"])
+        #expect((article.tags ?? []).map(\.name) == ["Apple"])
     }
 
     @MainActor
@@ -144,7 +144,7 @@ struct RuleEngineTests {
 
         RuleEngine.applyRules([rule], to: article, feed: feed)
 
-        #expect(article.tags.isEmpty)
+        #expect((article.tags ?? []).isEmpty)
     }
 
     @MainActor
@@ -176,7 +176,7 @@ struct RuleEngineTests {
 
         RuleEngine.applyRules([titleRule, summaryRule, feedRule], to: article, feed: feed)
 
-        #expect(article.tags.map(\.name).sorted() == ["Mac", "News", "Swift"])
+        #expect((article.tags ?? []).map(\.name).sorted() == ["Mac", "News", "Swift"])
     }
 
     @MainActor
@@ -195,7 +195,7 @@ struct RuleEngineTests {
 
         #expect(firstAppliedCount == 1)
         #expect(secondAppliedCount == 0)
-        #expect(article.tags.map(\.name) == ["Swift"])
+        #expect((article.tags ?? []).map(\.name) == ["Swift"])
     }
 
     @MainActor
@@ -219,7 +219,7 @@ struct RuleEngineTests {
 
         RuleEngine.applyRules([secondRule, firstRule], to: article, feed: feed)
 
-        #expect(article.tags.map(\.name) == ["Erste Aktion", "Zweite Aktion"])
+        #expect((article.tags ?? []).map(\.name) == ["Erste Aktion", "Zweite Aktion"])
     }
 
     @MainActor
@@ -248,10 +248,10 @@ struct RuleEngineTests {
         )
 
         #expect(appliedCount == 1)
-        #expect(matchingArticle.tags.map(\.name) == ["Swift"])
-        #expect(existingTaggedArticle.tags.map(\.name) == ["Swift"])
-        #expect(unmatchedArticle.tags.isEmpty)
-        #expect(articleWithoutFeed.tags.isEmpty)
+        #expect((matchingArticle.tags ?? []).map(\.name) == ["Swift"])
+        #expect((existingTaggedArticle.tags ?? []).map(\.name) == ["Swift"])
+        #expect((unmatchedArticle.tags ?? []).isEmpty)
+        #expect((articleWithoutFeed.tags ?? []).isEmpty)
     }
 
     @MainActor
@@ -270,7 +270,7 @@ struct RuleEngineTests {
         #expect(appliedCount == 1)
         #expect(secondAppliedCount == 0)
         #expect(article.isHidden)
-        #expect(article.tags.isEmpty)
+        #expect((article.tags ?? []).isEmpty)
     }
 
     @MainActor
@@ -348,7 +348,7 @@ struct RuleEngineTests {
             feed: feed
         )
 
-        #expect(article.tags.map(\.name) == ["Swift"])
+        #expect((article.tags ?? []).map(\.name) == ["Swift"])
     }
 
     @MainActor
@@ -366,7 +366,7 @@ struct RuleEngineTests {
         let result = RuleEngine.applyRulesWithNotifications([rule], to: article, feed: feed)
 
         #expect(result.appliedActionCount == 1)
-        #expect(article.tags.isEmpty)
+        #expect((article.tags ?? []).isEmpty)
         #expect(!article.isHidden)
         #expect(result.notifications == [
             RuleNotificationResult(
@@ -397,8 +397,8 @@ struct RuleEngineTests {
         let result = RuleEngine.applyRulesWithNotifications([rule], to: [matching, nonMatching], feed: feed)
 
         #expect(result.appliedActionCount == 1)
-        #expect(matching.tags.map(\.name) == ["Swift"])
-        #expect(nonMatching.tags.isEmpty)
+        #expect((matching.tags ?? []).map(\.name) == ["Swift"])
+        #expect((nonMatching.tags ?? []).isEmpty)
     }
 
     @MainActor

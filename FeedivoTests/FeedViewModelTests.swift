@@ -27,7 +27,8 @@ struct FeedViewModelTests {
         },
         notifyRuleNotifications: @escaping ([RuleNotificationResult]) async -> Void = { results in
             await FeedNotificationService.presentRuleSummary(for: results)
-        }
+        },
+        minimumRefreshStatusDuration: Duration = .zero
     ) -> FeedViewModel {
         FeedViewModel(
             fetchFeed: fetchFeed,
@@ -35,7 +36,8 @@ struct FeedViewModelTests {
             enrichArticleImages: enrichArticleImages,
             notifyFeedRefresh: notifyFeedRefresh,
             notifyRuleNotifications: notifyRuleNotifications,
-            articleRetentionDefaults: articleRetentionDefaults
+            articleRetentionDefaults: articleRetentionDefaults,
+            minimumRefreshStatusDuration: minimumRefreshStatusDuration
         )
     }
 
@@ -255,10 +257,10 @@ struct FeedViewModelTests {
         #expect(importedFeed.folderName == "News")
         #expect(importedFeed.faviconURL == "https://example.com/favicon.png")
         #expect(importedFeed.lastRefreshed != nil)
-        #expect(importedFeed.articles.count == 1)
+        #expect((importedFeed.articles ?? []).count == 1)
         #expect(importedFeed.unreadCount == 1)
-        #expect(importedFeed.articles.first?.title == "Importierter Artikel")
-        #expect(importedFeed.logEntries.contains { $0.kind == "info" && $0.message.contains("1") })
+        #expect((importedFeed.articles ?? []).first?.title == "Importierter Artikel")
+        #expect((importedFeed.logEntries ?? []).contains { $0.kind == "info" && $0.message.contains("1") })
         #expect(viewModel.errorMessage == nil)
         #expect(!viewModel.isLoading)
         #expect(viewModel.operationProgress == nil)
@@ -567,7 +569,7 @@ struct FeedViewModelTests {
         #expect(feeds.first?.faviconURL == "https://example.com/apple-touch-icon.png")
         #expect(feeds.first?.siteURL == "https://example.com/")
         #expect(feeds.first?.followedAt != nil)
-        #expect(feeds.first?.logEntries.count == 1)
+        #expect((feeds.first?.logEntries ?? []).count == 1)
         #expect(viewModel.errorMessage == nil)
     }
 
@@ -619,17 +621,24 @@ struct FeedViewModelTests {
 
         await viewModel.refreshAllFeeds([failingFeed, successfulFeed], context: context)
 
-        #expect(failingFeed.articles.isEmpty)
-        #expect(failingFeed.logEntries.contains { $0.kind == "error" })
+        #expect((failingFeed.articles ?? []).isEmpty)
+        #expect((failingFeed.logEntries ?? []).contains { $0.kind == "error" })
         #expect(successfulFeed.title == "Aktualisierter Feed")
         #expect(successfulFeed.siteURL == "https://example.com/")
         #expect(successfulFeed.faviconURL == "https://example.com/favicon.png")
-        #expect(successfulFeed.articles.contains { $0.link == "https://example.com/new" })
+        #expect((successfulFeed.articles ?? []).contains { $0.link == "https://example.com/new" })
         #expect(successfulFeed.unreadCount == 1)
-        #expect(successfulFeed.logEntries.contains { $0.kind == "info" })
+        #expect((successfulFeed.logEntries ?? []).contains { $0.kind == "info" })
         #expect(viewModel.errorMessage?.contains("Fehler Feed") == true)
         #expect(!viewModel.isLoading)
         #expect(viewModel.operationProgress == nil)
+        #expect(viewModel.recentRefreshStatus?.newArticleCount == 1)
+        #expect(viewModel.recentRefreshStatus?.failedFeedCount == 1)
+        #expect(viewModel.recentRefreshStatus?.totalFeedCount == 2)
+        #expect(viewModel.recentRefreshStatus?.hasFailures == true)
+        #expect(viewModel.recentRefreshStatus?.isFullFailure == false)
+        #expect(viewModel.refreshItems.first { $0.feedID == failingFeed.id }?.status == .failed)
+        #expect(viewModel.refreshItems.first { $0.feedID == successfulFeed.id }?.status == .succeeded)
     }
 
     @MainActor
@@ -659,6 +668,127 @@ struct FeedViewModelTests {
         await viewModel.refreshAllFeeds([feed1, feed2], context: context)
 
         #expect(viewModel.operationProgress == nil)
+        #expect(viewModel.recentRefreshStatus?.newArticleCount == 0)
+        #expect(viewModel.recentRefreshStatus?.failedFeedCount == 0)
+        #expect(viewModel.recentRefreshStatus?.totalFeedCount == 2)
+    }
+
+    @MainActor
+    @Test func refreshAllFeedsMerktAbschlussStatusMitNeuenArtikeln() async throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            RuleCondition.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
+        context.insert(feed)
+        try context.save()
+        let viewModel = makeViewModel(
+            fetchFeed: { urlString in
+                ParsedFeed(
+                    sourceURL: urlString,
+                    title: "Feed",
+                    description: nil,
+                    articles: [
+                        ParsedArticle(
+                            title: "Artikel 1",
+                            link: "https://example.com/1",
+                            summary: nil,
+                            content: nil,
+                            publishedAt: Date(timeIntervalSince1970: 1),
+                            imageURL: nil
+                        ),
+                        ParsedArticle(
+                            title: "Artikel 2",
+                            link: "https://example.com/2",
+                            summary: nil,
+                            content: nil,
+                            publishedAt: Date(timeIntervalSince1970: 2),
+                            imageURL: nil
+                        )
+                    ]
+                )
+            },
+            discoverFaviconURL: { _ in nil }
+        )
+
+        await viewModel.refreshAllFeeds([feed], context: context)
+
+        #expect(viewModel.recentRefreshStatus?.newArticleCount == 2)
+        #expect(viewModel.recentRefreshStatus?.failedFeedCount == 0)
+        #expect(viewModel.recentRefreshStatus?.totalFeedCount == 1)
+
+        viewModel.clearRecentRefreshStatus()
+
+        #expect(viewModel.recentRefreshStatus == nil)
+    }
+
+    @MainActor
+    @Test func refreshAllFeedsHaeltFortschrittsstatusKurzSichtbar() async throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            RuleCondition.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
+        context.insert(feed)
+        try context.save()
+        let viewModel = makeViewModel(
+            fetchFeed: { urlString in
+                ParsedFeed(sourceURL: urlString, title: "Feed", description: nil, articles: [])
+            },
+            discoverFaviconURL: { _ in nil },
+            minimumRefreshStatusDuration: .milliseconds(200)
+        )
+        let start = ContinuousClock().now
+
+        await viewModel.refreshAllFeeds([feed], context: context)
+
+        let elapsed = start.duration(to: ContinuousClock().now)
+        #expect(elapsed >= .milliseconds(150))
+        #expect(viewModel.operationProgress == nil)
+        #expect(viewModel.recentRefreshStatus?.newArticleCount == 0)
+    }
+
+    @MainActor
+    @Test func refreshAllFeedsMarkiertFeedWaehrendAbrufAlsAktualisierend() async throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            RuleCondition.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
+        context.insert(feed)
+        try context.save()
+        var viewModel: FeedViewModel!
+        viewModel = makeViewModel(
+            fetchFeed: { urlString in
+                let item = viewModel.refreshItems.first { $0.feedURL == urlString }
+                #expect(item?.status == .refreshing)
+
+                return ParsedFeed(sourceURL: urlString, title: "Feed", description: nil, articles: [])
+            },
+            discoverFaviconURL: { _ in nil }
+        )
+
+        await viewModel.refreshAllFeeds([feed], context: context)
+
+        #expect(viewModel.refreshItems.first?.status == .succeeded)
     }
 
     @MainActor
@@ -734,14 +864,86 @@ struct FeedViewModelTests {
         #expect(feed.siteURL == "https://example.com/")
         #expect(feed.faviconURL == "https://example.com/favicon.png")
         #expect(feed.lastRefreshed ?? .distantPast > oldRefreshDate)
-        #expect(feed.articles.count == 2)
+        #expect((feed.articles ?? []).count == 2)
         #expect(feed.unreadCount == 1)
         #expect(existingArticle.isRead)
         #expect(existingArticle.imageURL == "https://example.com/existing-image.jpg")
-        #expect(feed.articles.contains { $0.link == "https://example.com/2" })
-        #expect(feed.logEntries.contains { $0.kind == "info" && $0.message.contains("1") })
+        #expect((feed.articles ?? []).contains { $0.link == "https://example.com/2" })
+        #expect((feed.logEntries ?? []).contains { $0.kind == "info" && $0.message.contains("1") })
         #expect(viewModel.errorMessage == nil)
         #expect(!viewModel.isLoading)
+    }
+
+    @MainActor
+    @Test func refreshFeedErkenntBestehendeArtikelUeberFeedIDOhneRelationshipScan() async throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            RuleCondition.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let publishedAt = Date(timeIntervalSince1970: 100)
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
+        let existingArticle = Article(
+            title: "Schon vorhanden",
+            link: "https://example.com/1",
+            summary: "Alt",
+            publishedAt: publishedAt
+        )
+        existingArticle.feedID = feed.id
+
+        do {
+            let setupContext = ModelContext(container)
+            setupContext.insert(feed)
+            setupContext.insert(existingArticle)
+            try setupContext.save()
+        }
+
+        let feedID = feed.id
+        let feedDescriptor = FetchDescriptor<Feed>(
+            predicate: #Predicate<Feed> { storedFeed in
+                storedFeed.id == feedID
+            }
+        )
+        let refreshFeed = try #require(context.fetch(feedDescriptor).first)
+        let optionalFeedID = Optional(feedID)
+        let articleDescriptor = FetchDescriptor<Article>(
+            predicate: #Predicate<Article> { article in
+                article.feedID == optionalFeedID
+            }
+        )
+        let storedExistingArticle = try #require(context.fetch(articleDescriptor).first)
+
+        let viewModel = makeViewModel(
+            fetchFeed: { urlString in
+                ParsedFeed(
+                    sourceURL: urlString,
+                    title: "Feed",
+                    description: nil,
+                    articles: [
+                        ParsedArticle(
+                            title: "Schon vorhanden",
+                            link: "https://example.com/1",
+                            summary: "Aktualisiert",
+                            content: nil,
+                            publishedAt: publishedAt,
+                            imageURL: nil
+                        )
+                    ]
+                )
+            },
+            discoverFaviconURL: { _ in nil }
+        )
+
+        await viewModel.refreshFeed(refreshFeed, context: context)
+
+        let articles = try context.fetch(FetchDescriptor<Article>())
+        #expect(articles.count == 1)
+        #expect(storedExistingArticle.summary == "Aktualisiert")
     }
 
     @MainActor
@@ -797,7 +999,7 @@ struct FeedViewModelTests {
 
         await viewModel.refreshFeed(feed, context: context)
 
-        #expect(feed.articles.count == 1)
+        #expect((feed.articles ?? []).count == 1)
         #expect(existingArticle.isRead)
         #expect(existingArticle.summary == "Aktualisierte Kurzfassung")
         #expect(feed.unreadCount == 0)
@@ -855,7 +1057,7 @@ struct FeedViewModelTests {
 
         await viewModel.refreshFeed(feed, context: context)
 
-        #expect(feed.articles.count == 1)
+        #expect((feed.articles ?? []).count == 1)
         #expect(existingArticle.isRead)
         #expect(existingArticle.sourceID == "artikel-1")
         #expect(existingArticle.summary == "Aktualisierte Kurzfassung")
@@ -966,7 +1168,7 @@ struct FeedViewModelTests {
 
         await viewModel.refreshFeed(feed, context: context)
 
-        #expect(feed.articles.isEmpty)
+        #expect((feed.articles ?? []).isEmpty)
         #expect(feed.unreadCount == 0)
     }
 
@@ -1019,7 +1221,7 @@ struct FeedViewModelTests {
 
         await viewModel.refreshFeed(feed, context: context)
 
-        #expect(feed.articles.count == 1)
+        #expect((feed.articles ?? []).count == 1)
         #expect(existingArticle.content == "<p>Nachgelieferter Volltext</p>")
         #expect(existingArticle.summary == "Aktualisierte Kurzfassung")
     }
@@ -1086,9 +1288,9 @@ struct FeedViewModelTests {
 
         await viewModel.refreshFeed(feed, context: context)
 
-        let newArticle = try #require(feed.articles.first { $0.link == "https://example.com/new" })
-        #expect(newArticle.tags.map(\.name) == ["Swift"])
-        #expect(existingArticle.tags.isEmpty)
+        let newArticle = try #require((feed.articles ?? []).first { $0.link == "https://example.com/new" })
+        #expect((newArticle.tags ?? []).map(\.name) == ["Swift"])
+        #expect((existingArticle.tags ?? []).isEmpty)
     }
 
     @MainActor
@@ -1172,7 +1374,7 @@ struct FeedViewModelTests {
         ])
         #expect(existingWithImage.imageURL == "https://example.com/existing.jpg")
         #expect(existingWithoutImage.imageURL == "https://example.com/missing-image/image.jpg")
-        #expect(feed.articles.first { $0.link == "https://example.com/new" }?.imageURL == "https://example.com/new/image.jpg")
+        #expect((feed.articles ?? []).first { $0.link == "https://example.com/new" }?.imageURL == "https://example.com/new/image.jpg")
     }
 
     @MainActor

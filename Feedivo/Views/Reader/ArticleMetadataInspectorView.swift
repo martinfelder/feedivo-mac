@@ -552,7 +552,7 @@ struct ArticleMetadataInspectorView: View {
 
     private func tagTogglePill(_ tag: Tag) -> some View {
         let tagColor = TagColorPalette.color(for: tag.colorHex)
-        let isActive = article.tags.contains { $0.id == tag.id }
+        let isActive = (article.tags ?? []).contains { $0.id == tag.id }
 
         return Button {
             toggleTag(tag)
@@ -579,7 +579,7 @@ struct ArticleMetadataInspectorView: View {
     }
 
     private func toggleTag(_ tag: Tag) {
-        if article.tags.contains(where: { $0.id == tag.id }) {
+        if (article.tags ?? []).contains(where: { $0.id == tag.id }) {
             ArticleMetadataEditor.removeTag(tag, from: article, context: modelContext)
         } else {
             ArticleMetadataEditor.addTag(

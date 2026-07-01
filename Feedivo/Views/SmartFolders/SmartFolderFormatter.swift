@@ -82,7 +82,7 @@ enum SmartFolderFormatter {
     }
 
     private static func sortedConditions(for folder: SmartFolder) -> [SmartFolderCondition] {
-        folder.conditions.sorted { firstCondition, secondCondition in
+        (folder.conditions ?? []).sorted { firstCondition, secondCondition in
             firstCondition.sortOrder < secondCondition.sortOrder
         }
     }
