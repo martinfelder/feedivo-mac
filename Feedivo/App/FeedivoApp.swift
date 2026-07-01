@@ -49,22 +49,22 @@ struct FeedivoApp: App {
 
         let loadedContainer: ModelContainer
         var loadError: String?
+        let cloudSyncIsEnabled = CloudSyncSettings.isEnabled()
 
         do {
-            // Normalfall: on-disk-Container für die persistente Datenbank.
-            loadedContainer = try ModelContainer(for: Self.schema)
+            loadedContainer = try FeedivoModelContainerFactory.makePersistentContainer(
+                schema: Self.schema,
+                isCloudSyncEnabled: cloudSyncIsEnabled
+            )
         } catch {
-            // Lässt sich die Datenbank nicht öffnen (z. B. beschädigt oder
-            // inkompatibles Schema nach einem Update), stürzen wir nicht mehr
-            // per `try!` ohne Erklärung ab. Stattdessen starten wir mit einem
-            // leeren In-Memory-Container, damit die App benutzbar bleibt, und
-            // zeigen den Fehler in der UI als Alarm an (M11). Die echten Daten
-            // bleiben unangetastet auf der Platte und sind nach einem Neustart
-            // (oder nach Reparatur) wieder verfügbar.
-            let inMemoryConfiguration = ModelConfiguration(isStoredInMemoryOnly: true)
-            // In-Memory-Konfiguration ohne Datei-Backing kann nicht fehlschlagen.
-            loadedContainer = try! ModelContainer(for: Self.schema, configurations: [inMemoryConfiguration])
             loadError = error.localizedDescription
+            do {
+                loadedContainer = try FeedivoModelContainerFactory.makeInMemoryFallbackContainer(
+                    schema: Self.schema
+                )
+            } catch {
+                fatalError("Feedivo App kann ohne Datenbank nicht starten: \(error.localizedDescription)")
+            }
         }
 
         self.modelContainer = loadedContainer
@@ -72,6 +72,7 @@ struct FeedivoApp: App {
             modelContainer: loadedContainer
         )
         self.databaseLoadState.initializationError = loadError
+        self.databaseLoadState.isCloudSyncEnabledAtLaunch = cloudSyncIsEnabled && loadError == nil
     }
 
     // modelContainer stellt SwiftData für die ganze App zur Verfügung.
@@ -147,6 +148,7 @@ struct FeedivoApp: App {
             NewSettingsView()
                 .environment(\.locale, appLanguage.locale)
                 .environment(\.interfaceTextSize, interfaceTextSize)
+                .environment(databaseLoadState)
                 .dynamicTypeSize(interfaceTextSize.dynamicTypeSize)
         }
         .defaultSize(width: 1040, height: 640)
@@ -201,4 +203,5 @@ struct FeedivoApp: App {
 @Observable
 final class DatabaseLoadState {
     var initializationError: String?
+    var isCloudSyncEnabledAtLaunch = false
 }

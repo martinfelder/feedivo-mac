@@ -99,6 +99,26 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(articleWindowSource.contains("ArticleWindowSettings.forgetOpenArticleID(selectedArticleID)"))
     }
 
+    @Test func appUsesCloudSyncSettingsForModelContainer() throws {
+        let projectRoot = projectRootURL()
+        let appSource = try source(at: "Feedivo/App/FeedivoApp.swift", projectRoot: projectRoot)
+
+        #expect(appSource.contains("CloudSyncSettings.isEnabled()"))
+        #expect(appSource.contains("FeedivoModelContainerFactory.makePersistentContainer"))
+        #expect(appSource.contains("FeedivoModelContainerFactory.makeInMemoryFallbackContainer"))
+        #expect(appSource.contains("databaseLoadState.isCloudSyncEnabledAtLaunch"))
+    }
+
+    @Test func settingsSceneReceivesDatabaseLoadState() throws {
+        let projectRoot = projectRootURL()
+        let appSource = try source(at: "Feedivo/App/FeedivoApp.swift", projectRoot: projectRoot)
+
+        let settingsScene = try #require(appSource.range(of: "Settings {"))
+        let settingsSource = appSource[settingsScene.lowerBound...]
+
+        #expect(settingsSource.contains(".environment(databaseLoadState)"))
+    }
+
     private func projectRootURL() -> URL {
         URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
