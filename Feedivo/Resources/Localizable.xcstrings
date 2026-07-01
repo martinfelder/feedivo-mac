@@ -21230,6 +21230,118 @@
         }
       }
     },
+    "settings.sync.beta.description" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Synchronisiert Feeds, Ordner, Tags, Regeln, intelligente Ordner und Artikelstatus über iCloud."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Syncs feeds, folders, tags, rules, smart folders, and article status through iCloud."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Synchronise les flux, dossiers, tags, règles, dossiers intelligents et l’état des articles via iCloud."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sincronizza feed, cartelle, tag, regole, cartelle smart e stato degli articoli tramite iCloud."
+          }
+        }
+      }
+    },
+    "settings.sync.beta.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud Sync Beta"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud Sync Beta"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Synchronisation iCloud bêta"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sincronizzazione iCloud beta"
+          }
+        }
+      }
+    },
+    "settings.sync.databaseError.hint" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feedivo läuft gerade mit einer temporären leeren Datenbank. Der ursprüngliche Store bleibt auf der Platte."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feedivo is currently running with a temporary empty database. The original store remains on disk."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feedivo utilise actuellement une base de données temporaire vide. Le store d’origine reste sur le disque."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feedivo sta usando un database temporaneo vuoto. Lo store originale resta sul disco."
+          }
+        }
+      }
+    },
+    "settings.sync.restart.hint" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Änderungen werden nach einem Neustart von Feedivo wirksam."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Changes take effect after restarting Feedivo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les changements prennent effet après le redémarrage de Feedivo."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le modifiche hanno effetto dopo il riavvio di Feedivo."
+          }
+        }
+      }
+    },
     "settings.sync.section" : {
       "localizations" : {
         "de" : {
@@ -21254,6 +21366,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sync"
+          }
+        }
+      }
+    },
+    "settings.sync.status.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Status"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Status"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "État"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stato"
           }
         }
       }

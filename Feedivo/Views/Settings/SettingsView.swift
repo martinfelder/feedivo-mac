@@ -801,27 +801,64 @@ private struct NewRefreshSettingsView: View {
 }
 
 private struct NewSyncSettingsView: View {
+    @Environment(DatabaseLoadState.self) private var databaseLoadState
+
+    @AppStorage(CloudSyncSettings.isEnabledKey)
+    private var cloudSyncIsEnabled = CloudSyncSettings.defaultIsEnabled
+
+    private var hasDatabaseError: Bool {
+        databaseLoadState.initializationError != nil
+    }
+
+    private var statusText: String {
+        CloudSyncSettings.statusText(
+            isEnabledAtLaunch: databaseLoadState.isCloudSyncEnabledAtLaunch,
+            currentIsEnabled: cloudSyncIsEnabled,
+            hasDatabaseError: hasDatabaseError
+        )
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             NewSettingsBlock(eyebrow: L10n.settingsSyncSection) {
-                VStack(spacing: 10) {
-                    Image(systemName: "icloud")
-                        .font(.system(size: 30, weight: .regular))
-                        .foregroundStyle(Color.accentColor)
-                    Text(L10n.settingsSyncUnavailableTitle)
-                        .font(.system(size: 13, weight: .semibold))
-                    Text(L10n.settingsSyncUnavailableDescription)
-                        .font(.system(size: 11))
-                        .foregroundStyle(.tertiary)
-                        .multilineTextAlignment(.center)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .padding(24)
-                .frame(maxWidth: .infinity)
-                .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+                VStack(alignment: .leading, spacing: 16) {
+                    HStack(alignment: .top, spacing: 12) {
+                        Image(systemName: "icloud")
+                            .font(.system(size: 26, weight: .regular))
+                            .foregroundStyle(Color.accentColor)
+                            .frame(width: 32)
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(L10n.settingsSyncBetaTitle)
+                                .font(.system(size: 14, weight: .semibold))
+                            Text(L10n.settingsSyncBetaDescription)
+                                .font(.system(size: 11))
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+
+                    NewSettingRow(
+                        title: L10n.settingsSyncBetaTitle,
+                        description: L10n.settingsSyncRestartHint
+                    ) {
+                        Toggle("", isOn: $cloudSyncIsEnabled)
+                            .toggleStyle(.switch)
+                    }
+
+                    NewInfoRow(
+                        iconName: hasDatabaseError ? "exclamationmark.triangle" : "checkmark.icloud",
+                        title: L10n.settingsSyncStatusTitle,
+                        description: LocalizedStringKey(statusText)
+                    )
+
+                    if hasDatabaseError {
+                        NewInfoRow(
+                            iconName: "internaldrive",
+                            title: L10n.settingsSyncStatusTitle,
+                            description: L10n.settingsSyncDatabaseErrorHint
+                        )
+                    }
                 }
             }
         }

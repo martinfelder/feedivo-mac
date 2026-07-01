@@ -129,6 +129,18 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(entitlementsSource.contains("<string>iCloud.ch.martin.Feedivo</string>"))
     }
 
+    @Test func syncSettingsExposeBetaToggleAndRestartHint() throws {
+        let projectRoot = projectRootURL()
+        let settingsSource = try source(at: "Feedivo/Views/Settings/SettingsView.swift", projectRoot: projectRoot)
+
+        #expect(settingsSource.contains("@Environment(DatabaseLoadState.self)"))
+        #expect(settingsSource.contains("@AppStorage(CloudSyncSettings.isEnabledKey)"))
+        #expect(settingsSource.contains("L10n.settingsSyncBetaTitle"))
+        #expect(settingsSource.contains("L10n.settingsSyncRestartHint"))
+        #expect(settingsSource.contains("CloudSyncSettings.statusText"))
+        #expect(settingsSource.contains("Toggle(\"\", isOn: $cloudSyncIsEnabled)"))
+    }
+
     private func projectRootURL() -> URL {
         URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
