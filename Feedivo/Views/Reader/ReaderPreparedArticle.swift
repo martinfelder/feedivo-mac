@@ -70,6 +70,30 @@ extension ReaderArticleInput {
     }
 }
 
+/// Leichte Signatur für Reader-Updates. Sie fasst nur Felder an, die in den
+/// Listen-Fetches ohnehin geladen sind. Die großen Textfelder `content` und
+/// `offlineContent` bleiben bewusst draußen, damit ein Artikelwechsel nicht
+/// schon beim SwiftUI-View-Aufbau schwere SwiftData-Faults auslöst.
+struct ReaderArticleObservationSignature: Equatable {
+    let summary: String?
+    let imageURL: String?
+    let offlineStateRaw: String
+    let offlineRequestedAt: Date?
+    let offlineSavedAt: Date?
+    let offlineErrorMessage: String?
+
+    static func make(from article: Article) -> ReaderArticleObservationSignature {
+        ReaderArticleObservationSignature(
+            summary: article.summary,
+            imageURL: article.imageURL,
+            offlineStateRaw: article.offlineStateRaw,
+            offlineRequestedAt: article.offlineRequestedAt,
+            offlineSavedAt: article.offlineSavedAt,
+            offlineErrorMessage: article.offlineErrorMessage
+        )
+    }
+}
+
 struct ReaderPreparedArticle: Sendable {
     let contentBlocks: [ReaderContentBlock]
     let metadataText: String

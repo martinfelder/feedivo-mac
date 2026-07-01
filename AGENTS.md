@@ -1334,11 +1334,15 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Basisinhalt beschrieben.
 - Nutzt `ReaderPreparedArticle`, damit Content/Summary, Metadaten und Original-URL
   pro ausgewähltem Artikel einmal vorbereitet werden und SwiftUI-Redraws kein
-  erneutes HTML-Rendering ausloesen
+  erneutes HTML-Rendering auslösen
+- Aktualisiert `ReaderPreparedArticle` über eine leichte Beobachtungssignatur
+  statt über `article.content`/`article.offlineContent`, damit ein Artikelwechsel
+  nicht schon beim SwiftUI-View-Aufbau schwere SwiftData-Faults auslöst. Ordner-
+  und Tag-Chips werden ebenfalls nach dem ersten Render geladen.
 - Aktualisiert `ReaderPreparedArticle` bei Wechsel von `article.persistentModelID`,
   damit Bild, Text, Metadaten und Original-Link nicht vom zuvor ausgewählten
-  Artikel im SwiftUI-`@State` haengen bleiben
-- Bilder werden mit `scaledToFit` und begrenzter Maximalhoehe gerendert, damit grosse
+  Artikel im SwiftUI-`@State` hängen bleiben
+- Bilder werden mit `scaledToFit` und begrenzter Maximalhöhe gerendert, damit große
   Feedbilder ruhiger und performanter bleiben
 ### ReaderPreparedArticle.swift
 - Kapselt die vorbereiteten, teureren Reader-Daten für einen Artikel.
@@ -1806,10 +1810,15 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
      relevante Status-Zählung (Standard `Alle` → unabhängig vom Lese-Status),
      damit eine Auswahl keinen Cache-Miss und keine synchrone Neu-Sortierung
      im Body auslöst.
-- **Konsequenz:** Navigation bleibt auch bei grossem Datenbestand flüssig;
+  5. `ReaderView` beobachtet für Inhaltsänderungen nur leichte Felder
+     (`summary`, Bild-URL und Offline-Status-Metadaten), nicht mehr
+     `content`/`offlineContent`. Ordner-/Tag-Beziehungen werden nach dem ersten
+     Render nachgeladen, und die Artikelliste wärmt vorherigen/nächsten Artikel
+     mit den Reader-Feldern vor.
+- **Konsequenz:** Navigation bleibt auch bei großem Datenbestand flüssig;
   Lese-Status wird verzögert (≤0.6s) persistiert, was für einen RSS-Reader
   akzeptabel ist und auf `.onDisappear` sofort geflusht wird.
-- **Datum:** 2026-06-28
+- **Datum:** 2026-06-28, ergänzt 2026-07-01
 
 ---
 
@@ -2082,6 +2091,12 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 ---
 
 ## Letzte Änderungen
+
+- 2026-07-01: Reader-Artikelwechsel weiter entkoppelt. `ReaderView` beobachtet
+  für Reader-Rebuilds keine schweren Textfelder (`Article.content`,
+  `Article.offlineContent`) mehr beim SwiftUI-View-Aufbau, lädt Ordner-/Tag-Chips
+  nach dem ersten Render und die Artikelliste wärmt vorherigen/nächsten Artikel
+  für den Reader vor.
 
 - 2026-07-01: Artikellisten-Suche leichter gemacht. `ArticleSearchQuery` kann
   schwere Inhalte (`Article.content` und `Article.offlineContent`) aus der

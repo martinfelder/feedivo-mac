@@ -80,6 +80,7 @@ struct ReaderView: View {
     @State private var readabilityLoadedURL: URL?
     @State private var isReadabilityExtractionInProgress = false
     @State private var readabilityFailureNotice: ReadabilityFailureNotice?
+    @State private var relationshipMetadata = ReaderArticleRelationshipMetadata.empty
 
     private var titleFontPreset: ReaderFontPreset {
         ReaderFontPreset.resolved(from: titleFontPresetRawValue)
@@ -202,13 +203,19 @@ struct ReaderView: View {
     }
 
     private var normalizedFolderName: String? {
-        FeedFolderOrganizer.normalizedFolderName(article.feed?.folderName)
+        currentRelationshipMetadata.folderName
     }
 
     private var sortedArticleTags: [Tag] {
-        (article.tags ?? []).sorted {
-            $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+        currentRelationshipMetadata.tags
+    }
+
+    private var currentRelationshipMetadata: ReaderArticleRelationshipMetadata {
+        guard relationshipMetadata.articleID == article.persistentModelID else {
+            return .empty
         }
+
+        return relationshipMetadata
     }
 
     private var hasVisibleArticleMetadata: Bool {
@@ -235,29 +242,20 @@ struct ReaderView: View {
         .task(id: preparedArticleRefreshToken) {
             await buildPreparedArticle()
         }
+        .task(id: article.persistentModelID) {
+            await loadRelationshipMetadata()
+        }
         .onAppear {
             startReadabilityExtractionIfNeeded()
         }
-        // Hintergrund-Refresh oder Offline-Save ändern Content/Summary/
-        // Offline-Inhalt, ohne die persistentModelID zu berühren. Statt den
-        // Reader synchron neu zu parsen, bumpen wir contentRevision — der
-        // .task(id:)-Modifier startet den asynchronen Build danach neu.
-        .onChange(of: article.content) {
-            contentRevision += 1
-        }
-        .onChange(of: article.summary) {
-            contentRevision += 1
-        }
-        .onChange(of: article.imageURL) {
-            contentRevision += 1
-        }
-        .onChange(of: article.offlineContent) {
-            contentRevision += 1
-        }
-        .onChange(of: article.offlineStateRaw) {
+        // Leichte Inhalts-Signatur: Der Reader reagiert auf Status- und
+        // Kurztext-Änderungen, ohne beim View-Aufbau die großen Textfelder
+        // `content` und `offlineContent` zu faulten.
+        .onChange(of: ReaderArticleObservationSignature.make(from: article)) {
             contentRevision += 1
         }
         .onChange(of: article.link) {
+            contentRevision += 1
             resetReadabilityState()
             startReadabilityExtractionIfNeeded()
         }
@@ -984,6 +982,11 @@ struct ReaderView: View {
     @MainActor
     private func buildPreparedArticle() async {
         let token = preparedArticleRefreshToken
+
+        preparedArticle = .empty
+        isBuildingPreparedArticle = true
+        await Task.yield()
+
         let input = ReaderArticleInput.make(from: article)
 
         // Hebel 5: Bereits geparsten Artikel aus dem Cache übernehmen, wenn
@@ -997,8 +1000,6 @@ struct ReaderView: View {
             isBuildingPreparedArticle = false
             return
         }
-
-        isBuildingPreparedArticle = true
 
         // Parse ausserhalb des MainActors: reine Datenverarbeitung ohne UI-/
         // Modellzugriff. Der MainThread bleibt beim Artikelwechsel frei.
@@ -1016,6 +1017,20 @@ struct ReaderView: View {
         ReaderPreparedArticleCache.shared.store(prepared, for: input)
         preparedArticle = prepared
         isBuildingPreparedArticle = false
+    }
+
+    @MainActor
+    private func loadRelationshipMetadata() async {
+        let articleID = article.persistentModelID
+        relationshipMetadata = .empty
+
+        await Task.yield()
+
+        guard !Task.isCancelled, articleID == article.persistentModelID else {
+            return
+        }
+
+        relationshipMetadata = ReaderArticleRelationshipMetadata.make(from: article)
     }
 
     @MainActor
@@ -1047,4 +1062,26 @@ struct ReaderView: View {
 private struct ReaderRefreshToken: Equatable {
     let articleID: PersistentIdentifier
     let revision: Int
+}
+
+private struct ReaderArticleRelationshipMetadata {
+    static let empty = ReaderArticleRelationshipMetadata(
+        articleID: nil,
+        folderName: nil,
+        tags: []
+    )
+
+    let articleID: PersistentIdentifier?
+    let folderName: String?
+    let tags: [Tag]
+
+    static func make(from article: Article) -> ReaderArticleRelationshipMetadata {
+        ReaderArticleRelationshipMetadata(
+            articleID: article.persistentModelID,
+            folderName: FeedFolderOrganizer.normalizedFolderName(article.feed?.folderName),
+            tags: (article.tags ?? []).sorted {
+                $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+            }
+        )
+    }
 }

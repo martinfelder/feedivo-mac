@@ -548,6 +548,8 @@ private struct ArticleListContent: View {
     // niemals direkt im Body (sonst "modifying state during view update").
     @State private var cachedPreparedArticles: ArticleListPreparedArticles?
     @State private var cachedPreparedKey: PreparedArticlesCacheKey?
+    @State private var readerPrefetchTask: Task<Void, Never>?
+    @State private var readerPrefetchKey: ReaderArticlePrefetchKey?
     @State private var offlineArchiveError: OfflineArchiveErrorAlert?
 
     init(
@@ -626,6 +628,7 @@ private struct ArticleListContent: View {
             // Ausstehende Lese-Markierungen sofort persistieren, bevor die
             // Liste verlassen wird (kein Datenverlust beim Wechsel/App-Quit).
             flushPendingReadPersistenceSave()
+            readerPrefetchTask?.cancel()
         }
         .onChange(of: visibleArticles) {
             updateNavigationState(in: visibleArticles)
@@ -1016,11 +1019,33 @@ private struct ArticleListContent: View {
     }
 
     private func updateNavigationState(in articles: [Article]) {
-        navigationState = ArticleNavigationState(
+        let newNavigationState = ArticleNavigationState(
             articles: articles,
             selectedArticle: selectedArticle,
             sortArticles: { $0 }
         )
+        navigationState = newNavigationState
+        scheduleReaderPrefetch(for: newNavigationState)
+    }
+
+    private func scheduleReaderPrefetch(for navigationState: ArticleNavigationState) {
+        let articlesToPrefetch = ReaderArticlePrefetchPlan.articles(
+            previousArticle: navigationState.previousArticle,
+            nextArticle: navigationState.nextArticle
+        )
+        let nextKey = ReaderArticlePrefetchKey(articles: articlesToPrefetch)
+
+        guard !articlesToPrefetch.isEmpty, nextKey != readerPrefetchKey else {
+            return
+        }
+
+        readerPrefetchKey = nextKey
+        readerPrefetchTask?.cancel()
+        readerPrefetchTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 250_000_000)
+            guard !Task.isCancelled else { return }
+            ReaderArticlePrefetchPlan.prefetchReaderFields(for: articlesToPrefetch)
+        }
     }
 
     private func rememberAutoReadArticleIfNeeded(_ article: Article?) {
@@ -1106,6 +1131,29 @@ private struct PreparedArticlesCacheKey: Equatable, Hashable {
     let sortRawValue: String
     let filterRawValue: String
     let sortArticles: Bool
+}
+
+struct ReaderArticlePrefetchPlan {
+    static func articles(previousArticle: Article?, nextArticle: Article?) -> [Article] {
+        [previousArticle, nextArticle].compactMap { $0 }
+    }
+
+    @MainActor
+    static func prefetchReaderFields(for articles: [Article]) {
+        for article in articles {
+            _ = article.content
+            _ = article.offlineContent
+            _ = article.feed?.title
+        }
+    }
+}
+
+struct ReaderArticlePrefetchKey: Equatable {
+    let articleIDs: [PersistentIdentifier]
+
+    init(articles: [Article]) {
+        self.articleIDs = articles.map(\.persistentModelID)
+    }
 }
 
 // Identifiable-Wrapper für den Alert bei fehlgeschlagenem Offline-Archivieren.

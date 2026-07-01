@@ -390,6 +390,27 @@ struct FeedivoTests {
         #expect(preparedArticle.contentAvailability == .fullText)
     }
 
+    @Test func readerObservationSignatureIgnoriertSchwereInhalte() {
+        let article = Article(
+            title: "Artikel",
+            link: "https://example.com/artikel",
+            summary: "Kurzfassung",
+            content: "<p>Alter Feed-Text</p>"
+        )
+        article.offlineContent = "<article>Alter Offline-Text</article>"
+
+        let initialSignature = ReaderArticleObservationSignature.make(from: article)
+
+        article.content = "<p>Neuer Feed-Text</p>"
+        article.offlineContent = "<article>Neuer Offline-Text</article>"
+
+        #expect(ReaderArticleObservationSignature.make(from: article) == initialSignature)
+
+        article.summary = "Aktualisierte Kurzfassung"
+
+        #expect(ReaderArticleObservationSignature.make(from: article) != initialSignature)
+    }
+
     @Test func readerTypographyBegrenztTitelZeilenabstandSeparat() {
         #expect(ReaderTypography.defaultTitleLineSpacing == 2)
         #expect(ReaderTypography.clampedTitleLineSpacing(-4) == 0)
