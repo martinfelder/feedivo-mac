@@ -913,7 +913,7 @@ struct ReaderView: View {
                     .resizable()
                     .scaledToFit()
             } placeholder: {
-                ProgressView()
+                Color.clear
             }
             .frame(maxWidth: .infinity)
             .frame(maxHeight: leadImageMaxHeight)
@@ -983,7 +983,8 @@ struct ReaderView: View {
     private func buildPreparedArticle() async {
         let token = preparedArticleRefreshToken
 
-        preparedArticle = .empty
+        let previewInput = ReaderArticleInput.makePreview(from: article)
+        preparedArticle = ReaderPreparedArticle(input: previewInput)
         isBuildingPreparedArticle = true
         await Task.yield()
 

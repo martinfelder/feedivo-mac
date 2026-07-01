@@ -1339,6 +1339,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   statt über `article.content`/`article.offlineContent`, damit ein Artikelwechsel
   nicht schon beim SwiftUI-View-Aufbau schwere SwiftData-Faults auslöst. Ordner-
   und Tag-Chips werden ebenfalls nach dem ersten Render geladen.
+- Zeigt beim Artikelwechsel sofort eine leichte Reader-Vorschau aus Summary und
+  Bild-URL, statt den nativen Reader auf einen blanken Ladezustand zu setzen.
+  Reader-Bilder verwenden keinen sichtbaren Spinner mehr.
 - Aktualisiert `ReaderPreparedArticle` bei Wechsel von `article.persistentModelID`,
   damit Bild, Text, Metadaten und Original-Link nicht vom zuvor ausgewählten
   Artikel im SwiftUI-`@State` hängen bleiben
@@ -2096,7 +2099,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   für Reader-Rebuilds keine schweren Textfelder (`Article.content`,
   `Article.offlineContent`) mehr beim SwiftUI-View-Aufbau, lädt Ordner-/Tag-Chips
   nach dem ersten Render und die Artikelliste wärmt vorherigen/nächsten Artikel
-  für den Reader vor.
+  für den Reader inklusive Bild-Cache vor. Als Nachbesserung zeigt der Reader
+  beim Wechsel sofort eine leichte Summary-/Bild-Vorschau statt eines blanken
+  Ladezustands.
 
 - 2026-07-01: Artikellisten-Suche leichter gemacht. `ArticleSearchQuery` kann
   schwere Inhalte (`Article.content` und `Article.offlineContent`) aus der

@@ -68,6 +68,21 @@ extension ReaderArticleInput {
             publishedAt: article.publishedAt
         )
     }
+
+    @MainActor
+    static func makePreview(from article: Article) -> ReaderArticleInput {
+        ReaderArticleInput(
+            summary: article.summary,
+            content: nil,
+            imageURL: article.imageURL,
+            offlineContent: nil,
+            offlineState: .none,
+            offlineStateRaw: ArticleOfflineState.none.rawValue,
+            link: article.link,
+            feedTitle: nil,
+            publishedAt: article.publishedAt
+        )
+    }
 }
 
 /// Leichte Signatur für Reader-Updates. Sie fasst nur Felder an, die in den

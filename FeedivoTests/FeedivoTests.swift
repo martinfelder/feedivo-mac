@@ -411,6 +411,31 @@ struct FeedivoTests {
         #expect(ReaderArticleObservationSignature.make(from: article) != initialSignature)
     }
 
+    @MainActor
+    @Test func readerPreviewInputNutztNurLeichteFelder() {
+        let article = Article(
+            title: "Artikel",
+            link: "https://example.com/artikel",
+            summary: "Sofort sichtbare Kurzfassung",
+            content: "<p>Schwerer Volltext</p>",
+            publishedAt: Date(timeIntervalSince1970: 1_700_000_000),
+            imageURL: "https://example.com/bild.jpg"
+        )
+        article.offlineState = .fullText
+        article.offlineContent = "<article>Schwerer Offline-Text</article>"
+
+        let previewInput = ReaderArticleInput.makePreview(from: article)
+        let preview = ReaderPreparedArticle(input: previewInput)
+
+        #expect(previewInput.content == nil)
+        #expect(previewInput.offlineContent == nil)
+        #expect(preview.contentBlocks == [
+            .image(urlString: "https://example.com/bild.jpg"),
+            .paragraph("Sofort sichtbare Kurzfassung")
+        ])
+        #expect(preview.contentAvailability == .summaryOnly)
+    }
+
     @Test func readerTypographyBegrenztTitelZeilenabstandSeparat() {
         #expect(ReaderTypography.defaultTitleLineSpacing == 2)
         #expect(ReaderTypography.clampedTitleLineSpacing(-4) == 0)
