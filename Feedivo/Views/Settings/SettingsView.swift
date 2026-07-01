@@ -810,8 +810,8 @@ private struct NewSyncSettingsView: View {
         databaseLoadState.initializationError != nil
     }
 
-    private var statusText: String {
-        CloudSyncSettings.statusText(
+    private var statusLocalizationKey: String {
+        CloudSyncSettings.statusLocalizationKey(
             isEnabledAtLaunch: databaseLoadState.isCloudSyncEnabledAtLaunch,
             currentIsEnabled: cloudSyncIsEnabled,
             hasDatabaseError: hasDatabaseError
@@ -849,13 +849,13 @@ private struct NewSyncSettingsView: View {
                     NewInfoRow(
                         iconName: hasDatabaseError ? "exclamationmark.triangle" : "checkmark.icloud",
                         title: L10n.settingsSyncStatusTitle,
-                        description: LocalizedStringKey(statusText)
+                        description: LocalizedStringKey(statusLocalizationKey)
                     )
 
                     if hasDatabaseError {
                         NewInfoRow(
                             iconName: "internaldrive",
-                            title: L10n.settingsSyncStatusTitle,
+                            title: L10n.settingsSyncDatabaseTitle,
                             description: L10n.settingsSyncDatabaseErrorHint
                         )
                     }

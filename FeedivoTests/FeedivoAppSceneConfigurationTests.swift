@@ -137,7 +137,8 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(settingsSource.contains("@AppStorage(CloudSyncSettings.isEnabledKey)"))
         #expect(settingsSource.contains("L10n.settingsSyncBetaTitle"))
         #expect(settingsSource.contains("L10n.settingsSyncRestartHint"))
-        #expect(settingsSource.contains("CloudSyncSettings.statusText"))
+        #expect(settingsSource.contains("CloudSyncSettings.statusLocalizationKey"))
+        #expect(settingsSource.contains("L10n.settingsSyncDatabaseTitle"))
         #expect(settingsSource.contains("Toggle(\"\", isOn: $cloudSyncIsEnabled)"))
     }
 

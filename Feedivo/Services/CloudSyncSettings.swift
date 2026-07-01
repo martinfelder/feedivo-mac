@@ -30,4 +30,24 @@ enum CloudSyncSettings {
             ? "iCloud Sync nach Neustart aktiv"
             : "iCloud Sync nach Neustart deaktiviert"
     }
+
+    static func statusLocalizationKey(
+        isEnabledAtLaunch: Bool,
+        currentIsEnabled: Bool,
+        hasDatabaseError: Bool
+    ) -> String {
+        if hasDatabaseError {
+            return "settings.sync.status.databaseError"
+        }
+
+        if isEnabledAtLaunch == currentIsEnabled {
+            return isEnabledAtLaunch
+                ? "settings.sync.status.active"
+                : "settings.sync.status.local"
+        }
+
+        return currentIsEnabled
+            ? "settings.sync.status.restartEnable"
+            : "settings.sync.status.restartDisable"
+    }
 }

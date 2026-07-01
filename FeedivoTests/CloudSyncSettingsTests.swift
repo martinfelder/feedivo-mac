@@ -56,6 +56,56 @@ struct CloudSyncSettingsTests {
             ) == "iCloud Sync nach Neustart deaktiviert"
         )
     }
+
+    @Test func statusLocalizationKeyLiefertDatabaseErrorKey() {
+        #expect(
+            CloudSyncSettings.statusLocalizationKey(
+                isEnabledAtLaunch: true,
+                currentIsEnabled: true,
+                hasDatabaseError: true
+            ) == "settings.sync.status.databaseError"
+        )
+    }
+
+    @Test func statusLocalizationKeyLiefertActiveKey() {
+        #expect(
+            CloudSyncSettings.statusLocalizationKey(
+                isEnabledAtLaunch: true,
+                currentIsEnabled: true,
+                hasDatabaseError: false
+            ) == "settings.sync.status.active"
+        )
+    }
+
+    @Test func statusLocalizationKeyLiefertLocalKey() {
+        #expect(
+            CloudSyncSettings.statusLocalizationKey(
+                isEnabledAtLaunch: false,
+                currentIsEnabled: false,
+                hasDatabaseError: false
+            ) == "settings.sync.status.local"
+        )
+    }
+
+    @Test func statusLocalizationKeyLiefertRestartEnableKey() {
+        #expect(
+            CloudSyncSettings.statusLocalizationKey(
+                isEnabledAtLaunch: false,
+                currentIsEnabled: true,
+                hasDatabaseError: false
+            ) == "settings.sync.status.restartEnable"
+        )
+    }
+
+    @Test func statusLocalizationKeyLiefertRestartDisableKey() {
+        #expect(
+            CloudSyncSettings.statusLocalizationKey(
+                isEnabledAtLaunch: true,
+                currentIsEnabled: false,
+                hasDatabaseError: false
+            ) == "settings.sync.status.restartDisable"
+        )
+    }
 }
 
 private func temporaryUserDefaults() throws -> UserDefaults {
