@@ -858,9 +858,12 @@
   - Sidebar-Badge-Caching trennt Status-Signatur und Tag-Signatur; reine Stern-,
     Archiv- oder Hidden-Änderungen lösen keine neue Artikel→Tag-Relationship-
     Auswertung aus
+  - Artikelzeilen laden Vorschaubilder über größenbegrenzte Thumbnails aus dem
+    gemeinsamen Bildcache; der Disk-Cache speichert weiter das Original, aber die
+    Liste hält nur kleine `NSImage`-Instanzen im Memory-Cache
 - **Zu beachten:**
   - SwiftData-Queries immer mit gezielten Predicates; bewusste Ausnahme ist der Default-Ordner `Ungelesen`, weil dort die Anzeigeebene gelesene Artikel für Feed-ähnliches Verhalten temporär sichtbar halten muss
-  - Lazy Loading für Bilder und Inhalte
+  - Weiteres Lazy Loading für schwere Inhalte außerhalb der sichtbaren Listenzeilen
   - Spotlight-Index im Hintergrund aufbauen (nicht im Main Thread)
   - Automatisches Datenbank-Cleanup via Feature 17.3
 

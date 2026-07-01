@@ -1006,8 +1006,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   `ContentView` beim Feed-Wechsel weniger State kopieren muss.
 
 ### ArticleRowView.swift
-- Reichhaltige Artikelzeile mit optionalem `AsyncImage`
+- Reichhaltige Artikelzeile mit optionalem Bild aus `CachedRemoteImageView`
 - Platzhalterbild, wenn kein `imageURL` vorhanden ist
+- Artikelbilder werden in der Liste als größenbegrenzte Thumbnails geladen, damit
+  lange Listen keine großen Originalbilder im Memory-Cache halten müssen.
 - Kontextmenü für gelesen/ungelesen, Stern, Archivieren, Tag zuweisen,
   Regel erstellen, Link kopieren, Original oeffnen, Teilen, Offline speichern/
   entfernen, Artikel löschen und alle sichtbaren Artikel als gelesen markieren
@@ -1446,6 +1448,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - `ImageCacheService` ist der zentrale lokale Cache für Artikelbilder und Favicons.
 - Nutzt `NSCache<NSURL, NSImage>` für schnelle Wiederverwendung während der App-
   Laufzeit und einen Disk-Cache unter dem macOS-Caches-Verzeichnis für Neustarts.
+- Für Listen-Thumbnails nutzt der Cache einen separaten Memory-Cache mit Zielgröße:
+  Der Disk-Cache bleibt originaldatenbasiert, während Artikelzeilen nur kleine
+  `NSImage`-Instanzen halten.
 - Cache-Dateinamen werden aus einem SHA-256-Hash der Bild-URL gebildet, damit
   Sonderzeichen, Query-Parameter und lange URLs keine Dateisystemprobleme machen.
 - Netzwerkabrufe laufen über ein kleines `ImageDataLoading`-Protokoll, damit der
@@ -1464,6 +1469,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Gemeinsame SwiftUI-Bildkomponente für remote Bilder mit lokalem Cache.
 - Ersetzt direkte `AsyncImage`-Nutzung in Artikelliste, Reader, Sidebar-Favicons,
   Feed-Eigenschaften und Feed-Umbenennen-Sheet.
+- Kann optional ein `targetPixelSize` an den Cache weitergeben; genutzt wird das
+  aktuell für Artikelzeilen-Thumbnails, während Reader und andere Detailansichten
+  weiterhin die Originalgröße laden.
 - Views liefern nur Darstellung und Platzhalter; Laden, Memory-Cache und Disk-Cache
   bleiben im `ImageCacheService`.
 
@@ -2068,6 +2076,12 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 ---
 
 ## Letzte Änderungen
+
+- 2026-07-01: Artikelzeilen-Bilder für große Listen optimiert. `ImageCacheService`
+  kann nun größenbegrenzte Thumbnails aus den original gecachten Bilddaten
+  erzeugen und hält diese getrennt vom Originalbild-Memory-Cache. `ArticleRowView`
+  nutzt diese Thumbnail-API über `CachedRemoteImageView`, damit lange Listen beim
+  Scrollen weniger große `NSImage`-Instanzen behalten.
 
 - 2026-07-01: Artikellisten-Paginierung umgesetzt. Feed-, Tag-, Smart-Filter- und
   Smart-Folder-Listen setzen jetzt ein initiales SwiftData-`fetchLimit` von 50

@@ -1,6 +1,7 @@
 import AppKit
 import CryptoKit
 import Foundation
+import ImageIO
 
 protocol ImageDataLoading: Sendable {
     func data(from url: URL) async throws -> Data
@@ -27,6 +28,7 @@ final class ImageCacheService: @unchecked Sendable {
     private let fileManager: FileManager
     private let autoTrimLimitInBytes: @Sendable () -> Int64?
     private let memoryCache = NSCache<NSURL, NSImage>()
+    private let thumbnailMemoryCache = NSCache<NSString, NSImage>()
 
     init(
         cacheDirectory: URL = ImageCacheService.defaultCacheDirectory(),
@@ -63,27 +65,33 @@ final class ImageCacheService: @unchecked Sendable {
             return cachedImage
         }
 
-        let fileURL = cachedFileURL(for: url)
-        if let diskImage = imageFromDisk(at: fileURL) {
-            memoryCache.setObject(diskImage, forKey: cacheKey)
-            touch(fileURL)
-            return diskImage
-        }
-
-        do {
-            let data = try await dataLoader.data(from: url)
-            guard let image = NSImage(data: data) else {
-                return nil
-            }
-
-            try? fileManager.createDirectory(at: cacheDirectory, withIntermediateDirectories: true)
-            try? data.write(to: fileURL, options: .atomic)
-            memoryCache.setObject(image, forKey: cacheKey)
-            trimCacheAfterWriteIfNeeded()
-            return image
-        } catch {
+        guard let data = await cachedImageData(for: url),
+              let image = NSImage(data: data) else {
             return nil
         }
+
+        memoryCache.setObject(image, forKey: cacheKey)
+        return image
+    }
+
+    func image(for url: URL, targetPixelSize: CGSize) async -> NSImage? {
+        let normalizedTargetSize = Self.normalizedThumbnailPixelSize(targetPixelSize)
+        guard normalizedTargetSize.width > 0, normalizedTargetSize.height > 0 else {
+            return await image(for: url)
+        }
+
+        let cacheKey = Self.thumbnailCacheKey(for: url, targetPixelSize: normalizedTargetSize)
+        if let cachedImage = thumbnailMemoryCache.object(forKey: cacheKey) {
+            return cachedImage
+        }
+
+        guard let data = await cachedImageData(for: url),
+              let image = Self.thumbnailImage(from: data, targetPixelSize: normalizedTargetSize) else {
+            return nil
+        }
+
+        thumbnailMemoryCache.setObject(image, forKey: cacheKey)
+        return image
     }
 
     @discardableResult
@@ -141,6 +149,7 @@ final class ImageCacheService: @unchecked Sendable {
 
     func clearCache() throws {
         memoryCache.removeAllObjects()
+        thumbnailMemoryCache.removeAllObjects()
 
         for fileURL in try cacheFiles() {
             try fileManager.removeItem(at: fileURL)
@@ -170,12 +179,67 @@ final class ImageCacheService: @unchecked Sendable {
         }
     }
 
-    private func imageFromDisk(at fileURL: URL) -> NSImage? {
-        guard let data = try? Data(contentsOf: fileURL) else {
+    private func cachedImageData(for url: URL) async -> Data? {
+        let fileURL = cachedFileURL(for: url)
+        if let data = try? Data(contentsOf: fileURL) {
+            touch(fileURL)
+            return data
+        }
+
+        do {
+            let data = try await dataLoader.data(from: url)
+            guard Self.canCreateImage(from: data) else {
+                return nil
+            }
+
+            try? fileManager.createDirectory(at: cacheDirectory, withIntermediateDirectories: true)
+            try? data.write(to: fileURL, options: .atomic)
+            trimCacheAfterWriteIfNeeded()
+            return data
+        } catch {
+            return nil
+        }
+    }
+
+    private static func thumbnailImage(from data: Data, targetPixelSize: CGSize) -> NSImage? {
+        guard let imageSource = CGImageSourceCreateWithData(data as CFData, nil) else {
             return nil
         }
 
-        return NSImage(data: data)
+        let maximumPixelSize = max(targetPixelSize.width, targetPixelSize.height)
+        let options: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceThumbnailMaxPixelSize: max(1, Int(maximumPixelSize.rounded(.up)))
+        ]
+
+        guard let thumbnail = CGImageSourceCreateThumbnailAtIndex(imageSource, 0, options as CFDictionary) else {
+            return nil
+        }
+
+        return NSImage(
+            cgImage: thumbnail,
+            size: CGSize(width: thumbnail.width, height: thumbnail.height)
+        )
+    }
+
+    private static func canCreateImage(from data: Data) -> Bool {
+        guard let imageSource = CGImageSourceCreateWithData(data as CFData, nil) else {
+            return false
+        }
+
+        return CGImageSourceGetCount(imageSource) > 0
+    }
+
+    private static func normalizedThumbnailPixelSize(_ targetPixelSize: CGSize) -> CGSize {
+        CGSize(
+            width: targetPixelSize.width.rounded(.up),
+            height: targetPixelSize.height.rounded(.up)
+        )
+    }
+
+    private static func thumbnailCacheKey(for url: URL, targetPixelSize: CGSize) -> NSString {
+        "\(url.absoluteString)#\(Int(targetPixelSize.width))x\(Int(targetPixelSize.height))" as NSString
     }
 
     private func cacheFiles() throws -> [URL] {

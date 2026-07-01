@@ -94,6 +94,28 @@ struct ImageCacheServiceTests {
         #expect(image != nil)
     }
 
+    @Test func thumbnailBegrenztBildgroesseUndNutztOriginalenCache() async throws {
+        let cacheDirectory = try Self.temporaryCacheDirectory()
+        let url = try #require(URL(string: "https://example.com/large.png"))
+        let loader = StubImageDataLoader(responses: [url: try Self.pngData(width: 200, height: 100)])
+        let service = ImageCacheService(cacheDirectory: cacheDirectory, dataLoader: loader)
+
+        let firstThumbnail = try #require(await service.image(
+            for: url,
+            targetPixelSize: CGSize(width: 40, height: 40)
+        ))
+        let secondThumbnail = try #require(await service.image(
+            for: url,
+            targetPixelSize: CGSize(width: 40, height: 40)
+        ))
+
+        #expect(firstThumbnail.size.width <= 40)
+        #expect(firstThumbnail.size.height <= 40)
+        #expect(secondThumbnail === firstThumbnail)
+        #expect(loader.requestedURLs == [url])
+        #expect(FileManager.default.fileExists(atPath: service.cachedFileURL(for: url).path))
+    }
+
     @Test func cacheSizeUndClearCacheBeruecksichtigenDateien() throws {
         let cacheDirectory = try Self.temporaryCacheDirectory()
         let service = ImageCacheService(
@@ -191,11 +213,11 @@ struct ImageCacheServiceTests {
         return directory
     }
 
-    private static func pngData() throws -> Data {
-        let image = NSImage(size: NSSize(width: 2, height: 2))
+    private static func pngData(width: CGFloat = 2, height: CGFloat = 2) throws -> Data {
+        let image = NSImage(size: NSSize(width: width, height: height))
         image.lockFocus()
         NSColor.systemBlue.setFill()
-        NSRect(x: 0, y: 0, width: 2, height: 2).fill()
+        NSRect(x: 0, y: 0, width: width, height: height).fill()
         image.unlockFocus()
 
         let tiffData = try #require(image.tiffRepresentation)

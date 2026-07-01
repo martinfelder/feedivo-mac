@@ -142,7 +142,7 @@ struct ArticleRowView: View {
     @ViewBuilder
     private var previewImage: some View {
         if let imageURL = article.imageURL, let url = URL(string: imageURL) {
-            CachedRemoteImageView(url: url) { image in
+            CachedRemoteImageView(url: url, targetPixelSize: previewImageTargetPixelSize) { image in
                 image
                     .resizable()
                     .scaledToFill()
@@ -150,17 +150,29 @@ struct ArticleRowView: View {
                 placeholderImage
             }
             .frame(
-                width: interfaceTextSize.scaled(56),
-                height: interfaceTextSize.scaled(56)
+                width: previewImageSide,
+                height: previewImageSide
             )
             .clipShape(RoundedRectangle(cornerRadius: 6))
         } else {
             placeholderImage
                 .frame(
-                    width: interfaceTextSize.scaled(56),
-                    height: interfaceTextSize.scaled(56)
+                    width: previewImageSide,
+                    height: previewImageSide
                 )
         }
+    }
+
+    private var previewImageSide: CGFloat {
+        interfaceTextSize.scaled(56)
+    }
+
+    private var previewImageTargetPixelSize: CGSize {
+        let retinaScale: CGFloat = 2
+        return CGSize(
+            width: previewImageSide * retinaScale,
+            height: previewImageSide * retinaScale
+        )
     }
 
     private var placeholderImage: some View {

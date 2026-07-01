@@ -3,6 +3,7 @@ import SwiftUI
 
 struct CachedRemoteImageView<Content: View, Placeholder: View>: View {
     let url: URL?
+    let targetPixelSize: CGSize?
     let imageCache: ImageCacheService
     let content: (Image) -> Content
     let placeholder: () -> Placeholder
@@ -11,11 +12,13 @@ struct CachedRemoteImageView<Content: View, Placeholder: View>: View {
 
     init(
         url: URL?,
+        targetPixelSize: CGSize? = nil,
         imageCache: ImageCacheService = .shared,
         @ViewBuilder content: @escaping (Image) -> Content,
         @ViewBuilder placeholder: @escaping () -> Placeholder
     ) {
         self.url = url
+        self.targetPixelSize = targetPixelSize
         self.imageCache = imageCache
         self.content = content
         self.placeholder = placeholder
@@ -29,9 +32,21 @@ struct CachedRemoteImageView<Content: View, Placeholder: View>: View {
                 placeholder()
             }
         }
-        .task(id: url) {
+        .task(id: imageLoadID) {
             await loadImage()
         }
+    }
+
+    private var imageLoadID: String {
+        guard let url else {
+            return "nil"
+        }
+
+        guard let targetPixelSize else {
+            return url.absoluteString
+        }
+
+        return "\(url.absoluteString)#\(Int(targetPixelSize.width.rounded(.up)))x\(Int(targetPixelSize.height.rounded(.up)))"
     }
 
     @MainActor
@@ -42,12 +57,20 @@ struct CachedRemoteImageView<Content: View, Placeholder: View>: View {
             return
         }
 
-        let loadedImage = await imageCache.image(for: url)
+        let requestedTargetPixelSize = targetPixelSize
+        let loadedImage: NSImage?
+        if let requestedTargetPixelSize {
+            loadedImage = await imageCache.image(for: url, targetPixelSize: requestedTargetPixelSize)
+        } else {
+            loadedImage = await imageCache.image(for: url)
+        }
 
         // Prüfen nach dem await: Wenn die URL sich geändert oder der Task
         // abgebrochen wurde, dürfen wir das Bild der alten URL nicht mehr setzen
         // — sonst flackert beim schnellen Scrollen kurz ein falsches Bild auf.
-        guard !Task.isCancelled, url == self.url else {
+        guard !Task.isCancelled,
+              url == self.url,
+              requestedTargetPixelSize == self.targetPixelSize else {
             return
         }
 
