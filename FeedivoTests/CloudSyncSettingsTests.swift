@@ -9,9 +9,8 @@ struct CloudSyncSettingsTests {
         #expect(CloudSyncSettings.cloudKitContainerIdentifier == "iCloud.ch.martin.Feedivo")
     }
 
-    @Test func isEnabledLiestGespeichertenWert() {
-        let defaults = UserDefaults(suiteName: "CloudSyncSettingsTests.isEnabled")!
-        defaults.removePersistentDomain(forName: "CloudSyncSettingsTests.isEnabled")
+    @Test func isEnabledLiestGespeichertenWert() throws {
+        let defaults = try temporaryUserDefaults()
 
         #expect(CloudSyncSettings.isEnabled(in: defaults) == false)
 
@@ -57,4 +56,11 @@ struct CloudSyncSettingsTests {
             ) == "iCloud Sync nach Neustart deaktiviert"
         )
     }
+}
+
+private func temporaryUserDefaults() throws -> UserDefaults {
+    let suiteName = "FeedivoTests.CloudSyncSettings.\(UUID().uuidString)"
+    let defaults = try #require(UserDefaults(suiteName: suiteName))
+    defaults.removePersistentDomain(forName: suiteName)
+    return defaults
 }
