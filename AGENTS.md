@@ -91,7 +91,7 @@ Nach jeder relevanten Änderung prüfen und bei Bedarf aktualisieren:
 | Architektur | MVVM | `@Observable` Macro (kein ObservableObject) |
 | Navigation | NavigationSplitView | 3-Spalten: Sidebar / Liste / Detail |
 | Persistenz | SwiftData | Kein Core Data |
-| iCloud Sync | CloudKit via SwiftData | Nach v1 zurückgestellt; CloudKit-Vorbereitung erledigt |
+| iCloud Sync | CloudKit via SwiftData | Beta in Arbeit; Aktivierung per Einstellung + Neustart |
 | Netzwerk | URLSession + async/await | Kein Alamofire, kein Combine |
 | RSS-Parsing | FeedKit | Swift Package, URL: https://github.com/nmdias/FeedKit |
 | Bilder | CachedRemoteImageView + ImageCacheService | Lokaler Disk-Cache + NSCache, kein Kingfisher |
@@ -1769,8 +1769,12 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   vollständig beendete App nicht neu.
 - **macOS Menüleiste:** Commands werden mit `.commands { }` an die WindowGroup gehängt,
   nicht an eine View
-- **iCloud Capability:** Muss in Xcode Target → Signing & Capabilities aktiviert sein,
-  plus CloudKit Container in developer.apple.com anlegen
+- **iCloud Capability:** Muss in Xcode Target → Signing & Capabilities
+  aktiviert sein, plus CloudKit Container `iCloud.ch.martin.Feedivo` in
+  developer.apple.com anlegen. Feedivo nutzt für die erste Beta SwiftData
+  `ModelConfiguration` mit CloudKit und liest den Beta-Schalter beim App-Start;
+  Umschalten benötigt einen Neustart. Ohne aktualisiertes
+  Provisioning-Profil schlagen signierte Builds mit CloudKit-Entitlements fehl.
 - **Sandbox Netzwerk:** Feed-Downloads brauchen `com.apple.security.network.client` in
   `Feedivo/Feedivo.entitlements`. Nur ein Build-Setting reicht nicht als Nachweis.
 - **Sandbox Dateiexport:** OPML- und Artikel-Export brauchen
@@ -1867,8 +1871,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - [x] OPML Import (Feeds aus anderem RSS Reader übernehmen)
 - [x] OPML Export (Feeds portieren)
 - [x] OPML-Exportdialog mit Optionen für Ordner, Tags und Feed-Beschreibungen
-- [x] iCloud Sync via CloudKit für v1 bewusst zurückgestellt; CloudKit-
-  Vorbereitung ist erledigt, Aktivierung und End-to-End-Test folgen nach v1
+- [ ] iCloud Sync via CloudKit Beta aktivieren (`iCloud Sync aktivieren`),
+  strukturierte Daten aus `Feed`, `FeedFolder`, `Tag`, `Rule`, `SmartFolder` und
+  Artikelstatus synchronisieren.
 - [x] Erweiterter OPML-Import-Dialog: ausgelesene Feeds und Ordner vor dem Import
   anzeigen, OPML-Datei direkt im selben Dialog auswählen/wechseln,
   Ordnerzugehörigkeit bearbeiten/Ordner erstellen, optionalen Refresh nach Import
@@ -1952,10 +1957,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Katalog-Lücken). Build und Tests sind laut `docs/superpowers/l10n/inventar.md`
   grün; eine unabhängige Verifikation in Xcode steht noch aus, da die Codex-
   Sandbox die Swift-Toolchain nicht laden kann.
-- Aktuell M4: Polish & Release. iCloud Sync ist für v1 bewusst zurückgestellt,
-  damit Release-Polish, Settings, Offline-Basis, Export, Onboarding und App-Icon
-  Vorrang haben. Die technische CloudKit-Vorbereitung ist erledigt; Aktivierung,
-  Sync-Umfang und End-to-End-Test folgen nach v1.
+- Aktuell M4: Polish & Release. iCloud Sync Beta ist aktiv in Arbeit.
+  Struktur- und Statussync sind Kernumfang der ersten Beta; die Umsetzung wird über
+  eine bewusst aktivierbare Beta-Option in den Einstellungen gesteuert und
+  greift nach Neustart.
 - Feature 17.3 Automatisches Löschen ist umgesetzt: globale Einstellung,
   Stern-/Archiv-Schutz mit Zusatzoption und pro-Feed-Überschreibung in den
   Feed-Eigenschaften.
@@ -1992,6 +1997,14 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 ---
 
 ## Letzte Änderungen
+
+- 2026-07-01: iCloud Sync wieder aufgenommen: Entscheidung für Ansatz 1
+  (SwiftData + CloudKit) als bewusst aktivierbare Beta. Erster Produktumfang ist
+  Struktur- und Statussync; große Offline-Inhalte, Cache-Dateien und Feed-Logs
+  bleiben außerhalb des ersten Sync-Versprechens. Der SwiftData-Container wird
+  über `FeedivoModelContainerFactory` konfiguriert; Tests für CloudKitDatabase
+  prüfen eine eigene `StoreMode`-Repräsentation, weil SwiftDatas
+  `CloudKitDatabase` im aktuellen SDK nicht `Equatable` ist.
 
 - 2026-06-30: Feature 1.8 Vollartikel-Extraktion umgesetzt. Der Reader hat nun
   neben `Nativer Reader` und `Originalansicht` den Modus `Vollartikel`; beim

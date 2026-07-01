@@ -242,8 +242,14 @@
 ## 6. iCloud Sync
 
 ### 6.1 Sync via CloudKit
-- **Status:** ⏸️ Zurückgestellt — nach v1
-- **Grund:** Core-Features haben Vorrang — nach v1
+- **Status:** 🔨 In Arbeit — iCloud Sync Beta
+- **Ansatz:** SwiftData + CloudKit über eine bewusst aktivierbare Beta-Option in
+  den Einstellungen.
+- **Erster Umfang:** Feeds, Ordner, Tags, Regeln, intelligente Ordner und
+  Artikelstatus. Große Offline-Inhalte, Cache-Dateien, Bilder/Favicons und
+  Feed-Logs sind kein Produktversprechen der ersten Beta.
+- **Hinweis:** Änderung des Sync-Schalters wird erst nach einem Neustart wirksam,
+  weil der SwiftData-Container beim App-Start konfiguriert wird.
 
 ---
 
@@ -921,7 +927,6 @@ Folgende Reihenfolge berücksichtigt Abhängigkeiten. Features mit (*) sind Vora
 
 ## Zurückgestellt (nach v1)
 
-- **Feature 6.1** — iCloud Sync via CloudKit
 - **Feature 12.2** — Feed-Suche via Discover (Feedly API kostenpflichtig)
 - **Feature 14.3** — Statistik-Daten exportieren
 - **Feature 15.2** — Feeds per Drag & Drop umsortieren
