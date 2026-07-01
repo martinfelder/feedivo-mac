@@ -244,6 +244,26 @@ struct ArticleListQueryTests {
         )
     }
 
+    @Test func articleSearchQueryKannSchwereInhalteAuslassen() {
+        let titleArticle = Article(title: "Swift Treffer", summary: "Andere Worte", content: nil)
+        let summaryArticle = Article(title: "Nachrichten", summary: "Swift in der Kurzfassung", content: nil)
+        let contentArticle = Article(title: "Analyse", summary: "Andere Worte", content: "Swift nur im Volltext")
+        let offlineArticle = Article(title: "Archiv", summary: "Andere Worte", content: nil)
+        offlineArticle.offlineContent = "Swift nur offline gespeichert"
+        let articles = [titleArticle, summaryArticle, contentArticle, offlineArticle]
+
+        #expect(
+            ArticleSearchQuery(text: "swift", field: .all, includesHeavyContent: false)
+                .filtered(articles)
+                .map(\.title) == ["Swift Treffer", "Nachrichten"]
+        )
+        #expect(
+            ArticleSearchQuery(text: "swift", field: .all)
+                .filtered(articles)
+                .map(\.title) == ["Swift Treffer", "Nachrichten", "Analyse", "Archiv"]
+        )
+    }
+
     @Test func articleSearchQueryIgnoriertLeerzeichenUndLeereSucheFiltertNicht() {
         let firstArticle = Article(title: "Erster Treffer", summary: "Swift", content: nil)
         let secondArticle = Article(title: "Zweiter Treffer", summary: "Mac", content: nil)

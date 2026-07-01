@@ -956,6 +956,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   gelesen werden, bleiben in der aktuellen Liste sichtbar, bis der Feed, Tag oder
   Smartfilter gewechselt wird. So verschwindet die gelesene Zeile nicht direkt nach
   dem Klick, raeumt sich aber beim Listenwechsel wieder auf.
+- Die sichtbare Suchleiste der Artikelliste nutzt den gemeinsamen Suchkern im
+  leichten Modus: Sie durchsucht Titel und Zusammenfassung, aber nicht
+  `Article.content` oder `Article.offlineContent`, damit große Volltextfelder beim
+  Tippen nicht aus SwiftData gefaultet werden.
 
 ### ArticleListQuery.swift
 - Buendelt Sortierung und Feed-Predicate für Artikel-Listen.
@@ -977,7 +981,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - `ArticleSearchQuery`, `ArticleSearchField`, `ArticleSearchScope` und
   `ArticleSearchFilters` kapseln den testbaren Core-Slice der Artikelsuche
   inklusive case-/diakritik-insensitiver Textsuche sowie Filterung nach Feed, Tag,
-  Zeitraum und Status.
+  Zeitraum und Status. `ArticleSearchQuery.includesHeavyContent` kann
+  Volltext-/Offline-Inhalt bewusst ausblenden; die Artikelliste nutzt das für die
+  schnelle Inline-Suche, globale Suchpfade behalten den vollständigen Suchumfang.
 - `ArticleSearchWindowState` kapselt die globale Suchfenster-Logik und sortiert
   Treffer standardmäßig nach neuesten Artikeln zuerst. Die Artikelliste selbst
   nutzt denselben Suchkern nur noch mit `scope: .currentView`.
@@ -2076,6 +2082,12 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 ---
 
 ## Letzte Änderungen
+
+- 2026-07-01: Artikellisten-Suche leichter gemacht. `ArticleSearchQuery` kann
+  schwere Inhalte (`Article.content` und `Article.offlineContent`) aus der
+  Textsuche ausnehmen; `ArticleListView` nutzt diesen Modus für die sichtbare
+  Suchleiste, damit Tippen in großen Listen keine Volltext-Faults auslöst.
+  Globale Suchpfade behalten den vollständigen Suchumfang.
 
 - 2026-07-01: Artikelzeilen-Bilder für große Listen optimiert. `ImageCacheService`
   kann nun größenbegrenzte Thumbnails aus den original gecachten Bilddaten

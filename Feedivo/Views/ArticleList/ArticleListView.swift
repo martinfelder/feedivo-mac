@@ -911,7 +911,8 @@ private struct ArticleListContent: View {
         ArticleSearchQuery(
             text: searchText,
             field: .all,
-            scope: .currentView
+            scope: .currentView,
+            includesHeavyContent: false
         )
     }
 

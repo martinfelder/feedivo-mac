@@ -861,6 +861,9 @@
   - Artikelzeilen laden Vorschaubilder über größenbegrenzte Thumbnails aus dem
     gemeinsamen Bildcache; der Disk-Cache speichert weiter das Original, aber die
     Liste hält nur kleine `NSImage`-Instanzen im Memory-Cache
+  - Die sichtbare Artikellisten-Suche durchsucht nur noch Titel und
+    Zusammenfassung, damit `Article.content` und `Article.offlineContent` beim
+    Tippen nicht aus dem leichten Listenfetch nachgeladen werden
 - **Zu beachten:**
   - SwiftData-Queries immer mit gezielten Predicates; bewusste Ausnahme ist der Default-Ordner `Ungelesen`, weil dort die Anzeigeebene gelesene Artikel für Feed-ähnliches Verhalten temporär sichtbar halten muss
   - Weiteres Lazy Loading für schwere Inhalte außerhalb der sichtbaren Listenzeilen

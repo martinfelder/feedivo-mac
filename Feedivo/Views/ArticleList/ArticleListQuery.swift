@@ -476,6 +476,7 @@ struct ArticleSearchQuery: Equatable {
     var field: ArticleSearchField
     var scope: ArticleSearchScope
     var filters: ArticleSearchFilters
+    var includesHeavyContent: Bool
     var now: Date
     var calendar: Calendar
 
@@ -484,6 +485,7 @@ struct ArticleSearchQuery: Equatable {
         field: ArticleSearchField = .all,
         scope: ArticleSearchScope = .currentView,
         filters: ArticleSearchFilters = ArticleSearchFilters(),
+        includesHeavyContent: Bool = true,
         now: Date = Date(),
         calendar: Calendar = .current
     ) {
@@ -491,6 +493,7 @@ struct ArticleSearchQuery: Equatable {
         self.field = field
         self.scope = scope
         self.filters = filters
+        self.includesHeavyContent = includesHeavyContent
         self.now = now
         self.calendar = calendar
     }
@@ -535,16 +538,23 @@ struct ArticleSearchQuery: Equatable {
         case .all:
             return contains(needle, in: article.title)
                 || contains(needle, in: article.summary)
-                || contains(needle, in: article.content)
-                || contains(needle, in: article.offlineContent)
+                || heavyContentIncludes(needle, in: article)
         case .title:
             return contains(needle, in: article.title)
         case .summary:
             return contains(needle, in: article.summary)
         case .content:
-            return contains(needle, in: article.content)
-                || contains(needle, in: article.offlineContent)
+            return heavyContentIncludes(needle, in: article)
         }
+    }
+
+    private func heavyContentIncludes(_ needle: String, in article: Article) -> Bool {
+        guard includesHeavyContent else {
+            return false
+        }
+
+        return contains(needle, in: article.content)
+            || contains(needle, in: article.offlineContent)
     }
 
     private func contains(_ needle: String, in haystack: String?) -> Bool {
