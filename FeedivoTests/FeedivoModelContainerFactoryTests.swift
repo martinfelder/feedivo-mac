@@ -4,64 +4,62 @@ import Testing
 
 struct FeedivoModelContainerFactoryTests {
     @Test func localConfigurationVerwendetKeinCloudKit() {
-        let configuration = FeedivoModelContainerFactory.persistentConfiguration(
-            schema: Schema([Feed.self]),
+        let mode = FeedivoModelContainerFactory.storeMode(
             isCloudSyncEnabled: false
         )
 
-        #expect(configuration.isStoredInMemoryOnly == false)
-        #expect(isCloudKitDatabaseNone(configuration.cloudKitDatabase))
-    }
+        #expect(mode == .local)
 
-    @Test func cloudConfigurationVerwendetPrivateCloudKitDatenbank() {
-        let configuration = FeedivoModelContainerFactory.persistentConfiguration(
-            schema: Schema([Feed.self]),
-            isCloudSyncEnabled: true
+        let configuration = FeedivoModelContainerFactory.configuration(
+            for: .local,
+            schema: Schema([Feed.self])
         )
 
         #expect(configuration.isStoredInMemoryOnly == false)
-        #expect(isCloudKitDatabaseConfigured(configuration.cloudKitDatabase))
-        #expect(isCloudKitDatabasePrivate(configuration.cloudKitDatabase))
+    }
+
+    @Test func cloudConfigurationVerwendetPrivateCloudKitDatenbank() {
+        let mode = FeedivoModelContainerFactory.storeMode(
+            isCloudSyncEnabled: true
+        )
+
+        #expect(mode == .cloud(CloudSyncSettings.cloudKitContainerIdentifier))
+
+        let configuration = FeedivoModelContainerFactory.configuration(
+            for: .cloud(CloudSyncSettings.cloudKitContainerIdentifier),
+            schema: Schema([Feed.self])
+        )
+
+        #expect(configuration.isStoredInMemoryOnly == false)
         #expect(configuration.cloudKitContainerIdentifier == CloudSyncSettings.cloudKitContainerIdentifier)
     }
 
     @Test func fallbackConfigurationBleibtImmerInMemoryUndCloudKitFrei() {
-        let configuration = FeedivoModelContainerFactory.inMemoryFallbackConfiguration()
+        let localMode = FeedivoModelContainerFactory.storeMode(isCloudSyncEnabled: false)
+        #expect(localMode == .local)
 
-        #expect(configuration.isStoredInMemoryOnly == true)
-        #expect(isCloudKitDatabaseNone(configuration.cloudKitDatabase))
+        let localConfiguration = FeedivoModelContainerFactory.configuration(
+            for: localMode,
+            schema: Schema([Feed.self])
+        )
+
+        #expect(localConfiguration.isStoredInMemoryOnly == false)
+        #expect(localConfiguration.cloudKitContainerIdentifier == nil)
+
+        let fallbackMode: FeedivoModelContainerFactory.StoreMode = .inMemoryFallback
+        #expect(fallbackMode == .inMemoryFallback)
+
+        let fallbackConfiguration = FeedivoModelContainerFactory.configuration(
+            for: fallbackMode,
+            schema: Schema([Feed.self])
+        )
+
+        #expect(fallbackConfiguration.isStoredInMemoryOnly == true)
+        #expect(fallbackConfiguration.cloudKitContainerIdentifier == nil)
+
+        let explicitFallbackConfiguration = FeedivoModelContainerFactory.inMemoryFallbackConfiguration()
+
+        #expect(fallbackConfiguration.isStoredInMemoryOnly == explicitFallbackConfiguration.isStoredInMemoryOnly)
+        #expect(fallbackConfiguration.cloudKitContainerIdentifier == explicitFallbackConfiguration.cloudKitContainerIdentifier)
     }
-}
-
-private func isCloudKitDatabaseNone(_ database: ModelConfiguration.CloudKitDatabase) -> Bool {
-    let mirror = Mirror(reflecting: database)
-
-    for child in mirror.children {
-        if child.label == "_none", let value = child.value as? Bool {
-            return value
-        }
-    }
-
-    return false
-}
-
-private func isCloudKitDatabasePrivate(_ database: ModelConfiguration.CloudKitDatabase) -> Bool {
-    let mirror = Mirror(reflecting: database)
-
-    for child in mirror.children {
-        if child.label == "_privateDBName" {
-            if let privateDBName = child.value as? String {
-                return !privateDBName.isEmpty
-            }
-            if let privateDBName = child.value as? Optional<String> {
-                return privateDBName != nil
-            }
-        }
-    }
-
-    return false
-}
-
-private func isCloudKitDatabaseConfigured(_ database: ModelConfiguration.CloudKitDatabase) -> Bool {
-    return !isCloudKitDatabaseNone(database)
 }

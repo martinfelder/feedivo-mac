@@ -1,15 +1,42 @@
 import SwiftData
 
 enum FeedivoModelContainerFactory {
+    enum StoreMode: Equatable {
+        case local
+        case cloud(String)
+        case inMemoryFallback
+    }
+
+    static func storeMode(isCloudSyncEnabled: Bool) -> StoreMode {
+        isCloudSyncEnabled
+            ? .cloud(CloudSyncSettings.cloudKitContainerIdentifier)
+            : .local
+    }
+
+    static func configuration(for mode: StoreMode, schema: Schema) -> ModelConfiguration {
+        switch mode {
+        case .local:
+            return ModelConfiguration(
+                schema: schema,
+                cloudKitDatabase: .none
+            )
+        case let .cloud(containerIdentifier):
+            return ModelConfiguration(
+                schema: schema,
+                cloudKitDatabase: .private(containerIdentifier)
+            )
+        case .inMemoryFallback:
+            return inMemoryFallbackConfiguration()
+        }
+    }
+
     static func persistentConfiguration(
         schema: Schema,
         isCloudSyncEnabled: Bool
     ) -> ModelConfiguration {
-        ModelConfiguration(
-            schema: schema,
-            cloudKitDatabase: isCloudSyncEnabled
-                ? .private(CloudSyncSettings.cloudKitContainerIdentifier)
-                : .none
+        configuration(
+            for: storeMode(isCloudSyncEnabled: isCloudSyncEnabled),
+            schema: schema
         )
     }
 
@@ -35,9 +62,9 @@ enum FeedivoModelContainerFactory {
         )
     }
 
-    static func makeInMemoryFallbackContainer(schema: Schema) -> ModelContainer {
+    static func makeInMemoryFallbackContainer(schema: Schema) throws -> ModelContainer {
         let configuration = inMemoryFallbackConfiguration()
-        return try! ModelContainer(
+        return try ModelContainer(
             for: schema,
             configurations: [configuration]
         )
