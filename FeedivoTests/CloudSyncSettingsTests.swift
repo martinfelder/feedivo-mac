@@ -49,5 +49,12 @@ struct CloudSyncSettingsTests {
                 hasDatabaseError: true
             ) == "Datenbank konnte nicht geladen werden"
         )
+        #expect(
+            CloudSyncSettings.statusText(
+                isEnabledAtLaunch: true,
+                currentIsEnabled: false,
+                hasDatabaseError: false
+            ) == "iCloud Sync nach Neustart deaktiviert"
+        )
     }
 }
