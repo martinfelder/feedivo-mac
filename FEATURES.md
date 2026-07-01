@@ -848,6 +848,8 @@
   - Feed-, Tag-, Smart-Filter- und einfache Smart-Folder-Artikellisten verwenden
     leichte `FetchDescriptor` mit `propertiesToFetch`; `Article.content` und
     `Article.offlineContent` bleiben aus dem Standard-Listenfetch heraus
+  - Artikellisten laden initial 50 Artikel und erhöhen das SwiftData-`fetchLimit`
+    beim Scrollen ans Listenende in 50er-Schritten
   - Sammel-Refreshes speichern Änderungen pro Batch statt pro Feed, um SwiftData-
     Query-Invalidierungen während laufender Aktualisierungen zu reduzieren
   - Start-Backfills und Orphan-Cleanup vermeiden vollständige
@@ -858,7 +860,6 @@
     Auswertung aus
 - **Zu beachten:**
   - SwiftData-Queries immer mit gezielten Predicates; bewusste Ausnahme ist der Default-Ordner `Ungelesen`, weil dort die Anzeigeebene gelesene Artikel für Feed-ähnliches Verhalten temporär sichtbar halten muss
-  - Artikel-Liste mit Paginierung (50 Artikel pro Batch, mehr beim Scrollen)
   - Lazy Loading für Bilder und Inhalte
   - Spotlight-Index im Hintergrund aufbauen (nicht im Main Thread)
   - Automatisches Datenbank-Cleanup via Feature 17.3

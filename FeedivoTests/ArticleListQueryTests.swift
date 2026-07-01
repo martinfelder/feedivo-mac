@@ -623,6 +623,53 @@ struct ArticleListQueryTests {
     }
 
     @MainActor
+    @Test func feedFetchDescriptorBegrenztArtikelWennFetchLimitGesetztIst() throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            FeedFolder.self,
+            FeedLogEntry.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let selectedFeed = Feed(url: "https://example.com/feed.xml", title: "Ausgewaehlt")
+
+        let newestArticle = Article(
+            title: "Neu",
+            publishedAt: Date(timeIntervalSince1970: 300),
+            feed: selectedFeed
+        )
+        let middleArticle = Article(
+            title: "Mitte",
+            publishedAt: Date(timeIntervalSince1970: 200),
+            feed: selectedFeed
+        )
+        let oldestArticle = Article(
+            title: "Alt",
+            publishedAt: Date(timeIntervalSince1970: 100),
+            feed: selectedFeed
+        )
+
+        context.insert(selectedFeed)
+        context.insert(newestArticle)
+        context.insert(middleArticle)
+        context.insert(oldestArticle)
+        try context.save()
+
+        let descriptor = ArticleListQuery.feedFetchDescriptor(
+            for: selectedFeed,
+            fetchLimit: 2
+        )
+        let articles = try context.fetch(descriptor)
+
+        #expect(descriptor.fetchLimit == 2)
+        #expect(descriptor.propertiesToFetch == ArticleListQuery.listPropertiesToFetch)
+        #expect(articles.map(\.title) == ["Neu", "Mitte"])
+    }
+
+    @MainActor
     @Test func feedFetchDescriptorNutztDirekteFeedIDOhneRelationshipFallback() throws {
         let container = try ModelContainer(
             for: Feed.self,

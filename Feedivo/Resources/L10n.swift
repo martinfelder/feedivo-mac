@@ -325,6 +325,7 @@ enum L10n {
     static let articleRowMarkRead = String(localized: "articleRow.markRead")
     static let articleRowMarkUnread = String(localized: "articleRow.markUnread")
     static let articleListShowReadButtonFormat = String(localized: "articleList.showRead.button")
+    static let articleListLoadingMore = String(localized: "articleList.loadingMore")
     static let articleListReadDisplayTitle = String(localized: "articleList.readDisplay.title")
     static let articleListReadDisplayUnreadOnly = String(localized: "articleList.readDisplay.unreadOnly")
     static let articleListReadDisplayAll = String(localized: "articleList.readDisplay.all")

@@ -73,6 +73,11 @@ Nach jeder relevanten Änderung prüfen und bei Bedarf aktualisieren:
 3. Tests/Build:
    - Vor Abschluss mindestens den passenden `xcodebuild`-Befehl laufen lassen.
    - In der finalen Antwort exakt nennen, was geprüft wurde und ob es erfolgreich war.
+4. Git:
+   - Nach abgeschlossenen, verifizierten Code-/Feature-Änderungen automatisch einen
+     Commit erstellen, sofern der User nicht ausdrücklich etwas anderes sagt.
+   - Lokale Xcode-Zustände wie `xcuserdata/.../UserInterfaceState.xcuserstate`
+     nicht committen.
 
 ### Dokumentationsprinzip
 
@@ -874,6 +879,11 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   `Article.content` und `Article.offlineContent` beim normalen Listenrender nicht
   vorgeladen werden. Volltexte faulten erst bei Suche, Reader, Export oder
   Offline-Aktionen nach.
+- Artikellisten laden initial nur 50 Artikel über `FetchDescriptor.fetchLimit`.
+  Am Listenende erhöht eine Nachlade-Zeile das Limit in 50er-Schritten, sodass
+  große Feeds nicht komplett beim ersten Öffnen materialisiert werden. Feed-,
+  Tag-, Smart-Filter- und Smart-Folder-Scopes behalten jeweils ihr eigenes Limit
+  und setzen es beim Scope-Wechsel zurück.
 - Tag-Listen nutzen ebenfalls eine gezielte SwiftData-Query und zeigen
   feedübergreifend direkt getaggte Artikel sowie Artikel aus getaggten Feeds.
 - Intelligente Ordner nutzen für einfache/vordefinierte Fälle gezielte
@@ -952,6 +962,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Kapselt die leichten Listen-`FetchDescriptor` und verwendet dafür dieselbe
   Property-Liste wie `Article.lightFetchDescriptor`. Tests sichern ab, dass
   `content` und `offlineContent` nicht im Standard-Listenfetch enthalten sind.
+- Stellt `initialFetchLimit` und `fetchBatchSize` (je 50) bereit; alle Listen-
+  Descriptoren akzeptieren optional `fetchLimit` und setzen es direkt am
+  SwiftData-`FetchDescriptor`.
 - Feed-Listen filtern über `Article.feedID`, damit der Feed-Wechsel nicht über die
   `Article.feed`-Relationship predicated werden muss.
 - Tag-Listen filtern über `Article.tags.contains { tag.id == selectedTagID }` und
@@ -2055,6 +2068,11 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 ---
 
 ## Letzte Änderungen
+
+- 2026-07-01: Artikellisten-Paginierung umgesetzt. Feed-, Tag-, Smart-Filter- und
+  Smart-Folder-Listen setzen jetzt ein initiales SwiftData-`fetchLimit` von 50
+  Artikeln und erhöhen es beim Scrollen ans Listenende in 50er-Schritten. Die
+  Descriptoren bleiben dabei auf das leichte Listen-Property-Set beschränkt.
 
 - 2026-07-01: Lesefortschritt wieder entfernt und Feature 11.2 zurückgestellt.
   Der erste Ansatz mit Fortschrittsbalken, gespeicherter Scrollposition und

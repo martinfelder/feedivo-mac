@@ -2,14 +2,17 @@ import Foundation
 import SwiftData
 
 enum ArticleListQuery {
+    static let initialFetchLimit = 50
+    static let fetchBatchSize = 50
+
     static let sortDescriptors = [
         SortDescriptor<Article>(\.publishedAt, order: .reverse)
     ]
 
     static let listPropertiesToFetch = Article.lightPropertiesToFetch
 
-    static func allFetchDescriptor() -> FetchDescriptor<Article> {
-        listFetchDescriptor()
+    static func allFetchDescriptor(fetchLimit: Int? = nil) -> FetchDescriptor<Article> {
+        listFetchDescriptor(fetchLimit: fetchLimit)
     }
 
     static func feedPredicate(for feed: Feed) -> Predicate<Article> {
@@ -19,8 +22,14 @@ enum ArticleListQuery {
         }
     }
 
-    static func feedFetchDescriptor(for feed: Feed) -> FetchDescriptor<Article> {
-        listFetchDescriptor(predicate: feedPredicate(for: feed))
+    static func feedFetchDescriptor(
+        for feed: Feed,
+        fetchLimit: Int? = nil
+    ) -> FetchDescriptor<Article> {
+        listFetchDescriptor(
+            predicate: feedPredicate(for: feed),
+            fetchLimit: fetchLimit
+        )
     }
 
     // Kein Default für `taggedFeeds`: ohne die Feed-Liste matcht der Predicate
@@ -39,41 +48,54 @@ enum ArticleListQuery {
         }
     }
 
-    static func tagFetchDescriptor(for tag: Tag) -> FetchDescriptor<Article> {
-        listFetchDescriptor(predicate: tagPredicate(for: tag, taggedFeeds: tag.feeds ?? []))
+    static func tagFetchDescriptor(
+        for tag: Tag,
+        fetchLimit: Int? = nil
+    ) -> FetchDescriptor<Article> {
+        listFetchDescriptor(
+            predicate: tagPredicate(for: tag, taggedFeeds: tag.feeds ?? []),
+            fetchLimit: fetchLimit
+        )
     }
 
-    static func smartFilterFetchDescriptor(for smartFilter: SmartFilter) -> FetchDescriptor<Article> {
+    static func smartFilterFetchDescriptor(
+        for smartFilter: SmartFilter,
+        fetchLimit: Int? = nil
+    ) -> FetchDescriptor<Article> {
         switch smartFilter {
         case .allArticles:
-            return listFetchDescriptor()
+            return listFetchDescriptor(fetchLimit: fetchLimit)
         case .unread:
             return listFetchDescriptor(
                 predicate: #Predicate<Article> { article in
                     !article.isRead
-                }
+                },
+                fetchLimit: fetchLimit
             )
         case .starred:
             return listFetchDescriptor(
                 predicate: #Predicate<Article> { article in
                     article.isStarred
-                }
+                },
+                fetchLimit: fetchLimit
             )
         case .today:
             // Datum-Filter bleibt in-memory: SwiftData unterstützt hier keinen
             // stabilen optionalen Date-Vergleich. Der Fetch bleibt trotzdem leicht.
-            return listFetchDescriptor()
+            return listFetchDescriptor(fetchLimit: fetchLimit)
         case .hidden:
             return listFetchDescriptor(
                 predicate: #Predicate<Article> { article in
                     article.isHidden
-                }
+                },
+                fetchLimit: fetchLimit
             )
         }
     }
 
     static func smartFolderFetchDescriptor(
         for folder: SmartFolder,
+        fetchLimit: Int? = nil,
         now: Date = Date(),
         calendar: Calendar = .current
     ) -> FetchDescriptor<Article>? {
@@ -83,40 +105,45 @@ enum ArticleListQuery {
 
         switch queryKind {
         case .all:
-            return listFetchDescriptor()
+            return listFetchDescriptor(fetchLimit: fetchLimit)
         case .unread:
             // Ungelesen lädt wie ein Feed alle Artikel. Die Anzeigeebene blendet
             // gelesene Artikel aus und hält gerade geöffnete Artikel sichtbar.
-            return listFetchDescriptor()
+            return listFetchDescriptor(fetchLimit: fetchLimit)
         case .read:
             return listFetchDescriptor(
                 predicate: #Predicate<Article> { article in
                     article.isRead
-                }
+                },
+                fetchLimit: fetchLimit
             )
         case .starred:
             return listFetchDescriptor(
                 predicate: #Predicate<Article> { article in
                     article.isStarred
-                }
+                },
+                fetchLimit: fetchLimit
             )
         case .archived:
             return listFetchDescriptor(
                 predicate: #Predicate<Article> { article in
                     article.isArchived
-                }
+                },
+                fetchLimit: fetchLimit
             )
         case .hidden:
             return listFetchDescriptor(
                 predicate: #Predicate<Article> { article in
                     article.isHidden
-                }
+                },
+                fetchLimit: fetchLimit
             )
         case .saved:
             return listFetchDescriptor(
                 predicate: #Predicate<Article> { article in
                     article.isStarred || article.isArchived
-                }
+                },
+                fetchLimit: fetchLimit
             )
         case .today, .thisWeek:
             // Kein optimierter Predicate: SwiftData unterstützt keinen Force-Unwrap
@@ -128,13 +155,17 @@ enum ArticleListQuery {
     }
 
     private static func listFetchDescriptor(
-        predicate: Predicate<Article>? = nil
+        predicate: Predicate<Article>? = nil,
+        fetchLimit: Int? = nil
     ) -> FetchDescriptor<Article> {
         var descriptor = FetchDescriptor(
             predicate: predicate,
             sortBy: sortDescriptors
         )
         descriptor.propertiesToFetch = listPropertiesToFetch
+        if let fetchLimit, fetchLimit > 0 {
+            descriptor.fetchLimit = fetchLimit
+        }
         return descriptor
     }
 }

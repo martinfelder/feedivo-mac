@@ -82,6 +82,7 @@ struct ArticleListView: View {
                 onRequestCreateRuleFromArticle: onRequestCreateRuleFromArticle,
                 onRequestExportArticle: onRequestExportArticle
             )
+            .id(feed.id)
         case .smartFilter(let smartFilter):
             SmartFilterArticleListContent(
                 smartFilter: smartFilter,
@@ -90,6 +91,7 @@ struct ArticleListView: View {
                 onRequestCreateRuleFromArticle: onRequestCreateRuleFromArticle,
                 onRequestExportArticle: onRequestExportArticle
             )
+            .id(smartFilter)
         case .tag(let tag):
             TagArticleListContent(
                 tag: tag,
@@ -98,6 +100,7 @@ struct ArticleListView: View {
                 onRequestCreateRuleFromArticle: onRequestCreateRuleFromArticle,
                 onRequestExportArticle: onRequestExportArticle
             )
+            .id(tag.id)
         case .smartFolder(let smartFolder):
             SmartFolderArticleListContent(
                 smartFolder: smartFolder,
@@ -106,6 +109,7 @@ struct ArticleListView: View {
                 onRequestCreateRuleFromArticle: onRequestCreateRuleFromArticle,
                 onRequestExportArticle: onRequestExportArticle
             )
+            .id(smartFolder.id)
         }
     }
 }
@@ -116,7 +120,7 @@ private struct FeedArticleListContent: View {
     let onRequestExportArticle: (Article) -> Void
     @Binding var selectedArticle: Article?
     @Binding var navigationState: ArticleNavigationState
-    @Query private var articles: [Article]
+    @State private var fetchLimit = ArticleListQuery.initialFetchLimit
 
     init(
         feed: Feed,
@@ -130,7 +134,57 @@ private struct FeedArticleListContent: View {
         self.onRequestExportArticle = onRequestExportArticle
         self._selectedArticle = selectedArticle
         self._navigationState = navigationState
-        self._articles = Query(ArticleListQuery.feedFetchDescriptor(for: feed))
+    }
+
+    var body: some View {
+        FeedArticleListQueryContent(
+            feed: feed,
+            fetchLimit: fetchLimit,
+            selectedArticle: $selectedArticle,
+            navigationState: $navigationState,
+            onRequestCreateRuleFromArticle: onRequestCreateRuleFromArticle,
+            onRequestExportArticle: onRequestExportArticle,
+            onLoadMoreArticles: loadMoreArticles
+        )
+    }
+
+    private func loadMoreArticles() {
+        fetchLimit += ArticleListQuery.fetchBatchSize
+    }
+}
+
+private struct FeedArticleListQueryContent: View {
+    let feed: Feed
+    let fetchLimit: Int
+    let onRequestCreateRuleFromArticle: (Article) -> Void
+    let onRequestExportArticle: (Article) -> Void
+    let onLoadMoreArticles: () -> Void
+    @Binding var selectedArticle: Article?
+    @Binding var navigationState: ArticleNavigationState
+    @Query private var articles: [Article]
+
+    init(
+        feed: Feed,
+        fetchLimit: Int,
+        selectedArticle: Binding<Article?>,
+        navigationState: Binding<ArticleNavigationState>,
+        onRequestCreateRuleFromArticle: @escaping (Article) -> Void,
+        onRequestExportArticle: @escaping (Article) -> Void,
+        onLoadMoreArticles: @escaping () -> Void
+    ) {
+        self.feed = feed
+        self.fetchLimit = fetchLimit
+        self.onRequestCreateRuleFromArticle = onRequestCreateRuleFromArticle
+        self.onRequestExportArticle = onRequestExportArticle
+        self.onLoadMoreArticles = onLoadMoreArticles
+        self._selectedArticle = selectedArticle
+        self._navigationState = navigationState
+        self._articles = Query(
+            ArticleListQuery.feedFetchDescriptor(
+                for: feed,
+                fetchLimit: fetchLimit
+            )
+        )
     }
 
     var body: some View {
@@ -141,9 +195,14 @@ private struct FeedArticleListContent: View {
             navigationState: $navigationState,
             onRequestCreateRuleFromArticle: onRequestCreateRuleFromArticle,
             onRequestExportArticle: onRequestExportArticle,
-            showsHiddenArticles: false
+            showsHiddenArticles: false,
+            canLoadMoreArticles: canLoadMoreArticles,
+            onLoadMoreArticles: onLoadMoreArticles
         )
-        .id(feed.id)
+    }
+
+    private var canLoadMoreArticles: Bool {
+        articles.count >= fetchLimit
     }
 }
 
@@ -153,7 +212,7 @@ private struct TagArticleListContent: View {
     let onRequestExportArticle: (Article) -> Void
     @Binding var selectedArticle: Article?
     @Binding var navigationState: ArticleNavigationState
-    @Query private var articles: [Article]
+    @State private var fetchLimit = ArticleListQuery.initialFetchLimit
 
     init(
         tag: Tag,
@@ -167,7 +226,57 @@ private struct TagArticleListContent: View {
         self.onRequestExportArticle = onRequestExportArticle
         self._selectedArticle = selectedArticle
         self._navigationState = navigationState
-        self._articles = Query(ArticleListQuery.tagFetchDescriptor(for: tag))
+    }
+
+    var body: some View {
+        TagArticleListQueryContent(
+            tag: tag,
+            fetchLimit: fetchLimit,
+            selectedArticle: $selectedArticle,
+            navigationState: $navigationState,
+            onRequestCreateRuleFromArticle: onRequestCreateRuleFromArticle,
+            onRequestExportArticle: onRequestExportArticle,
+            onLoadMoreArticles: loadMoreArticles
+        )
+    }
+
+    private func loadMoreArticles() {
+        fetchLimit += ArticleListQuery.fetchBatchSize
+    }
+}
+
+private struct TagArticleListQueryContent: View {
+    let tag: Tag
+    let fetchLimit: Int
+    let onRequestCreateRuleFromArticle: (Article) -> Void
+    let onRequestExportArticle: (Article) -> Void
+    let onLoadMoreArticles: () -> Void
+    @Binding var selectedArticle: Article?
+    @Binding var navigationState: ArticleNavigationState
+    @Query private var articles: [Article]
+
+    init(
+        tag: Tag,
+        fetchLimit: Int,
+        selectedArticle: Binding<Article?>,
+        navigationState: Binding<ArticleNavigationState>,
+        onRequestCreateRuleFromArticle: @escaping (Article) -> Void,
+        onRequestExportArticle: @escaping (Article) -> Void,
+        onLoadMoreArticles: @escaping () -> Void
+    ) {
+        self.tag = tag
+        self.fetchLimit = fetchLimit
+        self.onRequestCreateRuleFromArticle = onRequestCreateRuleFromArticle
+        self.onRequestExportArticle = onRequestExportArticle
+        self.onLoadMoreArticles = onLoadMoreArticles
+        self._selectedArticle = selectedArticle
+        self._navigationState = navigationState
+        self._articles = Query(
+            ArticleListQuery.tagFetchDescriptor(
+                for: tag,
+                fetchLimit: fetchLimit
+            )
+        )
     }
 
     var body: some View {
@@ -178,9 +287,14 @@ private struct TagArticleListContent: View {
             navigationState: $navigationState,
             onRequestCreateRuleFromArticle: onRequestCreateRuleFromArticle,
             onRequestExportArticle: onRequestExportArticle,
-            showsHiddenArticles: false
+            showsHiddenArticles: false,
+            canLoadMoreArticles: canLoadMoreArticles,
+            onLoadMoreArticles: onLoadMoreArticles
         )
-        .id(tag.id)
+    }
+
+    private var canLoadMoreArticles: Bool {
+        articles.count >= fetchLimit
     }
 }
 
@@ -190,7 +304,7 @@ private struct SmartFilterArticleListContent: View {
     let onRequestExportArticle: (Article) -> Void
     @Binding var selectedArticle: Article?
     @Binding var navigationState: ArticleNavigationState
-    @Query private var articles: [Article]
+    @State private var fetchLimit = ArticleListQuery.initialFetchLimit
 
     init(
         smartFilter: SmartFilter,
@@ -204,7 +318,57 @@ private struct SmartFilterArticleListContent: View {
         self.onRequestExportArticle = onRequestExportArticle
         self._selectedArticle = selectedArticle
         self._navigationState = navigationState
-        self._articles = Query(ArticleListQuery.smartFilterFetchDescriptor(for: smartFilter))
+    }
+
+    var body: some View {
+        SmartFilterArticleListQueryContent(
+            smartFilter: smartFilter,
+            fetchLimit: fetchLimit,
+            selectedArticle: $selectedArticle,
+            navigationState: $navigationState,
+            onRequestCreateRuleFromArticle: onRequestCreateRuleFromArticle,
+            onRequestExportArticle: onRequestExportArticle,
+            onLoadMoreArticles: loadMoreArticles
+        )
+    }
+
+    private func loadMoreArticles() {
+        fetchLimit += ArticleListQuery.fetchBatchSize
+    }
+}
+
+private struct SmartFilterArticleListQueryContent: View {
+    let smartFilter: SmartFilter
+    let fetchLimit: Int
+    let onRequestCreateRuleFromArticle: (Article) -> Void
+    let onRequestExportArticle: (Article) -> Void
+    let onLoadMoreArticles: () -> Void
+    @Binding var selectedArticle: Article?
+    @Binding var navigationState: ArticleNavigationState
+    @Query private var articles: [Article]
+
+    init(
+        smartFilter: SmartFilter,
+        fetchLimit: Int,
+        selectedArticle: Binding<Article?>,
+        navigationState: Binding<ArticleNavigationState>,
+        onRequestCreateRuleFromArticle: @escaping (Article) -> Void,
+        onRequestExportArticle: @escaping (Article) -> Void,
+        onLoadMoreArticles: @escaping () -> Void
+    ) {
+        self.smartFilter = smartFilter
+        self.fetchLimit = fetchLimit
+        self.onRequestCreateRuleFromArticle = onRequestCreateRuleFromArticle
+        self.onRequestExportArticle = onRequestExportArticle
+        self.onLoadMoreArticles = onLoadMoreArticles
+        self._selectedArticle = selectedArticle
+        self._navigationState = navigationState
+        self._articles = Query(
+            ArticleListQuery.smartFilterFetchDescriptor(
+                for: smartFilter,
+                fetchLimit: fetchLimit
+            )
+        )
     }
 
     var body: some View {
@@ -215,9 +379,10 @@ private struct SmartFilterArticleListContent: View {
             navigationState: $navigationState,
             onRequestCreateRuleFromArticle: onRequestCreateRuleFromArticle,
             onRequestExportArticle: onRequestExportArticle,
-            showsHiddenArticles: smartFilter == .hidden
+            showsHiddenArticles: smartFilter == .hidden,
+            canLoadMoreArticles: canLoadMoreArticles,
+            onLoadMoreArticles: onLoadMoreArticles
         )
-        .id(smartFilter)
     }
 
     private var displayedArticles: [Article] {
@@ -235,16 +400,19 @@ private struct SmartFilterArticleListContent: View {
             return publishedAt >= startOfToday && publishedAt < startOfTomorrow
         }
     }
+
+    private var canLoadMoreArticles: Bool {
+        articles.count >= fetchLimit
+    }
 }
 
 private struct SmartFolderArticleListContent: View {
     let smartFolder: SmartFolder
     let onRequestCreateRuleFromArticle: (Article) -> Void
     let onRequestExportArticle: (Article) -> Void
-    private let usesOptimizedQuery: Bool
     @Binding var selectedArticle: Article?
     @Binding var navigationState: ArticleNavigationState
-    @Query private var articles: [Article]
+    @State private var fetchLimit = ArticleListQuery.initialFetchLimit
 
     init(
         smartFolder: SmartFolder,
@@ -258,13 +426,62 @@ private struct SmartFolderArticleListContent: View {
         self.onRequestExportArticle = onRequestExportArticle
         self._selectedArticle = selectedArticle
         self._navigationState = navigationState
+    }
 
-        if let descriptor = ArticleListQuery.smartFolderFetchDescriptor(for: smartFolder) {
+    var body: some View {
+        SmartFolderArticleListQueryContent(
+            smartFolder: smartFolder,
+            fetchLimit: fetchLimit,
+            selectedArticle: $selectedArticle,
+            navigationState: $navigationState,
+            onRequestCreateRuleFromArticle: onRequestCreateRuleFromArticle,
+            onRequestExportArticle: onRequestExportArticle,
+            onLoadMoreArticles: loadMoreArticles
+        )
+    }
+
+    private func loadMoreArticles() {
+        fetchLimit += ArticleListQuery.fetchBatchSize
+    }
+}
+
+private struct SmartFolderArticleListQueryContent: View {
+    let smartFolder: SmartFolder
+    let onRequestCreateRuleFromArticle: (Article) -> Void
+    let onRequestExportArticle: (Article) -> Void
+    let onLoadMoreArticles: () -> Void
+    private let fetchLimit: Int
+    private let usesOptimizedQuery: Bool
+    @Binding var selectedArticle: Article?
+    @Binding var navigationState: ArticleNavigationState
+    @Query private var articles: [Article]
+
+    init(
+        smartFolder: SmartFolder,
+        fetchLimit: Int,
+        selectedArticle: Binding<Article?>,
+        navigationState: Binding<ArticleNavigationState>,
+        onRequestCreateRuleFromArticle: @escaping (Article) -> Void,
+        onRequestExportArticle: @escaping (Article) -> Void,
+        onLoadMoreArticles: @escaping () -> Void
+    ) {
+        self.smartFolder = smartFolder
+        self.fetchLimit = fetchLimit
+        self.onRequestCreateRuleFromArticle = onRequestCreateRuleFromArticle
+        self.onRequestExportArticle = onRequestExportArticle
+        self.onLoadMoreArticles = onLoadMoreArticles
+        self._selectedArticle = selectedArticle
+        self._navigationState = navigationState
+
+        if let descriptor = ArticleListQuery.smartFolderFetchDescriptor(
+            for: smartFolder,
+            fetchLimit: fetchLimit
+        ) {
             self.usesOptimizedQuery = true
             self._articles = Query(descriptor)
         } else {
             self.usesOptimizedQuery = false
-            self._articles = Query(ArticleListQuery.allFetchDescriptor())
+            self._articles = Query(ArticleListQuery.allFetchDescriptor(fetchLimit: fetchLimit))
         }
     }
 
@@ -277,15 +494,20 @@ private struct SmartFolderArticleListContent: View {
             onRequestCreateRuleFromArticle: onRequestCreateRuleFromArticle,
             onRequestExportArticle: onRequestExportArticle,
             showsHiddenArticles: SmartFolderFormatter.includesHiddenStatus(smartFolder),
-            showsReadArticlesInitially: SmartFolderFormatter.showsReadArticlesByDefault(smartFolder)
+            showsReadArticlesInitially: SmartFolderFormatter.showsReadArticlesByDefault(smartFolder),
+            canLoadMoreArticles: canLoadMoreArticles,
+            onLoadMoreArticles: onLoadMoreArticles
         )
-        .id(smartFolder.id)
     }
 
     private var displayedArticles: [Article] {
         usesOptimizedQuery
             ? articles
             : SmartFolderEngine.matchingArticles(folder: smartFolder, articles: articles)
+    }
+
+    private var canLoadMoreArticles: Bool {
+        articles.count >= fetchLimit
     }
 }
 
@@ -298,6 +520,8 @@ private struct ArticleListContent: View {
     let onRequestExportArticle: (Article) -> Void
     let sortArticles: Bool
     let showsHiddenArticles: Bool
+    let canLoadMoreArticles: Bool
+    let onLoadMoreArticles: () -> Void
     @Binding var selectedArticle: Article?
     @Binding var navigationState: ArticleNavigationState
     @Query(sort: \Tag.name) private var tags: [Tag]
@@ -335,12 +559,16 @@ private struct ArticleListContent: View {
         onRequestExportArticle: @escaping (Article) -> Void,
         sortArticles: Bool = true,
         showsHiddenArticles: Bool = false,
-        showsReadArticlesInitially: Bool = false
+        showsReadArticlesInitially: Bool = false,
+        canLoadMoreArticles: Bool = false,
+        onLoadMoreArticles: @escaping () -> Void = {}
     ) {
         self.articles = articles
         self.navigationTitle = navigationTitle
         self.onRequestCreateRuleFromArticle = onRequestCreateRuleFromArticle
         self.onRequestExportArticle = onRequestExportArticle
+        self.canLoadMoreArticles = canLoadMoreArticles
+        self.onLoadMoreArticles = onLoadMoreArticles
         self._selectedArticle = selectedArticle
         self._navigationState = navigationState
         self.sortArticles = sortArticles
@@ -371,6 +599,9 @@ private struct ArticleListContent: View {
             List(selection: $selectedArticle) {
                 if filteredArticles.isEmpty {
                     articleListEmptyState(isSearching: activeSearchQuery.isActive)
+                    if canLoadMoreArticles {
+                        loadMoreArticlesRow
+                    }
                 } else {
                     ForEach(visibleArticles) { article in
                         articleRow(article, visibleArticles: visibleArticles)
@@ -379,6 +610,10 @@ private struct ArticleListContent: View {
 
                     if displaySnapshot.shouldShowReadArticlesButton {
                         showReadArticlesButton(count: displaySnapshot.hiddenReadArticleCount)
+                    }
+
+                    if canLoadMoreArticles {
+                        loadMoreArticlesRow
                     }
                 }
             }
@@ -511,6 +746,24 @@ private struct ArticleListContent: View {
             Spacer()
         }
         .padding(.vertical, 10)
+    }
+
+    private var loadMoreArticlesRow: some View {
+        HStack(spacing: 8) {
+            Spacer()
+
+            ProgressView()
+                .controlSize(.small)
+
+            Text(L10n.articleListLoadingMore)
+                .foregroundStyle(.secondary)
+
+            Spacer()
+        }
+        .padding(.vertical, 10)
+        .onAppear {
+            onLoadMoreArticles()
+        }
     }
 
     private func articleRow(_ article: Article, visibleArticles: [Article]) -> ArticleRowView {

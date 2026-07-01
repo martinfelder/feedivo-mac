@@ -3065,6 +3065,34 @@
         }
       }
     },
+    "articleList.loadingMore" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weitere Artikel werden geladen ..."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading more articles ..."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chargement d'autres articles ..."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Caricamento di altri articoli ..."
+          }
+        }
+      }
+    },
     "articleList.readDisplay.all" : {
       "localizations" : {
         "de" : {
