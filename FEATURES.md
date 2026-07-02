@@ -857,6 +857,12 @@
     Tags, globale Filter, Regeln, Export und Offline-Download bleiben bis zu
     eigenen Slices auf den bisherigen SwiftData-/Legacy-Pfaden. Spec:
     `docs/superpowers/specs/2026-07-02-sqlite-feed-reader-path-design.md`.
+  - Normale Feed-Aktionen befüllen den neuen SQLite-Pfad: `AddFeedSheet`,
+    ausgewählter Feed-Refresh und `Alle Feeds aktualisieren` übergeben die
+    geöffnete `FeedivoDatabase` an `FeedViewModel`. Hinzufügen und einzelner
+    Refresh spiegeln Feed- und Artikelsnapshots nach SQLite; der
+    ModelContainer-Refresh nutzt zusätzlich `SQLiteFeedRefreshService`, damit die
+    neue Feed-Liste nach realen Refreshes Daten sieht.
   - OPML-Import und `Alle Feeds aktualisieren` rufen Feeds nur noch begrenzt parallel ab
   - Sidebar nutzt keine globale Artikel-Query mehr für Badge-Signaturen; beim
     Lesen invalidieren `isRead`-Änderungen dadurch nicht mehr alle Sidebar-

@@ -1990,7 +1990,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   vertikale SQLite-Scheibe: Feed-URL-Auflösung über `FeedStore`, Artikelliste via
   `TimelineStore`, Auswahl per SQLite-Artikel-ID, Reader via
   `ArticleStore.readerArticle(id:)` und Statusmutationen über
-  `ArticleStatusStore`.
+  `ArticleStatusStore`. Normale Feed-Aktionen füllen diesen Pfad inzwischen:
+  `AddFeedSheet`, ausgewählter Feed-Refresh und `Alle Feeds aktualisieren`
+  übergeben die geöffnete `FeedivoDatabase` an `FeedViewModel`; Hinzufügen und
+  Refresh spiegeln Feed- und Artikeldaten nach SQLite.
 - **Bewusst später:** iCloud Sync, SwiftData-Bestandsdatenmigration, Tags,
   Regeln, Smart Folders, OPML Import/Export, Artikel-Export, Offline-Download
   und SQLite FTS-Suche.
@@ -2243,6 +2246,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Reader und Artikelstatus über SQLite, mit getrennten Artikel- und
   Status-Tabellen. Der normale Feed-Pfad im Hauptfenster nutzt inzwischen
   `SQLiteFeedArticleListView`, SQLite-Artikel-IDs und `SQLiteReaderView`.
+  Feed hinzufügen, ausgewählter Feed-Refresh und `Alle Feeds aktualisieren`
+  übergeben die GRDB-Datenbank an `FeedViewModel`, sodass der SQLite-Feed-Pfad
+  nach realen Feed-Aktionen gefüllt wird.
 - Feature 17.3 Automatisches Löschen ist umgesetzt: globale Einstellung,
   Stern-/Archiv-Schutz mit Zusatzoption und pro-Feed-Überschreibung in den
   Feed-Eigenschaften.
@@ -2280,6 +2286,14 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 ---
 
 ## Letzte Änderungen
+
+- 2026-07-02: Feed-Aktionen an den SQLite-Pfad angeschlossen. `AddFeedSheet`,
+  ausgewählter Feed-Refresh und `Alle Feeds aktualisieren` lesen die
+  `FeedivoDatabase` aus der SwiftUI-Environment und übergeben sie an
+  `FeedViewModel`. `addFeed` und `refreshFeed` spiegeln Feed- und
+  Artikelsnapshots nach SQLite; der ModelContainer-Sammelrefresh nutzt zusätzlich
+  `SQLiteFeedRefreshService`, damit die neue `SQLiteFeedArticleListView` nach
+  normalen App-Aktionen echte Daten anzeigen kann.
 
 - 2026-07-02: Normaler Feed-Lese-Pfad auf SQLite-Snapshots umgestellt.
   `FeedivoApp` öffnet die GRDB-Datenbank aus Application Support und injiziert sie

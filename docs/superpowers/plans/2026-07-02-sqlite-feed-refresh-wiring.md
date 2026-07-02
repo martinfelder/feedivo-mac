@@ -4,6 +4,8 @@
 
 **Goal:** Ensure normal feed add and refresh operations populate the SQLite/GRDB store used by the new feed reader path.
 
+**Status 2026-07-02:** Implemented. Feed add, selected-feed refresh and all-feeds refresh now receive the SwiftUI `FeedivoDatabase` environment value and populate SQLite for the new feed reader path. Focused tests and app build are part of the final verification for this slice.
+
 **Architecture:** Keep the existing SwiftData feed workflows intact during the transition, but mirror feed/article data into SQLite whenever a feed is added or refreshed. The UI passes the already-open `FeedivoDatabase` environment value into `FeedViewModel`; if SQLite is unavailable, the old SwiftData path still works.
 
 **Tech Stack:** Swift, SwiftData, GRDB, Swift Testing, `xcodebuild`.
@@ -42,7 +44,7 @@
 - Modify: `Feedivo/ViewModels/FeedViewModel.swift`
 - Modify: `FeedivoTests/FeedViewModelTests.swift`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Add tests:
 
@@ -83,7 +85,7 @@ await viewModel.refreshFeed(feed, context: context, sqliteDatabase: sqliteDataba
 
 Then assert the SQLite timeline contains the refreshed article title.
 
-- [ ] **Step 2: Run tests to verify red**
+- [x] **Step 2: Run tests to verify red**
 
 Run:
 
@@ -93,7 +95,7 @@ xcodebuild test -project Feedivo.xcodeproj -scheme Feedivo -destination 'platfor
 
 Expected: fail because `sqliteDatabase` parameters and mirror helpers do not exist.
 
-- [ ] **Step 3: Implement minimal code**
+- [x] **Step 3: Implement minimal code**
 
 In `FeedViewModel`:
 
@@ -115,11 +117,11 @@ private func refreshSQLiteFeed(_ feed: Feed, database: FeedivoDatabase) async th
 
 `refreshSQLiteFeed` ensures the feed record exists and calls `SQLiteFeedRefreshService.refresh(feedID:)`.
 
-- [ ] **Step 4: Run tests to verify green**
+- [x] **Step 4: Run tests to verify green**
 
 Run the same test command. Expected: `TEST SUCCEEDED`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add Feedivo/ViewModels/FeedViewModel.swift FeedivoTests/FeedViewModelTests.swift
@@ -133,7 +135,7 @@ git commit -m "feat: mirror feed refreshes to sqlite"
 - Modify: `Feedivo/Views/Sidebar/SidebarView.swift`
 - Modify: `FeedivoTests/FeedivoAppSceneConfigurationTests.swift`
 
-- [ ] **Step 1: Write failing source tests**
+- [x] **Step 1: Write failing source tests**
 
 Add tests:
 
@@ -146,7 +148,7 @@ Assert `ContentView.swift` contains `@Environment(\\.feedivoDatabase)` and passe
 
 Assert `SidebarView.swift` contains `@Environment(\\.feedivoDatabase)` in `AddFeedSheet` and passes `sqliteDatabase: feedivoDatabase` to `addFeed`.
 
-- [ ] **Step 2: Run tests to verify red**
+- [x] **Step 2: Run tests to verify red**
 
 Run:
 
@@ -156,7 +158,7 @@ xcodebuild test -project Feedivo.xcodeproj -scheme Feedivo -destination 'platfor
 
 Expected: fail because UI wiring is missing.
 
-- [ ] **Step 3: Implement minimal code**
+- [x] **Step 3: Implement minimal code**
 
 In `ContentView`, add:
 
@@ -178,11 +180,11 @@ In `AddFeedSheet`, add the same environment property and call:
 await viewModel.addFeed(urlString: urlString, context: modelContext, sqliteDatabase: feedivoDatabase)
 ```
 
-- [ ] **Step 4: Run tests to verify green**
+- [x] **Step 4: Run tests to verify green**
 
 Run the same source-test command. Expected: `TEST SUCCEEDED`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add Feedivo/Views/ContentView.swift Feedivo/Views/Sidebar/SidebarView.swift FeedivoTests/FeedivoAppSceneConfigurationTests.swift
@@ -196,11 +198,11 @@ git commit -m "feat: pass sqlite database to feed operations"
 - Modify: `FEATURES.md`
 - Modify: `docs/superpowers/plans/2026-07-02-sqlite-feed-refresh-wiring.md`
 
-- [ ] **Step 1: Update docs**
+- [x] **Step 1: Update docs**
 
 Document that add-feed and refresh operations now mirror data into SQLite for the new feed reader path.
 
-- [ ] **Step 2: Run focused verification**
+- [x] **Step 2: Run focused verification**
 
 Run:
 
@@ -210,7 +212,7 @@ xcodebuild test -project Feedivo.xcodeproj -scheme Feedivo -destination 'platfor
 
 Expected: `TEST SUCCEEDED`.
 
-- [ ] **Step 3: Run app build**
+- [x] **Step 3: Run app build**
 
 Run:
 
@@ -220,7 +222,7 @@ xcodebuild build -project Feedivo.xcodeproj -scheme Feedivo -destination 'platfo
 
 Expected: `BUILD SUCCEEDED`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add AGENTS.md FEATURES.md docs/superpowers/plans/2026-07-02-sqlite-feed-refresh-wiring.md
