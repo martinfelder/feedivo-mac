@@ -223,4 +223,69 @@ struct SQLiteArticleStoreTests {
 
         #expect(secondID != firstID)
     }
+
+    @Test func batchUpsertReturnsInsertedAndUpdatedIDs() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example"))
+
+        let existingID = try articleStore.upsert(
+            ArticleUpsertInput(feedID: "feed-1", sourceID: "existing", title: "Old Title")
+        )
+
+        let result = try articleStore.upsert([
+            ArticleUpsertInput(feedID: "feed-1", sourceID: "existing", title: "Updated Title"),
+            ArticleUpsertInput(feedID: "feed-1", sourceID: "new", title: "New Title")
+        ])
+
+        let updatedArticle = try articleStore.readerArticle(id: existingID)
+        let articleCount = try database.read { db in
+            try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM articles") ?? 0
+        }
+
+        #expect(result.updatedArticleIDs == [existingID])
+        #expect(result.insertedArticleIDs.count == 1)
+        #expect(result.articleIDs.count == 2)
+        #expect(updatedArticle?.title == "Updated Title")
+        #expect(articleCount == 2)
+    }
+
+    @Test func batchUpsertRunsInOneTransactionAndPreservesStatus() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let statusStore = ArticleStatusStore(database: database)
+        let originalArrivedAt = Date(timeIntervalSince1970: 1_000)
+
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example"))
+        let articleID = try articleStore.upsert(
+            ArticleUpsertInput(
+                feedID: "feed-1",
+                sourceID: "existing",
+                title: "Old Title",
+                arrivedAt: originalArrivedAt
+            )
+        )
+        try statusStore.setRead(true, articleID: articleID, at: Date(timeIntervalSince1970: 2_000))
+
+        let result = try articleStore.upsert([
+            ArticleUpsertInput(
+                feedID: "feed-1",
+                sourceID: "existing",
+                title: "Updated Title",
+                arrivedAt: Date(timeIntervalSince1970: 3_000)
+            )
+        ])
+
+        let status = try statusStore.status(articleID: articleID)
+        let readerArticle = try articleStore.readerArticle(id: articleID)
+
+        #expect(result.insertedArticleIDs.isEmpty)
+        #expect(result.updatedArticleIDs == [articleID])
+        #expect(status?.isRead == true)
+        #expect(status?.dateArrived == originalArrivedAt)
+        #expect(readerArticle?.arrivedAt == originalArrivedAt)
+    }
 }

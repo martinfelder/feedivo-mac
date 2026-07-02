@@ -41,6 +41,12 @@ struct ArticleUpsertInput: Equatable, Sendable {
     }
 }
 
+struct ArticleUpsertResult: Equatable, Sendable {
+    var insertedArticleIDs: [String]
+    var updatedArticleIDs: [String]
+    var articleIDs: [String]
+}
+
 struct ArticleStore {
     private let database: FeedivoDatabase
 
@@ -49,71 +55,34 @@ struct ArticleStore {
     }
 
     func upsert(_ input: ArticleUpsertInput) throws -> String {
+        let result = try upsert([input])
+        guard let articleID = result.articleIDs.first else {
+            throw ArticleStoreError.emptyBatch
+        }
+        return articleID
+    }
+
+    func upsert(_ inputs: [ArticleUpsertInput]) throws -> ArticleUpsertResult {
         try database.write { db in
-            let sourceID = input.sourceID.trimmedNonEmpty
-            let link = input.link.trimmedNonEmpty
+            var insertedArticleIDs: [String] = []
+            var updatedArticleIDs: [String] = []
+            var articleIDs: [String] = []
 
-            if let articleID = try findExistingArticleID(input: input, db: db) {
-                let sourceIDAssignment = sourceID == nil ? "" : "sourceID = COALESCE(sourceID, ?),"
-                var arguments = StatementArguments()
-                if let sourceID {
-                    arguments.append(contentsOf: [sourceID])
+            for input in inputs {
+                let result = try upsert(input, db: db)
+                articleIDs.append(result.articleID)
+                if result.wasInserted {
+                    insertedArticleIDs.append(result.articleID)
+                } else {
+                    updatedArticleIDs.append(result.articleID)
                 }
-                arguments.append(contentsOf: [
-                    link,
-                    input.title,
-                    input.summary,
-                    input.content,
-                    input.imageURL,
-                    input.author,
-                    input.publishedAt,
-                    Date(),
-                    input.estimatedReadingMinutes,
-                    articleID
-                ])
-
-                try db.execute(
-                    sql: """
-                        UPDATE articles
-                        SET \(sourceIDAssignment)
-                            link = ?,
-                            title = ?,
-                            summary = ?,
-                            content = ?,
-                            imageURL = ?,
-                            author = ?,
-                            publishedAt = ?,
-                            updatedAt = ?,
-                            estimatedReadingMinutes = ?
-                        WHERE id = ?
-                        """,
-                    arguments: arguments
-                )
-                return articleID
             }
 
-            let articleID = UUID().uuidString
-            var article = ArticleRecord(
-                id: articleID,
-                feedID: input.feedID,
-                sourceID: sourceID,
-                link: link,
-                title: input.title,
-                summary: input.summary,
-                content: input.content,
-                imageURL: input.imageURL,
-                author: input.author,
-                publishedAt: input.publishedAt,
-                arrivedAt: input.arrivedAt,
-                updatedAt: Date(),
-                estimatedReadingMinutes: input.estimatedReadingMinutes
+            return ArticleUpsertResult(
+                insertedArticleIDs: insertedArticleIDs,
+                updatedArticleIDs: updatedArticleIDs,
+                articleIDs: articleIDs
             )
-            try article.insert(db)
-
-            var status = ArticleStatusRecord(articleID: articleID, dateArrived: input.arrivedAt)
-            try status.insert(db)
-
-            return articleID
         }
     }
 
@@ -145,6 +114,73 @@ struct ArticleStore {
         }
     }
 
+    private func upsert(_ input: ArticleUpsertInput, db: Database) throws -> (articleID: String, wasInserted: Bool) {
+        let sourceID = input.sourceID.trimmedNonEmpty
+        let link = input.link.trimmedNonEmpty
+
+        if let articleID = try findExistingArticleID(input: input, db: db) {
+            let sourceIDAssignment = sourceID == nil ? "" : "sourceID = COALESCE(sourceID, ?),"
+            var arguments = StatementArguments()
+            if let sourceID {
+                arguments.append(contentsOf: [sourceID])
+            }
+            arguments.append(contentsOf: [
+                link,
+                input.title,
+                input.summary,
+                input.content,
+                input.imageURL,
+                input.author,
+                input.publishedAt,
+                Date(),
+                input.estimatedReadingMinutes,
+                articleID
+            ])
+
+            try db.execute(
+                sql: """
+                    UPDATE articles
+                    SET \(sourceIDAssignment)
+                        link = ?,
+                        title = ?,
+                        summary = ?,
+                        content = ?,
+                        imageURL = ?,
+                        author = ?,
+                        publishedAt = ?,
+                        updatedAt = ?,
+                        estimatedReadingMinutes = ?
+                    WHERE id = ?
+                    """,
+                arguments: arguments
+            )
+            return (articleID, false)
+        }
+
+        let articleID = UUID().uuidString
+        var article = ArticleRecord(
+            id: articleID,
+            feedID: input.feedID,
+            sourceID: sourceID,
+            link: link,
+            title: input.title,
+            summary: input.summary,
+            content: input.content,
+            imageURL: input.imageURL,
+            author: input.author,
+            publishedAt: input.publishedAt,
+            arrivedAt: input.arrivedAt,
+            updatedAt: Date(),
+            estimatedReadingMinutes: input.estimatedReadingMinutes
+        )
+        try article.insert(db)
+
+        var status = ArticleStatusRecord(articleID: articleID, dateArrived: input.arrivedAt)
+        try status.insert(db)
+
+        return (articleID, true)
+    }
+
     private func findExistingArticleID(input: ArticleUpsertInput, db: Database) throws -> String? {
         if let sourceID = input.sourceID.trimmedNonEmpty {
             let articleID = try String.fetchOne(db, sql: """
@@ -169,6 +205,10 @@ struct ArticleStore {
 
         return nil
     }
+}
+
+private enum ArticleStoreError: Error {
+    case emptyBatch
 }
 
 extension ArticleReaderSnapshot: FetchableRecord {
