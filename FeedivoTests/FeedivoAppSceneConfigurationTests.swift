@@ -367,6 +367,28 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(compactSidebarSource.contains("viewModel.addFeed(urlString:urlString,context:modelContext,sqliteDatabase:feedivoDatabase)"))
     }
 
+    @Test func sidebarViewLaedtSQLiteSidebarState() throws {
+        let projectRoot = projectRootURL()
+        let sidebarSource = try source(at: "Feedivo/Views/Sidebar/SidebarView.swift", projectRoot: projectRoot)
+        let compactSidebarSource = compact(sidebarSource)
+
+        #expect(sidebarSource.contains("@Environment(\\.feedivoDatabase) private var feedivoDatabase"))
+        #expect(sidebarSource.contains("@State private var sqliteSidebarState = SQLiteSidebarState()"))
+        #expect(compactSidebarSource.contains("sqliteSidebarState.load(database:feedivoDatabase,showsReadFeeds:showsReadFeedsInSidebar)"))
+        #expect(compactSidebarSource.contains("sqliteSidebarState.visibleFeeds(from:feeds,showsReadFeeds:showsReadFeedsInSidebar)"))
+        #expect(compactSidebarSource.contains("sqliteSnapshot:sqliteSidebarState.snapshot(for:feed)"))
+    }
+
+    @Test func feedRowViewBevorzugtSQLiteSnapshotWerte() throws {
+        let projectRoot = projectRootURL()
+        let rowSource = try source(at: "Feedivo/Views/Sidebar/FeedRowView.swift", projectRoot: projectRoot)
+
+        #expect(rowSource.contains("let sqliteSnapshot: FeedSidebarSnapshot?"))
+        #expect(rowSource.contains("sqliteSnapshot?.unreadCount"))
+        #expect(rowSource.contains("sqliteSnapshot?.title"))
+        #expect(rowSource.contains("sqliteSnapshot?.faviconURL"))
+    }
+
     private func projectRootURL() -> URL {
         URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()

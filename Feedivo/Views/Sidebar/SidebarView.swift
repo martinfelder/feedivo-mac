@@ -3,6 +3,7 @@ import SwiftData
 
 struct SidebarView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.feedivoDatabase) private var feedivoDatabase
     @Environment(\.interfaceTextSize) private var interfaceTextSize
 
     @Query(sort: \Feed.title) private var feeds: [Feed]
@@ -65,6 +66,7 @@ struct SidebarView: View {
     @State private var smartFolderPendingDeletion: SmartFolder?
     @State private var isCreatingSmartFolder = false
     @State private var smartFolderViewModel = SmartFolderViewModel()
+    @State private var sqliteSidebarState = SQLiteSidebarState()
     @State private var collapsedFolderNames: Set<String> = []
 
     var body: some View {
@@ -157,6 +159,9 @@ struct SidebarView: View {
             cachedTagCounts = computeSidebarTagCounts()
             cachedTagSignature = tagSignature
         }
+        .task(id: sqliteSidebarReloadToken) {
+            sqliteSidebarState.load(database: feedivoDatabase, showsReadFeeds: showsReadFeedsInSidebar)
+        }
     }
 
     private var createSidebarItemMenu: some View {
@@ -206,7 +211,7 @@ struct SidebarView: View {
             title: L10n.sidebarFoldersSection,
             isCollapsed: $isFoldersCollapsed
         ) {
-            let visibleFeeds = FeedFolderOrganizer.visibleFeeds(
+            let visibleFeeds = sqliteSidebarState.visibleFeeds(
                 from: feeds,
                 showsReadFeeds: showsReadFeedsInSidebar
             )
@@ -328,6 +333,7 @@ struct SidebarView: View {
             } label: {
                 FeedRowView(
                     feed: feed,
+                    sqliteSnapshot: sqliteSidebarState.snapshot(for: feed),
                     displayStyle: isIndented ? .folderChild : .regular
                 )
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -447,6 +453,14 @@ struct SidebarView: View {
                 collapsedFolderNames.insert(folderName)
             }
         }
+    }
+
+    private var sqliteSidebarReloadToken: String {
+        let feedIDs = feeds
+            .map { $0.id.uuidString }
+            .sorted()
+            .joined(separator: ",")
+        return "\(showsReadFeedsInSidebar)#\(feedIDs)"
     }
 }
 
