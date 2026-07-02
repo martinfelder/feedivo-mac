@@ -868,6 +868,10 @@
     Titel, Favicon und ungelesene Counts. Auswahl, Kontextmenüs,
     Feed-Eigenschaften, Tags und Smart-Folder-Badges bleiben für diesen Slice
     noch an den bestehenden SwiftData-/Legacy-Pfaden.
+  - SQLite-Statusänderungen halten Feed-Zähler aktuell: `ArticleStatusStore`
+    berechnet nach Read-/Hidden-Mutationen `feeds.unreadCount` direkt in SQLite
+    neu und bump't `SQLiteDataInvalidation.statusVersionKey`, wodurch die
+    Sidebar-Snapshots neu geladen werden.
   - OPML-Import und `Alle Feeds aktualisieren` rufen Feeds nur noch begrenzt parallel ab
   - Sidebar nutzt keine globale Artikel-Query mehr für Badge-Signaturen; beim
     Lesen invalidieren `isRead`-Änderungen dadurch nicht mehr alle Sidebar-

@@ -1995,7 +1995,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   übergeben die geöffnete `FeedivoDatabase` an `FeedViewModel`; Hinzufügen und
   Refresh spiegeln Feed- und Artikeldaten nach SQLite. Sidebar-Feed-Zeilen
   bevorzugen für Titel, Favicon und ungelesene Counts inzwischen
-  `FeedSidebarSnapshot` aus SQLite.
+  `FeedSidebarSnapshot` aus SQLite. Read-/Hidden-Statusänderungen aktualisieren
+  `feeds.unreadCount` direkt in SQLite und invalidieren die Sidebar-Snapshots
+  über `SQLiteDataInvalidation.statusVersionKey`.
 - **Bewusst später:** iCloud Sync, SwiftData-Bestandsdatenmigration, Tags,
   Regeln, Smart Folders, OPML Import/Export, Artikel-Export, Offline-Download
   und SQLite FTS-Suche.
@@ -2253,6 +2255,8 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   nach realen Feed-Aktionen gefüllt wird. Die normalen Feed-Zeilen in der
   Sidebar nutzen `SQLiteSidebarState` und `FeedSidebarSnapshot` für Anzeige und
   ungelesene Badges; Auswahl und Kontextmenüs bleiben übergangsweise SwiftData.
+  SQLite-Statusänderungen halten den Feed-Unread-Snapshot aktuell und laden die
+  Sidebar-Snapshots neu.
 - Feature 17.3 Automatisches Löschen ist umgesetzt: globale Einstellung,
   Stern-/Archiv-Schutz mit Zusatzoption und pro-Feed-Überschreibung in den
   Feed-Eigenschaften.
@@ -2290,6 +2294,13 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 ---
 
 ## Letzte Änderungen
+
+- 2026-07-02: SQLite-Statusmutationen invalidieren Sidebar-Snapshots.
+  `ArticleStatusStore` aktualisiert nach Read-/Hidden-Änderungen den betroffenen
+  `feeds.unreadCount` per SQL-Neuberechnung und bump't
+  `SQLiteDataInvalidation.statusVersionKey`. `SidebarView` nimmt diesen Key in
+  den Reload-Token für `SQLiteSidebarState` auf, sodass Feed-Badges nach
+  SQLite-Read/Unread-Toggles ohne SwiftData-Zähler aktuell werden.
 
 - 2026-07-02: Sidebar-Feed-Zeilen an SQLite-Snapshots angeschlossen.
   `SQLiteSidebarState` lädt `FeedSidebarSnapshot` aus `FeedStore`, kann gelesene
