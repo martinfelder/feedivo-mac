@@ -900,7 +900,11 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Am Listenende erhöht eine Nachlade-Zeile das Limit in 50er-Schritten, sodass
   große Feeds nicht komplett beim ersten Öffnen materialisiert werden. Feed-,
   Tag-, Smart-Filter- und Smart-Folder-Scopes behalten jeweils ihr eigenes Limit
-  und setzen es beim Scope-Wechsel zurück.
+  und setzen es beim Scope-Wechsel zurück. Die Nachlade-Zeile ist an das aktuelle
+  Fetch-Limit gebunden (`.id(fetchLimit)`), damit SwiftUI sie nach jedem Batch
+  neu erscheinen lässt. Das ist wichtig für `Ungelesen`, weil mehrere Batches
+  nötig sein können, bis hinter bereits gelesenen Artikeln wieder ungelesene
+  Treffer liegen.
 - Tag-Listen nutzen ebenfalls eine gezielte SwiftData-Query und zeigen
   feedübergreifend direkt getaggte Artikel sowie Artikel aus getaggten Feeds.
 - Intelligente Ordner nutzen für einfache/vordefinierte Fälle gezielte
@@ -1919,6 +1923,11 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
       Zeile. Das Kontextmenü öffnet nur ein zentrales Sheet; erst dieses Sheet
       filtert und sortiert verfügbare Tags. Link-Aktionsverfügbarkeit nutzt einen
       günstigen String-Check statt `URL(string:)` pro Row-/Command-Update.
+  13. Die Nachlade-Zeile der Artikelliste erhält das aktuelle `fetchLimit` als
+      SwiftUI-Identität. Wenn ein sichtbarer Lade-Trigger mehrere Batches braucht
+      (z. B. im Ordner `Ungelesen`, nachdem viele neue Artikel beim Öffnen direkt
+      als gelesen markiert wurden), feuert `.onAppear` dadurch nach jedem
+      Limit-Schritt erneut statt nach dem ersten Batch stehen zu bleiben.
 - **Konsequenz:** Navigation bleibt auch bei großem Datenbestand flüssig;
   Lese-Status und Feed-Zähler werden verzögert (≤0.6s) persistiert bzw.
   synchronisiert, was für einen RSS-Reader akzeptabel ist und auf `.onDisappear`
@@ -2196,6 +2205,13 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 ---
 
 ## Letzte Änderungen
+
+- 2026-07-02: Nachladen in `Ungelesen` repariert. Die Ladezeile in
+  `ArticleListView` bekommt nun das aktuelle `fetchLimit` als Identität, damit
+  SwiftUI die Zeile nach jedem Batch neu erzeugt und `onAppear` erneut auslöst.
+  Dadurch können weitere ungelesene Artikel auch dann nachgeladen werden, wenn
+  mehrere Batches übersprungen werden müssen, weil die neuesten Artikel beim
+  Lesen bereits als gelesen markiert wurden.
 
 - 2026-07-02: Artikelwechsel-CPU weiter reduziert. `ArticleRowView` berechnet
   keine Tag-Zuweisungsoptionen mehr pro sichtbarer Zeile und baut im Kontextmenü

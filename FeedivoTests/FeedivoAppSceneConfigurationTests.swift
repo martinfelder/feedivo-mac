@@ -225,6 +225,15 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(compactArticleListSource.contains("viewModel.synchronizeUnreadCounts(forFeedIDs:"))
     }
 
+    @Test func nachladeZeileWechseltIdentitaetMitFetchLimit() throws {
+        let projectRoot = projectRootURL()
+        let articleListSource = try source(at: "Feedivo/Views/ArticleList/ArticleListView.swift", projectRoot: projectRoot)
+        let compactArticleListSource = articleListSource.filter { !$0.isWhitespace }
+
+        #expect(compactArticleListSource.contains("loadMoreArticlesTriggerID:fetchLimit"))
+        #expect(compactArticleListSource.contains(".id(loadMoreArticlesTriggerID)"))
+    }
+
     @Test func appUsesCloudSyncSettingsForModelContainer() throws {
         let projectRoot = projectRootURL()
         let appSource = try source(at: "Feedivo/App/FeedivoApp.swift", projectRoot: projectRoot)

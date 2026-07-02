@@ -197,6 +197,7 @@ private struct FeedArticleListQueryContent: View {
             onRequestExportArticle: onRequestExportArticle,
             showsHiddenArticles: false,
             canLoadMoreArticles: canLoadMoreArticles,
+            loadMoreArticlesTriggerID: fetchLimit,
             onLoadMoreArticles: onLoadMoreArticles
         )
     }
@@ -289,6 +290,7 @@ private struct TagArticleListQueryContent: View {
             onRequestExportArticle: onRequestExportArticle,
             showsHiddenArticles: false,
             canLoadMoreArticles: canLoadMoreArticles,
+            loadMoreArticlesTriggerID: fetchLimit,
             onLoadMoreArticles: onLoadMoreArticles
         )
     }
@@ -381,6 +383,7 @@ private struct SmartFilterArticleListQueryContent: View {
             onRequestExportArticle: onRequestExportArticle,
             showsHiddenArticles: smartFilter == .hidden,
             canLoadMoreArticles: canLoadMoreArticles,
+            loadMoreArticlesTriggerID: fetchLimit,
             onLoadMoreArticles: onLoadMoreArticles
         )
     }
@@ -496,6 +499,7 @@ private struct SmartFolderArticleListQueryContent: View {
             showsHiddenArticles: SmartFolderFormatter.includesHiddenStatus(smartFolder),
             showsReadArticlesInitially: SmartFolderFormatter.showsReadArticlesByDefault(smartFolder),
             canLoadMoreArticles: canLoadMoreArticles,
+            loadMoreArticlesTriggerID: fetchLimit,
             onLoadMoreArticles: onLoadMoreArticles
         )
     }
@@ -521,6 +525,7 @@ private struct ArticleListContent: View {
     let sortArticles: Bool
     let showsHiddenArticles: Bool
     let canLoadMoreArticles: Bool
+    let loadMoreArticlesTriggerID: Int
     let onLoadMoreArticles: () -> Void
     @Binding var selectedArticle: Article?
     @Binding var navigationState: ArticleNavigationState
@@ -566,6 +571,7 @@ private struct ArticleListContent: View {
         showsHiddenArticles: Bool = false,
         showsReadArticlesInitially: Bool = false,
         canLoadMoreArticles: Bool = false,
+        loadMoreArticlesTriggerID: Int = 0,
         onLoadMoreArticles: @escaping () -> Void = {}
     ) {
         self.articles = articles
@@ -573,6 +579,7 @@ private struct ArticleListContent: View {
         self.onRequestCreateRuleFromArticle = onRequestCreateRuleFromArticle
         self.onRequestExportArticle = onRequestExportArticle
         self.canLoadMoreArticles = canLoadMoreArticles
+        self.loadMoreArticlesTriggerID = loadMoreArticlesTriggerID
         self.onLoadMoreArticles = onLoadMoreArticles
         self._selectedArticle = selectedArticle
         self._navigationState = navigationState
@@ -802,6 +809,7 @@ private struct ArticleListContent: View {
         .onAppear {
             onLoadMoreArticles()
         }
+        .id(loadMoreArticlesTriggerID)
     }
 
     private func articleRow(
