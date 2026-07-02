@@ -19,6 +19,7 @@ final class SQLiteFeedArticleListState {
     private enum CurrentScope {
         case feedURL(String)
         case tagID(String)
+        case smartFilter(SmartFilter)
     }
 
     private var currentScope: CurrentScope?
@@ -72,6 +73,35 @@ final class SQLiteFeedArticleListState {
 
         do {
             try loadTimeline(scope: .tag(tagID), database: database, selectedArticleID: selectedArticleID)
+        } catch {
+            rows = []
+            navigationState = .empty
+            loadState = .failed(error.localizedDescription)
+        }
+    }
+
+    func load(
+        smartFilter: SmartFilter,
+        database: FeedivoDatabase?,
+        selectedArticleID: String?
+    ) {
+        currentScope = .smartFilter(smartFilter)
+        currentSelectedArticleID = selectedArticleID
+
+        guard let database else {
+            rows = []
+            navigationState = .empty
+            loadState = .missingSQLiteDatabase
+            return
+        }
+
+        do {
+            try loadTimeline(
+                scope: .smartFilter(smartFilter),
+                database: database,
+                selectedArticleID: selectedArticleID,
+                includeHidden: smartFilter == .hidden
+            )
         } catch {
             rows = []
             navigationState = .empty
@@ -135,6 +165,12 @@ final class SQLiteFeedArticleListState {
                     database: database,
                     selectedArticleID: currentSelectedArticleID
                 )
+            case let .smartFilter(smartFilter):
+                load(
+                    smartFilter: smartFilter,
+                    database: database,
+                    selectedArticleID: currentSelectedArticleID
+                )
             }
         } catch {
             loadState = .failed(error.localizedDescription)
@@ -144,12 +180,13 @@ final class SQLiteFeedArticleListState {
     private func loadTimeline(
         scope: TimelineScope,
         database: FeedivoDatabase,
-        selectedArticleID: String?
+        selectedArticleID: String?,
+        includeHidden: Bool = false
     ) throws {
         rows = try TimelineStore(database: database).articles(
             scope: scope,
             includeRead: true,
-            includeHidden: false,
+            includeHidden: includeHidden,
             limit: 500
         )
         navigationState = SQLiteArticleNavigationState(

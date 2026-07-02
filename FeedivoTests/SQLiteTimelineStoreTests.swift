@@ -191,6 +191,87 @@ struct SQLiteTimelineStoreTests {
         #expect(snapshots.map(\.feedTitle) == ["Other", "Example", "Example"])
     }
 
+    @Test func timelineFetchesUnreadSmartFilterFromSQLite() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let (readID, unreadID, hiddenID) = try makeSmartFilterFixture(database: database)
+        let timelineStore = TimelineStore(database: database)
+        let statusStore = ArticleStatusStore(database: database)
+        try statusStore.setRead(true, articleID: readID, at: Date(timeIntervalSince1970: 500))
+        try statusStore.setHidden(true, articleID: hiddenID, at: Date(timeIntervalSince1970: 600))
+
+        let snapshots = try timelineStore.articles(
+            scope: .smartFilter(.unread),
+            includeRead: true,
+            includeHidden: false,
+            limit: 20
+        )
+
+        #expect(snapshots.map(\.id) == [unreadID])
+    }
+
+    @Test func timelineFetchesStarredSmartFilterFromSQLite() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let (_, unreadID, hiddenID) = try makeSmartFilterFixture(database: database)
+        let timelineStore = TimelineStore(database: database)
+        let statusStore = ArticleStatusStore(database: database)
+        try statusStore.setStarred(true, articleID: unreadID, at: Date(timeIntervalSince1970: 500))
+        try statusStore.setStarred(true, articleID: hiddenID, at: Date(timeIntervalSince1970: 600))
+        try statusStore.setHidden(true, articleID: hiddenID, at: Date(timeIntervalSince1970: 700))
+
+        let snapshots = try timelineStore.articles(
+            scope: .smartFilter(.starred),
+            includeRead: true,
+            includeHidden: false,
+            limit: 20
+        )
+
+        #expect(snapshots.map(\.id) == [unreadID])
+    }
+
+    @Test func timelineFetchesTodaySmartFilterFromSQLite() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let timelineStore = TimelineStore(database: database)
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date()).addingTimeInterval(60 * 60)
+        let yesterday = calendar.date(byAdding: .day, value: -1, to: today)!
+
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example"))
+        let todayID = try articleStore.upsert(
+            ArticleUpsertInput(feedID: "feed-1", sourceID: "today", title: "Today", publishedAt: today, arrivedAt: today)
+        )
+        _ = try articleStore.upsert(
+            ArticleUpsertInput(feedID: "feed-1", sourceID: "yesterday", title: "Yesterday", publishedAt: yesterday, arrivedAt: yesterday)
+        )
+
+        let snapshots = try timelineStore.articles(
+            scope: .smartFilter(.today),
+            includeRead: true,
+            includeHidden: false,
+            limit: 20
+        )
+
+        #expect(snapshots.map(\.id) == [todayID])
+    }
+
+    @Test func timelineFetchesHiddenSmartFilterFromSQLite() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let (_, _, hiddenID) = try makeSmartFilterFixture(database: database)
+        let timelineStore = TimelineStore(database: database)
+        let statusStore = ArticleStatusStore(database: database)
+        try statusStore.setHidden(true, articleID: hiddenID, at: Date(timeIntervalSince1970: 600))
+
+        let snapshots = try timelineStore.articles(
+            scope: .smartFilter(.hidden),
+            includeRead: true,
+            includeHidden: true,
+            limit: 20
+        )
+
+        #expect(snapshots.map(\.id) == [hiddenID])
+    }
+
     @Test func timelineUsesMinimumLimitOfOne() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let feedStore = FeedStore(database: database)
@@ -210,5 +291,41 @@ struct SQLiteTimelineStoreTests {
         )
 
         #expect(snapshots.map(\.id) == [articleID])
+    }
+
+    private func makeSmartFilterFixture(database: FeedivoDatabase) throws -> (String, String, String) {
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example"))
+        let readID = try articleStore.upsert(
+            ArticleUpsertInput(
+                feedID: "feed-1",
+                sourceID: "read",
+                title: "Read",
+                publishedAt: Date(timeIntervalSince1970: 100),
+                arrivedAt: Date(timeIntervalSince1970: 100)
+            )
+        )
+        let unreadID = try articleStore.upsert(
+            ArticleUpsertInput(
+                feedID: "feed-1",
+                sourceID: "unread",
+                title: "Unread",
+                publishedAt: Date(timeIntervalSince1970: 200),
+                arrivedAt: Date(timeIntervalSince1970: 200)
+            )
+        )
+        let hiddenID = try articleStore.upsert(
+            ArticleUpsertInput(
+                feedID: "feed-1",
+                sourceID: "hidden",
+                title: "Hidden",
+                publishedAt: Date(timeIntervalSince1970: 300),
+                arrivedAt: Date(timeIntervalSince1970: 300)
+            )
+        )
+
+        return (readID, unreadID, hiddenID)
     }
 }

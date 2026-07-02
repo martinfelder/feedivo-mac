@@ -5,6 +5,7 @@ enum TimelineScope: Equatable, Sendable {
     case all
     case feed(String)
     case tag(String)
+    case smartFilter(SmartFilter)
 }
 
 struct TimelineStore {
@@ -48,6 +49,12 @@ struct TimelineStore {
                 )
                 """)
             _ = arguments.append(contentsOf: [tagID, tagID])
+        case let .smartFilter(smartFilter):
+            appendSmartFilterWhereClause(
+                smartFilter,
+                whereClauses: &whereClauses,
+                arguments: &arguments
+            )
         }
 
         if !includeRead {
@@ -98,6 +105,32 @@ struct TimelineStore {
                     AND s.isRead = 0
                     AND s.isHidden = 0
                 """, arguments: [feedID]) ?? 0
+        }
+    }
+
+    private func appendSmartFilterWhereClause(
+        _ smartFilter: SmartFilter,
+        whereClauses: inout [String],
+        arguments: inout StatementArguments
+    ) {
+        switch smartFilter {
+        case .allArticles:
+            break
+        case .unread:
+            whereClauses.append("s.isRead = 0")
+        case .starred:
+            whereClauses.append("s.isStarred = 1")
+        case .today:
+            let startOfToday = Calendar.current.startOfDay(for: Date())
+            let startOfTomorrow = Calendar.current.date(
+                byAdding: .day,
+                value: 1,
+                to: startOfToday
+            ) ?? startOfToday.addingTimeInterval(24 * 60 * 60)
+            whereClauses.append("a.publishedAt >= ? AND a.publishedAt < ?")
+            _ = arguments.append(contentsOf: [startOfToday, startOfTomorrow])
+        case .hidden:
+            whereClauses.append("s.isHidden = 1")
         }
     }
 }

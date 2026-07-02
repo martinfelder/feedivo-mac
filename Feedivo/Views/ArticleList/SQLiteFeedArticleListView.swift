@@ -9,6 +9,7 @@ struct SQLiteFeedArticleListView: View {
     private enum Scope {
         case feed(Feed)
         case tagID(String)
+        case smartFilter(SmartFilter)
     }
 
     private let scope: Scope
@@ -43,6 +44,16 @@ struct SQLiteFeedArticleListView: View {
         navigationState: Binding<SQLiteArticleNavigationState>
     ) {
         self.scope = .tagID(tagID)
+        self._selectedArticleID = selectedArticleID
+        self._navigationState = navigationState
+    }
+
+    init(
+        smartFilter: SmartFilter,
+        selectedArticleID: Binding<String?>,
+        navigationState: Binding<SQLiteArticleNavigationState>
+    ) {
+        self.scope = .smartFilter(smartFilter)
         self._selectedArticleID = selectedArticleID
         self._navigationState = navigationState
     }
@@ -152,6 +163,8 @@ struct SQLiteFeedArticleListView: View {
             return "feed:\(feed.url)"
         case let .tagID(tagID):
             return "tag:\(tagID)"
+        case let .smartFilter(smartFilter):
+            return "smartFilter:\(smartFilter.rawValue)"
         }
     }
 
@@ -161,6 +174,23 @@ struct SQLiteFeedArticleListView: View {
             return feed.title
         case .tagID:
             return String(localized: "sidebar.tags.section")
+        case let .smartFilter(smartFilter):
+            return navigationTitle(for: smartFilter)
+        }
+    }
+
+    private func navigationTitle(for smartFilter: SmartFilter) -> String {
+        switch smartFilter {
+        case .allArticles:
+            return String(localized: "smartFilter.allArticles")
+        case .unread:
+            return String(localized: "smartFilter.unread")
+        case .starred:
+            return String(localized: "smartFilter.starred")
+        case .today:
+            return String(localized: "smartFilter.today")
+        case .hidden:
+            return String(localized: "smartFilter.hidden")
         }
     }
 
@@ -170,6 +200,8 @@ struct SQLiteFeedArticleListView: View {
             return "Für diesen Feed sind noch keine SQLite-Artikel gespeichert."
         case .tagID:
             return "Für dieses Tag sind noch keine SQLite-Artikel gespeichert."
+        case .smartFilter:
+            return "Für diesen Filter sind noch keine SQLite-Artikel gespeichert."
         }
     }
 
@@ -190,6 +222,12 @@ struct SQLiteFeedArticleListView: View {
         case let .tagID(tagID):
             state.load(
                 tagID: tagID,
+                database: database,
+                selectedArticleID: selectedArticleID
+            )
+        case let .smartFilter(smartFilter):
+            state.load(
+                smartFilter: smartFilter,
                 database: database,
                 selectedArticleID: selectedArticleID
             )

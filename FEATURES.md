@@ -854,8 +854,8 @@
     SQLite-Artikel-Auswahl, `SQLiteFeedArticleListView` lädt Feed-Timelines über
     `TimelineStore`, `SQLiteReaderView` lädt Reader-Snapshots über `ArticleStore`
     und Statusaktionen schreiben direkt in `article_statuses`. Smart Folders,
-    Tags, globale Filter, Regeln, Export und Offline-Download bleiben bis zu
-    eigenen Slices auf den bisherigen SwiftData-/Legacy-Pfaden. Spec:
+    Regeln, Export, Offline-Download und Volltextsuche bleiben bis zu eigenen
+    Slices auf den bisherigen SwiftData-/Legacy-Pfaden. Spec:
     `docs/superpowers/specs/2026-07-02-sqlite-feed-reader-path-design.md`.
   - Normale Feed-Aktionen befüllen den neuen SQLite-Pfad: `AddFeedSheet`,
     ausgewählter Feed-Refresh und `Alle Feeds aktualisieren` übergeben die
@@ -885,6 +885,9 @@
     `SmartFolderSidebarBadgeSnapshot`, statt eine SwiftData-Artikel-Query in der
     Sidebar zu halten. Die Feed-Eigenschaften laden die sichtbare Feed-Log-Liste
     und Log-Anzahl inzwischen über `FeedLogStore` aus SQLite-`feed_logs`.
+    Vordefinierte globale SmartFilter wie `Alle Artikel`, `Ungelesen`,
+    `Mit Stern`, `Heute` und `Ausgeblendet` laden ihre Artikellisten ebenfalls
+    über `TimelineScope.smartFilter` aus SQLite.
   - SQLite-Statusänderungen halten Feed-Zähler aktuell: `ArticleStatusStore`
     berechnet nach Read-/Hidden-Mutationen `feeds.unreadCount` direkt in SQLite
     neu und bump't `SQLiteDataInvalidation.statusVersionKey`, wodurch die
@@ -983,6 +986,9 @@
     und Sidebar-Badges auftaucht
   - Feed-Eigenschaften zeigen die letzten 20 Feed-Logs aus SQLite-`feed_logs`,
     statt `FeedLogEntry`-Objekte über SwiftData zu laden
+  - Vordefinierte SmartFilter verwenden `TimelineScope.smartFilter` und die
+    SQLite-Artikelliste/Reader-Kette, statt globale SwiftData-Artikelqueries zu
+    materialisieren
   - Status-Badges beobachten nur eine kleine Query auf Stern-/Archiv-/
     Hidden-Artikel
   - Artikelzeilen laden Vorschaubilder über größenbegrenzte Thumbnails aus dem

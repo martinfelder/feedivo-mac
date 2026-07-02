@@ -101,12 +101,10 @@ struct ContentView: View {
                 )
                     .navigationSplitViewColumnWidth(min: 280, ideal: 320, max: 400)
             } else if let smartFilter = selectedSmartFilter {
-                ArticleListView(
+                SQLiteFeedArticleListView(
                     smartFilter: smartFilter,
-                    selectedArticle: $selectedArticle,
-                    navigationState: $articleNavigationState,
-                    onRequestCreateRuleFromArticle: requestCreateRuleFromArticle,
-                    onRequestExportArticle: requestExportArticle
+                    selectedArticleID: $selectedSQLiteArticleID,
+                    navigationState: $sqliteArticleNavigationState
                 )
                     .navigationSplitViewColumnWidth(min: 280, ideal: 320, max: 400)
             } else {

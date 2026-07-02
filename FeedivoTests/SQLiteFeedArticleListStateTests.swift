@@ -53,6 +53,38 @@ struct SQLiteFeedArticleListStateTests {
         #expect(state.navigationState.nextArticleID == firstID)
     }
 
+    @Test func listStateLaedtSmartFilterScopeAusSQLite() throws {
+        let (database, firstID, secondID) = try makeDatabaseWithFeedAndArticles()
+        let state = SQLiteFeedArticleListState()
+        try ArticleStatusStore(database: database).setRead(true, articleID: firstID, at: Date())
+
+        state.load(
+            smartFilter: .unread,
+            database: database,
+            selectedArticleID: secondID
+        )
+
+        #expect(state.loadState == .loaded)
+        #expect(state.rows.map(\.id) == [secondID])
+        #expect(state.navigationState.previousArticleID == nil)
+        #expect(state.navigationState.nextArticleID == nil)
+    }
+
+    @Test func listStateLaedtHiddenSmartFilterMitAusgeblendetenArtikeln() throws {
+        let (database, firstID, _) = try makeDatabaseWithFeedAndArticles()
+        let state = SQLiteFeedArticleListState()
+        try ArticleStatusStore(database: database).setHidden(true, articleID: firstID, at: Date())
+
+        state.load(
+            smartFilter: .hidden,
+            database: database,
+            selectedArticleID: firstID
+        )
+
+        #expect(state.loadState == .loaded)
+        #expect(state.rows.map(\.id) == [firstID])
+    }
+
     @Test func listStateMeldetFehlendenSQLiteFeed() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let state = SQLiteFeedArticleListState()
