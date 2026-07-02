@@ -108,6 +108,11 @@ private enum FeedRefreshOutcome {
     case failure(String)
 }
 
+private enum SQLiteFeedRefreshOutcome {
+    case success(UUID, String, SQLiteFeedRefreshResult)
+    case failure(UUID, String)
+}
+
 enum StoredArticleRefreshFieldUpdate {
     static func replacement(for existingValue: String?, from parsedValue: String?) -> String? {
         guard let parsedValue = nonEmptyText(parsedValue),
@@ -781,6 +786,11 @@ final class FeedViewModel {
             return
         }
 
+        if let sqliteDatabase {
+            await refreshAllFeedsSQLiteFirst(snapshots, database: sqliteDatabase)
+            return
+        }
+
         isLoading = true
         errorMessage = nil
         recentRefreshStatus = nil
@@ -818,10 +828,6 @@ final class FeedViewModel {
             await self?.handleBackgroundRefreshEvent(event)
         }
 
-        if let sqliteDatabase {
-            await refreshSQLiteSnapshots(snapshots, database: sqliteDatabase)
-        }
-
         await notifyFeedRefresh(summary.notificationResults)
         await notifyRuleNotifications(summary.ruleNotificationResults)
         await waitForMinimumRefreshStatusDuration(since: refreshStatusStart)
@@ -845,6 +851,121 @@ final class FeedViewModel {
             errorMessage = L10n.feedErrorRefreshAllPartial(
                 summary.failedFeedTitles.count,
                 feedTitles: summary.failedFeedTitles.joined(separator: ", ")
+            )
+        }
+    }
+
+    @MainActor
+    private func refreshAllFeedsSQLiteFirst(
+        _ snapshots: [FeedRefreshSnapshot],
+        database: FeedivoDatabase
+    ) async {
+        isLoading = true
+        errorMessage = nil
+        recentRefreshStatus = nil
+        refreshItems = snapshots.map { snapshot in
+            FeedRefreshItem(
+                feedID: snapshot.id,
+                feedTitle: snapshot.title,
+                feedURL: snapshot.url,
+                status: .pending
+            )
+        }
+        let refreshStatusStart = ContinuousClock().now
+        operationProgress = FeedOperationProgress(
+            title: L10n.feedProgressRefreshAllTitle,
+            completedCount: 0,
+            totalCount: snapshots.count
+        )
+        var notificationResults: [FeedRefreshNotificationResult] = []
+        var failedFeedTitles: [String] = []
+
+        defer {
+            isLoading = false
+            operationProgress = nil
+        }
+
+        for snapshotBatch in feedBatches(from: snapshots) {
+            updateRefreshItemStatuses(
+                for: snapshotBatch.map(\.id),
+                status: .refreshing
+            )
+
+            await withTaskGroup(of: SQLiteFeedRefreshOutcome.self) { group in
+                for snapshot in snapshotBatch {
+                    group.addTask { [fetchFeedConditionally] in
+                        do {
+                            let feedID = snapshot.id.uuidString
+                            let feedStore = FeedStore(database: database)
+                            if try feedStore.feed(id: feedID) == nil {
+                                try feedStore.save(
+                                    FeedRecord(
+                                        id: feedID,
+                                        url: snapshot.url,
+                                        title: snapshot.title
+                                    )
+                                )
+                            }
+
+                            let service = SQLiteFeedRefreshService(database: database) { urlString, validators in
+                                switch try await fetchFeedConditionally(urlString, validators) {
+                                case .updated(let feed, let validators):
+                                    return .updated(feed, validators)
+                                case .notModified(let validators):
+                                    return .notModified(validators)
+                                }
+                            }
+                            let result = try await service.refresh(feedID: feedID)
+                            return .success(snapshot.id, snapshot.title, result)
+                        } catch {
+                            return .failure(snapshot.id, snapshot.title)
+                        }
+                    }
+                }
+
+                for await outcome in group {
+                    switch outcome {
+                    case .success(let feedID, let feedTitle, let result):
+                        updateRefreshItemStatus(for: feedID, status: .succeeded)
+                        notificationResults.append(
+                            FeedRefreshNotificationResult(
+                                feedTitle: feedTitle,
+                                newArticleCount: result.insertedArticleIDs.count,
+                                isNotificationEnabled: false
+                            )
+                        )
+                    case .failure(let feedID, let failedTitle):
+                        updateRefreshItemStatus(for: feedID, status: .failed)
+                        failedFeedTitles.append(failedTitle)
+                    }
+
+                    incrementOperationProgress()
+                }
+            }
+        }
+
+        SQLiteDataInvalidation.bumpStatusVersion()
+        await waitForMinimumRefreshStatusDuration(since: refreshStatusStart)
+
+        recentRefreshStatus = FeedRefreshStatusSummary(
+            newArticleCount: notificationResults.reduce(0) { $0 + $1.newArticleCount },
+            failedFeedCount: failedFeedTitles.count,
+            totalFeedCount: snapshots.count
+        )
+
+        if failedFeedTitles.isEmpty {
+            lastRefreshOutcome = .success
+        } else if failedFeedTitles.count < snapshots.count {
+            lastRefreshOutcome = .partial(failedCount: failedFeedTitles.count)
+            errorMessage = L10n.feedErrorRefreshAllPartial(
+                failedFeedTitles.count,
+                feedTitles: failedFeedTitles.joined(separator: ", ")
+            )
+        } else {
+            lastRefreshOutcome = .failure
+            errorMessage = L10n.feedErrorRefreshAllPartial(
+                failedFeedTitles.count,
+                feedTitles: failedFeedTitles.joined(separator: ", ")
             )
         }
     }
@@ -944,43 +1065,6 @@ final class FeedViewModel {
             SortDescriptor(\.id, order: .reverse)
         ]
         return try context.fetch(descriptor)
-    }
-
-    private func refreshSQLiteSnapshots(
-        _ snapshots: [FeedRefreshSnapshot],
-        database: FeedivoDatabase
-    ) async {
-        for snapshotBatch in feedBatches(from: snapshots) {
-            await withTaskGroup(of: Void.self) { group in
-                for snapshot in snapshotBatch {
-                    group.addTask { [fetchFeedConditionally] in
-                        do {
-                            let feedID = snapshot.id.uuidString
-                            try FeedStore(database: database).save(
-                                FeedRecord(
-                                    id: feedID,
-                                    url: snapshot.url,
-                                    title: snapshot.title
-                                )
-                            )
-                            let service = SQLiteFeedRefreshService(database: database) { urlString, validators in
-                                switch try await fetchFeedConditionally(urlString, validators) {
-                                case .updated(let feed, let validators):
-                                    return .updated(feed, validators)
-                                case .notModified(let validators):
-                                    return .notModified(validators)
-                                }
-                            }
-                            _ = try await service.refresh(feedID: feedID)
-                        } catch {
-                            // Der sichtbare Refresh-Status bleibt beim bestehenden
-                            // SwiftData-Pfad. SQLite-Mirroring darf ihn in dieser
-                            // Übergangsphase nicht nachträglich überschreiben.
-                        }
-                    }
-                }
-            }
-        }
     }
 
     private func updateRefreshItemStatus(for feedID: UUID, status: FeedRefreshItemStatus) {

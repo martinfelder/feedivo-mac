@@ -1975,6 +1975,98 @@ struct FeedViewModelTests {
     }
 
     @MainActor
+    @Test func refreshAllFeedsMitSQLiteDatabaseNutztSQLiteFirstOhneDoppeltenAbruf() async throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            RuleCondition.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Alter Titel")
+        context.insert(feed)
+        try context.save()
+
+        let sqliteDatabase = try FeedivoDatabase.inMemoryForTests()
+        try FeedStore(database: sqliteDatabase).save(
+            FeedRecord(
+                id: feed.id.uuidString,
+                url: feed.url,
+                title: feed.title
+            )
+        )
+
+        actor FetchCounter {
+            var count = 0
+            func increment() {
+                count += 1
+            }
+        }
+        let fetchCounter = FetchCounter()
+
+        let viewModel = makeViewModel(
+            fetchFeed: { _ in
+                Issue.record("Der direkte Feed-Abruf darf im SQLite-first Sammelrefresh nicht genutzt werden.")
+                return ParsedFeed(sourceURL: "", title: "", description: nil, articles: [])
+            },
+            fetchFeedConditionally: { urlString, _ in
+                await fetchCounter.increment()
+                let parsedFeed = await MainActor.run {
+                    ParsedFeed(
+                        sourceURL: urlString,
+                        title: "Neuer Titel",
+                        description: nil,
+                        siteURL: "https://example.com/",
+                        articles: [
+                            ParsedArticle(
+                                title: "SQLite-first Artikel",
+                                sourceID: "sqlite-first",
+                                link: "https://example.com/sqlite-first",
+                                summary: nil,
+                                content: nil,
+                                publishedAt: Date(timeIntervalSince1970: 100),
+                                imageURL: nil
+                            )
+                        ]
+                    )
+                }
+                let validators = await MainActor.run {
+                    FeedHTTPValidators(lastStatusCode: 200)
+                }
+                return .updated(parsedFeed, validators)
+            }
+        )
+
+        await viewModel.refreshAllFeeds(
+            [feed],
+            modelContainer: container,
+            sqliteDatabase: sqliteDatabase
+        )
+
+        let sqliteFeed = try #require(try FeedStore(database: sqliteDatabase).feed(id: feed.id.uuidString))
+        let rows = try TimelineStore(database: sqliteDatabase).articles(
+            scope: .feed(sqliteFeed.id),
+            includeRead: true,
+            includeHidden: false,
+            limit: 20
+        )
+        let verificationContext = ModelContext(container)
+        let swiftDataArticles = try verificationContext.fetch(FetchDescriptor<Article>())
+        let fetchCount = await fetchCounter.count
+
+        #expect(fetchCount == 1)
+        #expect(sqliteFeed.title == "Neuer Titel")
+        #expect(sqliteFeed.unreadCount == 1)
+        #expect(rows.map(\.title) == ["SQLite-first Artikel"])
+        #expect(swiftDataArticles.isEmpty)
+        #expect(viewModel.recentRefreshStatus?.newArticleCount == 1)
+        #expect(viewModel.recentRefreshStatus?.failedFeedCount == 0)
+    }
+
+    @MainActor
     @Test func refreshAllFeedsUeberspringtLogEintraegeFuerUnveraenderteFeedsImBackgroundPfad() async throws {
         let container = try ModelContainer(
             for: Feed.self,
