@@ -162,6 +162,46 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(!readerSource.contains("\n            VStack(alignment: .leading, spacing: contentBlockSpacing)"))
     }
 
+    @Test func readerLaedtVolltextUeberBackgroundLoader() throws {
+        let projectRoot = projectRootURL()
+        let readerSource = try source(at: "Feedivo/Views/Reader/ReaderView.swift", projectRoot: projectRoot)
+
+        #expect(readerSource.contains("ReaderArticleContentLoader.loadInput"))
+        #expect(!readerSource.contains("ReaderArticleInput.make(from: article)"))
+    }
+
+    @Test func readerCacheKeySpeichertKeineVolltexte() throws {
+        let projectRoot = projectRootURL()
+        let preparedSource = try source(at: "Feedivo/Views/Reader/ReaderPreparedArticle.swift", projectRoot: projectRoot)
+        let keyStart = try #require(preparedSource.range(of: "struct ReaderArticleCacheKey"))
+        let cacheStart = try #require(preparedSource.range(of: "@MainActor\nfinal class ReaderPreparedArticleCache"))
+        let cacheKeySource = preparedSource[keyStart.lowerBound ..< cacheStart.lowerBound]
+
+        #expect(cacheKeySource.contains("contentFingerprint"))
+        #expect(cacheKeySource.contains("offlineContentFingerprint"))
+        #expect(!cacheKeySource.contains("let content: String?"))
+        #expect(!cacheKeySource.contains("let offlineContent: String?"))
+    }
+
+    @Test func readerDetailbilderNutzenZielgroesse() throws {
+        let projectRoot = projectRootURL()
+        let readerSource = try source(at: "Feedivo/Views/Reader/ReaderView.swift", projectRoot: projectRoot)
+
+        #expect(readerSource.contains("private var readerImageTargetPixelSize: CGSize"))
+        #expect(readerSource.contains("CachedRemoteImageView(url: url, targetPixelSize: readerImageTargetPixelSize)"))
+    }
+
+    @Test func lesestatusZaehlerVermeidetDirektenFeedRelationshipFault() throws {
+        let projectRoot = projectRootURL()
+        let viewModelSource = try source(at: "Feedivo/ViewModels/ArticleViewModel.swift", projectRoot: projectRoot)
+        let methodStart = try #require(viewModelSource.range(of: "private func feed(for article: Article"))
+        let methodEnd = try #require(viewModelSource.range(of: "@MainActor\n    private func synchronizeUnreadCounts"))
+        let methodSource = viewModelSource[methodStart.lowerBound ..< methodEnd.lowerBound]
+
+        #expect(methodSource.contains("guard let feedID = article.feedID else"))
+        #expect(!methodSource.contains("if let feed = article.feed"))
+    }
+
     @Test func appUsesCloudSyncSettingsForModelContainer() throws {
         let projectRoot = projectRootURL()
         let appSource = try source(at: "Feedivo/App/FeedivoApp.swift", projectRoot: projectRoot)

@@ -1,4 +1,5 @@
 import Foundation
+import SwiftData
 
 enum ReaderContentAvailability: Equatable {
     case fullText
@@ -44,8 +45,10 @@ enum ReaderContentAvailability: Equatable {
 struct ReaderArticleInput: Sendable {
     let summary: String?
     let content: String?
+    let contentFingerprint: ReaderArticleTextFingerprint?
     let imageURL: String?
     let offlineContent: String?
+    let offlineContentFingerprint: ReaderArticleTextFingerprint?
     let offlineState: ArticleOfflineState
     let offlineStateRaw: String?
     let link: String?
@@ -59,8 +62,10 @@ extension ReaderArticleInput {
         ReaderArticleInput(
             summary: article.summary,
             content: article.content,
+            contentFingerprint: ReaderArticleTextFingerprint.make(from: article.content),
             imageURL: article.imageURL,
             offlineContent: article.offlineContent,
+            offlineContentFingerprint: ReaderArticleTextFingerprint.make(from: article.offlineContent),
             offlineState: article.offlineState,
             offlineStateRaw: article.offlineStateRaw,
             link: article.link,
@@ -74,14 +79,54 @@ extension ReaderArticleInput {
         ReaderArticleInput(
             summary: article.summary,
             content: nil,
+            contentFingerprint: nil,
             imageURL: article.imageURL,
             offlineContent: nil,
+            offlineContentFingerprint: nil,
             offlineState: .none,
             offlineStateRaw: ArticleOfflineState.none.rawValue,
             link: article.link,
             feedTitle: article.feed?.title,
             publishedAt: article.publishedAt
         )
+    }
+}
+
+enum ReaderArticleContentLoader {
+    static func loadInput(
+        articleID: UUID,
+        modelContainer: ModelContainer
+    ) async -> ReaderArticleInput? {
+        await Task.detached(priority: .userInitiated) {
+            let context = ModelContext(modelContainer)
+            var descriptor = FetchDescriptor<Article>(
+                predicate: #Predicate<Article> { article in
+                    article.id == articleID
+                }
+            )
+            descriptor.fetchLimit = 1
+
+            guard let article = try? context.fetch(descriptor).first else {
+                return nil
+            }
+
+            let content = article.content
+            let offlineContent = article.offlineContent
+
+            return ReaderArticleInput(
+                summary: article.summary,
+                content: content,
+                contentFingerprint: ReaderArticleTextFingerprint.make(from: content),
+                imageURL: article.imageURL,
+                offlineContent: offlineContent,
+                offlineContentFingerprint: ReaderArticleTextFingerprint.make(from: offlineContent),
+                offlineState: article.offlineState,
+                offlineStateRaw: article.offlineStateRaw,
+                link: article.link,
+                feedTitle: article.feed?.title,
+                publishedAt: article.publishedAt
+            )
+        }.value
     }
 }
 
@@ -123,8 +168,10 @@ struct ReaderPreparedArticle: Sendable {
         input: ReaderArticleInput(
             summary: nil,
             content: nil,
+            contentFingerprint: nil,
             imageURL: nil,
             offlineContent: nil,
+            offlineContentFingerprint: nil,
             offlineState: .none,
             offlineStateRaw: nil,
             link: nil,
@@ -194,15 +241,30 @@ struct ReaderPreparedArticle: Sendable {
     }
 }
 
-/// Cache-Schlüssel aus den inhaltsbestimmenden Feldern. Sind alle Felder
-/// identisch, liefert der Reader dasselbe Ergebnis — dann kann der Parse
-/// übersprungen werden (Hebel 5). Content-Änderungen durch Refresh führen zu
-/// einem anderen Schlüssel -> Cache-Miss -> neu parsen.
+struct ReaderArticleTextFingerprint: Hashable, Sendable {
+    let count: Int
+    let hashValue: Int
+
+    static func make(from text: String?) -> ReaderArticleTextFingerprint? {
+        guard let text else {
+            return nil
+        }
+
+        return ReaderArticleTextFingerprint(
+            count: text.count,
+            hashValue: text.hashValue
+        )
+    }
+}
+
+/// Cache-Schlüssel aus den inhaltsbestimmenden Feldern. Große Volltexte werden
+/// nicht direkt im Key gespeichert; nur kompakte Fingerprints. Dadurch hält der
+/// Cache keine zusätzlichen Kopien langer Artikeltexte.
 struct ReaderArticleCacheKey: Hashable, Sendable {
     let summary: String?
-    let content: String?
+    let contentFingerprint: ReaderArticleTextFingerprint?
     let imageURL: String?
-    let offlineContent: String?
+    let offlineContentFingerprint: ReaderArticleTextFingerprint?
     let offlineStateRaw: String?
     let link: String?
     let feedTitle: String?
@@ -213,9 +275,9 @@ extension ReaderArticleInput {
     var cacheKey: ReaderArticleCacheKey {
         ReaderArticleCacheKey(
             summary: summary,
-            content: content,
+            contentFingerprint: contentFingerprint,
             imageURL: imageURL,
-            offlineContent: offlineContent,
+            offlineContentFingerprint: offlineContentFingerprint,
             offlineStateRaw: offlineStateRaw,
             link: link,
             feedTitle: feedTitle,

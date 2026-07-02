@@ -1362,6 +1362,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Aktualisiert `ReaderPreparedArticle` über eine leichte Beobachtungssignatur
   statt über `article.content`/`article.offlineContent`, damit ein Artikelwechsel
   nicht schon beim SwiftUI-View-Aufbau schwere SwiftData-Faults auslöst.
+- Lädt den eigentlichen Volltext-Snapshot über `ReaderArticleContentLoader` mit
+  eigenem SwiftData-`ModelContext` anhand der Artikel-ID. Dadurch faultet
+  `Article.content`/`Article.offlineContent` nicht mehr aus dem UI-`Article` im
+  MainActor-Pfad, sondern in einem Hintergrund-Task.
 - Startet den Reader mit einem leichten Preview-Snapshot inklusive Feedname sowie
   einem separaten Relationship-Metadata-Snapshot für Feed-Ordner und Tags. Die
   Header-Chips halten nur einfache Werte (`id`, Name, Farbe) statt lebender
@@ -1373,12 +1377,15 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Aktualisiert `ReaderPreparedArticle` bei Wechsel von `article.persistentModelID`,
   damit Bild, Text, Metadaten und Original-Link nicht vom zuvor ausgewählten
   Artikel im SwiftUI-`@State` hängen bleiben
-- Bilder werden mit `scaledToFit` und begrenzter Maximalhöhe gerendert, damit große
-  Feedbilder ruhiger und performanter bleiben
+- Bilder werden mit `scaledToFit`, begrenzter Maximalhöhe und Ziel-Pixelgröße
+  gerendert, damit große Feedbilder ruhiger und performanter bleiben
 ### ReaderPreparedArticle.swift
 - Kapselt die vorbereiteten, teureren Reader-Daten für einen Artikel.
 - Berechnet native Content-Bloecke, Metazeile und gueltige Original-URL einmal beim
   Erzeugen von `ReaderView`, statt diese Werte bei jedem SwiftUI-Redraw neu aufzubauen.
+- `ReaderArticleCacheKey` speichert keine kompletten `content`-/
+  `offlineContent`-Strings mehr, sondern kompakte Text-Fingerprints. Der Cache
+  hält dadurch keine zusätzlichen Kopien langer Artikeltexte.
 - Bevorzugt explizit gespeicherten `Article.offlineContent` vor Feed-Content und
   Summary, damit manuell offline gespeicherte Artikel direkt im nativen Reader
   erscheinen.
@@ -1850,6 +1857,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   6. Reader-Content wird in `LazyVStack` gerendert. Dadurch materialisiert SwiftUI
      lange Artikel nicht vollständig beim Öffnen, sondern baut nur den sichtbaren
      Bereich plus Puffer.
+  7. Schwere Reader-Inhalte werden über `ReaderArticleContentLoader` in einem
+     separaten SwiftData-`ModelContext` geladen. Der UI-Pfad behält nur den
+     leichten Preview-Snapshot; `ReaderArticleCacheKey` verwendet Text-
+     Fingerprints statt Volltext-Strings.
 - **Konsequenz:** Navigation bleibt auch bei großem Datenbestand flüssig;
   Lese-Status wird verzögert (≤0.6s) persistiert, was für einen RSS-Reader
   akzeptabel ist und auf `.onDisappear` sofort geflusht wird.
@@ -2133,7 +2144,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Die eigentliche Reader-Vorbereitung bleibt asynchron beim aktuell geöffneten
   Artikel. Zusätzlich rendert `ReaderView` native Reader- und Readability-Inhalte
   per `LazyVStack`, damit lange Artikel nicht komplett als View-Baum aufgebaut
-  werden, sobald sie geöffnet werden.
+  werden, sobald sie geöffnet werden. Der Volltext-Snapshot wird nun über einen
+  eigenen SwiftData-`ModelContext` im Hintergrund geladen; Cache-Keys halten
+  Fingerprints statt Volltextkopien, Detailbilder nutzen eine Ziel-Pixelgröße und
+  Lesestatus-Zähler vermeiden den direkten `article.feed`-Relationship-Fault.
 
 - 2026-07-01: Reader-Artikelwechsel weiter entkoppelt. `ReaderView` beobachtet
   für Reader-Rebuilds keine schweren Textfelder (`Article.content`,

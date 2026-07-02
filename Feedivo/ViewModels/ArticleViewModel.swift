@@ -357,10 +357,6 @@ final class ArticleViewModel {
 
     @MainActor
     private func feed(for article: Article, context: ModelContext) throws -> Feed? {
-        if let feed = article.feed {
-            return feed
-        }
-
         guard let feedID = article.feedID else {
             return nil
         }

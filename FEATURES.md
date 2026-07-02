@@ -842,6 +842,9 @@
   - Artikelzeilen prüfen Original-Links über einen stateless Resolver statt pro Kontextmenü-Zugriff eine neue `ArticleViewModel`-Instanz zu erzeugen
   - Artikelwechsel aktualisiert die Navigation aus der sichtbaren Liste, ohne Sortierung/Filterung erneut anzustoßen
   - Reader-Artikelwechsel faulten schwere Textfelder nicht mehr schon im SwiftUI-View-Aufbau; Feedname, Ordner und Tags starten als leichte Snapshot-Werte, damit die sichtbaren Metadaten nicht nachlaufen
+  - Der Reader lädt den vollständigen Artikel-Snapshot über einen eigenen SwiftData-`ModelContext` im Hintergrund, statt `content`/`offlineContent` aus dem UI-`Article` zu faulten
+  - Reader-Cache-Keys speichern nur kompakte Text-Fingerprints und keine zusätzlichen Volltext-Kopien
+  - Reader-Detailbilder werden mit Ziel-Pixelgröße geladen, damit große Feedbilder nicht unnötig voll decodiert werden
   - Die Artikelansicht bietet hinter den Ordner-/Tag-Chips ein Inline-Tag-Popover, das dieselbe Tag-Erstellungs- und Zuweisungslogik wie der rechte Inspector nutzt
   - Der Reader-Prefetch der Artikelliste bleibt leichtgewichtig und faultet keine `content`-/`offlineContent`-Volltexte oder Nachbarartikel-Bilder mehr, damit sequentielles Lesen weniger CPU/I/O erzeugt
   - Native Reader- und Readability-Inhalte rendern per `LazyVStack`, damit lange Artikel beim Öffnen nicht vollständig als SwiftUI-View-Baum materialisiert werden

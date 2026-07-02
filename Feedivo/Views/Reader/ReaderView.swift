@@ -146,6 +146,13 @@ struct ReaderView: View {
         CGFloat(ReaderTypography.leadImageMaxHeight)
     }
 
+    private var readerImageTargetPixelSize: CGSize {
+        CGSize(
+            width: clampedContentWidth * 2,
+            height: leadImageMaxHeight * 2
+        )
+    }
+
     private var footerTopPadding: CGFloat {
         CGFloat(ReaderTypography.footerTopPadding)
     }
@@ -943,7 +950,7 @@ struct ReaderView: View {
     @ViewBuilder
     private func readerImage(urlString: String) -> some View {
         if let url = URL(string: urlString) {
-            CachedRemoteImageView(url: url) { image in
+            CachedRemoteImageView(url: url, targetPixelSize: readerImageTargetPixelSize) { image in
                 image
                     .resizable()
                     .scaledToFit()
@@ -1023,7 +1030,18 @@ struct ReaderView: View {
         isBuildingPreparedArticle = true
         await Task.yield()
 
-        let input = ReaderArticleInput.make(from: article)
+        let articleID = article.id
+        let modelContainer = modelContext.container
+        guard let input = await ReaderArticleContentLoader.loadInput(
+            articleID: articleID,
+            modelContainer: modelContainer
+        ) else {
+            guard !Task.isCancelled, token == preparedArticleRefreshToken else {
+                return
+            }
+            isBuildingPreparedArticle = false
+            return
+        }
 
         // Hebel 5: Bereits geparsten Artikel aus dem Cache übernehmen, wenn
         // sich die inhaltsbestimmenden Felder nicht geändert haben (z. B.
