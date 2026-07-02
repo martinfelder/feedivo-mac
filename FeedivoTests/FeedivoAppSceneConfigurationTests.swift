@@ -310,6 +310,14 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(appSource.contains(".environment(\\.feedivoDatabase, feedivoDatabase)"))
     }
 
+    @Test func appStartBackfillSpiegeltFeedTagsNachSQLite() throws {
+        let projectRoot = projectRootURL()
+        let appSource = try source(at: "Feedivo/App/FeedivoApp.swift", projectRoot: projectRoot)
+        let compactAppSource = compact(appSource)
+
+        #expect(compactAppSource.contains("FeedTagBackfillService.backfillFeedTags(in:modelContainer.mainContext,database:feedivoDatabase)"))
+    }
+
     @Test func sqliteDatabaseLocationUsesApplicationSupport() throws {
         let applicationSupportURL = URL(fileURLWithPath: "/tmp/feedivo-tests/Application Support")
 

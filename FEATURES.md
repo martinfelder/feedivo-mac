@@ -871,8 +871,9 @@
     über `TagStore` in `tags` und `article_tags`; Sidebar-Tag-Badges für direkte
     Artikel-Tags lesen Counts inzwischen aus `TagStore.sidebarTags()`.
     Tag-Filter laden Artikel über `TimelineScope.tag` aus SQLite und umfassen
-    direkte Artikel-Tags sowie Feed-Tags aus `feed_tags`. Tag-UI/Tag-Manager
-    folgt in weiteren SQLite-Slices.
+    direkte Artikel-Tags sowie Feed-Tags aus `feed_tags`. Vorhandene SwiftData-
+    Feed-Tags werden beim App-Start per `FeedTagBackfillService` nach SQLite
+    nachgezogen. Tag-UI/Tag-Manager folgt in weiteren SQLite-Slices.
   - Sidebar-Feed-Zeilen lesen Anzeige-Snapshots aus SQLite: `SQLiteSidebarState`
     lädt `FeedSidebarSnapshot` über `FeedStore`, `FeedRowView` bevorzugt daraus
     Titel, Favicon und ungelesene Counts. Auswahl, Kontextmenüs,
@@ -967,6 +968,9 @@
   - Direkte Tag-Filter verwenden `TimelineScope.tag` und die SQLite-
     Artikelliste/Reader-Kette; Feed-Tags werden dabei über `feed_tags`
     berücksichtigt
+  - Bestehende SwiftData-Feed-Tags werden beim App-Start nach SQLite gespiegelt,
+    damit Altbestand ohne erneutes Öffnen der Feed-Eigenschaften in Tag-Filtern
+    und Sidebar-Badges auftaucht
   - Status-Badges beobachten nur eine kleine Query auf Stern-/Archiv-/
     Hidden-Artikel
   - Artikelzeilen laden Vorschaubilder über größenbegrenzte Thumbnails aus dem

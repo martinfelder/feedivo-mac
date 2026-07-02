@@ -224,6 +224,7 @@ FeedivoMac/
 │   │   ├── BackgroundRefreshService.swift  # NSBackgroundActivityScheduler Adapter ✅
 │   │   ├── FeedBackgroundRefreshService.swift # Sammel-Refresh mit eigenem SwiftData-Kontext pro Feed ✅
 │   │   ├── ArticleFeedIDBackfillService.swift # feedID für alte Artikel nachfuellen ✅
+│   │   ├── FeedTagBackfillService.swift # alte Feed-Tags nach SQLite spiegeln ✅
 │   │   ├── ArticleExportService.swift # Markdown/Text/HTML-Export; PDF/DOCX prototypisiert/zurückgestellt ✅
 │   │   ├── ArticleExportDocument.swift # FileDocument für Artikel-/ZIP-/Binärdateiexport ✅
 │   │   ├── ArticleDocumentExportRenderers.swift # PDF- und DOCX-Datenrenderer ✅
@@ -453,7 +454,8 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Tag-Badges kommen im SQLite/GRDB-Übergangspfad aus `TagStore.sidebarTags()`
   und `SQLiteSidebarState`, statt pro Sidebar-Render SwiftData-`fetchCount` oder
   Artikel→Tag-Relationships zu nutzen. Die Counts umfassen direkte Artikel-Tags
-  und Feed-Tags aus `feed_tags` ohne doppelte Artikel.
+  und Feed-Tags aus `feed_tags` ohne doppelte Artikel. Bestehende SwiftData-
+  Feed-Tags werden beim App-Start per `FeedTagBackfillService` nachgezogen.
 - Per Darstellungseinstellung `sidebar.showsReadFeeds` können Feeds ohne
   ungelesene Artikel in der Sidebar ausgeblendet werden; Standard bleibt anzeigen.
 - Die Sidebar zeigt eine eigene `Tags`-Section mit Tag-Icon; der Button öffnet den
@@ -671,7 +673,7 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Keine externe Google-S2-API; die Favicon-Strategie bleibt eigenstaendig und
   datensparsamer
 
-### ArticleFeedIDBackfillService.swift / FeedUnreadCountBackfillService.swift
+### ArticleFeedIDBackfillService.swift / FeedUnreadCountBackfillService.swift / FeedTagBackfillService.swift
 - `ArticleFeedIDBackfillService` füllt `Article.feedID` für alte Artikel nach, die
   vor der Denormalisierung gespeichert wurden; die Abfrage sucht gezielt nur Artikel
   mit `feedID == nil`.
@@ -685,6 +687,11 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   kontrolliert werden kann.
 - Nach erfolgreichem Durchlauf wird beim App-Start nicht mehr pro Feed die komplette
   `articles`-Relationship geladen, nur um den Sidebar-Zähler zu verifizieren.
+- `FeedTagBackfillService` spiegelt vorhandene SwiftData-Feed-Tags beim App-Start
+  nach SQLite: der Feed-Snapshot wird per `FeedStore` gesichert, Tags werden als
+  `TagRecord` upserted und `feed_tags` wird idempotent befüllt. Dadurch greifen
+  Tag-Filter und Sidebar-Tag-Badges auch für Altbestand ohne erneutes Bearbeiten
+  der Feed-Eigenschaften.
 
 ### RuleEngine.swift
 - Stateless Service für automatische Regel-Aktionen.
@@ -2316,8 +2323,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - 2026-07-02: Feed-Tags in SQLite ergänzt. Migration v3 legt `feed_tags` mit
   Kaskaden und Index an, `TagStore` kann Tags idempotent Feeds zuweisen und
   entfernen, `TimelineScope.tag` und `TagStore.sidebarTags()` zählen direkte
-  Artikel-Tags und Feed-Tags ohne Duplikate, und `FeedPropertiesView` spiegelt
-  Feed-Tag-Änderungen nach SQLite.
+  Artikel-Tags und Feed-Tags ohne Duplikate, `FeedPropertiesView` spiegelt
+  Feed-Tag-Änderungen nach SQLite, und `FeedTagBackfillService` zieht
+  bestehende SwiftData-Feed-Tags beim App-Start nach SQLite nach.
 
 - 2026-07-02: Direkte Tag-Filter auf SQLite umgestellt. `TimelineScope.tag`
   filtert Artikel über `article_tags`, `SQLiteFeedArticleListState` kann neben
