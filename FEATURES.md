@@ -845,6 +845,12 @@
     Migrationen für `feeds`, `articles`, `article_statuses` und `feed_logs`,
     Record-Typen, erste Stores für Feeds/Artikel/Status/Timeline und Tests gegen
     temporäre In-Memory-Datenbanken.
+  - SQLite-Refresh-Kern angelegt: `SQLiteFeedRefreshService` ruft einen
+    injizierbaren Fetcher auf, schreibt Artikel per Batch-Upsert in einer
+    SQLite-Transaktion, erzeugt/erhält getrennte Statuszeilen, aktualisiert
+    `feeds.unreadCount`, HTTP-Validatoren und `feed_logs`. Die sichtbare App-UI
+    nutzt diesen Pfad noch nicht standardmäßig; die Snapshot-Anbindung von
+    Sidebar, Artikelliste, Reader und Statusaktionen folgt als nächster Slice.
   - OPML-Import und `Alle Feeds aktualisieren` rufen Feeds nur noch begrenzt parallel ab
   - Sidebar nutzt keine globale Artikel-Query mehr für Badge-Signaturen; beim
     Lesen invalidieren `isRead`-Änderungen dadurch nicht mehr alle Sidebar-

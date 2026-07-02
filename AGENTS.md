@@ -2264,14 +2264,24 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Feature 11.2 Lesefortschritt ist zurückgestellt: Der erste SwiftUI/AppKit-
   Scrollbeobachter-Ansatz hat das Scrollgefühl im Reader verschlechtert und wurde
   wieder entfernt. Für v1 bleibt der Reader ohne Lesefortschritt.
-- Nächster sinnvoller Fokus: SQLite-Refresh- und Snapshot-Integration nach
-  NetNewsWire-Mechanik planen und danach den Refresh-Kern bauen.
+- Nächster sinnvoller Fokus: sichtbare Feed-/Artikelpfade schrittweise an den
+  SQLite-Kern anbinden: zuerst Sidebar-Zähler und Artikelliste über Snapshots,
+  danach Reader-Snapshot und Statusaktionen direkt über `article_statuses`.
 - Feature-Roadmap ist in `FEATURES.md` im Root dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
 ---
 
 ## Letzte Änderungen
+
+- 2026-07-02: SQLite-Refresh-Kern nach NetNewsWire-Mechanik umgesetzt.
+  `SQLiteFeedRefreshService` lädt Feeds über einen injizierbaren Fetcher,
+  schreibt geparste Artikel per Batch-Upsert in SQLite, hält Artikelstatus in
+  `article_statuses` getrennt, aktualisiert `feeds.unreadCount`, HTTP-
+  Validatoren und `feed_logs`. Neue Store-Methoden für Feed-URL-Lookup,
+  Refresh-Metadaten, ungelesene Counts und Feed-Logs sind testgedeckt. Der
+  bestehende SwiftData-App-Pfad bleibt sichtbar noch unverändert; die UI-
+  Snapshot-Anbindung ist der nächste Slice.
 
 - 2026-07-02: Erster SQLite/GRDB-Fundament-Slice umgesetzt. Feedivo hat nun eine
   separate GRDB-basierte SQLite-Schicht mit v1-Migrationen, Record-Typen,
