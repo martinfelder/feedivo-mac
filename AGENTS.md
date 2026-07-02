@@ -948,9 +948,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Beim Wechsel des ausgewählten Artikels nutzt die Navigation die bereits sichtbare
   Artikelliste aus dem aktuellen Render und stößt keine neue Sortierung/Filterung
   an.
-- Tag-Zuweisungsoptionen pro Artikelzeile werden erst beim Öffnen des
-  Kontextmenüs berechnet; die Liste filtert nicht mehr für jede sichtbare Zeile
-  vorab alle verfügbaren Tags.
+- Tag-Zuweisungsoptionen pro Artikelzeile werden nicht mehr im Row-Body oder im
+  Kontextmenü jeder sichtbaren Zeile vorbereitet. `Artikel -> Tag zuweisen`
+  öffnet ein kleines Sheet; erst dort werden verfügbare Tags gefiltert und
+  sortiert.
 - Normale Feed-, Tag- und Smart-Filter-Listen blenden `Article.isHidden` aus; der
   Smart-Filter `Ausgeblendet` zeigt diese Artikel explizit wieder.
 - Sortierung ist global per `@AppStorage(ArticleSortOption.storageKey)` gespeichert
@@ -1053,7 +1054,11 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Regel erstellen, Link kopieren, Original oeffnen, Teilen, Offline speichern/
   entfernen, Artikel löschen und alle sichtbaren Artikel als gelesen markieren
 - Prüft, ob Link-Aktionen verfügbar sind, über `ArticleOriginalURLResolver` und
-  erzeugt dafür keine eigene `ArticleViewModel`-Instanz pro Kontextmenü-Aufbau.
+  nutzt dafür einen günstigen `http/https`-String-Check; echte `URL`-Erzeugung
+  passiert erst beim Ausführen von Link-Aktionen.
+- Berechnet keine Tag-Zuweisungsoptionen mehr pro Zeilen-Render. Das
+  Kontextmenü öffnet nur ein zentrales `ArticleTagAssignmentSheet`, das Tags erst
+  bei Bedarf filtert und sortiert.
 - Erhält den Feednamen als einfachen String aus `ArticleListView` statt ihn über
   `article.feed?.title` zu faulten. Das hält Zeilen-Redraws beim schnellen Lesen
   frei von Feed-Relationship-Ladevorgängen.
@@ -1910,6 +1915,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
       Content-Verfügbarkeit von `ReaderView`/`ReaderPreparedArticle`, statt diese
       Werte im Body nochmals über `article.feed`, `Article.content` oder
       `Article.offlineContent` zu berechnen.
+  12. `ArticleRowView` berechnet Tag-Zuweisungsoptionen nicht mehr pro sichtbarer
+      Zeile. Das Kontextmenü öffnet nur ein zentrales Sheet; erst dieses Sheet
+      filtert und sortiert verfügbare Tags. Link-Aktionsverfügbarkeit nutzt einen
+      günstigen String-Check statt `URL(string:)` pro Row-/Command-Update.
 - **Konsequenz:** Navigation bleibt auch bei großem Datenbestand flüssig;
   Lese-Status und Feed-Zähler werden verzögert (≤0.6s) persistiert bzw.
   synchronisiert, was für einen RSS-Reader akzeptabel ist und auf `.onDisappear`
@@ -2187,6 +2196,15 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 ---
 
 ## Letzte Änderungen
+
+- 2026-07-02: Artikelwechsel-CPU weiter reduziert. `ArticleRowView` berechnet
+  keine Tag-Zuweisungsoptionen mehr pro sichtbarer Zeile und baut im Kontextmenü
+  kein Tag-Untermenü mehr vorab. Stattdessen öffnet `Tag zuweisen...` ein kleines
+  `ArticleTagAssignmentSheet`, das verfügbare Tags erst bei explizitem Bedarf
+  filtert und sortiert. Link-Aktionsverfügbarkeit in Artikelzeilen und
+  `ArticleCommandActions` nutzt zusätzlich einen günstigen `http/https`-
+  String-Check; echte `URL`-Objekte werden erst beim Ausführen von Kopieren,
+  Öffnen oder Teilen erzeugt.
 
 - 2026-07-02: CPU-Last beim Lesen reduziert. Der Reader-Prefetch in
   `ArticleListView` faultet keine schweren Artikeltexte (`Article.content`,

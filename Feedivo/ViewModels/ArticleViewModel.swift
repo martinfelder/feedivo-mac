@@ -43,6 +43,20 @@ struct SystemArticleSharingPresenter: ArticleSharingPresenter {
 }
 
 enum ArticleOriginalURLResolver {
+    static func hasUsableWebLink(_ link: String?) -> Bool {
+        guard let link else {
+            return false
+        }
+
+        let trimmedLink = link.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedLink.isEmpty else {
+            return false
+        }
+
+        let lowercasedLink = trimmedLink.lowercased()
+        return lowercasedLink.hasPrefix("https://") || lowercasedLink.hasPrefix("http://")
+    }
+
     static func url(for article: Article?) -> URL? {
         guard
             let link = article?.link,

@@ -40,6 +40,15 @@ private final class CapturingArticleOfflineSaver: ArticleOfflineSaving {
 
 struct ArticleViewModelTests {
 
+    @Test func originalURLResolverErkenntWebLinksOhneURLParsing() {
+        #expect(!ArticleOriginalURLResolver.hasUsableWebLink(nil))
+        #expect(!ArticleOriginalURLResolver.hasUsableWebLink(""))
+        #expect(!ArticleOriginalURLResolver.hasUsableWebLink("/artikel"))
+        #expect(!ArticleOriginalURLResolver.hasUsableWebLink("mailto:mail@example.com"))
+        #expect(ArticleOriginalURLResolver.hasUsableWebLink("https://example.com/article"))
+        #expect(ArticleOriginalURLResolver.hasUsableWebLink("HTTP://example.com/article"))
+    }
+
     @MainActor
     @Test func toggleReadWechseltGelesenStatus() {
         let article = Article(title: "Test", isRead: false)

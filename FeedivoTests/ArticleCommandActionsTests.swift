@@ -5,21 +5,33 @@ struct ArticleCommandActionsTests {
 
     @Test func linkAktionenSindNurMitGueltigemLinkVerfuegbar() {
         let actionsWithoutArticle = ArticleCommandActions(
-            selectedArticle: nil,
+            canPerformActions: false,
+            canPerformLinkActions: false,
+            toggleReadTitle: L10n.articleRowMarkRead,
+            toggleStarredTitle: L10n.articleRowStarAdd,
+            toggleArchivedTitle: L10n.articleArchiveCommand,
             toggleRead: {},
             toggleStarred: {},
             copyLink: {},
             openOriginal: {}
         )
         let actionsWithRelativeLink = ArticleCommandActions(
-            selectedArticle: Article(title: "Relativ", link: "/artikel"),
+            canPerformActions: true,
+            canPerformLinkActions: false,
+            toggleReadTitle: L10n.articleRowMarkRead,
+            toggleStarredTitle: L10n.articleRowStarAdd,
+            toggleArchivedTitle: L10n.articleArchiveCommand,
             toggleRead: {},
             toggleStarred: {},
             copyLink: {},
             openOriginal: {}
         )
         let actionsWithLink = ArticleCommandActions(
-            selectedArticle: Article(title: "Original", link: "https://example.com/article"),
+            canPerformActions: true,
+            canPerformLinkActions: true,
+            toggleReadTitle: L10n.articleRowMarkRead,
+            toggleStarredTitle: L10n.articleRowStarAdd,
+            toggleArchivedTitle: L10n.articleArchiveCommand,
             toggleRead: {},
             toggleStarred: {},
             copyLink: {},

@@ -1,7 +1,11 @@
 import SwiftUI
 
 struct ArticleCommandActions {
-    let selectedArticle: Article?
+    let canPerformActions: Bool
+    let canPerformLinkActions: Bool
+    let toggleReadTitle: String
+    let toggleStarredTitle: String
+    let toggleArchivedTitle: String
     let toggleRead: () -> Void
     let toggleStarred: () -> Void
     let toggleArchived: () -> Void
@@ -14,6 +18,44 @@ struct ArticleCommandActions {
     let canSelectNextArticle: Bool
     let selectPreviousArticle: () -> Void
     let selectNextArticle: () -> Void
+
+    init(
+        canPerformActions: Bool,
+        canPerformLinkActions: Bool,
+        toggleReadTitle: String,
+        toggleStarredTitle: String,
+        toggleArchivedTitle: String,
+        toggleRead: @escaping () -> Void,
+        toggleStarred: @escaping () -> Void,
+        toggleArchived: @escaping () -> Void = {},
+        copyLink: @escaping () -> Void,
+        openOriginal: @escaping () -> Void,
+        shareOriginal: @escaping () -> Void = {},
+        openInArticleWindow: @escaping () -> Void = {},
+        requestExport: @escaping () -> Void = {},
+        canSelectPreviousArticle: Bool = false,
+        canSelectNextArticle: Bool = false,
+        selectPreviousArticle: @escaping () -> Void = {},
+        selectNextArticle: @escaping () -> Void = {}
+    ) {
+        self.canPerformActions = canPerformActions
+        self.canPerformLinkActions = canPerformLinkActions
+        self.toggleReadTitle = toggleReadTitle
+        self.toggleStarredTitle = toggleStarredTitle
+        self.toggleArchivedTitle = toggleArchivedTitle
+        self.toggleRead = toggleRead
+        self.toggleStarred = toggleStarred
+        self.toggleArchived = toggleArchived
+        self.copyLink = copyLink
+        self.openOriginal = openOriginal
+        self.shareOriginal = shareOriginal
+        self.openInArticleWindow = openInArticleWindow
+        self.requestExport = requestExport
+        self.canSelectPreviousArticle = canSelectPreviousArticle
+        self.canSelectNextArticle = canSelectNextArticle
+        self.selectPreviousArticle = selectPreviousArticle
+        self.selectNextArticle = selectNextArticle
+    }
 
     init(
         selectedArticle: Article?,
@@ -30,51 +72,25 @@ struct ArticleCommandActions {
         selectPreviousArticle: @escaping () -> Void = {},
         selectNextArticle: @escaping () -> Void = {}
     ) {
-        self.selectedArticle = selectedArticle
-        self.toggleRead = toggleRead
-        self.toggleStarred = toggleStarred
-        self.toggleArchived = toggleArchived
-        self.copyLink = copyLink
-        self.openOriginal = openOriginal
-        self.shareOriginal = shareOriginal
-        self.openInArticleWindow = openInArticleWindow
-        self.requestExport = requestExport
-        self.canSelectPreviousArticle = canSelectPreviousArticle
-        self.canSelectNextArticle = canSelectNextArticle
-        self.selectPreviousArticle = selectPreviousArticle
-        self.selectNextArticle = selectNextArticle
-    }
-
-    var canPerformActions: Bool {
-        selectedArticle != nil
-    }
-
-    var canPerformLinkActions: Bool {
-        ArticleViewModel().originalURL(for: selectedArticle) != nil
-    }
-
-    var toggleReadTitle: String {
-        guard let selectedArticle else {
-            return L10n.articleRowMarkRead
-        }
-
-        return selectedArticle.isRead ? L10n.articleRowMarkUnread : L10n.articleRowMarkRead
-    }
-
-    var toggleStarredTitle: String {
-        guard let selectedArticle else {
-            return L10n.articleRowStarAdd
-        }
-
-        return selectedArticle.isStarred ? L10n.articleRowStarRemove : L10n.articleRowStarAdd
-    }
-
-    var toggleArchivedTitle: String {
-        guard let selectedArticle else {
-            return L10n.articleArchiveCommand
-        }
-
-        return selectedArticle.isArchived ? L10n.articleUnarchiveCommand : L10n.articleArchiveCommand
+        self.init(
+            canPerformActions: selectedArticle != nil,
+            canPerformLinkActions: ArticleOriginalURLResolver.hasUsableWebLink(selectedArticle?.link),
+            toggleReadTitle: selectedArticle?.isRead == true ? L10n.articleRowMarkUnread : L10n.articleRowMarkRead,
+            toggleStarredTitle: selectedArticle?.isStarred == true ? L10n.articleRowStarRemove : L10n.articleRowStarAdd,
+            toggleArchivedTitle: selectedArticle?.isArchived == true ? L10n.articleUnarchiveCommand : L10n.articleArchiveCommand,
+            toggleRead: toggleRead,
+            toggleStarred: toggleStarred,
+            toggleArchived: toggleArchived,
+            copyLink: copyLink,
+            openOriginal: openOriginal,
+            shareOriginal: shareOriginal,
+            openInArticleWindow: openInArticleWindow,
+            requestExport: requestExport,
+            canSelectPreviousArticle: canSelectPreviousArticle,
+            canSelectNextArticle: canSelectNextArticle,
+            selectPreviousArticle: selectPreviousArticle,
+            selectNextArticle: selectNextArticle
+        )
     }
 }
 

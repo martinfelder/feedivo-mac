@@ -553,6 +553,7 @@ private struct ArticleListContent: View {
     @State private var readerPrefetchTask: Task<Void, Never>?
     @State private var readerPrefetchKey: ReaderArticlePrefetchKey?
     @State private var offlineArchiveError: OfflineArchiveErrorAlert?
+    @State private var tagAssignmentArticle: Article?
 
     init(
         articles: [Article],
@@ -682,6 +683,24 @@ private struct ArticleListContent: View {
                 dismissButton: .default(Text(L10n.commonDone))
             )
         }
+        .sheet(item: $tagAssignmentArticle) { article in
+            ArticleTagAssignmentSheet(
+                article: article,
+                availableTags: tags,
+                assignTag: { tag in
+                    ArticleMetadataEditor.addTag(
+                        named: tag.name,
+                        to: article,
+                        availableTags: tags,
+                        context: modelContext
+                    )
+                    tagAssignmentArticle = nil
+                },
+                dismiss: {
+                    tagAssignmentArticle = nil
+                }
+            )
+        }
         .task(id: preparedArticlesKey) {
             // Cache asynchron befüllen, nachdem der Body mit dem neuen Key
             // gerendert wurde. Bei Cache-Treffer (gleicher Key) startet die
@@ -793,7 +812,7 @@ private struct ArticleListContent: View {
         ArticleRowView(
             article: article,
             feedTitle: feedTitle(for: article, in: feedTitleByFeedID),
-            availableTags: tags,
+            hasAvailableTags: !tags.isEmpty,
             onToggleRead: {
                 viewModel.toggleRead(article, context: modelContext)
                 try? modelContext.save()
@@ -813,13 +832,8 @@ private struct ArticleListContent: View {
                     await archiveOrRemoveArchive(article)
                 }
             },
-            onAssignTag: { tag in
-                ArticleMetadataEditor.addTag(
-                    named: tag.name,
-                    to: article,
-                    availableTags: tags,
-                    context: modelContext
-                )
+            onRequestAssignTag: {
+                tagAssignmentArticle = article
             },
             onCreateRule: {
                 onRequestCreateRuleFromArticle(article)
@@ -1180,6 +1194,63 @@ private struct ArticleListContent: View {
         viewModel.deleteArticle(article, context: modelContext)
     }
 
+}
+
+private struct ArticleTagAssignmentSheet: View {
+    let article: Article
+    let availableTags: [Tag]
+    let assignTag: (Tag) -> Void
+    let dismiss: () -> Void
+
+    private var assignableTags: [Tag] {
+        ArticleMetadataEditor.availableTagsToAdd(
+            to: article,
+            availableTags: availableTags
+        )
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text(L10n.articleAssignTagCommand)
+                .font(.headline)
+
+            if assignableTags.isEmpty {
+                Text(L10n.readerInspectorNoTags)
+                    .foregroundStyle(.secondary)
+            } else {
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(assignableTags) { tag in
+                        Button {
+                            assignTag(tag)
+                        } label: {
+                            HStack(spacing: 8) {
+                                Circle()
+                                    .fill(TagColorPalette.color(for: tag.colorHex))
+                                    .frame(width: 8, height: 8)
+
+                                Text(tag.name)
+
+                                Spacer()
+                            }
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+
+            HStack {
+                Spacer()
+
+                Button(L10n.commonCancel) {
+                    dismiss()
+                }
+                .keyboardShortcut(.cancelAction)
+            }
+        }
+        .padding(20)
+        .frame(width: 280)
+    }
 }
 
 /// Cache-Key für vorbereitete Artikel. Erfasst alle Status-Änderungen, die das

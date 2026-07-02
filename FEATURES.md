@@ -844,11 +844,12 @@
     gebündelten Status-Zählern
   - `Ungelesen` lädt für die Artikelliste bewusst alle Artikel und überlässt das Ausblenden gelesener Artikel der Anzeigeebene, damit gerade gelesene Artikel sichtbar bleiben können
   - Artikel-Listen berechnen sichtbare Artikel und die Anzahl ausgeblendeter gelesener Artikel in einem Durchlauf
-  - Tag-Zuweisungsoptionen werden in Artikelzeilen erst im Kontextmenü berechnet, nicht mehr bei jedem Zeilen-Render
+  - Tag-Zuweisungsoptionen werden in Artikelzeilen nicht mehr beim Zeilen- oder Kontextmenü-Aufbau berechnet; `Tag zuweisen...` öffnet ein kleines Sheet, das verfügbare Tags erst bei Bedarf filtert und sortiert
   - Vordefinierte/einfache intelligente Ordner nutzen gezielte SwiftData-Queries statt alle Artikel im Speicher zu filtern
   - Reader-HTML-Parsing cached `NSRegularExpression` Instanzen und wandelt Textblöcke ohne `NSAttributedString`/WebKit in Plain Text um
   - Artikel-Listen bereiten Sortierung und Filterung gemeinsam vor, damit pro Render nicht doppelt sortiert wird
   - Artikelzeilen prüfen Original-Links über einen stateless Resolver statt pro Kontextmenü-Zugriff eine neue `ArticleViewModel`-Instanz zu erzeugen
+  - Artikelzeilen und Artikel-Commands prüfen Link-Aktionsverfügbarkeit mit einem günstigen `http/https`-String-Check; echte `URL`-Objekte entstehen erst beim Ausführen der Link-Aktion
   - Artikelwechsel aktualisiert die Navigation aus der sichtbaren Liste, ohne Sortierung/Filterung erneut anzustoßen
   - Reader-Artikelwechsel faulten schwere Textfelder nicht mehr schon im SwiftUI-View-Aufbau; Feedname, Ordner und Tags starten als leichte Snapshot-Werte, damit die sichtbaren Metadaten nicht nachlaufen
   - Der Reader lädt den vollständigen Artikel-Snapshot über einen eigenen SwiftData-`ModelContext` im Hintergrund, statt `content`/`offlineContent` aus dem UI-`Article` zu faulten

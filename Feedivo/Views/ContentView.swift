@@ -256,7 +256,11 @@ struct ContentView: View {
         .focusedValue(
             \.articleCommandActions,
             ArticleCommandActions(
-                selectedArticle: selectedArticle,
+                canPerformActions: selectedArticle != nil,
+                canPerformLinkActions: ArticleOriginalURLResolver.hasUsableWebLink(selectedArticle?.link),
+                toggleReadTitle: selectedArticle?.isRead == true ? L10n.articleRowMarkUnread : L10n.articleRowMarkRead,
+                toggleStarredTitle: selectedArticle?.isStarred == true ? L10n.articleRowStarRemove : L10n.articleRowStarAdd,
+                toggleArchivedTitle: selectedArticle?.isArchived == true ? L10n.articleUnarchiveCommand : L10n.articleArchiveCommand,
                 toggleRead: {
                     articleViewModel.toggleRead(selectedArticle, context: modelContext)
                     try? modelContext.save()

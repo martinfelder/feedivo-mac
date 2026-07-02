@@ -5,11 +5,11 @@ struct ArticleRowView: View {
 
     let article: Article
     let feedTitle: String?
-    let availableTags: [Tag]
+    let hasAvailableTags: Bool
     let onToggleRead: () -> Void
     let onToggleStarred: () -> Void
     let onToggleArchived: () -> Void
-    let onAssignTag: (Tag) -> Void
+    let onRequestAssignTag: () -> Void
     let onCreateRule: () -> Void
     let onCopyLink: () -> Void
     let onOpenOriginal: () -> Void
@@ -81,15 +81,10 @@ struct ArticleRowView: View {
                 onToggleArchived()
             }
 
-            let tagsToAssign = assignableTags
-            Menu(L10n.articleAssignTagCommand) {
-                ForEach(tagsToAssign) { tag in
-                    Button(tag.name) {
-                        onAssignTag(tag)
-                    }
-                }
+            Button(L10n.articleAssignTagCommand) {
+                onRequestAssignTag()
             }
-            .disabled(tagsToAssign.isEmpty)
+            .disabled(!hasAvailableTags)
 
             Button(L10n.articleCreateRuleCommand) {
                 onCreateRule()
@@ -248,13 +243,6 @@ struct ArticleRowView: View {
     }
 
     private var hasOriginalURL: Bool {
-        ArticleOriginalURLResolver.url(for: article) != nil
-    }
-
-    private var assignableTags: [Tag] {
-        ArticleMetadataEditor.availableTagsToAdd(
-            to: article,
-            availableTags: availableTags
-        )
+        ArticleOriginalURLResolver.hasUsableWebLink(article.link)
     }
 }
