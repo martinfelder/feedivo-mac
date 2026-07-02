@@ -841,6 +841,10 @@
   werden danach einzeln angeschlossen. Spec:
   `docs/superpowers/specs/2026-07-02-sqlite-grdb-performance-architecture-design.md`.
 - **Umgesetzt:**
+  - SQLite/GRDB-Fundament angelegt: GRDB Package, `FeedivoDatabase`, v1-
+    Migrationen für `feeds`, `articles`, `article_statuses` und `feed_logs`,
+    Record-Typen, erste Stores für Feeds/Artikel/Status/Timeline und Tests gegen
+    temporäre In-Memory-Datenbanken.
   - OPML-Import und `Alle Feeds aktualisieren` rufen Feeds nur noch begrenzt parallel ab
   - Sidebar nutzt keine globale Artikel-Query mehr für Badge-Signaturen; beim
     Lesen invalidieren `isRead`-Änderungen dadurch nicht mehr alle Sidebar-

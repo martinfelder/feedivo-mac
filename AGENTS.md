@@ -2273,6 +2273,12 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 
 ## Letzte Änderungen
 
+- 2026-07-02: Erster SQLite/GRDB-Fundament-Slice umgesetzt. Feedivo hat nun eine
+  separate GRDB-basierte SQLite-Schicht mit v1-Migrationen, Record-Typen,
+  testbaren Stores für Feeds, Artikel, Artikelstatus und Timeline-Snapshots
+  sowie In-Memory-Tests. Der bestehende SwiftData-App-Pfad bleibt unverändert;
+  UI- und Refresh-Umbau folgen in späteren Slices.
+
 - 2026-07-02: Architekturentscheidung für SQLite-only mit GRDB dokumentiert.
   Feedivo übernimmt für den Performance-kritischen Hauptpfad grundsätzlich die
   NetNewsWire-Mechanik: direkte SQLite-Schicht, getrennte Tabellen für Artikel
