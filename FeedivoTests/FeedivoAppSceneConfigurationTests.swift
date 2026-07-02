@@ -431,6 +431,18 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(source.contains("SidebarBadgeInvalidation.bumpDirectTagVersion()"))
     }
 
+    @Test func tagManagerViewSpiegeltTagAenderungenNachSQLite() throws {
+        let projectRoot = projectRootURL()
+        let source = try source(at: "Feedivo/Views/Tags/TagManagerView.swift", projectRoot: projectRoot)
+
+        #expect(source.contains("@Environment(\\.feedivoDatabase) private var feedivoDatabase"))
+        #expect(source.contains("sqliteDatabase: feedivoDatabase"))
+        #expect(source.contains("viewModel.createTag("))
+        #expect(source.contains("viewModel.renameTag("))
+        #expect(source.contains("viewModel.updateColor("))
+        #expect(source.contains("viewModel.deleteTag("))
+    }
+
     private func projectRootURL() -> URL {
         URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()

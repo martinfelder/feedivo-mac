@@ -3,6 +3,7 @@ import SwiftUI
 
 struct TagManagerView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.feedivoDatabase) private var feedivoDatabase
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Tag.name) private var tags: [Tag]
 
@@ -36,7 +37,7 @@ struct TagManagerView: View {
             presenting: tagPendingDeletion
         ) { tag in
             Button(L10n.tagManagerDeleteButton, role: .destructive) {
-                viewModel.deleteTag(tag, context: modelContext)
+                viewModel.deleteTag(tag, context: modelContext, sqliteDatabase: feedivoDatabase)
                 tagPendingDeletion = nil
             }
             Button(L10n.commonCancel, role: .cancel) {
@@ -125,7 +126,8 @@ struct TagManagerView: View {
             name: newTagName,
             colorHex: newTagColorHex,
             availableTags: tags,
-            context: modelContext
+            context: modelContext,
+            sqliteDatabase: feedivoDatabase
         )
 
         if let createdTag {
@@ -137,6 +139,7 @@ struct TagManagerView: View {
 }
 
 private struct TagManagerRow: View {
+    @Environment(\.feedivoDatabase) private var feedivoDatabase
     @Environment(\.modelContext) private var modelContext
 
     let tag: Tag
@@ -194,7 +197,12 @@ private struct TagManagerRow: View {
                 ColorSwatchPicker(selection: Binding(
                     get: { tag.colorHex },
                     set: { colorHex in
-                        viewModel.updateColor(tag, colorHex: colorHex, context: modelContext)
+                        viewModel.updateColor(
+                            tag,
+                            colorHex: colorHex,
+                            context: modelContext,
+                            sqliteDatabase: feedivoDatabase
+                        )
                     }
                 ))
 
@@ -218,7 +226,13 @@ private struct TagManagerRow: View {
 
     private func saveName() {
         viewModel.errorMessage = nil
-        viewModel.renameTag(tag, name: draftName, availableTags: tags, context: modelContext)
+        viewModel.renameTag(
+            tag,
+            name: draftName,
+            availableTags: tags,
+            context: modelContext,
+            sqliteDatabase: feedivoDatabase
+        )
 
         if let errorMessage = viewModel.errorMessage {
             rowErrorMessage = errorMessage

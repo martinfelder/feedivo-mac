@@ -131,4 +131,16 @@ struct TagStore {
             )
         }
     }
+
+    func deleteTag(id: String) throws {
+        try database.write { db in
+            try db.execute(
+                sql: """
+                    DELETE FROM tags
+                    WHERE id = ?
+                    """,
+                arguments: [id]
+            )
+        }
+    }
 }

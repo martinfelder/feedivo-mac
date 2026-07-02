@@ -12,7 +12,8 @@ final class TagViewModel {
         name: String,
         colorHex: String,
         availableTags: [Tag],
-        context: ModelContext
+        context: ModelContext,
+        sqliteDatabase: FeedivoDatabase? = nil
     ) -> Tag? {
         guard let normalizedName = Self.normalizedTagName(name) else {
             errorMessage = L10n.tagManagerEmptyNameError
@@ -39,6 +40,8 @@ final class TagViewModel {
             return nil
         }
 
+        mirrorTagToSQLite(tag, database: sqliteDatabase)
+
         return tag
     }
 
@@ -46,7 +49,8 @@ final class TagViewModel {
         _ tag: Tag,
         name: String,
         availableTags: [Tag],
-        context: ModelContext
+        context: ModelContext,
+        sqliteDatabase: FeedivoDatabase? = nil
     ) {
         guard let normalizedName = Self.normalizedTagName(name) else {
             errorMessage = L10n.tagManagerEmptyNameError
@@ -65,18 +69,43 @@ final class TagViewModel {
 
         tag.name = normalizedName
         save(context)
+        guard errorMessage == nil else {
+            return
+        }
+
+        mirrorTagToSQLite(tag, database: sqliteDatabase)
     }
 
-    func updateColor(_ tag: Tag, colorHex: String, context: ModelContext) {
+    func updateColor(
+        _ tag: Tag,
+        colorHex: String,
+        context: ModelContext,
+        sqliteDatabase: FeedivoDatabase? = nil
+    ) {
         tag.colorHex = Self.normalizedColorHex(colorHex)
         save(context)
+        guard errorMessage == nil else {
+            return
+        }
+
+        mirrorTagToSQLite(tag, database: sqliteDatabase)
     }
 
-    func deleteTag(_ tag: Tag, context: ModelContext) {
+    func deleteTag(
+        _ tag: Tag,
+        context: ModelContext,
+        sqliteDatabase: FeedivoDatabase? = nil
+    ) {
+        let tagID = tag.id.uuidString
         tag.articles = []
         tag.feeds = []
         context.delete(tag)
         save(context)
+        guard errorMessage == nil else {
+            return
+        }
+
+        deleteTagFromSQLite(id: tagID, database: sqliteDatabase)
     }
 
     static func normalizedTagName(_ name: String?) -> String? {
@@ -115,6 +144,38 @@ final class TagViewModel {
         do {
             try context.save()
             errorMessage = nil
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func mirrorTagToSQLite(_ tag: Tag, database: FeedivoDatabase?) {
+        guard let database else {
+            return
+        }
+
+        do {
+            try TagStore(database: database).save(
+                TagRecord(
+                    id: tag.id.uuidString,
+                    name: tag.name,
+                    colorHex: tag.colorHex
+                )
+            )
+            SidebarBadgeInvalidation.bumpDirectTagVersion()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func deleteTagFromSQLite(id: String, database: FeedivoDatabase?) {
+        guard let database else {
+            return
+        }
+
+        do {
+            try TagStore(database: database).deleteTag(id: id)
+            SidebarBadgeInvalidation.bumpDirectTagVersion()
         } catch {
             errorMessage = error.localizedDescription
         }

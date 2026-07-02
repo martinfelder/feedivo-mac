@@ -77,6 +77,37 @@ struct SQLiteTagStoreTests {
         #expect(try tagStore.tags(feedID: "feed-1").isEmpty)
     }
 
+    @Test func deleteTagRemovesTagAndAssignments() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let tagStore = TagStore(database: database)
+
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example"))
+        let articleID = try articleStore.upsert(
+            ArticleUpsertInput(feedID: "feed-1", sourceID: "article-1", title: "Artikel")
+        )
+        try tagStore.save(TagRecord(id: "tag-1", name: "Swift", colorHex: "#ff0000"))
+        try tagStore.assignTag(tagID: "tag-1", toArticleID: articleID, at: Date(timeIntervalSince1970: 100))
+        try tagStore.assignTag(tagID: "tag-1", toFeedID: "feed-1", at: Date(timeIntervalSince1970: 100))
+
+        try tagStore.deleteTag(id: "tag-1")
+
+        let tagCount = try database.read { database in
+            try Int.fetchOne(database, sql: "SELECT COUNT(*) FROM tags") ?? 0
+        }
+        let articleTagCount = try database.read { database in
+            try Int.fetchOne(database, sql: "SELECT COUNT(*) FROM article_tags") ?? 0
+        }
+        let feedTagCount = try database.read { database in
+            try Int.fetchOne(database, sql: "SELECT COUNT(*) FROM feed_tags") ?? 0
+        }
+
+        #expect(tagCount == 0)
+        #expect(articleTagCount == 0)
+        #expect(feedTagCount == 0)
+    }
+
     @Test func sidebarTagsIncludeDirectArticleCountsFromSQLite() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let feedStore = FeedStore(database: database)

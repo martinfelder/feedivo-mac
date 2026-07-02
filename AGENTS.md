@@ -1162,12 +1162,17 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Umbenennen.
 - Aktualisiert Tag-Farben und löscht Tags inklusive vorhandener Artikel- und
   Feed-Verknuepfungen.
+- Spiegelt Create, Rename, Farbänderungen und Delete optional nach SQLite:
+  `TagStore.save` aktualisiert `tags`, `TagStore.deleteTag` entfernt den Tag und
+  lässt `article_tags`/`feed_tags` per Foreign-Key-Kaskade aufräumen.
 
 ### TagManagerView.swift
 - Zentrales Sheet zum Erstellen, Umbenennen, farblichen Markieren und Löschen von
   Tags.
 - Nutzt eine SwiftData-`@Query` auf `Tag.name`, wiederverwendet `TagViewModel` für
   Validierung und Speichern und zeigt Fehler direkt in der jeweiligen Eingabe.
+- Reicht die `feedivoDatabase` aus der Environment an `TagViewModel` weiter,
+  damit Tag-Änderungen sofort in SQLite sichtbar sind.
 - Wird aus der Sidebar-Section `Tags` geöffnet; dieselbe Section zeigt auch
   klickbare Tag-Filterzeilen.
 - Nach dem erfolgreichen Erstellen eines Tags schliesst sich das Sheet und die
@@ -2276,8 +2281,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   `article_tags`. Sidebar-Tag-Badges für direkte Artikel-Tags lesen ihre Counts
   inzwischen über SQLite-Snapshots; direkte Tag-Filter laden ihre Artikelliste
   über `TimelineScope.tag`. Feed-Tags sind als `feed_tags` in SQLite ergänzt und
-  werden aus den Feed-Eigenschaften gespiegelt; der Tag-Manager bleibt noch auf
-  dem Legacy-Pfad.
+  werden aus den Feed-Eigenschaften gespiegelt. Der Tag-Manager spiegelt Create,
+  Rename, Farbänderungen und Delete nach SQLite; seine Liste liest während der
+  Übergangsphase noch aus SwiftData.
   Die normalen Feed-Zeilen in der Sidebar nutzen `SQLiteSidebarState` und
   `FeedSidebarSnapshot` für Anzeige und ungelesene Badges; Auswahl und
   Kontextmenüs bleiben übergangsweise SwiftData. SQLite-Statusänderungen halten
@@ -2310,8 +2316,8 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Scrollbeobachter-Ansatz hat das Scrollgefühl im Reader verschlechtert und wurde
   wieder entfernt. Für v1 bleibt der Reader ohne Lesefortschritt.
 - Nächster sinnvoller Fokus: verbleibende Hauptpfad-Lücken schließen:
-  Tag-Manager auf SQL-Snapshots migrieren, Feed-Logs in der UI abrunden,
-  Sidebar-Smart-Folder-Badges auf SQL-Snapshots migrieren und danach
+  Feed-Logs in der UI abrunden, Sidebar-Smart-Folder-Badges auf SQL-Snapshots
+  migrieren, Tag-Listenquelle auf SQLite-Snapshots umstellen und danach
   Suche/Filter schrittweise auf SQLite ziehen.
 - Feature-Roadmap ist in `FEATURES.md` im Root dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
@@ -2326,6 +2332,12 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Artikel-Tags und Feed-Tags ohne Duplikate, `FeedPropertiesView` spiegelt
   Feed-Tag-Änderungen nach SQLite, und `FeedTagBackfillService` zieht
   bestehende SwiftData-Feed-Tags beim App-Start nach SQLite nach.
+
+- 2026-07-02: TagManager-Mutationen nach SQLite gespiegelt. `TagViewModel`
+  akzeptiert optional die `FeedivoDatabase` und schreibt Create/Rename/
+  Farbänderung per `TagStore.save`; Delete ruft `TagStore.deleteTag` auf, wodurch
+  `article_tags` und `feed_tags` per Kaskade bereinigt werden. `TagManagerView`
+  reicht die Datenbank aus der Environment weiter.
 
 - 2026-07-02: Direkte Tag-Filter auf SQLite umgestellt. `TimelineScope.tag`
   filtert Artikel über `article_tags`, `SQLiteFeedArticleListState` kann neben

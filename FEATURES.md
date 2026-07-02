@@ -873,13 +873,15 @@
     Tag-Filter laden Artikel über `TimelineScope.tag` aus SQLite und umfassen
     direkte Artikel-Tags sowie Feed-Tags aus `feed_tags`. Vorhandene SwiftData-
     Feed-Tags werden beim App-Start per `FeedTagBackfillService` nach SQLite
-    nachgezogen. Tag-UI/Tag-Manager folgt in weiteren SQLite-Slices.
+    nachgezogen. Der Tag-Manager spiegelt Create, Rename, Farbänderungen und
+    Delete nach SQLite; die Tag-Liste selbst liest während der Übergangsphase
+    noch aus SwiftData.
   - Sidebar-Feed-Zeilen lesen Anzeige-Snapshots aus SQLite: `SQLiteSidebarState`
     lädt `FeedSidebarSnapshot` über `FeedStore`, `FeedRowView` bevorzugt daraus
     Titel, Favicon und ungelesene Counts. Auswahl, Kontextmenüs,
-    Feed-Eigenschaften spiegeln Feed-Tag-Änderungen nach SQLite; Tag-Manager und
-    Smart-Folder-Badges bleiben für diesen Slice noch an bestehenden
-    SwiftData-/Legacy-Pfaden.
+    Feed-Eigenschaften spiegeln Feed-Tag-Änderungen nach SQLite; Tag-Manager-
+    Mutationen schreiben ebenfalls nach SQLite. Smart-Folder-Badges bleiben für
+    diesen Slice noch an bestehenden SwiftData-/Legacy-Pfaden.
   - SQLite-Statusänderungen halten Feed-Zähler aktuell: `ArticleStatusStore`
     berechnet nach Read-/Hidden-Mutationen `feeds.unreadCount` direkt in SQLite
     neu und bump't `SQLiteDataInvalidation.statusVersionKey`, wodurch die
