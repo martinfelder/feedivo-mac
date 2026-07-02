@@ -115,7 +115,7 @@ struct SQLiteTimelineStoreTests {
         #expect(count == 1)
     }
 
-    @Test func timelineFetchesDirectlyTaggedArticlesFromSQLite() throws {
+    @Test func timelineFetchesDirectlyTaggedAndFeedTaggedArticlesFromSQLite() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let feedStore = FeedStore(database: database)
         let articleStore = ArticleStore(database: database)
@@ -124,6 +124,7 @@ struct SQLiteTimelineStoreTests {
         let timelineStore = TimelineStore(database: database)
 
         try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example"))
+        try feedStore.save(FeedRecord(id: "feed-2", url: "https://example.com/other.xml", title: "Other"))
         try tagStore.save(TagRecord(id: "tag-swift", name: "Swift", colorHex: "#ff0000"))
         try tagStore.save(TagRecord(id: "tag-other", name: "Other", colorHex: "#00ff00"))
         let olderTaggedID = try articleStore.upsert(
@@ -162,11 +163,21 @@ struct SQLiteTimelineStoreTests {
                 arrivedAt: Date(timeIntervalSince1970: 500)
             )
         )
+        let feedTaggedID = try articleStore.upsert(
+            ArticleUpsertInput(
+                feedID: "feed-2",
+                sourceID: "feed-tagged",
+                title: "Feed Tagged",
+                publishedAt: Date(timeIntervalSince1970: 600),
+                arrivedAt: Date(timeIntervalSince1970: 600)
+            )
+        )
 
         try tagStore.assignTag(tagID: "tag-swift", toArticleID: olderTaggedID, at: Date(timeIntervalSince1970: 110))
         try tagStore.assignTag(tagID: "tag-swift", toArticleID: newerTaggedID, at: Date(timeIntervalSince1970: 310))
         try tagStore.assignTag(tagID: "tag-swift", toArticleID: hiddenTaggedID, at: Date(timeIntervalSince1970: 410))
         try tagStore.assignTag(tagID: "tag-other", toArticleID: otherTagID, at: Date(timeIntervalSince1970: 510))
+        try tagStore.assignTag(tagID: "tag-swift", toFeedID: "feed-2", at: Date(timeIntervalSince1970: 605))
         try statusStore.setHidden(true, articleID: hiddenTaggedID, at: Date(timeIntervalSince1970: 420))
 
         let snapshots = try timelineStore.articles(
@@ -176,8 +187,8 @@ struct SQLiteTimelineStoreTests {
             limit: 20
         )
 
-        #expect(snapshots.map(\.id) == [newerTaggedID, olderTaggedID])
-        #expect(snapshots.map(\.feedTitle) == ["Example", "Example"])
+        #expect(snapshots.map(\.id) == [feedTaggedID, newerTaggedID, olderTaggedID])
+        #expect(snapshots.map(\.feedTitle) == ["Other", "Example", "Example"])
     }
 
     @Test func timelineUsesMinimumLimitOfOne() throws {

@@ -450,24 +450,24 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   `Ungelesen` basiert weiter auf `Feed.unreadCount`; Status-Badges beobachten
   nur Stern-/Archiv-/Hidden-Artikel, damit normales Lesen keine komplette
   Sidebar-Badge-Invalidierung mehr auslöst.
-- Tag-Badges für direkt getaggte Artikel kommen im SQLite/GRDB-Übergangspfad aus
-  `TagStore.sidebarTags()` und `SQLiteSidebarState`, statt pro Sidebar-Render
-  SwiftData-`fetchCount` oder Artikel→Tag-Relationships zu nutzen. Feed-Tags
-  bleiben bis zur SQLite-`feed_tags`-Migration noch Legacy.
+- Tag-Badges kommen im SQLite/GRDB-Übergangspfad aus `TagStore.sidebarTags()`
+  und `SQLiteSidebarState`, statt pro Sidebar-Render SwiftData-`fetchCount` oder
+  Artikel→Tag-Relationships zu nutzen. Die Counts umfassen direkte Artikel-Tags
+  und Feed-Tags aus `feed_tags` ohne doppelte Artikel.
 - Per Darstellungseinstellung `sidebar.showsReadFeeds` können Feeds ohne
   ungelesene Artikel in der Sidebar ausgeblendet werden; Standard bleibt anzeigen.
 - Die Sidebar zeigt eine eigene `Tags`-Section mit Tag-Icon; der Button öffnet den
   zentralen `TagManagerView`.
 - Vorhandene Tags werden in der Sidebar als klickbare Zeilen mit Farbindikator aus
   `Tag.colorHex` angezeigt; ein Klick filtert die Artikelliste feedübergreifend.
-  Im SQLite-Hauptpfad lädt `SQLiteFeedArticleListView` direkte Artikel-Tags über
-  `TimelineScope.tag` aus `article_tags`; Feed-Tag-Treffer bleiben bis zur
-  `feed_tags`-Migration noch Legacy.
+  Im SQLite-Hauptpfad lädt `SQLiteFeedArticleListView` Tag-Filter über
+  `TimelineScope.tag`; die Query umfasst direkte Artikel-Tags aus `article_tags`
+  und Feed-Tags aus `feed_tags`.
 - Neu erstellte Tags werden nach erfolgreichem Anlegen direkt als Sidebar-Auswahl
   gesetzt, damit der schnelle Tag-Filter sofort sichtbar und nutzbar ist.
 - Tag-Zeilen zeigen rechts eine dezente Badge mit der Anzahl passender Artikel.
-  Im SQLite-Pfad zählen aktuell direkte Artikel-Tags aus `article_tags`;
-  Feed-Tag-Treffer folgen mit der noch offenen `feed_tags`-Migration.
+  Im SQLite-Pfad zählen aktuell direkte Artikel-Tags aus `article_tags` und
+  Feed-Tag-Treffer aus `feed_tags`.
 - Die Sidebar zeigt keine eigene `Regeln`-Section mehr. Die komplette
   Regelverwaltung liegt bewusst in den Einstellungen; der schnelle Einstieg
   `Regel erstellen...` sitzt im Menü der Artikelansicht.
@@ -2268,8 +2268,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Regel-Benachrichtigungen und `assignTag` schreibt Tags in `tags`/
   `article_tags`. Sidebar-Tag-Badges für direkte Artikel-Tags lesen ihre Counts
   inzwischen über SQLite-Snapshots; direkte Tag-Filter laden ihre Artikelliste
-  über `TimelineScope.tag`. Tag-Manager und Feed-Tags bleiben noch auf dem
-  Legacy-Pfad.
+  über `TimelineScope.tag`. Feed-Tags sind als `feed_tags` in SQLite ergänzt und
+  werden aus den Feed-Eigenschaften gespiegelt; der Tag-Manager bleibt noch auf
+  dem Legacy-Pfad.
   Die normalen Feed-Zeilen in der Sidebar nutzen `SQLiteSidebarState` und
   `FeedSidebarSnapshot` für Anzeige und ungelesene Badges; Auswahl und
   Kontextmenüs bleiben übergangsweise SwiftData. SQLite-Statusänderungen halten
@@ -2302,8 +2303,8 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Scrollbeobachter-Ansatz hat das Scrollgefühl im Reader verschlechtert und wurde
   wieder entfernt. Für v1 bleibt der Reader ohne Lesefortschritt.
 - Nächster sinnvoller Fokus: verbleibende Hauptpfad-Lücken schließen:
-  Tag-Manager und Feed-Tags auf SQL-Snapshots migrieren, Feed-Logs in der UI
-  abrunden, Sidebar-Smart-Folder-Badges auf SQL-Snapshots migrieren und danach
+  Tag-Manager auf SQL-Snapshots migrieren, Feed-Logs in der UI abrunden,
+  Sidebar-Smart-Folder-Badges auf SQL-Snapshots migrieren und danach
   Suche/Filter schrittweise auf SQLite ziehen.
 - Feature-Roadmap ist in `FEATURES.md` im Root dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
@@ -2312,17 +2313,22 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 
 ## Letzte Änderungen
 
+- 2026-07-02: Feed-Tags in SQLite ergänzt. Migration v3 legt `feed_tags` mit
+  Kaskaden und Index an, `TagStore` kann Tags idempotent Feeds zuweisen und
+  entfernen, `TimelineScope.tag` und `TagStore.sidebarTags()` zählen direkte
+  Artikel-Tags und Feed-Tags ohne Duplikate, und `FeedPropertiesView` spiegelt
+  Feed-Tag-Änderungen nach SQLite.
+
 - 2026-07-02: Direkte Tag-Filter auf SQLite umgestellt. `TimelineScope.tag`
   filtert Artikel über `article_tags`, `SQLiteFeedArticleListState` kann neben
   Feed-URLs auch Tag-IDs laden, und `ContentView` nutzt bei Tag-Auswahl den
-  SQLite-Listen-/Reader-Pfad. Feed-Tags bleiben bis zur eigenen
-  `feed_tags`-Migration außen vor.
+  SQLite-Listen-/Reader-Pfad. Feed-Tags wurden im folgenden Slice ergänzt.
 
 - 2026-07-02: Sidebar-Tag-Badges an SQLite-Snapshots angeschlossen.
   `TagStore.sidebarTags()` liefert `TagSidebarSnapshot`s mit direkten
   Artikel-Zählern aus `article_tags`, `SQLiteSidebarState` lädt diese Snapshots
   zusammen mit Feed-Snapshots, und `SidebarView` zeigt Tag-Badges daraus statt
-  über SwiftData-`fetchCount`. Feed-Tags bleiben der nächste Tag-Migrationsslice.
+  über SwiftData-`fetchCount`. Feed-Tags wurden im folgenden Slice ergänzt.
 
 - 2026-07-02: SQLite-Tag-Fundament und `assignTag` im SQLite-first Refresh
   umgesetzt. Migration v2 legt `tags` und `article_tags` mit passenden Indizes

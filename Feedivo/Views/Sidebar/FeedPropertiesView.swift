@@ -5,6 +5,7 @@ import SwiftUI
 struct FeedPropertiesView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.feedivoDatabase) private var feedivoDatabase
     @Query(sort: \Tag.name) private var tags: [Tag]
 
     @AppStorage(ArticleRetentionSettings.isEnabledKey)
@@ -548,6 +549,7 @@ struct FeedPropertiesView: View {
         tags.append(tag)
         feed.tags = tags
         try? modelContext.save()
+        mirrorFeedTagToSQLite(tag)
     }
 
     private func removeTag(_ tag: Tag) {
@@ -555,6 +557,39 @@ struct FeedPropertiesView: View {
         tags.removeAll { $0.id == tag.id }
         feed.tags = tags
         try? modelContext.save()
+        removeFeedTagFromSQLite(tag)
+    }
+
+    private func mirrorFeedTagToSQLite(_ tag: Tag) {
+        guard let database = feedivoDatabase else {
+            return
+        }
+
+        do {
+            let store = TagStore(database: database)
+            try store.save(TagRecord(id: tag.id.uuidString, name: tag.name, colorHex: tag.colorHex))
+            try store.assignTag(tagID: tag.id.uuidString, toFeedID: feed.id.uuidString, at: Date())
+            SidebarBadgeInvalidation.bumpDirectTagVersion()
+        } catch {
+            // Feed-Tags bleiben in SwiftData erhalten; SQLite wird beim nächsten
+            // erfolgreichen Bearbeiten oder späteren Backfill erneut gespiegelt.
+        }
+    }
+
+    private func removeFeedTagFromSQLite(_ tag: Tag) {
+        guard let database = feedivoDatabase else {
+            return
+        }
+
+        do {
+            try TagStore(database: database).removeTag(
+                tagID: tag.id.uuidString,
+                fromFeedID: feed.id.uuidString
+            )
+            SidebarBadgeInvalidation.bumpDirectTagVersion()
+        } catch {
+            // Der Legacy-Pfad bleibt führend, wenn SQLite vorübergehend fehlt.
+        }
     }
 
     private func syncFeedRetentionSettings() {

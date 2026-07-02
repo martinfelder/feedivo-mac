@@ -108,6 +108,19 @@ enum FeedivoDatabaseMigrator {
             try database.create(index: "idx_article_tags_tag_article", on: "article_tags", columns: ["tagID", "articleID"])
         }
 
+        migrator.registerMigration("v3_create_feed_tag_table") { database in
+            try database.create(table: "feed_tags") { table in
+                table.column("feedID", .text).notNull()
+                    .references("feeds", column: "id", onDelete: .cascade)
+                table.column("tagID", .text).notNull()
+                    .references("tags", column: "id", onDelete: .cascade)
+                table.column("assignedAt", .datetime).notNull()
+                table.primaryKey(["feedID", "tagID"])
+            }
+
+            try database.create(index: "idx_feed_tags_tag_feed", on: "feed_tags", columns: ["tagID", "feedID"])
+        }
+
         return migrator
     }
 }

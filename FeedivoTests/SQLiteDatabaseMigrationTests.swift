@@ -15,6 +15,7 @@ struct SQLiteDatabaseMigrationTests {
         #expect(tableNames.contains("feed_logs"))
         #expect(tableNames.contains("tags"))
         #expect(tableNames.contains("article_tags"))
+        #expect(tableNames.contains("feed_tags"))
     }
 
     @Test func migrationCreatesPerformanceIndexes() throws {
@@ -35,6 +36,7 @@ struct SQLiteDatabaseMigrationTests {
         #expect(indexNames.contains("idx_feed_logs_feed_created"))
         #expect(indexNames.contains("idx_tags_name_unique"))
         #expect(indexNames.contains("idx_article_tags_tag_article"))
+        #expect(indexNames.contains("idx_feed_tags_tag_feed"))
     }
 
     @Test func articleStatusesHaveNoForeignKeyCascadeToArticles() throws {
@@ -87,6 +89,29 @@ struct SQLiteDatabaseMigrationTests {
         }
 
         #expect(try rowCount(in: database, table: "article_tags") == 0)
+    }
+
+    @Test func feedTagsCascadeWhenFeedOrTagIsDeleted() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+
+        try insertFeed(into: database, id: "feed-1")
+        try insertTag(into: database, id: "tag-1")
+        try insertFeedTag(into: database, feedID: "feed-1", tagID: "tag-1")
+
+        try database.write { database in
+            try database.execute(sql: "DELETE FROM feeds WHERE id = ?", arguments: ["feed-1"])
+        }
+
+        #expect(try rowCount(in: database, table: "feed_tags") == 0)
+
+        try insertFeed(into: database, id: "feed-2")
+        try insertFeedTag(into: database, feedID: "feed-2", tagID: "tag-1")
+
+        try database.write { database in
+            try database.execute(sql: "DELETE FROM tags WHERE id = ?", arguments: ["tag-1"])
+        }
+
+        #expect(try rowCount(in: database, table: "feed_tags") == 0)
     }
 
     @Test func deletingFeedCascadesToArticlesAndFeedLogsButNotArticleStatuses() throws {
@@ -341,6 +366,19 @@ private func insertArticleTag(into database: FeedivoDatabase, articleID: String,
                 ) VALUES (?, ?, ?)
                 """,
             arguments: [articleID, tagID, Date()]
+        )
+    }
+}
+
+private func insertFeedTag(into database: FeedivoDatabase, feedID: String, tagID: String) throws {
+    try database.write { database in
+        try database.execute(
+            sql: """
+                INSERT INTO feed_tags (
+                    feedID, tagID, assignedAt
+                ) VALUES (?, ?, ?)
+                """,
+            arguments: [feedID, tagID, Date()]
         )
     }
 }

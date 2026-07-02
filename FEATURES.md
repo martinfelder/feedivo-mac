@@ -870,13 +870,15 @@
     sendbare Regel-/Artikelsnapshots. `assignTag`-Regeln schreiben inzwischen
     über `TagStore` in `tags` und `article_tags`; Sidebar-Tag-Badges für direkte
     Artikel-Tags lesen Counts inzwischen aus `TagStore.sidebarTags()`.
-    Direkte Tag-Filter laden Artikel über `TimelineScope.tag` aus SQLite.
-    Tag-UI und Feed-Tags folgen in weiteren SQLite-Slices.
+    Tag-Filter laden Artikel über `TimelineScope.tag` aus SQLite und umfassen
+    direkte Artikel-Tags sowie Feed-Tags aus `feed_tags`. Tag-UI/Tag-Manager
+    folgt in weiteren SQLite-Slices.
   - Sidebar-Feed-Zeilen lesen Anzeige-Snapshots aus SQLite: `SQLiteSidebarState`
     lädt `FeedSidebarSnapshot` über `FeedStore`, `FeedRowView` bevorzugt daraus
     Titel, Favicon und ungelesene Counts. Auswahl, Kontextmenüs,
-    Feed-Eigenschaften, Tag-Manager, Feed-Tags und Smart-Folder-Badges bleiben
-    für diesen Slice noch an den bestehenden SwiftData-/Legacy-Pfaden.
+    Feed-Eigenschaften spiegeln Feed-Tag-Änderungen nach SQLite; Tag-Manager und
+    Smart-Folder-Badges bleiben für diesen Slice noch an bestehenden
+    SwiftData-/Legacy-Pfaden.
   - SQLite-Statusänderungen halten Feed-Zähler aktuell: `ArticleStatusStore`
     berechnet nach Read-/Hidden-Mutationen `feeds.unreadCount` direkt in SQLite
     neu und bump't `SQLiteDataInvalidation.statusVersionKey`, wodurch die
@@ -960,11 +962,11 @@
   - Start-Backfills und Orphan-Cleanup vermeiden vollständige
     `feed.articles`-Relationship-Faults; `Article.feed` wird dort nur noch als
     Fallback für alten Datenbestand ohne `feedID` berührt
-  - Sidebar-Tag-Badges für direkt getaggte Artikel lesen Zähler aus
-    `article_tags` über `TagStore.sidebarTags()` und `SQLiteSidebarState`;
-    Feed-Tags bleiben bis zur eigenen SQLite-Migration Legacy
+  - Sidebar-Tag-Badges lesen Zähler aus `article_tags` und `feed_tags` über
+    `TagStore.sidebarTags()` und `SQLiteSidebarState`
   - Direkte Tag-Filter verwenden `TimelineScope.tag` und die SQLite-
-    Artikelliste/Reader-Kette; Feed-Tags bleiben bis zur eigenen Migration Legacy
+    Artikelliste/Reader-Kette; Feed-Tags werden dabei über `feed_tags`
+    berücksichtigt
   - Status-Badges beobachten nur eine kleine Query auf Stern-/Archiv-/
     Hidden-Artikel
   - Artikelzeilen laden Vorschaubilder über größenbegrenzte Thumbnails aus dem

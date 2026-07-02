@@ -57,6 +57,18 @@ struct TagStore {
         }
     }
 
+    func tags(feedID: String) throws -> [TagRecord] {
+        try database.read { db in
+            try TagRecord.fetchAll(db, sql: """
+                SELECT t.*
+                FROM tags t
+                JOIN feed_tags ft ON ft.tagID = t.id
+                WHERE ft.feedID = ?
+                ORDER BY t.name COLLATE NOCASE, t.id COLLATE NOCASE
+                """, arguments: [feedID])
+        }
+    }
+
     func sidebarTags() throws -> [TagSidebarSnapshot] {
         try database.read { db in
             try TagSidebarSnapshot.fetchAll(db, sql: """
@@ -64,10 +76,23 @@ struct TagStore {
                     t.id,
                     t.name,
                     t.colorHex,
-                    COUNT(DISTINCT at.articleID) AS articleCount
+                    (
+                        SELECT COUNT(DISTINCT a.id)
+                        FROM articles a
+                        WHERE EXISTS (
+                            SELECT 1
+                            FROM article_tags at
+                            WHERE at.articleID = a.id
+                                AND at.tagID = t.id
+                        )
+                        OR EXISTS (
+                            SELECT 1
+                            FROM feed_tags ft
+                            WHERE ft.feedID = a.feedID
+                                AND ft.tagID = t.id
+                        )
+                    ) AS articleCount
                 FROM tags t
-                LEFT JOIN article_tags at ON at.tagID = t.id
-                GROUP BY t.id, t.name, t.colorHex
                 ORDER BY t.name COLLATE NOCASE, t.id COLLATE NOCASE
                 """)
         }
@@ -81,6 +106,29 @@ struct TagStore {
                 assignedAt: assignedAt
             )
             try assignment.insert(db, onConflict: .ignore)
+        }
+    }
+
+    func assignTag(tagID: String, toFeedID feedID: String, at assignedAt: Date) throws {
+        try database.write { db in
+            var assignment = FeedTagRecord(
+                feedID: feedID,
+                tagID: tagID,
+                assignedAt: assignedAt
+            )
+            try assignment.insert(db, onConflict: .ignore)
+        }
+    }
+
+    func removeTag(tagID: String, fromFeedID feedID: String) throws {
+        try database.write { db in
+            try db.execute(
+                sql: """
+                    DELETE FROM feed_tags
+                    WHERE feedID = ? AND tagID = ?
+                    """,
+                arguments: [feedID, tagID]
+            )
         }
     }
 }

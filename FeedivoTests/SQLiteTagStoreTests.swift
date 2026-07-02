@@ -42,6 +42,40 @@ struct SQLiteTagStoreTests {
         #expect(assignmentCount == 1)
     }
 
+    @Test func assignTagToFeedIsIdempotent() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let tagStore = TagStore(database: database)
+
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example"))
+        try tagStore.save(TagRecord(id: "tag-1", name: "Swift", colorHex: "#ff0000"))
+
+        try tagStore.assignTag(tagID: "tag-1", toFeedID: "feed-1", at: Date(timeIntervalSince1970: 100))
+        try tagStore.assignTag(tagID: "tag-1", toFeedID: "feed-1", at: Date(timeIntervalSince1970: 200))
+
+        let feedTags = try tagStore.tags(feedID: "feed-1")
+        let assignmentCount = try database.read { database in
+            try Int.fetchOne(database, sql: "SELECT COUNT(*) FROM feed_tags") ?? 0
+        }
+
+        #expect(feedTags.map(\.name) == ["Swift"])
+        #expect(assignmentCount == 1)
+    }
+
+    @Test func removeTagFromFeedDeletesAssignment() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let tagStore = TagStore(database: database)
+
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example"))
+        try tagStore.save(TagRecord(id: "tag-1", name: "Swift", colorHex: "#ff0000"))
+        try tagStore.assignTag(tagID: "tag-1", toFeedID: "feed-1", at: Date(timeIntervalSince1970: 100))
+
+        try tagStore.removeTag(tagID: "tag-1", fromFeedID: "feed-1")
+
+        #expect(try tagStore.tags(feedID: "feed-1").isEmpty)
+    }
+
     @Test func sidebarTagsIncludeDirectArticleCountsFromSQLite() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let feedStore = FeedStore(database: database)
@@ -67,5 +101,28 @@ struct SQLiteTagStoreTests {
         #expect(sidebarTags.map(\.id) == ["tag-empty", "tag-swift"])
         #expect(sidebarTags.first { $0.id == "tag-swift" }?.articleCount == 2)
         #expect(sidebarTags.first { $0.id == "tag-empty" }?.articleCount == 0)
+    }
+
+    @Test func sidebarTagsCountFeedTaggedArticlesWithoutDuplicates() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let tagStore = TagStore(database: database)
+
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example"))
+        try tagStore.save(TagRecord(id: "tag-swift", name: "Swift", colorHex: "#ff0000"))
+        let firstArticleID = try articleStore.upsert(
+            ArticleUpsertInput(feedID: "feed-1", sourceID: "article-1", title: "Erster Artikel")
+        )
+        _ = try articleStore.upsert(
+            ArticleUpsertInput(feedID: "feed-1", sourceID: "article-2", title: "Zweiter Artikel")
+        )
+
+        try tagStore.assignTag(tagID: "tag-swift", toFeedID: "feed-1", at: Date(timeIntervalSince1970: 100))
+        try tagStore.assignTag(tagID: "tag-swift", toArticleID: firstArticleID, at: Date(timeIntervalSince1970: 200))
+
+        let sidebarTags = try tagStore.sidebarTags()
+
+        #expect(sidebarTags.first { $0.id == "tag-swift" }?.articleCount == 2)
     }
 }

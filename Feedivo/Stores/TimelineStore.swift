@@ -32,14 +32,22 @@ struct TimelineStore {
             _ = arguments.append(contentsOf: [feedID])
         case let .tag(tagID):
             whereClauses.append("""
-                EXISTS (
-                    SELECT 1
-                    FROM article_tags at
-                    WHERE at.articleID = a.id
-                        AND at.tagID = ?
+                (
+                    EXISTS (
+                        SELECT 1
+                        FROM article_tags at
+                        WHERE at.articleID = a.id
+                            AND at.tagID = ?
+                    )
+                    OR EXISTS (
+                        SELECT 1
+                        FROM feed_tags ft
+                        WHERE ft.feedID = a.feedID
+                            AND ft.tagID = ?
+                    )
                 )
                 """)
-            _ = arguments.append(contentsOf: [tagID])
+            _ = arguments.append(contentsOf: [tagID, tagID])
         }
 
         if !includeRead {

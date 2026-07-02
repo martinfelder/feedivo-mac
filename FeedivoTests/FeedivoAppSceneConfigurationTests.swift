@@ -409,6 +409,20 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(rowSource.contains("sqliteSnapshot?.faviconURL"))
     }
 
+    @Test func feedPropertiesViewSpiegeltFeedTagsNachSQLite() throws {
+        let projectRoot = projectRootURL()
+        let source = try source(at: "Feedivo/Views/Sidebar/FeedPropertiesView.swift", projectRoot: projectRoot)
+
+        #expect(source.contains("@Environment(\\.feedivoDatabase) private var feedivoDatabase"))
+        #expect(source.contains("let store = TagStore(database: database)"))
+        #expect(source.contains("try store.save"))
+        #expect(source.contains("assignTag(tagID: tag.id.uuidString, toFeedID: feed.id.uuidString"))
+        #expect(source.contains("try TagStore(database: database).removeTag"))
+        #expect(source.contains("tagID: tag.id.uuidString"))
+        #expect(source.contains("fromFeedID: feed.id.uuidString"))
+        #expect(source.contains("SidebarBadgeInvalidation.bumpDirectTagVersion()"))
+    }
+
     private func projectRootURL() -> URL {
         URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
