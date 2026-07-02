@@ -19,13 +19,13 @@ private enum ArticleInspectorStyle {
 struct ArticleMetadataInspectorView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.interfaceTextSize) private var interfaceTextSize
-    @Query(sort: \Feed.title) private var feeds: [Feed]
     @Query(sort: \FeedFolder.name) private var folders: [FeedFolder]
     @Query(sort: \Tag.name) private var tags: [Tag]
 
     @State private var newTagName = ""
     @State private var newTagColorHex = TagColorPalette.defaultColorHex
     @State private var newFolderName = ""
+    @State private var feedFolderNameOptions: [String] = []
     @State private var articleViewModel = ArticleViewModel()
     @State private var offlineDownloadService = OfflineDownloadService()
     @State private var isFeedFolderSectionExpanded = true
@@ -45,7 +45,10 @@ struct ArticleMetadataInspectorView: View {
     var toggleOfflineAvailability: () -> Void = {}
 
     private var folderNames: [String] {
-        FeedFolderOrganizer.folderNames(in: feeds, folders: folders)
+        FeedFolderOrganizer.folderNames(
+            feedFolderNames: feedFolderNameOptions + [folderName].compactMap { $0 },
+            explicitFolderNames: folders.map(\.name)
+        )
     }
 
     private var sortedAllTags: [Tag] {
@@ -89,6 +92,9 @@ struct ArticleMetadataInspectorView: View {
         .frame(minWidth: 280, idealWidth: 318, maxWidth: 360)
         .frame(maxHeight: .infinity, alignment: .top)
         .background(ArticleInspectorStyle.background)
+        .task {
+            loadFeedFolderNameOptions()
+        }
     }
 
     private var header: some View {
@@ -601,13 +607,35 @@ struct ArticleMetadataInspectorView: View {
     }
 
     private func addFolder() {
+        let normalizedFolderName = FeedFolderOrganizer.normalizedFolderName(newFolderName)
         ArticleMetadataEditor.createFolderAndAssign(
             named: newFolderName,
             to: article,
             existingFolders: folders,
             context: modelContext
         )
+        if let normalizedFolderName {
+            feedFolderNameOptions = FeedFolderOrganizer.folderNames(
+                feedFolderNames: feedFolderNameOptions + [normalizedFolderName],
+                explicitFolderNames: []
+            )
+        }
         newFolderName = ""
+    }
+
+    private func loadFeedFolderNameOptions() {
+        var descriptor = FetchDescriptor<Feed>()
+        descriptor.propertiesToFetch = [\.folderName]
+
+        let feeds = (try? modelContext.fetch(descriptor)) ?? []
+        let names = FeedFolderOrganizer.folderNames(
+            feedFolderNames: feeds.compactMap { $0.folderName },
+            explicitFolderNames: []
+        )
+
+        if feedFolderNameOptions != names {
+            feedFolderNameOptions = names
+        }
     }
 }
 

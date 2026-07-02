@@ -1572,6 +1572,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Nutzt für Feedname, Ordnername, Lesezeit und Content-Verfügbarkeit die von
   `ReaderView` vorbereiteten Snapshot-Werte. Der Inspector greift im Body dadurch
   nicht mehr direkt auf Volltext-/Offline-Textfelder des SwiftData-Artikels zu.
+- Die Ordnerauswahl hält keine `@Query` auf alle Feeds mehr. Beim Erscheinen des
+  Inspectors werden vorhandene Feed-Ordnernamen einmal als leichter Snapshot mit
+  `propertiesToFetch` geladen und danach mit explizit angelegten `FeedFolder`-
+  Namen kombiniert.
 - Die Quelle ist standardmäßig eingeklappt und folgt dem Prototyp als reine
   Aktions-Section mit zwei breiten Zeilen für `Link kopieren` und `Original
   oeffnen`; die URL selbst wird dort bewusst nicht mehr als Textbox gezeigt.
@@ -2202,7 +2206,8 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Stern-/Archiv-/Hidden-Artikel. Der rechte Artikel-Inspector nutzt nun die von
   `ReaderView` vorbereiteten Snapshot-Werte für Feed, Ordner, Lesezeit und
   Content-Verfügbarkeit und faultet im Body keine Volltext-/Offline-Textfelder
-  mehr.
+  mehr. Die Ordnerauswahl im Inspector hält außerdem keine `@Query` auf alle
+  Feeds mehr, sondern arbeitet mit einem leichten Namens-Snapshot.
 
 - 2026-07-01: Reader-Artikelwechsel weiter entkoppelt. `ReaderView` beobachtet
   für Reader-Rebuilds keine schweren Textfelder (`Article.content`,

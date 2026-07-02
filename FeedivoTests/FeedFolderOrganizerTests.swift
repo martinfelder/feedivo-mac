@@ -26,6 +26,18 @@ struct FeedFolderOrganizerTests {
         #expect(FeedFolderOrganizer.folderNames(in: feeds, folders: folders) == ["Later", "Tech"])
     }
 
+    @Test func folderNamesKoennenAusLeichtenStringsGebildetWerden() {
+        let feedFolderNames = [" Tech ", "News", "tech", ""]
+        let folderNames = ["Later", " news "]
+
+        #expect(
+            FeedFolderOrganizer.folderNames(
+                feedFolderNames: feedFolderNames,
+                explicitFolderNames: folderNames
+            ) == ["Later", "News", "Tech"]
+        )
+    }
+
     @Test func feedsOhneOrdnerIgnoriertLeereOrdnernamen() {
         let feeds = [
             Feed(url: "https://example.com/a.xml", title: "A", folderName: nil),

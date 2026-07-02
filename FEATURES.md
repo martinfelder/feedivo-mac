@@ -833,6 +833,9 @@
   - Der rechte Artikel-Inspector nutzt von `ReaderView` vorbereitete Snapshot-
     Werte für Feedname, Ordner, Lesezeit und Content-Verfügbarkeit; dadurch
     faultet der Inspector-Body keine Volltext-/Offline-Textfelder mehr.
+  - Die Ordnerauswahl im rechten Artikel-Inspector liest Feed-Ordnernamen nur
+    noch als leichten Snapshot und hält keine `@Query` auf alle Feeds mehr im
+    SwiftUI-Body.
   - `Ungelesen`-Badge der intelligenten Ordner nutzt die gespeicherten `Feed.unreadCount` Werte
   - `Mit Stern`, `Ausgeblendet` und `Gespeichert` lesen ihre Sidebar-Badges aus
     gebündelten Status-Zählern
