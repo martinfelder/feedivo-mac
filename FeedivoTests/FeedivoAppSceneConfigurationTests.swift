@@ -151,7 +151,20 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(listSource.contains("prefetchReaderFields"))
         #expect(!listSource.contains("_ = article.content"))
         #expect(!listSource.contains("_ = article.offlineContent"))
+        #expect(!listSource.contains("_ = article.feed?.title"))
         #expect(!listSource.contains("await ImageCacheService.shared.image"))
+    }
+
+    @Test func articleRowsLesenFeednamenNichtUeberRelationship() throws {
+        let projectRoot = projectRootURL()
+        let rowSource = try source(at: "Feedivo/Views/ArticleList/ArticleRowView.swift", projectRoot: projectRoot)
+        let listSource = try source(at: "Feedivo/Views/ArticleList/ArticleListView.swift", projectRoot: projectRoot)
+
+        #expect(rowSource.contains("let feedTitle: String?"))
+        #expect(rowSource.contains("feedTitle,"))
+        #expect(!rowSource.contains("article.feed?.title"))
+        #expect(listSource.contains("feedTitleByFeedID"))
+        #expect(listSource.contains("feedTitle: feedTitle(for: article, in: feedTitleByFeedID)"))
     }
 
     @Test func readerRendertContentBloeckeLazy() throws {

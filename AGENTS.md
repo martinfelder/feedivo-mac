@@ -920,9 +920,14 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   vorbereitet, damit die Artikelliste pro SwiftUI-Render nur einmal sortiert und
   danach auf derselben sortierten Liste filtert.
 - Der Reader-Prefetch der Artikelliste bleibt bewusst leichtgewichtig: Er faultet
-  keine `Article.content`-/`Article.offlineContent`-Volltexte und decodiert keine
-  Nachbarartikel-Bilder mehr. Die teure Vorbereitung passiert nur für den wirklich
-  geöffneten Artikel im asynchronen Reader-Build.
+  keine `Article.content`-/`Article.offlineContent`-Volltexte, keine
+  `Article.feed`-Relationship und decodiert keine Nachbarartikel-Bilder mehr. Die
+  teure Vorbereitung passiert nur für den wirklich geöffneten Artikel im
+  asynchronen Reader-Build.
+- Feednamen für Artikelzeilen kommen aus einem einmal pro Render gebauten
+  `feedID -> Feed.title` Lookup über die leichte Feed-Query. `ArticleRowView`
+  liest den Feednamen nicht mehr über `article.feed?.title`, damit das Lesen in
+  `Alle Artikel` keine Relationship-Faults pro sichtbarer Zeile auslöst.
 - Die Artikelliste bietet nur noch eine einfache, kompakte Suche oberhalb der
   mittleren Spalte. Sie durchsucht bewusst nur die bereits geladenen Artikel der
   aktuell ausgewählten Liste und nutzt dafür den Bereich `Alles` (Titel,
@@ -1040,6 +1045,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   entfernen, Artikel löschen und alle sichtbaren Artikel als gelesen markieren
 - Prüft, ob Link-Aktionen verfügbar sind, über `ArticleOriginalURLResolver` und
   erzeugt dafür keine eigene `ArticleViewModel`-Instanz pro Kontextmenü-Aufbau.
+- Erhält den Feednamen als einfachen String aus `ArticleListView` statt ihn über
+  `article.feed?.title` zu faulten. Das hält Zeilen-Redraws beim schnellen Lesen
+  frei von Feed-Relationship-Ladevorgängen.
 - Gelesene Artikel werden optisch ruhiger dargestellt
 
 ### ArticleViewModel.swift
@@ -1861,6 +1869,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
      separaten SwiftData-`ModelContext` geladen. Der UI-Pfad behält nur den
      leichten Preview-Snapshot; `ReaderArticleCacheKey` verwendet Text-
      Fingerprints statt Volltext-Strings.
+  8. Artikelzeilen bekommen Feednamen aus einem einmal pro Render gebauten
+     `feedID -> Feed.title` Lookup. Weder `ArticleRowView` noch der
+     Nachbarartikel-Prefetch lesen `article.feed?.title`; dadurch entstehen beim
+     schnellen Lesen in `Alle Artikel` keine Feed-Relationship-Faults pro Zeile.
 - **Konsequenz:** Navigation bleibt auch bei großem Datenbestand flüssig;
   Lese-Status wird verzögert (≤0.6s) persistiert, was für einen RSS-Reader
   akzeptabel ist und auf `.onDisappear` sofort geflusht wird.
@@ -2140,7 +2152,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 
 - 2026-07-02: CPU-Last beim Lesen reduziert. Der Reader-Prefetch in
   `ArticleListView` faultet keine schweren Artikeltexte (`Article.content`,
-  `Article.offlineContent`) und decodiert keine Nachbarartikel-Bilder mehr.
+  `Article.offlineContent`), keine Feed-Relationships und decodiert keine
+  Nachbarartikel-Bilder mehr. Artikelzeilen lesen Feednamen nicht mehr über
+  `article.feed?.title`, sondern über einen einmal pro Render gebauten
+  `feedID -> Feed.title` Lookup.
   Die eigentliche Reader-Vorbereitung bleibt asynchron beim aktuell geöffneten
   Artikel. Zusätzlich rendert `ReaderView` native Reader- und Readability-Inhalte
   per `LazyVStack`, damit lange Artikel nicht komplett als View-Baum aufgebaut

@@ -524,6 +524,7 @@ private struct ArticleListContent: View {
     let onLoadMoreArticles: () -> Void
     @Binding var selectedArticle: Article?
     @Binding var navigationState: ArticleNavigationState
+    @Query(sort: \Feed.title) private var feeds: [Feed]
     @Query(sort: \Tag.name) private var tags: [Tag]
     @AppStorage("markArticleReadOnSelection")
     private var markArticleReadOnSelection = true
@@ -591,6 +592,7 @@ private struct ArticleListContent: View {
         )
         let displaySnapshot = displayState.snapshot
         let visibleArticles = displaySnapshot.visibleArticles
+        let feedTitleByFeedID = makeFeedTitleByFeedID()
 
         VStack(spacing: 0) {
             articleSearchBar
@@ -606,7 +608,11 @@ private struct ArticleListContent: View {
                     }
                 } else {
                     ForEach(visibleArticles) { article in
-                        articleRow(article, visibleArticles: visibleArticles)
+                        articleRow(
+                            article,
+                            visibleArticles: visibleArticles,
+                            feedTitleByFeedID: feedTitleByFeedID
+                        )
                             .tag(article)
                     }
 
@@ -769,9 +775,14 @@ private struct ArticleListContent: View {
         }
     }
 
-    private func articleRow(_ article: Article, visibleArticles: [Article]) -> ArticleRowView {
+    private func articleRow(
+        _ article: Article,
+        visibleArticles: [Article],
+        feedTitleByFeedID: [UUID: String]
+    ) -> ArticleRowView {
         ArticleRowView(
             article: article,
+            feedTitle: feedTitle(for: article, in: feedTitleByFeedID),
             availableTags: tags,
             onToggleRead: {
                 viewModel.toggleRead(article, context: modelContext)
@@ -835,6 +846,20 @@ private struct ArticleListContent: View {
 
     private func openArticleInWindow(_ article: Article) {
         openWindow(value: ArticleWindowRequest(articleID: article.id))
+    }
+
+    private func makeFeedTitleByFeedID() -> [UUID: String] {
+        Dictionary(uniqueKeysWithValues: feeds.map { feed in
+            (feed.id, feed.title)
+        })
+    }
+
+    private func feedTitle(for article: Article, in feedTitleByFeedID: [UUID: String]) -> String? {
+        guard let feedID = article.feedID else {
+            return nil
+        }
+
+        return feedTitleByFeedID[feedID]
     }
 
     private func makePreparedArticles() -> ArticleListPreparedArticles {
@@ -1144,8 +1169,8 @@ struct ReaderArticlePrefetchPlan {
             // Absichtlich leichtgewichtig: Der Reader lädt und parst große
             // Textfelder asynchron erst für den wirklich geöffneten Artikel.
             // Prefetching darf beim schnellen Lesen nicht nebenbei Volltexte
-            // und Bilder faulten/decodieren.
-            _ = article.feed?.title
+            // Bilder oder Feed-Relationships faulten/decodieren.
+            _ = article.feedID
         }
     }
 }

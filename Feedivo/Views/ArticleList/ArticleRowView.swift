@@ -4,6 +4,7 @@ struct ArticleRowView: View {
     @Environment(\.interfaceTextSize) private var interfaceTextSize
 
     let article: Article
+    let feedTitle: String?
     let availableTags: [Tag]
     let onToggleRead: () -> Void
     let onToggleStarred: () -> Void
@@ -219,7 +220,7 @@ struct ArticleRowView: View {
 
     private var metadataText: String {
         [
-            article.feed?.title,
+            feedTitle,
             article.publishedAt?.feedivoRelativeDisplay
         ]
         .compactMap { value in

@@ -845,8 +845,9 @@
   - Der Reader lädt den vollständigen Artikel-Snapshot über einen eigenen SwiftData-`ModelContext` im Hintergrund, statt `content`/`offlineContent` aus dem UI-`Article` zu faulten
   - Reader-Cache-Keys speichern nur kompakte Text-Fingerprints und keine zusätzlichen Volltext-Kopien
   - Reader-Detailbilder werden mit Ziel-Pixelgröße geladen, damit große Feedbilder nicht unnötig voll decodiert werden
+  - Artikelzeilen lesen Feednamen über einen `feedID -> Feed.title` Lookup statt über `article.feed?.title`, damit `Alle Artikel` beim Lesen keine Feed-Relationship-Faults pro sichtbarer Zeile erzeugt
   - Die Artikelansicht bietet hinter den Ordner-/Tag-Chips ein Inline-Tag-Popover, das dieselbe Tag-Erstellungs- und Zuweisungslogik wie der rechte Inspector nutzt
-  - Der Reader-Prefetch der Artikelliste bleibt leichtgewichtig und faultet keine `content`-/`offlineContent`-Volltexte oder Nachbarartikel-Bilder mehr, damit sequentielles Lesen weniger CPU/I/O erzeugt
+  - Der Reader-Prefetch der Artikelliste bleibt leichtgewichtig und faultet keine `content`-/`offlineContent`-Volltexte, keine Feed-Relationships oder Nachbarartikel-Bilder mehr, damit sequentielles Lesen weniger CPU/I/O erzeugt
   - Native Reader- und Readability-Inhalte rendern per `LazyVStack`, damit lange Artikel beim Öffnen nicht vollständig als SwiftUI-View-Baum materialisiert werden
   - Der Reader zeigt beim Wechsel sofort eine leichte Summary-/Bild-Vorschau und vermeidet sichtbare Spinner für Reader-Bilder
   - Komplexe intelligente Ordner sortieren Bedingungen einmal vor dem Artikel-Loop und verwenden einen vorbereiteten Matcher
