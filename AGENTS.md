@@ -926,10 +926,12 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   `Article.feed`-Relationship und decodiert keine Nachbarartikel-Bilder mehr. Die
   teure Vorbereitung passiert nur für den wirklich geöffneten Artikel im
   asynchronen Reader-Build.
-- Feednamen für Artikelzeilen kommen aus einem einmal pro Render gebauten
-  `feedID -> Feed.title` Lookup über die leichte Feed-Query. `ArticleRowView`
-  liest den Feednamen nicht mehr über `article.feed?.title`, damit das Lesen in
-  `Alle Artikel` keine Relationship-Faults pro sichtbarer Zeile auslöst.
+- Feednamen für Artikelzeilen kommen aus einem leichten `feedID -> Feed.title`
+  Snapshot, der per `propertiesToFetch` geladen und in `@State` gehalten wird.
+  `ArticleListContent` hält keine `@Query(sort: \Feed.title)` mehr und
+  `ArticleRowView` liest den Feednamen nicht über `article.feed?.title`, damit
+  das Lesen in `Alle Artikel` keine Relationship-Faults pro sichtbarer Zeile
+  auslöst.
 - Beim automatischen Als-gelesen-markieren setzt die Liste den Artikel sofort
   in-memory auf gelesen, aktualisiert `Feed.unreadCount` aber nicht pro Auswahl.
   Stattdessen sammelt sie betroffene Feed-IDs und synchronisiert die Zähler beim
@@ -1890,10 +1892,11 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
      separaten SwiftData-`ModelContext` geladen. Der UI-Pfad behält nur den
      leichten Preview-Snapshot; `ReaderArticleCacheKey` verwendet Text-
      Fingerprints statt Volltext-Strings.
-  8. Artikelzeilen bekommen Feednamen aus einem einmal pro Render gebauten
-     `feedID -> Feed.title` Lookup. Weder `ArticleRowView` noch der
-     Nachbarartikel-Prefetch lesen `article.feed?.title`; dadurch entstehen beim
-     schnellen Lesen in `Alle Artikel` keine Feed-Relationship-Faults pro Zeile.
+  8. Artikelzeilen bekommen Feednamen aus einem leichten `feedID -> Feed.title`
+     Snapshot, der in `ArticleListContent` in `@State` gehalten wird. Weder
+     `ArticleRowView` noch der Nachbarartikel-Prefetch lesen `article.feed?.title`;
+     dadurch entstehen beim schnellen Lesen in `Alle Artikel` keine Feed-
+     Relationship-Faults pro Zeile.
   9. Auto-Lesen aktualisiert `Feed.unreadCount` nicht mehr pro Artikelauswahl.
      `ArticleListView` sammelt betroffene Feed-IDs und synchronisiert die Zähler
      beim debounced Persistenz-Flush per `fetchCount`; damit feuern Feed-Queries,
@@ -2189,8 +2192,8 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   `ArticleListView` faultet keine schweren Artikeltexte (`Article.content`,
   `Article.offlineContent`), keine Feed-Relationships und decodiert keine
   Nachbarartikel-Bilder mehr. Artikelzeilen lesen Feednamen nicht mehr über
-  `article.feed?.title`, sondern über einen einmal pro Render gebauten
-  `feedID -> Feed.title` Lookup.
+  `article.feed?.title`, sondern über einen leichten `feedID -> Feed.title`
+  Snapshot in `ArticleListContent`.
   Die eigentliche Reader-Vorbereitung bleibt asynchron beim aktuell geöffneten
   Artikel. Zusätzlich rendert `ReaderView` native Reader- und Readability-Inhalte
   per `LazyVStack`, damit lange Artikel nicht komplett als View-Baum aufgebaut
@@ -2207,7 +2210,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   `ReaderView` vorbereiteten Snapshot-Werte für Feed, Ordner, Lesezeit und
   Content-Verfügbarkeit und faultet im Body keine Volltext-/Offline-Textfelder
   mehr. Die Ordnerauswahl im Inspector hält außerdem keine `@Query` auf alle
-  Feeds mehr, sondern arbeitet mit einem leichten Namens-Snapshot.
+  Feeds mehr, sondern arbeitet mit einem leichten Namens-Snapshot. Die
+  Artikelliste hält Feed-Titel für Zeilen-Metadaten nun ebenfalls als leichten
+  `feedID -> title` Snapshot, statt die Map bei jedem Body-Render aus einer
+  Feed-Query neu aufzubauen.
 
 - 2026-07-01: Reader-Artikelwechsel weiter entkoppelt. `ReaderView` beobachtet
   für Reader-Rebuilds keine schweren Textfelder (`Article.content`,

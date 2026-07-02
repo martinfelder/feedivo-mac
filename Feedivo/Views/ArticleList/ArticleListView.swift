@@ -524,7 +524,6 @@ private struct ArticleListContent: View {
     let onLoadMoreArticles: () -> Void
     @Binding var selectedArticle: Article?
     @Binding var navigationState: ArticleNavigationState
-    @Query(sort: \Feed.title) private var feeds: [Feed]
     @Query(sort: \Tag.name) private var tags: [Tag]
     @AppStorage("markArticleReadOnSelection")
     private var markArticleReadOnSelection = true
@@ -541,6 +540,7 @@ private struct ArticleListContent: View {
     @State private var pendingUnreadCountSyncFeedIDs = Set<UUID>()
     @State private var searchText = ""
     @State private var temporarilyVisibleReadArticleIDs = Set<PersistentIdentifier>()
+    @State private var feedTitleByFeedID: [UUID: String] = [:]
     @AppStorage(ArticleSortOption.storageKey)
     private var articleSortRawValue = ArticleSortOption.newestFirst.rawValue
     @AppStorage(ArticleFilterOption.storageKey)
@@ -593,7 +593,7 @@ private struct ArticleListContent: View {
         )
         let displaySnapshot = displayState.snapshot
         let visibleArticles = displaySnapshot.visibleArticles
-        let feedTitleByFeedID = makeFeedTitleByFeedID()
+        let feedTitleByFeedID = self.feedTitleByFeedID
 
         VStack(spacing: 0) {
             articleSearchBar
@@ -689,6 +689,12 @@ private struct ArticleListContent: View {
             guard let preparedArticlesKey else { return }
             cachedPreparedArticles = makePreparedArticles()
             cachedPreparedKey = preparedArticlesKey
+        }
+        .task {
+            loadFeedTitleLookup()
+        }
+        .onChange(of: articles.count) {
+            loadFeedTitleLookup()
         }
     }
 
@@ -852,18 +858,26 @@ private struct ArticleListContent: View {
         openWindow(value: ArticleWindowRequest(articleID: article.id))
     }
 
-    private func makeFeedTitleByFeedID() -> [UUID: String] {
-        Dictionary(uniqueKeysWithValues: feeds.map { feed in
-            (feed.id, feed.title)
-        })
-    }
-
     private func feedTitle(for article: Article, in feedTitleByFeedID: [UUID: String]) -> String? {
         guard let feedID = article.feedID else {
             return nil
         }
 
         return feedTitleByFeedID[feedID]
+    }
+
+    private func loadFeedTitleLookup() {
+        var descriptor = FetchDescriptor<Feed>(sortBy: [SortDescriptor(\.title)])
+        descriptor.propertiesToFetch = [\.id, \.title]
+
+        let snapshots = ((try? modelContext.fetch(descriptor)) ?? []).map { feed in
+            ArticleListFeedTitleSnapshot(feedID: feed.id, title: feed.title)
+        }
+        let lookup = ArticleListFeedTitleLookup.make(from: snapshots)
+
+        if feedTitleByFeedID != lookup {
+            feedTitleByFeedID = lookup
+        }
     }
 
     private func makePreparedArticles() -> ArticleListPreparedArticles {

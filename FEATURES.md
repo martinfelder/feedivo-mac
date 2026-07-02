@@ -836,6 +836,9 @@
   - Die Ordnerauswahl im rechten Artikel-Inspector liest Feed-Ordnernamen nur
     noch als leichten Snapshot und hält keine `@Query` auf alle Feeds mehr im
     SwiftUI-Body.
+  - Die Artikelliste hält Feed-Titel für Zeilen-Metadaten als leichten
+    `feedID -> title` Snapshot statt die Lookup-Map in jedem Body-Render aus
+    einer `@Query(sort: \Feed.title)` neu zu bauen.
   - `Ungelesen`-Badge der intelligenten Ordner nutzt die gespeicherten `Feed.unreadCount` Werte
   - `Mit Stern`, `Ausgeblendet` und `Gespeichert` lesen ihre Sidebar-Badges aus
     gebündelten Status-Zählern

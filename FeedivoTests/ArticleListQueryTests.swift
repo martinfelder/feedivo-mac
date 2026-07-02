@@ -32,6 +32,21 @@ struct ArticleListQueryTests {
         #expect(state.shouldShowReadArticlesButton)
     }
 
+    @Test func feedTitleLookupWirdAusLeichtenSnapshotsGebildet() {
+        let firstID = UUID()
+        let secondID = UUID()
+
+        let lookup = ArticleListFeedTitleLookup.make(
+            from: [
+                ArticleListFeedTitleSnapshot(feedID: firstID, title: "Beta"),
+                ArticleListFeedTitleSnapshot(feedID: secondID, title: "Alpha")
+            ]
+        )
+
+        #expect(lookup[firstID] == "Beta")
+        #expect(lookup[secondID] == "Alpha")
+    }
+
     @Test func displaySnapshotBerechnetSichtbareArtikelUndZaehlerGemeinsam() {
         let unreadArticle = Article(title: "Ungelesen", isRead: false)
         let selectedReadArticle = Article(title: "Ausgewaehlt", isRead: true)

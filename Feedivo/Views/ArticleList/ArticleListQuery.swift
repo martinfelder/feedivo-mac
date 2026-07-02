@@ -325,6 +325,20 @@ struct ArticleListDisplaySnapshot {
     }
 }
 
+struct ArticleListFeedTitleSnapshot: Equatable, Hashable {
+    let feedID: UUID
+    let title: String
+}
+
+enum ArticleListFeedTitleLookup {
+    static func make(from snapshots: [ArticleListFeedTitleSnapshot]) -> [UUID: String] {
+        Dictionary(
+            snapshots.map { ($0.feedID, $0.title) },
+            uniquingKeysWith: { first, _ in first }
+        )
+    }
+}
+
 enum ArticleSearchField: String, CaseIterable, Identifiable {
     case all
     case title
