@@ -21,6 +21,76 @@ struct FeedStore {
         }
     }
 
+    func feed(url: String) throws -> FeedRecord? {
+        try database.read { db in
+            try FeedRecord.fetchOne(db, sql: """
+                SELECT *
+                FROM feeds
+                WHERE url = ?
+                LIMIT 1
+                """, arguments: [url])
+        }
+    }
+
+    func updateAfterRefresh(
+        feedID: String,
+        title: String?,
+        websiteURL: String?,
+        validators: FeedHTTPValidators,
+        unreadCount: Int,
+        refreshedAt: Date
+    ) throws {
+        try database.write { db in
+            let trimmedTitle = title.trimmedNonEmpty
+            let titleAssignment = trimmedTitle == nil ? "" : "title = ?,"
+            var arguments = StatementArguments()
+            if let trimmedTitle {
+                arguments.append(contentsOf: [trimmedTitle])
+            }
+            arguments.append(contentsOf: [
+                websiteURL.trimmedNonEmpty,
+                refreshedAt,
+                validators.eTag,
+                validators.lastModified,
+                validators.contentHash,
+                validators.lastStatusCode,
+                unreadCount,
+                refreshedAt,
+                feedID
+            ])
+
+            try db.execute(
+                sql: """
+                    UPDATE feeds
+                    SET \(titleAssignment)
+                        websiteURL = COALESCE(?, websiteURL),
+                        lastRefreshedAt = ?,
+                        lastETag = ?,
+                        lastModified = ?,
+                        lastBodyHash = ?,
+                        lastHTTPStatusCode = ?,
+                        unreadCount = ?,
+                        updatedAt = ?
+                    WHERE id = ?
+                    """,
+                arguments: arguments
+            )
+        }
+    }
+
+    func setUnreadCount(_ unreadCount: Int, feedID: String) throws {
+        try database.write { db in
+            try db.execute(
+                sql: """
+                    UPDATE feeds
+                    SET unreadCount = ?, updatedAt = ?
+                    WHERE id = ?
+                    """,
+                arguments: [unreadCount, Date(), feedID]
+            )
+        }
+    }
+
     func sidebarFeeds() throws -> [FeedSidebarSnapshot] {
         try database.read { db in
             let snapshots = try FeedSidebarSnapshot.fetchAll(db, sql: """
@@ -37,6 +107,16 @@ struct FeedStore {
                 return $0.id.localizedStandardCompare($1.id) == .orderedAscending
             }
         }
+    }
+}
+
+private extension Optional where Wrapped == String {
+    var trimmedNonEmpty: String? {
+        guard let value = self?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !value.isEmpty else {
+            return nil
+        }
+        return value
     }
 }
 

@@ -23,6 +23,19 @@ struct ArticleStatusStore {
         }
     }
 
+    func unreadCount(feedID: String) throws -> Int {
+        try database.read { db in
+            try Int.fetchOne(db, sql: """
+                SELECT COUNT(*)
+                FROM article_statuses s
+                JOIN articles a ON a.id = s.articleID
+                WHERE a.feedID = ?
+                    AND s.isRead = 0
+                    AND s.isHidden = 0
+                """, arguments: [feedID]) ?? 0
+        }
+    }
+
     func setRead(_ isRead: Bool, articleID: String, at date: Date?) throws {
         try updateBooleanStatus(
             column: "isRead",

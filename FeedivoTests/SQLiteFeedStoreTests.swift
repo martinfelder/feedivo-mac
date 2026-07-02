@@ -63,4 +63,55 @@ struct SQLiteFeedStoreTests {
 
         #expect(snapshots.map(\.id) == ["a", "b"])
     }
+
+    @Test func feedByURLFindsExistingRecord() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let store = FeedStore(database: database)
+
+        try store.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example"))
+
+        let loaded = try store.feed(url: "https://example.com/feed.xml")
+
+        #expect(loaded?.id == "feed-1")
+        #expect(loaded?.title == "Example")
+    }
+
+    @Test func updateAfterRefreshStoresValidatorsAndUnreadCount() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let store = FeedStore(database: database)
+        let refreshedAt = Date(timeIntervalSince1970: 5_000)
+
+        try store.save(FeedRecord(
+            id: "feed-1",
+            url: "https://example.com/feed.xml",
+            title: "Old Title",
+            folderName: "News"
+        ))
+
+        try store.updateAfterRefresh(
+            feedID: "feed-1",
+            title: "New Title",
+            websiteURL: "https://example.com",
+            validators: FeedHTTPValidators(
+                eTag: "etag-1",
+                lastModified: "Thu, 02 Jul 2026 17:00:00 GMT",
+                contentHash: "hash-1",
+                lastStatusCode: 200
+            ),
+            unreadCount: 7,
+            refreshedAt: refreshedAt
+        )
+
+        let loaded = try store.feed(id: "feed-1")
+
+        #expect(loaded?.title == "New Title")
+        #expect(loaded?.websiteURL == "https://example.com")
+        #expect(loaded?.folderName == "News")
+        #expect(loaded?.lastETag == "etag-1")
+        #expect(loaded?.lastModified == "Thu, 02 Jul 2026 17:00:00 GMT")
+        #expect(loaded?.lastBodyHash == "hash-1")
+        #expect(loaded?.lastHTTPStatusCode == 200)
+        #expect(loaded?.unreadCount == 7)
+        #expect(loaded?.lastRefreshedAt == refreshedAt)
+    }
 }

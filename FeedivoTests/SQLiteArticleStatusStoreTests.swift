@@ -65,4 +65,23 @@ struct SQLiteArticleStatusStoreTests {
         #expect(status?.isRead == false)
         #expect(status?.readAt == nil)
     }
+
+    @Test func unreadCountForFeedIgnoresReadAndHiddenArticles() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let statusStore = ArticleStatusStore(database: database)
+
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example"))
+        _ = try articleStore.upsert(ArticleUpsertInput(feedID: "feed-1", sourceID: "unread", title: "Unread"))
+        let readID = try articleStore.upsert(ArticleUpsertInput(feedID: "feed-1", sourceID: "read", title: "Read"))
+        let hiddenID = try articleStore.upsert(ArticleUpsertInput(feedID: "feed-1", sourceID: "hidden", title: "Hidden"))
+
+        try statusStore.setRead(true, articleID: readID, at: Date(timeIntervalSince1970: 1_000))
+        try statusStore.setHidden(true, articleID: hiddenID, at: Date(timeIntervalSince1970: 2_000))
+
+        let unreadCount = try statusStore.unreadCount(feedID: "feed-1")
+
+        #expect(unreadCount == 1)
+    }
 }
