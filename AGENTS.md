@@ -166,6 +166,7 @@ FeedivoMac/
 │   │   ├── ArticleList/
 │   │   │   ├── ArticleListView.swift   # Mittlere Spalte: echte Feed-Artikel anzeigen ✅
 │   │   │   ├── ArticleListQuery.swift  # SwiftData-Queries für Feed-/Artikel-Listen ✅
+│   │   │   ├── ArticleListItemSnapshot.swift # Leichte Zeilenwerte für Artikel-Rows ✅
 │   │   │   ├── ArticleSortOption.swift # Globale Artikellisten-Sortierung ✅
 │   │   │   ├── ArticleFilterOption.swift # Globale Artikellisten-Filterung ✅
 │   │   │   ├── ArticleMarkReadOption.swift # Zeitbereiche für Massenaktion "Als gelesen markieren" ✅
@@ -955,6 +956,11 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   `ArticleRowView` liest den Feednamen nicht über `article.feed?.title`, damit
   das Lesen in `Alle Artikel` keine Relationship-Faults pro sichtbarer Zeile
   auslöst.
+- `ArticleRowView` erhält für sichtbare Zeilen einen `ArticleListItemSnapshot`.
+  Titel, Zusammenfassung, Feedname, Datum, Bild-URL, Lesestatus, Stern, Archiv-
+  und Offline-Status kommen damit aus leichten Primitive-Werten. `ArticleListView`
+  behält die echte `Article`-Instanz in diesem ersten Slice nur für Auswahl,
+  Identität und Aktionen.
 - Beim automatischen Als-gelesen-markieren setzt die Liste den Artikel sofort
   in-memory auf gelesen, aktualisiert `Feed.unreadCount` aber nicht pro Auswahl.
   Stattdessen sammelt sie betroffene Feed-IDs und synchronisiert die Zähler beim
@@ -1085,6 +1091,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Erhält den Feednamen als einfachen String aus `ArticleListView` statt ihn über
   `article.feed?.title` zu faulten. Das hält Zeilen-Redraws beim schnellen Lesen
   frei von Feed-Relationship-Ladevorgängen.
+- Rendert sichtbare Text-, Status- und Bildwerte über
+  `ArticleListItemSnapshot`, damit die Row-UI nicht direkt an schweren oder
+  relationship-nahen `Article`-Properties hängt. Aktionen nutzen weiterhin die
+  echte `Article`-Instanz aus `ArticleListView`.
 - Gelesene Artikel werden optisch ruhiger dargestellt
 
 ### ArticleViewModel.swift
@@ -2229,6 +2239,13 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 ---
 
 ## Letzte Änderungen
+
+- 2026-07-02: Artikellisten-Zeilen weiter entkoppelt. `ArticleRowView` rendert
+  sichtbare Werte nun über `ArticleListItemSnapshot`; der Snapshot enthält nur
+  leichte Primitive wie Titel, Summary, Feedname, Datum, Bild-URL und Statuswerte.
+  Die Row selbst hält keine `Article`-Property mehr; `ArticleListView` nutzt die
+  echte `Article`-Instanz weiterhin für Auswahl und Aktionen. Dadurch bleibt der
+  Umbau klein und spätere Snapshot-/ID-basierte Listenarbeit ist vorbereitet.
 
 - 2026-07-02: Nachladen in `Ungelesen` repariert. Die Ladezeile in
   `ArticleListView` bekommt nun das aktuelle `fetchLimit` als Identität, damit

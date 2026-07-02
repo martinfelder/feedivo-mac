@@ -847,6 +847,10 @@
   - Die Artikelliste hält Feed-Titel für Zeilen-Metadaten als leichten
     `feedID -> title` Snapshot statt die Lookup-Map in jedem Body-Render aus
     einer `@Query(sort: \Feed.title)` neu zu bauen.
+  - Artikelzeilen rendern sichtbare Werte über `ArticleListItemSnapshot` statt
+    diese direkt aus der Row heraus aus dem SwiftData-`Article` zu lesen; die
+    echte `Article`-Instanz bleibt in `ArticleListView` vorerst für Auswahl und
+    Aktionen erhalten.
   - `Ungelesen`-Badge der intelligenten Ordner nutzt die gespeicherten `Feed.unreadCount` Werte
   - `Mit Stern`, `Ausgeblendet` und `Gespeichert` lesen ihre Sidebar-Badges aus
     gebündelten Status-Zählern

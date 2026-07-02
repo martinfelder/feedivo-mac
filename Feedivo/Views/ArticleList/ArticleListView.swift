@@ -874,8 +874,10 @@ private struct ArticleListContent: View {
         feedTitleByFeedID: [UUID: String]
     ) -> ArticleRowView {
         ArticleRowView(
-            article: article,
-            feedTitle: feedTitle(for: article, in: feedTitleByFeedID),
+            snapshot: ArticleListItemSnapshot(
+                article: article,
+                feedTitle: feedTitle(for: article, in: feedTitleByFeedID)
+            ),
             hasAvailableTags: !tags.isEmpty,
             onToggleRead: {
                 viewModel.toggleRead(article, context: modelContext)

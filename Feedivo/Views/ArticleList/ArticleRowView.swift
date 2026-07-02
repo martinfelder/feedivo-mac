@@ -3,8 +3,7 @@ import SwiftUI
 struct ArticleRowView: View {
     @Environment(\.interfaceTextSize) private var interfaceTextSize
 
-    let article: Article
-    let feedTitle: String?
+    let snapshot: ArticleListItemSnapshot
     let hasAvailableTags: Bool
     let onToggleRead: () -> Void
     let onToggleStarred: () -> Void
@@ -25,10 +24,10 @@ struct ArticleRowView: View {
             previewImage
 
             VStack(alignment: .leading, spacing: 6) {
-                Text(article.title)
-                    .font(interfaceTextSize.font(size: 14, weight: article.isRead ? .regular : .semibold))
-                    .fontWeight(article.isRead ? .regular : .semibold)
-                    .foregroundStyle(article.isRead ? .secondary : .primary)
+                Text(snapshot.title)
+                    .font(interfaceTextSize.font(size: 14, weight: snapshot.isRead ? .regular : .semibold))
+                    .fontWeight(snapshot.isRead ? .regular : .semibold)
+                    .foregroundStyle(snapshot.isRead ? .secondary : .primary)
                     .lineLimit(2)
 
                 if !metadataText.isEmpty {
@@ -38,10 +37,10 @@ struct ArticleRowView: View {
                         .lineLimit(1)
                 }
 
-                if let summary = article.summary, !summary.isEmpty {
+                if let summary = snapshot.summary, !summary.isEmpty {
                     Text(summary)
                         .font(interfaceTextSize.font(size: 13))
-                        .foregroundStyle(article.isRead ? .tertiary : .secondary)
+                        .foregroundStyle(snapshot.isRead ? .tertiary : .secondary)
                         .lineLimit(2)
                 }
             }
@@ -55,29 +54,29 @@ struct ArticleRowView: View {
                 Spacer(minLength: 8)
 
                 Button(action: onToggleStarred) {
-                    Image(systemName: article.isStarred ? "star.fill" : "star")
+                    Image(systemName: snapshot.isStarred ? "star.fill" : "star")
                         .font(interfaceTextSize.font(size: 14, weight: .semibold))
-                        .foregroundStyle(article.isStarred ? .yellow : .secondary)
+                        .foregroundStyle(snapshot.isStarred ? .yellow : .secondary)
                         .frame(width: 24, height: 24)
                 }
                 .buttonStyle(.plain)
-                .help(article.isStarred ? L10n.articleRowStarRemove : L10n.articleRowStarAdd)
+                .help(snapshot.isStarred ? L10n.articleRowStarRemove : L10n.articleRowStarAdd)
             }
             .frame(width: 28, height: 76, alignment: .top)
         }
         .padding(.vertical, 6)
         .contextMenu {
-            Button(article.isRead ? L10n.articleRowMarkUnread : L10n.articleRowMarkRead) {
+            Button(snapshot.isRead ? L10n.articleRowMarkUnread : L10n.articleRowMarkRead) {
                 onToggleRead()
             }
 
-            Button(article.isStarred ? L10n.articleRowStarRemove : L10n.articleRowStarAdd) {
+            Button(snapshot.isStarred ? L10n.articleRowStarRemove : L10n.articleRowStarAdd) {
                 onToggleStarred()
             }
 
             Divider()
 
-            Button(article.isArchived ? L10n.articleUnarchiveCommand : L10n.articleArchiveCommand) {
+            Button(snapshot.isArchived ? L10n.articleUnarchiveCommand : L10n.articleArchiveCommand) {
                 onToggleArchived()
             }
 
@@ -115,7 +114,7 @@ struct ArticleRowView: View {
                 onExport()
             }
 
-            Button(article.offlineState.isAvailable ? L10n.readerOfflineRemove : L10n.readerOfflineSave) {
+            Button(snapshot.offlineState.isAvailable ? L10n.readerOfflineRemove : L10n.readerOfflineSave) {
                 onSaveOrRemoveOffline()
             }
 
@@ -137,7 +136,7 @@ struct ArticleRowView: View {
 
     @ViewBuilder
     private var previewImage: some View {
-        if let imageURL = article.imageURL, let url = URL(string: imageURL) {
+        if let imageURL = snapshot.imageURL, let url = URL(string: imageURL) {
             CachedRemoteImageView(url: url, targetPixelSize: previewImageTargetPixelSize) { image in
                 image
                     .resizable()
@@ -183,7 +182,7 @@ struct ArticleRowView: View {
 
     @ViewBuilder
     private var unreadIndicator: some View {
-        if article.isRead {
+        if snapshot.isRead {
             Circle()
                 .fill(.clear)
                 .frame(width: 8, height: 8)
@@ -197,7 +196,7 @@ struct ArticleRowView: View {
 
     @ViewBuilder
     private var offlineIndicator: some View {
-        switch article.offlineState {
+        switch snapshot.offlineState {
         case .fullText, .feedContent:
             Image(systemName: "arrow.down.circle.fill")
                 .font(interfaceTextSize.font(size: 11, weight: .semibold))
@@ -215,8 +214,8 @@ struct ArticleRowView: View {
 
     private var metadataText: String {
         [
-            feedTitle,
-            article.publishedAt?.feedivoRelativeDisplay
+            snapshot.feedTitle,
+            snapshot.publishedAt?.feedivoRelativeDisplay
         ]
         .compactMap { value in
             guard let value, !value.isEmpty else {
@@ -229,13 +228,13 @@ struct ArticleRowView: View {
     }
 
     private var accessibilityLabel: String {
-        var parts = [article.title]
+        var parts = [snapshot.title]
 
-        if !article.isRead {
+        if !snapshot.isRead {
             parts.append(L10n.articleRowUnreadText)
         }
 
-        if article.isStarred {
+        if snapshot.isStarred {
             parts.append(L10n.articleRowStarredText)
         }
 
@@ -243,6 +242,6 @@ struct ArticleRowView: View {
     }
 
     private var hasOriginalURL: Bool {
-        ArticleOriginalURLResolver.hasUsableWebLink(article.link)
+        snapshot.hasOriginalURL
     }
 }

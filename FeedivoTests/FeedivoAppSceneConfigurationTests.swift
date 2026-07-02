@@ -160,10 +160,12 @@ struct FeedivoAppSceneConfigurationTests {
         let rowSource = try source(at: "Feedivo/Views/ArticleList/ArticleRowView.swift", projectRoot: projectRoot)
         let listSource = try source(at: "Feedivo/Views/ArticleList/ArticleListView.swift", projectRoot: projectRoot)
 
-        #expect(rowSource.contains("let feedTitle: String?"))
-        #expect(rowSource.contains("feedTitle,"))
+        #expect(rowSource.contains("let snapshot: ArticleListItemSnapshot"))
+        #expect(rowSource.contains("snapshot.feedTitle"))
+        #expect(!rowSource.contains("let article: Article"))
         #expect(!rowSource.contains("article.feed?.title"))
         #expect(listSource.contains("feedTitleByFeedID"))
+        #expect(listSource.contains("snapshot: ArticleListItemSnapshot("))
         #expect(listSource.contains("feedTitle: feedTitle(for: article, in: feedTitleByFeedID)"))
     }
 
