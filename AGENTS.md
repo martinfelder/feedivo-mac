@@ -2264,15 +2264,22 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Feature 11.2 Lesefortschritt ist zurückgestellt: Der erste SwiftUI/AppKit-
   Scrollbeobachter-Ansatz hat das Scrollgefühl im Reader verschlechtert und wurde
   wieder entfernt. Für v1 bleibt der Reader ohne Lesefortschritt.
-- Nächster sinnvoller Fokus: sichtbare Feed-/Artikelpfade schrittweise an den
-  SQLite-Kern anbinden: zuerst Sidebar-Zähler und Artikelliste über Snapshots,
-  danach Reader-Snapshot und Statusaktionen direkt über `article_statuses`.
+- Nächster sinnvoller Fokus: Feed-Auswahl sichtbar auf den SQLite-Kern umstellen:
+  Artikelliste über SQLite-Snapshots, Auswahl über SQLite-Artikel-IDs, Reader
+  über `ArticleReaderSnapshot` und Statusaktionen direkt über `article_statuses`.
 - Feature-Roadmap ist in `FEATURES.md` im Root dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
 ---
 
 ## Letzte Änderungen
+
+- 2026-07-02: Nächster UI-Slice freigegeben: Feed-Pfad als Kombination aus
+  Option A und Option 2. Für normale Feed-Auswahl sollen Artikelliste, Auswahl,
+  Reader und Statusaktionen über SQLite laufen. Smart Folders, Tags, globale
+  Filter, Regeln, Export und Offline-Download bleiben vorerst auf SwiftData bzw.
+  Legacy-Pfaden. Die Spec liegt unter
+  `docs/superpowers/specs/2026-07-02-sqlite-feed-reader-path-design.md`.
 
 - 2026-07-02: SQLite-Refresh-Kern nach NetNewsWire-Mechanik umgesetzt.
   `SQLiteFeedRefreshService` lädt Feeds über einen injizierbaren Fetcher,

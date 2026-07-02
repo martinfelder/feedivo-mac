@@ -851,6 +851,11 @@
     `feeds.unreadCount`, HTTP-Validatoren und `feed_logs`. Die sichtbare App-UI
     nutzt diesen Pfad noch nicht standardmäßig; die Snapshot-Anbindung von
     Sidebar, Artikelliste, Reader und Statusaktionen folgt als nächster Slice.
+  - Nächster UI-Slice geplant: normale Feed-Auswahl soll Artikelliste, Auswahl,
+    Reader und Statusaktionen über SQLite nutzen. Smart Folders, Tags, globale
+    Filter, Regeln, Export und Offline-Download bleiben bis zu eigenen Slices auf
+    den bisherigen SwiftData-/Legacy-Pfaden. Spec:
+    `docs/superpowers/specs/2026-07-02-sqlite-feed-reader-path-design.md`.
   - OPML-Import und `Alle Feeds aktualisieren` rufen Feeds nur noch begrenzt parallel ab
   - Sidebar nutzt keine globale Artikel-Query mehr für Badge-Signaturen; beim
     Lesen invalidieren `isRead`-Änderungen dadurch nicht mehr alle Sidebar-
