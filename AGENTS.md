@@ -1996,8 +1996,11 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   einzelner Refresh spiegeln Feed- und Artikeldaten nach SQLite. Der
   ModelContainer-Sammelrefresh mit vorhandener `FeedivoDatabase` läuft inzwischen
   SQLite-first über `SQLiteFeedRefreshService` und ruft Feeds nicht mehr zuerst
-  über SwiftData und danach erneut fürs SQLite-Mirroring ab. Sidebar-Feed-Zeilen
-  bevorzugen für Titel, Favicon und ungelesene Counts inzwischen
+  über SwiftData und danach erneut fürs SQLite-Mirroring ab. Feed-Refresh-
+  Benachrichtigungen werden im SQLite-first Sammelrefresh wieder aus den leichten
+  Feed-Snapshots erzeugt; Regel-Benachrichtigungen folgen später mit der
+  SQLite-Regelmechanik. Sidebar-Feed-Zeilen bevorzugen für Titel, Favicon und
+  ungelesene Counts inzwischen
   `FeedSidebarSnapshot` aus SQLite. Read-/Hidden-Statusänderungen aktualisieren
   `feeds.unreadCount` direkt in SQLite und invalidieren die Sidebar-Snapshots
   über `SQLiteDataInvalidation.statusVersionKey`.
@@ -2257,7 +2260,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   übergeben die GRDB-Datenbank an `FeedViewModel`, sodass der SQLite-Feed-Pfad
   nach realen Feed-Aktionen gefüllt wird. Der Sammel-Refresh über den
   ModelContainer läuft mit vorhandener GRDB-Datenbank inzwischen SQLite-first und
-  vermeidet den früheren doppelten Abruf über SwiftData plus SQLite-Mirroring.
+  vermeidet den früheren doppelten Abruf über SwiftData plus SQLite-Mirroring;
+  Feed-Refresh-Benachrichtigungen werden dabei wieder mit dem aktualisierten
+  Feed-Titel und dem Snapshot-Wert `isNotificationEnabled` gemeldet.
   Die normalen Feed-Zeilen in der Sidebar nutzen `SQLiteSidebarState` und
   `FeedSidebarSnapshot` für Anzeige und ungelesene Badges; Auswahl und
   Kontextmenüs bleiben übergangsweise SwiftData. SQLite-Statusänderungen halten
@@ -2290,7 +2295,8 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Scrollbeobachter-Ansatz hat das Scrollgefühl im Reader verschlechtert und wurde
   wieder entfernt. Für v1 bleibt der Reader ohne Lesefortschritt.
 - Nächster sinnvoller Fokus: verbleibende Hauptpfad-Lücken schließen:
-  SQLite-Refresh noch um Regeln/Benachrichtigungen/Feed-Logs in der UI abrunden,
+  SQLite-Refresh noch um Regel-Auswertung/Regel-Benachrichtigungen und Feed-Logs
+  in der UI abrunden,
   Sidebar-Smart-Folder- und Tag-Badges auf SQL-Snapshots migrieren und danach
   Suche/Filter schrittweise auf SQLite ziehen.
 - Feature-Roadmap ist in `FEATURES.md` im Root dokumentiert und muss bei Änderungen
@@ -2299,6 +2305,14 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 ---
 
 ## Letzte Änderungen
+
+- 2026-07-02: Feed-Refresh-Benachrichtigungen im SQLite-first Sammelrefresh
+  wieder aktiviert. `FeedRefreshSnapshot` trägt den leichten
+  `isNotificationEnabled`-Wert, `SQLiteFeedRefreshResult` liefert den
+  aktualisierten Feed-Titel zurück und `refreshAllFeeds(..., sqliteDatabase:)`
+  ruft wieder `notifyFeedRefresh` mit den SQLite-Ergebnissen auf. Das vermeidet
+  SwiftData-Artikelobjekte im schnellen Pfad; Regel-Benachrichtigungen bleiben
+  ein eigener SQLite-Regel-Slice.
 
 - 2026-07-02: Sammel-Refresh mit SQLite-Datenbank auf SQLite-first umgestellt.
   `refreshAllFeeds(..., modelContainer:, sqliteDatabase:)` nutzt bei vorhandener

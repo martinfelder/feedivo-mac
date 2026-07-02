@@ -109,7 +109,7 @@ private enum FeedRefreshOutcome {
 }
 
 private enum SQLiteFeedRefreshOutcome {
-    case success(UUID, String, SQLiteFeedRefreshResult)
+    case success(UUID, FeedRefreshNotificationResult, SQLiteFeedRefreshResult)
     case failure(UUID, String)
 }
 
@@ -779,7 +779,8 @@ final class FeedViewModel {
             FeedRefreshSnapshot(
                 id: feed.id,
                 title: feed.title,
-                url: feed.url
+                url: feed.url,
+                isNotificationEnabled: feed.isNotificationEnabled
             )
         }
         guard !snapshots.isEmpty else {
@@ -907,16 +908,21 @@ final class FeedViewModel {
                                 )
                             }
 
-                            let service = SQLiteFeedRefreshService(database: database) { urlString, validators in
+                            let service = SQLiteFeedRefreshService(database: database, fetcher: { urlString, validators in
                                 switch try await fetchFeedConditionally(urlString, validators) {
                                 case .updated(let feed, let validators):
                                     return .updated(feed, validators)
                                 case .notModified(let validators):
                                     return .notModified(validators)
                                 }
-                            }
+                            })
                             let result = try await service.refresh(feedID: feedID)
-                            return .success(snapshot.id, snapshot.title, result)
+                            let notificationResult = FeedRefreshNotificationResult(
+                                feedTitle: result.feedTitle,
+                                newArticleCount: result.insertedArticleIDs.count,
+                                isNotificationEnabled: snapshot.isNotificationEnabled
+                            )
+                            return .success(snapshot.id, notificationResult, result)
                         } catch {
                             return .failure(snapshot.id, snapshot.title)
                         }
@@ -925,15 +931,9 @@ final class FeedViewModel {
 
                 for await outcome in group {
                     switch outcome {
-                    case .success(let feedID, let feedTitle, let result):
+                    case .success(let feedID, let feedNotification, _):
                         updateRefreshItemStatus(for: feedID, status: .succeeded)
-                        notificationResults.append(
-                            FeedRefreshNotificationResult(
-                                feedTitle: feedTitle,
-                                newArticleCount: result.insertedArticleIDs.count,
-                                isNotificationEnabled: false
-                            )
-                        )
+                        notificationResults.append(feedNotification)
                     case .failure(let feedID, let failedTitle):
                         updateRefreshItemStatus(for: feedID, status: .failed)
                         failedFeedTitles.append(failedTitle)
@@ -945,6 +945,7 @@ final class FeedViewModel {
         }
 
         SQLiteDataInvalidation.bumpStatusVersion()
+        await notifyFeedRefresh(notificationResults)
         await waitForMinimumRefreshStatusDuration(since: refreshStatusStart)
 
         recentRefreshStatus = FeedRefreshStatusSummary(

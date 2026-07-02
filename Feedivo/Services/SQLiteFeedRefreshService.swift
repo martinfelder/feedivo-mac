@@ -7,6 +7,7 @@ enum SQLiteFeedFetchResult: Sendable {
 
 struct SQLiteFeedRefreshResult: Equatable, Sendable {
     var feedID: String
+    var feedTitle: String
     var insertedArticleIDs: [String]
     var updatedArticleIDs: [String]
     var unreadCount: Int
@@ -76,6 +77,7 @@ struct SQLiteFeedRefreshService {
 
                 return SQLiteFeedRefreshResult(
                     feedID: feedID,
+                    feedTitle: feed.title,
                     insertedArticleIDs: [],
                     updatedArticleIDs: [],
                     unreadCount: unreadCount,
@@ -83,6 +85,9 @@ struct SQLiteFeedRefreshService {
                 )
 
             case .updated(let parsedFeed, let updatedValidators):
+                let refreshedTitle = parsedFeed.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    ? feed.title
+                    : parsedFeed.title
                 let inputs = parsedFeed.articles.map { article in
                     ArticleUpsertInput(
                         feedID: feedID,
@@ -100,7 +105,7 @@ struct SQLiteFeedRefreshService {
                 let unreadCount = try statusStore.unreadCount(feedID: feedID)
                 try feedStore.updateAfterRefresh(
                     feedID: feedID,
-                    title: parsedFeed.title,
+                    title: refreshedTitle,
                     websiteURL: parsedFeed.siteURL,
                     validators: updatedValidators,
                     unreadCount: unreadCount,
@@ -117,6 +122,7 @@ struct SQLiteFeedRefreshService {
 
                 return SQLiteFeedRefreshResult(
                     feedID: feedID,
+                    feedTitle: refreshedTitle,
                     insertedArticleIDs: upsertResult.insertedArticleIDs,
                     updatedArticleIDs: upsertResult.updatedArticleIDs,
                     unreadCount: unreadCount,

@@ -2067,6 +2067,75 @@ struct FeedViewModelTests {
     }
 
     @MainActor
+    @Test func refreshAllFeedsMitSQLiteDatabaseMeldetFeedBenachrichtigungen() async throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            RuleCondition.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Alter Titel")
+        feed.isNotificationEnabled = true
+        context.insert(feed)
+        try context.save()
+
+        let sqliteDatabase = try FeedivoDatabase.inMemoryForTests()
+        try FeedStore(database: sqliteDatabase).save(
+            FeedRecord(
+                id: feed.id.uuidString,
+                url: feed.url,
+                title: feed.title
+            )
+        )
+
+        var capturedResults: [FeedRefreshNotificationResult] = []
+        let viewModel = makeViewModel(
+            fetchFeedConditionally: { urlString, _ in
+                let parsedFeed = await MainActor.run {
+                    ParsedFeed(
+                        sourceURL: urlString,
+                        title: "Aktueller Titel",
+                        description: nil,
+                        articles: [
+                            ParsedArticle(
+                                title: "Benachrichtigter Artikel",
+                                sourceID: "notify-1",
+                                link: "https://example.com/notify-1",
+                                summary: nil,
+                                content: nil,
+                                publishedAt: Date(timeIntervalSince1970: 100),
+                                imageURL: nil
+                            )
+                        ]
+                    )
+                }
+                return .updated(parsedFeed, FeedHTTPValidators(lastStatusCode: 200))
+            },
+            notifyFeedRefresh: { results in
+                capturedResults = results
+            }
+        )
+
+        await viewModel.refreshAllFeeds(
+            [feed],
+            modelContainer: container,
+            sqliteDatabase: sqliteDatabase
+        )
+
+        #expect(capturedResults == [
+            FeedRefreshNotificationResult(
+                feedTitle: "Aktueller Titel",
+                newArticleCount: 1,
+                isNotificationEnabled: true
+            )
+        ])
+    }
+
+    @MainActor
     @Test func refreshAllFeedsUeberspringtLogEintraegeFuerUnveraenderteFeedsImBackgroundPfad() async throws {
         let container = try ModelContainer(
             for: Feed.self,
