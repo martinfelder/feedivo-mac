@@ -175,20 +175,25 @@ final class ArticleViewModel {
 
     @MainActor
     @discardableResult
-    func markReadIfNeeded(_ article: Article?, isEnabled: Bool, context: ModelContext) -> Bool {
+    func markReadIfNeeded(
+        _ article: Article?,
+        isEnabled: Bool,
+        updatesUnreadCount: Bool = true,
+        context: ModelContext
+    ) -> Bool {
         guard isEnabled, let article, !article.isRead else {
             return false
         }
 
         let wasRead = article.isRead
         article.isRead = true
-        updateUnreadCount(for: article, wasRead: wasRead, isRead: article.isRead, context: context)
-        // Kein expliziter save() hier: das Sichern wird vom Aufrufer gesteuert
-        // (z. B. entbunden/debounced), damit schnelle Artikelwechsel nicht jede
-        // Auswahl sofort persistieren und eine @Query-Refetch-Kaskade
-        // (feeds/articles/sidebar) auslösen. Die UI-Updates (Lese-Status der
-        // Zeile, Sidebar-Unread-Badge) kommen über die @Model-Beobachtung der
-        // In-Memory-Mutation, ohne Save.
+        if updatesUnreadCount {
+            updateUnreadCount(for: article, wasRead: wasRead, isRead: article.isRead, context: context)
+        }
+        // Kein expliziter save() hier: das Sichern und optional auch der
+        // Feed-Zähler-Sync werden vom Aufrufer gesteuert (z. B.
+        // entbunden/debounced). Schnelle Artikelwechsel lösen so nicht pro
+        // Auswahl eine @Query-Invalidierung der Feed-/Sidebar-Daten aus.
         return true
     }
 
@@ -372,11 +377,16 @@ final class ArticleViewModel {
     }
 
     @MainActor
-    private func synchronizeUnreadCounts(for articles: [Article], context: ModelContext) {
+    func synchronizeUnreadCounts(for articles: [Article], context: ModelContext) {
         let feedIDs = Set(articles.compactMap { article in
             article.feedID ?? article.feed?.id
         })
 
+        synchronizeUnreadCounts(forFeedIDs: feedIDs, context: context)
+    }
+
+    @MainActor
+    func synchronizeUnreadCounts(forFeedIDs feedIDs: Set<UUID>, context: ModelContext) {
         for feedID in feedIDs {
             guard let feed = try? feed(withID: feedID, context: context) else {
                 continue

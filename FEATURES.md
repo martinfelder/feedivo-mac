@@ -846,6 +846,7 @@
   - Reader-Cache-Keys speichern nur kompakte Text-Fingerprints und keine zusätzlichen Volltext-Kopien
   - Reader-Detailbilder werden mit Ziel-Pixelgröße geladen, damit große Feedbilder nicht unnötig voll decodiert werden
   - Artikelzeilen lesen Feednamen über einen `feedID -> Feed.title` Lookup statt über `article.feed?.title`, damit `Alle Artikel` beim Lesen keine Feed-Relationship-Faults pro sichtbarer Zeile erzeugt
+  - Beim automatischen Als-gelesen-markieren aktualisiert die Artikelliste `Feed.unreadCount` nicht mehr pro Artikelauswahl, sondern sammelt betroffene Feed-IDs und synchronisiert die Zähler beim debounced Persistenz-Flush per `fetchCount`
   - Die Artikelansicht bietet hinter den Ordner-/Tag-Chips ein Inline-Tag-Popover, das dieselbe Tag-Erstellungs- und Zuweisungslogik wie der rechte Inspector nutzt
   - Der Reader-Prefetch der Artikelliste bleibt leichtgewichtig und faultet keine `content`-/`offlineContent`-Volltexte, keine Feed-Relationships oder Nachbarartikel-Bilder mehr, damit sequentielles Lesen weniger CPU/I/O erzeugt
   - Native Reader- und Readability-Inhalte rendern per `LazyVStack`, damit lange Artikel beim Öffnen nicht vollständig als SwiftUI-View-Baum materialisiert werden

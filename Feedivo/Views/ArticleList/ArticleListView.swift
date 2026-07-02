@@ -538,6 +538,7 @@ private struct ArticleListContent: View {
     // Auswahl eine @Query-Refetch-Kaskade aus; UI-Updates kommen über
     // @Model-Beobachtung der In-Memory-Mutation (kein Save nötig).
     @State private var pendingReadPersistenceTask: Task<Void, Never>?
+    @State private var pendingUnreadCountSyncFeedIDs = Set<UUID>()
     @State private var searchText = ""
     @State private var temporarilyVisibleReadArticleIDs = Set<PersistentIdentifier>()
     @AppStorage(ArticleSortOption.storageKey)
@@ -655,12 +656,15 @@ private struct ArticleListContent: View {
             let didMarkRead = viewModel.markReadIfNeeded(
                 selectedArticle,
                 isEnabled: markArticleReadOnSelection,
+                updatesUnreadCount: false,
                 context: modelContext
             )
             if didMarkRead {
+                rememberPendingUnreadCountSyncFeedID(for: selectedArticle)
                 // Save entbunden: In-Memory-Mutation reicht für die UI; erst
-                // nach einer kurzen Pause sichern, damit @Query-Refetches
-                // (feeds/articles/sidebar) nicht pro Auswahl feuern.
+                // nach einer kurzen Pause Feed-Zähler synchronisieren und
+                // sichern, damit @Query-Invalidierungen nicht pro Auswahl
+                // feuern.
                 scheduleReadPersistenceSave()
             }
         }
@@ -1084,15 +1088,23 @@ private struct ArticleListContent: View {
         temporarilyVisibleReadArticleIDs.insert(article.persistentModelID)
     }
 
+    private func rememberPendingUnreadCountSyncFeedID(for article: Article?) {
+        guard let feedID = article?.feedID else {
+            return
+        }
+
+        pendingUnreadCountSyncFeedIDs.insert(feedID)
+    }
+
     /// Sichert ausstehende Lese-Status-Änderungen entbunden: nach kurzer Pause
     /// ohne weitere Auswahl. Schnelles Navigieren koalesziert viele
-    /// Einzelmarkierungen zu einem Save (und damit einer @Query-Refetch-Runde).
+    /// Einzelmarkierungen zu einem Feed-Zähler-Sync und einem Save.
     private func scheduleReadPersistenceSave() {
         pendingReadPersistenceTask?.cancel()
-        pendingReadPersistenceTask = Task {
+        pendingReadPersistenceTask = Task { @MainActor in
             try? await Task.sleep(nanoseconds: 600_000_000)
             guard !Task.isCancelled else { return }
-            try? modelContext.save()
+            persistPendingReadChanges()
         }
     }
 
@@ -1101,6 +1113,18 @@ private struct ArticleListContent: View {
     private func flushPendingReadPersistenceSave() {
         pendingReadPersistenceTask?.cancel()
         pendingReadPersistenceTask = nil
+        persistPendingReadChanges()
+    }
+
+    private func persistPendingReadChanges() {
+        if !pendingUnreadCountSyncFeedIDs.isEmpty {
+            viewModel.synchronizeUnreadCounts(
+                forFeedIDs: pendingUnreadCountSyncFeedIDs,
+                context: modelContext
+            )
+            pendingUnreadCountSyncFeedIDs.removeAll()
+        }
+
         try? modelContext.save()
     }
 

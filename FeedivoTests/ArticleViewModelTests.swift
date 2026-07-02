@@ -324,6 +324,34 @@ struct ArticleViewModelTests {
     }
 
     @MainActor
+    @Test func markReadIfNeededKannFeedZaehlerFuerGebündeltenSyncAuslassen() throws {
+        let context = try testContext()
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
+        feed.unreadCount = 1
+        let article = Article(title: "Ungelesen", isRead: false)
+        article.feedID = feed.id
+        context.insert(feed)
+        context.insert(article)
+        try context.save()
+
+        let viewModel = ArticleViewModel()
+        let didMarkRead = viewModel.markReadIfNeeded(
+            article,
+            isEnabled: true,
+            updatesUnreadCount: false,
+            context: context
+        )
+
+        #expect(didMarkRead)
+        #expect(article.isRead)
+        #expect(feed.unreadCount == 1)
+
+        viewModel.synchronizeUnreadCounts(for: [article], context: context)
+
+        #expect(feed.unreadCount == 0)
+    }
+
+    @MainActor
     @Test func markAllReadSynchronisiertBereitsFalschenFeedZaehler() throws {
         let context = try testContext()
         let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")

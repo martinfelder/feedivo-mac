@@ -928,6 +928,11 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   `feedID -> Feed.title` Lookup über die leichte Feed-Query. `ArticleRowView`
   liest den Feednamen nicht mehr über `article.feed?.title`, damit das Lesen in
   `Alle Artikel` keine Relationship-Faults pro sichtbarer Zeile auslöst.
+- Beim automatischen Als-gelesen-markieren setzt die Liste den Artikel sofort
+  in-memory auf gelesen, aktualisiert `Feed.unreadCount` aber nicht pro Auswahl.
+  Stattdessen sammelt sie betroffene Feed-IDs und synchronisiert die Zähler beim
+  debounced Flush per SwiftData-`fetchCount`, damit schnelle Artikelwechsel keine
+  Feed-/Sidebar-/Badge-Invalidierung pro Artikel auslösen.
 - Die Artikelliste bietet nur noch eine einfache, kompakte Suche oberhalb der
   mittleren Spalte. Sie durchsucht bewusst nur die bereits geladenen Artikel der
   aktuell ausgewählten Liste und nutzt dafür den Bereich `Alles` (Titel,
@@ -1065,6 +1070,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Die context-basierten Lesestatus-Varianten korrigieren `Feed.unreadCount` über
   `Article.feedID`, wenn die `Article.feed`-Relationship im schnellen Query-Pfad
   nicht geladen ist.
+- `markReadIfNeeded(_:isEnabled:updatesUnreadCount:context:)` kann den
+  Feed-Zähler bewusst auslassen. Die Artikelliste nutzt das für Auto-Lesen und
+  ruft danach `synchronizeUnreadCounts(forFeedIDs:context:)` gebündelt auf.
 - Bulk-Lesestatus-Aktionen synchronisieren die betroffenen Feed-Zähler nach dem
   Markieren per SwiftData-`fetchCount`, damit bereits falsch gespeicherte
   `Feed.unreadCount` Werte wieder dem echten ungelesenen Bestand entsprechen.
@@ -1873,9 +1881,14 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
      `feedID -> Feed.title` Lookup. Weder `ArticleRowView` noch der
      Nachbarartikel-Prefetch lesen `article.feed?.title`; dadurch entstehen beim
      schnellen Lesen in `Alle Artikel` keine Feed-Relationship-Faults pro Zeile.
+  9. Auto-Lesen aktualisiert `Feed.unreadCount` nicht mehr pro Artikelauswahl.
+     `ArticleListView` sammelt betroffene Feed-IDs und synchronisiert die Zähler
+     beim debounced Persistenz-Flush per `fetchCount`; damit feuern Feed-Queries,
+     Sidebar-Badges und Dock-Badge nicht mehr bei jedem schnellen Artikelwechsel.
 - **Konsequenz:** Navigation bleibt auch bei großem Datenbestand flüssig;
-  Lese-Status wird verzögert (≤0.6s) persistiert, was für einen RSS-Reader
-  akzeptabel ist und auf `.onDisappear` sofort geflusht wird.
+  Lese-Status und Feed-Zähler werden verzögert (≤0.6s) persistiert bzw.
+  synchronisiert, was für einen RSS-Reader akzeptabel ist und auf `.onDisappear`
+  sofort geflusht wird.
 - **Datum:** 2026-06-28, ergänzt 2026-07-01 und 2026-07-02
 
 ---
@@ -2163,6 +2176,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   eigenen SwiftData-`ModelContext` im Hintergrund geladen; Cache-Keys halten
   Fingerprints statt Volltextkopien, Detailbilder nutzen eine Ziel-Pixelgröße und
   Lesestatus-Zähler vermeiden den direkten `article.feed`-Relationship-Fault.
+  Auto-Lesen aktualisiert `Feed.unreadCount` zudem nicht mehr pro Artikelauswahl,
+  sondern bündelt betroffene Feed-IDs und synchronisiert die Zähler erst beim
+  debounced Persistenz-Flush.
 
 - 2026-07-01: Reader-Artikelwechsel weiter entkoppelt. `ReaderView` beobachtet
   für Reader-Rebuilds keine schweren Textfelder (`Article.content`,

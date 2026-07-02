@@ -208,11 +208,21 @@ struct FeedivoAppSceneConfigurationTests {
         let projectRoot = projectRootURL()
         let viewModelSource = try source(at: "Feedivo/ViewModels/ArticleViewModel.swift", projectRoot: projectRoot)
         let methodStart = try #require(viewModelSource.range(of: "private func feed(for article: Article"))
-        let methodEnd = try #require(viewModelSource.range(of: "@MainActor\n    private func synchronizeUnreadCounts"))
+        let methodEnd = try #require(viewModelSource.range(of: "@MainActor\n    func synchronizeUnreadCounts"))
         let methodSource = viewModelSource[methodStart.lowerBound ..< methodEnd.lowerBound]
 
         #expect(methodSource.contains("guard let feedID = article.feedID else"))
         #expect(!methodSource.contains("if let feed = article.feed"))
+    }
+
+    @Test func artikelAuswahlVerzoegertFeedZaehlerBisZumDebouncedFlush() throws {
+        let projectRoot = projectRootURL()
+        let articleListSource = try source(at: "Feedivo/Views/ArticleList/ArticleListView.swift", projectRoot: projectRoot)
+        let compactArticleListSource = articleListSource.filter { !$0.isWhitespace }
+
+        #expect(compactArticleListSource.contains("updatesUnreadCount:false"))
+        #expect(compactArticleListSource.contains("rememberPendingUnreadCountSyncFeedID(for:"))
+        #expect(compactArticleListSource.contains("viewModel.synchronizeUnreadCounts(forFeedIDs:"))
     }
 
     @Test func appUsesCloudSyncSettingsForModelContainer() throws {
