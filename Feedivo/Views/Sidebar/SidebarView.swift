@@ -23,6 +23,8 @@ struct SidebarView: View {
     // die Signatur bzw. die beobachteten @Querys erfasst.
     @AppStorage(SidebarBadgeInvalidation.directTagVersionKey)
     private var directTagVersion = 0
+    @AppStorage(SQLiteDataInvalidation.statusVersionKey)
+    private var sqliteStatusVersion = 0
     // Cache für Tag-Badge-Zähler: nur bei Tag-relevanter Signaturänderung neu
     // berechnet. Statusänderungen wie Stern/Archiv aktualisieren nur die
     // günstigen Status-Badges und faulten keine Artikel→Tag-Relationships.
@@ -460,7 +462,7 @@ struct SidebarView: View {
             .map { $0.id.uuidString }
             .sorted()
             .joined(separator: ",")
-        return "\(showsReadFeedsInSidebar)#\(feedIDs)"
+        return "\(sqliteStatusVersion)#\(showsReadFeedsInSidebar)#\(feedIDs)"
     }
 }
 

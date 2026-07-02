@@ -84,6 +84,7 @@ struct ArticleStatusStore {
         date: Date?
     ) throws {
         let timestamp = value ? date : nil
+        var didUpdate = false
         try database.write { db in
             try db.execute(
                 sql: """
@@ -93,6 +94,44 @@ struct ArticleStatusStore {
                     """,
                 arguments: [value, timestamp, articleID]
             )
+            didUpdate = db.changesCount > 0
+
+            if column == "isRead" || column == "isHidden" {
+                try updateFeedUnreadCount(forArticleID: articleID, db: db)
+            }
         }
+
+        if didUpdate {
+            SQLiteDataInvalidation.bumpStatusVersion()
+        }
+    }
+
+    private func updateFeedUnreadCount(forArticleID articleID: String, db: Database) throws {
+        guard let feedID = try String.fetchOne(db, sql: """
+            SELECT feedID
+            FROM articles
+            WHERE id = ?
+            LIMIT 1
+            """, arguments: [articleID]) else {
+            return
+        }
+
+        let unreadCount = try Int.fetchOne(db, sql: """
+            SELECT COUNT(*)
+            FROM article_statuses s
+            JOIN articles a ON a.id = s.articleID
+            WHERE a.feedID = ?
+                AND s.isRead = 0
+                AND s.isHidden = 0
+            """, arguments: [feedID]) ?? 0
+
+        try db.execute(
+            sql: """
+                UPDATE feeds
+                SET unreadCount = ?, updatedAt = ?
+                WHERE id = ?
+                """,
+            arguments: [unreadCount, Date(), feedID]
+        )
     }
 }

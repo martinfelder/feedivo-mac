@@ -373,10 +373,12 @@ struct FeedivoAppSceneConfigurationTests {
         let compactSidebarSource = compact(sidebarSource)
 
         #expect(sidebarSource.contains("@Environment(\\.feedivoDatabase) private var feedivoDatabase"))
+        #expect(sidebarSource.contains("@AppStorage(SQLiteDataInvalidation.statusVersionKey)"))
         #expect(sidebarSource.contains("@State private var sqliteSidebarState = SQLiteSidebarState()"))
         #expect(compactSidebarSource.contains("sqliteSidebarState.load(database:feedivoDatabase,showsReadFeeds:showsReadFeedsInSidebar)"))
         #expect(compactSidebarSource.contains("sqliteSidebarState.visibleFeeds(from:feeds,showsReadFeeds:showsReadFeedsInSidebar)"))
         #expect(compactSidebarSource.contains("sqliteSnapshot:sqliteSidebarState.snapshot(for:feed)"))
+        #expect(compactSidebarSource.contains("\\(sqliteStatusVersion)#\\(showsReadFeedsInSidebar)#\\(feedIDs)"))
     }
 
     @Test func feedRowViewBevorzugtSQLiteSnapshotWerte() throws {

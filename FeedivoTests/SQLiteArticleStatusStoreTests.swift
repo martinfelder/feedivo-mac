@@ -84,4 +84,48 @@ struct SQLiteArticleStatusStoreTests {
 
         #expect(unreadCount == 1)
     }
+
+    @Test func readMutationUpdatesFeedUnreadCountSnapshot() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let statusStore = ArticleStatusStore(database: database)
+
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example"))
+        let articleID = try articleStore.upsert(
+            ArticleUpsertInput(feedID: "feed-1", sourceID: "article-1", title: "Article")
+        )
+        try feedStore.setUnreadCount(1, feedID: "feed-1")
+
+        try statusStore.setRead(true, articleID: articleID, at: Date(timeIntervalSince1970: 1_000))
+        let readFeed = try feedStore.feed(id: "feed-1")
+
+        try statusStore.setRead(false, articleID: articleID, at: nil)
+        let unreadFeed = try feedStore.feed(id: "feed-1")
+
+        #expect(readFeed?.unreadCount == 0)
+        #expect(unreadFeed?.unreadCount == 1)
+    }
+
+    @Test func hiddenMutationUpdatesFeedUnreadCountSnapshot() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let statusStore = ArticleStatusStore(database: database)
+
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example"))
+        let articleID = try articleStore.upsert(
+            ArticleUpsertInput(feedID: "feed-1", sourceID: "article-1", title: "Article")
+        )
+        try feedStore.setUnreadCount(1, feedID: "feed-1")
+
+        try statusStore.setHidden(true, articleID: articleID, at: Date(timeIntervalSince1970: 1_000))
+        let hiddenFeed = try feedStore.feed(id: "feed-1")
+
+        try statusStore.setHidden(false, articleID: articleID, at: nil)
+        let visibleFeed = try feedStore.feed(id: "feed-1")
+
+        #expect(hiddenFeed?.unreadCount == 0)
+        #expect(visibleFeed?.unreadCount == 1)
+    }
 }
