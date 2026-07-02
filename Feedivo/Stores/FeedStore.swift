@@ -108,6 +108,15 @@ struct FeedStore {
             }
         }
     }
+
+    func sidebarFeeds(showsReadFeeds: Bool) throws -> [FeedSidebarSnapshot] {
+        let snapshots = try sidebarFeeds()
+        guard !showsReadFeeds else {
+            return snapshots
+        }
+
+        return snapshots.filter { $0.unreadCount > 0 }
+    }
 }
 
 private extension Optional where Wrapped == String {

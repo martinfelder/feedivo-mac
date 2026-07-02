@@ -64,6 +64,18 @@ struct SQLiteFeedStoreTests {
         #expect(snapshots.map(\.id) == ["a", "b"])
     }
 
+    @Test func sidebarSnapshotsCanHideReadFeeds() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let store = FeedStore(database: database)
+
+        try store.save(FeedRecord(id: "read", url: "https://read.example/feed.xml", title: "Read", unreadCount: 0))
+        try store.save(FeedRecord(id: "unread", url: "https://unread.example/feed.xml", title: "Unread", unreadCount: 3))
+
+        let visible = try store.sidebarFeeds(showsReadFeeds: false)
+
+        #expect(visible.map(\.id) == ["unread"])
+    }
+
     @Test func feedByURLFindsExistingRecord() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let store = FeedStore(database: database)
