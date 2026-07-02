@@ -120,6 +120,46 @@ struct SQLiteArticleStoreTests {
         #expect(readerArticle?.title == "New Title")
     }
 
+    @Test func upsertPersistsLaterSourceIDAfterLinkFallbackMatch() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example"))
+
+        let firstID = try articleStore.upsert(
+            ArticleUpsertInput(
+                feedID: "feed-1",
+                sourceID: nil,
+                link: "https://example.com/articles/original",
+                title: "Original"
+            )
+        )
+        let secondID = try articleStore.upsert(
+            ArticleUpsertInput(
+                feedID: "feed-1",
+                sourceID: "source-1",
+                link: "https://example.com/articles/original",
+                title: "With Source"
+            )
+        )
+        let thirdID = try articleStore.upsert(
+            ArticleUpsertInput(
+                feedID: "feed-1",
+                sourceID: "source-1",
+                link: "https://example.com/articles/changed",
+                title: "Changed Link"
+            )
+        )
+
+        let readerArticle = try articleStore.readerArticle(id: firstID)
+
+        #expect(secondID == firstID)
+        #expect(thirdID == firstID)
+        #expect(readerArticle?.link == "https://example.com/articles/changed")
+        #expect(readerArticle?.title == "Changed Link")
+    }
+
     @Test func readerArticleUsesArticleArrivedAtInsteadOfStatusDateArrived() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let feedStore = FeedStore(database: database)

@@ -54,10 +54,29 @@ struct ArticleStore {
             let link = input.link.trimmedNonEmpty
 
             if let articleID = try findExistingArticleID(input: input, db: db) {
+                let sourceIDAssignment = sourceID == nil ? "" : "sourceID = COALESCE(sourceID, ?),"
+                var arguments = StatementArguments()
+                if let sourceID {
+                    arguments.append(contentsOf: [sourceID])
+                }
+                arguments.append(contentsOf: [
+                    link,
+                    input.title,
+                    input.summary,
+                    input.content,
+                    input.imageURL,
+                    input.author,
+                    input.publishedAt,
+                    Date(),
+                    input.estimatedReadingMinutes,
+                    articleID
+                ])
+
                 try db.execute(
                     sql: """
                         UPDATE articles
-                        SET link = ?,
+                        SET \(sourceIDAssignment)
+                            link = ?,
                             title = ?,
                             summary = ?,
                             content = ?,
@@ -68,18 +87,7 @@ struct ArticleStore {
                             estimatedReadingMinutes = ?
                         WHERE id = ?
                         """,
-                    arguments: [
-                        link,
-                        input.title,
-                        input.summary,
-                        input.content,
-                        input.imageURL,
-                        input.author,
-                        input.publishedAt,
-                        Date(),
-                        input.estimatedReadingMinutes,
-                        articleID
-                    ]
+                    arguments: arguments
                 )
                 return articleID
             }
