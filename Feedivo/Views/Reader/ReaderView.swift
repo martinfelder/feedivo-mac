@@ -382,7 +382,7 @@ struct ReaderView: View {
 
     private var nativeReader: some View {
         ScrollView(.vertical, showsIndicators: false) {
-            VStack(alignment: .leading, spacing: contentBlockSpacing) {
+            LazyVStack(alignment: .leading, spacing: contentBlockSpacing) {
                 readerHeader
 
                 if shouldShowOfflineStatusNotice {
@@ -418,7 +418,7 @@ struct ReaderView: View {
     private func readabilityReader(originalURL: URL) -> some View {
         ZStack(alignment: .topLeading) {
             ScrollView(.vertical, showsIndicators: false) {
-                VStack(alignment: .leading, spacing: contentBlockSpacing) {
+                LazyVStack(alignment: .leading, spacing: contentBlockSpacing) {
                     readerHeader
                     readabilityStatusNotice
 

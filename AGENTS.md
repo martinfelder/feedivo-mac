@@ -1316,6 +1316,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Native Reader-ScrollViews sind an `article.persistentModelID` gebunden, damit
   ein Artikelwechsel immer oben im neuen Artikel startet und nicht den
   Scroll-Offset des vorherigen Artikels übernimmt.
+- Native Reader- und Readability-Inhalte nutzen `LazyVStack`, damit lange Artikel
+  beim Öffnen oder Wechseln nicht sofort alle Text-/Bild-Blöcke als SwiftUI-Views
+  materialisieren. Das reduziert CPU-Zeit beim Lesen spürbar.
 - Wenn ein Feed nur eine Summary, aber keinen Volltext liefert, zeigt der native
   Reader die vorhandene Zusammenfassung direkt ohne zusaetzliche Hinweisbox.
 - Reader-Modi: `Nativer Reader`, `Vollartikel` und `Originalansicht`. Der
@@ -1844,6 +1847,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
      Render nachgeladen. Der Nachbarartikel-Prefetch bleibt leichtgewichtig und
      faultet keine Volltexte/Bilder mehr, damit schnelles Lesen nicht nebenbei
      teure Text- und Bildarbeit auslöst.
+  6. Reader-Content wird in `LazyVStack` gerendert. Dadurch materialisiert SwiftUI
+     lange Artikel nicht vollständig beim Öffnen, sondern baut nur den sichtbaren
+     Bereich plus Puffer.
 - **Konsequenz:** Navigation bleibt auch bei großem Datenbestand flüssig;
   Lese-Status wird verzögert (≤0.6s) persistiert, was für einen RSS-Reader
   akzeptabel ist und auf `.onDisappear` sofort geflusht wird.
@@ -2125,7 +2131,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   `ArticleListView` faultet keine schweren Artikeltexte (`Article.content`,
   `Article.offlineContent`) und decodiert keine Nachbarartikel-Bilder mehr.
   Die eigentliche Reader-Vorbereitung bleibt asynchron beim aktuell geöffneten
-  Artikel.
+  Artikel. Zusätzlich rendert `ReaderView` native Reader- und Readability-Inhalte
+  per `LazyVStack`, damit lange Artikel nicht komplett als View-Baum aufgebaut
+  werden, sobald sie geöffnet werden.
 
 - 2026-07-01: Reader-Artikelwechsel weiter entkoppelt. `ReaderView` beobachtet
   für Reader-Rebuilds keine schweren Textfelder (`Article.content`,

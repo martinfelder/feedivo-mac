@@ -154,6 +154,14 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(!listSource.contains("await ImageCacheService.shared.image"))
     }
 
+    @Test func readerRendertContentBloeckeLazy() throws {
+        let projectRoot = projectRootURL()
+        let readerSource = try source(at: "Feedivo/Views/Reader/ReaderView.swift", projectRoot: projectRoot)
+
+        #expect(readerSource.contains("LazyVStack(alignment: .leading, spacing: contentBlockSpacing)"))
+        #expect(!readerSource.contains("\n            VStack(alignment: .leading, spacing: contentBlockSpacing)"))
+    }
+
     @Test func appUsesCloudSyncSettingsForModelContainer() throws {
         let projectRoot = projectRootURL()
         let appSource = try source(at: "Feedivo/App/FeedivoApp.swift", projectRoot: projectRoot)
