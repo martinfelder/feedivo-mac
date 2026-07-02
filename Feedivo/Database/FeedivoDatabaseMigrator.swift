@@ -1,0 +1,91 @@
+import Foundation
+import GRDB
+
+enum FeedivoDatabaseMigrator {
+    static var migrator: DatabaseMigrator {
+        var migrator = DatabaseMigrator()
+
+        migrator.registerMigration("v1_create_core_tables") { database in
+            try database.create(table: "feeds") { table in
+                table.column("id", .text).primaryKey()
+                table.column("url", .text).notNull()
+                table.column("title", .text).notNull()
+                table.column("websiteURL", .text)
+                table.column("faviconURL", .text)
+                table.column("folderName", .text)
+                table.column("refreshIntervalMinutes", .integer).notNull().defaults(to: 30)
+                table.column("lastRefreshedAt", .datetime)
+                table.column("lastETag", .text)
+                table.column("lastModified", .text)
+                table.column("lastBodyHash", .text)
+                table.column("lastHTTPStatusCode", .integer)
+                table.column("unreadCount", .integer).notNull().defaults(to: 0)
+                table.column("createdAt", .datetime).notNull()
+                table.column("updatedAt", .datetime).notNull()
+            }
+
+            try database.create(table: "articles") { table in
+                table.column("id", .text).primaryKey()
+                table.column("feedID", .text).notNull()
+                    .references("feeds", column: "id", onDelete: .cascade)
+                table.column("sourceID", .text)
+                table.column("link", .text)
+                table.column("title", .text).notNull()
+                table.column("summary", .text)
+                table.column("content", .text)
+                table.column("imageURL", .text)
+                table.column("author", .text)
+                table.column("publishedAt", .datetime)
+                table.column("arrivedAt", .datetime).notNull()
+                table.column("updatedAt", .datetime).notNull()
+                table.column("estimatedReadingMinutes", .integer)
+            }
+
+            try database.create(table: "article_statuses") { table in
+                table.column("articleID", .text).primaryKey()
+                table.column("isRead", .boolean).notNull().defaults(to: false)
+                table.column("isStarred", .boolean).notNull().defaults(to: false)
+                table.column("isArchived", .boolean).notNull().defaults(to: false)
+                table.column("isHidden", .boolean).notNull().defaults(to: false)
+                table.column("readAt", .datetime)
+                table.column("starredAt", .datetime)
+                table.column("archivedAt", .datetime)
+                table.column("hiddenAt", .datetime)
+                table.column("dateArrived", .datetime).notNull()
+            }
+
+            try database.create(table: "feed_logs") { table in
+                table.column("id", .text).primaryKey()
+                table.column("feedID", .text).notNull()
+                    .references("feeds", column: "id", onDelete: .cascade)
+                table.column("createdAt", .datetime).notNull()
+                table.column("level", .text).notNull()
+                table.column("message", .text).notNull()
+                table.column("httpStatusCode", .integer)
+                table.column("newArticleCount", .integer).notNull().defaults(to: 0)
+            }
+
+            try database.create(index: "idx_feeds_url_unique", on: "feeds", columns: ["url"], unique: true)
+            try database.create(index: "idx_feeds_title", on: "feeds", columns: ["title"])
+            try database.create(index: "idx_articles_feed_published", on: "articles", columns: ["feedID", "publishedAt"])
+            try database.create(index: "idx_articles_published", on: "articles", columns: ["publishedAt"])
+            try database.execute(sql: """
+                CREATE UNIQUE INDEX idx_articles_feed_source_unique
+                ON articles(feedID, sourceID)
+                WHERE sourceID IS NOT NULL AND sourceID <> ''
+                """)
+            try database.execute(sql: """
+                CREATE UNIQUE INDEX idx_articles_feed_link_unique
+                ON articles(feedID, link)
+                WHERE link IS NOT NULL AND link <> ''
+                """)
+            try database.create(index: "idx_article_statuses_is_read", on: "article_statuses", columns: ["isRead"])
+            try database.create(index: "idx_article_statuses_is_starred", on: "article_statuses", columns: ["isStarred"])
+            try database.create(index: "idx_article_statuses_is_archived", on: "article_statuses", columns: ["isArchived"])
+            try database.create(index: "idx_article_statuses_is_hidden", on: "article_statuses", columns: ["isHidden"])
+            try database.create(index: "idx_feed_logs_feed_created", on: "feed_logs", columns: ["feedID", "createdAt"])
+        }
+
+        return migrator
+    }
+}
