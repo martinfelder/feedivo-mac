@@ -129,7 +129,7 @@ enum BackgroundRefreshService {
         let context = ModelContext(modelContainer)
         let feeds = (try? context.fetch(FetchDescriptor<Feed>())) ?? []
 
-        await feedViewModel.refreshAllFeeds(feeds, context: context)
+        await feedViewModel.refreshAllFeeds(feeds, modelContainer: modelContainer)
 
         recordRefreshOutcome(
             from: feedViewModel,

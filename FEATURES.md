@@ -185,11 +185,12 @@
 - **Performance:** Der Refresh erkennt bestehende Artikel über einen gezielten
   `Article.feedID`-Fetch statt über die vollständige `feed.articles`-Relationship.
   Der Lookup lädt keine schweren Artikeltexte, und unveränderte bestehende
-  Artikelwerte werden nicht erneut geschrieben. Sammel-Refreshes speichern pro
-  Batch statt pro Feed, damit SwiftData-Queries in Sidebar und Artikelliste
-  seltener invalidiert werden. Der laufende Fortschritt vermeidet globale
-  Animationen, und Feed-Batches setzen ihre Live-Status gesammelt auf
-  `refreshing`.
+  Artikelwerte werden nicht erneut geschrieben. Sammel-Refreshes aus der UI laufen
+  über `FeedBackgroundRefreshService` mit eigenen SwiftData-Kontexten pro Feed:
+  `FeedViewModel` erstellt nur leichte Feed-Snapshots, hält Progress/Status auf
+  dem MainActor und übernimmt am Ende grobe Ergebnis- und Benachrichtigungsdaten.
+  Der laufende Fortschritt vermeidet globale Animationen, und Feed-Batches setzen
+  ihre Live-Status gesammelt auf `refreshing`.
 
 ### 4.5 Automatischer Refresh
 - **Status:** ✔️ Fertig
@@ -857,6 +858,10 @@
     Nachträgen
   - Die Refresh-Status-UI aktualisiert Batch-Startzustände gesammelt und animiert
     laufende Fortschrittsänderungen nicht mehr global
+  - Sammel-Refreshes aus Hauptfenster, Start-Refresh und periodischem Background-
+    Scheduler laufen über `FeedBackgroundRefreshService` mit eigenem SwiftData-
+    Kontext pro Feed. Die UI übergibt nur Feed-Snapshots und erhält Status-Events
+    sowie eine grobe Ergebnis-Summary zurück.
   - Feed-, Tag-, Smart-Filter- und einfache Smart-Folder-Artikellisten verwenden
     leichte `FetchDescriptor` mit `propertiesToFetch`; `Article.content` und
     `Article.offlineContent` bleiben aus dem Standard-Listenfetch heraus

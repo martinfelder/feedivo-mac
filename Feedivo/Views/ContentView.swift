@@ -53,9 +53,11 @@ struct ContentView: View {
     @State private var didRunRefreshForLaunch = false
     @State private var isRefreshStatusExpanded = false
     @State private var networkMonitor = NetworkConnectionStatusMonitor()
+    private let modelContainer: ModelContainer?
 
-    init(feedViewModel: FeedViewModel = FeedViewModel()) {
+    init(feedViewModel: FeedViewModel = FeedViewModel(), modelContainer: ModelContainer? = nil) {
         _feedViewModel = State(initialValue: feedViewModel)
+        self.modelContainer = modelContainer
     }
 
     var body: some View {
@@ -305,7 +307,7 @@ struct ContentView: View {
                 requestExportOPML: requestExportOPML,
                 refreshAllFeeds: {
                     Task {
-                        await feedViewModel.refreshAllFeeds(feeds, context: modelContext)
+                        await refreshAllFeeds()
                     }
                 },
                 refreshSelectedFeed: {
@@ -379,7 +381,7 @@ struct ContentView: View {
 
     private func requestRefreshAllFeeds() {
         Task {
-            await feedViewModel.refreshAllFeeds(feeds, context: modelContext)
+            await refreshAllFeeds()
         }
     }
 
@@ -428,11 +430,20 @@ struct ContentView: View {
 
         didRunRefreshForLaunch = true
         Task {
-            await feedViewModel.refreshAllFeeds(feeds, context: modelContext)
+            await refreshAllFeeds()
             BackgroundRefreshService.recordRefreshOutcome(
                 from: feedViewModel,
                 intervalMinutes: backgroundRefreshIntervalMinutes
             )
+        }
+    }
+
+    @MainActor
+    private func refreshAllFeeds() async {
+        if let modelContainer {
+            await feedViewModel.refreshAllFeeds(feeds, modelContainer: modelContainer)
+        } else {
+            await feedViewModel.refreshAllFeeds(feeds, context: modelContext)
         }
     }
 

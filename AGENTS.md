@@ -219,6 +219,7 @@ FeedivoMac/
 │   │   ├── FeedNotificationService.swift # Feed-Benachrichtigungen pro Refresh ✅
 │   │   ├── BackgroundRefreshSettings.swift # Auto-Refresh Settings/Intervalle ✅
 │   │   ├── BackgroundRefreshService.swift  # NSBackgroundActivityScheduler Adapter ✅
+│   │   ├── FeedBackgroundRefreshService.swift # Sammel-Refresh mit eigenem SwiftData-Kontext pro Feed ✅
 │   │   ├── ArticleFeedIDBackfillService.swift # feedID für alte Artikel nachfuellen ✅
 │   │   ├── ArticleExportService.swift # Markdown/Text/HTML-Export; PDF/DOCX prototypisiert/zurückgestellt ✅
 │   │   ├── ArticleExportDocument.swift # FileDocument für Artikel-/ZIP-/Binärdateiexport ✅
@@ -576,12 +577,17 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   eine macOS-Benachrichtigung angezeigt wird.
 - Beim Aktualisieren werden Erfolg/Fehler als `FeedLogEntry` protokolliert; pro Feed
   bleiben die neuesten 20 Log-Eintraege erhalten
-- `refreshAllFeeds(_:context:)` — aktualisiert alle gespeicherten Feeds per
-  `withTaskGroup` parallel; Netzwerk-awaits können sich überlappen, SwiftData-
-  Änderungen bleiben durch `@MainActor` serialisiert
-- Beim Sammel-Refresh wird nicht mehr nach jedem erfolgreichen Feed gespeichert,
-  sondern pro Feed-Batch. Dadurch werden SwiftData-`@Query`-Invalidierungen in
-  Sidebar und Artikelliste deutlich seltener ausgelöst.
+- `refreshAllFeeds(_:modelContainer:)` — aktualisiert alle gespeicherten Feeds
+  über `FeedBackgroundRefreshService`. `FeedViewModel` erstellt dafür nur leichte
+  `FeedRefreshSnapshot` Werte aus der UI-Query, verwaltet MainActor-Progress und
+  verarbeitet am Ende Ergebnis- und Benachrichtigungsdaten.
+- Der Sammel-Refresh nutzt pro Feed einen eigenen SwiftData-`ModelContext` im
+  Hintergrundservice. Dadurch laufen Netzwerk, Artikel-Abgleich, Regelanwendung,
+  Log-Schreiben und Speichern nicht mehr auf dem UI-`modelContext`; die UI erhält
+  nur grobe Batch-/Feed-Status-Events zurück.
+- `refreshAllFeeds(_:context:)` bleibt als Legacy-/Testpfad bestehen und speichert
+  weiterhin pro Feed-Batch. Einzel-Feed-Refresh und OPML-Import nutzen vorerst
+  bewusst den bestehenden Kontextpfad.
 - Der Sammel-Refresh laeuft bei einzelnen Fehlern weiter und meldet am Ende
   betroffene Feednamen
 - `operationProgress` liefert für Sammel-Refresh und OPML-Import einen sichtbaren
@@ -839,10 +845,11 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - `SystemBackgroundActivityRefreshScheduler` nutzt `NSBackgroundActivityScheduler`,
   weil `BGTaskScheduler` für native macOS Apps im SDK nicht verfuegbar ist.
 - Automatischer Refresh nutzt denselben Pfad wie manueller Refresh für alle Feeds:
-  `FeedViewModel.refreshAllFeeds(_:context:)`. `FeedivoApp` teilt ein
+  `FeedViewModel.refreshAllFeeds(_:modelContainer:)`. `FeedivoApp` teilt ein
   `FeedViewModel` zwischen Hauptfenster und Background-Scheduler, damit
   automatische Refreshes bei offenem Hauptfenster dieselbe sichtbare
-  Fortschrittsanzeige nutzen.
+  Fortschrittsanzeige nutzen, während die SwiftData-Schreibarbeit in eigenen
+  Kontexten des `FeedBackgroundRefreshService` läuft.
 - Wichtig: macOS entscheidet den genauen Zeitpunkt. Eine vollständig beendete App
   wird für diese Basis nicht neu gestartet.
 
@@ -2182,6 +2189,13 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   über `FeedivoModelContainerFactory` konfiguriert; Tests für CloudKitDatabase
   prüfen eine eigene `StoreMode`-Repräsentation, weil SwiftDatas
   `CloudKitDatabase` im aktuellen SDK nicht `Equatable` ist.
+
+- 2026-07-02: Großer Refresh-Performance-Schritt umgesetzt. Sammel-Refreshes aus
+  Hauptfenster, Start-Refresh und periodischem Background-Scheduler laufen nun
+  über `FeedBackgroundRefreshService` mit eigenem SwiftData-`ModelContext` pro
+  Feed. `FeedViewModel` gibt nur leichte Feed-Snapshots hinein und erhält Batch-/
+  Feed-Status-Events sowie eine Ergebnis-Summary zurück; der UI-`modelContext`
+  wird nicht mehr für die Refresh-Schreibarbeit verwendet.
 
 - 2026-07-01: Refresh-Performance optimiert. `FeedViewModel.refreshFeedContents`
   baut den bestehenden Artikelbestand jetzt per gezieltem `Article.feedID`-Fetch

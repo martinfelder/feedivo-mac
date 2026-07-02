@@ -51,8 +51,9 @@ struct FeedivoAppSceneConfigurationTests {
         let schedulerSource = try source(at: "Feedivo/Services/BackgroundRefreshService.swift", projectRoot: projectRoot)
 
         #expect(appSource.contains("private let feedViewModel"))
-        #expect(appSource.contains("ContentView(feedViewModel: feedViewModel)"))
+        #expect(appSource.contains("ContentView(feedViewModel: feedViewModel, modelContainer: modelContainer)"))
         #expect(appSource.contains("feedViewModel: feedViewModel"))
+        #expect(contentSource.contains("refreshAllFeeds(feeds, modelContainer: modelContainer)"))
         #expect(contentSource.contains("refreshFeedsOnLaunchIfNeeded()"))
         #expect(schedulerSource.contains("feedViewModel: FeedViewModel"))
     }

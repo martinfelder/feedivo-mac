@@ -86,7 +86,7 @@ struct FeedivoApp: App {
         let interfaceTextSize = InterfaceTextSize.resolved(from: interfaceTextSizeRawValue)
 
         WindowGroup {
-            ContentView(feedViewModel: feedViewModel)
+            ContentView(feedViewModel: feedViewModel, modelContainer: modelContainer)
                 .environment(\.locale, appLanguage.locale)
                 .environment(\.interfaceTextSize, interfaceTextSize)
                 .environment(databaseLoadState)

@@ -2,7 +2,7 @@ import Foundation
 import FeedKit
 import XMLKit
 
-struct ParsedFeed {
+struct ParsedFeed: Sendable {
     let sourceURL: String
     let title: String
     let description: String?
@@ -24,7 +24,7 @@ struct ParsedFeed {
     }
 }
 
-struct ParsedArticle {
+struct ParsedArticle: Sendable {
     let title: String
     let sourceID: String?
     let link: String?

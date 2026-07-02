@@ -1663,6 +1663,56 @@ struct FeedViewModelTests {
     }
 
     @MainActor
+    @Test func refreshAllFeedsKannUeberEigenenModelContainerLaufen() async throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            RuleCondition.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Alter Titel")
+        context.insert(feed)
+        try context.save()
+
+        let viewModel = makeViewModel(
+            fetchFeed: { urlString in
+                ParsedFeed(
+                    sourceURL: urlString,
+                    title: "Neuer Titel",
+                    description: "Neue Beschreibung",
+                    siteURL: "https://example.com/",
+                    articles: [
+                        ParsedArticle(
+                            title: "Neuer Artikel",
+                            link: "https://example.com/new",
+                            summary: "Kurz",
+                            content: nil,
+                            publishedAt: Date(timeIntervalSince1970: 1),
+                            imageURL: nil
+                        )
+                    ]
+                )
+            },
+            discoverFaviconURL: { _ in nil }
+        )
+
+        await viewModel.refreshAllFeeds([feed], modelContainer: container)
+
+        let verificationContext = ModelContext(container)
+        let refreshedFeeds = try verificationContext.fetch(FetchDescriptor<Feed>())
+        let refreshedFeed = try #require(refreshedFeeds.first)
+        #expect(refreshedFeed.title == "Neuer Titel")
+        #expect(refreshedFeed.feedDescription == "Neue Beschreibung")
+        #expect(refreshedFeed.unreadCount == 1)
+        #expect(viewModel.recentRefreshStatus?.newArticleCount == 1)
+        #expect(viewModel.recentRefreshStatus?.failedFeedCount == 0)
+    }
+
+    @MainActor
     @Test func refreshFeedMeldetNeueArtikelFuerFeedBenachrichtigung() async throws {
         let container = try ModelContainer(
             for: Feed.self,

@@ -35,14 +35,14 @@ struct FeedRefreshStatusSummary: Identifiable, Equatable {
     }
 }
 
-enum FeedRefreshItemStatus: Equatable {
+enum FeedRefreshItemStatus: Equatable, Sendable {
     case pending
     case refreshing
     case succeeded
     case failed
 }
 
-struct FeedRefreshItem: Identifiable, Equatable {
+struct FeedRefreshItem: Identifiable, Equatable, Sendable {
     var id: UUID {
         feedID
     }
@@ -147,9 +147,9 @@ enum StoredArticleRefreshFieldUpdate {
 final class FeedViewModel {
     static let maxConcurrentFeedRefreshes = 6
 
-    private let fetchFeed: (String) async throws -> ParsedFeed
-    private let discoverFaviconURL: (URL) async -> String?
-    private let enrichArticleImages: ([ParsedArticle]) async -> [ParsedArticle]
+    private let fetchFeed: @Sendable (String) async throws -> ParsedFeed
+    private let discoverFaviconURL: @Sendable (URL) async -> String?
+    private let enrichArticleImages: @Sendable ([ParsedArticle]) async -> [ParsedArticle]
     private let notifyFeedRefresh: ([FeedRefreshNotificationResult]) async -> Void
     private let notifyRuleNotifications: ([RuleNotificationResult]) async -> Void
     private let articleRetentionDefaults: UserDefaults
@@ -173,11 +173,11 @@ final class FeedViewModel {
     }
 
     init(
-        fetchFeed: @escaping (String) async throws -> ParsedFeed = FeedService.fetchFeed,
-        discoverFaviconURL: @escaping (URL) async -> String? = { siteURL in
+        fetchFeed: @escaping @Sendable (String) async throws -> ParsedFeed = FeedService.fetchFeed,
+        discoverFaviconURL: @escaping @Sendable (URL) async -> String? = { siteURL in
             await FaviconService.discoverFaviconURL(siteURL: siteURL)
         },
-        enrichArticleImages: @escaping ([ParsedArticle]) async -> [ParsedArticle] = { articles in
+        enrichArticleImages: @escaping @Sendable ([ParsedArticle]) async -> [ParsedArticle] = { articles in
             await FeedService.enrichArticleImagesIfNeeded(in: articles)
         },
         notifyFeedRefresh: @escaping ([FeedRefreshNotificationResult]) async -> Void = { results in
@@ -729,6 +729,102 @@ final class FeedViewModel {
                 failedFeedTitles.count,
                 feedTitles: failedFeedTitles.joined(separator: ", ")
             )
+        }
+    }
+
+    @MainActor
+    func refreshAllFeeds(_ feeds: [Feed], modelContainer: ModelContainer) async {
+        guard !isLoading else {
+            errorMessage = L10n.feedErrorAlreadyRunning
+            return
+        }
+
+        let snapshots = feeds.map { feed in
+            FeedRefreshSnapshot(
+                id: feed.id,
+                title: feed.title,
+                url: feed.url
+            )
+        }
+        guard !snapshots.isEmpty else {
+            return
+        }
+
+        isLoading = true
+        errorMessage = nil
+        recentRefreshStatus = nil
+        refreshItems = snapshots.map { snapshot in
+            FeedRefreshItem(
+                feedID: snapshot.id,
+                feedTitle: snapshot.title,
+                feedURL: snapshot.url,
+                status: .pending
+            )
+        }
+        let refreshStatusStart = ContinuousClock().now
+        operationProgress = FeedOperationProgress(
+            title: L10n.feedProgressRefreshAllTitle,
+            completedCount: 0,
+            totalCount: snapshots.count
+        )
+
+        defer {
+            isLoading = false
+            operationProgress = nil
+        }
+
+        let refreshService = FeedBackgroundRefreshService(
+            modelContainer: modelContainer,
+            fetchFeed: fetchFeed,
+            discoverFaviconURL: discoverFaviconURL,
+            enrichArticleImages: enrichArticleImages,
+            articleRetentionDefaults: articleRetentionDefaults
+        )
+        let summary = await refreshService.refreshAllFeeds(
+            snapshots,
+            batchSize: Self.maxConcurrentFeedRefreshes
+        ) { [weak self] event in
+            await self?.handleBackgroundRefreshEvent(event)
+        }
+
+        await notifyFeedRefresh(summary.notificationResults)
+        await notifyRuleNotifications(summary.ruleNotificationResults)
+        await waitForMinimumRefreshStatusDuration(since: refreshStatusStart)
+
+        recentRefreshStatus = FeedRefreshStatusSummary(
+            newArticleCount: summary.notificationResults.reduce(0) { $0 + $1.newArticleCount },
+            failedFeedCount: summary.failedFeedTitles.count,
+            totalFeedCount: snapshots.count
+        )
+
+        if summary.failedFeedTitles.isEmpty {
+            lastRefreshOutcome = .success
+        } else if summary.failedFeedTitles.count < snapshots.count {
+            lastRefreshOutcome = .partial(failedCount: summary.failedFeedTitles.count)
+            errorMessage = L10n.feedErrorRefreshAllPartial(
+                summary.failedFeedTitles.count,
+                feedTitles: summary.failedFeedTitles.joined(separator: ", ")
+            )
+        } else {
+            lastRefreshOutcome = .failure
+            errorMessage = L10n.feedErrorRefreshAllPartial(
+                summary.failedFeedTitles.count,
+                feedTitles: summary.failedFeedTitles.joined(separator: ", ")
+            )
+        }
+    }
+
+    @MainActor
+    private func handleBackgroundRefreshEvent(_ event: FeedBackgroundRefreshEvent) {
+        switch event {
+        case .batchStarted(let feedIDs):
+            updateRefreshItemStatuses(for: feedIDs, status: .refreshing)
+        case .feedSucceeded(let feedID):
+            updateRefreshItemStatus(for: feedID, status: .succeeded)
+            incrementOperationProgress()
+        case .feedFailed(let feedID):
+            updateRefreshItemStatus(for: feedID, status: .failed)
+            incrementOperationProgress()
         }
     }
 
