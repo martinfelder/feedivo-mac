@@ -860,9 +860,10 @@
   - Normale Feed-Aktionen befüllen den neuen SQLite-Pfad: `AddFeedSheet`,
     ausgewählter Feed-Refresh und `Alle Feeds aktualisieren` übergeben die
     geöffnete `FeedivoDatabase` an `FeedViewModel`. Hinzufügen und einzelner
-    Refresh spiegeln Feed- und Artikelsnapshots nach SQLite; der
-    ModelContainer-Refresh nutzt zusätzlich `SQLiteFeedRefreshService`, damit die
-    neue Feed-Liste nach realen Refreshes Daten sieht.
+    Refresh spiegeln Feed- und Artikelsnapshots nach SQLite.
+    `refreshAllFeeds(..., modelContainer:, sqliteDatabase:)` läuft inzwischen
+    SQLite-first über `SQLiteFeedRefreshService` und ruft Feeds nicht mehr erst
+    über SwiftData und danach ein zweites Mal fürs SQLite-Mirroring ab.
   - Sidebar-Feed-Zeilen lesen Anzeige-Snapshots aus SQLite: `SQLiteSidebarState`
     lädt `FeedSidebarSnapshot` über `FeedStore`, `FeedRowView` bevorzugt daraus
     Titel, Favicon und ungelesene Counts. Auswahl, Kontextmenüs,

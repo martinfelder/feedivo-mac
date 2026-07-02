@@ -1993,7 +1993,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   `ArticleStatusStore`. Normale Feed-Aktionen füllen diesen Pfad inzwischen:
   `AddFeedSheet`, ausgewählter Feed-Refresh und `Alle Feeds aktualisieren`
   übergeben die geöffnete `FeedivoDatabase` an `FeedViewModel`; Hinzufügen und
-  Refresh spiegeln Feed- und Artikeldaten nach SQLite. Sidebar-Feed-Zeilen
+  einzelner Refresh spiegeln Feed- und Artikeldaten nach SQLite. Der
+  ModelContainer-Sammelrefresh mit vorhandener `FeedivoDatabase` läuft inzwischen
+  SQLite-first über `SQLiteFeedRefreshService` und ruft Feeds nicht mehr zuerst
+  über SwiftData und danach erneut fürs SQLite-Mirroring ab. Sidebar-Feed-Zeilen
   bevorzugen für Titel, Favicon und ungelesene Counts inzwischen
   `FeedSidebarSnapshot` aus SQLite. Read-/Hidden-Statusänderungen aktualisieren
   `feeds.unreadCount` direkt in SQLite und invalidieren die Sidebar-Snapshots
@@ -2252,11 +2255,13 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   `SQLiteFeedArticleListView`, SQLite-Artikel-IDs und `SQLiteReaderView`.
   Feed hinzufügen, ausgewählter Feed-Refresh und `Alle Feeds aktualisieren`
   übergeben die GRDB-Datenbank an `FeedViewModel`, sodass der SQLite-Feed-Pfad
-  nach realen Feed-Aktionen gefüllt wird. Die normalen Feed-Zeilen in der
-  Sidebar nutzen `SQLiteSidebarState` und `FeedSidebarSnapshot` für Anzeige und
-  ungelesene Badges; Auswahl und Kontextmenüs bleiben übergangsweise SwiftData.
-  SQLite-Statusänderungen halten den Feed-Unread-Snapshot aktuell und laden die
-  Sidebar-Snapshots neu.
+  nach realen Feed-Aktionen gefüllt wird. Der Sammel-Refresh über den
+  ModelContainer läuft mit vorhandener GRDB-Datenbank inzwischen SQLite-first und
+  vermeidet den früheren doppelten Abruf über SwiftData plus SQLite-Mirroring.
+  Die normalen Feed-Zeilen in der Sidebar nutzen `SQLiteSidebarState` und
+  `FeedSidebarSnapshot` für Anzeige und ungelesene Badges; Auswahl und
+  Kontextmenüs bleiben übergangsweise SwiftData. SQLite-Statusänderungen halten
+  den Feed-Unread-Snapshot aktuell und laden die Sidebar-Snapshots neu.
 - Feature 17.3 Automatisches Löschen ist umgesetzt: globale Einstellung,
   Stern-/Archiv-Schutz mit Zusatzoption und pro-Feed-Überschreibung in den
   Feed-Eigenschaften.
@@ -2284,16 +2289,24 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Feature 11.2 Lesefortschritt ist zurückgestellt: Der erste SwiftUI/AppKit-
   Scrollbeobachter-Ansatz hat das Scrollgefühl im Reader verschlechtert und wurde
   wieder entfernt. Für v1 bleibt der Reader ohne Lesefortschritt.
-- Nächster sinnvoller Fokus: verbleibende Hauptpfad-Lücken schließen: Refresh-UI
-  vollständig auf `SQLiteFeedRefreshService` umstellen, Sidebar-Smart-Folder- und
-  Tag-Badges auf SQL-Snapshots migrieren und danach Suche/Filter schrittweise auf
-  SQLite ziehen.
+- Nächster sinnvoller Fokus: verbleibende Hauptpfad-Lücken schließen:
+  SQLite-Refresh noch um Regeln/Benachrichtigungen/Feed-Logs in der UI abrunden,
+  Sidebar-Smart-Folder- und Tag-Badges auf SQL-Snapshots migrieren und danach
+  Suche/Filter schrittweise auf SQLite ziehen.
 - Feature-Roadmap ist in `FEATURES.md` im Root dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
 ---
 
 ## Letzte Änderungen
+
+- 2026-07-02: Sammel-Refresh mit SQLite-Datenbank auf SQLite-first umgestellt.
+  `refreshAllFeeds(..., modelContainer:, sqliteDatabase:)` nutzt bei vorhandener
+  `FeedivoDatabase` direkt `SQLiteFeedRefreshService`, aktualisiert sichtbare
+  Refresh-Items/Fortschritt aus den SQLite-Ergebnissen und ruft Feeds nicht mehr
+  zuerst über den SwiftData-Background-Pfad und danach erneut fürs
+  SQLite-Mirroring ab. Ohne SQLite-Datenbank bleibt der bisherige SwiftData-
+  Background-Pfad als Fallback erhalten.
 
 - 2026-07-02: SQLite-Statusmutationen invalidieren Sidebar-Snapshots.
   `ArticleStatusStore` aktualisiert nach Read-/Hidden-Änderungen den betroffenen
