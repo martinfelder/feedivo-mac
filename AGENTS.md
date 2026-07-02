@@ -832,6 +832,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Darunter zeigt es gruppiert Originaltitel, Website, XML-Adresse mit Kopierbutton,
   Gefolgt-ab-Datum, editierbaren Ordner, letzten Artikel, Aktualisierungsintervall,
   nächsten Abruf und die neuesten 20 Feed-Log-Eintraege
+- Die sichtbare Feed-Log-Liste und die Log-Anzahl werden im SQLite/GRDB-Pfad über
+  `FeedLogStore` aus `feed_logs` geladen, statt `FeedLogEntry`-Objekte über
+  SwiftData zu materialisieren.
 - Eine eigene Section `Aktivität` zeigt, wie viele Artikel der Feed in den letzten
   7 Tagen veröffentlicht hat, sowie wann der Feed zuletzt aktualisiert wurde.
 - Website und XML-Adresse werden als echte Links im Standardbrowser geöffnet,
@@ -847,8 +850,8 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   eigene Aktivierung, eigene Aufbewahrungstage und das Mitlöschen von Stern-/
   Archivartikeln speichern.
 - `FeedPropertiesFormatter` kapselt nächsten Abruf, neuesten Artikel, Artikelanzahl
-  der letzten 7 Tage, Log-Limit und die sichtbare Log-Anzahl sowie gueltige
-  Link-URLs, damit diese Logik ohne UI testbar bleibt
+  der letzten 7 Tage sowie gueltige Link-URLs, damit diese Logik ohne UI testbar
+  bleibt
 
 ### FeedRenameView.swift
 - Rechtsklick auf Feed → `Feed umbenennen...`
@@ -2287,12 +2290,14 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   inzwischen über SQLite-Snapshots; direkte Tag-Filter laden ihre Artikelliste
   über `TimelineScope.tag`. Feed-Tags sind als `feed_tags` in SQLite ergänzt und
   werden aus den Feed-Eigenschaften gespiegelt. Der Tag-Manager spiegelt Create,
-  Rename, Farbänderungen und Delete nach SQLite; seine Liste liest während der
-  Übergangsphase noch aus SwiftData.
+  Rename, Farbänderungen und Delete nach SQLite; die Sidebar-Tag-Liste liest
+  bereits aus SQLite-Snapshots.
   Die normalen Feed-Zeilen in der Sidebar nutzen `SQLiteSidebarState` und
   `FeedSidebarSnapshot` für Anzeige und ungelesene Badges; Auswahl und
   Kontextmenüs bleiben übergangsweise SwiftData. SQLite-Statusänderungen halten
-  den Feed-Unread-Snapshot aktuell und laden die Sidebar-Snapshots neu.
+  den Feed-Unread-Snapshot aktuell und laden die Sidebar-Snapshots neu. Feed-
+  Eigenschaften laden ihre sichtbaren Feed-Logs inzwischen über `FeedLogStore`
+  aus `feed_logs`.
 - Feature 17.3 Automatisches Löschen ist umgesetzt: globale Einstellung,
   Stern-/Archiv-Schutz mit Zusatzoption und pro-Feed-Überschreibung in den
   Feed-Eigenschaften.
@@ -2321,14 +2326,20 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Scrollbeobachter-Ansatz hat das Scrollgefühl im Reader verschlechtert und wurde
   wieder entfernt. Für v1 bleibt der Reader ohne Lesefortschritt.
 - Nächster sinnvoller Fokus: verbleibende Hauptpfad-Lücken schließen:
-  Feed-Logs in der UI abrunden und danach Suche/Filter schrittweise auf SQLite
-  ziehen.
+  Suche und globale Filter schrittweise auf SQLite ziehen, danach die restlichen
+  Feed-Eigenschaften-Metriken wie neuesten Artikel und Artikel der letzten 7 Tage
+  aus SQLite-Snapshots laden.
 - Feature-Roadmap ist in `FEATURES.md` im Root dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
 ---
 
 ## Letzte Änderungen
+
+- 2026-07-02: Feed-Eigenschaften-Logs auf SQLite umgestellt.
+  `FeedPropertiesView` lädt die sichtbaren letzten 20 Logeinträge und die
+  Log-Anzahl über `FeedLogStore` aus `feed_logs`, statt dafür
+  `FeedPropertiesQuery.latestLogEntries` über SwiftData zu verwenden.
 
 - 2026-07-02: Feed-Tags in SQLite ergänzt. Migration v3 legt `feed_tags` mit
   Kaskaden und Index an, `TagStore` kann Tags idempotent Feeds zuweisen und

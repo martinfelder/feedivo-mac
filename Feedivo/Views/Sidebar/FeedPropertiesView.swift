@@ -26,6 +26,7 @@ struct FeedPropertiesView: View {
     @State private var feedRetentionIncludesProtectedArticles = ArticleRetentionSettings.defaultIncludesProtectedArticles
     @State private var folderName = ""
     @State private var newTagName = ""
+    @State private var sqliteLogEntries: [FeedLogRecord] = []
     @State private var tagViewModel = TagViewModel()
 
     private var latestArticle: Article? {
@@ -39,12 +40,6 @@ struct FeedPropertiesView: View {
             lastRefreshed: feed.lastRefreshed,
             intervalMinutes: feed.refreshIntervalMinutes
         )
-    }
-
-    private var latestLogEntries: [FeedLogEntry] {
-        // P7: Maximal 20 Log-Einträge per fetchLimit laden statt alle
-        // feed.logEntries in den Speicher zu faulten.
-        FeedPropertiesQuery.latestLogEntries(in: modelContext, for: feed)
     }
 
     private var articlesLastWeek: Int {
@@ -103,6 +98,7 @@ struct FeedPropertiesView: View {
             feedRetentionDays = ArticleRetentionSettings.clampedRetentionDays(feed.articleRetentionDays)
             feedRetentionIncludesProtectedArticles = feed.articleRetentionIncludesProtectedArticles
             folderName = feed.folderName ?? ""
+            loadSQLiteLogEntries()
         }
         .onChange(of: selectedRefreshInterval) {
             feed.refreshIntervalMinutes = selectedRefreshInterval
@@ -167,7 +163,7 @@ struct FeedPropertiesView: View {
 
                 statusMetric(
                     icon: "checkmark.circle",
-                    value: "\(FeedPropertiesQuery.latestLogEntryCount(in: modelContext, for: feed))",
+                    value: "\(sqliteLogEntries.count)",
                     title: L10n.feedPropertiesLogEntries,
                     tint: .green
                 )
@@ -592,6 +588,17 @@ struct FeedPropertiesView: View {
         }
     }
 
+    private func loadSQLiteLogEntries() {
+        guard let database = feedivoDatabase else {
+            sqliteLogEntries = []
+            return
+        }
+
+        sqliteLogEntries = (
+            try? FeedLogStore(database: database).logs(feedID: feed.id.uuidString, limit: 20)
+        ) ?? []
+    }
+
     private func syncFeedRetentionSettings() {
         feed.articleRetentionOverridesGlobalSetting = feedRetentionOverridesGlobalSetting
         feed.articleRetentionIsEnabled = feedRetentionIsEnabled
@@ -609,17 +616,17 @@ struct FeedPropertiesView: View {
 
     private var logSection: some View {
         sectionContainer(title: L10n.feedPropertiesLogTitle) {
-            if latestLogEntries.isEmpty {
+            if sqliteLogEntries.isEmpty {
                 Text(L10n.feedPropertiesNoLogEntries)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.vertical, 10)
             } else {
                 VStack(alignment: .leading, spacing: 0) {
-                    ForEach(Array(latestLogEntries.enumerated()), id: \.element.id) { index, entry in
+                    ForEach(Array(sqliteLogEntries.enumerated()), id: \.element.id) { index, entry in
                         logRow(entry)
 
-                        if index < latestLogEntries.count - 1 {
+                        if index < sqliteLogEntries.count - 1 {
                             propertyDivider
                                 .padding(.leading, 38)
                         }
@@ -720,8 +727,8 @@ struct FeedPropertiesView: View {
         }
     }
 
-    private func logRow(_ entry: FeedLogEntry) -> some View {
-        let isError = entry.kindEnum == .error
+    private func logRow(_ entry: FeedLogRecord) -> some View {
+        let isError = FeedLogEntryKind(rawValue: entry.level) == .error
         return HStack(alignment: .top, spacing: 12) {
             Image(systemName: isError ? "exclamationmark.triangle" : "checkmark.circle")
                 .font(.system(size: 20, weight: .medium))

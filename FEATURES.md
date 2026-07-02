@@ -883,7 +883,8 @@
     Mutationen schreiben ebenfalls nach SQLite. Smart-Folder-Badges lesen
     `unread`, `starred`, `hidden` und `saved` aus dem SQLite-
     `SmartFolderSidebarBadgeSnapshot`, statt eine SwiftData-Artikel-Query in der
-    Sidebar zu halten.
+    Sidebar zu halten. Die Feed-Eigenschaften laden die sichtbare Feed-Log-Liste
+    und Log-Anzahl inzwischen über `FeedLogStore` aus SQLite-`feed_logs`.
   - SQLite-Statusänderungen halten Feed-Zähler aktuell: `ArticleStatusStore`
     berechnet nach Read-/Hidden-Mutationen `feeds.unreadCount` direkt in SQLite
     neu und bump't `SQLiteDataInvalidation.statusVersionKey`, wodurch die
@@ -980,6 +981,8 @@
   - Bestehende SwiftData-Feed-Tags werden beim App-Start nach SQLite gespiegelt,
     damit Altbestand ohne erneutes Öffnen der Feed-Eigenschaften in Tag-Filtern
     und Sidebar-Badges auftaucht
+  - Feed-Eigenschaften zeigen die letzten 20 Feed-Logs aus SQLite-`feed_logs`,
+    statt `FeedLogEntry`-Objekte über SwiftData zu laden
   - Status-Badges beobachten nur eine kleine Query auf Stern-/Archiv-/
     Hidden-Artikel
   - Artikelzeilen laden Vorschaubilder über größenbegrenzte Thumbnails aus dem

@@ -443,6 +443,17 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(source.contains("SidebarBadgeInvalidation.bumpDirectTagVersion()"))
     }
 
+    @Test func feedPropertiesViewLaedtFeedLogsAusSQLite() throws {
+        let projectRoot = projectRootURL()
+        let source = try source(at: "Feedivo/Views/Sidebar/FeedPropertiesView.swift", projectRoot: projectRoot)
+        let compactSource = compact(source)
+
+        #expect(source.contains("@State private var sqliteLogEntries: [FeedLogRecord] = []"))
+        #expect(compactSource.contains("FeedLogStore(database:database).logs(feedID:feed.id.uuidString,limit:20)"))
+        #expect(compactSource.contains("ForEach(Array(sqliteLogEntries.enumerated()),id:\\.element.id)"))
+        #expect(!source.contains("FeedPropertiesQuery.latestLogEntries(in: modelContext, for: feed)"))
+    }
+
     @Test func tagManagerViewSpiegeltTagAenderungenNachSQLite() throws {
         let projectRoot = projectRootURL()
         let source = try source(at: "Feedivo/Views/Tags/TagManagerView.swift", projectRoot: projectRoot)
