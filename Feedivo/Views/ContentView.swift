@@ -5,6 +5,7 @@ import UniformTypeIdentifiers
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.feedivoDatabase) private var feedivoDatabase
     @Environment(\.openWindow) private var openWindow
     @Environment(DatabaseLoadState.self) private var databaseLoadState
     @AppStorage(FirstRunWizardState.completionStorageKey) private var hasCompletedFirstRunWizard = false
@@ -328,7 +329,11 @@ struct ContentView: View {
                 refreshSelectedFeed: {
                     if let selectedFeed {
                         Task {
-                            await feedViewModel.refreshFeed(selectedFeed, context: modelContext)
+                            await feedViewModel.refreshFeed(
+                                selectedFeed,
+                                context: modelContext,
+                                sqliteDatabase: feedivoDatabase
+                            )
                         }
                     }
                 },
@@ -467,9 +472,17 @@ struct ContentView: View {
     @MainActor
     private func refreshAllFeeds() async {
         if let modelContainer {
-            await feedViewModel.refreshAllFeeds(feeds, modelContainer: modelContainer)
+            await feedViewModel.refreshAllFeeds(
+                feeds,
+                modelContainer: modelContainer,
+                sqliteDatabase: feedivoDatabase
+            )
         } else {
-            await feedViewModel.refreshAllFeeds(feeds, context: modelContext)
+            await feedViewModel.refreshAllFeeds(
+                feeds,
+                context: modelContext,
+                sqliteDatabase: feedivoDatabase
+            )
         }
     }
 

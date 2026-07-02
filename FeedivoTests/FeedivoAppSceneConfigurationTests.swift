@@ -54,7 +54,7 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(appSource.contains("private let feedViewModel"))
         #expect(appSource.contains("ContentView(feedViewModel: feedViewModel, modelContainer: modelContainer)"))
         #expect(appSource.contains("feedViewModel: feedViewModel"))
-        #expect(contentSource.contains("refreshAllFeeds(feeds, modelContainer: modelContainer)"))
+        #expect(compact(contentSource).contains("refreshAllFeeds(feeds,modelContainer:modelContainer,sqliteDatabase:feedivoDatabase)"))
         #expect(contentSource.contains("refreshFeedsOnLaunchIfNeeded()"))
         #expect(schedulerSource.contains("feedViewModel: FeedViewModel"))
     }
@@ -347,6 +347,26 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(contentSource.contains("articleID: selectedSQLiteArticleID"))
     }
 
+    @Test func contentViewUebergibtSQLiteDatabaseAnFeedRefreshes() throws {
+        let projectRoot = projectRootURL()
+        let contentSource = try source(at: "Feedivo/Views/ContentView.swift", projectRoot: projectRoot)
+        let compactContentSource = compact(contentSource)
+
+        #expect(contentSource.contains("@Environment(\\.feedivoDatabase) private var feedivoDatabase"))
+        #expect(compactContentSource.contains("refreshFeed(selectedFeed,context:modelContext,sqliteDatabase:feedivoDatabase)"))
+        #expect(compactContentSource.contains("refreshAllFeeds(feeds,modelContainer:modelContainer,sqliteDatabase:feedivoDatabase)"))
+        #expect(compactContentSource.contains("refreshAllFeeds(feeds,context:modelContext,sqliteDatabase:feedivoDatabase)"))
+    }
+
+    @Test func addFeedSheetUebergibtSQLiteDatabaseAnFeedViewModel() throws {
+        let projectRoot = projectRootURL()
+        let sidebarSource = try source(at: "Feedivo/Views/Sidebar/SidebarView.swift", projectRoot: projectRoot)
+        let compactSidebarSource = compact(sidebarSource)
+
+        #expect(sidebarSource.contains("@Environment(\\.feedivoDatabase) private var feedivoDatabase"))
+        #expect(compactSidebarSource.contains("viewModel.addFeed(urlString:urlString,context:modelContext,sqliteDatabase:feedivoDatabase)"))
+    }
+
     private func projectRootURL() -> URL {
         URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
@@ -356,5 +376,9 @@ struct FeedivoAppSceneConfigurationTests {
     private func source(at relativePath: String, projectRoot: URL) throws -> String {
         let sourceURL = projectRoot.appendingPathComponent(relativePath)
         return try String(contentsOf: sourceURL, encoding: .utf8)
+    }
+
+    private func compact(_ source: String) -> String {
+        source.filter { !$0.isWhitespace }
     }
 }

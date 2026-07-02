@@ -713,6 +713,7 @@ private struct SidebarRowButtonStyle: ButtonStyle {
 struct AddFeedSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.feedivoDatabase) private var feedivoDatabase
     @State private var viewModel = FeedViewModel()
     @State private var urlString = ""
     @State private var discoveryResults: [FeedDiscoveryResult] = []
@@ -949,7 +950,11 @@ struct AddFeedSheet: View {
     }
 
     private func addFeed(urlString: String) async {
-        await viewModel.addFeed(urlString: urlString, context: modelContext)
+        await viewModel.addFeed(
+            urlString: urlString,
+            context: modelContext,
+            sqliteDatabase: feedivoDatabase
+        )
         if viewModel.errorMessage == nil {
             dismiss()
         }
