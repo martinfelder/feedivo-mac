@@ -90,6 +90,22 @@ extension ReaderArticleInput {
             publishedAt: article.publishedAt
         )
     }
+
+    static func make(from snapshot: ArticleReaderSnapshot) -> ReaderArticleInput {
+        ReaderArticleInput(
+            summary: snapshot.summary,
+            content: snapshot.content,
+            contentFingerprint: ReaderArticleTextFingerprint.make(from: snapshot.content),
+            imageURL: snapshot.imageURL,
+            offlineContent: nil,
+            offlineContentFingerprint: nil,
+            offlineState: .none,
+            offlineStateRaw: ArticleOfflineState.none.rawValue,
+            link: snapshot.link,
+            feedTitle: snapshot.feedTitle,
+            publishedAt: snapshot.publishedAt
+        )
+    }
 }
 
 enum ReaderArticleContentLoader {
