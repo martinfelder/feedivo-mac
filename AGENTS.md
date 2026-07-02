@@ -2264,8 +2264,8 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Feature 11.2 Lesefortschritt ist zurückgestellt: Der erste SwiftUI/AppKit-
   Scrollbeobachter-Ansatz hat das Scrollgefühl im Reader verschlechtert und wurde
   wieder entfernt. Für v1 bleibt der Reader ohne Lesefortschritt.
-- Nächster sinnvoller Fokus: Implementierungsplan für die SQLite/GRDB-
-  Performance-Architektur schreiben und danach mit dem DB-Fundament beginnen.
+- Nächster sinnvoller Fokus: SQLite-Refresh- und Snapshot-Integration nach
+  NetNewsWire-Mechanik planen und danach den Refresh-Kern bauen.
 - Feature-Roadmap ist in `FEATURES.md` im Root dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
@@ -2278,6 +2278,13 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   testbaren Stores für Feeds, Artikel, Artikelstatus und Timeline-Snapshots
   sowie In-Memory-Tests. Der bestehende SwiftData-App-Pfad bleibt unverändert;
   UI- und Refresh-Umbau folgen in späteren Slices.
+
+- 2026-07-02: Nächster SQLite-Slice fachlich festgelegt: Feedivo soll möglichst
+  nah an NetNewsWires Mechanik bleiben. Der nächste Schritt ist ein SQLite-first
+  Refresh- und Snapshot-Kern: FeedService parst, ein neuer Refresh-Service
+  schreibt Artikel und Status in SQLite, aktualisiert Feed-Zähler und Logs und
+  liefert Snapshot-fähige Ergebnisse. Die Spec liegt unter
+  `docs/superpowers/specs/2026-07-02-sqlite-refresh-snapshot-integration-design.md`.
 
 - 2026-07-02: Architekturentscheidung für SQLite-only mit GRDB dokumentiert.
   Feedivo übernimmt für den Performance-kritischen Hauptpfad grundsätzlich die
