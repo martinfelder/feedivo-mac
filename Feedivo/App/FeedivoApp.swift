@@ -29,6 +29,7 @@ struct FeedivoApp: App {
     private let backgroundRefreshScheduler: SystemBackgroundActivityRefreshScheduler
     private let databaseLoadState = DatabaseLoadState()
     private let feedViewModel = FeedViewModel()
+    private let feedivoDatabase: FeedivoDatabase
 
     // Alle SwiftData-Modelle an einer Stelle — so gibt es genau eine
     // Wahrheitsquelle für den Schema-Bestand, genutzt vom normalen Container
@@ -73,6 +74,7 @@ struct FeedivoApp: App {
             modelContainer: loadedContainer,
             feedViewModel: feedViewModel
         )
+        self.feedivoDatabase = Self.openSQLiteDatabase()
         self.databaseLoadState.initializationError = loadError
         self.databaseLoadState.isCloudSyncEnabledAtLaunch = cloudSyncIsEnabled && loadError == nil
     }
@@ -89,6 +91,7 @@ struct FeedivoApp: App {
             ContentView(feedViewModel: feedViewModel, modelContainer: modelContainer)
                 .environment(\.locale, appLanguage.locale)
                 .environment(\.interfaceTextSize, interfaceTextSize)
+                .environment(\.feedivoDatabase, feedivoDatabase)
                 .environment(databaseLoadState)
                 .dynamicTypeSize(interfaceTextSize.dynamicTypeSize)
                 .toolbarBackground(.ultraThinMaterial, for: .windowToolbar)
@@ -126,6 +129,7 @@ struct FeedivoApp: App {
             ArticleSearchWindowView()
                 .environment(\.locale, appLanguage.locale)
                 .environment(\.interfaceTextSize, interfaceTextSize)
+                .environment(\.feedivoDatabase, feedivoDatabase)
                 .dynamicTypeSize(interfaceTextSize.dynamicTypeSize)
         }
         .defaultSize(width: 760, height: 560)
@@ -136,6 +140,7 @@ struct FeedivoApp: App {
                 ArticleWindowView(request: request)
                     .environment(\.locale, appLanguage.locale)
                     .environment(\.interfaceTextSize, interfaceTextSize)
+                    .environment(\.feedivoDatabase, feedivoDatabase)
                     .dynamicTypeSize(interfaceTextSize.dynamicTypeSize)
             } else {
                 ContentUnavailableView(
@@ -152,6 +157,7 @@ struct FeedivoApp: App {
             NewSettingsView()
                 .environment(\.locale, appLanguage.locale)
                 .environment(\.interfaceTextSize, interfaceTextSize)
+                .environment(\.feedivoDatabase, feedivoDatabase)
                 .environment(databaseLoadState)
                 .dynamicTypeSize(interfaceTextSize.dynamicTypeSize)
         }
@@ -165,6 +171,14 @@ struct FeedivoApp: App {
             intervalMinutes: backgroundRefreshIntervalMinutes,
             scheduler: backgroundRefreshScheduler
         )
+    }
+
+    private static func openSQLiteDatabase() -> FeedivoDatabase {
+        do {
+            return try FeedivoDatabase.open(at: FeedivoDatabaseLocation.databaseURL())
+        } catch {
+            return try! FeedivoDatabase.inMemoryForTests()
+        }
     }
 
     private func trimImageCacheToSelectedLimit() {

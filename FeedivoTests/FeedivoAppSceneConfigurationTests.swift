@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+@testable import Feedivo
 
 struct FeedivoAppSceneConfigurationTests {
     @Test func settingsSceneUsesSharedModelContainer() throws {
@@ -298,6 +299,26 @@ struct FeedivoAppSceneConfigurationTests {
             let modelSource = try source(at: expectedRelationship.path, projectRoot: projectRoot)
             #expect(modelSource.contains(expectedRelationship.declaration))
         }
+    }
+
+    @Test func appOpensAndInjectsSQLiteDatabase() throws {
+        let projectRoot = projectRootURL()
+        let appSource = try source(at: "Feedivo/App/FeedivoApp.swift", projectRoot: projectRoot)
+
+        #expect(appSource.contains("private let feedivoDatabase"))
+        #expect(appSource.contains("FeedivoDatabase.open"))
+        #expect(appSource.contains(".environment(\\.feedivoDatabase, feedivoDatabase)"))
+    }
+
+    @Test func sqliteDatabaseLocationUsesApplicationSupport() throws {
+        let applicationSupportURL = URL(fileURLWithPath: "/tmp/feedivo-tests/Application Support")
+
+        let databaseURL = FeedivoDatabaseLocation.databaseURL(
+            applicationSupportDirectory: applicationSupportURL,
+            bundleIdentifier: "ch.martin.FeedivoTests"
+        )
+
+        #expect(databaseURL.pathComponents.suffix(3) == ["ch.martin.FeedivoTests", "Feedivo", "feedivo.sqlite"])
     }
 
     private func projectRootURL() -> URL {
