@@ -1986,6 +1986,11 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - **Scope erste Welle:** `feeds`, `articles`, `article_statuses`, `feed_logs`,
   GRDB-Migrationen, Store-Schicht, Snapshot-Queries für Sidebar/Liste/Reader und
   Status-Updates nur über `article_statuses`.
+- **Stand 2026-07-02:** Der normale Feed-Lese-Pfad im Hauptfenster ist eine
+  vertikale SQLite-Scheibe: Feed-URL-Auflösung über `FeedStore`, Artikelliste via
+  `TimelineStore`, Auswahl per SQLite-Artikel-ID, Reader via
+  `ArticleStore.readerArticle(id:)` und Statusmutationen über
+  `ArticleStatusStore`.
 - **Bewusst später:** iCloud Sync, SwiftData-Bestandsdatenmigration, Tags,
   Regeln, Smart Folders, OPML Import/Export, Artikel-Export, Offline-Download
   und SQLite FTS-Suche.
@@ -2236,7 +2241,8 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   zugunsten des SQLite/GRDB-Umbaus zurückgestellt. Ziel ist zuerst ein schneller
   lokaler Hauptpfad nach NetNewsWire-Mechanik: Feeds, Refresh, Artikelliste,
   Reader und Artikelstatus über SQLite, mit getrennten Artikel- und
-  Status-Tabellen.
+  Status-Tabellen. Der normale Feed-Pfad im Hauptfenster nutzt inzwischen
+  `SQLiteFeedArticleListView`, SQLite-Artikel-IDs und `SQLiteReaderView`.
 - Feature 17.3 Automatisches Löschen ist umgesetzt: globale Einstellung,
   Stern-/Archiv-Schutz mit Zusatzoption und pro-Feed-Überschreibung in den
   Feed-Eigenschaften.
@@ -2264,15 +2270,26 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Feature 11.2 Lesefortschritt ist zurückgestellt: Der erste SwiftUI/AppKit-
   Scrollbeobachter-Ansatz hat das Scrollgefühl im Reader verschlechtert und wurde
   wieder entfernt. Für v1 bleibt der Reader ohne Lesefortschritt.
-- Nächster sinnvoller Fokus: Feed-Auswahl sichtbar auf den SQLite-Kern umstellen:
-  Artikelliste über SQLite-Snapshots, Auswahl über SQLite-Artikel-IDs, Reader
-  über `ArticleReaderSnapshot` und Statusaktionen direkt über `article_statuses`.
+- Nächster sinnvoller Fokus: verbleibende Hauptpfad-Lücken schließen: Sidebar-
+  Counts/Feed-Liste vollständig aus SQLite lesen, Refresh-UI auf
+  `SQLiteFeedRefreshService` umstellen und danach Smart Folders/Tags/Suche
+  schrittweise auf SQL-Snapshots migrieren.
 - Feature-Roadmap ist in `FEATURES.md` im Root dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
 ---
 
 ## Letzte Änderungen
+
+- 2026-07-02: Normaler Feed-Lese-Pfad auf SQLite-Snapshots umgestellt.
+  `FeedivoApp` öffnet die GRDB-Datenbank aus Application Support und injiziert sie
+  per Environment. `ContentView` hält eine separate `selectedSQLiteArticleID`,
+  nutzt bei normaler Feed-Auswahl `SQLiteFeedArticleListView` und zeigt rechts
+  `SQLiteReaderView`. Liste und Reader laden `ArticleListSnapshot` bzw.
+  `ArticleReaderSnapshot`, Navigation läuft über String-IDs, Statusaktionen
+  schreiben direkt nach `article_statuses`. Smart Folders, Tags, globale Filter,
+  Regeln, Export und Offline-Download bleiben vorerst auf den bestehenden
+  SwiftData-/Legacy-Pfaden.
 
 - 2026-07-02: Nächster UI-Slice freigegeben: Feed-Pfad als Kombination aus
   Option A und Option 2. Für normale Feed-Auswahl sollen Artikelliste, Auswahl,

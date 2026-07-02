@@ -4,6 +4,8 @@
 
 **Goal:** Switch the normal feed reading path toward SQLite: feed article list snapshots, SQLite article ID selection, reader snapshots, and direct status writes.
 
+**Status 2026-07-02:** Implemented. The normal feed path now opens the GRDB database from Application Support, renders selected feeds through `SQLiteFeedArticleListView`, tracks `selectedSQLiteArticleID`, shows `SQLiteReaderView`, and writes read/star/archive mutations through `ArticleStatusStore`. Smart folders, tags, global filters, rules, export, offline download, and remaining sidebar/feed refresh UI wiring stay on follow-up slices.
+
 **Architecture:** The legacy SwiftData path stays in place for smart folders, tags, filters, export, rules, and offline features. The new feed-only path resolves a SwiftData `Feed.url` to a SQLite `FeedRecord`, renders `TimelineStore` snapshots, selects SQLite article IDs, loads `ArticleReaderSnapshot`, and mutates `ArticleStatusStore`.
 
 **Tech Stack:** SwiftUI, Swift, GRDB, Swift Testing, `xcodebuild`.

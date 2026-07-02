@@ -848,13 +848,14 @@
   - SQLite-Refresh-Kern angelegt: `SQLiteFeedRefreshService` ruft einen
     injizierbaren Fetcher auf, schreibt Artikel per Batch-Upsert in einer
     SQLite-Transaktion, erzeugt/erhält getrennte Statuszeilen, aktualisiert
-    `feeds.unreadCount`, HTTP-Validatoren und `feed_logs`. Die sichtbare App-UI
-    nutzt diesen Pfad noch nicht standardmäßig; die Snapshot-Anbindung von
-    Sidebar, Artikelliste, Reader und Statusaktionen folgt als nächster Slice.
-  - Nächster UI-Slice geplant: normale Feed-Auswahl soll Artikelliste, Auswahl,
-    Reader und Statusaktionen über SQLite nutzen. Smart Folders, Tags, globale
-    Filter, Regeln, Export und Offline-Download bleiben bis zu eigenen Slices auf
-    den bisherigen SwiftData-/Legacy-Pfaden. Spec:
+    `feeds.unreadCount`, HTTP-Validatoren und `feed_logs`.
+  - Normaler Feed-Lese-Pfad als SQLite-Scheibe verdrahtet: `FeedivoApp` öffnet
+    die GRDB-Datenbank aus Application Support, `ContentView` hält eine separate
+    SQLite-Artikel-Auswahl, `SQLiteFeedArticleListView` lädt Feed-Timelines über
+    `TimelineStore`, `SQLiteReaderView` lädt Reader-Snapshots über `ArticleStore`
+    und Statusaktionen schreiben direkt in `article_statuses`. Smart Folders,
+    Tags, globale Filter, Regeln, Export und Offline-Download bleiben bis zu
+    eigenen Slices auf den bisherigen SwiftData-/Legacy-Pfaden. Spec:
     `docs/superpowers/specs/2026-07-02-sqlite-feed-reader-path-design.md`.
   - OPML-Import und `Alle Feeds aktualisieren` rufen Feeds nur noch begrenzt parallel ab
   - Sidebar nutzt keine globale Artikel-Query mehr für Badge-Signaturen; beim
