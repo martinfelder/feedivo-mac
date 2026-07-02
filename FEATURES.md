@@ -190,7 +190,11 @@
   `FeedViewModel` erstellt nur leichte Feed-Snapshots, hält Progress/Status auf
   dem MainActor und übernimmt am Ende grobe Ergebnis- und Benachrichtigungsdaten.
   Der laufende Fortschritt vermeidet globale Animationen, und Feed-Batches setzen
-  ihre Live-Status gesammelt auf `refreshing`.
+  ihre Live-Status gesammelt auf `refreshing`. Zusätzlich speichert Feedivo pro
+  Feed HTTP-Validatoren (`ETag`, `Last-Modified`, Body-Hash) und nutzt sie für
+  Conditional GET. Unveränderte Feeds werden bei HTTP 304 oder gleichem Body-Hash
+  ohne FeedKit-Parsing, Artikel-Lookup, Bildanreicherung und Regelverarbeitung
+  abgeschlossen.
 
 ### 4.5 Automatischer Refresh
 - **Status:** ✔️ Fertig
@@ -870,6 +874,10 @@
   - Das Artikelansicht-Menü zeigt die Bulk-Option ausdrücklich als `Alle als gelesen markieren`
   - Feed-Refreshes laden bestehende Artikel per gezieltem `Article.feedID`-Fetch
     mit schlankem Property-Set statt über die komplette `feed.articles`-Relationship
+  - Feed-Refreshes nutzen gespeicherte HTTP-Validatoren (`ETag`, `Last-Modified`
+    und Body-Hash) für Conditional GET. Bei HTTP 304 oder identischem Body-Hash
+    wird der Feed als unverändert behandelt und die teure Parse-/SwiftData-
+    Verarbeitung übersprungen.
   - Der Refresh-Lookup lässt `Article.content`/`Article.offlineContent` weg und
     schreibt bestehende Artikelwerte nur bei echten Änderungen oder fehlenden
     Nachträgen

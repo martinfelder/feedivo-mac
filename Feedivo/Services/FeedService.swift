@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 import FeedKit
 import XMLKit
 
@@ -64,6 +65,30 @@ struct ParsedArticle: Sendable {
     }
 }
 
+struct FeedHTTPValidators: Equatable, Sendable {
+    var eTag: String?
+    var lastModified: String?
+    var contentHash: String?
+    var lastStatusCode: Int?
+
+    init(
+        eTag: String? = nil,
+        lastModified: String? = nil,
+        contentHash: String? = nil,
+        lastStatusCode: Int? = nil
+    ) {
+        self.eTag = eTag
+        self.lastModified = lastModified
+        self.contentHash = contentHash
+        self.lastStatusCode = lastStatusCode
+    }
+}
+
+enum ConditionalFeedFetchResult: Sendable {
+    case updated(ParsedFeed, FeedHTTPValidators)
+    case notModified(FeedHTTPValidators)
+}
+
 enum FeedServiceError: LocalizedError, Equatable {
     case invalidURL
     case parsingFailed
@@ -85,6 +110,7 @@ enum FeedServiceError: LocalizedError, Equatable {
 
 enum FeedService {
     typealias FeedDataLoader = (URL) async throws -> (Data, URLResponse)
+    typealias FeedRequestDataLoader = (URLRequest) async throws -> (Data, URLResponse)
 
     static func fetchFeed(urlString: String) async throws -> ParsedFeed {
         try await fetchFeed(urlString: urlString) { url in
@@ -107,6 +133,65 @@ enum FeedService {
         }
 
         return try parseFeed(data: data, sourceURL: urlString)
+    }
+
+    static func fetchFeedConditionally(
+        urlString: String,
+        validators: FeedHTTPValidators
+    ) async throws -> ConditionalFeedFetchResult {
+        try await fetchFeedConditionally(urlString: urlString, validators: validators) { request in
+            try await URLSession.shared.data(for: request)
+        }
+    }
+
+    static func fetchFeedConditionally(
+        urlString: String,
+        validators: FeedHTTPValidators,
+        dataLoader: @escaping FeedRequestDataLoader
+    ) async throws -> ConditionalFeedFetchResult {
+        guard let url = URL(string: urlString) else {
+            throw FeedServiceError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+        if let eTag = validators.eTag?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !eTag.isEmpty {
+            request.setValue(eTag, forHTTPHeaderField: "If-None-Match")
+        }
+        if let lastModified = validators.lastModified?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !lastModified.isEmpty {
+            request.setValue(lastModified, forHTTPHeaderField: "If-Modified-Since")
+        }
+
+        let (data, response) = try await dataLoader(request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            let parsedFeed = try parseFeed(data: data, sourceURL: urlString)
+            let updatedValidators = FeedHTTPValidators(
+                eTag: validators.eTag,
+                lastModified: validators.lastModified,
+                contentHash: contentHash(for: data),
+                lastStatusCode: validators.lastStatusCode
+            )
+            return .updated(parsedFeed, updatedValidators)
+        }
+
+        let responseValidators = validators.updated(from: httpResponse, data: data)
+        if httpResponse.statusCode == 304 {
+            return .notModified(responseValidators)
+        }
+
+        guard (200 ... 299).contains(httpResponse.statusCode) else {
+            throw FeedServiceError.httpError(httpResponse.statusCode)
+        }
+        if let previousContentHash = validators.contentHash,
+           let responseContentHash = responseValidators.contentHash,
+           previousContentHash == responseContentHash {
+            return .notModified(responseValidators)
+        }
+
+        let parsedFeed = try parseFeed(data: data, sourceURL: urlString)
+        return .updated(parsedFeed, responseValidators)
     }
 
     static func parseFeed(data: Data, sourceURL: String) throws -> ParsedFeed {
@@ -459,5 +544,21 @@ enum FeedService {
         }
 
         return url.absoluteString
+    }
+
+    fileprivate nonisolated static func contentHash(for data: Data) -> String {
+        let digest = SHA256.hash(data: data)
+        return digest.map { String(format: "%02x", $0) }.joined()
+    }
+}
+
+private extension FeedHTTPValidators {
+    func updated(from response: HTTPURLResponse, data: Data) -> FeedHTTPValidators {
+        FeedHTTPValidators(
+            eTag: response.value(forHTTPHeaderField: "ETag") ?? eTag,
+            lastModified: response.value(forHTTPHeaderField: "Last-Modified") ?? lastModified,
+            contentHash: response.statusCode == 304 ? contentHash : FeedService.contentHash(for: data),
+            lastStatusCode: response.statusCode
+        )
     }
 }

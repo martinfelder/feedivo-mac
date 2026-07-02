@@ -31,14 +31,14 @@ private enum FeedBackgroundRefreshOutcome: Sendable {
 
 struct FeedBackgroundRefreshService {
     private let modelContainer: ModelContainer
-    private let fetchFeed: @Sendable (String) async throws -> ParsedFeed
+    private let fetchFeedConditionally: @Sendable (String, FeedHTTPValidators) async throws -> ConditionalFeedFetchResult
     private let discoverFaviconURL: @Sendable (URL) async -> String?
     private let enrichArticleImages: @Sendable ([ParsedArticle]) async -> [ParsedArticle]
     private let articleRetentionDefaults: UserDefaults
 
     init(
         modelContainer: ModelContainer,
-        fetchFeed: @escaping @Sendable (String) async throws -> ParsedFeed = FeedService.fetchFeed,
+        fetchFeedConditionally: @escaping @Sendable (String, FeedHTTPValidators) async throws -> ConditionalFeedFetchResult = FeedService.fetchFeedConditionally,
         discoverFaviconURL: @escaping @Sendable (URL) async -> String? = { siteURL in
             await FaviconService.discoverFaviconURL(siteURL: siteURL)
         },
@@ -48,7 +48,7 @@ struct FeedBackgroundRefreshService {
         articleRetentionDefaults: UserDefaults = .standard
     ) {
         self.modelContainer = modelContainer
-        self.fetchFeed = fetchFeed
+        self.fetchFeedConditionally = fetchFeedConditionally
         self.discoverFaviconURL = discoverFaviconURL
         self.enrichArticleImages = enrichArticleImages
         self.articleRetentionDefaults = articleRetentionDefaults
@@ -119,7 +119,32 @@ struct FeedBackgroundRefreshService {
 
     private func refreshFeedContents(_ feed: Feed, context: ModelContext) async throws -> FeedBackgroundRefreshResult {
         let refreshDate = Date()
-        let parsedFeed = try await fetchFeed(feed.url)
+        let fetchResult = try await fetchFeedConditionally(feed.url, feed.httpValidators)
+        let parsedFeed: ParsedFeed
+        switch fetchResult {
+        case .updated(let updatedFeed, let validators):
+            feed.applyHTTPValidators(validators)
+            parsedFeed = updatedFeed
+        case .notModified(let validators):
+            feed.applyHTTPValidators(validators)
+            feed.lastRefreshed = refreshDate
+            appendLog(
+                kind: .info,
+                message: L10n.feedLogRefreshed(newArticleCount: 0),
+                to: feed,
+                context: context
+            )
+            try context.save()
+
+            return FeedBackgroundRefreshResult(
+                feedNotification: FeedRefreshNotificationResult(
+                    feedTitle: feed.title,
+                    newArticleCount: 0,
+                    isNotificationEnabled: feed.isNotificationEnabled
+                ),
+                ruleNotifications: []
+            )
+        }
         let existingArticlesByIdentity = try existingArticlesByIdentity(for: feed, context: context)
         updateMissingArticleImages(
             in: existingArticlesByIdentity,

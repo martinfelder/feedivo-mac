@@ -531,12 +531,17 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   mehr automatisch; fehlende Artikelbilder können explizit über
   `enrichArticleImagesIfNeeded` aus `og:image`/`twitter:image` der Artikelseite
   nachgezogen werden
+- `fetchFeedConditionally` unterstützt Conditional GET mit `ETag` und
+  `Last-Modified`. Der Service sendet `If-None-Match`/`If-Modified-Since`, gibt
+  bei HTTP 304 ohne Parsing `.notModified` zurück und nutzt zusätzlich einen
+  SHA-256-Body-Hash als Fallback für Server, die unveränderte Feeds trotzdem mit
+  HTTP 200 ausliefern.
 - Relative Artikelbild-URLs werden gegen die Feed-URL zu absoluten URLs aufgeloest,
   damit `AsyncImage` sie laden kann
 - HTML-Regulaerausdruecke für Artikelbilder und Meta-Tags werden als statische
   `NSRegularExpression` Instanzen gecacht, damit sie nicht pro Artikel oder Refresh
   neu kompiliert werden müssen
-- Eigene `FeedServiceError` enum: `.invalidURL`, `.parsingFailed`
+- Eigene `FeedServiceError` enum: `.invalidURL`, `.parsingFailed`, `.httpError`
 
 ### FeedDiscoveryService.swift
 - Erkennt beim Hinzufügen neuer Feeds direkte Feed-URLs und normale Website-URLs.
@@ -563,6 +568,12 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   stabile Quellen-ID, Link und als migrationsfreundlicher Fallback Titel plus
   Veröffentlichungsdatum. Dadurch bleiben Lesestatus und Stern/Archiv erhalten,
   auch wenn ein Feed denselben Artikel später mit leicht geändertem Link liefert.
+- Feeds speichern HTTP-Validatoren (`httpETag`, `httpLastModified`,
+  `httpContentHash`, `lastHTTPStatusCode`). Einzel-Refresh und Sammel-Refresh
+  nutzen diese Werte für Conditional GET und steigen bei `.notModified` sofort
+  nach `lastRefreshed`, Validator-Update und Info-Log aus. Dadurch entfallen für
+  unveränderte Feeds Artikel-Lookup, Bildanreicherung, Metadatenvergleich,
+  Regelverarbeitung und die meisten SwiftData-Invalidierungen.
 - Der Refresh lädt den Altbestand eines Feeds nicht mehr über die komplette
   `feed.articles`-Relationship, sondern per gezieltem `FetchDescriptor<Article>`
   über `Article.feedID` mit schlankem `propertiesToFetch`. Das vermeidet große
@@ -2348,6 +2359,13 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Ordner-/Tag-Chips sitzt nun ein + Button mit Popover; vorhandene Tags können wie
   im rechten Inspector zugewiesen oder entfernt werden, neue Tags werden mit Name
   und Farbe erstellt und direkt dem Artikel zugewiesen.
+
+- 2026-07-02: Refresh-Performance nach NetNewsWire-Vergleich verbessert. Feeds
+  speichern nun HTTP-Validatoren (`ETag`, `Last-Modified`, Body-Hash,
+  `lastHTTPStatusCode`). Manueller Refresh und `FeedBackgroundRefreshService`
+  nutzen Conditional GET und beenden unveränderte Feeds bei HTTP 304 oder
+  identischem Body-Hash ohne FeedKit-Parsing, Artikel-Lookup, Bildanreicherung
+  oder Regelverarbeitung.
 
 - 2026-07-02: Großer Refresh-Performance-Schritt umgesetzt. Sammel-Refreshes aus
   Hauptfenster, Start-Refresh und periodischem Background-Scheduler laufen nun

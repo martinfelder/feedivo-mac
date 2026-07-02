@@ -16,6 +16,7 @@ struct FeedViewModelTests {
 
     private func makeViewModel(
         fetchFeed: @escaping (String) async throws -> ParsedFeed = FeedService.fetchFeed,
+        fetchFeedConditionally: (@Sendable (String, FeedHTTPValidators) async throws -> ConditionalFeedFetchResult)? = nil,
         discoverFaviconURL: @escaping (URL) async -> String? = { siteURL in
             await FaviconService.discoverFaviconURL(siteURL: siteURL)
         },
@@ -32,6 +33,9 @@ struct FeedViewModelTests {
     ) -> FeedViewModel {
         FeedViewModel(
             fetchFeed: fetchFeed,
+            fetchFeedConditionally: fetchFeedConditionally ?? { urlString, _ in
+                .updated(try await fetchFeed(urlString), FeedHTTPValidators())
+            },
             discoverFaviconURL: discoverFaviconURL,
             enrichArticleImages: enrichArticleImages,
             notifyFeedRefresh: notifyFeedRefresh,
@@ -889,6 +893,79 @@ struct FeedViewModelTests {
         #expect(existingArticle.imageURL == "https://example.com/existing-image.jpg")
         #expect((feed.articles ?? []).contains { $0.link == "https://example.com/2" })
         #expect((feed.logEntries ?? []).contains { $0.kind == "info" && $0.message.contains("1") })
+        #expect(viewModel.errorMessage == nil)
+        #expect(!viewModel.isLoading)
+    }
+
+    @MainActor
+    @Test func refreshFeedUeberspringtArtikelarbeitWennServerUnveraendertMeldet() async throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            RuleCondition.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let oldRefreshDate = Date(timeIntervalSince1970: 1)
+        let feed = Feed(
+            url: "https://example.com/feed.xml",
+            title: "Stabiler Feed",
+            lastRefreshed: oldRefreshDate,
+            httpETag: "\"alt\"",
+            httpLastModified: "Wed, 01 Jul 2026 10:00:00 GMT",
+            httpContentHash: "alter-hash",
+            lastHTTPStatusCode: 200
+        )
+        let existingArticle = Article(
+            title: "Vorhandener Artikel",
+            link: "https://example.com/1",
+            summary: "Bleibt",
+            publishedAt: Date(timeIntervalSince1970: 100),
+            feed: feed
+        )
+        feed.articles = [existingArticle]
+        feed.unreadCount = 1
+        context.insert(feed)
+        try context.save()
+
+        let viewModel = makeViewModel(
+            fetchFeed: { _ in
+                Issue.record("Der normale Feed-Abruf darf bei diesem Test nicht genutzt werden.")
+                return ParsedFeed(sourceURL: "", title: "", description: nil, articles: [])
+            },
+            fetchFeedConditionally: { urlString, validators in
+                #expect(urlString == feed.url)
+                #expect(validators.eTag == "\"alt\"")
+                #expect(validators.lastModified == "Wed, 01 Jul 2026 10:00:00 GMT")
+                #expect(validators.contentHash == "alter-hash")
+                return .notModified(
+                    FeedHTTPValidators(
+                        eTag: "\"neu\"",
+                        lastModified: "Thu, 02 Jul 2026 10:00:00 GMT",
+                        contentHash: "alter-hash",
+                        lastStatusCode: 304
+                    )
+                )
+            },
+            enrichArticleImages: { articles in
+                Issue.record("Bildanreicherung muss bei unverändertem Feed übersprungen werden.")
+                return articles
+            }
+        )
+
+        await viewModel.refreshFeed(feed, context: context)
+
+        #expect(feed.lastRefreshed ?? .distantPast > oldRefreshDate)
+        #expect(feed.httpETag == "\"neu\"")
+        #expect(feed.httpLastModified == "Thu, 02 Jul 2026 10:00:00 GMT")
+        #expect(feed.httpContentHash == "alter-hash")
+        #expect(feed.lastHTTPStatusCode == 304)
+        #expect((feed.articles ?? []).count == 1)
+        #expect(feed.unreadCount == 1)
+        #expect((feed.logEntries ?? []).contains { $0.kind == "info" && $0.message.contains("0") })
         #expect(viewModel.errorMessage == nil)
         #expect(!viewModel.isLoading)
     }

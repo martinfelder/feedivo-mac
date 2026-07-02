@@ -21,6 +21,10 @@ class Feed {
     var articleRetentionDays: Int = 90
     var articleRetentionIncludesProtectedArticles: Bool = false
     var unreadCount: Int = 0
+    var httpETag: String?
+    var httpLastModified: String?
+    var httpContentHash: String?
+    var lastHTTPStatusCode: Int?
 
     @Relationship(deleteRule: .nullify, inverse: \Article.feed)
     var articles: [Article]? = []
@@ -45,7 +49,11 @@ class Feed {
         articleRetentionOverridesGlobalSetting: Bool = false,
         articleRetentionIsEnabled: Bool = false,
         articleRetentionDays: Int = 90,
-        articleRetentionIncludesProtectedArticles: Bool = false
+        articleRetentionIncludesProtectedArticles: Bool = false,
+        httpETag: String? = nil,
+        httpLastModified: String? = nil,
+        httpContentHash: String? = nil,
+        lastHTTPStatusCode: Int? = nil
     ) {
         self.id = UUID()
         self.url = url
@@ -64,6 +72,10 @@ class Feed {
         self.articleRetentionDays = articleRetentionDays
         self.articleRetentionIncludesProtectedArticles = articleRetentionIncludesProtectedArticles
         self.unreadCount = 0
+        self.httpETag = httpETag
+        self.httpLastModified = httpLastModified
+        self.httpContentHash = httpContentHash
+        self.lastHTTPStatusCode = lastHTTPStatusCode
         self.articles = []
         self.logEntries = []
         self.tags = []
@@ -84,7 +96,11 @@ class Feed {
         articleRetentionOverridesGlobalSetting: Bool = false,
         articleRetentionIsEnabled: Bool = false,
         articleRetentionDays: Int = 90,
-        articleRetentionIncludesProtectedArticles: Bool = false
+        articleRetentionIncludesProtectedArticles: Bool = false,
+        httpETag: String? = nil,
+        httpLastModified: String? = nil,
+        httpContentHash: String? = nil,
+        lastHTTPStatusCode: Int? = nil
     ) {
         self.init(
             url: url,
@@ -100,8 +116,28 @@ class Feed {
             articleRetentionOverridesGlobalSetting: articleRetentionOverridesGlobalSetting,
             articleRetentionIsEnabled: articleRetentionIsEnabled,
             articleRetentionDays: articleRetentionDays,
-            articleRetentionIncludesProtectedArticles: articleRetentionIncludesProtectedArticles
+            articleRetentionIncludesProtectedArticles: articleRetentionIncludesProtectedArticles,
+            httpETag: httpETag,
+            httpLastModified: httpLastModified,
+            httpContentHash: httpContentHash,
+            lastHTTPStatusCode: lastHTTPStatusCode
         )
         self.originalTitle = originalTitle ?? title
+    }
+
+    var httpValidators: FeedHTTPValidators {
+        FeedHTTPValidators(
+            eTag: httpETag,
+            lastModified: httpLastModified,
+            contentHash: httpContentHash,
+            lastStatusCode: lastHTTPStatusCode
+        )
+    }
+
+    func applyHTTPValidators(_ validators: FeedHTTPValidators) {
+        httpETag = validators.eTag
+        httpLastModified = validators.lastModified
+        httpContentHash = validators.contentHash
+        lastHTTPStatusCode = validators.lastStatusCode
     }
 }

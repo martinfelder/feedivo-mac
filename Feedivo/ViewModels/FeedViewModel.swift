@@ -148,6 +148,7 @@ final class FeedViewModel {
     static let maxConcurrentFeedRefreshes = 6
 
     private let fetchFeed: @Sendable (String) async throws -> ParsedFeed
+    private let fetchFeedConditionally: @Sendable (String, FeedHTTPValidators) async throws -> ConditionalFeedFetchResult
     private let discoverFaviconURL: @Sendable (URL) async -> String?
     private let enrichArticleImages: @Sendable ([ParsedArticle]) async -> [ParsedArticle]
     private let notifyFeedRefresh: ([FeedRefreshNotificationResult]) async -> Void
@@ -174,6 +175,7 @@ final class FeedViewModel {
 
     init(
         fetchFeed: @escaping @Sendable (String) async throws -> ParsedFeed = FeedService.fetchFeed,
+        fetchFeedConditionally: @escaping @Sendable (String, FeedHTTPValidators) async throws -> ConditionalFeedFetchResult = FeedService.fetchFeedConditionally,
         discoverFaviconURL: @escaping @Sendable (URL) async -> String? = { siteURL in
             await FaviconService.discoverFaviconURL(siteURL: siteURL)
         },
@@ -190,6 +192,7 @@ final class FeedViewModel {
         minimumRefreshStatusDuration: Duration = .milliseconds(700)
     ) {
         self.fetchFeed = fetchFeed
+        self.fetchFeedConditionally = fetchFeedConditionally
         self.discoverFaviconURL = discoverFaviconURL
         self.enrichArticleImages = enrichArticleImages
         self.notifyFeedRefresh = notifyFeedRefresh
@@ -775,7 +778,7 @@ final class FeedViewModel {
 
         let refreshService = FeedBackgroundRefreshService(
             modelContainer: modelContainer,
-            fetchFeed: fetchFeed,
+            fetchFeedConditionally: fetchFeedConditionally,
             discoverFaviconURL: discoverFaviconURL,
             enrichArticleImages: enrichArticleImages,
             articleRetentionDefaults: articleRetentionDefaults
@@ -994,7 +997,34 @@ final class FeedViewModel {
         savesImmediately: Bool = true
     ) async throws -> FeedRefreshResult {
         let refreshDate = Date()
-        let parsedFeed = try await fetchFeed(feed.url)
+        let fetchResult = try await fetchFeedConditionally(feed.url, feed.httpValidators)
+        let parsedFeed: ParsedFeed
+        switch fetchResult {
+        case .updated(let updatedFeed, let validators):
+            feed.applyHTTPValidators(validators)
+            parsedFeed = updatedFeed
+        case .notModified(let validators):
+            feed.applyHTTPValidators(validators)
+            feed.lastRefreshed = refreshDate
+            appendLog(
+                kind: .info,
+                message: L10n.feedLogRefreshed(newArticleCount: 0),
+                to: feed,
+                context: context
+            )
+            if savesImmediately {
+                try context.save()
+            }
+
+            return FeedRefreshResult(
+                feedNotification: FeedRefreshNotificationResult(
+                    feedTitle: feed.title,
+                    newArticleCount: 0,
+                    isNotificationEnabled: feed.isNotificationEnabled
+                ),
+                ruleNotifications: []
+            )
+        }
         let existingArticlesByIdentity = try existingArticlesByIdentity(for: feed, context: context)
         updateMissingArticleImages(
             in: existingArticlesByIdentity,
