@@ -184,8 +184,10 @@
 - **Umgesetzt:** `refreshFeed` / `refreshAllFeeds`, Fortschritt im unteren Statusbereich
 - **Performance:** Der Refresh erkennt bestehende Artikel über einen gezielten
   `Article.feedID`-Fetch statt über die vollständige `feed.articles`-Relationship.
-  Sammel-Refreshes speichern pro Batch statt pro Feed, damit SwiftData-Queries in
-  Sidebar und Artikelliste seltener invalidiert werden.
+  Der Lookup lädt keine schweren Artikeltexte, und unveränderte bestehende
+  Artikelwerte werden nicht erneut geschrieben. Sammel-Refreshes speichern pro
+  Batch statt pro Feed, damit SwiftData-Queries in Sidebar und Artikelliste
+  seltener invalidiert werden.
 
 ### 4.5 Automatischer Refresh
 - **Status:** ✔️ Fertig
@@ -848,6 +850,9 @@
   - Das Artikelansicht-Menü zeigt die Bulk-Option ausdrücklich als `Alle als gelesen markieren`
   - Feed-Refreshes laden bestehende Artikel per gezieltem `Article.feedID`-Fetch
     mit schlankem Property-Set statt über die komplette `feed.articles`-Relationship
+  - Der Refresh-Lookup lässt `Article.content`/`Article.offlineContent` weg und
+    schreibt bestehende Artikelwerte nur bei echten Änderungen oder fehlenden
+    Nachträgen
   - Feed-, Tag-, Smart-Filter- und einfache Smart-Folder-Artikellisten verwenden
     leichte `FetchDescriptor` mit `propertiesToFetch`; `Article.content` und
     `Article.offlineContent` bleiben aus dem Standard-Listenfetch heraus

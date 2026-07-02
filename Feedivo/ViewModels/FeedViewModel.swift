@@ -86,6 +86,41 @@ private enum FeedRefreshOutcome {
     case failure(String)
 }
 
+enum StoredArticleRefreshFieldUpdate {
+    static func replacement(for existingValue: String?, from parsedValue: String?) -> String? {
+        guard let parsedValue = nonEmptyText(parsedValue),
+              existingValue != parsedValue
+        else {
+            return nil
+        }
+
+        return parsedValue
+    }
+
+    static func missingReplacement(for existingValue: @autoclosure () -> String?, from parsedValue: String?) -> String? {
+        guard let parsedValue = nonEmptyText(parsedValue),
+              isMissingText(existingValue())
+        else {
+            return nil
+        }
+
+        return parsedValue
+    }
+
+    private static func nonEmptyText(_ text: String?) -> String? {
+        let trimmedText = text?.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let trimmedText, !trimmedText.isEmpty else {
+            return nil
+        }
+
+        return text
+    }
+
+    private static func isMissingText(_ text: String?) -> Bool {
+        text?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true
+    }
+}
+
 @Observable
 final class FeedViewModel {
     static let maxConcurrentFeedRefreshes = 6
@@ -972,21 +1007,7 @@ final class FeedViewModel {
                 article.feedID == feedID
             }
         )
-        descriptor.propertiesToFetch = [
-            \.id,
-            \.title,
-            \.link,
-            \.summary,
-            \.content,
-            \.publishedAt,
-            \.imageURL,
-            \.sourceID,
-            \.feedID,
-            \.isRead,
-            \.isStarred,
-            \.isArchived,
-            \.isHidden
-        ]
+        descriptor.propertiesToFetch = Article.refreshLookupPropertiesToFetch
         let articles = try context.fetch(descriptor)
         var articlesByIdentity: [String: Article] = [:]
         for article in articles {
@@ -1028,22 +1049,31 @@ final class FeedViewModel {
                 continue
             }
 
-            if isMissingText(existingArticle.sourceID),
-               let sourceID = nonEmptyText(parsedArticle.sourceID) {
+            if let sourceID = StoredArticleRefreshFieldUpdate.missingReplacement(
+                for: existingArticle.sourceID,
+                from: parsedArticle.sourceID
+            ) {
                 existingArticle.sourceID = sourceID
             }
 
-            if isMissingText(existingArticle.link),
-               let link = nonEmptyText(parsedArticle.link) {
+            if let link = StoredArticleRefreshFieldUpdate.missingReplacement(
+                for: existingArticle.link,
+                from: parsedArticle.link
+            ) {
                 existingArticle.link = link
             }
 
-            if let summary = nonEmptyText(parsedArticle.summary) {
+            if let summary = StoredArticleRefreshFieldUpdate.replacement(
+                for: existingArticle.summary,
+                from: parsedArticle.summary
+            ) {
                 existingArticle.summary = summary
             }
 
-            if isMissingText(existingArticle.content),
-               let content = nonEmptyText(parsedArticle.content) {
+            if let content = StoredArticleRefreshFieldUpdate.missingReplacement(
+                for: existingArticle.content,
+                from: parsedArticle.content
+            ) {
                 existingArticle.content = content
             }
         }
@@ -1071,19 +1101,6 @@ final class FeedViewModel {
 
     private func isMissingImage(_ imageURL: String?) -> Bool {
         imageURL?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true
-    }
-
-    private func isMissingText(_ text: String?) -> Bool {
-        text?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true
-    }
-
-    private func nonEmptyText(_ text: String?) -> String? {
-        let trimmedText = text?.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let trimmedText, !trimmedText.isEmpty else {
-            return nil
-        }
-
-        return text
     }
 
     @MainActor

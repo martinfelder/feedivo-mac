@@ -946,6 +946,31 @@ struct FeedViewModelTests {
         #expect(storedExistingArticle.summary == "Aktualisiert")
     }
 
+    @Test func refreshLookupLaedtKeineSchwerenArtikeltexte() {
+        #expect(Article.refreshLookupPropertiesToFetch.contains(\.summary))
+        #expect(!Article.refreshLookupPropertiesToFetch.contains(\.content))
+        #expect(!Article.refreshLookupPropertiesToFetch.contains(\.offlineContent))
+    }
+
+    @Test func storedArticleRefreshFieldUpdateSchreibtNurEchteAenderungen() {
+        #expect(StoredArticleRefreshFieldUpdate.replacement(for: "Kurzfassung", from: "Kurzfassung") == nil)
+        #expect(StoredArticleRefreshFieldUpdate.replacement(for: "Kurzfassung", from: "Neue Kurzfassung") == "Neue Kurzfassung")
+        #expect(StoredArticleRefreshFieldUpdate.missingReplacement(for: "Vorhanden", from: "Nachtrag") == nil)
+        #expect(StoredArticleRefreshFieldUpdate.missingReplacement(for: nil, from: "Nachtrag") == "Nachtrag")
+
+        var didReadExistingContent = false
+        let contentUpdate = StoredArticleRefreshFieldUpdate.missingReplacement(
+            for: {
+                didReadExistingContent = true
+                return nil
+            }(),
+            from: nil
+        )
+
+        #expect(contentUpdate == nil)
+        #expect(!didReadExistingContent)
+    }
+
     @MainActor
     @Test func refreshFeedBewahrtGelesenStatusBeiStabilerQuelleUndGeaendertemLink() async throws {
         let container = try ModelContainer(

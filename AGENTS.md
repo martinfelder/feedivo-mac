@@ -564,6 +564,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   `feed.articles`-Relationship, sondern per gezieltem `FetchDescriptor<Article>`
   über `Article.feedID` mit schlankem `propertiesToFetch`. Das vermeidet große
   Relationship-Faults während der Aktualisierung und hält die UI reaktionsfähiger.
+  Für den Refresh-Abgleich bleibt `Article.content` ebenfalls aus diesem Lookup
+  draußen; der Volltext wird nur noch gefaultet, wenn der Feed tatsächlich neuen
+  Volltext für einen bestehenden Artikel nachliefert.
 - Beim Hinzufuegen werden `siteURL`, `followedAt` und ein Info-Log geschrieben
 - Beim Hinzufuegen und Aktualisieren wird `Feed.unreadCount` für Sidebar-Badges
   gepflegt; neue Artikel starten als ungelesen
@@ -601,7 +604,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   ein benutzerdefinierter `Feed.title` bleibt erhalten
 - Beim Refresh werden Summary und fehlender `Article.content` für bestehende Artikel
   aus später gelieferten Feed-Daten nachgetragen, damit Offline-Content nicht nur
-  für neue Artikel gespeichert wird
+  für neue Artikel gespeichert wird. Unveränderte Werte werden nicht erneut
+  zugewiesen, damit SwiftData während Sammel-Refreshes weniger unnötige
+  Änderungs-Invalidierungen auslöst.
 - Der Feed-Fetch ist als Closure injizierbar, damit Refresh-Tests ohne Netzwerk laufen
 - Die Favicon-Discovery ist als Closure injizierbar, damit Tests ohne Netzwerk laufen
 - Die Artikelbild-Anreicherung ist als Closure injizierbar; beim Refresh wird sie nur
@@ -2180,7 +2185,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   statt über `feed.articles` auf; `refreshAllFeeds` speichert Änderungen nur noch
   pro Batch statt pro Feed. Ziel: weniger MainActor-Faulting und weniger SwiftData-
   Query-Invalidierungen, damit die App während Feed-Aktualisierungen bedienbarer
-  bleibt.
+  bleibt. Am 2026-07-02 nachgeschärft: Der Refresh-Lookup lädt bestehende Artikel
+  ohne `Article.content`/`Article.offlineContent`, und gespeicherte Artikelwerte
+  werden nur noch bei echten Änderungen bzw. fehlenden Nachträgen gesetzt.
 
 - 2026-07-01: Feature 4.7 Feeds beim App-Start aktualisieren umgesetzt. In
   `Einstellungen → Aktualisierung` gibt es nun die separate Option `Feeds beim

@@ -59,6 +59,14 @@ class Article {
         \.offlineRequestedAt, \.offlineSavedAt, \.offlineErrorMessage
     ]
 
+    /// Leichte Felder für den Refresh-Abgleich. `content` und `offlineContent`
+    /// bleiben bewusst draußen, damit ein Sammel-Refresh große Textfelder nur
+    /// faultet, wenn der Feed tatsächlich neuen Volltext nachliefert.
+    static let refreshLookupPropertiesToFetch: [PartialKeyPath<Article>] = [
+        \.id, \.title, \.link, \.summary, \.publishedAt, \.imageURL,
+        \.sourceID, \.feedID, \.isRead, \.isStarred, \.isArchived, \.isHidden
+    ]
+
     static func lightFetchDescriptor(
         sortBy sortDescriptors: [SortDescriptor<Article>] = []
     ) -> FetchDescriptor<Article> {
