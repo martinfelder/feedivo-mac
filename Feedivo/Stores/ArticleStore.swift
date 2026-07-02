@@ -114,6 +114,35 @@ struct ArticleStore {
         }
     }
 
+    func ruleSnapshots(articleIDs: [String], feedTitle: String) throws -> [RuleEngine.ArticleRuleSnapshot] {
+        guard !articleIDs.isEmpty else {
+            return []
+        }
+
+        return try database.read { db in
+            let placeholders = Array(repeating: "?", count: articleIDs.count).joined(separator: ", ")
+            let records = try ArticleRecord.fetchAll(db, sql: """
+                SELECT *
+                FROM articles
+                WHERE id IN (\(placeholders))
+                """, arguments: StatementArguments(articleIDs))
+            let recordsByID = Dictionary(uniqueKeysWithValues: records.map { ($0.id, $0) })
+
+            return articleIDs.compactMap { articleID in
+                guard let record = recordsByID[articleID] else {
+                    return nil
+                }
+
+                return RuleEngine.ArticleRuleSnapshot(
+                    id: record.id,
+                    title: record.title,
+                    summary: record.summary,
+                    feedTitle: feedTitle
+                )
+            }
+        }
+    }
+
     private func upsert(_ input: ArticleUpsertInput, db: Database) throws -> (articleID: String, wasInserted: Bool) {
         let sourceID = input.sourceID.trimmedNonEmpty
         let link = input.link.trimmedNonEmpty

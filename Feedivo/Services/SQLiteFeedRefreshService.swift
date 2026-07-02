@@ -12,6 +12,7 @@ struct SQLiteFeedRefreshResult: Equatable, Sendable {
     var updatedArticleIDs: [String]
     var unreadCount: Int
     var isNotModified: Bool
+    var ruleNotifications: [RuleNotificationResult] = []
 }
 
 enum SQLiteFeedRefreshError: Error, Equatable {
@@ -25,11 +26,13 @@ struct SQLiteFeedRefreshService {
     private let articleStore: ArticleStore
     private let statusStore: ArticleStatusStore
     private let logStore: FeedLogStore
+    private let ruleSnapshots: [RuleEngine.RuleSnapshot]
     private let now: () -> Date
     private let fetcher: Fetcher
 
     init(
         database: FeedivoDatabase,
+        ruleSnapshots: [RuleEngine.RuleSnapshot] = [],
         now: @escaping () -> Date = Date.init,
         fetcher: @escaping Fetcher = SQLiteFeedRefreshService.defaultFetcher
     ) {
@@ -37,6 +40,7 @@ struct SQLiteFeedRefreshService {
         self.articleStore = ArticleStore(database: database)
         self.statusStore = ArticleStatusStore(database: database)
         self.logStore = FeedLogStore(database: database)
+        self.ruleSnapshots = ruleSnapshots
         self.now = now
         self.fetcher = fetcher
     }
@@ -102,6 +106,11 @@ struct SQLiteFeedRefreshService {
                     )
                 }
                 let upsertResult = try articleStore.upsert(inputs)
+                let ruleResult = try applyRules(
+                    to: upsertResult.insertedArticleIDs,
+                    feedTitle: refreshedTitle,
+                    appliedAt: refreshedAt
+                )
                 let unreadCount = try statusStore.unreadCount(feedID: feedID)
                 try feedStore.updateAfterRefresh(
                     feedID: feedID,
@@ -126,7 +135,8 @@ struct SQLiteFeedRefreshService {
                     insertedArticleIDs: upsertResult.insertedArticleIDs,
                     updatedArticleIDs: upsertResult.updatedArticleIDs,
                     unreadCount: unreadCount,
-                    isNotModified: false
+                    isNotModified: false,
+                    ruleNotifications: ruleResult.notifications
                 )
             }
         } catch {
@@ -159,5 +169,27 @@ struct SQLiteFeedRefreshService {
             return nil
         }
         return statusCode
+    }
+
+    private func applyRules(
+        to articleIDs: [String],
+        feedTitle: String,
+        appliedAt: Date
+    ) throws -> RuleEngine.SQLiteRuleApplicationResult {
+        guard !ruleSnapshots.isEmpty, !articleIDs.isEmpty else {
+            return RuleEngine.SQLiteRuleApplicationResult(
+                appliedActionCount: 0,
+                hiddenArticleIDs: [],
+                notifications: []
+            )
+        }
+
+        let articles = try articleStore.ruleSnapshots(articleIDs: articleIDs, feedTitle: feedTitle)
+        let result = RuleEngine.applySQLiteRules(ruleSnapshots, to: articles)
+        for articleID in result.hiddenArticleIDs {
+            try statusStore.setHidden(true, articleID: articleID, at: appliedAt)
+        }
+
+        return result
     }
 }

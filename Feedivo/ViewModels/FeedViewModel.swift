@@ -788,7 +788,14 @@ final class FeedViewModel {
         }
 
         if let sqliteDatabase {
-            await refreshAllFeedsSQLiteFirst(snapshots, database: sqliteDatabase)
+            let ruleContext = ModelContext(modelContainer)
+            let rules = (try? ruleContext.fetch(FetchDescriptor<Rule>())) ?? []
+            let ruleSnapshots = RuleEngine.snapshots(from: rules)
+            await refreshAllFeedsSQLiteFirst(
+                snapshots,
+                database: sqliteDatabase,
+                ruleSnapshots: ruleSnapshots
+            )
             return
         }
 
@@ -859,7 +866,8 @@ final class FeedViewModel {
     @MainActor
     private func refreshAllFeedsSQLiteFirst(
         _ snapshots: [FeedRefreshSnapshot],
-        database: FeedivoDatabase
+        database: FeedivoDatabase,
+        ruleSnapshots: [RuleEngine.RuleSnapshot] = []
     ) async {
         isLoading = true
         errorMessage = nil
@@ -879,6 +887,7 @@ final class FeedViewModel {
             totalCount: snapshots.count
         )
         var notificationResults: [FeedRefreshNotificationResult] = []
+        var ruleNotificationResults: [RuleNotificationResult] = []
         var failedFeedTitles: [String] = []
 
         defer {
@@ -908,14 +917,18 @@ final class FeedViewModel {
                                 )
                             }
 
-                            let service = SQLiteFeedRefreshService(database: database, fetcher: { urlString, validators in
-                                switch try await fetchFeedConditionally(urlString, validators) {
-                                case .updated(let feed, let validators):
-                                    return .updated(feed, validators)
-                                case .notModified(let validators):
-                                    return .notModified(validators)
+                            let service = SQLiteFeedRefreshService(
+                                database: database,
+                                ruleSnapshots: ruleSnapshots,
+                                fetcher: { urlString, validators in
+                                    switch try await fetchFeedConditionally(urlString, validators) {
+                                    case .updated(let feed, let validators):
+                                        return .updated(feed, validators)
+                                    case .notModified(let validators):
+                                        return .notModified(validators)
+                                    }
                                 }
-                            })
+                            )
                             let result = try await service.refresh(feedID: feedID)
                             let notificationResult = FeedRefreshNotificationResult(
                                 feedTitle: result.feedTitle,
@@ -931,9 +944,10 @@ final class FeedViewModel {
 
                 for await outcome in group {
                     switch outcome {
-                    case .success(let feedID, let feedNotification, _):
+                    case .success(let feedID, let feedNotification, let result):
                         updateRefreshItemStatus(for: feedID, status: .succeeded)
                         notificationResults.append(feedNotification)
+                        ruleNotificationResults.append(contentsOf: result.ruleNotifications)
                     case .failure(let feedID, let failedTitle):
                         updateRefreshItemStatus(for: feedID, status: .failed)
                         failedFeedTitles.append(failedTitle)
@@ -946,6 +960,7 @@ final class FeedViewModel {
 
         SQLiteDataInvalidation.bumpStatusVersion()
         await notifyFeedRefresh(notificationResults)
+        await notifyRuleNotifications(ruleNotificationResults)
         await waitForMinimumRefreshStatusDuration(since: refreshStatusStart)
 
         recentRefreshStatus = FeedRefreshStatusSummary(

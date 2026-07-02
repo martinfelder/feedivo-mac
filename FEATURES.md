@@ -866,7 +866,9 @@
     über SwiftData und danach ein zweites Mal fürs SQLite-Mirroring ab. Feed-
     Refresh-Benachrichtigungen werden in diesem Pfad wieder mit aktualisiertem
     Feed-Titel und dem leichten `isNotificationEnabled`-Snapshot gemeldet;
-    Regel-Benachrichtigungen folgen später mit der SQLite-Regelmechanik.
+    `hideArticle`- und `notify`-Regeln laufen für neue SQLite-Artikel über
+    sendbare Regel-/Artikelsnapshots. `assignTag`-Regeln folgen später mit der
+    SQLite-Tag-Schicht.
   - Sidebar-Feed-Zeilen lesen Anzeige-Snapshots aus SQLite: `SQLiteSidebarState`
     lädt `FeedSidebarSnapshot` über `FeedStore`, `FeedRowView` bevorzugt daraus
     Titel, Favicon und ungelesene Counts. Auswahl, Kontextmenüs,

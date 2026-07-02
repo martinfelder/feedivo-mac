@@ -2136,6 +2136,131 @@ struct FeedViewModelTests {
     }
 
     @MainActor
+    @Test func refreshAllFeedsMitSQLiteDatabaseWendetHideUndNotifyRegelnAn() async throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            RuleCondition.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Mac News")
+        let hideRule = Rule(name: "Gerüchte ausblenden")
+        hideRule.actionRaw = RuleAction.hideArticle.rawValue
+        hideRule.sortOrder = 0
+        hideRule.conditions = [
+            RuleCondition(
+                field: RuleConditionField.title.rawValue,
+                conditionOperator: RuleConditionOperator.contains.rawValue,
+                value: "Gerücht",
+                sortOrder: 0
+            )
+        ]
+        let notifyRule = Rule(name: "Swift melden")
+        notifyRule.actionRaw = RuleAction.notify.rawValue
+        notifyRule.notificationTemplate = "Neu: {Titel}"
+        notifyRule.notificationPriorityRaw = RuleNotificationPriority.critical.rawValue
+        notifyRule.sortOrder = 1
+        notifyRule.conditions = [
+            RuleCondition(
+                field: RuleConditionField.title.rawValue,
+                conditionOperator: RuleConditionOperator.contains.rawValue,
+                value: "Swift",
+                sortOrder: 0
+            )
+        ]
+        context.insert(feed)
+        context.insert(hideRule)
+        context.insert(notifyRule)
+        try context.save()
+
+        let sqliteDatabase = try FeedivoDatabase.inMemoryForTests()
+        try FeedStore(database: sqliteDatabase).save(
+            FeedRecord(
+                id: feed.id.uuidString,
+                url: feed.url,
+                title: feed.title
+            )
+        )
+
+        var capturedRuleNotifications: [RuleNotificationResult] = []
+        let viewModel = makeViewModel(
+            fetchFeedConditionally: { urlString, _ in
+                let parsedFeed = await MainActor.run {
+                    ParsedFeed(
+                        sourceURL: urlString,
+                        title: "Mac News",
+                        description: nil,
+                        articles: [
+                            ParsedArticle(
+                                title: "Gerücht: neues MacBook",
+                                sourceID: "hidden-1",
+                                link: "https://example.com/hidden-1",
+                                summary: nil,
+                                content: nil,
+                                publishedAt: Date(timeIntervalSince1970: 100),
+                                imageURL: nil
+                            ),
+                            ParsedArticle(
+                                title: "Swift 7 ist da",
+                                sourceID: "notify-1",
+                                link: "https://example.com/notify-1",
+                                summary: nil,
+                                content: nil,
+                                publishedAt: Date(timeIntervalSince1970: 200),
+                                imageURL: nil
+                            )
+                        ]
+                    )
+                }
+                return .updated(parsedFeed, FeedHTTPValidators(lastStatusCode: 200))
+            },
+            notifyRuleNotifications: { results in
+                capturedRuleNotifications = results
+            }
+        )
+
+        await viewModel.refreshAllFeeds(
+            [feed],
+            modelContainer: container,
+            sqliteDatabase: sqliteDatabase
+        )
+
+        let sqliteFeed = try #require(try FeedStore(database: sqliteDatabase).feed(id: feed.id.uuidString))
+        let visibleRows = try TimelineStore(database: sqliteDatabase).articles(
+            scope: .feed(sqliteFeed.id),
+            includeRead: true,
+            includeHidden: false,
+            limit: 20
+        )
+        let allRows = try TimelineStore(database: sqliteDatabase).articles(
+            scope: .feed(sqliteFeed.id),
+            includeRead: true,
+            includeHidden: true,
+            limit: 20
+        )
+        let hiddenRow = try #require(allRows.first { $0.title == "Gerücht: neues MacBook" })
+        let hiddenStatus = try ArticleStatusStore(database: sqliteDatabase).status(articleID: hiddenRow.id)
+
+        #expect(visibleRows.map(\.title) == ["Swift 7 ist da"])
+        #expect(hiddenStatus?.isHidden == true)
+        #expect(sqliteFeed.unreadCount == 1)
+        #expect(capturedRuleNotifications == [
+            RuleNotificationResult(
+                ruleID: notifyRule.id,
+                ruleName: "Swift melden",
+                message: "Neu: Swift 7 ist da",
+                articleTitle: "Swift 7 ist da",
+                feedTitle: "Mac News",
+                priority: .critical
+            )
+        ])
+    }
+
+    @MainActor
     @Test func refreshAllFeedsUeberspringtLogEintraegeFuerUnveraenderteFeedsImBackgroundPfad() async throws {
         let container = try ModelContainer(
             for: Feed.self,
