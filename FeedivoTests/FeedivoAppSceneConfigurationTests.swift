@@ -407,6 +407,16 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(!sidebarSource.contains("SidebarTagCount.articleCount(for: tag, context: modelContext)"))
     }
 
+    @Test func sidebarSmartFolderBadgesNutzenSQLiteSnapshots() throws {
+        let projectRoot = projectRootURL()
+        let sidebarSource = try source(at: "Feedivo/Views/Sidebar/SidebarView.swift", projectRoot: projectRoot)
+        let compactSidebarSource = compact(sidebarSource)
+
+        #expect(compactSidebarSource.contains("smartFoldersSection(badgeSnapshot:sqliteSidebarState.smartFolderBadgeSnapshot)"))
+        #expect(compactSidebarSource.contains("SmartFolderSidebarBadge.badgeText(for:smartFolder,snapshot:badgeSnapshot)"))
+        #expect(!sidebarSource.contains("statusBadgeArticles"))
+    }
+
     @Test func feedRowViewBevorzugtSQLiteSnapshotWerte() throws {
         let projectRoot = projectRootURL()
         let rowSource = try source(at: "Feedivo/Views/Sidebar/FeedRowView.swift", projectRoot: projectRoot)

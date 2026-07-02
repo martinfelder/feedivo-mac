@@ -46,6 +46,10 @@ enum SmartFolderSidebarBadge {
         badgeCount(for: folder, feeds: feeds, counts: counts).flatMap(SidebarUnreadCount.badgeText)
     }
 
+    static func badgeText(for folder: SmartFolder, snapshot: SmartFolderSidebarBadgeSnapshot) -> String? {
+        badgeCount(for: folder, snapshot: snapshot).flatMap(SidebarUnreadCount.badgeText)
+    }
+
     private static func badgeCount(for folder: SmartFolder, feeds: [Feed], context: ModelContext) -> Int? {
         guard let badgeKind = SmartFolderSidebarBadgeKind(folder: folder) else {
             return nil
@@ -95,6 +99,23 @@ enum SmartFolderSidebarBadge {
             return counts.hidden
         case .saved:
             return counts.saved
+        }
+    }
+
+    private static func badgeCount(for folder: SmartFolder, snapshot: SmartFolderSidebarBadgeSnapshot) -> Int? {
+        guard let badgeKind = SmartFolderSidebarBadgeKind(folder: folder) else {
+            return nil
+        }
+
+        switch badgeKind {
+        case .unread:
+            return snapshot.unread
+        case .starred:
+            return snapshot.starred
+        case .hidden:
+            return snapshot.hidden
+        case .saved:
+            return snapshot.saved
         }
     }
 }

@@ -10,10 +10,6 @@ struct SidebarView: View {
     @Query(sort: \FeedFolder.name) private var folders: [FeedFolder]
     @Query(sort: \Tag.name) private var tags: [Tag]
     @Query(sort: \SmartFolder.sortOrder) private var smartFolders: [SmartFolder]
-    // Nur Artikel, die für Status-Badges relevant sind. Eine globale Artikel-
-    // Query in der Sidebar hat beim Lesen jeden isRead-Wechsel beobachtet und
-    // dadurch SwiftData/CoreData-Faulting auf dem Main-Thread ausgelöst.
-    @Query private var statusBadgeArticles: [Article]
     @Binding var selection: SidebarSelection?
     let onRequestAddFeed: () -> Void
     let onRequestRefreshAllFeeds: () -> Void
@@ -35,16 +31,6 @@ struct SidebarView: View {
         self.onRequestAddFeed = onRequestAddFeed
         self.onRequestRefreshAllFeeds = onRequestRefreshAllFeeds
         self.onRequestDeleteFeed = onRequestDeleteFeed
-
-        var descriptor = FetchDescriptor<Article>(
-            predicate: #Predicate<Article> { article in
-                article.isStarred || article.isArchived || article.isHidden
-            }
-        )
-        descriptor.propertiesToFetch = [
-            \.id, \.isStarred, \.isArchived, \.isHidden
-        ]
-        _statusBadgeArticles = Query(descriptor)
     }
     @AppStorage(SidebarSectionCollapseState.Section.tags.storageKey)
     private var isTagsCollapsed = false
@@ -66,13 +52,10 @@ struct SidebarView: View {
     @State private var collapsedFolderNames: Set<String> = []
 
     var body: some View {
-        let statusSignature = sidebarStatusBadgeSignature
-        let badgeCounts = badgeCounts(statusSignature: statusSignature)
-
-        return VStack(spacing: 0) {
+        VStack(spacing: 0) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    smartFoldersSection(badgeCounts: badgeCounts)
+                    smartFoldersSection(badgeSnapshot: sqliteSidebarState.smartFolderBadgeSnapshot)
                     tagsSection
                     foldersSection
                 }
@@ -234,7 +217,7 @@ struct SidebarView: View {
         }
     }
 
-    private func smartFoldersSection(badgeCounts: SidebarBadgeCounts) -> some View {
+    private func smartFoldersSection(badgeSnapshot: SmartFolderSidebarBadgeSnapshot) -> some View {
         CollapsibleSidebarSection(
             title: L10n.sidebarSmartFoldersSection,
             isCollapsed: $isSmartFoldersCollapsed,
@@ -259,8 +242,7 @@ struct SidebarView: View {
                     } label: {
                         SmartFolderSidebarRow(
                             smartFolder: smartFolder,
-                            feeds: feeds,
-                            counts: badgeCounts
+                            badgeSnapshot: badgeSnapshot
                         )
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
@@ -374,24 +356,6 @@ struct SidebarView: View {
         }
     }
 
-    /// Status-Signatur läuft pro Body-Eval über Skalar-Attribute. Sie ist billig
-    /// und hält Stern/Versteckt/Gespeichert-Badges ohne Relationship-Faulting
-    /// aktuell.
-    private var sidebarStatusBadgeSignature: SidebarStatusBadgeSignature {
-        SidebarBadgeSignatureBuilder.statusSignature(articles: statusBadgeArticles)
-    }
-
-    /// Liefert die Badge-Zähler für statusbasierte SmartFolder. Tag-Badges
-    /// kommen inzwischen aus den SQLite-Snapshots von `SQLiteSidebarState`.
-    private func badgeCounts(statusSignature: SidebarStatusBadgeSignature) -> SidebarBadgeCounts {
-        return SidebarBadgeCounts(
-            tagCounts: [:],
-            starred: statusSignature.starredCount,
-            hidden: statusSignature.hiddenCount,
-            saved: statusSignature.savedCount
-        )
-    }
-
     private func toggleFolder(named folderName: String) {
         withAnimation(.easeInOut(duration: 0.16)) {
             if collapsedFolderNames.contains(folderName) {
@@ -419,16 +383,12 @@ private struct SmartFolderSidebarRow: View {
     @Environment(\.interfaceTextSize) private var interfaceTextSize
 
     let smartFolder: SmartFolder
-    let feeds: [Feed]
-    let counts: SidebarBadgeCounts
+    let badgeSnapshot: SmartFolderSidebarBadgeSnapshot
 
-    // Badge bewusst hier im Body berechnen: für 'Ungelesen' summiert das
-    // SmartFolderSidebarBadge die feed.unreadCount — diese Beobachtung lebt
-    // nur in dieser Zeile, nicht in der gesamten Sidebar. Status-Badges
-    // (Stern/Versteckt/Gespeichert) greifen auf die übergebenen counts zu und
-    // beobachten feed.unreadCount nicht.
+    // Badge bewusst aus dem SQLite-Snapshot berechnen: Die Sidebar muss dafür
+    // keine Artikel-Query und keine SwiftData-Relationships beobachten.
     private var badgeText: String? {
-        SmartFolderSidebarBadge.badgeText(for: smartFolder, feeds: feeds, counts: counts)
+        SmartFolderSidebarBadge.badgeText(for: smartFolder, snapshot: badgeSnapshot)
     }
 
     var body: some View {

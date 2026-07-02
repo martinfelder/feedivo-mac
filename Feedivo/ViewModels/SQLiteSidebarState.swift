@@ -6,6 +6,7 @@ import Observation
 final class SQLiteSidebarState {
     private(set) var snapshots: [FeedSidebarSnapshot] = []
     private(set) var tagSnapshots: [TagSidebarSnapshot] = []
+    private(set) var smartFolderBadgeSnapshot = SmartFolderSidebarBadgeSnapshot.empty
     private(set) var totalUnreadCount = 0
     private(set) var errorMessage: String?
 
@@ -17,6 +18,7 @@ final class SQLiteSidebarState {
         guard let database else {
             snapshots = []
             tagSnapshots = []
+            smartFolderBadgeSnapshot = .empty
             snapshotsByFeedID = [:]
             tagSnapshotsByID = [:]
             visibleFeedIDs = []
@@ -28,10 +30,13 @@ final class SQLiteSidebarState {
         do {
             let feedStore = FeedStore(database: database)
             let tagStore = TagStore(database: database)
+            let statusStore = ArticleStatusStore(database: database)
             let loadedSnapshots = try feedStore.sidebarFeeds(showsReadFeeds: showsReadFeeds)
             let loadedTagSnapshots = try tagStore.sidebarTags()
+            let loadedSmartFolderBadgeSnapshot = try statusStore.sidebarSmartFolderBadgeSnapshot()
             snapshots = loadedSnapshots
             tagSnapshots = loadedTagSnapshots
+            smartFolderBadgeSnapshot = loadedSmartFolderBadgeSnapshot
             snapshotsByFeedID = Dictionary(uniqueKeysWithValues: loadedSnapshots.map { ($0.id, $0) })
             tagSnapshotsByID = Dictionary(uniqueKeysWithValues: loadedTagSnapshots.map { ($0.id, $0) })
             visibleFeedIDs = Set(loadedSnapshots.map(\.id))
@@ -42,6 +47,7 @@ final class SQLiteSidebarState {
         } catch {
             snapshots = []
             tagSnapshots = []
+            smartFolderBadgeSnapshot = .empty
             snapshotsByFeedID = [:]
             tagSnapshotsByID = [:]
             visibleFeedIDs = []

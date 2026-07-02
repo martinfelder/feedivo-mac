@@ -880,8 +880,10 @@
     lädt `FeedSidebarSnapshot` über `FeedStore`, `FeedRowView` bevorzugt daraus
     Titel, Favicon und ungelesene Counts. Auswahl, Kontextmenüs,
     Feed-Eigenschaften spiegeln Feed-Tag-Änderungen nach SQLite; Tag-Manager-
-    Mutationen schreiben ebenfalls nach SQLite. Smart-Folder-Badges bleiben für
-    diesen Slice noch an bestehenden SwiftData-/Legacy-Pfaden.
+    Mutationen schreiben ebenfalls nach SQLite. Smart-Folder-Badges lesen
+    `unread`, `starred`, `hidden` und `saved` aus dem SQLite-
+    `SmartFolderSidebarBadgeSnapshot`, statt eine SwiftData-Artikel-Query in der
+    Sidebar zu halten.
   - SQLite-Statusänderungen halten Feed-Zähler aktuell: `ArticleStatusStore`
     berechnet nach Read-/Hidden-Mutationen `feeds.unreadCount` direkt in SQLite
     neu und bump't `SQLiteDataInvalidation.statusVersionKey`, wodurch die
@@ -967,6 +969,9 @@
     Fallback für alten Datenbestand ohne `feedID` berührt
   - Sidebar-Tag-Badges lesen Zähler aus `article_tags` und `feed_tags` über
     `TagStore.sidebarTags()` und `SQLiteSidebarState`
+  - Sidebar-Smart-Folder-Badges lesen Status-Zähler aus SQLite über
+    `ArticleStatusStore.sidebarSmartFolderBadgeSnapshot()` und
+    `SQLiteSidebarState`
   - Direkte Tag-Filter verwenden `TimelineScope.tag` und die SQLite-
     Artikelliste/Reader-Kette; Feed-Tags werden dabei über `feed_tags`
     berücksichtigt

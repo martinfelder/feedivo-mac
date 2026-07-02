@@ -36,6 +36,18 @@ struct ArticleStatusStore {
         }
     }
 
+    func sidebarSmartFolderBadgeSnapshot() throws -> SmartFolderSidebarBadgeSnapshot {
+        try database.read { db in
+            try SmartFolderSidebarBadgeSnapshot.fetchOne(db, sql: """
+                SELECT
+                    (SELECT COALESCE(SUM(unreadCount), 0) FROM feeds) AS unread,
+                    (SELECT COUNT(*) FROM article_statuses WHERE isStarred = 1) AS starred,
+                    (SELECT COUNT(*) FROM article_statuses WHERE isHidden = 1) AS hidden,
+                    (SELECT COUNT(*) FROM article_statuses WHERE isStarred = 1 OR isArchived = 1) AS saved
+                """) ?? .empty
+        }
+    }
+
     func setRead(_ isRead: Bool, articleID: String, at date: Date?) throws {
         try updateBooleanStatus(
             column: "isRead",

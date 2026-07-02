@@ -243,6 +243,11 @@ FeedivoMac/
 │   │   ├── OPMLService.swift           # OPML Import und Export ✅
 │   │   └── OPMLDocument.swift          # FileDocument für OPML Export ✅
 │   │
+│   ├── Snapshots/
+│   │   ├── FeedSidebarSnapshot.swift # Leichte SQLite-Feed-Werte für Sidebar ✅
+│   │   ├── TagSidebarSnapshot.swift  # Leichte SQLite-Tag-Badge-Werte für Sidebar ✅
+│   │   └── SmartFolderSidebarBadgeSnapshot.swift # SQLite-Zähler für Smart-Folder-Badges ✅
+│   │
 │   ├── Extensions/
 │   │   └── Date+RelativeDisplay.swift  # Datum für Artikelzeilen formatieren ✅
 │   │
@@ -448,9 +453,8 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Ungelesen-Badges basieren auf `Feed.unreadCount`, damit die Sidebar beim Rendern
   keine separate Query auf alle ungelesenen Artikel mehr materialisieren muss
 - Die Sidebar nutzt keine globale Artikel-Query mehr für Badge-Signaturen.
-  `Ungelesen` basiert weiter auf `Feed.unreadCount`; Status-Badges beobachten
-  nur Stern-/Archiv-/Hidden-Artikel, damit normales Lesen keine komplette
-  Sidebar-Badge-Invalidierung mehr auslöst.
+  `Ungelesen`, `Mit Stern`, `Ausgeblendet` und `Gespeichert` kommen im
+  SQLite-Hauptpfad aus `SQLiteSidebarState.smartFolderBadgeSnapshot`.
 - Tag-Badges kommen im SQLite/GRDB-Übergangspfad aus `TagStore.sidebarTags()`
   und `SQLiteSidebarState`, statt pro Sidebar-Render SwiftData-`fetchCount` oder
   Artikel→Tag-Relationships zu nutzen. Die Counts umfassen direkte Artikel-Tags
@@ -510,13 +514,13 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - `SidebarTagCount` ist noch der Legacy-SwiftData-Zähler für alte Tag-Pfade.
   Die sichtbaren Sidebar-Tag-Badges im SQLite-Hauptpfad lesen ihre Counts über
   `SQLiteSidebarState.tagSnapshot(id:)`.
-- `SmartFolderSidebarBadge` nutzt für `Ungelesen` weiterhin die summierten
-  `Feed.unreadCount` Werte; `Mit Stern`, `Ausgeblendet` und `Gespeichert`
-  werden im Sidebar-Render aus den gebündelten Status-Zählern gelesen, inklusive
-  gelesener und ungelesener Treffer.
-- `SidebarBadgeSignatureBuilder` liefert noch die günstige Status-Signatur für
-  Smart-Folder-Badges. Tag-Badge-Invalidierung läuft im SQLite-Pfad über den
-  `SQLiteSidebarState`-Reload-Token mit `directTagVersion`.
+- `SmartFolderSidebarBadge` kann Legacy-`SidebarBadgeCounts` weiter auswerten,
+  die sichtbaren Sidebar-Zeilen nutzen aber `SmartFolderSidebarBadgeSnapshot`
+  aus SQLite. `Ungelesen` kommt aus `feeds.unreadCount`, Status-Badges aus
+  `article_statuses`.
+- `SidebarBadgeSignatureBuilder` bleibt für Legacy-Tests/alte Pfade erhalten.
+  Tag-Badge-Invalidierung läuft im SQLite-Pfad über den `SQLiteSidebarState`-
+  Reload-Token mit `directTagVersion`.
 
 ### FeedService.swift
 - Parsed RSS 2.0, Atom und JSON Feed via FeedKit
@@ -2316,9 +2320,8 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Scrollbeobachter-Ansatz hat das Scrollgefühl im Reader verschlechtert und wurde
   wieder entfernt. Für v1 bleibt der Reader ohne Lesefortschritt.
 - Nächster sinnvoller Fokus: verbleibende Hauptpfad-Lücken schließen:
-  Feed-Logs in der UI abrunden, Sidebar-Smart-Folder-Badges auf SQL-Snapshots
-  migrieren, Tag-Listenquelle auf SQLite-Snapshots umstellen und danach
-  Suche/Filter schrittweise auf SQLite ziehen.
+  Feed-Logs in der UI abrunden, Tag-Listenquelle auf SQLite-Snapshots umstellen
+  und danach Suche/Filter schrittweise auf SQLite ziehen.
 - Feature-Roadmap ist in `FEATURES.md` im Root dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
@@ -2338,6 +2341,12 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Farbänderung per `TagStore.save`; Delete ruft `TagStore.deleteTag` auf, wodurch
   `article_tags` und `feed_tags` per Kaskade bereinigt werden. `TagManagerView`
   reicht die Datenbank aus der Environment weiter.
+
+- 2026-07-02: Sidebar-Smart-Folder-Badges auf SQLite-Snapshots umgestellt.
+  `ArticleStatusStore.sidebarSmartFolderBadgeSnapshot()` liefert `unread`,
+  `starred`, `hidden` und `saved`; `SQLiteSidebarState` lädt den Snapshot
+  gemeinsam mit Feed- und Tag-Snapshots, und `SidebarView` braucht dafür keine
+  SwiftData-Artikel-Query mehr.
 
 - 2026-07-02: Direkte Tag-Filter auf SQLite umgestellt. `TimelineScope.tag`
   filtert Artikel über `article_tags`, `SQLiteFeedArticleListState` kann neben

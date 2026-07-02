@@ -40,6 +40,35 @@ struct SQLiteSidebarStateTests {
     }
 
     @MainActor
+    @Test func loadReadsSmartFolderBadgeSnapshotFromSQLiteStatuses() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let statusStore = ArticleStatusStore(database: database)
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://one.example/feed.xml", title: "One", unreadCount: 2))
+        let starredID = try articleStore.upsert(
+            ArticleUpsertInput(feedID: "feed-1", sourceID: "article-1", title: "Stern")
+        )
+        let archivedID = try articleStore.upsert(
+            ArticleUpsertInput(feedID: "feed-1", sourceID: "article-2", title: "Archiv")
+        )
+        let hiddenID = try articleStore.upsert(
+            ArticleUpsertInput(feedID: "feed-1", sourceID: "article-3", title: "Versteckt")
+        )
+        try statusStore.setStarred(true, articleID: starredID, at: Date(timeIntervalSince1970: 100))
+        try statusStore.setArchived(true, articleID: archivedID, at: Date(timeIntervalSince1970: 100))
+        try statusStore.setHidden(true, articleID: hiddenID, at: Date(timeIntervalSince1970: 100))
+        let state = SQLiteSidebarState()
+
+        state.load(database: database, showsReadFeeds: true)
+
+        #expect(state.smartFolderBadgeSnapshot.unread == 2)
+        #expect(state.smartFolderBadgeSnapshot.starred == 1)
+        #expect(state.smartFolderBadgeSnapshot.hidden == 1)
+        #expect(state.smartFolderBadgeSnapshot.saved == 2)
+    }
+
+    @MainActor
     @Test func visibleSwiftDataFeedsFollowSQLiteVisibility() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let store = FeedStore(database: database)
