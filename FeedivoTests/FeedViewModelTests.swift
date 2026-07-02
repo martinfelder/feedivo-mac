@@ -114,6 +114,66 @@ struct FeedViewModelTests {
     }
 
     @MainActor
+    @Test func addFeedSpiegeltFeedUndArtikelNachSQLite() async throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            RuleCondition.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let sqliteDatabase = try FeedivoDatabase.inMemoryForTests()
+
+        let viewModel = makeViewModel(
+            fetchFeed: { _ in
+                ParsedFeed(
+                    sourceURL: "https://example.com/feed.xml",
+                    title: "Example",
+                    description: nil,
+                    siteURL: "https://example.com/",
+                    articles: [
+                        ParsedArticle(
+                            title: "First",
+                            sourceID: "first",
+                            link: "https://example.com/first",
+                            summary: "Kurz",
+                            content: "Inhalt",
+                            publishedAt: Date(timeIntervalSince1970: 100),
+                            imageURL: nil
+                        )
+                    ]
+                )
+            },
+            discoverFaviconURL: { _ in nil },
+            enrichArticleImages: { articles in articles }
+        )
+
+        await viewModel.addFeed(
+            urlString: "https://example.com/feed.xml",
+            context: context,
+            sqliteDatabase: sqliteDatabase
+        )
+
+        let sqliteFeedResult = try FeedStore(database: sqliteDatabase).feed(url: "https://example.com/feed.xml")
+        let sqliteFeed = try #require(sqliteFeedResult)
+        let rows = try TimelineStore(database: sqliteDatabase).articles(
+            scope: .feed(sqliteFeed.id),
+            includeRead: true,
+            includeHidden: false,
+            limit: 20
+        )
+
+        #expect(sqliteFeed.title == "Example")
+        #expect(sqliteFeed.websiteURL == "https://example.com/")
+        #expect(sqliteFeed.unreadCount == 1)
+        #expect(rows.map(\.title) == ["First"])
+        #expect(viewModel.errorMessage == nil)
+    }
+
+    @MainActor
     @Test func importOPMLFeedsLegtNeueFeedsAnUndUeberspringtDuplikate() async throws {
         let container = try ModelContainer(
             for: Feed.self,
@@ -895,6 +955,80 @@ struct FeedViewModelTests {
         #expect((feed.logEntries ?? []).contains { $0.kind == "info" && $0.message.contains("1") })
         #expect(viewModel.errorMessage == nil)
         #expect(!viewModel.isLoading)
+    }
+
+    @MainActor
+    @Test func refreshFeedSchreibtAktualisierteArtikelNachSQLite() async throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            RuleCondition.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let sqliteDatabase = try FeedivoDatabase.inMemoryForTests()
+        let feed = Feed(
+            url: "https://example.com/feed.xml",
+            title: "Alter Titel",
+            lastRefreshed: Date(timeIntervalSince1970: 1)
+        )
+        context.insert(feed)
+        try context.save()
+        try FeedStore(database: sqliteDatabase).save(
+            FeedRecord(
+                id: feed.id.uuidString,
+                url: feed.url,
+                title: feed.title,
+                lastRefreshedAt: feed.lastRefreshed
+            )
+        )
+
+        let viewModel = makeViewModel(
+            fetchFeed: { urlString in
+                ParsedFeed(
+                    sourceURL: urlString,
+                    title: "Neuer Titel",
+                    description: nil,
+                    siteURL: "https://example.com/",
+                    articles: [
+                        ParsedArticle(
+                            title: "SQLite Neuer Artikel",
+                            sourceID: "sqlite-new",
+                            link: "https://example.com/sqlite-new",
+                            summary: "Neu",
+                            content: "Inhalt",
+                            publishedAt: Date(timeIntervalSince1970: 200),
+                            imageURL: nil
+                        )
+                    ]
+                )
+            },
+            discoverFaviconURL: { _ in nil },
+            enrichArticleImages: { articles in articles }
+        )
+
+        await viewModel.refreshFeed(
+            feed,
+            context: context,
+            sqliteDatabase: sqliteDatabase
+        )
+
+        let sqliteFeedResult = try FeedStore(database: sqliteDatabase).feed(url: feed.url)
+        let sqliteFeed = try #require(sqliteFeedResult)
+        let rows = try TimelineStore(database: sqliteDatabase).articles(
+            scope: .feed(sqliteFeed.id),
+            includeRead: true,
+            includeHidden: false,
+            limit: 20
+        )
+
+        #expect(sqliteFeed.title == "Neuer Titel")
+        #expect(sqliteFeed.unreadCount == 1)
+        #expect(rows.map(\.title) == ["SQLite Neuer Artikel"])
+        #expect(viewModel.errorMessage == nil)
     }
 
     @MainActor

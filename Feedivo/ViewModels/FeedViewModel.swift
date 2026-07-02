@@ -487,7 +487,11 @@ final class FeedViewModel {
     }
 
     @MainActor
-    func addFeed(urlString: String, context: ModelContext) async {
+    func addFeed(
+        urlString: String,
+        context: ModelContext,
+        sqliteDatabase: FeedivoDatabase? = nil
+    ) async {
         let cleanedURL = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleanedURL.isEmpty else {
             errorMessage = L10n.feedErrorEmptyURL
@@ -555,6 +559,10 @@ final class FeedViewModel {
                 context: context
             )
             try context.save()
+
+            if let sqliteDatabase {
+                try mirrorFeedToSQLite(feed, context: context, database: sqliteDatabase)
+            }
         } catch let error as LocalizedError {
             errorMessage = error.errorDescription ?? L10n.feedErrorAddFailed
         } catch {
@@ -565,7 +573,11 @@ final class FeedViewModel {
     }
 
     @MainActor
-    func refreshFeed(_ feed: Feed?, context: ModelContext) async {
+    func refreshFeed(
+        _ feed: Feed?,
+        context: ModelContext,
+        sqliteDatabase: FeedivoDatabase? = nil
+    ) async {
         guard !isLoading else {
             // Statt stillen Drops: Nutzer bekommt Feedback, dass bereits
             // aktualisiert wird, und sein Aufruf nicht verloren geht.
@@ -582,6 +594,9 @@ final class FeedViewModel {
 
         do {
             let result = try await refreshFeedContents(feed, context: context)
+            if let sqliteDatabase {
+                try mirrorFeedToSQLite(feed, context: context, database: sqliteDatabase)
+            }
             await notifyFeedRefresh([result.feedNotification])
             await notifyRuleNotifications(result.ruleNotifications)
         } catch let error as LocalizedError {
@@ -608,7 +623,11 @@ final class FeedViewModel {
     }
 
     @MainActor
-    func refreshAllFeeds(_ feeds: [Feed], context: ModelContext) async {
+    func refreshAllFeeds(
+        _ feeds: [Feed],
+        context: ModelContext,
+        sqliteDatabase: FeedivoDatabase? = nil
+    ) async {
         guard !isLoading else {
             errorMessage = L10n.feedErrorAlreadyRunning
             return
@@ -704,6 +723,11 @@ final class FeedViewModel {
             }
 
             try? context.save()
+            if let sqliteDatabase {
+                for feed in feedBatch {
+                    try? mirrorFeedToSQLite(feed, context: context, database: sqliteDatabase)
+                }
+            }
         }
 
         await notifyFeedRefresh(notificationResults)
@@ -736,7 +760,11 @@ final class FeedViewModel {
     }
 
     @MainActor
-    func refreshAllFeeds(_ feeds: [Feed], modelContainer: ModelContainer) async {
+    func refreshAllFeeds(
+        _ feeds: [Feed],
+        modelContainer: ModelContainer,
+        sqliteDatabase: FeedivoDatabase? = nil
+    ) async {
         guard !isLoading else {
             errorMessage = L10n.feedErrorAlreadyRunning
             return
@@ -788,6 +816,10 @@ final class FeedViewModel {
             batchSize: Self.maxConcurrentFeedRefreshes
         ) { [weak self] event in
             await self?.handleBackgroundRefreshEvent(event)
+        }
+
+        if let sqliteDatabase {
+            await refreshSQLiteSnapshots(snapshots, database: sqliteDatabase)
         }
 
         await notifyFeedRefresh(summary.notificationResults)
@@ -848,6 +880,107 @@ final class FeedViewModel {
         }
 
         try? await Task.sleep(for: minimumRefreshStatusDuration - elapsed)
+    }
+
+    @MainActor
+    private func mirrorFeedToSQLite(
+        _ feed: Feed,
+        context: ModelContext,
+        database: FeedivoDatabase
+    ) throws {
+        let feedID = feed.id.uuidString
+        let feedStore = FeedStore(database: database)
+        try feedStore.save(
+            FeedRecord(
+                id: feedID,
+                url: feed.url,
+                title: feed.title,
+                websiteURL: feed.siteURL,
+                faviconURL: feed.faviconURL,
+                folderName: feed.folderName,
+                refreshIntervalMinutes: feed.refreshIntervalMinutes,
+                lastRefreshedAt: feed.lastRefreshed,
+                lastETag: feed.httpETag,
+                lastModified: feed.httpLastModified,
+                lastBodyHash: feed.httpContentHash,
+                lastHTTPStatusCode: feed.lastHTTPStatusCode,
+                unreadCount: feed.unreadCount,
+                createdAt: feed.followedAt ?? Date(),
+                updatedAt: Date()
+            )
+        )
+
+        let articles = try articlesForSQLiteMirror(feed: feed, context: context)
+        let inputs = articles.map { article in
+            ArticleUpsertInput(
+                feedID: feedID,
+                sourceID: article.sourceID,
+                link: article.link,
+                title: article.title,
+                summary: article.summary,
+                content: article.content,
+                imageURL: article.imageURL,
+                author: article.author,
+                publishedAt: article.publishedAt,
+                arrivedAt: article.publishedAt ?? feed.lastRefreshed ?? Date()
+            )
+        }
+
+        _ = try ArticleStore(database: database).upsert(inputs)
+        let unreadCount = try ArticleStatusStore(database: database).unreadCount(feedID: feedID)
+        try feedStore.setUnreadCount(unreadCount, feedID: feedID)
+    }
+
+    @MainActor
+    private func articlesForSQLiteMirror(feed: Feed, context: ModelContext) throws -> [Article] {
+        let feedID = Optional(feed.id)
+        var descriptor = FetchDescriptor<Article>(
+            predicate: #Predicate<Article> { article in
+                article.feedID == feedID
+            }
+        )
+        descriptor.sortBy = [
+            SortDescriptor(\.publishedAt, order: .reverse),
+            SortDescriptor(\.id, order: .reverse)
+        ]
+        return try context.fetch(descriptor)
+    }
+
+    private func refreshSQLiteSnapshots(
+        _ snapshots: [FeedRefreshSnapshot],
+        database: FeedivoDatabase
+    ) async {
+        for snapshotBatch in feedBatches(from: snapshots) {
+            await withTaskGroup(of: Void.self) { group in
+                for snapshot in snapshotBatch {
+                    group.addTask { [fetchFeedConditionally] in
+                        do {
+                            let feedID = snapshot.id.uuidString
+                            try FeedStore(database: database).save(
+                                FeedRecord(
+                                    id: feedID,
+                                    url: snapshot.url,
+                                    title: snapshot.title
+                                )
+                            )
+                            let service = SQLiteFeedRefreshService(database: database) { urlString, validators in
+                                switch try await fetchFeedConditionally(urlString, validators) {
+                                case .updated(let feed, let validators):
+                                    return .updated(feed, validators)
+                                case .notModified(let validators):
+                                    return .notModified(validators)
+                                }
+                            }
+                            _ = try await service.refresh(feedID: feedID)
+                        } catch {
+                            // Der sichtbare Refresh-Status bleibt beim bestehenden
+                            // SwiftData-Pfad. SQLite-Mirroring darf ihn in dieser
+                            // Übergangsphase nicht nachträglich überschreiben.
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private func updateRefreshItemStatus(for feedID: UUID, status: FeedRefreshItemStatus) {
