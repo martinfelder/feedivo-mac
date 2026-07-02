@@ -321,6 +321,32 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(databaseURL.pathComponents.suffix(3) == ["ch.martin.FeedivoTests", "Feedivo", "feedivo.sqlite"])
     }
 
+    @Test func contentViewHaeltSeparateSQLiteArtikelAuswahl() throws {
+        let projectRoot = projectRootURL()
+        let contentSource = try source(at: "Feedivo/Views/ContentView.swift", projectRoot: projectRoot)
+
+        #expect(contentSource.contains("@State private var selectedSQLiteArticleID: String?"))
+        #expect(contentSource.contains("@State private var sqliteArticleNavigationState = SQLiteArticleNavigationState.empty"))
+    }
+
+    @Test func contentViewNutztSQLiteFeedArticleListFuerSelectedFeed() throws {
+        let projectRoot = projectRootURL()
+        let contentSource = try source(at: "Feedivo/Views/ContentView.swift", projectRoot: projectRoot)
+
+        #expect(contentSource.contains("SQLiteFeedArticleListView("))
+        #expect(contentSource.contains("selectedArticleID: $selectedSQLiteArticleID"))
+        #expect(contentSource.contains("navigationState: $sqliteArticleNavigationState"))
+    }
+
+    @Test func contentViewNutztSQLiteReaderFuerSQLiteAuswahl() throws {
+        let projectRoot = projectRootURL()
+        let contentSource = try source(at: "Feedivo/Views/ContentView.swift", projectRoot: projectRoot)
+
+        #expect(contentSource.contains("if let selectedSQLiteArticleID"))
+        #expect(contentSource.contains("SQLiteReaderView("))
+        #expect(contentSource.contains("articleID: selectedSQLiteArticleID"))
+    }
+
     private func projectRootURL() -> URL {
         URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()

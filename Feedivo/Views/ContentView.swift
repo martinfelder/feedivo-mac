@@ -32,6 +32,8 @@ struct ContentView: View {
     // selectedArticle speichert welcher Artikel gerade in der Liste ausgewählt ist.
     @State private var selectedArticle: Article? = nil
     @State private var articleNavigationState = ArticleNavigationState.empty
+    @State private var selectedSQLiteArticleID: String?
+    @State private var sqliteArticleNavigationState = SQLiteArticleNavigationState.empty
     @State private var articleSearchFocusRequest = 0
 
     @State private var articleViewModel = ArticleViewModel()
@@ -85,12 +87,10 @@ struct ContentView: View {
                 )
                     .navigationSplitViewColumnWidth(min: 280, ideal: 320, max: 400)
             } else if let feed = selectedFeed {
-                ArticleListView(
+                SQLiteFeedArticleListView(
                     feed: feed,
-                    selectedArticle: $selectedArticle,
-                    navigationState: $articleNavigationState,
-                    onRequestCreateRuleFromArticle: requestCreateRuleFromArticle,
-                    onRequestExportArticle: requestExportArticle
+                    selectedArticleID: $selectedSQLiteArticleID,
+                    navigationState: $sqliteArticleNavigationState
                 )
                     .navigationSplitViewColumnWidth(min: 280, ideal: 320, max: 400)
             } else if let tag = selectedTag {
@@ -124,7 +124,16 @@ struct ContentView: View {
         } detail: {
 
             // SPALTE 3: Reader — Inhalt des ausgewählten Artikels
-            if let article = selectedArticle {
+            if let selectedSQLiteArticleID {
+                SQLiteReaderView(
+                    articleID: selectedSQLiteArticleID,
+                    canSelectPreviousArticle: sqliteArticleNavigationState.previousArticleID != nil,
+                    canSelectNextArticle: sqliteArticleNavigationState.nextArticleID != nil,
+                    selectPreviousArticle: selectPreviousArticle,
+                    selectNextArticle: selectNextArticle
+                )
+                .id(selectedSQLiteArticleID)
+            } else if let article = selectedArticle {
                 ReaderView(
                     article: article,
                     isMetadataInspectorPresented: $isMetadataInspectorPresented,
@@ -146,6 +155,7 @@ struct ContentView: View {
 
         }
         .onChange(of: sidebarSelection, handleSidebarSelectionChange)
+        .onChange(of: selectedSQLiteArticleID, handleSQLiteArticleSelectionChange)
         .onAppear(perform: handleContentAppear)
         .onChange(of: smartFolders.count, handleSmartFolderCountChange)
         .onChange(of: feeds.count, handleFeedCountChange)
@@ -338,6 +348,17 @@ struct ContentView: View {
     }
 
     private func handleSidebarSelectionChange() {
+        selectedArticle = nil
+        articleNavigationState = .empty
+        selectedSQLiteArticleID = nil
+        sqliteArticleNavigationState = .empty
+    }
+
+    private func handleSQLiteArticleSelectionChange() {
+        guard selectedSQLiteArticleID != nil else {
+            return
+        }
+
         selectedArticle = nil
         articleNavigationState = .empty
     }
@@ -551,12 +572,22 @@ struct ContentView: View {
     }
 
     private func selectPreviousArticle() {
+        if selectedSQLiteArticleID != nil {
+            selectedSQLiteArticleID = sqliteArticleNavigationState.previousArticleID
+            return
+        }
+
         if let previousArticle = articleNavigationState.previousArticle {
             selectedArticle = previousArticle
         }
     }
 
     private func selectNextArticle() {
+        if selectedSQLiteArticleID != nil {
+            selectedSQLiteArticleID = sqliteArticleNavigationState.nextArticleID
+            return
+        }
+
         if let nextArticle = articleNavigationState.nextArticle {
             selectedArticle = nextArticle
         }
