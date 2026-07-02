@@ -9,12 +9,10 @@ struct SidebarView: View {
     @Query(sort: \FeedFolder.name) private var folders: [FeedFolder]
     @Query(sort: \Tag.name) private var tags: [Tag]
     @Query(sort: \SmartFolder.sortOrder) private var smartFolders: [SmartFolder]
-    // Artikel für die Badge-Zählung. Über einen FetchDescriptor mit
-    // propertiesToFetch geladen, sodass nur die Skalar-Attribute resident sind —
-    // content/summary/offlineContent-Strings bleiben ungefaultet (Memory bei
-    // großem Datenbestand). Die tags-Relationship faultet nur während der
-    // (seltenen) Neuberechnung, nicht pro Render.
-    @Query private var allArticles: [Article]
+    // Nur Artikel, die für Status-Badges relevant sind. Eine globale Artikel-
+    // Query in der Sidebar hat beim Lesen jeden isRead-Wechsel beobachtet und
+    // dadurch SwiftData/CoreData-Faulting auf dem Main-Thread ausgelöst.
+    @Query private var statusBadgeArticles: [Article]
     @Binding var selection: SidebarSelection?
     let onRequestAddFeed: () -> Void
     let onRequestRefreshAllFeeds: () -> Void
@@ -41,11 +39,15 @@ struct SidebarView: View {
         self.onRequestRefreshAllFeeds = onRequestRefreshAllFeeds
         self.onRequestDeleteFeed = onRequestDeleteFeed
 
-        var descriptor = FetchDescriptor<Article>()
+        var descriptor = FetchDescriptor<Article>(
+            predicate: #Predicate<Article> { article in
+                article.isStarred || article.isArchived || article.isHidden
+            }
+        )
         descriptor.propertiesToFetch = [
-            \.id, \.feedID, \.isRead, \.isStarred, \.isArchived, \.isHidden
+            \.id, \.isStarred, \.isArchived, \.isHidden
         ]
-        _allArticles = Query(descriptor)
+        _statusBadgeArticles = Query(descriptor)
     }
     @AppStorage(SidebarSectionCollapseState.Section.tags.storageKey)
     private var isTagsCollapsed = false
@@ -150,7 +152,8 @@ struct SidebarView: View {
         .task(id: tagSignature) {
             // Cache asynchron befüllen, nachdem der Body mit der neuen Tag-
             // Signatur gerendert wurde. Reine Status- oder Selektionswechsel
-            // starten diese Task nicht neu → keine Tag-Relationship-Faults.
+            // starten diese Task nicht neu → keine Artikel-/Tag-Faults im
+            // schnellen Lesepfad.
             cachedTagCounts = computeSidebarTagCounts()
             cachedTagSignature = tagSignature
         }
@@ -385,7 +388,7 @@ struct SidebarView: View {
     /// und hält Stern/Versteckt/Gespeichert-Badges ohne Relationship-Faulting
     /// aktuell.
     private var sidebarStatusBadgeSignature: SidebarStatusBadgeSignature {
-        SidebarBadgeSignatureBuilder.statusSignature(articles: allArticles)
+        SidebarBadgeSignatureBuilder.statusSignature(articles: statusBadgeArticles)
     }
 
     /// Tag-Signatur trennt Tag-relevante Änderungen von reinen Statuswechseln.
@@ -393,7 +396,6 @@ struct SidebarView: View {
     /// Klicks stabil.
     private var sidebarTagBadgeSignature: SidebarTagBadgeSignature {
         SidebarBadgeSignatureBuilder.tagSignature(
-            articles: allArticles,
             feeds: feeds,
             tags: tags,
             directTagVersion: directTagVersion
@@ -410,7 +412,7 @@ struct SidebarView: View {
         if cachedTagSignature == tagSignature, let cached = cachedTagCounts {
             tagCounts = cached
         } else {
-            tagCounts = computeSidebarTagCounts()
+            tagCounts = cachedTagCounts ?? [:]
         }
 
         return SidebarBadgeCounts(
@@ -421,33 +423,16 @@ struct SidebarView: View {
         )
     }
 
-    /// Ein einziger Durchlauf über alle Artikel bündelt nur die Tag-Badge-Zähler.
-    /// Läuft nur bei Tag-relevanter Signaturänderung, nicht bei Status- oder
-    /// Selektionswechseln.
+    /// Tag-Badges werden bewusst nachgelagert per fetchCount berechnet. Damit
+    /// beobachtet die Sidebar keine globale Artikelliste mehr und ein
+    /// Read/Unread-Wechsel im Reader kann keinen Voll-Refetch aller Artikel
+    /// anstoßen.
     private func computeSidebarTagCounts() -> [PersistentIdentifier: Int] {
-        // feedID → Set der Tag-IDs, deren Feeds diesen Feed enthalten. Entspricht
-        // ArticleListQuery.tagPredicate (matcht article.feedID, nicht die
-        // feed-Relationship) — konsistent mit der Artikelliste, auch bei
-        // verwaisten Artikeln (feedID gesetzt, feed == nil).
-        var feedTagIDsByFeedID: [UUID: Set<PersistentIdentifier>] = [:]
-        for feed in feeds {
-            feedTagIDsByFeedID[feed.id] = Set((feed.tags ?? []).map(\.persistentModelID))
-        }
-
         var tagCounts: [PersistentIdentifier: Int] = [:]
-
-        for article in allArticles {
-            // Ein Artikel trifft auf einen Tag zu, wenn er direkt getaggt ist
-            // ODER sein Feed dem Tag zugeordnet ist (OR, nur einfach zählen).
-            var matchingTagIDs = Set<PersistentIdentifier>()
-            for tag in article.tags ?? [] {
-                matchingTagIDs.insert(tag.persistentModelID)
-            }
-            if let feedID = article.feedID {
-                matchingTagIDs.formUnion(feedTagIDsByFeedID[feedID] ?? [])
-            }
-            for tagID in matchingTagIDs {
-                tagCounts[tagID, default: 0] += 1
+        for tag in tags {
+            if let count = try? SidebarTagCount.articleCount(for: tag, context: modelContext),
+               count > 0 {
+                tagCounts[tag.persistentModelID] = count
             }
         }
 

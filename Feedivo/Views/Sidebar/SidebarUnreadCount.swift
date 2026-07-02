@@ -114,7 +114,6 @@ struct SidebarBadgeCounts: Equatable {
 /// Signatur für günstige Status-Badges. Sie nutzt nur skalare Artikelwerte und
 /// kann deshalb pro Body-Auswertung laufen, ohne Relationships zu faulten.
 struct SidebarStatusBadgeSignature: Equatable, Hashable {
-    let articleCount: Int
     let starredCount: Int
     let hiddenCount: Int
     let savedCount: Int
@@ -123,9 +122,8 @@ struct SidebarStatusBadgeSignature: Equatable, Hashable {
 /// Signatur für Tag-Badges. Nur Änderungen, die Tag-Zuordnung oder Feed-Bezug
 /// betreffen, invalidieren den Relationship-heavy Tag-Cache.
 struct SidebarTagBadgeSignature: Equatable, Hashable {
-    let articleCount: Int
-    let articleFeedMembershipHash: Int
     let tagFeedMembershipHash: Int
+    let feedRefreshHash: Int
     let tagCount: Int
     let feedCount: Int
     let directTagVersion: Int
@@ -144,7 +142,6 @@ enum SidebarBadgeSignatureBuilder {
         }
 
         return SidebarStatusBadgeSignature(
-            articleCount: articles.count,
             starredCount: starredCount,
             hiddenCount: hiddenCount,
             savedCount: savedCount
@@ -152,27 +149,17 @@ enum SidebarBadgeSignatureBuilder {
     }
 
     static func tagSignature(
-        articles: [Article],
         feeds: [Feed],
         tags: [Tag],
         directTagVersion: Int
     ) -> SidebarTagBadgeSignature {
         SidebarTagBadgeSignature(
-            articleCount: articles.count,
-            articleFeedMembershipHash: articleFeedMembershipHash(articles),
             tagFeedMembershipHash: tagFeedMembershipHash(feeds),
+            feedRefreshHash: feedRefreshHash(feeds),
             tagCount: tags.count,
             feedCount: feeds.count,
             directTagVersion: directTagVersion
         )
-    }
-
-    private static func articleFeedMembershipHash(_ articles: [Article]) -> Int {
-        var hash = articles.count
-        for article in articles {
-            hash = hash &* 31 &+ (article.feedID?.hashValue ?? 0)
-        }
-        return hash
     }
 
     private static func tagFeedMembershipHash(_ feeds: [Feed]) -> Int {
@@ -182,6 +169,15 @@ enum SidebarBadgeSignatureBuilder {
             for tag in (feed.tags ?? []).sorted(by: { $0.id.uuidString < $1.id.uuidString }) {
                 hash = hash &* 31 &+ tag.id.hashValue
             }
+        }
+        return hash
+    }
+
+    private static func feedRefreshHash(_ feeds: [Feed]) -> Int {
+        var hash = feeds.count
+        for feed in feeds {
+            hash = hash &* 31 &+ feed.id.hashValue
+            hash = hash &* 31 &+ (feed.lastRefreshed?.timeIntervalSinceReferenceDate.hashValue ?? 0)
         }
         return hash
     }

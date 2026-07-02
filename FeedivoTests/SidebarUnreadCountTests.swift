@@ -97,22 +97,20 @@ struct SidebarUnreadCountTests {
         let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
         let tag = Tag(name: "Swift")
         feed.tags = [tag]
-        let article = Article(title: "Artikel", feed: feed)
         let initialTagSignature = SidebarBadgeSignatureBuilder.tagSignature(
-            articles: [article],
             feeds: [feed],
             tags: [tag],
             directTagVersion: 0
         )
         let initialStatusSignature = SidebarBadgeSignatureBuilder.statusSignature(
-            articles: [article]
+            articles: []
         )
 
+        let article = Article(title: "Artikel", feed: feed)
         article.isStarred = true
         article.isArchived = true
 
         let changedTagSignature = SidebarBadgeSignatureBuilder.tagSignature(
-            articles: [article],
             feeds: [feed],
             tags: [tag],
             directTagVersion: 0
@@ -131,9 +129,7 @@ struct SidebarUnreadCountTests {
         let secondTag = Tag(name: "Apple")
         let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
         feed.tags = [firstTag]
-        let article = Article(title: "Artikel", feed: feed)
         let initialSignature = SidebarBadgeSignatureBuilder.tagSignature(
-            articles: [article],
             feeds: [feed],
             tags: [firstTag, secondTag],
             directTagVersion: 0
@@ -142,7 +138,6 @@ struct SidebarUnreadCountTests {
         feed.tags = [secondTag]
 
         let changedSignature = SidebarBadgeSignatureBuilder.tagSignature(
-            articles: [article],
             feeds: [feed],
             tags: [firstTag, secondTag],
             directTagVersion: 0

@@ -827,9 +827,9 @@
 - **Ziel:** 500 Feeds / 100'000 Artikel flüssig
 - **Umgesetzt:**
   - OPML-Import und `Alle Feeds aktualisieren` rufen Feeds nur noch begrenzt parallel ab
-  - Sidebar lädt für Badge-Signaturen nur eine leichte Artikel-Query mit
-    Skalarwerten; große Inhalte und Relationships bleiben aus dem Standard-Render
-    heraus
+  - Sidebar nutzt keine globale Artikel-Query mehr für Badge-Signaturen; beim
+    Lesen invalidieren `isRead`-Änderungen dadurch nicht mehr alle Sidebar-
+    Badge-Daten
   - `Ungelesen`-Badge der intelligenten Ordner nutzt die gespeicherten `Feed.unreadCount` Werte
   - `Mit Stern`, `Ausgeblendet` und `Gespeichert` lesen ihre Sidebar-Badges aus
     gebündelten Status-Zählern
@@ -882,6 +882,9 @@
   - Sidebar-Badge-Caching trennt Status-Signatur und Tag-Signatur; reine Stern-,
     Archiv- oder Hidden-Änderungen lösen keine neue Artikel→Tag-Relationship-
     Auswertung aus
+  - Tag-Badges werden nachgelagert per `fetchCount` aktualisiert und bleiben aus
+    dem SwiftUI-Body-Renderpfad; Status-Badges beobachten nur eine kleine Query
+    auf Stern-/Archiv-/Hidden-Artikel
   - Artikelzeilen laden Vorschaubilder über größenbegrenzte Thumbnails aus dem
     gemeinsamen Bildcache; der Disk-Cache speichert weiter das Original, aber die
     Liste hält nur kleine `NSImage`-Instanzen im Memory-Cache

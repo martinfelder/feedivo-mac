@@ -443,13 +443,14 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   über alle Feeds
 - Ungelesen-Badges basieren auf `Feed.unreadCount`, damit die Sidebar beim Rendern
   keine separate Query auf alle ungelesenen Artikel mehr materialisieren muss
-- Die Sidebar nutzt für Badge-Signaturen eine leichte globale Artikel-Query mit
-  `propertiesToFetch` auf Skalarwerte; große Inhalte und Relationships bleiben
-  dabei ungefaultet. `Ungelesen` nutzt weiter `Feed.unreadCount`.
+- Die Sidebar nutzt keine globale Artikel-Query mehr für Badge-Signaturen.
+  `Ungelesen` basiert weiter auf `Feed.unreadCount`; Status-Badges beobachten
+  nur Stern-/Archiv-/Hidden-Artikel, damit normales Lesen keine komplette
+  Sidebar-Badge-Invalidierung mehr auslöst.
 - Tag-Badges und Status-Badges sind getrennt gecacht: Stern-/Archiv-/Hidden-
   Änderungen aktualisieren nur die günstigen Status-Zähler, während die teurere
-  Artikel→Tag-Relationship-Auswertung nur bei Tag-, Feed-Tag- oder FeedID-
-  relevanten Änderungen läuft.
+  Artikel→Tag-Auswertung nachgelagert per `fetchCount` nur bei Tag-,
+  Feed-Tag- oder Feed-Refresh-relevanten Änderungen läuft.
 - Per Darstellungseinstellung `sidebar.showsReadFeeds` können Feeds ohne
   ungelesene Artikel in der Sidebar ausgeblendet werden; Standard bleibt anzeigen.
 - Die Sidebar zeigt eine eigene `Tags`-Section mit Tag-Icon; der Button öffnet den
@@ -510,7 +511,8 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - `SidebarBadgeSignatureBuilder` trennt Status-Signatur und Tag-Signatur. Damit
   löst ein reiner Stern-/Archiv-Klick keine neue Tag-Badge-Berechnung und keine
   Artikel→Tag-Relationship-Faults aus; ein Feed-Tag-Wechsel mit gleicher
-  Tag-Anzahl invalidiert den Tag-Cache trotzdem korrekt.
+  Tag-Anzahl invalidiert den Tag-Cache trotzdem korrekt. Reine
+  Gelesen/Ungelesen-Wechsel gehen nicht mehr in die Tag-Signatur ein.
 
 ### FeedService.swift
 - Parsed RSS 2.0, Atom und JSON Feed via FeedKit
@@ -1885,6 +1887,11 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
      `ArticleListView` sammelt betroffene Feed-IDs und synchronisiert die Zähler
      beim debounced Persistenz-Flush per `fetchCount`; damit feuern Feed-Queries,
      Sidebar-Badges und Dock-Badge nicht mehr bei jedem schnellen Artikelwechsel.
+  10. Die Sidebar beobachtet keine globale `allArticles`-Query mehr. Ein Sample
+      am 2026-07-02 zeigte beim schnellen Lesen hohe CPU in `SidebarView` →
+      SwiftData/CoreData-Faulting; deshalb beobachtet die Sidebar nur noch eine
+      kleine Status-Query für Stern/Archiv/Hidden und berechnet Tag-Badges
+      nachgelagert per `fetchCount`.
 - **Konsequenz:** Navigation bleibt auch bei großem Datenbestand flüssig;
   Lese-Status und Feed-Zähler werden verzögert (≤0.6s) persistiert bzw.
   synchronisiert, was für einen RSS-Reader akzeptabel ist und auf `.onDisappear`
@@ -2178,7 +2185,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Lesestatus-Zähler vermeiden den direkten `article.feed`-Relationship-Fault.
   Auto-Lesen aktualisiert `Feed.unreadCount` zudem nicht mehr pro Artikelauswahl,
   sondern bündelt betroffene Feed-IDs und synchronisiert die Zähler erst beim
-  debounced Persistenz-Flush.
+  debounced Persistenz-Flush. Nach einem heißen Prozess-Sample wurde zusätzlich
+  die Sidebar von ihrer globalen Artikel-Query entkoppelt: Tag-Badges laufen
+  nicht mehr im Body über alle Artikel, Status-Badges beobachten nur noch
+  Stern-/Archiv-/Hidden-Artikel.
 
 - 2026-07-01: Reader-Artikelwechsel weiter entkoppelt. `ReaderView` beobachtet
   für Reader-Rebuilds keine schweren Textfelder (`Article.content`,
