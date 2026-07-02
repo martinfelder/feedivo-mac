@@ -1296,9 +1296,11 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Nutzt einen ruhigeren Editorial-Rhythmus: etwas kleinerer semibold Titel,
   größere Blockabstaende, kontrollierte Lead-Bildhoehe und dezenter Footer für
   `Original öffnen`.
-- Ordner und Tags werden direkt unter dem Titel als dezente Chips angezeigt; die
-  Bearbeitung bleibt über den sichtbaren Toolbar-Toggle `Artikelinfos` im rechten
-  Inspector.
+- Ordner und Tags werden direkt unter dem Titel als dezente Chips angezeigt. Hinter
+  den Tags sitzt ein dezenter + Button, der ein Inline-Popover zum Zuweisen,
+  Entfernen und Erstellen von Tags öffnet. Die Logik nutzt wie der rechte Inspector
+  `ArticleMetadataEditor`, damit Tag-Erstellung und Tag-Zuweisung konsistent
+  bleiben.
 - Der offene/geschlossene Inspector-Zustand kommt als Binding aus `ContentView`,
   damit die rechte Seitenleiste beim Feed- oder Artikelwechsel erhalten bleibt.
 - Die rechte Seitenleiste wird über SwiftUIs native `.inspector`-Spalte angezeigt;
@@ -1357,7 +1359,7 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   einem separaten Relationship-Metadata-Snapshot für Feed-Ordner und Tags. Die
   Header-Chips halten nur einfache Werte (`id`, Name, Farbe) statt lebender
   `Tag`-Modelle, damit Feedname, Ordner und Tags beim Artikelwechsel nicht sichtbar
-  nachlaufen.
+  nachlaufen. Nach Inline-Tag-Aktionen wird dieser Snapshot sofort aktualisiert.
 - Zeigt beim Artikelwechsel sofort eine leichte Reader-Vorschau aus Summary und
   Bild-URL, statt den nativen Reader auf einen blanken Ladezustand zu setzen.
   Reader-Bilder verwenden keinen sichtbaren Spinner mehr.
@@ -2199,6 +2201,11 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   sowie Tags als einfache Snapshot-Werte statt als lebende SwiftData-`Tag`-
   Modelle im Header. Der Hauptfenster-Reader nutzt wie das Artikelfenster eine
   `.id(article.id)`, damit Reader-State beim Artikelwechsel sauber neu startet.
+
+- 2026-07-02: Inline-Tag-Bearbeitung in der Artikelansicht ergänzt. Hinter den
+  Ordner-/Tag-Chips sitzt nun ein + Button mit Popover; vorhandene Tags können wie
+  im rechten Inspector zugewiesen oder entfernt werden, neue Tags werden mit Name
+  und Farbe erstellt und direkt dem Artikel zugewiesen.
 
 - 2026-07-02: Großer Refresh-Performance-Schritt umgesetzt. Sammel-Refreshes aus
   Hauptfenster, Start-Refresh und periodischem Background-Scheduler laufen nun

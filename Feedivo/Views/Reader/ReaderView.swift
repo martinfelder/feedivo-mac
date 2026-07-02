@@ -84,6 +84,7 @@ struct ReaderView: View {
     @State private var isReadabilityExtractionInProgress = false
     @State private var readabilityFailureNotice: ReadabilityFailureNotice?
     @State private var relationshipMetadata = ReaderArticleRelationshipMetadata.empty
+    @State private var isTagEditorPopoverPresented = false
 
     private var titleFontPreset: ReaderFontPreset {
         ReaderFontPreset.resolved(from: titleFontPresetRawValue)
@@ -849,6 +850,8 @@ struct ReaderView: View {
             ForEach(sortedArticleTags) { tag in
                 readerTagChip(tag)
             }
+
+            readerTagEditorButton
         }
     }
 
@@ -885,6 +888,31 @@ struct ReaderView: View {
                 Capsule()
                     .stroke(tagColor.opacity(0.24), lineWidth: 1)
             }
+    }
+
+    private var readerTagEditorButton: some View {
+        Button {
+            isTagEditorPopoverPresented.toggle()
+        } label: {
+            Image(systemName: "plus")
+                .font(interfaceTextSize.font(size: 12, weight: .bold))
+                .frame(width: 24, height: 24)
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(SidebarStyle.primaryText)
+        .background(.secondary.opacity(0.08), in: Circle())
+        .overlay {
+            Circle()
+                .stroke(.secondary.opacity(0.16), lineWidth: 1)
+        }
+        .help(L10n.readerInspectorNewTag)
+        .popover(isPresented: $isTagEditorPopoverPresented) {
+            ReaderInlineTagEditorPopover(
+                article: article,
+                onMetadataChange: refreshRelationshipMetadata
+            )
+            .frame(width: 320)
+        }
     }
 
     private func typographySlider(
@@ -1035,6 +1063,11 @@ struct ReaderView: View {
     }
 
     @MainActor
+    private func refreshRelationshipMetadata() {
+        relationshipMetadata = ReaderArticleRelationshipMetadata.make(from: article)
+    }
+
+    @MainActor
     private func toggleOfflineAvailability() async {
         guard !isOfflineOperationInProgress else {
             return
@@ -1054,6 +1087,161 @@ struct ReaderView: View {
         // Bump ist idempotent und robust gegen Reihenfolge).
         contentRevision += 1
         isOfflineOperationInProgress = false
+    }
+}
+
+private struct ReaderInlineTagEditorPopover: View {
+    @Environment(\.interfaceTextSize) private var interfaceTextSize
+    @Environment(\.modelContext) private var modelContext
+
+    let article: Article
+    let onMetadataChange: () -> Void
+
+    @Query(sort: \Tag.name) private var allTags: [Tag]
+    @State private var newTagName = ""
+    @State private var newTagColorHex = TagColorPalette.defaultColorHex
+
+    private var sortedAllTags: [Tag] {
+        allTags.sorted {
+            $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(L10n.readerInspectorTags)
+                .font(interfaceTextSize.font(size: ArticleInspectorTypography.sectionTitleFontSize, weight: .semibold))
+                .foregroundStyle(SidebarStyle.primaryText)
+
+            if sortedAllTags.isEmpty {
+                Text(L10n.readerInspectorNoTags)
+                    .font(interfaceTextSize.font(size: ArticleInspectorTypography.primaryValueFontSize))
+                    .foregroundStyle(SidebarStyle.secondaryText)
+            } else {
+                FlowLayout(spacing: 6) {
+                    ForEach(sortedAllTags) { tag in
+                        tagTogglePill(tag)
+                    }
+                }
+            }
+
+            tagCreator
+        }
+        .padding(14)
+    }
+
+    private var tagCreator: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(L10n.readerInspectorNewTag)
+                .font(interfaceTextSize.font(size: ArticleInspectorTypography.labelFontSize, weight: .bold))
+                .foregroundStyle(SidebarStyle.secondaryText)
+
+            HStack(spacing: 6) {
+                TextField(L10n.readerInspectorAddTagPlaceholder, text: $newTagName)
+                    .textFieldStyle(.plain)
+                    .font(interfaceTextSize.font(size: ArticleInspectorTypography.controlFontSize))
+                    .padding(.horizontal, 9)
+                    .frame(height: interfaceTextSize.scaled(30))
+                    .readerInlineTagControl()
+                    .onSubmit(addTag)
+
+                Button {
+                    addTag()
+                } label: {
+                    Image(systemName: "plus")
+                        .font(interfaceTextSize.font(size: ArticleInspectorTypography.iconFontSize, weight: .semibold))
+                }
+                .disabled(ArticleMetadataEditor.normalizedTagName(newTagName) == nil)
+                .buttonStyle(.plain)
+                .frame(
+                    width: interfaceTextSize.scaled(32),
+                    height: interfaceTextSize.scaled(30)
+                )
+                .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                        .stroke(SidebarStyle.separator, lineWidth: 1)
+                }
+                .foregroundStyle(
+                    ArticleMetadataEditor.normalizedTagName(newTagName) == nil
+                    ? SidebarStyle.secondaryText
+                    : SidebarStyle.primaryText
+                )
+            }
+
+            ColorSwatchPicker(selection: $newTagColorHex)
+        }
+        .padding(.top, 10)
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(SidebarStyle.separator)
+                .frame(height: 1)
+        }
+    }
+
+    private func tagTogglePill(_ tag: Tag) -> some View {
+        let tagColor = TagColorPalette.color(for: tag.colorHex)
+        let isActive = (article.tags ?? []).contains { $0.id == tag.id }
+
+        return Button {
+            toggleTag(tag)
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: "tag")
+                    .font(interfaceTextSize.font(size: ArticleInspectorTypography.chipFontSize, weight: .semibold))
+
+                Text(tag.name)
+                    .lineLimit(1)
+            }
+            .font(interfaceTextSize.font(size: ArticleInspectorTypography.chipFontSize, weight: .semibold))
+            .fontWeight(.semibold)
+            .foregroundStyle(isActive ? SidebarStyle.primaryText : SidebarStyle.secondaryText)
+            .padding(.horizontal, 8)
+            .frame(minHeight: interfaceTextSize.scaled(26))
+            .background(isActive ? tagColor.opacity(0.12) : Color(nsColor: .textBackgroundColor), in: Capsule())
+            .overlay {
+                Capsule()
+                    .stroke(isActive ? tagColor.opacity(0.42) : SidebarStyle.separator, lineWidth: 1)
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func toggleTag(_ tag: Tag) {
+        if (article.tags ?? []).contains(where: { $0.id == tag.id }) {
+            ArticleMetadataEditor.removeTag(tag, from: article, context: modelContext)
+        } else {
+            ArticleMetadataEditor.addTag(
+                named: tag.name,
+                to: article,
+                availableTags: allTags,
+                context: modelContext
+            )
+        }
+        onMetadataChange()
+    }
+
+    private func addTag() {
+        ArticleMetadataEditor.addTag(
+            named: newTagName,
+            colorHex: newTagColorHex,
+            to: article,
+            availableTags: allTags,
+            context: modelContext
+        )
+        newTagName = ""
+        onMetadataChange()
+    }
+}
+
+private extension View {
+    func readerInlineTagControl(cornerRadius: CGFloat = 8) -> some View {
+        self
+            .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(SidebarStyle.separator, lineWidth: 1)
+            }
     }
 }
 

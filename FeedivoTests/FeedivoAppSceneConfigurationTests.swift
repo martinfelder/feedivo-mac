@@ -129,6 +129,18 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(articleIdentityCount >= 2)
     }
 
+    @Test func readerMetadataChipsExposeInlineTagEditor() throws {
+        let projectRoot = projectRootURL()
+        let readerSource = try source(at: "Feedivo/Views/Reader/ReaderView.swift", projectRoot: projectRoot)
+
+        #expect(readerSource.contains("@Query(sort: \\Tag.name) private var allTags"))
+        #expect(readerSource.contains("isTagEditorPopoverPresented"))
+        #expect(readerSource.contains(".popover(isPresented: $isTagEditorPopoverPresented)"))
+        #expect(readerSource.contains("ArticleMetadataEditor.addTag"))
+        #expect(readerSource.contains("ArticleMetadataEditor.removeTag"))
+        #expect(readerSource.contains("ColorSwatchPicker(selection: $newTagColorHex)"))
+    }
+
     @Test func appUsesCloudSyncSettingsForModelContainer() throws {
         let projectRoot = projectRootURL()
         let appSource = try source(at: "Feedivo/App/FeedivoApp.swift", projectRoot: projectRoot)
