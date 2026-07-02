@@ -868,13 +868,14 @@
     Feed-Titel und dem leichten `isNotificationEnabled`-Snapshot gemeldet;
     `hideArticle`- und `notify`-Regeln laufen für neue SQLite-Artikel über
     sendbare Regel-/Artikelsnapshots. `assignTag`-Regeln schreiben inzwischen
-    über `TagStore` in `tags` und `article_tags`; Tag-UI, Tag-Filter und
-    Tag-Badges folgen in einem späteren UI-Slice.
+    über `TagStore` in `tags` und `article_tags`; Sidebar-Tag-Badges für direkte
+    Artikel-Tags lesen Counts inzwischen aus `TagStore.sidebarTags()`. Tag-UI,
+    Tag-Filter und Feed-Tags folgen in weiteren SQLite-Slices.
   - Sidebar-Feed-Zeilen lesen Anzeige-Snapshots aus SQLite: `SQLiteSidebarState`
     lädt `FeedSidebarSnapshot` über `FeedStore`, `FeedRowView` bevorzugt daraus
     Titel, Favicon und ungelesene Counts. Auswahl, Kontextmenüs,
-    Feed-Eigenschaften, Tags und Smart-Folder-Badges bleiben für diesen Slice
-    noch an den bestehenden SwiftData-/Legacy-Pfaden.
+    Feed-Eigenschaften, Tag-Filter, Feed-Tags und Smart-Folder-Badges bleiben
+    für diesen Slice noch an den bestehenden SwiftData-/Legacy-Pfaden.
   - SQLite-Statusänderungen halten Feed-Zähler aktuell: `ArticleStatusStore`
     berechnet nach Read-/Hidden-Mutationen `feeds.unreadCount` direkt in SQLite
     neu und bump't `SQLiteDataInvalidation.statusVersionKey`, wodurch die
@@ -958,12 +959,11 @@
   - Start-Backfills und Orphan-Cleanup vermeiden vollständige
     `feed.articles`-Relationship-Faults; `Article.feed` wird dort nur noch als
     Fallback für alten Datenbestand ohne `feedID` berührt
-  - Sidebar-Badge-Caching trennt Status-Signatur und Tag-Signatur; reine Stern-,
-    Archiv- oder Hidden-Änderungen lösen keine neue Artikel→Tag-Relationship-
-    Auswertung aus
-  - Tag-Badges werden nachgelagert per `fetchCount` aktualisiert und bleiben aus
-    dem SwiftUI-Body-Renderpfad; Status-Badges beobachten nur eine kleine Query
-    auf Stern-/Archiv-/Hidden-Artikel
+  - Sidebar-Tag-Badges für direkt getaggte Artikel lesen Zähler aus
+    `article_tags` über `TagStore.sidebarTags()` und `SQLiteSidebarState`;
+    Feed-Tags bleiben bis zur eigenen SQLite-Migration Legacy
+  - Status-Badges beobachten nur eine kleine Query auf Stern-/Archiv-/
+    Hidden-Artikel
   - Artikelzeilen laden Vorschaubilder über größenbegrenzte Thumbnails aus dem
     gemeinsamen Bildcache; der Disk-Cache speichert weiter das Original, aber die
     Liste hält nur kleine `NSImage`-Instanzen im Memory-Cache

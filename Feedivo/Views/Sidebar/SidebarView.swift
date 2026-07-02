@@ -25,12 +25,6 @@ struct SidebarView: View {
     private var directTagVersion = 0
     @AppStorage(SQLiteDataInvalidation.statusVersionKey)
     private var sqliteStatusVersion = 0
-    // Cache für Tag-Badge-Zähler: nur bei Tag-relevanter Signaturänderung neu
-    // berechnet. Statusänderungen wie Stern/Archiv aktualisieren nur die
-    // günstigen Status-Badges und faulten keine Artikel→Tag-Relationships.
-    @State private var cachedTagCounts: [PersistentIdentifier: Int]?
-    @State private var cachedTagSignature: SidebarTagBadgeSignature?
-
     init(
         selection: Binding<SidebarSelection?>,
         onRequestAddFeed: @escaping () -> Void,
@@ -73,17 +67,13 @@ struct SidebarView: View {
 
     var body: some View {
         let statusSignature = sidebarStatusBadgeSignature
-        let tagSignature = sidebarTagBadgeSignature
-        let badgeCounts = badgeCounts(
-            statusSignature: statusSignature,
-            tagSignature: tagSignature
-        )
+        let badgeCounts = badgeCounts(statusSignature: statusSignature)
 
         return VStack(spacing: 0) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     smartFoldersSection(badgeCounts: badgeCounts)
-                    tagsSection(badgeCounts: badgeCounts)
+                    tagsSection
                     foldersSection
                 }
                 .padding(.horizontal, 14)
@@ -153,14 +143,6 @@ struct SidebarView: View {
                 smartFolderPendingDeletion = nil
             }
         }
-        .task(id: tagSignature) {
-            // Cache asynchron befüllen, nachdem der Body mit der neuen Tag-
-            // Signatur gerendert wurde. Reine Status- oder Selektionswechsel
-            // starten diese Task nicht neu → keine Artikel-/Tag-Faults im
-            // schnellen Lesepfad.
-            cachedTagCounts = computeSidebarTagCounts()
-            cachedTagSignature = tagSignature
-        }
         .task(id: sqliteSidebarReloadToken) {
             sqliteSidebarState.load(database: feedivoDatabase, showsReadFeeds: showsReadFeedsInSidebar)
         }
@@ -193,7 +175,7 @@ struct SidebarView: View {
         .help(L10n.sidebarAddFeedButton)
     }
 
-    private func tagsSection(badgeCounts: SidebarBadgeCounts) -> some View {
+    private var tagsSection: some View {
         CollapsibleSidebarSection(
             title: L10n.sidebarTagsSection,
             isCollapsed: $isTagsCollapsed,
@@ -203,7 +185,7 @@ struct SidebarView: View {
             isShowingTagManager = true
         } content: {
             if !tags.isEmpty {
-                tagRows(tags, badgeCounts: badgeCounts)
+                tagRows(tags)
             }
         }
     }
@@ -371,7 +353,7 @@ struct SidebarView: View {
         }
     }
 
-    private func tagRows(_ tags: [Tag], badgeCounts: SidebarBadgeCounts) -> some View {
+    private func tagRows(_ tags: [Tag]) -> some View {
         ForEach(tags) { tag in
             Button {
                 selection = .tag(tag.persistentModelID)
@@ -379,7 +361,7 @@ struct SidebarView: View {
                 TagSidebarRow(
                     tag: tag,
                     badgeText: SidebarUnreadCount.badgeText(
-                        for: badgeCounts.tagCounts[tag.persistentModelID] ?? 0
+                        for: sqliteSidebarState.tagSnapshot(id: tag.id.uuidString)?.articleCount ?? 0
                     )
                 )
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -399,52 +381,15 @@ struct SidebarView: View {
         SidebarBadgeSignatureBuilder.statusSignature(articles: statusBadgeArticles)
     }
 
-    /// Tag-Signatur trennt Tag-relevante Änderungen von reinen Statuswechseln.
-    /// Dadurch bleibt der Relationship-heavy Tag-Count-Cache bei Stern/Archiv-
-    /// Klicks stabil.
-    private var sidebarTagBadgeSignature: SidebarTagBadgeSignature {
-        SidebarBadgeSignatureBuilder.tagSignature(
-            feeds: feeds,
-            tags: tags,
-            directTagVersion: directTagVersion
-        )
-    }
-
-    /// Liefert die Badge-Zähler — Tag-Zähler aus dem Cache wenn die Tag-Signatur
-    /// trifft, Status-Zähler direkt aus der leichten Status-Signatur.
-    private func badgeCounts(
-        statusSignature: SidebarStatusBadgeSignature,
-        tagSignature: SidebarTagBadgeSignature
-    ) -> SidebarBadgeCounts {
-        let tagCounts: [PersistentIdentifier: Int]
-        if cachedTagSignature == tagSignature, let cached = cachedTagCounts {
-            tagCounts = cached
-        } else {
-            tagCounts = cachedTagCounts ?? [:]
-        }
-
+    /// Liefert die Badge-Zähler für statusbasierte SmartFolder. Tag-Badges
+    /// kommen inzwischen aus den SQLite-Snapshots von `SQLiteSidebarState`.
+    private func badgeCounts(statusSignature: SidebarStatusBadgeSignature) -> SidebarBadgeCounts {
         return SidebarBadgeCounts(
-            tagCounts: tagCounts,
+            tagCounts: [:],
             starred: statusSignature.starredCount,
             hidden: statusSignature.hiddenCount,
             saved: statusSignature.savedCount
         )
-    }
-
-    /// Tag-Badges werden bewusst nachgelagert per fetchCount berechnet. Damit
-    /// beobachtet die Sidebar keine globale Artikelliste mehr und ein
-    /// Read/Unread-Wechsel im Reader kann keinen Voll-Refetch aller Artikel
-    /// anstoßen.
-    private func computeSidebarTagCounts() -> [PersistentIdentifier: Int] {
-        var tagCounts: [PersistentIdentifier: Int] = [:]
-        for tag in tags {
-            if let count = try? SidebarTagCount.articleCount(for: tag, context: modelContext),
-               count > 0 {
-                tagCounts[tag.persistentModelID] = count
-            }
-        }
-
-        return tagCounts
     }
 
     private func toggleFolder(named folderName: String) {
@@ -462,7 +407,11 @@ struct SidebarView: View {
             .map { $0.id.uuidString }
             .sorted()
             .joined(separator: ",")
-        return "\(sqliteStatusVersion)#\(showsReadFeedsInSidebar)#\(feedIDs)"
+        let tagIDs = tags
+            .map { $0.id.uuidString }
+            .sorted()
+            .joined(separator: ",")
+        return "\(sqliteStatusVersion)#\(directTagVersion)#\(showsReadFeedsInSidebar)#\(feedIDs)#\(tagIDs)"
     }
 }
 

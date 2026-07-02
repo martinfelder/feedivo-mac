@@ -20,6 +20,26 @@ struct SQLiteSidebarStateTests {
     }
 
     @MainActor
+    @Test func loadReadsTagSnapshotsForSidebarBadges() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let tagStore = TagStore(database: database)
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://one.example/feed.xml", title: "One"))
+        let articleID = try articleStore.upsert(
+            ArticleUpsertInput(feedID: "feed-1", sourceID: "article-1", title: "Artikel")
+        )
+        try tagStore.save(TagRecord(id: "tag-1", name: "Swift", colorHex: "#ff0000"))
+        try tagStore.assignTag(tagID: "tag-1", toArticleID: articleID, at: Date(timeIntervalSince1970: 100))
+        let state = SQLiteSidebarState()
+
+        state.load(database: database, showsReadFeeds: true)
+
+        #expect(state.tagSnapshots.map(\.id) == ["tag-1"])
+        #expect(state.tagSnapshot(id: "tag-1")?.articleCount == 1)
+    }
+
+    @MainActor
     @Test func visibleSwiftDataFeedsFollowSQLiteVisibility() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let store = FeedStore(database: database)

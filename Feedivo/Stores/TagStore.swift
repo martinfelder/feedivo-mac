@@ -57,6 +57,22 @@ struct TagStore {
         }
     }
 
+    func sidebarTags() throws -> [TagSidebarSnapshot] {
+        try database.read { db in
+            try TagSidebarSnapshot.fetchAll(db, sql: """
+                SELECT
+                    t.id,
+                    t.name,
+                    t.colorHex,
+                    COUNT(DISTINCT at.articleID) AS articleCount
+                FROM tags t
+                LEFT JOIN article_tags at ON at.tagID = t.id
+                GROUP BY t.id, t.name, t.colorHex
+                ORDER BY t.name COLLATE NOCASE, t.id COLLATE NOCASE
+                """)
+        }
+    }
+
     func assignTag(tagID: String, toArticleID articleID: String, at assignedAt: Date) throws {
         try database.write { db in
             var assignment = ArticleTagRecord(

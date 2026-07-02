@@ -5,16 +5,20 @@ import Observation
 @Observable
 final class SQLiteSidebarState {
     private(set) var snapshots: [FeedSidebarSnapshot] = []
+    private(set) var tagSnapshots: [TagSidebarSnapshot] = []
     private(set) var totalUnreadCount = 0
     private(set) var errorMessage: String?
 
     private var snapshotsByFeedID: [String: FeedSidebarSnapshot] = [:]
+    private var tagSnapshotsByID: [String: TagSidebarSnapshot] = [:]
     private var visibleFeedIDs: Set<String> = []
 
     func load(database: FeedivoDatabase?, showsReadFeeds: Bool) {
         guard let database else {
             snapshots = []
+            tagSnapshots = []
             snapshotsByFeedID = [:]
+            tagSnapshotsByID = [:]
             visibleFeedIDs = []
             totalUnreadCount = 0
             errorMessage = nil
@@ -22,10 +26,14 @@ final class SQLiteSidebarState {
         }
 
         do {
-            let store = FeedStore(database: database)
-            let loadedSnapshots = try store.sidebarFeeds(showsReadFeeds: showsReadFeeds)
+            let feedStore = FeedStore(database: database)
+            let tagStore = TagStore(database: database)
+            let loadedSnapshots = try feedStore.sidebarFeeds(showsReadFeeds: showsReadFeeds)
+            let loadedTagSnapshots = try tagStore.sidebarTags()
             snapshots = loadedSnapshots
+            tagSnapshots = loadedTagSnapshots
             snapshotsByFeedID = Dictionary(uniqueKeysWithValues: loadedSnapshots.map { ($0.id, $0) })
+            tagSnapshotsByID = Dictionary(uniqueKeysWithValues: loadedTagSnapshots.map { ($0.id, $0) })
             visibleFeedIDs = Set(loadedSnapshots.map(\.id))
             totalUnreadCount = loadedSnapshots.reduce(0) { total, snapshot in
                 total + snapshot.unreadCount
@@ -33,7 +41,9 @@ final class SQLiteSidebarState {
             errorMessage = nil
         } catch {
             snapshots = []
+            tagSnapshots = []
             snapshotsByFeedID = [:]
+            tagSnapshotsByID = [:]
             visibleFeedIDs = []
             totalUnreadCount = 0
             errorMessage = error.localizedDescription
@@ -42,6 +52,10 @@ final class SQLiteSidebarState {
 
     func snapshot(for feed: Feed) -> FeedSidebarSnapshot? {
         snapshotsByFeedID[feed.id.uuidString]
+    }
+
+    func tagSnapshot(id: String) -> TagSidebarSnapshot? {
+        tagSnapshotsByID[id]
     }
 
     func visibleFeeds(from feeds: [Feed], showsReadFeeds: Bool) -> [Feed] {

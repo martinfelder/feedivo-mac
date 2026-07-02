@@ -378,7 +378,16 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(compactSidebarSource.contains("sqliteSidebarState.load(database:feedivoDatabase,showsReadFeeds:showsReadFeedsInSidebar)"))
         #expect(compactSidebarSource.contains("sqliteSidebarState.visibleFeeds(from:feeds,showsReadFeeds:showsReadFeedsInSidebar)"))
         #expect(compactSidebarSource.contains("sqliteSnapshot:sqliteSidebarState.snapshot(for:feed)"))
-        #expect(compactSidebarSource.contains("\\(sqliteStatusVersion)#\\(showsReadFeedsInSidebar)#\\(feedIDs)"))
+        #expect(compactSidebarSource.contains("\\(sqliteStatusVersion)#\\(directTagVersion)#\\(showsReadFeedsInSidebar)#\\(feedIDs)#\\(tagIDs)"))
+    }
+
+    @Test func sidebarTagBadgesNutzenSQLiteSnapshots() throws {
+        let projectRoot = projectRootURL()
+        let sidebarSource = try source(at: "Feedivo/Views/Sidebar/SidebarView.swift", projectRoot: projectRoot)
+        let compactSidebarSource = compact(sidebarSource)
+
+        #expect(compactSidebarSource.contains("sqliteSidebarState.tagSnapshot(id:tag.id.uuidString)?.articleCount"))
+        #expect(!sidebarSource.contains("SidebarTagCount.articleCount(for: tag, context: modelContext)"))
     }
 
     @Test func feedRowViewBevorzugtSQLiteSnapshotWerte() throws {

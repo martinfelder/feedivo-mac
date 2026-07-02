@@ -450,10 +450,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   `Ungelesen` basiert weiter auf `Feed.unreadCount`; Status-Badges beobachten
   nur Stern-/Archiv-/Hidden-Artikel, damit normales Lesen keine komplette
   Sidebar-Badge-Invalidierung mehr auslöst.
-- Tag-Badges und Status-Badges sind getrennt gecacht: Stern-/Archiv-/Hidden-
-  Änderungen aktualisieren nur die günstigen Status-Zähler, während die teurere
-  Artikel→Tag-Auswertung nachgelagert per `fetchCount` nur bei Tag-,
-  Feed-Tag- oder Feed-Refresh-relevanten Änderungen läuft.
+- Tag-Badges für direkt getaggte Artikel kommen im SQLite/GRDB-Übergangspfad aus
+  `TagStore.sidebarTags()` und `SQLiteSidebarState`, statt pro Sidebar-Render
+  SwiftData-`fetchCount` oder Artikel→Tag-Relationships zu nutzen. Feed-Tags
+  bleiben bis zur SQLite-`feed_tags`-Migration noch Legacy.
 - Per Darstellungseinstellung `sidebar.showsReadFeeds` können Feeds ohne
   ungelesene Artikel in der Sidebar ausgeblendet werden; Standard bleibt anzeigen.
 - Die Sidebar zeigt eine eigene `Tags`-Section mit Tag-Icon; der Button öffnet den
@@ -464,9 +464,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   aus Feeds, denen das Tag zugewiesen ist.
 - Neu erstellte Tags werden nach erfolgreichem Anlegen direkt als Sidebar-Auswahl
   gesetzt, damit der schnelle Tag-Filter sofort sichtbar und nutzbar ist.
-- Tag-Zeilen zeigen rechts eine dezente Badge mit der Anzahl passender Artikel;
-  direkt getaggte Artikel und Artikel aus getaggten Feeds werden ohne Duplikate
-  gezählt.
+- Tag-Zeilen zeigen rechts eine dezente Badge mit der Anzahl passender Artikel.
+  Im SQLite-Pfad zählen aktuell direkte Artikel-Tags aus `article_tags`;
+  Feed-Tag-Treffer folgen mit der noch offenen `feed_tags`-Migration.
 - Die Sidebar zeigt keine eigene `Regeln`-Section mehr. Die komplette
   Regelverwaltung liegt bewusst in den Einstellungen; der schnelle Einstieg
   `Regel erstellen...` sitzt im Menü der Artikelansicht.
@@ -504,18 +504,16 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Feed-Relationships noch alle ungelesenen Artikel laden muss.
 - Liefert nur für positive Zähler einen sichtbaren Badge-Text, damit Feeds ohne
   ungelesene Artikel ruhig bleiben.
-- `SidebarTagCount` zählt direkt getaggte Artikel und Artikel aus getaggten Feeds
-  per SwiftData-`fetchCount` über denselben Tag-Predicate wie die Artikelliste,
-  statt Tag-/Feed-Artikel-Relationships bei jedem Sidebar-Render zu traversieren.
+- `SidebarTagCount` ist noch der Legacy-SwiftData-Zähler für alte Tag-Pfade.
+  Die sichtbaren Sidebar-Tag-Badges im SQLite-Hauptpfad lesen ihre Counts über
+  `SQLiteSidebarState.tagSnapshot(id:)`.
 - `SmartFolderSidebarBadge` nutzt für `Ungelesen` weiterhin die summierten
   `Feed.unreadCount` Werte; `Mit Stern`, `Ausgeblendet` und `Gespeichert`
   werden im Sidebar-Render aus den gebündelten Status-Zählern gelesen, inklusive
   gelesener und ungelesener Treffer.
-- `SidebarBadgeSignatureBuilder` trennt Status-Signatur und Tag-Signatur. Damit
-  löst ein reiner Stern-/Archiv-Klick keine neue Tag-Badge-Berechnung und keine
-  Artikel→Tag-Relationship-Faults aus; ein Feed-Tag-Wechsel mit gleicher
-  Tag-Anzahl invalidiert den Tag-Cache trotzdem korrekt. Reine
-  Gelesen/Ungelesen-Wechsel gehen nicht mehr in die Tag-Signatur ein.
+- `SidebarBadgeSignatureBuilder` liefert noch die günstige Status-Signatur für
+  Smart-Folder-Badges. Tag-Badge-Invalidierung läuft im SQLite-Pfad über den
+  `SQLiteSidebarState`-Reload-Token mit `directTagVersion`.
 
 ### FeedService.swift
 - Parsed RSS 2.0, Atom und JSON Feed via FeedKit
@@ -2267,8 +2265,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Artikel werden außerdem gegen leichte SQLite-Regel-Snapshots geprüft:
   `hideArticle` setzt direkt `article_statuses.isHidden`, `notify` erzeugt
   Regel-Benachrichtigungen und `assignTag` schreibt Tags in `tags`/
-  `article_tags`. Die Tag-UI, Tag-Filter und Sidebar-Tag-Badges bleiben noch auf
-  dem Legacy-Pfad.
+  `article_tags`. Sidebar-Tag-Badges für direkte Artikel-Tags lesen ihre Counts
+  inzwischen über SQLite-Snapshots; Tag-Filter, Tag-Manager und Feed-Tags bleiben
+  noch auf dem Legacy-Pfad.
   Die normalen Feed-Zeilen in der Sidebar nutzen `SQLiteSidebarState` und
   `FeedSidebarSnapshot` für Anzeige und ungelesene Badges; Auswahl und
   Kontextmenüs bleiben übergangsweise SwiftData. SQLite-Statusänderungen halten
@@ -2301,15 +2300,22 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Scrollbeobachter-Ansatz hat das Scrollgefühl im Reader verschlechtert und wurde
   wieder entfernt. Für v1 bleibt der Reader ohne Lesefortschritt.
 - Nächster sinnvoller Fokus: verbleibende Hauptpfad-Lücken schließen:
-  Tag-UI/Tag-Filter und Sidebar-Tag-Badges auf SQL-Snapshots migrieren,
-  Feed-Logs in der UI abrunden, Sidebar-Smart-Folder-Badges auf SQL-Snapshots
-  migrieren und danach Suche/Filter schrittweise auf SQLite ziehen.
+  Tag-Filter, Tag-Manager und Feed-Tags auf SQL-Snapshots migrieren, Feed-Logs
+  in der UI abrunden, Sidebar-Smart-Folder-Badges auf SQL-Snapshots migrieren
+  und danach Suche/Filter schrittweise auf SQLite ziehen.
 - Feature-Roadmap ist in `FEATURES.md` im Root dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
 ---
 
 ## Letzte Änderungen
+
+- 2026-07-02: Sidebar-Tag-Badges an SQLite-Snapshots angeschlossen.
+  `TagStore.sidebarTags()` liefert `TagSidebarSnapshot`s mit direkten
+  Artikel-Zählern aus `article_tags`, `SQLiteSidebarState` lädt diese Snapshots
+  zusammen mit Feed-Snapshots, und `SidebarView` zeigt Tag-Badges daraus statt
+  über SwiftData-`fetchCount`. Feed-Tags und echte Tag-Filter bleiben der nächste
+  Tag-Migrationsslice.
 
 - 2026-07-02: SQLite-Tag-Fundament und `assignTag` im SQLite-first Refresh
   umgesetzt. Migration v2 legt `tags` und `article_tags` mit passenden Indizes
