@@ -571,7 +571,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Feeds speichern HTTP-Validatoren (`httpETag`, `httpLastModified`,
   `httpContentHash`, `lastHTTPStatusCode`). Einzel-Refresh und Sammel-Refresh
   nutzen diese Werte für Conditional GET und steigen bei `.notModified` sofort
-  nach `lastRefreshed`, Validator-Update und Info-Log aus. Dadurch entfallen für
+  nach `lastRefreshed` und Validator-Update aus. Unveränderte Feeds schreiben
+  bewusst keinen neuen Info-Logeintrag, damit große Sammel-Refreshes nicht
+  hunderte reine “0 neue Artikel”-Inserts erzeugen. Dadurch entfallen für
   unveränderte Feeds Artikel-Lookup, Bildanreicherung, Metadatenvergleich,
   Regelverarbeitung und die meisten SwiftData-Invalidierungen.
 - Der Refresh lädt den Altbestand eines Feeds nicht mehr über die komplette
@@ -2365,7 +2367,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   `lastHTTPStatusCode`). Manueller Refresh und `FeedBackgroundRefreshService`
   nutzen Conditional GET und beenden unveränderte Feeds bei HTTP 304 oder
   identischem Body-Hash ohne FeedKit-Parsing, Artikel-Lookup, Bildanreicherung
-  oder Regelverarbeitung.
+  oder Regelverarbeitung. Unveränderte Feeds schreiben außerdem keinen neuen
+  Info-Logeintrag mehr, damit regelmäßige Sammel-Refreshes keine Log-Insert-
+  Wellen für reine “0 neue Artikel”-Ergebnisse auslösen.
 
 - 2026-07-02: Großer Refresh-Performance-Schritt umgesetzt. Sammel-Refreshes aus
   Hauptfenster, Start-Refresh und periodischem Background-Scheduler laufen nun

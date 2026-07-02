@@ -128,12 +128,6 @@ struct FeedBackgroundRefreshService {
         case .notModified(let validators):
             feed.applyHTTPValidators(validators)
             feed.lastRefreshed = refreshDate
-            appendLog(
-                kind: .info,
-                message: L10n.feedLogRefreshed(newArticleCount: 0),
-                to: feed,
-                context: context
-            )
             try context.save()
 
             return FeedBackgroundRefreshResult(

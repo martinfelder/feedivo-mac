@@ -965,7 +965,7 @@ struct FeedViewModelTests {
         #expect(feed.lastHTTPStatusCode == 304)
         #expect((feed.articles ?? []).count == 1)
         #expect(feed.unreadCount == 1)
-        #expect((feed.logEntries ?? []).contains { $0.kind == "info" && $0.message.contains("0") })
+        #expect((feed.logEntries ?? []).isEmpty)
         #expect(viewModel.errorMessage == nil)
         #expect(!viewModel.isLoading)
     }
@@ -1786,6 +1786,62 @@ struct FeedViewModelTests {
         #expect(refreshedFeed.feedDescription == "Neue Beschreibung")
         #expect(refreshedFeed.unreadCount == 1)
         #expect(viewModel.recentRefreshStatus?.newArticleCount == 1)
+        #expect(viewModel.recentRefreshStatus?.failedFeedCount == 0)
+    }
+
+    @MainActor
+    @Test func refreshAllFeedsUeberspringtLogEintraegeFuerUnveraenderteFeedsImBackgroundPfad() async throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            RuleCondition.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let oldRefreshDate = Date(timeIntervalSince1970: 1)
+        let feed = Feed(
+            url: "https://example.com/feed.xml",
+            title: "Stabiler Feed",
+            lastRefreshed: oldRefreshDate,
+            httpETag: "\"alt\"",
+            httpContentHash: "alter-hash",
+            lastHTTPStatusCode: 200
+        )
+        context.insert(feed)
+        try context.save()
+
+        let viewModel = makeViewModel(
+            fetchFeed: { _ in
+                Issue.record("Der direkte Feed-Abruf darf im Conditional-Background-Pfad nicht genutzt werden.")
+                return ParsedFeed(sourceURL: "", title: "", description: nil, articles: [])
+            },
+            fetchFeedConditionally: { _, validators in
+                #expect(validators.eTag == "\"alt\"")
+                #expect(validators.contentHash == "alter-hash")
+                return .notModified(
+                    FeedHTTPValidators(
+                        eTag: "\"neu\"",
+                        contentHash: "alter-hash",
+                        lastStatusCode: 304
+                    )
+                )
+            }
+        )
+
+        await viewModel.refreshAllFeeds([feed], modelContainer: container)
+
+        let verificationContext = ModelContext(container)
+        let refreshedFeed = try #require(try verificationContext.fetch(FetchDescriptor<Feed>()).first)
+        let logEntries = try verificationContext.fetch(FetchDescriptor<FeedLogEntry>())
+        #expect(refreshedFeed.title == "Stabiler Feed")
+        #expect(refreshedFeed.lastRefreshed ?? .distantPast > oldRefreshDate)
+        #expect(refreshedFeed.httpETag == "\"neu\"")
+        #expect(refreshedFeed.lastHTTPStatusCode == 304)
+        #expect(logEntries.isEmpty)
+        #expect(viewModel.recentRefreshStatus?.newArticleCount == 0)
         #expect(viewModel.recentRefreshStatus?.failedFeedCount == 0)
     }
 

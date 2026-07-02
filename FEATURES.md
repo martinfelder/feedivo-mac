@@ -194,7 +194,9 @@
   Feed HTTP-Validatoren (`ETag`, `Last-Modified`, Body-Hash) und nutzt sie für
   Conditional GET. Unveränderte Feeds werden bei HTTP 304 oder gleichem Body-Hash
   ohne FeedKit-Parsing, Artikel-Lookup, Bildanreicherung und Regelverarbeitung
-  abgeschlossen.
+  abgeschlossen. Für unveränderte Feeds wird kein neuer Info-Logeintrag
+  geschrieben, damit große Sammel-Refreshes keine reinen “0 neue Artikel”-Logs
+  massenhaft in SwiftData einfügen.
 
 ### 4.5 Automatischer Refresh
 - **Status:** ✔️ Fertig
@@ -877,7 +879,8 @@
   - Feed-Refreshes nutzen gespeicherte HTTP-Validatoren (`ETag`, `Last-Modified`
     und Body-Hash) für Conditional GET. Bei HTTP 304 oder identischem Body-Hash
     wird der Feed als unverändert behandelt und die teure Parse-/SwiftData-
-    Verarbeitung übersprungen.
+    Verarbeitung übersprungen. Unveränderte Feeds schreiben außerdem keinen neuen
+    Info-Logeintrag.
   - Der Refresh-Lookup lässt `Article.content`/`Article.offlineContent` weg und
     schreibt bestehende Artikelwerte nur bei echten Änderungen oder fehlenden
     Nachträgen
