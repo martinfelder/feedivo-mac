@@ -558,8 +558,9 @@ struct ArticleMetadataInspectorView: View {
             toggleTag(tag)
         } label: {
             HStack(spacing: 5) {
-                Image(systemName: "tag")
-                    .font(interfaceTextSize.font(size: ArticleInspectorTypography.chipFontSize, weight: .semibold))
+                Circle()
+                    .fill(tagColor)
+                    .frame(width: 7, height: 7)
 
                 Text(tag.name)
                     .lineLimit(1)
