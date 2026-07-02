@@ -256,17 +256,15 @@
 ## 6. iCloud Sync
 
 ### 6.1 Sync via CloudKit
-- **Status:** 🔨 In Arbeit — iCloud Sync Beta
-- **Ansatz:** SwiftData + CloudKit über eine bewusst aktivierbare Beta-Option in
-  den Einstellungen.
-- **Erster Umfang:** Feeds, Ordner, Tags, Regeln, intelligente Ordner und
-  Artikelstatus. Große Offline-Inhalte, Cache-Dateien, Bilder/Favicons und
-  Feed-Logs sind kein Produktversprechen der ersten Beta.
-- **Hinweis:** Änderung des Sync-Schalters wird erst nach einem Neustart wirksam,
-  weil der SwiftData-Container beim App-Start konfiguriert wird.
-- **Schema-Status:** CloudKit-Schema-Blocker durch nicht-optionale SwiftData-
-  Relationships ist behoben; syncbare Beziehungen bleiben optional und werden im
-  Code nil-sicher gelesen.
+- **Status:** ⏸️ Zurückgestellt — zugunsten SQLite/GRDB-Performance-Umbau
+- **Entscheidung 2026-07-02:** Die SwiftData/CloudKit-Beta wird pausiert, weil
+  Feedivo für große Datenmengen zuerst eine lokale SQLite-only-Architektur mit
+  GRDB bekommt. Performance hat Vorrang vor Sync.
+- **Frühere Vorarbeit:** CloudKit-Schema-Blocker durch nicht-optionale
+  SwiftData-Relationships ist behoben; syncbare Beziehungen bleiben optional und
+  werden im bestehenden SwiftData-Code nil-sicher gelesen.
+- **Neu zu planen:** Ein späterer Sync muss auf der SQLite/GRDB-Architektur
+  aufsetzen oder als bewusst getrennte zweite Schicht neu entworfen werden.
 
 ---
 
@@ -833,6 +831,15 @@
 ### 26.2 Performance bei vielen Feeds
 - **Status:** 🔨 In Arbeit — Qualitätsziel für Codex
 - **Ziel:** 500 Feeds / 100'000 Artikel flüssig
+- **Architekturentscheidung 2026-07-02:** Feedivo übernimmt für den
+  Performance-kritischen Hauptpfad grundsätzlich NetNewsWires Mechanik:
+  SQLite-only mit GRDB, getrennte Tabellen für Artikel und Artikelstatus,
+  gezielte SQL-Snapshots für Sidebar/Liste/Reader und Statusänderungen nur über
+  `article_statuses`. Die erste Welle umfasst Feeds, Refresh, Artikelliste,
+  Reader, Status und Feed-Logs. iCloud Sync, SwiftData-Bestandsdatenmigration,
+  Tags, Regeln, Smart Folders, OPML, Export, Offline-Download und FTS-Suche
+  werden danach einzeln angeschlossen. Spec:
+  `docs/superpowers/specs/2026-07-02-sqlite-grdb-performance-architecture-design.md`.
 - **Umgesetzt:**
   - OPML-Import und `Alle Feeds aktualisieren` rufen Feeds nur noch begrenzt parallel ab
   - Sidebar nutzt keine globale Artikel-Query mehr für Badge-Signaturen; beim

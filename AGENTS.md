@@ -18,7 +18,9 @@
 **Status:** In Development
 **Aktueller Milestone:** M4 – Polish & Release
 
-Feedivo ist ein nativer macOS RSS Reader mit Tags, automatischen Regeln und iCloud Sync.
+Feedivo ist ein nativer macOS RSS Reader mit Tags, automatischen Regeln und lokal
+performanter Feed-/Artikelverwaltung. iCloud Sync ist zugunsten des SQLite/GRDB-
+Performance-Umbaus zurückgestellt.
 Ziel ist eine schöne, schnelle Mac-App die sich "mac-like" anfühlt — kein iOS-Port, keine
 Electron-App. Echtes AppKit-Feeling via SwiftUI für macOS.
 
@@ -95,14 +97,14 @@ Nach jeder relevanten Änderung prüfen und bei Bedarf aktualisieren:
 | UI Framework | SwiftUI (macOS) | Kein AppKit direkt |
 | Architektur | MVVM | `@Observable` Macro (kein ObservableObject) |
 | Navigation | NavigationSplitView | 3-Spalten: Sidebar / Liste / Detail |
-| Persistenz | SwiftData | Kein Core Data |
-| iCloud Sync | CloudKit via SwiftData | Beta in Arbeit; Aktivierung per Einstellung + Neustart |
+| Persistenz | Ziel: SQLite via GRDB; aktuell SwiftData im Übergang | Performance hat Vorrang; frische SQLite-DB ohne SwiftData-Datenmigration akzeptiert |
+| iCloud Sync | Zurückgestellt | SwiftData/CloudKit-Beta wird zugunsten SQLite/GRDB pausiert |
 | Netzwerk | URLSession + async/await | Kein Alamofire, kein Combine |
 | RSS-Parsing | FeedKit | Swift Package, URL: https://github.com/nmdias/FeedKit |
 | Bilder | CachedRemoteImageView + ImageCacheService | Lokaler Disk-Cache + NSCache, kein Kingfisher |
 | Lokalisierung | String Catalog + `String(localized:)` | Deutsch, Englisch, Französisch, Italienisch |
 | Background Refresh | NSBackgroundActivityScheduler | Basis implementiert; läuft systemfreundlich solange App läuft/im Hintergrund ist |
-| Mindest-macOS | macOS 14.0 Sonoma | SwiftData + @Observable Macro |
+| Mindest-macOS | macOS 14.0 Sonoma | SwiftUI + @Observable Macro; SQLite/GRDB-Zielarchitektur |
 
 ---
 
@@ -1840,6 +1842,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - **Entscheidung:** SwiftData
 - **Grund:** Moderner, weniger Boilerplate, native CloudKit-Integration via `isCloudKitEnabled`
 - **Datum:** 2026-06-19
+- **Status 2026-07-02:** Für den Hauptdatenbestand von Feeds, Artikeln und
+  Artikelstatus durch ADR-010 abgelöst. SwiftData bleibt während des Übergangs im
+  Code, ist aber nicht mehr die Zielarchitektur für den Performance-kritischen
+  Hauptpfad.
 
 ### ADR-002: FeedKit für RSS-Parsing
 - **Entscheidung:** FeedKit Swift Package
@@ -1968,6 +1974,28 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   sofort geflusht wird.
 - **Datum:** 2026-06-28, ergänzt 2026-07-01 und 2026-07-02
 
+### ADR-010: SQLite-only mit GRDB für Feed-/Artikel-Performance
+- **Entscheidung:** Feedivo übernimmt die performante NetNewsWire-Mechanik
+  grundsätzlich als SQLite-only-Architektur mit GRDB. Der erste Umbau ist eine
+  vertikale Scheibe für Feeds, Refresh, Artikelliste, Reader und Artikelstatus.
+- **Grund:** NetNewsWire ist mit großen Datenmengen deutlich performanter, weil
+  Artikelinhalt und Artikelstatus getrennt gespeichert werden und Timeline,
+  Counts und Statusänderungen über gezielte SQLite-Queries laufen. SwiftData hat
+  Feedivo bereits weit gebracht, lässt aber bei 100.000 Artikeln weniger direkte
+  Kontrolle über Joins, Indizes, Statusupdates und Query-Invalidierungen.
+- **Scope erste Welle:** `feeds`, `articles`, `article_statuses`, `feed_logs`,
+  GRDB-Migrationen, Store-Schicht, Snapshot-Queries für Sidebar/Liste/Reader und
+  Status-Updates nur über `article_statuses`.
+- **Bewusst später:** iCloud Sync, SwiftData-Bestandsdatenmigration, Tags,
+  Regeln, Smart Folders, OPML Import/Export, Artikel-Export, Offline-Download
+  und SQLite FTS-Suche.
+- **Datenmigration:** Für diese Entwicklungsphase keine Migration bestehender
+  SwiftData-Daten. Eine frische SQLite-Datenbank ist akzeptiert, weil die App
+  aktuell nur von Martin genutzt wird.
+- **Dokumentation:** Ausführliche Spec:
+  `docs/superpowers/specs/2026-07-02-sqlite-grdb-performance-architecture-design.md`.
+- **Datum:** 2026-07-02
+
 ---
 
 ## Bekannte Gotchas & Fallstricke
@@ -1983,6 +2011,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   verhindern das Laden des CloudKit-Stores (`SwiftDataError 1`, CoreData 134060).
   Im App-Code deshalb immer mit `relationship ?? []` lesen und beim Anhängen eine
   lokale Kopie zurückschreiben.
+- **SQLite/GRDB-Umbau:** Während des Übergangs existieren SwiftData-Modelle und
+  neue SQLite-Stores parallel. Neue Performance-kritische Feed-/Artikelpfade
+  sollen SQLite-first gebaut werden; keine neue Kernmechanik mehr an SwiftData
+  koppeln, wenn sie später wieder umgezogen werden müsste.
 - **FeedKit Parsing:** FeedKit 10.4.0 kann direkt mit `FeedKit.Feed(data:)` parsen.
   Download bleibt bei uns über `URLSession` + async/await.
 - **Artikelbilder in Feeds:** Nicht nur `enclosure` auswerten. Viele Feeds nutzen
@@ -2200,10 +2232,11 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Katalog-Lücken). Build und Tests sind laut `docs/superpowers/l10n/inventar.md`
   grün; eine unabhängige Verifikation in Xcode steht noch aus, da die Codex-
   Sandbox die Swift-Toolchain nicht laden kann.
-- Aktuell M4: Polish & Release. iCloud Sync Beta ist aktiv in Arbeit.
-  Struktur- und Statussync sind Kernumfang der ersten Beta; die Umsetzung wird über
-  eine bewusst aktivierbare Beta-Option in den Einstellungen gesteuert und
-  greift nach Neustart.
+- Aktuell M4: Performance-Architektur vor Release. Die iCloud Sync Beta ist
+  zugunsten des SQLite/GRDB-Umbaus zurückgestellt. Ziel ist zuerst ein schneller
+  lokaler Hauptpfad nach NetNewsWire-Mechanik: Feeds, Refresh, Artikelliste,
+  Reader und Artikelstatus über SQLite, mit getrennten Artikel- und
+  Status-Tabellen.
 - Feature 17.3 Automatisches Löschen ist umgesetzt: globale Einstellung,
   Stern-/Archiv-Schutz mit Zusatzoption und pro-Feed-Überschreibung in den
   Feed-Eigenschaften.
@@ -2231,14 +2264,22 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Feature 11.2 Lesefortschritt ist zurückgestellt: Der erste SwiftUI/AppKit-
   Scrollbeobachter-Ansatz hat das Scrollgefühl im Reader verschlechtert und wurde
   wieder entfernt. Für v1 bleibt der Reader ohne Lesefortschritt.
-- Nächster sinnvoller Fokus: Batch-Export, Suche, Start-Refresh oder ein kleiner
-  Export-Polish-Slice.
+- Nächster sinnvoller Fokus: Implementierungsplan für die SQLite/GRDB-
+  Performance-Architektur schreiben und danach mit dem DB-Fundament beginnen.
 - Feature-Roadmap ist in `FEATURES.md` im Root dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
 ---
 
 ## Letzte Änderungen
+
+- 2026-07-02: Architekturentscheidung für SQLite-only mit GRDB dokumentiert.
+  Feedivo übernimmt für den Performance-kritischen Hauptpfad grundsätzlich die
+  NetNewsWire-Mechanik: direkte SQLite-Schicht, getrennte Tabellen für Artikel
+  und Artikelstatus, SQL-Snapshots für Sidebar/Liste/Reader und Statusänderungen
+  nur über `article_statuses`. iCloud Sync und SwiftData-Bestandsdatenmigration
+  werden bewusst zurückgestellt. Die freigegebene Spec liegt unter
+  `docs/superpowers/specs/2026-07-02-sqlite-grdb-performance-architecture-design.md`.
 
 - 2026-07-02: Artikellisten-Zeilen weiter entkoppelt. `ArticleRowView` rendert
   sichtbare Werte nun über `ArticleListItemSnapshot`; der Snapshot enthält nur
