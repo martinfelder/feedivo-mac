@@ -26,6 +26,7 @@ struct SQLiteFeedRefreshService {
     private let articleStore: ArticleStore
     private let statusStore: ArticleStatusStore
     private let logStore: FeedLogStore
+    private let tagStore: TagStore
     private let ruleSnapshots: [RuleEngine.RuleSnapshot]
     private let now: () -> Date
     private let fetcher: Fetcher
@@ -40,6 +41,7 @@ struct SQLiteFeedRefreshService {
         self.articleStore = ArticleStore(database: database)
         self.statusStore = ArticleStatusStore(database: database)
         self.logStore = FeedLogStore(database: database)
+        self.tagStore = TagStore(database: database)
         self.ruleSnapshots = ruleSnapshots
         self.now = now
         self.fetcher = fetcher
@@ -180,6 +182,7 @@ struct SQLiteFeedRefreshService {
             return RuleEngine.SQLiteRuleApplicationResult(
                 appliedActionCount: 0,
                 hiddenArticleIDs: [],
+                tagAssignments: [],
                 notifications: []
             )
         }
@@ -188,6 +191,20 @@ struct SQLiteFeedRefreshService {
         let result = RuleEngine.applySQLiteRules(ruleSnapshots, to: articles)
         for articleID in result.hiddenArticleIDs {
             try statusStore.setHidden(true, articleID: articleID, at: appliedAt)
+        }
+        for assignment in result.tagAssignments {
+            try tagStore.save(
+                TagRecord(
+                    id: assignment.tag.id,
+                    name: assignment.tag.name,
+                    colorHex: assignment.tag.colorHex
+                )
+            )
+            try tagStore.assignTag(
+                tagID: assignment.tag.id,
+                toArticleID: assignment.articleID,
+                at: appliedAt
+            )
         }
 
         return result

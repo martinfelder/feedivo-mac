@@ -2261,6 +2261,99 @@ struct FeedViewModelTests {
     }
 
     @MainActor
+    @Test func refreshAllFeedsMitSQLiteDatabaseWendetAssignTagRegelnAn() async throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            RuleCondition.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Mac News")
+        let tag = Tag(name: "Swift", colorHex: "#ff0000")
+        let rule = Rule(name: "Swift taggen")
+        rule.actionRaw = RuleAction.assignTag.rawValue
+        rule.assignTag = tag
+        rule.conditions = [
+            RuleCondition(
+                field: RuleConditionField.title.rawValue,
+                conditionOperator: RuleConditionOperator.contains.rawValue,
+                value: "Swift",
+                sortOrder: 0
+            )
+        ]
+        context.insert(feed)
+        context.insert(tag)
+        context.insert(rule)
+        try context.save()
+
+        let sqliteDatabase = try FeedivoDatabase.inMemoryForTests()
+        try FeedStore(database: sqliteDatabase).save(
+            FeedRecord(
+                id: feed.id.uuidString,
+                url: feed.url,
+                title: feed.title
+            )
+        )
+
+        let viewModel = makeViewModel(
+            fetchFeedConditionally: { urlString, _ in
+                let parsedFeed = await MainActor.run {
+                    ParsedFeed(
+                        sourceURL: urlString,
+                        title: "Mac News",
+                        description: nil,
+                        articles: [
+                            ParsedArticle(
+                                title: "Swift 7 ist da",
+                                sourceID: "swift-1",
+                                link: "https://example.com/swift-1",
+                                summary: nil,
+                                content: nil,
+                                publishedAt: Date(timeIntervalSince1970: 100),
+                                imageURL: nil
+                            ),
+                            ParsedArticle(
+                                title: "MacBook Gerücht",
+                                sourceID: "mac-1",
+                                link: "https://example.com/mac-1",
+                                summary: nil,
+                                content: nil,
+                                publishedAt: Date(timeIntervalSince1970: 200),
+                                imageURL: nil
+                            )
+                        ]
+                    )
+                }
+                return .updated(parsedFeed, FeedHTTPValidators(lastStatusCode: 200))
+            }
+        )
+
+        await viewModel.refreshAllFeeds(
+            [feed],
+            modelContainer: container,
+            sqliteDatabase: sqliteDatabase
+        )
+
+        let sqliteFeed = try #require(try FeedStore(database: sqliteDatabase).feed(id: feed.id.uuidString))
+        let rows = try TimelineStore(database: sqliteDatabase).articles(
+            scope: .feed(sqliteFeed.id),
+            includeRead: true,
+            includeHidden: false,
+            limit: 20
+        )
+        let swiftArticle = try #require(rows.first { $0.title == "Swift 7 ist da" })
+        let otherArticle = try #require(rows.first { $0.title == "MacBook Gerücht" })
+        let tagStore = TagStore(database: sqliteDatabase)
+
+        #expect(try tagStore.tags(articleID: swiftArticle.id).map(\.name) == ["Swift"])
+        #expect(try tagStore.tags(articleID: otherArticle.id).isEmpty)
+    }
+
+    @MainActor
     @Test func refreshAllFeedsUeberspringtLogEintraegeFuerUnveraenderteFeedsImBackgroundPfad() async throws {
         let container = try ModelContainer(
             for: Feed.self,

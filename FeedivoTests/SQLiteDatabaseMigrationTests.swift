@@ -13,6 +13,8 @@ struct SQLiteDatabaseMigrationTests {
         #expect(tableNames.contains("articles"))
         #expect(tableNames.contains("article_statuses"))
         #expect(tableNames.contains("feed_logs"))
+        #expect(tableNames.contains("tags"))
+        #expect(tableNames.contains("article_tags"))
     }
 
     @Test func migrationCreatesPerformanceIndexes() throws {
@@ -31,6 +33,8 @@ struct SQLiteDatabaseMigrationTests {
         #expect(indexNames.contains("idx_article_statuses_is_archived"))
         #expect(indexNames.contains("idx_article_statuses_is_hidden"))
         #expect(indexNames.contains("idx_feed_logs_feed_created"))
+        #expect(indexNames.contains("idx_tags_name_unique"))
+        #expect(indexNames.contains("idx_article_tags_tag_article"))
     }
 
     @Test func articleStatusesHaveNoForeignKeyCascadeToArticles() throws {
@@ -47,6 +51,42 @@ struct SQLiteDatabaseMigrationTests {
         #expect(throws: FeedivoDatabase.DebugTableInspectionError.self) {
             _ = try database.debugForeignKeys(for: "sqlite_master")
         }
+    }
+
+    @Test func articleTagsCascadeWhenArticleOrTagIsDeleted() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+
+        try insertFeed(into: database, id: "feed-1")
+        try insertArticle(
+            into: database,
+            id: "article-1",
+            feedID: "feed-1",
+            sourceID: "source-1",
+            link: "https://example.com/articles/1"
+        )
+        try insertTag(into: database, id: "tag-1")
+        try insertArticleTag(into: database, articleID: "article-1", tagID: "tag-1")
+
+        try database.write { database in
+            try database.execute(sql: "DELETE FROM articles WHERE id = ?", arguments: ["article-1"])
+        }
+
+        #expect(try rowCount(in: database, table: "article_tags") == 0)
+
+        try insertArticle(
+            into: database,
+            id: "article-2",
+            feedID: "feed-1",
+            sourceID: "source-2",
+            link: "https://example.com/articles/2"
+        )
+        try insertArticleTag(into: database, articleID: "article-2", tagID: "tag-1")
+
+        try database.write { database in
+            try database.execute(sql: "DELETE FROM tags WHERE id = ?", arguments: ["tag-1"])
+        }
+
+        #expect(try rowCount(in: database, table: "article_tags") == 0)
     }
 
     @Test func deletingFeedCascadesToArticlesAndFeedLogsButNotArticleStatuses() throws {
@@ -273,6 +313,34 @@ private func insertFeedLog(into database: FeedivoDatabase, id: String, feedID: S
                 ) VALUES (?, ?, ?, ?, ?, ?)
                 """,
             arguments: [id, feedID, Date(), "info", "Refresh", 1]
+        )
+    }
+}
+
+private func insertTag(into database: FeedivoDatabase, id: String) throws {
+    let now = Date()
+
+    try database.write { database in
+        try database.execute(
+            sql: """
+                INSERT INTO tags (
+                    id, name, colorHex, createdAt, updatedAt
+                ) VALUES (?, ?, ?, ?, ?)
+                """,
+            arguments: [id, "Tag \(id)", "#888888", now, now]
+        )
+    }
+}
+
+private func insertArticleTag(into database: FeedivoDatabase, articleID: String, tagID: String) throws {
+    try database.write { database in
+        try database.execute(
+            sql: """
+                INSERT INTO article_tags (
+                    articleID, tagID, assignedAt
+                ) VALUES (?, ?, ?)
+                """,
+            arguments: [articleID, tagID, Date()]
         )
     }
 }

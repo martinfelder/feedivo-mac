@@ -23,6 +23,13 @@ enum RuleEngine {
         var notificationPriorityRaw: String
         var sortOrder: Int
         var conditions: [RuleConditionSnapshot]
+        var assignTag: TagSnapshot?
+    }
+
+    struct TagSnapshot: Equatable, Sendable {
+        var id: String
+        var name: String
+        var colorHex: String
     }
 
     struct ArticleRuleSnapshot: Equatable, Sendable {
@@ -35,7 +42,13 @@ enum RuleEngine {
     struct SQLiteRuleApplicationResult: Equatable, Sendable {
         var appliedActionCount: Int
         var hiddenArticleIDs: [String]
+        var tagAssignments: [ArticleTagAssignment]
         var notifications: [RuleNotificationResult]
+    }
+
+    struct ArticleTagAssignment: Equatable, Sendable {
+        var articleID: String
+        var tag: TagSnapshot
     }
 
     private struct NormalizedCondition {
@@ -89,6 +102,13 @@ enum RuleEngine {
                         value: condition.value,
                         sortOrder: condition.sortOrder
                     )
+                },
+                assignTag: rule.assignTag.map { tag in
+                    TagSnapshot(
+                        id: tag.id.uuidString,
+                        name: tag.name,
+                        colorHex: tag.colorHex
+                    )
                 }
             )
         }
@@ -101,6 +121,8 @@ enum RuleEngine {
         let preparedRules = preparedSQLiteRules(rules)
         var appliedActionCount = 0
         var hiddenArticleIDs: [String] = []
+        var tagAssignments: [ArticleTagAssignment] = []
+        var assignedArticleTagPairs = Set<String>()
         var notifications: [RuleNotificationResult] = []
 
         for article in articles {
@@ -115,9 +137,22 @@ enum RuleEngine {
 
                 switch RuleAction.normalized(preparedRule.rule.actionRaw) {
                 case .assignTag:
-                    // Tag-Zuweisung braucht eigene SQLite-Tabellen. Bis diese
-                    // existieren, bleibt sie im SwiftData-Legacy-Pfad.
-                    continue
+                    guard let tag = preparedRule.rule.assignTag else {
+                        continue
+                    }
+
+                    let assignmentKey = "\(article.id)|\(tag.id)"
+                    guard assignedArticleTagPairs.insert(assignmentKey).inserted else {
+                        continue
+                    }
+
+                    tagAssignments.append(
+                        ArticleTagAssignment(
+                            articleID: article.id,
+                            tag: tag
+                        )
+                    )
+                    appliedActionCount += 1
                 case .hideArticle:
                     if !hiddenArticleIDs.contains(article.id) {
                         hiddenArticleIDs.append(article.id)
@@ -133,6 +168,7 @@ enum RuleEngine {
         return SQLiteRuleApplicationResult(
             appliedActionCount: appliedActionCount,
             hiddenArticleIDs: hiddenArticleIDs,
+            tagAssignments: tagAssignments,
             notifications: notifications
         )
     }

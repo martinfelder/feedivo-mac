@@ -867,8 +867,9 @@
     Refresh-Benachrichtigungen werden in diesem Pfad wieder mit aktualisiertem
     Feed-Titel und dem leichten `isNotificationEnabled`-Snapshot gemeldet;
     `hideArticle`- und `notify`-Regeln laufen für neue SQLite-Artikel über
-    sendbare Regel-/Artikelsnapshots. `assignTag`-Regeln folgen später mit der
-    SQLite-Tag-Schicht.
+    sendbare Regel-/Artikelsnapshots. `assignTag`-Regeln schreiben inzwischen
+    über `TagStore` in `tags` und `article_tags`; Tag-UI, Tag-Filter und
+    Tag-Badges folgen in einem späteren UI-Slice.
   - Sidebar-Feed-Zeilen lesen Anzeige-Snapshots aus SQLite: `SQLiteSidebarState`
     lädt `FeedSidebarSnapshot` über `FeedStore`, `FeedRowView` bevorzugt daraus
     Titel, Favicon und ungelesene Counts. Auswahl, Kontextmenüs,

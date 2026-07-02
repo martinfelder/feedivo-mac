@@ -86,6 +86,28 @@ enum FeedivoDatabaseMigrator {
             try database.create(index: "idx_feed_logs_feed_created", on: "feed_logs", columns: ["feedID", "createdAt"])
         }
 
+        migrator.registerMigration("v2_create_tag_tables") { database in
+            try database.create(table: "tags") { table in
+                table.column("id", .text).primaryKey()
+                table.column("name", .text).notNull()
+                table.column("colorHex", .text).notNull().defaults(to: "#888888")
+                table.column("createdAt", .datetime).notNull()
+                table.column("updatedAt", .datetime).notNull()
+            }
+
+            try database.create(table: "article_tags") { table in
+                table.column("articleID", .text).notNull()
+                    .references("articles", column: "id", onDelete: .cascade)
+                table.column("tagID", .text).notNull()
+                    .references("tags", column: "id", onDelete: .cascade)
+                table.column("assignedAt", .datetime).notNull()
+                table.primaryKey(["articleID", "tagID"])
+            }
+
+            try database.create(index: "idx_tags_name_unique", on: "tags", columns: ["name"], unique: true)
+            try database.create(index: "idx_article_tags_tag_article", on: "article_tags", columns: ["tagID", "articleID"])
+        }
+
         return migrator
     }
 }

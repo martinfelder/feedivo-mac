@@ -1998,10 +1998,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   SQLite-first über `SQLiteFeedRefreshService` und ruft Feeds nicht mehr zuerst
   über SwiftData und danach erneut fürs SQLite-Mirroring ab. Feed-Refresh-
   Benachrichtigungen werden im SQLite-first Sammelrefresh wieder aus den leichten
-  Feed-Snapshots erzeugt. Regeln für `hideArticle` und `notify` laufen dort auf
-  sendbaren Regel- und Artikelsnapshots; Tag-Zuweisungsregeln folgen erst mit
-  eigenen SQLite-Tag-Tabellen. Sidebar-Feed-Zeilen bevorzugen für Titel, Favicon
-  und ungelesene Counts inzwischen
+  Feed-Snapshots erzeugt. Regeln für `hideArticle`, `notify` und `assignTag`
+  laufen dort auf sendbaren Regel- und Artikelsnapshots; `assignTag` schreibt
+  direkt in die neuen SQLite-Tabellen `tags` und `article_tags`. Sidebar-Feed-
+  Zeilen bevorzugen für Titel, Favicon und ungelesene Counts inzwischen
   `FeedSidebarSnapshot` aus SQLite. Read-/Hidden-Statusänderungen aktualisieren
   `feeds.unreadCount` direkt in SQLite und invalidieren die Sidebar-Snapshots
   über `SQLiteDataInvalidation.statusVersionKey`.
@@ -2266,8 +2266,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Feed-Titel und dem Snapshot-Wert `isNotificationEnabled` gemeldet. Neue
   Artikel werden außerdem gegen leichte SQLite-Regel-Snapshots geprüft:
   `hideArticle` setzt direkt `article_statuses.isHidden`, `notify` erzeugt
-  Regel-Benachrichtigungen; `assignTag` bleibt bis zur SQLite-Tag-Schicht im
-  Legacy-Pfad.
+  Regel-Benachrichtigungen und `assignTag` schreibt Tags in `tags`/
+  `article_tags`. Die Tag-UI, Tag-Filter und Sidebar-Tag-Badges bleiben noch auf
+  dem Legacy-Pfad.
   Die normalen Feed-Zeilen in der Sidebar nutzen `SQLiteSidebarState` und
   `FeedSidebarSnapshot` für Anzeige und ungelesene Badges; Auswahl und
   Kontextmenüs bleiben übergangsweise SwiftData. SQLite-Statusänderungen halten
@@ -2300,9 +2301,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Scrollbeobachter-Ansatz hat das Scrollgefühl im Reader verschlechtert und wurde
   wieder entfernt. Für v1 bleibt der Reader ohne Lesefortschritt.
 - Nächster sinnvoller Fokus: verbleibende Hauptpfad-Lücken schließen:
-  SQLite-Refresh noch um Tag-Regeln und Feed-Logs in der UI abrunden,
-  Sidebar-Smart-Folder- und Tag-Badges auf SQL-Snapshots migrieren und danach
-  Suche/Filter schrittweise auf SQLite ziehen.
+  Tag-UI/Tag-Filter und Sidebar-Tag-Badges auf SQL-Snapshots migrieren,
+  Feed-Logs in der UI abrunden, Sidebar-Smart-Folder-Badges auf SQL-Snapshots
+  migrieren und danach Suche/Filter schrittweise auf SQLite ziehen.
 - Feature-Roadmap ist in `FEATURES.md` im Root dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
@@ -2310,13 +2311,19 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 
 ## Letzte Änderungen
 
+- 2026-07-02: SQLite-Tag-Fundament und `assignTag` im SQLite-first Refresh
+  umgesetzt. Migration v2 legt `tags` und `article_tags` mit passenden Indizes
+  und Foreign-Key-Kaskaden an, `TagStore` speichert Tags und idempotente
+  Artikel-Tag-Zuordnungen, und `SQLiteFeedRefreshService` schreibt
+  `assignTag`-Regeltreffer direkt nach SQLite. Tag-Sidebar, Tag-Filter und
+  Tag-Badges bleiben ein eigener UI-Slice.
+
 - 2026-07-02: SQLite-first Sammelrefresh wendet erste Regeln ohne SwiftData-
   Artikelobjekte an. `RuleEngine` erzeugt sendbare `RuleSnapshot`s und leichte
   `ArticleRuleSnapshot`s; `SQLiteFeedRefreshService` prüft neue Artikel gegen
   diese Snapshots, setzt `hideArticle` direkt in `article_statuses` und gibt
-  `notify`-Treffer als `RuleNotificationResult` zurück. `assignTag` ist bewusst
-  noch nicht im SQLite-Pfad aktiv, weil dafür zuerst Tag-Tabellen und Artikel-Tag-
-  Joins in SQLite modelliert werden müssen.
+  `notify`-Treffer als `RuleNotificationResult` zurück. `assignTag` wurde im
+  Folgeslice über die SQLite-Tag-Tabellen ergänzt.
 
 - 2026-07-02: Feed-Refresh-Benachrichtigungen im SQLite-first Sammelrefresh
   wieder aktiviert. `FeedRefreshSnapshot` trägt den leichten
