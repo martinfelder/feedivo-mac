@@ -855,6 +855,10 @@ struct ReaderView: View {
         }
     }
 
+    private var readerMetadataChipHeight: CGFloat {
+        interfaceTextSize.scaled(26)
+    }
+
     private func readerFolderChip(_ folderName: String) -> some View {
         HStack(spacing: 6) {
             Image(systemName: "folder")
@@ -866,7 +870,7 @@ struct ReaderView: View {
         .font(interfaceTextSize.font(size: 12, weight: .semibold))
         .foregroundStyle(.secondary)
         .padding(.horizontal, 10)
-        .padding(.vertical, 6)
+        .frame(height: readerMetadataChipHeight)
         .background(.secondary.opacity(0.08), in: Capsule())
         .overlay {
             Capsule()
@@ -882,7 +886,7 @@ struct ReaderView: View {
             .font(interfaceTextSize.font(size: 12, weight: .semibold))
             .foregroundStyle(tagColor)
             .padding(.horizontal, 10)
-            .padding(.vertical, 6)
+            .frame(height: readerMetadataChipHeight)
             .background(tagColor.opacity(0.1), in: Capsule())
             .overlay {
                 Capsule()
@@ -896,7 +900,7 @@ struct ReaderView: View {
         } label: {
             Image(systemName: "plus")
                 .font(interfaceTextSize.font(size: 12, weight: .bold))
-                .frame(width: 24, height: 24)
+                .frame(width: readerMetadataChipHeight, height: readerMetadataChipHeight)
         }
         .buttonStyle(.plain)
         .foregroundStyle(SidebarStyle.primaryText)

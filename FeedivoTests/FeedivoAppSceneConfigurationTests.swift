@@ -136,6 +136,8 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(readerSource.contains("@Query(sort: \\Tag.name) private var allTags"))
         #expect(readerSource.contains("isTagEditorPopoverPresented"))
         #expect(readerSource.contains(".popover(isPresented: $isTagEditorPopoverPresented)"))
+        #expect(readerSource.contains("private var readerMetadataChipHeight: CGFloat"))
+        #expect(readerSource.contains(".frame(width: readerMetadataChipHeight, height: readerMetadataChipHeight)"))
         #expect(readerSource.contains("ArticleMetadataEditor.addTag"))
         #expect(readerSource.contains("ArticleMetadataEditor.removeTag"))
         #expect(readerSource.contains("ColorSwatchPicker(selection: $newTagColorHex)"))
