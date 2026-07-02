@@ -351,7 +351,7 @@ struct FeedivoAppSceneConfigurationTests {
         let contentSource = try source(at: "Feedivo/Views/ContentView.swift", projectRoot: projectRoot)
         let compactContentSource = compact(contentSource)
 
-        #expect(compactContentSource.contains("SQLiteFeedArticleListView(tag:tag,selectedArticleID:$selectedSQLiteArticleID,navigationState:$sqliteArticleNavigationState)"))
+        #expect(compactContentSource.contains("SQLiteFeedArticleListView(tagID:tagID,selectedArticleID:$selectedSQLiteArticleID,navigationState:$sqliteArticleNavigationState)"))
         #expect(!compactContentSource.contains("ArticleListView(tag:tag,selectedArticle:$selectedArticle"))
     }
 
@@ -395,7 +395,7 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(compactSidebarSource.contains("sqliteSidebarState.load(database:feedivoDatabase,showsReadFeeds:showsReadFeedsInSidebar)"))
         #expect(compactSidebarSource.contains("sqliteSidebarState.visibleFeeds(from:feeds,showsReadFeeds:showsReadFeedsInSidebar)"))
         #expect(compactSidebarSource.contains("sqliteSnapshot:sqliteSidebarState.snapshot(for:feed)"))
-        #expect(compactSidebarSource.contains("\\(sqliteStatusVersion)#\\(directTagVersion)#\\(showsReadFeedsInSidebar)#\\(feedIDs)#\\(tagIDs)"))
+        #expect(compactSidebarSource.contains("\\(sqliteStatusVersion)#\\(directTagVersion)#\\(showsReadFeedsInSidebar)#\\(feedIDs)"))
     }
 
     @Test func sidebarTagBadgesNutzenSQLiteSnapshots() throws {
@@ -403,7 +403,9 @@ struct FeedivoAppSceneConfigurationTests {
         let sidebarSource = try source(at: "Feedivo/Views/Sidebar/SidebarView.swift", projectRoot: projectRoot)
         let compactSidebarSource = compact(sidebarSource)
 
-        #expect(compactSidebarSource.contains("sqliteSidebarState.tagSnapshot(id:tag.id.uuidString)?.articleCount"))
+        #expect(compactSidebarSource.contains("tagRows(sqliteSidebarState.tagSnapshots)"))
+        #expect(compactSidebarSource.contains("selection=.tag(tag.id)"))
+        #expect(!sidebarSource.contains("@Query(sort: \\Tag.name) private var tags"))
         #expect(!sidebarSource.contains("SidebarTagCount.articleCount(for: tag, context: modelContext)"))
     }
 

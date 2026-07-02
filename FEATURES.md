@@ -874,8 +874,8 @@
     direkte Artikel-Tags sowie Feed-Tags aus `feed_tags`. Vorhandene SwiftData-
     Feed-Tags werden beim App-Start per `FeedTagBackfillService` nach SQLite
     nachgezogen. Der Tag-Manager spiegelt Create, Rename, Farbänderungen und
-    Delete nach SQLite; die Tag-Liste selbst liest während der Übergangsphase
-    noch aus SwiftData.
+    Delete nach SQLite; die Sidebar-Tag-Liste liest inzwischen
+    `TagSidebarSnapshot`s aus SQLite.
   - Sidebar-Feed-Zeilen lesen Anzeige-Snapshots aus SQLite: `SQLiteSidebarState`
     lädt `FeedSidebarSnapshot` über `FeedStore`, `FeedRowView` bevorzugt daraus
     Titel, Favicon und ungelesene Counts. Auswahl, Kontextmenüs,
@@ -969,6 +969,8 @@
     Fallback für alten Datenbestand ohne `feedID` berührt
   - Sidebar-Tag-Badges lesen Zähler aus `article_tags` und `feed_tags` über
     `TagStore.sidebarTags()` und `SQLiteSidebarState`
+  - Sidebar-Tag-Zeilen lesen ihre Quelle ebenfalls aus `SQLiteSidebarState`
+    statt aus einer SwiftData-`@Query<Tag>`
   - Sidebar-Smart-Folder-Badges lesen Status-Zähler aus SQLite über
     `ArticleStatusStore.sidebarSmartFolderBadgeSnapshot()` und
     `SQLiteSidebarState`

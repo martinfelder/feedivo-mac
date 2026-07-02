@@ -20,7 +20,6 @@ struct ContentView: View {
     @AppStorage(BackgroundRefreshSettings.intervalMinutesKey)
     private var backgroundRefreshIntervalMinutes = BackgroundRefreshSettings.defaultIntervalMinutes
     @Query(sort: \Feed.title) private var feeds: [Feed]
-    @Query(sort: \Tag.name) private var tags: [Tag]
     @Query(sort: \SmartFolder.sortOrder) private var smartFolders: [SmartFolder]
 
     // columnVisibility steuert ob die Sidebar sichtbar ist.
@@ -94,9 +93,9 @@ struct ContentView: View {
                     navigationState: $sqliteArticleNavigationState
                 )
                     .navigationSplitViewColumnWidth(min: 280, ideal: 320, max: 400)
-            } else if let tag = selectedTag {
+            } else if let tagID = selectedTagID {
                 SQLiteFeedArticleListView(
-                    tag: tag,
+                    tagID: tagID,
                     selectedArticleID: $selectedSQLiteArticleID,
                     navigationState: $sqliteArticleNavigationState
                 )
@@ -612,12 +611,12 @@ struct ContentView: View {
         return feeds.first { $0.persistentModelID == feedID }
     }
 
-    private var selectedTag: Tag? {
+    private var selectedTagID: String? {
         guard case .tag(let tagID) = sidebarSelection else {
             return nil
         }
 
-        return tags.first { $0.persistentModelID == tagID }
+        return tagID
     }
 
     private var selectedSmartFilter: SmartFilter? {

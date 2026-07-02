@@ -8,7 +8,6 @@ struct SidebarView: View {
 
     @Query(sort: \Feed.title) private var feeds: [Feed]
     @Query(sort: \FeedFolder.name) private var folders: [FeedFolder]
-    @Query(sort: \Tag.name) private var tags: [Tag]
     @Query(sort: \SmartFolder.sortOrder) private var smartFolders: [SmartFolder]
     @Binding var selection: SidebarSelection?
     let onRequestAddFeed: () -> Void
@@ -94,7 +93,7 @@ struct SidebarView: View {
         }
         .sheet(isPresented: $isShowingTagManager) {
             TagManagerView { tag in
-                selection = .tag(tag.persistentModelID)
+                selection = .tag(tag.id.uuidString)
             }
         }
         .sheet(isPresented: $isCreatingSmartFolder) {
@@ -167,8 +166,8 @@ struct SidebarView: View {
         ) {
             isShowingTagManager = true
         } content: {
-            if !tags.isEmpty {
-                tagRows(tags)
+            if !sqliteSidebarState.tagSnapshots.isEmpty {
+                tagRows(sqliteSidebarState.tagSnapshots)
             }
         }
     }
@@ -335,22 +334,20 @@ struct SidebarView: View {
         }
     }
 
-    private func tagRows(_ tags: [Tag]) -> some View {
+    private func tagRows(_ tags: [TagSidebarSnapshot]) -> some View {
         ForEach(tags) { tag in
             Button {
-                selection = .tag(tag.persistentModelID)
+                selection = .tag(tag.id)
             } label: {
                 TagSidebarRow(
                     tag: tag,
-                    badgeText: SidebarUnreadCount.badgeText(
-                        for: sqliteSidebarState.tagSnapshot(id: tag.id.uuidString)?.articleCount ?? 0
-                    )
+                    badgeText: SidebarUnreadCount.badgeText(for: tag.articleCount)
                 )
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             .buttonStyle(
                 SidebarRowButtonStyle(
-                    isSelected: selection == .tag(tag.persistentModelID)
+                    isSelected: selection == .tag(tag.id)
                 )
             )
         }
@@ -371,11 +368,7 @@ struct SidebarView: View {
             .map { $0.id.uuidString }
             .sorted()
             .joined(separator: ",")
-        let tagIDs = tags
-            .map { $0.id.uuidString }
-            .sorted()
-            .joined(separator: ",")
-        return "\(sqliteStatusVersion)#\(directTagVersion)#\(showsReadFeedsInSidebar)#\(feedIDs)#\(tagIDs)"
+        return "\(sqliteStatusVersion)#\(directTagVersion)#\(showsReadFeedsInSidebar)#\(feedIDs)"
     }
 }
 
@@ -420,7 +413,7 @@ private struct SmartFolderSidebarRow: View {
 private struct TagSidebarRow: View {
     @Environment(\.interfaceTextSize) private var interfaceTextSize
 
-    let tag: Tag
+    let tag: TagSidebarSnapshot
     let badgeText: String?
 
     var body: some View {

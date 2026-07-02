@@ -8,7 +8,7 @@ struct SQLiteFeedArticleListView: View {
 
     private enum Scope {
         case feed(Feed)
-        case tag(Tag)
+        case tagID(String)
     }
 
     private let scope: Scope
@@ -32,7 +32,17 @@ struct SQLiteFeedArticleListView: View {
         selectedArticleID: Binding<String?>,
         navigationState: Binding<SQLiteArticleNavigationState>
     ) {
-        self.scope = .tag(tag)
+        self.scope = .tagID(tag.id.uuidString)
+        self._selectedArticleID = selectedArticleID
+        self._navigationState = navigationState
+    }
+
+    init(
+        tagID: String,
+        selectedArticleID: Binding<String?>,
+        navigationState: Binding<SQLiteArticleNavigationState>
+    ) {
+        self.scope = .tagID(tagID)
         self._selectedArticleID = selectedArticleID
         self._navigationState = navigationState
     }
@@ -140,8 +150,8 @@ struct SQLiteFeedArticleListView: View {
         switch scope {
         case let .feed(feed):
             return "feed:\(feed.url)"
-        case let .tag(tag):
-            return "tag:\(tag.id.uuidString)"
+        case let .tagID(tagID):
+            return "tag:\(tagID)"
         }
     }
 
@@ -149,8 +159,8 @@ struct SQLiteFeedArticleListView: View {
         switch scope {
         case let .feed(feed):
             return feed.title
-        case let .tag(tag):
-            return tag.name
+        case .tagID:
+            return String(localized: "sidebar.tags.section")
         }
     }
 
@@ -158,7 +168,7 @@ struct SQLiteFeedArticleListView: View {
         switch scope {
         case .feed:
             return "Für diesen Feed sind noch keine SQLite-Artikel gespeichert."
-        case .tag:
+        case .tagID:
             return "Für dieses Tag sind noch keine SQLite-Artikel gespeichert."
         }
     }
@@ -177,9 +187,9 @@ struct SQLiteFeedArticleListView: View {
                 database: database,
                 selectedArticleID: selectedArticleID
             )
-        case let .tag(tag):
+        case let .tagID(tagID):
             state.load(
-                tagID: tag.id.uuidString,
+                tagID: tagID,
                 database: database,
                 selectedArticleID: selectedArticleID
             )

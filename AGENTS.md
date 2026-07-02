@@ -464,16 +464,17 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   ungelesene Artikel in der Sidebar ausgeblendet werden; Standard bleibt anzeigen.
 - Die Sidebar zeigt eine eigene `Tags`-Section mit Tag-Icon; der Button öffnet den
   zentralen `TagManagerView`.
-- Vorhandene Tags werden in der Sidebar als klickbare Zeilen mit Farbindikator aus
-  `Tag.colorHex` angezeigt; ein Klick filtert die Artikelliste feedübergreifend.
-  Im SQLite-Hauptpfad lädt `SQLiteFeedArticleListView` Tag-Filter über
+- Vorhandene Tags werden in der Sidebar als klickbare Zeilen aus
+  `TagSidebarSnapshot` angezeigt. Ein Klick speichert die SQLite-Tag-ID in
+  `SidebarSelection.tag` und filtert die Artikelliste feedübergreifend über
   `TimelineScope.tag`; die Query umfasst direkte Artikel-Tags aus `article_tags`
   und Feed-Tags aus `feed_tags`.
 - Neu erstellte Tags werden nach erfolgreichem Anlegen direkt als Sidebar-Auswahl
   gesetzt, damit der schnelle Tag-Filter sofort sichtbar und nutzbar ist.
 - Tag-Zeilen zeigen rechts eine dezente Badge mit der Anzahl passender Artikel.
-  Im SQLite-Pfad zählen aktuell direkte Artikel-Tags aus `article_tags` und
-  Feed-Tag-Treffer aus `feed_tags`.
+  Im SQLite-Pfad kommt auch die Listenquelle aus `TagStore.sidebarTags()` und
+  zählt direkte Artikel-Tags aus `article_tags` sowie Feed-Tag-Treffer aus
+  `feed_tags`.
 - Die Sidebar zeigt keine eigene `Regeln`-Section mehr. Die komplette
   Regelverwaltung liegt bewusst in den Einstellungen; der schnelle Einstieg
   `Regel erstellen...` sitzt im Menü der Artikelansicht.
@@ -2320,8 +2321,8 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Scrollbeobachter-Ansatz hat das Scrollgefühl im Reader verschlechtert und wurde
   wieder entfernt. Für v1 bleibt der Reader ohne Lesefortschritt.
 - Nächster sinnvoller Fokus: verbleibende Hauptpfad-Lücken schließen:
-  Feed-Logs in der UI abrunden, Tag-Listenquelle auf SQLite-Snapshots umstellen
-  und danach Suche/Filter schrittweise auf SQLite ziehen.
+  Feed-Logs in der UI abrunden und danach Suche/Filter schrittweise auf SQLite
+  ziehen.
 - Feature-Roadmap ist in `FEATURES.md` im Root dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
@@ -2347,6 +2348,11 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   `starred`, `hidden` und `saved`; `SQLiteSidebarState` lädt den Snapshot
   gemeinsam mit Feed- und Tag-Snapshots, und `SidebarView` braucht dafür keine
   SwiftData-Artikel-Query mehr.
+
+- 2026-07-02: Sidebar-Tag-Listenquelle auf SQLite-Snapshots umgestellt.
+  `SidebarView` rendert Tags direkt aus `SQLiteSidebarState.tagSnapshots`,
+  `SidebarSelection.tag` speichert die SQLite-Tag-ID, und `ContentView` öffnet
+  `SQLiteFeedArticleListView(tagID:)` ohne SwiftData-`Tag`-Query im Root.
 
 - 2026-07-02: Direkte Tag-Filter auf SQLite umgestellt. `TimelineScope.tag`
   filtert Artikel über `article_tags`, `SQLiteFeedArticleListState` kann neben
