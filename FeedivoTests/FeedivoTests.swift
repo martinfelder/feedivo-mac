@@ -7,6 +7,7 @@
 
 import AppKit
 import Foundation
+import SwiftData
 import SwiftUI
 import Testing
 @testable import Feedivo
@@ -412,14 +413,32 @@ struct FeedivoTests {
     }
 
     @MainActor
+    @Test func readerRelationshipSnapshotKapseltMetadatenAlsLeichteWerte() {
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Test Feed", folderName: "News")
+        let firstTag = Tag(name: "Zeta", colorHex: "#ff0000")
+        let secondTag = Tag(name: "Alpha", colorHex: "#00ff00")
+        let article = Article(title: "Artikel", feed: feed)
+        article.tags = [firstTag, secondTag]
+
+        let metadata = ReaderArticleRelationshipMetadata.make(from: article)
+
+        #expect(metadata.articleID == article.persistentModelID)
+        #expect(metadata.folderName == "News")
+        #expect(metadata.tags.map(\.name) == ["Alpha", "Zeta"])
+        #expect(metadata.tags.map(\.colorHex) == ["#00ff00", "#ff0000"])
+    }
+
+    @MainActor
     @Test func readerPreviewInputNutztNurLeichteFelder() {
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Test Feed")
         let article = Article(
             title: "Artikel",
             link: "https://example.com/artikel",
             summary: "Sofort sichtbare Kurzfassung",
             content: "<p>Schwerer Volltext</p>",
             publishedAt: Date(timeIntervalSince1970: 1_700_000_000),
-            imageURL: "https://example.com/bild.jpg"
+            imageURL: "https://example.com/bild.jpg",
+            feed: feed
         )
         article.offlineState = .fullText
         article.offlineContent = "<article>Schwerer Offline-Text</article>"
@@ -429,6 +448,8 @@ struct FeedivoTests {
 
         #expect(previewInput.content == nil)
         #expect(previewInput.offlineContent == nil)
+        #expect(previewInput.feedTitle == "Test Feed")
+        #expect(preview.metadataText.contains("Test Feed"))
         #expect(preview.contentBlocks == [
             .image(urlString: "https://example.com/bild.jpg"),
             .paragraph("Sofort sichtbare Kurzfassung")

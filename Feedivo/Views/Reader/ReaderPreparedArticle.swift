@@ -79,7 +79,7 @@ extension ReaderArticleInput {
             offlineState: .none,
             offlineStateRaw: ArticleOfflineState.none.rawValue,
             link: article.link,
-            feedTitle: nil,
+            feedTitle: article.feed?.title,
             publishedAt: article.publishedAt
         )
     }

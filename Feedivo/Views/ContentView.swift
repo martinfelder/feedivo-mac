@@ -135,6 +135,7 @@ struct ContentView: View {
                     onRequestCreateRuleFromArticle: requestCreateRuleFromArticle,
                     onRequestExportArticle: requestExportArticle
                 )
+                .id(article.id)
             } else {
                 ContentUnavailableView(
                     L10n.contentNoArticleSelectedTitle,

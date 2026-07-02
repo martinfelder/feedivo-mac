@@ -1352,8 +1352,12 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   erneutes HTML-Rendering auslösen
 - Aktualisiert `ReaderPreparedArticle` über eine leichte Beobachtungssignatur
   statt über `article.content`/`article.offlineContent`, damit ein Artikelwechsel
-  nicht schon beim SwiftUI-View-Aufbau schwere SwiftData-Faults auslöst. Ordner-
-  und Tag-Chips werden ebenfalls nach dem ersten Render geladen.
+  nicht schon beim SwiftUI-View-Aufbau schwere SwiftData-Faults auslöst.
+- Startet den Reader mit einem leichten Preview-Snapshot inklusive Feedname sowie
+  einem separaten Relationship-Metadata-Snapshot für Feed-Ordner und Tags. Die
+  Header-Chips halten nur einfache Werte (`id`, Name, Farbe) statt lebender
+  `Tag`-Modelle, damit Feedname, Ordner und Tags beim Artikelwechsel nicht sichtbar
+  nachlaufen.
 - Zeigt beim Artikelwechsel sofort eine leichte Reader-Vorschau aus Summary und
   Bild-URL, statt den nativen Reader auf einen blanken Ladezustand zu setzen.
   Reader-Bilder verwenden keinen sichtbaren Spinner mehr.
@@ -2189,6 +2193,12 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   über `FeedivoModelContainerFactory` konfiguriert; Tests für CloudKitDatabase
   prüfen eine eigene `StoreMode`-Repräsentation, weil SwiftDatas
   `CloudKitDatabase` im aktuellen SDK nicht `Equatable` ist.
+
+- 2026-07-02: Reader-Metadaten-Nachlauf reduziert. `ReaderView` startet nun mit
+  einem leichten Preview-Snapshot inklusive Feedname und initialisiert Feed-Ordner
+  sowie Tags als einfache Snapshot-Werte statt als lebende SwiftData-`Tag`-
+  Modelle im Header. Der Hauptfenster-Reader nutzt wie das Artikelfenster eine
+  `.id(article.id)`, damit Reader-State beim Artikelwechsel sauber neu startet.
 
 - 2026-07-02: Großer Refresh-Performance-Schritt umgesetzt. Sammel-Refreshes aus
   Hauptfenster, Start-Refresh und periodischem Background-Scheduler laufen nun

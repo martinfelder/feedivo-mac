@@ -841,7 +841,7 @@
   - Artikel-Listen bereiten Sortierung und Filterung gemeinsam vor, damit pro Render nicht doppelt sortiert wird
   - Artikelzeilen prüfen Original-Links über einen stateless Resolver statt pro Kontextmenü-Zugriff eine neue `ArticleViewModel`-Instanz zu erzeugen
   - Artikelwechsel aktualisiert die Navigation aus der sichtbaren Liste, ohne Sortierung/Filterung erneut anzustoßen
-  - Reader-Artikelwechsel faulten schwere Textfelder nicht mehr schon im SwiftUI-View-Aufbau; Ordner-/Tag-Chips werden nach dem ersten Render geladen
+  - Reader-Artikelwechsel faulten schwere Textfelder nicht mehr schon im SwiftUI-View-Aufbau; Feedname, Ordner und Tags starten als leichte Snapshot-Werte, damit die sichtbaren Metadaten nicht nachlaufen
   - Die Artikelliste wärmt vorherigen/nächsten Artikel für den Reader inklusive Artikelbild vor, damit sequenzielles Lesen weniger auf `content`/`offlineContent` und Bilddownloads warten muss
   - Der Reader zeigt beim Wechsel sofort eine leichte Summary-/Bild-Vorschau und vermeidet sichtbare Spinner für Reader-Bilder
   - Komplexe intelligente Ordner sortieren Bedingungen einmal vor dem Artikel-Loop und verwenden einen vorbereiteten Matcher

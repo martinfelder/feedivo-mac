@@ -41,7 +41,10 @@ struct ReaderView: View {
         self.selectNextArticle = selectNextArticle
         self.onRequestCreateRuleFromArticle = onRequestCreateRuleFromArticle
         self.onRequestExportArticle = onRequestExportArticle
-        self._preparedArticle = State(initialValue: .empty)
+        self._preparedArticle = State(initialValue: ReaderPreparedArticle(
+            input: ReaderArticleInput.makePreview(from: article)
+        ))
+        self._relationshipMetadata = State(initialValue: ReaderArticleRelationshipMetadata.make(from: article))
     }
 
     @AppStorage(ReaderTypographySettings.titleFontPresetKey)
@@ -206,7 +209,7 @@ struct ReaderView: View {
         currentRelationshipMetadata.folderName
     }
 
-    private var sortedArticleTags: [Tag] {
+    private var sortedArticleTags: [ReaderArticleTagMetadata] {
         currentRelationshipMetadata.tags
     }
 
@@ -868,7 +871,7 @@ struct ReaderView: View {
         }
     }
 
-    private func readerTagChip(_ tag: Tag) -> some View {
+    private func readerTagChip(_ tag: ReaderArticleTagMetadata) -> some View {
         let tagColor = TagColorPalette.color(for: tag.colorHex)
 
         return Text("#\(tag.name)")
@@ -1023,9 +1026,6 @@ struct ReaderView: View {
     @MainActor
     private func loadRelationshipMetadata() async {
         let articleID = article.persistentModelID
-        relationshipMetadata = .empty
-
-        await Task.yield()
 
         guard !Task.isCancelled, articleID == article.persistentModelID else {
             return
@@ -1065,7 +1065,19 @@ private struct ReaderRefreshToken: Equatable {
     let revision: Int
 }
 
-private struct ReaderArticleRelationshipMetadata {
+struct ReaderArticleTagMetadata: Identifiable, Equatable {
+    let id: UUID
+    let name: String
+    let colorHex: String
+
+    init(tag: Tag) {
+        self.id = tag.id
+        self.name = tag.name
+        self.colorHex = tag.colorHex
+    }
+}
+
+struct ReaderArticleRelationshipMetadata: Equatable {
     static let empty = ReaderArticleRelationshipMetadata(
         articleID: nil,
         folderName: nil,
@@ -1074,7 +1086,7 @@ private struct ReaderArticleRelationshipMetadata {
 
     let articleID: PersistentIdentifier?
     let folderName: String?
-    let tags: [Tag]
+    let tags: [ReaderArticleTagMetadata]
 
     static func make(from article: Article) -> ReaderArticleRelationshipMetadata {
         ReaderArticleRelationshipMetadata(
@@ -1082,7 +1094,7 @@ private struct ReaderArticleRelationshipMetadata {
             folderName: FeedFolderOrganizer.normalizedFolderName(article.feed?.folderName),
             tags: (article.tags ?? []).sorted {
                 $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
-            }
+            }.map(ReaderArticleTagMetadata.init)
         )
     }
 }
