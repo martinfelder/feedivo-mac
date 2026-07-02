@@ -1389,6 +1389,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Header-Chips halten nur einfache Werte (`id`, Name, Farbe) statt lebender
   `Tag`-Modelle, damit Feedname, Ordner und Tags beim Artikelwechsel nicht sichtbar
   nachlaufen. Nach Inline-Tag-Aktionen wird dieser Snapshot sofort aktualisiert.
+- Reicht Feedname, Ordnername, Content-Verfügbarkeit und vorbereitete Lesezeit an
+  den rechten Inspector weiter, damit dessen SwiftUI-Body nicht erneut
+  `Article.content`, `Article.offlineContent` oder `article.feed?.title` faultet.
 - Zeigt beim Artikelwechsel sofort eine leichte Reader-Vorschau aus Summary und
   Bild-URL, statt den nativen Reader auf einen blanken Ladezustand zu setzen.
   Reader-Bilder verwenden keinen sichtbaren Spinner mehr.
@@ -1399,8 +1402,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   gerendert, damit große Feedbilder ruhiger und performanter bleiben
 ### ReaderPreparedArticle.swift
 - Kapselt die vorbereiteten, teureren Reader-Daten für einen Artikel.
-- Berechnet native Content-Bloecke, Metazeile und gueltige Original-URL einmal beim
-  Erzeugen von `ReaderView`, statt diese Werte bei jedem SwiftUI-Redraw neu aufzubauen.
+- Berechnet native Content-Bloecke, Metazeile, Lesezeit, Content-Verfügbarkeit und
+  gueltige Original-URL einmal beim Erzeugen von `ReaderView`, statt diese Werte
+  bei jedem SwiftUI-Redraw neu aufzubauen.
 - `ReaderArticleCacheKey` speichert keine kompletten `content`-/
   `offlineContent`-Strings mehr, sondern kompakte Text-Fingerprints. Der Cache
   hält dadurch keine zusätzlichen Kopien langer Artikeltexte.
@@ -1565,6 +1569,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Section-Icons für `Feed-Ordner`, `Tags`, `Kontext` und `Quelle`. Der Kontext
   zeigt Feed, Quelle, Veroeffentlichung, Lesezeit und Offline-Status in einer
   kompakten Metadatenliste.
+- Nutzt für Feedname, Ordnername, Lesezeit und Content-Verfügbarkeit die von
+  `ReaderView` vorbereiteten Snapshot-Werte. Der Inspector greift im Body dadurch
+  nicht mehr direkt auf Volltext-/Offline-Textfelder des SwiftData-Artikels zu.
 - Die Quelle ist standardmäßig eingeklappt und folgt dem Prototyp als reine
   Aktions-Section mit zwei breiten Zeilen für `Link kopieren` und `Original
   oeffnen`; die URL selbst wird dort bewusst nicht mehr als Textbox gezeigt.
@@ -1892,6 +1899,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
       SwiftData/CoreData-Faulting; deshalb beobachtet die Sidebar nur noch eine
       kleine Status-Query für Stern/Archiv/Hidden und berechnet Tag-Badges
       nachgelagert per `fetchCount`.
+  11. `ArticleMetadataInspectorView` bekommt Feedname, Ordnername, Lesezeit und
+      Content-Verfügbarkeit von `ReaderView`/`ReaderPreparedArticle`, statt diese
+      Werte im Body nochmals über `article.feed`, `Article.content` oder
+      `Article.offlineContent` zu berechnen.
 - **Konsequenz:** Navigation bleibt auch bei großem Datenbestand flüssig;
   Lese-Status und Feed-Zähler werden verzögert (≤0.6s) persistiert bzw.
   synchronisiert, was für einen RSS-Reader akzeptabel ist und auf `.onDisappear`
@@ -2188,7 +2199,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   debounced Persistenz-Flush. Nach einem heißen Prozess-Sample wurde zusätzlich
   die Sidebar von ihrer globalen Artikel-Query entkoppelt: Tag-Badges laufen
   nicht mehr im Body über alle Artikel, Status-Badges beobachten nur noch
-  Stern-/Archiv-/Hidden-Artikel.
+  Stern-/Archiv-/Hidden-Artikel. Der rechte Artikel-Inspector nutzt nun die von
+  `ReaderView` vorbereiteten Snapshot-Werte für Feed, Ordner, Lesezeit und
+  Content-Verfügbarkeit und faultet im Body keine Volltext-/Offline-Textfelder
+  mehr.
 
 - 2026-07-01: Reader-Artikelwechsel weiter entkoppelt. `ReaderView` beobachtet
   für Reader-Rebuilds keine schweren Textfelder (`Article.content`,

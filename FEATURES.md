@@ -830,6 +830,9 @@
   - Sidebar nutzt keine globale Artikel-Query mehr für Badge-Signaturen; beim
     Lesen invalidieren `isRead`-Änderungen dadurch nicht mehr alle Sidebar-
     Badge-Daten
+  - Der rechte Artikel-Inspector nutzt von `ReaderView` vorbereitete Snapshot-
+    Werte für Feedname, Ordner, Lesezeit und Content-Verfügbarkeit; dadurch
+    faultet der Inspector-Body keine Volltext-/Offline-Textfelder mehr.
   - `Ungelesen`-Badge der intelligenten Ordner nutzt die gespeicherten `Feed.unreadCount` Werte
   - `Mit Stern`, `Ausgeblendet` und `Gespeichert` lesen ihre Sidebar-Badges aus
     gebündelten Status-Zählern

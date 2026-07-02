@@ -157,6 +157,7 @@ struct ReaderArticleObservationSignature: Equatable {
 struct ReaderPreparedArticle: Sendable {
     let contentBlocks: [ReaderContentBlock]
     let metadataText: String
+    let readingTimeText: String?
     let originalURL: URL?
     let contentAvailability: ReaderContentAvailability
     let shouldShowSummaryOnlyNotice: Bool
@@ -191,6 +192,10 @@ struct ReaderPreparedArticle: Sendable {
     /// MainActor entkoppelt ausgefuehrt werden.
     init(input: ReaderArticleInput) {
         let preferredContent = ReaderPreparedArticle.preferredContent(for: input)
+        let readingTimeText = ReaderMetadataFormatter.readingTimeText(
+            content: preferredContent,
+            summary: input.summary
+        )
 
         self.contentBlocks = ReaderContentRenderer.blocks(
             summary: input.summary,
@@ -204,13 +209,11 @@ struct ReaderPreparedArticle: Sendable {
             summary: input.summary
         )
         self.shouldShowSummaryOnlyNotice = false
+        self.readingTimeText = readingTimeText
 
         self.metadataText = ReaderMetadataFormatter.metadataParts(
             feedName: input.feedTitle,
-            readingTime: ReaderMetadataFormatter.readingTimeText(
-                content: preferredContent,
-                summary: input.summary
-            ),
+            readingTime: readingTimeText,
             publishedAt: input.publishedAt
         )
         .joined(separator: " · ")

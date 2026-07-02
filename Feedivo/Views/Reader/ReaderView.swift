@@ -238,6 +238,10 @@ struct ReaderView: View {
         .inspector(isPresented: $isMetadataInspectorPresented) {
             ArticleMetadataInspectorView(
                 article: article,
+                feedName: currentRelationshipMetadata.feedName,
+                folderName: currentRelationshipMetadata.folderName,
+                contentAvailability: preparedArticle.contentAvailability,
+                readingTime: preparedArticle.readingTimeText,
                 close: {
                     isMetadataInspectorPresented = false
                 },
@@ -1291,17 +1295,20 @@ struct ReaderArticleTagMetadata: Identifiable, Equatable {
 struct ReaderArticleRelationshipMetadata: Equatable {
     static let empty = ReaderArticleRelationshipMetadata(
         articleID: nil,
+        feedName: nil,
         folderName: nil,
         tags: []
     )
 
     let articleID: PersistentIdentifier?
+    let feedName: String?
     let folderName: String?
     let tags: [ReaderArticleTagMetadata]
 
     static func make(from article: Article) -> ReaderArticleRelationshipMetadata {
         ReaderArticleRelationshipMetadata(
             articleID: article.persistentModelID,
+            feedName: article.feed?.title,
             folderName: FeedFolderOrganizer.normalizedFolderName(article.feed?.folderName),
             tags: (article.tags ?? []).sorted {
                 $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending

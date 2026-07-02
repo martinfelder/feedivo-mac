@@ -257,7 +257,12 @@ struct FeedivoTests {
         article.offlineState = .failed
         article.offlineErrorMessage = "Timeout"
 
-        let details = ArticleInspectorFormatter.details(for: article)
+        let details = ArticleInspectorFormatter.details(
+            for: article,
+            feedName: "Example Feed",
+            contentAvailability: .summaryOnly,
+            readingTime: "ca. 1 Min. Lesezeit"
+        )
 
         #expect(details.title == "Artikel")
         #expect(details.summaryExcerpt == "Kurze Zusammenfassung mit genug Text fuer den oberen Artikelkontext.")
@@ -270,6 +275,29 @@ struct FeedivoTests {
         #expect(details.offlineActionKey == "reader.offline.save")
         #expect(details.offlineDetail == "Timeout")
         #expect(details.hasOriginalURL == true)
+    }
+
+    @Test func articleInspectorFormatterNutztVorbereiteteReaderMetadaten() {
+        let article = Article(
+            title: "Artikel",
+            link: "https://example.com/artikel",
+            summary: "Kurzfassung",
+            content: nil,
+            publishedAt: Date(timeIntervalSince1970: 1_700_000_000),
+            isRead: true,
+            isStarred: false
+        )
+
+        let details = ArticleInspectorFormatter.details(
+            for: article,
+            feedName: "Snapshot Feed",
+            contentAvailability: .fullText,
+            readingTime: "ca. 7 Min. Lesezeit"
+        )
+
+        #expect(details.feedName == "Snapshot Feed")
+        #expect(details.contentAvailabilityKey == "reader.inspector.content.fullText")
+        #expect(details.readingTime == "ca. 7 Min. Lesezeit")
     }
 
     @Test func articleInspectorTypographyIstKompakt() {
@@ -423,6 +451,7 @@ struct FeedivoTests {
         let metadata = ReaderArticleRelationshipMetadata.make(from: article)
 
         #expect(metadata.articleID == article.persistentModelID)
+        #expect(metadata.feedName == "Test Feed")
         #expect(metadata.folderName == "News")
         #expect(metadata.tags.map(\.name) == ["Alpha", "Zeta"])
         #expect(metadata.tags.map(\.colorHex) == ["#00ff00", "#ff0000"])
@@ -449,6 +478,7 @@ struct FeedivoTests {
         #expect(previewInput.content == nil)
         #expect(previewInput.offlineContent == nil)
         #expect(previewInput.feedTitle == "Test Feed")
+        #expect(preview.readingTimeText == "ca. 1 Min. Lesezeit")
         #expect(preview.metadataText.contains("Test Feed"))
         #expect(preview.contentBlocks == [
             .image(urlString: "https://example.com/bild.jpg"),

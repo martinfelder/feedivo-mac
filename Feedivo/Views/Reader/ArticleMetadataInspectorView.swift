@@ -36,24 +36,16 @@ struct ArticleMetadataInspectorView: View {
     private var automaticallySaveStarredArticles = OfflineReadingSettings.defaultAutomaticallySaveStarredArticles
 
     let article: Article
+    let feedName: String?
+    let folderName: String?
+    let contentAvailability: ReaderContentAvailability
+    let readingTime: String?
     let close: () -> Void
     var isOfflineOperationInProgress = false
     var toggleOfflineAvailability: () -> Void = {}
 
     private var folderNames: [String] {
         FeedFolderOrganizer.folderNames(in: feeds, folders: folders)
-    }
-
-    private var folderSelection: Binding<String> {
-        Binding {
-            article.feed?.folderName ?? ""
-        } set: { newValue in
-            ArticleMetadataEditor.setFolderName(
-                newValue.isEmpty ? nil : newValue,
-                for: article,
-                context: modelContext
-            )
-        }
     }
 
     private var sortedAllTags: [Tag] {
@@ -63,11 +55,16 @@ struct ArticleMetadataInspectorView: View {
     }
 
     private var details: ArticleInspectorDetails {
-        ArticleInspectorFormatter.details(for: article)
+        ArticleInspectorFormatter.details(
+            for: article,
+            feedName: feedName,
+            contentAvailability: contentAvailability,
+            readingTime: readingTime
+        )
     }
 
     private var selectedFolderTitle: String {
-        guard let folderName = FeedFolderOrganizer.normalizedFolderName(article.feed?.folderName) else {
+        guard let folderName = FeedFolderOrganizer.normalizedFolderName(folderName) else {
             return String(localized: "reader.inspector.noFolder")
         }
 
@@ -674,25 +671,20 @@ struct ArticleInspectorDetails: Equatable {
 }
 
 enum ArticleInspectorFormatter {
-    static func details(for article: Article) -> ArticleInspectorDetails {
-        let contentAvailability = ReaderContentAvailability.resolved(
-            offlineState: article.offlineState,
-            offlineContent: article.offlineContent,
-            content: article.content,
-            summary: article.summary
-        )
-        let feedName = normalizedText(article.feed?.title)
-
+    static func details(
+        for article: Article,
+        feedName: String?,
+        contentAvailability: ReaderContentAvailability,
+        readingTime: String?
+    ) -> ArticleInspectorDetails {
+        let feedName = normalizedText(feedName)
         return ArticleInspectorDetails(
             title: normalizedText(article.title) ?? String(localized: "reader.inspector.unavailable"),
             summaryExcerpt: summaryExcerpt(article.summary),
             feedName: feedName,
             feedInitial: feedInitial(feedName),
             publishedAtText: publishedAtText(article.publishedAt),
-            readingTime: ReaderMetadataFormatter.readingTimeText(
-                content: preferredReadingContent(for: article),
-                summary: article.summary
-            ),
+            readingTime: normalizedText(readingTime),
             isRead: article.isRead,
             readStateKey: article.isRead ? "reader.inspector.read" : "reader.inspector.unread",
             readStateSystemImage: article.isRead ? "checkmark.circle" : "circle.fill",
@@ -709,14 +701,6 @@ enum ArticleInspectorFormatter {
             offlineActionSystemImage: article.offlineState.isAvailable ? "trash" : "arrow.down.circle",
             originalURL: originalURL(from: article.link)
         )
-    }
-
-    private static func preferredReadingContent(for article: Article) -> String? {
-        if article.offlineState.isAvailable, let offlineContent = normalizedText(article.offlineContent) {
-            return offlineContent
-        }
-
-        return article.content
     }
 
     private static func publishedAtText(_ date: Date?) -> String? {
