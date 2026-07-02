@@ -3,12 +3,39 @@ import SwiftUI
 
 struct SQLiteFeedArticleListView: View {
     @Environment(\.feedivoDatabase) private var database
+    @AppStorage(SidebarBadgeInvalidation.directTagVersionKey)
+    private var directTagVersion = 0
 
-    let feed: Feed
+    private enum Scope {
+        case feed(Feed)
+        case tag(Tag)
+    }
+
+    private let scope: Scope
     @Binding var selectedArticleID: String?
     @Binding var navigationState: SQLiteArticleNavigationState
 
     @State private var state = SQLiteFeedArticleListState()
+
+    init(
+        feed: Feed,
+        selectedArticleID: Binding<String?>,
+        navigationState: Binding<SQLiteArticleNavigationState>
+    ) {
+        self.scope = .feed(feed)
+        self._selectedArticleID = selectedArticleID
+        self._navigationState = navigationState
+    }
+
+    init(
+        tag: Tag,
+        selectedArticleID: Binding<String?>,
+        navigationState: Binding<SQLiteArticleNavigationState>
+    ) {
+        self.scope = .tag(tag)
+        self._selectedArticleID = selectedArticleID
+        self._navigationState = navigationState
+    }
 
     var body: some View {
         Group {
@@ -38,7 +65,7 @@ struct SQLiteFeedArticleListView: View {
                 ContentUnavailableView(
                     "Keine Artikel",
                     systemImage: "doc.text",
-                    description: Text("Für diesen Feed sind noch keine SQLite-Artikel gespeichert.")
+                    description: Text(emptyDescription)
                 )
             case .idle, .loaded:
                 articleList
@@ -53,7 +80,7 @@ struct SQLiteFeedArticleListView: View {
         .onChange(of: state.navigationState) {
             navigationState = state.navigationState
         }
-        .navigationTitle(feed.title)
+        .navigationTitle(navigationTitle)
     }
 
     private var articleList: some View {
@@ -106,7 +133,34 @@ struct SQLiteFeedArticleListView: View {
     }
 
     private var loadToken: String {
-        "\(feed.url)#\(selectedArticleID ?? "nil")"
+        "\(scopeToken)#\(directTagVersion)#\(selectedArticleID ?? "nil")"
+    }
+
+    private var scopeToken: String {
+        switch scope {
+        case let .feed(feed):
+            return "feed:\(feed.url)"
+        case let .tag(tag):
+            return "tag:\(tag.id.uuidString)"
+        }
+    }
+
+    private var navigationTitle: String {
+        switch scope {
+        case let .feed(feed):
+            return feed.title
+        case let .tag(tag):
+            return tag.name
+        }
+    }
+
+    private var emptyDescription: String {
+        switch scope {
+        case .feed:
+            return "Für diesen Feed sind noch keine SQLite-Artikel gespeichert."
+        case .tag:
+            return "Für dieses Tag sind noch keine SQLite-Artikel gespeichert."
+        }
     }
 
     private func rowBackground(for row: ArticleListSnapshot) -> Color {
@@ -116,11 +170,20 @@ struct SQLiteFeedArticleListView: View {
     }
 
     private func reload() {
-        state.load(
-            swiftDataFeedURL: feed.url,
-            database: database,
-            selectedArticleID: selectedArticleID
-        )
+        switch scope {
+        case let .feed(feed):
+            state.load(
+                swiftDataFeedURL: feed.url,
+                database: database,
+                selectedArticleID: selectedArticleID
+            )
+        case let .tag(tag):
+            state.load(
+                tagID: tag.id.uuidString,
+                database: database,
+                selectedArticleID: selectedArticleID
+            )
+        }
         navigationState = state.navigationState
     }
 

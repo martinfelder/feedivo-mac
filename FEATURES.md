@@ -869,12 +869,13 @@
     `hideArticle`- und `notify`-Regeln laufen für neue SQLite-Artikel über
     sendbare Regel-/Artikelsnapshots. `assignTag`-Regeln schreiben inzwischen
     über `TagStore` in `tags` und `article_tags`; Sidebar-Tag-Badges für direkte
-    Artikel-Tags lesen Counts inzwischen aus `TagStore.sidebarTags()`. Tag-UI,
-    Tag-Filter und Feed-Tags folgen in weiteren SQLite-Slices.
+    Artikel-Tags lesen Counts inzwischen aus `TagStore.sidebarTags()`.
+    Direkte Tag-Filter laden Artikel über `TimelineScope.tag` aus SQLite.
+    Tag-UI und Feed-Tags folgen in weiteren SQLite-Slices.
   - Sidebar-Feed-Zeilen lesen Anzeige-Snapshots aus SQLite: `SQLiteSidebarState`
     lädt `FeedSidebarSnapshot` über `FeedStore`, `FeedRowView` bevorzugt daraus
     Titel, Favicon und ungelesene Counts. Auswahl, Kontextmenüs,
-    Feed-Eigenschaften, Tag-Filter, Feed-Tags und Smart-Folder-Badges bleiben
+    Feed-Eigenschaften, Tag-Manager, Feed-Tags und Smart-Folder-Badges bleiben
     für diesen Slice noch an den bestehenden SwiftData-/Legacy-Pfaden.
   - SQLite-Statusänderungen halten Feed-Zähler aktuell: `ArticleStatusStore`
     berechnet nach Read-/Hidden-Mutationen `feeds.unreadCount` direkt in SQLite
@@ -962,6 +963,8 @@
   - Sidebar-Tag-Badges für direkt getaggte Artikel lesen Zähler aus
     `article_tags` über `TagStore.sidebarTags()` und `SQLiteSidebarState`;
     Feed-Tags bleiben bis zur eigenen SQLite-Migration Legacy
+  - Direkte Tag-Filter verwenden `TimelineScope.tag` und die SQLite-
+    Artikelliste/Reader-Kette; Feed-Tags bleiben bis zur eigenen Migration Legacy
   - Status-Badges beobachten nur eine kleine Query auf Stern-/Archiv-/
     Hidden-Artikel
   - Artikelzeilen laden Vorschaubilder über größenbegrenzte Thumbnails aus dem

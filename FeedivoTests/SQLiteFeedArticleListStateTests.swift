@@ -34,6 +34,25 @@ struct SQLiteFeedArticleListStateTests {
         #expect(state.rows.first(where: { $0.id == firstID })?.isRead == true)
     }
 
+    @Test func listStateLaedtTagScopeAusSQLite() throws {
+        let (database, firstID, secondID) = try makeDatabaseWithFeedAndArticles()
+        let tagStore = TagStore(database: database)
+        let state = SQLiteFeedArticleListState()
+        try tagStore.save(TagRecord(id: "tag-swift", name: "Swift", colorHex: "#ff0000"))
+        try tagStore.assignTag(tagID: "tag-swift", toArticleID: firstID, at: Date(timeIntervalSince1970: 100))
+        try tagStore.assignTag(tagID: "tag-swift", toArticleID: secondID, at: Date(timeIntervalSince1970: 200))
+
+        state.load(
+            tagID: "tag-swift",
+            database: database,
+            selectedArticleID: secondID
+        )
+
+        #expect(state.loadState == .loaded)
+        #expect(state.rows.map(\.id) == [secondID, firstID])
+        #expect(state.navigationState.nextArticleID == firstID)
+    }
+
     @Test func listStateMeldetFehlendenSQLiteFeed() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let state = SQLiteFeedArticleListState()

@@ -115,6 +115,71 @@ struct SQLiteTimelineStoreTests {
         #expect(count == 1)
     }
 
+    @Test func timelineFetchesDirectlyTaggedArticlesFromSQLite() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let statusStore = ArticleStatusStore(database: database)
+        let tagStore = TagStore(database: database)
+        let timelineStore = TimelineStore(database: database)
+
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example"))
+        try tagStore.save(TagRecord(id: "tag-swift", name: "Swift", colorHex: "#ff0000"))
+        try tagStore.save(TagRecord(id: "tag-other", name: "Other", colorHex: "#00ff00"))
+        let olderTaggedID = try articleStore.upsert(
+            ArticleUpsertInput(
+                feedID: "feed-1",
+                sourceID: "older-tagged",
+                title: "Older Tagged",
+                publishedAt: Date(timeIntervalSince1970: 100),
+                arrivedAt: Date(timeIntervalSince1970: 100)
+            )
+        )
+        let newerTaggedID = try articleStore.upsert(
+            ArticleUpsertInput(
+                feedID: "feed-1",
+                sourceID: "newer-tagged",
+                title: "Newer Tagged",
+                publishedAt: Date(timeIntervalSince1970: 300),
+                arrivedAt: Date(timeIntervalSince1970: 300)
+            )
+        )
+        let hiddenTaggedID = try articleStore.upsert(
+            ArticleUpsertInput(
+                feedID: "feed-1",
+                sourceID: "hidden-tagged",
+                title: "Hidden Tagged",
+                publishedAt: Date(timeIntervalSince1970: 400),
+                arrivedAt: Date(timeIntervalSince1970: 400)
+            )
+        )
+        let otherTagID = try articleStore.upsert(
+            ArticleUpsertInput(
+                feedID: "feed-1",
+                sourceID: "other-tag",
+                title: "Other Tag",
+                publishedAt: Date(timeIntervalSince1970: 500),
+                arrivedAt: Date(timeIntervalSince1970: 500)
+            )
+        )
+
+        try tagStore.assignTag(tagID: "tag-swift", toArticleID: olderTaggedID, at: Date(timeIntervalSince1970: 110))
+        try tagStore.assignTag(tagID: "tag-swift", toArticleID: newerTaggedID, at: Date(timeIntervalSince1970: 310))
+        try tagStore.assignTag(tagID: "tag-swift", toArticleID: hiddenTaggedID, at: Date(timeIntervalSince1970: 410))
+        try tagStore.assignTag(tagID: "tag-other", toArticleID: otherTagID, at: Date(timeIntervalSince1970: 510))
+        try statusStore.setHidden(true, articleID: hiddenTaggedID, at: Date(timeIntervalSince1970: 420))
+
+        let snapshots = try timelineStore.articles(
+            scope: .tag("tag-swift"),
+            includeRead: true,
+            includeHidden: false,
+            limit: 20
+        )
+
+        #expect(snapshots.map(\.id) == [newerTaggedID, olderTaggedID])
+        #expect(snapshots.map(\.feedTitle) == ["Example", "Example"])
+    }
+
     @Test func timelineUsesMinimumLimitOfOne() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let feedStore = FeedStore(database: database)

@@ -16,7 +16,12 @@ final class SQLiteFeedArticleListState {
     var rows: [ArticleListSnapshot] = []
     var navigationState = SQLiteArticleNavigationState.empty
 
-    private var currentFeedURL: String?
+    private enum CurrentScope {
+        case feedURL(String)
+        case tagID(String)
+    }
+
+    private var currentScope: CurrentScope?
     private var currentSelectedArticleID: String?
 
     func load(
@@ -24,7 +29,7 @@ final class SQLiteFeedArticleListState {
         database: FeedivoDatabase?,
         selectedArticleID: String?
     ) {
-        currentFeedURL = swiftDataFeedURL
+        currentScope = .feedURL(swiftDataFeedURL)
         currentSelectedArticleID = selectedArticleID
 
         guard let database else {
@@ -42,17 +47,31 @@ final class SQLiteFeedArticleListState {
                 return
             }
 
-            rows = try TimelineStore(database: database).articles(
-                scope: .feed(feed.id),
-                includeRead: true,
-                includeHidden: false,
-                limit: 500
-            )
-            navigationState = SQLiteArticleNavigationState(
-                articleIDs: rows.map(\.id),
-                selectedArticleID: selectedArticleID
-            )
-            loadState = .loaded
+            try loadTimeline(scope: .feed(feed.id), database: database, selectedArticleID: selectedArticleID)
+        } catch {
+            rows = []
+            navigationState = .empty
+            loadState = .failed(error.localizedDescription)
+        }
+    }
+
+    func load(
+        tagID: String,
+        database: FeedivoDatabase?,
+        selectedArticleID: String?
+    ) {
+        currentScope = .tagID(tagID)
+        currentSelectedArticleID = selectedArticleID
+
+        guard let database else {
+            rows = []
+            navigationState = .empty
+            loadState = .missingSQLiteDatabase
+            return
+        }
+
+        do {
+            try loadTimeline(scope: .tag(tagID), database: database, selectedArticleID: selectedArticleID)
         } catch {
             rows = []
             navigationState = .empty
@@ -99,17 +118,44 @@ final class SQLiteFeedArticleListState {
             try operation(ArticleStatusStore(database: database))
             currentSelectedArticleID = articleID
 
-            guard let currentFeedURL else {
+            guard let currentScope else {
                 return
             }
 
-            load(
-                swiftDataFeedURL: currentFeedURL,
-                database: database,
-                selectedArticleID: currentSelectedArticleID
-            )
+            switch currentScope {
+            case let .feedURL(feedURL):
+                load(
+                    swiftDataFeedURL: feedURL,
+                    database: database,
+                    selectedArticleID: currentSelectedArticleID
+                )
+            case let .tagID(tagID):
+                load(
+                    tagID: tagID,
+                    database: database,
+                    selectedArticleID: currentSelectedArticleID
+                )
+            }
         } catch {
             loadState = .failed(error.localizedDescription)
         }
+    }
+
+    private func loadTimeline(
+        scope: TimelineScope,
+        database: FeedivoDatabase,
+        selectedArticleID: String?
+    ) throws {
+        rows = try TimelineStore(database: database).articles(
+            scope: scope,
+            includeRead: true,
+            includeHidden: false,
+            limit: 500
+        )
+        navigationState = SQLiteArticleNavigationState(
+            articleIDs: rows.map(\.id),
+            selectedArticleID: selectedArticleID
+        )
+        loadState = .loaded
     }
 }

@@ -4,6 +4,7 @@ import GRDB
 enum TimelineScope: Equatable, Sendable {
     case all
     case feed(String)
+    case tag(String)
 }
 
 struct TimelineStore {
@@ -28,7 +29,17 @@ struct TimelineStore {
             break
         case let .feed(feedID):
             whereClauses.append("a.feedID = ?")
-            arguments.append(contentsOf: [feedID])
+            _ = arguments.append(contentsOf: [feedID])
+        case let .tag(tagID):
+            whereClauses.append("""
+                EXISTS (
+                    SELECT 1
+                    FROM article_tags at
+                    WHERE at.articleID = a.id
+                        AND at.tagID = ?
+                )
+                """)
+            _ = arguments.append(contentsOf: [tagID])
         }
 
         if !includeRead {
@@ -40,7 +51,7 @@ struct TimelineStore {
         }
 
         let whereSQL = whereClauses.isEmpty ? "" : "WHERE \(whereClauses.joined(separator: " AND "))"
-        arguments.append(contentsOf: [safeLimit])
+        _ = arguments.append(contentsOf: [safeLimit])
 
         return try database.read { db in
             try ArticleListSnapshot.fetchAll(db, sql: """

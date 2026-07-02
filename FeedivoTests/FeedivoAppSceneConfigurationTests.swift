@@ -338,6 +338,15 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(contentSource.contains("navigationState: $sqliteArticleNavigationState"))
     }
 
+    @Test func contentViewNutztSQLiteFeedArticleListFuerSelectedTag() throws {
+        let projectRoot = projectRootURL()
+        let contentSource = try source(at: "Feedivo/Views/ContentView.swift", projectRoot: projectRoot)
+        let compactContentSource = compact(contentSource)
+
+        #expect(compactContentSource.contains("SQLiteFeedArticleListView(tag:tag,selectedArticleID:$selectedSQLiteArticleID,navigationState:$sqliteArticleNavigationState)"))
+        #expect(!compactContentSource.contains("ArticleListView(tag:tag,selectedArticle:$selectedArticle"))
+    }
+
     @Test func contentViewNutztSQLiteReaderFuerSQLiteAuswahl() throws {
         let projectRoot = projectRootURL()
         let contentSource = try source(at: "Feedivo/Views/ContentView.swift", projectRoot: projectRoot)

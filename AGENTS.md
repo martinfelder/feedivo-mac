@@ -459,9 +459,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Die Sidebar zeigt eine eigene `Tags`-Section mit Tag-Icon; der Button öffnet den
   zentralen `TagManagerView`.
 - Vorhandene Tags werden in der Sidebar als klickbare Zeilen mit Farbindikator aus
-  `Tag.colorHex` angezeigt; ein Klick filtert die Artikelliste feedübergreifend
-  auf Artikel mit diesem Tag. Der Filter umfasst direkt getaggte Artikel und Artikel
-  aus Feeds, denen das Tag zugewiesen ist.
+  `Tag.colorHex` angezeigt; ein Klick filtert die Artikelliste feedübergreifend.
+  Im SQLite-Hauptpfad lädt `SQLiteFeedArticleListView` direkte Artikel-Tags über
+  `TimelineScope.tag` aus `article_tags`; Feed-Tag-Treffer bleiben bis zur
+  `feed_tags`-Migration noch Legacy.
 - Neu erstellte Tags werden nach erfolgreichem Anlegen direkt als Sidebar-Auswahl
   gesetzt, damit der schnelle Tag-Filter sofort sichtbar und nutzbar ist.
 - Tag-Zeilen zeigen rechts eine dezente Badge mit der Anzahl passender Artikel.
@@ -2266,8 +2267,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   `hideArticle` setzt direkt `article_statuses.isHidden`, `notify` erzeugt
   Regel-Benachrichtigungen und `assignTag` schreibt Tags in `tags`/
   `article_tags`. Sidebar-Tag-Badges für direkte Artikel-Tags lesen ihre Counts
-  inzwischen über SQLite-Snapshots; Tag-Filter, Tag-Manager und Feed-Tags bleiben
-  noch auf dem Legacy-Pfad.
+  inzwischen über SQLite-Snapshots; direkte Tag-Filter laden ihre Artikelliste
+  über `TimelineScope.tag`. Tag-Manager und Feed-Tags bleiben noch auf dem
+  Legacy-Pfad.
   Die normalen Feed-Zeilen in der Sidebar nutzen `SQLiteSidebarState` und
   `FeedSidebarSnapshot` für Anzeige und ungelesene Badges; Auswahl und
   Kontextmenüs bleiben übergangsweise SwiftData. SQLite-Statusänderungen halten
@@ -2300,9 +2302,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Scrollbeobachter-Ansatz hat das Scrollgefühl im Reader verschlechtert und wurde
   wieder entfernt. Für v1 bleibt der Reader ohne Lesefortschritt.
 - Nächster sinnvoller Fokus: verbleibende Hauptpfad-Lücken schließen:
-  Tag-Filter, Tag-Manager und Feed-Tags auf SQL-Snapshots migrieren, Feed-Logs
-  in der UI abrunden, Sidebar-Smart-Folder-Badges auf SQL-Snapshots migrieren
-  und danach Suche/Filter schrittweise auf SQLite ziehen.
+  Tag-Manager und Feed-Tags auf SQL-Snapshots migrieren, Feed-Logs in der UI
+  abrunden, Sidebar-Smart-Folder-Badges auf SQL-Snapshots migrieren und danach
+  Suche/Filter schrittweise auf SQLite ziehen.
 - Feature-Roadmap ist in `FEATURES.md` im Root dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
@@ -2310,19 +2312,24 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 
 ## Letzte Änderungen
 
+- 2026-07-02: Direkte Tag-Filter auf SQLite umgestellt. `TimelineScope.tag`
+  filtert Artikel über `article_tags`, `SQLiteFeedArticleListState` kann neben
+  Feed-URLs auch Tag-IDs laden, und `ContentView` nutzt bei Tag-Auswahl den
+  SQLite-Listen-/Reader-Pfad. Feed-Tags bleiben bis zur eigenen
+  `feed_tags`-Migration außen vor.
+
 - 2026-07-02: Sidebar-Tag-Badges an SQLite-Snapshots angeschlossen.
   `TagStore.sidebarTags()` liefert `TagSidebarSnapshot`s mit direkten
   Artikel-Zählern aus `article_tags`, `SQLiteSidebarState` lädt diese Snapshots
   zusammen mit Feed-Snapshots, und `SidebarView` zeigt Tag-Badges daraus statt
-  über SwiftData-`fetchCount`. Feed-Tags und echte Tag-Filter bleiben der nächste
-  Tag-Migrationsslice.
+  über SwiftData-`fetchCount`. Feed-Tags bleiben der nächste Tag-Migrationsslice.
 
 - 2026-07-02: SQLite-Tag-Fundament und `assignTag` im SQLite-first Refresh
   umgesetzt. Migration v2 legt `tags` und `article_tags` mit passenden Indizes
   und Foreign-Key-Kaskaden an, `TagStore` speichert Tags und idempotente
   Artikel-Tag-Zuordnungen, und `SQLiteFeedRefreshService` schreibt
-  `assignTag`-Regeltreffer direkt nach SQLite. Tag-Sidebar, Tag-Filter und
-  Tag-Badges bleiben ein eigener UI-Slice.
+  `assignTag`-Regeltreffer direkt nach SQLite. Die UI-Anbindung wurde danach in
+  separaten Tag-Slices nachgezogen.
 
 - 2026-07-02: SQLite-first Sammelrefresh wendet erste Regeln ohne SwiftData-
   Artikelobjekte an. `RuleEngine` erzeugt sendbare `RuleSnapshot`s und leichte
