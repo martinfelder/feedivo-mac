@@ -4,6 +4,8 @@
 
 **Goal:** Render normal feed rows and unread feed visibility from SQLite snapshots while keeping SwiftData feed objects for selection, rename, properties and deletion during the transition.
 
+**Status 2026-07-02:** Implemented. Sidebar feed rows now prefer SQLite snapshots for title, favicon and unread count, while existing SwiftData feed objects remain responsible for selection, context menus and feed management actions.
+
 **Architecture:** Add a small `SQLiteSidebarState` that loads `FeedSidebarSnapshot` rows from `FeedStore`. `SidebarView` keeps its existing SwiftData `@Query` for feed identity and actions, but overlays SQLite display data by matching `Feed.id.uuidString` to `FeedSidebarSnapshot.id`. `FeedRowView` accepts an optional SQLite snapshot and reads title, favicon and unread badge from it when available.
 
 **Tech Stack:** Swift, SwiftUI, SwiftData, GRDB, Swift Testing, `xcodebuild`.
@@ -39,7 +41,7 @@
 - Modify: `Feedivo/Stores/FeedStore.swift`
 - Modify: `FeedivoTests/SQLiteFeedStoreTests.swift`
 
-- [ ] **Step 1: Write failing test**
+- [x] **Step 1: Write failing test**
 
 Add a test:
 
@@ -57,7 +59,7 @@ Add a test:
 }
 ```
 
-- [ ] **Step 2: Run red**
+- [x] **Step 2: Run red**
 
 Run:
 
@@ -67,7 +69,7 @@ xcodebuild test -quiet -project Feedivo.xcodeproj -scheme Feedivo -destination '
 
 Expected: fail because `sidebarFeeds(showsReadFeeds:)` does not exist.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Add:
 
@@ -81,11 +83,11 @@ func sidebarFeeds(showsReadFeeds: Bool) throws -> [FeedSidebarSnapshot] {
 }
 ```
 
-- [ ] **Step 4: Run green**
+- [x] **Step 4: Run green**
 
 Run the same test command. Expected: `TEST SUCCEEDED`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add Feedivo/Stores/FeedStore.swift FeedivoTests/SQLiteFeedStoreTests.swift docs/superpowers/plans/2026-07-02-sqlite-sidebar-feed-snapshots.md
@@ -98,7 +100,7 @@ git commit -m "feat: filter sqlite sidebar feeds"
 - Create: `Feedivo/ViewModels/SQLiteSidebarState.swift`
 - Create: `FeedivoTests/SQLiteSidebarStateTests.swift`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Add tests that load snapshots from an in-memory SQLite DB and verify:
 
@@ -116,7 +118,7 @@ and:
 
 The second test creates two SwiftData `Feed` objects with UUIDs matching SQLite feed IDs and asserts that `visibleFeeds(from:)` only returns the unread SQLite feed when `showsReadFeeds` is false.
 
-- [ ] **Step 2: Run red**
+- [x] **Step 2: Run red**
 
 Run:
 
@@ -126,7 +128,7 @@ xcodebuild test -quiet -project Feedivo.xcodeproj -scheme Feedivo -destination '
 
 Expected: fail because `SQLiteSidebarState` does not exist.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `@Observable @MainActor final class SQLiteSidebarState` with:
 
@@ -140,11 +142,11 @@ func snapshot(for feed: Feed) -> FeedSidebarSnapshot?
 func visibleFeeds(from feeds: [Feed], showsReadFeeds: Bool) -> [Feed]
 ```
 
-- [ ] **Step 4: Run green**
+- [x] **Step 4: Run green**
 
 Run the same test command. Expected: `TEST SUCCEEDED`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add Feedivo/ViewModels/SQLiteSidebarState.swift FeedivoTests/SQLiteSidebarStateTests.swift
@@ -158,7 +160,7 @@ git commit -m "feat: add sqlite sidebar state"
 - Modify: `Feedivo/Views/Sidebar/SidebarView.swift`
 - Modify: `FeedivoTests/FeedivoAppSceneConfigurationTests.swift`
 
-- [ ] **Step 1: Write failing source tests**
+- [x] **Step 1: Write failing source tests**
 
 Add tests asserting:
 
@@ -177,7 +179,7 @@ Expected source markers:
 - `sqliteSnapshot?.title`
 - `sqliteSnapshot?.faviconURL`
 
-- [ ] **Step 2: Run red**
+- [x] **Step 2: Run red**
 
 Run:
 
@@ -187,7 +189,7 @@ xcodebuild test -quiet -project Feedivo.xcodeproj -scheme Feedivo -destination '
 
 Expected: fail because Sidebar UI wiring is missing.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `FeedRowView`, add `let sqliteSnapshot: FeedSidebarSnapshot? = nil` and use helper properties:
 
@@ -204,11 +206,11 @@ let visibleFeeds = sqliteSidebarState.visibleFeeds(from: feeds, showsReadFeeds: 
 FeedRowView(feed: feed, sqliteSnapshot: sqliteSidebarState.snapshot(for: feed), ...)
 ```
 
-- [ ] **Step 4: Run green**
+- [x] **Step 4: Run green**
 
 Run the same source-test command. Expected: `TEST SUCCEEDED`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add Feedivo/Views/Sidebar/FeedRowView.swift Feedivo/Views/Sidebar/SidebarView.swift FeedivoTests/FeedivoAppSceneConfigurationTests.swift
@@ -222,11 +224,11 @@ git commit -m "feat: render sidebar feed rows from sqlite snapshots"
 - Modify: `FEATURES.md`
 - Modify this plan file.
 
-- [ ] **Step 1: Update docs**
+- [x] **Step 1: Update docs**
 
 Document that normal feed rows now prefer SQLite snapshots for title, favicon and unread counts.
 
-- [ ] **Step 2: Run focused verification**
+- [x] **Step 2: Run focused verification**
 
 ```bash
 xcodebuild test -quiet -project Feedivo.xcodeproj -scheme Feedivo -destination 'platform=macOS' -only-testing:FeedivoTests/SQLiteFeedStoreTests -only-testing:FeedivoTests/SQLiteSidebarStateTests -only-testing:FeedivoTests/FeedivoAppSceneConfigurationTests
@@ -234,7 +236,7 @@ xcodebuild test -quiet -project Feedivo.xcodeproj -scheme Feedivo -destination '
 
 Expected: `TEST SUCCEEDED`.
 
-- [ ] **Step 3: Run build**
+- [x] **Step 3: Run build**
 
 ```bash
 xcodebuild build -quiet -project Feedivo.xcodeproj -scheme Feedivo -destination 'platform=macOS'
@@ -242,7 +244,7 @@ xcodebuild build -quiet -project Feedivo.xcodeproj -scheme Feedivo -destination 
 
 Expected: `BUILD SUCCEEDED`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add AGENTS.md FEATURES.md docs/superpowers/plans/2026-07-02-sqlite-sidebar-feed-snapshots.md

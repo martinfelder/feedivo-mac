@@ -863,6 +863,11 @@
     Refresh spiegeln Feed- und Artikelsnapshots nach SQLite; der
     ModelContainer-Refresh nutzt zusätzlich `SQLiteFeedRefreshService`, damit die
     neue Feed-Liste nach realen Refreshes Daten sieht.
+  - Sidebar-Feed-Zeilen lesen Anzeige-Snapshots aus SQLite: `SQLiteSidebarState`
+    lädt `FeedSidebarSnapshot` über `FeedStore`, `FeedRowView` bevorzugt daraus
+    Titel, Favicon und ungelesene Counts. Auswahl, Kontextmenüs,
+    Feed-Eigenschaften, Tags und Smart-Folder-Badges bleiben für diesen Slice
+    noch an den bestehenden SwiftData-/Legacy-Pfaden.
   - OPML-Import und `Alle Feeds aktualisieren` rufen Feeds nur noch begrenzt parallel ab
   - Sidebar nutzt keine globale Artikel-Query mehr für Badge-Signaturen; beim
     Lesen invalidieren `isRead`-Änderungen dadurch nicht mehr alle Sidebar-
