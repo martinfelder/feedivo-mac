@@ -140,4 +140,17 @@ class Feed {
         httpContentHash = validators.contentHash
         lastHTTPStatusCode = validators.lastStatusCode
     }
+
+    func applyHTTPValidatorsIfChanged(_ validators: FeedHTTPValidators) -> Bool {
+        let validatorsChanged = httpETag != validators.eTag
+            || httpLastModified != validators.lastModified
+            || httpContentHash != validators.contentHash
+            || lastHTTPStatusCode != validators.lastStatusCode
+        guard validatorsChanged else {
+            return false
+        }
+
+        applyHTTPValidators(validators)
+        return true
+    }
 }

@@ -126,9 +126,11 @@ struct FeedBackgroundRefreshService {
             feed.applyHTTPValidators(validators)
             parsedFeed = updatedFeed
         case .notModified(let validators):
-            feed.applyHTTPValidators(validators)
-            feed.lastRefreshed = refreshDate
-            try context.save()
+            let validatorsChanged = feed.applyHTTPValidatorsIfChanged(validators)
+            if validatorsChanged {
+                feed.lastRefreshed = refreshDate
+                try context.save()
+            }
 
             return FeedBackgroundRefreshResult(
                 feedNotification: FeedRefreshNotificationResult(

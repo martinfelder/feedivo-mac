@@ -573,9 +573,12 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   nutzen diese Werte für Conditional GET und steigen bei `.notModified` sofort
   nach `lastRefreshed` und Validator-Update aus. Unveränderte Feeds schreiben
   bewusst keinen neuen Info-Logeintrag, damit große Sammel-Refreshes nicht
-  hunderte reine “0 neue Artikel”-Inserts erzeugen. Dadurch entfallen für
-  unveränderte Feeds Artikel-Lookup, Bildanreicherung, Metadatenvergleich,
-  Regelverarbeitung und die meisten SwiftData-Invalidierungen.
+  hunderte reine “0 neue Artikel”-Inserts erzeugen. Wenn ein unveränderter Feed
+  dieselben Validatoren und denselben HTTP-Status bereits gespeichert hat, wird
+  auch `lastRefreshed` nicht neu gesetzt und kein SwiftData-Save ausgelöst; der
+  laufende Sammel-Refresh-Status zeigt die Prüfung trotzdem als erfolgreich.
+  Dadurch entfallen für unveränderte Feeds Artikel-Lookup, Bildanreicherung,
+  Metadatenvergleich, Regelverarbeitung und die meisten SwiftData-Invalidierungen.
 - Der Refresh lädt den Altbestand eines Feeds nicht mehr über die komplette
   `feed.articles`-Relationship, sondern per gezieltem `FetchDescriptor<Article>`
   über `Article.feedID` mit schlankem `propertiesToFetch`. Das vermeidet große
@@ -2369,7 +2372,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   identischem Body-Hash ohne FeedKit-Parsing, Artikel-Lookup, Bildanreicherung
   oder Regelverarbeitung. Unveränderte Feeds schreiben außerdem keinen neuen
   Info-Logeintrag mehr, damit regelmäßige Sammel-Refreshes keine Log-Insert-
-  Wellen für reine “0 neue Artikel”-Ergebnisse auslösen.
+  Wellen für reine “0 neue Artikel”-Ergebnisse auslösen. Wenn sich bei einem
+  unveränderten Feed auch die gespeicherten HTTP-Validatoren nicht ändern, bleibt
+  das `Feed`-Objekt komplett unberührt und es wird kein SwiftData-Save ausgelöst.
 
 - 2026-07-02: Großer Refresh-Performance-Schritt umgesetzt. Sammel-Refreshes aus
   Hauptfenster, Start-Refresh und periodischem Background-Scheduler laufen nun

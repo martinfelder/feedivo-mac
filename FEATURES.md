@@ -196,7 +196,9 @@
   ohne FeedKit-Parsing, Artikel-Lookup, Bildanreicherung und Regelverarbeitung
   abgeschlossen. Für unveränderte Feeds wird kein neuer Info-Logeintrag
   geschrieben, damit große Sammel-Refreshes keine reinen “0 neue Artikel”-Logs
-  massenhaft in SwiftData einfügen.
+  massenhaft in SwiftData einfügen. Wenn gespeicherte Validatoren und HTTP-Status
+  bereits identisch sind, bleibt das `Feed`-Objekt unverändert und es wird kein
+  SwiftData-Save ausgelöst.
 
 ### 4.5 Automatischer Refresh
 - **Status:** ✔️ Fertig
@@ -880,7 +882,8 @@
     und Body-Hash) für Conditional GET. Bei HTTP 304 oder identischem Body-Hash
     wird der Feed als unverändert behandelt und die teure Parse-/SwiftData-
     Verarbeitung übersprungen. Unveränderte Feeds schreiben außerdem keinen neuen
-    Info-Logeintrag.
+    Info-Logeintrag; bei identischen gespeicherten Validatoren wird auch das
+    `Feed`-Objekt nicht neu gespeichert.
   - Der Refresh-Lookup lässt `Article.content`/`Article.offlineContent` weg und
     schreibt bestehende Artikelwerte nur bei echten Änderungen oder fehlenden
     Nachträgen

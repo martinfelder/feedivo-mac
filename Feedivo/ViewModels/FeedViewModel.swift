@@ -1004,9 +1004,11 @@ final class FeedViewModel {
             feed.applyHTTPValidators(validators)
             parsedFeed = updatedFeed
         case .notModified(let validators):
-            feed.applyHTTPValidators(validators)
-            feed.lastRefreshed = refreshDate
-            if savesImmediately {
+            let validatorsChanged = feed.applyHTTPValidatorsIfChanged(validators)
+            if validatorsChanged {
+                feed.lastRefreshed = refreshDate
+            }
+            if validatorsChanged, savesImmediately {
                 try context.save()
             }
 
