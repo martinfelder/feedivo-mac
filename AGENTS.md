@@ -593,7 +593,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Online-/Offline-Status ein aufklappbares Detailpanel. Fehlerfreie Ergebnisse
   verschwinden nach 2 Minuten automatisch, Fehler-Ergebnisse bleiben sichtbar.
   Der laufende Refresh-Status hat eine minimale Sichtbarkeitsdauer, damit schnelle
-  Refreshes nicht nur als unsichtbarer State-Wechsel durchlaufen.
+  Refreshes nicht nur als unsichtbarer State-Wechsel durchlaufen. Feed-Batches
+  werden in einer gemeinsamen `refreshItems`-Transformation auf `refreshing`
+  gesetzt, und der laufende `operationProgress` wird nicht mehr global animiert,
+  damit häufige Fortschrittsänderungen weniger UI-Arbeit auslösen.
 - `deleteFeed(_:context:)` — löscht einen Feed aus SwiftData; Artikel werden über
   die Cascade-Relationship mitgelöscht
 - `renameFeed(_:displayTitle:context:)` — speichert einen benutzerdefinierten
@@ -2187,7 +2190,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Query-Invalidierungen, damit die App während Feed-Aktualisierungen bedienbarer
   bleibt. Am 2026-07-02 nachgeschärft: Der Refresh-Lookup lädt bestehende Artikel
   ohne `Article.content`/`Article.offlineContent`, und gespeicherte Artikelwerte
-  werden nur noch bei echten Änderungen bzw. fehlenden Nachträgen gesetzt.
+  werden nur noch bei echten Änderungen bzw. fehlenden Nachträgen gesetzt. Außerdem
+  werden `refreshItems` beim Batch-Start gesammelt aktualisiert und laufende
+  Progress-Änderungen nicht mehr global animiert.
 
 - 2026-07-01: Feature 4.7 Feeds beim App-Start aktualisieren umgesetzt. In
   `Einstellungen → Aktualisierung` gibt es nun die separate Option `Feeds beim

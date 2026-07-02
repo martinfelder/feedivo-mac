@@ -248,7 +248,6 @@ struct ContentView: View {
         .task(id: recentRefreshStatusID) {
             await clearRecentRefreshStatusIfNeeded()
         }
-        .animation(.snappy(duration: 0.18), value: feedViewModel.operationProgress)
         .animation(.snappy(duration: 0.18), value: feedViewModel.recentRefreshStatus)
         .animation(.snappy(duration: 0.18), value: isRefreshStatusExpanded)
         .focusedValue(

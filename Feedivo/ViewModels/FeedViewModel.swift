@@ -53,6 +53,28 @@ struct FeedRefreshItem: Identifiable, Equatable {
     var status: FeedRefreshItemStatus
 }
 
+enum FeedRefreshItemStatusBatch {
+    static func updatedItems(
+        _ items: [FeedRefreshItem],
+        feedIDs: Set<UUID>,
+        status: FeedRefreshItemStatus
+    ) -> [FeedRefreshItem] {
+        guard !feedIDs.isEmpty else {
+            return items
+        }
+
+        return items.map { item in
+            guard feedIDs.contains(item.feedID), item.status != status else {
+                return item
+            }
+
+            var updatedItem = item
+            updatedItem.status = status
+            return updatedItem
+        }
+    }
+}
+
 enum OPMLImportFeedStatus: Equatable {
     case available
     case duplicate
@@ -626,11 +648,14 @@ final class FeedViewModel {
         // Feed-Refresh läuft bewusst gedrosselt. Bei vielen Feeds bleibt die App
         // dadurch bedienbarer und Server werden weniger hart getroffen.
         for feedBatch in feedBatches(from: feeds) {
+            updateRefreshItemStatuses(
+                for: feedBatch.map(\.id),
+                status: .refreshing
+            )
+
             await withTaskGroup(of: FeedRefreshOutcome.self) { group in
                 for feed in feedBatch {
                     group.addTask { @MainActor in
-                        self.updateRefreshItemStatus(for: feed.id, status: .refreshing)
-
                         do {
                             let result = try await self.refreshFeedContents(
                                 feed,
@@ -727,11 +752,20 @@ final class FeedViewModel {
     }
 
     private func updateRefreshItemStatus(for feedID: UUID, status: FeedRefreshItemStatus) {
-        guard let index = refreshItems.firstIndex(where: { $0.feedID == feedID }) else {
+        updateRefreshItemStatuses(for: [feedID], status: status)
+    }
+
+    private func updateRefreshItemStatuses(for feedIDs: [UUID], status: FeedRefreshItemStatus) {
+        let updatedItems = FeedRefreshItemStatusBatch.updatedItems(
+            refreshItems,
+            feedIDs: Set(feedIDs),
+            status: status
+        )
+        guard updatedItems != refreshItems else {
             return
         }
 
-        refreshItems[index].status = status
+        refreshItems = updatedItems
     }
 
     // Generisches Chunking in Batches der Größe `maxConcurrentFeedRefreshes`.

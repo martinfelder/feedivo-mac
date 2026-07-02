@@ -57,6 +57,14 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(schedulerSource.contains("feedViewModel: FeedViewModel"))
     }
 
+    @Test func contentViewAnimiertLaufendenRefreshFortschrittNichtGlobal() throws {
+        let projectRoot = projectRootURL()
+        let contentSource = try source(at: "Feedivo/Views/ContentView.swift", projectRoot: projectRoot)
+
+        #expect(!contentSource.contains("value: feedViewModel.operationProgress"))
+        #expect(contentSource.contains("value: feedViewModel.recentRefreshStatus"))
+    }
+
     @Test func appRegistersArticleWindowGroup() throws {
         let projectRoot = projectRootURL()
         let appSource = try source(at: "Feedivo/App/FeedivoApp.swift", projectRoot: projectRoot)

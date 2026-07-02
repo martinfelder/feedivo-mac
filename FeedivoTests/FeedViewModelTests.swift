@@ -791,6 +791,25 @@ struct FeedViewModelTests {
         #expect(viewModel.refreshItems.first?.status == .succeeded)
     }
 
+    @Test func refreshItemBatchStatusUpdateMarkiertMehrereFeedsInEinemSchritt() {
+        let firstID = UUID()
+        let secondID = UUID()
+        let thirdID = UUID()
+        let items = [
+            FeedRefreshItem(feedID: firstID, feedTitle: "Feed 1", feedURL: "https://example.com/1.xml", status: .pending),
+            FeedRefreshItem(feedID: secondID, feedTitle: "Feed 2", feedURL: "https://example.com/2.xml", status: .pending),
+            FeedRefreshItem(feedID: thirdID, feedTitle: "Feed 3", feedURL: "https://example.com/3.xml", status: .failed)
+        ]
+
+        let updatedItems = FeedRefreshItemStatusBatch.updatedItems(
+            items,
+            feedIDs: Set([firstID, thirdID]),
+            status: .refreshing
+        )
+
+        #expect(updatedItems.map(\.status) == [.refreshing, .pending, .refreshing])
+    }
+
     @MainActor
     @Test func refreshFeedFuegtNurNeueArtikelHinzuUndAktualisiertMetadaten() async throws {
         let container = try ModelContainer(

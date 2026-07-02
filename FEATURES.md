@@ -187,7 +187,9 @@
   Der Lookup lädt keine schweren Artikeltexte, und unveränderte bestehende
   Artikelwerte werden nicht erneut geschrieben. Sammel-Refreshes speichern pro
   Batch statt pro Feed, damit SwiftData-Queries in Sidebar und Artikelliste
-  seltener invalidiert werden.
+  seltener invalidiert werden. Der laufende Fortschritt vermeidet globale
+  Animationen, und Feed-Batches setzen ihre Live-Status gesammelt auf
+  `refreshing`.
 
 ### 4.5 Automatischer Refresh
 - **Status:** ✔️ Fertig
@@ -853,6 +855,8 @@
   - Der Refresh-Lookup lässt `Article.content`/`Article.offlineContent` weg und
     schreibt bestehende Artikelwerte nur bei echten Änderungen oder fehlenden
     Nachträgen
+  - Die Refresh-Status-UI aktualisiert Batch-Startzustände gesammelt und animiert
+    laufende Fortschrittsänderungen nicht mehr global
   - Feed-, Tag-, Smart-Filter- und einfache Smart-Folder-Artikellisten verwenden
     leichte `FetchDescriptor` mit `propertiesToFetch`; `Article.content` und
     `Article.offlineContent` bleiben aus dem Standard-Listenfetch heraus
