@@ -161,6 +161,7 @@ private struct FeedArticleListQueryContent: View {
     let onLoadMoreArticles: () -> Void
     @Binding var selectedArticle: Article?
     @Binding var navigationState: ArticleNavigationState
+    @State private var paginationState = ArticleListPaginationState()
     @Query private var articles: [Article]
 
     init(
@@ -200,10 +201,23 @@ private struct FeedArticleListQueryContent: View {
             loadMoreArticlesTriggerID: fetchLimit,
             onLoadMoreArticles: onLoadMoreArticles
         )
+        .onAppear {
+            recordFetchedArticleCount()
+        }
+        .onChange(of: articles.count) {
+            recordFetchedArticleCount()
+        }
     }
 
     private var canLoadMoreArticles: Bool {
-        articles.count >= fetchLimit
+        paginationState.canLoadMore(
+            currentFetchedArticleCount: articles.count,
+            fetchLimit: fetchLimit
+        )
+    }
+
+    private func recordFetchedArticleCount() {
+        paginationState.recordFetchedArticleCount(articles.count)
     }
 }
 
@@ -254,6 +268,7 @@ private struct TagArticleListQueryContent: View {
     let onLoadMoreArticles: () -> Void
     @Binding var selectedArticle: Article?
     @Binding var navigationState: ArticleNavigationState
+    @State private var paginationState = ArticleListPaginationState()
     @Query private var articles: [Article]
 
     init(
@@ -293,10 +308,23 @@ private struct TagArticleListQueryContent: View {
             loadMoreArticlesTriggerID: fetchLimit,
             onLoadMoreArticles: onLoadMoreArticles
         )
+        .onAppear {
+            recordFetchedArticleCount()
+        }
+        .onChange(of: articles.count) {
+            recordFetchedArticleCount()
+        }
     }
 
     private var canLoadMoreArticles: Bool {
-        articles.count >= fetchLimit
+        paginationState.canLoadMore(
+            currentFetchedArticleCount: articles.count,
+            fetchLimit: fetchLimit
+        )
+    }
+
+    private func recordFetchedArticleCount() {
+        paginationState.recordFetchedArticleCount(articles.count)
     }
 }
 
@@ -347,6 +375,7 @@ private struct SmartFilterArticleListQueryContent: View {
     let onLoadMoreArticles: () -> Void
     @Binding var selectedArticle: Article?
     @Binding var navigationState: ArticleNavigationState
+    @State private var paginationState = ArticleListPaginationState()
     @Query private var articles: [Article]
 
     init(
@@ -386,6 +415,12 @@ private struct SmartFilterArticleListQueryContent: View {
             loadMoreArticlesTriggerID: fetchLimit,
             onLoadMoreArticles: onLoadMoreArticles
         )
+        .onAppear {
+            recordFetchedArticleCount()
+        }
+        .onChange(of: articles.count) {
+            recordFetchedArticleCount()
+        }
     }
 
     private var displayedArticles: [Article] {
@@ -405,7 +440,14 @@ private struct SmartFilterArticleListQueryContent: View {
     }
 
     private var canLoadMoreArticles: Bool {
-        articles.count >= fetchLimit
+        paginationState.canLoadMore(
+            currentFetchedArticleCount: articles.count,
+            fetchLimit: fetchLimit
+        )
+    }
+
+    private func recordFetchedArticleCount() {
+        paginationState.recordFetchedArticleCount(articles.count)
     }
 }
 
@@ -457,6 +499,7 @@ private struct SmartFolderArticleListQueryContent: View {
     private let usesOptimizedQuery: Bool
     @Binding var selectedArticle: Article?
     @Binding var navigationState: ArticleNavigationState
+    @State private var paginationState = ArticleListPaginationState()
     @Query private var articles: [Article]
 
     init(
@@ -502,6 +545,12 @@ private struct SmartFolderArticleListQueryContent: View {
             loadMoreArticlesTriggerID: fetchLimit,
             onLoadMoreArticles: onLoadMoreArticles
         )
+        .onAppear {
+            recordFetchedArticleCount()
+        }
+        .onChange(of: articles.count) {
+            recordFetchedArticleCount()
+        }
     }
 
     private var displayedArticles: [Article] {
@@ -511,7 +560,14 @@ private struct SmartFolderArticleListQueryContent: View {
     }
 
     private var canLoadMoreArticles: Bool {
-        articles.count >= fetchLimit
+        paginationState.canLoadMore(
+            currentFetchedArticleCount: articles.count,
+            fetchLimit: fetchLimit
+        )
+    }
+
+    private func recordFetchedArticleCount() {
+        paginationState.recordFetchedArticleCount(articles.count)
     }
 }
 

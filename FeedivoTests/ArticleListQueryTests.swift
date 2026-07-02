@@ -122,6 +122,29 @@ struct ArticleListQueryTests {
         #expect(state.hiddenReadArticleCount == 0)
     }
 
+    @Test func paginationBleibtMoeglichWennArtikelNachDemLadenAusDerQueryFallen() {
+        var state = ArticleListPaginationState()
+
+        state.recordFetchedArticleCount(ArticleListQuery.initialFetchLimit)
+
+        #expect(state.canLoadMore(
+            currentFetchedArticleCount: 12,
+            fetchLimit: ArticleListQuery.initialFetchLimit
+        ))
+
+        #expect(!state.canLoadMore(
+            currentFetchedArticleCount: 60,
+            fetchLimit: ArticleListQuery.initialFetchLimit + ArticleListQuery.fetchBatchSize
+        ))
+
+        state.recordFetchedArticleCount(ArticleListQuery.initialFetchLimit + ArticleListQuery.fetchBatchSize)
+
+        #expect(state.canLoadMore(
+            currentFetchedArticleCount: 82,
+            fetchLimit: ArticleListQuery.initialFetchLimit + ArticleListQuery.fetchBatchSize
+        ))
+    }
+
     @Test func displayStateBlendetHiddenArtikelAusNormalenListenAus() {
         let visibleArticle = Article(title: "Sichtbar", isRead: false)
         let hiddenArticle = Article(title: "Ausgeblendet", isRead: false, isHidden: true)

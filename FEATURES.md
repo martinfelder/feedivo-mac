@@ -887,6 +887,9 @@
   - Die Nachlade-Zeile der Artikelliste ist an das aktuelle `fetchLimit`
     gebunden, damit `Ungelesen` bei sichtbarem Lade-Trigger mehrere Batches
     nacheinander laden kann, bis wieder ungelesene Artikel sichtbar werden
+  - Die Pagination merkt sich den höchsten beobachteten Fetch-Count, damit
+    Nachladen nicht stoppt, wenn gelesene Artikel aus einer `Ungelesen`-Query
+    fallen und `articles.count` dadurch unter das aktuelle Limit sinkt
   - Sammel-Refreshes speichern Änderungen pro Batch statt pro Feed, um SwiftData-
     Query-Invalidierungen während laufender Aktualisierungen zu reduzieren
   - Start-Backfills und Orphan-Cleanup vermeiden vollständige

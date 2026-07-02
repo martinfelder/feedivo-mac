@@ -325,6 +325,18 @@ struct ArticleListDisplaySnapshot {
     }
 }
 
+struct ArticleListPaginationState {
+    private var maxObservedFetchedArticleCount = 0
+
+    mutating func recordFetchedArticleCount(_ count: Int) {
+        maxObservedFetchedArticleCount = max(maxObservedFetchedArticleCount, count)
+    }
+
+    func canLoadMore(currentFetchedArticleCount: Int, fetchLimit: Int) -> Bool {
+        max(maxObservedFetchedArticleCount, currentFetchedArticleCount) >= fetchLimit
+    }
+}
+
 struct ArticleListFeedTitleSnapshot: Equatable, Hashable {
     let feedID: UUID
     let title: String

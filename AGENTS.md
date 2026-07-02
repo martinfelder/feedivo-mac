@@ -904,7 +904,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Fetch-Limit gebunden (`.id(fetchLimit)`), damit SwiftUI sie nach jedem Batch
   neu erscheinen lässt. Das ist wichtig für `Ungelesen`, weil mehrere Batches
   nötig sein können, bis hinter bereits gelesenen Artikeln wieder ungelesene
-  Treffer liegen.
+  Treffer liegen. Zusätzlich merkt sich die Pagination den höchsten je
+  beobachteten Fetch-Count pro Liste. So verschwindet die Ladezeile nicht, wenn
+  gelesene Artikel nach dem Laden aus einer `Ungelesen`-Query fallen und
+  `articles.count` dadurch kurzfristig unter das aktuelle Limit sinkt.
 - Tag-Listen nutzen ebenfalls eine gezielte SwiftData-Query und zeigen
   feedübergreifend direkt getaggte Artikel sowie Artikel aus getaggten Feeds.
 - Intelligente Ordner nutzen für einfache/vordefinierte Fälle gezielte
@@ -1928,6 +1931,11 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
       (z. B. im Ordner `Ungelesen`, nachdem viele neue Artikel beim Öffnen direkt
       als gelesen markiert wurden), feuert `.onAppear` dadurch nach jedem
       Limit-Schritt erneut statt nach dem ersten Batch stehen zu bleiben.
+  14. Die Artikellisten-Pagination nutzt einen kleinen High-Water-Zähler
+      (`ArticleListPaginationState`). `canLoadMore` hängt damit nicht nur am
+      aktuellen `articles.count`, weil dieser bei `Ungelesen` sinken kann, sobald
+      gelesene Artikel aus der SwiftData-Query fallen. War ein Fetch-Fenster
+      einmal voll, bleibt Nachladen bis zum nächsten Limit-Schritt erlaubt.
 - **Konsequenz:** Navigation bleibt auch bei großem Datenbestand flüssig;
   Lese-Status und Feed-Zähler werden verzögert (≤0.6s) persistiert bzw.
   synchronisiert, was für einen RSS-Reader akzeptabel ist und auf `.onDisappear`
@@ -2209,9 +2217,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - 2026-07-02: Nachladen in `Ungelesen` repariert. Die Ladezeile in
   `ArticleListView` bekommt nun das aktuelle `fetchLimit` als Identität, damit
   SwiftUI die Zeile nach jedem Batch neu erzeugt und `onAppear` erneut auslöst.
-  Dadurch können weitere ungelesene Artikel auch dann nachgeladen werden, wenn
-  mehrere Batches übersprungen werden müssen, weil die neuesten Artikel beim
-  Lesen bereits als gelesen markiert wurden.
+  `ArticleListPaginationState` merkt sich außerdem, ob ein Fetch-Fenster einmal
+  voll war. Dadurch können weitere ungelesene Artikel auch dann nachgeladen
+  werden, wenn mehrere Batches übersprungen werden müssen oder die neuesten
+  Artikel beim Lesen aus der `Ungelesen`-Query fallen.
 
 - 2026-07-02: Artikelwechsel-CPU weiter reduziert. `ArticleRowView` berechnet
   keine Tag-Zuweisungsoptionen mehr pro sichtbarer Zeile und baut im Kontextmenü
