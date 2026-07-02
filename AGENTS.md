@@ -919,6 +919,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Sortierung und Filterung werden gemeinsam über `ArticleListPreparedArticles`
   vorbereitet, damit die Artikelliste pro SwiftUI-Render nur einmal sortiert und
   danach auf derselben sortierten Liste filtert.
+- Der Reader-Prefetch der Artikelliste bleibt bewusst leichtgewichtig: Er faultet
+  keine `Article.content`-/`Article.offlineContent`-Volltexte und decodiert keine
+  Nachbarartikel-Bilder mehr. Die teure Vorbereitung passiert nur für den wirklich
+  geöffneten Artikel im asynchronen Reader-Build.
 - Die Artikelliste bietet nur noch eine einfache, kompakte Suche oberhalb der
   mittleren Spalte. Sie durchsucht bewusst nur die bereits geladenen Artikel der
   aktuell ausgewählten Liste und nutzt dafür den Bereich `Alles` (Titel,
@@ -1837,12 +1841,13 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   5. `ReaderView` beobachtet für Inhaltsänderungen nur leichte Felder
      (`summary`, Bild-URL und Offline-Status-Metadaten), nicht mehr
      `content`/`offlineContent`. Ordner-/Tag-Beziehungen werden nach dem ersten
-     Render nachgeladen, und die Artikelliste wärmt vorherigen/nächsten Artikel
-     mit den Reader-Feldern vor.
+     Render nachgeladen. Der Nachbarartikel-Prefetch bleibt leichtgewichtig und
+     faultet keine Volltexte/Bilder mehr, damit schnelles Lesen nicht nebenbei
+     teure Text- und Bildarbeit auslöst.
 - **Konsequenz:** Navigation bleibt auch bei großem Datenbestand flüssig;
   Lese-Status wird verzögert (≤0.6s) persistiert, was für einen RSS-Reader
   akzeptabel ist und auf `.onDisappear` sofort geflusht wird.
-- **Datum:** 2026-06-28, ergänzt 2026-07-01
+- **Datum:** 2026-06-28, ergänzt 2026-07-01 und 2026-07-02
 
 ---
 
@@ -2116,11 +2121,17 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 
 ## Letzte Änderungen
 
+- 2026-07-02: CPU-Last beim Lesen reduziert. Der Reader-Prefetch in
+  `ArticleListView` faultet keine schweren Artikeltexte (`Article.content`,
+  `Article.offlineContent`) und decodiert keine Nachbarartikel-Bilder mehr.
+  Die eigentliche Reader-Vorbereitung bleibt asynchron beim aktuell geöffneten
+  Artikel.
+
 - 2026-07-01: Reader-Artikelwechsel weiter entkoppelt. `ReaderView` beobachtet
   für Reader-Rebuilds keine schweren Textfelder (`Article.content`,
   `Article.offlineContent`) mehr beim SwiftUI-View-Aufbau, lädt Ordner-/Tag-Chips
-  nach dem ersten Render und die Artikelliste wärmt vorherigen/nächsten Artikel
-  für den Reader inklusive Bild-Cache vor. Als Nachbesserung zeigt der Reader
+  nach dem ersten Render und die Artikelliste hält den Reader-Prefetch
+  inzwischen leichtgewichtig. Als Nachbesserung zeigt der Reader
   beim Wechsel sofort eine leichte Summary-/Bild-Vorschau statt eines blanken
   Ladezustands.
 

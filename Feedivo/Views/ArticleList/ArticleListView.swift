@@ -1140,21 +1140,12 @@ struct ReaderArticlePrefetchPlan {
 
     @MainActor
     static func prefetchReaderFields(for articles: [Article]) async {
-        var imageURLs: [URL] = []
-
         for article in articles {
-            _ = article.content
-            _ = article.offlineContent
+            // Absichtlich leichtgewichtig: Der Reader lädt und parst große
+            // Textfelder asynchron erst für den wirklich geöffneten Artikel.
+            // Prefetching darf beim schnellen Lesen nicht nebenbei Volltexte
+            // und Bilder faulten/decodieren.
             _ = article.feed?.title
-
-            if let imageURL = article.imageURL, let url = URL(string: imageURL) {
-                imageURLs.append(url)
-            }
-        }
-
-        for url in imageURLs {
-            guard !Task.isCancelled else { return }
-            _ = await ImageCacheService.shared.image(for: url)
         }
     }
 }

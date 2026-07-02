@@ -144,6 +144,16 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(readerSource.contains("ColorSwatchPicker(selection: $newTagColorHex)"))
     }
 
+    @Test func articleListReaderPrefetchBleibtLeichtgewichtig() throws {
+        let projectRoot = projectRootURL()
+        let listSource = try source(at: "Feedivo/Views/ArticleList/ArticleListView.swift", projectRoot: projectRoot)
+
+        #expect(listSource.contains("prefetchReaderFields"))
+        #expect(!listSource.contains("_ = article.content"))
+        #expect(!listSource.contains("_ = article.offlineContent"))
+        #expect(!listSource.contains("await ImageCacheService.shared.image"))
+    }
+
     @Test func appUsesCloudSyncSettingsForModelContainer() throws {
         let projectRoot = projectRootURL()
         let appSource = try source(at: "Feedivo/App/FeedivoApp.swift", projectRoot: projectRoot)
