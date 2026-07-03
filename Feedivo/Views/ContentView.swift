@@ -5,6 +5,7 @@ import UniformTypeIdentifiers
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.feedivoDatabase) private var feedivoDatabase
     @Environment(\.openWindow) private var openWindow
     @Environment(DatabaseLoadState.self) private var databaseLoadState
     @AppStorage(FirstRunWizardState.completionStorageKey) private var hasCompletedFirstRunWizard = false
@@ -18,9 +19,14 @@ struct ContentView: View {
     private var refreshOnLaunchIsEnabled = BackgroundRefreshSettings.defaultRefreshOnLaunchIsEnabled
     @AppStorage(BackgroundRefreshSettings.intervalMinutesKey)
     private var backgroundRefreshIntervalMinutes = BackgroundRefreshSettings.defaultIntervalMinutes
-    @Query(sort: \Feed.title) private var feeds: [Feed]
-    @Query(sort: \Tag.name) private var tags: [Tag]
-    @Query(sort: \SmartFolder.sortOrder) private var smartFolders: [SmartFolder]
+    // SQLite-only Feed-Identität: Statt @Query [Feed] (SwiftData) hält
+    // ContentView Sidebar-Snapshots aus `FeedStore.sidebarFeeds()` vor. Die
+    // Liste wird beim Erscheinen und bei Status-Version-Bumps (Feed-Anlage/
+    // -Löschung/-Refresh) neu geladen. SwiftData `Feed` ist nur noch
+    // Aktionsbackend für den Brücken-Löschpfad (siehe deleteFeed/feedID).
+    @State private var feedSnapshots: [FeedSidebarSnapshot] = []
+    @AppStorage(SQLiteDataInvalidation.statusVersionKey)
+    private var sqliteStatusVersion = 0
 
     // columnVisibility steuert ob die Sidebar sichtbar ist.
     // .all bedeutet: alle 3 Spalten beim Start anzeigen.
@@ -29,23 +35,21 @@ struct ContentView: View {
     // sidebarSelection speichert, welche Sidebar-Zeile ausgewählt ist.
     @State private var sidebarSelection: SidebarSelection?
 
-    // selectedArticle speichert welcher Artikel gerade in der Liste ausgewählt ist.
-    @State private var selectedArticle: Article? = nil
-    @State private var articleNavigationState = ArticleNavigationState.empty
+    @State private var selectedSQLiteArticleID: String?
+    @State private var selectedSQLiteArticleSnapshot: ArticleReaderSnapshot?
+    @State private var sqliteArticleNavigationState = SQLiteArticleNavigationState.empty
     @State private var articleSearchFocusRequest = 0
 
-    @State private var articleViewModel = ArticleViewModel()
-    @State private var offlineDownloadService = OfflineDownloadService()
     @State private var feedViewModel: FeedViewModel
     @State private var isShowingAddFeedSheet = false
-    @State private var feedPendingDeletion: Feed?
+    // SQLite-Identität: Lösch-Bestätigung arbeitet auf dem Sidebar-Snapshot
+    // (String-ID) statt auf einem SwiftData-`Feed`-Objekt.
+    @State private var feedPendingDeletion: FeedSidebarSnapshot?
     @State private var isDeleteFeedConfirmationPresented = false
     @State private var isShowingOPMLImportReview = false
     @State private var isShowingOPMLExportSheet = false
     @State private var articleExportRequest: ArticleExportRequest?
     @State private var opmlAlert: OPMLAlert?
-    @State private var offlineArchiveError: OPMLAlert?
-    @State private var articleForRuleCreation: Article?
     @State private var isMetadataInspectorPresented = false
     @State private var isShowingFirstRunWizard = false
     @State private var isFirstRunWizardDismissedForSession = false
@@ -76,39 +80,32 @@ struct ContentView: View {
 
             // SPALTE 2: Artikel-Liste des ausgewählten Feeds oder Smart Filters
             if let smartFolder = selectedSmartFolder {
-                ArticleListView(
+                SQLiteFeedArticleListView(
                     smartFolder: smartFolder,
-                    selectedArticle: $selectedArticle,
-                    navigationState: $articleNavigationState,
-                    onRequestCreateRuleFromArticle: requestCreateRuleFromArticle,
-                    onRequestExportArticle: requestExportArticle
+                    selectedArticleID: $selectedSQLiteArticleID,
+                    navigationState: $sqliteArticleNavigationState
                 )
                     .navigationSplitViewColumnWidth(min: 280, ideal: 320, max: 400)
-            } else if let feed = selectedFeed {
-                ArticleListView(
-                    feed: feed,
-                    selectedArticle: $selectedArticle,
-                    navigationState: $articleNavigationState,
-                    onRequestCreateRuleFromArticle: requestCreateRuleFromArticle,
-                    onRequestExportArticle: requestExportArticle
+            } else if let feedID = selectedFeedID {
+                SQLiteFeedArticleListView(
+                    feedID: feedID,
+                    title: selectedFeed?.title ?? "",
+                    selectedArticleID: $selectedSQLiteArticleID,
+                    navigationState: $sqliteArticleNavigationState
                 )
                     .navigationSplitViewColumnWidth(min: 280, ideal: 320, max: 400)
-            } else if let tag = selectedTag {
-                ArticleListView(
-                    tag: tag,
-                    selectedArticle: $selectedArticle,
-                    navigationState: $articleNavigationState,
-                    onRequestCreateRuleFromArticle: requestCreateRuleFromArticle,
-                    onRequestExportArticle: requestExportArticle
+            } else if let tagID = selectedTagID {
+                SQLiteFeedArticleListView(
+                    tagID: tagID,
+                    selectedArticleID: $selectedSQLiteArticleID,
+                    navigationState: $sqliteArticleNavigationState
                 )
                     .navigationSplitViewColumnWidth(min: 280, ideal: 320, max: 400)
             } else if let smartFilter = selectedSmartFilter {
-                ArticleListView(
+                SQLiteFeedArticleListView(
                     smartFilter: smartFilter,
-                    selectedArticle: $selectedArticle,
-                    navigationState: $articleNavigationState,
-                    onRequestCreateRuleFromArticle: requestCreateRuleFromArticle,
-                    onRequestExportArticle: requestExportArticle
+                    selectedArticleID: $selectedSQLiteArticleID,
+                    navigationState: $sqliteArticleNavigationState
                 )
                     .navigationSplitViewColumnWidth(min: 280, ideal: 320, max: 400)
             } else {
@@ -124,18 +121,16 @@ struct ContentView: View {
         } detail: {
 
             // SPALTE 3: Reader — Inhalt des ausgewählten Artikels
-            if let article = selectedArticle {
-                ReaderView(
-                    article: article,
-                    isMetadataInspectorPresented: $isMetadataInspectorPresented,
-                    canSelectPreviousArticle: articleNavigationState.previousArticle != nil,
-                    canSelectNextArticle: articleNavigationState.nextArticle != nil,
+            if let selectedSQLiteArticleID {
+                SQLiteReaderView(
+                    articleID: selectedSQLiteArticleID,
+                    canSelectPreviousArticle: sqliteArticleNavigationState.previousArticleID != nil,
+                    canSelectNextArticle: sqliteArticleNavigationState.nextArticleID != nil,
                     selectPreviousArticle: selectPreviousArticle,
                     selectNextArticle: selectNextArticle,
-                    onRequestCreateRuleFromArticle: requestCreateRuleFromArticle,
-                    onRequestExportArticle: requestExportArticle
+                    onSnapshotChange: handleSQLiteArticleSnapshotChange
                 )
-                .id(article.id)
+                .id(selectedSQLiteArticleID)
             } else {
                 ContentUnavailableView(
                     L10n.contentNoArticleSelectedTitle,
@@ -146,9 +141,18 @@ struct ContentView: View {
 
         }
         .onChange(of: sidebarSelection, handleSidebarSelectionChange)
+        .onChange(of: selectedSQLiteArticleID, handleSQLiteArticleSelectionChange)
         .onAppear(perform: handleContentAppear)
-        .onChange(of: smartFolders.count, handleSmartFolderCountChange)
-        .onChange(of: feeds.count, handleFeedCountChange)
+        .task {
+            // SQLite-Sidebar-Snapshots beim Erscheinen laden (ersetzt @Query).
+            await reloadFeedSnapshots()
+        }
+        .onChange(of: sqliteStatusVersion) {
+            // Bei Anlage/Löschung/Refresh (Status-Version-Bump) Snapshots neu
+            // laden, damit First-Run, Badge und Feed-Menü aktuell bleiben.
+            Task { await reloadFeedSnapshots() }
+        }
+        .onChange(of: feedSnapshots.count, handleFeedCountChange)
         .onChange(of: unreadArticleCount, handleUnreadArticleCountChange)
         .onChange(of: appIconBadgeIsEnabled, handleAppIconBadgeSettingChange)
         .onChange(of: hasCompletedFirstRunWizard, handleFirstRunCompletionChange)
@@ -157,25 +161,20 @@ struct ContentView: View {
         }
         .sheet(isPresented: $isShowingOPMLImportReview) {
             OPMLImportReviewView(
-                feeds: feeds,
                 feedViewModel: feedViewModel
             )
         }
         .sheet(isPresented: $isShowingOPMLExportSheet) {
-            OPMLExportSheet(feeds: feeds) {
+            OPMLExportSheet {
                 isShowingOPMLExportSheet = false
             }
         }
         .sheet(isPresented: $isShowingFirstRunWizard) {
             FirstRunWizardView(
-                feeds: feeds,
                 feedViewModel: feedViewModel,
                 onSkip: skipFirstRunWizardForSession,
                 onComplete: completeFirstRunWizard
             )
-        }
-        .sheet(item: $articleForRuleCreation) { article in
-            RuleWizardView(sourceArticle: article)
         }
         .sheet(item: $articleExportRequest) { request in
             ArticleExportSheet(request: request) {
@@ -198,13 +197,6 @@ struct ContentView: View {
             Text(L10n.feedDeleteConfirmationMessage(feedTitle: feed.title))
         }
         .alert(item: $opmlAlert) { alert in
-            Alert(
-                title: Text(alert.title),
-                message: Text(alert.message),
-                dismissButton: .default(Text(L10n.commonDone))
-            )
-        }
-        .alert(item: $offlineArchiveError) { alert in
             Alert(
                 title: Text(alert.title),
                 message: Text(alert.message),
@@ -255,53 +247,7 @@ struct ContentView: View {
         .animation(.snappy(duration: 0.18), value: isRefreshStatusExpanded)
         .focusedValue(
             \.articleCommandActions,
-            ArticleCommandActions(
-                canPerformActions: selectedArticle != nil,
-                canPerformLinkActions: ArticleOriginalURLResolver.hasUsableWebLink(selectedArticle?.link),
-                toggleReadTitle: selectedArticle?.isRead == true ? L10n.articleRowMarkUnread : L10n.articleRowMarkRead,
-                toggleStarredTitle: selectedArticle?.isStarred == true ? L10n.articleRowStarRemove : L10n.articleRowStarAdd,
-                toggleArchivedTitle: selectedArticle?.isArchived == true ? L10n.articleUnarchiveCommand : L10n.articleArchiveCommand,
-                toggleRead: {
-                    articleViewModel.toggleRead(selectedArticle, context: modelContext)
-                    try? modelContext.save()
-                },
-                toggleStarred: {
-                    Task {
-                        await articleViewModel.toggleStarred(
-                            selectedArticle,
-                            automaticallySaveForOffline: automaticallySaveStarredArticles,
-                            context: modelContext,
-                            offlineSaver: offlineDownloadService
-                        )
-                    }
-                },
-                toggleArchived: {
-                    Task {
-                        await archiveOrRemoveArchive(selectedArticle)
-                    }
-                },
-                copyLink: {
-                    _ = articleViewModel.copyLink(selectedArticle)
-                },
-                openOriginal: {
-                    _ = articleViewModel.openOriginal(selectedArticle)
-                },
-                shareOriginal: {
-                    _ = articleViewModel.shareOriginal(selectedArticle)
-                },
-                openInArticleWindow: {
-                    openArticleInWindow(selectedArticle)
-                },
-                requestExport: {
-                    if let selectedArticle {
-                        requestExportArticle(selectedArticle)
-                    }
-                },
-                canSelectPreviousArticle: articleNavigationState.previousArticle != nil,
-                canSelectNextArticle: articleNavigationState.nextArticle != nil,
-                selectPreviousArticle: selectPreviousArticle,
-                selectNextArticle: selectNextArticle
-            )
+            articleCommandActions
         )
         .focusedValue(
             \.feedCommandActions,
@@ -316,18 +262,22 @@ struct ContentView: View {
                     }
                 },
                 refreshSelectedFeed: {
-                    if let selectedFeed {
+                    if let feedID = selectedFeedID {
                         Task {
-                            await feedViewModel.refreshFeed(selectedFeed, context: modelContext)
+                            await feedViewModel.refreshFeed(
+                                feedID: feedID,
+                                context: modelContext,
+                                sqliteDatabase: feedivoDatabase
+                            )
                         }
                     }
                 },
                 requestDelete: {
-                    if let selectedFeed {
-                        requestDeleteFeed(selectedFeed)
+                    if let feedID = selectedFeedID {
+                        requestDeleteFeed(feedID)
                     }
                 },
-                hasFeeds: !feeds.isEmpty
+                hasFeeds: !feedSnapshots.isEmpty
             )
         )
     }
@@ -338,8 +288,27 @@ struct ContentView: View {
     }
 
     private func handleSidebarSelectionChange() {
-        selectedArticle = nil
-        articleNavigationState = .empty
+        selectedSQLiteArticleID = nil
+        selectedSQLiteArticleSnapshot = nil
+        sqliteArticleNavigationState = .empty
+    }
+
+    private func handleSQLiteArticleSelectionChange() {
+        guard selectedSQLiteArticleID != nil else {
+            selectedSQLiteArticleSnapshot = nil
+            return
+        }
+
+        selectedSQLiteArticleSnapshot = nil
+    }
+
+    private func handleSQLiteArticleSnapshotChange(_ snapshot: ArticleReaderSnapshot?) {
+        guard selectedSQLiteArticleID != nil else {
+            selectedSQLiteArticleSnapshot = nil
+            return
+        }
+
+        selectedSQLiteArticleSnapshot = snapshot
     }
 
     private func handleContentAppear() {
@@ -350,8 +319,17 @@ struct ContentView: View {
         refreshFeedsOnLaunchIfNeeded()
     }
 
-    private func handleSmartFolderCountChange() {
-        selectDefaultSmartFolderIfNeeded()
+    /// Lädt die SQLite-Sidebar-Snapshots aus `FeedStore.sidebarFeeds()` und
+    /// aktualisiert `feedSnapshots`. Ersetzt das frühere `@Query [Feed]`. Wird
+    /// beim Erscheinen und bei Status-Version-Bumps aufgerufen; treibt First-
+    /// Run-Entscheidung, Dock-Badge und `hasFeeds` des Feed-Menüs.
+    @MainActor
+    private func reloadFeedSnapshots() async {
+        guard let database = feedivoDatabase else {
+            feedSnapshots = []
+            return
+        }
+        feedSnapshots = (try? FeedStore(database: database).sidebarFeeds()) ?? []
     }
 
     private func handleFeedCountChange() {
@@ -399,22 +377,40 @@ struct ContentView: View {
         isShowingOPMLExportSheet = true
     }
 
-    private func requestExportArticle(_ article: Article) {
-        let request = ArticleExportRequest(snapshot: ArticleExportSnapshot(article: article))
-
-        // Der Export kommt aus einem Kontextmenü. Der nächste Main-Runloop verhindert,
-        // dass das Export-Sheet noch während der Menüaktion präsentiert wird.
-        DispatchQueue.main.async {
-            articleExportRequest = request
-        }
-    }
-
-    private func openArticleInWindow(_ article: Article?) {
-        guard let article else {
+    private func requestExportSQLiteArticle(_ snapshot: ArticleReaderSnapshot) {
+        guard let database = feedivoDatabase else {
             return
         }
 
-        openWindow(value: ArticleWindowRequest(articleID: article.id))
+        do {
+            let tagNames = try TagStore(database: database).exportTagNames(
+                articleID: snapshot.id,
+                feedID: snapshot.feedID
+            )
+            let request = ArticleExportRequest(
+                snapshot: ArticleExportSnapshot(sqliteSnapshot: snapshot, tagNames: tagNames)
+            )
+
+            DispatchQueue.main.async {
+                articleExportRequest = request
+            }
+        } catch {
+            opmlAlert = OPMLAlert(
+                title: L10n.articleExportCommand,
+                message: error.localizedDescription
+            )
+        }
+    }
+
+    private func openSQLiteArticleInWindow(articleID: String?) {
+        guard
+            let articleID,
+            let uuid = UUID(uuidString: articleID)
+        else {
+            return
+        }
+
+        openWindow(value: ArticleWindowRequest(articleID: uuid))
     }
 
     private func restoreArticleWindowsIfNeeded() {
@@ -429,7 +425,7 @@ struct ContentView: View {
     }
 
     private func refreshFeedsOnLaunchIfNeeded() {
-        guard refreshOnLaunchIsEnabled, !didRunRefreshForLaunch, !feeds.isEmpty else {
+        guard refreshOnLaunchIsEnabled, !didRunRefreshForLaunch, !feedSnapshots.isEmpty else {
             return
         }
 
@@ -445,43 +441,21 @@ struct ContentView: View {
 
     @MainActor
     private func refreshAllFeeds() async {
-        if let modelContainer {
-            await feedViewModel.refreshAllFeeds(feeds, modelContainer: modelContainer)
-        } else {
-            await feedViewModel.refreshAllFeeds(feeds, context: modelContext)
-        }
-    }
-
-    private func requestDeleteFeed(_ feed: Feed) {
-        feedPendingDeletion = feed
-        isDeleteFeedConfirmationPresented = true
-    }
-
-    private func requestCreateRuleFromArticle(_ article: Article) {
-        articleForRuleCreation = article
-    }
-
-    @MainActor
-    private func archiveOrRemoveArchive(_ article: Article?) async {
-        guard let article else {
+        // SQLite-first: Snapshots lädt FeedViewModel aus FeedStore.feeds(). Der
+        // optionale Container wird für den Regel-Kontext (Rule-Snapshots)
+        // benötigt; ohne Datenbank wird der Refresh übersprungen.
+        guard let database = feedivoDatabase else {
             return
         }
+        await feedViewModel.refreshAllFeeds(
+            sqliteDatabase: database,
+            modelContainer: modelContainer
+        )
+    }
 
-        if article.isArchived {
-            offlineDownloadService.removeArchive(from: article)
-        } else {
-            let success = await offlineDownloadService.archiveForOffline(article)
-            if !success {
-                // Speichern fehlgeschlagen (z.B. URL nicht erreichbar) —
-                // vorher blieb das lautlos: isArchived false, kein Hinweis.
-                offlineArchiveError = OPMLAlert(
-                    title: L10n.offlineArchiveErrorTitle,
-                    message: article.offlineErrorMessage ?? L10n.offlineArchiveErrorMessage
-                )
-            }
-        }
-
-        try? modelContext.save()
+    private func requestDeleteFeed(_ feedID: String) {
+        feedPendingDeletion = feedSnapshots.first { $0.id == feedID }
+        isDeleteFeedConfirmationPresented = true
     }
 
     private func updateFirstRunWizardPresentation() {
@@ -493,12 +467,12 @@ struct ContentView: View {
         }
 
         let shouldShowWizard = FirstRunWizardState.shouldPresent(
-            feedCount: feeds.count,
+            feedCount: feedSnapshots.count,
             hasCompletedWizard: hasCompletedFirstRunWizard,
             wasDismissedThisSession: isFirstRunWizardDismissedForSession
         )
 
-        if feeds.count > 0 {
+        if feedSnapshots.count > 0 {
             isFirstRunWizardDismissedForSession = false
         }
 
@@ -507,7 +481,7 @@ struct ContentView: View {
             return
         }
 
-        if !isShowingAddFeedSheet && !isShowingOPMLImportReview && articleForRuleCreation == nil {
+        if !isShowingAddFeedSheet && !isShowingOPMLImportReview {
             isShowingFirstRunWizard = true
         }
     }
@@ -523,24 +497,18 @@ struct ContentView: View {
         isShowingFirstRunWizard = false
     }
 
-    private func deleteFeed(_ feed: Feed) {
-        let deletedFeedID = feed.persistentModelID
-        let shouldClearFeedSelection = selectedFeed?.persistentModelID == deletedFeedID
-        // Auch bei Smart-Filtern (z.B. „Alle Artikel") kann der gerade
-        // selektierte Artikel zum gelöschten Feed gehören — dann bliebe eine
-        // Tombstone-Selektion zurück (potenzieller Crash beim Zugriff). Deshalb
-        // VOR dem Löschen erfassen und Auswahl bereinigen.
-        let selectedArticleBelongsToDeletedFeed = selectedArticle?.feed?.persistentModelID == deletedFeedID
-
-        feedViewModel.deleteFeed(feed, context: modelContext)
+    private func deleteFeed(_ snapshot: FeedSidebarSnapshot) {
+        let feedID = snapshot.id
+        let shouldClearFeedSelection = selectedFeedID == feedID
+        // SQLite-first: FeedViewModel.deleteFeed(feedID:)) löscht den
+        // SQLite-FeedRecord per FeedStore und räumt zusätzlich den
+        // SwiftData-Brücken-Feed samt Artikel/LogEntries ab. Die Status-Version
+        // wird in FeedViewModel gebumpt, was den Snapshot-Reload triggert.
+        feedViewModel.deleteFeed(feedID: feedID, context: modelContext, sqliteDatabase: feedivoDatabase)
 
         guard feedViewModel.errorMessage == nil else {
             feedPendingDeletion = nil
             return
-        }
-
-        if selectedArticleBelongsToDeletedFeed {
-            selectedArticle = nil
         }
 
         if shouldClearFeedSelection {
@@ -551,31 +519,42 @@ struct ContentView: View {
     }
 
     private func selectPreviousArticle() {
-        if let previousArticle = articleNavigationState.previousArticle {
-            selectedArticle = previousArticle
+        if selectedSQLiteArticleID != nil {
+            selectedSQLiteArticleID = sqliteArticleNavigationState.previousArticleID
         }
     }
 
     private func selectNextArticle() {
-        if let nextArticle = articleNavigationState.nextArticle {
-            selectedArticle = nextArticle
+        if selectedSQLiteArticleID != nil {
+            selectedSQLiteArticleID = sqliteArticleNavigationState.nextArticleID
         }
     }
 
-    private var selectedFeed: Feed? {
+    private var selectedFeedID: String? {
         guard case .feed(let feedID) = sidebarSelection else {
             return nil
         }
 
-        return feeds.first { $0.persistentModelID == feedID }
+        return feedID
     }
 
-    private var selectedTag: Tag? {
+    // SQLite-Identität: ausgewählter Feed als Sidebar-Snapshot (String-ID)
+    // statt als SwiftData-`Feed`. Wird für FeedCommandActions und den
+    // Spalten-2-Titel verwendet.
+    private var selectedFeed: FeedSidebarSnapshot? {
+        guard let feedID = selectedFeedID else {
+            return nil
+        }
+
+        return feedSnapshots.first { $0.id == feedID }
+    }
+
+    private var selectedTagID: String? {
         guard case .tag(let tagID) = sidebarSelection else {
             return nil
         }
 
-        return tags.first { $0.persistentModelID == tagID }
+        return tagID
     }
 
     private var selectedSmartFilter: SmartFilter? {
@@ -586,12 +565,15 @@ struct ContentView: View {
         return smartFilter
     }
 
-    private var selectedSmartFolder: SmartFolder? {
-        guard case .smartFolder(let smartFolderID) = sidebarSelection else {
+    private var selectedSmartFolder: SQLiteSmartFolderSnapshot? {
+        guard case .smartFolder(let smartFolderID) = sidebarSelection,
+              let database = feedivoDatabase
+        else {
             return nil
         }
 
-        return smartFolders.first { $0.persistentModelID == smartFolderID }
+        return (try? SQLiteSmartFolderStore(database: database).sidebarSnapshots())?
+            .first { $0.id == smartFolderID }
     }
 
     private func selectDefaultSmartFolderIfNeeded() {
@@ -599,17 +581,117 @@ struct ContentView: View {
             return
         }
 
-        guard let defaultFolder = SmartFolderViewModel.sortedFolders(smartFolders)
-            .first(where: \.isShownInSidebar)
+        guard let database = feedivoDatabase,
+              let defaultFolder = (try? SQLiteSmartFolderStore(database: database).sidebarSnapshots())?.first
         else {
             return
         }
 
-        sidebarSelection = .smartFolder(defaultFolder.persistentModelID)
+        sidebarSelection = .smartFolder(defaultFolder.id)
     }
 
     private var unreadArticleCount: Int {
-        AppIconBadgeService.unreadCount(in: feeds)
+        AppIconBadgeService.unreadCount(in: feedSnapshots)
+    }
+
+    private var articleCommandActions: ArticleCommandActions {
+        ArticleCommandActions(
+            canPerformActions: selectedSQLiteArticleSnapshot != nil,
+            canPerformLinkActions: ArticleOriginalURLResolver.hasUsableWebLink(selectedSQLiteArticleSnapshot?.link),
+            toggleReadTitle: selectedSQLiteArticleSnapshot?.isRead == true ? L10n.articleRowMarkUnread : L10n.articleRowMarkRead,
+            toggleStarredTitle: selectedSQLiteArticleSnapshot?.isStarred == true ? L10n.articleRowStarRemove : L10n.articleRowStarAdd,
+            toggleArchivedTitle: selectedSQLiteArticleSnapshot?.isArchived == true ? L10n.articleUnarchiveCommand : L10n.articleArchiveCommand,
+            toggleRead: toggleSelectedSQLiteReadStatus,
+            toggleStarred: toggleSelectedSQLiteStarredStatus,
+            toggleArchived: toggleSelectedSQLiteArchivedStatus,
+            copyLink: copySelectedSQLiteArticleLink,
+            openOriginal: openSelectedSQLiteArticleOriginal,
+            shareOriginal: shareSelectedSQLiteArticleOriginal,
+            openInArticleWindow: {
+                openSQLiteArticleInWindow(articleID: selectedSQLiteArticleID)
+            },
+            requestExport: {
+                if let snapshot = selectedSQLiteArticleSnapshot {
+                    requestExportSQLiteArticle(snapshot)
+                }
+            },
+            canSelectPreviousArticle: sqliteArticleNavigationState.previousArticleID != nil,
+            canSelectNextArticle: sqliteArticleNavigationState.nextArticleID != nil,
+            selectPreviousArticle: selectPreviousArticle,
+            selectNextArticle: selectNextArticle
+        )
+    }
+
+    private func toggleSelectedSQLiteReadStatus() {
+        guard let snapshot = selectedSQLiteArticleSnapshot, let database = feedivoDatabase else {
+            return
+        }
+
+        do {
+            try ArticleStatusStore(database: database).setRead(!snapshot.isRead, articleID: snapshot.id, at: Date())
+            reloadSelectedSQLiteArticleSnapshot(database: database)
+        } catch {
+            opmlAlert = OPMLAlert(title: L10n.databaseInitErrorTitle, message: error.localizedDescription)
+        }
+    }
+
+    private func toggleSelectedSQLiteStarredStatus() {
+        guard let snapshot = selectedSQLiteArticleSnapshot, let database = feedivoDatabase else {
+            return
+        }
+
+        do {
+            try ArticleStatusStore(database: database).setStarred(!snapshot.isStarred, articleID: snapshot.id, at: Date())
+            reloadSelectedSQLiteArticleSnapshot(database: database)
+        } catch {
+            opmlAlert = OPMLAlert(title: L10n.databaseInitErrorTitle, message: error.localizedDescription)
+        }
+    }
+
+    private func toggleSelectedSQLiteArchivedStatus() {
+        guard let snapshot = selectedSQLiteArticleSnapshot, let database = feedivoDatabase else {
+            return
+        }
+
+        do {
+            try ArticleStatusStore(database: database).setArchived(!snapshot.isArchived, articleID: snapshot.id, at: Date())
+            reloadSelectedSQLiteArticleSnapshot(database: database)
+        } catch {
+            opmlAlert = OPMLAlert(title: L10n.databaseInitErrorTitle, message: error.localizedDescription)
+        }
+    }
+
+    private func reloadSelectedSQLiteArticleSnapshot(database: FeedivoDatabase) {
+        guard let selectedSQLiteArticleID else {
+            selectedSQLiteArticleSnapshot = nil
+            return
+        }
+
+        selectedSQLiteArticleSnapshot = try? ArticleStore(database: database).readerArticle(id: selectedSQLiteArticleID)
+    }
+
+    private func copySelectedSQLiteArticleLink() {
+        guard let url = ArticleOriginalURLResolver.url(for: selectedSQLiteArticleSnapshot?.link) else {
+            return
+        }
+
+        SystemArticleLinkPasteboard().copy(url.absoluteString)
+    }
+
+    private func openSelectedSQLiteArticleOriginal() {
+        guard let url = ArticleOriginalURLResolver.url(for: selectedSQLiteArticleSnapshot?.link) else {
+            return
+        }
+
+        SystemArticleURLOpener().open(url)
+    }
+
+    private func shareSelectedSQLiteArticleOriginal() {
+        guard let url = ArticleOriginalURLResolver.url(for: selectedSQLiteArticleSnapshot?.link) else {
+            return
+        }
+
+        SystemArticleSharingPresenter().share(url)
     }
 
     private func updateAppIconBadge() {

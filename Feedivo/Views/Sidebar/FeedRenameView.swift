@@ -1,26 +1,29 @@
-import SwiftData
 import SwiftUI
 
 struct FeedRenameView: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var modelContext
-    @State private var viewModel = FeedViewModel()
-    @State private var displayTitle: String
+    @Environment(\.feedivoDatabase) private var feedivoDatabase
+    @State private var displayTitle: String = ""
+    @State private var feedRecord: FeedRecord?
+    @State private var errorMessage: String?
 
-    let feed: Feed
+    let feedID: String
 
-    init(feed: Feed) {
-        self.feed = feed
-        _displayTitle = State(initialValue: feed.title)
+    init(feedID: String) {
+        self.feedID = feedID
     }
 
     private var originalTitle: String {
-        let title = feed.originalTitle?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let title = feedRecord?.originalTitle?.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let title, !title.isEmpty else {
-            return feed.title
+            return currentTitle
         }
 
         return title
+    }
+
+    private var currentTitle: String {
+        feedRecord?.title ?? ""
     }
 
     private var cleanedDisplayTitle: String {
@@ -28,7 +31,7 @@ struct FeedRenameView: View {
     }
 
     private var canSave: Bool {
-        !cleanedDisplayTitle.isEmpty && cleanedDisplayTitle != feed.title
+        !cleanedDisplayTitle.isEmpty && cleanedDisplayTitle != currentTitle
     }
 
     private var canRestoreOriginal: Bool {
@@ -44,7 +47,7 @@ struct FeedRenameView: View {
             return L10n.feedRenameRestored
         }
 
-        if cleanedDisplayTitle != feed.title {
+        if cleanedDisplayTitle != currentTitle {
             return L10n.feedRenameChanged
         }
 
@@ -54,7 +57,7 @@ struct FeedRenameView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(alignment: .top, spacing: 16) {
-                FeedRenameIconView(feed: feed)
+                FeedRenameIconView(faviconURL: feedRecord?.faviconURL)
 
                 VStack(alignment: .leading, spacing: 14) {
                     VStack(alignment: .leading, spacing: 6) {
@@ -79,7 +82,7 @@ struct FeedRenameView: View {
                                 .textFieldStyle(.roundedBorder)
 
                             Button(L10n.feedRenameRestoreOriginal) {
-                                displayTitle = originalTitle
+                                restoreOriginalTitle()
                             }
                             .disabled(!canRestoreOriginal)
                         }
@@ -116,6 +119,12 @@ struct FeedRenameView: View {
                     Text(statusText)
                         .font(.caption)
                         .foregroundStyle(cleanedDisplayTitle.isEmpty ? .red : .secondary)
+
+                    if let errorMessage {
+                        Text(errorMessage)
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
                 }
             }
             .padding(24)
@@ -130,10 +139,7 @@ struct FeedRenameView: View {
                 }
 
                 Button(L10n.feedRenameSave) {
-                    viewModel.renameFeed(feed, displayTitle: displayTitle, context: modelContext)
-                    if viewModel.errorMessage == nil {
-                        dismiss()
-                    }
+                    saveDisplayTitle()
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canSave)
@@ -142,15 +148,67 @@ struct FeedRenameView: View {
             .background(.bar)
         }
         .frame(width: 520)
+        .task {
+            loadFeedRecord()
+        }
+    }
+
+    private func loadFeedRecord() {
+        guard let database = feedivoDatabase else {
+            errorMessage = "SQLite-Datenbank ist nicht verfügbar."
+            return
+        }
+
+        do {
+            let record = try FeedStore(database: database).feed(id: feedID)
+            feedRecord = record
+            displayTitle = record?.title ?? ""
+            errorMessage = nil
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func saveDisplayTitle() {
+        guard let database = feedivoDatabase else {
+            errorMessage = "SQLite-Datenbank ist nicht verfügbar."
+            return
+        }
+
+        do {
+            try FeedStore(database: database).renameFeed(
+                id: feedID,
+                displayTitle: displayTitle
+            )
+            SQLiteDataInvalidation.bumpStatusVersion()
+            dismiss()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func restoreOriginalTitle() {
+        guard let database = feedivoDatabase else {
+            errorMessage = "SQLite-Datenbank ist nicht verfügbar."
+            return
+        }
+
+        do {
+            try FeedStore(database: database).restoreOriginalTitle(id: feedID)
+            SQLiteDataInvalidation.bumpStatusVersion()
+            loadFeedRecord()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
 }
 
 private struct FeedRenameIconView: View {
-    let feed: Feed
+    let faviconURL: String?
 
     var body: some View {
         Group {
-            if let faviconURL = feed.faviconURL,
+            if let faviconURL,
                let url = URL(string: faviconURL) {
                 CachedRemoteImageView(url: url) { image in
                     image

@@ -4,15 +4,19 @@ import SwiftData
 struct ArticleSearchWindowView: View {
     static let windowID = "article-search-window"
 
-    @Query(sort: \Article.publishedAt, order: .reverse)
-    private var articles: [Article]
-    @Query(sort: \Feed.title)
-    private var feeds: [Feed]
+    @Environment(\.feedivoDatabase) private var database
+
+    // SQLite-Feed-Liste für das Filter-Dropdown (statt @Query [Feed]). Wird beim
+    // Erscheinen und bei Status-Version-Bumps neu geladen.
+    @State private var feeds: [FeedRecord] = []
+    @AppStorage(SQLiteDataInvalidation.statusVersionKey)
+    private var sqliteStatusVersion = 0
     @Query(sort: \Tag.name)
     private var tags: [Tag]
 
     @State private var searchState = ArticleSearchWindowState()
-    @State private var viewModel = ArticleViewModel()
+    @State private var snapshots: [ArticleListSnapshot] = []
+    @State private var loadErrorMessage: String?
 
     /// P4: Debounced Suchtext — das TextField bleibt an `searchState.searchText`
     /// gebunden (so tippt der Nutzer flüssig), aber Filterung/Sortierung laufen
@@ -29,17 +33,13 @@ struct ArticleSearchWindowView: View {
         return state
     }
 
-    private var filteredArticles: [Article] {
-        committedState.filteredArticles(from: articles)
-    }
-
     var body: some View {
         VStack(spacing: 0) {
             searchHeader
 
             Divider()
 
-            if filteredArticles.isEmpty {
+            if snapshots.isEmpty {
                 emptyState
             } else {
                 resultList
@@ -59,6 +59,12 @@ struct ArticleSearchWindowView: View {
             if !Task.isCancelled {
                 debouncedSearchText = searchState.searchText
             }
+        }
+        .task(id: searchLoadToken) {
+            loadSnapshots()
+        }
+        .task(id: sqliteStatusVersion) {
+            loadFeeds()
         }
     }
 
@@ -83,7 +89,7 @@ struct ArticleSearchWindowView: View {
 
                 Spacer(minLength: 0)
 
-                Text(L10n.articleSearchMatchCount(filteredArticles.count))
+                Text(L10n.articleSearchMatchCount(snapshots.count))
                     .font(.caption)
                     .fontWeight(.semibold)
                     .foregroundStyle(.blue)
@@ -151,7 +157,7 @@ struct ArticleSearchWindowView: View {
             Text(L10n.articleSearchFeedAll).tag(UUID?.none)
 
             ForEach(feeds) { feed in
-                Text(feed.title).tag(Optional(feed.id))
+                Text(feed.title).tag(UUID(uuidString: feed.id))
             }
         }
         .labelsHidden()
@@ -191,9 +197,9 @@ struct ArticleSearchWindowView: View {
     }
 
     private var resultList: some View {
-        List(filteredArticles) { article in
-            ArticleSearchResultRow(article: article) {
-                _ = viewModel.openOriginal(article)
+        List(snapshots) { snapshot in
+            ArticleSearchResultRow(snapshot: snapshot) {
+                openOriginal(snapshot)
             }
         }
         .listStyle(.inset)
@@ -201,7 +207,13 @@ struct ArticleSearchWindowView: View {
 
     private var emptyState: some View {
         Group {
-            if committedState.query.normalizedText.isEmpty {
+            if let loadErrorMessage {
+                ContentUnavailableView(
+                    L10n.articleSearchNoResultsTitle,
+                    systemImage: "externaldrive.badge.exclamationmark",
+                    description: Text(loadErrorMessage)
+                )
+            } else if committedState.query.normalizedText.isEmpty {
                 ContentUnavailableView(
                     L10n.articleSearchNoResultsTitle,
                     systemImage: "magnifyingglass",
@@ -223,6 +235,52 @@ struct ArticleSearchWindowView: View {
         // P4: debounced Text sofort zurücksetzen, damit Treffer/Leer-Zustand ohne
         // 250 ms Lag folgen.
         debouncedSearchText = ""
+    }
+
+    private var searchLoadToken: String {
+        [
+            debouncedSearchText,
+            searchState.field.rawValue,
+            searchState.feedID?.uuidString ?? "all-feeds",
+            searchState.tagID?.uuidString ?? "all-tags",
+            searchState.dateFilter.rawValue,
+            searchState.statusFilter.rawValue
+        ].joined(separator: "#")
+    }
+
+    private func loadFeeds() {
+        guard let database else {
+            feeds = []
+            return
+        }
+        feeds = (try? FeedStore(database: database).feeds()) ?? []
+    }
+
+    private func loadSnapshots() {
+        guard let database else {
+            snapshots = []
+            loadErrorMessage = "Die lokale Artikeldatenbank konnte nicht geöffnet werden."
+            return
+        }
+
+        do {
+            snapshots = try ArticleStore(database: database).searchArticles(
+                state: committedState,
+                limit: 200
+            )
+            loadErrorMessage = nil
+        } catch {
+            snapshots = []
+            loadErrorMessage = error.localizedDescription
+        }
+    }
+
+    private func openOriginal(_ snapshot: ArticleListSnapshot) {
+        guard let link = snapshot.link, let url = URL(string: link) else {
+            return
+        }
+
+        NSWorkspace.shared.open(url)
     }
 
     private func label(for field: ArticleSearchField) -> String {
@@ -266,25 +324,25 @@ struct ArticleSearchWindowView: View {
 }
 
 private struct ArticleSearchResultRow: View {
-    let article: Article
+    let snapshot: ArticleListSnapshot
     let onOpenOriginal: () -> Void
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(article.title)
+                Text(snapshot.title)
                     .font(.headline)
                     .lineLimit(2)
 
                 HStack(spacing: 6) {
-                    Text(article.feed?.title ?? "")
+                    Text(snapshot.feedTitle)
                     Text("·")
                     Text(formattedDate)
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-                if let summary = article.summary, !summary.isEmpty {
+                if let summary = snapshot.summary, !summary.isEmpty {
                     Text(summary)
                         .font(.callout)
                         .foregroundStyle(.secondary)
@@ -306,7 +364,7 @@ private struct ArticleSearchResultRow: View {
     }
 
     private var formattedDate: String {
-        guard let publishedAt = article.publishedAt else {
+        guard let publishedAt = snapshot.publishedAt else {
             return "Unbekannt"
         }
 

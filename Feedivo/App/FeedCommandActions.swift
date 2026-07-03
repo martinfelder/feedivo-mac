@@ -1,7 +1,10 @@
 import SwiftUI
 
 struct FeedCommandActions {
-    let selectedFeed: Feed?
+    // SQLite-Identität: ContentView resolves den ausgewählten Feed als
+    // Sidebar-Snapshot statt als SwiftData-`Feed`. Für die Menübefehle reicht
+    // der Nil-Check (canPerformFeedAction) — die Aktionen laufen auf feedID.
+    let selectedFeed: FeedSidebarSnapshot?
     let requestAddFeed: () -> Void
     let requestImportOPML: () -> Void
     let requestExportOPML: () -> Void

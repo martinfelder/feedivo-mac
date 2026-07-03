@@ -5,11 +5,21 @@ import UniformTypeIdentifiers
 struct OPMLImportReviewView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.feedivoDatabase) private var feedivoDatabase
 
     private let tableBodyHeight: CGFloat = 336
 
-    let feeds: [Feed]
     let feedViewModel: FeedViewModel
+
+    // Bestehende Ordnernamen aus SQLite — für das Folder-Dropdown im Import-
+    // Sheet. Duplikat-Check läuft in `opmlImportPreviewRows` bereits SQLite-
+    // basiert, deshalb braucht diese View keine SwiftData-`Feed`-Liste mehr.
+    private var existingFolderNames: [String] {
+        guard let feedivoDatabase else { return [] }
+        return (try? FeedStore(database: feedivoDatabase).feeds())?
+            .compactMap { $0.folderName?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty } ?? []
+    }
 
     // Einziger OPML-State: Controller hält rows, Toggles, Picker, Import-Status etc.
     @State private var previewController = OPMLImportPreviewController(configuration: .importSheet)
@@ -42,10 +52,20 @@ struct OPMLImportReviewView: View {
             isPresented: $previewController.isFileImporterPresented,
             allowedContentTypes: [.opml, .xml]
         ) { result in
-            previewController.loadOPML(from: result, existingFeeds: feeds, feedViewModel: feedViewModel)
+            previewController.loadOPML(
+                from: result,
+                existingFeeds: [],
+                sqliteDatabase: feedivoDatabase,
+                feedViewModel: feedViewModel
+            )
         }
         .onDrop(of: [UTType.fileURL.identifier], isTargeted: $previewController.isDropTargeted) { providers in
-            previewController.handleDroppedFiles(providers, existingFeeds: feeds, feedViewModel: feedViewModel)
+            previewController.handleDroppedFiles(
+                providers,
+                existingFeeds: [],
+                sqliteDatabase: feedivoDatabase,
+                feedViewModel: feedViewModel
+            )
         }
         .onChange(of: previewController.allowsDuplicates) {
             previewController.applyToggleSelectionToRows()
@@ -311,7 +331,7 @@ struct OPMLImportReviewView: View {
                                 OPMLImportFeedRow(
                                     row: $row,
                                     selectionOptions: previewController.selectionOptions,
-                                    availableFolders: previewController.availableFolders(existingFeeds: feeds),
+                                    availableFolders: previewController.availableFolders(existingFolderNames: existingFolderNames),
                                     layout: .importSheet
                                 )
                                 Divider()
@@ -461,11 +481,12 @@ struct OPMLImportReviewView: View {
                 let selectedFeeds = selectedRows.map(\.feed)
                 let result = try await feedViewModel.importOPMLFeeds(
                     selectedFeeds,
-                    existingFeeds: feeds,
+                    existingFeeds: [],
                     allowsDuplicates: previewController.allowsDuplicates,
                     refreshAfterImport: previewController.refreshAfterImport,
                     refreshIntervalMinutes: backgroundRefreshIntervalMinutes,
-                    context: modelContext
+                    context: modelContext,
+                    sqliteDatabase: feedivoDatabase
                 )
                 let importedDuplicateCount = selectedRows.filter { $0.status == .duplicate }.count
                 let duplicateText = importedDuplicateCount > 0

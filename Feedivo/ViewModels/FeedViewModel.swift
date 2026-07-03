@@ -108,6 +108,11 @@ private enum FeedRefreshOutcome {
     case failure(String)
 }
 
+private enum SQLiteFeedRefreshOutcome {
+    case success(UUID, FeedRefreshNotificationResult, SQLiteFeedRefreshResult)
+    case failure(UUID, String)
+}
+
 enum StoredArticleRefreshFieldUpdate {
     static func replacement(for existingValue: String?, from parsedValue: String?) -> String? {
         guard let parsedValue = nonEmptyText(parsedValue),
@@ -205,9 +210,11 @@ final class FeedViewModel {
     func opmlImportPreviewRows(
         for opmlFeeds: [OPMLFeed],
         existingFeeds: [Feed],
+        sqliteDatabase: FeedivoDatabase? = nil,
         onProgress: ((OPMLImportPreviewProgress) -> Void)? = nil
     ) async -> [OPMLImportPreviewRow] {
-        var knownFeedURLs = Set(existingFeeds.map { normalizedFeedURL($0.url) })
+        let sqliteFeedURLs = (try? sqliteDatabase.map { try FeedStore(database: $0).feeds().map(\.url) }) ?? []
+        var knownFeedURLs = Set((existingFeeds.map(\.url) + sqliteFeedURLs).map { normalizedFeedURL($0) })
 
         // Phase 1 — sequenziell: Duplikat-Status feststellen und Abruf-Bedarf
         // sammeln. Das URL-Set darf nicht concurrent mutiert werden, daher bleibt
@@ -305,7 +312,8 @@ final class FeedViewModel {
         allowsDuplicates: Bool = false,
         refreshAfterImport: Bool = true,
         refreshIntervalMinutes: Int = 60,
-        context: ModelContext
+        context: ModelContext,
+        sqliteDatabase: FeedivoDatabase? = nil
     ) async throws -> OPMLImportResult {
         // Statt eines vorgetäuschten Erfolgs (imported: 0) werfen — beide Aufrufer
         // (FirstRunWizard, OPMLImportReview) nutzen `try` und zeigen den Fehler
@@ -320,6 +328,36 @@ final class FeedViewModel {
         defer {
             isLoading = false
             operationProgress = nil
+        }
+
+        if let sqliteDatabase {
+            let service = SQLiteFeedSubscriptionService(
+                database: sqliteDatabase,
+                fetchFeed: fetchFeed,
+                discoverFaviconURL: discoverFaviconURL
+            )
+            let sqliteResult = try await service.importOPMLFeeds(
+                opmlFeeds,
+                allowsDuplicates: allowsDuplicates,
+                refreshAfterImport: refreshAfterImport,
+                refreshIntervalMinutes: refreshIntervalMinutes,
+                context: context
+            )
+            if !sqliteResult.failedFeedTitles.isEmpty {
+                errorMessage = L10n.feedErrorRefreshAllPartial(
+                    sqliteResult.failedFeedTitles.count,
+                    feedTitles: sqliteResult.failedFeedTitles.joined(separator: ", ")
+                )
+            }
+            if sqliteResult.imported > 0 {
+                SQLiteDataInvalidation.bumpStatusVersion()
+            }
+
+            return OPMLImportResult(
+                total: sqliteResult.total,
+                imported: sqliteResult.imported,
+                skippedDuplicates: sqliteResult.skippedDuplicates
+            )
         }
 
         var knownFeedURLs = Set(existingFeeds.map { normalizedFeedURL($0.url) })
@@ -412,6 +450,11 @@ final class FeedViewModel {
         }
 
         try context.save()
+        if let sqliteDatabase {
+            for feed in feedsToRefresh {
+                try? mirrorFeedToSQLite(feed, context: context, database: sqliteDatabase)
+            }
+        }
         if !failedFeedTitles.isEmpty {
             errorMessage = L10n.feedErrorRefreshAllPartial(
                 failedFeedTitles.count,
@@ -487,7 +530,11 @@ final class FeedViewModel {
     }
 
     @MainActor
-    func addFeed(urlString: String, context: ModelContext) async {
+    func addFeed(
+        urlString: String,
+        context: ModelContext,
+        sqliteDatabase: FeedivoDatabase? = nil
+    ) async {
         let cleanedURL = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleanedURL.isEmpty else {
             errorMessage = L10n.feedErrorEmptyURL
@@ -504,6 +551,31 @@ final class FeedViewModel {
 
         isLoading = true
         errorMessage = nil
+        defer {
+            isLoading = false
+        }
+
+        if let sqliteDatabase {
+            do {
+                let service = SQLiteFeedSubscriptionService(
+                    database: sqliteDatabase,
+                    fetchFeed: fetchFeed,
+                    discoverFaviconURL: discoverFaviconURL
+                )
+                _ = try await service.addFeed(
+                    urlString: cleanedURL,
+                    refreshIntervalMinutes: BackgroundRefreshSettings.defaultIntervalMinutes,
+                    context: context
+                )
+                SQLiteDataInvalidation.bumpStatusVersion()
+            } catch let error as LocalizedError {
+                errorMessage = error.errorDescription ?? L10n.feedErrorAddFailed
+            } catch {
+                errorMessage = L10n.feedErrorAddFailed
+            }
+
+            return
+        }
 
         do {
             let parsedFeed = try await fetchFeed(cleanedURL)
@@ -518,7 +590,6 @@ final class FeedViewModel {
             )
             if knownFeedURLs.contains(normalizedFeedURL(parsedFeed.sourceURL)) {
                 errorMessage = L10n.feedErrorDuplicate
-                isLoading = false
                 return
             }
 
@@ -555,17 +626,24 @@ final class FeedViewModel {
                 context: context
             )
             try context.save()
+
+            if let sqliteDatabase {
+                try mirrorFeedToSQLite(feed, context: context, database: sqliteDatabase)
+            }
         } catch let error as LocalizedError {
             errorMessage = error.errorDescription ?? L10n.feedErrorAddFailed
         } catch {
             errorMessage = L10n.feedErrorAddFailed
         }
 
-        isLoading = false
     }
 
     @MainActor
-    func refreshFeed(_ feed: Feed?, context: ModelContext) async {
+    func refreshFeed(
+        _ feed: Feed?,
+        context: ModelContext,
+        sqliteDatabase: FeedivoDatabase? = nil
+    ) async {
         guard !isLoading else {
             // Statt stillen Drops: Nutzer bekommt Feedback, dass bereits
             // aktualisiert wird, und sein Aufruf nicht verloren geht.
@@ -580,58 +658,156 @@ final class FeedViewModel {
         isLoading = true
         errorMessage = nil
 
-        let refreshService = FeedBackgroundRefreshService(
-            modelContainer: context.container,
-            fetchFeedConditionally: fetchFeedConditionally,
-            discoverFaviconURL: discoverFaviconURL,
-            enrichArticleImages: enrichArticleImages,
-            articleRetentionDefaults: articleRetentionDefaults
-        )
-
-        let snapshot = FeedRefreshSnapshot(
-            id: feed.id,
-            title: feed.title,
-            url: feed.url
-        )
-
-        let result = await refreshService.refreshFeed(snapshot)
-        switch result {
-        case .success(let refreshResult):
-            await notifyFeedRefresh([refreshResult.feedNotification])
-            await notifyRuleNotifications(refreshResult.ruleNotifications)
-        case .failure(let error):
-            errorMessage = error.localizedDescription
+        do {
+            let result = try await refreshFeedContents(feed, context: context)
+            if let sqliteDatabase {
+                try mirrorFeedToSQLite(feed, context: context, database: sqliteDatabase)
+            }
+            await notifyFeedRefresh([result.feedNotification])
+            await notifyRuleNotifications(result.ruleNotifications)
+        } catch let error as LocalizedError {
+            appendLog(
+                kind: .error,
+                message: error.errorDescription ?? L10n.feedErrorParsingFailed,
+                to: feed,
+                context: context
+            )
+            try? context.save()
+            errorMessage = error.errorDescription ?? L10n.feedErrorParsingFailed
+        } catch {
+            appendLog(
+                kind: .error,
+                message: L10n.feedErrorParsingFailed,
+                to: feed,
+                context: context
+            )
+            try? context.save()
+            errorMessage = L10n.feedErrorParsingFailed
         }
 
         isLoading = false
     }
 
+    /// SQLite-first Einzel-Refresh anhand der Feed-ID, ohne dass der Aufrufer ein
+    /// SwiftData-`Feed`-Objekt vorhalten muss. ContentView resolved die Auswahl
+    /// nur noch per ID. Regeln werden einmalig aus dem ModelContext geholt und
+    /// als Snapshots an `SQLiteFeedRefreshService` weitergereicht.
     @MainActor
-    func refreshAllFeeds(_ feeds: [Feed], context: ModelContext) async {
+    func refreshFeed(
+        feedID: String,
+        context: ModelContext,
+        sqliteDatabase: FeedivoDatabase?
+    ) async {
         guard !isLoading else {
             errorMessage = L10n.feedErrorAlreadyRunning
             return
         }
 
-        let snapshots = feeds.map { feed in
-            FeedRefreshSnapshot(
-                id: feed.id,
-                title: feed.title,
-                url: feed.url
-            )
+        guard let sqliteDatabase else {
+            errorMessage = L10n.feedErrorAddFailed
+            return
         }
+
+        isLoading = true
+        errorMessage = nil
+        defer {
+            isLoading = false
+        }
+
+        let rules = (try? context.fetch(FetchDescriptor<Rule>())) ?? []
+        let ruleSnapshots = RuleEngine.snapshots(from: rules)
+        let service = SQLiteFeedRefreshService(
+            database: sqliteDatabase,
+            ruleSnapshots: ruleSnapshots
+        )
+
+        do {
+            let result = try await service.refresh(feedID: feedID)
+            SQLiteDataInvalidation.bumpStatusVersion()
+            await notifyFeedRefresh([
+                FeedRefreshNotificationResult(
+                    feedTitle: result.feedTitle,
+                    newArticleCount: result.insertedArticleIDs.count,
+                    isNotificationEnabled: (try? FeedStore(database: sqliteDatabase)
+                        .feed(id: feedID)?.isNotificationEnabled) ?? false
+                )
+            ])
+            await notifyRuleNotifications(result.ruleNotifications)
+        } catch let error as LocalizedError {
+            errorMessage = error.errorDescription ?? L10n.feedErrorParsingFailed
+        } catch {
+            errorMessage = L10n.feedErrorParsingFailed
+        }
+    }
+
+    /// SQLite-first Refresh-All: Snapshots werden aus `FeedStore.feeds()` geladen
+    /// statt aus einer SwiftData-`[Feed]`-Liste. ContentView übergibt nur noch
+    /// die Datenbank (und optional den Container für den Regel-Kontext).
+    @MainActor
+    func refreshAllFeeds(
+        sqliteDatabase: FeedivoDatabase,
+        modelContainer: ModelContainer?
+    ) async {
+        guard !isLoading else {
+            errorMessage = L10n.feedErrorAlreadyRunning
+            return
+        }
+
+        let snapshots: [FeedRefreshSnapshot] = (try? FeedStore(database: sqliteDatabase)
+            .feeds()
+            .compactMap { record in
+                guard let id = UUID(uuidString: record.id) else { return nil }
+                return FeedRefreshSnapshot(
+                    id: id,
+                    title: record.title,
+                    url: record.url,
+                    isNotificationEnabled: record.isNotificationEnabled
+                )
+            }) ?? []
+
         guard !snapshots.isEmpty else {
+            return
+        }
+
+        let ruleSnapshots: [RuleEngine.RuleSnapshot]
+        if let modelContainer {
+            let ruleContext = ModelContext(modelContainer)
+            let rules = (try? ruleContext.fetch(FetchDescriptor<Rule>())) ?? []
+            ruleSnapshots = RuleEngine.snapshots(from: rules)
+        } else {
+            ruleSnapshots = []
+        }
+
+        await refreshAllFeedsSQLiteFirst(
+            snapshots,
+            database: sqliteDatabase,
+            ruleSnapshots: ruleSnapshots
+        )
+    }
+
+    @MainActor
+    func refreshAllFeeds(
+        _ feeds: [Feed],
+        context: ModelContext,
+        sqliteDatabase: FeedivoDatabase? = nil
+    ) async {
+        guard !isLoading else {
+            errorMessage = L10n.feedErrorAlreadyRunning
+            return
+        }
+
+        guard !feeds.isEmpty else {
             return
         }
 
         isLoading = true
         errorMessage = nil
         recentRefreshStatus = nil
-        refreshItems = snapshots.map { snapshot in
+        refreshItems = feeds.map { feed in
             FeedRefreshItem(
-                feedID: snapshot.id,
-                feedTitle: snapshot.title,
-                feedURL: snapshot.url,
+                feedID: feed.id,
+                feedTitle: feed.title,
+                feedURL: feed.url,
                 status: .pending
             )
         }
@@ -639,59 +815,119 @@ final class FeedViewModel {
         operationProgress = FeedOperationProgress(
             title: L10n.feedProgressRefreshAllTitle,
             completedCount: 0,
-            totalCount: snapshots.count
+            totalCount: feeds.count
         )
+        var failedFeedTitles: [String] = []
+        var notificationResults: [FeedRefreshNotificationResult] = []
+        var ruleNotificationResults: [RuleNotificationResult] = []
 
         defer {
             isLoading = false
             operationProgress = nil
         }
 
-        let refreshService = FeedBackgroundRefreshService(
-            modelContainer: context.container,
-            fetchFeedConditionally: fetchFeedConditionally,
-            discoverFaviconURL: discoverFaviconURL,
-            enrichArticleImages: enrichArticleImages,
-            articleRetentionDefaults: articleRetentionDefaults
-        )
-        let summary = await refreshService.refreshAllFeeds(
-            snapshots,
-            batchSize: Self.maxConcurrentFeedRefreshes
-        ) { [weak self] event in
-            await self?.handleBackgroundRefreshEvent(event)
+        // M4: Regeln einmal für den gesamten Refresh holen statt pro Feed neu
+        // zu fetchen. Wird an refreshFeedContents weitergereicht.
+        let refreshRules = (try? context.fetch(FetchDescriptor<Rule>())) ?? []
+
+        // Feed-Refresh läuft bewusst gedrosselt. Bei vielen Feeds bleibt die App
+        // dadurch bedienbarer und Server werden weniger hart getroffen.
+        for feedBatch in feedBatches(from: feeds) {
+            updateRefreshItemStatuses(
+                for: feedBatch.map(\.id),
+                status: .refreshing
+            )
+
+            await withTaskGroup(of: FeedRefreshOutcome.self) { group in
+                for feed in feedBatch {
+                    group.addTask { @MainActor in
+                        do {
+                            let result = try await self.refreshFeedContents(
+                                feed,
+                                context: context,
+                                rules: refreshRules,
+                                savesImmediately: false
+                            )
+                            self.updateRefreshItemStatus(for: feed.id, status: .succeeded)
+                            return .success(result)
+                        } catch let error as LocalizedError {
+                            self.appendLog(
+                                kind: .error,
+                                message: error.errorDescription ?? L10n.feedErrorParsingFailed,
+                                to: feed,
+                                context: context
+                            )
+                            self.updateRefreshItemStatus(for: feed.id, status: .failed)
+                            return .failure(feed.title)
+                        } catch {
+                            self.appendLog(
+                                kind: .error,
+                                message: L10n.feedErrorParsingFailed,
+                                to: feed,
+                                context: context
+                            )
+                            self.updateRefreshItemStatus(for: feed.id, status: .failed)
+                            return .failure(feed.title)
+                        }
+                    }
+                }
+
+                for await outcome in group {
+                    switch outcome {
+                    case .success(let result):
+                        notificationResults.append(result.feedNotification)
+                        ruleNotificationResults.append(contentsOf: result.ruleNotifications)
+                    case .failure(let failedTitle):
+                        failedFeedTitles.append(failedTitle)
+                    }
+
+                    incrementOperationProgress()
+                }
+            }
+
+            try? context.save()
+            if let sqliteDatabase {
+                for feed in feedBatch {
+                    try? mirrorFeedToSQLite(feed, context: context, database: sqliteDatabase)
+                }
+            }
         }
 
-        await notifyFeedRefresh(summary.notificationResults)
-        await notifyRuleNotifications(summary.ruleNotificationResults)
+        await notifyFeedRefresh(notificationResults)
+        await notifyRuleNotifications(ruleNotificationResults)
         await waitForMinimumRefreshStatusDuration(since: refreshStatusStart)
 
         recentRefreshStatus = FeedRefreshStatusSummary(
-            newArticleCount: summary.notificationResults.reduce(0) { $0 + $1.newArticleCount },
-            failedFeedCount: summary.failedFeedTitles.count,
-            totalFeedCount: snapshots.count
+            newArticleCount: notificationResults.reduce(0) { $0 + $1.newArticleCount },
+            failedFeedCount: failedFeedTitles.count,
+            totalFeedCount: feeds.count
         )
 
-        if summary.failedFeedTitles.isEmpty {
+        if failedFeedTitles.isEmpty {
             lastRefreshOutcome = .success
-        } else if summary.failedFeedTitles.count < snapshots.count {
+        } else if failedFeedTitles.count < feeds.count {
             // Teilfehler: einige Feeds konnten nicht aktualisiert werden, der
             // Rest aber schon. Status „partial" statt pauschal „failed".
-            lastRefreshOutcome = .partial(failedCount: summary.failedFeedTitles.count)
+            lastRefreshOutcome = .partial(failedCount: failedFeedTitles.count)
             errorMessage = L10n.feedErrorRefreshAllPartial(
-                summary.failedFeedTitles.count,
-                feedTitles: summary.failedFeedTitles.joined(separator: ", ")
+                failedFeedTitles.count,
+                feedTitles: failedFeedTitles.joined(separator: ", ")
             )
         } else {
             lastRefreshOutcome = .failure
             errorMessage = L10n.feedErrorRefreshAllPartial(
-                summary.failedFeedTitles.count,
-                feedTitles: summary.failedFeedTitles.joined(separator: ", ")
+                failedFeedTitles.count,
+                feedTitles: failedFeedTitles.joined(separator: ", ")
             )
         }
     }
 
     @MainActor
-    func refreshAllFeeds(_ feeds: [Feed], modelContainer: ModelContainer) async {
+    func refreshAllFeeds(
+        _ feeds: [Feed],
+        modelContainer: ModelContainer,
+        sqliteDatabase: FeedivoDatabase? = nil
+    ) async {
         guard !isLoading else {
             errorMessage = L10n.feedErrorAlreadyRunning
             return
@@ -701,10 +937,23 @@ final class FeedViewModel {
             FeedRefreshSnapshot(
                 id: feed.id,
                 title: feed.title,
-                url: feed.url
+                url: feed.url,
+                isNotificationEnabled: feed.isNotificationEnabled
             )
         }
         guard !snapshots.isEmpty else {
+            return
+        }
+
+        if let sqliteDatabase {
+            let ruleContext = ModelContext(modelContainer)
+            let rules = (try? ruleContext.fetch(FetchDescriptor<Rule>())) ?? []
+            let ruleSnapshots = RuleEngine.snapshots(from: rules)
+            await refreshAllFeedsSQLiteFirst(
+                snapshots,
+                database: sqliteDatabase,
+                ruleSnapshots: ruleSnapshots
+            )
             return
         }
 
@@ -773,6 +1022,129 @@ final class FeedViewModel {
     }
 
     @MainActor
+    private func refreshAllFeedsSQLiteFirst(
+        _ snapshots: [FeedRefreshSnapshot],
+        database: FeedivoDatabase,
+        ruleSnapshots: [RuleEngine.RuleSnapshot] = []
+    ) async {
+        isLoading = true
+        errorMessage = nil
+        recentRefreshStatus = nil
+        refreshItems = snapshots.map { snapshot in
+            FeedRefreshItem(
+                feedID: snapshot.id,
+                feedTitle: snapshot.title,
+                feedURL: snapshot.url,
+                status: .pending
+            )
+        }
+        let refreshStatusStart = ContinuousClock().now
+        operationProgress = FeedOperationProgress(
+            title: L10n.feedProgressRefreshAllTitle,
+            completedCount: 0,
+            totalCount: snapshots.count
+        )
+        var notificationResults: [FeedRefreshNotificationResult] = []
+        var ruleNotificationResults: [RuleNotificationResult] = []
+        var failedFeedTitles: [String] = []
+
+        defer {
+            isLoading = false
+            operationProgress = nil
+        }
+
+        for snapshotBatch in feedBatches(from: snapshots) {
+            updateRefreshItemStatuses(
+                for: snapshotBatch.map(\.id),
+                status: .refreshing
+            )
+
+            await withTaskGroup(of: SQLiteFeedRefreshOutcome.self) { group in
+                for snapshot in snapshotBatch {
+                    group.addTask { [fetchFeedConditionally] in
+                        do {
+                            let feedID = snapshot.id.uuidString
+                            let feedStore = FeedStore(database: database)
+                            if try feedStore.feed(id: feedID) == nil {
+                                try feedStore.save(
+                                    FeedRecord(
+                                        id: feedID,
+                                        url: snapshot.url,
+                                        title: snapshot.title
+                                    )
+                                )
+                            }
+
+                            let service = SQLiteFeedRefreshService(
+                                database: database,
+                                ruleSnapshots: ruleSnapshots,
+                                fetcher: { urlString, validators in
+                                    switch try await fetchFeedConditionally(urlString, validators) {
+                                    case .updated(let feed, let validators):
+                                        return .updated(feed, validators)
+                                    case .notModified(let validators):
+                                        return .notModified(validators)
+                                    }
+                                }
+                            )
+                            let result = try await service.refresh(feedID: feedID)
+                            let notificationResult = FeedRefreshNotificationResult(
+                                feedTitle: result.feedTitle,
+                                newArticleCount: result.insertedArticleIDs.count,
+                                isNotificationEnabled: snapshot.isNotificationEnabled
+                            )
+                            return .success(snapshot.id, notificationResult, result)
+                        } catch {
+                            return .failure(snapshot.id, snapshot.title)
+                        }
+                    }
+                }
+
+                for await outcome in group {
+                    switch outcome {
+                    case .success(let feedID, let feedNotification, let result):
+                        updateRefreshItemStatus(for: feedID, status: .succeeded)
+                        notificationResults.append(feedNotification)
+                        ruleNotificationResults.append(contentsOf: result.ruleNotifications)
+                    case .failure(let feedID, let failedTitle):
+                        updateRefreshItemStatus(for: feedID, status: .failed)
+                        failedFeedTitles.append(failedTitle)
+                    }
+
+                    incrementOperationProgress()
+                }
+            }
+        }
+
+        SQLiteDataInvalidation.bumpStatusVersion()
+        await notifyFeedRefresh(notificationResults)
+        await notifyRuleNotifications(ruleNotificationResults)
+        await waitForMinimumRefreshStatusDuration(since: refreshStatusStart)
+
+        recentRefreshStatus = FeedRefreshStatusSummary(
+            newArticleCount: notificationResults.reduce(0) { $0 + $1.newArticleCount },
+            failedFeedCount: failedFeedTitles.count,
+            totalFeedCount: snapshots.count
+        )
+
+        if failedFeedTitles.isEmpty {
+            lastRefreshOutcome = .success
+        } else if failedFeedTitles.count < snapshots.count {
+            lastRefreshOutcome = .partial(failedCount: failedFeedTitles.count)
+            errorMessage = L10n.feedErrorRefreshAllPartial(
+                failedFeedTitles.count,
+                feedTitles: failedFeedTitles.joined(separator: ", ")
+            )
+        } else {
+            lastRefreshOutcome = .failure
+            errorMessage = L10n.feedErrorRefreshAllPartial(
+                failedFeedTitles.count,
+                feedTitles: failedFeedTitles.joined(separator: ", ")
+            )
+        }
+    }
+
+    @MainActor
     private func handleBackgroundRefreshEvent(_ event: FeedBackgroundRefreshEvent) {
         switch event {
         case .batchStarted(let feedIDs):
@@ -803,6 +1175,77 @@ final class FeedViewModel {
         }
 
         try? await Task.sleep(for: minimumRefreshStatusDuration - elapsed)
+    }
+
+    // BRÜCKEN-SCHREIBPFAD (hart isoliert, Plan T8): Spiegelt einen SwiftData-
+    // `Feed` nach SQLite (`FeedRecord` + Artikel). Wird nur aus den verbleibenden
+    // SwiftData-first Pfaden (addFeed/rename/restore) aufgerufen, die ihrerseits
+    // noch auf das SwiftData-`Feed`-Modell angewiesen sind, weil `Article.feed`/
+    // `Tag.feeds` Relationships leben. Sobald diese Pfade SQLite-only sind,
+    // entfällt diese Funktion. Keine neuen Reads hierüber — Reads laufen über
+    // `FeedStore`/`ArticleStore`.
+    @MainActor
+    private func mirrorFeedToSQLite(
+        _ feed: Feed,
+        context: ModelContext,
+        database: FeedivoDatabase
+    ) throws {
+        let feedID = feed.id.uuidString
+        let feedStore = FeedStore(database: database)
+        try feedStore.save(
+            FeedRecord(
+                id: feedID,
+                url: feed.url,
+                title: feed.title,
+                websiteURL: feed.siteURL,
+                faviconURL: feed.faviconURL,
+                folderName: feed.folderName,
+                refreshIntervalMinutes: feed.refreshIntervalMinutes,
+                lastRefreshedAt: feed.lastRefreshed,
+                lastETag: feed.httpETag,
+                lastModified: feed.httpLastModified,
+                lastBodyHash: feed.httpContentHash,
+                lastHTTPStatusCode: feed.lastHTTPStatusCode,
+                unreadCount: feed.unreadCount,
+                createdAt: feed.followedAt ?? Date(),
+                updatedAt: Date()
+            )
+        )
+
+        let articles = try articlesForSQLiteMirror(feed: feed, context: context)
+        let inputs = articles.map { article in
+            ArticleUpsertInput(
+                feedID: feedID,
+                sourceID: article.sourceID,
+                link: article.link,
+                title: article.title,
+                summary: article.summary,
+                content: article.content,
+                imageURL: article.imageURL,
+                author: article.author,
+                publishedAt: article.publishedAt,
+                arrivedAt: article.publishedAt ?? feed.lastRefreshed ?? Date()
+            )
+        }
+
+        _ = try ArticleStore(database: database).upsert(inputs)
+        let unreadCount = try ArticleStatusStore(database: database).unreadCount(feedID: feedID)
+        try feedStore.setUnreadCount(unreadCount, feedID: feedID)
+    }
+
+    @MainActor
+    private func articlesForSQLiteMirror(feed: Feed, context: ModelContext) throws -> [Article] {
+        let feedID = Optional(feed.id)
+        var descriptor = FetchDescriptor<Article>(
+            predicate: #Predicate<Article> { article in
+                article.feedID == feedID
+            }
+        )
+        descriptor.sortBy = [
+            SortDescriptor(\.publishedAt, order: .reverse),
+            SortDescriptor(\.id, order: .reverse)
+        ]
+        return try context.fetch(descriptor)
     }
 
     private func updateRefreshItemStatus(for feedID: UUID, status: FeedRefreshItemStatus) {
@@ -862,6 +1305,58 @@ final class FeedViewModel {
             }
 
             context.delete(feed)
+
+            try context.save()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    /// SQLite-first Delete anhand der Feed-ID. Löscht den SQLite-`FeedRecord`
+    /// per `FeedStore.delete` und zusätzlich den SwiftData-Brücken-Feed samt
+    /// seiner Artikel/LogEntries, falls noch vorhanden (die Brücke bleibt
+    /// übergangsweise als SwiftData-Seitenkanal bestehen, solange `Article.feed`
+    /// /`Tag.feeds` Relationships leben — siehe Plan T8).
+    @MainActor
+    func deleteFeed(
+        feedID: String,
+        context: ModelContext,
+        sqliteDatabase: FeedivoDatabase?
+    ) {
+        errorMessage = nil
+
+        if let sqliteDatabase {
+            do {
+                try FeedStore(database: sqliteDatabase).delete(id: feedID)
+                SQLiteDataInvalidation.bumpStatusVersion()
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
+
+        // SwiftData-Brücken-Feed aufräumen (falls vorhanden). Artikel werden per
+        // feedID geladen und einzeln gelöscht (.nullify-Regel, CloudKit-kompatibel).
+        guard let feedUUID = UUID(uuidString: feedID) else {
+            return
+        }
+
+        do {
+            let descriptor = FetchDescriptor<Article>(
+                predicate: #Predicate<Article> { article in
+                    article.feedID == feedUUID
+                }
+            )
+            for article in try context.fetch(descriptor) {
+                context.delete(article)
+            }
+
+            if let feed = try context.fetch(FetchDescriptor<Feed>())
+                .first(where: { $0.id == feedUUID }) {
+                for entry in feed.logEntries ?? [] {
+                    context.delete(entry)
+                }
+                context.delete(feed)
+            }
 
             try context.save()
         } catch {

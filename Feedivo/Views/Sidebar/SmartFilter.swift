@@ -24,7 +24,7 @@ enum SmartFilterIconColor: Hashable {
     }
 }
 
-enum SmartFilter: String, CaseIterable, Identifiable, Hashable {
+enum SmartFilter: String, CaseIterable, Identifiable, Hashable, Sendable {
     case allArticles
     case unread
     case starred

@@ -1,53 +1,31 @@
 import SwiftUI
-import SwiftData
 
 struct SidebarView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.feedivoDatabase) private var feedivoDatabase
     @Environment(\.interfaceTextSize) private var interfaceTextSize
 
-    @Query(sort: \Feed.title) private var feeds: [Feed]
-    @Query(sort: \FeedFolder.name) private var folders: [FeedFolder]
-    @Query(sort: \Tag.name) private var tags: [Tag]
-    @Query(sort: \SmartFolder.sortOrder) private var smartFolders: [SmartFolder]
-    // Nur Artikel, die für Status-Badges relevant sind. Eine globale Artikel-
-    // Query in der Sidebar hat beim Lesen jeden isRead-Wechsel beobachtet und
-    // dadurch SwiftData/CoreData-Faulting auf dem Main-Thread ausgelöst.
-    @Query private var statusBadgeArticles: [Article]
     @Binding var selection: SidebarSelection?
     let onRequestAddFeed: () -> Void
     let onRequestRefreshAllFeeds: () -> Void
-    let onRequestDeleteFeed: (Feed) -> Void
+    let onRequestDeleteFeed: (String) -> Void
     // Bump bei direkter Artikel→Tag-Zuweisung (siehe SidebarBadgeInvalidation).
     // Status-Toggles, Artikel-Zahl und Feed/Tag-Struktur werden automatisch über
-    // die Signatur bzw. die beobachteten @Querys erfasst.
+    // die Signatur bzw. die SQLite-Snapshots erfasst.
     @AppStorage(SidebarBadgeInvalidation.directTagVersionKey)
     private var directTagVersion = 0
-    // Cache für Tag-Badge-Zähler: nur bei Tag-relevanter Signaturänderung neu
-    // berechnet. Statusänderungen wie Stern/Archiv aktualisieren nur die
-    // günstigen Status-Badges und faulten keine Artikel→Tag-Relationships.
-    @State private var cachedTagCounts: [PersistentIdentifier: Int]?
-    @State private var cachedTagSignature: SidebarTagBadgeSignature?
-
+    @AppStorage(SQLiteDataInvalidation.statusVersionKey)
+    private var sqliteStatusVersion = 0
     init(
         selection: Binding<SidebarSelection?>,
         onRequestAddFeed: @escaping () -> Void,
         onRequestRefreshAllFeeds: @escaping () -> Void,
-        onRequestDeleteFeed: @escaping (Feed) -> Void
+        onRequestDeleteFeed: @escaping (String) -> Void
     ) {
         self._selection = selection
         self.onRequestAddFeed = onRequestAddFeed
         self.onRequestRefreshAllFeeds = onRequestRefreshAllFeeds
         self.onRequestDeleteFeed = onRequestDeleteFeed
-
-        var descriptor = FetchDescriptor<Article>(
-            predicate: #Predicate<Article> { article in
-                article.isStarred || article.isArchived || article.isHidden
-            }
-        )
-        descriptor.propertiesToFetch = [
-            \.id, \.isStarred, \.isArchived, \.isHidden
-        ]
-        _statusBadgeArticles = Query(descriptor)
     }
     @AppStorage(SidebarSectionCollapseState.Section.tags.storageKey)
     private var isTagsCollapsed = false
@@ -57,29 +35,23 @@ struct SidebarView: View {
     private var isSmartFoldersCollapsed = false
     @AppStorage(SidebarFeedVisibilitySettings.showsReadFeedsKey)
     private var showsReadFeedsInSidebar = SidebarFeedVisibilitySettings.defaultShowsReadFeeds
-    @State private var feedShowingProperties: Feed?
-    @State private var feedRenaming: Feed?
+    @State private var feedShowingProperties: FeedSidebarSnapshot?
+    @State private var feedRenaming: FeedSidebarSnapshot?
     @State private var isShowingAddFolderSheet = false
     @State private var isShowingTagManager = false
-    @State private var smartFolderEditing: SmartFolder?
-    @State private var smartFolderPendingDeletion: SmartFolder?
+    @State private var smartFolderEditing: SmartFolderRecord?
+    @State private var smartFolderPendingDeletion: SQLiteSmartFolderSnapshot?
     @State private var isCreatingSmartFolder = false
-    @State private var smartFolderViewModel = SmartFolderViewModel()
+    @State private var sqliteSidebarState = SQLiteSidebarState()
     @State private var collapsedFolderNames: Set<String> = []
+    @State private var sidebarDefinitionVersion = 0
 
     var body: some View {
-        let statusSignature = sidebarStatusBadgeSignature
-        let tagSignature = sidebarTagBadgeSignature
-        let badgeCounts = badgeCounts(
-            statusSignature: statusSignature,
-            tagSignature: tagSignature
-        )
-
-        return VStack(spacing: 0) {
+        VStack(spacing: 0) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    smartFoldersSection(badgeCounts: badgeCounts)
-                    tagsSection(badgeCounts: badgeCounts)
+                    smartFoldersSection(badgeSnapshot: sqliteSidebarState.smartFolderBadgeSnapshot)
+                    tagsSection
                     foldersSection
                 }
                 .padding(.horizontal, 14)
@@ -95,36 +67,39 @@ struct SidebarView: View {
                 } label: {
                     Image(systemName: "arrow.clockwise")
                 }
-                .disabled(feeds.isEmpty)
+                .disabled(sqliteSidebarState.snapshots.isEmpty)
                 .help(L10n.feedRefreshAllCommand)
 
                 createSidebarItemMenu
             }
         }
-        .sheet(item: $feedShowingProperties) { feed in
-            FeedPropertiesView(feed: feed)
+        .sheet(item: $feedShowingProperties) { snapshot in
+            FeedPropertiesView(feedID: snapshot.id)
         }
-        .sheet(item: $feedRenaming) { feed in
-            FeedRenameView(feed: feed)
+        .sheet(item: $feedRenaming) { snapshot in
+            FeedRenameView(feedID: snapshot.id)
         }
         .sheet(isPresented: $isShowingAddFolderSheet) {
             AddFolderSheet(
                 existingFolderNames: FeedFolderOrganizer.folderNames(
-                    in: feeds,
-                    folders: folders
-                )
+                    feedFolderNames: sqliteSidebarState.snapshots.map(\.folderName),
+                    explicitFolderNames: sqliteSidebarState.feedFolders.map(\.name)
+                ),
+                onFolderAdded: {
+                    sidebarDefinitionVersion += 1
+                }
             )
         }
         .sheet(isPresented: $isShowingTagManager) {
-            TagManagerView { tag in
-                selection = .tag(tag.persistentModelID)
+            TagManagerView { tagID in
+                selection = .tag(tagID)
             }
         }
         .sheet(isPresented: $isCreatingSmartFolder) {
-            SmartFolderEditorView(existingFolders: smartFolders)
+            SmartFolderEditorView(existingFolders: sqliteSmartFolderRecords())
         }
         .sheet(item: $smartFolderEditing) { smartFolder in
-            SmartFolderEditorView(folder: smartFolder, existingFolders: smartFolders)
+            SmartFolderEditorView(folder: smartFolder, existingFolders: sqliteSmartFolderRecords())
         }
         .confirmationDialog(
             L10n.sidebarSmartFolderDelete,
@@ -139,8 +114,8 @@ struct SidebarView: View {
             presenting: smartFolderPendingDeletion
         ) { smartFolder in
             Button(L10n.commonDelete, role: .destructive) {
-                smartFolderViewModel.deleteFolder(smartFolder, context: modelContext)
-                if selection == .smartFolder(smartFolder.persistentModelID) {
+                deleteSmartFolder(smartFolder)
+                if selection == .smartFolder(smartFolder.id) {
                     selection = defaultSmartFolderSelection(excluding: smartFolder)
                 }
                 smartFolderPendingDeletion = nil
@@ -149,13 +124,8 @@ struct SidebarView: View {
                 smartFolderPendingDeletion = nil
             }
         }
-        .task(id: tagSignature) {
-            // Cache asynchron befüllen, nachdem der Body mit der neuen Tag-
-            // Signatur gerendert wurde. Reine Status- oder Selektionswechsel
-            // starten diese Task nicht neu → keine Artikel-/Tag-Faults im
-            // schnellen Lesepfad.
-            cachedTagCounts = computeSidebarTagCounts()
-            cachedTagSignature = tagSignature
+        .task(id: sqliteSidebarReloadToken) {
+            sqliteSidebarState.load(database: feedivoDatabase, showsReadFeeds: showsReadFeedsInSidebar)
         }
     }
 
@@ -186,7 +156,7 @@ struct SidebarView: View {
         .help(L10n.sidebarAddFeedButton)
     }
 
-    private func tagsSection(badgeCounts: SidebarBadgeCounts) -> some View {
+    private var tagsSection: some View {
         CollapsibleSidebarSection(
             title: L10n.sidebarTagsSection,
             isCollapsed: $isTagsCollapsed,
@@ -195,8 +165,8 @@ struct SidebarView: View {
         ) {
             isShowingTagManager = true
         } content: {
-            if !tags.isEmpty {
-                tagRows(tags, badgeCounts: badgeCounts)
+            if !sqliteSidebarState.tagSnapshots.isEmpty {
+                tagRows(sqliteSidebarState.tagSnapshots)
             }
         }
     }
@@ -206,26 +176,30 @@ struct SidebarView: View {
             title: L10n.sidebarFoldersSection,
             isCollapsed: $isFoldersCollapsed
         ) {
-            let visibleFeeds = FeedFolderOrganizer.visibleFeeds(
-                from: feeds,
-                showsReadFeeds: showsReadFeedsInSidebar
-            )
+            // Snapshots sind bereits beim Laden via showsReadFeeds gefiltert.
+            let visibleSnapshots = sqliteSidebarState.snapshots
 
-            if visibleFeeds.isEmpty && folders.isEmpty {
+            if visibleSnapshots.isEmpty && sqliteSidebarState.feedFolders.isEmpty {
                 Text(L10n.sidebarEmptyTitle)
                     .font(interfaceTextSize.font(size: 13))
                     .foregroundStyle(SidebarStyle.secondaryText)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 8)
             } else {
-                let feedsWithoutFolder = FeedFolderOrganizer.feedsWithoutFolder(from: visibleFeeds)
+                let feedsWithoutFolder = FeedFolderOrganizer.feedsWithoutFolder(from: visibleSnapshots)
                 if !feedsWithoutFolder.isEmpty {
                     feedRows(feedsWithoutFolder)
                 }
 
                 // M9: Feeds einmal pro Ordner gruppieren statt pro Ordnername
                 // neu zu filtern (O(Folders·F) → O(F)).
-                ForEach(FeedFolderOrganizer.feedsByFolderName(in: visibleFeeds, folders: folders), id: \.folderName) { entry in
+                ForEach(
+                    FeedFolderOrganizer.feedsByFolderName(
+                        in: visibleSnapshots,
+                        folders: sqliteSidebarState.feedFolders
+                    ),
+                    id: \.folderName
+                ) { entry in
                     let isExpanded = !collapsedFolderNames.contains(entry.folderName)
                     SidebarFolderSection(
                         title: entry.folderName,
@@ -235,7 +209,7 @@ struct SidebarView: View {
                     } content: {
                         if isExpanded {
                             feedRows(
-                                entry.feeds,
+                                entry.snapshots,
                                 isIndented: true
                             )
                         }
@@ -245,7 +219,7 @@ struct SidebarView: View {
         }
     }
 
-    private func smartFoldersSection(badgeCounts: SidebarBadgeCounts) -> some View {
+    private func smartFoldersSection(badgeSnapshot: SmartFolderSidebarBadgeSnapshot) -> some View {
         CollapsibleSidebarSection(
             title: L10n.sidebarSmartFoldersSection,
             isCollapsed: $isSmartFoldersCollapsed,
@@ -254,8 +228,7 @@ struct SidebarView: View {
         ) {
             isCreatingSmartFolder = true
         } content: {
-            let visibleSmartFolders = SmartFolderViewModel.sortedFolders(smartFolders)
-                .filter(\.isShownInSidebar)
+            let visibleSmartFolders = sqliteSidebarState.smartFolderSnapshots
 
             if visibleSmartFolders.isEmpty {
                 Text(L10n.sidebarSmartFoldersEmpty)
@@ -266,33 +239,28 @@ struct SidebarView: View {
             } else {
                 ForEach(visibleSmartFolders) { smartFolder in
                     Button {
-                        selection = .smartFolder(smartFolder.persistentModelID)
+                        selection = .smartFolder(smartFolder.id)
                     } label: {
                         SmartFolderSidebarRow(
                             smartFolder: smartFolder,
-                            feeds: feeds,
-                            counts: badgeCounts
+                            badgeSnapshot: badgeSnapshot
                         )
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .buttonStyle(
                         SidebarRowButtonStyle(
-                            isSelected: selection == .smartFolder(smartFolder.persistentModelID)
+                            isSelected: selection == .smartFolder(smartFolder.id)
                         )
                     )
                     .contextMenu {
                         Button {
-                            smartFolderEditing = smartFolder
+                            smartFolderEditing = sqliteSmartFolderRecord(id: smartFolder.id)
                         } label: {
                             Label(L10n.ruleEditButton, systemImage: "pencil")
                         }
 
                         Button {
-                            smartFolderViewModel.duplicateFolder(
-                                smartFolder,
-                                existingFolders: smartFolders,
-                                context: modelContext
-                            )
+                            duplicateSmartFolder(smartFolder)
                         } label: {
                             Label(L10n.commonDuplicate, systemImage: "plus.square.on.square")
                         }
@@ -310,44 +278,43 @@ struct SidebarView: View {
         }
     }
 
-    private func defaultSmartFolderSelection(excluding deletedFolder: SmartFolder? = nil) -> SidebarSelection? {
-        SmartFolderViewModel.sortedFolders(smartFolders)
-            .filter(\.isShownInSidebar)
+    private func defaultSmartFolderSelection(excluding deletedFolder: SQLiteSmartFolderSnapshot? = nil) -> SidebarSelection? {
+        sqliteSidebarState.smartFolderSnapshots
             .first { folder in
-                deletedFolder?.persistentModelID != folder.persistentModelID
+                deletedFolder?.id != folder.id
             }
             .map { folder in
-                .smartFolder(folder.persistentModelID)
+                .smartFolder(folder.id)
             }
     }
 
-    private func feedRows(_ feeds: [Feed], isIndented: Bool = false) -> some View {
-        ForEach(feeds) { feed in
+    private func feedRows(_ snapshots: [FeedSidebarSnapshot], isIndented: Bool = false) -> some View {
+        ForEach(snapshots) { snapshot in
             Button {
-                selection = .feed(feed.persistentModelID)
+                selection = .feed(snapshot.id)
             } label: {
                 FeedRowView(
-                    feed: feed,
+                    snapshot: snapshot,
                     displayStyle: isIndented ? .folderChild : .regular
                 )
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             .buttonStyle(
                 SidebarRowButtonStyle(
-                    isSelected: selection == .feed(feed.persistentModelID),
+                    isSelected: selection == .feed(snapshot.id),
                     leadingIndent: isIndented ? 34 : 0,
                     rowHeight: isIndented ? 28 : 30
                 )
             )
             .contextMenu {
                 Button {
-                    feedRenaming = feed
+                    feedRenaming = snapshot
                 } label: {
                     Label(L10n.feedRenameCommand, systemImage: "pencil")
                 }
 
                 Button {
-                    feedShowingProperties = feed
+                    feedShowingProperties = snapshot
                 } label: {
                     Label(L10n.feedPropertiesCommand, systemImage: "info.circle")
                 }
@@ -355,7 +322,7 @@ struct SidebarView: View {
                 Divider()
 
                 Button(role: .destructive) {
-                    onRequestDeleteFeed(feed)
+                    onRequestDeleteFeed(snapshot.id)
                 } label: {
                     Label(L10n.feedDeleteCommand, systemImage: "trash")
                 }
@@ -363,80 +330,23 @@ struct SidebarView: View {
         }
     }
 
-    private func tagRows(_ tags: [Tag], badgeCounts: SidebarBadgeCounts) -> some View {
+    private func tagRows(_ tags: [TagSidebarSnapshot]) -> some View {
         ForEach(tags) { tag in
             Button {
-                selection = .tag(tag.persistentModelID)
+                selection = .tag(tag.id)
             } label: {
                 TagSidebarRow(
                     tag: tag,
-                    badgeText: SidebarUnreadCount.badgeText(
-                        for: badgeCounts.tagCounts[tag.persistentModelID] ?? 0
-                    )
+                    badgeText: SidebarUnreadCount.badgeText(for: tag.articleCount)
                 )
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             .buttonStyle(
                 SidebarRowButtonStyle(
-                    isSelected: selection == .tag(tag.persistentModelID)
+                    isSelected: selection == .tag(tag.id)
                 )
             )
         }
-    }
-
-    /// Status-Signatur läuft pro Body-Eval über Skalar-Attribute. Sie ist billig
-    /// und hält Stern/Versteckt/Gespeichert-Badges ohne Relationship-Faulting
-    /// aktuell.
-    private var sidebarStatusBadgeSignature: SidebarStatusBadgeSignature {
-        SidebarBadgeSignatureBuilder.statusSignature(articles: statusBadgeArticles)
-    }
-
-    /// Tag-Signatur trennt Tag-relevante Änderungen von reinen Statuswechseln.
-    /// Dadurch bleibt der Relationship-heavy Tag-Count-Cache bei Stern/Archiv-
-    /// Klicks stabil.
-    private var sidebarTagBadgeSignature: SidebarTagBadgeSignature {
-        SidebarBadgeSignatureBuilder.tagSignature(
-            feeds: feeds,
-            tags: tags,
-            directTagVersion: directTagVersion
-        )
-    }
-
-    /// Liefert die Badge-Zähler — Tag-Zähler aus dem Cache wenn die Tag-Signatur
-    /// trifft, Status-Zähler direkt aus der leichten Status-Signatur.
-    private func badgeCounts(
-        statusSignature: SidebarStatusBadgeSignature,
-        tagSignature: SidebarTagBadgeSignature
-    ) -> SidebarBadgeCounts {
-        let tagCounts: [PersistentIdentifier: Int]
-        if cachedTagSignature == tagSignature, let cached = cachedTagCounts {
-            tagCounts = cached
-        } else {
-            tagCounts = cachedTagCounts ?? [:]
-        }
-
-        return SidebarBadgeCounts(
-            tagCounts: tagCounts,
-            starred: statusSignature.starredCount,
-            hidden: statusSignature.hiddenCount,
-            saved: statusSignature.savedCount
-        )
-    }
-
-    /// Tag-Badges werden bewusst nachgelagert per fetchCount berechnet. Damit
-    /// beobachtet die Sidebar keine globale Artikelliste mehr und ein
-    /// Read/Unread-Wechsel im Reader kann keinen Voll-Refetch aller Artikel
-    /// anstoßen.
-    private func computeSidebarTagCounts() -> [PersistentIdentifier: Int] {
-        var tagCounts: [PersistentIdentifier: Int] = [:]
-        for tag in tags {
-            if let count = try? SidebarTagCount.articleCount(for: tag, context: modelContext),
-               count > 0 {
-                tagCounts[tag.persistentModelID] = count
-            }
-        }
-
-        return tagCounts
     }
 
     private func toggleFolder(named folderName: String) {
@@ -448,32 +358,75 @@ struct SidebarView: View {
             }
         }
     }
+
+    private func duplicateSmartFolder(_ smartFolder: SQLiteSmartFolderSnapshot) {
+        guard let database = feedivoDatabase else {
+            return
+        }
+
+        _ = try? SQLiteSmartFolderStore(database: database).duplicate(
+            id: smartFolder.id,
+            copyName: "\(smartFolder.name) Kopie"
+        )
+        SQLiteDataInvalidation.bumpStatusVersion()
+        sidebarDefinitionVersion += 1
+    }
+
+    private func deleteSmartFolder(_ smartFolder: SQLiteSmartFolderSnapshot) {
+        guard let database = feedivoDatabase else {
+            return
+        }
+
+        try? SQLiteSmartFolderStore(database: database).delete(id: smartFolder.id)
+        SQLiteDataInvalidation.bumpStatusVersion()
+        sidebarDefinitionVersion += 1
+    }
+
+    private func sqliteSmartFolderRecord(id: String) -> SmartFolderRecord? {
+        guard let database = feedivoDatabase else {
+            return nil
+        }
+
+        return try? SQLiteSmartFolderStore(database: database).folder(id: id)
+    }
+
+    private func sqliteSmartFolderRecords() -> [SmartFolderRecord] {
+        guard let database = feedivoDatabase else {
+            return []
+        }
+
+        return (try? SQLiteSmartFolderStore(database: database).folders()) ?? []
+    }
+
+    private var sqliteSidebarReloadToken: String {
+        // Feed-Anzahl als Strukturtrigger reicht; inhaltliche Änderungen
+        // (Unread-Counts, Titel) werden über sqliteStatusVersion erfasst. Die
+        // SQLite-Feed-IDs stehen vor dem ersten Laden noch nicht zur Verfügung,
+        // deshalb wird hier nicht auf Snapshots zurückgegriffen.
+        return "\(sqliteStatusVersion)#\(directTagVersion)#\(showsReadFeedsInSidebar)#\(sidebarDefinitionVersion)#\(sqliteSidebarState.snapshots.count)"
+    }
 }
 
 private struct SmartFolderSidebarRow: View {
     @Environment(\.interfaceTextSize) private var interfaceTextSize
 
-    let smartFolder: SmartFolder
-    let feeds: [Feed]
-    let counts: SidebarBadgeCounts
+    let smartFolder: SQLiteSmartFolderSnapshot
+    let badgeSnapshot: SmartFolderSidebarBadgeSnapshot
 
-    // Badge bewusst hier im Body berechnen: für 'Ungelesen' summiert das
-    // SmartFolderSidebarBadge die feed.unreadCount — diese Beobachtung lebt
-    // nur in dieser Zeile, nicht in der gesamten Sidebar. Status-Badges
-    // (Stern/Versteckt/Gespeichert) greifen auf die übergebenen counts zu und
-    // beobachten feed.unreadCount nicht.
+    // Badge bewusst aus dem SQLite-Snapshot berechnen: Die Sidebar muss dafür
+    // keine Artikel-Query und keine SwiftData-Relationships beobachten.
     private var badgeText: String? {
-        SmartFolderSidebarBadge.badgeText(for: smartFolder, feeds: feeds, counts: counts)
+        SmartFolderSidebarBadge.badgeText(for: smartFolder, snapshot: badgeSnapshot)
     }
 
     var body: some View {
         HStack(spacing: 8) {
-            Image(systemName: SmartFolderFormatter.systemImage(for: smartFolder))
+            Image(systemName: smartFolder.iconName ?? SmartFolderAppearance.defaultIconName)
                 .font(interfaceTextSize.font(size: 14, weight: .semibold))
-                .foregroundStyle(SmartFolderFormatter.color(for: smartFolder).opacity(SidebarStyle.iconOpacity))
+                .foregroundStyle(TagColorPalette.color(for: smartFolder.colorHex ?? SmartFolderAppearance.defaultColorHex).opacity(SidebarStyle.iconOpacity))
                 .frame(width: interfaceTextSize.scaled(20))
 
-            Text(smartFolder.localizedDisplayName)
+            Text(smartFolder.name)
                 .font(interfaceTextSize.font(size: 13, weight: .semibold))
                 .lineLimit(1)
 
@@ -495,7 +448,7 @@ private struct SmartFolderSidebarRow: View {
 private struct TagSidebarRow: View {
     @Environment(\.interfaceTextSize) private var interfaceTextSize
 
-    let tag: Tag
+    let tag: TagSidebarSnapshot
     let badgeText: String?
 
     var body: some View {
@@ -713,6 +666,7 @@ private struct SidebarRowButtonStyle: ButtonStyle {
 struct AddFeedSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.feedivoDatabase) private var feedivoDatabase
     @State private var viewModel = FeedViewModel()
     @State private var urlString = ""
     @State private var discoveryResults: [FeedDiscoveryResult] = []
@@ -949,7 +903,11 @@ struct AddFeedSheet: View {
     }
 
     private func addFeed(urlString: String) async {
-        await viewModel.addFeed(urlString: urlString, context: modelContext)
+        await viewModel.addFeed(
+            urlString: urlString,
+            context: modelContext,
+            sqliteDatabase: feedivoDatabase
+        )
         if viewModel.errorMessage == nil {
             dismiss()
         }
@@ -964,9 +922,10 @@ struct AddFeedSheet: View {
 
 struct AddFolderSheet: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var modelContext
+    @Environment(\.feedivoDatabase) private var feedivoDatabase
 
     let existingFolderNames: [String]
+    let onFolderAdded: () -> Void
 
     @State private var folderName = ""
     @State private var errorMessage: String?
@@ -1020,8 +979,19 @@ struct AddFolderSheet: View {
             return
         }
 
-        modelContext.insert(FeedFolder(name: normalizedName))
-        try? modelContext.save()
-        dismiss()
+        guard let database = feedivoDatabase else {
+            errorMessage = L10n.feedPropertiesUnavailable
+            return
+        }
+
+        do {
+            try FeedFolderStore(database: database).save(
+                FeedFolderRecord(name: normalizedName)
+            )
+            onFolderAdded()
+            dismiss()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
 }

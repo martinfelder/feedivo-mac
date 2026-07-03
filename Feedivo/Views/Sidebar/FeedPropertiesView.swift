@@ -5,7 +5,7 @@ import SwiftUI
 struct FeedPropertiesView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
-    @Query(sort: \Tag.name) private var tags: [Tag]
+    @Environment(\.feedivoDatabase) private var feedivoDatabase
 
     @AppStorage(ArticleRetentionSettings.isEnabledKey)
     private var globalArticleRetentionIsEnabled = ArticleRetentionSettings.defaultIsEnabled
@@ -13,58 +13,61 @@ struct FeedPropertiesView: View {
     @AppStorage(ArticleRetentionSettings.retentionDaysKey)
     private var globalArticleRetentionDays = ArticleRetentionSettings.defaultRetentionDays
 
+    @AppStorage(ArticleRetentionSettings.minimumArticlesPerFeedKey)
+    private var globalArticleRetentionMinimumArticlesPerFeed = ArticleRetentionSettings.defaultMinimumArticlesPerFeed
+
     @AppStorage(ArticleRetentionSettings.includesProtectedArticlesKey)
     private var globalArticleRetentionIncludesProtectedArticles = ArticleRetentionSettings.defaultIncludesProtectedArticles
 
-    let feed: Feed
+    let feedID: String
 
     @State private var selectedRefreshInterval = BackgroundRefreshSettings.defaultIntervalMinutes
     @State private var feedRetentionOverridesGlobalSetting = false
     @State private var feedRetentionIsEnabled = false
     @State private var feedRetentionDays = ArticleRetentionSettings.defaultRetentionDays
+    @State private var feedRetentionMinimumArticles = ArticleRetentionSettings.defaultMinimumArticlesPerFeed
     @State private var feedRetentionIncludesProtectedArticles = ArticleRetentionSettings.defaultIncludesProtectedArticles
     @State private var folderName = ""
     @State private var newTagName = ""
-    @State private var tagViewModel = TagViewModel()
+    @State private var feedRecord: FeedRecord?
+    @State private var tags: [TagRecord] = []
+    @State private var feedTags: [TagRecord] = []
+    @State private var sqliteLogEntries: [FeedLogRecord] = []
+    @State private var sqliteArticleMetrics = FeedPropertiesArticleMetricsSnapshot.empty
 
-    private var latestArticle: Article? {
-        // P7: Nur eine einzige Artikelzeile per fetchLimit laden statt
-        // alle feed.articles in den Speicher zu faulten.
-        FeedPropertiesQuery.latestArticle(in: modelContext, for: feed)
+    private var latestArticle: ArticleListSnapshot? {
+        sqliteArticleMetrics.latestArticle
     }
 
     private var nextRefreshDate: Date? {
         FeedPropertiesFormatter.nextRefreshDate(
-            lastRefreshed: feed.lastRefreshed,
-            intervalMinutes: feed.refreshIntervalMinutes
+            lastRefreshed: currentFeedRecord.lastRefreshedAt,
+            intervalMinutes: currentFeedRecord.refreshIntervalMinutes
         )
-    }
-
-    private var latestLogEntries: [FeedLogEntry] {
-        // P7: Maximal 20 Log-Einträge per fetchLimit laden statt alle
-        // feed.logEntries in den Speicher zu faulten.
-        FeedPropertiesQuery.latestLogEntries(in: modelContext, for: feed)
     }
 
     private var articlesLastWeek: Int {
-        FeedPropertiesQuery.recentArticleCount(
-            in: modelContext,
-            for: feed,
-            since: Date().addingTimeInterval(-7 * 24 * 60 * 60)
-        )
+        sqliteArticleMetrics.recentArticleCount
     }
 
-    private var sortedFeedTags: [Tag] {
-        (feed.tags ?? []).sorted {
+    private var sortedFeedTags: [TagRecord] {
+        feedTags.sorted {
             $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
         }
     }
 
-    private var availableTagsToAdd: [Tag] {
-        let assignedTagIDs = Set((feed.tags ?? []).map(\.id))
+    private var availableTagsToAdd: [TagRecord] {
+        let assignedTagIDs = Set(feedTags.map(\.id))
         return tags
             .filter { !assignedTagIDs.contains($0.id) }
             .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+    }
+
+    private var currentFeedRecord: FeedRecord {
+        // Vor dem ersten Laden (onAppear/noch kein feedRecord) wird ein
+        // Platzhalter-Record mit der Feed-ID gezeigt; nach loadSQLiteFeedDetails
+        // übernimmt der echte SQLite-Record.
+        feedRecord ?? FeedRecord(id: feedID, url: "", title: "")
     }
 
     var body: some View {
@@ -94,22 +97,27 @@ struct FeedPropertiesView: View {
         }
         .frame(width: 760, height: 650)
         .onAppear {
+            loadSQLiteFeedDetails()
             selectedRefreshInterval = BackgroundRefreshSettings.clampedIntervalMinutes(
-                feed.refreshIntervalMinutes
+                currentFeedRecord.refreshIntervalMinutes
             )
-            feedRetentionOverridesGlobalSetting = feed.articleRetentionOverridesGlobalSetting
-            feedRetentionIsEnabled = feed.articleRetentionIsEnabled
-            feedRetentionDays = ArticleRetentionSettings.clampedRetentionDays(feed.articleRetentionDays)
-            feedRetentionIncludesProtectedArticles = feed.articleRetentionIncludesProtectedArticles
-            folderName = feed.folderName ?? ""
+            feedRetentionOverridesGlobalSetting = currentFeedRecord.articleRetentionOverridesGlobalSetting
+            feedRetentionIsEnabled = currentFeedRecord.articleRetentionIsEnabled
+            feedRetentionDays = ArticleRetentionSettings.clampedRetentionDays(currentFeedRecord.articleRetentionDays)
+            feedRetentionMinimumArticles = ArticleRetentionSettings.clampedMinimumArticlesPerFeed(
+                currentFeedRecord.articleRetentionMinimumArticles
+            )
+            feedRetentionIncludesProtectedArticles = currentFeedRecord.articleRetentionIncludesProtectedArticles
+            folderName = currentFeedRecord.folderName ?? ""
+            loadSQLiteTags()
+            loadSQLiteLogEntries()
+            loadSQLiteArticleMetrics()
         }
         .onChange(of: selectedRefreshInterval) {
-            feed.refreshIntervalMinutes = selectedRefreshInterval
-            try? modelContext.save()
+            updateRefreshInterval()
         }
         .onChange(of: folderName) {
-            feed.folderName = FeedFolderOrganizer.normalizedFolderName(folderName)
-            try? modelContext.save()
+            updateFolderName()
         }
         .onChange(of: feedRetentionOverridesGlobalSetting) {
             syncFeedRetentionSettings()
@@ -121,22 +129,26 @@ struct FeedPropertiesView: View {
             feedRetentionDays = ArticleRetentionSettings.clampedRetentionDays(feedRetentionDays)
             syncFeedRetentionSettings()
         }
+        .onChange(of: feedRetentionMinimumArticles) {
+            feedRetentionMinimumArticles = ArticleRetentionSettings.clampedMinimumArticlesPerFeed(feedRetentionMinimumArticles)
+            syncFeedRetentionSettings()
+        }
         .onChange(of: feedRetentionIncludesProtectedArticles) {
             syncFeedRetentionSettings()
         }
     }
 
     private var feedHeader: some View {
-        HStack(alignment: .center, spacing: 20) {
+            HStack(alignment: .center, spacing: 20) {
             feedIcon
 
             VStack(alignment: .leading, spacing: 6) {
-                Text(feed.title)
+                Text(currentFeedRecord.title)
                     .font(.largeTitle)
                     .fontWeight(.semibold)
                     .lineLimit(1)
 
-                Text(feed.siteURL ?? feed.url)
+                Text(currentFeedRecord.websiteURL ?? currentFeedRecord.url)
                     .font(.title3)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -166,7 +178,7 @@ struct FeedPropertiesView: View {
 
                 statusMetric(
                     icon: "checkmark.circle",
-                    value: "\(FeedPropertiesQuery.latestLogEntryCount(in: modelContext, for: feed))",
+                    value: "\(sqliteLogEntries.count)",
                     title: L10n.feedPropertiesLogEntries,
                     tint: .green
                 )
@@ -181,7 +193,7 @@ struct FeedPropertiesView: View {
                 .fill(Color(nsColor: .controlBackgroundColor))
                 .shadow(color: .black.opacity(0.08), radius: 8, y: 3)
 
-            if let faviconURL = feed.faviconURL, let url = URL(string: faviconURL) {
+            if let faviconURL = currentFeedRecord.faviconURL, let url = URL(string: faviconURL) {
                 CachedRemoteImageView(url: url) { image in
                     image
                         .resizable()
@@ -243,13 +255,13 @@ struct FeedPropertiesView: View {
 
     private var detailsSection: some View {
         sectionContainer(title: L10n.feedPropertiesDetailsTitle) {
-            propertyRow(L10n.feedPropertiesOriginalTitle, value: feed.originalTitle ?? feed.title)
+            propertyRow(L10n.feedPropertiesOriginalTitle, value: currentFeedRecord.originalTitle ?? currentFeedRecord.title)
             propertyDivider
-            propertyRow(L10n.feedPropertiesWebsite, value: feed.siteURL, isLink: true)
+            propertyRow(L10n.feedPropertiesWebsite, value: currentFeedRecord.websiteURL, isLink: true)
             propertyDivider
             xmlAddressRow
             propertyDivider
-            propertyRow(L10n.feedPropertiesFollowedAt, value: formattedDate(feed.followedAt))
+            propertyRow(L10n.feedPropertiesFollowedAt, value: formattedDate(currentFeedRecord.createdAt))
             propertyDivider
             editableFolderRow
             propertyDivider
@@ -273,7 +285,7 @@ struct FeedPropertiesView: View {
                 value: L10n.feedPropertiesArticlesLastWeekCount(articlesLastWeek)
             )
             propertyDivider
-            propertyRow(L10n.feedPropertiesLastRefreshed, value: formattedDate(feed.lastRefreshed))
+            propertyRow(L10n.feedPropertiesLastRefreshed, value: formattedDate(currentFeedRecord.lastRefreshedAt))
         }
     }
 
@@ -282,7 +294,7 @@ struct FeedPropertiesView: View {
             propertyLabel(L10n.feedPropertiesXMLAddress)
 
             HStack(alignment: .firstTextBaseline, spacing: 8) {
-                propertyValue(feed.url, isLink: true)
+                propertyValue(currentFeedRecord.url, isLink: true)
 
                 Button {
                     copyXMLAddress()
@@ -292,7 +304,7 @@ struct FeedPropertiesView: View {
                 .buttonStyle(.borderless)
                 .help(L10n.feedPropertiesCopyXMLAddress)
                 .accessibilityLabel(Text(L10n.feedPropertiesCopyXMLAddress))
-                .disabled(FeedPropertiesFormatter.copyableXMLAddress(feed.url) == nil)
+                .disabled(FeedPropertiesFormatter.copyableXMLAddress(currentFeedRecord.url) == nil)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -402,11 +414,10 @@ struct FeedPropertiesView: View {
                     L10n.feedPropertiesNotificationsEnabled,
                     isOn: Binding(
                         get: {
-                            feed.isNotificationEnabled
+                            currentFeedRecord.isNotificationEnabled
                         },
                         set: { isEnabled in
-                            feed.isNotificationEnabled = isEnabled
-                            try? modelContext.save()
+                            updateNotificationEnabled(isEnabled)
                         }
                     )
                 )
@@ -448,6 +459,16 @@ struct FeedPropertiesView: View {
                     .disabled(!feedRetentionIsEnabled)
                     .frame(width: 180, alignment: .leading)
 
+                    Picker("Mindestens behalten", selection: $feedRetentionMinimumArticles) {
+                        ForEach(ArticleRetentionSettings.allowedMinimumArticlesPerFeed, id: \.self) { count in
+                            Text(minimumArticlesLabel(count))
+                                .tag(count)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .disabled(!feedRetentionIsEnabled)
+                    .frame(width: 180, alignment: .leading)
+
                     Toggle(
                         L10n.settingsArticleRetentionIncludesProtectedArticles,
                         isOn: $feedRetentionIncludesProtectedArticles
@@ -464,7 +485,7 @@ struct FeedPropertiesView: View {
         .padding(.vertical, 9)
     }
 
-    private func feedTagPill(_ tag: Tag) -> some View {
+    private func feedTagPill(_ tag: TagRecord) -> some View {
         let tagColor = TagColorPalette.color(for: tag.colorHex)
 
         return HStack(spacing: 6) {
@@ -491,7 +512,7 @@ struct FeedPropertiesView: View {
         }
     }
 
-    private func availableFeedTagButton(_ tag: Tag) -> some View {
+    private func availableFeedTagButton(_ tag: TagRecord) -> some View {
         let tagColor = TagColorPalette.color(for: tag.colorHex)
 
         return Button {
@@ -527,64 +548,214 @@ struct FeedPropertiesView: View {
             $0.name.localizedCaseInsensitiveCompare(normalizedName) == .orderedSame
         }) {
             addTag(existingTag)
-        } else if let createdTag = tagViewModel.createTag(
-            name: normalizedName,
-            colorHex: TagColorPalette.defaultColorHex,
-            availableTags: tags,
-            context: modelContext
-        ) {
-            addTag(createdTag)
+        } else {
+            let createdTag = TagRecord(
+                name: normalizedName,
+                colorHex: TagColorPalette.defaultColorHex
+            )
+            saveAndAddTag(createdTag)
         }
 
         newTagName = ""
     }
 
-    private func addTag(_ tag: Tag) {
-        guard !(feed.tags ?? []).contains(where: { $0.id == tag.id }) else {
+    private func addTag(_ tag: TagRecord) {
+        guard !feedTags.contains(where: { $0.id == tag.id }) else {
             return
         }
 
-        var tags = feed.tags ?? []
-        tags.append(tag)
-        feed.tags = tags
-        try? modelContext.save()
+        saveAndAddTag(tag)
     }
 
-    private func removeTag(_ tag: Tag) {
-        var tags = feed.tags ?? []
-        tags.removeAll { $0.id == tag.id }
-        feed.tags = tags
-        try? modelContext.save()
+    private func removeTag(_ tag: TagRecord) {
+        removeFeedTagFromSQLite(tag)
+    }
+
+    private func saveAndAddTag(_ tag: TagRecord) {
+        guard let database = feedivoDatabase else {
+            return
+        }
+
+        do {
+            try TagStore(database: database).save(tag)
+            try TagStore(database: database).assignTag(tagID: tag.id, toFeedID: feedID, at: Date())
+            loadSQLiteTags()
+            SidebarBadgeInvalidation.bumpDirectTagVersion()
+        } catch {
+            // Die Bearbeitung bleibt lokal im Sheet; ein späterer Versuch kann erneut speichern.
+        }
+    }
+
+    private func removeFeedTagFromSQLite(_ tag: TagRecord) {
+        guard let database = feedivoDatabase else {
+            return
+        }
+
+        do {
+            try TagStore(database: database).removeTag(
+                tagID: tag.id,
+                fromFeedID: feedID
+            )
+            loadSQLiteTags()
+            SidebarBadgeInvalidation.bumpDirectTagVersion()
+        } catch {
+            // Die sichtbare Liste wird erst nach erfolgreicher SQLite-Mutation aktualisiert.
+        }
+    }
+
+    private func loadSQLiteFeedDetails() {
+        guard let database = feedivoDatabase else {
+            return
+        }
+
+        feedRecord = try? FeedStore(database: database).feed(id: feedID)
+    }
+
+    private func loadSQLiteTags() {
+        guard let database = feedivoDatabase else {
+            tags = []
+            feedTags = []
+            return
+        }
+
+        let store = TagStore(database: database)
+        tags = (try? store.tags()) ?? []
+        feedTags = (try? TagStore(database: database).tags(feedID: feedID)) ?? []
+    }
+
+    private func updateRefreshInterval() {
+        guard let database = feedivoDatabase else {
+            return
+        }
+
+        do {
+            try FeedStore(database: database).updateRefreshInterval(
+                id: feedID,
+                minutes: selectedRefreshInterval
+            )
+            loadSQLiteFeedDetails()
+            SQLiteDataInvalidation.bumpStatusVersion()
+        } catch {
+            selectedRefreshInterval = currentFeedRecord.refreshIntervalMinutes
+        }
+    }
+
+    private func updateFolderName() {
+        guard let database = feedivoDatabase else {
+            return
+        }
+
+        do {
+            try FeedStore(database: database).updateFolderName(
+                id: feedID,
+                folderName: folderName
+            )
+            loadSQLiteFeedDetails()
+            SQLiteDataInvalidation.bumpStatusVersion()
+        } catch {
+            folderName = currentFeedRecord.folderName ?? ""
+        }
+    }
+
+    private func updateNotificationEnabled(_ isEnabled: Bool) {
+        guard let database = feedivoDatabase else {
+            return
+        }
+
+        do {
+            try FeedStore(database: database).updateNotificationEnabled(
+                id: feedID,
+                isEnabled: isEnabled
+            )
+            loadSQLiteFeedDetails()
+        } catch {
+            loadSQLiteFeedDetails()
+        }
+    }
+
+    private func loadSQLiteLogEntries() {
+        guard let database = feedivoDatabase else {
+            sqliteLogEntries = []
+            return
+        }
+
+        sqliteLogEntries = (
+            try? FeedLogStore(database: database).logs(feedID: feedID, limit: 20)
+        ) ?? []
+    }
+
+    private func loadSQLiteArticleMetrics(now: Date = Date()) {
+        guard let database = feedivoDatabase else {
+            sqliteArticleMetrics = .empty
+            return
+        }
+
+        sqliteArticleMetrics = (
+            try? ArticleStore(database: database).feedPropertiesMetrics(
+                feedID: feedID,
+                recentCutoffDate: now.addingTimeInterval(-7 * 24 * 60 * 60),
+                now: now
+            )
+        ) ?? .empty
     }
 
     private func syncFeedRetentionSettings() {
-        feed.articleRetentionOverridesGlobalSetting = feedRetentionOverridesGlobalSetting
-        feed.articleRetentionIsEnabled = feedRetentionIsEnabled
-        feed.articleRetentionDays = ArticleRetentionSettings.clampedRetentionDays(feedRetentionDays)
-        feed.articleRetentionIncludesProtectedArticles = feedRetentionIncludesProtectedArticles
-        try? modelContext.save()
+        guard let database = feedivoDatabase else {
+            return
+        }
+
+        do {
+            try FeedStore(database: database).updateRetentionSettings(
+                id: feedID,
+                overridesGlobal: feedRetentionOverridesGlobalSetting,
+                isEnabled: feedRetentionIsEnabled,
+                days: feedRetentionDays,
+                minimumArticles: feedRetentionMinimumArticles,
+                includesProtectedArticles: feedRetentionIncludesProtectedArticles
+            )
+            loadSQLiteFeedDetails()
+        } catch {
+            loadSQLiteFeedDetails()
+            return
+        }
 
         _ = try? ArticleRetentionCleanupService.removeExpiredArticles(
             in: modelContext,
             isEnabled: globalArticleRetentionIsEnabled,
             retentionDays: globalArticleRetentionDays,
+            minimumArticlesPerFeed: globalArticleRetentionMinimumArticlesPerFeed,
             includeProtectedArticles: globalArticleRetentionIncludesProtectedArticles
         )
+        if let feedivoDatabase {
+            _ = try? ArticleRetentionCleanupService.removeExpiredSQLiteArticles(
+                in: modelContext,
+                database: feedivoDatabase,
+                isEnabled: globalArticleRetentionIsEnabled,
+                retentionDays: globalArticleRetentionDays,
+                minimumArticlesPerFeed: globalArticleRetentionMinimumArticlesPerFeed,
+                includeProtectedArticles: globalArticleRetentionIncludesProtectedArticles
+            )
+            loadSQLiteArticleMetrics()
+        }
+    }
+
+    private func minimumArticlesLabel(_ count: Int) -> String {
+        count == 0 ? "Keine Mindestanzahl" : "\(count) Artikel"
     }
 
     private var logSection: some View {
         sectionContainer(title: L10n.feedPropertiesLogTitle) {
-            if latestLogEntries.isEmpty {
+            if sqliteLogEntries.isEmpty {
                 Text(L10n.feedPropertiesNoLogEntries)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.vertical, 10)
             } else {
                 VStack(alignment: .leading, spacing: 0) {
-                    ForEach(Array(latestLogEntries.enumerated()), id: \.element.id) { index, entry in
+                    ForEach(Array(sqliteLogEntries.enumerated()), id: \.element.id) { index, entry in
                         logRow(entry)
 
-                        if index < latestLogEntries.count - 1 {
+                        if index < sqliteLogEntries.count - 1 {
                             propertyDivider
                                 .padding(.leading, 38)
                         }
@@ -685,8 +856,8 @@ struct FeedPropertiesView: View {
         }
     }
 
-    private func logRow(_ entry: FeedLogEntry) -> some View {
-        let isError = entry.kindEnum == .error
+    private func logRow(_ entry: FeedLogRecord) -> some View {
+        let isError = FeedLogEntryKind(rawValue: entry.level) == .error
         return HStack(alignment: .top, spacing: 12) {
             Image(systemName: isError ? "exclamationmark.triangle" : "checkmark.circle")
                 .font(.system(size: 20, weight: .medium))
@@ -707,7 +878,7 @@ struct FeedPropertiesView: View {
     }
 
     private func copyXMLAddress() {
-        guard let xmlAddress = FeedPropertiesFormatter.copyableXMLAddress(feed.url) else {
+        guard let xmlAddress = FeedPropertiesFormatter.copyableXMLAddress(currentFeedRecord.url) else {
             return
         }
 

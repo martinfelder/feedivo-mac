@@ -1,17 +1,18 @@
-import SwiftData
 import SwiftUI
 import UniformTypeIdentifiers
 
 struct SmartFolderSettingsView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query(sort: \SmartFolder.sortOrder) private var folders: [SmartFolder]
-    @Query(sort: \Article.publishedAt, order: .reverse) private var articles: [Article]
+    @Environment(\.feedivoDatabase) private var feedivoDatabase
+    @AppStorage(SQLiteDataInvalidation.statusVersionKey) private var sqliteStatusVersion = 0
+    @AppStorage(SidebarBadgeInvalidation.directTagVersionKey) private var directTagVersion = 0
 
-    @State private var viewModel = SmartFolderViewModel()
+    @State private var folders: [SmartFolderRecord] = []
+    @State private var conditionsByFolderID: [String: [SmartFolderConditionRecord]] = [:]
     @State private var isCreatingFolder = false
-    @State private var folderEditing: SmartFolder?
-    @State private var folderPendingDeletion: SmartFolder?
-    @State private var draggedFolderID: UUID?
+    @State private var folderEditing: SmartFolderRecord?
+    @State private var folderPendingDeletion: SmartFolderRecord?
+    @State private var draggedFolderID: String?
+    @State private var matchingCounts: [String: Int] = [:]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -43,12 +44,18 @@ struct SmartFolderSettingsView: View {
             presenting: folderPendingDeletion
         ) { folder in
             Button(L10n.commonDelete, role: .destructive) {
-                viewModel.deleteFolder(folder, context: modelContext)
+                delete(folder)
                 folderPendingDeletion = nil
             }
             Button(L10n.commonCancel, role: .cancel) {
                 folderPendingDeletion = nil
             }
+        }
+        .task(id: folderReloadToken) {
+            loadFolders()
+        }
+        .task(id: countReloadToken) {
+            loadMatchingCounts()
         }
     }
 
@@ -66,7 +73,7 @@ struct SmartFolderSettingsView: View {
             Spacer()
 
             Button {
-                viewModel.restoreDefaultFolders(existingFolders: folders, context: modelContext)
+                restoreDefaultFolders()
             } label: {
                 Label(L10n.smartFolderRestoreDefaults, systemImage: "arrow.clockwise")
             }
@@ -81,25 +88,25 @@ struct SmartFolderSettingsView: View {
     }
 
     private var folderList: some View {
-        // Treffer pro Ordner einmal pro Render berechnen (Map), statt pro Zeile
-        // jeweils über alle Artikel zu iterieren (P2: N × O(articles) im ForEach).
-        let matchingCounts = SmartFolderEngine.matchingArticleCounts(for: orderedFolders, articles: articles)
-
-        return VStack(spacing: 0) {
+        VStack(spacing: 0) {
             SmartFolderSettingsListHeader()
 
             ForEach(Array(orderedFolders.enumerated()), id: \.element.id) { index, folder in
                 SmartFolderSettingsRow(
                     folder: folder,
+                    conditions: conditionsByFolderID[folder.id] ?? [],
                     matchingArticleCount: matchingCounts[folder.id] ?? 0,
                     isDragged: draggedFolderID == folder.id,
+                    toggleSidebarVisibility: { isShown in
+                        updateSidebarVisibility(folder, isShownInSidebar: isShown)
+                    },
                     edit: { folderEditing = folder },
                     duplicate: { duplicate(folder) },
                     delete: { folderPendingDeletion = folder }
                 )
                 .onDrag {
                     draggedFolderID = folder.id
-                    return NSItemProvider(object: folder.id.uuidString as NSString)
+                    return NSItemProvider(object: folder.id as NSString)
                 } preview: {
                     SmartFolderDragPreview(folder: folder)
                 }
@@ -109,8 +116,7 @@ struct SmartFolderSettingsView: View {
                         targetFolder: folder,
                         orderedFolders: orderedFolders,
                         draggedFolderID: $draggedFolderID,
-                        viewModel: viewModel,
-                        modelContext: modelContext
+                        move: moveFolder
                     )
                 )
 
@@ -126,12 +132,131 @@ struct SmartFolderSettingsView: View {
         }
     }
 
-    private var orderedFolders: [SmartFolder] {
-        SmartFolderViewModel.sortedFolders(folders)
+    private var countReloadToken: String {
+        let folderToken = orderedFolders.map { folder in
+            let conditionToken = (conditionsByFolderID[folder.id] ?? [])
+                .sorted { $0.sortOrder < $1.sortOrder }
+                .map { "\($0.field):\($0.conditionOperator):\($0.value):\($0.sortOrder)" }
+                .joined(separator: "|")
+            return "\(folder.id):\(folder.matchMode):\(conditionToken)"
+        }
+        .joined(separator: "#")
+
+        return "\(folderToken)#\(sqliteStatusVersion)#\(directTagVersion)"
     }
 
-    private func duplicate(_ folder: SmartFolder) {
-        viewModel.duplicateFolder(folder, existingFolders: orderedFolders, context: modelContext)
+    private var folderReloadToken: String {
+        "\(sqliteStatusVersion)"
+    }
+
+    private var orderedFolders: [SmartFolderRecord] {
+        folders.sorted { firstFolder, secondFolder in
+            if firstFolder.sortOrder != secondFolder.sortOrder {
+                return firstFolder.sortOrder < secondFolder.sortOrder
+            }
+
+            return SmartFolderFormatter.displayName(for: firstFolder)
+                .localizedCaseInsensitiveCompare(SmartFolderFormatter.displayName(for: secondFolder)) == .orderedAscending
+        }
+    }
+
+    private func loadFolders() {
+        guard let database = feedivoDatabase else {
+            folders = []
+            conditionsByFolderID = [:]
+            return
+        }
+
+        let store = SQLiteSmartFolderStore(database: database)
+        let loadedFolders = (try? store.folders()) ?? []
+        var loadedConditions: [String: [SmartFolderConditionRecord]] = [:]
+        for folder in loadedFolders {
+            loadedConditions[folder.id] = (try? store.conditions(folderID: folder.id)) ?? []
+        }
+
+        folders = loadedFolders
+        conditionsByFolderID = loadedConditions
+    }
+
+    private func loadMatchingCounts() {
+        guard let database = feedivoDatabase else {
+            matchingCounts = [:]
+            return
+        }
+
+        var counts: [String: Int] = [:]
+
+        for folder in orderedFolders {
+            let snapshot = SQLiteSmartFolderSnapshot(
+                folder: folder,
+                conditions: conditionsByFolderID[folder.id] ?? []
+            )
+            counts[folder.id] = (
+                try? TimelineStore(database: database).count(
+                    scope: .smartFolder(snapshot),
+                    includeRead: true,
+                    includeHidden: snapshot.includesHiddenArticles
+                )
+            ) ?? 0
+        }
+
+        matchingCounts = counts
+    }
+
+    private func duplicate(_ folder: SmartFolderRecord) {
+        guard let database = feedivoDatabase else {
+            return
+        }
+
+        _ = try? SQLiteSmartFolderStore(database: database).duplicate(
+            id: folder.id,
+            copyName: "\(SmartFolderFormatter.displayName(for: folder)) Kopie"
+        )
+        SQLiteDataInvalidation.bumpStatusVersion()
+        loadFolders()
+    }
+
+    private func updateSidebarVisibility(_ folder: SmartFolderRecord, isShownInSidebar: Bool) {
+        guard let database = feedivoDatabase else {
+            return
+        }
+
+        try? SQLiteSmartFolderStore(database: database).updateSidebarVisibility(
+            id: folder.id,
+            isShownInSidebar: isShownInSidebar
+        )
+        SQLiteDataInvalidation.bumpStatusVersion()
+        loadFolders()
+    }
+
+    private func delete(_ folder: SmartFolderRecord) {
+        guard let database = feedivoDatabase else {
+            return
+        }
+
+        try? SQLiteSmartFolderStore(database: database).delete(id: folder.id)
+        SQLiteDataInvalidation.bumpStatusVersion()
+        loadFolders()
+    }
+
+    private func restoreDefaultFolders() {
+        guard let database = feedivoDatabase else {
+            return
+        }
+
+        try? SQLiteSmartFolderStore(database: database).restoreDefaultFolders()
+        SQLiteDataInvalidation.bumpStatusVersion()
+        loadFolders()
+    }
+
+    private func moveFolder(_ sourceID: String, _ targetID: String) {
+        guard let database = feedivoDatabase else {
+            return
+        }
+
+        try? SQLiteSmartFolderStore(database: database).move(id: sourceID, toPositionOf: targetID)
+        SQLiteDataInvalidation.bumpStatusVersion()
+        loadFolders()
     }
 }
 
@@ -160,11 +285,10 @@ private struct SmartFolderSettingsListHeader: View {
 }
 
 private struct SmartFolderRowDropDelegate: DropDelegate {
-    let targetFolder: SmartFolder
-    let orderedFolders: [SmartFolder]
-    @Binding var draggedFolderID: UUID?
-    let viewModel: SmartFolderViewModel
-    let modelContext: ModelContext
+    let targetFolder: SmartFolderRecord
+    let orderedFolders: [SmartFolderRecord]
+    @Binding var draggedFolderID: String?
+    let move: (String, String) -> Void
 
     func validateDrop(info: DropInfo) -> Bool {
         draggedFolderID != nil
@@ -173,18 +297,13 @@ private struct SmartFolderRowDropDelegate: DropDelegate {
     func dropEntered(info: DropInfo) {
         guard let draggedFolderID,
               draggedFolderID != targetFolder.id,
-              let sourceFolder = orderedFolders.first(where: { $0.id == draggedFolderID })
+              orderedFolders.contains(where: { $0.id == draggedFolderID })
         else {
             return
         }
 
         withAnimation(.easeInOut(duration: 0.16)) {
-            viewModel.moveFolder(
-                sourceFolder,
-                toPositionOf: targetFolder,
-                existingFolders: orderedFolders,
-                context: modelContext
-            )
+            move(draggedFolderID, targetFolder.id)
         }
     }
 
@@ -201,11 +320,11 @@ private struct SmartFolderRowDropDelegate: DropDelegate {
 }
 
 private struct SmartFolderSettingsRow: View {
-    @Environment(\.modelContext) private var modelContext
-
-    let folder: SmartFolder
+    let folder: SmartFolderRecord
+    let conditions: [SmartFolderConditionRecord]
     let matchingArticleCount: Int
     let isDragged: Bool
+    let toggleSidebarVisibility: (Bool) -> Void
     let edit: () -> Void
     let duplicate: () -> Void
     let delete: () -> Void
@@ -217,8 +336,7 @@ private struct SmartFolderSettingsRow: View {
             Toggle(L10n.smartFolderShowInSidebar, isOn: Binding(
                 get: { folder.isShownInSidebar },
                 set: { isShown in
-                    folder.isShownInSidebar = isShown
-                    try? modelContext.save()
+                    toggleSidebarVisibility(isShown)
                 }
             ))
             .labelsHidden()
@@ -230,7 +348,7 @@ private struct SmartFolderSettingsRow: View {
                         .foregroundStyle(SmartFolderFormatter.color(for: folder))
                         .frame(width: 18)
 
-                    Text(folder.localizedDisplayName)
+                    Text(SmartFolderFormatter.displayName(for: folder))
                         .font(.body.weight(.semibold))
                         .lineLimit(1)
                 }
@@ -241,7 +359,7 @@ private struct SmartFolderSettingsRow: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            Text(SmartFolderFormatter.conditionSummary(for: folder))
+            Text(SmartFolderFormatter.conditionSummary(for: folder, conditions: conditions))
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .lineLimit(2)
@@ -290,13 +408,13 @@ private struct SmartFolderSettingsRow: View {
 }
 
 private struct SmartFolderDragPreview: View {
-    let folder: SmartFolder
+    let folder: SmartFolderRecord
 
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: SmartFolderFormatter.systemImage(for: folder))
                 .foregroundStyle(SmartFolderFormatter.color(for: folder))
-            Text(folder.localizedDisplayName)
+            Text(SmartFolderFormatter.displayName(for: folder))
                 .font(.callout.weight(.semibold))
         }
         .padding(.horizontal, 12)

@@ -875,12 +875,16 @@ private struct NewSyncSettingsView: View {
 
 private struct NewCleanupSettingsView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.feedivoDatabase) private var feedivoDatabase
 
     @AppStorage(ArticleRetentionSettings.isEnabledKey)
     private var articleRetentionIsEnabled = ArticleRetentionSettings.defaultIsEnabled
 
     @AppStorage(ArticleRetentionSettings.retentionDaysKey)
     private var articleRetentionDays = ArticleRetentionSettings.defaultRetentionDays
+
+    @AppStorage(ArticleRetentionSettings.minimumArticlesPerFeedKey)
+    private var articleRetentionMinimumArticlesPerFeed = ArticleRetentionSettings.defaultMinimumArticlesPerFeed
 
     @AppStorage(ArticleRetentionSettings.includesProtectedArticlesKey)
     private var articleRetentionIncludesProtectedArticles = ArticleRetentionSettings.defaultIncludesProtectedArticles
@@ -915,6 +919,27 @@ private struct NewCleanupSettingsView: View {
                     .disabled(!articleRetentionIsEnabled)
                     .onChange(of: articleRetentionDays) {
                         articleRetentionDays = ArticleRetentionSettings.clampedRetentionDays(articleRetentionDays)
+                    }
+                }
+
+                NewSettingRow(
+                    title: "Mindestens pro Feed behalten",
+                    description: "So viele der neuesten Artikel bleiben pro Feed erhalten, auch wenn sie älter sind."
+                ) {
+                    Picker("Mindestens pro Feed behalten", selection: $articleRetentionMinimumArticlesPerFeed) {
+                        ForEach(ArticleRetentionSettings.allowedMinimumArticlesPerFeed, id: \.self) { count in
+                            Text(minimumArticlesLabel(count))
+                                .tag(count)
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.menu)
+                    .frame(width: 160, alignment: .trailing)
+                    .disabled(!articleRetentionIsEnabled)
+                    .onChange(of: articleRetentionMinimumArticlesPerFeed) {
+                        articleRetentionMinimumArticlesPerFeed = ArticleRetentionSettings.clampedMinimumArticlesPerFeed(
+                            articleRetentionMinimumArticlesPerFeed
+                        )
                     }
                 }
 
@@ -956,18 +981,38 @@ private struct NewCleanupSettingsView: View {
 
     private func runArticleRetentionCleanup() {
         do {
-            let removedCount = try ArticleRetentionCleanupService.removeExpiredArticles(
+            let swiftDataRemovedCount = try ArticleRetentionCleanupService.removeExpiredArticles(
                 in: modelContext,
                 isEnabled: articleRetentionIsEnabled,
                 retentionDays: articleRetentionDays,
+                minimumArticlesPerFeed: articleRetentionMinimumArticlesPerFeed,
                 includeProtectedArticles: articleRetentionIncludesProtectedArticles
             )
-            retentionCleanupResult = L10n.settingsArticleRetentionResult(count: removedCount)
+            let sqliteRemovedCount: Int
+            if let feedivoDatabase {
+                sqliteRemovedCount = try ArticleRetentionCleanupService.removeExpiredSQLiteArticles(
+                    in: modelContext,
+                    database: feedivoDatabase,
+                    isEnabled: articleRetentionIsEnabled,
+                    retentionDays: articleRetentionDays,
+                    minimumArticlesPerFeed: articleRetentionMinimumArticlesPerFeed,
+                    includeProtectedArticles: articleRetentionIncludesProtectedArticles
+                )
+            } else {
+                sqliteRemovedCount = 0
+            }
+            retentionCleanupResult = L10n.settingsArticleRetentionResult(
+                count: swiftDataRemovedCount + sqliteRemovedCount
+            )
             retentionCleanupError = nil
         } catch {
             retentionCleanupResult = nil
             retentionCleanupError = error.localizedDescription
         }
+    }
+
+    private func minimumArticlesLabel(_ count: Int) -> String {
+        count == 0 ? "Keine Mindestanzahl" : "\(count) Artikel"
     }
 }
 
@@ -1041,15 +1086,16 @@ private struct SettingsSectionHeader: View {
 }
 
 private struct FeedManagementSettingsView: View {
-    @Environment(\.modelContext) private var modelContext
     @Environment(\.interfaceTextSize) private var interfaceTextSize
-    @Query(sort: \Feed.title) private var feeds: [Feed]
+    @Environment(\.feedivoDatabase) private var feedivoDatabase
 
-    @State private var viewModel = FeedViewModel()
+    @State private var feeds: [FeedRecord] = []
+    @State private var opmlFeeds: [OPMLFeed] = []
     @State private var searchText = ""
-    @State private var selectedFeedIDs: Set<UUID> = []
+    @State private var selectedFeedIDs: Set<String> = []
     @State private var isShowingDeleteConfirmation = false
     @State private var isShowingOPMLExportSheet = false
+    @State private var errorMessage: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -1092,7 +1138,8 @@ private struct FeedManagementSettingsView: View {
                     ForEach(visibleFeeds) { feed in
                         FeedManagementRow(
                             feed: feed,
-                            isSelected: selectedFeedIDs.contains(feed.id)
+                            isSelected: selectedFeedIDs.contains(feed.id),
+                            sqliteDatabase: feedivoDatabase
                         ) { isSelected in
                             if isSelected {
                                 selectedFeedIDs.insert(feed.id)
@@ -1101,7 +1148,7 @@ private struct FeedManagementSettingsView: View {
                             }
                         }
 
-                        if feed.persistentModelID != visibleFeeds.last?.persistentModelID {
+                        if feed.id != visibleFeeds.last?.id {
                             Divider()
                                 .padding(.leading, 36)
                         }
@@ -1127,7 +1174,7 @@ private struct FeedManagementSettingsView: View {
                 .disabled(selectedFeeds.isEmpty)
             }
 
-            if let errorMessage = viewModel.errorMessage {
+            if let errorMessage {
                 Text(errorMessage)
                     .font(.caption)
                     .foregroundStyle(.red)
@@ -1147,39 +1194,76 @@ private struct FeedManagementSettingsView: View {
             Text(L10n.settingsFeedsDeleteConfirmationMessage(count: selectedFeeds.count))
         }
         .sheet(isPresented: $isShowingOPMLExportSheet) {
-            OPMLExportSheet(feeds: feeds) {
+            OPMLExportSheet(opmlFeeds: opmlFeeds) {
                 isShowingOPMLExportSheet = false
             }
         }
+        .task {
+            loadFeeds()
+        }
     }
 
-    private var visibleFeeds: [Feed] {
+    private var visibleFeeds: [FeedRecord] {
         FeedManagementSettingsState.filteredFeeds(feeds, searchText: searchText)
     }
 
-    private var selectedFeeds: [Feed] {
+    private var selectedFeeds: [FeedRecord] {
         feeds.filter { feed in
             selectedFeedIDs.contains(feed.id)
         }
     }
 
     private func deleteSelectedFeeds() {
+        guard let database = feedivoDatabase else {
+            errorMessage = "SQLite-Datenbank ist nicht verfügbar."
+            return
+        }
+
         let feedsToDelete = selectedFeeds
-        for feed in feedsToDelete {
-            viewModel.deleteFeed(feed, context: modelContext)
+
+        do {
+            for feed in feedsToDelete {
+                try FeedStore(database: database).delete(id: feed.id)
+            }
+            errorMessage = nil
+        } catch {
+            errorMessage = error.localizedDescription
         }
 
         selectedFeedIDs.subtract(feedsToDelete.map(\.id))
+        loadFeeds()
+        SQLiteDataInvalidation.bumpStatusVersion()
+    }
+
+    private func loadFeeds() {
+        guard let database = feedivoDatabase else {
+            feeds = []
+            opmlFeeds = []
+            errorMessage = "SQLite-Datenbank ist nicht verfügbar."
+            return
+        }
+
+        do {
+            feeds = try FeedStore(database: database).feeds()
+            opmlFeeds = try FeedStore(database: database).opmlFeedsForExport()
+            selectedFeedIDs.formIntersection(Set(feeds.map(\.id)))
+            errorMessage = nil
+        } catch {
+            feeds = []
+            opmlFeeds = []
+            errorMessage = error.localizedDescription
+        }
     }
 }
 
 private struct FeedManagementRow: View {
-    @Environment(\.modelContext) private var modelContext
     @Environment(\.interfaceTextSize) private var interfaceTextSize
 
-    let feed: Feed
+    let feed: FeedRecord
     let isSelected: Bool
+    let sqliteDatabase: FeedivoDatabase?
     let setSelected: (Bool) -> Void
+    @State private var sqliteArticleMetrics = FeedPropertiesArticleMetricsSnapshot.empty
 
     var body: some View {
         HStack(spacing: 12) {
@@ -1213,18 +1297,35 @@ private struct FeedManagementRow: View {
         .onTapGesture {
             setSelected(!isSelected)
         }
+        .onAppear {
+            loadSQLiteArticleMetrics()
+        }
+        .onChange(of: feed.id) {
+            loadSQLiteArticleMetrics()
+        }
     }
 
     private var feedActivitySummary: String {
-        let articlesLastWeek = FeedPropertiesQuery.recentArticleCount(
-            in: modelContext,
-            for: feed,
-            since: Date().addingTimeInterval(-7 * 24 * 60 * 60)
-        )
+        let articlesLastWeek = sqliteArticleMetrics.recentArticleCount
         let articleText = L10n.feedPropertiesArticlesLastWeekCount(articlesLastWeek)
-        let lastRefreshed = feed.lastRefreshed?.formatted(date: .abbreviated, time: .shortened)
+        let lastRefreshed = feed.lastRefreshedAt?.formatted(date: .abbreviated, time: .shortened)
             ?? L10n.feedPropertiesUnavailable
 
         return "\(articleText) · \(String(localized: "feed.properties.lastRefreshed")): \(lastRefreshed)"
+    }
+
+    private func loadSQLiteArticleMetrics(now: Date = Date()) {
+        guard let database = sqliteDatabase else {
+            sqliteArticleMetrics = .empty
+            return
+        }
+
+        sqliteArticleMetrics = (
+            try? ArticleStore(database: database).feedPropertiesMetrics(
+                feedID: feed.id,
+                recentCutoffDate: now.addingTimeInterval(-7 * 24 * 60 * 60),
+                now: now
+            )
+        ) ?? .empty
     }
 }

@@ -78,6 +78,21 @@ struct ArticleExportSnapshot {
         self.offlineState = article.offlineState
         self.offlineContent = article.offlineContent
     }
+
+    init(sqliteSnapshot: ArticleReaderSnapshot, tagNames: [String] = []) {
+        self.title = sqliteSnapshot.title
+        self.link = sqliteSnapshot.link
+        self.summary = sqliteSnapshot.summary
+        self.content = sqliteSnapshot.content
+        self.author = sqliteSnapshot.author
+        self.publishedAt = sqliteSnapshot.publishedAt
+        self.feedTitle = sqliteSnapshot.feedTitle
+        self.tagNames = tagNames.sorted {
+            $0.localizedCaseInsensitiveCompare($1) == .orderedAscending
+        }
+        self.offlineState = sqliteSnapshot.offlineState
+        self.offlineContent = sqliteSnapshot.offlineContent
+    }
 }
 
 enum ArticleExportService {

@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+@testable import Feedivo
 
 struct FeedivoAppSceneConfigurationTests {
     @Test func settingsSceneUsesSharedModelContainer() throws {
@@ -31,6 +32,82 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(!appSource.contains("SettingsView.oldWindowID"))
     }
 
+    @Test func feedRenameViewMutiertSQLiteStattSwiftData() throws {
+        let projectRoot = projectRootURL()
+        let renameSource = try source(at: "Feedivo/Views/Sidebar/FeedRenameView.swift", projectRoot: projectRoot)
+
+        #expect(renameSource.contains("@Environment(\\.feedivoDatabase)"))
+        #expect(renameSource.contains("FeedStore(database: database).renameFeed"))
+        #expect(renameSource.contains("FeedStore(database: database).restoreOriginalTitle"))
+        #expect(!renameSource.contains("@Environment(\\.modelContext)"))
+        #expect(!renameSource.contains("FeedViewModel()"))
+        #expect(!renameSource.contains("viewModel.renameFeed"))
+    }
+
+    @Test func feedPropertiesViewMutiertFeedVerwaltungSQLiteFirst() throws {
+        let projectRoot = projectRootURL()
+        let propertiesSource = try source(at: "Feedivo/Views/Sidebar/FeedPropertiesView.swift", projectRoot: projectRoot)
+
+        #expect(propertiesSource.contains("@Environment(\\.feedivoDatabase)"))
+        #expect(propertiesSource.contains("FeedStore(database: database).updateRefreshInterval"))
+        #expect(propertiesSource.contains("FeedStore(database: database).updateFolderName"))
+        #expect(propertiesSource.contains("FeedStore(database: database).updateNotificationEnabled"))
+        #expect(propertiesSource.contains("FeedStore(database: database).updateRetentionSettings"))
+        #expect(propertiesSource.contains("TagStore(database: database).tags(feedID:"))
+        #expect(propertiesSource.contains("TagStore(database: database).assignTag"))
+        #expect(propertiesSource.contains("TagStore(database: database).removeTag"))
+        #expect(!propertiesSource.contains("@Query(sort: \\Tag.name)"))
+        #expect(!propertiesSource.contains("TagViewModel()"))
+        #expect(!propertiesSource.contains("modelContext.save()"))
+    }
+
+    @Test func feedManagementSettingsViewListetUndLoeschtSQLiteFeeds() throws {
+        let projectRoot = projectRootURL()
+        let settingsSource = try source(at: "Feedivo/Views/Settings/SettingsView.swift", projectRoot: projectRoot)
+        let stateSource = try source(at: "Feedivo/Views/Settings/FeedManagementSettingsState.swift", projectRoot: projectRoot)
+
+        let viewStart = try #require(settingsSource.range(of: "private struct FeedManagementSettingsView"))
+        let rowStart = try #require(settingsSource.range(of: "private struct FeedManagementRow"))
+        let viewSource = settingsSource[viewStart.lowerBound ..< rowStart.lowerBound]
+
+        #expect(viewSource.contains("@State private var feeds: [FeedRecord]"))
+        #expect(viewSource.contains("FeedStore(database: database).feeds()"))
+        #expect(viewSource.contains("FeedStore(database: database).delete(id:"))
+        #expect(viewSource.contains("OPMLExportSheet(opmlFeeds:"))
+        #expect(!viewSource.contains("@Query(sort: \\Feed.title)"))
+        #expect(!viewSource.contains("FeedViewModel()"))
+        #expect(!viewSource.contains("deleteFeed("))
+        #expect(stateSource.contains("filteredFeeds(_ feeds: [FeedRecord]"))
+        #expect(stateSource.contains("selectedFeedIDs: inout Set<String>"))
+    }
+
+    @Test func sqliteArticleListBleibtOptischNahAnMainArticleList() throws {
+        let projectRoot = projectRootURL()
+        let listSource = try source(at: "Feedivo/Views/ArticleList/SQLiteFeedArticleListView.swift", projectRoot: projectRoot)
+
+        #expect(listSource.contains("List(selection: $selectedArticleID)"))
+        #expect(listSource.contains(".tag(row.id)"))
+        #expect(listSource.contains(".toolbar"))
+        #expect(listSource.contains("markReadMenu(visibleRows:"))
+        #expect(listSource.contains("filterMenu"))
+        #expect(listSource.contains("sortMenu"))
+        #expect(!listSource.contains("ScrollViewReader"))
+    }
+
+    @Test func sqliteReaderBleibtOptischNahAnMainReaderToolbar() throws {
+        let projectRoot = projectRootURL()
+        let readerSource = try source(at: "Feedivo/Views/Reader/SQLiteReaderView.swift", projectRoot: projectRoot)
+
+        #expect(readerSource.contains("@AppStorage(ReaderDisplayMode.storageKey)"))
+        #expect(readerSource.contains("Picker(L10n.readerDisplayModePicker"))
+        #expect(readerSource.contains("readerAppearancePopover"))
+        #expect(readerSource.contains("Image(systemName: \"safari\")"))
+        #expect(readerSource.contains("Image(systemName: \"square.and.arrow.up\")"))
+        #expect(readerSource.contains("Label(L10n.readerInspectorButton, systemImage: \"sidebar.right\")"))
+        #expect(readerSource.contains("Label(L10n.articleCreateRuleCommand"))
+        #expect(readerSource.contains("Label(L10n.articleCopyLinkCommand"))
+    }
+
     @Test func startupTaskTrimsImageCacheToSelectedLimit() throws {
         let testFileURL = URL(fileURLWithPath: #filePath)
         let projectRoot = testFileURL
@@ -53,7 +130,7 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(appSource.contains("private let feedViewModel"))
         #expect(appSource.contains("ContentView(feedViewModel: feedViewModel, modelContainer: modelContainer)"))
         #expect(appSource.contains("feedViewModel: feedViewModel"))
-        #expect(contentSource.contains("refreshAllFeeds(feeds, modelContainer: modelContainer)"))
+        #expect(compact(contentSource).contains("refreshAllFeeds(sqliteDatabase:database,modelContainer:modelContainer)"))
         #expect(contentSource.contains("refreshFeedsOnLaunchIfNeeded()"))
         #expect(schedulerSource.contains("feedViewModel: FeedViewModel"))
     }
@@ -116,9 +193,11 @@ struct FeedivoAppSceneConfigurationTests {
         let articleWindowSource = try source(at: "Feedivo/Views/Reader/ArticleWindowView.swift", projectRoot: projectRoot)
 
         #expect(articleWindowSource.contains(".onChange(of: selectedArticleID)"))
-        #expect(articleWindowSource.contains("ArticleWindowSettings.forgetOpenArticleID(oldValue)"))
-        #expect(articleWindowSource.contains("ArticleWindowSettings.rememberOpenArticleID(newValue)"))
-        #expect(articleWindowSource.contains("ArticleWindowSettings.forgetOpenArticleID(selectedArticleID)"))
+        #expect(articleWindowSource.contains("forgetArticleID(oldValue)"))
+        #expect(articleWindowSource.contains("rememberSelectedArticleID()"))
+        #expect(articleWindowSource.contains("forgetArticleID(selectedArticleID)"))
+        #expect(articleWindowSource.contains("ArticleWindowSettings.forgetOpenArticleID(uuid)"))
+        #expect(articleWindowSource.contains("ArticleWindowSettings.rememberOpenArticleID(uuid)"))
     }
 
     @Test func readerScrollViewsResetWhenArticleChanges() throws {
@@ -300,6 +379,487 @@ struct FeedivoAppSceneConfigurationTests {
         }
     }
 
+    @Test func appOpensAndInjectsSQLiteDatabase() throws {
+        let projectRoot = projectRootURL()
+        let appSource = try source(at: "Feedivo/App/FeedivoApp.swift", projectRoot: projectRoot)
+
+        #expect(appSource.contains("private let feedivoDatabase"))
+        #expect(appSource.contains("FeedivoDatabase.open"))
+        #expect(appSource.contains(".environment(\\.feedivoDatabase, feedivoDatabase)"))
+    }
+
+    @Test func appStartBackfillSpiegeltFeedTagsNachSQLite() throws {
+        let projectRoot = projectRootURL()
+        let appSource = try source(at: "Feedivo/App/FeedivoApp.swift", projectRoot: projectRoot)
+        let compactAppSource = compact(appSource)
+
+        #expect(compactAppSource.contains("FeedTagBackfillService.backfillFeedTags(in:modelContainer.mainContext,database:feedivoDatabase)"))
+    }
+
+    @Test func opmlImportUndFirstRunPreviewNutzenSQLiteDatabase() throws {
+        let projectRoot = projectRootURL()
+        let opmlImportSource = try source(
+            at: "Feedivo/Views/OPMLImport/OPMLImportReviewView.swift",
+            projectRoot: projectRoot
+        )
+        let firstRunSource = try source(
+            at: "Feedivo/Views/FirstRun/FirstRunWizardView.swift",
+            projectRoot: projectRoot
+        )
+
+        #expect(opmlImportSource.contains("sqliteDatabase: feedivoDatabase"))
+        #expect(firstRunSource.contains("sqliteDatabase: feedivoDatabase"))
+    }
+
+    @Test func feedSubscriptionServiceDokumentiertSwiftDataBridgeAlsUebergang() throws {
+        let projectRoot = projectRootURL()
+        let serviceSource = try source(
+            at: "Feedivo/Services/SQLiteFeedSubscriptionService.swift",
+            projectRoot: projectRoot
+        )
+        let bridgeStart = try #require(serviceSource.range(of: "private func saveSwiftDataBridge"))
+        let bridgeDocumentationStart = serviceSource.index(
+            bridgeStart.lowerBound,
+            offsetBy: -420,
+            limitedBy: serviceSource.startIndex
+        ) ?? serviceSource.startIndex
+        let bridgeDocumentationSource = serviceSource[bridgeDocumentationStart ..< bridgeStart.lowerBound]
+
+        #expect(bridgeDocumentationSource.contains("Übergangs-Relationships"))
+        #expect(bridgeDocumentationSource.contains("SwiftData"))
+    }
+
+    @Test func feedViewModelLeitetAddUndImportAnSQLiteSubscriptionServiceWeiter() throws {
+        let projectRoot = projectRootURL()
+        let viewModelSource = try source(at: "Feedivo/ViewModels/FeedViewModel.swift", projectRoot: projectRoot)
+        let compactViewModelSource = compact(viewModelSource)
+
+        #expect(viewModelSource.contains("SQLiteFeedSubscriptionService"))
+        #expect(compactViewModelSource.contains("service.importOPMLFeeds("))
+        #expect(compactViewModelSource.contains("service.addFeed("))
+        #expect(viewModelSource.contains("SQLiteDataInvalidation.bumpStatusVersion()"))
+    }
+
+    @Test func sqliteDatabaseLocationUsesApplicationSupport() throws {
+        let applicationSupportURL = URL(fileURLWithPath: "/tmp/feedivo-tests/Application Support")
+
+        let databaseURL = FeedivoDatabaseLocation.databaseURL(
+            applicationSupportDirectory: applicationSupportURL,
+            bundleIdentifier: "ch.martin.FeedivoTests"
+        )
+
+        #expect(databaseURL.pathComponents.suffix(3) == ["ch.martin.FeedivoTests", "Feedivo", "feedivo.sqlite"])
+    }
+
+    @Test func contentViewHaeltSeparateSQLiteArtikelAuswahl() throws {
+        let projectRoot = projectRootURL()
+        let contentSource = try source(at: "Feedivo/Views/ContentView.swift", projectRoot: projectRoot)
+
+        #expect(contentSource.contains("@State private var selectedSQLiteArticleID: String?"))
+        #expect(contentSource.contains("@State private var sqliteArticleNavigationState = SQLiteArticleNavigationState.empty"))
+    }
+
+    @Test func contentViewNutztSQLiteFeedArticleListFuerSelectedFeed() throws {
+        let projectRoot = projectRootURL()
+        let contentSource = try source(at: "Feedivo/Views/ContentView.swift", projectRoot: projectRoot)
+
+        #expect(contentSource.contains("SQLiteFeedArticleListView("))
+        #expect(contentSource.contains("selectedArticleID: $selectedSQLiteArticleID"))
+        #expect(contentSource.contains("navigationState: $sqliteArticleNavigationState"))
+    }
+
+    @Test func contentViewNutztSQLiteFeedArticleListFuerSelectedTag() throws {
+        let projectRoot = projectRootURL()
+        let contentSource = try source(at: "Feedivo/Views/ContentView.swift", projectRoot: projectRoot)
+        let compactContentSource = compact(contentSource)
+
+        #expect(compactContentSource.contains("SQLiteFeedArticleListView(tagID:tagID,selectedArticleID:$selectedSQLiteArticleID,navigationState:$sqliteArticleNavigationState)"))
+        #expect(!compactContentSource.contains("ArticleListView(tag:tag,selectedArticle:$selectedArticle"))
+    }
+
+    @Test func contentViewNutztSQLiteFeedArticleListFuerSelectedSmartFilter() throws {
+        let projectRoot = projectRootURL()
+        let contentSource = try source(at: "Feedivo/Views/ContentView.swift", projectRoot: projectRoot)
+        let compactContentSource = compact(contentSource)
+
+        #expect(compactContentSource.contains("SQLiteFeedArticleListView(smartFilter:smartFilter,selectedArticleID:$selectedSQLiteArticleID,navigationState:$sqliteArticleNavigationState)"))
+        #expect(!compactContentSource.contains("ArticleListView(smartFilter:smartFilter,selectedArticle:$selectedArticle"))
+    }
+
+    @Test func contentViewNutztSQLiteFeedArticleListFuerSelectedSmartFolder() throws {
+        let projectRoot = projectRootURL()
+        let contentSource = try source(at: "Feedivo/Views/ContentView.swift", projectRoot: projectRoot)
+        let compactContentSource = compact(contentSource)
+
+        #expect(compactContentSource.contains("SQLiteFeedArticleListView(smartFolder:smartFolder,selectedArticleID:$selectedSQLiteArticleID,navigationState:$sqliteArticleNavigationState)"))
+        #expect(!compactContentSource.contains("ArticleListView(smartFolder:smartFolder,selectedArticle:$selectedArticle"))
+    }
+
+    @Test func smartFolderVerwaltungUndPreviewZaehlenUeberSQLite() throws {
+        let projectRoot = projectRootURL()
+        let settingsSource = try source(at: "Feedivo/Views/SmartFolders/SmartFolderSettingsView.swift", projectRoot: projectRoot)
+        let editorSource = try source(at: "Feedivo/Views/SmartFolders/SmartFolderEditorView.swift", projectRoot: projectRoot)
+        let compactSettingsSource = compact(settingsSource)
+        let compactEditorSource = compact(editorSource)
+
+        #expect(settingsSource.contains("@Environment(\\.feedivoDatabase) private var feedivoDatabase"))
+        #expect(!settingsSource.contains("@Query(sort: \\Article.publishedAt"))
+        #expect(!settingsSource.contains("SmartFolderEngine.matchingArticleCounts"))
+        #expect(compactSettingsSource.contains("TimelineStore(database:database).count(scope:.smartFolder(snapshot),includeRead:true,includeHidden:"))
+        #expect(editorSource.contains("@Environment(\\.feedivoDatabase) private var feedivoDatabase"))
+        #expect(!editorSource.contains("@Query(sort: \\Article.publishedAt"))
+        #expect(!editorSource.contains("SmartFolderEngine.matchingArticleCount"))
+        #expect(compactEditorSource.contains("TimelineStore(database:database).count(scope:.smartFolder(snapshot),includeRead:true,includeHidden:"))
+    }
+
+    @Test func regelPreviewUndRueckwirkendesAnwendenNutzenSQLite() throws {
+        let projectRoot = projectRootURL()
+        let settingsSource = try source(at: "Feedivo/Views/Rules/RuleSettingsView.swift", projectRoot: projectRoot)
+        let wizardSource = try source(at: "Feedivo/Views/Rules/RuleWizardView.swift", projectRoot: projectRoot)
+        let compactSettingsSource = compact(settingsSource)
+        let compactWizardSource = compact(wizardSource)
+
+        #expect(settingsSource.contains("@Environment(\\.feedivoDatabase) private var feedivoDatabase"))
+        #expect(wizardSource.contains("@Environment(\\.feedivoDatabase) private var feedivoDatabase"))
+        #expect(!settingsSource.contains("@Query private var articles"))
+        #expect(!wizardSource.contains("@Query private var articles"))
+        #expect(!settingsSource.contains("RuleSettingsFormatter.matchingCounts(for: orderedRules, articles: articles)"))
+        #expect(!wizardSource.contains("RuleEngine.matchingArticleCount("))
+        #expect(compactSettingsSource.contains("letsnapshots=trySQLiteRuleStore(database:database).ruleSnapshots()"))
+        #expect(compactSettingsSource.contains("SQLiteRuleEvaluationStore(database:database).applyRulesToExistingArticles(snapshots)"))
+        #expect(compactWizardSource.contains("SQLiteRuleEvaluationStore(database:database).matchingArticleCount(conditionDrafts:activeConditionDrafts,matchMode:activeMatchMode)"))
+    }
+
+    @Test func sqliteArticleListSearchLaedtUeberSQLiteState() throws {
+        let projectRoot = projectRootURL()
+        let listSource = try source(at: "Feedivo/Views/ArticleList/SQLiteFeedArticleListView.swift", projectRoot: projectRoot)
+        let compactListSource = compact(listSource)
+
+        #expect(listSource.contains("@State private var searchText = \"\""))
+        #expect(listSource.contains("@State private var debouncedSearchText = \"\""))
+        #expect(listSource.contains("TextField(L10n.articleSearchPlaceholder, text: $searchText)"))
+        #expect(compactListSource.contains(".task(id:searchText)"))
+        #expect(compactListSource.contains("searchText:debouncedSearchText"))
+        #expect(!listSource.contains("ArticleSearchQuery("))
+    }
+
+    @Test func sqliteArtikelStatesNutzenArticleDatabaseFassade() throws {
+        let projectRoot = projectRootURL()
+        let listStateSource = try source(at: "Feedivo/ViewModels/SQLiteFeedArticleListState.swift", projectRoot: projectRoot)
+        let readerStateSource = try source(at: "Feedivo/ViewModels/SQLiteReaderState.swift", projectRoot: projectRoot)
+
+        #expect(listStateSource.contains("ArticleDatabase(database: database)"))
+        #expect(listStateSource.contains("articleDatabase.timelineArticles("))
+        #expect(!listStateSource.contains("TimelineStore(database: database).articles("))
+        #expect(!listStateSource.contains("ArticleStatusStore(database: database)"))
+
+        #expect(readerStateSource.contains("ArticleDatabase(database: database).readerArticle"))
+        #expect(!readerStateSource.contains("ArticleStore(database: database).readerArticle"))
+        #expect(!readerStateSource.contains("ArticleStatusStore(database: database)"))
+    }
+
+    @Test func articleSearchWindowLaedtErgebnisseAusSQLite() throws {
+        let projectRoot = projectRootURL()
+        let searchSource = try source(at: "Feedivo/Views/ArticleList/ArticleSearchWindowView.swift", projectRoot: projectRoot)
+        let compactSearchSource = compact(searchSource)
+
+        #expect(searchSource.contains("@Environment(\\.feedivoDatabase) private var database"))
+        #expect(searchSource.contains("@State private var snapshots: [ArticleListSnapshot] = []"))
+        #expect(compactSearchSource.contains("ArticleStore(database:database).searchArticles(state:committedState,limit:200)"))
+        #expect(searchSource.contains("ArticleSearchResultRow(snapshot: snapshot)"))
+        #expect(!searchSource.contains("@Query(sort: \\Article.publishedAt"))
+        #expect(!searchSource.contains("private var articles: [Article]"))
+        #expect(!searchSource.contains("filteredArticles(from: articles)"))
+    }
+
+    @Test func contentViewNutztSQLiteReaderFuerSQLiteAuswahl() throws {
+        let projectRoot = projectRootURL()
+        let contentSource = try source(at: "Feedivo/Views/ContentView.swift", projectRoot: projectRoot)
+
+        #expect(contentSource.contains("if let selectedSQLiteArticleID"))
+        #expect(contentSource.contains("SQLiteReaderView("))
+        #expect(contentSource.contains("articleID: selectedSQLiteArticleID"))
+    }
+
+    @Test func contentViewVerdrahtetArtikelCommandsFuerSQLiteAuswahl() throws {
+        let projectRoot = projectRootURL()
+        let contentSource = try source(at: "Feedivo/Views/ContentView.swift", projectRoot: projectRoot)
+        let compactContentSource = compact(contentSource)
+
+        #expect(contentSource.contains("@State private var selectedSQLiteArticleSnapshot: ArticleReaderSnapshot?"))
+        #expect(compactContentSource.contains("canPerformActions:selectedSQLiteArticleSnapshot!=nil"))
+        #expect(compactContentSource.contains("toggleReadTitle:selectedSQLiteArticleSnapshot?.isRead==true"))
+        #expect(compactContentSource.contains("ArticleStatusStore(database:database).setRead"))
+        #expect(compactContentSource.contains("ArticleStatusStore(database:database).setStarred"))
+        #expect(compactContentSource.contains("ArticleStatusStore(database:database).setArchived"))
+        #expect(compactContentSource.contains("openWindow(value:ArticleWindowRequest(articleID:articleID))"))
+        #expect(compactContentSource.contains("ArticleExportSnapshot(sqliteSnapshot:snapshot,tagNames:tagNames)"))
+    }
+
+    @Test func contentViewHatKeineSwiftDataArtikelAuswahlMehr() throws {
+        let projectRoot = projectRootURL()
+        let contentSource = try source(at: "Feedivo/Views/ContentView.swift", projectRoot: projectRoot)
+
+        #expect(!contentSource.contains("@State private var selectedArticle: Article?"))
+        #expect(!contentSource.contains("@State private var articleNavigationState"))
+        #expect(!contentSource.contains("@State private var articleViewModel"))
+        #expect(!contentSource.contains("@State private var offlineDownloadService = OfflineDownloadService()"))
+        #expect(!contentSource.contains("\n                ReaderView("))
+        #expect(!contentSource.contains("swiftDataArticleCommandActions"))
+        #expect(!contentSource.contains("requestExportArticle(_ article: Article)"))
+        #expect(!contentSource.contains("archiveOrRemoveArchive(_ article: Article?)"))
+    }
+
+    @Test func legacyArtikelViewsSindNichtMehrProduktRoute() throws {
+        let projectRoot = projectRootURL()
+        let contentSource = try source(at: "Feedivo/Views/ContentView.swift", projectRoot: projectRoot)
+        let articleWindowSource = try source(at: "Feedivo/Views/Reader/ArticleWindowView.swift", projectRoot: projectRoot)
+        let commandActionsSource = try source(at: "Feedivo/App/ArticleCommandActions.swift", projectRoot: projectRoot)
+        let listSource = try source(at: "Feedivo/Views/ArticleList/ArticleListView.swift", projectRoot: projectRoot)
+        let readerSource = try source(at: "Feedivo/Views/Reader/ReaderView.swift", projectRoot: projectRoot)
+
+        #expect(!contentSource.contains("\n                ArticleListView("))
+        #expect(!contentSource.contains("\n                ReaderView("))
+        #expect(!articleWindowSource.contains("\n                ReaderView("))
+        #expect(!commandActionsSource.contains("selectedArticle: Article?"))
+        #expect(listSource.contains("Legacy SwiftData"))
+        #expect(readerSource.contains("Legacy SwiftData"))
+    }
+
+    @Test func swiftDataVerwaltungseditorenSindBewussteUebergangsschicht() throws {
+        let projectRoot = projectRootURL()
+        let ruleSettingsSource = try source(at: "Feedivo/Views/Rules/RuleSettingsView.swift", projectRoot: projectRoot)
+        let ruleWizardSource = try source(at: "Feedivo/Views/Rules/RuleWizardView.swift", projectRoot: projectRoot)
+        let smartFolderSettingsSource = try source(at: "Feedivo/Views/SmartFolders/SmartFolderSettingsView.swift", projectRoot: projectRoot)
+        let contentSource = try source(at: "Feedivo/Views/ContentView.swift", projectRoot: projectRoot)
+        let appSource = try source(at: "Feedivo/App/FeedivoApp.swift", projectRoot: projectRoot)
+
+        #expect(!ruleSettingsSource.contains("@Query(sort: \\Rule.sortOrder) private var rules: [Rule]"))
+        #expect(!ruleWizardSource.contains("@Query(sort: \\Rule.sortOrder) private var existingRules: [Rule]"))
+        #expect(!smartFolderSettingsSource.contains("@Query(sort: \\SmartFolder.sortOrder) private var folders: [SmartFolder]"))
+        #expect(contentSource.contains("SQLiteFeedArticleListView("))
+        #expect(contentSource.contains("SQLiteReaderView("))
+        #expect(appSource.contains("SQLiteAdminDefinitionBackfillService.backfill"))
+    }
+
+    @Test func tagManagerIstSQLiteFirst() throws {
+        let projectRoot = projectRootURL()
+        let source = try source(at: "Feedivo/Views/Tags/TagManagerView.swift", projectRoot: projectRoot)
+
+        #expect(!source.contains("@Query(sort: \\Tag.name)"))
+        #expect(!source.contains("@Environment(\\.modelContext)"))
+        #expect(source.contains("@State private var tags: [TagRecord] = []"))
+        #expect(source.contains("TagStore(database: database).tags()"))
+        #expect(source.contains("TagStore(database: database).save"))
+        #expect(source.contains("TagStore(database: database).renameTag"))
+        #expect(source.contains("TagStore(database: database).updateColor"))
+        #expect(source.contains("TagStore(database: database).deleteTag"))
+    }
+
+    @Test func sqliteReaderMeldetGeladenenSnapshotAnCommandEbene() throws {
+        let projectRoot = projectRootURL()
+        let readerSource = try source(at: "Feedivo/Views/Reader/SQLiteReaderView.swift", projectRoot: projectRoot)
+        let compactReaderSource = compact(readerSource)
+
+        #expect(readerSource.contains("let onSnapshotChange: (ArticleReaderSnapshot?) -> Void"))
+        #expect(compactReaderSource.contains(".onChange(of:state.snapshot){_,snapshotinonSnapshotChange(snapshot)}"))
+        #expect(compactReaderSource.contains(".onDisappear{onSnapshotChange(nil)}"))
+    }
+
+    @Test func articleWindowViewNutztSQLiteReaderStattSwiftDataArticleQuery() throws {
+        let projectRoot = projectRootURL()
+        let articleWindowSource = try source(at: "Feedivo/Views/Reader/ArticleWindowView.swift", projectRoot: projectRoot)
+
+        #expect(articleWindowSource.contains("@Environment(\\.feedivoDatabase) private var database"))
+        #expect(articleWindowSource.contains("SQLiteReaderView("))
+        #expect(articleWindowSource.contains("ArticleStore(database: database)"))
+        #expect(!articleWindowSource.contains("@Query private var articles"))
+        #expect(!articleWindowSource.contains("\n                ReaderView("))
+        #expect(!articleWindowSource.contains("ArticleExportSnapshot(article:"))
+    }
+
+    @Test func contentViewUebergibtSQLiteDatabaseAnFeedRefreshes() throws {
+        let projectRoot = projectRootURL()
+        let contentSource = try source(at: "Feedivo/Views/ContentView.swift", projectRoot: projectRoot)
+        let compactContentSource = compact(contentSource)
+
+        #expect(contentSource.contains("@Environment(\\.feedivoDatabase) private var feedivoDatabase"))
+        #expect(compactContentSource.contains("refreshFeed(feedID:feedID,context:modelContext,sqliteDatabase:feedivoDatabase)"))
+        #expect(compactContentSource.contains("guardletdatabase=feedivoDatabaseelse{return}"))
+        #expect(compactContentSource.contains("refreshAllFeeds(sqliteDatabase:database,modelContainer:modelContainer)"))
+    }
+
+    @Test func addFeedSheetUebergibtSQLiteDatabaseAnFeedViewModel() throws {
+        let projectRoot = projectRootURL()
+        let sidebarSource = try source(at: "Feedivo/Views/Sidebar/SidebarView.swift", projectRoot: projectRoot)
+        let compactSidebarSource = compact(sidebarSource)
+
+        #expect(sidebarSource.contains("@Environment(\\.feedivoDatabase) private var feedivoDatabase"))
+        #expect(compactSidebarSource.contains("viewModel.addFeed(urlString:urlString,context:modelContext,sqliteDatabase:feedivoDatabase)"))
+    }
+
+    @Test func sidebarViewLaedtSQLiteSidebarState() throws {
+        let projectRoot = projectRootURL()
+        let sidebarSource = try source(at: "Feedivo/Views/Sidebar/SidebarView.swift", projectRoot: projectRoot)
+        let compactSidebarSource = compact(sidebarSource)
+
+        #expect(sidebarSource.contains("@Environment(\\.feedivoDatabase) private var feedivoDatabase"))
+        #expect(sidebarSource.contains("@AppStorage(SQLiteDataInvalidation.statusVersionKey)"))
+        #expect(sidebarSource.contains("@State private var sqliteSidebarState = SQLiteSidebarState()"))
+        #expect(compactSidebarSource.contains("sqliteSidebarState.load(database:feedivoDatabase,showsReadFeeds:showsReadFeedsInSidebar)"))
+        // Sidebar ist SQLite-only: Feeds werden direkt aus den Snapshots gerendert,
+        // ohne SwiftData-@Query oder Feed-Bridge-Helfer.
+        #expect(compactSidebarSource.contains("letvisibleSnapshots=sqliteSidebarState.snapshots"))
+        #expect(compactSidebarSource.contains("FeedRowView(snapshot:snapshot,"))
+        #expect(!sidebarSource.contains("@Query(sort: \\Feed.title) private var feeds: [Feed]"))
+        #expect(compactSidebarSource.contains("\\(sqliteStatusVersion)#\\(directTagVersion)#\\(showsReadFeedsInSidebar)#\\(sidebarDefinitionVersion)#\\(sqliteSidebarState.snapshots.count)"))
+    }
+
+    @Test func sidebarTagBadgesNutzenSQLiteSnapshots() throws {
+        let projectRoot = projectRootURL()
+        let sidebarSource = try source(at: "Feedivo/Views/Sidebar/SidebarView.swift", projectRoot: projectRoot)
+        let compactSidebarSource = compact(sidebarSource)
+
+        #expect(compactSidebarSource.contains("tagRows(sqliteSidebarState.tagSnapshots)"))
+        #expect(compactSidebarSource.contains("selection=.tag(tag.id)"))
+        #expect(!sidebarSource.contains("@Query(sort: \\Tag.name) private var tags"))
+        #expect(!sidebarSource.contains("SidebarTagCount.articleCount(for: tag, context: modelContext)"))
+    }
+
+    @Test func sidebarSmartFolderBadgesNutzenSQLiteSnapshots() throws {
+        let projectRoot = projectRootURL()
+        let sidebarSource = try source(at: "Feedivo/Views/Sidebar/SidebarView.swift", projectRoot: projectRoot)
+        let compactSidebarSource = compact(sidebarSource)
+
+        #expect(compactSidebarSource.contains("smartFoldersSection(badgeSnapshot:sqliteSidebarState.smartFolderBadgeSnapshot)"))
+        #expect(compactSidebarSource.contains("SmartFolderSidebarBadge.badgeText(for:smartFolder,snapshot:badgeSnapshot)"))
+        #expect(!sidebarSource.contains("statusBadgeArticles"))
+    }
+
+    @Test func sidebarOrdnerUndSmartFolderQuellenSindSQLiteFirst() throws {
+        let projectRoot = projectRootURL()
+        let sidebarSource = try source(at: "Feedivo/Views/Sidebar/SidebarView.swift", projectRoot: projectRoot)
+        let selectionSource = try source(at: "Feedivo/Views/Sidebar/SidebarSelection.swift", projectRoot: projectRoot)
+        let stateSource = try source(at: "Feedivo/ViewModels/SQLiteSidebarState.swift", projectRoot: projectRoot)
+        let contentSource = try source(at: "Feedivo/Views/ContentView.swift", projectRoot: projectRoot)
+
+        #expect(!sidebarSource.contains("@Query(sort: \\FeedFolder.name)"))
+        #expect(!sidebarSource.contains("@Query(sort: \\SmartFolder.sortOrder)"))
+        #expect(sidebarSource.contains("sqliteSidebarState.feedFolders"))
+        #expect(sidebarSource.contains("sqliteSidebarState.smartFolderSnapshots"))
+        #expect(selectionSource.contains("case smartFolder(String)"))
+        #expect(stateSource.contains("private(set) var feedFolders: [FeedFolderRecord] = []"))
+        #expect(stateSource.contains("private(set) var smartFolderSnapshots: [SQLiteSmartFolderSnapshot] = []"))
+        #expect(contentSource.contains("SQLiteSmartFolderStore(database: database).sidebarSnapshots()"))
+    }
+
+    @Test func smartFolderVerwaltungIstSQLiteFirst() throws {
+        let projectRoot = projectRootURL()
+        let settingsSource = try source(at: "Feedivo/Views/SmartFolders/SmartFolderSettingsView.swift", projectRoot: projectRoot)
+        let editorSource = try source(at: "Feedivo/Views/SmartFolders/SmartFolderEditorView.swift", projectRoot: projectRoot)
+        let contentSource = try source(at: "Feedivo/Views/ContentView.swift", projectRoot: projectRoot)
+
+        #expect(!settingsSource.contains("@Query(sort: \\SmartFolder.sortOrder)"))
+        #expect(!settingsSource.contains("@Environment(\\.modelContext)"))
+        #expect(settingsSource.contains("@State private var folders: [SmartFolderRecord]"))
+        #expect(settingsSource.contains("let store = SQLiteSmartFolderStore(database: database)"))
+        #expect(settingsSource.contains("store.folders()"))
+        #expect(settingsSource.contains("SQLiteSmartFolderStore(database: database).restoreDefaultFolders()"))
+
+        #expect(!editorSource.contains("@Environment(\\.modelContext)"))
+        #expect(!editorSource.contains("SmartFolderViewModel()"))
+        #expect(editorSource.contains("let folder: SmartFolderRecord?"))
+        #expect(editorSource.contains("SQLiteSmartFolderStore(database: database).save("))
+
+        #expect(!contentSource.contains("@Query(sort: \\SmartFolder.sortOrder)"))
+    }
+
+    @Test func ruleVerwaltungIstSQLiteFirst() throws {
+        let projectRoot = projectRootURL()
+        let settingsSource = try source(at: "Feedivo/Views/Rules/RuleSettingsView.swift", projectRoot: projectRoot)
+        let wizardSource = try source(at: "Feedivo/Views/Rules/RuleWizardView.swift", projectRoot: projectRoot)
+
+        #expect(!settingsSource.contains("@Query(sort: \\Rule.sortOrder)"))
+        #expect(!settingsSource.contains("@Environment(\\.modelContext)"))
+        #expect(!settingsSource.contains("RuleViewModel()"))
+        #expect(settingsSource.contains("@State private var rules: [RuleRecord]"))
+        #expect(settingsSource.contains("let ruleStore = SQLiteRuleStore(database: database)"))
+        #expect(settingsSource.contains("SQLiteRuleStore(database: database).ruleSnapshots()"))
+
+        #expect(!wizardSource.contains("@Environment(\\.modelContext)"))
+        #expect(!wizardSource.contains("@Query(sort: \\Rule.sortOrder)"))
+        #expect(!wizardSource.contains("@Query(sort: \\Tag.name)"))
+        #expect(!wizardSource.contains("RuleViewModel()"))
+        #expect(!wizardSource.contains("TagViewModel()"))
+        #expect(wizardSource.contains("let rule: RuleRecord?"))
+        #expect(wizardSource.contains("SQLiteRuleStore(database: database).save("))
+        #expect(wizardSource.contains("TagStore(database: database).save("))
+    }
+
+    @Test func feedRowViewBevorzugtSQLiteSnapshotWerte() throws {
+        let projectRoot = projectRootURL()
+        let rowSource = try source(at: "Feedivo/Views/Sidebar/FeedRowView.swift", projectRoot: projectRoot)
+
+        #expect(rowSource.contains("let snapshot: FeedSidebarSnapshot"))
+        #expect(rowSource.contains("snapshot.unreadCount"))
+        #expect(rowSource.contains("snapshot.title"))
+        #expect(rowSource.contains("snapshot.faviconURL"))
+    }
+
+    @Test func feedPropertiesViewSpiegeltFeedTagsNachSQLite() throws {
+        let projectRoot = projectRootURL()
+        let source = try source(at: "Feedivo/Views/Sidebar/FeedPropertiesView.swift", projectRoot: projectRoot)
+
+        #expect(source.contains("@Environment(\\.feedivoDatabase) private var feedivoDatabase"))
+        #expect(source.contains("let store = TagStore(database: database)"))
+        #expect(source.contains("try TagStore(database: database).save(tag)"))
+        #expect(source.contains("assignTag(tagID: tag.id, toFeedID: feedID"))
+        #expect(source.contains("try TagStore(database: database).removeTag"))
+        #expect(source.contains("tagID: tag.id"))
+        #expect(source.contains("fromFeedID: feedID"))
+        #expect(source.contains("SidebarBadgeInvalidation.bumpDirectTagVersion()"))
+    }
+
+    @Test func feedPropertiesViewLaedtFeedLogsAusSQLite() throws {
+        let projectRoot = projectRootURL()
+        let source = try source(at: "Feedivo/Views/Sidebar/FeedPropertiesView.swift", projectRoot: projectRoot)
+        let compactSource = compact(source)
+
+        #expect(source.contains("@State private var sqliteLogEntries: [FeedLogRecord] = []"))
+        #expect(compactSource.contains("FeedLogStore(database:database).logs(feedID:feedID,limit:20)"))
+        #expect(compactSource.contains("ForEach(Array(sqliteLogEntries.enumerated()),id:\\.element.id)"))
+        #expect(!source.contains("FeedPropertiesQuery.latestLogEntries(in: modelContext, for: feed)"))
+    }
+
+    @Test func feedPropertiesMetrikenLaufenUeberSQLite() throws {
+        let projectRoot = projectRootURL()
+        let propertiesSource = try source(at: "Feedivo/Views/Sidebar/FeedPropertiesView.swift", projectRoot: projectRoot)
+        let settingsSource = try source(at: "Feedivo/Views/Settings/SettingsView.swift", projectRoot: projectRoot)
+        let compactPropertiesSource = compact(propertiesSource)
+        let compactSettingsSource = compact(settingsSource)
+
+        #expect(propertiesSource.contains("@State private var sqliteArticleMetrics = FeedPropertiesArticleMetricsSnapshot.empty"))
+        #expect(compactPropertiesSource.contains("ArticleStore(database:database).feedPropertiesMetrics(feedID:feedID,recentCutoffDate:"))
+        #expect(compactSettingsSource.contains("FeedManagementRow(feed:feed,isSelected:selectedFeedIDs.contains(feed.id),sqliteDatabase:feedivoDatabase"))
+        #expect(compactSettingsSource.contains("ArticleStore(database:database).feedPropertiesMetrics(feedID:feed.id,recentCutoffDate:"))
+        #expect(!propertiesSource.contains("FeedPropertiesQuery.latestArticle(in: modelContext, for: feed)"))
+        #expect(!propertiesSource.contains("FeedPropertiesQuery.recentArticleCount("))
+        #expect(!settingsSource.contains("FeedPropertiesQuery.recentArticleCount("))
+    }
+
+    @Test func tagManagerViewSpiegeltTagAenderungenNachSQLite() throws {
+        let projectRoot = projectRootURL()
+        let source = try source(at: "Feedivo/Views/Tags/TagManagerView.swift", projectRoot: projectRoot)
+
+        #expect(source.contains("@Environment(\\.feedivoDatabase) private var feedivoDatabase"))
+        #expect(source.contains("TagStore(database: database).save"))
+        #expect(source.contains("TagStore(database: database).renameTag"))
+        #expect(source.contains("TagStore(database: database).updateColor"))
+        #expect(source.contains("TagStore(database: database).deleteTag"))
+        #expect(!source.contains("sqliteDatabase: feedivoDatabase"))
+        #expect(!source.contains("viewModel.createTag("))
+    }
+
     private func projectRootURL() -> URL {
         URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
@@ -309,5 +869,9 @@ struct FeedivoAppSceneConfigurationTests {
     private func source(at relativePath: String, projectRoot: URL) throws -> String {
         let sourceURL = projectRoot.appendingPathComponent(relativePath)
         return try String(contentsOf: sourceURL, encoding: .utf8)
+    }
+
+    private func compact(_ source: String) -> String {
+        source.filter { !$0.isWhitespace }
     }
 }

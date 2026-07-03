@@ -57,16 +57,21 @@ enum ArticleOriginalURLResolver {
         return lowercasedLink.hasPrefix("https://") || lowercasedLink.hasPrefix("http://")
     }
 
-    static func url(for article: Article?) -> URL? {
+    static func url(for link: String?) -> URL? {
         guard
-            let link = article?.link,
-            let url = URL(string: link),
+            let link,
+            hasUsableWebLink(link),
+            let url = URL(string: link.trimmingCharacters(in: .whitespacesAndNewlines)),
             url.scheme != nil
         else {
             return nil
         }
 
         return url
+    }
+
+    static func url(for article: Article?) -> URL? {
+        url(for: article?.link)
     }
 }
 

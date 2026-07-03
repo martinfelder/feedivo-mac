@@ -13,14 +13,24 @@ struct FirstRunWizardView: View {
     }
 
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.feedivoDatabase) private var feedivoDatabase
     @AppStorage("markArticleReadOnSelection") private var markArticleReadOnSelection = true
     @AppStorage(BackgroundRefreshSettings.isEnabledKey) private var isBackgroundRefreshEnabled = false
     @AppStorage(BackgroundRefreshSettings.intervalMinutesKey) private var backgroundRefreshIntervalMinutes = BackgroundRefreshSettings.defaultIntervalMinutes
 
-    let feeds: [Feed]
     let feedViewModel: FeedViewModel
     let onSkip: () -> Void
     let onComplete: () -> Void
+
+    // Bestehende Ordnernamen aus SQLite für das Folder-Dropdown. Der Duplikat-
+    // Check läuft in `opmlImportPreviewRows` SQLite-basiert; eine SwiftData-
+    // `Feed`-Liste braucht dieser Wizard nicht mehr.
+    private var existingFolderNames: [String] {
+        guard let feedivoDatabase else { return [] }
+        return (try? FeedStore(database: feedivoDatabase).feeds())?
+            .compactMap { $0.folderName?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty } ?? []
+    }
 
     @State private var step: Step = .welcome
     @State private var inputStep: Step = .addFeed
@@ -81,12 +91,18 @@ struct FirstRunWizardView: View {
             allowedContentTypes: [.opml, .xml]
         ) { result in
             inputStep = .importOPML
-            previewController.loadOPML(from: result, existingFeeds: feeds, feedViewModel: feedViewModel)
+            previewController.loadOPML(
+                from: result,
+                existingFeeds: [],
+                sqliteDatabase: feedivoDatabase,
+                feedViewModel: feedViewModel
+            )
         }
         .onDrop(of: [UTType.fileURL.identifier], isTargeted: $previewController.isDropTargeted) { providers in
             previewController.handleDroppedFiles(
                 providers,
-                existingFeeds: feeds,
+                existingFeeds: [],
+                sqliteDatabase: feedivoDatabase,
                 feedViewModel: feedViewModel
             ) { _ in
                 step = .importOPML
@@ -664,7 +680,7 @@ struct FirstRunWizardView: View {
                                     OPMLImportFeedRow(
                                         row: $row,
                                         selectionOptions: previewController.selectionOptions,
-                                        availableFolders: previewController.availableFolders(existingFeeds: feeds),
+                                        availableFolders: previewController.availableFolders(existingFolderNames: existingFolderNames),
                                         layout: .firstRun
                                     )
                                     Divider()
@@ -956,7 +972,8 @@ struct FirstRunWizardView: View {
         inputStep = .addFeed
         previewController.preparePreview(
             feeds: [feed],
-            existingFeeds: feeds,
+            existingFeeds: [],
+            sqliteDatabase: feedivoDatabase,
             feedViewModel: feedViewModel,
             sourceText: L10n.firstRunFeedAddressChecking
         )
@@ -973,11 +990,12 @@ struct FirstRunWizardView: View {
                 let importedUnreachableCount = selectedRows.filter { $0.status == .unreachable }.count
                 let result = try await feedViewModel.importOPMLFeeds(
                     selectedFeeds,
-                    existingFeeds: feeds,
+                    existingFeeds: [],
                     allowsDuplicates: previewController.allowsDuplicates,
                     refreshAfterImport: previewController.refreshAfterImport,
                     refreshIntervalMinutes: backgroundRefreshIntervalMinutes,
-                    context: modelContext
+                    context: modelContext,
+                    sqliteDatabase: feedivoDatabase
                 )
                 completionSummary = FirstRunCompletionSummary(
                     importedFeeds: result.imported,

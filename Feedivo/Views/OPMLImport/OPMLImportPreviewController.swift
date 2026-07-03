@@ -182,7 +182,15 @@ final class OPMLImportPreviewController {
     }
 
     func availableFolders(existingFeeds: [Feed]) -> [String] {
-        let existingFolderNames = existingFeeds.compactMap { trimmedFolderName($0.folderName) }
+        availableFolders(existingFolderNames: existingFeeds.compactMap { trimmedFolderName($0.folderName) })
+    }
+
+    /// SQLite-Variante: statt SwiftData-`Feed`-Objekten werden nur die
+    /// Ordnernamen der bestehenden Feeds übergeben (aus `FeedStore.feeds()`
+    /// bzw. `FeedFolderStore`). Duplikat-Check läuft in `opmlImportPreviewRows`
+    /// bereits SQLite-basiert, deshalb braucht der Controller keine `Feed`-Liste
+    /// mehr.
+    func availableFolders(existingFolderNames: [String]) -> [String] {
         let previewFolderNames = rows.compactMap { trimmedFolderName($0.feed.folderName) }
         return Array(Set(existingFolderNames + previewFolderNames + customFolders))
             .sorted { $0.localizedStandardCompare($1) == .orderedAscending }
@@ -256,7 +264,12 @@ final class OPMLImportPreviewController {
 
     // MARK: Async Preview-Flow
 
-    func loadOPML(from result: Result<URL, Error>, existingFeeds: [Feed], feedViewModel: FeedViewModel) {
+    func loadOPML(
+        from result: Result<URL, Error>,
+        existingFeeds: [Feed],
+        sqliteDatabase: FeedivoDatabase? = nil,
+        feedViewModel: FeedViewModel
+    ) {
         // Vorherigen Preview-Task abbrechen, bevor eine neue Datei geladen wird —
         // verhindert konkurrierende Tasks am gemeinsamen State.
         previewTask?.cancel()
@@ -290,6 +303,7 @@ final class OPMLImportPreviewController {
                 rows = await feedViewModel.opmlImportPreviewRows(
                     for: opmlFeeds,
                     existingFeeds: existingFeeds,
+                    sqliteDatabase: sqliteDatabase,
                     onProgress: { progress in
                         self.previewProgressText = progress.displayText
                         self.sourceDescription = progress.displayText
@@ -328,7 +342,13 @@ final class OPMLImportPreviewController {
     }
 
     /// FirstRun: Vorschau für manuell eingegebene Feed-Adresse (Einzel-Feed).
-    func preparePreview(feeds: [OPMLFeed], existingFeeds: [Feed], feedViewModel: FeedViewModel, sourceText: String) {
+    func preparePreview(
+        feeds: [OPMLFeed],
+        existingFeeds: [Feed],
+        sqliteDatabase: FeedivoDatabase? = nil,
+        feedViewModel: FeedViewModel,
+        sourceText: String
+    ) {
         // Vorherigen Preview-Task abbrechen, bevor eine neue Vorschau startet.
         previewTask?.cancel()
         let task = Task { @MainActor in
@@ -342,6 +362,7 @@ final class OPMLImportPreviewController {
             rows = await feedViewModel.opmlImportPreviewRows(
                 for: feeds,
                 existingFeeds: existingFeeds,
+                sqliteDatabase: sqliteDatabase,
                 onProgress: { progress in
                     self.previewProgressText = progress.displayText
                     self.sourceDescription = progress.displayText
@@ -370,6 +391,7 @@ final class OPMLImportPreviewController {
     func handleDroppedFiles(
         _ providers: [NSItemProvider],
         existingFeeds: [Feed],
+        sqliteDatabase: FeedivoDatabase? = nil,
         feedViewModel: FeedViewModel,
         onValidFile: ((URL) -> Void)? = nil
     ) -> Bool {
@@ -392,7 +414,12 @@ final class OPMLImportPreviewController {
                     return
                 }
                 onValidFile?(url)
-                self.loadOPML(from: .success(url), existingFeeds: existingFeeds, feedViewModel: feedViewModel)
+                self.loadOPML(
+                    from: .success(url),
+                    existingFeeds: existingFeeds,
+                    sqliteDatabase: sqliteDatabase,
+                    feedViewModel: feedViewModel
+                )
             }
         }
         return true

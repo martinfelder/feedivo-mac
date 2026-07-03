@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct OPMLExportSheet: View {
+    @Environment(\.feedivoDatabase) private var feedivoDatabase
+
     let feeds: [Feed]
     let onClose: () -> Void
 
@@ -37,6 +39,27 @@ struct OPMLExportSheet: View {
         _opmlFeeds = State(initialValue: FeedViewModel.opmlFeedsForExport(from: feeds))
     }
 
+    /// SQLite-only Initializer für ContentView: keine SwiftData-`Feed`-Liste
+    /// mehr. Die Export-Feeds werden beim Erscheinen des Sheets aus
+    /// `FeedStore.opmlFeedsForExport()` geladen (siehe `.task`/`loadExportFeeds`).
+    init(onClose: @escaping () -> Void) {
+        self.feeds = []
+        self.onClose = onClose
+        _opmlFeeds = State(initialValue: [])
+    }
+
+    init(opmlFeeds: [OPMLFeed], onClose: @escaping () -> Void) {
+        self.feeds = []
+        self.onClose = onClose
+        _opmlFeeds = State(initialValue: opmlFeeds)
+    }
+
+    /// Dynamisch aus den geladenen OPML-Feeds — initially 0, nach SQLite-Load
+    /// befüllt. Header und Save-Button reagieren so auf den asynchronen Load.
+    private var feedCount: Int {
+        opmlFeeds.count
+    }
+
     private var folderCount: Int {
         Set(opmlFeeds.compactMap { trimmed($0.folderName) }).count
     }
@@ -57,6 +80,9 @@ struct OPMLExportSheet: View {
         }
         .frame(width: 720)
         .background(.background)
+        .task {
+            loadExportFeeds()
+        }
         .fileExporter(
             isPresented: $isExporting,
             document: document,
@@ -81,7 +107,7 @@ struct OPMLExportSheet: View {
 
             Spacer(minLength: 0)
 
-            Text(L10n.opmlExportFeedCount(feeds.count))
+            Text(L10n.opmlExportFeedCount(feedCount))
                 .font(.caption)
                 .fontWeight(.semibold)
                 .foregroundStyle(.green)
@@ -157,7 +183,7 @@ struct OPMLExportSheet: View {
                 .fontWeight(.semibold)
 
             VStack(spacing: 8) {
-                summaryRow(label: L10n.opmlExportSummaryFeeds, value: "\(feeds.count)")
+                summaryRow(label: L10n.opmlExportSummaryFeeds, value: "\(feedCount)")
                 summaryRow(label: L10n.opmlExportSummaryFolders, value: includesFolders ? L10n.opmlExportFolderCount(folderCount) : L10n.commonOff)
                 summaryRow(label: L10n.opmlExportSummaryTags, value: includesTags ? L10n.opmlExportTagCount(tagCount) : L10n.commonOff)
                 summaryRow(label: L10n.opmlExportSummaryDescriptions, value: includesDescriptions ? L10n.opmlExportDescriptionCount(descriptionCount) : L10n.commonOff)
@@ -201,7 +227,7 @@ struct OPMLExportSheet: View {
             }
             .keyboardShortcut(.defaultAction)
             .buttonStyle(.borderedProminent)
-            .disabled(feeds.isEmpty)
+            .disabled(feedCount == 0)
         }
         .padding(.horizontal, 18)
         .padding(.vertical, 12)
@@ -231,6 +257,48 @@ struct OPMLExportSheet: View {
         }
 
         return trimmedValue
+    }
+
+    private func loadExportFeeds() {
+        // SQLite-only Pfad (ContentView): keine SwiftData-Feeds übergeben →
+        // direkt aus `FeedStore.opmlFeedsForExport()` laden. Bereits vorbelegte
+        // opmlFeeds (SettingsView via init(opmlFeeds:)) werden nicht überschrieben.
+        if feeds.isEmpty && opmlFeeds.isEmpty {
+            if let feedivoDatabase {
+                opmlFeeds = (try? FeedStore(database: feedivoDatabase).opmlFeedsForExport()) ?? []
+            }
+            return
+        }
+
+        let swiftDataFeeds = FeedViewModel.opmlFeedsForExport(from: feeds)
+        guard !feeds.isEmpty else {
+            return
+        }
+
+        guard let feedivoDatabase else {
+            opmlFeeds = swiftDataFeeds
+            return
+        }
+
+        do {
+            let descriptionsByURL = Dictionary(
+                uniqueKeysWithValues: swiftDataFeeds.map { ($0.xmlURL, $0.description) }
+            )
+            opmlFeeds = try FeedStore(database: feedivoDatabase)
+                .opmlFeedsForExport()
+                .map { feed in
+                    OPMLFeed(
+                        title: feed.title,
+                        xmlURL: feed.xmlURL,
+                        htmlURL: feed.htmlURL,
+                        folderName: feed.folderName,
+                        description: descriptionsByURL[feed.xmlURL] ?? feed.description,
+                        tagNames: feed.tagNames
+                    )
+                }
+        } catch {
+            opmlFeeds = swiftDataFeeds
+        }
     }
 }
 

@@ -216,6 +216,7 @@ FeedivoMac/
 │   ├── Services/
 │   │   ├── FeedService.swift           # FeedKit-Wrapper: RSS/Atom/JSON Feed parsen ✅
 │   │   ├── FeedDiscoveryService.swift  # Website-/Feed-URL-Erkennung für Feed hinzufügen ✅
+│   │   ├── SQLiteFeedSubscriptionService.swift # SQLite-first Feed-Anlage/OPML-Import + SwiftData-Bridge ✅
 │   │   ├── FaviconService.swift        # HTML Favicon Discovery + Fallback ✅
 │   │   ├── AppIconBadgeSettings.swift  # App-Icon-Badge Settings-Key ✅
 │   │   ├── AppIconBadgeService.swift   # Dock-Badge für ungelesene Artikel ✅
@@ -224,6 +225,8 @@ FeedivoMac/
 │   │   ├── BackgroundRefreshService.swift  # NSBackgroundActivityScheduler Adapter ✅
 │   │   ├── FeedBackgroundRefreshService.swift # Sammel-Refresh mit eigenem SwiftData-Kontext pro Feed ✅
 │   │   ├── ArticleFeedIDBackfillService.swift # feedID für alte Artikel nachfuellen ✅
+│   │   ├── FeedTagBackfillService.swift # alte Feed-Tags nach SQLite spiegeln ✅
+│   │   ├── SQLiteAdminDefinitionBackfillService.swift # FeedFolder/Rule/SmartFolder nach SQLite spiegeln ✅
 │   │   ├── ArticleExportService.swift # Markdown/Text/HTML-Export; PDF/DOCX prototypisiert/zurückgestellt ✅
 │   │   ├── ArticleExportDocument.swift # FileDocument für Artikel-/ZIP-/Binärdateiexport ✅
 │   │   ├── ArticleDocumentExportRenderers.swift # PDF- und DOCX-Datenrenderer ✅
@@ -241,6 +244,17 @@ FeedivoMac/
 │   │   ├── SmartFolderEngine.swift     # Artikel gegen intelligente Ordner auswerten ✅
 │   │   ├── OPMLService.swift           # OPML Import und Export ✅
 │   │   └── OPMLDocument.swift          # FileDocument für OPML Export ✅
+│   │
+│   ├── Stores/
+│   │   ├── FeedFolderStore.swift       # SQLite-CRUD für Feed-Ordner ✅
+│   │   ├── SQLiteRuleStore.swift       # SQLite-Regeldefinitionen + RuleEngine-Snapshots ✅
+│   │   └── SQLiteSmartFolderStore.swift # SQLite-SmartFolder-Definitionen + Sidebar-Snapshots ✅
+│   │
+│   ├── Snapshots/
+│   │   ├── FeedSidebarSnapshot.swift # Leichte SQLite-Feed-Werte für Sidebar ✅
+│   │   ├── TagSidebarSnapshot.swift  # Leichte SQLite-Tag-Badge-Werte für Sidebar ✅
+│   │   ├── SmartFolderSidebarBadgeSnapshot.swift # SQLite-Zähler für Smart-Folder-Badges ✅
+│   │   └── FeedPropertiesArticleMetricsSnapshot.swift # SQLite-Metriken für Feed-Eigenschaften ✅
 │   │
 │   ├── Extensions/
 │   │   └── Date+RelativeDisplay.swift  # Datum für Artikelzeilen formatieren ✅
@@ -447,26 +461,28 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Ungelesen-Badges basieren auf `Feed.unreadCount`, damit die Sidebar beim Rendern
   keine separate Query auf alle ungelesenen Artikel mehr materialisieren muss
 - Die Sidebar nutzt keine globale Artikel-Query mehr für Badge-Signaturen.
-  `Ungelesen` basiert weiter auf `Feed.unreadCount`; Status-Badges beobachten
-  nur Stern-/Archiv-/Hidden-Artikel, damit normales Lesen keine komplette
-  Sidebar-Badge-Invalidierung mehr auslöst.
-- Tag-Badges und Status-Badges sind getrennt gecacht: Stern-/Archiv-/Hidden-
-  Änderungen aktualisieren nur die günstigen Status-Zähler, während die teurere
-  Artikel→Tag-Auswertung nachgelagert per `fetchCount` nur bei Tag-,
-  Feed-Tag- oder Feed-Refresh-relevanten Änderungen läuft.
+  `Ungelesen`, `Mit Stern`, `Ausgeblendet` und `Gespeichert` kommen im
+  SQLite-Hauptpfad aus `SQLiteSidebarState.smartFolderBadgeSnapshot`.
+- Tag-Badges kommen im SQLite/GRDB-Übergangspfad aus `TagStore.sidebarTags()`
+  und `SQLiteSidebarState`, statt pro Sidebar-Render SwiftData-`fetchCount` oder
+  Artikel→Tag-Relationships zu nutzen. Die Counts umfassen direkte Artikel-Tags
+  und Feed-Tags aus `feed_tags` ohne doppelte Artikel. Bestehende SwiftData-
+  Feed-Tags werden beim App-Start per `FeedTagBackfillService` nachgezogen.
 - Per Darstellungseinstellung `sidebar.showsReadFeeds` können Feeds ohne
   ungelesene Artikel in der Sidebar ausgeblendet werden; Standard bleibt anzeigen.
 - Die Sidebar zeigt eine eigene `Tags`-Section mit Tag-Icon; der Button öffnet den
   zentralen `TagManagerView`.
-- Vorhandene Tags werden in der Sidebar als klickbare Zeilen mit Farbindikator aus
-  `Tag.colorHex` angezeigt; ein Klick filtert die Artikelliste feedübergreifend
-  auf Artikel mit diesem Tag. Der Filter umfasst direkt getaggte Artikel und Artikel
-  aus Feeds, denen das Tag zugewiesen ist.
+- Vorhandene Tags werden in der Sidebar als klickbare Zeilen aus
+  `TagSidebarSnapshot` angezeigt. Ein Klick speichert die SQLite-Tag-ID in
+  `SidebarSelection.tag` und filtert die Artikelliste feedübergreifend über
+  `TimelineScope.tag`; die Query umfasst direkte Artikel-Tags aus `article_tags`
+  und Feed-Tags aus `feed_tags`.
 - Neu erstellte Tags werden nach erfolgreichem Anlegen direkt als Sidebar-Auswahl
   gesetzt, damit der schnelle Tag-Filter sofort sichtbar und nutzbar ist.
-- Tag-Zeilen zeigen rechts eine dezente Badge mit der Anzahl passender Artikel;
-  direkt getaggte Artikel und Artikel aus getaggten Feeds werden ohne Duplikate
-  gezählt.
+- Tag-Zeilen zeigen rechts eine dezente Badge mit der Anzahl passender Artikel.
+  Im SQLite-Pfad kommt auch die Listenquelle aus `TagStore.sidebarTags()` und
+  zählt direkte Artikel-Tags aus `article_tags` sowie Feed-Tag-Treffer aus
+  `feed_tags`.
 - Die Sidebar zeigt keine eigene `Regeln`-Section mehr. Die komplette
   Regelverwaltung liegt bewusst in den Einstellungen; der schnelle Einstieg
   `Regel erstellen...` sitzt im Menü der Artikelansicht.
@@ -504,18 +520,16 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Feed-Relationships noch alle ungelesenen Artikel laden muss.
 - Liefert nur für positive Zähler einen sichtbaren Badge-Text, damit Feeds ohne
   ungelesene Artikel ruhig bleiben.
-- `SidebarTagCount` zählt direkt getaggte Artikel und Artikel aus getaggten Feeds
-  per SwiftData-`fetchCount` über denselben Tag-Predicate wie die Artikelliste,
-  statt Tag-/Feed-Artikel-Relationships bei jedem Sidebar-Render zu traversieren.
-- `SmartFolderSidebarBadge` nutzt für `Ungelesen` weiterhin die summierten
-  `Feed.unreadCount` Werte; `Mit Stern`, `Ausgeblendet` und `Gespeichert`
-  werden im Sidebar-Render aus den gebündelten Status-Zählern gelesen, inklusive
-  gelesener und ungelesener Treffer.
-- `SidebarBadgeSignatureBuilder` trennt Status-Signatur und Tag-Signatur. Damit
-  löst ein reiner Stern-/Archiv-Klick keine neue Tag-Badge-Berechnung und keine
-  Artikel→Tag-Relationship-Faults aus; ein Feed-Tag-Wechsel mit gleicher
-  Tag-Anzahl invalidiert den Tag-Cache trotzdem korrekt. Reine
-  Gelesen/Ungelesen-Wechsel gehen nicht mehr in die Tag-Signatur ein.
+- `SidebarTagCount` ist noch der Legacy-SwiftData-Zähler für alte Tag-Pfade.
+  Die sichtbaren Sidebar-Tag-Badges im SQLite-Hauptpfad lesen ihre Counts über
+  `SQLiteSidebarState.tagSnapshot(id:)`.
+- `SmartFolderSidebarBadge` kann Legacy-`SidebarBadgeCounts` weiter auswerten,
+  die sichtbaren Sidebar-Zeilen nutzen aber `SmartFolderSidebarBadgeSnapshot`
+  aus SQLite. `Ungelesen` kommt aus `feeds.unreadCount`, Status-Badges aus
+  `article_statuses`.
+- `SidebarBadgeSignatureBuilder` bleibt für Legacy-Tests/alte Pfade erhalten.
+  Tag-Badge-Invalidierung läuft im SQLite-Pfad über den `SQLiteSidebarState`-
+  Reload-Token mit `directTagVersion`.
 
 ### FeedService.swift
 - Parsed RSS 2.0, Atom und JSON Feed via FeedKit
@@ -562,7 +576,12 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 
 ### FeedViewModel.swift
 - `@Observable` class
-- `addFeed(urlString:context:)` — lädt Artikel, erstellt Feed, speichert in SwiftData
+- `addFeed(urlString:context:sqliteDatabase:)` legt neue Feeds im SQLite-Pfad über
+  `SQLiteFeedSubscriptionService` an, sobald eine `FeedivoDatabase` vorhanden ist.
+  SwiftData erhält in diesem Pfad nur noch eine minimale Feed-
+  Übergangsidentität für Sidebar/ContentView, bis der finale FeedRecord-Umbau die
+  verbliebenen SwiftData-Feed-Abhängigkeiten ersetzt. Neue Artikel aus dem
+  Hinzufügen-Pfad werden in SQLite gespeichert.
 - Beim Hinzufuegen und Aktualisieren wird `FaviconService` genutzt, um `Feed.faviconURL`
   aus Website-HTML oder `/favicon.ico` Fallback zu speichern
 - `refreshFeed(_:context:)` — aktualisiert den ausgewählten Feed, fügt nur neue
@@ -648,7 +667,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   aktualisiert. `FeedViewModel.maxConcurrentFeedRefreshes` verhindert, dass große
   OPML-Imports alle Feed-Abrufe gleichzeitig starten. Neu angelegte OPML-Feeds
   erhalten das gewählte bzw. gespeicherte Aktualisierungsintervall, begrenzt auf
-  erlaubte Werte.
+  erlaubte Werte. Mit SQLite-Datenbank delegiert der OPML-Import ebenfalls an
+  `SQLiteFeedSubscriptionService`; neue Artikel aus Add-/Import-Flows liegen in
+  SQLite. Doppelte OPML-Feed-URLs werden über die Service-Logik gesteuert, sodass
+  `feeds.url` in SQLite bewusst nicht mehr unique ist.
 - Beim Refresh werden gespeicherte Regeln über `RuleEngine` auf neu eingefügte
   Artikel angewendet; Benachrichtigungs-Regeln werden für neue Artikel gesammelt
   und nach erfolgreichem Speichern an `FeedNotificationService` gemeldet.
@@ -672,7 +694,7 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Keine externe Google-S2-API; die Favicon-Strategie bleibt eigenstaendig und
   datensparsamer
 
-### ArticleFeedIDBackfillService.swift / FeedUnreadCountBackfillService.swift
+### ArticleFeedIDBackfillService.swift / FeedUnreadCountBackfillService.swift / FeedTagBackfillService.swift
 - `ArticleFeedIDBackfillService` füllt `Article.feedID` für alte Artikel nach, die
   vor der Denormalisierung gespeichert wurden; die Abfrage sucht gezielt nur Artikel
   mit `feedID == nil`.
@@ -686,6 +708,11 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   kontrolliert werden kann.
 - Nach erfolgreichem Durchlauf wird beim App-Start nicht mehr pro Feed die komplette
   `articles`-Relationship geladen, nur um den Sidebar-Zähler zu verifizieren.
+- `FeedTagBackfillService` spiegelt vorhandene SwiftData-Feed-Tags beim App-Start
+  nach SQLite: der Feed-Snapshot wird per `FeedStore` gesichert, Tags werden als
+  `TagRecord` upserted und `feed_tags` wird idempotent befüllt. Dadurch greifen
+  Tag-Filter und Sidebar-Tag-Badges auch für Altbestand ohne erneutes Bearbeiten
+  der Feed-Eigenschaften.
 
 ### RuleEngine.swift
 - Stateless Service für automatische Regel-Aktionen.
@@ -821,23 +848,27 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Darunter zeigt es gruppiert Originaltitel, Website, XML-Adresse mit Kopierbutton,
   Gefolgt-ab-Datum, editierbaren Ordner, letzten Artikel, Aktualisierungsintervall,
   nächsten Abruf und die neuesten 20 Feed-Log-Eintraege
+- Die sichtbare Feed-Log-Liste und die Log-Anzahl werden im SQLite/GRDB-Pfad über
+  `FeedLogStore` aus `feed_logs` geladen, statt `FeedLogEntry`-Objekte über
+  SwiftData zu materialisieren.
 - Eine eigene Section `Aktivität` zeigt, wie viele Artikel der Feed in den letzten
   7 Tagen veröffentlicht hat, sowie wann der Feed zuletzt aktualisiert wurde.
 - Website und XML-Adresse werden als echte Links im Standardbrowser geöffnet,
   sofern sie gueltige `http`/`https`-URLs sind; der XML-Kopierbutton bleibt erhalten
-- Aktualisierungsintervall ist direkt im Sheet editierbar und wird in SwiftData gespeichert
-- Der Ordnername ist direkt im Sheet editierbar; leere Eingaben werden als `nil`
-  gespeichert
+- Aktualisierungsintervall, Ordnername, Feed-Benachrichtigungen und
+  Feed-spezifische Artikel-Aufbewahrung werden SQLite-first über `FeedStore`
+  gespeichert; leere Ordnernamen werden als `nil` gespeichert.
 - Feed-Tags sind direkt im Sheet editierbar: Vorhandene globale Tags können per
   Plus-Chip zugewiesen, neue Tags per Eingabe erstellt und zugewiesene Tags wieder
-  entfernt werden.
+  entfernt werden. Quelle und Mutation laufen über `TagRecord`/`TagStore` und die
+  SQLite-Tabelle `feed_tags`.
 - Die globale Artikel-Aufbewahrung kann pro Feed überschrieben werden: Standard
   ist `Globale Einstellung verwenden`; bei aktiver Überschreibung kann der Feed
-  eigene Aktivierung, eigene Aufbewahrungstage und das Mitlöschen von Stern-/
-  Archivartikeln speichern.
+  eigene Aktivierung, eigene Aufbewahrungstage, eine Mindestanzahl neuester
+  Artikel und das Mitlöschen von Stern-/Archivartikeln speichern.
 - `FeedPropertiesFormatter` kapselt nächsten Abruf, neuesten Artikel, Artikelanzahl
-  der letzten 7 Tage, Log-Limit und die sichtbare Log-Anzahl sowie gueltige
-  Link-URLs, damit diese Logik ohne UI testbar bleibt
+  der letzten 7 Tage sowie gueltige Link-URLs, damit diese Logik ohne UI testbar
+  bleibt
 
 ### FeedRenameView.swift
 - Rechtsklick auf Feed → `Feed umbenennen...`
@@ -845,8 +876,8 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   laedt es nicht, erscheint das RSS-Systemsymbol als Fallback.
 - Sheet zeigt editierbaren Anzeigenamen, gespeicherten urspruenglichen Feed-Namen
   und einen Button zum Wiederherstellen des Originalnamens.
-- Speichern nutzt `FeedViewModel.renameFeed`, damit Trim, Leerwert-Prüfung und
-  Originalnamen-Erhalt zentral testbar bleiben.
+- Laden, Speichern und Wiederherstellen des Originalnamens laufen SQLite-first
+  über `FeedStore`; die Sidebar wird über `SQLiteDataInvalidation` neu geladen.
 
 ### FeedFolderOrganizer.swift
 - Kapselt die einfache Feed-Ordnerlogik für die Sidebar.
@@ -1156,12 +1187,17 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Umbenennen.
 - Aktualisiert Tag-Farben und löscht Tags inklusive vorhandener Artikel- und
   Feed-Verknuepfungen.
+- Spiegelt Create, Rename, Farbänderungen und Delete optional nach SQLite:
+  `TagStore.save` aktualisiert `tags`, `TagStore.deleteTag` entfernt den Tag und
+  lässt `article_tags`/`feed_tags` per Foreign-Key-Kaskade aufräumen.
 
 ### TagManagerView.swift
 - Zentrales Sheet zum Erstellen, Umbenennen, farblichen Markieren und Löschen von
   Tags.
 - Nutzt eine SwiftData-`@Query` auf `Tag.name`, wiederverwendet `TagViewModel` für
   Validierung und Speichern und zeigt Fehler direkt in der jeweiligen Eingabe.
+- Reicht die `feedivoDatabase` aus der Environment an `TagViewModel` weiter,
+  damit Tag-Änderungen sofort in SQLite sichtbar sind.
 - Wird aus der Sidebar-Section `Tags` geöffnet; dieselbe Section zeigt auch
   klickbare Tag-Filterzeilen.
 - Nach dem erfolgreichen Erstellen eines Tags schliesst sich das Sheet und die
@@ -1284,7 +1320,8 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   `Alle sichtbaren auswählen`, `Auswahl aufheben` und destruktiver
   Löschbestätigung für die ausgewählten Feeds. Jede Feed-Zeile zeigt zusätzlich
   die Artikelanzahl der letzten 7 Tage und den Zeitpunkt der letzten
-  Aktualisierung.
+  Aktualisierung. Die Liste lädt `FeedRecord`s aus `FeedStore`, löscht Feeds über
+  SQLite und öffnet den OPML-Export mit SQLite-`OPMLFeed`-Snapshots.
 - Der Bereich `Cache` zeigt aktuelle Bild-/Favicon-Cache-Groesse, ein Speicherlimit
   mit erlaubten Werten 100 MB, 250 MB, 500 MB, 1 GB und 2 GB, sowie Aktionen zum
   Aktualisieren der Groessenanzeige und zum Leeren des Cache. Zusätzlich zeigt er
@@ -1293,11 +1330,13 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   normalen Bild-/Favicon-Cache gelöscht werden.
 - Der Bereich `Bereinigung` enthält als ersten Slice von Feature 17.3 eine globale
   Artikel-Aufbewahrung: Alte Artikel können nach 30, 60, 90, 180 oder 365 Tagen
-  automatisch gelöscht werden. Die Einstellung ist standardmäßig ausgeschaltet.
-  Artikel mit Stern oder Archivstatus bleiben standardmäßig geschützt; in derselben
-  Einstellung kann bewusst aktiviert werden, dass auch diese Artikel mitgelöscht
-  werden. Ein Button `Jetzt bereinigen` startet dieselbe Logik manuell. Einzelne
-  Feeds können diese globale Einstellung in `Feed Eigenschaften...` überschreiben.
+  automatisch gelöscht werden. Zusätzlich kann global festgelegt werden, wie
+  viele der neuesten Artikel pro Feed mindestens erhalten bleiben. Die Einstellung
+  ist standardmäßig ausgeschaltet. Artikel mit Stern oder Archivstatus bleiben
+  standardmäßig geschützt; in derselben Einstellung kann bewusst aktiviert werden,
+  dass auch diese Artikel mitgelöscht werden. Ein Button `Jetzt bereinigen`
+  startet dieselbe Logik manuell. Einzelne Feeds können diese globale Einstellung
+  in `Feed Eigenschaften...` überschreiben.
 - Geplanter späterer Ausbau für `Bereinigung`: History der letzten 10
   Bereinigungen mit Zeitpunkt und Anzahl gelöschter Artikel, konfigurierbarer
   automatischer Ausführungszeitpunkt (Wochentag/Uhrzeit, App-Start oder
@@ -1761,6 +1800,7 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
     var articleRetentionOverridesGlobalSetting: Bool // Default: false
     var articleRetentionIsEnabled: Bool      // Feed-eigene Aufbewahrung aktiv
     var articleRetentionDays: Int            // Feed-eigene Tage, Default: 90
+    var articleRetentionMinimumArticles: Int // Mindestartikel pro Feed, Default: 20
     var articleRetentionIncludesProtectedArticles: Bool // Stern/Archiv mitlöschen
     var unreadCount: Int                     // Vorberechneter Sidebar-Zähler
     @Relationship(deleteRule: .cascade) var articles: [Article]
@@ -1986,9 +2026,35 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - **Scope erste Welle:** `feeds`, `articles`, `article_statuses`, `feed_logs`,
   GRDB-Migrationen, Store-Schicht, Snapshot-Queries für Sidebar/Liste/Reader und
   Status-Updates nur über `article_statuses`.
+- **Stand 2026-07-02:** Der normale Feed-Lese-Pfad im Hauptfenster ist eine
+  vertikale SQLite-Scheibe: Feed-URL-Auflösung über `FeedStore`, Artikelliste via
+  `TimelineStore`, Auswahl per SQLite-Artikel-ID, Reader via
+  `ArticleStore.readerArticle(id:)` und Statusmutationen über
+  `ArticleStatusStore`. `ArticleDatabase` bündelt diese Artikel-Stores inzwischen
+  als zentrale Fassade für den produktiven Listen-/Reader-Pfad, damit
+  UI-State-Klassen nicht mehr selbst zwischen Timeline-, Reader- und
+  Status-Stores koordinieren. Seit 2026-07-03 bietet `ArticleDatabase` zusätzlich
+  eine breitere NetNewsWire-artige API für Feed-, Feed-Set-, Article-ID-,
+  Ungelesen-, Heute-, Starred-, Such- und Count-Abfragen. Neue Artikelpfade
+  sollen bevorzugt diese Fassade nutzen. Normale Feed-Aktionen füllen diesen Pfad inzwischen:
+  `AddFeedSheet`, ausgewählter Feed-Refresh und `Alle Feeds aktualisieren`
+  übergeben die geöffnete `FeedivoDatabase` an `FeedViewModel`; Hinzufügen und
+  einzelner Refresh spiegeln Feed- und Artikeldaten nach SQLite. Der
+  ModelContainer-Sammelrefresh mit vorhandener `FeedivoDatabase` läuft inzwischen
+  SQLite-first über `SQLiteFeedRefreshService` und ruft Feeds nicht mehr zuerst
+  über SwiftData und danach erneut fürs SQLite-Mirroring ab. Feed-Refresh-
+  Benachrichtigungen werden im SQLite-first Sammelrefresh wieder aus den leichten
+  Feed-Snapshots erzeugt. Regeln für `hideArticle`, `notify` und `assignTag`
+  laufen dort auf sendbaren Regel- und Artikelsnapshots; `assignTag` schreibt
+  direkt in die neuen SQLite-Tabellen `tags` und `article_tags`. Sidebar-Feed-
+  Zeilen bevorzugen für Titel, Favicon und ungelesene Counts inzwischen
+  `FeedSidebarSnapshot` aus SQLite. Read-/Hidden-Statusänderungen aktualisieren
+  `feeds.unreadCount` direkt in SQLite und invalidieren die Sidebar-Snapshots
+  über `SQLiteDataInvalidation.statusVersionKey`.
 - **Bewusst später:** iCloud Sync, SwiftData-Bestandsdatenmigration, Tags,
   Regeln, Smart Folders, OPML Import/Export, Artikel-Export, Offline-Download
-  und SQLite FTS-Suche.
+  und die UI-Anbindung der SQLite-FTS-Suche. Das FTS-Fundament selbst ist seit
+  2026-07-03 vorhanden.
 - **Datenmigration:** Für diese Entwicklungsphase keine Migration bestehender
   SwiftData-Daten. Eine frische SQLite-Datenbank ist akzeptiert, weil die App
   aktuell nur von Martin genutzt wird.
@@ -2236,7 +2302,89 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   zugunsten des SQLite/GRDB-Umbaus zurückgestellt. Ziel ist zuerst ein schneller
   lokaler Hauptpfad nach NetNewsWire-Mechanik: Feeds, Refresh, Artikelliste,
   Reader und Artikelstatus über SQLite, mit getrennten Artikel- und
-  Status-Tabellen.
+  Status-Tabellen. Der normale Feed-Pfad im Hauptfenster nutzt inzwischen
+  `SQLiteFeedArticleListView`, SQLite-Artikel-IDs und `SQLiteReaderView`.
+  Feed hinzufügen, OPML-Import, First-Run-Wizard, ausgewählter Feed-Refresh und
+  `Alle Feeds aktualisieren` übergeben die GRDB-Datenbank an `FeedViewModel`,
+  sodass der SQLite-Feed-Pfad nach realen Feed-Aktionen gefüllt wird. Add- und
+  Import-Flows legen neue Feeds inzwischen SQLite-first an; SwiftData speichert
+  dort nur noch eine minimale Feed-Übergangsidentität für Sidebar/ContentView,
+  bis der finale FeedRecord-Umbau abgeschlossen ist. Der Sammel-Refresh über den
+  ModelContainer läuft mit vorhandener GRDB-Datenbank inzwischen SQLite-first und
+  vermeidet den früheren doppelten Abruf über SwiftData plus SQLite-Mirroring;
+  Feed-Refresh-Benachrichtigungen werden dabei wieder mit dem aktualisierten
+  Feed-Titel und dem Snapshot-Wert `isNotificationEnabled` gemeldet. Neue
+  Artikel werden außerdem gegen leichte SQLite-Regel-Snapshots geprüft:
+  `hideArticle` setzt direkt `article_statuses.isHidden`, `notify` erzeugt
+  Regel-Benachrichtigungen und `assignTag` schreibt Tags in `tags`/
+  `article_tags`. Sidebar-Tag-Badges für direkte Artikel-Tags lesen ihre Counts
+  inzwischen über SQLite-Snapshots; direkte Tag-Filter laden ihre Artikelliste
+  über `TimelineScope.tag`. Feed-Tags sind als `feed_tags` in SQLite ergänzt und
+  werden aus den Feed-Eigenschaften gespiegelt. Der Tag-Manager spiegelt Create,
+  Rename, Farbänderungen und Delete nach SQLite; die Sidebar-Tag-Liste liest
+  bereits aus SQLite-Snapshots.
+  Die normalen Feed-Zeilen in der Sidebar nutzen `SQLiteSidebarState` und
+  `FeedSidebarSnapshot` für Anzeige und ungelesene Badges; Auswahl und
+  Kontextmenüs bleiben übergangsweise SwiftData. SQLite-Statusänderungen halten
+  den Feed-Unread-Snapshot aktuell und laden die Sidebar-Snapshots neu. Feed-
+  Eigenschaften laden ihre sichtbaren Feed-Logs inzwischen über `FeedLogStore`
+  aus `feed_logs`; `Neuester Artikel` und `Artikel der letzten 7 Tage` kommen
+  über `ArticleStore.feedPropertiesMetrics` und
+  `FeedPropertiesArticleMetricsSnapshot`. Die vordefinierten globalen SmartFilter `Alle Artikel`,
+  `Ungelesen`, `Mit Stern`, `Heute` und `Ausgeblendet` routen ebenfalls über
+  `SQLiteFeedArticleListView` und `TimelineScope.smartFilter`. Das
+  SQLite-FTS-Fundament ist mit `article_search` und Triggern auf `articles`
+  angelegt; `ArticleStore.searchArticles` liefert Suchtreffer als leichte
+  `ArticleListSnapshot`s. Die sichtbare Suchleiste der
+  `SQLiteFeedArticleListView` nutzt den FTS-Index inzwischen über
+  `TimelineStore.articles(... searchText:)`, kombiniert Suchtext mit Feed-,
+  Tag- und SmartFilter-Scopes und normalisiert Sonderzeichen vor `MATCH`. Das
+  separate globale Suchfenster nutzt im SQLite-Hauptpfad ebenfalls
+  `ArticleStore.searchArticles(state:)`, kombiniert Suchtext, Suchbereich,
+  Feed-, Tag-, Datums- und Statusfilter SQL-seitig und hält keine globale
+  SwiftData-Artikel-Query mehr.
+  Benutzerdefinierte Smart Folders routen ihre Artikellisten und den Reader-Pfad
+  ebenfalls über SQLite. `SmartFolderSettingsView`, `SmartFolderEditorView` und
+  die Sidebar-Kontextaktionen verwalten die Ordnerdefinitionen inzwischen direkt
+  über `SQLiteSmartFolderStore`; Trefferzahlen und Editor-Preview zählen über
+  `TimelineStore.count(scope: .smartFolder(...))`.
+  Die zuvor offenen SQLite-Nebenpfade für Regeln, Offline, Retention, OPML-Import
+  und Einzelartikel-Export sind geschlossen: Regel-Preview/Zählungen und
+  rückwirkendes Anwenden laufen über `SQLiteRuleEvaluationStore`; Offline-
+  Inhalte liegen in `article_offline` und werden von Liste/Reader gelesen;
+  Artikel-Aufbewahrung löscht SQLite-Artikel und korrigiert Feed-Zähler; OPML-
+  Import spiegelt neue Feeds nach SQLite, OPML-Export bevorzugt SQLite-Feed-/
+  Feed-Tag-Snapshots; Export aus der SQLite-Liste nutzt `ArticleReaderSnapshot`,
+  Offline-Volltext und SQLite-Tag-Namen. Artikel-Menüaktionen und das separate
+  Artikelfenster laufen inzwischen ebenfalls über SQLite-Snapshots: `ContentView`
+  hält den aktuell geladenen `ArticleReaderSnapshot` für Shortcuts/Commands,
+  und `ArticleWindowView` nutzt `SQLiteReaderView` statt einer SwiftData-
+  `@Query<Article>`.
+- 2026-07-03: SQLite-Verwaltungsdefinitionen sind angelegt und werden beim
+  App-Start gespiegelt. Migration v6 ergänzt `feed_folders`, `rules`,
+  `rule_conditions`, `smart_folders` und `smart_folder_conditions`; die neuen
+  Stores `FeedFolderStore`, `SQLiteRuleStore` und `SQLiteSmartFolderStore`
+  liefern GRDB-CRUD sowie Snapshots für RuleEngine und Sidebar. Bestehende
+  SwiftData-Verwaltungsdaten werden über
+  `SQLiteAdminDefinitionBackfillService` nach SQLite kopiert. TagManager,
+  Sidebar-Feed-Ordner, Smart-Folder-Verwaltung sowie RuleSettings/RuleWizard
+  laufen inzwischen SQLite-first; SwiftData bleibt dafür nur noch
+  Übergangs-/Backfill-Quelle.
+- 2026-07-03: Feed-Verwaltung SQLite-first gemacht. Migration v7 ergänzt
+  Feed-Admin-Felder wie `originalTitle`, Benachrichtigungsflag und
+  Feed-spezifische Artikel-Aufbewahrung in `feeds`; `FeedStore` mutiert Rename,
+  Ordner, Refresh-Intervall, Benachrichtigungen, Retention und Delete direkt in
+  SQLite. `FeedRenameView`, `FeedPropertiesView` und die Feed-Verwaltung in den
+  Einstellungen lesen/schreiben über `FeedRecord`/`FeedStore`; Feed-Tags laufen
+  dort über `TagStore.feed_tags`, und der OPML-Export aus den Einstellungen nutzt
+  SQLite-`OPMLFeed`-Snapshots.
+- 2026-07-03: SQLite-Artikelspalte und SQLite-Reader wieder optisch näher an
+  den main-Branch angeglichen. `SQLiteFeedArticleListView` nutzt wieder
+  `List(selection:)`, die main-Suchleisten-Chroming sowie Mark-read-/Filter-/
+  Sortier-Toolbar-Menüs. `SQLiteReaderView` verwendet die Reader-Typografie-
+  Settings, den Anzeige-Picker, Textformat-Popover, Safari-/Export-/Inspector-
+  Toolbar-Signale und das native Reader-Layout, statt eine vereinfachte
+  Ersatzoberfläche zu zeigen.
 - Feature 17.3 Automatisches Löschen ist umgesetzt: globale Einstellung,
   Stern-/Archiv-Schutz mit Zusatzoption und pro-Feed-Überschreibung in den
   Feed-Eigenschaften.
@@ -2264,16 +2412,272 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Feature 11.2 Lesefortschritt ist zurückgestellt: Der erste SwiftUI/AppKit-
   Scrollbeobachter-Ansatz hat das Scrollgefühl im Reader verschlechtert und wurde
   wieder entfernt. Für v1 bleibt der Reader ohne Lesefortschritt.
-- Nächster sinnvoller Fokus: Implementierungsplan für die SQLite/GRDB-
-  Performance-Architektur ausführen. `FeedViewModel` nutzt `refreshFeed` jetzt den
-  zentralen `FeedBackgroundRefreshService` für den Einzel-Refresh-Pfad, sodass
-  dieser Pfad für einen SQLite-First-Umbau vorbereitet ist.
+- Nächster sinnvoller Fokus: vollständiger M4-Regressionstest. Danach kann
+  entschieden werden, ob die aktuell gespiegelten SwiftData-Verwaltungseditoren
+  für v1 als Übergangsschicht bleiben oder ob ihre Eingabeoberflächen ebenfalls
+  direkt auf die neuen SQLite-Stores umgestellt werden.
 - Feature-Roadmap ist in `FEATURES.md` im Root dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
 ---
 
 ## Letzte Änderungen
+
+- 2026-07-03: Feed hinzufügen, OPML-Import und First-Run-Wizard sind
+  SQLite-first mit temporärer SwiftData-Feed-Bridge. `SQLiteFeedSubscriptionService`
+  speichert neue Feeds und neue Artikel aus Add-/Import-Flows in SQLite und legt
+  in SwiftData nur eine minimale Feed-Übergangsidentität für Sidebar/ContentView
+  an. Doppelte OPML-Feed-URLs werden bewusst über die Service-Logik gesteuert;
+  `feeds.url` ist in SQLite nicht mehr unique.
+
+- 2026-07-03: Artikel-Datenbank-Fassade ergänzt. `ArticleDatabase` bündelt
+  `FeedStore`, `TimelineStore`, `ArticleStore` und `ArticleStatusStore` für den
+  produktiven SQLite-Artikelpfad. `SQLiteFeedArticleListState` und
+  `SQLiteReaderState` sprechen dadurch nicht mehr direkt mehrere Artikel-Stores
+  an, sondern laden Timelines, Reader-Snapshots und Statusänderungen über eine
+  gemeinsame Fassade. Die Fassade wurde außerdem um allgemeine Fetch-Methoden
+  für einzelne Feeds, Feed-Sets, Artikel-IDs, ungelesene/heutige/markierte
+  Artikel, Suche und aggregierte `ArticleCounts` erweitert.
+
+- 2026-07-03: SQLite-Timeline-Loads NetNewsWire-artiger abgesichert.
+  `SQLiteFeedArticleListState` startet Feed-/Tag-/SmartFilter-/SmartFolder-
+  Timelines über eine explizite Queue/Operation-Schicht nach NetNewsWire-Vorbild.
+  Beim schnellen Scope- oder Suchwechsel werden laufende und wartende Loads
+  gecancelt; solange der aktuelle Load noch ausläuft, bleibt nur der neueste
+  Pending-Request erhalten. Neue Tests decken späte alte Feed-Ergebnisse, späte
+  alte Suchergebnisse, abgebrochene Loads und das latest-wins-Pending-Verhalten
+  ab.
+
+- 2026-07-03: SQLite-Verwaltungstabellen und Stores ergänzt. Migration v6 legt
+  `feed_folders`, `rules`, `rule_conditions`, `smart_folders` und
+  `smart_folder_conditions` samt Sortier-/Default-Key-Indizes und Foreign-Key-
+  Cascades an. `FeedFolderStore`, `SQLiteRuleStore` und
+  `SQLiteSmartFolderStore` speichern Verwaltungsdefinitionen in GRDB und liefern
+  Snapshots für RuleEngine/Sidebar. `SQLiteAdminDefinitionBackfillService`
+  spiegelt vorhandene SwiftData-Verwaltungsdaten beim App-Start nach SQLite.
+
+- 2026-07-03: Sichtbaren Artikelfenster-/Command-Legacy-Pfad auf SQLite
+  umgestellt. `SQLiteReaderView` meldet den geladenen `ArticleReaderSnapshot`
+  an die umgebende Command-Ebene. `ContentView` nutzt diesen Snapshot für
+  Artikel-Menüaktionen, Shortcuts, Link-/Share-Aktionen, Export und
+  Artikelfenster-Öffnen, statt dafür ein SwiftData-`Article` zu benötigen.
+  `ArticleWindowView` lädt separate Fenster über `SQLiteReaderView`, berechnet
+  Vor-/Zurück-Navigation aus `TimelineStore(.all)` und bietet dieselben
+  `ArticleCommandActions` direkt aus SQLite an.
+
+- 2026-07-03: SQLite-Migrationsabschluss für die offenen Nebenpfade umgesetzt.
+  `SQLiteRuleEvaluationStore` ersetzt SwiftData-Artikelmaterialisierung in
+  Regel-Preview, Regel-Zählungen und rückwirkendem Anwenden. Offline-Kopien
+  werden in `article_offline` gespeichert; `SQLiteOfflineDownloadService`,
+  `ArticleReaderSnapshot`, `ArticleListSnapshot`, `SQLiteReaderView` und
+  `SQLiteFeedArticleListView` lesen/schreiben den Status direkt über GRDB.
+  `ArticleRetentionCleanupService` bereinigt neben SwiftData nun auch SQLite-
+  Artikel inklusive Statuszeilen und Feed-Zähler-Recount. Vor dem Löschen
+  sichert der Service die stabile Artikelidentität und den letzten Status in
+  `article_identity_history`; `ArticleStore` kann diesen Status beim späteren
+  Wiederauftauchen über Quellen-ID, Link oder Titel-Hash wiederherstellen.
+  Migration v10 ergänzt `feeds.articleRetentionMinimumArticles`; globale und
+  Feed-eigene Aufbewahrung können dadurch NetNewsWire-artig die neuesten Artikel
+  pro Feed schützen, damit selten aktualisierte Feeds nicht vollständig leer
+  bereinigt werden.
+  OPML-Import gibt die
+  `FeedivoDatabase` an `FeedViewModel.importOPMLFeeds` weiter und spiegelt neue
+  Feeds nach SQLite. OPML-Export liest Feed-/Feed-Tag-Snapshots über
+  `FeedStore.opmlFeedsForExport` und ergänzt nur Feed-Beschreibungen aus
+  SwiftData. Der Einzelartikel-Export aus der SQLite-Liste baut seine
+  `ArticleExportSnapshot`s aus `ArticleReaderSnapshot` plus Tag-Namen aus
+  `article_tags`/`feed_tags`.
+
+- 2026-07-03: Smart-Folder-Verwaltung SQLite-first gemacht.
+  `SmartFolderSettingsView` lädt `SmartFolderRecord`s und Conditions über
+  `SQLiteSmartFolderStore`, schaltet Sidebar-Sichtbarkeit per GRDB, dupliziert,
+  löscht, sortiert und stellt Defaults in SQLite wieder her. Der
+  `SmartFolderEditorView` speichert Create/Update direkt nach SQLite; Preview
+  und Settings-Trefferzahlen zählen weiter über `TimelineStore.count` mit
+  derselben Smart-Folder-SQL-Logik wie die Artikelliste.
+
+- 2026-07-03: RuleSettings/RuleWizard SQLite-first gemacht.
+  `RuleSettingsView` lädt `RuleRecord`s, Conditions und Tag-Zielsnapshots über
+  `SQLiteRuleStore`/`TagStore`, schaltet Regeln per GRDB ein/aus, dupliziert,
+  löscht und sortiert sie in SQLite. `RuleWizardView` erstellt und aktualisiert
+  Regeln direkt über `SQLiteRuleStore`, nutzt `TagRecord`s für den Ziel-Tag-
+  Picker und legt neue Tags per `TagStore` an. Rückwirkendes Anwenden nutzt
+  `SQLiteRuleStore.ruleSnapshots()` statt SwiftData-Regelobjekte.
+
+- 2026-07-03: Feed-Eigenschaften-Metriken auf SQLite umgestellt.
+  `ArticleStore.feedPropertiesMetrics` liefert neuesten Artikel und Anzahl der
+  veröffentlichten Artikel der letzten 7 Tage als leichten
+  `FeedPropertiesArticleMetricsSnapshot`. `FeedPropertiesView` und die
+  Feed-Verwaltungszeilen in den Einstellungen nutzen diese GRDB-Metriken statt
+  SwiftData-`FeedPropertiesQuery` auf Artikeln.
+
+- 2026-07-03: Benutzerdefinierte Smart Folders auf SQLite-Timelines umgestellt.
+  `SQLiteSmartFolderSnapshot` übersetzt die bestehenden SwiftData-Ordner und
+  Bedingungen in sendbare Snapshots; `TimelineScope.smartFolder` baut daraus SQL
+  für Tag, Feed, Feed-Ordner, Datum, Status, Titel, Text und Autor. Text-
+  Contains nutzt den vorhandenen FTS-Index, und `ContentView` routet ausgewählte
+  Smart Folders jetzt über `SQLiteFeedArticleListView` und `SQLiteReaderView`.
+  Die Smart-Folder-Verwaltung wurde im Folgeslice ebenfalls auf
+  `SQLiteSmartFolderStore` umgestellt.
+
+- 2026-07-03: Separates Suchfenster auf SQLite/FTS umgestellt.
+  `ArticleStore.searchArticles(state:)` übersetzt Suchtext, Suchbereich, Feed-,
+  Tag-, Datums- und Statusfilter in eine kombinierte SQL-Abfrage und liefert
+  `ArticleListSnapshot`s. `ArticleSearchWindowView` hält keine `@Query` auf alle
+  SwiftData-Artikel mehr; nur Feed- und Tag-Picker bleiben als leichte
+  SwiftData-Listen erhalten.
+
+- 2026-07-03: Sichtbare SQLite-Artikellisten-Suche angeschlossen.
+  `TimelineStore.articles(... searchText:)` kombiniert FTS5-Suche mit Feed-,
+  Tag- und SmartFilter-Scopes, normalisiert Suchtext vor `MATCH` und vermeidet
+  damit rohe FTS-Syntaxfehler bei Sonderzeichen. `SQLiteFeedArticleListState`
+  und `SQLiteFeedArticleListView` reichen den debounced Suchtext weiter, sodass
+  die normale Suchleiste leichte `ArticleListSnapshot`s direkt aus SQLite lädt.
+  Das separate globale Suchfenster bleibt ein Folgeslice.
+
+- 2026-07-03: SQLite-FTS-Fundament ergänzt. Migration v4 legt die FTS5-Tabelle
+  `article_search` mit Unicode-Tokenizer sowie die Trigger `articles_ai`,
+  `articles_au` und `articles_ad` an. `ArticleStore.searchArticles` sucht über
+  Titel, Zusammenfassung, Inhalt und Autor und liefert `ArticleListSnapshot`s;
+  die Such-UI wird in einem Folgeslice angeschlossen.
+
+- 2026-07-02: Vordefinierte SmartFilter auf SQLite-Timelines umgestellt.
+  `TimelineScope.smartFilter` lädt `Alle Artikel`, `Ungelesen`, `Mit Stern`,
+  `Heute` und `Ausgeblendet` per SQL aus `articles` und `article_statuses`.
+  `ContentView` routet diese Auswahl jetzt auf `SQLiteFeedArticleListView` und
+  `SQLiteReaderView`, statt `ArticleListView(smartFilter:)` mit SwiftData zu
+  verwenden.
+
+- 2026-07-02: Feed-Eigenschaften-Logs auf SQLite umgestellt.
+  `FeedPropertiesView` lädt die sichtbaren letzten 20 Logeinträge und die
+  Log-Anzahl über `FeedLogStore` aus `feed_logs`, statt dafür
+  `FeedPropertiesQuery.latestLogEntries` über SwiftData zu verwenden.
+
+- 2026-07-02: Feed-Tags in SQLite ergänzt. Migration v3 legt `feed_tags` mit
+  Kaskaden und Index an, `TagStore` kann Tags idempotent Feeds zuweisen und
+  entfernen, `TimelineScope.tag` und `TagStore.sidebarTags()` zählen direkte
+  Artikel-Tags und Feed-Tags ohne Duplikate, `FeedPropertiesView` spiegelt
+  Feed-Tag-Änderungen nach SQLite, und `FeedTagBackfillService` zieht
+  bestehende SwiftData-Feed-Tags beim App-Start nach SQLite nach.
+
+- 2026-07-02: TagManager-Mutationen nach SQLite gespiegelt. `TagViewModel`
+  akzeptiert optional die `FeedivoDatabase` und schreibt Create/Rename/
+  Farbänderung per `TagStore.save`; Delete ruft `TagStore.deleteTag` auf, wodurch
+  `article_tags` und `feed_tags` per Kaskade bereinigt werden. `TagManagerView`
+  reicht die Datenbank aus der Environment weiter.
+
+- 2026-07-02: Sidebar-Smart-Folder-Badges auf SQLite-Snapshots umgestellt.
+  `ArticleStatusStore.sidebarSmartFolderBadgeSnapshot()` liefert `unread`,
+  `starred`, `hidden` und `saved`; `SQLiteSidebarState` lädt den Snapshot
+  gemeinsam mit Feed- und Tag-Snapshots, und `SidebarView` braucht dafür keine
+  SwiftData-Artikel-Query mehr.
+
+- 2026-07-02: Sidebar-Tag-Listenquelle auf SQLite-Snapshots umgestellt.
+  `SidebarView` rendert Tags direkt aus `SQLiteSidebarState.tagSnapshots`,
+  `SidebarSelection.tag` speichert die SQLite-Tag-ID, und `ContentView` öffnet
+  `SQLiteFeedArticleListView(tagID:)` ohne SwiftData-`Tag`-Query im Root.
+
+- 2026-07-02: Direkte Tag-Filter auf SQLite umgestellt. `TimelineScope.tag`
+  filtert Artikel über `article_tags`, `SQLiteFeedArticleListState` kann neben
+  Feed-URLs auch Tag-IDs laden, und `ContentView` nutzt bei Tag-Auswahl den
+  SQLite-Listen-/Reader-Pfad. Feed-Tags wurden im folgenden Slice ergänzt.
+
+- 2026-07-02: Sidebar-Tag-Badges an SQLite-Snapshots angeschlossen.
+  `TagStore.sidebarTags()` liefert `TagSidebarSnapshot`s mit direkten
+  Artikel-Zählern aus `article_tags`, `SQLiteSidebarState` lädt diese Snapshots
+  zusammen mit Feed-Snapshots, und `SidebarView` zeigt Tag-Badges daraus statt
+  über SwiftData-`fetchCount`. Feed-Tags wurden im folgenden Slice ergänzt.
+
+- 2026-07-02: SQLite-Tag-Fundament und `assignTag` im SQLite-first Refresh
+  umgesetzt. Migration v2 legt `tags` und `article_tags` mit passenden Indizes
+  und Foreign-Key-Kaskaden an, `TagStore` speichert Tags und idempotente
+  Artikel-Tag-Zuordnungen, und `SQLiteFeedRefreshService` schreibt
+  `assignTag`-Regeltreffer direkt nach SQLite. Die UI-Anbindung wurde danach in
+  separaten Tag-Slices nachgezogen.
+
+- 2026-07-02: SQLite-first Sammelrefresh wendet erste Regeln ohne SwiftData-
+  Artikelobjekte an. `RuleEngine` erzeugt sendbare `RuleSnapshot`s und leichte
+  `ArticleRuleSnapshot`s; `SQLiteFeedRefreshService` prüft neue Artikel gegen
+  diese Snapshots, setzt `hideArticle` direkt in `article_statuses` und gibt
+  `notify`-Treffer als `RuleNotificationResult` zurück. `assignTag` wurde im
+  Folgeslice über die SQLite-Tag-Tabellen ergänzt.
+
+- 2026-07-02: Feed-Refresh-Benachrichtigungen im SQLite-first Sammelrefresh
+  wieder aktiviert. `FeedRefreshSnapshot` trägt den leichten
+  `isNotificationEnabled`-Wert, `SQLiteFeedRefreshResult` liefert den
+  aktualisierten Feed-Titel zurück und `refreshAllFeeds(..., sqliteDatabase:)`
+  ruft wieder `notifyFeedRefresh` mit den SQLite-Ergebnissen auf. Das vermeidet
+  SwiftData-Artikelobjekte im schnellen Pfad; Regel-Benachrichtigungen bleiben
+  ein eigener SQLite-Regel-Slice.
+
+- 2026-07-02: Sammel-Refresh mit SQLite-Datenbank auf SQLite-first umgestellt.
+  `refreshAllFeeds(..., modelContainer:, sqliteDatabase:)` nutzt bei vorhandener
+  `FeedivoDatabase` direkt `SQLiteFeedRefreshService`, aktualisiert sichtbare
+  Refresh-Items/Fortschritt aus den SQLite-Ergebnissen und ruft Feeds nicht mehr
+  zuerst über den SwiftData-Background-Pfad und danach erneut fürs
+  SQLite-Mirroring ab. Ohne SQLite-Datenbank bleibt der bisherige SwiftData-
+  Background-Pfad als Fallback erhalten.
+
+- 2026-07-02: SQLite-Statusmutationen invalidieren Sidebar-Snapshots.
+  `ArticleStatusStore` aktualisiert nach Read-/Hidden-Änderungen den betroffenen
+  `feeds.unreadCount` per SQL-Neuberechnung und bump't
+  `SQLiteDataInvalidation.statusVersionKey`. `SidebarView` nimmt diesen Key in
+  den Reload-Token für `SQLiteSidebarState` auf, sodass Feed-Badges nach
+  SQLite-Read/Unread-Toggles ohne SwiftData-Zähler aktuell werden.
+
+- 2026-07-02: Sidebar-Feed-Zeilen an SQLite-Snapshots angeschlossen.
+  `SQLiteSidebarState` lädt `FeedSidebarSnapshot` aus `FeedStore`, kann gelesene
+  Feeds direkt anhand von SQLite-`unreadCount` ausblenden und stellt Snapshots pro
+  SwiftData-Feed-ID bereit. `FeedRowView` bevorzugt daraus Titel, Favicon und
+  ungelesene Badge-Zahl; Auswahl, Umbenennen, Eigenschaften und Löschen bleiben
+  für diesen Übergangsslice weiterhin an SwiftData-Feed-Objekte gekoppelt.
+
+- 2026-07-02: Feed-Aktionen an den SQLite-Pfad angeschlossen. `AddFeedSheet`,
+  ausgewählter Feed-Refresh und `Alle Feeds aktualisieren` lesen die
+  `FeedivoDatabase` aus der SwiftUI-Environment und übergeben sie an
+  `FeedViewModel`. `addFeed` und `refreshFeed` spiegeln Feed- und
+  Artikelsnapshots nach SQLite; der ModelContainer-Sammelrefresh nutzt zusätzlich
+  `SQLiteFeedRefreshService`, damit die neue `SQLiteFeedArticleListView` nach
+  normalen App-Aktionen echte Daten anzeigen kann.
+
+- 2026-07-02: Normaler Feed-Lese-Pfad auf SQLite-Snapshots umgestellt.
+  `FeedivoApp` öffnet die GRDB-Datenbank aus Application Support und injiziert sie
+  per Environment. `ContentView` hält eine separate `selectedSQLiteArticleID`,
+  nutzt bei normaler Feed-Auswahl `SQLiteFeedArticleListView` und zeigt rechts
+  `SQLiteReaderView`. Liste und Reader laden `ArticleListSnapshot` bzw.
+  `ArticleReaderSnapshot`, Navigation läuft über String-IDs, Statusaktionen
+  schreiben direkt nach `article_statuses`. Smart Folders, Tags, globale Filter,
+  Regeln, Export und Offline-Download bleiben vorerst auf den bestehenden
+  SwiftData-/Legacy-Pfaden.
+
+- 2026-07-02: Nächster UI-Slice freigegeben: Feed-Pfad als Kombination aus
+  Option A und Option 2. Für normale Feed-Auswahl sollen Artikelliste, Auswahl,
+  Reader und Statusaktionen über SQLite laufen. Smart Folders, Tags, globale
+  Filter, Regeln, Export und Offline-Download bleiben vorerst auf SwiftData bzw.
+  Legacy-Pfaden. Die Spec liegt unter
+  `docs/superpowers/specs/2026-07-02-sqlite-feed-reader-path-design.md`.
+
+- 2026-07-02: SQLite-Refresh-Kern nach NetNewsWire-Mechanik umgesetzt.
+  `SQLiteFeedRefreshService` lädt Feeds über einen injizierbaren Fetcher,
+  schreibt geparste Artikel per Batch-Upsert in SQLite, hält Artikelstatus in
+  `article_statuses` getrennt, aktualisiert `feeds.unreadCount`, HTTP-
+  Validatoren und `feed_logs`. Neue Store-Methoden für Feed-URL-Lookup,
+  Refresh-Metadaten, ungelesene Counts und Feed-Logs sind testgedeckt. Der
+  bestehende SwiftData-App-Pfad bleibt sichtbar noch unverändert; die UI-
+  Snapshot-Anbindung ist der nächste Slice.
+
+- 2026-07-02: Erster SQLite/GRDB-Fundament-Slice umgesetzt. Feedivo hat nun eine
+  separate GRDB-basierte SQLite-Schicht mit v1-Migrationen, Record-Typen,
+  testbaren Stores für Feeds, Artikel, Artikelstatus und Timeline-Snapshots
+  sowie In-Memory-Tests. Der bestehende SwiftData-App-Pfad bleibt unverändert;
+  UI- und Refresh-Umbau folgen in späteren Slices.
+
+- 2026-07-02: Nächster SQLite-Slice fachlich festgelegt: Feedivo soll möglichst
+  nah an NetNewsWires Mechanik bleiben. Der nächste Schritt ist ein SQLite-first
+  Refresh- und Snapshot-Kern: FeedService parst, ein neuer Refresh-Service
+  schreibt Artikel und Status in SQLite, aktualisiert Feed-Zähler und Logs und
+  liefert Snapshot-fähige Ergebnisse. Die Spec liegt unter
+  `docs/superpowers/specs/2026-07-02-sqlite-refresh-snapshot-integration-design.md`.
 
 - 2026-07-02: Architekturentscheidung für SQLite-only mit GRDB dokumentiert.
   Feedivo übernimmt für den Performance-kritischen Hauptpfad grundsätzlich die
@@ -2306,12 +2710,6 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   `ArticleCommandActions` nutzt zusätzlich einen günstigen `http/https`-
   String-Check; echte `URL`-Objekte werden erst beim Ausführen von Kopieren,
   Öffnen oder Teilen erzeugt.
-
-- 2026-07-03: `FeedViewModel.refreshFeed` delegiert den Einzel-Feed-Refresh an
-  `FeedBackgroundRefreshService.refreshFeed`. Der Refresh-Stack wird dadurch für
-  den produktiven Feed-Pfad bereits auf einen zentralen Service verschoben,
-  während der bestehende `Article`-Persistenzpfad noch als Übergangs-Stand
-  erhalten bleibt.
 
 - 2026-07-02: CPU-Last beim Lesen reduziert. Der Reader-Prefetch in
   `ArticleListView` faultet keine schweren Artikeltexte (`Article.content`,

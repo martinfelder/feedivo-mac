@@ -547,6 +547,39 @@ struct ArticleExportServiceTests {
         #expect(ArticleExportService.defaultFilename(for: snapshot, format: .docx) == "Swift-RSS- Was ist neu.docx")
     }
 
+    @Test func sqliteExportSnapshotNutztOfflineVolltextUndTags() {
+        let snapshot = ArticleExportSnapshot(
+            sqliteSnapshot: ArticleReaderSnapshot(
+                id: "article-1",
+                feedID: "feed-1",
+                feedTitle: "SQLite Feed",
+                title: "SQLite Artikel",
+                link: "https://example.com/article",
+                summary: "Kurzfassung",
+                content: "<p>Feed-Inhalt</p>",
+                imageURL: nil,
+                author: "Autorin",
+                publishedAt: Date(timeIntervalSince1970: 1_000),
+                arrivedAt: Date(timeIntervalSince1970: 1_100),
+                estimatedReadingMinutes: nil,
+                isRead: false,
+                isStarred: false,
+                isArchived: false,
+                isHidden: false,
+                offlineStateRaw: ArticleOfflineState.fullText.rawValue,
+                offlineContent: "<article>Offline-Volltext</article>"
+            ),
+            tagNames: ["Swift", "RSS"]
+        )
+
+        let markdown = ArticleExportService.markdown(for: snapshot)
+
+        #expect(markdown.contains("Offline-Volltext"))
+        #expect(!markdown.contains("Feed-Inhalt"))
+        #expect(markdown.contains("SQLite Feed"))
+        #expect(markdown.contains("RSS, Swift"))
+    }
+
     @Test func exportDialogBietetVorerstNurMarkdownTextUndHTMLAn() {
         #expect(ArticleExportFormat.dialogFormats == [.markdown, .plainText, .html])
         #expect(!ArticleExportFormat.dialogFormats.contains(.pdf))

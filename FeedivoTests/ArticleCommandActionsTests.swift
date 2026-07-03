@@ -49,7 +49,11 @@ struct ArticleCommandActionsTests {
         var didShare = false
         var didRequestExport = false
         let actions = ArticleCommandActions(
-            selectedArticle: Article(title: "Original", link: "https://example.com/article"),
+            canPerformActions: true,
+            canPerformLinkActions: true,
+            toggleReadTitle: L10n.articleRowMarkRead,
+            toggleStarredTitle: L10n.articleRowStarAdd,
+            toggleArchivedTitle: L10n.articleArchiveCommand,
             toggleRead: {},
             toggleStarred: {},
             copyLink: {
@@ -79,7 +83,11 @@ struct ArticleCommandActionsTests {
 
     @Test func archivAktionNutztPassendenTitel() {
         let archivedActions = ArticleCommandActions(
-            selectedArticle: Article(title: "Archiv", isArchived: true),
+            canPerformActions: true,
+            canPerformLinkActions: false,
+            toggleReadTitle: L10n.articleRowMarkRead,
+            toggleStarredTitle: L10n.articleRowStarAdd,
+            toggleArchivedTitle: L10n.articleUnarchiveCommand,
             toggleRead: {},
             toggleStarred: {},
             toggleArchived: {},
@@ -87,7 +95,11 @@ struct ArticleCommandActionsTests {
             openOriginal: {}
         )
         let unarchivedActions = ArticleCommandActions(
-            selectedArticle: Article(title: "Artikel", isArchived: false),
+            canPerformActions: true,
+            canPerformLinkActions: false,
+            toggleReadTitle: L10n.articleRowMarkRead,
+            toggleStarredTitle: L10n.articleRowStarAdd,
+            toggleArchivedTitle: L10n.articleArchiveCommand,
             toggleRead: {},
             toggleStarred: {},
             toggleArchived: {},

@@ -1,25 +1,19 @@
-import SwiftData
 import SwiftUI
 import UniformTypeIdentifiers
 
 struct RuleSettingsView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query(sort: \Rule.sortOrder) private var rules: [Rule]
-    @Query private var articles: [Article]
+    @Environment(\.feedivoDatabase) private var feedivoDatabase
 
-    @State private var viewModel = RuleViewModel()
-    @State private var ruleEditing: Rule?
+    @State private var rules: [RuleRecord] = []
+    @State private var conditionsByRuleID: [String: [RuleConditionRecord]] = [:]
+    @State private var tagsByID: [String: TagRecord] = [:]
+    @State private var ruleEditing: RuleRecord?
     @State private var isCreatingRule = false
-    @State private var rulePendingDeletion: Rule?
+    @State private var rulePendingDeletion: RuleRecord?
     @State private var appliedExistingRuleActionCount: Int?
-    @State private var draggedRuleID: UUID?
-
-    init() {
-        // Artikel ohne die großen content/offlineContent-Blobs laden — beim
-        // Treffer-Zählen und Anwenden der Regeln wird nur title/summary/feed-Titel
-        // sowie tags/isHidden gebraucht, nie der Volltext (P1).
-        _articles = Query(Article.lightFetchDescriptor())
-    }
+    @State private var draggedRuleID: String?
+    @State private var matchingCounts: [String: Int] = [:]
+    @State private var reloadVersion = 0
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -38,11 +32,11 @@ struct RuleSettingsView: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .sheet(isPresented: $isCreatingRule) {
-            RuleWizardView()
+        .sheet(isPresented: $isCreatingRule, onDismiss: refreshRules) {
+            RuleWizardView(existingRules: rules)
         }
-        .sheet(item: $ruleEditing) { rule in
-            RuleWizardView(rule: rule)
+        .sheet(item: $ruleEditing, onDismiss: refreshRules) { rule in
+            RuleWizardView(rule: rule, existingRules: rules)
         }
         .confirmationDialog(
             L10n.ruleDeleteButton,
@@ -57,13 +51,19 @@ struct RuleSettingsView: View {
             presenting: rulePendingDeletion
         ) { rule in
             Button(L10n.ruleDeleteButton, role: .destructive) {
-                viewModel.deleteRule(rule, context: modelContext)
+                delete(rule)
                 rulePendingDeletion = nil
             }
 
             Button(L10n.commonCancel, role: .cancel) {
                 rulePendingDeletion = nil
             }
+        }
+        .task(id: reloadVersion) {
+            loadRules()
+        }
+        .task(id: matchingCountsReloadToken) {
+            await reloadMatchingCounts()
         }
     }
 
@@ -97,11 +97,7 @@ struct RuleSettingsView: View {
     }
 
     private var ruleList: some View {
-        // Treffer pro Regel einmal pro Render berechnen (Map), statt pro Zeile
-        // jeweils über alle Artikel zu iterieren (P2: N × O(articles) im ForEach).
-        let matchingCounts = RuleSettingsFormatter.matchingCounts(for: orderedRules, articles: articles)
-
-        return VStack(spacing: 0) {
+        VStack(spacing: 0) {
             RuleSettingsListHeader()
 
             ForEach(Array(orderedRules.enumerated()), id: \.element.id) { index, rule in
@@ -111,6 +107,11 @@ struct RuleSettingsView: View {
                     isDragged: draggedRuleID == rule.id,
                     isFirst: index == 0,
                     isLast: index == orderedRules.count - 1,
+                    conditions: conditionsByRuleID[rule.id] ?? [],
+                    assignTag: rule.assignTagID.flatMap { tagsByID[$0] },
+                    toggleEnabled: { isEnabled in
+                        updateEnabled(rule, isEnabled: isEnabled)
+                    },
                     moveUp: { move(rule, direction: .up) },
                     moveDown: { move(rule, direction: .down) },
                     edit: { ruleEditing = rule },
@@ -119,7 +120,7 @@ struct RuleSettingsView: View {
                 )
                 .onDrag {
                     draggedRuleID = rule.id
-                    return NSItemProvider(object: rule.id.uuidString as NSString)
+                    return NSItemProvider(object: rule.id as NSString)
                 } preview: {
                     RuleDragPreview(rule: rule)
                 }
@@ -129,8 +130,7 @@ struct RuleSettingsView: View {
                         targetRule: rule,
                         orderedRules: orderedRules,
                         draggedRuleID: $draggedRuleID,
-                        viewModel: viewModel,
-                        modelContext: modelContext
+                        move: moveRule
                     )
                 )
 
@@ -146,40 +146,161 @@ struct RuleSettingsView: View {
         }
     }
 
-    private var orderedRules: [Rule] {
-        RuleViewModel.sortedRules(rules)
+    private var orderedRules: [RuleRecord] {
+        rules.sorted { firstRule, secondRule in
+            if firstRule.sortOrder != secondRule.sortOrder {
+                return firstRule.sortOrder < secondRule.sortOrder
+            }
+
+            return firstRule.name.localizedCaseInsensitiveCompare(secondRule.name) == .orderedAscending
+        }
     }
 
     private var canApplyRulesToExistingArticles: Bool {
-        !articles.isEmpty && rules.contains { rule in
-            rule.isEnabled
-        }
+        feedivoDatabase != nil && rules.contains { $0.isEnabled }
     }
 
     private func applyRulesToExistingArticles() {
-        let appliedActionCount = RuleEngine.applyRulesToExistingArticles(orderedRules, articles: articles)
-        appliedExistingRuleActionCount = appliedActionCount
+        guard let database = feedivoDatabase else {
+            appliedExistingRuleActionCount = 0
+            return
+        }
 
-        if appliedActionCount > 0 {
-            try? modelContext.save()
+        do {
+            let snapshots = try SQLiteRuleStore(database: database).ruleSnapshots()
+            let appliedActionCount = try SQLiteRuleEvaluationStore(database: database)
+                .applyRulesToExistingArticles(snapshots)
+            appliedExistingRuleActionCount = appliedActionCount
+        } catch {
+            appliedExistingRuleActionCount = 0
         }
     }
 
-    private func move(_ rule: Rule, direction: RuleMoveDirection) {
-        viewModel.moveRule(rule, direction: direction, existingRules: orderedRules, context: modelContext)
+    private var matchingCountsReloadToken: String {
+        orderedRules
+            .map { rule in
+                let conditionToken = (conditionsByRuleID[rule.id] ?? [])
+                    .sorted { $0.sortOrder < $1.sortOrder }
+                    .map { "\($0.field):\($0.conditionOperator):\($0.value):\($0.sortOrder)" }
+                    .joined(separator: ",")
+                return "\(rule.id):\(rule.isEnabled):\(rule.matchMode):\(rule.action):\(rule.sortOrder):\(conditionToken)"
+            }
+            .joined(separator: "|")
     }
 
-    private func duplicate(_ rule: Rule) {
-        viewModel.duplicateRule(rule, existingRules: orderedRules, context: modelContext)
+    private func loadRules() {
+        guard let database = feedivoDatabase else {
+            rules = []
+            conditionsByRuleID = [:]
+            tagsByID = [:]
+            return
+        }
+
+        let ruleStore = SQLiteRuleStore(database: database)
+        let loadedRules = (try? ruleStore.rules()) ?? []
+        var loadedConditions: [String: [RuleConditionRecord]] = [:]
+        for rule in loadedRules {
+            loadedConditions[rule.id] = (try? ruleStore.conditions(ruleID: rule.id)) ?? []
+        }
+
+        let tags = (try? TagStore(database: database).tags()) ?? []
+        rules = loadedRules
+        conditionsByRuleID = loadedConditions
+        tagsByID = Dictionary(uniqueKeysWithValues: tags.map { ($0.id, $0) })
+    }
+
+    private func refreshRules() {
+        reloadVersion += 1
+    }
+
+    private func reloadMatchingCounts() async {
+        guard let database = feedivoDatabase else {
+            matchingCounts = [:]
+            return
+        }
+
+        let store = SQLiteRuleEvaluationStore(database: database)
+        var counts: [String: Int] = [:]
+
+        for rule in orderedRules {
+            let drafts = RuleSettingsFormatter.conditionDrafts(
+                for: conditionsByRuleID[rule.id] ?? []
+            )
+
+            counts[rule.id] = (try? store.matchingArticleCount(
+                conditionDrafts: drafts,
+                matchMode: RuleMatchMode.normalized(rule.matchMode)
+            )) ?? 0
+        }
+
+        matchingCounts = counts
+    }
+
+    private func move(_ rule: RuleRecord, direction: RuleMoveDirection) {
+        guard let index = orderedRules.firstIndex(where: { $0.id == rule.id }) else {
+            return
+        }
+
+        let targetIndex: Int
+        switch direction {
+        case .up:
+            targetIndex = index - 1
+        case .down:
+            targetIndex = index + 1
+        }
+
+        guard orderedRules.indices.contains(targetIndex) else {
+            return
+        }
+
+        moveRule(rule.id, orderedRules[targetIndex].id)
+    }
+
+    private func duplicate(_ rule: RuleRecord) {
+        guard let database = feedivoDatabase else {
+            return
+        }
+
+        _ = try? SQLiteRuleStore(database: database).duplicate(
+            id: rule.id,
+            copyName: "\(rule.name) Kopie"
+        )
+        refreshRules()
+    }
+
+    private func delete(_ rule: RuleRecord) {
+        guard let database = feedivoDatabase else {
+            return
+        }
+
+        try? SQLiteRuleStore(database: database).delete(id: rule.id)
+        refreshRules()
+    }
+
+    private func updateEnabled(_ rule: RuleRecord, isEnabled: Bool) {
+        guard let database = feedivoDatabase else {
+            return
+        }
+
+        try? SQLiteRuleStore(database: database).updateEnabled(id: rule.id, isEnabled: isEnabled)
+        refreshRules()
+    }
+
+    private func moveRule(_ sourceID: String, _ targetID: String) {
+        guard let database = feedivoDatabase else {
+            return
+        }
+
+        try? SQLiteRuleStore(database: database).move(id: sourceID, toPositionOf: targetID)
+        refreshRules()
     }
 }
 
 private struct RuleRowDropDelegate: DropDelegate {
-    let targetRule: Rule
-    let orderedRules: [Rule]
-    @Binding var draggedRuleID: UUID?
-    let viewModel: RuleViewModel
-    let modelContext: ModelContext
+    let targetRule: RuleRecord
+    let orderedRules: [RuleRecord]
+    @Binding var draggedRuleID: String?
+    let move: (String, String) -> Void
 
     func validateDrop(info: DropInfo) -> Bool {
         draggedRuleID != nil
@@ -188,18 +309,13 @@ private struct RuleRowDropDelegate: DropDelegate {
     func dropEntered(info: DropInfo) {
         guard let draggedRuleID,
               draggedRuleID != targetRule.id,
-              let sourceRule = orderedRules.first(where: { $0.id == draggedRuleID })
+              orderedRules.contains(where: { $0.id == draggedRuleID })
         else {
             return
         }
 
         withAnimation(.easeInOut(duration: 0.16)) {
-            viewModel.moveRule(
-                sourceRule,
-                toPositionOf: targetRule,
-                existingRules: orderedRules,
-                context: modelContext
-            )
+            move(draggedRuleID, targetRule.id)
         }
     }
 
@@ -240,13 +356,14 @@ private struct RuleSettingsListHeader: View {
 }
 
 private struct RuleSettingsRow: View {
-    @Environment(\.modelContext) private var modelContext
-
-    let rule: Rule
+    let rule: RuleRecord
     let matchingArticleCount: Int
     let isDragged: Bool
     let isFirst: Bool
     let isLast: Bool
+    let conditions: [RuleConditionRecord]
+    let assignTag: TagRecord?
+    let toggleEnabled: (Bool) -> Void
     let moveUp: () -> Void
     let moveDown: () -> Void
     let edit: () -> Void
@@ -260,8 +377,7 @@ private struct RuleSettingsRow: View {
             Toggle(L10n.ruleEnabled, isOn: Binding(
                 get: { rule.isEnabled },
                 set: { isEnabled in
-                    rule.isEnabled = isEnabled
-                    try? modelContext.save()
+                    toggleEnabled(isEnabled)
                 }
             ))
             .labelsHidden()
@@ -272,14 +388,14 @@ private struct RuleSettingsRow: View {
                     .font(.body.weight(.semibold))
                     .lineLimit(1)
 
-                Text(RuleSettingsFormatter.conditionSummary(for: rule))
+                Text(RuleSettingsFormatter.conditionSummary(for: rule, conditions: conditions))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            RuleActionPill(rule: rule)
+            RuleActionPill(rule: rule, assignTag: assignTag)
                 .frame(width: 150, alignment: .leading)
 
             Text("\(matchingArticleCount)")
@@ -340,7 +456,7 @@ private struct RuleSettingsRow: View {
 }
 
 private struct RuleDragPreview: View {
-    let rule: Rule
+    let rule: RuleRecord
 
     var body: some View {
         HStack(spacing: 8) {
@@ -357,18 +473,19 @@ private struct RuleDragPreview: View {
 }
 
 private struct RuleActionPill: View {
-    let rule: Rule
+    let rule: RuleRecord
+    let assignTag: TagRecord?
 
     var body: some View {
-        switch RuleAction.normalized(rule.actionRaw) {
+        switch RuleAction.normalized(rule.action) {
         case .assignTag:
-            if let tag = rule.assignTag {
+            if let assignTag {
                 HStack(spacing: 6) {
                     Circle()
-                        .fill(TagColorPalette.color(for: tag.colorHex))
+                        .fill(TagColorPalette.color(for: assignTag.colorHex))
                         .frame(width: 8, height: 8)
 
-                    Text(tag.name)
+                    Text(assignTag.name)
                         .lineLimit(1)
                 }
                 .padding(.horizontal, 8)
@@ -396,6 +513,41 @@ private struct RuleActionPill: View {
 }
 
 enum RuleSettingsFormatter {
+    static func conditionSummary(
+        for rule: RuleRecord,
+        conditions: [RuleConditionRecord]
+    ) -> String {
+        let conditionDrafts = conditionDrafts(for: conditions)
+        guard !conditionDrafts.isEmpty else {
+            return L10n.ruleSummaryNoCondition
+        }
+
+        let connector = RuleMatchMode.normalized(rule.matchMode) == .all ? L10n.ruleSummaryAll : L10n.ruleSummaryAny
+        return conditionDrafts
+            .map { draft in
+                conditionDescription(draft)
+            }
+            .joined(separator: " \(connector) ")
+    }
+
+    static func conditionDrafts(for conditions: [RuleConditionRecord]) -> [RuleConditionDraft] {
+        conditions
+            .sorted { $0.sortOrder < $1.sortOrder }
+            .compactMap { condition -> RuleConditionDraft? in
+                guard let field = RuleConditionField(rawValue: condition.field),
+                      let conditionOperator = RuleConditionOperator(rawValue: condition.conditionOperator)
+                else {
+                    return nil
+                }
+
+                return RuleConditionDraft(
+                    field: field,
+                    conditionOperator: conditionOperator,
+                    value: condition.value
+                )
+            }
+    }
+
     static func conditionSummary(for rule: Rule) -> String {
         let conditionDrafts = conditionDrafts(for: rule)
         guard !conditionDrafts.isEmpty else {

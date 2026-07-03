@@ -1,4 +1,3 @@
-import SwiftData
 import SwiftUI
 
 private enum RuleWizardMode: String, CaseIterable, Identifiable {
@@ -19,16 +18,12 @@ private enum RuleWizardMode: String, CaseIterable, Identifiable {
 
 struct RuleWizardView: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var modelContext
-    @Query(sort: \Tag.name) private var tags: [Tag]
-    @Query(sort: \Rule.sortOrder) private var existingRules: [Rule]
-    @Query private var articles: [Article]
+    @Environment(\.feedivoDatabase) private var feedivoDatabase
 
-    let rule: Rule?
-    let sourceArticle: Article?
+    let rule: RuleRecord?
+    let existingRules: [RuleRecord]
 
-    @State private var viewModel = RuleViewModel()
-    @State private var tagViewModel = TagViewModel()
+    @State private var tags: [TagRecord] = []
     @State private var mode: RuleWizardMode = .simple
     @State private var name = ""
     @State private var isEnabled = true
@@ -37,19 +32,19 @@ struct RuleWizardView: View {
     @State private var conditionDrafts = [
         RuleConditionDraft(field: .title, conditionOperator: .contains, value: "")
     ]
-    @State private var selectedTagID: UUID?
+    @State private var selectedTagID: String?
     @State private var newTagName = ""
     @State private var newTagColorHex = TagColorPalette.colors[0]
     @State private var notificationTemplate = "{Titel}"
     @State private var notificationPriority = RuleNotificationPriority.normal
     @State private var regexHelpDraftID: UUID?
+    @State private var previewMatchingCount = 0
+    @State private var ruleError: String?
+    @State private var tagError: String?
 
-    init(rule: Rule? = nil, sourceArticle: Article? = nil) {
+    init(rule: RuleRecord? = nil, existingRules: [RuleRecord] = []) {
         self.rule = rule
-        self.sourceArticle = sourceArticle
-        // Artikel ohne die großen content/offlineContent-Blobs laden — beim
-        // Regel-Preview wird nur über title/summary/feed-Titel gematcht (P1).
-        _articles = Query(Article.lightFetchDescriptor())
+        self.existingRules = existingRules
     }
 
     var body: some View {
@@ -73,6 +68,12 @@ struct RuleWizardView: View {
         .frame(width: 640)
         .onAppear {
             loadInitialState()
+        }
+        .task {
+            loadTags()
+        }
+        .task(id: previewReloadToken) {
+            await reloadPreviewCount()
         }
     }
 
@@ -206,7 +207,7 @@ struct RuleWizardView: View {
 
             Picker(L10n.ruleWizardExistingTag, selection: $selectedTagID) {
                 Text(L10n.ruleWizardExistingTag)
-                    .tag(Optional<UUID>.none)
+                    .tag(Optional<String>.none)
 
                 ForEach(tags) { tag in
                     Text(tag.name)
@@ -227,7 +228,7 @@ struct RuleWizardView: View {
                 .disabled(TagViewModel.normalizedTagName(newTagName) == nil)
             }
 
-            if let errorMessage = tagViewModel.errorMessage {
+            if let errorMessage = tagError {
                 Text(errorMessage)
                     .font(.callout)
                     .foregroundStyle(.red)
@@ -274,7 +275,7 @@ struct RuleWizardView: View {
 
     @ViewBuilder
     private var ruleErrorMessage: some View {
-        if let errorMessage = viewModel.errorMessage {
+        if let errorMessage = ruleError {
             Text(errorMessage)
                 .font(.callout)
                 .foregroundStyle(.red)
@@ -318,7 +319,7 @@ struct RuleWizardView: View {
         }
     }
 
-    private var selectedTag: Tag? {
+    private var selectedTag: TagRecord? {
         guard let selectedTagID else {
             return nil
         }
@@ -345,42 +346,34 @@ struct RuleWizardView: View {
             return String(localized: "ruleWizard.preview.noConditions")
         }
 
-        let matchingCount = RuleEngine.matchingArticleCount(
-            conditionDrafts: activeConditionDrafts,
-            matchMode: activeMatchMode,
-            articles: articles
-        )
-        return L10n.ruleWizardPreviewMatchCount(count: matchingCount)
+        return L10n.ruleWizardPreviewMatchCount(count: previewMatchingCount)
+    }
+
+    private var previewReloadToken: String {
+        let conditionToken = activeConditionDrafts
+            .map { draft in
+                "\(draft.field.rawValue):\(draft.conditionOperator.rawValue):\(draft.value)"
+            }
+            .joined(separator: "|")
+        return "\(activeMatchMode.rawValue)|\(conditionToken)"
     }
 
     private func loadInitialState() {
         if let rule {
             load(rule)
-        } else {
-            loadSourceArticleIfNeeded()
         }
     }
 
-    private func load(_ rule: Rule) {
+    private func load(_ rule: RuleRecord) {
         name = rule.name
         isEnabled = rule.isEnabled
-        action = RuleAction.normalized(rule.actionRaw)
-        matchMode = RuleMatchMode.normalized(rule.conditionMatchMode)
-        conditionDrafts = (rule.conditions ?? [])
-            .sorted { $0.sortOrder < $1.sortOrder }
-            .compactMap { condition in
-                guard let field = RuleConditionField(rawValue: condition.field),
-                      let conditionOperator = RuleConditionOperator(rawValue: condition.conditionOperator)
-                else {
-                    return nil
-                }
+        action = RuleAction.normalized(rule.action)
+        matchMode = RuleMatchMode.normalized(rule.matchMode)
 
-                return RuleConditionDraft(
-                    field: field,
-                    conditionOperator: conditionOperator,
-                    value: condition.value
-                )
-            }
+        if let database = feedivoDatabase {
+            let conditions = (try? SQLiteRuleStore(database: database).conditions(ruleID: rule.id)) ?? []
+            conditionDrafts = RuleSettingsFormatter.conditionDrafts(for: conditions)
+        }
 
         if conditionDrafts.isEmpty {
             conditionDrafts = [
@@ -388,36 +381,10 @@ struct RuleWizardView: View {
             ]
         }
 
-        selectedTagID = rule.assignTag?.id
+        selectedTagID = rule.assignTagID
         notificationTemplate = rule.notificationTemplate
-        notificationPriority = RuleNotificationPriority.normalized(rule.notificationPriorityRaw)
+        notificationPriority = RuleNotificationPriority.normalized(rule.notificationPriority)
         mode = conditionDrafts.count > 1 ? .power : .simple
-    }
-
-    private func loadSourceArticleIfNeeded() {
-        guard let sourceArticle else {
-            return
-        }
-
-        if let feedTitle = sourceArticle.feed?.title.trimmingCharacters(in: .whitespacesAndNewlines),
-           !feedTitle.isEmpty {
-            conditionDrafts = [
-                RuleConditionDraft(field: .feedTitle, conditionOperator: .contains, value: feedTitle)
-            ]
-            name = feedTitle
-        } else {
-            conditionDrafts = [
-                RuleConditionDraft(field: .title, conditionOperator: .contains, value: suggestedTitleWord(from: sourceArticle.title))
-            ]
-            name = sourceArticle.title
-        }
-    }
-
-    private func suggestedTitleWord(from title: String) -> String {
-        title
-            .split(separator: " ")
-            .map(String.init)
-            .first { $0.count >= 4 } ?? title
     }
 
     private func removeCondition(_ draft: RuleConditionDraft) {
@@ -425,53 +392,127 @@ struct RuleWizardView: View {
     }
 
     private func createTag() {
-        tagViewModel.createTag(
-            name: newTagName,
-            colorHex: newTagColorHex,
-            availableTags: tags,
-            context: modelContext
-        )
+        guard let database = feedivoDatabase else {
+            tagError = L10n.feedPropertiesUnavailable
+            return
+        }
 
-        if tagViewModel.errorMessage == nil {
-            let normalizedName = TagViewModel.normalizedTagName(newTagName)
-            selectedTagID = tags.first { $0.name == normalizedName }?.id
+        guard let normalizedName = normalizedTagName(newTagName) else {
+            tagError = L10n.tagManagerEmptyNameError
+            return
+        }
+
+        do {
+            let tag = TagRecord(
+                id: UUID().uuidString,
+                name: normalizedName,
+                colorHex: newTagColorHex
+            )
+            try TagStore(database: database).save(tag)
+            loadTags()
+            selectedTagID = tag.id
             newTagName = ""
+            tagError = nil
+        } catch TagStore.TagStoreError.duplicateName {
+            tagError = L10n.tagManagerDuplicateNameError
+        } catch {
+            tagError = error.localizedDescription
+        }
+    }
+
+    private func reloadPreviewCount() async {
+        guard previewHasConditions,
+              let database = feedivoDatabase
+        else {
+            previewMatchingCount = 0
+            return
+        }
+
+        do {
+            previewMatchingCount = try SQLiteRuleEvaluationStore(database: database).matchingArticleCount(
+                conditionDrafts: activeConditionDrafts,
+                matchMode: activeMatchMode
+            )
+        } catch {
+            previewMatchingCount = 0
         }
     }
 
     private func save() {
+        guard let database = feedivoDatabase else {
+            ruleError = L10n.feedPropertiesUnavailable
+            return
+        }
+
         let drafts = mode == .simple ? Array(conditionDrafts.prefix(1)) : conditionDrafts
-        if let rule {
-            viewModel.updateRule(
-                rule,
-                name: name,
-                isEnabled: isEnabled,
-                action: action,
-                matchMode: matchMode,
-                conditionDrafts: drafts,
-                assignTag: selectedTag,
-                notificationTemplate: notificationTemplate,
-                notificationPriority: notificationPriority,
-                context: modelContext
-            )
-        } else {
-            viewModel.createRule(
-                name: name,
-                isEnabled: isEnabled,
-                action: action,
-                matchMode: matchMode,
-                conditionDrafts: drafts,
-                assignTag: selectedTag,
-                notificationTemplate: notificationTemplate,
-                notificationPriority: notificationPriority,
-                existingRules: existingRules,
-                context: modelContext
+        let normalizedDrafts = drafts.compactMap { draft -> RuleConditionDraft? in
+            let value = draft.value.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !value.isEmpty else {
+                return nil
+            }
+
+            return RuleConditionDraft(
+                field: draft.field,
+                conditionOperator: draft.conditionOperator,
+                value: value
             )
         }
 
-        if viewModel.errorMessage == nil {
-            dismiss()
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty,
+              !normalizedDrafts.isEmpty,
+              action != .assignTag || selectedTag != nil
+        else {
+            ruleError = L10n.ruleValidationError
+            return
         }
+
+        let ruleID = rule?.id ?? UUID().uuidString
+        let sortOrder = rule?.sortOrder ?? ((existingRules.map(\.sortOrder).max() ?? -1) + 1)
+        let record = RuleRecord(
+            id: ruleID,
+            name: trimmedName,
+            isEnabled: isEnabled,
+            matchMode: activeMatchMode.rawValue,
+            action: action.rawValue,
+            assignTagID: action == .assignTag ? selectedTagID : nil,
+            notificationTemplate: notificationTemplate,
+            notificationPriority: notificationPriority.rawValue,
+            sortOrder: sortOrder,
+            createdAt: rule?.createdAt ?? Date()
+        )
+        let conditions = normalizedDrafts.enumerated().map { index, draft in
+            RuleConditionRecord(
+                id: UUID().uuidString,
+                ruleID: ruleID,
+                field: draft.field.rawValue,
+                conditionOperator: draft.conditionOperator.rawValue,
+                value: draft.value,
+                sortOrder: index
+            )
+        }
+
+        do {
+            try SQLiteRuleStore(database: database).save(record, conditions: conditions)
+            ruleError = nil
+            dismiss()
+        } catch {
+            ruleError = error.localizedDescription
+        }
+    }
+
+    private func loadTags() {
+        guard let database = feedivoDatabase else {
+            tags = []
+            return
+        }
+
+        tags = (try? TagStore(database: database).tags()) ?? []
+    }
+
+    private func normalizedTagName(_ rawName: String) -> String? {
+        let name = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
+        return name.isEmpty ? nil : name
     }
 }
 

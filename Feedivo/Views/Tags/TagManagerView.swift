@@ -1,17 +1,16 @@
-import SwiftData
 import SwiftUI
 
 struct TagManagerView: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var modelContext
-    @Query(sort: \Tag.name) private var tags: [Tag]
+    @Environment(\.feedivoDatabase) private var feedivoDatabase
 
-    var onTagCreated: (Tag) -> Void = { _ in }
+    var onTagCreated: (String) -> Void = { _ in }
 
-    @State private var viewModel = TagViewModel()
+    @State private var tags: [TagRecord] = []
+    @State private var errorMessage: String?
     @State private var newTagName = ""
     @State private var newTagColorHex = TagColorPalette.colors[0]
-    @State private var tagPendingDeletion: Tag?
+    @State private var tagPendingDeletion: TagRecord?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -36,7 +35,7 @@ struct TagManagerView: View {
             presenting: tagPendingDeletion
         ) { tag in
             Button(L10n.tagManagerDeleteButton, role: .destructive) {
-                viewModel.deleteTag(tag, context: modelContext)
+                deleteTag(tag)
                 tagPendingDeletion = nil
             }
             Button(L10n.commonCancel, role: .cancel) {
@@ -44,6 +43,9 @@ struct TagManagerView: View {
             }
         } message: { _ in
             Text(L10n.tagManagerDeleteMessage)
+        }
+        .task {
+            reloadTags()
         }
     }
 
@@ -79,7 +81,7 @@ struct TagManagerView: View {
                 .disabled(TagViewModel.normalizedTagName(newTagName) == nil)
             }
 
-            if let errorMessage = viewModel.errorMessage {
+            if let errorMessage {
                 Text(errorMessage)
                     .font(.callout)
                     .foregroundStyle(.red)
@@ -98,7 +100,7 @@ struct TagManagerView: View {
                         TagManagerRow(
                             tag: tag,
                             tags: tags,
-                            viewModel: viewModel,
+                            reloadTags: reloadTags,
                             requestDelete: {
                                 tagPendingDeletion = tag
                             }
@@ -121,27 +123,80 @@ struct TagManagerView: View {
     }
 
     private func createTag() {
-        let createdTag = viewModel.createTag(
-            name: newTagName,
-            colorHex: newTagColorHex,
-            availableTags: tags,
-            context: modelContext
-        )
+        guard let database = feedivoDatabase else {
+            errorMessage = L10n.feedPropertiesUnavailable
+            return
+        }
 
-        if let createdTag {
+        guard let normalizedName = TagViewModel.normalizedTagName(newTagName) else {
+            errorMessage = L10n.tagManagerEmptyNameError
+            return
+        }
+
+        guard !containsTag(named: normalizedName, in: tags) else {
+            errorMessage = L10n.tagManagerDuplicateNameError
+            return
+        }
+
+        let tagID = UUID().uuidString
+
+        do {
+            try TagStore(database: database).save(
+                TagRecord(
+                    id: tagID,
+                    name: normalizedName,
+                    colorHex: TagViewModel.normalizedColorHex(newTagColorHex)
+                )
+            )
+            SidebarBadgeInvalidation.bumpDirectTagVersion()
             newTagName = ""
-            onTagCreated(createdTag)
+            errorMessage = nil
+            reloadTags()
+            onTagCreated(tagID)
             dismiss()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func reloadTags() {
+        guard let database = feedivoDatabase else {
+            tags = []
+            errorMessage = L10n.feedPropertiesUnavailable
+            return
+        }
+
+        do {
+            tags = try TagStore(database: database).tags()
+            errorMessage = nil
+        } catch {
+            tags = []
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func deleteTag(_ tag: TagRecord) {
+        guard let database = feedivoDatabase else {
+            errorMessage = L10n.feedPropertiesUnavailable
+            return
+        }
+
+        do {
+            try TagStore(database: database).deleteTag(id: tag.id)
+            SidebarBadgeInvalidation.bumpDirectTagVersion()
+            reloadTags()
+        } catch {
+            errorMessage = error.localizedDescription
         }
     }
 }
 
 private struct TagManagerRow: View {
-    @Environment(\.modelContext) private var modelContext
+    @Environment(\.feedivoDatabase) private var feedivoDatabase
 
-    let tag: Tag
-    let tags: [Tag]
-    let viewModel: TagViewModel
+    let tag: TagRecord
+    let tags: [TagRecord]
+    let reloadTags: () -> Void
     let requestDelete: () -> Void
 
     @State private var draftName = ""
@@ -194,7 +249,7 @@ private struct TagManagerRow: View {
                 ColorSwatchPicker(selection: Binding(
                     get: { tag.colorHex },
                     set: { colorHex in
-                        viewModel.updateColor(tag, colorHex: colorHex, context: modelContext)
+                        saveColor(colorHex)
                     }
                 ))
 
@@ -217,21 +272,63 @@ private struct TagManagerRow: View {
     }
 
     private func saveName() {
-        viewModel.errorMessage = nil
-        viewModel.renameTag(tag, name: draftName, availableTags: tags, context: modelContext)
+        guard let database = feedivoDatabase else {
+            rowErrorMessage = L10n.feedPropertiesUnavailable
+            return
+        }
 
-        if let errorMessage = viewModel.errorMessage {
-            rowErrorMessage = errorMessage
-            viewModel.errorMessage = nil
-        } else {
+        guard let normalizedName = TagViewModel.normalizedTagName(draftName) else {
+            rowErrorMessage = L10n.tagManagerEmptyNameError
+            return
+        }
+
+        guard !containsTag(named: normalizedName, in: tags, excludingID: tag.id) else {
+            rowErrorMessage = L10n.tagManagerDuplicateNameError
+            return
+        }
+
+        do {
+            try TagStore(database: database).renameTag(id: tag.id, name: normalizedName)
+            SidebarBadgeInvalidation.bumpDirectTagVersion()
             rowErrorMessage = nil
-            draftName = tag.name
+            draftName = normalizedName
+            reloadTags()
+        } catch TagStore.TagStoreError.duplicateName {
+            rowErrorMessage = L10n.tagManagerDuplicateNameError
+        } catch {
+            rowErrorMessage = error.localizedDescription
+        }
+    }
+
+    private func saveColor(_ colorHex: String) {
+        guard let database = feedivoDatabase else {
+            rowErrorMessage = L10n.feedPropertiesUnavailable
+            return
+        }
+
+        do {
+            try TagStore(database: database).updateColor(id: tag.id, colorHex: colorHex)
+            SidebarBadgeInvalidation.bumpDirectTagVersion()
+            rowErrorMessage = nil
+            reloadTags()
+        } catch {
+            rowErrorMessage = error.localizedDescription
         }
     }
 
     private func cancelNameEdit() {
         draftName = tag.name
         rowErrorMessage = nil
+    }
+}
+
+private func containsTag(named name: String, in tags: [TagRecord], excludingID: String? = nil) -> Bool {
+    tags.contains { tag in
+        if tag.id == excludingID {
+            return false
+        }
+
+        return tag.name.caseInsensitiveCompare(name) == .orderedSame
     }
 }
 

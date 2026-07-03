@@ -63,6 +63,44 @@ enum FeedFolderOrganizer {
         )
     }
 
+    // Snapshot-basierte Überladungen für den SQLite-only Sidebar-Pfad. Diese
+    // Helfer arbeiten ausschließlich auf FeedSidebarSnapshot und brauchen kein
+    // SwiftData-Feed-Objekt mehr.
+    static func feedsWithoutFolder(from snapshots: [FeedSidebarSnapshot]) -> [FeedSidebarSnapshot] {
+        sortedSnapshots(
+            snapshots.filter { normalizedFolderName($0.folderName) == nil }
+        )
+    }
+
+    static func feedsByFolderName(
+        in snapshots: [FeedSidebarSnapshot],
+        folders: [FeedFolderRecord] = []
+    ) -> [(folderName: String, snapshots: [FeedSidebarSnapshot])] {
+        let orderedFolderNames = folderNames(
+            feedFolderNames: snapshots.map(\.folderName),
+            explicitFolderNames: folders.map(\.name)
+        )
+
+        var snapshotsByLowercasedName: [String: [FeedSidebarSnapshot]] = [:]
+        for snapshot in snapshots {
+            guard let normalizedName = normalizedFolderName(snapshot.folderName) else {
+                continue
+            }
+            snapshotsByLowercasedName[normalizedName.lowercased(), default: []].append(snapshot)
+        }
+
+        return orderedFolderNames.map { folderName in
+            let grouped = snapshotsByLowercasedName[folderName.lowercased()] ?? []
+            return (folderName, sortedSnapshots(grouped))
+        }
+    }
+
+    private static func sortedSnapshots(_ snapshots: [FeedSidebarSnapshot]) -> [FeedSidebarSnapshot] {
+        snapshots.sorted {
+            $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending
+        }
+    }
+
     /// Feeds pro Ordnername in einem Durchlauf gruppieren (M9) — statt für
     /// jeden Ordnernamen `feeds(in:from:)` (je O(F)) aufzurufen. Liefert die
     /// Paare in derselben Reihenfolge wie `folderNames(in:folders:)`, also
