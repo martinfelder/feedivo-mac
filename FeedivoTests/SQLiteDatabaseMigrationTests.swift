@@ -18,6 +18,11 @@ struct SQLiteDatabaseMigrationTests {
         #expect(tableNames.contains("feed_tags"))
         #expect(tableNames.contains("article_search"))
         #expect(tableNames.contains("article_offline"))
+        #expect(tableNames.contains("feed_folders"))
+        #expect(tableNames.contains("rules"))
+        #expect(tableNames.contains("rule_conditions"))
+        #expect(tableNames.contains("smart_folders"))
+        #expect(tableNames.contains("smart_folder_conditions"))
     }
 
     @Test func migrationCreatesPerformanceIndexes() throws {
@@ -40,6 +45,12 @@ struct SQLiteDatabaseMigrationTests {
         #expect(indexNames.contains("idx_article_tags_tag_article"))
         #expect(indexNames.contains("idx_feed_tags_tag_feed"))
         #expect(indexNames.contains("idx_article_offline_state"))
+        #expect(indexNames.contains("idx_feed_folders_name_unique"))
+        #expect(indexNames.contains("idx_rules_sort_order"))
+        #expect(indexNames.contains("idx_rule_conditions_rule_sort"))
+        #expect(indexNames.contains("idx_smart_folders_sort_order"))
+        #expect(indexNames.contains("idx_smart_folders_default_key_unique"))
+        #expect(indexNames.contains("idx_smart_folder_conditions_folder_sort"))
     }
 
     @Test func migrationCreatesArticleSearchTriggers() throws {
@@ -125,6 +136,32 @@ struct SQLiteDatabaseMigrationTests {
         }
 
         #expect(try rowCount(in: database, table: "feed_tags") == 0)
+    }
+
+    @Test func ruleConditionsCascadeWhenRuleIsDeleted() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+
+        try insertRule(into: database, id: "rule-1")
+        try insertRuleCondition(into: database, id: "condition-1", ruleID: "rule-1")
+
+        try database.write { database in
+            try database.execute(sql: "DELETE FROM rules WHERE id = ?", arguments: ["rule-1"])
+        }
+
+        #expect(try rowCount(in: database, table: "rule_conditions") == 0)
+    }
+
+    @Test func smartFolderConditionsCascadeWhenFolderIsDeleted() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+
+        try insertSmartFolder(into: database, id: "folder-1")
+        try insertSmartFolderCondition(into: database, id: "condition-1", smartFolderID: "folder-1")
+
+        try database.write { database in
+            try database.execute(sql: "DELETE FROM smart_folders WHERE id = ?", arguments: ["folder-1"])
+        }
+
+        #expect(try rowCount(in: database, table: "smart_folder_conditions") == 0)
     }
 
     @Test func deletingFeedCascadesToArticlesAndFeedLogsButNotArticleStatuses() throws {
@@ -392,6 +429,91 @@ private func insertFeedTag(into database: FeedivoDatabase, feedID: String, tagID
                 ) VALUES (?, ?, ?)
                 """,
             arguments: [feedID, tagID, Date()]
+        )
+    }
+}
+
+private func insertRule(into database: FeedivoDatabase, id: String) throws {
+    let now = Date()
+
+    try database.write { database in
+        try database.execute(
+            sql: """
+                INSERT INTO rules (
+                    id, name, isEnabled, matchMode, action, notificationTemplate,
+                    notificationPriority, sortOrder, createdAt, updatedAt
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+            arguments: [
+                id,
+                "Regel \(id)",
+                true,
+                "all",
+                "assignTag",
+                "{Titel}",
+                "normal",
+                0,
+                now,
+                now
+            ]
+        )
+    }
+}
+
+private func insertRuleCondition(into database: FeedivoDatabase, id: String, ruleID: String) throws {
+    try database.write { database in
+        try database.execute(
+            sql: """
+                INSERT INTO rule_conditions (
+                    id, ruleID, field, conditionOperator, value, sortOrder
+                ) VALUES (?, ?, ?, ?, ?, ?)
+                """,
+            arguments: [id, ruleID, "title", "contains", "Swift", 0]
+        )
+    }
+}
+
+private func insertSmartFolder(into database: FeedivoDatabase, id: String) throws {
+    let now = Date()
+
+    try database.write { database in
+        try database.execute(
+            sql: """
+                INSERT INTO smart_folders (
+                    id, name, matchMode, isShownInSidebar, isDefault,
+                    sortOrder, defaultKey, iconName, colorHex, createdAt, updatedAt
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+            arguments: [
+                id,
+                "Ordner \(id)",
+                "all",
+                true,
+                false,
+                0,
+                nil,
+                "folder.badge.gearshape",
+                "#6B7280",
+                now,
+                now
+            ]
+        )
+    }
+}
+
+private func insertSmartFolderCondition(
+    into database: FeedivoDatabase,
+    id: String,
+    smartFolderID: String
+) throws {
+    try database.write { database in
+        try database.execute(
+            sql: """
+                INSERT INTO smart_folder_conditions (
+                    id, smartFolderID, field, conditionOperator, value, sortOrder
+                ) VALUES (?, ?, ?, ?, ?, ?)
+                """,
+            arguments: [id, smartFolderID, "title", "contains", "Swift", 0]
         )
     }
 }

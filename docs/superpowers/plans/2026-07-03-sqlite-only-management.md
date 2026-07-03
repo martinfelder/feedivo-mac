@@ -46,10 +46,10 @@
 - Create: `Feedivo/Database/Records/SmartFolderConditionRecord.swift`
 - Test: `FeedivoTests/SQLiteDatabaseMigrationTests.swift`
 
-- [ ] Add failing migration tests for `feed_folders`, `rules`, `rule_conditions`, `smart_folders`, and `smart_folder_conditions`.
-- [ ] Add v6 migration with indexes preserving sort order, default keys, and foreign-key cascades.
-- [ ] Add record structs matching the new tables.
-- [ ] Run database migration tests.
+- [x] Add failing migration tests for `feed_folders`, `rules`, `rule_conditions`, `smart_folders`, and `smart_folder_conditions`.
+- [x] Add v6 migration with indexes preserving sort order, default keys, and foreign-key cascades.
+- [x] Add record structs matching the new tables.
+- [x] Run database migration tests.
 
 ### Task 4: Add SQLite Admin Stores
 

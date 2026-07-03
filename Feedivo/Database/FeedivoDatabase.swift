@@ -81,7 +81,19 @@ struct FeedivoDatabase {
         let allowedTableName: String
 
         switch tableName {
-        case "feeds", "articles", "article_statuses", "feed_logs", "tags", "article_tags", "feed_tags", "article_offline":
+        case "feeds",
+             "articles",
+             "article_statuses",
+             "feed_logs",
+             "tags",
+             "article_tags",
+             "feed_tags",
+             "article_offline",
+             "feed_folders",
+             "rules",
+             "rule_conditions",
+             "smart_folders",
+             "smart_folder_conditions":
             allowedTableName = tableName
         default:
             throw DebugTableInspectionError.unsupportedTableName(tableName)

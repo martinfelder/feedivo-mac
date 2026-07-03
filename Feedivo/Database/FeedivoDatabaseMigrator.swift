@@ -174,6 +174,75 @@ enum FeedivoDatabaseMigrator {
             try database.create(index: "idx_article_offline_state", on: "article_offline", columns: ["state"])
         }
 
+        migrator.registerMigration("v6_create_admin_definition_tables") { database in
+            try database.create(table: "feed_folders") { table in
+                table.column("id", .text).primaryKey()
+                table.column("name", .text).notNull()
+                table.column("createdAt", .datetime).notNull()
+                table.column("updatedAt", .datetime).notNull()
+            }
+
+            try database.create(table: "rules") { table in
+                table.column("id", .text).primaryKey()
+                table.column("name", .text).notNull()
+                table.column("isEnabled", .boolean).notNull().defaults(to: true)
+                table.column("matchMode", .text).notNull().defaults(to: RuleMatchMode.all.rawValue)
+                table.column("action", .text).notNull().defaults(to: RuleAction.assignTag.rawValue)
+                table.column("assignTagID", .text)
+                    .references("tags", column: "id", onDelete: .setNull)
+                table.column("notificationTemplate", .text).notNull().defaults(to: "{Titel}")
+                table.column("notificationPriority", .text).notNull().defaults(to: RuleNotificationPriority.normal.rawValue)
+                table.column("sortOrder", .integer).notNull().defaults(to: 0)
+                table.column("createdAt", .datetime).notNull()
+                table.column("updatedAt", .datetime).notNull()
+            }
+
+            try database.create(table: "rule_conditions") { table in
+                table.column("id", .text).primaryKey()
+                table.column("ruleID", .text).notNull()
+                    .references("rules", column: "id", onDelete: .cascade)
+                table.column("field", .text).notNull()
+                table.column("conditionOperator", .text).notNull()
+                table.column("value", .text).notNull()
+                table.column("sortOrder", .integer).notNull().defaults(to: 0)
+            }
+
+            try database.create(table: "smart_folders") { table in
+                table.column("id", .text).primaryKey()
+                table.column("name", .text).notNull()
+                table.column("matchMode", .text).notNull().defaults(to: RuleMatchMode.all.rawValue)
+                table.column("isShownInSidebar", .boolean).notNull().defaults(to: true)
+                table.column("isDefault", .boolean).notNull().defaults(to: false)
+                table.column("sortOrder", .integer).notNull().defaults(to: 0)
+                table.column("defaultKey", .text)
+                table.column("iconName", .text)
+                table.column("colorHex", .text)
+                table.column("createdAt", .datetime).notNull()
+                table.column("updatedAt", .datetime).notNull()
+            }
+
+            try database.create(table: "smart_folder_conditions") { table in
+                table.column("id", .text).primaryKey()
+                table.column("smartFolderID", .text).notNull()
+                    .references("smart_folders", column: "id", onDelete: .cascade)
+                table.column("field", .text).notNull()
+                table.column("conditionOperator", .text).notNull()
+                table.column("value", .text).notNull()
+                table.column("sortOrder", .integer).notNull().defaults(to: 0)
+            }
+
+            try database.create(index: "idx_feed_folders_name_unique", on: "feed_folders", columns: ["name"], unique: true)
+            try database.create(index: "idx_rules_sort_order", on: "rules", columns: ["sortOrder", "name"])
+            try database.create(index: "idx_rule_conditions_rule_sort", on: "rule_conditions", columns: ["ruleID", "sortOrder"])
+            try database.create(index: "idx_smart_folders_sort_order", on: "smart_folders", columns: ["sortOrder", "name"])
+            try database.execute(sql: """
+                CREATE UNIQUE INDEX idx_smart_folders_default_key_unique
+                ON smart_folders(defaultKey)
+                WHERE defaultKey IS NOT NULL AND defaultKey <> ''
+                """)
+            try database.create(index: "idx_smart_folder_conditions_folder_sort", on: "smart_folder_conditions", columns: ["smartFolderID", "sortOrder"])
+        }
+
         return migrator
     }
 }
