@@ -227,7 +227,7 @@ git commit -m "Migriere produktive Tag-Pfade auf SQLite"
 
 Ziel: Regeln werden produktiv aus `SQLiteRuleStore` gelesen und geschrieben. `Rule`/`RuleCondition` bleiben nur noch Migrations-/Legacy-Modelle.
 
-- [ ] **Step 1: Failing Source-Test schreiben**
+- [x] **Step 1: Failing Source-Test schreiben**
 
 ```swift
 @Test func regelVerwaltungIstSQLiteOnly() throws {
@@ -244,7 +244,7 @@ Ziel: Regeln werden produktiv aus `SQLiteRuleStore` gelesen und geschrieben. `Ru
 }
 ```
 
-- [ ] **Step 2: `SQLiteRuleStore` als Schreibquelle verwenden**
+- [x] **Step 2: `SQLiteRuleStore` als Schreibquelle verwenden**
 
 Alle Erstellen/Bearbeiten/Duplizieren/Löschen-Aktionen in Settings/Wizard sollen `SQLiteRuleStore` verwenden. Falls Store-Methoden fehlen, ergänzen:
 
@@ -255,7 +255,7 @@ func duplicate(id: String, newName: String) throws -> String
 func reorder(ids: [String]) throws
 ```
 
-- [ ] **Step 3: Refresh-Regeln aus SQLite lesen**
+- [x] **Step 3: Refresh-Regeln aus SQLite lesen**
 
 In `FeedViewModel.refreshFeed(feedID:context:sqliteDatabase:)` und `refreshAllFeeds(sqliteDatabase:modelContainer:)` sollen Rule-Snapshots aus `SQLiteRuleStore` kommen:
 
@@ -265,7 +265,7 @@ let rules = (try? SQLiteRuleStore(database: sqliteDatabase).ruleSnapshots()) ?? 
 
 SwiftData-`Rule`-Fetches bleiben nur im Legacy-Refresh ohne SQLite-Datenbank.
 
-- [ ] **Step 4: Tests ausführen**
+- [x] **Step 4: Tests ausführen**
 
 Run:
 

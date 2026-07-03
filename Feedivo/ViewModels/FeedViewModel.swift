@@ -714,8 +714,7 @@ final class FeedViewModel {
             isLoading = false
         }
 
-        let rules = (try? context.fetch(FetchDescriptor<Rule>())) ?? []
-        let ruleSnapshots = RuleEngine.snapshots(from: rules)
+        let ruleSnapshots = sqliteRuleSnapshots(from: sqliteDatabase)
         let service = SQLiteFeedRefreshService(
             database: sqliteDatabase,
             ruleSnapshots: ruleSnapshots
@@ -741,12 +740,12 @@ final class FeedViewModel {
     }
 
     /// SQLite-first Refresh-All: Snapshots werden aus `FeedStore.feeds()` geladen
-    /// statt aus einer SwiftData-`[Feed]`-Liste. ContentView übergibt nur noch
-    /// die Datenbank (und optional den Container für den Regel-Kontext).
+    /// statt aus einer SwiftData-`[Feed]`-Liste.
+    /// Der Container wird in dieser Methode nur noch für Übergangspfade übergeben.
     @MainActor
     func refreshAllFeeds(
         sqliteDatabase: FeedivoDatabase,
-        modelContainer: ModelContainer?
+        modelContainer _: ModelContainer?
     ) async {
         guard !isLoading else {
             errorMessage = L10n.feedErrorAlreadyRunning
@@ -769,14 +768,7 @@ final class FeedViewModel {
             return
         }
 
-        let ruleSnapshots: [RuleEngine.RuleSnapshot]
-        if let modelContainer {
-            let ruleContext = ModelContext(modelContainer)
-            let rules = (try? ruleContext.fetch(FetchDescriptor<Rule>())) ?? []
-            ruleSnapshots = RuleEngine.snapshots(from: rules)
-        } else {
-            ruleSnapshots = []
-        }
+        let ruleSnapshots = sqliteRuleSnapshots(from: sqliteDatabase)
 
         await refreshAllFeedsSQLiteFirst(
             snapshots,
@@ -946,9 +938,7 @@ final class FeedViewModel {
         }
 
         if let sqliteDatabase {
-            let ruleContext = ModelContext(modelContainer)
-            let rules = (try? ruleContext.fetch(FetchDescriptor<Rule>())) ?? []
-            let ruleSnapshots = RuleEngine.snapshots(from: rules)
+            let ruleSnapshots = sqliteRuleSnapshots(from: sqliteDatabase)
             await refreshAllFeedsSQLiteFirst(
                 snapshots,
                 database: sqliteDatabase,
@@ -1276,6 +1266,10 @@ final class FeedViewModel {
         return stride(from: 0, to: items.count, by: Self.maxConcurrentFeedRefreshes).map { startIndex in
             Array(items[startIndex ..< min(startIndex + Self.maxConcurrentFeedRefreshes, items.count)])
         }
+    }
+
+    private func sqliteRuleSnapshots(from database: FeedivoDatabase) -> [RuleEngine.RuleSnapshot] {
+        (try? SQLiteRuleStore(database: database).ruleSnapshots()) ?? []
     }
 
     @MainActor

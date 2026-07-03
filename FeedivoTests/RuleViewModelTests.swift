@@ -1,24 +1,17 @@
 import Foundation
-import SwiftData
 import Testing
 @testable import Feedivo
 
 struct RuleViewModelTests {
     @MainActor
     @Test func createRuleSpeichertGueltigePowerUserRegel() throws {
-        let container = try ModelContainer(
-            for: Feed.self,
-            Article.self,
-            Tag.self,
-            Rule.self,
-            RuleCondition.self,
-            FeedLogEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
-        let tag = Tag(name: "Swift", colorHex: "#3B82F6")
-        context.insert(tag)
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let tagStore = TagStore(database: database)
+        let ruleStore = SQLiteRuleStore(database: database)
         let viewModel = RuleViewModel()
+
+        let tag = TagRecord(id: "tag-1", name: "Swift", colorHex: "#3B82F6")
+        try tagStore.save(tag)
 
         viewModel.createRule(
             name: "Swift Mac",
@@ -29,164 +22,142 @@ struct RuleViewModelTests {
                 RuleConditionDraft(field: .feedTitle, conditionOperator: .contains, value: "Mac")
             ],
             assignTag: tag,
-            context: context
+            database: database
         )
 
-        let rules = try context.fetch(FetchDescriptor<Rule>())
+        let rules = try ruleStore.rules()
         #expect(rules.count == 1)
-        #expect(rules.first?.name == "Swift Mac")
-        #expect(rules.first?.conditionMatchMode == RuleMatchMode.all.rawValue)
-        #expect((rules.first?.conditions ?? []).count == 2)
-        #expect(rules.first?.assignTag?.name == "Swift")
-        #expect(rules.first?.actionRaw == RuleAction.assignTag.rawValue)
+        let rule = try #require(rules.first { $0.name == "Swift Mac" })
+        #expect(rule.matchMode == RuleMatchMode.all.rawValue)
+        #expect(rule.action == RuleAction.assignTag.rawValue)
+        #expect(rule.assignTagID == tag.id)
         #expect(viewModel.errorMessage == nil)
+
+        let conditions = try ruleStore.conditions(ruleID: rule.id)
+        #expect(conditions.count == 2)
+        #expect(conditions.map(\.value).sorted() == ["Mac", "Swift"])
     }
 
     @MainActor
     @Test func createRuleSetztNaechsteSortierreihenfolge() throws {
-        let container = try ModelContainer(
-            for: Feed.self,
-            Article.self,
-            Tag.self,
-            Rule.self,
-            RuleCondition.self,
-            FeedLogEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
-        let tag = Tag(name: "Swift", colorHex: "#3B82F6")
-        context.insert(tag)
-        let firstRule = Rule(name: "Vorhanden")
-        firstRule.sortOrder = 4
-        context.insert(firstRule)
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let ruleStore = SQLiteRuleStore(database: database)
         let viewModel = RuleViewModel()
+
+        try ruleStore.save(RuleRecord(id: "rule-1", name: "Vorhanden", sortOrder: 4), conditions: [])
 
         viewModel.createRule(
             name: "Neu",
             isEnabled: true,
+            action: .notify,
             matchMode: .all,
             conditionDrafts: [
                 RuleConditionDraft(field: .title, conditionOperator: .contains, value: "Mac")
             ],
-            assignTag: tag,
-            existingRules: [firstRule],
-            context: context
+            assignTag: nil,
+            existingRules: try ruleStore.rules(),
+            database: database
         )
 
-        let rules = try context.fetch(FetchDescriptor<Rule>())
-        let newRule = try #require(rules.first { $0.name == "Neu" })
+        let newRule = try #require(try ruleStore.rules().first { $0.name == "Neu" })
         #expect(newRule.sortOrder == 5)
         #expect(viewModel.errorMessage == nil)
     }
 
     @MainActor
-    @Test func duplicateRuleFuegtKopieDirektNachOriginalEin() throws {
-        let container = try ModelContainer(
-            for: Feed.self,
-            Article.self,
-            Tag.self,
-            Rule.self,
-            RuleCondition.self,
-            FeedLogEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
-        let tag = Tag(name: "Swift", colorHex: "#3B82F6")
-        context.insert(tag)
-        let firstRule = Rule(name: "Erste Regel")
-        firstRule.sortOrder = 0
-        firstRule.assignTag = tag
-        firstRule.conditions = [
-            RuleCondition(
-                field: RuleConditionField.title.rawValue,
-                conditionOperator: RuleConditionOperator.contains.rawValue,
-                value: "Swift",
-                sortOrder: 0
-            )
-        ]
-        let secondRule = Rule(name: "Zweite Regel")
-        secondRule.sortOrder = 1
-        context.insert(firstRule)
-        context.insert(secondRule)
+    @Test func duplicateRuleFuegtKopieHintenAn() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let ruleStore = SQLiteRuleStore(database: database)
         let viewModel = RuleViewModel()
 
-        viewModel.duplicateRule(firstRule, existingRules: [firstRule, secondRule], context: context)
+        let firstRule = RuleRecord(id: "rule-1", name: "Erste Regel", sortOrder: 0)
+        let secondRule = RuleRecord(id: "rule-2", name: "Zweite Regel", sortOrder: 1)
+        try ruleStore.save(
+            firstRule,
+            conditions: [
+                RuleConditionRecord(
+                    ruleID: firstRule.id,
+                    field: RuleConditionField.title.rawValue,
+                    conditionOperator: RuleConditionOperator.contains.rawValue,
+                    value: "Swift",
+                    sortOrder: 0
+                )
+            ]
+        )
+        try ruleStore.save(secondRule, conditions: [])
 
-        let rules = try context.fetch(FetchDescriptor<Rule>())
-        let orderedNames = RuleViewModel.sortedRules(rules).map(\.name)
-        #expect(orderedNames == ["Erste Regel", "Erste Regel Kopie", "Zweite Regel"])
-        let duplicate = try #require(rules.first { $0.name == "Erste Regel Kopie" })
-        #expect(duplicate.sortOrder == 1)
-        #expect(duplicate.assignTag?.name == "Swift")
-        #expect((duplicate.conditions ?? []).count == 1)
+        viewModel.duplicateRule(firstRule, existingRules: [firstRule, secondRule], database: database)
+
+        let orderedNames = RuleViewModel.sortedRules(try ruleStore.rules()).map(\.name)
+        #expect(orderedNames == ["Erste Regel", "Zweite Regel", "Erste Regel Kopie"])
+
+        let duplicate = try #require(try ruleStore.rules().first { $0.name == "Erste Regel Kopie" })
+        #expect(duplicate.sortOrder == 2)
+        #expect(try ruleStore.conditions(ruleID: duplicate.id).count == 1)
         #expect(viewModel.errorMessage == nil)
     }
 
     @MainActor
     @Test func moveRuleAktualisiertSortierreihenfolge() throws {
-        let firstRule = Rule(name: "A")
-        firstRule.sortOrder = 0
-        let secondRule = Rule(name: "B")
-        secondRule.sortOrder = 1
-        let thirdRule = Rule(name: "C")
-        thirdRule.sortOrder = 2
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let ruleStore = SQLiteRuleStore(database: database)
         let viewModel = RuleViewModel()
+        let firstRule = RuleRecord(id: "rule-a", name: "A", sortOrder: 0)
+        let secondRule = RuleRecord(id: "rule-b", name: "B", sortOrder: 1)
+        let thirdRule = RuleRecord(id: "rule-c", name: "C", sortOrder: 2)
+        try ruleStore.save(firstRule, conditions: [])
+        try ruleStore.save(secondRule, conditions: [])
+        try ruleStore.save(thirdRule, conditions: [])
 
-        viewModel.moveRule(
-            secondRule,
-            direction: .up,
-            existingRules: [firstRule, secondRule, thirdRule],
-            context: nil
-        )
+        viewModel.moveRule(secondRule, direction: .up, existingRules: [firstRule, secondRule, thirdRule], database: database)
 
-        #expect(firstRule.sortOrder == 1)
-        #expect(secondRule.sortOrder == 0)
-        #expect(thirdRule.sortOrder == 2)
-        #expect(RuleViewModel.sortedRules([firstRule, secondRule, thirdRule]).map(\.name) == ["B", "A", "C"])
+        let orderedNames = RuleViewModel.sortedRules(try ruleStore.rules()).map(\.name)
+        #expect(orderedNames == ["B", "A", "C"])
+        #expect(viewModel.errorMessage == nil)
     }
 
     @MainActor
-    @Test func moveRuleToPositionOfTargetVerschiebtZeileBeimDragNachUnten() {
-        let firstRule = Rule(name: "A")
-        firstRule.sortOrder = 0
-        let secondRule = Rule(name: "B")
-        secondRule.sortOrder = 1
-        let thirdRule = Rule(name: "C")
-        thirdRule.sortOrder = 2
+    @Test func moveRuleToPositionOfTargetVerschiebtZeileBeimDragNachUnten() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let ruleStore = SQLiteRuleStore(database: database)
         let viewModel = RuleViewModel()
+        let firstRule = RuleRecord(id: "rule-a", name: "A", sortOrder: 0)
+        let secondRule = RuleRecord(id: "rule-b", name: "B", sortOrder: 1)
+        let thirdRule = RuleRecord(id: "rule-c", name: "C", sortOrder: 2)
+        try ruleStore.save(firstRule, conditions: [])
+        try ruleStore.save(secondRule, conditions: [])
+        try ruleStore.save(thirdRule, conditions: [])
 
-        viewModel.moveRule(firstRule, toPositionOf: thirdRule, existingRules: [firstRule, secondRule, thirdRule], context: nil)
+        viewModel.moveRule(firstRule, toPositionOf: thirdRule, existingRules: [firstRule, secondRule, thirdRule], database: database)
 
-        #expect(RuleViewModel.sortedRules([firstRule, secondRule, thirdRule]).map(\.name) == ["B", "C", "A"])
+        let orderedNames = RuleViewModel.sortedRules(try ruleStore.rules()).map(\.name)
+        #expect(orderedNames == ["B", "C", "A"])
+        #expect(viewModel.errorMessage == nil)
     }
 
     @MainActor
-    @Test func moveRuleToPositionOfTargetVerschiebtZeileBeimDragNachOben() {
-        let firstRule = Rule(name: "A")
-        firstRule.sortOrder = 0
-        let secondRule = Rule(name: "B")
-        secondRule.sortOrder = 1
-        let thirdRule = Rule(name: "C")
-        thirdRule.sortOrder = 2
+    @Test func moveRuleToPositionOfTargetVerschiebtZeileBeimDragNachOben() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let ruleStore = SQLiteRuleStore(database: database)
         let viewModel = RuleViewModel()
+        let firstRule = RuleRecord(id: "rule-a", name: "A", sortOrder: 0)
+        let secondRule = RuleRecord(id: "rule-b", name: "B", sortOrder: 1)
+        let thirdRule = RuleRecord(id: "rule-c", name: "C", sortOrder: 2)
+        try ruleStore.save(firstRule, conditions: [])
+        try ruleStore.save(secondRule, conditions: [])
+        try ruleStore.save(thirdRule, conditions: [])
 
-        viewModel.moveRule(thirdRule, toPositionOf: firstRule, existingRules: [firstRule, secondRule, thirdRule], context: nil)
+        viewModel.moveRule(thirdRule, toPositionOf: firstRule, existingRules: [firstRule, secondRule, thirdRule], database: database)
 
-        #expect(RuleViewModel.sortedRules([firstRule, secondRule, thirdRule]).map(\.name) == ["C", "A", "B"])
+        let orderedNames = RuleViewModel.sortedRules(try ruleStore.rules()).map(\.name)
+        #expect(orderedNames == ["C", "A", "B"])
+        #expect(viewModel.errorMessage == nil)
     }
 
     @MainActor
     @Test func createRuleSpeichertHideAktionOhneZielTag() throws {
-        let container = try ModelContainer(
-            for: Feed.self,
-            Article.self,
-            Tag.self,
-            Rule.self,
-            RuleCondition.self,
-            FeedLogEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let ruleStore = SQLiteRuleStore(database: database)
         let viewModel = RuleViewModel()
 
         viewModel.createRule(
@@ -198,28 +169,21 @@ struct RuleViewModelTests {
                 RuleConditionDraft(field: .title, conditionOperator: .contains, value: "Spoiler")
             ],
             assignTag: nil,
-            context: context
+            database: database
         )
 
-        let rules = try context.fetch(FetchDescriptor<Rule>())
+        let rules = try ruleStore.rules()
         #expect(rules.count == 1)
-        #expect(rules.first?.actionRaw == RuleAction.hideArticle.rawValue)
-        #expect(rules.first?.assignTag == nil)
+        let rule = try #require(rules.first)
+        #expect(rule.action == RuleAction.hideArticle.rawValue)
+        #expect(rule.assignTagID == nil)
         #expect(viewModel.errorMessage == nil)
     }
 
     @MainActor
     @Test func createRuleSpeichertBenachrichtigungsAktionMitTextUndPrioritaet() throws {
-        let container = try ModelContainer(
-            for: Feed.self,
-            Article.self,
-            Tag.self,
-            Rule.self,
-            RuleCondition.self,
-            FeedLogEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let ruleStore = SQLiteRuleStore(database: database)
         let viewModel = RuleViewModel()
 
         viewModel.createRule(
@@ -233,30 +197,21 @@ struct RuleViewModelTests {
             assignTag: nil,
             notificationTemplate: "Breaking: {Titel}",
             notificationPriority: .critical,
-            context: context
+            database: database
         )
 
-        let rules = try context.fetch(FetchDescriptor<Rule>())
-        let rule = try #require(rules.first)
-        #expect(rule.actionRaw == RuleAction.notify.rawValue)
-        #expect(rule.assignTag == nil)
+        let rule = try #require(try ruleStore.rules().first)
+        #expect(rule.action == RuleAction.notify.rawValue)
+        #expect(rule.assignTagID == nil)
         #expect(rule.notificationTemplate == "Breaking: {Titel}")
-        #expect(rule.notificationPriorityRaw == RuleNotificationPriority.critical.rawValue)
+        #expect(rule.notificationPriority == RuleNotificationPriority.critical.rawValue)
         #expect(viewModel.errorMessage == nil)
     }
 
     @MainActor
     @Test func createRuleVerhindertUngueltigeEingaben() throws {
-        let container = try ModelContainer(
-            for: Feed.self,
-            Article.self,
-            Tag.self,
-            Rule.self,
-            RuleCondition.self,
-            FeedLogEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let ruleStore = SQLiteRuleStore(database: database)
         let viewModel = RuleViewModel()
 
         viewModel.createRule(
@@ -267,29 +222,21 @@ struct RuleViewModelTests {
                 RuleConditionDraft(field: .title, conditionOperator: .contains, value: "Swift")
             ],
             assignTag: nil,
-            context: context
+            database: database
         )
 
-        let rules = try context.fetch(FetchDescriptor<Rule>())
-        #expect(rules.isEmpty)
+        #expect((try ruleStore.rules()).isEmpty)
         #expect(viewModel.errorMessage != nil)
     }
 
     @MainActor
     @Test func createRuleVerhindertUngueltigeRegexBedingung() throws {
-        let container = try ModelContainer(
-            for: Feed.self,
-            Article.self,
-            Tag.self,
-            Rule.self,
-            RuleCondition.self,
-            FeedLogEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
-        let tag = Tag(name: "Swift", colorHex: "#3B82F6")
-        context.insert(tag)
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let tagStore = TagStore(database: database)
+        let ruleStore = SQLiteRuleStore(database: database)
         let viewModel = RuleViewModel()
+        let tag = TagRecord(id: "tag-1", name: "Swift", colorHex: "#3B82F6")
+        try tagStore.save(tag)
 
         viewModel.createRule(
             name: "Regex",
@@ -299,79 +246,72 @@ struct RuleViewModelTests {
                 RuleConditionDraft(field: .title, conditionOperator: .regex, value: "[")
             ],
             assignTag: tag,
-            context: context
+            database: database
         )
 
-        let rules = try context.fetch(FetchDescriptor<Rule>())
-        #expect(rules.isEmpty)
+        #expect((try ruleStore.rules()).isEmpty)
         #expect(viewModel.errorMessage != nil)
     }
 
     @MainActor
     @Test func deleteRuleEntferntZugehoerigeConditions() throws {
-        let container = try ModelContainer(
-            for: Feed.self,
-            Article.self,
-            Tag.self,
-            Rule.self,
-            RuleCondition.self,
-            FeedLogEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
-        let rule = Rule(name: "Regel")
-        rule.conditions = [
-            RuleCondition(
-                field: RuleConditionField.title.rawValue,
-                conditionOperator: RuleConditionOperator.contains.rawValue,
-                value: "Swift",
-                sortOrder: 0
-            ),
-            RuleCondition(
-                field: RuleConditionField.summary.rawValue,
-                conditionOperator: RuleConditionOperator.contains.rawValue,
-                value: "Mac",
-                sortOrder: 1
-            )
-        ]
-        context.insert(rule)
-        try context.save()
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let ruleStore = SQLiteRuleStore(database: database)
         let viewModel = RuleViewModel()
+        let rule = RuleRecord(id: "rule-1", name: "Regel")
+        let firstCondition = RuleConditionRecord(
+            id: "condition-1",
+            ruleID: rule.id,
+            field: RuleConditionField.title.rawValue,
+            conditionOperator: RuleConditionOperator.contains.rawValue,
+            value: "Swift",
+            sortOrder: 0
+        )
+        let secondCondition = RuleConditionRecord(
+            id: "condition-2",
+            ruleID: rule.id,
+            field: RuleConditionField.summary.rawValue,
+            conditionOperator: RuleConditionOperator.contains.rawValue,
+            value: "Mac",
+            sortOrder: 1
+        )
+        try ruleStore.save(rule, conditions: [firstCondition, secondCondition])
 
-        viewModel.deleteRule(rule, context: context)
+        viewModel.deleteRule(rule, database: database)
 
-        let rules = try context.fetch(FetchDescriptor<Rule>())
-        #expect(rules.isEmpty)
-        // Mit .nullify statt .cascade würde SwiftData die Conditions nur
-        // verwaisten lassen — das manuelle Cascade im Code muss sie löschen.
-        let conditions = try context.fetch(FetchDescriptor<RuleCondition>())
-        #expect(conditions.isEmpty, "Conditions müssen mit der Regel gelöscht werden")
+        #expect((try ruleStore.rules()).isEmpty)
+        #expect(try ruleStore.conditions(ruleID: rule.id).isEmpty)
+        #expect(viewModel.errorMessage == nil)
     }
 
     @MainActor
     @Test func updateRuleLoeschtAlteConditionsStattSieZuVerwaisten() throws {
-        let container = try ModelContainer(
-            for: Feed.self, Article.self, Tag.self, Rule.self,
-            RuleCondition.self, FeedLogEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
-        let tag = Tag(name: "Swift", colorHex: "#3B82F6")
-        context.insert(tag)
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let tagStore = TagStore(database: database)
+        let ruleStore = SQLiteRuleStore(database: database)
         let viewModel = RuleViewModel()
-
-        viewModel.createRule(
-            name: "Alt",
-            isEnabled: true,
-            matchMode: .all,
-            conditionDrafts: [
-                RuleConditionDraft(field: .title, conditionOperator: .contains, value: "A"),
-                RuleConditionDraft(field: .title, conditionOperator: .contains, value: "B")
-            ],
-            assignTag: tag,
-            context: context
-        )
-        let rule = try #require(context.fetch(FetchDescriptor<Rule>()).first)
+        let tag = TagRecord(id: "tag-1", name: "Swift", colorHex: "#3B82F6")
+        try tagStore.save(tag)
+        let rule = RuleRecord(id: "rule-1", name: "Alt")
+        let originalConditions = [
+            RuleConditionRecord(
+                id: "condition-1",
+                ruleID: rule.id,
+                field: RuleConditionField.title.rawValue,
+                conditionOperator: RuleConditionOperator.contains.rawValue,
+                value: "A",
+                sortOrder: 0
+            ),
+            RuleConditionRecord(
+                id: "condition-2",
+                ruleID: rule.id,
+                field: RuleConditionField.title.rawValue,
+                conditionOperator: RuleConditionOperator.contains.rawValue,
+                value: "B",
+                sortOrder: 1
+            )
+        ]
+        try ruleStore.save(rule, conditions: originalConditions)
 
         viewModel.updateRule(
             rule,
@@ -382,13 +322,13 @@ struct RuleViewModelTests {
                 RuleConditionDraft(field: .title, conditionOperator: .contains, value: "C")
             ],
             assignTag: tag,
-            context: context
+            database: database
         )
 
-        // .nullify würde 2 Orphans + 1 neue = 3 hinterlassen; korrekt ist nur die 1 neue.
-        let allConditions = try context.fetch(FetchDescriptor<RuleCondition>())
-        #expect(allConditions.count == 1)
-        #expect((rule.conditions ?? []).count == 1)
-        #expect(allConditions.first?.rule != nil)
+        #expect(try ruleStore.conditions(ruleID: rule.id).count == 1)
+        let updatedRule = try #require(try ruleStore.rule(id: rule.id))
+        #expect(updatedRule.name == "Neu")
+        #expect(updatedRule.assignTagID == tag.id)
+        #expect(viewModel.errorMessage == nil)
     }
 }

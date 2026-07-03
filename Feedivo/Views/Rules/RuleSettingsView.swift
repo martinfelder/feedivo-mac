@@ -545,58 +545,7 @@ enum RuleSettingsFormatter {
                     conditionOperator: conditionOperator,
                     value: condition.value
                 )
-            }
-    }
-
-    static func conditionSummary(for rule: Rule) -> String {
-        let conditionDrafts = conditionDrafts(for: rule)
-        guard !conditionDrafts.isEmpty else {
-            return L10n.ruleSummaryNoCondition
         }
-
-        let connector = RuleMatchMode.normalized(rule.conditionMatchMode) == .all ? L10n.ruleSummaryAll : L10n.ruleSummaryAny
-        return conditionDrafts
-            .map { draft in
-                conditionDescription(draft)
-            }
-            .joined(separator: " \(connector) ")
-    }
-
-    static func matchingArticleCount(for rule: Rule, articles: [Article]) -> Int {
-        RuleEngine.matchingArticleCount(
-            conditionDrafts: conditionDrafts(for: rule),
-            matchMode: RuleMatchMode.normalized(rule.conditionMatchMode),
-            articles: articles
-        )
-    }
-
-    /// Berechnet die Trefferzahl für alle Regeln in einem Durchlauf und liefert sie
-    /// als Map `rule.id → Trefferzahl`. So wird pro Render nur einmal über die
-    /// Artikel iteriert statt pro Regelzeile (P2: zuvor N × O(articles) im ForEach).
-    static func matchingCounts(for rules: [Rule], articles: [Article]) -> [UUID: Int] {
-        var counts: [UUID: Int] = [:]
-        for rule in rules {
-            counts[rule.id] = matchingArticleCount(for: rule, articles: articles)
-        }
-        return counts
-    }
-
-    private static func conditionDrafts(for rule: Rule) -> [RuleConditionDraft] {
-        (rule.conditions ?? [])
-            .sorted { $0.sortOrder < $1.sortOrder }
-            .compactMap { condition -> RuleConditionDraft? in
-                guard let field = RuleConditionField(rawValue: condition.field),
-                      let conditionOperator = RuleConditionOperator(rawValue: condition.conditionOperator)
-                else {
-                    return nil
-                }
-
-                return RuleConditionDraft(
-                    field: field,
-                    conditionOperator: conditionOperator,
-                    value: condition.value
-                )
-            }
     }
 
     private static func conditionDescription(_ draft: RuleConditionDraft) -> String {

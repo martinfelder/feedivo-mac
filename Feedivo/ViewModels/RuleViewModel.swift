@@ -1,7 +1,10 @@
 import Foundation
 import Observation
-import SwiftData
 
+// Legacy-Fallback: Diese ViewModel-Implementierung wird nur noch im
+// Migrations- oder Übergangsmodus genutzt.
+// Der produktive Regelfluss nutzt ausschließlich RuleRecord/RuleConditionRecord
+// über SQLiteRuleStore.
 struct RuleConditionDraft: Identifiable, Equatable {
     var id = UUID()
     var field: RuleConditionField
@@ -19,7 +22,7 @@ enum RuleMoveDirection {
 final class RuleViewModel {
     var errorMessage: String?
 
-    static func sortedRules(_ rules: [Rule]) -> [Rule] {
+    static func sortedRules(_ rules: [RuleRecord]) -> [RuleRecord] {
         rules.sorted { firstRule, secondRule in
             if firstRule.sortOrder == secondRule.sortOrder {
                 return firstRule.name.localizedCaseInsensitiveCompare(secondRule.name) == .orderedAscending
@@ -35,11 +38,11 @@ final class RuleViewModel {
         action: RuleAction = .assignTag,
         matchMode: RuleMatchMode,
         conditionDrafts: [RuleConditionDraft],
-        assignTag: Tag?,
+        assignTag: TagRecord?,
         notificationTemplate: String = "{Titel}",
         notificationPriority: RuleNotificationPriority = .normal,
-        existingRules: [Rule] = [],
-        context: ModelContext
+        existingRules: [RuleRecord] = [],
+        database: FeedivoDatabase
     ) {
         guard let normalizedName = normalizedName(name),
               let conditions = normalizedConditions(from: conditionDrafts)
@@ -53,16 +56,21 @@ final class RuleViewModel {
             return
         }
 
-        let rule = Rule(name: normalizedName)
-        rule.isEnabled = isEnabled
-        rule.actionRaw = action.rawValue
-        rule.notificationTemplate = normalizedNotificationTemplate(notificationTemplate)
-        rule.notificationPriorityRaw = notificationPriority.rawValue
-        rule.conditionMatchMode = matchMode.rawValue
-        rule.assignTag = action == .assignTag ? assignTag : nil
-        rule.sortOrder = nextSortOrder(after: existingRules)
-        rule.conditions = conditions.enumerated().map { index, condition in
-            RuleCondition(
+        let record = RuleRecord(
+            id: UUID().uuidString,
+            name: normalizedName,
+            isEnabled: isEnabled,
+            matchMode: matchMode.rawValue,
+            action: action.rawValue,
+            assignTagID: action == .assignTag ? assignTag?.id : nil,
+            notificationTemplate: normalizedNotificationTemplate(notificationTemplate),
+            notificationPriority: notificationPriority.rawValue,
+            sortOrder: nextSortOrder(after: existingRules)
+        )
+        let conditionRecords = conditions.enumerated().map { index, condition in
+            RuleConditionRecord(
+                id: UUID().uuidString,
+                ruleID: record.id,
                 field: condition.field,
                 conditionOperator: condition.conditionOperator,
                 value: condition.value,
@@ -70,50 +78,32 @@ final class RuleViewModel {
             )
         }
 
-        context.insert(rule)
-        save(context)
+        persist(record, conditions: conditionRecords, in: database)
     }
 
-    func duplicateRule(_ rule: Rule, existingRules: [Rule], context: ModelContext) {
-        let conditions = sortedConditions(for: rule)
-        guard !conditions.isEmpty else {
+    func duplicateRule(
+        _ rule: RuleRecord,
+        existingRules _: [RuleRecord],
+        database: FeedivoDatabase
+    ) {
+        guard !sortedConditions(for: rule, database: database).isEmpty else {
             errorMessage = L10n.ruleValidationError
             return
         }
 
-        let duplicate = Rule(name: "\(rule.name) Kopie")
-        duplicate.isEnabled = false
-        duplicate.actionRaw = rule.actionRaw
-        duplicate.notificationTemplate = rule.notificationTemplate
-        duplicate.notificationPriorityRaw = rule.notificationPriorityRaw
-        duplicate.conditionMatchMode = rule.conditionMatchMode
-        duplicate.assignTag = RuleAction.normalized(rule.actionRaw) == .assignTag ? rule.assignTag : nil
-        duplicate.conditions = conditions.enumerated().map { index, condition in
-            RuleCondition(
-                field: condition.field,
-                conditionOperator: condition.conditionOperator,
-                value: condition.value,
-                sortOrder: index
+        do {
+            _ = try SQLiteRuleStore(database: database).duplicate(
+                id: rule.id,
+                copyName: "\(rule.name) Kopie"
             )
+            errorMessage = nil
+        } catch {
+            errorMessage = error.localizedDescription
         }
-
-        context.insert(duplicate)
-
-        let orderedRules = Self.sortedRules(existingRules)
-        let originalIndex = orderedRules.firstIndex { $0.id == rule.id } ?? orderedRules.endIndex
-        var reorderedRules = orderedRules
-        reorderedRules.insert(duplicate, at: min(originalIndex + 1, reorderedRules.count))
-        normalizeSortOrder(in: reorderedRules)
-        save(context)
     }
 
-    func moveRule(
-        _ rule: Rule,
-        direction: RuleMoveDirection,
-        existingRules: [Rule],
-        context: ModelContext?
-    ) {
-        var orderedRules = Self.sortedRules(existingRules)
+    func moveRule(_ rule: RuleRecord, direction: RuleMoveDirection, existingRules: [RuleRecord], database: FeedivoDatabase) {
+        let orderedRules = Self.sortedRules(existingRules)
         guard let currentIndex = orderedRules.firstIndex(where: { $0.id == rule.id }) else {
             return
         }
@@ -126,56 +116,53 @@ final class RuleViewModel {
             destinationIndex = min(orderedRules.count - 1, currentIndex + 1)
         }
 
-        guard currentIndex != destinationIndex else {
-            return
-        }
-
-        orderedRules.swapAt(currentIndex, destinationIndex)
-        normalizeSortOrder(in: orderedRules)
-
-        if let context {
-            save(context)
-        } else {
-            errorMessage = nil
-        }
-    }
-
-    func moveRule(
-        _ rule: Rule,
-        toPositionOf targetRule: Rule,
-        existingRules: [Rule],
-        context: ModelContext?
-    ) {
-        var orderedRules = Self.sortedRules(existingRules)
-        guard let sourceIndex = orderedRules.firstIndex(where: { $0.id == rule.id }),
-              let targetIndex = orderedRules.firstIndex(where: { $0.id == targetRule.id }),
-              sourceIndex != targetIndex
+        guard currentIndex != destinationIndex,
+              orderedRules.indices.contains(destinationIndex)
         else {
             return
         }
 
-        let movedRule = orderedRules.remove(at: sourceIndex)
-        orderedRules.insert(movedRule, at: targetIndex)
-        normalizeSortOrder(in: orderedRules)
-
-        if let context {
-            save(context)
-        } else {
+        let destinationRule = orderedRules[destinationIndex]
+        do {
+            try SQLiteRuleStore(database: database).move(id: rule.id, toPositionOf: destinationRule.id)
             errorMessage = nil
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func moveRule(
+        _ rule: RuleRecord,
+        toPositionOf targetRule: RuleRecord,
+        existingRules: [RuleRecord],
+        database: FeedivoDatabase
+    ) {
+        let orderedRules = Self.sortedRules(existingRules)
+        guard orderedRules.contains(where: { $0.id == rule.id }),
+              orderedRules.contains(where: { $0.id == targetRule.id })
+        else {
+            return
+        }
+
+        do {
+            try SQLiteRuleStore(database: database).move(id: rule.id, toPositionOf: targetRule.id)
+            errorMessage = nil
+        } catch {
+            errorMessage = error.localizedDescription
         }
     }
 
     func updateRule(
-        _ rule: Rule,
+        _ rule: RuleRecord,
         name: String,
         isEnabled: Bool,
         action: RuleAction = .assignTag,
         matchMode: RuleMatchMode,
         conditionDrafts: [RuleConditionDraft],
-        assignTag: Tag?,
+        assignTag: TagRecord?,
         notificationTemplate: String = "{Titel}",
         notificationPriority: RuleNotificationPriority = .normal,
-        context: ModelContext
+        database: FeedivoDatabase
     ) {
         guard let normalizedName = normalizedName(name),
               let conditions = normalizedConditions(from: conditionDrafts)
@@ -189,21 +176,19 @@ final class RuleViewModel {
             return
         }
 
-        rule.name = normalizedName
-        rule.isEnabled = isEnabled
-        rule.actionRaw = action.rawValue
-        rule.notificationTemplate = normalizedNotificationTemplate(notificationTemplate)
-        rule.notificationPriorityRaw = notificationPriority.rawValue
-        rule.conditionMatchMode = matchMode.rawValue
-        rule.assignTag = action == .assignTag ? assignTag : nil
-        // .nullify statt .cascade (CloudKit-kompatibel): removeAll würde die
-        // alten Conditions nur verwaisten lassen — deshalb manuell löschen,
-        // analog deleteRule.
-        for condition in rule.conditions ?? [] {
-            context.delete(condition)
-        }
-        rule.conditions = conditions.enumerated().map { index, condition in
-            RuleCondition(
+        var updatedRule = rule
+        updatedRule.name = normalizedName
+        updatedRule.isEnabled = isEnabled
+        updatedRule.matchMode = matchMode.rawValue
+        updatedRule.action = action.rawValue
+        updatedRule.assignTagID = action == .assignTag ? assignTag?.id : nil
+        updatedRule.notificationTemplate = normalizedNotificationTemplate(notificationTemplate)
+        updatedRule.notificationPriority = notificationPriority.rawValue
+
+        let conditionRecords = conditions.enumerated().map { index, condition in
+            RuleConditionRecord(
+                id: UUID().uuidString,
+                ruleID: rule.id,
                 field: condition.field,
                 conditionOperator: condition.conditionOperator,
                 value: condition.value,
@@ -211,31 +196,37 @@ final class RuleViewModel {
             )
         }
 
-        save(context)
+        persist(updatedRule, conditions: conditionRecords, in: database)
     }
 
-    func deleteRule(_ rule: Rule, context: ModelContext) {
-        // .nullify statt .cascade (CloudKit-kompatibel): SwiftData würde die
-        // Conditions nur verwaisten lassen — deshalb hier manuell löschen.
-        for condition in rule.conditions ?? [] {
-            context.delete(condition)
+    func deleteRule(_ rule: RuleRecord, database: FeedivoDatabase) {
+        do {
+            try SQLiteRuleStore(database: database).delete(id: rule.id)
+            errorMessage = nil
+        } catch {
+            errorMessage = error.localizedDescription
         }
-        context.delete(rule)
-        save(context)
     }
 
-    private func nextSortOrder(after rules: [Rule]) -> Int {
+    private func persist(_ rule: RuleRecord, conditions: [RuleConditionRecord], in database: FeedivoDatabase) {
+        do {
+            try SQLiteRuleStore(database: database).save(rule, conditions: conditions)
+            errorMessage = nil
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func sortedConditions(for rule: RuleRecord, database: FeedivoDatabase) -> [RuleConditionRecord] {
+        (try? ruleStore(in: database).conditions(ruleID: rule.id)) ?? []
+    }
+
+    private func ruleStore(in database: FeedivoDatabase) -> SQLiteRuleStore {
+        SQLiteRuleStore(database: database)
+    }
+
+    private func nextSortOrder(after rules: [RuleRecord]) -> Int {
         (rules.map(\.sortOrder).max() ?? -1) + 1
-    }
-
-    private func normalizeSortOrder(in rules: [Rule]) {
-        for (index, rule) in rules.enumerated() {
-            rule.sortOrder = index
-        }
-    }
-
-    private func sortedConditions(for rule: Rule) -> [RuleCondition] {
-        (rule.conditions ?? []).sorted { $0.sortOrder < $1.sortOrder }
     }
 
     private func normalizedName(_ name: String) -> String? {
@@ -252,8 +243,7 @@ final class RuleViewModel {
                 continue
             }
 
-            if draft.conditionOperator == .regex,
-               !RuleConditionOperator.isValidRegexPattern(value) {
+            if draft.conditionOperator == .regex, !RuleConditionOperator.isValidRegexPattern(value) {
                 return nil
             }
 
@@ -266,14 +256,5 @@ final class RuleViewModel {
     private func normalizedNotificationTemplate(_ template: String) -> String {
         let trimmed = template.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? "{Titel}" : trimmed
-    }
-
-    private func save(_ context: ModelContext) {
-        do {
-            try context.save()
-            errorMessage = nil
-        } catch {
-            errorMessage = error.localizedDescription
-        }
     }
 }

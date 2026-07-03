@@ -7,9 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		C95F7D0A3315F04A00A1B2C3 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = C95F7D093315F04A00A1B2C3 /* GRDB */; };
 		C9102A872FE5A9A300E81C7E /* FeedKit in Frameworks */ = {isa = PBXBuildFile; productRef = C9102A862FE5A9A300E81C7E /* FeedKit */; };
 		C9102A892FE5A9A300E81C7E /* XMLKit in Frameworks */ = {isa = PBXBuildFile; productRef = C9102A882FE5A9A300E81C7E /* XMLKit */; };
+		C95F7D0A3315F04A00A1B2C3 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = C95F7D093315F04A00A1B2C3 /* GRDB */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -208,7 +208,7 @@
 			mainGroup = C9CE924E2FE5A90700B9C79A;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				C95F7D083315F04A00A1B2C3 /* XCRemoteSwiftPackageReference "GRDB.swift" */,
+				C95F7D083315F04A00A1B2C3 /* XCRemoteSwiftPackageReference "GRDB" */,
 				C9102A852FE5A9A300E81C7E /* XCRemoteSwiftPackageReference "FeedKit" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -595,14 +595,6 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		C95F7D083315F04A00A1B2C3 /* XCRemoteSwiftPackageReference "GRDB.swift" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/groue/GRDB.swift";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 7.0.0;
-			};
-		};
 		C9102A852FE5A9A300E81C7E /* XCRemoteSwiftPackageReference "FeedKit" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/nmdias/FeedKit";
@@ -611,14 +603,17 @@
 				minimumVersion = 10.4.0;
 			};
 		};
+		C95F7D083315F04A00A1B2C3 /* XCRemoteSwiftPackageReference "GRDB" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/groue/GRDB.swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 7.0.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		C95F7D093315F04A00A1B2C3 /* GRDB */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C95F7D083315F04A00A1B2C3 /* XCRemoteSwiftPackageReference "GRDB.swift" */;
-			productName = GRDB;
-		};
 		C9102A862FE5A9A300E81C7E /* FeedKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = C9102A852FE5A9A300E81C7E /* XCRemoteSwiftPackageReference "FeedKit" */;
@@ -628,6 +623,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = C9102A852FE5A9A300E81C7E /* XCRemoteSwiftPackageReference "FeedKit" */;
 			productName = XMLKit;
+		};
+		C95F7D093315F04A00A1B2C3 /* GRDB */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C95F7D083315F04A00A1B2C3 /* XCRemoteSwiftPackageReference "GRDB" */;
+			productName = GRDB;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

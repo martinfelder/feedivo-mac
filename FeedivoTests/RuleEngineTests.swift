@@ -403,29 +403,51 @@ struct RuleEngineTests {
 
     @MainActor
     @Test func matchingCountsLiefertTrefferProRegelInEinerMap() throws {
-        let feed = Feed(url: "https://example.com/feed.xml", title: "Mac News")
         let articles = [
-            Article(title: "Swift auf dem Mac", feed: feed),
-            Article(title: "Windows News", feed: feed),
-            Article(title: "Swift 7 ist da", feed: feed)
+            RuleEngine.ArticleRuleSnapshot(
+                id: UUID().uuidString,
+                title: "Swift auf dem Mac",
+                summary: nil,
+                feedTitle: "Mac News"
+            ),
+            RuleEngine.ArticleRuleSnapshot(
+                id: UUID().uuidString,
+                title: "Windows News",
+                summary: nil,
+                feedTitle: "Mac News"
+            ),
+            RuleEngine.ArticleRuleSnapshot(
+                id: UUID().uuidString,
+                title: "Swift 7 ist da",
+                summary: nil,
+                feedTitle: "Mac News"
+            )
         ]
 
-        let swiftRule = Rule(name: "Swift")
-        swiftRule.conditionMatchMode = RuleMatchMode.all.rawValue
-        swiftRule.conditions = [
-            RuleCondition(field: "title", conditionOperator: "contains", value: "Swift", sortOrder: 0)
+        let rules: [(String, RuleConditionDraft)] = [
+            (
+                "Swift",
+                RuleConditionDraft(field: .title, conditionOperator: .contains, value: "Swift")
+            ),
+            (
+                "Windows",
+                RuleConditionDraft(field: .title, conditionOperator: .contains, value: "Windows")
+            )
         ]
 
-        let windowsRule = Rule(name: "Windows")
-        windowsRule.conditionMatchMode = RuleMatchMode.all.rawValue
-        windowsRule.conditions = [
-            RuleCondition(field: "title", conditionOperator: "contains", value: "Windows", sortOrder: 0)
-        ]
+        var counts: [String: Int] = [:]
+        for (name, draft) in rules {
+            counts[name] = RuleEngine.matchingArticleCount(
+                conditionDrafts: [draft],
+                matchMode: .all,
+                articles: articles
+            )
+        }
 
-        let counts = RuleSettingsFormatter.matchingCounts(for: [swiftRule, windowsRule], articles: articles)
-
-        #expect(counts[swiftRule.id] == 2)
-        #expect(counts[windowsRule.id] == 1)
+        let swiftRuleCount = counts["Swift"]
+        let windowsRuleCount = counts["Windows"]
+        #expect(swiftRuleCount == 2)
+        #expect(windowsRuleCount == 1)
         #expect(counts.count == 2)
     }
 }

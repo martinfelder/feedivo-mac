@@ -852,6 +852,20 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(wizardSource.contains("TagStore(database: database).save("))
     }
 
+    @Test func refreshPfadNutztRegelnAusSQLiteStore() throws {
+        let projectRoot = projectRootURL()
+        let viewModelSource = try source(at: "Feedivo/ViewModels/FeedViewModel.swift", projectRoot: projectRoot)
+        let compactViewModelSource = compact(viewModelSource)
+
+        #expect(compactViewModelSource.contains("funcrefreshFeed(feedID:String,context:ModelContext,sqliteDatabase:FeedivoDatabase?)async"))
+        #expect(compactViewModelSource.contains("funcsqliteRuleSnapshots(fromdatabase:FeedivoDatabase)->[RuleEngine.RuleSnapshot]"))
+        #expect(viewModelSource.contains("let ruleSnapshots = sqliteRuleSnapshots(from: sqliteDatabase)"))
+        #expect(viewModelSource.contains("refreshAllFeeds("))
+        #expect(viewModelSource.contains("sqliteDatabase: FeedivoDatabase"))
+        #expect(viewModelSource.contains("modelContainer _: ModelContainer?"))
+        #expect(compactViewModelSource.contains("SQLiteRuleStore(database:database).ruleSnapshots()"))
+    }
+
     @Test func feedRowViewBevorzugtSQLiteSnapshotWerte() throws {
         let projectRoot = projectRootURL()
         let rowSource = try source(at: "Feedivo/Views/Sidebar/FeedRowView.swift", projectRoot: projectRoot)
