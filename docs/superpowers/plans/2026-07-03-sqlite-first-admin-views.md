@@ -18,12 +18,12 @@
 - Test: `FeedivoTests/FeedivoAppSceneConfigurationTests.swift`
 - Test: `FeedivoTests/SQLiteAdminStoreTests.swift`
 
-- [ ] Add failing source test proving `TagManagerView` has no `@Query(sort: \Tag.name)` and uses `TagRecord`.
-- [ ] Add failing store test for tag rename/color/delete through `TagStore`.
-- [ ] Add `TagStore.renameTag`, `TagStore.updateColor`, and duplicate-name checks.
-- [ ] Convert `TagManagerView` rows to `TagRecord` and reload after create/update/delete.
-- [ ] Run focused tests and build.
-- [ ] Commit.
+- [x] Add failing source test proving `TagManagerView` has no `@Query(sort: \Tag.name)` and uses `TagRecord`.
+- [x] Add failing store test for tag rename/color/delete through `TagStore`.
+- [x] Add `TagStore.renameTag`, `TagStore.updateColor`, and duplicate-name checks.
+- [x] Convert `TagManagerView` rows to `TagRecord` and reload after create/update/delete.
+- [x] Run focused tests and build.
+- [x] Commit.
 
 ### Task 2: Sidebar Feed-Folder And Smart-Folder Sources
 

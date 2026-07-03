@@ -92,8 +92,8 @@ struct SidebarView: View {
             )
         }
         .sheet(isPresented: $isShowingTagManager) {
-            TagManagerView { tag in
-                selection = .tag(tag.id.uuidString)
+            TagManagerView { tagID in
+                selection = .tag(tagID)
             }
         }
         .sheet(isPresented: $isCreatingSmartFolder) {

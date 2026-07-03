@@ -492,20 +492,32 @@ struct FeedivoAppSceneConfigurationTests {
 
     @Test func swiftDataVerwaltungseditorenSindBewussteUebergangsschicht() throws {
         let projectRoot = projectRootURL()
-        let tagManagerSource = try source(at: "Feedivo/Views/Tags/TagManagerView.swift", projectRoot: projectRoot)
         let ruleSettingsSource = try source(at: "Feedivo/Views/Rules/RuleSettingsView.swift", projectRoot: projectRoot)
         let ruleWizardSource = try source(at: "Feedivo/Views/Rules/RuleWizardView.swift", projectRoot: projectRoot)
         let smartFolderSettingsSource = try source(at: "Feedivo/Views/SmartFolders/SmartFolderSettingsView.swift", projectRoot: projectRoot)
         let contentSource = try source(at: "Feedivo/Views/ContentView.swift", projectRoot: projectRoot)
         let appSource = try source(at: "Feedivo/App/FeedivoApp.swift", projectRoot: projectRoot)
 
-        #expect(tagManagerSource.contains("@Query(sort: \\Tag.name) private var tags: [Tag]"))
         #expect(ruleSettingsSource.contains("@Query(sort: \\Rule.sortOrder) private var rules: [Rule]"))
         #expect(ruleWizardSource.contains("@Query(sort: \\Rule.sortOrder) private var existingRules: [Rule]"))
         #expect(smartFolderSettingsSource.contains("@Query(sort: \\SmartFolder.sortOrder) private var folders: [SmartFolder]"))
         #expect(contentSource.contains("SQLiteFeedArticleListView("))
         #expect(contentSource.contains("SQLiteReaderView("))
         #expect(appSource.contains("SQLiteAdminDefinitionBackfillService.backfill"))
+    }
+
+    @Test func tagManagerIstSQLiteFirst() throws {
+        let projectRoot = projectRootURL()
+        let source = try source(at: "Feedivo/Views/Tags/TagManagerView.swift", projectRoot: projectRoot)
+
+        #expect(!source.contains("@Query(sort: \\Tag.name)"))
+        #expect(!source.contains("@Environment(\\.modelContext)"))
+        #expect(source.contains("@State private var tags: [TagRecord] = []"))
+        #expect(source.contains("TagStore(database: database).tags()"))
+        #expect(source.contains("TagStore(database: database).save"))
+        #expect(source.contains("TagStore(database: database).renameTag"))
+        #expect(source.contains("TagStore(database: database).updateColor"))
+        #expect(source.contains("TagStore(database: database).deleteTag"))
     }
 
     @Test func sqliteReaderMeldetGeladenenSnapshotAnCommandEbene() throws {
@@ -641,11 +653,12 @@ struct FeedivoAppSceneConfigurationTests {
         let source = try source(at: "Feedivo/Views/Tags/TagManagerView.swift", projectRoot: projectRoot)
 
         #expect(source.contains("@Environment(\\.feedivoDatabase) private var feedivoDatabase"))
-        #expect(source.contains("sqliteDatabase: feedivoDatabase"))
-        #expect(source.contains("viewModel.createTag("))
-        #expect(source.contains("viewModel.renameTag("))
-        #expect(source.contains("viewModel.updateColor("))
-        #expect(source.contains("viewModel.deleteTag("))
+        #expect(source.contains("TagStore(database: database).save"))
+        #expect(source.contains("TagStore(database: database).renameTag"))
+        #expect(source.contains("TagStore(database: database).updateColor"))
+        #expect(source.contains("TagStore(database: database).deleteTag"))
+        #expect(!source.contains("sqliteDatabase: feedivoDatabase"))
+        #expect(!source.contains("viewModel.createTag("))
     }
 
     private func projectRootURL() -> URL {

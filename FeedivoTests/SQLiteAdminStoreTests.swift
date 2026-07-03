@@ -18,6 +18,28 @@ struct SQLiteAdminStoreTests {
         #expect(try store.folders().map(\.id) == ["folder-b"])
     }
 
+    @Test func tagStoreMutiertTagsSQLiteFirst() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let store = TagStore(database: database)
+
+        try store.save(TagRecord(id: "tag-1", name: "Swift", colorHex: "#FF0000"))
+        try store.save(TagRecord(id: "tag-2", name: "Apple", colorHex: "#00FF00"))
+
+        try store.renameTag(id: "tag-1", name: "Swift News")
+        try store.updateColor(id: "tag-1", colorHex: "3b82f6")
+
+        let updatedTag = try #require(store.tags().first { $0.id == "tag-1" })
+        #expect(updatedTag.name == "Swift News")
+        #expect(updatedTag.colorHex == "#3B82F6")
+        #expect(throws: TagStore.TagStoreError.duplicateName) {
+            try store.renameTag(id: "tag-1", name: "apple")
+        }
+
+        try store.deleteTag(id: "tag-2")
+
+        #expect(try store.tags().map(\.id) == ["tag-1"])
+    }
+
     @Test func ruleStoreSpeichertRegelnMitConditionsUndTagSnapshot() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         try TagStore(database: database).save(TagRecord(id: "tag-1", name: "Swift", colorHex: "#FF0000"))

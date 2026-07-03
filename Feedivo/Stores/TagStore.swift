@@ -2,6 +2,11 @@ import Foundation
 import GRDB
 
 struct TagStore {
+    enum TagStoreError: Error, Equatable {
+        case duplicateName
+        case missingTag
+    }
+
     private let database: FeedivoDatabase
 
     init(database: FeedivoDatabase) {
@@ -139,6 +144,52 @@ struct TagStore {
                 assignedAt: assignedAt
             )
             try assignment.insert(db, onConflict: .ignore)
+        }
+    }
+
+    func renameTag(id: String, name: String) throws {
+        try database.write { db in
+            let duplicateID = try String.fetchOne(db, sql: """
+                SELECT id
+                FROM tags
+                WHERE name = ? COLLATE NOCASE
+                    AND id <> ?
+                LIMIT 1
+                """, arguments: [name, id])
+
+            if duplicateID != nil {
+                throw TagStoreError.duplicateName
+            }
+
+            try db.execute(
+                sql: """
+                    UPDATE tags
+                    SET name = ?, updatedAt = ?
+                    WHERE id = ?
+                    """,
+                arguments: [name, Date(), id]
+            )
+
+            if db.changesCount == 0 {
+                throw TagStoreError.missingTag
+            }
+        }
+    }
+
+    func updateColor(id: String, colorHex: String) throws {
+        try database.write { db in
+            try db.execute(
+                sql: """
+                    UPDATE tags
+                    SET colorHex = ?, updatedAt = ?
+                    WHERE id = ?
+                    """,
+                arguments: [TagViewModel.normalizedColorHex(colorHex), Date(), id]
+            )
+
+            if db.changesCount == 0 {
+                throw TagStoreError.missingTag
+            }
         }
     }
 
