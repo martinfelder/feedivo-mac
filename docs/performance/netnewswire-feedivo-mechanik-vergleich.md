@@ -15,7 +15,7 @@ SQLite-Migration später fortgesetzt wird.
 
 ### 1. Eigener ArticleStore
 
-**Weitgehend erledigt.**
+**Erledigt im produktiven Feed-/Artikelpfad.**
 
 Feedivo hat inzwischen eine eigene SQLite/GRDB-Schicht für Artikel, Status,
 Timeline, Feeds, Logs, Tags und Suche. Der produktive Reader-/Listenpfad nutzt
@@ -23,6 +23,7 @@ SQLite-Snapshots und lädt keine SwiftData-Artikel mehr als Hauptquelle.
 
 Wichtige Bausteine:
 
+- `ArticleDatabase` als Fassade
 - `ArticleStore`
 - `ArticleStatusStore`
 - `TimelineStore`
@@ -49,20 +50,20 @@ nachgeladen. Die alte SwiftData-Artikelliste ist nicht mehr Produktpfad.
 
 ### 4. Eigene Timeline-Fetch-Queue
 
-**Teilweise erledigt.**
+**Erledigt für den SwiftUI-Produktpfad.**
 
 `TimelineStore` und `SQLiteFeedArticleListState` kapseln Timeline-Loads bereits
-außerhalb von SwiftData-`@Query`. Noch nicht vollständig NetNewsWire-artig ist
-eine explizite Fetch-Queue mit konsequentem Canceln alter Loads und Verwerfen
-veralteter Ergebnisse bei schnellen Scope-Wechseln.
+außerhalb von SwiftData-`@Query`. `SQLiteFeedArticleListState` startet explizite
+async Timeline-Requests, cancelt den vorherigen Load bei Scope-/Suchwechsel und
+verwirft verspätete Ergebnisse per Generation-Check.
 
-**Möglicher nächster Schritt:** eine kleine `SQLiteTimelineLoadCoordinator`-
-Schicht, die laufende Tasks pro Scope abbrechen kann und nur das neueste Ergebnis
-in den State übernimmt.
+**Rest im Vergleich zu NetNewsWire:** NetNewsWire kann mit `NSTableView` einzelne
+sichtbare Zeilen noch granularer neu laden. Feedivo bleibt hier bewusst SwiftUI,
+solange reale Lasttests keine Tabellen-Performanceprobleme zeigen.
 
 ### 5. Suche als Datenbank-/Index-Funktion
 
-**Weitgehend erledigt.**
+**Erledigt für Listen- und Suchfensterpfad.**
 
 SQLite/FTS ist vorhanden und die Suche lädt nicht mehr pauschal alle
 SwiftData-Artikel in die View. Das entspricht NetNewsWires Grundprinzip:
@@ -70,21 +71,23 @@ Suche ist Datenbankschicht, nicht UI-Materialisierung.
 
 ### 6. Counts aus dem Store
 
-**Weitgehend erledigt.**
+**Erledigt im produktiven Sidebar-/Listenpfad.**
 
 Feed-Zähler, Sidebar-Badges, Status-Badges und Smart-Folder-Counts kommen aus
-SQLite-Snapshots oder gezielten Count-Queries. Die verbleibende Abhängigkeit ist
-nicht der Count selbst, sondern die Feed-Identität: Sidebar und ContentView
-nutzen noch SwiftData-`Feed`-Objekte als Übergangsidentität.
+SQLite-Snapshots oder gezielten Count-Queries. Sidebar und Feed-Zeilen lesen
+`FeedSidebarSnapshot`, Tags und Smart Folders lesen SQLite-Snapshots. Die
+verbleibende SwiftData-Abhängigkeit ist nicht mehr Anzeige oder Count, sondern
+einige Aktionen und Sheets, die noch SwiftData-`Feed` als Übergangsbackend
+auflösen.
 
 ### 7. Refresh schreibt direkt in den Store
 
-**Weitgehend erledigt.**
+**Weitgehend erledigt, aber noch mit SwiftData-Aktionsbrücke.**
 
 Feed-Refresh, Feed hinzufügen, OPML-Import und First-Run-Wizard schreiben
 SQLite-first. Neue Artikel aus diesen Pfaden landen in SQLite. SwiftData bekommt
 bei neuen Feeds nur noch eine minimale Feed-Übergangsidentität, damit
-Sidebar/ContentView während des Übergangs stabil bleiben.
+verbleibende Aktionspfade während des Übergangs stabil bleiben.
 
 `SQLiteFeedSubscriptionService` kapselt Feed hinzufügen und OPML-Import. Nach
 SQLite-Schreibvorgängen wird `SQLiteDataInvalidation.statusVersion` gebumped,
@@ -116,42 +119,48 @@ SQLite-Snapshots messbar nicht reicht.
 Feedivo ist beim Artikel-Handling inzwischen deutlich NetNewsWire-artiger. Der
 Feed-Handling-Block ist inzwischen teilweise geschlossen:
 
-- [x] Sidebar/ContentView weg von `@Query [Feed]` — Sidebar nutzt nur noch
-  `SQLiteSidebarState.snapshots`.
+- [x] Sidebar-Anzeige und Artikellisten-Routing weg von `@Query [Feed]` —
+  Sidebar nutzt nur noch `SQLiteSidebarState.snapshots`, ContentView routet
+  ausgewählte Feeds per SQLite-Feed-ID in `SQLiteFeedArticleListView`.
 - [x] Feed-Auswahl vollständig über SQLite-Feed-ID: `SidebarSelection.feed`
   trägt `FeedRecord.id` (String); Artikelliste bekommt `init(feedID:)`.
 - [x] `FeedRowView` rendert aus `FeedSidebarSnapshot`; `FeedPropertiesView`/
   `FeedRenameView` laden `FeedRecord` via `FeedStore.feed(id:)`.
+- [x] Timeline-Loads sind cancellable und generation-gesichert.
+- [x] Listen- und Suchfenster-Suche laufen über SQLite/FTS.
 - [ ] temporäre SwiftData-Feed-Bridge entfernen — SwiftData `Feed` ist nur noch
   Aktionsbackend (Refresh/Delete/Badge/OPML/Wizard) und wird per ID aufgelöst.
-- [ ] alte SwiftData-Fallbacks löschen oder hart isolieren.
+- [ ] Verbleibende `ContentView`-Abhängigkeiten von `@Query [Feed]` entfernen:
+  First-Run-Entscheidung, OPML-/Wizard-Übergabe, Refresh-All/Delete/Feed-Menü und
+  Dock-Badge müssen direkt aus SQLite-Snapshots/Stores funktionieren.
+- [ ] alte SwiftData-Fallbacks löschen oder hart isolieren, sobald diese
+  Restabhängigkeiten weg sind.
 - [ ] `FeedViewModel` weiter verschlanken, sodass Feed-Abo, Refresh und
   Artikelstore stärker in dedizierten Services liegen.
 
 Kurzfassung: **Artikel-Handling ist größtenteils SQLite-/NetNewsWire-artig.
 Feed-Navigationsidentität ist SQLite-only (Feed-ID). Offen ist das Entfernen der
-verbleibenden SwiftData-Feed-Brücke (OPML-/Wizard-Sheets, Badge,
-FeedViewModel-Verschlankung) — Folge-Slice `sqlite-only-feed-bridge-removal`.**
+verbleibenden SwiftData-Feed-Brücke und der `ContentView`-Restabhängigkeiten von
+`@Query [Feed]` — Folge-Slice `sqlite-only-feed-bridge-removal`.**
 
 ## Kurzfazit
 
-Feedivo ist nach den letzten Performance-Slices deutlich näher an NetNewsWire:
-Feedivo nutzt inzwischen Conditional GET, Body-Hash-Skip, Batch-Refreshes mit
-eigenen SwiftData-Kontexten, leichte Fetch-Descriptoren, Feednamen-Snapshots,
-Reader-Background-Snapshots und Snapshot-basierte Artikelzeilen.
+Feedivo ist nach den letzten SQLite-Slices deutlich näher an NetNewsWire:
+Feedivo nutzt inzwischen SQLite/GRDB für den produktiven Feed-/Artikelpfad,
+Conditional GET, Body-Hash-Skip, SQLite-first Refreshes, getrennte Statuszeilen,
+FTS-Suche, cancellable Timeline-Loads, Feednamen-Snapshots,
+Reader-SQLite-Snapshots und Snapshot-basierte Artikelzeilen.
 
 Die wichtigsten verbleibenden Unterschiede liegen nicht mehr bei kleinen
 Zeilenoptimierungen, sondern bei tieferen Architekturentscheidungen:
 
-- NetNewsWire trennt Artikelinhalt und Artikelstatus in der Persistenz.
-- NetNewsWire nutzt eine eigene SQLite-Schicht mit gezielten SQL-Abfragen,
-  Status-Cache und Suchindex.
-- NetNewsWire kontrolliert Timeline-Fetches zentral über cancellable Operations.
-- NetNewsWire rendert die Artikelliste per `NSTableView` und lädt bei
-  Statusänderungen nur betroffene sichtbare Zellen neu.
-- Feedivo nutzt SwiftData und SwiftUI-`@Query`; dadurch ist die Implementierung
-  moderner und einfacher, aber bei sehr großen Datenmengen weniger präzise
-  steuerbar.
+- NetNewsWire rendert die Artikelliste per `NSTableView` und kann bei
+  Statusänderungen einzelne sichtbare Zellen noch granularer neu laden.
+- NetNewsWire behält alte Status-/Seen-Metadaten länger als Artikelinhalte.
+- NetNewsWire hat eine Account-Schicht für lokale und Sync-Accounts; Feedivo ist
+  aktuell lokal SQLite-first und hält Sync bewusst zurück.
+- Feedivo nutzt noch SwiftData als Übergangsbackend für einige Feed-Aktionen und
+  First-Run-/OPML-/Refresh-All-Übergaben.
 
 ## 1. Artikel und Status
 
@@ -174,41 +183,27 @@ behandeln.
 
 ### Feedivo
 
-Feedivo speichert Status direkt im SwiftData-`Article`:
+Feedivo speichert produktive Artikelstatus inzwischen in SQLite:
 
-- `Feedivo/Models/Article.swift`
+- `Feedivo/Database/Records/ArticleStatusRecord.swift`
+- `Feedivo/Stores/ArticleStatusStore.swift`
+- Tabelle `article_statuses`
 
-Relevante Felder:
-
-- `isRead`
-- `isStarred`
-- `isArchived`
-- `isHidden`
-- `offlineStateRaw`
+SwiftData-`Article` existiert noch als Legacy-/Übergangsmodell, ist aber nicht
+mehr die Statusquelle für den produktiven Listen-/Reader-Pfad.
 
 ### Auswirkung
 
-Statusänderungen betreffen in Feedivo dasselbe SwiftData-Modell wie Titel,
-Summary, Content, Feed-ID und Offline-Daten. Das kann mehr SwiftData-
-Invalidierungen und SwiftUI-Updates auslösen als NetNewsWires getrennte
-Status-Tabelle.
-
-Feedivo hat diesen Nachteil bereits entschärft:
-
-- `Feed.unreadCount` wird nicht mehr pro Listenwechsel breit neu berechnet.
-- Auto-Lesen bündelt Feed-Zähler-Updates.
-- `ArticleRowView` rendert sichtbare Werte über `ArticleListItemSnapshot`.
-- Feednamen kommen über `feedID -> title`-Snapshots statt über Relationships.
+Statusänderungen betreffen nicht mehr den vollständigen Artikelinhalt.
+`ArticleStatusStore` aktualisiert kleine Statuszeilen, korrigiert
+`feeds.unreadCount` und bump't `SQLiteDataInvalidation.statusVersion`, damit
+Sidebar und Listen gezielt neu laden.
 
 ### Möglicher nächster Schritt
 
-Ein separates `ArticleStatus`-SwiftData-Modell wäre der größte strukturelle
-Schritt in Richtung NetNewsWire. Das ist aber invasiv: Migration,
-Query-Umbau, Reader, Export, Regeln, Smart Folders und iCloud Sync müssten
-mitgezogen werden.
-
-Pragmatischer Zwischenweg: Status-spezifische Aktionen weiter bündeln und
-Status-Änderungen konsequent über kleine Update-Pfade führen.
+Nächster NetNewsWire-artiger Schritt ist nicht mehr Status-Separierung, sondern
+eine kleine Historientabelle für gelöschte/alte Artikelidentitäten, falls
+Retention aggressiver werden soll.
 
 ## 2. Artikelliste und Timeline
 
@@ -232,40 +227,34 @@ Wichtige Mechanik:
 
 ### Feedivo
 
-Feedivo nutzt SwiftUI:
+Feedivo nutzt im Produktpfad SwiftUI mit SQLite-Snapshots:
 
-- `Feedivo/Views/ArticleList/ArticleListView.swift`
+- `Feedivo/Views/ArticleList/SQLiteFeedArticleListView.swift`
+- `Feedivo/ViewModels/SQLiteFeedArticleListState.swift`
+- `Feedivo/Stores/TimelineStore.swift`
 - `Feedivo/Views/ArticleList/ArticleRowView.swift`
 - `Feedivo/Views/ArticleList/ArticleListItemSnapshot.swift`
-- `Feedivo/Views/ArticleList/ArticleListQuery.swift`
 
 Wichtige Mechanik:
 
-- SwiftData-`@Query` liefert Artikel pro Feed, Tag, Smart Filter oder Smart
-  Folder.
-- Fetches sind limitiert (`initialFetchLimit = 50`, Batchgröße 50).
-- `propertiesToFetch` vermeidet schwere Felder wie `content` und
-  `offlineContent`.
-- `ArticleListPreparedArticles` sortiert und filtert gemeinsam.
-- `ArticleRowView` hält selbst keine `Article`-Property mehr und rendert über
-  `ArticleListItemSnapshot`.
+- `TimelineStore` liefert leichte `ArticleListSnapshot`s per SQL.
+- Feed-, Tag-, SmartFilter- und SmartFolder-Scopes laufen über SQLite.
+- Suchtext wird mit SQLite/FTS kombiniert.
+- `ArticleRowView` hält keine lebenden `Article`-Objekte mehr und rendert über
+  Snapshots.
 
 ### Auswirkung
 
-Feedivo hat die größten SwiftUI-Listenprobleme reduziert, aber NetNewsWire hat
-weiterhin mehr Kontrolle darüber, welche sichtbaren Zeilen wann neu geladen
-werden. SwiftUI entscheidet mehr selbst, welche Views invalidiert werden.
+Feedivo hat die frühere SwiftData-Listenmaterialisierung ersetzt. Der relevante
+Unterschied zu NetNewsWire ist nun nur noch die Rendering-Schicht:
+`NSTableView` gibt NetNewsWire mehr Kontrolle über sichtbare Zellen, während
+Feedivo SwiftUI-Listen nutzt.
 
 ### Möglicher nächster Schritt
 
-Nicht sofort alles umbauen. Sinnvoll wäre zuerst Profiling mit großem
-Datenbestand. Wenn die Artikelliste weiter auffällig ist, wäre der nächste
-Umbau:
-
-- Listen stärker über leichte Snapshot-/ID-Arrays führen.
-- `Article` erst für Aktionen, Reader und Export nachladen.
-- Selektionszustand stärker über `Article.id`/`PersistentIdentifier` statt über
-  lebende `Article`-Objekte führen.
+Nicht sofort auf AppKit umbauen. Erst mit großem Datenbestand messen, ob
+SwiftUI-Listen mit SQLite-Snapshots reichen. Ein `NSTableView`-Umbau ist nur
+dann sinnvoll, wenn Profiling sichtbare Listeninvalidierungen als Problem zeigt.
 
 ## 3. Fetch-Schicht für Artikellisten
 
@@ -288,27 +277,25 @@ Mechanik:
 
 ### Feedivo
 
-Feedivo nutzt mehrere gezielte SwiftData-Queries:
+Feedivo nutzt `SQLiteFeedArticleListState` als kleine Fetch-Koordination:
 
-- `FeedArticleListContent`
-- `TagArticleListContent`
-- `SmartFilterArticleListContent`
-- `SmartFolderArticleListContent`
-
-Diese Views initialisieren jeweils ihre eigene `@Query` mit einem passenden
-`FetchDescriptor`.
+- `SQLiteTimelineLoadRequest`
+- `SQLiteTimelineLoadScope`
+- cancellable `Task`
+- `loadGeneration` zum Verwerfen verspäteter Ergebnisse
+- `ArticleDatabase`/`TimelineStore` für die eigentlichen SQL-Fetches
 
 ### Auswirkung
 
-Feedivo hat gute Query-Spezialisierung, aber keine zentrale Fetch-Queue für die
-Artikelliste. SwiftData/SwiftUI steuert die Query-Lebensdauer stärker selbst.
-Bei schnellen Scope-Wechseln ist NetNewsWires explizite Abbruchlogik klarer.
+Feedivo hat die wichtigste NetNewsWire-Mechanik übernommen: alte Loads werden
+abgebrochen und verspätete Ergebnisse dürfen die aktuelle Liste nicht mehr
+überschreiben.
 
 ### Möglicher nächster Schritt
 
-Nur relevant, wenn Profiling Scope-Wechsel oder Suchwechsel als Problem zeigt.
-Dann könnte eine eigene `ArticleListDataSource` entstehen, die Snapshots lädt,
-veraltete Tasks verwirft und SwiftUI nur fertige Ergebnis-Snapshots gibt.
+Nur relevant, wenn Profiling weitere Probleme zeigt: die aktuelle State-Klasse
+könnte dann in einen noch klareren `SQLiteTimelineLoadCoordinator` ausgelagert
+werden. Funktional ist die Cancel-/Generation-Mechanik bereits vorhanden.
 
 ## 4. Persistenz: SQLite vs. SwiftData
 
@@ -331,28 +318,28 @@ Mechanik:
 
 ### Feedivo
 
-Feedivo nutzt SwiftData:
+Feedivo nutzt für den produktiven Feed-/Artikelpfad SQLite/GRDB:
 
-- `@Model` für `Article`, `Feed`, `Tag`, `Rule`, `SmartFolder` usw.
-- `FetchDescriptor`
-- `propertiesToFetch`
-- mehrere `ModelContext`s für Background-Refresh und Reader-Snapshots
+- eigene Tabellen und Migrationen für Feeds, Artikel, Status, Logs, Tags,
+  Regeln, Smart Folders, FTS und Offline-Inhalte
+- `ArticleDatabase` als Fassade
+- gezielte Stores wie `ArticleStore`, `TimelineStore`, `FeedStore`,
+  `ArticleStatusStore`, `TagStore`
+- SwiftData bleibt noch Übergangsbackend für einige Feed-Aktionen und alte
+  Modelle, nicht mehr Hauptpersistenz der heißen Artikeldaten.
 
 ### Auswirkung
 
-SwiftData nimmt viel Arbeit ab, lässt aber weniger direkte Kontrolle über
-Join-Strategien, Indizes, Status-Cache, FTS/Suche und gezielte Row-Updates.
-NetNewsWire kann bei großen Datenmengen genauer bestimmen, was SQLite wirklich
-tun soll.
+Feedivo hat die Kontrolle über Joins, Indizes, FTS/Suche und gezielte
+Status-Updates inzwischen in SQLite verlagert. Der verbleibende Unterschied ist
+nicht mehr die Artikelpersistenz, sondern die noch nicht vollständig entfernte
+SwiftData-Feed-Brücke in `ContentView`/`FeedViewModel`.
 
 ### Möglicher nächster Schritt
 
-Nicht SQLite neu bauen. Für Feedivo ist realistischer:
-
-- noch mehr `propertiesToFetch`
-- statusnahe Aktionen klein halten
-- Suche nicht über volle SwiftData-Objektlisten laufen lassen
-- Smart-Folder-Fallbacks reduzieren
+Nächster Schritt ist `sqlite-only-feed-bridge-removal`: `ContentView` und
+Feed-Menü-/Refresh-/Delete-/OPML-/Wizard-Übergaben sollen keine SwiftData-
+`Feed`-Arrays mehr brauchen.
 
 ## 5. Suche
 
@@ -367,34 +354,22 @@ Die Suche ist Teil der Datenbankschicht.
 
 ### Feedivo
 
-Feedivo hat ein eigenes Suchfenster:
+Feedivo hat ein eigenes Suchfenster und SQLite/FTS:
 
 - `Feedivo/Views/ArticleList/ArticleSearchWindowView.swift`
-
-Aktuell lädt es:
-
-- alle Artikel per `@Query(sort: \Article.publishedAt, order: .reverse)`
-- alle Feeds
-- alle Tags
-
-Danach filtert `ArticleSearchWindowState` im Speicher. Der Suchtext ist
-debounced, aber die Artikelmenge liegt trotzdem in der View.
+- `ArticleStore.searchArticles(state:)`
+- `TimelineStore` kombiniert Suchtext mit Feed-, Tag-, SmartFilter- und
+  SmartFolder-Scopes.
 
 ### Auswirkung
 
-Bei 100'000 Artikeln ist das einer der klarsten verbleibenden Unterschiede.
-Die Suche kann viel Speicher und CPU binden, sobald das Suchfenster geöffnet
-wird.
+Der frühere Hauptunterschied ist geschlossen: Das Suchfenster materialisiert
+nicht mehr alle SwiftData-Artikel. Suche ist jetzt Datenbankschicht.
 
 ### Möglicher nächster Schritt
 
-Das ist der pragmatisch beste nächste Performance-Slice:
-
-- Suchfenster nicht mehr mit globaler `@Query` auf alle Artikel starten.
-- Suchergebnisse über gezielte `FetchDescriptor`s laden.
-- Erst ab Suchtext oder aktivem Filter suchen.
-- Ergebnislimit einführen.
-- Optional später: eigener Suchindex oder normalisierte Suchfelder.
+Nur noch Profiling-/Qualitätsthemen bleiben: Ranking, Ergebnislimits, leere
+Suche und FTS-Tokenizer können später verfeinert werden.
 
 ## 6. Refresh und Feed-Skip-Logik
 
@@ -427,21 +402,22 @@ Feedivo hat bereits:
 - `ETag`/`Last-Modified`
 - Skip bei `304 Not Modified`
 - Skip bei gleichem Body-Hash
-- Batch-Refresh mit eigenen SwiftData-Kontexten
+- Batch-Refresh und SQLite-first Refresh über `SQLiteFeedRefreshService`
 - keine neuen Info-Logs für unveränderte Feeds
 - kein SwiftData-Save, wenn Validatoren unverändert sind
 
 Relevante Dateien:
 
 - `Feedivo/Services/FeedService.swift`
-- `Feedivo/Services/FeedBackgroundRefreshService.swift`
+- `Feedivo/Services/SQLiteFeedRefreshService.swift`
 - `Feedivo/ViewModels/FeedViewModel.swift`
 
 ### Auswirkung
 
-Feedivo hat die wichtigsten NetNewsWire-Prinzipien schon übernommen. Offen sind
-vor allem NetNewsWires zusätzliche Schutzmechanismen gegen zu häufige oder
-offensichtlich sinnlose Feed-Abrufe.
+Feedivo hat die wichtigsten NetNewsWire-Prinzipien schon übernommen und schreibt
+Refresh-Ergebnisse direkt in SQLite. Offen sind vor allem NetNewsWires
+zusätzliche Schutzmechanismen gegen zu häufige oder offensichtlich sinnlose
+Feed-Abrufe.
 
 ### Möglicher nächster Schritt
 
@@ -472,18 +448,19 @@ Feedivo hat:
 - `ArticleRetentionCleanupService`
 - `OrphanedArticleCleanupService`
 
-Status liegt aber im Artikel selbst. Wenn der Artikel gelöscht wird, ist auch
-sein Status weg.
+Status liegt separat in `article_statuses`, wird bei gelöschten Artikeln aber
+ebenfalls bereinigt. Eine langfristige Seen-/Identity-Historie gibt es noch
+nicht.
 
 ### Auswirkung
 
-Feedivo kann alte wiederauftauchende Artikel schlechter von echten neuen
-Artikeln unterscheiden, wenn der alte Artikel bereits bereinigt wurde.
+Feedivo kann alte wiederauftauchende Artikel weiterhin schlechter von echten
+neuen Artikeln unterscheiden, wenn Artikel und Status bereits bereinigt wurden.
 
 ### Möglicher nächster Schritt
 
-Separater `ArticleStatus`- oder `SeenArticle`-Store. Weniger invasiv als ein
-vollständiger Statusmodell-Umbau wäre eine kleine Tabelle/Modellklasse für:
+Separater `SeenArticle`- oder `ArticleIdentityHistory`-Store. Weniger invasiv
+als ein weiterer großer Umbau wäre eine kleine SQLite-Tabelle für:
 
 - stabile Artikel-ID
 - Feed-ID
@@ -540,12 +517,28 @@ Nur bei gemessenen Reader-Problemen weiterarbeiten. Denkbare Schritte:
 
 ## Priorisierte nächste Maßnahmen
 
-### 1. Suchfenster query-basiert umbauen
+### 1. SwiftData-Feed-Brücke entfernen
 
-Größter pragmatischer Hebel. Aktuell lädt das Suchfenster alle Artikel in die
-View. Ziel: Suchergebnisse erst nach Suchtext/Filter laden, mit Limit.
+Nächster Architekturblock. Ziel:
 
-### 2. Profiling mit großem Testbestand
+- `ContentView` braucht keine `@Query [Feed]` mehr.
+- First-Run-Entscheidung, OPML-/Wizard-Sheets, Feed-Menü, Refresh-All, Delete und
+  Dock-Badge lesen Feed-Bestand direkt aus SQLite.
+- `FeedViewModel.refreshAllFeeds` bekommt SQLite-Snapshots statt SwiftData-
+  `Feed`-Arrays.
+- Danach kann `SQLiteFeedSubscriptionService` die temporäre SwiftData-
+  Feed-Übergangsidentität entfernen.
+
+### 2. FeedViewModel weiter verschlanken
+
+`FeedViewModel` enthält noch Legacy- und Übergangslogik. NetNewsWire-artiger wäre:
+
+- `SQLiteFeedSubscriptionService` für Add/OPML
+- `SQLiteFeedRefreshService`/Refresh-Koordinator für Refresh-All
+- `FeedStore`/`ArticleDatabase` für Counts und Status
+- SwiftData-Fallback nur noch isoliert oder gelöscht
+
+### 3. Profiling mit großem Testbestand
 
 Bevor weitere Listen- oder Reader-Umbauten passieren, sollte gemessen werden:
 
@@ -557,11 +550,6 @@ Bevor weitere Listen- oder Reader-Umbauten passieren, sollte gemessen werden:
 - schnell Artikel lesen
 - alle Feeds aktualisieren
 
-### 3. Komplexe Smart Folders reduzieren
-
-Datum-/komplexe Smart-Folder-Pfade fallen teilweise auf In-Memory-Filterung
-zurück. Das kann bei 100'000 Artikeln teuer sein.
-
 ### 4. Refresh-Skip-Logik erweitern
 
 NetNewsWire-artige Ergänzungen:
@@ -572,8 +560,8 @@ NetNewsWire-artige Ergänzungen:
 - Nicht-Feed-Daten früh abbrechen
 - Validatoren periodisch verwerfen
 
-### 5. Statusdaten langfristig separieren
+### 5. Seen-/Identity-Historie für Retention
 
-Größter Architekturhebel, aber auch größter Umbau. Für v1 nur angehen, wenn
-Profiling zeigt, dass Statusänderungen trotz der bisherigen Optimierungen
-weiterhin dominieren.
+Nicht mehr Status-Separierung, sondern Langzeit-Wiedererkennung alter Artikel.
+Für v1 nur angehen, wenn Retention aggressiv genutzt wird oder reale Feeds alte
+Artikel häufig erneut liefern.
