@@ -474,6 +474,22 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(!contentSource.contains("archiveOrRemoveArchive(_ article: Article?)"))
     }
 
+    @Test func legacyArtikelViewsSindNichtMehrProduktRoute() throws {
+        let projectRoot = projectRootURL()
+        let contentSource = try source(at: "Feedivo/Views/ContentView.swift", projectRoot: projectRoot)
+        let articleWindowSource = try source(at: "Feedivo/Views/Reader/ArticleWindowView.swift", projectRoot: projectRoot)
+        let commandActionsSource = try source(at: "Feedivo/App/ArticleCommandActions.swift", projectRoot: projectRoot)
+        let listSource = try source(at: "Feedivo/Views/ArticleList/ArticleListView.swift", projectRoot: projectRoot)
+        let readerSource = try source(at: "Feedivo/Views/Reader/ReaderView.swift", projectRoot: projectRoot)
+
+        #expect(!contentSource.contains("\n                ArticleListView("))
+        #expect(!contentSource.contains("\n                ReaderView("))
+        #expect(!articleWindowSource.contains("\n                ReaderView("))
+        #expect(!commandActionsSource.contains("selectedArticle: Article?"))
+        #expect(listSource.contains("Legacy SwiftData"))
+        #expect(readerSource.contains("Legacy SwiftData"))
+    }
+
     @Test func sqliteReaderMeldetGeladenenSnapshotAnCommandEbene() throws {
         let projectRoot = projectRootURL()
         let readerSource = try source(at: "Feedivo/Views/Reader/SQLiteReaderView.swift", projectRoot: projectRoot)

@@ -31,9 +31,9 @@
 - Modify: `Feedivo/Views/Reader/ReaderView.swift`
 - Modify: `FeedivoTests/FeedivoAppSceneConfigurationTests.swift`
 
-- [ ] Add source tests proving `ArticleListView` and `ReaderView` are not referenced from product routing files (`ContentView`, `ArticleWindowView`, `ArticleCommands`).
-- [ ] Add clear `Legacy` comments to the old views or move references behind test-only/previews if needed.
-- [ ] Run focused source tests and build.
+- [x] Add source tests proving `ArticleListView` and `ReaderView` are not referenced from product routing files (`ContentView`, `ArticleWindowView`, `ArticleCommands`).
+- [x] Add clear `Legacy` comments to the old views or move references behind test-only/previews if needed.
+- [x] Run focused source tests and build.
 
 ### Task 3: Add SQLite Definition Tables For Admin State
 

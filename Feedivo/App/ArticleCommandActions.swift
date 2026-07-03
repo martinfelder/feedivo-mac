@@ -57,41 +57,6 @@ struct ArticleCommandActions {
         self.selectNextArticle = selectNextArticle
     }
 
-    init(
-        selectedArticle: Article?,
-        toggleRead: @escaping () -> Void,
-        toggleStarred: @escaping () -> Void,
-        toggleArchived: @escaping () -> Void = {},
-        copyLink: @escaping () -> Void,
-        openOriginal: @escaping () -> Void,
-        shareOriginal: @escaping () -> Void = {},
-        openInArticleWindow: @escaping () -> Void = {},
-        requestExport: @escaping () -> Void = {},
-        canSelectPreviousArticle: Bool = false,
-        canSelectNextArticle: Bool = false,
-        selectPreviousArticle: @escaping () -> Void = {},
-        selectNextArticle: @escaping () -> Void = {}
-    ) {
-        self.init(
-            canPerformActions: selectedArticle != nil,
-            canPerformLinkActions: ArticleOriginalURLResolver.hasUsableWebLink(selectedArticle?.link),
-            toggleReadTitle: selectedArticle?.isRead == true ? L10n.articleRowMarkUnread : L10n.articleRowMarkRead,
-            toggleStarredTitle: selectedArticle?.isStarred == true ? L10n.articleRowStarRemove : L10n.articleRowStarAdd,
-            toggleArchivedTitle: selectedArticle?.isArchived == true ? L10n.articleUnarchiveCommand : L10n.articleArchiveCommand,
-            toggleRead: toggleRead,
-            toggleStarred: toggleStarred,
-            toggleArchived: toggleArchived,
-            copyLink: copyLink,
-            openOriginal: openOriginal,
-            shareOriginal: shareOriginal,
-            openInArticleWindow: openInArticleWindow,
-            requestExport: requestExport,
-            canSelectPreviousArticle: canSelectPreviousArticle,
-            canSelectNextArticle: canSelectNextArticle,
-            selectPreviousArticle: selectPreviousArticle,
-            selectNextArticle: selectNextArticle
-        )
-    }
 }
 
 private struct ArticleCommandActionsKey: FocusedValueKey {

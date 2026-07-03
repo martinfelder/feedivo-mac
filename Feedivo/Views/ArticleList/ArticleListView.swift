@@ -2,6 +2,8 @@ import SwiftUI
 import SwiftData
 import AppKit
 
+// Legacy SwiftData: Diese Liste ist nicht mehr im Produkt-Hauptpfad geroutet.
+// Neue Artikelpfade müssen `SQLiteFeedArticleListView` verwenden.
 struct ArticleListView: View {
     private enum Scope {
         case feed(Feed)
