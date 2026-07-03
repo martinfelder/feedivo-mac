@@ -259,13 +259,3 @@ final class SQLiteFeedArticleListState {
         loadState = .loaded
     }
 }
-
-private extension SQLiteSmartFolderSnapshot {
-    var includesHiddenArticles: Bool {
-        conditions.contains { condition in
-            condition.field == .status
-                && condition.value == SmartFolderStatusValue.hidden.rawValue
-                && condition.conditionOperator != .isNot
-        }
-    }
-}

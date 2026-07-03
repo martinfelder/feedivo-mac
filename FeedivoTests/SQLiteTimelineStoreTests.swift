@@ -498,6 +498,42 @@ struct SQLiteTimelineStoreTests {
         ])
     }
 
+    @Test func customSmartFolderCountUsesSQLiteConditionsWithoutMaterializingArticles() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let fixture = try makeCustomSmartFolderFixture(database: database)
+        try TagStore(database: database).assignTag(
+            tagID: "tag-swift",
+            toArticleID: fixture.swiftArticleID,
+            at: Date(timeIntervalSince1970: 800)
+        )
+        let timelineStore = TimelineStore(database: database)
+        let folder = SQLiteSmartFolderSnapshot(
+            id: "smart-count",
+            name: "Swift oder News",
+            matchMode: .any,
+            conditions: [
+                SQLiteSmartFolderConditionSnapshot(
+                    field: .tag,
+                    conditionOperator: .is,
+                    value: "tag-swift"
+                ),
+                SQLiteSmartFolderConditionSnapshot(
+                    field: .feedFolder,
+                    conditionOperator: .is,
+                    value: "News"
+                )
+            ]
+        )
+
+        let count = try timelineStore.count(
+            scope: .smartFolder(folder),
+            includeRead: true,
+            includeHidden: false
+        )
+
+        #expect(count == 2)
+    }
+
     @Test func timelineUsesMinimumLimitOfOne() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let feedStore = FeedStore(database: database)

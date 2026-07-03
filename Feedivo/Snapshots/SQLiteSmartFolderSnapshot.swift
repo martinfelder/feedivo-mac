@@ -29,6 +29,24 @@ struct SQLiteSmartFolderSnapshot: Equatable, Sendable {
             }
             .compactMap(SQLiteSmartFolderConditionSnapshot.init(condition:))
     }
+
+    init(
+        id: String = UUID().uuidString,
+        name: String,
+        matchMode: RuleMatchMode,
+        conditionDrafts: [SmartFolderConditionDraft]
+    ) {
+        self.id = id
+        self.name = name
+        self.matchMode = matchMode
+        self.conditions = conditionDrafts.map { draft in
+            SQLiteSmartFolderConditionSnapshot(
+                field: draft.field,
+                conditionOperator: draft.conditionOperator,
+                value: draft.value
+            )
+        }
+    }
 }
 
 struct SQLiteSmartFolderConditionSnapshot: Equatable, Sendable {
@@ -59,5 +77,15 @@ struct SQLiteSmartFolderConditionSnapshot: Equatable, Sendable {
             conditionOperator: conditionOperator,
             value: condition.value
         )
+    }
+}
+
+extension SQLiteSmartFolderSnapshot {
+    var includesHiddenArticles: Bool {
+        conditions.contains { condition in
+            condition.field == .status
+                && condition.conditionOperator != .isNot
+                && condition.value == SmartFolderStatusValue.hidden.rawValue
+        }
     }
 }

@@ -3,15 +3,18 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct SmartFolderSettingsView: View {
+    @Environment(\.feedivoDatabase) private var feedivoDatabase
     @Environment(\.modelContext) private var modelContext
+    @AppStorage(SQLiteDataInvalidation.statusVersionKey) private var sqliteStatusVersion = 0
+    @AppStorage(SidebarBadgeInvalidation.directTagVersionKey) private var directTagVersion = 0
     @Query(sort: \SmartFolder.sortOrder) private var folders: [SmartFolder]
-    @Query(sort: \Article.publishedAt, order: .reverse) private var articles: [Article]
 
     @State private var viewModel = SmartFolderViewModel()
     @State private var isCreatingFolder = false
     @State private var folderEditing: SmartFolder?
     @State private var folderPendingDeletion: SmartFolder?
     @State private var draggedFolderID: UUID?
+    @State private var matchingCounts: [UUID: Int] = [:]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -50,6 +53,9 @@ struct SmartFolderSettingsView: View {
                 folderPendingDeletion = nil
             }
         }
+        .task(id: countReloadToken) {
+            loadMatchingCounts()
+        }
     }
 
     private var header: some View {
@@ -81,11 +87,7 @@ struct SmartFolderSettingsView: View {
     }
 
     private var folderList: some View {
-        // Treffer pro Ordner einmal pro Render berechnen (Map), statt pro Zeile
-        // jeweils über alle Artikel zu iterieren (P2: N × O(articles) im ForEach).
-        let matchingCounts = SmartFolderEngine.matchingArticleCounts(for: orderedFolders, articles: articles)
-
-        return VStack(spacing: 0) {
+        VStack(spacing: 0) {
             SmartFolderSettingsListHeader()
 
             ForEach(Array(orderedFolders.enumerated()), id: \.element.id) { index, folder in
@@ -126,8 +128,43 @@ struct SmartFolderSettingsView: View {
         }
     }
 
+    private var countReloadToken: String {
+        let folderToken = orderedFolders.map { folder in
+            let conditionToken = (folder.conditions ?? [])
+                .sorted { $0.sortOrder < $1.sortOrder }
+                .map { "\($0.fieldRaw):\($0.operatorRaw):\($0.value):\($0.sortOrder)" }
+                .joined(separator: "|")
+            return "\(folder.id.uuidString):\(folder.matchModeRaw):\(conditionToken)"
+        }
+        .joined(separator: "#")
+
+        return "\(folderToken)#\(sqliteStatusVersion)#\(directTagVersion)"
+    }
+
     private var orderedFolders: [SmartFolder] {
         SmartFolderViewModel.sortedFolders(folders)
+    }
+
+    private func loadMatchingCounts() {
+        guard let database = feedivoDatabase else {
+            matchingCounts = [:]
+            return
+        }
+
+        var counts: [UUID: Int] = [:]
+
+        for folder in orderedFolders {
+            let snapshot = SQLiteSmartFolderSnapshot(folder: folder)
+            counts[folder.id] = (
+                try? TimelineStore(database: database).count(
+                    scope: .smartFolder(snapshot),
+                    includeRead: true,
+                    includeHidden: snapshot.includesHiddenArticles
+                )
+            ) ?? 0
+        }
+
+        matchingCounts = counts
     }
 
     private func duplicate(_ folder: SmartFolder) {

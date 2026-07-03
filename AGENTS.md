@@ -2314,6 +2314,11 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   `ArticleStore.searchArticles(state:)`, kombiniert Suchtext, Suchbereich,
   Feed-, Tag-, Datums- und Statusfilter SQL-seitig und hält keine globale
   SwiftData-Artikel-Query mehr.
+  Benutzerdefinierte Smart Folders routen ihre Artikellisten und den Reader-Pfad
+  ebenfalls über SQLite. Die Verwaltung bleibt als SwiftData-Modell erhalten,
+  aber Settings-Trefferzahlen und Editor-Preview zählen inzwischen über
+  `TimelineStore.count(scope: .smartFolder(...))`, statt Artikel zu
+  materialisieren.
 - Feature 17.3 Automatisches Löschen ist umgesetzt: globale Einstellung,
   Stern-/Archiv-Schutz mit Zusatzoption und pro-Feed-Überschreibung in den
   Feed-Eigenschaften.
@@ -2342,14 +2347,21 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Scrollbeobachter-Ansatz hat das Scrollgefühl im Reader verschlechtert und wurde
   wieder entfernt. Für v1 bleibt der Reader ohne Lesefortschritt.
 - Nächster sinnvoller Fokus: verbleibende SQLite-Nebenpfade schließen,
-  insbesondere Smart-Folder- und Regel-Previews/Zählungen, die noch SwiftData-
-  Artikelmaterialisierung nutzen.
+  insbesondere Regel-Previews/Zählungen und rückwirkende Regelauswertung, die
+  noch SwiftData-Artikelmaterialisierung nutzen.
 - Feature-Roadmap ist in `FEATURES.md` im Root dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
 ---
 
 ## Letzte Änderungen
+
+- 2026-07-03: Smart-Folder-Verwaltung/Preview auf SQLite-Zählungen umgestellt.
+  `TimelineStore.count` nutzt dieselbe Scope-/Smart-Folder-SQL-Logik wie die
+  Artikelliste. `SmartFolderSettingsView` und `SmartFolderEditorView` halten
+  keine SwiftData-Artikel-Query mehr für Trefferzahlen; sie laden Counts über
+  `SQLiteSmartFolderSnapshot` und GRDB. Die Ordnerdefinitionen selbst bleiben
+  vorerst SwiftData-Verwaltungsdaten.
 
 - 2026-07-03: Feed-Eigenschaften-Metriken auf SQLite umgestellt.
   `ArticleStore.feedPropertiesMetrics` liefert neuesten Artikel und Anzahl der

@@ -124,6 +124,73 @@ struct TimelineStore {
         }
     }
 
+    func count(
+        scope: TimelineScope,
+        includeRead: Bool,
+        includeHidden: Bool
+    ) throws -> Int {
+        var whereClauses: [String] = []
+        var arguments = StatementArguments()
+
+        switch scope {
+        case .all:
+            break
+        case let .feed(feedID):
+            whereClauses.append("a.feedID = ?")
+            _ = arguments.append(contentsOf: [feedID])
+        case let .tag(tagID):
+            whereClauses.append("""
+                (
+                    EXISTS (
+                        SELECT 1
+                        FROM article_tags at
+                        WHERE at.articleID = a.id
+                            AND at.tagID = ?
+                    )
+                    OR EXISTS (
+                        SELECT 1
+                        FROM feed_tags ft
+                        WHERE ft.feedID = a.feedID
+                            AND ft.tagID = ?
+                    )
+                )
+                """)
+            _ = arguments.append(contentsOf: [tagID, tagID])
+        case let .smartFilter(smartFilter):
+            appendSmartFilterWhereClause(
+                smartFilter,
+                whereClauses: &whereClauses,
+                arguments: &arguments
+            )
+        case let .smartFolder(folder):
+            appendSmartFolderWhereClause(
+                folder,
+                whereClauses: &whereClauses,
+                arguments: &arguments
+            )
+        }
+
+        if !includeRead {
+            whereClauses.append("s.isRead = 0")
+        }
+
+        if !includeHidden {
+            whereClauses.append("s.isHidden = 0")
+        }
+
+        let whereSQL = whereClauses.isEmpty ? "" : "WHERE \(whereClauses.joined(separator: " AND "))"
+
+        return try database.read { db in
+            try Int.fetchOne(db, sql: """
+                SELECT COUNT(*)
+                FROM articles a
+                JOIN feeds f ON f.id = a.feedID
+                JOIN article_statuses s ON s.articleID = a.id
+                \(whereSQL)
+                """, arguments: arguments) ?? 0
+        }
+    }
+
     private func appendSmartFilterWhereClause(
         _ smartFilter: SmartFilter,
         whereClauses: inout [String],

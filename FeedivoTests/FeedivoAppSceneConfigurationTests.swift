@@ -373,6 +373,23 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(!compactContentSource.contains("ArticleListView(smartFolder:smartFolder,selectedArticle:$selectedArticle"))
     }
 
+    @Test func smartFolderVerwaltungUndPreviewZaehlenUeberSQLite() throws {
+        let projectRoot = projectRootURL()
+        let settingsSource = try source(at: "Feedivo/Views/SmartFolders/SmartFolderSettingsView.swift", projectRoot: projectRoot)
+        let editorSource = try source(at: "Feedivo/Views/SmartFolders/SmartFolderEditorView.swift", projectRoot: projectRoot)
+        let compactSettingsSource = compact(settingsSource)
+        let compactEditorSource = compact(editorSource)
+
+        #expect(settingsSource.contains("@Environment(\\.feedivoDatabase) private var feedivoDatabase"))
+        #expect(!settingsSource.contains("@Query(sort: \\Article.publishedAt"))
+        #expect(!settingsSource.contains("SmartFolderEngine.matchingArticleCounts"))
+        #expect(compactSettingsSource.contains("TimelineStore(database:database).count(scope:.smartFolder(snapshot),includeRead:true,includeHidden:"))
+        #expect(editorSource.contains("@Environment(\\.feedivoDatabase) private var feedivoDatabase"))
+        #expect(!editorSource.contains("@Query(sort: \\Article.publishedAt"))
+        #expect(!editorSource.contains("SmartFolderEngine.matchingArticleCount"))
+        #expect(compactEditorSource.contains("TimelineStore(database:database).count(scope:.smartFolder(snapshot),includeRead:true,includeHidden:"))
+    }
+
     @Test func sqliteArticleListSearchLaedtUeberSQLiteState() throws {
         let projectRoot = projectRootURL()
         let listSource = try source(at: "Feedivo/Views/ArticleList/SQLiteFeedArticleListView.swift", projectRoot: projectRoot)

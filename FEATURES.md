@@ -909,8 +909,10 @@
     baut daraus SQL für Tags, Feed, Feed-Ordner, Datum, Status, Titel, Autor und
     Text, wobei `text contains` den vorhandenen FTS-Index nutzt. `ContentView`
     routet ausgewählte Smart Folders nun auf `SQLiteFeedArticleListView` und den
-    SQLite-Reader-Pfad; die Smart-Folder-Verwaltung bleibt in diesem Slice
-    bewusst in SwiftData.
+    SQLite-Reader-Pfad. Die Smart-Folder-Verwaltung bleibt als SwiftData-Modell
+    erhalten, aber Settings-Trefferzahlen und Editor-Preview zählen inzwischen
+    über `TimelineStore.count(scope: .smartFolder(...))` aus SQLite statt über
+    eine SwiftData-Artikel-Query.
   - SQLite-Statusänderungen halten Feed-Zähler aktuell: `ArticleStatusStore`
     berechnet nach Read-/Hidden-Mutationen `feeds.unreadCount` direkt in SQLite
     neu und bump't `SQLiteDataInvalidation.statusVersionKey`, wodurch die
@@ -1015,6 +1017,10 @@
   - Vordefinierte SmartFilter verwenden `TimelineScope.smartFilter` und die
     SQLite-Artikelliste/Reader-Kette, statt globale SwiftData-Artikelqueries zu
     materialisieren
+  - Smart-Folder-Settings und Smart-Folder-Editor-Preview nutzen
+    `TimelineStore.count(scope: .smartFolder(...))` für Trefferzahlen, statt
+    alle Artikel per SwiftData zu materialisieren und mit `SmartFolderEngine`
+    im Speicher zu zählen
   - SQLite-FTS-Fundament ergänzt: Migration v4 legt `article_search` mit FTS5
     und Triggern für Insert/Update/Delete auf `articles` an;
     `ArticleStore.searchArticles` liefert Treffer als `ArticleListSnapshot`s

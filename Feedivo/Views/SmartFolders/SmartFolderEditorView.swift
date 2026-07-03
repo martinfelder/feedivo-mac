@@ -3,8 +3,10 @@ import SwiftUI
 
 struct SmartFolderEditorView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.feedivoDatabase) private var feedivoDatabase
     @Environment(\.modelContext) private var modelContext
-    @Query(sort: \Article.publishedAt, order: .reverse) private var articles: [Article]
+    @AppStorage(SQLiteDataInvalidation.statusVersionKey) private var sqliteStatusVersion = 0
+    @AppStorage(SidebarBadgeInvalidation.directTagVersionKey) private var directTagVersion = 0
 
     let folder: SmartFolder?
     let existingFolders: [SmartFolder]
@@ -18,6 +20,7 @@ struct SmartFolderEditorView: View {
     @State private var conditionDrafts = [
         SmartFolderConditionDraft(field: .title, conditionOperator: .contains, value: "")
     ]
+    @State private var previewMatchingCount = 0
 
     init(folder: SmartFolder? = nil, existingFolders: [SmartFolder]) {
         self.folder = folder
@@ -38,6 +41,9 @@ struct SmartFolderEditorView: View {
         .padding(24)
         .frame(width: 720)
         .onAppear(perform: loadInitialState)
+        .task(id: previewReloadToken) {
+            loadPreviewMatchingCount()
+        }
     }
 
     private var header: some View {
@@ -235,21 +241,7 @@ struct SmartFolderEditorView: View {
     }
 
     private var preview: some View {
-        let previewFolder = SmartFolder(
-            name: name,
-            matchMode: matchMode,
-            conditions: normalizedConditionDrafts.enumerated().map { index, draft in
-                SmartFolderCondition(
-                    field: draft.field,
-                    conditionOperator: draft.conditionOperator,
-                    value: draft.value,
-                    sortOrder: index
-                )
-            }
-        )
-        let matchingCount = SmartFolderEngine.matchingArticleCount(folder: previewFolder, articles: articles)
-
-        return HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .top, spacing: 10) {
             Image(systemName: "scope")
                 .foregroundStyle(Color.accentColor)
                 .frame(width: 20)
@@ -258,7 +250,7 @@ struct SmartFolderEditorView: View {
                 Text(L10n.smartFolderPreview)
                     .font(.headline)
 
-                Text(String.localizedStringWithFormat(String(localized: "smartFolder.preview.matches"), matchingCount))
+                Text(String.localizedStringWithFormat(String(localized: "smartFolder.preview.matches"), previewMatchingCount))
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }
@@ -267,6 +259,14 @@ struct SmartFolderEditorView: View {
         }
         .padding(12)
         .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    private var previewReloadToken: String {
+        let conditionToken = normalizedConditionDrafts
+            .map { "\($0.field.rawValue):\($0.conditionOperator.rawValue):\($0.value)" }
+            .joined(separator: "|")
+
+        return "\(name)#\(matchMode.rawValue)#\(conditionToken)#\(sqliteStatusVersion)#\(directTagVersion)"
     }
 
     @ViewBuilder
@@ -378,6 +378,28 @@ struct SmartFolderEditorView: View {
         conditionDrafts.append(
             SmartFolderConditionDraft(field: .title, conditionOperator: .contains, value: "")
         )
+    }
+
+    private func loadPreviewMatchingCount() {
+        guard let database = feedivoDatabase else {
+            previewMatchingCount = 0
+            return
+        }
+
+        let snapshot = SQLiteSmartFolderSnapshot(
+            id: folder?.id.uuidString ?? "preview",
+            name: name,
+            matchMode: matchMode,
+            conditionDrafts: normalizedConditionDrafts
+        )
+
+        previewMatchingCount = (
+            try? TimelineStore(database: database).count(
+                scope: .smartFolder(snapshot),
+                includeRead: true,
+                includeHidden: snapshot.includesHiddenArticles
+            )
+        ) ?? 0
     }
 
     private var normalizedConditionDrafts: [SmartFolderConditionDraft] {
