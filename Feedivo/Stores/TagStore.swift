@@ -69,6 +69,28 @@ struct TagStore {
         }
     }
 
+    func exportTagNames(articleID: String, feedID: String) throws -> [String] {
+        try database.read { db in
+            try String.fetchAll(db, sql: """
+                SELECT DISTINCT t.name
+                FROM tags t
+                WHERE EXISTS (
+                    SELECT 1
+                    FROM article_tags at
+                    WHERE at.articleID = ?
+                        AND at.tagID = t.id
+                )
+                OR EXISTS (
+                    SELECT 1
+                    FROM feed_tags ft
+                    WHERE ft.feedID = ?
+                        AND ft.tagID = t.id
+                )
+                ORDER BY t.name COLLATE NOCASE
+                """, arguments: [articleID, feedID])
+        }
+    }
+
     func sidebarTags() throws -> [TagSidebarSnapshot] {
         try database.read { db in
             try TagSidebarSnapshot.fetchAll(db, sql: """

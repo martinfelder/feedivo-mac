@@ -623,6 +623,16 @@ struct FeedPropertiesView: View {
             retentionDays: globalArticleRetentionDays,
             includeProtectedArticles: globalArticleRetentionIncludesProtectedArticles
         )
+        if let feedivoDatabase {
+            _ = try? ArticleRetentionCleanupService.removeExpiredSQLiteArticles(
+                in: modelContext,
+                database: feedivoDatabase,
+                isEnabled: globalArticleRetentionIsEnabled,
+                retentionDays: globalArticleRetentionDays,
+                includeProtectedArticles: globalArticleRetentionIncludesProtectedArticles
+            )
+            loadSQLiteArticleMetrics()
+        }
     }
 
     private var logSection: some View {

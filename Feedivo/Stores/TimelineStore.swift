@@ -99,10 +99,12 @@ struct TimelineStore {
                     s.isRead,
                     s.isStarred,
                     s.isArchived,
-                    s.isHidden
+                    s.isHidden,
+                    COALESCE(o.state, 'none') AS offlineStateRaw
                 FROM articles a
                 JOIN feeds f ON f.id = a.feedID
                 JOIN article_statuses s ON s.articleID = a.id
+                LEFT JOIN article_offline o ON o.articleID = a.id
                 \(searchJoinSQL)
                 \(whereSQL)
                 ORDER BY COALESCE(a.publishedAt, a.arrivedAt) DESC, a.arrivedAt DESC
@@ -521,5 +523,6 @@ extension ArticleListSnapshot: FetchableRecord {
         isStarred = row["isStarred"]
         isArchived = row["isArchived"]
         isHidden = row["isHidden"]
+        offlineStateRaw = row["offlineStateRaw"]
     }
 }

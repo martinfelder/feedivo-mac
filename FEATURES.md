@@ -839,9 +839,10 @@
   SQLite-only mit GRDB, getrennte Tabellen für Artikel und Artikelstatus,
   gezielte SQL-Snapshots für Sidebar/Liste/Reader und Statusänderungen nur über
   `article_statuses`. Die erste Welle umfasst Feeds, Refresh, Artikelliste,
-  Reader, Status und Feed-Logs. iCloud Sync, SwiftData-Bestandsdatenmigration,
-  Tags, Regeln, Smart Folders, OPML, Export, Offline-Download und die sichtbare
-  FTS-Such-UI werden danach einzeln angeschlossen. Spec:
+  Reader, Status und Feed-Logs; weitere Nutzerpfade wie Tags, Regeln, Smart
+  Folders, OPML, Export, Offline-Download und FTS-Suche werden danach einzeln
+  an SQLite angeschlossen. iCloud Sync und SwiftData-Bestandsdatenmigration
+  bleiben bewusst zurückgestellt. Spec:
   `docs/superpowers/specs/2026-07-02-sqlite-grdb-performance-architecture-design.md`.
 - **Umgesetzt:**
   - SQLite/GRDB-Fundament angelegt: GRDB Package, `FeedivoDatabase`, v1-
@@ -856,9 +857,7 @@
     die GRDB-Datenbank aus Application Support, `ContentView` hält eine separate
     SQLite-Artikel-Auswahl, `SQLiteFeedArticleListView` lädt Feed-Timelines über
     `TimelineStore`, `SQLiteReaderView` lädt Reader-Snapshots über `ArticleStore`
-    und Statusaktionen schreiben direkt in `article_statuses`. Smart Folders,
-    Regeln, Export, Offline-Download und die sichtbare Volltextsuche bleiben bis
-    zu eigenen Slices auf den bisherigen SwiftData-/Legacy-Pfaden. Spec:
+    und Statusaktionen schreiben direkt in `article_statuses`. Spec:
     `docs/superpowers/specs/2026-07-02-sqlite-feed-reader-path-design.md`.
   - Normale Feed-Aktionen befüllen den neuen SQLite-Pfad: `AddFeedSheet`,
     ausgewählter Feed-Refresh und `Alle Feeds aktualisieren` übergeben die
@@ -917,6 +916,18 @@
     berechnet nach Read-/Hidden-Mutationen `feeds.unreadCount` direkt in SQLite
     neu und bump't `SQLiteDataInvalidation.statusVersionKey`, wodurch die
     Sidebar-Snapshots neu geladen werden.
+  - SQLite-Migrationsabschluss 2026-07-03: Regel-Preview, Regel-Zählungen und
+    rückwirkendes Anwenden bestehender Regeln laufen über
+    `SQLiteRuleEvaluationStore` und leichte `RuleEngine.ArticleRuleSnapshot`s.
+    Offline-Kopien liegen in `article_offline`; `SQLiteOfflineDownloadService`
+    speichert Feed-Content oder geladene Originalseiten, Reader und Artikelliste
+    lesen den Offline-Status aus SQLite. Die Artikel-Aufbewahrung löscht nun
+    auch SQLite-Artikel samt Statuszeilen und korrigiert `feeds.unreadCount`.
+    OPML-Import spiegelt neu importierte Feeds nach SQLite; OPML-Export
+    bevorzugt SQLite-Feed- und Feed-Tag-Snapshots und ergänzt nur Feed-
+    Beschreibungen aus SwiftData. Einzelartikel-Export aus der SQLite-Liste
+    nutzt `ArticleReaderSnapshot`, gespeicherten Offline-Volltext und Tag-Namen
+    aus `article_tags`/`feed_tags`.
   - OPML-Import und `Alle Feeds aktualisieren` rufen Feeds nur noch begrenzt parallel ab
   - Sidebar nutzt keine globale Artikel-Query mehr für Badge-Signaturen; beim
     Lesen invalidieren `isRead`-Änderungen dadurch nicht mehr alle Sidebar-

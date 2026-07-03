@@ -875,6 +875,7 @@ private struct NewSyncSettingsView: View {
 
 private struct NewCleanupSettingsView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.feedivoDatabase) private var feedivoDatabase
 
     @AppStorage(ArticleRetentionSettings.isEnabledKey)
     private var articleRetentionIsEnabled = ArticleRetentionSettings.defaultIsEnabled
@@ -956,13 +957,27 @@ private struct NewCleanupSettingsView: View {
 
     private func runArticleRetentionCleanup() {
         do {
-            let removedCount = try ArticleRetentionCleanupService.removeExpiredArticles(
+            let swiftDataRemovedCount = try ArticleRetentionCleanupService.removeExpiredArticles(
                 in: modelContext,
                 isEnabled: articleRetentionIsEnabled,
                 retentionDays: articleRetentionDays,
                 includeProtectedArticles: articleRetentionIncludesProtectedArticles
             )
-            retentionCleanupResult = L10n.settingsArticleRetentionResult(count: removedCount)
+            let sqliteRemovedCount: Int
+            if let feedivoDatabase {
+                sqliteRemovedCount = try ArticleRetentionCleanupService.removeExpiredSQLiteArticles(
+                    in: modelContext,
+                    database: feedivoDatabase,
+                    isEnabled: articleRetentionIsEnabled,
+                    retentionDays: articleRetentionDays,
+                    includeProtectedArticles: articleRetentionIncludesProtectedArticles
+                )
+            } else {
+                sqliteRemovedCount = 0
+            }
+            retentionCleanupResult = L10n.settingsArticleRetentionResult(
+                count: swiftDataRemovedCount + sqliteRemovedCount
+            )
             retentionCleanupError = nil
         } catch {
             retentionCleanupResult = nil

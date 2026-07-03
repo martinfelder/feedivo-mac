@@ -310,7 +310,8 @@ final class FeedViewModel {
         allowsDuplicates: Bool = false,
         refreshAfterImport: Bool = true,
         refreshIntervalMinutes: Int = 60,
-        context: ModelContext
+        context: ModelContext,
+        sqliteDatabase: FeedivoDatabase? = nil
     ) async throws -> OPMLImportResult {
         // Statt eines vorgetäuschten Erfolgs (imported: 0) werfen — beide Aufrufer
         // (FirstRunWizard, OPMLImportReview) nutzen `try` und zeigen den Fehler
@@ -417,6 +418,11 @@ final class FeedViewModel {
         }
 
         try context.save()
+        if let sqliteDatabase {
+            for feed in feedsToRefresh {
+                try? mirrorFeedToSQLite(feed, context: context, database: sqliteDatabase)
+            }
+        }
         if !failedFeedTitles.isEmpty {
             errorMessage = L10n.feedErrorRefreshAllPartial(
                 failedFeedTitles.count,

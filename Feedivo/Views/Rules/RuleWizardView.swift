@@ -20,9 +20,9 @@ private enum RuleWizardMode: String, CaseIterable, Identifiable {
 struct RuleWizardView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.feedivoDatabase) private var feedivoDatabase
     @Query(sort: \Tag.name) private var tags: [Tag]
     @Query(sort: \Rule.sortOrder) private var existingRules: [Rule]
-    @Query private var articles: [Article]
 
     let rule: Rule?
     let sourceArticle: Article?
@@ -43,13 +43,11 @@ struct RuleWizardView: View {
     @State private var notificationTemplate = "{Titel}"
     @State private var notificationPriority = RuleNotificationPriority.normal
     @State private var regexHelpDraftID: UUID?
+    @State private var previewMatchingCount = 0
 
     init(rule: Rule? = nil, sourceArticle: Article? = nil) {
         self.rule = rule
         self.sourceArticle = sourceArticle
-        // Artikel ohne die großen content/offlineContent-Blobs laden — beim
-        // Regel-Preview wird nur über title/summary/feed-Titel gematcht (P1).
-        _articles = Query(Article.lightFetchDescriptor())
     }
 
     var body: some View {
@@ -73,6 +71,9 @@ struct RuleWizardView: View {
         .frame(width: 640)
         .onAppear {
             loadInitialState()
+        }
+        .task(id: previewReloadToken) {
+            await reloadPreviewCount()
         }
     }
 
@@ -345,12 +346,16 @@ struct RuleWizardView: View {
             return String(localized: "ruleWizard.preview.noConditions")
         }
 
-        let matchingCount = RuleEngine.matchingArticleCount(
-            conditionDrafts: activeConditionDrafts,
-            matchMode: activeMatchMode,
-            articles: articles
-        )
-        return L10n.ruleWizardPreviewMatchCount(count: matchingCount)
+        return L10n.ruleWizardPreviewMatchCount(count: previewMatchingCount)
+    }
+
+    private var previewReloadToken: String {
+        let conditionToken = activeConditionDrafts
+            .map { draft in
+                "\(draft.field.rawValue):\(draft.conditionOperator.rawValue):\(draft.value)"
+            }
+            .joined(separator: "|")
+        return "\(activeMatchMode.rawValue)|\(conditionToken)"
     }
 
     private func loadInitialState() {
@@ -429,13 +434,32 @@ struct RuleWizardView: View {
             name: newTagName,
             colorHex: newTagColorHex,
             availableTags: tags,
-            context: modelContext
+            context: modelContext,
+            sqliteDatabase: feedivoDatabase
         )
 
         if tagViewModel.errorMessage == nil {
             let normalizedName = TagViewModel.normalizedTagName(newTagName)
             selectedTagID = tags.first { $0.name == normalizedName }?.id
             newTagName = ""
+        }
+    }
+
+    private func reloadPreviewCount() async {
+        guard previewHasConditions,
+              let database = feedivoDatabase
+        else {
+            previewMatchingCount = 0
+            return
+        }
+
+        do {
+            previewMatchingCount = try SQLiteRuleEvaluationStore(database: database).matchingArticleCount(
+                conditionDrafts: activeConditionDrafts,
+                matchMode: activeMatchMode
+            )
+        } catch {
+            previewMatchingCount = 0
         }
     }
 

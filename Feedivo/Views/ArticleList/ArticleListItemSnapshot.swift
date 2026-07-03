@@ -44,7 +44,7 @@ struct ArticleListItemSnapshot: Equatable, Identifiable {
         self.isArchived = sqliteSnapshot.isArchived
         self.isHidden = sqliteSnapshot.isHidden
         self.imageURL = sqliteSnapshot.imageURL
-        self.offlineState = .none
+        self.offlineState = sqliteSnapshot.offlineState
         self.hasOriginalURL = ArticleOriginalURLResolver.hasUsableWebLink(sqliteSnapshot.link)
     }
 }

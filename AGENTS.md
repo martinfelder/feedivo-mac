@@ -2319,6 +2319,14 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   aber Settings-Trefferzahlen und Editor-Preview zählen inzwischen über
   `TimelineStore.count(scope: .smartFolder(...))`, statt Artikel zu
   materialisieren.
+  Die zuvor offenen SQLite-Nebenpfade für Regeln, Offline, Retention, OPML-Import
+  und Einzelartikel-Export sind geschlossen: Regel-Preview/Zählungen und
+  rückwirkendes Anwenden laufen über `SQLiteRuleEvaluationStore`; Offline-
+  Inhalte liegen in `article_offline` und werden von Liste/Reader gelesen;
+  Artikel-Aufbewahrung löscht SQLite-Artikel und korrigiert Feed-Zähler; OPML-
+  Import spiegelt neue Feeds nach SQLite, OPML-Export bevorzugt SQLite-Feed-/
+  Feed-Tag-Snapshots; Export aus der SQLite-Liste nutzt `ArticleReaderSnapshot`,
+  Offline-Volltext und SQLite-Tag-Namen.
 - Feature 17.3 Automatisches Löschen ist umgesetzt: globale Einstellung,
   Stern-/Archiv-Schutz mit Zusatzoption und pro-Feed-Überschreibung in den
   Feed-Eigenschaften.
@@ -2346,15 +2354,30 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Feature 11.2 Lesefortschritt ist zurückgestellt: Der erste SwiftUI/AppKit-
   Scrollbeobachter-Ansatz hat das Scrollgefühl im Reader verschlechtert und wurde
   wieder entfernt. Für v1 bleibt der Reader ohne Lesefortschritt.
-- Nächster sinnvoller Fokus: verbleibende SQLite-Nebenpfade schließen,
-  insbesondere Regel-Previews/Zählungen und rückwirkende Regelauswertung, die
-  noch SwiftData-Artikelmaterialisierung nutzen.
+- Nächster sinnvoller Fokus: vollständiger M4-Regressionstest, danach entscheiden,
+  ob der SQLite-Hauptpfad für Release-Polish genügt oder ob einzelne Legacy-
+  SwiftData-Fallback-Views ausgebaut/entfernt werden sollen.
 - Feature-Roadmap ist in `FEATURES.md` im Root dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
 ---
 
 ## Letzte Änderungen
+
+- 2026-07-03: SQLite-Migrationsabschluss für die offenen Nebenpfade umgesetzt.
+  `SQLiteRuleEvaluationStore` ersetzt SwiftData-Artikelmaterialisierung in
+  Regel-Preview, Regel-Zählungen und rückwirkendem Anwenden. Offline-Kopien
+  werden in `article_offline` gespeichert; `SQLiteOfflineDownloadService`,
+  `ArticleReaderSnapshot`, `ArticleListSnapshot`, `SQLiteReaderView` und
+  `SQLiteFeedArticleListView` lesen/schreiben den Status direkt über GRDB.
+  `ArticleRetentionCleanupService` bereinigt neben SwiftData nun auch SQLite-
+  Artikel inklusive Statuszeilen und Feed-Zähler-Recount. OPML-Import gibt die
+  `FeedivoDatabase` an `FeedViewModel.importOPMLFeeds` weiter und spiegelt neue
+  Feeds nach SQLite. OPML-Export liest Feed-/Feed-Tag-Snapshots über
+  `FeedStore.opmlFeedsForExport` und ergänzt nur Feed-Beschreibungen aus
+  SwiftData. Der Einzelartikel-Export aus der SQLite-Liste baut seine
+  `ArticleExportSnapshot`s aus `ArticleReaderSnapshot` plus Tag-Namen aus
+  `article_tags`/`feed_tags`.
 
 - 2026-07-03: Smart-Folder-Verwaltung/Preview auf SQLite-Zählungen umgestellt.
   `TimelineStore.count` nutzt dieselbe Scope-/Smart-Folder-SQL-Logik wie die

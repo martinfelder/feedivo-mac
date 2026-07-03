@@ -15,4 +15,9 @@ struct ArticleListSnapshot: Equatable, Identifiable, Sendable {
     var isStarred: Bool
     var isArchived: Bool
     var isHidden: Bool
+    var offlineStateRaw: String = ArticleOfflineState.none.rawValue
+
+    var offlineState: ArticleOfflineState {
+        ArticleOfflineState(rawValue: offlineStateRaw) ?? .none
+    }
 }

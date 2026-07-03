@@ -173,6 +173,23 @@ enum RuleEngine {
         )
     }
 
+    static func matchingArticleCount(
+        conditionDrafts: [RuleConditionDraft],
+        matchMode: RuleMatchMode,
+        articles: [ArticleRuleSnapshot]
+    ) -> Int {
+        let conditions = normalizedConditions(from: conditionDrafts)
+        guard !conditions.isEmpty else {
+            return 0
+        }
+
+        return articles.reduce(0) { count, article in
+            matches(conditions: conditions, matchMode: matchMode, article: article)
+                ? count + 1
+                : count
+        }
+    }
+
     /// Wendet Regeln auf mehrere Artikel eines Feeds an. `preparedRules` wird nur
     /// einmal berechnet (Sortierung + normalisierte Conditions) statt pro Artikel
     /// neu aufgebaut — das war vorher im Refresh-Pfad pro neuem Artikel der Fall.

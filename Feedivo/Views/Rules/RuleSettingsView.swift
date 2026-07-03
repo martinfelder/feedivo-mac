@@ -4,8 +4,8 @@ import UniformTypeIdentifiers
 
 struct RuleSettingsView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.feedivoDatabase) private var feedivoDatabase
     @Query(sort: \Rule.sortOrder) private var rules: [Rule]
-    @Query private var articles: [Article]
 
     @State private var viewModel = RuleViewModel()
     @State private var ruleEditing: Rule?
@@ -13,13 +13,7 @@ struct RuleSettingsView: View {
     @State private var rulePendingDeletion: Rule?
     @State private var appliedExistingRuleActionCount: Int?
     @State private var draggedRuleID: UUID?
-
-    init() {
-        // Artikel ohne die großen content/offlineContent-Blobs laden — beim
-        // Treffer-Zählen und Anwenden der Regeln wird nur title/summary/feed-Titel
-        // sowie tags/isHidden gebraucht, nie der Volltext (P1).
-        _articles = Query(Article.lightFetchDescriptor())
-    }
+    @State private var matchingCounts: [UUID: Int] = [:]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -65,6 +59,9 @@ struct RuleSettingsView: View {
                 rulePendingDeletion = nil
             }
         }
+        .task(id: matchingCountsReloadToken) {
+            await reloadMatchingCounts()
+        }
     }
 
     private var header: some View {
@@ -97,11 +94,7 @@ struct RuleSettingsView: View {
     }
 
     private var ruleList: some View {
-        // Treffer pro Regel einmal pro Render berechnen (Map), statt pro Zeile
-        // jeweils über alle Artikel zu iterieren (P2: N × O(articles) im ForEach).
-        let matchingCounts = RuleSettingsFormatter.matchingCounts(for: orderedRules, articles: articles)
-
-        return VStack(spacing: 0) {
+        VStack(spacing: 0) {
             RuleSettingsListHeader()
 
             ForEach(Array(orderedRules.enumerated()), id: \.element.id) { index, rule in
@@ -151,18 +144,69 @@ struct RuleSettingsView: View {
     }
 
     private var canApplyRulesToExistingArticles: Bool {
-        !articles.isEmpty && rules.contains { rule in
-            rule.isEnabled
-        }
+        feedivoDatabase != nil && rules.contains { rule in rule.isEnabled }
     }
 
     private func applyRulesToExistingArticles() {
-        let appliedActionCount = RuleEngine.applyRulesToExistingArticles(orderedRules, articles: articles)
-        appliedExistingRuleActionCount = appliedActionCount
-
-        if appliedActionCount > 0 {
-            try? modelContext.save()
+        guard let database = feedivoDatabase else {
+            appliedExistingRuleActionCount = 0
+            return
         }
+
+        do {
+            let appliedActionCount = try SQLiteRuleEvaluationStore(database: database)
+                .applyRulesToExistingArticles(RuleEngine.snapshots(from: orderedRules))
+            appliedExistingRuleActionCount = appliedActionCount
+        } catch {
+            appliedExistingRuleActionCount = 0
+        }
+    }
+
+    private var matchingCountsReloadToken: String {
+        orderedRules
+            .map { rule in
+                let conditionToken = (rule.conditions ?? [])
+                    .sorted { $0.sortOrder < $1.sortOrder }
+                    .map { "\($0.field):\($0.conditionOperator):\($0.value):\($0.sortOrder)" }
+                    .joined(separator: ",")
+                return "\(rule.id.uuidString):\(rule.isEnabled):\(rule.conditionMatchMode):\(rule.actionRaw):\(rule.sortOrder):\(conditionToken)"
+            }
+            .joined(separator: "|")
+    }
+
+    private func reloadMatchingCounts() async {
+        guard let database = feedivoDatabase else {
+            matchingCounts = [:]
+            return
+        }
+
+        let store = SQLiteRuleEvaluationStore(database: database)
+        var counts: [UUID: Int] = [:]
+
+        for rule in orderedRules {
+            let drafts = (rule.conditions ?? [])
+                .sorted { $0.sortOrder < $1.sortOrder }
+                .compactMap { condition -> RuleConditionDraft? in
+                    guard let field = RuleConditionField(rawValue: condition.field),
+                          let conditionOperator = RuleConditionOperator(rawValue: condition.conditionOperator)
+                    else {
+                        return nil
+                    }
+
+                    return RuleConditionDraft(
+                        field: field,
+                        conditionOperator: conditionOperator,
+                        value: condition.value
+                    )
+                }
+
+            counts[rule.id] = (try? store.matchingArticleCount(
+                conditionDrafts: drafts,
+                matchMode: RuleMatchMode.normalized(rule.conditionMatchMode)
+            )) ?? 0
+        }
+
+        matchingCounts = counts
     }
 
     private func move(_ rule: Rule, direction: RuleMoveDirection) {

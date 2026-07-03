@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct OPMLExportSheet: View {
+    @Environment(\.feedivoDatabase) private var feedivoDatabase
+
     let feeds: [Feed]
     let onClose: () -> Void
 
@@ -57,6 +59,9 @@ struct OPMLExportSheet: View {
         }
         .frame(width: 720)
         .background(.background)
+        .task {
+            loadExportFeeds()
+        }
         .fileExporter(
             isPresented: $isExporting,
             document: document,
@@ -231,6 +236,34 @@ struct OPMLExportSheet: View {
         }
 
         return trimmedValue
+    }
+
+    private func loadExportFeeds() {
+        let swiftDataFeeds = FeedViewModel.opmlFeedsForExport(from: feeds)
+        guard let feedivoDatabase else {
+            opmlFeeds = swiftDataFeeds
+            return
+        }
+
+        do {
+            let descriptionsByURL = Dictionary(
+                uniqueKeysWithValues: swiftDataFeeds.map { ($0.xmlURL, $0.description) }
+            )
+            opmlFeeds = try FeedStore(database: feedivoDatabase)
+                .opmlFeedsForExport()
+                .map { feed in
+                    OPMLFeed(
+                        title: feed.title,
+                        xmlURL: feed.xmlURL,
+                        htmlURL: feed.htmlURL,
+                        folderName: feed.folderName,
+                        description: descriptionsByURL[feed.xmlURL] ?? feed.description,
+                        tagNames: feed.tagNames
+                    )
+                }
+        } catch {
+            opmlFeeds = swiftDataFeeds
+        }
     }
 }
 

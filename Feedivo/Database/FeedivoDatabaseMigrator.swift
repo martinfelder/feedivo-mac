@@ -160,6 +160,20 @@ enum FeedivoDatabaseMigrator {
             try database.execute(sql: "INSERT INTO article_search(article_search) VALUES ('rebuild')")
         }
 
+        migrator.registerMigration("v5_create_article_offline_table") { database in
+            try database.create(table: "article_offline") { table in
+                table.column("articleID", .text).primaryKey()
+                    .references("articles", column: "id", onDelete: .cascade)
+                table.column("state", .text).notNull().defaults(to: ArticleOfflineState.none.rawValue)
+                table.column("content", .text)
+                table.column("requestedAt", .datetime)
+                table.column("savedAt", .datetime)
+                table.column("errorMessage", .text)
+            }
+
+            try database.create(index: "idx_article_offline_state", on: "article_offline", columns: ["state"])
+        }
+
         return migrator
     }
 }

@@ -234,6 +234,67 @@ struct FeedViewModelTests {
     }
 
     @MainActor
+    @Test func importOPMLFeedsSpiegeltNeueFeedsNachSQLite() async throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            RuleCondition.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let sqliteDatabase = try FeedivoDatabase.inMemoryForTests()
+        let viewModel = makeViewModel(fetchFeed: { urlString in
+            ParsedFeed(
+                sourceURL: urlString,
+                title: "Importiert",
+                description: nil,
+                siteURL: "https://example.com/",
+                articles: [
+                    ParsedArticle(
+                        title: "Erster Artikel",
+                        sourceID: "one",
+                        link: "https://example.com/1",
+                        summary: "Kurz",
+                        content: "<p>Inhalt</p>",
+                        publishedAt: Date(timeIntervalSince1970: 1_000),
+                        imageURL: nil
+                    )
+                ]
+            )
+        })
+
+        let result = try await viewModel.importOPMLFeeds(
+            [
+                OPMLFeed(
+                    title: "Feed aus OPML",
+                    xmlURL: "https://example.com/feed.xml",
+                    htmlURL: "https://example.com/",
+                    folderName: "News"
+                )
+            ],
+            existingFeeds: [],
+            refreshAfterImport: true,
+            context: context,
+            sqliteDatabase: sqliteDatabase
+        )
+
+        let feed = try #require(try FeedStore(database: sqliteDatabase).feed(url: "https://example.com/feed.xml"))
+        let rows = try TimelineStore(database: sqliteDatabase).articles(
+            scope: .feed(feed.id),
+            includeRead: true,
+            includeHidden: true,
+            limit: 10
+        )
+
+        #expect(result.imported == 1)
+        #expect(feed.folderName == "News")
+        #expect(rows.map(\.title) == ["Erster Artikel"])
+    }
+
+    @MainActor
     @Test func importOPMLFeedsWirftWennBereitsEinImportLaeuft() async throws {
         let container = try ModelContainer(
             for: Feed.self,

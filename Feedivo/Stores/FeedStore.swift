@@ -117,6 +117,42 @@ struct FeedStore {
 
         return snapshots.filter { $0.unreadCount > 0 }
     }
+
+    func opmlFeedsForExport() throws -> [OPMLFeed] {
+        try database.read { db in
+            let rows = try Row.fetchAll(db, sql: """
+                SELECT
+                    f.id,
+                    f.title,
+                    f.url,
+                    f.websiteURL,
+                    f.folderName,
+                    GROUP_CONCAT(t.name, '\u{1F}') AS tagNames
+                FROM feeds f
+                LEFT JOIN feed_tags ft ON ft.feedID = f.id
+                LEFT JOIN tags t ON t.id = ft.tagID
+                GROUP BY f.id
+                ORDER BY f.title COLLATE NOCASE, f.id COLLATE NOCASE
+                """)
+
+            return rows.map { row in
+                let tagList = (row["tagNames"] as String?)
+                    .map { $0.split(separator: "\u{1F}").map(String.init) }
+                    ?? []
+
+                return OPMLFeed(
+                    title: row["title"],
+                    xmlURL: row["url"],
+                    htmlURL: row["websiteURL"],
+                    folderName: row["folderName"],
+                    description: nil,
+                    tagNames: tagList.sorted {
+                        $0.localizedCaseInsensitiveCompare($1) == .orderedAscending
+                    }
+                )
+            }
+        }
+    }
 }
 
 private extension Optional where Wrapped == String {

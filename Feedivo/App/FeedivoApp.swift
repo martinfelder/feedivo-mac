@@ -195,6 +195,13 @@ struct FeedivoApp: App {
             retentionDays: articleRetentionDays,
             includeProtectedArticles: articleRetentionIncludesProtectedArticles
         )
+        _ = try? ArticleRetentionCleanupService.removeExpiredSQLiteArticles(
+            in: modelContainer.mainContext,
+            database: feedivoDatabase,
+            isEnabled: articleRetentionIsEnabled,
+            retentionDays: articleRetentionDays,
+            includeProtectedArticles: articleRetentionIncludesProtectedArticles
+        )
     }
 
     @MainActor

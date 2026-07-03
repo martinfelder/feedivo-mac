@@ -5,6 +5,8 @@ struct SQLiteFeedArticleListView: View {
     @Environment(\.feedivoDatabase) private var database
     @AppStorage(SidebarBadgeInvalidation.directTagVersionKey)
     private var directTagVersion = 0
+    @AppStorage(SQLiteDataInvalidation.statusVersionKey)
+    private var sqliteStatusVersion = 0
 
     private enum Scope {
         case feed(Feed)
@@ -20,6 +22,8 @@ struct SQLiteFeedArticleListView: View {
     @State private var state = SQLiteFeedArticleListState()
     @State private var searchText = ""
     @State private var debouncedSearchText = ""
+    @State private var offlineDownloadService = SQLiteOfflineDownloadService()
+    @State private var articleExportRequest: ArticleExportRequest?
 
     init(
         feed: Feed,
@@ -93,6 +97,11 @@ struct SQLiteFeedArticleListView: View {
         .onChange(of: state.navigationState) {
             navigationState = state.navigationState
         }
+        .sheet(item: $articleExportRequest) { request in
+            ArticleExportSheet(request: request) {
+                articleExportRequest = nil
+            }
+        }
         .navigationTitle(navigationTitle)
     }
 
@@ -160,8 +169,14 @@ struct SQLiteFeedArticleListView: View {
                                 onOpenOriginal: {},
                                 onShareOriginal: {},
                                 onOpenInWindow: {},
-                                onExport: {},
-                                onSaveOrRemoveOffline: {},
+                                onExport: {
+                                    requestExportArticle(row.id)
+                                },
+                                onSaveOrRemoveOffline: {
+                                    Task {
+                                        await saveOrRemoveOffline(row)
+                                    }
+                                },
                                 onDelete: {},
                                 onMarkAllRead: {}
                             )
@@ -214,7 +229,7 @@ struct SQLiteFeedArticleListView: View {
     }
 
     private var loadToken: String {
-        "\(scopeToken)#\(directTagVersion)#\(selectedArticleID ?? "nil")#\(debouncedSearchText)"
+        "\(scopeToken)#\(directTagVersion)#\(sqliteStatusVersion)#\(selectedArticleID ?? "nil")#\(debouncedSearchText)"
     }
 
     private var scopeToken: String {
@@ -356,6 +371,47 @@ struct SQLiteFeedArticleListView: View {
 
         state.toggleArchived(articleID: articleID, database: database)
         navigationState = state.navigationState
+    }
+
+    @MainActor
+    private func saveOrRemoveOffline(_ row: ArticleListSnapshot) async {
+        guard let database else {
+            return
+        }
+
+        if row.offlineState.isAvailable {
+            offlineDownloadService.removeOfflineContent(articleID: row.id, database: database)
+        } else {
+            await offlineDownloadService.saveForOffline(articleID: row.id, database: database)
+        }
+
+        reload()
+        navigationState = state.navigationState
+    }
+
+    private func requestExportArticle(_ articleID: String) {
+        guard let database else {
+            return
+        }
+
+        do {
+            guard let snapshot = try ArticleStore(database: database).readerArticle(id: articleID) else {
+                return
+            }
+            let tagNames = try TagStore(database: database).exportTagNames(
+                articleID: snapshot.id,
+                feedID: snapshot.feedID
+            )
+            let request = ArticleExportRequest(
+                snapshot: ArticleExportSnapshot(sqliteSnapshot: snapshot, tagNames: tagNames)
+            )
+
+            DispatchQueue.main.async {
+                articleExportRequest = request
+            }
+        } catch {
+            state.loadState = .failed(error.localizedDescription)
+        }
     }
 
     private func clearSearch() {

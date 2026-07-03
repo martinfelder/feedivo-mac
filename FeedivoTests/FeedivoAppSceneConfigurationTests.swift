@@ -390,6 +390,23 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(compactEditorSource.contains("TimelineStore(database:database).count(scope:.smartFolder(snapshot),includeRead:true,includeHidden:"))
     }
 
+    @Test func regelPreviewUndRueckwirkendesAnwendenNutzenSQLite() throws {
+        let projectRoot = projectRootURL()
+        let settingsSource = try source(at: "Feedivo/Views/Rules/RuleSettingsView.swift", projectRoot: projectRoot)
+        let wizardSource = try source(at: "Feedivo/Views/Rules/RuleWizardView.swift", projectRoot: projectRoot)
+        let compactSettingsSource = compact(settingsSource)
+        let compactWizardSource = compact(wizardSource)
+
+        #expect(settingsSource.contains("@Environment(\\.feedivoDatabase) private var feedivoDatabase"))
+        #expect(wizardSource.contains("@Environment(\\.feedivoDatabase) private var feedivoDatabase"))
+        #expect(!settingsSource.contains("@Query private var articles"))
+        #expect(!wizardSource.contains("@Query private var articles"))
+        #expect(!settingsSource.contains("RuleSettingsFormatter.matchingCounts(for: orderedRules, articles: articles)"))
+        #expect(!wizardSource.contains("RuleEngine.matchingArticleCount("))
+        #expect(compactSettingsSource.contains("SQLiteRuleEvaluationStore(database:database).applyRulesToExistingArticles(RuleEngine.snapshots(from:orderedRules))"))
+        #expect(compactWizardSource.contains("SQLiteRuleEvaluationStore(database:database).matchingArticleCount(conditionDrafts:activeConditionDrafts,matchMode:activeMatchMode)"))
+    }
+
     @Test func sqliteArticleListSearchLaedtUeberSQLiteState() throws {
         let projectRoot = projectRootURL()
         let listSource = try source(at: "Feedivo/Views/ArticleList/SQLiteFeedArticleListView.swift", projectRoot: projectRoot)

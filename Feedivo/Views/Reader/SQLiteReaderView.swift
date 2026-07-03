@@ -11,6 +11,8 @@ struct SQLiteReaderView: View {
     let selectNextArticle: () -> Void
 
     @State private var state = SQLiteReaderState()
+    @State private var offlineDownloadService = SQLiteOfflineDownloadService()
+    @State private var isOfflineOperationInProgress = false
 
     init(
         articleID: String,
@@ -86,8 +88,38 @@ struct SQLiteReaderView: View {
                 }
                 .help(L10n.articleArchiveCommand)
                 .disabled(state.snapshot == nil)
+
+                Button {
+                    if let database {
+                        Task {
+                            await toggleOffline(database: database)
+                        }
+                    }
+                } label: {
+                    Image(systemName: offlineToolbarSystemImage)
+                }
+                .help(offlineToolbarHelp)
+                .disabled(state.snapshot == nil || isOfflineOperationInProgress)
             }
         }
+    }
+
+    private var offlineToolbarSystemImage: String {
+        if isOfflineOperationInProgress {
+            return "arrow.triangle.2.circlepath"
+        }
+
+        return state.snapshot?.offlineState.isAvailable == true ? "trash" : "arrow.down.circle"
+    }
+
+    private var offlineToolbarHelp: LocalizedStringKey {
+        if isOfflineOperationInProgress {
+            return L10n.readerOfflineSaving
+        }
+
+        return state.snapshot?.offlineState.isAvailable == true
+            ? L10n.readerOfflineRemove
+            : L10n.readerOfflineSave
     }
 
     private func readerContent(database: FeedivoDatabase) -> some View {
@@ -173,5 +205,16 @@ struct SQLiteReaderView: View {
                     .frame(height: 180)
             }
         }
+    }
+
+    @MainActor
+    private func toggleOffline(database: FeedivoDatabase) async {
+        guard !isOfflineOperationInProgress else {
+            return
+        }
+
+        isOfflineOperationInProgress = true
+        await state.toggleOffline(database: database, offlineDownloadService: offlineDownloadService)
+        isOfflineOperationInProgress = false
     }
 }

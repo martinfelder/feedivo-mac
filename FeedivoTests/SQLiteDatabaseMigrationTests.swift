@@ -17,6 +17,7 @@ struct SQLiteDatabaseMigrationTests {
         #expect(tableNames.contains("article_tags"))
         #expect(tableNames.contains("feed_tags"))
         #expect(tableNames.contains("article_search"))
+        #expect(tableNames.contains("article_offline"))
     }
 
     @Test func migrationCreatesPerformanceIndexes() throws {
@@ -38,6 +39,7 @@ struct SQLiteDatabaseMigrationTests {
         #expect(indexNames.contains("idx_tags_name_unique"))
         #expect(indexNames.contains("idx_article_tags_tag_article"))
         #expect(indexNames.contains("idx_feed_tags_tag_feed"))
+        #expect(indexNames.contains("idx_article_offline_state"))
     }
 
     @Test func migrationCreatesArticleSearchTriggers() throws {

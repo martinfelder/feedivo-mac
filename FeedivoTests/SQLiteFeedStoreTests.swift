@@ -76,6 +76,36 @@ struct SQLiteFeedStoreTests {
         #expect(visible.map(\.id) == ["unread"])
     }
 
+    @Test func opmlExportFeedsIncludeFoldersWebsiteAndFeedTags() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let tagStore = TagStore(database: database)
+
+        try feedStore.save(FeedRecord(
+            id: "feed-1",
+            url: "https://example.com/feed.xml",
+            title: "Example",
+            websiteURL: "https://example.com",
+            folderName: "News"
+        ))
+        try tagStore.save(TagRecord(id: "tag-1", name: "Swift", colorHex: "#ff0000"))
+        try tagStore.save(TagRecord(id: "tag-2", name: "RSS", colorHex: "#00ff00"))
+        try tagStore.assignTag(tagID: "tag-1", toFeedID: "feed-1", at: Date(timeIntervalSince1970: 1_000))
+        try tagStore.assignTag(tagID: "tag-2", toFeedID: "feed-1", at: Date(timeIntervalSince1970: 1_000))
+
+        let feeds = try feedStore.opmlFeedsForExport()
+
+        #expect(feeds == [
+            OPMLFeed(
+                title: "Example",
+                xmlURL: "https://example.com/feed.xml",
+                htmlURL: "https://example.com",
+                folderName: "News",
+                tagNames: ["RSS", "Swift"]
+            )
+        ])
+    }
+
     @Test func feedByURLFindsExistingRecord() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let store = FeedStore(database: database)

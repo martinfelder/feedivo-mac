@@ -1,4 +1,5 @@
 import Foundation
+import GRDB
 import SwiftData
 
 enum ArticleRetentionCleanupService {
@@ -63,8 +64,98 @@ enum ArticleRetentionCleanupService {
         return articlesToRemove.count
     }
 
+    @MainActor
+    @discardableResult
+    static func removeExpiredSQLiteArticles(
+        in context: ModelContext,
+        database: FeedivoDatabase,
+        isEnabled: Bool,
+        retentionDays: Int,
+        includeProtectedArticles: Bool = false,
+        now: Date = Date()
+    ) throws -> Int {
+        let globalConfiguration = ArticleRetentionConfiguration(
+            isEnabled: isEnabled,
+            retentionDays: retentionDays,
+            includeProtectedArticles: includeProtectedArticles,
+            now: now
+        )
+        let feedConfigurations = try sqliteFeedRetentionConfigurations(
+            in: context,
+            globalConfiguration: globalConfiguration,
+            now: now
+        )
+
+        let removedCount = try database.write { db in
+            let candidates = try SQLiteArticleRetentionCandidate.fetchAll(db, sql: """
+                SELECT
+                    a.id,
+                    a.feedID,
+                    a.publishedAt,
+                    s.isStarred,
+                    s.isArchived,
+                    s.isRead,
+                    s.isHidden
+                FROM articles a
+                JOIN article_statuses s ON s.articleID = a.id
+                """)
+
+            let expiredCandidates = candidates.filter { candidate in
+                let configuration = feedConfigurations[candidate.feedID] ?? globalConfiguration
+                return shouldRemove(
+                    candidate,
+                    cutoffDate: configuration.cutoffDate,
+                    isEnabled: configuration.isEnabled,
+                    includeProtectedArticles: configuration.includeProtectedArticles
+                )
+            }
+
+            guard !expiredCandidates.isEmpty else {
+                return 0
+            }
+
+            let articleIDs = expiredCandidates.map(\.id)
+            let changedFeedIDs = Set(expiredCandidates.map(\.feedID))
+
+            try deleteSQLiteArticles(articleIDs, db: db)
+            try recalculateSQLiteUnreadCounts(for: changedFeedIDs, db: db)
+
+            return articleIDs.count
+        }
+
+        if removedCount > 0 {
+            SQLiteDataInvalidation.bumpStatusVersion()
+        }
+
+        return removedCount
+    }
+
     static func shouldRemove(
         _ article: Article,
+        cutoffDate: Date,
+        isEnabled: Bool = true,
+        includeProtectedArticles: Bool = false
+    ) -> Bool {
+        guard isEnabled else {
+            return false
+        }
+
+        guard
+            let publishedAt = article.publishedAt,
+            publishedAt < cutoffDate
+        else {
+            return false
+        }
+
+        if includeProtectedArticles {
+            return true
+        }
+
+        return !article.isStarred && !article.isArchived
+    }
+
+    private static func shouldRemove(
+        _ article: SQLiteArticleRetentionCandidate,
         cutoffDate: Date,
         isEnabled: Bool = true,
         includeProtectedArticles: Bool = false
@@ -122,6 +213,31 @@ enum ArticleRetentionCleanupService {
     }
 
     @MainActor
+    private static func sqliteFeedRetentionConfigurations(
+        in context: ModelContext,
+        globalConfiguration: ArticleRetentionConfiguration,
+        now: Date
+    ) throws -> [String: ArticleRetentionConfiguration] {
+        let feeds = try context.fetch(FetchDescriptor<Feed>())
+        var configurations: [String: ArticleRetentionConfiguration] = [:]
+
+        for feed in feeds {
+            if feed.articleRetentionOverridesGlobalSetting {
+                configurations[feed.id.uuidString] = ArticleRetentionConfiguration(
+                    ArticleRetentionSettings.effectiveConfiguration(
+                        for: feed,
+                        now: now
+                    )
+                )
+            } else {
+                configurations[feed.id.uuidString] = globalConfiguration
+            }
+        }
+
+        return configurations
+    }
+
+    @MainActor
     private static func syncUnreadCounts(
         for feedIDs: Set<UUID>,
         unreadCounts: [UUID: Int],
@@ -151,6 +267,76 @@ enum ArticleRetentionCleanupService {
         }
 
         return unreadCounts
+    }
+
+    private static func deleteSQLiteArticles(_ articleIDs: [String], db: Database) throws {
+        for chunk in articleIDs.chunked(into: 400) {
+            let placeholders = Array(repeating: "?", count: chunk.count).joined(separator: ", ")
+            let arguments = StatementArguments(chunk)
+
+            try db.execute(
+                sql: "DELETE FROM article_statuses WHERE articleID IN (\(placeholders))",
+                arguments: arguments
+            )
+            try db.execute(
+                sql: "DELETE FROM articles WHERE id IN (\(placeholders))",
+                arguments: arguments
+            )
+        }
+    }
+
+    private static func recalculateSQLiteUnreadCounts(for feedIDs: Set<String>, db: Database) throws {
+        for feedID in feedIDs {
+            let unreadCount = try Int.fetchOne(db, sql: """
+                SELECT COUNT(*)
+                FROM article_statuses s
+                JOIN articles a ON a.id = s.articleID
+                WHERE a.feedID = ?
+                    AND s.isRead = 0
+                    AND s.isHidden = 0
+                """, arguments: [feedID]) ?? 0
+
+            try db.execute(
+                sql: """
+                    UPDATE feeds
+                    SET unreadCount = ?, updatedAt = ?
+                    WHERE id = ?
+                    """,
+                arguments: [unreadCount, Date(), feedID]
+            )
+        }
+    }
+}
+
+private struct SQLiteArticleRetentionCandidate: FetchableRecord {
+    let id: String
+    let feedID: String
+    let publishedAt: Date?
+    let isStarred: Bool
+    let isArchived: Bool
+    let isRead: Bool
+    let isHidden: Bool
+
+    init(row: Row) throws {
+        id = row["id"]
+        feedID = row["feedID"]
+        publishedAt = row["publishedAt"]
+        isStarred = row["isStarred"]
+        isArchived = row["isArchived"]
+        isRead = row["isRead"]
+        isHidden = row["isHidden"]
+    }
+}
+
+private extension Array {
+    func chunked(into size: Int) -> [[Element]] {
+        guard size > 0 else {
+            return [self]
+        }
+
+        return stride(from: 0, to: count, by: size).map { startIndex in
+            Array(self[startIndex..<Swift.min(startIndex + size, count)])
+        }
     }
 }
 
