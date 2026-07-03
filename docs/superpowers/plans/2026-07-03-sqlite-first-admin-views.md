@@ -56,7 +56,7 @@
 - [x] Convert settings rows to `SmartFolderRecord` plus condition records.
 - [x] Convert editor save/update to `SQLiteSmartFolderStore`.
 - [x] Run focused tests and build.
-- [ ] Commit.
+- [x] Commit.
 
 ### Task 4: Rule Settings And Wizard SQLite-First
 
@@ -72,7 +72,7 @@
 - [x] Convert rule settings list and matching counts to SQLite rule snapshots.
 - [x] Convert wizard create/update to `SQLiteRuleStore` and tag picker to `TagRecord`.
 - [x] Run focused tests and build.
-- [ ] Commit.
+- [x] Commit.
 
 ### Task 5: Documentation And Final Verification
 
@@ -81,8 +81,8 @@
 - Modify: `FEATURES.md`
 - Modify: `docs/superpowers/plans/2026-07-03-sqlite-only-management.md`
 
-- [ ] Update project memory so admin views are recorded as SQLite-first.
-- [ ] Run `xcodebuild test` for focused source/store tests.
-- [ ] Run `xcodebuild build -quiet -project Feedivo.xcodeproj -scheme Feedivo -destination 'platform=macOS'`.
-- [ ] Run `git diff --check`.
+- [x] Update project memory so admin views are recorded as SQLite-first.
+- [x] Run `xcodebuild test` for focused source/store tests.
+- [x] Run `xcodebuild build -quiet -project Feedivo.xcodeproj -scheme Feedivo -destination 'platform=macOS'`.
+- [x] Run `git diff --check`.
 - [ ] Commit.
