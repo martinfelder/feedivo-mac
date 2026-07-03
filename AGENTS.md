@@ -2292,6 +2292,12 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 ## Aktuell in Arbeit
 
 - M1, M2 und M3 sind abgeschlossen.
+- 2026-07-03: Phase 1 (SwiftData-Audit und Rückfallschutz) ist technisch abgeschlossen:
+  - Die produktive Feed-/Artikelnavigation läuft in `ContentView` konsequent über
+    `SQLiteFeedArticleListView` und `SQLiteReaderView`.
+  - Die Übergänge für Feed/Tag/SmartFolder/Regeln sind dokumentiert als
+    produktiv SQLite-first mit klaren SwiftData-Übergangsresten.
+  - `docs/performance/sqlite-only-audit.md` ist auf den aktuellen Stand gebracht.
 - 2026-06-27/28 abgeschlossen: OPML-Import-Dedup-Refactor (gemeinsamer
   `OPMLImportPreviewController`), Review-Followup-Fixes (7 Tasks) und
   L10n-Abschluss (defaultKey-Modell, Plural-Varianten, Cluster-Lokalisierung,
@@ -2422,6 +2428,15 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 ---
 
 ## Letzte Änderungen
+
+- 2026-07-03: Phase 1 abgeschlossen: `docs/performance/sqlite-only-audit.md`
+  auf den aktuellen Stand gebracht und im Regressionstest `FeedivoTests/
+  FeedivoAppSceneConfigurationTests.swift` der produktive Inhaltspfad (`ContentView`)
+  als SQLite-only abgesichert (`produktiveFeedArtikelNavigationBleibtSQLiteOnly`).
+
+- 2026-07-03: Phase 1 im Test vollständig „grün“-stabilisiert, indem die
+  Source-Test-Assertion gegen `ArticleListView(` robust auf echte Legacy-Route-Aufrufe
+  umgestellt wurde (keine Fehl-Positive mehr über `SQLiteFeedArticleListView(`).
 
 - 2026-07-03: Feed hinzufügen, OPML-Import und First-Run-Wizard sind
   SQLite-first mit temporärer SwiftData-Feed-Bridge. `SQLiteFeedSubscriptionService`

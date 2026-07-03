@@ -459,6 +459,29 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(contentSource.contains("@State private var sqliteArticleNavigationState = SQLiteArticleNavigationState.empty"))
     }
 
+    @Test func produktiveFeedArtikelNavigationBleibtSQLiteOnly() throws {
+        let projectRoot = projectRootURL()
+        let contentSource = try source(at: "Feedivo/Views/ContentView.swift", projectRoot: projectRoot)
+        let compactContentSource = compact(contentSource)
+
+        #expect(!contentSource.contains("@Query(sort: \\Feed.title)"))
+        #expect(!contentSource.contains("@State private var selectedArticle: Article?"))
+        let hasLegacyArticleListViewCall = contentSource
+            .components(separatedBy: .newlines)
+            .contains { line in
+                line.contains("ArticleListView(") &&
+                !line.contains("SQLiteFeedArticleListView(")
+            }
+        #expect(!hasLegacyArticleListViewCall)
+        #expect(contentSource.contains("@State private var feedSnapshots: [FeedSidebarSnapshot] = []"))
+        #expect(contentSource.contains("FeedStore(database: database).sidebarFeeds()"))
+        #expect(contentSource.contains("SQLiteFeedArticleListView("))
+        #expect(contentSource.contains("SQLiteReaderView("))
+        #expect(contentSource.contains("selectedSQLiteArticleID"))
+        #expect(contentSource.contains("handleSQLiteArticleSnapshotChange"))
+        #expect(compactContentSource.contains("refreshAllFeeds(sqliteDatabase:database,modelContainer:modelContainer)"))
+    }
+
     @Test func contentViewNutztSQLiteFeedArticleListFuerSelectedFeed() throws {
         let projectRoot = projectRootURL()
         let contentSource = try source(at: "Feedivo/Views/ContentView.swift", projectRoot: projectRoot)

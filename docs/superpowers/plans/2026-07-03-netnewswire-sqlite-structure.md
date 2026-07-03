@@ -46,7 +46,7 @@ Nicht-Ziele:
 - Modify: `FeedivoTests/FeedivoAppSceneConfigurationTests.swift`
 - Create: `docs/performance/sqlite-only-audit.md`
 
-- [ ] **Step 1: Audit-Dokument anlegen**
+- [x] **Step 1: Audit-Dokument anlegen**
 
 Erstelle `docs/performance/sqlite-only-audit.md` mit diesen Rubriken:
 
@@ -77,7 +77,7 @@ Stand: 2026-07-03
 - keine neuen Tag-/Rule-/SmartFolder-Verwaltungen, die SwiftData als Quelle nutzen
 ```
 
-- [ ] **Step 2: Regressionstest für produktive Navigation ergänzen**
+- [x] **Step 2: Regressionstest für produktive Navigation ergänzen**
 
 In `FeedivoTests/FeedivoAppSceneConfigurationTests.swift` ergänzen:
 
@@ -95,7 +95,7 @@ In `FeedivoTests/FeedivoAppSceneConfigurationTests.swift` ergänzen:
 }
 ```
 
-- [ ] **Step 3: Test ausführen**
+- [x] **Step 3: Test ausführen**
 
 Run:
 
@@ -105,7 +105,7 @@ xcodebuild test -project Feedivo.xcodeproj -scheme Feedivo -destination 'platfor
 
 Expected: PASS.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add FeedivoTests/FeedivoAppSceneConfigurationTests.swift docs/performance/sqlite-only-audit.md
