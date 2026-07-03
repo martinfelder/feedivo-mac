@@ -2344,9 +2344,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   liefern GRDB-CRUD sowie Snapshots für RuleEngine und Sidebar. Bestehende
   SwiftData-Verwaltungsdaten werden über
   `SQLiteAdminDefinitionBackfillService` nach SQLite kopiert. TagManager,
-  Sidebar-Feed-Ordner und Smart-Folder-Verwaltung laufen inzwischen
-  SQLite-first; Rule-Settings/RuleWizard sind der verbleibende
-  SwiftData-verwaltete Admin-Rest.
+  Sidebar-Feed-Ordner, Smart-Folder-Verwaltung sowie RuleSettings/RuleWizard
+  laufen inzwischen SQLite-first; SwiftData bleibt dafür nur noch
+  Übergangs-/Backfill-Quelle.
 - Feature 17.3 Automatisches Löschen ist umgesetzt: globale Einstellung,
   Stern-/Archiv-Schutz mit Zusatzoption und pro-Feed-Überschreibung in den
   Feed-Eigenschaften.
@@ -2424,6 +2424,14 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   `SmartFolderEditorView` speichert Create/Update direkt nach SQLite; Preview
   und Settings-Trefferzahlen zählen weiter über `TimelineStore.count` mit
   derselben Smart-Folder-SQL-Logik wie die Artikelliste.
+
+- 2026-07-03: RuleSettings/RuleWizard SQLite-first gemacht.
+  `RuleSettingsView` lädt `RuleRecord`s, Conditions und Tag-Zielsnapshots über
+  `SQLiteRuleStore`/`TagStore`, schaltet Regeln per GRDB ein/aus, dupliziert,
+  löscht und sortiert sie in SQLite. `RuleWizardView` erstellt und aktualisiert
+  Regeln direkt über `SQLiteRuleStore`, nutzt `TagRecord`s für den Ziel-Tag-
+  Picker und legt neue Tags per `TagStore` an. Rückwirkendes Anwenden nutzt
+  `SQLiteRuleStore.ruleSnapshots()` statt SwiftData-Regelobjekte.
 
 - 2026-07-03: Feed-Eigenschaften-Metriken auf SQLite umgestellt.
   `ArticleStore.feedPropertiesMetrics` liefert neuesten Artikel und Anzahl der

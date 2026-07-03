@@ -921,9 +921,9 @@
     `SQLiteSmartFolderStore` bieten GRDB-CRUD und erzeugen Snapshots für
     RuleEngine/Sidebar. `SQLiteAdminDefinitionBackfillService` spiegelt
     bestehende SwiftData-Verwaltungsdaten beim App-Start nach SQLite.
-    TagManager, Sidebar-Feed-Ordner und Smart-Folder-Verwaltung laufen
-    inzwischen SQLite-first; Rule-Settings/RuleWizard sind der verbleibende
-    bewusst isolierte SwiftData-Admin-Rest.
+    TagManager, Sidebar-Feed-Ordner, Smart-Folder-Verwaltung sowie
+    RuleSettings/RuleWizard laufen inzwischen SQLite-first; SwiftData bleibt
+    dafür nur noch Übergangs-/Backfill-Quelle.
   - SQLite-Statusänderungen halten Feed-Zähler aktuell: `ArticleStatusStore`
     berechnet nach Read-/Hidden-Mutationen `feeds.unreadCount` direkt in SQLite
     neu und bump't `SQLiteDataInvalidation.statusVersionKey`, wodurch die

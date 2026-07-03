@@ -41,6 +41,98 @@ struct SQLiteRuleStore {
         }
     }
 
+    func rule(id: String) throws -> RuleRecord? {
+        try database.read { db in
+            try RuleRecord.fetchOne(db, sql: """
+                SELECT *
+                FROM rules
+                WHERE id = ?
+                """, arguments: [id])
+        }
+    }
+
+    func updateEnabled(id: String, isEnabled: Bool) throws {
+        try database.write { db in
+            try db.execute(
+                sql: """
+                    UPDATE rules
+                    SET isEnabled = ?, updatedAt = ?
+                    WHERE id = ?
+                    """,
+                arguments: [isEnabled, Date(), id]
+            )
+        }
+    }
+
+    func duplicate(id: String, copyName: String) throws -> RuleRecord {
+        try database.write { db in
+            guard let source = try RuleRecord.fetchOne(db, sql: """
+                SELECT *
+                FROM rules
+                WHERE id = ?
+                """, arguments: [id])
+            else {
+                throw SQLiteRuleStoreError.missingRule
+            }
+
+            let maxSortOrder = (try Int.fetchOne(db, sql: "SELECT MAX(sortOrder) FROM rules") ?? -1) + 1
+            let duplicateID = UUID().uuidString
+            var duplicate = RuleRecord(
+                id: duplicateID,
+                name: copyName,
+                isEnabled: source.isEnabled,
+                matchMode: source.matchMode,
+                action: source.action,
+                assignTagID: source.assignTagID,
+                notificationTemplate: source.notificationTemplate,
+                notificationPriority: source.notificationPriority,
+                sortOrder: maxSortOrder
+            )
+            try duplicate.insert(db)
+
+            let conditions = try Self.fetchConditions(db, ruleID: source.id)
+            for (index, condition) in conditions.enumerated() {
+                var copiedCondition = RuleConditionRecord(
+                    id: UUID().uuidString,
+                    ruleID: duplicateID,
+                    field: condition.field,
+                    conditionOperator: condition.conditionOperator,
+                    value: condition.value,
+                    sortOrder: index
+                )
+                try copiedCondition.insert(db)
+            }
+
+            return duplicate
+        }
+    }
+
+    func move(id sourceID: String, toPositionOf targetID: String) throws {
+        try database.write { db in
+            var rules = try Self.fetchRules(db)
+            guard sourceID != targetID,
+                  let sourceIndex = rules.firstIndex(where: { $0.id == sourceID }),
+                  let targetIndex = rules.firstIndex(where: { $0.id == targetID })
+            else {
+                return
+            }
+
+            let movedRule = rules.remove(at: sourceIndex)
+            rules.insert(movedRule, at: targetIndex)
+
+            for (index, rule) in rules.enumerated() {
+                try db.execute(
+                    sql: """
+                        UPDATE rules
+                        SET sortOrder = ?, updatedAt = ?
+                        WHERE id = ?
+                        """,
+                    arguments: [index, Date(), rule.id]
+                )
+            }
+        }
+    }
+
     func delete(id: String) throws {
         try database.write { db in
             try db.execute(
@@ -116,4 +208,8 @@ struct SQLiteRuleStore {
             ORDER BY sortOrder, id COLLATE NOCASE
             """, arguments: [ruleID])
     }
+}
+
+enum SQLiteRuleStoreError: Error, Equatable {
+    case missingRule
 }

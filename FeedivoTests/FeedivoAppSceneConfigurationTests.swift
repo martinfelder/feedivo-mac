@@ -405,7 +405,8 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(!wizardSource.contains("@Query private var articles"))
         #expect(!settingsSource.contains("RuleSettingsFormatter.matchingCounts(for: orderedRules, articles: articles)"))
         #expect(!wizardSource.contains("RuleEngine.matchingArticleCount("))
-        #expect(compactSettingsSource.contains("SQLiteRuleEvaluationStore(database:database).applyRulesToExistingArticles(RuleEngine.snapshots(from:orderedRules))"))
+        #expect(compactSettingsSource.contains("letsnapshots=trySQLiteRuleStore(database:database).ruleSnapshots()"))
+        #expect(compactSettingsSource.contains("SQLiteRuleEvaluationStore(database:database).applyRulesToExistingArticles(snapshots)"))
         #expect(compactWizardSource.contains("SQLiteRuleEvaluationStore(database:database).matchingArticleCount(conditionDrafts:activeConditionDrafts,matchMode:activeMatchMode)"))
     }
 
@@ -498,8 +499,8 @@ struct FeedivoAppSceneConfigurationTests {
         let contentSource = try source(at: "Feedivo/Views/ContentView.swift", projectRoot: projectRoot)
         let appSource = try source(at: "Feedivo/App/FeedivoApp.swift", projectRoot: projectRoot)
 
-        #expect(ruleSettingsSource.contains("@Query(sort: \\Rule.sortOrder) private var rules: [Rule]"))
-        #expect(ruleWizardSource.contains("@Query(sort: \\Rule.sortOrder) private var existingRules: [Rule]"))
+        #expect(!ruleSettingsSource.contains("@Query(sort: \\Rule.sortOrder) private var rules: [Rule]"))
+        #expect(!ruleWizardSource.contains("@Query(sort: \\Rule.sortOrder) private var existingRules: [Rule]"))
         #expect(!smartFolderSettingsSource.contains("@Query(sort: \\SmartFolder.sortOrder) private var folders: [SmartFolder]"))
         #expect(contentSource.contains("SQLiteFeedArticleListView("))
         #expect(contentSource.contains("SQLiteReaderView("))
@@ -633,6 +634,28 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(editorSource.contains("SQLiteSmartFolderStore(database: database).save("))
 
         #expect(!contentSource.contains("@Query(sort: \\SmartFolder.sortOrder)"))
+    }
+
+    @Test func ruleVerwaltungIstSQLiteFirst() throws {
+        let projectRoot = projectRootURL()
+        let settingsSource = try source(at: "Feedivo/Views/Rules/RuleSettingsView.swift", projectRoot: projectRoot)
+        let wizardSource = try source(at: "Feedivo/Views/Rules/RuleWizardView.swift", projectRoot: projectRoot)
+
+        #expect(!settingsSource.contains("@Query(sort: \\Rule.sortOrder)"))
+        #expect(!settingsSource.contains("@Environment(\\.modelContext)"))
+        #expect(!settingsSource.contains("RuleViewModel()"))
+        #expect(settingsSource.contains("@State private var rules: [RuleRecord]"))
+        #expect(settingsSource.contains("let ruleStore = SQLiteRuleStore(database: database)"))
+        #expect(settingsSource.contains("SQLiteRuleStore(database: database).ruleSnapshots()"))
+
+        #expect(!wizardSource.contains("@Environment(\\.modelContext)"))
+        #expect(!wizardSource.contains("@Query(sort: \\Rule.sortOrder)"))
+        #expect(!wizardSource.contains("@Query(sort: \\Tag.name)"))
+        #expect(!wizardSource.contains("RuleViewModel()"))
+        #expect(!wizardSource.contains("TagViewModel()"))
+        #expect(wizardSource.contains("let rule: RuleRecord?"))
+        #expect(wizardSource.contains("SQLiteRuleStore(database: database).save("))
+        #expect(wizardSource.contains("TagStore(database: database).save("))
     }
 
     @Test func feedRowViewBevorzugtSQLiteSnapshotWerte() throws {

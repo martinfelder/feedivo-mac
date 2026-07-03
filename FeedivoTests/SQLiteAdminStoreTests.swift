@@ -75,6 +75,57 @@ struct SQLiteAdminStoreTests {
         #expect(snapshots.first?.assignTag?.name == "Swift")
     }
 
+    @Test func ruleStoreMutiertRegelnSQLiteFirst() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let store = SQLiteRuleStore(database: database)
+
+        try store.save(
+            RuleRecord(
+                id: "11111111-1111-1111-1111-111111111111",
+                name: "Swift",
+                isEnabled: true,
+                matchMode: RuleMatchMode.all.rawValue,
+                action: RuleAction.hideArticle.rawValue,
+                sortOrder: 0
+            ),
+            conditions: [
+                RuleConditionRecord(
+                    id: "condition-1",
+                    ruleID: "11111111-1111-1111-1111-111111111111",
+                    field: RuleConditionField.title.rawValue,
+                    conditionOperator: RuleConditionOperator.contains.rawValue,
+                    value: "Swift",
+                    sortOrder: 0
+                )
+            ]
+        )
+
+        try store.updateEnabled(id: "11111111-1111-1111-1111-111111111111", isEnabled: false)
+        #expect(try store.rule(id: "11111111-1111-1111-1111-111111111111")?.isEnabled == false)
+
+        let duplicate = try store.duplicate(
+            id: "11111111-1111-1111-1111-111111111111",
+            copyName: "Swift Kopie"
+        )
+        #expect(duplicate.name == "Swift Kopie")
+        #expect(try store.conditions(ruleID: duplicate.id).map(\.value) == ["Swift"])
+
+        try store.save(
+            RuleRecord(
+                id: "22222222-2222-2222-2222-222222222222",
+                name: "Apple",
+                sortOrder: 2
+            ),
+            conditions: []
+        )
+        try store.move(id: "22222222-2222-2222-2222-222222222222", toPositionOf: duplicate.id)
+
+        #expect(try store.rules().map(\.id).prefix(2) == [
+            "11111111-1111-1111-1111-111111111111",
+            "22222222-2222-2222-2222-222222222222"
+        ])
+    }
+
     @Test func smartFolderStoreSpeichertOrdnerMitConditionsUndSnapshots() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let store = SQLiteSmartFolderStore(database: database)

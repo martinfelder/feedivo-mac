@@ -1,7 +1,7 @@
 import Foundation
 import GRDB
 
-struct RuleRecord: Codable, FetchableRecord, MutablePersistableRecord, Equatable, Sendable {
+struct RuleRecord: Codable, FetchableRecord, Identifiable, MutablePersistableRecord, Equatable, Sendable {
     static let databaseTableName = "rules"
 
     var id: String

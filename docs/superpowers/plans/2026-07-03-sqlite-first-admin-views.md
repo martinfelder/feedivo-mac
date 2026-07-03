@@ -67,11 +67,11 @@
 - Test: `FeedivoTests/FeedivoAppSceneConfigurationTests.swift`
 - Test: `FeedivoTests/SQLiteAdminStoreTests.swift`
 
-- [ ] Add failing source test proving rule settings/wizard do not use `@Query(sort: \Rule.sortOrder)` or SwiftData `Rule` as sheet payload.
-- [ ] Add store helpers for duplicate, delete, reorder, enable toggle, and save rule conditions.
-- [ ] Convert rule settings list and matching counts to SQLite rule snapshots.
-- [ ] Convert wizard create/update to `SQLiteRuleStore` and tag picker to `TagRecord`.
-- [ ] Run focused tests and build.
+- [x] Add failing source test proving rule settings/wizard do not use `@Query(sort: \Rule.sortOrder)` or SwiftData `Rule` as sheet payload.
+- [x] Add store helpers for duplicate, delete, reorder, enable toggle, and save rule conditions.
+- [x] Convert rule settings list and matching counts to SQLite rule snapshots.
+- [x] Convert wizard create/update to `SQLiteRuleStore` and tag picker to `TagRecord`.
+- [x] Run focused tests and build.
 - [ ] Commit.
 
 ### Task 5: Documentation And Final Verification
