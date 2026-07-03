@@ -841,8 +841,11 @@
   `article_statuses`. Die erste Welle umfasst Feeds, Refresh, Artikelliste,
   Reader, Status und Feed-Logs; weitere Nutzerpfade wie Tags, Regeln, Smart
   Folders, OPML, Export, Offline-Download und FTS-Suche werden danach einzeln
-  an SQLite angeschlossen. iCloud Sync und SwiftData-Bestandsdatenmigration
-  bleiben bewusst zurückgestellt. Spec:
+  an SQLite angeschlossen. Seit 2026-07-03 existieren auch SQLite-
+  Verwaltungstabellen und Stores für Feed-Ordner, Regeln und Smart Folders;
+  vorhandene SwiftData-Verwaltungsdaten werden beim App-Start nach SQLite
+  gespiegelt. iCloud Sync und SwiftData-Bestandsdatenmigration bleiben bewusst
+  zurückgestellt. Spec:
   `docs/superpowers/specs/2026-07-02-sqlite-grdb-performance-architecture-design.md`.
 - **Umgesetzt:**
   - SQLite/GRDB-Fundament angelegt: GRDB Package, `FeedivoDatabase`, v1-
@@ -912,6 +915,14 @@
     erhalten, aber Settings-Trefferzahlen und Editor-Preview zählen inzwischen
     über `TimelineStore.count(scope: .smartFolder(...))` aus SQLite statt über
     eine SwiftData-Artikel-Query.
+  - SQLite-Verwaltungsdefinitionen 2026-07-03 ergänzt: Migration v6 legt
+    `feed_folders`, `rules`, `rule_conditions`, `smart_folders` und
+    `smart_folder_conditions` an. `FeedFolderStore`, `SQLiteRuleStore` und
+    `SQLiteSmartFolderStore` bieten GRDB-CRUD und erzeugen Snapshots für
+    RuleEngine/Sidebar. `SQLiteAdminDefinitionBackfillService` spiegelt
+    bestehende SwiftData-Verwaltungsdaten beim App-Start nach SQLite. Die
+    eigentlichen Editor-Oberflächen für Regeln und Smart Folders bleiben für v1
+    eine bewusst isolierte SwiftData-Verwaltungsschicht mit SQLite-Spiegelung.
   - SQLite-Statusänderungen halten Feed-Zähler aktuell: `ArticleStatusStore`
     berechnet nach Read-/Hidden-Mutationen `feeds.unreadCount` direkt in SQLite
     neu und bump't `SQLiteDataInvalidation.statusVersionKey`, wodurch die
@@ -1038,6 +1049,9 @@
     `TimelineStore.count(scope: .smartFolder(...))` für Trefferzahlen, statt
     alle Artikel per SwiftData zu materialisieren und mit `SmartFolderEngine`
     im Speicher zu zählen
+  - Feed-Ordner, Regel- und Smart-Folder-Definitionen haben eigene SQLite-
+    Tabellen und Stores; bestehende SwiftData-Verwaltungsdaten werden beim
+    App-Start nach SQLite gespiegelt
   - SQLite-FTS-Fundament ergänzt: Migration v4 legt `article_search` mit FTS5
     und Triggern für Insert/Update/Delete auf `articles` an;
     `ArticleStore.searchArticles` liefert Treffer als `ArticleListSnapshot`s

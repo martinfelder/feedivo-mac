@@ -77,7 +77,7 @@
 
 - [ ] Add source tests proving these views no longer use SwiftData `@Query` for feeds/tags/rules/smart-folder definitions where SQLite stores exist.
 - [ ] Convert each view to load snapshots from the matching SQLite store.
-- [ ] Keep SwiftData model conversion only at boundaries where old data must be backfilled.
+- [x] Keep SwiftData model conversion only at boundaries where old data must be backfilled.
 - [ ] Run focused source tests and build after each view group.
 
 ### Task 6: Reduce SwiftData Container Scope
@@ -89,5 +89,5 @@
 
 - [ ] Add source tests documenting which SwiftData services remain and why.
 - [ ] Remove product dependencies on SwiftData article/admin models once no UI path needs them.
-- [ ] Update docs with the final SQLite-only status and any intentionally retained migration/backfill code.
+- [x] Update docs with the final SQLite-only status and any intentionally retained migration/backfill code.
 - [ ] Run focused tests, `xcodebuild build`, and `git diff --check`.

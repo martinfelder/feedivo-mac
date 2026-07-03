@@ -225,6 +225,7 @@ FeedivoMac/
 │   │   ├── FeedBackgroundRefreshService.swift # Sammel-Refresh mit eigenem SwiftData-Kontext pro Feed ✅
 │   │   ├── ArticleFeedIDBackfillService.swift # feedID für alte Artikel nachfuellen ✅
 │   │   ├── FeedTagBackfillService.swift # alte Feed-Tags nach SQLite spiegeln ✅
+│   │   ├── SQLiteAdminDefinitionBackfillService.swift # FeedFolder/Rule/SmartFolder nach SQLite spiegeln ✅
 │   │   ├── ArticleExportService.swift # Markdown/Text/HTML-Export; PDF/DOCX prototypisiert/zurückgestellt ✅
 │   │   ├── ArticleExportDocument.swift # FileDocument für Artikel-/ZIP-/Binärdateiexport ✅
 │   │   ├── ArticleDocumentExportRenderers.swift # PDF- und DOCX-Datenrenderer ✅
@@ -242,6 +243,11 @@ FeedivoMac/
 │   │   ├── SmartFolderEngine.swift     # Artikel gegen intelligente Ordner auswerten ✅
 │   │   ├── OPMLService.swift           # OPML Import und Export ✅
 │   │   └── OPMLDocument.swift          # FileDocument für OPML Export ✅
+│   │
+│   ├── Stores/
+│   │   ├── FeedFolderStore.swift       # SQLite-CRUD für Feed-Ordner ✅
+│   │   ├── SQLiteRuleStore.swift       # SQLite-Regeldefinitionen + RuleEngine-Snapshots ✅
+│   │   └── SQLiteSmartFolderStore.swift # SQLite-SmartFolder-Definitionen + Sidebar-Snapshots ✅
 │   │
 │   ├── Snapshots/
 │   │   ├── FeedSidebarSnapshot.swift # Leichte SQLite-Feed-Werte für Sidebar ✅
@@ -2331,6 +2337,16 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   hält den aktuell geladenen `ArticleReaderSnapshot` für Shortcuts/Commands,
   und `ArticleWindowView` nutzt `SQLiteReaderView` statt einer SwiftData-
   `@Query<Article>`.
+- 2026-07-03: SQLite-Verwaltungsdefinitionen sind angelegt und werden beim
+  App-Start gespiegelt. Migration v6 ergänzt `feed_folders`, `rules`,
+  `rule_conditions`, `smart_folders` und `smart_folder_conditions`; die neuen
+  Stores `FeedFolderStore`, `SQLiteRuleStore` und `SQLiteSmartFolderStore`
+  liefern GRDB-CRUD sowie Snapshots für RuleEngine und Sidebar. Bestehende
+  SwiftData-Verwaltungsdaten werden über
+  `SQLiteAdminDefinitionBackfillService` nach SQLite kopiert. Die Editor-UIs
+  für Feed-/Tag-/Regel-/Smart-Folder-Verwaltung bleiben für v1 bewusst
+  SwiftData-verwaltete Eingabeoberflächen mit SQLite-Spiegelung, kein
+  Performance-kritischer Artikellese-Pfad.
 - Feature 17.3 Automatisches Löschen ist umgesetzt: globale Einstellung,
   Stern-/Archiv-Schutz mit Zusatzoption und pro-Feed-Überschreibung in den
   Feed-Eigenschaften.
@@ -2358,16 +2374,24 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Feature 11.2 Lesefortschritt ist zurückgestellt: Der erste SwiftUI/AppKit-
   Scrollbeobachter-Ansatz hat das Scrollgefühl im Reader verschlechtert und wurde
   wieder entfernt. Für v1 bleibt der Reader ohne Lesefortschritt.
-- Nächster sinnvoller Fokus: vollständiger M4-Regressionstest, danach entscheiden,
-  ob SwiftData-Verwaltungsmodelle für v1 bewusst als Übergangsschicht bleiben
-  oder ob Feed-/Tag-/Regel-/Smart-Folder-Verwaltung ebenfalls nach SQLite
-  gezogen wird.
+- Nächster sinnvoller Fokus: vollständiger M4-Regressionstest. Danach kann
+  entschieden werden, ob die aktuell gespiegelten SwiftData-Verwaltungseditoren
+  für v1 als Übergangsschicht bleiben oder ob ihre Eingabeoberflächen ebenfalls
+  direkt auf die neuen SQLite-Stores umgestellt werden.
 - Feature-Roadmap ist in `FEATURES.md` im Root dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
 ---
 
 ## Letzte Änderungen
+
+- 2026-07-03: SQLite-Verwaltungstabellen und Stores ergänzt. Migration v6 legt
+  `feed_folders`, `rules`, `rule_conditions`, `smart_folders` und
+  `smart_folder_conditions` samt Sortier-/Default-Key-Indizes und Foreign-Key-
+  Cascades an. `FeedFolderStore`, `SQLiteRuleStore` und
+  `SQLiteSmartFolderStore` speichern Verwaltungsdefinitionen in GRDB und liefern
+  Snapshots für RuleEngine/Sidebar. `SQLiteAdminDefinitionBackfillService`
+  spiegelt vorhandene SwiftData-Verwaltungsdaten beim App-Start nach SQLite.
 
 - 2026-07-03: Sichtbaren Artikelfenster-/Command-Legacy-Pfad auf SQLite
   umgestellt. `SQLiteReaderView` meldet den geladenen `ArticleReaderSnapshot`
