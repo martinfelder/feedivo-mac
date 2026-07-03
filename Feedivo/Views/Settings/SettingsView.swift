@@ -1043,6 +1043,7 @@ private struct SettingsSectionHeader: View {
 private struct FeedManagementSettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.interfaceTextSize) private var interfaceTextSize
+    @Environment(\.feedivoDatabase) private var feedivoDatabase
     @Query(sort: \Feed.title) private var feeds: [Feed]
 
     @State private var viewModel = FeedViewModel()
@@ -1092,7 +1093,8 @@ private struct FeedManagementSettingsView: View {
                     ForEach(visibleFeeds) { feed in
                         FeedManagementRow(
                             feed: feed,
-                            isSelected: selectedFeedIDs.contains(feed.id)
+                            isSelected: selectedFeedIDs.contains(feed.id),
+                            sqliteDatabase: feedivoDatabase
                         ) { isSelected in
                             if isSelected {
                                 selectedFeedIDs.insert(feed.id)
@@ -1174,12 +1176,13 @@ private struct FeedManagementSettingsView: View {
 }
 
 private struct FeedManagementRow: View {
-    @Environment(\.modelContext) private var modelContext
     @Environment(\.interfaceTextSize) private var interfaceTextSize
 
     let feed: Feed
     let isSelected: Bool
+    let sqliteDatabase: FeedivoDatabase?
     let setSelected: (Bool) -> Void
+    @State private var sqliteArticleMetrics = FeedPropertiesArticleMetricsSnapshot.empty
 
     var body: some View {
         HStack(spacing: 12) {
@@ -1213,18 +1216,35 @@ private struct FeedManagementRow: View {
         .onTapGesture {
             setSelected(!isSelected)
         }
+        .onAppear {
+            loadSQLiteArticleMetrics()
+        }
+        .onChange(of: feed.id) {
+            loadSQLiteArticleMetrics()
+        }
     }
 
     private var feedActivitySummary: String {
-        let articlesLastWeek = FeedPropertiesQuery.recentArticleCount(
-            in: modelContext,
-            for: feed,
-            since: Date().addingTimeInterval(-7 * 24 * 60 * 60)
-        )
+        let articlesLastWeek = sqliteArticleMetrics.recentArticleCount
         let articleText = L10n.feedPropertiesArticlesLastWeekCount(articlesLastWeek)
         let lastRefreshed = feed.lastRefreshed?.formatted(date: .abbreviated, time: .shortened)
             ?? L10n.feedPropertiesUnavailable
 
         return "\(articleText) · \(String(localized: "feed.properties.lastRefreshed")): \(lastRefreshed)"
+    }
+
+    private func loadSQLiteArticleMetrics(now: Date = Date()) {
+        guard let database = sqliteDatabase else {
+            sqliteArticleMetrics = .empty
+            return
+        }
+
+        sqliteArticleMetrics = (
+            try? ArticleStore(database: database).feedPropertiesMetrics(
+                feedID: feed.id.uuidString,
+                recentCutoffDate: now.addingTimeInterval(-7 * 24 * 60 * 60),
+                now: now
+            )
+        ) ?? .empty
     }
 }

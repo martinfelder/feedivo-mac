@@ -499,6 +499,22 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(!source.contains("FeedPropertiesQuery.latestLogEntries(in: modelContext, for: feed)"))
     }
 
+    @Test func feedPropertiesMetrikenLaufenUeberSQLite() throws {
+        let projectRoot = projectRootURL()
+        let propertiesSource = try source(at: "Feedivo/Views/Sidebar/FeedPropertiesView.swift", projectRoot: projectRoot)
+        let settingsSource = try source(at: "Feedivo/Views/Settings/SettingsView.swift", projectRoot: projectRoot)
+        let compactPropertiesSource = compact(propertiesSource)
+        let compactSettingsSource = compact(settingsSource)
+
+        #expect(propertiesSource.contains("@State private var sqliteArticleMetrics = FeedPropertiesArticleMetricsSnapshot.empty"))
+        #expect(compactPropertiesSource.contains("ArticleStore(database:database).feedPropertiesMetrics(feedID:feed.id.uuidString,recentCutoffDate:"))
+        #expect(compactSettingsSource.contains("FeedManagementRow(feed:feed,isSelected:selectedFeedIDs.contains(feed.id),sqliteDatabase:feedivoDatabase"))
+        #expect(compactSettingsSource.contains("ArticleStore(database:database).feedPropertiesMetrics(feedID:feed.id.uuidString,recentCutoffDate:"))
+        #expect(!propertiesSource.contains("FeedPropertiesQuery.latestArticle(in: modelContext, for: feed)"))
+        #expect(!propertiesSource.contains("FeedPropertiesQuery.recentArticleCount("))
+        #expect(!settingsSource.contains("FeedPropertiesQuery.recentArticleCount("))
+    }
+
     @Test func tagManagerViewSpiegeltTagAenderungenNachSQLite() throws {
         let projectRoot = projectRootURL()
         let source = try source(at: "Feedivo/Views/Tags/TagManagerView.swift", projectRoot: projectRoot)

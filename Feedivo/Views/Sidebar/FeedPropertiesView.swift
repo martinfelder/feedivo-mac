@@ -27,12 +27,11 @@ struct FeedPropertiesView: View {
     @State private var folderName = ""
     @State private var newTagName = ""
     @State private var sqliteLogEntries: [FeedLogRecord] = []
+    @State private var sqliteArticleMetrics = FeedPropertiesArticleMetricsSnapshot.empty
     @State private var tagViewModel = TagViewModel()
 
-    private var latestArticle: Article? {
-        // P7: Nur eine einzige Artikelzeile per fetchLimit laden statt
-        // alle feed.articles in den Speicher zu faulten.
-        FeedPropertiesQuery.latestArticle(in: modelContext, for: feed)
+    private var latestArticle: ArticleListSnapshot? {
+        sqliteArticleMetrics.latestArticle
     }
 
     private var nextRefreshDate: Date? {
@@ -43,11 +42,7 @@ struct FeedPropertiesView: View {
     }
 
     private var articlesLastWeek: Int {
-        FeedPropertiesQuery.recentArticleCount(
-            in: modelContext,
-            for: feed,
-            since: Date().addingTimeInterval(-7 * 24 * 60 * 60)
-        )
+        sqliteArticleMetrics.recentArticleCount
     }
 
     private var sortedFeedTags: [Tag] {
@@ -99,6 +94,7 @@ struct FeedPropertiesView: View {
             feedRetentionIncludesProtectedArticles = feed.articleRetentionIncludesProtectedArticles
             folderName = feed.folderName ?? ""
             loadSQLiteLogEntries()
+            loadSQLiteArticleMetrics()
         }
         .onChange(of: selectedRefreshInterval) {
             feed.refreshIntervalMinutes = selectedRefreshInterval
@@ -597,6 +593,21 @@ struct FeedPropertiesView: View {
         sqliteLogEntries = (
             try? FeedLogStore(database: database).logs(feedID: feed.id.uuidString, limit: 20)
         ) ?? []
+    }
+
+    private func loadSQLiteArticleMetrics(now: Date = Date()) {
+        guard let database = feedivoDatabase else {
+            sqliteArticleMetrics = .empty
+            return
+        }
+
+        sqliteArticleMetrics = (
+            try? ArticleStore(database: database).feedPropertiesMetrics(
+                feedID: feed.id.uuidString,
+                recentCutoffDate: now.addingTimeInterval(-7 * 24 * 60 * 60),
+                now: now
+            )
+        ) ?? .empty
     }
 
     private func syncFeedRetentionSettings() {

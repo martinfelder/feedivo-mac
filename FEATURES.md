@@ -888,6 +888,11 @@
     `SmartFolderSidebarBadgeSnapshot`, statt eine SwiftData-Artikel-Query in der
     Sidebar zu halten. Die Feed-Eigenschaften laden die sichtbare Feed-Log-Liste
     und Log-Anzahl inzwischen über `FeedLogStore` aus SQLite-`feed_logs`.
+    `Neuester Artikel` und `Artikel der letzten 7 Tage` kommen ebenfalls aus
+    SQLite über `ArticleStore.feedPropertiesMetrics` und
+    `FeedPropertiesArticleMetricsSnapshot`; auch die Feed-Verwaltungszeilen in
+    den Einstellungen nutzen diese leichte GRDB-Metrik statt SwiftData-
+    Artikelqueries.
     Vordefinierte globale SmartFilter wie `Alle Artikel`, `Ungelesen`,
     `Mit Stern`, `Heute` und `Ausgeblendet` laden ihre Artikellisten ebenfalls
     über `TimelineScope.smartFilter` aus SQLite. Das SQLite-FTS-Fundament ist
@@ -1004,6 +1009,9 @@
     und Sidebar-Badges auftaucht
   - Feed-Eigenschaften zeigen die letzten 20 Feed-Logs aus SQLite-`feed_logs`,
     statt `FeedLogEntry`-Objekte über SwiftData zu laden
+  - Feed-Eigenschaften und Feed-Verwaltungszeilen laden neuesten Artikel und
+    Artikel der letzten 7 Tage über `ArticleStore.feedPropertiesMetrics` aus
+    SQLite, statt `FeedPropertiesQuery` auf SwiftData-Artikeln zu verwenden
   - Vordefinierte SmartFilter verwenden `TimelineScope.smartFilter` und die
     SQLite-Artikelliste/Reader-Kette, statt globale SwiftData-Artikelqueries zu
     materialisieren

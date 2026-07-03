@@ -114,6 +114,29 @@ struct ArticleStore {
         }
     }
 
+    func feedPropertiesMetrics(
+        feedID: String,
+        recentCutoffDate: Date,
+        now: Date = Date()
+    ) throws -> FeedPropertiesArticleMetricsSnapshot {
+        try database.read { db in
+            let latestArticle = try latestArticleForFeed(feedID: feedID, db: db)
+            let recentArticleCount = try Int.fetchOne(db, sql: """
+                SELECT COUNT(*)
+                FROM articles
+                WHERE feedID = ?
+                    AND publishedAt IS NOT NULL
+                    AND publishedAt >= ?
+                    AND publishedAt <= ?
+                """, arguments: [feedID, recentCutoffDate, now]) ?? 0
+
+            return FeedPropertiesArticleMetricsSnapshot(
+                latestArticle: latestArticle,
+                recentArticleCount: recentArticleCount
+            )
+        }
+    }
+
     func ruleSnapshots(articleIDs: [String], feedTitle: String) throws -> [RuleEngine.ArticleRuleSnapshot] {
         guard !articleIDs.isEmpty else {
             return []
@@ -141,6 +164,59 @@ struct ArticleStore {
                 )
             }
         }
+    }
+
+    private func latestArticleForFeed(feedID: String, db: Database) throws -> ArticleListSnapshot? {
+        if let datedArticle = try ArticleListSnapshot.fetchOne(db, sql: """
+            SELECT
+                a.id,
+                a.feedID,
+                f.title AS feedTitle,
+                a.title,
+                a.summary,
+                a.link,
+                a.imageURL,
+                a.publishedAt,
+                a.arrivedAt,
+                a.estimatedReadingMinutes,
+                s.isRead,
+                s.isStarred,
+                s.isArchived,
+                s.isHidden
+            FROM articles a
+            JOIN feeds f ON f.id = a.feedID
+            JOIN article_statuses s ON s.articleID = a.id
+            WHERE a.feedID = ?
+                AND a.publishedAt IS NOT NULL
+            ORDER BY a.publishedAt DESC, a.arrivedAt DESC
+            LIMIT 1
+            """, arguments: [feedID]) {
+            return datedArticle
+        }
+
+        return try ArticleListSnapshot.fetchOne(db, sql: """
+            SELECT
+                a.id,
+                a.feedID,
+                f.title AS feedTitle,
+                a.title,
+                a.summary,
+                a.link,
+                a.imageURL,
+                a.publishedAt,
+                a.arrivedAt,
+                a.estimatedReadingMinutes,
+                s.isRead,
+                s.isStarred,
+                s.isArchived,
+                s.isHidden
+            FROM articles a
+            JOIN feeds f ON f.id = a.feedID
+            JOIN article_statuses s ON s.articleID = a.id
+            WHERE a.feedID = ?
+            ORDER BY a.arrivedAt DESC
+            LIMIT 1
+            """, arguments: [feedID])
     }
 
     func searchArticles(

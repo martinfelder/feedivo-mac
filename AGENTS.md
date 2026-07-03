@@ -246,7 +246,8 @@ FeedivoMac/
 │   ├── Snapshots/
 │   │   ├── FeedSidebarSnapshot.swift # Leichte SQLite-Feed-Werte für Sidebar ✅
 │   │   ├── TagSidebarSnapshot.swift  # Leichte SQLite-Tag-Badge-Werte für Sidebar ✅
-│   │   └── SmartFolderSidebarBadgeSnapshot.swift # SQLite-Zähler für Smart-Folder-Badges ✅
+│   │   ├── SmartFolderSidebarBadgeSnapshot.swift # SQLite-Zähler für Smart-Folder-Badges ✅
+│   │   └── FeedPropertiesArticleMetricsSnapshot.swift # SQLite-Metriken für Feed-Eigenschaften ✅
 │   │
 │   ├── Extensions/
 │   │   └── Date+RelativeDisplay.swift  # Datum für Artikelzeilen formatieren ✅
@@ -2298,7 +2299,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Kontextmenüs bleiben übergangsweise SwiftData. SQLite-Statusänderungen halten
   den Feed-Unread-Snapshot aktuell und laden die Sidebar-Snapshots neu. Feed-
   Eigenschaften laden ihre sichtbaren Feed-Logs inzwischen über `FeedLogStore`
-  aus `feed_logs`. Die vordefinierten globalen SmartFilter `Alle Artikel`,
+  aus `feed_logs`; `Neuester Artikel` und `Artikel der letzten 7 Tage` kommen
+  über `ArticleStore.feedPropertiesMetrics` und
+  `FeedPropertiesArticleMetricsSnapshot`. Die vordefinierten globalen SmartFilter `Alle Artikel`,
   `Ungelesen`, `Mit Stern`, `Heute` und `Ausgeblendet` routen ebenfalls über
   `SQLiteFeedArticleListView` und `TimelineScope.smartFilter`. Das
   SQLite-FTS-Fundament ist mit `article_search` und Triggern auf `articles`
@@ -2338,15 +2341,22 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Feature 11.2 Lesefortschritt ist zurückgestellt: Der erste SwiftUI/AppKit-
   Scrollbeobachter-Ansatz hat das Scrollgefühl im Reader verschlechtert und wurde
   wieder entfernt. Für v1 bleibt der Reader ohne Lesefortschritt.
-- Nächster sinnvoller Fokus: verbleibende Hauptpfad-Lücken schließen:
-  restliche Feed-Eigenschaften-Metriken wie neuesten Artikel und Artikel der
-  letzten 7 Tage aus SQLite-Snapshots laden.
+- Nächster sinnvoller Fokus: verbleibende SQLite-Nebenpfade schließen,
+  insbesondere Smart-Folder- und Regel-Previews/Zählungen, die noch SwiftData-
+  Artikelmaterialisierung nutzen.
 - Feature-Roadmap ist in `FEATURES.md` im Root dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
 ---
 
 ## Letzte Änderungen
+
+- 2026-07-03: Feed-Eigenschaften-Metriken auf SQLite umgestellt.
+  `ArticleStore.feedPropertiesMetrics` liefert neuesten Artikel und Anzahl der
+  veröffentlichten Artikel der letzten 7 Tage als leichten
+  `FeedPropertiesArticleMetricsSnapshot`. `FeedPropertiesView` und die
+  Feed-Verwaltungszeilen in den Einstellungen nutzen diese GRDB-Metriken statt
+  SwiftData-`FeedPropertiesQuery` auf Artikeln.
 
 - 2026-07-03: Benutzerdefinierte Smart Folders auf SQLite-Timelines umgestellt.
   `SQLiteSmartFolderSnapshot` übersetzt die bestehenden SwiftData-Ordner und

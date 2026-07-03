@@ -4,6 +4,81 @@ import Testing
 @testable import Feedivo
 
 struct SQLiteArticleStoreTests {
+    @Test func feedPropertiesMetricsUseLatestDatedArticleAndRecentCount() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let now = Date(timeIntervalSince1970: 20_000)
+        let cutoff = now.addingTimeInterval(-7 * 24 * 60 * 60)
+
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example"))
+        try feedStore.save(FeedRecord(id: "feed-2", url: "https://other.example/feed.xml", title: "Other"))
+
+        _ = try articleStore.upsert(ArticleUpsertInput(
+            feedID: "feed-1",
+            sourceID: "old",
+            title: "Alter Artikel",
+            publishedAt: cutoff.addingTimeInterval(-60),
+            arrivedAt: cutoff.addingTimeInterval(-60)
+        ))
+        _ = try articleStore.upsert(ArticleUpsertInput(
+            feedID: "feed-1",
+            sourceID: "undated",
+            title: "Ohne Datum",
+            publishedAt: nil,
+            arrivedAt: now.addingTimeInterval(60)
+        ))
+        _ = try articleStore.upsert(ArticleUpsertInput(
+            feedID: "feed-1",
+            sourceID: "newest",
+            title: "Neuester datierter Artikel",
+            publishedAt: now.addingTimeInterval(-120),
+            arrivedAt: now.addingTimeInterval(-120)
+        ))
+        _ = try articleStore.upsert(ArticleUpsertInput(
+            feedID: "feed-2",
+            sourceID: "other-feed",
+            title: "Fremder Feed",
+            publishedAt: now,
+            arrivedAt: now
+        ))
+
+        let metrics = try articleStore.feedPropertiesMetrics(
+            feedID: "feed-1",
+            recentCutoffDate: cutoff,
+            now: now
+        )
+
+        #expect(metrics.latestArticle?.title == "Neuester datierter Artikel")
+        #expect(metrics.recentArticleCount == 1)
+    }
+
+    @Test func feedPropertiesMetricsFallsBackToUndatedArticle() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let now = Date(timeIntervalSince1970: 20_000)
+
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example"))
+
+        _ = try articleStore.upsert(ArticleUpsertInput(
+            feedID: "feed-1",
+            sourceID: "undated",
+            title: "Undatierter Artikel",
+            publishedAt: nil,
+            arrivedAt: now
+        ))
+
+        let metrics = try articleStore.feedPropertiesMetrics(
+            feedID: "feed-1",
+            recentCutoffDate: now.addingTimeInterval(-7 * 24 * 60 * 60),
+            now: now
+        )
+
+        #expect(metrics.latestArticle?.title == "Undatierter Artikel")
+        #expect(metrics.recentArticleCount == 0)
+    }
+
     @Test func upsertInsertsArticleAndCreatesStatus() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let feedStore = FeedStore(database: database)
