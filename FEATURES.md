@@ -876,6 +876,11 @@
     Listen-/Reader-Pfad. `SQLiteFeedArticleListState` und `SQLiteReaderState`
     koordinieren Artikel-Timelines, Reader-Snapshots und Statusänderungen damit
     über eine gemeinsame SQLite-Fassade statt über mehrere direkte Store-Zugriffe.
+  - SQLite-Timeline-Fetch-Mechanik abgeschlossen: `SQLiteFeedArticleListState`
+    startet Timeline-Loads nun über explizite async Requests, cancelt den
+    vorherigen Load bei Feed-, Tag-, SmartFilter-, SmartFolder- oder Suchwechsel
+    und verwirft verspätete Ergebnisse per Generation-Check. Damit können schnelle
+    Feedwechsel keine alten Artikel-Snapshots mehr in die aktuelle Liste schreiben.
   - Normale Feed-Aktionen befüllen den neuen SQLite-Pfad: `AddFeedSheet`,
     ausgewählter Feed-Refresh und `Alle Feeds aktualisieren` übergeben die
     geöffnete `FeedivoDatabase` an `FeedViewModel`. Hinzufügen und einzelner

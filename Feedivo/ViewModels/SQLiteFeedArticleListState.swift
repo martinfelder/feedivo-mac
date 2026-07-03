@@ -1,9 +1,42 @@
 import Foundation
 import Observation
 
+enum SQLiteTimelineLoadScope: Equatable {
+    case feedID(String)
+    case tagID(String)
+    case smartFilter(SmartFilter)
+    case smartFolder(SQLiteSmartFolderSnapshot)
+
+    var includeHidden: Bool {
+        switch self {
+        case .feedID, .tagID:
+            false
+        case let .smartFilter(smartFilter):
+            smartFilter == .hidden
+        case let .smartFolder(smartFolder):
+            smartFolder.includesHiddenArticles
+        }
+    }
+}
+
+struct SQLiteTimelineLoadRequest {
+    var scope: SQLiteTimelineLoadScope
+    var searchText: String?
+    var database: FeedivoDatabase?
+    var selectedArticleID: String?
+}
+
+struct SQLiteTimelineLoadResult {
+    var loadState: SQLiteFeedArticleListState.LoadState
+    var rows: [ArticleListSnapshot]
+    var navigationState: SQLiteArticleNavigationState
+}
+
 @MainActor
 @Observable
 final class SQLiteFeedArticleListState {
+    typealias TimelineLoader = @MainActor (SQLiteTimelineLoadRequest) async throws -> SQLiteTimelineLoadResult
+
     enum LoadState: Equatable {
         case idle
         case missingSQLiteDatabase
@@ -23,9 +56,16 @@ final class SQLiteFeedArticleListState {
         case smartFolder(SQLiteSmartFolderSnapshot)
     }
 
+    private let timelineLoader: TimelineLoader
+    private var loadGeneration = 0
+    private var loadTask: Task<Void, Never>?
     private var currentScope: CurrentScope?
     private var currentSearchText: String?
     private var currentSelectedArticleID: String?
+
+    init(timelineLoader: TimelineLoader? = nil) {
+        self.timelineLoader = timelineLoader ?? Self.defaultTimelineLoader
+    }
 
     func load(
         feedID: String,
@@ -37,33 +77,12 @@ final class SQLiteFeedArticleListState {
         currentSearchText = searchText
         currentSelectedArticleID = selectedArticleID
 
-        guard let database else {
-            rows = []
-            navigationState = .empty
-            loadState = .missingSQLiteDatabase
-            return
-        }
-
-        do {
-            let articleDatabase = ArticleDatabase(database: database)
-            guard try articleDatabase.feedExists(id: feedID) else {
-                rows = []
-                navigationState = .empty
-                loadState = .missingFeed
-                return
-            }
-
-            try loadTimeline(
-                scope: .feed(feedID),
-                searchText: searchText,
-                articleDatabase: articleDatabase,
-                selectedArticleID: selectedArticleID
-            )
-        } catch {
-            rows = []
-            navigationState = .empty
-            loadState = .failed(error.localizedDescription)
-        }
+        startLoad(SQLiteTimelineLoadRequest(
+            scope: .feedID(feedID),
+            searchText: searchText,
+            database: database,
+            selectedArticleID: selectedArticleID
+        ))
     }
 
     func load(
@@ -76,25 +95,12 @@ final class SQLiteFeedArticleListState {
         currentSearchText = searchText
         currentSelectedArticleID = selectedArticleID
 
-        guard let database else {
-            rows = []
-            navigationState = .empty
-            loadState = .missingSQLiteDatabase
-            return
-        }
-
-        do {
-            try loadTimeline(
-                scope: .tag(tagID),
-                searchText: searchText,
-                articleDatabase: ArticleDatabase(database: database),
-                selectedArticleID: selectedArticleID
-            )
-        } catch {
-            rows = []
-            navigationState = .empty
-            loadState = .failed(error.localizedDescription)
-        }
+        startLoad(SQLiteTimelineLoadRequest(
+            scope: .tagID(tagID),
+            searchText: searchText,
+            database: database,
+            selectedArticleID: selectedArticleID
+        ))
     }
 
     func load(
@@ -107,26 +113,12 @@ final class SQLiteFeedArticleListState {
         currentSearchText = searchText
         currentSelectedArticleID = selectedArticleID
 
-        guard let database else {
-            rows = []
-            navigationState = .empty
-            loadState = .missingSQLiteDatabase
-            return
-        }
-
-        do {
-            try loadTimeline(
-                scope: .smartFilter(smartFilter),
-                searchText: searchText,
-                articleDatabase: ArticleDatabase(database: database),
-                selectedArticleID: selectedArticleID,
-                includeHidden: smartFilter == .hidden
-            )
-        } catch {
-            rows = []
-            navigationState = .empty
-            loadState = .failed(error.localizedDescription)
-        }
+        startLoad(SQLiteTimelineLoadRequest(
+            scope: .smartFilter(smartFilter),
+            searchText: searchText,
+            database: database,
+            selectedArticleID: selectedArticleID
+        ))
     }
 
     func load(
@@ -139,26 +131,12 @@ final class SQLiteFeedArticleListState {
         currentSearchText = searchText
         currentSelectedArticleID = selectedArticleID
 
-        guard let database else {
-            rows = []
-            navigationState = .empty
-            loadState = .missingSQLiteDatabase
-            return
-        }
-
-        do {
-            try loadTimeline(
-                scope: .smartFolder(smartFolder),
-                searchText: searchText,
-                articleDatabase: ArticleDatabase(database: database),
-                selectedArticleID: selectedArticleID,
-                includeHidden: smartFolder.includesHiddenArticles
-            )
-        } catch {
-            rows = []
-            navigationState = .empty
-            loadState = .failed(error.localizedDescription)
-        }
+        startLoad(SQLiteTimelineLoadRequest(
+            scope: .smartFolder(smartFolder),
+            searchText: searchText,
+            database: database,
+            selectedArticleID: selectedArticleID
+        ))
     }
 
     func toggleRead(articleID: String, database: FeedivoDatabase) {
@@ -239,24 +217,84 @@ final class SQLiteFeedArticleListState {
         }
     }
 
-    private func loadTimeline(
-        scope: TimelineScope,
-        searchText: String?,
-        articleDatabase: ArticleDatabase,
-        selectedArticleID: String?,
-        includeHidden: Bool = false
-    ) throws {
-        rows = try articleDatabase.timelineArticles(
-            scope: scope,
-            searchText: searchText,
+    private func startLoad(_ request: SQLiteTimelineLoadRequest) {
+        loadTask?.cancel()
+        loadGeneration += 1
+        let generation = loadGeneration
+        loadState = .idle
+
+        loadTask = Task { [timelineLoader] in
+            do {
+                let result = try await timelineLoader(request)
+                guard !Task.isCancelled, generation == loadGeneration else {
+                    return
+                }
+
+                rows = result.rows
+                navigationState = result.navigationState
+                loadState = result.loadState
+            } catch {
+                guard !Task.isCancelled, generation == loadGeneration else {
+                    return
+                }
+
+                rows = []
+                navigationState = .empty
+                loadState = .failed(error.localizedDescription)
+            }
+        }
+    }
+
+    private static func defaultTimelineLoader(_ request: SQLiteTimelineLoadRequest) async throws -> SQLiteTimelineLoadResult {
+        guard let database = request.database else {
+            return SQLiteTimelineLoadResult(
+                loadState: .missingSQLiteDatabase,
+                rows: [],
+                navigationState: .empty
+            )
+        }
+
+        let articleDatabase = ArticleDatabase(database: database)
+        if case let .feedID(feedID) = request.scope,
+           try !articleDatabase.feedExists(id: feedID) {
+            return SQLiteTimelineLoadResult(
+                loadState: .missingFeed,
+                rows: [],
+                navigationState: .empty
+            )
+        }
+
+        let timelineScope = request.scope.timelineScope
+        let rows = try articleDatabase.timelineArticles(
+            scope: timelineScope,
+            searchText: request.searchText,
             includeRead: true,
-            includeHidden: includeHidden,
+            includeHidden: request.scope.includeHidden,
             limit: 500
         )
-        navigationState = SQLiteArticleNavigationState(
+        let navigationState = SQLiteArticleNavigationState(
             articleIDs: rows.map(\.id),
-            selectedArticleID: selectedArticleID
+            selectedArticleID: request.selectedArticleID
         )
-        loadState = .loaded
+        return SQLiteTimelineLoadResult(
+            loadState: .loaded,
+            rows: rows,
+            navigationState: navigationState
+        )
+    }
+}
+
+private extension SQLiteTimelineLoadScope {
+    var timelineScope: TimelineScope {
+        switch self {
+        case let .feedID(feedID):
+            .feed(feedID)
+        case let .tagID(tagID):
+            .tag(tagID)
+        case let .smartFilter(smartFilter):
+            .smartFilter(smartFilter)
+        case let .smartFolder(smartFolder):
+            .smartFolder(smartFolder)
+        }
     }
 }

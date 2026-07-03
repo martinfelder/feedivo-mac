@@ -4,7 +4,7 @@ import Testing
 
 @MainActor
 struct SQLiteFeedArticleListStateTests {
-    @Test func listStateLaedtFeedScopePerFeedID() throws {
+    @Test func listStateLaedtFeedScopePerFeedID() async throws {
         let (database, firstID, secondID) = try makeDatabaseWithFeedAndArticles()
         let state = SQLiteFeedArticleListState()
 
@@ -13,6 +13,7 @@ struct SQLiteFeedArticleListStateTests {
             database: database,
             selectedArticleID: secondID
         )
+        await waitForLoad(state)
 
         #expect(state.loadState == .loaded)
         #expect(state.rows.map(\.id) == [secondID, firstID])
@@ -20,7 +21,7 @@ struct SQLiteFeedArticleListStateTests {
         #expect(state.navigationState.nextArticleID == firstID)
     }
 
-    @Test func listStateToggeltReadUndAktualisiertRows() throws {
+    @Test func listStateToggeltReadUndAktualisiertRows() async throws {
         let (database, firstID, _) = try makeDatabaseWithFeedAndArticles()
         let state = SQLiteFeedArticleListState()
 
@@ -29,12 +30,16 @@ struct SQLiteFeedArticleListStateTests {
             database: database,
             selectedArticleID: firstID
         )
+        await waitForLoad(state)
         state.toggleRead(articleID: firstID, database: database)
+        await waitForRows(state) { rows in
+            rows.first(where: { $0.id == firstID })?.isRead == true
+        }
 
         #expect(state.rows.first(where: { $0.id == firstID })?.isRead == true)
     }
 
-    @Test func listStateLaedtTagScopeAusSQLite() throws {
+    @Test func listStateLaedtTagScopeAusSQLite() async throws {
         let (database, firstID, secondID) = try makeDatabaseWithFeedAndArticles()
         let tagStore = TagStore(database: database)
         let state = SQLiteFeedArticleListState()
@@ -47,13 +52,14 @@ struct SQLiteFeedArticleListStateTests {
             database: database,
             selectedArticleID: secondID
         )
+        await waitForLoad(state)
 
         #expect(state.loadState == .loaded)
         #expect(state.rows.map(\.id) == [secondID, firstID])
         #expect(state.navigationState.nextArticleID == firstID)
     }
 
-    @Test func listStateLaedtSmartFilterScopeAusSQLite() throws {
+    @Test func listStateLaedtSmartFilterScopeAusSQLite() async throws {
         let (database, firstID, secondID) = try makeDatabaseWithFeedAndArticles()
         let state = SQLiteFeedArticleListState()
         try ArticleStatusStore(database: database).setRead(true, articleID: firstID, at: Date())
@@ -63,6 +69,7 @@ struct SQLiteFeedArticleListStateTests {
             database: database,
             selectedArticleID: secondID
         )
+        await waitForLoad(state)
 
         #expect(state.loadState == .loaded)
         #expect(state.rows.map(\.id) == [secondID])
@@ -70,7 +77,7 @@ struct SQLiteFeedArticleListStateTests {
         #expect(state.navigationState.nextArticleID == nil)
     }
 
-    @Test func listStateFiltertFeedScopeMitSQLiteFTS() throws {
+    @Test func listStateFiltertFeedScopeMitSQLiteFTS() async throws {
         let (database, _, secondID) = try makeDatabaseWithFeedAndArticles()
         let state = SQLiteFeedArticleListState()
 
@@ -80,6 +87,7 @@ struct SQLiteFeedArticleListStateTests {
             database: database,
             selectedArticleID: secondID
         )
+        await waitForLoad(state)
 
         #expect(state.loadState == .loaded)
         #expect(state.rows.map(\.id) == [secondID])
@@ -87,7 +95,7 @@ struct SQLiteFeedArticleListStateTests {
         #expect(state.navigationState.nextArticleID == nil)
     }
 
-    @Test func listStateLaedtHiddenSmartFilterMitAusgeblendetenArtikeln() throws {
+    @Test func listStateLaedtHiddenSmartFilterMitAusgeblendetenArtikeln() async throws {
         let (database, firstID, _) = try makeDatabaseWithFeedAndArticles()
         let state = SQLiteFeedArticleListState()
         try ArticleStatusStore(database: database).setHidden(true, articleID: firstID, at: Date())
@@ -97,12 +105,13 @@ struct SQLiteFeedArticleListStateTests {
             database: database,
             selectedArticleID: firstID
         )
+        await waitForLoad(state)
 
         #expect(state.loadState == .loaded)
         #expect(state.rows.map(\.id) == [firstID])
     }
 
-    @Test func listStateMeldetFehlendenSQLiteFeed() throws {
+    @Test func listStateMeldetFehlendenSQLiteFeed() async throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let state = SQLiteFeedArticleListState()
 
@@ -111,12 +120,13 @@ struct SQLiteFeedArticleListStateTests {
             database: database,
             selectedArticleID: nil
         )
+        await waitForLoad(state)
 
         #expect(state.loadState == .missingFeed)
         #expect(state.rows.isEmpty)
     }
 
-    @Test func listStateLaedtBeiDoppelterURLNurArtikelDerFeedID() throws {
+    @Test func listStateLaedtBeiDoppelterURLNurArtikelDerFeedID() async throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let feedStore = FeedStore(database: database)
         let articleStore = ArticleStore(database: database)
@@ -147,10 +157,86 @@ struct SQLiteFeedArticleListStateTests {
             database: database,
             selectedArticleID: secondFeedArticleID
         )
+        await waitForLoad(state)
 
         #expect(state.loadState == .loaded)
         #expect(state.rows.map(\.id) == [secondFeedArticleID])
         #expect(!state.rows.map(\.id).contains(firstFeedArticleID))
+    }
+
+    @Test func listStateVerwirftSpaetesErgebnisVonAltemFeedLoad() async throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        var continuations: [CheckedContinuation<SQLiteTimelineLoadResult, Error>] = []
+        var requests: [SQLiteTimelineLoadRequest] = []
+        let state = SQLiteFeedArticleListState { request in
+            requests.append(request)
+            return try await withCheckedThrowingContinuation { continuation in
+                continuations.append(continuation)
+            }
+        }
+
+        state.load(feedID: "feed-alt", database: database, selectedArticleID: nil)
+        await waitForRequestCount(1, continuations: { continuations.count })
+        state.load(feedID: "feed-neu", database: database, selectedArticleID: nil)
+        await waitForRequestCount(2, continuations: { continuations.count })
+
+        continuations[1].resume(returning: loadedResult(rows: [snapshot(id: "neu", feedID: "feed-neu")]))
+        await waitForRows(state) { $0.map(\.id) == ["neu"] }
+        continuations[0].resume(returning: loadedResult(rows: [snapshot(id: "alt", feedID: "feed-alt")]))
+        await spinMainActor()
+
+        #expect(requests.map(\.scope) == [.feedID("feed-alt"), .feedID("feed-neu")])
+        #expect(state.rows.map(\.id) == ["neu"])
+    }
+
+    @Test func listStateVerwirftSpaetesErgebnisVonAlterSuche() async throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        var continuations: [CheckedContinuation<SQLiteTimelineLoadResult, Error>] = []
+        var requests: [SQLiteTimelineLoadRequest] = []
+        let state = SQLiteFeedArticleListState { request in
+            requests.append(request)
+            return try await withCheckedThrowingContinuation { continuation in
+                continuations.append(continuation)
+            }
+        }
+
+        state.load(feedID: "feed-1", searchText: "alt", database: database, selectedArticleID: nil)
+        await waitForRequestCount(1, continuations: { continuations.count })
+        state.load(feedID: "feed-1", searchText: "neu", database: database, selectedArticleID: nil)
+        await waitForRequestCount(2, continuations: { continuations.count })
+
+        continuations[1].resume(returning: loadedResult(rows: [snapshot(id: "suche-neu")]))
+        await waitForRows(state) { $0.map(\.id) == ["suche-neu"] }
+        continuations[0].resume(returning: loadedResult(rows: [snapshot(id: "suche-alt")]))
+        await spinMainActor()
+
+        #expect(requests.map(\.searchText) == ["alt", "neu"])
+        #expect(state.rows.map(\.id) == ["suche-neu"])
+    }
+
+    @Test func abgebrochenerTimelineLoadVeraendertRowsNicht() async throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        var continuations: [CheckedContinuation<SQLiteTimelineLoadResult, Error>] = []
+        let state = SQLiteFeedArticleListState { request in
+            return try await withCheckedThrowingContinuation { continuation in
+                continuations.append(continuation)
+            }
+        }
+        state.rows = [snapshot(id: "bestehend")]
+        state.loadState = .loaded
+
+        state.load(feedID: "feed-alt", database: database, selectedArticleID: nil)
+        await waitForRequestCount(1, continuations: { continuations.count })
+        state.load(feedID: "feed-neu", database: database, selectedArticleID: nil)
+        await waitForRequestCount(2, continuations: { continuations.count })
+
+        continuations[0].resume(returning: loadedResult(rows: [snapshot(id: "alt")]))
+        await spinMainActor()
+        #expect(state.rows.map(\.id) == ["bestehend"])
+
+        continuations[1].resume(returning: loadedResult(rows: [snapshot(id: "neu")]))
+        await waitForRows(state) { $0.map(\.id) == ["neu"] }
+        #expect(state.rows.map(\.id) == ["neu"])
     }
 
     private func makeDatabaseWithFeedAndArticles() throws -> (FeedivoDatabase, String, String) {
@@ -179,5 +265,81 @@ struct SQLiteFeedArticleListStateTests {
         )
 
         return (database, firstID, secondID)
+    }
+
+    private func snapshot(
+        id: String,
+        feedID: String = "feed-1",
+        isRead: Bool = false
+    ) -> ArticleListSnapshot {
+        ArticleListSnapshot(
+            id: id,
+            feedID: feedID,
+            feedTitle: "Feed",
+            title: id,
+            summary: nil,
+            link: nil,
+            imageURL: nil,
+            publishedAt: nil,
+            arrivedAt: Date(timeIntervalSince1970: 100),
+            estimatedReadingMinutes: nil,
+            isRead: isRead,
+            isStarred: false,
+            isArchived: false,
+            isHidden: false
+        )
+    }
+
+    private func loadedResult(rows: [ArticleListSnapshot]) -> SQLiteTimelineLoadResult {
+        SQLiteTimelineLoadResult(
+            loadState: .loaded,
+            rows: rows,
+            navigationState: SQLiteArticleNavigationState(
+                articleIDs: rows.map(\.id),
+                selectedArticleID: rows.first?.id
+            )
+        )
+    }
+
+    private func waitForLoad(_ state: SQLiteFeedArticleListState) async {
+        for _ in 0..<50 {
+            if state.loadState != .idle {
+                return
+            }
+            await Task.yield()
+        }
+        Issue.record("SQLiteFeedArticleListState hat den Load nicht abgeschlossen.")
+    }
+
+    private func waitForRows(
+        _ state: SQLiteFeedArticleListState,
+        matching predicate: ([ArticleListSnapshot]) -> Bool
+    ) async {
+        for _ in 0..<50 {
+            if predicate(state.rows) {
+                return
+            }
+            await Task.yield()
+        }
+        Issue.record("SQLiteFeedArticleListState hat nicht die erwarteten Rows geladen.")
+    }
+
+    private func waitForRequestCount(
+        _ expectedCount: Int,
+        continuations: () -> Int
+    ) async {
+        for _ in 0..<50 {
+            if continuations() >= expectedCount {
+                return
+            }
+            await Task.yield()
+        }
+        Issue.record("Der Timeline-Test-Loader wurde nicht oft genug aufgerufen.")
+    }
+
+    private func spinMainActor() async {
+        for _ in 0..<5 {
+            await Task.yield()
+        }
     }
 }
