@@ -353,6 +353,9 @@
   - Status: alle, ungelesen, gelesen, mit Stern, archiviert.
   - Filter funktionieren auch ohne Suchtext und lassen sich mit Suchtext und
     Suchbereich kombinieren.
+  - Im SQLite/GRDB-Hauptpfad lädt das Suchfenster keine globale SwiftData-
+    Artikelliste mehr, sondern leichte `ArticleListSnapshot`s direkt aus
+    `ArticleStore.searchArticles(state:)`.
 
 ### 9.3 Spotlight-Integration
 - **Status:** ✅ Entschieden — bereit zur Implementierung
@@ -892,7 +895,9 @@
     `ArticleStore.searchArticles` umgesetzt. Die normale Suchleiste der
     `SQLiteFeedArticleListView` nutzt inzwischen denselben FTS-Index über
     `TimelineStore` und kombiniert Suchtext mit Feed-, Tag- und SmartFilter-
-    Scopes. Das separate globale Suchfenster bleibt ein Folgeslice.
+    Scopes. Das separate globale Suchfenster nutzt ebenfalls SQLite/FTS über
+    `ArticleStore.searchArticles(state:)` und hält keine globale SwiftData-
+    Artikel-Query mehr.
   - SQLite-Statusänderungen halten Feed-Zähler aktuell: `ArticleStatusStore`
     berechnet nach Read-/Hidden-Mutationen `feeds.unreadCount` direkt in SQLite
     neu und bump't `SQLiteDataInvalidation.statusVersionKey`, wodurch die
@@ -1001,6 +1006,10 @@
     `TimelineStore.articles(... searchText:)`, normalisiert Suchtext vor
     `MATCH` und filtert direkt in SQLite innerhalb des aktuellen Feed-, Tag-
     oder SmartFilter-Scopes
+  - Das separate Suchfenster (`Cmd+F`) lädt seine Ergebnisliste im SQLite-
+    Hauptpfad über `ArticleStore.searchArticles(state:)`; Feed-, Tag-, Datums-
+    und Statusfilter werden SQL-seitig kombiniert und funktionieren auch ohne
+    Suchtext
   - Status-Badges beobachten nur eine kleine Query auf Stern-/Archiv-/
     Hidden-Artikel
   - Artikelzeilen laden Vorschaubilder über größenbegrenzte Thumbnails aus dem

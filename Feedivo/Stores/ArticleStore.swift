@@ -185,6 +185,94 @@ struct ArticleStore {
         }
     }
 
+    func searchArticles(
+        state: ArticleSearchWindowState,
+        includeHidden: Bool = false,
+        limit: Int = 100
+    ) throws -> [ArticleListSnapshot] {
+        let safeLimit = max(1, limit)
+        let ftsExpression = Self.makeFTSMatchExpression(from: state.searchText, field: state.field)
+        var whereClauses: [String] = []
+        var arguments = StatementArguments()
+
+        if let ftsExpression {
+            whereClauses.append("article_search MATCH ?")
+            _ = arguments.append(contentsOf: [ftsExpression])
+        }
+
+        if let feedID = state.feedID?.uuidString {
+            whereClauses.append("a.feedID = ?")
+            _ = arguments.append(contentsOf: [feedID])
+        }
+
+        if let tagID = state.tagID?.uuidString {
+            whereClauses.append("""
+                (
+                    EXISTS (
+                        SELECT 1
+                        FROM article_tags at
+                        WHERE at.articleID = a.id
+                            AND at.tagID = ?
+                    )
+                    OR EXISTS (
+                        SELECT 1
+                        FROM feed_tags ft
+                        WHERE ft.feedID = a.feedID
+                            AND ft.tagID = ?
+                    )
+                )
+                """)
+            _ = arguments.append(contentsOf: [tagID, tagID])
+        }
+
+        Self.appendDateFilterWhereClause(
+            state.dateFilter,
+            now: state.now,
+            calendar: state.calendar,
+            whereClauses: &whereClauses,
+            arguments: &arguments
+        )
+        Self.appendStatusFilterWhereClause(
+            state.statusFilter,
+            whereClauses: &whereClauses
+        )
+
+        if !includeHidden {
+            whereClauses.append("s.isHidden = 0")
+        }
+
+        let searchJoinSQL = ftsExpression == nil ? "" : "JOIN article_search ON article_search.rowid = a.rowid"
+        let whereSQL = whereClauses.isEmpty ? "" : "WHERE \(whereClauses.joined(separator: " AND "))"
+        _ = arguments.append(contentsOf: [safeLimit])
+
+        return try database.read { db in
+            try ArticleListSnapshot.fetchAll(db, sql: """
+                SELECT
+                    a.id,
+                    a.feedID,
+                    f.title AS feedTitle,
+                    a.title,
+                    a.summary,
+                    a.link,
+                    a.imageURL,
+                    a.publishedAt,
+                    a.arrivedAt,
+                    a.estimatedReadingMinutes,
+                    s.isRead,
+                    s.isStarred,
+                    s.isArchived,
+                    s.isHidden
+                FROM articles a
+                JOIN feeds f ON f.id = a.feedID
+                JOIN article_statuses s ON s.articleID = a.id
+                \(searchJoinSQL)
+                \(whereSQL)
+                ORDER BY COALESCE(a.publishedAt, a.arrivedAt) DESC, a.arrivedAt DESC
+                LIMIT ?
+                """, arguments: arguments)
+        }
+    }
+
     private func upsert(_ input: ArticleUpsertInput, db: Database) throws -> (articleID: String, wasInserted: Bool) {
         let sourceID = input.sourceID.trimmedNonEmpty
         let link = input.link.trimmedNonEmpty
@@ -275,6 +363,91 @@ struct ArticleStore {
         }
 
         return nil
+    }
+
+    private static func appendDateFilterWhereClause(
+        _ dateFilter: ArticleSearchDateFilter,
+        now: Date,
+        calendar: Calendar,
+        whereClauses: inout [String],
+        arguments: inout StatementArguments
+    ) {
+        switch dateFilter {
+        case .anytime:
+            return
+        case .today:
+            let startOfDay = calendar.startOfDay(for: now)
+            let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)
+                ?? startOfDay.addingTimeInterval(24 * 60 * 60)
+            whereClauses.append("a.publishedAt >= ? AND a.publishedAt < ?")
+            _ = arguments.append(contentsOf: [startOfDay, endOfDay])
+        case .thisWeek:
+            let weekInterval = calendar.dateInterval(of: .weekOfYear, for: now)
+            guard let weekInterval else {
+                return
+            }
+            whereClauses.append("a.publishedAt >= ? AND a.publishedAt < ?")
+            _ = arguments.append(contentsOf: [weekInterval.start, weekInterval.end])
+        }
+    }
+
+    private static func appendStatusFilterWhereClause(
+        _ statusFilter: ArticleSearchStatusFilter,
+        whereClauses: inout [String]
+    ) {
+        switch statusFilter {
+        case .all:
+            return
+        case .unread:
+            whereClauses.append("s.isRead = 0")
+        case .read:
+            whereClauses.append("s.isRead = 1")
+        case .starred:
+            whereClauses.append("s.isStarred = 1")
+        case .archived:
+            whereClauses.append("s.isArchived = 1")
+        }
+    }
+
+    private static func makeFTSMatchExpression(
+        from searchText: String,
+        field: ArticleSearchField
+    ) -> String? {
+        let trimmedText = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedText.isEmpty else {
+            return nil
+        }
+
+        let separator = try! NSRegularExpression(pattern: #"[^\p{L}\p{N}]+"#)
+        let searchRange = NSRange(trimmedText.startIndex..<trimmedText.endIndex, in: trimmedText)
+        let tokenText = separator.stringByReplacingMatches(
+            in: trimmedText,
+            range: searchRange,
+            withTemplate: " "
+        )
+        let tokens = tokenText
+            .split(separator: " ")
+            .map(String.init)
+            .filter { $0.count > 1 }
+
+        guard !tokens.isEmpty else {
+            return nil
+        }
+
+        let tokenExpression = tokens
+            .map { "\($0)*" }
+            .joined(separator: " ")
+
+        switch field {
+        case .all:
+            return "{title summary content} : \(tokenExpression)"
+        case .title:
+            return "title : \(tokenExpression)"
+        case .summary:
+            return "summary : \(tokenExpression)"
+        case .content:
+            return "content : \(tokenExpression)"
+        }
     }
 }
 

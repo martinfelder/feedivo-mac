@@ -2307,7 +2307,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   `SQLiteFeedArticleListView` nutzt den FTS-Index inzwischen über
   `TimelineStore.articles(... searchText:)`, kombiniert Suchtext mit Feed-,
   Tag- und SmartFilter-Scopes und normalisiert Sonderzeichen vor `MATCH`. Das
-  separate globale Suchfenster ist noch nicht auf SQLite umgestellt.
+  separate globale Suchfenster nutzt im SQLite-Hauptpfad ebenfalls
+  `ArticleStore.searchArticles(state:)`, kombiniert Suchtext, Suchbereich,
+  Feed-, Tag-, Datums- und Statusfilter SQL-seitig und hält keine globale
+  SwiftData-Artikel-Query mehr.
 - Feature 17.3 Automatisches Löschen ist umgesetzt: globale Einstellung,
   Stern-/Archiv-Schutz mit Zusatzoption und pro-Feed-Überschreibung in den
   Feed-Eigenschaften.
@@ -2336,7 +2339,6 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Scrollbeobachter-Ansatz hat das Scrollgefühl im Reader verschlechtert und wurde
   wieder entfernt. Für v1 bleibt der Reader ohne Lesefortschritt.
 - Nächster sinnvoller Fokus: verbleibende Hauptpfad-Lücken schließen:
-  separates Suchfenster an die SQLite-FTS-Suche anschließen, danach
   benutzerdefinierte Smart Folders und die restlichen
   Feed-Eigenschaften-Metriken wie neuesten Artikel und Artikel der letzten 7 Tage
   aus SQLite-Snapshots laden.
@@ -2346,6 +2348,13 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 ---
 
 ## Letzte Änderungen
+
+- 2026-07-03: Separates Suchfenster auf SQLite/FTS umgestellt.
+  `ArticleStore.searchArticles(state:)` übersetzt Suchtext, Suchbereich, Feed-,
+  Tag-, Datums- und Statusfilter in eine kombinierte SQL-Abfrage und liefert
+  `ArticleListSnapshot`s. `ArticleSearchWindowView` hält keine `@Query` auf alle
+  SwiftData-Artikel mehr; nur Feed- und Tag-Picker bleiben als leichte
+  SwiftData-Listen erhalten.
 
 - 2026-07-03: Sichtbare SQLite-Artikellisten-Suche angeschlossen.
   `TimelineStore.articles(... searchText:)` kombiniert FTS5-Suche mit Feed-,

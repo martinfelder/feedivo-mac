@@ -379,4 +379,97 @@ struct SQLiteArticleStoreTests {
         #expect(visibleLimited.map(\.id) == [newerID])
         #expect(includingHidden.map(\.id) == [hiddenID, newerID, olderID])
     }
+
+    @Test func searchWindowQueryHonorsFieldFeedTagAndStatusFilters() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let statusStore = ArticleStatusStore(database: database)
+        let tagStore = TagStore(database: database)
+        let feedID = UUID()
+        let otherFeedID = UUID()
+        let tagID = UUID()
+
+        try feedStore.save(FeedRecord(id: feedID.uuidString, url: "https://example.com/feed.xml", title: "Example"))
+        try feedStore.save(FeedRecord(id: otherFeedID.uuidString, url: "https://example.com/other.xml", title: "Other"))
+        try tagStore.save(TagRecord(id: tagID.uuidString, name: "Swift", colorHex: "#ff0000"))
+
+        let olderMatchID = try articleStore.upsert(
+            ArticleUpsertInput(
+                feedID: feedID.uuidString,
+                sourceID: "older",
+                title: "Swift Release alt",
+                summary: "Update",
+                publishedAt: Date(timeIntervalSince1970: 100),
+                arrivedAt: Date(timeIntervalSince1970: 100)
+            )
+        )
+        let newerMatchID = try articleStore.upsert(
+            ArticleUpsertInput(
+                feedID: feedID.uuidString,
+                sourceID: "newer",
+                title: "Swift Release neu",
+                summary: "Update",
+                publishedAt: Date(timeIntervalSince1970: 300),
+                arrivedAt: Date(timeIntervalSince1970: 300)
+            )
+        )
+        let wrongFeedID = try articleStore.upsert(
+            ArticleUpsertInput(feedID: otherFeedID.uuidString, sourceID: "wrong-feed", title: "Swift Release anderer Feed")
+        )
+        let readID = try articleStore.upsert(
+            ArticleUpsertInput(feedID: feedID.uuidString, sourceID: "read", title: "Swift Release gelesen")
+        )
+        let summaryOnlyID = try articleStore.upsert(
+            ArticleUpsertInput(feedID: feedID.uuidString, sourceID: "summary", title: "Andere Meldung", summary: "Swift Release nur Summary")
+        )
+
+        try tagStore.assignTag(tagID: tagID.uuidString, toArticleID: olderMatchID, at: Date())
+        try tagStore.assignTag(tagID: tagID.uuidString, toArticleID: newerMatchID, at: Date())
+        try tagStore.assignTag(tagID: tagID.uuidString, toArticleID: wrongFeedID, at: Date())
+        try tagStore.assignTag(tagID: tagID.uuidString, toArticleID: readID, at: Date())
+        try tagStore.assignTag(tagID: tagID.uuidString, toArticleID: summaryOnlyID, at: Date())
+        try statusStore.setRead(true, articleID: readID, at: Date())
+
+        let state = ArticleSearchWindowState(
+            searchText: "swift",
+            field: .title,
+            feedID: feedID,
+            tagID: tagID,
+            statusFilter: .unread
+        )
+
+        let snapshots = try articleStore.searchArticles(state: state, limit: 20)
+
+        #expect(snapshots.map(\.id) == [newerMatchID, olderMatchID])
+    }
+
+    @Test func searchWindowQuerySupportsFiltersWithoutSearchText() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let statusStore = ArticleStatusStore(database: database)
+
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example"))
+        let normalID = try articleStore.upsert(
+            ArticleUpsertInput(feedID: "feed-1", sourceID: "normal", title: "Normal")
+        )
+        let starredID = try articleStore.upsert(
+            ArticleUpsertInput(
+                feedID: "feed-1",
+                sourceID: "starred",
+                title: "Starred",
+                publishedAt: Date(timeIntervalSince1970: 200),
+                arrivedAt: Date(timeIntervalSince1970: 200)
+            )
+        )
+        try statusStore.setStarred(true, articleID: starredID, at: Date())
+
+        let state = ArticleSearchWindowState(statusFilter: .starred)
+
+        let snapshots = try articleStore.searchArticles(state: state, limit: 20)
+
+        #expect(snapshots.map(\.id) == [starredID])
+        #expect(!snapshots.map(\.id).contains(normalID))
+    }
 }
