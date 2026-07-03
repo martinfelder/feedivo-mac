@@ -29,16 +29,11 @@ struct ContentView: View {
     // sidebarSelection speichert, welche Sidebar-Zeile ausgewählt ist.
     @State private var sidebarSelection: SidebarSelection?
 
-    // selectedArticle speichert welcher Artikel gerade in der Liste ausgewählt ist.
-    @State private var selectedArticle: Article? = nil
-    @State private var articleNavigationState = ArticleNavigationState.empty
     @State private var selectedSQLiteArticleID: String?
     @State private var selectedSQLiteArticleSnapshot: ArticleReaderSnapshot?
     @State private var sqliteArticleNavigationState = SQLiteArticleNavigationState.empty
     @State private var articleSearchFocusRequest = 0
 
-    @State private var articleViewModel = ArticleViewModel()
-    @State private var offlineDownloadService = OfflineDownloadService()
     @State private var feedViewModel: FeedViewModel
     @State private var isShowingAddFeedSheet = false
     @State private var feedPendingDeletion: Feed?
@@ -47,8 +42,6 @@ struct ContentView: View {
     @State private var isShowingOPMLExportSheet = false
     @State private var articleExportRequest: ArticleExportRequest?
     @State private var opmlAlert: OPMLAlert?
-    @State private var offlineArchiveError: OPMLAlert?
-    @State private var articleForRuleCreation: Article?
     @State private var isMetadataInspectorPresented = false
     @State private var isShowingFirstRunWizard = false
     @State private var isFirstRunWizardDismissedForSession = false
@@ -129,18 +122,6 @@ struct ContentView: View {
                     onSnapshotChange: handleSQLiteArticleSnapshotChange
                 )
                 .id(selectedSQLiteArticleID)
-            } else if let article = selectedArticle {
-                ReaderView(
-                    article: article,
-                    isMetadataInspectorPresented: $isMetadataInspectorPresented,
-                    canSelectPreviousArticle: articleNavigationState.previousArticle != nil,
-                    canSelectNextArticle: articleNavigationState.nextArticle != nil,
-                    selectPreviousArticle: selectPreviousArticle,
-                    selectNextArticle: selectNextArticle,
-                    onRequestCreateRuleFromArticle: requestCreateRuleFromArticle,
-                    onRequestExportArticle: requestExportArticle
-                )
-                .id(article.id)
             } else {
                 ContentUnavailableView(
                     L10n.contentNoArticleSelectedTitle,
@@ -180,9 +161,6 @@ struct ContentView: View {
                 onComplete: completeFirstRunWizard
             )
         }
-        .sheet(item: $articleForRuleCreation) { article in
-            RuleWizardView(sourceArticle: article)
-        }
         .sheet(item: $articleExportRequest) { request in
             ArticleExportSheet(request: request) {
                 articleExportRequest = nil
@@ -204,13 +182,6 @@ struct ContentView: View {
             Text(L10n.feedDeleteConfirmationMessage(feedTitle: feed.title))
         }
         .alert(item: $opmlAlert) { alert in
-            Alert(
-                title: Text(alert.title),
-                message: Text(alert.message),
-                dismissButton: .default(Text(L10n.commonDone))
-            )
-        }
-        .alert(item: $offlineArchiveError) { alert in
             Alert(
                 title: Text(alert.title),
                 message: Text(alert.message),
@@ -302,8 +273,6 @@ struct ContentView: View {
     }
 
     private func handleSidebarSelectionChange() {
-        selectedArticle = nil
-        articleNavigationState = .empty
         selectedSQLiteArticleID = nil
         selectedSQLiteArticleSnapshot = nil
         sqliteArticleNavigationState = .empty
@@ -316,8 +285,6 @@ struct ContentView: View {
         }
 
         selectedSQLiteArticleSnapshot = nil
-        selectedArticle = nil
-        articleNavigationState = .empty
     }
 
     private func handleSQLiteArticleSnapshotChange(_ snapshot: ArticleReaderSnapshot?) {
@@ -386,16 +353,6 @@ struct ContentView: View {
         isShowingOPMLExportSheet = true
     }
 
-    private func requestExportArticle(_ article: Article) {
-        let request = ArticleExportRequest(snapshot: ArticleExportSnapshot(article: article))
-
-        // Der Export kommt aus einem Kontextmenü. Der nächste Main-Runloop verhindert,
-        // dass das Export-Sheet noch während der Menüaktion präsentiert wird.
-        DispatchQueue.main.async {
-            articleExportRequest = request
-        }
-    }
-
     private func requestExportSQLiteArticle(_ snapshot: ArticleReaderSnapshot) {
         guard let database = feedivoDatabase else {
             return
@@ -419,14 +376,6 @@ struct ContentView: View {
                 message: error.localizedDescription
             )
         }
-    }
-
-    private func openArticleInWindow(_ article: Article?) {
-        guard let article else {
-            return
-        }
-
-        openWindow(value: ArticleWindowRequest(articleID: article.id))
     }
 
     private func openSQLiteArticleInWindow(articleID: String?) {
@@ -488,33 +437,6 @@ struct ContentView: View {
         isDeleteFeedConfirmationPresented = true
     }
 
-    private func requestCreateRuleFromArticle(_ article: Article) {
-        articleForRuleCreation = article
-    }
-
-    @MainActor
-    private func archiveOrRemoveArchive(_ article: Article?) async {
-        guard let article else {
-            return
-        }
-
-        if article.isArchived {
-            offlineDownloadService.removeArchive(from: article)
-        } else {
-            let success = await offlineDownloadService.archiveForOffline(article)
-            if !success {
-                // Speichern fehlgeschlagen (z.B. URL nicht erreichbar) —
-                // vorher blieb das lautlos: isArchived false, kein Hinweis.
-                offlineArchiveError = OPMLAlert(
-                    title: L10n.offlineArchiveErrorTitle,
-                    message: article.offlineErrorMessage ?? L10n.offlineArchiveErrorMessage
-                )
-            }
-        }
-
-        try? modelContext.save()
-    }
-
     private func updateFirstRunWizardPresentation() {
         if FirstRunWizardState.shouldKeepPresentedUntilUserStarts(
             isPresented: isShowingFirstRunWizard,
@@ -538,7 +460,7 @@ struct ContentView: View {
             return
         }
 
-        if !isShowingAddFeedSheet && !isShowingOPMLImportReview && articleForRuleCreation == nil {
+        if !isShowingAddFeedSheet && !isShowingOPMLImportReview {
             isShowingFirstRunWizard = true
         }
     }
@@ -557,21 +479,11 @@ struct ContentView: View {
     private func deleteFeed(_ feed: Feed) {
         let deletedFeedID = feed.persistentModelID
         let shouldClearFeedSelection = selectedFeed?.persistentModelID == deletedFeedID
-        // Auch bei Smart-Filtern (z.B. „Alle Artikel") kann der gerade
-        // selektierte Artikel zum gelöschten Feed gehören — dann bliebe eine
-        // Tombstone-Selektion zurück (potenzieller Crash beim Zugriff). Deshalb
-        // VOR dem Löschen erfassen und Auswahl bereinigen.
-        let selectedArticleBelongsToDeletedFeed = selectedArticle?.feed?.persistentModelID == deletedFeedID
-
         feedViewModel.deleteFeed(feed, context: modelContext)
 
         guard feedViewModel.errorMessage == nil else {
             feedPendingDeletion = nil
             return
-        }
-
-        if selectedArticleBelongsToDeletedFeed {
-            selectedArticle = nil
         }
 
         if shouldClearFeedSelection {
@@ -584,22 +496,12 @@ struct ContentView: View {
     private func selectPreviousArticle() {
         if selectedSQLiteArticleID != nil {
             selectedSQLiteArticleID = sqliteArticleNavigationState.previousArticleID
-            return
-        }
-
-        if let previousArticle = articleNavigationState.previousArticle {
-            selectedArticle = previousArticle
         }
     }
 
     private func selectNextArticle() {
         if selectedSQLiteArticleID != nil {
             selectedSQLiteArticleID = sqliteArticleNavigationState.nextArticleID
-            return
-        }
-
-        if let nextArticle = articleNavigationState.nextArticle {
-            selectedArticle = nextArticle
         }
     }
 
@@ -654,14 +556,6 @@ struct ContentView: View {
     }
 
     private var articleCommandActions: ArticleCommandActions {
-        if selectedSQLiteArticleID != nil {
-            return sqliteArticleCommandActions
-        }
-
-        return swiftDataArticleCommandActions
-    }
-
-    private var sqliteArticleCommandActions: ArticleCommandActions {
         ArticleCommandActions(
             canPerformActions: selectedSQLiteArticleSnapshot != nil,
             canPerformLinkActions: ArticleOriginalURLResolver.hasUsableWebLink(selectedSQLiteArticleSnapshot?.link),
@@ -684,56 +578,6 @@ struct ContentView: View {
             },
             canSelectPreviousArticle: sqliteArticleNavigationState.previousArticleID != nil,
             canSelectNextArticle: sqliteArticleNavigationState.nextArticleID != nil,
-            selectPreviousArticle: selectPreviousArticle,
-            selectNextArticle: selectNextArticle
-        )
-    }
-
-    private var swiftDataArticleCommandActions: ArticleCommandActions {
-        ArticleCommandActions(
-            canPerformActions: selectedArticle != nil,
-            canPerformLinkActions: ArticleOriginalURLResolver.hasUsableWebLink(selectedArticle?.link),
-            toggleReadTitle: selectedArticle?.isRead == true ? L10n.articleRowMarkUnread : L10n.articleRowMarkRead,
-            toggleStarredTitle: selectedArticle?.isStarred == true ? L10n.articleRowStarRemove : L10n.articleRowStarAdd,
-            toggleArchivedTitle: selectedArticle?.isArchived == true ? L10n.articleUnarchiveCommand : L10n.articleArchiveCommand,
-            toggleRead: {
-                articleViewModel.toggleRead(selectedArticle, context: modelContext)
-                try? modelContext.save()
-            },
-            toggleStarred: {
-                Task {
-                    await articleViewModel.toggleStarred(
-                        selectedArticle,
-                        automaticallySaveForOffline: automaticallySaveStarredArticles,
-                        context: modelContext,
-                        offlineSaver: offlineDownloadService
-                    )
-                }
-            },
-            toggleArchived: {
-                Task {
-                    await archiveOrRemoveArchive(selectedArticle)
-                }
-            },
-            copyLink: {
-                _ = articleViewModel.copyLink(selectedArticle)
-            },
-            openOriginal: {
-                _ = articleViewModel.openOriginal(selectedArticle)
-            },
-            shareOriginal: {
-                _ = articleViewModel.shareOriginal(selectedArticle)
-            },
-            openInArticleWindow: {
-                openArticleInWindow(selectedArticle)
-            },
-            requestExport: {
-                if let selectedArticle {
-                    requestExportArticle(selectedArticle)
-                }
-            },
-            canSelectPreviousArticle: articleNavigationState.previousArticle != nil,
-            canSelectNextArticle: articleNavigationState.nextArticle != nil,
             selectPreviousArticle: selectPreviousArticle,
             selectNextArticle: selectNextArticle
         )

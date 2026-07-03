@@ -460,6 +460,20 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(compactContentSource.contains("ArticleExportSnapshot(sqliteSnapshot:snapshot,tagNames:tagNames)"))
     }
 
+    @Test func contentViewHatKeineSwiftDataArtikelAuswahlMehr() throws {
+        let projectRoot = projectRootURL()
+        let contentSource = try source(at: "Feedivo/Views/ContentView.swift", projectRoot: projectRoot)
+
+        #expect(!contentSource.contains("@State private var selectedArticle: Article?"))
+        #expect(!contentSource.contains("@State private var articleNavigationState"))
+        #expect(!contentSource.contains("@State private var articleViewModel"))
+        #expect(!contentSource.contains("@State private var offlineDownloadService = OfflineDownloadService()"))
+        #expect(!contentSource.contains("\n                ReaderView("))
+        #expect(!contentSource.contains("swiftDataArticleCommandActions"))
+        #expect(!contentSource.contains("requestExportArticle(_ article: Article)"))
+        #expect(!contentSource.contains("archiveOrRemoveArchive(_ article: Article?)"))
+    }
+
     @Test func sqliteReaderMeldetGeladenenSnapshotAnCommandEbene() throws {
         let projectRoot = projectRootURL()
         let readerSource = try source(at: "Feedivo/Views/Reader/SQLiteReaderView.swift", projectRoot: projectRoot)
