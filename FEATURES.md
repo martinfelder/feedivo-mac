@@ -74,6 +74,9 @@
 ### 1.11 Regel erstellen aus Artikel
 - **Status:** ✔️ Fertig
 - **Umgesetzt:** `RuleWizardView` vorausgefüllt aus Artikel-Kontext
+- **SQLite/GRDB 2026-07-03:** Der Menüpunkt im produktiven `SQLiteReaderView`
+  ist wieder aktiv verdrahtet und öffnet den SQLite-first `RuleWizardView` über
+  `ContentView`.
 
 ---
 

@@ -108,6 +108,22 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(readerSource.contains("Label(L10n.articleCopyLinkCommand"))
     }
 
+    @Test func sqliteReaderVerdrahtetRegelErstellenMitRuleWizard() throws {
+        let projectRoot = projectRootURL()
+        let readerSource = try source(at: "Feedivo/Views/Reader/SQLiteReaderView.swift", projectRoot: projectRoot)
+        let contentSource = try source(at: "Feedivo/Views/ContentView.swift", projectRoot: projectRoot)
+        let compactReaderSource = compact(readerSource)
+        let compactContentSource = compact(contentSource)
+
+        #expect(readerSource.contains("let onCreateRule: (ArticleReaderSnapshot) -> Void"))
+        #expect(compactReaderSource.contains("onCreateRule(snapshot)"))
+        #expect(!compactReaderSource.contains(".disabled(true)Button{ }label:{Label(L10n.articleCreateRuleCommand"))
+        #expect(contentSource.contains("@State private var ruleCreationRequest: RuleCreationRequest?"))
+        #expect(compactContentSource.contains("onCreateRule:requestRuleCreation"))
+        #expect(compactContentSource.contains(".sheet(item:$ruleCreationRequest)"))
+        #expect(compactContentSource.contains("RuleWizardView(existingRules:"))
+    }
+
     @Test func startupTaskTrimsImageCacheToSelectedLimit() throws {
         let testFileURL = URL(fileURLWithPath: #filePath)
         let projectRoot = testFileURL

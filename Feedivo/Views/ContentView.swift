@@ -49,6 +49,7 @@ struct ContentView: View {
     @State private var isShowingOPMLImportReview = false
     @State private var isShowingOPMLExportSheet = false
     @State private var articleExportRequest: ArticleExportRequest?
+    @State private var ruleCreationRequest: RuleCreationRequest?
     @State private var opmlAlert: OPMLAlert?
     @State private var isMetadataInspectorPresented = false
     @State private var isShowingFirstRunWizard = false
@@ -128,7 +129,8 @@ struct ContentView: View {
                     canSelectNextArticle: sqliteArticleNavigationState.nextArticleID != nil,
                     selectPreviousArticle: selectPreviousArticle,
                     selectNextArticle: selectNextArticle,
-                    onSnapshotChange: handleSQLiteArticleSnapshotChange
+                    onSnapshotChange: handleSQLiteArticleSnapshotChange,
+                    onCreateRule: requestRuleCreation
                 )
                 .id(selectedSQLiteArticleID)
             } else {
@@ -180,6 +182,12 @@ struct ContentView: View {
             ArticleExportSheet(request: request) {
                 articleExportRequest = nil
             }
+        }
+        .sheet(item: $ruleCreationRequest) { request in
+            RuleWizardView(
+                existingRules: sqliteRulesForRuleCreation(),
+                seed: request.seed
+            )
         }
         .confirmationDialog(
             L10n.feedDeleteConfirmationTitle,
@@ -695,6 +703,18 @@ struct ContentView: View {
         SystemArticleSharingPresenter().share(url)
     }
 
+    private func requestRuleCreation(from snapshot: ArticleReaderSnapshot) {
+        ruleCreationRequest = RuleCreationRequest(snapshot: snapshot)
+    }
+
+    private func sqliteRulesForRuleCreation() -> [RuleRecord] {
+        guard let database = feedivoDatabase else {
+            return []
+        }
+
+        return (try? SQLiteRuleStore(database: database).rules()) ?? []
+    }
+
     private func updateAppIconBadge() {
         var updater = DockTileBadgeUpdater()
         AppIconBadgeService.updateBadge(
@@ -1081,4 +1101,27 @@ private struct OPMLAlert: Identifiable {
     let id = UUID()
     let title: String
     let message: String
+}
+
+private struct RuleCreationRequest: Identifiable {
+    let id = UUID()
+    let seed: RuleWizardSeed
+
+    init(snapshot: ArticleReaderSnapshot) {
+        let trimmedTitle = snapshot.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let fallbackName = snapshot.feedTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        let seedValue = trimmedTitle.isEmpty ? fallbackName : trimmedTitle
+        let field: RuleConditionField = trimmedTitle.isEmpty ? .feedTitle : .title
+
+        self.seed = RuleWizardSeed(
+            name: seedValue,
+            conditionDrafts: [
+                RuleConditionDraft(
+                    field: field,
+                    conditionOperator: .contains,
+                    value: seedValue
+                )
+            ]
+        )
+    }
 }

@@ -16,12 +16,18 @@ private enum RuleWizardMode: String, CaseIterable, Identifiable {
     }
 }
 
+struct RuleWizardSeed: Equatable {
+    var name: String
+    var conditionDrafts: [RuleConditionDraft]
+}
+
 struct RuleWizardView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.feedivoDatabase) private var feedivoDatabase
 
     let rule: RuleRecord?
     let existingRules: [RuleRecord]
+    let seed: RuleWizardSeed?
 
     @State private var tags: [TagRecord] = []
     @State private var mode: RuleWizardMode = .simple
@@ -42,9 +48,10 @@ struct RuleWizardView: View {
     @State private var ruleError: String?
     @State private var tagError: String?
 
-    init(rule: RuleRecord? = nil, existingRules: [RuleRecord] = []) {
+    init(rule: RuleRecord? = nil, existingRules: [RuleRecord] = [], seed: RuleWizardSeed? = nil) {
         self.rule = rule
         self.existingRules = existingRules
+        self.seed = seed
     }
 
     var body: some View {
@@ -361,7 +368,17 @@ struct RuleWizardView: View {
     private func loadInitialState() {
         if let rule {
             load(rule)
+        } else if let seed {
+            load(seed)
         }
+    }
+
+    private func load(_ seed: RuleWizardSeed) {
+        name = seed.name
+        conditionDrafts = seed.conditionDrafts.isEmpty
+            ? [RuleConditionDraft(field: .title, conditionOperator: .contains, value: "")]
+            : seed.conditionDrafts
+        mode = conditionDrafts.count > 1 ? .power : .simple
     }
 
     private func load(_ rule: RuleRecord) {

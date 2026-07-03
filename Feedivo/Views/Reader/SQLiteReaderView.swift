@@ -11,6 +11,7 @@ struct SQLiteReaderView: View {
     let selectPreviousArticle: () -> Void
     let selectNextArticle: () -> Void
     let onSnapshotChange: (ArticleReaderSnapshot?) -> Void
+    let onCreateRule: (ArticleReaderSnapshot) -> Void
 
     @State private var state = SQLiteReaderState()
     @State private var offlineDownloadService = SQLiteOfflineDownloadService()
@@ -52,7 +53,8 @@ struct SQLiteReaderView: View {
         canSelectNextArticle: Bool = false,
         selectPreviousArticle: @escaping () -> Void = {},
         selectNextArticle: @escaping () -> Void = {},
-        onSnapshotChange: @escaping (ArticleReaderSnapshot?) -> Void = { _ in }
+        onSnapshotChange: @escaping (ArticleReaderSnapshot?) -> Void = { _ in },
+        onCreateRule: @escaping (ArticleReaderSnapshot) -> Void = { _ in }
     ) {
         self.articleID = articleID
         self.canSelectPreviousArticle = canSelectPreviousArticle
@@ -60,6 +62,7 @@ struct SQLiteReaderView: View {
         self.selectPreviousArticle = selectPreviousArticle
         self.selectNextArticle = selectNextArticle
         self.onSnapshotChange = onSnapshotChange
+        self.onCreateRule = onCreateRule
     }
 
     var body: some View {
@@ -188,10 +191,13 @@ struct SQLiteReaderView: View {
 
                 Menu {
                     Button {
+                        if let snapshot = state.snapshot {
+                            onCreateRule(snapshot)
+                        }
                     } label: {
                         Label(L10n.articleCreateRuleCommand, systemImage: "slider.horizontal.3")
                     }
-                    .disabled(true)
+                    .disabled(state.snapshot == nil)
 
                     Button {
                         copyLink()

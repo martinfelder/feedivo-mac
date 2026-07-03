@@ -2430,6 +2430,12 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 
 ## Letzte Änderungen
 
+- 2026-07-03: Bugfix für `Regel erstellen...` im produktiven SQLite-Reader.
+  `SQLiteReaderView` meldet den aktuellen `ArticleReaderSnapshot` wieder an
+  `ContentView`, das den SQLite-first `RuleWizardView` als Sheet öffnet. Der
+  Wizard kann dafür optional mit einem Artikeltitel als Startbedingung geöffnet
+  werden; abgesichert durch `sqliteReaderVerdrahtetRegelErstellenMitRuleWizard`.
+
 - 2026-07-03: Phase 1 abgeschlossen: `docs/performance/sqlite-only-audit.md`
   auf den aktuellen Stand gebracht und im Regressionstest `FeedivoTests/
   FeedivoAppSceneConfigurationTests.swift` der produktive Inhaltspfad (`ContentView`)
