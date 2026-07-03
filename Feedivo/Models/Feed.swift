@@ -1,7 +1,22 @@
 import Foundation
 import SwiftData
 
-// Feed repräsentiert einen abonnierten RSS-Kanal
+// Feed repräsentiert einen abonnierten RSS-Kanal.
+//
+// HART ISOLIERT (SQLite-only Migration, Plan T8): Das produktive Feed-Modell
+// ist `FeedRecord` (GRDB/SQLite). Diese SwiftData-`Feed`-Klasse ist nur noch
+// Übergangs-Brücke und darf nicht mehr für neue Feed-Anlage/-Aktualisierung
+// aus produktiven Pfaden beschrieben werden. ContentView/Sidebar arbeiten
+// ausschließlich auf `FeedSidebarSnapshot`/`FeedRecord`.
+//
+// Warum steht `Feed` noch im ModelContainer? Weil die SwiftData-Relationships
+// `Article.feed: Feed?` und `Tag.feeds: [Feed]?` noch leben. Solange diese
+// Modelle nicht auf SQLite umgestellt sind (out of scope dieses Slices), kann
+// `Feed` nicht entfernt werden, ohne SwiftData-Schema-Migration zu brechen.
+// Der Brücken-Schreibpfad (`mirrorFeedToSQLite`/`saveSwiftDataBridge`) bleibt
+// daher bewahrt, ist aber ausschließlich Brücken-Backend — neue Reads laufen
+// über `FeedStore`/`ArticleStore`. Sobald `Article`/`Tag` SQLite-only sind,
+// kann `Feed` inkl. Brücke und ModelContainer-Registrierung entfernt werden.
 @Model
 class Feed {
     var id: UUID = UUID()

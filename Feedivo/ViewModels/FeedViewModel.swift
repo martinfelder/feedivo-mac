@@ -688,6 +688,103 @@ final class FeedViewModel {
         isLoading = false
     }
 
+    /// SQLite-first Einzel-Refresh anhand der Feed-ID, ohne dass der Aufrufer ein
+    /// SwiftData-`Feed`-Objekt vorhalten muss. ContentView resolved die Auswahl
+    /// nur noch per ID. Regeln werden einmalig aus dem ModelContext geholt und
+    /// als Snapshots an `SQLiteFeedRefreshService` weitergereicht.
+    @MainActor
+    func refreshFeed(
+        feedID: String,
+        context: ModelContext,
+        sqliteDatabase: FeedivoDatabase?
+    ) async {
+        guard !isLoading else {
+            errorMessage = L10n.feedErrorAlreadyRunning
+            return
+        }
+
+        guard let sqliteDatabase else {
+            errorMessage = L10n.feedErrorAddFailed
+            return
+        }
+
+        isLoading = true
+        errorMessage = nil
+        defer {
+            isLoading = false
+        }
+
+        let rules = (try? context.fetch(FetchDescriptor<Rule>())) ?? []
+        let ruleSnapshots = RuleEngine.snapshots(from: rules)
+        let service = SQLiteFeedRefreshService(
+            database: sqliteDatabase,
+            ruleSnapshots: ruleSnapshots
+        )
+
+        do {
+            let result = try await service.refresh(feedID: feedID)
+            SQLiteDataInvalidation.bumpStatusVersion()
+            await notifyFeedRefresh([
+                FeedRefreshNotificationResult(
+                    feedTitle: result.feedTitle,
+                    newArticleCount: result.insertedArticleIDs.count,
+                    isNotificationEnabled: (try? FeedStore(database: sqliteDatabase)
+                        .feed(id: feedID)?.isNotificationEnabled) ?? false
+                )
+            ])
+            await notifyRuleNotifications(result.ruleNotifications)
+        } catch let error as LocalizedError {
+            errorMessage = error.errorDescription ?? L10n.feedErrorParsingFailed
+        } catch {
+            errorMessage = L10n.feedErrorParsingFailed
+        }
+    }
+
+    /// SQLite-first Refresh-All: Snapshots werden aus `FeedStore.feeds()` geladen
+    /// statt aus einer SwiftData-`[Feed]`-Liste. ContentView übergibt nur noch
+    /// die Datenbank (und optional den Container für den Regel-Kontext).
+    @MainActor
+    func refreshAllFeeds(
+        sqliteDatabase: FeedivoDatabase,
+        modelContainer: ModelContainer?
+    ) async {
+        guard !isLoading else {
+            errorMessage = L10n.feedErrorAlreadyRunning
+            return
+        }
+
+        let snapshots: [FeedRefreshSnapshot] = (try? FeedStore(database: sqliteDatabase)
+            .feeds()
+            .compactMap { record in
+                guard let id = UUID(uuidString: record.id) else { return nil }
+                return FeedRefreshSnapshot(
+                    id: id,
+                    title: record.title,
+                    url: record.url,
+                    isNotificationEnabled: record.isNotificationEnabled
+                )
+            }) ?? []
+
+        guard !snapshots.isEmpty else {
+            return
+        }
+
+        let ruleSnapshots: [RuleEngine.RuleSnapshot]
+        if let modelContainer {
+            let ruleContext = ModelContext(modelContainer)
+            let rules = (try? ruleContext.fetch(FetchDescriptor<Rule>())) ?? []
+            ruleSnapshots = RuleEngine.snapshots(from: rules)
+        } else {
+            ruleSnapshots = []
+        }
+
+        await refreshAllFeedsSQLiteFirst(
+            snapshots,
+            database: sqliteDatabase,
+            ruleSnapshots: ruleSnapshots
+        )
+    }
+
     @MainActor
     func refreshAllFeeds(
         _ feeds: [Feed],
@@ -1080,6 +1177,13 @@ final class FeedViewModel {
         try? await Task.sleep(for: minimumRefreshStatusDuration - elapsed)
     }
 
+    // BRÜCKEN-SCHREIBPFAD (hart isoliert, Plan T8): Spiegelt einen SwiftData-
+    // `Feed` nach SQLite (`FeedRecord` + Artikel). Wird nur aus den verbleibenden
+    // SwiftData-first Pfaden (addFeed/rename/restore) aufgerufen, die ihrerseits
+    // noch auf das SwiftData-`Feed`-Modell angewiesen sind, weil `Article.feed`/
+    // `Tag.feeds` Relationships leben. Sobald diese Pfade SQLite-only sind,
+    // entfällt diese Funktion. Keine neuen Reads hierüber — Reads laufen über
+    // `FeedStore`/`ArticleStore`.
     @MainActor
     private func mirrorFeedToSQLite(
         _ feed: Feed,
@@ -1201,6 +1305,58 @@ final class FeedViewModel {
             }
 
             context.delete(feed)
+
+            try context.save()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    /// SQLite-first Delete anhand der Feed-ID. Löscht den SQLite-`FeedRecord`
+    /// per `FeedStore.delete` und zusätzlich den SwiftData-Brücken-Feed samt
+    /// seiner Artikel/LogEntries, falls noch vorhanden (die Brücke bleibt
+    /// übergangsweise als SwiftData-Seitenkanal bestehen, solange `Article.feed`
+    /// /`Tag.feeds` Relationships leben — siehe Plan T8).
+    @MainActor
+    func deleteFeed(
+        feedID: String,
+        context: ModelContext,
+        sqliteDatabase: FeedivoDatabase?
+    ) {
+        errorMessage = nil
+
+        if let sqliteDatabase {
+            do {
+                try FeedStore(database: sqliteDatabase).delete(id: feedID)
+                SQLiteDataInvalidation.bumpStatusVersion()
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
+
+        // SwiftData-Brücken-Feed aufräumen (falls vorhanden). Artikel werden per
+        // feedID geladen und einzeln gelöscht (.nullify-Regel, CloudKit-kompatibel).
+        guard let feedUUID = UUID(uuidString: feedID) else {
+            return
+        }
+
+        do {
+            let descriptor = FetchDescriptor<Article>(
+                predicate: #Predicate<Article> { article in
+                    article.feedID == feedUUID
+                }
+            )
+            for article in try context.fetch(descriptor) {
+                context.delete(article)
+            }
+
+            if let feed = try context.fetch(FetchDescriptor<Feed>())
+                .first(where: { $0.id == feedUUID }) {
+                for entry in feed.logEntries ?? [] {
+                    context.delete(entry)
+                }
+                context.delete(feed)
+            }
 
             try context.save()
         } catch {

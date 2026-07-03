@@ -19,7 +19,14 @@ struct ContentView: View {
     private var refreshOnLaunchIsEnabled = BackgroundRefreshSettings.defaultRefreshOnLaunchIsEnabled
     @AppStorage(BackgroundRefreshSettings.intervalMinutesKey)
     private var backgroundRefreshIntervalMinutes = BackgroundRefreshSettings.defaultIntervalMinutes
-    @Query(sort: \Feed.title) private var feeds: [Feed]
+    // SQLite-only Feed-Identität: Statt @Query [Feed] (SwiftData) hält
+    // ContentView Sidebar-Snapshots aus `FeedStore.sidebarFeeds()` vor. Die
+    // Liste wird beim Erscheinen und bei Status-Version-Bumps (Feed-Anlage/
+    // -Löschung/-Refresh) neu geladen. SwiftData `Feed` ist nur noch
+    // Aktionsbackend für den Brücken-Löschpfad (siehe deleteFeed/feedID).
+    @State private var feedSnapshots: [FeedSidebarSnapshot] = []
+    @AppStorage(SQLiteDataInvalidation.statusVersionKey)
+    private var sqliteStatusVersion = 0
 
     // columnVisibility steuert ob die Sidebar sichtbar ist.
     // .all bedeutet: alle 3 Spalten beim Start anzeigen.
@@ -35,7 +42,9 @@ struct ContentView: View {
 
     @State private var feedViewModel: FeedViewModel
     @State private var isShowingAddFeedSheet = false
-    @State private var feedPendingDeletion: Feed?
+    // SQLite-Identität: Lösch-Bestätigung arbeitet auf dem Sidebar-Snapshot
+    // (String-ID) statt auf einem SwiftData-`Feed`-Objekt.
+    @State private var feedPendingDeletion: FeedSidebarSnapshot?
     @State private var isDeleteFeedConfirmationPresented = false
     @State private var isShowingOPMLImportReview = false
     @State private var isShowingOPMLExportSheet = false
@@ -134,7 +143,16 @@ struct ContentView: View {
         .onChange(of: sidebarSelection, handleSidebarSelectionChange)
         .onChange(of: selectedSQLiteArticleID, handleSQLiteArticleSelectionChange)
         .onAppear(perform: handleContentAppear)
-        .onChange(of: feeds.count, handleFeedCountChange)
+        .task {
+            // SQLite-Sidebar-Snapshots beim Erscheinen laden (ersetzt @Query).
+            await reloadFeedSnapshots()
+        }
+        .onChange(of: sqliteStatusVersion) {
+            // Bei Anlage/Löschung/Refresh (Status-Version-Bump) Snapshots neu
+            // laden, damit First-Run, Badge und Feed-Menü aktuell bleiben.
+            Task { await reloadFeedSnapshots() }
+        }
+        .onChange(of: feedSnapshots.count, handleFeedCountChange)
         .onChange(of: unreadArticleCount, handleUnreadArticleCountChange)
         .onChange(of: appIconBadgeIsEnabled, handleAppIconBadgeSettingChange)
         .onChange(of: hasCompletedFirstRunWizard, handleFirstRunCompletionChange)
@@ -143,18 +161,16 @@ struct ContentView: View {
         }
         .sheet(isPresented: $isShowingOPMLImportReview) {
             OPMLImportReviewView(
-                feeds: feeds,
                 feedViewModel: feedViewModel
             )
         }
         .sheet(isPresented: $isShowingOPMLExportSheet) {
-            OPMLExportSheet(feeds: feeds) {
+            OPMLExportSheet {
                 isShowingOPMLExportSheet = false
             }
         }
         .sheet(isPresented: $isShowingFirstRunWizard) {
             FirstRunWizardView(
-                feeds: feeds,
                 feedViewModel: feedViewModel,
                 onSkip: skipFirstRunWizardForSession,
                 onComplete: completeFirstRunWizard
@@ -246,10 +262,10 @@ struct ContentView: View {
                     }
                 },
                 refreshSelectedFeed: {
-                    if let selectedFeed {
+                    if let feedID = selectedFeedID {
                         Task {
                             await feedViewModel.refreshFeed(
-                                selectedFeed,
+                                feedID: feedID,
                                 context: modelContext,
                                 sqliteDatabase: feedivoDatabase
                             )
@@ -261,7 +277,7 @@ struct ContentView: View {
                         requestDeleteFeed(feedID)
                     }
                 },
-                hasFeeds: !feeds.isEmpty
+                hasFeeds: !feedSnapshots.isEmpty
             )
         )
     }
@@ -301,6 +317,19 @@ struct ContentView: View {
         updateAppIconBadge()
         restoreArticleWindowsIfNeeded()
         refreshFeedsOnLaunchIfNeeded()
+    }
+
+    /// Lädt die SQLite-Sidebar-Snapshots aus `FeedStore.sidebarFeeds()` und
+    /// aktualisiert `feedSnapshots`. Ersetzt das frühere `@Query [Feed]`. Wird
+    /// beim Erscheinen und bei Status-Version-Bumps aufgerufen; treibt First-
+    /// Run-Entscheidung, Dock-Badge und `hasFeeds` des Feed-Menüs.
+    @MainActor
+    private func reloadFeedSnapshots() async {
+        guard let database = feedivoDatabase else {
+            feedSnapshots = []
+            return
+        }
+        feedSnapshots = (try? FeedStore(database: database).sidebarFeeds()) ?? []
     }
 
     private func handleFeedCountChange() {
@@ -396,7 +425,7 @@ struct ContentView: View {
     }
 
     private func refreshFeedsOnLaunchIfNeeded() {
-        guard refreshOnLaunchIsEnabled, !didRunRefreshForLaunch, !feeds.isEmpty else {
+        guard refreshOnLaunchIsEnabled, !didRunRefreshForLaunch, !feedSnapshots.isEmpty else {
             return
         }
 
@@ -412,23 +441,20 @@ struct ContentView: View {
 
     @MainActor
     private func refreshAllFeeds() async {
-        if let modelContainer {
-            await feedViewModel.refreshAllFeeds(
-                feeds,
-                modelContainer: modelContainer,
-                sqliteDatabase: feedivoDatabase
-            )
-        } else {
-            await feedViewModel.refreshAllFeeds(
-                feeds,
-                context: modelContext,
-                sqliteDatabase: feedivoDatabase
-            )
+        // SQLite-first: Snapshots lädt FeedViewModel aus FeedStore.feeds(). Der
+        // optionale Container wird für den Regel-Kontext (Rule-Snapshots)
+        // benötigt; ohne Datenbank wird der Refresh übersprungen.
+        guard let database = feedivoDatabase else {
+            return
         }
+        await feedViewModel.refreshAllFeeds(
+            sqliteDatabase: database,
+            modelContainer: modelContainer
+        )
     }
 
     private func requestDeleteFeed(_ feedID: String) {
-        feedPendingDeletion = feeds.first { $0.id.uuidString == feedID }
+        feedPendingDeletion = feedSnapshots.first { $0.id == feedID }
         isDeleteFeedConfirmationPresented = true
     }
 
@@ -441,12 +467,12 @@ struct ContentView: View {
         }
 
         let shouldShowWizard = FirstRunWizardState.shouldPresent(
-            feedCount: feeds.count,
+            feedCount: feedSnapshots.count,
             hasCompletedWizard: hasCompletedFirstRunWizard,
             wasDismissedThisSession: isFirstRunWizardDismissedForSession
         )
 
-        if feeds.count > 0 {
+        if feedSnapshots.count > 0 {
             isFirstRunWizardDismissedForSession = false
         }
 
@@ -471,21 +497,18 @@ struct ContentView: View {
         isShowingFirstRunWizard = false
     }
 
-    private func deleteFeed(_ feed: Feed) {
-        let feedID = feed.id.uuidString
+    private func deleteFeed(_ snapshot: FeedSidebarSnapshot) {
+        let feedID = snapshot.id
         let shouldClearFeedSelection = selectedFeedID == feedID
-        feedViewModel.deleteFeed(feed, context: modelContext)
+        // SQLite-first: FeedViewModel.deleteFeed(feedID:)) löscht den
+        // SQLite-FeedRecord per FeedStore und räumt zusätzlich den
+        // SwiftData-Brücken-Feed samt Artikel/LogEntries ab. Die Status-Version
+        // wird in FeedViewModel gebumpt, was den Snapshot-Reload triggert.
+        feedViewModel.deleteFeed(feedID: feedID, context: modelContext, sqliteDatabase: feedivoDatabase)
 
         guard feedViewModel.errorMessage == nil else {
             feedPendingDeletion = nil
             return
-        }
-
-        // SQLite-FeedRecord parallel löschen, damit die SQLite-only Sidebar den
-        // Feed nicht weiter anzeigt. SwiftData bleibt übergangsweise Aktionsbackend.
-        if let database = feedivoDatabase {
-            try? FeedStore(database: database).delete(id: feedID)
-            SQLiteDataInvalidation.bumpStatusVersion()
         }
 
         if shouldClearFeedSelection {
@@ -515,12 +538,15 @@ struct ContentView: View {
         return feedID
     }
 
-    private var selectedFeed: Feed? {
+    // SQLite-Identität: ausgewählter Feed als Sidebar-Snapshot (String-ID)
+    // statt als SwiftData-`Feed`. Wird für FeedCommandActions und den
+    // Spalten-2-Titel verwendet.
+    private var selectedFeed: FeedSidebarSnapshot? {
         guard let feedID = selectedFeedID else {
             return nil
         }
 
-        return feeds.first { $0.id.uuidString == feedID }
+        return feedSnapshots.first { $0.id == feedID }
     }
 
     private var selectedTagID: String? {
@@ -565,7 +591,7 @@ struct ContentView: View {
     }
 
     private var unreadArticleCount: Int {
-        AppIconBadgeService.unreadCount(in: feeds)
+        AppIconBadgeService.unreadCount(in: feedSnapshots)
     }
 
     private var articleCommandActions: ArticleCommandActions {

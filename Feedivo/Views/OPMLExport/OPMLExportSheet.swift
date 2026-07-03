@@ -4,7 +4,6 @@ struct OPMLExportSheet: View {
     @Environment(\.feedivoDatabase) private var feedivoDatabase
 
     let feeds: [Feed]
-    let feedCount: Int
     let onClose: () -> Void
 
     @State private var includesFolders = true
@@ -36,16 +35,29 @@ struct OPMLExportSheet: View {
 
     init(feeds: [Feed], onClose: @escaping () -> Void) {
         self.feeds = feeds
-        self.feedCount = feeds.count
         self.onClose = onClose
         _opmlFeeds = State(initialValue: FeedViewModel.opmlFeedsForExport(from: feeds))
     }
 
+    /// SQLite-only Initializer für ContentView: keine SwiftData-`Feed`-Liste
+    /// mehr. Die Export-Feeds werden beim Erscheinen des Sheets aus
+    /// `FeedStore.opmlFeedsForExport()` geladen (siehe `.task`/`loadExportFeeds`).
+    init(onClose: @escaping () -> Void) {
+        self.feeds = []
+        self.onClose = onClose
+        _opmlFeeds = State(initialValue: [])
+    }
+
     init(opmlFeeds: [OPMLFeed], onClose: @escaping () -> Void) {
         self.feeds = []
-        self.feedCount = opmlFeeds.count
         self.onClose = onClose
         _opmlFeeds = State(initialValue: opmlFeeds)
+    }
+
+    /// Dynamisch aus den geladenen OPML-Feeds — initially 0, nach SQLite-Load
+    /// befüllt. Header und Save-Button reagieren so auf den asynchronen Load.
+    private var feedCount: Int {
+        opmlFeeds.count
     }
 
     private var folderCount: Int {
@@ -248,6 +260,16 @@ struct OPMLExportSheet: View {
     }
 
     private func loadExportFeeds() {
+        // SQLite-only Pfad (ContentView): keine SwiftData-Feeds übergeben →
+        // direkt aus `FeedStore.opmlFeedsForExport()` laden. Bereits vorbelegte
+        // opmlFeeds (SettingsView via init(opmlFeeds:)) werden nicht überschrieben.
+        if feeds.isEmpty && opmlFeeds.isEmpty {
+            if let feedivoDatabase {
+                opmlFeeds = (try? FeedStore(database: feedivoDatabase).opmlFeedsForExport()) ?? []
+            }
+            return
+        }
+
         let swiftDataFeeds = FeedViewModel.opmlFeedsForExport(from: feeds)
         guard !feeds.isEmpty else {
             return

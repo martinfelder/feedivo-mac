@@ -300,8 +300,12 @@ struct SQLiteFeedSubscriptionService {
         }
     }
 
-    // SwiftData ist hier nur noch die temporäre Feed-Übergangsidentität für
-    // Sidebar/ContentView, bis diese Bereiche vollständig auf FeedRecord laufen.
+    // BRÜCKEN-SCHREIBPFAD (hart isoliert, Plan T8): Schreibt einen SQLite-
+    // `FeedRecord` zurück in SwiftData, damit die Übergangs-Relationships
+    // (`Article.feed`/`Tag.feeds`) konsistent bleiben. Sidebar/ContentView lesen
+    // nicht mehr hierüber (sie nutzen `FeedSidebarSnapshot`/`FeedRecord`). Diese
+    // Funktion entfällt, sobald `Article`/`Tag` SQLite-only sind und `@Model Feed`
+    // entfernt wird. Keine neuen Reads über diese Brücke.
     private func saveSwiftDataBridge(_ feedRecord: FeedRecord, context: ModelContext) throws {
         let feedID = UUID(uuidString: feedRecord.id) ?? UUID()
         var descriptor = FetchDescriptor<Feed>(

@@ -6,8 +6,11 @@ struct ArticleSearchWindowView: View {
 
     @Environment(\.feedivoDatabase) private var database
 
-    @Query(sort: \Feed.title)
-    private var feeds: [Feed]
+    // SQLite-Feed-Liste für das Filter-Dropdown (statt @Query [Feed]). Wird beim
+    // Erscheinen und bei Status-Version-Bumps neu geladen.
+    @State private var feeds: [FeedRecord] = []
+    @AppStorage(SQLiteDataInvalidation.statusVersionKey)
+    private var sqliteStatusVersion = 0
     @Query(sort: \Tag.name)
     private var tags: [Tag]
 
@@ -59,6 +62,9 @@ struct ArticleSearchWindowView: View {
         }
         .task(id: searchLoadToken) {
             loadSnapshots()
+        }
+        .task(id: sqliteStatusVersion) {
+            loadFeeds()
         }
     }
 
@@ -151,7 +157,7 @@ struct ArticleSearchWindowView: View {
             Text(L10n.articleSearchFeedAll).tag(UUID?.none)
 
             ForEach(feeds) { feed in
-                Text(feed.title).tag(Optional(feed.id))
+                Text(feed.title).tag(UUID(uuidString: feed.id))
             }
         }
         .labelsHidden()
@@ -240,6 +246,14 @@ struct ArticleSearchWindowView: View {
             searchState.dateFilter.rawValue,
             searchState.statusFilter.rawValue
         ].joined(separator: "#")
+    }
+
+    private func loadFeeds() {
+        guard let database else {
+            feeds = []
+            return
+        }
+        feeds = (try? FeedStore(database: database).feeds()) ?? []
     }
 
     private func loadSnapshots() {
