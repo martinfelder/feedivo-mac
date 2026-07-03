@@ -580,28 +580,27 @@ final class FeedViewModel {
         isLoading = true
         errorMessage = nil
 
-        do {
-            let result = try await refreshFeedContents(feed, context: context)
-            await notifyFeedRefresh([result.feedNotification])
-            await notifyRuleNotifications(result.ruleNotifications)
-        } catch let error as LocalizedError {
-            appendLog(
-                kind: .error,
-                message: error.errorDescription ?? L10n.feedErrorParsingFailed,
-                to: feed,
-                context: context
-            )
-            try? context.save()
-            errorMessage = error.errorDescription ?? L10n.feedErrorParsingFailed
-        } catch {
-            appendLog(
-                kind: .error,
-                message: L10n.feedErrorParsingFailed,
-                to: feed,
-                context: context
-            )
-            try? context.save()
-            errorMessage = L10n.feedErrorParsingFailed
+        let refreshService = FeedBackgroundRefreshService(
+            modelContainer: context.container,
+            fetchFeedConditionally: fetchFeedConditionally,
+            discoverFaviconURL: discoverFaviconURL,
+            enrichArticleImages: enrichArticleImages,
+            articleRetentionDefaults: articleRetentionDefaults
+        )
+
+        let snapshot = FeedRefreshSnapshot(
+            id: feed.id,
+            title: feed.title,
+            url: feed.url
+        )
+
+        let result = await refreshService.refreshFeed(snapshot)
+        switch result {
+        case .success(let refreshResult):
+            await notifyFeedRefresh([refreshResult.feedNotification])
+            await notifyRuleNotifications(refreshResult.ruleNotifications)
+        case .failure(let error):
+            errorMessage = error.localizedDescription
         }
 
         isLoading = false

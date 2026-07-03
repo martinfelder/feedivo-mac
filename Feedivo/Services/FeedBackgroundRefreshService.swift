@@ -19,7 +19,7 @@ struct FeedBackgroundRefreshSummary: Sendable {
     var failedFeedTitles: [String]
 }
 
-private struct FeedBackgroundRefreshResult: Sendable {
+struct FeedBackgroundRefreshResult: Sendable {
     var feedNotification: FeedRefreshNotificationResult
     var ruleNotifications: [RuleNotificationResult]
 }
@@ -52,6 +52,24 @@ struct FeedBackgroundRefreshService {
         self.discoverFaviconURL = discoverFaviconURL
         self.enrichArticleImages = enrichArticleImages
         self.articleRetentionDefaults = articleRetentionDefaults
+    }
+
+    func refreshFeed(
+        _ snapshot: FeedRefreshSnapshot
+    ) async -> Result<FeedBackgroundRefreshResult, Error> {
+        let context = ModelContext(modelContainer)
+        do {
+            let result = try await executeSingleFeedRefresh(snapshot, context: context)
+            return .success(result)
+        } catch {
+            let message = (error as? LocalizedError)?.errorDescription ?? L10n.feedErrorParsingFailed
+            appendFailureLog(
+                message: message,
+                feedID: snapshot.id,
+                context: context
+            )
+            return .failure(error)
+        }
     }
 
     func refreshAllFeeds(
@@ -97,8 +115,7 @@ struct FeedBackgroundRefreshService {
     private func refreshFeed(_ snapshot: FeedRefreshSnapshot) async -> FeedBackgroundRefreshOutcome {
         let context = ModelContext(modelContainer)
         do {
-            let feed = try fetchFeed(withID: snapshot.id, context: context)
-            let result = try await refreshFeedContents(feed, context: context)
+            let result = try await executeSingleFeedRefresh(snapshot, context: context)
             return .success(snapshot.id, result)
         } catch let error as LocalizedError {
             appendFailureLog(
@@ -115,6 +132,14 @@ struct FeedBackgroundRefreshService {
             )
             return .failure(snapshot.id, snapshot.title)
         }
+    }
+
+    private func executeSingleFeedRefresh(
+        _ snapshot: FeedRefreshSnapshot,
+        context: ModelContext
+    ) async throws -> FeedBackgroundRefreshResult {
+        let feed = try fetchFeed(withID: snapshot.id, context: context)
+        return try await refreshFeedContents(feed, context: context)
     }
 
     private func refreshFeedContents(_ feed: Feed, context: ModelContext) async throws -> FeedBackgroundRefreshResult {

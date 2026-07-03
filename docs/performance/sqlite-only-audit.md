@@ -89,6 +89,7 @@ Bis zum nächsten Umbau dürfen diese Regeln gelten:
   - Statusänderungen auf SQLite-Statusstore umziehen,
   - SwiftData nur noch Fallback/Bridge.
 - `FeedViewModel.swift`: Refresh/RefreshAll auf SQLite-Writer-Pfade.
+  - Teilweiser Schritt: Einzel-Feed-Refresh läuft jetzt über `FeedBackgroundRefreshService`, damit der eigentliche Refresh-Pfad in einer separaten Komponente liegt.
 - `ReaderView.swift` + `ArticleMetadataInspectorView.swift`: Artikeldetail wird aus SQLite-Reader-Snapshot geladen.
 - `ArticleSearchWindowView.swift`: Suche vollständig auf FTS/SQLite-Query stützen.
 

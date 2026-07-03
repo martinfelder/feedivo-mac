@@ -2265,7 +2265,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Scrollbeobachter-Ansatz hat das Scrollgefühl im Reader verschlechtert und wurde
   wieder entfernt. Für v1 bleibt der Reader ohne Lesefortschritt.
 - Nächster sinnvoller Fokus: Implementierungsplan für die SQLite/GRDB-
-  Performance-Architektur schreiben und danach mit dem DB-Fundament beginnen.
+  Performance-Architektur ausführen. `FeedViewModel` nutzt `refreshFeed` jetzt den
+  zentralen `FeedBackgroundRefreshService` für den Einzel-Refresh-Pfad, sodass
+  dieser Pfad für einen SQLite-First-Umbau vorbereitet ist.
 - Feature-Roadmap ist in `FEATURES.md` im Root dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
@@ -2304,6 +2306,12 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   `ArticleCommandActions` nutzt zusätzlich einen günstigen `http/https`-
   String-Check; echte `URL`-Objekte werden erst beim Ausführen von Kopieren,
   Öffnen oder Teilen erzeugt.
+
+- 2026-07-03: `FeedViewModel.refreshFeed` delegiert den Einzel-Feed-Refresh an
+  `FeedBackgroundRefreshService.refreshFeed`. Der Refresh-Stack wird dadurch für
+  den produktiven Feed-Pfad bereits auf einen zentralen Service verschoben,
+  während der bestehende `Article`-Persistenzpfad noch als Übergangs-Stand
+  erhalten bleibt.
 
 - 2026-07-02: CPU-Last beim Lesen reduziert. Der Reader-Prefetch in
   `ArticleListView` faultet keine schweren Artikeltexte (`Article.content`,
