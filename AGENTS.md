@@ -2326,7 +2326,11 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Artikel-Aufbewahrung löscht SQLite-Artikel und korrigiert Feed-Zähler; OPML-
   Import spiegelt neue Feeds nach SQLite, OPML-Export bevorzugt SQLite-Feed-/
   Feed-Tag-Snapshots; Export aus der SQLite-Liste nutzt `ArticleReaderSnapshot`,
-  Offline-Volltext und SQLite-Tag-Namen.
+  Offline-Volltext und SQLite-Tag-Namen. Artikel-Menüaktionen und das separate
+  Artikelfenster laufen inzwischen ebenfalls über SQLite-Snapshots: `ContentView`
+  hält den aktuell geladenen `ArticleReaderSnapshot` für Shortcuts/Commands,
+  und `ArticleWindowView` nutzt `SQLiteReaderView` statt einer SwiftData-
+  `@Query<Article>`.
 - Feature 17.3 Automatisches Löschen ist umgesetzt: globale Einstellung,
   Stern-/Archiv-Schutz mit Zusatzoption und pro-Feed-Überschreibung in den
   Feed-Eigenschaften.
@@ -2355,14 +2359,24 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Scrollbeobachter-Ansatz hat das Scrollgefühl im Reader verschlechtert und wurde
   wieder entfernt. Für v1 bleibt der Reader ohne Lesefortschritt.
 - Nächster sinnvoller Fokus: vollständiger M4-Regressionstest, danach entscheiden,
-  ob der SQLite-Hauptpfad für Release-Polish genügt oder ob einzelne Legacy-
-  SwiftData-Fallback-Views ausgebaut/entfernt werden sollen.
+  ob SwiftData-Verwaltungsmodelle für v1 bewusst als Übergangsschicht bleiben
+  oder ob Feed-/Tag-/Regel-/Smart-Folder-Verwaltung ebenfalls nach SQLite
+  gezogen wird.
 - Feature-Roadmap ist in `FEATURES.md` im Root dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
 ---
 
 ## Letzte Änderungen
+
+- 2026-07-03: Sichtbaren Artikelfenster-/Command-Legacy-Pfad auf SQLite
+  umgestellt. `SQLiteReaderView` meldet den geladenen `ArticleReaderSnapshot`
+  an die umgebende Command-Ebene. `ContentView` nutzt diesen Snapshot für
+  Artikel-Menüaktionen, Shortcuts, Link-/Share-Aktionen, Export und
+  Artikelfenster-Öffnen, statt dafür ein SwiftData-`Article` zu benötigen.
+  `ArticleWindowView` lädt separate Fenster über `SQLiteReaderView`, berechnet
+  Vor-/Zurück-Navigation aus `TimelineStore(.all)` und bietet dieselben
+  `ArticleCommandActions` direkt aus SQLite an.
 
 - 2026-07-03: SQLite-Migrationsabschluss für die offenen Nebenpfade umgesetzt.
   `SQLiteRuleEvaluationStore` ersetzt SwiftData-Artikelmaterialisierung in

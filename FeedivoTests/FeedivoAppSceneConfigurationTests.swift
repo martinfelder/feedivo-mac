@@ -117,9 +117,11 @@ struct FeedivoAppSceneConfigurationTests {
         let articleWindowSource = try source(at: "Feedivo/Views/Reader/ArticleWindowView.swift", projectRoot: projectRoot)
 
         #expect(articleWindowSource.contains(".onChange(of: selectedArticleID)"))
-        #expect(articleWindowSource.contains("ArticleWindowSettings.forgetOpenArticleID(oldValue)"))
-        #expect(articleWindowSource.contains("ArticleWindowSettings.rememberOpenArticleID(newValue)"))
-        #expect(articleWindowSource.contains("ArticleWindowSettings.forgetOpenArticleID(selectedArticleID)"))
+        #expect(articleWindowSource.contains("forgetArticleID(oldValue)"))
+        #expect(articleWindowSource.contains("rememberSelectedArticleID()"))
+        #expect(articleWindowSource.contains("forgetArticleID(selectedArticleID)"))
+        #expect(articleWindowSource.contains("ArticleWindowSettings.forgetOpenArticleID(uuid)"))
+        #expect(articleWindowSource.contains("ArticleWindowSettings.rememberOpenArticleID(uuid)"))
     }
 
     @Test func readerScrollViewsResetWhenArticleChanges() throws {
@@ -441,6 +443,43 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(contentSource.contains("if let selectedSQLiteArticleID"))
         #expect(contentSource.contains("SQLiteReaderView("))
         #expect(contentSource.contains("articleID: selectedSQLiteArticleID"))
+    }
+
+    @Test func contentViewVerdrahtetArtikelCommandsFuerSQLiteAuswahl() throws {
+        let projectRoot = projectRootURL()
+        let contentSource = try source(at: "Feedivo/Views/ContentView.swift", projectRoot: projectRoot)
+        let compactContentSource = compact(contentSource)
+
+        #expect(contentSource.contains("@State private var selectedSQLiteArticleSnapshot: ArticleReaderSnapshot?"))
+        #expect(compactContentSource.contains("canPerformActions:selectedSQLiteArticleSnapshot!=nil"))
+        #expect(compactContentSource.contains("toggleReadTitle:selectedSQLiteArticleSnapshot?.isRead==true"))
+        #expect(compactContentSource.contains("ArticleStatusStore(database:database).setRead"))
+        #expect(compactContentSource.contains("ArticleStatusStore(database:database).setStarred"))
+        #expect(compactContentSource.contains("ArticleStatusStore(database:database).setArchived"))
+        #expect(compactContentSource.contains("openWindow(value:ArticleWindowRequest(articleID:articleID))"))
+        #expect(compactContentSource.contains("ArticleExportSnapshot(sqliteSnapshot:snapshot,tagNames:tagNames)"))
+    }
+
+    @Test func sqliteReaderMeldetGeladenenSnapshotAnCommandEbene() throws {
+        let projectRoot = projectRootURL()
+        let readerSource = try source(at: "Feedivo/Views/Reader/SQLiteReaderView.swift", projectRoot: projectRoot)
+        let compactReaderSource = compact(readerSource)
+
+        #expect(readerSource.contains("let onSnapshotChange: (ArticleReaderSnapshot?) -> Void"))
+        #expect(compactReaderSource.contains(".onChange(of:state.snapshot){_,snapshotinonSnapshotChange(snapshot)}"))
+        #expect(compactReaderSource.contains(".onDisappear{onSnapshotChange(nil)}"))
+    }
+
+    @Test func articleWindowViewNutztSQLiteReaderStattSwiftDataArticleQuery() throws {
+        let projectRoot = projectRootURL()
+        let articleWindowSource = try source(at: "Feedivo/Views/Reader/ArticleWindowView.swift", projectRoot: projectRoot)
+
+        #expect(articleWindowSource.contains("@Environment(\\.feedivoDatabase) private var database"))
+        #expect(articleWindowSource.contains("SQLiteReaderView("))
+        #expect(articleWindowSource.contains("ArticleStore(database: database)"))
+        #expect(!articleWindowSource.contains("@Query private var articles"))
+        #expect(!articleWindowSource.contains("\n                ReaderView("))
+        #expect(!articleWindowSource.contains("ArticleExportSnapshot(article:"))
     }
 
     @Test func contentViewUebergibtSQLiteDatabaseAnFeedRefreshes() throws {

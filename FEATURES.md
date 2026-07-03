@@ -928,6 +928,12 @@
     Beschreibungen aus SwiftData. Einzelartikel-Export aus der SQLite-Liste
     nutzt `ArticleReaderSnapshot`, gespeicherten Offline-Volltext und Tag-Namen
     aus `article_tags`/`feed_tags`.
+  - Sichtbarer Artikelfenster-/Command-Legacy-Pfad 2026-07-03 geschlossen:
+    `SQLiteReaderView` meldet den geladenen `ArticleReaderSnapshot` nach oben,
+    `ContentView` nutzt ihn für Artikel-Menüaktionen, Shortcuts, Link-/Share-
+    Aktionen, Export und `In eigenem Fenster öffnen`. `ArticleWindowView` lädt
+    separate Fenster über `SQLiteReaderView`, berechnet Vor-/Zurück-Navigation
+    aus `TimelineStore(.all)` und hält keine SwiftData-`@Query<Article>` mehr.
   - OPML-Import und `Alle Feeds aktualisieren` rufen Feeds nur noch begrenzt parallel ab
   - Sidebar nutzt keine globale Artikel-Query mehr für Badge-Signaturen; beim
     Lesen invalidieren `isRead`-Änderungen dadurch nicht mehr alle Sidebar-

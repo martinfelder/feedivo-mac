@@ -9,6 +9,7 @@ struct SQLiteReaderView: View {
     let canSelectNextArticle: Bool
     let selectPreviousArticle: () -> Void
     let selectNextArticle: () -> Void
+    let onSnapshotChange: (ArticleReaderSnapshot?) -> Void
 
     @State private var state = SQLiteReaderState()
     @State private var offlineDownloadService = SQLiteOfflineDownloadService()
@@ -19,13 +20,15 @@ struct SQLiteReaderView: View {
         canSelectPreviousArticle: Bool = false,
         canSelectNextArticle: Bool = false,
         selectPreviousArticle: @escaping () -> Void = {},
-        selectNextArticle: @escaping () -> Void = {}
+        selectNextArticle: @escaping () -> Void = {},
+        onSnapshotChange: @escaping (ArticleReaderSnapshot?) -> Void = { _ in }
     ) {
         self.articleID = articleID
         self.canSelectPreviousArticle = canSelectPreviousArticle
         self.canSelectNextArticle = canSelectNextArticle
         self.selectPreviousArticle = selectPreviousArticle
         self.selectNextArticle = selectNextArticle
+        self.onSnapshotChange = onSnapshotChange
     }
 
     var body: some View {
@@ -41,6 +44,12 @@ struct SQLiteReaderView: View {
             }
         }
         .navigationTitle(state.snapshot?.title ?? "")
+        .onChange(of: state.snapshot) { _, snapshot in
+            onSnapshotChange(snapshot)
+        }
+        .onDisappear {
+            onSnapshotChange(nil)
+        }
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
                 Button {

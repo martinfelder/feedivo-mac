@@ -33,6 +33,7 @@ struct ContentView: View {
     @State private var selectedArticle: Article? = nil
     @State private var articleNavigationState = ArticleNavigationState.empty
     @State private var selectedSQLiteArticleID: String?
+    @State private var selectedSQLiteArticleSnapshot: ArticleReaderSnapshot?
     @State private var sqliteArticleNavigationState = SQLiteArticleNavigationState.empty
     @State private var articleSearchFocusRequest = 0
 
@@ -124,7 +125,8 @@ struct ContentView: View {
                     canSelectPreviousArticle: sqliteArticleNavigationState.previousArticleID != nil,
                     canSelectNextArticle: sqliteArticleNavigationState.nextArticleID != nil,
                     selectPreviousArticle: selectPreviousArticle,
-                    selectNextArticle: selectNextArticle
+                    selectNextArticle: selectNextArticle,
+                    onSnapshotChange: handleSQLiteArticleSnapshotChange
                 )
                 .id(selectedSQLiteArticleID)
             } else if let article = selectedArticle {
@@ -259,53 +261,7 @@ struct ContentView: View {
         .animation(.snappy(duration: 0.18), value: isRefreshStatusExpanded)
         .focusedValue(
             \.articleCommandActions,
-            ArticleCommandActions(
-                canPerformActions: selectedArticle != nil,
-                canPerformLinkActions: ArticleOriginalURLResolver.hasUsableWebLink(selectedArticle?.link),
-                toggleReadTitle: selectedArticle?.isRead == true ? L10n.articleRowMarkUnread : L10n.articleRowMarkRead,
-                toggleStarredTitle: selectedArticle?.isStarred == true ? L10n.articleRowStarRemove : L10n.articleRowStarAdd,
-                toggleArchivedTitle: selectedArticle?.isArchived == true ? L10n.articleUnarchiveCommand : L10n.articleArchiveCommand,
-                toggleRead: {
-                    articleViewModel.toggleRead(selectedArticle, context: modelContext)
-                    try? modelContext.save()
-                },
-                toggleStarred: {
-                    Task {
-                        await articleViewModel.toggleStarred(
-                            selectedArticle,
-                            automaticallySaveForOffline: automaticallySaveStarredArticles,
-                            context: modelContext,
-                            offlineSaver: offlineDownloadService
-                        )
-                    }
-                },
-                toggleArchived: {
-                    Task {
-                        await archiveOrRemoveArchive(selectedArticle)
-                    }
-                },
-                copyLink: {
-                    _ = articleViewModel.copyLink(selectedArticle)
-                },
-                openOriginal: {
-                    _ = articleViewModel.openOriginal(selectedArticle)
-                },
-                shareOriginal: {
-                    _ = articleViewModel.shareOriginal(selectedArticle)
-                },
-                openInArticleWindow: {
-                    openArticleInWindow(selectedArticle)
-                },
-                requestExport: {
-                    if let selectedArticle {
-                        requestExportArticle(selectedArticle)
-                    }
-                },
-                canSelectPreviousArticle: articleNavigationState.previousArticle != nil,
-                canSelectNextArticle: articleNavigationState.nextArticle != nil,
-                selectPreviousArticle: selectPreviousArticle,
-                selectNextArticle: selectNextArticle
-            )
+            articleCommandActions
         )
         .focusedValue(
             \.feedCommandActions,
@@ -349,16 +305,28 @@ struct ContentView: View {
         selectedArticle = nil
         articleNavigationState = .empty
         selectedSQLiteArticleID = nil
+        selectedSQLiteArticleSnapshot = nil
         sqliteArticleNavigationState = .empty
     }
 
     private func handleSQLiteArticleSelectionChange() {
         guard selectedSQLiteArticleID != nil else {
+            selectedSQLiteArticleSnapshot = nil
             return
         }
 
+        selectedSQLiteArticleSnapshot = nil
         selectedArticle = nil
         articleNavigationState = .empty
+    }
+
+    private func handleSQLiteArticleSnapshotChange(_ snapshot: ArticleReaderSnapshot?) {
+        guard selectedSQLiteArticleID != nil else {
+            selectedSQLiteArticleSnapshot = nil
+            return
+        }
+
+        selectedSQLiteArticleSnapshot = snapshot
     }
 
     private func handleContentAppear() {
@@ -428,12 +396,48 @@ struct ContentView: View {
         }
     }
 
+    private func requestExportSQLiteArticle(_ snapshot: ArticleReaderSnapshot) {
+        guard let database = feedivoDatabase else {
+            return
+        }
+
+        do {
+            let tagNames = try TagStore(database: database).exportTagNames(
+                articleID: snapshot.id,
+                feedID: snapshot.feedID
+            )
+            let request = ArticleExportRequest(
+                snapshot: ArticleExportSnapshot(sqliteSnapshot: snapshot, tagNames: tagNames)
+            )
+
+            DispatchQueue.main.async {
+                articleExportRequest = request
+            }
+        } catch {
+            opmlAlert = OPMLAlert(
+                title: L10n.articleExportCommand,
+                message: error.localizedDescription
+            )
+        }
+    }
+
     private func openArticleInWindow(_ article: Article?) {
         guard let article else {
             return
         }
 
         openWindow(value: ArticleWindowRequest(articleID: article.id))
+    }
+
+    private func openSQLiteArticleInWindow(articleID: String?) {
+        guard
+            let articleID,
+            let uuid = UUID(uuidString: articleID)
+        else {
+            return
+        }
+
+        openWindow(value: ArticleWindowRequest(articleID: uuid))
     }
 
     private func restoreArticleWindowsIfNeeded() {
@@ -647,6 +651,164 @@ struct ContentView: View {
 
     private var unreadArticleCount: Int {
         AppIconBadgeService.unreadCount(in: feeds)
+    }
+
+    private var articleCommandActions: ArticleCommandActions {
+        if selectedSQLiteArticleID != nil {
+            return sqliteArticleCommandActions
+        }
+
+        return swiftDataArticleCommandActions
+    }
+
+    private var sqliteArticleCommandActions: ArticleCommandActions {
+        ArticleCommandActions(
+            canPerformActions: selectedSQLiteArticleSnapshot != nil,
+            canPerformLinkActions: ArticleOriginalURLResolver.hasUsableWebLink(selectedSQLiteArticleSnapshot?.link),
+            toggleReadTitle: selectedSQLiteArticleSnapshot?.isRead == true ? L10n.articleRowMarkUnread : L10n.articleRowMarkRead,
+            toggleStarredTitle: selectedSQLiteArticleSnapshot?.isStarred == true ? L10n.articleRowStarRemove : L10n.articleRowStarAdd,
+            toggleArchivedTitle: selectedSQLiteArticleSnapshot?.isArchived == true ? L10n.articleUnarchiveCommand : L10n.articleArchiveCommand,
+            toggleRead: toggleSelectedSQLiteReadStatus,
+            toggleStarred: toggleSelectedSQLiteStarredStatus,
+            toggleArchived: toggleSelectedSQLiteArchivedStatus,
+            copyLink: copySelectedSQLiteArticleLink,
+            openOriginal: openSelectedSQLiteArticleOriginal,
+            shareOriginal: shareSelectedSQLiteArticleOriginal,
+            openInArticleWindow: {
+                openSQLiteArticleInWindow(articleID: selectedSQLiteArticleID)
+            },
+            requestExport: {
+                if let snapshot = selectedSQLiteArticleSnapshot {
+                    requestExportSQLiteArticle(snapshot)
+                }
+            },
+            canSelectPreviousArticle: sqliteArticleNavigationState.previousArticleID != nil,
+            canSelectNextArticle: sqliteArticleNavigationState.nextArticleID != nil,
+            selectPreviousArticle: selectPreviousArticle,
+            selectNextArticle: selectNextArticle
+        )
+    }
+
+    private var swiftDataArticleCommandActions: ArticleCommandActions {
+        ArticleCommandActions(
+            canPerformActions: selectedArticle != nil,
+            canPerformLinkActions: ArticleOriginalURLResolver.hasUsableWebLink(selectedArticle?.link),
+            toggleReadTitle: selectedArticle?.isRead == true ? L10n.articleRowMarkUnread : L10n.articleRowMarkRead,
+            toggleStarredTitle: selectedArticle?.isStarred == true ? L10n.articleRowStarRemove : L10n.articleRowStarAdd,
+            toggleArchivedTitle: selectedArticle?.isArchived == true ? L10n.articleUnarchiveCommand : L10n.articleArchiveCommand,
+            toggleRead: {
+                articleViewModel.toggleRead(selectedArticle, context: modelContext)
+                try? modelContext.save()
+            },
+            toggleStarred: {
+                Task {
+                    await articleViewModel.toggleStarred(
+                        selectedArticle,
+                        automaticallySaveForOffline: automaticallySaveStarredArticles,
+                        context: modelContext,
+                        offlineSaver: offlineDownloadService
+                    )
+                }
+            },
+            toggleArchived: {
+                Task {
+                    await archiveOrRemoveArchive(selectedArticle)
+                }
+            },
+            copyLink: {
+                _ = articleViewModel.copyLink(selectedArticle)
+            },
+            openOriginal: {
+                _ = articleViewModel.openOriginal(selectedArticle)
+            },
+            shareOriginal: {
+                _ = articleViewModel.shareOriginal(selectedArticle)
+            },
+            openInArticleWindow: {
+                openArticleInWindow(selectedArticle)
+            },
+            requestExport: {
+                if let selectedArticle {
+                    requestExportArticle(selectedArticle)
+                }
+            },
+            canSelectPreviousArticle: articleNavigationState.previousArticle != nil,
+            canSelectNextArticle: articleNavigationState.nextArticle != nil,
+            selectPreviousArticle: selectPreviousArticle,
+            selectNextArticle: selectNextArticle
+        )
+    }
+
+    private func toggleSelectedSQLiteReadStatus() {
+        guard let snapshot = selectedSQLiteArticleSnapshot, let database = feedivoDatabase else {
+            return
+        }
+
+        do {
+            try ArticleStatusStore(database: database).setRead(!snapshot.isRead, articleID: snapshot.id, at: Date())
+            reloadSelectedSQLiteArticleSnapshot(database: database)
+        } catch {
+            opmlAlert = OPMLAlert(title: L10n.databaseInitErrorTitle, message: error.localizedDescription)
+        }
+    }
+
+    private func toggleSelectedSQLiteStarredStatus() {
+        guard let snapshot = selectedSQLiteArticleSnapshot, let database = feedivoDatabase else {
+            return
+        }
+
+        do {
+            try ArticleStatusStore(database: database).setStarred(!snapshot.isStarred, articleID: snapshot.id, at: Date())
+            reloadSelectedSQLiteArticleSnapshot(database: database)
+        } catch {
+            opmlAlert = OPMLAlert(title: L10n.databaseInitErrorTitle, message: error.localizedDescription)
+        }
+    }
+
+    private func toggleSelectedSQLiteArchivedStatus() {
+        guard let snapshot = selectedSQLiteArticleSnapshot, let database = feedivoDatabase else {
+            return
+        }
+
+        do {
+            try ArticleStatusStore(database: database).setArchived(!snapshot.isArchived, articleID: snapshot.id, at: Date())
+            reloadSelectedSQLiteArticleSnapshot(database: database)
+        } catch {
+            opmlAlert = OPMLAlert(title: L10n.databaseInitErrorTitle, message: error.localizedDescription)
+        }
+    }
+
+    private func reloadSelectedSQLiteArticleSnapshot(database: FeedivoDatabase) {
+        guard let selectedSQLiteArticleID else {
+            selectedSQLiteArticleSnapshot = nil
+            return
+        }
+
+        selectedSQLiteArticleSnapshot = try? ArticleStore(database: database).readerArticle(id: selectedSQLiteArticleID)
+    }
+
+    private func copySelectedSQLiteArticleLink() {
+        guard let url = ArticleOriginalURLResolver.url(for: selectedSQLiteArticleSnapshot?.link) else {
+            return
+        }
+
+        SystemArticleLinkPasteboard().copy(url.absoluteString)
+    }
+
+    private func openSelectedSQLiteArticleOriginal() {
+        guard let url = ArticleOriginalURLResolver.url(for: selectedSQLiteArticleSnapshot?.link) else {
+            return
+        }
+
+        SystemArticleURLOpener().open(url)
+    }
+
+    private func shareSelectedSQLiteArticleOriginal() {
+        guard let url = ArticleOriginalURLResolver.url(for: selectedSQLiteArticleSnapshot?.link) else {
+            return
+        }
+
+        SystemArticleSharingPresenter().share(url)
     }
 
     private func updateAppIconBadge() {
