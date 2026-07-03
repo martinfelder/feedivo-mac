@@ -288,4 +288,95 @@ struct SQLiteArticleStoreTests {
         #expect(status?.dateArrived == originalArrivedAt)
         #expect(readerArticle?.arrivedAt == originalArrivedAt)
     }
+
+    @Test func searchArticlesFindsTitleSummaryContentAndAuthor() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example"))
+        let titleID = try articleStore.upsert(
+            ArticleUpsertInput(feedID: "feed-1", sourceID: "title", title: "Quantum Notes")
+        )
+        let summaryID = try articleStore.upsert(
+            ArticleUpsertInput(feedID: "feed-1", sourceID: "summary", title: "Other", summary: "A nebula summary")
+        )
+        let contentID = try articleStore.upsert(
+            ArticleUpsertInput(feedID: "feed-1", sourceID: "content", title: "Other", content: "Longform orchard text")
+        )
+        let authorID = try articleStore.upsert(
+            ArticleUpsertInput(feedID: "feed-1", sourceID: "author", title: "Other", author: "Ada Lovelace")
+        )
+
+        #expect(try articleStore.searchArticles(matching: "quantum").map(\.id) == [titleID])
+        #expect(try articleStore.searchArticles(matching: "nebula").map(\.id) == [summaryID])
+        #expect(try articleStore.searchArticles(matching: "orchard").map(\.id) == [contentID])
+        #expect(try articleStore.searchArticles(matching: "lovelace").map(\.id) == [authorID])
+    }
+
+    @Test func searchArticlesReflectsUpdatesAndDeletes() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example"))
+        let articleID = try articleStore.upsert(
+            ArticleUpsertInput(feedID: "feed-1", sourceID: "one", title: "Old Saturn Title")
+        )
+        _ = try articleStore.upsert(
+            ArticleUpsertInput(feedID: "feed-1", sourceID: "one", title: "Fresh Jupiter Title")
+        )
+
+        #expect(try articleStore.searchArticles(matching: "saturn").isEmpty)
+        #expect(try articleStore.searchArticles(matching: "jupiter").map(\.id) == [articleID])
+
+        try database.write { db in
+            try db.execute(sql: "DELETE FROM articles WHERE id = ?", arguments: [articleID])
+        }
+
+        #expect(try articleStore.searchArticles(matching: "jupiter").isEmpty)
+    }
+
+    @Test func searchArticlesExcludesHiddenByDefaultAndHonorsLimit() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let statusStore = ArticleStatusStore(database: database)
+
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example"))
+        let olderID = try articleStore.upsert(
+            ArticleUpsertInput(
+                feedID: "feed-1",
+                sourceID: "older",
+                title: "Shared keyword",
+                publishedAt: Date(timeIntervalSince1970: 100),
+                arrivedAt: Date(timeIntervalSince1970: 100)
+            )
+        )
+        let newerID = try articleStore.upsert(
+            ArticleUpsertInput(
+                feedID: "feed-1",
+                sourceID: "newer",
+                title: "Shared keyword",
+                publishedAt: Date(timeIntervalSince1970: 200),
+                arrivedAt: Date(timeIntervalSince1970: 200)
+            )
+        )
+        let hiddenID = try articleStore.upsert(
+            ArticleUpsertInput(
+                feedID: "feed-1",
+                sourceID: "hidden",
+                title: "Shared keyword",
+                publishedAt: Date(timeIntervalSince1970: 300),
+                arrivedAt: Date(timeIntervalSince1970: 300)
+            )
+        )
+        try statusStore.setHidden(true, articleID: hiddenID, at: Date(timeIntervalSince1970: 400))
+
+        let visibleLimited = try articleStore.searchArticles(matching: "keyword", limit: 1)
+        let includingHidden = try articleStore.searchArticles(matching: "keyword", includeHidden: true, limit: 10)
+
+        #expect(visibleLimited.map(\.id) == [newerID])
+        #expect(includingHidden.map(\.id) == [hiddenID, newerID, olderID])
+    }
 }

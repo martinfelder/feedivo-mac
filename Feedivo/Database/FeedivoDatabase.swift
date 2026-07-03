@@ -67,6 +67,16 @@ struct FeedivoDatabase {
         }
     }
 
+    func debugTriggerNames() throws -> Set<String> {
+        try read { database in
+            let rows = try Row.fetchAll(database, sql: """
+                SELECT name FROM sqlite_master
+                WHERE type = 'trigger'
+                """)
+            return Set(rows.compactMap { row in row["name"] as String? })
+        }
+    }
+
     func debugForeignKeys(for tableName: String) throws -> [String] {
         let allowedTableName: String
 

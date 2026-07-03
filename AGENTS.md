@@ -2026,7 +2026,8 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   über `SQLiteDataInvalidation.statusVersionKey`.
 - **Bewusst später:** iCloud Sync, SwiftData-Bestandsdatenmigration, Tags,
   Regeln, Smart Folders, OPML Import/Export, Artikel-Export, Offline-Download
-  und SQLite FTS-Suche.
+  und die UI-Anbindung der SQLite-FTS-Suche. Das FTS-Fundament selbst ist seit
+  2026-07-03 vorhanden.
 - **Datenmigration:** Für diese Entwicklungsphase keine Migration bestehender
   SwiftData-Daten. Eine frische SQLite-Datenbank ist akzeptiert, weil die App
   aktuell nur von Martin genutzt wird.
@@ -2299,7 +2300,11 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Eigenschaften laden ihre sichtbaren Feed-Logs inzwischen über `FeedLogStore`
   aus `feed_logs`. Die vordefinierten globalen SmartFilter `Alle Artikel`,
   `Ungelesen`, `Mit Stern`, `Heute` und `Ausgeblendet` routen ebenfalls über
-  `SQLiteFeedArticleListView` und `TimelineScope.smartFilter`.
+  `SQLiteFeedArticleListView` und `TimelineScope.smartFilter`. Das
+  SQLite-FTS-Fundament ist mit `article_search` und Triggern auf `articles`
+  angelegt; `ArticleStore.searchArticles` liefert Suchtreffer als leichte
+  `ArticleListSnapshot`s. Die sichtbare Such-UI nutzt dieses Fundament noch
+  nicht.
 - Feature 17.3 Automatisches Löschen ist umgesetzt: globale Einstellung,
   Stern-/Archiv-Schutz mit Zusatzoption und pro-Feed-Überschreibung in den
   Feed-Eigenschaften.
@@ -2328,15 +2333,22 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Scrollbeobachter-Ansatz hat das Scrollgefühl im Reader verschlechtert und wurde
   wieder entfernt. Für v1 bleibt der Reader ohne Lesefortschritt.
 - Nächster sinnvoller Fokus: verbleibende Hauptpfad-Lücken schließen:
-  Suche/FTS und benutzerdefinierte Smart Folders schrittweise auf SQLite ziehen,
-  danach die restlichen Feed-Eigenschaften-Metriken wie neuesten Artikel und
-  Artikel der letzten 7 Tage aus SQLite-Snapshots laden.
+  Suchfeld und separates Suchfenster an `ArticleStore.searchArticles` anschließen,
+  danach benutzerdefinierte Smart Folders und die restlichen
+  Feed-Eigenschaften-Metriken wie neuesten Artikel und Artikel der letzten 7 Tage
+  aus SQLite-Snapshots laden.
 - Feature-Roadmap ist in `FEATURES.md` im Root dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
 ---
 
 ## Letzte Änderungen
+
+- 2026-07-03: SQLite-FTS-Fundament ergänzt. Migration v4 legt die FTS5-Tabelle
+  `article_search` mit Unicode-Tokenizer sowie die Trigger `articles_ai`,
+  `articles_au` und `articles_ad` an. `ArticleStore.searchArticles` sucht über
+  Titel, Zusammenfassung, Inhalt und Autor und liefert `ArticleListSnapshot`s;
+  die Such-UI wird in einem Folgeslice angeschlossen.
 
 - 2026-07-02: Vordefinierte SmartFilter auf SQLite-Timelines umgestellt.
   `TimelineScope.smartFilter` lädt `Alle Artikel`, `Ungelesen`, `Mit Stern`,

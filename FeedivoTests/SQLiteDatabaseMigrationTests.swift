@@ -16,6 +16,7 @@ struct SQLiteDatabaseMigrationTests {
         #expect(tableNames.contains("tags"))
         #expect(tableNames.contains("article_tags"))
         #expect(tableNames.contains("feed_tags"))
+        #expect(tableNames.contains("article_search"))
     }
 
     @Test func migrationCreatesPerformanceIndexes() throws {
@@ -37,6 +38,16 @@ struct SQLiteDatabaseMigrationTests {
         #expect(indexNames.contains("idx_tags_name_unique"))
         #expect(indexNames.contains("idx_article_tags_tag_article"))
         #expect(indexNames.contains("idx_feed_tags_tag_feed"))
+    }
+
+    @Test func migrationCreatesArticleSearchTriggers() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+
+        let triggerNames = try database.debugTriggerNames()
+
+        #expect(triggerNames.contains("articles_ai"))
+        #expect(triggerNames.contains("articles_au"))
+        #expect(triggerNames.contains("articles_ad"))
     }
 
     @Test func articleStatusesHaveNoForeignKeyCascadeToArticles() throws {

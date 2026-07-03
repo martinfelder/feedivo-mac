@@ -121,6 +121,45 @@ enum FeedivoDatabaseMigrator {
             try database.create(index: "idx_feed_tags_tag_feed", on: "feed_tags", columns: ["tagID", "feedID"])
         }
 
+        migrator.registerMigration("v4_create_article_search_index") { database in
+            try database.execute(sql: """
+                CREATE VIRTUAL TABLE article_search USING fts5(
+                    title,
+                    summary,
+                    content,
+                    author,
+                    content='articles',
+                    content_rowid='rowid',
+                    tokenize='unicode61 remove_diacritics 2'
+                )
+                """)
+
+            try database.execute(sql: """
+                CREATE TRIGGER articles_ai AFTER INSERT ON articles BEGIN
+                    INSERT INTO article_search(rowid, title, summary, content, author)
+                    VALUES (new.rowid, new.title, new.summary, new.content, new.author);
+                END
+                """)
+
+            try database.execute(sql: """
+                CREATE TRIGGER articles_ad AFTER DELETE ON articles BEGIN
+                    INSERT INTO article_search(article_search, rowid, title, summary, content, author)
+                    VALUES ('delete', old.rowid, old.title, old.summary, old.content, old.author);
+                END
+                """)
+
+            try database.execute(sql: """
+                CREATE TRIGGER articles_au AFTER UPDATE ON articles BEGIN
+                    INSERT INTO article_search(article_search, rowid, title, summary, content, author)
+                    VALUES ('delete', old.rowid, old.title, old.summary, old.content, old.author);
+                    INSERT INTO article_search(rowid, title, summary, content, author)
+                    VALUES (new.rowid, new.title, new.summary, new.content, new.author);
+                END
+                """)
+
+            try database.execute(sql: "INSERT INTO article_search(article_search) VALUES ('rebuild')")
+        }
+
         return migrator
     }
 }

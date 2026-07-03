@@ -7,7 +7,7 @@
 > Status-Legende:
 > ✔️ Fertig | 🔨 In Arbeit (teilweise umgesetzt) | ✅ Entschieden (bereit zur Implementierung) | 💬 In Diskussion | ⏸️ Zurückgestellt
 >
-> Zuletzt aktualisiert: 2026-07-02
+> Zuletzt aktualisiert: 2026-07-03
 
 ---
 
@@ -837,8 +837,8 @@
   gezielte SQL-Snapshots für Sidebar/Liste/Reader und Statusänderungen nur über
   `article_statuses`. Die erste Welle umfasst Feeds, Refresh, Artikelliste,
   Reader, Status und Feed-Logs. iCloud Sync, SwiftData-Bestandsdatenmigration,
-  Tags, Regeln, Smart Folders, OPML, Export, Offline-Download und FTS-Suche
-  werden danach einzeln angeschlossen. Spec:
+  Tags, Regeln, Smart Folders, OPML, Export, Offline-Download und die sichtbare
+  FTS-Such-UI werden danach einzeln angeschlossen. Spec:
   `docs/superpowers/specs/2026-07-02-sqlite-grdb-performance-architecture-design.md`.
 - **Umgesetzt:**
   - SQLite/GRDB-Fundament angelegt: GRDB Package, `FeedivoDatabase`, v1-
@@ -854,8 +854,8 @@
     SQLite-Artikel-Auswahl, `SQLiteFeedArticleListView` lädt Feed-Timelines über
     `TimelineStore`, `SQLiteReaderView` lädt Reader-Snapshots über `ArticleStore`
     und Statusaktionen schreiben direkt in `article_statuses`. Smart Folders,
-    Regeln, Export, Offline-Download und Volltextsuche bleiben bis zu eigenen
-    Slices auf den bisherigen SwiftData-/Legacy-Pfaden. Spec:
+    Regeln, Export, Offline-Download und die sichtbare Volltextsuche bleiben bis
+    zu eigenen Slices auf den bisherigen SwiftData-/Legacy-Pfaden. Spec:
     `docs/superpowers/specs/2026-07-02-sqlite-feed-reader-path-design.md`.
   - Normale Feed-Aktionen befüllen den neuen SQLite-Pfad: `AddFeedSheet`,
     ausgewählter Feed-Refresh und `Alle Feeds aktualisieren` übergeben die
@@ -887,7 +887,10 @@
     und Log-Anzahl inzwischen über `FeedLogStore` aus SQLite-`feed_logs`.
     Vordefinierte globale SmartFilter wie `Alle Artikel`, `Ungelesen`,
     `Mit Stern`, `Heute` und `Ausgeblendet` laden ihre Artikellisten ebenfalls
-    über `TimelineScope.smartFilter` aus SQLite.
+    über `TimelineScope.smartFilter` aus SQLite. Das SQLite-FTS-Fundament ist
+    mit `article_search`, Triggern auf `articles` und
+    `ArticleStore.searchArticles` umgesetzt; die sichtbare Such-UI wird danach
+    angebunden.
   - SQLite-Statusänderungen halten Feed-Zähler aktuell: `ArticleStatusStore`
     berechnet nach Read-/Hidden-Mutationen `feeds.unreadCount` direkt in SQLite
     neu und bump't `SQLiteDataInvalidation.statusVersionKey`, wodurch die
@@ -989,6 +992,9 @@
   - Vordefinierte SmartFilter verwenden `TimelineScope.smartFilter` und die
     SQLite-Artikelliste/Reader-Kette, statt globale SwiftData-Artikelqueries zu
     materialisieren
+  - SQLite-FTS-Fundament ergänzt: Migration v4 legt `article_search` mit FTS5
+    und Triggern für Insert/Update/Delete auf `articles` an;
+    `ArticleStore.searchArticles` liefert Treffer als `ArticleListSnapshot`s
   - Status-Badges beobachten nur eine kleine Query auf Stern-/Archiv-/
     Hidden-Artikel
   - Artikelzeilen laden Vorschaubilder über größenbegrenzte Thumbnails aus dem

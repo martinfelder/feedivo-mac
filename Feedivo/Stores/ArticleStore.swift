@@ -143,6 +143,48 @@ struct ArticleStore {
         }
     }
 
+    func searchArticles(
+        matching query: String,
+        includeHidden: Bool = false,
+        limit: Int = 100
+    ) throws -> [ArticleListSnapshot] {
+        let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedQuery.isEmpty else {
+            return []
+        }
+
+        let safeLimit = max(1, limit)
+        let hiddenClause = includeHidden ? "" : "AND s.isHidden = 0"
+
+        return try database.read { db in
+            try ArticleListSnapshot.fetchAll(db, sql: """
+                SELECT
+                    a.id,
+                    a.feedID,
+                    f.title AS feedTitle,
+                    a.title,
+                    a.summary,
+                    a.link,
+                    a.imageURL,
+                    a.publishedAt,
+                    a.arrivedAt,
+                    a.estimatedReadingMinutes,
+                    s.isRead,
+                    s.isStarred,
+                    s.isArchived,
+                    s.isHidden
+                FROM article_search search
+                JOIN articles a ON a.rowid = search.rowid
+                JOIN feeds f ON f.id = a.feedID
+                JOIN article_statuses s ON s.articleID = a.id
+                WHERE article_search MATCH ?
+                    \(hiddenClause)
+                ORDER BY COALESCE(a.publishedAt, a.arrivedAt) DESC, a.arrivedAt DESC
+                LIMIT ?
+                """, arguments: [trimmedQuery, safeLimit])
+        }
+    }
+
     private func upsert(_ input: ArticleUpsertInput, db: Database) throws -> (articleID: String, wasInserted: Bool) {
         let sourceID = input.sourceID.trimmedNonEmpty
         let link = input.link.trimmedNonEmpty
@@ -151,9 +193,9 @@ struct ArticleStore {
             let sourceIDAssignment = sourceID == nil ? "" : "sourceID = COALESCE(sourceID, ?),"
             var arguments = StatementArguments()
             if let sourceID {
-                arguments.append(contentsOf: [sourceID])
+                _ = arguments.append(contentsOf: [sourceID])
             }
-            arguments.append(contentsOf: [
+            _ = arguments.append(contentsOf: [
                 link,
                 input.title,
                 input.summary,
