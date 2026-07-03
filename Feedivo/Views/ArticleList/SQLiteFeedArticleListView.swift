@@ -11,7 +11,7 @@ struct SQLiteFeedArticleListView: View {
     private var sqliteStatusVersion = 0
 
     private enum Scope {
-        case feed(Feed)
+        case feed(feedID: String, title: String)
         case tagID(String)
         case smartFilter(SmartFilter)
         case smartFolder(SQLiteSmartFolderSnapshot)
@@ -39,7 +39,18 @@ struct SQLiteFeedArticleListView: View {
         selectedArticleID: Binding<String?>,
         navigationState: Binding<SQLiteArticleNavigationState>
     ) {
-        self.scope = .feed(feed)
+        self.scope = .feed(feedID: feed.id.uuidString, title: feed.title)
+        self._selectedArticleID = selectedArticleID
+        self._navigationState = navigationState
+    }
+
+    init(
+        feedID: String,
+        title: String,
+        selectedArticleID: Binding<String?>,
+        navigationState: Binding<SQLiteArticleNavigationState>
+    ) {
+        self.scope = .feed(feedID: feedID, title: title)
         self._selectedArticleID = selectedArticleID
         self._navigationState = navigationState
     }
@@ -329,8 +340,8 @@ struct SQLiteFeedArticleListView: View {
 
     private var scopeToken: String {
         switch scope {
-        case let .feed(feed):
-            return "feed:\(feed.id.uuidString)"
+        case let .feed(feedID, _):
+            return "feed:\(feedID)"
         case let .tagID(tagID):
             return "tag:\(tagID)"
         case let .smartFilter(smartFilter):
@@ -345,8 +356,8 @@ struct SQLiteFeedArticleListView: View {
 
     private var navigationTitle: String {
         switch scope {
-        case let .feed(feed):
-            return feed.title
+        case let .feed(_, title):
+            return title
         case .tagID:
             return String(localized: "sidebar.tags.section")
         case let .smartFilter(smartFilter):
@@ -402,9 +413,9 @@ struct SQLiteFeedArticleListView: View {
 
     private func reload() {
         switch scope {
-        case let .feed(feed):
+        case let .feed(feedID, _):
             state.load(
-                feedID: feed.id.uuidString,
+                feedID: feedID,
                 searchText: debouncedSearchText,
                 database: database,
                 selectedArticleID: selectedArticleID

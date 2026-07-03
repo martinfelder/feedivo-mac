@@ -1,4 +1,3 @@
-import SwiftData
 import SwiftUI
 
 struct SidebarView: View {
@@ -6,14 +5,13 @@ struct SidebarView: View {
     @Environment(\.feedivoDatabase) private var feedivoDatabase
     @Environment(\.interfaceTextSize) private var interfaceTextSize
 
-    @Query(sort: \Feed.title) private var feeds: [Feed]
     @Binding var selection: SidebarSelection?
     let onRequestAddFeed: () -> Void
     let onRequestRefreshAllFeeds: () -> Void
-    let onRequestDeleteFeed: (Feed) -> Void
+    let onRequestDeleteFeed: (String) -> Void
     // Bump bei direkter Artikel→Tag-Zuweisung (siehe SidebarBadgeInvalidation).
     // Status-Toggles, Artikel-Zahl und Feed/Tag-Struktur werden automatisch über
-    // die Signatur bzw. die beobachteten @Querys erfasst.
+    // die Signatur bzw. die SQLite-Snapshots erfasst.
     @AppStorage(SidebarBadgeInvalidation.directTagVersionKey)
     private var directTagVersion = 0
     @AppStorage(SQLiteDataInvalidation.statusVersionKey)
@@ -22,7 +20,7 @@ struct SidebarView: View {
         selection: Binding<SidebarSelection?>,
         onRequestAddFeed: @escaping () -> Void,
         onRequestRefreshAllFeeds: @escaping () -> Void,
-        onRequestDeleteFeed: @escaping (Feed) -> Void
+        onRequestDeleteFeed: @escaping (String) -> Void
     ) {
         self._selection = selection
         self.onRequestAddFeed = onRequestAddFeed
@@ -37,8 +35,8 @@ struct SidebarView: View {
     private var isSmartFoldersCollapsed = false
     @AppStorage(SidebarFeedVisibilitySettings.showsReadFeedsKey)
     private var showsReadFeedsInSidebar = SidebarFeedVisibilitySettings.defaultShowsReadFeeds
-    @State private var feedShowingProperties: Feed?
-    @State private var feedRenaming: Feed?
+    @State private var feedShowingProperties: FeedSidebarSnapshot?
+    @State private var feedRenaming: FeedSidebarSnapshot?
     @State private var isShowingAddFolderSheet = false
     @State private var isShowingTagManager = false
     @State private var smartFolderEditing: SmartFolderRecord?
@@ -69,22 +67,22 @@ struct SidebarView: View {
                 } label: {
                     Image(systemName: "arrow.clockwise")
                 }
-                .disabled(feeds.isEmpty)
+                .disabled(sqliteSidebarState.snapshots.isEmpty)
                 .help(L10n.feedRefreshAllCommand)
 
                 createSidebarItemMenu
             }
         }
-        .sheet(item: $feedShowingProperties) { feed in
-            FeedPropertiesView(feed: feed)
+        .sheet(item: $feedShowingProperties) { snapshot in
+            FeedPropertiesView(feedID: snapshot.id)
         }
-        .sheet(item: $feedRenaming) { feed in
-            FeedRenameView(feed: feed)
+        .sheet(item: $feedRenaming) { snapshot in
+            FeedRenameView(feedID: snapshot.id)
         }
         .sheet(isPresented: $isShowingAddFolderSheet) {
             AddFolderSheet(
                 existingFolderNames: FeedFolderOrganizer.folderNames(
-                    feedFolderNames: feeds.map(\.folderName),
+                    feedFolderNames: sqliteSidebarState.snapshots.map(\.folderName),
                     explicitFolderNames: sqliteSidebarState.feedFolders.map(\.name)
                 ),
                 onFolderAdded: {
@@ -178,26 +176,30 @@ struct SidebarView: View {
             title: L10n.sidebarFoldersSection,
             isCollapsed: $isFoldersCollapsed
         ) {
-            let visibleFeeds = sqliteSidebarState.visibleFeeds(
-                from: feeds,
-                showsReadFeeds: showsReadFeedsInSidebar
-            )
+            // Snapshots sind bereits beim Laden via showsReadFeeds gefiltert.
+            let visibleSnapshots = sqliteSidebarState.snapshots
 
-            if visibleFeeds.isEmpty && sqliteSidebarState.feedFolders.isEmpty {
+            if visibleSnapshots.isEmpty && sqliteSidebarState.feedFolders.isEmpty {
                 Text(L10n.sidebarEmptyTitle)
                     .font(interfaceTextSize.font(size: 13))
                     .foregroundStyle(SidebarStyle.secondaryText)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 8)
             } else {
-                let feedsWithoutFolder = FeedFolderOrganizer.feedsWithoutFolder(from: visibleFeeds)
+                let feedsWithoutFolder = FeedFolderOrganizer.feedsWithoutFolder(from: visibleSnapshots)
                 if !feedsWithoutFolder.isEmpty {
                     feedRows(feedsWithoutFolder)
                 }
 
                 // M9: Feeds einmal pro Ordner gruppieren statt pro Ordnername
                 // neu zu filtern (O(Folders·F) → O(F)).
-                ForEach(feedsByFolderName(in: visibleFeeds), id: \.folderName) { entry in
+                ForEach(
+                    FeedFolderOrganizer.feedsByFolderName(
+                        in: visibleSnapshots,
+                        folders: sqliteSidebarState.feedFolders
+                    ),
+                    id: \.folderName
+                ) { entry in
                     let isExpanded = !collapsedFolderNames.contains(entry.folderName)
                     SidebarFolderSection(
                         title: entry.folderName,
@@ -207,7 +209,7 @@ struct SidebarView: View {
                     } content: {
                         if isExpanded {
                             feedRows(
-                                entry.feeds,
+                                entry.snapshots,
                                 isIndented: true
                             )
                         }
@@ -286,34 +288,33 @@ struct SidebarView: View {
             }
     }
 
-    private func feedRows(_ feeds: [Feed], isIndented: Bool = false) -> some View {
-        ForEach(feeds) { feed in
+    private func feedRows(_ snapshots: [FeedSidebarSnapshot], isIndented: Bool = false) -> some View {
+        ForEach(snapshots) { snapshot in
             Button {
-                selection = .feed(feed.persistentModelID)
+                selection = .feed(snapshot.id)
             } label: {
                 FeedRowView(
-                    feed: feed,
-                    sqliteSnapshot: sqliteSidebarState.snapshot(for: feed),
+                    snapshot: snapshot,
                     displayStyle: isIndented ? .folderChild : .regular
                 )
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             .buttonStyle(
                 SidebarRowButtonStyle(
-                    isSelected: selection == .feed(feed.persistentModelID),
+                    isSelected: selection == .feed(snapshot.id),
                     leadingIndent: isIndented ? 34 : 0,
                     rowHeight: isIndented ? 28 : 30
                 )
             )
             .contextMenu {
                 Button {
-                    feedRenaming = feed
+                    feedRenaming = snapshot
                 } label: {
                     Label(L10n.feedRenameCommand, systemImage: "pencil")
                 }
 
                 Button {
-                    feedShowingProperties = feed
+                    feedShowingProperties = snapshot
                 } label: {
                     Label(L10n.feedPropertiesCommand, systemImage: "info.circle")
                 }
@@ -321,7 +322,7 @@ struct SidebarView: View {
                 Divider()
 
                 Button(role: .destructive) {
-                    onRequestDeleteFeed(feed)
+                    onRequestDeleteFeed(snapshot.id)
                 } label: {
                     Label(L10n.feedDeleteCommand, systemImage: "trash")
                 }
@@ -355,32 +356,6 @@ struct SidebarView: View {
             } else {
                 collapsedFolderNames.insert(folderName)
             }
-        }
-    }
-
-    private func feedsByFolderName(in feeds: [Feed]) -> [(folderName: String, feeds: [Feed])] {
-        let orderedFolderNames = FeedFolderOrganizer.folderNames(
-            feedFolderNames: feeds.map(\.folderName),
-            explicitFolderNames: sqliteSidebarState.feedFolders.map(\.name)
-        )
-        var feedsByLowercasedName: [String: [Feed]] = [:]
-
-        for feed in feeds {
-            guard let normalizedName = FeedFolderOrganizer.normalizedFolderName(feed.folderName) else {
-                continue
-            }
-
-            feedsByLowercasedName[normalizedName.lowercased(), default: []].append(feed)
-        }
-
-        return orderedFolderNames.map { folderName in
-            let groupedFeeds = feedsByLowercasedName[folderName.lowercased()] ?? []
-            return (
-                folderName,
-                groupedFeeds.sorted {
-                    $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending
-                }
-            )
         }
     }
 
@@ -424,11 +399,11 @@ struct SidebarView: View {
     }
 
     private var sqliteSidebarReloadToken: String {
-        let feedIDs = feeds
-            .map { $0.id.uuidString }
-            .sorted()
-            .joined(separator: ",")
-        return "\(sqliteStatusVersion)#\(directTagVersion)#\(showsReadFeedsInSidebar)#\(sidebarDefinitionVersion)#\(feedIDs)"
+        // Feed-Anzahl als Strukturtrigger reicht; inhaltliche Änderungen
+        // (Unread-Counts, Titel) werden über sqliteStatusVersion erfasst. Die
+        // SQLite-Feed-IDs stehen vor dem ersten Laden noch nicht zur Verfügung,
+        // deshalb wird hier nicht auf Snapshots zurückgegriffen.
+        return "\(sqliteStatusVersion)#\(directTagVersion)#\(showsReadFeedsInSidebar)#\(sidebarDefinitionVersion)#\(sqliteSidebarState.snapshots.count)"
     }
 }
 

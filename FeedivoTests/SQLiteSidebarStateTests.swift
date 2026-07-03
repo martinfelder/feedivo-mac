@@ -104,7 +104,7 @@ struct SQLiteSidebarStateTests {
     }
 
     @MainActor
-    @Test func visibleSwiftDataFeedsFollowSQLiteVisibility() throws {
+    @Test func visibleSnapshotsFollowSQLiteVisibility() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let store = FeedStore(database: database)
         let readFeed = Feed(url: "https://read.example/feed.xml", title: "Read")
@@ -114,12 +114,11 @@ struct SQLiteSidebarStateTests {
         let state = SQLiteSidebarState()
 
         state.load(database: database, showsReadFeeds: false)
-        let visibleFeeds = state.visibleFeeds(
-            from: [readFeed, unreadFeed],
-            showsReadFeeds: false
-        )
 
-        #expect(visibleFeeds.map(\.id) == [unreadFeed.id])
-        #expect(state.snapshot(for: unreadFeed)?.unreadCount == 4)
+        // Bei showsReadFeeds=false darf nur der ungelesene Feed in den Snapshots
+        // auftauchen; die Sichtbarkeit ist vollständig in SQLite geklärt.
+        #expect(state.snapshots.map(\.id) == [unreadFeed.id.uuidString])
+        #expect(state.snapshot(forFeedID: unreadFeed.id.uuidString)?.unreadCount == 4)
+        #expect(state.snapshot(forFeedID: readFeed.id.uuidString) == nil)
     }
 }

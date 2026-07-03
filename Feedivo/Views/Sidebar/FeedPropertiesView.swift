@@ -16,7 +16,7 @@ struct FeedPropertiesView: View {
     @AppStorage(ArticleRetentionSettings.includesProtectedArticlesKey)
     private var globalArticleRetentionIncludesProtectedArticles = ArticleRetentionSettings.defaultIncludesProtectedArticles
 
-    let feed: Feed
+    let feedID: String
 
     @State private var selectedRefreshInterval = BackgroundRefreshSettings.defaultIntervalMinutes
     @State private var feedRetentionOverridesGlobalSetting = false
@@ -60,24 +60,10 @@ struct FeedPropertiesView: View {
     }
 
     private var currentFeedRecord: FeedRecord {
-        feedRecord ?? FeedRecord(
-            id: feed.id.uuidString,
-            url: feed.url,
-            title: feed.title,
-            originalTitle: feed.originalTitle,
-            websiteURL: feed.siteURL,
-            faviconURL: feed.faviconURL,
-            folderName: feed.folderName,
-            refreshIntervalMinutes: feed.refreshIntervalMinutes,
-            isNotificationEnabled: feed.isNotificationEnabled,
-            articleRetentionOverridesGlobalSetting: feed.articleRetentionOverridesGlobalSetting,
-            articleRetentionIsEnabled: feed.articleRetentionIsEnabled,
-            articleRetentionDays: feed.articleRetentionDays,
-            articleRetentionIncludesProtectedArticles: feed.articleRetentionIncludesProtectedArticles,
-            lastRefreshedAt: feed.lastRefreshed,
-            createdAt: feed.followedAt ?? Date(),
-            updatedAt: feed.followedAt ?? Date()
-        )
+        // Vor dem ersten Laden (onAppear/noch kein feedRecord) wird ein
+        // Platzhalter-Record mit der Feed-ID gezeigt; nach loadSQLiteFeedDetails
+        // übernimmt der echte SQLite-Record.
+        feedRecord ?? FeedRecord(id: feedID, url: "", title: "")
     }
 
     var body: some View {
@@ -571,7 +557,7 @@ struct FeedPropertiesView: View {
 
         do {
             try TagStore(database: database).save(tag)
-            try TagStore(database: database).assignTag(tagID: tag.id, toFeedID: feed.id.uuidString, at: Date())
+            try TagStore(database: database).assignTag(tagID: tag.id, toFeedID: feedID, at: Date())
             loadSQLiteTags()
             SidebarBadgeInvalidation.bumpDirectTagVersion()
         } catch {
@@ -587,7 +573,7 @@ struct FeedPropertiesView: View {
         do {
             try TagStore(database: database).removeTag(
                 tagID: tag.id,
-                fromFeedID: feed.id.uuidString
+                fromFeedID: feedID
             )
             loadSQLiteTags()
             SidebarBadgeInvalidation.bumpDirectTagVersion()
@@ -601,7 +587,7 @@ struct FeedPropertiesView: View {
             return
         }
 
-        feedRecord = try? FeedStore(database: database).feed(id: feed.id.uuidString)
+        feedRecord = try? FeedStore(database: database).feed(id: feedID)
     }
 
     private func loadSQLiteTags() {
@@ -613,7 +599,7 @@ struct FeedPropertiesView: View {
 
         let store = TagStore(database: database)
         tags = (try? store.tags()) ?? []
-        feedTags = (try? TagStore(database: database).tags(feedID: feed.id.uuidString)) ?? []
+        feedTags = (try? TagStore(database: database).tags(feedID: feedID)) ?? []
     }
 
     private func updateRefreshInterval() {
@@ -623,7 +609,7 @@ struct FeedPropertiesView: View {
 
         do {
             try FeedStore(database: database).updateRefreshInterval(
-                id: feed.id.uuidString,
+                id: feedID,
                 minutes: selectedRefreshInterval
             )
             loadSQLiteFeedDetails()
@@ -640,7 +626,7 @@ struct FeedPropertiesView: View {
 
         do {
             try FeedStore(database: database).updateFolderName(
-                id: feed.id.uuidString,
+                id: feedID,
                 folderName: folderName
             )
             loadSQLiteFeedDetails()
@@ -657,7 +643,7 @@ struct FeedPropertiesView: View {
 
         do {
             try FeedStore(database: database).updateNotificationEnabled(
-                id: feed.id.uuidString,
+                id: feedID,
                 isEnabled: isEnabled
             )
             loadSQLiteFeedDetails()
@@ -673,7 +659,7 @@ struct FeedPropertiesView: View {
         }
 
         sqliteLogEntries = (
-            try? FeedLogStore(database: database).logs(feedID: feed.id.uuidString, limit: 20)
+            try? FeedLogStore(database: database).logs(feedID: feedID, limit: 20)
         ) ?? []
     }
 
@@ -685,7 +671,7 @@ struct FeedPropertiesView: View {
 
         sqliteArticleMetrics = (
             try? ArticleStore(database: database).feedPropertiesMetrics(
-                feedID: feed.id.uuidString,
+                feedID: feedID,
                 recentCutoffDate: now.addingTimeInterval(-7 * 24 * 60 * 60),
                 now: now
             )
@@ -699,7 +685,7 @@ struct FeedPropertiesView: View {
 
         do {
             try FeedStore(database: database).updateRetentionSettings(
-                id: feed.id.uuidString,
+                id: feedID,
                 overridesGlobal: feedRetentionOverridesGlobalSetting,
                 isEnabled: feedRetentionIsEnabled,
                 days: feedRetentionDays,

@@ -68,34 +68,11 @@ final class SQLiteSidebarState {
         }
     }
 
-    func snapshot(for feed: Feed) -> FeedSidebarSnapshot? {
-        snapshotsByFeedID[feed.id.uuidString]
+    func snapshot(forFeedID feedID: String) -> FeedSidebarSnapshot? {
+        snapshotsByFeedID[feedID]
     }
 
     func tagSnapshot(id: String) -> TagSidebarSnapshot? {
         tagSnapshotsByID[id]
-    }
-
-    func visibleFeeds(from feeds: [Feed], showsReadFeeds: Bool) -> [Feed] {
-        guard !snapshots.isEmpty else {
-            return FeedFolderOrganizer.visibleFeeds(
-                from: feeds,
-                showsReadFeeds: showsReadFeeds
-            )
-        }
-
-        let feedsByID = Dictionary(uniqueKeysWithValues: feeds.map { ($0.id.uuidString, $0) })
-        let visibleFeeds = snapshots.compactMap { snapshot in
-            feedsByID[snapshot.id]
-        }
-
-        guard !visibleFeeds.isEmpty else {
-            return FeedFolderOrganizer.visibleFeeds(
-                from: feeds,
-                showsReadFeeds: showsReadFeeds
-            )
-        }
-
-        return visibleFeeds
     }
 }

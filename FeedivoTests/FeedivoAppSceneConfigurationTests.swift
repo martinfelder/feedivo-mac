@@ -707,9 +707,12 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(sidebarSource.contains("@AppStorage(SQLiteDataInvalidation.statusVersionKey)"))
         #expect(sidebarSource.contains("@State private var sqliteSidebarState = SQLiteSidebarState()"))
         #expect(compactSidebarSource.contains("sqliteSidebarState.load(database:feedivoDatabase,showsReadFeeds:showsReadFeedsInSidebar)"))
-        #expect(compactSidebarSource.contains("sqliteSidebarState.visibleFeeds(from:feeds,showsReadFeeds:showsReadFeedsInSidebar)"))
-        #expect(compactSidebarSource.contains("sqliteSnapshot:sqliteSidebarState.snapshot(for:feed)"))
-        #expect(compactSidebarSource.contains("\\(sqliteStatusVersion)#\\(directTagVersion)#\\(showsReadFeedsInSidebar)#\\(sidebarDefinitionVersion)#\\(feedIDs)"))
+        // Sidebar ist SQLite-only: Feeds werden direkt aus den Snapshots gerendert,
+        // ohne SwiftData-@Query oder Feed-Bridge-Helfer.
+        #expect(compactSidebarSource.contains("letvisibleSnapshots=sqliteSidebarState.snapshots"))
+        #expect(compactSidebarSource.contains("FeedRowView(snapshot:snapshot,"))
+        #expect(!sidebarSource.contains("@Query(sort: \\Feed.title) private var feeds: [Feed]"))
+        #expect(compactSidebarSource.contains("\\(sqliteStatusVersion)#\\(directTagVersion)#\\(showsReadFeedsInSidebar)#\\(sidebarDefinitionVersion)#\\(sqliteSidebarState.snapshots.count)"))
     }
 
     @Test func sidebarTagBadgesNutzenSQLiteSnapshots() throws {
@@ -797,10 +800,10 @@ struct FeedivoAppSceneConfigurationTests {
         let projectRoot = projectRootURL()
         let rowSource = try source(at: "Feedivo/Views/Sidebar/FeedRowView.swift", projectRoot: projectRoot)
 
-        #expect(rowSource.contains("let sqliteSnapshot: FeedSidebarSnapshot?"))
-        #expect(rowSource.contains("sqliteSnapshot?.unreadCount"))
-        #expect(rowSource.contains("sqliteSnapshot?.title"))
-        #expect(rowSource.contains("sqliteSnapshot?.faviconURL"))
+        #expect(rowSource.contains("let snapshot: FeedSidebarSnapshot"))
+        #expect(rowSource.contains("snapshot.unreadCount"))
+        #expect(rowSource.contains("snapshot.title"))
+        #expect(rowSource.contains("snapshot.faviconURL"))
     }
 
     @Test func feedPropertiesViewSpiegeltFeedTagsNachSQLite() throws {
@@ -810,10 +813,10 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(source.contains("@Environment(\\.feedivoDatabase) private var feedivoDatabase"))
         #expect(source.contains("let store = TagStore(database: database)"))
         #expect(source.contains("try TagStore(database: database).save(tag)"))
-        #expect(source.contains("assignTag(tagID: tag.id, toFeedID: feed.id.uuidString"))
+        #expect(source.contains("assignTag(tagID: tag.id, toFeedID: feedID"))
         #expect(source.contains("try TagStore(database: database).removeTag"))
         #expect(source.contains("tagID: tag.id"))
-        #expect(source.contains("fromFeedID: feed.id.uuidString"))
+        #expect(source.contains("fromFeedID: feedID"))
         #expect(source.contains("SidebarBadgeInvalidation.bumpDirectTagVersion()"))
     }
 
@@ -823,7 +826,7 @@ struct FeedivoAppSceneConfigurationTests {
         let compactSource = compact(source)
 
         #expect(source.contains("@State private var sqliteLogEntries: [FeedLogRecord] = []"))
-        #expect(compactSource.contains("FeedLogStore(database:database).logs(feedID:feed.id.uuidString,limit:20)"))
+        #expect(compactSource.contains("FeedLogStore(database:database).logs(feedID:feedID,limit:20)"))
         #expect(compactSource.contains("ForEach(Array(sqliteLogEntries.enumerated()),id:\\.element.id)"))
         #expect(!source.contains("FeedPropertiesQuery.latestLogEntries(in: modelContext, for: feed)"))
     }
@@ -836,7 +839,7 @@ struct FeedivoAppSceneConfigurationTests {
         let compactSettingsSource = compact(settingsSource)
 
         #expect(propertiesSource.contains("@State private var sqliteArticleMetrics = FeedPropertiesArticleMetricsSnapshot.empty"))
-        #expect(compactPropertiesSource.contains("ArticleStore(database:database).feedPropertiesMetrics(feedID:feed.id.uuidString,recentCutoffDate:"))
+        #expect(compactPropertiesSource.contains("ArticleStore(database:database).feedPropertiesMetrics(feedID:feedID,recentCutoffDate:"))
         #expect(compactSettingsSource.contains("FeedManagementRow(feed:feed,isSelected:selectedFeedIDs.contains(feed.id),sqliteDatabase:feedivoDatabase"))
         #expect(compactSettingsSource.contains("ArticleStore(database:database).feedPropertiesMetrics(feedID:feed.id,recentCutoffDate:"))
         #expect(!propertiesSource.contains("FeedPropertiesQuery.latestArticle(in: modelContext, for: feed)"))

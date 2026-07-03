@@ -77,9 +77,10 @@ struct ContentView: View {
                     navigationState: $sqliteArticleNavigationState
                 )
                     .navigationSplitViewColumnWidth(min: 280, ideal: 320, max: 400)
-            } else if let feed = selectedFeed {
+            } else if let feedID = selectedFeedID {
                 SQLiteFeedArticleListView(
-                    feed: feed,
+                    feedID: feedID,
+                    title: selectedFeed?.title ?? "",
                     selectedArticleID: $selectedSQLiteArticleID,
                     navigationState: $sqliteArticleNavigationState
                 )
@@ -256,8 +257,8 @@ struct ContentView: View {
                     }
                 },
                 requestDelete: {
-                    if let selectedFeed {
-                        requestDeleteFeed(selectedFeed)
+                    if let feedID = selectedFeedID {
+                        requestDeleteFeed(feedID)
                     }
                 },
                 hasFeeds: !feeds.isEmpty
@@ -426,8 +427,8 @@ struct ContentView: View {
         }
     }
 
-    private func requestDeleteFeed(_ feed: Feed) {
-        feedPendingDeletion = feed
+    private func requestDeleteFeed(_ feedID: String) {
+        feedPendingDeletion = feeds.first { $0.id.uuidString == feedID }
         isDeleteFeedConfirmationPresented = true
     }
 
@@ -471,13 +472,20 @@ struct ContentView: View {
     }
 
     private func deleteFeed(_ feed: Feed) {
-        let deletedFeedID = feed.persistentModelID
-        let shouldClearFeedSelection = selectedFeed?.persistentModelID == deletedFeedID
+        let feedID = feed.id.uuidString
+        let shouldClearFeedSelection = selectedFeedID == feedID
         feedViewModel.deleteFeed(feed, context: modelContext)
 
         guard feedViewModel.errorMessage == nil else {
             feedPendingDeletion = nil
             return
+        }
+
+        // SQLite-FeedRecord parallel löschen, damit die SQLite-only Sidebar den
+        // Feed nicht weiter anzeigt. SwiftData bleibt übergangsweise Aktionsbackend.
+        if let database = feedivoDatabase {
+            try? FeedStore(database: database).delete(id: feedID)
+            SQLiteDataInvalidation.bumpStatusVersion()
         }
 
         if shouldClearFeedSelection {
@@ -499,12 +507,20 @@ struct ContentView: View {
         }
     }
 
-    private var selectedFeed: Feed? {
+    private var selectedFeedID: String? {
         guard case .feed(let feedID) = sidebarSelection else {
             return nil
         }
 
-        return feeds.first { $0.persistentModelID == feedID }
+        return feedID
+    }
+
+    private var selectedFeed: Feed? {
+        guard let feedID = selectedFeedID else {
+            return nil
+        }
+
+        return feeds.first { $0.id.uuidString == feedID }
     }
 
     private var selectedTagID: String? {

@@ -3,15 +3,14 @@ import SwiftUI
 struct FeedRenameView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.feedivoDatabase) private var feedivoDatabase
-    @State private var displayTitle: String
+    @State private var displayTitle: String = ""
     @State private var feedRecord: FeedRecord?
     @State private var errorMessage: String?
 
-    let feed: Feed
+    let feedID: String
 
-    init(feed: Feed) {
-        self.feed = feed
-        _displayTitle = State(initialValue: feed.title)
+    init(feedID: String) {
+        self.feedID = feedID
     }
 
     private var originalTitle: String {
@@ -24,7 +23,7 @@ struct FeedRenameView: View {
     }
 
     private var currentTitle: String {
-        feedRecord?.title ?? feed.title
+        feedRecord?.title ?? ""
     }
 
     private var cleanedDisplayTitle: String {
@@ -58,7 +57,7 @@ struct FeedRenameView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(alignment: .top, spacing: 16) {
-                FeedRenameIconView(feed: feed)
+                FeedRenameIconView(faviconURL: feedRecord?.faviconURL)
 
                 VStack(alignment: .leading, spacing: 14) {
                     VStack(alignment: .leading, spacing: 6) {
@@ -161,9 +160,9 @@ struct FeedRenameView: View {
         }
 
         do {
-            let record = try FeedStore(database: database).feed(id: feed.id.uuidString)
+            let record = try FeedStore(database: database).feed(id: feedID)
             feedRecord = record
-            displayTitle = record?.title ?? feed.title
+            displayTitle = record?.title ?? ""
             errorMessage = nil
         } catch {
             errorMessage = error.localizedDescription
@@ -178,7 +177,7 @@ struct FeedRenameView: View {
 
         do {
             try FeedStore(database: database).renameFeed(
-                id: feed.id.uuidString,
+                id: feedID,
                 displayTitle: displayTitle
             )
             SQLiteDataInvalidation.bumpStatusVersion()
@@ -195,7 +194,7 @@ struct FeedRenameView: View {
         }
 
         do {
-            try FeedStore(database: database).restoreOriginalTitle(id: feed.id.uuidString)
+            try FeedStore(database: database).restoreOriginalTitle(id: feedID)
             SQLiteDataInvalidation.bumpStatusVersion()
             loadFeedRecord()
         } catch {
@@ -205,11 +204,11 @@ struct FeedRenameView: View {
 }
 
 private struct FeedRenameIconView: View {
-    let feed: Feed
+    let faviconURL: String?
 
     var body: some View {
         Group {
-            if let faviconURL = feed.faviconURL,
+            if let faviconURL,
                let url = URL(string: faviconURL) {
                 CachedRemoteImageView(url: url) { image in
                     image

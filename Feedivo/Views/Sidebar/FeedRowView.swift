@@ -8,34 +8,30 @@ struct FeedRowView: View {
         case folderChild
     }
 
-    let feed: Feed
-    let sqliteSnapshot: FeedSidebarSnapshot?
+    let snapshot: FeedSidebarSnapshot
     var displayStyle: DisplayStyle = .regular
 
     init(
-        feed: Feed,
-        sqliteSnapshot: FeedSidebarSnapshot? = nil,
+        snapshot: FeedSidebarSnapshot,
         displayStyle: DisplayStyle = .regular
     ) {
-        self.feed = feed
-        self.sqliteSnapshot = sqliteSnapshot
+        self.snapshot = snapshot
         self.displayStyle = displayStyle
     }
 
-    // unreadCount wird bewusst hier im Body aus feed gelesen, nicht vom Parent
-    // übergeben. Dadurch beobachtet nur diese Zeile feed.unreadCount — ein
-    // Als-gelesen-markieren wertet nur die eine Feed-Zeile neu aus, nicht die
-    // gesamte Sidebar (inkl. O(n)-Badge-Signatur über alle Artikel).
+    // Die Zeile rendert ausschließlich aus dem SQLite-Snapshot. SwiftData-Feed
+    // wird nicht mehr gehalten; ein Als-gelesen-markieren invalidiert nur die
+    // Snapshot-Quelle (SQLiteSidebarState) und wertet die Zeile neu aus.
     private var unreadCount: Int {
-        sqliteSnapshot?.unreadCount ?? SidebarUnreadCount.unreadArticleCount(for: feed)
+        snapshot.unreadCount
     }
 
     private var displayTitle: String {
-        sqliteSnapshot?.title ?? feed.title
+        snapshot.title
     }
 
     private var displayFaviconURL: String? {
-        sqliteSnapshot?.faviconURL ?? feed.faviconURL
+        snapshot.faviconURL
     }
 
     var body: some View {
