@@ -34,13 +34,13 @@
 - Modify: `Feedivo/Stores/SQLiteSmartFolderStore.swift`
 - Test: `FeedivoTests/FeedivoAppSceneConfigurationTests.swift`
 
-- [ ] Add failing source test proving `SidebarView` has no `@Query(sort: \FeedFolder.name)` and no `@Query(sort: \SmartFolder.sortOrder)`.
-- [ ] Extend `SQLiteSidebarState` to load `FeedFolderRecord`s and sidebar `SQLiteSmartFolderSnapshot`s.
-- [ ] Convert sidebar folder grouping to use SQLite folder names.
-- [ ] Convert smart-folder rows to use SQLite snapshots/string IDs for selection.
-- [ ] Keep SwiftData `Feed` query only for feed object actions that still require `Feed`.
-- [ ] Run focused tests and build.
-- [ ] Commit.
+- [x] Add failing source test proving `SidebarView` has no `@Query(sort: \FeedFolder.name)` and no `@Query(sort: \SmartFolder.sortOrder)`.
+- [x] Extend `SQLiteSidebarState` to load `FeedFolderRecord`s and sidebar `SQLiteSmartFolderSnapshot`s.
+- [x] Convert sidebar folder grouping to use SQLite folder names.
+- [x] Convert smart-folder rows to use SQLite snapshots/string IDs for selection.
+- [x] Keep SwiftData `Feed` query only for feed object actions that still require `Feed`.
+- [x] Run focused tests and build.
+- [x] Commit.
 
 ### Task 3: SmartFolder Settings And Editor SQLite-First
 

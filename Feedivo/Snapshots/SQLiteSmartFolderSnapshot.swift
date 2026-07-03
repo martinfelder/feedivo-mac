@@ -1,21 +1,30 @@
 import Foundation
 
-struct SQLiteSmartFolderSnapshot: Equatable, Sendable {
+struct SQLiteSmartFolderSnapshot: Equatable, Identifiable, Sendable {
     var id: String
     var name: String
     var matchMode: RuleMatchMode
     var conditions: [SQLiteSmartFolderConditionSnapshot]
+    var iconName: String?
+    var colorHex: String?
+    var defaultKey: String?
 
     init(
         id: String,
         name: String,
         matchMode: RuleMatchMode,
-        conditions: [SQLiteSmartFolderConditionSnapshot]
+        conditions: [SQLiteSmartFolderConditionSnapshot],
+        iconName: String? = nil,
+        colorHex: String? = nil,
+        defaultKey: String? = nil
     ) {
         self.id = id
         self.name = name
         self.matchMode = matchMode
         self.conditions = conditions
+        self.iconName = iconName
+        self.colorHex = colorHex
+        self.defaultKey = defaultKey
     }
 
     @MainActor
@@ -23,6 +32,9 @@ struct SQLiteSmartFolderSnapshot: Equatable, Sendable {
         self.id = folder.id.uuidString
         self.name = folder.localizedDisplayName
         self.matchMode = RuleMatchMode.normalized(folder.matchModeRaw)
+        self.iconName = folder.iconName
+        self.colorHex = folder.colorHex
+        self.defaultKey = folder.defaultKey
         self.conditions = (folder.conditions ?? [])
             .sorted { firstCondition, secondCondition in
                 firstCondition.sortOrder < secondCondition.sortOrder
@@ -39,6 +51,9 @@ struct SQLiteSmartFolderSnapshot: Equatable, Sendable {
         self.id = id
         self.name = name
         self.matchMode = matchMode
+        self.iconName = nil
+        self.colorHex = nil
+        self.defaultKey = nil
         self.conditions = conditionDrafts.map { draft in
             SQLiteSmartFolderConditionSnapshot(
                 field: draft.field,

@@ -80,7 +80,10 @@ struct SQLiteSmartFolderStore {
                             conditionOperator: conditionOperator,
                             value: condition.value
                         )
-                    }
+                    },
+                    iconName: folder.iconName,
+                    colorHex: folder.colorHex,
+                    defaultKey: folder.defaultKey
                 )
             }
         }

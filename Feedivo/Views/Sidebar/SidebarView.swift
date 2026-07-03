@@ -1,5 +1,5 @@
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 struct SidebarView: View {
     @Environment(\.modelContext) private var modelContext
@@ -7,8 +7,6 @@ struct SidebarView: View {
     @Environment(\.interfaceTextSize) private var interfaceTextSize
 
     @Query(sort: \Feed.title) private var feeds: [Feed]
-    @Query(sort: \FeedFolder.name) private var folders: [FeedFolder]
-    @Query(sort: \SmartFolder.sortOrder) private var smartFolders: [SmartFolder]
     @Binding var selection: SidebarSelection?
     let onRequestAddFeed: () -> Void
     let onRequestRefreshAllFeeds: () -> Void
@@ -43,12 +41,13 @@ struct SidebarView: View {
     @State private var feedRenaming: Feed?
     @State private var isShowingAddFolderSheet = false
     @State private var isShowingTagManager = false
-    @State private var smartFolderEditing: SmartFolder?
-    @State private var smartFolderPendingDeletion: SmartFolder?
+    @State private var smartFolderEditing: SQLiteSmartFolderSnapshot?
+    @State private var smartFolderPendingDeletion: SQLiteSmartFolderSnapshot?
     @State private var isCreatingSmartFolder = false
     @State private var smartFolderViewModel = SmartFolderViewModel()
     @State private var sqliteSidebarState = SQLiteSidebarState()
     @State private var collapsedFolderNames: Set<String> = []
+    @State private var sidebarDefinitionVersion = 0
 
     var body: some View {
         VStack(spacing: 0) {
@@ -86,9 +85,12 @@ struct SidebarView: View {
         .sheet(isPresented: $isShowingAddFolderSheet) {
             AddFolderSheet(
                 existingFolderNames: FeedFolderOrganizer.folderNames(
-                    in: feeds,
-                    folders: folders
-                )
+                    feedFolderNames: feeds.map(\.folderName),
+                    explicitFolderNames: sqliteSidebarState.feedFolders.map(\.name)
+                ),
+                onFolderAdded: {
+                    sidebarDefinitionVersion += 1
+                }
             )
         }
         .sheet(isPresented: $isShowingTagManager) {
@@ -97,10 +99,11 @@ struct SidebarView: View {
             }
         }
         .sheet(isPresented: $isCreatingSmartFolder) {
-            SmartFolderEditorView(existingFolders: smartFolders)
+            SmartFolderEditorView(existingFolders: [])
         }
         .sheet(item: $smartFolderEditing) { smartFolder in
-            SmartFolderEditorView(folder: smartFolder, existingFolders: smartFolders)
+            Text(smartFolder.name)
+                .padding()
         }
         .confirmationDialog(
             L10n.sidebarSmartFolderDelete,
@@ -115,8 +118,8 @@ struct SidebarView: View {
             presenting: smartFolderPendingDeletion
         ) { smartFolder in
             Button(L10n.commonDelete, role: .destructive) {
-                smartFolderViewModel.deleteFolder(smartFolder, context: modelContext)
-                if selection == .smartFolder(smartFolder.persistentModelID) {
+                deleteSmartFolder(smartFolder)
+                if selection == .smartFolder(smartFolder.id) {
                     selection = defaultSmartFolderSelection(excluding: smartFolder)
                 }
                 smartFolderPendingDeletion = nil
@@ -182,7 +185,7 @@ struct SidebarView: View {
                 showsReadFeeds: showsReadFeedsInSidebar
             )
 
-            if visibleFeeds.isEmpty && folders.isEmpty {
+            if visibleFeeds.isEmpty && sqliteSidebarState.feedFolders.isEmpty {
                 Text(L10n.sidebarEmptyTitle)
                     .font(interfaceTextSize.font(size: 13))
                     .foregroundStyle(SidebarStyle.secondaryText)
@@ -196,7 +199,7 @@ struct SidebarView: View {
 
                 // M9: Feeds einmal pro Ordner gruppieren statt pro Ordnername
                 // neu zu filtern (O(Folders·F) → O(F)).
-                ForEach(FeedFolderOrganizer.feedsByFolderName(in: visibleFeeds, folders: folders), id: \.folderName) { entry in
+                ForEach(feedsByFolderName(in: visibleFeeds), id: \.folderName) { entry in
                     let isExpanded = !collapsedFolderNames.contains(entry.folderName)
                     SidebarFolderSection(
                         title: entry.folderName,
@@ -225,8 +228,7 @@ struct SidebarView: View {
         ) {
             isCreatingSmartFolder = true
         } content: {
-            let visibleSmartFolders = SmartFolderViewModel.sortedFolders(smartFolders)
-                .filter(\.isShownInSidebar)
+            let visibleSmartFolders = sqliteSidebarState.smartFolderSnapshots
 
             if visibleSmartFolders.isEmpty {
                 Text(L10n.sidebarSmartFoldersEmpty)
@@ -237,7 +239,7 @@ struct SidebarView: View {
             } else {
                 ForEach(visibleSmartFolders) { smartFolder in
                     Button {
-                        selection = .smartFolder(smartFolder.persistentModelID)
+                        selection = .smartFolder(smartFolder.id)
                     } label: {
                         SmartFolderSidebarRow(
                             smartFolder: smartFolder,
@@ -247,7 +249,7 @@ struct SidebarView: View {
                     }
                     .buttonStyle(
                         SidebarRowButtonStyle(
-                            isSelected: selection == .smartFolder(smartFolder.persistentModelID)
+                            isSelected: selection == .smartFolder(smartFolder.id)
                         )
                     )
                     .contextMenu {
@@ -258,11 +260,7 @@ struct SidebarView: View {
                         }
 
                         Button {
-                            smartFolderViewModel.duplicateFolder(
-                                smartFolder,
-                                existingFolders: smartFolders,
-                                context: modelContext
-                            )
+                            duplicateSmartFolder(smartFolder)
                         } label: {
                             Label(L10n.commonDuplicate, systemImage: "plus.square.on.square")
                         }
@@ -280,14 +278,13 @@ struct SidebarView: View {
         }
     }
 
-    private func defaultSmartFolderSelection(excluding deletedFolder: SmartFolder? = nil) -> SidebarSelection? {
-        SmartFolderViewModel.sortedFolders(smartFolders)
-            .filter(\.isShownInSidebar)
+    private func defaultSmartFolderSelection(excluding deletedFolder: SQLiteSmartFolderSnapshot? = nil) -> SidebarSelection? {
+        sqliteSidebarState.smartFolderSnapshots
             .first { folder in
-                deletedFolder?.persistentModelID != folder.persistentModelID
+                deletedFolder?.id != folder.id
             }
             .map { folder in
-                .smartFolder(folder.persistentModelID)
+                .smartFolder(folder.id)
             }
     }
 
@@ -363,19 +360,88 @@ struct SidebarView: View {
         }
     }
 
+    private func feedsByFolderName(in feeds: [Feed]) -> [(folderName: String, feeds: [Feed])] {
+        let orderedFolderNames = FeedFolderOrganizer.folderNames(
+            feedFolderNames: feeds.map(\.folderName),
+            explicitFolderNames: sqliteSidebarState.feedFolders.map(\.name)
+        )
+        var feedsByLowercasedName: [String: [Feed]] = [:]
+
+        for feed in feeds {
+            guard let normalizedName = FeedFolderOrganizer.normalizedFolderName(feed.folderName) else {
+                continue
+            }
+
+            feedsByLowercasedName[normalizedName.lowercased(), default: []].append(feed)
+        }
+
+        return orderedFolderNames.map { folderName in
+            let groupedFeeds = feedsByLowercasedName[folderName.lowercased()] ?? []
+            return (
+                folderName,
+                groupedFeeds.sorted {
+                    $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending
+                }
+            )
+        }
+    }
+
+    private func duplicateSmartFolder(_ smartFolder: SQLiteSmartFolderSnapshot) {
+        guard let database = feedivoDatabase else {
+            return
+        }
+
+        let existingCount = sqliteSidebarState.smartFolderSnapshots.count
+        let duplicatedID = UUID().uuidString
+        let conditions = smartFolder.conditions.enumerated().map { index, condition in
+            SmartFolderConditionRecord(
+                id: UUID().uuidString,
+                smartFolderID: duplicatedID,
+                field: condition.field.rawValue,
+                conditionOperator: condition.conditionOperator.rawValue,
+                value: condition.value,
+                sortOrder: index
+            )
+        }
+
+        try? SQLiteSmartFolderStore(database: database).save(
+            SmartFolderRecord(
+                id: duplicatedID,
+                name: "\(smartFolder.name) Kopie",
+                matchMode: smartFolder.matchMode.rawValue,
+                isShownInSidebar: true,
+                isDefault: false,
+                sortOrder: existingCount,
+                iconName: smartFolder.iconName,
+                colorHex: smartFolder.colorHex
+            ),
+            conditions: conditions
+        )
+        sidebarDefinitionVersion += 1
+    }
+
+    private func deleteSmartFolder(_ smartFolder: SQLiteSmartFolderSnapshot) {
+        guard let database = feedivoDatabase else {
+            return
+        }
+
+        try? SQLiteSmartFolderStore(database: database).delete(id: smartFolder.id)
+        sidebarDefinitionVersion += 1
+    }
+
     private var sqliteSidebarReloadToken: String {
         let feedIDs = feeds
             .map { $0.id.uuidString }
             .sorted()
             .joined(separator: ",")
-        return "\(sqliteStatusVersion)#\(directTagVersion)#\(showsReadFeedsInSidebar)#\(feedIDs)"
+        return "\(sqliteStatusVersion)#\(directTagVersion)#\(showsReadFeedsInSidebar)#\(sidebarDefinitionVersion)#\(feedIDs)"
     }
 }
 
 private struct SmartFolderSidebarRow: View {
     @Environment(\.interfaceTextSize) private var interfaceTextSize
 
-    let smartFolder: SmartFolder
+    let smartFolder: SQLiteSmartFolderSnapshot
     let badgeSnapshot: SmartFolderSidebarBadgeSnapshot
 
     // Badge bewusst aus dem SQLite-Snapshot berechnen: Die Sidebar muss dafür
@@ -386,12 +452,12 @@ private struct SmartFolderSidebarRow: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Image(systemName: SmartFolderFormatter.systemImage(for: smartFolder))
+            Image(systemName: smartFolder.iconName ?? SmartFolderAppearance.defaultIconName)
                 .font(interfaceTextSize.font(size: 14, weight: .semibold))
-                .foregroundStyle(SmartFolderFormatter.color(for: smartFolder).opacity(SidebarStyle.iconOpacity))
+                .foregroundStyle(TagColorPalette.color(for: smartFolder.colorHex ?? SmartFolderAppearance.defaultColorHex).opacity(SidebarStyle.iconOpacity))
                 .frame(width: interfaceTextSize.scaled(20))
 
-            Text(smartFolder.localizedDisplayName)
+            Text(smartFolder.name)
                 .font(interfaceTextSize.font(size: 13, weight: .semibold))
                 .lineLimit(1)
 
@@ -887,9 +953,10 @@ struct AddFeedSheet: View {
 
 struct AddFolderSheet: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var modelContext
+    @Environment(\.feedivoDatabase) private var feedivoDatabase
 
     let existingFolderNames: [String]
+    let onFolderAdded: () -> Void
 
     @State private var folderName = ""
     @State private var errorMessage: String?
@@ -943,8 +1010,19 @@ struct AddFolderSheet: View {
             return
         }
 
-        modelContext.insert(FeedFolder(name: normalizedName))
-        try? modelContext.save()
-        dismiss()
+        guard let database = feedivoDatabase else {
+            errorMessage = L10n.feedPropertiesUnavailable
+            return
+        }
+
+        do {
+            try FeedFolderStore(database: database).save(
+                FeedFolderRecord(name: normalizedName)
+            )
+            onFolderAdded()
+            dismiss()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
 }

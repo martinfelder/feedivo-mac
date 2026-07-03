@@ -529,12 +529,15 @@ struct ContentView: View {
         return smartFilter
     }
 
-    private var selectedSmartFolder: SmartFolder? {
-        guard case .smartFolder(let smartFolderID) = sidebarSelection else {
+    private var selectedSmartFolder: SQLiteSmartFolderSnapshot? {
+        guard case .smartFolder(let smartFolderID) = sidebarSelection,
+              let database = feedivoDatabase
+        else {
             return nil
         }
 
-        return smartFolders.first { $0.persistentModelID == smartFolderID }
+        return (try? SQLiteSmartFolderStore(database: database).sidebarSnapshots())?
+            .first { $0.id == smartFolderID }
     }
 
     private func selectDefaultSmartFolderIfNeeded() {
@@ -542,13 +545,13 @@ struct ContentView: View {
             return
         }
 
-        guard let defaultFolder = SmartFolderViewModel.sortedFolders(smartFolders)
-            .first(where: \.isShownInSidebar)
+        guard let database = feedivoDatabase,
+              let defaultFolder = (try? SQLiteSmartFolderStore(database: database).sidebarSnapshots())?.first
         else {
             return
         }
 
-        sidebarSelection = .smartFolder(defaultFolder.persistentModelID)
+        sidebarSelection = .smartFolder(defaultFolder.id)
     }
 
     private var unreadArticleCount: Int {

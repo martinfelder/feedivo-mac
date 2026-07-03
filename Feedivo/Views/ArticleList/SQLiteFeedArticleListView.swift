@@ -12,7 +12,7 @@ struct SQLiteFeedArticleListView: View {
         case feed(Feed)
         case tagID(String)
         case smartFilter(SmartFilter)
-        case smartFolder(SmartFolder)
+        case smartFolder(SQLiteSmartFolderSnapshot)
     }
 
     private let scope: Scope
@@ -67,6 +67,16 @@ struct SQLiteFeedArticleListView: View {
 
     init(
         smartFolder: SmartFolder,
+        selectedArticleID: Binding<String?>,
+        navigationState: Binding<SQLiteArticleNavigationState>
+    ) {
+        self.scope = .smartFolder(SQLiteSmartFolderSnapshot(folder: smartFolder))
+        self._selectedArticleID = selectedArticleID
+        self._navigationState = navigationState
+    }
+
+    init(
+        smartFolder: SQLiteSmartFolderSnapshot,
         selectedArticleID: Binding<String?>,
         navigationState: Binding<SQLiteArticleNavigationState>
     ) {
@@ -241,11 +251,10 @@ struct SQLiteFeedArticleListView: View {
         case let .smartFilter(smartFilter):
             return "smartFilter:\(smartFilter.rawValue)"
         case let .smartFolder(smartFolder):
-            let snapshot = SQLiteSmartFolderSnapshot(folder: smartFolder)
-            let conditionToken = snapshot.conditions
+            let conditionToken = smartFolder.conditions
                 .map { "\($0.field.rawValue):\($0.conditionOperator.rawValue):\($0.value)" }
                 .joined(separator: "|")
-            return "smartFolder:\(snapshot.id):\(snapshot.matchMode.rawValue):\(conditionToken)"
+            return "smartFolder:\(smartFolder.id):\(smartFolder.matchMode.rawValue):\(conditionToken)"
         }
     }
 
@@ -258,7 +267,7 @@ struct SQLiteFeedArticleListView: View {
         case let .smartFilter(smartFilter):
             return navigationTitle(for: smartFilter)
         case let .smartFolder(smartFolder):
-            return smartFolder.localizedDisplayName
+            return smartFolder.name
         }
     }
 
@@ -337,7 +346,7 @@ struct SQLiteFeedArticleListView: View {
             )
         case let .smartFolder(smartFolder):
             state.load(
-                smartFolder: SQLiteSmartFolderSnapshot(folder: smartFolder),
+                smartFolder: smartFolder,
                 searchText: debouncedSearchText,
                 database: database,
                 selectedArticleID: selectedArticleID

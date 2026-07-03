@@ -69,6 +69,41 @@ struct SQLiteSidebarStateTests {
     }
 
     @MainActor
+    @Test func loadReadsFeedFoldersAndSmartFolderSnapshots() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        try FeedFolderStore(database: database).save(FeedFolderRecord(id: "folder-1", name: "Technik"))
+        try SQLiteSmartFolderStore(database: database).save(
+            SmartFolderRecord(
+                id: "smart-1",
+                name: "Ungelesen",
+                matchMode: RuleMatchMode.all.rawValue,
+                isShownInSidebar: true,
+                isDefault: true,
+                sortOrder: 0,
+                defaultKey: "unread",
+                iconName: "circle.fill",
+                colorHex: "#22C55E"
+            ),
+            conditions: [
+                SmartFolderConditionRecord(
+                    id: "condition-1",
+                    smartFolderID: "smart-1",
+                    field: SmartFolderConditionField.status.rawValue,
+                    conditionOperator: SmartFolderConditionOperator.is.rawValue,
+                    value: SmartFolderStatusValue.unread.rawValue
+                )
+            ]
+        )
+        let state = SQLiteSidebarState()
+
+        state.load(database: database, showsReadFeeds: true)
+
+        #expect(state.feedFolders.map(\.name) == ["Technik"])
+        #expect(state.smartFolderSnapshots.map(\.id) == ["smart-1"])
+        #expect(state.smartFolderSnapshots.first?.conditions.first?.value == SmartFolderStatusValue.unread.rawValue)
+    }
+
+    @MainActor
     @Test func visibleSwiftDataFeedsFollowSQLiteVisibility() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let store = FeedStore(database: database)

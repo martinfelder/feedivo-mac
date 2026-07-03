@@ -573,7 +573,7 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(compactSidebarSource.contains("sqliteSidebarState.load(database:feedivoDatabase,showsReadFeeds:showsReadFeedsInSidebar)"))
         #expect(compactSidebarSource.contains("sqliteSidebarState.visibleFeeds(from:feeds,showsReadFeeds:showsReadFeedsInSidebar)"))
         #expect(compactSidebarSource.contains("sqliteSnapshot:sqliteSidebarState.snapshot(for:feed)"))
-        #expect(compactSidebarSource.contains("\\(sqliteStatusVersion)#\\(directTagVersion)#\\(showsReadFeedsInSidebar)#\\(feedIDs)"))
+        #expect(compactSidebarSource.contains("\\(sqliteStatusVersion)#\\(directTagVersion)#\\(showsReadFeedsInSidebar)#\\(sidebarDefinitionVersion)#\\(feedIDs)"))
     }
 
     @Test func sidebarTagBadgesNutzenSQLiteSnapshots() throws {
@@ -595,6 +595,23 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(compactSidebarSource.contains("smartFoldersSection(badgeSnapshot:sqliteSidebarState.smartFolderBadgeSnapshot)"))
         #expect(compactSidebarSource.contains("SmartFolderSidebarBadge.badgeText(for:smartFolder,snapshot:badgeSnapshot)"))
         #expect(!sidebarSource.contains("statusBadgeArticles"))
+    }
+
+    @Test func sidebarOrdnerUndSmartFolderQuellenSindSQLiteFirst() throws {
+        let projectRoot = projectRootURL()
+        let sidebarSource = try source(at: "Feedivo/Views/Sidebar/SidebarView.swift", projectRoot: projectRoot)
+        let selectionSource = try source(at: "Feedivo/Views/Sidebar/SidebarSelection.swift", projectRoot: projectRoot)
+        let stateSource = try source(at: "Feedivo/ViewModels/SQLiteSidebarState.swift", projectRoot: projectRoot)
+        let contentSource = try source(at: "Feedivo/Views/ContentView.swift", projectRoot: projectRoot)
+
+        #expect(!sidebarSource.contains("@Query(sort: \\FeedFolder.name)"))
+        #expect(!sidebarSource.contains("@Query(sort: \\SmartFolder.sortOrder)"))
+        #expect(sidebarSource.contains("sqliteSidebarState.feedFolders"))
+        #expect(sidebarSource.contains("sqliteSidebarState.smartFolderSnapshots"))
+        #expect(selectionSource.contains("case smartFolder(String)"))
+        #expect(stateSource.contains("private(set) var feedFolders: [FeedFolderRecord] = []"))
+        #expect(stateSource.contains("private(set) var smartFolderSnapshots: [SQLiteSmartFolderSnapshot] = []"))
+        #expect(contentSource.contains("SQLiteSmartFolderStore(database: database).sidebarSnapshots()"))
     }
 
     @Test func feedRowViewBevorzugtSQLiteSnapshotWerte() throws {
