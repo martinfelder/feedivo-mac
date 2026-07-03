@@ -7,7 +7,7 @@ Diese Notiz hält die Erkenntnisse aus dem Codevergleich zwischen NetNewsWire
 nicht um Design, sondern um Mechanik: Feed-Verwaltung, Refresh, Persistenz,
 Artikelliste, Suche und Reader.
 
-## Aktualisierte Momentaufnahme nach SQLite-Feed-Import-Umbau
+## Aktualisierte Momentaufnahme nach SQLite-Feed-/Artikel-Umbau
 
 Diese Liste fasst den aktuellen Stand nur für Feed-Handling und
 Artikel-Handling zusammen. Sie ist als Wiedereinstieg gedacht, wenn die
@@ -122,11 +122,12 @@ SQLite-Snapshots messbar nicht reicht.
 ## Aktuell größter Restblock
 
 Feedivo ist beim Artikel-Handling inzwischen deutlich NetNewsWire-artiger. Der
-Feed-Handling-Block ist inzwischen teilweise geschlossen:
+Feed-Handling-Block ist für den produktiven UI-Pfad ebenfalls SQLite-first:
 
 - [x] Sidebar-Anzeige und Artikellisten-Routing weg von `@Query [Feed]` —
-  Sidebar nutzt nur noch `SQLiteSidebarState.snapshots`, ContentView routet
-  ausgewählte Feeds per SQLite-Feed-ID in `SQLiteFeedArticleListView`.
+  Sidebar nutzt SQLite-Snapshots, `ContentView` hält `FeedSidebarSnapshot`s aus
+  `FeedStore.sidebarFeeds()` und routet ausgewählte Feeds per SQLite-Feed-ID in
+  `SQLiteFeedArticleListView`.
 - [x] Feed-Auswahl vollständig über SQLite-Feed-ID: `SidebarSelection.feed`
   trägt `FeedRecord.id` (String); Artikelliste bekommt `init(feedID:)`.
 - [x] `FeedRowView` rendert aus `FeedSidebarSnapshot`; `FeedPropertiesView`/
@@ -134,20 +135,23 @@ Feed-Handling-Block ist inzwischen teilweise geschlossen:
 - [x] Timeline-Loads laufen über eine cancellable latest-wins
   Queue/Operation-Schicht.
 - [x] Listen- und Suchfenster-Suche laufen über SQLite/FTS.
-- [ ] temporäre SwiftData-Feed-Bridge entfernen — SwiftData `Feed` ist nur noch
-  Aktionsbackend (Refresh/Delete/Badge/OPML/Wizard) und wird per ID aufgelöst.
-- [ ] Verbleibende `ContentView`-Abhängigkeiten von `@Query [Feed]` entfernen:
-  First-Run-Entscheidung, OPML-/Wizard-Übergabe, Refresh-All/Delete/Feed-Menü und
-  Dock-Badge müssen direkt aus SQLite-Snapshots/Stores funktionieren.
-- [ ] alte SwiftData-Fallbacks löschen oder hart isolieren, sobald diese
-  Restabhängigkeiten weg sind.
+- [x] First-Run-Entscheidung, Feed-Menü, Refresh-All, Delete und Dock-Badge
+  nutzen im Hauptfenster SQLite-Snapshots/Stores statt `@Query [Feed]`.
+- [x] NetNewsWire-artige Wiedererkennung alter Artikel ist grundlegend
+  umgesetzt: `article_identity_history` bewahrt Status-/Seen-Metadaten über
+  gelöschte Artikel hinaus.
+- [ ] temporäre SwiftData-Feed-Bridge entfernen — SwiftData `Feed` ist noch
+  Übergangsbackend für Legacy-Relationships und isolierte alte Pfade, aber nicht
+  mehr Feed-Identität des produktiven Hauptfensters.
+- [ ] alte SwiftData-Fallbacks löschen oder hart isolieren, sobald die
+  Brücken-Relationships nicht mehr produktiv gebraucht werden.
 - [ ] `FeedViewModel` weiter verschlanken, sodass Feed-Abo, Refresh und
   Artikelstore stärker in dedizierten Services liegen.
 
 Kurzfassung: **Artikel-Handling ist größtenteils SQLite-/NetNewsWire-artig.
-Feed-Navigationsidentität ist SQLite-only (Feed-ID). Offen ist das Entfernen der
-verbleibenden SwiftData-Feed-Brücke und der `ContentView`-Restabhängigkeiten von
-`@Query [Feed]` — Folge-Slice `sqlite-only-feed-bridge-removal`.**
+Feed-Navigationsidentität ist SQLite-only (Feed-ID). Offen ist vor allem das
+Entfernen der verbliebenen SwiftData-Brücke für Legacy-Relationships/Fallbacks,
+die Verschlankung von `FeedViewModel` und späteres Profiling der SwiftUI-Liste.**
 
 ## Kurzfazit
 
@@ -163,10 +167,12 @@ Zeilenoptimierungen, sondern bei tieferen Architekturentscheidungen:
 - NetNewsWire rendert die Artikelliste per `NSTableView` und kann bei
   Statusänderungen einzelne sichtbare Zellen noch granularer neu laden.
 - NetNewsWire behält alte Status-/Seen-Metadaten länger als Artikelinhalte.
+  Feedivo hat dafür inzwischen `article_identity_history`; offen sind nur noch
+  Ablauf-/Debug-/Heuristik-Feinschliffe.
 - NetNewsWire hat eine Account-Schicht für lokale und Sync-Accounts; Feedivo ist
   aktuell lokal SQLite-first und hält Sync bewusst zurück.
-- Feedivo nutzt noch SwiftData als Übergangsbackend für einige Feed-Aktionen und
-  First-Run-/OPML-/Refresh-All-Übergaben.
+- Feedivo nutzt noch SwiftData als Übergangsbackend für alte Models und
+  Legacy-Relationships, nicht mehr als produktive Feed-/Artikelquelle.
 
 ## 1. Artikel und Status
 
@@ -207,9 +213,9 @@ Sidebar und Listen gezielt neu laden.
 
 ### Möglicher nächster Schritt
 
-Nächster NetNewsWire-artiger Schritt ist nicht mehr Status-Separierung, sondern
-eine kleine Historientabelle für gelöschte/alte Artikelidentitäten, falls
-Retention aggressiver werden soll.
+Status-Separierung und grundlegende Langzeit-Wiedererkennung sind erledigt.
+NetNewsWire-artige Restarbeit wäre eher Pflege der Historie: Ablaufpolitik,
+Debug-/Wartungsansicht und strengere Heuristik für Titel-Hash-Fallbacks.
 
 ## 2. Artikelliste und Timeline
 
@@ -336,21 +342,21 @@ Feedivo nutzt für den produktiven Feed-/Artikelpfad SQLite/GRDB:
   Reader-Daten, Statusänderungen und aggregierte Counts
 - gezielte Stores wie `ArticleStore`, `TimelineStore`, `FeedStore`,
   `ArticleStatusStore`, `TagStore`
-- SwiftData bleibt noch Übergangsbackend für einige Feed-Aktionen und alte
-  Modelle, nicht mehr Hauptpersistenz der heißen Artikeldaten.
+- SwiftData bleibt noch Übergangsbackend für Legacy-Relationships und alte
+  Modelle, nicht mehr Hauptpersistenz der heißen Feed-/Artikeldaten.
 
 ### Auswirkung
 
 Feedivo hat die Kontrolle über Joins, Indizes, FTS/Suche und gezielte
 Status-Updates inzwischen in SQLite verlagert. Der verbleibende Unterschied ist
 nicht mehr die Artikelpersistenz, sondern die noch nicht vollständig entfernte
-SwiftData-Feed-Brücke in `ContentView`/`FeedViewModel`.
+SwiftData-Brücke in Legacy-Relationships und alten Fallbackpfaden.
 
 ### Möglicher nächster Schritt
 
-Nächster Schritt ist `sqlite-only-feed-bridge-removal`: `ContentView` und
-Feed-Menü-/Refresh-/Delete-/OPML-/Wizard-Übergaben sollen keine SwiftData-
-`Feed`-Arrays mehr brauchen.
+Nächster Schritt ist die restliche Bridge-Reduktion: produktive UI-Pfade nutzen
+bereits SQLite-Snapshots, aber alte SwiftData-Modelle und Relationship-Brücken
+sollen weiter isoliert oder entfernt werden.
 
 ## 5. Suche
 
@@ -532,17 +538,18 @@ Nur bei gemessenen Reader-Problemen weiterarbeiten. Denkbare Schritte:
 
 ## Priorisierte nächste Maßnahmen
 
-### 1. SwiftData-Feed-Brücke entfernen
+### 1. SwiftData-Bridge weiter reduzieren
 
 Nächster Architekturblock. Ziel:
 
-- `ContentView` braucht keine `@Query [Feed]` mehr.
-- First-Run-Entscheidung, OPML-/Wizard-Sheets, Feed-Menü, Refresh-All, Delete und
-  Dock-Badge lesen Feed-Bestand direkt aus SQLite.
-- `FeedViewModel.refreshAllFeeds` bekommt SQLite-Snapshots statt SwiftData-
-  `Feed`-Arrays.
-- Danach kann `SQLiteFeedSubscriptionService` die temporäre SwiftData-
-  Feed-Übergangsidentität entfernen.
+- produktive Pfade bleiben SQLite-only und bekommen keine neuen SwiftData-Reads.
+- `SQLiteFeedSubscriptionService` soll die temporäre SwiftData-
+  Feed-Übergangsidentität nur noch schreiben, solange Legacy-Relationships sie
+  wirklich brauchen.
+- alte SwiftData-Fallbacks in `FeedViewModel`, Retention und historischen Views
+  weiter isolieren oder löschen.
+- SwiftData-Container erst entfernen, wenn keine produktiven alten Models mehr
+  gebraucht werden.
 
 ### 2. FeedViewModel weiter verschlanken
 
