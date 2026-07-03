@@ -28,15 +28,18 @@ struct SQLiteFeedStoreTests {
         #expect(loaded?.unreadCount == 7)
     }
 
-    @Test func duplicateURLIsRejectedByUniqueIndex() throws {
+    @Test func duplicateURLsAreAllowed() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let store = FeedStore(database: database)
 
         try store.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "One"))
+        try store.save(FeedRecord(id: "feed-2", url: "https://example.com/feed.xml", title: "Two"))
 
-        #expect(throws: Error.self) {
-            try store.save(FeedRecord(id: "feed-2", url: "https://example.com/feed.xml", title: "Two"))
-        }
+        let feeds = try store.feeds()
+
+        #expect(feeds.count == 2)
+        #expect(Set(feeds.map(\.id)) == ["feed-1", "feed-2"])
+        #expect(feeds.map(\.url) == ["https://example.com/feed.xml", "https://example.com/feed.xml"])
     }
 
     @Test func sidebarSnapshotsAreSortedByTitle() throws {
@@ -106,7 +109,7 @@ struct SQLiteFeedStoreTests {
         ])
     }
 
-    @Test func feedByURLFindsExistingRecord() throws {
+    @Test func feedByURLFindsExistingRecordLegacyMehrdeutig() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let store = FeedStore(database: database)
 

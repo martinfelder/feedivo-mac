@@ -189,4 +189,33 @@ struct OPMLImportPreviewControllerTests {
 
         #expect(controller.selectedFileName == "Keine OPML-Datei ausgewählt")
     }
+
+    @Test func opmlPreviewMarkiertSQLiteFeedAlsDuplikat() async throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        try FeedStore(database: database).save(
+            FeedRecord(url: "https://example.com/existing.xml", title: "Schon da")
+        )
+        let viewModel = FeedViewModel(
+            fetchFeed: { urlString in
+                ParsedFeed(sourceURL: urlString, title: "Preview", description: nil, siteURL: nil, articles: [])
+            },
+            discoverFaviconURL: { _ in nil },
+            enrichArticleImages: { articles in articles }
+        )
+
+        let rows = await viewModel.opmlImportPreviewRows(
+            for: [
+                OPMLFeed(
+                    title: "Schon da",
+                    xmlURL: "https://example.com/existing.xml",
+                    htmlURL: nil,
+                    folderName: nil
+                )
+            ],
+            existingFeeds: [],
+            sqliteDatabase: database
+        )
+
+        #expect(rows.map(\.status) == [.duplicate])
+    }
 }

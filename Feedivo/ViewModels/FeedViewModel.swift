@@ -210,9 +210,11 @@ final class FeedViewModel {
     func opmlImportPreviewRows(
         for opmlFeeds: [OPMLFeed],
         existingFeeds: [Feed],
+        sqliteDatabase: FeedivoDatabase? = nil,
         onProgress: ((OPMLImportPreviewProgress) -> Void)? = nil
     ) async -> [OPMLImportPreviewRow] {
-        var knownFeedURLs = Set(existingFeeds.map { normalizedFeedURL($0.url) })
+        let sqliteFeedURLs = (try? sqliteDatabase.map { try FeedStore(database: $0).feeds().map(\.url) }) ?? []
+        var knownFeedURLs = Set((existingFeeds.map(\.url) + sqliteFeedURLs).map { normalizedFeedURL($0) })
 
         // Phase 1 — sequenziell: Duplikat-Status feststellen und Abruf-Bedarf
         // sammeln. Das URL-Set darf nicht concurrent mutiert werden, daher bleibt
@@ -326,6 +328,36 @@ final class FeedViewModel {
         defer {
             isLoading = false
             operationProgress = nil
+        }
+
+        if let sqliteDatabase {
+            let service = SQLiteFeedSubscriptionService(
+                database: sqliteDatabase,
+                fetchFeed: fetchFeed,
+                discoverFaviconURL: discoverFaviconURL
+            )
+            let sqliteResult = try await service.importOPMLFeeds(
+                opmlFeeds,
+                allowsDuplicates: allowsDuplicates,
+                refreshAfterImport: refreshAfterImport,
+                refreshIntervalMinutes: refreshIntervalMinutes,
+                context: context
+            )
+            if !sqliteResult.failedFeedTitles.isEmpty {
+                errorMessage = L10n.feedErrorRefreshAllPartial(
+                    sqliteResult.failedFeedTitles.count,
+                    feedTitles: sqliteResult.failedFeedTitles.joined(separator: ", ")
+                )
+            }
+            if sqliteResult.imported > 0 {
+                SQLiteDataInvalidation.bumpStatusVersion()
+            }
+
+            return OPMLImportResult(
+                total: sqliteResult.total,
+                imported: sqliteResult.imported,
+                skippedDuplicates: sqliteResult.skippedDuplicates
+            )
         }
 
         var knownFeedURLs = Set(existingFeeds.map { normalizedFeedURL($0.url) })
@@ -519,6 +551,31 @@ final class FeedViewModel {
 
         isLoading = true
         errorMessage = nil
+        defer {
+            isLoading = false
+        }
+
+        if let sqliteDatabase {
+            do {
+                let service = SQLiteFeedSubscriptionService(
+                    database: sqliteDatabase,
+                    fetchFeed: fetchFeed,
+                    discoverFaviconURL: discoverFaviconURL
+                )
+                _ = try await service.addFeed(
+                    urlString: cleanedURL,
+                    refreshIntervalMinutes: BackgroundRefreshSettings.defaultIntervalMinutes,
+                    context: context
+                )
+                SQLiteDataInvalidation.bumpStatusVersion()
+            } catch let error as LocalizedError {
+                errorMessage = error.errorDescription ?? L10n.feedErrorAddFailed
+            } catch {
+                errorMessage = L10n.feedErrorAddFailed
+            }
+
+            return
+        }
 
         do {
             let parsedFeed = try await fetchFeed(cleanedURL)
@@ -533,7 +590,6 @@ final class FeedViewModel {
             )
             if knownFeedURLs.contains(normalizedFeedURL(parsedFeed.sourceURL)) {
                 errorMessage = L10n.feedErrorDuplicate
-                isLoading = false
                 return
             }
 
@@ -580,7 +636,6 @@ final class FeedViewModel {
             errorMessage = L10n.feedErrorAddFailed
         }
 
-        isLoading = false
     }
 
     @MainActor

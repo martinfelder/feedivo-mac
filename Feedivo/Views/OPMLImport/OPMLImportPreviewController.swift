@@ -256,7 +256,12 @@ final class OPMLImportPreviewController {
 
     // MARK: Async Preview-Flow
 
-    func loadOPML(from result: Result<URL, Error>, existingFeeds: [Feed], feedViewModel: FeedViewModel) {
+    func loadOPML(
+        from result: Result<URL, Error>,
+        existingFeeds: [Feed],
+        sqliteDatabase: FeedivoDatabase? = nil,
+        feedViewModel: FeedViewModel
+    ) {
         // Vorherigen Preview-Task abbrechen, bevor eine neue Datei geladen wird —
         // verhindert konkurrierende Tasks am gemeinsamen State.
         previewTask?.cancel()
@@ -290,6 +295,7 @@ final class OPMLImportPreviewController {
                 rows = await feedViewModel.opmlImportPreviewRows(
                     for: opmlFeeds,
                     existingFeeds: existingFeeds,
+                    sqliteDatabase: sqliteDatabase,
                     onProgress: { progress in
                         self.previewProgressText = progress.displayText
                         self.sourceDescription = progress.displayText
@@ -328,7 +334,13 @@ final class OPMLImportPreviewController {
     }
 
     /// FirstRun: Vorschau für manuell eingegebene Feed-Adresse (Einzel-Feed).
-    func preparePreview(feeds: [OPMLFeed], existingFeeds: [Feed], feedViewModel: FeedViewModel, sourceText: String) {
+    func preparePreview(
+        feeds: [OPMLFeed],
+        existingFeeds: [Feed],
+        sqliteDatabase: FeedivoDatabase? = nil,
+        feedViewModel: FeedViewModel,
+        sourceText: String
+    ) {
         // Vorherigen Preview-Task abbrechen, bevor eine neue Vorschau startet.
         previewTask?.cancel()
         let task = Task { @MainActor in
@@ -342,6 +354,7 @@ final class OPMLImportPreviewController {
             rows = await feedViewModel.opmlImportPreviewRows(
                 for: feeds,
                 existingFeeds: existingFeeds,
+                sqliteDatabase: sqliteDatabase,
                 onProgress: { progress in
                     self.previewProgressText = progress.displayText
                     self.sourceDescription = progress.displayText
@@ -370,6 +383,7 @@ final class OPMLImportPreviewController {
     func handleDroppedFiles(
         _ providers: [NSItemProvider],
         existingFeeds: [Feed],
+        sqliteDatabase: FeedivoDatabase? = nil,
         feedViewModel: FeedViewModel,
         onValidFile: ((URL) -> Void)? = nil
     ) -> Bool {
@@ -392,7 +406,12 @@ final class OPMLImportPreviewController {
                     return
                 }
                 onValidFile?(url)
-                self.loadOPML(from: .success(url), existingFeeds: existingFeeds, feedViewModel: feedViewModel)
+                self.loadOPML(
+                    from: .success(url),
+                    existingFeeds: existingFeeds,
+                    sqliteDatabase: sqliteDatabase,
+                    feedViewModel: feedViewModel
+                )
             }
         }
         return true

@@ -114,7 +114,17 @@ struct FeedViewModelTests {
     }
 
     @MainActor
-    @Test func addFeedSpiegeltFeedUndArtikelNachSQLite() async throws {
+    @Test func addFeedMitSQLiteDatabaseLegtArtikelNurInSQLiteAn() async throws {
+        let defaults = UserDefaults.standard
+        let previousStatusVersion = defaults.object(forKey: SQLiteDataInvalidation.statusVersionKey) as? Int
+        defaults.set(1_000, forKey: SQLiteDataInvalidation.statusVersionKey)
+        defer {
+            if let previousStatusVersion {
+                defaults.set(previousStatusVersion, forKey: SQLiteDataInvalidation.statusVersionKey)
+            } else {
+                defaults.removeObject(forKey: SQLiteDataInvalidation.statusVersionKey)
+            }
+        }
         let container = try ModelContainer(
             for: Feed.self,
             Article.self,
@@ -136,7 +146,7 @@ struct FeedViewModelTests {
                     siteURL: "https://example.com/",
                     articles: [
                         ParsedArticle(
-                            title: "First",
+                            title: "SQLite Artikel",
                             sourceID: "first",
                             link: "https://example.com/first",
                             summary: "Kurz",
@@ -169,8 +179,11 @@ struct FeedViewModelTests {
         #expect(sqliteFeed.title == "Example")
         #expect(sqliteFeed.websiteURL == "https://example.com/")
         #expect(sqliteFeed.unreadCount == 1)
-        #expect(rows.map(\.title) == ["First"])
+        #expect(try context.fetch(FetchDescriptor<Feed>()).count == 1)
+        #expect(try context.fetch(FetchDescriptor<Article>()).isEmpty)
+        #expect(rows.map(\.title) == ["SQLite Artikel"])
         #expect(viewModel.errorMessage == nil)
+        #expect(defaults.integer(forKey: SQLiteDataInvalidation.statusVersionKey) == 1_001)
     }
 
     @MainActor
@@ -289,6 +302,8 @@ struct FeedViewModelTests {
             limit: 10
         )
 
+        #expect(try context.fetch(FetchDescriptor<Feed>()).count == 1)
+        #expect(try context.fetch(FetchDescriptor<Article>()).isEmpty)
         #expect(result.imported == 1)
         #expect(feed.folderName == "News")
         #expect(rows.map(\.title) == ["Erster Artikel"])
@@ -325,6 +340,16 @@ struct FeedViewModelTests {
 
     @MainActor
     @Test func importOPMLFeedsAktualisiertNeueFeedsDirektNachDemImport() async throws {
+        let defaults = UserDefaults.standard
+        let previousStatusVersion = defaults.object(forKey: SQLiteDataInvalidation.statusVersionKey) as? Int
+        let initialStatusVersion = defaults.integer(forKey: SQLiteDataInvalidation.statusVersionKey)
+        defer {
+            if let previousStatusVersion {
+                defaults.set(previousStatusVersion, forKey: SQLiteDataInvalidation.statusVersionKey)
+            } else {
+                defaults.removeObject(forKey: SQLiteDataInvalidation.statusVersionKey)
+            }
+        }
         let container = try ModelContainer(
             for: Feed.self,
             Article.self,
@@ -335,6 +360,7 @@ struct FeedViewModelTests {
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
         let context = ModelContext(container)
+        let sqliteDatabase = try FeedivoDatabase.inMemoryForTests()
         let viewModel = makeViewModel(
             fetchFeed: { urlString in
                 #expect(urlString == "https://example.com/imported.xml")
@@ -370,25 +396,38 @@ struct FeedViewModelTests {
                 )
             ],
             existingFeeds: [],
-            context: context
+            context: context,
+            sqliteDatabase: sqliteDatabase
         )
 
         let feeds = try context.fetch(FetchDescriptor<Feed>())
-        let importedFeed = try #require(feeds.first)
+        let bridgeFeed = try #require(feeds.first)
+        let sqliteFeed = try #require(try FeedStore(database: sqliteDatabase).feed(url: "https://example.com/imported.xml"))
+        let rows = try TimelineStore(database: sqliteDatabase).articles(
+            scope: .feed(sqliteFeed.id),
+            includeRead: true,
+            includeHidden: true,
+            limit: 10
+        )
+
         #expect(result.imported == 1)
-        #expect(importedFeed.title == "Aktualisierter Import Feed")
-        #expect(importedFeed.feedDescription == "Beschreibung aus Feed")
-        #expect(importedFeed.siteURL == "https://example.com/")
-        #expect(importedFeed.folderName == "News")
-        #expect(importedFeed.faviconURL == "https://example.com/favicon.png")
-        #expect(importedFeed.lastRefreshed != nil)
-        #expect((importedFeed.articles ?? []).count == 1)
-        #expect(importedFeed.unreadCount == 1)
-        #expect((importedFeed.articles ?? []).first?.title == "Importierter Artikel")
-        #expect((importedFeed.logEntries ?? []).contains { $0.kind == "info" && $0.message.contains("1") })
+        #expect(feeds.count == 1)
+        #expect(bridgeFeed.url == "https://example.com/imported.xml")
+        #expect(bridgeFeed.title == "Aktualisierter Import Feed")
+        #expect(bridgeFeed.siteURL == "https://example.com/")
+        #expect(bridgeFeed.folderName == "News")
+        #expect(bridgeFeed.unreadCount == 1)
+        #expect(try context.fetch(FetchDescriptor<Article>()).isEmpty)
+        #expect(sqliteFeed.title == "Aktualisierter Import Feed")
+        #expect(sqliteFeed.websiteURL == "https://example.com/")
+        #expect(sqliteFeed.folderName == "News")
+        #expect(sqliteFeed.lastRefreshedAt != nil)
+        #expect(sqliteFeed.unreadCount == 1)
+        #expect(rows.map(\.title) == ["Importierter Artikel"])
         #expect(viewModel.errorMessage == nil)
         #expect(!viewModel.isLoading)
         #expect(viewModel.operationProgress == nil)
+        #expect(defaults.integer(forKey: SQLiteDataInvalidation.statusVersionKey) > initialStatusVersion)
     }
 
     @MainActor

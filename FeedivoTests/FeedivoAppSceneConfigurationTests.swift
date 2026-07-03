@@ -396,6 +396,50 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(compactAppSource.contains("FeedTagBackfillService.backfillFeedTags(in:modelContainer.mainContext,database:feedivoDatabase)"))
     }
 
+    @Test func opmlImportUndFirstRunPreviewNutzenSQLiteDatabase() throws {
+        let projectRoot = projectRootURL()
+        let opmlImportSource = try source(
+            at: "Feedivo/Views/OPMLImport/OPMLImportReviewView.swift",
+            projectRoot: projectRoot
+        )
+        let firstRunSource = try source(
+            at: "Feedivo/Views/FirstRun/FirstRunWizardView.swift",
+            projectRoot: projectRoot
+        )
+
+        #expect(opmlImportSource.contains("sqliteDatabase: feedivoDatabase"))
+        #expect(firstRunSource.contains("sqliteDatabase: feedivoDatabase"))
+    }
+
+    @Test func feedSubscriptionServiceDokumentiertSwiftDataBridgeAlsUebergang() throws {
+        let projectRoot = projectRootURL()
+        let serviceSource = try source(
+            at: "Feedivo/Services/SQLiteFeedSubscriptionService.swift",
+            projectRoot: projectRoot
+        )
+        let bridgeStart = try #require(serviceSource.range(of: "private func saveSwiftDataBridge"))
+        let bridgeDocumentationStart = serviceSource.index(
+            bridgeStart.lowerBound,
+            offsetBy: -240,
+            limitedBy: serviceSource.startIndex
+        ) ?? serviceSource.startIndex
+        let bridgeDocumentationSource = serviceSource[bridgeDocumentationStart ..< bridgeStart.lowerBound]
+
+        #expect(bridgeDocumentationSource.contains("Übergangsidentität"))
+        #expect(bridgeDocumentationSource.contains("SwiftData"))
+    }
+
+    @Test func feedViewModelLeitetAddUndImportAnSQLiteSubscriptionServiceWeiter() throws {
+        let projectRoot = projectRootURL()
+        let viewModelSource = try source(at: "Feedivo/ViewModels/FeedViewModel.swift", projectRoot: projectRoot)
+        let compactViewModelSource = compact(viewModelSource)
+
+        #expect(viewModelSource.contains("SQLiteFeedSubscriptionService"))
+        #expect(compactViewModelSource.contains("service.importOPMLFeeds("))
+        #expect(compactViewModelSource.contains("service.addFeed("))
+        #expect(viewModelSource.contains("SQLiteDataInvalidation.bumpStatusVersion()"))
+    }
+
     @Test func sqliteDatabaseLocationUsesApplicationSupport() throws {
         let applicationSupportURL = URL(fileURLWithPath: "/tmp/feedivo-tests/Application Support")
 

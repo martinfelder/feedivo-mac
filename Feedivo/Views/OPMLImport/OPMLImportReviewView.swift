@@ -43,10 +43,20 @@ struct OPMLImportReviewView: View {
             isPresented: $previewController.isFileImporterPresented,
             allowedContentTypes: [.opml, .xml]
         ) { result in
-            previewController.loadOPML(from: result, existingFeeds: feeds, feedViewModel: feedViewModel)
+            previewController.loadOPML(
+                from: result,
+                existingFeeds: feeds,
+                sqliteDatabase: feedivoDatabase,
+                feedViewModel: feedViewModel
+            )
         }
         .onDrop(of: [UTType.fileURL.identifier], isTargeted: $previewController.isDropTargeted) { providers in
-            previewController.handleDroppedFiles(providers, existingFeeds: feeds, feedViewModel: feedViewModel)
+            previewController.handleDroppedFiles(
+                providers,
+                existingFeeds: feeds,
+                sqliteDatabase: feedivoDatabase,
+                feedViewModel: feedViewModel
+            )
         }
         .onChange(of: previewController.allowsDuplicates) {
             previewController.applyToggleSelectionToRows()

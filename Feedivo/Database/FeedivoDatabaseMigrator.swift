@@ -65,7 +65,7 @@ enum FeedivoDatabaseMigrator {
                 table.column("newArticleCount", .integer).notNull().defaults(to: 0)
             }
 
-            try database.create(index: "idx_feeds_url_unique", on: "feeds", columns: ["url"], unique: true)
+            try database.create(index: "idx_feeds_url", on: "feeds", columns: ["url"])
             try database.create(index: "idx_feeds_title", on: "feeds", columns: ["title"])
             try database.create(index: "idx_articles_feed_published", on: "articles", columns: ["feedID", "publishedAt"])
             try database.create(index: "idx_articles_published", on: "articles", columns: ["publishedAt"])
@@ -258,6 +258,11 @@ enum FeedivoDatabaseMigrator {
                 SET originalTitle = title
                 WHERE originalTitle IS NULL OR originalTitle = ''
                 """)
+        }
+
+        migrator.registerMigration("v8_drop_unique_feed_url_index") { database in
+            try database.execute(sql: "DROP INDEX IF EXISTS idx_feeds_url_unique")
+            try database.execute(sql: "CREATE INDEX IF NOT EXISTS idx_feeds_url ON feeds(url)")
         }
 
         return migrator

@@ -21,6 +21,7 @@ struct FeedStore {
         }
     }
 
+    // Legacy-Helfer: Feed-URLs sind nicht eindeutig, neue Call-Sites sollten per ID laden.
     func feed(url: String) throws -> FeedRecord? {
         try database.read { db in
             try FeedRecord.fetchOne(db, sql: """

@@ -169,6 +169,10 @@
   - Ein gefundener Feed wird im `AddFeedSheet` direkt vorausgewählt
   - Mehrere gefundene Feeds werden als vollständige Auswahlliste angezeigt
   - Kein Feed gefunden → klare Fehlermeldung
+  - Im SQLite/GRDB-Hauptpfad legt `SQLiteFeedSubscriptionService` neue Feeds
+    SQLite-first an. SwiftData speichert dabei nur noch eine minimale Feed-
+    Übergangsidentität für Sidebar/ContentView; neue Artikel aus diesem Flow
+    liegen in SQLite.
 - **Entscheidung:** Die Suche startet per Button `Suchen`, nicht automatisch beim Tippen, damit keine unnötigen Netzwerkabrufe pro Tastendruck entstehen.
 
 ### 4.2 Feed bearbeiten
@@ -275,6 +279,11 @@
 - **Umgesetzt:** `OPMLImportReviewView`, zweiphasiger Import, Drag & Drop,
   Übernahme des gewählten bzw. gespeicherten Aktualisierungsintervalls für neu
   importierte Feeds
+- **SQLite/GRDB 2026-07-03:** OPML-Import und First-Run-Wizard nutzen dieselbe
+  SQLite-first Subscription-Logik wie Feed hinzufügen. Neue Feeds und neue
+  Artikel aus Add-/Import-Flows liegen in SQLite; SwiftData hält nur die
+  temporäre Feed-Übergangsidentität. Doppelte OPML-Feed-URLs werden über
+  Service-Logik gesteuert, deshalb ist `feeds.url` bewusst nicht mehr unique.
 - **Refactor (2026-06-27):** Der OPML-Preview-Flow wurde aus Review-View und
   First-Run-Wizard in einen gemeinsamen `OPMLImportPreviewController` plus
   einheitlicher `OPMLImportFeedRow` extrahiert, sodass Wizard und Settings-Import
@@ -930,6 +939,12 @@
     `FeedStore`. Feed-Tags in den Feed-Eigenschaften laufen über `TagStore` und
     `feed_tags`; der OPML-Export aus der Feed-Verwaltung nutzt SQLite-
     `OPMLFeed`-Snapshots.
+  - Feed hinzufügen, OPML-Import und First-Run-Wizard legen neue Feeds inzwischen
+    SQLite-first über `SQLiteFeedSubscriptionService` an. SwiftData speichert
+    dabei nur noch eine minimale Feed-Übergangsidentität für Sidebar/ContentView
+    bis zum finalen FeedRecord-Umbau; neue Artikel aus Add-/Import-Flows liegen
+    in SQLite. Doppelte OPML-Feed-URLs werden in der Service-Logik entschieden,
+    `feeds.url` ist daher bewusst nicht mehr unique.
   - SQLite-Statusänderungen halten Feed-Zähler aktuell: `ArticleStatusStore`
     berechnet nach Read-/Hidden-Mutationen `feeds.unreadCount` direkt in SQLite
     neu und bump't `SQLiteDataInvalidation.statusVersionKey`, wodurch die

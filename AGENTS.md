@@ -216,6 +216,7 @@ FeedivoMac/
 │   ├── Services/
 │   │   ├── FeedService.swift           # FeedKit-Wrapper: RSS/Atom/JSON Feed parsen ✅
 │   │   ├── FeedDiscoveryService.swift  # Website-/Feed-URL-Erkennung für Feed hinzufügen ✅
+│   │   ├── SQLiteFeedSubscriptionService.swift # SQLite-first Feed-Anlage/OPML-Import + SwiftData-Bridge ✅
 │   │   ├── FaviconService.swift        # HTML Favicon Discovery + Fallback ✅
 │   │   ├── AppIconBadgeSettings.swift  # App-Icon-Badge Settings-Key ✅
 │   │   ├── AppIconBadgeService.swift   # Dock-Badge für ungelesene Artikel ✅
@@ -575,7 +576,12 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 
 ### FeedViewModel.swift
 - `@Observable` class
-- `addFeed(urlString:context:)` — lädt Artikel, erstellt Feed, speichert in SwiftData
+- `addFeed(urlString:context:sqliteDatabase:)` legt neue Feeds im SQLite-Pfad über
+  `SQLiteFeedSubscriptionService` an, sobald eine `FeedivoDatabase` vorhanden ist.
+  SwiftData erhält in diesem Pfad nur noch eine minimale Feed-
+  Übergangsidentität für Sidebar/ContentView, bis der finale FeedRecord-Umbau die
+  verbliebenen SwiftData-Feed-Abhängigkeiten ersetzt. Neue Artikel aus dem
+  Hinzufügen-Pfad werden in SQLite gespeichert.
 - Beim Hinzufuegen und Aktualisieren wird `FaviconService` genutzt, um `Feed.faviconURL`
   aus Website-HTML oder `/favicon.ico` Fallback zu speichern
 - `refreshFeed(_:context:)` — aktualisiert den ausgewählten Feed, fügt nur neue
@@ -661,7 +667,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   aktualisiert. `FeedViewModel.maxConcurrentFeedRefreshes` verhindert, dass große
   OPML-Imports alle Feed-Abrufe gleichzeitig starten. Neu angelegte OPML-Feeds
   erhalten das gewählte bzw. gespeicherte Aktualisierungsintervall, begrenzt auf
-  erlaubte Werte.
+  erlaubte Werte. Mit SQLite-Datenbank delegiert der OPML-Import ebenfalls an
+  `SQLiteFeedSubscriptionService`; neue Artikel aus Add-/Import-Flows liegen in
+  SQLite. Doppelte OPML-Feed-URLs werden über die Service-Logik gesteuert, sodass
+  `feeds.url` in SQLite bewusst nicht mehr unique ist.
 - Beim Refresh werden gespeicherte Regeln über `RuleEngine` auf neu eingefügte
   Artikel angewendet; Benachrichtigungs-Regeln werden für neue Artikel gesammelt
   und nach erfolgreichem Speichern an `FeedNotificationService` gemeldet.
@@ -2286,9 +2295,12 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Reader und Artikelstatus über SQLite, mit getrennten Artikel- und
   Status-Tabellen. Der normale Feed-Pfad im Hauptfenster nutzt inzwischen
   `SQLiteFeedArticleListView`, SQLite-Artikel-IDs und `SQLiteReaderView`.
-  Feed hinzufügen, ausgewählter Feed-Refresh und `Alle Feeds aktualisieren`
-  übergeben die GRDB-Datenbank an `FeedViewModel`, sodass der SQLite-Feed-Pfad
-  nach realen Feed-Aktionen gefüllt wird. Der Sammel-Refresh über den
+  Feed hinzufügen, OPML-Import, First-Run-Wizard, ausgewählter Feed-Refresh und
+  `Alle Feeds aktualisieren` übergeben die GRDB-Datenbank an `FeedViewModel`,
+  sodass der SQLite-Feed-Pfad nach realen Feed-Aktionen gefüllt wird. Add- und
+  Import-Flows legen neue Feeds inzwischen SQLite-first an; SwiftData speichert
+  dort nur noch eine minimale Feed-Übergangsidentität für Sidebar/ContentView,
+  bis der finale FeedRecord-Umbau abgeschlossen ist. Der Sammel-Refresh über den
   ModelContainer läuft mit vorhandener GRDB-Datenbank inzwischen SQLite-first und
   vermeidet den früheren doppelten Abruf über SwiftData plus SQLite-Mirroring;
   Feed-Refresh-Benachrichtigungen werden dabei wieder mit dem aktualisierten
@@ -2401,6 +2413,13 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 ---
 
 ## Letzte Änderungen
+
+- 2026-07-03: Feed hinzufügen, OPML-Import und First-Run-Wizard sind
+  SQLite-first mit temporärer SwiftData-Feed-Bridge. `SQLiteFeedSubscriptionService`
+  speichert neue Feeds und neue Artikel aus Add-/Import-Flows in SQLite und legt
+  in SwiftData nur eine minimale Feed-Übergangsidentität für Sidebar/ContentView
+  an. Doppelte OPML-Feed-URLs werden bewusst über die Service-Logik gesteuert;
+  `feeds.url` ist in SQLite nicht mehr unique.
 
 - 2026-07-03: SQLite-Verwaltungstabellen und Stores ergänzt. Migration v6 legt
   `feed_folders`, `rules`, `rule_conditions`, `smart_folders` und

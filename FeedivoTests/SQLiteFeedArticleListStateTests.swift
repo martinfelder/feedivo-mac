@@ -4,12 +4,12 @@ import Testing
 
 @MainActor
 struct SQLiteFeedArticleListStateTests {
-    @Test func listStateLoestFeedURLAufUndLaedtSnapshots() throws {
+    @Test func listStateLaedtFeedScopePerFeedID() throws {
         let (database, firstID, secondID) = try makeDatabaseWithFeedAndArticles()
         let state = SQLiteFeedArticleListState()
 
         state.load(
-            swiftDataFeedURL: "https://example.com/feed.xml",
+            feedID: "feed-1",
             database: database,
             selectedArticleID: secondID
         )
@@ -25,7 +25,7 @@ struct SQLiteFeedArticleListStateTests {
         let state = SQLiteFeedArticleListState()
 
         state.load(
-            swiftDataFeedURL: "https://example.com/feed.xml",
+            feedID: "feed-1",
             database: database,
             selectedArticleID: firstID
         )
@@ -75,7 +75,7 @@ struct SQLiteFeedArticleListStateTests {
         let state = SQLiteFeedArticleListState()
 
         state.load(
-            swiftDataFeedURL: "https://example.com/feed.xml",
+            feedID: "feed-1",
             searchText: "Second",
             database: database,
             selectedArticleID: secondID
@@ -107,13 +107,50 @@ struct SQLiteFeedArticleListStateTests {
         let state = SQLiteFeedArticleListState()
 
         state.load(
-            swiftDataFeedURL: "https://example.com/missing.xml",
+            feedID: "missing-feed",
             database: database,
             selectedArticleID: nil
         )
 
         #expect(state.loadState == .missingFeed)
         #expect(state.rows.isEmpty)
+    }
+
+    @Test func listStateLaedtBeiDoppelterURLNurArtikelDerFeedID() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Erster Feed"))
+        try feedStore.save(FeedRecord(id: "feed-2", url: "https://example.com/feed.xml", title: "Zweiter Feed"))
+        let firstFeedArticleID = try articleStore.upsert(
+            ArticleUpsertInput(
+                feedID: "feed-1",
+                sourceID: "first-feed",
+                title: "Artikel vom ersten Feed",
+                publishedAt: Date(timeIntervalSince1970: 100),
+                arrivedAt: Date(timeIntervalSince1970: 100)
+            )
+        )
+        let secondFeedArticleID = try articleStore.upsert(
+            ArticleUpsertInput(
+                feedID: "feed-2",
+                sourceID: "second-feed",
+                title: "Artikel vom zweiten Feed",
+                publishedAt: Date(timeIntervalSince1970: 200),
+                arrivedAt: Date(timeIntervalSince1970: 200)
+            )
+        )
+        let state = SQLiteFeedArticleListState()
+
+        state.load(
+            feedID: "feed-2",
+            database: database,
+            selectedArticleID: secondFeedArticleID
+        )
+
+        #expect(state.loadState == .loaded)
+        #expect(state.rows.map(\.id) == [secondFeedArticleID])
+        #expect(!state.rows.map(\.id).contains(firstFeedArticleID))
     }
 
     private func makeDatabaseWithFeedAndArticles() throws -> (FeedivoDatabase, String, String) {

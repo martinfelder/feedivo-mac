@@ -330,7 +330,7 @@ struct SQLiteFeedArticleListView: View {
     private var scopeToken: String {
         switch scope {
         case let .feed(feed):
-            return "feed:\(feed.url)"
+            return "feed:\(feed.id.uuidString)"
         case let .tagID(tagID):
             return "tag:\(tagID)"
         case let .smartFilter(smartFilter):
@@ -404,7 +404,7 @@ struct SQLiteFeedArticleListView: View {
         switch scope {
         case let .feed(feed):
             state.load(
-                swiftDataFeedURL: feed.url,
+                feedID: feed.id.uuidString,
                 searchText: debouncedSearchText,
                 database: database,
                 selectedArticleID: selectedArticleID

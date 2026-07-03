@@ -17,7 +17,7 @@ final class SQLiteFeedArticleListState {
     var navigationState = SQLiteArticleNavigationState.empty
 
     private enum CurrentScope {
-        case feedURL(String)
+        case feedID(String)
         case tagID(String)
         case smartFilter(SmartFilter)
         case smartFolder(SQLiteSmartFolderSnapshot)
@@ -28,12 +28,12 @@ final class SQLiteFeedArticleListState {
     private var currentSelectedArticleID: String?
 
     func load(
-        swiftDataFeedURL: String,
+        feedID: String,
         searchText: String? = nil,
         database: FeedivoDatabase?,
         selectedArticleID: String?
     ) {
-        currentScope = .feedURL(swiftDataFeedURL)
+        currentScope = .feedID(feedID)
         currentSearchText = searchText
         currentSelectedArticleID = selectedArticleID
 
@@ -45,7 +45,7 @@ final class SQLiteFeedArticleListState {
         }
 
         do {
-            guard let feed = try FeedStore(database: database).feed(url: swiftDataFeedURL) else {
+            guard let feed = try FeedStore(database: database).feed(id: feedID) else {
                 rows = []
                 navigationState = .empty
                 loadState = .missingFeed
@@ -204,9 +204,9 @@ final class SQLiteFeedArticleListState {
             }
 
             switch currentScope {
-            case let .feedURL(feedURL):
+            case let .feedID(feedID):
                 load(
-                    swiftDataFeedURL: feedURL,
+                    feedID: feedID,
                     searchText: currentSearchText,
                     database: database,
                     selectedArticleID: currentSelectedArticleID

@@ -82,12 +82,18 @@ struct FirstRunWizardView: View {
             allowedContentTypes: [.opml, .xml]
         ) { result in
             inputStep = .importOPML
-            previewController.loadOPML(from: result, existingFeeds: feeds, feedViewModel: feedViewModel)
+            previewController.loadOPML(
+                from: result,
+                existingFeeds: feeds,
+                sqliteDatabase: feedivoDatabase,
+                feedViewModel: feedViewModel
+            )
         }
         .onDrop(of: [UTType.fileURL.identifier], isTargeted: $previewController.isDropTargeted) { providers in
             previewController.handleDroppedFiles(
                 providers,
                 existingFeeds: feeds,
+                sqliteDatabase: feedivoDatabase,
                 feedViewModel: feedViewModel
             ) { _ in
                 step = .importOPML
@@ -958,6 +964,7 @@ struct FirstRunWizardView: View {
         previewController.preparePreview(
             feeds: [feed],
             existingFeeds: feeds,
+            sqliteDatabase: feedivoDatabase,
             feedViewModel: feedViewModel,
             sourceText: L10n.firstRunFeedAddressChecking
         )

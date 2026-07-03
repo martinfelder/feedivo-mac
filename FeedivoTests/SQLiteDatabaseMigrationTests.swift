@@ -30,7 +30,9 @@ struct SQLiteDatabaseMigrationTests {
 
         let indexNames = try database.debugIndexNames()
 
-        #expect(indexNames.contains("idx_feeds_url_unique"))
+        #expect(indexNames.contains("idx_feeds_url"))
+        #expect(!indexNames.contains("idx_feeds_url_unique"))
+        #expect(try !indexIsUnique("idx_feeds_url", on: "feeds", database: database))
         #expect(indexNames.contains("idx_feeds_title"))
         #expect(indexNames.contains("idx_articles_feed_published"))
         #expect(indexNames.contains("idx_articles_published"))
@@ -307,6 +309,55 @@ struct SQLiteDatabaseMigrationTests {
 
         #expect(try rowCount(in: database, table: "articles") == 4)
     }
+
+    @Test func duplicateFeedURLsAreAllowed() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+
+        try insertFeed(into: database, id: "feed-1", url: "https://example.com/shared.xml")
+        try insertFeed(into: database, id: "feed-2", url: "https://example.com/shared.xml")
+
+        #expect(try rowCount(in: database, table: "feeds") == 2)
+    }
+
+    @Test func migrationErsetztAltenUniqueFeedURLIndexBeimUpgrade() throws {
+        let queue = try DatabaseQueue()
+        var legacyMigrator = DatabaseMigrator()
+        legacyMigrator.registerMigration("v1_create_core_tables") { database in
+            try database.create(table: "feeds") { table in
+                table.column("id", .text).primaryKey()
+                table.column("url", .text).notNull()
+                table.column("title", .text).notNull()
+                table.column("refreshIntervalMinutes", .integer).notNull().defaults(to: 30)
+                table.column("unreadCount", .integer).notNull().defaults(to: 0)
+                table.column("createdAt", .datetime).notNull()
+                table.column("updatedAt", .datetime).notNull()
+            }
+            try database.create(index: "idx_feeds_url_unique", on: "feeds", columns: ["url"], unique: true)
+        }
+        for identifier in [
+            "v2_create_tag_tables",
+            "v3_create_feed_tag_table",
+            "v4_create_article_search_index",
+            "v5_create_article_offline_table",
+            "v6_create_admin_definition_tables",
+            "v7_add_feed_admin_fields"
+        ] {
+            legacyMigrator.registerMigration(identifier) { _ in }
+        }
+        try legacyMigrator.migrate(queue)
+
+        try FeedivoDatabaseMigrator.migrator.migrate(queue)
+        let database = FeedivoDatabase(writer: queue)
+
+        #expect(try !database.debugIndexNames().contains("idx_feeds_url_unique"))
+        #expect(try database.debugIndexNames().contains("idx_feeds_url"))
+        #expect(try !indexIsUnique("idx_feeds_url", on: "feeds", database: database))
+
+        try insertFeed(into: database, id: "feed-1", url: "https://example.com/shared.xml")
+        try insertFeed(into: database, id: "feed-2", url: "https://example.com/shared.xml")
+
+        #expect(try rowCount(in: database, table: "feeds") == 2)
+    }
 }
 
 private func insertFeed(
@@ -521,5 +572,18 @@ private func insertSmartFolderCondition(
 private func rowCount(in database: FeedivoDatabase, table: String) throws -> Int {
     try database.read { database in
         try Int.fetchOne(database, sql: "SELECT COUNT(*) FROM \(table)") ?? 0
+    }
+}
+
+private func indexIsUnique(_ indexName: String, on tableName: String, database: FeedivoDatabase) throws -> Bool {
+    try database.read { database in
+        let rows = try Row.fetchAll(database, sql: "PRAGMA index_list(\(tableName))")
+        guard let row = rows.first(where: { ($0["name"] as String?) == indexName }),
+              let unique = row["unique"] as Int?
+        else {
+            return false
+        }
+
+        return unique == 1
     }
 }
