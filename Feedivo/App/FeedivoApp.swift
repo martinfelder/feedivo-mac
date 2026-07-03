@@ -214,6 +214,10 @@ struct FeedivoApp: App {
             database: feedivoDatabase
         )
         restoreDefaultSmartFoldersIfNeeded()
+        _ = try? SQLiteAdminDefinitionBackfillService.backfill(
+            in: modelContainer.mainContext,
+            database: feedivoDatabase
+        )
     }
 
     @MainActor

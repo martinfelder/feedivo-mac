@@ -59,10 +59,10 @@
 - Create: `Feedivo/Stores/SQLiteSmartFolderStore.swift`
 - Test: new focused store tests.
 
-- [ ] Add failing tests for CRUD and ordering for feed folders, rules, and smart folders.
-- [ ] Implement stores using GRDB transactions.
-- [ ] Add SwiftData backfill helpers that mirror existing admin definitions into SQLite during app startup.
-- [ ] Run focused store tests.
+- [x] Add failing tests for CRUD and ordering for feed folders, rules, and smart folders.
+- [x] Implement stores using GRDB transactions.
+- [x] Add SwiftData backfill helpers that mirror existing admin definitions into SQLite during app startup.
+- [x] Run focused store tests.
 
 ### Task 5: Convert Admin Views To SQLite Sources
 
