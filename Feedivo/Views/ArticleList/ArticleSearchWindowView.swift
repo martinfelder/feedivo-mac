@@ -1,5 +1,4 @@
 import SwiftUI
-import SwiftData
 
 struct ArticleSearchWindowView: View {
     static let windowID = "article-search-window"
@@ -9,10 +8,9 @@ struct ArticleSearchWindowView: View {
     // SQLite-Feed-Liste für das Filter-Dropdown (statt @Query [Feed]). Wird beim
     // Erscheinen und bei Status-Version-Bumps neu geladen.
     @State private var feeds: [FeedRecord] = []
+    @State private var tags: [TagRecord] = []
     @AppStorage(SQLiteDataInvalidation.statusVersionKey)
     private var sqliteStatusVersion = 0
-    @Query(sort: \Tag.name)
-    private var tags: [Tag]
 
     @State private var searchState = ArticleSearchWindowState()
     @State private var snapshots: [ArticleListSnapshot] = []
@@ -65,6 +63,7 @@ struct ArticleSearchWindowView: View {
         }
         .task(id: sqliteStatusVersion) {
             loadFeeds()
+            loadTags()
         }
     }
 
@@ -169,7 +168,7 @@ struct ArticleSearchWindowView: View {
             Text(L10n.articleSearchTagAll).tag(UUID?.none)
 
             ForEach(tags) { tag in
-                Text(tag.name).tag(Optional(tag.id))
+                Text(tag.name).tag(UUID(uuidString: tag.id))
             }
         }
         .labelsHidden()
@@ -251,9 +250,19 @@ struct ArticleSearchWindowView: View {
     private func loadFeeds() {
         guard let database else {
             feeds = []
+            tags = []
             return
         }
         feeds = (try? FeedStore(database: database).feeds()) ?? []
+    }
+
+    private func loadTags() {
+        guard let database else {
+            tags = []
+            return
+        }
+
+        tags = (try? TagStore(database: database).tags()) ?? []
     }
 
     private func loadSnapshots() {

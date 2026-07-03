@@ -306,6 +306,29 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(compactArticleListSource.contains("viewModel.synchronizeUnreadCounts(forFeedIDs:"))
     }
 
+    @Test func produktiveTagOberflaechenNutzenSQLiteTagStore() throws {
+        let projectRoot = projectRootURL()
+        let searchSource = try source(at: "Feedivo/Views/ArticleList/ArticleSearchWindowView.swift", projectRoot: projectRoot)
+        let inspectorSource = try source(at: "Feedivo/Views/Reader/ArticleMetadataInspectorView.swift", projectRoot: projectRoot)
+        let sqliteReaderSource = try source(at: "Feedivo/Views/Reader/SQLiteReaderView.swift", projectRoot: projectRoot)
+        let compactSearchSource = compact(searchSource)
+        let compactInspectorSource = compact(inspectorSource)
+
+        #expect(!searchSource.contains("@Query(sort: \\Tag.name)"))
+        #expect(searchSource.contains("@State private var tags: [TagRecord] = []"))
+        #expect(searchSource.contains("TagStore(database: database).tags()"))
+        #expect(searchSource.contains("ForEach(tags) { tag in"))
+        #expect(compactSearchSource.contains("Text(tag.name).tag(UUID(uuidString:tag.id))"))
+
+        #expect(!inspectorSource.contains("@Query(sort: \\Tag.name)"))
+        #expect(inspectorSource.contains("TagStore(database: database).tags()"))
+        #expect(inspectorSource.contains("loadTags()"))
+        #expect(compactInspectorSource.contains("TagStore(database:database).tags(articleID:snapshot.id)"))
+
+        #expect(sqliteReaderSource.contains("ArticleMetadataInspectorView("))
+        #expect(sqliteReaderSource.contains("TagStore(database: database)"))
+    }
+
     @Test func nachladeZeileWechseltIdentitaetMitFetchLimit() throws {
         let projectRoot = projectRootURL()
         let articleListSource = try source(at: "Feedivo/Views/ArticleList/ArticleListView.swift", projectRoot: projectRoot)
@@ -677,6 +700,16 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(source.contains("TagStore(database: database).renameTag"))
         #expect(source.contains("TagStore(database: database).updateColor"))
         #expect(source.contains("TagStore(database: database).deleteTag"))
+    }
+
+    @Test func legacyArtikelMetadataInspectorIstKlareLegacyErkennungsmarke() throws {
+        let projectRoot = projectRootURL()
+        let readerSource = try source(at: "Feedivo/Views/Reader/ReaderView.swift", projectRoot: projectRoot)
+        let legacyInspectorSource = try source(at: "Feedivo/Views/Reader/LegacyArticleMetadataInspectorView.swift", projectRoot: projectRoot)
+
+        #expect(readerSource.contains("LegacyArticleMetadataInspectorView("))
+        #expect(legacyInspectorSource.contains("Legacy SwiftData-Inspector"))
+        #expect(legacyInspectorSource.contains("struct LegacyArticleMetadataInspectorView"))
     }
 
     @Test func sqliteReaderMeldetGeladenenSnapshotAnCommandEbene() throws {

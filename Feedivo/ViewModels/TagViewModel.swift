@@ -4,6 +4,8 @@ import SwiftData
 
 @Observable
 @MainActor
+/// Legacy SwiftData-Bridge: produktiv bleiben Tags über `TagStore` geführt.
+/// Dieser ViewModel bleibt als Fallback/Übergang für Alt-Flows erhalten.
 final class TagViewModel {
     var errorMessage: String?
 

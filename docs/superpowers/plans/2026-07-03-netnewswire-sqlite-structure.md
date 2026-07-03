@@ -126,7 +126,7 @@ git commit -m "Dokumentiere SQLite-only Zielstruktur"
 
 Ziel: Keine produktive View lädt Tags mehr per SwiftData-`@Query`.
 
-- [ ] **Step 1: Failing Source-Test für Tag-Queries schreiben**
+- [x] **Step 1: Failing Source-Test für Tag-Queries schreiben**
 
 In `FeedivoTests/FeedivoAppSceneConfigurationTests.swift` ergänzen:
 
@@ -145,7 +145,7 @@ In `FeedivoTests/FeedivoAppSceneConfigurationTests.swift` ergänzen:
 }
 ```
 
-- [ ] **Step 2: `ArticleSearchWindowView` auf SQLite-Tags umstellen**
+- [x] **Step 2: `ArticleSearchWindowView` auf SQLite-Tags umstellen**
 
 Ersetze den SwiftData-Tag-Query-State durch:
 
@@ -182,11 +182,11 @@ ForEach(tags) { tag in
 }
 ```
 
-- [ ] **Step 3: Inspector-Tags auf `TagStore` umstellen**
+- [x] **Step 3: Inspector-Tags auf `TagStore` umstellen**
 
 `ArticleMetadataInspectorView` soll für den SQLite-Reader keine `@Query Tag` mehr brauchen. Lade `TagRecord`s über `TagStore` und mappe UI-Aktionen auf SQLite-Zuordnungen. Falls Legacy-`Article`-Inspector noch gebraucht wird, trenne ihn in einen deutlich benannten Legacy-Typ, z.B. `LegacyArticleMetadataInspectorView`.
 
-- [ ] **Step 4: Alte `TagViewModel`-SwiftData-Pfade isolieren**
+- [x] **Step 4: Alte `TagViewModel`-SwiftData-Pfade isolieren**
 
 Benennen oder markieren:
 
@@ -196,7 +196,7 @@ Benennen oder markieren:
 
 Neue produktive Tag-Aktionen gehen direkt über `TagStore`.
 
-- [ ] **Step 5: Tests ausführen**
+- [x] **Step 5: Tests ausführen**
 
 Run:
 

@@ -238,7 +238,7 @@ struct ReaderView: View {
     var body: some View {
         readerContent
         .inspector(isPresented: $isMetadataInspectorPresented) {
-            ArticleMetadataInspectorView(
+            LegacyArticleMetadataInspectorView(
                 article: article,
                 feedName: currentRelationshipMetadata.feedName,
                 folderName: currentRelationshipMetadata.folderName,

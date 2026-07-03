@@ -75,6 +75,17 @@ struct SQLiteReaderView: View {
             }
         }
         .navigationTitle(state.snapshot?.title ?? "")
+        .inspector(isPresented: $isMetadataInspectorPresented) {
+            if let snapshot = state.snapshot {
+                ArticleMetadataInspectorView(snapshot: snapshot, close: {
+                    isMetadataInspectorPresented = false
+                })
+                .inspectorColumnWidth(min: 280, ideal: 318, max: 360)
+            } else {
+                Text("Noch kein Artikel geladen")
+                    .padding()
+            }
+        }
         .onChange(of: state.snapshot) { _, snapshot in
             onSnapshotChange(snapshot)
         }
