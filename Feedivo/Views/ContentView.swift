@@ -20,7 +20,6 @@ struct ContentView: View {
     @AppStorage(BackgroundRefreshSettings.intervalMinutesKey)
     private var backgroundRefreshIntervalMinutes = BackgroundRefreshSettings.defaultIntervalMinutes
     @Query(sort: \Feed.title) private var feeds: [Feed]
-    @Query(sort: \SmartFolder.sortOrder) private var smartFolders: [SmartFolder]
 
     // columnVisibility steuert ob die Sidebar sichtbar ist.
     // .all bedeutet: alle 3 Spalten beim Start anzeigen.
@@ -134,7 +133,6 @@ struct ContentView: View {
         .onChange(of: sidebarSelection, handleSidebarSelectionChange)
         .onChange(of: selectedSQLiteArticleID, handleSQLiteArticleSelectionChange)
         .onAppear(perform: handleContentAppear)
-        .onChange(of: smartFolders.count, handleSmartFolderCountChange)
         .onChange(of: feeds.count, handleFeedCountChange)
         .onChange(of: unreadArticleCount, handleUnreadArticleCountChange)
         .onChange(of: appIconBadgeIsEnabled, handleAppIconBadgeSettingChange)
@@ -302,10 +300,6 @@ struct ContentView: View {
         updateAppIconBadge()
         restoreArticleWindowsIfNeeded()
         refreshFeedsOnLaunchIfNeeded()
-    }
-
-    private func handleSmartFolderCountChange() {
-        selectDefaultSmartFolderIfNeeded()
     }
 
     private func handleFeedCountChange() {

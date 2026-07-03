@@ -1,7 +1,7 @@
 import Foundation
 import GRDB
 
-struct SmartFolderRecord: Codable, FetchableRecord, MutablePersistableRecord, Equatable, Sendable {
+struct SmartFolderRecord: Codable, FetchableRecord, Identifiable, MutablePersistableRecord, Equatable, Sendable {
     static let databaseTableName = "smart_folders"
 
     var id: String

@@ -111,6 +111,46 @@ struct SQLiteAdminStoreTests {
         #expect(snapshots.first?.conditions.first?.value == SmartFolderStatusValue.unread.rawValue)
     }
 
+    @Test func smartFolderStoreMutiertOrdnerSQLiteFirst() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let store = SQLiteSmartFolderStore(database: database)
+
+        try store.save(
+            SmartFolderRecord(
+                id: "folder-1",
+                name: "Swift",
+                matchMode: RuleMatchMode.all.rawValue,
+                isShownInSidebar: true,
+                sortOrder: 0,
+                iconName: "tray.full",
+                colorHex: "#3B82F6"
+            ),
+            conditions: [
+                SmartFolderConditionRecord(
+                    id: "condition-1",
+                    smartFolderID: "folder-1",
+                    field: SmartFolderConditionField.title.rawValue,
+                    conditionOperator: SmartFolderConditionOperator.contains.rawValue,
+                    value: "Swift",
+                    sortOrder: 0
+                )
+            ]
+        )
+
+        try store.updateSidebarVisibility(id: "folder-1", isShownInSidebar: false)
+        #expect(try store.folder(id: "folder-1")?.isShownInSidebar == false)
+
+        let duplicate = try store.duplicate(id: "folder-1", copyName: "Swift Kopie")
+        #expect(duplicate.name == "Swift Kopie")
+        #expect(duplicate.isDefault == false)
+        #expect(try store.conditions(folderID: duplicate.id).map(\.value) == ["Swift"])
+
+        try store.restoreDefaultFolders()
+        let defaultKeys = try store.folders().compactMap(\.defaultKey)
+        #expect(defaultKeys.contains("all"))
+        #expect(defaultKeys.contains("saved"))
+    }
+
     @MainActor
     @Test func adminBackfillSpiegeltSwiftDataVerwaltungNachSQLite() throws {
         let context = try testContext()

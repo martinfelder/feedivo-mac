@@ -2321,10 +2321,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Feed-, Tag-, Datums- und Statusfilter SQL-seitig und hält keine globale
   SwiftData-Artikel-Query mehr.
   Benutzerdefinierte Smart Folders routen ihre Artikellisten und den Reader-Pfad
-  ebenfalls über SQLite. Die Verwaltung bleibt als SwiftData-Modell erhalten,
-  aber Settings-Trefferzahlen und Editor-Preview zählen inzwischen über
-  `TimelineStore.count(scope: .smartFolder(...))`, statt Artikel zu
-  materialisieren.
+  ebenfalls über SQLite. `SmartFolderSettingsView`, `SmartFolderEditorView` und
+  die Sidebar-Kontextaktionen verwalten die Ordnerdefinitionen inzwischen direkt
+  über `SQLiteSmartFolderStore`; Trefferzahlen und Editor-Preview zählen über
+  `TimelineStore.count(scope: .smartFolder(...))`.
   Die zuvor offenen SQLite-Nebenpfade für Regeln, Offline, Retention, OPML-Import
   und Einzelartikel-Export sind geschlossen: Regel-Preview/Zählungen und
   rückwirkendes Anwenden laufen über `SQLiteRuleEvaluationStore`; Offline-
@@ -2343,10 +2343,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Stores `FeedFolderStore`, `SQLiteRuleStore` und `SQLiteSmartFolderStore`
   liefern GRDB-CRUD sowie Snapshots für RuleEngine und Sidebar. Bestehende
   SwiftData-Verwaltungsdaten werden über
-  `SQLiteAdminDefinitionBackfillService` nach SQLite kopiert. Die Editor-UIs
-  für Feed-/Tag-/Regel-/Smart-Folder-Verwaltung bleiben für v1 bewusst
-  SwiftData-verwaltete Eingabeoberflächen mit SQLite-Spiegelung, kein
-  Performance-kritischer Artikellese-Pfad.
+  `SQLiteAdminDefinitionBackfillService` nach SQLite kopiert. TagManager,
+  Sidebar-Feed-Ordner und Smart-Folder-Verwaltung laufen inzwischen
+  SQLite-first; Rule-Settings/RuleWizard sind der verbleibende
+  SwiftData-verwaltete Admin-Rest.
 - Feature 17.3 Automatisches Löschen ist umgesetzt: globale Einstellung,
   Stern-/Archiv-Schutz mit Zusatzoption und pro-Feed-Überschreibung in den
   Feed-Eigenschaften.
@@ -2417,12 +2417,13 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   `ArticleExportSnapshot`s aus `ArticleReaderSnapshot` plus Tag-Namen aus
   `article_tags`/`feed_tags`.
 
-- 2026-07-03: Smart-Folder-Verwaltung/Preview auf SQLite-Zählungen umgestellt.
-  `TimelineStore.count` nutzt dieselbe Scope-/Smart-Folder-SQL-Logik wie die
-  Artikelliste. `SmartFolderSettingsView` und `SmartFolderEditorView` halten
-  keine SwiftData-Artikel-Query mehr für Trefferzahlen; sie laden Counts über
-  `SQLiteSmartFolderSnapshot` und GRDB. Die Ordnerdefinitionen selbst bleiben
-  vorerst SwiftData-Verwaltungsdaten.
+- 2026-07-03: Smart-Folder-Verwaltung SQLite-first gemacht.
+  `SmartFolderSettingsView` lädt `SmartFolderRecord`s und Conditions über
+  `SQLiteSmartFolderStore`, schaltet Sidebar-Sichtbarkeit per GRDB, dupliziert,
+  löscht, sortiert und stellt Defaults in SQLite wieder her. Der
+  `SmartFolderEditorView` speichert Create/Update direkt nach SQLite; Preview
+  und Settings-Trefferzahlen zählen weiter über `TimelineStore.count` mit
+  derselben Smart-Folder-SQL-Logik wie die Artikelliste.
 
 - 2026-07-03: Feed-Eigenschaften-Metriken auf SQLite umgestellt.
   `ArticleStore.feedPropertiesMetrics` liefert neuesten Artikel und Anzahl der
@@ -2437,8 +2438,8 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   für Tag, Feed, Feed-Ordner, Datum, Status, Titel, Text und Autor. Text-
   Contains nutzt den vorhandenen FTS-Index, und `ContentView` routet ausgewählte
   Smart Folders jetzt über `SQLiteFeedArticleListView` und `SQLiteReaderView`.
-  Die Smart-Folder-Verwaltung selbst bleibt in diesem Slice bewusst in
-  SwiftData.
+  Die Smart-Folder-Verwaltung wurde im Folgeslice ebenfalls auf
+  `SQLiteSmartFolderStore` umgestellt.
 
 - 2026-07-03: Separates Suchfenster auf SQLite/FTS umgestellt.
   `ArticleStore.searchArticles(state:)` übersetzt Suchtext, Suchbereich, Feed-,

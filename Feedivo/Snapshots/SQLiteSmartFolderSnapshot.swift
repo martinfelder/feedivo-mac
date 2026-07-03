@@ -62,6 +62,16 @@ struct SQLiteSmartFolderSnapshot: Equatable, Identifiable, Sendable {
             )
         }
     }
+
+    init(folder: SmartFolderRecord, conditions: [SmartFolderConditionRecord]) {
+        self.id = folder.id
+        self.name = SmartFolderFormatter.displayName(for: folder)
+        self.matchMode = RuleMatchMode.normalized(folder.matchMode)
+        self.iconName = folder.iconName
+        self.colorHex = folder.colorHex
+        self.defaultKey = folder.defaultKey
+        self.conditions = conditions.compactMap(SQLiteSmartFolderConditionSnapshot.init(condition:))
+    }
 }
 
 struct SQLiteSmartFolderConditionSnapshot: Equatable, Sendable {
@@ -83,6 +93,20 @@ struct SQLiteSmartFolderConditionSnapshot: Equatable, Sendable {
     init?(condition: SmartFolderCondition) {
         guard let field = condition.fieldEnum,
               let conditionOperator = condition.operatorEnum
+        else {
+            return nil
+        }
+
+        self.init(
+            field: field,
+            conditionOperator: conditionOperator,
+            value: condition.value
+        )
+    }
+
+    init?(condition: SmartFolderConditionRecord) {
+        guard let field = SmartFolderConditionField(rawValue: condition.field),
+              let conditionOperator = SmartFolderConditionOperator(rawValue: condition.conditionOperator)
         else {
             return nil
         }

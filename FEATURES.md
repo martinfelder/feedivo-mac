@@ -906,23 +906,24 @@
     `ArticleStore.searchArticles(state:)` und hält keine globale SwiftData-
     Artikel-Query mehr.
   - Benutzerdefinierte intelligente Ordner laden ihre Artikellisten ebenfalls
-    aus SQLite. `SQLiteSmartFolderSnapshot` übersetzt die bestehende
-    SwiftData-Definition in sendbare Bedingungen, `TimelineScope.smartFolder`
-    baut daraus SQL für Tags, Feed, Feed-Ordner, Datum, Status, Titel, Autor und
-    Text, wobei `text contains` den vorhandenen FTS-Index nutzt. `ContentView`
-    routet ausgewählte Smart Folders nun auf `SQLiteFeedArticleListView` und den
-    SQLite-Reader-Pfad. Die Smart-Folder-Verwaltung bleibt als SwiftData-Modell
-    erhalten, aber Settings-Trefferzahlen und Editor-Preview zählen inzwischen
-    über `TimelineStore.count(scope: .smartFolder(...))` aus SQLite statt über
-    eine SwiftData-Artikel-Query.
+    aus SQLite. `SQLiteSmartFolderSnapshot` übersetzt Definitionen in sendbare
+    Bedingungen, `TimelineScope.smartFolder` baut daraus SQL für Tags, Feed,
+    Feed-Ordner, Datum, Status, Titel, Autor und Text, wobei `text contains` den
+    vorhandenen FTS-Index nutzt. `ContentView` routet ausgewählte Smart Folders
+    nun auf `SQLiteFeedArticleListView` und den SQLite-Reader-Pfad.
+    `SmartFolderSettingsView`, `SmartFolderEditorView` und Sidebar-
+    Kontextaktionen verwalten die Definitionen inzwischen direkt über
+    `SQLiteSmartFolderStore`; Settings-Trefferzahlen und Editor-Preview zählen
+    über `TimelineStore.count(scope: .smartFolder(...))`.
   - SQLite-Verwaltungsdefinitionen 2026-07-03 ergänzt: Migration v6 legt
     `feed_folders`, `rules`, `rule_conditions`, `smart_folders` und
     `smart_folder_conditions` an. `FeedFolderStore`, `SQLiteRuleStore` und
     `SQLiteSmartFolderStore` bieten GRDB-CRUD und erzeugen Snapshots für
     RuleEngine/Sidebar. `SQLiteAdminDefinitionBackfillService` spiegelt
-    bestehende SwiftData-Verwaltungsdaten beim App-Start nach SQLite. Die
-    eigentlichen Editor-Oberflächen für Regeln und Smart Folders bleiben für v1
-    eine bewusst isolierte SwiftData-Verwaltungsschicht mit SQLite-Spiegelung.
+    bestehende SwiftData-Verwaltungsdaten beim App-Start nach SQLite.
+    TagManager, Sidebar-Feed-Ordner und Smart-Folder-Verwaltung laufen
+    inzwischen SQLite-first; Rule-Settings/RuleWizard sind der verbleibende
+    bewusst isolierte SwiftData-Admin-Rest.
   - SQLite-Statusänderungen halten Feed-Zähler aktuell: `ArticleStatusStore`
     berechnet nach Read-/Hidden-Mutationen `feeds.unreadCount` direkt in SQLite
     neu und bump't `SQLiteDataInvalidation.statusVersionKey`, wodurch die
@@ -1045,10 +1046,10 @@
   - Vordefinierte SmartFilter verwenden `TimelineScope.smartFilter` und die
     SQLite-Artikelliste/Reader-Kette, statt globale SwiftData-Artikelqueries zu
     materialisieren
-  - Smart-Folder-Settings und Smart-Folder-Editor-Preview nutzen
-    `TimelineStore.count(scope: .smartFolder(...))` für Trefferzahlen, statt
-    alle Artikel per SwiftData zu materialisieren und mit `SmartFolderEngine`
-    im Speicher zu zählen
+  - Smart-Folder-Settings und Smart-Folder-Editor laufen SQLite-first über
+    `SQLiteSmartFolderStore`; Trefferzahlen/Preview nutzen
+    `TimelineStore.count(scope: .smartFolder(...))`, statt Artikel per
+    SwiftData zu materialisieren
   - Feed-Ordner, Regel- und Smart-Folder-Definitionen haben eigene SQLite-
     Tabellen und Stores; bestehende SwiftData-Verwaltungsdaten werden beim
     App-Start nach SQLite gespiegelt

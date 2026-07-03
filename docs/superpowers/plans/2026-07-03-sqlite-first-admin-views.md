@@ -51,11 +51,11 @@
 - Test: `FeedivoTests/FeedivoAppSceneConfigurationTests.swift`
 - Test: `FeedivoTests/SQLiteAdminStoreTests.swift`
 
-- [ ] Add failing source test proving smart-folder settings/editor do not use `@Query(sort: \SmartFolder.sortOrder)` or `SmartFolder` as sheet payload.
-- [ ] Add store helpers for duplicate, delete, reorder, restore defaults.
-- [ ] Convert settings rows to `SmartFolderRecord` plus condition records.
-- [ ] Convert editor save/update to `SQLiteSmartFolderStore`.
-- [ ] Run focused tests and build.
+- [x] Add failing source test proving smart-folder settings/editor do not use `@Query(sort: \SmartFolder.sortOrder)` or `SmartFolder` as sheet payload.
+- [x] Add store helpers for duplicate, delete, reorder, restore defaults.
+- [x] Convert settings rows to `SmartFolderRecord` plus condition records.
+- [x] Convert editor save/update to `SQLiteSmartFolderStore`.
+- [x] Run focused tests and build.
 - [ ] Commit.
 
 ### Task 4: Rule Settings And Wizard SQLite-First

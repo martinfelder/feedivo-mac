@@ -41,10 +41,9 @@ struct SidebarView: View {
     @State private var feedRenaming: Feed?
     @State private var isShowingAddFolderSheet = false
     @State private var isShowingTagManager = false
-    @State private var smartFolderEditing: SQLiteSmartFolderSnapshot?
+    @State private var smartFolderEditing: SmartFolderRecord?
     @State private var smartFolderPendingDeletion: SQLiteSmartFolderSnapshot?
     @State private var isCreatingSmartFolder = false
-    @State private var smartFolderViewModel = SmartFolderViewModel()
     @State private var sqliteSidebarState = SQLiteSidebarState()
     @State private var collapsedFolderNames: Set<String> = []
     @State private var sidebarDefinitionVersion = 0
@@ -99,11 +98,10 @@ struct SidebarView: View {
             }
         }
         .sheet(isPresented: $isCreatingSmartFolder) {
-            SmartFolderEditorView(existingFolders: [])
+            SmartFolderEditorView(existingFolders: sqliteSmartFolderRecords())
         }
         .sheet(item: $smartFolderEditing) { smartFolder in
-            Text(smartFolder.name)
-                .padding()
+            SmartFolderEditorView(folder: smartFolder, existingFolders: sqliteSmartFolderRecords())
         }
         .confirmationDialog(
             L10n.sidebarSmartFolderDelete,
@@ -254,7 +252,7 @@ struct SidebarView: View {
                     )
                     .contextMenu {
                         Button {
-                            smartFolderEditing = smartFolder
+                            smartFolderEditing = sqliteSmartFolderRecord(id: smartFolder.id)
                         } label: {
                             Label(L10n.ruleEditButton, systemImage: "pencil")
                         }
@@ -391,32 +389,11 @@ struct SidebarView: View {
             return
         }
 
-        let existingCount = sqliteSidebarState.smartFolderSnapshots.count
-        let duplicatedID = UUID().uuidString
-        let conditions = smartFolder.conditions.enumerated().map { index, condition in
-            SmartFolderConditionRecord(
-                id: UUID().uuidString,
-                smartFolderID: duplicatedID,
-                field: condition.field.rawValue,
-                conditionOperator: condition.conditionOperator.rawValue,
-                value: condition.value,
-                sortOrder: index
-            )
-        }
-
-        try? SQLiteSmartFolderStore(database: database).save(
-            SmartFolderRecord(
-                id: duplicatedID,
-                name: "\(smartFolder.name) Kopie",
-                matchMode: smartFolder.matchMode.rawValue,
-                isShownInSidebar: true,
-                isDefault: false,
-                sortOrder: existingCount,
-                iconName: smartFolder.iconName,
-                colorHex: smartFolder.colorHex
-            ),
-            conditions: conditions
+        _ = try? SQLiteSmartFolderStore(database: database).duplicate(
+            id: smartFolder.id,
+            copyName: "\(smartFolder.name) Kopie"
         )
+        SQLiteDataInvalidation.bumpStatusVersion()
         sidebarDefinitionVersion += 1
     }
 
@@ -426,7 +403,24 @@ struct SidebarView: View {
         }
 
         try? SQLiteSmartFolderStore(database: database).delete(id: smartFolder.id)
+        SQLiteDataInvalidation.bumpStatusVersion()
         sidebarDefinitionVersion += 1
+    }
+
+    private func sqliteSmartFolderRecord(id: String) -> SmartFolderRecord? {
+        guard let database = feedivoDatabase else {
+            return nil
+        }
+
+        return try? SQLiteSmartFolderStore(database: database).folder(id: id)
+    }
+
+    private func sqliteSmartFolderRecords() -> [SmartFolderRecord] {
+        guard let database = feedivoDatabase else {
+            return []
+        }
+
+        return (try? SQLiteSmartFolderStore(database: database).folders()) ?? []
     }
 
     private var sqliteSidebarReloadToken: String {

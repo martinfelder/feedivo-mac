@@ -500,7 +500,7 @@ struct FeedivoAppSceneConfigurationTests {
 
         #expect(ruleSettingsSource.contains("@Query(sort: \\Rule.sortOrder) private var rules: [Rule]"))
         #expect(ruleWizardSource.contains("@Query(sort: \\Rule.sortOrder) private var existingRules: [Rule]"))
-        #expect(smartFolderSettingsSource.contains("@Query(sort: \\SmartFolder.sortOrder) private var folders: [SmartFolder]"))
+        #expect(!smartFolderSettingsSource.contains("@Query(sort: \\SmartFolder.sortOrder) private var folders: [SmartFolder]"))
         #expect(contentSource.contains("SQLiteFeedArticleListView("))
         #expect(contentSource.contains("SQLiteReaderView("))
         #expect(appSource.contains("SQLiteAdminDefinitionBackfillService.backfill"))
@@ -612,6 +612,27 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(stateSource.contains("private(set) var feedFolders: [FeedFolderRecord] = []"))
         #expect(stateSource.contains("private(set) var smartFolderSnapshots: [SQLiteSmartFolderSnapshot] = []"))
         #expect(contentSource.contains("SQLiteSmartFolderStore(database: database).sidebarSnapshots()"))
+    }
+
+    @Test func smartFolderVerwaltungIstSQLiteFirst() throws {
+        let projectRoot = projectRootURL()
+        let settingsSource = try source(at: "Feedivo/Views/SmartFolders/SmartFolderSettingsView.swift", projectRoot: projectRoot)
+        let editorSource = try source(at: "Feedivo/Views/SmartFolders/SmartFolderEditorView.swift", projectRoot: projectRoot)
+        let contentSource = try source(at: "Feedivo/Views/ContentView.swift", projectRoot: projectRoot)
+
+        #expect(!settingsSource.contains("@Query(sort: \\SmartFolder.sortOrder)"))
+        #expect(!settingsSource.contains("@Environment(\\.modelContext)"))
+        #expect(settingsSource.contains("@State private var folders: [SmartFolderRecord]"))
+        #expect(settingsSource.contains("let store = SQLiteSmartFolderStore(database: database)"))
+        #expect(settingsSource.contains("store.folders()"))
+        #expect(settingsSource.contains("SQLiteSmartFolderStore(database: database).restoreDefaultFolders()"))
+
+        #expect(!editorSource.contains("@Environment(\\.modelContext)"))
+        #expect(!editorSource.contains("SmartFolderViewModel()"))
+        #expect(editorSource.contains("let folder: SmartFolderRecord?"))
+        #expect(editorSource.contains("SQLiteSmartFolderStore(database: database).save("))
+
+        #expect(!contentSource.contains("@Query(sort: \\SmartFolder.sortOrder)"))
     }
 
     @Test func feedRowViewBevorzugtSQLiteSnapshotWerte() throws {

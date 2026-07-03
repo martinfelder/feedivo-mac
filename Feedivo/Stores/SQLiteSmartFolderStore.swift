@@ -41,6 +41,136 @@ struct SQLiteSmartFolderStore {
         }
     }
 
+    func folder(id: String) throws -> SmartFolderRecord? {
+        try database.read { db in
+            try SmartFolderRecord.fetchOne(db, sql: """
+                SELECT *
+                FROM smart_folders
+                WHERE id = ?
+                """, arguments: [id])
+        }
+    }
+
+    func updateSidebarVisibility(id: String, isShownInSidebar: Bool) throws {
+        try database.write { db in
+            try db.execute(
+                sql: """
+                    UPDATE smart_folders
+                    SET isShownInSidebar = ?, updatedAt = ?
+                    WHERE id = ?
+                    """,
+                arguments: [isShownInSidebar, Date(), id]
+            )
+        }
+    }
+
+    func duplicate(id: String, copyName: String) throws -> SmartFolderRecord {
+        try database.write { db in
+            guard let source = try SmartFolderRecord.fetchOne(db, sql: """
+                SELECT *
+                FROM smart_folders
+                WHERE id = ?
+                """, arguments: [id])
+            else {
+                throw SQLiteSmartFolderStoreError.missingFolder
+            }
+
+            let maxSortOrder = (try Int.fetchOne(db, sql: "SELECT MAX(sortOrder) FROM smart_folders") ?? -1) + 1
+            let duplicateID = UUID().uuidString
+            var duplicate = SmartFolderRecord(
+                id: duplicateID,
+                name: copyName,
+                matchMode: source.matchMode,
+                isShownInSidebar: source.isShownInSidebar,
+                isDefault: false,
+                sortOrder: maxSortOrder,
+                defaultKey: nil,
+                iconName: source.iconName,
+                colorHex: source.colorHex
+            )
+            try duplicate.insert(db)
+
+            let conditions = try Self.fetchConditions(db, folderID: source.id)
+            for (index, condition) in conditions.enumerated() {
+                var copiedCondition = SmartFolderConditionRecord(
+                    id: UUID().uuidString,
+                    smartFolderID: duplicateID,
+                    field: condition.field,
+                    conditionOperator: condition.conditionOperator,
+                    value: condition.value,
+                    sortOrder: index
+                )
+                try copiedCondition.insert(db)
+            }
+
+            return duplicate
+        }
+    }
+
+    func move(id sourceID: String, toPositionOf targetID: String) throws {
+        try database.write { db in
+            var folders = try Self.fetchFolders(db)
+            guard sourceID != targetID,
+                  let sourceIndex = folders.firstIndex(where: { $0.id == sourceID }),
+                  let targetIndex = folders.firstIndex(where: { $0.id == targetID })
+            else {
+                return
+            }
+
+            let movedFolder = folders.remove(at: sourceIndex)
+            folders.insert(movedFolder, at: targetIndex)
+
+            for (index, folder) in folders.enumerated() {
+                try db.execute(
+                    sql: """
+                        UPDATE smart_folders
+                        SET sortOrder = ?, updatedAt = ?
+                        WHERE id = ?
+                        """,
+                    arguments: [index, Date(), folder.id]
+                )
+            }
+        }
+    }
+
+    func restoreDefaultFolders() throws {
+        try database.write { db in
+            let existingFolders = try Self.fetchFolders(db)
+            let existingDefaultKeys = Set(existingFolders.compactMap(\.defaultKey))
+            var nextSortOrder = (existingFolders.map(\.sortOrder).max() ?? -1) + 1
+
+            for definition in Self.defaultFolderDefinitions where !existingDefaultKeys.contains(definition.defaultKey) {
+                let folderID = UUID().uuidString
+                var folder = SmartFolderRecord(
+                    id: folderID,
+                    name: definition.name,
+                    matchMode: definition.matchMode.rawValue,
+                    isShownInSidebar: true,
+                    isDefault: true,
+                    sortOrder: nextSortOrder,
+                    defaultKey: definition.defaultKey,
+                    iconName: definition.iconName,
+                    colorHex: definition.colorHex
+                )
+                try folder.insert(db)
+
+                for (index, condition) in definition.conditions.enumerated() {
+                    var condition = SmartFolderConditionRecord(
+                        id: UUID().uuidString,
+                        smartFolderID: folderID,
+                        field: condition.field.rawValue,
+                        conditionOperator: condition.conditionOperator.rawValue,
+                        value: condition.value,
+                        sortOrder: index
+                    )
+                    try condition.insert(db)
+                }
+
+                nextSortOrder += 1
+            }
+        }
+    }
+
     func delete(id: String) throws {
         try database.write { db in
             try db.execute(
@@ -105,4 +235,137 @@ struct SQLiteSmartFolderStore {
             ORDER BY sortOrder, id COLLATE NOCASE
             """, arguments: [folderID])
     }
+
+    private static let defaultFolderDefinitions: [DefaultSmartFolderDefinition] = [
+        DefaultSmartFolderDefinition(
+            name: "Alle Artikel",
+            matchMode: .all,
+            defaultKey: "all",
+            iconName: "tray.full",
+            colorHex: "#3B82F6",
+            conditions: []
+        ),
+        DefaultSmartFolderDefinition(
+            name: "Ungelesen",
+            matchMode: .all,
+            defaultKey: "unread",
+            iconName: "circle.fill",
+            colorHex: "#14B8A6",
+            conditions: [
+                DefaultSmartFolderCondition(
+                    field: .status,
+                    conditionOperator: .is,
+                    value: SmartFolderStatusValue.unread.rawValue
+                )
+            ]
+        ),
+        DefaultSmartFolderDefinition(
+            name: "Mit Stern",
+            matchMode: .all,
+            defaultKey: "starred",
+            iconName: "star.fill",
+            colorHex: "#F59E0B",
+            conditions: [
+                DefaultSmartFolderCondition(
+                    field: .status,
+                    conditionOperator: .is,
+                    value: SmartFolderStatusValue.starred.rawValue
+                )
+            ]
+        ),
+        DefaultSmartFolderDefinition(
+            name: "Heute",
+            matchMode: .all,
+            defaultKey: "today",
+            iconName: "calendar",
+            colorHex: "#22C55E",
+            conditions: [
+                DefaultSmartFolderCondition(
+                    field: .date,
+                    conditionOperator: .is,
+                    value: SmartFolderDateValue.today.rawValue
+                )
+            ]
+        ),
+        DefaultSmartFolderDefinition(
+            name: "Ausgeblendet",
+            matchMode: .all,
+            defaultKey: "hidden",
+            iconName: "eye.slash",
+            colorHex: "#6B7280",
+            conditions: [
+                DefaultSmartFolderCondition(
+                    field: .status,
+                    conditionOperator: .is,
+                    value: SmartFolderStatusValue.hidden.rawValue
+                )
+            ]
+        ),
+        DefaultSmartFolderDefinition(
+            name: "Archiviert",
+            matchMode: .all,
+            defaultKey: "archived",
+            iconName: "archivebox",
+            colorHex: "#8B5CF6",
+            conditions: [
+                DefaultSmartFolderCondition(
+                    field: .status,
+                    conditionOperator: .is,
+                    value: SmartFolderStatusValue.archived.rawValue
+                )
+            ]
+        ),
+        DefaultSmartFolderDefinition(
+            name: "Diese Woche",
+            matchMode: .all,
+            defaultKey: "thisWeek",
+            iconName: "calendar",
+            colorHex: "#22C55E",
+            conditions: [
+                DefaultSmartFolderCondition(
+                    field: .date,
+                    conditionOperator: .is,
+                    value: SmartFolderDateValue.thisWeek.rawValue
+                )
+            ]
+        ),
+        DefaultSmartFolderDefinition(
+            name: "Gespeichert",
+            matchMode: .any,
+            defaultKey: "saved",
+            iconName: "bookmark",
+            colorHex: "#F97316",
+            conditions: [
+                DefaultSmartFolderCondition(
+                    field: .status,
+                    conditionOperator: .is,
+                    value: SmartFolderStatusValue.starred.rawValue
+                ),
+                DefaultSmartFolderCondition(
+                    field: .status,
+                    conditionOperator: .is,
+                    value: SmartFolderStatusValue.archived.rawValue
+                )
+            ]
+        )
+    ]
+}
+
+enum SQLiteSmartFolderStoreError: Error, Equatable {
+    case missingFolder
+}
+
+private struct DefaultSmartFolderDefinition {
+    let name: String
+    let matchMode: RuleMatchMode
+    let defaultKey: String
+    let iconName: String
+    let colorHex: String
+    let conditions: [DefaultSmartFolderCondition]
+}
+
+private struct DefaultSmartFolderCondition {
+    let field: SmartFolderConditionField
+    let conditionOperator: SmartFolderConditionOperator
+    let value: String
 }

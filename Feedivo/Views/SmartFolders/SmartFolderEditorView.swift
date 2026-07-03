@@ -1,17 +1,14 @@
-import SwiftData
 import SwiftUI
 
 struct SmartFolderEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.feedivoDatabase) private var feedivoDatabase
-    @Environment(\.modelContext) private var modelContext
     @AppStorage(SQLiteDataInvalidation.statusVersionKey) private var sqliteStatusVersion = 0
     @AppStorage(SidebarBadgeInvalidation.directTagVersionKey) private var directTagVersion = 0
 
-    let folder: SmartFolder?
-    let existingFolders: [SmartFolder]
+    let folder: SmartFolderRecord?
+    let existingFolders: [SmartFolderRecord]
 
-    @State private var viewModel = SmartFolderViewModel()
     @State private var name = ""
     @State private var matchMode = RuleMatchMode.all
     @State private var isShownInSidebar = true
@@ -21,8 +18,9 @@ struct SmartFolderEditorView: View {
         SmartFolderConditionDraft(field: .title, conditionOperator: .contains, value: "")
     ]
     @State private var previewMatchingCount = 0
+    @State private var errorMessage: String?
 
-    init(folder: SmartFolder? = nil, existingFolders: [SmartFolder]) {
+    init(folder: SmartFolderRecord? = nil, existingFolders: [SmartFolderRecord]) {
         self.folder = folder
         self.existingFolders = existingFolders
     }
@@ -35,7 +33,7 @@ struct SmartFolderEditorView: View {
             matchModePicker
             conditionsEditor
             preview
-            errorMessage
+            errorMessageView
             footer
         }
         .padding(24)
@@ -64,7 +62,7 @@ struct SmartFolderEditorView: View {
             // lokalisierten Anzeigenamen — das Name-Feld ist deaktiviert
             // und zeigt den lokalisierten Display-Namen statt des TextFields.
             if folder?.defaultKey != nil {
-                Text(folder?.localizedDisplayName ?? "")
+                Text(folder.map(SmartFolderFormatter.displayName) ?? "")
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.vertical, 6)
                     .padding(.horizontal, 8)
@@ -270,8 +268,8 @@ struct SmartFolderEditorView: View {
     }
 
     @ViewBuilder
-    private var errorMessage: some View {
-        if let errorMessage = viewModel.errorMessage {
+    private var errorMessageView: some View {
+        if let errorMessage {
             Text(errorMessage)
                 .font(.callout)
                 .foregroundStyle(.red)
@@ -300,41 +298,64 @@ struct SmartFolderEditorView: View {
         }
 
         name = folder.name
-        matchMode = RuleMatchMode.normalized(folder.matchModeRaw)
+        matchMode = RuleMatchMode.normalized(folder.matchMode)
         isShownInSidebar = folder.isShownInSidebar
-        iconName = SmartFolderAppearance.normalizedIconName(folder.iconName)
-        colorHex = SmartFolderAppearance.normalizedColorHex(folder.colorHex)
-        let drafts = SmartFolderFormatter.drafts(for: folder)
-        conditionDrafts = drafts
+        iconName = SmartFolderAppearance.normalizedIconName(folder.iconName ?? SmartFolderAppearance.defaultIconName)
+        colorHex = SmartFolderAppearance.normalizedColorHex(folder.colorHex ?? SmartFolderAppearance.defaultColorHex)
+
+        guard let database = feedivoDatabase else {
+            conditionDrafts = []
+            return
+        }
+
+        let conditions = (try? SQLiteSmartFolderStore(database: database).conditions(folderID: folder.id)) ?? []
+        conditionDrafts = SmartFolderFormatter.drafts(for: conditions)
     }
 
     private func save() {
-        if let folder {
-            viewModel.updateFolder(
-                folder,
-                name: name,
-                matchMode: matchMode,
-                isShownInSidebar: isShownInSidebar,
-                iconName: iconName,
-                colorHex: colorHex,
-                conditionDrafts: conditionDrafts,
-                context: modelContext
-            )
-        } else {
-            viewModel.createFolder(
-                name: name,
-                matchMode: matchMode,
-                isShownInSidebar: isShownInSidebar,
-                iconName: iconName,
-                colorHex: colorHex,
-                conditionDrafts: conditionDrafts,
-                existingFolders: existingFolders,
-                context: modelContext
+        guard let database = feedivoDatabase else {
+            errorMessage = L10n.feedPropertiesUnavailable
+            return
+        }
+
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard folder?.defaultKey != nil || !trimmedName.isEmpty else {
+            errorMessage = L10n.smartFolderErrorNameRequired
+            return
+        }
+
+        let folderID = folder?.id ?? UUID().uuidString
+        let sortOrder = folder?.sortOrder ?? ((existingFolders.map(\.sortOrder).max() ?? -1) + 1)
+        let record = SmartFolderRecord(
+            id: folderID,
+            name: folder?.defaultKey == nil ? trimmedName : (folder?.name ?? trimmedName),
+            matchMode: matchMode.rawValue,
+            isShownInSidebar: isShownInSidebar,
+            isDefault: folder?.isDefault ?? false,
+            sortOrder: sortOrder,
+            defaultKey: folder?.defaultKey,
+            iconName: iconName,
+            colorHex: colorHex,
+            createdAt: folder?.createdAt ?? Date()
+        )
+        let conditions = normalizedConditionDrafts.enumerated().map { index, draft in
+            SmartFolderConditionRecord(
+                id: UUID().uuidString,
+                smartFolderID: folderID,
+                field: draft.field.rawValue,
+                conditionOperator: draft.conditionOperator.rawValue,
+                value: draft.value,
+                sortOrder: index
             )
         }
 
-        if viewModel.errorMessage == nil {
+        do {
+            try SQLiteSmartFolderStore(database: database).save(record, conditions: conditions)
+            SQLiteDataInvalidation.bumpStatusVersion()
+            errorMessage = nil
             dismiss()
+        } catch {
+            errorMessage = error.localizedDescription
         }
     }
 
@@ -387,7 +408,7 @@ struct SmartFolderEditorView: View {
         }
 
         let snapshot = SQLiteSmartFolderSnapshot(
-            id: folder?.id.uuidString ?? "preview",
+            id: folder?.id ?? "preview",
             name: name,
             matchMode: matchMode,
             conditionDrafts: normalizedConditionDrafts
