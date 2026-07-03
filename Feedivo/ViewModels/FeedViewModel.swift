@@ -613,18 +613,25 @@ final class FeedViewModel {
             return
         }
 
-        guard !feeds.isEmpty else {
+        let snapshots = feeds.map { feed in
+            FeedRefreshSnapshot(
+                id: feed.id,
+                title: feed.title,
+                url: feed.url
+            )
+        }
+        guard !snapshots.isEmpty else {
             return
         }
 
         isLoading = true
         errorMessage = nil
         recentRefreshStatus = nil
-        refreshItems = feeds.map { feed in
+        refreshItems = snapshots.map { snapshot in
             FeedRefreshItem(
-                feedID: feed.id,
-                feedTitle: feed.title,
-                feedURL: feed.url,
+                feedID: snapshot.id,
+                feedTitle: snapshot.title,
+                feedURL: snapshot.url,
                 status: .pending
             )
         }
@@ -632,104 +639,53 @@ final class FeedViewModel {
         operationProgress = FeedOperationProgress(
             title: L10n.feedProgressRefreshAllTitle,
             completedCount: 0,
-            totalCount: feeds.count
+            totalCount: snapshots.count
         )
-        var failedFeedTitles: [String] = []
-        var notificationResults: [FeedRefreshNotificationResult] = []
-        var ruleNotificationResults: [RuleNotificationResult] = []
 
         defer {
             isLoading = false
             operationProgress = nil
         }
 
-        // M4: Regeln einmal für den gesamten Refresh holen statt pro Feed neu
-        // zu fetchen. Wird an refreshFeedContents weitergereicht.
-        let refreshRules = (try? context.fetch(FetchDescriptor<Rule>())) ?? []
-
-        // Feed-Refresh läuft bewusst gedrosselt. Bei vielen Feeds bleibt die App
-        // dadurch bedienbarer und Server werden weniger hart getroffen.
-        for feedBatch in feedBatches(from: feeds) {
-            updateRefreshItemStatuses(
-                for: feedBatch.map(\.id),
-                status: .refreshing
-            )
-
-            await withTaskGroup(of: FeedRefreshOutcome.self) { group in
-                for feed in feedBatch {
-                    group.addTask { @MainActor in
-                        do {
-                            let result = try await self.refreshFeedContents(
-                                feed,
-                                context: context,
-                                rules: refreshRules,
-                                savesImmediately: false
-                            )
-                            self.updateRefreshItemStatus(for: feed.id, status: .succeeded)
-                            return .success(result)
-                        } catch let error as LocalizedError {
-                            self.appendLog(
-                                kind: .error,
-                                message: error.errorDescription ?? L10n.feedErrorParsingFailed,
-                                to: feed,
-                                context: context
-                            )
-                            self.updateRefreshItemStatus(for: feed.id, status: .failed)
-                            return .failure(feed.title)
-                        } catch {
-                            self.appendLog(
-                                kind: .error,
-                                message: L10n.feedErrorParsingFailed,
-                                to: feed,
-                                context: context
-                            )
-                            self.updateRefreshItemStatus(for: feed.id, status: .failed)
-                            return .failure(feed.title)
-                        }
-                    }
-                }
-
-                for await outcome in group {
-                    switch outcome {
-                    case .success(let result):
-                        notificationResults.append(result.feedNotification)
-                        ruleNotificationResults.append(contentsOf: result.ruleNotifications)
-                    case .failure(let failedTitle):
-                        failedFeedTitles.append(failedTitle)
-                    }
-
-                    incrementOperationProgress()
-                }
-            }
-
-            try? context.save()
+        let refreshService = FeedBackgroundRefreshService(
+            modelContainer: context.container,
+            fetchFeedConditionally: fetchFeedConditionally,
+            discoverFaviconURL: discoverFaviconURL,
+            enrichArticleImages: enrichArticleImages,
+            articleRetentionDefaults: articleRetentionDefaults
+        )
+        let summary = await refreshService.refreshAllFeeds(
+            snapshots,
+            batchSize: Self.maxConcurrentFeedRefreshes
+        ) { [weak self] event in
+            await self?.handleBackgroundRefreshEvent(event)
         }
 
-        await notifyFeedRefresh(notificationResults)
-        await notifyRuleNotifications(ruleNotificationResults)
+        await notifyFeedRefresh(summary.notificationResults)
+        await notifyRuleNotifications(summary.ruleNotificationResults)
         await waitForMinimumRefreshStatusDuration(since: refreshStatusStart)
 
         recentRefreshStatus = FeedRefreshStatusSummary(
-            newArticleCount: notificationResults.reduce(0) { $0 + $1.newArticleCount },
-            failedFeedCount: failedFeedTitles.count,
-            totalFeedCount: feeds.count
+            newArticleCount: summary.notificationResults.reduce(0) { $0 + $1.newArticleCount },
+            failedFeedCount: summary.failedFeedTitles.count,
+            totalFeedCount: snapshots.count
         )
 
-        if failedFeedTitles.isEmpty {
+        if summary.failedFeedTitles.isEmpty {
             lastRefreshOutcome = .success
-        } else if failedFeedTitles.count < feeds.count {
+        } else if summary.failedFeedTitles.count < snapshots.count {
             // Teilfehler: einige Feeds konnten nicht aktualisiert werden, der
             // Rest aber schon. Status „partial" statt pauschal „failed".
-            lastRefreshOutcome = .partial(failedCount: failedFeedTitles.count)
+            lastRefreshOutcome = .partial(failedCount: summary.failedFeedTitles.count)
             errorMessage = L10n.feedErrorRefreshAllPartial(
-                failedFeedTitles.count,
-                feedTitles: failedFeedTitles.joined(separator: ", ")
+                summary.failedFeedTitles.count,
+                feedTitles: summary.failedFeedTitles.joined(separator: ", ")
             )
         } else {
             lastRefreshOutcome = .failure
             errorMessage = L10n.feedErrorRefreshAllPartial(
-                failedFeedTitles.count,
-                feedTitles: failedFeedTitles.joined(separator: ", ")
+                summary.failedFeedTitles.count,
+                feedTitles: summary.failedFeedTitles.joined(separator: ", ")
             )
         }
     }
