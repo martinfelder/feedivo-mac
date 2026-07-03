@@ -87,7 +87,7 @@
 - Modify: `AGENTS.md`
 - Modify: `FEATURES.md`
 
-- [ ] Add source tests documenting which SwiftData services remain and why.
+- [x] Add source tests documenting which SwiftData services remain and why.
 - [ ] Remove product dependencies on SwiftData article/admin models once no UI path needs them.
 - [x] Update docs with the final SQLite-only status and any intentionally retained migration/backfill code.
 - [ ] Run focused tests, `xcodebuild build`, and `git diff --check`.
