@@ -23,14 +23,17 @@ final class SQLiteFeedArticleListState {
     }
 
     private var currentScope: CurrentScope?
+    private var currentSearchText: String?
     private var currentSelectedArticleID: String?
 
     func load(
         swiftDataFeedURL: String,
+        searchText: String? = nil,
         database: FeedivoDatabase?,
         selectedArticleID: String?
     ) {
         currentScope = .feedURL(swiftDataFeedURL)
+        currentSearchText = searchText
         currentSelectedArticleID = selectedArticleID
 
         guard let database else {
@@ -48,7 +51,12 @@ final class SQLiteFeedArticleListState {
                 return
             }
 
-            try loadTimeline(scope: .feed(feed.id), database: database, selectedArticleID: selectedArticleID)
+            try loadTimeline(
+                scope: .feed(feed.id),
+                searchText: searchText,
+                database: database,
+                selectedArticleID: selectedArticleID
+            )
         } catch {
             rows = []
             navigationState = .empty
@@ -58,10 +66,12 @@ final class SQLiteFeedArticleListState {
 
     func load(
         tagID: String,
+        searchText: String? = nil,
         database: FeedivoDatabase?,
         selectedArticleID: String?
     ) {
         currentScope = .tagID(tagID)
+        currentSearchText = searchText
         currentSelectedArticleID = selectedArticleID
 
         guard let database else {
@@ -72,7 +82,12 @@ final class SQLiteFeedArticleListState {
         }
 
         do {
-            try loadTimeline(scope: .tag(tagID), database: database, selectedArticleID: selectedArticleID)
+            try loadTimeline(
+                scope: .tag(tagID),
+                searchText: searchText,
+                database: database,
+                selectedArticleID: selectedArticleID
+            )
         } catch {
             rows = []
             navigationState = .empty
@@ -82,10 +97,12 @@ final class SQLiteFeedArticleListState {
 
     func load(
         smartFilter: SmartFilter,
+        searchText: String? = nil,
         database: FeedivoDatabase?,
         selectedArticleID: String?
     ) {
         currentScope = .smartFilter(smartFilter)
+        currentSearchText = searchText
         currentSelectedArticleID = selectedArticleID
 
         guard let database else {
@@ -98,6 +115,7 @@ final class SQLiteFeedArticleListState {
         do {
             try loadTimeline(
                 scope: .smartFilter(smartFilter),
+                searchText: searchText,
                 database: database,
                 selectedArticleID: selectedArticleID,
                 includeHidden: smartFilter == .hidden
@@ -156,18 +174,21 @@ final class SQLiteFeedArticleListState {
             case let .feedURL(feedURL):
                 load(
                     swiftDataFeedURL: feedURL,
+                    searchText: currentSearchText,
                     database: database,
                     selectedArticleID: currentSelectedArticleID
                 )
             case let .tagID(tagID):
                 load(
                     tagID: tagID,
+                    searchText: currentSearchText,
                     database: database,
                     selectedArticleID: currentSelectedArticleID
                 )
             case let .smartFilter(smartFilter):
                 load(
                     smartFilter: smartFilter,
+                    searchText: currentSearchText,
                     database: database,
                     selectedArticleID: currentSelectedArticleID
                 )
@@ -179,12 +200,14 @@ final class SQLiteFeedArticleListState {
 
     private func loadTimeline(
         scope: TimelineScope,
+        searchText: String?,
         database: FeedivoDatabase,
         selectedArticleID: String?,
         includeHidden: Bool = false
     ) throws {
         rows = try TimelineStore(database: database).articles(
             scope: scope,
+            searchText: searchText,
             includeRead: true,
             includeHidden: includeHidden,
             limit: 500

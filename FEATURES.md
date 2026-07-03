@@ -889,8 +889,10 @@
     `Mit Stern`, `Heute` und `Ausgeblendet` laden ihre Artikellisten ebenfalls
     über `TimelineScope.smartFilter` aus SQLite. Das SQLite-FTS-Fundament ist
     mit `article_search`, Triggern auf `articles` und
-    `ArticleStore.searchArticles` umgesetzt; die sichtbare Such-UI wird danach
-    angebunden.
+    `ArticleStore.searchArticles` umgesetzt. Die normale Suchleiste der
+    `SQLiteFeedArticleListView` nutzt inzwischen denselben FTS-Index über
+    `TimelineStore` und kombiniert Suchtext mit Feed-, Tag- und SmartFilter-
+    Scopes. Das separate globale Suchfenster bleibt ein Folgeslice.
   - SQLite-Statusänderungen halten Feed-Zähler aktuell: `ArticleStatusStore`
     berechnet nach Read-/Hidden-Mutationen `feeds.unreadCount` direkt in SQLite
     neu und bump't `SQLiteDataInvalidation.statusVersionKey`, wodurch die
@@ -995,6 +997,10 @@
   - SQLite-FTS-Fundament ergänzt: Migration v4 legt `article_search` mit FTS5
     und Triggern für Insert/Update/Delete auf `articles` an;
     `ArticleStore.searchArticles` liefert Treffer als `ArticleListSnapshot`s
+  - Die sichtbare Artikellisten-Suche im SQLite-Hauptpfad nutzt FTS5 über
+    `TimelineStore.articles(... searchText:)`, normalisiert Suchtext vor
+    `MATCH` und filtert direkt in SQLite innerhalb des aktuellen Feed-, Tag-
+    oder SmartFilter-Scopes
   - Status-Badges beobachten nur eine kleine Query auf Stern-/Archiv-/
     Hidden-Artikel
   - Artikelzeilen laden Vorschaubilder über größenbegrenzte Thumbnails aus dem

@@ -17,11 +17,13 @@ struct TimelineStore {
 
     func articles(
         scope: TimelineScope,
+        searchText: String? = nil,
         includeRead: Bool,
         includeHidden: Bool,
         limit: Int
     ) throws -> [ArticleListSnapshot] {
         let safeLimit = max(1, limit)
+        let searchExpression = searchText.flatMap(Self.makeFTSMatchExpression)
         var whereClauses: [String] = []
         var arguments = StatementArguments()
 
@@ -65,6 +67,12 @@ struct TimelineStore {
             whereClauses.append("s.isHidden = 0")
         }
 
+        if let searchExpression {
+            whereClauses.append("article_search MATCH ?")
+            _ = arguments.append(contentsOf: [searchExpression])
+        }
+
+        let searchJoinSQL = searchExpression == nil ? "" : "JOIN article_search ON article_search.rowid = a.rowid"
         let whereSQL = whereClauses.isEmpty ? "" : "WHERE \(whereClauses.joined(separator: " AND "))"
         _ = arguments.append(contentsOf: [safeLimit])
 
@@ -88,6 +96,7 @@ struct TimelineStore {
                 FROM articles a
                 JOIN feeds f ON f.id = a.feedID
                 JOIN article_statuses s ON s.articleID = a.id
+                \(searchJoinSQL)
                 \(whereSQL)
                 ORDER BY COALESCE(a.publishedAt, a.arrivedAt) DESC, a.arrivedAt DESC
                 LIMIT ?
@@ -132,6 +141,33 @@ struct TimelineStore {
         case .hidden:
             whereClauses.append("s.isHidden = 1")
         }
+    }
+
+    private nonisolated static func makeFTSMatchExpression(from searchText: String) -> String? {
+        let trimmedText = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedText.isEmpty else {
+            return nil
+        }
+
+        let separator = try! NSRegularExpression(pattern: #"[^\p{L}\p{N}]+"#)
+        let searchRange = NSRange(trimmedText.startIndex..<trimmedText.endIndex, in: trimmedText)
+        let tokenText = separator.stringByReplacingMatches(
+            in: trimmedText,
+            range: searchRange,
+            withTemplate: " "
+        )
+        let tokens = tokenText
+            .split(separator: " ")
+            .map(String.init)
+            .filter { $0.count > 1 }
+
+        guard !tokens.isEmpty else {
+            return nil
+        }
+
+        return tokens
+            .map { "\($0)*" }
+            .joined(separator: " ")
     }
 }
 

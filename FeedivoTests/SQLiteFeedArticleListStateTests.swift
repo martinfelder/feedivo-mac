@@ -70,6 +70,23 @@ struct SQLiteFeedArticleListStateTests {
         #expect(state.navigationState.nextArticleID == nil)
     }
 
+    @Test func listStateFiltertFeedScopeMitSQLiteFTS() throws {
+        let (database, _, secondID) = try makeDatabaseWithFeedAndArticles()
+        let state = SQLiteFeedArticleListState()
+
+        state.load(
+            swiftDataFeedURL: "https://example.com/feed.xml",
+            searchText: "Second",
+            database: database,
+            selectedArticleID: secondID
+        )
+
+        #expect(state.loadState == .loaded)
+        #expect(state.rows.map(\.id) == [secondID])
+        #expect(state.navigationState.previousArticleID == nil)
+        #expect(state.navigationState.nextArticleID == nil)
+    }
+
     @Test func listStateLaedtHiddenSmartFilterMitAusgeblendetenArtikeln() throws {
         let (database, firstID, _) = try makeDatabaseWithFeedAndArticles()
         let state = SQLiteFeedArticleListState()

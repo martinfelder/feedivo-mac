@@ -2303,8 +2303,11 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   `SQLiteFeedArticleListView` und `TimelineScope.smartFilter`. Das
   SQLite-FTS-Fundament ist mit `article_search` und Triggern auf `articles`
   angelegt; `ArticleStore.searchArticles` liefert Suchtreffer als leichte
-  `ArticleListSnapshot`s. Die sichtbare Such-UI nutzt dieses Fundament noch
-  nicht.
+  `ArticleListSnapshot`s. Die sichtbare Suchleiste der
+  `SQLiteFeedArticleListView` nutzt den FTS-Index inzwischen über
+  `TimelineStore.articles(... searchText:)`, kombiniert Suchtext mit Feed-,
+  Tag- und SmartFilter-Scopes und normalisiert Sonderzeichen vor `MATCH`. Das
+  separate globale Suchfenster ist noch nicht auf SQLite umgestellt.
 - Feature 17.3 Automatisches Löschen ist umgesetzt: globale Einstellung,
   Stern-/Archiv-Schutz mit Zusatzoption und pro-Feed-Überschreibung in den
   Feed-Eigenschaften.
@@ -2333,8 +2336,8 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Scrollbeobachter-Ansatz hat das Scrollgefühl im Reader verschlechtert und wurde
   wieder entfernt. Für v1 bleibt der Reader ohne Lesefortschritt.
 - Nächster sinnvoller Fokus: verbleibende Hauptpfad-Lücken schließen:
-  Suchfeld und separates Suchfenster an `ArticleStore.searchArticles` anschließen,
-  danach benutzerdefinierte Smart Folders und die restlichen
+  separates Suchfenster an die SQLite-FTS-Suche anschließen, danach
+  benutzerdefinierte Smart Folders und die restlichen
   Feed-Eigenschaften-Metriken wie neuesten Artikel und Artikel der letzten 7 Tage
   aus SQLite-Snapshots laden.
 - Feature-Roadmap ist in `FEATURES.md` im Root dokumentiert und muss bei Änderungen
@@ -2343,6 +2346,14 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 ---
 
 ## Letzte Änderungen
+
+- 2026-07-03: Sichtbare SQLite-Artikellisten-Suche angeschlossen.
+  `TimelineStore.articles(... searchText:)` kombiniert FTS5-Suche mit Feed-,
+  Tag- und SmartFilter-Scopes, normalisiert Suchtext vor `MATCH` und vermeidet
+  damit rohe FTS-Syntaxfehler bei Sonderzeichen. `SQLiteFeedArticleListState`
+  und `SQLiteFeedArticleListView` reichen den debounced Suchtext weiter, sodass
+  die normale Suchleiste leichte `ArticleListSnapshot`s direkt aus SQLite lädt.
+  Das separate globale Suchfenster bleibt ein Folgeslice.
 
 - 2026-07-03: SQLite-FTS-Fundament ergänzt. Migration v4 legt die FTS5-Tabelle
   `article_search` mit Unicode-Tokenizer sowie die Trigger `articles_ai`,

@@ -17,6 +17,8 @@ struct SQLiteFeedArticleListView: View {
     @Binding var navigationState: SQLiteArticleNavigationState
 
     @State private var state = SQLiteFeedArticleListState()
+    @State private var searchText = ""
+    @State private var debouncedSearchText = ""
 
     init(
         feed: Feed,
@@ -59,6 +61,32 @@ struct SQLiteFeedArticleListView: View {
     }
 
     var body: some View {
+        VStack(spacing: 0) {
+            articleSearchBar
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+
+            Divider()
+
+            articleContent
+        }
+        .task(id: searchText) {
+            await updateDebouncedSearchText()
+        }
+        .task(id: loadToken) {
+            reload()
+        }
+        .onChange(of: selectedArticleID) {
+            reload()
+        }
+        .onChange(of: state.navigationState) {
+            navigationState = state.navigationState
+        }
+        .navigationTitle(navigationTitle)
+    }
+
+    @ViewBuilder
+    private var articleContent: some View {
         Group {
             switch state.loadState {
             case .missingSQLiteDatabase:
@@ -84,24 +112,15 @@ struct SQLiteFeedArticleListView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             case .loaded where state.rows.isEmpty:
                 ContentUnavailableView(
-                    "Keine Artikel",
-                    systemImage: "doc.text",
+                    emptyTitle,
+                    systemImage: emptySystemImage,
                     description: Text(emptyDescription)
                 )
             case .idle, .loaded:
                 articleList
             }
         }
-        .task(id: loadToken) {
-            reload()
-        }
-        .onChange(of: selectedArticleID) {
-            reload()
-        }
-        .onChange(of: state.navigationState) {
-            navigationState = state.navigationState
-        }
-        .navigationTitle(navigationTitle)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var articleList: some View {
@@ -153,8 +172,38 @@ struct SQLiteFeedArticleListView: View {
         }
     }
 
+    private var articleSearchBar: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+
+            TextField(L10n.articleSearchPlaceholder, text: $searchText)
+                .textFieldStyle(.plain)
+                .font(.body)
+
+            if !searchText.isEmpty {
+                Button {
+                    clearSearch()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                }
+                .buttonStyle(.borderless)
+                .foregroundStyle(.secondary)
+                .help(L10n.articleSearchClear)
+            }
+        }
+        .controlSize(.small)
+        .padding(.horizontal, 10)
+        .frame(height: 28)
+        .background(Color(nsColor: .controlBackgroundColor), in: Capsule())
+        .overlay {
+            Capsule()
+                .stroke(.separator.opacity(0.5), lineWidth: 1)
+        }
+    }
+
     private var loadToken: String {
-        "\(scopeToken)#\(directTagVersion)#\(selectedArticleID ?? "nil")"
+        "\(scopeToken)#\(directTagVersion)#\(selectedArticleID ?? "nil")#\(debouncedSearchText)"
     }
 
     private var scopeToken: String {
@@ -195,6 +244,10 @@ struct SQLiteFeedArticleListView: View {
     }
 
     private var emptyDescription: String {
+        if isSearching {
+            return L10n.articleSearchNoResultsDescription(debouncedSearchText)
+        }
+
         switch scope {
         case .feed:
             return "Für diesen Feed sind noch keine SQLite-Artikel gespeichert."
@@ -203,6 +256,18 @@ struct SQLiteFeedArticleListView: View {
         case .smartFilter:
             return "Für diesen Filter sind noch keine SQLite-Artikel gespeichert."
         }
+    }
+
+    private var emptyTitle: String {
+        isSearching ? L10n.articleSearchNoResultsTitle : "Keine Artikel"
+    }
+
+    private var emptySystemImage: String {
+        isSearching ? "magnifyingglass" : "doc.text"
+    }
+
+    private var isSearching: Bool {
+        !debouncedSearchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private func rowBackground(for row: ArticleListSnapshot) -> Color {
@@ -216,18 +281,21 @@ struct SQLiteFeedArticleListView: View {
         case let .feed(feed):
             state.load(
                 swiftDataFeedURL: feed.url,
+                searchText: debouncedSearchText,
                 database: database,
                 selectedArticleID: selectedArticleID
             )
         case let .tagID(tagID):
             state.load(
                 tagID: tagID,
+                searchText: debouncedSearchText,
                 database: database,
                 selectedArticleID: selectedArticleID
             )
         case let .smartFilter(smartFilter):
             state.load(
                 smartFilter: smartFilter,
+                searchText: debouncedSearchText,
                 database: database,
                 selectedArticleID: selectedArticleID
             )
@@ -260,5 +328,24 @@ struct SQLiteFeedArticleListView: View {
 
         state.toggleArchived(articleID: articleID, database: database)
         navigationState = state.navigationState
+    }
+
+    private func clearSearch() {
+        searchText = ""
+        debouncedSearchText = ""
+    }
+
+    private func updateDebouncedSearchText() async {
+        if searchText.isEmpty {
+            debouncedSearchText = ""
+            return
+        }
+
+        try? await Task.sleep(for: .milliseconds(250))
+        guard !Task.isCancelled else {
+            return
+        }
+
+        debouncedSearchText = searchText
     }
 }

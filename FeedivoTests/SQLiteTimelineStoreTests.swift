@@ -272,6 +272,86 @@ struct SQLiteTimelineStoreTests {
         #expect(snapshots.map(\.id) == [hiddenID])
     }
 
+    @Test func timelineSearchFiltersFeedScopeWithFTSIndex() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let timelineStore = TimelineStore(database: database)
+
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example"))
+        try feedStore.save(FeedRecord(id: "feed-2", url: "https://example.com/other.xml", title: "Other"))
+        let matchingID = try articleStore.upsert(
+            ArticleUpsertInput(feedID: "feed-1", sourceID: "match", title: "SQLite performance", summary: "Fast local search")
+        )
+        _ = try articleStore.upsert(
+            ArticleUpsertInput(feedID: "feed-1", sourceID: "miss", title: "Different title", summary: "No matching token")
+        )
+        _ = try articleStore.upsert(
+            ArticleUpsertInput(feedID: "feed-2", sourceID: "other", title: "SQLite performance", summary: "Wrong feed")
+        )
+
+        let snapshots = try timelineStore.articles(
+            scope: .feed("feed-1"),
+            searchText: "performance",
+            includeRead: true,
+            includeHidden: false,
+            limit: 20
+        )
+
+        #expect(snapshots.map(\.id) == [matchingID])
+    }
+
+    @Test func timelineSearchCombinesTagScopeAndSummaryContent() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let tagStore = TagStore(database: database)
+        let timelineStore = TimelineStore(database: database)
+
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example"))
+        try tagStore.save(TagRecord(id: "tag-swift", name: "Swift", colorHex: "#ff0000"))
+        let matchingID = try articleStore.upsert(
+            ArticleUpsertInput(feedID: "feed-1", sourceID: "match", title: "One", content: "NetNewsWire style storage")
+        )
+        let untaggedID = try articleStore.upsert(
+            ArticleUpsertInput(feedID: "feed-1", sourceID: "untagged", title: "Two", content: "NetNewsWire style storage")
+        )
+        try tagStore.assignTag(tagID: "tag-swift", toArticleID: matchingID, at: Date())
+
+        let snapshots = try timelineStore.articles(
+            scope: .tag("tag-swift"),
+            searchText: "netnewswire storage",
+            includeRead: true,
+            includeHidden: false,
+            limit: 20
+        )
+
+        #expect(snapshots.map(\.id) == [matchingID])
+        #expect(!snapshots.map(\.id).contains(untaggedID))
+    }
+
+    @Test func timelineSearchSanitizesPunctuationBeforeFTSMatch() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let timelineStore = TimelineStore(database: database)
+
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example"))
+        let articleID = try articleStore.upsert(
+            ArticleUpsertInput(feedID: "feed-1", sourceID: "swift-beta", title: "Swift beta improves search")
+        )
+
+        let snapshots = try timelineStore.articles(
+            scope: .feed("feed-1"),
+            searchText: "Swift's beta?",
+            includeRead: true,
+            includeHidden: false,
+            limit: 20
+        )
+
+        #expect(snapshots.map(\.id) == [articleID])
+    }
+
     @Test func timelineUsesMinimumLimitOfOne() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let feedStore = FeedStore(database: database)

@@ -364,6 +364,19 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(!compactContentSource.contains("ArticleListView(smartFilter:smartFilter,selectedArticle:$selectedArticle"))
     }
 
+    @Test func sqliteArticleListSearchLaedtUeberSQLiteState() throws {
+        let projectRoot = projectRootURL()
+        let listSource = try source(at: "Feedivo/Views/ArticleList/SQLiteFeedArticleListView.swift", projectRoot: projectRoot)
+        let compactListSource = compact(listSource)
+
+        #expect(listSource.contains("@State private var searchText = \"\""))
+        #expect(listSource.contains("@State private var debouncedSearchText = \"\""))
+        #expect(listSource.contains("TextField(L10n.articleSearchPlaceholder, text: $searchText)"))
+        #expect(compactListSource.contains(".task(id:searchText)"))
+        #expect(compactListSource.contains("searchText:debouncedSearchText"))
+        #expect(!listSource.contains("ArticleSearchQuery("))
+    }
+
     @Test func contentViewNutztSQLiteReaderFuerSQLiteAuswahl() throws {
         let projectRoot = projectRootURL()
         let contentSource = try source(at: "Feedivo/Views/ContentView.swift", projectRoot: projectRoot)
