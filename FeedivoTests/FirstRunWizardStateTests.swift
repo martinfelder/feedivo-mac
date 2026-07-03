@@ -7,9 +7,9 @@ struct FirstRunWizardStateTests {
         #expect(!FirstRunWizardState.shouldPresent(feedCount: 1, hasCompletedWizard: false))
     }
 
-    @Test func wizardWirdBeiLeeremFeedBestandAuchNachFrueheremAbschlussAngezeigt() {
+    @Test func wizardWirdBeiLeeremFeedBestandNachFrueheremAbschlussNichtErneutAngezeigt() {
         #expect(
-            FirstRunWizardState.shouldPresent(
+            !FirstRunWizardState.shouldPresent(
                 feedCount: 0,
                 hasCompletedWizard: true,
                 wasDismissedThisSession: false
@@ -17,12 +17,16 @@ struct FirstRunWizardStateTests {
         )
     }
 
-    @Test func wizardBleibtNachSpaeterNurInAktuellerSitzungAusgeblendet() {
+    @Test func wizardBleibtNachSpaeterDauerhaftAusgeblendet() {
+        var hasCompletedWizard = false
+
+        FirstRunWizardState.markCompleted(&hasCompletedWizard)
+
         #expect(
             !FirstRunWizardState.shouldPresent(
                 feedCount: 0,
-                hasCompletedWizard: true,
-                wasDismissedThisSession: true
+                hasCompletedWizard: hasCompletedWizard,
+                wasDismissedThisSession: false
             )
         )
     }

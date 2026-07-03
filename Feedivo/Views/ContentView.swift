@@ -493,6 +493,7 @@ struct ContentView: View {
     }
 
     private func skipFirstRunWizardForSession() {
+        FirstRunWizardState.markCompleted(&hasCompletedFirstRunWizard)
         isFirstRunWizardDismissedForSession = true
         isShowingFirstRunWizard = false
     }

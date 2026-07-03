@@ -746,7 +746,7 @@
 ### 20.2 Leere Zustände (Empty States)
 - **Status:** ✅ Entschieden — bereit zur Implementierung
 - **Zu implementieren:**
-  - Keine Feeds: First-Run-Wizard auslösen (bereits vorhanden)
+  - Erster Start ohne Feeds: First-Run-Wizard auslösen (bereits vorhanden)
   - Feed hat keine Artikel: Erklärung + "Feed aktualisieren" Button
   - Suche ohne Resultate: Hinweis mit Suchbegriff und Vorschlag Suchbereich zu erweitern
   - Tag ohne Artikel: Hinweis dass noch keine Artikel diesen Tag haben

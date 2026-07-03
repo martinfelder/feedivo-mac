@@ -8,7 +8,7 @@ enum FirstRunWizardState {
         hasCompletedWizard: Bool,
         wasDismissedThisSession: Bool = false
     ) -> Bool {
-        feedCount == 0 && !wasDismissedThisSession
+        feedCount == 0 && !hasCompletedWizard && !wasDismissedThisSession
     }
 
     static func markCompleted(_ hasCompletedWizard: inout Bool) {

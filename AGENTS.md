@@ -386,9 +386,10 @@ oder einer kurzlebigen Listen-Unteransicht geöffnet wird.
 Haelt den offenen/geschlossenen Zustand des rechten Artikelinfos-Inspectors auf
 Root-Ebene, damit die eingeblendete Seitenleiste beim Feed- oder Artikelwechsel
 sichtbar bleibt.
-Zeigt beim Start automatisch den First-Run-Wizard, sobald keine Feeds vorhanden
-sind. Ein frueheres Abschluss-Flag blockiert eine wieder vollständig leere App
-nicht mehr; `Später` blendet den Wizard nur für die aktuelle Sitzung aus.
+Zeigt beim ersten App-Start automatisch den First-Run-Wizard, wenn noch keine
+Feeds vorhanden sind. Ein früherer Abschluss oder `Später` setzt
+`firstRunWizard.completed`; danach erscheint der Wizard beim App-Start nicht
+erneut, auch wenn die Feed-Liste später wieder leer ist.
 Zeigt unten rechts im Hauptfenster einen dezenten Online-/Offline-Indikator über
 `NWPathMonitor`. Dieser Netzwerkstatus ist bewusst getrennt vom Artikel-Status für
 manuell offline gespeicherte Inhalte.
@@ -431,10 +432,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   oder Refresh-/Speicherproblemen; das Fenster schliesst erst bei `Starten`.
 - `FirstRunWizardState` kapselt die Anzeigeentscheidung, das
   `@AppStorage`-Abschluss-Flag `firstRunWizard.completed` und die Sitzungslogik:
-  leerer Feedbestand zeigt den Wizard wieder, außer er wurde in der aktuellen
-  Sitzung bewusst per `Später` ausgeblendet. Ein bereits sichtbarer Wizard bleibt
-  nach dem Import offen, auch wenn dadurch Feeds entstehen und ein frueheres
-  Abschluss-Flag bereits gesetzt war; geschlossen wird erst durch `Starten`.
+  Der Wizard erscheint nur beim ersten Start ohne Feeds. `Später` und `Starten`
+  markieren den Wizard dauerhaft als erledigt. Ein bereits sichtbarer Wizard
+  bleibt nach dem Import offen, auch wenn dadurch Feeds entstehen; geschlossen
+  wird erst durch `Starten`.
 
 ### SidebarView.swift
 - `@Query(sort: \Feed.title)` für automatische Feed-Liste aus SwiftData
