@@ -12,13 +12,13 @@
 
 ## Scope
 
-- [ ] `ContentView` ohne `@Query [Feed]`: First-Run-Entscheidung, OPML-Übergabe, Refresh-All, Delete, Feed-Menü `hasFeeds`, Dock-Badge aus SQLite.
-- [ ] OPML-Export/Import-Sheets und FirstRunWizard: `feeds: [Feed]` → SQLite-Quelle.
-- [ ] `AppIconBadgeService.unreadCount` SQLite-basiert.
-- [ ] `FeedViewModel` SQLite-First: `refreshFeed(feedID:)`, `refreshAllFeeds` aus `FeedStore.feeds()`, `deleteFeed(feedID:)` via `FeedStore.delete`, `renameFeed`/`restoreOriginalFeedTitle` delegieren an `FeedStore`.
-- [ ] SwiftData `Feed`-Brücke (`mirrorFeedToSQLite`, `saveSwiftDataBridge`) entfernen oder hart isolieren.
-- [ ] `ArticleSearchWindowView @Query [Feed]` → SQLite.
-- [ ] Fokussierte Tests, Build, Diff-Check.
+- [x] `ContentView` ohne `@Query [Feed]`: First-Run-Entscheidung, OPML-Übergabe, Refresh-All, Delete, Feed-Menü `hasFeeds`, Dock-Badge aus SQLite.
+- [x] OPML-Export/Import-Sheets und FirstRunWizard: `feeds: [Feed]` → SQLite-Quelle.
+- [x] `AppIconBadgeService.unreadCount` SQLite-basiert.
+- [x] `FeedViewModel` SQLite-First: `refreshFeed(feedID:)`, `refreshAllFeeds` aus `FeedStore.feeds()`, `deleteFeed(feedID:)` via `FeedStore.delete`, `renameFeed`/`restoreOriginalFeedTitle` delegieren an `FeedStore`.
+- [x] SwiftData `Feed`-Brücke (`mirrorFeedToSQLite`, `saveSwiftDataBridge`) entfernen oder hart isolieren.
+- [x] `ArticleSearchWindowView @Query [Feed]` → SQLite.
+- [x] Fokussierte Tests, Build, Diff-Check.
 
 ## Out of scope
 
@@ -36,15 +36,15 @@
 
 ## Tasks
 
-- [ ] T1 — `ContentView`: `@Query [Feed]` entfernen. Ersatz: `@State private var feedSnapshots: [FeedSidebarSnapshot] = []` (geladen via `FeedStore.sidebarFeeds()` im `.task`/`onChange(sqliteStatusVersion)`). `feeds.count` (First-Run, `hasFeeds`) → `feedSnapshots.count`. `selectedFeed` (Resolve für Refresh/Delete) → `FeedStore.feed(id:)` bzw. `FeedRefreshSnapshot` aus Snapshots.
-- [ ] T2 — Dock-Badge: `AppIconBadgeService.unreadCount(in: [Feed])` ersetzen durch SQLite-Variante `unreadCount(in snapshots: [FeedSidebarSnapshot])` (Summe `unreadCount`) oder `FeedStore`-Count. ContentView `unreadArticleCount` aus `feedSnapshots`.
-- [ ] T3 — `OPMLExportSheet`: `feeds: [Feed]` → `opmlFeeds: [OPMLFeed]` (FeedStore.opmlFeedsForExport bereits vorhanden und Sheet hat bereits SQLite-Load-Pfad). Aufrufstelle ContentView anpassen.
-- [ ] T4 — `OPMLImportReviewView`/`OPMLImportPreviewController`: `feeds: [Feed]`/`existingFeeds: [Feed]` → SQLite-Quelle (`FeedStore.feeds()` für Duplikat-/Folder-Check). `FeedViewModel.opmlImportPreviewRows` nutzt bereits SQLite — Konsolidieren.
-- [ ] T5 — `FirstRunWizardView`: `feeds: [Feed]` → SQLite (`FeedStore.feeds()` bzw. `feedSnapshots.count` für First-Run-Entscheidung).
-- [ ] T6 — `FeedViewModel`: `refreshFeed(_ feed: Feed?, …)` durch `refreshFeed(feedID: String, …)` ersetzen, delegiert an `SQLiteFeedRefreshService.refresh(feedID:)`. `refreshAllFeeds` nimmt `[FeedRefreshSnapshot]` aus `FeedStore.feeds()` statt `[Feed]`. `deleteFeed(_ feed: Feed?, …)` → `deleteFeed(feedID: String, …)` via `FeedStore.delete(id:)` (+ SwiftData-Bridge-Feed-Löschung, falls Brücke noch besteht). `renameFeed`/`restoreOriginalFeedTitle` an `FeedStore` delegieren.
-- [ ] T7 — `ArticleSearchWindowView`: `@Query [Feed]` → `FeedStore.feeds()` für Filter-Dropdown.
-- [ ] T8 — SwiftData `Feed`-Brücke entfernen: `mirrorFeedToSQLite`, `SQLiteFeedSubscriptionService.saveSwiftDataBridge` und `@Model Feed`-Schreibzugriffe prüfen. Wenn `Article.feed`/`Tag.feeds` Relationships noch leben: `Feed` hart isolieren (nur noch lesbar aus alter DB, keine neuen Writes) und klar kommentieren. Sonst `@Model Feed` entfernen + ModelContainer-Registrierung bereinigen.
-- [ ] T9 — Fokussierte Tests (Badge aus Snapshots, refreshFeed(feedID:), OPML-Export aus SQLite, ContentView ohne @Query), Build, Diff-Check.
+- [x] T1 — `ContentView`: `@Query [Feed]` entfernen. Ersatz: `@State private var feedSnapshots: [FeedSidebarSnapshot] = []` (geladen via `FeedStore.sidebarFeeds()` im `.task`/`onChange(sqliteStatusVersion)`). `feeds.count` (First-Run, `hasFeeds`) → `feedSnapshots.count`. `selectedFeed` (Resolve für Refresh/Delete) → `FeedStore.feed(id:)` bzw. `FeedRefreshSnapshot` aus Snapshots.
+- [x] T2 — Dock-Badge: `AppIconBadgeService.unreadCount(in: [Feed])` ersetzen durch SQLite-Variante `unreadCount(in snapshots: [FeedSidebarSnapshot])` (Summe `unreadCount`) oder `FeedStore`-Count. ContentView `unreadArticleCount` aus `feedSnapshots`.
+- [x] T3 — `OPMLExportSheet`: `feeds: [Feed]` → `opmlFeeds: [OPMLFeed]` (FeedStore.opmlFeedsForExport bereits vorhanden und Sheet hat bereits SQLite-Load-Pfad). Aufrufstelle ContentView anpassen.
+- [x] T4 — `OPMLImportReviewView`/`OPMLImportPreviewController`: `feeds: [Feed]`/`existingFeeds: [Feed]` → SQLite-Quelle (`FeedStore.feeds()` für Duplikat-/Folder-Check). `FeedViewModel.opmlImportPreviewRows` nutzt bereits SQLite — Konsolidieren.
+- [x] T5 — `FirstRunWizardView`: `feeds: [Feed]` → SQLite (`FeedStore.feeds()` bzw. `feedSnapshots.count` für First-Run-Entscheidung).
+- [x] T6 — `FeedViewModel`: `refreshFeed(_ feed: Feed?, …)` durch `refreshFeed(feedID: String, …)` ersetzen, delegiert an `SQLiteFeedRefreshService.refresh(feedID:)`. `refreshAllFeeds` nimmt `[FeedRefreshSnapshot]` aus `FeedStore.feeds()` statt `[Feed]`. `deleteFeed(_ feed: Feed?, …)` → `deleteFeed(feedID: String, …)` via `FeedStore.delete(id:)` (+ SwiftData-Bridge-Feed-Löschung, falls Brücke noch besteht). `renameFeed`/`restoreOriginalFeedTitle` an `FeedStore` delegieren.
+- [x] T7 — `ArticleSearchWindowView`: `@Query [Feed]` → `FeedStore.feeds()` für Filter-Dropdown.
+- [x] T8 — SwiftData `Feed`-Brücke entfernen: `mirrorFeedToSQLite`, `SQLiteFeedSubscriptionService.saveSwiftDataBridge` und `@Model Feed`-Schreibzugriffe prüfen. Wenn `Article.feed`/`Tag.feeds` Relationships noch leben: `Feed` hart isolieren (nur noch lesbar aus alter DB, keine neuen Writes) und klar kommentieren. Sonst `@Model Feed` entfernen + ModelContainer-Registrierung bereinigen.
+- [x] T9 — Fokussierte Tests (Badge aus Snapshots, refreshFeed(feedID:), OPML-Export aus SQLite, ContentView ohne @Query), Build, Diff-Check.
 
 ## Reihenfolge-Hinweis
 
