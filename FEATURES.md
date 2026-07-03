@@ -968,6 +968,11 @@
     speichert Feed-Content oder geladene Originalseiten, Reader und Artikelliste
     lesen den Offline-Status aus SQLite. Die Artikel-Aufbewahrung löscht nun
     auch SQLite-Artikel samt Statuszeilen und korrigiert `feeds.unreadCount`.
+  - Retention-Wiedererkennung 2026-07-03 ergänzt: Migration v9 legt
+    `article_identity_history` an. `ArticleRetentionCleanupService` sichert vor
+    dem Löschen alter SQLite-Artikel stabile Quellen-ID, Link, Titel-Hash,
+    Seen-Zeitpunkte und letzten Status; `ArticleStore` stellt diesen Status
+    beim späteren Wiederauftauchen eines Artikels wieder her.
     OPML-Import spiegelt neu importierte Feeds nach SQLite; OPML-Export
     bevorzugt SQLite-Feed- und Feed-Tag-Snapshots und ergänzt nur Feed-
     Beschreibungen aus SwiftData. Einzelartikel-Export aus der SQLite-Liste

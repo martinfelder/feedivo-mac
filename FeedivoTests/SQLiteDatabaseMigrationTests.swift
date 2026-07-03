@@ -23,6 +23,7 @@ struct SQLiteDatabaseMigrationTests {
         #expect(tableNames.contains("rule_conditions"))
         #expect(tableNames.contains("smart_folders"))
         #expect(tableNames.contains("smart_folder_conditions"))
+        #expect(tableNames.contains("article_identity_history"))
     }
 
     @Test func migrationCreatesPerformanceIndexes() throws {
@@ -53,6 +54,10 @@ struct SQLiteDatabaseMigrationTests {
         #expect(indexNames.contains("idx_smart_folders_sort_order"))
         #expect(indexNames.contains("idx_smart_folders_default_key_unique"))
         #expect(indexNames.contains("idx_smart_folder_conditions_folder_sort"))
+        #expect(indexNames.contains("idx_article_identity_history_source_unique"))
+        #expect(indexNames.contains("idx_article_identity_history_link_unique"))
+        #expect(indexNames.contains("idx_article_identity_history_title_hash"))
+        #expect(indexNames.contains("idx_article_identity_history_last_seen"))
     }
 
     @Test func migrationCreatesArticleSearchTriggers() throws {

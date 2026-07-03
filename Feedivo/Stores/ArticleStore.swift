@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 import GRDB
 
 struct ArticleUpsertInput: Equatable, Sendable {
@@ -403,10 +404,12 @@ struct ArticleStore {
                     """,
                 arguments: arguments
             )
+            try saveIdentityHistory(forArticleID: articleID, input: input, db: db)
             return (articleID, false)
         }
 
         let articleID = UUID().uuidString
+        let history = try findIdentityHistory(input: input, db: db)
         var article = ArticleRecord(
             id: articleID,
             feedID: input.feedID,
@@ -424,8 +427,20 @@ struct ArticleStore {
         )
         try article.insert(db)
 
-        var status = ArticleStatusRecord(articleID: articleID, dateArrived: input.arrivedAt)
+        var status = ArticleStatusRecord(
+            articleID: articleID,
+            isRead: history?.isRead ?? false,
+            isStarred: history?.isStarred ?? false,
+            isArchived: history?.isArchived ?? false,
+            isHidden: history?.isHidden ?? false,
+            readAt: history?.readAt,
+            starredAt: history?.starredAt,
+            archivedAt: history?.archivedAt,
+            hiddenAt: history?.hiddenAt,
+            dateArrived: history?.firstSeenAt ?? input.arrivedAt
+        )
         try status.insert(db)
+        try saveIdentityHistory(forArticleID: articleID, input: input, status: status, db: db)
 
         return (articleID, true)
     }
@@ -453,6 +468,105 @@ struct ArticleStore {
         }
 
         return nil
+    }
+
+    private func findIdentityHistory(input: ArticleUpsertInput, db: Database) throws -> ArticleIdentityHistoryRecord? {
+        if let sourceID = input.sourceID.trimmedNonEmpty {
+            let record = try ArticleIdentityHistoryRecord.fetchOne(db, sql: """
+                SELECT *
+                FROM article_identity_history
+                WHERE feedID = ? AND sourceID = ?
+                LIMIT 1
+                """, arguments: [input.feedID, sourceID])
+            if let record {
+                return record
+            }
+        }
+
+        if let link = input.link.trimmedNonEmpty {
+            let record = try ArticleIdentityHistoryRecord.fetchOne(db, sql: """
+                SELECT *
+                FROM article_identity_history
+                WHERE feedID = ? AND link = ?
+                LIMIT 1
+                """, arguments: [input.feedID, link])
+            if let record {
+                return record
+            }
+        }
+
+        return try ArticleIdentityHistoryRecord.fetchOne(db, sql: """
+            SELECT *
+            FROM article_identity_history
+            WHERE feedID = ? AND titleHash = ?
+            ORDER BY lastSeenAt DESC
+            LIMIT 1
+            """, arguments: [input.feedID, Self.titleHash(input.title)])
+    }
+
+    private func saveIdentityHistory(forArticleID articleID: String, input: ArticleUpsertInput, db: Database) throws {
+        guard let status = try ArticleStatusRecord.fetchOne(db, key: articleID) else {
+            return
+        }
+
+        try saveIdentityHistory(forArticleID: articleID, input: input, status: status, db: db)
+    }
+
+    private func saveIdentityHistory(
+        forArticleID articleID: String,
+        input: ArticleUpsertInput,
+        status: ArticleStatusRecord,
+        db: Database
+    ) throws {
+        let now = Date()
+        let sourceID = input.sourceID.trimmedNonEmpty
+        let link = input.link.trimmedNonEmpty
+        let titleHash = Self.titleHash(input.title)
+        let existing = try findIdentityHistory(input: input, db: db)
+        var history = existing ?? ArticleIdentityHistoryRecord(
+            id: UUID().uuidString,
+            feedID: input.feedID,
+            sourceID: sourceID,
+            link: link,
+            titleHash: titleHash,
+            publishedAt: input.publishedAt,
+            firstSeenAt: status.dateArrived,
+            lastSeenAt: now,
+            lastArticleID: articleID,
+            isRead: status.isRead,
+            isStarred: status.isStarred,
+            isArchived: status.isArchived,
+            isHidden: status.isHidden,
+            readAt: status.readAt,
+            starredAt: status.starredAt,
+            archivedAt: status.archivedAt,
+            hiddenAt: status.hiddenAt
+        )
+
+        history.sourceID = history.sourceID ?? sourceID
+        history.link = history.link ?? link
+        history.titleHash = titleHash
+        history.publishedAt = input.publishedAt ?? history.publishedAt
+        history.lastSeenAt = now
+        history.lastArticleID = articleID
+        history.isRead = status.isRead
+        history.isStarred = status.isStarred
+        history.isArchived = status.isArchived
+        history.isHidden = status.isHidden
+        history.readAt = status.readAt
+        history.starredAt = status.starredAt
+        history.archivedAt = status.archivedAt
+        history.hiddenAt = status.hiddenAt
+
+        try history.save(db)
+    }
+
+    static func titleHash(_ title: String) -> String {
+        let normalizedTitle = title
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+        let digest = SHA256.hash(data: Data(normalizedTitle.utf8))
+        return digest.map { String(format: "%02x", $0) }.joined()
     }
 
     private static func appendDateFilterWhereClause(

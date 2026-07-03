@@ -96,15 +96,17 @@ damit Sidebar, Listen und Counts neu laden.
 
 ### 8. Retention NetNewsWire-artig
 
-**Teilweise erledigt.**
+**Grundlegend erledigt.**
 
-Retention löscht SQLite-Artikel und berücksichtigt Feed-Overrides. Noch offen ist
-eine stärkere Strategie, Status-/Seen-Metadaten länger als Artikelinhalte zu
-behalten, damit wiederauftauchende alte Artikel besser erkannt werden können.
+Retention löscht SQLite-Artikel und berücksichtigt Feed-Overrides. Vor dem
+Löschen sichert Feedivo die Artikelidentität und den letzten Status nun in
+`article_identity_history`. Beim späteren Upsert kann `ArticleStore` diese
+Historie über `sourceID`, Link oder Titel-Hash wiederfinden und Gelesen/Stern/
+Archiv/Hidden übernehmen.
 
-**Möglicher nächster Schritt:** eine kleine `seen_articles`- oder
-`article_identity_history`-Tabelle für stabile Quellen-IDs, Links, Titel/Datum-
-Fallbacks und zuletzt gesehene Zeitpunkte.
+**Rest im Vergleich zu NetNewsWire:** Feedivo hat damit die wichtigste
+Langzeit-Wiedererkennung, aber noch keine separate UI oder Policy für Ablauf,
+Debugging oder gezielte Pflege dieser Historie.
 
 ### 9. Optional: AppKit-Tabelle für Artikelliste
 
@@ -454,26 +456,28 @@ Feedivo hat:
 - `ArticleRetentionCleanupService`
 - `OrphanedArticleCleanupService`
 
-Status liegt separat in `article_statuses`, wird bei gelöschten Artikeln aber
-ebenfalls bereinigt. Eine langfristige Seen-/Identity-Historie gibt es noch
-nicht.
+Status liegt separat in `article_statuses`. Vor dem Löschen alter SQLite-Artikel
+schreibt `ArticleRetentionCleanupService` nun zusätzlich eine langlebigere
+`article_identity_history`-Zeile. Diese Historie enthält stabile Quellen-ID,
+Link, Titel-Hash, Seen-Zeitpunkte und den letzten Gelesen/Stern/Archiv/Hidden-
+Status.
 
 ### Auswirkung
 
-Feedivo kann alte wiederauftauchende Artikel weiterhin schlechter von echten
-neuen Artikeln unterscheiden, wenn Artikel und Status bereits bereinigt wurden.
+Feedivo kann alte wiederauftauchende Artikel nun wiedererkennen, auch wenn der
+eigentliche Artikel und seine `article_statuses`-Zeile bereits durch Retention
+entfernt wurden. Beim erneuten Upsert wird der letzte bekannte Status aus
+`article_identity_history` wiederhergestellt.
 
 ### Möglicher nächster Schritt
 
-Separater `SeenArticle`- oder `ArticleIdentityHistory`-Store. Weniger invasiv
-als ein weiterer großer Umbau wäre eine kleine SQLite-Tabelle für:
+Die grundlegende Historie ist umgesetzt. Offen bleiben Feinschliffe, falls
+Retention sehr aggressiv genutzt wird:
 
-- stabile Artikel-ID
-- Feed-ID
-- erstes Ankunftsdatum
-- letzter bekannter Lesestatus
-
-Das wäre besonders relevant, wenn Retention aggressiver wird.
+- Ablauf-/Bereinigungspolitik für sehr alte Historieneinträge
+- Debug- oder Wartungsansicht für wiedererkannte Artikel
+- strengere Heuristik für Titel-Hash-Fallbacks bei Feeds mit vielen identischen
+  Titeln
 
 ## 8. Reader
 
@@ -566,8 +570,8 @@ NetNewsWire-artige Ergänzungen:
 - Nicht-Feed-Daten früh abbrechen
 - Validatoren periodisch verwerfen
 
-### 5. Seen-/Identity-Historie für Retention
+### 5. Identity-Historie verfeinern
 
-Nicht mehr Status-Separierung, sondern Langzeit-Wiedererkennung alter Artikel.
-Für v1 nur angehen, wenn Retention aggressiv genutzt wird oder reale Feeds alte
-Artikel häufig erneut liefern.
+Die Langzeit-Wiedererkennung alter Artikel ist mit `article_identity_history`
+grundlegend vorhanden. Für v1 nur weiter ausbauen, wenn Retention aggressiv
+genutzt wird oder reale Feeds alte Artikel häufig erneut liefern.

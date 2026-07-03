@@ -117,6 +117,7 @@ enum ArticleRetentionCleanupService {
             let articleIDs = expiredCandidates.map(\.id)
             let changedFeedIDs = Set(expiredCandidates.map(\.feedID))
 
+            try saveSQLiteIdentityHistory(for: articleIDs, now: now, db: db)
             try deleteSQLiteArticles(articleIDs, db: db)
             try recalculateSQLiteUnreadCounts(for: changedFeedIDs, db: db)
 
@@ -286,6 +287,38 @@ enum ArticleRetentionCleanupService {
         }
     }
 
+    private static func saveSQLiteIdentityHistory(for articleIDs: [String], now: Date, db: Database) throws {
+        for chunk in articleIDs.chunked(into: 400) {
+            let placeholders = Array(repeating: "?", count: chunk.count).joined(separator: ", ")
+            let arguments = StatementArguments(chunk)
+            let candidates = try SQLiteArticleIdentityHistoryCandidate.fetchAll(db, sql: """
+                SELECT
+                    a.id,
+                    a.feedID,
+                    a.sourceID,
+                    a.link,
+                    a.title,
+                    a.publishedAt,
+                    s.isRead,
+                    s.isStarred,
+                    s.isArchived,
+                    s.isHidden,
+                    s.readAt,
+                    s.starredAt,
+                    s.archivedAt,
+                    s.hiddenAt,
+                    s.dateArrived
+                FROM articles a
+                JOIN article_statuses s ON s.articleID = a.id
+                WHERE a.id IN (\(placeholders))
+                """, arguments: arguments)
+
+            for candidate in candidates {
+                try candidate.saveHistory(now: now, db: db)
+            }
+        }
+    }
+
     private static func recalculateSQLiteUnreadCounts(for feedIDs: Set<String>, db: Database) throws {
         for feedID in feedIDs {
             let unreadCount = try Int.fetchOne(db, sql: """
@@ -329,6 +362,119 @@ private struct SQLiteArticleRetentionCandidate: FetchableRecord {
     }
 }
 
+private struct SQLiteArticleIdentityHistoryCandidate: FetchableRecord {
+    let id: String
+    let feedID: String
+    let sourceID: String?
+    let link: String?
+    let title: String
+    let publishedAt: Date?
+    let isRead: Bool
+    let isStarred: Bool
+    let isArchived: Bool
+    let isHidden: Bool
+    let readAt: Date?
+    let starredAt: Date?
+    let archivedAt: Date?
+    let hiddenAt: Date?
+    let dateArrived: Date
+
+    init(row: Row) throws {
+        id = row["id"]
+        feedID = row["feedID"]
+        sourceID = row["sourceID"]
+        link = row["link"]
+        title = row["title"]
+        publishedAt = row["publishedAt"]
+        isRead = row["isRead"]
+        isStarred = row["isStarred"]
+        isArchived = row["isArchived"]
+        isHidden = row["isHidden"]
+        readAt = row["readAt"]
+        starredAt = row["starredAt"]
+        archivedAt = row["archivedAt"]
+        hiddenAt = row["hiddenAt"]
+        dateArrived = row["dateArrived"]
+    }
+
+    func saveHistory(now: Date, db: Database) throws {
+        if let existing = try existingHistory(db: db) {
+            var history = existing
+            history.sourceID = history.sourceID ?? sourceID.trimmedNonEmpty
+            history.link = history.link ?? link.trimmedNonEmpty
+            history.titleHash = ArticleStore.titleHash(title)
+            history.publishedAt = publishedAt ?? history.publishedAt
+            history.lastSeenAt = now
+            history.lastArticleID = id
+            history.isRead = isRead
+            history.isStarred = isStarred
+            history.isArchived = isArchived
+            history.isHidden = isHidden
+            history.readAt = readAt
+            history.starredAt = starredAt
+            history.archivedAt = archivedAt
+            history.hiddenAt = hiddenAt
+            try history.save(db)
+            return
+        }
+
+        var history = ArticleIdentityHistoryRecord(
+            id: UUID().uuidString,
+            feedID: feedID,
+            sourceID: sourceID.trimmedNonEmpty,
+            link: link.trimmedNonEmpty,
+            titleHash: ArticleStore.titleHash(title),
+            publishedAt: publishedAt,
+            firstSeenAt: dateArrived,
+            lastSeenAt: now,
+            lastArticleID: id,
+            isRead: isRead,
+            isStarred: isStarred,
+            isArchived: isArchived,
+            isHidden: isHidden,
+            readAt: readAt,
+            starredAt: starredAt,
+            archivedAt: archivedAt,
+            hiddenAt: hiddenAt
+        )
+        try history.insert(db)
+    }
+
+    private func existingHistory(db: Database) throws -> ArticleIdentityHistoryRecord? {
+        if let sourceID = sourceID.trimmedNonEmpty {
+            let record = try ArticleIdentityHistoryRecord.fetchOne(db, sql: """
+                SELECT *
+                FROM article_identity_history
+                WHERE feedID = ? AND sourceID = ?
+                LIMIT 1
+                """, arguments: [feedID, sourceID])
+            if let record {
+                return record
+            }
+        }
+
+        if let link = link.trimmedNonEmpty {
+            let record = try ArticleIdentityHistoryRecord.fetchOne(db, sql: """
+                SELECT *
+                FROM article_identity_history
+                WHERE feedID = ? AND link = ?
+                LIMIT 1
+                """, arguments: [feedID, link])
+            if let record {
+                return record
+            }
+        }
+
+        return try ArticleIdentityHistoryRecord.fetchOne(db, sql: """
+            SELECT *
+            FROM article_identity_history
+            WHERE feedID = ? AND titleHash = ?
+            ORDER BY lastSeenAt DESC
+            LIMIT 1
+            """, arguments: [feedID, ArticleStore.titleHash(title)])
+    }
+}
+
 private extension Array {
     func chunked(into size: Int) -> [[Element]] {
         guard size > 0 else {
@@ -338,6 +484,16 @@ private extension Array {
         return stride(from: 0, to: count, by: size).map { startIndex in
             Array(self[startIndex..<Swift.min(startIndex + size, count)])
         }
+    }
+}
+
+private extension Optional where Wrapped == String {
+    var trimmedNonEmpty: String? {
+        guard let value = self?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !value.isEmpty else {
+            return nil
+        }
+        return value
     }
 }
 

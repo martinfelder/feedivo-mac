@@ -2464,7 +2464,11 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   `ArticleReaderSnapshot`, `ArticleListSnapshot`, `SQLiteReaderView` und
   `SQLiteFeedArticleListView` lesen/schreiben den Status direkt über GRDB.
   `ArticleRetentionCleanupService` bereinigt neben SwiftData nun auch SQLite-
-  Artikel inklusive Statuszeilen und Feed-Zähler-Recount. OPML-Import gibt die
+  Artikel inklusive Statuszeilen und Feed-Zähler-Recount. Vor dem Löschen
+  sichert der Service die stabile Artikelidentität und den letzten Status in
+  `article_identity_history`; `ArticleStore` kann diesen Status beim späteren
+  Wiederauftauchen über Quellen-ID, Link oder Titel-Hash wiederherstellen.
+  OPML-Import gibt die
   `FeedivoDatabase` an `FeedViewModel.importOPMLFeeds` weiter und spiegelt neue
   Feeds nach SQLite. OPML-Export liest Feed-/Feed-Tag-Snapshots über
   `FeedStore.opmlFeedsForExport` und ergänzt nur Feed-Beschreibungen aus

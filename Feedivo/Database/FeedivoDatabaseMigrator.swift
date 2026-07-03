@@ -265,6 +265,42 @@ enum FeedivoDatabaseMigrator {
             try database.execute(sql: "CREATE INDEX IF NOT EXISTS idx_feeds_url ON feeds(url)")
         }
 
+        migrator.registerMigration("v9_create_article_identity_history") { database in
+            try database.create(table: "article_identity_history") { table in
+                table.column("id", .text).primaryKey()
+                table.column("feedID", .text).notNull()
+                    .references("feeds", column: "id", onDelete: .cascade)
+                table.column("sourceID", .text)
+                table.column("link", .text)
+                table.column("titleHash", .text).notNull()
+                table.column("publishedAt", .datetime)
+                table.column("firstSeenAt", .datetime).notNull()
+                table.column("lastSeenAt", .datetime).notNull()
+                table.column("lastArticleID", .text)
+                table.column("isRead", .boolean).notNull().defaults(to: false)
+                table.column("isStarred", .boolean).notNull().defaults(to: false)
+                table.column("isArchived", .boolean).notNull().defaults(to: false)
+                table.column("isHidden", .boolean).notNull().defaults(to: false)
+                table.column("readAt", .datetime)
+                table.column("starredAt", .datetime)
+                table.column("archivedAt", .datetime)
+                table.column("hiddenAt", .datetime)
+            }
+
+            try database.execute(sql: """
+                CREATE UNIQUE INDEX idx_article_identity_history_source_unique
+                ON article_identity_history(feedID, sourceID)
+                WHERE sourceID IS NOT NULL AND sourceID <> ''
+                """)
+            try database.execute(sql: """
+                CREATE UNIQUE INDEX idx_article_identity_history_link_unique
+                ON article_identity_history(feedID, link)
+                WHERE link IS NOT NULL AND link <> ''
+                """)
+            try database.create(index: "idx_article_identity_history_title_hash", on: "article_identity_history", columns: ["feedID", "titleHash"])
+            try database.create(index: "idx_article_identity_history_last_seen", on: "article_identity_history", columns: ["lastSeenAt"])
+        }
+
         return migrator
     }
 }

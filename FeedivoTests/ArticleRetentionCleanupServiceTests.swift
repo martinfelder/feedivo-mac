@@ -1,4 +1,5 @@
 import Foundation
+import GRDB
 import SwiftData
 import Testing
 @testable import Feedivo
@@ -215,6 +216,54 @@ struct ArticleRetentionCleanupServiceTests {
         #expect(remaining.map(\.id) == [keptID])
         #expect(sqliteFeed?.unreadCount == 1)
         #expect(try ArticleStatusStore(database: database).status(articleID: expiredID) == nil)
+    }
+
+    @Test func sqliteCleanupSichertIdentitaetsHistorieVorDemLoeschen() throws {
+        let context = try testContext()
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let now = Date(timeIntervalSince1970: 10_000_000)
+        let oldDate = now.addingTimeInterval(-91 * 24 * 60 * 60)
+        let readAt = now.addingTimeInterval(-60)
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
+
+        context.insert(feed)
+        try context.save()
+
+        let feedID = feed.id.uuidString
+        try FeedStore(database: database).save(FeedRecord(id: feedID, url: feed.url, title: feed.title, unreadCount: 1))
+        let articleStore = ArticleStore(database: database)
+        let expiredID = try articleStore.upsert(ArticleUpsertInput(
+            feedID: feedID,
+            sourceID: "old-source",
+            link: "https://example.com/old",
+            title: "Alter Artikel",
+            publishedAt: oldDate,
+            arrivedAt: oldDate
+        ))
+        try ArticleStatusStore(database: database).setRead(true, articleID: expiredID, at: readAt)
+
+        let removedCount = try ArticleRetentionCleanupService.removeExpiredSQLiteArticles(
+            in: context,
+            database: database,
+            isEnabled: true,
+            retentionDays: 90,
+            now: now
+        )
+
+        let history = try database.read { db in
+            try ArticleIdentityHistoryRecord.fetchOne(db, sql: """
+                SELECT *
+                FROM article_identity_history
+                WHERE feedID = ? AND sourceID = ?
+                LIMIT 1
+                """, arguments: [feedID, "old-source"])
+        }
+
+        #expect(removedCount == 1)
+        #expect(history?.lastArticleID == expiredID)
+        #expect(history?.isRead == true)
+        #expect(history?.readAt == readAt)
+        #expect(history?.firstSeenAt == oldDate)
     }
 
     @Test func sqliteCleanupSchuetztSternUndArchivStandardmaessig() throws {

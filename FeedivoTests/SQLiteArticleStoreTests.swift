@@ -114,6 +114,53 @@ struct SQLiteArticleStoreTests {
         #expect(status?.isRead == false)
     }
 
+    @Test func upsertRestoresStatusFromIdentityHistory() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let statusStore = ArticleStatusStore(database: database)
+        let firstSeenAt = Date(timeIntervalSince1970: 1_000)
+        let readAt = Date(timeIntervalSince1970: 2_000)
+
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example"))
+
+        var history = ArticleIdentityHistoryRecord(
+            id: "history-1",
+            feedID: "feed-1",
+            sourceID: "source-1",
+            link: "https://example.com/articles/1",
+            titleHash: ArticleStore.titleHash("Alter Artikel"),
+            publishedAt: nil,
+            firstSeenAt: firstSeenAt,
+            lastSeenAt: firstSeenAt,
+            lastArticleID: "deleted-article",
+            isRead: true,
+            isStarred: false,
+            isArchived: false,
+            isHidden: false,
+            readAt: readAt,
+            starredAt: nil,
+            archivedAt: nil,
+            hiddenAt: nil
+        )
+        try database.write { db in
+            try history.insert(db)
+        }
+
+        let articleID = try articleStore.upsert(ArticleUpsertInput(
+            feedID: "feed-1",
+            sourceID: "source-1",
+            link: "https://example.com/articles/1",
+            title: "Alter Artikel",
+            arrivedAt: Date(timeIntervalSince1970: 9_000)
+        ))
+        let status = try statusStore.status(articleID: articleID)
+
+        #expect(status?.isRead == true)
+        #expect(status?.readAt == readAt)
+        #expect(status?.dateArrived == firstSeenAt)
+    }
+
     @Test func upsertUpdatesExistingArticleBySourceIDWithoutOverwritingStatus() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let feedStore = FeedStore(database: database)
