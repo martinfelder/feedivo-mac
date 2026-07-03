@@ -114,19 +114,24 @@ SQLite-Snapshots messbar nicht reicht.
 ## Aktuell größter Restblock
 
 Feedivo ist beim Artikel-Handling inzwischen deutlich NetNewsWire-artiger. Der
-offene Kern ist Feed-Identität und Navigation:
+Feed-Handling-Block ist inzwischen teilweise geschlossen:
 
-- Sidebar/ContentView weg von `@Query [Feed]`
-- Feed-Auswahl vollständig über SQLite-Feed-ID und `FeedRecord`/
-  `FeedSidebarSnapshot`
-- temporäre SwiftData-Feed-Bridge entfernen
-- alte SwiftData-Fallbacks löschen oder hart isolieren
-- `FeedViewModel` weiter verschlanken, sodass Feed-Abo, Refresh und Artikelstore
-  stärker in dedizierten Services liegen
+- [x] Sidebar/ContentView weg von `@Query [Feed]` — Sidebar nutzt nur noch
+  `SQLiteSidebarState.snapshots`.
+- [x] Feed-Auswahl vollständig über SQLite-Feed-ID: `SidebarSelection.feed`
+  trägt `FeedRecord.id` (String); Artikelliste bekommt `init(feedID:)`.
+- [x] `FeedRowView` rendert aus `FeedSidebarSnapshot`; `FeedPropertiesView`/
+  `FeedRenameView` laden `FeedRecord` via `FeedStore.feed(id:)`.
+- [ ] temporäre SwiftData-Feed-Bridge entfernen — SwiftData `Feed` ist nur noch
+  Aktionsbackend (Refresh/Delete/Badge/OPML/Wizard) und wird per ID aufgelöst.
+- [ ] alte SwiftData-Fallbacks löschen oder hart isolieren.
+- [ ] `FeedViewModel` weiter verschlanken, sodass Feed-Abo, Refresh und
+  Artikelstore stärker in dedizierten Services liegen.
 
 Kurzfassung: **Artikel-Handling ist größtenteils SQLite-/NetNewsWire-artig.
-Feed-Handling ist SQLite-first, aber noch nicht vollständig SQLite-only, weil
-die UI-Navigation noch SwiftData-Feed-Identitäten nutzt.**
+Feed-Navigationsidentität ist SQLite-only (Feed-ID). Offen ist das Entfernen der
+verbleibenden SwiftData-Feed-Brücke (OPML-/Wizard-Sheets, Badge,
+FeedViewModel-Verschlankung) — Folge-Slice `sqlite-only-feed-bridge-removal`.**
 
 ## Kurzfazit
 
