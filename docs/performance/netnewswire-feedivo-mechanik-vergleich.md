@@ -54,8 +54,9 @@ nachgeladen. Die alte SwiftData-Artikelliste ist nicht mehr Produktpfad.
 
 `TimelineStore` und `SQLiteFeedArticleListState` kapseln Timeline-Loads bereits
 außerhalb von SwiftData-`@Query`. `SQLiteFeedArticleListState` startet explizite
-async Timeline-Requests, cancelt den vorherigen Load bei Scope-/Suchwechsel und
-verwirft verspätete Ergebnisse per Generation-Check.
+Timeline-Requests über eine kleine Queue/Operation-Schicht: laufende und
+wartende Loads werden bei Scope-/Suchwechsel gecancelt, während eines noch
+laufenden Loads bleibt nur der neueste Pending-Request erhalten.
 
 **Rest im Vergleich zu NetNewsWire:** NetNewsWire kann mit `NSTableView` einzelne
 sichtbare Zeilen noch granularer neu laden. Feedivo bleibt hier bewusst SwiftUI,
@@ -126,7 +127,8 @@ Feed-Handling-Block ist inzwischen teilweise geschlossen:
   trägt `FeedRecord.id` (String); Artikelliste bekommt `init(feedID:)`.
 - [x] `FeedRowView` rendert aus `FeedSidebarSnapshot`; `FeedPropertiesView`/
   `FeedRenameView` laden `FeedRecord` via `FeedStore.feed(id:)`.
-- [x] Timeline-Loads sind cancellable und generation-gesichert.
+- [x] Timeline-Loads laufen über eine cancellable latest-wins
+  Queue/Operation-Schicht.
 - [x] Listen- und Suchfenster-Suche laufen über SQLite/FTS.
 - [ ] temporäre SwiftData-Feed-Bridge entfernen — SwiftData `Feed` ist nur noch
   Aktionsbackend (Refresh/Delete/Badge/OPML/Wizard) und wird per ID aufgelöst.
@@ -148,7 +150,7 @@ verbleibenden SwiftData-Feed-Brücke und der `ContentView`-Restabhängigkeiten v
 Feedivo ist nach den letzten SQLite-Slices deutlich näher an NetNewsWire:
 Feedivo nutzt inzwischen SQLite/GRDB für den produktiven Feed-/Artikelpfad,
 Conditional GET, Body-Hash-Skip, SQLite-first Refreshes, getrennte Statuszeilen,
-FTS-Suche, cancellable Timeline-Loads, Feednamen-Snapshots,
+FTS-Suche, cancellable latest-wins Timeline-Queue, Feednamen-Snapshots,
 Reader-SQLite-Snapshots und Snapshot-basierte Artikelzeilen.
 
 Die wichtigsten verbleibenden Unterschiede liegen nicht mehr bei kleinen
@@ -281,21 +283,25 @@ Feedivo nutzt `SQLiteFeedArticleListState` als kleine Fetch-Koordination:
 
 - `SQLiteTimelineLoadRequest`
 - `SQLiteTimelineLoadScope`
-- cancellable `Task`
-- `loadGeneration` zum Verwerfen verspäteter Ergebnisse
+- `SQLiteTimelineLoadOperation`
+- `SQLiteTimelineLoadQueue`
+- latest-wins Pending-Request: laufende und wartende Requests werden gecancelt,
+  nur der neueste wartet auf den Abschluss des aktuellen Loads
 - `ArticleDatabase`/`TimelineStore` für die eigentlichen SQL-Fetches
 
 ### Auswirkung
 
-Feedivo hat die wichtigste NetNewsWire-Mechanik übernommen: alte Loads werden
-abgebrochen und verspätete Ergebnisse dürfen die aktuelle Liste nicht mehr
+Feedivo hat die wichtigste NetNewsWire-Mechanik übernommen: Timeline-Loads laufen
+nicht mehr als unkoordinierte Einzel-Tasks, sondern durch eine kleine
+Queue/Operation-Schicht. Alte Loads werden abgebrochen, mittlere Pending-Loads
+werden ersetzt und verspätete Ergebnisse dürfen die aktuelle Liste nicht mehr
 überschreiben.
 
 ### Möglicher nächster Schritt
 
-Nur relevant, wenn Profiling weitere Probleme zeigt: die aktuelle State-Klasse
-könnte dann in einen noch klareren `SQLiteTimelineLoadCoordinator` ausgelagert
-werden. Funktional ist die Cancel-/Generation-Mechanik bereits vorhanden.
+Nur relevant, wenn Profiling weitere Probleme zeigt: die interne Queue könnte in
+eine eigene Datei ausgelagert werden, damit sie getrennt vom SwiftUI-State
+getestet werden kann.
 
 ## 4. Persistenz: SQLite vs. SwiftData
 

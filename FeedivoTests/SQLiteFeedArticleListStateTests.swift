@@ -178,14 +178,49 @@ struct SQLiteFeedArticleListStateTests {
         state.load(feedID: "feed-alt", database: database, selectedArticleID: nil)
         await waitForRequestCount(1, continuations: { continuations.count })
         state.load(feedID: "feed-neu", database: database, selectedArticleID: nil)
+
+        continuations[0].resume(returning: loadedResult(rows: [snapshot(id: "alt", feedID: "feed-alt")]))
         await waitForRequestCount(2, continuations: { continuations.count })
 
         continuations[1].resume(returning: loadedResult(rows: [snapshot(id: "neu", feedID: "feed-neu")]))
         await waitForRows(state) { $0.map(\.id) == ["neu"] }
-        continuations[0].resume(returning: loadedResult(rows: [snapshot(id: "alt", feedID: "feed-alt")]))
         await spinMainActor()
 
         #expect(requests.map(\.scope) == [.feedID("feed-alt"), .feedID("feed-neu")])
+        #expect(state.rows.map(\.id) == ["neu"])
+    }
+
+    @Test func timelineQueueFuehrtNurNeuestenPendingLoadNachAktuellemAus() async throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        var continuations: [CheckedContinuation<SQLiteTimelineLoadResult, Error>] = []
+        var requests: [SQLiteTimelineLoadRequest] = []
+        let state = SQLiteFeedArticleListState { request in
+            requests.append(request)
+            return try await withCheckedThrowingContinuation { continuation in
+                continuations.append(continuation)
+            }
+        }
+
+        state.load(feedID: "feed-alt", database: database, selectedArticleID: nil)
+        await waitForRequestCount(1, continuations: { continuations.count })
+        state.load(feedID: "feed-mitte", database: database, selectedArticleID: nil)
+        await spinMainActor()
+
+        #expect(requests.map(\.scope) == [.feedID("feed-alt")])
+
+        state.load(feedID: "feed-neu", database: database, selectedArticleID: nil)
+        await spinMainActor()
+
+        #expect(requests.map(\.scope) == [.feedID("feed-alt")])
+
+        continuations[0].resume(returning: loadedResult(rows: [snapshot(id: "alt", feedID: "feed-alt")]))
+        await waitForRequestCount(2, continuations: { continuations.count })
+
+        #expect(requests.map(\.scope) == [.feedID("feed-alt"), .feedID("feed-neu")])
+
+        continuations[1].resume(returning: loadedResult(rows: [snapshot(id: "neu", feedID: "feed-neu")]))
+        await waitForRows(state) { $0.map(\.id) == ["neu"] }
+
         #expect(state.rows.map(\.id) == ["neu"])
     }
 
@@ -203,11 +238,12 @@ struct SQLiteFeedArticleListStateTests {
         state.load(feedID: "feed-1", searchText: "alt", database: database, selectedArticleID: nil)
         await waitForRequestCount(1, continuations: { continuations.count })
         state.load(feedID: "feed-1", searchText: "neu", database: database, selectedArticleID: nil)
+
+        continuations[0].resume(returning: loadedResult(rows: [snapshot(id: "suche-alt")]))
         await waitForRequestCount(2, continuations: { continuations.count })
 
         continuations[1].resume(returning: loadedResult(rows: [snapshot(id: "suche-neu")]))
         await waitForRows(state) { $0.map(\.id) == ["suche-neu"] }
-        continuations[0].resume(returning: loadedResult(rows: [snapshot(id: "suche-alt")]))
         await spinMainActor()
 
         #expect(requests.map(\.searchText) == ["alt", "neu"])
@@ -228,12 +264,12 @@ struct SQLiteFeedArticleListStateTests {
         state.load(feedID: "feed-alt", database: database, selectedArticleID: nil)
         await waitForRequestCount(1, continuations: { continuations.count })
         state.load(feedID: "feed-neu", database: database, selectedArticleID: nil)
-        await waitForRequestCount(2, continuations: { continuations.count })
 
         continuations[0].resume(returning: loadedResult(rows: [snapshot(id: "alt")]))
         await spinMainActor()
         #expect(state.rows.map(\.id) == ["bestehend"])
 
+        await waitForRequestCount(2, continuations: { continuations.count })
         continuations[1].resume(returning: loadedResult(rows: [snapshot(id: "neu")]))
         await waitForRows(state) { $0.map(\.id) == ["neu"] }
         #expect(state.rows.map(\.id) == ["neu"])

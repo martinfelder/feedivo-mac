@@ -877,10 +877,12 @@
     koordinieren Artikel-Timelines, Reader-Snapshots und Statusänderungen damit
     über eine gemeinsame SQLite-Fassade statt über mehrere direkte Store-Zugriffe.
   - SQLite-Timeline-Fetch-Mechanik abgeschlossen: `SQLiteFeedArticleListState`
-    startet Timeline-Loads nun über explizite async Requests, cancelt den
-    vorherigen Load bei Feed-, Tag-, SmartFilter-, SmartFolder- oder Suchwechsel
-    und verwirft verspätete Ergebnisse per Generation-Check. Damit können schnelle
-    Feedwechsel keine alten Artikel-Snapshots mehr in die aktuelle Liste schreiben.
+    startet Timeline-Loads nun über eine kleine NetNewsWire-artige
+    Queue/Operation-Schicht. Laufende und wartende Loads werden bei Feed-, Tag-,
+    SmartFilter-, SmartFolder- oder Suchwechsel gecancelt; während ein Load noch
+    läuft, bleibt nur der neueste Pending-Request erhalten. Damit können schnelle
+    Feedwechsel keine alten oder mittleren Artikel-Snapshots mehr in die aktuelle
+    Liste schreiben.
   - Normale Feed-Aktionen befüllen den neuen SQLite-Pfad: `AddFeedSheet`,
     ausgewählter Feed-Refresh und `Alle Feeds aktualisieren` übergeben die
     geöffnete `FeedivoDatabase` an `FeedViewModel`. Hinzufügen und einzelner

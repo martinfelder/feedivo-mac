@@ -33,6 +33,119 @@ struct SQLiteTimelineLoadResult {
 }
 
 @MainActor
+private final class SQLiteTimelineLoadOperation {
+    typealias Loader = SQLiteFeedArticleListState.TimelineLoader
+    typealias ResultHandler = (Result<SQLiteTimelineLoadResult, Error>, SQLiteTimelineLoadOperation) -> Void
+
+    let id: Int
+    let request: SQLiteTimelineLoadRequest
+    var isCanceled = false
+    var isFinished = false
+
+    private let loader: Loader
+    private let resultHandler: ResultHandler
+
+    init(
+        id: Int,
+        request: SQLiteTimelineLoadRequest,
+        loader: @escaping Loader,
+        resultHandler: @escaping ResultHandler
+    ) {
+        self.id = id
+        self.request = request
+        self.loader = loader
+        self.resultHandler = resultHandler
+    }
+
+    func run(_ completion: @escaping (SQLiteTimelineLoadOperation) -> Void) {
+        Task { @MainActor in
+            var didCallCompletion = false
+
+            func callCompletionIfNeeded() {
+                guard !didCallCompletion else {
+                    return
+                }
+                didCallCompletion = true
+                completion(self)
+            }
+
+            guard !isCanceled else {
+                isFinished = true
+                callCompletionIfNeeded()
+                return
+            }
+
+            do {
+                let result = try await loader(request)
+                guard !isCanceled else {
+                    isFinished = true
+                    callCompletionIfNeeded()
+                    return
+                }
+
+                isFinished = true
+                resultHandler(.success(result), self)
+                callCompletionIfNeeded()
+            } catch {
+                guard !isCanceled else {
+                    isFinished = true
+                    callCompletionIfNeeded()
+                    return
+                }
+
+                isFinished = true
+                resultHandler(.failure(error), self)
+                callCompletionIfNeeded()
+            }
+        }
+    }
+}
+
+@MainActor
+private final class SQLiteTimelineLoadQueue {
+    private var pendingRequests: [SQLiteTimelineLoadOperation] = []
+    private var currentRequest: SQLiteTimelineLoadOperation?
+
+    func replacePendingWithLatest(_ operation: SQLiteTimelineLoadOperation) {
+        cancelAllRequests()
+        pendingRequests = [operation]
+        runNextRequestIfNeeded()
+    }
+
+    private func cancelAllRequests() {
+        for pendingRequest in pendingRequests {
+            pendingRequest.isCanceled = true
+        }
+        currentRequest?.isCanceled = true
+        pendingRequests = []
+    }
+
+    private func runNextRequestIfNeeded() {
+        removeCanceledAndFinishedRequests()
+        guard currentRequest == nil, let requestToRun = pendingRequests.first else {
+            return
+        }
+
+        currentRequest = requestToRun
+        pendingRequests.removeFirst()
+        requestToRun.run { [weak self] finishedRequest in
+            guard let self else {
+                return
+            }
+
+            if self.currentRequest === finishedRequest {
+                self.currentRequest = nil
+            }
+            self.runNextRequestIfNeeded()
+        }
+    }
+
+    private func removeCanceledAndFinishedRequests() {
+        pendingRequests = pendingRequests.filter { !$0.isCanceled && !$0.isFinished }
+    }
+}
+
+@MainActor
 @Observable
 final class SQLiteFeedArticleListState {
     typealias TimelineLoader = @MainActor (SQLiteTimelineLoadRequest) async throws -> SQLiteTimelineLoadResult
@@ -57,8 +170,9 @@ final class SQLiteFeedArticleListState {
     }
 
     private let timelineLoader: TimelineLoader
-    private var loadGeneration = 0
-    private var loadTask: Task<Void, Never>?
+    private let timelineQueue = SQLiteTimelineLoadQueue()
+    private var nextLoadID = 0
+    private var latestLoadID = 0
     private var currentScope: CurrentScope?
     private var currentSearchText: String?
     private var currentSelectedArticleID: String?
@@ -218,31 +332,37 @@ final class SQLiteFeedArticleListState {
     }
 
     private func startLoad(_ request: SQLiteTimelineLoadRequest) {
-        loadTask?.cancel()
-        loadGeneration += 1
-        let generation = loadGeneration
+        nextLoadID += 1
+        let loadID = nextLoadID
+        latestLoadID = loadID
         loadState = .idle
 
-        loadTask = Task { [timelineLoader] in
-            do {
-                let result = try await timelineLoader(request)
-                guard !Task.isCancelled, generation == loadGeneration else {
+        let operation = SQLiteTimelineLoadOperation(
+            id: loadID,
+            request: request,
+            loader: timelineLoader
+        ) { [weak self] result, operation in
+            guard let self, operation.id == self.latestLoadID, !operation.isCanceled else {
+                return
+            }
+
+            switch result {
+            case let .success(result):
+                self.rows = result.rows
+                self.navigationState = result.navigationState
+                self.loadState = result.loadState
+            case let .failure(error):
+                guard operation.id == self.latestLoadID else {
                     return
                 }
 
-                rows = result.rows
-                navigationState = result.navigationState
-                loadState = result.loadState
-            } catch {
-                guard !Task.isCancelled, generation == loadGeneration else {
-                    return
-                }
-
-                rows = []
-                navigationState = .empty
-                loadState = .failed(error.localizedDescription)
+                self.rows = []
+                self.navigationState = .empty
+                self.loadState = .failed(error.localizedDescription)
             }
         }
+
+        timelineQueue.replacePendingWithLatest(operation)
     }
 
     private static func defaultTimelineLoader(_ request: SQLiteTimelineLoadRequest) async throws -> SQLiteTimelineLoadResult {

@@ -2433,10 +2433,12 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 
 - 2026-07-03: SQLite-Timeline-Loads NetNewsWire-artiger abgesichert.
   `SQLiteFeedArticleListState` startet Feed-/Tag-/SmartFilter-/SmartFolder-
-  Timelines über eine explizite async Load-Request-Schicht, bricht ältere Loads
-  beim schnellen Scope- oder Suchwechsel ab und verwirft verspätete Ergebnisse
-  per Generation-Check. Neue Tests decken späte alte Feed-Ergebnisse, späte alte
-  Suchergebnisse und abgebrochene Loads ab.
+  Timelines über eine explizite Queue/Operation-Schicht nach NetNewsWire-Vorbild.
+  Beim schnellen Scope- oder Suchwechsel werden laufende und wartende Loads
+  gecancelt; solange der aktuelle Load noch ausläuft, bleibt nur der neueste
+  Pending-Request erhalten. Neue Tests decken späte alte Feed-Ergebnisse, späte
+  alte Suchergebnisse, abgebrochene Loads und das latest-wins-Pending-Verhalten
+  ab.
 
 - 2026-07-03: SQLite-Verwaltungstabellen und Stores ergänzt. Migration v6 legt
   `feed_folders`, `rules`, `rule_conditions`, `smart_folders` und
