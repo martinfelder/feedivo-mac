@@ -2027,7 +2027,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   vertikale SQLite-Scheibe: Feed-URL-Auflösung über `FeedStore`, Artikelliste via
   `TimelineStore`, Auswahl per SQLite-Artikel-ID, Reader via
   `ArticleStore.readerArticle(id:)` und Statusmutationen über
-  `ArticleStatusStore`. Normale Feed-Aktionen füllen diesen Pfad inzwischen:
+  `ArticleStatusStore`. `ArticleDatabase` bündelt diese Artikel-Stores inzwischen
+  als zentrale Fassade für den produktiven Listen-/Reader-Pfad, damit
+  UI-State-Klassen nicht mehr selbst zwischen Timeline-, Reader- und
+  Status-Stores koordinieren. Normale Feed-Aktionen füllen diesen Pfad inzwischen:
   `AddFeedSheet`, ausgewählter Feed-Refresh und `Alle Feeds aktualisieren`
   übergeben die geöffnete `FeedivoDatabase` an `FeedViewModel`; Hinzufügen und
   einzelner Refresh spiegeln Feed- und Artikeldaten nach SQLite. Der
@@ -2420,6 +2423,13 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   in SwiftData nur eine minimale Feed-Übergangsidentität für Sidebar/ContentView
   an. Doppelte OPML-Feed-URLs werden bewusst über die Service-Logik gesteuert;
   `feeds.url` ist in SQLite nicht mehr unique.
+
+- 2026-07-03: Artikel-Datenbank-Fassade ergänzt. `ArticleDatabase` bündelt
+  `FeedStore`, `TimelineStore`, `ArticleStore` und `ArticleStatusStore` für den
+  produktiven SQLite-Artikelpfad. `SQLiteFeedArticleListState` und
+  `SQLiteReaderState` sprechen dadurch nicht mehr direkt mehrere Artikel-Stores
+  an, sondern laden Timelines, Reader-Snapshots und Statusänderungen über eine
+  gemeinsame Fassade.
 
 - 2026-07-03: SQLite-Verwaltungstabellen und Stores ergänzt. Migration v6 legt
   `feed_folders`, `rules`, `rule_conditions`, `smart_folders` und

@@ -543,6 +543,21 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(!listSource.contains("ArticleSearchQuery("))
     }
 
+    @Test func sqliteArtikelStatesNutzenArticleDatabaseFassade() throws {
+        let projectRoot = projectRootURL()
+        let listStateSource = try source(at: "Feedivo/ViewModels/SQLiteFeedArticleListState.swift", projectRoot: projectRoot)
+        let readerStateSource = try source(at: "Feedivo/ViewModels/SQLiteReaderState.swift", projectRoot: projectRoot)
+
+        #expect(listStateSource.contains("ArticleDatabase(database: database)"))
+        #expect(listStateSource.contains("articleDatabase.timelineArticles("))
+        #expect(!listStateSource.contains("TimelineStore(database: database).articles("))
+        #expect(!listStateSource.contains("ArticleStatusStore(database: database)"))
+
+        #expect(readerStateSource.contains("ArticleDatabase(database: database).readerArticle"))
+        #expect(!readerStateSource.contains("ArticleStore(database: database).readerArticle"))
+        #expect(!readerStateSource.contains("ArticleStatusStore(database: database)"))
+    }
+
     @Test func articleSearchWindowLaedtErgebnisseAusSQLite() throws {
         let projectRoot = projectRootURL()
         let searchSource = try source(at: "Feedivo/Views/ArticleList/ArticleSearchWindowView.swift", projectRoot: projectRoot)

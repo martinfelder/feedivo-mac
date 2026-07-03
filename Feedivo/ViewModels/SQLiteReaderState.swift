@@ -17,7 +17,7 @@ final class SQLiteReaderState {
         errorMessage = nil
 
         do {
-            let loadedSnapshot = try ArticleStore(database: database).readerArticle(id: articleID)
+            let loadedSnapshot = try ArticleDatabase(database: database).readerArticle(id: articleID)
             snapshot = loadedSnapshot
 
             guard let loadedSnapshot else {
@@ -93,14 +93,14 @@ final class SQLiteReaderState {
 
     private func mutateStatus(
         database: FeedivoDatabase,
-        operation: (ArticleStatusStore) throws -> Void
+        operation: (ArticleDatabase) throws -> Void
     ) {
         guard let articleID = loadedArticleID else {
             return
         }
 
         do {
-            try operation(ArticleStatusStore(database: database))
+            try operation(ArticleDatabase(database: database))
             load(articleID: articleID, database: database)
         } catch {
             errorMessage = error.localizedDescription

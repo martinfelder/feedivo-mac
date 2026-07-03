@@ -45,7 +45,8 @@ final class SQLiteFeedArticleListState {
         }
 
         do {
-            guard let feed = try FeedStore(database: database).feed(id: feedID) else {
+            let articleDatabase = ArticleDatabase(database: database)
+            guard try articleDatabase.feedExists(id: feedID) else {
                 rows = []
                 navigationState = .empty
                 loadState = .missingFeed
@@ -53,9 +54,9 @@ final class SQLiteFeedArticleListState {
             }
 
             try loadTimeline(
-                scope: .feed(feed.id),
+                scope: .feed(feedID),
                 searchText: searchText,
-                database: database,
+                articleDatabase: articleDatabase,
                 selectedArticleID: selectedArticleID
             )
         } catch {
@@ -86,7 +87,7 @@ final class SQLiteFeedArticleListState {
             try loadTimeline(
                 scope: .tag(tagID),
                 searchText: searchText,
-                database: database,
+                articleDatabase: ArticleDatabase(database: database),
                 selectedArticleID: selectedArticleID
             )
         } catch {
@@ -117,7 +118,7 @@ final class SQLiteFeedArticleListState {
             try loadTimeline(
                 scope: .smartFilter(smartFilter),
                 searchText: searchText,
-                database: database,
+                articleDatabase: ArticleDatabase(database: database),
                 selectedArticleID: selectedArticleID,
                 includeHidden: smartFilter == .hidden
             )
@@ -149,7 +150,7 @@ final class SQLiteFeedArticleListState {
             try loadTimeline(
                 scope: .smartFolder(smartFolder),
                 searchText: searchText,
-                database: database,
+                articleDatabase: ArticleDatabase(database: database),
                 selectedArticleID: selectedArticleID,
                 includeHidden: smartFolder.includesHiddenArticles
             )
@@ -193,10 +194,10 @@ final class SQLiteFeedArticleListState {
     private func mutateStatus(
         articleID: String,
         database: FeedivoDatabase,
-        operation: (ArticleStatusStore) throws -> Void
+        operation: (ArticleDatabase) throws -> Void
     ) {
         do {
-            try operation(ArticleStatusStore(database: database))
+            try operation(ArticleDatabase(database: database))
             currentSelectedArticleID = articleID
 
             guard let currentScope else {
@@ -241,11 +242,11 @@ final class SQLiteFeedArticleListState {
     private func loadTimeline(
         scope: TimelineScope,
         searchText: String?,
-        database: FeedivoDatabase,
+        articleDatabase: ArticleDatabase,
         selectedArticleID: String?,
         includeHidden: Bool = false
     ) throws {
-        rows = try TimelineStore(database: database).articles(
+        rows = try articleDatabase.timelineArticles(
             scope: scope,
             searchText: searchText,
             includeRead: true,

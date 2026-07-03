@@ -871,6 +871,11 @@
     `TimelineStore`, `SQLiteReaderView` lädt Reader-Snapshots über `ArticleStore`
     und Statusaktionen schreiben direkt in `article_statuses`. Spec:
     `docs/superpowers/specs/2026-07-02-sqlite-feed-reader-path-design.md`.
+  - Artikel-Datenbank-Fassade ergänzt: `ArticleDatabase` bündelt `FeedStore`,
+    `TimelineStore`, `ArticleStore` und `ArticleStatusStore` für den produktiven
+    Listen-/Reader-Pfad. `SQLiteFeedArticleListState` und `SQLiteReaderState`
+    koordinieren Artikel-Timelines, Reader-Snapshots und Statusänderungen damit
+    über eine gemeinsame SQLite-Fassade statt über mehrere direkte Store-Zugriffe.
   - Normale Feed-Aktionen befüllen den neuen SQLite-Pfad: `AddFeedSheet`,
     ausgewählter Feed-Refresh und `Alle Feeds aktualisieren` übergeben die
     geöffnete `FeedivoDatabase` an `FeedViewModel`. Hinzufügen und einzelner
