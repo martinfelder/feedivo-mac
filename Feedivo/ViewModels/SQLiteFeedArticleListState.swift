@@ -20,6 +20,7 @@ final class SQLiteFeedArticleListState {
         case feedURL(String)
         case tagID(String)
         case smartFilter(SmartFilter)
+        case smartFolder(SQLiteSmartFolderSnapshot)
     }
 
     private var currentScope: CurrentScope?
@@ -127,6 +128,38 @@ final class SQLiteFeedArticleListState {
         }
     }
 
+    func load(
+        smartFolder: SQLiteSmartFolderSnapshot,
+        searchText: String? = nil,
+        database: FeedivoDatabase?,
+        selectedArticleID: String?
+    ) {
+        currentScope = .smartFolder(smartFolder)
+        currentSearchText = searchText
+        currentSelectedArticleID = selectedArticleID
+
+        guard let database else {
+            rows = []
+            navigationState = .empty
+            loadState = .missingSQLiteDatabase
+            return
+        }
+
+        do {
+            try loadTimeline(
+                scope: .smartFolder(smartFolder),
+                searchText: searchText,
+                database: database,
+                selectedArticleID: selectedArticleID,
+                includeHidden: smartFolder.includesHiddenArticles
+            )
+        } catch {
+            rows = []
+            navigationState = .empty
+            loadState = .failed(error.localizedDescription)
+        }
+    }
+
     func toggleRead(articleID: String, database: FeedivoDatabase) {
         guard let row = rows.first(where: { $0.id == articleID }) else {
             return
@@ -192,6 +225,13 @@ final class SQLiteFeedArticleListState {
                     database: database,
                     selectedArticleID: currentSelectedArticleID
                 )
+            case let .smartFolder(smartFolder):
+                load(
+                    smartFolder: smartFolder,
+                    searchText: currentSearchText,
+                    database: database,
+                    selectedArticleID: currentSelectedArticleID
+                )
             }
         } catch {
             loadState = .failed(error.localizedDescription)
@@ -217,5 +257,15 @@ final class SQLiteFeedArticleListState {
             selectedArticleID: selectedArticleID
         )
         loadState = .loaded
+    }
+}
+
+private extension SQLiteSmartFolderSnapshot {
+    var includesHiddenArticles: Bool {
+        conditions.contains { condition in
+            condition.field == .status
+                && condition.value == SmartFolderStatusValue.hidden.rawValue
+                && condition.conditionOperator != .isNot
+        }
     }
 }

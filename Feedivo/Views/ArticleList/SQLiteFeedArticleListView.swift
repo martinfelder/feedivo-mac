@@ -10,6 +10,7 @@ struct SQLiteFeedArticleListView: View {
         case feed(Feed)
         case tagID(String)
         case smartFilter(SmartFilter)
+        case smartFolder(SmartFolder)
     }
 
     private let scope: Scope
@@ -56,6 +57,16 @@ struct SQLiteFeedArticleListView: View {
         navigationState: Binding<SQLiteArticleNavigationState>
     ) {
         self.scope = .smartFilter(smartFilter)
+        self._selectedArticleID = selectedArticleID
+        self._navigationState = navigationState
+    }
+
+    init(
+        smartFolder: SmartFolder,
+        selectedArticleID: Binding<String?>,
+        navigationState: Binding<SQLiteArticleNavigationState>
+    ) {
+        self.scope = .smartFolder(smartFolder)
         self._selectedArticleID = selectedArticleID
         self._navigationState = navigationState
     }
@@ -214,6 +225,12 @@ struct SQLiteFeedArticleListView: View {
             return "tag:\(tagID)"
         case let .smartFilter(smartFilter):
             return "smartFilter:\(smartFilter.rawValue)"
+        case let .smartFolder(smartFolder):
+            let snapshot = SQLiteSmartFolderSnapshot(folder: smartFolder)
+            let conditionToken = snapshot.conditions
+                .map { "\($0.field.rawValue):\($0.conditionOperator.rawValue):\($0.value)" }
+                .joined(separator: "|")
+            return "smartFolder:\(snapshot.id):\(snapshot.matchMode.rawValue):\(conditionToken)"
         }
     }
 
@@ -225,6 +242,8 @@ struct SQLiteFeedArticleListView: View {
             return String(localized: "sidebar.tags.section")
         case let .smartFilter(smartFilter):
             return navigationTitle(for: smartFilter)
+        case let .smartFolder(smartFolder):
+            return smartFolder.localizedDisplayName
         }
     }
 
@@ -255,6 +274,8 @@ struct SQLiteFeedArticleListView: View {
             return "Für dieses Tag sind noch keine SQLite-Artikel gespeichert."
         case .smartFilter:
             return "Für diesen Filter sind noch keine SQLite-Artikel gespeichert."
+        case .smartFolder:
+            return "Für diesen intelligenten Ordner sind noch keine SQLite-Artikel gespeichert."
         }
     }
 
@@ -295,6 +316,13 @@ struct SQLiteFeedArticleListView: View {
         case let .smartFilter(smartFilter):
             state.load(
                 smartFilter: smartFilter,
+                searchText: debouncedSearchText,
+                database: database,
+                selectedArticleID: selectedArticleID
+            )
+        case let .smartFolder(smartFolder):
+            state.load(
+                smartFolder: SQLiteSmartFolderSnapshot(folder: smartFolder),
                 searchText: debouncedSearchText,
                 database: database,
                 selectedArticleID: selectedArticleID

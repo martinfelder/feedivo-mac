@@ -6,6 +6,7 @@ enum TimelineScope: Equatable, Sendable {
     case feed(String)
     case tag(String)
     case smartFilter(SmartFilter)
+    case smartFolder(SQLiteSmartFolderSnapshot)
 }
 
 struct TimelineStore {
@@ -54,6 +55,12 @@ struct TimelineStore {
         case let .smartFilter(smartFilter):
             appendSmartFilterWhereClause(
                 smartFilter,
+                whereClauses: &whereClauses,
+                arguments: &arguments
+            )
+        case let .smartFolder(folder):
+            appendSmartFolderWhereClause(
+                folder,
                 whereClauses: &whereClauses,
                 arguments: &arguments
             )
@@ -141,6 +148,266 @@ struct TimelineStore {
         case .hidden:
             whereClauses.append("s.isHidden = 1")
         }
+    }
+
+    private func appendSmartFolderWhereClause(
+        _ folder: SQLiteSmartFolderSnapshot,
+        whereClauses: inout [String],
+        arguments: inout StatementArguments
+    ) {
+        let conditionClauses = folder.conditions.compactMap { condition in
+            smartFolderConditionSQL(condition, arguments: &arguments)
+        }
+
+        guard !conditionClauses.isEmpty else {
+            return
+        }
+
+        let separator = folder.matchMode == .any ? " OR " : " AND "
+        whereClauses.append("(\(conditionClauses.joined(separator: separator)))")
+    }
+
+    private func smartFolderConditionSQL(
+        _ condition: SQLiteSmartFolderConditionSnapshot,
+        arguments: inout StatementArguments
+    ) -> String? {
+        switch condition.field {
+        case .tag:
+            return tagConditionSQL(condition, arguments: &arguments)
+        case .feed:
+            return feedConditionSQL(condition, arguments: &arguments)
+        case .feedFolder:
+            return stringConditionSQL(
+                sqlExpression: "f.folderName",
+                conditionOperator: condition.conditionOperator,
+                value: condition.value,
+                arguments: &arguments
+            )
+        case .date:
+            return dateConditionSQL(condition, arguments: &arguments)
+        case .status:
+            return statusConditionSQL(condition, arguments: &arguments)
+        case .title:
+            return stringConditionSQL(
+                sqlExpression: "a.title",
+                conditionOperator: condition.conditionOperator,
+                value: condition.value,
+                arguments: &arguments
+            )
+        case .text:
+            return textConditionSQL(condition, arguments: &arguments)
+        case .author:
+            return stringConditionSQL(
+                sqlExpression: "a.author",
+                conditionOperator: condition.conditionOperator,
+                value: condition.value,
+                arguments: &arguments
+            )
+        }
+    }
+
+    private func tagConditionSQL(
+        _ condition: SQLiteSmartFolderConditionSnapshot,
+        arguments: inout StatementArguments
+    ) -> String? {
+        guard condition.conditionOperator != .olderThanDays else {
+            return nil
+        }
+
+        let trimmedValue = condition.value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedValue.isEmpty else {
+            return nil
+        }
+
+        let hasTagSQL = """
+            (
+                EXISTS (
+                    SELECT 1
+                    FROM article_tags at
+                    JOIN tags t ON t.id = at.tagID
+                    WHERE at.articleID = a.id
+                        AND (at.tagID = ? OR lower(t.name) = lower(?))
+                )
+                OR EXISTS (
+                    SELECT 1
+                    FROM feed_tags ft
+                    JOIN tags t ON t.id = ft.tagID
+                    WHERE ft.feedID = a.feedID
+                        AND (ft.tagID = ? OR lower(t.name) = lower(?))
+                )
+            )
+            """
+        _ = arguments.append(contentsOf: [trimmedValue, trimmedValue, trimmedValue, trimmedValue])
+
+        return condition.conditionOperator == .isNot
+            ? "NOT \(hasTagSQL)"
+            : hasTagSQL
+    }
+
+    private func feedConditionSQL(
+        _ condition: SQLiteSmartFolderConditionSnapshot,
+        arguments: inout StatementArguments
+    ) -> String? {
+        guard condition.conditionOperator != .olderThanDays else {
+            return nil
+        }
+
+        let trimmedValue = condition.value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedValue.isEmpty else {
+            return nil
+        }
+
+        let matchesFeedSQL = "(a.feedID = ? OR lower(f.title) = lower(?))"
+        _ = arguments.append(contentsOf: [trimmedValue, trimmedValue])
+
+        return condition.conditionOperator == .isNot
+            ? "NOT \(matchesFeedSQL)"
+            : matchesFeedSQL
+    }
+
+    private func statusConditionSQL(
+        _ condition: SQLiteSmartFolderConditionSnapshot,
+        arguments: inout StatementArguments
+    ) -> String? {
+        guard condition.conditionOperator != .olderThanDays,
+              let statusValue = SmartFolderStatusValue(rawValue: condition.value)
+        else {
+            return nil
+        }
+
+        let sqlExpression: String
+        let expectedValue: Int
+        switch statusValue {
+        case .unread:
+            sqlExpression = "s.isRead"
+            expectedValue = 0
+        case .read:
+            sqlExpression = "s.isRead"
+            expectedValue = 1
+        case .starred:
+            sqlExpression = "s.isStarred"
+            expectedValue = 1
+        case .archived:
+            sqlExpression = "s.isArchived"
+            expectedValue = 1
+        case .hidden:
+            sqlExpression = "s.isHidden"
+            expectedValue = 1
+        }
+
+        _ = arguments.append(contentsOf: [expectedValue])
+        let matchesStatusSQL = "\(sqlExpression) = ?"
+        return condition.conditionOperator == .isNot
+            ? "NOT (\(matchesStatusSQL))"
+            : matchesStatusSQL
+    }
+
+    private func dateConditionSQL(
+        _ condition: SQLiteSmartFolderConditionSnapshot,
+        arguments: inout StatementArguments
+    ) -> String? {
+        let calendar = Calendar.current
+        let now = Date()
+
+        switch condition.conditionOperator {
+        case .is, .isNot:
+            guard let dateValue = SmartFolderDateValue(rawValue: condition.value) else {
+                return nil
+            }
+
+            let range: (Date, Date)
+            switch dateValue {
+            case .today:
+                let start = calendar.startOfDay(for: now)
+                let end = calendar.date(byAdding: .day, value: 1, to: start) ?? start.addingTimeInterval(24 * 60 * 60)
+                range = (start, end)
+            case .thisWeek:
+                let start = calendar.dateInterval(of: .weekOfYear, for: now)?.start ?? calendar.startOfDay(for: now)
+                let end = calendar.date(byAdding: .weekOfYear, value: 1, to: start) ?? start.addingTimeInterval(7 * 24 * 60 * 60)
+                range = (start, end)
+            }
+
+            _ = arguments.append(contentsOf: [range.0, range.1])
+            let matchesRangeSQL = "(a.publishedAt >= ? AND a.publishedAt < ?)"
+            return condition.conditionOperator == .isNot
+                ? "NOT \(matchesRangeSQL)"
+                : matchesRangeSQL
+        case .olderThanDays:
+            guard let days = Int(condition.value),
+                  let threshold = calendar.date(byAdding: .day, value: -days, to: now)
+            else {
+                return nil
+            }
+
+            _ = arguments.append(contentsOf: [threshold])
+            return "a.publishedAt < ?"
+        case .contains:
+            return nil
+        }
+    }
+
+    private func textConditionSQL(
+        _ condition: SQLiteSmartFolderConditionSnapshot,
+        arguments: inout StatementArguments
+    ) -> String? {
+        switch condition.conditionOperator {
+        case .contains:
+            guard let searchExpression = Self.makeFTSMatchExpression(from: condition.value) else {
+                return nil
+            }
+
+            _ = arguments.append(contentsOf: [searchExpression])
+            return """
+                EXISTS (
+                    SELECT 1
+                    FROM article_search
+                    WHERE article_search.rowid = a.rowid
+                        AND article_search MATCH ?
+                )
+                """
+        case .is, .isNot:
+            return stringConditionSQL(
+                sqlExpression: "COALESCE(a.title, '') || ' ' || COALESCE(a.summary, '') || ' ' || COALESCE(a.content, '')",
+                conditionOperator: condition.conditionOperator,
+                value: condition.value,
+                arguments: &arguments
+            )
+        case .olderThanDays:
+            return nil
+        }
+    }
+
+    private func stringConditionSQL(
+        sqlExpression: String,
+        conditionOperator: SmartFolderConditionOperator,
+        value: String,
+        arguments: inout StatementArguments
+    ) -> String? {
+        let trimmedValue = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedValue.isEmpty else {
+            return nil
+        }
+
+        switch conditionOperator {
+        case .is:
+            _ = arguments.append(contentsOf: [trimmedValue])
+            return "lower(\(sqlExpression)) = lower(?)"
+        case .isNot:
+            _ = arguments.append(contentsOf: [trimmedValue])
+            return "(\(sqlExpression) IS NULL OR lower(\(sqlExpression)) != lower(?))"
+        case .contains:
+            _ = arguments.append(contentsOf: ["%\(Self.escapeLikePattern(trimmedValue).lowercased())%"])
+            return "lower(\(sqlExpression)) LIKE ? ESCAPE '\\'"
+        case .olderThanDays:
+            return nil
+        }
+    }
+
+    private nonisolated static func escapeLikePattern(_ value: String) -> String {
+        value
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "%", with: "\\%")
+            .replacingOccurrences(of: "_", with: "\\_")
     }
 
     private nonisolated static func makeFTSMatchExpression(from searchText: String) -> String? {

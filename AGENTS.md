@@ -2339,15 +2339,23 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Scrollbeobachter-Ansatz hat das Scrollgefühl im Reader verschlechtert und wurde
   wieder entfernt. Für v1 bleibt der Reader ohne Lesefortschritt.
 - Nächster sinnvoller Fokus: verbleibende Hauptpfad-Lücken schließen:
-  benutzerdefinierte Smart Folders und die restlichen
-  Feed-Eigenschaften-Metriken wie neuesten Artikel und Artikel der letzten 7 Tage
-  aus SQLite-Snapshots laden.
+  restliche Feed-Eigenschaften-Metriken wie neuesten Artikel und Artikel der
+  letzten 7 Tage aus SQLite-Snapshots laden.
 - Feature-Roadmap ist in `FEATURES.md` im Root dokumentiert und muss bei Änderungen
   zusammen mit diesem Projektgedächtnis gepflegt werden
 
 ---
 
 ## Letzte Änderungen
+
+- 2026-07-03: Benutzerdefinierte Smart Folders auf SQLite-Timelines umgestellt.
+  `SQLiteSmartFolderSnapshot` übersetzt die bestehenden SwiftData-Ordner und
+  Bedingungen in sendbare Snapshots; `TimelineScope.smartFolder` baut daraus SQL
+  für Tag, Feed, Feed-Ordner, Datum, Status, Titel, Text und Autor. Text-
+  Contains nutzt den vorhandenen FTS-Index, und `ContentView` routet ausgewählte
+  Smart Folders jetzt über `SQLiteFeedArticleListView` und `SQLiteReaderView`.
+  Die Smart-Folder-Verwaltung selbst bleibt in diesem Slice bewusst in
+  SwiftData.
 
 - 2026-07-03: Separates Suchfenster auf SQLite/FTS umgestellt.
   `ArticleStore.searchArticles(state:)` übersetzt Suchtext, Suchbereich, Feed-,

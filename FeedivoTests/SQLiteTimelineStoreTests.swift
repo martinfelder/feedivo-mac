@@ -352,6 +352,152 @@ struct SQLiteTimelineStoreTests {
         #expect(snapshots.map(\.id) == [articleID])
     }
 
+    @Test func customSmartFolderMatchesAllStatusAndTitleConditions() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let fixture = try makeCustomSmartFolderFixture(database: database)
+        let statusStore = ArticleStatusStore(database: database)
+        let timelineStore = TimelineStore(database: database)
+        try statusStore.setStarred(true, articleID: fixture.swiftArticleID, at: Date(timeIntervalSince1970: 500))
+        try statusStore.setStarred(true, articleID: fixture.otherArticleID, at: Date(timeIntervalSince1970: 600))
+
+        let folder = SQLiteSmartFolderSnapshot(
+            id: "smart-starred-swift",
+            name: "Starred Swift",
+            matchMode: .all,
+            conditions: [
+                SQLiteSmartFolderConditionSnapshot(field: .status, conditionOperator: .is, value: SmartFolderStatusValue.starred.rawValue),
+                SQLiteSmartFolderConditionSnapshot(field: .title, conditionOperator: .contains, value: "Swift")
+            ]
+        )
+
+        let snapshots = try timelineStore.articles(
+            scope: .smartFolder(folder),
+            includeRead: true,
+            includeHidden: false,
+            limit: 20
+        )
+
+        #expect(snapshots.map(\.id) == [fixture.swiftArticleID])
+    }
+
+    @Test func customSmartFolderMatchesAnyTagOrFeedFolderCondition() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let fixture = try makeCustomSmartFolderFixture(database: database)
+        let tagStore = TagStore(database: database)
+        let timelineStore = TimelineStore(database: database)
+        try tagStore.assignTag(tagID: "tag-swift", toArticleID: fixture.swiftArticleID, at: Date(timeIntervalSince1970: 500))
+        try tagStore.assignTag(tagID: "tag-swift", toFeedID: "feed-2", at: Date(timeIntervalSince1970: 600))
+
+        let folder = SQLiteSmartFolderSnapshot(
+            id: "smart-tag-or-folder",
+            name: "Tagged or Folder",
+            matchMode: .any,
+            conditions: [
+                SQLiteSmartFolderConditionSnapshot(field: .tag, conditionOperator: .is, value: "tag-swift"),
+                SQLiteSmartFolderConditionSnapshot(field: .feedFolder, conditionOperator: .is, value: "News")
+            ]
+        )
+
+        let snapshots = try timelineStore.articles(
+            scope: .smartFolder(folder),
+            includeRead: true,
+            includeHidden: false,
+            limit: 20
+        )
+
+        #expect(snapshots.map(\.id) == [fixture.newsArticleID, fixture.swiftArticleID])
+    }
+
+    @Test func customSmartFolderMatchesFeedDateAuthorAndTextConditions() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let fixture = try makeCustomSmartFolderFixture(database: database)
+        let timelineStore = TimelineStore(database: database)
+
+        let folder = SQLiteSmartFolderSnapshot(
+            id: "smart-feed-date-author-text",
+            name: "Feed Date Author Text",
+            matchMode: .all,
+            conditions: [
+                SQLiteSmartFolderConditionSnapshot(field: .feed, conditionOperator: .is, value: "Example"),
+                SQLiteSmartFolderConditionSnapshot(field: .date, conditionOperator: .olderThanDays, value: "3"),
+                SQLiteSmartFolderConditionSnapshot(field: .author, conditionOperator: .contains, value: "Martin"),
+                SQLiteSmartFolderConditionSnapshot(field: .text, conditionOperator: .contains, value: "database")
+            ]
+        )
+
+        let snapshots = try timelineStore.articles(
+            scope: .smartFolder(folder),
+            includeRead: true,
+            includeHidden: false,
+            limit: 20
+        )
+
+        #expect(snapshots.map(\.id) == [fixture.oldArticleID])
+    }
+
+    @Test func customSmartFolderSupportsIsNotAndHiddenInclusion() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let fixture = try makeCustomSmartFolderFixture(database: database)
+        let statusStore = ArticleStatusStore(database: database)
+        let timelineStore = TimelineStore(database: database)
+        try statusStore.setHidden(true, articleID: fixture.hiddenArticleID, at: Date(timeIntervalSince1970: 700))
+
+        let folder = SQLiteSmartFolderSnapshot(
+            id: "smart-hidden-not-other",
+            name: "Hidden Not Other",
+            matchMode: .all,
+            conditions: [
+                SQLiteSmartFolderConditionSnapshot(field: .status, conditionOperator: .is, value: SmartFolderStatusValue.hidden.rawValue),
+                SQLiteSmartFolderConditionSnapshot(field: .feed, conditionOperator: .isNot, value: "Other")
+            ]
+        )
+
+        let excluded = try timelineStore.articles(
+            scope: .smartFolder(folder),
+            includeRead: true,
+            includeHidden: false,
+            limit: 20
+        )
+        let included = try timelineStore.articles(
+            scope: .smartFolder(folder),
+            includeRead: true,
+            includeHidden: true,
+            limit: 20
+        )
+
+        #expect(excluded.isEmpty)
+        #expect(included.map(\.id) == [fixture.hiddenArticleID])
+    }
+
+    @Test func customSmartFolderWithNoConditionsMatchesVisibleArticles() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let fixture = try makeCustomSmartFolderFixture(database: database)
+        let statusStore = ArticleStatusStore(database: database)
+        let timelineStore = TimelineStore(database: database)
+        try statusStore.setHidden(true, articleID: fixture.hiddenArticleID, at: Date(timeIntervalSince1970: 700))
+
+        let folder = SQLiteSmartFolderSnapshot(
+            id: "smart-empty",
+            name: "Empty",
+            matchMode: .all,
+            conditions: []
+        )
+
+        let snapshots = try timelineStore.articles(
+            scope: .smartFolder(folder),
+            includeRead: true,
+            includeHidden: false,
+            limit: 20
+        )
+
+        #expect(snapshots.map(\.id) == [
+            fixture.newsArticleID,
+            fixture.otherArticleID,
+            fixture.swiftArticleID,
+            fixture.oldArticleID
+        ])
+    }
+
     @Test func timelineUsesMinimumLimitOfOne() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let feedStore = FeedStore(database: database)
@@ -408,4 +554,93 @@ struct SQLiteTimelineStoreTests {
 
         return (readID, unreadID, hiddenID)
     }
+
+    private func makeCustomSmartFolderFixture(database: FeedivoDatabase) throws -> CustomSmartFolderFixture {
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let tagStore = TagStore(database: database)
+        let now = Date()
+        let oldDate = Calendar.current.date(byAdding: .day, value: -7, to: now)!
+
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example", folderName: "Tech"))
+        try feedStore.save(FeedRecord(id: "feed-2", url: "https://example.com/news.xml", title: "Newsroom", folderName: "News"))
+        try tagStore.save(TagRecord(id: "tag-swift", name: "Swift", colorHex: "#ff0000"))
+
+        let swiftArticleID = try articleStore.upsert(
+            ArticleUpsertInput(
+                feedID: "feed-1",
+                sourceID: "swift",
+                title: "Swift SQLite Bridge",
+                summary: "Fast local snapshots",
+                content: "Timeline storage",
+                author: "Martin",
+                publishedAt: now,
+                arrivedAt: Date(timeIntervalSince1970: 100)
+            )
+        )
+        let oldArticleID = try articleStore.upsert(
+            ArticleUpsertInput(
+                feedID: "feed-1",
+                sourceID: "old",
+                title: "Database Archive",
+                summary: "Long term storage",
+                content: "database history",
+                author: "Martin",
+                publishedAt: oldDate,
+                arrivedAt: Date(timeIntervalSince1970: 200)
+            )
+        )
+        let otherArticleID = try articleStore.upsert(
+            ArticleUpsertInput(
+                feedID: "feed-1",
+                sourceID: "other",
+                title: "Other Topic",
+                summary: "General update",
+                content: "No match",
+                author: "Alex",
+                publishedAt: now,
+                arrivedAt: Date(timeIntervalSince1970: 300)
+            )
+        )
+        let newsArticleID = try articleStore.upsert(
+            ArticleUpsertInput(
+                feedID: "feed-2",
+                sourceID: "news",
+                title: "Morning Briefing",
+                summary: "News folder item",
+                content: "Daily notes",
+                author: "News Desk",
+                publishedAt: now,
+                arrivedAt: Date(timeIntervalSince1970: 400)
+            )
+        )
+        let hiddenArticleID = try articleStore.upsert(
+            ArticleUpsertInput(
+                feedID: "feed-1",
+                sourceID: "hidden",
+                title: "Hidden Example",
+                summary: "Invisible",
+                content: "Hidden text",
+                author: "Martin",
+                publishedAt: now,
+                arrivedAt: Date(timeIntervalSince1970: 500)
+            )
+        )
+
+        return CustomSmartFolderFixture(
+            swiftArticleID: swiftArticleID,
+            oldArticleID: oldArticleID,
+            otherArticleID: otherArticleID,
+            newsArticleID: newsArticleID,
+            hiddenArticleID: hiddenArticleID
+        )
+    }
+}
+
+private struct CustomSmartFolderFixture {
+    let swiftArticleID: String
+    let oldArticleID: String
+    let otherArticleID: String
+    let newsArticleID: String
+    let hiddenArticleID: String
 }

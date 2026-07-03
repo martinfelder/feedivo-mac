@@ -898,6 +898,14 @@
     Scopes. Das separate globale Suchfenster nutzt ebenfalls SQLite/FTS über
     `ArticleStore.searchArticles(state:)` und hält keine globale SwiftData-
     Artikel-Query mehr.
+  - Benutzerdefinierte intelligente Ordner laden ihre Artikellisten ebenfalls
+    aus SQLite. `SQLiteSmartFolderSnapshot` übersetzt die bestehende
+    SwiftData-Definition in sendbare Bedingungen, `TimelineScope.smartFolder`
+    baut daraus SQL für Tags, Feed, Feed-Ordner, Datum, Status, Titel, Autor und
+    Text, wobei `text contains` den vorhandenen FTS-Index nutzt. `ContentView`
+    routet ausgewählte Smart Folders nun auf `SQLiteFeedArticleListView` und den
+    SQLite-Reader-Pfad; die Smart-Folder-Verwaltung bleibt in diesem Slice
+    bewusst in SwiftData.
   - SQLite-Statusänderungen halten Feed-Zähler aktuell: `ArticleStatusStore`
     berechnet nach Read-/Hidden-Mutationen `feeds.unreadCount` direkt in SQLite
     neu und bump't `SQLiteDataInvalidation.statusVersionKey`, wodurch die

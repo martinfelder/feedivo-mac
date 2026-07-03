@@ -78,12 +78,10 @@ struct ContentView: View {
 
             // SPALTE 2: Artikel-Liste des ausgewählten Feeds oder Smart Filters
             if let smartFolder = selectedSmartFolder {
-                ArticleListView(
+                SQLiteFeedArticleListView(
                     smartFolder: smartFolder,
-                    selectedArticle: $selectedArticle,
-                    navigationState: $articleNavigationState,
-                    onRequestCreateRuleFromArticle: requestCreateRuleFromArticle,
-                    onRequestExportArticle: requestExportArticle
+                    selectedArticleID: $selectedSQLiteArticleID,
+                    navigationState: $sqliteArticleNavigationState
                 )
                     .navigationSplitViewColumnWidth(min: 280, ideal: 320, max: 400)
             } else if let feed = selectedFeed {
