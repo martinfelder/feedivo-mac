@@ -34,6 +34,7 @@ class Feed {
     var articleRetentionOverridesGlobalSetting: Bool = false
     var articleRetentionIsEnabled: Bool = false
     var articleRetentionDays: Int = 90
+    var articleRetentionMinimumArticles: Int = 20
     var articleRetentionIncludesProtectedArticles: Bool = false
     var unreadCount: Int = 0
     var httpETag: String?
@@ -64,6 +65,7 @@ class Feed {
         articleRetentionOverridesGlobalSetting: Bool = false,
         articleRetentionIsEnabled: Bool = false,
         articleRetentionDays: Int = 90,
+        articleRetentionMinimumArticles: Int = 20,
         articleRetentionIncludesProtectedArticles: Bool = false,
         httpETag: String? = nil,
         httpLastModified: String? = nil,
@@ -85,6 +87,7 @@ class Feed {
         self.articleRetentionOverridesGlobalSetting = articleRetentionOverridesGlobalSetting
         self.articleRetentionIsEnabled = articleRetentionIsEnabled
         self.articleRetentionDays = articleRetentionDays
+        self.articleRetentionMinimumArticles = articleRetentionMinimumArticles
         self.articleRetentionIncludesProtectedArticles = articleRetentionIncludesProtectedArticles
         self.unreadCount = 0
         self.httpETag = httpETag
@@ -111,6 +114,7 @@ class Feed {
         articleRetentionOverridesGlobalSetting: Bool = false,
         articleRetentionIsEnabled: Bool = false,
         articleRetentionDays: Int = 90,
+        articleRetentionMinimumArticles: Int = 20,
         articleRetentionIncludesProtectedArticles: Bool = false,
         httpETag: String? = nil,
         httpLastModified: String? = nil,
@@ -131,6 +135,7 @@ class Feed {
             articleRetentionOverridesGlobalSetting: articleRetentionOverridesGlobalSetting,
             articleRetentionIsEnabled: articleRetentionIsEnabled,
             articleRetentionDays: articleRetentionDays,
+            articleRetentionMinimumArticles: articleRetentionMinimumArticles,
             articleRetentionIncludesProtectedArticles: articleRetentionIncludesProtectedArticles,
             httpETag: httpETag,
             httpLastModified: httpLastModified,

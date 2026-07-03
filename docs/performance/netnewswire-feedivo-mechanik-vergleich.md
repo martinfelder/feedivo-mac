@@ -99,7 +99,8 @@ damit Sidebar, Listen und Counts neu laden.
 
 **Grundlegend erledigt.**
 
-Retention löscht SQLite-Artikel und berücksichtigt Feed-Overrides. Vor dem
+Retention löscht SQLite-Artikel feed-basiert, berücksichtigt Feed-Overrides und
+schützt eine konfigurierbare Mindestanzahl neuester Artikel pro Feed. Vor dem
 Löschen sichert Feedivo die Artikelidentität und den letzten Status nun in
 `article_identity_history`. Beim späteren Upsert kann `ArticleStore` diese
 Historie über `sourceID`, Link oder Titel-Hash wiederfinden und Gelesen/Stern/
@@ -469,7 +470,9 @@ Status.
 Feedivo kann alte wiederauftauchende Artikel nun wiedererkennen, auch wenn der
 eigentliche Artikel und seine `article_statuses`-Zeile bereits durch Retention
 entfernt wurden. Beim erneuten Upsert wird der letzte bekannte Status aus
-`article_identity_history` wiederhergestellt.
+`article_identity_history` wiederhergestellt. Zusätzlich verhindert die
+Mindestanzahl pro Feed, dass selten aktualisierte Feeds durch aggressive
+Aufbewahrung komplett leergeräumt werden.
 
 ### Möglicher nächster Schritt
 
@@ -575,5 +578,6 @@ NetNewsWire-artige Ergänzungen:
 ### 5. Identity-Historie verfeinern
 
 Die Langzeit-Wiedererkennung alter Artikel ist mit `article_identity_history`
-grundlegend vorhanden. Für v1 nur weiter ausbauen, wenn Retention aggressiv
-genutzt wird oder reale Feeds alte Artikel häufig erneut liefern.
+grundlegend vorhanden; die Mindestanzahl pro Feed ist ebenfalls umgesetzt. Für
+v1 nur weiter ausbauen, wenn Retention aggressiv genutzt wird oder reale Feeds
+alte Artikel häufig erneut liefern.

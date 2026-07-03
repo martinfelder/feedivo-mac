@@ -590,8 +590,9 @@
   - Option in derselben Einstellung: Auch Artikel mit Stern und archivierte Artikel
     können bewusst mitgelöscht werden
   - Pro Feed in `Feed Eigenschaften...` überschreibbar: Feed kann global erben,
-    eigene Aufbewahrung aktivieren/deaktivieren, eigene Tage wählen und Stern/
-    Archivartikel optional mitlöschen
+    eigene Aufbewahrung aktivieren/deaktivieren, eigene Tage wählen, eine
+    Mindestanzahl neuester Artikel behalten und Stern/Archivartikel optional
+    mitlöschen
   - Ungelesen-Zähler betroffener Feeds werden nach dem Löschen korrigiert
   - Der Feed-Refresh importiert abgelaufene Feed-Einträge bei aktiver Aufbewahrung
     nicht erneut, damit gelöschte alte Artikel nicht wieder als ungelesen
@@ -978,6 +979,10 @@
     dem Löschen alter SQLite-Artikel stabile Quellen-ID, Link, Titel-Hash,
     Seen-Zeitpunkte und letzten Status; `ArticleStore` stellt diesen Status
     beim späteren Wiederauftauchen eines Artikels wieder her.
+  - NetNewsWire-artige Feed-Retention 2026-07-03 ergänzt: Migration v10 erweitert
+    `feeds` um `articleRetentionMinimumArticles`. Globale Bereinigung und
+    Feed-Overrides können nun eine Mindestanzahl neuester Artikel pro Feed
+    behalten, damit selten aktualisierte Feeds nicht leergeräumt werden.
     OPML-Import spiegelt neu importierte Feeds nach SQLite; OPML-Export
     bevorzugt SQLite-Feed- und Feed-Tag-Snapshots und ergänzt nur Feed-
     Beschreibungen aus SwiftData. Einzelartikel-Export aus der SQLite-Liste

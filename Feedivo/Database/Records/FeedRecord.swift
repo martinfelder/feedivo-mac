@@ -16,6 +16,7 @@ struct FeedRecord: Codable, FetchableRecord, Identifiable, MutablePersistableRec
     var articleRetentionOverridesGlobalSetting: Bool
     var articleRetentionIsEnabled: Bool
     var articleRetentionDays: Int
+    var articleRetentionMinimumArticles: Int
     var articleRetentionIncludesProtectedArticles: Bool
     var lastRefreshedAt: Date?
     var lastETag: String?
@@ -39,6 +40,7 @@ struct FeedRecord: Codable, FetchableRecord, Identifiable, MutablePersistableRec
         articleRetentionOverridesGlobalSetting: Bool = false,
         articleRetentionIsEnabled: Bool = false,
         articleRetentionDays: Int = 90,
+        articleRetentionMinimumArticles: Int = 20,
         articleRetentionIncludesProtectedArticles: Bool = false,
         lastRefreshedAt: Date? = nil,
         lastETag: String? = nil,
@@ -61,6 +63,7 @@ struct FeedRecord: Codable, FetchableRecord, Identifiable, MutablePersistableRec
         self.articleRetentionOverridesGlobalSetting = articleRetentionOverridesGlobalSetting
         self.articleRetentionIsEnabled = articleRetentionIsEnabled
         self.articleRetentionDays = articleRetentionDays
+        self.articleRetentionMinimumArticles = articleRetentionMinimumArticles
         self.articleRetentionIncludesProtectedArticles = articleRetentionIncludesProtectedArticles
         self.lastRefreshedAt = lastRefreshedAt
         self.lastETag = lastETag

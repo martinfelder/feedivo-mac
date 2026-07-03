@@ -341,6 +341,11 @@ struct SQLiteFeedSubscriptionService {
         feed.siteURL = feedRecord.websiteURL
         feed.folderName = feedRecord.folderName
         feed.refreshIntervalMinutes = feedRecord.refreshIntervalMinutes
+        feed.articleRetentionOverridesGlobalSetting = feedRecord.articleRetentionOverridesGlobalSetting
+        feed.articleRetentionIsEnabled = feedRecord.articleRetentionIsEnabled
+        feed.articleRetentionDays = feedRecord.articleRetentionDays
+        feed.articleRetentionMinimumArticles = feedRecord.articleRetentionMinimumArticles
+        feed.articleRetentionIncludesProtectedArticles = feedRecord.articleRetentionIncludesProtectedArticles
         feed.unreadCount = feedRecord.unreadCount
         try context.save()
     }

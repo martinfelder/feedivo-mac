@@ -864,8 +864,8 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   SQLite-Tabelle `feed_tags`.
 - Die globale Artikel-Aufbewahrung kann pro Feed überschrieben werden: Standard
   ist `Globale Einstellung verwenden`; bei aktiver Überschreibung kann der Feed
-  eigene Aktivierung, eigene Aufbewahrungstage und das Mitlöschen von Stern-/
-  Archivartikeln speichern.
+  eigene Aktivierung, eigene Aufbewahrungstage, eine Mindestanzahl neuester
+  Artikel und das Mitlöschen von Stern-/Archivartikeln speichern.
 - `FeedPropertiesFormatter` kapselt nächsten Abruf, neuesten Artikel, Artikelanzahl
   der letzten 7 Tage sowie gueltige Link-URLs, damit diese Logik ohne UI testbar
   bleibt
@@ -1330,11 +1330,13 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   normalen Bild-/Favicon-Cache gelöscht werden.
 - Der Bereich `Bereinigung` enthält als ersten Slice von Feature 17.3 eine globale
   Artikel-Aufbewahrung: Alte Artikel können nach 30, 60, 90, 180 oder 365 Tagen
-  automatisch gelöscht werden. Die Einstellung ist standardmäßig ausgeschaltet.
-  Artikel mit Stern oder Archivstatus bleiben standardmäßig geschützt; in derselben
-  Einstellung kann bewusst aktiviert werden, dass auch diese Artikel mitgelöscht
-  werden. Ein Button `Jetzt bereinigen` startet dieselbe Logik manuell. Einzelne
-  Feeds können diese globale Einstellung in `Feed Eigenschaften...` überschreiben.
+  automatisch gelöscht werden. Zusätzlich kann global festgelegt werden, wie
+  viele der neuesten Artikel pro Feed mindestens erhalten bleiben. Die Einstellung
+  ist standardmäßig ausgeschaltet. Artikel mit Stern oder Archivstatus bleiben
+  standardmäßig geschützt; in derselben Einstellung kann bewusst aktiviert werden,
+  dass auch diese Artikel mitgelöscht werden. Ein Button `Jetzt bereinigen`
+  startet dieselbe Logik manuell. Einzelne Feeds können diese globale Einstellung
+  in `Feed Eigenschaften...` überschreiben.
 - Geplanter späterer Ausbau für `Bereinigung`: History der letzten 10
   Bereinigungen mit Zeitpunkt und Anzahl gelöschter Artikel, konfigurierbarer
   automatischer Ausführungszeitpunkt (Wochentag/Uhrzeit, App-Start oder
@@ -1798,6 +1800,7 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
     var articleRetentionOverridesGlobalSetting: Bool // Default: false
     var articleRetentionIsEnabled: Bool      // Feed-eigene Aufbewahrung aktiv
     var articleRetentionDays: Int            // Feed-eigene Tage, Default: 90
+    var articleRetentionMinimumArticles: Int // Mindestartikel pro Feed, Default: 20
     var articleRetentionIncludesProtectedArticles: Bool // Stern/Archiv mitlöschen
     var unreadCount: Int                     // Vorberechneter Sidebar-Zähler
     @Relationship(deleteRule: .cascade) var articles: [Article]
@@ -2473,6 +2476,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   sichert der Service die stabile Artikelidentität und den letzten Status in
   `article_identity_history`; `ArticleStore` kann diesen Status beim späteren
   Wiederauftauchen über Quellen-ID, Link oder Titel-Hash wiederherstellen.
+  Migration v10 ergänzt `feeds.articleRetentionMinimumArticles`; globale und
+  Feed-eigene Aufbewahrung können dadurch NetNewsWire-artig die neuesten Artikel
+  pro Feed schützen, damit selten aktualisierte Feeds nicht vollständig leer
+  bereinigt werden.
   OPML-Import gibt die
   `FeedivoDatabase` an `FeedViewModel.importOPMLFeeds` weiter und spiegelt neue
   Feeds nach SQLite. OPML-Export liest Feed-/Feed-Tag-Snapshots über

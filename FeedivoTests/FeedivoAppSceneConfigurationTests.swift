@@ -130,7 +130,7 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(appSource.contains("private let feedViewModel"))
         #expect(appSource.contains("ContentView(feedViewModel: feedViewModel, modelContainer: modelContainer)"))
         #expect(appSource.contains("feedViewModel: feedViewModel"))
-        #expect(compact(contentSource).contains("refreshAllFeeds(feeds,modelContainer:modelContainer,sqliteDatabase:feedivoDatabase)"))
+        #expect(compact(contentSource).contains("refreshAllFeeds(sqliteDatabase:database,modelContainer:modelContainer)"))
         #expect(contentSource.contains("refreshFeedsOnLaunchIfNeeded()"))
         #expect(schedulerSource.contains("feedViewModel: FeedViewModel"))
     }
@@ -420,12 +420,12 @@ struct FeedivoAppSceneConfigurationTests {
         let bridgeStart = try #require(serviceSource.range(of: "private func saveSwiftDataBridge"))
         let bridgeDocumentationStart = serviceSource.index(
             bridgeStart.lowerBound,
-            offsetBy: -240,
+            offsetBy: -420,
             limitedBy: serviceSource.startIndex
         ) ?? serviceSource.startIndex
         let bridgeDocumentationSource = serviceSource[bridgeDocumentationStart ..< bridgeStart.lowerBound]
 
-        #expect(bridgeDocumentationSource.contains("Übergangsidentität"))
+        #expect(bridgeDocumentationSource.contains("Übergangs-Relationships"))
         #expect(bridgeDocumentationSource.contains("SwiftData"))
     }
 
@@ -684,9 +684,9 @@ struct FeedivoAppSceneConfigurationTests {
         let compactContentSource = compact(contentSource)
 
         #expect(contentSource.contains("@Environment(\\.feedivoDatabase) private var feedivoDatabase"))
-        #expect(compactContentSource.contains("refreshFeed(selectedFeed,context:modelContext,sqliteDatabase:feedivoDatabase)"))
-        #expect(compactContentSource.contains("refreshAllFeeds(feeds,modelContainer:modelContainer,sqliteDatabase:feedivoDatabase)"))
-        #expect(compactContentSource.contains("refreshAllFeeds(feeds,context:modelContext,sqliteDatabase:feedivoDatabase)"))
+        #expect(compactContentSource.contains("refreshFeed(feedID:feedID,context:modelContext,sqliteDatabase:feedivoDatabase)"))
+        #expect(compactContentSource.contains("guardletdatabase=feedivoDatabaseelse{return}"))
+        #expect(compactContentSource.contains("refreshAllFeeds(sqliteDatabase:database,modelContainer:modelContainer)"))
     }
 
     @Test func addFeedSheetUebergibtSQLiteDatabaseAnFeedViewModel() throws {

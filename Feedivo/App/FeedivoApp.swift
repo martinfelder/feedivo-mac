@@ -22,6 +22,9 @@ struct FeedivoApp: App {
     @AppStorage(ArticleRetentionSettings.retentionDaysKey)
     private var articleRetentionDays = ArticleRetentionSettings.defaultRetentionDays
 
+    @AppStorage(ArticleRetentionSettings.minimumArticlesPerFeedKey)
+    private var articleRetentionMinimumArticlesPerFeed = ArticleRetentionSettings.defaultMinimumArticlesPerFeed
+
     @AppStorage(ArticleRetentionSettings.includesProtectedArticlesKey)
     private var articleRetentionIncludesProtectedArticles = ArticleRetentionSettings.defaultIncludesProtectedArticles
 
@@ -114,6 +117,12 @@ struct FeedivoApp: App {
                 .onChange(of: articleRetentionDays) {
                     cleanupExpiredArticlesIfNeeded()
                 }
+                .onChange(of: articleRetentionMinimumArticlesPerFeed) {
+                    articleRetentionMinimumArticlesPerFeed = ArticleRetentionSettings.clampedMinimumArticlesPerFeed(
+                        articleRetentionMinimumArticlesPerFeed
+                    )
+                    cleanupExpiredArticlesIfNeeded()
+                }
                 .onChange(of: articleRetentionIncludesProtectedArticles) {
                     cleanupExpiredArticlesIfNeeded()
                 }
@@ -193,6 +202,7 @@ struct FeedivoApp: App {
             in: modelContainer.mainContext,
             isEnabled: articleRetentionIsEnabled,
             retentionDays: articleRetentionDays,
+            minimumArticlesPerFeed: articleRetentionMinimumArticlesPerFeed,
             includeProtectedArticles: articleRetentionIncludesProtectedArticles
         )
         _ = try? ArticleRetentionCleanupService.removeExpiredSQLiteArticles(
@@ -200,6 +210,7 @@ struct FeedivoApp: App {
             database: feedivoDatabase,
             isEnabled: articleRetentionIsEnabled,
             retentionDays: articleRetentionDays,
+            minimumArticlesPerFeed: articleRetentionMinimumArticlesPerFeed,
             includeProtectedArticles: articleRetentionIncludesProtectedArticles
         )
     }

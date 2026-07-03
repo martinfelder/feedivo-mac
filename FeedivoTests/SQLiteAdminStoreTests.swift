@@ -46,7 +46,8 @@ struct SQLiteAdminStoreTests {
             id: "feed-1",
             overridesGlobal: true,
             isEnabled: true,
-            days: 45,
+            days: 60,
+            minimumArticles: 10,
             includesProtectedArticles: true
         )
 
@@ -57,7 +58,8 @@ struct SQLiteAdminStoreTests {
         #expect(updatedFeed.isNotificationEnabled)
         #expect(updatedFeed.articleRetentionOverridesGlobalSetting)
         #expect(updatedFeed.articleRetentionIsEnabled)
-        #expect(updatedFeed.articleRetentionDays == 45)
+        #expect(updatedFeed.articleRetentionDays == 60)
+        #expect(updatedFeed.articleRetentionMinimumArticles == 10)
         #expect(updatedFeed.articleRetentionIncludesProtectedArticles)
 
         try store.delete(id: "feed-1")

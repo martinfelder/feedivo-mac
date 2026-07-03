@@ -883,6 +883,9 @@ private struct NewCleanupSettingsView: View {
     @AppStorage(ArticleRetentionSettings.retentionDaysKey)
     private var articleRetentionDays = ArticleRetentionSettings.defaultRetentionDays
 
+    @AppStorage(ArticleRetentionSettings.minimumArticlesPerFeedKey)
+    private var articleRetentionMinimumArticlesPerFeed = ArticleRetentionSettings.defaultMinimumArticlesPerFeed
+
     @AppStorage(ArticleRetentionSettings.includesProtectedArticlesKey)
     private var articleRetentionIncludesProtectedArticles = ArticleRetentionSettings.defaultIncludesProtectedArticles
 
@@ -916,6 +919,27 @@ private struct NewCleanupSettingsView: View {
                     .disabled(!articleRetentionIsEnabled)
                     .onChange(of: articleRetentionDays) {
                         articleRetentionDays = ArticleRetentionSettings.clampedRetentionDays(articleRetentionDays)
+                    }
+                }
+
+                NewSettingRow(
+                    title: "Mindestens pro Feed behalten",
+                    description: "So viele der neuesten Artikel bleiben pro Feed erhalten, auch wenn sie älter sind."
+                ) {
+                    Picker("Mindestens pro Feed behalten", selection: $articleRetentionMinimumArticlesPerFeed) {
+                        ForEach(ArticleRetentionSettings.allowedMinimumArticlesPerFeed, id: \.self) { count in
+                            Text(minimumArticlesLabel(count))
+                                .tag(count)
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.menu)
+                    .frame(width: 160, alignment: .trailing)
+                    .disabled(!articleRetentionIsEnabled)
+                    .onChange(of: articleRetentionMinimumArticlesPerFeed) {
+                        articleRetentionMinimumArticlesPerFeed = ArticleRetentionSettings.clampedMinimumArticlesPerFeed(
+                            articleRetentionMinimumArticlesPerFeed
+                        )
                     }
                 }
 
@@ -961,6 +985,7 @@ private struct NewCleanupSettingsView: View {
                 in: modelContext,
                 isEnabled: articleRetentionIsEnabled,
                 retentionDays: articleRetentionDays,
+                minimumArticlesPerFeed: articleRetentionMinimumArticlesPerFeed,
                 includeProtectedArticles: articleRetentionIncludesProtectedArticles
             )
             let sqliteRemovedCount: Int
@@ -970,6 +995,7 @@ private struct NewCleanupSettingsView: View {
                     database: feedivoDatabase,
                     isEnabled: articleRetentionIsEnabled,
                     retentionDays: articleRetentionDays,
+                    minimumArticlesPerFeed: articleRetentionMinimumArticlesPerFeed,
                     includeProtectedArticles: articleRetentionIncludesProtectedArticles
                 )
             } else {
@@ -983,6 +1009,10 @@ private struct NewCleanupSettingsView: View {
             retentionCleanupResult = nil
             retentionCleanupError = error.localizedDescription
         }
+    }
+
+    private func minimumArticlesLabel(_ count: Int) -> String {
+        count == 0 ? "Keine Mindestanzahl" : "\(count) Artikel"
     }
 }
 

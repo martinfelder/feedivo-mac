@@ -9,6 +9,7 @@ enum ArticleRetentionCleanupService {
         in context: ModelContext,
         isEnabled: Bool,
         retentionDays: Int,
+        minimumArticlesPerFeed: Int = ArticleRetentionSettings.defaultMinimumArticlesPerFeed,
         includeProtectedArticles: Bool = false,
         now: Date = Date()
     ) throws -> Int {
@@ -19,15 +20,39 @@ enum ArticleRetentionCleanupService {
         // bzw. Compile-Fehler), daher Reduktion über propertiesToFetch.
         let articles = try context.fetch(Article.lightFetchDescriptor())
         let feedsByID = try feedsByID(in: context)
+        let globalConfiguration = ArticleRetentionConfiguration(
+            isEnabled: isEnabled,
+            retentionDays: retentionDays,
+            minimumArticlesPerFeed: minimumArticlesPerFeed,
+            includeProtectedArticles: includeProtectedArticles,
+            now: now
+        )
+        let feedConfigurations = Dictionary(uniqueKeysWithValues: feedsByID.map { feedID, feed in
+            if feed.articleRetentionOverridesGlobalSetting {
+                return (feedID, ArticleRetentionConfiguration(ArticleRetentionSettings.effectiveConfiguration(
+                    for: feed,
+                    now: now
+                )))
+            }
+
+            return (feedID, globalConfiguration)
+        })
+        let keepArticleIDs = protectedSwiftDataArticleIDs(
+            articles,
+            feedConfigurations: feedConfigurations,
+            globalConfiguration: globalConfiguration
+        )
         let articlesToRemove = articles.filter {
             let configuration = retentionConfiguration(
                 for: $0,
                 feedsByID: feedsByID,
-                globalIsEnabled: isEnabled,
-                globalRetentionDays: retentionDays,
-                globalIncludesProtectedArticles: includeProtectedArticles,
+                globalConfiguration: globalConfiguration,
                 now: now
             )
+
+            guard !keepArticleIDs.contains(ObjectIdentifier($0)) else {
+                return false
+            }
 
             return shouldRemove(
                 $0,
@@ -71,12 +96,14 @@ enum ArticleRetentionCleanupService {
         database: FeedivoDatabase,
         isEnabled: Bool,
         retentionDays: Int,
+        minimumArticlesPerFeed: Int = ArticleRetentionSettings.defaultMinimumArticlesPerFeed,
         includeProtectedArticles: Bool = false,
         now: Date = Date()
     ) throws -> Int {
         let globalConfiguration = ArticleRetentionConfiguration(
             isEnabled: isEnabled,
             retentionDays: retentionDays,
+            minimumArticlesPerFeed: minimumArticlesPerFeed,
             includeProtectedArticles: includeProtectedArticles,
             now: now
         )
@@ -100,8 +127,17 @@ enum ArticleRetentionCleanupService {
                 JOIN article_statuses s ON s.articleID = a.id
                 """)
 
+            let protectedArticleIDs = protectedSQLiteArticleIDs(
+                candidates,
+                feedConfigurations: feedConfigurations,
+                globalConfiguration: globalConfiguration
+            )
             let expiredCandidates = candidates.filter { candidate in
                 let configuration = feedConfigurations[candidate.feedID] ?? globalConfiguration
+                guard !protectedArticleIDs.contains(candidate.id) else {
+                    return false
+                }
+
                 return shouldRemove(
                     candidate,
                     cutoffDate: configuration.cutoffDate,
@@ -182,9 +218,7 @@ enum ArticleRetentionCleanupService {
     private static func retentionConfiguration(
         for article: Article,
         feedsByID: [UUID: Feed],
-        globalIsEnabled: Bool,
-        globalRetentionDays: Int,
-        globalIncludesProtectedArticles: Bool,
+        globalConfiguration: ArticleRetentionConfiguration,
         now: Date
     ) -> ArticleRetentionConfiguration {
         if
@@ -199,12 +233,82 @@ enum ArticleRetentionCleanupService {
             return ArticleRetentionConfiguration(configuration)
         }
 
-        return ArticleRetentionConfiguration(
-            isEnabled: globalIsEnabled,
-            retentionDays: globalRetentionDays,
-            includeProtectedArticles: globalIncludesProtectedArticles,
-            now: now
-        )
+        return globalConfiguration
+    }
+
+    private static func protectedSwiftDataArticleIDs(
+        _ articles: [Article],
+        feedConfigurations: [UUID: ArticleRetentionConfiguration],
+        globalConfiguration: ArticleRetentionConfiguration
+    ) -> Set<ObjectIdentifier> {
+        let groupedArticles = Dictionary(grouping: articles) { article in
+            article.feedID
+        }
+        var protectedIDs = Set<ObjectIdentifier>()
+
+        for (feedID, feedArticles) in groupedArticles {
+            guard let feedID else {
+                continue
+            }
+
+            let minimumCount = (feedConfigurations[feedID] ?? globalConfiguration).minimumArticlesPerFeed
+            guard minimumCount > 0 else {
+                continue
+            }
+
+            let articlesToKeep = feedArticles
+                .sorted(by: swiftDataRetentionSort)
+                .prefix(minimumCount)
+            protectedIDs.formUnion(articlesToKeep.map { ObjectIdentifier($0) })
+        }
+
+        return protectedIDs
+    }
+
+    private static func protectedSQLiteArticleIDs(
+        _ candidates: [SQLiteArticleRetentionCandidate],
+        feedConfigurations: [String: ArticleRetentionConfiguration],
+        globalConfiguration: ArticleRetentionConfiguration
+    ) -> Set<String> {
+        let groupedCandidates = Dictionary(grouping: candidates, by: \.feedID)
+        var protectedIDs = Set<String>()
+
+        for (feedID, feedCandidates) in groupedCandidates {
+            let minimumCount = (feedConfigurations[feedID] ?? globalConfiguration).minimumArticlesPerFeed
+            guard minimumCount > 0 else {
+                continue
+            }
+
+            let candidatesToKeep = feedCandidates
+                .sorted(by: sqliteRetentionSort)
+                .prefix(minimumCount)
+            protectedIDs.formUnion(candidatesToKeep.map(\.id))
+        }
+
+        return protectedIDs
+    }
+
+    private static func swiftDataRetentionSort(_ lhs: Article, _ rhs: Article) -> Bool {
+        let lhsDate = lhs.publishedAt ?? .distantPast
+        let rhsDate = rhs.publishedAt ?? .distantPast
+        if lhsDate != rhsDate {
+            return lhsDate > rhsDate
+        }
+
+        return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
+    }
+
+    private static func sqliteRetentionSort(
+        _ lhs: SQLiteArticleRetentionCandidate,
+        _ rhs: SQLiteArticleRetentionCandidate
+    ) -> Bool {
+        let lhsDate = lhs.publishedAt ?? .distantPast
+        let rhsDate = rhs.publishedAt ?? .distantPast
+        if lhsDate != rhsDate {
+            return lhsDate > rhsDate
+        }
+
+        return lhs.id < rhs.id
     }
 
     @MainActor
@@ -228,6 +332,7 @@ enum ArticleRetentionCleanupService {
                 configurations[feed.id] = ArticleRetentionConfiguration(
                     isEnabled: feed.articleRetentionIsEnabled,
                     retentionDays: feed.articleRetentionDays,
+                    minimumArticlesPerFeed: feed.articleRetentionMinimumArticles,
                     includeProtectedArticles: feed.articleRetentionIncludesProtectedArticles,
                     now: now
                 )
@@ -500,17 +605,20 @@ private extension Optional where Wrapped == String {
 private struct ArticleRetentionConfiguration {
     let isEnabled: Bool
     let cutoffDate: Date
+    let minimumArticlesPerFeed: Int
     let includeProtectedArticles: Bool
 
     init(_ configuration: ArticleRetentionEffectiveConfiguration) {
         self.isEnabled = configuration.isEnabled
         self.cutoffDate = configuration.cutoffDate
+        self.minimumArticlesPerFeed = configuration.minimumArticlesPerFeed
         self.includeProtectedArticles = configuration.includeProtectedArticles
     }
 
     init(
         isEnabled: Bool,
         retentionDays: Int,
+        minimumArticlesPerFeed: Int,
         includeProtectedArticles: Bool,
         now: Date
     ) {
@@ -519,6 +627,7 @@ private struct ArticleRetentionConfiguration {
             retentionDays: retentionDays,
             now: now
         )
+        self.minimumArticlesPerFeed = ArticleRetentionSettings.clampedMinimumArticlesPerFeed(minimumArticlesPerFeed)
         self.includeProtectedArticles = includeProtectedArticles
     }
 }

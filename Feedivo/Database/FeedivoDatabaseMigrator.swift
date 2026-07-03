@@ -301,6 +301,12 @@ enum FeedivoDatabaseMigrator {
             try database.create(index: "idx_article_identity_history_last_seen", on: "article_identity_history", columns: ["lastSeenAt"])
         }
 
+        migrator.registerMigration("v10_add_feed_retention_minimum_articles") { database in
+            try database.alter(table: "feeds") { table in
+                table.add(column: "articleRetentionMinimumArticles", .integer).notNull().defaults(to: 20)
+            }
+        }
+
         return migrator
     }
 }

@@ -48,6 +48,7 @@ struct ArticleRetentionCleanupServiceTests {
             in: context,
             isEnabled: true,
             retentionDays: 90,
+            minimumArticlesPerFeed: 0,
             now: now
         )
 
@@ -83,6 +84,7 @@ struct ArticleRetentionCleanupServiceTests {
             in: context,
             isEnabled: true,
             retentionDays: 90,
+            minimumArticlesPerFeed: 0,
             now: now
         )
 
@@ -107,6 +109,7 @@ struct ArticleRetentionCleanupServiceTests {
             in: context,
             isEnabled: true,
             retentionDays: 90,
+            minimumArticlesPerFeed: 0,
             includeProtectedArticles: true,
             now: now
         )
@@ -128,6 +131,7 @@ struct ArticleRetentionCleanupServiceTests {
         customFeed.articleRetentionOverridesGlobalSetting = true
         customFeed.articleRetentionIsEnabled = true
         customFeed.articleRetentionDays = 30
+        customFeed.articleRetentionMinimumArticles = 0
         customFeed.articles = [customArticle]
         inheritedFeed.articles = [inheritedArticle]
 
@@ -139,6 +143,7 @@ struct ArticleRetentionCleanupServiceTests {
             in: context,
             isEnabled: true,
             retentionDays: 90,
+            minimumArticlesPerFeed: 0,
             now: now
         )
 
@@ -157,6 +162,7 @@ struct ArticleRetentionCleanupServiceTests {
         feed.articleRetentionOverridesGlobalSetting = true
         feed.articleRetentionIsEnabled = true
         feed.articleRetentionDays = 30
+        feed.articleRetentionMinimumArticles = 0
         feed.articles = [article]
 
         context.insert(feed)
@@ -166,6 +172,7 @@ struct ArticleRetentionCleanupServiceTests {
             in: context,
             isEnabled: false,
             retentionDays: 90,
+            minimumArticlesPerFeed: 0,
             now: now
         )
 
@@ -177,6 +184,12 @@ struct ArticleRetentionCleanupServiceTests {
     @Test func retentionSettingsKlemmenUnbekannteWerte() {
         #expect(ArticleRetentionSettings.clampedRetentionDays(100) == 90)
         #expect(ArticleRetentionSettings.clampedRetentionDays(400) == 365)
+    }
+
+    @Test func retentionSettingsKlemmenMindestartikelProFeed() {
+        #expect(ArticleRetentionSettings.clampedMinimumArticlesPerFeed(-5) == 0)
+        #expect(ArticleRetentionSettings.clampedMinimumArticlesPerFeed(17) == 20)
+        #expect(ArticleRetentionSettings.clampedMinimumArticlesPerFeed(80) == 100)
     }
 
     @Test func sqliteCleanupLoeschtAlteArtikelUndKorrigiertFeedZaehler() throws {
@@ -201,6 +214,7 @@ struct ArticleRetentionCleanupServiceTests {
             database: database,
             isEnabled: true,
             retentionDays: 90,
+            minimumArticlesPerFeed: 0,
             now: now
         )
 
@@ -247,6 +261,7 @@ struct ArticleRetentionCleanupServiceTests {
             database: database,
             isEnabled: true,
             retentionDays: 90,
+            minimumArticlesPerFeed: 0,
             now: now
         )
 
@@ -291,6 +306,7 @@ struct ArticleRetentionCleanupServiceTests {
             database: database,
             isEnabled: true,
             retentionDays: 90,
+            minimumArticlesPerFeed: 0,
             now: now
         )
 
@@ -327,7 +343,8 @@ struct ArticleRetentionCleanupServiceTests {
                 title: customFeed.title,
                 articleRetentionOverridesGlobalSetting: true,
                 articleRetentionIsEnabled: true,
-                articleRetentionDays: 30
+                articleRetentionDays: 30,
+                articleRetentionMinimumArticles: 0
             )
         )
         try FeedStore(database: database).save(FeedRecord(id: inheritedFeedID, url: inheritedFeed.url, title: inheritedFeed.title))
@@ -340,6 +357,7 @@ struct ArticleRetentionCleanupServiceTests {
             database: database,
             isEnabled: true,
             retentionDays: 90,
+            minimumArticlesPerFeed: 0,
             now: now
         )
 
@@ -353,6 +371,50 @@ struct ArticleRetentionCleanupServiceTests {
         #expect(removedCount == 1)
         #expect(!allIDs.contains(customArticleID))
         #expect(allIDs == [inheritedArticleID])
+    }
+
+    @Test func sqliteCleanupBehaeltMindestanzahlProFeed() throws {
+        let context = try testContext()
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let now = Date(timeIntervalSince1970: 10_000_000)
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
+
+        context.insert(feed)
+        try context.save()
+
+        let feedID = feed.id.uuidString
+        try FeedStore(database: database).save(FeedRecord(id: feedID, url: feed.url, title: feed.title))
+        let articleStore = ArticleStore(database: database)
+        var articleIDs: [String] = []
+        for index in 0..<12 {
+            let publishedAt = now.addingTimeInterval(-TimeInterval((100 + index) * 24 * 60 * 60))
+            articleIDs.append(try articleStore.upsert(ArticleUpsertInput(
+                feedID: feedID,
+                sourceID: "article-\(index)",
+                title: "Artikel \(index)",
+                publishedAt: publishedAt,
+                arrivedAt: publishedAt
+            )))
+        }
+
+        let removedCount = try ArticleRetentionCleanupService.removeExpiredSQLiteArticles(
+            in: context,
+            database: database,
+            isEnabled: true,
+            retentionDays: 90,
+            minimumArticlesPerFeed: 10,
+            now: now
+        )
+
+        let remainingIDs = try TimelineStore(database: database).articles(
+            scope: .feed(feedID),
+            includeRead: true,
+            includeHidden: true,
+            limit: 10
+        ).map(\.id)
+
+        #expect(removedCount == 2)
+        #expect(Set(remainingIDs) == Set(articleIDs.prefix(10)))
     }
 
     private func testContext() throws -> ModelContext {

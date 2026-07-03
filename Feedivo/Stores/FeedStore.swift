@@ -141,6 +141,7 @@ struct FeedStore {
         overridesGlobal: Bool,
         isEnabled: Bool,
         days: Int,
+        minimumArticles: Int,
         includesProtectedArticles: Bool
     ) throws {
         try database.write { db in
@@ -150,6 +151,7 @@ struct FeedStore {
                     SET articleRetentionOverridesGlobalSetting = ?,
                         articleRetentionIsEnabled = ?,
                         articleRetentionDays = ?,
+                        articleRetentionMinimumArticles = ?,
                         articleRetentionIncludesProtectedArticles = ?,
                         updatedAt = ?
                     WHERE id = ?
@@ -158,6 +160,7 @@ struct FeedStore {
                     overridesGlobal,
                     isEnabled,
                     ArticleRetentionSettings.clampedRetentionDays(days),
+                    ArticleRetentionSettings.clampedMinimumArticlesPerFeed(minimumArticles),
                     includesProtectedArticles,
                     Date(),
                     id

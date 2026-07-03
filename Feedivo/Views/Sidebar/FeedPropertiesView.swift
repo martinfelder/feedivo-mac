@@ -13,6 +13,9 @@ struct FeedPropertiesView: View {
     @AppStorage(ArticleRetentionSettings.retentionDaysKey)
     private var globalArticleRetentionDays = ArticleRetentionSettings.defaultRetentionDays
 
+    @AppStorage(ArticleRetentionSettings.minimumArticlesPerFeedKey)
+    private var globalArticleRetentionMinimumArticlesPerFeed = ArticleRetentionSettings.defaultMinimumArticlesPerFeed
+
     @AppStorage(ArticleRetentionSettings.includesProtectedArticlesKey)
     private var globalArticleRetentionIncludesProtectedArticles = ArticleRetentionSettings.defaultIncludesProtectedArticles
 
@@ -22,6 +25,7 @@ struct FeedPropertiesView: View {
     @State private var feedRetentionOverridesGlobalSetting = false
     @State private var feedRetentionIsEnabled = false
     @State private var feedRetentionDays = ArticleRetentionSettings.defaultRetentionDays
+    @State private var feedRetentionMinimumArticles = ArticleRetentionSettings.defaultMinimumArticlesPerFeed
     @State private var feedRetentionIncludesProtectedArticles = ArticleRetentionSettings.defaultIncludesProtectedArticles
     @State private var folderName = ""
     @State private var newTagName = ""
@@ -100,6 +104,9 @@ struct FeedPropertiesView: View {
             feedRetentionOverridesGlobalSetting = currentFeedRecord.articleRetentionOverridesGlobalSetting
             feedRetentionIsEnabled = currentFeedRecord.articleRetentionIsEnabled
             feedRetentionDays = ArticleRetentionSettings.clampedRetentionDays(currentFeedRecord.articleRetentionDays)
+            feedRetentionMinimumArticles = ArticleRetentionSettings.clampedMinimumArticlesPerFeed(
+                currentFeedRecord.articleRetentionMinimumArticles
+            )
             feedRetentionIncludesProtectedArticles = currentFeedRecord.articleRetentionIncludesProtectedArticles
             folderName = currentFeedRecord.folderName ?? ""
             loadSQLiteTags()
@@ -120,6 +127,10 @@ struct FeedPropertiesView: View {
         }
         .onChange(of: feedRetentionDays) {
             feedRetentionDays = ArticleRetentionSettings.clampedRetentionDays(feedRetentionDays)
+            syncFeedRetentionSettings()
+        }
+        .onChange(of: feedRetentionMinimumArticles) {
+            feedRetentionMinimumArticles = ArticleRetentionSettings.clampedMinimumArticlesPerFeed(feedRetentionMinimumArticles)
             syncFeedRetentionSettings()
         }
         .onChange(of: feedRetentionIncludesProtectedArticles) {
@@ -448,6 +459,16 @@ struct FeedPropertiesView: View {
                     .disabled(!feedRetentionIsEnabled)
                     .frame(width: 180, alignment: .leading)
 
+                    Picker("Mindestens behalten", selection: $feedRetentionMinimumArticles) {
+                        ForEach(ArticleRetentionSettings.allowedMinimumArticlesPerFeed, id: \.self) { count in
+                            Text(minimumArticlesLabel(count))
+                                .tag(count)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .disabled(!feedRetentionIsEnabled)
+                    .frame(width: 180, alignment: .leading)
+
                     Toggle(
                         L10n.settingsArticleRetentionIncludesProtectedArticles,
                         isOn: $feedRetentionIncludesProtectedArticles
@@ -689,6 +710,7 @@ struct FeedPropertiesView: View {
                 overridesGlobal: feedRetentionOverridesGlobalSetting,
                 isEnabled: feedRetentionIsEnabled,
                 days: feedRetentionDays,
+                minimumArticles: feedRetentionMinimumArticles,
                 includesProtectedArticles: feedRetentionIncludesProtectedArticles
             )
             loadSQLiteFeedDetails()
@@ -701,6 +723,7 @@ struct FeedPropertiesView: View {
             in: modelContext,
             isEnabled: globalArticleRetentionIsEnabled,
             retentionDays: globalArticleRetentionDays,
+            minimumArticlesPerFeed: globalArticleRetentionMinimumArticlesPerFeed,
             includeProtectedArticles: globalArticleRetentionIncludesProtectedArticles
         )
         if let feedivoDatabase {
@@ -709,10 +732,15 @@ struct FeedPropertiesView: View {
                 database: feedivoDatabase,
                 isEnabled: globalArticleRetentionIsEnabled,
                 retentionDays: globalArticleRetentionDays,
+                minimumArticlesPerFeed: globalArticleRetentionMinimumArticlesPerFeed,
                 includeProtectedArticles: globalArticleRetentionIncludesProtectedArticles
             )
             loadSQLiteArticleMetrics()
         }
+    }
+
+    private func minimumArticlesLabel(_ count: Int) -> String {
+        count == 0 ? "Keine Mindestanzahl" : "\(count) Artikel"
     }
 
     private var logSection: some View {
