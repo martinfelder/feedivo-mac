@@ -51,4 +51,98 @@ struct SQLiteArticleDatabaseTests {
         #expect(readerSnapshot?.isStarred == true)
         #expect(readerSnapshot?.isArchived == true)
     }
+
+    @Test func articleDatabaseBietetBreiteFetchAPIWieNetNewsWire() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let statusStore = ArticleStatusStore(database: database)
+        let articleDatabase = ArticleDatabase(database: database)
+        let today = Calendar.current.startOfDay(for: Date()).addingTimeInterval(60)
+        let yesterday = today.addingTimeInterval(-24 * 60 * 60)
+
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example"))
+        try feedStore.save(FeedRecord(id: "feed-2", url: "https://other.example/feed.xml", title: "Other"))
+
+        let feedOneReadID = try articleStore.upsert(ArticleUpsertInput(
+            feedID: "feed-1",
+            sourceID: "read",
+            title: "Gelesen",
+            publishedAt: yesterday,
+            arrivedAt: yesterday
+        ))
+        let feedOneUnreadID = try articleStore.upsert(ArticleUpsertInput(
+            feedID: "feed-1",
+            sourceID: "unread",
+            title: "Ungelesen",
+            publishedAt: today,
+            arrivedAt: today
+        ))
+        let feedTwoStarredID = try articleStore.upsert(ArticleUpsertInput(
+            feedID: "feed-2",
+            sourceID: "starred",
+            title: "Markiert",
+            publishedAt: today.addingTimeInterval(60),
+            arrivedAt: today.addingTimeInterval(60)
+        ))
+        try statusStore.setRead(true, articleID: feedOneReadID, at: today)
+        try statusStore.setStarred(true, articleID: feedTwoStarredID, at: today)
+
+        #expect(try articleDatabase.fetchArticles(feedID: "feed-1").map(\.id) == [feedOneUnreadID, feedOneReadID])
+        #expect(try articleDatabase.fetchArticles(feedIDs: ["feed-1", "feed-2"]).map(\.id) == [feedTwoStarredID, feedOneUnreadID, feedOneReadID])
+        #expect(try articleDatabase.fetchArticles(articleIDs: [feedOneReadID, feedTwoStarredID]).map(\.id) == [feedTwoStarredID, feedOneReadID])
+        #expect(try articleDatabase.fetchUnreadArticles(feedIDs: ["feed-1", "feed-2"]).map(\.id) == [feedTwoStarredID, feedOneUnreadID])
+        #expect(try articleDatabase.fetchTodayArticles(feedIDs: ["feed-1", "feed-2"]).map(\.id) == [feedTwoStarredID, feedOneUnreadID])
+        #expect(try articleDatabase.fetchStarredArticles(feedIDs: ["feed-1", "feed-2"]).map(\.id) == [feedTwoStarredID])
+    }
+
+    @Test func articleDatabaseLiefertSucheUndAggregierteCounts() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let statusStore = ArticleStatusStore(database: database)
+        let articleDatabase = ArticleDatabase(database: database)
+
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example"))
+
+        let readID = try articleStore.upsert(ArticleUpsertInput(
+            feedID: "feed-1",
+            sourceID: "read",
+            title: "SQLite Architektur",
+            summary: "Datenbank Fassade"
+        ))
+        let starredID = try articleStore.upsert(ArticleUpsertInput(
+            feedID: "feed-1",
+            sourceID: "starred",
+            title: "GRDB Suche",
+            summary: "SQLite und FTS"
+        ))
+        let archivedID = try articleStore.upsert(ArticleUpsertInput(
+            feedID: "feed-1",
+            sourceID: "archived",
+            title: "Archiv",
+            summary: "Ablage"
+        ))
+        let hiddenID = try articleStore.upsert(ArticleUpsertInput(
+            feedID: "feed-1",
+            sourceID: "hidden",
+            title: "Versteckt",
+            summary: "Ausblendung"
+        ))
+
+        try statusStore.setRead(true, articleID: readID, at: Date())
+        try statusStore.setStarred(true, articleID: starredID, at: Date())
+        try statusStore.setArchived(true, articleID: archivedID, at: Date())
+        try statusStore.setHidden(true, articleID: hiddenID, at: Date())
+
+        let counts = try articleDatabase.articleCounts(feedIDs: ["feed-1"])
+
+        #expect(try articleDatabase.searchArticles(matching: "SQLite").map(\.id) == [starredID, readID])
+        #expect(counts.totalCount == 4)
+        #expect(counts.unreadCount == 2)
+        #expect(counts.starredCount == 1)
+        #expect(counts.archivedCount == 1)
+        #expect(counts.hiddenCount == 1)
+        #expect(counts.statusCount == 4)
+    }
 }

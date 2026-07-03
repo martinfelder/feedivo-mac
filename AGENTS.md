@@ -2030,7 +2030,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   `ArticleStatusStore`. `ArticleDatabase` bündelt diese Artikel-Stores inzwischen
   als zentrale Fassade für den produktiven Listen-/Reader-Pfad, damit
   UI-State-Klassen nicht mehr selbst zwischen Timeline-, Reader- und
-  Status-Stores koordinieren. Normale Feed-Aktionen füllen diesen Pfad inzwischen:
+  Status-Stores koordinieren. Seit 2026-07-03 bietet `ArticleDatabase` zusätzlich
+  eine breitere NetNewsWire-artige API für Feed-, Feed-Set-, Article-ID-,
+  Ungelesen-, Heute-, Starred-, Such- und Count-Abfragen. Neue Artikelpfade
+  sollen bevorzugt diese Fassade nutzen. Normale Feed-Aktionen füllen diesen Pfad inzwischen:
   `AddFeedSheet`, ausgewählter Feed-Refresh und `Alle Feeds aktualisieren`
   übergeben die geöffnete `FeedivoDatabase` an `FeedViewModel`; Hinzufügen und
   einzelner Refresh spiegeln Feed- und Artikeldaten nach SQLite. Der
@@ -2429,7 +2432,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   produktiven SQLite-Artikelpfad. `SQLiteFeedArticleListState` und
   `SQLiteReaderState` sprechen dadurch nicht mehr direkt mehrere Artikel-Stores
   an, sondern laden Timelines, Reader-Snapshots und Statusänderungen über eine
-  gemeinsame Fassade.
+  gemeinsame Fassade. Die Fassade wurde außerdem um allgemeine Fetch-Methoden
+  für einzelne Feeds, Feed-Sets, Artikel-IDs, ungelesene/heutige/markierte
+  Artikel, Suche und aggregierte `ArticleCounts` erweitert.
 
 - 2026-07-03: SQLite-Timeline-Loads NetNewsWire-artiger abgesichert.
   `SQLiteFeedArticleListState` startet Feed-/Tag-/SmartFilter-/SmartFolder-

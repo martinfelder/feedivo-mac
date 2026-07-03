@@ -23,7 +23,8 @@ SQLite-Snapshots und lädt keine SwiftData-Artikel mehr als Hauptquelle.
 
 Wichtige Bausteine:
 
-- `ArticleDatabase` als Fassade
+- `ArticleDatabase` als breite Fassade für Feed-, Feed-Set-, Article-ID-,
+  Ungelesen-, Heute-, Starred-, Such- und Count-Abfragen
 - `ArticleStore`
 - `ArticleStatusStore`
 - `TimelineStore`
@@ -330,7 +331,8 @@ Feedivo nutzt für den produktiven Feed-/Artikelpfad SQLite/GRDB:
 
 - eigene Tabellen und Migrationen für Feeds, Artikel, Status, Logs, Tags,
   Regeln, Smart Folders, FTS und Offline-Inhalte
-- `ArticleDatabase` als Fassade
+- `ArticleDatabase` als breite Fassade für allgemeine Artikel-Fetches, Suche,
+  Reader-Daten, Statusänderungen und aggregierte Counts
 - gezielte Stores wie `ArticleStore`, `TimelineStore`, `FeedStore`,
   `ArticleStatusStore`, `TagStore`
 - SwiftData bleibt noch Übergangsbackend für einige Feed-Aktionen und alte

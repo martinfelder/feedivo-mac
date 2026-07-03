@@ -876,6 +876,11 @@
     Listen-/Reader-Pfad. `SQLiteFeedArticleListState` und `SQLiteReaderState`
     koordinieren Artikel-Timelines, Reader-Snapshots und Statusänderungen damit
     über eine gemeinsame SQLite-Fassade statt über mehrere direkte Store-Zugriffe.
+  - `ArticleDatabase` 2026-07-03 NetNewsWire-artiger verbreitert: Die Fassade
+    bietet allgemeine Fetch-Methoden für einen Feed, mehrere Feeds, Artikel-IDs,
+    ungelesene/heutige/markierte Artikel, Suche und aggregierte `ArticleCounts`.
+    Neue Artikelpfade sollen bevorzugt diese API nutzen, damit UI/ViewModels
+    nicht erneut direkt an einzelne SQLite-Stores koppeln.
   - SQLite-Timeline-Fetch-Mechanik abgeschlossen: `SQLiteFeedArticleListState`
     startet Timeline-Loads nun über eine kleine NetNewsWire-artige
     Queue/Operation-Schicht. Laufende und wartende Loads werden bei Feed-, Tag-,
