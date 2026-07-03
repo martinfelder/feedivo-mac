@@ -1,3 +1,5 @@
+import AppKit
+import GRDB
 import SwiftData
 import SwiftUI
 
@@ -24,6 +26,13 @@ struct SQLiteFeedArticleListView: View {
     @State private var debouncedSearchText = ""
     @State private var offlineDownloadService = SQLiteOfflineDownloadService()
     @State private var articleExportRequest: ArticleExportRequest?
+    @State private var showsReadArticles = false
+
+    @AppStorage(ArticleSortOption.storageKey)
+    private var articleSortRawValue = ArticleSortOption.newestFirst.rawValue
+
+    @AppStorage(ArticleFilterOption.storageKey)
+    private var articleFilterRawValue = ArticleFilterOption.all.rawValue
 
     init(
         feed: Feed,
@@ -88,10 +97,9 @@ struct SQLiteFeedArticleListView: View {
     var body: some View {
         VStack(spacing: 0) {
             articleSearchBar
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-
-            Divider()
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(.bar)
 
             articleContent
         }
@@ -110,6 +118,13 @@ struct SQLiteFeedArticleListView: View {
         .sheet(item: $articleExportRequest) { request in
             ArticleExportSheet(request: request) {
                 articleExportRequest = nil
+            }
+        }
+        .toolbar {
+            ToolbarItemGroup {
+                markReadMenu(visibleRows: visibleRows)
+                filterMenu
+                sortMenu
             }
         }
         .navigationTitle(navigationTitle)
@@ -154,58 +169,128 @@ struct SQLiteFeedArticleListView: View {
     }
 
     private var articleList: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                LazyVStack(spacing: 0) {
-                    ForEach(state.rows) { row in
-                        Button {
-                            selectedArticleID = row.id
-                        } label: {
-                            ArticleRowView(
-                                snapshot: ArticleListItemSnapshot(sqliteSnapshot: row),
-                                hasAvailableTags: false,
-                                onToggleRead: {
-                                    toggleRead(row.id)
-                                },
-                                onToggleStarred: {
-                                    toggleStarred(row.id)
-                                },
-                                onToggleArchived: {
-                                    toggleArchived(row.id)
-                                },
-                                onRequestAssignTag: {},
-                                onCreateRule: {},
-                                onCopyLink: {},
-                                onOpenOriginal: {},
-                                onShareOriginal: {},
-                                onOpenInWindow: {},
-                                onExport: {
-                                    requestExportArticle(row.id)
-                                },
-                                onSaveOrRemoveOffline: {
-                                    Task {
-                                        await saveOrRemoveOffline(row)
-                                    }
-                                },
-                                onDelete: {},
-                                onMarkAllRead: {}
-                            )
-                            .padding(.horizontal, 12)
-                            .background(rowBackground(for: row))
-                        }
-                        .buttonStyle(.plain)
-                        .id(row.id)
-
-                        Divider()
-                    }
+        List(selection: $selectedArticleID) {
+            if filteredRows.isEmpty {
+                articleListEmptyState(isSearching: isSearching)
+            } else {
+                ForEach(visibleRows) { row in
+                    articleRow(row, visibleRows: visibleRows)
+                        .tag(row.id)
                 }
-            }
-            .onChange(of: selectedArticleID) { _, newValue in
-                if let newValue {
-                    proxy.scrollTo(newValue, anchor: .center)
+
+                if shouldShowReadArticlesButton {
+                    showReadArticlesButton(count: hiddenReadRowCount)
                 }
             }
         }
+    }
+
+    private var filteredRows: [ArticleListSnapshot] {
+        state.rows
+            .filter(articleFilterIncludes)
+            .sorted(by: sortRows)
+    }
+
+    private var visibleRows: [ArticleListSnapshot] {
+        guard !showsReadArticles else {
+            return filteredRows
+        }
+
+        return filteredRows.filter { row in
+            !row.isRead || row.id == selectedArticleID
+        }
+    }
+
+    private var hiddenReadRowCount: Int {
+        filteredRows.filter(\.isRead).count
+    }
+
+    private var shouldShowReadArticlesButton: Bool {
+        !showsReadArticles && hiddenReadRowCount > 0
+    }
+
+    private func articleRow(
+        _ row: ArticleListSnapshot,
+        visibleRows: [ArticleListSnapshot]
+    ) -> ArticleRowView {
+        ArticleRowView(
+            snapshot: ArticleListItemSnapshot(sqliteSnapshot: row),
+            hasAvailableTags: false,
+            onToggleRead: {
+                toggleRead(row.id)
+            },
+            onToggleStarred: {
+                toggleStarred(row.id)
+            },
+            onToggleArchived: {
+                toggleArchived(row.id)
+            },
+            onRequestAssignTag: {},
+            onCreateRule: {},
+            onCopyLink: {
+                copyLink(row)
+            },
+            onOpenOriginal: {
+                openOriginal(row)
+            },
+            onShareOriginal: {
+                shareOriginal(row)
+            },
+            onOpenInWindow: {},
+            onExport: {
+                requestExportArticle(row.id)
+            },
+            onSaveOrRemoveOffline: {
+                Task {
+                    await saveOrRemoveOffline(row)
+                }
+            },
+            onDelete: {
+                deleteArticle(row.id)
+            },
+            onMarkAllRead: {
+                markRowsRead(visibleRows)
+            }
+        )
+    }
+
+    private func articleListEmptyState(isSearching: Bool) -> some View {
+        if isSearching {
+            ContentUnavailableView(
+                L10n.articleSearchNoResultsTitle,
+                systemImage: "magnifyingglass",
+                description: Text(L10n.articleSearchNoResultsDescription(debouncedSearchText))
+            )
+        } else {
+            ContentUnavailableView(
+                L10n.articleListEmptyTitle,
+                systemImage: "doc.text.magnifyingglass",
+                description: Text(L10n.articleListEmptyDescription)
+            )
+        }
+    }
+
+    private func showReadArticlesButton(count: Int) -> some View {
+        HStack {
+            Spacer()
+
+            Button {
+                showsReadArticles = true
+            } label: {
+                Label(
+                    String.localizedStringWithFormat(
+                        L10n.articleListShowReadButtonFormat,
+                        count
+                    ),
+                    systemImage: "eye"
+                )
+            }
+            .buttonStyle(.borderless)
+            .foregroundStyle(.secondary)
+
+            Spacer()
+        }
+        .padding(.vertical, 10)
     }
 
     private var articleSearchBar: some View {
@@ -315,12 +400,6 @@ struct SQLiteFeedArticleListView: View {
         !debouncedSearchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
-    private func rowBackground(for row: ArticleListSnapshot) -> Color {
-        row.id == selectedArticleID
-            ? Color.accentColor.opacity(0.14)
-            : Color.clear
-    }
-
     private func reload() {
         switch scope {
         case let .feed(feed):
@@ -355,6 +434,222 @@ struct SQLiteFeedArticleListView: View {
         navigationState = state.navigationState
     }
 
+    private func articleFilterIncludes(_ row: ArticleListSnapshot) -> Bool {
+        switch articleFilterOption {
+        case .all:
+            return true
+        case .unread:
+            return !row.isRead
+        case .starred:
+            return row.isStarred
+        case .archived:
+            return row.isArchived
+        case .today:
+            guard let publishedAt = row.publishedAt else {
+                return false
+            }
+
+            return Calendar.current.isDateInToday(publishedAt)
+        }
+    }
+
+    private func sortRows(_ first: ArticleListSnapshot, _ second: ArticleListSnapshot) -> Bool {
+        switch articleSortOption {
+        case .newestFirst:
+            compareOptionalDate(first.publishedAt, second.publishedAt, newestFirst: true)
+                ?? compareText(first.title, second.title)
+                ?? (first.id < second.id)
+        case .oldestFirst:
+            compareOptionalDate(first.publishedAt, second.publishedAt, newestFirst: false)
+                ?? compareText(first.title, second.title)
+                ?? (first.id < second.id)
+        case .feed:
+            compareText(first.feedTitle, second.feedTitle)
+                ?? compareOptionalDate(first.publishedAt, second.publishedAt, newestFirst: true)
+                ?? (first.id < second.id)
+        case .title:
+            compareText(first.title, second.title)
+                ?? compareOptionalDate(first.publishedAt, second.publishedAt, newestFirst: true)
+                ?? (first.id < second.id)
+        case .shortReadingTimeFirst:
+            compareNumber(first.estimatedReadingMinutes ?? Int.max, second.estimatedReadingMinutes ?? Int.max)
+                ?? compareOptionalDate(first.publishedAt, second.publishedAt, newestFirst: true)
+                ?? (first.id < second.id)
+        }
+    }
+
+    private func compareOptionalDate(_ first: Date?, _ second: Date?, newestFirst: Bool) -> Bool? {
+        guard first != second else {
+            return nil
+        }
+
+        guard let first else {
+            return false
+        }
+
+        guard let second else {
+            return true
+        }
+
+        return newestFirst ? first > second : first < second
+    }
+
+    private func compareText(_ first: String?, _ second: String?) -> Bool? {
+        let normalizedFirst = normalizedText(first)
+        let normalizedSecond = normalizedText(second)
+
+        guard normalizedFirst != normalizedSecond else {
+            return nil
+        }
+
+        guard let normalizedFirst else {
+            return false
+        }
+
+        guard let normalizedSecond else {
+            return true
+        }
+
+        return normalizedFirst.localizedStandardCompare(normalizedSecond) == .orderedAscending
+    }
+
+    private func compareNumber(_ first: Int, _ second: Int) -> Bool? {
+        guard first != second else {
+            return nil
+        }
+
+        return first < second
+    }
+
+    private func normalizedText(_ value: String?) -> String? {
+        guard let value else {
+            return nil
+        }
+
+        let trimmedValue = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmedValue.isEmpty ? nil : trimmedValue
+    }
+
+    private var articleSortOption: ArticleSortOption {
+        ArticleSortOption.resolved(from: articleSortRawValue)
+    }
+
+    private var articleFilterOption: ArticleFilterOption {
+        ArticleFilterOption.resolved(from: articleFilterRawValue)
+    }
+
+    private func markReadMenu(visibleRows: [ArticleListSnapshot]) -> some View {
+        Menu {
+            ForEach(ArticleMarkReadOption.allCases) { option in
+                let candidateRows = visibleRows.filter { row in
+                    !row.isRead && markReadOption(option, includes: row)
+                }
+
+                Button {
+                    markRowsRead(candidateRows)
+                } label: {
+                    Text(option.label)
+                }
+                .disabled(candidateRows.isEmpty)
+            }
+        } label: {
+            Label(L10n.articleMarkReadMenuTitle, systemImage: "checkmark.circle")
+        }
+        .help(L10n.articleMarkReadMenuTitle)
+    }
+
+    private func markReadOption(_ option: ArticleMarkReadOption, includes row: ArticleListSnapshot) -> Bool {
+        switch option {
+        case .allVisible:
+            return true
+        case .olderThanOneDay:
+            return isRow(row, olderThan: .day, value: 1)
+        case .olderThanTwoDays:
+            return isRow(row, olderThan: .day, value: 2)
+        case .olderThanThreeDays:
+            return isRow(row, olderThan: .day, value: 3)
+        case .olderThanFourDays:
+            return isRow(row, olderThan: .day, value: 4)
+        case .olderThanOneWeek:
+            return isRow(row, olderThan: .weekOfYear, value: 1)
+        case .olderThanTwoWeeks:
+            return isRow(row, olderThan: .weekOfYear, value: 2)
+        }
+    }
+
+    private func isRow(_ row: ArticleListSnapshot, olderThan component: Calendar.Component, value: Int) -> Bool {
+        guard
+            let publishedAt = row.publishedAt,
+            let cutoffDate = Calendar.current.date(byAdding: component, value: -value, to: Date())
+        else {
+            return false
+        }
+
+        return publishedAt < cutoffDate
+    }
+
+    private var filterMenu: some View {
+        Menu {
+            Section(L10n.articleListReadDisplayTitle) {
+                Button {
+                    showsReadArticles = false
+                } label: {
+                    if showsReadArticles {
+                        Text(L10n.articleListReadDisplayUnreadOnly)
+                    } else {
+                        Label(L10n.articleListReadDisplayUnreadOnly, systemImage: "checkmark")
+                    }
+                }
+
+                Button {
+                    showsReadArticles = true
+                } label: {
+                    if showsReadArticles {
+                        Label(L10n.articleListReadDisplayAll, systemImage: "checkmark")
+                    } else {
+                        Text(L10n.articleListReadDisplayAll)
+                    }
+                }
+            }
+
+            Divider()
+
+            ForEach(ArticleFilterOption.allCases) { filterOption in
+                Button {
+                    articleFilterRawValue = filterOption.rawValue
+                } label: {
+                    if filterOption == articleFilterOption {
+                        Label(filterOption.label, systemImage: "checkmark")
+                    } else {
+                        Label(filterOption.label, systemImage: filterOption.systemImage)
+                    }
+                }
+            }
+        } label: {
+            Label(L10n.articleFilterMenuTitle, systemImage: "line.3.horizontal.decrease.circle")
+        }
+        .help(L10n.articleFilterMenuTitle)
+    }
+
+    private var sortMenu: some View {
+        Menu {
+            ForEach(ArticleSortOption.allCases) { sortOption in
+                Button {
+                    articleSortRawValue = sortOption.rawValue
+                } label: {
+                    if sortOption == articleSortOption {
+                        Label(sortOption.label, systemImage: "checkmark")
+                    } else {
+                        Text(sortOption.label)
+                    }
+                }
+            }
+        } label: {
+            Label(L10n.articleSortMenuTitle, systemImage: "arrow.up.arrow.down")
+        }
+        .help(L10n.articleSortMenuTitle)
+    }
+
     private func toggleRead(_ articleID: String) {
         guard let database else {
             return
@@ -362,6 +657,22 @@ struct SQLiteFeedArticleListView: View {
 
         state.toggleRead(articleID: articleID, database: database)
         navigationState = state.navigationState
+    }
+
+    private func markRowsRead(_ rows: [ArticleListSnapshot]) {
+        guard let database else {
+            return
+        }
+
+        do {
+            let store = ArticleStatusStore(database: database)
+            for row in rows where !row.isRead {
+                try store.setRead(true, articleID: row.id, at: Date())
+            }
+            reload()
+        } catch {
+            reload()
+        }
     }
 
     private func toggleStarred(_ articleID: String) {
@@ -420,6 +731,58 @@ struct SQLiteFeedArticleListView: View {
             }
         } catch {
             state.loadState = .failed(error.localizedDescription)
+        }
+    }
+
+    private func copyLink(_ row: ArticleListSnapshot) {
+        guard let link = row.link?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !link.isEmpty
+        else {
+            return
+        }
+
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(link, forType: .string)
+    }
+
+    private func openOriginal(_ row: ArticleListSnapshot) {
+        guard let link = row.link,
+              let url = URL(string: link)
+        else {
+            return
+        }
+
+        NSWorkspace.shared.open(url)
+    }
+
+    private func shareOriginal(_ row: ArticleListSnapshot) {
+        guard let link = row.link?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !link.isEmpty
+        else {
+            return
+        }
+
+        let picker = NSSharingServicePicker(items: [row.title, link])
+        let sourceView = NSApp.keyWindow?.contentView ?? NSView()
+        picker.show(relativeTo: .zero, of: sourceView, preferredEdge: .minY)
+    }
+
+    private func deleteArticle(_ articleID: String) {
+        guard let database else {
+            return
+        }
+
+        do {
+            try database.write { db in
+                try db.execute(sql: "DELETE FROM articles WHERE id = ?", arguments: [articleID])
+            }
+            if selectedArticleID == articleID {
+                selectedArticleID = nil
+            }
+            SQLiteDataInvalidation.bumpStatusVersion()
+            reload()
+        } catch {
+            reload()
         }
     }
 

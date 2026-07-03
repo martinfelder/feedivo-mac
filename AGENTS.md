@@ -2357,6 +2357,13 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Einstellungen lesen/schreiben über `FeedRecord`/`FeedStore`; Feed-Tags laufen
   dort über `TagStore.feed_tags`, und der OPML-Export aus den Einstellungen nutzt
   SQLite-`OPMLFeed`-Snapshots.
+- 2026-07-03: SQLite-Artikelspalte und SQLite-Reader wieder optisch näher an
+  den main-Branch angeglichen. `SQLiteFeedArticleListView` nutzt wieder
+  `List(selection:)`, die main-Suchleisten-Chroming sowie Mark-read-/Filter-/
+  Sortier-Toolbar-Menüs. `SQLiteReaderView` verwendet die Reader-Typografie-
+  Settings, den Anzeige-Picker, Textformat-Popover, Safari-/Export-/Inspector-
+  Toolbar-Signale und das native Reader-Layout, statt eine vereinfachte
+  Ersatzoberfläche zu zeigen.
 - Feature 17.3 Automatisches Löschen ist umgesetzt: globale Einstellung,
   Stern-/Archiv-Schutz mit Zusatzoption und pro-Feed-Überschreibung in den
   Feed-Eigenschaften.

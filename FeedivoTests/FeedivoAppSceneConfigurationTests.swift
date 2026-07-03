@@ -81,6 +81,33 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(stateSource.contains("selectedFeedIDs: inout Set<String>"))
     }
 
+    @Test func sqliteArticleListBleibtOptischNahAnMainArticleList() throws {
+        let projectRoot = projectRootURL()
+        let listSource = try source(at: "Feedivo/Views/ArticleList/SQLiteFeedArticleListView.swift", projectRoot: projectRoot)
+
+        #expect(listSource.contains("List(selection: $selectedArticleID)"))
+        #expect(listSource.contains(".tag(row.id)"))
+        #expect(listSource.contains(".toolbar"))
+        #expect(listSource.contains("markReadMenu(visibleRows:"))
+        #expect(listSource.contains("filterMenu"))
+        #expect(listSource.contains("sortMenu"))
+        #expect(!listSource.contains("ScrollViewReader"))
+    }
+
+    @Test func sqliteReaderBleibtOptischNahAnMainReaderToolbar() throws {
+        let projectRoot = projectRootURL()
+        let readerSource = try source(at: "Feedivo/Views/Reader/SQLiteReaderView.swift", projectRoot: projectRoot)
+
+        #expect(readerSource.contains("@AppStorage(ReaderDisplayMode.storageKey)"))
+        #expect(readerSource.contains("Picker(L10n.readerDisplayModePicker"))
+        #expect(readerSource.contains("readerAppearancePopover"))
+        #expect(readerSource.contains("Image(systemName: \"safari\")"))
+        #expect(readerSource.contains("Image(systemName: \"square.and.arrow.up\")"))
+        #expect(readerSource.contains("Label(L10n.readerInspectorButton, systemImage: \"sidebar.right\")"))
+        #expect(readerSource.contains("Label(L10n.articleCreateRuleCommand"))
+        #expect(readerSource.contains("Label(L10n.articleCopyLinkCommand"))
+    }
+
     @Test func startupTaskTrimsImageCacheToSelectedLimit() throws {
         let testFileURL = URL(fileURLWithPath: #filePath)
         let projectRoot = testFileURL
@@ -723,10 +750,10 @@ struct FeedivoAppSceneConfigurationTests {
 
         #expect(source.contains("@Environment(\\.feedivoDatabase) private var feedivoDatabase"))
         #expect(source.contains("let store = TagStore(database: database)"))
-        #expect(source.contains("try store.save"))
-        #expect(source.contains("assignTag(tagID: tag.id.uuidString, toFeedID: feed.id.uuidString"))
+        #expect(source.contains("try TagStore(database: database).save(tag)"))
+        #expect(source.contains("assignTag(tagID: tag.id, toFeedID: feed.id.uuidString"))
         #expect(source.contains("try TagStore(database: database).removeTag"))
-        #expect(source.contains("tagID: tag.id.uuidString"))
+        #expect(source.contains("tagID: tag.id"))
         #expect(source.contains("fromFeedID: feed.id.uuidString"))
         #expect(source.contains("SidebarBadgeInvalidation.bumpDirectTagVersion()"))
     }
@@ -752,7 +779,7 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(propertiesSource.contains("@State private var sqliteArticleMetrics = FeedPropertiesArticleMetricsSnapshot.empty"))
         #expect(compactPropertiesSource.contains("ArticleStore(database:database).feedPropertiesMetrics(feedID:feed.id.uuidString,recentCutoffDate:"))
         #expect(compactSettingsSource.contains("FeedManagementRow(feed:feed,isSelected:selectedFeedIDs.contains(feed.id),sqliteDatabase:feedivoDatabase"))
-        #expect(compactSettingsSource.contains("ArticleStore(database:database).feedPropertiesMetrics(feedID:feed.id.uuidString,recentCutoffDate:"))
+        #expect(compactSettingsSource.contains("ArticleStore(database:database).feedPropertiesMetrics(feedID:feed.id,recentCutoffDate:"))
         #expect(!propertiesSource.contains("FeedPropertiesQuery.latestArticle(in: modelContext, for: feed)"))
         #expect(!propertiesSource.contains("FeedPropertiesQuery.recentArticleCount("))
         #expect(!settingsSource.contains("FeedPropertiesQuery.recentArticleCount("))

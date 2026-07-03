@@ -952,6 +952,11 @@
     Aktionen, Export und `In eigenem Fenster öffnen`. `ArticleWindowView` lädt
     separate Fenster über `SQLiteReaderView`, berechnet Vor-/Zurück-Navigation
     aus `TimelineStore(.all)` und hält keine SwiftData-`@Query<Article>` mehr.
+  - UI-Parität zum main-Branch nachgezogen: `SQLiteFeedArticleListView` nutzt
+    wieder die main-nahe `List(selection:)`-Darstellung mit Suchleisten-Chroming
+    und Mark-read-/Filter-/Sortier-Toolbar; `SQLiteReaderView` nutzt Reader-
+    Typografie, Anzeige-Picker, Textformat-Popover und die gewohnten Toolbar-
+    Signale statt einer vereinfachten Ersatzoberfläche.
   - OPML-Import und `Alle Feeds aktualisieren` rufen Feeds nur noch begrenzt parallel ab
   - Sidebar nutzt keine globale Artikel-Query mehr für Badge-Signaturen; beim
     Lesen invalidieren `isRead`-Änderungen dadurch nicht mehr alle Sidebar-
