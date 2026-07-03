@@ -3,18 +3,19 @@ import Testing
 @testable import Feedivo
 
 struct FeedManagementSettingsStateTests {
-    @MainActor
     @Test func filteredFeedsSuchtNachTitelURLWebsiteUndOrdner() {
-        let macFeed = Feed(
+        let macFeed = FeedRecord(
+            id: "feed-mac",
             url: "https://example.com/mac.xml",
             title: "Apple News",
-            siteURL: "https://mac.example.com",
+            websiteURL: "https://mac.example.com",
             folderName: "Technik"
         )
-        let adminFeed = Feed(
+        let adminFeed = FeedRecord(
+            id: "feed-admin",
             url: "https://admin.example.com/feed.xml",
             title: "PowerShell Blog",
-            siteURL: "https://admin.example.com",
+            websiteURL: "https://admin.example.com",
             folderName: "IT"
         )
         let feeds = [macFeed, adminFeed]
@@ -25,12 +26,11 @@ struct FeedManagementSettingsStateTests {
         #expect(FeedManagementSettingsState.filteredFeeds(feeds, searchText: " ") == feeds)
     }
 
-    @MainActor
     @Test func selectVisibleFeedsErgaenztAuswahlUndClearLeertSie() {
-        let firstFeed = Feed(url: "https://example.com/1.xml", title: "One")
-        let secondFeed = Feed(url: "https://example.com/2.xml", title: "Two")
-        let hiddenFeed = Feed(url: "https://example.com/3.xml", title: "Three")
-        var selectedFeedIDs: Set<UUID> = [hiddenFeed.id]
+        let firstFeed = FeedRecord(id: "feed-1", url: "https://example.com/1.xml", title: "One")
+        let secondFeed = FeedRecord(id: "feed-2", url: "https://example.com/2.xml", title: "Two")
+        let hiddenFeed = FeedRecord(id: "feed-3", url: "https://example.com/3.xml", title: "Three")
+        var selectedFeedIDs: Set<String> = [hiddenFeed.id]
 
         FeedManagementSettingsState.selectVisibleFeeds(
             [firstFeed, secondFeed],

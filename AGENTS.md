@@ -846,12 +846,13 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   7 Tagen veröffentlicht hat, sowie wann der Feed zuletzt aktualisiert wurde.
 - Website und XML-Adresse werden als echte Links im Standardbrowser geöffnet,
   sofern sie gueltige `http`/`https`-URLs sind; der XML-Kopierbutton bleibt erhalten
-- Aktualisierungsintervall ist direkt im Sheet editierbar und wird in SwiftData gespeichert
-- Der Ordnername ist direkt im Sheet editierbar; leere Eingaben werden als `nil`
-  gespeichert
+- Aktualisierungsintervall, Ordnername, Feed-Benachrichtigungen und
+  Feed-spezifische Artikel-Aufbewahrung werden SQLite-first über `FeedStore`
+  gespeichert; leere Ordnernamen werden als `nil` gespeichert.
 - Feed-Tags sind direkt im Sheet editierbar: Vorhandene globale Tags können per
   Plus-Chip zugewiesen, neue Tags per Eingabe erstellt und zugewiesene Tags wieder
-  entfernt werden.
+  entfernt werden. Quelle und Mutation laufen über `TagRecord`/`TagStore` und die
+  SQLite-Tabelle `feed_tags`.
 - Die globale Artikel-Aufbewahrung kann pro Feed überschrieben werden: Standard
   ist `Globale Einstellung verwenden`; bei aktiver Überschreibung kann der Feed
   eigene Aktivierung, eigene Aufbewahrungstage und das Mitlöschen von Stern-/
@@ -866,8 +867,8 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   laedt es nicht, erscheint das RSS-Systemsymbol als Fallback.
 - Sheet zeigt editierbaren Anzeigenamen, gespeicherten urspruenglichen Feed-Namen
   und einen Button zum Wiederherstellen des Originalnamens.
-- Speichern nutzt `FeedViewModel.renameFeed`, damit Trim, Leerwert-Prüfung und
-  Originalnamen-Erhalt zentral testbar bleiben.
+- Laden, Speichern und Wiederherstellen des Originalnamens laufen SQLite-first
+  über `FeedStore`; die Sidebar wird über `SQLiteDataInvalidation` neu geladen.
 
 ### FeedFolderOrganizer.swift
 - Kapselt die einfache Feed-Ordnerlogik für die Sidebar.
@@ -1310,7 +1311,8 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   `Alle sichtbaren auswählen`, `Auswahl aufheben` und destruktiver
   Löschbestätigung für die ausgewählten Feeds. Jede Feed-Zeile zeigt zusätzlich
   die Artikelanzahl der letzten 7 Tage und den Zeitpunkt der letzten
-  Aktualisierung.
+  Aktualisierung. Die Liste lädt `FeedRecord`s aus `FeedStore`, löscht Feeds über
+  SQLite und öffnet den OPML-Export mit SQLite-`OPMLFeed`-Snapshots.
 - Der Bereich `Cache` zeigt aktuelle Bild-/Favicon-Cache-Groesse, ein Speicherlimit
   mit erlaubten Werten 100 MB, 250 MB, 500 MB, 1 GB und 2 GB, sowie Aktionen zum
   Aktualisieren der Groessenanzeige und zum Leeren des Cache. Zusätzlich zeigt er
@@ -2347,6 +2349,14 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Sidebar-Feed-Ordner, Smart-Folder-Verwaltung sowie RuleSettings/RuleWizard
   laufen inzwischen SQLite-first; SwiftData bleibt dafür nur noch
   Übergangs-/Backfill-Quelle.
+- 2026-07-03: Feed-Verwaltung SQLite-first gemacht. Migration v7 ergänzt
+  Feed-Admin-Felder wie `originalTitle`, Benachrichtigungsflag und
+  Feed-spezifische Artikel-Aufbewahrung in `feeds`; `FeedStore` mutiert Rename,
+  Ordner, Refresh-Intervall, Benachrichtigungen, Retention und Delete direkt in
+  SQLite. `FeedRenameView`, `FeedPropertiesView` und die Feed-Verwaltung in den
+  Einstellungen lesen/schreiben über `FeedRecord`/`FeedStore`; Feed-Tags laufen
+  dort über `TagStore.feed_tags`, und der OPML-Export aus den Einstellungen nutzt
+  SQLite-`OPMLFeed`-Snapshots.
 - Feature 17.3 Automatisches Löschen ist umgesetzt: globale Einstellung,
   Stern-/Archiv-Schutz mit Zusatzoption und pro-Feed-Überschreibung in den
   Feed-Eigenschaften.

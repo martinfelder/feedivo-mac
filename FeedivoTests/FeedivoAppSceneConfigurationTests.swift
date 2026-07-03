@@ -32,6 +32,55 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(!appSource.contains("SettingsView.oldWindowID"))
     }
 
+    @Test func feedRenameViewMutiertSQLiteStattSwiftData() throws {
+        let projectRoot = projectRootURL()
+        let renameSource = try source(at: "Feedivo/Views/Sidebar/FeedRenameView.swift", projectRoot: projectRoot)
+
+        #expect(renameSource.contains("@Environment(\\.feedivoDatabase)"))
+        #expect(renameSource.contains("FeedStore(database: database).renameFeed"))
+        #expect(renameSource.contains("FeedStore(database: database).restoreOriginalTitle"))
+        #expect(!renameSource.contains("@Environment(\\.modelContext)"))
+        #expect(!renameSource.contains("FeedViewModel()"))
+        #expect(!renameSource.contains("viewModel.renameFeed"))
+    }
+
+    @Test func feedPropertiesViewMutiertFeedVerwaltungSQLiteFirst() throws {
+        let projectRoot = projectRootURL()
+        let propertiesSource = try source(at: "Feedivo/Views/Sidebar/FeedPropertiesView.swift", projectRoot: projectRoot)
+
+        #expect(propertiesSource.contains("@Environment(\\.feedivoDatabase)"))
+        #expect(propertiesSource.contains("FeedStore(database: database).updateRefreshInterval"))
+        #expect(propertiesSource.contains("FeedStore(database: database).updateFolderName"))
+        #expect(propertiesSource.contains("FeedStore(database: database).updateNotificationEnabled"))
+        #expect(propertiesSource.contains("FeedStore(database: database).updateRetentionSettings"))
+        #expect(propertiesSource.contains("TagStore(database: database).tags(feedID:"))
+        #expect(propertiesSource.contains("TagStore(database: database).assignTag"))
+        #expect(propertiesSource.contains("TagStore(database: database).removeTag"))
+        #expect(!propertiesSource.contains("@Query(sort: \\Tag.name)"))
+        #expect(!propertiesSource.contains("TagViewModel()"))
+        #expect(!propertiesSource.contains("modelContext.save()"))
+    }
+
+    @Test func feedManagementSettingsViewListetUndLoeschtSQLiteFeeds() throws {
+        let projectRoot = projectRootURL()
+        let settingsSource = try source(at: "Feedivo/Views/Settings/SettingsView.swift", projectRoot: projectRoot)
+        let stateSource = try source(at: "Feedivo/Views/Settings/FeedManagementSettingsState.swift", projectRoot: projectRoot)
+
+        let viewStart = try #require(settingsSource.range(of: "private struct FeedManagementSettingsView"))
+        let rowStart = try #require(settingsSource.range(of: "private struct FeedManagementRow"))
+        let viewSource = settingsSource[viewStart.lowerBound ..< rowStart.lowerBound]
+
+        #expect(viewSource.contains("@State private var feeds: [FeedRecord]"))
+        #expect(viewSource.contains("FeedStore(database: database).feeds()"))
+        #expect(viewSource.contains("FeedStore(database: database).delete(id:"))
+        #expect(viewSource.contains("OPMLExportSheet(opmlFeeds:"))
+        #expect(!viewSource.contains("@Query(sort: \\Feed.title)"))
+        #expect(!viewSource.contains("FeedViewModel()"))
+        #expect(!viewSource.contains("deleteFeed("))
+        #expect(stateSource.contains("filteredFeeds(_ feeds: [FeedRecord]"))
+        #expect(stateSource.contains("selectedFeedIDs: inout Set<String>"))
+    }
+
     @Test func startupTaskTrimsImageCacheToSelectedLimit() throws {
         let testFileURL = URL(fileURLWithPath: #filePath)
         let projectRoot = testFileURL

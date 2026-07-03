@@ -924,6 +924,12 @@
     TagManager, Sidebar-Feed-Ordner, Smart-Folder-Verwaltung sowie
     RuleSettings/RuleWizard laufen inzwischen SQLite-first; SwiftData bleibt
     dafür nur noch Übergangs-/Backfill-Quelle.
+  - Feed-Verwaltung 2026-07-03 SQLite-first gemacht: Migration v7 ergänzt
+    Feed-Admin-Felder in `feeds`; `FeedRenameView`, `FeedPropertiesView` und die
+    Feed-Verwaltung in den Einstellungen laden und mutieren `FeedRecord`s über
+    `FeedStore`. Feed-Tags in den Feed-Eigenschaften laufen über `TagStore` und
+    `feed_tags`; der OPML-Export aus der Feed-Verwaltung nutzt SQLite-
+    `OPMLFeed`-Snapshots.
   - SQLite-Statusänderungen halten Feed-Zähler aktuell: `ArticleStatusStore`
     berechnet nach Read-/Hidden-Mutationen `feeds.unreadCount` direkt in SQLite
     neu und bump't `SQLiteDataInvalidation.statusVersionKey`, wodurch die
@@ -1042,7 +1048,10 @@
     statt `FeedLogEntry`-Objekte über SwiftData zu laden
   - Feed-Eigenschaften und Feed-Verwaltungszeilen laden neuesten Artikel und
     Artikel der letzten 7 Tage über `ArticleStore.feedPropertiesMetrics` aus
-    SQLite, statt `FeedPropertiesQuery` auf SwiftData-Artikeln zu verwenden
+    SQLite, statt `FeedPropertiesQuery` auf SwiftData-Artikeln zu verwenden.
+    Bearbeitbare Feed-Eigenschaften wie Name, Ordner, Intervall,
+    Benachrichtigungen, Feed-Tags und Retention werden dort ebenfalls über
+    SQLite-Stores geschrieben.
   - Vordefinierte SmartFilter verwenden `TimelineScope.smartFilter` und die
     SQLite-Artikelliste/Reader-Kette, statt globale SwiftData-Artikelqueries zu
     materialisieren

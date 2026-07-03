@@ -4,6 +4,7 @@ struct OPMLExportSheet: View {
     @Environment(\.feedivoDatabase) private var feedivoDatabase
 
     let feeds: [Feed]
+    let feedCount: Int
     let onClose: () -> Void
 
     @State private var includesFolders = true
@@ -35,8 +36,16 @@ struct OPMLExportSheet: View {
 
     init(feeds: [Feed], onClose: @escaping () -> Void) {
         self.feeds = feeds
+        self.feedCount = feeds.count
         self.onClose = onClose
         _opmlFeeds = State(initialValue: FeedViewModel.opmlFeedsForExport(from: feeds))
+    }
+
+    init(opmlFeeds: [OPMLFeed], onClose: @escaping () -> Void) {
+        self.feeds = []
+        self.feedCount = opmlFeeds.count
+        self.onClose = onClose
+        _opmlFeeds = State(initialValue: opmlFeeds)
     }
 
     private var folderCount: Int {
@@ -86,7 +95,7 @@ struct OPMLExportSheet: View {
 
             Spacer(minLength: 0)
 
-            Text(L10n.opmlExportFeedCount(feeds.count))
+            Text(L10n.opmlExportFeedCount(feedCount))
                 .font(.caption)
                 .fontWeight(.semibold)
                 .foregroundStyle(.green)
@@ -162,7 +171,7 @@ struct OPMLExportSheet: View {
                 .fontWeight(.semibold)
 
             VStack(spacing: 8) {
-                summaryRow(label: L10n.opmlExportSummaryFeeds, value: "\(feeds.count)")
+                summaryRow(label: L10n.opmlExportSummaryFeeds, value: "\(feedCount)")
                 summaryRow(label: L10n.opmlExportSummaryFolders, value: includesFolders ? L10n.opmlExportFolderCount(folderCount) : L10n.commonOff)
                 summaryRow(label: L10n.opmlExportSummaryTags, value: includesTags ? L10n.opmlExportTagCount(tagCount) : L10n.commonOff)
                 summaryRow(label: L10n.opmlExportSummaryDescriptions, value: includesDescriptions ? L10n.opmlExportDescriptionCount(descriptionCount) : L10n.commonOff)
@@ -206,7 +215,7 @@ struct OPMLExportSheet: View {
             }
             .keyboardShortcut(.defaultAction)
             .buttonStyle(.borderedProminent)
-            .disabled(feeds.isEmpty)
+            .disabled(feedCount == 0)
         }
         .padding(.horizontal, 18)
         .padding(.vertical, 12)
@@ -240,6 +249,10 @@ struct OPMLExportSheet: View {
 
     private func loadExportFeeds() {
         let swiftDataFeeds = FeedViewModel.opmlFeedsForExport(from: feeds)
+        guard !feeds.isEmpty else {
+            return
+        }
+
         guard let feedivoDatabase else {
             opmlFeeds = swiftDataFeeds
             return

@@ -18,6 +18,52 @@ struct SQLiteAdminStoreTests {
         #expect(try store.folders().map(\.id) == ["folder-b"])
     }
 
+    @Test func feedStoreMutiertFeedVerwaltungSQLiteFirst() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let store = FeedStore(database: database)
+
+        try store.save(
+            FeedRecord(
+                id: "feed-1",
+                url: "https://example.com/feed.xml",
+                title: "Example",
+                originalTitle: "Example Original",
+                refreshIntervalMinutes: 30
+            )
+        )
+
+        try store.renameFeed(id: "feed-1", displayTitle: "Example Display")
+        #expect(try store.feed(id: "feed-1")?.title == "Example Display")
+        #expect(try store.feed(id: "feed-1")?.originalTitle == "Example Original")
+
+        try store.restoreOriginalTitle(id: "feed-1")
+        #expect(try store.feed(id: "feed-1")?.title == "Example Original")
+
+        try store.updateRefreshInterval(id: "feed-1", minutes: 120)
+        try store.updateFolderName(id: "feed-1", folderName: " Technik ")
+        try store.updateNotificationEnabled(id: "feed-1", isEnabled: true)
+        try store.updateRetentionSettings(
+            id: "feed-1",
+            overridesGlobal: true,
+            isEnabled: true,
+            days: 45,
+            includesProtectedArticles: true
+        )
+
+        let updatedFeedOptional = try store.feed(id: "feed-1")
+        let updatedFeed = try #require(updatedFeedOptional)
+        #expect(updatedFeed.refreshIntervalMinutes == 120)
+        #expect(updatedFeed.folderName == "Technik")
+        #expect(updatedFeed.isNotificationEnabled)
+        #expect(updatedFeed.articleRetentionOverridesGlobalSetting)
+        #expect(updatedFeed.articleRetentionIsEnabled)
+        #expect(updatedFeed.articleRetentionDays == 45)
+        #expect(updatedFeed.articleRetentionIncludesProtectedArticles)
+
+        try store.delete(id: "feed-1")
+        #expect(try store.feed(id: "feed-1") == nil)
+    }
+
     @Test func tagStoreMutiertTagsSQLiteFirst() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let store = TagStore(database: database)

@@ -243,6 +243,23 @@ enum FeedivoDatabaseMigrator {
             try database.create(index: "idx_smart_folder_conditions_folder_sort", on: "smart_folder_conditions", columns: ["smartFolderID", "sortOrder"])
         }
 
+        migrator.registerMigration("v7_add_feed_admin_fields") { database in
+            try database.alter(table: "feeds") { table in
+                table.add(column: "originalTitle", .text)
+                table.add(column: "isNotificationEnabled", .boolean).notNull().defaults(to: false)
+                table.add(column: "articleRetentionOverridesGlobalSetting", .boolean).notNull().defaults(to: false)
+                table.add(column: "articleRetentionIsEnabled", .boolean).notNull().defaults(to: false)
+                table.add(column: "articleRetentionDays", .integer).notNull().defaults(to: 90)
+                table.add(column: "articleRetentionIncludesProtectedArticles", .boolean).notNull().defaults(to: false)
+            }
+
+            try database.execute(sql: """
+                UPDATE feeds
+                SET originalTitle = title
+                WHERE originalTitle IS NULL OR originalTitle = ''
+                """)
+        }
+
         return migrator
     }
 }

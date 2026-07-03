@@ -32,6 +32,155 @@ struct FeedStore {
         }
     }
 
+    func feeds() throws -> [FeedRecord] {
+        try database.read { db in
+            try FeedRecord.fetchAll(db, sql: """
+                SELECT *
+                FROM feeds
+                ORDER BY title COLLATE NOCASE, url COLLATE NOCASE
+                """)
+        }
+    }
+
+    func renameFeed(id: String, displayTitle: String) throws {
+        let title = displayTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !title.isEmpty else {
+            throw FeedStoreError.emptyTitle
+        }
+
+        try database.write { db in
+            try db.execute(
+                sql: """
+                    UPDATE feeds
+                    SET title = ?,
+                        originalTitle = COALESCE(NULLIF(originalTitle, ''), title),
+                        updatedAt = ?
+                    WHERE id = ?
+                    """,
+                arguments: [title, Date(), id]
+            )
+
+            if db.changesCount == 0 {
+                throw FeedStoreError.missingFeed
+            }
+        }
+    }
+
+    func restoreOriginalTitle(id: String) throws {
+        try database.write { db in
+            try db.execute(
+                sql: """
+                    UPDATE feeds
+                    SET title = COALESCE(NULLIF(originalTitle, ''), title),
+                        updatedAt = ?
+                    WHERE id = ?
+                    """,
+                arguments: [Date(), id]
+            )
+
+            if db.changesCount == 0 {
+                throw FeedStoreError.missingFeed
+            }
+        }
+    }
+
+    func updateRefreshInterval(id: String, minutes: Int) throws {
+        try database.write { db in
+            try db.execute(
+                sql: """
+                    UPDATE feeds
+                    SET refreshIntervalMinutes = ?, updatedAt = ?
+                    WHERE id = ?
+                    """,
+                arguments: [BackgroundRefreshSettings.clampedIntervalMinutes(minutes), Date(), id]
+            )
+
+            if db.changesCount == 0 {
+                throw FeedStoreError.missingFeed
+            }
+        }
+    }
+
+    func updateFolderName(id: String, folderName: String?) throws {
+        try database.write { db in
+            try db.execute(
+                sql: """
+                    UPDATE feeds
+                    SET folderName = ?, updatedAt = ?
+                    WHERE id = ?
+                    """,
+                arguments: [FeedFolderOrganizer.normalizedFolderName(folderName), Date(), id]
+            )
+
+            if db.changesCount == 0 {
+                throw FeedStoreError.missingFeed
+            }
+        }
+    }
+
+    func updateNotificationEnabled(id: String, isEnabled: Bool) throws {
+        try database.write { db in
+            try db.execute(
+                sql: """
+                    UPDATE feeds
+                    SET isNotificationEnabled = ?, updatedAt = ?
+                    WHERE id = ?
+                    """,
+                arguments: [isEnabled, Date(), id]
+            )
+
+            if db.changesCount == 0 {
+                throw FeedStoreError.missingFeed
+            }
+        }
+    }
+
+    func updateRetentionSettings(
+        id: String,
+        overridesGlobal: Bool,
+        isEnabled: Bool,
+        days: Int,
+        includesProtectedArticles: Bool
+    ) throws {
+        try database.write { db in
+            try db.execute(
+                sql: """
+                    UPDATE feeds
+                    SET articleRetentionOverridesGlobalSetting = ?,
+                        articleRetentionIsEnabled = ?,
+                        articleRetentionDays = ?,
+                        articleRetentionIncludesProtectedArticles = ?,
+                        updatedAt = ?
+                    WHERE id = ?
+                    """,
+                arguments: [
+                    overridesGlobal,
+                    isEnabled,
+                    ArticleRetentionSettings.clampedRetentionDays(days),
+                    includesProtectedArticles,
+                    Date(),
+                    id
+                ]
+            )
+
+            if db.changesCount == 0 {
+                throw FeedStoreError.missingFeed
+            }
+        }
+    }
+
+    func delete(id: String) throws {
+        try database.write { db in
+            try db.execute(
+                sql: """
+                    DELETE FROM feeds
+                    WHERE id = ?
+                    """,
+                arguments: [id]
+            )
+        }
+    }
+
     func updateAfterRefresh(
         feedID: String,
         title: String?,
@@ -153,6 +302,11 @@ struct FeedStore {
             }
         }
     }
+}
+
+enum FeedStoreError: Error, Equatable {
+    case emptyTitle
+    case missingFeed
 }
 
 private extension Optional where Wrapped == String {

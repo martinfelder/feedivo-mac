@@ -67,7 +67,7 @@ enum ArticleRetentionCleanupService {
     @MainActor
     @discardableResult
     static func removeExpiredSQLiteArticles(
-        in context: ModelContext,
+        in _: ModelContext,
         database: FeedivoDatabase,
         isEnabled: Bool,
         retentionDays: Int,
@@ -81,7 +81,7 @@ enum ArticleRetentionCleanupService {
             now: now
         )
         let feedConfigurations = try sqliteFeedRetentionConfigurations(
-            in: context,
+            in: database,
             globalConfiguration: globalConfiguration,
             now: now
         )
@@ -212,25 +212,26 @@ enum ArticleRetentionCleanupService {
         return Dictionary(uniqueKeysWithValues: feeds.map { ($0.id, $0) })
     }
 
-    @MainActor
     private static func sqliteFeedRetentionConfigurations(
-        in context: ModelContext,
+        in database: FeedivoDatabase,
         globalConfiguration: ArticleRetentionConfiguration,
         now: Date
     ) throws -> [String: ArticleRetentionConfiguration] {
-        let feeds = try context.fetch(FetchDescriptor<Feed>())
+        let feeds = try database.read { db in
+            try FeedRecord.fetchAll(db)
+        }
         var configurations: [String: ArticleRetentionConfiguration] = [:]
 
         for feed in feeds {
             if feed.articleRetentionOverridesGlobalSetting {
-                configurations[feed.id.uuidString] = ArticleRetentionConfiguration(
-                    ArticleRetentionSettings.effectiveConfiguration(
-                        for: feed,
-                        now: now
-                    )
+                configurations[feed.id] = ArticleRetentionConfiguration(
+                    isEnabled: feed.articleRetentionIsEnabled,
+                    retentionDays: feed.articleRetentionDays,
+                    includeProtectedArticles: feed.articleRetentionIncludesProtectedArticles,
+                    now: now
                 )
             } else {
-                configurations[feed.id.uuidString] = globalConfiguration
+                configurations[feed.id] = globalConfiguration
             }
         }
 

@@ -265,17 +265,22 @@ struct ArticleRetentionCleanupServiceTests {
         let customFeed = Feed(url: "https://example.com/custom.xml", title: "Kurz")
         let inheritedFeed = Feed(url: "https://example.com/inherited.xml", title: "Global")
 
-        customFeed.articleRetentionOverridesGlobalSetting = true
-        customFeed.articleRetentionIsEnabled = true
-        customFeed.articleRetentionDays = 30
-
         context.insert(customFeed)
         context.insert(inheritedFeed)
         try context.save()
 
         let customFeedID = customFeed.id.uuidString
         let inheritedFeedID = inheritedFeed.id.uuidString
-        try FeedStore(database: database).save(FeedRecord(id: customFeedID, url: customFeed.url, title: customFeed.title))
+        try FeedStore(database: database).save(
+            FeedRecord(
+                id: customFeedID,
+                url: customFeed.url,
+                title: customFeed.title,
+                articleRetentionOverridesGlobalSetting: true,
+                articleRetentionIsEnabled: true,
+                articleRetentionDays: 30
+            )
+        )
         try FeedStore(database: database).save(FeedRecord(id: inheritedFeedID, url: inheritedFeed.url, title: inheritedFeed.title))
         let articleStore = ArticleStore(database: database)
         let customArticleID = try articleStore.upsert(ArticleUpsertInput(feedID: customFeedID, title: "Kurz alt", publishedAt: fortyDaysOld))
