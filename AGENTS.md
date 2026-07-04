@@ -2430,6 +2430,15 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 
 ## Letzte Änderungen
 
+- 2026-07-04: Bugfix für das Sichtbarbleiben automatisch gelesener Artikel in
+  der produktiven SQLite-Artikelliste. `SQLiteFeedArticleListView` merkt sich
+  automatisch gelesene Artikel-IDs jetzt in `temporarilyVisibleReadArticleIDs`
+  und nutzt `SQLiteArticleListDisplayState`, damit diese Artikel im gleichen
+  Feed/Scope sichtbar bleiben, auch im Filter `Ungelesen`. Beim Scope-Wechsel
+  wird der temporäre UI-Zustand geleert. Abgesichert durch
+  `sqliteDisplayStateHaeltAutomatischGeleseneArtikelSichtbar` und
+  `sqliteDisplayStateHaeltAutomatischGeleseneArtikelImUngelesenFilterSichtbar`.
+
 - 2026-07-04: Bugfix für `Artikel beim Öffnen automatisch als gelesen
   markieren` im produktiven SQLite-Pfad. `SQLiteFeedArticleListView` liest jetzt
   wieder die bestehende Einstellung `markArticleReadOnSelection` und delegiert an

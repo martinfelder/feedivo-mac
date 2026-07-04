@@ -122,6 +122,40 @@ struct ArticleListQueryTests {
         #expect(state.hiddenReadArticleCount == 0)
     }
 
+    @Test func sqliteDisplayStateHaeltAutomatischGeleseneArtikelSichtbar() {
+        let unreadRow = sqliteSnapshot(id: "unread", title: "Ungelesen", isRead: false)
+        let autoReadRow = sqliteSnapshot(id: "auto-read", title: "Automatisch gelesen", isRead: true)
+        let regularReadRow = sqliteSnapshot(id: "regular-read", title: "Vorher gelesen", isRead: true)
+
+        let state = SQLiteArticleListDisplayState(
+            rows: [unreadRow, autoReadRow, regularReadRow],
+            showsReadArticles: false,
+            selectedArticleID: nil,
+            temporarilyVisibleReadArticleIDs: ["auto-read"],
+            filterOption: .all
+        )
+
+        #expect(state.visibleRows.map(\.title) == ["Ungelesen", "Automatisch gelesen"])
+        #expect(state.hiddenReadRowCount == 1)
+    }
+
+    @Test func sqliteDisplayStateHaeltAutomatischGeleseneArtikelImUngelesenFilterSichtbar() {
+        let unreadRow = sqliteSnapshot(id: "unread", title: "Ungelesen", isRead: false)
+        let autoReadRow = sqliteSnapshot(id: "auto-read", title: "Automatisch gelesen", isRead: true)
+        let regularReadRow = sqliteSnapshot(id: "regular-read", title: "Vorher gelesen", isRead: true)
+
+        let state = SQLiteArticleListDisplayState(
+            rows: [unreadRow, autoReadRow, regularReadRow],
+            showsReadArticles: false,
+            selectedArticleID: nil,
+            temporarilyVisibleReadArticleIDs: ["auto-read"],
+            filterOption: .unread
+        )
+
+        #expect(state.visibleRows.map(\.title) == ["Ungelesen", "Automatisch gelesen"])
+        #expect(state.hiddenReadRowCount == 0)
+    }
+
     @Test func paginationBleibtMoeglichWennArtikelNachDemLadenAusDerQueryFallen() {
         var state = ArticleListPaginationState()
 
@@ -1147,5 +1181,28 @@ struct ArticleListQueryTests {
 
         #expect(removedCount == 0)
         #expect(articles.map(\.title) == ["Relationship intakt"])
+    }
+
+    private func sqliteSnapshot(
+        id: String,
+        title: String,
+        isRead: Bool
+    ) -> ArticleListSnapshot {
+        ArticleListSnapshot(
+            id: id,
+            feedID: "feed-1",
+            feedTitle: "Feed",
+            title: title,
+            summary: nil,
+            link: nil,
+            imageURL: nil,
+            publishedAt: Date(timeIntervalSince1970: 100),
+            arrivedAt: Date(timeIntervalSince1970: 100),
+            estimatedReadingMinutes: nil,
+            isRead: isRead,
+            isStarred: false,
+            isArchived: false,
+            isHidden: false
+        )
     }
 }

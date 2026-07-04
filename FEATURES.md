@@ -138,6 +138,10 @@
     gelesen markieren` greift wieder im produktiven SQLite-Pfad. Die Auswahl in
     `SQLiteFeedArticleListView` schreibt den Lesestatus über `article_statuses`
     und aktualisiert die SQLite-Snapshots ohne SwiftData-Artikelobjekte.
+  - SQLite/GRDB 2026-07-04: Automatisch gelesene Artikel bleiben im gleichen
+    Feed/Scope temporär sichtbar und verschwinden erst nach einem Feed- bzw.
+    Scope-Wechsel aus der Standardansicht. Das gilt auch, wenn der globale
+    Artikelfilter `Ungelesen` aktiv ist.
   - Gelesene Artikel bleiben verfügbar bis automatisches Löschen greift (Standard 90 Tage)
   - Der aktuell ausgewählte Artikel bleibt sichtbar, wenn er beim Öffnen automatisch als gelesen markiert wird
   - Toolbar-Menü `Als gelesen markieren` markiert nur Artikel der aktuell angezeigten Liste

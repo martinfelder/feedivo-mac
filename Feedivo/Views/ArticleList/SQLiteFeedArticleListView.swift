@@ -30,6 +30,7 @@ struct SQLiteFeedArticleListView: View {
     @State private var articleExportRequest: ArticleExportRequest?
     @State private var ruleCreationRequest: ArticleListRuleCreationRequest?
     @State private var showsReadArticles = false
+    @State private var temporarilyVisibleReadArticleIDs = Set<String>()
 
     @AppStorage(ArticleSortOption.storageKey)
     private var articleSortRawValue = ArticleSortOption.newestFirst.rawValue
@@ -123,6 +124,9 @@ struct SQLiteFeedArticleListView: View {
         .task(id: loadToken) {
             reload()
         }
+        .onChange(of: scopeToken) {
+            temporarilyVisibleReadArticleIDs.removeAll()
+        }
         .onChange(of: selectedArticleID) {
             markSelectedArticleReadIfNeeded()
         }
@@ -206,27 +210,29 @@ struct SQLiteFeedArticleListView: View {
     }
 
     private var filteredRows: [ArticleListSnapshot] {
-        state.rows
-            .filter(articleFilterIncludes)
-            .sorted(by: sortRows)
+        displayState.filteredRows
     }
 
     private var visibleRows: [ArticleListSnapshot] {
-        guard !showsReadArticles else {
-            return filteredRows
-        }
-
-        return filteredRows.filter { row in
-            !row.isRead || row.id == selectedArticleID
-        }
+        displayState.visibleRows
     }
 
     private var hiddenReadRowCount: Int {
-        filteredRows.filter(\.isRead).count
+        displayState.hiddenReadRowCount
     }
 
     private var shouldShowReadArticlesButton: Bool {
         !showsReadArticles && hiddenReadRowCount > 0
+    }
+
+    private var displayState: SQLiteArticleListDisplayState {
+        SQLiteArticleListDisplayState(
+            rows: state.rows.sorted(by: sortRows),
+            showsReadArticles: showsReadArticles,
+            selectedArticleID: selectedArticleID,
+            temporarilyVisibleReadArticleIDs: temporarilyVisibleReadArticleIDs,
+            filterOption: articleFilterOption
+        )
     }
 
     private func articleRow(
@@ -456,25 +462,6 @@ struct SQLiteFeedArticleListView: View {
         navigationState = state.navigationState
     }
 
-    private func articleFilterIncludes(_ row: ArticleListSnapshot) -> Bool {
-        switch articleFilterOption {
-        case .all:
-            return true
-        case .unread:
-            return !row.isRead
-        case .starred:
-            return row.isStarred
-        case .archived:
-            return row.isArchived
-        case .today:
-            guard let publishedAt = row.publishedAt else {
-                return false
-            }
-
-            return Calendar.current.isDateInToday(publishedAt)
-        }
-    }
-
     private func sortRows(_ first: ArticleListSnapshot, _ second: ArticleListSnapshot) -> Bool {
         switch articleSortOption {
         case .newestFirst:
@@ -682,13 +669,18 @@ struct SQLiteFeedArticleListView: View {
     }
 
     private func markSelectedArticleReadIfNeeded() {
+        let articleID = selectedArticleID
         guard state.markReadIfNeeded(
-            articleID: selectedArticleID,
+            articleID: articleID,
             database: database,
             isEnabled: markArticleReadOnSelection
         ) else {
             reload()
             return
+        }
+
+        if let articleID {
+            temporarilyVisibleReadArticleIDs.insert(articleID)
         }
     }
 
@@ -857,5 +849,60 @@ private struct ArticleListRuleCreationRequest: Identifiable {
 
     init(snapshot: ArticleListSnapshot) {
         self.seed = RuleWizardSeed(snapshot: snapshot)
+    }
+}
+
+struct SQLiteArticleListDisplayState {
+    let rows: [ArticleListSnapshot]
+    let showsReadArticles: Bool
+    let selectedArticleID: String?
+    let temporarilyVisibleReadArticleIDs: Set<String>
+    let filterOption: ArticleFilterOption
+
+    var filteredRows: [ArticleListSnapshot] {
+        rows.filter(articleFilterIncludes)
+    }
+
+    var visibleRows: [ArticleListSnapshot] {
+        guard !showsReadArticles else {
+            return filteredRows
+        }
+
+        return filteredRows.filter { row in
+            !row.isRead || isSelected(row) || isTemporarilyVisibleReadRow(row)
+        }
+    }
+
+    var hiddenReadRowCount: Int {
+        filteredRows.filter { row in
+            row.isRead && !isSelected(row) && !isTemporarilyVisibleReadRow(row)
+        }.count
+    }
+
+    private func articleFilterIncludes(_ row: ArticleListSnapshot) -> Bool {
+        switch filterOption {
+        case .all:
+            return true
+        case .unread:
+            return !row.isRead || isSelected(row) || isTemporarilyVisibleReadRow(row)
+        case .starred:
+            return row.isStarred
+        case .archived:
+            return row.isArchived
+        case .today:
+            guard let publishedAt = row.publishedAt else {
+                return false
+            }
+
+            return Calendar.current.isDateInToday(publishedAt)
+        }
+    }
+
+    private func isSelected(_ row: ArticleListSnapshot) -> Bool {
+        row.id == selectedArticleID
+    }
+
+    private func isTemporarilyVisibleReadRow(_ row: ArticleListSnapshot) -> Bool {
+        row.isRead && temporarilyVisibleReadArticleIDs.contains(row.id)
     }
 }
