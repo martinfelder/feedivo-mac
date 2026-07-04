@@ -258,7 +258,7 @@ enum FeedService {
             return ParsedArticle(
                 title: title,
                 sourceID: resolvedSourceID,
-                link: item.link,
+                link: resolvedLink,
                 summary: item.description,
                 content: item.content?.encoded,
                 publishedAt: clamp(item.pubDate),
@@ -300,7 +300,7 @@ enum FeedService {
             return ParsedArticle(
                 title: title,
                 sourceID: resolvedSourceID,
-                link: entry.links?.first(where: { $0.attributes?.rel == nil || $0.attributes?.rel == "alternate" })?.attributes?.href,
+                link: resolvedLink,
                 summary: entry.summary?.text,
                 content: entry.content?.text,
                 publishedAt: clamp(entry.published ?? entry.updated),
@@ -343,7 +343,7 @@ enum FeedService {
             return ParsedArticle(
                 title: title,
                 sourceID: resolvedSourceID,
-                link: item.url ?? item.externalURL,
+                link: resolvedLink,
                 summary: item.summary,
                 content: item.contentHtml ?? item.contentText,
                 publishedAt: clamp(item.datePublished ?? item.dateModified),
