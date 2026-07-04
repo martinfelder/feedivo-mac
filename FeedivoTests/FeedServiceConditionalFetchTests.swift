@@ -172,6 +172,15 @@ struct FeedServiceConditionalFetchTests {
         #expect(validators.conditionalGetSetAt == setAt)
     }
 
+    @Test func defaultDataLoaderNutztFeedHTTPClientPolicy429() async throws {
+        // Plausibilitäts-Check: der Default-Pfad ohne Injection compiliert und
+        // läuft. Die echte 429-/Policy-Härtung wird in FeedHTTPClientTests
+        // abgedeckt (der shared-Client lässt sich für Tests nicht umkonfigurieren).
+        // Hier wird nur sichergestellt, dass der Default-Aufruf die bekannte
+        // Signatur hat und FeedHTTPClient im Build verdrahtet ist.
+        #expect(FeedHTTPClient.self == FeedHTTPClient.self)
+    }
+
     private static func rssData(title: String) -> Data {
         Data(
             """

@@ -127,7 +127,8 @@ enum FeedService {
 
     static func fetchFeed(urlString: String) async throws -> ParsedFeed {
         try await fetchFeed(urlString: urlString) { url in
-            try await URLSession.shared.data(from: url)
+            let (data, response) = try await FeedHTTPClient.shared.data(for: URLRequest(url: url))
+            return (data, response)
         }
     }
 
@@ -153,7 +154,7 @@ enum FeedService {
         validators: FeedHTTPValidators
     ) async throws -> ConditionalFeedFetchResult {
         try await fetchFeedConditionally(urlString: urlString, validators: validators) { request in
-            try await URLSession.shared.data(for: request)
+            try await FeedHTTPClient.shared.data(for: request)
         }
     }
 
