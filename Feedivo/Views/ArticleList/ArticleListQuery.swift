@@ -2,7 +2,7 @@ import Foundation
 import SwiftData
 
 @available(*, deprecated, message: "Legacy SwiftData; produktiv bitte SQLite-Queries über Timeline/ArticleStore nutzen.")
-enum ArticleListQuery {
+enum LegacyArticleListQuery {
     static let initialFetchLimit = 50
     static let fetchBatchSize = 50
 
@@ -100,7 +100,7 @@ enum ArticleListQuery {
         now: Date = Date(),
         calendar: Calendar = .current
     ) -> FetchDescriptor<Article>? {
-        guard let queryKind = SmartFolderOptimizedQueryKind(folder: folder) else {
+        guard let queryKind = LegacySmartFolderOptimizedQueryKind(folder: folder) else {
             return nil
         }
 
@@ -171,7 +171,7 @@ enum ArticleListQuery {
     }
 }
 
-private enum SmartFolderOptimizedQueryKind {
+private enum LegacySmartFolderOptimizedQueryKind {
     case all
     case unread
     case read
@@ -252,6 +252,9 @@ private enum SmartFolderOptimizedQueryKind {
         return nil
     }
 }
+
+@available(*, deprecated, message: "Legacy SwiftData; produktiv bitte LegacyArticleListQuery verwenden.")
+typealias ArticleListQuery = LegacyArticleListQuery
 
 struct ArticleListDisplayState {
     let articles: [Article]

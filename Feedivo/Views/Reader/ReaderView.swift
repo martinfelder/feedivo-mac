@@ -4,7 +4,7 @@ import SwiftData
 // Legacy SwiftData: Dieser Reader ist nicht mehr im Produkt-Hauptpfad geroutet.
 // Neue Artikelpfade müssen `SQLiteReaderView` verwenden.
 @available(*, deprecated, message: "Legacy SwiftData; produktiv bitte SQLiteReaderView nutzen.")
-struct ReaderView: View {
+struct LegacyReaderView: View {
     @Environment(\.interfaceTextSize) private var interfaceTextSize
     @Environment(\.modelContext) private var modelContext
 
@@ -1118,6 +1118,9 @@ struct ReaderView: View {
         isOfflineOperationInProgress = false
     }
 }
+
+@available(*, deprecated, message: "Legacy SwiftData; produktiv bitte SQLiteReaderView nutzen.")
+typealias ReaderView = LegacyReaderView
 
 private struct ReaderInlineTagEditorPopover: View {
     @Environment(\.interfaceTextSize) private var interfaceTextSize
