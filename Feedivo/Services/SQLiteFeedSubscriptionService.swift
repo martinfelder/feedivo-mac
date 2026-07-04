@@ -307,6 +307,11 @@ struct SQLiteFeedSubscriptionService {
     // Funktion entfällt, sobald `Article`/`Tag` SQLite-only sind und `@Model Feed`
     // entfernt wird. Keine neuen Reads über diese Brücke.
     private func saveSwiftDataBridge(_ feedRecord: FeedRecord, context: ModelContext) throws {
+        guard UserDefaults.standard.object(forKey: SwiftDataBridgeSettings.isEnabledKey) as? Bool
+            ?? SwiftDataBridgeSettings.defaultIsEnabled else {
+            return
+        }
+
         let feedID = UUID(uuidString: feedRecord.id) ?? UUID()
         var descriptor = FetchDescriptor<Feed>(
             predicate: #Predicate<Feed> { feed in

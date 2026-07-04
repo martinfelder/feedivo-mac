@@ -108,11 +108,6 @@ private enum FeedRefreshOutcome {
     case failure(String)
 }
 
-private enum SQLiteFeedRefreshOutcome {
-    case success(UUID, FeedRefreshNotificationResult, SQLiteFeedRefreshResult)
-    case failure(UUID, String)
-}
-
 enum StoredArticleRefreshFieldUpdate {
     static func replacement(for existingValue: String?, from parsedValue: String?) -> String? {
         guard let parsedValue = nonEmptyText(parsedValue),
@@ -770,7 +765,7 @@ final class FeedViewModel {
 
         let ruleSnapshots = sqliteRuleSnapshots(from: sqliteDatabase)
 
-        await refreshAllFeedsSQLiteFirst(
+        await refreshAllFeedsWithCoordinator(
             snapshots,
             database: sqliteDatabase,
             ruleSnapshots: ruleSnapshots
@@ -939,7 +934,7 @@ final class FeedViewModel {
 
         if let sqliteDatabase {
             let ruleSnapshots = sqliteRuleSnapshots(from: sqliteDatabase)
-            await refreshAllFeedsSQLiteFirst(
+            await refreshAllFeedsWithCoordinator(
                 snapshots,
                 database: sqliteDatabase,
                 ruleSnapshots: ruleSnapshots
@@ -1011,12 +1006,18 @@ final class FeedViewModel {
         }
     }
 
+    /// Legacy-SwiftData-Refreshpfad bleibt als Fallback erhalten; produktiv
+    /// refreshen wir über den `SQLiteFeedRefreshCoordinator`.
     @MainActor
-    private func refreshAllFeedsSQLiteFirst(
+    private func refreshAllFeedsWithCoordinator(
         _ snapshots: [FeedRefreshSnapshot],
         database: FeedivoDatabase,
         ruleSnapshots: [RuleEngine.RuleSnapshot] = []
     ) async {
+        if snapshots.isEmpty {
+            return
+        }
+
         isLoading = true
         errorMessage = nil
         recentRefreshStatus = nil
@@ -1034,102 +1035,59 @@ final class FeedViewModel {
             completedCount: 0,
             totalCount: snapshots.count
         )
-        var notificationResults: [FeedRefreshNotificationResult] = []
-        var ruleNotificationResults: [RuleNotificationResult] = []
-        var failedFeedTitles: [String] = []
 
         defer {
             isLoading = false
             operationProgress = nil
         }
 
-        for snapshotBatch in feedBatches(from: snapshots) {
-            updateRefreshItemStatuses(
-                for: snapshotBatch.map(\.id),
-                status: .refreshing
-            )
-
-            await withTaskGroup(of: SQLiteFeedRefreshOutcome.self) { group in
-                for snapshot in snapshotBatch {
-                    group.addTask { [fetchFeedConditionally] in
-                        do {
-                            let feedID = snapshot.id.uuidString
-                            let feedStore = FeedStore(database: database)
-                            if try feedStore.feed(id: feedID) == nil {
-                                try feedStore.save(
-                                    FeedRecord(
-                                        id: feedID,
-                                        url: snapshot.url,
-                                        title: snapshot.title
-                                    )
-                                )
-                            }
-
-                            let service = SQLiteFeedRefreshService(
-                                database: database,
-                                ruleSnapshots: ruleSnapshots,
-                                fetcher: { urlString, validators in
-                                    switch try await fetchFeedConditionally(urlString, validators) {
-                                    case .updated(let feed, let validators):
-                                        return .updated(feed, validators)
-                                    case .notModified(let validators):
-                                        return .notModified(validators)
-                                    }
-                                }
-                            )
-                            let result = try await service.refresh(feedID: feedID)
-                            let notificationResult = FeedRefreshNotificationResult(
-                                feedTitle: result.feedTitle,
-                                newArticleCount: result.insertedArticleIDs.count,
-                                isNotificationEnabled: snapshot.isNotificationEnabled
-                            )
-                            return .success(snapshot.id, notificationResult, result)
-                        } catch {
-                            return .failure(snapshot.id, snapshot.title)
-                        }
-                    }
+        let coordinator = SQLiteFeedRefreshCoordinator(
+            database: database,
+            batchSize: Self.maxConcurrentFeedRefreshes,
+            ruleSnapshots: ruleSnapshots,
+            fetcher: { [self] urlString, validators in
+                switch try await self.fetchFeedConditionally(urlString, validators) {
+                case .updated(let feed, let validators):
+                    return .updated(feed, validators)
+                case .notModified(let validators):
+                    return .notModified(validators)
                 }
+            }
+        )
+        let summary = await coordinator.refreshAllFeeds(snapshots)
 
-                for await outcome in group {
-                    switch outcome {
-                    case .success(let feedID, let feedNotification, let result):
-                        updateRefreshItemStatus(for: feedID, status: .succeeded)
-                        notificationResults.append(feedNotification)
-                        ruleNotificationResults.append(contentsOf: result.ruleNotifications)
-                    case .failure(let feedID, let failedTitle):
-                        updateRefreshItemStatus(for: feedID, status: .failed)
-                        failedFeedTitles.append(failedTitle)
-                    }
-
-                    incrementOperationProgress()
-                }
+        for snapshot in snapshots {
+            if summary.succeededFeedIDs.contains(snapshot.id) {
+                updateRefreshItemStatus(for: snapshot.id, status: .succeeded)
+            } else if summary.failedFeedIDs.contains(snapshot.id) {
+                updateRefreshItemStatus(for: snapshot.id, status: .failed)
             }
         }
 
         SQLiteDataInvalidation.bumpStatusVersion()
-        await notifyFeedRefresh(notificationResults)
-        await notifyRuleNotifications(ruleNotificationResults)
+        await notifyFeedRefresh(summary.notificationResults)
+        await notifyRuleNotifications(summary.ruleNotificationResults)
         await waitForMinimumRefreshStatusDuration(since: refreshStatusStart)
 
         recentRefreshStatus = FeedRefreshStatusSummary(
-            newArticleCount: notificationResults.reduce(0) { $0 + $1.newArticleCount },
-            failedFeedCount: failedFeedTitles.count,
+            newArticleCount: summary.notificationResults.reduce(0) { $0 + $1.newArticleCount },
+            failedFeedCount: summary.failedFeedTitles.count,
             totalFeedCount: snapshots.count
         )
 
-        if failedFeedTitles.isEmpty {
+        if summary.failedFeedTitles.isEmpty {
             lastRefreshOutcome = .success
-        } else if failedFeedTitles.count < snapshots.count {
-            lastRefreshOutcome = .partial(failedCount: failedFeedTitles.count)
+        } else if summary.failedFeedTitles.count < snapshots.count {
+            lastRefreshOutcome = .partial(failedCount: summary.failedFeedTitles.count)
             errorMessage = L10n.feedErrorRefreshAllPartial(
-                failedFeedTitles.count,
-                feedTitles: failedFeedTitles.joined(separator: ", ")
+                summary.failedFeedTitles.count,
+                feedTitles: summary.failedFeedTitles.joined(separator: ", ")
             )
         } else {
             lastRefreshOutcome = .failure
             errorMessage = L10n.feedErrorRefreshAllPartial(
-                failedFeedTitles.count,
-                feedTitles: failedFeedTitles.joined(separator: ", ")
+                summary.failedFeedTitles.count,
+                feedTitles: summary.failedFeedTitles.joined(separator: ", ")
             )
         }
     }

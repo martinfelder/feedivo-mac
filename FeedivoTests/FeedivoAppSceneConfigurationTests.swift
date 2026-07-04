@@ -495,6 +495,24 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(bridgeDocumentationSource.contains("SwiftData"))
     }
 
+    @Test func swiftDataBridgeIstPerFeatureFlagAbschaltbar() throws {
+        let projectRoot = projectRootURL()
+        let settingsSource = try source(
+            at: "Feedivo/Services/SwiftDataBridgeSettings.swift",
+            projectRoot: projectRoot
+        )
+        let serviceSource = try source(
+            at: "Feedivo/Services/SQLiteFeedSubscriptionService.swift",
+            projectRoot: projectRoot
+        )
+
+        #expect(settingsSource.contains("static let isEnabledKey = \"swiftDataBridge.isEnabled\""))
+        #expect(settingsSource.contains("static let defaultIsEnabled = true"))
+        #expect(serviceSource.contains("SwiftDataBridgeSettings.isEnabledKey"))
+        #expect(serviceSource.contains("saveSwiftDataBridge"))
+        #expect(serviceSource.contains("SwiftDataBridgeSettings.defaultIsEnabled"))
+    }
+
     @Test func feedViewModelLeitetAddUndImportAnSQLiteSubscriptionServiceWeiter() throws {
         let projectRoot = projectRootURL()
         let viewModelSource = try source(at: "Feedivo/ViewModels/FeedViewModel.swift", projectRoot: projectRoot)
