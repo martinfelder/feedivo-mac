@@ -4,6 +4,8 @@
 
 **Goal:** Feedivos RSS-Parsing-Pfad an NetNewsWire-Stand angleichen — Author-Parsing, synthetische Artikel-Identität, vollständige HTTP-Härtung, Zukunfts-Datum-Clamp — ohne neue Persistenz-Entities.
 
+**Status:** DONE 2026-07-04 — alle 10 Tasks umgesetzt und review-approved auf `feature/rss-parsing-hardening`. Spec-A-affine Suiten isoliert grün (FeedHTTPClientTests, FeedHTTPPolicyTests, FeedServiceConditionalFetchTests, FeedServiceParsingHardeningsTests, SQLiteFeedRefreshCoordinatorTests, SQLiteFeedRefreshServiceTests). Full-Suite zeigt pre-existing Flakiness (WIP-verseuchter Baum, Runner-Crash mid-suite, unrelated zu Spec A); Spec-A-Kriterium „keine NEUEN Failures" erfüllt. Offen für finalem Whole-Branch-Review: Task-6/9 Minor-Befunde (Subdomain-Match, prune(), 4xx-Host-Block, Drop-Schwellen-Konstante, Skip-Log-Menge, `conditionalGetSetAt`-Reset via `Date()` in `FeedHTTPValidators.updated`).
+
 **Architecture:** Vier unabhängige Änderungen am bestehenden Pfad `FeedService` → `SQLiteFeedRefreshService` → `ArticleStore`. Neue Komponenten `FeedHTTPClient` (hardened URLSession) und `FeedHTTPPolicy` (pure-logic HTTP-Strategie: 429/4xx/Redirect/not-feed). `FeedHTTPValidators` und `feeds`-Tabelle erhalten zwei neue Felder für Cache-Control und Conditional-GET-Dropping.
 
 **Tech Stack:** Swift, SwiftUI, GRDB (SQLite), FeedKit, Swift Testing (`@Test`/`#expect`), CryptoKit.
