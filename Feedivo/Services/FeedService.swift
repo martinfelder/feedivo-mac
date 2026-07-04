@@ -33,6 +33,7 @@ struct ParsedArticle: Sendable {
     let content: String?
     let publishedAt: Date?
     let imageURL: String?
+    let author: String?
 
     init(
         title: String,
@@ -41,7 +42,8 @@ struct ParsedArticle: Sendable {
         summary: String?,
         content: String?,
         publishedAt: Date?,
-        imageURL: String?
+        imageURL: String?,
+        author: String? = nil
     ) {
         self.title = title
         self.sourceID = sourceID
@@ -50,6 +52,7 @@ struct ParsedArticle: Sendable {
         self.content = content
         self.publishedAt = publishedAt
         self.imageURL = imageURL
+        self.author = author
     }
 
     func copy(imageURL: String?) -> ParsedArticle {
@@ -60,7 +63,8 @@ struct ParsedArticle: Sendable {
             summary: summary,
             content: content,
             publishedAt: publishedAt,
-            imageURL: imageURL
+            imageURL: imageURL,
+            author: author
         )
     }
 }
@@ -239,7 +243,9 @@ enum FeedService {
                     ?? cleanImageURL(item.iTunes?.image?.attributes?.href, relativeTo: baseURL)
                     ?? firstImageURL(from: item.enclosure, relativeTo: baseURL)
                     ?? firstImageURL(inHTML: item.content?.encoded, relativeTo: baseURL)
-                    ?? firstImageURL(inHTML: item.description, relativeTo: baseURL)
+                    ?? firstImageURL(inHTML: item.description, relativeTo: baseURL),
+                author: authorDisplayName(from: item.dublinCore?.creator)
+                    ?? authorDisplayName(from: item.author)
             )
         } ?? []
 
@@ -268,7 +274,9 @@ enum FeedService {
                 publishedAt: entry.published ?? entry.updated,
                 imageURL: firstImageURL(in: entry.media, relativeTo: baseURL)
                     ?? firstImageURL(inHTML: entry.content?.text, relativeTo: baseURL)
-                    ?? firstImageURL(inHTML: entry.summary?.text, relativeTo: baseURL)
+                    ?? firstImageURL(inHTML: entry.summary?.text, relativeTo: baseURL),
+                author: authorDisplayName(from: entry.authors?.first?.name)
+                    ?? authorDisplayName(from: atomFeed.authors?.first?.name)
             )
         } ?? []
 
@@ -299,7 +307,8 @@ enum FeedService {
                 content: item.contentHtml ?? item.contentText,
                 publishedAt: item.datePublished ?? item.dateModified,
                 imageURL: cleanImageURL(item.image, relativeTo: baseURL)
-                    ?? cleanImageURL(item.bannerImage, relativeTo: baseURL)
+                    ?? cleanImageURL(item.bannerImage, relativeTo: baseURL),
+                author: authorDisplayName(from: item.author?.name)
             )
         } ?? []
 
@@ -557,6 +566,27 @@ enum FeedService {
         }
 
         return url.absoluteString
+    }
+
+    /// Liefert den Anzeige-Namen aus einem RSS-<author>- oder <dc:creator>-String.
+    /// E-Mail-Form "anna@example.com (Anna Schmidt)" → "Anna Schmidt";
+    /// reine E-Mail "anna@example.com" → nil (kein brauchbarer Name).
+    private nonisolated static func authorDisplayName(from raw: String?) -> String? {
+        guard let raw else { return nil }
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        // "anna@example.com (Anna Schmidt)"
+        if let parenOpen = trimmed.firstIndex(of: "("),
+           let parenClose = trimmed.firstIndex(of: ")"),
+           parenOpen < parenClose {
+            let name = String(trimmed[trimmed.index(after: parenOpen)..<parenClose])
+            return name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : name
+        }
+        // reine E-Mail ohne Klammern → kein Name
+        if trimmed.contains("@"), !trimmed.contains(" ") {
+            return nil
+        }
+        return trimmed
     }
 
     fileprivate nonisolated static func contentHash(for data: Data) -> String {
