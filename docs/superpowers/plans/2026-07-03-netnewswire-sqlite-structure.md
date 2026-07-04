@@ -206,7 +206,7 @@ xcodebuild test -project Feedivo.xcodeproj -scheme Feedivo -destination 'platfor
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add Feedivo/Views/ArticleList/ArticleSearchWindowView.swift Feedivo/Views/Reader/ArticleMetadataInspectorView.swift Feedivo/Views/Reader/SQLiteReaderView.swift Feedivo/ViewModels/TagViewModel.swift FeedivoTests
@@ -275,7 +275,7 @@ xcodebuild test -project Feedivo.xcodeproj -scheme Feedivo -destination 'platfor
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add Feedivo/Views/Rules Feedivo/ViewModels/RuleViewModel.swift Feedivo/ViewModels/FeedViewModel.swift Feedivo/Stores FeedivoTests
@@ -346,7 +346,7 @@ xcodebuild test -project Feedivo.xcodeproj -scheme Feedivo -destination 'platfor
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add Feedivo/Views/SmartFolders Feedivo/ViewModels/SmartFolderViewModel.swift Feedivo/Views/Reader/ArticleMetadataInspectorView.swift FeedivoTests
@@ -554,7 +554,7 @@ xcodebuild test -project Feedivo.xcodeproj -scheme Feedivo -destination 'platfor
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add Feedivo/Services/SQLiteFeedSubscriptionService.swift Feedivo/App FeedivoTests
@@ -619,7 +619,7 @@ xcodebuild build -project Feedivo.xcodeproj -scheme Feedivo -destination 'platfo
 
 Expected: BUILD SUCCEEDED.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add Feedivo FeedivoTests Feedivo.xcodeproj/project.pbxproj
@@ -684,11 +684,11 @@ xcodebuild test -project Feedivo.xcodeproj -scheme Feedivo -destination 'platfor
 
 Expected: PASS. Zeiten dokumentieren in `docs/performance/sqlite-large-dataset-results.md`.
 
-- [ ] **Step 4: Entscheidung dokumentieren**
+- [x] **Step 4: Entscheidung dokumentieren**
 
 Wenn SwiftUI-Snapshot-Liste schnell genug ist, `NSTableView` weiterhin zurückstellen. Wenn nicht, separaten Plan für AppKit-Timeline schreiben.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add FeedivoTests/SQLiteLargeDatasetPerformanceTests.swift docs/performance/sqlite-large-dataset-results.md
