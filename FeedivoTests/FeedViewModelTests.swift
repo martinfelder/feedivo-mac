@@ -1924,6 +1924,55 @@ struct FeedViewModelTests {
         #expect(feeds.isEmpty)
         #expect(viewModel.errorMessage == nil)
     }
+
+    @MainActor
+    @Test func deleteFeedPerSQLiteIDEntferntSwiftDataBridgeDamitBackfillFeedNichtWiederherstellt() throws {
+        let container = try ModelContainer(
+            for: Feed.self,
+            Article.self,
+            Tag.self,
+            Rule.self,
+            RuleCondition.self,
+            FeedLogEntry.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = ModelContext(container)
+        let feed = Feed(url: "https://example.com/feed.xml", title: "Test Feed")
+        let article = Article(title: "Bridge Artikel")
+        article.feedID = feed.id
+        let logEntry = FeedLogEntry(kind: .info, message: "OK", feed: feed)
+        let sqliteDatabase = try FeedivoDatabase.inMemoryForTests()
+        let viewModel = makeViewModel()
+
+        context.insert(feed)
+        context.insert(article)
+        context.insert(logEntry)
+        try context.save()
+        try FeedStore(database: sqliteDatabase).save(
+            FeedRecord(
+                id: feed.id.uuidString,
+                url: feed.url,
+                title: feed.title
+            )
+        )
+
+        viewModel.deleteFeed(
+            feedID: feed.id.uuidString,
+            context: context,
+            sqliteDatabase: sqliteDatabase
+        )
+        _ = try FeedTagBackfillService.backfillFeedTags(
+            in: context,
+            database: sqliteDatabase
+        )
+
+        #expect(try FeedStore(database: sqliteDatabase).feeds().isEmpty)
+        #expect(try context.fetch(FetchDescriptor<Feed>()).isEmpty)
+        #expect(try context.fetch(FetchDescriptor<Article>()).isEmpty)
+        #expect(try context.fetch(FetchDescriptor<FeedLogEntry>()).isEmpty)
+        #expect(viewModel.errorMessage == nil)
+    }
+
     @MainActor
     @Test func importOPMLFeedsAktualisiertNeueFeedsMitBegrenzterParallelitaet() async throws {
         let container = try ModelContainer(

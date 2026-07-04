@@ -195,6 +195,11 @@
 ### 4.3 Feed löschen
 - **Status:** ✔️ Fertig
 - **Umgesetzt:** `FeedViewModel.deleteFeed`, Bestätigungsdialog
+- **SQLite/GRDB 2026-07-04:** Die Feed-Verwaltung in den Einstellungen löscht
+  ausgewählte Feeds über den gemeinsamen SQLite-first-Delete-Pfad und räumt dabei
+  auch die SwiftData-Brückenfeeds, alte Artikel und Feed-Logs auf. Dadurch werden
+  gelöschte Feeds beim nächsten App-Start nicht wieder durch den Backfill nach
+  SQLite gespiegelt.
 
 ### 4.4 Manueller Refresh
 - **Status:** ✔️ Fertig

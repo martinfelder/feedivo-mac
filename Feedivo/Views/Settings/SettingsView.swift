@@ -1088,6 +1088,7 @@ private struct SettingsSectionHeader: View {
 private struct FeedManagementSettingsView: View {
     @Environment(\.interfaceTextSize) private var interfaceTextSize
     @Environment(\.feedivoDatabase) private var feedivoDatabase
+    @Environment(\.modelContext) private var modelContext
 
     @State private var feeds: [FeedRecord] = []
     @State private var opmlFeeds: [OPMLFeed] = []
@@ -1096,6 +1097,7 @@ private struct FeedManagementSettingsView: View {
     @State private var isShowingDeleteConfirmation = false
     @State private var isShowingOPMLExportSheet = false
     @State private var errorMessage: String?
+    @State private var feedViewModel = FeedViewModel()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -1221,13 +1223,21 @@ private struct FeedManagementSettingsView: View {
 
         let feedsToDelete = selectedFeeds
 
-        do {
-            for feed in feedsToDelete {
-                try FeedStore(database: database).delete(id: feed.id)
+        for feed in feedsToDelete {
+            feedViewModel.deleteFeed(
+                feedID: feed.id,
+                context: modelContext,
+                sqliteDatabase: database
+            )
+
+            if let deleteError = feedViewModel.errorMessage {
+                errorMessage = deleteError
+                break
             }
+        }
+
+        if feedViewModel.errorMessage == nil {
             errorMessage = nil
-        } catch {
-            errorMessage = error.localizedDescription
         }
 
         selectedFeedIDs.subtract(feedsToDelete.map(\.id))

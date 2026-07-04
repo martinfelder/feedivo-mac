@@ -1321,8 +1321,11 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   `Alle sichtbaren auswählen`, `Auswahl aufheben` und destruktiver
   Löschbestätigung für die ausgewählten Feeds. Jede Feed-Zeile zeigt zusätzlich
   die Artikelanzahl der letzten 7 Tage und den Zeitpunkt der letzten
-  Aktualisierung. Die Liste lädt `FeedRecord`s aus `FeedStore`, löscht Feeds über
-  SQLite und öffnet den OPML-Export mit SQLite-`OPMLFeed`-Snapshots.
+  Aktualisierung. Die Liste lädt `FeedRecord`s aus `FeedStore`, löscht Feeds aber
+  über den gemeinsamen SQLite-first-Pfad
+  `FeedViewModel.deleteFeed(feedID:context:sqliteDatabase:)`, damit neben dem
+  SQLite-Record auch der SwiftData-Brückenfeed, alte Artikel und Feed-Logs
+  entfernt werden. Der OPML-Export nutzt SQLite-`OPMLFeed`-Snapshots.
 - Der Bereich `Cache` zeigt aktuelle Bild-/Favicon-Cache-Groesse, ein Speicherlimit
   mit erlaubten Werten 100 MB, 250 MB, 500 MB, 1 GB und 2 GB, sowie Aktionen zum
   Aktualisieren der Groessenanzeige und zum Leeren des Cache. Zusätzlich zeigt er
@@ -2429,6 +2432,16 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 ---
 
 ## Letzte Änderungen
+
+- 2026-07-04: Bugfix für wieder auftauchende Feeds nach dem Löschen in den
+  Einstellungen. `FeedManagementSettingsView.deleteSelectedFeeds()` nutzt jetzt
+  den gemeinsamen `FeedViewModel.deleteFeed(feedID:context:sqliteDatabase:)`-
+  Pfad statt nur `FeedStore.delete`, sodass neben dem SQLite-`FeedRecord` auch
+  der SwiftData-Brückenfeed, alte Artikel und Feed-Logs entfernt werden. Damit
+  kann `FeedTagBackfillService` beim nächsten App-Start gelöschte Feeds nicht
+  wieder nach SQLite spiegeln. Abgesichert durch
+  `deleteFeedPerSQLiteIDEntferntSwiftDataBridgeDamitBackfillFeedNichtWiederherstellt`
+  und `feedManagementSettingsViewListetSQLiteFeedsUndLoeschtMitSwiftDataBridgeCleanup`.
 
 - 2026-07-04: Bugfix für das Sichtbarbleiben automatisch gelesener Artikel in
   der produktiven SQLite-Artikelliste. `SQLiteFeedArticleListView` merkt sich

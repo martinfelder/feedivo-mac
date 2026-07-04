@@ -61,7 +61,7 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(!propertiesSource.contains("modelContext.save()"))
     }
 
-    @Test func feedManagementSettingsViewListetUndLoeschtSQLiteFeeds() throws {
+    @Test func feedManagementSettingsViewListetSQLiteFeedsUndLoeschtMitSwiftDataBridgeCleanup() throws {
         let projectRoot = projectRootURL()
         let settingsSource = try source(at: "Feedivo/Views/Settings/SettingsView.swift", projectRoot: projectRoot)
         let stateSource = try source(at: "Feedivo/Views/Settings/FeedManagementSettingsState.swift", projectRoot: projectRoot)
@@ -69,14 +69,19 @@ struct FeedivoAppSceneConfigurationTests {
         let viewStart = try #require(settingsSource.range(of: "private struct FeedManagementSettingsView"))
         let rowStart = try #require(settingsSource.range(of: "private struct FeedManagementRow"))
         let viewSource = settingsSource[viewStart.lowerBound ..< rowStart.lowerBound]
+        let deleteStart = try #require(viewSource.range(of: "private func deleteSelectedFeeds()"))
+        let loadStart = try #require(viewSource.range(of: "private func loadFeeds()"))
+        let deleteSource = viewSource[deleteStart.lowerBound ..< loadStart.lowerBound]
 
         #expect(viewSource.contains("@State private var feeds: [FeedRecord]"))
         #expect(viewSource.contains("FeedStore(database: database).feeds()"))
-        #expect(viewSource.contains("FeedStore(database: database).delete(id:"))
+        #expect(viewSource.contains("@Environment(\\.modelContext)"))
+        #expect(viewSource.contains("@State private var feedViewModel = FeedViewModel()"))
+        #expect(deleteSource.contains("feedViewModel.deleteFeed("))
+        #expect(deleteSource.contains("sqliteDatabase: database"))
         #expect(viewSource.contains("OPMLExportSheet(opmlFeeds:"))
         #expect(!viewSource.contains("@Query(sort: \\Feed.title)"))
-        #expect(!viewSource.contains("FeedViewModel()"))
-        #expect(!viewSource.contains("deleteFeed("))
+        #expect(!deleteSource.contains("FeedStore(database: database).delete(id:"))
         #expect(stateSource.contains("filteredFeeds(_ feeds: [FeedRecord]"))
         #expect(stateSource.contains("selectedFeedIDs: inout Set<String>"))
     }
@@ -143,7 +148,7 @@ struct FeedivoAppSceneConfigurationTests {
 
         #expect(listSource.contains("@AppStorage(\"markArticleReadOnSelection\")"))
         #expect(compactListSource.contains("markSelectedArticleReadIfNeeded()"))
-        #expect(compactListSource.contains("state.markReadIfNeeded(articleID:selectedArticleID,database:database,isEnabled:markArticleReadOnSelection)"))
+        #expect(compactListSource.contains("state.markReadIfNeeded(articleID:articleID,database:database,isEnabled:markArticleReadOnSelection)"))
     }
 
     @Test func startupTaskTrimsImageCacheToSelectedLimit() throws {
