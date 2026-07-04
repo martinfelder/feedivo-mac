@@ -176,11 +176,15 @@ enum FeedService {
         let (data, response) = try await dataLoader(request)
         guard let httpResponse = response as? HTTPURLResponse else {
             let parsedFeed = try parseFeed(data: data, sourceURL: urlString)
+            // Fallback-Pfad (kein HTTPURLResponse): Werte aus den Eingabe-Validatoren
+            // weiterreichen, damit cacheControlMaxAge/conditionalGetSetAt nicht verloren gehen.
             let updatedValidators = FeedHTTPValidators(
                 eTag: validators.eTag,
                 lastModified: validators.lastModified,
                 contentHash: contentHash(for: data),
-                lastStatusCode: validators.lastStatusCode
+                lastStatusCode: validators.lastStatusCode,
+                cacheControlMaxAge: validators.cacheControlMaxAge,
+                conditionalGetSetAt: validators.conditionalGetSetAt
             )
             return .updated(parsedFeed, updatedValidators)
         }
