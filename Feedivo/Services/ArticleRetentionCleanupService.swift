@@ -92,7 +92,6 @@ enum ArticleRetentionCleanupService {
     @MainActor
     @discardableResult
     static func removeExpiredSQLiteArticles(
-        in _: ModelContext,
         database: FeedivoDatabase,
         isEnabled: Bool,
         retentionDays: Int,
@@ -165,6 +164,27 @@ enum ArticleRetentionCleanupService {
         }
 
         return removedCount
+    }
+
+    @MainActor
+    @discardableResult
+    static func removeExpiredSQLiteArticles(
+        in _: ModelContext? = nil,
+        database: FeedivoDatabase,
+        isEnabled: Bool,
+        retentionDays: Int,
+        minimumArticlesPerFeed: Int = ArticleRetentionSettings.defaultMinimumArticlesPerFeed,
+        includeProtectedArticles: Bool = false,
+        now: Date = Date()
+    ) throws -> Int {
+        try removeExpiredSQLiteArticles(
+            database: database,
+            isEnabled: isEnabled,
+            retentionDays: retentionDays,
+            minimumArticlesPerFeed: minimumArticlesPerFeed,
+            includeProtectedArticles: includeProtectedArticles,
+            now: now
+        )
     }
 
     static func shouldRemove(

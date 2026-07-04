@@ -1,6 +1,4 @@
 import Foundation
-import SwiftData
-
 struct BackgroundRefreshRequest {
     let identifier: String
     let intervalMinutes: Int
@@ -18,12 +16,12 @@ extension BackgroundRefreshScheduling {
 
 @MainActor
 final class SystemBackgroundActivityRefreshScheduler: BackgroundRefreshScheduling {
-    private let modelContainer: ModelContainer
+    private let feedivoDatabase: FeedivoDatabase
     private let feedViewModel: FeedViewModel
     private var scheduler: NSBackgroundActivityScheduler?
 
-    init(modelContainer: ModelContainer, feedViewModel: FeedViewModel) {
-        self.modelContainer = modelContainer
+    init(feedivoDatabase: FeedivoDatabase, feedViewModel: FeedViewModel) {
+        self.feedivoDatabase = feedivoDatabase
         self.feedViewModel = feedViewModel
     }
 
@@ -34,10 +32,10 @@ final class SystemBackgroundActivityRefreshScheduler: BackgroundRefreshSchedulin
         scheduler.repeats = true
         scheduler.interval = TimeInterval(request.intervalMinutes * 60)
         scheduler.tolerance = TimeInterval(max(60, request.intervalMinutes * 60 / 4))
-        scheduler.schedule { [modelContainer, feedViewModel] completionHandler in
+        scheduler.schedule { [feedivoDatabase, feedViewModel] completionHandler in
             Task { @MainActor in
                 await BackgroundRefreshService.refreshAllFeeds(
-                    modelContainer: modelContainer,
+                    database: feedivoDatabase,
                     intervalMinutes: request.intervalMinutes,
                     feedViewModel: feedViewModel
                 )
@@ -121,15 +119,12 @@ enum BackgroundRefreshService {
 
     @MainActor
     static func refreshAllFeeds(
-        modelContainer: ModelContainer,
+        database: FeedivoDatabase,
         intervalMinutes: Int = 60,
         userDefaults: UserDefaults = .standard,
         feedViewModel: FeedViewModel
     ) async {
-        let context = ModelContext(modelContainer)
-        let feeds = (try? context.fetch(FetchDescriptor<Feed>())) ?? []
-
-        await feedViewModel.refreshAllFeeds(feeds, modelContainer: modelContainer)
+        await feedViewModel.refreshAllFeeds(sqliteDatabase: database)
 
         recordRefreshOutcome(
             from: feedViewModel,

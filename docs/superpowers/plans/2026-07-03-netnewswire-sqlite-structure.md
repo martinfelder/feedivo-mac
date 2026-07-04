@@ -584,7 +584,7 @@ rg -n 'import SwiftData|@Model|@Query|ModelContext|ModelContainer|FetchDescripto
 
 Expected: Nur explizit archivierte Legacy-Dateien oder gar keine Treffer. Wenn produktive Treffer bleiben, Phase 8 stoppen und diese Treffer als eigene Phase behandeln.
 
-- [ ] **Step 2: App-Start auf SQLite-only umstellen**
+- [x] **Step 2: App-Start auf SQLite-only umstellen**
 
 `FeedivoApp` soll nur noch `FeedivoDatabase` öffnen und per Environment injizieren:
 
@@ -599,7 +599,7 @@ Entfernen:
 - `FeedivoModelContainerFactory`
 - SwiftData-Fallback-Alert, sofern nur SwiftData betrifft
 
-- [ ] **Step 3: Tests ausführen**
+- [ ] **Step 3: Tests ausführen** *(ausgeführt, aber bestehende Legacy-FeedViewModel-/Performance-Tests sind außerhalb des Produktpfads noch fehlerhaft – siehe unten)*
 
 Run:
 

@@ -1,6 +1,5 @@
 import Foundation
 import Observation
-import SwiftData
 import UniformTypeIdentifiers
 
 // MARK: - Shared Typen (zuvor in OPMLImportReviewView.swift)
@@ -93,8 +92,8 @@ struct OPMLImportPreviewConfiguration: Equatable {
 // MARK: - Controller
 
 /// Hält den gesamten geteilten State + Logik + Helfer für die OPML-Import-
-/// Vorschau. Hat KEINE externen Abhängigkeiten als Felder: `feeds`,
-/// `feedViewModel` und `modelContext` werden pro Aufruf übergeben
+/// Vorschau. Hat KEINE externen Abhängigkeiten als Felder: `feeds` und
+/// `feedViewModel` werden pro Aufruf übergeben.
 /// (feeds stammt aus @Query und kann sich ändern → kein Stale-Cache).
 @Observable
 @MainActor
