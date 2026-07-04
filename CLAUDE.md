@@ -328,7 +328,7 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 
 ## GitHub
 
-- **Repo:** https://github.com/[NOCH ANLEGEN]/FeedivoMac
+- **Repo:** https://github.com/martinfelder/feedivo-mac (private)
 - **Issues:** GitHub Issues mit Milestones M1–M4
 - **Labels:** `feature` `bug` `chore` `ui` `networking` `data` `sync` `tags`
 - **Branch-Strategie:** `main` = stabil, `feature/[name]` für neue Features
