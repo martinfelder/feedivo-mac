@@ -230,18 +230,19 @@ enum FeedService {
 
         switch feed {
         case .rss(let rssFeed):
-            return parseRSSFeed(rssFeed, sourceURL: sourceURL, clamp: clamp)
+            return parseRSSFeed(rssFeed, sourceURL: sourceURL, clamp: clamp, referenceNow: referenceDate)
         case .atom(let atomFeed):
-            return parseAtomFeed(atomFeed, sourceURL: sourceURL, clamp: clamp)
+            return parseAtomFeed(atomFeed, sourceURL: sourceURL, clamp: clamp, referenceNow: referenceDate)
         case .json(let jsonFeed):
-            return parseJSONFeed(jsonFeed, sourceURL: sourceURL, clamp: clamp)
+            return parseJSONFeed(jsonFeed, sourceURL: sourceURL, clamp: clamp, referenceNow: referenceDate)
         }
     }
 
     private static func parseRSSFeed(
         _ rssFeed: RSSFeed,
         sourceURL: String,
-        clamp: (Date?) -> Date? = { $0 }
+        clamp: (Date?) -> Date? = { $0 },
+        referenceNow: Date = Date()
     ) -> ParsedFeed {
         let channel = rssFeed.channel
         let baseURL = URL(string: sourceURL)
@@ -250,9 +251,13 @@ enum FeedService {
                 return nil
             }
 
+            let resolvedLink = item.link.trimmedNonEmpty
+            let resolvedSourceID = item.guid?.text.trimmedNonEmpty
+                ?? (resolvedLink == nil ? syntheticSourceID(title: title, publishedAt: clamp(item.pubDate), now: referenceNow) : nil)
+
             return ParsedArticle(
                 title: title,
-                sourceID: item.guid?.text,
+                sourceID: resolvedSourceID,
                 link: item.link,
                 summary: item.description,
                 content: item.content?.encoded,
@@ -279,7 +284,8 @@ enum FeedService {
     private static func parseAtomFeed(
         _ atomFeed: AtomFeed,
         sourceURL: String,
-        clamp: (Date?) -> Date? = { $0 }
+        clamp: (Date?) -> Date? = { $0 },
+        referenceNow: Date = Date()
     ) -> ParsedFeed {
         let baseURL = URL(string: sourceURL)
         let articles = atomFeed.entries?.compactMap { entry -> ParsedArticle? in
@@ -287,9 +293,13 @@ enum FeedService {
                 return nil
             }
 
+            let resolvedLink = entry.links?.first(where: { $0.attributes?.rel == nil || $0.attributes?.rel == "alternate" })?.attributes?.href.trimmedNonEmpty
+            let resolvedSourceID = entry.id.trimmedNonEmpty
+                ?? (resolvedLink == nil ? syntheticSourceID(title: title, publishedAt: clamp(entry.published ?? entry.updated), now: referenceNow) : nil)
+
             return ParsedArticle(
                 title: title,
-                sourceID: entry.id,
+                sourceID: resolvedSourceID,
                 link: entry.links?.first(where: { $0.attributes?.rel == nil || $0.attributes?.rel == "alternate" })?.attributes?.href,
                 summary: entry.summary?.text,
                 content: entry.content?.text,
@@ -317,7 +327,8 @@ enum FeedService {
     private static func parseJSONFeed(
         _ jsonFeed: JSONFeed,
         sourceURL: String,
-        clamp: (Date?) -> Date? = { $0 }
+        clamp: (Date?) -> Date? = { $0 },
+        referenceNow: Date = Date()
     ) -> ParsedFeed {
         let baseURL = URL(string: sourceURL)
         let articles = jsonFeed.items?.compactMap { item -> ParsedArticle? in
@@ -325,9 +336,13 @@ enum FeedService {
                 return nil
             }
 
+            let resolvedLink = (item.url ?? item.externalURL).trimmedNonEmpty
+            let resolvedSourceID = item.id.trimmedNonEmpty
+                ?? (resolvedLink == nil ? syntheticSourceID(title: title, publishedAt: clamp(item.datePublished ?? item.dateModified), now: referenceNow) : nil)
+
             return ParsedArticle(
                 title: title,
-                sourceID: item.id,
+                sourceID: resolvedSourceID,
                 link: item.url ?? item.externalURL,
                 summary: item.summary,
                 content: item.contentHtml ?? item.contentText,
@@ -345,6 +360,21 @@ enum FeedService {
             siteURL: cleanURL(jsonFeed.homePageURL, relativeTo: baseURL),
             articles: articles
         )
+    }
+
+    /// Erzeugt eine deterministische synthetische sourceID für Artikel ohne guid
+    /// und ohne link, damit ArticleStore den Artikel beim Refresh aktualisiert
+    /// statt dupliziert. Präfix "synth:" trennt von echten guids.
+    private nonisolated static func syntheticSourceID(title: String, publishedAt: Date?, now: Date) -> String {
+        let dateString: String
+        if let publishedAt {
+            dateString = ISO8601DateFormatter().string(from: publishedAt)
+        } else {
+            dateString = ISO8601DateFormatter().string(from: now)
+        }
+        let payload = Data("\(title)|\(dateString)".utf8)
+        let digest = SHA256.hash(data: payload)
+        return "synth:" + digest.map { String(format: "%02x", $0) }.joined()
     }
 
     private nonisolated static func firstImageURL(in media: Media?, relativeTo baseURL: URL?) -> String? {
@@ -618,6 +648,19 @@ enum FeedService {
     fileprivate nonisolated static func contentHash(for data: Data) -> String {
         let digest = SHA256.hash(data: data)
         return digest.map { String(format: "%02x", $0) }.joined()
+    }
+}
+
+private extension Optional where Wrapped == String {
+    /// Liefert den getrimmten Wert oder nil, falls danach leer.
+    /// Lokales Äquivalent zu `trimmedNonEmpty` in ArticleStore/RetentionService,
+    /// da deren Extension file-private ist.
+    var trimmedNonEmpty: String? {
+        guard let value = self?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !value.isEmpty else {
+            return nil
+        }
+        return value
     }
 }
 

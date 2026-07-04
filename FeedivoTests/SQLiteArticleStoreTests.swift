@@ -605,4 +605,27 @@ struct SQLiteArticleStoreTests {
         #expect(columns.contains("cacheControlMaxAge"))
         #expect(columns.contains("conditionalGetSetAt"))
     }
+
+    @Test func upsertMitSynthetischerSourceIDUpdatedStattInsert() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example"))
+
+        let synthID = "synth:abc"
+        let first = ArticleUpsertInput(
+            feedID: "feed-1", sourceID: synthID, link: nil,
+            title: "Artikel", summary: nil, content: nil, imageURL: nil,
+            author: nil, publishedAt: nil, arrivedAt: now
+        )
+        _ = try articleStore.upsert(first)
+        // Zweiter Refresh: gleiche sourceID → Update
+        let second = first
+        let result = try articleStore.upsert([second])
+
+        #expect(result.insertedArticleIDs.isEmpty)
+        #expect(result.updatedArticleIDs.count == 1)
+    }
 }

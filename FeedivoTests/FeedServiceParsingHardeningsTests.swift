@@ -120,4 +120,47 @@ struct FeedServiceParsingHardeningsTests {
         )
         #expect(feed.articles.first?.publishedAt != nil)
     }
+
+    // --- Synthetische Identität ---
+
+    @Test func parseRSSFeedErzeugtSynthSourceIDOhneGuidUndLink() throws {
+        let xml = """
+        <?xml version="1.0"?>
+        <rss version="2.0">
+          <channel><title>Test</title>
+            <item>
+              <title>Ein Artikel ohne guid und link</title>
+              <pubDate>Wed, 01 Jul 2026 10:00:00 GMT</pubDate>
+            </item>
+          </channel>
+        </rss>
+        """
+        let fixedNow = Date(timeIntervalSince1970: 1_800_000_000)
+        let feed = try FeedService.parseFeed(
+            data: Data(xml.utf8),
+            sourceURL: "https://example.com/feed.xml",
+            now: { fixedNow }
+        )
+        let sourceID = feed.articles.first?.sourceID
+        #expect(sourceID?.hasPrefix("synth:") == true)
+        // gleicher Feed → gleiche ID (deterministisch)
+        let feed2 = try FeedService.parseFeed(data: Data(xml.utf8), sourceURL: "https://example.com/feed.xml", now: { fixedNow })
+        #expect(feed2.articles.first?.sourceID == sourceID)
+    }
+
+    @Test func parseRSSFeedBehaeltGuidStattSynth() throws {
+        let xml = """
+        <?xml version="1.0"?>
+        <rss version="2.0">
+          <channel><title>Test</title>
+            <item>
+              <title>Mit guid</title>
+              <guid>real-guid-123</guid>
+            </item>
+          </channel>
+        </rss>
+        """
+        let feed = try FeedService.parseFeed(data: Data(xml.utf8), sourceURL: "https://example.com/feed.xml", now: { Date() })
+        #expect(feed.articles.first?.sourceID == "real-guid-123")
+    }
 }
