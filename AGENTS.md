@@ -2430,6 +2430,12 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 
 ## Letzte Änderungen
 
+- 2026-07-04: Bugfix für `Regel erstellen...` aus dem Kontextmenü der
+  produktiven SQLite-Artikelliste. `SQLiteFeedArticleListView` übergibt beim
+  Row-Kontextmenü nicht mehr eine leere Closure, sondern öffnet den SQLite-first
+  `RuleWizardView` mit einem Seed aus `ArticleListSnapshot`; abgesichert durch
+  `sqliteArtikellisteVerdrahtetRegelErstellenAusKontextmenue`.
+
 - 2026-07-03: Bugfix für `Regel erstellen...` im produktiven SQLite-Reader.
   `SQLiteReaderView` meldet den aktuellen `ArticleReaderSnapshot` wieder an
   `ContentView`, das den SQLite-first `RuleWizardView` als Sheet öffnet. Der

@@ -19,6 +19,37 @@ private enum RuleWizardMode: String, CaseIterable, Identifiable {
 struct RuleWizardSeed: Equatable {
     var name: String
     var conditionDrafts: [RuleConditionDraft]
+
+    init(name: String, conditionDrafts: [RuleConditionDraft]) {
+        self.name = name
+        self.conditionDrafts = conditionDrafts
+    }
+
+    init(articleTitle: String, feedTitle: String) {
+        let trimmedTitle = articleTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        let fallbackName = feedTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        let seedValue = trimmedTitle.isEmpty ? fallbackName : trimmedTitle
+        let field: RuleConditionField = trimmedTitle.isEmpty ? .feedTitle : .title
+
+        self.init(
+            name: seedValue,
+            conditionDrafts: [
+                RuleConditionDraft(
+                    field: field,
+                    conditionOperator: .contains,
+                    value: seedValue
+                )
+            ]
+        )
+    }
+
+    init(snapshot: ArticleReaderSnapshot) {
+        self.init(articleTitle: snapshot.title, feedTitle: snapshot.feedTitle)
+    }
+
+    init(snapshot: ArticleListSnapshot) {
+        self.init(articleTitle: snapshot.title, feedTitle: snapshot.feedTitle)
+    }
 }
 
 struct RuleWizardView: View {

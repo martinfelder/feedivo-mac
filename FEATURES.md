@@ -77,6 +77,8 @@
 - **SQLite/GRDB 2026-07-03:** Der Menüpunkt im produktiven `SQLiteReaderView`
   ist wieder aktiv verdrahtet und öffnet den SQLite-first `RuleWizardView` über
   `ContentView`.
+- **SQLite/GRDB 2026-07-04:** Auch das Kontextmenü der produktiven
+  `SQLiteFeedArticleListView` öffnet den SQLite-first `RuleWizardView` wieder.
 
 ---
 

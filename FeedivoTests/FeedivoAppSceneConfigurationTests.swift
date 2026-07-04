@@ -124,6 +124,18 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(compactContentSource.contains("RuleWizardView(existingRules:"))
     }
 
+    @Test func sqliteArtikellisteVerdrahtetRegelErstellenAusKontextmenue() throws {
+        let projectRoot = projectRootURL()
+        let listSource = try source(at: "Feedivo/Views/ArticleList/SQLiteFeedArticleListView.swift", projectRoot: projectRoot)
+        let compactListSource = compact(listSource)
+
+        #expect(listSource.contains("@State private var ruleCreationRequest: ArticleListRuleCreationRequest?"))
+        #expect(compactListSource.contains(".sheet(item:$ruleCreationRequest)"))
+        #expect(compactListSource.contains("RuleWizardView(existingRules:"))
+        #expect(compactListSource.contains("onCreateRule:{requestRuleCreation(from:row)}"))
+        #expect(!compactListSource.contains("onCreateRule:{},"))
+    }
+
     @Test func startupTaskTrimsImageCacheToSelectedLimit() throws {
         let testFileURL = URL(fileURLWithPath: #filePath)
         let projectRoot = testFileURL

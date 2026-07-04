@@ -1108,20 +1108,6 @@ private struct RuleCreationRequest: Identifiable {
     let seed: RuleWizardSeed
 
     init(snapshot: ArticleReaderSnapshot) {
-        let trimmedTitle = snapshot.title.trimmingCharacters(in: .whitespacesAndNewlines)
-        let fallbackName = snapshot.feedTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-        let seedValue = trimmedTitle.isEmpty ? fallbackName : trimmedTitle
-        let field: RuleConditionField = trimmedTitle.isEmpty ? .feedTitle : .title
-
-        self.seed = RuleWizardSeed(
-            name: seedValue,
-            conditionDrafts: [
-                RuleConditionDraft(
-                    field: field,
-                    conditionOperator: .contains,
-                    value: seedValue
-                )
-            ]
-        )
+        self.seed = RuleWizardSeed(snapshot: snapshot)
     }
 }

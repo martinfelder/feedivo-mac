@@ -26,6 +26,7 @@ struct SQLiteFeedArticleListView: View {
     @State private var debouncedSearchText = ""
     @State private var offlineDownloadService = SQLiteOfflineDownloadService()
     @State private var articleExportRequest: ArticleExportRequest?
+    @State private var ruleCreationRequest: ArticleListRuleCreationRequest?
     @State private var showsReadArticles = false
 
     @AppStorage(ArticleSortOption.storageKey)
@@ -130,6 +131,12 @@ struct SQLiteFeedArticleListView: View {
             ArticleExportSheet(request: request) {
                 articleExportRequest = nil
             }
+        }
+        .sheet(item: $ruleCreationRequest) { request in
+            RuleWizardView(
+                existingRules: sqliteRulesForRuleCreation(),
+                seed: request.seed
+            )
         }
         .toolbar {
             ToolbarItemGroup {
@@ -237,7 +244,9 @@ struct SQLiteFeedArticleListView: View {
                 toggleArchived(row.id)
             },
             onRequestAssignTag: {},
-            onCreateRule: {},
+            onCreateRule: {
+                requestRuleCreation(from: row)
+            },
             onCopyLink: {
                 copyLink(row)
             },
@@ -745,6 +754,18 @@ struct SQLiteFeedArticleListView: View {
         }
     }
 
+    private func requestRuleCreation(from row: ArticleListSnapshot) {
+        ruleCreationRequest = ArticleListRuleCreationRequest(snapshot: row)
+    }
+
+    private func sqliteRulesForRuleCreation() -> [RuleRecord] {
+        guard let database else {
+            return []
+        }
+
+        return (try? SQLiteRuleStore(database: database).rules()) ?? []
+    }
+
     private func copyLink(_ row: ArticleListSnapshot) {
         guard let link = row.link?.trimmingCharacters(in: .whitespacesAndNewlines),
               !link.isEmpty
@@ -814,5 +835,14 @@ struct SQLiteFeedArticleListView: View {
         }
 
         debouncedSearchText = searchText
+    }
+}
+
+private struct ArticleListRuleCreationRequest: Identifiable {
+    let id = UUID()
+    let seed: RuleWizardSeed
+
+    init(snapshot: ArticleListSnapshot) {
+        self.seed = RuleWizardSeed(snapshot: snapshot)
     }
 }
