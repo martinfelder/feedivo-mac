@@ -3,6 +3,7 @@ import SwiftData
 
 // Legacy SwiftData: Dieser Reader ist nicht mehr im Produkt-Hauptpfad geroutet.
 // Neue Artikelpfade müssen `SQLiteReaderView` verwenden.
+@available(*, deprecated, message: "Legacy SwiftData; produktiv bitte SQLiteReaderView nutzen.")
 struct ReaderView: View {
     @Environment(\.interfaceTextSize) private var interfaceTextSize
     @Environment(\.modelContext) private var modelContext

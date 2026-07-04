@@ -2,6 +2,12 @@ import Foundation
 import Observation
 import SwiftData
 
+/// Legacy SwiftData-ViewModel für den Übergangspfad.
+///
+/// Produktiv werden Smart-Folders heute über
+/// `SQLiteSmartFolderStore`/`TimelineStore` verwaltet.
+/// Die Klasse bleibt nur noch als kompatible Referenz für Testfälle
+/// und potenzielle Legacy-Pfade bestehen.
 enum SmartFolderMoveDirection {
     case up
     case down
@@ -16,6 +22,7 @@ struct SmartFolderConditionDraft: Identifiable, Equatable {
 
 @Observable
 @MainActor
+@available(*, deprecated, message: "Legacy SwiftData-ViewModel; produktiv bitte SQLiteSmartFolderStore nutzen.")
 final class SmartFolderViewModel {
     var errorMessage: String?
 

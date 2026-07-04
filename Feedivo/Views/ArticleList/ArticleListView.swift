@@ -4,6 +4,7 @@ import AppKit
 
 // Legacy SwiftData: Diese Liste ist nicht mehr im Produkt-Hauptpfad geroutet.
 // Neue Artikelpfade müssen `SQLiteFeedArticleListView` verwenden.
+@available(*, deprecated, message: "Legacy SwiftData; produktiv bitte SQLiteFeedArticleListView nutzen.")
 struct ArticleListView: View {
     private enum Scope {
         case feed(Feed)

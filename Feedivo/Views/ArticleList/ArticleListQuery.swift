@@ -1,6 +1,7 @@
 import Foundation
 import SwiftData
 
+@available(*, deprecated, message: "Legacy SwiftData; produktiv bitte SQLite-Queries über Timeline/ArticleStore nutzen.")
 enum ArticleListQuery {
     static let initialFetchLimit = 50
     static let fetchBatchSize = 50
