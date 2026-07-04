@@ -70,18 +70,27 @@ struct FeedHTTPValidators: Equatable, Sendable {
     var lastModified: String?
     var contentHash: String?
     var lastStatusCode: Int?
+    var cacheControlMaxAge: Int?
+    var conditionalGetSetAt: Date?
 
     init(
         eTag: String? = nil,
         lastModified: String? = nil,
         contentHash: String? = nil,
-        lastStatusCode: Int? = nil
+        lastStatusCode: Int? = nil,
+        cacheControlMaxAge: Int? = nil,
+        conditionalGetSetAt: Date? = nil
     ) {
         self.eTag = eTag
         self.lastModified = lastModified
         self.contentHash = contentHash
         self.lastStatusCode = lastStatusCode
+        self.cacheControlMaxAge = cacheControlMaxAge
+        self.conditionalGetSetAt = conditionalGetSetAt
     }
+
+    /// Deckelt max-age auf 5 h, weil viele Sites Cache-Control falsch konfigurieren.
+    static let cacheControlMaxMaxAge = 5 * 3600
 }
 
 enum ConditionalFeedFetchResult: Sendable {
@@ -554,11 +563,27 @@ enum FeedService {
 
 private extension FeedHTTPValidators {
     func updated(from response: HTTPURLResponse, data: Data) -> FeedHTTPValidators {
-        FeedHTTPValidators(
+        let responseMaxAge = Self.parseCacheControlMaxAge(response.value(forHTTPHeaderField: "Cache-Control"))
+        let mergedMaxAge = responseMaxAge ?? cacheControlMaxAge
+        let setAt = (response.statusCode == 200) ? Date() : conditionalGetSetAt
+
+        return FeedHTTPValidators(
             eTag: response.value(forHTTPHeaderField: "ETag") ?? eTag,
             lastModified: response.value(forHTTPHeaderField: "Last-Modified") ?? lastModified,
             contentHash: response.statusCode == 304 ? contentHash : FeedService.contentHash(for: data),
-            lastStatusCode: response.statusCode
+            lastStatusCode: response.statusCode,
+            cacheControlMaxAge: mergedMaxAge,
+            conditionalGetSetAt: setAt
         )
+    }
+
+    static func parseCacheControlMaxAge(_ header: String?) -> Int? {
+        guard let header, !header.isEmpty else { return nil }
+        let lowered = header.lowercased()
+        guard let range = lowered.range(of: "max-age=") else { return nil }
+        let rest = lowered[range.upperBound...]
+        let digits = String(rest.prefix { $0.isNumber })
+        guard let seconds = Int(digits) else { return nil }
+        return min(seconds, cacheControlMaxMaxAge)
     }
 }

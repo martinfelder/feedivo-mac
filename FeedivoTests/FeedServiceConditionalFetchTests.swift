@@ -111,6 +111,29 @@ struct FeedServiceConditionalFetchTests {
         #expect(validators.lastStatusCode == 200)
     }
 
+    @Test func conditionalFetchUebernimmtCacheControlMaxAgeGedeckelt() async throws {
+        let result = try await FeedService.fetchFeedConditionally(
+            urlString: "https://example.com/feed.xml",
+            validators: FeedHTTPValidators(),
+            dataLoader: { request in
+                (
+                    Self.rssData(title: "CC Feed"),
+                    Self.httpResponse(
+                        url: request.url!,
+                        statusCode: 200,
+                        headers: ["Cache-Control": "max-age=99999"]
+                    )
+                )
+            }
+        )
+
+        guard case .updated(_, let validators) = result else {
+            Issue.record("Erwartet aktualisierten Feed.")
+            return
+        }
+        #expect(validators.cacheControlMaxAge == 5 * 3600) // auf 5h gedeckelt
+    }
+
     private static func rssData(title: String) -> Data {
         Data(
             """
