@@ -41,11 +41,12 @@ struct SQLiteFeedRefreshCoordinator {
         self.fetcher = fetcher
     }
 
-    /// Einzelfeed-Refresh. `manual: true` umgeht das Cache-Control-Skip
-    /// (Aufrufer: manuelle Refresh-Aktion übergibt `true`, Background-Refresh
-    /// `false`). Delegiert an `SQLiteFeedRefreshService.refresh`, wo Skip und
-    /// Conditional-GET-Dropping implementiert sind (Zugriff auf logStore/statusStore).
-    func refresh(feedID: String, manual: Bool = false) async throws -> SQLiteFeedRefreshResult {
+    /// Einzelfeed-Refresh. `manual: true` (Default) umgeht das Cache-Control-Skip —
+    /// nutzerinitiierte Refresh-Aktionen fetchen immer. Background-Refresh gibt
+    /// explizit `false` an. Delegiert an `SQLiteFeedRefreshService.refresh`, wo
+    /// Skip und Conditional-GET-Dropping implementiert sind (Zugriff auf
+    /// logStore/statusStore).
+    func refresh(feedID: String, manual: Bool = true) async throws -> SQLiteFeedRefreshResult {
         let service = SQLiteFeedRefreshService(
             database: database,
             ruleSnapshots: ruleSnapshots,

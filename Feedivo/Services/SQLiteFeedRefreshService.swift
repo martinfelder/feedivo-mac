@@ -47,16 +47,19 @@ struct SQLiteFeedRefreshService {
         self.fetcher = fetcher
     }
 
-    func refresh(feedID: String, manual: Bool = false) async throws -> SQLiteFeedRefreshResult {
+    func refresh(feedID: String, manual: Bool = true) async throws -> SQLiteFeedRefreshResult {
         guard let feed = try feedStore.feed(id: feedID) else {
             throw SQLiteFeedRefreshError.feedNotFound(feedID)
         }
 
         let refreshedAt = now()
 
-        // Cache-Control-Skip bei Auto-Refresh (manueller Refresh umgeht dies):
-        // Ist der Feed laut Cache-Control noch „frisch", überspringen wir den
-        // Fetch komplett und melden nicht-geändert.
+        // Cache-Control-Skip bei Auto-Refresh: Ist der Feed laut Cache-Control
+        // noch „frisch", überspringen wir den Fetch komplett und melden
+        // nicht-geändert. Default ist `manual: true` (sicher — immer fetchen),
+        // damit nutzerinitiierte Refreshs (UI-Einzelrefresh, OPML-Import) das
+        // Skip nicht versehentlich mitbekommen. Background-Refresh gibt explizit
+        // `manual: false` an (siehe SQLiteFeedRefreshCoordinator.refreshAllFeeds).
         if !manual,
            let maxAge = feed.cacheControlMaxAge,
            let lastRefreshed = feed.lastRefreshedAt,

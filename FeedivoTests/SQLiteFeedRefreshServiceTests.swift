@@ -181,6 +181,32 @@ struct SQLiteFeedRefreshServiceTests {
         #expect(status?.isRead == true)
     }
 
+    @Test func refreshDefaultManualUeberspringtCacheControlSkipNicht() async throws {
+        // Default `manual: true` → Cache-Control-Skip wird nicht angewendet, der
+        // Fetcher wird auch innerhalb des Cache-Control-Fensters aufgerufen. Das
+        // schützt nutzerinitiierte Refreshs (UI-Einzelrefresh ohne explizites
+        // `manual`-Argument, OPML-Import-Refresh) vor versehentlichem Skip.
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        try feedStore.save(FeedRecord(
+            id: "feed-1",
+            url: "https://cached.example/feed.xml",
+            title: "Cached",
+            lastRefreshedAt: now.addingTimeInterval(-300),   // 5 min her
+            cacheControlMaxAge: 1800                          // 30 min Fenster
+        ))
+
+        var fetcherCalled = false
+        let service = SQLiteFeedRefreshService(database: database, now: { now }) { _, _ in
+            fetcherCalled = true
+            return .notModified(FeedHTTPValidators())
+        }
+
+        _ = try await service.refresh(feedID: "feed-1")  // kein manual-Arg → Default true
+        #expect(fetcherCalled) // Default ist manuell → Skip nicht aktiv
+    }
+
     @Test func refreshDroppedConditionalGetHeaderNachAchtTagen304() async throws {
         // Nach 8 Tagen ununterbrochenem 304-Streak werden ETag/Last-Modified für
         // den nächsten Fetch gedropped, damit der Server eine echte Antwort liefert.
