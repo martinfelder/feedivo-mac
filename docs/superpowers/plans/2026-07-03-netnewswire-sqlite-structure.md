@@ -365,7 +365,7 @@ git commit -m "Migriere Smart Folders und Feed-Ordner auf SQLite"
 
 Ziel: Es gibt keine versehentliche produktive Route mehr zu SwiftData-Artikelviews.
 
-- [ ] **Step 1: Source-Test gegen Legacy-Routing schreiben**
+- [x] **Step 1: Source-Test gegen Legacy-Routing schreiben**
 
 ```swift
 @Test func produktiverBuildRoutetNichtMehrInSwiftDataArtikelViews() throws {
@@ -379,7 +379,7 @@ Ziel: Es gibt keine versehentliche produktive Route mehr zu SwiftData-Artikelvie
 }
 ```
 
-- [ ] **Step 2: Legacy-Dateien umbenennen oder mit Build-Flag isolieren**
+- [x] **Step 2: Legacy-Dateien umbenennen oder mit Build-Flag isolieren**
 
 Bevorzugt löschen, wenn keine Tests/Views sie brauchen. Falls noch nötig:
 
@@ -393,7 +393,7 @@ und Dateinamen klar machen:
 - `LegacyReaderView.swift`
 - `LegacyArticleListQuery.swift`
 
-- [ ] **Step 3: Tests ausführen**
+- [x] **Step 3: Tests ausführen**
 
 Run:
 
@@ -403,7 +403,7 @@ xcodebuild test -project Feedivo.xcodeproj -scheme Feedivo -destination 'platfor
 
 Expected: PASS.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add Feedivo/Views/ArticleList Feedivo/Views/Reader FeedivoTests/FeedivoAppSceneConfigurationTests.swift
@@ -424,7 +424,7 @@ git commit -m "Isoliere SwiftData Artikel-Legacy-Views"
 
 Ziel: `FeedViewModel` ist nicht mehr Mischort für alte SwiftData- und neue SQLite-Logik.
 
-- [ ] **Step 1: Coordinator-Test schreiben**
+- [x] **Step 1: Coordinator-Test schreiben**
 
 ```swift
 @Test func sqliteRefreshCoordinatorLaedtFeedsAusSQLiteUndRefreshtJedenFeed() async throws {
@@ -446,7 +446,7 @@ Ziel: `FeedViewModel` ist nicht mehr Mischort für alte SwiftData- und neue SQLi
 }
 ```
 
-- [ ] **Step 2: Coordinator einführen**
+- [x] **Step 2: Coordinator einführen**
 
 `SQLiteFeedRefreshCoordinator` kapselt:
 
@@ -456,7 +456,7 @@ Ziel: `FeedViewModel` ist nicht mehr Mischort für alte SwiftData- und neue SQLi
 - Fortschrittsitems
 - Benachrichtigungsergebnisse
 
-- [ ] **Step 3: FeedViewModel verschlanken**
+- [x] **Step 3: FeedViewModel verschlanken**
 
 `FeedViewModel.refreshAllFeeds(sqliteDatabase:modelContainer:)` delegiert an den Coordinator und enthält nur noch UI-State:
 
@@ -466,7 +466,7 @@ let summary = await coordinator.refreshAllFeeds(ruleSnapshots: rules)
 recentRefreshStatus = summary.statusSummary
 ```
 
-- [ ] **Step 4: Legacy-Refresh deutlich markieren**
+- [x] **Step 4: Legacy-Refresh deutlich markieren**
 
 Alte SwiftData-Refresh-Methoden in `FeedViewModel` bekommen:
 
@@ -474,7 +474,7 @@ Alte SwiftData-Refresh-Methoden in `FeedViewModel` bekommen:
 // Legacy SwiftData Refresh: nur Fallback, nicht produktiver SQLite-Pfad.
 ```
 
-- [ ] **Step 5: Tests ausführen**
+- [x] **Step 5: Tests ausführen**
 
 Run:
 
@@ -484,7 +484,7 @@ xcodebuild test -project Feedivo.xcodeproj -scheme Feedivo -destination 'platfor
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add Feedivo/Services/SQLiteFeedRefreshCoordinator.swift Feedivo/ViewModels/FeedViewModel.swift Feedivo/Services/BackgroundRefreshService.swift Feedivo/Services/FeedBackgroundRefreshService.swift FeedivoTests
@@ -504,7 +504,7 @@ git commit -m "Extrahiere SQLite Refresh Coordinator"
 
 Ziel: SwiftData-Bridge ist nicht mehr selbstverständlich, sondern explizit alte Migration.
 
-- [ ] **Step 1: Feature-Flag für Bridge einführen**
+- [x] **Step 1: Feature-Flag für Bridge einführen**
 
 In einem kleinen enum:
 
@@ -515,7 +515,7 @@ enum SwiftDataBridgeSettings {
 }
 ```
 
-- [ ] **Step 2: Subscription-Bridge nur noch unter Flag schreiben**
+- [x] **Step 2: Subscription-Bridge nur noch unter Flag schreiben**
 
 In `SQLiteFeedSubscriptionService.saveSwiftDataBridge` vor dem Fetch:
 
@@ -525,7 +525,7 @@ guard UserDefaults.standard.object(forKey: SwiftDataBridgeSettings.isEnabledKey)
 }
 ```
 
-- [ ] **Step 3: Tests für abschaltbare Bridge schreiben**
+- [x] **Step 3: Tests für abschaltbare Bridge schreiben**
 
 ```swift
 @Test func addFeedKannOhneSwiftDataBridgeLaufen() async throws {
@@ -544,7 +544,7 @@ guard UserDefaults.standard.object(forKey: SwiftDataBridgeSettings.isEnabledKey)
 }
 ```
 
-- [ ] **Step 4: Tests ausführen**
+- [x] **Step 4: Tests ausführen**
 
 Run:
 
@@ -574,7 +574,7 @@ git commit -m "Mache SwiftData Bridge abschaltbar"
 
 Ziel: Feedivo startet ohne SwiftData-`ModelContainer`, sobald alle produktiven und Bridge-Pfade SQLite-only sind.
 
-- [ ] **Step 1: Blocker-Scan ausführen**
+- [x] **Step 1: Blocker-Scan ausführen**
 
 Run:
 
@@ -636,7 +636,7 @@ git commit -m "Entferne SwiftData Container"
 
 Ziel: Bevor AppKit/NSTableView diskutiert wird, messen wir den SwiftUI-Snapshot-Pfad mit großen SQLite-Daten.
 
-- [ ] **Step 1: Testdaten-Helper schreiben**
+- [x] **Step 1: Testdaten-Helper schreiben**
 
 ```swift
 func seedLargeSQLiteDataset(
@@ -664,7 +664,7 @@ func seedLargeSQLiteDataset(
 }
 ```
 
-- [ ] **Step 2: Performance-Tests ergänzen**
+- [x] **Step 2: Performance-Tests ergänzen**
 
 Messfälle:
 
@@ -674,7 +674,7 @@ Messfälle:
 - `ArticleStatusStore.setRead` plus Timeline-Reload
 - Sidebar-Snapshots mit Counts
 
-- [ ] **Step 3: Tests ausführen**
+- [x] **Step 3: Tests ausführen**
 
 Run:
 
