@@ -17,6 +17,7 @@ struct SmartFolderEditorView: View {
     @State private var conditionDrafts = [
         SmartFolderConditionDraft(field: .title, conditionOperator: .contains, value: "")
     ]
+    @State private var feedFolders: [FeedFolderRecord] = []
     @State private var previewMatchingCount = 0
     @State private var errorMessage: String?
 
@@ -224,6 +225,20 @@ struct SmartFolderEditorView: View {
                 }
             }
             .labelsHidden()
+        case .feedFolder:
+            let trimmedValue = draft.wrappedValue.value.trimmingCharacters(in: .whitespacesAndNewlines)
+            if feedFolders.isEmpty || normalizedFeedFolderValue(for: trimmedValue) == nil {
+                TextField(valuePlaceholder(for: draft.wrappedValue.field), text: draft.value)
+                    .textFieldStyle(.roundedBorder)
+            } else {
+                Picker("", selection: normalizedFeedFolderBinding(for: draft)) {
+                    ForEach(feedFolders, id: \.id) { folder in
+                        Text(folder.name)
+                            .tag(folder.name)
+                    }
+                }
+                .labelsHidden()
+            }
         case .date where draft.wrappedValue.conditionOperator != .olderThanDays:
             Picker("", selection: draft.value) {
                 ForEach(SmartFolderDateValue.allCases) { dateValue in
@@ -294,6 +309,7 @@ struct SmartFolderEditorView: View {
 
     private func loadInitialState() {
         guard let folder else {
+            loadFeedFolders()
             return
         }
 
@@ -305,11 +321,15 @@ struct SmartFolderEditorView: View {
 
         guard let database = feedivoDatabase else {
             conditionDrafts = []
+            feedFolders = []
             return
         }
 
+        loadFeedFolders()
         let conditions = (try? SQLiteSmartFolderStore(database: database).conditions(folderID: folder.id)) ?? []
-        conditionDrafts = SmartFolderFormatter.drafts(for: conditions)
+        conditionDrafts = SmartFolderFormatter.drafts(for: conditions).compactMap { draft in
+            normalizeConditionFolderValue(draft)
+        }
     }
 
     private func save() {
@@ -420,7 +440,74 @@ struct SmartFolderEditorView: View {
                 includeRead: true,
                 includeHidden: snapshot.includesHiddenArticles
             )
-        ) ?? 0
+            ) ?? 0
+    }
+
+    private func loadFeedFolders() {
+        guard let database = feedivoDatabase else {
+            feedFolders = []
+            return
+        }
+
+        feedFolders = (try? FeedFolderStore(database: database).folders()) ?? []
+    }
+
+    private func normalizeConditionFolderValue(_ draft: SmartFolderConditionDraft) -> SmartFolderConditionDraft? {
+        guard draft.field == .feedFolder else {
+            return draft
+        }
+
+        guard let normalizedValue = normalizedFeedFolderValue(for: draft.value) else {
+            return draft
+        }
+
+        return SmartFolderConditionDraft(
+            field: draft.field,
+            conditionOperator: draft.conditionOperator,
+            value: normalizedValue
+        )
+    }
+
+    private func normalizedConditionFolderValue(_ draft: SmartFolderConditionDraft) -> SmartFolderConditionDraft {
+        guard draft.field == .feedFolder else {
+            return draft
+        }
+
+        let value = draft.value.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let normalizedValue = normalizedFeedFolderValue(for: value) {
+            return SmartFolderConditionDraft(
+                field: draft.field,
+                conditionOperator: draft.conditionOperator,
+                value: normalizedValue
+            )
+        }
+
+        return SmartFolderConditionDraft(
+            field: draft.field,
+            conditionOperator: draft.conditionOperator,
+            value: value
+        )
+    }
+
+    private func normalizedFeedFolderValue(for input: String) -> String? {
+        let trimmedInput = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedInput.isEmpty else {
+            return nil
+        }
+
+        return feedFolders.first(where: { $0.name.caseInsensitiveCompare(trimmedInput) == .orderedSame })?.name
+    }
+
+    private func normalizedFeedFolderBinding(for draft: Binding<SmartFolderConditionDraft>) -> Binding<String> {
+        Binding {
+            let trimmedValue = draft.wrappedValue.value.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard let normalizedValue = normalizedFeedFolderValue(for: trimmedValue) else {
+                return trimmedValue
+            }
+            return normalizedValue
+        } set: { value in
+            draft.wrappedValue.value = value
+        }
     }
 
     private var normalizedConditionDrafts: [SmartFolderConditionDraft] {
@@ -433,7 +520,13 @@ struct SmartFolderEditorView: View {
             return SmartFolderConditionDraft(
                 field: draft.field,
                 conditionOperator: draft.conditionOperator,
-                value: value
+                value: normalizedConditionFolderValue(
+                    SmartFolderConditionDraft(
+                        field: draft.field,
+                        conditionOperator: draft.conditionOperator,
+                        value: value
+                    )
+                ).value
             )
         }
     }

@@ -296,7 +296,7 @@ git commit -m "Migriere Regeln auf SQLite"
 
 Ziel: Intelligente Ordner und Feed-Ordner sind produktiv nur noch SQLite-Records.
 
-- [ ] **Step 1: Source-Test schreiben**
+- [x] **Step 1: Source-Test schreiben**
 
 ```swift
 @Test func smartFolderUndFeedFolderVerwaltungIstSQLiteOnly() throws {
@@ -313,7 +313,7 @@ Ziel: Intelligente Ordner und Feed-Ordner sind produktiv nur noch SQLite-Records
 }
 ```
 
-- [ ] **Step 2: SmartFolderViewModel als Legacy markieren oder entfernen**
+- [x] **Step 2: SmartFolderViewModel als Legacy markieren oder entfernen**
 
 Produktive Views sollen `SQLiteSmartFolderStore` direkt oder über einen neuen kleinen State verwenden:
 
@@ -328,7 +328,7 @@ final class SQLiteSmartFolderSettingsState {
 }
 ```
 
-- [ ] **Step 3: FeedFolder-Picker auf `FeedFolderStore` umstellen**
+- [x] **Step 3: FeedFolder-Picker auf `FeedFolderStore` umstellen**
 
 Keine produktive View soll `@Query(sort: \FeedFolder.name)` verwenden. Lade:
 
@@ -336,7 +336,7 @@ Keine produktive View soll `@Query(sort: \FeedFolder.name)` verwenden. Lade:
 let folders = (try? FeedFolderStore(database: database).folders()) ?? []
 ```
 
-- [ ] **Step 4: Tests ausführen**
+- [x] **Step 4: Tests ausführen**
 
 Run:
 

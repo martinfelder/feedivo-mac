@@ -617,6 +617,17 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(!editorSource.contains("@Query(sort: \\Article.publishedAt"))
         #expect(!editorSource.contains("SmartFolderEngine.matchingArticleCount"))
         #expect(compactEditorSource.contains("TimelineStore(database:database).count(scope:.smartFolder(snapshot),includeRead:true,includeHidden:"))
+        #expect(compactEditorSource.contains("FeedFolderStore(database:database).folders()"))
+    }
+
+    @Test func smartFolderEditorVerwendetFeedFolderStoreFuerFeedFolderBedingung() throws {
+        let projectRoot = projectRootURL()
+        let editorSource = try source(at: "Feedivo/Views/SmartFolders/SmartFolderEditorView.swift", projectRoot: projectRoot)
+
+        #expect(editorSource.contains("ForEach(feedFolders,"))
+        #expect(editorSource.contains("normalizedFeedFolderBinding(for: draft)"))
+        #expect(editorSource.contains("if feedFolders.isEmpty || normalizedFeedFolderValue(for: trimmedValue) == nil"))
+        #expect(editorSource.contains("FeedFolderStore(database: database).folders()"))
     }
 
     @Test func regelPreviewUndRueckwirkendesAnwendenNutzenSQLite() throws {
