@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct SidebarView: View {
-    @Environment(\.modelContext) private var modelContext
     @Environment(\.feedivoDatabase) private var feedivoDatabase
     @Environment(\.interfaceTextSize) private var interfaceTextSize
 
@@ -41,6 +40,7 @@ struct SidebarView: View {
     @State private var isShowingTagManager = false
     @State private var smartFolderEditing: SmartFolderRecord?
     @State private var smartFolderPendingDeletion: SQLiteSmartFolderSnapshot?
+    @State private var feedFolderPendingDeletion: FeedFolderRecord?
     @State private var isCreatingSmartFolder = false
     @State private var sqliteSidebarState = SQLiteSidebarState()
     @State private var collapsedFolderNames: Set<String> = []
@@ -124,6 +124,26 @@ struct SidebarView: View {
                 smartFolderPendingDeletion = nil
             }
         }
+        .confirmationDialog(
+            L10n.commonDelete,
+            isPresented: Binding(
+                get: { feedFolderPendingDeletion != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        feedFolderPendingDeletion = nil
+                    }
+                }
+            ),
+            presenting: feedFolderPendingDeletion
+        ) { folder in
+            Button(L10n.commonDelete, role: .destructive) {
+                deleteFeedFolder(folder)
+                feedFolderPendingDeletion = nil
+            }
+            Button(L10n.commonCancel, role: .cancel) {
+                feedFolderPendingDeletion = nil
+            }
+        }
         .task(id: sqliteSidebarReloadToken) {
             sqliteSidebarState.load(database: feedivoDatabase, showsReadFeeds: showsReadFeedsInSidebar)
         }
@@ -201,9 +221,13 @@ struct SidebarView: View {
                     id: \.folderName
                 ) { entry in
                     let isExpanded = !collapsedFolderNames.contains(entry.folderName)
+                    let explicitFolder = explicitFeedFolder(named: entry.folderName)
                     SidebarFolderSection(
                         title: entry.folderName,
-                        isExpanded: isExpanded
+                        isExpanded: isExpanded,
+                        deleteEmptyFolder: entry.snapshots.isEmpty && explicitFolder != nil
+                            ? { feedFolderPendingDeletion = explicitFolder }
+                            : nil
                     ) {
                         toggleFolder(named: entry.folderName)
                     } content: {
@@ -382,6 +406,23 @@ struct SidebarView: View {
         sidebarDefinitionVersion += 1
     }
 
+    private func explicitFeedFolder(named folderName: String) -> FeedFolderRecord? {
+        sqliteSidebarState.feedFolders.first { folder in
+            folder.name.caseInsensitiveCompare(folderName) == .orderedSame
+        }
+    }
+
+    private func deleteFeedFolder(_ folder: FeedFolderRecord) {
+        guard let database = feedivoDatabase else {
+            return
+        }
+
+        try? FeedFolderStore(database: database).delete(id: folder.id)
+        collapsedFolderNames.remove(folder.name)
+        SQLiteDataInvalidation.bumpStatusVersion()
+        sidebarDefinitionVersion += 1
+    }
+
     private func sqliteSmartFolderRecord(id: String) -> SmartFolderRecord? {
         guard let database = feedivoDatabase else {
             return nil
@@ -544,6 +585,7 @@ private struct SidebarFolderSection<Content: View>: View {
 
     let title: String
     let isExpanded: Bool
+    let deleteEmptyFolder: (() -> Void)?
     let toggle: () -> Void
     @ViewBuilder let content: Content
 
@@ -574,6 +616,15 @@ private struct SidebarFolderSection<Content: View>: View {
             .buttonStyle(.plain)
             .padding(.horizontal, 0)
             .padding(.top, 8)
+            .contextMenu {
+                if let deleteEmptyFolder {
+                    Button(role: .destructive) {
+                        deleteEmptyFolder()
+                    } label: {
+                        Label(L10n.commonDelete, systemImage: "trash")
+                    }
+                }
+            }
 
             content
         }
@@ -665,7 +716,6 @@ private struct SidebarRowButtonStyle: ButtonStyle {
 
 struct AddFeedSheet: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var modelContext
     @Environment(\.feedivoDatabase) private var feedivoDatabase
     @State private var viewModel = FeedViewModel()
     @State private var urlString = ""
@@ -905,7 +955,6 @@ struct AddFeedSheet: View {
     private func addFeed(urlString: String) async {
         await viewModel.addFeed(
             urlString: urlString,
-            context: modelContext,
             sqliteDatabase: feedivoDatabase
         )
         if viewModel.errorMessage == nil {

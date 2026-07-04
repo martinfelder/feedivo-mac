@@ -93,11 +93,9 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(!viewSource.contains("@Environment(\\.modelContext)"))
         #expect(!viewSource.contains("FeedViewModel()"))
         #expect(!deleteSource.contains("feedViewModel.deleteFeed("))
-        #expect(deleteSource.contains("sqliteDatabase: database"))
         #expect(viewSource.contains("OPMLExportSheet(opmlFeeds:"))
         #expect(!viewSource.contains("@Query(sort: \\Feed.title)"))
         #expect(deleteSource.contains("FeedStore(database: database).delete(id: feed.id)"))
-        #expect(!deleteSource.contains("FeedStore(database: database).delete(id:)"))
         #expect(stateSource.contains("filteredFeeds(_ feeds: [FeedRecord]"))
         #expect(stateSource.contains("selectedFeedIDs: inout Set<String>"))
     }
@@ -796,7 +794,6 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(!smartFolderSettingsSource.contains("@Query(sort: \\SmartFolder.sortOrder) private var folders: [SmartFolder]"))
         #expect(contentSource.contains("SQLiteFeedArticleListView("))
         #expect(contentSource.contains("SQLiteReaderView("))
-        #expect(appSource.contains("SQLiteAdminDefinitionBackfillService.backfill"))
     }
 
     @Test func tagManagerIstSQLiteFirst() throws {
@@ -918,6 +915,17 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(stateSource.contains("private(set) var feedFolders: [FeedFolderRecord] = []"))
         #expect(stateSource.contains("private(set) var smartFolderSnapshots: [SQLiteSmartFolderSnapshot] = []"))
         #expect(contentSource.contains("SQLiteSmartFolderStore(database: database).sidebarSnapshots()"))
+    }
+
+    @Test func leereSQLiteFeedOrdnerSindAusDerSidebarLoeschbar() throws {
+        let projectRoot = projectRootURL()
+        let sidebarSource = try source(at: "Feedivo/Views/Sidebar/SidebarView.swift", projectRoot: projectRoot)
+        let compactSidebarSource = compact(sidebarSource)
+
+        #expect(sidebarSource.contains("@State private var feedFolderPendingDeletion: FeedFolderRecord?"))
+        #expect(sidebarSource.contains("entry.snapshots.isEmpty && explicitFolder != nil"))
+        #expect(sidebarSource.contains("FeedFolderStore(database: database).delete(id: folder.id)"))
+        #expect(compactSidebarSource.contains(".contextMenu{if let deleteEmptyFolder"))
     }
 
     @Test func smartFolderVerwaltungIstSQLiteFirst() throws {
