@@ -1,14 +1,14 @@
 import SwiftUI
-import SwiftData
 import Network
 import UniformTypeIdentifiers
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
     @Environment(\.feedivoDatabase) private var feedivoDatabase
     @Environment(\.openWindow) private var openWindow
     @Environment(DatabaseLoadState.self) private var databaseLoadState
     @AppStorage(FirstRunWizardState.completionStorageKey) private var hasCompletedFirstRunWizard = false
+    @AppStorage(FirstRunWizardState.presentationStorageKey) private var hasPresentedFirstRunWizard = false
+    @AppStorage(FirstRunWizardState.hadFeedsStorageKey) private var hasHadFeedsForFirstRunWizard = false
     @AppStorage(AppIconBadgeSettings.isEnabledKey)
     private var appIconBadgeIsEnabled = AppIconBadgeSettings.defaultIsEnabled
     @AppStorage(OfflineReadingSettings.automaticallySaveStarredArticlesKey)
@@ -58,11 +58,10 @@ struct ContentView: View {
     @State private var didRunRefreshForLaunch = false
     @State private var isRefreshStatusExpanded = false
     @State private var networkMonitor = NetworkConnectionStatusMonitor()
-    private let modelContainer: ModelContainer?
+    
 
-    init(feedViewModel: FeedViewModel = FeedViewModel(), modelContainer: ModelContainer? = nil) {
+    init(feedViewModel: FeedViewModel = FeedViewModel()) {
         _feedViewModel = State(initialValue: feedViewModel)
-        self.modelContainer = modelContainer
     }
 
     var body: some View {
@@ -171,7 +170,10 @@ struct ContentView: View {
                 isShowingOPMLExportSheet = false
             }
         }
-        .sheet(isPresented: $isShowingFirstRunWizard) {
+        .sheet(
+            isPresented: $isShowingFirstRunWizard,
+            onDismiss: handleFirstRunWizardDismiss
+        ) {
             FirstRunWizardView(
                 feedViewModel: feedViewModel,
                 onSkip: skipFirstRunWizardForSession,
@@ -274,7 +276,6 @@ struct ContentView: View {
                         Task {
                             await feedViewModel.refreshFeed(
                                 feedID: feedID,
-                                context: modelContext,
                                 sqliteDatabase: feedivoDatabase
                             )
                         }
@@ -338,6 +339,9 @@ struct ContentView: View {
             return
         }
         feedSnapshots = (try? FeedStore(database: database).sidebarFeeds()) ?? []
+        if !feedSnapshots.isEmpty {
+            FirstRunWizardState.markHadFeeds(&hasHadFeedsForFirstRunWizard)
+        }
     }
 
     private func handleFeedCountChange() {
@@ -456,8 +460,7 @@ struct ContentView: View {
             return
         }
         await feedViewModel.refreshAllFeeds(
-            sqliteDatabase: database,
-            modelContainer: modelContainer
+            sqliteDatabase: database
         )
     }
 
@@ -477,7 +480,9 @@ struct ContentView: View {
         let shouldShowWizard = FirstRunWizardState.shouldPresent(
             feedCount: feedSnapshots.count,
             hasCompletedWizard: hasCompletedFirstRunWizard,
-            wasDismissedThisSession: isFirstRunWizardDismissedForSession
+            wasDismissedThisSession: isFirstRunWizardDismissedForSession,
+            hasBeenPresented: hasPresentedFirstRunWizard,
+            hasHadFeeds: hasHadFeedsForFirstRunWizard
         )
 
         if feedSnapshots.count > 0 {
@@ -490,6 +495,7 @@ struct ContentView: View {
         }
 
         if !isShowingAddFeedSheet && !isShowingOPMLImportReview {
+            FirstRunWizardState.markPresented(&hasPresentedFirstRunWizard)
             isShowingFirstRunWizard = true
         }
     }
@@ -506,14 +512,19 @@ struct ContentView: View {
         isShowingFirstRunWizard = false
     }
 
+    private func handleFirstRunWizardDismiss() {
+        FirstRunWizardState.markPresented(&hasPresentedFirstRunWizard)
+        isFirstRunWizardDismissedForSession = true
+    }
+
     private func deleteFeed(_ snapshot: FeedSidebarSnapshot) {
         let feedID = snapshot.id
         let shouldClearFeedSelection = selectedFeedID == feedID
         // SQLite-first: FeedViewModel.deleteFeed(feedID:)) löscht den
         // SQLite-FeedRecord per FeedStore und räumt zusätzlich den
-        // SwiftData-Brücken-Feed samt Artikel/LogEntries ab. Die Status-Version
-        // wird in FeedViewModel gebumpt, was den Snapshot-Reload triggert.
-        feedViewModel.deleteFeed(feedID: feedID, context: modelContext, sqliteDatabase: feedivoDatabase)
+        // die produktive Datenquelle bereinigt. Die Status-Version wird gebumpt,
+        // damit Sidebar und Listener neu laden.
+        feedViewModel.deleteFeed(feedID: feedID, sqliteDatabase: feedivoDatabase)
 
         guard feedViewModel.errorMessage == nil else {
             feedPendingDeletion = nil

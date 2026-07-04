@@ -39,6 +39,34 @@ struct FirstRunWizardStateTests {
         #expect(hasCompletedWizard)
     }
 
+    @Test func wizardWirdNachEinmaligerAnzeigeNichtErneutBeiLeererAppGezeigt() {
+        var hasBeenPresented = false
+
+        FirstRunWizardState.markPresented(&hasBeenPresented)
+
+        #expect(
+            !FirstRunWizardState.shouldPresent(
+                feedCount: 0,
+                hasCompletedWizard: false,
+                hasBeenPresented: hasBeenPresented
+            )
+        )
+    }
+
+    @Test func wizardWirdNachSpaeterGeloeschtenFeedsNichtWiederGezeigt() {
+        var hasHadFeeds = false
+
+        FirstRunWizardState.markHadFeeds(&hasHadFeeds)
+
+        #expect(
+            !FirstRunWizardState.shouldPresent(
+                feedCount: 0,
+                hasCompletedWizard: false,
+                hasHadFeeds: hasHadFeeds
+            )
+        )
+    }
+
     @Test func sichtbarerWizardBleibtNachImportOffenBisAktivGestartetWird() {
         #expect(
             FirstRunWizardState.shouldKeepPresentedUntilUserStarts(
