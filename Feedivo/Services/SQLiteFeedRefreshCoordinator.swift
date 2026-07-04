@@ -17,12 +17,14 @@ struct SQLiteFeedRefreshCoordinator {
     private let database: FeedivoDatabase
     private let ruleSnapshots: [RuleEngine.RuleSnapshot]
     private let batchSize: Int
+    private let now: () -> Date
     private let fetcher: SQLiteFeedRefreshService.Fetcher
 
     init(
         database: FeedivoDatabase,
         batchSize: Int = FeedViewModel.maxConcurrentFeedRefreshes,
         ruleSnapshots: [RuleEngine.RuleSnapshot] = [],
+        now: @escaping () -> Date = Date.init,
         fetcher: @escaping SQLiteFeedRefreshService.Fetcher = { urlString, validators in
             switch try await FeedService.fetchFeedConditionally(urlString: urlString, validators: validators) {
             case .updated(let feed, let validators):
@@ -35,7 +37,22 @@ struct SQLiteFeedRefreshCoordinator {
         self.database = database
         self.ruleSnapshots = ruleSnapshots
         self.batchSize = batchSize
+        self.now = now
         self.fetcher = fetcher
+    }
+
+    /// Einzelfeed-Refresh. `manual: true` umgeht das Cache-Control-Skip
+    /// (Aufrufer: manuelle Refresh-Aktion übergibt `true`, Background-Refresh
+    /// `false`). Delegiert an `SQLiteFeedRefreshService.refresh`, wo Skip und
+    /// Conditional-GET-Dropping implementiert sind (Zugriff auf logStore/statusStore).
+    func refresh(feedID: String, manual: Bool = false) async throws -> SQLiteFeedRefreshResult {
+        let service = SQLiteFeedRefreshService(
+            database: database,
+            ruleSnapshots: ruleSnapshots,
+            now: now,
+            fetcher: fetcher
+        )
+        return try await service.refresh(feedID: feedID, manual: manual)
     }
 
     private func batches<T>(_ items: [T], size: Int) -> [[T]] {
@@ -69,7 +86,7 @@ struct SQLiteFeedRefreshCoordinator {
         for batch in batches(snapshots, size: batchSize) {
             await withTaskGroup(of: SQLiteFeedRefreshCoordinatorOutcome.self) { group in
                 for snapshot in batch {
-                    group.addTask { [database, ruleSnapshots, fetcher] in
+                    group.addTask { [database, ruleSnapshots, fetcher, now] in
                         do {
                             let feedID = snapshot.id.uuidString
                             let feedStore = FeedStore(database: database)
@@ -86,9 +103,10 @@ struct SQLiteFeedRefreshCoordinator {
                             let service = SQLiteFeedRefreshService(
                                 database: database,
                                 ruleSnapshots: ruleSnapshots,
+                                now: now,
                                 fetcher: fetcher
                             )
-                            let result = try await service.refresh(feedID: feedID)
+                            let result = try await service.refresh(feedID: feedID, manual: false)
                             return .success(
                                 snapshot.id,
                                 FeedRefreshNotificationResult(

@@ -47,18 +47,63 @@ struct SQLiteFeedRefreshService {
         self.fetcher = fetcher
     }
 
-    func refresh(feedID: String) async throws -> SQLiteFeedRefreshResult {
+    func refresh(feedID: String, manual: Bool = false) async throws -> SQLiteFeedRefreshResult {
         guard let feed = try feedStore.feed(id: feedID) else {
             throw SQLiteFeedRefreshError.feedNotFound(feedID)
         }
 
-        let validators = FeedHTTPValidators(
+        let refreshedAt = now()
+
+        // Cache-Control-Skip bei Auto-Refresh (manueller Refresh umgeht dies):
+        // Ist der Feed laut Cache-Control noch „frisch", überspringen wir den
+        // Fetch komplett und melden nicht-geändert.
+        if !manual,
+           let maxAge = feed.cacheControlMaxAge,
+           let lastRefreshed = feed.lastRefreshedAt,
+           refreshedAt.timeIntervalSince(lastRefreshed) < TimeInterval(maxAge) {
+            let unreadCount = try statusStore.unreadCount(feedID: feedID)
+            try logStore.append(FeedLogRecord(
+                feedID: feedID,
+                createdAt: refreshedAt,
+                level: "info",
+                message: "Cache-Control-Fenster aktiv — übersprungen",
+                httpStatusCode: nil,
+                newArticleCount: 0
+            ))
+            return SQLiteFeedRefreshResult(
+                feedID: feedID,
+                feedTitle: feed.title,
+                insertedArticleIDs: [],
+                updatedArticleIDs: [],
+                unreadCount: unreadCount,
+                isNotModified: true
+            )
+        }
+
+        var validators = FeedHTTPValidators(
             eTag: feed.lastETag,
             lastModified: feed.lastModified,
             contentHash: feed.lastBodyHash,
-            lastStatusCode: feed.lastHTTPStatusCode
+            lastStatusCode: feed.lastHTTPStatusCode,
+            cacheControlMaxAge: feed.cacheControlMaxAge,
+            conditionalGetSetAt: feed.conditionalGetSetAt
         )
-        let refreshedAt = now()
+
+        // Conditional-GET-Dropping nach 8 Tagen ununterbrochener 304-Antworten:
+        // Ist der Conditional-GET-Bezugspunkt älter als 8 Tage UND der letzte
+        // Fetch war 304, droppen wir ETag/Last-Modified für diesen Fetch, damit
+        // der Server eine echte Antwort liefern muss. Ausnahme-Hosts
+        // (openrss.org, rachelbythebay.com) werden ausgenommen, weil sie auf
+        // If-None-Match/If-Modified-Since angewiesen sind.
+        let host = URL(string: feed.url)?.host
+        let isExceptionHost = host.map { FeedHTTPPolicy.noConditionalGetDropHosts.contains($0) } ?? false
+        if !isExceptionHost,
+           validators.lastStatusCode == 304,
+           let setAt = validators.conditionalGetSetAt,
+           refreshedAt.timeIntervalSince(setAt) > 8 * 24 * 3600 {
+            validators.eTag = nil
+            validators.lastModified = nil
+        }
 
         do {
             switch try await fetcher(feed.url, validators) {
