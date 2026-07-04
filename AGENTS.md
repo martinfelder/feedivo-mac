@@ -2333,6 +2333,15 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   werden aus den Feed-Eigenschaften gespiegelt. Der Tag-Manager spiegelt Create,
   Rename, Farbänderungen und Delete nach SQLite; die Sidebar-Tag-Liste liest
   bereits aus SQLite-Snapshots.
+- 2026-07-04: Phasen 2, 3, 4, 7 und 9 wurden erfolgreich abgeschlossen.
+  - Tags/Rules/SmartFolders/FeedFolders: produktive Pfade sind auf SQLite-only
+    überführt und durch Source-/Regressionstests abgesichert.
+  - SwiftData-Bridge: Abschaltbar per Feature-Flag, Add/Import ohne Bridge-Zwang
+    verifiziert.
+  - Performance (Phase 9): SQLite-large-dataset-Performance-Tests sind grün, die
+    Entscheidung ist klar: der SwiftUI-Snapshot-Pfad bleibt vorerst bestehen.
+  - Offen bleibt weiterhin Phase 8 (SwiftData-Container entfernen) wegen noch
+    bestehender produktiver Übergangsreste in Settings/Refresh/Legacy-Editoren.
   Die normalen Feed-Zeilen in der Sidebar nutzen `SQLiteSidebarState` und
   `FeedSidebarSnapshot` für Anzeige und ungelesene Badges; Auswahl und
   Kontextmenüs bleiben übergangsweise SwiftData. SQLite-Statusänderungen halten
@@ -2432,6 +2441,12 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 ---
 
 ## Letzte Änderungen
+
+- 2026-07-04: 9-Phasen-Migrationsplan weitergeführt: Phasen 2, 3, 4, 7 und 9 im
+  Plandokument markiert und bestätigt (`docs/superpowers/plans/2026-07-03-netnewswire-sqlite-structure.md`).
+  Zusätzlich ist `docs/performance/sqlite-large-dataset-results.md` aktualisiert:
+  Die Lasttests bestehen und die Entscheidung lautet vorerst weiterhin
+  „SQLite-Snapshot-Listen behalten, kein AppKit-NSTableView-Refactor jetzt“.
 
 - 2026-07-04: Bugfix für wieder auftauchende Feeds nach dem Löschen in den
   Einstellungen. `FeedManagementSettingsView.deleteSelectedFeeds()` nutzt jetzt

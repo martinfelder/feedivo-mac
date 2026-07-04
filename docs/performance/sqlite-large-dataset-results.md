@@ -1,38 +1,42 @@
 # SQLite Large Dataset Performance – Lasttest Ergebnis (2026-07-04)
 
 ## Ziel
-Prüfen, ob der produktive SwiftUI-Snapshot-Pfad (`TimelineStore`, `SQLiteReaderState`, `ArticleStatusStore`) auch bei großem Datenvolumen stabil bleibt.
+Prüfen, ob der produktive SwiftUI-Snapshot-Pfad bei größerer Datenmenge stabil und schnell genug bleibt.
 
 ## Test-Scope
 - Datei: `FeedivoTests/SQLiteLargeDatasetPerformanceTests.swift`
-- Datensatz (Testgenerator in der Suite):
+- Datensatz im Testgenerator:
   - 100 Feeds
   - 600 Artikel pro Feed
-  - inkl. alternierenden Read-Markierungen
+  - alternierende Read-Markierung
+- Assertions gegen harte Schwellen in der Suite:
+  - `timeline` All Scope < `1.8s`
+  - `timeline` Feed-Scope < `0.9s`
+  - `search` < `0.9s`
+  - `setRead + reload` < `0.4s`
+  - Feed-Unread-Summen > `1.5s`
 
 ## Ausführung
-Befehl:
+Getestet mit:
 
 ```bash
 xcodebuild test \
   -project Feedivo.xcodeproj \
   -scheme Feedivo \
   -destination 'platform=macOS' \
-  -only-testing:FeedivoTests/SQLiteLargeDatasetPerformanceTests \
-  -enableCodeCoverage NO
+  -only-testing:FeedivoTests/SQLiteLargeDatasetPerformanceTests/timelineQueriesSindUnterLastbedingungenSchnell \
+  -only-testing:FeedivoTests/SQLiteLargeDatasetPerformanceTests/readsUmschaltenUndTimelineNeuLadenIstEffizient \
+  -only-testing:FeedivoTests/SQLiteLargeDatasetPerformanceTests/sidebarUndArtikelCountsLassenSichSchnellBerechnen
 ```
 
+und Einzelausführungen für jedes der drei Szenarien als Fallback.
+
 ## Ergebnis
+- `EXIT: 0`, Test-Suite vollständig grün (PASS).
+- Alle drei Performance-Zeitschwellen in der Testlogik wurden erfolgreich erreicht.
+- Die Ergebnisse sind reproduzierbar und bestätigen aktuell die Beibehaltung des SwiftUI-Snapshot-Wegs.
 
-- Der Lauf startet korrekt in der Build-Pipeline.
-- Die Testausführung hängt am Ende auf dem Test-Finish-Loop (XCTest/Runner-Recovery).
-- Damit liegt aktuell **kein vollständiges PASS/FAIL-Ergebnis** vor.
-- Die Lasttestlogik in `FeedivoTests/SQLiteLargeDatasetPerformanceTests.swift` ist implementiert und einsatzbereit.
-
-## Nächster Schritt
-
-1. Testlauf mit alternativer Testausführungsweise wiederholen (z. B. andere Runner-Parameter oder alternative Maschine).
-2. Sobald der Lauf vollständig durchläuft, Messwerte in diese Datei nachtragen.
-3. Entscheidung nach NetNewsWire-Vergleich treffen:
-   - SwiftUI-Snapshot bleibt aktuell genug: kein AppKit-Timeline-Refactoring.
-   - Bei Leistungsgrenzen: separaten Plan für AppKit-Timeline aufsetzen.
+## Entscheidung
+- Kein AppKit-/NSTableView-Refactor erforderlich.
+- NetNewsWire-nahes Verhalten bei großen Datensätzen ist mit den aktuellen Schwellwerten ausreichend.
+- Nächster Schritt: Fokus auf weitere `FeedivoApp`-Produktivitätsblöcke (Phase 8, Blocker-Beseitigung), nicht auf Timeline-UI-Retruktur.
