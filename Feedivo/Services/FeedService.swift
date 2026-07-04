@@ -211,20 +211,38 @@ enum FeedService {
         return .updated(parsedFeed, responseValidators)
     }
 
+    /// Maximale zulässige Abweichung von pubDate in die Zukunft; darüber wird
+    /// publishedAt auf nil gesetzt (verhindert Sortier-Sprünge bei fehlerhaften Feeds).
+    static let maximumFutureInterval: TimeInterval = 24 * 3600
+
     static func parseFeed(data: Data, sourceURL: String) throws -> ParsedFeed {
+        try parseFeed(data: data, sourceURL: sourceURL, now: Date.init)
+    }
+
+    static func parseFeed(data: Data, sourceURL: String, now: @escaping () -> Date) throws -> ParsedFeed {
         let feed = try FeedKit.Feed(data: data)
+        let referenceDate = now()
+
+        func clamp(_ date: Date?) -> Date? {
+            guard let date else { return nil }
+            return date > referenceDate.addingTimeInterval(maximumFutureInterval) ? nil : date
+        }
 
         switch feed {
         case .rss(let rssFeed):
-            return parseRSSFeed(rssFeed, sourceURL: sourceURL)
+            return parseRSSFeed(rssFeed, sourceURL: sourceURL, clamp: clamp)
         case .atom(let atomFeed):
-            return parseAtomFeed(atomFeed, sourceURL: sourceURL)
+            return parseAtomFeed(atomFeed, sourceURL: sourceURL, clamp: clamp)
         case .json(let jsonFeed):
-            return parseJSONFeed(jsonFeed, sourceURL: sourceURL)
+            return parseJSONFeed(jsonFeed, sourceURL: sourceURL, clamp: clamp)
         }
     }
 
-    private static func parseRSSFeed(_ rssFeed: RSSFeed, sourceURL: String) -> ParsedFeed {
+    private static func parseRSSFeed(
+        _ rssFeed: RSSFeed,
+        sourceURL: String,
+        clamp: (Date?) -> Date? = { $0 }
+    ) -> ParsedFeed {
         let channel = rssFeed.channel
         let baseURL = URL(string: sourceURL)
         let articles = channel?.items?.compactMap { item -> ParsedArticle? in
@@ -238,7 +256,7 @@ enum FeedService {
                 link: item.link,
                 summary: item.description,
                 content: item.content?.encoded,
-                publishedAt: item.pubDate,
+                publishedAt: clamp(item.pubDate),
                 imageURL: firstImageURL(in: item.media, relativeTo: baseURL)
                     ?? cleanImageURL(item.iTunes?.image?.attributes?.href, relativeTo: baseURL)
                     ?? firstImageURL(from: item.enclosure, relativeTo: baseURL)
@@ -258,7 +276,11 @@ enum FeedService {
         )
     }
 
-    private static func parseAtomFeed(_ atomFeed: AtomFeed, sourceURL: String) -> ParsedFeed {
+    private static func parseAtomFeed(
+        _ atomFeed: AtomFeed,
+        sourceURL: String,
+        clamp: (Date?) -> Date? = { $0 }
+    ) -> ParsedFeed {
         let baseURL = URL(string: sourceURL)
         let articles = atomFeed.entries?.compactMap { entry -> ParsedArticle? in
             guard let title = entry.title ?? entry.summary?.text else {
@@ -271,7 +293,7 @@ enum FeedService {
                 link: entry.links?.first(where: { $0.attributes?.rel == nil || $0.attributes?.rel == "alternate" })?.attributes?.href,
                 summary: entry.summary?.text,
                 content: entry.content?.text,
-                publishedAt: entry.published ?? entry.updated,
+                publishedAt: clamp(entry.published ?? entry.updated),
                 imageURL: firstImageURL(in: entry.media, relativeTo: baseURL)
                     ?? firstImageURL(inHTML: entry.content?.text, relativeTo: baseURL)
                     ?? firstImageURL(inHTML: entry.summary?.text, relativeTo: baseURL),
@@ -292,7 +314,11 @@ enum FeedService {
         )
     }
 
-    private static func parseJSONFeed(_ jsonFeed: JSONFeed, sourceURL: String) -> ParsedFeed {
+    private static func parseJSONFeed(
+        _ jsonFeed: JSONFeed,
+        sourceURL: String,
+        clamp: (Date?) -> Date? = { $0 }
+    ) -> ParsedFeed {
         let baseURL = URL(string: sourceURL)
         let articles = jsonFeed.items?.compactMap { item -> ParsedArticle? in
             guard let title = item.title ?? item.summary ?? item.contentText else {
@@ -305,7 +331,7 @@ enum FeedService {
                 link: item.url ?? item.externalURL,
                 summary: item.summary,
                 content: item.contentHtml ?? item.contentText,
-                publishedAt: item.datePublished ?? item.dateModified,
+                publishedAt: clamp(item.datePublished ?? item.dateModified),
                 imageURL: cleanImageURL(item.image, relativeTo: baseURL)
                     ?? cleanImageURL(item.bannerImage, relativeTo: baseURL),
                 author: authorDisplayName(from: item.author?.name)

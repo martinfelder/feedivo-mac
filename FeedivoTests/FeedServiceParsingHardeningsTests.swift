@@ -72,4 +72,52 @@ struct FeedServiceParsingHardeningsTests {
         let feed = try FeedService.parseFeed(data: Data(json.utf8), sourceURL: "https://example.com/feed.json")
         #expect(feed.articles.first?.author == "Lisa Lee")
     }
+
+    // --- Zukunfts-Datum-Clamp ---
+
+    @Test func parseFeedClampFuturePublishedAt() throws {
+        let future = ISO8601DateFormatter().string(from: Date().addingTimeInterval(48 * 3600))
+        let xml = """
+        <?xml version="1.0"?>
+        <rss version="2.0">
+          <channel><title>Test</title>
+            <item>
+              <title>Zukunft</title>
+              <link>https://example.com/future</link>
+              <guid>g-future</guid>
+              <pubDate>\(future)</pubDate>
+            </item>
+          </channel>
+        </rss>
+        """
+        let feed = try FeedService.parseFeed(
+            data: Data(xml.utf8),
+            sourceURL: "https://example.com/feed.xml",
+            now: { Date() }
+        )
+        #expect(feed.articles.first?.publishedAt == nil)
+    }
+
+    @Test func parseFeedBehaeltKuerzlichePublishedAt() throws {
+        let recent = ISO8601DateFormatter().string(from: Date().addingTimeInterval(12 * 3600))
+        let xml = """
+        <?xml version="1.0"?>
+        <rss version="2.0">
+          <channel><title>Test</title>
+            <item>
+              <title>Kürzlich</title>
+              <link>https://example.com/recent</link>
+              <guid>g-recent</guid>
+              <pubDate>\(recent)</pubDate>
+            </item>
+          </channel>
+        </rss>
+        """
+        let feed = try FeedService.parseFeed(
+            data: Data(xml.utf8),
+            sourceURL: "https://example.com/feed.xml",
+            now: { Date() }
+        )
+        #expect(feed.articles.first?.publishedAt != nil)
+    }
 }
