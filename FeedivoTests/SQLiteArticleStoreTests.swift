@@ -594,4 +594,15 @@ struct SQLiteArticleStoreTests {
         #expect(snapshots.map(\.id) == [starredID])
         #expect(!snapshots.map(\.id).contains(normalID))
     }
+
+    @Test func feedsTabelleHatHttpHardeningSpaltenNachMigration() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+
+        let columns = try database.read { db in
+            let rows = try Row.fetchAll(db, sql: "PRAGMA table_info(feeds)")
+            return rows.compactMap { $0["name"] as String? }
+        }
+        #expect(columns.contains("cacheControlMaxAge"))
+        #expect(columns.contains("conditionalGetSetAt"))
+    }
 }
