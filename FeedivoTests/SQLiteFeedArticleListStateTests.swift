@@ -39,6 +39,32 @@ struct SQLiteFeedArticleListStateTests {
         #expect(state.rows.first(where: { $0.id == firstID })?.isRead == true)
     }
 
+    @Test func listStateMarkiertAusgewaehltenArtikelBeimOeffnenAlsGelesen() async throws {
+        let (database, firstID, _) = try makeDatabaseWithFeedAndArticles()
+        let state = SQLiteFeedArticleListState()
+
+        state.load(
+            feedID: "feed-1",
+            database: database,
+            selectedArticleID: firstID
+        )
+        await waitForLoad(state)
+
+        let didMarkRead = state.markReadIfNeeded(
+            articleID: firstID,
+            database: database,
+            isEnabled: true
+        )
+        await waitForRows(state) { rows in
+            rows.first(where: { $0.id == firstID })?.isRead == true
+        }
+
+        let status = try ArticleStatusStore(database: database).status(articleID: firstID)
+        #expect(didMarkRead)
+        #expect(status?.isRead == true)
+        #expect(state.rows.first(where: { $0.id == firstID })?.isRead == true)
+    }
+
     @Test func listStateLaedtTagScopeAusSQLite() async throws {
         let (database, firstID, secondID) = try makeDatabaseWithFeedAndArticles()
         let tagStore = TagStore(database: database)

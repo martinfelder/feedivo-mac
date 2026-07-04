@@ -263,6 +263,26 @@ final class SQLiteFeedArticleListState {
         }
     }
 
+    func markReadIfNeeded(
+        articleID: String?,
+        database: FeedivoDatabase?,
+        isEnabled: Bool
+    ) -> Bool {
+        guard isEnabled,
+              let articleID,
+              let database,
+              let row = rows.first(where: { $0.id == articleID }),
+              !row.isRead
+        else {
+            return false
+        }
+
+        mutateStatus(articleID: articleID, database: database) { store in
+            try store.setRead(true, articleID: articleID, at: Date())
+        }
+        return true
+    }
+
     func toggleStarred(articleID: String, database: FeedivoDatabase) {
         guard let row = rows.first(where: { $0.id == articleID }) else {
             return

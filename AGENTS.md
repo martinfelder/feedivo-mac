@@ -2430,6 +2430,14 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 
 ## Letzte Änderungen
 
+- 2026-07-04: Bugfix für `Artikel beim Öffnen automatisch als gelesen
+  markieren` im produktiven SQLite-Pfad. `SQLiteFeedArticleListView` liest jetzt
+  wieder die bestehende Einstellung `markArticleReadOnSelection` und delegiert an
+  `SQLiteFeedArticleListState.markReadIfNeeded`, das `article_statuses` direkt in
+  SQLite aktualisiert und die Liste danach neu lädt. Abgesichert durch
+  `listStateMarkiertAusgewaehltenArtikelBeimOeffnenAlsGelesen` und
+  `sqliteArtikellisteMarkiertAuswahlBeimOeffnenAlsGelesen`.
+
 - 2026-07-04: Bugfix für `Regel erstellen...` aus dem Kontextmenü der
   produktiven SQLite-Artikelliste. `SQLiteFeedArticleListView` übergibt beim
   Row-Kontextmenü nicht mehr eine leere Closure, sondern öffnet den SQLite-first

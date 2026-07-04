@@ -9,6 +9,8 @@ struct SQLiteFeedArticleListView: View {
     private var directTagVersion = 0
     @AppStorage(SQLiteDataInvalidation.statusVersionKey)
     private var sqliteStatusVersion = 0
+    @AppStorage("markArticleReadOnSelection")
+    private var markArticleReadOnSelection = true
 
     private enum Scope {
         case feed(feedID: String, title: String)
@@ -122,7 +124,7 @@ struct SQLiteFeedArticleListView: View {
             reload()
         }
         .onChange(of: selectedArticleID) {
-            reload()
+            markSelectedArticleReadIfNeeded()
         }
         .onChange(of: state.navigationState) {
             navigationState = state.navigationState
@@ -677,6 +679,17 @@ struct SQLiteFeedArticleListView: View {
 
         state.toggleRead(articleID: articleID, database: database)
         navigationState = state.navigationState
+    }
+
+    private func markSelectedArticleReadIfNeeded() {
+        guard state.markReadIfNeeded(
+            articleID: selectedArticleID,
+            database: database,
+            isEnabled: markArticleReadOnSelection
+        ) else {
+            reload()
+            return
+        }
     }
 
     private func markRowsRead(_ rows: [ArticleListSnapshot]) {

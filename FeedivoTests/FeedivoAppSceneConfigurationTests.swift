@@ -136,6 +136,16 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(!compactListSource.contains("onCreateRule:{},"))
     }
 
+    @Test func sqliteArtikellisteMarkiertAuswahlBeimOeffnenAlsGelesen() throws {
+        let projectRoot = projectRootURL()
+        let listSource = try source(at: "Feedivo/Views/ArticleList/SQLiteFeedArticleListView.swift", projectRoot: projectRoot)
+        let compactListSource = compact(listSource)
+
+        #expect(listSource.contains("@AppStorage(\"markArticleReadOnSelection\")"))
+        #expect(compactListSource.contains("markSelectedArticleReadIfNeeded()"))
+        #expect(compactListSource.contains("state.markReadIfNeeded(articleID:selectedArticleID,database:database,isEnabled:markArticleReadOnSelection)"))
+    }
+
     @Test func startupTaskTrimsImageCacheToSelectedLimit() throws {
         let testFileURL = URL(fileURLWithPath: #filePath)
         let projectRoot = testFileURL
