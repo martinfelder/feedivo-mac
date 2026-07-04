@@ -13,11 +13,12 @@ Gesamtanzahl Trefferdateien: 42
 Diese Treffer sind Stand heute bewusst noch als Übergang/Fallback bzw. Legacy-Verbleib dokumentiert:
 
 - `Feedivo/App/FeedivoApp.swift`  
-  Übergangsstart inkl. `ModelContainer`/`modelContainer(...)`-Injektion.
+  App-Start läuft über `FeedivoDatabase`-Injektion; kein produktiver
+  `modelContainer(...)`-Pfad mehr im `Scene`-Setup.
 
 - `Feedivo/App/FeedivoModelContainerFactory.swift`  
-  Hilfstyp für den SwiftData-Container; noch produktiv benötigt, solange
-  Legacy-Rückfälle laufen.
+  Hilfstyp für den SwiftData-Container; aktuell nur noch als klarer Legacy-Baukasten
+  dokumentiert, im Produktivfluss nicht verwendet.
 
 - `Feedivo/Models/*.swift` (`Article`, `Feed`, `Tag`, `Rule`, `SmartFolder`, `FeedFolder`, `FeedLogEntry`)  
   SwiftData-Modelle werden als Übergang/Backfill-Ziel weitergeführt.
@@ -53,21 +54,29 @@ Diese Treffer sind Stand heute bewusst noch als Übergang/Fallback bzw. Legacy-V
 Folgende Stellen halten die SQLite-only-Produktiv-Pipeline noch daran, den
 `ModelContainer` komplett loszuwerden:
 
-- App-Start und globaler Environment-Graph hängen noch am SwiftData-Container
-  (`FeedivoApp`, `FeedivoModelContainerFactory`).
-- `BackgroundRefreshService` und `FeedBackgroundRefreshService` nutzen noch
-  SwiftData-Kontexte für Legacy-Schnittstellen.
-- `Feedivo/Views/Settings/SettingsView.swift` enthält noch `@Query`-Zweige und ist
-  produktiv für Einstellungen noch nicht vollständig auf SQLite zurückgeführt.
-- Artikel-Metadaten- und Feed-Eigenschaften-Editoren haben noch
-  SwiftData-basierte Schreib-/Lese-Pfade.
+- App-Start und globaler Environment-Graph laufen jetzt produktiv ohne
+  `SwiftData.ModelContainer`.
+- `FeedivoModelContainerFactory` ist derzeit noch als klarer Legacy-/Fallback-
+  Helfer in der Codebase erhalten, aktuell nicht im produktiven
+  App-Pfad verwendet.
+- `FeedBackgroundRefreshService` bleibt als isolierter Legacy-Pfad in der Codebase
+  und darf produktiv nicht mehr verwendet werden. Der produktive Refresh nutzt
+  `SQLiteFeedRefreshService`/`SQLiteFeedRefreshCoordinator`.
+
+## Aktueller Stand nach Phase-8-Teilabnahme
+
+- Settings/Refresh/Editor-Pfade sind aus produktiven Flows vom
+  `ModelContext`/`ModelContainer` entkoppelt.
+- App-Start injiziert noch direkt `FeedivoDatabase` per Environment und enthält
+  keine produktive SwiftData-Container-Initialisierung mehr.
 
 ## Nächster Schritt
 
-Phase 8 kann erst nach folgenden Maßnahmen sinnvoll abgeschlossen werden:
+Phase-8-Closure (vollständige Phase-8-Bereinigung) ist konkret jetzt an
+folgender Restarbeit gekoppelt:
 
-1. produktive UI-Pfade für Settings/Refresh/Hintergrund/Jour-Funktion auf reine
-   SQLite-Services umstellen,
-2. `FeedivoApp` auf Datenbankstart ohne SwiftData-Haupt-Container umstellen,
-3. vorhandene Legacy-Editoren/Brücken entweder eindeutig als nicht-produktiv
-   markieren oder entfernen.
+1. `FeedivoModelContainerFactory` entfernen, sobald die verbleibenden
+   Legacy-Tests und Fallback-Pfade explizit neu bewertet wurden.
+2. Die letzten Legacy-Backfill-/Editor-Flüsse auf produktive Lesezugriffe prüfen,
+   falls nötig klar in legacy-markierte Dateien isolieren.
+3. Vollständiger Durchlauf der Test-Suite nach diesen Aufräumen.

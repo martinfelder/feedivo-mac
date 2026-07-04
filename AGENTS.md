@@ -108,13 +108,13 @@ Nach jeder relevanten Änderung prüfen und bei Bedarf aktualisieren:
 
 ---
 
-## Projektstruktur
+## Projektstruktur (aktualisiert)
 
 ```
 FeedivoMac/
 ├── Feedivo/
 │   ├── App/
-│   │   ├── FeedivoApp.swift            # @main Entry Point, .modelContainer Setup ✅
+│   │   ├── FeedivoApp.swift            # @main Entry Point, startet produktiv ohne .modelContainer ✅
 │   │   ├── ArticleCommands.swift       # macOS Artikel-Menü + Tastaturkuerzel ✅
 │   │   ├── ArticleCommandActions.swift # FocusedValues für Artikelaktionen ✅
 │   │   ├── ViewCommands.swift          # macOS Darstellung-Menü für Artikelsortierung ✅

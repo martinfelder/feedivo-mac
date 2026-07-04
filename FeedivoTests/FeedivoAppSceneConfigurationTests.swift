@@ -14,7 +14,22 @@ struct FeedivoAppSceneConfigurationTests {
         let settingsScene = try #require(appSource.range(of: "Settings {"))
         let settingsSource = appSource[settingsScene.lowerBound...]
 
-        #expect(settingsSource.contains(".modelContainer(modelContainer)"))
+        #expect(!settingsSource.contains(".modelContainer(modelContainer)"))
+    }
+
+    @Test func appStartWirdOhneModelContainerGestartet() throws {
+        let testFileURL = URL(fileURLWithPath: #filePath)
+        let projectRoot = testFileURL
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let appSourceURL = projectRoot.appendingPathComponent("Feedivo/App/FeedivoApp.swift")
+        let appSource = try String(contentsOf: appSourceURL, encoding: .utf8)
+
+        #expect(!appSource.contains("ModelContainer"))
+        #expect(!appSource.contains("modelContainer"))
+        #expect(!appSource.contains("FeedivoModelContainerFactory"))
+        #expect(appSource.contains("FeedivoDatabase.open(at: FeedivoDatabaseLocation.databaseURL())"))
+        #expect(appSource.contains("ContentView(feedViewModel: feedViewModel)"))
     }
 
     @Test func settingsSceneUsesOnlyNewSettingsView() throws {
@@ -75,13 +90,14 @@ struct FeedivoAppSceneConfigurationTests {
 
         #expect(viewSource.contains("@State private var feeds: [FeedRecord]"))
         #expect(viewSource.contains("FeedStore(database: database).feeds()"))
-        #expect(viewSource.contains("@Environment(\\.modelContext)"))
-        #expect(viewSource.contains("@State private var feedViewModel = FeedViewModel()"))
-        #expect(deleteSource.contains("feedViewModel.deleteFeed("))
+        #expect(!viewSource.contains("@Environment(\\.modelContext)"))
+        #expect(!viewSource.contains("FeedViewModel()"))
+        #expect(!deleteSource.contains("feedViewModel.deleteFeed("))
         #expect(deleteSource.contains("sqliteDatabase: database"))
         #expect(viewSource.contains("OPMLExportSheet(opmlFeeds:"))
         #expect(!viewSource.contains("@Query(sort: \\Feed.title)"))
-        #expect(!deleteSource.contains("FeedStore(database: database).delete(id:"))
+        #expect(deleteSource.contains("FeedStore(database: database).delete(id: feed.id)"))
+        #expect(!deleteSource.contains("FeedStore(database: database).delete(id:)"))
         #expect(stateSource.contains("filteredFeeds(_ feeds: [FeedRecord]"))
         #expect(stateSource.contains("selectedFeedIDs: inout Set<String>"))
     }
@@ -171,9 +187,9 @@ struct FeedivoAppSceneConfigurationTests {
         let schedulerSource = try source(at: "Feedivo/Services/BackgroundRefreshService.swift", projectRoot: projectRoot)
 
         #expect(appSource.contains("private let feedViewModel"))
-        #expect(appSource.contains("ContentView(feedViewModel: feedViewModel, modelContainer: modelContainer)"))
+        #expect(appSource.contains("ContentView(feedViewModel: feedViewModel)"))
         #expect(appSource.contains("feedViewModel: feedViewModel"))
-        #expect(compact(contentSource).contains("refreshAllFeeds(sqliteDatabase:database,modelContainer:modelContainer)"))
+        #expect(compact(contentSource).contains("refreshAllFeeds(sqliteDatabase:database)"))
         #expect(contentSource.contains("refreshFeedsOnLaunchIfNeeded()"))
         #expect(schedulerSource.contains("feedViewModel: FeedViewModel"))
     }
@@ -193,7 +209,30 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(appSource.contains("WindowGroup(for: ArticleWindowRequest.self)"))
         #expect(appSource.contains("ArticleWindowView(request:"))
         #expect(appSource.contains(".defaultSize(width: 900, height: 720)"))
-        #expect(appSource.contains(".modelContainer(modelContainer)"))
+        #expect(!appSource.contains(".modelContainer(modelContainer)"))
+    }
+
+    @Test func produktiveSettingsRefreshEditorEntkoppelnVonModelContext() throws {
+        let projectRoot = projectRootURL()
+        let propertiesSource = try source(at: "Feedivo/Views/Sidebar/FeedPropertiesView.swift", projectRoot: projectRoot)
+        let renameSource = try source(at: "Feedivo/Views/Sidebar/FeedRenameView.swift", projectRoot: projectRoot)
+        let opmlReviewSource = try source(
+            at: "Feedivo/Views/OPMLImport/OPMLImportReviewView.swift",
+            projectRoot: projectRoot
+        )
+        let settingsSource = try source(at: "Feedivo/Views/Settings/SettingsView.swift", projectRoot: projectRoot)
+        let refreshSource = try source(at: "Feedivo/Views/ContentView.swift", projectRoot: projectRoot)
+        let listSource = try source(at: "Feedivo/Views/ArticleList/SQLiteFeedArticleListView.swift", projectRoot: projectRoot)
+        let readerSource = try source(at: "Feedivo/Views/Reader/SQLiteReaderView.swift", projectRoot: projectRoot)
+
+        #expect(!propertiesSource.contains("@Environment(\\.modelContext)"))
+        #expect(!renameSource.contains("@Environment(\\.modelContext)"))
+        #expect(!opmlReviewSource.contains("ModelContext"))
+        #expect(!settingsSource.contains("@Environment(\\.modelContext)"))
+        #expect(!settingsSource.contains("ModelContext("))
+        #expect(!refreshSource.contains("ModelContext"))
+        #expect(!listSource.contains("ModelContext"))
+        #expect(!readerSource.contains("ModelContext"))
     }
 
     @Test func articleCommandsOpenArticleWindowWithCommandReturn() throws {
@@ -386,8 +425,8 @@ struct FeedivoAppSceneConfigurationTests {
         let appSource = try source(at: "Feedivo/App/FeedivoApp.swift", projectRoot: projectRoot)
 
         #expect(appSource.contains("CloudSyncSettings.isEnabled()"))
-        #expect(appSource.contains("FeedivoModelContainerFactory.makePersistentContainer"))
-        #expect(appSource.contains("FeedivoModelContainerFactory.makeInMemoryFallbackContainer"))
+        #expect(!appSource.contains("FeedivoModelContainerFactory.makePersistentContainer"))
+        #expect(!appSource.contains("FeedivoModelContainerFactory.makeInMemoryFallbackContainer"))
         #expect(appSource.contains("databaseLoadState.isCloudSyncEnabledAtLaunch"))
     }
 
@@ -459,7 +498,7 @@ struct FeedivoAppSceneConfigurationTests {
         let appSource = try source(at: "Feedivo/App/FeedivoApp.swift", projectRoot: projectRoot)
         let compactAppSource = compact(appSource)
 
-        #expect(compactAppSource.contains("FeedTagBackfillService.backfillFeedTags(in:modelContainer.mainContext,database:feedivoDatabase)"))
+        #expect(!compactAppSource.contains("FeedTagBackfillService.backfillFeedTags"))
     }
 
     @Test func opmlImportUndFirstRunPreviewNutzenSQLiteDatabase() throws {
@@ -563,7 +602,7 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(contentSource.contains("SQLiteReaderView("))
         #expect(contentSource.contains("selectedSQLiteArticleID"))
         #expect(contentSource.contains("handleSQLiteArticleSnapshotChange"))
-        #expect(compactContentSource.contains("refreshAllFeeds(sqliteDatabase:database,modelContainer:modelContainer)"))
+        #expect(compactContentSource.contains("refreshAllFeeds(sqliteDatabase:database)"))
     }
 
     @Test func contentViewNutztSQLiteFeedArticleListFuerSelectedFeed() throws {
@@ -812,9 +851,9 @@ struct FeedivoAppSceneConfigurationTests {
         let compactContentSource = compact(contentSource)
 
         #expect(contentSource.contains("@Environment(\\.feedivoDatabase) private var feedivoDatabase"))
-        #expect(compactContentSource.contains("refreshFeed(feedID:feedID,context:modelContext,sqliteDatabase:feedivoDatabase)"))
+        #expect(compactContentSource.contains("refreshFeed(feedID:feedID,sqliteDatabase:feedivoDatabase)"))
         #expect(compactContentSource.contains("guardletdatabase=feedivoDatabaseelse{return}"))
-        #expect(compactContentSource.contains("refreshAllFeeds(sqliteDatabase:database,modelContainer:modelContainer)"))
+        #expect(compactContentSource.contains("refreshAllFeeds(sqliteDatabase:database)"))
     }
 
     @Test func addFeedSheetUebergibtSQLiteDatabaseAnFeedViewModel() throws {
@@ -823,7 +862,7 @@ struct FeedivoAppSceneConfigurationTests {
         let compactSidebarSource = compact(sidebarSource)
 
         #expect(sidebarSource.contains("@Environment(\\.feedivoDatabase) private var feedivoDatabase"))
-        #expect(compactSidebarSource.contains("viewModel.addFeed(urlString:urlString,context:modelContext,sqliteDatabase:feedivoDatabase)"))
+        #expect(compactSidebarSource.contains("viewModel.addFeed(urlString:urlString,sqliteDatabase:feedivoDatabase)"))
     }
 
     @Test func sidebarViewLaedtSQLiteSidebarState() throws {
@@ -929,12 +968,12 @@ struct FeedivoAppSceneConfigurationTests {
         let viewModelSource = try source(at: "Feedivo/ViewModels/FeedViewModel.swift", projectRoot: projectRoot)
         let compactViewModelSource = compact(viewModelSource)
 
-        #expect(compactViewModelSource.contains("funcrefreshFeed(feedID:String,context:ModelContext,sqliteDatabase:FeedivoDatabase?)async"))
+        #expect(compactViewModelSource.contains("funcrefreshFeed(feedID:String,sqliteDatabase:FeedivoDatabase?)async"))
         #expect(compactViewModelSource.contains("funcsqliteRuleSnapshots(fromdatabase:FeedivoDatabase)->[RuleEngine.RuleSnapshot]"))
         #expect(viewModelSource.contains("let ruleSnapshots = sqliteRuleSnapshots(from: sqliteDatabase)"))
         #expect(viewModelSource.contains("refreshAllFeeds("))
         #expect(viewModelSource.contains("sqliteDatabase: FeedivoDatabase"))
-        #expect(viewModelSource.contains("modelContainer _: ModelContainer?"))
+        #expect(!viewModelSource.contains("modelContainer _: ModelContainer?"))
         #expect(compactViewModelSource.contains("SQLiteRuleStore(database:database).ruleSnapshots()"))
     }
 
