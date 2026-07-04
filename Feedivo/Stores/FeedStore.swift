@@ -207,6 +207,8 @@ struct FeedStore {
                 validators.lastModified,
                 validators.contentHash,
                 validators.lastStatusCode,
+                validators.cacheControlMaxAge,
+                validators.conditionalGetSetAt,
                 unreadCount,
                 refreshedAt,
                 feedID
@@ -222,6 +224,8 @@ struct FeedStore {
                         lastModified = ?,
                         lastBodyHash = ?,
                         lastHTTPStatusCode = ?,
+                        cacheControlMaxAge = ?,
+                        conditionalGetSetAt = ?,
                         unreadCount = ?,
                         updatedAt = ?
                     WHERE id = ?

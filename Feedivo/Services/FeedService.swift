@@ -33,6 +33,7 @@ struct ParsedArticle: Sendable {
     let content: String?
     let publishedAt: Date?
     let imageURL: String?
+    let author: String?
 
     init(
         title: String,
@@ -41,7 +42,8 @@ struct ParsedArticle: Sendable {
         summary: String?,
         content: String?,
         publishedAt: Date?,
-        imageURL: String?
+        imageURL: String?,
+        author: String? = nil
     ) {
         self.title = title
         self.sourceID = sourceID
@@ -50,6 +52,7 @@ struct ParsedArticle: Sendable {
         self.content = content
         self.publishedAt = publishedAt
         self.imageURL = imageURL
+        self.author = author
     }
 
     func copy(imageURL: String?) -> ParsedArticle {
@@ -60,7 +63,8 @@ struct ParsedArticle: Sendable {
             summary: summary,
             content: content,
             publishedAt: publishedAt,
-            imageURL: imageURL
+            imageURL: imageURL,
+            author: author
         )
     }
 }
@@ -70,18 +74,27 @@ struct FeedHTTPValidators: Equatable, Sendable {
     var lastModified: String?
     var contentHash: String?
     var lastStatusCode: Int?
+    var cacheControlMaxAge: Int?
+    var conditionalGetSetAt: Date?
 
     init(
         eTag: String? = nil,
         lastModified: String? = nil,
         contentHash: String? = nil,
-        lastStatusCode: Int? = nil
+        lastStatusCode: Int? = nil,
+        cacheControlMaxAge: Int? = nil,
+        conditionalGetSetAt: Date? = nil
     ) {
         self.eTag = eTag
         self.lastModified = lastModified
         self.contentHash = contentHash
         self.lastStatusCode = lastStatusCode
+        self.cacheControlMaxAge = cacheControlMaxAge
+        self.conditionalGetSetAt = conditionalGetSetAt
     }
+
+    /// Deckelt max-age auf 5 h, weil viele Sites Cache-Control falsch konfigurieren.
+    static let cacheControlMaxMaxAge = 5 * 3600
 }
 
 enum ConditionalFeedFetchResult: Sendable {
@@ -114,7 +127,8 @@ enum FeedService {
 
     static func fetchFeed(urlString: String) async throws -> ParsedFeed {
         try await fetchFeed(urlString: urlString) { url in
-            try await URLSession.shared.data(from: url)
+            let (data, response) = try await FeedHTTPClient.shared.data(for: URLRequest(url: url))
+            return (data, response)
         }
     }
 
@@ -140,7 +154,7 @@ enum FeedService {
         validators: FeedHTTPValidators
     ) async throws -> ConditionalFeedFetchResult {
         try await fetchFeedConditionally(urlString: urlString, validators: validators) { request in
-            try await URLSession.shared.data(for: request)
+            try await FeedHTTPClient.shared.data(for: request)
         }
     }
 
@@ -167,11 +181,15 @@ enum FeedService {
         let (data, response) = try await dataLoader(request)
         guard let httpResponse = response as? HTTPURLResponse else {
             let parsedFeed = try parseFeed(data: data, sourceURL: urlString)
+            // Fallback-Pfad (kein HTTPURLResponse): Werte aus den Eingabe-Validatoren
+            // weiterreichen, damit cacheControlMaxAge/conditionalGetSetAt nicht verloren gehen.
             let updatedValidators = FeedHTTPValidators(
                 eTag: validators.eTag,
                 lastModified: validators.lastModified,
                 contentHash: contentHash(for: data),
-                lastStatusCode: validators.lastStatusCode
+                lastStatusCode: validators.lastStatusCode,
+                cacheControlMaxAge: validators.cacheControlMaxAge,
+                conditionalGetSetAt: validators.conditionalGetSetAt
             )
             return .updated(parsedFeed, updatedValidators)
         }
@@ -194,20 +212,39 @@ enum FeedService {
         return .updated(parsedFeed, responseValidators)
     }
 
+    /// Maximale zulässige Abweichung von pubDate in die Zukunft; darüber wird
+    /// publishedAt auf nil gesetzt (verhindert Sortier-Sprünge bei fehlerhaften Feeds).
+    static let maximumFutureInterval: TimeInterval = 24 * 3600
+
     static func parseFeed(data: Data, sourceURL: String) throws -> ParsedFeed {
+        try parseFeed(data: data, sourceURL: sourceURL, now: Date.init)
+    }
+
+    static func parseFeed(data: Data, sourceURL: String, now: @escaping () -> Date) throws -> ParsedFeed {
         let feed = try FeedKit.Feed(data: data)
+        let referenceDate = now()
+
+        func clamp(_ date: Date?) -> Date? {
+            guard let date else { return nil }
+            return date > referenceDate.addingTimeInterval(maximumFutureInterval) ? nil : date
+        }
 
         switch feed {
         case .rss(let rssFeed):
-            return parseRSSFeed(rssFeed, sourceURL: sourceURL)
+            return parseRSSFeed(rssFeed, sourceURL: sourceURL, clamp: clamp, referenceNow: referenceDate)
         case .atom(let atomFeed):
-            return parseAtomFeed(atomFeed, sourceURL: sourceURL)
+            return parseAtomFeed(atomFeed, sourceURL: sourceURL, clamp: clamp, referenceNow: referenceDate)
         case .json(let jsonFeed):
-            return parseJSONFeed(jsonFeed, sourceURL: sourceURL)
+            return parseJSONFeed(jsonFeed, sourceURL: sourceURL, clamp: clamp, referenceNow: referenceDate)
         }
     }
 
-    private static func parseRSSFeed(_ rssFeed: RSSFeed, sourceURL: String) -> ParsedFeed {
+    private static func parseRSSFeed(
+        _ rssFeed: RSSFeed,
+        sourceURL: String,
+        clamp: (Date?) -> Date? = { $0 },
+        referenceNow: Date = Date()
+    ) -> ParsedFeed {
         let channel = rssFeed.channel
         let baseURL = URL(string: sourceURL)
         let articles = channel?.items?.compactMap { item -> ParsedArticle? in
@@ -215,18 +252,24 @@ enum FeedService {
                 return nil
             }
 
+            let resolvedLink = item.link.trimmedNonEmpty
+            let resolvedSourceID = item.guid?.text.trimmedNonEmpty
+                ?? (resolvedLink == nil ? syntheticSourceID(title: title, publishedAt: clamp(item.pubDate), now: referenceNow) : nil)
+
             return ParsedArticle(
                 title: title,
-                sourceID: item.guid?.text,
-                link: item.link,
+                sourceID: resolvedSourceID,
+                link: resolvedLink,
                 summary: item.description,
                 content: item.content?.encoded,
-                publishedAt: item.pubDate,
+                publishedAt: clamp(item.pubDate),
                 imageURL: firstImageURL(in: item.media, relativeTo: baseURL)
                     ?? cleanImageURL(item.iTunes?.image?.attributes?.href, relativeTo: baseURL)
                     ?? firstImageURL(from: item.enclosure, relativeTo: baseURL)
                     ?? firstImageURL(inHTML: item.content?.encoded, relativeTo: baseURL)
-                    ?? firstImageURL(inHTML: item.description, relativeTo: baseURL)
+                    ?? firstImageURL(inHTML: item.description, relativeTo: baseURL),
+                author: authorDisplayName(from: item.dublinCore?.creator)
+                    ?? authorDisplayName(from: item.author)
             )
         } ?? []
 
@@ -239,23 +282,34 @@ enum FeedService {
         )
     }
 
-    private static func parseAtomFeed(_ atomFeed: AtomFeed, sourceURL: String) -> ParsedFeed {
+    private static func parseAtomFeed(
+        _ atomFeed: AtomFeed,
+        sourceURL: String,
+        clamp: (Date?) -> Date? = { $0 },
+        referenceNow: Date = Date()
+    ) -> ParsedFeed {
         let baseURL = URL(string: sourceURL)
         let articles = atomFeed.entries?.compactMap { entry -> ParsedArticle? in
             guard let title = entry.title ?? entry.summary?.text else {
                 return nil
             }
 
+            let resolvedLink = entry.links?.first(where: { $0.attributes?.rel == nil || $0.attributes?.rel == "alternate" })?.attributes?.href.trimmedNonEmpty
+            let resolvedSourceID = entry.id.trimmedNonEmpty
+                ?? (resolvedLink == nil ? syntheticSourceID(title: title, publishedAt: clamp(entry.published ?? entry.updated), now: referenceNow) : nil)
+
             return ParsedArticle(
                 title: title,
-                sourceID: entry.id,
-                link: entry.links?.first(where: { $0.attributes?.rel == nil || $0.attributes?.rel == "alternate" })?.attributes?.href,
+                sourceID: resolvedSourceID,
+                link: resolvedLink,
                 summary: entry.summary?.text,
                 content: entry.content?.text,
-                publishedAt: entry.published ?? entry.updated,
+                publishedAt: clamp(entry.published ?? entry.updated),
                 imageURL: firstImageURL(in: entry.media, relativeTo: baseURL)
                     ?? firstImageURL(inHTML: entry.content?.text, relativeTo: baseURL)
-                    ?? firstImageURL(inHTML: entry.summary?.text, relativeTo: baseURL)
+                    ?? firstImageURL(inHTML: entry.summary?.text, relativeTo: baseURL),
+                author: authorDisplayName(from: entry.authors?.first?.name)
+                    ?? authorDisplayName(from: atomFeed.authors?.first?.name)
             )
         } ?? []
 
@@ -271,22 +325,32 @@ enum FeedService {
         )
     }
 
-    private static func parseJSONFeed(_ jsonFeed: JSONFeed, sourceURL: String) -> ParsedFeed {
+    private static func parseJSONFeed(
+        _ jsonFeed: JSONFeed,
+        sourceURL: String,
+        clamp: (Date?) -> Date? = { $0 },
+        referenceNow: Date = Date()
+    ) -> ParsedFeed {
         let baseURL = URL(string: sourceURL)
         let articles = jsonFeed.items?.compactMap { item -> ParsedArticle? in
             guard let title = item.title ?? item.summary ?? item.contentText else {
                 return nil
             }
 
+            let resolvedLink = (item.url ?? item.externalURL).trimmedNonEmpty
+            let resolvedSourceID = item.id.trimmedNonEmpty
+                ?? (resolvedLink == nil ? syntheticSourceID(title: title, publishedAt: clamp(item.datePublished ?? item.dateModified), now: referenceNow) : nil)
+
             return ParsedArticle(
                 title: title,
-                sourceID: item.id,
-                link: item.url ?? item.externalURL,
+                sourceID: resolvedSourceID,
+                link: resolvedLink,
                 summary: item.summary,
                 content: item.contentHtml ?? item.contentText,
-                publishedAt: item.datePublished ?? item.dateModified,
+                publishedAt: clamp(item.datePublished ?? item.dateModified),
                 imageURL: cleanImageURL(item.image, relativeTo: baseURL)
-                    ?? cleanImageURL(item.bannerImage, relativeTo: baseURL)
+                    ?? cleanImageURL(item.bannerImage, relativeTo: baseURL),
+                author: authorDisplayName(from: item.author?.name)
             )
         } ?? []
 
@@ -297,6 +361,21 @@ enum FeedService {
             siteURL: cleanURL(jsonFeed.homePageURL, relativeTo: baseURL),
             articles: articles
         )
+    }
+
+    /// Erzeugt eine deterministische synthetische sourceID für Artikel ohne guid
+    /// und ohne link, damit ArticleStore den Artikel beim Refresh aktualisiert
+    /// statt dupliziert. Präfix "synth:" trennt von echten guids.
+    private nonisolated static func syntheticSourceID(title: String, publishedAt: Date?, now: Date) -> String {
+        let dateString: String
+        if let publishedAt {
+            dateString = ISO8601DateFormatter().string(from: publishedAt)
+        } else {
+            dateString = ISO8601DateFormatter().string(from: now)
+        }
+        let payload = Data("\(title)|\(dateString)".utf8)
+        let digest = SHA256.hash(data: payload)
+        return "synth:" + digest.map { String(format: "%02x", $0) }.joined()
     }
 
     private nonisolated static func firstImageURL(in media: Media?, relativeTo baseURL: URL?) -> String? {
@@ -546,19 +625,69 @@ enum FeedService {
         return url.absoluteString
     }
 
+    /// Liefert den Anzeige-Namen aus einem RSS-<author>- oder <dc:creator>-String.
+    /// E-Mail-Form "anna@example.com (Anna Schmidt)" → "Anna Schmidt";
+    /// reine E-Mail "anna@example.com" → nil (kein brauchbarer Name).
+    private nonisolated static func authorDisplayName(from raw: String?) -> String? {
+        guard let raw else { return nil }
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        // "anna@example.com (Anna Schmidt)"
+        if let parenOpen = trimmed.firstIndex(of: "("),
+           let parenClose = trimmed.firstIndex(of: ")"),
+           parenOpen < parenClose {
+            let name = String(trimmed[trimmed.index(after: parenOpen)..<parenClose])
+            return name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : name
+        }
+        // reine E-Mail ohne Klammern → kein Name
+        if trimmed.contains("@"), !trimmed.contains(" ") {
+            return nil
+        }
+        return trimmed
+    }
+
     fileprivate nonisolated static func contentHash(for data: Data) -> String {
         let digest = SHA256.hash(data: data)
         return digest.map { String(format: "%02x", $0) }.joined()
     }
 }
 
+private extension Optional where Wrapped == String {
+    /// Liefert den getrimmten Wert oder nil, falls danach leer.
+    /// Lokales Äquivalent zu `trimmedNonEmpty` in ArticleStore/RetentionService,
+    /// da deren Extension file-private ist.
+    var trimmedNonEmpty: String? {
+        guard let value = self?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !value.isEmpty else {
+            return nil
+        }
+        return value
+    }
+}
+
 private extension FeedHTTPValidators {
     func updated(from response: HTTPURLResponse, data: Data) -> FeedHTTPValidators {
-        FeedHTTPValidators(
+        let responseMaxAge = Self.parseCacheControlMaxAge(response.value(forHTTPHeaderField: "Cache-Control"))
+        let mergedMaxAge = responseMaxAge ?? cacheControlMaxAge
+        let setAt = (response.statusCode == 200) ? Date() : conditionalGetSetAt
+
+        return FeedHTTPValidators(
             eTag: response.value(forHTTPHeaderField: "ETag") ?? eTag,
             lastModified: response.value(forHTTPHeaderField: "Last-Modified") ?? lastModified,
             contentHash: response.statusCode == 304 ? contentHash : FeedService.contentHash(for: data),
-            lastStatusCode: response.statusCode
+            lastStatusCode: response.statusCode,
+            cacheControlMaxAge: mergedMaxAge,
+            conditionalGetSetAt: setAt
         )
+    }
+
+    static func parseCacheControlMaxAge(_ header: String?) -> Int? {
+        guard let header, !header.isEmpty else { return nil }
+        let lowered = header.lowercased()
+        guard let range = lowered.range(of: "max-age=") else { return nil }
+        let rest = lowered[range.upperBound...]
+        let digits = String(rest.prefix { $0.isNumber })
+        guard let seconds = Int(digits) else { return nil }
+        return min(seconds, cacheControlMaxMaxAge)
     }
 }

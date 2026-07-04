@@ -23,6 +23,8 @@ struct FeedRecord: Codable, FetchableRecord, Identifiable, MutablePersistableRec
     var lastModified: String?
     var lastBodyHash: String?
     var lastHTTPStatusCode: Int?
+    var cacheControlMaxAge: Int?
+    var conditionalGetSetAt: Date?
     var unreadCount: Int
     var createdAt: Date
     var updatedAt: Date
@@ -47,6 +49,8 @@ struct FeedRecord: Codable, FetchableRecord, Identifiable, MutablePersistableRec
         lastModified: String? = nil,
         lastBodyHash: String? = nil,
         lastHTTPStatusCode: Int? = nil,
+        cacheControlMaxAge: Int? = nil,
+        conditionalGetSetAt: Date? = nil,
         unreadCount: Int = 0,
         createdAt: Date = Date(),
         updatedAt: Date = Date()
@@ -70,6 +74,8 @@ struct FeedRecord: Codable, FetchableRecord, Identifiable, MutablePersistableRec
         self.lastModified = lastModified
         self.lastBodyHash = lastBodyHash
         self.lastHTTPStatusCode = lastHTTPStatusCode
+        self.cacheControlMaxAge = cacheControlMaxAge
+        self.conditionalGetSetAt = conditionalGetSetAt
         self.unreadCount = unreadCount
         self.createdAt = createdAt
         self.updatedAt = updatedAt

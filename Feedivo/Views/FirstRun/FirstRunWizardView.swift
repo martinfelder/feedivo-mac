@@ -1,4 +1,3 @@
-import SwiftData
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -12,7 +11,6 @@ struct FirstRunWizardView: View {
         case finish
     }
 
-    @Environment(\.modelContext) private var modelContext
     @Environment(\.feedivoDatabase) private var feedivoDatabase
     @AppStorage("markArticleReadOnSelection") private var markArticleReadOnSelection = true
     @AppStorage(BackgroundRefreshSettings.isEnabledKey) private var isBackgroundRefreshEnabled = false
@@ -994,7 +992,6 @@ struct FirstRunWizardView: View {
                     allowsDuplicates: previewController.allowsDuplicates,
                     refreshAfterImport: previewController.refreshAfterImport,
                     refreshIntervalMinutes: backgroundRefreshIntervalMinutes,
-                    context: modelContext,
                     sqliteDatabase: feedivoDatabase
                 )
                 completionSummary = FirstRunCompletionSummary(

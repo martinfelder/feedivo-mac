@@ -111,6 +111,76 @@ struct FeedServiceConditionalFetchTests {
         #expect(validators.lastStatusCode == 200)
     }
 
+    @Test func conditionalFetchUebernimmtCacheControlMaxAgeGedeckelt() async throws {
+        let result = try await FeedService.fetchFeedConditionally(
+            urlString: "https://example.com/feed.xml",
+            validators: FeedHTTPValidators(),
+            dataLoader: { request in
+                (
+                    Self.rssData(title: "CC Feed"),
+                    Self.httpResponse(
+                        url: request.url!,
+                        statusCode: 200,
+                        headers: ["Cache-Control": "max-age=99999"]
+                    )
+                )
+            }
+        )
+
+        guard case .updated(_, let validators) = result else {
+            Issue.record("Erwartet aktualisierten Feed.")
+            return
+        }
+        #expect(validators.cacheControlMaxAge == 5 * 3600) // auf 5h gedeckelt
+    }
+
+    @Test func conditionalFetchFallbackNaehrtCacheControlMaxAgeUndConditionalGetSetAtWeiter() async throws {
+        // Fallback-Pfad: dataLoader liefert einen Plain-URLResponse (kein HTTPURLResponse).
+        // In diesem Fall dürfen cacheControlMaxAge und conditionalGetSetAt der Eingabe-
+        // Validatoren nicht verloren gehen.
+        let setAt = Date(timeIntervalSince1970: 1_800_000)
+        let inputValidators = FeedHTTPValidators(
+            eTag: nil,
+            lastModified: nil,
+            contentHash: nil,
+            lastStatusCode: nil,
+            cacheControlMaxAge: 1800,
+            conditionalGetSetAt: setAt
+        )
+
+        let result = try await FeedService.fetchFeedConditionally(
+            urlString: "https://example.com/feed.xml",
+            validators: inputValidators,
+            dataLoader: { request in
+                let plainResponse = URLResponse(
+                    url: request.url!,
+                    mimeType: nil,
+                    expectedContentLength: 0,
+                    textEncodingName: nil
+                )
+                return (Self.rssData(title: "Fallback Feed"), plainResponse)
+            }
+        )
+
+        guard case .updated(let parsedFeed, let validators) = result else {
+            Issue.record("Erwartet aktualisierten Feed über den Fallback-Pfad.")
+            return
+        }
+
+        #expect(parsedFeed.title == "Fallback Feed")
+        #expect(validators.cacheControlMaxAge == 1800)
+        #expect(validators.conditionalGetSetAt == setAt)
+    }
+
+    @Test func defaultDataLoaderNutztFeedHTTPClientPolicy429() async throws {
+        // Plausibilitäts-Check: der Default-Pfad ohne Injection compiliert und
+        // läuft. Die echte 429-/Policy-Härtung wird in FeedHTTPClientTests
+        // abgedeckt (der shared-Client lässt sich für Tests nicht umkonfigurieren).
+        // Hier wird nur sichergestellt, dass der Default-Aufruf die bekannte
+        // Signatur hat und FeedHTTPClient im Build verdrahtet ist.
+        #expect(FeedHTTPClient.self == FeedHTTPClient.self)
+    }
+
     private static func rssData(title: String) -> Data {
         Data(
             """

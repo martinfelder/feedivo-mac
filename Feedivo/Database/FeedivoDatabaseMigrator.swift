@@ -307,6 +307,15 @@ enum FeedivoDatabaseMigrator {
             }
         }
 
+        // v11: Spalten für Cache-Control (cacheControlMaxAge) und Conditional-GET
+        // (conditionalGetSetAt) — werden in späteren Tasks (2, 9) befüllt/gelesen.
+        migrator.registerMigration("v11_add_feed_http_hardening_fields") { database in
+            try database.alter(table: "feeds") { table in
+                table.add(column: "cacheControlMaxAge", .integer)
+                table.add(column: "conditionalGetSetAt", .datetime)
+            }
+        }
+
         return migrator
     }
 }

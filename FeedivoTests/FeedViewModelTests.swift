@@ -1958,7 +1958,6 @@ struct FeedViewModelTests {
 
         viewModel.deleteFeed(
             feedID: feed.id.uuidString,
-            context: context,
             sqliteDatabase: sqliteDatabase
         )
         _ = try FeedTagBackfillService.backfillFeedTags(

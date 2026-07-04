@@ -1,6 +1,5 @@
 import AppKit
 import GRDB
-import SwiftData
 import SwiftUI
 
 struct SQLiteFeedArticleListView: View {
@@ -39,32 +38,12 @@ struct SQLiteFeedArticleListView: View {
     private var articleFilterRawValue = ArticleFilterOption.all.rawValue
 
     init(
-        feed: Feed,
-        selectedArticleID: Binding<String?>,
-        navigationState: Binding<SQLiteArticleNavigationState>
-    ) {
-        self.scope = .feed(feedID: feed.id.uuidString, title: feed.title)
-        self._selectedArticleID = selectedArticleID
-        self._navigationState = navigationState
-    }
-
-    init(
         feedID: String,
         title: String,
         selectedArticleID: Binding<String?>,
         navigationState: Binding<SQLiteArticleNavigationState>
     ) {
         self.scope = .feed(feedID: feedID, title: title)
-        self._selectedArticleID = selectedArticleID
-        self._navigationState = navigationState
-    }
-
-    init(
-        tag: Tag,
-        selectedArticleID: Binding<String?>,
-        navigationState: Binding<SQLiteArticleNavigationState>
-    ) {
-        self.scope = .tagID(tag.id.uuidString)
         self._selectedArticleID = selectedArticleID
         self._navigationState = navigationState
     }
@@ -85,16 +64,6 @@ struct SQLiteFeedArticleListView: View {
         navigationState: Binding<SQLiteArticleNavigationState>
     ) {
         self.scope = .smartFilter(smartFilter)
-        self._selectedArticleID = selectedArticleID
-        self._navigationState = navigationState
-    }
-
-    init(
-        smartFolder: SmartFolder,
-        selectedArticleID: Binding<String?>,
-        navigationState: Binding<SQLiteArticleNavigationState>
-    ) {
-        self.scope = .smartFolder(SQLiteSmartFolderSnapshot(folder: smartFolder))
         self._selectedArticleID = selectedArticleID
         self._navigationState = navigationState
     }

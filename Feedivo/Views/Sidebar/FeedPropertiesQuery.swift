@@ -3,13 +3,14 @@ import SwiftData
 
 // FeedPropertiesQuery liefert die für die Eigenschaftenansicht benötigten
 // "neuesten" Artikel- bzw. Log-Einträge eines Feeds über gezielte
-// ModelContext-Fetches mit fetchLimit — statt die vollen `feed.articles`-
+// ModelContext-Fetches mit fetchLimit — statt die vollen `feed.articles`- 
 // und `feed.logEntries`-Arrays in den Speicher zu faulten (P7).
 //
 // Verhalten entspricht FeedPropertiesFormatter (pure Funktionen auf Arrays),
 // nur dass SwiftData bereits auf Datenbankebene sortiert/begrenzt. Die
 // Formatter-Logik bleibt als Referenz erhalten; diese Query ist die
 // speicherschonende Variante für die View.
+@available(*, deprecated, message: "Legacy SwiftData-Query-Helfer. Produktive Feed-Eigenschaften greifen über SQLite-Trajektorie.")
 enum FeedPropertiesQuery {
 
     /// Neuesten Artikel eines Feeds liefern. Es wird nur eine einzige Zeile

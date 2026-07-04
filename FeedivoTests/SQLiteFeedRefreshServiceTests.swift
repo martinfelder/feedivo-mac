@@ -180,4 +180,85 @@ struct SQLiteFeedRefreshServiceTests {
         #expect(article?.link == "https://example.com/changed")
         #expect(status?.isRead == true)
     }
+
+    @Test func refreshDefaultManualUeberspringtCacheControlSkipNicht() async throws {
+        // Default `manual: true` → Cache-Control-Skip wird nicht angewendet, der
+        // Fetcher wird auch innerhalb des Cache-Control-Fensters aufgerufen. Das
+        // schützt nutzerinitiierte Refreshs (UI-Einzelrefresh ohne explizites
+        // `manual`-Argument, OPML-Import-Refresh) vor versehentlichem Skip.
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        try feedStore.save(FeedRecord(
+            id: "feed-1",
+            url: "https://cached.example/feed.xml",
+            title: "Cached",
+            lastRefreshedAt: now.addingTimeInterval(-300),   // 5 min her
+            cacheControlMaxAge: 1800                          // 30 min Fenster
+        ))
+
+        var fetcherCalled = false
+        let service = SQLiteFeedRefreshService(database: database, now: { now }) { _, _ in
+            fetcherCalled = true
+            return .notModified(FeedHTTPValidators())
+        }
+
+        _ = try await service.refresh(feedID: "feed-1")  // kein manual-Arg → Default true
+        #expect(fetcherCalled) // Default ist manuell → Skip nicht aktiv
+    }
+
+    @Test func refreshDroppedConditionalGetHeaderNachAchtTagen304() async throws {
+        // Nach 8 Tagen ununterbrochenem 304-Streak werden ETag/Last-Modified für
+        // den nächsten Fetch gedropped, damit der Server eine echte Antwort liefert.
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let setAt = now.addingTimeInterval(-(8 * 24 * 3600 + 60))   // 8 Tage + 1 min her
+
+        try feedStore.save(FeedRecord(
+            id: "feed-drop",
+            url: "https://example.com/feed.xml",
+            title: "Drop",
+            lastETag: "\"etag-alt\"",
+            lastModified: "Wed, 01 Jan 2026 00:00:00 GMT",
+            lastHTTPStatusCode: 304,
+            conditionalGetSetAt: setAt
+        ))
+
+        let service = SQLiteFeedRefreshService(database: database, now: { now }) { _, validators in
+            // Erwartung: ETag + Last-Modified wurden gedropped → Validatoren leer.
+            #expect(validators.eTag == nil)
+            #expect(validators.lastModified == nil)
+            return .notModified(FeedHTTPValidators())
+        }
+
+        _ = try await service.refresh(feedID: "feed-drop")
+    }
+
+    @Test func refreshBehaeltConditionalGetHeaderBeiAusnahmeHost() async throws {
+        // openrss.org ist Ausnahme-Host: ETag/Last-Modified bleiben trotz
+        // 8-Tage-304-Streak erhalten.
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let setAt = now.addingTimeInterval(-(8 * 24 * 3600 + 60))
+
+        try feedStore.save(FeedRecord(
+            id: "feed-openrss",
+            url: "https://openrss.org/feed.xml",
+            title: "OpenRSS",
+            lastETag: "\"etag-keep\"",
+            lastModified: "Wed, 01 Jan 2026 00:00:00 GMT",
+            lastHTTPStatusCode: 304,
+            conditionalGetSetAt: setAt
+        ))
+
+        let service = SQLiteFeedRefreshService(database: database, now: { now }) { _, validators in
+            #expect(validators.eTag == "\"etag-keep\"")
+            #expect(validators.lastModified == "Wed, 01 Jan 2026 00:00:00 GMT")
+            return .notModified(FeedHTTPValidators())
+        }
+
+        _ = try await service.refresh(feedID: "feed-openrss")
+    }
 }

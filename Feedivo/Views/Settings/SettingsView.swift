@@ -1,4 +1,3 @@
-import SwiftData
 import SwiftUI
 
 private enum NewSettingsSection: String, CaseIterable, Identifiable {
@@ -445,17 +444,13 @@ private struct NewSlider: View {
 }
 
 private struct NewCacheSettingsView: View {
-    @Environment(\.modelContext)
-    private var modelContext
-
-    @Query(filter: #Predicate<Article> { article in
-        article.offlineStateRaw == "feedContent" || article.offlineStateRaw == "fullText"
-    })
-    private var offlineArticles: [Article]
+    @Environment(\.feedivoDatabase)
+    private var feedivoDatabase
 
     @AppStorage(ImageCacheSettings.limitMegabytesKey)
     private var cacheLimitMegabytes = ImageCacheSettings.defaultLimitMegabytes
 
+    @State private var offlineArticleSummary = OfflineArticleStorageSummary(articleCount: 0, sizeInBytes: 0)
     @State private var cacheSizeInBytes: Int64 = 0
     @State private var errorMessage: String?
 
@@ -516,11 +511,8 @@ private struct NewCacheSettingsView: View {
         }
         .task {
             refreshCacheSize()
+            refreshOfflineSummary()
         }
-    }
-
-    private var offlineArticleSummary: OfflineArticleStorageSummary {
-        OfflineArticleStorage.summary(for: offlineArticles)
     }
 
     private var offlineArticleSummaryText: String {
@@ -548,14 +540,32 @@ private struct NewCacheSettingsView: View {
     }
 
     private func clearOfflineCopies() {
-        let removedCount = OfflineArticleStorage.removeOfflineCopies(from: offlineArticles)
-        guard removedCount > 0 else {
+        guard let database = feedivoDatabase else {
+            errorMessage = "SQLite-Datenbank ist nicht verfügbar."
             return
         }
 
         do {
-            try modelContext.save()
+            let removedCount = try SQLiteOfflineStore(database: database).clearSavedCopies()
+            guard removedCount > 0 else {
+                return
+            }
+
+            refreshOfflineSummary()
             errorMessage = nil
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func refreshOfflineSummary() {
+        guard let database = feedivoDatabase else {
+            offlineArticleSummary = OfflineArticleStorageSummary(articleCount: 0, sizeInBytes: 0)
+            return
+        }
+
+        do {
+            offlineArticleSummary = try SQLiteOfflineStore(database: database).summary()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -874,7 +884,6 @@ private struct NewSyncSettingsView: View {
 }
 
 private struct NewCleanupSettingsView: View {
-    @Environment(\.modelContext) private var modelContext
     @Environment(\.feedivoDatabase) private var feedivoDatabase
 
     @AppStorage(ArticleRetentionSettings.isEnabledKey)
@@ -981,17 +990,9 @@ private struct NewCleanupSettingsView: View {
 
     private func runArticleRetentionCleanup() {
         do {
-            let swiftDataRemovedCount = try ArticleRetentionCleanupService.removeExpiredArticles(
-                in: modelContext,
-                isEnabled: articleRetentionIsEnabled,
-                retentionDays: articleRetentionDays,
-                minimumArticlesPerFeed: articleRetentionMinimumArticlesPerFeed,
-                includeProtectedArticles: articleRetentionIncludesProtectedArticles
-            )
-            let sqliteRemovedCount: Int
+            let removedCount: Int
             if let feedivoDatabase {
-                sqliteRemovedCount = try ArticleRetentionCleanupService.removeExpiredSQLiteArticles(
-                    in: modelContext,
+                removedCount = try ArticleRetentionCleanupService.removeExpiredSQLiteArticles(
                     database: feedivoDatabase,
                     isEnabled: articleRetentionIsEnabled,
                     retentionDays: articleRetentionDays,
@@ -999,11 +1000,9 @@ private struct NewCleanupSettingsView: View {
                     includeProtectedArticles: articleRetentionIncludesProtectedArticles
                 )
             } else {
-                sqliteRemovedCount = 0
+                removedCount = 0
             }
-            retentionCleanupResult = L10n.settingsArticleRetentionResult(
-                count: swiftDataRemovedCount + sqliteRemovedCount
-            )
+            retentionCleanupResult = L10n.settingsArticleRetentionResult(count: removedCount)
             retentionCleanupError = nil
         } catch {
             retentionCleanupResult = nil
@@ -1085,10 +1084,9 @@ private struct SettingsSectionHeader: View {
     }
 }
 
-private struct FeedManagementSettingsView: View {
+    private struct FeedManagementSettingsView: View {
     @Environment(\.interfaceTextSize) private var interfaceTextSize
     @Environment(\.feedivoDatabase) private var feedivoDatabase
-    @Environment(\.modelContext) private var modelContext
 
     @State private var feeds: [FeedRecord] = []
     @State private var opmlFeeds: [OPMLFeed] = []
@@ -1097,7 +1095,6 @@ private struct FeedManagementSettingsView: View {
     @State private var isShowingDeleteConfirmation = false
     @State private var isShowingOPMLExportSheet = false
     @State private var errorMessage: String?
-    @State private var feedViewModel = FeedViewModel()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -1224,25 +1221,19 @@ private struct FeedManagementSettingsView: View {
         let feedsToDelete = selectedFeeds
 
         for feed in feedsToDelete {
-            feedViewModel.deleteFeed(
-                feedID: feed.id,
-                context: modelContext,
-                sqliteDatabase: database
-            )
-
-            if let deleteError = feedViewModel.errorMessage {
-                errorMessage = deleteError
+            do {
+                try FeedStore(database: database).delete(id: feed.id)
+            } catch {
+                errorMessage = error.localizedDescription
                 break
             }
         }
 
-        if feedViewModel.errorMessage == nil {
-            errorMessage = nil
-        }
-
         selectedFeedIDs.subtract(feedsToDelete.map(\.id))
-        loadFeeds()
-        SQLiteDataInvalidation.bumpStatusVersion()
+        if errorMessage == nil {
+            SQLiteDataInvalidation.bumpStatusVersion()
+            loadFeeds()
+        }
     }
 
     private func loadFeeds() {

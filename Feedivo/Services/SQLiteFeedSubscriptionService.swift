@@ -68,7 +68,7 @@ struct SQLiteFeedSubscriptionService {
     func addFeed(
         urlString: String,
         refreshIntervalMinutes: Int = 60,
-        context: ModelContext
+        context: ModelContext? = nil
     ) async throws -> SQLiteFeedSubscriptionResult {
         let cleanedURL = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleanedURL.isEmpty else {
@@ -79,7 +79,10 @@ struct SQLiteFeedSubscriptionService {
         let feedStore = FeedStore(database: database)
         let candidateURLs = Set([cleanedURL, parsedFeed.sourceURL].map(normalizedFeedURL))
         let existingFeeds = try feedStore.feeds()
-        let existingSwiftDataFeeds = try context.fetch(FetchDescriptor<Feed>())
+        let shouldWriteSwiftDataBridge = shouldUseSwiftDataBridge(context: context)
+        let existingSwiftDataFeeds = shouldWriteSwiftDataBridge
+            ? (try context?.fetch(FetchDescriptor<Feed>()) ?? [])
+            : []
         guard !existingFeeds.contains(where: { candidateURLs.contains(normalizedFeedURL($0.url)) }),
               !existingSwiftDataFeeds.contains(where: { candidateURLs.contains(normalizedFeedURL($0.url)) }) else {
             throw SQLiteFeedSubscriptionError.duplicateFeed
@@ -102,7 +105,6 @@ struct SQLiteFeedSubscriptionService {
 
         try feedStore.save(feedRecord)
 
-        var didTouchSwiftData = false
         do {
             let articleInputs = parsedFeed.articles.map { article in
                 ArticleUpsertInput(
@@ -119,7 +121,6 @@ struct SQLiteFeedSubscriptionService {
             }
             _ = try articleUpsert(articleInputs)
             try afterArticleUpsert()
-
             let unreadCount = try ArticleStatusStore(database: database).unreadCount(feedID: feedID)
             try feedStore.setUnreadCount(unreadCount, feedID: feedID)
             try FeedLogStore(database: database).append(
@@ -132,11 +133,12 @@ struct SQLiteFeedSubscriptionService {
                     newArticleCount: parsedFeed.articles.count
                 )
             )
-            didTouchSwiftData = true
-            try saveSwiftDataBridge(feedRecord, context: context)
+            if shouldWriteSwiftDataBridge {
+                try saveSwiftDataBridge(feedRecord, context: context)
+            }
         } catch {
             try? cleanupSQLiteSubscription(feedID: feedID)
-            if didTouchSwiftData {
+            if shouldWriteSwiftDataBridge, let context {
                 context.rollback()
             }
             throw error
@@ -155,13 +157,16 @@ struct SQLiteFeedSubscriptionService {
         allowsDuplicates: Bool,
         refreshAfterImport: Bool,
         refreshIntervalMinutes: Int,
-        context: ModelContext
+        context: ModelContext? = nil
     ) async throws -> SQLiteOPMLImportResult {
         let feedStore = FeedStore(database: database)
         let folderStore = FeedFolderStore(database: database)
         let logStore = FeedLogStore(database: database)
         let clampedRefreshInterval = BackgroundRefreshSettings.clampedIntervalMinutes(refreshIntervalMinutes)
-        let existingSwiftDataFeeds = try context.fetch(FetchDescriptor<Feed>())
+        let shouldWriteSwiftDataBridge = shouldUseSwiftDataBridge(context: context)
+        let existingSwiftDataFeeds = shouldWriteSwiftDataBridge
+            ? (try context?.fetch(FetchDescriptor<Feed>()) ?? [])
+            : []
         var knownURLs = Set(
             (try feedStore.feeds().map(\.url) + existingSwiftDataFeeds.map(\.url))
                 .map(normalizedFeedURL)
@@ -201,7 +206,7 @@ struct SQLiteFeedSubscriptionService {
                 createdAt: now,
                 updatedAt: now
             )
-            var didTouchSwiftData = false
+            let shouldWriteCurrentFeedBridge = shouldWriteSwiftDataBridge
             var createdFolder: FeedFolderRecord?
             var createdTagIDs: [String] = []
             do {
@@ -224,16 +229,17 @@ struct SQLiteFeedSubscriptionService {
                         level: "info",
                         message: L10n.feedLogImportedFromOPML,
                         httpStatusCode: nil,
-                        newArticleCount: 0
-                    )
+                    newArticleCount: 0
                 )
-                didTouchSwiftData = true
-                try saveSwiftDataBridge(feedRecord, context: context)
+                )
+                if shouldWriteCurrentFeedBridge {
+                    try saveSwiftDataBridge(feedRecord, context: context)
+                }
             } catch {
                 try? cleanupSQLiteSubscription(feedID: feedID)
                 try? cleanupCreatedTags(createdTagIDs)
                 try? cleanupCreatedFolder(createdFolder)
-                if didTouchSwiftData {
+                if shouldWriteCurrentFeedBridge, let context {
                     context.rollback()
                 }
                 throw error
@@ -243,15 +249,17 @@ struct SQLiteFeedSubscriptionService {
             if refreshAfterImport {
                 do {
                     let refreshResult = try await SQLiteFeedRefreshService(
-                        database: database,
-                        fetcher: { [fetchFeed] url, _ in
-                            .updated(try await fetchFeed(url), FeedHTTPValidators())
-                        }
-                    )
-                    .refresh(feedID: feedID)
-                    if let refreshedFeed = try feedStore.feed(id: refreshResult.feedID) {
+                    database: database,
+                    fetcher: { [fetchFeed] url, _ in
+                        .updated(try await fetchFeed(url), FeedHTTPValidators())
+                    }
+                )
+                .refresh(feedID: feedID)
+                if let refreshedFeed = try feedStore.feed(id: refreshResult.feedID) {
+                    if shouldWriteCurrentFeedBridge {
                         try saveSwiftDataBridge(refreshedFeed, context: context)
                     }
+                }
                 } catch {
                     failedFeedTitles.append(title)
                 }
@@ -300,15 +308,23 @@ struct SQLiteFeedSubscriptionService {
         }
     }
 
+    private func shouldUseSwiftDataBridge(context: ModelContext?) -> Bool {
+        guard context != nil else {
+            return false
+        }
+
+        return UserDefaults.standard.object(forKey: SwiftDataBridgeSettings.isEnabledKey) as? Bool
+            ?? SwiftDataBridgeSettings.defaultIsEnabled
+    }
+
     // BRÜCKEN-SCHREIBPFAD (hart isoliert, Plan T8): Schreibt einen SQLite-
     // `FeedRecord` zurück in SwiftData, damit die Übergangs-Relationships
     // (`Article.feed`/`Tag.feeds`) konsistent bleiben. Sidebar/ContentView lesen
     // nicht mehr hierüber (sie nutzen `FeedSidebarSnapshot`/`FeedRecord`). Diese
     // Funktion entfällt, sobald `Article`/`Tag` SQLite-only sind und `@Model Feed`
     // entfernt wird. Keine neuen Reads über diese Brücke.
-    private func saveSwiftDataBridge(_ feedRecord: FeedRecord, context: ModelContext) throws {
-        guard UserDefaults.standard.object(forKey: SwiftDataBridgeSettings.isEnabledKey) as? Bool
-            ?? SwiftDataBridgeSettings.defaultIsEnabled else {
+    private func saveSwiftDataBridge(_ feedRecord: FeedRecord, context: ModelContext?) throws {
+        guard shouldUseSwiftDataBridge(context: context), let context else {
             return
         }
 

@@ -125,6 +125,51 @@ struct SQLiteFeedRefreshCoordinatorTests {
         #expect(summary.succeededFeedIDs.count == 1)
     }
 
+    @Test func coordinatorUeberspringtFeedInnerhalbCacheControlFenster() async throws {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        try feedStore.save(FeedRecord(
+            url: "https://cached.example/feed.xml",
+            title: "Cached",
+            lastRefreshedAt: now.addingTimeInterval(-300),   // 5 min her
+            cacheControlMaxAge: 1800                          // 30 min Fenster
+        ))
+        let feed = try feedStore.feeds().first!
+
+        var fetcherCalled = false
+        let coordinator = SQLiteFeedRefreshCoordinator(database: database, now: { now }, fetcher: { _, _ in
+            fetcherCalled = true
+            return .notModified(FeedHTTPValidators())
+        })
+
+        _ = try await coordinator.refresh(feedID: feed.id, manual: false)
+        #expect(!fetcherCalled) // übersprungen wegen Cache-Control-Fenster
+    }
+
+    @Test func coordinatorFetchtManuellTrotzCacheControlFenster() async throws {
+        // Manueller Refresh umgeht das Cache-Control-Skip — Fetcher wird aufgerufen.
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        try feedStore.save(FeedRecord(
+            url: "https://cached.example/feed.xml",
+            title: "Cached",
+            lastRefreshedAt: now.addingTimeInterval(-300),
+            cacheControlMaxAge: 1800
+        ))
+        let feed = try feedStore.feeds().first!
+
+        var fetcherCalled = false
+        let coordinator = SQLiteFeedRefreshCoordinator(database: database, now: { now }, fetcher: { _, _ in
+            fetcherCalled = true
+            return .notModified(FeedHTTPValidators())
+        })
+
+        _ = try await coordinator.refresh(feedID: feed.id, manual: true)
+        #expect(fetcherCalled) // manueller Refresh überspringt das Skip
+    }
+
     private func feedStoreTest(database: FeedivoDatabase, id: String) throws {
         try FeedStore(database: database).save(
             FeedRecord(
