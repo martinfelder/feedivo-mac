@@ -44,6 +44,27 @@ struct FeedHTTPPolicyTests {
         #expect(policy.redirectTarget(for: original) == target)
     }
 
+    @Test func redirectierteURLDieSpaeter404tWirdGeblacklistetNichtNeuGeleitet() throws {
+        // Original leitet auf target weiter; target liefert später 404 → Original-URL
+        // wird geblacklistet. Ein Folge-Request muss skipURLBlacklisted zurückgeben,
+        // nicht useRedirect — sonst würde der tote Redirect endlos refetcht und die
+        // Blacklist wäre für weitergeleitete Feeds wirkungslos.
+        var policy = FeedHTTPPolicy(now: { Date(timeIntervalSince1970: 1_000) })
+        let original = URL(string: "https://blog.example.com/feed")!
+        let target = URL(string: "https://blog.example.com/rss.xml")!
+        let redirectResponse = HTTPURLResponse(url: target, statusCode: 200, httpVersion: nil, headerFields: nil)!
+        _ = policy.recordResponse(request: URLRequest(url: original), finalURL: target, response: redirectResponse, data: Data())
+        let notFound = HTTPURLResponse(url: target, statusCode: 404, httpVersion: nil, headerFields: nil)!
+        _ = policy.recordResponse(request: URLRequest(url: original), finalURL: target, response: notFound, data: Data())
+
+        let decision = policy.shouldReject(request: URLRequest(url: original))
+        if case .skipURLBlacklisted? = decision {
+            // ok — Blacklist schlägt vor dem Redirect-Cache zu
+        } else {
+            Issue.record("Erwartet .skipURLBlacklisted, bekam \(String(describing: decision))")
+        }
+    }
+
     @Test func definitelyNotFeedWirftParsingFailed() throws {
         var policy = FeedHTTPPolicy(now: { Date() })
         let url = URL(string: "https://example.com/feed.xml")!

@@ -26,17 +26,21 @@ struct FeedHTTPPolicy {
     }
 
     // Pre-Request: liefert eine Entscheidung, falls der Request gar nicht erst raus soll.
+    // Reihenfolge: Blacklist/Host-Sperre VOR Redirect-Cache. Würden wir den
+    // Redirect-Cache zuerst fragen, hätte eine Original-URL, die nach einem
+    // Redirect zwischendurch 4xx/404 lief und daher geblacklistet wurde, keine
+    // Wirkung mehr — der gecachte Redirect würde sie endlos erneut anfetchen.
     func shouldReject(request: URLRequest) -> FeedHTTPPolicyDecision? {
         guard let url = request.url else { return nil }
 
-        if let target = redirectCache[url] {
-            return .useRedirect(target)
-        }
         if let until = blacklistedURLs[url], until > now() {
             return .skipURLBlacklisted(until: until)
         }
         if let host = url.host, let until = blockedHosts[host], until > now() {
             return .skipHostBlocked(retryAfter: until)
+        }
+        if let target = redirectCache[url] {
+            return .useRedirect(target)
         }
         return nil
     }
