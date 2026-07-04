@@ -259,7 +259,7 @@ struct ContentView: View {
             \.articleCommandActions,
             articleCommandActions
         )
-        .focusedValue(
+        .focusedSceneValue(
             \.feedCommandActions,
             FeedCommandActions(
                 selectedFeed: selectedFeed,
@@ -470,34 +470,13 @@ struct ContentView: View {
     }
 
     private func updateFirstRunWizardPresentation() {
-        if FirstRunWizardState.shouldKeepPresentedUntilUserStarts(
-            isPresented: isShowingFirstRunWizard,
-            wasDismissedThisSession: isFirstRunWizardDismissedForSession
-        ) {
-            return
-        }
-
-        let shouldShowWizard = FirstRunWizardState.shouldPresent(
-            feedCount: feedSnapshots.count,
-            hasCompletedWizard: hasCompletedFirstRunWizard,
-            wasDismissedThisSession: isFirstRunWizardDismissedForSession,
-            hasBeenPresented: hasPresentedFirstRunWizard,
-            hasHadFeeds: hasHadFeedsForFirstRunWizard
-        )
-
         if feedSnapshots.count > 0 {
-            isFirstRunWizardDismissedForSession = false
+            FirstRunWizardState.markHadFeeds(&hasHadFeedsForFirstRunWizard)
         }
 
-        guard shouldShowWizard else {
-            isShowingFirstRunWizard = false
-            return
-        }
-
-        if !isShowingAddFeedSheet && !isShowingOPMLImportReview {
-            FirstRunWizardState.markPresented(&hasPresentedFirstRunWizard)
-            isShowingFirstRunWizard = true
-        }
+        // Der Wizard darf den leeren Arbeitsbereich nicht blockieren. Feedivo
+        // bietet die produktiven Einstiege über Toolbar und Feed-Menü an.
+        isShowingFirstRunWizard = false
     }
 
     private func completeFirstRunWizard() {

@@ -192,6 +192,30 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(schedulerSource.contains("feedViewModel: FeedViewModel"))
     }
 
+    @Test func feedMenuActionsBleibenAlsSceneValueOhneFeedAuswahlVerfuegbar() throws {
+        let projectRoot = projectRootURL()
+        let contentSource = try source(at: "Feedivo/Views/ContentView.swift", projectRoot: projectRoot)
+        let commandSource = try source(at: "Feedivo/App/FeedCommands.swift", projectRoot: projectRoot)
+        let actionSource = try source(at: "Feedivo/App/FeedCommandActions.swift", projectRoot: projectRoot)
+
+        #expect(contentSource.contains(".focusedSceneValue("))
+        #expect(contentSource.contains("\\.feedCommandActions"))
+        #expect(commandSource.contains(".disabled(feedCommandActions?.canImportOPML != true)"))
+        #expect(actionSource.contains("var canImportOPML: Bool"))
+        #expect(actionSource.contains("true"))
+    }
+
+    @Test func contentViewPraesentiertFirstRunWizardNichtAutomatischBeiLeererApp() throws {
+        let projectRoot = projectRootURL()
+        let contentSource = try source(at: "Feedivo/Views/ContentView.swift", projectRoot: projectRoot)
+        let updateStart = try #require(contentSource.range(of: "private func updateFirstRunWizardPresentation()"))
+        let completeStart = try #require(contentSource.range(of: "private func completeFirstRunWizard()"))
+        let updateSource = contentSource[updateStart.lowerBound ..< completeStart.lowerBound]
+
+        #expect(updateSource.contains("isShowingFirstRunWizard = false"))
+        #expect(!updateSource.contains("isShowingFirstRunWizard = true"))
+    }
+
     @Test func contentViewAnimiertLaufendenRefreshFortschrittNichtGlobal() throws {
         let projectRoot = projectRootURL()
         let contentSource = try source(at: "Feedivo/Views/ContentView.swift", projectRoot: projectRoot)
