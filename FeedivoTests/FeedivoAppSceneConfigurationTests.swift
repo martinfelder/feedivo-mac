@@ -159,6 +159,9 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(readerSource.contains("@AppStorage(ReaderDisplayMode.storageKey)"))
         #expect(readerSource.contains("Picker(L10n.readerDisplayModePicker"))
         #expect(readerSource.contains("readerAppearancePopover"))
+        #expect(readerSource.contains("@Environment(\\.openWindow) private var openWindow"))
+        #expect(readerSource.contains("openWindow(id: ArticleSearchWindowView.windowID)"))
+        #expect(readerSource.contains("Image(systemName: \"magnifyingglass\")"))
         #expect(readerSource.contains("Image(systemName: \"safari\")"))
         #expect(readerSource.contains("Image(systemName: \"square.and.arrow.up\")"))
         #expect(readerSource.contains("Label(L10n.readerInspectorButton, systemImage: \"sidebar.right\")"))
@@ -166,29 +169,32 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(readerSource.contains("Label(L10n.articleCopyLinkCommand"))
     }
 
-    @Test func kompakteArtikelsucheLiegtInDerToolbarAuchOhneArtikelauswahl() throws {
+    @Test func artikelsucheIstNurNochReaderToolbarButtonZumSuchfenster() throws {
         let projectRoot = projectRootURL()
         let contentSource = try source(at: "Feedivo/Views/ContentView.swift", projectRoot: projectRoot)
         let readerSource = try source(at: "Feedivo/Views/Reader/SQLiteReaderView.swift", projectRoot: projectRoot)
         let listSource = try source(at: "Feedivo/Views/ArticleList/SQLiteFeedArticleListView.swift", projectRoot: projectRoot)
 
-        #expect(contentSource.contains("ArticleSearchToolbarInstaller("))
-        #expect(contentSource.contains("struct ArticleSearchToolbarInstaller: NSViewRepresentable"))
-        #expect(contentSource.contains("NSSearchToolbarItem"))
-        #expect(contentSource.contains("NSToolbarDelegate"))
-        #expect(contentSource.contains("onSearchTextChanged:"))
+        #expect(!contentSource.contains("ArticleSearchToolbarInstaller("))
+        #expect(!contentSource.contains("struct ArticleSearchToolbarInstaller: NSViewRepresentable"))
+        #expect(!contentSource.contains("NSSearchToolbarItem"))
+        #expect(!contentSource.contains("NSToolbarDelegate"))
+        #expect(!contentSource.contains("onSearchTextChanged:"))
         #expect(!contentSource.contains("ToolbarItem(placement: .primaryAction)"))
         #expect(!contentSource.contains("ToolbarItem(placement: .principal)"))
         #expect(!contentSource.contains("articleSearchToolbarField"))
-        #expect(contentSource.contains("private var hasActiveArticleList: Bool"))
+        #expect(!contentSource.contains("private var hasActiveArticleList: Bool"))
         #expect(!contentSource.contains("ArticleToolbarSearchField(text: $articleSearchText)"))
         #expect(!contentSource.contains("struct ArticleToolbarSearchField: NSViewRepresentable"))
         #expect(!contentSource.contains("TextField(L10n.articleSearchPlaceholder, text: $articleSearchText)"))
-        #expect(contentSource.contains("isEnabled: hasActiveArticleList"))
+        #expect(!contentSource.contains("isEnabled: hasActiveArticleList"))
         #expect(!contentSource.contains("articleSearchSection"))
-        #expect(contentSource.contains("searchText: $articleSearchText"))
+        #expect(!contentSource.contains("@State private var articleSearchText"))
+        #expect(contentSource.contains("searchText: .constant(\"\")"))
         #expect(!readerSource.contains("articleSearchText"))
         #expect(!readerSource.contains("toolbarSearchField"))
+        #expect(readerSource.contains("openWindow(id: ArticleSearchWindowView.windowID)"))
+        #expect(readerSource.contains("Image(systemName: \"magnifyingglass\")"))
         #expect(listSource.contains("@Binding var searchText: String"))
     }
 
@@ -778,7 +784,7 @@ struct FeedivoAppSceneConfigurationTests {
         let contentSource = try source(at: "Feedivo/Views/ContentView.swift", projectRoot: projectRoot)
         let compactContentSource = compact(contentSource)
 
-        #expect(compactContentSource.contains("SQLiteFeedArticleListView(tagID:tagID,selectedArticleID:$selectedSQLiteArticleID,navigationState:$sqliteArticleNavigationState,searchText:$articleSearchText)"))
+        #expect(compactContentSource.contains("SQLiteFeedArticleListView(tagID:tagID,selectedArticleID:$selectedSQLiteArticleID,navigationState:$sqliteArticleNavigationState,searchText:.constant(\"\"))"))
         #expect(!compactContentSource.contains("ArticleListView(tag:tag,selectedArticle:$selectedArticle"))
     }
 
@@ -787,7 +793,7 @@ struct FeedivoAppSceneConfigurationTests {
         let contentSource = try source(at: "Feedivo/Views/ContentView.swift", projectRoot: projectRoot)
         let compactContentSource = compact(contentSource)
 
-        #expect(compactContentSource.contains("SQLiteFeedArticleListView(smartFilter:smartFilter,selectedArticleID:$selectedSQLiteArticleID,navigationState:$sqliteArticleNavigationState,searchText:$articleSearchText)"))
+        #expect(compactContentSource.contains("SQLiteFeedArticleListView(smartFilter:smartFilter,selectedArticleID:$selectedSQLiteArticleID,navigationState:$sqliteArticleNavigationState,searchText:.constant(\"\"))"))
         #expect(!compactContentSource.contains("ArticleListView(smartFilter:smartFilter,selectedArticle:$selectedArticle"))
     }
 
@@ -796,7 +802,7 @@ struct FeedivoAppSceneConfigurationTests {
         let contentSource = try source(at: "Feedivo/Views/ContentView.swift", projectRoot: projectRoot)
         let compactContentSource = compact(contentSource)
 
-        #expect(compactContentSource.contains("SQLiteFeedArticleListView(smartFolder:smartFolder,selectedArticleID:$selectedSQLiteArticleID,navigationState:$sqliteArticleNavigationState,searchText:$articleSearchText)"))
+        #expect(compactContentSource.contains("SQLiteFeedArticleListView(smartFolder:smartFolder,selectedArticleID:$selectedSQLiteArticleID,navigationState:$sqliteArticleNavigationState,searchText:.constant(\"\"))"))
         #expect(!compactContentSource.contains("ArticleListView(smartFolder:smartFolder,selectedArticle:$selectedArticle"))
     }
 
@@ -853,10 +859,10 @@ struct FeedivoAppSceneConfigurationTests {
         let compactContentSource = compact(contentSource)
         let compactListSource = compact(listSource)
 
-        #expect(contentSource.contains("@State private var articleSearchText = \"\""))
-        #expect(contentSource.contains("ArticleSearchToolbarInstaller("))
-        #expect(contentSource.contains("onSearchTextChanged: updateArticleSearchTextFromToolbar"))
-        #expect(compactContentSource.contains("searchText:$articleSearchText"))
+        #expect(!contentSource.contains("@State private var articleSearchText = \"\""))
+        #expect(!contentSource.contains("ArticleSearchToolbarInstaller("))
+        #expect(!contentSource.contains("onSearchTextChanged: updateArticleSearchTextFromToolbar"))
+        #expect(compactContentSource.contains("searchText:.constant(\"\")"))
         #expect(listSource.contains("@Binding var searchText: String"))
         #expect(listSource.contains("@State private var debouncedSearchText = \"\""))
         #expect(compactListSource.contains(".task(id:searchText)"))

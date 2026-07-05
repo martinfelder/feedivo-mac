@@ -4,6 +4,7 @@ import SwiftUI
 struct SQLiteReaderView: View {
     @Environment(\.feedivoDatabase) private var database
     @Environment(\.interfaceTextSize) private var interfaceTextSize
+    @Environment(\.openWindow) private var openWindow
 
     let articleID: String
     let canSelectPreviousArticle: Bool
@@ -101,6 +102,13 @@ struct SQLiteReaderView: View {
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
                 Spacer()
+
+                Button {
+                    openWindow(id: ArticleSearchWindowView.windowID)
+                } label: {
+                    Image(systemName: "magnifyingglass")
+                }
+                .help(L10n.articleSearchCommand)
 
                 Button {
                     openOriginal()
