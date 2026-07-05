@@ -38,6 +38,7 @@ struct ContentView: View {
     @State private var selectedSQLiteArticleSnapshot: ArticleReaderSnapshot?
     @State private var sqliteArticleNavigationState = SQLiteArticleNavigationState.empty
     @State private var articleSearchText = ""
+    @State private var articleSearchResetToken = 0
 
     @State private var feedViewModel: FeedViewModel
     @State private var isShowingAddFeedSheet = false
@@ -292,12 +293,13 @@ struct ContentView: View {
                 hasFeeds: !feedSnapshots.isEmpty
             )
         )
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                if hasActiveArticleList {
-                    articleSearchToolbarField
-                }
-            }
+        .background {
+            ArticleSearchToolbarInstaller(
+                isEnabled: hasActiveArticleList,
+                resetToken: articleSearchResetToken,
+                onSearchTextChanged: updateArticleSearchTextFromToolbar
+            )
+            .frame(width: 0, height: 0)
         }
     }
 
@@ -305,17 +307,13 @@ struct ContentView: View {
         selectedSmartFolder != nil || selectedFeedID != nil || selectedTagID != nil || selectedSmartFilter != nil
     }
 
-    private var articleSearchToolbarField: some View {
-        ArticleToolbarSearchField(text: $articleSearchText)
-        .padding(.horizontal, 10)
-        .frame(width: 260, height: 28)
-        .background(Color(nsColor: .controlBackgroundColor), in: Capsule())
-        .help(L10n.articleSearchCommand)
-    }
-
     private func requestAddFeed() {
         isShowingFirstRunWizard = false
         isShowingAddFeedSheet = true
+    }
+
+    private func updateArticleSearchTextFromToolbar(_ searchText: String) {
+        articleSearchText = searchText
     }
 
     private func handleSidebarSelectionChange() {
@@ -323,6 +321,7 @@ struct ContentView: View {
         selectedSQLiteArticleSnapshot = nil
         sqliteArticleNavigationState = .empty
         articleSearchText = ""
+        articleSearchResetToken += 1
     }
 
     private func handleSQLiteArticleSelectionChange() {
@@ -800,50 +799,210 @@ enum NetworkConnectionStatus: Equatable {
     }
 }
 
-struct ArticleToolbarSearchField: NSViewRepresentable {
-    @Binding var text: String
+struct ArticleSearchToolbarInstaller: NSViewRepresentable {
+    let isEnabled: Bool
+    let resetToken: Int
+    let onSearchTextChanged: (String) -> Void
 
-    func makeNSView(context: Context) -> NSSearchField {
-        let searchField = NSSearchField(frame: .zero)
-        searchField.delegate = context.coordinator
-        searchField.placeholderString = L10n.articleSearchPlaceholder
-        searchField.font = NSFont.systemFont(ofSize: 13)
-        searchField.isBordered = false
-        searchField.isBezeled = false
-        searchField.drawsBackground = false
-        searchField.focusRingType = .none
-        searchField.sendsSearchStringImmediately = true
-        searchField.translatesAutoresizingMaskIntoConstraints = false
-        searchField.setContentHuggingPriority(.defaultLow, for: .horizontal)
-        searchField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        return searchField
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView(frame: .zero)
+        DispatchQueue.main.async {
+            context.coordinator.installIfNeeded(from: view)
+        }
+        return view
     }
 
-    func updateNSView(_ searchField: NSSearchField, context: Context) {
-        context.coordinator.text = $text
-        searchField.placeholderString = L10n.articleSearchPlaceholder
+    func updateNSView(_ view: NSView, context: Context) {
+        context.coordinator.onSearchTextChanged = onSearchTextChanged
+        context.coordinator.update(isEnabled: isEnabled, resetToken: resetToken)
 
-        if searchField.stringValue != text {
-            searchField.stringValue = text
+        DispatchQueue.main.async {
+            context.coordinator.installIfNeeded(from: view)
         }
     }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(text: $text)
+        Coordinator(
+            isEnabled: isEnabled,
+            resetToken: resetToken,
+            onSearchTextChanged: onSearchTextChanged
+        )
     }
 
-    final class Coordinator: NSObject, NSSearchFieldDelegate {
-        var text: Binding<String>
+    final class Coordinator: NSObject, NSToolbarDelegate, NSSearchFieldDelegate {
+        private static let searchIdentifier = NSToolbarItem.Identifier("FeedivoArticleSearch")
 
-        init(text: Binding<String>) {
-            self.text = text
+        weak var originalDelegate: NSToolbarDelegate?
+        private weak var toolbar: NSToolbar?
+        private weak var searchField: NSSearchField?
+        private var pendingSearchUpdate: DispatchWorkItem?
+        private var lastResetToken: Int
+        private var isEnabled: Bool
+        var onSearchTextChanged: (String) -> Void
+
+        init(
+            isEnabled: Bool,
+            resetToken: Int,
+            onSearchTextChanged: @escaping (String) -> Void
+        ) {
+            self.isEnabled = isEnabled
+            self.lastResetToken = resetToken
+            self.onSearchTextChanged = onSearchTextChanged
+        }
+
+        func installIfNeeded(from view: NSView) {
+            guard let toolbar = view.window?.toolbar else {
+                return
+            }
+
+            if self.toolbar !== toolbar {
+                self.toolbar = toolbar
+                originalDelegate = toolbar.delegate === self ? originalDelegate : toolbar.delegate
+            } else if toolbar.delegate !== self, toolbar.delegate != nil {
+                originalDelegate = toolbar.delegate
+            }
+
+            toolbar.delegate = self
+
+            if toolbar.items.contains(where: { $0.itemIdentifier == Self.searchIdentifier }) {
+                updateCurrentSearchField()
+                return
+            }
+
+            toolbar.insertItem(withItemIdentifier: Self.searchIdentifier, at: toolbar.items.count)
+            updateCurrentSearchField()
+        }
+
+        func update(isEnabled: Bool, resetToken: Int) {
+            self.isEnabled = isEnabled
+            searchField?.isEnabled = isEnabled
+
+            guard resetToken != lastResetToken else {
+                return
+            }
+
+            lastResetToken = resetToken
+            pendingSearchUpdate?.cancel()
+            if searchField?.stringValue.isEmpty == false {
+                searchField?.stringValue = ""
+            }
+            onSearchTextChanged("")
+        }
+
+        func toolbar(
+            _ toolbar: NSToolbar,
+            itemForItemIdentifier itemIdentifier: NSToolbarItem.Identifier,
+            willBeInsertedIntoToolbar flag: Bool
+        ) -> NSToolbarItem? {
+            guard itemIdentifier == Self.searchIdentifier else {
+                return originalDelegate?.toolbar?(
+                    toolbar,
+                    itemForItemIdentifier: itemIdentifier,
+                    willBeInsertedIntoToolbar: flag
+                )
+            }
+
+            let searchItem = NSSearchToolbarItem(itemIdentifier: Self.searchIdentifier)
+            searchItem.label = L10n.articleSearchCommand
+            searchItem.toolTip = L10n.articleSearchCommand
+            searchItem.visibilityPriority = .high
+            searchItem.searchField.placeholderString = L10n.articleSearchPlaceholder
+            searchItem.searchField.delegate = self
+            searchItem.searchField.target = self
+            searchItem.searchField.action = #selector(runSearch(_:))
+            searchItem.searchField.isEnabled = isEnabled
+            searchField = searchItem.searchField
+            return searchItem
+        }
+
+        func toolbarAllowedItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
+            let originalIdentifiers = originalDelegate?.toolbarAllowedItemIdentifiers?(toolbar) ?? toolbar.items.map(\.itemIdentifier)
+            return identifiersByAddingSearch(originalIdentifiers)
+        }
+
+        func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
+            let originalIdentifiers = originalDelegate?.toolbarDefaultItemIdentifiers?(toolbar) ?? toolbar.items.map(\.itemIdentifier)
+            return identifiersByAddingSearch(originalIdentifiers)
+        }
+
+        func toolbarSelectableItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
+            originalDelegate?.toolbarSelectableItemIdentifiers?(toolbar) ?? []
+        }
+
+        func toolbarWillAddItem(_ notification: Notification) {
+            originalDelegate?.toolbarWillAddItem?(notification)
+        }
+
+        func toolbarDidRemoveItem(_ notification: Notification) {
+            guard
+                let item = notification.userInfo?["item"] as? NSToolbarItem,
+                item.itemIdentifier == Self.searchIdentifier
+            else {
+                originalDelegate?.toolbarDidRemoveItem?(notification)
+                return
+            }
+
+            searchField?.delegate = nil
+            searchField?.target = nil
+            searchField?.action = nil
+            searchField = nil
         }
 
         func controlTextDidChange(_ notification: Notification) {
             guard let searchField = notification.object as? NSSearchField else {
                 return
             }
-            text.wrappedValue = searchField.stringValue
+
+            scheduleSearchUpdate(searchField.stringValue)
+        }
+
+        func searchFieldDidEndSearching(_ sender: NSSearchField) {
+            pendingSearchUpdate?.cancel()
+            onSearchTextChanged("")
+        }
+
+        @objc private func runSearch(_ sender: NSSearchField) {
+            pendingSearchUpdate?.cancel()
+            onSearchTextChanged(sender.stringValue)
+        }
+
+        private func scheduleSearchUpdate(_ searchText: String) {
+            pendingSearchUpdate?.cancel()
+
+            if searchText.isEmpty {
+                onSearchTextChanged("")
+                return
+            }
+
+            let workItem = DispatchWorkItem { [weak self] in
+                self?.onSearchTextChanged(searchText)
+            }
+            pendingSearchUpdate = workItem
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25, execute: workItem)
+        }
+
+        private func updateCurrentSearchField() {
+            guard
+                let item = toolbar?.items.first(where: { $0.itemIdentifier == Self.searchIdentifier }) as? NSSearchToolbarItem
+            else {
+                searchField = nil
+                return
+            }
+
+            item.searchField.delegate = self
+            item.searchField.target = self
+            item.searchField.action = #selector(runSearch(_:))
+            item.searchField.isEnabled = isEnabled
+            searchField = item.searchField
+        }
+
+        private func identifiersByAddingSearch(
+            _ identifiers: [NSToolbarItem.Identifier]
+        ) -> [NSToolbarItem.Identifier] {
+            guard !identifiers.contains(Self.searchIdentifier) else {
+                return identifiers
+            }
+            return identifiers + [Self.searchIdentifier]
         }
     }
 }
