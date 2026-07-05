@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 import Network
 import UniformTypeIdentifiers
@@ -305,27 +306,7 @@ struct ContentView: View {
     }
 
     private var articleSearchToolbarField: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(.secondary)
-
-            TextField(L10n.articleSearchPlaceholder, text: $articleSearchText)
-                .textFieldStyle(.plain)
-                .font(.system(size: 13))
-
-            if !articleSearchText.isEmpty {
-                Button {
-                    articleSearchText = ""
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 12, weight: .semibold))
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(.secondary)
-                .help(L10n.articleSearchClear)
-            }
-        }
+        ArticleToolbarSearchField(text: $articleSearchText)
         .padding(.horizontal, 10)
         .frame(width: 260, height: 28)
         .background(Color(nsColor: .controlBackgroundColor), in: Capsule())
@@ -815,6 +796,54 @@ enum NetworkConnectionStatus: Equatable {
             .green
         case .offline:
             .red
+        }
+    }
+}
+
+struct ArticleToolbarSearchField: NSViewRepresentable {
+    @Binding var text: String
+
+    func makeNSView(context: Context) -> NSSearchField {
+        let searchField = NSSearchField(frame: .zero)
+        searchField.delegate = context.coordinator
+        searchField.placeholderString = L10n.articleSearchPlaceholder
+        searchField.font = NSFont.systemFont(ofSize: 13)
+        searchField.isBordered = false
+        searchField.isBezeled = false
+        searchField.drawsBackground = false
+        searchField.focusRingType = .none
+        searchField.sendsSearchStringImmediately = true
+        searchField.translatesAutoresizingMaskIntoConstraints = false
+        searchField.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        searchField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        return searchField
+    }
+
+    func updateNSView(_ searchField: NSSearchField, context: Context) {
+        context.coordinator.text = $text
+        searchField.placeholderString = L10n.articleSearchPlaceholder
+
+        if searchField.stringValue != text {
+            searchField.stringValue = text
+        }
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(text: $text)
+    }
+
+    final class Coordinator: NSObject, NSSearchFieldDelegate {
+        var text: Binding<String>
+
+        init(text: Binding<String>) {
+            self.text = text
+        }
+
+        func controlTextDidChange(_ notification: Notification) {
+            guard let searchField = notification.object as? NSSearchField else {
+                return
+            }
+            text.wrappedValue = searchField.stringValue
         }
     }
 }
