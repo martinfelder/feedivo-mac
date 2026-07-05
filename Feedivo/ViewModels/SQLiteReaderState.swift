@@ -10,37 +10,68 @@ final class SQLiteReaderState {
     var isLoading = false
 
     private var loadedArticleID: String?
+    private var activeLoadToken = UUID()
+    private var activeLoadTask: Task<Void, Never>?
 
     func load(articleID: String, database: FeedivoDatabase) {
+        activeLoadTask?.cancel()
+
         loadedArticleID = articleID
         isLoading = true
         errorMessage = nil
+        snapshot = nil
+        preparedArticle = .empty
 
-        do {
-            let loadedSnapshot = try ArticleDatabase(database: database).readerArticle(id: articleID)
-            snapshot = loadedSnapshot
+        let loadToken = UUID()
+        activeLoadToken = loadToken
 
-            guard let loadedSnapshot else {
-                preparedArticle = .empty
-                isLoading = false
+        activeLoadTask = Task { @MainActor [database, articleID, loadToken] in
+            guard !Task.isCancelled else {
                 return
             }
 
-            let input = ReaderArticleInput.make(from: loadedSnapshot)
-            if let cached = ReaderPreparedArticleCache.shared.prepared(for: input) {
-                preparedArticle = cached
-            } else {
-                let prepared = ReaderPreparedArticle(input: input)
-                ReaderPreparedArticleCache.shared.store(prepared, for: input)
-                preparedArticle = prepared
+            var loadedSnapshot: ArticleReaderSnapshot?
+            var preparedArticleForSnapshot = ReaderPreparedArticle.empty
+            var loadError: String?
+
+            do {
+                loadedSnapshot = try ArticleDatabase(database: database).readerArticle(id: articleID)
+
+                if let loadedSnapshot {
+                    let input = ReaderArticleInput.make(from: loadedSnapshot)
+                    if let cached = ReaderPreparedArticleCache.shared.prepared(for: input) {
+                        preparedArticleForSnapshot = cached
+                    } else {
+                        preparedArticleForSnapshot = await Task.detached(priority: .userInitiated) {
+                            ReaderPreparedArticle(input: input)
+                        }.value
+
+                        ReaderPreparedArticleCache.shared.store(preparedArticleForSnapshot, for: input)
+                    }
+                }
+            } catch {
+                loadError = error.localizedDescription
             }
 
-            isLoading = false
-        } catch {
-            snapshot = nil
-            preparedArticle = .empty
-            errorMessage = error.localizedDescription
-            isLoading = false
+            guard !Task.isCancelled,
+                  self.loadedArticleID == articleID,
+                  self.activeLoadToken == loadToken
+            else {
+                return
+            }
+
+            if let loadedSnapshot {
+                self.snapshot = loadedSnapshot
+                self.preparedArticle = preparedArticleForSnapshot
+            } else {
+                self.snapshot = nil
+                self.preparedArticle = .empty
+            }
+
+            self.errorMessage = loadError
+            self.isLoading = false
+            self.activeLoadTask = nil
+            self.activeLoadToken = loadToken
         }
     }
 
