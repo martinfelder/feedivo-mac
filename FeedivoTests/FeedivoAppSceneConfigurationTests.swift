@@ -1089,6 +1089,18 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(!readerSource.contains("typealias ReaderView = LegacyReaderView"))
     }
 
+    @Test func modelContainerFactoryIstNichtMehrTeilDesProduktcodes() throws {
+        let projectRoot = projectRootURL()
+        let appSource = try source(at: "Feedivo/App/FeedivoApp.swift", projectRoot: projectRoot)
+
+        #expect(!appSource.contains("FeedivoModelContainerFactory"))
+        #expect(!appSource.contains("ModelContainer"))
+        #expect(!appSource.contains(".modelContainer("))
+
+        let factoryURL = projectRoot.appendingPathComponent("Feedivo/App/FeedivoModelContainerFactory.swift")
+        #expect(!FileManager.default.fileExists(atPath: factoryURL.path))
+    }
+
     @Test func feedViewModelProduktiveMethodenDelegierenAnSQLiteServices() throws {
         let projectRoot = projectRootURL()
         let source = try source(at: "Feedivo/ViewModels/FeedViewModel.swift", projectRoot: projectRoot)
