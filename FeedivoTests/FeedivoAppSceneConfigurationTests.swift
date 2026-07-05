@@ -236,12 +236,16 @@ struct FeedivoAppSceneConfigurationTests {
         let displayModeSource = try source(at: "Feedivo/Views/Reader/ReaderDisplayMode.swift", projectRoot: projectRoot)
         let sqliteReaderSource = try source(at: "Feedivo/Views/Reader/SQLiteReaderView.swift", projectRoot: projectRoot)
         let legacyReaderSource = try source(at: "Feedivo/Views/Reader/ReaderView.swift", projectRoot: projectRoot)
+        let webContentSource = try source(at: "Feedivo/Views/Reader/WebContentView.swift", projectRoot: projectRoot)
 
         #expect(!displayModeSource.contains("case readability"))
         #expect(!displayModeSource.contains("readerDisplayModeReadability"))
         #expect(sqliteReaderSource.contains("WebContentView(url: originalURL)"))
         #expect(!sqliteReaderSource.contains("Readability"))
         #expect(!legacyReaderSource.contains("Readability"))
+        #expect(webContentSource.contains("ArticleWebContentBlocker.install"))
+        #expect(webContentSource.contains("WKContentRuleListStore.default().compileContentRuleList"))
+        #expect(!webContentSource.contains("WKWebView()"))
     }
 
     @Test func offlineArtikelKopienSindNichtMehrImProduktivenUIPfadVerdrahtet() throws {

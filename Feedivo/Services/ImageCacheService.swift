@@ -180,6 +180,10 @@ final class ImageCacheService: @unchecked Sendable {
     }
 
     private func cachedImageData(for url: URL) async -> Data? {
+        guard ArticleResourceURLPolicy.isArticleImageURLCandidate(url.absoluteString) else {
+            return nil
+        }
+
         let fileURL = cachedFileURL(for: url)
         if let data = try? Data(contentsOf: fileURL) {
             touch(fileURL)

@@ -10,6 +10,7 @@ import Foundation
 import SwiftData
 import SwiftUI
 import Testing
+import WebKit
 @testable import Feedivo
 
 struct FeedivoTests {
@@ -679,6 +680,27 @@ struct FeedivoTests {
         #expect(!FeedService.isArticleImageURLCandidate("https://vg05.met.vgwort.de/na/b94510332eaf4f8ea19ced6ac17cd7c0"))
         #expect(!FeedService.isArticleImageURLCandidate("https://example.com/pixel.gif"))
         #expect(FeedService.isArticleImageURLCandidate("https://example.com/echtes-bild.jpg"))
+    }
+
+    @MainActor
+    @Test func articleResourceURLPolicyWebContentBlockerRegelnKompilieren() async throws {
+        let identifier = "\(ArticleResourceURLPolicy.webContentBlockerIdentifier).Tests.\(UUID().uuidString)"
+        let ruleList = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<WKContentRuleList, Error>) in
+            WKContentRuleListStore.default().compileContentRuleList(
+                forIdentifier: identifier,
+                encodedContentRuleList: ArticleResourceURLPolicy.webContentBlockerRulesJSON
+            ) { ruleList, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else if let ruleList {
+                    continuation.resume(returning: ruleList)
+                } else {
+                    continuation.resume(throwing: URLError(.cannotParseResponse))
+                }
+            }
+        }
+
+        #expect(ruleList.identifier == identifier)
     }
 
     @Test func feedServiceMachtRelativeArtikelbilderAbsolut() throws {

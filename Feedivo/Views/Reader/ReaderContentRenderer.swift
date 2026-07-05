@@ -291,7 +291,7 @@ enum ReaderContentRenderer {
         }
 
         let value = String(html[srcRange]).trimmingCharacters(in: .whitespacesAndNewlines)
-        if !value.isEmpty {
+        if !value.isEmpty, ArticleResourceURLPolicy.isArticleImageURLCandidate(value) {
             blocks.append(.image(urlString: value))
         }
     }
@@ -302,7 +302,11 @@ enum ReaderContentRenderer {
         }
 
         let value = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
-        return value.isEmpty ? nil : value
+        guard !value.isEmpty, ArticleResourceURLPolicy.isArticleImageURLCandidate(value) else {
+            return nil
+        }
+
+        return value
     }
 
     private static func stringByReplacingMatches(

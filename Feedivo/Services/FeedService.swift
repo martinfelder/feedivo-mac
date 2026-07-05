@@ -3,6 +3,49 @@ import CryptoKit
 import FeedKit
 import XMLKit
 
+enum ArticleResourceURLPolicy {
+    static let webContentBlockerIdentifier = "Feedivo.ArticleWebContentBlocker"
+
+    static let webContentBlockerRulesJSON = """
+    [
+      {
+        "trigger": {
+          "url-filter": "^https?://([^/]+\\\\.)?vgwort\\\\.de/.*"
+        },
+        "action": {
+          "type": "block"
+        }
+      },
+      {
+        "trigger": {
+          "url-filter": "^https?://[^/]+/.*(?:pixel|tracking)\\\\.gif(?:[?#].*)?$"
+        },
+        "action": {
+          "type": "block"
+        }
+      }
+    ]
+    """
+
+    static func isBlockedArticleResource(_ urlString: String) -> Bool {
+        guard let components = URLComponents(string: urlString) else {
+            return false
+        }
+
+        let host = components.host?.lowercased()
+        if host == "vgwort.de" || host?.hasSuffix(".vgwort.de") == true {
+            return true
+        }
+
+        let lastPathComponent = URL(fileURLWithPath: components.path).lastPathComponent.lowercased()
+        return lastPathComponent == "pixel.gif" || lastPathComponent == "tracking.gif"
+    }
+
+    static func isArticleImageURLCandidate(_ urlString: String) -> Bool {
+        !isBlockedArticleResource(urlString)
+    }
+}
+
 struct ParsedFeed: Sendable {
     let sourceURL: String
     let title: String
@@ -525,7 +568,7 @@ enum FeedService {
         }
 
         guard let urlString = cleanURL(cleaned, relativeTo: baseURL),
-              isArticleImageURLCandidate(urlString)
+              ArticleResourceURLPolicy.isArticleImageURLCandidate(urlString)
         else {
             return nil
         }
@@ -534,21 +577,7 @@ enum FeedService {
     }
 
     static func isArticleImageURLCandidate(_ urlString: String) -> Bool {
-        guard let components = URLComponents(string: urlString) else {
-            return true
-        }
-
-        let host = components.host?.lowercased()
-        if host == "vgwort.de" || host?.hasSuffix(".vgwort.de") == true {
-            return false
-        }
-
-        let lastPathComponent = URL(fileURLWithPath: components.path).lastPathComponent.lowercased()
-        if lastPathComponent == "pixel.gif" || lastPathComponent == "tracking.gif" {
-            return false
-        }
-
-        return true
+        ArticleResourceURLPolicy.isArticleImageURLCandidate(urlString)
     }
 
     private nonisolated static func looksLikeImageURL(_ url: String) -> Bool {
