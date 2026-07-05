@@ -117,9 +117,6 @@ struct LegacyArticleListView: View {
     }
 }
 
-@available(*, deprecated, message: "Legacy SwiftData; produktiv bitte SQLiteFeedArticleListView nutzen.")
-typealias ArticleListView = LegacyArticleListView
-
 private struct FeedArticleListContent: View {
     let feed: Feed
     let onRequestCreateRuleFromArticle: (Article) -> Void

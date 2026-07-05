@@ -80,3 +80,13 @@ folgender Restarbeit gekoppelt:
 2. Die letzten Legacy-Backfill-/Editor-Flüsse auf produktive Lesezugriffe prüfen,
    falls nötig klar in legacy-markierte Dateien isolieren.
 3. Vollständiger Durchlauf der Test-Suite nach diesen Aufräumen.
+
+## Abschlussnotiz 2026-07-05
+
+Diese Momentaufnahme bleibt als historischer Scan erhalten. Der finale Abschluss
+ist im Plan `docs/superpowers/plans/2026-07-04-sqlite-migration-final-closure.md`
+und im aktualisierten `docs/performance/sqlite-only-audit.md` (Abschnitt
+„Final Closure Scan") dokumentiert. Nach Merge von `feature/sqlite-only-app-start`
+hat `FeedivoApp.swift` keine SwiftData-Treffer mehr; `FeedivoModelContainerFactory`
+und die Backfill-Services sind produktiv nicht mehr erreicht und in den Tasks 5/6
+des Abschlussplans zum Löschen vorgesehen.

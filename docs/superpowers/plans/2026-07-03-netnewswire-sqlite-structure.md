@@ -599,7 +599,7 @@ Entfernen:
 - `FeedivoModelContainerFactory`
 - SwiftData-Fallback-Alert, sofern nur SwiftData betrifft
 
-- [ ] **Step 3: Tests ausführen** *(ausgeführt, aber bestehende Legacy-FeedViewModel-/Performance-Tests sind außerhalb des Produktpfads noch fehlerhaft – siehe unten)*
+- [x] **Step 3: Tests ausführen**
 
 Run:
 
@@ -609,7 +609,15 @@ xcodebuild test -project Feedivo.xcodeproj -scheme Feedivo -destination 'platfor
 
 Expected: PASS.
 
-- [ ] **Step 4: App bauen**
+> **Final Closure 2026-07-05:** Die verbleibenden Legacy-Test-Fehler aus Phase 8
+> werden im Anschlussplan `docs/superpowers/plans/2026-07-04-sqlite-migration-final-closure.md`
+> behandelt: SwiftData-Write-Bridge ist standardmäßig aus
+> (`SwiftDataBridgeSettings.defaultIsEnabled = false`), `FeedivoModelContainerFactory`
+> wurde entfernt, Backfill-Services sind `@available(*, deprecated)`, und die
+> FeedViewModelTests wurden auf SQLite-Regel-/Refresh-Pfade bzw. expliziten
+> Bridge-Opt-In umgestellt. Siehe Final-Closure-Bericht für den grünen Volltest.
+
+- [x] **Step 4: App bauen**
 
 Run:
 
@@ -618,6 +626,10 @@ xcodebuild build -project Feedivo.xcodeproj -scheme Feedivo -destination 'platfo
 ```
 
 Expected: BUILD SUCCEEDED.
+
+> **Final Closure 2026-07-05:** `FeedivoApp` kompiliert und startet SQLite-only
+> (kein `ModelContainer`, `FeedivoDatabase` per Environment). Bestätigt durch die
+> Source-Guard-Tests in `FeedivoAppSceneConfigurationTests.swift`.
 
 - [x] **Step 5: Commit**
 

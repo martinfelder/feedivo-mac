@@ -1,6 +1,7 @@
 import Foundation
 import SwiftData
 
+@available(*, deprecated, message: "Legacy SwiftData-Migrationspfad. Produktiver Feedivo-Pfad nutzt SQLite.")
 enum FeedUnreadCountBackfillService {
     // v3: nach Fix, dass rückwirkend ausgeblendete ungelesene Artikel den
     // gespeicherten Feed-Zähler neu synchronisieren.

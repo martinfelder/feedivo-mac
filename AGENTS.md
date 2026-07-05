@@ -97,7 +97,7 @@ Nach jeder relevanten Änderung prüfen und bei Bedarf aktualisieren:
 | UI Framework | SwiftUI (macOS) | Kein AppKit direkt |
 | Architektur | MVVM | `@Observable` Macro (kein ObservableObject) |
 | Navigation | NavigationSplitView | 3-Spalten: Sidebar / Liste / Detail |
-| Persistenz | Ziel: SQLite via GRDB; aktuell SwiftData im Übergang | Performance hat Vorrang; frische SQLite-DB ohne SwiftData-Datenmigration akzeptiert |
+| Persistenz | Produktiv SQLite/GRDB | SwiftData ist kein produktiver Feed-/Artikelstore mehr; `FeedivoApp` startet ohne SwiftData-`ModelContainer`. Verbleibende SwiftData-Dateien sind Legacy-/Migrationsreste oder Tests. |
 | iCloud Sync | Zurückgestellt | SwiftData/CloudKit-Beta wird zugunsten SQLite/GRDB pausiert |
 | Netzwerk | URLSession + async/await | Kein Alamofire, kein Combine |
 | RSS-Parsing | FeedKit | Swift Package, URL: https://github.com/nmdias/FeedKit |
@@ -121,7 +121,7 @@ FeedivoMac/
 │   │   ├── FeedCommands.swift          # macOS Feed-Menü ✅
 │   │   └── FeedCommandActions.swift    # FocusedValues für Feedaktionen ✅
 │   │
-│   ├── Models/                         # SwiftData @Model Klassen — alle fertig ✅
+│   ├── Models/                         # Legacy SwiftData @Model Klassen (nicht produktiv; Migrationsreste) ⚠️
 │   │   ├── Feed.swift
 │   │   ├── FeedFolder.swift            # Leere/angelegte Sidebar-Ordner ✅
 │   │   ├── FeedLogEntry.swift          # Feed-Abruf- und Fehlerlog ✅
@@ -281,92 +281,48 @@ FeedivoMac/
 ### FeedivoApp.swift
 ```swift
 import SwiftUI
-import SwiftData
+import Observation
 
 @main
 struct FeedivoApp: App {
-    @AppStorage("appLanguage")
-    private var appLanguageRawValue = AppLanguage.system.rawValue
-
-    @AppStorage(InterfaceTextSize.storageKey)
-    private var interfaceTextSizeRawValue = InterfaceTextSize.defaultSize.rawValue
-
-    @AppStorage(BackgroundRefreshSettings.isEnabledKey)
-    private var backgroundRefreshIsEnabled = BackgroundRefreshSettings.defaultIsEnabled
-
-    @AppStorage(BackgroundRefreshSettings.intervalMinutesKey)
-    private var backgroundRefreshIntervalMinutes = BackgroundRefreshSettings.defaultIntervalMinutes
-
-    private let modelContainer: ModelContainer
+    // … @AppStorage Settings …
     private let backgroundRefreshScheduler: SystemBackgroundActivityRefreshScheduler
+    private let databaseLoadState = DatabaseLoadState()
+    private let feedViewModel = FeedViewModel()
+    private let feedivoDatabase: FeedivoDatabase
 
     init() {
         ReaderFontRegistry.registerBundledFonts()
-
-        let modelContainer = try! ModelContainer(
-            for: Feed.self,
-            FeedFolder.self,
-            Article.self,
-            Tag.self,
-            Rule.self,
-            RuleCondition.self,
-            SmartFolder.self,
-            SmartFolderCondition.self,
-            FeedLogEntry.self
-        )
-        self.modelContainer = modelContainer
+        let cloudSyncIsEnabled = CloudSyncSettings.isEnabled()
+        let database = Self.openSQLiteDatabase()
         self.backgroundRefreshScheduler = SystemBackgroundActivityRefreshScheduler(
-            modelContainer: modelContainer
+            feedivoDatabase: database,
+            feedViewModel: feedViewModel
         )
+        self.feedivoDatabase = database
+        self.databaseLoadState.isCloudSyncEnabledAtLaunch = cloudSyncIsEnabled
     }
 
     var body: some Scene {
-        let appLanguage = AppLanguage.resolved(from: appLanguageRawValue)
-        let interfaceTextSize = InterfaceTextSize.resolved(from: interfaceTextSizeRawValue)
-
         WindowGroup {
-            ContentView()
-                .environment(\.locale, appLanguage.locale)
-                .environment(\.interfaceTextSize, interfaceTextSize)
-                .dynamicTypeSize(interfaceTextSize.dynamicTypeSize)
-                .task {
-                    backfillStoredArticleMetadataIfNeeded()
-                    trimImageCacheToSelectedLimit()
-                    scheduleBackgroundRefresh()
-                }
+            ContentView(feedViewModel: feedViewModel)
+                .environment(\.feedivoDatabase, feedivoDatabase)
+                .environment(databaseLoadState)
+                // … Locale, InterfaceTextSize, Startup-Tasks …
         }
-        .modelContainer(modelContainer)
-
-        WindowGroup(for: ArticleWindowRequest.self) { $request in
-            if let request {
-                ArticleWindowView(request: request)
-                    .environment(\.locale, appLanguage.locale)
-                    .environment(\.interfaceTextSize, interfaceTextSize)
-                    .dynamicTypeSize(interfaceTextSize.dynamicTypeSize)
-            }
-        }
-        .defaultSize(width: 900, height: 720)
-        .modelContainer(modelContainer)
-
-        Settings {
-            NewSettingsView()
-                .environment(\.locale, appLanguage.locale)
-                .environment(\.interfaceTextSize, interfaceTextSize)
-                .dynamicTypeSize(interfaceTextSize.dynamicTypeSize)
-        }
-        .defaultSize(width: 1040, height: 640)
-        .modelContainer(modelContainer)
+        // Kein .modelContainer mehr — produktiv SQLite-only.
+        WindowGroup(for: ArticleWindowRequest.self) { $request in … }
+        Settings { NewSettingsView() }
     }
 }
 ```
-- Registriert neben Feeds, Artikeln, Tags und Regeln auch `SmartFolder` und
-  `SmartFolderCondition` im SwiftData-Container.
-- Beim App-Start laufen Backfills für alte Artikel-/Regeldaten und die drei
-  Default-Ordner `Heute`, `Diese Woche` und `Gespeichert` werden bei Bedarf wieder
-  angelegt.
-- Registriert zusätzlich eine `WindowGroup(for: ArticleWindowRequest.self)` für
-  dedizierte Artikelfenster. Diese öffnen `ArticleWindowView` mit gemeinsamem
-  ModelContainer, Locale und Interface-Textgröße.
+- **Kein SwiftData-`ModelContainer` mehr.** App-Start öffnet eine SQLite/GRDB-
+  Datenbank (`FeedivoDatabase`) und reicht sie per `.environment(\.feedivoDatabase, …)`
+  an ContentView/Settings/Artikelfenster weiter.
+- `ContentView(feedViewModel:)` ist der SQLite-Root; es gibt kein `.modelContainer(...)`.
+- Die alte `FeedivoModelContainerFactory` wurde entfernt (Task 5).
+- Backfill-Services werden beim App-Start nicht mehr produktiv geroutet; die
+  verbleibenden sind `@available(*, deprecated)` markiert (Task 6).
 
 ### ContentView.swift
 NavigationSplitView mit 3 Spalten. Verwaltet `selectedFeed` und `selectedArticle` als

@@ -568,7 +568,7 @@ struct FeedivoAppSceneConfigurationTests {
         )
 
         #expect(settingsSource.contains("static let isEnabledKey = \"swiftDataBridge.isEnabled\""))
-        #expect(settingsSource.contains("static let defaultIsEnabled = true"))
+        #expect(settingsSource.contains("static let defaultIsEnabled = false"))
         #expect(serviceSource.contains("SwiftDataBridgeSettings.isEnabledKey"))
         #expect(serviceSource.contains("saveSwiftDataBridge"))
         #expect(serviceSource.contains("SwiftDataBridgeSettings.defaultIsEnabled"))
@@ -949,7 +949,7 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(sidebarSource.contains("@State private var feedFolderPendingDeletion: FeedFolderRecord?"))
         #expect(sidebarSource.contains("entry.snapshots.isEmpty && explicitFolder != nil"))
         #expect(sidebarSource.contains("FeedFolderStore(database: database).delete(id: folder.id)"))
-        #expect(compactSidebarSource.contains(".contextMenu{if let deleteEmptyFolder"))
+        #expect(compactSidebarSource.contains(".contextMenu{ifletdeleteEmptyFolder"))
     }
 
     @Test func smartFolderVerwaltungIstSQLiteFirst() throws {
@@ -1071,6 +1071,62 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(source.contains("TagStore(database: database).deleteTag"))
         #expect(!source.contains("sqliteDatabase: feedivoDatabase"))
         #expect(!source.contains("viewModel.createTag("))
+    }
+
+    @Test func swiftDataBridgeIstStandardmaessigAusgeschaltet() throws {
+        let projectRoot = projectRootURL()
+        let source = try source(at: "Feedivo/Services/SwiftDataBridgeSettings.swift", projectRoot: projectRoot)
+
+        #expect(source.contains("static let defaultIsEnabled = false"))
+    }
+
+    @Test func legacyArtikelTypealiasesSindEntfernt() throws {
+        let projectRoot = projectRootURL()
+        let listSource = try source(at: "Feedivo/Views/ArticleList/ArticleListView.swift", projectRoot: projectRoot)
+        let readerSource = try source(at: "Feedivo/Views/Reader/ReaderView.swift", projectRoot: projectRoot)
+
+        #expect(!listSource.contains("typealias ArticleListView = LegacyArticleListView"))
+        #expect(!readerSource.contains("typealias ReaderView = LegacyReaderView"))
+    }
+
+    @Test func modelContainerFactoryIstNichtMehrTeilDesProduktcodes() throws {
+        let projectRoot = projectRootURL()
+        let appSource = try source(at: "Feedivo/App/FeedivoApp.swift", projectRoot: projectRoot)
+
+        #expect(!appSource.contains("FeedivoModelContainerFactory"))
+        #expect(!appSource.contains("ModelContainer"))
+        #expect(!appSource.contains(".modelContainer("))
+
+        let factoryURL = projectRoot.appendingPathComponent("Feedivo/App/FeedivoModelContainerFactory.swift")
+        #expect(!FileManager.default.fileExists(atPath: factoryURL.path))
+    }
+
+    @Test func produktiverAppStartVerwendetKeineLegacySwiftDataBackfills() throws {
+        let projectRoot = projectRootURL()
+        let appSource = try source(at: "Feedivo/App/FeedivoApp.swift", projectRoot: projectRoot)
+
+        #expect(!appSource.contains("ArticleFeedIDBackfillService"))
+        #expect(!appSource.contains("FeedTagBackfillService"))
+        #expect(!appSource.contains("FeedUnreadCountBackfillService"))
+        #expect(!appSource.contains("SmartFolderDefaultKeyBackfillService"))
+        #expect(!appSource.contains("SQLiteAdminDefinitionBackfillService"))
+        #expect(!appSource.contains("FeedBackgroundRefreshService"))
+    }
+
+    @Test func feedViewModelProduktiveMethodenDelegierenAnSQLiteServices() throws {
+        let projectRoot = projectRootURL()
+        let source = try source(at: "Feedivo/ViewModels/FeedViewModel.swift", projectRoot: projectRoot)
+        let compactSource = compact(source)
+
+        // Produktive Feed-Aktionen delegieren an SQLite-Services statt selbst
+        // SwiftData zu mutieren.
+        #expect(source.contains("SQLiteFeedSubscriptionService"))
+        #expect(source.contains("SQLiteFeedRefreshCoordinator"))
+        // Legacy-SwiftData-Methoden sind in einer klar markierten Region
+        // abgegrenzt, damit kein neuer produktiver Code versehentlich dort
+        // andockt.
+        #expect(compactSource.contains("MARK:-LegacySwiftDataCompatibility"))
+        #expect(compactSource.contains("MARK:-SQLiteFeedActions"))
     }
 
     private func projectRootURL() -> URL {

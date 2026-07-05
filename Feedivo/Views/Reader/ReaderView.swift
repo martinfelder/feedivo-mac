@@ -1119,9 +1119,6 @@ struct LegacyReaderView: View {
     }
 }
 
-@available(*, deprecated, message: "Legacy SwiftData; produktiv bitte SQLiteReaderView nutzen.")
-typealias ReaderView = LegacyReaderView
-
 private struct ReaderInlineTagEditorPopover: View {
     @Environment(\.interfaceTextSize) private var interfaceTextSize
     @Environment(\.modelContext) private var modelContext

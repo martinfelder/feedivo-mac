@@ -115,10 +115,21 @@ struct FeedViewModelTests {
 
     @MainActor
     @Test func addFeedMitSQLiteDatabaseLegtArtikelNurInSQLiteAn() async throws {
+        // Legacy-Bridge-Erwartung: Dieser Test assertiert bewusst die SwiftData-
+        // Brücken-Spiegelung des Feeds. Die Bridge ist standardmäßig aus (Task 2),
+        // daher wird sie hier explizit zugeschaltet — produktive SQLite-Pfade
+        // laufen ohne diese Spiegelung.
         let defaults = UserDefaults.standard
+        let previousBridgeSetting = defaults.object(forKey: SwiftDataBridgeSettings.isEnabledKey)
+        defaults.set(true, forKey: SwiftDataBridgeSettings.isEnabledKey)
         let previousStatusVersion = defaults.object(forKey: SQLiteDataInvalidation.statusVersionKey) as? Int
         defaults.set(1_000, forKey: SQLiteDataInvalidation.statusVersionKey)
         defer {
+            if let previousBridgeSetting {
+                defaults.set(previousBridgeSetting, forKey: SwiftDataBridgeSettings.isEnabledKey)
+            } else {
+                defaults.removeObject(forKey: SwiftDataBridgeSettings.isEnabledKey)
+            }
             if let previousStatusVersion {
                 defaults.set(previousStatusVersion, forKey: SQLiteDataInvalidation.statusVersionKey)
             } else {
@@ -248,6 +259,19 @@ struct FeedViewModelTests {
 
     @MainActor
     @Test func importOPMLFeedsSpiegeltNeueFeedsNachSQLite() async throws {
+        // Legacy-Bridge-Erwartung: assertiert die SwiftData-Brücken-Spiegelung
+        // des OPML-Feeds. Bridge ist standardmäßig aus (Task 2), hier explizit
+        // zugeschaltet.
+        let defaults = UserDefaults.standard
+        let previousBridgeSetting = defaults.object(forKey: SwiftDataBridgeSettings.isEnabledKey)
+        defaults.set(true, forKey: SwiftDataBridgeSettings.isEnabledKey)
+        defer {
+            if let previousBridgeSetting {
+                defaults.set(previousBridgeSetting, forKey: SwiftDataBridgeSettings.isEnabledKey)
+            } else {
+                defaults.removeObject(forKey: SwiftDataBridgeSettings.isEnabledKey)
+            }
+        }
         let container = try ModelContainer(
             for: Feed.self,
             Article.self,
@@ -340,10 +364,20 @@ struct FeedViewModelTests {
 
     @MainActor
     @Test func importOPMLFeedsAktualisiertNeueFeedsDirektNachDemImport() async throws {
+        // Legacy-Bridge-Erwartung: assertiert die SwiftData-Brücken-Spiegelung
+        // des importierten Feeds. Bridge ist standardmäßig aus (Task 2), hier
+        // explizit zugeschaltet.
         let defaults = UserDefaults.standard
+        let previousBridgeSetting = defaults.object(forKey: SwiftDataBridgeSettings.isEnabledKey)
+        defaults.set(true, forKey: SwiftDataBridgeSettings.isEnabledKey)
         let previousStatusVersion = defaults.object(forKey: SQLiteDataInvalidation.statusVersionKey) as? Int
         let initialStatusVersion = defaults.integer(forKey: SQLiteDataInvalidation.statusVersionKey)
         defer {
+            if let previousBridgeSetting {
+                defaults.set(previousBridgeSetting, forKey: SwiftDataBridgeSettings.isEnabledKey)
+            } else {
+                defaults.removeObject(forKey: SwiftDataBridgeSettings.isEnabledKey)
+            }
             if let previousStatusVersion {
                 defaults.set(previousStatusVersion, forKey: SQLiteDataInvalidation.statusVersionKey)
             } else {
@@ -1925,52 +1959,13 @@ struct FeedViewModelTests {
         #expect(viewModel.errorMessage == nil)
     }
 
-    @MainActor
-    @Test func deleteFeedPerSQLiteIDEntferntSwiftDataBridgeDamitBackfillFeedNichtWiederherstellt() throws {
-        let container = try ModelContainer(
-            for: Feed.self,
-            Article.self,
-            Tag.self,
-            Rule.self,
-            RuleCondition.self,
-            FeedLogEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
-        let feed = Feed(url: "https://example.com/feed.xml", title: "Test Feed")
-        let article = Article(title: "Bridge Artikel")
-        article.feedID = feed.id
-        let logEntry = FeedLogEntry(kind: .info, message: "OK", feed: feed)
-        let sqliteDatabase = try FeedivoDatabase.inMemoryForTests()
-        let viewModel = makeViewModel()
-
-        context.insert(feed)
-        context.insert(article)
-        context.insert(logEntry)
-        try context.save()
-        try FeedStore(database: sqliteDatabase).save(
-            FeedRecord(
-                id: feed.id.uuidString,
-                url: feed.url,
-                title: feed.title
-            )
-        )
-
-        viewModel.deleteFeed(
-            feedID: feed.id.uuidString,
-            sqliteDatabase: sqliteDatabase
-        )
-        _ = try FeedTagBackfillService.backfillFeedTags(
-            in: context,
-            database: sqliteDatabase
-        )
-
-        #expect(try FeedStore(database: sqliteDatabase).feeds().isEmpty)
-        #expect(try context.fetch(FetchDescriptor<Feed>()).isEmpty)
-        #expect(try context.fetch(FetchDescriptor<Article>()).isEmpty)
-        #expect(try context.fetch(FetchDescriptor<FeedLogEntry>()).isEmpty)
-        #expect(viewModel.errorMessage == nil)
-    }
+    // Legacy-Test `deleteFeedPerSQLiteIDEntferntSwiftDataBridgeDamitBackfillFeedNichtWiederherstellt`
+    // wurde entfernt: Er setzte voraus, dass `deleteFeed(feedID:sqliteDatabase:)`
+    // die SwiftData-Brücken-Kopie mitreinigt, damit `FeedTagBackfillService` den
+    // Feed nicht wiederherstellt. Der produktive Delete-Pfad ist seit Task 2
+    // SQLite-only und reinigt SwiftData bewusst nicht mehr — die Brücke ist
+    // standardmäßig aus. Die Produktiv-Abdeckung für `deleteFeed(feedID:)` liegt
+    // in `SQLiteFeedSubscriptionServiceTests`.
 
     @MainActor
     @Test func importOPMLFeedsAktualisiertNeueFeedsMitBegrenzterParallelitaet() async throws {
@@ -2285,53 +2280,50 @@ struct FeedViewModelTests {
 
     @MainActor
     @Test func refreshAllFeedsMitSQLiteDatabaseWendetHideUndNotifyRegelnAn() async throws {
-        let container = try ModelContainer(
-            for: Feed.self,
-            Article.self,
-            Tag.self,
-            Rule.self,
-            RuleCondition.self,
-            FeedLogEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
-        let feed = Feed(url: "https://example.com/feed.xml", title: "Mac News")
-        let hideRule = Rule(name: "Gerüchte ausblenden")
-        hideRule.actionRaw = RuleAction.hideArticle.rawValue
-        hideRule.sortOrder = 0
-        hideRule.conditions = [
-            RuleCondition(
-                field: RuleConditionField.title.rawValue,
-                conditionOperator: RuleConditionOperator.contains.rawValue,
-                value: "Gerücht",
-                sortOrder: 0
-            )
-        ]
-        let notifyRule = Rule(name: "Swift melden")
-        notifyRule.actionRaw = RuleAction.notify.rawValue
-        notifyRule.notificationTemplate = "Neu: {Titel}"
-        notifyRule.notificationPriorityRaw = RuleNotificationPriority.critical.rawValue
-        notifyRule.sortOrder = 1
-        notifyRule.conditions = [
-            RuleCondition(
-                field: RuleConditionField.title.rawValue,
-                conditionOperator: RuleConditionOperator.contains.rawValue,
-                value: "Swift",
-                sortOrder: 0
-            )
-        ]
-        context.insert(feed)
-        context.insert(hideRule)
-        context.insert(notifyRule)
-        try context.save()
-
+        // Produktiver SQLite-Pfad: Regeln liegen in `SQLiteRuleStore`, Refresh
+        // läuft über `refreshAllFeeds(sqliteDatabase:)` — kein SwiftData-Container
+        // mehr nötig.
         let sqliteDatabase = try FeedivoDatabase.inMemoryForTests()
+        let feedID = UUID().uuidString
         try FeedStore(database: sqliteDatabase).save(
-            FeedRecord(
-                id: feed.id.uuidString,
-                url: feed.url,
-                title: feed.title
-            )
+            FeedRecord(id: feedID, url: "https://example.com/feed.xml", title: "Mac News")
+        )
+        let ruleStore = SQLiteRuleStore(database: sqliteDatabase)
+        let hideRuleID = UUID().uuidString
+        try ruleStore.save(
+            RuleRecord(
+                id: hideRuleID,
+                name: "Gerüchte ausblenden",
+                action: RuleAction.hideArticle.rawValue,
+                sortOrder: 0
+            ),
+            conditions: [
+                RuleConditionRecord(
+                    ruleID: hideRuleID,
+                    field: RuleConditionField.title.rawValue,
+                    conditionOperator: RuleConditionOperator.contains.rawValue,
+                    value: "Gerücht"
+                )
+            ]
+        )
+        let notifyRuleID = UUID().uuidString
+        try ruleStore.save(
+            RuleRecord(
+                id: notifyRuleID,
+                name: "Swift melden",
+                action: RuleAction.notify.rawValue,
+                notificationTemplate: "Neu: {Titel}",
+                notificationPriority: RuleNotificationPriority.critical.rawValue,
+                sortOrder: 1
+            ),
+            conditions: [
+                RuleConditionRecord(
+                    ruleID: notifyRuleID,
+                    field: RuleConditionField.title.rawValue,
+                    conditionOperator: RuleConditionOperator.contains.rawValue,
+                    value: "Swift"
+                )
+            ]
         )
 
         var capturedRuleNotifications: [RuleNotificationResult] = []
@@ -2371,13 +2363,9 @@ struct FeedViewModelTests {
             }
         )
 
-        await viewModel.refreshAllFeeds(
-            [feed],
-            modelContainer: container,
-            sqliteDatabase: sqliteDatabase
-        )
+        await viewModel.refreshAllFeeds(sqliteDatabase: sqliteDatabase)
 
-        let sqliteFeed = try #require(try FeedStore(database: sqliteDatabase).feed(id: feed.id.uuidString))
+        let sqliteFeed = try #require(try FeedStore(database: sqliteDatabase).feed(id: feedID))
         let visibleRows = try TimelineStore(database: sqliteDatabase).articles(
             scope: .feed(sqliteFeed.id),
             includeRead: true,
@@ -2398,7 +2386,7 @@ struct FeedViewModelTests {
         #expect(sqliteFeed.unreadCount == 1)
         #expect(capturedRuleNotifications == [
             RuleNotificationResult(
-                ruleID: notifyRule.id,
+                ruleID: UUID(uuidString: notifyRuleID) ?? UUID(),
                 ruleName: "Swift melden",
                 message: "Neu: Swift 7 ist da",
                 articleTitle: "Swift 7 ist da",
@@ -2410,41 +2398,34 @@ struct FeedViewModelTests {
 
     @MainActor
     @Test func refreshAllFeedsMitSQLiteDatabaseWendetAssignTagRegelnAn() async throws {
-        let container = try ModelContainer(
-            for: Feed.self,
-            Article.self,
-            Tag.self,
-            Rule.self,
-            RuleCondition.self,
-            FeedLogEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
-        let feed = Feed(url: "https://example.com/feed.xml", title: "Mac News")
-        let tag = Tag(name: "Swift", colorHex: "#ff0000")
-        let rule = Rule(name: "Swift taggen")
-        rule.actionRaw = RuleAction.assignTag.rawValue
-        rule.assignTag = tag
-        rule.conditions = [
-            RuleCondition(
-                field: RuleConditionField.title.rawValue,
-                conditionOperator: RuleConditionOperator.contains.rawValue,
-                value: "Swift",
-                sortOrder: 0
-            )
-        ]
-        context.insert(feed)
-        context.insert(tag)
-        context.insert(rule)
-        try context.save()
-
+        // Produktiver SQLite-Pfad: Tag und Regel liegen in SQLite, Refresh läuft
+        // über `refreshAllFeeds(sqliteDatabase:)`.
         let sqliteDatabase = try FeedivoDatabase.inMemoryForTests()
+        let feedID = UUID().uuidString
         try FeedStore(database: sqliteDatabase).save(
-            FeedRecord(
-                id: feed.id.uuidString,
-                url: feed.url,
-                title: feed.title
-            )
+            FeedRecord(id: feedID, url: "https://example.com/feed.xml", title: "Mac News")
+        )
+        let tagID = UUID().uuidString
+        try TagStore(database: sqliteDatabase).save(
+            TagRecord(id: tagID, name: "Swift", colorHex: "#ff0000")
+        )
+        let ruleID = UUID().uuidString
+        try SQLiteRuleStore(database: sqliteDatabase).save(
+            RuleRecord(
+                id: ruleID,
+                name: "Swift taggen",
+                action: RuleAction.assignTag.rawValue,
+                assignTagID: tagID,
+                sortOrder: 0
+            ),
+            conditions: [
+                RuleConditionRecord(
+                    ruleID: ruleID,
+                    field: RuleConditionField.title.rawValue,
+                    conditionOperator: RuleConditionOperator.contains.rawValue,
+                    value: "Swift"
+                )
+            ]
         )
 
         let viewModel = makeViewModel(
@@ -2480,13 +2461,9 @@ struct FeedViewModelTests {
             }
         )
 
-        await viewModel.refreshAllFeeds(
-            [feed],
-            modelContainer: container,
-            sqliteDatabase: sqliteDatabase
-        )
+        await viewModel.refreshAllFeeds(sqliteDatabase: sqliteDatabase)
 
-        let sqliteFeed = try #require(try FeedStore(database: sqliteDatabase).feed(id: feed.id.uuidString))
+        let sqliteFeed = try #require(try FeedStore(database: sqliteDatabase).feed(id: feedID))
         let rows = try TimelineStore(database: sqliteDatabase).articles(
             scope: .feed(sqliteFeed.id),
             includeRead: true,
