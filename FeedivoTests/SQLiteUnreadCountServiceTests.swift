@@ -66,17 +66,24 @@ struct SQLiteUnreadCountServiceTests {
         #expect(secondFeed?.unreadCount == 2)
     }
 
-    @Test func totalUnreadCountSummiertGespeicherteSidebarZaehler() throws {
+    @Test func totalUnreadCountIgnoriertGespeicherteFeedZaehler() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let statusStore = ArticleStatusStore(database: database)
         let unreadCountService = SQLiteUnreadCountService(database: database)
 
-        try feedStore.save(FeedRecord(id: "feed-1", url: "https://one.example/feed.xml", title: "One", unreadCount: 2))
-        try feedStore.save(FeedRecord(id: "feed-2", url: "https://two.example/feed.xml", title: "Two", unreadCount: 3))
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://one.example/feed.xml", title: "One", unreadCount: 99))
+        try feedStore.save(FeedRecord(id: "feed-2", url: "https://two.example/feed.xml", title: "Two", unreadCount: 99))
+        let readID = try articleStore.upsert(ArticleUpsertInput(feedID: "feed-1", sourceID: "read", title: "Read"))
+        let hiddenID = try articleStore.upsert(ArticleUpsertInput(feedID: "feed-1", sourceID: "hidden", title: "Hidden"))
+        _ = try articleStore.upsert(ArticleUpsertInput(feedID: "feed-2", sourceID: "unread", title: "Unread"))
+        try statusStore.setRead(true, articleID: readID, at: Date(timeIntervalSince1970: 1_000))
+        try statusStore.setHidden(true, articleID: hiddenID, at: Date(timeIntervalSince1970: 2_000))
 
         let totalUnreadCount = try unreadCountService.totalUnreadCount()
 
-        #expect(totalUnreadCount == 5)
+        #expect(totalUnreadCount == 1)
     }
 
     @Test func sidebarSmartFolderBadgeSnapshotKommtAusZentralemService() throws {

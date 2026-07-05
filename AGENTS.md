@@ -415,8 +415,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   über Feedwechsel und App-Neustarts erhalten.
 - Der Smart-Filter `Ungelesen` zeigt rechts die Gesamtzahl aller ungelesenen Artikel
   über alle Feeds
-- Ungelesen-Badges basieren auf `Feed.unreadCount`, damit die Sidebar beim Rendern
-  keine separate Query auf alle ungelesenen Artikel mehr materialisieren muss
+- Ungelesen-Badges im SQLite-Hauptpfad werden direkt aus `article_statuses` und
+  `articles` gezählt. `feeds.unreadCount` bleibt nur noch Cache/Rebuild-Feld und
+  darf nicht mehr alleinige Wahrheit für die Sidebar sein.
 - Die Sidebar nutzt keine globale Artikel-Query mehr für Badge-Signaturen.
   `Ungelesen`, `Mit Stern`, `Ausgeblendet` und `Gespeichert` kommen im
   SQLite-Hauptpfad aus `SQLiteSidebarState.smartFolderBadgeSnapshot`.
@@ -473,8 +474,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 
 ### SidebarUnreadCount.swift
 - Kapselt die Sidebar-Zähllogik für ungelesene Artikel pro Feed und über alle Feeds.
-- Liest vorberechnete `Feed.unreadCount` Werte, damit die Sidebar weder komplette
-  Feed-Relationships noch alle ungelesenen Artikel laden muss.
+- Im SQLite-Hauptpfad kommen Feed- und Gesamtzähler aus gezielten SQL-Counts über
+  `article_statuses` und `articles`; alte `Feed.unreadCount`-Werte werden nicht
+  mehr als Sidebar-Wahrheit verwendet.
 - Liefert nur für positive Zähler einen sichtbaren Badge-Text, damit Feeds ohne
   ungelesene Artikel ruhig bleiben.
 - `SidebarTagCount` ist noch der Legacy-SwiftData-Zähler für alte Tag-Pfade.
@@ -482,8 +484,8 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   `SQLiteSidebarState.tagSnapshot(id:)`.
 - `SmartFolderSidebarBadge` kann Legacy-`SidebarBadgeCounts` weiter auswerten,
   die sichtbaren Sidebar-Zeilen nutzen aber `SmartFolderSidebarBadgeSnapshot`
-  aus SQLite. `Ungelesen` kommt aus `feeds.unreadCount`, Status-Badges aus
-  `article_statuses`.
+  aus SQLite. `Ungelesen`, `Mit Stern`, `Ausgeblendet` und `Gespeichert` kommen
+  aus `article_statuses`.
 - `SidebarBadgeSignatureBuilder` bleibt für Legacy-Tests/alte Pfade erhalten.
   Tag-Badge-Invalidierung läuft im SQLite-Pfad über den `SQLiteSidebarState`-
   Reload-Token mit `directTagVersion`.
@@ -881,8 +883,8 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 ### AppIconBadgeSettings.swift / AppIconBadgeService.swift
 - `AppIconBadgeSettings` kapselt den `@AppStorage` Key
   `notifications.appIconBadge.isEnabled`; Default ist aktiv.
-- `AppIconBadgeService.unreadCount(in:)` summiert `Feed.unreadCount` und nutzt damit
-  dieselbe vorberechnete Zählerbasis wie Sidebar-Badges.
+- `AppIconBadgeService.unreadCount(in:)` summiert die SQLite-Feed-Snapshots; diese
+  Snapshots enthalten direkte Status-Counts aus `article_statuses` und `articles`.
 - `updateBadge` setzt `NSApp.dockTile.badgeLabel` über einen kleinen
   `AppIconBadgeUpdating` Adapter; dadurch ist die Entscheidung `Zahl anzeigen` oder
   `Badge leeren` ohne AppKit testbar.
@@ -2678,16 +2680,17 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - 2026-07-05: SQLite-Unread-Counts stärker NetNewsWire-artig zentralisiert.
   `SQLiteUnreadCountService` ist die gemeinsame Count-Schicht für Feed-
   Unread-Counts, gespeicherte Feed-Count-Rebuilds, Sidebar-Gesamtsumme und
-  Smart-Folder-Badges. `ArticleStatusStore` schreibt weiterhin Statuszeilen,
-  nutzt für Read-/Hidden-Änderungen aber den Service, damit alle produktiven
-  Unread-Badges dieselbe SQL-Logik verwenden.
+  Smart-Folder-Badges. Sidebar, Dock-Badge und `Ungelesen`-Badge lesen im
+  produktiven SQLite-Pfad direkt aus `article_statuses`/`articles`, damit ein
+  veralteter `feeds.unreadCount`-Cache keine falschen Badges anzeigen kann.
+  `ArticleStatusStore` schreibt weiterhin Statuszeilen und kann den gespeicherten
+  Feed-Cache für Legacy-/Rebuild-Pfade nachziehen.
 
 - 2026-07-02: Sidebar-Feed-Zeilen an SQLite-Snapshots angeschlossen.
   `SQLiteSidebarState` lädt `FeedSidebarSnapshot` aus `FeedStore`, kann gelesene
-  Feeds direkt anhand von SQLite-`unreadCount` ausblenden und stellt Snapshots pro
-  SwiftData-Feed-ID bereit. `FeedRowView` bevorzugt daraus Titel, Favicon und
-  ungelesene Badge-Zahl; Auswahl, Umbenennen, Eigenschaften und Löschen bleiben
-  für diesen Übergangsslice weiterhin an SwiftData-Feed-Objekte gekoppelt.
+  Feeds direkt anhand gezählter SQLite-Statuswerte ausblenden und stellt Snapshots
+  pro Feed-ID bereit. `FeedRowView` bevorzugt daraus Titel, Favicon und
+  ungelesene Badge-Zahl.
 
 - 2026-07-02: Feed-Aktionen an den SQLite-Pfad angeschlossen. `AddFeedSheet`,
   ausgewählter Feed-Refresh und `Alle Feeds aktualisieren` lesen die

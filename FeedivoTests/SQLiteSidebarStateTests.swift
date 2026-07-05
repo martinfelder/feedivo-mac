@@ -8,8 +8,14 @@ struct SQLiteSidebarStateTests {
     @Test func loadReadsSnapshotsAndTotalUnreadCount() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let store = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
         try store.save(FeedRecord(id: "feed-1", url: "https://one.example/feed.xml", title: "One", unreadCount: 2))
         try store.save(FeedRecord(id: "feed-2", url: "https://two.example/feed.xml", title: "Two", unreadCount: 3))
+        _ = try articleStore.upsert(ArticleUpsertInput(feedID: "feed-1", sourceID: "one-a", title: "One A"))
+        _ = try articleStore.upsert(ArticleUpsertInput(feedID: "feed-1", sourceID: "one-b", title: "One B"))
+        _ = try articleStore.upsert(ArticleUpsertInput(feedID: "feed-2", sourceID: "two-a", title: "Two A"))
+        _ = try articleStore.upsert(ArticleUpsertInput(feedID: "feed-2", sourceID: "two-b", title: "Two B"))
+        _ = try articleStore.upsert(ArticleUpsertInput(feedID: "feed-2", sourceID: "two-c", title: "Two C"))
         let state = SQLiteSidebarState()
 
         state.load(database: database, showsReadFeeds: true)
@@ -17,6 +23,27 @@ struct SQLiteSidebarStateTests {
         #expect(state.snapshots.map(\.id) == ["feed-1", "feed-2"])
         #expect(state.totalUnreadCount == 5)
         #expect(state.errorMessage == nil)
+    }
+
+    @MainActor
+    @Test func loadIgnoresStaleFeedUnreadCountCache() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let statusStore = ArticleStatusStore(database: database)
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://one.example/feed.xml", title: "One", unreadCount: 9))
+        let articleID = try articleStore.upsert(
+            ArticleUpsertInput(feedID: "feed-1", sourceID: "article-1", title: "Gelesen")
+        )
+        try statusStore.setRead(true, articleID: articleID, at: Date(timeIntervalSince1970: 1_000))
+        try feedStore.setUnreadCount(9, feedID: "feed-1")
+        let state = SQLiteSidebarState()
+
+        state.load(database: database, showsReadFeeds: true)
+
+        #expect(state.snapshot(forFeedID: "feed-1")?.unreadCount == 0)
+        #expect(state.totalUnreadCount == 0)
+        #expect(state.smartFolderBadgeSnapshot.unread == 0)
     }
 
     @MainActor
@@ -107,10 +134,15 @@ struct SQLiteSidebarStateTests {
     @Test func visibleSnapshotsFollowSQLiteVisibility() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let store = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
         let readFeed = Feed(url: "https://read.example/feed.xml", title: "Read")
         let unreadFeed = Feed(url: "https://unread.example/feed.xml", title: "Unread")
         try store.save(FeedRecord(id: readFeed.id.uuidString, url: readFeed.url, title: readFeed.title, unreadCount: 0))
         try store.save(FeedRecord(id: unreadFeed.id.uuidString, url: unreadFeed.url, title: unreadFeed.title, unreadCount: 4))
+        _ = try articleStore.upsert(ArticleUpsertInput(feedID: unreadFeed.id.uuidString, sourceID: "unread-a", title: "Unread A"))
+        _ = try articleStore.upsert(ArticleUpsertInput(feedID: unreadFeed.id.uuidString, sourceID: "unread-b", title: "Unread B"))
+        _ = try articleStore.upsert(ArticleUpsertInput(feedID: unreadFeed.id.uuidString, sourceID: "unread-c", title: "Unread C"))
+        _ = try articleStore.upsert(ArticleUpsertInput(feedID: unreadFeed.id.uuidString, sourceID: "unread-d", title: "Unread D"))
         let state = SQLiteSidebarState()
 
         state.load(database: database, showsReadFeeds: false)

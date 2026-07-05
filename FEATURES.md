@@ -1000,9 +1000,12 @@
   - SQLite-Statusänderungen halten Feed-Zähler aktuell:
     `SQLiteUnreadCountService` bündelt die NetNewsWire-artige Count-Schicht für
     Feed-Unread-Counts, Rebuilds, Sidebar-Gesamtsumme und Smart-Folder-Badges.
-    `ArticleStatusStore` delegiert Read-/Hidden-Mutationen an diesen Service und
-    bump't `SQLiteDataInvalidation.statusVersionKey`, wodurch die
-    Sidebar-Snapshots neu geladen werden.
+    Sidebar-Badges, Dock-Badge und `Ungelesen`-Smart-Folder zählen im produktiven
+    SQLite-Pfad direkt aus `article_statuses`/`articles`; `feeds.unreadCount`
+    bleibt nur noch Cache/Rebuild-Feld. `ArticleStatusStore` delegiert
+    Read-/Hidden-Mutationen an diesen Service und bump't
+    `SQLiteDataInvalidation.statusVersionKey`, wodurch die Sidebar-Snapshots neu
+    geladen werden.
   - SQLite-Migrationsabschluss 2026-07-03: Regel-Preview, Regel-Zählungen und
     rückwirkendes Anwenden bestehender Regeln laufen über
     `SQLiteRuleEvaluationStore` und leichte `RuleEngine.ArticleRuleSnapshot`s.
@@ -1056,7 +1059,8 @@
     diese direkt aus der Row heraus aus dem SwiftData-`Article` zu lesen; die
     echte `Article`-Instanz bleibt in `ArticleListView` vorerst für Auswahl und
     Aktionen erhalten.
-  - `Ungelesen`-Badge der intelligenten Ordner nutzt die gespeicherten `Feed.unreadCount` Werte
+  - `Ungelesen`-Badge der intelligenten Ordner nutzt direkte SQLite-Status-Counts
+    statt gespeicherter `Feed.unreadCount` Werte
   - `Mit Stern`, `Ausgeblendet` und `Gespeichert` lesen ihre Sidebar-Badges aus
     gebündelten Status-Zählern
   - `Ungelesen` lädt für die Artikelliste bewusst alle Artikel und überlässt das Ausblenden gelesener Artikel der Anzeigeebene, damit gerade gelesene Artikel sichtbar bleiben können

@@ -3,10 +3,9 @@ import GRDB
 
 /// Zentrale SQLite-Schicht für ungelesene Artikelzahlen.
 ///
-/// Der produktive Pfad hält gelesene/versteckte Zustände in `article_statuses`
-/// und speichert Feed-Badges in `feeds.unreadCount`. Dieser Service bündelt die
-/// dazugehörigen Queries, damit Sidebar, Smart-Folder-Badges und Statusmutationen
-/// dieselbe Zähllogik verwenden.
+/// Der produktive Pfad hält gelesene/versteckte Zustände in `article_statuses`.
+/// Sidebar und Smart-Folder-Badges lesen diese Status-Tabelle direkt, damit ein
+/// veralteter `feeds.unreadCount`-Cache keine falschen Badges anzeigen kann.
 struct SQLiteUnreadCountService {
     private let database: FeedivoDatabase
 
@@ -56,7 +55,7 @@ struct SQLiteUnreadCountService {
     }
 
     static func totalUnreadCount(db: Database) throws -> Int {
-        try Int.fetchOne(db, sql: "SELECT COALESCE(SUM(unreadCount), 0) FROM feeds") ?? 0
+        try Int.fetchOne(db, sql: totalUnreadCountSQL) ?? 0
     }
 
     @discardableResult
@@ -89,7 +88,7 @@ struct SQLiteUnreadCountService {
     static func sidebarSmartFolderBadgeSnapshot(db: Database) throws -> SmartFolderSidebarBadgeSnapshot {
         try SmartFolderSidebarBadgeSnapshot.fetchOne(db, sql: """
             SELECT
-                (SELECT COALESCE(SUM(unreadCount), 0) FROM feeds) AS unread,
+                (\(totalUnreadCountSQL)) AS unread,
                 (SELECT COUNT(*) FROM article_statuses WHERE isStarred = 1) AS starred,
                 (SELECT COUNT(*) FROM article_statuses WHERE isHidden = 1) AS hidden,
                 (SELECT COUNT(*) FROM article_statuses WHERE isStarred = 1 OR isArchived = 1) AS saved
@@ -102,6 +101,14 @@ struct SQLiteUnreadCountService {
         JOIN articles a ON a.id = s.articleID
         WHERE a.feedID = ?
             AND s.isRead = 0
+            AND s.isHidden = 0
+        """
+
+    private static let totalUnreadCountSQL = """
+        SELECT COUNT(*)
+        FROM article_statuses s
+        JOIN articles a ON a.id = s.articleID
+        WHERE s.isRead = 0
             AND s.isHidden = 0
         """
 }
