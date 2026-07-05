@@ -329,10 +329,6 @@ struct ContentView: View {
         .padding(.horizontal, 10)
         .frame(width: 260, height: 28)
         .background(Color(nsColor: .controlBackgroundColor), in: Capsule())
-        .overlay {
-            Capsule()
-                .stroke(.separator.opacity(0.45), lineWidth: 1)
-        }
         .help(L10n.articleSearchCommand)
     }
 
