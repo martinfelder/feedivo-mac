@@ -1,6 +1,7 @@
 import Foundation
 import SwiftData
 
+@available(*, deprecated, message: "Legacy SwiftData-Migrationspfad. Produktiver Feedivo-Pfad nutzt SQLite.")
 enum ArticleFeedIDBackfillService {
     @MainActor
     @discardableResult

@@ -1101,6 +1101,18 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(!FileManager.default.fileExists(atPath: factoryURL.path))
     }
 
+    @Test func produktiverAppStartVerwendetKeineLegacySwiftDataBackfills() throws {
+        let projectRoot = projectRootURL()
+        let appSource = try source(at: "Feedivo/App/FeedivoApp.swift", projectRoot: projectRoot)
+
+        #expect(!appSource.contains("ArticleFeedIDBackfillService"))
+        #expect(!appSource.contains("FeedTagBackfillService"))
+        #expect(!appSource.contains("FeedUnreadCountBackfillService"))
+        #expect(!appSource.contains("SmartFolderDefaultKeyBackfillService"))
+        #expect(!appSource.contains("SQLiteAdminDefinitionBackfillService"))
+        #expect(!appSource.contains("FeedBackgroundRefreshService"))
+    }
+
     @Test func feedViewModelProduktiveMethodenDelegierenAnSQLiteServices() throws {
         let projectRoot = projectRootURL()
         let source = try source(at: "Feedivo/ViewModels/FeedViewModel.swift", projectRoot: projectRoot)
