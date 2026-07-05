@@ -14,6 +14,17 @@ struct SQLiteFeedSubscriptionServiceTests {
 
     @MainActor
     @Test func addFeedSpeichertSQLiteFeedUndSwiftDataBridgeOhneSwiftDataArtikel() async throws {
+        let defaults = UserDefaults.standard
+        let previousBridgeSetting = defaults.object(forKey: SwiftDataBridgeSettings.isEnabledKey)
+        defaults.set(true, forKey: SwiftDataBridgeSettings.isEnabledKey)
+        defer {
+            if let previousBridgeSetting {
+                defaults.set(previousBridgeSetting, forKey: SwiftDataBridgeSettings.isEnabledKey)
+            } else {
+                defaults.removeObject(forKey: SwiftDataBridgeSettings.isEnabledKey)
+            }
+        }
+
         let database = try FeedivoDatabase.inMemoryForTests()
         let container = try ModelContainer(
             for: Feed.self,
@@ -156,6 +167,17 @@ struct SQLiteFeedSubscriptionServiceTests {
 
     @MainActor
     @Test func addFeedErkenntDuplikatAuchInSwiftDataBridge() async throws {
+        let defaults = UserDefaults.standard
+        let previousBridgeSetting = defaults.object(forKey: SwiftDataBridgeSettings.isEnabledKey)
+        defaults.set(true, forKey: SwiftDataBridgeSettings.isEnabledKey)
+        defer {
+            if let previousBridgeSetting {
+                defaults.set(previousBridgeSetting, forKey: SwiftDataBridgeSettings.isEnabledKey)
+            } else {
+                defaults.removeObject(forKey: SwiftDataBridgeSettings.isEnabledKey)
+            }
+        }
+
         let database = try FeedivoDatabase.inMemoryForTests()
         let container = try ModelContainer(
             for: Feed.self,
@@ -310,6 +332,17 @@ struct SQLiteFeedSubscriptionServiceTests {
 
     @MainActor
     @Test func importOPMLSpeichertOrdnerTagsUndUeberspringtDuplikate() async throws {
+        let defaults = UserDefaults.standard
+        let previousBridgeSetting = defaults.object(forKey: SwiftDataBridgeSettings.isEnabledKey)
+        defaults.set(true, forKey: SwiftDataBridgeSettings.isEnabledKey)
+        defer {
+            if let previousBridgeSetting {
+                defaults.set(previousBridgeSetting, forKey: SwiftDataBridgeSettings.isEnabledKey)
+            } else {
+                defaults.removeObject(forKey: SwiftDataBridgeSettings.isEnabledKey)
+            }
+        }
+
         let database = try FeedivoDatabase.inMemoryForTests()
         let container = try ModelContainer(
             for: Feed.self,
@@ -493,6 +526,17 @@ struct SQLiteFeedSubscriptionServiceTests {
 
     @MainActor
     @Test func importOPMLAktualisiertSwiftDataBridgeNachErfolgreichemRefresh() async throws {
+        let defaults = UserDefaults.standard
+        let previousBridgeSetting = defaults.object(forKey: SwiftDataBridgeSettings.isEnabledKey)
+        defaults.set(true, forKey: SwiftDataBridgeSettings.isEnabledKey)
+        defer {
+            if let previousBridgeSetting {
+                defaults.set(previousBridgeSetting, forKey: SwiftDataBridgeSettings.isEnabledKey)
+            } else {
+                defaults.removeObject(forKey: SwiftDataBridgeSettings.isEnabledKey)
+            }
+        }
+
         let database = try FeedivoDatabase.inMemoryForTests()
         let container = try ModelContainer(
             for: Feed.self,
@@ -615,6 +659,17 @@ struct SQLiteFeedSubscriptionServiceTests {
 
     @MainActor
     @Test func importOPMLUeberspringtDuplikatAusSwiftDataBridge() async throws {
+        let defaults = UserDefaults.standard
+        let previousBridgeSetting = defaults.object(forKey: SwiftDataBridgeSettings.isEnabledKey)
+        defaults.set(true, forKey: SwiftDataBridgeSettings.isEnabledKey)
+        defer {
+            if let previousBridgeSetting {
+                defaults.set(previousBridgeSetting, forKey: SwiftDataBridgeSettings.isEnabledKey)
+            } else {
+                defaults.removeObject(forKey: SwiftDataBridgeSettings.isEnabledKey)
+            }
+        }
+
         let database = try FeedivoDatabase.inMemoryForTests()
         let container = try ModelContainer(
             for: Feed.self,
