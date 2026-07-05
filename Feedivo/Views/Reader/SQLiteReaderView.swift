@@ -280,11 +280,11 @@ struct SQLiteReaderView: View {
                     if let snapshot = state.snapshot {
                         readerHeader(snapshot)
 
-                        ForEach(Array(state.preparedArticle.contentBlocks.enumerated()), id: \.element.id) { index, block in
+                        ForEach(ReaderContentBlockEntry.entries(from: state.preparedArticle.contentBlocks)) { entry in
                             VStack(alignment: .leading, spacing: imageTextDividerSpacing) {
-                                contentBlock(block)
+                                contentBlock(entry.block)
 
-                                if shouldShowImageTextDivider(after: index, in: state.preparedArticle.contentBlocks) {
+                                if shouldShowImageTextDivider(after: entry.index, in: state.preparedArticle.contentBlocks) {
                                     readerSectionDivider
                                 }
                             }

@@ -113,6 +113,23 @@ struct FeedivoTests {
         #expect(block.id.count < 80)
     }
 
+    @Test func readerContentBlockEntriesBleibenBeiDoppeltenAbsaetzenEindeutig() {
+        let blocks: [ReaderContentBlock] = [
+            .paragraph("Gleicher Absatz"),
+            .paragraph("Gleicher Absatz"),
+            .heading("Gleicher Absatz")
+        ]
+
+        let entries = ReaderContentBlockEntry.entries(from: blocks)
+
+        #expect(entries.map(\.index) == [0, 1, 2])
+        #expect(entries.map(\.block) == blocks)
+        #expect(Set(entries.map(\.id)).count == 3)
+        #expect(entries[0].id.hasSuffix(":0"))
+        #expect(entries[1].id.hasSuffix(":1"))
+        #expect(entries[2].id.hasSuffix(":0"))
+    }
+
     @Test func readerContentRendererErkenntBilderUndFallbackSummary() {
         #expect(ReaderContentRenderer.isImageHTMLBlock(#"<IMG src="https://example.com/bild.jpg">"#))
         #expect(!ReaderContentRenderer.isImageHTMLBlock("<p>Nur Text</p>"))

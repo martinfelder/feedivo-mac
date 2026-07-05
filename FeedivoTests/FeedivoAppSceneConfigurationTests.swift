@@ -494,9 +494,14 @@ struct FeedivoAppSceneConfigurationTests {
     @Test func readerRendertContentBloeckeLazy() throws {
         let projectRoot = projectRootURL()
         let readerSource = try source(at: "Feedivo/Views/Reader/ReaderView.swift", projectRoot: projectRoot)
+        let sqliteReaderSource = try source(at: "Feedivo/Views/Reader/SQLiteReaderView.swift", projectRoot: projectRoot)
 
         #expect(readerSource.contains("LazyVStack(alignment: .leading, spacing: contentBlockSpacing)"))
         #expect(!readerSource.contains("\n            VStack(alignment: .leading, spacing: contentBlockSpacing)"))
+        #expect(readerSource.contains("ForEach(ReaderContentBlockEntry.entries(from: contentBlocks))"))
+        #expect(sqliteReaderSource.contains("ForEach(ReaderContentBlockEntry.entries(from: state.preparedArticle.contentBlocks))"))
+        #expect(!readerSource.contains("id: \\.element.id"))
+        #expect(!sqliteReaderSource.contains("id: \\.element.id"))
     }
 
     @Test func readerLaedtVolltextUeberBackgroundLoader() throws {

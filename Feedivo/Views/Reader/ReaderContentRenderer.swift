@@ -8,12 +8,34 @@ enum ReaderContentBlock: Equatable, Sendable {
     case image(urlString: String)
 }
 
+struct ReaderContentBlockEntry: Identifiable, Equatable, Sendable {
+    let id: String
+    let index: Int
+    let block: ReaderContentBlock
+
+    static func entries(from blocks: [ReaderContentBlock]) -> [ReaderContentBlockEntry] {
+        var occurrenceCountsByID: [String: Int] = [:]
+
+        return blocks.enumerated().map { index, block in
+            let blockID = block.id
+            let occurrence = occurrenceCountsByID[blockID, default: 0]
+            occurrenceCountsByID[blockID] = occurrence + 1
+
+            return ReaderContentBlockEntry(
+                id: "\(blockID):\(occurrence)",
+                index: index,
+                block: block
+            )
+        }
+    }
+}
+
 extension ReaderContentBlock: Identifiable {
-    // Stabile, inhaltsbasierte Identität (statt Positions-Index). Früher nutzte
+    // Kompakte, inhaltsbasierte Basis-Identität (statt Positions-Index). Früher nutzte
     // ForEach `contentBlocks.indices, id: \.self`. Wenn der Inhalt per Refresh
     // verschoben wurde, blieb die Identität an der Position hängen und veraltete
-    // Darstellung/Animationen. Die kompakte ID aus Case + Inhaltshash verfolgt
-    // den Block, ohne lange Artikeltexte als SwiftUI-ID zu duplizieren.
+    // Darstellung/Animationen. ReaderContentBlockEntry ergänzt bei doppelten
+    // Blöcken eine Vorkommensnummer, damit SwiftUI eindeutige Listen-IDs erhält.
     var id: String {
         switch self {
         case .paragraph(let text):

@@ -321,11 +321,11 @@ struct LegacyReaderView: View {
                         .padding(.top, 24)
                 }
 
-                ForEach(Array(contentBlocks.enumerated()), id: \.element.id) { index, block in
+                ForEach(ReaderContentBlockEntry.entries(from: contentBlocks)) { entry in
                     VStack(alignment: .leading, spacing: imageTextDividerSpacing) {
-                        readerContentBlock(block)
+                        readerContentBlock(entry.block)
 
-                        if shouldShowImageTextDivider(after: index, in: contentBlocks) {
+                        if shouldShowImageTextDivider(after: entry.index, in: contentBlocks) {
                             readerSectionDivider
                         }
                     }
