@@ -307,7 +307,7 @@ final class FeedViewModel {
         allowsDuplicates: Bool = false,
         refreshAfterImport: Bool = true,
         refreshIntervalMinutes: Int = 60,
-        context: ModelContext,
+        context: ModelContext? = nil,
         sqliteDatabase: FeedivoDatabase? = nil
     ) async throws -> OPMLImportResult {
         // Statt eines vorgetäuschten Erfolgs (imported: 0) werfen — beide Aufrufer
@@ -353,6 +353,11 @@ final class FeedViewModel {
                 imported: sqliteResult.imported,
                 skippedDuplicates: sqliteResult.skippedDuplicates
             )
+        }
+
+        guard let context else {
+            errorMessage = L10n.feedErrorAddFailed
+            return OPMLImportResult(total: opmlFeeds.count, imported: 0, skippedDuplicates: 0)
         }
 
         var knownFeedURLs = Set(existingFeeds.map { normalizedFeedURL($0.url) })
@@ -479,6 +484,7 @@ final class FeedViewModel {
         }
     }
 
+    @available(*, deprecated, message: "Legacy SwiftData-Editor-Pfad. Feed-Umbenennung läuft produktiv über SQLite-Store-Pfade in den Views.")
     @MainActor
     func renameFeed(_ feed: Feed?, displayTitle: String, context: ModelContext) {
         guard let feed else {
@@ -502,6 +508,7 @@ final class FeedViewModel {
         }
     }
 
+    @available(*, deprecated, message: "Legacy SwiftData-Editor-Pfad. Feed-Rollback läuft produktiv über SQLite-Store-Pfade in den Views.")
     @MainActor
     func restoreOriginalFeedTitle(_ feed: Feed?, context: ModelContext) {
         guard let feed else {
@@ -525,9 +532,10 @@ final class FeedViewModel {
     }
 
     @MainActor
+    @available(*, deprecated, message: "Legacy SwiftData-Fallback. Für produktive Fluesse FeedViewModel.addFeed(urlString:sqliteDatabase:) direkt mit Datenbank nutzen.")
     func addFeed(
         urlString: String,
-        context: ModelContext,
+        context: ModelContext? = nil,
         sqliteDatabase: FeedivoDatabase? = nil
     ) async {
         let cleanedURL = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -579,6 +587,10 @@ final class FeedViewModel {
             // ein bereits abonnierter Feed mit derselben normalisierten URL
             // wird nicht erneut hinzugefügt. Prüfung nach fetchFeed, weil erst
             // dann die kanonische sourceURL feststeht.
+            guard let context else {
+                errorMessage = L10n.feedErrorAddFailed
+                return
+            }
             let knownFeedURLs = Set(
                 ((try? context.fetch(FetchDescriptor<Feed>())) ?? [])
                     .map { normalizedFeedURL($0.url) }
@@ -634,6 +646,7 @@ final class FeedViewModel {
     }
 
     @MainActor
+    @available(*, deprecated, message: "Legacy SwiftData-Fallback. Produktions-Refresh nutzt `refreshFeed(feedID:sqliteDatabase:)`.")
     func refreshFeed(
         _ feed: Feed?,
         context: ModelContext,
@@ -685,12 +698,11 @@ final class FeedViewModel {
 
     /// SQLite-first Einzel-Refresh anhand der Feed-ID, ohne dass der Aufrufer ein
     /// SwiftData-`Feed`-Objekt vorhalten muss. ContentView resolved die Auswahl
-    /// nur noch per ID. Regeln werden einmalig aus dem ModelContext geholt und
+    /// nur noch per ID. Regeln werden einmalig aus `SQLiteRuleStore` geholt und
     /// als Snapshots an `SQLiteFeedRefreshService` weitergereicht.
     @MainActor
     func refreshFeed(
         feedID: String,
-        context: ModelContext,
         sqliteDatabase: FeedivoDatabase?
     ) async {
         guard !isLoading else {
@@ -736,12 +748,8 @@ final class FeedViewModel {
 
     /// SQLite-first Refresh-All: Snapshots werden aus `FeedStore.feeds()` geladen
     /// statt aus einer SwiftData-`[Feed]`-Liste.
-    /// Der Container wird in dieser Methode nur noch für Übergangspfade übergeben.
     @MainActor
-    func refreshAllFeeds(
-        sqliteDatabase: FeedivoDatabase,
-        modelContainer _: ModelContainer?
-    ) async {
+    func refreshAllFeeds(sqliteDatabase: FeedivoDatabase) async {
         guard !isLoading else {
             errorMessage = L10n.feedErrorAlreadyRunning
             return
@@ -772,6 +780,7 @@ final class FeedViewModel {
         )
     }
 
+    @available(*, deprecated, message: "Legacy SwiftData-Fallback. Produktiver Sammel-Refresh nutzt `refreshAllFeeds(sqliteDatabase:)`.")
     @MainActor
     func refreshAllFeeds(
         _ feeds: [Feed],
@@ -909,6 +918,7 @@ final class FeedViewModel {
         }
     }
 
+    @available(*, deprecated, message: "Legacy SwiftData-Fallback. Produktiver Sammel-Refresh nutzt `refreshAllFeeds(sqliteDatabase:)`.")
     @MainActor
     func refreshAllFeeds(
         _ feeds: [Feed],
@@ -1008,6 +1018,7 @@ final class FeedViewModel {
 
     /// Legacy-SwiftData-Refreshpfad bleibt als Fallback erhalten; produktiv
     /// refreshen wir über den `SQLiteFeedRefreshCoordinator`.
+    @available(*, deprecated, message: "Legacy-SwiftData-Fallback. Produktions-Zeitpfad nutzt die SQLite-Coordinator-Pipeline.")
     @MainActor
     private func refreshAllFeedsWithCoordinator(
         _ snapshots: [FeedRefreshSnapshot],
@@ -1230,6 +1241,7 @@ final class FeedViewModel {
         (try? SQLiteRuleStore(database: database).ruleSnapshots()) ?? []
     }
 
+    @available(*, deprecated, message: "Legacy SwiftData-Fallback. Produktions-Löschen nutzt `deleteFeed(feedID:sqliteDatabase:)`.")
     @MainActor
     func deleteFeed(_ feed: Feed?, context: ModelContext) {
         guard let feed else {
@@ -1265,14 +1277,10 @@ final class FeedViewModel {
     }
 
     /// SQLite-first Delete anhand der Feed-ID. Löscht den SQLite-`FeedRecord`
-    /// per `FeedStore.delete` und zusätzlich den SwiftData-Brücken-Feed samt
-    /// seiner Artikel/LogEntries, falls noch vorhanden (die Brücke bleibt
-    /// übergangsweise als SwiftData-Seitenkanal bestehen, solange `Article.feed`
-    /// /`Tag.feeds` Relationships leben — siehe Plan T8).
+    /// per `FeedStore.delete`.
     @MainActor
     func deleteFeed(
         feedID: String,
-        context: ModelContext,
         sqliteDatabase: FeedivoDatabase?
     ) {
         errorMessage = nil
@@ -1285,34 +1293,15 @@ final class FeedViewModel {
                 errorMessage = error.localizedDescription
             }
         }
-
-        // SwiftData-Brücken-Feed aufräumen (falls vorhanden). Artikel werden per
-        // feedID geladen und einzeln gelöscht (.nullify-Regel, CloudKit-kompatibel).
-        guard let feedUUID = UUID(uuidString: feedID) else {
+        guard UUID(uuidString: feedID) != nil else {
             return
         }
 
-        do {
-            let descriptor = FetchDescriptor<Article>(
-                predicate: #Predicate<Article> { article in
-                    article.feedID == feedUUID
-                }
-            )
-            for article in try context.fetch(descriptor) {
-                context.delete(article)
-            }
-
-            if let feed = try context.fetch(FetchDescriptor<Feed>())
-                .first(where: { $0.id == feedUUID }) {
-                for entry in feed.logEntries ?? [] {
-                    context.delete(entry)
-                }
-                context.delete(feed)
-            }
-
-            try context.save()
-        } catch {
-            errorMessage = error.localizedDescription
+        // Übergangs-Hinweis: SwiftData-Brücken-Feeds werden im
+        // produktiven Refresh-/Settings-Pfad nicht mehr bereinigt; die Datenbank
+        // nutzt `FeedStore` als Führungsquelle.
+        if sqliteDatabase != nil {
+            SQLiteDataInvalidation.bumpStatusVersion()
         }
     }
 

@@ -1,5 +1,6 @@
 import SwiftData
 
+@available(*, deprecated, message: "Legacy-Helfer für SwiftData-Migrationspfade. Produktiv läuft FeedivoApp ohne ModelContainer.")
 enum FeedivoModelContainerFactory {
     enum StoreMode: Equatable {
         case local

@@ -108,6 +108,38 @@ struct SQLiteOfflineStore {
             }
         }
     }
+
+    @discardableResult
+    func clearSavedCopies() throws -> Int {
+        try database.write { db in
+            let removedCount = try Int.fetchOne(
+                db,
+                sql: """
+                    SELECT COUNT(*)
+                    FROM article_offline
+                    WHERE state IN (?, ?)
+                    """,
+                arguments: [ArticleOfflineState.feedContent.rawValue, ArticleOfflineState.fullText.rawValue]
+            ) ?? 0
+
+            try db.execute(
+                sql: """
+                    UPDATE article_offline
+                    SET state = ?,
+                        content = NULL,
+                        savedAt = NULL,
+                        errorMessage = NULL
+                    WHERE state IN (?, ?)
+                    """,
+                arguments: [ArticleOfflineState.none.rawValue, ArticleOfflineState.feedContent.rawValue, ArticleOfflineState.fullText.rawValue]
+            )
+
+            if removedCount > 0 {
+                SQLiteDataInvalidation.bumpStatusVersion()
+            }
+            return removedCount
+        }
+    }
 }
 
 @MainActor

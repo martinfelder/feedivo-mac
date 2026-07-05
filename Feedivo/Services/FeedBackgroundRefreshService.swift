@@ -30,6 +30,7 @@ private enum FeedBackgroundRefreshOutcome: Sendable {
     case failure(UUID, String)
 }
 
+@available(*, deprecated, message: "Legacy-SwiftData-Refreshpfad. Produktions-Refresh läuft über SQLiteFeedRefreshCoordinator/SQLiteFeedRefreshService.")
 struct FeedBackgroundRefreshService {
     private let modelContainer: ModelContainer
     private let fetchFeedConditionally: @Sendable (String, FeedHTTPValidators) async throws -> ConditionalFeedFetchResult

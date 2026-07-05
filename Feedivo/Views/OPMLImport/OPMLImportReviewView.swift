@@ -1,10 +1,8 @@
-import SwiftData
 import SwiftUI
 import UniformTypeIdentifiers
 
 struct OPMLImportReviewView: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var modelContext
     @Environment(\.feedivoDatabase) private var feedivoDatabase
 
     private let tableBodyHeight: CGFloat = 336
@@ -485,7 +483,6 @@ struct OPMLImportReviewView: View {
                     allowsDuplicates: previewController.allowsDuplicates,
                     refreshAfterImport: previewController.refreshAfterImport,
                     refreshIntervalMinutes: backgroundRefreshIntervalMinutes,
-                    context: modelContext,
                     sqliteDatabase: feedivoDatabase
                 )
                 let importedDuplicateCount = selectedRows.filter { $0.status == .duplicate }.count

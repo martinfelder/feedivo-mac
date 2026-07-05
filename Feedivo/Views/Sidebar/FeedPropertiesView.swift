@@ -1,10 +1,8 @@
 import AppKit
-import SwiftData
 import SwiftUI
 
 struct FeedPropertiesView: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var modelContext
     @Environment(\.feedivoDatabase) private var feedivoDatabase
 
     @AppStorage(ArticleRetentionSettings.isEnabledKey)
@@ -719,16 +717,8 @@ struct FeedPropertiesView: View {
             return
         }
 
-        _ = try? ArticleRetentionCleanupService.removeExpiredArticles(
-            in: modelContext,
-            isEnabled: globalArticleRetentionIsEnabled,
-            retentionDays: globalArticleRetentionDays,
-            minimumArticlesPerFeed: globalArticleRetentionMinimumArticlesPerFeed,
-            includeProtectedArticles: globalArticleRetentionIncludesProtectedArticles
-        )
         if let feedivoDatabase {
             _ = try? ArticleRetentionCleanupService.removeExpiredSQLiteArticles(
-                in: modelContext,
                 database: feedivoDatabase,
                 isEnabled: globalArticleRetentionIsEnabled,
                 retentionDays: globalArticleRetentionDays,
