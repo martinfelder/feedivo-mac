@@ -21,9 +21,9 @@ struct SQLiteFeedArticleListView: View {
     private let scope: Scope
     @Binding var selectedArticleID: String?
     @Binding var navigationState: SQLiteArticleNavigationState
+    @Binding var searchText: String
 
     @State private var state = SQLiteFeedArticleListState()
-    @State private var searchText = ""
     @State private var debouncedSearchText = ""
     @State private var articleExportRequest: ArticleExportRequest?
     @State private var ruleCreationRequest: ArticleListRuleCreationRequest?
@@ -40,52 +40,53 @@ struct SQLiteFeedArticleListView: View {
         feedID: String,
         title: String,
         selectedArticleID: Binding<String?>,
-        navigationState: Binding<SQLiteArticleNavigationState>
+        navigationState: Binding<SQLiteArticleNavigationState>,
+        searchText: Binding<String>
     ) {
         self.scope = .feed(feedID: feedID, title: title)
         self._selectedArticleID = selectedArticleID
         self._navigationState = navigationState
+        self._searchText = searchText
     }
 
     init(
         tagID: String,
         selectedArticleID: Binding<String?>,
-        navigationState: Binding<SQLiteArticleNavigationState>
+        navigationState: Binding<SQLiteArticleNavigationState>,
+        searchText: Binding<String>
     ) {
         self.scope = .tagID(tagID)
         self._selectedArticleID = selectedArticleID
         self._navigationState = navigationState
+        self._searchText = searchText
     }
 
     init(
         smartFilter: SmartFilter,
         selectedArticleID: Binding<String?>,
-        navigationState: Binding<SQLiteArticleNavigationState>
+        navigationState: Binding<SQLiteArticleNavigationState>,
+        searchText: Binding<String>
     ) {
         self.scope = .smartFilter(smartFilter)
         self._selectedArticleID = selectedArticleID
         self._navigationState = navigationState
+        self._searchText = searchText
     }
 
     init(
         smartFolder: SQLiteSmartFolderSnapshot,
         selectedArticleID: Binding<String?>,
-        navigationState: Binding<SQLiteArticleNavigationState>
+        navigationState: Binding<SQLiteArticleNavigationState>,
+        searchText: Binding<String>
     ) {
         self.scope = .smartFolder(smartFolder)
         self._selectedArticleID = selectedArticleID
         self._navigationState = navigationState
+        self._searchText = searchText
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            articleSearchBar
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(.bar)
-
-            articleContent
-        }
+        articleContent
         .task(id: searchText) {
             await updateDebouncedSearchText()
         }
@@ -282,36 +283,6 @@ struct SQLiteFeedArticleListView: View {
             Spacer()
         }
         .padding(.vertical, 10)
-    }
-
-    private var articleSearchBar: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(.secondary)
-
-            TextField(L10n.articleSearchPlaceholder, text: $searchText)
-                .textFieldStyle(.plain)
-                .font(.body)
-
-            if !searchText.isEmpty {
-                Button {
-                    clearSearch()
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                }
-                .buttonStyle(.borderless)
-                .foregroundStyle(.secondary)
-                .help(L10n.articleSearchClear)
-            }
-        }
-        .controlSize(.small)
-        .padding(.horizontal, 10)
-        .frame(height: 28)
-        .background(Color(nsColor: .controlBackgroundColor), in: Capsule())
-        .overlay {
-            Capsule()
-                .stroke(.separator.opacity(0.5), lineWidth: 1)
-        }
     }
 
     private var loadToken: String {
@@ -768,11 +739,6 @@ struct SQLiteFeedArticleListView: View {
         } catch {
             reload()
         }
-    }
-
-    private func clearSearch() {
-        searchText = ""
-        debouncedSearchText = ""
     }
 
     private func updateDebouncedSearchText() async {

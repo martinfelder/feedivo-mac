@@ -382,11 +382,12 @@
 ### 9.1 Volltext-Suche
 - **Status:** ✔️ Fertig
 - **Umgesetzt:**
-  - Die Artikelliste zeigt ein einzelnes kompaktes Suchfeld.
-  - Die Suche filtert nur die bereits geladenen Artikel der aktuell ausgewählten
-    Liste: aktueller Feed, Tag, Smart Filter oder intelligenter Ordner.
-  - Suchbereich in der Liste ist bewusst einfach: Alles, also Titel,
-    Zusammenfassung und Inhalt.
+  - Die Reader-Toolbar zeigt links von `Original öffnen` ein kompaktes Suchfeld
+    für die aktuelle Artikelliste.
+  - Die Suche filtert die aktuell ausgewählte Liste: aktueller Feed, Tag, Smart
+    Filter oder intelligenter Ordner.
+  - Suchbereich in dieser kompakten Suche ist bewusst einfach: Alles, also
+    Titel, Zusammenfassung und Inhalt.
   - Bestehende Sortierung, bestehender Filter und die Logik für gelesene sowie
     ausgeblendete Artikel bleiben erhalten.
 
@@ -960,8 +961,8 @@
     `Mit Stern`, `Heute` und `Ausgeblendet` laden ihre Artikellisten ebenfalls
     über `TimelineScope.smartFilter` aus SQLite. Das SQLite-FTS-Fundament ist
     mit `article_search`, Triggern auf `articles` und
-    `ArticleStore.searchArticles` umgesetzt. Die normale Suchleiste der
-    `SQLiteFeedArticleListView` nutzt inzwischen denselben FTS-Index über
+    `ArticleStore.searchArticles` umgesetzt. Das kompakte Suchfeld in der
+    Reader-Toolbar nutzt inzwischen denselben FTS-Index über
     `TimelineStore` und kombiniert Suchtext mit Feed-, Tag- und SmartFilter-
     Scopes. Das separate globale Suchfenster nutzt ebenfalls SQLite/FTS über
     `ArticleStore.searchArticles(state:)` und hält keine globale SwiftData-
@@ -1038,8 +1039,8 @@
     Artikel-/Feed-Tags aus SQLite; `SQLiteReaderView` zeigt diese Chips direkt
     unter dem Artikeltitel.
   - UI-Parität zum main-Branch nachgezogen: `SQLiteFeedArticleListView` nutzt
-    wieder die main-nahe `List(selection:)`-Darstellung mit Suchleisten-Chroming
-    und Mark-read-/Filter-/Sortier-Toolbar; `SQLiteReaderView` nutzt Reader-
+    wieder die main-nahe `List(selection:)`-Darstellung mit Mark-read-/Filter-/
+    Sortier-Toolbar; `SQLiteReaderView` nutzt Reader-
     Typografie, Anzeige-Picker, Textformat-Popover und die gewohnten Toolbar-
     Signale statt einer vereinfachten Ersatzoberfläche.
   - OPML-Import und `Alle Feeds aktualisieren` rufen Feeds nur noch begrenzt parallel ab
@@ -1156,7 +1157,7 @@
   - SQLite-FTS-Fundament ergänzt: Migration v4 legt `article_search` mit FTS5
     und Triggern für Insert/Update/Delete auf `articles` an;
     `ArticleStore.searchArticles` liefert Treffer als `ArticleListSnapshot`s
-  - Die sichtbare Artikellisten-Suche im SQLite-Hauptpfad nutzt FTS5 über
+  - Die kompakte Artikelsuche in der Reader-Toolbar nutzt FTS5 über
     `TimelineStore.articles(... searchText:)`, normalisiert Suchtext vor
     `MATCH` und filtert direkt in SQLite innerhalb des aktuellen Feed-, Tag-
     oder SmartFilter-Scopes
@@ -1169,9 +1170,9 @@
   - Artikelzeilen laden Vorschaubilder über größenbegrenzte Thumbnails aus dem
     gemeinsamen Bildcache; der Disk-Cache speichert weiter das Original, aber die
     Liste hält nur kleine `NSImage`-Instanzen im Memory-Cache
-  - Die sichtbare Artikellisten-Suche durchsucht nur noch Titel und
-    Zusammenfassung, damit `Article.content` und `Article.offlineContent` beim
-    Tippen nicht aus dem leichten Listenfetch nachgeladen werden
+  - Die kompakte Artikelsuche sitzt in der Reader-Toolbar und filtert die
+    aktuell ausgewählte Liste über SQLite/FTS, ohne ein Suchfeld in der
+    mittleren Artikelliste zu zeigen
 - **Zu beachten:**
   - SwiftData-Queries immer mit gezielten Predicates; bewusste Ausnahme ist der Default-Ordner `Ungelesen`, weil dort die Anzeigeebene gelesene Artikel für Feed-ähnliches Verhalten temporär sichtbar halten muss
   - Weiteres Lazy Loading für schwere Inhalte außerhalb der sichtbaren Listenzeilen

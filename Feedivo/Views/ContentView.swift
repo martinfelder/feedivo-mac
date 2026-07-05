@@ -36,6 +36,7 @@ struct ContentView: View {
     @State private var selectedSQLiteArticleID: String?
     @State private var selectedSQLiteArticleSnapshot: ArticleReaderSnapshot?
     @State private var sqliteArticleNavigationState = SQLiteArticleNavigationState.empty
+    @State private var articleSearchText = ""
     @State private var articleSearchFocusRequest = 0
 
     @State private var feedViewModel: FeedViewModel
@@ -81,7 +82,8 @@ struct ContentView: View {
                 SQLiteFeedArticleListView(
                     smartFolder: smartFolder,
                     selectedArticleID: $selectedSQLiteArticleID,
-                    navigationState: $sqliteArticleNavigationState
+                    navigationState: $sqliteArticleNavigationState,
+                    searchText: $articleSearchText
                 )
                     .navigationSplitViewColumnWidth(min: 280, ideal: 320, max: 400)
             } else if let feedID = selectedFeedID {
@@ -89,21 +91,24 @@ struct ContentView: View {
                     feedID: feedID,
                     title: selectedFeed?.title ?? "",
                     selectedArticleID: $selectedSQLiteArticleID,
-                    navigationState: $sqliteArticleNavigationState
+                    navigationState: $sqliteArticleNavigationState,
+                    searchText: $articleSearchText
                 )
                     .navigationSplitViewColumnWidth(min: 280, ideal: 320, max: 400)
             } else if let tagID = selectedTagID {
                 SQLiteFeedArticleListView(
                     tagID: tagID,
                     selectedArticleID: $selectedSQLiteArticleID,
-                    navigationState: $sqliteArticleNavigationState
+                    navigationState: $sqliteArticleNavigationState,
+                    searchText: $articleSearchText
                 )
                     .navigationSplitViewColumnWidth(min: 280, ideal: 320, max: 400)
             } else if let smartFilter = selectedSmartFilter {
                 SQLiteFeedArticleListView(
                     smartFilter: smartFilter,
                     selectedArticleID: $selectedSQLiteArticleID,
-                    navigationState: $sqliteArticleNavigationState
+                    navigationState: $sqliteArticleNavigationState,
+                    searchText: $articleSearchText
                 )
                     .navigationSplitViewColumnWidth(min: 280, ideal: 320, max: 400)
             } else {
@@ -126,6 +131,7 @@ struct ContentView: View {
                     canSelectNextArticle: sqliteArticleNavigationState.nextArticleID != nil,
                     selectPreviousArticle: selectPreviousArticle,
                     selectNextArticle: selectNextArticle,
+                    articleSearchText: $articleSearchText,
                     onSnapshotChange: handleSQLiteArticleSnapshotChange,
                     onCreateRule: requestRuleCreation
                 )
@@ -298,6 +304,7 @@ struct ContentView: View {
         selectedSQLiteArticleID = nil
         selectedSQLiteArticleSnapshot = nil
         sqliteArticleNavigationState = .empty
+        articleSearchText = ""
     }
 
     private func handleSQLiteArticleSelectionChange() {
