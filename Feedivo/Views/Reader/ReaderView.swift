@@ -23,7 +23,7 @@ struct LegacyReaderView: View {
     @State private var preparedArticle: ReaderPreparedArticle = .empty
     @State private var isBuildingPreparedArticle = false
     // contentRevision treibt den .task(id:)-Refresh bei Inhaltsaenderungen
-    // (Content/Summary/Offline …) an, ohne persistentModelID zu beruehren.
+    // (Content/Summary) an, ohne persistentModelID zu beruehren.
     @State private var contentRevision = 0
 
     init(
@@ -79,13 +79,6 @@ struct LegacyReaderView: View {
 
     @State private var isAppearancePopoverPresented = false
     @State private var viewModel = ArticleViewModel()
-    @State private var offlineDownloadService = OfflineDownloadService()
-    @State private var isOfflineOperationInProgress = false
-    @State private var readabilityArticle: ReadabilityExtractedArticle?
-    @State private var readabilityRequestedURL: URL?
-    @State private var readabilityLoadedURL: URL?
-    @State private var isReadabilityExtractionInProgress = false
-    @State private var readabilityFailureNotice: ReadabilityFailureNotice?
     @State private var relationshipMetadata = ReaderArticleRelationshipMetadata.empty
     @State private var isTagEditorPopoverPresented = false
 
@@ -176,40 +169,8 @@ struct LegacyReaderView: View {
         readerDisplayMode == .web && originalURL != nil
     }
 
-    private var shouldShowReadabilityMode: Bool {
-        readerDisplayMode == .readability && originalURL != nil
-    }
-
     private var contentBlocks: [ReaderContentBlock] {
         preparedArticle.contentBlocks
-    }
-
-    private var readabilityContentBlocks: [ReaderContentBlock] {
-        guard let readabilityArticle else {
-            return []
-        }
-
-        return ReaderContentRenderer.blocks(
-            summary: nil,
-            content: readabilityArticle.normalizedContentHTML,
-            fallbackImageURL: article.imageURL
-        )
-    }
-
-    private var shouldShowOfflineStatusNotice: Bool {
-        isOfflineOperationInProgress || article.offlineState != .none
-    }
-
-    private var offlineActionTitle: LocalizedStringKey {
-        article.offlineState.isAvailable ? L10n.readerOfflineRemove : L10n.readerOfflineSave
-    }
-
-    private var offlineActionSystemImage: String {
-        if isOfflineOperationInProgress {
-            return "arrow.down.circle"
-        }
-
-        return article.offlineState.isAvailable ? "checkmark.circle.fill" : "arrow.down.circle"
     }
 
     private var metadataText: String {
@@ -248,12 +209,8 @@ struct LegacyReaderView: View {
                 close: {
                     isMetadataInspectorPresented = false
                 },
-                isOfflineOperationInProgress: isOfflineOperationInProgress,
-                toggleOfflineAvailability: {
-                    Task {
-                        await toggleOfflineAvailability()
-                    }
-                }
+                isOfflineOperationInProgress: false,
+                toggleOfflineAvailability: {}
             )
             .inspectorColumnWidth(min: 280, ideal: 318, max: 360)
         }
@@ -263,22 +220,14 @@ struct LegacyReaderView: View {
         .task(id: article.persistentModelID) {
             await loadRelationshipMetadata()
         }
-        .onAppear {
-            startReadabilityExtractionIfNeeded()
-        }
         // Leichte Inhalts-Signatur: Der Reader reagiert auf Status- und
         // Kurztext-Änderungen, ohne beim View-Aufbau die großen Textfelder
-        // `content` und `offlineContent` zu faulten.
+        // `content` zu faulten.
         .onChange(of: ReaderArticleObservationSignature.make(from: article)) {
             contentRevision += 1
         }
         .onChange(of: article.link) {
             contentRevision += 1
-            resetReadabilityState()
-            startReadabilityExtractionIfNeeded()
-        }
-        .onChange(of: readerDisplayModeRawValue) {
-            startReadabilityExtractionIfNeeded()
         }
         .navigationTitle(article.title)
         .toolbar {
@@ -315,21 +264,6 @@ struct LegacyReaderView: View {
                     Image(systemName: "square.and.arrow.up")
                 }
                 .help(L10n.articleExportCommand)
-
-                Button {
-                    Task {
-                        await toggleOfflineAvailability()
-                    }
-                } label: {
-                    if isOfflineOperationInProgress {
-                        ProgressView()
-                            .controlSize(.small)
-                    } else {
-                        Image(systemName: offlineActionSystemImage)
-                    }
-                }
-                .help(offlineActionTitle)
-                .disabled(isOfflineOperationInProgress)
 
                 Picker(L10n.readerDisplayModePicker, selection: $readerDisplayModeRawValue) {
                     ForEach(ReaderDisplayMode.allCases) { mode in
@@ -387,8 +321,6 @@ struct LegacyReaderView: View {
     private var readerContent: some View {
         if shouldShowWebView, let originalURL {
             WebContentView(url: originalURL)
-        } else if shouldShowReadabilityMode, let originalURL {
-            readabilityReader(originalURL: originalURL)
         } else {
             nativeReader
         }
@@ -398,10 +330,6 @@ struct LegacyReaderView: View {
         ScrollView(.vertical, showsIndicators: false) {
             LazyVStack(alignment: .leading, spacing: contentBlockSpacing) {
                 readerHeader
-
-                if shouldShowOfflineStatusNotice {
-                    offlineStatusNotice
-                }
 
                 if contentBlocks.isEmpty, isBuildingPreparedArticle {
                     ProgressView()
@@ -427,222 +355,6 @@ struct LegacyReaderView: View {
             .padding(.bottom, articleBottomPadding)
         }
         .id(article.persistentModelID)
-    }
-
-    private func readabilityReader(originalURL: URL) -> some View {
-        ZStack(alignment: .topLeading) {
-            ScrollView(.vertical, showsIndicators: false) {
-                LazyVStack(alignment: .leading, spacing: contentBlockSpacing) {
-                    readerHeader
-                    readabilityStatusNotice
-
-                    let blocks = readabilityContentBlocks
-                    ForEach(Array(blocks.enumerated()), id: \.element.id) { index, block in
-                        VStack(alignment: .leading, spacing: imageTextDividerSpacing) {
-                            readerContentBlock(block)
-
-                            if shouldShowImageTextDivider(after: index, in: blocks) {
-                                readerSectionDivider
-                            }
-                        }
-                    }
-
-                    readerFooter
-                }
-                .frame(maxWidth: clampedContentWidth, alignment: .leading)
-                .padding(.horizontal, 28)
-                .padding(.top, articleTopPadding)
-                .padding(.bottom, articleBottomPadding)
-            }
-            .id(article.persistentModelID)
-
-            if readabilityRequestedURL == originalURL {
-                ReadabilityExtractionView(url: originalURL) { result in
-                    handleReadabilityExtraction(result, for: originalURL)
-                }
-                .frame(width: 1, height: 1)
-                .opacity(0.01)
-                .accessibilityHidden(true)
-            }
-        }
-    }
-
-    private var readabilityStatusNotice: some View {
-        Label {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(readabilityStatusTitle)
-
-                if let readabilityFailureNotice {
-                    Text(LocalizedStringKey(readabilityFailureNotice.detailKey))
-                        .font(interfaceTextSize.font(size: 11))
-                        .foregroundStyle(.secondary)
-                } else if let message = readabilityStatusDetail {
-                    Text(message)
-                        .font(interfaceTextSize.font(size: 11))
-                        .foregroundStyle(.secondary)
-                }
-
-                if readabilityFailureNotice != nil {
-                    Button(L10n.readerReadabilityRetryButton) {
-                        startReadabilityExtraction()
-                    }
-                    .controlSize(.small)
-                    .disabled(isReadabilityExtractionInProgress || originalURL == nil)
-                }
-            }
-        } icon: {
-            if isReadabilityExtractionInProgress {
-                ProgressView()
-                    .controlSize(.small)
-            } else {
-                Image(systemName: readabilityStatusSystemImage)
-            }
-        }
-        .font(interfaceTextSize.font(size: 12, weight: .medium))
-        .foregroundStyle(readabilityStatusForegroundStyle)
-        .padding(.vertical, 8)
-        .padding(.horizontal, 10)
-        .background(readabilityStatusBackgroundStyle, in: RoundedRectangle(cornerRadius: 8))
-    }
-
-    private var readabilityStatusTitle: LocalizedStringKey {
-        if isReadabilityExtractionInProgress {
-            return L10n.readerReadabilityLoading
-        }
-
-        if readabilityFailureNotice != nil {
-            return L10n.readerReadabilityFailed
-        }
-
-        if readabilityLoadedURL != nil {
-            return L10n.readerReadabilityLoaded
-        }
-
-        return L10n.readerReadabilityIdleTitle
-    }
-
-    private var readabilityStatusDetail: LocalizedStringKey? {
-        if isReadabilityExtractionInProgress {
-            return L10n.readerReadabilityLoadingDescription
-        }
-
-        if readabilityFailureNotice != nil {
-            return nil
-        }
-
-        if readabilityLoadedURL == nil {
-            return L10n.readerReadabilityIdleDescription
-        }
-
-        return nil
-    }
-
-    private var readabilityStatusSystemImage: String {
-        if readabilityFailureNotice != nil {
-            return "exclamationmark.triangle.fill"
-        }
-
-        if readabilityLoadedURL != nil {
-            return "doc.text.magnifyingglass"
-        }
-
-        return "arrow.down.doc"
-    }
-
-    private var readabilityStatusForegroundStyle: Color {
-        if readabilityFailureNotice != nil {
-            return .orange
-        }
-
-        if readabilityLoadedURL != nil {
-            return .green
-        }
-
-        return .secondary
-    }
-
-    private var readabilityStatusBackgroundStyle: Color {
-        readabilityStatusForegroundStyle.opacity(0.1)
-    }
-
-    private var offlineStatusNotice: some View {
-        Label {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(offlineStatusTitle)
-
-                if let message = offlineStatusDetail {
-                    Text(message)
-                        .font(interfaceTextSize.font(size: 11))
-                        .foregroundStyle(.secondary)
-                }
-            }
-        } icon: {
-            Image(systemName: offlineStatusSystemImage)
-        }
-        .font(interfaceTextSize.font(size: 12, weight: .medium))
-        .foregroundStyle(offlineStatusForegroundStyle)
-        .padding(.vertical, 8)
-        .padding(.horizontal, 10)
-        .background(offlineStatusBackgroundStyle, in: RoundedRectangle(cornerRadius: 8))
-    }
-
-    private var offlineStatusTitle: LocalizedStringKey {
-        if isOfflineOperationInProgress {
-            return L10n.readerOfflineSaving
-        }
-
-        switch article.offlineState {
-        case .fullText:
-            return L10n.readerOfflineFullTextAvailable
-        case .feedContent:
-            return L10n.readerOfflineFeedContentAvailable
-        case .failed:
-            return L10n.readerOfflineFailed
-        case .none:
-            return L10n.readerOfflineNotSaved
-        }
-    }
-
-    private var offlineStatusDetail: String? {
-        if article.offlineState == .failed {
-            return article.offlineErrorMessage
-        }
-
-        guard let savedAt = article.offlineSavedAt else {
-            return nil
-        }
-
-        return savedAt.feedivoRelativeDisplay
-    }
-
-    private var offlineStatusSystemImage: String {
-        if isOfflineOperationInProgress {
-            return "arrow.down.circle"
-        }
-
-        switch article.offlineState {
-        case .fullText, .feedContent:
-            return "checkmark.circle.fill"
-        case .failed:
-            return "exclamationmark.triangle.fill"
-        case .none:
-            return "arrow.down.circle"
-        }
-    }
-
-    private var offlineStatusForegroundStyle: Color {
-        switch article.offlineState {
-        case .failed:
-            return .orange
-        case .fullText, .feedContent:
-            return .green
-        case .none:
-            return .secondary
-        }
-    }
-
-    private var offlineStatusBackgroundStyle: Color {
-        offlineStatusForegroundStyle.opacity(0.1)
     }
 
     private var readerHeader: some View {
@@ -970,60 +682,6 @@ struct LegacyReaderView: View {
         }
     }
 
-    private func startReadabilityExtraction() {
-        guard let originalURL else {
-            return
-        }
-
-        readabilityArticle = nil
-        readabilityLoadedURL = nil
-        readabilityFailureNotice = nil
-        isReadabilityExtractionInProgress = true
-        readabilityRequestedURL = originalURL
-    }
-
-    private func startReadabilityExtractionIfNeeded() {
-        guard ReadabilityLoadDecision.shouldStartExtraction(
-            mode: readerDisplayMode,
-            originalURL: originalURL,
-            requestedURL: readabilityRequestedURL,
-            loadedURL: readabilityLoadedURL,
-            isInProgress: isReadabilityExtractionInProgress
-        ) else {
-            return
-        }
-
-        startReadabilityExtraction()
-    }
-
-    private func handleReadabilityExtraction(_ result: Result<ReadabilityExtractedArticle, Error>, for url: URL) {
-        guard readabilityRequestedURL == url else {
-            return
-        }
-
-        readabilityRequestedURL = nil
-        isReadabilityExtractionInProgress = false
-
-        switch result {
-        case .success(let article):
-            readabilityArticle = article
-            readabilityLoadedURL = url
-            readabilityFailureNotice = nil
-        case .failure(let error):
-            readabilityArticle = nil
-            readabilityLoadedURL = nil
-            readabilityFailureNotice = ReadabilityFailureNotice.make(for: error)
-        }
-    }
-
-    private func resetReadabilityState() {
-        readabilityArticle = nil
-        readabilityRequestedURL = nil
-        readabilityLoadedURL = nil
-        isReadabilityExtractionInProgress = false
-        readabilityFailureNotice = nil
-    }
-
     private var preparedArticleRefreshToken: ReaderRefreshToken {
         ReaderRefreshToken(articleID: article.persistentModelID, revision: contentRevision)
     }
@@ -1096,27 +754,6 @@ struct LegacyReaderView: View {
         relationshipMetadata = ReaderArticleRelationshipMetadata.make(from: article)
     }
 
-    @MainActor
-    private func toggleOfflineAvailability() async {
-        guard !isOfflineOperationInProgress else {
-            return
-        }
-
-        isOfflineOperationInProgress = true
-
-        if article.offlineState.isAvailable {
-            offlineDownloadService.removeOfflineContent(from: article)
-        } else {
-            await offlineDownloadService.saveForOffline(article)
-        }
-
-        try? modelContext.save()
-        // Offline-Inhalt hat sich geaendert — asynchroner Rebuild ueber
-        // contentRevision (die .onChange-Handler bumpen ohnehin; expliziter
-        // Bump ist idempotent und robust gegen Reihenfolge).
-        contentRevision += 1
-        isOfflineOperationInProgress = false
-    }
 }
 
 private struct ReaderInlineTagEditorPopover: View {

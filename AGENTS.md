@@ -175,14 +175,9 @@ FeedivoMac/
 │   │   │   ├── ArticleExportSheet.swift # Zweistufiger Artikel-Exportdialog mit Vorschau ✅
 │   │   │   └── ArticleRowView.swift    # Reichhaltige Artikel-Zeile mit Status/Stern ✅
 │   │   ├── Reader/
-│   │   │   ├── ReaderView.swift        # Rechte Spalte: nativer Artikel-Reader inkl. Vollartikel-Modus ✅
+│   │   │   ├── ReaderView.swift        # Legacy SwiftData-Reader ohne produktiven Vollartikel-Modus ⚠️
 │   │   │   ├── ArticleMetadataInspectorView.swift # Rechter Artikelinfos-Inspector ✅
 │   │   │   ├── ArticleWindowView.swift # Eigenes Artikelfenster mit Reader + Inspector ✅
-│   │   │   ├── ReadabilityExtractionView.swift # WKWebView-basierte Vollartikel-Extraktion ✅
-│   │   │   ├── ReadabilityExtractedArticle.swift # Dekodiertes Readability-Ergebnis ✅
-│   │   │   ├── ReadabilityFailureNotice.swift # Respektvoller Hinweis bei blockiertem Vollartikel ✅
-│   │   │   ├── ReadabilityLoadDecision.swift # Startlogik für automatisches Vollartikel-Laden ✅
-│   │   │   ├── ReadabilityScriptProvider.swift # Gebündeltes Readability.js + Extraktionsscript ✅
 │   │   │   ├── ReaderPreparedArticle.swift # Vorbereitete Reader-Daten pro Artikel ✅
 │   │   │   ├── ReaderContentRenderer.swift # HTML/Text zu Reader-Bloecken ✅
 │   │   │   ├── ReaderMetadataFormatter.swift # Feedname/Lesezeit/Alter ✅
@@ -240,7 +235,7 @@ FeedivoMac/
 │   │   ├── OrphanedArticleCleanupService.swift # verwaiste Artikel ohne existierenden Feed entfernen ✅
 │   │   ├── FeedUnreadCountBackfillService.swift # unreadCount einmalig korrigieren ✅
 │   │   ├── SmartFolderDefaultKeyBackfillService.swift # defaultKey für alte SmartFolder migrieren ✅
-│   │   ├── OfflineDownloadService.swift # Manueller Offline-Download pro Artikel ✅
+│   │   ├── OfflineDownloadService.swift # Legacy/Migrationsrest, produktiv nicht mehr angeboten ⚠️
 │   │   ├── ImageCacheService.swift     # Memory-/Disk-Cache für Bilder und Favicons ✅
 │   │   ├── ImageCacheSettings.swift    # Cache-Limits und Groessenformatierung ✅
 │   │   ├── RuleEngine.swift            # Mehrfach-Regeln auf neue Artikel anwenden ✅
@@ -1402,23 +1397,17 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Native Reader-ScrollViews sind an `article.persistentModelID` gebunden, damit
   ein Artikelwechsel immer oben im neuen Artikel startet und nicht den
   Scroll-Offset des vorherigen Artikels übernimmt.
-- Native Reader- und Readability-Inhalte nutzen `LazyVStack`, damit lange Artikel
-  beim Öffnen oder Wechseln nicht sofort alle Text-/Bild-Blöcke als SwiftUI-Views
-  materialisieren. Das reduziert CPU-Zeit beim Lesen spürbar.
+- Native Reader-Inhalte nutzen `LazyVStack`, damit lange Artikel beim Öffnen oder
+  Wechseln nicht sofort alle Text-/Bild-Blöcke als SwiftUI-Views materialisieren.
+  Das reduziert CPU-Zeit beim Lesen spürbar.
 - Wenn ein Feed nur eine Summary, aber keinen Volltext liefert, zeigt der native
   Reader die vorhandene Zusammenfassung direkt ohne zusaetzliche Hinweisbox.
-- Reader-Modi: `Nativer Reader`, `Vollartikel` und `Originalansicht`. Der
-  Vollartikel-Modus nutzt Readability.js in einem versteckten `WKWebView`, startet
-  automatisch beim Auswählen des Modus und beim Artikelwechsel, solange für die
-  aktuelle URL noch kein Vollartikel geladen wird oder geladen ist.
-- Entscheidung 2026-06-30: Der per Readability extrahierte Vollartikel wird nur
-  temporär im Reader angezeigt. Er wird nicht als `Article.content` oder
-  `offlineContent` gespeichert; dauerhaftes Speichern bleibt der manuellen
-  Offline-Funktion vorbehalten.
-- Entscheidung 2026-06-30: Wenn ein Vollartikel nicht geladen werden kann, zeigt
-  der Reader einen respektvollen Hinweis, dass der Anbieter das Laden nicht
-  zulässt und Feedivo diese Vorgabe respektiert. Technische Fehlerdetails stehen
-  nicht im Vordergrund der UI.
+- Reader-Modi: `Nativer Reader` und `Originalansicht`. Entscheidung 2026-07-05:
+  Der frühere Vollartikel-/Readability-Modus wurde entfernt, weil Feedivo
+  entweder den Feed-Inhalt oder die echte Originalseite zeigen soll.
+- Entscheidung 2026-07-05: Offline-/Originalartikel-Kopien werden im produktiven
+  UI-Pfad nicht mehr angeboten und vom nativen Reader nicht mehr bevorzugt.
+  Alte Offline-Tabellen/Typen bleiben vorerst nur als Legacy-/Migrationsreste.
 - Toolbar-Buttons für vorherigen/nächsten Artikel navigieren innerhalb der aktuell
   sichtbaren Feed- oder Smart-Filter-Liste und stoppen am Listenrand
 - Seltenere Aktionen wie `Link kopieren` liegen im Reader-Mehr-Menü, damit die
@@ -1473,14 +1462,12 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Berechnet native Content-Bloecke, Metazeile, Lesezeit, Content-Verfügbarkeit und
   gueltige Original-URL einmal beim Erzeugen von `ReaderView`, statt diese Werte
   bei jedem SwiftUI-Redraw neu aufzubauen.
-- `ReaderArticleCacheKey` speichert keine kompletten `content`-/
-  `offlineContent`-Strings mehr, sondern kompakte Text-Fingerprints. Der Cache
-  hält dadurch keine zusätzlichen Kopien langer Artikeltexte.
-- Bevorzugt explizit gespeicherten `Article.offlineContent` vor Feed-Content und
-  Summary, damit manuell offline gespeicherte Artikel direkt im nativen Reader
-  erscheinen.
-- Erkennt, ob offline geladener Volltext, Feed-Content, nur eine Summary oder gar
-  kein Text verfuegbar ist; der Reader nutzt diese Information für Statushinweise.
+- `ReaderArticleCacheKey` speichert keine kompletten `content`-Strings mehr,
+  sondern kompakte Text-Fingerprints. Der Cache hält dadurch keine zusätzlichen
+  Kopien langer Artikeltexte.
+- Bevorzugt nicht mehr gespeicherte Offline-Texte. Der native Reader rendert
+  Feed-Content oder Summary; die Originalseite bleibt als separater Web-Modus.
+- Erkennt, ob Feed-Content, nur eine Summary oder gar kein Text verfuegbar ist.
 
 ### ArticleExportService.swift / ArticleExportDocument.swift
 - `ArticleExportService` erzeugt Markdown, Plain Text und HTML für einzelne
@@ -1540,31 +1527,11 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   aus kurzlebigen Kontextmenüs oder Unteransichten gestartet wird.
 
 ### OfflineDownloadService.swift
-- Speichert Artikel manuell für Offline-Lesen.
-- Nutzt vorhandenen `Article.content` sofort als Offline-Content, wenn der Feed
-  bereits Volltext liefert.
-- Laedt andernfalls die Original-URL per `URLSession` und speichert den geladenen
-  HTML/Text in `Article.offlineContent`.
-- Schreibt Status, Zeitpunkt und Fehlermeldung direkt auf den Artikel:
-  `none`, `feedContent`, `fullText` oder `failed`.
-- Sammelt beim Offline-Speichern die bekannte Lead-Bild-URL (`Article.imageURL`)
-  und Inline-Bilder aus dem gespeicherten Content und gibt sie an den lokalen
-  Bildcache weiter.
-- Entfernt Offline-Daten bewusst getrennt von normalem Feed-Content, damit Feedivo
-  die vom Feed gelieferten Inhalte nicht verliert.
-- `archiveForOffline(_:)` speichert eine explizite Offline-Kopie und setzt
-  `Article.isArchived` nur, wenn Offline-Content verfuegbar ist.
-- `removeArchive(from:)` entfernt Archivstatus und Offline-Kopie, laesst den Artikel
-  selbst aber in SwiftData bestehen.
-- `removeOfflineContent(from:)` setzt ebenfalls `isArchived = false`, damit kein
-  Archivstatus ohne lokale Kopie stehen bleibt.
-- `OfflineArticleStorage` kapselt die Zaehllogik und das Sammel-Loeschen fuer die
-  neuen Cache-Einstellungen. Es zaehlt nur Artikel mit verfuegbarem
-  Offline-Status (`feedContent`/`fullText`) und misst bewusst nur
-  `Article.offlineContent`, nicht den gemeinsamen Bild-/Favicon-Cache.
-- Offline-Automatik ist absichtlich nicht Teil dieses Services. Sie soll später
-  als eigene Strategie mit Feed-/Zeit-/Stern-/Ungelesen-Regeln und Speichergrenzen
-  gebaut werden.
+- Legacy-/Migrationsrest. Entscheidung 2026-07-05: Offline-/Originalartikel-
+  Kopien werden im produktiven UI-Pfad nicht mehr angeboten.
+- Der native Reader bevorzugt keine gespeicherten Offline-Texte mehr, sondern
+  zeigt Feed-Content beziehungsweise Summary. Die Originalseite bleibt über
+  `Originalansicht`/`Original öffnen` verfügbar.
 
 ### ArticleFeedIDBackfillService.swift / OrphanedArticleCleanupService.swift
 - `ArticleFeedIDBackfillService` füllt bei alten Artikeln die direkte `feedID`
@@ -2957,13 +2924,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Nach User-Feedback bleibt der laufende Status auch bei sehr schnellen Refreshes
   mindestens kurz sichtbar.
 
-- 2026-06-30: Feature 1.8 Vollartikel-Extraktion umgesetzt. Der Reader hat nun
-  neben `Nativer Reader` und `Originalansicht` den Modus `Vollartikel`; beim
-  Auswählen dieses Modus wird die Originalseite automatisch in einem versteckten
-  `WKWebView` geladen, mit gebündeltem Mozilla Readability.js extrahiert und
-  temporär im nativen Reader-Layout angezeigt. Der extrahierte Inhalt wird bewusst
-  nicht im Artikelmodell gespeichert. Wenn der Anbieter das Laden nicht zulässt,
-  zeigt Feedivo einen respektvollen Hinweis statt eines technischen Fehlertexts.
+- 2026-07-05: Der Vollartikel-/Readability-Modus wurde wieder entfernt. Feedivo
+  zeigt entweder Feed-/RSS-Inhalt im nativen Reader oder die echte Originalseite.
+  Readability.js, Extraktions-Views, Vollartikel-Tests und die produktiven
+  Offline-Kopie-Aktionen in Reader/Artikelliste/Einstellungen wurden entfernt.
 
 - 2026-06-30: Regelliste in den Einstellungen um Drag & Drop für die Reihenfolge
   erweitert. Die bestehende `sortOrder`-Logik bleibt die Quelle der Wahrheit;

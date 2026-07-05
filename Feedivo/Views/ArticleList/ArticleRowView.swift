@@ -15,7 +15,6 @@ struct ArticleRowView: View {
     let onShareOriginal: () -> Void
     let onOpenInWindow: () -> Void
     let onExport: () -> Void
-    let onSaveOrRemoveOffline: () -> Void
     let onDelete: () -> Void
     let onMarkAllRead: () -> Void
 
@@ -48,8 +47,6 @@ struct ArticleRowView: View {
 
             VStack {
                 unreadIndicator
-
-                offlineIndicator
 
                 Spacer(minLength: 8)
 
@@ -113,12 +110,6 @@ struct ArticleRowView: View {
             Button(L10n.articleExportCommand) {
                 onExport()
             }
-
-            Button(snapshot.offlineState.isAvailable ? L10n.readerOfflineRemove : L10n.readerOfflineSave) {
-                onSaveOrRemoveOffline()
-            }
-
-            Divider()
 
             Button(L10n.articleDeleteCommand, role: .destructive) {
                 onDelete()
@@ -191,24 +182,6 @@ struct ArticleRowView: View {
                 .fill(.blue)
                 .frame(width: 8, height: 8)
                 .help(L10n.articleRowUnreadText)
-        }
-    }
-
-    @ViewBuilder
-    private var offlineIndicator: some View {
-        switch snapshot.offlineState {
-        case .fullText, .feedContent:
-            Image(systemName: "arrow.down.circle.fill")
-                .font(interfaceTextSize.font(size: 11, weight: .semibold))
-                .foregroundStyle(.green)
-                .help(L10n.articleRowOfflineAvailable)
-        case .failed:
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(interfaceTextSize.font(size: 10, weight: .semibold))
-                .foregroundStyle(.orange)
-                .help(L10n.articleRowOfflineFailed)
-        case .none:
-            EmptyView()
         }
     }
 

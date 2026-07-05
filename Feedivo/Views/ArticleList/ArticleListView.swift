@@ -591,10 +591,7 @@ private struct ArticleListContent: View {
     @Query(sort: \Tag.name) private var tags: [Tag]
     @AppStorage("markArticleReadOnSelection")
     private var markArticleReadOnSelection = true
-    @AppStorage(OfflineReadingSettings.automaticallySaveStarredArticlesKey)
-    private var automaticallySaveStarredArticles = OfflineReadingSettings.defaultAutomaticallySaveStarredArticles
     @State private var viewModel = ArticleViewModel()
-    @State private var offlineDownloadService = OfflineDownloadService()
     @State private var showsReadArticles = false
     // Entbunden: markReadIfNeeded sichert nicht sofort pro Auswahl, sondern
     // debounced. Schnelles Weiter-/Zurück-Navigieren löst so nicht jede
@@ -616,7 +613,6 @@ private struct ArticleListContent: View {
     @State private var cachedPreparedKey: PreparedArticlesCacheKey?
     @State private var readerPrefetchTask: Task<Void, Never>?
     @State private var readerPrefetchKey: ReaderArticlePrefetchKey?
-    @State private var offlineArchiveError: OfflineArchiveErrorAlert?
     @State private var tagAssignmentArticle: Article?
 
     init(
@@ -741,13 +737,6 @@ private struct ArticleListContent: View {
                 filterMenu
                 sortMenu
             }
-        }
-        .alert(item: $offlineArchiveError) { alert in
-            Alert(
-                title: Text(L10n.offlineArchiveErrorTitle),
-                message: Text(alert.message),
-                dismissButton: .default(Text(L10n.commonDone))
-            )
         }
         .sheet(item: $tagAssignmentArticle) { article in
             ArticleTagAssignmentSheet(
@@ -887,19 +876,12 @@ private struct ArticleListContent: View {
                 try? modelContext.save()
             },
             onToggleStarred: {
-                Task {
-                    await viewModel.toggleStarred(
-                        article,
-                        automaticallySaveForOffline: automaticallySaveStarredArticles,
-                        context: modelContext,
-                        offlineSaver: offlineDownloadService
-                    )
-                }
+                viewModel.toggleStarred(article)
+                try? modelContext.save()
             },
             onToggleArchived: {
-                Task {
-                    await archiveOrRemoveArchive(article)
-                }
+                viewModel.toggleArchived(article)
+                try? modelContext.save()
             },
             onRequestAssignTag: {
                 tagAssignmentArticle = article
@@ -921,11 +903,6 @@ private struct ArticleListContent: View {
             },
             onExport: {
                 onRequestExportArticle(article)
-            },
-            onSaveOrRemoveOffline: {
-                Task {
-                    await saveOrRemoveOffline(article)
-                }
             },
             onDelete: {
                 deleteArticle(article)
@@ -1226,35 +1203,6 @@ private struct ArticleListContent: View {
     }
 
     @MainActor
-    private func saveOrRemoveOffline(_ article: Article) async {
-        if article.offlineState.isAvailable {
-            offlineDownloadService.removeOfflineContent(from: article)
-        } else {
-            await offlineDownloadService.saveForOffline(article)
-        }
-
-        try? modelContext.save()
-    }
-
-    @MainActor
-    private func archiveOrRemoveArchive(_ article: Article) async {
-        if article.isArchived {
-            offlineDownloadService.removeArchive(from: article)
-        } else {
-            let success = await offlineDownloadService.archiveForOffline(article)
-            if !success {
-                // Speichern fehlgeschlagen — vorher lautlos (isArchived false,
-                // kein Hinweis). Fehlerdetails stehen in article.offlineErrorMessage.
-                offlineArchiveError = OfflineArchiveErrorAlert(
-                    message: article.offlineErrorMessage ?? L10n.offlineArchiveErrorMessage
-                )
-            }
-        }
-
-        try? modelContext.save()
-    }
-
-    @MainActor
     private func deleteArticle(_ article: Article) {
         if selectedArticle?.persistentModelID == article.persistentModelID {
             selectedArticle = nil
@@ -1362,7 +1310,3 @@ struct ReaderArticlePrefetchKey: Equatable {
 }
 
 // Identifiable-Wrapper für den Alert bei fehlgeschlagenem Offline-Archivieren.
-private struct OfflineArchiveErrorAlert: Identifiable {
-    let id = UUID()
-    let message: String
-}

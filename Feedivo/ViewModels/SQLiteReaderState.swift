@@ -74,23 +74,6 @@ final class SQLiteReaderState {
         }
     }
 
-    func toggleOffline(
-        database: FeedivoDatabase,
-        offlineDownloadService: SQLiteOfflineDownloadService
-    ) async {
-        guard let articleID = loadedArticleID else {
-            return
-        }
-
-        if snapshot?.offlineState.isAvailable == true {
-            offlineDownloadService.removeOfflineContent(articleID: articleID, database: database)
-        } else {
-            await offlineDownloadService.saveForOffline(articleID: articleID, database: database)
-        }
-
-        load(articleID: articleID, database: database)
-    }
-
     private func mutateStatus(
         database: FeedivoDatabase,
         operation: (ArticleDatabase) throws -> Void

@@ -11,8 +11,6 @@ struct ContentView: View {
     @AppStorage(FirstRunWizardState.hadFeedsStorageKey) private var hasHadFeedsForFirstRunWizard = false
     @AppStorage(AppIconBadgeSettings.isEnabledKey)
     private var appIconBadgeIsEnabled = AppIconBadgeSettings.defaultIsEnabled
-    @AppStorage(OfflineReadingSettings.automaticallySaveStarredArticlesKey)
-    private var automaticallySaveStarredArticles = OfflineReadingSettings.defaultAutomaticallySaveStarredArticles
     @AppStorage(ArticleWindowSettings.restoreOpenArticleWindowsOnLaunchKey)
     private var restoreOpenArticleWindowsOnLaunch = ArticleWindowSettings.defaultRestoreOpenArticleWindowsOnLaunch
     @AppStorage(BackgroundRefreshSettings.refreshOnLaunchIsEnabledKey)

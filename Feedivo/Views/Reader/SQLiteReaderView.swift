@@ -14,8 +14,6 @@ struct SQLiteReaderView: View {
     let onCreateRule: (ArticleReaderSnapshot) -> Void
 
     @State private var state = SQLiteReaderState()
-    @State private var offlineDownloadService = SQLiteOfflineDownloadService()
-    @State private var isOfflineOperationInProgress = false
     @State private var isAppearancePopoverPresented = false
     @State private var isMetadataInspectorPresented = false
     @State private var articleExportRequest: ArticleExportRequest?
@@ -145,18 +143,6 @@ struct SQLiteReaderView: View {
                 }
                 .help(L10n.articleArchiveCommand)
                 .disabled(state.snapshot == nil)
-
-                Button {
-                    if let database {
-                        Task {
-                            await toggleOffline(database: database)
-                        }
-                    }
-                } label: {
-                    Image(systemName: offlineToolbarSystemImage)
-                }
-                .help(offlineToolbarHelp)
-                .disabled(state.snapshot == nil || isOfflineOperationInProgress)
 
                 Picker(L10n.readerDisplayModePicker, selection: $readerDisplayModeRawValue) {
                     ForEach(ReaderDisplayMode.allCases) { mode in
@@ -289,24 +275,6 @@ struct SQLiteReaderView: View {
         ReaderDisplayMode.resolved(from: readerDisplayModeRawValue)
     }
 
-    private var offlineToolbarSystemImage: String {
-        if isOfflineOperationInProgress {
-            return "arrow.triangle.2.circlepath"
-        }
-
-        return state.snapshot?.offlineState.isAvailable == true ? "trash" : "arrow.down.circle"
-    }
-
-    private var offlineToolbarHelp: LocalizedStringKey {
-        if isOfflineOperationInProgress {
-            return L10n.readerOfflineSaving
-        }
-
-        return state.snapshot?.offlineState.isAvailable == true
-            ? L10n.readerOfflineRemove
-            : L10n.readerOfflineSave
-    }
-
     @ViewBuilder
     private func readerContent(database: FeedivoDatabase) -> some View {
         if readerDisplayMode == .web, let originalURL {
@@ -319,10 +287,6 @@ struct SQLiteReaderView: View {
                 LazyVStack(alignment: .leading, spacing: contentBlockSpacing) {
                     if let snapshot = state.snapshot {
                         readerHeader(snapshot)
-
-                        if isOfflineOperationInProgress || snapshot.offlineState.isAvailable {
-                            offlineStatusNotice(snapshot)
-                        }
 
                         ForEach(Array(state.preparedArticle.contentBlocks.enumerated()), id: \.element.id) { index, block in
                             VStack(alignment: .leading, spacing: imageTextDividerSpacing) {
@@ -442,34 +406,6 @@ struct SQLiteReaderView: View {
                 Capsule()
                     .stroke(tagColor.opacity(0.24), lineWidth: 1)
             }
-    }
-
-    private func offlineStatusNotice(_ snapshot: ArticleReaderSnapshot) -> some View {
-        Label {
-            Text(offlineStatusTitle(snapshot))
-        } icon: {
-            if isOfflineOperationInProgress {
-                ProgressView()
-                    .controlSize(.small)
-            } else {
-                Image(systemName: snapshot.offlineState.isAvailable ? "checkmark.circle.fill" : "arrow.down.circle")
-            }
-        }
-        .font(interfaceTextSize.font(size: 12, weight: .medium))
-        .foregroundStyle(snapshot.offlineState.isAvailable ? .green : .secondary)
-        .padding(.vertical, 8)
-        .padding(.horizontal, 10)
-        .background((snapshot.offlineState.isAvailable ? Color.green : Color.secondary).opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
-    }
-
-    private func offlineStatusTitle(_ snapshot: ArticleReaderSnapshot) -> LocalizedStringKey {
-        if isOfflineOperationInProgress {
-            return L10n.readerOfflineSaving
-        }
-
-        return snapshot.offlineState.isAvailable
-            ? L10n.readerOfflineFeedContentAvailable
-            : L10n.readerOfflineNotSaved
     }
 
     @ViewBuilder
@@ -654,17 +590,6 @@ struct SQLiteReaderView: View {
 
             Slider(value: value, in: range, step: step)
         }
-    }
-
-    @MainActor
-    private func toggleOffline(database: FeedivoDatabase) async {
-        guard !isOfflineOperationInProgress else {
-            return
-        }
-
-        isOfflineOperationInProgress = true
-        await state.toggleOffline(database: database, offlineDownloadService: offlineDownloadService)
-        isOfflineOperationInProgress = false
     }
 
     private func openOriginal() {

@@ -403,7 +403,7 @@ struct FeedivoTests {
         #expect(preparedArticle.shouldShowSummaryOnlyNotice == false)
     }
 
-    @Test func readerPreparedArticleBevorzugtGespeichertenOfflineVolltext() {
+    @Test func readerPreparedArticleBevorzugtFeedTextVorGespeichertenOfflineAltlasten() {
         let article = Article(
             title: "Artikel",
             link: "https://example.com/artikel",
@@ -415,8 +415,8 @@ struct FeedivoTests {
 
         let preparedArticle = ReaderPreparedArticle(article: article)
 
-        #expect(preparedArticle.contentBlocks == [.paragraph("Gespeicherter Volltext")])
-        #expect(preparedArticle.contentAvailability == .fullText)
+        #expect(preparedArticle.contentBlocks == [.paragraph("Feed Text")])
+        #expect(preparedArticle.contentAvailability == .feedContent)
     }
 
     @Test func readerObservationSignatureIgnoriertSchwereInhalte() {
@@ -476,7 +476,6 @@ struct FeedivoTests {
         let preview = ReaderPreparedArticle(input: previewInput)
 
         #expect(previewInput.content == nil)
-        #expect(previewInput.offlineContent == nil)
         #expect(previewInput.feedTitle == "Test Feed")
         #expect(preview.readingTimeText == "ca. 1 Min. Lesezeit")
         #expect(preview.metadataText.contains("Test Feed"))

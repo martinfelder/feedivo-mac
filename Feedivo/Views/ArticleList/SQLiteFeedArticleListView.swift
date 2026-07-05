@@ -25,7 +25,6 @@ struct SQLiteFeedArticleListView: View {
     @State private var state = SQLiteFeedArticleListState()
     @State private var searchText = ""
     @State private var debouncedSearchText = ""
-    @State private var offlineDownloadService = SQLiteOfflineDownloadService()
     @State private var articleExportRequest: ArticleExportRequest?
     @State private var ruleCreationRequest: ArticleListRuleCreationRequest?
     @State private var showsReadArticles = false
@@ -236,11 +235,6 @@ struct SQLiteFeedArticleListView: View {
             onOpenInWindow: {},
             onExport: {
                 requestExportArticle(row.id)
-            },
-            onSaveOrRemoveOffline: {
-                Task {
-                    await saveOrRemoveOffline(row)
-                }
             },
             onDelete: {
                 deleteArticle(row.id)
@@ -684,22 +678,6 @@ struct SQLiteFeedArticleListView: View {
         }
 
         state.toggleArchived(articleID: articleID, database: database)
-        navigationState = state.navigationState
-    }
-
-    @MainActor
-    private func saveOrRemoveOffline(_ row: ArticleListSnapshot) async {
-        guard let database else {
-            return
-        }
-
-        if row.offlineState.isAvailable {
-            offlineDownloadService.removeOfflineContent(articleID: row.id, database: database)
-        } else {
-            await offlineDownloadService.saveForOffline(articleID: row.id, database: database)
-        }
-
-        reload()
         navigationState = state.navigationState
     }
 

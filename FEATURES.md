@@ -65,18 +65,13 @@
 - **Umgesetzt:** `Original öffnen` im Inspector, nutzt Standard-Browser
 
 ### 1.8 Reader-Ansicht (Vollartikel-Extraktion)
-- **Status:** ✔️ Fertig
-- **Umgesetzt:**
-  - Dritter Modus im Reader (neben nativem SwiftUI Text und WKWebView)
-  - Toggle in der Reader-Toolbar zum Wechseln zwischen den 3 Modi
-  - Technisch: Readability.js via WKWebView (Option A — Mozilla Standard)
-  - Extraktion startet automatisch, sobald der User den Modus `Vollartikel` auswählt
-  - Braucht Internet-Verbindung — lädt Originalseite und extrahiert Hauptinhalt
-  - Kein zusätzlicher Bestätigungsbutton vor dem Laden
-  - Wenn der Vollartikel nicht geladen werden kann, zeigt Feedivo einen Hinweis,
-    dass der Anbieter dies nicht zulässt und diese Vorgabe zu respektieren ist
-  - Entscheidung: extrahierter Vollartikel wird temporär im Reader angezeigt und
-    nicht als Artikel-/Offline-Content gespeichert
+- **Status:** Entfernt
+- **Entscheidung 2026-07-05:**
+  - Feedivo bietet im Reader nur noch zwei Wege: Feed-/RSS-Inhalt im nativen
+    Reader oder die echte Originalseite.
+  - Der dritte Modus `Vollartikel` wurde entfernt.
+  - Readability.js, versteckte WKWebView-Extraktion und zugehörige Tests/Ressourcen
+    wurden aus dem Produktpfad entfernt.
 
 ### 1.9 Schriftgrösse / Font anpassen
 - **Status:** ✔️ Fertig
@@ -605,19 +600,14 @@
 ## 17. Artikel archivieren
 
 ### 17.1 Offline speichern (manuell + automatisch)
-- **Status:** ✔️ Fertig
-- **Umgesetzt:**
-  - `OfflineDownloadService`, `Article.offlineContent`, manuell via Kontextmenü
-  - Einstellungen → Offline-Lesen: Toggle "Artikel mit Stern automatisch offline speichern"
-  - Wenn der Toggle aktiv ist, stoßen Stern-Aktionen aus Artikelzeile,
-    Inspector und Menü/Shortcut automatisch `OfflineDownloadService.saveForOffline`
-    an
-  - Entfernen des Sterns löscht die Offline-Kopie bewusst nicht automatisch; dafür
-    bleibt die explizite Offline-Entfernen-Aktion zuständig
-  - Neue Einstellungen → Allgemein → Cache zeigt Anzahl und Speichergrösse der
-    bewusst offline gespeicherten Artikelinhalte und bietet
-    `Offline-Kopien löschen`. Gezählt wird `Article.offlineContent`; Bilder bleiben
-    Teil des gemeinsamen Bild-/Favicon-Caches.
+- **Status:** Aus produktiver UI entfernt
+- **Entscheidung 2026-07-05:**
+  - Feedivo unterscheidet nicht mehr zwischen Feed-Inhalt und separat gespeicherten
+    Offline-/Originalartikel-Kopien.
+  - Artikelzeile, Reader-Toolbar und Einstellungen bieten keine Offline-Kopie-
+    Aktionen mehr an.
+  - Alte Offline-Tabellen/Typen bleiben vorerst als Migrations-/Legacy-Rest
+    bestehen, werden vom produktiven Reader aber nicht bevorzugt oder erzeugt.
 
 ### 17.2 Artikel-Zustände
 - **Status:** ✅ Entschieden — siehe Feature 22.1
@@ -818,12 +808,12 @@
 - **Umgesetzt — 4 kombinierbare Zustände:**
   - `isRead: Bool` — gelesen/ungelesen (bereits vorhanden)
   - `isStarred: Bool` — Favorit/Stern (bereits vorhanden)
-  - `isArchived: Bool` — Archivstatus, mit expliziter Offline-Kopie verknüpft
+  - `isArchived: Bool` — Archivstatus, unabhängig von Offline-Kopien
   - `isHidden: Bool` — versteckte Artikel werden aus normalen Listen ausgeblendet
 - **Kombinierbar:** Alle 4 Zustände sind unabhängig und kombinierbar
-- **Archivieren:** Speichert eine Offline-Kopie und setzt `isArchived` nur, wenn Offline-Content verfügbar ist
-- **Archivierte Artikel löschen:** `removeArchive` entfernt `isArchived` + lokalen Offline-Inhalt, Artikel bleibt in Liste
-- **Technisch:** `OfflineDownloadService` verknüpft Archivstatus mit `offlineContent`; Entfernen von Offline-Content löscht auch den Archivstatus
+- **Archivieren:** Setzt nur den Archivstatus; keine Offline-Kopie wird erzeugt
+- **Archivierte Artikel löschen:** Entfernt den Archivstatus, Artikel bleibt in Liste
+- **Technisch:** Offline-Kopien sind aus dem produktiven UI-Pfad entfernt
 - **Abgrenzung:** Regel-Aktion "Ausblenden" und Smart Filter "Ausgeblendet" bleiben Feature 16.3/3.2
 
 ---
@@ -1016,10 +1006,10 @@
   - SQLite-Migrationsabschluss 2026-07-03: Regel-Preview, Regel-Zählungen und
     rückwirkendes Anwenden bestehender Regeln laufen über
     `SQLiteRuleEvaluationStore` und leichte `RuleEngine.ArticleRuleSnapshot`s.
-    Offline-Kopien liegen in `article_offline`; `SQLiteOfflineDownloadService`
-    speichert Feed-Content oder geladene Originalseiten, Reader und Artikelliste
-    lesen den Offline-Status aus SQLite. Die Artikel-Aufbewahrung löscht nun
-    auch SQLite-Artikel samt Statuszeilen und korrigiert `feeds.unreadCount`.
+    Offline-Legacy-Daten können noch in `article_offline` liegen, werden aber im
+    produktiven Reader-/Artikellistenpfad nicht mehr angeboten. Die
+    Artikel-Aufbewahrung löscht nun auch SQLite-Artikel samt Statuszeilen und
+    korrigiert `feeds.unreadCount`.
   - Retention-Wiedererkennung 2026-07-03 ergänzt: Migration v9 legt
     `article_identity_history` an. `ArticleRetentionCleanupService` sichert vor
     dem Löschen alter SQLite-Artikel stabile Quellen-ID, Link, Titel-Hash,
@@ -1079,14 +1069,14 @@
   - Artikelzeilen und Artikel-Commands prüfen Link-Aktionsverfügbarkeit mit einem günstigen `http/https`-String-Check; echte `URL`-Objekte entstehen erst beim Ausführen der Link-Aktion
   - Artikelwechsel aktualisiert die Navigation aus der sichtbaren Liste, ohne Sortierung/Filterung erneut anzustoßen
   - Reader-Artikelwechsel faulten schwere Textfelder nicht mehr schon im SwiftUI-View-Aufbau; Feedname, Ordner und Tags starten als leichte Snapshot-Werte, damit die sichtbaren Metadaten nicht nachlaufen
-  - Der Reader lädt den vollständigen Artikel-Snapshot über einen eigenen SwiftData-`ModelContext` im Hintergrund, statt `content`/`offlineContent` aus dem UI-`Article` zu faulten
+  - Der Reader lädt den vollständigen Artikel-Snapshot über einen eigenen SwiftData-`ModelContext` im Hintergrund, statt `content` aus dem UI-`Article` zu faulten
   - Reader-Cache-Keys speichern nur kompakte Text-Fingerprints und keine zusätzlichen Volltext-Kopien
   - Reader-Detailbilder werden mit Ziel-Pixelgröße geladen, damit große Feedbilder nicht unnötig voll decodiert werden
   - Artikelzeilen lesen Feednamen über einen `feedID -> Feed.title` Lookup statt über `article.feed?.title`, damit `Alle Artikel` beim Lesen keine Feed-Relationship-Faults pro sichtbarer Zeile erzeugt
   - Beim automatischen Als-gelesen-markieren aktualisiert die Artikelliste `Feed.unreadCount` nicht mehr pro Artikelauswahl, sondern sammelt betroffene Feed-IDs und synchronisiert die Zähler beim debounced Persistenz-Flush per `fetchCount`
   - Die Artikelansicht bietet hinter den Ordner-/Tag-Chips ein Inline-Tag-Popover, das dieselbe Tag-Erstellungs- und Zuweisungslogik wie der rechte Inspector nutzt
-  - Der Reader-Prefetch der Artikelliste bleibt leichtgewichtig und faultet keine `content`-/`offlineContent`-Volltexte, keine Feed-Relationships oder Nachbarartikel-Bilder mehr, damit sequentielles Lesen weniger CPU/I/O erzeugt
-  - Native Reader- und Readability-Inhalte rendern per `LazyVStack`, damit lange Artikel beim Öffnen nicht vollständig als SwiftUI-View-Baum materialisiert werden
+  - Der Reader-Prefetch der Artikelliste bleibt leichtgewichtig und faultet keine `content`-Volltexte, keine Feed-Relationships oder Nachbarartikel-Bilder mehr, damit sequentielles Lesen weniger CPU/I/O erzeugt
+  - Native Reader-Inhalte rendern per `LazyVStack`, damit lange Artikel beim Öffnen nicht vollständig als SwiftUI-View-Baum materialisiert werden
   - Der Reader zeigt beim Wechsel sofort eine leichte Summary-/Bild-Vorschau und vermeidet sichtbare Spinner für Reader-Bilder
   - Komplexe intelligente Ordner sortieren Bedingungen einmal vor dem Artikel-Loop und verwenden einen vorbereiteten Matcher
   - Reader-Bildblock-Erkennung nutzt eine einfache case-insensitive Suche statt einer Regex-Kompilierung im Loop
@@ -1247,7 +1237,7 @@ Folgende Reihenfolge berücksichtigt Abhängigkeiten. Features mit (*) sind Vora
 ### Phase 9 — Reader Features
 30. **Feature 11.1** — Lesedauer im Reader anzeigen — erledigt; keine Anzeige in der Artikel-Liste
 31. **Feature 11.2** — Lesefortschritt (Fortschrittsbalken, Scroll-Position speichern) — zurückgestellt
-32. **Feature 1.8** — Vollartikel-Extraktion (Readability.js, dritter Reader-Modus)
+32. **Feature 1.8** — Vollartikel-Extraktion entfernt; Reader bleibt Feed-Inhalt oder Originalseite
 
 ### Phase 10 — Statistiken
 32. **Feature 14.1** — Lese-Statistiken (separates Fenster, Heatmap, Top Feeds, Cmd+Shift+S)

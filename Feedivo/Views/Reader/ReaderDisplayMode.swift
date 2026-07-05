@@ -2,7 +2,6 @@ import SwiftUI
 
 enum ReaderDisplayMode: String, CaseIterable, Identifiable {
     case native
-    case readability
     case web
 
     static let storageKey = "readerDisplayMode"
@@ -14,8 +13,6 @@ enum ReaderDisplayMode: String, CaseIterable, Identifiable {
         switch self {
         case .native:
             return L10n.readerDisplayModeNative
-        case .readability:
-            return L10n.readerDisplayModeReadability
         case .web:
             return L10n.readerDisplayModeWeb
         }

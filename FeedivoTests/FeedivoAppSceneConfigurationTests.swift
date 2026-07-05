@@ -71,7 +71,6 @@ struct FeedivoAppSceneConfigurationTests {
 
         #expect(settingsSource.contains("case general"))
         #expect(settingsSource.contains("case appearance"))
-        #expect(settingsSource.contains("case offline"))
         #expect(settingsSource.contains("case notifications"))
         #expect(settingsSource.contains("case refresh"))
         #expect(settingsSource.contains("case cleanup"))
@@ -165,6 +164,41 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(readerSource.contains("Label(L10n.readerInspectorButton, systemImage: \"sidebar.right\")"))
         #expect(readerSource.contains("Label(L10n.articleCreateRuleCommand"))
         #expect(readerSource.contains("Label(L10n.articleCopyLinkCommand"))
+    }
+
+    @Test func readerBietetNurFeedInhaltOderOriginalseiteAn() throws {
+        let projectRoot = projectRootURL()
+        let displayModeSource = try source(at: "Feedivo/Views/Reader/ReaderDisplayMode.swift", projectRoot: projectRoot)
+        let sqliteReaderSource = try source(at: "Feedivo/Views/Reader/SQLiteReaderView.swift", projectRoot: projectRoot)
+        let legacyReaderSource = try source(at: "Feedivo/Views/Reader/ReaderView.swift", projectRoot: projectRoot)
+
+        #expect(!displayModeSource.contains("case readability"))
+        #expect(!displayModeSource.contains("readerDisplayModeReadability"))
+        #expect(sqliteReaderSource.contains("WebContentView(url: originalURL)"))
+        #expect(!sqliteReaderSource.contains("Readability"))
+        #expect(!legacyReaderSource.contains("Readability"))
+    }
+
+    @Test func offlineArtikelKopienSindNichtMehrImProduktivenUIPfadVerdrahtet() throws {
+        let projectRoot = projectRootURL()
+        let settingsSource = try source(at: "Feedivo/Views/Settings/SettingsView.swift", projectRoot: projectRoot)
+        let sqliteReaderSource = try source(at: "Feedivo/Views/Reader/SQLiteReaderView.swift", projectRoot: projectRoot)
+        let rowSource = try source(at: "Feedivo/Views/ArticleList/ArticleRowView.swift", projectRoot: projectRoot)
+        let listSource = try source(at: "Feedivo/Views/ArticleList/SQLiteFeedArticleListView.swift", projectRoot: projectRoot)
+        let contentSource = try source(at: "Feedivo/Views/ContentView.swift", projectRoot: projectRoot)
+        let preparedSource = try source(at: "Feedivo/Views/Reader/ReaderPreparedArticle.swift", projectRoot: projectRoot)
+
+        #expect(!settingsSource.contains("case offline"))
+        #expect(!settingsSource.contains("NewOfflineSettingsView"))
+        #expect(!settingsSource.contains("OfflineArticleStorageSummary"))
+        #expect(!sqliteReaderSource.contains("SQLiteOfflineDownloadService"))
+        #expect(!sqliteReaderSource.contains("toggleOffline"))
+        #expect(!rowSource.contains("onSaveOrRemoveOffline"))
+        #expect(!rowSource.contains("offlineIndicator"))
+        #expect(!listSource.contains("SQLiteOfflineDownloadService"))
+        #expect(!listSource.contains("saveOrRemoveOffline"))
+        #expect(!contentSource.contains("automaticallySaveStarredArticles"))
+        #expect(!preparedSource.contains("offlineContent"))
     }
 
     @Test func sqliteReaderVerdrahtetRegelErstellenMitRuleWizard() throws {
@@ -349,7 +383,7 @@ struct FeedivoAppSceneConfigurationTests {
         let readerSource = try source(at: "Feedivo/Views/Reader/ReaderView.swift", projectRoot: projectRoot)
         let articleIdentityCount = readerSource.components(separatedBy: ".id(article.persistentModelID)").count - 1
 
-        #expect(articleIdentityCount >= 2)
+        #expect(articleIdentityCount >= 1)
     }
 
     @Test func readerMetadataChipsExposeInlineTagEditor() throws {
@@ -416,9 +450,9 @@ struct FeedivoAppSceneConfigurationTests {
         let cacheKeySource = preparedSource[keyStart.lowerBound ..< cacheStart.lowerBound]
 
         #expect(cacheKeySource.contains("contentFingerprint"))
-        #expect(cacheKeySource.contains("offlineContentFingerprint"))
         #expect(!cacheKeySource.contains("let content: String?"))
-        #expect(!cacheKeySource.contains("let offlineContent: String?"))
+        #expect(!cacheKeySource.contains("offlineContent"))
+        #expect(!cacheKeySource.contains("offlineState"))
     }
 
     @Test func readerDetailbilderNutzenZielgroesse() throws {

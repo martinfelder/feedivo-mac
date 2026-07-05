@@ -8,19 +8,9 @@ enum ReaderContentAvailability: Equatable {
     case empty
 
     static func resolved(
-        offlineState: ArticleOfflineState,
-        offlineContent: String?,
         content: String?,
         summary: String?
     ) -> ReaderContentAvailability {
-        if offlineState == .fullText, hasText(offlineContent) {
-            return .fullText
-        }
-
-        if offlineState == .feedContent, hasText(offlineContent) {
-            return .feedContent
-        }
-
         if hasText(content) {
             return .feedContent
         }
@@ -47,10 +37,6 @@ struct ReaderArticleInput: Sendable {
     let content: String?
     let contentFingerprint: ReaderArticleTextFingerprint?
     let imageURL: String?
-    let offlineContent: String?
-    let offlineContentFingerprint: ReaderArticleTextFingerprint?
-    let offlineState: ArticleOfflineState
-    let offlineStateRaw: String?
     let link: String?
     let feedTitle: String?
     let publishedAt: Date?
@@ -64,10 +50,6 @@ extension ReaderArticleInput {
             content: article.content,
             contentFingerprint: ReaderArticleTextFingerprint.make(from: article.content),
             imageURL: article.imageURL,
-            offlineContent: article.offlineContent,
-            offlineContentFingerprint: ReaderArticleTextFingerprint.make(from: article.offlineContent),
-            offlineState: article.offlineState,
-            offlineStateRaw: article.offlineStateRaw,
             link: article.link,
             feedTitle: article.feed?.title,
             publishedAt: article.publishedAt
@@ -81,10 +63,6 @@ extension ReaderArticleInput {
             content: nil,
             contentFingerprint: nil,
             imageURL: article.imageURL,
-            offlineContent: nil,
-            offlineContentFingerprint: nil,
-            offlineState: .none,
-            offlineStateRaw: ArticleOfflineState.none.rawValue,
             link: article.link,
             feedTitle: article.feed?.title,
             publishedAt: article.publishedAt
@@ -97,10 +75,6 @@ extension ReaderArticleInput {
             content: snapshot.content,
             contentFingerprint: ReaderArticleTextFingerprint.make(from: snapshot.content),
             imageURL: snapshot.imageURL,
-            offlineContent: snapshot.offlineContent,
-            offlineContentFingerprint: ReaderArticleTextFingerprint.make(from: snapshot.offlineContent),
-            offlineState: snapshot.offlineState,
-            offlineStateRaw: snapshot.offlineStateRaw,
             link: snapshot.link,
             feedTitle: snapshot.feedTitle,
             publishedAt: snapshot.publishedAt
@@ -127,17 +101,11 @@ enum ReaderArticleContentLoader {
             }
 
             let content = article.content
-            let offlineContent = article.offlineContent
-
             return ReaderArticleInput(
                 summary: article.summary,
                 content: content,
                 contentFingerprint: ReaderArticleTextFingerprint.make(from: content),
                 imageURL: article.imageURL,
-                offlineContent: offlineContent,
-                offlineContentFingerprint: ReaderArticleTextFingerprint.make(from: offlineContent),
-                offlineState: article.offlineState,
-                offlineStateRaw: article.offlineStateRaw,
                 link: article.link,
                 feedTitle: article.feed?.title,
                 publishedAt: article.publishedAt
@@ -147,9 +115,9 @@ enum ReaderArticleContentLoader {
 }
 
 /// Leichte Signatur für Reader-Updates. Sie fasst nur Felder an, die in den
-/// Listen-Fetches ohnehin geladen sind. Die großen Textfelder `content` und
-/// `offlineContent` bleiben bewusst draußen, damit ein Artikelwechsel nicht
-/// schon beim SwiftUI-View-Aufbau schwere SwiftData-Faults auslöst.
+/// Listen-Fetches ohnehin geladen sind. Das große Textfeld `content` bleibt
+/// bewusst draußen, damit ein Artikelwechsel nicht schon beim SwiftUI-View-
+/// Aufbau schwere SwiftData-Faults auslöst.
 struct ReaderArticleObservationSignature: Equatable {
     let summary: String?
     let imageURL: String?
@@ -187,10 +155,6 @@ struct ReaderPreparedArticle: Sendable {
             content: nil,
             contentFingerprint: nil,
             imageURL: nil,
-            offlineContent: nil,
-            offlineContentFingerprint: nil,
-            offlineState: .none,
-            offlineStateRaw: nil,
             link: nil,
             feedTitle: nil,
             publishedAt: nil
@@ -207,20 +171,17 @@ struct ReaderPreparedArticle: Sendable {
     /// Hier laeuft das HTML-Parsing und die Lesezeit-Berechnung — darf vom
     /// MainActor entkoppelt ausgefuehrt werden.
     init(input: ReaderArticleInput) {
-        let preferredContent = ReaderPreparedArticle.preferredContent(for: input)
         let readingTimeText = ReaderMetadataFormatter.readingTimeText(
-            content: preferredContent,
+            content: input.content,
             summary: input.summary
         )
 
         self.contentBlocks = ReaderContentRenderer.blocks(
             summary: input.summary,
-            content: preferredContent,
+            content: input.content,
             fallbackImageURL: input.imageURL
         )
         self.contentAvailability = ReaderContentAvailability.resolved(
-            offlineState: input.offlineState,
-            offlineContent: input.offlineContent,
             content: input.content,
             summary: input.summary
         )
@@ -241,23 +202,6 @@ struct ReaderPreparedArticle: Sendable {
         }
     }
 
-    private static func preferredContent(for input: ReaderArticleInput) -> String? {
-        if input.offlineState.isAvailable,
-           let offlineContent = normalizedText(input.offlineContent) {
-            return offlineContent
-        }
-
-        return input.content
-    }
-
-    private static func normalizedText(_ value: String?) -> String? {
-        guard let value else {
-            return nil
-        }
-
-        let trimmedValue = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmedValue.isEmpty ? nil : trimmedValue
-    }
 }
 
 struct ReaderArticleTextFingerprint: Hashable, Sendable {
@@ -276,15 +220,13 @@ struct ReaderArticleTextFingerprint: Hashable, Sendable {
     }
 }
 
-/// Cache-Schlüssel aus den inhaltsbestimmenden Feldern. Große Volltexte werden
+/// Cache-Schlüssel aus den inhaltsbestimmenden Feldern. Große Feed-Texte werden
 /// nicht direkt im Key gespeichert; nur kompakte Fingerprints. Dadurch hält der
 /// Cache keine zusätzlichen Kopien langer Artikeltexte.
 struct ReaderArticleCacheKey: Hashable, Sendable {
     let summary: String?
     let contentFingerprint: ReaderArticleTextFingerprint?
     let imageURL: String?
-    let offlineContentFingerprint: ReaderArticleTextFingerprint?
-    let offlineStateRaw: String?
     let link: String?
     let feedTitle: String?
     let publishedAt: Date?
@@ -296,8 +238,6 @@ extension ReaderArticleInput {
             summary: summary,
             contentFingerprint: contentFingerprint,
             imageURL: imageURL,
-            offlineContentFingerprint: offlineContentFingerprint,
-            offlineStateRaw: offlineStateRaw,
             link: link,
             feedTitle: feedTitle,
             publishedAt: publishedAt

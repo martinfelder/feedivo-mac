@@ -3,7 +3,6 @@ import SwiftUI
 private enum NewSettingsSection: String, CaseIterable, Identifiable {
     case general
     case appearance
-    case offline
     case notifications
     case refresh
     case cleanup
@@ -18,8 +17,6 @@ private enum NewSettingsSection: String, CaseIterable, Identifiable {
             L10n.settingsGeneralSection
         case .appearance:
             "Anzeige"
-        case .offline:
-            L10n.settingsOfflineSection
         case .notifications:
             L10n.settingsNotificationsSection
         case .refresh:
@@ -39,8 +36,6 @@ private enum NewSettingsSection: String, CaseIterable, Identifiable {
             "slider.horizontal.3"
         case .appearance:
             "eye"
-        case .offline:
-            "arrow.down.circle"
         case .notifications:
             "bell.badge"
         case .refresh:
@@ -71,7 +66,6 @@ struct NewSettingsView: View {
         TabView(selection: $selectedSection) {
             settingsTab(.general)
             settingsTab(.appearance)
-            settingsTab(.offline)
             settingsTab(.notifications)
             settingsTab(.refresh)
             settingsTab(.cleanup)
@@ -111,8 +105,6 @@ struct NewSettingsView: View {
             NewGeneralSettingsView()
         case .appearance:
             NewAppearanceSettingsView()
-        case .offline:
-            NewOfflineSettingsView()
         case .notifications:
             NewNotificationSettingsView()
         case .refresh:
@@ -414,13 +406,9 @@ private struct NewSlider: View {
 }
 
 private struct NewCacheSettingsView: View {
-    @Environment(\.feedivoDatabase)
-    private var feedivoDatabase
-
     @AppStorage(ImageCacheSettings.limitMegabytesKey)
     private var cacheLimitMegabytes = ImageCacheSettings.defaultLimitMegabytes
 
-    @State private var offlineArticleSummary = OfflineArticleStorageSummary(articleCount: 0, sizeInBytes: 0)
     @State private var cacheSizeInBytes: Int64 = 0
     @State private var errorMessage: String?
 
@@ -429,13 +417,6 @@ private struct NewCacheSettingsView: View {
             NewSettingsBlock(eyebrow: L10n.settingsCacheSection, showsBottomDivider: false) {
                 NewSettingRow(title: L10n.settingsCacheCurrentSize, description: "Gespeicherte Bilder und Favicons.") {
                     Text(ImageCacheSettings.formattedByteCount(cacheSizeInBytes))
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                        .monospacedDigit()
-                }
-
-                NewSettingRow(title: "Offline-Artikel", description: "Bewusst offline gespeicherte Artikelinhalte.") {
-                    Text(offlineArticleSummaryText)
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(.secondary)
                         .monospacedDigit()
@@ -466,10 +447,6 @@ private struct NewCacheSettingsView: View {
                         clearCache()
                     }
                     .disabled(cacheSizeInBytes == 0)
-                    Button("Offline-Kopien löschen", role: .destructive) {
-                        clearOfflineCopies()
-                    }
-                    .disabled(offlineArticleSummary.articleCount == 0)
                 }
 
                 if let errorMessage {
@@ -481,14 +458,7 @@ private struct NewCacheSettingsView: View {
         }
         .task {
             refreshCacheSize()
-            refreshOfflineSummary()
         }
-    }
-
-    private var offlineArticleSummaryText: String {
-        let summary = offlineArticleSummary
-        let articleText = summary.articleCount == 1 ? "1 Artikel" : "\(summary.articleCount) Artikel"
-        return "\(articleText) · \(ImageCacheSettings.formattedByteCount(summary.sizeInBytes))"
     }
 
     private func refreshCacheSize() {
@@ -509,38 +479,6 @@ private struct NewCacheSettingsView: View {
         }
     }
 
-    private func clearOfflineCopies() {
-        guard let database = feedivoDatabase else {
-            errorMessage = "SQLite-Datenbank ist nicht verfügbar."
-            return
-        }
-
-        do {
-            let removedCount = try SQLiteOfflineStore(database: database).clearSavedCopies()
-            guard removedCount > 0 else {
-                return
-            }
-
-            refreshOfflineSummary()
-            errorMessage = nil
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-    }
-
-    private func refreshOfflineSummary() {
-        guard let database = feedivoDatabase else {
-            offlineArticleSummary = OfflineArticleStorageSummary(articleCount: 0, sizeInBytes: 0)
-            return
-        }
-
-        do {
-            offlineArticleSummary = try SQLiteOfflineStore(database: database).summary()
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-    }
-
     private func trimCacheToSelectedLimit() {
         do {
             try ImageCacheService.shared.trimCache(
@@ -549,37 +487,6 @@ private struct NewCacheSettingsView: View {
             refreshCacheSize()
         } catch {
             errorMessage = error.localizedDescription
-        }
-    }
-}
-
-private struct NewOfflineSettingsView: View {
-    @AppStorage(OfflineReadingSettings.automaticallySaveStarredArticlesKey)
-    private var automaticallySaveStarredArticles = OfflineReadingSettings.defaultAutomaticallySaveStarredArticles
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            NewSettingsBlock(eyebrow: L10n.settingsOfflineSection) {
-                NewInfoRow(
-                    iconName: "arrow.down.circle",
-                    title: L10n.settingsOfflineManualTitle,
-                    description: L10n.settingsOfflineManualDescription
-                )
-
-                NewInfoRow(
-                    iconName: "doc.text",
-                    title: L10n.settingsOfflineFeedContentTitle,
-                    description: L10n.settingsOfflineFeedContentDescription
-                )
-
-                NewSettingRow(
-                    title: L10n.settingsOfflineAutoSaveStarredTitle,
-                    description: L10n.settingsOfflineAutoSaveStarredDescription
-                ) {
-                    Toggle("", isOn: $automaticallySaveStarredArticles)
-                        .labelsHidden()
-                }
-            }
         }
     }
 }
