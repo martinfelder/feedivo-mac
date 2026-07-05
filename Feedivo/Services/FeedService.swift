@@ -10,7 +10,7 @@ enum ArticleResourceURLPolicy {
     [
       {
         "trigger": {
-          "url-filter": "^https?://([^/]+\\\\.)*vgwort\\\\.de/.*"
+          "url-filter": "^https?://[^/]*vgwort\\\\.de/.*"
         },
         "action": {
           "type": "block"
@@ -18,7 +18,7 @@ enum ArticleResourceURLPolicy {
       },
       {
         "trigger": {
-          "url-filter": "^https?://[^/]+/.*pixel\\.gif(?:[?#].*)?$"
+          "url-filter": "^https?://[^/]+/.*pixel\\\\.gif"
         },
         "action": {
           "type": "block"
@@ -26,7 +26,7 @@ enum ArticleResourceURLPolicy {
       },
       {
         "trigger": {
-          "url-filter": "^https?://[^/]+/.*tracking\\.gif(?:[?#].*)?$"
+          "url-filter": "^https?://[^/]+/.*tracking\\\\.gif"
         },
         "action": {
           "type": "block"

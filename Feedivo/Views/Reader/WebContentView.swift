@@ -1,5 +1,6 @@
 import SwiftUI
 import WebKit
+import OSLog
 
 struct WebContentView: NSViewRepresentable {
     let url: URL
@@ -155,12 +156,23 @@ struct WebContentView: NSViewRepresentable {
 }
 
 enum ArticleWebContentBlocker {
+    private static let logger = Logger(
+        subsystem: Bundle.main.bundleIdentifier ?? "ch.martin.Feedivo",
+        category: "WebContentBlocker"
+    )
+
     @MainActor
     static func install(into userContentController: WKUserContentController, completion: @escaping @MainActor () -> Void) {
         WKContentRuleListStore.default().compileContentRuleList(
             forIdentifier: ArticleResourceURLPolicy.webContentBlockerIdentifier,
             encodedContentRuleList: ArticleResourceURLPolicy.webContentBlockerRulesJSON
-        ) { ruleList, _ in
+        ) { ruleList, error in
+            if let error {
+                logger.error("Content-Rule-Kompilierung fehlgeschlagen: \(error.localizedDescription, privacy: .public)")
+            } else {
+                logger.info("Content-Rule-Kompilierung erfolgreich abgeschlossen.")
+            }
+
             Task { @MainActor in
                 if let ruleList {
                     userContentController.add(ruleList)
