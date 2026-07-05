@@ -2026,9 +2026,13 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   laufen dort auf sendbaren Regel- und Artikelsnapshots; `assignTag` schreibt
   direkt in die neuen SQLite-Tabellen `tags` und `article_tags`. Sidebar-Feed-
   Zeilen bevorzugen für Titel, Favicon und ungelesene Counts inzwischen
-  `FeedSidebarSnapshot` aus SQLite. Read-/Hidden-Statusänderungen aktualisieren
-  `feeds.unreadCount` direkt in SQLite und invalidieren die Sidebar-Snapshots
-  über `SQLiteDataInvalidation.statusVersionKey`.
+  `FeedSidebarSnapshot` aus SQLite. Seit 2026-07-05 bündelt
+  `SQLiteUnreadCountService` die NetNewsWire-artige Count-Schicht für
+  Feed-Unread-Counts, Feed-Count-Rebuilds, Sidebar-Gesamtsumme und
+  Smart-Folder-Badges. Read-/Hidden-Statusänderungen laufen weiter über
+  `ArticleStatusStore`, delegieren die Count-Neuberechnung aber an diesen Service
+  und invalidieren die Sidebar-Snapshots über
+  `SQLiteDataInvalidation.statusVersionKey`.
 - **Bewusst später:** iCloud Sync, SwiftData-Bestandsdatenmigration, Tags,
   Regeln, Smart Folders, OPML Import/Export, Artikel-Export, Offline-Download
   und die UI-Anbindung der SQLite-FTS-Suche. Das FTS-Fundament selbst ist seit
@@ -2677,12 +2681,12 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   SQLite-Mirroring ab. Ohne SQLite-Datenbank bleibt der bisherige SwiftData-
   Background-Pfad als Fallback erhalten.
 
-- 2026-07-02: SQLite-Statusmutationen invalidieren Sidebar-Snapshots.
-  `ArticleStatusStore` aktualisiert nach Read-/Hidden-Änderungen den betroffenen
-  `feeds.unreadCount` per SQL-Neuberechnung und bump't
-  `SQLiteDataInvalidation.statusVersionKey`. `SidebarView` nimmt diesen Key in
-  den Reload-Token für `SQLiteSidebarState` auf, sodass Feed-Badges nach
-  SQLite-Read/Unread-Toggles ohne SwiftData-Zähler aktuell werden.
+- 2026-07-05: SQLite-Unread-Counts stärker NetNewsWire-artig zentralisiert.
+  `SQLiteUnreadCountService` ist die gemeinsame Count-Schicht für Feed-
+  Unread-Counts, gespeicherte Feed-Count-Rebuilds, Sidebar-Gesamtsumme und
+  Smart-Folder-Badges. `ArticleStatusStore` schreibt weiterhin Statuszeilen,
+  nutzt für Read-/Hidden-Änderungen aber den Service, damit alle produktiven
+  Unread-Badges dieselbe SQL-Logik verwenden.
 
 - 2026-07-02: Sidebar-Feed-Zeilen an SQLite-Snapshots angeschlossen.
   `SQLiteSidebarState` lädt `FeedSidebarSnapshot` aus `FeedStore`, kann gelesene

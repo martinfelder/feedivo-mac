@@ -1008,9 +1008,11 @@
     bis zum finalen FeedRecord-Umbau; neue Artikel aus Add-/Import-Flows liegen
     in SQLite. Doppelte OPML-Feed-URLs werden in der Service-Logik entschieden,
     `feeds.url` ist daher bewusst nicht mehr unique.
-  - SQLite-Statusänderungen halten Feed-Zähler aktuell: `ArticleStatusStore`
-    berechnet nach Read-/Hidden-Mutationen `feeds.unreadCount` direkt in SQLite
-    neu und bump't `SQLiteDataInvalidation.statusVersionKey`, wodurch die
+  - SQLite-Statusänderungen halten Feed-Zähler aktuell:
+    `SQLiteUnreadCountService` bündelt die NetNewsWire-artige Count-Schicht für
+    Feed-Unread-Counts, Rebuilds, Sidebar-Gesamtsumme und Smart-Folder-Badges.
+    `ArticleStatusStore` delegiert Read-/Hidden-Mutationen an diesen Service und
+    bump't `SQLiteDataInvalidation.statusVersionKey`, wodurch die
     Sidebar-Snapshots neu geladen werden.
   - SQLite-Migrationsabschluss 2026-07-03: Regel-Preview, Regel-Zählungen und
     rückwirkendes Anwenden bestehender Regeln laufen über

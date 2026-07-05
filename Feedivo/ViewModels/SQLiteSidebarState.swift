@@ -36,12 +36,12 @@ final class SQLiteSidebarState {
             let tagStore = TagStore(database: database)
             let feedFolderStore = FeedFolderStore(database: database)
             let smartFolderStore = SQLiteSmartFolderStore(database: database)
-            let statusStore = ArticleStatusStore(database: database)
+            let unreadCountService = SQLiteUnreadCountService(database: database)
             let loadedSnapshots = try feedStore.sidebarFeeds(showsReadFeeds: showsReadFeeds)
             let loadedTagSnapshots = try tagStore.sidebarTags()
             let loadedFeedFolders = try feedFolderStore.folders()
             let loadedSmartFolderSnapshots = try smartFolderStore.sidebarSnapshots()
-            let loadedSmartFolderBadgeSnapshot = try statusStore.sidebarSmartFolderBadgeSnapshot()
+            let loadedSmartFolderBadgeSnapshot = try unreadCountService.sidebarSmartFolderBadgeSnapshot()
             snapshots = loadedSnapshots
             tagSnapshots = loadedTagSnapshots
             feedFolders = loadedFeedFolders
@@ -50,9 +50,7 @@ final class SQLiteSidebarState {
             snapshotsByFeedID = Dictionary(uniqueKeysWithValues: loadedSnapshots.map { ($0.id, $0) })
             tagSnapshotsByID = Dictionary(uniqueKeysWithValues: loadedTagSnapshots.map { ($0.id, $0) })
             visibleFeedIDs = Set(loadedSnapshots.map(\.id))
-            totalUnreadCount = loadedSnapshots.reduce(0) { total, snapshot in
-                total + snapshot.unreadCount
-            }
+            totalUnreadCount = try unreadCountService.totalUnreadCount()
             errorMessage = nil
         } catch {
             snapshots = []

@@ -77,10 +77,12 @@ Suche ist Datenbankschicht, nicht UI-Materialisierung.
 
 Feed-Zähler, Sidebar-Badges, Status-Badges und Smart-Folder-Counts kommen aus
 SQLite-Snapshots oder gezielten Count-Queries. Sidebar und Feed-Zeilen lesen
-`FeedSidebarSnapshot`, Tags und Smart Folders lesen SQLite-Snapshots. Die
-verbleibende SwiftData-Abhängigkeit ist nicht mehr Anzeige oder Count, sondern
-einige Aktionen und Sheets, die noch SwiftData-`Feed` als Übergangsbackend
-auflösen.
+`FeedSidebarSnapshot`, Tags und Smart Folders lesen SQLite-Snapshots.
+Seit 2026-07-05 bündelt `SQLiteUnreadCountService` die NetNewsWire-artige
+Unread-Count-Schicht: Feed-Unread-Counts, Feed-Count-Rebuilds, Sidebar-
+Gesamtsumme und Smart-Folder-Badges laufen über dieselbe SQL-Logik.
+`ArticleStatusStore` schreibt weiterhin Statuszeilen, delegiert die
+Count-Korrektur bei Read-/Hidden-Änderungen aber an diesen Service.
 
 ### 7. Refresh schreibt direkt in den Store
 
@@ -207,9 +209,11 @@ mehr die Statusquelle für den produktiven Listen-/Reader-Pfad.
 ### Auswirkung
 
 Statusänderungen betreffen nicht mehr den vollständigen Artikelinhalt.
-`ArticleStatusStore` aktualisiert kleine Statuszeilen, korrigiert
-`feeds.unreadCount` und bump't `SQLiteDataInvalidation.statusVersion`, damit
-Sidebar und Listen gezielt neu laden.
+`ArticleStatusStore` aktualisiert kleine Statuszeilen und ruft für
+Read-/Hidden-Änderungen `SQLiteUnreadCountService` auf. Der Service korrigiert
+`feeds.unreadCount`; danach bump't `ArticleStatusStore`
+`SQLiteDataInvalidation.statusVersion`, damit Sidebar und Listen gezielt neu
+laden.
 
 ### Möglicher nächster Schritt
 

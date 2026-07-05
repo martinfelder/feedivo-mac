@@ -28,7 +28,7 @@ Phase 1 ist die Sicherheitslage für den Umstieg auf einen NetNewsWire-artigen p
 ## Aktive Rückfallschutz-Regeln für Phase 1 (nachweisbar)
 
 - Neue produktive UI-Pfade dürfen keine neuen SwiftData-Queries auf `Article` als Hauptquelle einführen.
-- Für Feed-/Artikel-Listen/Reader in produktiven Pfaden gilt: `FeedStore` / `TimelineStore` / `ArticleStore` / `ArticleStatusStore`.
+- Für Feed-/Artikel-Listen/Reader in produktiven Pfaden gilt: `FeedStore` / `TimelineStore` / `ArticleStore` / `ArticleStatusStore` / `SQLiteUnreadCountService`.
 - Legacy-Dateien dürfen SQLite-Notizen/Kommentare tragen und müssen nicht produktiv geroutet werden.
 - Kritische Übergänge werden in `FeedivoTests/FeedivoAppSceneConfigurationTests.swift` per Source-Tests abgesichert.
 
@@ -110,6 +110,11 @@ es keine eigene Feed-Abruflogik mehr besitzt:
   Delete-Zugriffe auf `SQLiteFeedSubscriptionService`, `SQLiteFeedRefreshService`,
   `SQLiteFeedRefreshCoordinator` und `FeedStore`. `FeedViewModel` erstellt nur
   noch diesen Service und übersetzt Ergebnisse in UI-State.
+- **Unread-Counts zentralisiert:** `SQLiteUnreadCountService` bündelt seit
+  2026-07-05 die NetNewsWire-artige Count-Schicht für Feed-Unread-Counts,
+  Feed-Count-Rebuilds, Sidebar-Gesamtsumme und Smart-Folder-Badges.
+  `ArticleStatusStore` schreibt weiterhin Statuszeilen, delegiert Read-/Hidden-
+  Count-Neuberechnungen aber an diesen Service.
 - **`refreshAllFeedsWithCoordinator` nicht mehr deprecated:** Er ist der produktive
   Coordinator-Pfad (`refreshAllFeeds(sqliteDatabase:)` delegiert an ihn), kein
   Fallback.

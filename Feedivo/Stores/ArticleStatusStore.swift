@@ -24,28 +24,11 @@ struct ArticleStatusStore {
     }
 
     func unreadCount(feedID: String) throws -> Int {
-        try database.read { db in
-            try Int.fetchOne(db, sql: """
-                SELECT COUNT(*)
-                FROM article_statuses s
-                JOIN articles a ON a.id = s.articleID
-                WHERE a.feedID = ?
-                    AND s.isRead = 0
-                    AND s.isHidden = 0
-                """, arguments: [feedID]) ?? 0
-        }
+        try SQLiteUnreadCountService(database: database).unreadCount(feedID: feedID)
     }
 
     func sidebarSmartFolderBadgeSnapshot() throws -> SmartFolderSidebarBadgeSnapshot {
-        try database.read { db in
-            try SmartFolderSidebarBadgeSnapshot.fetchOne(db, sql: """
-                SELECT
-                    (SELECT COALESCE(SUM(unreadCount), 0) FROM feeds) AS unread,
-                    (SELECT COUNT(*) FROM article_statuses WHERE isStarred = 1) AS starred,
-                    (SELECT COUNT(*) FROM article_statuses WHERE isHidden = 1) AS hidden,
-                    (SELECT COUNT(*) FROM article_statuses WHERE isStarred = 1 OR isArchived = 1) AS saved
-                """) ?? .empty
-        }
+        try SQLiteUnreadCountService(database: database).sidebarSmartFolderBadgeSnapshot()
     }
 
     func setRead(_ isRead: Bool, articleID: String, at date: Date?) throws {
@@ -109,41 +92,12 @@ struct ArticleStatusStore {
             didUpdate = db.changesCount > 0
 
             if column == "isRead" || column == "isHidden" {
-                try updateFeedUnreadCount(forArticleID: articleID, db: db)
+                try SQLiteUnreadCountService.rebuildFeedUnreadCount(forArticleID: articleID, db: db)
             }
         }
 
         if didUpdate {
             SQLiteDataInvalidation.bumpStatusVersion()
         }
-    }
-
-    private func updateFeedUnreadCount(forArticleID articleID: String, db: Database) throws {
-        guard let feedID = try String.fetchOne(db, sql: """
-            SELECT feedID
-            FROM articles
-            WHERE id = ?
-            LIMIT 1
-            """, arguments: [articleID]) else {
-            return
-        }
-
-        let unreadCount = try Int.fetchOne(db, sql: """
-            SELECT COUNT(*)
-            FROM article_statuses s
-            JOIN articles a ON a.id = s.articleID
-            WHERE a.feedID = ?
-                AND s.isRead = 0
-                AND s.isHidden = 0
-            """, arguments: [feedID]) ?? 0
-
-        try db.execute(
-            sql: """
-                UPDATE feeds
-                SET unreadCount = ?, updatedAt = ?
-                WHERE id = ?
-                """,
-            arguments: [unreadCount, Date(), feedID]
-        )
     }
 }
