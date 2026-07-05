@@ -588,3 +588,27 @@ Die Langzeit-Wiedererkennung alter Artikel ist mit `article_identity_history`
 grundlegend vorhanden; die Mindestanzahl pro Feed ist ebenfalls umgesetzt. Für
 v1 nur weiter ausbauen, wenn Retention aggressiv genutzt wird oder reale Feeds
 alte Artikel häufig erneut liefern.
+
+## Stand nach SQLite Final Closure
+
+Feedivo entspricht NetNewsWire strukturell in den relevanten Feed-/Artikelpunkten:
+
+- Artikelinhalt und Status getrennt (`articles` vs. `article_statuses`).
+- Listen laden leichte Snapshots (`TimelineStore`/`ArticleStore`), keine
+  SwiftData-`@Query`-Materialisierung im produktiven Pfad.
+- Suche läuft über SQLite/FTS (`ArticleStore.searchArticles`).
+- Counts kommen aus SQLite (`feeds.unreadCount`, `article_statuses`,
+  `SmartFolderSidebarBadgeSnapshot`).
+- Refresh schreibt in SQLite (`SQLiteFeedRefreshCoordinator`/`SQLiteFeedRefreshService`),
+  Regeln liegen in `SQLiteRuleStore` und werden als Snapshots angewendet.
+- Sidebar, Tags, SmartFolders, FeedFolders und OPML-Import/Export sind SQLite-first.
+
+Bewusst anders:
+
+- UI bleibt SwiftUI statt NSTableView, solange Performance-Tests grün bleiben.
+- SwiftData-Legacy-Code (`@Model`-Klassen, einige ViewModels, Backfill-Services)
+  liegt noch als Migrationshistorie im Repo, ist aber nicht produktive Quelle.
+  Die produktiven Aufrufe erfolgen ausschließlich gegen SQLite-Stores; die
+  SwiftData-Bridge ist standardmäßig ausgeschaltet (`SwiftDataBridgeSettings.defaultIsEnabled = false`).
+- Legacy-Views (`LegacyArticleListView`, `LegacyReaderView`) sind ohne
+  Typealias erreichbar und damit nicht mehr versehentlich produktiv nutzbar.

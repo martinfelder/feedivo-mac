@@ -47,18 +47,13 @@ Stand: 2026-07-05 (nach Merge von `feature/sqlite-only-app-start`)
 - Feed-/Artikelproduktpfad: SQLite-only (`SQLiteFeedArticleListView`, `SQLiteReaderView`,
   `FeedStore`, `TimelineStore`, `ArticleStore`, `ArticleStatusStore`).
 - SwiftData-Reste nach dem Scan als konkrete Datei-Liste:
-  - `remove` (werden in den Tasks 5/6 dieses Abschlussplans gelöscht):
-    - `Feedivo/App/FeedivoModelContainerFactory.swift`
-    - `Feedivo/Services/FeedBackgroundRefreshService.swift`
-    - `Feedivo/Services/ArticleFeedIDBackfillService.swift`
-    - `Feedivo/Services/FeedTagBackfillService.swift`
-    - `Feedivo/Services/FeedUnreadCountBackfillService.swift`
-    - `Feedivo/Services/OrphanedArticleCleanupService.swift`
-    - `Feedivo/Services/SmartFolderDefaultKeyBackfillService.swift`
-    - `Feedivo/Services/SQLiteAdminDefinitionBackfillService.swift`
+  - `remove` (im Abschluss gelöscht):
+    - `Feedivo/App/FeedivoModelContainerFactory.swift` (Task 5)
+    - `FeedivoTests/FeedivoModelContainerFactoryTests.swift` (Task 5)
+    - `Feedivo/Services/SmartFolderDefaultKeyBackfillService.swift` (Task 6, keine Aufrufer mehr)
   - `legacy-isolate` (bleiben vorerst, klar Legacy, nicht produktiv geroutet):
-    - `Feedivo/Views/ArticleList/ArticleListView.swift` (Typealias-Quelle, Task 4)
-    - `Feedivo/Views/Reader/ReaderView.swift` (Typealias-Quelle, Task 4)
+    - `Feedivo/Views/ArticleList/ArticleListView.swift` (Legacy-View, Typealias in Task 4 entfernt)
+    - `Feedivo/Views/Reader/ReaderView.swift` (Legacy-View, Typealias in Task 4 entfernt)
     - `Feedivo/Views/Reader/LegacyArticleMetadataInspectorView.swift`
     - `Feedivo/Views/Sidebar/FeedPropertiesQuery.swift`
     - `Feedivo/Views/Sidebar/SidebarUnreadCount.swift`
@@ -67,7 +62,15 @@ Stand: 2026-07-05 (nach Merge von `feature/sqlite-only-app-start`)
     - `Feedivo/ViewModels/ArticleViewModel.swift`
     - `Feedivo/ViewModels/SmartFolderViewModel.swift`
     - `Feedivo/ViewModels/TagViewModel.swift`
-    - `Feedivo/ViewModels/FeedViewModel.swift` (wird in Task 3 reduziert)
+    - `Feedivo/ViewModels/FeedViewModel.swift` (Task 3: MARK-Regionen trennen Legacy von SQLite-Delegation)
+    - Legacy-Backfill-Services als `@available(*, deprecated)` markiert (Task 6), weil sie
+      noch in Migrations-/Kompatibilitätstests referenziert werden:
+      - `Feedivo/Services/FeedBackgroundRefreshService.swift`
+      - `Feedivo/Services/ArticleFeedIDBackfillService.swift`
+      - `Feedivo/Services/FeedTagBackfillService.swift`
+      - `Feedivo/Services/FeedUnreadCountBackfillService.swift`
+      - `Feedivo/Services/OrphanedArticleCleanupService.swift`
+      - `Feedivo/Services/SQLiteAdminDefinitionBackfillService.swift`
   - `test-only`: SwiftData-Treffer in `FeedivoTests/` (alte Migrations-/Kompatibilitätstests);
     nicht Teil des produktiven Pfads.
   - `model-only` (alte SwiftData-Modelle, werden erst gelöscht, wenn alle Tests umgestellt

@@ -7,7 +7,14 @@
 > Status-Legende:
 > ✔️ Fertig | 🔨 In Arbeit (teilweise umgesetzt) | ✅ Entschieden (bereit zur Implementierung) | 💬 In Diskussion | ⏸️ Zurückgestellt
 >
-> Zuletzt aktualisiert: 2026-07-03
+> Zuletzt aktualisiert: 2026-07-05
+>
+> **SQLite Final Closure 2026-07-05:** Produktiver Feed-/Artikelpfad SQLite-first
+> abgeschlossen. `FeedivoApp` startet ohne SwiftData-`ModelContainer`, die
+> SwiftData-Write-Bridge ist standardmäßig aus (`SwiftDataBridgeSettings`), und
+> verbleibende SwiftData-Dateien sind als Legacy/Migration/Test/Model isoliert
+> oder entfernt. Neue Features sollen ausschließlich gegen SQLite-Stores gebaut
+> werden; siehe `docs/performance/sqlite-only-audit.md`.
 
 ---
 
