@@ -50,6 +50,7 @@ struct SidebarView: View {
         VStack(spacing: 0) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
+                    sidebarActionRow
                     smartFoldersSection(badgeSnapshot: sqliteSidebarState.smartFolderBadgeSnapshot)
                     tagsSection
                     foldersSection
@@ -60,19 +61,6 @@ struct SidebarView: View {
             .scrollContentBackground(.hidden)
         }
         .background(SidebarStyle.background)
-        .toolbar {
-            ToolbarItemGroup(placement: .navigation) {
-                Button {
-                    onRequestRefreshAllFeeds()
-                } label: {
-                    Image(systemName: "arrow.clockwise")
-                }
-                .disabled(sqliteSidebarState.snapshots.isEmpty)
-                .help(L10n.feedRefreshAllCommand)
-
-                createSidebarItemMenu
-            }
-        }
         .sheet(item: $feedShowingProperties) { snapshot in
             FeedPropertiesView(feedID: snapshot.id)
         }
@@ -147,6 +135,25 @@ struct SidebarView: View {
         .task(id: sqliteSidebarReloadToken) {
             sqliteSidebarState.load(database: feedivoDatabase, showsReadFeeds: showsReadFeedsInSidebar)
         }
+    }
+
+    private var sidebarActionRow: some View {
+        HStack(spacing: 8) {
+            Button {
+                onRequestRefreshAllFeeds()
+            } label: {
+                Image(systemName: "arrow.clockwise")
+            }
+            .buttonStyle(.borderless)
+            .controlSize(.small)
+            .disabled(sqliteSidebarState.snapshots.isEmpty)
+            .help(L10n.feedRefreshAllCommand)
+
+            createSidebarItemMenu
+                .buttonStyle(.borderless)
+                .controlSize(.small)
+        }
+        .padding(.horizontal, 2)
     }
 
     private var createSidebarItemMenu: some View {

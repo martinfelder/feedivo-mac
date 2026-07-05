@@ -1073,6 +1073,18 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(!sidebarSource.contains("statusBadgeArticles"))
     }
 
+    @Test func sidebarAktionenStehenOberhalbDerIntelligentenOrdner() throws {
+        let projectRoot = projectRootURL()
+        let sidebarSource = try source(at: "Feedivo/Views/Sidebar/SidebarView.swift", projectRoot: projectRoot)
+        let compactSidebarSource = compact(sidebarSource)
+
+        #expect(sidebarSource.contains("private var sidebarActionRow: some View"))
+        #expect(compactSidebarSource.contains("sidebarActionRowsmartFoldersSection(badgeSnapshot:sqliteSidebarState.smartFolderBadgeSnapshot)"))
+        #expect(compactSidebarSource.contains("Button{onRequestRefreshAllFeeds()}label:{Image(systemName:\"arrow.clockwise\")}"))
+        #expect(compactSidebarSource.contains("createSidebarItemMenu.buttonStyle(.borderless).controlSize(.small)"))
+        #expect(!sidebarSource.contains("ToolbarItemGroup(placement: .navigation)"))
+    }
+
     @Test func sidebarOrdnerUndSmartFolderQuellenSindSQLiteFirst() throws {
         let projectRoot = projectRootURL()
         let sidebarSource = try source(at: "Feedivo/Views/Sidebar/SidebarView.swift", projectRoot: projectRoot)
