@@ -361,12 +361,19 @@ enum FeedService {
         }
 
         let range = NSRange(html.startIndex ..< html.endIndex, in: html)
-        guard let match = imgSrcExpression.firstMatch(in: html, range: range),
-              let srcRange = Range(match.range(at: 1), in: html) else {
-            return nil
+        let matches = imgSrcExpression.matches(in: html, range: range)
+
+        for match in matches {
+            guard let srcRange = Range(match.range(at: 1), in: html) else {
+                continue
+            }
+
+            if let imageURL = cleanImageURL(String(html[srcRange]), relativeTo: baseURL) {
+                return imageURL
+            }
         }
 
-        return cleanImageURL(String(html[srcRange]), relativeTo: baseURL)
+        return nil
     }
 
     static func enrichArticleImagesIfNeeded(
@@ -517,7 +524,31 @@ enum FeedService {
             return nil
         }
 
-        return cleanURL(cleaned, relativeTo: baseURL)
+        guard let urlString = cleanURL(cleaned, relativeTo: baseURL),
+              isArticleImageURLCandidate(urlString)
+        else {
+            return nil
+        }
+
+        return urlString
+    }
+
+    static func isArticleImageURLCandidate(_ urlString: String) -> Bool {
+        guard let components = URLComponents(string: urlString) else {
+            return true
+        }
+
+        let host = components.host?.lowercased()
+        if host == "vgwort.de" || host?.hasSuffix(".vgwort.de") == true {
+            return false
+        }
+
+        let lastPathComponent = URL(fileURLWithPath: components.path).lastPathComponent.lowercased()
+        if lastPathComponent == "pixel.gif" || lastPathComponent == "tracking.gif" {
+            return false
+        }
+
+        return true
     }
 
     private nonisolated static func looksLikeImageURL(_ url: String) -> Bool {

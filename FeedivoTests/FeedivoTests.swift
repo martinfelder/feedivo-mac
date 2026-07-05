@@ -172,6 +172,16 @@ struct FeedivoTests {
         ])
     }
 
+    @Test func readerContentRendererIgnoriertVGWortZaehlimages() {
+        let blocks = ReaderContentRenderer.blocks(
+            summary: nil,
+            content: #"<p>Artikeltext</p><img src="https://vg05.met.vgwort.de/na/b94510332eaf4f8ea19ced6ac17cd7c0" />"#,
+            fallbackImageURL: nil
+        )
+
+        #expect(blocks == [.paragraph("Artikeltext")])
+    }
+
     @Test func readerContentRendererErkenntStrukturierteTextbloecke() {
         let blocks = ReaderContentRenderer.blocks(
             summary: nil,
@@ -639,6 +649,36 @@ struct FeedivoTests {
         let result = try FeedService.parseFeed(data: Data(rss.utf8), sourceURL: "https://example.com/feed.xml")
 
         #expect(result.articles.first?.imageURL == "https://example.com/bild-html.jpg")
+    }
+
+    @Test func feedServiceIgnoriertVGWortZaehlimagesUndNimmtNaechstesArtikelbild() throws {
+        let rss = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <rss version="2.0">
+            <channel>
+                <title>Feedivo Test Feed</title>
+                <item>
+                    <title>Artikel mit Zaehlimages</title>
+                    <link>https://example.com/html-artikel</link>
+                    <description><![CDATA[
+                        <p>Kurzer Einstieg</p>
+                        <img src="https://vg05.met.vgwort.de/na/b94510332eaf4f8ea19ced6ac17cd7c0">
+                        <img src="https://example.com/echtes-bild.jpg" alt="Bild">
+                    ]]></description>
+                </item>
+            </channel>
+        </rss>
+        """
+
+        let result = try FeedService.parseFeed(data: Data(rss.utf8), sourceURL: "https://example.com/feed.xml")
+
+        #expect(result.articles.first?.imageURL == "https://example.com/echtes-bild.jpg")
+    }
+
+    @Test func feedServiceErkenntArtikelbildKandidatenUndZaehlimages() {
+        #expect(!FeedService.isArticleImageURLCandidate("https://vg05.met.vgwort.de/na/b94510332eaf4f8ea19ced6ac17cd7c0"))
+        #expect(!FeedService.isArticleImageURLCandidate("https://example.com/pixel.gif"))
+        #expect(FeedService.isArticleImageURLCandidate("https://example.com/echtes-bild.jpg"))
     }
 
     @Test func feedServiceMachtRelativeArtikelbilderAbsolut() throws {
