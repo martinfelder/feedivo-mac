@@ -75,29 +75,6 @@ enum FeedRefreshItemStatusBatch {
     }
 }
 
-enum OPMLImportFeedStatus: Equatable {
-    case available
-    case duplicate
-    case unreachable
-}
-
-struct OPMLImportPreviewRow: Identifiable, Equatable {
-    let id = UUID()
-    var feed: OPMLFeed
-    var status: OPMLImportFeedStatus
-    var isSelected: Bool
-}
-
-struct OPMLImportPreviewProgress: Equatable {
-    var currentFeedTitle: String
-    var currentIndex: Int
-    var totalCount: Int
-
-    var displayText: String {
-        "Feed \(currentIndex) von \(totalCount) wird geprüft: \(currentFeedTitle)"
-    }
-}
-
 private struct FeedRefreshResult {
     var feedNotification: FeedRefreshNotificationResult
     var ruleNotifications: [RuleNotificationResult]
@@ -201,103 +178,34 @@ final class FeedViewModel {
         self.minimumRefreshStatusDuration = minimumRefreshStatusDuration
     }
 
+    /// OPML-Importvorschau. Reiner Delegator: die eigentliche Duplikat-Erkennung
+    /// und Erreichbarkeitsprüfung läuft im `SQLiteFeedSubscriptionService`, damit
+    /// `FeedViewModel` keine eigene Feed-Abruflogik mehr besitzt.
+    ///
+    /// `existingFeeds` ist ein verbleibender Legacy-Parameter und wird im
+    /// produktiven SQLite-Pfad ignoriert (alle produktiven Aufrufer übergeben
+    /// `[]`). Die Duplikat-Erkennung läuft ausschließlich gegen die SQLite-
+    /// Datenbank. Ohne `sqliteDatabase` liefert die Vorschau bewusst eine leere
+    /// Liste, weil es keinen produktiven Datenbestand gibt, gegen den geprüft
+    /// werden könnte.
     @MainActor
     func opmlImportPreviewRows(
         for opmlFeeds: [OPMLFeed],
-        existingFeeds: [Feed],
+        existingFeeds: [Feed] = [],
         sqliteDatabase: FeedivoDatabase? = nil,
         onProgress: ((OPMLImportPreviewProgress) -> Void)? = nil
     ) async -> [OPMLImportPreviewRow] {
-        let sqliteFeedURLs = (try? sqliteDatabase.map { try FeedStore(database: $0).feeds().map(\.url) }) ?? []
-        var knownFeedURLs = Set((existingFeeds.map(\.url) + sqliteFeedURLs).map { normalizedFeedURL($0) })
-
-        // Phase 1 — sequenziell: Duplikat-Status feststellen und Abruf-Bedarf
-        // sammeln. Das URL-Set darf nicht concurrent mutiert werden, daher bleibt
-        // diese Phase bewusst seriell. Der onProgress-Callback wird hier pro
-        // Feed in Original-Reihenfolge aufgerufen (bestehendes Verhalten: eine
-        // Meldung je Feed vor dem Abruf). Die Reihenfolge der zurückgegebenen
-        // Rows entspricht der Reihenfolge von `opmlFeeds`.
-        struct PendingFeed {
-            let index: Int
-            let cleanedURL: String
-        }
-        var pending: [PendingFeed] = []
-        // Indexiertes Ergebnis-Array, damit die Abrufe in Phase 2 parallel laufen
-        // können, ohne die Original-Reihenfolge zu verlieren.
-        var rowsByIndex = Array<OPMLImportPreviewRow?>(repeating: nil, count: opmlFeeds.count)
-
-        for (index, opmlFeed) in opmlFeeds.enumerated() {
-            onProgress?(
-                OPMLImportPreviewProgress(
-                    currentFeedTitle: opmlFeed.title.trimmingCharacters(in: .whitespacesAndNewlines),
-                    currentIndex: index + 1,
-                    totalCount: opmlFeeds.count
-                )
-            )
-            let cleanedURL = opmlFeed.xmlURL.trimmingCharacters(in: .whitespacesAndNewlines)
-            let normalizedURL = normalizedFeedURL(cleanedURL)
-            let isDuplicate = !knownFeedURLs.insert(normalizedURL).inserted
-
-            if isDuplicate {
-                rowsByIndex[index] = OPMLImportPreviewRow(
-                    feed: opmlFeed,
-                    status: .duplicate,
-                    isSelected: false
-                )
-            } else {
-                pending.append(PendingFeed(index: index, cleanedURL: cleanedURL))
-            }
+        guard let sqliteDatabase else {
+            return []
         }
 
-        // Phase 2 — parallel: Erreichbarkeit prüfen, in begrenzten Gruppen
-        // (gleiche Drosselung wie importOPMLFeeds/refreshAllFeeds). Ergebnisse
-        // werden indexiert in `rowsByIndex` einsortiert, nicht in eine gemeinsam
-        // mutierte Liste appendet — so bleibt die Original-Reihenfolge erhalten.
-        //
-        // Fortschritts-Updates in Phase 2: Pro abgeschlossenem Abruf feuern wir
-        // onProgress. `completedFetches` ist ein monotoner MainActor-Zähler, der
-        // unabhängig von der Completion-Reihenfolge der Tasks deterministisch
-        // 1..k hochzählt. Ohne diese Updates würde der Fortschrittsbalken während
-        // der langsamen Abruf-Phase (dem Punkt der Parallelisierung) sichtbar
-        // „einfrieren" — Phase 1 ist reine Duplikat-Schau ohne Netzwerk-I/O.
-        var completedFetches = 0
-        for batch in feedBatches(from: pending) {
-            await withTaskGroup(of: (Int, OPMLImportFeedStatus).self) { group in
-                for item in batch {
-                    group.addTask { @MainActor in
-                        do {
-                            _ = try await self.fetchFeed(item.cleanedURL)
-                            return (item.index, .available)
-                        } catch {
-                            return (item.index, .unreachable)
-                        }
-                    }
-                }
-                for await (index, status) in group {
-                    completedFetches += 1
-                    let isSelected = (status == .available)
-                    rowsByIndex[index] = OPMLImportPreviewRow(
-                        feed: opmlFeeds[index],
-                        status: status,
-                        isSelected: isSelected
-                    )
-                    // currentIndex nutzt den deterministischen MainActor-Zähler
-                    // (1..k), nicht den Index im opmlFeeds-Array — so bleibt die
-                    // Progress-Anzeige stabil unabhängig davon, welcher Task
-                    // zuerst fertig wird. totalCount bezieht sich wie in Phase 1
-                    // auf alle Feeds im OPML-Import.
-                    onProgress?(
-                        OPMLImportPreviewProgress(
-                            currentFeedTitle: opmlFeeds[index].title.trimmingCharacters(in: .whitespacesAndNewlines),
-                            currentIndex: completedFetches,
-                            totalCount: opmlFeeds.count
-                        )
-                    )
-                }
-            }
-        }
+        let service = SQLiteFeedSubscriptionService(
+            database: sqliteDatabase,
+            fetchFeed: fetchFeed,
+            discoverFaviconURL: discoverFaviconURL
+        )
 
-        return rowsByIndex.compactMap { $0 }
+        return await service.previewOPMLFeeds(for: opmlFeeds, onProgress: onProgress)
     }
 
     @MainActor
@@ -712,6 +620,54 @@ final class FeedViewModel {
     // `SQLiteRuleStore`, `SQLiteFeedSubscriptionService`) laufen. Diese Region
     // ist der produktive Pfad — SwiftData wird hier weder gelesen noch geschrieben.
 
+    /// SQLite-first Feed hinzufügen. Produktiver Pfad: delegiert an
+    /// `SQLiteFeedSubscriptionService.addFeed` und übersetzt nur Fehler sowie
+    /// Reentrancy in UI-State (`isLoading`, `errorMessage`). Ohne Datenbank
+    /// gibt es keinen produktiven Bestand, gegen den ein Duplikat geprüft werden
+    /// könnte — die Methode bleibt dann ohne Wirkung.
+    @MainActor
+    func addFeed(urlString: String, sqliteDatabase: FeedivoDatabase?) async {
+        let cleanedURL = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleanedURL.isEmpty else {
+            errorMessage = L10n.feedErrorEmptyURL
+            return
+        }
+
+        guard !isLoading else {
+            errorMessage = L10n.feedErrorAlreadyRunning
+            return
+        }
+
+        guard let sqliteDatabase else {
+            errorMessage = L10n.feedErrorAddFailed
+            return
+        }
+
+        isLoading = true
+        errorMessage = nil
+        defer {
+            isLoading = false
+        }
+
+        do {
+            let service = SQLiteFeedSubscriptionService(
+                database: sqliteDatabase,
+                fetchFeed: fetchFeed,
+                discoverFaviconURL: discoverFaviconURL
+            )
+            _ = try await service.addFeed(
+                urlString: cleanedURL,
+                refreshIntervalMinutes: BackgroundRefreshSettings.defaultIntervalMinutes,
+                context: nil
+            )
+            SQLiteDataInvalidation.bumpStatusVersion()
+        } catch let error as LocalizedError {
+            errorMessage = error.errorDescription ?? L10n.feedErrorAddFailed
+        } catch {
+            errorMessage = L10n.feedErrorAddFailed
+        }
+    }
+
     /// SQLite-first Einzel-Refresh anhand der Feed-ID, ohne dass der Aufrufer ein
     /// SwiftData-`Feed`-Objekt vorhalten muss. ContentView resolved die Auswahl
     /// nur noch per ID. Regeln werden einmalig aus `SQLiteRuleStore` geholt und
@@ -1032,9 +988,12 @@ final class FeedViewModel {
         }
     }
 
-    /// Legacy-SwiftData-Refreshpfad bleibt als Fallback erhalten; produktiv
-    /// refreshen wir über den `SQLiteFeedRefreshCoordinator`.
-    @available(*, deprecated, message: "Legacy-SwiftData-Fallback. Produktions-Zeitpfad nutzt die SQLite-Coordinator-Pipeline.")
+    /// Produktiver SQLite-Sammel-Refresh: treibt den `SQLiteFeedRefreshCoordinator`
+    /// und übersetzt dessen Ergebnis in UI-State (`refreshItems`, `recentRefreshStatus`,
+    /// `lastRefreshOutcome`, Fehler-/Benachrichtigungs-Events). Diese Methode ist
+    /// bewusst nicht als Legacy markiert — sie ist der productive Pfad, den sowohl
+    /// `refreshAllFeeds(sqliteDatabase:)` als auch der alte container-basierte
+    /// Einstieg gemeinsam nutzen, solange letzterer noch existiert.
     @MainActor
     private func refreshAllFeedsWithCoordinator(
         _ snapshots: [FeedRefreshSnapshot],

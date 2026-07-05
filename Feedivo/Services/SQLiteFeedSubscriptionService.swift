@@ -30,6 +30,37 @@ enum SQLiteFeedSubscriptionError: LocalizedError, Equatable {
     }
 }
 
+// MARK: - OPML-Importvorschau
+//
+// Diese UI-Nutz-Modelle werden vom `SQLiteFeedSubscriptionService` gefüllt und
+// von der OPML-Import-Oberfläche (Preview-Controller, Feed-Zeilen) gerendert.
+// Sie leben hier beim produzierenden Service und nicht im `FeedViewModel`, damit
+// der ViewModel nur noch UI-State delegiert und keine eigene Feed-Abruflogik
+// besitzt.
+
+enum OPMLImportFeedStatus: Equatable, Sendable {
+    case available
+    case duplicate
+    case unreachable
+}
+
+struct OPMLImportPreviewRow: Identifiable, Equatable, Sendable {
+    let id = UUID()
+    var feed: OPMLFeed
+    var status: OPMLImportFeedStatus
+    var isSelected: Bool
+}
+
+struct OPMLImportPreviewProgress: Equatable, Sendable {
+    var currentFeedTitle: String
+    var currentIndex: Int
+    var totalCount: Int
+
+    var displayText: String {
+        "Feed \(currentIndex) von \(totalCount) wird geprüft: \(currentFeedTitle)"
+    }
+}
+
 @MainActor
 struct SQLiteFeedSubscriptionService {
     typealias FeedFetcher = (String) async throws -> ParsedFeed
@@ -272,6 +303,111 @@ struct SQLiteFeedSubscriptionService {
             skippedDuplicates: skippedDuplicates,
             failedFeedTitles: failedFeedTitles
         )
+    }
+
+    /// OPML-Importvorschau: erzeugt für jede OPML-Feed-URL eine Zeile mit Status
+    /// `available`, `duplicate` oder `unreachable`. Duplikate werden gegen die
+    /// bereits in SQLite gespeicherten Feeds geprüft; die Erreichbarkeit wird
+    /// parallel und gedrosselt über den injizierten `fetchFeed`-Abruf geprüft.
+    ///
+    /// Diese Methode ist der produktive Vorschau-Pfad und lag zuvor inline im
+    /// `FeedViewModel`. Sie wurde hierher verschoben, damit `FeedViewModel` nur
+    /// noch UI-State hält und keine eigene Feed-Arbeit mehr ausführt.
+    @MainActor
+    func previewOPMLFeeds(
+        for opmlFeeds: [OPMLFeed],
+        onProgress: ((OPMLImportPreviewProgress) -> Void)? = nil
+    ) async -> [OPMLImportPreviewRow] {
+        let sqliteFeedURLs = (try? FeedStore(database: database).feeds().map(\.url)) ?? []
+        var knownFeedURLs = Set(sqliteFeedURLs.map { normalizedFeedURL($0) })
+
+        // Indexiertes Ergebnis-Array, damit die Abrufe in Phase 2 parallel laufen
+        // können, ohne die Original-Reihenfolge zu verlieren.
+        struct PendingFeed {
+            let index: Int
+            let cleanedURL: String
+        }
+        var pending: [PendingFeed] = []
+        var rowsByIndex = Array<OPMLImportPreviewRow?>(repeating: nil, count: opmlFeeds.count)
+
+        // Phase 1 — sequenziell: Duplikat-Status feststellen und Abruf-Bedarf
+        // sammeln. Das URL-Set darf nicht concurrent mutiert werden, daher bleibt
+        // diese Phase bewusst seriell. Der onProgress-Callback wird hier pro Feed
+        // in Original-Reihenfolge aufgerufen.
+        for (index, opmlFeed) in opmlFeeds.enumerated() {
+            onProgress?(
+                OPMLImportPreviewProgress(
+                    currentFeedTitle: opmlFeed.title.trimmingCharacters(in: .whitespacesAndNewlines),
+                    currentIndex: index + 1,
+                    totalCount: opmlFeeds.count
+                )
+            )
+            let cleanedURL = opmlFeed.xmlURL.trimmingCharacters(in: .whitespacesAndNewlines)
+            let normalizedURL = normalizedFeedURL(cleanedURL)
+            let isDuplicate = !knownFeedURLs.insert(normalizedURL).inserted
+
+            if isDuplicate {
+                rowsByIndex[index] = OPMLImportPreviewRow(
+                    feed: opmlFeed,
+                    status: .duplicate,
+                    isSelected: false
+                )
+            } else {
+                pending.append(PendingFeed(index: index, cleanedURL: cleanedURL))
+            }
+        }
+
+        // Phase 2 — parallel: Erreichbarkeit prüfen, in begrenzten Gruppen
+        // (gleiche Drosselung wie der Sammel-Refresh). Ergebnisse werden indexiert
+        // in `rowsByIndex` einsortiert, nicht in eine gemeinsam mutierte Liste
+        // appendet — so bleibt die Original-Reihenfolge erhalten.
+        //
+        // `completedFetches` ist ein monotoner MainActor-Zähler, der unabhängig
+        // von der Completion-Reihenfolge der Tasks deterministisch 1..k hochzählt.
+        // Ohne diese Phase-2-Updates würde der Fortschrittsbalken während der
+        // langsamen Abruf-Phase sichtbar „einfrieren".
+        var completedFetches = 0
+        for batch in batches(pending, size: FeedViewModel.maxConcurrentFeedRefreshes) {
+            await withTaskGroup(of: (Int, OPMLImportFeedStatus).self) { group in
+                for item in batch {
+                    group.addTask { @MainActor in
+                        do {
+                            _ = try await self.fetchFeed(item.cleanedURL)
+                            return (item.index, .available)
+                        } catch {
+                            return (item.index, .unreachable)
+                        }
+                    }
+                }
+                for await (index, status) in group {
+                    completedFetches += 1
+                    let isSelected = (status == .available)
+                    rowsByIndex[index] = OPMLImportPreviewRow(
+                        feed: opmlFeeds[index],
+                        status: status,
+                        isSelected: isSelected
+                    )
+                    onProgress?(
+                        OPMLImportPreviewProgress(
+                            currentFeedTitle: opmlFeeds[index].title.trimmingCharacters(in: .whitespacesAndNewlines),
+                            currentIndex: completedFetches,
+                            totalCount: opmlFeeds.count
+                        )
+                    )
+                }
+            }
+        }
+
+        return rowsByIndex.compactMap { $0 }
+    }
+
+    private func batches<T>(_ items: [T], size: Int) -> [[T]] {
+        guard !items.isEmpty else {
+            return []
+        }
+        return stride(from: 0, to: items.count, by: size).map { start in
+            Array(items[start ..< min(start + size, items.count)])
+        }
     }
 
     private func faviconURL(for parsedFeed: ParsedFeed) async -> String? {

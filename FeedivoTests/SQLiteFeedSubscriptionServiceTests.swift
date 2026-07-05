@@ -842,4 +842,102 @@ struct SQLiteFeedSubscriptionServiceTests {
             try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM \(tableName)") ?? 0
         }
     }
+
+    // MARK: - OPML-Importvorschau (produktive Logik, ehemals in FeedViewModel)
+
+    @MainActor
+    @Test func previewMarkiertDuplikateUndNichtErreichbareFeeds() async throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        try FeedStore(database: database).save(
+            FeedRecord(id: "existing", url: "https://example.com/existing.xml", title: "Schon da")
+        )
+        let service = SQLiteFeedSubscriptionService(
+            database: database,
+            fetchFeed: { urlString in
+                if urlString == "https://example.com/broken.xml" {
+                    throw FeedServiceError.parsingFailed
+                }
+                return ParsedFeed(sourceURL: urlString, title: "OK", description: nil, articles: [])
+            },
+            discoverFaviconURL: { _ in nil }
+        )
+
+        let rows = await service.previewOPMLFeeds(for: [
+            OPMLFeed(title: "Neu", xmlURL: "https://example.com/new.xml", htmlURL: nil, folderName: "News"),
+            OPMLFeed(title: "Schon da", xmlURL: "https://example.com/existing.xml", htmlURL: nil, folderName: "Tech"),
+            OPMLFeed(title: "Kaputt", xmlURL: "https://example.com/broken.xml", htmlURL: nil, folderName: "News")
+        ])
+
+        #expect(rows.map(\.status) == [.available, .duplicate, .unreachable])
+        #expect(rows.map(\.isSelected) == [true, false, false])
+    }
+
+    @MainActor
+    @Test func previewMeldetSichtbarenPrueffortschrittInBeidePhasen() async throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let service = SQLiteFeedSubscriptionService(
+            database: database,
+            fetchFeed: { urlString in
+                ParsedFeed(sourceURL: urlString, title: "OK", description: nil, articles: [])
+            },
+            discoverFaviconURL: { _ in nil }
+        )
+        var progressEvents: [OPMLImportPreviewProgress] = []
+
+        _ = await service.previewOPMLFeeds(
+            for: [
+                OPMLFeed(title: "Erster Feed", xmlURL: "https://example.com/1.xml", htmlURL: nil, folderName: nil),
+                OPMLFeed(title: "Zweiter Feed", xmlURL: "https://example.com/2.xml", htmlURL: nil, folderName: nil)
+            ],
+            onProgress: { progressEvents.append($0) }
+        )
+
+        let phase1Events = progressEvents.prefix(2)
+        #expect(phase1Events.map(\.currentFeedTitle) == ["Erster Feed", "Zweiter Feed"])
+        #expect(phase1Events.map(\.currentIndex) == [1, 2])
+        #expect(phase1Events.map(\.displayText) == [
+            "Feed 1 von 2 wird geprüft: Erster Feed",
+            "Feed 2 von 2 wird geprüft: Zweiter Feed"
+        ])
+
+        let phase2Events = progressEvents.dropFirst(2)
+        #expect(phase2Events.count == 2)
+        #expect(Set(phase2Events.map(\.currentIndex)) == Set(1...2))
+        #expect(phase2Events.allSatisfy { $0.totalCount == 2 })
+    }
+
+    @MainActor
+    @Test func previewParalleelisiertBehaeltReihenfolgeUndStatus() async throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let service = SQLiteFeedSubscriptionService(
+            database: database,
+            fetchFeed: { urlString in
+                if urlString.hasPrefix("fail://") {
+                    throw FeedServiceError.parsingFailed
+                }
+                return ParsedFeed(sourceURL: urlString, title: urlString, description: nil, articles: [])
+            },
+            discoverFaviconURL: { _ in nil }
+        )
+        let opmlFeeds: [OPMLFeed] = [
+            OPMLFeed(title: "F1", xmlURL: "https://f1.example.com/feed.xml", htmlURL: nil, folderName: nil),
+            OPMLFeed(title: "F2", xmlURL: "https://f2.example.com/feed.xml", htmlURL: nil, folderName: nil),
+            OPMLFeed(title: "F3", xmlURL: "fail://broken", htmlURL: nil, folderName: nil),
+            OPMLFeed(title: "F4", xmlURL: "https://f4.example.com/feed.xml", htmlURL: nil, folderName: nil),
+            OPMLFeed(title: "F5", xmlURL: "https://f5.example.com/feed.xml", htmlURL: nil, folderName: nil),
+            OPMLFeed(title: "F6", xmlURL: "https://f6.example.com/feed.xml", htmlURL: nil, folderName: nil)
+        ]
+
+        let rows = await service.previewOPMLFeeds(for: opmlFeeds)
+
+        #expect(rows.count == 6)
+        #expect(rows.map(\.feed.title) == ["F1", "F2", "F3", "F4", "F5", "F6"])
+        #expect(rows[0].status == .available)
+        #expect(rows[1].status == .available)
+        #expect(rows[2].status == .unreachable)
+        #expect(rows[3].status == .available)
+        #expect(rows[4].status == .available)
+        #expect(rows[5].status == .available)
+        #expect(rows.allSatisfy { $0.status != .duplicate })
+    }
 }

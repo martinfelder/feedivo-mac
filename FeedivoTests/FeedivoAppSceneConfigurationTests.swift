@@ -585,6 +585,25 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(viewModelSource.contains("SQLiteDataInvalidation.bumpStatusVersion()"))
     }
 
+    @Test func feedViewModelDelegiertOPMLPreviewAnSQLiteSubscriptionService() throws {
+        // Phase-6-Schutz: Die OPML-Importvorschau darf nicht wieder inline im
+        // `FeedViewModel` landen. Der ViewModel muss die Vorschau an den
+        // `SQLiteFeedSubscriptionService.previewOPMLFeeds` delegieren und darf
+        // selbst keinen `fetchFeed`-Abruf mehr für die Vorschau ausführen.
+        let projectRoot = projectRootURL()
+        let viewModelSource = try source(at: "Feedivo/ViewModels/FeedViewModel.swift", projectRoot: projectRoot)
+        let serviceSource = try source(at: "Feedivo/Services/SQLiteFeedSubscriptionService.swift", projectRoot: projectRoot)
+
+        #expect(viewModelSource.contains("service.previewOPMLFeeds("))
+        #expect(serviceSource.contains("func previewOPMLFeeds("))
+        // Die Vorschau-Typen liegen jetzt beim produzierenden Service, nicht mehr
+        // im ViewModel.
+        #expect(serviceSource.contains("struct OPMLImportPreviewRow"))
+        #expect(serviceSource.contains("struct OPMLImportPreviewProgress"))
+        #expect(!viewModelSource.contains("struct OPMLImportPreviewRow"))
+        #expect(!viewModelSource.contains("struct OPMLImportPreviewProgress"))
+    }
+
     @Test func sqliteDatabaseLocationUsesApplicationSupport() throws {
         let applicationSupportURL = URL(fileURLWithPath: "/tmp/feedivo-tests/Application Support")
 

@@ -534,14 +534,20 @@ struct FeedViewModelTests {
     }
 
     @MainActor
-    @Test func opmlImportPreviewMarkiertDuplikateUndNichtErreichbareFeeds() async throws {
-        let existingFeed = Feed(url: "https://example.com/existing.xml", title: "Schon da")
+    @Test func opmlImportPreviewDelegiertAnSQLiteSubscriptionService() async throws {
+        // Phase-6-Reduktion: `FeedViewModel` hält nur noch UI-State; die echte
+        // Vorschau-Logik liegt im `SQLiteFeedSubscriptionService`. Dieser Test
+        // prüft nur die Delegation — Duplikat-/Erreichbarkeits-Erwartungen liegen
+        // in `SQLiteFeedSubscriptionServiceTests`.
+        let database = try FeedivoDatabase.inMemoryForTests()
+        try FeedStore(database: database).save(
+            FeedRecord(id: "existing", url: "https://example.com/existing.xml", title: "Schon da")
+        )
         let viewModel = makeViewModel(
             fetchFeed: { urlString in
                 if urlString == "https://example.com/broken.xml" {
                     throw FeedServiceError.parsingFailed
                 }
-
                 return ParsedFeed(sourceURL: urlString, title: "OK", description: nil, articles: [])
             },
             discoverFaviconURL: { _ in nil }
@@ -553,7 +559,7 @@ struct FeedViewModelTests {
                 OPMLFeed(title: "Schon da", xmlURL: "https://example.com/existing.xml", htmlURL: nil, folderName: "Tech"),
                 OPMLFeed(title: "Kaputt", xmlURL: "https://example.com/broken.xml", htmlURL: nil, folderName: "News")
             ],
-            existingFeeds: [existingFeed]
+            sqliteDatabase: database
         )
 
         #expect(rows.map(\.status) == [.available, .duplicate, .unreachable])
@@ -561,48 +567,23 @@ struct FeedViewModelTests {
     }
 
     @MainActor
-    @Test func opmlImportPreviewMeldetSichtbarenPrueffortschrittInBeidePhasen() async throws {
-        // Phase 1 (Duplikat-Schau) feuert onProgress pro Feed in Eingabe-Reihenfolge
-        // (deterministisch: Titel + currentIndex 1..n). Phase 2 (paralleler Abruf)
-        // feuert pro Completion einen Event; da die Completion-Reihenfolge nicht
-        // deterministisch ist, wird hier nur die Anzahl (= Anzahl nicht-Duplikat-
-        // Feeds) und das Set der currentIndex-Werte (1..k) geprüft — nicht die
-        // Titel-Reihenfolge.
+    @Test func opmlImportPreviewOhneSQLiteDatabaseLiefertLeereListe() async throws {
+        // Ohne SQLite-Datenbank gibt es keinen produktiven Bestand, gegen den ein
+        // Duplikat geprüft werden könnte — die Vorschau bleibt leer statt einen
+        // SwiftData-Fallback zu bemühen.
         let viewModel = makeViewModel(
-            fetchFeed: { urlString in
-                ParsedFeed(sourceURL: urlString, title: "OK", description: nil, articles: [])
+            fetchFeed: { _ in
+                ParsedFeed(sourceURL: "https://example.com", title: "OK", description: nil, articles: [])
             },
             discoverFaviconURL: { _ in nil }
         )
-        var progressEvents: [OPMLImportPreviewProgress] = []
 
-        _ = await viewModel.opmlImportPreviewRows(
-            for: [
-                OPMLFeed(title: "Erster Feed", xmlURL: "https://example.com/1.xml", htmlURL: nil, folderName: nil),
-                OPMLFeed(title: "Zweiter Feed", xmlURL: "https://example.com/2.xml", htmlURL: nil, folderName: nil)
-            ],
-            existingFeeds: [],
-            onProgress: { progressEvents.append($0) }
+        let rows = await viewModel.opmlImportPreviewRows(
+            for: [OPMLFeed(title: "F1", xmlURL: "https://example.com/1.xml", htmlURL: nil, folderName: nil)],
+            sqliteDatabase: nil
         )
 
-        // Phase 1: beide Feeds sind keine Duplikate → zwei Events in
-        // Eingabe-Reihenfolge mit currentIndex 1 und 2.
-        let phase1Events = progressEvents.prefix(2)
-        #expect(phase1Events.map(\.currentFeedTitle) == ["Erster Feed", "Zweiter Feed"])
-        #expect(phase1Events.map(\.currentIndex) == [1, 2])
-        #expect(phase1Events.map(\.displayText) == [
-            "Feed 1 von 2 wird geprüft: Erster Feed",
-            "Feed 2 von 2 wird geprüft: Zweiter Feed"
-        ])
-
-        // Phase 2: zwei Abrufe → zwei weitere Events. Titel-Reihenfolge nicht
-        // deterministisch (parallele Tasks), daher nur Anzahl und das Set der
-        // currentIndex-Werte (1, 2 — deterministischer MainActor-Zähler, der
-        // pro Completion hochzählt). totalCount bleibt über beide Phasen 2.
-        let phase2Events = progressEvents.dropFirst(2)
-        #expect(phase2Events.count == 2)
-        #expect(Set(phase2Events.map(\.currentIndex)) == Set(1...2))
-        #expect(phase2Events.allSatisfy { $0.totalCount == 2 })
+        #expect(rows.isEmpty)
     }
 
     @MainActor
@@ -2780,10 +2761,12 @@ struct FeedViewModelTests {
     }
 
     @MainActor
-    @Test func opmlImportPreviewRowsParalleelisiertBehaeltReihenfolgeUndStatus() async throws {
-        // Charakterisierungs-Test: Die Vorschau muss Reihenfolge und Status pro
-        // Zeile bewahren, auch wenn der Abruf parallelisiert in Batches läuft.
-        // 6 Feeds, einer ("fail://broken") ist nicht erreichbar, Rest available.
+    @Test func opmlImportPreviewBehaeltReihenfolgeUndStatusUeberDelegation() async throws {
+        // Delegations-Test: Die Reihenfolge-/Status-Erwartung wird über den
+        // produktiven Pfad (SQLite-Service) geprüft, nicht mehr über eine inline-
+        // Implementierung im ViewModel. Die eigentliche Charakterisierung liegt
+        // in `SQLiteFeedSubscriptionServiceTests`.
+        let database = try FeedivoDatabase.inMemoryForTests()
         let viewModel = makeViewModel(
             fetchFeed: { urlString in
                 if urlString.hasPrefix("fail://") {
@@ -2798,9 +2781,6 @@ struct FeedViewModelTests {
             },
             discoverFaviconURL: { _ in nil }
         )
-        // F3 (Index 2) ist nicht erreichbar — xmlURL ist `let`, daher wird der
-        // dritte Eintrag direkt mit der fail://-URL erzeugt statt nachträglich
-        // mutiert.
         let opmlFeeds: [OPMLFeed] = [
             OPMLFeed(title: "F1", xmlURL: "https://f1.example.com/feed.xml", htmlURL: nil, folderName: nil),
             OPMLFeed(title: "F2", xmlURL: "https://f2.example.com/feed.xml", htmlURL: nil, folderName: nil),
@@ -2810,7 +2790,7 @@ struct FeedViewModelTests {
             OPMLFeed(title: "F6", xmlURL: "https://f6.example.com/feed.xml", htmlURL: nil, folderName: nil)
         ]
 
-        let rows = await viewModel.opmlImportPreviewRows(for: opmlFeeds, existingFeeds: [])
+        let rows = await viewModel.opmlImportPreviewRows(for: opmlFeeds, sqliteDatabase: database)
 
         #expect(rows.count == 6)
         #expect(rows.map(\.feed.title) == ["F1", "F2", "F3", "F4", "F5", "F6"])
