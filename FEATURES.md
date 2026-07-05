@@ -382,9 +382,8 @@
 ### 9.1 Volltext-Suche
 - **Status:** ✔️ Fertig
 - **Umgesetzt:**
-  - Der Detailbereich zeigt oben eine eigene kompakte Such-Section für die
-    aktuelle Artikelliste. Sie bleibt sichtbar, auch wenn noch kein Artikel
-    ausgewählt ist.
+  - Die obere macOS-Toolbar zeigt ein kompaktes Suchfeld für die aktuelle
+    Artikelliste. Es bleibt sichtbar, auch wenn noch kein Artikel ausgewählt ist.
   - Die Suche filtert die aktuell ausgewählte Liste: aktueller Feed, Tag, Smart
     Filter oder intelligenter Ordner.
   - Suchbereich in dieser kompakten Suche ist bewusst einfach: Alles, also
@@ -962,8 +961,8 @@
     `Mit Stern`, `Heute` und `Ausgeblendet` laden ihre Artikellisten ebenfalls
     über `TimelineScope.smartFilter` aus SQLite. Das SQLite-FTS-Fundament ist
     mit `article_search`, Triggern auf `articles` und
-    `ArticleStore.searchArticles` umgesetzt. Das kompakte Suchfeld im
-    Detailbereich nutzt inzwischen denselben FTS-Index über
+    `ArticleStore.searchArticles` umgesetzt. Das kompakte Suchfeld in der
+    oberen Toolbar nutzt inzwischen denselben FTS-Index über
     `TimelineStore` und kombiniert Suchtext mit Feed-, Tag- und SmartFilter-
     Scopes. Das separate globale Suchfenster nutzt ebenfalls SQLite/FTS über
     `ArticleStore.searchArticles(state:)` und hält keine globale SwiftData-
@@ -1158,7 +1157,7 @@
   - SQLite-FTS-Fundament ergänzt: Migration v4 legt `article_search` mit FTS5
     und Triggern für Insert/Update/Delete auf `articles` an;
     `ArticleStore.searchArticles` liefert Treffer als `ArticleListSnapshot`s
-  - Die kompakte Artikelsuche im Detailbereich nutzt FTS5 über
+  - Die kompakte Artikelsuche in der oberen Toolbar nutzt FTS5 über
     `TimelineStore.articles(... searchText:)`, normalisiert Suchtext vor
     `MATCH` und filtert direkt in SQLite innerhalb des aktuellen Feed-, Tag-
     oder SmartFilter-Scopes
@@ -1171,9 +1170,9 @@
   - Artikelzeilen laden Vorschaubilder über größenbegrenzte Thumbnails aus dem
     gemeinsamen Bildcache; der Disk-Cache speichert weiter das Original, aber die
     Liste hält nur kleine `NSImage`-Instanzen im Memory-Cache
-  - Die kompakte Artikelsuche sitzt in einer eigenen Section oben im
-    Detailbereich und filtert die aktuell ausgewählte Liste über SQLite/FTS,
-    ohne ein Suchfeld in der mittleren Artikelliste zu zeigen
+  - Die kompakte Artikelsuche sitzt in der oberen macOS-Toolbar und filtert die
+    aktuell ausgewählte Liste über SQLite/FTS, ohne ein Suchfeld in der
+    mittleren Artikelliste zu zeigen
 - **Zu beachten:**
   - SwiftData-Queries immer mit gezielten Predicates; bewusste Ausnahme ist der Default-Ordner `Ungelesen`, weil dort die Anzeigeebene gelesene Artikel für Feed-ähnliches Verhalten temporär sichtbar halten muss
   - Weiteres Lazy Loading für schwere Inhalte außerhalb der sichtbaren Listenzeilen

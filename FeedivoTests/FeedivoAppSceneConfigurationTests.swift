@@ -166,17 +166,19 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(readerSource.contains("Label(L10n.articleCopyLinkCommand"))
     }
 
-    @Test func kompakteArtikelsucheLiegtImDetailbereichAuchOhneArtikelauswahl() throws {
+    @Test func kompakteArtikelsucheLiegtInDerToolbarAuchOhneArtikelauswahl() throws {
         let projectRoot = projectRootURL()
         let contentSource = try source(at: "Feedivo/Views/ContentView.swift", projectRoot: projectRoot)
         let readerSource = try source(at: "Feedivo/Views/Reader/SQLiteReaderView.swift", projectRoot: projectRoot)
         let listSource = try source(at: "Feedivo/Views/ArticleList/SQLiteFeedArticleListView.swift", projectRoot: projectRoot)
 
-        #expect(contentSource.contains("articleSearchSection"))
-        #expect(contentSource.contains("private var articleSearchSection: some View"))
+        #expect(contentSource.contains("ToolbarItem(placement: .principal)"))
+        #expect(contentSource.contains("articleSearchToolbarField"))
+        #expect(contentSource.contains("private var articleSearchToolbarField: some View"))
         #expect(contentSource.contains("private var hasActiveArticleList: Bool"))
         #expect(contentSource.contains("TextField(L10n.articleSearchPlaceholder, text: $articleSearchText)"))
         #expect(contentSource.contains("if hasActiveArticleList"))
+        #expect(!contentSource.contains("articleSearchSection"))
         #expect(contentSource.contains("searchText: $articleSearchText"))
         #expect(!readerSource.contains("articleSearchText"))
         #expect(!readerSource.contains("toolbarSearchField"))
