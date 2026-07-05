@@ -568,7 +568,7 @@ struct FeedivoAppSceneConfigurationTests {
         )
 
         #expect(settingsSource.contains("static let isEnabledKey = \"swiftDataBridge.isEnabled\""))
-        #expect(settingsSource.contains("static let defaultIsEnabled = true"))
+        #expect(settingsSource.contains("static let defaultIsEnabled = false"))
         #expect(serviceSource.contains("SwiftDataBridgeSettings.isEnabledKey"))
         #expect(serviceSource.contains("saveSwiftDataBridge"))
         #expect(serviceSource.contains("SwiftDataBridgeSettings.defaultIsEnabled"))
@@ -949,7 +949,7 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(sidebarSource.contains("@State private var feedFolderPendingDeletion: FeedFolderRecord?"))
         #expect(sidebarSource.contains("entry.snapshots.isEmpty && explicitFolder != nil"))
         #expect(sidebarSource.contains("FeedFolderStore(database: database).delete(id: folder.id)"))
-        #expect(compactSidebarSource.contains(".contextMenu{if let deleteEmptyFolder"))
+        #expect(compactSidebarSource.contains(".contextMenu{ifletdeleteEmptyFolder"))
     }
 
     @Test func smartFolderVerwaltungIstSQLiteFirst() throws {
