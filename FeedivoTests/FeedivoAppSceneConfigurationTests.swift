@@ -1080,6 +1080,22 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(source.contains("static let defaultIsEnabled = false"))
     }
 
+    @Test func feedViewModelProduktiveMethodenDelegierenAnSQLiteServices() throws {
+        let projectRoot = projectRootURL()
+        let source = try source(at: "Feedivo/ViewModels/FeedViewModel.swift", projectRoot: projectRoot)
+        let compactSource = compact(source)
+
+        // Produktive Feed-Aktionen delegieren an SQLite-Services statt selbst
+        // SwiftData zu mutieren.
+        #expect(source.contains("SQLiteFeedSubscriptionService"))
+        #expect(source.contains("SQLiteFeedRefreshCoordinator"))
+        // Legacy-SwiftData-Methoden sind in einer klar markierten Region
+        // abgegrenzt, damit kein neuer produktiver Code versehentlich dort
+        // andockt.
+        #expect(compactSource.contains("MARK:-LegacySwiftDataCompatibility"))
+        #expect(compactSource.contains("MARK:-SQLiteFeedActions"))
+    }
+
     private func projectRootURL() -> URL {
         URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()

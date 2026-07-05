@@ -484,6 +484,15 @@ final class FeedViewModel {
         }
     }
 
+    // MARK: - Legacy SwiftData Compatibility
+    //
+    // Die folgenden Methoden sind der verbleibende SwiftData-Kompatibilitätspfad.
+    // Sie mutieren direkt `@Model Feed`/`Article`-Objekte über einen SwiftData-
+    // `ModelContext` und werden produktiv nicht mehr geroutet — ContentView/Sidebar
+    // nutzen die SQLite-Store-Pfade (`FeedStore`, `ArticleStore`, `TagStore`).
+    // Neuartige Aufrufe sollen diese Region nicht mehr verwenden; sobald
+    // `Article`/`Tag` SQLite-only sind, kann die ganze Region entfallen.
+
     @available(*, deprecated, message: "Legacy SwiftData-Editor-Pfad. Feed-Umbenennung läuft produktiv über SQLite-Store-Pfade in den Views.")
     @MainActor
     func renameFeed(_ feed: Feed?, displayTitle: String, context: ModelContext) {
@@ -695,6 +704,13 @@ final class FeedViewModel {
 
         isLoading = false
     }
+
+    // MARK: - SQLite Feed Actions
+    //
+    // Produktive Feed-Aktionen, die ausschließlich über SQLite/GRDB-Stores
+    // (`FeedStore`, `ArticleStore`, `SQLiteFeedRefreshCoordinator`,
+    // `SQLiteRuleStore`, `SQLiteFeedSubscriptionService`) laufen. Diese Region
+    // ist der produktive Pfad — SwiftData wird hier weder gelesen noch geschrieben.
 
     /// SQLite-first Einzel-Refresh anhand der Feed-ID, ohne dass der Aufrufer ein
     /// SwiftData-`Feed`-Objekt vorhalten muss. ContentView resolved die Auswahl
