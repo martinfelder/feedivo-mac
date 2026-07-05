@@ -18,7 +18,15 @@ enum ArticleResourceURLPolicy {
       },
       {
         "trigger": {
-          "url-filter": "^https?://[^/]+/.*(?:pixel|tracking)\\\\.gif(?:[?#].*)?$"
+          "url-filter": "^https?://[^/]+/.*pixel\\.gif(?:[?#].*)?$"
+        },
+        "action": {
+          "type": "block"
+        }
+      },
+      {
+        "trigger": {
+          "url-filter": "^https?://[^/]+/.*tracking\\.gif(?:[?#].*)?$"
         },
         "action": {
           "type": "block"
