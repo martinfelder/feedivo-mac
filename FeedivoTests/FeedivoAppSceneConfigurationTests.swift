@@ -1080,8 +1080,9 @@ struct FeedivoAppSceneConfigurationTests {
 
         #expect(sidebarSource.contains("private var sidebarActionRow: some View"))
         #expect(compactSidebarSource.contains("sidebarActionRowsmartFoldersSection(badgeSnapshot:sqliteSidebarState.smartFolderBadgeSnapshot)"))
-        #expect(compactSidebarSource.contains("Button{onRequestRefreshAllFeeds()}label:{Image(systemName:\"arrow.clockwise\")}"))
-        #expect(compactSidebarSource.contains("createSidebarItemMenu.buttonStyle(.borderless).controlSize(.small)"))
+        #expect(compactSidebarSource.contains("Button{onRequestRefreshAllFeeds()}label:{Image(systemName:\"arrow.clockwise\")"))
+        #expect(compactSidebarSource.contains(".font(.system(size:15,weight:.semibold)).frame(width:24,height:24)"))
+        #expect(compactSidebarSource.contains("createSidebarItemMenu.buttonStyle(.borderless).font(.system(size:15,weight:.semibold)).frame(width:24,height:24)"))
         #expect(!sidebarSource.contains("ToolbarItemGroup(placement: .navigation)"))
     }
 

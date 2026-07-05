@@ -138,20 +138,22 @@ struct SidebarView: View {
     }
 
     private var sidebarActionRow: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 10) {
             Button {
                 onRequestRefreshAllFeeds()
             } label: {
                 Image(systemName: "arrow.clockwise")
+                    .font(.system(size: 15, weight: .semibold))
+                    .frame(width: 24, height: 24)
             }
             .buttonStyle(.borderless)
-            .controlSize(.small)
             .disabled(sqliteSidebarState.snapshots.isEmpty)
             .help(L10n.feedRefreshAllCommand)
 
             createSidebarItemMenu
                 .buttonStyle(.borderless)
-                .controlSize(.small)
+                .font(.system(size: 15, weight: .semibold))
+                .frame(width: 24, height: 24)
         }
         .padding(.horizontal, 2)
     }
