@@ -292,7 +292,7 @@ struct ContentView: View {
             )
         )
         .toolbar {
-            ToolbarItem(placement: .principal) {
+            ToolbarItem(placement: .primaryAction) {
                 if hasActiveArticleList {
                     articleSearchToolbarField
                 }

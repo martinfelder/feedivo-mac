@@ -172,7 +172,8 @@ struct FeedivoAppSceneConfigurationTests {
         let readerSource = try source(at: "Feedivo/Views/Reader/SQLiteReaderView.swift", projectRoot: projectRoot)
         let listSource = try source(at: "Feedivo/Views/ArticleList/SQLiteFeedArticleListView.swift", projectRoot: projectRoot)
 
-        #expect(contentSource.contains("ToolbarItem(placement: .principal)"))
+        #expect(contentSource.contains("ToolbarItem(placement: .primaryAction)"))
+        #expect(!contentSource.contains("ToolbarItem(placement: .principal)"))
         #expect(contentSource.contains("articleSearchToolbarField"))
         #expect(contentSource.contains("private var articleSearchToolbarField: some View"))
         #expect(contentSource.contains("private var hasActiveArticleList: Bool"))
