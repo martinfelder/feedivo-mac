@@ -219,7 +219,7 @@ struct ArticleWindowView: View {
             return
         }
 
-        SystemArticleURLOpener().open(url)
+        ArticleOriginalBrowserLauncher.open(url)
     }
 
     private func shareOriginal() {

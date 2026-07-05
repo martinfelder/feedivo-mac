@@ -747,7 +747,7 @@ struct SQLiteFeedArticleListView: View {
             return
         }
 
-        NSWorkspace.shared.open(url)
+        ArticleOriginalBrowserLauncher.open(url)
     }
 
     private func shareOriginal(_ row: ArticleListSnapshot) {

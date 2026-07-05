@@ -214,8 +214,24 @@ private struct NewGeneralSettingsView: View {
     @AppStorage(ReaderDisplayMode.storageKey)
     private var readerDisplayModeRawValue = ReaderDisplayMode.defaultMode.rawValue
 
+    @AppStorage(ArticleOriginalBrowserTarget.storageKey)
+    private var articleOriginalBrowserTargetRawValue = ArticleOriginalBrowserTarget.defaultTarget.rawValue
+
     @AppStorage(ArticleWindowSettings.restoreOpenArticleWindowsOnLaunchKey)
     private var restoreOpenArticleWindowsOnLaunch = ArticleWindowSettings.defaultRestoreOpenArticleWindowsOnLaunch
+
+    private var availableBrowserTargets: [ArticleOriginalBrowserTarget] {
+        ArticleOriginalBrowserTarget.availableTargets()
+    }
+
+    private var selectedBrowserTarget: ArticleOriginalBrowserTarget {
+        let resolved = ArticleOriginalBrowserTarget.resolved(from: articleOriginalBrowserTargetRawValue)
+        if !resolved.isAvailable {
+            return ArticleOriginalBrowserTarget.defaultTarget
+        }
+
+        return resolved
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -248,6 +264,26 @@ private struct NewGeneralSettingsView: View {
                     .labelsHidden()
                     .pickerStyle(.segmented)
                     .fixedSize(horizontal: true, vertical: false)
+                }
+
+                NewSettingRow(
+                    title: "Original öffnen mit",
+                    description: "Wähle, welcher Browser für den Button „Original öffnen“ genutzt wird."
+                ) {
+                    Picker("", selection: $articleOriginalBrowserTargetRawValue) {
+                        ForEach(availableBrowserTargets) { target in
+                            Text(target.title)
+                                .tag(target.rawValue)
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.menu)
+                    .frame(width: 230, alignment: .trailing)
+                    .onAppear {
+                        if !selectedBrowserTarget.isAvailable {
+                            articleOriginalBrowserTargetRawValue = ArticleOriginalBrowserTarget.defaultTarget.rawValue
+                        }
+                    }
                 }
 
                 NewSettingRow(

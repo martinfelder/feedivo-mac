@@ -413,11 +413,15 @@ struct SQLiteReaderView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Divider()
 
-                Link(destination: url) {
+                Button {
+                    ArticleOriginalBrowserLauncher.open(url)
+                } label: {
                     Label(L10n.readerOpenOriginal, systemImage: "arrow.up.right")
                         .font(bodyFontPreset.font(size: max(metadataFontSize, 13), relativeTo: .callout))
                         .fontWeight(.semibold)
                 }
+                .buttonStyle(.plain)
+                .help(L10n.readerOpenOriginal)
             }
             .padding(.top, footerTopPadding)
         }
@@ -596,7 +600,7 @@ struct SQLiteReaderView: View {
             return
         }
 
-        NSWorkspace.shared.open(originalURL)
+        ArticleOriginalBrowserLauncher.open(originalURL)
     }
 
     private func copyLink() {

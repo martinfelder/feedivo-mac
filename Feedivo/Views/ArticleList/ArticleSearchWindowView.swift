@@ -289,7 +289,7 @@ struct ArticleSearchWindowView: View {
             return
         }
 
-        NSWorkspace.shared.open(url)
+        ArticleOriginalBrowserLauncher.open(url)
     }
 
     private func label(for field: ArticleSearchField) -> String {

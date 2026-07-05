@@ -236,6 +236,7 @@ FeedivoMac/
 │   │   ├── FeedUnreadCountBackfillService.swift # unreadCount einmalig korrigieren ✅
 │   │   ├── SmartFolderDefaultKeyBackfillService.swift # defaultKey für alte SmartFolder migrieren ✅
 │   │   ├── OfflineDownloadService.swift # Legacy/Migrationsrest, produktiv nicht mehr angeboten ⚠️
+│   │   ├── ArticleOriginalBrowserSettings.swift # Ziel für Original-Link-Öffnung in einstellbaren Browsern ✅
 │   │   ├── ImageCacheService.swift     # Memory-/Disk-Cache für Bilder und Favicons ✅
 │   │   ├── ImageCacheSettings.swift    # Cache-Limits und Groessenformatierung ✅
 │   │   ├── RuleEngine.swift            # Mehrfach-Regeln auf neue Artikel anwenden ✅

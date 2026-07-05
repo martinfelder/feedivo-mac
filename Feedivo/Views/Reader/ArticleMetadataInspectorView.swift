@@ -733,7 +733,7 @@ struct ArticleMetadataInspectorView: View {
             return
         }
 
-        NSWorkspace.shared.open(originalURL)
+        ArticleOriginalBrowserLauncher.open(originalURL)
     }
 
     private func normalizedTagName(_ name: String?) -> String? {

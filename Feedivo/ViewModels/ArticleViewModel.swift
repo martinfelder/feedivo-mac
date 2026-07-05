@@ -20,7 +20,7 @@ protocol ArticleURLOpener {
 
 struct SystemArticleURLOpener: ArticleURLOpener {
     func open(_ url: URL) {
-        NSWorkspace.shared.open(url)
+        ArticleOriginalBrowserLauncher.open(url)
     }
 }
 
