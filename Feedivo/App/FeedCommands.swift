@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct FeedCommands: Commands {
+    @Environment(\.openWindow) private var openWindow
+
     @FocusedValue(\.feedCommandActions)
     private var feedCommandActions
 
@@ -21,6 +23,12 @@ struct FeedCommands: Commands {
                 feedCommandActions?.requestExportOPML()
             }
             .disabled(feedCommandActions?.canExportOPML != true)
+
+            Divider()
+
+            Button("Verwaltung...") {
+                openWindow(id: OrganizerWindowView.windowID)
+            }
 
             Divider()
 

@@ -100,6 +100,15 @@ struct FeedivoApp: App {
         }
         .defaultSize(width: 760, height: 560)
 
+        Window(OrganizerWindowView.windowTitle, id: OrganizerWindowView.windowID) {
+            OrganizerWindowView()
+                .environment(\.locale, appLanguage.locale)
+                .environment(\.interfaceTextSize, interfaceTextSize)
+                .environment(\.feedivoDatabase, feedivoDatabase)
+                .dynamicTypeSize(interfaceTextSize.dynamicTypeSize)
+        }
+        .defaultSize(width: 920, height: 620)
+
         WindowGroup(for: ArticleWindowRequest.self) { $request in
             if let request {
                 ArticleWindowView(request: request)
@@ -125,7 +134,7 @@ struct FeedivoApp: App {
                 .environment(databaseLoadState)
                 .dynamicTypeSize(interfaceTextSize.dynamicTypeSize)
         }
-        .defaultSize(width: 1040, height: 640)
+        .defaultSize(width: 680, height: 560)
     }
 
     private func scheduleBackgroundRefresh() {

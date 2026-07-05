@@ -203,14 +203,17 @@ FeedivoMac/
 │   │   ├── Shared/
 │   │   │   └── CachedRemoteImageView.swift # Gemeinsame gecachte Remote-Bild-View ✅
 │   │   ├── Rules/
-│   │   │   ├── RuleSettingsView.swift  # Alle Regeln in Einstellungen verwalten ✅
+│   │   │   ├── RuleSettingsView.swift  # Alle Regeln im Verwaltungsfenster verwalten ✅
 │   │   │   └── RuleWizardView.swift    # Wizard für einfache/Power-User-Regeln ✅
 │   │   ├── SmartFolders/
 │   │   │   ├── SmartFolderEditorView.swift # Sheet für intelligente Ordner ✅
-│   │   │   ├── SmartFolderSettingsView.swift # Settings-Liste für intelligente Ordner ✅
+│   │   │   ├── SmartFolderSettingsView.swift # Verwaltungsliste für intelligente Ordner ✅
 │   │   │   └── SmartFolderFormatter.swift # Bedingungszusammenfassung/Helpers ✅
+│   │   ├── Organizer/
+│   │   │   ├── OrganizerWindowView.swift # Eigenes Verwaltungsfenster für Feeds, Tags, Smart Folders, Regeln ✅
+│   │   │   └── FeedManagementOrganizerView.swift # SQLite-Feed-Verwaltung mit Suche, OPML-Export, Mehrfachlöschung ✅
 │   │   └── Settings/
-│   │       ├── SettingsView.swift      # Strukturierte Settings-Shell mit linker Navigation ✅
+│   │       ├── SettingsView.swift      # Kompakte globale App-Einstellungen ohne Verwaltungslisten ✅
 │   │       └── FeedManagementSettingsState.swift # Suche/Auswahl für Feed-Verwaltung ✅
 │   │
 │   ├── Services/
@@ -443,7 +446,7 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   zählt direkte Artikel-Tags aus `article_tags` sowie Feed-Tag-Treffer aus
   `feed_tags`.
 - Die Sidebar zeigt keine eigene `Regeln`-Section mehr. Die komplette
-  Regelverwaltung liegt bewusst in den Einstellungen; der schnelle Einstieg
+  Regelverwaltung liegt bewusst im Verwaltungsfenster; der schnelle Einstieg
   `Regel erstellen...` sitzt im Menü der Artikelansicht.
 - Feeds stehen in einer Sidebar-Section `Ordner`; neben dem Section-Titel gibt es
   einen + Button zum Anlegen neuer Ordner
@@ -649,7 +652,7 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Beim Refresh werden gespeicherte Regeln über `RuleEngine` auf neu eingefügte
   Artikel angewendet; Benachrichtigungs-Regeln werden für neue Artikel gesammelt
   und nach erfolgreichem Speichern an `FeedNotificationService` gemeldet.
-  Bestehende Artikel können in den Einstellungen manuell rückwirkend verarbeitet
+  Bestehende Artikel können im Verwaltungsfenster manuell rückwirkend verarbeitet
   werden, ohne macOS-Benachrichtigungen auszulösen.
 - Der Refresh respektiert die Artikel-Aufbewahrung bereits beim Import: Wenn ein
   Feed-Eintrag älter als die aktive globale oder Feed-eigene Aufbewahrungsgrenze
@@ -743,7 +746,7 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   der Legacy-Regelspalten überflüssig wurde und gelöscht wurde.
 
 ### RuleSettingsView.swift / RuleWizardView.swift
-- Einstellungen zeigen eine kompakte Tabellenliste aller Regeln mit Reihenfolge,
+- Das Verwaltungsfenster zeigt eine kompakte Tabellenliste aller Regeln mit Reihenfolge,
   Status, Name, Bedingungszusammenfassung, Aktion und Trefferanzahl.
 - Regeln können per Hoch-/Runter-Button oder Drag & Drop umsortiert werden;
   Doppelklick öffnet den Wizard, Rechtsklick bietet Bearbeiten, Duplizieren und
@@ -751,7 +754,7 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 - Der Wizard zeigt je nach Aktion entweder Ziel-Tag-Felder oder
   Benachrichtigungsfelder. Benachrichtigungstexte unterstützen die Platzhalter
   `{Titel}`, `{Feed}` und `{Regel}` sowie die Prioritäten `Normal` und `Kritisch`.
-- Einstellungen bieten einen Button `Auf vorhandene Artikel anwenden`, der aktive
+- Das Verwaltungsfenster bietet einen Button `Auf vorhandene Artikel anwenden`, der aktive
   Regeln manuell auf den gespeicherten Artikelbestand anwendet und danach die Anzahl
   neu angewendeter Regelaktionen anzeigt.
 - Neue Regeln werden über einen Wizard erstellt. Der Benutzer wählt zwischen
@@ -801,13 +804,13 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   fehlen; vorhandene Benutzerordner bleiben dabei unangetastet.
 
 ### SmartFolderSettingsView.swift / SmartFolderEditorView.swift
-- Einstellungen zeigen intelligente Ordner im Stil der Regelverwaltung: kompakte
+- Das Verwaltungsfenster zeigt intelligente Ordner im Stil der Regelverwaltung: kompakte
   Liste mit Reihenfolge, Sidebar-Schalter, Name, Bedingungszusammenfassung,
   Trefferanzahl und Aktionen.
-- Die Reihenfolge wird in den Einstellungen per Hamburger-Handle und
+- Die Reihenfolge wird im Verwaltungsfenster per Hamburger-Handle und
   Live-Drag-&-Drop geändert: Beim Überfahren einer Zielzeile rutscht die ganze
   Zeile sichtbar an die neue Position. Pfeilbuttons werden bewusst nicht verwendet.
-- Ordner können in den Einstellungen und per Sidebar-Kontextmenü bearbeitet,
+- Ordner können im Verwaltungsfenster und per Sidebar-Kontextmenü bearbeitet,
   dupliziert und gelöscht werden; die Defaults können wiederhergestellt werden.
 - Der Editor nutzt ein größeres macOS-Sheet mit Name, Sidebar-Toggle,
   Darstellungsauswahl für Icon/Farbe, UND/ODER-Segment, Bedingungszeilen mit
@@ -1232,7 +1235,7 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 
 ### OPMLExportSheet.swift
 - Wiederverwendbarer SwiftUI-Dialog für den OPML-Export, ausgelöst aus dem
-  Feed-Menü und aus Einstellungen → Feeds.
+  Feed-Menü und aus dem Verwaltungsfenster → Feeds.
 - Bildet den freigegebenen Product-Design-Prototyp ab: Header mit Feed-Anzahl,
   links Checkbox-Optionen, rechts Live-Zusammenfassung und unten `Abbrechen` /
   `Sichern...`.
@@ -1275,31 +1278,38 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   `Einstellungen alt` mehr.
 - Nutzt eine kompakte macOS-Toolbar statt eines langen Formulars oder einer linken
   Kategorienavigation.
-- `NewSettingsView` nutzt die Bereiche Allgemein, Anzeige, Feeds, Ordner, Cache,
-  Offline, Benachrichtigungen, Aktualisierung, Automatisierung, Sync und Über.
-  Die Oberfläche verwendet die echten Settings-Bindings und Verwaltungsviews.
+- Seit 2026-07-05 ist `NewSettingsView` wieder auf globale App-Preferences
+  reduziert: Allgemein, Anzeige, Offline, Benachrichtigungen, Aktualisierung,
+  Bereinigung, Sync und Über. Feed-, Tag-, Smart-Folder- und Regelverwaltung
+  liegen im separaten `OrganizerWindowView`.
 - Allgemein enthält zusätzlich den Toggle `Artikelfenster beim Start
   wiederherstellen`, gebunden an
   `ArticleWindowSettings.restoreOpenArticleWindowsOnLaunchKey`; Standard ist aus.
 - Die neue Fassung rendert die Kernbereiche nicht mehr über die alten
   `Form`-Views, sondern über screenshot-nahe `NewSettingsBlock`- und
-  `NewSettingRow`-Bausteine mit kompakter Toolbar, ausgewählter Kachel,
-  linksbündigem Titel/Subtext und rechts stehenden Controls. Die neue Fassung ist
-  breit genug für Toolbar und Feed-/Ordnerverwaltung, behält aber die kleine
-  macOS-Settings-Skalierung des Referenzscreenshots bei.
+  `NewSettingRow`-Bausteine mit kompakter Toolbar, linksbündigem Titel/Subtext
+  und rechts stehenden Controls. Die neue Fassung ist schmaler, weil
+  Verwaltungslisten nicht mehr im Settings-Fenster wohnen.
 - Bestehende Optionen wurden aufgeteilt: Sprache/Standardverhalten unter
   Allgemein, UI-/Reader-Darstellung unter Darstellung, Auto-Refresh unter
-  Aktualisierung, Artikel-Aufbewahrung unter Bereinigung sowie Regelverwaltung
-  separat unter Regeln.
-- Der Bereich `Feeds` zeigt eine Feed-Verwaltung mit Suche, Mehrfachauswahl,
+  Aktualisierung und Artikel-Aufbewahrung unter Bereinigung.
+
+### OrganizerWindowView.swift / FeedManagementOrganizerView.swift
+- `FeedivoApp.swift` registriert ein eigenes Fenster `OrganizerWindowView` und
+  reicht dieselbe SQLite-Datenbank wie im Hauptfenster und den Settings hinein.
+- Das Feed-Menü enthält `Verwaltung...` und öffnet dieses Fenster per
+  `openWindow(id: OrganizerWindowView.windowID)`.
+- Das Verwaltungsfenster bündelt Feeds, Tags, intelligente Ordner und Regeln.
+  Damit bleiben Settings klein und globale App-Preferences werden nicht mit
+  Admin-/Listenarbeit vermischt.
+- `FeedManagementOrganizerView` zeigt eine Feed-Verwaltung mit Suche, Mehrfachauswahl,
   `Alle sichtbaren auswählen`, `Auswahl aufheben` und destruktiver
   Löschbestätigung für die ausgewählten Feeds. Jede Feed-Zeile zeigt zusätzlich
   die Artikelanzahl der letzten 7 Tage und den Zeitpunkt der letzten
   Aktualisierung. Die Liste lädt `FeedRecord`s aus `FeedStore`, löscht Feeds aber
-  über den gemeinsamen SQLite-first-Pfad
-  `FeedViewModel.deleteFeed(feedID:context:sqliteDatabase:)`, damit neben dem
-  SQLite-Record auch der SwiftData-Brückenfeed, alte Artikel und Feed-Logs
-  entfernt werden. Der OPML-Export nutzt SQLite-`OPMLFeed`-Snapshots.
+  direkt über `FeedStore.delete(id:)`; die SQLite-Foreign-Keys entfernen
+  abhängige Artikel-, Tag-, Status- und Log-Daten. Der OPML-Export nutzt
+  SQLite-`OPMLFeed`-Snapshots.
 - Der Bereich `Cache` zeigt aktuelle Bild-/Favicon-Cache-Groesse, ein Speicherlimit
   mit erlaubten Werten 100 MB, 250 MB, 500 MB, 1 GB und 2 GB, sowie Aktionen zum
   Aktualisieren der Groessenanzeige und zum Leeren des Cache. Zusätzlich zeigt er
@@ -1320,7 +1330,6 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   automatischer Ausführungszeitpunkt (Wochentag/Uhrzeit, App-Start oder
   App-Beenden) und ein sichtbarer In-App-Hinweis, wenn eine Bereinigung
   ausgeführt wurde.
-- Der Bereich `Regeln` enthält ausschließlich die Regelverwaltung.
 - Der Bereich `Offline-Lesen` trennt bewusst zwischen Cache, normal lokal
   gespeichertem Feed-Inhalt und echten Offline-Kopien: Offline ist eine manuelle
   Artikelaktion, Feed-Content ist Basisinhalt, Automatik bleibt ein späterer M4-
@@ -2447,8 +2456,16 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   der SwiftData-Brückenfeed, alte Artikel und Feed-Logs entfernt werden. Damit
   kann `FeedTagBackfillService` beim nächsten App-Start gelöschte Feeds nicht
   wieder nach SQLite spiegeln. Abgesichert durch
-  `deleteFeedPerSQLiteIDEntferntSwiftDataBridgeDamitBackfillFeedNichtWiederherstellt`
-  und `feedManagementSettingsViewListetSQLiteFeedsUndLoeschtMitSwiftDataBridgeCleanup`.
+	  `deleteFeedPerSQLiteIDEntferntSwiftDataBridgeDamitBackfillFeedNichtWiederherstellt`
+	  und `feedManagementSettingsViewListetSQLiteFeedsUndLoeschtMitSwiftDataBridgeCleanup`.
+
+- 2026-07-05: NetNewsWire-naehere Trennung fuer Settings/Verwaltung umgesetzt.
+  `NewSettingsView` enthaelt nur noch globale Preferences; Feed-, Tag-,
+  Smart-Folder- und Regelverwaltung liegen in `OrganizerWindowView`.
+  `FeedManagementSettingsView` wurde durch `FeedManagementOrganizerView` ersetzt,
+  das weiterhin `FeedStore`/SQLite-Snapshots nutzt. Das Feed-Menü öffnet das
+  Fenster über `Verwaltung...`; Source-Tests sichern Fensterregistrierung,
+  reduzierte Settings und die SQLite-Feed-Verwaltung ab.
 
 - 2026-07-04: Bugfix für das Sichtbarbleiben automatisch gelesener Artikel in
   der produktiven SQLite-Artikelliste. `SQLiteFeedArticleListView` merkt sich
@@ -2558,7 +2575,7 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   `SQLiteSmartFolderStore`, schaltet Sidebar-Sichtbarkeit per GRDB, dupliziert,
   löscht, sortiert und stellt Defaults in SQLite wieder her. Der
   `SmartFolderEditorView` speichert Create/Update direkt nach SQLite; Preview
-  und Settings-Trefferzahlen zählen weiter über `TimelineStore.count` mit
+  und Trefferzahlen im Verwaltungsfenster zählen weiter über `TimelineStore.count` mit
   derselben Smart-Folder-SQL-Logik wie die Artikelliste.
 
 - 2026-07-03: RuleSettings/RuleWizard SQLite-first gemacht.
@@ -2573,7 +2590,7 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   `ArticleStore.feedPropertiesMetrics` liefert neuesten Artikel und Anzahl der
   veröffentlichten Artikel der letzten 7 Tage als leichten
   `FeedPropertiesArticleMetricsSnapshot`. `FeedPropertiesView` und die
-  Feed-Verwaltungszeilen in den Einstellungen nutzen diese GRDB-Metriken statt
+  Feed-Verwaltungszeilen im Verwaltungsfenster nutzen diese GRDB-Metriken statt
   SwiftData-`FeedPropertiesQuery` auf Artikeln.
 
 - 2026-07-03: Benutzerdefinierte Smart Folders auf SQLite-Timelines umgestellt.

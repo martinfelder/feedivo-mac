@@ -5,6 +5,7 @@ struct TagManagerView: View {
     @Environment(\.feedivoDatabase) private var feedivoDatabase
 
     var onTagCreated: (String) -> Void = { _ in }
+    var showsDoneButton = true
 
     @State private var tags: [TagRecord] = []
     @State private var errorMessage: String?
@@ -17,7 +18,9 @@ struct TagManagerView: View {
             header
             newTagForm
             tagList
-            footer
+            if showsDoneButton {
+                footer
+            }
         }
         .padding(24)
         .frame(width: 520)

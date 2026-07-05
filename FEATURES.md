@@ -213,11 +213,9 @@
 ### 4.3 Feed löschen
 - **Status:** ✔️ Fertig
 - **Umgesetzt:** `FeedViewModel.deleteFeed`, Bestätigungsdialog
-- **SQLite/GRDB 2026-07-04:** Die Feed-Verwaltung in den Einstellungen löscht
-  ausgewählte Feeds über den gemeinsamen SQLite-first-Delete-Pfad und räumt dabei
-  auch die SwiftData-Brückenfeeds, alte Artikel und Feed-Logs auf. Dadurch werden
-  gelöschte Feeds beim nächsten App-Start nicht wieder durch den Backfill nach
-  SQLite gespiegelt.
+- **SQLite/GRDB 2026-07-05:** Die Feed-Verwaltung liegt im separaten
+  Verwaltungsfenster und löscht ausgewählte Feeds direkt über `FeedStore`.
+  SQLite-Foreign-Keys räumen abhängige Artikel-, Status-, Tag- und Log-Daten auf.
 
 ### 4.4 Manueller Refresh
 - **Status:** ✔️ Fertig
@@ -339,7 +337,7 @@
 - **Status:** ✔️ Fertig
 - **Umgesetzt:**
   - Wiederverwendbarer `OPMLExportSheet` nach freigegebenem Product-Design-Prototyp.
-  - Auslösen via Menüleiste `Feed → OPML exportieren...` und Einstellungen → Feeds.
+  - Auslösen via Menüleiste `Feed → OPML exportieren...` und Verwaltungsfenster → Feeds.
   - Export-Optionen:
     - Feed-URLs + Titel immer aktiv und nicht deaktivierbar.
     - Ordner-Struktur als OPML-Gruppen optional.
@@ -364,10 +362,13 @@
 ### 8.2 Settings-Toolbar
 - **Status:** ✔️ Fertig
 - **Umgesetzt:** Einziges Settings-Fenster mit macOS-artiger Icon-Toolbar.
-  Bereiche: Allgemein, Anzeige, Feeds, Ordner, Offline-Lesen,
-  Benachrichtigungen, Aktualisierung, Bereinigung, Regeln, Sync und Über.
-- **Umgesetzt — Feeds:** Die Feedliste zeigt pro Feed neben Titel und URL auch
-  die Anzahl veröffentlichter Artikel der letzten 7 Tage und den Zeitpunkt der
+  Seit 2026-07-05 ist es wieder bewusst kompakt und enthält nur globale
+  Preferences: Allgemein, Anzeige, Offline-Lesen, Benachrichtigungen,
+  Aktualisierung, Bereinigung, Sync und Über.
+- **Umgesetzt — Verwaltung ausgelagert:** Feeds, Tags, Regeln und intelligente
+  Ordner liegen im separaten Fenster `Verwaltung...`, erreichbar über das
+  Feed-Menü. Die Feedliste zeigt dort pro Feed neben Titel und URL auch die
+  Anzahl veröffentlichter Artikel der letzten 7 Tage und den Zeitpunkt der
   letzten Aktualisierung.
 - **Bewusst:** Die Oberfläche nutzt die echten Settings-Bindings und
   Verwaltungsviews; es gibt keinen Parallelbetrieb mit der alten Fassung mehr.
@@ -376,10 +377,8 @@
   direkt diese Oberfläche.
 - **Entscheidung 2026-06-30:** Das Einstellungen-Fenster ist in dieser Form
   übernommen und gilt für v1 als ausreichend final.
-- **Design-Ziel:** Kompakte macOS-Settings-Skalierung nach Referenzscreen:
-  breites Fenster für Toolbar und Verwaltungsbereiche, aber kleinere
-  Toolbar-Kacheln, kleine Controls, enge Zeilenabstände und screenshot-nahe
-  Typografie statt groß skaliertem Formular-Look.
+- **Design-Ziel:** Näher an NetNewsWire: kleines Preferences-Fenster für globale
+  Optionen, separate Verwaltungsoberfläche für listenartige Arbeitsaufgaben.
 
 ---
 
@@ -585,7 +584,7 @@
   - Bedingungszeilen mit + / − Buttons
   - Live-Vorschau der Resultate direkt im Sheet
   - Intelligente Ordner: umbenennbar, löschbar, duplizierbar (Rechtsklick in Sidebar)
-  - Verwaltung in den Einstellungen im Stil der Regelverwaltung: Liste mit Reihenfolge,
+  - Verwaltung im separaten Verwaltungsfenster im Stil der Regelverwaltung: Liste mit Reihenfolge,
     Sidebar-Sichtbarkeit, Trefferanzahl, Bearbeiten, Duplizieren, Löschen und Defaults wiederherstellen
   - Reihenfolge per Hamburger-Handle und Live-Drag-&-Drop; die ganze Zeile rutscht
     während des Ziehens sichtbar an die neue Position, Pfeilbuttons werden bewusst nicht verwendet
@@ -964,8 +963,8 @@
     und Log-Anzahl inzwischen über `FeedLogStore` aus SQLite-`feed_logs`.
     `Neuester Artikel` und `Artikel der letzten 7 Tage` kommen ebenfalls aus
     SQLite über `ArticleStore.feedPropertiesMetrics` und
-    `FeedPropertiesArticleMetricsSnapshot`; auch die Feed-Verwaltungszeilen in
-    den Einstellungen nutzen diese leichte GRDB-Metrik statt SwiftData-
+    `FeedPropertiesArticleMetricsSnapshot`; auch die Feed-Verwaltungszeilen im
+    Verwaltungsfenster nutzen diese leichte GRDB-Metrik statt SwiftData-
     Artikelqueries.
     Vordefinierte globale SmartFilter wie `Alle Artikel`, `Ungelesen`,
     `Mit Stern`, `Heute` und `Ausgeblendet` laden ihre Artikellisten ebenfalls
@@ -985,7 +984,7 @@
     nun auf `SQLiteFeedArticleListView` und den SQLite-Reader-Pfad.
     `SmartFolderSettingsView`, `SmartFolderEditorView` und Sidebar-
     Kontextaktionen verwalten die Definitionen inzwischen direkt über
-    `SQLiteSmartFolderStore`; Settings-Trefferzahlen und Editor-Preview zählen
+    `SQLiteSmartFolderStore`; Trefferzahlen im Verwaltungsfenster und Editor-Preview zählen
     über `TimelineStore.count(scope: .smartFolder(...))`.
   - SQLite-Verwaltungsdefinitionen 2026-07-03 ergänzt: Migration v6 legt
     `feed_folders`, `rules`, `rule_conditions`, `smart_folders` und
@@ -998,7 +997,7 @@
     dafür nur noch Übergangs-/Backfill-Quelle.
   - Feed-Verwaltung 2026-07-03 SQLite-first gemacht: Migration v7 ergänzt
     Feed-Admin-Felder in `feeds`; `FeedRenameView`, `FeedPropertiesView` und die
-    Feed-Verwaltung in den Einstellungen laden und mutieren `FeedRecord`s über
+    Feed-Verwaltung im Verwaltungsfenster laden und mutieren `FeedRecord`s über
     `FeedStore`. Feed-Tags in den Feed-Eigenschaften laufen über `TagStore` und
     `feed_tags`; der OPML-Export aus der Feed-Verwaltung nutzt SQLite-
     `OPMLFeed`-Snapshots.

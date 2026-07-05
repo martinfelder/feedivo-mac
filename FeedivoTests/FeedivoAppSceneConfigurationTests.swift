@@ -47,6 +47,46 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(!appSource.contains("SettingsView.oldWindowID"))
     }
 
+    @Test func appRegistriertEigenesOrganizerFensterFuerVerwaltungsaufgaben() throws {
+        let projectRoot = projectRootURL()
+        let appSource = try source(at: "Feedivo/App/FeedivoApp.swift", projectRoot: projectRoot)
+        let organizerSource = try source(at: "Feedivo/Views/Organizer/OrganizerWindowView.swift", projectRoot: projectRoot)
+        let commandSource = try source(at: "Feedivo/App/FeedCommands.swift", projectRoot: projectRoot)
+
+        #expect(appSource.contains("Window(OrganizerWindowView.windowTitle, id: OrganizerWindowView.windowID)"))
+        #expect(appSource.contains("OrganizerWindowView()"))
+        #expect(appSource.contains(".defaultSize(width: 920, height: 620)"))
+        #expect(commandSource.contains("@Environment(\\.openWindow)"))
+        #expect(commandSource.contains("openWindow(id: OrganizerWindowView.windowID)"))
+        #expect(organizerSource.contains("FeedManagementOrganizerView()"))
+        #expect(organizerSource.contains("TagManagerView(showsDoneButton: false)"))
+        #expect(organizerSource.contains("SmartFolderSettingsView()"))
+        #expect(organizerSource.contains("RuleSettingsView()"))
+    }
+
+    @Test func settingsFensterBleibtAufGlobalePreferencesReduziert() throws {
+        let projectRoot = projectRootURL()
+        let settingsSource = try source(at: "Feedivo/Views/Settings/SettingsView.swift", projectRoot: projectRoot)
+        let compactSettingsSource = compact(settingsSource)
+
+        #expect(settingsSource.contains("case general"))
+        #expect(settingsSource.contains("case appearance"))
+        #expect(settingsSource.contains("case offline"))
+        #expect(settingsSource.contains("case notifications"))
+        #expect(settingsSource.contains("case refresh"))
+        #expect(settingsSource.contains("case cleanup"))
+        #expect(settingsSource.contains("case sync"))
+        #expect(settingsSource.contains("case about"))
+        #expect(!settingsSource.contains("case feeds"))
+        #expect(!settingsSource.contains("case folders"))
+        #expect(!settingsSource.contains("case rules"))
+        #expect(!settingsSource.contains("FeedManagementSettingsView()"))
+        #expect(!settingsSource.contains("SmartFolderSettingsView()"))
+        #expect(!settingsSource.contains("RuleSettingsView()"))
+        #expect(compactSettingsSource.contains("staticletwindowWidth:CGFloat=680"))
+        #expect(compactSettingsSource.contains("staticletcontentWidth:CGFloat=520"))
+    }
+
     @Test func feedRenameViewMutiertSQLiteStattSwiftData() throws {
         let projectRoot = projectRootURL()
         let renameSource = try source(at: "Feedivo/Views/Sidebar/FeedRenameView.swift", projectRoot: projectRoot)
@@ -76,14 +116,14 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(!propertiesSource.contains("modelContext.save()"))
     }
 
-    @Test func feedManagementSettingsViewListetSQLiteFeedsUndLoeschtMitSwiftDataBridgeCleanup() throws {
+    @Test func feedManagementOrganizerViewListetSQLiteFeedsUndLoeschtMitSwiftDataBridgeCleanup() throws {
         let projectRoot = projectRootURL()
-        let settingsSource = try source(at: "Feedivo/Views/Settings/SettingsView.swift", projectRoot: projectRoot)
+        let organizerSource = try source(at: "Feedivo/Views/Organizer/FeedManagementOrganizerView.swift", projectRoot: projectRoot)
         let stateSource = try source(at: "Feedivo/Views/Settings/FeedManagementSettingsState.swift", projectRoot: projectRoot)
 
-        let viewStart = try #require(settingsSource.range(of: "private struct FeedManagementSettingsView"))
-        let rowStart = try #require(settingsSource.range(of: "private struct FeedManagementRow"))
-        let viewSource = settingsSource[viewStart.lowerBound ..< rowStart.lowerBound]
+        let viewStart = try #require(organizerSource.range(of: "struct FeedManagementOrganizerView"))
+        let rowStart = try #require(organizerSource.range(of: "private struct FeedManagementOrganizerRow"))
+        let viewSource = organizerSource[viewStart.lowerBound ..< rowStart.lowerBound]
         let deleteStart = try #require(viewSource.range(of: "private func deleteSelectedFeeds()"))
         let loadStart = try #require(viewSource.range(of: "private func loadFeeds()"))
         let deleteSource = viewSource[deleteStart.lowerBound ..< loadStart.lowerBound]
@@ -1066,17 +1106,17 @@ struct FeedivoAppSceneConfigurationTests {
     @Test func feedPropertiesMetrikenLaufenUeberSQLite() throws {
         let projectRoot = projectRootURL()
         let propertiesSource = try source(at: "Feedivo/Views/Sidebar/FeedPropertiesView.swift", projectRoot: projectRoot)
-        let settingsSource = try source(at: "Feedivo/Views/Settings/SettingsView.swift", projectRoot: projectRoot)
+        let organizerSource = try source(at: "Feedivo/Views/Organizer/FeedManagementOrganizerView.swift", projectRoot: projectRoot)
         let compactPropertiesSource = compact(propertiesSource)
-        let compactSettingsSource = compact(settingsSource)
+        let compactOrganizerSource = compact(organizerSource)
 
         #expect(propertiesSource.contains("@State private var sqliteArticleMetrics = FeedPropertiesArticleMetricsSnapshot.empty"))
         #expect(compactPropertiesSource.contains("ArticleStore(database:database).feedPropertiesMetrics(feedID:feedID,recentCutoffDate:"))
-        #expect(compactSettingsSource.contains("FeedManagementRow(feed:feed,isSelected:selectedFeedIDs.contains(feed.id),sqliteDatabase:feedivoDatabase"))
-        #expect(compactSettingsSource.contains("ArticleStore(database:database).feedPropertiesMetrics(feedID:feed.id,recentCutoffDate:"))
+        #expect(compactOrganizerSource.contains("FeedManagementOrganizerRow(feed:feed,isSelected:selectedFeedIDs.contains(feed.id),sqliteDatabase:feedivoDatabase"))
+        #expect(compactOrganizerSource.contains("ArticleStore(database:database).feedPropertiesMetrics(feedID:feed.id,recentCutoffDate:"))
         #expect(!propertiesSource.contains("FeedPropertiesQuery.latestArticle(in: modelContext, for: feed)"))
         #expect(!propertiesSource.contains("FeedPropertiesQuery.recentArticleCount("))
-        #expect(!settingsSource.contains("FeedPropertiesQuery.recentArticleCount("))
+        #expect(!organizerSource.contains("FeedPropertiesQuery.recentArticleCount("))
     }
 
     @Test func tagManagerViewSpiegeltTagAenderungenNachSQLite() throws {
