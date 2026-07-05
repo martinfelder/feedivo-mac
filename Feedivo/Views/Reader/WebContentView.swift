@@ -3,9 +3,15 @@ import WebKit
 
 struct WebContentView: NSViewRepresentable {
     let url: URL
+    let onLoadFailure: () -> Void
+
+    init(url: URL, onLoadFailure: @escaping () -> Void = {}) {
+        self.url = url
+        self.onLoadFailure = onLoadFailure
+    }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator()
+        Coordinator(onLoadFailure: onLoadFailure)
     }
 
     func makeNSView(context: Context) -> WKWebView {
@@ -13,6 +19,7 @@ struct WebContentView: NSViewRepresentable {
         configuration.userContentController = WKUserContentController()
 
         let webView = WKWebView(frame: .zero, configuration: configuration)
+        webView.navigationDelegate = context.coordinator
         context.coordinator.webView = webView
         ArticleWebContentBlocker.install(into: configuration.userContentController) {
             context.coordinator.contentBlockerDidFinish()
@@ -24,17 +31,29 @@ struct WebContentView: NSViewRepresentable {
         context.coordinator.update(url: url, in: webView)
     }
 
+    func dismantleNSView(_ nsView: WKWebView, coordinator: Coordinator) {
+        nsView.navigationDelegate = nil
+    }
+
     @MainActor
-    final class Coordinator {
+    final class Coordinator: NSObject, WKNavigationDelegate {
         weak var webView: WKWebView?
 
         private var pendingURL: URL?
         private var loadedURL: URL?
         private var isContentBlockerReady = false
+        private var didNotifyLoadFailure = false
+        private let onLoadFailure: () -> Void
+
+        init(onLoadFailure: @escaping () -> Void) {
+            self.onLoadFailure = onLoadFailure
+            super.init()
+        }
 
         func update(url: URL, in webView: WKWebView) {
             self.webView = webView
             pendingURL = url
+            didNotifyLoadFailure = false
             loadIfReady()
         }
 
@@ -54,6 +73,30 @@ struct WebContentView: NSViewRepresentable {
 
             loadedURL = pendingURL
             webView.load(URLRequest(url: pendingURL))
+        }
+
+        func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+            let _ = error
+            notifyFailure(error)
+        }
+
+        func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+            let _ = error
+            notifyFailure(error)
+        }
+
+        func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+            notifyFailure(nil)
+        }
+
+        private func notifyFailure(_ error: Error?) {
+            if didNotifyLoadFailure {
+                return
+            }
+
+            didNotifyLoadFailure = true
+
+            onLoadFailure()
         }
     }
 }

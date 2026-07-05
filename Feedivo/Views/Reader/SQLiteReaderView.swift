@@ -18,6 +18,7 @@ struct SQLiteReaderView: View {
     @State private var isAppearancePopoverPresented = false
     @State private var isMetadataInspectorPresented = false
     @State private var articleExportRequest: ArticleExportRequest?
+    @State private var webContentLoadFailed = false
 
     @AppStorage(ReaderTypographySettings.titleFontPresetKey)
     private var titleFontPresetRawValue = ReaderFontPreset.system.rawValue
@@ -269,49 +270,59 @@ struct SQLiteReaderView: View {
 
     @ViewBuilder
     private func readerContent(database: FeedivoDatabase) -> some View {
-        if readerDisplayMode == .web, let originalURL {
-            WebContentView(url: originalURL)
+        Group {
+            if readerDisplayMode == .web, let originalURL, !webContentLoadFailed {
+                WebContentView(url: originalURL, onLoadFailure: {
+                    webContentLoadFailed = true
+                })
+            } else {
+                ScrollView(.vertical, showsIndicators: false) {
+                    LazyVStack(alignment: .leading, spacing: contentBlockSpacing) {
+                        if let snapshot = state.snapshot {
+                            readerHeader(snapshot)
+
+                            ForEach(ReaderContentBlockEntry.entries(from: state.preparedArticle.contentBlocks)) { entry in
+                                VStack(alignment: .leading, spacing: imageTextDividerSpacing) {
+                                    contentBlock(entry.block)
+
+                                    if shouldShowImageTextDivider(after: entry.index, in: state.preparedArticle.contentBlocks) {
+                                        readerSectionDivider
+                                    }
+                                }
+                            }
+
+                            readerFooter(snapshot)
+                        } else if state.isLoading {
+                            ProgressView()
+                                .frame(maxWidth: .infinity)
+                                .padding(.top, 28)
+                        } else {
+                            ContentUnavailableView(
+                                "Artikel nicht gefunden",
+                                systemImage: "doc.text.magnifyingglass",
+                                description: Text(state.errorMessage ?? "Der Artikel ist nicht mehr in der lokalen Datenbank vorhanden.")
+                            )
+                        }
+                    }
+                    .frame(maxWidth: clampedContentWidth, alignment: .leading)
+                    .padding(.horizontal, 28)
+                    .padding(.top, articleTopPadding)
+                    .padding(.bottom, articleBottomPadding)
+                }
                 .task(id: articleID) {
                     state.load(articleID: articleID, database: database)
                 }
-        } else {
-            ScrollView(.vertical, showsIndicators: false) {
-                LazyVStack(alignment: .leading, spacing: contentBlockSpacing) {
-                    if let snapshot = state.snapshot {
-                        readerHeader(snapshot)
-
-                        ForEach(ReaderContentBlockEntry.entries(from: state.preparedArticle.contentBlocks)) { entry in
-                            VStack(alignment: .leading, spacing: imageTextDividerSpacing) {
-                                contentBlock(entry.block)
-
-                                if shouldShowImageTextDivider(after: entry.index, in: state.preparedArticle.contentBlocks) {
-                                    readerSectionDivider
-                                }
-                            }
-                        }
-
-                        readerFooter(snapshot)
-                    } else if state.isLoading {
-                        ProgressView()
-                            .frame(maxWidth: .infinity)
-                            .padding(.top, 28)
-                    } else {
-                        ContentUnavailableView(
-                            "Artikel nicht gefunden",
-                            systemImage: "doc.text.magnifyingglass",
-                            description: Text(state.errorMessage ?? "Der Artikel ist nicht mehr in der lokalen Datenbank vorhanden.")
-                        )
-                    }
-                }
-                .frame(maxWidth: clampedContentWidth, alignment: .leading)
-                .padding(.horizontal, 28)
-                .padding(.top, articleTopPadding)
-                .padding(.bottom, articleBottomPadding)
+                .id(articleID)
             }
-            .task(id: articleID) {
-                state.load(articleID: articleID, database: database)
+        }
+        .task(id: articleID) {
+            webContentLoadFailed = false
+            state.load(articleID: articleID, database: database)
+        }
+        .onChange(of: readerDisplayMode) { _, newValue in
+            if newValue == .web {
+                webContentLoadFailed = false
             }
-            .id(articleID)
         }
     }
 
