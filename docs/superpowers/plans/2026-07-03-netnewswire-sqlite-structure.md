@@ -507,6 +507,10 @@ Feed-Abruflogik mehr besitzt:
   `FeedViewModel.addFeed(urlString:sqliteDatabase:)` in der SQLite-Feed-Actions-
   Region, ohne `ModelContext`-Parameter. `SidebarView` nutzt diesen nicht mehr
   deprecated Pfad.
+- [x] **Feed-Aktionen weiter aus dem ViewModel geschnitten:** Neuer
+  `SQLiteFeedActionService` bündelt produktives Add, Einzel-Refresh,
+  Refresh-Snapshot-Laden, Sammel-Refresh und Delete. `FeedViewModel` ruft diesen
+  Service auf und hält nur noch Lade-/Fehler-/Fortschrittsstatus.
 - [x] **`refreshAllFeedsWithCoordinator` nicht mehr deprecated:** Er ist der
   produktive Coordinator-Pfad (`refreshAllFeeds(sqliteDatabase:)` delegiert an
   ihn), kein Fallback. Die `@available(*, deprecated)`-Markierung wurde entfernt.

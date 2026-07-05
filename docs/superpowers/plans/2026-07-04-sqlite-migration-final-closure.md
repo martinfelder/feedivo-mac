@@ -254,6 +254,10 @@ Expected: Commit succeeds.
 > SwiftData-Methoden sind in der `// MARK: - Legacy SwiftData Compatibility`-
 > Region isoliert. Die ursprünglich fünf Steps sind unten mit dem erreichten
 > Stand abgehakt; die Source-Tests liegen in `FeedivoAppSceneConfigurationTests`.
+>
+> **Nachtrag 2026-07-05:** `SQLiteFeedActionService` bündelt zusätzlich die
+> produktiven Add-/Refresh-/Delete-Serviceaufrufe. `FeedViewModel` ruft diesen
+> Service auf und übersetzt nur noch in UI-State.
 
 - [x] **Step 1: Methodengruppen markieren**
 

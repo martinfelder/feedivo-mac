@@ -650,15 +650,10 @@ final class FeedViewModel {
         }
 
         do {
-            let service = SQLiteFeedSubscriptionService(
-                database: sqliteDatabase,
-                fetchFeed: fetchFeed,
-                discoverFaviconURL: discoverFaviconURL
-            )
-            _ = try await service.addFeed(
+            let service = sqliteFeedActionService(for: sqliteDatabase)
+            try await service.addFeed(
                 urlString: cleanedURL,
-                refreshIntervalMinutes: BackgroundRefreshSettings.defaultIntervalMinutes,
-                context: nil
+                refreshIntervalMinutes: BackgroundRefreshSettings.defaultIntervalMinutes
             )
             SQLiteDataInvalidation.bumpStatusVersion()
         } catch let error as LocalizedError {
@@ -693,24 +688,22 @@ final class FeedViewModel {
             isLoading = false
         }
 
-        let ruleSnapshots = sqliteRuleSnapshots(from: sqliteDatabase)
-        let service = SQLiteFeedRefreshService(
-            database: sqliteDatabase,
-            ruleSnapshots: ruleSnapshots
-        )
+        let service = sqliteFeedActionService(for: sqliteDatabase)
 
         do {
-            let result = try await service.refresh(feedID: feedID)
+            let result = try await service.refreshFeed(
+                feedID: feedID,
+                ruleSnapshots: sqliteRuleSnapshots(from: sqliteDatabase)
+            )
             SQLiteDataInvalidation.bumpStatusVersion()
             await notifyFeedRefresh([
                 FeedRefreshNotificationResult(
-                    feedTitle: result.feedTitle,
-                    newArticleCount: result.insertedArticleIDs.count,
-                    isNotificationEnabled: (try? FeedStore(database: sqliteDatabase)
-                        .feed(id: feedID)?.isNotificationEnabled) ?? false
+                    feedTitle: result.refreshResult.feedTitle,
+                    newArticleCount: result.refreshResult.insertedArticleIDs.count,
+                    isNotificationEnabled: result.isNotificationEnabled
                 )
             ])
-            await notifyRuleNotifications(result.ruleNotifications)
+            await notifyRuleNotifications(result.refreshResult.ruleNotifications)
         } catch let error as LocalizedError {
             errorMessage = error.errorDescription ?? L10n.feedErrorParsingFailed
         } catch {
@@ -727,17 +720,8 @@ final class FeedViewModel {
             return
         }
 
-        let snapshots: [FeedRefreshSnapshot] = (try? FeedStore(database: sqliteDatabase)
-            .feeds()
-            .compactMap { record in
-                guard let id = UUID(uuidString: record.id) else { return nil }
-                return FeedRefreshSnapshot(
-                    id: id,
-                    title: record.title,
-                    url: record.url,
-                    isNotificationEnabled: record.isNotificationEnabled
-                )
-            }) ?? []
+        let service = sqliteFeedActionService(for: sqliteDatabase)
+        let snapshots = (try? service.refreshSnapshots()) ?? []
 
         guard !snapshots.isEmpty else {
             return
@@ -1027,20 +1011,11 @@ final class FeedViewModel {
             operationProgress = nil
         }
 
-        let coordinator = SQLiteFeedRefreshCoordinator(
-            database: database,
-            batchSize: Self.maxConcurrentFeedRefreshes,
+        let summary = await sqliteFeedActionService(for: database).refreshAllFeeds(
+            snapshots,
             ruleSnapshots: ruleSnapshots,
-            fetcher: { [self] urlString, validators in
-                switch try await self.fetchFeedConditionally(urlString, validators) {
-                case .updated(let feed, let validators):
-                    return .updated(feed, validators)
-                case .notModified(let validators):
-                    return .notModified(validators)
-                }
-            }
+            batchSize: Self.maxConcurrentFeedRefreshes
         )
-        let summary = await coordinator.refreshAllFeeds(snapshots)
 
         for snapshot in snapshots {
             if summary.succeededFeedIDs.contains(snapshot.id) {
@@ -1216,6 +1191,15 @@ final class FeedViewModel {
         (try? SQLiteRuleStore(database: database).ruleSnapshots()) ?? []
     }
 
+    private func sqliteFeedActionService(for database: FeedivoDatabase) -> SQLiteFeedActionService {
+        SQLiteFeedActionService(
+            database: database,
+            fetchFeed: fetchFeed,
+            fetchFeedConditionally: fetchFeedConditionally,
+            discoverFaviconURL: discoverFaviconURL
+        )
+    }
+
     @available(*, deprecated, message: "Legacy SwiftData-Fallback. Produktions-Löschen nutzt `deleteFeed(feedID:sqliteDatabase:)`.")
     @MainActor
     func deleteFeed(_ feed: Feed?, context: ModelContext) {
@@ -1262,7 +1246,7 @@ final class FeedViewModel {
 
         if let sqliteDatabase {
             do {
-                try FeedStore(database: sqliteDatabase).delete(id: feedID)
+                try sqliteFeedActionService(for: sqliteDatabase).deleteFeed(feedID: feedID)
                 SQLiteDataInvalidation.bumpStatusVersion()
             } catch {
                 errorMessage = error.localizedDescription

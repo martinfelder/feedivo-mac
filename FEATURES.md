@@ -21,6 +21,8 @@
 > `SQLiteFeedSubscriptionService.previewOPMLFeeds(for:onProgress:))`;
 > `FeedViewModel.opmlImportPreviewRows` ist nur noch ein dünner Delegator. Neuer
 > produktiver `addFeed(urlString:sqliteDatabase:)`-Einstieg ohne `ModelContext`.
+> `SQLiteFeedActionService` bündelt produktive Add-/Refresh-/Delete-Aufrufe
+> unterhalb des ViewModels.
 > `refreshAllFeedsWithCoordinator` ist nicht mehr deprecated (produktiver
 > Coordinator-Pfad). Verbleibende SwiftData-Methoden in `FeedViewModel` sind in
 > der `// MARK: - Legacy SwiftData Compatibility`-Region isoliert.

@@ -1139,6 +1139,7 @@ struct FeedivoAppSceneConfigurationTests {
 
         // Produktive Feed-Aktionen delegieren an SQLite-Services statt selbst
         // SwiftData zu mutieren.
+        #expect(source.contains("SQLiteFeedActionService"))
         #expect(source.contains("SQLiteFeedSubscriptionService"))
         #expect(source.contains("SQLiteFeedRefreshCoordinator"))
         // Legacy-SwiftData-Methoden sind in einer klar markierten Region

@@ -536,11 +536,12 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 ### FeedViewModel.swift
 - `@Observable` class. `FeedViewModel` ist primär UI-State + Delegation; die
   SQLite-Arbeit läuft in den Services (`SQLiteFeedSubscriptionService`,
-  `SQLiteFeedRefreshService`, `SQLiteFeedRefreshCoordinator`).
+  `SQLiteFeedRefreshService`, `SQLiteFeedRefreshCoordinator`,
+  `SQLiteFeedActionService`).
 - Produktiver Einstieg `addFeed(urlString:sqliteDatabase:)` ohne `ModelContext`:
-  delegiert an `SQLiteFeedSubscriptionService.addFeed` und übersetzt nur Fehler
-  sowie Reentrancy in UI-State (`isLoading`, `errorMessage`). `SidebarView` nutzt
-  diesen Pfad.
+  delegiert über `SQLiteFeedActionService` an `SQLiteFeedSubscriptionService.addFeed`
+  und übersetzt nur Fehler sowie Reentrancy in UI-State (`isLoading`,
+  `errorMessage`). `SidebarView` nutzt diesen Pfad.
 - Produktive OPML-Importvorschau läuft über
   `SQLiteFeedSubscriptionService.previewOPMLFeeds(for:onProgress:))`;
   `FeedViewModel.opmlImportPreviewRows` ist nur noch ein dünner Delegator. Ohne
