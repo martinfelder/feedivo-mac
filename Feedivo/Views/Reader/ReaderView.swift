@@ -77,6 +77,9 @@ struct LegacyReaderView: View {
     @AppStorage(ReaderDisplayMode.storageKey)
     private var readerDisplayModeRawValue = ReaderDisplayMode.defaultMode.rawValue
 
+    @AppStorage(ArticleInAppWebProfile.storageKey)
+    private var articleInAppWebProfileRawValue = ArticleInAppWebProfile.defaultProfile.rawValue
+
     @State private var isAppearancePopoverPresented = false
     @State private var viewModel = ArticleViewModel()
     @State private var relationshipMetadata = ReaderArticleRelationshipMetadata.empty
@@ -159,6 +162,10 @@ struct LegacyReaderView: View {
 
     private var readerDisplayMode: ReaderDisplayMode {
         ReaderDisplayMode.resolved(from: readerDisplayModeRawValue)
+    }
+
+    private var articleInAppWebProfile: ArticleInAppWebProfile {
+        ArticleInAppWebProfile.resolved(from: articleInAppWebProfileRawValue)
     }
 
     private var originalURL: URL? {
@@ -304,7 +311,7 @@ struct LegacyReaderView: View {
     @ViewBuilder
     private var readerContent: some View {
         if shouldShowWebView, let originalURL {
-            WebContentView(url: originalURL)
+            WebContentView(url: originalURL, inAppProfile: articleInAppWebProfile)
         } else {
             nativeReader
         }

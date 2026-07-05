@@ -3,10 +3,16 @@ import WebKit
 
 struct WebContentView: NSViewRepresentable {
     let url: URL
+    let inAppProfile: ArticleInAppWebProfile
     let onLoadFailure: () -> Void
 
-    init(url: URL, onLoadFailure: @escaping () -> Void = {}) {
+    init(
+        url: URL,
+        inAppProfile: ArticleInAppWebProfile = .defaultProfile,
+        onLoadFailure: @escaping () -> Void = {}
+    ) {
         self.url = url
+        self.inAppProfile = inAppProfile
         self.onLoadFailure = onLoadFailure
     }
 
@@ -28,7 +34,7 @@ struct WebContentView: NSViewRepresentable {
     }
 
     func updateNSView(_ webView: WKWebView, context: Context) {
-        context.coordinator.update(url: url, in: webView)
+        context.coordinator.update(url: url, profile: inAppProfile, in: webView)
     }
 
     func dismantleNSView(_ nsView: WKWebView, coordinator: Coordinator) {
@@ -40,6 +46,8 @@ struct WebContentView: NSViewRepresentable {
         weak var webView: WKWebView?
 
         private var pendingURL: URL?
+        private var pendingProfile: ArticleInAppWebProfile?
+        private var loadedProfile: ArticleInAppWebProfile = .defaultProfile
         private var loadedURL: URL?
         private var isContentBlockerReady = false
         private var didNotifyLoadFailure = false
@@ -50,9 +58,10 @@ struct WebContentView: NSViewRepresentable {
             super.init()
         }
 
-        func update(url: URL, in webView: WKWebView) {
+        func update(url: URL, profile: ArticleInAppWebProfile, in webView: WKWebView) {
             self.webView = webView
             pendingURL = url
+            pendingProfile = profile
             didNotifyLoadFailure = false
             loadIfReady()
         }
@@ -65,13 +74,24 @@ struct WebContentView: NSViewRepresentable {
         private func loadIfReady() {
             guard isContentBlockerReady,
                   let pendingURL,
-                  loadedURL != pendingURL,
+                  let pendingProfile,
                   let webView
             else {
                 return
             }
 
+            let hasProfileChange = loadedProfile != pendingProfile
+            if hasProfileChange {
+                webView.customUserAgent = pendingProfile.customUserAgent
+                loadedProfile = pendingProfile
+            }
+
+            guard loadedURL != pendingURL || hasProfileChange else {
+                return
+            }
+
             loadedURL = pendingURL
+            didNotifyLoadFailure = false
             webView.load(URLRequest(url: pendingURL))
         }
 

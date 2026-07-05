@@ -47,6 +47,9 @@ struct SQLiteReaderView: View {
     @AppStorage(ReaderDisplayMode.storageKey)
     private var readerDisplayModeRawValue = ReaderDisplayMode.defaultMode.rawValue
 
+    @AppStorage(ArticleInAppWebProfile.storageKey)
+    private var articleInAppWebProfileRawValue = ArticleInAppWebProfile.defaultProfile.rawValue
+
     init(
         articleID: String,
         canSelectPreviousArticle: Bool = false,
@@ -268,11 +271,18 @@ struct SQLiteReaderView: View {
         ReaderDisplayMode.resolved(from: readerDisplayModeRawValue)
     }
 
+    private var articleInAppWebProfile: ArticleInAppWebProfile {
+        ArticleInAppWebProfile.resolved(from: articleInAppWebProfileRawValue)
+    }
+
     @ViewBuilder
     private func readerContent(database: FeedivoDatabase) -> some View {
         Group {
             if readerDisplayMode == .web, let originalURL, !webContentLoadFailed {
-                WebContentView(url: originalURL, onLoadFailure: {
+                WebContentView(
+                    url: originalURL,
+                    inAppProfile: articleInAppWebProfile,
+                    onLoadFailure: {
                     webContentLoadFailed = true
                 })
             } else {

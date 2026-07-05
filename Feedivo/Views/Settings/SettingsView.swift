@@ -214,6 +214,9 @@ private struct NewGeneralSettingsView: View {
     @AppStorage(ReaderDisplayMode.storageKey)
     private var readerDisplayModeRawValue = ReaderDisplayMode.defaultMode.rawValue
 
+    @AppStorage(ArticleInAppWebProfile.storageKey)
+    private var articleInAppWebProfileRawValue = ArticleInAppWebProfile.defaultProfile.rawValue
+
     @AppStorage(ArticleOriginalBrowserTarget.storageKey)
     private var articleOriginalBrowserTargetRawValue = ArticleOriginalBrowserTarget.defaultTarget.rawValue
 
@@ -231,6 +234,10 @@ private struct NewGeneralSettingsView: View {
         }
 
         return resolved
+    }
+
+    private var selectedInAppWebProfile: ArticleInAppWebProfile {
+        ArticleInAppWebProfile.resolved(from: articleInAppWebProfileRawValue)
     }
 
     var body: some View {
@@ -267,8 +274,26 @@ private struct NewGeneralSettingsView: View {
                 }
 
                 NewSettingRow(
+                    title: "In-App Originalansicht rendern mit",
+                    description: "Auswahl nur für die eingebettete Web-Ansicht im Reader. Wird intern über WebKit umgesetzt."
+                ) {
+                    Picker("", selection: $articleInAppWebProfileRawValue) {
+                        ForEach(ArticleInAppWebProfile.allCases) { profile in
+                            Text(profile.title)
+                                .tag(profile.rawValue)
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.menu)
+                    .frame(width: 220, alignment: .trailing)
+                    .onAppear {
+                        articleInAppWebProfileRawValue = selectedInAppWebProfile.rawValue
+                    }
+                }
+
+                NewSettingRow(
                     title: "Original öffnen mit",
-                    description: "Wähle, welcher Browser für den Button „Original öffnen“ genutzt wird."
+                    description: "Wähle, welcher Browser für den externen Aufruf von „Original öffnen“ genutzt wird."
                 ) {
                     Picker("", selection: $articleOriginalBrowserTargetRawValue) {
                         ForEach(availableBrowserTargets) { target in
