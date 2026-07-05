@@ -10,7 +10,6 @@ struct SQLiteReaderView: View {
     let canSelectNextArticle: Bool
     let selectPreviousArticle: () -> Void
     let selectNextArticle: () -> Void
-    @Binding var articleSearchText: String
     let onSnapshotChange: (ArticleReaderSnapshot?) -> Void
     let onCreateRule: (ArticleReaderSnapshot) -> Void
 
@@ -52,7 +51,6 @@ struct SQLiteReaderView: View {
         canSelectNextArticle: Bool = false,
         selectPreviousArticle: @escaping () -> Void = {},
         selectNextArticle: @escaping () -> Void = {},
-        articleSearchText: Binding<String> = .constant(""),
         onSnapshotChange: @escaping (ArticleReaderSnapshot?) -> Void = { _ in },
         onCreateRule: @escaping (ArticleReaderSnapshot) -> Void = { _ in }
     ) {
@@ -61,7 +59,6 @@ struct SQLiteReaderView: View {
         self.canSelectNextArticle = canSelectNextArticle
         self.selectPreviousArticle = selectPreviousArticle
         self.selectNextArticle = selectNextArticle
-        self._articleSearchText = articleSearchText
         self.onSnapshotChange = onSnapshotChange
         self.onCreateRule = onCreateRule
     }
@@ -104,8 +101,6 @@ struct SQLiteReaderView: View {
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
                 Spacer()
-
-                toolbarSearchField
 
                 Button {
                     openOriginal()
@@ -500,38 +495,6 @@ struct SQLiteReaderView: View {
         }
 
         return false
-    }
-
-    private var toolbarSearchField: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(.secondary)
-
-            TextField(L10n.articleSearchPlaceholder, text: $articleSearchText)
-                .textFieldStyle(.plain)
-                .font(.system(size: 13))
-
-            if !articleSearchText.isEmpty {
-                Button {
-                    articleSearchText = ""
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 12, weight: .semibold))
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(.secondary)
-                .help(L10n.articleSearchClear)
-            }
-        }
-        .padding(.horizontal, 9)
-        .frame(width: 190, height: 28)
-        .background(Color(nsColor: .controlBackgroundColor), in: Capsule())
-        .overlay {
-            Capsule()
-                .stroke(.separator.opacity(0.45), lineWidth: 1)
-        }
-        .help(L10n.articleSearchCommand)
     }
 
     private var readerAppearancePopover: some View {

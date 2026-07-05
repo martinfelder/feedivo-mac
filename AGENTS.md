@@ -974,10 +974,11 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Stattdessen sammelt sie betroffene Feed-IDs und synchronisiert die Zähler beim
   debounced Flush per SwiftData-`fetchCount`, damit schnelle Artikelwechsel keine
   Feed-/Sidebar-/Badge-Invalidierung pro Artikel auslösen.
-- Die kompakte Artikelsuche sitzt in der Reader-Toolbar links von
-  `Original öffnen`. Sie filtert die aktuell ausgewählte Feed-/Tag-/
-  Smartfolder-Liste über den SQLite/FTS-Pfad. Die frühere große Suchmaske wurde
-  aus der Artikelliste entfernt, damit die mittlere Spalte leicht bleibt.
+- Die kompakte Artikelsuche sitzt in einer eigenen Section oben im
+  Detailbereich. Sie bleibt sichtbar, wenn eine Feed-/Tag-/Smartfolder-Liste
+  aktiv ist, auch ohne Artikelauswahl, und filtert diese Liste über den
+  SQLite/FTS-Pfad. Die frühere große Suchmaske wurde aus der Artikelliste
+  entfernt, damit die mittlere Spalte leicht bleibt.
 - `Cmd+F` öffnet ein separates Artikelsuche-Fenster. Dort liegen die erweiterte
   Suche über alle gespeicherten Artikel, Suchbereiche, Feed-/Tag-/Zeitraum- und
   Statusfilter sowie eine eigene Ergebnisliste.
@@ -2307,7 +2308,7 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   `SQLiteFeedArticleListView` und `TimelineScope.smartFilter`. Das
   SQLite-FTS-Fundament ist mit `article_search` und Triggern auf `articles`
   angelegt; `ArticleStore.searchArticles` liefert Suchtreffer als leichte
-  `ArticleListSnapshot`s. Die kompakte Suche in der Reader-Toolbar nutzt den
+  `ArticleListSnapshot`s. Die kompakte Suche im Detailbereich nutzt den
   FTS-Index inzwischen über
   `TimelineStore.articles(... searchText:)`, kombiniert Suchtext mit Feed-,
   Tag- und SmartFilter-Scopes und normalisiert Sonderzeichen vor `MATCH`. Das
@@ -2592,9 +2593,10 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   die normale Suchleiste leichte `ArticleListSnapshot`s direkt aus SQLite lädt.
   Das separate globale Suchfenster bleibt ein Folgeslice.
 
-- 2026-07-05: Kompakte Artikelsuche in die Reader-Toolbar verschoben. Das
-  Suchfeld sitzt nun links von `Original öffnen`; die Artikelliste selbst bleibt
-  frei von Such-Chroming und erhält den Suchtext als Binding aus `ContentView`.
+- 2026-07-05: Kompakte Artikelsuche in eine eigene Section im Detailbereich
+  verschoben. Das Suchfeld bleibt dadurch auch ohne Artikelauswahl sichtbar; die
+  Artikelliste selbst bleibt frei von Such-Chroming und erhält den Suchtext als
+  Binding aus `ContentView`.
 
 - 2026-07-03: SQLite-FTS-Fundament ergänzt. Migration v4 legt die FTS5-Tabelle
   `article_search` mit Unicode-Tokenizer sowie die Trigger `articles_ai`,

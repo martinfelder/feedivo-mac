@@ -37,7 +37,6 @@ struct ContentView: View {
     @State private var selectedSQLiteArticleSnapshot: ArticleReaderSnapshot?
     @State private var sqliteArticleNavigationState = SQLiteArticleNavigationState.empty
     @State private var articleSearchText = ""
-    @State private var articleSearchFocusRequest = 0
 
     @State private var feedViewModel: FeedViewModel
     @State private var isShowingAddFeedSheet = false
@@ -124,25 +123,33 @@ struct ContentView: View {
         } detail: {
 
             // SPALTE 3: Reader — Inhalt des ausgewählten Artikels
-            if let selectedSQLiteArticleID {
-                SQLiteReaderView(
-                    articleID: selectedSQLiteArticleID,
-                    canSelectPreviousArticle: sqliteArticleNavigationState.previousArticleID != nil,
-                    canSelectNextArticle: sqliteArticleNavigationState.nextArticleID != nil,
-                    selectPreviousArticle: selectPreviousArticle,
-                    selectNextArticle: selectNextArticle,
-                    articleSearchText: $articleSearchText,
-                    onSnapshotChange: handleSQLiteArticleSnapshotChange,
-                    onCreateRule: requestRuleCreation
-                )
-                .id(selectedSQLiteArticleID)
-            } else {
-                ContentUnavailableView(
-                    L10n.contentNoArticleSelectedTitle,
-                    systemImage: "doc.text",
-                    description: Text(L10n.contentNoArticleSelectedDescription)
-                )
+            VStack(spacing: 0) {
+                if hasActiveArticleList {
+                    articleSearchSection
+                    Divider()
+                }
+
+                if let selectedSQLiteArticleID {
+                    SQLiteReaderView(
+                        articleID: selectedSQLiteArticleID,
+                        canSelectPreviousArticle: sqliteArticleNavigationState.previousArticleID != nil,
+                        canSelectNextArticle: sqliteArticleNavigationState.nextArticleID != nil,
+                        selectPreviousArticle: selectPreviousArticle,
+                        selectNextArticle: selectNextArticle,
+                        onSnapshotChange: handleSQLiteArticleSnapshotChange,
+                        onCreateRule: requestRuleCreation
+                    )
+                    .id(selectedSQLiteArticleID)
+                } else {
+                    ContentUnavailableView(
+                        L10n.contentNoArticleSelectedTitle,
+                        systemImage: "doc.text",
+                        description: Text(L10n.contentNoArticleSelectedDescription)
+                    )
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
 
         }
         .onChange(of: sidebarSelection, handleSidebarSelectionChange)
@@ -293,6 +300,47 @@ struct ContentView: View {
                 hasFeeds: !feedSnapshots.isEmpty
             )
         )
+    }
+
+    private var hasActiveArticleList: Bool {
+        selectedSmartFolder != nil || selectedFeedID != nil || selectedTagID != nil || selectedSmartFilter != nil
+    }
+
+    private var articleSearchSection: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.secondary)
+
+            TextField(L10n.articleSearchPlaceholder, text: $articleSearchText)
+                .textFieldStyle(.plain)
+                .font(.system(size: 13))
+
+            if !articleSearchText.isEmpty {
+                Button {
+                    articleSearchText = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 12, weight: .semibold))
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
+                .help(L10n.articleSearchClear)
+            }
+        }
+        .padding(.horizontal, 10)
+        .frame(maxWidth: 260)
+        .frame(height: 28)
+        .background(Color(nsColor: .controlBackgroundColor), in: Capsule())
+        .overlay {
+            Capsule()
+                .stroke(.separator.opacity(0.45), lineWidth: 1)
+        }
+        .help(L10n.articleSearchCommand)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(Color(nsColor: .windowBackgroundColor))
     }
 
     private func requestAddFeed() {
