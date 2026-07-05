@@ -10,7 +10,7 @@ enum ArticleResourceURLPolicy {
     [
       {
         "trigger": {
-          "url-filter": "^https?://([^/]+\\\\.)?vgwort\\\\.de/.*"
+          "url-filter": "^https?://([^/]+\\\\.)*vgwort\\\\.de/.*"
         },
         "action": {
           "type": "block"
