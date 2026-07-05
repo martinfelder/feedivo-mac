@@ -103,22 +103,6 @@ struct SQLiteReaderView: View {
                 Spacer()
 
                 Button {
-                    selectPreviousArticle()
-                } label: {
-                    Image(systemName: "chevron.up")
-                }
-                .help(L10n.articlePreviousCommand)
-                .disabled(!canSelectPreviousArticle)
-
-                Button {
-                    selectNextArticle()
-                } label: {
-                    Image(systemName: "chevron.down")
-                }
-                .help(L10n.articleNextCommand)
-                .disabled(!canSelectNextArticle)
-
-                Button {
                     openOriginal()
                 } label: {
                     Image(systemName: "safari")
