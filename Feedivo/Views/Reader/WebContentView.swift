@@ -50,6 +50,8 @@ struct WebContentView: NSViewRepresentable {
         private var loadedProfile: ArticleInAppWebProfile = .defaultProfile
         private var loadedURL: URL?
         private var isContentBlockerReady = false
+        private var loadWatchTask: Task<Void, Never>?
+        private var hasLoadSucceeded = false
         private var didNotifyLoadFailure = false
         private let onLoadFailure: () -> Void
 
@@ -91,8 +93,37 @@ struct WebContentView: NSViewRepresentable {
             }
 
             loadedURL = pendingURL
+            hasLoadSucceeded = false
             didNotifyLoadFailure = false
+            startLoadWatchdog(for: pendingURL)
             webView.load(URLRequest(url: pendingURL))
+        }
+
+        private func startLoadWatchdog(for url: URL) {
+            loadWatchTask?.cancel()
+
+            let urlInWatch = url
+            loadWatchTask = Task { [weak self] in
+                try? await Task.sleep(nanoseconds: 18_000_000_000)
+
+                await MainActor.run {
+                    guard
+                        let self,
+                        self.loadedURL == urlInWatch,
+                        !self.hasLoadSucceeded,
+                        !self.didNotifyLoadFailure
+                    else {
+                        return
+                    }
+
+                    self.notifyFailure(nil)
+                }
+            }
+        }
+
+        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            hasLoadSucceeded = true
+            loadWatchTask?.cancel()
         }
 
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
@@ -110,6 +141,8 @@ struct WebContentView: NSViewRepresentable {
         }
 
         private func notifyFailure(_ error: Error?) {
+            loadWatchTask?.cancel()
+            loadedURL = nil
             if didNotifyLoadFailure {
                 return
             }
