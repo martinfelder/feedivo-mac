@@ -4,6 +4,7 @@ import SwiftUI
 
 struct SQLiteFeedArticleListView: View {
     @Environment(\.feedivoDatabase) private var database
+    @Environment(\.interfaceTextSize) private var interfaceTextSize
     @AppStorage(SidebarBadgeInvalidation.directTagVersionKey)
     private var directTagVersion = 0
     @AppStorage(SQLiteDataInvalidation.statusVersionKey)
@@ -120,7 +121,7 @@ struct SQLiteFeedArticleListView: View {
                 sortMenu
             }
         }
-        .navigationTitle(navigationTitle)
+        .navigationTitle("")
     }
 
     @ViewBuilder
@@ -146,19 +147,66 @@ struct SQLiteFeedArticleListView: View {
                     description: Text(message)
                 )
             case .idle where state.rows.isEmpty:
-                ProgressView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                articleListContainer {
+                    ProgressView()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
             case .loaded where state.rows.isEmpty:
-                ContentUnavailableView(
-                    emptyTitle,
-                    systemImage: emptySystemImage,
-                    description: Text(emptyDescription)
-                )
+                articleListContainer {
+                    ContentUnavailableView(
+                        emptyTitle,
+                        systemImage: emptySystemImage,
+                        description: Text(emptyDescription)
+                    )
+                }
             case .idle, .loaded:
-                articleList
+                articleListContainer {
+                    articleList
+                }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func articleListContainer<Content: View>(
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(spacing: 0) {
+            articleListHeader
+            Divider()
+            content()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
+
+    private var articleListHeader: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(navigationTitle)
+                .font(interfaceTextSize.font(size: 13, weight: .medium))
+                .lineLimit(1)
+
+            Text(unreadArticleCountText)
+                .font(interfaceTextSize.font(size: 13))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 7)
+    }
+
+    private var unreadArticleCount: Int {
+        state.rows.filter { row in
+            !row.isRead && !row.isHidden
+        }.count
+    }
+
+    private var unreadArticleCountText: String {
+        if unreadArticleCount == 1 {
+            "1 ungelesener Artikel"
+        } else {
+            "\(unreadArticleCount) ungelesene Artikel"
+        }
     }
 
     private var articleList: some View {

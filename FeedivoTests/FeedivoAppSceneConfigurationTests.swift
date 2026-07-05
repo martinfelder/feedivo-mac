@@ -152,6 +152,21 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(!listSource.contains("ScrollViewReader"))
     }
 
+    @Test func sqliteArtikellisteZeigtFeedTitelMitUngelesenZaehler() throws {
+        let projectRoot = projectRootURL()
+        let listSource = try source(at: "Feedivo/Views/ArticleList/SQLiteFeedArticleListView.swift", projectRoot: projectRoot)
+        let compactListSource = compact(listSource)
+
+        #expect(listSource.contains("@Environment(\\.interfaceTextSize) private var interfaceTextSize"))
+        #expect(listSource.contains("private var articleListHeader: some View"))
+        #expect(compactListSource.contains("Text(navigationTitle)"))
+        #expect(compactListSource.contains("Text(unreadArticleCountText)"))
+        #expect(compactListSource.contains("interfaceTextSize.font(size:13,weight:.medium)"))
+        #expect(compactListSource.contains("interfaceTextSize.font(size:13)"))
+        #expect(compactListSource.contains("privatevarunreadArticleCount:Int{state.rows.filter{rowin!row.isRead&&!row.isHidden}.count}"))
+        #expect(compactListSource.contains(".navigationTitle(\"\")"))
+    }
+
     @Test func sqliteReaderBleibtOptischNahAnMainReaderToolbar() throws {
         let projectRoot = projectRootURL()
         let readerSource = try source(at: "Feedivo/Views/Reader/SQLiteReaderView.swift", projectRoot: projectRoot)
