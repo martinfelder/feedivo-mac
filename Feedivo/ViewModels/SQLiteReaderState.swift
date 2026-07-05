@@ -25,27 +25,26 @@ final class SQLiteReaderState {
         let loadToken = UUID()
         activeLoadToken = loadToken
 
-        activeLoadTask = Task { @MainActor [database, articleID, loadToken] in
-            guard !Task.isCancelled else {
-                return
-            }
-
+        activeLoadTask = Task { [database, articleID, loadToken] in
             var loadedSnapshot: ArticleReaderSnapshot?
             var preparedArticleForSnapshot = ReaderPreparedArticle.empty
             var loadError: String?
 
             do {
-                loadedSnapshot = try ArticleDatabase(database: database).readerArticle(id: articleID)
+                let loadedData = try await Task.detached(priority: .userInitiated) {
+                    try ArticleDatabase(database: database).readerArticle(id: articleID)
+                }.value
 
-                if let loadedSnapshot {
-                    let input = ReaderArticleInput.make(from: loadedSnapshot)
+                loadedSnapshot = loadedData
+
+                if let snapshot = loadedSnapshot {
+                    let input = ReaderArticleInput.make(from: snapshot)
                     if let cached = ReaderPreparedArticleCache.shared.prepared(for: input) {
                         preparedArticleForSnapshot = cached
                     } else {
                         preparedArticleForSnapshot = await Task.detached(priority: .userInitiated) {
                             ReaderPreparedArticle(input: input)
                         }.value
-
                         ReaderPreparedArticleCache.shared.store(preparedArticleForSnapshot, for: input)
                     }
                 }

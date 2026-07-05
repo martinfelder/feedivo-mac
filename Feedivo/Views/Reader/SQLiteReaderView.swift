@@ -309,10 +309,6 @@ struct SQLiteReaderView: View {
                     .padding(.top, articleTopPadding)
                     .padding(.bottom, articleBottomPadding)
                 }
-                .task(id: articleID) {
-                    state.load(articleID: articleID, database: database)
-                }
-                .id(articleID)
             }
         }
         .task(id: articleID) {
