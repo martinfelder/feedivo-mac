@@ -205,6 +205,18 @@ struct TagStore {
         }
     }
 
+    func removeTag(tagID: String, fromArticleID articleID: String) throws {
+        try database.write { db in
+            try db.execute(
+                sql: """
+                    DELETE FROM article_tags
+                    WHERE articleID = ? AND tagID = ?
+                    """,
+                arguments: [articleID, tagID]
+            )
+        }
+    }
+
     func deleteTag(id: String) throws {
         try database.write { db in
             try db.execute(

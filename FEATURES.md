@@ -49,7 +49,7 @@
 
 ### 1.5 Tag manuell zuweisen
 - **Status:** ✔️ Fertig
-- **Umgesetzt:** `ArticleMetadataInspectorView` — Toggle-Pills, neue Tags direkt erstellbar
+- **Umgesetzt:** `ArticleMetadataInspectorView` — SQLite-Tag-Toggle-Pills, neue Tags direkt erstellbar
 
 ### 1.6 Artikel teilen
 - **Status:** ✔️ Fertig

@@ -166,6 +166,24 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(readerSource.contains("Label(L10n.articleCopyLinkCommand"))
     }
 
+    @Test func produktiverArtikelInspectorPortiertLegacyLayoutOhneSwiftData() throws {
+        let projectRoot = projectRootURL()
+        let inspectorSource = try source(at: "Feedivo/Views/Reader/ArticleMetadataInspectorView.swift", projectRoot: projectRoot)
+        let compactInspectorSource = compact(inspectorSource)
+
+        #expect(!inspectorSource.contains("import SwiftData"))
+        #expect(!inspectorSource.contains("@Environment(\\.modelContext)"))
+        #expect(!inspectorSource.contains("@Query"))
+        #expect(inspectorSource.contains("struct ArticleMetadataInspectorView"))
+        #expect(compactInspectorSource.contains("primaryActionSection"))
+        #expect(compactInspectorSource.contains("feedFolderSection"))
+        #expect(compactInspectorSource.contains("contextSection"))
+        #expect(compactInspectorSource.contains("sourceSection"))
+        #expect(compactInspectorSource.contains("FeedStore(database:database).updateFolderName"))
+        #expect(compactInspectorSource.contains("TagStore(database:database).assignTag"))
+        #expect(compactInspectorSource.contains("removeTag(tagID:tag.id,fromArticleID:currentSnapshot.id)"))
+    }
+
     @Test func readerBietetNurFeedInhaltOderOriginalseiteAn() throws {
         let projectRoot = projectRootURL()
         let displayModeSource = try source(at: "Feedivo/Views/Reader/ReaderDisplayMode.swift", projectRoot: projectRoot)

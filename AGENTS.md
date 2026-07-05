@@ -1581,36 +1581,35 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   bleiben im `ImageCacheService`.
 
 ### ArticleMetadataInspectorView.swift
-- Einblendbarer rechter Inspector in der Artikelansicht.
+- Einblendbarer rechter SQLite-Inspector in der Artikelansicht.
 - Nutzt denselben hellen, systemnahen Sidebar-Stil wie die linke Seitenleiste und
   teilt sich die Farbwerte aus `SidebarStyle`.
-- Nutzt seit 2026-06-23 die gewählte Product-Design-Richtung
-  `Calm Actions` aus den interaktiven Inspector-Prototypen: Oben stehen kompakt
-  `Artikelinfos`, der Artikeltitel und ein Status-Strip für gelesen/ungelesen und
-  Favorit; direkt darunter liegt eine vierteilige Aktionsleiste für Favorit,
-  Gelesen/Ungelesen, Offline-Speichern und Link-Kopieren.
+- Nutzt wieder die gewählte Product-Design-Richtung `Calm Actions` aus den
+  interaktiven Inspector-Prototypen: Oben stehen kompakt `Artikelinfos`, der
+  Artikeltitel und ein Status-Strip für gelesen/ungelesen und Favorit; direkt
+  darunter liegt eine vierteilige Aktionsleiste für Favorit, Gelesen/Ungelesen,
+  Link-Kopieren und Originalseite öffnen.
 - Die Inspector-Typografie ist bewusst kompakter als der Reader-Text; zentrale
   Groessen liegen in `ArticleInspectorTypography`, damit die rechte Leiste ruhig
   und übersichtlich bleibt. Die aktuelle Skala nutzt 11 pt für Labels/Chips,
   11.5 pt für Controls, 12 pt für Werte, 13 pt für Section-Titel und 15 pt nur
   für den Artikelkopf.
 - Zeigt den aktuellen Feed-Ordner in einer eigenen weissen Karten-Section als
-  Menu-Picker, schreibt Änderungen direkt auf `Feed.folderName` und kann neue
-  Feed-Ordner direkt anlegen und auswaehlen.
+  Menu-Picker, schreibt Änderungen über `FeedStore.updateFolderName` direkt nach
+  SQLite und kann neue Feed-Ordner über `FeedFolderStore` anlegen und auswählen.
 - Zeigt globale Tags in einer eigenen weissen Karten-Section als Toggle-Pills wie
   im Prototyp; aktive Tags sind getoent, inaktive Tags bleiben weiss. Ein Klick
-  setzt oder entfernt das Tag direkt am Artikel.
+  setzt oder entfernt das Tag über `TagStore` direkt am SQLite-Artikel.
 - Nutzt einklappbare weisse Karten-Sections mit Chevron und ohne zusaetzliche
   Section-Icons für `Feed-Ordner`, `Tags`, `Kontext` und `Quelle`. Der Kontext
-  zeigt Feed, Quelle, Veroeffentlichung, Lesezeit und Offline-Status in einer
-  kompakten Metadatenliste.
+  zeigt Feed, Ordner, Quelle, Veroeffentlichung und Lesezeit in einer kompakten
+  Metadatenliste.
 - Nutzt für Feedname, Ordnername, Lesezeit und Content-Verfügbarkeit die von
-  `ReaderView` vorbereiteten Snapshot-Werte. Der Inspector greift im Body dadurch
-  nicht mehr direkt auf Volltext-/Offline-Textfelder des SwiftData-Artikels zu.
+  `SQLiteReaderView` vorbereiteten `ArticleReaderSnapshot`-Werte. Der Inspector
+  greift nicht auf SwiftData-Artikel oder `@Query` zurück.
 - Die Ordnerauswahl hält keine `@Query` auf alle Feeds mehr. Beim Erscheinen des
-  Inspectors werden vorhandene Feed-Ordnernamen einmal als leichter Snapshot mit
-  `propertiesToFetch` geladen und danach mit explizit angelegten `FeedFolder`-
-  Namen kombiniert.
+  Inspectors werden vorhandene Feed-Ordnernamen über `FeedStore.feeds()` und
+  explizit angelegte Ordner über `FeedFolderStore.folders()` geladen.
 - Die Quelle ist standardmäßig eingeklappt und folgt dem Prototyp als reine
   Aktions-Section mit zwei breiten Zeilen für `Link kopieren` und `Original
   oeffnen`; die URL selbst wird dort bewusst nicht mehr als Textbox gezeigt.
@@ -2397,6 +2396,15 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 ---
 
 ## Letzte Änderungen
+
+- 2026-07-05: Produktiven `ArticleMetadataInspectorView` wieder an die frühere
+  Artikelinfo-Darstellung angeglichen, aber SQLite-only portiert. Der Inspector
+  zeigt wieder Status-Strip, Aktionsleiste, Feed-Ordner, Tag-Toggles, Kontext und
+  Quelle; Status schreibt über `ArticleStatusStore`, Ordner über `FeedStore` /
+  `FeedFolderStore`, Tags über `TagStore`. Eine neue `TagStore.removeTag(...,
+  fromArticleID:)`-Methode entfernt nur die Artikel-Tag-Zuordnung, nicht den Tag
+  global. Source-Tests sichern, dass der produktive Inspector kein SwiftData
+  importiert und die Legacy-Struktur im SQLite-Pfad erhalten bleibt.
 
 - 2026-07-05: Phase 6 / Final-Closure-Task 3 weitergeführt (Commit 3b089bd).
   Die produktive OPML-Importvorschau liegt jetzt als
