@@ -114,6 +114,33 @@ struct SQLiteArticleStoreTests {
         #expect(status?.isRead == false)
     }
 
+    @Test func readerArticleLaedtFeedOrdnerUndKombinierteTags() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let tagStore = TagStore(database: database)
+
+        try feedStore.save(FeedRecord(
+            id: "feed-1",
+            url: "https://example.com/feed.xml",
+            title: "Example",
+            folderName: "News"
+        ))
+        let articleID = try articleStore.upsert(
+            ArticleUpsertInput(feedID: "feed-1", sourceID: "article-1", title: "First Article")
+        )
+        try tagStore.save(TagRecord(id: "tag-feed", name: "FeedTag", colorHex: "#111111"))
+        try tagStore.save(TagRecord(id: "tag-article", name: "ArticleTag", colorHex: "#222222"))
+        try tagStore.assignTag(tagID: "tag-feed", toFeedID: "feed-1", at: Date(timeIntervalSince1970: 100))
+        try tagStore.assignTag(tagID: "tag-article", toArticleID: articleID, at: Date(timeIntervalSince1970: 200))
+
+        let readerArticle = try articleStore.readerArticle(id: articleID)
+
+        #expect(readerArticle?.folderName == "News")
+        #expect(readerArticle?.tags.map(\.name) == ["ArticleTag", "FeedTag"])
+        #expect(readerArticle?.tags.map(\.colorHex) == ["#222222", "#111111"])
+    }
+
     @Test func upsertRestoresStatusFromIdentityHistory() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let feedStore = FeedStore(database: database)

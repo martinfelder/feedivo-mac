@@ -89,11 +89,12 @@ struct ArticleStore {
 
     func readerArticle(id: String) throws -> ArticleReaderSnapshot? {
         try database.read { db in
-            try ArticleReaderSnapshot.fetchOne(db, sql: """
+            var snapshot = try ArticleReaderSnapshot.fetchOne(db, sql: """
                 SELECT
                     a.id,
                     a.feedID,
                     f.title AS feedTitle,
+                    f.folderName AS folderName,
                     a.title,
                     a.link,
                     a.summary,
@@ -118,6 +119,13 @@ struct ArticleStore {
                 LEFT JOIN article_offline o ON o.articleID = a.id
                 WHERE a.id = ?
                 """, arguments: [id])
+
+            if let articleID = snapshot?.id,
+               let feedID = snapshot?.feedID {
+                snapshot?.tags = try Self.readerTags(articleID: articleID, feedID: feedID, db: db)
+            }
+
+            return snapshot
         }
     }
 
@@ -653,6 +661,28 @@ struct ArticleStore {
             return "content : \(tokenExpression)"
         }
     }
+
+    private static func readerTags(articleID: String, feedID: String, db: Database) throws -> [ReaderArticleTagMetadata] {
+        let records = try TagRecord.fetchAll(db, sql: """
+            SELECT DISTINCT t.*
+            FROM tags t
+            WHERE EXISTS (
+                SELECT 1
+                FROM article_tags at
+                WHERE at.articleID = ?
+                    AND at.tagID = t.id
+            )
+            OR EXISTS (
+                SELECT 1
+                FROM feed_tags ft
+                WHERE ft.feedID = ?
+                    AND ft.tagID = t.id
+            )
+            ORDER BY t.name COLLATE NOCASE, t.id COLLATE NOCASE
+            """, arguments: [articleID, feedID])
+
+        return records.map(ReaderArticleTagMetadata.init(record:))
+    }
 }
 
 private enum ArticleStoreError: Error {
@@ -664,6 +694,7 @@ extension ArticleReaderSnapshot: FetchableRecord {
         id = row["id"]
         feedID = row["feedID"]
         feedTitle = row["feedTitle"]
+        folderName = row["folderName"]
         title = row["title"]
         link = row["link"]
         summary = row["summary"]

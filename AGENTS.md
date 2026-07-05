@@ -2356,7 +2356,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   Artikelfenster laufen inzwischen ebenfalls über SQLite-Snapshots: `ContentView`
   hält den aktuell geladenen `ArticleReaderSnapshot` für Shortcuts/Commands,
   und `ArticleWindowView` nutzt `SQLiteReaderView` statt einer SwiftData-
-  `@Query<Article>`.
+  `@Query<Article>`. Seit 2026-07-05 lädt `ArticleReaderSnapshot` außerdem den
+  aktuellen Feed-Ordner und kombinierte Artikel-/Feed-Tags aus SQLite;
+  `SQLiteReaderView` zeigt diese Chips wieder direkt unter dem Artikeltitel.
 - 2026-07-03: SQLite-Verwaltungsdefinitionen sind angelegt und werden beim
   App-Start gespiegelt. Migration v6 ergänzt `feed_folders`, `rules`,
   `rule_conditions`, `smart_folders` und `smart_folder_conditions`; die neuen

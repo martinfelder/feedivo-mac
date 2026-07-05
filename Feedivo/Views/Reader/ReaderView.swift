@@ -1283,18 +1283,6 @@ private struct ReaderRefreshToken: Equatable {
     let revision: Int
 }
 
-struct ReaderArticleTagMetadata: Identifiable, Equatable {
-    let id: UUID
-    let name: String
-    let colorHex: String
-
-    init(tag: Tag) {
-        self.id = tag.id
-        self.name = tag.name
-        self.colorHex = tag.colorHex
-    }
-}
-
 struct ReaderArticleRelationshipMetadata: Equatable {
     static let empty = ReaderArticleRelationshipMetadata(
         articleID: nil,

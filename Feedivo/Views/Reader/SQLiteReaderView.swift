@@ -383,7 +383,65 @@ struct SQLiteReaderView: View {
             }
             .buttonStyle(.plain)
             .disabled(originalURL == nil)
+
+            readerArticleMetadata(snapshot)
         }
+    }
+
+    @ViewBuilder
+    private func readerArticleMetadata(_ snapshot: ArticleReaderSnapshot) -> some View {
+        let folderName = FeedFolderOrganizer.normalizedFolderName(snapshot.folderName)
+        if folderName != nil || !snapshot.tags.isEmpty {
+            FlowLayout(spacing: 8) {
+                if let folderName {
+                    readerFolderChip(folderName)
+                }
+
+                ForEach(snapshot.tags) { tag in
+                    readerTagChip(tag)
+                }
+            }
+            .padding(.top, 2)
+        }
+    }
+
+    private var readerMetadataChipHeight: CGFloat {
+        interfaceTextSize.scaled(26)
+    }
+
+    private func readerFolderChip(_ folderName: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: "folder")
+                .font(.caption2)
+
+            Text(folderName)
+                .lineLimit(1)
+        }
+        .font(interfaceTextSize.font(size: 12, weight: .semibold))
+        .foregroundStyle(.secondary)
+        .padding(.horizontal, 10)
+        .frame(height: readerMetadataChipHeight)
+        .background(.secondary.opacity(0.08), in: Capsule())
+        .overlay {
+            Capsule()
+                .stroke(.secondary.opacity(0.16), lineWidth: 1)
+        }
+    }
+
+    private func readerTagChip(_ tag: ReaderArticleTagMetadata) -> some View {
+        let tagColor = TagColorPalette.color(for: tag.colorHex)
+
+        return Text("#\(tag.name)")
+            .lineLimit(1)
+            .font(interfaceTextSize.font(size: 12, weight: .semibold))
+            .foregroundStyle(tagColor)
+            .padding(.horizontal, 10)
+            .frame(height: readerMetadataChipHeight)
+            .background(tagColor.opacity(0.1), in: Capsule())
+            .overlay {
+                Capsule()
+                    .stroke(tagColor.opacity(0.24), lineWidth: 1)
+            }
     }
 
     private func offlineStatusNotice(_ snapshot: ArticleReaderSnapshot) -> some View {

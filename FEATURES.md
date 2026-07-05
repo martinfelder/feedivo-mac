@@ -1041,6 +1041,10 @@
     Aktionen, Export und `In eigenem Fenster öffnen`. `ArticleWindowView` lädt
     separate Fenster über `SQLiteReaderView`, berechnet Vor-/Zurück-Navigation
     aus `TimelineStore(.all)` und hält keine SwiftData-`@Query<Article>` mehr.
+  - SQLite-Reader-Metadaten 2026-07-05 wieder vervollständigt:
+    `ArticleReaderSnapshot` lädt den aktuellen Feed-Ordner und kombinierte
+    Artikel-/Feed-Tags aus SQLite; `SQLiteReaderView` zeigt diese Chips direkt
+    unter dem Artikeltitel.
   - UI-Parität zum main-Branch nachgezogen: `SQLiteFeedArticleListView` nutzt
     wieder die main-nahe `List(selection:)`-Darstellung mit Suchleisten-Chroming
     und Mark-read-/Filter-/Sortier-Toolbar; `SQLiteReaderView` nutzt Reader-
