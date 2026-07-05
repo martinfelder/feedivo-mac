@@ -1080,6 +1080,15 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(source.contains("static let defaultIsEnabled = false"))
     }
 
+    @Test func legacyArtikelTypealiasesSindEntfernt() throws {
+        let projectRoot = projectRootURL()
+        let listSource = try source(at: "Feedivo/Views/ArticleList/ArticleListView.swift", projectRoot: projectRoot)
+        let readerSource = try source(at: "Feedivo/Views/Reader/ReaderView.swift", projectRoot: projectRoot)
+
+        #expect(!listSource.contains("typealias ArticleListView = LegacyArticleListView"))
+        #expect(!readerSource.contains("typealias ReaderView = LegacyReaderView"))
+    }
+
     @Test func feedViewModelProduktiveMethodenDelegierenAnSQLiteServices() throws {
         let projectRoot = projectRootURL()
         let source = try source(at: "Feedivo/ViewModels/FeedViewModel.swift", projectRoot: projectRoot)
