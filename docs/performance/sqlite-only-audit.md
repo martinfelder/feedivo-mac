@@ -90,3 +90,33 @@ Stand: 2026-07-05 (nach Merge von `feature/sqlite-only-app-start`)
 Entscheidung: SwiftData wird nicht mehr als produktive Persistenzschicht verwendet.
 Verbleibende Treffer sind entweder zu entfernen (Tasks 5/6) oder als Legacy/Test/Model
 bewusst isoliert.
+
+## Phase-6-Reduktion — FeedViewModel auf UI-State + Delegation (Commit 3b089bd, 2026-07-05)
+
+Im Rahmen von Final-Closure Task 3 wurde `FeedViewModel` weiter entschlackt, damit
+es keine eigene Feed-Abruflogik mehr besitzt:
+
+- **OPML-Importvorschau im Service:** Die produktive Vorschau liegt jetzt als
+  `SQLiteFeedSubscriptionService.previewOPMLFeeds(for:onProgress:))` im Service.
+  `FeedViewModel.opmlImportPreviewRows` ist nur noch ein dünner Delegator; ohne
+  `sqliteDatabase` liefert er bewusst eine leere Liste. Die Preview-UI-Typen
+  (`OPMLImportFeedStatus`/`-PreviewRow`/`-PreviewProgress`) liegen jetzt beim
+  produzierenden Service, nicht mehr im ViewModel.
+- **Produktiver `addFeed` ohne `ModelContext`:** Neuer Einstieg
+  `FeedViewModel.addFeed(urlString:sqliteDatabase:)` in der SQLite-Feed-Actions-
+  Region; `SidebarView` nutzt diesen nicht mehr deprecated Pfad.
+- **`refreshAllFeedsWithCoordinator` nicht mehr deprecated:** Er ist der produktive
+  Coordinator-Pfad (`refreshAllFeeds(sqliteDatabase:)` delegiert an ihn), kein
+  Fallback.
+- **Verbleibende Legacy-Region in `FeedViewModel`:** Die Methoden mit
+  `ModelContext`/`ModelContainer`/`Feed`/`Article` sind in der
+  `// MARK: - Legacy SwiftData Compatibility`-Region isoliert
+  (`addFeed(urlString:context:sqliteDatabase:)`, `refreshFeed(_:context:)`,
+  `refreshAllFeeds(_:context:sqliteDatabase:)`, `renameFeed`/`restoreOriginalFeedTitle`,
+  `deleteFeed(_:context:)`, `mirrorFeedToSQLite`, `refreshFeedContents`,
+  `existingArticlesByIdentity` etc.). Sie werden produktiv nicht mehr geroutet und
+  können entfallen, sobald `Article`/`Tag` SQLite-only sind.
+- **Source-Test-Schutz:** `FeedivoAppSceneConfigurationTests` hält mit
+  `feedViewModelProduktiveMethodenDelegierenAnSQLiteServices` und
+  `feedViewModelDelegiertOPMLPreviewAnSQLiteSubscriptionService` einen Rückfall der
+  Preview-Logik bzw. der produktiven Methoden aus dem ViewModel heraus.

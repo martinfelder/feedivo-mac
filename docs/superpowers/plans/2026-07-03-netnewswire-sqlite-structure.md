@@ -491,6 +491,31 @@ git add Feedivo/Services/SQLiteFeedRefreshCoordinator.swift Feedivo/ViewModels/F
 git commit -m "Extrahiere SQLite Refresh Coordinator"
 ```
 
+### Nach Phase 6 — weitere Reduktion (Commit 3b089bd, 2026-07-05)
+
+Phase 6 wurde im Rahmen des Final-Closure-Plans (Task 3) noch einmal vertieft,
+damit `FeedViewModel` wirklich nur noch UI-State delegiert und keine eigene
+Feed-Abruflogik mehr besitzt:
+
+- [x] **Preview-Delegation:** Die produktive OPML-Importvorschau liegt jetzt als
+  `SQLiteFeedSubscriptionService.previewOPMLFeeds(for:onProgress:))` im Service.
+  `FeedViewModel.opmlImportPreviewRows` ist nur noch ein dünner Delegator; ohne
+  `sqliteDatabase` liefert er bewusst eine leere Liste. Die Preview-UI-Typen
+  (`OPMLImportFeedStatus`/`-PreviewRow`/`-PreviewProgress`) liegen jetzt beim
+  produzierenden Service.
+- [x] **Produktiver `addFeed` ohne `ModelContext`:** Neuer Einstieg
+  `FeedViewModel.addFeed(urlString:sqliteDatabase:)` in der SQLite-Feed-Actions-
+  Region, ohne `ModelContext`-Parameter. `SidebarView` nutzt diesen nicht mehr
+  deprecated Pfad.
+- [x] **`refreshAllFeedsWithCoordinator` nicht mehr deprecated:** Er ist der
+  produktive Coordinator-Pfad (`refreshAllFeeds(sqliteDatabase:)` delegiert an
+  ihn), kein Fallback. Die `@available(*, deprecated)`-Markierung wurde entfernt.
+- [x] **Tests migriert:** Drei produktive Preview-Tests nach
+  `SQLiteFeedSubscriptionServiceTests` verschoben; `FeedViewModelTests` prüft
+  nur noch Delegation/UI-State. Neuer Source-Test
+  `feedViewModelDelegiertOPMLPreviewAnSQLiteSubscriptionService` sichert den
+  Delegator gegen Rückfall der Preview-Logik ins ViewModel.
+
 ---
 
 ## Phase 7: SwiftData-Backfills abschließen und Legacy-Brücke abschaltbar machen

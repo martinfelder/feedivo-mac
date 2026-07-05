@@ -247,70 +247,45 @@ Expected: Commit succeeds.
 - Modify: `FeedivoTests/SQLiteFeedSubscriptionServiceTests.swift`
 - Modify: `FeedivoTests/SQLiteFeedRefreshCoordinatorTests.swift`
 
-- [ ] **Step 1: Methodengruppen markieren**
+> **Status 2026-07-05 (Commit 3b089bd):** Task 3 ist produktiv umgesetzt.
+> `FeedViewModel` ist auf UI-State + Delegation reduziert; die produktive
+> OPML-Importvorschau, der produktive `addFeed(urlString:sqliteDatabase:)`-Pfad
+> und der Coordinator-Refresh liegen in den SQLite-Services. Verbleibende
+> SwiftData-Methoden sind in der `// MARK: - Legacy SwiftData Compatibility`-
+> Region isoliert. Die ursprünglich fünf Steps sind unten mit dem erreichten
+> Stand abgehakt; die Source-Tests liegen in `FeedivoAppSceneConfigurationTests`.
 
-In `FeedViewModel.swift` alle Methoden mit `ModelContext`, `ModelContainer`, `Feed` oder `Article` in eine Legacy-Region verschieben:
+- [x] **Step 1: Methodengruppen markieren**
 
-```swift
-// MARK: - Legacy SwiftData Compatibility
-```
+`FeedViewModel.swift` trennt seit 3b089bd zwei Regionen:
+`// MARK: - Legacy SwiftData Compatibility` für alle Methoden mit
+`ModelContext`/`ModelContainer`/`Feed`/`Article` und
+`// MARK: - SQLite Feed Actions` für die produktiven SQLite-Pfade.
 
-Alle produktiven SQLite-Methoden in eigene Region:
+- [x] **Step 2: Source-Test ergänzen**
 
-```swift
-// MARK: - SQLite Feed Actions
-```
+`FeedivoTests/FeedivoAppSceneConfigurationTests.swift` enthält die Source-Tests,
+die das Delegationsverhalten absichern, u. a.
+`feedViewModelProduktiveMethodenDelegierenAnSQLiteServices` und
+`feedViewModelDelegiertOPMLPreviewAnSQLiteSubscriptionService` (verhindert
+Rückfall der Preview-Logik ins ViewModel).
 
-- [ ] **Step 2: Source-Test ergänzen**
+- [x] **Step 3: Tests ausführen**
 
-In `FeedivoTests/FeedivoAppSceneConfigurationTests.swift` ergänzen:
+`FeedivoTests/FeedViewModelTests`, `SQLiteFeedRefreshCoordinatorTests` und
+`SQLiteFeedSubscriptionServiceTests` wurden zum Abschluss von Task 3 grün
+ausgeführt (TEST SUCCEEDED).
 
-```swift
-@Test func feedViewModelProduktiveMethodenDelegierenAnSQLiteServices() throws {
-    let source = try sourceFile(at: "Feedivo/ViewModels/FeedViewModel.swift")
-    let compact = source.replacingOccurrences(of: " ", with: "")
+- [x] **Step 4: Alte FeedViewModelTests bewerten**
 
-    #expect(source.contains("SQLiteFeedSubscriptionService"))
-    #expect(source.contains("SQLiteFeedRefreshCoordinator"))
-    #expect(compact.contains("MARK:-LegacySwiftDataCompatibility"))
-}
-```
+Die produktiven Preview-Tests wurden nach `SQLiteFeedSubscriptionServiceTests`
+migriert; `FeedViewModelTests` prüft nur noch Delegation/UI-State. Reine
+SwiftData-Bridge-Erwartungen wurden gelöscht oder als Legacy gekennzeichnet.
 
-- [ ] **Step 3: Tests ausführen**
+- [x] **Step 5: Commit**
 
-Run:
-
-```bash
-xcodebuild test -project Feedivo.xcodeproj -scheme Feedivo -destination 'platform=macOS' -only-testing:FeedivoTests/FeedivoAppSceneConfigurationTests/feedViewModelProduktiveMethodenDelegierenAnSQLiteServices
-```
-
-Expected: PASS, wenn die Struktur eindeutig ist.
-
-- [ ] **Step 4: Alte FeedViewModelTests bewerten**
-
-Run:
-
-```bash
-xcodebuild test -project Feedivo.xcodeproj -scheme Feedivo -destination 'platform=macOS' -only-testing:FeedivoTests/FeedViewModelTests
-```
-
-Expected:
-
-- Wenn Tests fehlschlagen, jeden fehlenden Test prüfen:
-  - Produktives Verhalten nach `SQLiteFeedSubscriptionServiceTests` verschieben.
-  - Refresh-Verhalten nach `SQLiteFeedRefreshCoordinatorTests` oder `SQLiteFeedRefreshServiceTests` verschieben.
-  - Reine SwiftData-Bridge-Erwartungen löschen oder als Legacy kennzeichnen.
-
-- [ ] **Step 5: Commit**
-
-Run:
-
-```bash
-git add Feedivo/ViewModels/FeedViewModel.swift FeedivoTests/FeedViewModelTests.swift FeedivoTests/SQLiteFeedSubscriptionServiceTests.swift FeedivoTests/SQLiteFeedRefreshCoordinatorTests.swift FeedivoTests/FeedivoAppSceneConfigurationTests.swift
-git commit -m "Reduziere FeedViewModel auf SQLite Delegation"
-```
-
-Expected: Commit succeeds.
+Commit 3b089bd (`Phase 6: FeedViewModel in Services schneiden`) auf `main`
+hat diese Reduktion abgeschlossen.
 
 ---
 

@@ -15,6 +15,15 @@
 > verbleibende SwiftData-Dateien sind als Legacy/Migration/Test/Model isoliert
 > oder entfernt. Neue Features sollen ausschließlich gegen SQLite-Stores gebaut
 > werden; siehe `docs/performance/sqlite-only-audit.md`.
+>
+> **Phase-6-Reduktion 2026-07-05 (Commit 3b089bd):** `FeedViewModel` ist auf
+> UI-State + Delegation reduziert. Die produktive OPML-Importvorschau läuft über
+> `SQLiteFeedSubscriptionService.previewOPMLFeeds(for:onProgress:))`;
+> `FeedViewModel.opmlImportPreviewRows` ist nur noch ein dünner Delegator. Neuer
+> produktiver `addFeed(urlString:sqliteDatabase:)`-Einstieg ohne `ModelContext`.
+> `refreshAllFeedsWithCoordinator` ist nicht mehr deprecated (produktiver
+> Coordinator-Pfad). Verbleibende SwiftData-Methoden in `FeedViewModel` sind in
+> der `// MARK: - Legacy SwiftData Compatibility`-Region isoliert.
 
 ---
 
@@ -314,6 +323,15 @@
   einheitlicher `OPMLImportFeedRow` extrahiert, sodass Wizard und Settings-Import
   dieselbe Vorschau-/Auswahl-/Ordnerlogik nutzen. Controller-Logik ist über
   `OPMLImportPreviewControllerTests` testbar abgesichert.
+- **Phase-6-Reduktion (2026-07-05, Commit 3b089bd):** Die produktive
+  OPML-Importvorschau liegt jetzt als
+  `SQLiteFeedSubscriptionService.previewOPMLFeeds(for:onProgress:))` im Service;
+  `FeedViewModel.opmlImportPreviewRows` ist nur noch ein dünner Delegator. Die
+  Preview-Typen (`OPMLImportFeedStatus`/`-PreviewRow`/`-PreviewProgress`) liegen
+  beim produzierenden Service. Drei produktive Preview-Tests nach
+  `SQLiteFeedSubscriptionServiceTests` migriert; der Source-Test
+  `feedViewModelDelegiertOPMLPreviewAnSQLiteSubscriptionService` sichert den
+  Delegator gegen Rückfall.
 
 ### 7.2 OPML Export
 - **Status:** ✔️ Fertig

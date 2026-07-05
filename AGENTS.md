@@ -394,7 +394,9 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   wird erst durch `Starten`.
 
 ### SidebarView.swift
-- `@Query(sort: \Feed.title)` für automatische Feed-Liste aus SwiftData
+- Produktive Feed-Liste aus SQLite-Snapshots (`SQLiteSidebarState`/`FeedSidebarSnapshot`),
+  keine produktive `@Query` mehr auf `Feed`. SwiftData-`@Query` ist nur noch in
+  isolierten Legacy-Helfern (`SidebarUnreadCount`, `FeedPropertiesQuery`) vorhanden.
 - Eigene SwiftUI-Sidebar statt Standard-`List`, aber wieder mit hellem,
   systemnahem Hintergrund, damit sie zur klassischen macOS-Sidebar passt.
 - Header mit + Button → öffnet zentral praesentiertes `AddFeedSheet`
@@ -532,7 +534,20 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   gefunden werden, liefert der Service eine lokalisierte Fehlermeldung.
 
 ### FeedViewModel.swift
-- `@Observable` class
+- `@Observable` class. `FeedViewModel` ist primär UI-State + Delegation; die
+  SQLite-Arbeit läuft in den Services (`SQLiteFeedSubscriptionService`,
+  `SQLiteFeedRefreshService`, `SQLiteFeedRefreshCoordinator`).
+- Produktiver Einstieg `addFeed(urlString:sqliteDatabase:)` ohne `ModelContext`:
+  delegiert an `SQLiteFeedSubscriptionService.addFeed` und übersetzt nur Fehler
+  sowie Reentrancy in UI-State (`isLoading`, `errorMessage`). `SidebarView` nutzt
+  diesen Pfad.
+- Produktive OPML-Importvorschau läuft über
+  `SQLiteFeedSubscriptionService.previewOPMLFeeds(for:onProgress:))`;
+  `FeedViewModel.opmlImportPreviewRows` ist nur noch ein dünner Delegator. Ohne
+  `sqliteDatabase` liefert die Vorschau bewusst eine leere Liste. Die Preview-Typen
+  (`OPMLImportFeedStatus`/`-PreviewRow`/`-PreviewProgress`) liegen beim Service.
+  Der Source-Test `feedViewModelDelegiertOPMLPreviewAnSQLiteSubscriptionService`
+  verhindert einen Rückfall der Preview-Logik ins ViewModel.
 - `addFeed(urlString:context:sqliteDatabase:)` legt neue Feeds im SQLite-Pfad über
   `SQLiteFeedSubscriptionService` an, sobald eine `FeedivoDatabase` vorhanden ist.
   SwiftData erhält in diesem Pfad nur noch eine minimale Feed-
@@ -574,17 +589,19 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
   eine macOS-Benachrichtigung angezeigt wird.
 - Beim Aktualisieren werden Erfolg/Fehler als `FeedLogEntry` protokolliert; pro Feed
   bleiben die neuesten 20 Log-Eintraege erhalten
-- `refreshAllFeeds(_:modelContainer:)` — aktualisiert alle gespeicherten Feeds
-  über `FeedBackgroundRefreshService`. `FeedViewModel` erstellt dafür nur leichte
-  `FeedRefreshSnapshot` Werte aus der UI-Query, verwaltet MainActor-Progress und
-  verarbeitet am Ende Ergebnis- und Benachrichtigungsdaten.
+- `refreshAllFeeds(sqliteDatabase:)` — produktiver Sammel-Refresh: lädt leichte
+  `FeedRefreshSnapshot` Werte aus `FeedStore.feeds()` und delegiert an den
+  `SQLiteFeedRefreshCoordinator`. `FeedViewModel` erstellt nur die Snapshots,
+  verwaltet MainActor-Progress und verarbeitet am Ende Ergebnis- und
+  Benachrichtigungsdaten. `refreshAllFeedsWithCoordinator` ist bewusst nicht mehr
+  deprecated — er ist der produktive Coordinator-Pfad, kein Fallback.
 - Der Sammel-Refresh nutzt pro Feed einen eigenen SwiftData-`ModelContext` im
   Hintergrundservice. Dadurch laufen Netzwerk, Artikel-Abgleich, Regelanwendung,
   Log-Schreiben und Speichern nicht mehr auf dem UI-`modelContext`; die UI erhält
   nur grobe Batch-/Feed-Status-Events zurück.
-- `refreshAllFeeds(_:context:)` bleibt als Legacy-/Testpfad bestehen und speichert
-  weiterhin pro Feed-Batch. Einzel-Feed-Refresh und OPML-Import nutzen vorerst
-  bewusst den bestehenden Kontextpfad.
+- `refreshAllFeeds(_:context:sqliteDatabase:)` bleibt als Legacy-/Testpfad
+  bestehen und speichert weiterhin pro Feed-Batch. Einzel-Feed-Refresh und
+  OPML-Import nutzen vorerst bewusst den bestehenden Kontextpfad.
 - Der Sammel-Refresh laeuft bei einzelnen Fehlern weiter und meldet am Ende
   betroffene Feednamen
 - `operationProgress` liefert für Sammel-Refresh und OPML-Import einen sichtbaren
@@ -2397,6 +2414,18 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 ---
 
 ## Letzte Änderungen
+
+- 2026-07-05: Phase 6 / Final-Closure-Task 3 weitergeführt (Commit 3b089bd).
+  Die produktive OPML-Importvorschau liegt jetzt als
+  `SQLiteFeedSubscriptionService.previewOPMLFeeds(for:onProgress:))` im Service;
+  `FeedViewModel.opmlImportPreviewRows` ist nur noch ein dünner Delegator. Neuer
+  produktiver `addFeed(urlString:sqliteDatabase:)`-Einstieg ohne `ModelContext`;
+  `SidebarView` nutzt ihn. `refreshAllFeedsWithCoordinator` ist nicht mehr
+  deprecated — er ist der produktive Coordinator-Pfad. Drei produktive
+  Preview-Tests nach `SQLiteFeedSubscriptionServiceTests` migriert;
+  `FeedViewModelTests` prüft nur noch Delegation/UI-State. Neuer Source-Test
+  `feedViewModelDelegiertOPMLPreviewAnSQLiteSubscriptionService` sichert den
+  Delegator gegen Rückfall.
 
 - 2026-07-04: 9-Phasen-Migrationsplan weitergeführt: Phasen 2, 3, 4, 7 und 9 im
   Plandokument markiert und bestätigt (`docs/superpowers/plans/2026-07-03-netnewswire-sqlite-structure.md`).
