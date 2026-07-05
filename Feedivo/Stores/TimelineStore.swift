@@ -126,6 +126,90 @@ struct TimelineStore {
         }
     }
 
+    @discardableResult
+    func markRead(
+        scope: TimelineScope,
+        searchText: String?,
+        includeHidden: Bool,
+        option: ArticleMarkReadOption,
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) throws -> Int {
+        try database.write { db in
+            var whereClauses: [String] = ["s.isRead = 0"]
+            var arguments = StatementArguments()
+            appendScopeWhereClause(
+                scope,
+                whereClauses: &whereClauses,
+                arguments: &arguments
+            )
+
+            if !includeHidden {
+                whereClauses.append("s.isHidden = 0")
+            }
+
+            let searchExpression = searchText.flatMap(Self.makeFTSMatchExpression)
+            if let searchExpression {
+                whereClauses.append("article_search MATCH ?")
+                _ = arguments.append(contentsOf: [searchExpression])
+            }
+
+            appendMarkReadOptionWhereClause(
+                option,
+                now: now,
+                calendar: calendar,
+                whereClauses: &whereClauses,
+                arguments: &arguments
+            )
+
+            let searchJoinSQL = searchExpression == nil ? "" : "JOIN article_search ON article_search.rowid = a.rowid"
+            let whereSQL = "WHERE \(whereClauses.joined(separator: " AND "))"
+            let matchingArticleSQL = """
+                SELECT a.id
+                FROM articles a
+                JOIN feeds f ON f.id = a.feedID
+                JOIN article_statuses s ON s.articleID = a.id
+                \(searchJoinSQL)
+                \(whereSQL)
+                """
+            let affectedFeedIDs = try String.fetchAll(db, sql: """
+                SELECT DISTINCT feedID
+                FROM articles
+                WHERE id IN (\(matchingArticleSQL))
+                """, arguments: arguments)
+
+            guard !affectedFeedIDs.isEmpty else {
+                return 0
+            }
+
+            let readAt = now
+            try db.execute(
+                sql: """
+                    UPDATE article_statuses
+                    SET isRead = 1, readAt = ?
+                    WHERE articleID IN (\(matchingArticleSQL))
+                    """,
+                arguments: StatementArguments([readAt]) + arguments
+            )
+            let changedCount = db.changesCount
+
+            try db.execute(
+                sql: """
+                    UPDATE article_identity_history
+                    SET isRead = 1, readAt = ?
+                    WHERE lastArticleID IN (\(matchingArticleSQL))
+                    """,
+                arguments: StatementArguments([readAt]) + arguments
+            )
+
+            for feedID in affectedFeedIDs {
+                try SQLiteUnreadCountService.rebuildFeedUnreadCount(feedID: feedID, db: db)
+            }
+
+            return changedCount
+        }
+    }
+
     func count(
         scope: TimelineScope,
         includeRead: Bool,
@@ -191,6 +275,92 @@ struct TimelineStore {
                 \(whereSQL)
                 """, arguments: arguments) ?? 0
         }
+    }
+
+    private func appendScopeWhereClause(
+        _ scope: TimelineScope,
+        whereClauses: inout [String],
+        arguments: inout StatementArguments
+    ) {
+        switch scope {
+        case .all:
+            break
+        case let .feed(feedID):
+            whereClauses.append("a.feedID = ?")
+            _ = arguments.append(contentsOf: [feedID])
+        case let .tag(tagID):
+            whereClauses.append("""
+                (
+                    EXISTS (
+                        SELECT 1
+                        FROM article_tags at
+                        WHERE at.articleID = a.id
+                            AND at.tagID = ?
+                    )
+                    OR EXISTS (
+                        SELECT 1
+                        FROM feed_tags ft
+                        WHERE ft.feedID = a.feedID
+                            AND ft.tagID = ?
+                    )
+                )
+                """)
+            _ = arguments.append(contentsOf: [tagID, tagID])
+        case let .smartFilter(smartFilter):
+            appendSmartFilterWhereClause(
+                smartFilter,
+                whereClauses: &whereClauses,
+                arguments: &arguments
+            )
+        case let .smartFolder(folder):
+            appendSmartFolderWhereClause(
+                folder,
+                whereClauses: &whereClauses,
+                arguments: &arguments
+            )
+        }
+    }
+
+    private func appendMarkReadOptionWhereClause(
+        _ option: ArticleMarkReadOption,
+        now: Date,
+        calendar: Calendar,
+        whereClauses: inout [String],
+        arguments: inout StatementArguments
+    ) {
+        let dateComponent: Calendar.Component
+        let value: Int
+
+        switch option {
+        case .allVisible:
+            return
+        case .olderThanOneDay:
+            dateComponent = .day
+            value = 1
+        case .olderThanTwoDays:
+            dateComponent = .day
+            value = 2
+        case .olderThanThreeDays:
+            dateComponent = .day
+            value = 3
+        case .olderThanFourDays:
+            dateComponent = .day
+            value = 4
+        case .olderThanOneWeek:
+            dateComponent = .weekOfYear
+            value = 1
+        case .olderThanTwoWeeks:
+            dateComponent = .weekOfYear
+            value = 2
+        }
+
+        guard let cutoffDate = calendar.date(byAdding: dateComponent, value: -value, to: now) else {
+            whereClauses.append("0 = 1")
+            return
+        }
+
+        whereClauses.append("a.publishedAt IS NOT NULL AND a.publishedAt < ?")
+        _ = arguments.append(contentsOf: [cutoffDate])
     }
 
     private func appendSmartFilterWhereClause(

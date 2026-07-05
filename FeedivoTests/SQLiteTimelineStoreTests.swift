@@ -115,6 +115,46 @@ struct SQLiteTimelineStoreTests {
         #expect(count == 1)
     }
 
+    @Test func markReadForFeedScopeErfasstAuchNichtGeladeneArtikelJenseitsDesListenLimits() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let timelineStore = TimelineStore(database: database)
+
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example"))
+
+        for index in 0..<6 {
+            _ = try articleStore.upsert(
+                ArticleUpsertInput(
+                    feedID: "feed-1",
+                    sourceID: "article-\(index)",
+                    title: "Article \(index)",
+                    publishedAt: Date(timeIntervalSince1970: TimeInterval(index)),
+                    arrivedAt: Date(timeIntervalSince1970: TimeInterval(index))
+                )
+            )
+        }
+
+        let visibleRows = try timelineStore.articles(
+            scope: .feed("feed-1"),
+            includeRead: true,
+            includeHidden: false,
+            limit: 2
+        )
+
+        let changedCount = try timelineStore.markRead(
+            scope: .feed("feed-1"),
+            searchText: nil,
+            includeHidden: false,
+            option: .allVisible
+        )
+
+        #expect(visibleRows.count == 2)
+        #expect(changedCount == 6)
+        #expect(try timelineStore.unreadCount(feedID: "feed-1") == 0)
+        #expect(try feedStore.feed(id: "feed-1")?.unreadCount == 0)
+    }
+
     @Test func timelineFetchesDirectlyTaggedAndFeedTaggedArticlesFromSQLite() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let feedStore = FeedStore(database: database)

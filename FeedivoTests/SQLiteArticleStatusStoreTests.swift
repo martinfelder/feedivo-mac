@@ -33,7 +33,7 @@ struct SQLiteArticleStatusStoreTests {
         #expect(status?.dateArrived == Date(timeIntervalSince1970: 100))
     }
 
-    @Test func statusMutationsUpdateOnlyStatusTable() throws {
+    @Test func statusMutationsUpdateStatusValues() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let statusStore = ArticleStatusStore(database: database)
 
@@ -105,6 +105,38 @@ struct SQLiteArticleStatusStoreTests {
 
         #expect(readFeed?.unreadCount == 0)
         #expect(unreadFeed?.unreadCount == 1)
+    }
+
+    @Test func readMutationUpdatesIdentityHistoryForReappearingArticles() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let statusStore = ArticleStatusStore(database: database)
+
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example"))
+        let originalID = try articleStore.upsert(
+            ArticleUpsertInput(
+                feedID: "feed-1",
+                sourceID: "source-1",
+                link: "https://example.com/original",
+                title: "Stable Title"
+            )
+        )
+        try statusStore.setRead(true, articleID: originalID, at: Date(timeIntervalSince1970: 1_000))
+
+        let reappearingID = try articleStore.upsert(
+            ArticleUpsertInput(
+                feedID: "feed-1",
+                sourceID: "source-2",
+                link: "https://example.com/changed",
+                title: "Stable Title"
+            )
+        )
+        let reappearingStatus = try statusStore.status(articleID: reappearingID)
+
+        #expect(reappearingID != originalID)
+        #expect(reappearingStatus?.isRead == true)
+        #expect(reappearingStatus?.readAt == Date(timeIntervalSince1970: 1_000))
     }
 
     @Test func hiddenMutationUpdatesFeedUnreadCountSnapshot() throws {

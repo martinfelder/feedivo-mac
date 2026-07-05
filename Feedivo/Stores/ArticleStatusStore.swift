@@ -91,6 +91,17 @@ struct ArticleStatusStore {
             )
             didUpdate = db.changesCount > 0
 
+            if didUpdate {
+                try syncIdentityHistory(
+                    articleID: articleID,
+                    column: column,
+                    dateColumn: dateColumn,
+                    value: value,
+                    timestamp: timestamp,
+                    db: db
+                )
+            }
+
             if column == "isRead" || column == "isHidden" {
                 try SQLiteUnreadCountService.rebuildFeedUnreadCount(forArticleID: articleID, db: db)
             }
@@ -99,5 +110,23 @@ struct ArticleStatusStore {
         if didUpdate {
             SQLiteDataInvalidation.bumpStatusVersion()
         }
+    }
+
+    private func syncIdentityHistory(
+        articleID: String,
+        column: String,
+        dateColumn: String,
+        value: Bool,
+        timestamp: Date?,
+        db: Database
+    ) throws {
+        try db.execute(
+            sql: """
+                UPDATE article_identity_history
+                SET \(column) = ?, \(dateColumn) = ?
+                WHERE lastArticleID = ?
+                """,
+            arguments: [value, timestamp, articleID]
+        )
     }
 }

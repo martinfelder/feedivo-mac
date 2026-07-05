@@ -17,6 +17,30 @@ struct SQLiteFeedArticleListView: View {
         case tagID(String)
         case smartFilter(SmartFilter)
         case smartFolder(SQLiteSmartFolderSnapshot)
+
+        var timelineScope: TimelineScope {
+            switch self {
+            case let .feed(feedID, _):
+                .feed(feedID)
+            case let .tagID(tagID):
+                .tag(tagID)
+            case let .smartFilter(smartFilter):
+                .smartFilter(smartFilter)
+            case let .smartFolder(smartFolder):
+                .smartFolder(smartFolder)
+            }
+        }
+
+        var includeHidden: Bool {
+            switch self {
+            case .feed, .tagID:
+                false
+            case let .smartFilter(smartFilter):
+                smartFilter == .hidden
+            case let .smartFolder(smartFolder):
+                smartFolder.includesHiddenArticles
+            }
+        }
     }
 
     private let scope: Scope
@@ -289,7 +313,7 @@ struct SQLiteFeedArticleListView: View {
                 deleteArticle(row.id)
             },
             onMarkAllRead: {
-                markRowsRead(visibleRows)
+                markRowsRead(.allVisible)
             }
         )
     }
@@ -532,51 +556,16 @@ struct SQLiteFeedArticleListView: View {
     private func markReadMenu(visibleRows: [ArticleListSnapshot]) -> some View {
         Menu {
             ForEach(ArticleMarkReadOption.allCases) { option in
-                let candidateRows = visibleRows.filter { row in
-                    !row.isRead && markReadOption(option, includes: row)
-                }
-
                 Button {
-                    markRowsRead(candidateRows)
+                    markRowsRead(option)
                 } label: {
                     Text(option.label)
                 }
-                .disabled(candidateRows.isEmpty)
             }
         } label: {
             Label(L10n.articleMarkReadMenuTitle, systemImage: "checkmark.circle")
         }
         .help(L10n.articleMarkReadMenuTitle)
-    }
-
-    private func markReadOption(_ option: ArticleMarkReadOption, includes row: ArticleListSnapshot) -> Bool {
-        switch option {
-        case .allVisible:
-            return true
-        case .olderThanOneDay:
-            return isRow(row, olderThan: .day, value: 1)
-        case .olderThanTwoDays:
-            return isRow(row, olderThan: .day, value: 2)
-        case .olderThanThreeDays:
-            return isRow(row, olderThan: .day, value: 3)
-        case .olderThanFourDays:
-            return isRow(row, olderThan: .day, value: 4)
-        case .olderThanOneWeek:
-            return isRow(row, olderThan: .weekOfYear, value: 1)
-        case .olderThanTwoWeeks:
-            return isRow(row, olderThan: .weekOfYear, value: 2)
-        }
-    }
-
-    private func isRow(_ row: ArticleListSnapshot, olderThan component: Calendar.Component, value: Int) -> Bool {
-        guard
-            let publishedAt = row.publishedAt,
-            let cutoffDate = Calendar.current.date(byAdding: component, value: -value, to: Date())
-        else {
-            return false
-        }
-
-        return publishedAt < cutoffDate
     }
 
     private var filterMenu: some View {
@@ -666,16 +655,19 @@ struct SQLiteFeedArticleListView: View {
         }
     }
 
-    private func markRowsRead(_ rows: [ArticleListSnapshot]) {
+    private func markRowsRead(_ option: ArticleMarkReadOption) {
         guard let database else {
             return
         }
 
         do {
-            let store = ArticleStatusStore(database: database)
-            for row in rows where !row.isRead {
-                try store.setRead(true, articleID: row.id, at: Date())
-            }
+            _ = try TimelineStore(database: database).markRead(
+                scope: scope.timelineScope,
+                searchText: debouncedSearchText,
+                includeHidden: scope.includeHidden,
+                option: option
+            )
+            SQLiteDataInvalidation.bumpStatusVersion()
             reload()
         } catch {
             reload()
