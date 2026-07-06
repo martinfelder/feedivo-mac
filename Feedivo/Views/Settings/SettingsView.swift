@@ -121,26 +121,17 @@ struct NewSettingsView: View {
 
 private struct NewSettingsBlock<Content: View>: View {
     let eyebrow: LocalizedStringKey
-    var showsBottomDivider = true
     @ViewBuilder let content: Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 10) {
             Text(eyebrow)
-                .font(.system(size: 11, weight: .bold))
+                .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(.secondary)
-                .textCase(.uppercase)
-                .tracking(0.7)
 
             content
         }
-        .padding(.bottom, 22)
-        .overlay(alignment: .bottom) {
-            if showsBottomDivider {
-                Divider()
-            }
-        }
-        .padding(.bottom, 24)
+        .padding(.bottom, 16)
     }
 }
 
@@ -149,26 +140,29 @@ private struct NewSettingRow<Control: View>: View {
     let description: LocalizedStringKey
     @ViewBuilder let control: Control
 
-    var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 16) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.system(size: 14, weight: .regular))
-                    .foregroundStyle(.primary)
-                Text(description)
-                    .font(.system(size: 11))
-                    .foregroundStyle(.tertiary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+    private static var labelColumnWidth: CGFloat { 190 }
 
-            HStack {
-                Spacer(minLength: 0)
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                Text(title)
+                    .font(.system(size: 13))
+                    .foregroundStyle(.primary)
+                    .multilineTextAlignment(.trailing)
+                    .frame(width: Self.labelColumnWidth, alignment: .trailing)
+
                 control
+
+                Spacer(minLength: 0)
             }
-            .frame(width: 310, alignment: .trailing)
+
+            Text(description)
+                .font(.system(size: 10.5))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.leading, Self.labelColumnWidth + 12)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 4)
     }
 }
 
@@ -399,7 +393,7 @@ private struct NewAppearanceSettingsView: View {
                 }
             }
 
-            NewSettingsBlock(eyebrow: L10n.settingsReadingSection, showsBottomDivider: false) {
+            NewSettingsBlock(eyebrow: L10n.settingsReadingSection) {
                 NewSettingRow(title: L10n.readerTitleFontPicker, description: "Schriftfamilie und Gewicht für Artikeltitel.") {
                     HStack {
                         Picker("", selection: $readerTitleFontPresetRawValue) {
@@ -475,7 +469,7 @@ private struct NewCacheSettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            NewSettingsBlock(eyebrow: L10n.settingsCacheSection, showsBottomDivider: false) {
+            NewSettingsBlock(eyebrow: L10n.settingsCacheSection) {
                 NewSettingRow(title: L10n.settingsCacheCurrentSize, description: "Gespeicherte Bilder und Favicons.") {
                     Text(ImageCacheSettings.formattedByteCount(cacheSizeInBytes))
                         .font(.system(size: 13, weight: .semibold))
@@ -841,7 +835,7 @@ private struct NewCleanupSettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            NewSettingsBlock(eyebrow: "Alte Artikel", showsBottomDivider: false) {
+            NewSettingsBlock(eyebrow: "Alte Artikel") {
                 NewSettingRow(
                     title: L10n.settingsArticleRetentionTitle,
                     description: L10n.settingsArticleRetentionDescription
