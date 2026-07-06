@@ -270,9 +270,6 @@ struct FeedivoTests {
         #expect(ReaderMetadataFormatter.readingTimeText(content: langerContentText, summary: kurzerSummaryText) == "ca. 2 Min. Lesezeit")
     }
 
-    // TODO: articleInspectorFormatterBereitetArtikelstatusAuf() + articleInspectorFormatterNutztVorbereiteteReaderMetadaten()
-    // entfernt mit LegacyArticleMetadataInspectorView (dead code, testen nur ArticleInspectorFormatter das auch dead ist)
-
     @Test func articleInspectorTypographyIstKompakt() {
         #expect(ArticleInspectorTypography.titleFontSize == 15)
         #expect(ArticleInspectorTypography.sectionTitleFontSize == 13)
@@ -412,9 +409,6 @@ struct FeedivoTests {
 
         #expect(ReaderArticleObservationSignature.make(from: article) != initialSignature)
     }
-
-    // TODO: readerRelationshipSnapshotKapseltMetadatenAlsLeichteWerte()
-    // entfernt mit ReaderView.swift (dead code, testet nur ReaderArticleRelationshipMetadata das auch dead ist)
 
     @MainActor
     @Test func readerPreviewInputNutztNurLeichteFelder() {

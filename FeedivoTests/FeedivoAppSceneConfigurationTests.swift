@@ -231,23 +231,6 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(compactInspectorSource.contains("removeTag(tagID:tag.id,fromArticleID:currentSnapshot.id)"))
     }
 
-    @Test func readerBietetNurFeedInhaltOderOriginalseiteAn() throws {
-        let projectRoot = projectRootURL()
-        let displayModeSource = try source(at: "Feedivo/Views/Reader/ReaderDisplayMode.swift", projectRoot: projectRoot)
-        let sqliteReaderSource = try source(at: "Feedivo/Views/Reader/SQLiteReaderView.swift", projectRoot: projectRoot)
-        let legacyReaderSource = try source(at: "Feedivo/Views/Reader/ReaderView.swift", projectRoot: projectRoot)
-        let webContentSource = try source(at: "Feedivo/Views/Reader/WebContentView.swift", projectRoot: projectRoot)
-
-        #expect(!displayModeSource.contains("case readability"))
-        #expect(!displayModeSource.contains("readerDisplayModeReadability"))
-        #expect(sqliteReaderSource.contains("WebContentView(url: originalURL)"))
-        #expect(!sqliteReaderSource.contains("Readability"))
-        #expect(!legacyReaderSource.contains("Readability"))
-        #expect(webContentSource.contains("ArticleWebContentBlocker.install"))
-        #expect(webContentSource.contains("WKContentRuleListStore.default().compileContentRuleList"))
-        #expect(!webContentSource.contains("WKWebView()"))
-    }
-
     @Test func offlineArtikelKopienSindNichtMehrImProduktivenUIPfadVerdrahtet() throws {
         let projectRoot = projectRootURL()
         let settingsSource = try source(at: "Feedivo/Views/Settings/SettingsView.swift", projectRoot: projectRoot)
@@ -447,29 +430,6 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(articleWindowSource.contains("ArticleWindowSettings.rememberOpenArticleID(uuid)"))
     }
 
-    @Test func readerScrollViewsResetWhenArticleChanges() throws {
-        let projectRoot = projectRootURL()
-        let readerSource = try source(at: "Feedivo/Views/Reader/ReaderView.swift", projectRoot: projectRoot)
-        let articleIdentityCount = readerSource.components(separatedBy: ".id(article.persistentModelID)").count - 1
-
-        #expect(articleIdentityCount >= 1)
-    }
-
-    @Test func readerMetadataChipsExposeInlineTagEditor() throws {
-        let projectRoot = projectRootURL()
-        let readerSource = try source(at: "Feedivo/Views/Reader/ReaderView.swift", projectRoot: projectRoot)
-
-        #expect(readerSource.contains("@Query(sort: \\Tag.name) private var allTags"))
-        #expect(readerSource.contains("isTagEditorPopoverPresented"))
-        #expect(readerSource.contains(".popover(isPresented: $isTagEditorPopoverPresented)"))
-        #expect(readerSource.contains("private var readerMetadataChipHeight: CGFloat"))
-        #expect(readerSource.contains(".frame(width: readerMetadataChipHeight, height: readerMetadataChipHeight)"))
-        #expect(readerSource.contains(".fill(tagColor)"))
-        #expect(readerSource.contains("ArticleMetadataEditor.addTag"))
-        #expect(readerSource.contains("ArticleMetadataEditor.removeTag"))
-        #expect(readerSource.contains("ColorSwatchPicker(selection: $newTagColorHex)"))
-    }
-
     @Test func articleListReaderPrefetchBleibtLeichtgewichtig() throws {
         let projectRoot = projectRootURL()
         let listSource = try source(at: "Feedivo/Views/ArticleList/ArticleListView.swift", projectRoot: projectRoot)
@@ -495,27 +455,6 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(listSource.contains("feedTitle: feedTitle(for: article, in: feedTitleByFeedID)"))
     }
 
-    @Test func readerRendertContentBloeckeLazy() throws {
-        let projectRoot = projectRootURL()
-        let readerSource = try source(at: "Feedivo/Views/Reader/ReaderView.swift", projectRoot: projectRoot)
-        let sqliteReaderSource = try source(at: "Feedivo/Views/Reader/SQLiteReaderView.swift", projectRoot: projectRoot)
-
-        #expect(readerSource.contains("LazyVStack(alignment: .leading, spacing: contentBlockSpacing)"))
-        #expect(!readerSource.contains("\n            VStack(alignment: .leading, spacing: contentBlockSpacing)"))
-        #expect(readerSource.contains("ForEach(ReaderContentBlockEntry.entries(from: contentBlocks))"))
-        #expect(sqliteReaderSource.contains("ForEach(ReaderContentBlockEntry.entries(from: state.preparedArticle.contentBlocks))"))
-        #expect(!readerSource.contains("id: \\.element.id"))
-        #expect(!sqliteReaderSource.contains("id: \\.element.id"))
-    }
-
-    @Test func readerLaedtVolltextUeberBackgroundLoader() throws {
-        let projectRoot = projectRootURL()
-        let readerSource = try source(at: "Feedivo/Views/Reader/ReaderView.swift", projectRoot: projectRoot)
-
-        #expect(readerSource.contains("ReaderArticleContentLoader.loadInput"))
-        #expect(!readerSource.contains("ReaderArticleInput.make(from: article)"))
-    }
-
     @Test func readerCacheKeySpeichertKeineVolltexte() throws {
         let projectRoot = projectRootURL()
         let preparedSource = try source(at: "Feedivo/Views/Reader/ReaderPreparedArticle.swift", projectRoot: projectRoot)
@@ -527,14 +466,6 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(!cacheKeySource.contains("let content: String?"))
         #expect(!cacheKeySource.contains("offlineContent"))
         #expect(!cacheKeySource.contains("offlineState"))
-    }
-
-    @Test func readerDetailbilderNutzenZielgroesse() throws {
-        let projectRoot = projectRootURL()
-        let readerSource = try source(at: "Feedivo/Views/Reader/ReaderView.swift", projectRoot: projectRoot)
-
-        #expect(readerSource.contains("private var readerImageTargetPixelSize: CGSize"))
-        #expect(readerSource.contains("CachedRemoteImageView(url: url, targetPixelSize: readerImageTargetPixelSize)"))
     }
 
     @Test func lesestatusZaehlerVermeidetDirektenFeedRelationshipFault() throws {
@@ -962,22 +893,6 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(!contentSource.contains("archiveOrRemoveArchive(_ article: Article?)"))
     }
 
-    @Test func legacyArtikelViewsSindNichtMehrProduktRoute() throws {
-        let projectRoot = projectRootURL()
-        let contentSource = try source(at: "Feedivo/Views/ContentView.swift", projectRoot: projectRoot)
-        let articleWindowSource = try source(at: "Feedivo/Views/Reader/ArticleWindowView.swift", projectRoot: projectRoot)
-        let commandActionsSource = try source(at: "Feedivo/App/ArticleCommandActions.swift", projectRoot: projectRoot)
-        let listSource = try source(at: "Feedivo/Views/ArticleList/ArticleListView.swift", projectRoot: projectRoot)
-        let readerSource = try source(at: "Feedivo/Views/Reader/ReaderView.swift", projectRoot: projectRoot)
-
-        #expect(!contentSource.contains("\n                ArticleListView("))
-        #expect(!contentSource.contains("\n                ReaderView("))
-        #expect(!articleWindowSource.contains("\n                ReaderView("))
-        #expect(!commandActionsSource.contains("selectedArticle: Article?"))
-        #expect(listSource.contains("Legacy SwiftData"))
-        #expect(readerSource.contains("Legacy SwiftData"))
-    }
-
     @Test func swiftDataVerwaltungseditorenSindBewussteUebergangsschicht() throws {
         let projectRoot = projectRootURL()
         let ruleSettingsSource = try source(at: "Feedivo/Views/Rules/RuleSettingsView.swift", projectRoot: projectRoot)
@@ -1005,16 +920,6 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(source.contains("TagStore(database: database).renameTag"))
         #expect(source.contains("TagStore(database: database).updateColor"))
         #expect(source.contains("TagStore(database: database).deleteTag"))
-    }
-
-    @Test func legacyArtikelMetadataInspectorIstKlareLegacyErkennungsmarke() throws {
-        let projectRoot = projectRootURL()
-        let readerSource = try source(at: "Feedivo/Views/Reader/ReaderView.swift", projectRoot: projectRoot)
-        let legacyInspectorSource = try source(at: "Feedivo/Views/Reader/LegacyArticleMetadataInspectorView.swift", projectRoot: projectRoot)
-
-        #expect(readerSource.contains("LegacyArticleMetadataInspectorView("))
-        #expect(legacyInspectorSource.contains("Legacy SwiftData-Inspector"))
-        #expect(legacyInspectorSource.contains("struct LegacyArticleMetadataInspectorView"))
     }
 
     @Test func sqliteReaderMeldetGeladenenSnapshotAnCommandEbene() throws {
@@ -1264,15 +1169,6 @@ struct FeedivoAppSceneConfigurationTests {
         let source = try source(at: "Feedivo/Services/SwiftDataBridgeSettings.swift", projectRoot: projectRoot)
 
         #expect(source.contains("static let defaultIsEnabled = false"))
-    }
-
-    @Test func legacyArtikelTypealiasesSindEntfernt() throws {
-        let projectRoot = projectRootURL()
-        let listSource = try source(at: "Feedivo/Views/ArticleList/ArticleListView.swift", projectRoot: projectRoot)
-        let readerSource = try source(at: "Feedivo/Views/Reader/ReaderView.swift", projectRoot: projectRoot)
-
-        #expect(!listSource.contains("typealias ArticleListView = LegacyArticleListView"))
-        #expect(!readerSource.contains("typealias ReaderView = LegacyReaderView"))
     }
 
     @Test func modelContainerFactoryIstNichtMehrTeilDesProduktcodes() throws {
