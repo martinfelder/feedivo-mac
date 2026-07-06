@@ -188,9 +188,11 @@ struct ArticleSearchWindowView: View {
                 openOriginal(snapshot)
             }
             .contentShape(Rectangle())
-            .onTapGesture(count: 2) {
-                openInReaderWindow(snapshot)
-            }
+            .simultaneousGesture(
+                TapGesture(count: 2).onEnded {
+                    openInReaderWindow(snapshot)
+                }
+            )
         }
         .listStyle(.inset)
         .frame(minWidth: 260, idealWidth: 340)
