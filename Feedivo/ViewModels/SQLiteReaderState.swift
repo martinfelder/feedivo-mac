@@ -13,7 +13,17 @@ final class SQLiteReaderState {
     private var activeLoadToken = UUID()
     private var activeLoadTask: Task<Void, Never>?
 
-    func load(articleID: String, database: FeedivoDatabase) {
+    func load(articleID: String, database: FeedivoDatabase, force: Bool = false) {
+        // Schutz gegen SwiftUI-Re-Render-Schleifen: .task(id: articleID) kann
+        // erneut feuern, obwohl sich articleID nicht geaendert hat (der vorige
+        // Task-Aufruf ist synchron/instant durchgelaufen und SwiftUI haelt
+        // dafuer keine Task-Identitaet vor). Ohne diese Sperre setzt jeder
+        // erneute Aufruf snapshot/isLoading zurueck, was einen Re-Render
+        // ausloest, der .task(id:) wieder feuert — Endlosschleife.
+        guard force || loadedArticleID != articleID || activeLoadTask != nil else {
+            return
+        }
+
         activeLoadTask?.cancel()
 
         loadedArticleID = articleID
@@ -114,7 +124,7 @@ final class SQLiteReaderState {
 
         do {
             try operation(ArticleDatabase(database: database))
-            load(articleID: articleID, database: database)
+            load(articleID: articleID, database: database, force: true)
         } catch {
             errorMessage = error.localizedDescription
         }

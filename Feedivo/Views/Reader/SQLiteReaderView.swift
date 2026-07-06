@@ -275,61 +275,26 @@ struct SQLiteReaderView: View {
         ArticleInAppWebProfile.resolved(from: articleInAppWebProfileRawValue)
     }
 
-    @ViewBuilder
     private func readerContent(database: FeedivoDatabase) -> some View {
-        Group {
-            if readerDisplayMode == .web, let originalURL, !webContentLoadFailed {
-                WebContentView(
-                    url: originalURL,
-                    inAppProfile: articleInAppWebProfile,
-                    onLoadFailure: {
-                    webContentLoadFailed = true
-                })
-            } else {
-                ScrollView(.vertical, showsIndicators: false) {
-                    LazyVStack(alignment: .leading, spacing: contentBlockSpacing) {
-                        if let snapshot = state.snapshot {
-                            readerHeader(snapshot)
-
-                            ForEach(ReaderContentBlockEntry.entries(from: state.preparedArticle.contentBlocks)) { entry in
-                                VStack(alignment: .leading, spacing: imageTextDividerSpacing) {
-                                    contentBlock(entry.block)
-
-                                    if shouldShowImageTextDivider(after: entry.index, in: state.preparedArticle.contentBlocks) {
-                                        readerSectionDivider
-                                    }
-                                }
-                            }
-
-                            readerFooter(snapshot)
-                        } else if state.isLoading {
-                            ProgressView()
-                                .frame(maxWidth: .infinity)
-                                .padding(.top, 28)
-                        } else {
-                            ContentUnavailableView(
-                                "Artikel nicht gefunden",
-                                systemImage: "doc.text.magnifyingglass",
-                                description: Text(state.errorMessage ?? "Der Artikel ist nicht mehr in der lokalen Datenbank vorhanden.")
-                            )
-                        }
-                    }
-                    .frame(maxWidth: clampedContentWidth, alignment: .leading)
-                    .padding(.horizontal, 28)
-                    .padding(.top, articleTopPadding)
-                    .padding(.bottom, articleBottomPadding)
-                }
-            }
-        }
-        .task(id: articleID) {
-            webContentLoadFailed = false
-            state.load(articleID: articleID, database: database)
-        }
-        .onChange(of: readerDisplayMode) { _, newValue in
-            if newValue == .web {
-                webContentLoadFailed = false
-            }
-        }
+        ReaderModeContent(
+            articleID: articleID,
+            database: database,
+            state: state,
+            readerDisplayMode: readerDisplayMode,
+            articleInAppWebProfile: articleInAppWebProfile,
+            webContentLoadFailed: $webContentLoadFailed,
+            originalURL: originalURL,
+            clampedContentWidth: clampedContentWidth,
+            contentBlockSpacing: contentBlockSpacing,
+            imageTextDividerSpacing: imageTextDividerSpacing,
+            articleTopPadding: articleTopPadding,
+            articleBottomPadding: articleBottomPadding,
+            readerHeader: { AnyView(readerHeader($0)) },
+            contentBlock: { AnyView(contentBlock($0)) },
+            readerFooter: { AnyView(readerFooter($0)) },
+            readerSectionDivider: AnyView(readerSectionDivider),
+            shouldShowImageTextDivider: shouldShowImageTextDivider
+        )
     }
 
     private func readerHeader(_ snapshot: ArticleReaderSnapshot) -> some View {
@@ -641,6 +606,86 @@ struct SQLiteReaderView: View {
             )
         } catch {
             state.errorMessage = error.localizedDescription
+        }
+    }
+}
+
+// Eigenstaendige View-Struct statt @ViewBuilder-Funktion: verhindert, dass
+// SwiftUI diesen Teilbaum (inkl. WebContentView + .task(id:)) bei jedem
+// Body-Durchlauf von SQLiteReaderView als "neue" Identitaet behandelt.
+private struct ReaderModeContent: View {
+    let articleID: String
+    let database: FeedivoDatabase
+    let state: SQLiteReaderState
+    let readerDisplayMode: ReaderDisplayMode
+    let articleInAppWebProfile: ArticleInAppWebProfile
+    @Binding var webContentLoadFailed: Bool
+    let originalURL: URL?
+    let clampedContentWidth: CGFloat
+    let contentBlockSpacing: CGFloat
+    let imageTextDividerSpacing: CGFloat
+    let articleTopPadding: CGFloat
+    let articleBottomPadding: CGFloat
+    let readerHeader: (ArticleReaderSnapshot) -> AnyView
+    let contentBlock: (ReaderContentBlock) -> AnyView
+    let readerFooter: (ArticleReaderSnapshot) -> AnyView
+    let readerSectionDivider: AnyView
+    let shouldShowImageTextDivider: (Int, [ReaderContentBlock]) -> Bool
+
+    var body: some View {
+        Group {
+            if readerDisplayMode == .web, let originalURL, !webContentLoadFailed {
+                WebContentView(
+                    url: originalURL,
+                    inAppProfile: articleInAppWebProfile,
+                    onLoadFailure: {
+                        webContentLoadFailed = true
+                    }
+                )
+            } else {
+                ScrollView(.vertical, showsIndicators: false) {
+                    LazyVStack(alignment: .leading, spacing: contentBlockSpacing) {
+                        if let snapshot = state.snapshot {
+                            readerHeader(snapshot)
+
+                            ForEach(ReaderContentBlockEntry.entries(from: state.preparedArticle.contentBlocks)) { entry in
+                                VStack(alignment: .leading, spacing: imageTextDividerSpacing) {
+                                    contentBlock(entry.block)
+
+                                    if shouldShowImageTextDivider(entry.index, state.preparedArticle.contentBlocks) {
+                                        readerSectionDivider
+                                    }
+                                }
+                            }
+
+                            readerFooter(snapshot)
+                        } else if state.isLoading {
+                            ProgressView()
+                                .frame(maxWidth: .infinity)
+                                .padding(.top, 28)
+                        } else {
+                            ContentUnavailableView(
+                                "Artikel nicht gefunden",
+                                systemImage: "doc.text.magnifyingglass",
+                                description: Text(state.errorMessage ?? "Der Artikel ist nicht mehr in der lokalen Datenbank vorhanden.")
+                            )
+                        }
+                    }
+                    .frame(maxWidth: clampedContentWidth, alignment: .leading)
+                    .padding(.horizontal, 28)
+                    .padding(.top, articleTopPadding)
+                    .padding(.bottom, articleBottomPadding)
+                }
+            }
+        }
+        .task(id: articleID) {
+            webContentLoadFailed = false
+            state.load(articleID: articleID, database: database)
+        }
+        .onChange(of: readerDisplayMode) { _, newValue in
+            if newValue == .web {
+                webContentLoadFailed = false
+            }
         }
     }
 }
