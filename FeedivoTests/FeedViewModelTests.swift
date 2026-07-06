@@ -2049,78 +2049,11 @@ struct FeedViewModelTests {
     }
 
     @MainActor
-    @Test func refreshAllFeedsKannUeberEigenenModelContainerLaufen() async throws {
-        let container = try ModelContainer(
-            for: Feed.self,
-            Article.self,
-            Tag.self,
-            Rule.self,
-            RuleCondition.self,
-            FeedLogEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
-        let feed = Feed(url: "https://example.com/feed.xml", title: "Alter Titel")
-        context.insert(feed)
-        try context.save()
-
-        let viewModel = makeViewModel(
-            fetchFeed: { urlString in
-                ParsedFeed(
-                    sourceURL: urlString,
-                    title: "Neuer Titel",
-                    description: "Neue Beschreibung",
-                    siteURL: "https://example.com/",
-                    articles: [
-                        ParsedArticle(
-                            title: "Neuer Artikel",
-                            link: "https://example.com/new",
-                            summary: "Kurz",
-                            content: nil,
-                            publishedAt: Date(timeIntervalSince1970: 1),
-                            imageURL: nil
-                        )
-                    ]
-                )
-            },
-            discoverFaviconURL: { _ in nil }
-        )
-
-        await viewModel.refreshAllFeeds([feed], modelContainer: container)
-
-        let verificationContext = ModelContext(container)
-        let refreshedFeeds = try verificationContext.fetch(FetchDescriptor<Feed>())
-        let refreshedFeed = try #require(refreshedFeeds.first)
-        #expect(refreshedFeed.title == "Neuer Titel")
-        #expect(refreshedFeed.feedDescription == "Neue Beschreibung")
-        #expect(refreshedFeed.unreadCount == 1)
-        #expect(viewModel.recentRefreshStatus?.newArticleCount == 1)
-        #expect(viewModel.recentRefreshStatus?.failedFeedCount == 0)
-    }
-
-    @MainActor
     @Test func refreshAllFeedsMitSQLiteDatabaseNutztSQLiteFirstOhneDoppeltenAbruf() async throws {
-        let container = try ModelContainer(
-            for: Feed.self,
-            Article.self,
-            Tag.self,
-            Rule.self,
-            RuleCondition.self,
-            FeedLogEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
-        let feed = Feed(url: "https://example.com/feed.xml", title: "Alter Titel")
-        context.insert(feed)
-        try context.save()
-
         let sqliteDatabase = try FeedivoDatabase.inMemoryForTests()
+        let feedID = UUID().uuidString
         try FeedStore(database: sqliteDatabase).save(
-            FeedRecord(
-                id: feed.id.uuidString,
-                url: feed.url,
-                title: feed.title
-            )
+            FeedRecord(id: feedID, url: "https://example.com/feed.xml", title: "Alter Titel")
         )
 
         actor FetchCounter {
@@ -2164,55 +2097,35 @@ struct FeedViewModelTests {
             }
         )
 
-        await viewModel.refreshAllFeeds(
-            [feed],
-            modelContainer: container,
-            sqliteDatabase: sqliteDatabase
-        )
+        await viewModel.refreshAllFeeds(sqliteDatabase: sqliteDatabase)
 
-        let sqliteFeed = try #require(try FeedStore(database: sqliteDatabase).feed(id: feed.id.uuidString))
+        let sqliteFeed = try #require(try FeedStore(database: sqliteDatabase).feed(id: feedID))
         let rows = try TimelineStore(database: sqliteDatabase).articles(
             scope: .feed(sqliteFeed.id),
             includeRead: true,
             includeHidden: false,
             limit: 20
         )
-        let verificationContext = ModelContext(container)
-        let swiftDataArticles = try verificationContext.fetch(FetchDescriptor<Article>())
         let fetchCount = await fetchCounter.count
 
         #expect(fetchCount == 1)
         #expect(sqliteFeed.title == "Neuer Titel")
         #expect(sqliteFeed.unreadCount == 1)
         #expect(rows.map(\.title) == ["SQLite-first Artikel"])
-        #expect(swiftDataArticles.isEmpty)
         #expect(viewModel.recentRefreshStatus?.newArticleCount == 1)
         #expect(viewModel.recentRefreshStatus?.failedFeedCount == 0)
     }
 
     @MainActor
     @Test func refreshAllFeedsMitSQLiteDatabaseMeldetFeedBenachrichtigungen() async throws {
-        let container = try ModelContainer(
-            for: Feed.self,
-            Article.self,
-            Tag.self,
-            Rule.self,
-            RuleCondition.self,
-            FeedLogEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
-        let feed = Feed(url: "https://example.com/feed.xml", title: "Alter Titel")
-        feed.isNotificationEnabled = true
-        context.insert(feed)
-        try context.save()
-
         let sqliteDatabase = try FeedivoDatabase.inMemoryForTests()
+        let feedID = UUID().uuidString
         try FeedStore(database: sqliteDatabase).save(
             FeedRecord(
-                id: feed.id.uuidString,
-                url: feed.url,
-                title: feed.title
+                id: feedID,
+                url: "https://example.com/feed.xml",
+                title: "Alter Titel",
+                isNotificationEnabled: true
             )
         )
 
@@ -2244,11 +2157,7 @@ struct FeedViewModelTests {
             }
         )
 
-        await viewModel.refreshAllFeeds(
-            [feed],
-            modelContainer: container,
-            sqliteDatabase: sqliteDatabase
-        )
+        await viewModel.refreshAllFeeds(sqliteDatabase: sqliteDatabase)
 
         #expect(capturedResults == [
             FeedRefreshNotificationResult(
@@ -2457,116 +2366,6 @@ struct FeedViewModelTests {
 
         #expect(try tagStore.tags(articleID: swiftArticle.id).map(\.name) == ["Swift"])
         #expect(try tagStore.tags(articleID: otherArticle.id).isEmpty)
-    }
-
-    @MainActor
-    @Test func refreshAllFeedsUeberspringtLogEintraegeFuerUnveraenderteFeedsImBackgroundPfad() async throws {
-        let container = try ModelContainer(
-            for: Feed.self,
-            Article.self,
-            Tag.self,
-            Rule.self,
-            RuleCondition.self,
-            FeedLogEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
-        let oldRefreshDate = Date(timeIntervalSince1970: 1)
-        let feed = Feed(
-            url: "https://example.com/feed.xml",
-            title: "Stabiler Feed",
-            lastRefreshed: oldRefreshDate,
-            httpETag: "\"alt\"",
-            httpContentHash: "alter-hash",
-            lastHTTPStatusCode: 200
-        )
-        context.insert(feed)
-        try context.save()
-
-        let viewModel = makeViewModel(
-            fetchFeed: { _ in
-                Issue.record("Der direkte Feed-Abruf darf im Conditional-Background-Pfad nicht genutzt werden.")
-                return ParsedFeed(sourceURL: "", title: "", description: nil, articles: [])
-            },
-            fetchFeedConditionally: { _, validators in
-                #expect(validators.eTag == "\"alt\"")
-                #expect(validators.contentHash == "alter-hash")
-                return .notModified(
-                    FeedHTTPValidators(
-                        eTag: "\"neu\"",
-                        contentHash: "alter-hash",
-                        lastStatusCode: 304
-                    )
-                )
-            }
-        )
-
-        await viewModel.refreshAllFeeds([feed], modelContainer: container)
-
-        let verificationContext = ModelContext(container)
-        let refreshedFeed = try #require(try verificationContext.fetch(FetchDescriptor<Feed>()).first)
-        let logEntries = try verificationContext.fetch(FetchDescriptor<FeedLogEntry>())
-        #expect(refreshedFeed.title == "Stabiler Feed")
-        #expect(refreshedFeed.lastRefreshed ?? .distantPast > oldRefreshDate)
-        #expect(refreshedFeed.httpETag == "\"neu\"")
-        #expect(refreshedFeed.lastHTTPStatusCode == 304)
-        #expect(logEntries.isEmpty)
-        #expect(viewModel.recentRefreshStatus?.newArticleCount == 0)
-        #expect(viewModel.recentRefreshStatus?.failedFeedCount == 0)
-    }
-
-    @MainActor
-    @Test func refreshAllFeedsSpeichertUnveraendertenBackgroundFeedOhneValidatorAenderungNicht() async throws {
-        let container = try ModelContainer(
-            for: Feed.self,
-            Article.self,
-            Tag.self,
-            Rule.self,
-            RuleCondition.self,
-            FeedLogEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
-        let oldRefreshDate = Date(timeIntervalSince1970: 1)
-        let feed = Feed(
-            url: "https://example.com/feed.xml",
-            title: "Stabiler Feed",
-            lastRefreshed: oldRefreshDate,
-            httpETag: "\"stabil\"",
-            httpLastModified: "Thu, 02 Jul 2026 10:00:00 GMT",
-            httpContentHash: "stabiler-hash",
-            lastHTTPStatusCode: 304
-        )
-        context.insert(feed)
-        try context.save()
-
-        let viewModel = makeViewModel(
-            fetchFeed: { _ in
-                Issue.record("Der direkte Feed-Abruf darf im unveränderten Background-Pfad nicht genutzt werden.")
-                return ParsedFeed(sourceURL: "", title: "", description: nil, articles: [])
-            },
-            fetchFeedConditionally: { _, validators in
-                #expect(validators.eTag == "\"stabil\"")
-                #expect(validators.lastModified == "Thu, 02 Jul 2026 10:00:00 GMT")
-                #expect(validators.contentHash == "stabiler-hash")
-                #expect(validators.lastStatusCode == 304)
-                return .notModified(validators)
-            }
-        )
-
-        await viewModel.refreshAllFeeds([feed], modelContainer: container)
-
-        let verificationContext = ModelContext(container)
-        let refreshedFeed = try #require(try verificationContext.fetch(FetchDescriptor<Feed>()).first)
-        let logEntries = try verificationContext.fetch(FetchDescriptor<FeedLogEntry>())
-        #expect(refreshedFeed.lastRefreshed == oldRefreshDate)
-        #expect(refreshedFeed.httpETag == "\"stabil\"")
-        #expect(refreshedFeed.httpLastModified == "Thu, 02 Jul 2026 10:00:00 GMT")
-        #expect(refreshedFeed.httpContentHash == "stabiler-hash")
-        #expect(refreshedFeed.lastHTTPStatusCode == 304)
-        #expect(logEntries.isEmpty)
-        #expect(viewModel.recentRefreshStatus?.newArticleCount == 0)
-        #expect(viewModel.recentRefreshStatus?.failedFeedCount == 0)
     }
 
     @MainActor

@@ -251,57 +251,6 @@ struct SQLiteAdminStoreTests {
     }
 
     @MainActor
-    @Test func adminBackfillSpiegeltSwiftDataVerwaltungNachSQLite() throws {
-        let context = try testContext()
-        let database = try FeedivoDatabase.inMemoryForTests()
-        let tag = Tag(name: "Swift", colorHex: "#FF0000")
-        let feedFolder = FeedFolder(name: "Technik")
-        let rule = Rule(name: "Swift-Regel")
-        let ruleCondition = RuleCondition(
-            field: RuleConditionField.title.rawValue,
-            conditionOperator: RuleConditionOperator.contains.rawValue,
-            value: "Swift",
-            sortOrder: 0
-        )
-        let smartFolder = SmartFolder(
-            name: "Ungelesen",
-            matchMode: .all,
-            isShownInSidebar: true,
-            isDefault: true,
-            sortOrder: 0,
-            iconName: "circle.fill",
-            colorHex: "#22C55E",
-            defaultKey: "unread",
-            conditions: [
-                SmartFolderCondition(
-                    field: .status,
-                    conditionOperator: .is,
-                    value: SmartFolderStatusValue.unread.rawValue,
-                    sortOrder: 0
-                )
-            ]
-        )
-
-        rule.assignTag = tag
-        rule.conditions = [ruleCondition]
-        context.insert(tag)
-        context.insert(feedFolder)
-        context.insert(rule)
-        context.insert(smartFolder)
-        try context.save()
-
-        let result = try SQLiteAdminDefinitionBackfillService.backfill(
-            in: context,
-            database: database
-        )
-
-        #expect(result == .init(feedFolderCount: 1, ruleCount: 1, smartFolderCount: 1))
-        #expect(try FeedFolderStore(database: database).folders().map(\.name) == ["Technik"])
-        #expect(try SQLiteRuleStore(database: database).ruleSnapshots().first?.assignTag?.name == "Swift")
-        #expect(try SQLiteSmartFolderStore(database: database).sidebarSnapshots().first?.conditions.first?.value == SmartFolderStatusValue.unread.rawValue)
-    }
-
-    @MainActor
     private func testContext() throws -> ModelContext {
         let container = try ModelContainer(
             for: Feed.self,

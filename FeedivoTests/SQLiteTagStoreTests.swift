@@ -176,44 +176,4 @@ struct SQLiteTagStoreTests {
 
         #expect(sidebarTags.first { $0.id == "tag-swift" }?.articleCount == 2)
     }
-
-    @MainActor
-    @Test func feedTagBackfillSpiegeltBestehendeSwiftDataFeedTagsNachSQLite() throws {
-        let container = try ModelContainer(
-            for: Feed.self,
-            FeedFolder.self,
-            FeedLogEntry.self,
-            Article.self,
-            Tag.self,
-            Rule.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
-        let database = try FeedivoDatabase.inMemoryForTests()
-        let feed = Feed(url: "https://example.com/feed.xml", title: "Example")
-        let tag = Tag(name: "Swift", colorHex: "#ff0000")
-        feed.tags = [tag]
-
-        context.insert(feed)
-        context.insert(tag)
-        try context.save()
-
-        let mirroredCount = try FeedTagBackfillService.backfillFeedTags(
-            in: context,
-            database: database
-        )
-
-        let sqliteFeed = try FeedStore(database: database).feed(id: feed.id.uuidString)
-        let tagStore = TagStore(database: database)
-        let feedTags = try tagStore.tags(feedID: feed.id.uuidString)
-        let feedTagRows = try database.read { database in
-            try Int.fetchOne(database, sql: "SELECT COUNT(*) FROM feed_tags") ?? 0
-        }
-
-        #expect(mirroredCount == 1)
-        #expect(sqliteFeed?.title == "Example")
-        #expect(feedTags.map(\.id) == [tag.id.uuidString])
-        #expect(feedTags.map(\.name) == ["Swift"])
-        #expect(feedTagRows == 1)
-    }
 }
