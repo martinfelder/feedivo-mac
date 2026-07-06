@@ -9,6 +9,7 @@ final class SQLiteSidebarState {
     private(set) var feedFolders: [FeedFolderRecord] = []
     private(set) var smartFolderSnapshots: [SQLiteSmartFolderSnapshot] = []
     private(set) var smartFolderBadgeSnapshot = SmartFolderSidebarBadgeSnapshot.empty
+    private(set) var mixedCountsByDefaultKey: [String: SmartFolderMixedCounts] = [:]
     private(set) var totalUnreadCount = 0
     private(set) var errorMessage: String?
 
@@ -23,6 +24,7 @@ final class SQLiteSidebarState {
             feedFolders = []
             smartFolderSnapshots = []
             smartFolderBadgeSnapshot = .empty
+            mixedCountsByDefaultKey = [:]
             snapshotsByFeedID = [:]
             tagSnapshotsByID = [:]
             visibleFeedIDs = []
@@ -42,11 +44,24 @@ final class SQLiteSidebarState {
             let loadedFeedFolders = try feedFolderStore.folders()
             let loadedSmartFolderSnapshots = try smartFolderStore.sidebarSnapshots()
             let loadedSmartFolderBadgeSnapshot = try unreadCountService.sidebarSmartFolderBadgeSnapshot()
+            let timelineStore = TimelineStore(database: database)
+            var loadedMixedCounts: [String: SmartFolderMixedCounts] = [:]
+            for defaultKey in ["all", "today"] {
+                guard let folder = loadedSmartFolderSnapshots.first(where: { $0.defaultKey == defaultKey }) else {
+                    continue
+                }
+
+                loadedMixedCounts[defaultKey] = try timelineStore.readUnreadCounts(
+                    scope: .smartFolder(folder),
+                    includeHidden: folder.includesHiddenArticles
+                )
+            }
             snapshots = loadedSnapshots
             tagSnapshots = loadedTagSnapshots
             feedFolders = loadedFeedFolders
             smartFolderSnapshots = loadedSmartFolderSnapshots
             smartFolderBadgeSnapshot = loadedSmartFolderBadgeSnapshot
+            mixedCountsByDefaultKey = loadedMixedCounts
             snapshotsByFeedID = Dictionary(uniqueKeysWithValues: loadedSnapshots.map { ($0.id, $0) })
             tagSnapshotsByID = Dictionary(uniqueKeysWithValues: loadedTagSnapshots.map { ($0.id, $0) })
             visibleFeedIDs = Set(loadedSnapshots.map(\.id))
@@ -58,6 +73,7 @@ final class SQLiteSidebarState {
             feedFolders = []
             smartFolderSnapshots = []
             smartFolderBadgeSnapshot = .empty
+            mixedCountsByDefaultKey = [:]
             snapshotsByFeedID = [:]
             tagSnapshotsByID = [:]
             visibleFeedIDs = []

@@ -153,4 +153,54 @@ struct SQLiteSidebarStateTests {
         #expect(state.snapshot(forFeedID: unreadFeed.id.uuidString)?.unreadCount == 4)
         #expect(state.snapshot(forFeedID: readFeed.id.uuidString) == nil)
     }
+
+    @MainActor
+    @Test func loadComputesMixedCountsForAllArticlesAndTodayDefaultFolders() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let statusStore = ArticleStatusStore(database: database)
+        let smartFolderStore = SQLiteSmartFolderStore(database: database)
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example"))
+
+        try smartFolderStore.save(
+            SmartFolderRecord(id: "smart-all", name: "Alle Artikel", defaultKey: "all"),
+            conditions: []
+        )
+        try smartFolderStore.save(
+            SmartFolderRecord(id: "smart-today", name: "Heute", defaultKey: "today"),
+            conditions: [
+                SmartFolderConditionRecord(
+                    id: "condition-today",
+                    smartFolderID: "smart-today",
+                    field: SmartFolderConditionField.date.rawValue,
+                    conditionOperator: SmartFolderConditionOperator.is.rawValue,
+                    value: SmartFolderDateValue.today.rawValue
+                )
+            ]
+        )
+
+        let now = Date()
+        let longAgo = now.addingTimeInterval(-10 * 24 * 60 * 60)
+        let readTodayID = try articleStore.upsert(
+            ArticleUpsertInput(feedID: "feed-1", sourceID: "read-today", title: "Gelesen heute", publishedAt: now, arrivedAt: now)
+        )
+        _ = try articleStore.upsert(
+            ArticleUpsertInput(feedID: "feed-1", sourceID: "unread-today", title: "Ungelesen heute", publishedAt: now, arrivedAt: now)
+        )
+        let oldID = try articleStore.upsert(
+            ArticleUpsertInput(feedID: "feed-1", sourceID: "old", title: "Alt", publishedAt: longAgo, arrivedAt: now)
+        )
+        try statusStore.setRead(true, articleID: readTodayID, at: now)
+        try statusStore.setRead(true, articleID: oldID, at: now)
+
+        let state = SQLiteSidebarState()
+
+        state.load(database: database, showsReadFeeds: true)
+
+        #expect(state.mixedCountsByDefaultKey["all"]?.read == 2)
+        #expect(state.mixedCountsByDefaultKey["all"]?.unread == 1)
+        #expect(state.mixedCountsByDefaultKey["today"]?.read == 1)
+        #expect(state.mixedCountsByDefaultKey["today"]?.unread == 1)
+    }
 }
