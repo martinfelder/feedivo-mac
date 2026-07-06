@@ -183,15 +183,24 @@ struct ArticleSearchWindowView: View {
     }
 
     private var resultList: some View {
-        List(snapshots, selection: $selectedResultID) { snapshot in
+        List(snapshots) { snapshot in
             ArticleSearchResultRow(snapshot: snapshot) {
                 openOriginal(snapshot)
             }
             .contentShape(Rectangle())
-            .simultaneousGesture(
-                TapGesture(count: 2).onEnded {
-                    openInReaderWindow(snapshot)
-                }
+            .gesture(
+                TapGesture(count: 2)
+                    .onEnded {
+                        openInReaderWindow(snapshot)
+                    }
+                    .exclusively(before: TapGesture(count: 1).onEnded {
+                        selectedResultID = snapshot.id
+                    })
+            )
+            .listRowBackground(
+                snapshot.id == selectedResultID
+                    ? Color.accentColor.opacity(0.15)
+                    : Color.clear
             )
         }
         .listStyle(.inset)
