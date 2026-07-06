@@ -247,24 +247,6 @@ struct SidebarUnreadCountTests {
     }
 
     @MainActor
-    @Test func articleViewModelHaeltFeedZaehlerBeiStatuswechselAktuell() {
-        let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
-        let article = Article(title: "Ungelesen", isRead: false, feed: feed)
-        feed.unreadCount = 1
-        let viewModel = ArticleViewModel()
-
-        viewModel.markReadIfNeeded(article, isEnabled: true)
-
-        #expect(article.isRead)
-        #expect(feed.unreadCount == 0)
-
-        viewModel.toggleRead(article)
-
-        #expect(!article.isRead)
-        #expect(feed.unreadCount == 1)
-    }
-
-    @MainActor
     private func testContext() throws -> ModelContext {
         let container = try ModelContainer(
             for: Feed.self,

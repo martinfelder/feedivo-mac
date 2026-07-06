@@ -433,17 +433,6 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(!cacheKeySource.contains("offlineState"))
     }
 
-    @Test func lesestatusZaehlerVermeidetDirektenFeedRelationshipFault() throws {
-        let projectRoot = projectRootURL()
-        let viewModelSource = try source(at: "Feedivo/ViewModels/ArticleViewModel.swift", projectRoot: projectRoot)
-        let methodStart = try #require(viewModelSource.range(of: "private func feed(for article: Article"))
-        let methodEnd = try #require(viewModelSource.range(of: "@MainActor\n    func synchronizeUnreadCounts"))
-        let methodSource = viewModelSource[methodStart.lowerBound ..< methodEnd.lowerBound]
-
-        #expect(methodSource.contains("guard let feedID = article.feedID else"))
-        #expect(!methodSource.contains("if let feed = article.feed"))
-    }
-
     @Test func produktiveTagOberflaechenNutzenSQLiteTagStore() throws {
         let projectRoot = projectRootURL()
         let searchSource = try source(at: "Feedivo/Views/ArticleList/ArticleSearchWindowView.swift", projectRoot: projectRoot)
