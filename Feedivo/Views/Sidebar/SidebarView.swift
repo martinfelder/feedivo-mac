@@ -51,7 +51,10 @@ struct SidebarView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     sidebarActionRow
-                    smartFoldersSection(badgeSnapshot: sqliteSidebarState.smartFolderBadgeSnapshot)
+                    smartFoldersSection(
+                        badgeSnapshot: sqliteSidebarState.smartFolderBadgeSnapshot,
+                        mixedCountsByDefaultKey: sqliteSidebarState.mixedCountsByDefaultKey
+                    )
                     tagsSection
                     foldersSection
                 }
@@ -252,7 +255,10 @@ struct SidebarView: View {
         }
     }
 
-    private func smartFoldersSection(badgeSnapshot: SmartFolderSidebarBadgeSnapshot) -> some View {
+    private func smartFoldersSection(
+        badgeSnapshot: SmartFolderSidebarBadgeSnapshot,
+        mixedCountsByDefaultKey: [String: SmartFolderMixedCounts]
+    ) -> some View {
         CollapsibleSidebarSection(
             title: L10n.sidebarSmartFoldersSection,
             isCollapsed: $isSmartFoldersCollapsed,
@@ -276,7 +282,8 @@ struct SidebarView: View {
                     } label: {
                         SmartFolderSidebarRow(
                             smartFolder: smartFolder,
-                            badgeSnapshot: badgeSnapshot
+                            badgeSnapshot: badgeSnapshot,
+                            mixedCounts: smartFolder.defaultKey.flatMap { mixedCountsByDefaultKey[$0] }
                         )
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
@@ -462,6 +469,7 @@ private struct SmartFolderSidebarRow: View {
 
     let smartFolder: SQLiteSmartFolderSnapshot
     let badgeSnapshot: SmartFolderSidebarBadgeSnapshot
+    let mixedCounts: SmartFolderMixedCounts?
 
     // Badge bewusst aus dem SQLite-Snapshot berechnen: Die Sidebar muss dafür
     // keine Artikel-Query und keine SwiftData-Relationships beobachten.
@@ -482,7 +490,24 @@ private struct SmartFolderSidebarRow: View {
 
             Spacer(minLength: 8)
 
-            if let badgeText {
+            if let mixedCounts {
+                if mixedCounts.read > 0 {
+                    Text("\(mixedCounts.read)")
+                        .font(interfaceTextSize.font(size: 11, weight: .semibold))
+                        .monospacedDigit()
+                        .foregroundStyle(SidebarStyle.secondaryText)
+                }
+
+                if mixedCounts.unread > 0 {
+                    Text("\(mixedCounts.unread)")
+                        .font(interfaceTextSize.font(size: 11, weight: .semibold))
+                        .monospacedDigit()
+                        .foregroundStyle(SidebarStyle.secondaryText)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 2)
+                        .background(SidebarStyle.activeSelection, in: Capsule())
+                }
+            } else if let badgeText {
                 Text(badgeText)
                     .font(interfaceTextSize.font(size: 11, weight: .semibold))
                     .monospacedDigit()
