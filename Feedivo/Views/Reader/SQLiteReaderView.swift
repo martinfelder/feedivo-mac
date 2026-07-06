@@ -6,7 +6,7 @@ struct SQLiteReaderView: View {
     @Environment(\.interfaceTextSize) private var interfaceTextSize
     @Environment(\.openWindow) private var openWindow
 
-    let articleID: String
+    let articleID: String?
     let canSelectPreviousArticle: Bool
     let canSelectNextArticle: Bool
     let selectPreviousArticle: () -> Void
@@ -51,7 +51,7 @@ struct SQLiteReaderView: View {
     private var articleInAppWebProfileRawValue = ArticleInAppWebProfile.defaultProfile.rawValue
 
     init(
-        articleID: String,
+        articleID: String?,
         canSelectPreviousArticle: Bool = false,
         canSelectNextArticle: Bool = false,
         selectPreviousArticle: @escaping () -> Void = {},
@@ -70,13 +70,19 @@ struct SQLiteReaderView: View {
 
     var body: some View {
         Group {
-            if let database {
-                readerContent(database: database)
-            } else {
+            if let database, let articleID {
+                readerContent(articleID: articleID, database: database)
+            } else if database == nil {
                 ContentUnavailableView(
                     "SQLite nicht verfügbar",
                     systemImage: "externaldrive.badge.exclamationmark",
                     description: Text("Die lokale Artikeldatenbank konnte nicht geöffnet werden.")
+                )
+            } else {
+                ContentUnavailableView(
+                    L10n.contentNoArticleSelectedTitle,
+                    systemImage: "doc.text",
+                    description: Text(L10n.contentNoArticleSelectedDescription)
                 )
             }
         }
@@ -299,7 +305,7 @@ struct SQLiteReaderView: View {
         ArticleInAppWebProfile.resolved(from: articleInAppWebProfileRawValue)
     }
 
-    private func readerContent(database: FeedivoDatabase) -> some View {
+    private func readerContent(articleID: String, database: FeedivoDatabase) -> some View {
         ReaderModeContent(
             articleID: articleID,
             database: database,

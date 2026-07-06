@@ -121,25 +121,19 @@ struct ContentView: View {
 
         } detail: {
 
-            // SPALTE 3: Reader — Inhalt des ausgewählten Artikels
-            if let selectedSQLiteArticleID {
-                SQLiteReaderView(
-                    articleID: selectedSQLiteArticleID,
-                    canSelectPreviousArticle: sqliteArticleNavigationState.previousArticleID != nil,
-                    canSelectNextArticle: sqliteArticleNavigationState.nextArticleID != nil,
-                    selectPreviousArticle: selectPreviousArticle,
-                    selectNextArticle: selectNextArticle,
-                    onSnapshotChange: handleSQLiteArticleSnapshotChange,
-                    onCreateRule: requestRuleCreation
-                )
-                .id(selectedSQLiteArticleID)
-            } else {
-                ContentUnavailableView(
-                    L10n.contentNoArticleSelectedTitle,
-                    systemImage: "doc.text",
-                    description: Text(L10n.contentNoArticleSelectedDescription)
-                )
-            }
+            // SPALTE 3: Reader — Inhalt des ausgewählten Artikels. Die Toolbar
+            // bleibt auch ohne Auswahl sichtbar; SQLiteReaderView zeigt intern
+            // den Leerzustand und deaktiviert die artikelabhängigen Buttons.
+            SQLiteReaderView(
+                articleID: selectedSQLiteArticleID,
+                canSelectPreviousArticle: sqliteArticleNavigationState.previousArticleID != nil,
+                canSelectNextArticle: sqliteArticleNavigationState.nextArticleID != nil,
+                selectPreviousArticle: selectPreviousArticle,
+                selectNextArticle: selectNextArticle,
+                onSnapshotChange: handleSQLiteArticleSnapshotChange,
+                onCreateRule: requestRuleCreation
+            )
+            .id(selectedSQLiteArticleID)
 
         }
         .onChange(of: sidebarSelection, handleSidebarSelectionChange)
