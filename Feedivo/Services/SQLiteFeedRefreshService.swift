@@ -21,6 +21,7 @@ enum SQLiteFeedRefreshError: Error, Equatable {
 
 struct SQLiteFeedRefreshService {
     typealias Fetcher = (String, FeedHTTPValidators) async throws -> SQLiteFeedFetchResult
+    typealias FaviconFetcher = (URL) async -> String?
 
     private let feedStore: FeedStore
     private let articleStore: ArticleStore
@@ -30,11 +31,15 @@ struct SQLiteFeedRefreshService {
     private let ruleSnapshots: [RuleEngine.RuleSnapshot]
     private let now: () -> Date
     private let fetcher: Fetcher
+    private let discoverFaviconURL: FaviconFetcher
 
     init(
         database: FeedivoDatabase,
         ruleSnapshots: [RuleEngine.RuleSnapshot] = [],
         now: @escaping () -> Date = Date.init,
+        discoverFaviconURL: @escaping FaviconFetcher = { siteURL in
+            await FaviconService.discoverFaviconURL(siteURL: siteURL)
+        },
         fetcher: @escaping Fetcher = SQLiteFeedRefreshService.defaultFetcher
     ) {
         self.feedStore = FeedStore(database: database)
@@ -45,6 +50,7 @@ struct SQLiteFeedRefreshService {
         self.ruleSnapshots = ruleSnapshots
         self.now = now
         self.fetcher = fetcher
+        self.discoverFaviconURL = discoverFaviconURL
     }
 
     func refresh(feedID: String) async throws -> SQLiteFeedRefreshResult {
@@ -64,13 +70,15 @@ struct SQLiteFeedRefreshService {
             switch try await fetcher(feed.url, validators) {
             case .notModified(let updatedValidators):
                 let unreadCount = try statusStore.unreadCount(feedID: feedID)
+                let faviconURL = await faviconURLIfNeeded(for: feed, parsedFeed: nil)
                 try feedStore.updateAfterRefresh(
                     feedID: feedID,
                     title: nil,
                     websiteURL: nil,
                     validators: updatedValidators,
                     unreadCount: unreadCount,
-                    refreshedAt: refreshedAt
+                    refreshedAt: refreshedAt,
+                    faviconURL: faviconURL
                 )
                 try logStore.append(FeedLogRecord(
                     feedID: feedID,
@@ -114,13 +122,15 @@ struct SQLiteFeedRefreshService {
                     appliedAt: refreshedAt
                 )
                 let unreadCount = try statusStore.unreadCount(feedID: feedID)
+                let faviconURL = await faviconURLIfNeeded(for: feed, parsedFeed: parsedFeed)
                 try feedStore.updateAfterRefresh(
                     feedID: feedID,
                     title: refreshedTitle,
                     websiteURL: parsedFeed.siteURL,
                     validators: updatedValidators,
                     unreadCount: unreadCount,
-                    refreshedAt: refreshedAt
+                    refreshedAt: refreshedAt,
+                    faviconURL: faviconURL
                 )
                 try logStore.append(FeedLogRecord(
                     feedID: feedID,
@@ -171,6 +181,34 @@ struct SQLiteFeedRefreshService {
             return nil
         }
         return statusCode
+    }
+
+    // Favicons wurden bislang nur beim Einzel-Feed-Hinzufuegen entdeckt
+    // (SQLiteFeedSubscriptionService.addFeed). Der OPML-Import und alle
+    // spaeteren Refreshs liefen ausschliesslich ueber diesen Service, der
+    // faviconURL nie gesetzt hat — deshalb blieben importierte Feeds
+    // dauerhaft ohne Icon. Hier wird bei jedem Refresh nachgeholt, sofern
+    // noch kein Favicon hinterlegt ist.
+    private func faviconURLIfNeeded(for feed: FeedRecord, parsedFeed: ParsedFeed?) async -> String? {
+        guard Self.trimmedNonEmpty(feed.faviconURL) == nil else {
+            return nil
+        }
+
+        let siteURLString = Self.trimmedNonEmpty(parsedFeed?.siteURL) ?? Self.trimmedNonEmpty(feed.websiteURL)
+        let siteURL = siteURLString.flatMap(URL.init(string:)) ?? FaviconService.siteURL(from: feed.url)
+        guard let siteURL else {
+            return nil
+        }
+
+        return await discoverFaviconURL(siteURL)
+    }
+
+    private static func trimmedNonEmpty(_ value: String?) -> String? {
+        guard let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !trimmed.isEmpty else {
+            return nil
+        }
+        return trimmed
     }
 
     private func applyRules(

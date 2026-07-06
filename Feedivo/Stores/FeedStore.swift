@@ -191,7 +191,8 @@ struct FeedStore {
         websiteURL: String?,
         validators: FeedHTTPValidators,
         unreadCount: Int,
-        refreshedAt: Date
+        refreshedAt: Date,
+        faviconURL: String? = nil
     ) throws {
         try database.write { db in
             let trimmedTitle = title.trimmedNonEmpty
@@ -202,6 +203,7 @@ struct FeedStore {
             }
             arguments.append(contentsOf: [
                 websiteURL.trimmedNonEmpty,
+                faviconURL.trimmedNonEmpty,
                 refreshedAt,
                 validators.eTag,
                 validators.lastModified,
@@ -217,6 +219,7 @@ struct FeedStore {
                     UPDATE feeds
                     SET \(titleAssignment)
                         websiteURL = COALESCE(?, websiteURL),
+                        faviconURL = COALESCE(?, faviconURL),
                         lastRefreshedAt = ?,
                         lastETag = ?,
                         lastModified = ?,
