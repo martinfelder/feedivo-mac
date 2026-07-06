@@ -595,6 +595,42 @@ struct SQLiteTimelineStoreTests {
         #expect(snapshots.map(\.id) == [articleID])
     }
 
+    @Test func readUnreadCountsSplitsSmartFolderScopeByReadStatusAndExcludesHidden() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let statusStore = ArticleStatusStore(database: database)
+        let timelineStore = TimelineStore(database: database)
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example"))
+
+        let readID = try articleStore.upsert(
+            ArticleUpsertInput(feedID: "feed-1", sourceID: "read", title: "Gelesen")
+        )
+        _ = try articleStore.upsert(
+            ArticleUpsertInput(feedID: "feed-1", sourceID: "unread", title: "Ungelesen")
+        )
+        let hiddenID = try articleStore.upsert(
+            ArticleUpsertInput(feedID: "feed-1", sourceID: "hidden", title: "Versteckt")
+        )
+        try statusStore.setRead(true, articleID: readID, at: Date(timeIntervalSince1970: 100))
+        try statusStore.setHidden(true, articleID: hiddenID, at: Date(timeIntervalSince1970: 100))
+
+        let folder = SQLiteSmartFolderSnapshot(
+            id: "smart-empty",
+            name: "Alle Artikel",
+            matchMode: .all,
+            conditions: []
+        )
+
+        let counts = try timelineStore.readUnreadCounts(
+            scope: .smartFolder(folder),
+            includeHidden: false
+        )
+
+        #expect(counts.read == 1)
+        #expect(counts.unread == 1)
+    }
+
     private func makeSmartFilterFixture(database: FeedivoDatabase) throws -> (String, String, String) {
         let feedStore = FeedStore(database: database)
         let articleStore = ArticleStore(database: database)

@@ -277,6 +277,37 @@ struct TimelineStore {
         }
     }
 
+    func readUnreadCounts(
+        scope: TimelineScope,
+        includeHidden: Bool
+    ) throws -> SmartFolderMixedCounts {
+        var whereClauses: [String] = []
+        var arguments = StatementArguments()
+        appendScopeWhereClause(
+            scope,
+            whereClauses: &whereClauses,
+            arguments: &arguments
+        )
+
+        if !includeHidden {
+            whereClauses.append("s.isHidden = 0")
+        }
+
+        let whereSQL = whereClauses.isEmpty ? "" : "WHERE \(whereClauses.joined(separator: " AND "))"
+
+        return try database.read { db in
+            try SmartFolderMixedCounts.fetchOne(db, sql: """
+                SELECT
+                    COALESCE(SUM(CASE WHEN s.isRead = 1 THEN 1 ELSE 0 END), 0) AS read,
+                    COALESCE(SUM(CASE WHEN s.isRead = 0 THEN 1 ELSE 0 END), 0) AS unread
+                FROM articles a
+                JOIN feeds f ON f.id = a.feedID
+                JOIN article_statuses s ON s.articleID = a.id
+                \(whereSQL)
+                """, arguments: arguments) ?? .empty
+        }
+    }
+
     private func appendScopeWhereClause(
         _ scope: TimelineScope,
         whereClauses: inout [String],
