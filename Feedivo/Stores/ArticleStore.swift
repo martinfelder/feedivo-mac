@@ -181,6 +181,24 @@ struct ArticleStore {
         }
     }
 
+    func recentlyPublishedCount(articleIDs: [String], since: Date) throws -> Int {
+        guard !articleIDs.isEmpty else {
+            return 0
+        }
+
+        return try database.read { db in
+            let placeholders = Array(repeating: "?", count: articleIDs.count).joined(separator: ", ")
+            let arguments = StatementArguments(articleIDs) + StatementArguments([since])
+            return try Int.fetchOne(db, sql: """
+                SELECT COUNT(*)
+                FROM articles
+                WHERE id IN (\(placeholders))
+                    AND publishedAt IS NOT NULL
+                    AND publishedAt >= ?
+                """, arguments: arguments) ?? 0
+        }
+    }
+
     private func latestArticleForFeed(feedID: String, db: Database) throws -> ArticleListSnapshot? {
         if let datedArticle = try ArticleListSnapshot.fetchOne(db, sql: """
             SELECT

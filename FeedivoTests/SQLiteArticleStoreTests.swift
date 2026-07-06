@@ -621,4 +621,52 @@ struct SQLiteArticleStoreTests {
         #expect(snapshots.map(\.id) == [starredID])
         #expect(!snapshots.map(\.id).contains(normalID))
     }
+
+    @Test func recentlyPublishedCountCountsOnlyArticlesWithinWindowAndIgnoresUndated() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let now = Date(timeIntervalSince1970: 1_000_000)
+        let since = now.addingTimeInterval(-48 * 60 * 60)
+
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example"))
+
+        let recentID = try articleStore.upsert(ArticleUpsertInput(
+            feedID: "feed-1",
+            sourceID: "recent",
+            title: "Kuerzlich veroeffentlicht",
+            publishedAt: now.addingTimeInterval(-60),
+            arrivedAt: now
+        ))
+        let oldID = try articleStore.upsert(ArticleUpsertInput(
+            feedID: "feed-1",
+            sourceID: "old",
+            title: "Alt veroeffentlicht",
+            publishedAt: since.addingTimeInterval(-60),
+            arrivedAt: now
+        ))
+        let undatedID = try articleStore.upsert(ArticleUpsertInput(
+            feedID: "feed-1",
+            sourceID: "undated",
+            title: "Ohne Datum",
+            publishedAt: nil,
+            arrivedAt: now
+        ))
+
+        let count = try articleStore.recentlyPublishedCount(
+            articleIDs: [recentID, oldID, undatedID],
+            since: since
+        )
+
+        #expect(count == 1)
+    }
+
+    @Test func recentlyPublishedCountReturnsZeroForEmptyIDs() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let articleStore = ArticleStore(database: database)
+
+        let count = try articleStore.recentlyPublishedCount(articleIDs: [], since: Date())
+
+        #expect(count == 0)
+    }
 }
