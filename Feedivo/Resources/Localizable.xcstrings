@@ -4120,25 +4120,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Wähle einen Treffer aus der Liste, um ihn hier anzusehen."
+            "value": "Wähle einen Treffer aus der Liste, um ihn hier anzusehen. Doppelklick öffnet den Artikel in einem eigenen Fenster."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Select a result from the list to view it here."
+            "value": "Select a result from the list to view it here. Double-click opens the article in its own window."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sélectionnez un résultat dans la liste pour l'afficher ici."
+            "value": "Sélectionnez un résultat dans la liste pour l'afficher ici. Un double-clic ouvre l'article dans sa propre fenêtre."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Seleziona un risultato dall'elenco per visualizzarlo qui."
+            "value": "Seleziona un risultato dall'elenco per visualizzarlo qui. Il doppio clic apre l'articolo in una finestra propria."
           }
         }
       }
