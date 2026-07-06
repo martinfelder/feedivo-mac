@@ -156,6 +156,30 @@ struct ArticleListQueryTests {
         #expect(state.hiddenReadRowCount == 0)
     }
 
+    @Test func mergingStickyRowsBehaeltArtikelDerAusDerFrischenAbfrageFaellt() {
+        let stillPresentRow = sqliteSnapshot(id: "present", title: "Weiterhin da", isRead: false)
+        let droppedRow = sqliteSnapshot(id: "dropped", title: "Gerade gelesen", isRead: true)
+
+        let merged = SQLiteArticleListDisplayState.mergingStickyRows(
+            into: [stillPresentRow],
+            stickyRowSnapshots: ["dropped": droppedRow, "present": stillPresentRow]
+        )
+
+        #expect(Set(merged.map(\.id)) == Set(["present", "dropped"]))
+    }
+
+    @Test func mergingStickyRowsBevorzugtFrischeZeileBeiDoppelterID() {
+        let staleStickyRow = sqliteSnapshot(id: "same", title: "Veraltet", isRead: true)
+        let freshRow = sqliteSnapshot(id: "same", title: "Frisch", isRead: false)
+
+        let merged = SQLiteArticleListDisplayState.mergingStickyRows(
+            into: [freshRow],
+            stickyRowSnapshots: ["same": staleStickyRow]
+        )
+
+        #expect(merged.map(\.title) == ["Frisch"])
+    }
+
     @Test func paginationBleibtMoeglichWennArtikelNachDemLadenAusDerQueryFallen() {
         var state = ArticleListPaginationState()
 

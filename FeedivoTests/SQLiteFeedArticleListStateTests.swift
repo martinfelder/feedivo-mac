@@ -39,6 +39,35 @@ struct SQLiteFeedArticleListStateTests {
         #expect(state.rows.first(where: { $0.id == firstID })?.isRead == true)
     }
 
+    @Test func listStateBehaeltArtikelInUngelesenSmartFolderNachToggleReadSichtbar() async throws {
+        let (database, firstID, secondID) = try makeDatabaseWithFeedAndArticles()
+        let state = SQLiteFeedArticleListState()
+        let folder = SQLiteSmartFolderSnapshot(
+            id: "smart-unread",
+            name: "Ungelesen",
+            matchMode: .all,
+            conditions: [
+                SQLiteSmartFolderConditionSnapshot(
+                    field: .status,
+                    conditionOperator: .is,
+                    value: SmartFolderStatusValue.unread.rawValue
+                )
+            ]
+        )
+
+        state.load(smartFolder: folder, database: database, selectedArticleID: firstID)
+        await waitForLoad(state)
+        #expect(Set(state.rows.map(\.id)) == Set([firstID, secondID]))
+
+        state.toggleRead(articleID: firstID, database: database)
+        await waitForRows(state) { rows in
+            rows.first(where: { $0.id == firstID })?.isRead == true
+        }
+
+        #expect(Set(state.rows.map(\.id)) == Set([firstID, secondID]))
+        #expect(state.rows.first(where: { $0.id == firstID })?.isRead == true)
+    }
+
     @Test func listStateMarkiertAusgewaehltenArtikelBeimOeffnenAlsGelesen() async throws {
         let (database, firstID, _) = try makeDatabaseWithFeedAndArticles()
         let state = SQLiteFeedArticleListState()

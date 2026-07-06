@@ -54,6 +54,13 @@ struct SQLiteFeedArticleListView: View {
     @State private var ruleCreationRequest: ArticleListRuleCreationRequest?
     @State private var showsReadArticles = false
     @State private var temporarilyVisibleReadArticleIDs = Set<String>()
+    // Haelt die zuletzt bekannten Zeilendaten fuer Artikel, die gerade als
+    // gelesen markiert wurden. Ein Smart Folder wie "Ungelesen" hat "Status
+    // ist ungelesen" als eigene SQL-Bedingung - ein Reload (ausgeloest durch
+    // jede Statusaenderung ueber sqliteStatusVersion) wuerde den Artikel sonst
+    // sofort aus state.rows entfernen, noch bevor der Anzeige-Filter greifen
+    // kann. Dieser Cache ueberlebt den Reload, bis der Scope wechselt.
+    @State private var stickyRowSnapshots: [String: ArticleListSnapshot] = [:]
 
     @AppStorage(ArticleSortOption.storageKey)
     private var articleSortRawValue = ArticleSortOption.newestFirst.rawValue
@@ -120,6 +127,7 @@ struct SQLiteFeedArticleListView: View {
         }
         .onChange(of: scopeToken) {
             temporarilyVisibleReadArticleIDs.removeAll()
+            stickyRowSnapshots.removeAll()
         }
         .onChange(of: selectedArticleID) {
             markSelectedArticleReadIfNeeded()
@@ -266,9 +274,16 @@ struct SQLiteFeedArticleListView: View {
         !showsReadArticles && hiddenReadRowCount > 0
     }
 
+    private var effectiveRows: [ArticleListSnapshot] {
+        SQLiteArticleListDisplayState.mergingStickyRows(
+            into: state.rows,
+            stickyRowSnapshots: stickyRowSnapshots
+        )
+    }
+
     private var displayState: SQLiteArticleListDisplayState {
         SQLiteArticleListDisplayState(
-            rows: state.rows.sorted(by: sortRows),
+            rows: effectiveRows.sorted(by: sortRows),
             showsReadArticles: showsReadArticles,
             selectedArticleID: selectedArticleID,
             temporarilyVisibleReadArticleIDs: temporarilyVisibleReadArticleIDs,
@@ -637,6 +652,10 @@ struct SQLiteFeedArticleListView: View {
 
         state.toggleRead(articleID: articleID, database: database)
         navigationState = state.navigationState
+        temporarilyVisibleReadArticleIDs.insert(articleID)
+        if let row = state.rows.first(where: { $0.id == articleID }) {
+            stickyRowSnapshots[articleID] = row
+        }
     }
 
     private func markSelectedArticleReadIfNeeded() {
@@ -652,6 +671,9 @@ struct SQLiteFeedArticleListView: View {
 
         if let articleID {
             temporarilyVisibleReadArticleIDs.insert(articleID)
+            if let row = state.rows.first(where: { $0.id == articleID }) {
+                stickyRowSnapshots[articleID] = row
+            }
         }
     }
 
@@ -811,6 +833,20 @@ struct SQLiteArticleListDisplayState {
     let selectedArticleID: String?
     let temporarilyVisibleReadArticleIDs: Set<String>
     let filterOption: ArticleFilterOption
+
+    // state.rows kommt aus einer frischen Scope-Abfrage und kann einen Artikel
+    // bereits vollstaendig ausgeschlossen haben (z. B. Smart Folder "Ungelesen"
+    // mit "Status ist ungelesen" als eigener SQL-Bedingung). stickyRowSnapshots
+    // haelt solche Artikel bis zum naechsten Scope-Wechsel sichtbar; rows hat
+    // aber immer Vorrang, falls der Artikel dort wieder auftaucht.
+    static func mergingStickyRows(
+        into rows: [ArticleListSnapshot],
+        stickyRowSnapshots: [String: ArticleListSnapshot]
+    ) -> [ArticleListSnapshot] {
+        let presentIDs = Set(rows.map(\.id))
+        let missingStickyRows = stickyRowSnapshots.values.filter { !presentIDs.contains($0.id) }
+        return rows + missingStickyRows
+    }
 
     var filteredRows: [ArticleListSnapshot] {
         rows.filter(articleFilterIncludes)

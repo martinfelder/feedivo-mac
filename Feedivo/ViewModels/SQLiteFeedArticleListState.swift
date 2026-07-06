@@ -162,20 +162,10 @@ final class SQLiteFeedArticleListState {
     var rows: [ArticleListSnapshot] = []
     var navigationState = SQLiteArticleNavigationState.empty
 
-    private enum CurrentScope {
-        case feedID(String)
-        case tagID(String)
-        case smartFilter(SmartFilter)
-        case smartFolder(SQLiteSmartFolderSnapshot)
-    }
-
     private let timelineLoader: TimelineLoader
     private let timelineQueue = SQLiteTimelineLoadQueue()
     private var nextLoadID = 0
     private var latestLoadID = 0
-    private var currentScope: CurrentScope?
-    private var currentSearchText: String?
-    private var currentSelectedArticleID: String?
 
     init(timelineLoader: TimelineLoader? = nil) {
         self.timelineLoader = timelineLoader ?? Self.defaultTimelineLoader
@@ -187,10 +177,6 @@ final class SQLiteFeedArticleListState {
         database: FeedivoDatabase?,
         selectedArticleID: String?
     ) {
-        currentScope = .feedID(feedID)
-        currentSearchText = searchText
-        currentSelectedArticleID = selectedArticleID
-
         startLoad(SQLiteTimelineLoadRequest(
             scope: .feedID(feedID),
             searchText: searchText,
@@ -205,10 +191,6 @@ final class SQLiteFeedArticleListState {
         database: FeedivoDatabase?,
         selectedArticleID: String?
     ) {
-        currentScope = .tagID(tagID)
-        currentSearchText = searchText
-        currentSelectedArticleID = selectedArticleID
-
         startLoad(SQLiteTimelineLoadRequest(
             scope: .tagID(tagID),
             searchText: searchText,
@@ -223,10 +205,6 @@ final class SQLiteFeedArticleListState {
         database: FeedivoDatabase?,
         selectedArticleID: String?
     ) {
-        currentScope = .smartFilter(smartFilter)
-        currentSearchText = searchText
-        currentSelectedArticleID = selectedArticleID
-
         startLoad(SQLiteTimelineLoadRequest(
             scope: .smartFilter(smartFilter),
             searchText: searchText,
@@ -241,10 +219,6 @@ final class SQLiteFeedArticleListState {
         database: FeedivoDatabase?,
         selectedArticleID: String?
     ) {
-        currentScope = .smartFolder(smartFolder)
-        currentSearchText = searchText
-        currentSelectedArticleID = selectedArticleID
-
         startLoad(SQLiteTimelineLoadRequest(
             scope: .smartFolder(smartFolder),
             searchText: searchText,
@@ -253,13 +227,23 @@ final class SQLiteFeedArticleListState {
         ))
     }
 
+    // Bewusst keine erneute Scope-Abfrage nach einer Status-Aenderung: Ein
+    // Reload wuerde die Filterbedingung des aktuellen Scopes (z. B. "status
+    // ist ungelesen" beim Smart Folder "Ungelesen") sofort erneut anwenden
+    // und den gerade bearbeiteten Artikel aus der Liste entfernen. Feeds
+    // haben keine solche Bedingung, weshalb Artikel dort schon immer sichtbar
+    // blieben - die lokale Mutation gleicht dieses Verhalten fuer alle Scopes
+    // an, bis der Nutzer die Liste aktiv neu laedt (Scope-Wechsel, Refresh).
     func toggleRead(articleID: String, database: FeedivoDatabase) {
         guard let row = rows.first(where: { $0.id == articleID }) else {
             return
         }
+        let newValue = !row.isRead
 
         mutateStatus(articleID: articleID, database: database) { store in
-            try store.setRead(!row.isRead, articleID: articleID, at: Date())
+            try store.setRead(newValue, articleID: articleID, at: Date())
+        } applyLocally: { row in
+            row.isRead = newValue
         }
     }
 
@@ -279,6 +263,8 @@ final class SQLiteFeedArticleListState {
 
         mutateStatus(articleID: articleID, database: database) { store in
             try store.setRead(true, articleID: articleID, at: Date())
+        } applyLocally: { row in
+            row.isRead = true
         }
         return true
     }
@@ -287,9 +273,12 @@ final class SQLiteFeedArticleListState {
         guard let row = rows.first(where: { $0.id == articleID }) else {
             return
         }
+        let newValue = !row.isStarred
 
         mutateStatus(articleID: articleID, database: database) { store in
-            try store.setStarred(!row.isStarred, articleID: articleID, at: Date())
+            try store.setStarred(newValue, articleID: articleID, at: Date())
+        } applyLocally: { row in
+            row.isStarred = newValue
         }
     }
 
@@ -297,55 +286,29 @@ final class SQLiteFeedArticleListState {
         guard let row = rows.first(where: { $0.id == articleID }) else {
             return
         }
+        let newValue = !row.isArchived
 
         mutateStatus(articleID: articleID, database: database) { store in
-            try store.setArchived(!row.isArchived, articleID: articleID, at: Date())
+            try store.setArchived(newValue, articleID: articleID, at: Date())
+        } applyLocally: { row in
+            row.isArchived = newValue
         }
     }
 
     private func mutateStatus(
         articleID: String,
         database: FeedivoDatabase,
-        operation: (ArticleDatabase) throws -> Void
+        operation: (ArticleDatabase) throws -> Void,
+        applyLocally: (inout ArticleListSnapshot) -> Void
     ) {
         do {
             try operation(ArticleDatabase(database: database))
-            currentSelectedArticleID = articleID
 
-            guard let currentScope else {
+            guard let index = rows.firstIndex(where: { $0.id == articleID }) else {
                 return
             }
 
-            switch currentScope {
-            case let .feedID(feedID):
-                load(
-                    feedID: feedID,
-                    searchText: currentSearchText,
-                    database: database,
-                    selectedArticleID: currentSelectedArticleID
-                )
-            case let .tagID(tagID):
-                load(
-                    tagID: tagID,
-                    searchText: currentSearchText,
-                    database: database,
-                    selectedArticleID: currentSelectedArticleID
-                )
-            case let .smartFilter(smartFilter):
-                load(
-                    smartFilter: smartFilter,
-                    searchText: currentSearchText,
-                    database: database,
-                    selectedArticleID: currentSelectedArticleID
-                )
-            case let .smartFolder(smartFolder):
-                load(
-                    smartFolder: smartFolder,
-                    searchText: currentSearchText,
-                    database: database,
-                    selectedArticleID: currentSelectedArticleID
-                )
-            }
+            applyLocally(&rows[index])
         } catch {
             loadState = .failed(error.localizedDescription)
         }
