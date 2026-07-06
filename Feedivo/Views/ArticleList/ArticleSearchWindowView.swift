@@ -43,7 +43,7 @@ struct ArticleSearchWindowView: View {
                 resultList
             }
         }
-        .frame(minWidth: 620, minHeight: 460)
+        .frame(minWidth: 900, minHeight: 460)
         // P4: Debounce des Suchtextes. `.task(id:)` bricht die vorherige Aufgabe
         // ab, sobald sich der Text ändert — committet nur nach 250 ms ohne
         // weiteren Tastendruck. Leeres Feld wird sofort committet (kein Lag beim
@@ -68,30 +68,7 @@ struct ArticleSearchWindowView: View {
     }
 
     private var searchHeader: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .top, spacing: 14) {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 19, weight: .semibold))
-                    .foregroundStyle(.blue)
-                    .frame(width: 34, height: 34)
-                    .background(.blue.opacity(0.13), in: RoundedRectangle(cornerRadius: 8))
-
-                VStack(alignment: .leading, spacing: 5) {
-                    Text(L10n.articleSearchCommand)
-                        .font(.headline)
-                }
-
-                Spacer(minLength: 0)
-
-                Text(L10n.articleSearchMatchCount(snapshots.count))
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.blue)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(.blue.opacity(0.13), in: Capsule())
-            }
-
+        VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(.secondary)
@@ -125,11 +102,19 @@ struct ArticleSearchWindowView: View {
                 searchDatePicker
                 searchStatusPicker
                 Spacer(minLength: 0)
+
+                Text(L10n.articleSearchMatchCount(snapshots.count))
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.blue)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(.blue.opacity(0.13), in: Capsule())
             }
             .controlSize(.small)
         }
         .padding(.horizontal, 22)
-        .padding(.vertical, 18)
+        .padding(.vertical, 14)
         .background(Color.blue.opacity(0.08))
         .overlay(alignment: .bottom) {
             Divider()
