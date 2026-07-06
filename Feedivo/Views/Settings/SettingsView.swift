@@ -54,7 +54,7 @@ struct NewSettingsView: View {
     static let windowID = "feedivo-settings-new"
 
     private enum Layout {
-        static let windowWidth: CGFloat = 512
+        static let windowWidth: CGFloat = 640
     }
 
     @Environment(\.interfaceTextSize) private var interfaceTextSize
@@ -240,7 +240,6 @@ private struct NewGeneralSettingsView: View {
                     }
                     .labelsHidden()
                     .pickerStyle(.menu)
-                    .frame(width: 170, alignment: .trailing)
                 }
 
                 NewSettingRow(
@@ -270,7 +269,6 @@ private struct NewGeneralSettingsView: View {
                     }
                     .labelsHidden()
                     .pickerStyle(.menu)
-                    .frame(width: 220, alignment: .trailing)
                     .onAppear {
                         articleInAppWebProfileRawValue = selectedInAppWebProfile.rawValue
                     }
@@ -288,7 +286,6 @@ private struct NewGeneralSettingsView: View {
                     }
                     .labelsHidden()
                     .pickerStyle(.menu)
-                    .frame(width: 230, alignment: .trailing)
                     .onAppear {
                         if !selectedBrowserTarget.isAvailable {
                             articleOriginalBrowserTargetRawValue = ArticleOriginalBrowserTarget.defaultTarget.rawValue
@@ -395,7 +392,7 @@ private struct NewAppearanceSettingsView: View {
                         }
                         .labelsHidden()
                         .pickerStyle(.menu)
-                        .frame(width: 120, alignment: .trailing)
+                        .frame(width: 120, alignment: .leading)
 
                         Toggle("Fett", isOn: $readerTitleFontIsBold)
                     }
@@ -411,7 +408,7 @@ private struct NewAppearanceSettingsView: View {
                         }
                         .labelsHidden()
                         .pickerStyle(.menu)
-                        .frame(width: 120, alignment: .trailing)
+                        .frame(width: 120, alignment: .leading)
 
                         Toggle("Fett", isOn: $readerBodyFontIsBold)
                     }
@@ -477,7 +474,6 @@ private struct NewCacheSettingsView: View {
                     }
                     .labelsHidden()
                     .pickerStyle(.menu)
-                    .frame(width: 170, alignment: .trailing)
                     .onChange(of: cacheLimitMegabytes) { _, newValue in
                         cacheLimitMegabytes = ImageCacheSettings.resolvedLimitMegabytes(newValue)
                         trimCacheToSelectedLimit()
@@ -654,7 +650,6 @@ private struct NewRefreshSettingsView: View {
                     }
                     .labelsHidden()
                     .pickerStyle(.menu)
-                    .frame(width: 140, alignment: .trailing)
                     .disabled(!backgroundRefreshIsEnabled)
                 }
 
@@ -847,7 +842,6 @@ private struct NewCleanupSettingsView: View {
                     }
                     .labelsHidden()
                     .pickerStyle(.menu)
-                    .frame(width: 160, alignment: .trailing)
                     .disabled(!articleRetentionIsEnabled)
                     .onChange(of: articleRetentionDays) {
                         articleRetentionDays = ArticleRetentionSettings.clampedRetentionDays(articleRetentionDays)
@@ -866,7 +860,6 @@ private struct NewCleanupSettingsView: View {
                     }
                     .labelsHidden()
                     .pickerStyle(.menu)
-                    .frame(width: 160, alignment: .trailing)
                     .disabled(!articleRetentionIsEnabled)
                     .onChange(of: articleRetentionMinimumArticlesPerFeed) {
                         articleRetentionMinimumArticlesPerFeed = ArticleRetentionSettings.clampedMinimumArticlesPerFeed(
