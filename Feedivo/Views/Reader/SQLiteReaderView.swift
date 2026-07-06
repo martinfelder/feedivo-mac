@@ -122,6 +122,7 @@ struct SQLiteReaderView: View {
                 .help(L10n.articleOpenOriginalCommand)
                 .disabled(originalURL == nil)
 
+                // Status-Gruppe: Stern / Archivieren / Ungelesen
                 Divider()
 
                 Button {
