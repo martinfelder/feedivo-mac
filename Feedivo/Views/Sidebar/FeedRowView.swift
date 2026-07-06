@@ -52,13 +52,17 @@ struct FeedRowView: View {
             Spacer(minLength: 8)
 
             if let badgeText = SidebarUnreadCount.badgeText(for: unreadCount) {
-                Text(badgeText)
-                    .font(interfaceTextSize.font(size: 11, weight: .semibold))
-                    .monospacedDigit()
-                    .foregroundStyle(SidebarStyle.secondaryText)
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 2)
-                    .background(SidebarStyle.activeSelection, in: Capsule())
+                HStack(spacing: 3) {
+                    Image(systemName: "circle.fill")
+                        .font(.system(size: 8, weight: .semibold))
+                    Text(badgeText)
+                        .font(interfaceTextSize.font(size: 11, weight: .semibold))
+                        .monospacedDigit()
+                }
+                .foregroundStyle(Color.accentColor)
+                .padding(.horizontal, 7)
+                .padding(.vertical, 2)
+                .background(SidebarStyle.activeSelection, in: Capsule())
             }
         }
     }

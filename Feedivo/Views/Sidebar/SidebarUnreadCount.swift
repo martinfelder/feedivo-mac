@@ -239,7 +239,7 @@ enum SidebarBadgeInvalidation {
     }
 }
 
-private enum SmartFolderSidebarBadgeKind {
+enum SmartFolderSidebarBadgeKind: Equatable {
     case unread
     case starred
     case hidden

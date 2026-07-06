@@ -477,6 +477,10 @@ private struct SmartFolderSidebarRow: View {
         SmartFolderSidebarBadge.badgeText(for: smartFolder, snapshot: badgeSnapshot)
     }
 
+    private var isUnreadBadge: Bool {
+        SmartFolderSidebarBadgeKind(folder: smartFolder) == .unread
+    }
+
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: smartFolder.iconName ?? SmartFolderAppearance.defaultIconName)
@@ -492,29 +496,46 @@ private struct SmartFolderSidebarRow: View {
 
             if let mixedCounts {
                 if mixedCounts.read > 0 {
-                    Text("\(mixedCounts.read)")
-                        .font(interfaceTextSize.font(size: 11, weight: .semibold))
-                        .monospacedDigit()
-                        .foregroundStyle(SidebarStyle.secondaryText)
+                    HStack(spacing: 3) {
+                        Image(systemName: "circle")
+                            .font(.system(size: 8, weight: .semibold))
+                        Text("\(mixedCounts.read)")
+                            .font(interfaceTextSize.font(size: 11, weight: .semibold))
+                            .monospacedDigit()
+                    }
+                    .foregroundStyle(.gray)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 2)
+                    .background(Color.gray.opacity(SidebarStyle.activeSelectionOpacity), in: Capsule())
                 }
 
                 if mixedCounts.unread > 0 {
-                    Text("\(mixedCounts.unread)")
-                        .font(interfaceTextSize.font(size: 11, weight: .semibold))
-                        .monospacedDigit()
-                        .foregroundStyle(SidebarStyle.secondaryText)
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 2)
-                        .background(SidebarStyle.activeSelection, in: Capsule())
-                }
-            } else if let badgeText {
-                Text(badgeText)
-                    .font(interfaceTextSize.font(size: 11, weight: .semibold))
-                    .monospacedDigit()
-                    .foregroundStyle(SidebarStyle.secondaryText)
+                    HStack(spacing: 3) {
+                        Image(systemName: "circle.fill")
+                            .font(.system(size: 8, weight: .semibold))
+                        Text("\(mixedCounts.unread)")
+                            .font(interfaceTextSize.font(size: 11, weight: .semibold))
+                            .monospacedDigit()
+                    }
+                    .foregroundStyle(Color.accentColor)
                     .padding(.horizontal, 7)
                     .padding(.vertical, 2)
                     .background(SidebarStyle.activeSelection, in: Capsule())
+                }
+            } else if let badgeText {
+                HStack(spacing: 3) {
+                    if isUnreadBadge {
+                        Image(systemName: "circle.fill")
+                            .font(.system(size: 8, weight: .semibold))
+                    }
+                    Text(badgeText)
+                        .font(interfaceTextSize.font(size: 11, weight: .semibold))
+                        .monospacedDigit()
+                }
+                .foregroundStyle(isUnreadBadge ? Color.accentColor : SidebarStyle.secondaryText)
+                .padding(.horizontal, 7)
+                .padding(.vertical, 2)
+                .background(SidebarStyle.activeSelection, in: Capsule())
             }
         }
     }
