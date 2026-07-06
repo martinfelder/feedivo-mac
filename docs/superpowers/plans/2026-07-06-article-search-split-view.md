@@ -103,7 +103,7 @@ git commit -m "L10n: Suchfenster-Vorschau-Strings ergaenzen, ungenutzten Header-
 
 **Files:**
 - Modify: `Feedivo/Views/ArticleList/ArticleSearchWindowView.swift:46` (frame)
-- Modify: `Feedivo/Views/ArticleList/ArticleSearchWindowView.swift:70-142` (`searchHeader`)
+- Modify: `Feedivo/Views/ArticleList/ArticleSearchWindowView.swift:70-137` (`searchHeader`)
 
 **Interfaces:**
 - Consumes: `L10n.articleSearchPlaceholder`, `L10n.articleSearchClear`, `L10n.articleSearchMatchCount(_:)` (bereits vorhanden, unverändert)
@@ -125,7 +125,12 @@ durch:
 
 - [ ] **Step 2: `searchHeader` kompakter machen**
 
-Den gesamten `searchHeader`-Body (aktuell Zeilen 70–142) ersetzen:
+> **Hinweis:** Task 1 musste bereits die `Text(L10n.articleSearchWindowDescription)`-Zeile
+> entfernen, weil der zugehörige L10n-Key sonst den Build gebrochen hätte (Reihenfolge-Bug im
+> ursprünglichen Plan, in Task 1 korrigiert). Der `searchHeader`-Body sieht aktuell so aus wie
+> unten im "vorher"-Block gezeigt — nicht wie ein älterer Plan-Entwurf vermuten ließe.
+
+Den gesamten `searchHeader`-Body (aktuell Zeilen 70–137) ersetzen:
 
 ```swift
     private var searchHeader: some View {
@@ -140,11 +145,6 @@ Den gesamten `searchHeader`-Body (aktuell Zeilen 70–142) ersetzen:
                 VStack(alignment: .leading, spacing: 5) {
                     Text(L10n.articleSearchCommand)
                         .font(.headline)
-
-                    Text(L10n.articleSearchWindowDescription)
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
                 }
 
                 Spacer(minLength: 0)
