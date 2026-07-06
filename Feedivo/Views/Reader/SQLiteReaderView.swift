@@ -107,63 +107,83 @@ struct SQLiteReaderView: View {
             ToolbarItemGroup(placement: .primaryAction) {
                 Spacer()
 
-                Button {
-                    openWindow(id: ArticleSearchWindowView.windowID)
-                } label: {
-                    Image(systemName: "magnifyingglass")
-                }
-                .help(L10n.articleSearchCommand)
-
-                Button {
-                    openOriginal()
-                } label: {
-                    Image(systemName: "safari")
-                }
-                .help(L10n.articleOpenOriginalCommand)
-                .disabled(originalURL == nil)
-
-                // Status-Gruppe: Stern / Archivieren / Ungelesen
-                Divider()
-
-                Button {
-                    if let database {
-                        state.toggleStarred(database: database)
+                ControlGroup {
+                    Button {
+                        openWindow(id: ArticleSearchWindowView.windowID)
+                    } label: {
+                        Image(systemName: "magnifyingglass")
                     }
-                } label: {
-                    Image(systemName: state.snapshot?.isStarred == true ? "star.fill" : "star")
-                }
-                .help(state.snapshot?.isStarred == true ? L10n.articleRowStarRemove : L10n.articleRowStarAdd)
-                .disabled(state.snapshot == nil)
+                    .help(L10n.articleSearchCommand)
 
-                Button {
-                    if let database {
-                        state.toggleArchived(database: database)
+                    Button {
+                        openOriginal()
+                    } label: {
+                        Image(systemName: "safari")
                     }
-                } label: {
-                    Image(systemName: state.snapshot?.isArchived == true ? "archivebox.fill" : "archivebox")
+                    .help(L10n.articleOpenOriginalCommand)
+                    .disabled(originalURL == nil)
                 }
-                .help(state.snapshot?.isArchived == true ? L10n.articleUnarchiveCommand : L10n.articleArchiveCommand)
-                .disabled(state.snapshot == nil)
 
-                Button {
-                    if let database {
-                        state.toggleRead(database: database)
+                // Status-Gruppe: Regel erstellen / Stern / Archivieren / Ungelesen
+                ControlGroup {
+                    Button {
+                        if let snapshot = state.snapshot {
+                            onCreateRule(snapshot)
+                        }
+                    } label: {
+                        Image(systemName: "slider.horizontal.3")
                     }
-                } label: {
-                    Image(systemName: state.snapshot?.isRead == true ? "circle" : "circle.fill")
-                }
-                .help(state.snapshot?.isRead == true ? L10n.articleRowMarkUnread : L10n.articleRowMarkRead)
-                .disabled(state.snapshot == nil)
+                    .help(L10n.articleCreateRuleCommand)
+                    .disabled(state.snapshot == nil)
 
-                Divider()
+                    Button {
+                        if let database {
+                            state.toggleStarred(database: database)
+                        }
+                    } label: {
+                        Image(systemName: state.snapshot?.isStarred == true ? "star.fill" : "star")
+                    }
+                    .help(state.snapshot?.isStarred == true ? L10n.articleRowStarRemove : L10n.articleRowStarAdd)
+                    .disabled(state.snapshot == nil)
 
-                Button {
-                    requestExportArticle()
-                } label: {
-                    Image(systemName: "square.and.arrow.up")
+                    Button {
+                        if let database {
+                            state.toggleArchived(database: database)
+                        }
+                    } label: {
+                        Image(systemName: state.snapshot?.isArchived == true ? "archivebox.fill" : "archivebox")
+                    }
+                    .help(state.snapshot?.isArchived == true ? L10n.articleUnarchiveCommand : L10n.articleArchiveCommand)
+                    .disabled(state.snapshot == nil)
+
+                    Button {
+                        if let database {
+                            state.toggleRead(database: database)
+                        }
+                    } label: {
+                        Image(systemName: state.snapshot?.isRead == true ? "circle" : "circle.fill")
+                    }
+                    .help(state.snapshot?.isRead == true ? L10n.articleRowMarkUnread : L10n.articleRowMarkRead)
+                    .disabled(state.snapshot == nil)
                 }
-                .help(L10n.articleExportCommand)
-                .disabled(state.snapshot == nil)
+
+                ControlGroup {
+                    Button {
+                        copyLink()
+                    } label: {
+                        Image(systemName: "link")
+                    }
+                    .help(L10n.articleCopyLinkCommand)
+                    .disabled(originalURL == nil)
+
+                    Button {
+                        requestExportArticle()
+                    } label: {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                    .help(L10n.articleExportCommand)
+                    .disabled(state.snapshot == nil)
+                }
 
                 Picker(L10n.readerDisplayModePicker, selection: $readerDisplayModeRawValue) {
                     ForEach(ReaderDisplayMode.allCases) { mode in
@@ -195,27 +215,6 @@ struct SQLiteReaderView: View {
                 .controlSize(.small)
                 .symbolVariant(isMetadataInspectorPresented ? .fill : .none)
                 .help(L10n.readerInspectorButton)
-
-                Menu {
-                    Button {
-                        if let snapshot = state.snapshot {
-                            onCreateRule(snapshot)
-                        }
-                    } label: {
-                        Label(L10n.articleCreateRuleCommand, systemImage: "slider.horizontal.3")
-                    }
-                    .disabled(state.snapshot == nil)
-
-                    Button {
-                        copyLink()
-                    } label: {
-                        Label(L10n.articleCopyLinkCommand, systemImage: "link")
-                    }
-                    .disabled(originalURL == nil)
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                }
-                .help(L10n.articleCopyLinkCommand)
             }
         }
     }
