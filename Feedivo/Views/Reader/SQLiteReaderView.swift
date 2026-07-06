@@ -122,12 +122,16 @@ struct SQLiteReaderView: View {
                 .help(L10n.articleOpenOriginalCommand)
                 .disabled(originalURL == nil)
 
+                Divider()
+
                 Button {
-                    requestExportArticle()
+                    if let database {
+                        state.toggleStarred(database: database)
+                    }
                 } label: {
-                    Image(systemName: "square.and.arrow.up")
+                    Image(systemName: state.snapshot?.isStarred == true ? "star.fill" : "star")
                 }
-                .help(L10n.articleExportCommand)
+                .help(state.snapshot?.isStarred == true ? L10n.articleRowStarRemove : L10n.articleRowStarAdd)
                 .disabled(state.snapshot == nil)
 
                 Button {
@@ -137,7 +141,27 @@ struct SQLiteReaderView: View {
                 } label: {
                     Image(systemName: state.snapshot?.isArchived == true ? "archivebox.fill" : "archivebox")
                 }
-                .help(L10n.articleArchiveCommand)
+                .help(state.snapshot?.isArchived == true ? L10n.articleUnarchiveCommand : L10n.articleArchiveCommand)
+                .disabled(state.snapshot == nil)
+
+                Button {
+                    if let database {
+                        state.toggleRead(database: database)
+                    }
+                } label: {
+                    Image(systemName: state.snapshot?.isRead == true ? "circle" : "circle.fill")
+                }
+                .help(state.snapshot?.isRead == true ? L10n.articleRowMarkUnread : L10n.articleRowMarkRead)
+                .disabled(state.snapshot == nil)
+
+                Divider()
+
+                Button {
+                    requestExportArticle()
+                } label: {
+                    Image(systemName: "square.and.arrow.up")
+                }
+                .help(L10n.articleExportCommand)
                 .disabled(state.snapshot == nil)
 
                 Picker(L10n.readerDisplayModePicker, selection: $readerDisplayModeRawValue) {
