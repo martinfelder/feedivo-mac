@@ -54,9 +54,7 @@ struct NewSettingsView: View {
     static let windowID = "feedivo-settings-new"
 
     private enum Layout {
-        static let windowWidth: CGFloat = 680
-        static let windowHeight: CGFloat = 560
-        static let contentWidth: CGFloat = 520
+        static let windowWidth: CGFloat = 512
     }
 
     @Environment(\.interfaceTextSize) private var interfaceTextSize
@@ -74,28 +72,21 @@ struct NewSettingsView: View {
         }
         .font(.system(size: 12))
         .controlSize(.small)
-        .frame(
-            minWidth: Layout.windowWidth,
-            idealWidth: Layout.windowWidth,
-            minHeight: Layout.windowHeight,
-            idealHeight: Layout.windowHeight
-        )
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(width: Layout.windowWidth)
     }
 
     @ViewBuilder
     private func settingsTab(_ section: NewSettingsSection) -> some View {
-        ScrollView {
-            settingsContent(for: section)
-                .frame(maxWidth: Layout.contentWidth, alignment: .topLeading)
-                .padding(.horizontal, 64)
-                .padding(.vertical, 34)
-                .frame(maxWidth: .infinity, alignment: .topLeading)
-        }
-        .background(Color(nsColor: .textBackgroundColor))
-        .tabItem {
-            Label(section.title, systemImage: section.systemImage)
-        }
-        .tag(section)
+        settingsContent(for: section)
+            .padding(.horizontal, 28)
+            .padding(.vertical, 22)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+            .background(Color(nsColor: .textBackgroundColor))
+            .tabItem {
+                Label(section.title, systemImage: section.systemImage)
+            }
+            .tag(section)
     }
 
     @ViewBuilder

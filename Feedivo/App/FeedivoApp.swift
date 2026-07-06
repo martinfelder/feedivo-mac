@@ -134,7 +134,7 @@ struct FeedivoApp: App {
                 .environment(databaseLoadState)
                 .dynamicTypeSize(interfaceTextSize.dynamicTypeSize)
         }
-        .defaultSize(width: 680, height: 560)
+        .windowResizability(.contentSize)
     }
 
     private func scheduleBackgroundRefresh() {
