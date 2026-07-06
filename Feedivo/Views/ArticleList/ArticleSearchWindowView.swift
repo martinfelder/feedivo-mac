@@ -4,6 +4,7 @@ struct ArticleSearchWindowView: View {
     static let windowID = "article-search-window"
 
     @Environment(\.feedivoDatabase) private var database
+    @Environment(\.openWindow) private var openWindow
 
     // SQLite-Feed-Liste für das Filter-Dropdown (statt @Query [Feed]). Wird beim
     // Erscheinen und bei Status-Version-Bumps neu geladen.
@@ -15,6 +16,7 @@ struct ArticleSearchWindowView: View {
     @State private var searchState = ArticleSearchWindowState()
     @State private var snapshots: [ArticleListSnapshot] = []
     @State private var loadErrorMessage: String?
+    @State private var selectedResultID: String?
 
     /// P4: Debounced Suchtext — das TextField bleibt an `searchState.searchText`
     /// gebunden (so tippt der Nutzer flüssig), aber Filterung/Sortierung laufen
@@ -40,7 +42,12 @@ struct ArticleSearchWindowView: View {
             if snapshots.isEmpty {
                 emptyState
             } else {
-                resultList
+                HSplitView {
+                    resultList
+
+                    previewPanel
+                        .frame(minWidth: 320, maxWidth: .infinity, maxHeight: .infinity)
+                }
             }
         }
         .frame(minWidth: 900, minHeight: 460)
@@ -176,12 +183,47 @@ struct ArticleSearchWindowView: View {
     }
 
     private var resultList: some View {
-        List(snapshots) { snapshot in
+        List(snapshots, selection: $selectedResultID) { snapshot in
             ArticleSearchResultRow(snapshot: snapshot) {
                 openOriginal(snapshot)
             }
+            .contentShape(Rectangle())
+            .onTapGesture(count: 2) {
+                openInReaderWindow(snapshot)
+            }
         }
         .listStyle(.inset)
+        .frame(minWidth: 260, idealWidth: 340)
+    }
+
+    @ViewBuilder
+    private var previewPanel: some View {
+        if let selectedSnapshot {
+            ArticleSearchPreviewView(
+                snapshot: selectedSnapshot,
+                onOpenInReader: { openInReaderWindow(selectedSnapshot) },
+                onOpenOriginal: { openOriginal(selectedSnapshot) }
+            )
+        } else {
+            ContentUnavailableView(
+                L10n.articleSearchPreviewEmptyTitle,
+                systemImage: "doc.text.magnifyingglass",
+                description: Text(L10n.articleSearchPreviewEmptyDescription)
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
+
+    private var selectedSnapshot: ArticleListSnapshot? {
+        snapshots.first { $0.id == selectedResultID }
+    }
+
+    private func openInReaderWindow(_ snapshot: ArticleListSnapshot) {
+        guard let uuid = UUID(uuidString: snapshot.id) else {
+            return
+        }
+
+        openWindow(value: ArticleWindowRequest(articleID: uuid))
     }
 
     private var emptyState: some View {
@@ -326,7 +368,7 @@ private struct ArticleSearchResultRow: View {
                 HStack(spacing: 6) {
                     Text(snapshot.feedTitle)
                     Text("·")
-                    Text(formattedDate)
+                    Text(formattedArticleDate(snapshot.publishedAt))
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -351,12 +393,60 @@ private struct ArticleSearchResultRow: View {
         }
         .padding(.vertical, 6)
     }
+}
 
-    private var formattedDate: String {
-        guard let publishedAt = snapshot.publishedAt else {
-            return "Unbekannt"
+private struct ArticleSearchPreviewView: View {
+    let snapshot: ArticleListSnapshot
+    let onOpenInReader: () -> Void
+    let onOpenOriginal: () -> Void
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                Text(snapshot.title)
+                    .font(.title3)
+                    .fontWeight(.semibold)
+
+                HStack(spacing: 6) {
+                    Text(snapshot.feedTitle)
+                    Text("·")
+                    Text(formattedArticleDate(snapshot.publishedAt))
+                }
+                .font(.callout)
+                .foregroundStyle(.secondary)
+
+                if let summary = snapshot.summary, !summary.isEmpty {
+                    Text(summary)
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                }
+
+                HStack(spacing: 10) {
+                    Button(L10n.articleSearchOpenInReader) {
+                        onOpenInReader()
+                    }
+                    .buttonStyle(.borderedProminent)
+
+                    Button {
+                        onOpenOriginal()
+                    } label: {
+                        Label(L10n.articleOpenOriginalCommand, systemImage: "safari")
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(snapshot.link == nil)
+                }
+                .padding(.top, 4)
+            }
+            .padding(20)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-
-        return publishedAt.formatted(date: .abbreviated, time: .omitted)
     }
+}
+
+private func formattedArticleDate(_ date: Date?) -> String {
+    guard let date else {
+        return "Unbekannt"
+    }
+
+    return date.formatted(date: .abbreviated, time: .omitted)
 }
