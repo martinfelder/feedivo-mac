@@ -270,63 +270,8 @@ struct FeedivoTests {
         #expect(ReaderMetadataFormatter.readingTimeText(content: langerContentText, summary: kurzerSummaryText) == "ca. 2 Min. Lesezeit")
     }
 
-    @Test func articleInspectorFormatterBereitetArtikelstatusAuf() {
-        let feed = Feed(url: "https://example.com/feed.xml", title: "Example Feed")
-        let article = Article(
-            title: "Artikel",
-            link: "https://example.com/artikel",
-            summary: " Kurze Zusammenfassung mit genug Text fuer den oberen Artikelkontext. ",
-            content: nil,
-            publishedAt: Date(timeIntervalSince1970: 1_700_000_000),
-            isRead: false,
-            isStarred: true,
-            feed: feed
-        )
-        article.offlineState = .failed
-        article.offlineErrorMessage = "Timeout"
-
-        let details = ArticleInspectorFormatter.details(
-            for: article,
-            feedName: "Example Feed",
-            contentAvailability: .summaryOnly,
-            readingTime: "ca. 1 Min. Lesezeit"
-        )
-
-        #expect(details.title == "Artikel")
-        #expect(details.summaryExcerpt == "Kurze Zusammenfassung mit genug Text fuer den oberen Artikelkontext.")
-        #expect(details.feedName == "Example Feed")
-        #expect(details.feedInitial == "E")
-        #expect(details.readingTime == "ca. 1 Min. Lesezeit")
-        #expect(details.readStateKey == "reader.inspector.unread")
-        #expect(details.starStateKey == "reader.inspector.starred")
-        #expect(details.offlineStateKey == "reader.offline.failed")
-        #expect(details.offlineActionKey == "reader.offline.save")
-        #expect(details.offlineDetail == "Timeout")
-        #expect(details.hasOriginalURL == true)
-    }
-
-    @Test func articleInspectorFormatterNutztVorbereiteteReaderMetadaten() {
-        let article = Article(
-            title: "Artikel",
-            link: "https://example.com/artikel",
-            summary: "Kurzfassung",
-            content: nil,
-            publishedAt: Date(timeIntervalSince1970: 1_700_000_000),
-            isRead: true,
-            isStarred: false
-        )
-
-        let details = ArticleInspectorFormatter.details(
-            for: article,
-            feedName: "Snapshot Feed",
-            contentAvailability: .fullText,
-            readingTime: "ca. 7 Min. Lesezeit"
-        )
-
-        #expect(details.feedName == "Snapshot Feed")
-        #expect(details.contentAvailabilityKey == "reader.inspector.content.fullText")
-        #expect(details.readingTime == "ca. 7 Min. Lesezeit")
-    }
+    // TODO: articleInspectorFormatterBereitetArtikelstatusAuf() + articleInspectorFormatterNutztVorbereiteteReaderMetadaten()
+    // entfernt mit LegacyArticleMetadataInspectorView (dead code, testen nur ArticleInspectorFormatter das auch dead ist)
 
     @Test func articleInspectorTypographyIstKompakt() {
         #expect(ArticleInspectorTypography.titleFontSize == 15)
@@ -468,22 +413,8 @@ struct FeedivoTests {
         #expect(ReaderArticleObservationSignature.make(from: article) != initialSignature)
     }
 
-    @MainActor
-    @Test func readerRelationshipSnapshotKapseltMetadatenAlsLeichteWerte() {
-        let feed = Feed(url: "https://example.com/feed.xml", title: "Test Feed", folderName: "News")
-        let firstTag = Tag(name: "Zeta", colorHex: "#ff0000")
-        let secondTag = Tag(name: "Alpha", colorHex: "#00ff00")
-        let article = Article(title: "Artikel", feed: feed)
-        article.tags = [firstTag, secondTag]
-
-        let metadata = ReaderArticleRelationshipMetadata.make(from: article)
-
-        #expect(metadata.articleID == article.persistentModelID)
-        #expect(metadata.feedName == "Test Feed")
-        #expect(metadata.folderName == "News")
-        #expect(metadata.tags.map(\.name) == ["Alpha", "Zeta"])
-        #expect(metadata.tags.map(\.colorHex) == ["#00ff00", "#ff0000"])
-    }
+    // TODO: readerRelationshipSnapshotKapseltMetadatenAlsLeichteWerte()
+    // entfernt mit ReaderView.swift (dead code, testet nur ReaderArticleRelationshipMetadata das auch dead ist)
 
     @MainActor
     @Test func readerPreviewInputNutztNurLeichteFelder() {
