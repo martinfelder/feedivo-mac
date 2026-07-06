@@ -180,4 +180,53 @@ struct SQLiteFeedRefreshServiceTests {
         #expect(article?.link == "https://example.com/changed")
         #expect(status?.isRead == true)
     }
+
+    @Test func refreshCountsOnlyRecentlyPublishedArticlesAsNew() async throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let logStore = FeedLogStore(database: database)
+        let refreshedAt = Date(timeIntervalSince1970: 1_000_000)
+        let longAgo = refreshedAt.addingTimeInterval(-30 * 24 * 60 * 60)
+
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Old"))
+
+        let service = SQLiteFeedRefreshService(database: database, now: { refreshedAt }) { url, _ in
+            .updated(
+                ParsedFeed(
+                    sourceURL: url,
+                    title: "Example",
+                    description: nil,
+                    siteURL: nil,
+                    articles: [
+                        ParsedArticle(
+                            title: "Frischer Artikel",
+                            sourceID: "fresh",
+                            link: "https://example.com/fresh",
+                            summary: nil,
+                            content: nil,
+                            publishedAt: refreshedAt.addingTimeInterval(-60),
+                            imageURL: nil
+                        ),
+                        ParsedArticle(
+                            title: "Archiv-Artikel",
+                            sourceID: "archive",
+                            link: "https://example.com/archive",
+                            summary: nil,
+                            content: nil,
+                            publishedAt: longAgo,
+                            imageURL: nil
+                        )
+                    ]
+                ),
+                FeedHTTPValidators(lastStatusCode: 200)
+            )
+        }
+
+        let result = try await service.refresh(feedID: "feed-1")
+        let logs = try logStore.logs(feedID: "feed-1", limit: 5)
+
+        #expect(result.insertedArticleIDs.count == 2)
+        #expect(result.newArticleCount == 1)
+        #expect(logs.first?.newArticleCount == 1)
+    }
 }

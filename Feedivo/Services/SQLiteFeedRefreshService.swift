@@ -13,6 +13,7 @@ struct SQLiteFeedRefreshResult: Equatable, Sendable {
     var unreadCount: Int
     var isNotModified: Bool
     var ruleNotifications: [RuleNotificationResult] = []
+    var newArticleCount: Int = 0
 }
 
 enum SQLiteFeedRefreshError: Error, Equatable {
@@ -95,7 +96,8 @@ struct SQLiteFeedRefreshService {
                     insertedArticleIDs: [],
                     updatedArticleIDs: [],
                     unreadCount: unreadCount,
-                    isNotModified: true
+                    isNotModified: true,
+                    newArticleCount: 0
                 )
 
             case .updated(let parsedFeed, let updatedValidators):
@@ -116,6 +118,11 @@ struct SQLiteFeedRefreshService {
                     )
                 }
                 let upsertResult = try articleStore.upsert(inputs)
+                let recentCutoff = now().addingTimeInterval(-48 * 60 * 60)
+                let recentNewArticleCount = try articleStore.recentlyPublishedCount(
+                    articleIDs: upsertResult.insertedArticleIDs,
+                    since: recentCutoff
+                )
                 let ruleResult = try applyRules(
                     to: upsertResult.insertedArticleIDs,
                     feedTitle: refreshedTitle,
@@ -138,7 +145,7 @@ struct SQLiteFeedRefreshService {
                     level: "info",
                     message: "Aktualisiert",
                     httpStatusCode: updatedValidators.lastStatusCode,
-                    newArticleCount: upsertResult.insertedArticleIDs.count
+                    newArticleCount: recentNewArticleCount
                 ))
 
                 return SQLiteFeedRefreshResult(
@@ -148,7 +155,8 @@ struct SQLiteFeedRefreshService {
                     updatedArticleIDs: upsertResult.updatedArticleIDs,
                     unreadCount: unreadCount,
                     isNotModified: false,
-                    ruleNotifications: ruleResult.notifications
+                    ruleNotifications: ruleResult.notifications,
+                    newArticleCount: recentNewArticleCount
                 )
             }
         } catch {

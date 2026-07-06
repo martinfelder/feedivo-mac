@@ -93,7 +93,7 @@ struct SQLiteFeedRefreshCoordinator {
                                 snapshot.id,
                                 FeedRefreshNotificationResult(
                                     feedTitle: result.feedTitle,
-                                    newArticleCount: result.insertedArticleIDs.count,
+                                    newArticleCount: result.newArticleCount,
                                     isNotificationEnabled: snapshot.isNotificationEnabled
                                 ),
                                 result.ruleNotifications
