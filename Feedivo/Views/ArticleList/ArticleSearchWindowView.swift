@@ -79,11 +79,6 @@ struct ArticleSearchWindowView: View {
                 VStack(alignment: .leading, spacing: 5) {
                     Text(L10n.articleSearchCommand)
                         .font(.headline)
-
-                    Text(L10n.articleSearchWindowDescription)
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
                 }
 
                 Spacer(minLength: 0)
