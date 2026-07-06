@@ -67,8 +67,4 @@ enum ArticleOriginalURLResolver {
 
         return url
     }
-
-    static func url(for article: Article?) -> URL? {
-        url(for: article?.link)
-    }
 }
