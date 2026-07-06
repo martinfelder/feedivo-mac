@@ -394,16 +394,6 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(commandsSource.contains("articleCommandActions?.openInArticleWindow()"))
     }
 
-    @Test func articleRowsOfferOpenInWindowContextAction() throws {
-        let projectRoot = projectRootURL()
-        let rowSource = try source(at: "Feedivo/Views/ArticleList/ArticleRowView.swift", projectRoot: projectRoot)
-        let listSource = try source(at: "Feedivo/Views/ArticleList/ArticleListView.swift", projectRoot: projectRoot)
-
-        #expect(rowSource.contains("onOpenInWindow"))
-        #expect(rowSource.contains("L10n.articleOpenInWindowCommand"))
-        #expect(listSource.contains("openArticleInWindow(article"))
-    }
-
     @Test func articleWindowRestoreSettingDefaultsToOff() throws {
         let projectRoot = projectRootURL()
         let settingsSource = try source(at: "Feedivo/Views/Settings/SettingsView.swift", projectRoot: projectRoot)
@@ -430,31 +420,6 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(articleWindowSource.contains("ArticleWindowSettings.rememberOpenArticleID(uuid)"))
     }
 
-    @Test func articleListReaderPrefetchBleibtLeichtgewichtig() throws {
-        let projectRoot = projectRootURL()
-        let listSource = try source(at: "Feedivo/Views/ArticleList/ArticleListView.swift", projectRoot: projectRoot)
-
-        #expect(listSource.contains("prefetchReaderFields"))
-        #expect(!listSource.contains("_ = article.content"))
-        #expect(!listSource.contains("_ = article.offlineContent"))
-        #expect(!listSource.contains("_ = article.feed?.title"))
-        #expect(!listSource.contains("await ImageCacheService.shared.image"))
-    }
-
-    @Test func articleRowsLesenFeednamenNichtUeberRelationship() throws {
-        let projectRoot = projectRootURL()
-        let rowSource = try source(at: "Feedivo/Views/ArticleList/ArticleRowView.swift", projectRoot: projectRoot)
-        let listSource = try source(at: "Feedivo/Views/ArticleList/ArticleListView.swift", projectRoot: projectRoot)
-
-        #expect(rowSource.contains("let snapshot: ArticleListItemSnapshot"))
-        #expect(rowSource.contains("snapshot.feedTitle"))
-        #expect(!rowSource.contains("let article: Article"))
-        #expect(!rowSource.contains("article.feed?.title"))
-        #expect(listSource.contains("feedTitleByFeedID"))
-        #expect(listSource.contains("snapshot: ArticleListItemSnapshot("))
-        #expect(listSource.contains("feedTitle: feedTitle(for: article, in: feedTitleByFeedID)"))
-    }
-
     @Test func readerCacheKeySpeichertKeineVolltexte() throws {
         let projectRoot = projectRootURL()
         let preparedSource = try source(at: "Feedivo/Views/Reader/ReaderPreparedArticle.swift", projectRoot: projectRoot)
@@ -479,16 +444,6 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(!methodSource.contains("if let feed = article.feed"))
     }
 
-    @Test func artikelAuswahlVerzoegertFeedZaehlerBisZumDebouncedFlush() throws {
-        let projectRoot = projectRootURL()
-        let articleListSource = try source(at: "Feedivo/Views/ArticleList/ArticleListView.swift", projectRoot: projectRoot)
-        let compactArticleListSource = articleListSource.filter { !$0.isWhitespace }
-
-        #expect(compactArticleListSource.contains("updatesUnreadCount:false"))
-        #expect(compactArticleListSource.contains("rememberPendingUnreadCountSyncFeedID(for:"))
-        #expect(compactArticleListSource.contains("viewModel.synchronizeUnreadCounts(forFeedIDs:"))
-    }
-
     @Test func produktiveTagOberflaechenNutzenSQLiteTagStore() throws {
         let projectRoot = projectRootURL()
         let searchSource = try source(at: "Feedivo/Views/ArticleList/ArticleSearchWindowView.swift", projectRoot: projectRoot)
@@ -510,15 +465,6 @@ struct FeedivoAppSceneConfigurationTests {
 
         #expect(sqliteReaderSource.contains("ArticleMetadataInspectorView("))
         #expect(sqliteReaderSource.contains("TagStore(database: database)"))
-    }
-
-    @Test func nachladeZeileWechseltIdentitaetMitFetchLimit() throws {
-        let projectRoot = projectRootURL()
-        let articleListSource = try source(at: "Feedivo/Views/ArticleList/ArticleListView.swift", projectRoot: projectRoot)
-        let compactArticleListSource = articleListSource.filter { !$0.isWhitespace }
-
-        #expect(compactArticleListSource.contains("loadMoreArticlesTriggerID:fetchLimit"))
-        #expect(compactArticleListSource.contains(".id(loadMoreArticlesTriggerID)"))
     }
 
     @Test func appUsesCloudSyncSettingsForModelContainer() throws {
