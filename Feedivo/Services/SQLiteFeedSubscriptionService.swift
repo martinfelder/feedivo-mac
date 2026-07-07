@@ -97,7 +97,8 @@ struct SQLiteFeedSubscriptionService {
 
     func addFeed(
         urlString: String,
-        refreshIntervalMinutes: Int = 60
+        refreshIntervalMinutes: Int = 60,
+        folderName: String? = nil
     ) async throws -> SQLiteFeedSubscriptionResult {
         let cleanedURL = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleanedURL.isEmpty else {
@@ -106,6 +107,8 @@ struct SQLiteFeedSubscriptionService {
 
         let parsedFeed = try await fetchFeed(cleanedURL)
         let feedStore = FeedStore(database: database)
+        let folderStore = FeedFolderStore(database: database)
+        let normalizedFolderName = FeedFolderOrganizer.normalizedFolderName(folderName)
         let candidateURLs = Set([cleanedURL, parsedFeed.sourceURL].map(normalizedFeedURL))
         let existingFeeds = try feedStore.feeds()
         guard !existingFeeds.contains(where: { candidateURLs.contains(normalizedFeedURL($0.url)) }) else {
@@ -122,10 +125,23 @@ struct SQLiteFeedSubscriptionService {
             originalTitle: parsedFeed.title,
             websiteURL: parsedFeed.siteURL,
             faviconURL: faviconURL,
+            folderName: normalizedFolderName,
             refreshIntervalMinutes: BackgroundRefreshSettings.clampedIntervalMinutes(refreshIntervalMinutes),
             createdAt: now,
             updatedAt: now
         )
+
+        // Bei neuem (normalisiertem) Ordnernamen zusaetzlich einen expliziten
+        // feed_folders-Record anlegen — analog zum OPML-Import. Case-insensitiver
+        // Abgleich verhindert Duplikate zu bestehenden Ordnern.
+        if let normalizedFolderName {
+            let knownFolderNames = Set(try folderStore.folders().map { $0.name.lowercased() })
+            if !knownFolderNames.contains(normalizedFolderName.lowercased()) {
+                try folderStore.save(
+                    FeedFolderRecord(name: normalizedFolderName, createdAt: now, updatedAt: now)
+                )
+            }
+        }
 
         try feedStore.save(feedRecord)
 

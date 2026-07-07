@@ -438,4 +438,70 @@ struct SQLiteFeedSubscriptionServiceTests {
         #expect(rows[5].status == .available)
         #expect(rows.allSatisfy { $0.status != .duplicate })
     }
+
+    @MainActor
+    @Test func addFeedMitFolderNameSetztOrdnerUndLegtOrdnerRecordAn() async throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let service = SQLiteFeedSubscriptionService(
+            database: database,
+            fetchFeed: { url in
+                ParsedFeed(sourceURL: url, title: "Ordner Feed", description: nil, articles: [])
+            },
+            discoverFaviconURL: { _ in nil }
+        )
+
+        _ = try await service.addFeed(
+            urlString: "https://example.com/feed.xml",
+            folderName: "Nachrichten"
+        )
+
+        let feed = try #require(try FeedStore(database: database).feeds().first)
+        #expect(feed.folderName == "Nachrichten")
+
+        let folderNames = try FeedFolderStore(database: database).folders().map(\.name)
+        #expect(folderNames.contains("Nachrichten"))
+    }
+
+    @MainActor
+    @Test func addFeedOhneFolderNameLaesstOrdnerLeer() async throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let service = SQLiteFeedSubscriptionService(
+            database: database,
+            fetchFeed: { url in
+                ParsedFeed(sourceURL: url, title: "Kein Ordner Feed", description: nil, articles: [])
+            },
+            discoverFaviconURL: { _ in nil }
+        )
+
+        _ = try await service.addFeed(urlString: "https://example.com/feed.xml")
+
+        let feed = try #require(try FeedStore(database: database).feeds().first)
+        #expect(feed.folderName == nil)
+        #expect(try FeedFolderStore(database: database).folders().isEmpty)
+    }
+
+    @MainActor
+    @Test func addFeedMitBestehendemOrdnerLegtKeinenZweitenRecordAn() async throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        try FeedFolderStore(database: database).save(FeedFolderRecord(name: "Technik"))
+        let service = SQLiteFeedSubscriptionService(
+            database: database,
+            fetchFeed: { url in
+                ParsedFeed(sourceURL: url, title: "Technik Feed", description: nil, articles: [])
+            },
+            discoverFaviconURL: { _ in nil }
+        )
+
+        // Andere Gross-/Kleinschreibung muss auf den bestehenden Ordner matchen.
+        _ = try await service.addFeed(
+            urlString: "https://example.com/feed.xml",
+            folderName: "technik"
+        )
+
+        let folders = try FeedFolderStore(database: database).folders()
+        #expect(folders.count == 1)
+        let feed = try #require(try FeedStore(database: database).feeds().first)
+        // Feed uebernimmt den getippten (normalisierten) Namen.
+        #expect(feed.folderName == "technik")
+    }
 }
