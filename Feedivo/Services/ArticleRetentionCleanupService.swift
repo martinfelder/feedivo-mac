@@ -398,13 +398,6 @@ private struct ArticleRetentionConfiguration {
     let minimumArticlesPerFeed: Int
     let includeProtectedArticles: Bool
 
-    init(_ configuration: ArticleRetentionEffectiveConfiguration) {
-        self.isEnabled = configuration.isEnabled
-        self.cutoffDate = configuration.cutoffDate
-        self.minimumArticlesPerFeed = configuration.minimumArticlesPerFeed
-        self.includeProtectedArticles = configuration.includeProtectedArticles
-    }
-
     init(
         isEnabled: Bool,
         retentionDays: Int,

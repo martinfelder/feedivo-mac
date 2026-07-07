@@ -21,10 +21,11 @@ struct ArticleRetentionCleanupServiceTests {
         let now = Date(timeIntervalSince1970: 10_000_000)
         let oldDate = now.addingTimeInterval(-91 * 24 * 60 * 60)
         let recentDate = now.addingTimeInterval(-10 * 24 * 60 * 60)
-        let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
+        let feedID = UUID().uuidString
+        let feedURL = "https://example.com/feed.xml"
+        let feedTitle = "Feed"
 
-        let feedID = feed.id.uuidString
-        try FeedStore(database: database).save(FeedRecord(id: feedID, url: feed.url, title: feed.title, unreadCount: 2))
+        try FeedStore(database: database).save(FeedRecord(id: feedID, url: feedURL, title: feedTitle, unreadCount: 2))
         let articleStore = ArticleStore(database: database)
         let expiredID = try articleStore.upsert(ArticleUpsertInput(feedID: feedID, title: "Alt", publishedAt: oldDate))
         let keptID = try articleStore.upsert(ArticleUpsertInput(feedID: feedID, title: "Neu", publishedAt: recentDate))
@@ -56,10 +57,11 @@ struct ArticleRetentionCleanupServiceTests {
         let now = Date(timeIntervalSince1970: 10_000_000)
         let oldDate = now.addingTimeInterval(-91 * 24 * 60 * 60)
         let readAt = now.addingTimeInterval(-60)
-        let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
+        let feedID = UUID().uuidString
+        let feedURL = "https://example.com/feed.xml"
+        let feedTitle = "Feed"
 
-        let feedID = feed.id.uuidString
-        try FeedStore(database: database).save(FeedRecord(id: feedID, url: feed.url, title: feed.title, unreadCount: 1))
+        try FeedStore(database: database).save(FeedRecord(id: feedID, url: feedURL, title: feedTitle, unreadCount: 1))
         let articleStore = ArticleStore(database: database)
         let expiredID = try articleStore.upsert(ArticleUpsertInput(
             feedID: feedID,
@@ -99,10 +101,11 @@ struct ArticleRetentionCleanupServiceTests {
         let database = try FeedivoDatabase.inMemoryForTests()
         let now = Date(timeIntervalSince1970: 10_000_000)
         let oldDate = now.addingTimeInterval(-91 * 24 * 60 * 60)
-        let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
+        let feedID = UUID().uuidString
+        let feedURL = "https://example.com/feed.xml"
+        let feedTitle = "Feed"
 
-        let feedID = feed.id.uuidString
-        try FeedStore(database: database).save(FeedRecord(id: feedID, url: feed.url, title: feed.title, unreadCount: 3))
+        try FeedStore(database: database).save(FeedRecord(id: feedID, url: feedURL, title: feedTitle, unreadCount: 3))
         let articleStore = ArticleStore(database: database)
         let normalID = try articleStore.upsert(ArticleUpsertInput(feedID: feedID, title: "Normal", publishedAt: oldDate))
         let starredID = try articleStore.upsert(ArticleUpsertInput(feedID: feedID, title: "Stern", publishedAt: oldDate))
@@ -135,23 +138,25 @@ struct ArticleRetentionCleanupServiceTests {
         let database = try FeedivoDatabase.inMemoryForTests()
         let now = Date(timeIntervalSince1970: 10_000_000)
         let fortyDaysOld = now.addingTimeInterval(-40 * 24 * 60 * 60)
-        let customFeed = Feed(url: "https://example.com/custom.xml", title: "Kurz")
-        let inheritedFeed = Feed(url: "https://example.com/inherited.xml", title: "Global")
+        let customFeedID = UUID().uuidString
+        let customFeedURL = "https://example.com/custom.xml"
+        let customFeedTitle = "Kurz"
+        let inheritedFeedID = UUID().uuidString
+        let inheritedFeedURL = "https://example.com/inherited.xml"
+        let inheritedFeedTitle = "Global"
 
-        let customFeedID = customFeed.id.uuidString
-        let inheritedFeedID = inheritedFeed.id.uuidString
         try FeedStore(database: database).save(
             FeedRecord(
                 id: customFeedID,
-                url: customFeed.url,
-                title: customFeed.title,
+                url: customFeedURL,
+                title: customFeedTitle,
                 articleRetentionOverridesGlobalSetting: true,
                 articleRetentionIsEnabled: true,
                 articleRetentionDays: 30,
                 articleRetentionMinimumArticles: 0
             )
         )
-        try FeedStore(database: database).save(FeedRecord(id: inheritedFeedID, url: inheritedFeed.url, title: inheritedFeed.title))
+        try FeedStore(database: database).save(FeedRecord(id: inheritedFeedID, url: inheritedFeedURL, title: inheritedFeedTitle))
         let articleStore = ArticleStore(database: database)
         let customArticleID = try articleStore.upsert(ArticleUpsertInput(feedID: customFeedID, title: "Kurz alt", publishedAt: fortyDaysOld))
         let inheritedArticleID = try articleStore.upsert(ArticleUpsertInput(feedID: inheritedFeedID, title: "Global jung", publishedAt: fortyDaysOld))
@@ -179,10 +184,11 @@ struct ArticleRetentionCleanupServiceTests {
     @Test func sqliteCleanupBehaeltMindestanzahlProFeed() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let now = Date(timeIntervalSince1970: 10_000_000)
-        let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
+        let feedID = UUID().uuidString
+        let feedURL = "https://example.com/feed.xml"
+        let feedTitle = "Feed"
 
-        let feedID = feed.id.uuidString
-        try FeedStore(database: database).save(FeedRecord(id: feedID, url: feed.url, title: feed.title))
+        try FeedStore(database: database).save(FeedRecord(id: feedID, url: feedURL, title: feedTitle))
         let articleStore = ArticleStore(database: database)
         var articleIDs: [String] = []
         for index in 0..<12 {
