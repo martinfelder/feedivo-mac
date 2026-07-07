@@ -1,6 +1,5 @@
 import Foundation
 import GRDB
-import SwiftData
 import Testing
 @testable import Feedivo
 
@@ -18,15 +17,11 @@ struct ArticleRetentionCleanupServiceTests {
     }
 
     @Test func sqliteCleanupLoeschtAlteArtikelUndKorrigiertFeedZaehler() throws {
-        let context = try testContext()
         let database = try FeedivoDatabase.inMemoryForTests()
         let now = Date(timeIntervalSince1970: 10_000_000)
         let oldDate = now.addingTimeInterval(-91 * 24 * 60 * 60)
         let recentDate = now.addingTimeInterval(-10 * 24 * 60 * 60)
         let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
-
-        context.insert(feed)
-        try context.save()
 
         let feedID = feed.id.uuidString
         try FeedStore(database: database).save(FeedRecord(id: feedID, url: feed.url, title: feed.title, unreadCount: 2))
@@ -35,7 +30,6 @@ struct ArticleRetentionCleanupServiceTests {
         let keptID = try articleStore.upsert(ArticleUpsertInput(feedID: feedID, title: "Neu", publishedAt: recentDate))
 
         let removedCount = try ArticleRetentionCleanupService.removeExpiredSQLiteArticles(
-            in: context,
             database: database,
             isEnabled: true,
             retentionDays: 90,
@@ -58,15 +52,11 @@ struct ArticleRetentionCleanupServiceTests {
     }
 
     @Test func sqliteCleanupSichertIdentitaetsHistorieVorDemLoeschen() throws {
-        let context = try testContext()
         let database = try FeedivoDatabase.inMemoryForTests()
         let now = Date(timeIntervalSince1970: 10_000_000)
         let oldDate = now.addingTimeInterval(-91 * 24 * 60 * 60)
         let readAt = now.addingTimeInterval(-60)
         let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
-
-        context.insert(feed)
-        try context.save()
 
         let feedID = feed.id.uuidString
         try FeedStore(database: database).save(FeedRecord(id: feedID, url: feed.url, title: feed.title, unreadCount: 1))
@@ -82,7 +72,6 @@ struct ArticleRetentionCleanupServiceTests {
         try ArticleStatusStore(database: database).setRead(true, articleID: expiredID, at: readAt)
 
         let removedCount = try ArticleRetentionCleanupService.removeExpiredSQLiteArticles(
-            in: context,
             database: database,
             isEnabled: true,
             retentionDays: 90,
@@ -107,14 +96,10 @@ struct ArticleRetentionCleanupServiceTests {
     }
 
     @Test func sqliteCleanupSchuetztSternUndArchivStandardmaessig() throws {
-        let context = try testContext()
         let database = try FeedivoDatabase.inMemoryForTests()
         let now = Date(timeIntervalSince1970: 10_000_000)
         let oldDate = now.addingTimeInterval(-91 * 24 * 60 * 60)
         let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
-
-        context.insert(feed)
-        try context.save()
 
         let feedID = feed.id.uuidString
         try FeedStore(database: database).save(FeedRecord(id: feedID, url: feed.url, title: feed.title, unreadCount: 3))
@@ -127,7 +112,6 @@ struct ArticleRetentionCleanupServiceTests {
         try statusStore.setArchived(true, articleID: archivedID, at: now)
 
         let removedCount = try ArticleRetentionCleanupService.removeExpiredSQLiteArticles(
-            in: context,
             database: database,
             isEnabled: true,
             retentionDays: 90,
@@ -148,16 +132,11 @@ struct ArticleRetentionCleanupServiceTests {
     }
 
     @Test func sqliteCleanupBeruecksichtigtFeedEigeneAufbewahrung() throws {
-        let context = try testContext()
         let database = try FeedivoDatabase.inMemoryForTests()
         let now = Date(timeIntervalSince1970: 10_000_000)
         let fortyDaysOld = now.addingTimeInterval(-40 * 24 * 60 * 60)
         let customFeed = Feed(url: "https://example.com/custom.xml", title: "Kurz")
         let inheritedFeed = Feed(url: "https://example.com/inherited.xml", title: "Global")
-
-        context.insert(customFeed)
-        context.insert(inheritedFeed)
-        try context.save()
 
         let customFeedID = customFeed.id.uuidString
         let inheritedFeedID = inheritedFeed.id.uuidString
@@ -178,7 +157,6 @@ struct ArticleRetentionCleanupServiceTests {
         let inheritedArticleID = try articleStore.upsert(ArticleUpsertInput(feedID: inheritedFeedID, title: "Global jung", publishedAt: fortyDaysOld))
 
         let removedCount = try ArticleRetentionCleanupService.removeExpiredSQLiteArticles(
-            in: context,
             database: database,
             isEnabled: true,
             retentionDays: 90,
@@ -199,13 +177,9 @@ struct ArticleRetentionCleanupServiceTests {
     }
 
     @Test func sqliteCleanupBehaeltMindestanzahlProFeed() throws {
-        let context = try testContext()
         let database = try FeedivoDatabase.inMemoryForTests()
         let now = Date(timeIntervalSince1970: 10_000_000)
         let feed = Feed(url: "https://example.com/feed.xml", title: "Feed")
-
-        context.insert(feed)
-        try context.save()
 
         let feedID = feed.id.uuidString
         try FeedStore(database: database).save(FeedRecord(id: feedID, url: feed.url, title: feed.title))
@@ -223,7 +197,6 @@ struct ArticleRetentionCleanupServiceTests {
         }
 
         let removedCount = try ArticleRetentionCleanupService.removeExpiredSQLiteArticles(
-            in: context,
             database: database,
             isEnabled: true,
             retentionDays: 90,
@@ -240,21 +213,5 @@ struct ArticleRetentionCleanupServiceTests {
 
         #expect(removedCount == 2)
         #expect(Set(remainingIDs) == Set(articleIDs.prefix(10)))
-    }
-
-    private func testContext() throws -> ModelContext {
-        let container = try ModelContainer(
-            for: Feed.self,
-            FeedFolder.self,
-            FeedLogEntry.self,
-            Article.self,
-            Tag.self,
-            Rule.self,
-            RuleCondition.self,
-            SmartFolder.self,
-            SmartFolderCondition.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        return ModelContext(container)
     }
 }

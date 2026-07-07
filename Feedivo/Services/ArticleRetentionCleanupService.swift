@@ -1,6 +1,5 @@
 import Foundation
 import GRDB
-import SwiftData
 
 enum ArticleRetentionCleanupService {
     @MainActor
@@ -78,27 +77,6 @@ enum ArticleRetentionCleanupService {
         }
 
         return removedCount
-    }
-
-    @MainActor
-    @discardableResult
-    static func removeExpiredSQLiteArticles(
-        in _: ModelContext? = nil,
-        database: FeedivoDatabase,
-        isEnabled: Bool,
-        retentionDays: Int,
-        minimumArticlesPerFeed: Int = ArticleRetentionSettings.defaultMinimumArticlesPerFeed,
-        includeProtectedArticles: Bool = false,
-        now: Date = Date()
-    ) throws -> Int {
-        try removeExpiredSQLiteArticles(
-            database: database,
-            isEnabled: isEnabled,
-            retentionDays: retentionDays,
-            minimumArticlesPerFeed: minimumArticlesPerFeed,
-            includeProtectedArticles: includeProtectedArticles,
-            now: now
-        )
     }
 
     private static func shouldRemove(
