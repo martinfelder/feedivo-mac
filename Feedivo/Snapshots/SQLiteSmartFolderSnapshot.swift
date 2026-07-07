@@ -27,21 +27,6 @@ struct SQLiteSmartFolderSnapshot: Equatable, Identifiable, Sendable {
         self.defaultKey = defaultKey
     }
 
-    @MainActor
-    init(folder: SmartFolder) {
-        self.id = folder.id.uuidString
-        self.name = folder.localizedDisplayName
-        self.matchMode = RuleMatchMode.normalized(folder.matchModeRaw)
-        self.iconName = folder.iconName
-        self.colorHex = folder.colorHex
-        self.defaultKey = folder.defaultKey
-        self.conditions = (folder.conditions ?? [])
-            .sorted { firstCondition, secondCondition in
-                firstCondition.sortOrder < secondCondition.sortOrder
-            }
-            .compactMap(SQLiteSmartFolderConditionSnapshot.init(condition:))
-    }
-
     init(
         id: String = UUID().uuidString,
         name: String,
@@ -87,21 +72,6 @@ struct SQLiteSmartFolderConditionSnapshot: Equatable, Sendable {
         self.field = field
         self.conditionOperator = conditionOperator
         self.value = value
-    }
-
-    @MainActor
-    init?(condition: SmartFolderCondition) {
-        guard let field = condition.fieldEnum,
-              let conditionOperator = condition.operatorEnum
-        else {
-            return nil
-        }
-
-        self.init(
-            field: field,
-            conditionOperator: conditionOperator,
-            value: condition.value
-        )
     }
 
     init?(condition: SmartFolderConditionRecord) {
