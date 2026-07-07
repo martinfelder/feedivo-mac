@@ -76,7 +76,6 @@ struct FeedViewModelTests {
                     folderName: "News"
                 )
             ],
-            existingFeeds: [],
             refreshAfterImport: true,
             sqliteDatabase: sqliteDatabase
         )
@@ -106,7 +105,6 @@ struct FeedViewModelTests {
         await #expect(throws: FeedImportError.self) {
             try await viewModel.importOPMLFeeds(
                 [OPMLFeed(title: "Blockiert", xmlURL: "https://example.com/x.xml", htmlURL: nil, folderName: nil)],
-                existingFeeds: [],
                 refreshAfterImport: false
             )
         }
@@ -159,7 +157,6 @@ struct FeedViewModelTests {
                     folderName: "News"
                 )
             ],
-            existingFeeds: [],
             sqliteDatabase: sqliteDatabase
         )
 
@@ -234,34 +231,6 @@ struct FeedViewModelTests {
         )
 
         #expect(rows.isEmpty)
-    }
-
-    @Test func opmlFeedsForExportNutztAktuelleFeedMetadaten() {
-        let feeds = [
-            Feed(
-                url: "https://example.com/feed.xml",
-                title: "Example",
-                feedDescription: "Example Feed",
-                siteURL: "https://example.com/",
-                folderName: "Tech"
-            )
-        ]
-        feeds[0].tags = [
-            Tag(name: "Swift"),
-            Tag(name: "Apple")
-        ]
-        let opmlFeeds = FeedViewModel.opmlFeedsForExport(from: feeds)
-
-        #expect(opmlFeeds == [
-            OPMLFeed(
-                title: "Example",
-                xmlURL: "https://example.com/feed.xml",
-                htmlURL: "https://example.com/",
-                folderName: "Tech",
-                description: "Example Feed",
-                tagNames: ["Apple", "Swift"]
-            )
-        ])
     }
 
     @Test func refreshItemBatchStatusUpdateMarkiertMehrereFeedsInEinemSchritt() {
@@ -626,20 +595,6 @@ struct FeedViewModelTests {
 
         #expect(try tagStore.tags(articleID: swiftArticle.id).map(\.name) == ["Swift"])
         #expect(try tagStore.tags(articleID: otherArticle.id).isEmpty)
-    }
-
-    @Test func unreadIncrementZaehltKeineGelesenenOderVerstecktenArtikel() {
-        // Konsistenz mit dem addFeed-Pfad (Z. 400: `!isRead && !isHidden`):
-        // Gelesene und versteckte Artikel dürfen den Ungelesen-Zähler nicht
-        // erhöhen — nur frische, ungelesene Artikel zählen.
-        let readArticle = Article(title: "Gelesen", isRead: true)
-        let hiddenArticle = Article(title: "Versteckt", isHidden: true)
-        let freshArticle = Article(title: "Neu")
-
-        #expect(FeedViewModel.unreadIncrement(for: [readArticle]) == 0)
-        #expect(FeedViewModel.unreadIncrement(for: [hiddenArticle]) == 0)
-        #expect(FeedViewModel.unreadIncrement(for: [freshArticle]) == 1)
-        #expect(FeedViewModel.unreadIncrement(for: [readArticle, hiddenArticle, freshArticle]) == 1)
     }
 
     @Test func opmlImportPreviewBehaeltReihenfolgeUndStatusUeberDelegation() async throws {

@@ -1,6 +1,5 @@
 import Foundation
 import Observation
-import SwiftData
 
 struct FeedOperationProgress: Equatable {
     var title: String
@@ -182,16 +181,11 @@ final class FeedViewModel {
     /// und Erreichbarkeitsprüfung läuft im `SQLiteFeedSubscriptionService`, damit
     /// `FeedViewModel` keine eigene Feed-Abruflogik mehr besitzt.
     ///
-    /// `existingFeeds` ist ein verbleibender Legacy-Parameter und wird im
-    /// produktiven SQLite-Pfad ignoriert (alle produktiven Aufrufer übergeben
-    /// `[]`). Die Duplikat-Erkennung läuft ausschließlich gegen die SQLite-
-    /// Datenbank. Ohne `sqliteDatabase` liefert die Vorschau bewusst eine leere
-    /// Liste, weil es keinen produktiven Datenbestand gibt, gegen den geprüft
-    /// werden könnte.
+    /// Ohne `sqliteDatabase` liefert die Vorschau bewusst eine leere Liste, weil
+    /// es keinen produktiven Datenbestand gibt, gegen den geprüft werden könnte.
     @MainActor
     func opmlImportPreviewRows(
         for opmlFeeds: [OPMLFeed],
-        existingFeeds: [Feed] = [],
         sqliteDatabase: FeedivoDatabase? = nil,
         onProgress: ((OPMLImportPreviewProgress) -> Void)? = nil
     ) async -> [OPMLImportPreviewRow] {
@@ -211,11 +205,9 @@ final class FeedViewModel {
     @MainActor
     func importOPMLFeeds(
         _ opmlFeeds: [OPMLFeed],
-        existingFeeds: [Feed],
         allowsDuplicates: Bool = false,
         refreshAfterImport: Bool = true,
         refreshIntervalMinutes: Int = 60,
-        context: ModelContext? = nil,
         sqliteDatabase: FeedivoDatabase? = nil
     ) async throws -> OPMLImportResult {
         // Statt eines vorgetäuschten Erfolgs (imported: 0) werfen — beide Aufrufer
@@ -264,21 +256,6 @@ final class FeedViewModel {
             imported: sqliteResult.imported,
             skippedDuplicates: sqliteResult.skippedDuplicates
         )
-    }
-
-    static func opmlFeedsForExport(from feeds: [Feed]) -> [OPMLFeed] {
-        feeds.map { feed in
-            OPMLFeed(
-                title: feed.title,
-                xmlURL: feed.url,
-                htmlURL: feed.siteURL,
-                folderName: feed.folderName,
-                description: feed.feedDescription,
-                tagNames: (feed.tags ?? []).map(\.name).sorted {
-                    $0.localizedCaseInsensitiveCompare($1) == .orderedAscending
-                }
-            )
-        }
     }
 
     // MARK: - SQLite Feed Actions
@@ -591,14 +568,6 @@ final class FeedViewModel {
             operationProgress.totalCount
         )
         self.operationProgress = operationProgress
-    }
-
-    /// Anzahl neuer Artikel, die den Ungelesen-Zähler erhöhen: nur nicht
-    /// gelesene UND nicht versteckte. Konsistent zum addFeed-Pfad
-    /// (Z. 400) — verhindert Drift, sobald jemals Artikel mit isRead=true
-    /// importiert oder per Regel gelesen markiert werden.
-    static func unreadIncrement(for articles: [Article]) -> Int {
-        articles.filter { !$0.isRead && !$0.isHidden }.count
     }
 }
 
