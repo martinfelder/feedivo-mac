@@ -180,15 +180,6 @@ final class OPMLImportPreviewController {
         return trimmed
     }
 
-    func availableFolders(existingFeeds: [Feed]) -> [String] {
-        availableFolders(existingFolderNames: existingFeeds.compactMap { trimmedFolderName($0.folderName) })
-    }
-
-    /// SQLite-Variante: statt SwiftData-`Feed`-Objekten werden nur die
-    /// Ordnernamen der bestehenden Feeds übergeben (aus `FeedStore.feeds()`
-    /// bzw. `FeedFolderStore`). Duplikat-Check läuft in `opmlImportPreviewRows`
-    /// bereits SQLite-basiert, deshalb braucht der Controller keine `Feed`-Liste
-    /// mehr.
     func availableFolders(existingFolderNames: [String]) -> [String] {
         let previewFolderNames = rows.compactMap { trimmedFolderName($0.feed.folderName) }
         return Array(Set(existingFolderNames + previewFolderNames + customFolders))

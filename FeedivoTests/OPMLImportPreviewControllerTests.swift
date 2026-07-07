@@ -101,11 +101,9 @@ struct OPMLImportPreviewControllerTests {
             makeRow(title: "A", xmlURL: "https://a.example.com/feed.xml", status: .available, folderName: "Alpha"),
             makeRow(title: "A2", xmlURL: "https://a2.example.com/feed.xml", status: .available, folderName: "Alpha")
         ]
-        let existing = [
-            Feed(url: "https://b.example.com/feed.xml", title: "B", folderName: "Beta")
-        ]
+        let existing = ["Beta"]
 
-        let folders = controller.availableFolders(existingFeeds: existing)
+        let folders = controller.availableFolders(existingFolderNames: existing)
 
         #expect(folders == ["Alpha", "Beta", "Zeta"])
     }
