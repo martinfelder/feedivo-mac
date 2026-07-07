@@ -7,13 +7,6 @@ enum SidebarFeedVisibilitySettings {
 
 enum FeedFolderOrganizer {
 
-    static func folderNames(in feeds: [Feed], folders: [FeedFolder] = []) -> [String] {
-        folderNames(
-            feedFolderNames: feeds.map(\.folderName),
-            explicitFolderNames: folders.map(\.name)
-        )
-    }
-
     static func folderNames(feedFolderNames: [String], explicitFolderNames: [String]) -> [String] {
         folderNames(
             feedFolderNames: feedFolderNames.map(Optional.some),
@@ -35,32 +28,6 @@ enum FeedFolderOrganizer {
         return canonicalNamesByLowercasedName.values.sorted {
             $0.localizedCaseInsensitiveCompare($1) == .orderedAscending
         }
-    }
-
-    static func feedsWithoutFolder(from feeds: [Feed]) -> [Feed] {
-        sortedFeeds(
-            feeds.filter { normalizedFolderName($0.folderName) == nil }
-        )
-    }
-
-    static func visibleFeeds(from feeds: [Feed], showsReadFeeds: Bool) -> [Feed] {
-        guard !showsReadFeeds else {
-            return sortedFeeds(feeds)
-        }
-
-        return sortedFeeds(
-            feeds.filter { $0.unreadCount > 0 }
-        )
-    }
-
-    static func feeds(in folderName: String, from feeds: [Feed]) -> [Feed] {
-        let normalizedName = normalizedFolderName(folderName)
-
-        return sortedFeeds(
-            feeds.filter {
-                normalizedFolderName($0.folderName)?.caseInsensitiveCompare(normalizedName ?? "") == .orderedSame
-            }
-        )
     }
 
     // Snapshot-basierte Überladungen für den SQLite-only Sidebar-Pfad. Diese
@@ -101,32 +68,6 @@ enum FeedFolderOrganizer {
         }
     }
 
-    /// Feeds pro Ordnername in einem Durchlauf gruppieren (M9) — statt für
-    /// jeden Ordnernamen `feeds(in:from:)` (je O(F)) aufzurufen. Liefert die
-    /// Paare in derselben Reihenfolge wie `folderNames(in:folders:)`, also
-    /// alphabetisch nach kanonischem (getrimmtem) Ordnernamen. Ordner, die nur
-    /// in `folders` angelegt, aber keiner Feed zugeordnet sind, enthalten ein
-    /// leeres Feed-Array, damit der Sidebar-Abschnitt trotzdem gerendert wird.
-    static func feedsByFolderName(
-        in feeds: [Feed],
-        folders: [FeedFolder] = []
-    ) -> [(folderName: String, feeds: [Feed])] {
-        let orderedFolderNames = folderNames(in: feeds, folders: folders)
-
-        var feedsByLowercasedName: [String: [Feed]] = [:]
-        for feed in feeds {
-            guard let normalizedName = normalizedFolderName(feed.folderName) else {
-                continue
-            }
-            feedsByLowercasedName[normalizedName.lowercased(), default: []].append(feed)
-        }
-
-        return orderedFolderNames.map { folderName in
-            let grouped = feedsByLowercasedName[folderName.lowercased()] ?? []
-            return (folderName, sortedFeeds(grouped))
-        }
-    }
-
     static func normalizedFolderName(_ folderName: String?) -> String? {
         guard let trimmedName = folderName?.trimmingCharacters(in: .whitespacesAndNewlines),
               !trimmedName.isEmpty
@@ -135,12 +76,6 @@ enum FeedFolderOrganizer {
         }
 
         return trimmedName
-    }
-
-    private static func sortedFeeds(_ feeds: [Feed]) -> [Feed] {
-        feeds.sorted {
-            $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending
-        }
     }
 
     private static func insert(
