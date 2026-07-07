@@ -1,5 +1,4 @@
 import Foundation
-import SwiftData
 
 enum ArticleSearchField: String, CaseIterable, Identifiable {
     case all
