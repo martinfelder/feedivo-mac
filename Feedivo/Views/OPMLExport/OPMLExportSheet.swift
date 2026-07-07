@@ -3,7 +3,6 @@ import SwiftUI
 struct OPMLExportSheet: View {
     @Environment(\.feedivoDatabase) private var feedivoDatabase
 
-    let feeds: [Feed]
     let onClose: () -> Void
 
     @State private var includesFolders = true
@@ -33,23 +32,15 @@ struct OPMLExportSheet: View {
         exportDocument ?? OPMLDocument(text: "")
     }
 
-    init(feeds: [Feed], onClose: @escaping () -> Void) {
-        self.feeds = feeds
-        self.onClose = onClose
-        _opmlFeeds = State(initialValue: FeedViewModel.opmlFeedsForExport(from: feeds))
-    }
-
-    /// SQLite-only Initializer für ContentView: keine SwiftData-`Feed`-Liste
-    /// mehr. Die Export-Feeds werden beim Erscheinen des Sheets aus
-    /// `FeedStore.opmlFeedsForExport()` geladen (siehe `.task`/`loadExportFeeds`).
+    /// SQLite-only Initializer für ContentView: Die Export-Feeds werden beim
+    /// Erscheinen des Sheets aus `FeedStore.opmlFeedsForExport()` geladen
+    /// (siehe `.task`/`loadExportFeeds`).
     init(onClose: @escaping () -> Void) {
-        self.feeds = []
         self.onClose = onClose
         _opmlFeeds = State(initialValue: [])
     }
 
     init(opmlFeeds: [OPMLFeed], onClose: @escaping () -> Void) {
-        self.feeds = []
         self.onClose = onClose
         _opmlFeeds = State(initialValue: opmlFeeds)
     }
@@ -260,44 +251,14 @@ struct OPMLExportSheet: View {
     }
 
     private func loadExportFeeds() {
-        // SQLite-only Pfad (ContentView): keine SwiftData-Feeds übergeben →
-        // direkt aus `FeedStore.opmlFeedsForExport()` laden. Bereits vorbelegte
-        // opmlFeeds (SettingsView via init(opmlFeeds:)) werden nicht überschrieben.
-        if feeds.isEmpty && opmlFeeds.isEmpty {
-            if let feedivoDatabase {
-                opmlFeeds = (try? FeedStore(database: feedivoDatabase).opmlFeedsForExport()) ?? []
-            }
+        // Bereits vorbelegte opmlFeeds (SettingsView via init(opmlFeeds:))
+        // werden nicht überschrieben.
+        guard opmlFeeds.isEmpty else {
             return
         }
 
-        let swiftDataFeeds = FeedViewModel.opmlFeedsForExport(from: feeds)
-        guard !feeds.isEmpty else {
-            return
-        }
-
-        guard let feedivoDatabase else {
-            opmlFeeds = swiftDataFeeds
-            return
-        }
-
-        do {
-            let descriptionsByURL = Dictionary(
-                uniqueKeysWithValues: swiftDataFeeds.map { ($0.xmlURL, $0.description) }
-            )
-            opmlFeeds = try FeedStore(database: feedivoDatabase)
-                .opmlFeedsForExport()
-                .map { feed in
-                    OPMLFeed(
-                        title: feed.title,
-                        xmlURL: feed.xmlURL,
-                        htmlURL: feed.htmlURL,
-                        folderName: feed.folderName,
-                        description: descriptionsByURL[feed.xmlURL] ?? feed.description,
-                        tagNames: feed.tagNames
-                    )
-                }
-        } catch {
-            opmlFeeds = swiftDataFeeds
+        if let feedivoDatabase {
+            opmlFeeds = (try? FeedStore(database: feedivoDatabase).opmlFeedsForExport()) ?? []
         }
     }
 }
