@@ -131,21 +131,31 @@ struct SQLiteFeedSubscriptionService {
             updatedAt: now
         )
 
-        // Bei neuem (normalisiertem) Ordnernamen zusaetzlich einen expliziten
-        // feed_folders-Record anlegen — analog zum OPML-Import. Case-insensitiver
-        // Abgleich verhindert Duplikate zu bestehenden Ordnern.
-        if let normalizedFolderName {
-            let knownFolderNames = Set(try folderStore.folders().map { $0.name.lowercased() })
-            if !knownFolderNames.contains(normalizedFolderName.lowercased()) {
-                try folderStore.save(
-                    FeedFolderRecord(name: normalizedFolderName, createdAt: now, updatedAt: now)
-                )
-            }
-        }
-
-        try feedStore.save(feedRecord)
+        // Analog zum OPML-Import (siehe importOPMLFeeds) wird der ggf. neu
+        // angelegte Ordner hier festgehalten, damit der catch-Block ihn bei
+        // einem nachgelagerten Fehler wieder entfernen kann — sonst bleibt ein
+        // verwaister leerer Ordner in der Sidebar zurueck.
+        var createdFolder: FeedFolderRecord?
 
         do {
+            // Bei neuem (normalisiertem) Ordnernamen zusaetzlich einen expliziten
+            // feed_folders-Record anlegen — analog zum OPML-Import. Case-insensitiver
+            // Abgleich verhindert Duplikate zu bestehenden Ordnern.
+            if let normalizedFolderName {
+                let knownFolderNames = Set(try folderStore.folders().map { $0.name.lowercased() })
+                if !knownFolderNames.contains(normalizedFolderName.lowercased()) {
+                    let folderRecord = FeedFolderRecord(
+                        name: normalizedFolderName,
+                        createdAt: now,
+                        updatedAt: now
+                    )
+                    try folderStore.save(folderRecord)
+                    createdFolder = folderRecord
+                }
+            }
+
+            try feedStore.save(feedRecord)
+
             let articleInputs = parsedFeed.articles.map { article in
                 ArticleUpsertInput(
                     feedID: feedID,
@@ -175,6 +185,7 @@ struct SQLiteFeedSubscriptionService {
             )
         } catch {
             try? cleanupSQLiteSubscription(feedID: feedID)
+            try? cleanupCreatedFolder(createdFolder)
             throw error
         }
 

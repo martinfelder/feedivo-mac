@@ -96,6 +96,51 @@ struct SQLiteFeedSubscriptionServiceTests {
     }
 
     @MainActor
+    @Test func addFeedMitNeuemFolderNameRaeumtOrdnerNachArticleUpsertFehlerAuf() async throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let service = SQLiteFeedSubscriptionService(
+            database: database,
+            fetchFeed: { url in
+                ParsedFeed(
+                    sourceURL: url,
+                    title: "Fehler Feed mit Ordner",
+                    description: nil,
+                    articles: [
+                        ParsedArticle(
+                            title: "Wird nicht gespeichert",
+                            sourceID: "kaputt",
+                            link: "https://example.com/broken",
+                            summary: nil,
+                            content: nil,
+                            publishedAt: nil,
+                            imageURL: nil
+                        )
+                    ]
+                )
+            },
+            discoverFaviconURL: { _ in nil },
+            articleUpsert: { _ in
+                throw CleanupFailure.articleUpsertFailed
+            }
+        )
+
+        do {
+            _ = try await service.addFeed(
+                urlString: "https://example.com/feed.xml",
+                folderName: "Nachrichten"
+            )
+            Issue.record("Add-Feed hätte wegen Article-Upsert-Fehler fehlschlagen müssen.")
+        } catch let error as CleanupFailure {
+            #expect(error == .articleUpsertFailed)
+        }
+
+        #expect(try FeedStore(database: database).feeds().isEmpty)
+        // Der beim gescheiterten Add-Feed neu angelegte Ordner darf nicht als
+        // verwaister leerer Ordner zurueckbleiben.
+        #expect(try FeedFolderStore(database: database).folders().isEmpty)
+    }
+
+    @MainActor
     @Test func importOPMLSpeichertOrdnerTagsUndUeberspringtDuplikate() async throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         try FeedStore(database: database).save(
