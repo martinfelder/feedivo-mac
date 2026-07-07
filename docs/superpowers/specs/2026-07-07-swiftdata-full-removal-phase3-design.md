@@ -28,14 +28,24 @@ Die 9 `@Model`-Klassen: `Article`, `Feed`, `FeedFolder`, `FeedLogEntry`, `Rule`,
 
 - **`Feedivo/Services/SmartFolderEngine.swift`** — `SmartFolderEngine` (alle static funcs) und
   `SmartFolderPreparedMatcher` haben 0 Referenzen außerhalb der eigenen Datei.
-- **`Feedivo/Services/OfflineDownloadService.swift`** — `OfflineDownloadService` wird nur
-  innerhalb der eigenen Datei konstruiert (0 externe Aufrufer von `saveForOffline`/
-  `archiveForOffline`/`removeArchive`/`removeOfflineContent`/`summary(for:)`/
-  `removeOfflineCopies(from:)`); abgelöst durch `SQLiteOfflineDownloadService`
-  (`Feedivo/Stores/SQLiteOfflineStore.swift:146`), das dieselbe `OfflineArticleStorageSummary`
-  nutzt.
 
 ### Produktionsdateien mit gemischtem toten/aktiven Code (methodengenau bereinigen, wie Phase 2)
+
+- **Korrektur nach Task-3-Implementierung:** `Feedivo/Services/OfflineDownloadService.swift` wurde
+  ursprünglich fälschlich als komplett tot eingestuft. Tatsächlich enthält sie mehrere geteilte
+  Bausteine, die `SQLiteOfflineDownloadService` (in `Feedivo/Stores/SQLiteOfflineStore.swift`)
+  weiterhin braucht: `protocol OfflineArticleContentFetching`, `protocol
+  OfflineArticleImageCaching`, `struct URLSessionOfflineArticleContentFetcher`, `enum
+  OfflineDownloadError`, `struct OfflineArticleStorageSummary`, `extension ImageCacheService:
+  OfflineArticleImageCaching`. Tot sind nur: `protocol ArticleOfflineSaving` (0 Referenzen), `enum
+  OfflineReadingSettings` (0 Referenzen, auch nicht per Key-String), `final class
+  OfflineDownloadService` selbst (inkl. ihrer `ArticleOfflineSaving`-Konformitäts-Extension) und
+  `enum OfflineArticleStorage` (`summary(for: [Article])`/`removeOfflineCopies(from: [Article])`,
+  0 Aufrufer außerhalb der eigenen Testdatei). Extract-then-delete-Muster: die lebendigen Bausteine
+  werden nach `Feedivo/Services/OfflineArticleContentFetching.swift` verschoben, der Rest gelöscht.
+- **`Feedivo/Services/OfflineDownloadService.swift`** (wird gelöscht, Inhalt siehe Korrektur oben) /
+  **`Feedivo/Services/OfflineArticleContentFetching.swift`** (neu, enthält die lebendigen
+  Bausteine).
 
 - **Korrektur nach Task-2-Implementierung:** `Feedivo/Views/Sidebar/SmartFilter.swift` wurde
   ursprünglich fälschlich als komplett tot eingestuft. Tatsächlich ist NUR die Methode

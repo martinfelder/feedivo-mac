@@ -231,43 +231,137 @@ git commit -m "Remove dead Article-typed includes(_:) method from SmartFilter"
 
 ---
 
-## Task 3: `OfflineDownloadService.swift` + `OfflineDownloadServiceTests.swift` löschen
+## Task 3: `OfflineDownloadService.swift` extrahieren + bereinigen (KORRIGIERT)
+
+**KORRIGIERT nach BLOCKED-Meldung des ersten Implementierungsversuchs:** Der ursprüngliche Plan
+stufte diese Datei fälschlich als komplett tot ein. Tatsächlich enthält sie mehrere geteilte
+Bausteine, die von der lebendigen `SQLiteOfflineDownloadService`-Klasse (in
+`Feedivo/Stores/SQLiteOfflineStore.swift`) weiterhin gebraucht werden: die Protokolle
+`OfflineArticleContentFetching`/`OfflineArticleImageCaching`, die Struct
+`URLSessionOfflineArticleContentFetcher`, das Enum `OfflineDownloadError`, die Struct
+`OfflineArticleStorageSummary` und die Konformitäts-Extension `ImageCacheService:
+OfflineArticleImageCaching`. Nur die eigentliche `@Model`-`Article`-basierte Klasse
+`OfflineDownloadService` selbst (plus ihre `ArticleOfflineSaving`-Konformitäts-Extension), das
+ungenutzte `OfflineReadingSettings`-Enum und das `[Article]`-basierte `OfflineArticleStorage`-Enum
+sind tot. Dieser Task ist daher ein "Extract-then-delete"-Muster (wie mehrfach in Phase 1/2), keine
+reine Datei-Löschung. Die Datei wird umbenannt, weil sie nach der Bereinigung keine
+`OfflineDownloadService`-Klasse mehr enthält.
 
 **Files:**
 - Delete: `Feedivo/Services/OfflineDownloadService.swift`
+- Create: `Feedivo/Services/OfflineArticleContentFetching.swift`
 - Delete: `FeedivoTests/OfflineDownloadServiceTests.swift`
 
-**Interfaces:** Keine Abhängigkeiten von/zu anderen Tasks. `SQLiteOfflineDownloadService` (in
-`Feedivo/Stores/SQLiteOfflineStore.swift`) ist der lebendige Ersatz und bleibt unverändert.
+**Interfaces:**
+- Produces: `OfflineArticleContentFetching` (Protokoll), `OfflineArticleImageCaching` (Protokoll),
+  `URLSessionOfflineArticleContentFetcher` (Struct), `OfflineDownloadError` (Enum),
+  `OfflineArticleStorageSummary` (Struct), `ImageCacheService: OfflineArticleImageCaching`
+  (Extension) bleiben unverändert erhalten und produktiv nutzbar für
+  `SQLiteOfflineDownloadService`/`SQLiteOfflineStore`.
+- Consumes: keine Abhängigkeiten von anderen Tasks.
 
 - [ ] **Step 1: Verifikation**
 
-Run: `grep -rn "OfflineDownloadService(\|\.saveForOffline(\|\.archiveForOffline(\|\.removeArchive(\|\.removeOfflineContent(\|OfflineArticleStorage\." Feedivo FeedivoTests`
+Run: `grep -rn "OfflineDownloadService(\|\.saveForOffline(\|\.archiveForOffline(\|\.removeArchive(\|\.removeOfflineContent(\|OfflineArticleStorage\.\|OfflineReadingSettings\|ArticleOfflineSaving" Feedivo FeedivoTests`
 
-Erwartung: `OfflineDownloadService(` nur innerhalb der eigenen Datei; `.saveForOffline(` etc. haben
-0 Aufrufer außerhalb dieser Datei und ihrer Testdatei; `OfflineArticleStorageSummary`/
-`OfflineArticleStorage` wird auch von `SQLiteOfflineStore.swift` referenziert (das bleibt
-unverändert, nicht Teil der Löschung). Falls ein Produktions-Aufrufer von `saveForOffline`/
-`archiveForOffline`/`removeArchive`/`removeOfflineContent` außerhalb dieser Datei auftaucht:
-STOPPEN, BLOCKED melden.
+Erwartung: `OfflineDownloadService(` (die alte Klasse) nur innerhalb der eigenen Datei;
+`.saveForOffline(article:`/`.archiveForOffline(_ article:`/`.removeArchive(from:`/
+`.removeOfflineContent(from:` (die `Article`-typisierten Methoden) haben 0 Aufrufer außerhalb
+dieser Datei und ihrer Testdatei; `OfflineArticleStorage.summary(for: [Article])`/
+`.removeOfflineCopies(from: [Article])` haben 0 Aufrufer außerhalb der eigenen Testdatei;
+`OfflineReadingSettings`/`ArticleOfflineSaving` haben 0 Referenzen überhaupt. Falls ein
+Produktions-Aufrufer außerhalb der beiden genannten Dateien auftaucht: STOPPEN, BLOCKED melden.
 
-- [ ] **Step 2: Beide Dateien löschen**
+- [ ] **Step 2: Neue Datei mit den lebendigen Bausteinen anlegen**
+
+Erstelle `Feedivo/Services/OfflineArticleContentFetching.swift`:
+
+```swift
+import Foundation
+
+protocol OfflineArticleContentFetching: Sendable {
+    func content(from url: URL) async throws -> String
+}
+
+protocol OfflineArticleImageCaching: Sendable {
+    func cacheImages(from urls: [URL]) async
+}
+
+struct URLSessionOfflineArticleContentFetcher: OfflineArticleContentFetching, Sendable {
+    func content(from url: URL) async throws -> String {
+        let (data, response) = try await URLSession.shared.data(from: url)
+
+        if let httpResponse = response as? HTTPURLResponse,
+           !(200...299).contains(httpResponse.statusCode) {
+            throw OfflineDownloadError.unreachable(statusCode: httpResponse.statusCode)
+        }
+
+        return String(data: data, encoding: .utf8) ?? String(decoding: data, as: UTF8.self)
+    }
+}
+
+enum OfflineDownloadError: LocalizedError {
+    case missingOriginalURL
+    case emptyDownloadedContent
+    case unreachable(statusCode: Int)
+
+    var errorDescription: String? {
+        switch self {
+        case .missingOriginalURL:
+            return String(localized: "offline.error.missingOriginalURL")
+        case .emptyDownloadedContent:
+            return String(localized: "offline.error.emptyDownloadedContent")
+        case .unreachable(let statusCode):
+            return String.localizedStringWithFormat(
+                String(localized: "offline.error.unreachable"),
+                statusCode
+            )
+        }
+    }
+}
+
+struct OfflineArticleStorageSummary: Equatable {
+    var articleCount: Int
+    var sizeInBytes: Int64
+}
+
+extension ImageCacheService: OfflineArticleImageCaching {}
+```
+
+- [ ] **Step 3: Alte Datei löschen**
 
 ```bash
 rm Feedivo/Services/OfflineDownloadService.swift
+```
+
+Diese Datei enthielt zusätzlich (jetzt komplett gelöscht, nicht in die neue Datei übernommen):
+`protocol ArticleOfflineSaving`, `enum OfflineReadingSettings`, `final class OfflineDownloadService`
+(inkl. `extension OfflineDownloadService: ArticleOfflineSaving {}`), `enum OfflineArticleStorage`
+(mit `summary(for:)`/`removeOfflineCopies(from:)`) — alle bestätigt tot.
+
+- [ ] **Step 4: Testdatei löschen**
+
+```bash
 rm FeedivoTests/OfflineDownloadServiceTests.swift
 ```
 
-- [ ] **Step 3: Build prüfen**
+Alle 12 Tests in dieser Datei testen ausschließlich die jetzt gelöschten `Article`-typisierten
+Methoden (`saveForOffline`/`archiveForOffline`/`removeArchive`/`removeOfflineContent` auf
+`OfflineDownloadService`, sowie `OfflineArticleStorage.summary`/`.removeOfflineCopies`) — keiner
+testet die neu extrahierten, lebendigen Bausteine direkt (die haben dedizierte Abdeckung über
+`SQLiteOfflineStore`/`SQLiteOfflineDownloadService`-Tests, falls vorhanden, oder sind reine
+Daten-/Protokoll-Deklarationen ohne eigene Testpflicht).
+
+- [ ] **Step 5: Build prüfen**
 
 Run: `xcodebuild build -project Feedivo.xcodeproj -scheme Feedivo -destination 'platform=macOS' 2>&1 | tail -50`
 Erwartung: BUILD SUCCEEDED.
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
-git add Feedivo/Services/OfflineDownloadService.swift FeedivoTests/OfflineDownloadServiceTests.swift
-git commit -m "Remove dead OfflineDownloadService.swift (superseded by SQLiteOfflineDownloadService)"
+git add Feedivo/Services/OfflineDownloadService.swift Feedivo/Services/OfflineArticleContentFetching.swift FeedivoTests/OfflineDownloadServiceTests.swift
+git commit -m "Extract live offline-fetch infrastructure, delete dead OfflineDownloadService class"
 ```
 
 ---
