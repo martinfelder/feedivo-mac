@@ -499,27 +499,6 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(settingsSource.contains("Toggle(\"\", isOn: $cloudSyncIsEnabled)"))
     }
 
-    @Test func cloudKitSyncedRelationshipsAreOptional() throws {
-        let projectRoot = projectRootURL()
-
-        let expectedRelationships: [(path: String, declaration: String)] = [
-            ("Feedivo/Models/Article.swift", "var tags: [Tag]?"),
-            ("Feedivo/Models/Feed.swift", "var articles: [Article]?"),
-            ("Feedivo/Models/Feed.swift", "var logEntries: [FeedLogEntry]?"),
-            ("Feedivo/Models/Feed.swift", "var tags: [Tag]?"),
-            ("Feedivo/Models/Rule.swift", "var conditions: [RuleCondition]?"),
-            ("Feedivo/Models/SmartFolder.swift", "var conditions: [SmartFolderCondition]?"),
-            ("Feedivo/Models/Tag.swift", "var articles: [Article]?"),
-            ("Feedivo/Models/Tag.swift", "var feeds: [Feed]?"),
-            ("Feedivo/Models/Tag.swift", "var rules: [Rule]?")
-        ]
-
-        for expectedRelationship in expectedRelationships {
-            let modelSource = try source(at: expectedRelationship.path, projectRoot: projectRoot)
-            #expect(modelSource.contains(expectedRelationship.declaration))
-        }
-    }
-
     @Test func appOpensAndInjectsSQLiteDatabase() throws {
         let projectRoot = projectRootURL()
         let appSource = try source(at: "Feedivo/App/FeedivoApp.swift", projectRoot: projectRoot)

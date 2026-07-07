@@ -249,22 +249,4 @@ struct SQLiteAdminStoreTests {
         #expect(defaultKeys.contains("all"))
         #expect(defaultKeys.contains("saved"))
     }
-
-    @MainActor
-    private func testContext() throws -> ModelContext {
-        let container = try ModelContainer(
-            for: Feed.self,
-            FeedFolder.self,
-            Article.self,
-            Tag.self,
-            Rule.self,
-            RuleCondition.self,
-            SmartFolder.self,
-            SmartFolderCondition.self,
-            FeedLogEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-
-        return ModelContext(container)
-    }
 }
