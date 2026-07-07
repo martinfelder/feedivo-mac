@@ -7,7 +7,6 @@
 
 import AppKit
 import Foundation
-import SwiftData
 import SwiftUI
 import Testing
 import WebKit

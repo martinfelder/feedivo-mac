@@ -1,6 +1,11 @@
 import Foundation
 import GRDB
 
+enum FeedLogEntryKind: String {
+    case info
+    case error
+}
+
 struct FeedLogRecord: Codable, FetchableRecord, MutablePersistableRecord, Equatable, Sendable {
     static let databaseTableName = "feed_logs"
 

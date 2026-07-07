@@ -1,6 +1,17 @@
 import Foundation
 import GRDB
 
+enum ArticleOfflineState: String, CaseIterable, Codable {
+    case none
+    case feedContent
+    case fullText
+    case failed
+
+    var isAvailable: Bool {
+        self == .feedContent || self == .fullText
+    }
+}
+
 struct ArticleOfflineRecord: Codable, FetchableRecord, MutablePersistableRecord, Equatable, Sendable {
     static let databaseTableName = "article_offline"
 

@@ -1,5 +1,4 @@
 import Foundation
-import SwiftData
 import Testing
 @testable import Feedivo
 
@@ -250,12 +249,6 @@ struct FeedViewModelTests {
         )
 
         #expect(updatedItems.map(\.status) == [.refreshing, .pending, .refreshing])
-    }
-
-    @Test func refreshLookupLaedtKeineSchwerenArtikeltexte() {
-        #expect(Article.refreshLookupPropertiesToFetch.contains(\.summary))
-        #expect(!Article.refreshLookupPropertiesToFetch.contains(\.content))
-        #expect(!Article.refreshLookupPropertiesToFetch.contains(\.offlineContent))
     }
 
     @Test func storedArticleRefreshFieldUpdateSchreibtNurEchteAenderungen() {
