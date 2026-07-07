@@ -28,8 +28,6 @@ Die 9 `@Model`-Klassen: `Article`, `Feed`, `FeedFolder`, `FeedLogEntry`, `Rule`,
 
 - **`Feedivo/Services/SmartFolderEngine.swift`** — `SmartFolderEngine` (alle static funcs) und
   `SmartFolderPreparedMatcher` haben 0 Referenzen außerhalb der eigenen Datei.
-- **`Feedivo/Views/Sidebar/SmartFilter.swift`** — `SmartFilter`/`SmartFilterIconColor` haben 0
-  Referenzen außerhalb der eigenen Datei; abgelöst durch `ArticleFilterOption`.
 - **`Feedivo/Services/OfflineDownloadService.swift`** — `OfflineDownloadService` wird nur
   innerhalb der eigenen Datei konstruiert (0 externe Aufrufer von `saveForOffline`/
   `archiveForOffline`/`removeArchive`/`removeOfflineContent`/`summary(for:)`/
@@ -39,6 +37,22 @@ Die 9 `@Model`-Klassen: `Article`, `Feed`, `FeedFolder`, `FeedLogEntry`, `Rule`,
 
 ### Produktionsdateien mit gemischtem toten/aktiven Code (methodengenau bereinigen, wie Phase 2)
 
+- **Korrektur nach Task-2-Implementierung:** `Feedivo/Views/Sidebar/SmartFilter.swift` wurde
+  ursprünglich fälschlich als komplett tot eingestuft. Tatsächlich ist NUR die Methode
+  `includes(_ article: Article, now:calendar:)` tot (0 Aufrufer). Das Enum selbst
+  (`SmartFilter` mit den Cases `.allArticles`/`.unread`/`.starred`/`.today`/`.hidden`, plus
+  `.title`, `.systemImage`, `.iconColor`, `.id`) ist ein lebendiger Navigations-/Auswahltyp,
+  verifiziert genutzt in `SQLiteFeedArticleListState.swift` (`case smartFilter(SmartFilter)`),
+  `Stores/TimelineStore.swift` (`case smartFilter(SmartFilter)`),
+  `Views/ContentView.swift` (`selectedSmartFilter: SmartFilter?`),
+  `Views/Sidebar/SidebarSelection.swift` (`case smartFilter(SmartFilter)`),
+  `Views/ArticleList/SQLiteFeedArticleListView.swift` (mehrere `SmartFilter`-Parameter/Cases).
+  `SmartFilterIconColor` bleibt ebenfalls vollständig (genutzt von `.iconColor`). Diese Datei
+  gehört daher in diesen Abschnitt (gemischt, methodengenau bereinigen), nicht in den Abschnitt
+  "komplett tot".
+- **`Feedivo/Views/Sidebar/SmartFilter.swift`** — Tot: nur `includes(_ article: Article,
+  now:calendar:)`. Lebendig: der gesamte Rest der Datei (Enum-Cases, `.title`, `.systemImage`,
+  `.iconColor`, `.id`, `SmartFilterIconColor`) — siehe Korrektur oben.
 - **`Feedivo/Services/RuleEngine.swift`** — Tot: `applyRules(_:to:feed:)`,
   `applyRulesWithNotifications(_:to:feed:)` (Einzelartikel- und `[Article]`-Overload),
   `snapshots(from:)`, `applyRulesToExistingArticles(_:articles:)`,

@@ -82,39 +82,151 @@ git commit -m "Remove dead SmartFolderEngine.swift (0 production callers)"
 
 ---
 
-## Task 2: `SmartFilter.swift` + `SmartFilterTests.swift` löschen
+## Task 2: `SmartFilter.swift` + `SmartFilterTests.swift` bereinigen
+
+**KORRIGIERT nach BLOCKED-Meldung des ersten Implementierungsversuchs:** Der ursprüngliche Plan
+stufte diese Datei fälschlich als komplett tot ein. Tatsächlich ist NUR die Methode
+`includes(_ article: Article, now:calendar:)` tot — das Enum `SmartFilter` selbst (Cases,
+`.title`, `.systemImage`, `.iconColor`, `.id`) ist ein lebendiger Navigations-/Auswahltyp, genutzt
+in `SQLiteFeedArticleListState.swift`, `Stores/TimelineStore.swift`, `Views/ContentView.swift`,
+`Views/Sidebar/SidebarSelection.swift`, `Views/ArticleList/SQLiteFeedArticleListView.swift`. Dieser
+Task ist daher eine methodengenaue Bereinigung (Phase-2-Muster), keine Datei-Löschung
+(Phase-1-Muster).
 
 **Files:**
-- Delete: `Feedivo/Views/Sidebar/SmartFilter.swift`
-- Delete: `FeedivoTests/SmartFilterTests.swift`
+- Modify: `Feedivo/Views/Sidebar/SmartFilter.swift`
+- Modify: `FeedivoTests/SmartFilterTests.swift`
 
-**Interfaces:** Keine Abhängigkeiten von/zu anderen Tasks.
+**Interfaces:**
+- Produces: `SmartFilter` (enum mit Cases `.allArticles`/`.unread`/`.starred`/`.today`/`.hidden`,
+  `.id`, `.title`, `.systemImage`, `.iconColor`), `SmartFilterIconColor` bleiben unverändert
+  (genutzt von `SQLiteFeedArticleListState.swift`, `TimelineStore.swift`, `ContentView.swift`,
+  `SidebarSelection.swift`, `SQLiteFeedArticleListView.swift`).
+- Consumes: keine Abhängigkeiten von anderen Tasks.
 
 - [ ] **Step 1: Verifikation**
 
-Run: `grep -rn "SmartFilter\." Feedivo FeedivoTests`
+Run: `grep -rn "\.includes(" Feedivo FeedivoTests | grep -v "ArticleFilterOption.swift\|ArticleMarkReadOption.swift"`
 
-Erwartung: Treffer nur in `Feedivo/Views/Sidebar/SmartFilter.swift` (Definition) und
-`FeedivoTests/SmartFilterTests.swift` (Tests) — `SmartFilterIconColor` ebenfalls nur dort. Falls
-ein Treffer in einer anderen Produktionsdatei auftaucht: STOPPEN, BLOCKED melden.
+Erwartung: `SmartFilter.includes(_:Article...)` hat 0 Aufrufer außer den 5 Tests in
+`FeedivoTests/SmartFilterTests.swift`, die exakt diese Methode testen.
 
-- [ ] **Step 2: Beide Dateien löschen**
+- [ ] **Step 2: Tote `Article`-Methode entfernen**
 
-```bash
-rm Feedivo/Views/Sidebar/SmartFilter.swift
-rm FeedivoTests/SmartFilterTests.swift
+Ersetze den kompletten Inhalt von `Feedivo/Views/Sidebar/SmartFilter.swift`:
+
+```swift
+import Foundation
+import SwiftUI
+
+enum SmartFilterIconColor: Hashable {
+    case blue
+    case teal
+    case yellow
+    case green
+    case gray
+
+    var color: Color {
+        switch self {
+        case .blue:
+            return .blue
+        case .teal:
+            return .teal
+        case .yellow:
+            return .yellow
+        case .green:
+            return .green
+        case .gray:
+            return .gray
+        }
+    }
+}
+
+enum SmartFilter: String, CaseIterable, Identifiable, Hashable, Sendable {
+    case allArticles
+    case unread
+    case starred
+    case today
+    case hidden
+
+    var id: String {
+        rawValue
+    }
+
+    var title: LocalizedStringKey {
+        switch self {
+        case .allArticles:
+            return L10n.smartFilterAllArticles
+        case .unread:
+            return L10n.smartFilterUnread
+        case .starred:
+            return L10n.smartFilterStarred
+        case .today:
+            return L10n.smartFilterToday
+        case .hidden:
+            return L10n.smartFilterHidden
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .allArticles:
+            return "tray.full"
+        case .unread:
+            return "circle.fill"
+        case .starred:
+            return "star.fill"
+        case .today:
+            return "calendar"
+        case .hidden:
+            return "eye.slash"
+        }
+    }
+
+    var iconColor: SmartFilterIconColor {
+        switch self {
+        case .allArticles:
+            return .blue
+        case .unread:
+            return .teal
+        case .starred:
+            return .yellow
+        case .today:
+            return .green
+        case .hidden:
+            return .gray
+        }
+    }
+}
 ```
 
 - [ ] **Step 3: Build prüfen**
 
 Run: `xcodebuild build -project Feedivo.xcodeproj -scheme Feedivo -destination 'platform=macOS' 2>&1 | tail -50`
+Erwartung: Build schlägt fehl (Tests referenzieren noch die entfernte `includes(_:)`-Methode) —
+nächster Schritt behebt das.
+
+- [ ] **Step 4: `SmartFilterTests.swift` bereinigen**
+
+Lies die Datei komplett (76 Zeilen, 6 Tests). Entferne die 5 Tests, die `.includes(` aufrufen:
+`allArticlesFilterZeigtAlleArtikel`, `unreadFilterZeigtNurUngeleseneArtikel`,
+`starredFilterZeigtNurArtikelMitStern`, `todayFilterNutztKalendertag`,
+`hiddenFilterZeigtNurAusgeblendeteArtikel`. Behalte den Test `filterIconsHabenPassendeFarben` (testet
+`.iconColor`, kein `Article`-Bezug).
+
+- [ ] **Step 5: Build und gescopte Tests**
+
+Run: `xcodebuild build -project Feedivo.xcodeproj -scheme Feedivo -destination 'platform=macOS' 2>&1 | tail -50`
 Erwartung: BUILD SUCCEEDED.
 
-- [ ] **Step 4: Commit**
+Run: `xcodebuild test -project Feedivo.xcodeproj -scheme Feedivo -destination 'platform=macOS' -only-testing:FeedivoTests/SmartFilterTests 2>&1 | tail -60`
+Erwartung: der verbleibende Test grün.
+
+- [ ] **Step 6: Commit**
 
 ```bash
 git add Feedivo/Views/Sidebar/SmartFilter.swift FeedivoTests/SmartFilterTests.swift
-git commit -m "Remove dead SmartFilter.swift (superseded by ArticleFilterOption)"
+git commit -m "Remove dead Article-typed includes(_:) method from SmartFilter"
 ```
 
 ---
