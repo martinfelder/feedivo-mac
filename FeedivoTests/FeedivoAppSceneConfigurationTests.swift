@@ -1083,10 +1083,10 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(source.contains("SQLiteFeedActionService"))
         #expect(source.contains("SQLiteFeedSubscriptionService"))
         #expect(source.contains("SQLiteFeedRefreshCoordinator"))
-        // Legacy-SwiftData-Methoden sind in einer klar markierten Region
-        // abgegrenzt, damit kein neuer produktiver Code versehentlich dort
-        // andockt.
-        #expect(compactSource.contains("MARK:-LegacySwiftDataCompatibility"))
+        // Die SQLite-Aktionen bleiben in einer klar markierten Region
+        // abgegrenzt. Die frühere "Legacy SwiftData Compatibility"-Region
+        // wurde im Zuge der vollständigen SwiftData-Entfernung gelöscht,
+        // nicht nur markiert — es gibt keinen Marker mehr zu prüfen.
         #expect(compactSource.contains("MARK:-SQLiteFeedActions"))
     }
 
