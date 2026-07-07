@@ -16,12 +16,6 @@ struct DockTileBadgeUpdater: AppIconBadgeUpdating {
 }
 
 enum AppIconBadgeService {
-    static func unreadCount(in feeds: [Feed]) -> Int {
-        feeds.reduce(0) { total, feed in
-            total + feed.unreadCount
-        }
-    }
-
     /// SQLite-Variante: Dock-Badge direkt aus `FeedSidebarSnapshot.unreadCount`
     /// (Summe). ContentView hält keine SwiftData-`Feed`-Liste mehr vor, deshalb
     /// wird der Badge aus den SQLite-Sidebar-Snapshots gespeist.
@@ -42,17 +36,5 @@ enum AppIconBadgeService {
         }
 
         updater.badgeLabel = "\(unreadCount)"
-    }
-
-    static func updateBadge<Updater: AppIconBadgeUpdating>(
-        for feeds: [Feed],
-        isEnabled: Bool,
-        updater: inout Updater
-    ) {
-        updateBadge(
-            unreadCount: unreadCount(in: feeds),
-            isEnabled: isEnabled,
-            updater: &updater
-        )
     }
 }
