@@ -10,8 +10,7 @@ struct OPMLImportReviewView: View {
     let feedViewModel: FeedViewModel
 
     // Bestehende Ordnernamen aus SQLite — für das Folder-Dropdown im Import-
-    // Sheet. Duplikat-Check läuft in `opmlImportPreviewRows` bereits SQLite-
-    // basiert, deshalb braucht diese View keine SwiftData-`Feed`-Liste mehr.
+    // Sheet. Duplikat-Check läuft in `opmlImportPreviewRows` bereits SQLite-basiert.
     private var existingFolderNames: [String] {
         guard let feedivoDatabase else { return [] }
         return (try? FeedStore(database: feedivoDatabase).feeds())?

@@ -1,6 +1,8 @@
 import Foundation
 import GRDB
 
+// Art eines Feed-Logeintrags. Wird als String gespeichert, an den Aufrufstellen
+// aber typsicher als enum übergeben — keine Magic-Strings mehr verstreut im Code.
 enum FeedLogEntryKind: String {
     case info
     case error

@@ -1,11 +1,6 @@
 import Foundation
 
 enum RuleEngine {
-    struct RuleApplicationResult: Equatable {
-        var appliedActionCount: Int
-        var notifications: [RuleNotificationResult]
-    }
-
     struct RuleConditionSnapshot: Equatable, Sendable {
         var field: String
         var conditionOperator: String

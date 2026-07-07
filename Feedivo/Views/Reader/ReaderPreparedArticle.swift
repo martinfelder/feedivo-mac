@@ -27,7 +27,7 @@ enum ReaderContentAvailability: Equatable {
 }
 
 /// Reine, Sendable-faehige Eingabewerte fuer den Reader. Werden einmal auf dem
-/// MainActor aus dem SwiftData-Modell extrahiert, damit das teure Parsing
+/// MainActor aus dem SQLite-Snapshot extrahiert, damit das teure Parsing
 /// (`ReaderContentRenderer.blocks`, Lesezeit-Berechnung) unabhaengig vom
 /// MainActor — typischerweise in einem `Task.detached` — laufen kann, ohne das
 /// UI-Thread zu blockieren.

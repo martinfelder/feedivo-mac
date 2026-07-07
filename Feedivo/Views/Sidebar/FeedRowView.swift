@@ -19,9 +19,9 @@ struct FeedRowView: View {
         self.displayStyle = displayStyle
     }
 
-    // Die Zeile rendert ausschließlich aus dem SQLite-Snapshot. SwiftData-Feed
-    // wird nicht mehr gehalten; ein Als-gelesen-markieren invalidiert nur die
-    // Snapshot-Quelle (SQLiteSidebarState) und wertet die Zeile neu aus.
+    // Die Zeile rendert ausschließlich aus dem SQLite-Snapshot. Ein
+    // Als-gelesen-markieren invalidiert nur die Snapshot-Quelle
+    // (SQLiteSidebarState) und wertet die Zeile neu aus.
     private var unreadCount: Int {
         snapshot.unreadCount
     }

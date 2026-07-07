@@ -472,7 +472,7 @@ private struct SmartFolderSidebarRow: View {
     let mixedCounts: SmartFolderMixedCounts?
 
     // Badge bewusst aus dem SQLite-Snapshot berechnen: Die Sidebar muss dafür
-    // keine Artikel-Query und keine SwiftData-Relationships beobachten.
+    // keine Artikel-Query beobachten.
     private var badgeText: String? {
         SmartFolderSidebarBadge.badgeText(for: smartFolder, snapshot: badgeSnapshot)
     }

@@ -17,11 +17,9 @@ struct ContentView: View {
     private var refreshOnLaunchIsEnabled = BackgroundRefreshSettings.defaultRefreshOnLaunchIsEnabled
     @AppStorage(BackgroundRefreshSettings.intervalMinutesKey)
     private var backgroundRefreshIntervalMinutes = BackgroundRefreshSettings.defaultIntervalMinutes
-    // SQLite-only Feed-Identität: Statt @Query [Feed] (SwiftData) hält
-    // ContentView Sidebar-Snapshots aus `FeedStore.sidebarFeeds()` vor. Die
-    // Liste wird beim Erscheinen und bei Status-Version-Bumps (Feed-Anlage/
-    // -Löschung/-Refresh) neu geladen. SwiftData `Feed` ist nur noch
-    // Aktionsbackend für den Brücken-Löschpfad (siehe deleteFeed/feedID).
+    // SQLite-only Feed-Identität: ContentView hält Sidebar-Snapshots aus
+    // `FeedStore.sidebarFeeds()` vor. Die Liste wird beim Erscheinen und bei
+    // Status-Version-Bumps (Feed-Anlage/-Löschung/-Refresh) neu geladen.
     @State private var feedSnapshots: [FeedSidebarSnapshot] = []
     @AppStorage(SQLiteDataInvalidation.statusVersionKey)
     private var sqliteStatusVersion = 0
@@ -39,8 +37,7 @@ struct ContentView: View {
 
     @State private var feedViewModel: FeedViewModel
     @State private var isShowingAddFeedSheet = false
-    // SQLite-Identität: Lösch-Bestätigung arbeitet auf dem Sidebar-Snapshot
-    // (String-ID) statt auf einem SwiftData-`Feed`-Objekt.
+    // SQLite-Identität: Lösch-Bestätigung arbeitet auf dem Sidebar-Snapshot (String-ID).
     @State private var feedPendingDeletion: FeedSidebarSnapshot?
     @State private var isDeleteFeedConfirmationPresented = false
     @State private var isShowingOPMLImportReview = false
@@ -208,7 +205,7 @@ struct ContentView: View {
                 dismissButton: .default(Text(L10n.commonDone))
             )
         }
-        // M11: Wenn die SwiftData-Datenbank beim Start nicht geöffnet werden
+        // M11: Wenn die SQLite-Datenbank beim Start nicht geöffnet werden
         // konnte, läuft die App mit einem leeren In-Memory-Fallback. Dieser
         // Alarm erklärt das einmalig, statt die App ohne Erklärung abstürzen
         // zu lassen. Nach dem Schließen wird der Fehler verworfen.
@@ -532,9 +529,8 @@ struct ContentView: View {
         return feedID
     }
 
-    // SQLite-Identität: ausgewählter Feed als Sidebar-Snapshot (String-ID)
-    // statt als SwiftData-`Feed`. Wird für FeedCommandActions und den
-    // Spalten-2-Titel verwendet.
+    // Ausgewählter Feed als Sidebar-Snapshot. Wird für FeedCommandActions
+    // und den Spalten-2-Titel verwendet.
     private var selectedFeed: FeedSidebarSnapshot? {
         guard let feedID = selectedFeedID else {
             return nil

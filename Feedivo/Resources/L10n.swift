@@ -445,7 +445,7 @@ enum L10n {
     static var offlineArchiveErrorMessage: String {
         String(localized: "offline.archive.error.message", defaultValue: "Die Offline-Kopie konnte nicht gespeichert werden.")
     }
-    /// Titel des Alarms, wenn die SwiftData-Datenbank beim Start nicht geöffnet
+    /// Titel des Alarms, wenn die SQLite-Datenbank beim Start nicht geöffnet
     /// werden konnte und auf den In-Memory-Fallback ausgewichen wurde (M11).
     static var databaseInitErrorTitle: String {
         String(localized: "database.init.error.title", defaultValue: "Datenbank konnte nicht geladen werden")

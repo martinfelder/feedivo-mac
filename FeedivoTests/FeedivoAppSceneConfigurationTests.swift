@@ -1042,13 +1042,6 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(!source.contains("viewModel.createTag("))
     }
 
-    @Test func swiftDataBridgeIstStandardmaessigAusgeschaltet() throws {
-        let projectRoot = projectRootURL()
-        let source = try source(at: "Feedivo/Services/SwiftDataBridgeSettings.swift", projectRoot: projectRoot)
-
-        #expect(source.contains("static let defaultIsEnabled = false"))
-    }
-
     @Test func modelContainerFactoryIstNichtMehrTeilDesProduktcodes() throws {
         let projectRoot = projectRootURL()
         let appSource = try source(at: "Feedivo/App/FeedivoApp.swift", projectRoot: projectRoot)

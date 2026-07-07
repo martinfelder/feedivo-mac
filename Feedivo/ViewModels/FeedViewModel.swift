@@ -84,41 +84,6 @@ private enum FeedRefreshOutcome {
     case failure(String)
 }
 
-enum StoredArticleRefreshFieldUpdate {
-    static func replacement(for existingValue: String?, from parsedValue: String?) -> String? {
-        guard let parsedValue = nonEmptyText(parsedValue),
-              existingValue != parsedValue
-        else {
-            return nil
-        }
-
-        return parsedValue
-    }
-
-    static func missingReplacement(for existingValue: @autoclosure () -> String?, from parsedValue: String?) -> String? {
-        guard let parsedValue = nonEmptyText(parsedValue),
-              isMissingText(existingValue())
-        else {
-            return nil
-        }
-
-        return parsedValue
-    }
-
-    private static func nonEmptyText(_ text: String?) -> String? {
-        let trimmedText = text?.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let trimmedText, !trimmedText.isEmpty else {
-            return nil
-        }
-
-        return text
-    }
-
-    private static func isMissingText(_ text: String?) -> Bool {
-        text?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true
-    }
-}
-
 @Observable
 final class FeedViewModel {
     static let maxConcurrentFeedRefreshes = 6
@@ -262,8 +227,7 @@ final class FeedViewModel {
     //
     // Produktive Feed-Aktionen, die ausschließlich über SQLite/GRDB-Stores
     // (`FeedStore`, `ArticleStore`, `SQLiteFeedRefreshCoordinator`,
-    // `SQLiteRuleStore`, `SQLiteFeedSubscriptionService`) laufen. Diese Region
-    // ist der produktive Pfad — SwiftData wird hier weder gelesen noch geschrieben.
+    // `SQLiteRuleStore`, `SQLiteFeedSubscriptionService`) laufen.
 
     /// SQLite-first Feed hinzufügen. Produktiver Pfad: delegiert an
     /// `SQLiteFeedSubscriptionService.addFeed` und übersetzt nur Fehler sowie
@@ -308,10 +272,9 @@ final class FeedViewModel {
         }
     }
 
-    /// SQLite-first Einzel-Refresh anhand der Feed-ID, ohne dass der Aufrufer ein
-    /// SwiftData-`Feed`-Objekt vorhalten muss. ContentView resolved die Auswahl
-    /// nur noch per ID. Regeln werden einmalig aus `SQLiteRuleStore` geholt und
-    /// als Snapshots an `SQLiteFeedRefreshService` weitergereicht.
+    /// SQLite-first Einzel-Refresh anhand der Feed-ID. ContentView resolved die
+    /// Auswahl nur per ID. Regeln werden einmalig aus `SQLiteRuleStore` geholt
+    /// und als Snapshots an `SQLiteFeedRefreshService` weitergereicht.
     @MainActor
     func refreshFeed(
         feedID: String,
@@ -356,8 +319,7 @@ final class FeedViewModel {
         }
     }
 
-    /// SQLite-first Refresh-All: Snapshots werden aus `FeedStore.feeds()` geladen
-    /// statt aus einer SwiftData-`[Feed]`-Liste.
+    /// SQLite-first Refresh-All: Snapshots werden aus `FeedStore.feeds()` geladen.
     @MainActor
     func refreshAllFeeds(sqliteDatabase: FeedivoDatabase) async {
         guard !isLoading else {
@@ -539,16 +501,6 @@ final class FeedViewModel {
             } catch {
                 errorMessage = error.localizedDescription
             }
-        }
-        guard UUID(uuidString: feedID) != nil else {
-            return
-        }
-
-        // Übergangs-Hinweis: SwiftData-Brücken-Feeds werden im
-        // produktiven Refresh-/Settings-Pfad nicht mehr bereinigt; die Datenbank
-        // nutzt `FeedStore` als Führungsquelle.
-        if sqliteDatabase != nil {
-            SQLiteDataInvalidation.bumpStatusVersion()
         }
     }
 

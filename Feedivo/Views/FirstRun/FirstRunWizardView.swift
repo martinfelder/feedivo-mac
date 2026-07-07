@@ -21,8 +21,7 @@ struct FirstRunWizardView: View {
     let onComplete: () -> Void
 
     // Bestehende Ordnernamen aus SQLite für das Folder-Dropdown. Der Duplikat-
-    // Check läuft in `opmlImportPreviewRows` SQLite-basiert; eine SwiftData-
-    // `Feed`-Liste braucht dieser Wizard nicht mehr.
+    // Check läuft in `opmlImportPreviewRows` SQLite-basiert.
     private var existingFolderNames: [String] {
         guard let feedivoDatabase else { return [] }
         return (try? FeedStore(database: feedivoDatabase).feeds())?

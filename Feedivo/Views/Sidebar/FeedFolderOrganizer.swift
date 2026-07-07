@@ -31,8 +31,7 @@ enum FeedFolderOrganizer {
     }
 
     // Snapshot-basierte Überladungen für den SQLite-only Sidebar-Pfad. Diese
-    // Helfer arbeiten ausschließlich auf FeedSidebarSnapshot und brauchen kein
-    // SwiftData-Feed-Objekt mehr.
+    // Helfer arbeiten ausschließlich auf FeedSidebarSnapshot.
     static func feedsWithoutFolder(from snapshots: [FeedSidebarSnapshot]) -> [FeedSidebarSnapshot] {
         sortedSnapshots(
             snapshots.filter { normalizedFolderName($0.folderName) == nil }

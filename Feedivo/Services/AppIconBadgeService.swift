@@ -16,9 +16,8 @@ struct DockTileBadgeUpdater: AppIconBadgeUpdating {
 }
 
 enum AppIconBadgeService {
-    /// SQLite-Variante: Dock-Badge direkt aus `FeedSidebarSnapshot.unreadCount`
-    /// (Summe). ContentView hält keine SwiftData-`Feed`-Liste mehr vor, deshalb
-    /// wird der Badge aus den SQLite-Sidebar-Snapshots gespeist.
+    /// Dock-Badge direkt aus `FeedSidebarSnapshot.unreadCount` (Summe),
+    /// gespeist aus den SQLite-Sidebar-Snapshots.
     static func unreadCount(in snapshots: [FeedSidebarSnapshot]) -> Int {
         snapshots.reduce(0) { total, snapshot in
             total + snapshot.unreadCount
