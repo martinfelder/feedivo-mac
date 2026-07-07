@@ -64,21 +64,6 @@ struct ArticleExportSnapshot {
     let offlineState: ArticleOfflineState
     let offlineContent: String?
 
-    init(article: Article) {
-        self.title = article.title
-        self.link = article.link
-        self.summary = article.summary
-        self.content = article.content
-        self.author = article.author
-        self.publishedAt = article.publishedAt
-        self.feedTitle = article.feed?.title
-        self.tagNames = (article.tags ?? []).map(\.name).sorted {
-            $0.localizedCaseInsensitiveCompare($1) == .orderedAscending
-        }
-        self.offlineState = article.offlineState
-        self.offlineContent = article.offlineContent
-    }
-
     init(sqliteSnapshot: ArticleReaderSnapshot, tagNames: [String] = []) {
         self.title = sqliteSnapshot.title
         self.link = sqliteSnapshot.link
@@ -96,10 +81,6 @@ struct ArticleExportSnapshot {
 }
 
 enum ArticleExportService {
-    static func markdown(for article: Article) -> String {
-        markdown(for: ArticleExportSnapshot(article: article))
-    }
-
     static func markdown(for snapshot: ArticleExportSnapshot) -> String {
         text(for: snapshot, options: ArticleExportOptions(format: .markdown, includesMetadata: true))
     }
@@ -137,10 +118,6 @@ enum ArticleExportService {
             .components(separatedBy: .newlines)
             .prefix(40)
         return lines.joined(separator: "\n")
-    }
-
-    static func defaultFilename(for article: Article) -> String {
-        defaultFilename(for: ArticleExportSnapshot(article: article), format: .markdown)
     }
 
     static func defaultFilename(for snapshot: ArticleExportSnapshot) -> String {
