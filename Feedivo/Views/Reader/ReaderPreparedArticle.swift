@@ -1,5 +1,4 @@
 import Foundation
-import SwiftData
 
 enum ReaderContentAvailability: Equatable {
     case fullText
@@ -43,32 +42,6 @@ struct ReaderArticleInput: Sendable {
 }
 
 extension ReaderArticleInput {
-    @MainActor
-    static func make(from article: Article) -> ReaderArticleInput {
-        ReaderArticleInput(
-            summary: article.summary,
-            content: article.content,
-            contentFingerprint: ReaderArticleTextFingerprint.make(from: article.content),
-            imageURL: article.imageURL,
-            link: article.link,
-            feedTitle: article.feed?.title,
-            publishedAt: article.publishedAt
-        )
-    }
-
-    @MainActor
-    static func makePreview(from article: Article) -> ReaderArticleInput {
-        ReaderArticleInput(
-            summary: article.summary,
-            content: nil,
-            contentFingerprint: nil,
-            imageURL: article.imageURL,
-            link: article.link,
-            feedTitle: article.feed?.title,
-            publishedAt: article.publishedAt
-        )
-    }
-
     static func make(from snapshot: ArticleReaderSnapshot) -> ReaderArticleInput {
         ReaderArticleInput(
             summary: snapshot.summary,
@@ -78,62 +51,6 @@ extension ReaderArticleInput {
             link: snapshot.link,
             feedTitle: snapshot.feedTitle,
             publishedAt: snapshot.publishedAt
-        )
-    }
-}
-
-enum ReaderArticleContentLoader {
-    static func loadInput(
-        articleID: UUID,
-        modelContainer: ModelContainer
-    ) async -> ReaderArticleInput? {
-        await Task.detached(priority: .userInitiated) {
-            let context = ModelContext(modelContainer)
-            var descriptor = FetchDescriptor<Article>(
-                predicate: #Predicate<Article> { article in
-                    article.id == articleID
-                }
-            )
-            descriptor.fetchLimit = 1
-
-            guard let article = try? context.fetch(descriptor).first else {
-                return nil
-            }
-
-            let content = article.content
-            return ReaderArticleInput(
-                summary: article.summary,
-                content: content,
-                contentFingerprint: ReaderArticleTextFingerprint.make(from: content),
-                imageURL: article.imageURL,
-                link: article.link,
-                feedTitle: article.feed?.title,
-                publishedAt: article.publishedAt
-            )
-        }.value
-    }
-}
-
-/// Leichte Signatur für Reader-Updates. Sie fasst nur Felder an, die in den
-/// Listen-Fetches ohnehin geladen sind. Das große Textfeld `content` bleibt
-/// bewusst draußen, damit ein Artikelwechsel nicht schon beim SwiftUI-View-
-/// Aufbau schwere SwiftData-Faults auslöst.
-struct ReaderArticleObservationSignature: Equatable {
-    let summary: String?
-    let imageURL: String?
-    let offlineStateRaw: String
-    let offlineRequestedAt: Date?
-    let offlineSavedAt: Date?
-    let offlineErrorMessage: String?
-
-    static func make(from article: Article) -> ReaderArticleObservationSignature {
-        ReaderArticleObservationSignature(
-            summary: article.summary,
-            imageURL: article.imageURL,
-            offlineStateRaw: article.offlineStateRaw,
-            offlineRequestedAt: article.offlineRequestedAt,
-            offlineSavedAt: article.offlineSavedAt,
-            offlineErrorMessage: article.offlineErrorMessage
         )
     }
 }
@@ -160,12 +77,6 @@ struct ReaderPreparedArticle: Sendable {
             publishedAt: nil
         )
     )
-
-    init(article: Article) {
-        // Synchroner Pfad fuer Tests und Diagnose; extrahiert die Werte aus dem
-        // Modell und parst danach ueber den reinen Eingabe-Initializer.
-        self.init(input: ReaderArticleInput.make(from: article))
-    }
 
     /// Reiner, thread-sicherer Build aus bereits extrahierten Eingabewerten.
     /// Hier laeuft das HTML-Parsing und die Lesezeit-Berechnung — darf vom
