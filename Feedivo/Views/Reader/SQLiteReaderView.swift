@@ -706,6 +706,12 @@ private struct ReaderModeContent: View {
                     .padding(.top, articleTopPadding)
                     .padding(.bottom, articleBottomPadding)
                 }
+                // Nur die ScrollView bekommt pro Artikel eine neue Identitaet, damit
+                // beim Wechsel wieder oben gestartet wird. Der uebergeordnete
+                // SQLiteReaderView (und sein SQLiteReaderState) bleibt bewusst
+                // erhalten — sonst wuerde snapshot bei jedem Wechsel neu auf nil
+                // starten und der ProgressView-Flash zurueckkehren.
+                .id(articleID)
             }
         }
         .task(id: articleID) {

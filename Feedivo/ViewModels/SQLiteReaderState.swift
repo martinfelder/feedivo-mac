@@ -29,8 +29,13 @@ final class SQLiteReaderState {
         loadedArticleID = articleID
         isLoading = true
         errorMessage = nil
-        snapshot = nil
-        preparedArticle = .empty
+        // Bewusst KEIN Zuruecksetzen von snapshot/preparedArticle: der bereits
+        // sichtbare Artikel bleibt stehen, bis der neue geladen ist (wie NetNewsWire
+        // die WKWebView weiterzeigt). Das vermeidet den Spinner-Flash bei jedem
+        // Artikelwechsel und bei force-Reloads (Stern/Gelesen). Der ProgressView
+        // erscheint dadurch nur noch beim allerersten Laden (snapshot == nil).
+        // Die finale Zuweisung unten ersetzt snapshot und preparedArticle gemeinsam,
+        // sodass Kopf und Inhalt nie zu verschiedenen Artikeln gehoeren.
 
         let loadToken = UUID()
         activeLoadToken = loadToken
@@ -82,6 +87,14 @@ final class SQLiteReaderState {
             self.activeLoadTask = nil
             self.activeLoadToken = loadToken
         }
+    }
+
+    /// Nur fuer Tests: wartet, bis der aktuell laufende Ladevorgang abgeschlossen ist.
+    /// Produktionscode braucht das nicht — dort treibt SwiftUI die Aktualisierung ueber
+    /// die @Observable-Bindings an. Im synchronen Testkontext gibt es keinen solchen
+    /// Antrieb, deshalb muss der Task hier explizit abgewartet werden.
+    func waitForActiveLoad() async {
+        await activeLoadTask?.value
     }
 
     func toggleRead(database: FeedivoDatabase) {

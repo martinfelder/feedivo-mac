@@ -130,7 +130,6 @@ struct ContentView: View {
                 onSnapshotChange: handleSQLiteArticleSnapshotChange,
                 onCreateRule: requestRuleCreation
             )
-            .id(selectedSQLiteArticleID)
 
         }
         .onChange(of: sidebarSelection, handleSidebarSelectionChange)
