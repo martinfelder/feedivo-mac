@@ -1,5 +1,4 @@
 import Foundation
-import SwiftData
 
 enum SidebarUnreadCount {
     static func badgeText(for count: Int) -> String? {
@@ -50,49 +49,6 @@ enum SmartFolderSidebarBadgeKind: Equatable {
     case starred
     case hidden
     case saved
-
-    init?(folder: SmartFolder) {
-        let conditions = (folder.conditions ?? []).sorted { $0.sortOrder < $1.sortOrder }
-
-        if RuleMatchMode.normalized(folder.matchModeRaw) == .all,
-           conditions.count == 1,
-           let condition = conditions.first,
-           condition.fieldRaw == SmartFolderConditionField.status.rawValue,
-           condition.operatorRaw == SmartFolderConditionOperator.is.rawValue,
-           let statusValue = SmartFolderStatusValue(rawValue: condition.value) {
-            switch statusValue {
-            case .unread:
-                self = .unread
-                return
-            case .starred:
-                self = .starred
-                return
-            case .hidden:
-                self = .hidden
-                return
-            case .read, .archived:
-                break
-            }
-        }
-
-        if RuleMatchMode.normalized(folder.matchModeRaw) == .any,
-           conditions.count == 2,
-           conditions.allSatisfy({ condition in
-               condition.fieldRaw == SmartFolderConditionField.status.rawValue
-                   && condition.operatorRaw == SmartFolderConditionOperator.is.rawValue
-           }) {
-            let values = Set(conditions.map(\.value))
-            if values == Set([
-                SmartFolderStatusValue.starred.rawValue,
-                SmartFolderStatusValue.archived.rawValue
-            ]) {
-                self = .saved
-                return
-            }
-        }
-
-        return nil
-    }
 
     init?(folder: SQLiteSmartFolderSnapshot) {
         if folder.matchMode == .all,
