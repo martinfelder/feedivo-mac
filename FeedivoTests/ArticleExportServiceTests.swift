@@ -5,15 +5,17 @@ import Testing
 
 struct ArticleExportServiceTests {
     @Test func markdownExportEnthaeltMetadatenUndLesbarenArtikeltext() {
-        let article = Article(
-            title: "Swift & RSS",
-            link: "https://example.com/swift-rss",
-            summary: "Kurze Zusammenfassung",
-            content: "<h2>Untertitel</h2><p>Ein <strong>lesbarer</strong> Absatz.</p><blockquote>Zitat</blockquote><ul><li>Erster Punkt</li></ul>",
-            publishedAt: Date(timeIntervalSince1970: 1_700_000_000)
+        let snapshot = ArticleExportSnapshot(
+            sqliteSnapshot: makeReaderSnapshot(
+                title: "Swift & RSS",
+                link: "https://example.com/swift-rss",
+                summary: "Kurze Zusammenfassung",
+                content: "<h2>Untertitel</h2><p>Ein <strong>lesbarer</strong> Absatz.</p><blockquote>Zitat</blockquote><ul><li>Erster Punkt</li></ul>",
+                publishedAt: Date(timeIntervalSince1970: 1_700_000_000)
+            )
         )
 
-        let markdown = ArticleExportService.markdown(for: article)
+        let markdown = ArticleExportService.markdown(for: snapshot)
 
         #expect(markdown.contains("# Swift & RSS"))
         #expect(markdown.contains("Link: https://example.com/swift-rss"))
@@ -24,15 +26,17 @@ struct ArticleExportServiceTests {
     }
 
     @Test func markdownExportBevorzugtOfflineContentVorFeedContentUndSummary() {
-        let article = Article(
-            title: "Offline",
-            summary: "Summary",
-            content: "Feed Content"
+        let snapshot = ArticleExportSnapshot(
+            sqliteSnapshot: makeReaderSnapshot(
+                title: "Offline",
+                summary: "Summary",
+                content: "Feed Content",
+                offlineStateRaw: ArticleOfflineState.fullText.rawValue,
+                offlineContent: "<p>Gespeicherter Volltext</p>"
+            )
         )
-        article.offlineState = .fullText
-        article.offlineContent = "<p>Gespeicherter Volltext</p>"
 
-        let markdown = ArticleExportService.markdown(for: article)
+        let markdown = ArticleExportService.markdown(for: snapshot)
 
         #expect(markdown.contains("Gespeicherter Volltext"))
         #expect(!markdown.contains("Feed Content"))
@@ -40,12 +44,14 @@ struct ArticleExportServiceTests {
     }
 
     @Test func markdownExportVerarbeitetUnvollstaendigesHTMLOhneAppKitHTMLImporter() {
-        let article = Article(
-            title: "Kaputtes HTML",
-            content: "<article><p>Absatz &amp; Text<script>window.crash()</script><blockquote>Zitat"
+        let snapshot = ArticleExportSnapshot(
+            sqliteSnapshot: makeReaderSnapshot(
+                title: "Kaputtes HTML",
+                content: "<article><p>Absatz &amp; Text<script>window.crash()</script><blockquote>Zitat"
+            )
         )
 
-        let markdown = ArticleExportService.markdown(for: article)
+        let markdown = ArticleExportService.markdown(for: snapshot)
 
         #expect(markdown.contains("Absatz & Text"))
         #expect(markdown.contains("> Zitat"))
@@ -53,22 +59,26 @@ struct ArticleExportServiceTests {
     }
 
     @Test func defaultFilenameBereinigtArtikeltitelFuerDateisystem() {
-        let article = Article(title: "Swift/RSS: Was ist neu?")
+        let snapshot = ArticleExportSnapshot(
+            sqliteSnapshot: makeReaderSnapshot(title: "Swift/RSS: Was ist neu?")
+        )
 
-        #expect(ArticleExportService.defaultFilename(for: article) == "Swift-RSS- Was ist neu.md")
+        #expect(ArticleExportService.defaultFilename(for: snapshot) == "Swift-RSS- Was ist neu.md")
     }
 
     @Test func markdownExportKannMetadatenAusblenden() {
-        let article = Article(
-            title: "Swift & RSS",
-            link: "https://example.com/swift-rss",
-            summary: "Kurze Zusammenfassung",
-            content: "<p>Artikeltext</p>",
-            publishedAt: Date(timeIntervalSince1970: 1_700_000_000)
+        let snapshot = ArticleExportSnapshot(
+            sqliteSnapshot: makeReaderSnapshot(
+                title: "Swift & RSS",
+                link: "https://example.com/swift-rss",
+                summary: "Kurze Zusammenfassung",
+                content: "<p>Artikeltext</p>",
+                publishedAt: Date(timeIntervalSince1970: 1_700_000_000)
+            )
         )
 
         let text = ArticleExportService.text(
-            for: ArticleExportSnapshot(article: article),
+            for: snapshot,
             options: ArticleExportOptions(format: .markdown, includesMetadata: false)
         )
 
@@ -123,15 +133,17 @@ struct ArticleExportServiceTests {
     }
 
     @Test func plainTextExportEnthaeltKeineMarkdownSyntax() {
-        let article = Article(
-            title: "Swift & RSS",
-            link: "https://example.com/swift-rss",
-            summary: "Kurze Zusammenfassung",
-            content: "<h2>Untertitel</h2><p>Ein <strong>lesbarer</strong> Absatz.</p>"
+        let snapshot = ArticleExportSnapshot(
+            sqliteSnapshot: makeReaderSnapshot(
+                title: "Swift & RSS",
+                link: "https://example.com/swift-rss",
+                summary: "Kurze Zusammenfassung",
+                content: "<h2>Untertitel</h2><p>Ein <strong>lesbarer</strong> Absatz.</p>"
+            )
         )
 
         let text = ArticleExportService.text(
-            for: ArticleExportSnapshot(article: article),
+            for: snapshot,
             options: ArticleExportOptions(format: .plainText, includesMetadata: true)
         )
 
@@ -143,15 +155,17 @@ struct ArticleExportServiceTests {
     }
 
     @Test func htmlExportEscapedTitelUndMetadaten() {
-        let article = Article(
-            title: "Swift <RSS>",
-            link: "https://example.com/swift-rss",
-            summary: "Kurze Zusammenfassung",
-            content: "<p>Ein <strong>lesbarer</strong> Absatz.</p>"
+        let snapshot = ArticleExportSnapshot(
+            sqliteSnapshot: makeReaderSnapshot(
+                title: "Swift <RSS>",
+                link: "https://example.com/swift-rss",
+                summary: "Kurze Zusammenfassung",
+                content: "<p>Ein <strong>lesbarer</strong> Absatz.</p>"
+            )
         )
 
         let html = ArticleExportService.text(
-            for: ArticleExportSnapshot(article: article),
+            for: snapshot,
             options: ArticleExportOptions(format: .html, includesMetadata: true)
         )
 
@@ -163,14 +177,16 @@ struct ArticleExportServiceTests {
     }
 
     @Test func htmlExportRendertUnsichereMetadatenLinksNurAlsText() {
-        let article = Article(
-            title: "Unsicherer Link",
-            link: "javascript:alert(1)",
-            content: "<p>Artikeltext</p>"
+        let snapshot = ArticleExportSnapshot(
+            sqliteSnapshot: makeReaderSnapshot(
+                title: "Unsicherer Link",
+                link: "javascript:alert(1)",
+                content: "<p>Artikeltext</p>"
+            )
         )
 
         let html = ArticleExportService.text(
-            for: ArticleExportSnapshot(article: article),
+            for: snapshot,
             options: ArticleExportOptions(format: .html, includesMetadata: true)
         )
 
@@ -179,13 +195,15 @@ struct ArticleExportServiceTests {
     }
 
     @Test func htmlExportErhaeltSichereArtikelbilder() {
-        let article = Article(
-            title: "Bild",
-            content: #"<p>Intro</p><img src="https://example.com/photo.jpg" alt="Foto" onclick="bad()">"#
+        let snapshot = ArticleExportSnapshot(
+            sqliteSnapshot: makeReaderSnapshot(
+                title: "Bild",
+                content: #"<p>Intro</p><img src="https://example.com/photo.jpg" alt="Foto" onclick="bad()">"#
+            )
         )
 
         let html = ArticleExportService.text(
-            for: ArticleExportSnapshot(article: article),
+            for: snapshot,
             options: ArticleExportOptions(format: .html, includesMetadata: false)
         )
 
@@ -194,13 +212,15 @@ struct ArticleExportServiceTests {
     }
 
     @Test func offlineBildPaketSchreibtMarkdownPfadeRelativUndZipptAssets() async throws {
-        let article = Article(
-            title: "Bilder Export",
-            content: #"<p>Intro</p><img src="https://example.com/photo.jpg">"#
+        let snapshot = ArticleExportSnapshot(
+            sqliteSnapshot: makeReaderSnapshot(
+                title: "Bilder Export",
+                content: #"<p>Intro</p><img src="https://example.com/photo.jpg">"#
+            )
         )
         let imageURL = try #require(URL(string: "https://example.com/photo.jpg"))
         let package = await ArticleExportPackageBuilder.package(
-            for: ArticleExportSnapshot(article: article),
+            for: snapshot,
             options: ArticleExportOptions(format: .markdown, includesMetadata: false),
             includesOfflineImages: true,
             imageLoader: StubArticleExportImageLoader(payloads: [
@@ -217,14 +237,16 @@ struct ArticleExportServiceTests {
     }
 
     @Test func offlineBildPaketSchreibtHTMLPfadeRelativUndMeldetFehlendeBilder() async throws {
-        let article = Article(
-            title: "HTML Export",
-            content: #"<p>Intro</p><img src="https://example.com/photo.jpg"><img src="https://example.com/missing.png">"#
+        let snapshot = ArticleExportSnapshot(
+            sqliteSnapshot: makeReaderSnapshot(
+                title: "HTML Export",
+                content: #"<p>Intro</p><img src="https://example.com/photo.jpg"><img src="https://example.com/missing.png">"#
+            )
         )
         let imageURL = try #require(URL(string: "https://example.com/photo.jpg"))
         let missingURL = try #require(URL(string: "https://example.com/missing.png"))
         let package = await ArticleExportPackageBuilder.package(
-            for: ArticleExportSnapshot(article: article),
+            for: snapshot,
             options: ArticleExportOptions(format: .html, includesMetadata: false),
             includesOfflineImages: true,
             imageLoader: StubArticleExportImageLoader(payloads: [
@@ -240,15 +262,17 @@ struct ArticleExportServiceTests {
     }
 
     @Test func offlineBildPaketMeldetFortschrittFuerBildDownloadUndArchiv() async throws {
-        let article = Article(
-            title: "Status Export",
-            content: #"<p>Intro</p><img src="https://example.com/photo.jpg">"#
+        let snapshot = ArticleExportSnapshot(
+            sqliteSnapshot: makeReaderSnapshot(
+                title: "Status Export",
+                content: #"<p>Intro</p><img src="https://example.com/photo.jpg">"#
+            )
         )
         let imageURL = try #require(URL(string: "https://example.com/photo.jpg"))
         var progressEvents: [ArticleExportPackageProgress] = []
 
         _ = await ArticleExportPackageBuilder.package(
-            for: ArticleExportSnapshot(article: article),
+            for: snapshot,
             options: ArticleExportOptions(format: .html, includesMetadata: false),
             includesOfflineImages: true,
             imageLoader: StubArticleExportImageLoader(payloads: [
@@ -270,11 +294,13 @@ struct ArticleExportServiceTests {
         let imageTags = (0 ..< count).map { offset in
             "<img src=\"https://example.com/bild-\(offset).png\">"
         }.joined()
-        let article = Article(title: "Export", content: "<p>Intro</p>\(imageTags)")
+        let snapshot = ArticleExportSnapshot(
+            sqliteSnapshot: makeReaderSnapshot(title: "Export", content: "<p>Intro</p>\(imageTags)")
+        )
 
         let loader = ConcurrencyTrackingArticleExportImageLoader()
         let package = await ArticleExportPackageBuilder.package(
-            for: ArticleExportSnapshot(article: article),
+            for: snapshot,
             options: ArticleExportOptions(format: .html, includesMetadata: false),
             includesOfflineImages: true,
             imageLoader: loader
@@ -305,14 +331,16 @@ struct ArticleExportServiceTests {
     }
 
     @Test func pdfExportErzeugtGueltigePDFDaten() {
-        let article = Article(
-            title: "PDF Export",
-            link: "https://example.com/pdf",
-            content: "<h2>Untertitel</h2><p>Ein lesbarer Absatz.</p>"
+        let snapshot = ArticleExportSnapshot(
+            sqliteSnapshot: makeReaderSnapshot(
+                title: "PDF Export",
+                link: "https://example.com/pdf",
+                content: "<h2>Untertitel</h2><p>Ein lesbarer Absatz.</p>"
+            )
         )
 
         let data = ArticleExportService.data(
-            for: ArticleExportSnapshot(article: article),
+            for: snapshot,
             options: ArticleExportOptions(format: .pdf, includesMetadata: true)
         )
 
@@ -352,22 +380,20 @@ struct ArticleExportServiceTests {
     }
 
     @Test func pdfHTMLEnthaeltReaderHeaderUndSichtbareMetadaten() {
-        let feed = Feed(url: "https://example.com/feed.xml", title: "Example Feed")
-        let article = Article(
-            title: "PDF Metadaten",
-            link: "https://example.com/pdf",
-            content: "<p>Ein lesbarer Absatz.</p>",
-            author: "Ada",
-            publishedAt: Date(timeIntervalSince1970: 1_700_000_000),
-            feed: feed
+        let snapshot = ArticleExportSnapshot(
+            sqliteSnapshot: makeReaderSnapshot(
+                feedTitle: "Example Feed",
+                title: "PDF Metadaten",
+                link: "https://example.com/pdf",
+                content: "<p>Ein lesbarer Absatz.</p>",
+                author: "Ada",
+                publishedAt: Date(timeIntervalSince1970: 1_700_000_000)
+            ),
+            tagNames: ["Swift", "RSS"]
         )
-        article.tags = [
-            Tag(name: "Swift"),
-            Tag(name: "RSS")
-        ]
 
         let html = ArticlePDFExportRenderer.html(
-            for: ArticleExportSnapshot(article: article),
+            for: snapshot,
             options: ArticleExportOptions(format: .pdf, includesMetadata: true),
             style: .default,
             assets: []
@@ -385,15 +411,17 @@ struct ArticleExportServiceTests {
     }
 
     @Test func pdfPaketLaedtArtikelbilderAutomatischUndBleibtEinPDFDokument() async throws {
-        let article = Article(
-            title: "PDF Bilder",
-            content: #"<p>Intro</p><img src="https://example.com/photo.png"><p>Outro</p>"#
+        let snapshot = ArticleExportSnapshot(
+            sqliteSnapshot: makeReaderSnapshot(
+                title: "PDF Bilder",
+                content: #"<p>Intro</p><img src="https://example.com/photo.png"><p>Outro</p>"#
+            )
         )
         let imageURL = try #require(URL(string: "https://example.com/photo.png"))
         var progressEvents: [ArticleExportPackageProgress] = []
 
         let package = await ArticleExportPackageBuilder.package(
-            for: ArticleExportSnapshot(article: article),
+            for: snapshot,
             options: ArticleExportOptions(format: .pdf, includesMetadata: false),
             includesOfflineImages: false,
             imageLoader: StubArticleExportImageLoader(payloads: [
@@ -418,13 +446,12 @@ struct ArticleExportServiceTests {
         let paragraphs = (1 ... 180)
             .map { "<p>Absatz \($0): Dies ist bewusst langer Exporttext für die PDF-Paginierung.</p>" }
             .joined()
-        let article = Article(
-            title: "Langer PDF Export",
-            content: paragraphs
+        let snapshot = ArticleExportSnapshot(
+            sqliteSnapshot: makeReaderSnapshot(title: "Langer PDF Export", content: paragraphs)
         )
 
         let data = ArticleExportService.data(
-            for: ArticleExportSnapshot(article: article),
+            for: snapshot,
             options: ArticleExportOptions(format: .pdf, includesMetadata: false)
         )
 
@@ -435,12 +462,11 @@ struct ArticleExportServiceTests {
         let paragraphs = (1 ... 120)
             .map { "<p>Absatz-\($0) Lesereihenfolge im PDF Export.</p>" }
             .joined()
-        let article = Article(
-            title: "PDF Reihenfolge",
-            content: paragraphs
+        let snapshot = ArticleExportSnapshot(
+            sqliteSnapshot: makeReaderSnapshot(title: "PDF Reihenfolge", content: paragraphs)
         )
         let data = ArticleExportService.data(
-            for: ArticleExportSnapshot(article: article),
+            for: snapshot,
             options: ArticleExportOptions(format: .pdf, includesMetadata: false)
         )
         let document = try #require(PDFDocument(data: data))
@@ -460,14 +486,16 @@ struct ArticleExportServiceTests {
     }
 
     @Test func docxExportErzeugtOpenXMLDokumentMitArtikeltext() {
-        let article = Article(
-            title: "DOCX & Export",
-            link: "https://example.com/docx",
-            content: "<p>Ein <strong>lesbarer</strong> Absatz.</p><script>bad()</script>"
+        let snapshot = ArticleExportSnapshot(
+            sqliteSnapshot: makeReaderSnapshot(
+                title: "DOCX & Export",
+                link: "https://example.com/docx",
+                content: "<p>Ein <strong>lesbarer</strong> Absatz.</p><script>bad()</script>"
+            )
         )
 
         let data = ArticleExportService.data(
-            for: ArticleExportSnapshot(article: article),
+            for: snapshot,
             options: ArticleExportOptions(format: .docx, includesMetadata: true)
         )
         let archiveText = String(decoding: data, as: UTF8.self)
@@ -481,13 +509,12 @@ struct ArticleExportServiceTests {
     }
 
     @Test func packageBuilderGibtPDFAlsNormalesDokumentZurueck() async {
-        let article = Article(
-            title: "PDF Paket",
-            content: "<p>Artikeltext</p>"
+        let snapshot = ArticleExportSnapshot(
+            sqliteSnapshot: makeReaderSnapshot(title: "PDF Paket", content: "<p>Artikeltext</p>")
         )
 
         let package = await ArticleExportPackageBuilder.package(
-            for: ArticleExportSnapshot(article: article),
+            for: snapshot,
             options: ArticleExportOptions(format: .pdf, includesMetadata: false),
             includesOfflineImages: true
         )
@@ -498,13 +525,12 @@ struct ArticleExportServiceTests {
     }
 
     @Test func packageBuilderGibtDOCXAlsNormalesDokumentZurueck() async {
-        let article = Article(
-            title: "DOCX Paket",
-            content: "<p>Artikeltext</p>"
+        let snapshot = ArticleExportSnapshot(
+            sqliteSnapshot: makeReaderSnapshot(title: "DOCX Paket", content: "<p>Artikeltext</p>")
         )
 
         let package = await ArticleExportPackageBuilder.package(
-            for: ArticleExportSnapshot(article: article),
+            for: snapshot,
             options: ArticleExportOptions(format: .docx, includesMetadata: false),
             includesOfflineImages: true
         )
@@ -515,20 +541,18 @@ struct ArticleExportServiceTests {
     }
 
     @Test func metadatenEnthaltenAutorFeedUndTags() {
-        let feed = Feed(url: "https://example.com/feed.xml", title: "Example Feed")
-        let article = Article(
-            title: "Metadaten",
-            link: "https://example.com/a",
-            author: "Ada",
-            feed: feed
+        let snapshot = ArticleExportSnapshot(
+            sqliteSnapshot: makeReaderSnapshot(
+                feedTitle: "Example Feed",
+                title: "Metadaten",
+                link: "https://example.com/a",
+                author: "Ada"
+            ),
+            tagNames: ["Swift", "RSS"]
         )
-        article.tags = [
-            Tag(name: "Swift"),
-            Tag(name: "RSS")
-        ]
 
         let markdown = ArticleExportService.text(
-            for: ArticleExportSnapshot(article: article),
+            for: snapshot,
             options: ArticleExportOptions(format: .markdown, includesMetadata: true)
         )
 
@@ -538,7 +562,9 @@ struct ArticleExportServiceTests {
     }
 
     @Test func defaultFilenameNutztGewaehltesFormat() {
-        let snapshot = ArticleExportSnapshot(article: Article(title: "Swift/RSS: Was ist neu?"))
+        let snapshot = ArticleExportSnapshot(
+            sqliteSnapshot: makeReaderSnapshot(title: "Swift/RSS: Was ist neu?")
+        )
 
         #expect(ArticleExportService.defaultFilename(for: snapshot, format: .markdown) == "Swift-RSS- Was ist neu.md")
         #expect(ArticleExportService.defaultFilename(for: snapshot, format: .plainText) == "Swift-RSS- Was ist neu.txt")
@@ -585,6 +611,44 @@ struct ArticleExportServiceTests {
         #expect(!ArticleExportFormat.dialogFormats.contains(.pdf))
         #expect(!ArticleExportFormat.dialogFormats.contains(.docx))
     }
+}
+
+/// Baut ein `ArticleReaderSnapshot` mit sinnvollen Defaults für Export-Tests.
+/// Nur die im jeweiligen Test tatsächlich relevanten Felder werden übergeben —
+/// der Rest bekommt neutrale/leere Werte, die vom Export-Code nicht ausgewertet
+/// werden (z. B. `id`, `feedID`, `arrivedAt`).
+private func makeReaderSnapshot(
+    feedTitle: String = "",
+    title: String,
+    link: String? = nil,
+    summary: String? = nil,
+    content: String? = nil,
+    imageURL: String? = nil,
+    author: String? = nil,
+    publishedAt: Date? = nil,
+    offlineStateRaw: String = ArticleOfflineState.none.rawValue,
+    offlineContent: String? = nil
+) -> ArticleReaderSnapshot {
+    ArticleReaderSnapshot(
+        id: "article-1",
+        feedID: "feed-1",
+        feedTitle: feedTitle,
+        title: title,
+        link: link,
+        summary: summary,
+        content: content,
+        imageURL: imageURL,
+        author: author,
+        publishedAt: publishedAt,
+        arrivedAt: Date(timeIntervalSince1970: 0),
+        estimatedReadingMinutes: nil,
+        isRead: false,
+        isStarred: false,
+        isArchived: false,
+        isHidden: false,
+        offlineStateRaw: offlineStateRaw,
+        offlineContent: offlineContent
+    )
 }
 
 private struct StubArticleExportImageLoader: ArticleExportImageDataLoading {
