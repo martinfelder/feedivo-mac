@@ -52,7 +52,6 @@ struct OPMLImportReviewView: View {
         ) { result in
             previewController.loadOPML(
                 from: result,
-                existingFeeds: [],
                 sqliteDatabase: feedivoDatabase,
                 feedViewModel: feedViewModel
             )
@@ -60,7 +59,6 @@ struct OPMLImportReviewView: View {
         .onDrop(of: [UTType.fileURL.identifier], isTargeted: $previewController.isDropTargeted) { providers in
             previewController.handleDroppedFiles(
                 providers,
-                existingFeeds: [],
                 sqliteDatabase: feedivoDatabase,
                 feedViewModel: feedViewModel
             )
@@ -479,7 +477,6 @@ struct OPMLImportReviewView: View {
                 let selectedFeeds = selectedRows.map(\.feed)
                 let result = try await feedViewModel.importOPMLFeeds(
                     selectedFeeds,
-                    existingFeeds: [],
                     allowsDuplicates: previewController.allowsDuplicates,
                     refreshAfterImport: previewController.refreshAfterImport,
                     refreshIntervalMinutes: backgroundRefreshIntervalMinutes,

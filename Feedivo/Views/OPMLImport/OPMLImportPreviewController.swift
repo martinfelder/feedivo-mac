@@ -256,7 +256,6 @@ final class OPMLImportPreviewController {
 
     func loadOPML(
         from result: Result<URL, Error>,
-        existingFeeds: [Feed],
         sqliteDatabase: FeedivoDatabase? = nil,
         feedViewModel: FeedViewModel
     ) {
@@ -292,7 +291,6 @@ final class OPMLImportPreviewController {
                     opmlFeeds.count)
                 rows = await feedViewModel.opmlImportPreviewRows(
                     for: opmlFeeds,
-                    existingFeeds: existingFeeds,
                     sqliteDatabase: sqliteDatabase,
                     onProgress: { progress in
                         self.previewProgressText = progress.displayText
@@ -334,7 +332,6 @@ final class OPMLImportPreviewController {
     /// FirstRun: Vorschau für manuell eingegebene Feed-Adresse (Einzel-Feed).
     func preparePreview(
         feeds: [OPMLFeed],
-        existingFeeds: [Feed],
         sqliteDatabase: FeedivoDatabase? = nil,
         feedViewModel: FeedViewModel,
         sourceText: String
@@ -351,7 +348,6 @@ final class OPMLImportPreviewController {
 
             rows = await feedViewModel.opmlImportPreviewRows(
                 for: feeds,
-                existingFeeds: existingFeeds,
                 sqliteDatabase: sqliteDatabase,
                 onProgress: { progress in
                     self.previewProgressText = progress.displayText
@@ -380,7 +376,6 @@ final class OPMLImportPreviewController {
     /// zu setzen; OPML übergibt nil.
     func handleDroppedFiles(
         _ providers: [NSItemProvider],
-        existingFeeds: [Feed],
         sqliteDatabase: FeedivoDatabase? = nil,
         feedViewModel: FeedViewModel,
         onValidFile: ((URL) -> Void)? = nil
@@ -406,7 +401,6 @@ final class OPMLImportPreviewController {
                 onValidFile?(url)
                 self.loadOPML(
                     from: .success(url),
-                    existingFeeds: existingFeeds,
                     sqliteDatabase: sqliteDatabase,
                     feedViewModel: feedViewModel
                 )

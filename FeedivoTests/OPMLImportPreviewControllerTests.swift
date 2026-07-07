@@ -210,7 +210,6 @@ struct OPMLImportPreviewControllerTests {
                     folderName: nil
                 )
             ],
-            existingFeeds: [],
             sqliteDatabase: database
         )
 

@@ -91,7 +91,6 @@ struct FirstRunWizardView: View {
             inputStep = .importOPML
             previewController.loadOPML(
                 from: result,
-                existingFeeds: [],
                 sqliteDatabase: feedivoDatabase,
                 feedViewModel: feedViewModel
             )
@@ -99,7 +98,6 @@ struct FirstRunWizardView: View {
         .onDrop(of: [UTType.fileURL.identifier], isTargeted: $previewController.isDropTargeted) { providers in
             previewController.handleDroppedFiles(
                 providers,
-                existingFeeds: [],
                 sqliteDatabase: feedivoDatabase,
                 feedViewModel: feedViewModel
             ) { _ in
@@ -970,7 +968,6 @@ struct FirstRunWizardView: View {
         inputStep = .addFeed
         previewController.preparePreview(
             feeds: [feed],
-            existingFeeds: [],
             sqliteDatabase: feedivoDatabase,
             feedViewModel: feedViewModel,
             sourceText: L10n.firstRunFeedAddressChecking
@@ -988,7 +985,6 @@ struct FirstRunWizardView: View {
                 let importedUnreachableCount = selectedRows.filter { $0.status == .unreachable }.count
                 let result = try await feedViewModel.importOPMLFeeds(
                     selectedFeeds,
-                    existingFeeds: [],
                     allowsDuplicates: previewController.allowsDuplicates,
                     refreshAfterImport: previewController.refreshAfterImport,
                     refreshIntervalMinutes: backgroundRefreshIntervalMinutes,
