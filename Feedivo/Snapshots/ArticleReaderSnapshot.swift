@@ -16,12 +16,6 @@ struct ReaderArticleTagMetadata: Identifiable, Equatable, Sendable {
         self.name = record.name
         self.colorHex = record.colorHex
     }
-
-    init(tag: Tag) {
-        self.id = tag.id.uuidString
-        self.name = tag.name
-        self.colorHex = tag.colorHex
-    }
 }
 
 struct ArticleReaderSnapshot: Equatable, Identifiable, Sendable {
