@@ -46,35 +46,4 @@ enum ArticleFilterOption: String, CaseIterable, Identifiable {
     static func resolved(from rawValue: String) -> ArticleFilterOption {
         ArticleFilterOption(rawValue: rawValue) ?? .all
     }
-
-    func filtered(
-        _ articles: [Article],
-        now: Date = Date(),
-        calendar: Calendar = .current
-    ) -> [Article] {
-        articles.filter { includes($0, now: now, calendar: calendar) }
-    }
-
-    func includes(
-        _ article: Article,
-        now: Date = Date(),
-        calendar: Calendar = .current
-    ) -> Bool {
-        switch self {
-        case .all:
-            return true
-        case .unread:
-            return !article.isRead
-        case .starred:
-            return article.isStarred
-        case .archived:
-            return article.isArchived
-        case .today:
-            guard let publishedAt = article.publishedAt else {
-                return false
-            }
-
-            return calendar.isDate(publishedAt, inSameDayAs: now)
-        }
-    }
 }
