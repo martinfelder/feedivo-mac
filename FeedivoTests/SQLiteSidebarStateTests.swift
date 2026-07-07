@@ -135,23 +135,23 @@ struct SQLiteSidebarStateTests {
         let database = try FeedivoDatabase.inMemoryForTests()
         let store = FeedStore(database: database)
         let articleStore = ArticleStore(database: database)
-        let readFeed = Feed(url: "https://read.example/feed.xml", title: "Read")
-        let unreadFeed = Feed(url: "https://unread.example/feed.xml", title: "Unread")
-        try store.save(FeedRecord(id: readFeed.id.uuidString, url: readFeed.url, title: readFeed.title, unreadCount: 0))
-        try store.save(FeedRecord(id: unreadFeed.id.uuidString, url: unreadFeed.url, title: unreadFeed.title, unreadCount: 4))
-        _ = try articleStore.upsert(ArticleUpsertInput(feedID: unreadFeed.id.uuidString, sourceID: "unread-a", title: "Unread A"))
-        _ = try articleStore.upsert(ArticleUpsertInput(feedID: unreadFeed.id.uuidString, sourceID: "unread-b", title: "Unread B"))
-        _ = try articleStore.upsert(ArticleUpsertInput(feedID: unreadFeed.id.uuidString, sourceID: "unread-c", title: "Unread C"))
-        _ = try articleStore.upsert(ArticleUpsertInput(feedID: unreadFeed.id.uuidString, sourceID: "unread-d", title: "Unread D"))
+        let readFeedID = UUID().uuidString
+        let unreadFeedID = UUID().uuidString
+        try store.save(FeedRecord(id: readFeedID, url: "https://read.example/feed.xml", title: "Read", unreadCount: 0))
+        try store.save(FeedRecord(id: unreadFeedID, url: "https://unread.example/feed.xml", title: "Unread", unreadCount: 4))
+        _ = try articleStore.upsert(ArticleUpsertInput(feedID: unreadFeedID, sourceID: "unread-a", title: "Unread A"))
+        _ = try articleStore.upsert(ArticleUpsertInput(feedID: unreadFeedID, sourceID: "unread-b", title: "Unread B"))
+        _ = try articleStore.upsert(ArticleUpsertInput(feedID: unreadFeedID, sourceID: "unread-c", title: "Unread C"))
+        _ = try articleStore.upsert(ArticleUpsertInput(feedID: unreadFeedID, sourceID: "unread-d", title: "Unread D"))
         let state = SQLiteSidebarState()
 
         state.load(database: database, showsReadFeeds: false)
 
         // Bei showsReadFeeds=false darf nur der ungelesene Feed in den Snapshots
         // auftauchen; die Sichtbarkeit ist vollständig in SQLite geklärt.
-        #expect(state.snapshots.map(\.id) == [unreadFeed.id.uuidString])
-        #expect(state.snapshot(forFeedID: unreadFeed.id.uuidString)?.unreadCount == 4)
-        #expect(state.snapshot(forFeedID: readFeed.id.uuidString) == nil)
+        #expect(state.snapshots.map(\.id) == [unreadFeedID])
+        #expect(state.snapshot(forFeedID: unreadFeedID)?.unreadCount == 4)
+        #expect(state.snapshot(forFeedID: readFeedID) == nil)
     }
 
     @MainActor
