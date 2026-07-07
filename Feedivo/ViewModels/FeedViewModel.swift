@@ -235,7 +235,7 @@ final class FeedViewModel {
     /// gibt es keinen produktiven Bestand, gegen den ein Duplikat geprüft werden
     /// könnte — die Methode bleibt dann ohne Wirkung.
     @MainActor
-    func addFeed(urlString: String, sqliteDatabase: FeedivoDatabase?) async {
+    func addFeed(urlString: String, sqliteDatabase: FeedivoDatabase?, folderName: String? = nil) async {
         let cleanedURL = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleanedURL.isEmpty else {
             errorMessage = L10n.feedErrorEmptyURL
@@ -262,7 +262,8 @@ final class FeedViewModel {
             let service = sqliteFeedActionService(for: sqliteDatabase)
             try await service.addFeed(
                 urlString: cleanedURL,
-                refreshIntervalMinutes: BackgroundRefreshSettings.defaultIntervalMinutes
+                refreshIntervalMinutes: BackgroundRefreshSettings.defaultIntervalMinutes,
+                folderName: folderName
             )
             SQLiteDataInvalidation.bumpStatusVersion()
         } catch let error as LocalizedError {

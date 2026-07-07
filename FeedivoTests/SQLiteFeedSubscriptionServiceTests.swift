@@ -549,4 +549,25 @@ struct SQLiteFeedSubscriptionServiceTests {
         // Feed uebernimmt den getippten (normalisierten) Namen.
         #expect(feed.folderName == "technik")
     }
+
+    @MainActor
+    @Test func actionServiceAddFeedReichtFolderNameDurch() async throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let service = SQLiteFeedActionService(
+            database: database,
+            fetchFeed: { url in
+                ParsedFeed(sourceURL: url, title: "Action Feed", description: nil, articles: [])
+            },
+            discoverFaviconURL: { _ in nil }
+        )
+
+        try await service.addFeed(
+            urlString: "https://example.com/feed.xml",
+            refreshIntervalMinutes: 60,
+            folderName: "Blogs"
+        )
+
+        let feed = try #require(try FeedStore(database: database).feeds().first)
+        #expect(feed.folderName == "Blogs")
+    }
 }

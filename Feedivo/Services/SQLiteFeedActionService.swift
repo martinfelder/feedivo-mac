@@ -27,7 +27,8 @@ struct SQLiteFeedActionService {
 
     func addFeed(
         urlString: String,
-        refreshIntervalMinutes: Int
+        refreshIntervalMinutes: Int,
+        folderName: String? = nil
     ) async throws {
         let service = SQLiteFeedSubscriptionService(
             database: database,
@@ -36,7 +37,8 @@ struct SQLiteFeedActionService {
         )
         _ = try await service.addFeed(
             urlString: urlString,
-            refreshIntervalMinutes: refreshIntervalMinutes
+            refreshIntervalMinutes: refreshIntervalMinutes,
+            folderName: folderName
         )
     }
 
