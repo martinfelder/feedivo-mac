@@ -778,7 +778,15 @@ struct AddFeedSheet: View {
     @State private var selectedFeedURL: String?
     @State private var discoveryErrorMessage: String?
     @State private var isDiscovering = false
+    @State private var selectedFolderName: String?
+    @State private var isCreatingNewFolder = false
+    @State private var newFolderName = ""
+    @State private var availableFolderNames: [String] = []
     private let discoveryService = FeedDiscoveryService()
+
+    // Sentinel-Tag fuer die "Neuer Ordner..."-Menueauswahl. Ein Zeichen, das in
+    // normalisierten Ordnernamen nicht vorkommen kann, vermeidet Kollisionen.
+    private static let newFolderSentinel = "\u{0}__new_folder__"
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -801,6 +809,10 @@ struct AddFeedSheet: View {
 
             if let selectedFeedPreview {
                 feedPreview(for: selectedFeedPreview)
+            }
+
+            if selectedFeedURL != nil {
+                folderSelectionRow
             }
 
             if let errorMessage = discoveryErrorMessage ?? viewModel.errorMessage {
@@ -837,6 +849,83 @@ struct AddFeedSheet: View {
         .frame(width: 520)
         .onChange(of: urlString) {
             resetDiscovery()
+        }
+        .onAppear {
+            loadAvailableFolderNames()
+        }
+    }
+
+    private var folderSelectionRow: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 12) {
+                Text(L10n.feedPropertiesFolder)
+                    .frame(width: 80, alignment: .leading)
+
+                Picker(L10n.feedPropertiesFolder, selection: folderPickerSelection) {
+                    Text(L10n.feedPropertiesNoFolder).tag(String?.none)
+
+                    ForEach(availableFolderNames, id: \.self) { name in
+                        Text(name).tag(String?.some(name))
+                    }
+
+                    Divider()
+
+                    Text(L10n.sidebarAddFeedNewFolder).tag(String?.some(Self.newFolderSentinel))
+                }
+                .labelsHidden()
+                .pickerStyle(.menu)
+
+                Spacer()
+            }
+
+            if isCreatingNewFolder {
+                TextField(L10n.sidebarAddFeedNewFolder, text: $newFolderName)
+                    .textFieldStyle(.roundedBorder)
+                    .disabled(isBusy)
+            }
+        }
+    }
+
+    // Binding, das die Sentinel-Auswahl in den "Neuer Ordner..."-Modus uebersetzt
+    // und sonst den gewaehlten Ordnernamen (bzw. nil) haelt.
+    private var folderPickerSelection: Binding<String?> {
+        Binding(
+            get: {
+                isCreatingNewFolder ? Self.newFolderSentinel : selectedFolderName
+            },
+            set: { newValue in
+                if newValue == Self.newFolderSentinel {
+                    isCreatingNewFolder = true
+                    selectedFolderName = nil
+                } else {
+                    isCreatingNewFolder = false
+                    newFolderName = ""
+                    selectedFolderName = newValue
+                }
+            }
+        )
+    }
+
+    // Effektiver Ordnername fuer das Abonnieren: im Neu-Modus der getippte Name,
+    // sonst der ausgewaehlte. Normalisierung (leer -> nil) uebernimmt der Service.
+    private var effectiveFolderName: String? {
+        isCreatingNewFolder ? newFolderName : selectedFolderName
+    }
+
+    private func loadAvailableFolderNames() {
+        guard let feedivoDatabase else {
+            return
+        }
+
+        do {
+            let folders = try FeedFolderStore(database: feedivoDatabase).folders()
+            let feeds = try FeedStore(database: feedivoDatabase).feeds()
+            availableFolderNames = FeedFolderOrganizer.folderNames(
+                feedFolderNames: feeds.map(\.folderName),
+                explicitFolderNames: folders.map { $0.name }
+            )
+        } catch {
+            availableFolderNames = []
         }
     }
 
@@ -1010,7 +1099,8 @@ struct AddFeedSheet: View {
     private func addFeed(urlString: String) async {
         await viewModel.addFeed(
             urlString: urlString,
-            sqliteDatabase: feedivoDatabase
+            sqliteDatabase: feedivoDatabase,
+            folderName: effectiveFolderName
         )
         if viewModel.errorMessage == nil {
             dismiss()

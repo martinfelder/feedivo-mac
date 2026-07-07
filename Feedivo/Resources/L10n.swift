@@ -10,6 +10,7 @@ enum L10n {
     static let sidebarAddFeedTitle = LocalizedStringKey("sidebar.addFeed.title")
     static let sidebarAddFeedDescription = LocalizedStringKey("sidebar.addFeed.description")
     static let sidebarAddFeedURLPlaceholder = LocalizedStringKey("sidebar.addFeed.url.placeholder")
+    static let sidebarAddFeedNewFolder = LocalizedStringKey("sidebar.addFeed.newFolder")
     static let feedDiscoveryResultsTitle = LocalizedStringKey("feedDiscovery.results.title")
     static let feedDiscoverySearchButton = LocalizedStringKey("feedDiscovery.search.button")
     static let sidebarFoldersSection = LocalizedStringKey("sidebar.folders.section")

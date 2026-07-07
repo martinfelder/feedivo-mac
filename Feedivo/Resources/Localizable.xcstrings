@@ -22467,6 +22467,34 @@
         }
       }
     },
+    "sidebar.addFeed.newFolder": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neuer Ordner…"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New Folder…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nouveau dossier…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nuova cartella…"
+          }
+        }
+      }
+    },
     "sidebar.addFeed.title": {
       "localizations": {
         "de": {
