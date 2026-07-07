@@ -6,9 +6,3 @@ struct FeedRefreshSnapshot: Sendable {
     var url: String
     var isNotificationEnabled: Bool = false
 }
-
-enum FeedBackgroundRefreshEvent: Sendable {
-    case batchStarted([UUID])
-    case feedSucceeded(UUID)
-    case feedFailed(UUID)
-}
