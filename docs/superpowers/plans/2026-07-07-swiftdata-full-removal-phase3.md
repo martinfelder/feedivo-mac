@@ -25,10 +25,13 @@
   `refreshAllFeedsMitSQLiteDatabaseNutztSQLiteFirstOhneDoppeltenAbruf` und
   `refreshAllFeedsMitSQLiteDatabaseMeldetFeedBenachrichtigungen` in `FeedViewModelTests.swift` sind
   nur unter Volllast flakey (vorbestehend, Phase 1 verifiziert).
-- **VERBINDLICHE Reihenfolge:** Task 24 (die 9 `@Model`-Dateien löschen) MUSS der letzte Task sein
-  — jeder andere Task muss zuerst abgeschlossen sein, weil erst dann keine Produktions- oder
-  Testdatei mehr auf `Article`/`Feed`/`FeedFolder`/`FeedLogEntry`/`Rule`/`RuleCondition`/
-  `SmartFolder`/`SmartFolderCondition`/`Tag` verweist.
+- **VERBINDLICHE Reihenfolge:** Task 30 (die 9 `@Model`-Dateien löschen) MUSS der letzte Task sein
+  — jeder andere Task (inkl. der nachträglich eingefügten Tasks 24–29) muss zuerst abgeschlossen
+  sein, weil erst dann keine Produktions- oder Testdatei mehr auf `Article`/`Feed`/`FeedFolder`/
+  `FeedLogEntry`/`Rule`/`RuleCondition`/`SmartFolder`/`SmartFolderCondition`/`Tag` verweist.
+  Innerhalb der Gruppe 24–29 gilt zusätzlich: Task 24 vor Task 27 (Task 27 ruft
+  `feedViewModel.opmlImportPreviewRows(...)` ohne `existingFeeds:` auf, ein Parameter, den erst
+  Task 24 entfernt).
 - Jeder Implementierer verifiziert vor dem Löschen erneut per `grep` (nicht nur Dateiname-Treffer,
   echte Aufrufe), genau wie in Phase 1/2 etabliert.
 - Fixture-Migration nutzt durchgängig bereits existierende SQLite-native Typen (keine neuen
@@ -3266,7 +3269,943 @@ git commit -m "Remove dead @Model-only tests: RuleCondition/SmartFolderCondition
 
 ---
 
-## Task 24: Die 9 `@Model`-Klassen löschen (letzter Task)
+## Tasks 24–29 (NACHTRAG): Verbleibende versteckte `@Model`-Abhängigkeiten
+
+**Warum diese Tasks existieren:** Der erste Versuch von Task 24 (ursprüngliche Nummerierung) wurde
+korrekt BLOCKED, weil sein Voraussetzungs-Grep 6 Produktionsdateien + 2 Testdateien mit echten,
+bisher übersehenen Referenzen auf die 9 `@Model`-Typen fand — zu umfangreich für "einen
+Compiler-Fehler, einen Ein-Zeilen-Fix". Diese 6 Tasks lösen das systematisch auf, bevor die
+Model-Löschung (jetzt Task 30) erneut versucht wird.
+
+---
+
+## Task 24: `FeedViewModel.swift` — letzte `@Model`-Reste entfernen
+
+**Files:**
+- Modify: `Feedivo/ViewModels/FeedViewModel.swift`
+- Modify: `FeedivoTests/FeedViewModelTests.swift`
+
+**Interfaces:**
+- Produces: `opmlImportPreviewRows(for:sqliteDatabase:onProgress:)` (ohne `existingFeeds:`),
+  `importOPMLFeeds(_:allowsDuplicates:refreshAfterImport:refreshIntervalMinutes:sqliteDatabase:)`
+  (ohne `existingFeeds:`/`context:`) bleiben als einzige Signaturen bestehen.
+  `addFeed(urlString:sqliteDatabase:)`, `refreshFeed(feedID:sqliteDatabase:)`,
+  `refreshAllFeeds(sqliteDatabase:)`, `deleteFeed(feedID:sqliteDatabase:)` bleiben unverändert.
+- Consumes: keine Abhängigkeiten von anderen Tasks in dieser Gruppe (24–29 sind untereinander
+  unabhängig, können in beliebiger Reihenfolge laufen — nur Task 30 muss nach allen sechs kommen).
+
+- [ ] **Step 1: Verifikation**
+
+Run: `grep -rn "unreadIncrement(for:\|opmlFeedsForExport(from:" Feedivo FeedivoTests`
+
+Erwartung: `unreadIncrement(for: [Article])` hat 0 Aufrufer außer der eigenen Definition und einem
+Test in `FeedViewModelTests.swift`. `opmlFeedsForExport(from: [Feed])` hat Aufrufer nur in
+`Feedivo/Views/OPMLExport/OPMLExportSheet.swift` (die dort selbst tot sind — wird in Task 26
+behandelt) und einem Test in `FeedViewModelTests.swift`. Falls ein weiterer, hier nicht genannter
+Aufrufer auftaucht: STOPPEN, BLOCKED melden.
+
+- [ ] **Step 2: `existingFeeds`/`context`-Parameter aus `opmlImportPreviewRows` entfernen**
+
+Von:
+
+```swift
+    /// OPML-Importvorschau. Reiner Delegator: die eigentliche Duplikat-Erkennung
+    /// und Erreichbarkeitsprüfung läuft im `SQLiteFeedSubscriptionService`, damit
+    /// `FeedViewModel` keine eigene Feed-Abruflogik mehr besitzt.
+    ///
+    /// `existingFeeds` ist ein verbleibender Legacy-Parameter und wird im
+    /// produktiven SQLite-Pfad ignoriert (alle produktiven Aufrufer übergeben
+    /// `[]`). Die Duplikat-Erkennung läuft ausschließlich gegen die SQLite-
+    /// Datenbank. Ohne `sqliteDatabase` liefert die Vorschau bewusst eine leere
+    /// Liste, weil es keinen produktiven Datenbestand gibt, gegen den geprüft
+    /// werden könnte.
+    @MainActor
+    func opmlImportPreviewRows(
+        for opmlFeeds: [OPMLFeed],
+        existingFeeds: [Feed] = [],
+        sqliteDatabase: FeedivoDatabase? = nil,
+        onProgress: ((OPMLImportPreviewProgress) -> Void)? = nil
+    ) async -> [OPMLImportPreviewRow] {
+```
+
+zu:
+
+```swift
+    /// OPML-Importvorschau. Reiner Delegator: die eigentliche Duplikat-Erkennung
+    /// und Erreichbarkeitsprüfung läuft im `SQLiteFeedSubscriptionService`, damit
+    /// `FeedViewModel` keine eigene Feed-Abruflogik mehr besitzt.
+    ///
+    /// Ohne `sqliteDatabase` liefert die Vorschau bewusst eine leere Liste, weil
+    /// es keinen produktiven Datenbestand gibt, gegen den geprüft werden könnte.
+    @MainActor
+    func opmlImportPreviewRows(
+        for opmlFeeds: [OPMLFeed],
+        sqliteDatabase: FeedivoDatabase? = nil,
+        onProgress: ((OPMLImportPreviewProgress) -> Void)? = nil
+    ) async -> [OPMLImportPreviewRow] {
+```
+
+- [ ] **Step 3: `existingFeeds`/`context`-Parameter aus `importOPMLFeeds` entfernen**
+
+Von:
+
+```swift
+    @MainActor
+    func importOPMLFeeds(
+        _ opmlFeeds: [OPMLFeed],
+        existingFeeds: [Feed],
+        allowsDuplicates: Bool = false,
+        refreshAfterImport: Bool = true,
+        refreshIntervalMinutes: Int = 60,
+        context: ModelContext? = nil,
+        sqliteDatabase: FeedivoDatabase? = nil
+    ) async throws -> OPMLImportResult {
+```
+
+zu:
+
+```swift
+    @MainActor
+    func importOPMLFeeds(
+        _ opmlFeeds: [OPMLFeed],
+        allowsDuplicates: Bool = false,
+        refreshAfterImport: Bool = true,
+        refreshIntervalMinutes: Int = 60,
+        sqliteDatabase: FeedivoDatabase? = nil
+    ) async throws -> OPMLImportResult {
+```
+
+(Der Methodenkörper referenziert `existingFeeds`/`context` an keiner Stelle — reine
+Signaturänderung, kein Verhaltensunterschied.)
+
+- [ ] **Step 4: `opmlFeedsForExport(from:)` entfernen**
+
+Entferne die komplette Methode:
+
+```swift
+    static func opmlFeedsForExport(from feeds: [Feed]) -> [OPMLFeed] {
+        feeds.map { feed in
+            OPMLFeed(
+                title: feed.title,
+                xmlURL: feed.url,
+                htmlURL: feed.siteURL,
+                folderName: feed.folderName,
+                description: feed.feedDescription,
+                tagNames: (feed.tags ?? []).map(\.name).sorted {
+                    $0.localizedCaseInsensitiveCompare($1) == .orderedAscending
+                }
+            )
+        }
+    }
+```
+
+(Lies den umgebenden Kontext, um die Methode exakt zu finden — sie folgt direkt nach
+`importOPMLFeeds` und vor der `// MARK: - Legacy SwiftData Compatibility`-Region bzw. den
+verbleibenden SQLite-Methoden, je nachdem was seit Task 15 an dieser Stelle übrig ist.)
+
+- [ ] **Step 5: `unreadIncrement(for:)` entfernen**
+
+Entferne die komplette Methode (inkl. ihres Doc-Kommentars):
+
+```swift
+    /// Anzahl neuer Artikel, die den Ungelesen-Zähler erhöhen: nur nicht
+    /// gelesene UND nicht versteckte. Konsistent zum addFeed-Pfad
+    /// (Z. 400) — verhindert Drift, sobald jemals Artikel mit isRead=true
+    /// importiert oder per Regel gelesen markiert werden.
+    static func unreadIncrement(for articles: [Article]) -> Int {
+        articles.filter { !$0.isRead && !$0.isHidden }.count
+    }
+```
+
+- [ ] **Step 6: `import SwiftData` entfernen**
+
+Run: `grep -n "ModelContext\|FetchDescriptor\|#Predicate\|\bArticle\b\|\bFeed\b\|\bRule\b\|\bTag\b\|\bFeedLogEntry\b" Feedivo/ViewModels/FeedViewModel.swift`
+
+Erwartung: 0 Treffer außerhalb von Kommentaren. Falls bestätigt: `import SwiftData` vom Dateikopf
+entfernen.
+
+- [ ] **Step 7: Build prüfen**
+
+Run: `xcodebuild build -project Feedivo.xcodeproj -scheme Feedivo -destination 'platform=macOS' 2>&1 | tail -80`
+Erwartung: Build schlägt fehl (Tests + Aufrufer in `OPMLImportPreviewController.swift`/
+`FirstRunWizardView.swift`/`OPMLImportReviewView.swift` übergeben noch `existingFeeds:`/`context:`)
+— das ist erwartet, wird teils von diesem Task (Tests), teils von Task 27 (die drei Views) behoben.
+Falls du Task 27 noch nicht abgeschlossen siehst, committe trotzdem nach Step 9 — die verbleibenden
+Fehler in `OPMLImportPreviewController.swift`/den Views sind Task 27s Aufgabe, nicht deine.
+
+- [ ] **Step 8: `FeedViewModelTests.swift` anpassen**
+
+Lies die Datei. Entferne die beiden kompletten `@Test func`-Blöcke
+`opmlFeedsForExportNutztAktuelleFeedMetadaten` (konstruiert `Feed(...)`/`Tag(...)`, testet die jetzt
+gelöschte `opmlFeedsForExport`) und `unreadIncrementZaehltKeineGelesenenOderVerstecktenArtikel`
+(konstruiert `Article(...)`, testet die jetzt gelöschte `unreadIncrement`) — beide haben kein
+lebendiges Äquivalent (sie testen reine `@Model`-Feldzugriffe ohne SQLite-Bezug).
+
+Entferne außerdem in den 3 verbleibenden Aufrufen von `importOPMLFeeds(...)` das Argument
+`existingFeeds: [],` (die Tests `importOPMLFeedsSpiegeltNeueFeedsNachSQLite`,
+`importOPMLFeedsWirftWennBereitsEinImportLaeuft`,
+`importOPMLFeedsAktualisiertNeueFeedsDirektNachDemImport` — suche mit
+`grep -n "existingFeeds:" FeedivoTests/FeedViewModelTests.swift` nach den exakten Fundstellen).
+
+- [ ] **Step 9: Build und gescopte Tests**
+
+Run: `xcodebuild build -project Feedivo.xcodeproj -scheme Feedivo -destination 'platform=macOS' 2>&1 | tail -80`
+Erwartung: BUILD SUCCEEDED, falls Task 27 bereits gelaufen ist — sonst siehe Step 7s Hinweis.
+
+Run: `xcodebuild test -project Feedivo.xcodeproj -scheme Feedivo -destination 'platform=macOS' -only-testing:FeedivoTests/FeedViewModelTests 2>&1 | tail -100`
+Erwartung: grün außer den 2 bekannten, nur unter Volllast flakey Tests (siehe Global Constraints) —
+falls der Build wegen Task 27 noch nicht abgeschlossen fehlschlägt, kann dieser Testlauf
+möglicherweise nicht ausgeführt werden; in diesem Fall im Report vermerken.
+
+- [ ] **Step 10: Commit**
+
+```bash
+git add Feedivo/ViewModels/FeedViewModel.swift FeedivoTests/FeedViewModelTests.swift
+git commit -m "Remove remaining Feed/Article-typed API and import SwiftData from FeedViewModel"
+```
+
+---
+
+## Task 25: `AppIconBadgeService.swift` — toten `[Feed]`-Pfad entfernen
+
+**Files:**
+- Modify: `Feedivo/Services/AppIconBadgeService.swift`
+
+**Interfaces:**
+- Produces: `unreadCount(in snapshots: [FeedSidebarSnapshot])`, `updateBadge(unreadCount:isEnabled:updater:)`
+  bleiben unverändert (genutzt von `ContentView.swift:588`).
+- Consumes: keine Abhängigkeiten von anderen Tasks in dieser Gruppe.
+
+- [ ] **Step 1: Verifikation**
+
+Run: `grep -rn "AppIconBadgeService\.unreadCount(in:\|AppIconBadgeService\.updateBadge(for:" Feedivo FeedivoTests`
+
+Erwartung: 0 Treffer für den `[Feed]`-typisierten `unreadCount(in:)`/`updateBadge(for:)` (nur der
+`[FeedSidebarSnapshot]`-Overload wird produktiv und in Tests genutzt — bereits in Task 21
+bestätigt). Falls ein Treffer auftaucht: STOPPEN, BLOCKED melden.
+
+- [ ] **Step 2: Tote `[Feed]`-Methoden entfernen**
+
+Ersetze den kompletten Inhalt von `Feedivo/Services/AppIconBadgeService.swift`:
+
+```swift
+import AppKit
+
+protocol AppIconBadgeUpdating {
+    var badgeLabel: String? { get set }
+}
+
+struct DockTileBadgeUpdater: AppIconBadgeUpdating {
+    var badgeLabel: String? {
+        get {
+            NSApp.dockTile.badgeLabel
+        }
+        set {
+            NSApp.dockTile.badgeLabel = newValue
+        }
+    }
+}
+
+enum AppIconBadgeService {
+    /// SQLite-Variante: Dock-Badge direkt aus `FeedSidebarSnapshot.unreadCount`
+    /// (Summe). ContentView hält keine SwiftData-`Feed`-Liste mehr vor, deshalb
+    /// wird der Badge aus den SQLite-Sidebar-Snapshots gespeist.
+    static func unreadCount(in snapshots: [FeedSidebarSnapshot]) -> Int {
+        snapshots.reduce(0) { total, snapshot in
+            total + snapshot.unreadCount
+        }
+    }
+
+    static func updateBadge<Updater: AppIconBadgeUpdating>(
+        unreadCount: Int,
+        isEnabled: Bool,
+        updater: inout Updater
+    ) {
+        guard isEnabled, unreadCount > 0 else {
+            updater.badgeLabel = nil
+            return
+        }
+
+        updater.badgeLabel = "\(unreadCount)"
+    }
+}
+```
+
+- [ ] **Step 3: Build prüfen**
+
+Run: `xcodebuild build -project Feedivo.xcodeproj -scheme Feedivo -destination 'platform=macOS' 2>&1 | tail -50`
+Erwartung: BUILD SUCCEEDED.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add Feedivo/Services/AppIconBadgeService.swift
+git commit -m "Remove dead Feed-typed overloads from AppIconBadgeService"
+```
+
+---
+
+## Task 26: `OPMLExportSheet.swift` — toten `[Feed]`-Init entfernen
+
+**Files:**
+- Modify: `Feedivo/Views/OPMLExport/OPMLExportSheet.swift`
+
+**Interfaces:**
+- Produces: `init(onClose:)`, `init(opmlFeeds:onClose:)` bleiben unverändert (genutzt von
+  `ContentView.swift`/`FeedManagementOrganizerView.swift` bzw. `SettingsView.swift`).
+- Consumes: keine Abhängigkeiten von anderen Tasks in dieser Gruppe.
+
+- [ ] **Step 1: Verifikation**
+
+Run: `grep -rn "OPMLExportSheet(feeds:" Feedivo FeedivoTests`
+
+Erwartung: 0 Treffer. Falls ein Treffer auftaucht: STOPPEN, BLOCKED melden.
+
+- [ ] **Step 2: `feeds: [Feed]`-Property + toten Init entfernen, `loadExportFeeds()` vereinfachen**
+
+Von:
+
+```swift
+struct OPMLExportSheet: View {
+    @Environment(\.feedivoDatabase) private var feedivoDatabase
+
+    let feeds: [Feed]
+    let onClose: () -> Void
+```
+
+zu:
+
+```swift
+struct OPMLExportSheet: View {
+    @Environment(\.feedivoDatabase) private var feedivoDatabase
+
+    let onClose: () -> Void
+```
+
+Von:
+
+```swift
+    init(feeds: [Feed], onClose: @escaping () -> Void) {
+        self.feeds = feeds
+        self.onClose = onClose
+        _opmlFeeds = State(initialValue: FeedViewModel.opmlFeedsForExport(from: feeds))
+    }
+
+    /// SQLite-only Initializer für ContentView: keine SwiftData-`Feed`-Liste
+    /// mehr. Die Export-Feeds werden beim Erscheinen des Sheets aus
+    /// `FeedStore.opmlFeedsForExport()` geladen (siehe `.task`/`loadExportFeeds`).
+    init(onClose: @escaping () -> Void) {
+        self.feeds = []
+        self.onClose = onClose
+        _opmlFeeds = State(initialValue: [])
+    }
+
+    init(opmlFeeds: [OPMLFeed], onClose: @escaping () -> Void) {
+        self.feeds = []
+        self.onClose = onClose
+        _opmlFeeds = State(initialValue: opmlFeeds)
+    }
+```
+
+zu:
+
+```swift
+    /// SQLite-only Initializer für ContentView: Die Export-Feeds werden beim
+    /// Erscheinen des Sheets aus `FeedStore.opmlFeedsForExport()` geladen
+    /// (siehe `.task`/`loadExportFeeds`).
+    init(onClose: @escaping () -> Void) {
+        self.onClose = onClose
+        _opmlFeeds = State(initialValue: [])
+    }
+
+    init(opmlFeeds: [OPMLFeed], onClose: @escaping () -> Void) {
+        self.onClose = onClose
+        _opmlFeeds = State(initialValue: opmlFeeds)
+    }
+```
+
+Von:
+
+```swift
+    private func loadExportFeeds() {
+        // SQLite-only Pfad (ContentView): keine SwiftData-Feeds übergeben →
+        // direkt aus `FeedStore.opmlFeedsForExport()` laden. Bereits vorbelegte
+        // opmlFeeds (SettingsView via init(opmlFeeds:)) werden nicht überschrieben.
+        if feeds.isEmpty && opmlFeeds.isEmpty {
+            if let feedivoDatabase {
+                opmlFeeds = (try? FeedStore(database: feedivoDatabase).opmlFeedsForExport()) ?? []
+            }
+            return
+        }
+
+        let swiftDataFeeds = FeedViewModel.opmlFeedsForExport(from: feeds)
+        guard !feeds.isEmpty else {
+            return
+        }
+
+        guard let feedivoDatabase else {
+            opmlFeeds = swiftDataFeeds
+            return
+        }
+
+        do {
+            let descriptionsByURL = Dictionary(
+                uniqueKeysWithValues: swiftDataFeeds.map { ($0.xmlURL, $0.description) }
+            )
+            opmlFeeds = try FeedStore(database: feedivoDatabase)
+                .opmlFeedsForExport()
+                .map { feed in
+                    OPMLFeed(
+                        title: feed.title,
+                        xmlURL: feed.xmlURL,
+                        htmlURL: feed.htmlURL,
+                        folderName: feed.folderName,
+                        description: descriptionsByURL[feed.xmlURL] ?? feed.description,
+                        tagNames: feed.tagNames
+                    )
+                }
+        } catch {
+            opmlFeeds = swiftDataFeeds
+        }
+    }
+```
+
+zu:
+
+```swift
+    private func loadExportFeeds() {
+        // Bereits vorbelegte opmlFeeds (SettingsView via init(opmlFeeds:))
+        // werden nicht überschrieben.
+        guard opmlFeeds.isEmpty else {
+            return
+        }
+
+        if let feedivoDatabase {
+            opmlFeeds = (try? FeedStore(database: feedivoDatabase).opmlFeedsForExport()) ?? []
+        }
+    }
+```
+
+- [ ] **Step 3: Build prüfen**
+
+Run: `xcodebuild build -project Feedivo.xcodeproj -scheme Feedivo -destination 'platform=macOS' 2>&1 | tail -50`
+Erwartung: BUILD SUCCEEDED.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add Feedivo/Views/OPMLExport/OPMLExportSheet.swift
+git commit -m "Remove dead Feed-typed init and simplify loadExportFeeds in OPMLExportSheet"
+```
+
+---
+
+## Task 27: `OPMLImportPreviewController.swift` — toten `existingFeeds`-Parameter entfernen
+
+**Files:**
+- Modify: `Feedivo/Views/OPMLImport/OPMLImportPreviewController.swift`
+- Modify: `Feedivo/Views/FirstRun/FirstRunWizardView.swift`
+- Modify: `Feedivo/Views/OPMLImport/OPMLImportReviewView.swift`
+
+**Interfaces:**
+- Produces: `loadOPML(from:sqliteDatabase:feedViewModel:)`,
+  `preparePreview(feeds:sqliteDatabase:feedViewModel:sourceText:)`,
+  `handleDroppedFiles(_:sqliteDatabase:feedViewModel:onValidFile:)` (alle OHNE `existingFeeds:`)
+  werden die einzigen Signaturen.
+- Consumes: Task 24 muss VOR diesem Task abgeschlossen sein, weil dieser Task
+  `feedViewModel.opmlImportPreviewRows(...)` ohne `existingFeeds:` aufruft — Task 24 entfernt genau
+  diesen Parameter aus `FeedViewModel.opmlImportPreviewRows`. Falls Task 24 noch nicht gelaufen ist:
+  STOPPEN, BLOCKED melden (nicht mit veralteter Signatur weiterarbeiten).
+
+- [ ] **Step 1: Verifikation**
+
+Run: `grep -n "existingFeeds" Feedivo/Views/OPMLImport/OPMLImportPreviewController.swift Feedivo/Views/FirstRun/FirstRunWizardView.swift Feedivo/Views/OPMLImport/OPMLImportReviewView.swift`
+
+Erwartung: alle Treffer entweder `existingFeeds: [Feed]` in einer der 3 zu ändernden
+Funktionssignaturen, `existingFeeds: existingFeeds` in einem der beiden internen Aufrufe von
+`feedViewModel.opmlImportPreviewRows(...)`, oder `existingFeeds: []` in einem der 5
+Produktions-Aufrufe (`FirstRunWizardView.swift` ×3, `OPMLImportReviewView.swift` ×2). Falls ein
+Aufrufer eine NICHT-leere `[Feed]`-Liste übergibt: STOPPEN, BLOCKED melden.
+
+- [ ] **Step 2: `existingFeeds: [Feed]` aus den 3 Funktionssignaturen entfernen**
+
+In `Feedivo/Views/OPMLImport/OPMLImportPreviewController.swift`:
+
+Von:
+
+```swift
+    func loadOPML(
+        from result: Result<URL, Error>,
+        existingFeeds: [Feed],
+        sqliteDatabase: FeedivoDatabase? = nil,
+        feedViewModel: FeedViewModel
+    ) {
+```
+
+zu:
+
+```swift
+    func loadOPML(
+        from result: Result<URL, Error>,
+        sqliteDatabase: FeedivoDatabase? = nil,
+        feedViewModel: FeedViewModel
+    ) {
+```
+
+Von:
+
+```swift
+                rows = await feedViewModel.opmlImportPreviewRows(
+                    for: opmlFeeds,
+                    existingFeeds: existingFeeds,
+                    sqliteDatabase: sqliteDatabase,
+                    onProgress: { progress in
+                        self.previewProgressText = progress.displayText
+                        self.sourceDescription = progress.displayText
+                    }
+                )
+```
+
+(innerhalb von `loadOPML`) zu:
+
+```swift
+                rows = await feedViewModel.opmlImportPreviewRows(
+                    for: opmlFeeds,
+                    sqliteDatabase: sqliteDatabase,
+                    onProgress: { progress in
+                        self.previewProgressText = progress.displayText
+                        self.sourceDescription = progress.displayText
+                    }
+                )
+```
+
+Von:
+
+```swift
+    func preparePreview(
+        feeds: [OPMLFeed],
+        existingFeeds: [Feed],
+        sqliteDatabase: FeedivoDatabase? = nil,
+        feedViewModel: FeedViewModel,
+        sourceText: String
+    ) {
+```
+
+zu:
+
+```swift
+    func preparePreview(
+        feeds: [OPMLFeed],
+        sqliteDatabase: FeedivoDatabase? = nil,
+        feedViewModel: FeedViewModel,
+        sourceText: String
+    ) {
+```
+
+Von (innerhalb von `preparePreview`):
+
+```swift
+            rows = await feedViewModel.opmlImportPreviewRows(
+                for: feeds,
+                existingFeeds: existingFeeds,
+                sqliteDatabase: sqliteDatabase,
+                onProgress: { progress in
+                    self.previewProgressText = progress.displayText
+                    self.sourceDescription = progress.displayText
+                }
+            )
+```
+
+zu:
+
+```swift
+            rows = await feedViewModel.opmlImportPreviewRows(
+                for: feeds,
+                sqliteDatabase: sqliteDatabase,
+                onProgress: { progress in
+                    self.previewProgressText = progress.displayText
+                    self.sourceDescription = progress.displayText
+                }
+            )
+```
+
+Von:
+
+```swift
+    func handleDroppedFiles(
+        _ providers: [NSItemProvider],
+        existingFeeds: [Feed],
+        sqliteDatabase: FeedivoDatabase? = nil,
+        feedViewModel: FeedViewModel,
+        onValidFile: ((URL) -> Void)? = nil
+    ) -> Bool {
+```
+
+zu:
+
+```swift
+    func handleDroppedFiles(
+        _ providers: [NSItemProvider],
+        sqliteDatabase: FeedivoDatabase? = nil,
+        feedViewModel: FeedViewModel,
+        onValidFile: ((URL) -> Void)? = nil
+    ) -> Bool {
+```
+
+Innerhalb von `handleDroppedFiles` ruft die Methode intern `self.loadOPML(from:existingFeeds:...)`
+auf — finde diesen Aufruf per `grep -n "self.loadOPML(" Feedivo/Views/OPMLImport/OPMLImportPreviewController.swift`
+und entferne dort ebenfalls das `existingFeeds: existingFeeds,`-Argument, da `loadOPML` den
+Parameter nach dieser Änderung nicht mehr hat.
+
+- [ ] **Step 3: Build prüfen**
+
+Run: `xcodebuild build -project Feedivo.xcodeproj -scheme Feedivo -destination 'platform=macOS' 2>&1 | tail -80`
+Erwartung: Build schlägt fehl (die 5 Produktions-Aufrufer übergeben noch `existingFeeds: []`) —
+nächster Schritt behebt das.
+
+- [ ] **Step 4: Aufrufer in `FirstRunWizardView.swift` anpassen**
+
+Run: `grep -n "existingFeeds: \[\]," Feedivo/Views/FirstRun/FirstRunWizardView.swift`
+
+Für jeden der 3 gefundenen Aufrufe (`previewController.loadOPML(...)`,
+`previewController.handleDroppedFiles(...)`, `previewController.preparePreview(...)`) die Zeile
+`existingFeeds: [],` komplett entfernen (nicht nur den Wert, die ganze Zeile inkl. Komma).
+
+- [ ] **Step 5: Aufrufer in `OPMLImportReviewView.swift` anpassen**
+
+Run: `grep -n "existingFeeds: \[\]," Feedivo/Views/OPMLImport/OPMLImportReviewView.swift`
+
+Für jeden der 2 gefundenen Aufrufe (`previewController.loadOPML(...)`,
+`previewController.handleDroppedFiles(...)`) die Zeile `existingFeeds: [],` komplett entfernen.
+
+**Wichtig:** In beiden Dateien gibt es je einen WEITEREN `existingFeeds: [],`-Aufruf, der zu
+`feedViewModel.importOPMLFeeds(...)` gehört (NICHT zu `OPMLImportPreviewController`) — dieser
+Aufruf wird von Task 24 behandelt (dort wird `existingFeeds` aus `importOPMLFeeds`s Signatur
+entfernt), nicht von diesem Task. Falls Task 24 bereits gelaufen ist, entferne auch diese beiden
+Vorkommen hier (`FirstRunWizardView.swift` bei `feedViewModel.importOPMLFeeds(...)`,
+`OPMLImportReviewView.swift` ebenso) — falls Task 24 noch nicht gelaufen ist, lass sie stehen und
+vermerke das im Report.
+
+- [ ] **Step 6: Build und gescopte Tests**
+
+Run: `xcodebuild build -project Feedivo.xcodeproj -scheme Feedivo -destination 'platform=macOS' 2>&1 | tail -80`
+Erwartung: BUILD SUCCEEDED (vorausgesetzt Task 24 ist ebenfalls fertig — falls nicht, siehe Step 5s
+Hinweis, dann bleibt ggf. noch ein Fehler bei `importOPMLFeeds`-Aufrufen bestehen, das ist Task 24s
+Aufgabe).
+
+Run: `xcodebuild test -project Feedivo.xcodeproj -scheme Feedivo -destination 'platform=macOS' -only-testing:FeedivoTests/OPMLImportPreviewControllerTests 2>&1 | tail -80`
+Erwartung: alle Tests grün.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add Feedivo/Views/OPMLImport/OPMLImportPreviewController.swift Feedivo/Views/FirstRun/FirstRunWizardView.swift Feedivo/Views/OPMLImport/OPMLImportReviewView.swift
+git commit -m "Remove dead existingFeeds parameter from OPMLImportPreviewController"
+```
+
+---
+
+## Task 28: `ArticleExportService.swift` — toten `Article`-Pfad entfernen
+
+**Files:**
+- Modify: `Feedivo/Services/ArticleExportService.swift`
+
+**Interfaces:**
+- Produces: `ArticleExportSnapshot.init(sqliteSnapshot:tagNames:)`, `markdown(for snapshot:
+  ArticleExportSnapshot)`, `defaultFilename(for snapshot: ArticleExportSnapshot)` (und der
+  `format:`-Overload) bleiben unverändert.
+- Consumes: keine Abhängigkeiten von anderen Tasks in dieser Gruppe.
+
+- [ ] **Step 1: Verifikation**
+
+Run: `grep -rn "ArticleExportSnapshot(article:\|ArticleExportService\.markdown(for: article\|markdown(for article: Article\|defaultFilename(for article: Article" Feedivo FeedivoTests`
+
+Erwartung: `ArticleExportSnapshot.init(article: Article)` wird nur intern von
+`markdown(for article: Article)` und `defaultFilename(for article: Article)` aufgerufen — diese
+beiden Methoden selbst haben 0 externe Aufrufer (weder Produktion noch Tests, Task 18 hat bereits
+alle Tests auf die Snapshot-Overloads migriert). Falls ein externer Aufrufer auftaucht: STOPPEN,
+BLOCKED melden.
+
+- [ ] **Step 2: Tote `Article`-typisierte API entfernen**
+
+Von:
+
+```swift
+    init(article: Article) {
+        self.title = article.title
+        self.link = article.link
+        self.summary = article.summary
+        self.content = article.content
+        self.author = article.author
+        self.publishedAt = article.publishedAt
+        self.feedTitle = article.feed?.title
+        self.tagNames = (article.tags ?? []).map(\.name).sorted {
+            $0.localizedCaseInsensitiveCompare($1) == .orderedAscending
+        }
+        self.offlineState = article.offlineState
+        self.offlineContent = article.offlineContent
+    }
+
+    init(sqliteSnapshot: ArticleReaderSnapshot, tagNames: [String] = []) {
+```
+
+zu:
+
+```swift
+    init(sqliteSnapshot: ArticleReaderSnapshot, tagNames: [String] = []) {
+```
+
+Von:
+
+```swift
+enum ArticleExportService {
+    static func markdown(for article: Article) -> String {
+        markdown(for: ArticleExportSnapshot(article: article))
+    }
+
+    static func markdown(for snapshot: ArticleExportSnapshot) -> String {
+```
+
+zu:
+
+```swift
+enum ArticleExportService {
+    static func markdown(for snapshot: ArticleExportSnapshot) -> String {
+```
+
+Von:
+
+```swift
+    static func defaultFilename(for article: Article) -> String {
+        defaultFilename(for: ArticleExportSnapshot(article: article), format: .markdown)
+    }
+
+    static func defaultFilename(for snapshot: ArticleExportSnapshot) -> String {
+```
+
+zu:
+
+```swift
+    static func defaultFilename(for snapshot: ArticleExportSnapshot) -> String {
+```
+
+- [ ] **Step 3: Build prüfen**
+
+Run: `xcodebuild build -project Feedivo.xcodeproj -scheme Feedivo -destination 'platform=macOS' 2>&1 | tail -50`
+Erwartung: BUILD SUCCEEDED.
+
+- [ ] **Step 4: Gescopte Tests**
+
+Run: `xcodebuild test -project Feedivo.xcodeproj -scheme Feedivo -destination 'platform=macOS' -only-testing:FeedivoTests/ArticleExportServiceTests 2>&1 | tail -100`
+Erwartung: alle Tests grün (Task 18 hat bereits alle Tests auf die Snapshot-Overloads migriert).
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add Feedivo/Services/ArticleExportService.swift
+git commit -m "Remove dead Article-typed API from ArticleExportService"
+```
+
+---
+
+## Task 29: `ArticleRetentionSettings.swift` — toten `Feed`-Pfad entfernen
+
+**Files:**
+- Modify: `Feedivo/Services/ArticleRetentionSettings.swift`
+- Modify: `Feedivo/Services/ArticleRetentionCleanupService.swift`
+- Modify: `FeedivoTests/ArticleRetentionCleanupServiceTests.swift`
+
+**Interfaces:**
+- Produces: `clampedRetentionDays(_:)`, `cutoffDate(retentionDays:now:)`,
+  `clampedMinimumArticlesPerFeed(_:)` bleiben unverändert (genutzt von
+  `ArticleRetentionCleanupService.swift`).
+- Consumes: keine Abhängigkeiten von anderen Tasks in dieser Gruppe.
+
+- [ ] **Step 1: Verifikation**
+
+Run: `grep -rn "ArticleRetentionSettings\.effectiveConfiguration\|ArticleRetentionSettings\.canImportParsedArticle\|ArticleRetentionEffectiveConfiguration" Feedivo FeedivoTests`
+
+Erwartung: `effectiveConfiguration(for: Feed...)`/`canImportParsedArticle(_:for: Feed...)` haben 0
+Aufrufer irgendwo (auch nicht in Tests). `ArticleRetentionEffectiveConfiguration` wird nur noch
+von der (in Step 3 zu entfernenden) `init(_ configuration: ArticleRetentionEffectiveConfiguration)`
+in `ArticleRetentionCleanupService.swift` referenziert — und dieser Init selbst hat 0 Aufrufer
+(verifiziere mit `grep -n "ArticleRetentionConfiguration(" Feedivo/Services/ArticleRetentionCleanupService.swift`
+und prüfe, dass beide Aufrufstellen die `isEnabled:retentionDays:minimumArticlesPerFeed:includeProtectedArticles:now:`-Variante
+nutzen, nicht die `ArticleRetentionEffectiveConfiguration`-Variante). Falls einer dieser Befunde
+abweicht: STOPPEN, BLOCKED melden.
+
+- [ ] **Step 2: Tote `Feed`-typisierte Methoden aus `ArticleRetentionSettings.swift` entfernen**
+
+Von:
+
+```swift
+    static func effectiveConfiguration(
+        for feed: Feed,
+        defaults: UserDefaults = .standard,
+        now: Date = Date()
+    ) -> ArticleRetentionEffectiveConfiguration {
+        if feed.articleRetentionOverridesGlobalSetting {
+            return ArticleRetentionEffectiveConfiguration(
+                isEnabled: feed.articleRetentionIsEnabled,
+                retentionDays: feed.articleRetentionDays,
+                minimumArticlesPerFeed: feed.articleRetentionMinimumArticles,
+                includeProtectedArticles: feed.articleRetentionIncludesProtectedArticles,
+                now: now
+            )
+        }
+
+        return ArticleRetentionEffectiveConfiguration(
+            isEnabled: defaults.bool(forKey: isEnabledKey),
+            retentionDays: storedRetentionDays(in: defaults),
+            minimumArticlesPerFeed: storedMinimumArticlesPerFeed(in: defaults),
+            includeProtectedArticles: defaults.bool(forKey: includesProtectedArticlesKey),
+            now: now
+        )
+    }
+
+    static func canImportParsedArticle(
+        _ parsedArticle: ParsedArticle,
+        for feed: Feed,
+        defaults: UserDefaults = .standard,
+        now: Date = Date()
+    ) -> Bool {
+        let configuration = effectiveConfiguration(
+            for: feed,
+            defaults: defaults,
+            now: now
+        )
+
+        guard configuration.isEnabled else {
+            return true
+        }
+
+        guard let publishedAt = parsedArticle.publishedAt else {
+            return true
+        }
+
+        return publishedAt >= configuration.cutoffDate
+    }
+
+    private static func storedRetentionDays(in defaults: UserDefaults) -> Int {
+```
+
+zu:
+
+```swift
+    private static func storedRetentionDays(in defaults: UserDefaults) -> Int {
+```
+
+Und entferne am Dateiende die komplette Struct:
+
+```swift
+struct ArticleRetentionEffectiveConfiguration {
+    let isEnabled: Bool
+    let cutoffDate: Date
+    let minimumArticlesPerFeed: Int
+    let includeProtectedArticles: Bool
+
+    init(
+        isEnabled: Bool,
+        retentionDays: Int,
+        minimumArticlesPerFeed: Int,
+        includeProtectedArticles: Bool,
+        now: Date
+    ) {
+        self.isEnabled = isEnabled
+        self.cutoffDate = ArticleRetentionSettings.cutoffDate(
+            retentionDays: retentionDays,
+            now: now
+        )
+        self.minimumArticlesPerFeed = ArticleRetentionSettings.clampedMinimumArticlesPerFeed(minimumArticlesPerFeed)
+        self.includeProtectedArticles = includeProtectedArticles
+    }
+}
+```
+
+(diese Struct steht am Ende der Datei, nach dem `enum ArticleRetentionSettings`-Block — komplett
+löschen, inkl. der schließenden Klammer des Enums direkt davor bleibt natürlich erhalten).
+
+- [ ] **Step 3: Toten `init(_ configuration: ArticleRetentionEffectiveConfiguration)` aus `ArticleRetentionCleanupService.swift` entfernen**
+
+Von:
+
+```swift
+    init(_ configuration: ArticleRetentionEffectiveConfiguration) {
+        self.isEnabled = configuration.isEnabled
+        self.cutoffDate = configuration.cutoffDate
+        self.minimumArticlesPerFeed = configuration.minimumArticlesPerFeed
+        self.includeProtectedArticles = configuration.includeProtectedArticles
+    }
+
+    init(
+        isEnabled: Bool,
+        retentionDays: Int,
+        minimumArticlesPerFeed: Int,
+        includeProtectedArticles: Bool,
+        now: Date
+    ) {
+```
+
+zu:
+
+```swift
+    init(
+        isEnabled: Bool,
+        retentionDays: Int,
+        minimumArticlesPerFeed: Int,
+        includeProtectedArticles: Bool,
+        now: Date
+    ) {
+```
+
+- [ ] **Step 4: Build prüfen**
+
+Run: `xcodebuild build -project Feedivo.xcodeproj -scheme Feedivo -destination 'platform=macOS' 2>&1 | tail -50`
+Erwartung: BUILD SUCCEEDED.
+
+- [ ] **Step 5: `ArticleRetentionCleanupServiceTests.swift` — 6 `Feed(...)`-Fixtures migrieren**
+
+Lies die Datei. In den 5 Tests, die noch `Feed(url: "https://example.com/feed.xml", title:
+"Feed")` (oder `customFeed`/`inheritedFeed` in einem Test mit zwei Feeds — macht 6
+Konstruktionsaufrufe über 5 Tests) konstruieren, wird das `Feed`-Objekt ausschließlich für
+`.id.uuidString`, `.url`, `.title` gebraucht, um einen `FeedRecord(id:url:title:...)` zu befüllen.
+Ersetze jede `let feed = Feed(url: "...", title: "...")`-Konstruktion durch direkte Literale, z. B.:
+
+```swift
+let feedID = UUID().uuidString
+let feedURL = "https://example.com/feed.xml"
+let feedTitle = "Feed"
+```
+
+und ersetze nachfolgende Verwendungen von `feed.id.uuidString`/`feed.url`/`feed.title` durch
+`feedID`/`feedURL`/`feedTitle`. Für den Test mit zwei Feeds (`customFeed`/`inheritedFeed`) entsprechend
+zwei Variablenpaare anlegen. Behalte die exakten URL-/Titel-Werte aus der bisherigen Konstruktion,
+damit sich am Testverhalten nichts ändert.
+
+- [ ] **Step 6: `import SwiftData` prüfen**
+
+Run: `grep -n "\bFeed(\|ModelContext\|ModelContainer" FeedivoTests/ArticleRetentionCleanupServiceTests.swift`
+
+Falls 0 Treffer: `import SwiftData` (falls noch vorhanden) aus dem Dateikopf entfernen.
+
+- [ ] **Step 7: Build und gescopte Tests**
+
+Run: `xcodebuild build -project Feedivo.xcodeproj -scheme Feedivo -destination 'platform=macOS' 2>&1 | tail -50`
+Erwartung: BUILD SUCCEEDED.
+
+Run: `xcodebuild test -project Feedivo.xcodeproj -scheme Feedivo -destination 'platform=macOS' -only-testing:FeedivoTests/ArticleRetentionCleanupServiceTests 2>&1 | tail -80`
+Erwartung: alle 7 Tests grün.
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add Feedivo/Services/ArticleRetentionSettings.swift Feedivo/Services/ArticleRetentionCleanupService.swift FeedivoTests/ArticleRetentionCleanupServiceTests.swift
+git commit -m "Remove dead Feed-typed retention API and migrate test fixtures to plain literals"
+```
+
+---
+
+## Task 30: Die 9 `@Model`-Klassen löschen (letzter Task)
 
 **Files:**
 - Delete: `Feedivo/Models/Article.swift`
