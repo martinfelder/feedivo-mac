@@ -6,15 +6,6 @@ private struct CapturingBadgeUpdater: AppIconBadgeUpdating {
 }
 
 struct AppIconBadgeServiceTests {
-    @Test func unreadCountZaehltGespeicherteFeedZaehler() {
-        let firstFeed = Feed(url: "https://example.com/first.xml", title: "Erster Feed")
-        let secondFeed = Feed(url: "https://example.com/second.xml", title: "Zweiter Feed")
-        firstFeed.unreadCount = 2
-        secondFeed.unreadCount = 3
-
-        #expect(AppIconBadgeService.unreadCount(in: [firstFeed, secondFeed]) == 5)
-    }
-
     // T2/T9: SQLite-Variante — ContentView speist den Dock-Badge aus
     // `FeedSidebarSnapshot.unreadCount` (Summe), ohne SwiftData-`Feed`-Objekte.
     @Test func unreadCountAusSidebarSnapshotsSummiert() {
