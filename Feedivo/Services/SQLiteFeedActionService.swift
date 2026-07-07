@@ -36,8 +36,7 @@ struct SQLiteFeedActionService {
         )
         _ = try await service.addFeed(
             urlString: urlString,
-            refreshIntervalMinutes: refreshIntervalMinutes,
-            context: nil
+            refreshIntervalMinutes: refreshIntervalMinutes
         )
     }
 

@@ -552,42 +552,6 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(firstRunSource.contains("sqliteDatabase: feedivoDatabase"))
     }
 
-    @Test func feedSubscriptionServiceDokumentiertSwiftDataBridgeAlsUebergang() throws {
-        let projectRoot = projectRootURL()
-        let serviceSource = try source(
-            at: "Feedivo/Services/SQLiteFeedSubscriptionService.swift",
-            projectRoot: projectRoot
-        )
-        let bridgeStart = try #require(serviceSource.range(of: "private func saveSwiftDataBridge"))
-        let bridgeDocumentationStart = serviceSource.index(
-            bridgeStart.lowerBound,
-            offsetBy: -420,
-            limitedBy: serviceSource.startIndex
-        ) ?? serviceSource.startIndex
-        let bridgeDocumentationSource = serviceSource[bridgeDocumentationStart ..< bridgeStart.lowerBound]
-
-        #expect(bridgeDocumentationSource.contains("Übergangs-Relationships"))
-        #expect(bridgeDocumentationSource.contains("SwiftData"))
-    }
-
-    @Test func swiftDataBridgeIstPerFeatureFlagAbschaltbar() throws {
-        let projectRoot = projectRootURL()
-        let settingsSource = try source(
-            at: "Feedivo/Services/SwiftDataBridgeSettings.swift",
-            projectRoot: projectRoot
-        )
-        let serviceSource = try source(
-            at: "Feedivo/Services/SQLiteFeedSubscriptionService.swift",
-            projectRoot: projectRoot
-        )
-
-        #expect(settingsSource.contains("static let isEnabledKey = \"swiftDataBridge.isEnabled\""))
-        #expect(settingsSource.contains("static let defaultIsEnabled = false"))
-        #expect(serviceSource.contains("SwiftDataBridgeSettings.isEnabledKey"))
-        #expect(serviceSource.contains("saveSwiftDataBridge"))
-        #expect(serviceSource.contains("SwiftDataBridgeSettings.defaultIsEnabled"))
-    }
-
     @Test func feedViewModelLeitetAddUndImportAnSQLiteSubscriptionServiceWeiter() throws {
         let projectRoot = projectRootURL()
         let viewModelSource = try source(at: "Feedivo/ViewModels/FeedViewModel.swift", projectRoot: projectRoot)

@@ -247,8 +247,7 @@ final class FeedViewModel {
             opmlFeeds,
             allowsDuplicates: allowsDuplicates,
             refreshAfterImport: refreshAfterImport,
-            refreshIntervalMinutes: refreshIntervalMinutes,
-            context: context
+            refreshIntervalMinutes: refreshIntervalMinutes
         )
         if !sqliteResult.failedFeedTitles.isEmpty {
             errorMessage = L10n.feedErrorRefreshAllPartial(

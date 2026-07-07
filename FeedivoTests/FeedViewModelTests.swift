@@ -46,29 +46,6 @@ struct FeedViewModelTests {
     }
 
     @Test func importOPMLFeedsSpiegeltNeueFeedsNachSQLite() async throws {
-        // Legacy-Bridge-Erwartung: assertiert die SwiftData-Brücken-Spiegelung
-        // des OPML-Feeds. Bridge ist standardmäßig aus (Task 2), hier explizit
-        // zugeschaltet.
-        let defaults = UserDefaults.standard
-        let previousBridgeSetting = defaults.object(forKey: SwiftDataBridgeSettings.isEnabledKey)
-        defaults.set(true, forKey: SwiftDataBridgeSettings.isEnabledKey)
-        defer {
-            if let previousBridgeSetting {
-                defaults.set(previousBridgeSetting, forKey: SwiftDataBridgeSettings.isEnabledKey)
-            } else {
-                defaults.removeObject(forKey: SwiftDataBridgeSettings.isEnabledKey)
-            }
-        }
-        let container = try ModelContainer(
-            for: Feed.self,
-            Article.self,
-            Tag.self,
-            Rule.self,
-            RuleCondition.self,
-            FeedLogEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
         let sqliteDatabase = try FeedivoDatabase.inMemoryForTests()
         let viewModel = makeViewModel(fetchFeed: { urlString in
             ParsedFeed(
@@ -101,7 +78,6 @@ struct FeedViewModelTests {
             ],
             existingFeeds: [],
             refreshAfterImport: true,
-            context: context,
             sqliteDatabase: sqliteDatabase
         )
 
@@ -113,8 +89,6 @@ struct FeedViewModelTests {
             limit: 10
         )
 
-        #expect(try context.fetch(FetchDescriptor<Feed>()).count == 1)
-        #expect(try context.fetch(FetchDescriptor<Article>()).isEmpty)
         #expect(result.imported == 1)
         #expect(feed.folderName == "News")
         #expect(rows.map(\.title) == ["Erster Artikel"])
@@ -122,16 +96,6 @@ struct FeedViewModelTests {
 
     @MainActor
     @Test func importOPMLFeedsWirftWennBereitsEinImportLaeuft() async throws {
-        let container = try ModelContainer(
-            for: Feed.self,
-            Article.self,
-            Tag.self,
-            Rule.self,
-            RuleCondition.self,
-            FeedLogEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
         let viewModel = makeViewModel()
 
         // isLoading simuliert einen laufenden Import/Refresh — der Aufruf darf
@@ -143,44 +107,23 @@ struct FeedViewModelTests {
             try await viewModel.importOPMLFeeds(
                 [OPMLFeed(title: "Blockiert", xmlURL: "https://example.com/x.xml", htmlURL: nil, folderName: nil)],
                 existingFeeds: [],
-                refreshAfterImport: false,
-                context: context
+                refreshAfterImport: false
             )
         }
     }
 
     @MainActor
     @Test func importOPMLFeedsAktualisiertNeueFeedsDirektNachDemImport() async throws {
-        // Legacy-Bridge-Erwartung: assertiert die SwiftData-Brücken-Spiegelung
-        // des importierten Feeds. Bridge ist standardmäßig aus (Task 2), hier
-        // explizit zugeschaltet.
         let defaults = UserDefaults.standard
-        let previousBridgeSetting = defaults.object(forKey: SwiftDataBridgeSettings.isEnabledKey)
-        defaults.set(true, forKey: SwiftDataBridgeSettings.isEnabledKey)
         let previousStatusVersion = defaults.object(forKey: SQLiteDataInvalidation.statusVersionKey) as? Int
         let initialStatusVersion = defaults.integer(forKey: SQLiteDataInvalidation.statusVersionKey)
         defer {
-            if let previousBridgeSetting {
-                defaults.set(previousBridgeSetting, forKey: SwiftDataBridgeSettings.isEnabledKey)
-            } else {
-                defaults.removeObject(forKey: SwiftDataBridgeSettings.isEnabledKey)
-            }
             if let previousStatusVersion {
                 defaults.set(previousStatusVersion, forKey: SQLiteDataInvalidation.statusVersionKey)
             } else {
                 defaults.removeObject(forKey: SQLiteDataInvalidation.statusVersionKey)
             }
         }
-        let container = try ModelContainer(
-            for: Feed.self,
-            Article.self,
-            Tag.self,
-            Rule.self,
-            RuleCondition.self,
-            FeedLogEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
         let sqliteDatabase = try FeedivoDatabase.inMemoryForTests()
         let viewModel = makeViewModel(
             fetchFeed: { urlString in
@@ -217,12 +160,9 @@ struct FeedViewModelTests {
                 )
             ],
             existingFeeds: [],
-            context: context,
             sqliteDatabase: sqliteDatabase
         )
 
-        let feeds = try context.fetch(FetchDescriptor<Feed>())
-        let bridgeFeed = try #require(feeds.first)
         let sqliteFeed = try #require(try FeedStore(database: sqliteDatabase).feed(url: "https://example.com/imported.xml"))
         let rows = try TimelineStore(database: sqliteDatabase).articles(
             scope: .feed(sqliteFeed.id),
@@ -232,13 +172,6 @@ struct FeedViewModelTests {
         )
 
         #expect(result.imported == 1)
-        #expect(feeds.count == 1)
-        #expect(bridgeFeed.url == "https://example.com/imported.xml")
-        #expect(bridgeFeed.title == "Aktualisierter Import Feed")
-        #expect(bridgeFeed.siteURL == "https://example.com/")
-        #expect(bridgeFeed.folderName == "News")
-        #expect(bridgeFeed.unreadCount == 1)
-        #expect(try context.fetch(FetchDescriptor<Article>()).isEmpty)
         #expect(sqliteFeed.title == "Aktualisierter Import Feed")
         #expect(sqliteFeed.websiteURL == "https://example.com/")
         #expect(sqliteFeed.folderName == "News")

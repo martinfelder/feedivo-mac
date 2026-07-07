@@ -1,6 +1,5 @@
 import Foundation
 import GRDB
-import SwiftData
 import Testing
 @testable import Feedivo
 
@@ -13,228 +12,8 @@ struct SQLiteFeedSubscriptionServiceTests {
     }
 
     @MainActor
-    @Test func addFeedSpeichertSQLiteFeedUndSwiftDataBridgeOhneSwiftDataArtikel() async throws {
-        let defaults = UserDefaults.standard
-        let previousBridgeSetting = defaults.object(forKey: SwiftDataBridgeSettings.isEnabledKey)
-        defaults.set(true, forKey: SwiftDataBridgeSettings.isEnabledKey)
-        defer {
-            if let previousBridgeSetting {
-                defaults.set(previousBridgeSetting, forKey: SwiftDataBridgeSettings.isEnabledKey)
-            } else {
-                defaults.removeObject(forKey: SwiftDataBridgeSettings.isEnabledKey)
-            }
-        }
-
-        let database = try FeedivoDatabase.inMemoryForTests()
-        let container = try ModelContainer(
-            for: Feed.self,
-            Article.self,
-            Tag.self,
-            Rule.self,
-            RuleCondition.self,
-            FeedLogEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
-
-        let service = SQLiteFeedSubscriptionService(
-            database: database,
-            fetchFeed: { url in
-                ParsedFeed(
-                    sourceURL: url,
-                    title: "Example Feed",
-                    description: "Beschreibung",
-                    siteURL: "https://example.com",
-                    articles: [
-                        ParsedArticle(
-                            title: "Erster Artikel",
-                            sourceID: "artikel-1",
-                            link: "https://example.com/1",
-                            summary: "Kurz",
-                            content: "Lang",
-                            publishedAt: Date(timeIntervalSince1970: 100),
-                            imageURL: nil
-                        )
-                    ]
-                )
-            },
-            discoverFaviconURL: { _ in "https://example.com/favicon.ico" }
-        )
-
-        let result = try await service.addFeed(
-            urlString: "https://example.com/feed.xml",
-            refreshIntervalMinutes: 60,
-            context: context
-        )
-
-        let sqliteFeed = try #require(try FeedStore(database: database).feed(id: result.feedID))
-        let swiftDataFeeds = try context.fetch(FetchDescriptor<Feed>())
-        let swiftDataArticles = try context.fetch(FetchDescriptor<Article>())
-        let timelineRows = try TimelineStore(database: database).articles(
-            scope: .feed(result.feedID),
-            includeRead: true,
-            includeHidden: false,
-            limit: 10
-        )
-        let logs = try FeedLogStore(database: database).logs(feedID: result.feedID, limit: 5)
-        let firstLog = try #require(logs.first)
-
-        #expect(sqliteFeed.title == "Example Feed")
-        #expect(sqliteFeed.url == "https://example.com/feed.xml")
-        #expect(sqliteFeed.websiteURL == "https://example.com")
-        #expect(sqliteFeed.faviconURL == "https://example.com/favicon.ico")
-        #expect(sqliteFeed.refreshIntervalMinutes == 60)
-        #expect(sqliteFeed.unreadCount == 1)
-        #expect(timelineRows.map(\.title) == ["Erster Artikel"])
-        #expect(firstLog.feedID == result.feedID)
-        #expect(firstLog.level == "info")
-        #expect(firstLog.message == L10n.feedLogAdded)
-        #expect(firstLog.newArticleCount == 1)
-        #expect(swiftDataFeeds.count == 1)
-        #expect(swiftDataFeeds[0].id.uuidString == result.feedID)
-        #expect(swiftDataFeeds[0].title == "Example Feed")
-        #expect(swiftDataArticles.isEmpty)
-    }
-
-    @MainActor
-    @Test func addFeedKannOhneSwiftDataBridgeLaufen() async throws {
-        let defaults = UserDefaults.standard
-        let previousBridgeSetting = defaults.object(forKey: SwiftDataBridgeSettings.isEnabledKey)
-        defaults.set(false, forKey: SwiftDataBridgeSettings.isEnabledKey)
-        defer {
-            if let previousBridgeSetting {
-                defaults.set(previousBridgeSetting, forKey: SwiftDataBridgeSettings.isEnabledKey)
-            } else {
-                defaults.removeObject(forKey: SwiftDataBridgeSettings.isEnabledKey)
-            }
-        }
-
-        let database = try FeedivoDatabase.inMemoryForTests()
-        let container = try ModelContainer(
-            for: Feed.self,
-            Article.self,
-            Tag.self,
-            Rule.self,
-            RuleCondition.self,
-            FeedLogEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
-
-        let service = SQLiteFeedSubscriptionService(
-            database: database,
-            fetchFeed: { url in
-                ParsedFeed(
-                    sourceURL: url,
-                    title: "Example Feed",
-                    description: "Beschreibung",
-                    siteURL: "https://example.com",
-                    articles: [
-                        ParsedArticle(
-                            title: "Erster Artikel",
-                            sourceID: "artikel-1",
-                            link: "https://example.com/1",
-                            summary: "Kurz",
-                            content: "Lang",
-                            publishedAt: Date(timeIntervalSince1970: 100),
-                            imageURL: nil
-                        )
-                    ]
-                )
-            },
-            discoverFaviconURL: { _ in "https://example.com/favicon.ico" }
-        )
-
-        let result = try await service.addFeed(
-            urlString: "https://example.com/feed.xml",
-            refreshIntervalMinutes: 60,
-            context: context
-        )
-
-        let rows = try TimelineStore(database: database).articles(
-            scope: .feed(result.feedID),
-            includeRead: true,
-            includeHidden: false,
-            limit: 10
-        )
-        let swiftDataFeeds = try context.fetch(FetchDescriptor<Feed>())
-        let swiftDataArticles = try context.fetch(FetchDescriptor<Article>())
-
-        #expect(rows.map(\.title) == ["Erster Artikel"])
-        #expect(swiftDataFeeds.isEmpty)
-        #expect(swiftDataArticles.isEmpty)
-    }
-
-    @MainActor
-    @Test func addFeedErkenntDuplikatAuchInSwiftDataBridge() async throws {
-        let defaults = UserDefaults.standard
-        let previousBridgeSetting = defaults.object(forKey: SwiftDataBridgeSettings.isEnabledKey)
-        defaults.set(true, forKey: SwiftDataBridgeSettings.isEnabledKey)
-        defer {
-            if let previousBridgeSetting {
-                defaults.set(previousBridgeSetting, forKey: SwiftDataBridgeSettings.isEnabledKey)
-            } else {
-                defaults.removeObject(forKey: SwiftDataBridgeSettings.isEnabledKey)
-            }
-        }
-
-        let database = try FeedivoDatabase.inMemoryForTests()
-        let container = try ModelContainer(
-            for: Feed.self,
-            Article.self,
-            Tag.self,
-            Rule.self,
-            RuleCondition.self,
-            FeedLogEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
-        let existingFeed = Feed(
-            url: " HTTPS://EXAMPLE.COM/FEED.XML ",
-            title: "Schon vorhanden"
-        )
-        context.insert(existingFeed)
-        try context.save()
-
-        let service = SQLiteFeedSubscriptionService(
-            database: database,
-            fetchFeed: { url in
-                ParsedFeed(
-                    sourceURL: url,
-                    title: "Duplikat",
-                    description: nil,
-                    articles: []
-                )
-            },
-            discoverFaviconURL: { _ in nil }
-        )
-
-        do {
-            _ = try await service.addFeed(
-                urlString: "https://example.com/feed.xml",
-                context: context
-            )
-            Issue.record("Add-Feed hätte wegen SwiftData-Duplikat fehlschlagen müssen.")
-        } catch let error as SQLiteFeedSubscriptionError {
-            #expect(error == .duplicateFeed)
-        }
-
-        #expect(try FeedStore(database: database).feeds().isEmpty)
-    }
-
-    @MainActor
     @Test func addFeedRaeumtSQLiteFeedNachArticleUpsertFehlerAuf() async throws {
         let database = try FeedivoDatabase.inMemoryForTests()
-        let container = try ModelContainer(
-            for: Feed.self,
-            Article.self,
-            Tag.self,
-            Rule.self,
-            RuleCondition.self,
-            FeedLogEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
         let service = SQLiteFeedSubscriptionService(
             database: database,
             fetchFeed: { url in
@@ -263,8 +42,7 @@ struct SQLiteFeedSubscriptionServiceTests {
 
         do {
             _ = try await service.addFeed(
-                urlString: "https://example.com/feed.xml",
-                context: context
+                urlString: "https://example.com/feed.xml"
             )
             Issue.record("Add-Feed hätte wegen Article-Upsert-Fehler fehlschlagen müssen.")
         } catch let error as CleanupFailure {
@@ -272,22 +50,11 @@ struct SQLiteFeedSubscriptionServiceTests {
         }
 
         #expect(try FeedStore(database: database).feeds().isEmpty)
-        #expect(try context.fetch(FetchDescriptor<Feed>()).isEmpty)
     }
 
     @MainActor
     @Test func addFeedRaeumtArticleStatusesNachFehlerNachArticleUpsertAuf() async throws {
         let database = try FeedivoDatabase.inMemoryForTests()
-        let container = try ModelContainer(
-            for: Feed.self,
-            Article.self,
-            Tag.self,
-            Rule.self,
-            RuleCondition.self,
-            FeedLogEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
         let service = SQLiteFeedSubscriptionService(
             database: database,
             fetchFeed: { url in
@@ -316,8 +83,7 @@ struct SQLiteFeedSubscriptionServiceTests {
 
         do {
             _ = try await service.addFeed(
-                urlString: "https://example.com/feed.xml",
-                context: context
+                urlString: "https://example.com/feed.xml"
             )
             Issue.record("Add-Feed hätte nach Article-Upsert fehlschlagen müssen.")
         } catch let error as CleanupFailure {
@@ -327,33 +93,11 @@ struct SQLiteFeedSubscriptionServiceTests {
         #expect(try tableCount("feeds", database: database) == 0)
         #expect(try tableCount("articles", database: database) == 0)
         #expect(try tableCount("article_statuses", database: database) == 0)
-        #expect(try context.fetch(FetchDescriptor<Feed>()).isEmpty)
     }
 
     @MainActor
     @Test func importOPMLSpeichertOrdnerTagsUndUeberspringtDuplikate() async throws {
-        let defaults = UserDefaults.standard
-        let previousBridgeSetting = defaults.object(forKey: SwiftDataBridgeSettings.isEnabledKey)
-        defaults.set(true, forKey: SwiftDataBridgeSettings.isEnabledKey)
-        defer {
-            if let previousBridgeSetting {
-                defaults.set(previousBridgeSetting, forKey: SwiftDataBridgeSettings.isEnabledKey)
-            } else {
-                defaults.removeObject(forKey: SwiftDataBridgeSettings.isEnabledKey)
-            }
-        }
-
         let database = try FeedivoDatabase.inMemoryForTests()
-        let container = try ModelContainer(
-            for: Feed.self,
-            Article.self,
-            Tag.self,
-            Rule.self,
-            RuleCondition.self,
-            FeedLogEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
         try FeedStore(database: database).save(
             FeedRecord(
                 url: "https://example.com/existing.xml",
@@ -392,15 +136,13 @@ struct SQLiteFeedSubscriptionServiceTests {
             ],
             allowsDuplicates: false,
             refreshAfterImport: false,
-            refreshIntervalMinutes: 120,
-            context: context
+            refreshIntervalMinutes: 120
         )
 
         let feeds = try FeedStore(database: database).feeds()
         let importedFeed = try #require(feeds.first { $0.url == "https://example.com/new.xml" })
         let folders = try FeedFolderStore(database: database).folders()
         let tags = try TagStore(database: database).tags()
-        let bridgeFeeds = try context.fetch(FetchDescriptor<Feed>())
 
         #expect(result.total == 2)
         #expect(result.imported == 1)
@@ -413,81 +155,11 @@ struct SQLiteFeedSubscriptionServiceTests {
         #expect(folders.map(\.name) == ["News"])
         #expect(tags.map(\.name).sorted() == ["Mac", "Swift"])
         #expect(try tableCount("feed_tags", database: database) == 2)
-        #expect(bridgeFeeds.count == 1)
-        #expect(bridgeFeeds[0].id.uuidString == importedFeed.id)
-        #expect(bridgeFeeds[0].refreshIntervalMinutes == 120)
-    }
-
-    @MainActor
-    @Test func importOPMLKannOhneSwiftDataBridgeLaufen() async throws {
-        let defaults = UserDefaults.standard
-        let previousBridgeSetting = defaults.object(forKey: SwiftDataBridgeSettings.isEnabledKey)
-        defaults.set(false, forKey: SwiftDataBridgeSettings.isEnabledKey)
-        defer {
-            if let previousBridgeSetting {
-                defaults.set(previousBridgeSetting, forKey: SwiftDataBridgeSettings.isEnabledKey)
-            } else {
-                defaults.removeObject(forKey: SwiftDataBridgeSettings.isEnabledKey)
-            }
-        }
-
-        let database = try FeedivoDatabase.inMemoryForTests()
-        let container = try ModelContainer(
-            for: Feed.self,
-            Article.self,
-            Tag.self,
-            Rule.self,
-            RuleCondition.self,
-            FeedLogEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
-        let service = SQLiteFeedSubscriptionService(
-            database: database,
-            fetchFeed: { url in
-                ParsedFeed(
-                    sourceURL: url,
-                    title: "Parsed \(url)",
-                    description: nil,
-                    articles: []
-                )
-            },
-            discoverFaviconURL: { _ in nil }
-        )
-
-        _ = try await service.importOPMLFeeds(
-            [
-                OPMLFeed(
-                    title: "Neu",
-                    xmlURL: "https://example.com/new.xml",
-                    htmlURL: "https://example.com",
-                    folderName: "News",
-                    tagNames: ["Swift", "Mac"]
-                )
-            ],
-            allowsDuplicates: false,
-            refreshAfterImport: false,
-            refreshIntervalMinutes: 120,
-            context: context
-        )
-
-        #expect((try FeedStore(database: database).feeds().count) == 1)
-        #expect(try context.fetch(FetchDescriptor<Feed>()).isEmpty)
     }
 
     @MainActor
     @Test func importOPMLMeldetRefreshFehlerAlsTeilproblem() async throws {
         let database = try FeedivoDatabase.inMemoryForTests()
-        let container = try ModelContainer(
-            for: Feed.self,
-            Article.self,
-            Tag.self,
-            Rule.self,
-            RuleCondition.self,
-            FeedLogEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
         let service = SQLiteFeedSubscriptionService(
             database: database,
             fetchFeed: { _ in
@@ -507,8 +179,7 @@ struct SQLiteFeedSubscriptionServiceTests {
             ],
             allowsDuplicates: false,
             refreshAfterImport: true,
-            refreshIntervalMinutes: 60,
-            context: context
+            refreshIntervalMinutes: 60
         )
 
         let feeds = try FeedStore(database: database).feeds()
@@ -525,93 +196,8 @@ struct SQLiteFeedSubscriptionServiceTests {
     }
 
     @MainActor
-    @Test func importOPMLAktualisiertSwiftDataBridgeNachErfolgreichemRefresh() async throws {
-        let defaults = UserDefaults.standard
-        let previousBridgeSetting = defaults.object(forKey: SwiftDataBridgeSettings.isEnabledKey)
-        defaults.set(true, forKey: SwiftDataBridgeSettings.isEnabledKey)
-        defer {
-            if let previousBridgeSetting {
-                defaults.set(previousBridgeSetting, forKey: SwiftDataBridgeSettings.isEnabledKey)
-            } else {
-                defaults.removeObject(forKey: SwiftDataBridgeSettings.isEnabledKey)
-            }
-        }
-
-        let database = try FeedivoDatabase.inMemoryForTests()
-        let container = try ModelContainer(
-            for: Feed.self,
-            Article.self,
-            Tag.self,
-            Rule.self,
-            RuleCondition.self,
-            FeedLogEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
-        let service = SQLiteFeedSubscriptionService(
-            database: database,
-            fetchFeed: { url in
-                ParsedFeed(
-                    sourceURL: url,
-                    title: "Titel aus Refresh",
-                    description: nil,
-                    siteURL: "https://example.com/aktualisiert",
-                    articles: [
-                        ParsedArticle(
-                            title: "Neuer SQLite Artikel",
-                            sourceID: "sqlite-new",
-                            link: "https://example.com/artikel",
-                            summary: nil,
-                            content: nil,
-                            publishedAt: Date(timeIntervalSince1970: 42),
-                            imageURL: nil
-                        )
-                    ]
-                )
-            },
-            discoverFaviconURL: { _ in nil }
-        )
-
-        let result = try await service.importOPMLFeeds(
-            [
-                OPMLFeed(
-                    title: "Titel aus OPML",
-                    xmlURL: "https://example.com/feed.xml",
-                    htmlURL: "https://example.com/alt",
-                    folderName: "News"
-                )
-            ],
-            allowsDuplicates: false,
-            refreshAfterImport: true,
-            refreshIntervalMinutes: 60,
-            context: context
-        )
-
-        let feedID = try #require(try FeedStore(database: database).feed(url: "https://example.com/feed.xml")?.id)
-        let bridgeFeed = try #require(try context.fetch(FetchDescriptor<Feed>()).first)
-
-        #expect(result.imported == 1)
-        #expect(result.failedFeedTitles.isEmpty)
-        #expect(bridgeFeed.id.uuidString == feedID)
-        #expect(bridgeFeed.title == "Titel aus Refresh")
-        #expect(bridgeFeed.siteURL == "https://example.com/aktualisiert")
-        #expect(bridgeFeed.unreadCount == 1)
-        #expect(try context.fetch(FetchDescriptor<Article>()).isEmpty)
-    }
-
-    @MainActor
     @Test func importOPMLKannDuplikateBewusstImportieren() async throws {
         let database = try FeedivoDatabase.inMemoryForTests()
-        let container = try ModelContainer(
-            for: Feed.self,
-            Article.self,
-            Tag.self,
-            Rule.self,
-            RuleCondition.self,
-            FeedLogEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
         try FeedStore(database: database).save(
             FeedRecord(
                 url: "https://example.com/existing.xml",
@@ -642,8 +228,7 @@ struct SQLiteFeedSubscriptionServiceTests {
             ],
             allowsDuplicates: true,
             refreshAfterImport: false,
-            refreshIntervalMinutes: 60,
-            context: context
+            refreshIntervalMinutes: 60
         )
 
         let duplicateFeeds = try FeedStore(database: database)
@@ -658,82 +243,8 @@ struct SQLiteFeedSubscriptionServiceTests {
     }
 
     @MainActor
-    @Test func importOPMLUeberspringtDuplikatAusSwiftDataBridge() async throws {
-        let defaults = UserDefaults.standard
-        let previousBridgeSetting = defaults.object(forKey: SwiftDataBridgeSettings.isEnabledKey)
-        defaults.set(true, forKey: SwiftDataBridgeSettings.isEnabledKey)
-        defer {
-            if let previousBridgeSetting {
-                defaults.set(previousBridgeSetting, forKey: SwiftDataBridgeSettings.isEnabledKey)
-            } else {
-                defaults.removeObject(forKey: SwiftDataBridgeSettings.isEnabledKey)
-            }
-        }
-
-        let database = try FeedivoDatabase.inMemoryForTests()
-        let container = try ModelContainer(
-            for: Feed.self,
-            Article.self,
-            Tag.self,
-            Rule.self,
-            RuleCondition.self,
-            FeedLogEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
-        context.insert(
-            Feed(
-                url: " HTTPS://EXAMPLE.COM/EXISTING.XML ",
-                title: "Nur SwiftData"
-            )
-        )
-        try context.save()
-        let service = SQLiteFeedSubscriptionService(
-            database: database,
-            fetchFeed: { url in
-                ParsedFeed(
-                    sourceURL: url,
-                    title: "Parsed \(url)",
-                    description: nil,
-                    articles: []
-                )
-            },
-            discoverFaviconURL: { _ in nil }
-        )
-
-        let result = try await service.importOPMLFeeds(
-            [
-                OPMLFeed(
-                    title: "Duplikat",
-                    xmlURL: "https://example.com/existing.xml",
-                    htmlURL: nil,
-                    folderName: nil
-                )
-            ],
-            allowsDuplicates: false,
-            refreshAfterImport: false,
-            refreshIntervalMinutes: 60,
-            context: context
-        )
-
-        #expect(result.imported == 0)
-        #expect(result.skippedDuplicates == 1)
-        #expect(try FeedStore(database: database).feeds().isEmpty)
-    }
-
-    @MainActor
     @Test func importOPMLRaeumtSQLiteFeedNachFehlerNachFeedSaveAuf() async throws {
         let database = try FeedivoDatabase.inMemoryForTests()
-        let container = try ModelContainer(
-            for: Feed.self,
-            Article.self,
-            Tag.self,
-            Rule.self,
-            RuleCondition.self,
-            FeedLogEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
         let service = SQLiteFeedSubscriptionService(
             database: database,
             fetchFeed: { url in
@@ -763,8 +274,7 @@ struct SQLiteFeedSubscriptionServiceTests {
                 ],
                 allowsDuplicates: false,
                 refreshAfterImport: false,
-                refreshIntervalMinutes: 60,
-                context: context
+                refreshIntervalMinutes: 60
             )
             Issue.record("OPML-Import hätte nach Feed-Save fehlschlagen müssen.")
         } catch let error as CleanupFailure {
@@ -776,22 +286,11 @@ struct SQLiteFeedSubscriptionServiceTests {
         #expect(try tableCount("feed_tags", database: database) == 0)
         #expect(try tableCount("feed_logs", database: database) == 0)
         #expect(try tableCount("feed_folders", database: database) == 0)
-        #expect(try context.fetch(FetchDescriptor<Feed>()).isEmpty)
     }
 
     @MainActor
     @Test func importOPMLBehaeltVorhandenenOrdnerNachRollback() async throws {
         let database = try FeedivoDatabase.inMemoryForTests()
-        let container = try ModelContainer(
-            for: Feed.self,
-            Article.self,
-            Tag.self,
-            Rule.self,
-            RuleCondition.self,
-            FeedLogEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
         let existingFolder = FeedFolderRecord(id: "folder-news", name: "News")
         try FeedFolderStore(database: database).save(existingFolder)
         let service = SQLiteFeedSubscriptionService(
@@ -823,8 +322,7 @@ struct SQLiteFeedSubscriptionServiceTests {
                 ],
                 allowsDuplicates: false,
                 refreshAfterImport: false,
-                refreshIntervalMinutes: 60,
-                context: context
+                refreshIntervalMinutes: 60
             )
             Issue.record("OPML-Import hätte nach Feed-Save fehlschlagen müssen.")
         } catch let error as CleanupFailure {
