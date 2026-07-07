@@ -378,7 +378,18 @@ git commit -m "Extract live offline-fetch infrastructure, delete dead OfflineDow
   `RuleEngine.RuleConditionSnapshot`, `RuleEngine.SQLiteRuleApplicationResult`,
   `RuleEngine.ArticleTagAssignment` bleiben unverändert (aktiv genutzt von
   `SQLiteRuleEvaluationStore.swift`, `SQLiteFeedRefreshService.swift`).
-- Consumes: keine Abhängigkeiten von anderen Tasks.
+- **Consumes: VERBINDLICH Task 15 (`FeedViewModel.swift`) MUSS zuerst abgeschlossen sein.**
+  KORRIGIERT nach BLOCKED-Meldung eines ersten Implementierungsversuchs — die ursprüngliche
+  Formulierung "Reihenfolge zwischen Task 4 und 15 ist nicht kritisch" war falsch.
+  `FeedViewModel.swift`s private Methode `refreshFeedContents(_:context:rules:savesImmediately:)`
+  (nur aus den in Task 15 zu entfernenden `@available(deprecated)`-Methoden erreichbar, aber bis
+  Task 15 noch vorhanden und muss kompilieren) ruft
+  `RuleEngine.applyRulesWithNotifications(rules, to: newArticleObjects, feed: feed)` auf — den
+  `[Article]`-Overload, der in diesem Task entfernt wird. Wird Task 4 vor Task 15 ausgeführt, bricht
+  der Build in `FeedViewModel.swift`, obwohl der Aufrufer selbst tot ist (er muss trotzdem
+  kompilieren, bis Task 15 ihn entfernt). Falls du Task 4 vor Task 15 zugewiesen bekommst: STOPPEN,
+  BLOCKED melden statt zu improvisieren — exakt das richtige Verhalten, das ein früherer
+  Implementierungsversuch bereits gezeigt hat.
 
 - [ ] **Step 1: Verifikation**
 
@@ -1749,10 +1760,15 @@ git commit -m "Remove dead Feed-based availableFolders overload, migrate its tes
   `opmlImportPreviewRows(for:existingFeeds:sqliteDatabase:onProgress:)`, `unreadIncrement(for:)`
   bleiben unverändert. `importOPMLFeeds(_:existingFeeds:allowsDuplicates:refreshAfterImport:refreshIntervalMinutes:context:sqliteDatabase:)`
   bleibt als Methode bestehen, verliert aber ihre tote SwiftData-Fallback-Hälfte (siehe Step 3).
-- Consumes: keine Abhängigkeiten von anderen Tasks — aber `RuleEngine.applyRulesWithNotifications`
-  (dessen `[Article]`-Overload in Task 4 entfernt wird) wird hier NICHT mehr aufgerufen, sobald
-  dieser Task fertig ist. Falls Task 4 vor diesem Task läuft, ist das kein Problem (Reihenfolge
-  zwischen Task 4 und 15 ist nicht kritisch, beide entfernen unabhängig tote Aufrufer/Aufrufe).
+- **Consumes: KORRIGIERT (widerruft eine frühere, falsche Aussage in diesem Plan) — Task 15 MUSS
+  VOR Task 4 laufen, nicht umgekehrt und nicht "Reihenfolge egal".** Dieser Task entfernt
+  `refreshFeedContents(_:context:rules:savesImmediately:)`, den einzigen verbleibenden Aufrufer von
+  `RuleEngine.applyRulesWithNotifications(rules, to: newArticleObjects, feed: feed)` (dem
+  `[Article]`-Overload, den Task 4 aus `RuleEngine.swift` entfernt). Solange dieser Task nicht
+  abgeschlossen ist, MUSS `RuleEngine.swift` diesen Overload noch bereitstellen, sonst bricht der
+  Build hier. Ein früherer Implementierungsversuch von Task 4 hat diese Abhängigkeit korrekt per
+  BLOCKED gemeldet, weil die ursprüngliche Formulierung dieses Plans fälschlich behauptete, die
+  Reihenfolge sei egal.
 
 - [ ] **Step 1: Verifikation**
 
