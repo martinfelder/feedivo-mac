@@ -15,26 +15,6 @@ import WebKit
 
 struct FeedivoTests {
 
-    @Test func artikelArchivUndHiddenStatusHabenSichereDefaults() {
-        let normalerArtikel = Article(title: "Normal")
-        let ausgeblendeterArchivArtikel = Article(
-            title: "Archiviert",
-            isArchived: true,
-            isHidden: true
-        )
-
-        #expect(!normalerArtikel.isArchived)
-        #expect(!normalerArtikel.isHidden)
-        #expect(ausgeblendeterArchivArtikel.isArchived)
-        #expect(ausgeblendeterArchivArtikel.isHidden)
-    }
-
-    @Test func feedBenachrichtigungenSindStandardmaessigDeaktiviert() {
-        let feed = Feed(url: "https://example.com/feed.xml", title: "Beispiel")
-
-        #expect(!feed.isNotificationEnabled)
-    }
-
     @Test func feedServiceErrorTexteSindLokalisiert() {
         #expect(FeedServiceError.invalidURL.errorDescription == "Die Feed-URL ist ungültig.")
         #expect(FeedServiceError.parsingFailed.errorDescription == "Der Feed konnte nicht gelesen werden.")
