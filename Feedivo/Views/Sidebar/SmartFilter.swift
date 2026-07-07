@@ -79,27 +79,4 @@ enum SmartFilter: String, CaseIterable, Identifiable, Hashable, Sendable {
             return .gray
         }
     }
-
-    func includes(
-        _ article: Article,
-        now: Date = Date(),
-        calendar: Calendar = .current
-    ) -> Bool {
-        switch self {
-        case .allArticles:
-            return true
-        case .unread:
-            return !article.isRead
-        case .starred:
-            return article.isStarred
-        case .today:
-            guard let publishedAt = article.publishedAt else {
-                return false
-            }
-
-            return calendar.isDate(publishedAt, inSameDayAs: now)
-        case .hidden:
-            return article.isHidden
-        }
-    }
 }
