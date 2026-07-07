@@ -131,44 +131,6 @@ struct SmartFolderEngineTests {
     }
 
     @MainActor
-    @Test func sidebarBadgeCountNutztFeedUnreadCountFuerUngelesenOrdner() throws {
-        let container = try ModelContainer(
-            for: Feed.self,
-            FeedFolder.self,
-            Article.self,
-            Tag.self,
-            Rule.self,
-            RuleCondition.self,
-            FeedLogEntry.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let context = ModelContext(container)
-        let firstFeed = Feed(url: "https://example.com/1.xml", title: "Feed 1")
-        firstFeed.unreadCount = 3
-        let secondFeed = Feed(url: "https://example.com/2.xml", title: "Feed 2")
-        secondFeed.unreadCount = 4
-        let unreadFolder = SmartFolder(
-            name: "Ungelesen",
-            matchMode: .all,
-            conditions: [
-                SmartFolderCondition(
-                    field: .status,
-                    conditionOperator: .is,
-                    value: SmartFolderStatusValue.unread.rawValue
-                )
-            ]
-        )
-
-        let badgeText = SmartFolderSidebarBadge.badgeText(
-            for: unreadFolder,
-            feeds: [firstFeed, secondFeed],
-            context: context
-        )
-
-        #expect(badgeText == "7")
-    }
-
-    @MainActor
     @Test func formatterZeigtGeleseneArtikelFuerSternAusgeblendetUndGespeichertStandardmaessig() {
         let starredFolder = SmartFolder(
             name: "Mit Stern",

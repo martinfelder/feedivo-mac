@@ -2,125 +2,15 @@ import Foundation
 import SwiftData
 
 enum SidebarUnreadCount {
-    static func unreadArticleCount(for feed: Feed) -> Int {
-        feed.unreadCount
-    }
-
-    static func totalUnreadArticleCount(in feeds: [Feed]) -> Int {
-        feeds.reduce(0) { total, feed in
-            total + feed.unreadCount
-        }
-    }
-
     static func badgeText(for count: Int) -> String? {
         count > 0 ? "\(count)" : nil
     }
 }
 
-enum SidebarTagCount {
-    @MainActor
-    static func articleCount(for tag: Tag, context: ModelContext) throws -> Int {
-        let descriptor = FetchDescriptor<Article>(
-            predicate: ArticleListQuery.tagPredicate(for: tag, taggedFeeds: tag.feeds ?? [])
-        )
-
-        return try context.fetchCount(descriptor)
-    }
-
-    @MainActor
-    static func badgeText(for tag: Tag, context: ModelContext) throws -> String? {
-        try SidebarUnreadCount.badgeText(for: articleCount(for: tag, context: context))
-    }
-}
-
 @MainActor
 enum SmartFolderSidebarBadge {
-    static func badgeText(for folder: SmartFolder, feeds: [Feed], context: ModelContext) -> String? {
-        badgeCount(for: folder, feeds: feeds, context: context).flatMap(SidebarUnreadCount.badgeText)
-    }
-
-    /// In-Memory-Variante: statt N `fetchCount`-Queries pro Sidebar-Render werden
-    /// die Zähler einmal zentral über alle Artikel gebündelt (Batching) und hier
-    /// nur noch zugewiesen. Kein Stale-Risiko, da kein Cache.
-    static func badgeText(for folder: SmartFolder, feeds: [Feed], counts: SidebarBadgeCounts) -> String? {
-        badgeCount(for: folder, feeds: feeds, counts: counts).flatMap(SidebarUnreadCount.badgeText)
-    }
-
-    static func badgeText(for folder: SmartFolder, snapshot: SmartFolderSidebarBadgeSnapshot) -> String? {
-        badgeCount(for: folder, snapshot: snapshot).flatMap(SidebarUnreadCount.badgeText)
-    }
-
     static func badgeText(for folder: SQLiteSmartFolderSnapshot, snapshot: SmartFolderSidebarBadgeSnapshot) -> String? {
         badgeCount(for: folder, snapshot: snapshot).flatMap(SidebarUnreadCount.badgeText)
-    }
-
-    private static func badgeCount(for folder: SmartFolder, feeds: [Feed], context: ModelContext) -> Int? {
-        guard let badgeKind = SmartFolderSidebarBadgeKind(folder: folder) else {
-            return nil
-        }
-
-        switch badgeKind {
-        case .unread:
-            return SidebarUnreadCount.totalUnreadArticleCount(in: feeds)
-        case .starred:
-            return try? context.fetchCount(
-                FetchDescriptor<Article>(
-                    predicate: #Predicate<Article> { article in
-                        article.isStarred
-                    }
-                )
-            )
-        case .hidden:
-            return try? context.fetchCount(
-                FetchDescriptor<Article>(
-                    predicate: #Predicate<Article> { article in
-                        article.isHidden
-                    }
-                )
-            )
-        case .saved:
-            return try? context.fetchCount(
-                FetchDescriptor<Article>(
-                    predicate: #Predicate<Article> { article in
-                        article.isStarred || article.isArchived
-                    }
-                )
-            )
-        }
-    }
-
-    private static func badgeCount(for folder: SmartFolder, feeds: [Feed], counts: SidebarBadgeCounts) -> Int? {
-        guard let badgeKind = SmartFolderSidebarBadgeKind(folder: folder) else {
-            return nil
-        }
-
-        switch badgeKind {
-        case .unread:
-            return SidebarUnreadCount.totalUnreadArticleCount(in: feeds)
-        case .starred:
-            return counts.starred
-        case .hidden:
-            return counts.hidden
-        case .saved:
-            return counts.saved
-        }
-    }
-
-    private static func badgeCount(for folder: SmartFolder, snapshot: SmartFolderSidebarBadgeSnapshot) -> Int? {
-        guard let badgeKind = SmartFolderSidebarBadgeKind(folder: folder) else {
-            return nil
-        }
-
-        switch badgeKind {
-        case .unread:
-            return snapshot.unread
-        case .starred:
-            return snapshot.starred
-        case .hidden:
-            return snapshot.hidden
-        case .saved:
-            return snapshot.saved
-        }
     }
 
     private static func badgeCount(for folder: SQLiteSmartFolderSnapshot, snapshot: SmartFolderSidebarBadgeSnapshot) -> Int? {
@@ -138,90 +28,6 @@ enum SmartFolderSidebarBadge {
         case .saved:
             return snapshot.saved
         }
-    }
-}
-
-/// Zentral gebündelte Badge-Zähler der Sidebar. `tagCounts` liefert pro Tag die
-/// Artikel-Anzahl (Tag direkt am Artikel ODER am Feed des Artikels), die
-/// Status-Zähler decken die SmartFolder-Badges ab.
-struct SidebarBadgeCounts: Equatable {
-    let tagCounts: [PersistentIdentifier: Int]
-    let starred: Int
-    let hidden: Int
-    let saved: Int
-
-    static let empty = SidebarBadgeCounts(tagCounts: [:], starred: 0, hidden: 0, saved: 0)
-}
-
-/// Signatur für günstige Status-Badges. Sie nutzt nur skalare Artikelwerte und
-/// kann deshalb pro Body-Auswertung laufen, ohne Relationships zu faulten.
-struct SidebarStatusBadgeSignature: Equatable, Hashable {
-    let starredCount: Int
-    let hiddenCount: Int
-    let savedCount: Int
-}
-
-/// Signatur für Tag-Badges. Nur Änderungen, die Tag-Zuordnung oder Feed-Bezug
-/// betreffen, invalidieren den Relationship-heavy Tag-Cache.
-struct SidebarTagBadgeSignature: Equatable, Hashable {
-    let tagFeedMembershipHash: Int
-    let feedRefreshHash: Int
-    let tagCount: Int
-    let feedCount: Int
-    let directTagVersion: Int
-}
-
-enum SidebarBadgeSignatureBuilder {
-    static func statusSignature(articles: [Article]) -> SidebarStatusBadgeSignature {
-        var starredCount = 0
-        var hiddenCount = 0
-        var savedCount = 0
-
-        for article in articles {
-            if article.isStarred { starredCount += 1 }
-            if article.isHidden { hiddenCount += 1 }
-            if article.isStarred || article.isArchived { savedCount += 1 }
-        }
-
-        return SidebarStatusBadgeSignature(
-            starredCount: starredCount,
-            hiddenCount: hiddenCount,
-            savedCount: savedCount
-        )
-    }
-
-    static func tagSignature(
-        feeds: [Feed],
-        tags: [Tag],
-        directTagVersion: Int
-    ) -> SidebarTagBadgeSignature {
-        SidebarTagBadgeSignature(
-            tagFeedMembershipHash: tagFeedMembershipHash(feeds),
-            feedRefreshHash: feedRefreshHash(feeds),
-            tagCount: tags.count,
-            feedCount: feeds.count,
-            directTagVersion: directTagVersion
-        )
-    }
-
-    private static func tagFeedMembershipHash(_ feeds: [Feed]) -> Int {
-        var hash = feeds.count
-        for feed in feeds {
-            hash = hash &* 31 &+ feed.id.hashValue
-            for tag in (feed.tags ?? []).sorted(by: { $0.id.uuidString < $1.id.uuidString }) {
-                hash = hash &* 31 &+ tag.id.hashValue
-            }
-        }
-        return hash
-    }
-
-    private static func feedRefreshHash(_ feeds: [Feed]) -> Int {
-        var hash = feeds.count
-        for feed in feeds {
-            hash = hash &* 31 &+ feed.id.hashValue
-            hash = hash &* 31 &+ (feed.lastRefreshed?.timeIntervalSinceReferenceDate.hashValue ?? 0)
-        }
-        return hash
     }
 }
 
