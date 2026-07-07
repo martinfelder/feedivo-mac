@@ -10,17 +10,19 @@
 
 **App-Name:** Feedivo
 **Root-Ordner:** FeedivoMac
-**Entry Point:** FeedivoApp.swift
+**Entry Point:** Feedivo/App/FeedivoApp.swift
 **Bundle ID:** ch.martin.Feedivo
 **Typ:** Nativer macOS RSS Reader
 **Entwickler:** Solo (Martin)
 **Plattform:** macOS 14 Sonoma+
-**Status:** In Development
-**Aktueller Milestone:** M1 – Foundation (fast abgeschlossen)
+**Status:** In Development — Kernfunktionen (M1–M4) fertig und weit darüber hinaus ausgebaut
+**Aktueller Fokus:** Härtung/Refactoring nach Feature-Ausbau (SwiftData vollständig entfernt,
+GRDB/SQLite ist jetzt alleinige Persistenz); iCloud Sync ist als Beta-Vorbereitung sichtbar,
+aber noch nicht funktional angebunden
 
-Feedivo ist ein nativer macOS RSS Reader mit Tags, automatischen Regeln und iCloud Sync.
-Ziel ist eine schöne, schnelle Mac-App die sich "mac-like" anfühlt — kein iOS-Port, keine
-Electron-App. Echtes AppKit-Feeling via SwiftUI für macOS.
+Feedivo ist ein nativer macOS RSS Reader mit Tags, automatischen Regeln, intelligenten Ordnern,
+Offline-Lesen und OPML-Import/-Export. Ziel ist eine schöne, schnelle Mac-App die sich "mac-like"
+anfühlt — kein iOS-Port, keine Electron-App. Echtes AppKit-Feeling via SwiftUI für macOS.
 
 ---
 
@@ -42,16 +44,18 @@ Electron-App. Echtes AppKit-Feeling via SwiftUI für macOS.
 
 | Bereich | Technologie | Version / Hinweis |
 |---|---|---|
-| UI Framework | SwiftUI (macOS) | Kein AppKit direkt |
+| UI Framework | SwiftUI (macOS) | Kein AppKit direkt, punktuell `NSViewRepresentable` (z. B. WKWebView) |
 | Architektur | MVVM | `@Observable` Macro (kein ObservableObject) |
-| Navigation | NavigationSplitView | 3-Spalten: Sidebar / Liste / Detail |
-| Persistenz | SwiftData | Kein Core Data |
-| iCloud Sync | CloudKit via SwiftData | `isCloudKitEnabled: true` — noch nicht aktiviert |
+| Navigation | NavigationSplitView | 3-Spalten: Sidebar / Artikelliste / Reader, plus separate Fenster (Suche, Organizer, Artikel-Popout) |
+| Persistenz | GRDB (SQLite) | Eigene Datenschicht in `Feedivo/Database/` + `Feedivo/Stores/`. SwiftData wurde vollständig entfernt (2026-07-07) |
+| iCloud Sync | Noch nicht funktional angebunden | UI-Toggle "iCloud Sync Beta" existiert (`CloudSyncSettings`), aber ohne CloudKit-Backend auf `main`. Aktive Vorarbeit auf separatem Branch `codex/icloud-sync-beta` — basiert noch auf der alten SwiftData-Architektur und muss auf GRDB/SQLite migriert werden, bevor er mergebar ist |
 | Netzwerk | URLSession + async/await | Kein Alamofire, kein Combine |
 | RSS-Parsing | FeedKit | Swift Package, URL: https://github.com/nmdias/FeedKit |
-| Bilder | AsyncImage | Built-in SwiftUI, kein Kingfisher |
-| Background Refresh | BackgroundTasks Framework | BGTaskScheduler — noch nicht implementiert |
-| Mindest-macOS | macOS 14.0 Sonoma | SwiftData + @Observable Macro |
+| Datenbank-Package | GRDB.swift | Swift Package, URL: https://github.com/groue/GRDB.swift |
+| Bilder | AsyncImage + eigener `ImageCacheService` | Built-in SwiftUI + eigenes Disk-Caching, kein Kingfisher |
+| Artikel-Rendering | Nativer SwiftUI-Renderer (`ReaderContentRenderer`) **und** `WKWebView` (`WebContentView`) | Native Ansicht für den Lesefluss, WKWebView für "Originalartikel" |
+| Background Refresh | `NSBackgroundActivityScheduler` (`SystemBackgroundActivityRefreshScheduler`) | Kein `BGTaskScheduler` (das ist iOS-fokussiert) |
+| Mindest-macOS | macOS 14.0 Sonoma | `@Observable` Macro + moderne SwiftUI-APIs (NavigationSplitView, `.commands`, `WindowGroup(for:)`) |
 
 ---
 
@@ -61,172 +65,137 @@ Electron-App. Echtes AppKit-Feeling via SwiftUI für macOS.
 FeedivoMac/
 ├── Feedivo/
 │   ├── App/
-│   │   ├── FeedivoApp.swift            # @main Entry Point, .modelContainer Setup ✅
-│   │   └── ContentView.swift           # Root: NavigationSplitView (3 Spalten) ✅
+│   │   ├── FeedivoApp.swift            # @main Entry Point: öffnet SQLite-DB, registriert Scenes/Commands
+│   │   ├── FeedCommands.swift / FeedCommandActions.swift     # Menüleiste: Feed hinzufügen/löschen/refreshen
+│   │   ├── ArticleCommands.swift / ArticleCommandActions.swift  # Menüleiste: Artikel navigieren/markieren
+│   │   └── ViewCommands.swift          # Menüleiste: Darstellungsoptionen
 │   │
-│   ├── Models/                         # SwiftData @Model Klassen — alle fertig ✅
-│   │   ├── Feed.swift
-│   │   ├── Article.swift
-│   │   ├── Tag.swift
-│   │   └── Rule.swift
+│   ├── Database/                       # GRDB/SQLite-Fundament
+│   │   ├── FeedivoDatabase.swift               # DatabaseQueue-Wrapper, öffnet/erstellt die DB-Datei
+│   │   ├── FeedivoDatabaseMigrator.swift       # Alle Schema-Migrationen (v1…v10, siehe unten)
+│   │   ├── FeedivoDatabaseLocation.swift       # Pfad in Application Support
+│   │   ├── FeedivoDatabaseEnvironment.swift    # SwiftUI-Environment-Key `\.feedivoDatabase`
+│   │   ├── SQLiteDataInvalidation.swift        # AppStorage-Statusversion, triggert UI-Reloads nach Mutationen
+│   │   └── Records/                    # GRDB `Codable & FetchableRecord & PersistableRecord`-Structs
+│   │       ├── FeedRecord.swift, ArticleRecord.swift, ArticleStatusRecord.swift
+│   │       ├── TagRecord.swift, ArticleTagRecord.swift, FeedTagRecord.swift
+│   │       ├── RuleRecord.swift, RuleConditionRecord.swift
+│   │       ├── SmartFolderRecord.swift, SmartFolderConditionRecord.swift
+│   │       ├── FeedFolderRecord.swift, FeedLogRecord.swift
+│   │       └── ArticleOfflineRecord.swift, ArticleIdentityHistoryRecord.swift
+│   │
+│   ├── Stores/                         # Query-/Mutation-Layer über den Records (ein Store pro Tabelle/Domäne)
+│   │   ├── FeedStore.swift, ArticleStore.swift, ArticleStatusStore.swift
+│   │   ├── TagStore.swift, FeedFolderStore.swift, FeedLogStore.swift
+│   │   ├── SQLiteRuleStore.swift, SQLiteRuleEvaluationStore.swift
+│   │   ├── SQLiteSmartFolderStore.swift, SQLiteOfflineStore.swift
+│   │   └── TimelineStore.swift, ArticleDatabase.swift
+│   │
+│   ├── Models/                         # Reine Value-Type-Enums (KEINE SwiftData @Model mehr!)
+│   │   ├── RuleAction.swift, RuleConditionField.swift, RuleConditionOperator.swift
+│   │   ├── RuleMatchMode.swift, RuleNotificationPriority.swift
+│   │   └── SmartFolderAppearance.swift, SmartFolderConditionField.swift,
+│   │       SmartFolderConditionOperator.swift, SmartFolderDateValue.swift, SmartFolderStatusValue.swift
+│   │
+│   ├── Snapshots/                      # Sendable-Wertetypen, die aus SQLite-Queries befüllt werden
+│   │                                    # und View/ViewModel-seitig statt Model-Objekten verwendet werden
+│   │                                    # (z. B. FeedSidebarSnapshot, ArticleReaderSnapshot, ArticleListItemSnapshot)
 │   │
 │   ├── ViewModels/
-│   │   ├── FeedViewModel.swift         # Feed hinzufügen, löschen, aktualisieren ✅
-│   │   ├── ArticleViewModel.swift      # Artikel filtern, markieren, suchen (TODO)
-│   │   ├── TagViewModel.swift          # Tags verwalten (TODO)
-│   │   ├── RuleEngineViewModel.swift   # Regeln auswerten und Tags auto-zuweisen (TODO)
-│   │   └── SyncViewModel.swift         # iCloud Sync Status anzeigen (TODO)
+│   │   ├── FeedViewModel.swift         # Feed hinzufügen/löschen/refreshen, OPML-Import, delegiert an SQLite-Services
+│   │   ├── RuleViewModel.swift         # Regeln verwalten
+│   │   ├── TagViewModel.swift          # Tag-Hilfsfunktionen (enum, kein State mehr)
+│   │   ├── SQLiteFeedArticleListState.swift, SQLiteReaderState.swift, SQLiteSidebarState.swift
+│   │   ├── SQLiteArticleNavigationState.swift, ArticleURLHelpers.swift, SmartFolderConditionDraft.swift
 │   │
-│   ├── Views/
-│   │   ├── Sidebar/
-│   │   │   ├── SidebarView.swift       # Linke Spalte: Feeds, + Button, @Query ✅
-│   │   │   ├── FeedRowView.swift       # Eine Feed-Zeile in der Sidebar (TODO)
-│   │   │   └── TagRowView.swift        # Eine Tag-Zeile in der Sidebar (TODO)
-│   │   ├── ArticleList/
-│   │   │   ├── ArticleListView.swift   # Mittlere Spalte: Platzhalter ✅ (ausbau nötig)
-│   │   │   └── ArticleRowView.swift    # Eine Artikel-Zeile in der Liste (TODO)
-│   │   ├── Reader/
-│   │   │   ├── ReaderView.swift        # Rechte Spalte: Platzhalter ✅ (ausbau nötig)
-│   │   │   └── WebContentView.swift    # WKWebView-Wrapper für volle Artikel (TODO)
-│   │   ├── Tags/
-│   │   │   ├── TagManagerView.swift    # Tags erstellen, bearbeiten, löschen (TODO)
-│   │   │   └── AddTagView.swift        # Sheet: neuen Tag erstellen (TODO)
-│   │   ├── Rules/
-│   │   │   ├── RuleListView.swift      # Alle Regeln anzeigen und verwalten (TODO)
-│   │   │   └── AddRuleView.swift       # Sheet: neue Regel erstellen (TODO)
-│   │   └── Settings/
-│   │       └── SettingsView.swift      # Einstellungen (Refresh, Darstellung, OPML) (TODO)
+│   ├── Views/                          # ~55 Dateien, gruppiert nach Feature-Bereich
+│   │   ├── ContentView.swift           # Root: NavigationSplitView (3 Spalten), verwaltet Auswahl/Alerts
+│   │   ├── Sidebar/                    # Feed-/Ordner-/Tag-/SmartFolder-Liste, Feed-Eigenschaften, Umbenennen
+│   │   ├── ArticleList/                # Artikelliste, Filter/Sortierung, Export-Sheet, Suchfenster
+│   │   ├── Reader/                     # Lese-Ansicht: nativer Renderer + WKWebView, Typografie, Metadaten
+│   │   ├── Tags/                       # Tag-Verwaltung (Farben, Umbenennen, Löschen)
+│   │   ├── Rules/                      # Regel-Einstellungen + Regel-Assistent (Wizard)
+│   │   ├── SmartFolders/               # Intelligente Ordner: Editor, Einstellungen, Formatierung
+│   │   ├── OPMLImport/ + OPMLExport/   # OPML-Vorschau/-Review und -Export
+│   │   ├── FirstRun/                   # Onboarding-Assistent beim ersten Start
+│   │   ├── Organizer/                  # Separates Fenster zur Feed-/Ordner-Verwaltung
+│   │   ├── Settings/                   # Einstellungen-Fenster (Refresh, Darstellung, Sync, Aufbewahrung, …)
+│   │   └── Shared/                     # Wiederverwendbare Komponenten (z. B. CachedRemoteImageView)
 │   │
-│   ├── Services/
-│   │   ├── FeedService.swift           # FeedKit-Wrapper: RSS/Atom/JSON Feed parsen ✅
-│   │   ├── FeedRefreshService.swift    # Alle Feeds abrufen (async, mit Fortschritt) (TODO)
-│   │   ├── RuleEngine.swift            # Regeln auf neue Artikel anwenden (TODO)
-│   │   ├── OPMLService.swift           # OPML Import und Export (TODO)
-│   │   └── BackgroundRefreshService.swift  # BGTaskScheduler (TODO)
+│   ├── Services/                       # ~29 Dateien: Feed-Refresh, Regeln, OPML, Export, Caching, Icon-Badge, …
+│   │   ├── FeedService.swift           # FeedKit-Wrapper: RSS/Atom/JSON Feed parsen
+│   │   ├── SQLiteFeedRefreshCoordinator.swift / SQLiteFeedRefreshService.swift  # Feed-Refresh-Pipeline
+│   │   ├── SQLiteFeedActionService.swift / SQLiteFeedSubscriptionService.swift  # Feed anlegen/löschen/abonnieren
+│   │   ├── RuleEngine.swift            # Regeln auf neue Artikel anwenden (SQLite-Snapshots)
+│   │   ├── OPMLService.swift / OPMLDocument.swift             # OPML Import/Export
+│   │   ├── ArticleExportService.swift + ArticleExportPackageBuilder.swift + ArticleDocumentExportRenderers.swift
+│   │   ├── ArticleRetentionSettings.swift / ArticleRetentionCleanupService.swift  # Aufbewahrungslimits
+│   │   ├── OfflineArticleContentFetching.swift  # Offline-Volltext-Speicherung
+│   │   ├── BackgroundRefreshService.swift + *Settings.swift    # Hintergrund-Refresh (NSBackgroundActivityScheduler)
+│   │   ├── FaviconService.swift, ImageCacheService.swift, AppIconBadgeService.swift
+│   │   └── FeedDiscoveryService.swift, FeedNotificationService.swift, CloudSyncSettings.swift, …
 │   │
-│   ├── Extensions/
-│   │   ├── Date+Formatted.swift        # Datum formatieren z.B. "vor 2 Stunden" (TODO)
-│   │   └── URL+Favicon.swift           # Favicon-URL aus Feed-URL ableiten (TODO)
+│   ├── Extensions/                     # Kleine Swift-Erweiterungen
 │   │
 │   └── Resources/
-│       ├── Assets.xcassets
-│       └── CLAUDE.md                   # Diese Datei
+│       ├── Assets.xcassets             # inkl. befülltem AppIcon.appiconset
+│       ├── L10n.swift + Localizable.xcstrings   # Vollständig lokalisierte Strings (Deutsch/Englisch)
+│       └── Fonts/                      # Gebündelte Reader-Schriften
 │
+├── FeedivoTests/                       # Swift-Testing-Suiten (kein XCTest), ~64 Testdateien
 ├── Feedivo.xcodeproj
-└── CLAUDE.md                           # Kopie im Root (für Claude Code CLI)
+└── CLAUDE.md                           # Diese Datei
 ```
 
 ---
 
-## Implementierter Code (Stand 2026-06-19)
+## Kernarchitektur
+
+### Datenfluss
+Views halten keine SwiftData-`@Model`-Objekte mehr, sondern laden **Snapshots** (reine,
+`Sendable`-fähige Structs aus `Feedivo/Snapshots/`) direkt aus den `Stores/` über die
+SwiftUI-Environment `\.feedivoDatabase`. Mutationen laufen über die `SQLite*Service`-Klassen
+in `Services/`, die anschließend `SQLiteDataInvalidation.bumpStatusVersion()` aufrufen — das
+ist ein `@AppStorage`-Zähler, dessen Änderung betroffene Views zum Neu-Laden ihrer Snapshots
+anstößt (kein `@Query`/Observation-Mechanismus wie bei SwiftData, weil GRDB das nicht bietet).
 
 ### FeedivoApp.swift
-```swift
-import SwiftUI
-import SwiftData
-
-@main
-struct FeedivoApp: App {
-    var body: some Scene {
-        WindowGroup {
-            ContentView()
-        }
-        .modelContainer(for: [
-            Feed.self,
-            Article.self,
-            Tag.self,
-            Rule.self
-        ])
-    }
-}
-```
+Öffnet beim Start die SQLite-Datenbank (`FeedivoDatabaseLocation.databaseURL()`), fällt bei
+Öffnungsfehlern auf eine In-Memory-Datenbank zurück und zeigt dem Nutzer dafür einmalig einen
+Alert (`DatabaseLoadState`). Registriert Hintergrund-Refresh, räumt abgelaufene Artikel auf
+und begrenzt den Bildcache beim Start. Definiert vier Scenes: Haupt-`WindowGroup`,
+Artikelsuchfenster, Organizer-Fenster, `WindowGroup(for: ArticleWindowRequest.self)` für
+Artikel-Popouts, plus das Settings-Fenster.
 
 ### ContentView.swift
-NavigationSplitView mit 3 Spalten. Verwaltet `selectedFeed` und `selectedArticle` als
-`@State`. Zeigt `ContentUnavailableView` wenn nichts ausgewählt ist.
-Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
+`NavigationSplitView` mit 3 Spalten (Sidebar / Artikelliste / Reader). Feed-Auswahl läuft
+komplett über String-IDs (`FeedRecord.id`, ein UUID-String) statt über Objektidentität.
 
-### SidebarView.swift
-- `@Query(sort: \Feed.title)` für automatische Feed-Liste aus SwiftData
-- Toolbar mit + Button → Sheet `AddFeedSheet`
-- `AddFeedSheet` ist eine separate Struct in derselben Datei
-- Ruft `FeedViewModel.addFeed()` auf
+### Datenbank-Schema (GRDB-Migrationen, Stand: v10)
+| Migration | Inhalt |
+|---|---|
+| v1_create_core_tables | `feeds`, `articles`, `article_status`, `feed_logs` |
+| v2_create_tag_tables | `tags`, `article_tags` |
+| v3_create_feed_tag_table | `feed_tags` |
+| v4_create_article_search_index | Volltextsuche für Artikel |
+| v5_create_article_offline_table | Offline-Artikelinhalte |
+| v6_create_admin_definition_tables | Regeln, Regelbedingungen, intelligente Ordner + deren Bedingungen |
+| v7_add_feed_admin_fields | Zusätzliche Feed-Verwaltungsfelder |
+| v8_drop_unique_feed_url_index | Lockert Eindeutigkeits-Constraint auf Feed-URLs |
+| v9_create_article_identity_history | Historie für Artikel-Identitätswechsel (z. B. bei URL-Änderungen) |
+| v10_add_feed_retention_minimum_articles | Mindestanzahl Artikel pro Feed bei Aufbewahrungs-Cleanup |
 
-### FeedService.swift
-- Parsed RSS 2.0, Atom, JSON Feed via FeedKit
-- FeedKit-Callback via `withCheckedThrowingContinuation` in async umgewandelt
-- Gibt `[Article]` zurück
-- Eigene `FeedError` enum: `.invalidURL`, `.parsingFailed`
-
-### FeedViewModel.swift
-- `@Observable` class
-- `addFeed(urlString:context:)` — lädt Artikel, erstellt Feed, speichert in SwiftData
-- Properties: `isLoading: Bool`, `errorMessage: String?`
-- **Bekanntes Problem:** Feed-Titel wird aktuell als URL gespeichert — muss noch aus
-  Feed-Metadaten gelesen werden (rssFeed.title / atomFeed.title)
-
----
-
-## Datenmodell (SwiftData)
-
-> **Wichtig für CloudKit:** Alle Properties müssen `Optional` sein ODER einen Default-Wert
-> haben — sonst crasht die CloudKit-Synchronisation.
-> URLs werden als `String` gespeichert (CloudKit unterstützt keinen nativen URL-Typ).
-
-```swift
-@Model class Feed {
-    var id: UUID
-    var url: String
-    var title: String
-    var feedDescription: String?
-    var faviconURL: String?
-    var lastRefreshed: Date?
-    var refreshIntervalMinutes: Int          // Default: 60
-    @Relationship(deleteRule: .cascade) var articles: [Article]
-    @Relationship var tags: [Tag]
-}
-
-@Model class Article {
-    var id: UUID
-    var title: String
-    var link: String?
-    var summary: String?
-    var content: String?                     // Volltext für Offline-Lesen
-    var publishedAt: Date?
-    var imageURL: String?
-    var isRead: Bool
-    var isStarred: Bool
-    @Relationship var feed: Feed?
-    @Relationship var tags: [Tag]
-}
-
-@Model class Tag {
-    var id: UUID
-    var name: String
-    var colorHex: String                     // z.B. "#FF5733"
-    @Relationship(inverse: \Feed.tags) var feeds: [Feed]
-    @Relationship(inverse: \Article.tags) var articles: [Article]
-}
-
-@Model class Rule {
-    var id: UUID
-    var name: String
-    var isEnabled: Bool
-    var conditionField: String               // "title", "summary", "feedTitle"
-    var conditionOperator: String            // "contains", "startsWith", "endsWith"
-    var conditionValue: String
-    @Relationship var assignTag: Tag?
-}
-```
+Volle Details je Tabelle: `Feedivo/Database/FeedivoDatabaseMigrator.swift`. Die passenden
+Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
 
 ---
 
 ## Architektur-Entscheidungen (ADR)
 
-### ADR-001: SwiftData statt Core Data
-- **Entscheidung:** SwiftData
-- **Grund:** Moderner, weniger Boilerplate, native CloudKit-Integration via `isCloudKitEnabled`
-- **Datum:** 2026-06-19
+### ADR-001 (ÜBERHOLT durch ADR-007): SwiftData statt Core Data
+- **Ursprüngliche Entscheidung (2026-06-19):** SwiftData
+- **Grund damals:** Moderner, weniger Boilerplate, native CloudKit-Integration via `isCloudKitEnabled`
+- **Status:** Am 2026-07-07 vollständig rückgängig gemacht — siehe ADR-007
 
 ### ADR-002: FeedKit für RSS-Parsing
 - **Entscheidung:** FeedKit Swift Package
@@ -250,10 +219,29 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 - **Grund:** Moderner, weniger Boilerplate als `@Published` + `ObservableObject`
 - **Datum:** 2026-06-19
 
-### ADR-006: URL als String in SwiftData speichern
+### ADR-006: URLs als String speichern
 - **Entscheidung:** URLs als `String` speichern, bei Verwendung mit `URL(string:)` konvertieren
-- **Grund:** CloudKit unterstützt keinen nativen URL-Typ
-- **Datum:** 2026-06-19
+- **Grund ursprünglich:** CloudKit unterstützt keinen nativen URL-Typ (SwiftData-Ära)
+- **Grund heute:** Gilt unverändert weiter — auch GRDB/SQLite hat keinen nativen URL-Spaltentyp
+- **Datum:** 2026-06-19 (Begründung am 2026-07-07 aktualisiert)
+
+### ADR-007: SwiftData vollständig durch GRDB/SQLite ersetzt
+- **Entscheidung:** SwiftData komplett entfernt (alle 9 `@Model`-Klassen gelöscht), GRDB/SQLite
+  ist die alleinige Persistenzschicht
+- **Grund:** Der produktive Datenpfad war schon vor dieser Aufräumaktion vollständig auf eine
+  eigene SQLite-Schicht umgestellt (Snapshot-Pattern, siehe „Kernarchitektur" oben) — SwiftData
+  war nur noch technische Altlast ohne aktiven Nutzen (kein `ModelContainer` wurde mehr
+  instanziiert). Motivation für die vollständige Entfernung: toten Code eliminieren, die
+  Snapshot/Store-Architektur als einzige Quelle der Wahrheit etablieren, keine zwei parallelen
+  Datenmodelle mehr pflegen müssen.
+- **Ausführung:** Dreiphasiger Plan (Dead-Code-Erkennung, methodengenaue Bereinigung gemischter
+  Dateien, finale Löschung der 9 Model-Dateien), umgesetzt über Subagent-Driven-Development mit
+  Task- und finalem Whole-Branch-Review.
+- **Konsequenz für iCloud Sync:** Die CloudKit-Anbindung, die ursprünglich über
+  `isCloudKitEnabled` an SwiftData hing, existiert dadurch aktuell nicht mehr. Ein neuer,
+  GRDB-kompatibler Sync-Mechanismus ist Ziel des (aktuell pausierten) Branches
+  `codex/icloud-sync-beta`.
+- **Datum:** 2026-07-07
 
 ---
 
@@ -261,97 +249,127 @@ Spaltenbreiten: Sidebar 200–300px, ArticleList 280–400px, Detail flexibel.
 
 > Diese Liste wächst während der Entwicklung. Immer ergänzen!
 
-- **Feed-Titel:** Aktuell wird die URL als Titel gespeichert — muss aus Feed-Metadaten
-  gelesen werden: `rssFeed.title` / `atomFeed.title` / `jsonFeed.title`
-- **CloudKit + SwiftData:** Alle `@Model`-Properties müssen `Optional` sein ODER einen
-  Default-Wert haben — sonst crasht die CloudKit-Synchronisation
+- **SourceKit-Diagnosen sind oft falsch:** Nach praktisch jedem Edit zeigt die IDE/das
+  Diagnose-System teils dutzende Fehler wie "Cannot find type X in scope" oder "No such module
+  'GRDB'/'Testing'". Das sind in aller Regel veraltete/gecachte SourceKit-Zustände, KEINE echten
+  Fehler. Verlässlich ist ausschließlich ein echter `xcodebuild build`-Lauf.
+- **Volle Testsuite hängt:** Ein unscoped `xcodebuild test` über alle Testdateien hängt/deadlockt
+  reproduzierbar (bekanntes, ungelöstes Infrastrukturproblem). Immer gezielt mit
+  `-only-testing:FeedivoTests/<SuiteName>` testen.
+- **Bekannte, dauerhaft vorbestehende Testfehlschläge** (nicht neu einführen, aber auch nicht
+  grundlos als eigenen Bug behandeln): 5 Tests in `FeedivoAppSceneConfigurationTests.swift`,
+  2 flaky-unter-Last Tests in `FeedViewModelTests.swift`
+  (`refreshAllFeedsMitSQLiteDatabaseNutztSQLiteFirstOhneDoppeltenAbruf`,
+  `refreshAllFeedsMitSQLiteDatabaseMeldetFeedBenachrichtigungen`).
+- **GRDB statt SwiftData:** Keine `@Query`/Observation-Automatik — UI-Updates nach Mutationen
+  laufen explizit über `SQLiteDataInvalidation.bumpStatusVersion()` + `.onChange(...)` in den
+  Views. Wer eine Mutation schreibt und vergisst, den Statuszähler zu bumpen, bekommt eine
+  UI, die nicht aktualisiert.
+- **Optionale Relationship-/Datumsvergleiche in älteren Notizen beziehen sich auf SwiftData
+  `#Predicate`** — nicht mehr relevant, da kein SwiftData-Code mehr existiert.
 - **FeedKit ist nicht async:** `parseAsync` muss mit `withCheckedThrowingContinuation`
-  gewrappt werden
-- **NavigationView ist deprecated:** Immer `NavigationSplitView` oder `NavigationStack`
-- **WKWebView in SwiftUI:** Braucht einen `NSViewRepresentable`-Wrapper für macOS
-- **Background Refresh macOS:** `BGTaskScheduler` muss in `Info.plist` unter
-  `BGTaskSchedulerPermittedIdentifiers` registriert sein
-- **macOS Menüleiste:** Commands werden mit `.commands { }` an die WindowGroup gehängt,
-  nicht an eine View
-- **iCloud Capability:** Muss in Xcode Target → Signing & Capabilities aktiviert sein,
-  plus CloudKit Container in developer.apple.com anlegen
-- **OPML-Format:** XML-basiert — `XMLParser` (built-in) reicht, kein 3rd-Party nötig
+  gewrappt werden.
+- **NavigationView ist deprecated:** Immer `NavigationSplitView` oder `NavigationStack`.
+- **WKWebView in SwiftUI:** Braucht einen `NSViewRepresentable`-Wrapper für macOS (siehe
+  `WebContentView.swift`).
+- **Background Refresh macOS:** Läuft über `NSBackgroundActivityScheduler`, NICHT über das
+  iOS-fokussierte `BGTaskScheduler`/`BGTaskSchedulerPermittedIdentifiers`.
+- **macOS Menüleiste:** Commands werden mit `.commands { }` an die `WindowGroup` gehängt,
+  nicht an eine View.
+- **OPML-Format:** XML-basiert, eigenes Parsing in `OPMLService.swift`/`OPMLDocument.swift`.
+- **Datenbank-Migrationen:** Neue Migrationen immer als neuer `migrator.registerMigration("vN_…")`
+  -Block anhängen, nie bestehende Migrationen nachträglich ändern (sonst bricht die Migration
+  bei Bestandsnutzern).
 
 ---
 
 ## Milestone-Plan
 
-### M1 – Foundation ← AKTUELL
-- [x] Xcode-Projekt erstellen (macOS App, SwiftUI, Bundle ID: `ch.martin.Feedivo`)
-- [x] FeedKit via Swift Package Manager einbinden
-- [x] SwiftData Modelle anlegen: `Feed`, `Article`, `Tag`, `Rule`
-- [x] `NavigationSplitView` Grundstruktur aufsetzen (3 Spalten)
-- [x] `FeedService.swift` — Feed parsen mit FeedKit
-- [x] `FeedViewModel.swift` — Feed hinzufügen und in SwiftData speichern
-- [x] `SidebarView.swift` — Feed-Liste mit @Query + AddFeedSheet
-- [ ] Feed-Titel aus RSS-Metadaten lesen (nicht URL als Titel)
-- [ ] GitHub Repo erstellen und ersten Commit machen
-- [ ] CLAUDE.md ins Repo committen
+### M1 – Foundation ✅ Abgeschlossen
+Xcode-Projekt, FeedKit-Integration, 3-Spalten-Navigation, Feed hinzufügen/anzeigen — alles
+umgesetzt (ursprünglich mit SwiftData, inzwischen auf GRDB/SQLite migriert, siehe ADR-007).
 
-### M2 – Core Features
-- [ ] Feed-Titel korrekt aus Metadaten lesen
-- [ ] ArticleListView ausbauen: echte Artikel aus SwiftData anzeigen
-- [ ] ArticleRowView: Titel, Datum, gelesen/ungelesen Indikator
-- [ ] ReaderView ausbauen: Artikel-Inhalt mit nativen SwiftUI Text-Elementen
-- [ ] Gelesen/Ungelesen markieren (Klick + `Cmd+Shift+U`)
-- [ ] Artikel mit Stern markieren (`Cmd+D`)
-- [ ] macOS Menüleiste: `Cmd+R` = Refresh, `Cmd+N` = Feed hinzufügen
-- [ ] Feed löschen (Rechtsklick → Delete, mit Bestätigung)
-- [ ] Automatischer Refresh (konfigurierbares Intervall)
-- [ ] Favicons laden und in Sidebar anzeigen
+### M2 – Core Features ✅ Abgeschlossen
+Artikelliste, Reader (nativ + WKWebView), Gelesen/Ungelesen, Stern-Markierung, Menüleisten-
+Shortcuts (`Cmd+N` Feed hinzufügen, `Cmd+R`/`Cmd+Shift+R` Refresh, `Cmd+D` Stern, `Cmd+Shift+U`
+Gelesen-Status, Pfeiltasten-Navigation, `Cmd+F` Suche), Feed löschen, automatischer Hintergrund-
+Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-API).
 
-### M3 – Tags, Regeln & Sync
-- [ ] Tag-System: Tags erstellen (Name + Farbe), Feeds und Artikeln manuell zuweisen
-- [ ] Sidebar: Abschnitt "Tags" mit Filterung
-- [ ] Smart Filter in Sidebar: "Alle ungelesen", "Gestern", "Mit Stern"
-- [ ] `RuleEngine`: Neue Artikel automatisch taggen basierend auf Regeln
-- [ ] Regel-UI: Regeln erstellen, bearbeiten, aktivieren/deaktivieren
-- [ ] iCloud Sync via CloudKit aktivieren und testen
-- [ ] Offline-Unterstützung: Artikel-Content beim Abruf in SwiftData speichern
-- [ ] Background Refresh: `BGTaskScheduler` einrichten
+### M3 – Tags, Regeln & Sync — größtenteils ✅, iCloud Sync offen
+- [x] Tag-System (erstellen, Farbe, zuweisen, verwalten)
+- [x] Smart Filter / intelligente Ordner mit eigenem Editor und Bedingungen
+- [x] `RuleEngine` inkl. Regel-Assistent (Wizard) und Einstellungs-UI
+- [x] Offline-Unterstützung: Artikel-Volltext wird beim Abruf in SQLite gespeichert
+- [x] Background Refresh (`NSBackgroundActivityScheduler` statt `BGTaskScheduler`)
+- [ ] **iCloud Sync via CloudKit** — UI-Toggle existiert ("iCloud Sync Beta"), aber ohne
+      funktionales Backend auf `main`; Vorarbeit auf Branch `codex/icloud-sync-beta`
+      pausiert und muss noch auf GRDB/SQLite migriert werden (siehe ADR-007)
 
-### M4 – Polish & Release
-- [ ] OPML Import (Feeds aus anderem RSS Reader übernehmen)
-- [ ] OPML Export (Feeds portieren)
-- [ ] Einstellungen-Fenster (Refresh-Intervall, Schriftgrösse, Theme)
-- [ ] Share Extension (Artikel teilen via macOS Share Sheet)
-- [ ] App-Icon designen
-- [ ] Onboarding (erster Start ohne Feeds)
-- [ ] App Store Vorbereitung oder privat verteilen
+### M4 – Polish & Release — größtenteils ✅
+- [x] OPML Import (mit Vorschau/Review-Screen, Duplikat-Erkennung)
+- [x] OPML Export
+- [x] Einstellungen-Fenster (Refresh, Darstellung, Textgröße, Sync-Beta, Aufbewahrung, …)
+- [x] App-Icon (Assets.xcassets befüllt)
+- [x] Onboarding (`FirstRunWizardView`)
+- [x] Artikel-Export (Markdown/PDF/DOCX/Paket, siehe `ArticleExportService` + Renderer)
+- [x] Vollständige Lokalisierung (Deutsch/Englisch, `L10n.swift` + `Localizable.xcstrings`)
+- [ ] Share Extension — noch nicht begonnen
+- [ ] App Store Vorbereitung oder private Verteilung — noch offen
+
+### Post-M4 — zusätzlich umgesetzt, nicht im ursprünglichen Plan vorgesehen
+- Separates Artikel-Suchfenster, Organizer-Fenster, Artikel-Popout-Fenster
+- Umfangreiches, mehrphasiges Code-Review-Remediation-Programm (Korrektheit, Performance,
+  Wartbarkeit — siehe Memory-Einträge zu `code-review-full-codebase-2026-06` etc.)
+- Vollständige Migration der Persistenzschicht von SwiftData auf GRDB/SQLite (ADR-007)
+- App-Icon-Badge mit Anzahl ungelesener Artikel
+- Bild-Caching mit konfigurierbarem Limit
+- Artikel-Aufbewahrungsrichtlinien (globale + Feed-eigene Overrides)
 
 ---
 
 ## GitHub
 
 - **Repo:** https://github.com/martinfelder/feedivo-mac (private)
-- **Issues:** GitHub Issues mit Milestones M1–M4
-- **Labels:** `feature` `bug` `chore` `ui` `networking` `data` `sync` `tags`
-- **Branch-Strategie:** `main` = stabil, `feature/[name]` für neue Features
+- **Branch-Strategie:** `main` = stabil, direkt bearbeitet (kein durchgängiges Feature-Branch-
+  Modell mehr in der aktuellen Praxis); vereinzelt längerlebige Branches für größere,
+  eigenständige Vorhaben (z. B. `codex/icloud-sync-beta`, `codex/sqlite-grdb-foundation`)
+- **Push-Konvention:** Nie ohne explizite Nutzerbestätigung nach `origin/main` pushen
 
 ---
 
 ## Offene Entscheidungen
 
-- [ ] GitHub Repo anlegen und URL hier eintragen
-- [ ] Artikel-Detail: Nur nativer SwiftUI Text-Renderer oder auch WKWebView (volle Webseite)?
-- [ ] Monetarisierung: Kostenlos / einmaliger Kauf / nie im App Store?
-- [ ] Favicon-Strategie: Google S2 API (`https://www.google.com/s2/favicons?domain=`) oder eigene Lösung?
+- **iCloud Sync:** Wann und wie wird `codex/icloud-sync-beta` auf GRDB/SQLite migriert und
+  gemergt? Bis dahin bleibt der Settings-Toggle ein reiner UI-Platzhalter ohne Funktion.
+- **Monetarisierung:** Kostenlos / einmaliger Kauf / nie im App Store? — weiterhin offen.
+- **Share Extension:** Noch nicht begonnen, kein konkreter Zeitplan.
+- **App Store vs. private Verteilung:** Weiterhin offen.
+
+**Bereits gelöst (zur Referenz):**
+- Artikel-Detail: sowohl nativer SwiftUI-Renderer als auch WKWebView (Originalartikel) —
+  beide umgesetzt, nutzerseitig umschaltbar.
+- Favicon-Strategie: eigene HTML-Discovery + Fallback-Heuristik, keine Google-S2-API.
 
 ---
 
 ## Aktuell in Arbeit
 
-- M1 fast fertig — noch offen: Feed-Titel aus Metadaten lesen
-- Nächster Schritt nach GitHub-Setup: ArticleListView und ReaderView ausbauen (M2 Start)
+- SwiftData-Vollentfernung (ADR-007) ist abgeschlossen und auf `origin/main` gepusht.
+- CLAUDE.md wurde nach der SwiftData-Entfernung grundlegend aktualisiert (dieser Durchgang).
+- Nächster sinnvoller Schritt laut offenen Punkten: Entscheidung über `codex/icloud-sync-beta`
+  treffen (migrieren+mergen vs. verwerfen), da der Branch sonst weiter divergiert.
 
 ---
 
 ## Letzte Änderungen
 
-- 2026-06-19: Projekt erstellt, SwiftData Modelle, NavigationSplitView,
-  FeedService + FeedViewModel + SidebarView mit AddFeedSheet implementiert
+- 2026-07-07: SwiftData vollständig entfernt (30-Task-Plan, Subagent-Driven-Development,
+  finaler Whole-Branch-Review). Commits `575bcee23` (Löschung der 9 `@Model`-Klassen) und
+  `90b7216cc` (Nachtrags-Cleanup: toter Code, veraltete Kommentare) auf `main` gepusht.
+  GRDB/SQLite ist seither die alleinige Persistenzschicht.
+- 2026-07-07: CLAUDE.md grundlegend überarbeitet — Tech-Stack, Datenmodell, Projektstruktur
+  und Milestone-Plan an den tatsächlichen Code-Stand angeglichen (vorher seit 2026-06-19
+  praktisch unverändert und stark veraltet).
+- 2026-06-19: Projekt erstellt, ursprünglich mit SwiftData Modellen, NavigationSplitView,
+  FeedService + FeedViewModel + SidebarView mit AddFeedSheet implementiert (seither durch
+  GRDB/SQLite-Architektur abgelöst).
