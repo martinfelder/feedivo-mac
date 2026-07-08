@@ -207,8 +207,8 @@
 - **Umgesetzt:** Eigene Section, feedübergreifende Filterung
 
 ### 3.4 Intelligente Ordner kompakter darstellen
-- **Status:** ✅ Entschieden — bereit zur Implementierung
-- **Entscheidung (2026-07-08):**
+- **Status:** ✔️ Fertig
+- **Umgesetzt (2026-07-08):**
   - `SmartFolderSidebarRow` nutzt aktuell die Standard-Zeilenhöhe von
     `SidebarRowButtonStyle` (36pt), während normale Feed-Zeilen bereits 30pt
     (bzw. 28pt eingerückt) verwenden.
@@ -1255,7 +1255,7 @@ Folgende Reihenfolge berücksichtigt Abhängigkeiten. Features mit (*) sind Vora
 7. **Feature 5.2** — Regeln Settings-Design (Drag & Drop Liste, alle 3 Aktionen) — erledigt
 8. **Feature 16.1/16.2** — Intelligente Ordner (eigener Sidebar-Abschnitt, Sheet, Live-Vorschau, 3 vordefinierte) — erledigt
 9. **Feature 3.2** — Smart Filter erweitern — entfällt, durch Intelligente Ordner ersetzt
-9a. **Feature 3.4** — Intelligente Ordner kompakter darstellen (Zeilenhöhe 36pt → 30pt)
+9a. **Feature 3.4** — Intelligente Ordner kompakter darstellen (Zeilenhöhe 36pt → 30pt) — erledigt
 
 ### Phase 3 — Benachrichtigungen
 10. **Feature 10.3** * — Badge-Zähler App-Icon + Einstellungs-Kategorie Benachrichtigungen — erledigt
