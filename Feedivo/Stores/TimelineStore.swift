@@ -89,6 +89,7 @@ struct TimelineStore {
                     a.id,
                     a.feedID,
                     f.title AS feedTitle,
+                    f.faviconURL AS faviconURL,
                     a.title,
                     a.summary,
                     a.link,
@@ -780,6 +781,7 @@ extension ArticleListSnapshot: FetchableRecord {
         isStarred = row["isStarred"]
         isArchived = row["isArchived"]
         isHidden = row["isHidden"]
+        faviconURL = row["faviconURL"]
         offlineStateRaw = row["offlineStateRaw"]
     }
 }

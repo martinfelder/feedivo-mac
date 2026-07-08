@@ -15,6 +15,7 @@ struct ArticleListSnapshot: Equatable, Identifiable, Sendable {
     var isStarred: Bool
     var isArchived: Bool
     var isHidden: Bool
+    var faviconURL: String?
     var offlineStateRaw: String = ArticleOfflineState.none.rawValue
 
     var offlineState: ArticleOfflineState {

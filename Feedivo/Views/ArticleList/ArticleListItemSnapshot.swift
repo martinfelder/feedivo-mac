@@ -13,6 +13,7 @@ struct ArticleListItemSnapshot: Equatable, Identifiable {
     let isHidden: Bool
     let imageURL: String?
     let offlineState: ArticleOfflineState
+    let faviconURL: String?
     let hasOriginalURL: Bool
 
     init(sqliteSnapshot: ArticleListSnapshot) {
@@ -27,6 +28,7 @@ struct ArticleListItemSnapshot: Equatable, Identifiable {
         self.isArchived = sqliteSnapshot.isArchived
         self.isHidden = sqliteSnapshot.isHidden
         self.imageURL = sqliteSnapshot.imageURL
+        self.faviconURL = sqliteSnapshot.faviconURL
         self.offlineState = sqliteSnapshot.offlineState
         self.hasOriginalURL = ArticleOriginalURLResolver.hasUsableWebLink(sqliteSnapshot.link)
     }
