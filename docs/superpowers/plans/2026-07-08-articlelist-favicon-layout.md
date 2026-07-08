@@ -618,18 +618,22 @@ git commit -m "Artikelliste: Favicon vor Feedname, konfigurierbare Bild-/Feednam
   `ArticleListFeedNameVisibilitySettings` (Task 1)
 - Produces: keine neuen öffentlichen Symbole außerhalb dieser Dateien
 
-- [ ] **Step 1: Neue L10n-Keys ergänzen**
+- [ ] **Step 1: Restliche L10n-Keys ergänzen**
 
-In `Feedivo/Resources/L10n.swift` direkt nach Zeile 216
-(`static let settingsSidebarShowsReadFeedsDescription = LocalizedStringKey("settings.sidebar.showsReadFeeds.description")`)
-einfügen:
+⚠️ **Plan-Korrektur (nach Task 1):** Der Implementierungscode aus Task 1
+(`ArticleListDisplaySettings.swift`, `titleKey`-Properties) referenziert
+bereits `L10n.articleListImagePositionLeft/Right/Hidden` und
+`L10n.articleListFeedNamePositionBeforeTitle/AfterTitle` — der Task-1-
+Implementer hat diese 5 Konstanten deshalb bereits in `L10n.swift` ergänzt
+(Commit `15a36e1`), sonst hätte Task 1 nicht kompiliert. **Diese 5 Zeilen
+NICHT erneut einfügen** (führt sonst zu `invalid redeclaration`-Fehlern).
+
+Prüfe zuerst per `grep -n "articleListImagePositionLeft\|articleListFeedNamePositionBeforeTitle" Feedivo/Resources/L10n.swift`,
+dass die 5 Keys bereits vorhanden sind. Füge dann NUR die folgenden 6 neuen
+Keys ein — direkt nach Zeile 216
+(`static let settingsSidebarShowsReadFeedsDescription = LocalizedStringKey("settings.sidebar.showsReadFeeds.description")`):
 
 ```swift
-    static let articleListImagePositionLeft = LocalizedStringKey("articleList.imagePosition.left")
-    static let articleListImagePositionRight = LocalizedStringKey("articleList.imagePosition.right")
-    static let articleListImagePositionHidden = LocalizedStringKey("articleList.imagePosition.hidden")
-    static let articleListFeedNamePositionBeforeTitle = LocalizedStringKey("articleList.feedNamePosition.beforeTitle")
-    static let articleListFeedNamePositionAfterTitle = LocalizedStringKey("articleList.feedNamePosition.afterTitle")
     static let settingsArticleListImagePositionTitle = LocalizedStringKey("settings.articleList.imagePosition.title")
     static let settingsArticleListImagePositionDescription = LocalizedStringKey("settings.articleList.imagePosition.description")
     static let settingsArticleListShowsFeedNameTitle = LocalizedStringKey("settings.articleList.showsFeedName.title")
