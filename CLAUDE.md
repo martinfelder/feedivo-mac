@@ -280,6 +280,18 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
 - **Datenbank-Migrationen:** Neue Migrationen immer als neuer `migrator.registerMigration("vN_…")`
   -Block anhängen, nie bestehende Migrationen nachträglich ändern (sonst bricht die Migration
   bei Bestandsnutzern).
+- **Swift Trailing Closures bei optionalem Closure-Parameter vor einem Pflicht-Closure:**
+  Hat eine Funktion/ein Initializer zwei Closure-Parameter in der Reihenfolge
+  `action: (() -> Void)? = nil` gefolgt von `@ViewBuilder content: Content` (kein Default,
+  z. B. `CollapsibleSidebarSection` in `SidebarView.swift`), dann bindet ein einzelner,
+  **unlabeled** Trailing-Closure korrekt an `content` (Swift überspringt den defaulteten
+  `action`-Parameter automatisch). Ein einzelner **labeled** Trailing-Closure
+  (`) content: { … }` OHNE vorausgehenden unlabeled Closure) ist dagegen **kein gültiges
+  Swift** — der Parser interpretiert `content:` als Label eines `do`/Loop-Blocks und meldet
+  „labeled block needs 'do'". Für den Zwei-Closure-Fall (`action` UND `content` beide gesetzt)
+  bleibt die bekannte Doppel-Trailing-Closure-Syntax `{ action } content: { … }` weiterhin
+  richtig. Bei Unsicherheit mit `swiftc -typecheck` gegen eine minimale Repro-Struct prüfen,
+  nicht raten.
 
 ---
 
