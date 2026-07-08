@@ -20805,13 +20805,13 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ausgewählte löschen"
+            "value": "Auswahl löschen"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Delete selected"
+            "value": "Delete Selection"
           }
         },
         "fr": {
@@ -20823,7 +20823,7 @@
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Elimina selezionati"
+            "value": "Elimina selezione"
           }
         }
       }

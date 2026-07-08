@@ -135,7 +135,7 @@ struct SmartFolderEditorView: View {
             isShownInSidebar.toggle()
         } label: {
             HStack(spacing: 9) {
-                SmartFolderCheckbox(isOn: isShownInSidebar, theme: theme)
+                RuleDialogCheckbox(isOn: isShownInSidebar, theme: theme)
 
                 Text(L10n.smartFolderShowInSidebar)
                     .font(.system(size: 13.5))
@@ -753,32 +753,6 @@ private struct SmartFolderConditionRow: View {
         case .author:
             L10n.smartFolderPlaceholderAuthor
         }
-    }
-}
-
-// MARK: - Checkbox „In Sidebar anzeigen"
-
-private struct SmartFolderCheckbox: View {
-    let isOn: Bool
-    let theme: RuleDialogTheme
-
-    var body: some View {
-        RoundedRectangle(cornerRadius: 5, style: .continuous)
-            .fill(isOn ? theme.accent : theme.input)
-            .overlay(
-                RoundedRectangle(cornerRadius: 5, style: .continuous)
-                    .stroke(isOn ? theme.accent : theme.border, lineWidth: 1)
-            )
-            .overlay {
-                if isOn {
-                    Text("✓")
-                        .font(.system(size: 11, weight: .heavy))
-                        .foregroundStyle(.white)
-                }
-            }
-            .frame(width: 18, height: 18)
-            .shadow(color: isOn ? Color(hex: 0x0A84FF).opacity(0.4) : .black.opacity(0.04), radius: isOn ? 1 : 0.5, x: 0, y: 1)
-            .animation(.easeInOut(duration: 0.12), value: isOn)
     }
 }
 

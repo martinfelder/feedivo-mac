@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+*{box-sizing:border-box}
+body{margin:0}
+select,input,button{font-family:inherit}
+.vw-scroll::-webkit-scrollbar{width:11px}
+.vw-scroll::-webkit-scrollbar-thumb{background:rgba(0,0,0,.22);border-radius:6px;border:3px solid transparent;background-clip:padding-box}
+.vw-scroll::-webkit-scrollbar-track{background:transparent}
+</style>
+</helmet>
+<div style="{{ rootStyle }}">
+  <div style="width:100%;max-width:1040px;height:748px;display:flex;background:var(--bg);border-radius:14px;overflow:hidden;box-shadow:0 30px 90px var(--shadow),0 0 0 0.5px var(--border);color:var(--text)">
+
+    <!-- SIDEBAR -->
+    <div style="width:236px;flex:none;background:var(--sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px 6px">
+        <div style="display:flex;gap:8px">
+          <span style="width:12px;height:12px;border-radius:50%;background:#FF5F57"></span>
+          <span style="width:12px;height:12px;border-radius:50%;background:#FEBC2E"></span>
+          <span style="width:12px;height:12px;border-radius:50%;background:#28C840"></span>
+        </div>
+        <span style="color:var(--text2);display:inline-flex">{{ sidebarIcon }}</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:3px;padding:14px 12px">
+        <sc-for list="{{ navItems }}" as="nav" hint-placeholder-count="4">
+          <button style="{{ nav.style }}" onClick="{{ nav.onClick }}">
+            <span style="display:inline-flex;flex:none">{{ nav.icon }}</span>
+            <span>{{ nav.label }}</span>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- MAIN -->
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+      <div style="height:52px;flex:none;display:flex;align-items:center;padding:0 26px;border-bottom:1px solid var(--border)">
+        <span style="font-size:15px;font-weight:600;letter-spacing:-0.2px">Verwaltung</span>
+      </div>
+
+      <div class="vw-scroll" style="flex:1;overflow-y:auto;padding:30px 34px 40px">
+
+        <!-- ===== FEEDS ===== -->
+        <sc-if value="{{ isFeeds }}" hint-placeholder-val="{{ true }}">
+          <div style="font-size:23px;font-weight:700;letter-spacing:-0.4px">Feeds</div>
+          <div style="font-size:13.5px;color:var(--text2);margin-top:4px">Feeds suchen, auswählen, verwalten und löschen.</div>
+
+          <div style="display:flex;align-items:center;gap:10px;margin-top:22px;flex-wrap:wrap">
+            <input value="{{ feedQuery }}" onChange="{{ onFeedQuery }}" placeholder="Feeds suchen" style="flex:1 1 260px;min-width:200px;padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:var(--input);color:var(--text);font-size:13.5px;outline:none;box-shadow:0 1px 1px rgba(0,0,0,.04)" />
+            <button onClick="{{ selectAllFeeds }}" style="{{ secondaryBtn }}">Alle sichtbaren auswählen</button>
+            <button onClick="{{ deselectFeeds }}" style="{{ deselectBtn }}">Auswahl aufheben</button>
+            <button style="{{ secondaryBtn }}">OPML exportieren…</button>
+            <button onClick="{{ deleteSelectedFeeds }}" style="{{ deleteFeedsBtn }}"><span style="display:inline-flex">{{ trashIcon }}</span>{{ deleteFeedsLabel }}</button>
+          </div>
+
+          <div style="margin-top:18px;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--bg)">
+            <sc-for list="{{ feedRows }}" as="f" hint-placeholder-count="8">
+              <div style="{{ f.rowStyle }}">
+                <button onClick="{{ f.onToggle }}" style="{{ f.checkboxStyle }}"><sc-if value="{{ f.selected }}" hint-placeholder-val="{{ false }}"><span style="color:#fff;font-size:11px;font-weight:800;line-height:1">✓</span></sc-if></button>
+                <div style="min-width:0;flex:1">
+                  <div style="font-size:14.5px;font-weight:700;letter-spacing:-0.2px">{{ f.title }}</div>
+                  <div style="font-size:12.5px;color:var(--link);margin-top:2px;word-break:break-all">{{ f.url }}</div>
+                  <div style="font-size:12px;color:var(--text2);margin-top:3px">{{ f.meta }}</div>
+                </div>
+                <button onClick="{{ f.onDelete }}" title="Feed löschen" style="{{ iconBtn }}">{{ trashIcon }}</button>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <!-- ===== TAGS ===== -->
+        <sc-if value="{{ isTags }}" hint-placeholder-val="{{ false }}">
+          <div style="font-size:23px;font-weight:700;letter-spacing:-0.4px">Tags verwalten</div>
+          <div style="font-size:13.5px;color:var(--text2);margin-top:4px">Tags umbenennen, farblich markieren oder löschen.</div>
+
+          <div style="font-size:11px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:var(--text2);margin:24px 0 8px">Neuer Tag</div>
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <input value="{{ newTagName }}" onChange="{{ onNewTagName }}" placeholder="Tag-Name" style="flex:0 1 300px;min-width:200px;padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:var(--input);color:var(--text);font-size:14px;outline:none;box-shadow:0 1px 1px rgba(0,0,0,.04)" />
+            <div style="display:flex;gap:9px">
+              <sc-for list="{{ newTagSwatches }}" as="sw" hint-placeholder-count="7">
+                <button style="{{ sw.style }}" onClick="{{ sw.onClick }}"></button>
+              </sc-for>
+            </div>
+            <button onClick="{{ addTag }}" style="{{ addTagBtn }}">Hinzufügen</button>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:12px;margin-top:26px">
+            <sc-for list="{{ tagRows }}" as="tg" hint-placeholder-count="1">
+              <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+                <span style="{{ tg.dotStyle }}"></span>
+                <input value="{{ tg.name }}" onChange="{{ tg.onName }}" style="flex:0 1 300px;min-width:180px;padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:var(--input);color:var(--text);font-size:14px;outline:none;box-shadow:0 1px 1px rgba(0,0,0,.04)" />
+                <div style="display:flex;gap:9px">
+                  <sc-for list="{{ tg.swatches }}" as="sw" hint-placeholder-count="7">
+                    <button style="{{ sw.style }}" onClick="{{ sw.onClick }}"></button>
+                  </sc-for>
+                </div>
+                <button onClick="{{ tg.onDelete }}" title="Löschen" style="{{ iconBtn }}">{{ trashIcon }}</button>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <!-- ===== INTELLIGENTE ORDNER ===== -->
+        <sc-if value="{{ isFolders }}" hint-placeholder-val="{{ false }}">
+          <div style="font-size:23px;font-weight:700;letter-spacing:-0.4px">Intelligente Ordner</div>
+          <div style="font-size:13.5px;color:var(--text2);margin-top:4px;max-width:520px">Reihenfolge, Sichtbarkeit und Bedingungen der Seitenleisten-Ordner verwalten.</div>
+
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-top:24px;flex-wrap:wrap">
+            <div>
+              <div style="font-size:15px;font-weight:700">Intelligente Ordner</div>
+              <div style="font-size:12.5px;color:var(--text2);margin-top:3px;max-width:340px">Dynamische Ordner werden in der Sidebar angezeigt und filtern Artikel automatisch.</div>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <button style="{{ secondaryBtn }}"><span style="display:inline-flex">{{ restoreIcon }}</span>Standardordner wiederherstellen</button>
+              <button style="{{ primaryBtn }}"><span style="font-size:15px;line-height:1;margin-right:2px">+</span>Neuer Ordner</button>
+            </div>
+          </div>
+
+          <div style="margin-top:18px;border:1px solid var(--border);border-radius:12px;overflow:hidden">
+            <div style="{{ folderHeadStyle }}">
+              <span>Reihen&shy;folge</span><span>Sidebar</span><span>Name</span><span>Bedingungen</span><span style="text-align:right">Treffer</span><span></span>
+            </div>
+            <sc-for list="{{ folderRows }}" as="fo" hint-placeholder-count="6">
+              <div style="{{ fo.rowStyle }}">
+                <span style="color:var(--text3);display:inline-flex;cursor:grab">{{ dragIcon }}</span>
+                <button onClick="{{ fo.onToggle }}" style="{{ fo.checkboxStyle }}"><sc-if value="{{ fo.sidebar }}" hint-placeholder-val="{{ true }}"><span style="color:#fff;font-size:11px;font-weight:800;line-height:1">✓</span></sc-if></button>
+                <div style="display:flex;align-items:center;gap:10px;min-width:0">
+                  <span style="{{ fo.iconStyle }}">{{ fo.icon }}</span>
+                  <div style="min-width:0">
+                    <div style="font-size:14px;font-weight:700;letter-spacing:-0.1px">{{ fo.name }}</div>
+                    <div style="font-size:11.5px;color:var(--text2);margin-top:1px">{{ fo.type }}</div>
+                  </div>
+                </div>
+                <div style="font-size:12.5px;color:var(--text2);line-height:1.45;white-space:pre-line">{{ fo.cond }}</div>
+                <span style="font-size:13.5px;color:var(--text);text-align:right;font-variant-numeric:tabular-nums">{{ fo.count }}</span>
+                <div style="display:flex;gap:2px;justify-content:flex-end">
+                  <button title="Bearbeiten" style="{{ iconBtn }}">{{ pencilIcon }}</button>
+                  <button onClick="{{ fo.onDelete }}" title="Löschen" style="{{ iconBtn }}">{{ trashIcon }}</button>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <!-- ===== REGELN ===== -->
+        <sc-if value="{{ isRules }}" hint-placeholder-val="{{ false }}">
+          <div style="font-size:23px;font-weight:700;letter-spacing:-0.4px">Regeln</div>
+          <div style="font-size:13.5px;color:var(--text2);margin-top:4px">Regeln werden von oben nach unten angewendet.</div>
+
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-top:24px;flex-wrap:wrap">
+            <div>
+              <div style="font-size:15px;font-weight:700">Regeln</div>
+              <div style="font-size:12.5px;color:var(--text2);margin-top:3px">Regeln werden von oben nach unten angewendet.</div>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <button style="{{ secondaryBtn }}"><span style="display:inline-flex">{{ playIcon }}</span>Auf vorhandene Artikel anwenden</button>
+              <button style="{{ primaryBtn }}"><span style="font-size:15px;line-height:1;margin-right:2px">+</span>Regel erstellen</button>
+            </div>
+          </div>
+
+          <div style="margin-top:18px;border:1px solid var(--border);border-radius:12px;overflow:hidden">
+            <div style="{{ ruleHeadStyle }}">
+              <span>Reihenfolge</span><span>Aktiv</span><span>Regel</span><span>Aktion</span><span style="text-align:right">Treffer</span><span></span>
+            </div>
+            <sc-for list="{{ ruleRows }}" as="ru" hint-placeholder-count="2">
+              <div style="{{ ru.rowStyle }}">
+                <div style="display:flex;align-items:center;gap:6px;color:var(--text3)">
+                  <span style="display:inline-flex;cursor:grab">{{ dragIcon }}</span>
+                  <span style="display:inline-flex">{{ updownIcon }}</span>
+                </div>
+                <button onClick="{{ ru.onToggle }}" style="{{ ru.checkboxStyle }}"><sc-if value="{{ ru.active }}" hint-placeholder-val="{{ true }}"><span style="color:#fff;font-size:11px;font-weight:800;line-height:1">✓</span></sc-if></button>
+                <div style="min-width:0">
+                  <div style="font-size:14px;font-weight:700;letter-spacing:-0.1px">{{ ru.name }}</div>
+                  <div style="font-size:12px;color:var(--text2);margin-top:2px">{{ ru.cond }}</div>
+                </div>
+                <div><span style="{{ ru.actionStyle }}"><span style="display:inline-flex;flex:none">{{ ru.actionIcon }}</span>{{ ru.actionLabel }}</span></div>
+                <span style="font-size:13.5px;color:var(--text);text-align:right;font-variant-numeric:tabular-nums">{{ ru.count }}</span>
+                <div style="display:flex;gap:2px;justify-content:flex-end">
+                  <button title="Bearbeiten" style="{{ iconBtn }}">{{ pencilIcon }}</button>
+                  <button onClick="{{ ru.onDelete }}" title="Löschen" style="{{ iconBtn }}">{{ trashIcon }}</button>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1116,&quot;height&quot;:824},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;light&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  state = {
+    view: 'feeds',
+    feedQuery: '',
+    selectedFeeds: {},
+    newTagName: '',
+    newTagColor: '#0A84FF',
+    tags: [{ id: 't1', name: 'Heise+', color: '#14B8A6' }],
+    folders: [
+      { id: 'f1', name: 'Alle Artikel', type: 'Standardordner', cond: 'Alle Artikel', count: 2750, icon: 'foldergear', color: null, sidebar: true },
+      { id: 'f2', name: 'Ungelesen', type: 'Standardordner', cond: 'Status ist gleich "ungelesen"', count: 243, icon: 'folder', color: null, sidebar: true },
+      { id: 'f3', name: 'Mit Stern', type: 'Standardordner', cond: 'Status ist gleich "mit Stern"', count: 12, icon: 'star', color: '#FF9F0A', sidebar: true },
+      { id: 'f4', name: 'Heute', type: 'Standardordner', cond: 'Datum ist gleich "heute"', count: 99, icon: 'calendar', color: null, sidebar: true },
+      { id: 'f5', name: 'Ausgeblendet', type: 'Standardordner', cond: 'Status ist gleich "ausgeblendet"', count: 11, icon: 'eyeslash', color: null, sidebar: true },
+      { id: 'f6', name: 'Archiviert', type: 'Standardordner', cond: 'Status ist gleich "archiviert"', count: 0, icon: 'archive', color: null, sidebar: true },
+      { id: 'f7', name: 'Diese Woche', type: 'Standardordner', cond: 'Datum ist gleich "diese Woche"', count: 735, icon: 'calendar', color: null, sidebar: true },
+      { id: 'f8', name: 'Gespeichert', type: 'Standardordner', cond: 'Status ist gleich "mit Stern" ODER\nStatus ist gleich "archiviert"', count: 12, icon: 'archive', color: null, sidebar: true },
+      { id: 'f9', name: 'Heise+', type: 'Eigener Ordner', cond: 'Kategorie ist gleich "Heise+"', count: 24, icon: 'foldergear', color: null, sidebar: true }
+    ],
+    rules: [
+      { id: 'r1', name: 'heise online News Angebot', cond: 'Titel enthält "heise-Angebot"', action: 'hide', count: 22, active: true },
+      { id: 'r2', name: 'heise+ Artikel', cond: 'Titel enthält "heise+"', action: 'tag', tagColor: '#14B8A6', tagName: 'Heise+', count: 24, active: true }
+    ]
+  };
+
+  constructor(props) {
+    super(props);
+    this.SWATCHES = ['#0A84FF', '#30D158', '#FF9F0A', '#FF453A', '#BF5AF2', '#14B8A6', '#64748B'];
+    const FEEDS = [
+      { title: '9to5Google', url: 'https://9to5google.com/feed/', meta: '69 Artikel letzte 7 Tage · Zuletzt aktualisiert: 8. Juli 2026, 10:37' },
+      { title: 'All about Microsoft Intune', url: 'https://petervanderwoude.nl/feed/', meta: '1 Artikel letzte 7 Tage · Zuletzt aktualisiert: 8. Juli 2026, 10:37' },
+      { title: 'Android Police', url: 'https://www.androidpolice.com/feed/', meta: '50 Artikel letzte 7 Tage · Zuletzt aktualisiert: 8. Juli 2026, 10:37' },
+      { title: 'Anthropic 博客', url: 'https://www.anthropic.com/news', meta: '0 Artikel letzte 7 Tage · Zuletzt aktualisiert: Nicht verfügbar' },
+      { title: 'Apfeltalk Magazin', url: 'https://www.apfeltalk.de/magazin/feed/', meta: '90 Artikel letzte 7 Tage · Zuletzt aktualisiert: 8. Juli 2026, 10:37' },
+      { title: 'appgefahren.de', url: 'https://www.appgefahren.de/feed', meta: '53 Artikel letzte 7 Tage · Zuletzt aktualisiert: 8. Juli 2026, 10:37' },
+      { title: 'Apple Hot News', url: 'http://images.apple.com/jp/main/rss/hotnews/hotnews.rss', meta: '0 Artikel letzte 7 Tage · Zuletzt aktualisiert: 8. Juli 2026, 10:37' },
+      { title: 'Apple Newsroom', url: 'http://www.apple.com/pr/feeds/pr.rss', meta: '0 Artikel letzte 7 Tage · Zuletzt aktualisiert: 8. Juli 2026, 10:37' },
+      { title: 'apple – Ars Technica', url: 'http://feeds.arstechnica.com/arstechnica/apple/', meta: '0 Artikel letzte 7 Tage · Zuletzt aktualisiert: Nicht verfügbar' },
+      { title: 'BinaryFork', url: 'https://binaryfork.com/feed/', meta: '18 Artikel letzte 7 Tage · Zuletzt aktualisiert: 8. Juli 2026, 10:37' },
+      { title: 'Caschys Blog', url: 'https://stadt-bremerhaven.de/feed/', meta: '120 Artikel letzte 7 Tage · Zuletzt aktualisiert: 8. Juli 2026, 10:37' },
+      { title: 'heise online', url: 'https://www.heise.de/rss/heise-atom.xml', meta: '210 Artikel letzte 7 Tage · Zuletzt aktualisiert: 8. Juli 2026, 10:37' },
+      { title: 'MacRumors', url: 'https://feeds.macrumors.com/MacRumors-All', meta: '84 Artikel letzte 7 Tage · Zuletzt aktualisiert: 8. Juli 2026, 10:37' },
+      { title: 'The Verge', url: 'https://www.theverge.com/rss/index.xml', meta: '145 Artikel letzte 7 Tage · Zuletzt aktualisiert: 8. Juli 2026, 10:37' }
+    ];
+    this.state.feeds = FEEDS.map((f, i) => ({ ...f, id: 'feed' + i }));
+  }
+
+  getTheme(name) {
+    if (name === 'dark') return { bg:'#1E1E20', sidebar:'#2A2A2D', card:'#323235', card2:'#3A3A3D', text:'#F5F5F7', text2:'#9A9AA0', text3:'#6A6A6E', border:'rgba(255,255,255,0.10)', accent:'#0A84FF', track:'#48484B', pill:'#6A6A6E', input:'#1F1F22', link:'#6AB0FF', hover:'rgba(255,255,255,0.04)', shadow:'rgba(0,0,0,0.6)', backdrop:'#161618' };
+    return { bg:'#FFFFFF', sidebar:'#FAFAFB', card:'#F5F5F7', card2:'#FFFFFF', text:'#1D1D1F', text2:'#86868B', text3:'#B8B8BD', border:'rgba(0,0,0,0.10)', accent:'#0A84FF', track:'#E9E9EB', pill:'#FFFFFF', input:'#FFFFFF', link:'#5A5A5F', hover:'rgba(0,0,0,0.025)', shadow:'rgba(0,0,0,0.28)', backdrop:'#E7E7EA' };
+  }
+
+  svg(children, o) {
+    o = o || {};
+    return React.createElement('svg', { width: o.size || 17, height: o.size || 17, viewBox: '0 0 24 24', fill: o.fill || 'none', stroke: o.stroke === undefined ? 'currentColor' : o.stroke, strokeWidth: o.sw || 1.7, strokeLinecap: 'round', strokeLinejoin: 'round', style: { display: 'block' } }, children);
+  }
+  p(d, extra) { return React.createElement('path', { d, ...(extra || {}), key: d.slice(0, 10) }); }
+
+  icons() {
+    const c = React.createElement;
+    return {
+      broadcast: this.svg([ c('circle', { cx:12, cy:12, r:2, fill:'currentColor', stroke:'none', key:'d' }), this.p('M8.5 8.5a5 5 0 0 0 0 7'), this.p('M15.5 8.5a5 5 0 0 1 0 7'), this.p('M6 6a9 9 0 0 0 0 12'), this.p('M18 6a9 9 0 0 1 0 12') ]),
+      tag: this.svg([ this.p('M4 4h7.2a2 2 0 0 1 1.4.6l7 7a2 2 0 0 1 0 2.8l-4.8 4.8a2 2 0 0 1-2.8 0l-7-7A2 2 0 0 1 4 11.2z'), c('circle', { cx:8, cy:8, r:1.4, fill:'currentColor', stroke:'none', key:'c' }) ]),
+      foldergear: this.svg([ this.p('M3 7a2 2 0 0 1 2-2h4l2 2.5h6a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'), c('circle', { cx:15, cy:13.5, r:2, key:'c' }), this.p('M15 10.8v.9M15 15.3v.9M12.6 13.5h.9M16.5 13.5h.9', { strokeWidth:1.2 }) ]),
+      folder: this.svg([ this.p('M3 7a2 2 0 0 1 2-2h4l2 2.5h6a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z') ]),
+      sparkles: this.svg([ this.p('M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6z'), this.p('M18 14l.8 2.2L21 17l-2.2.8L18 20l-.8-2.2L15 17l2.2-.8z') ]),
+      star: this.svg([ this.p('M12 4l2.3 4.9 5.2.7-3.8 3.6.9 5.2L12 15.9 7.4 18.4l.9-5.2L4.5 9.6l5.2-.7z', { fill:'currentColor', stroke:'none' }) ]),
+      calendar: this.svg([ c('rect', { x:4, y:5, width:16, height:15, rx:2.5, key:'r' }), this.p('M4 9.5h16'), this.p('M8 3.5v3'), this.p('M16 3.5v3') ]),
+      eyeslash: this.svg([ this.p('M4 4l16 16'), this.p('M9.5 5.4A9 9 0 0 1 12 5c5 0 8.5 4.5 9 7-.2 1-1 2.4-2.3 3.7'), this.p('M6.4 7.6C4.6 9 3.3 10.9 3 12c.6 2.5 4 7 9 7 1.2 0 2.3-.2 3.3-.6') ]),
+      archive: this.svg([ c('rect', { x:3.5, y:4.5, width:17, height:4, rx:1.2, key:'r' }), this.p('M5 8.5V18a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8.5'), this.p('M10 12.5h4') ]),
+      sidebar: this.svg([ c('rect', { x:3.5, y:5, width:17, height:14, rx:2.5, key:'r' }), this.p('M9.5 5v14'), c('rect', { x:5.4, y:8, width:2.2, height:1.4, rx:.5, fill:'currentColor', stroke:'none', key:'l1' }), c('rect', { x:5.4, y:11, width:2.2, height:1.4, rx:.5, fill:'currentColor', stroke:'none', key:'l2' }) ], { sw:1.6 }),
+      trash: this.svg([ this.p('M4 7h16'), this.p('M9.5 7V5.4A1.4 1.4 0 0 1 11 4h2a1.4 1.4 0 0 1 1.5 1.4V7'), this.p('M6.5 7l.8 12.2A1.5 1.5 0 0 0 8.8 20.5h6.4a1.5 1.5 0 0 0 1.5-1.3L17.5 7'), this.p('M10 10.5v6M14 10.5v6') ], { sw:1.5 }),
+      pencil: this.svg([ this.p('M15.5 4.5l4 4'), this.p('M3.5 20.5l1.2-4.3L15.6 5.4a1.5 1.5 0 0 1 2.1 0l.9.9a1.5 1.5 0 0 1 0 2.1L7.8 19.3z') ], { sw:1.5 }),
+      drag: this.svg([ this.p('M6 8.5h12'), this.p('M6 12h12'), this.p('M6 15.5h12') ], { sw:1.6 }),
+      updown: this.svg([ this.p('M8.5 10L12 6.5 15.5 10'), this.p('M8.5 14L12 17.5 15.5 14') ], { sw:1.6 }),
+      restore: this.svg([ this.p('M4 11a8 8 0 1 1 2.3 5.6'), this.p('M4 20v-4h4') ], { sw:1.7 }),
+      play: this.svg([ c('circle', { cx:12, cy:12, r:8.5, key:'c' }), this.p('M10.3 9l5 3-5 3z', { fill:'currentColor', stroke:'none' }) ], { sw:1.6 })
+    };
+  }
+
+  fmt(n) {
+    const s = String(n);
+    return s.length > 3 ? s.replace(/\B(?=(\d{3})+(?!\d))/g, '’') : s;
+  }
+
+  navItemStyle(active, t) {
+    const base = { display:'flex', alignItems:'center', gap:'11px', width:'100%', textAlign:'left', padding:'8px 12px', borderRadius:'8px', border:'none', fontSize:'14px', fontWeight:'500', cursor:'pointer', transition:'background .12s' };
+    return active
+      ? { ...base, fontWeight:'600', background:t.accent, color:'#fff', boxShadow:'0 1px 2px rgba(10,132,255,.4)' }
+      : { ...base, background:'transparent', color:t.text };
+  }
+
+  checkbox(checked, t) {
+    return { width:'18px', height:'18px', borderRadius:'5px', flex:'none', display:'inline-flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0, transition:'all .12s',
+      background: checked ? t.accent : t.input,
+      border: checked ? '1px solid ' + t.accent : '1px solid ' + t.border,
+      boxShadow: checked ? '0 1px 2px rgba(10,132,255,.35)' : '0 1px 1px rgba(0,0,0,.04)' };
+  }
+
+  swatchRow(colors, current, onPick, t) {
+    return colors.map(col => ({
+      style: { width:'24px', height:'24px', borderRadius:'50%', background:col, cursor:'pointer', border:'none', padding:0, flex:'none', transition:'box-shadow .12s',
+        boxShadow: current === col ? `0 0 0 2px ${t.bg},0 0 0 4px ${col}` : '0 0 0 0.5px rgba(0,0,0,.18)' },
+      onClick: () => onPick(col)
+    }));
+  }
+
+  renderVals() {
+    const t = this.getTheme(this.props.theme || 'light');
+    const s = this.state;
+    const I = this.icons();
+
+    const rootStyle = `--bg:${t.bg};--sidebar:${t.sidebar};--card:${t.card};--card2:${t.card2};--text:${t.text};--text2:${t.text2};--text3:${t.text3};--border:${t.border};--accent:${t.accent};--track:${t.track};--pill:${t.pill};--input:${t.input};--link:${t.link};--hover:${t.hover};--shadow:${t.shadow};display:flex;align-items:center;justify-content:center;padding:38px;min-height:100vh;background:${t.backdrop};font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',system-ui,sans-serif;-webkit-font-smoothing:antialiased`;
+
+    const nav = [
+      { key: 'feeds', label: 'Feeds', icon: I.broadcast },
+      { key: 'tags', label: 'Tags verwalten', icon: I.tag },
+      { key: 'folders', label: 'Intelligente Ordner', icon: I.foldergear },
+      { key: 'rules', label: 'Regeln', icon: I.sparkles }
+    ];
+    const navItems = nav.map(n => ({
+      label: n.label, icon: n.icon,
+      style: this.navItemStyle(s.view === n.key, t),
+      onClick: () => this.setState({ view: n.key })
+    }));
+
+    const secondaryBtn = { display:'inline-flex', alignItems:'center', gap:'7px', padding:'8px 14px', borderRadius:'8px', border:'1px solid '+t.border, background:t.card, color:t.text, fontSize:'13px', fontWeight:'600', cursor:'pointer', whiteSpace:'nowrap', boxShadow:'0 1px 1px rgba(0,0,0,.03)' };
+    const primaryBtn = { display:'inline-flex', alignItems:'center', gap:'5px', padding:'8px 16px', borderRadius:'8px', border:'none', background:t.accent, color:'#fff', fontSize:'13px', fontWeight:'600', cursor:'pointer', whiteSpace:'nowrap', boxShadow:'0 1px 3px rgba(10,132,255,.45)' };
+    const iconBtn = { width:'30px', height:'30px', borderRadius:'7px', border:'none', background:'transparent', color:t.text2, cursor:'pointer', display:'inline-flex', alignItems:'center', justifyContent:'center', padding:0, transition:'background .12s' };
+
+    // FEEDS
+    const q = s.feedQuery.trim().toLowerCase();
+    const filtered = (s.feeds || []).filter(f => !q || f.title.toLowerCase().includes(q) || f.url.toLowerCase().includes(q));
+    const feedRows = filtered.map((f, idx) => {
+      const sel = !!s.selectedFeeds[f.id];
+      return {
+        title: f.title, url: f.url, meta: f.meta, selected: sel,
+        rowStyle: { display:'flex', alignItems:'flex-start', gap:'14px', padding:'14px 18px', borderTop: idx === 0 ? 'none' : '1px solid '+t.border, background: sel ? 'rgba(10,132,255,.05)' : 'transparent' },
+        checkboxStyle: { ...this.checkbox(sel, t), marginTop:'2px' },
+        onToggle: () => this.setState(st => ({ selectedFeeds: { ...st.selectedFeeds, [f.id]: !st.selectedFeeds[f.id] } })),
+        onDelete: () => this.setState(st => { const sf = { ...st.selectedFeeds }; delete sf[f.id]; return { feeds: st.feeds.filter(x => x.id !== f.id), selectedFeeds: sf }; })
+      };
+    });
+    const anySelected = Object.values(s.selectedFeeds).some(Boolean);
+    const selectedCount = Object.values(s.selectedFeeds).filter(Boolean).length;
+    const deleteFeedsBtn = { display:'inline-flex', alignItems:'center', gap:'7px', padding:'8px 14px', borderRadius:'8px', border:'1px solid ' + (anySelected ? 'rgba(255,69,58,.35)' : t.border), background: anySelected ? 'rgba(255,69,58,.10)' : t.card, color: anySelected ? '#D70015' : t.text2, fontSize:'13px', fontWeight:'600', cursor: anySelected ? 'pointer' : 'default', whiteSpace:'nowrap', opacity: anySelected ? 1 : 0.55, boxShadow:'0 1px 1px rgba(0,0,0,.03)' };
+
+    // TAGS
+    const newTagSwatches = this.swatchRow(this.SWATCHES, s.newTagColor, col => this.setState({ newTagColor: col }), t);
+    const canAdd = s.newTagName.trim().length > 0;
+    const addTagBtn = { padding:'9px 18px', borderRadius:'8px', border:'none', fontSize:'13.5px', fontWeight:'600', cursor: canAdd ? 'pointer' : 'default', background: canAdd ? t.accent : (t.accent + '66'), color:'#fff', whiteSpace:'nowrap', boxShadow: canAdd ? '0 1px 3px rgba(10,132,255,.4)' : 'none' };
+    const tagRows = s.tags.map(tag => ({
+      name: tag.name,
+      dotStyle: { width:'14px', height:'14px', borderRadius:'50%', background:tag.color, flex:'none' },
+      onName: e => { const v = e.target.value; this.setState(st => ({ tags: st.tags.map(x => x.id === tag.id ? { ...x, name: v } : x) })); },
+      swatches: this.swatchRow(this.SWATCHES, tag.color, col => this.setState(st => ({ tags: st.tags.map(x => x.id === tag.id ? { ...x, color: col } : x) })), t),
+      onDelete: () => this.setState(st => ({ tags: st.tags.filter(x => x.id !== tag.id) }))
+    }));
+
+    // FOLDERS
+    const gridCols = '58px 66px minmax(160px,1.1fr) minmax(180px,1.4fr) 74px 70px';
+    const folderHeadStyle = { display:'grid', gridTemplateColumns: gridCols, alignItems:'center', gap:'14px', padding:'11px 18px', background:t.card, borderBottom:'1px solid '+t.border, fontSize:'11px', fontWeight:'700', letterSpacing:'0.4px', textTransform:'uppercase', color:t.text2 };
+    const folderRows = s.folders.map((fo, idx) => ({
+      name: fo.name, type: fo.type, cond: fo.cond, count: this.fmt(fo.count), sidebar: fo.sidebar, icon: I[fo.icon] || I.folder,
+      iconStyle: { color: fo.color || t.text2, display:'inline-flex', flex:'none' },
+      rowStyle: { display:'grid', gridTemplateColumns: gridCols, alignItems:'center', gap:'14px', padding:'13px 18px', borderTop: idx === 0 ? 'none' : '1px solid '+t.border },
+      checkboxStyle: this.checkbox(fo.sidebar, t),
+      onToggle: () => this.setState(st => ({ folders: st.folders.map(x => x.id === fo.id ? { ...x, sidebar: !x.sidebar } : x) })),
+      onDelete: () => this.setState(st => ({ folders: st.folders.filter(x => x.id !== fo.id) }))
+    }));
+
+    // RULES
+    const ruleGrid = '92px 58px minmax(180px,1.3fr) minmax(150px,200px) 74px 70px';
+    const ruleHeadStyle = { display:'grid', gridTemplateColumns: ruleGrid, alignItems:'center', gap:'14px', padding:'11px 18px', background:t.card, borderBottom:'1px solid '+t.border, fontSize:'11px', fontWeight:'700', letterSpacing:'0.4px', textTransform:'uppercase', color:t.text2 };
+    const ruleRows = s.rules.map((ru, idx) => {
+      let actionStyle, actionIcon, actionLabel;
+      if (ru.action === 'hide') {
+        actionStyle = { display:'inline-flex', alignItems:'center', gap:'6px', padding:'5px 11px', borderRadius:'999px', fontSize:'12.5px', fontWeight:'600', background:'rgba(255,149,0,.16)', color:'#B25C00', whiteSpace:'nowrap' };
+        actionIcon = React.cloneElement(I.eyeslash, { width:14, height:14 });
+        actionLabel = 'Artikel ausblenden';
+      } else {
+        actionStyle = { display:'inline-flex', alignItems:'center', gap:'7px', padding:'5px 12px', borderRadius:'999px', fontSize:'12.5px', fontWeight:'600', background:t.card, border:'1px solid '+t.border, color:t.text, whiteSpace:'nowrap' };
+        actionIcon = React.createElement('span', { style: { width:'9px', height:'9px', borderRadius:'50%', background: ru.tagColor, display:'inline-block' } });
+        actionLabel = ru.tagName;
+      }
+      return {
+        name: ru.name, cond: ru.cond, count: this.fmt(ru.count), active: ru.active, actionStyle, actionIcon, actionLabel,
+        rowStyle: { display:'grid', gridTemplateColumns: ruleGrid, alignItems:'center', gap:'14px', padding:'14px 18px', borderTop: idx === 0 ? 'none' : '1px solid '+t.border },
+        checkboxStyle: this.checkbox(ru.active, t),
+        onToggle: () => this.setState(st => ({ rules: st.rules.map(x => x.id === ru.id ? { ...x, active: !x.active } : x) })),
+        onDelete: () => this.setState(st => ({ rules: st.rules.filter(x => x.id !== ru.id) }))
+      };
+    });
+
+    return {
+      rootStyle, navItems, sidebarIcon: I.sidebar,
+      isFeeds: s.view === 'feeds', isTags: s.view === 'tags', isFolders: s.view === 'folders', isRules: s.view === 'rules',
+      secondaryBtn, primaryBtn, iconBtn,
+      trashIcon: React.cloneElement(I.trash, { width:16, height:16 }),
+      pencilIcon: React.cloneElement(I.pencil, { width:16, height:16 }),
+      dragIcon: React.cloneElement(I.drag, { width:16, height:16 }),
+      updownIcon: React.cloneElement(I.updown, { width:15, height:15 }),
+      restoreIcon: React.cloneElement(I.restore, { width:15, height:15 }),
+      playIcon: React.cloneElement(I.play, { width:16, height:16 }),
+      // feeds
+      feedQuery: s.feedQuery, onFeedQuery: e => this.setState({ feedQuery: e.target.value }),
+      feedRows,
+      selectAllFeeds: () => this.setState(() => { const m = {}; filtered.forEach(f => m[f.id] = true); return { selectedFeeds: m }; }),
+      deselectFeeds: () => this.setState({ selectedFeeds: {} }),
+      deselectBtn: { ...secondaryBtn, opacity: anySelected ? 1 : 0.45, cursor: anySelected ? 'pointer' : 'default' },
+      deleteFeedsBtn, deleteFeedsLabel: anySelected ? ('Auswahl löschen (' + selectedCount + ')') : 'Auswahl löschen',
+      deleteSelectedFeeds: () => { if (!anySelected) return; this.setState(st => ({ feeds: st.feeds.filter(x => !st.selectedFeeds[x.id]), selectedFeeds: {} })); },
+      // tags
+      newTagName: s.newTagName, onNewTagName: e => this.setState({ newTagName: e.target.value }),
+      newTagSwatches, addTagBtn,
+      addTag: () => { if (!s.newTagName.trim()) return; this.setState(st => ({ tags: [...st.tags, { id: 'tg' + Date.now(), name: st.newTagName.trim(), color: st.newTagColor }], newTagName: '' })); },
+      tagRows,
+      // folders
+      folderHeadStyle, folderRows,
+      // rules
+      ruleHeadStyle, ruleRows
+    };
+  }
+}
+</script>
+</body>
+</html>

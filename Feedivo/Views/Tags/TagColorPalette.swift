@@ -3,15 +3,9 @@ import SwiftUI
 enum TagColorPalette {
     static let defaultColorHex = "#888888"
 
-    static let colors = [
-        "#3B82F6",
-        "#22C55E",
-        "#F59E0B",
-        "#EF4444",
-        "#A855F7",
-        "#14B8A6",
-        "#64748B"
-    ]
+    // Single Source of Truth: dieselbe Apple-System-Spec-Palette wie die
+    // Tag-Erstellung im Regel-Dialog (RuleDialogTagSwatches).
+    static let colors = RuleDialogTagSwatches.colors
 
     static func color(for colorHex: String?) -> Color {
         let normalized = TagViewModel.normalizedColorHex(colorHex ?? defaultColorHex)

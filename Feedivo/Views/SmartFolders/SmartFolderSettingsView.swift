@@ -3,6 +3,7 @@ import UniformTypeIdentifiers
 
 struct SmartFolderSettingsView: View {
     @Environment(\.feedivoDatabase) private var feedivoDatabase
+    @Environment(\.colorScheme) private var colorScheme
     @AppStorage(SQLiteDataInvalidation.statusVersionKey) private var sqliteStatusVersion = 0
     @AppStorage(SidebarBadgeInvalidation.directTagVersionKey) private var directTagVersion = 0
 
@@ -13,6 +14,10 @@ struct SmartFolderSettingsView: View {
     @State private var folderPendingDeletion: SmartFolderRecord?
     @State private var draggedFolderID: String?
     @State private var matchingCounts: [String: Int] = [:]
+
+    private var theme: RuleDialogTheme {
+        RuleDialogTheme(colorScheme: colorScheme)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -25,6 +30,7 @@ struct SmartFolderSettingsView: View {
                 folderList
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .sheet(isPresented: $isCreatingFolder) {
             SmartFolderEditorView(existingFolders: folders)
         }
@@ -60,36 +66,41 @@ struct SmartFolderSettingsView: View {
     }
 
     private var header: some View {
-        HStack(alignment: .firstTextBaseline) {
+        HStack(alignment: .top, spacing: 10) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(L10n.smartFolderSettingsTitle)
-                    .font(.headline)
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(theme.text)
 
                 Text(L10n.smartFolderSettingsDescription)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 12.5))
+                    .foregroundStyle(theme.text2)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
 
-            Spacer()
-
-            Button {
+            RuleDialogButton(
+                titleKey: L10n.smartFolderRestoreDefaults,
+                style: .secondary,
+                theme: theme,
+                systemImage: "arrow.clockwise"
+            ) {
                 restoreDefaultFolders()
-            } label: {
-                Label(L10n.smartFolderRestoreDefaults, systemImage: "arrow.clockwise")
             }
 
-            Button {
+            RuleDialogButton(
+                titleKey: L10n.smartFolderNewFolder,
+                style: .primary,
+                theme: theme,
+                systemImage: "plus"
+            ) {
                 isCreatingFolder = true
-            } label: {
-                Label(L10n.smartFolderNewFolder, systemImage: "plus")
             }
-            .buttonStyle(.borderedProminent)
         }
     }
 
     private var folderList: some View {
         VStack(spacing: 0) {
-            SmartFolderSettingsListHeader()
+            SmartFolderSettingsListHeader(theme: theme)
 
             ForEach(Array(orderedFolders.enumerated()), id: \.element.id) { index, folder in
                 SmartFolderSettingsRow(
@@ -97,6 +108,7 @@ struct SmartFolderSettingsView: View {
                     conditions: conditionsByFolderID[folder.id] ?? [],
                     matchingArticleCount: matchingCounts[folder.id] ?? 0,
                     isDragged: draggedFolderID == folder.id,
+                    theme: theme,
                     toggleSidebarVisibility: { isShown in
                         updateSidebarVisibility(folder, isShownInSidebar: isShown)
                     },
@@ -121,15 +133,19 @@ struct SmartFolderSettingsView: View {
                 )
 
                 if index < orderedFolders.count - 1 {
-                    Divider()
-                        .padding(.leading, 82)
+                    Rectangle()
+                        .fill(theme.border)
+                        .frame(height: 1)
                 }
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(theme.card2, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(theme.border, lineWidth: 1)
         }
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     private var countReloadToken: String {
@@ -261,26 +277,30 @@ struct SmartFolderSettingsView: View {
 }
 
 private struct SmartFolderSettingsListHeader: View {
+    let theme: RuleDialogTheme
+
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 14) {
             Text(L10n.smartFolderListHeaderOrder)
                 .frame(width: 58, alignment: .leading)
             Text(L10n.smartFolderListHeaderSidebar)
-                .frame(width: 60, alignment: .leading)
+                .frame(width: 66, alignment: .leading)
             Text(L10n.smartFolderListHeaderName)
                 .frame(maxWidth: .infinity, alignment: .leading)
             Text(L10n.smartFolderListHeaderConditions)
                 .frame(maxWidth: .infinity, alignment: .leading)
             Text(L10n.smartFolderListHeaderMatches)
-                .frame(width: 72, alignment: .trailing)
+                .frame(width: 74, alignment: .trailing)
             Text("")
-                .frame(width: 82)
+                .frame(width: 70)
         }
-        .font(.caption.weight(.semibold))
-        .foregroundStyle(.secondary)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 9)
-        .background(Color(nsColor: .controlBackgroundColor))
+        .font(.system(size: 11, weight: .bold))
+        .tracking(0.4)
+        .textCase(.uppercase)
+        .foregroundStyle(theme.text2)
+        .padding(.horizontal, 18)
+        .padding(.vertical, 11)
+        .background(theme.card)
     }
 }
 
@@ -324,23 +344,24 @@ private struct SmartFolderSettingsRow: View {
     let conditions: [SmartFolderConditionRecord]
     let matchingArticleCount: Int
     let isDragged: Bool
+    let theme: RuleDialogTheme
     let toggleSidebarVisibility: (Bool) -> Void
     let edit: () -> Void
     let duplicate: () -> Void
     let delete: () -> Void
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 14) {
             dragHandle
 
-            Toggle(L10n.smartFolderShowInSidebar, isOn: Binding(
-                get: { folder.isShownInSidebar },
-                set: { isShown in
-                    toggleSidebarVisibility(isShown)
-                }
-            ))
-            .labelsHidden()
-            .frame(width: 60, alignment: .leading)
+            Button {
+                toggleSidebarVisibility(!folder.isShownInSidebar)
+            } label: {
+                RuleDialogCheckbox(isOn: folder.isShownInSidebar, theme: theme)
+            }
+            .buttonStyle(.plain)
+            .help(L10n.smartFolderShowInSidebar)
+            .frame(width: 66, alignment: .leading)
 
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 8) {
@@ -349,43 +370,52 @@ private struct SmartFolderSettingsRow: View {
                         .frame(width: 18)
 
                     Text(SmartFolderFormatter.displayName(for: folder))
-                        .font(.body.weight(.semibold))
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(theme.text)
                         .lineLimit(1)
                 }
 
                 Text(folder.defaultKey != nil ? L10n.smartFolderStandardFolder : L10n.smartFolderCustomFolder)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 11.5))
+                    .foregroundStyle(theme.text2)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
             Text(SmartFolderFormatter.conditionSummary(for: folder, conditions: conditions))
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .font(.system(size: 12.5))
+                .foregroundStyle(theme.text2)
                 .lineLimit(2)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             Text("\(matchingArticleCount)")
-                .font(.callout.monospacedDigit())
-                .foregroundStyle(.secondary)
-                .frame(width: 72, alignment: .trailing)
+                .font(.system(size: 13.5).monospacedDigit())
+                .foregroundStyle(theme.text2)
+                .frame(width: 74, alignment: .trailing)
 
             HStack(spacing: 6) {
                 Button(action: edit) {
                     Image(systemName: "pencil")
+                        .font(.system(size: 13))
+                        .foregroundStyle(theme.text2)
+                        .frame(width: 30, height: 30)
                 }
+                .buttonStyle(.plain)
                 .help(L10n.ruleEditButton)
 
-                Button(role: .destructive, action: delete) {
+                Button(action: delete) {
                     Image(systemName: "trash")
+                        .font(.system(size: 13))
+                        .foregroundStyle(theme.text2)
+                        .frame(width: 30, height: 30)
                 }
+                .buttonStyle(.plain)
                 .help(L10n.ruleDeleteButton)
             }
-            .buttonStyle(.borderless)
-            .frame(width: 82, alignment: .trailing)
+            .frame(width: 70, alignment: .trailing)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 11)
+        .padding(.horizontal, 18)
+        .padding(.vertical, 13)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .opacity(isDragged ? 0.55 : 1)
         .contentShape(Rectangle())
         .onTapGesture(count: 2, perform: edit)
@@ -400,7 +430,7 @@ private struct SmartFolderSettingsRow: View {
     private var dragHandle: some View {
         HStack(spacing: 6) {
             Image(systemName: "line.3.horizontal")
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(theme.tertiaryText)
         }
         .frame(width: 58, alignment: .leading)
         .help(L10n.smartFolderDragToSort)

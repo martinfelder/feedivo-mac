@@ -4,26 +4,59 @@ struct OrganizerWindowView: View {
     static let windowID = "feedivo-organizer-window"
     static let windowTitle = String(localized: "Verwaltung")
 
+    @Environment(\.colorScheme) private var colorScheme
     @State private var selectedSection = OrganizerSection.feeds
+
+    private var theme: RuleDialogTheme {
+        RuleDialogTheme(colorScheme: colorScheme)
+    }
 
     var body: some View {
         NavigationSplitView {
             List(OrganizerSection.allCases, selection: $selectedSection) { section in
                 Label(section.title, systemImage: section.systemImage)
+                    .font(.system(size: 14))
                     .tag(section)
             }
+            .scrollContentBackground(.hidden)
+            .background(theme.sidebarBg)
             .navigationSplitViewColumnWidth(min: 180, ideal: 200, max: 240)
         } detail: {
-            ScrollView {
-                organizerContent
-                    .frame(maxWidth: 720, alignment: .topLeading)
-                    .padding(.horizontal, 36)
-                    .padding(.vertical, 28)
-                    .frame(maxWidth: .infinity, alignment: .topLeading)
+            VStack(spacing: 0) {
+                toolbar
+
+                ScrollView {
+                    organizerContent
+                        .frame(maxWidth: 720, alignment: .topLeading)
+                        .padding(.horizontal, 34)
+                        .padding(.top, 30)
+                        .padding(.bottom, 40)
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
+                }
+                .background(theme.windowBg)
             }
-            .background(Color(nsColor: .textBackgroundColor))
         }
         .frame(minWidth: 760, minHeight: 520)
+    }
+
+    private var toolbar: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text(Self.windowTitle)
+                    .font(.system(size: 15, weight: .semibold))
+                    .tracking(-0.2)
+                    .foregroundStyle(theme.text)
+
+                Spacer()
+            }
+            .padding(.horizontal, 26)
+            .frame(height: 52)
+
+            Rectangle()
+                .fill(theme.border)
+                .frame(height: 1)
+        }
+        .background(theme.windowBg)
     }
 
     @ViewBuilder
@@ -100,18 +133,25 @@ struct OrganizerSectionContainer<Content: View>: View {
 }
 
 struct OrganizerSectionHeader: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     let title: LocalizedStringKey
     let description: LocalizedStringKey
 
+    private var theme: RuleDialogTheme {
+        RuleDialogTheme(colorScheme: colorScheme)
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
+        VStack(alignment: .leading, spacing: 4) {
             Text(title)
-                .font(.title2)
-                .fontWeight(.semibold)
+                .font(.system(size: 23, weight: .bold))
+                .tracking(-0.4)
+                .foregroundStyle(theme.text)
 
             Text(description)
-                .font(.callout)
-                .foregroundStyle(.secondary)
+                .font(.system(size: 13.5))
+                .foregroundStyle(theme.text2)
         }
         .padding(.bottom, 8)
     }

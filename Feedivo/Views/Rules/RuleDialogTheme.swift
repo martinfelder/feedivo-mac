@@ -15,6 +15,18 @@ struct RuleDialogTheme {
     let pill: Color
     let input: Color
 
+    // Zusätzliche Tokens für den "Verwaltung"-Fensterrahmen (Sidebar/Fenster-Hintergrund
+    // unterscheiden sich von der Dialog-Card-Optik oben) und für destruktive Aktionen
+    // (Feeds/Regeln löschen), siehe design_handoff_verwaltung/README.md.
+    let windowBg: Color
+    let sidebarBg: Color
+    let linkText: Color
+    let tertiaryText: Color
+    let destructiveText: Color
+    let destructiveTint: Color
+    let destructiveBorder: Color
+    let selectionTint: Color
+
     static let switchOn = Color(hex: 0x34C759)
     static let thenBadgeText = Color(hex: 0x2FA84F)
 
@@ -30,6 +42,10 @@ struct RuleDialogTheme {
             track = Color(hex: 0x48484B)
             pill = Color(hex: 0x6A6A6E)
             input = Color(hex: 0x1F1F22)
+            windowBg = Color(hex: 0x1E1E20)
+            sidebarBg = Color(hex: 0x2A2A2D)
+            linkText = Color(hex: 0x6AB0FF)
+            tertiaryText = Color(hex: 0x6A6A6E)
         } else {
             bg = Color(hex: 0xFFFFFF)
             card = Color(hex: 0xF5F5F7)
@@ -41,7 +57,16 @@ struct RuleDialogTheme {
             track = Color(hex: 0xE9E9EB)
             pill = Color(hex: 0xFFFFFF)
             input = Color(hex: 0xFFFFFF)
+            windowBg = Color(hex: 0xFFFFFF)
+            sidebarBg = Color(hex: 0xFAFAFB)
+            linkText = Color(hex: 0x5A5A5F)
+            tertiaryText = Color(hex: 0xB8B8BD)
         }
+
+        destructiveText = Color(hex: 0xD70015)
+        destructiveTint = Color(hex: 0xFF453A).opacity(0.10)
+        destructiveBorder = Color(hex: 0xFF453A).opacity(0.35)
+        selectionTint = Color(hex: 0x0A84FF).opacity(0.05)
     }
 }
 
@@ -204,5 +229,181 @@ struct RuleDialogSelectMenu<Option: Hashable & RuleSelectOption>: View {
             .frame(minWidth: 150)
             .background(theme.card2)
         }
+    }
+}
+
+// MARK: - Checkbox (quadratisch, 18×18) — geteilt zwischen Intelligenter-Ordner-Dialog,
+// Regel-Dialog und Verwaltung (Feeds-Auswahl, Sidebar-Sichtbarkeit, Regel-aktiv).
+
+struct RuleDialogCheckbox: View {
+    let isOn: Bool
+    let theme: RuleDialogTheme
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: 5, style: .continuous)
+            .fill(isOn ? theme.accent : theme.input)
+            .overlay(
+                RoundedRectangle(cornerRadius: 5, style: .continuous)
+                    .stroke(isOn ? theme.accent : theme.border, lineWidth: 1)
+            )
+            .overlay {
+                if isOn {
+                    Text("✓")
+                        .font(.system(size: 11, weight: .heavy))
+                        .foregroundStyle(.white)
+                }
+            }
+            .frame(width: 18, height: 18)
+            .shadow(color: isOn ? Color(hex: 0x0A84FF).opacity(0.4) : .black.opacity(0.04), radius: isOn ? 1 : 0.5, x: 0, y: 1)
+            .animation(.easeInOut(duration: 0.12), value: isOn)
+    }
+}
+
+// MARK: - Button (secondary/primary/destructive) im Verwaltung/Dialog-Stil
+
+enum RuleDialogButtonStyle {
+    case secondary
+    case primary
+    /// `isActive` steuert die destruktive Einfärbung (z. B. nur wenn ≥1 Zeile ausgewählt ist);
+    /// ohne aktive Auswahl sieht der Button wie ein neutraler, blasser Secondary-Button aus.
+    case destructive(isActive: Bool)
+}
+
+struct RuleDialogButton: View {
+    let titleKey: LocalizedStringKey
+    let style: RuleDialogButtonStyle
+    let theme: RuleDialogTheme
+    var systemImage: String?
+    /// Wird unlokalisiert direkt an den Titel angehängt, z. B. " (3)" für einen Auswahlzähler.
+    var titleSuffix: String?
+    var action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                if let systemImage {
+                    Image(systemName: systemImage)
+                        .font(.system(size: 12, weight: .semibold))
+                }
+                HStack(spacing: 0) {
+                    Text(titleKey)
+                    if let titleSuffix {
+                        Text(titleSuffix)
+                    }
+                }
+            }
+            .font(.system(size: 13, weight: .semibold))
+            .foregroundStyle(foregroundColor)
+            .padding(.horizontal, horizontalPadding)
+            .padding(.vertical, 8)
+            .background(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(backgroundColor)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(borderColor, lineWidth: 1)
+            )
+            .shadow(color: shadowColor, radius: style.isPrimary ? 1.5 : 1, x: 0, y: 1)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var horizontalPadding: CGFloat {
+        style.isPrimary ? 16 : 14
+    }
+
+    private var foregroundColor: Color {
+        switch style {
+        case .secondary:
+            theme.text
+        case .primary:
+            .white
+        case .destructive(let isActive):
+            isActive ? theme.destructiveText : theme.text2
+        }
+    }
+
+    private var backgroundColor: Color {
+        switch style {
+        case .secondary:
+            theme.card
+        case .primary:
+            theme.accent
+        case .destructive(let isActive):
+            isActive ? theme.destructiveTint : theme.card
+        }
+    }
+
+    private var borderColor: Color {
+        switch style {
+        case .secondary:
+            theme.border
+        case .primary:
+            .clear
+        case .destructive(let isActive):
+            isActive ? theme.destructiveBorder : theme.border
+        }
+    }
+
+    private var shadowColor: Color {
+        switch style {
+        case .secondary, .destructive:
+            Color.black.opacity(0.03)
+        case .primary:
+            theme.accent.opacity(0.45)
+        }
+    }
+}
+
+private extension RuleDialogButtonStyle {
+    var isPrimary: Bool {
+        if case .primary = self { return true }
+        return false
+    }
+}
+
+// MARK: - Farb-Swatches für Tags (geteilt zwischen Regel-Dialog-Tag-Erstellung und
+// Tags-verwalten in der Verwaltung — Apple-System-Spec-Palette, siehe
+// design_handoff_verwaltung/README.md → Tag/Swatch-Palette).
+
+enum RuleDialogTagSwatches {
+    static let colors = [
+        "#0A84FF",
+        "#30D158",
+        "#FF9F0A",
+        "#FF453A",
+        "#BF5AF2",
+        "#14B8A6",
+        "#64748B"
+    ]
+}
+
+// MARK: - Farb-Swatch (Kreis mit Doppelring bei Auswahl)
+
+struct RuleColorSwatch: View {
+    let colorHex: String
+    let isSelected: Bool
+    let theme: RuleDialogTheme
+    var diameter: CGFloat = 22
+
+    var body: some View {
+        let color = TagColorPalette.color(for: colorHex)
+
+        ZStack {
+            if isSelected {
+                Circle()
+                    .stroke(color, lineWidth: 2)
+                    .frame(width: diameter + 8, height: diameter + 8)
+                Circle()
+                    .stroke(theme.bg, lineWidth: 2)
+                    .frame(width: diameter + 4, height: diameter + 4)
+            }
+
+            Circle()
+                .fill(color)
+                .frame(width: diameter, height: diameter)
+        }
+        .frame(width: diameter + 8, height: diameter + 8)
     }
 }

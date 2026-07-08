@@ -3,6 +3,7 @@ import SwiftUI
 struct TagManagerView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.feedivoDatabase) private var feedivoDatabase
+    @Environment(\.colorScheme) private var colorScheme
 
     var onTagCreated: (String) -> Void = { _ in }
     var showsDoneButton = true
@@ -13,18 +14,21 @@ struct TagManagerView: View {
     @State private var newTagColorHex = TagColorPalette.colors[0]
     @State private var tagPendingDeletion: TagRecord?
 
+    private var theme: RuleDialogTheme {
+        RuleDialogTheme(colorScheme: colorScheme)
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            header
-            newTagForm
-            tagList
+        Group {
             if showsDoneButton {
-                footer
+                content
+                    .padding(24)
+                    .frame(width: 520)
+                    .frame(minHeight: 420)
+            } else {
+                content
             }
         }
-        .padding(24)
-        .frame(width: 520)
-        .frame(minHeight: 420)
         .confirmationDialog(
             L10n.tagManagerDeleteTitle,
             isPresented: Binding(
@@ -52,42 +56,70 @@ struct TagManagerView: View {
         }
     }
 
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(L10n.tagManagerTitle)
-                .font(.title2)
-                .fontWeight(.semibold)
-            Text(L10n.tagManagerDescription)
-                .font(.callout)
-                .foregroundStyle(.secondary)
-        }
-    }
+    private var content: some View {
+        VStack(alignment: .leading, spacing: 22) {
+            OrganizerSectionHeader(
+                title: L10n.tagManagerTitle,
+                description: L10n.tagManagerDescription
+            )
 
-    private var newTagForm: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(L10n.tagManagerNewTag)
-                .font(.caption)
-                .fontWeight(.semibold)
-                .foregroundStyle(.secondary)
+            newTagForm
 
-            HStack(spacing: 10) {
-                TextField(L10n.tagManagerNamePlaceholder, text: $newTagName)
-                    .textFieldStyle(.roundedBorder)
-                    .onSubmit(createTag)
-
-                ColorSwatchPicker(selection: $newTagColorHex)
-
-                Button(L10n.commonAdd) {
-                    createTag()
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(TagViewModel.normalizedTagName(newTagName) == nil)
-            }
+            tagList
 
             if let errorMessage {
                 Text(errorMessage)
                     .font(.callout)
                     .foregroundStyle(.red)
+            }
+
+            if showsDoneButton {
+                footer
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var newTagForm: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(L10n.tagManagerNewTag)
+                .font(.system(size: 11, weight: .bold))
+                .tracking(0.5)
+                .foregroundStyle(theme.text2)
+
+            FlowLayout(spacing: 10) {
+                RuleDialogTextField(
+                    placeholder: L10n.tagManagerNamePlaceholder,
+                    text: $newTagName,
+                    theme: theme
+                )
+                .frame(maxWidth: 300)
+
+                HStack(spacing: 9) {
+                    ForEach(TagColorPalette.colors, id: \.self) { colorHex in
+                        Button {
+                            newTagColorHex = colorHex
+                        } label: {
+                            RuleColorSwatch(
+                                colorHex: colorHex,
+                                isSelected: newTagColorHex == colorHex,
+                                theme: theme,
+                                diameter: 24
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+
+                RuleDialogButton(
+                    titleKey: L10n.commonAdd,
+                    style: .primary,
+                    theme: theme
+                ) {
+                    createTag()
+                }
+                .disabled(TagViewModel.normalizedTagName(newTagName) == nil)
+                .opacity(TagViewModel.normalizedTagName(newTagName) == nil ? 0.4 : 1)
             }
         }
     }
@@ -98,11 +130,12 @@ struct TagManagerView: View {
                 ContentUnavailableView(L10n.tagManagerNoTags, systemImage: "tag")
                     .frame(maxWidth: .infinity, minHeight: 180)
             } else {
-                List {
+                VStack(alignment: .leading, spacing: 12) {
                     ForEach(tags) { tag in
                         TagManagerRow(
                             tag: tag,
                             tags: tags,
+                            theme: theme,
                             reloadTags: reloadTags,
                             requestDelete: {
                                 tagPendingDeletion = tag
@@ -110,7 +143,7 @@ struct TagManagerView: View {
                         )
                     }
                 }
-                .listStyle(.inset)
+                .padding(.top, 4)
             }
         }
     }
@@ -156,7 +189,9 @@ struct TagManagerView: View {
             errorMessage = nil
             reloadTags()
             onTagCreated(tagID)
-            dismiss()
+            if showsDoneButton {
+                dismiss()
+            }
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -199,6 +234,7 @@ private struct TagManagerRow: View {
 
     let tag: TagRecord
     let tags: [TagRecord]
+    let theme: RuleDialogTheme
     let reloadTags: () -> Void
     let requestDelete: () -> Void
 
@@ -211,67 +247,84 @@ private struct TagManagerRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 12) {
+            FlowLayout(spacing: 10) {
                 Circle()
                     .fill(TagColorPalette.color(for: tag.colorHex))
-                    .frame(width: 12, height: 12)
+                    .frame(width: 14, height: 14)
 
-                TextField(L10n.tagManagerNamePlaceholder, text: $draftName)
-                    .textFieldStyle(.roundedBorder)
-                    .onAppear {
-                        draftName = tag.name
-                    }
-                    .onChange(of: tag.name) {
-                        draftName = tag.name
-                    }
-                    .onChange(of: draftName) {
-                        rowErrorMessage = nil
-                    }
+                RuleDialogTextField(
+                    placeholder: L10n.tagManagerNamePlaceholder,
+                    text: $draftName,
+                    theme: theme
+                )
+                .frame(maxWidth: 300)
+                .onAppear {
+                    draftName = tag.name
+                }
+                .onChange(of: tag.name) {
+                    draftName = tag.name
+                }
+                .onChange(of: draftName) {
+                    rowErrorMessage = nil
+                }
 
                 if hasNameChanges {
                     Button {
                         saveName()
                     } label: {
-                        Label(L10n.feedRenameSave, systemImage: "checkmark")
-                            .labelStyle(.iconOnly)
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(theme.accent)
+                            .frame(width: 26, height: 26)
                     }
-                    .buttonStyle(.borderless)
+                    .buttonStyle(.plain)
                     .disabled(TagViewModel.normalizedTagName(draftName) == nil)
                     .help(L10n.feedRenameSave)
 
                     Button {
                         cancelNameEdit()
                     } label: {
-                        Label(L10n.commonCancel, systemImage: "xmark")
-                            .labelStyle(.iconOnly)
+                        Image(systemName: "xmark")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(theme.text2)
+                            .frame(width: 26, height: 26)
                     }
-                    .buttonStyle(.borderless)
+                    .buttonStyle(.plain)
                     .help(L10n.commonCancel)
                 }
 
-                ColorSwatchPicker(selection: Binding(
-                    get: { tag.colorHex },
-                    set: { colorHex in
-                        saveColor(colorHex)
+                HStack(spacing: 9) {
+                    ForEach(TagColorPalette.colors, id: \.self) { colorHex in
+                        Button {
+                            saveColor(colorHex)
+                        } label: {
+                            RuleColorSwatch(
+                                colorHex: colorHex,
+                                isSelected: TagViewModel.normalizedColorHex(tag.colorHex ?? "") == TagViewModel.normalizedColorHex(colorHex),
+                                theme: theme,
+                                diameter: 24
+                            )
+                        }
+                        .buttonStyle(.plain)
                     }
-                ))
-
-                Button(role: .destructive) {
-                    requestDelete()
-                } label: {
-                    Image(systemName: "trash")
                 }
-                .buttonStyle(.borderless)
+
+                Button(action: requestDelete) {
+                    Image(systemName: "trash")
+                        .font(.system(size: 13))
+                        .foregroundStyle(theme.text2)
+                        .frame(width: 30, height: 30)
+                }
+                .buttonStyle(.plain)
+                .help(L10n.tagManagerDeleteButton)
             }
 
             if let rowErrorMessage {
                 Text(rowErrorMessage)
                     .font(.callout)
                     .foregroundStyle(.red)
-                    .padding(.leading, 24)
             }
         }
-        .padding(.vertical, 4)
     }
 
     private func saveName() {

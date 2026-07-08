@@ -716,20 +716,6 @@ struct RuleWizardView: View {
     }
 }
 
-// MARK: - Farb-Swatches für die Tag-Erstellung im Regel-Dialog
-
-private enum RuleDialogTagSwatches {
-    static let colors = [
-        "#0A84FF",
-        "#30D158",
-        "#FF9F0A",
-        "#FF453A",
-        "#BF5AF2",
-        "#14B8A6",
-        "#64748B"
-    ]
-}
-
 // MARK: - RuleSelectOption-Konformität (Bausteine selbst in RuleDialogTheme.swift,
 // geteilt mit dem Intelligenten-Ordner-Dialog)
 
@@ -904,34 +890,6 @@ private struct RuleNewTagChip: View {
                 )
         }
         .buttonStyle(.plain)
-    }
-}
-
-// MARK: - Farb-Swatch (Tag-Erstellung)
-
-private struct RuleColorSwatch: View {
-    let colorHex: String
-    let isSelected: Bool
-    let theme: RuleDialogTheme
-
-    var body: some View {
-        let color = TagColorPalette.color(for: colorHex)
-
-        ZStack {
-            if isSelected {
-                Circle()
-                    .stroke(color, lineWidth: 2)
-                    .frame(width: 30, height: 30)
-                Circle()
-                    .stroke(theme.bg, lineWidth: 2)
-                    .frame(width: 26, height: 26)
-            }
-
-            Circle()
-                .fill(color)
-                .frame(width: 22, height: 22)
-        }
-        .frame(width: 30, height: 30)
     }
 }
 

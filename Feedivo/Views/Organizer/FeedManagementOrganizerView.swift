@@ -3,6 +3,7 @@ import SwiftUI
 struct FeedManagementOrganizerView: View {
     @Environment(\.interfaceTextSize) private var interfaceTextSize
     @Environment(\.feedivoDatabase) private var feedivoDatabase
+    @Environment(\.colorScheme) private var colorScheme
 
     @State private var feeds: [FeedRecord] = []
     @State private var opmlFeeds: [OPMLFeed] = []
@@ -10,36 +11,72 @@ struct FeedManagementOrganizerView: View {
     @State private var selectedFeedIDs: Set<String> = []
     @State private var isShowingDeleteConfirmation = false
     @State private var isShowingOPMLExportSheet = false
+    @State private var feedPendingDeletion: FeedRecord?
     @State private var errorMessage: String?
 
+    private var theme: RuleDialogTheme {
+        RuleDialogTheme(colorScheme: colorScheme)
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 22) {
             OrganizerSectionHeader(
                 title: L10n.settingsFeedsSection,
                 description: L10n.settingsFeedsDescription
             )
 
-            HStack(spacing: 10) {
-                TextField(L10n.settingsFeedsSearchPlaceholder, text: $searchText)
-                    .textFieldStyle(.roundedBorder)
+            FlowLayout(spacing: 10) {
+                RuleDialogTextField(
+                    placeholder: L10n.settingsFeedsSearchPlaceholder,
+                    text: $searchText,
+                    theme: theme
+                )
+                .frame(minWidth: 260)
 
-                Button(L10n.settingsFeedsSelectVisible) {
+                RuleDialogButton(
+                    titleKey: L10n.settingsFeedsSelectVisible,
+                    style: .secondary,
+                    theme: theme
+                ) {
                     FeedManagementSettingsState.selectVisibleFeeds(
                         visibleFeeds,
                         selectedFeedIDs: &selectedFeedIDs
                     )
                 }
                 .disabled(visibleFeeds.isEmpty)
+                .opacity(visibleFeeds.isEmpty ? 0.45 : 1)
 
-                Button(L10n.settingsFeedsClearSelection) {
+                RuleDialogButton(
+                    titleKey: L10n.settingsFeedsClearSelection,
+                    style: .secondary,
+                    theme: theme
+                ) {
                     FeedManagementSettingsState.clearSelection(&selectedFeedIDs)
                 }
                 .disabled(selectedFeedIDs.isEmpty)
+                .opacity(selectedFeedIDs.isEmpty ? 0.45 : 1)
 
-                Button(L10n.feedExportOPMLCommand) {
+                RuleDialogButton(
+                    titleKey: LocalizedStringKey(L10n.feedExportOPMLCommand),
+                    style: .secondary,
+                    theme: theme
+                ) {
                     isShowingOPMLExportSheet = true
                 }
                 .disabled(feeds.isEmpty)
+                .opacity(feeds.isEmpty ? 0.45 : 1)
+
+                RuleDialogButton(
+                    titleKey: L10n.settingsFeedsDeleteSelected,
+                    style: .destructive(isActive: !selectedFeeds.isEmpty),
+                    theme: theme,
+                    systemImage: selectedFeeds.isEmpty ? nil : "trash",
+                    titleSuffix: selectedFeeds.isEmpty ? nil : " (\(selectedFeeds.count))"
+                ) {
+                    isShowingDeleteConfirmation = true
+                }
+                .disabled(selectedFeeds.isEmpty)
+                .opacity(selectedFeeds.isEmpty ? 0.55 : 1)
             }
 
             if feeds.isEmpty {
@@ -54,7 +91,9 @@ struct FeedManagementOrganizerView: View {
                         FeedManagementOrganizerRow(
                             feed: feed,
                             isSelected: selectedFeedIDs.contains(feed.id),
-                            sqliteDatabase: feedivoDatabase
+                            theme: theme,
+                            sqliteDatabase: feedivoDatabase,
+                            onDelete: { feedPendingDeletion = feed }
                         ) { isSelected in
                             if isSelected {
                                 selectedFeedIDs.insert(feed.id)
@@ -64,29 +103,18 @@ struct FeedManagementOrganizerView: View {
                         }
 
                         if feed.id != visibleFeeds.last?.id {
-                            Divider()
-                                .padding(.leading, 36)
+                            Rectangle()
+                                .fill(theme.border)
+                                .frame(height: 1)
                         }
                     }
                 }
-                .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 8))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(theme.card2, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                 .overlay {
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(theme.border, lineWidth: 1)
                 }
-            }
-
-            HStack {
-                Text(L10n.settingsFeedsSelectedCount(count: selectedFeeds.count))
-                    .font(interfaceTextSize.font(size: 12))
-                    .foregroundStyle(.secondary)
-
-                Spacer()
-
-                Button(L10n.settingsFeedsDeleteSelected, role: .destructive) {
-                    isShowingDeleteConfirmation = true
-                }
-                .disabled(selectedFeeds.isEmpty)
             }
 
             if let errorMessage {
@@ -95,6 +123,7 @@ struct FeedManagementOrganizerView: View {
                     .foregroundStyle(.red)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .confirmationDialog(
             L10n.settingsFeedsDeleteConfirmationTitle,
             isPresented: $isShowingDeleteConfirmation,
@@ -107,6 +136,29 @@ struct FeedManagementOrganizerView: View {
             Button(L10n.commonCancel, role: .cancel) {}
         } message: {
             Text(L10n.settingsFeedsDeleteConfirmationMessage(count: selectedFeeds.count))
+        }
+        .confirmationDialog(
+            L10n.feedDeleteConfirmationTitle,
+            isPresented: Binding(
+                get: { feedPendingDeletion != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        feedPendingDeletion = nil
+                    }
+                }
+            ),
+            presenting: feedPendingDeletion
+        ) { feed in
+            Button(L10n.feedDeleteConfirmButton, role: .destructive) {
+                deleteFeed(feed)
+                feedPendingDeletion = nil
+            }
+
+            Button(L10n.commonCancel, role: .cancel) {
+                feedPendingDeletion = nil
+            }
+        } message: { feed in
+            Text(L10n.feedDeleteConfirmationMessage(feedTitle: feed.title))
         }
         .sheet(isPresented: $isShowingOPMLExportSheet) {
             OPMLExportSheet(opmlFeeds: opmlFeeds) {
@@ -129,12 +181,18 @@ struct FeedManagementOrganizerView: View {
     }
 
     private func deleteSelectedFeeds() {
+        deleteFeeds(selectedFeeds)
+    }
+
+    private func deleteFeed(_ feed: FeedRecord) {
+        deleteFeeds([feed])
+    }
+
+    private func deleteFeeds(_ feedsToDelete: [FeedRecord]) {
         guard let database = feedivoDatabase else {
             errorMessage = "SQLite-Datenbank ist nicht verfügbar."
             return
         }
-
-        let feedsToDelete = selectedFeeds
 
         for feed in feedsToDelete {
             do {
@@ -178,38 +236,50 @@ private struct FeedManagementOrganizerRow: View {
 
     let feed: FeedRecord
     let isSelected: Bool
+    let theme: RuleDialogTheme
     let sqliteDatabase: FeedivoDatabase?
+    let onDelete: () -> Void
     let setSelected: (Bool) -> Void
     @State private var sqliteArticleMetrics = FeedPropertiesArticleMetricsSnapshot.empty
 
     var body: some View {
-        HStack(spacing: 12) {
-            Toggle("", isOn: Binding(
-                get: { isSelected },
-                set: setSelected
-            ))
-            .labelsHidden()
+        HStack(alignment: .top, spacing: 12) {
+            RuleDialogCheckbox(isOn: isSelected, theme: theme)
+                .padding(.top, 2)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(feed.title)
-                    .font(interfaceTextSize.font(size: 13, weight: .semibold))
+                    .font(interfaceTextSize.font(size: 14.5, weight: .bold))
+                    .foregroundStyle(theme.text)
                     .lineLimit(1)
 
                 Text(feed.url)
-                    .font(interfaceTextSize.font(size: 11))
-                    .foregroundStyle(.secondary)
+                    .font(interfaceTextSize.font(size: 12.5))
+                    .foregroundStyle(theme.linkText)
                     .lineLimit(1)
+                    .truncationMode(.middle)
 
                 Text(feedActivitySummary)
-                    .font(interfaceTextSize.font(size: 11))
-                    .foregroundStyle(.secondary)
+                    .font(interfaceTextSize.font(size: 12))
+                    .foregroundStyle(theme.text2)
                     .lineLimit(1)
             }
 
             Spacer()
+
+            Button(action: onDelete) {
+                Image(systemName: "trash")
+                    .font(.system(size: 13))
+                    .foregroundStyle(theme.text2)
+                    .frame(width: 30, height: 30)
+            }
+            .buttonStyle(.plain)
+            .help(L10n.feedDeleteConfirmButton)
         }
-        .padding(.horizontal, 12)
-        .frame(minHeight: 62)
+        .padding(.horizontal, 18)
+        .padding(.vertical, 14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(isSelected ? theme.selectionTint : Color.clear)
         .contentShape(Rectangle())
         .onTapGesture {
             setSelected(!isSelected)

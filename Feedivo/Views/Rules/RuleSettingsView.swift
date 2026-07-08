@@ -3,6 +3,7 @@ import UniformTypeIdentifiers
 
 struct RuleSettingsView: View {
     @Environment(\.feedivoDatabase) private var feedivoDatabase
+    @Environment(\.colorScheme) private var colorScheme
 
     @State private var rules: [RuleRecord] = []
     @State private var conditionsByRuleID: [String: [RuleConditionRecord]] = [:]
@@ -14,6 +15,10 @@ struct RuleSettingsView: View {
     @State private var draggedRuleID: String?
     @State private var matchingCounts: [String: Int] = [:]
     @State private var reloadVersion = 0
+
+    private var theme: RuleDialogTheme {
+        RuleDialogTheme(colorScheme: colorScheme)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -29,9 +34,10 @@ struct RuleSettingsView: View {
             if let appliedExistingRuleActionCount {
                 Text(L10n.ruleApplyExistingResult(count: appliedExistingRuleActionCount))
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(theme.text2)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .sheet(isPresented: $isCreatingRule, onDismiss: refreshRules) {
             RuleWizardView(existingRules: rules)
         }
@@ -68,37 +74,43 @@ struct RuleSettingsView: View {
     }
 
     private var header: some View {
-        HStack(alignment: .firstTextBaseline) {
+        HStack(alignment: .top, spacing: 10) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(L10n.settingsRulesSection)
-                    .font(.headline)
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(theme.text)
 
                 Text(L10n.ruleSettingsDescription)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 12.5))
+                    .foregroundStyle(theme.text2)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
 
-            Spacer()
-
-            Button {
+            RuleDialogButton(
+                titleKey: L10n.ruleApplyExistingButton,
+                style: .secondary,
+                theme: theme,
+                systemImage: "play.circle"
+            ) {
                 applyRulesToExistingArticles()
-            } label: {
-                Label(L10n.ruleApplyExistingButton, systemImage: "play.circle")
             }
             .disabled(!canApplyRulesToExistingArticles)
+            .opacity(canApplyRulesToExistingArticles ? 1 : 0.45)
 
-            Button {
+            RuleDialogButton(
+                titleKey: L10n.ruleCreateButton,
+                style: .primary,
+                theme: theme,
+                systemImage: "plus"
+            ) {
                 isCreatingRule = true
-            } label: {
-                Label(L10n.ruleCreateButton, systemImage: "plus")
             }
-            .buttonStyle(.borderedProminent)
         }
     }
 
     private var ruleList: some View {
         VStack(spacing: 0) {
-            RuleSettingsListHeader()
+            RuleSettingsListHeader(theme: theme)
 
             ForEach(Array(orderedRules.enumerated()), id: \.element.id) { index, rule in
                 RuleSettingsRow(
@@ -109,6 +121,7 @@ struct RuleSettingsView: View {
                     isLast: index == orderedRules.count - 1,
                     conditions: conditionsByRuleID[rule.id] ?? [],
                     assignTag: rule.assignTagID.flatMap { tagsByID[$0] },
+                    theme: theme,
                     toggleEnabled: { isEnabled in
                         updateEnabled(rule, isEnabled: isEnabled)
                     },
@@ -135,15 +148,19 @@ struct RuleSettingsView: View {
                 )
 
                 if index < orderedRules.count - 1 {
-                    Divider()
-                        .padding(.leading, 82)
+                    Rectangle()
+                        .fill(theme.border)
+                        .frame(height: 1)
                 }
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(theme.card2, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(theme.border, lineWidth: 1)
         }
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     private var orderedRules: [RuleRecord] {
@@ -332,26 +349,30 @@ private struct RuleRowDropDelegate: DropDelegate {
 }
 
 private struct RuleSettingsListHeader: View {
+    let theme: RuleDialogTheme
+
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 14) {
             Text(L10n.ruleListHeaderOrder)
-                .frame(width: 78, alignment: .leading)
+                .frame(width: 92, alignment: .leading)
             Text(L10n.ruleListHeaderActive)
-                .frame(width: 44, alignment: .leading)
+                .frame(width: 58, alignment: .leading)
             Text(L10n.ruleListHeaderRule)
                 .frame(maxWidth: .infinity, alignment: .leading)
             Text(L10n.ruleListHeaderAction)
                 .frame(width: 150, alignment: .leading)
             Text(L10n.ruleListHeaderMatches)
-                .frame(width: 72, alignment: .trailing)
+                .frame(width: 74, alignment: .trailing)
             Text("")
-                .frame(width: 82)
+                .frame(width: 70)
         }
-        .font(.caption.weight(.semibold))
-        .foregroundStyle(.secondary)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 9)
-        .background(Color(nsColor: .controlBackgroundColor))
+        .font(.system(size: 11, weight: .bold))
+        .tracking(0.4)
+        .textCase(.uppercase)
+        .foregroundStyle(theme.text2)
+        .padding(.horizontal, 18)
+        .padding(.vertical, 11)
+        .background(theme.card)
     }
 }
 
@@ -363,6 +384,7 @@ private struct RuleSettingsRow: View {
     let isLast: Bool
     let conditions: [RuleConditionRecord]
     let assignTag: TagRecord?
+    let theme: RuleDialogTheme
     let toggleEnabled: (Bool) -> Void
     let moveUp: () -> Void
     let moveDown: () -> Void
@@ -371,54 +393,64 @@ private struct RuleSettingsRow: View {
     let delete: () -> Void
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 14) {
             orderControls
 
-            Toggle(L10n.ruleEnabled, isOn: Binding(
-                get: { rule.isEnabled },
-                set: { isEnabled in
-                    toggleEnabled(isEnabled)
-                }
-            ))
-            .labelsHidden()
-            .frame(width: 44, alignment: .leading)
+            Button {
+                toggleEnabled(!rule.isEnabled)
+            } label: {
+                RuleDialogCheckbox(isOn: rule.isEnabled, theme: theme)
+            }
+            .buttonStyle(.plain)
+            .help(L10n.ruleEnabled)
+            .frame(width: 58, alignment: .leading)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(rule.name)
-                    .font(.body.weight(.semibold))
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(theme.text)
                     .lineLimit(1)
 
                 Text(RuleSettingsFormatter.conditionSummary(for: rule, conditions: conditions))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 12))
+                    .foregroundStyle(theme.text2)
                     .lineLimit(2)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            RuleActionPill(rule: rule, assignTag: assignTag)
-                .frame(width: 150, alignment: .leading)
+            RuleActionPill(rule: rule, assignTag: assignTag, theme: theme)
+                .fixedSize()
+                .frame(minWidth: 150, alignment: .leading)
 
             Text("\(matchingArticleCount)")
-                .font(.callout.monospacedDigit())
-                .foregroundStyle(.secondary)
-                .frame(width: 72, alignment: .trailing)
+                .font(.system(size: 13.5).monospacedDigit())
+                .foregroundStyle(theme.text2)
+                .frame(width: 74, alignment: .trailing)
 
             HStack(spacing: 6) {
                 Button(action: edit) {
                     Image(systemName: "pencil")
+                        .font(.system(size: 13))
+                        .foregroundStyle(theme.text2)
+                        .frame(width: 30, height: 30)
                 }
+                .buttonStyle(.plain)
                 .help(L10n.ruleEditButton)
 
-                Button(role: .destructive, action: delete) {
+                Button(action: delete) {
                     Image(systemName: "trash")
+                        .font(.system(size: 13))
+                        .foregroundStyle(theme.text2)
+                        .frame(width: 30, height: 30)
                 }
+                .buttonStyle(.plain)
                 .help(L10n.ruleDeleteButton)
             }
-            .buttonStyle(.borderless)
-            .frame(width: 82, alignment: .trailing)
+            .frame(width: 70, alignment: .trailing)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 11)
+        .padding(.horizontal, 18)
+        .padding(.vertical, 14)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .opacity(isDragged ? 0.55 : 1)
         .contentShape(Rectangle())
         .onTapGesture(count: 2, perform: edit)
@@ -431,26 +463,32 @@ private struct RuleSettingsRow: View {
     }
 
     private var orderControls: some View {
-        HStack(spacing: 3) {
+        HStack(spacing: 6) {
             Image(systemName: "line.3.horizontal")
-                .foregroundStyle(.tertiary)
+                .font(.system(size: 12))
+                .foregroundStyle(theme.tertiaryText)
 
             VStack(spacing: 0) {
                 Button(action: moveUp) {
                     Image(systemName: "chevron.up")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(theme.tertiaryText)
                 }
+                .buttonStyle(.plain)
                 .disabled(isFirst)
                 .help(L10n.ruleMoveUp)
 
                 Button(action: moveDown) {
                     Image(systemName: "chevron.down")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(theme.tertiaryText)
                 }
+                .buttonStyle(.plain)
                 .disabled(isLast)
                 .help(L10n.ruleMoveDown)
             }
-            .buttonStyle(.borderless)
         }
-        .frame(width: 78, alignment: .leading)
+        .frame(width: 92, alignment: .leading)
         .help(L10n.smartFolderDragToSort)
     }
 }
@@ -475,39 +513,55 @@ private struct RuleDragPreview: View {
 private struct RuleActionPill: View {
     let rule: RuleRecord
     let assignTag: TagRecord?
+    let theme: RuleDialogTheme
 
     var body: some View {
         switch RuleAction.normalized(rule.action) {
         case .assignTag:
             if let assignTag {
-                HStack(spacing: 6) {
+                HStack(spacing: 9) {
                     Circle()
                         .fill(TagColorPalette.color(for: assignTag.colorHex))
-                        .frame(width: 8, height: 8)
+                        .frame(width: 9, height: 9)
 
                     Text(assignTag.name)
+                        .font(.system(size: 12.5, weight: .semibold))
+                        .foregroundStyle(theme.text)
                         .lineLimit(1)
                 }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Color.primary.opacity(0.06), in: Capsule())
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(theme.card2, in: Capsule())
+                .overlay(Capsule().stroke(theme.border, lineWidth: 1))
             } else {
                 Text(L10n.ruleActionMissingTag)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 12))
+                    .foregroundStyle(theme.text2)
             }
         case .hideArticle:
-            Label(L10n.ruleActionHideArticle, systemImage: "eye.slash")
-                .font(.caption.weight(.semibold))
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Color.orange.opacity(0.14), in: Capsule())
+            Label {
+                Text(L10n.ruleActionHideArticle)
+            } icon: {
+                Image(systemName: "eye.slash")
+                    .font(.system(size: 14))
+            }
+            .font(.system(size: 12.5, weight: .semibold))
+            .foregroundStyle(Color(hex: 0xB25C00))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(Color(hex: 0xFF9500).opacity(0.16), in: Capsule())
         case .notify:
-            Label(L10n.ruleActionNotify, systemImage: "bell.badge")
-                .font(.caption.weight(.semibold))
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Color.blue.opacity(0.14), in: Capsule())
+            Label {
+                Text(L10n.ruleActionNotify)
+            } icon: {
+                Image(systemName: "bell.badge")
+                    .font(.system(size: 14))
+            }
+            .font(.system(size: 12.5, weight: .semibold))
+            .foregroundStyle(theme.accent)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(theme.accent.opacity(0.14), in: Capsule())
         }
     }
 }
