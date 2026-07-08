@@ -175,6 +175,8 @@ struct ArticleStore {
                     id: record.id,
                     title: record.title,
                     summary: record.summary,
+                    author: record.author,
+                    link: record.link,
                     feedTitle: feedTitle
                 )
             }

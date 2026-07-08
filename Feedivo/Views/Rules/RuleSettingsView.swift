@@ -560,6 +560,10 @@ enum RuleSettingsFormatter {
             return L10n.ruleFieldTitle
         case .summary:
             return L10n.ruleFieldSummary
+        case .author:
+            return L10n.ruleFieldAuthor
+        case .link:
+            return L10n.ruleFieldLink
         case .feedTitle:
             return L10n.ruleFieldFeedTitle
         }
@@ -569,6 +573,10 @@ enum RuleSettingsFormatter {
         switch conditionOperator {
         case .contains:
             return L10n.ruleOperatorContains
+        case .notContains:
+            return L10n.ruleOperatorNotContains
+        case .equals:
+            return L10n.ruleOperatorEquals
         case .startsWith:
             return L10n.ruleOperatorStartsWith
         case .endsWith:

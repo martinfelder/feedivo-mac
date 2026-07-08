@@ -3,6 +3,8 @@ import SwiftUI
 
 enum RuleConditionOperator: String, CaseIterable, Identifiable {
     case contains
+    case notContains
+    case equals
     case startsWith
     case endsWith
     case regex
@@ -13,6 +15,10 @@ enum RuleConditionOperator: String, CaseIterable, Identifiable {
         switch self {
         case .contains:
             L10n.ruleConditionOperatorContains
+        case .notContains:
+            L10n.ruleConditionOperatorNotContains
+        case .equals:
+            L10n.ruleConditionOperatorEquals
         case .startsWith:
             L10n.ruleConditionOperatorStartsWith
         case .endsWith:

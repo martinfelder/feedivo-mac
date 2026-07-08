@@ -31,6 +31,8 @@ enum RuleEngine {
         var id: String
         var title: String
         var summary: String?
+        var author: String?
+        var link: String?
         var feedTitle: String
     }
 
@@ -249,6 +251,10 @@ enum RuleEngine {
         switch condition.conditionOperator {
         case RuleConditionOperator.contains.rawValue:
             return normalizedFieldValue.contains(condition.lowercasedValue)
+        case RuleConditionOperator.notContains.rawValue:
+            return !normalizedFieldValue.contains(condition.lowercasedValue)
+        case RuleConditionOperator.equals.rawValue:
+            return normalizedFieldValue == condition.lowercasedValue
         case RuleConditionOperator.startsWith.rawValue:
             return normalizedFieldValue.hasPrefix(condition.lowercasedValue)
         case RuleConditionOperator.endsWith.rawValue:
@@ -275,6 +281,10 @@ enum RuleEngine {
             return article.title
         case RuleConditionField.summary.rawValue:
             return article.summary
+        case RuleConditionField.author.rawValue:
+            return article.author
+        case RuleConditionField.link.rawValue:
+            return article.link
         case RuleConditionField.feedTitle.rawValue:
             return article.feedTitle
         default:

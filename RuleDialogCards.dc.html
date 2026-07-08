@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+*{box-sizing:border-box}
+body{margin:0}
+select,input,button{font-family:inherit}
+</style>
+</helmet>
+<div style="{{ rootStyle }}">
+  <div style="width:100%;max-width:600px;background:var(--bg);border-radius:13px;box-shadow:0 24px 70px var(--shadow),0 0 0 0.5px var(--border);padding:26px 28px 20px;color:var(--text)">
+
+    <div style="font-size:21px;font-weight:700;letter-spacing:-0.3px">Regel erstellen</div>
+    <div style="font-size:13.5px;color:var(--text2);margin-top:3px">Lege fest, was Feedivo automatisch mit passenden Artikeln macht.</div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:20px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-size:13px;color:var(--text2);font-weight:500">Modus</span>
+        <div style="display:inline-flex;gap:2px;padding:2px;background:var(--track);border-radius:8px">
+          <button style="{{ modeSegEinfach }}" onClick="{{ setEinfach }}">Einfach</button>
+          <button style="{{ modeSegPower }}" onClick="{{ setPower }}">Power User</button>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:9px">
+        <span style="font-size:13px;color:var(--text);font-weight:500">Aktiv</span>
+        <button style="{{ switchTrackStyle }}" onClick="{{ toggleActive }}"><span style="{{ switchKnobStyle }}"></span></button>
+      </div>
+    </div>
+
+    <div style="height:1px;background:var(--border);margin:18px 0"></div>
+
+    <div style="font-size:11px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:var(--text2);margin-bottom:7px">Name</div>
+    <input value="{{ ruleName }}" onChange="{{ onRuleName }}" placeholder="Regel benennen…" style="width:100%;padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:var(--input);color:var(--text);font-size:14px;box-shadow:0 1px 1px rgba(0,0,0,.04);outline:none" />
+
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:11px;padding:15px 16px;margin-top:18px">
+      <div style="display:flex;align-items:center;gap:9px">
+        <span style="display:inline-flex;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:800;letter-spacing:0.6px;background:rgba(10,132,255,.14);color:var(--accent)">WENN</span>
+        <span style="font-size:13px;color:var(--text2)">Ein Artikel diese Bedingungen erfüllt</span>
+      </div>
+
+      <sc-if value="{{ isPower }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;align-items:center;gap:10px;margin-top:13px">
+          <span style="font-size:12.5px;color:var(--text2)">Treffer bei</span>
+          <div style="display:inline-flex;gap:2px;padding:2px;background:var(--track);border-radius:8px">
+            <button style="{{ matchSegAll }}" onClick="{{ setAll }}">Alle Bedingungen</button>
+            <button style="{{ matchSegAny }}" onClick="{{ setAny }}">Eine reicht</button>
+          </div>
+        </div>
+      </sc-if>
+
+      <div style="display:flex;flex-direction:column;gap:9px;margin-top:13px">
+        <sc-for list="{{ conditionRows }}" as="item" hint-placeholder-count="1">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <div style="position:relative;flex:1 1 120px;min-width:110px">
+              <select value="{{ item.field }}" onChange="{{ item.onField }}" style="width:100%;appearance:none;-webkit-appearance:none;background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 26px 8px 11px;font-size:13px;cursor:pointer;outline:none;box-shadow:0 1px 1px rgba(0,0,0,.04)">
+                <option>Titel</option>
+                <option>Beschreibung</option>
+                <option>Autor</option>
+                <option>Link</option>
+                <option>Feed</option>
+                <option>Kategorie</option>
+              </select>
+              <span style="position:absolute;right:9px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--text2);font-size:9px">▾</span>
+            </div>
+            <div style="position:relative;flex:1 1 120px;min-width:110px">
+              <select value="{{ item.op }}" onChange="{{ item.onOp }}" style="width:100%;appearance:none;-webkit-appearance:none;background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 26px 8px 11px;font-size:13px;cursor:pointer;outline:none;box-shadow:0 1px 1px rgba(0,0,0,.04)">
+                <option>enthält</option>
+                <option>enthält nicht</option>
+                <option>ist gleich</option>
+                <option>beginnt mit</option>
+                <option>endet mit</option>
+                <option>Regex</option>
+              </select>
+              <span style="position:absolute;right:9px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--text2);font-size:9px">▾</span>
+            </div>
+            <input value="{{ item.value }}" onChange="{{ item.onValue }}" placeholder="Suchbegriff…" style="flex:2 1 160px;min-width:130px;padding:8px 11px;border-radius:8px;border:1px solid var(--border);background:var(--input);color:var(--text);font-size:13px;outline:none;box-shadow:0 1px 1px rgba(0,0,0,.04)" />
+            <sc-if value="{{ item.showRemove }}" hint-placeholder-val="{{ false }}">
+              <button onClick="{{ item.onRemove }}" style="flex:none;width:28px;height:28px;border-radius:8px;border:1px solid var(--border);background:var(--card2);color:var(--text2);font-size:15px;cursor:pointer;line-height:1">×</button>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+
+      <sc-if value="{{ isPower }}" hint-placeholder-val="{{ true }}">
+        <button onClick="{{ addCondition }}" style="margin-top:10px;display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:8px;border:1px dashed var(--border);background:transparent;color:var(--accent);font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap">+ Bedingung hinzufügen</button>
+      </sc-if>
+
+      <div style="display:flex;align-items:center;gap:8px;margin-top:14px;padding:8px 12px;background:rgba(10,132,255,.09);border-radius:8px;width:fit-content">
+        <span style="width:14px;height:14px;border-radius:50%;border:2px solid var(--accent);display:inline-flex;align-items:center;justify-content:center;flex:none"><span style="width:3px;height:3px;border-radius:50%;background:var(--accent)"></span></span>
+        <span style="font-size:12.5px;color:var(--accent);font-weight:600;white-space:nowrap">{{ previewText }}</span>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:center;margin:5px 0"><span style="color:var(--text2);font-size:13px">▾</span></div>
+
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:11px;padding:15px 16px">
+      <div style="display:flex;align-items:center;gap:9px">
+        <span style="display:inline-flex;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:800;letter-spacing:0.6px;background:rgba(52,199,89,.16);color:#2FA84F">DANN</span>
+        <span style="font-size:13px;color:var(--text2)">Wird automatisch ausgeführt</span>
+      </div>
+
+      <div style="display:flex;gap:2px;padding:2px;background:var(--track);border-radius:9px;margin-top:13px">
+        <button style="{{ actTag }}" onClick="{{ chooseTag }}">Tag zuweisen</button>
+        <button style="{{ actHide }}" onClick="{{ chooseHide }}">Artikel ausblenden</button>
+        <button style="{{ actNotify }}" onClick="{{ chooseNotify }}">Benachrichtigen</button>
+      </div>
+
+      <sc-if value="{{ isTagAction }}" hint-placeholder-val="{{ true }}">
+        <div style="margin-top:15px">
+          <div style="font-size:11px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:var(--text2);margin-bottom:9px">Ziel-Tag</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px">
+            <sc-for list="{{ tags }}" as="tag" hint-placeholder-count="4">
+              <button style="{{ tag.chipStyle }}" onClick="{{ tag.onClick }}">
+                <span style="{{ tag.dotStyle }}"></span>
+                <span>{{ tag.name }}</span>
+                <sc-if value="{{ tag.selected }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px;font-weight:700">✓</span></sc-if>
+              </button>
+            </sc-for>
+            <button style="{{ newChipStyle }}" onClick="{{ startCreate }}">+ Neu</button>
+          </div>
+
+          <sc-if value="{{ creatingTag }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:12px;padding:13px;background:var(--card2);border:1px solid var(--border);border-radius:10px">
+              <input value="{{ newTagName }}" onChange="{{ onNewTagName }}" placeholder="Tag-Name…" style="width:100%;padding:8px 11px;border-radius:8px;border:1px solid var(--border);background:var(--input);color:var(--text);font-size:13.5px;outline:none" />
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-top:11px;gap:12px;flex-wrap:wrap">
+                <div style="display:flex;gap:9px">
+                  <sc-for list="{{ colorSwatches }}" as="sw" hint-placeholder-count="7">
+                    <button style="{{ sw.style }}" onClick="{{ sw.onClick }}"></button>
+                  </sc-for>
+                </div>
+                <div style="display:flex;gap:8px">
+                  <button onClick="{{ cancelCreate }}" style="padding:7px 13px;border-radius:7px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13px;font-weight:600;cursor:pointer">Abbrechen</button>
+                  <button onClick="{{ createTag }}" style="{{ createBtnStyle }}">Erstellen</button>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isHideAction }}" hint-placeholder-val="{{ false }}">
+        <div style="margin-top:13px;font-size:13px;color:var(--text2);line-height:1.5">Passende Artikel werden automatisch ausgeblendet und erscheinen unter <span style="color:var(--text);font-weight:600">Ausgeblendet</span>.</div>
+      </sc-if>
+
+      <sc-if value="{{ isNotifyAction }}" hint-placeholder-val="{{ false }}">
+        <div style="margin-top:13px;font-size:13px;color:var(--text2);line-height:1.5">Du erhältst eine <span style="color:var(--text);font-weight:600">macOS-Benachrichtigung</span>, sobald ein passender Artikel eintrifft.</div>
+      </sc-if>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px">
+      <button style="padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:var(--card2);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 1px 1px rgba(0,0,0,.04)">Abbrechen</button>
+      <button style="padding:8px 20px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 1px 3px rgba(10,132,255,.45)">Speichern</button>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:690,&quot;height&quot;:640},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;light&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;tsType&quot;:&quot;string&quot;},&quot;initialMode&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;einfach&quot;,&quot;options&quot;:[&quot;einfach&quot;,&quot;power&quot;],&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  state = {
+    mode: 'einfach',
+    active: true,
+    matchMode: 'all',
+    action: 'tag',
+    selectedTag: 'heiseplus',
+    creatingTag: false,
+    newTagName: '',
+    newTagColor: '#0A84FF',
+    ruleName: 'Snapzy: Kostenlose Mac-App fordert CleanShot X und Shottr heraus',
+    conditions: [{ field: 'Titel', op: 'enthält', value: 'Snapzy' }]
+  };
+
+  constructor(props) {
+    super(props);
+    if (props && props.initialMode) this.state.mode = props.initialMode;
+    this.TAGS = [
+      { id: 'heiseplus', name: 'Heise+', color: '#14B8A6' },
+      { id: 'wichtig', name: 'Wichtig', color: '#FF453A' },
+      { id: 'apple', name: 'Apple', color: '#0A84FF' },
+      { id: 'spaeter', name: 'Später lesen', color: '#FF9F0A' },
+      { id: 'games', name: 'Games', color: '#BF5AF2' }
+    ];
+    this.SWATCHES = ['#0A84FF', '#30D158', '#FF9F0A', '#FF453A', '#BF5AF2', '#14B8A6', '#64748B'];
+  }
+
+  getTheme(name) {
+    if (name === 'dark') return { bg:'#28282B', card:'#323235', card2:'#3A3A3D', text:'#F5F5F7', text2:'#9A9AA0', border:'rgba(255,255,255,0.12)', accent:'#0A84FF', track:'#48484B', pill:'#6A6A6E', input:'#1F1F22', shadow:'rgba(0,0,0,0.55)', backdrop:'#161618' };
+    return { bg:'#FFFFFF', card:'#F5F5F7', card2:'#FFFFFF', text:'#1D1D1F', text2:'#86868B', border:'rgba(0,0,0,0.10)', accent:'#0A84FF', track:'#E9E9EB', pill:'#FFFFFF', input:'#FFFFFF', shadow:'rgba(0,0,0,0.20)', backdrop:'#E7E7EA' };
+  }
+
+  seg(active, t, extra) {
+    const base = { borderRadius:'6px', border:'none', fontSize:'13px', cursor:'pointer', transition:'all .15s', whiteSpace:'nowrap' };
+    const sel = active
+      ? { ...base, padding:'5px 15px', fontWeight:'600', background:t.pill, color:t.text, boxShadow:'0 1px 2px rgba(0,0,0,.14),0 0 0 0.5px rgba(0,0,0,.05)' }
+      : { ...base, padding:'5px 15px', fontWeight:'500', background:'transparent', color:t.text2 };
+    return { ...sel, ...(extra || {}) };
+  }
+
+  updCond(i, k, v) { this.setState(s => ({ conditions: s.conditions.map((c, idx) => idx === i ? { ...c, [k]: v } : c) })); }
+  removeCond(i) { this.setState(s => ({ conditions: s.conditions.filter((_, idx) => idx !== i) })); }
+
+  renderVals() {
+    const t = this.getTheme(this.props.theme || 'light');
+    const s = this.state;
+    const isPower = s.mode === 'power';
+
+    const rootStyle = `--bg:${t.bg};--card:${t.card};--card2:${t.card2};--text:${t.text};--text2:${t.text2};--border:${t.border};--accent:${t.accent};--track:${t.track};--pill:${t.pill};--input:${t.input};--shadow:${t.shadow};display:flex;align-items:center;justify-content:center;padding:34px;background:${t.backdrop};font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',system-ui,sans-serif;-webkit-font-smoothing:antialiased`;
+
+    const list = isPower ? s.conditions : s.conditions.slice(0, 1);
+    const showRemove = isPower && s.conditions.length > 1;
+    const conditionRows = list.map((c, i) => ({
+      field: c.field, op: c.op, value: c.value, showRemove,
+      onField: e => this.updCond(i, 'field', e.target.value),
+      onOp: e => this.updCond(i, 'op', e.target.value),
+      onValue: e => this.updCond(i, 'value', e.target.value),
+      onRemove: () => this.removeCond(i)
+    }));
+
+    const tags = this.TAGS.map(tag => {
+      const selct = s.selectedTag === tag.id;
+      const chipBase = { display:'inline-flex', alignItems:'center', gap:'7px', padding:'6px 12px', borderRadius:'999px', fontSize:'13px', cursor:'pointer', color:t.text, transition:'all .12s', whiteSpace:'nowrap' };
+      const chipStyle = selct
+        ? { ...chipBase, fontWeight:'600', background:tag.color + '22', border:'1.5px solid ' + tag.color }
+        : { ...chipBase, fontWeight:'500', background:t.card2, border:'1px solid ' + t.border };
+      return { name: tag.name, selected: selct, chipStyle,
+        dotStyle: { width:'9px', height:'9px', borderRadius:'50%', background:tag.color, flex:'none' },
+        onClick: () => this.setState({ selectedTag: tag.id, creatingTag: false }) };
+    });
+
+    const colorSwatches = this.SWATCHES.map(c => ({
+      style: { width:'22px', height:'22px', borderRadius:'50%', background:c, cursor:'pointer', border:'none', padding:0, boxShadow: s.newTagColor === c ? `0 0 0 2px ${t.bg},0 0 0 4px ${c}` : 'none', transition:'box-shadow .12s' },
+      onClick: () => this.setState({ newTagColor: c })
+    }));
+
+    const canCreate = s.newTagName.trim().length > 0;
+
+    return {
+      rootStyle, isPower, previewText: '1 Artikel passt', ruleName: s.ruleName,
+      onRuleName: e => this.setState({ ruleName: e.target.value }),
+      setEinfach: () => this.setState({ mode: 'einfach' }),
+      setPower: () => this.setState({ mode: 'power' }),
+      modeSegEinfach: this.seg(s.mode === 'einfach', t),
+      modeSegPower: this.seg(isPower, t),
+      toggleActive: () => this.setState({ active: !s.active }),
+      switchTrackStyle: { width:'38px', height:'23px', borderRadius:'12px', background: s.active ? '#34C759' : t.track, position:'relative', cursor:'pointer', transition:'background .2s', flex:'none', border:'none', padding:0 },
+      switchKnobStyle: { position:'absolute', top:'2px', left:'2px', width:'19px', height:'19px', borderRadius:'50%', background:'#fff', boxShadow:'0 1px 2px rgba(0,0,0,.3)', transition:'transform .2s', transform: s.active ? 'translateX(15px)' : 'translateX(0)' },
+      setAll: () => this.setState({ matchMode: 'all' }),
+      setAny: () => this.setState({ matchMode: 'any' }),
+      matchSegAll: this.seg(s.matchMode === 'all', t),
+      matchSegAny: this.seg(s.matchMode === 'any', t),
+      conditionRows,
+      addCondition: () => this.setState(st => ({ conditions: [...st.conditions, { field:'Titel', op:'enthält', value:'' }] })),
+      chooseTag: () => this.setState({ action: 'tag' }),
+      chooseHide: () => this.setState({ action: 'hide' }),
+      chooseNotify: () => this.setState({ action: 'notify' }),
+      actTag: this.seg(s.action === 'tag', t, { flex:'1', textAlign:'center', padding:'7px 6px' }),
+      actHide: this.seg(s.action === 'hide', t, { flex:'1', textAlign:'center', padding:'7px 6px' }),
+      actNotify: this.seg(s.action === 'notify', t, { flex:'1', textAlign:'center', padding:'7px 6px' }),
+      isTagAction: s.action === 'tag',
+      isHideAction: s.action === 'hide',
+      isNotifyAction: s.action === 'notify',
+      tags, colorSwatches, creatingTag: s.creatingTag, newTagName: s.newTagName,
+      newChipStyle: { display:'inline-flex', alignItems:'center', gap:'6px', padding:'6px 12px', borderRadius:'999px', fontSize:'13px', fontWeight:'600', cursor:'pointer', color:t.text2, background:'transparent', border:'1px dashed ' + t.border, transition:'all .12s', whiteSpace:'nowrap' },
+      startCreate: () => this.setState({ creatingTag: true, selectedTag: null }),
+      cancelCreate: () => this.setState({ creatingTag: false, newTagName: '' }),
+      onNewTagName: e => this.setState({ newTagName: e.target.value }),
+      createTag: () => {
+        if (!this.state.newTagName.trim()) return;
+        const id = 'new' + Date.now();
+        this.TAGS.push({ id, name: this.state.newTagName.trim(), color: this.state.newTagColor });
+        this.setState({ selectedTag: id, creatingTag: false, newTagName: '' });
+      },
+      createBtnStyle: { padding:'7px 15px', borderRadius:'7px', border:'none', background: canCreate ? t.accent : t.track, color: canCreate ? '#fff' : t.text2, fontSize:'13px', fontWeight:'600', cursor: canCreate ? 'pointer' : 'default', boxShadow: canCreate ? '0 1px 2px rgba(10,132,255,.4)' : 'none' }
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -66,6 +66,8 @@ struct SQLiteRuleEvaluationStore {
                 a.id,
                 a.title,
                 a.summary,
+                a.author,
+                a.link,
                 f.title AS feedTitle
             FROM articles a
             JOIN feeds f ON f.id = a.feedID
@@ -76,6 +78,8 @@ struct SQLiteRuleEvaluationStore {
                 id: row["id"],
                 title: row["title"],
                 summary: row["summary"],
+                author: row["author"],
+                link: row["link"],
                 feedTitle: row["feedTitle"]
             )
         }
