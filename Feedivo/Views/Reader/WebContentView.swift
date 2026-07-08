@@ -200,6 +200,7 @@ struct WebContentView: NSViewRepresentable {
         private func notifyFailure(_ error: Error?) {
             loadWatchTask?.cancel()
             loadedURL = nil
+            isAwaitingTopLevelLoadCompletion = false
             if didNotifyLoadFailure {
                 return
             }
