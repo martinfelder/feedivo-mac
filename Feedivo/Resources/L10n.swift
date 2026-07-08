@@ -439,6 +439,8 @@ enum L10n {
     static let articleFilterArchived = String(localized: "articleFilter.archived")
     static let articleFilterToday = String(localized: "articleFilter.today")
     static let readerDisplayModeToggleHelp = String(localized: "reader.displayMode.toggle.help")
+    static let readerWebBackCommand = String(localized: "reader.web.back.command")
+    static let readerWebForwardCommand = String(localized: "reader.web.forward.command")
     static let sidebarAddFolderDuplicateError = String(localized: "sidebar.addFolder.duplicateError")
     static let tagManagerEmptyNameError = String(localized: "tagManager.emptyName.error")
     static let tagManagerDuplicateNameError = String(localized: "tagManager.duplicateName.error")

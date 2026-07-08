@@ -19,6 +19,7 @@ struct SQLiteReaderView: View {
     @State private var isMetadataInspectorPresented = false
     @State private var articleExportRequest: ArticleExportRequest?
     @State private var webContentLoadFailed = false
+    @State private var webNavigationController = WebNavigationController()
 
     @AppStorage(ReaderTypographySettings.titleFontPresetKey)
     private var titleFontPresetRawValue = ReaderFontPreset.system.rawValue
@@ -191,6 +192,26 @@ struct SQLiteReaderView: View {
                     .disabled(state.snapshot == nil)
                 }
 
+                ControlGroup {
+                    Button {
+                        webNavigationController.goBack()
+                    } label: {
+                        Image(systemName: "chevron.backward")
+                    }
+                    .help(L10n.readerWebBackCommand)
+                    .keyboardShortcut("[", modifiers: .command)
+                    .disabled(readerDisplayMode != .web || !webNavigationController.canGoBack)
+
+                    Button {
+                        webNavigationController.goForward()
+                    } label: {
+                        Image(systemName: "chevron.forward")
+                    }
+                    .help(L10n.readerWebForwardCommand)
+                    .keyboardShortcut("]", modifiers: .command)
+                    .disabled(readerDisplayMode != .web || !webNavigationController.canGoForward)
+                }
+
                 Picker(L10n.readerDisplayModePicker, selection: $readerDisplayModeRawValue) {
                     ForEach(ReaderDisplayMode.allCases) { mode in
                         Text(mode.titleKey)
@@ -313,6 +334,7 @@ struct SQLiteReaderView: View {
             readerDisplayMode: readerDisplayMode,
             articleInAppWebProfile: articleInAppWebProfile,
             webContentLoadFailed: $webContentLoadFailed,
+            webNavigationController: webNavigationController,
             originalURL: originalURL,
             clampedContentWidth: clampedContentWidth,
             contentBlockSpacing: contentBlockSpacing,
@@ -665,6 +687,7 @@ private struct ReaderModeContent: View {
     let readerDisplayMode: ReaderDisplayMode
     let articleInAppWebProfile: ArticleInAppWebProfile
     @Binding var webContentLoadFailed: Bool
+    let webNavigationController: WebNavigationController
     let originalURL: URL?
     let clampedContentWidth: CGFloat
     let contentBlockSpacing: CGFloat
@@ -683,6 +706,7 @@ private struct ReaderModeContent: View {
                 WebContentView(
                     url: originalURL,
                     inAppProfile: articleInAppWebProfile,
+                    navigationController: webNavigationController,
                     onLoadFailure: {
                         webContentLoadFailed = true
                     }
