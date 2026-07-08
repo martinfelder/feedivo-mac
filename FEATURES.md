@@ -94,8 +94,8 @@
   `SQLiteFeedArticleListView` öffnet den SQLite-first `RuleWizardView` wieder.
 
 ### 1.12 Original-Ansicht: Browser-Vor-/Zurück-Navigation
-- **Status:** ✅ Entschieden — bereit zur Implementierung
-- **Entscheidung (2026-07-08):**
+- **Status:** ✔️ Fertig
+- **Umgesetzt (2026-07-08):**
   - Basis bleibt `WebContentView`/WKWebView (siehe Feature 1.1) — das ist bereits
     Safaris Rendering-Engine, kein Wechsel auf ein externes Browser-Embedding
     (Chrome/CEF wäre ein schweres Drittanbieter-Framework, echtes Safari.app/
@@ -1294,7 +1294,7 @@ Folgende Reihenfolge berücksichtigt Abhängigkeiten. Features mit (*) sind Vora
 30. **Feature 11.1** — Lesedauer im Reader anzeigen — erledigt; keine Anzeige in der Artikel-Liste
 31. **Feature 11.2** — Lesefortschritt (Fortschrittsbalken, Scroll-Position speichern) — zurückgestellt
 32. **Feature 1.8** — Vollartikel-Extraktion entfernt; Reader bleibt Feed-Inhalt oder Originalseite
-33. **Feature 1.12** — Original-Ansicht Vor-/Zurück-Navigation (WKWebView canGoBack/canGoForward, Toolbar-Buttons, Cmd+[ / Cmd+])
+33. **Feature 1.12** — Original-Ansicht Vor-/Zurück-Navigation (WKWebView canGoBack/canGoForward, Toolbar-Buttons, Cmd+[ / Cmd+]) — erledigt
 
 ### Phase 10 — Statistiken
 32. **Feature 14.1** — Lese-Statistiken (separates Fenster, Heatmap, Top Feeds, Cmd+Shift+S)
