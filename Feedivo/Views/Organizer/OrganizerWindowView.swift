@@ -22,41 +22,17 @@ struct OrganizerWindowView: View {
             .background(theme.sidebarBg)
             .navigationSplitViewColumnWidth(min: 180, ideal: 200, max: 240)
         } detail: {
-            VStack(spacing: 0) {
-                toolbar
-
-                ScrollView {
-                    organizerContent
-                        .frame(maxWidth: 720, alignment: .topLeading)
-                        .padding(.horizontal, 34)
-                        .padding(.top, 30)
-                        .padding(.bottom, 40)
-                        .frame(maxWidth: .infinity, alignment: .topLeading)
-                }
-                .background(theme.windowBg)
+            ScrollView {
+                organizerContent
+                    .frame(maxWidth: 720, alignment: .topLeading)
+                    .padding(.horizontal, 34)
+                    .padding(.top, 30)
+                    .padding(.bottom, 40)
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
             }
+            .background(theme.windowBg)
         }
         .frame(minWidth: 760, minHeight: 520)
-    }
-
-    private var toolbar: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Text(Self.windowTitle)
-                    .font(.system(size: 15, weight: .semibold))
-                    .tracking(-0.2)
-                    .foregroundStyle(theme.text)
-
-                Spacer()
-            }
-            .padding(.horizontal, 26)
-            .frame(height: 52)
-
-            Rectangle()
-                .fill(theme.border)
-                .frame(height: 1)
-        }
-        .background(theme.windowBg)
     }
 
     @ViewBuilder
