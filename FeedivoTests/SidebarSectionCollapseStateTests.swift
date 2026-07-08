@@ -19,5 +19,6 @@ struct SidebarSectionCollapseStateTests {
         #expect(SidebarSectionCollapseState.Section.tags.storageKey == "sidebar.section.tags.isCollapsed")
         #expect(SidebarSectionCollapseState.Section.folders.storageKey == "sidebar.section.folders.isCollapsed")
         #expect(SidebarSectionCollapseState.Section.smartFolders.storageKey == "sidebar.section.smartFolders.isCollapsed")
+        #expect(SidebarSectionCollapseState.Section.customSmartFolders.storageKey == "sidebar.section.customSmartFolders.isCollapsed")
     }
 }

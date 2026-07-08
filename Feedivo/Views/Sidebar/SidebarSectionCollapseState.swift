@@ -6,6 +6,7 @@ enum SidebarSectionCollapseState {
         case tags
         case folders
         case smartFolders
+        case customSmartFolders
 
         var storageKey: String {
             switch self {
@@ -17,6 +18,8 @@ enum SidebarSectionCollapseState {
                 "sidebar.section.folders.isCollapsed"
             case .smartFolders:
                 "sidebar.section.smartFolders.isCollapsed"
+            case .customSmartFolders:
+                "sidebar.section.customSmartFolders.isCollapsed"
             }
         }
     }
