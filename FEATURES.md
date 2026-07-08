@@ -782,6 +782,19 @@
   - Datum-Format: User wählt in Einstellungen (relativ "vor 2 Stunden" oder absolut "23.06.2026")
   - Feed-Name pro Artikel: anzeigen / ausblenden in Einstellungen (nützlich in "Alle" / Smart Filter)
   - Ungelesen-Markierung: fetter Text + farbiger Punkt (beides zusammen)
+- **Entscheidung (2026-07-08) — Favicon + Position der Feedname-Zeile:**
+  - Vor dem Feedname-Text erscheint zusätzlich ein kleines Favicon des Feeds,
+    genau so hoch wie der Text selbst. Hat ein Feed kein Favicon, erscheint an
+    derselben Stelle ein generisches Platzhalter-Icon, damit der Text nicht je
+    nach Feed unterschiedlich weit einrückt.
+  - Neue Einstellung: Feedname-Zeile (Favicon + Feedname + Zeitpunkt)
+    erscheint entweder **vor** dem Artikeltitel (ganz oben, linksbündig) oder
+    **nach** dem Artikeltitel (aktuelle Position). Zeitpunkt ist an dieselbe
+    Positions-Einstellung gebunden wie der Feedname.
+  - Standardwert: **Nach dem Titel** (entspricht dem bisherigen Verhalten —
+    Update ändert für Bestandsnutzer nichts, bis sie es umstellen).
+  - Ist "Feed-Name anzeigen" ausgeschaltet, verschwinden nur Feedname und
+    Favicon; der Zeitpunkt bleibt weiterhin eigenständig sichtbar.
 
 ### 19.2 Sidebar anpassen
 - **Status:** ✅ Entschieden — bereit zur Implementierung
