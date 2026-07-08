@@ -94,16 +94,28 @@
   `SQLiteFeedArticleListView` öffnet den SQLite-first `RuleWizardView` wieder.
 
 ### 1.12 Original-Ansicht: Browser-Vor-/Zurück-Navigation
-- **Status:** 💬 In Diskussion — noch nicht implementieren
-- **Wunsch (2026-07-08):**
-  - Wenn die Original-Ansicht (WKWebView, siehe Feature 1.1) aktiv ist, zusätzlich
-    eine browserartige Vor-/Zurück-Navigation einblenden.
-  - Klickt der User innerhalb der Original-Ansicht auf einen Link (z. B. auf der
-    Website weiterklickt), soll er über diese Navigation wieder zur vorherigen
-    Seite in derselben WebView zurückkommen können.
+- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Entscheidung (2026-07-08):**
+  - Basis bleibt `WebContentView`/WKWebView (siehe Feature 1.1) — das ist bereits
+    Safaris Rendering-Engine, kein Wechsel auf ein externes Browser-Embedding
+    (Chrome/CEF wäre ein schweres Drittanbieter-Framework, echtes Safari.app/
+    Chrome.app lässt sich auf macOS ohnehin nicht in ein fremdes Fenster
+    einbetten — dafür bleibt Feature 1.7 "Im Browser öffnen" der richtige Weg).
+  - Neue `ControlGroup` mit Vor-/Zurück-Buttons in der bestehenden Reader-Toolbar,
+    direkt neben dem Anzeigemodus-Picker (Nativ/Original) — kein separates
+    Mini-Browser-Leisten-Overlay über der WebView.
+  - Buttons bleiben immer sichtbar (kein Springen der Toolbar), sind aber
+    deaktiviert, wenn entweder die native Ansicht aktiv ist oder kein
+    Vor-/Zurück-Verlauf vorhanden ist (`canGoBack`/`canGoForward`).
+  - Zusätzlich Tastaturkürzel `Cmd+[` / `Cmd+]` analog zu Safari.
+  - Klickt der User innerhalb der Original-Ansicht auf einen Link, kann er über
+    diese Navigation wieder zur vorherigen Seite in derselben WebView zurück.
+  - Wechsel zwischen Nativ- und Original-Ansicht setzt den Verlauf zurück (Start
+    wieder bei der Artikel-URL) — akzeptiert, weil `WebContentView` beim
+    Moduswechsel ohnehin komplett neu erzeugt wird (`makeNSView`/`dismantleNSView`).
   - Abgrenzung zu Feature 1.2: Das ist Browser-Verlaufs-Navigation innerhalb der
-    WKWebView (`canGoBack`/`canGoForward`/`goBack()`/`goForward()`), unabhängig
-    von der bestehenden Vor-/Zurück-Navigation zwischen Artikeln.
+    WKWebView, unabhängig von der bestehenden Vor-/Zurück-Navigation zwischen
+    Artikeln.
 
 ---
 
@@ -195,10 +207,16 @@
 - **Umgesetzt:** Eigene Section, feedübergreifende Filterung
 
 ### 3.4 Intelligente Ordner kompakter darstellen
-- **Status:** 💬 In Diskussion — noch nicht implementieren
-- **Wunsch (2026-07-08):** Die Zeilen im Abschnitt "Intelligente Ordner" (inkl.
-  "Eigene Intelligente Ordner", siehe Feature 16) sollen kompakter dargestellt
-  werden, z. B. geringere Zeilenhöhe/Innenabstände als aktuell.
+- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Entscheidung (2026-07-08):**
+  - `SmartFolderSidebarRow` nutzt aktuell die Standard-Zeilenhöhe von
+    `SidebarRowButtonStyle` (36pt), während normale Feed-Zeilen bereits 30pt
+    (bzw. 28pt eingerückt) verwenden.
+  - Zeilenhöhe für Intelligente-Ordner-Zeilen (inkl. "Eigene Intelligente
+    Ordner", siehe Feature 16) auf 30pt angleichen — konsistent mit den
+    Feed-Zeilen in derselben Sidebar.
+  - Schriftgröße und Icon-Größe bleiben unverändert, nur die Zeilenhöhe/
+    Innenabstände schrumpfen.
 
 ---
 
@@ -543,7 +561,15 @@
   - Durchschnittliche Lesedauer für diesen Feed
 
 ### 14.3 Statistik-Daten exportieren
-- **Status:** 💬 In Diskussion — noch nicht implementieren
+- **Status:** ✅ Entschieden — bereit zur Implementierung (abhängig von Feature 14.1/14.2)
+- **Entscheidung (2026-07-08):**
+  - Ein `Exportieren...`-Button im separaten Statistik-Fenster (Feature 14.1)
+    exportiert Lese-Statistiken (14.1) und Feed-Statistiken (14.2) zusammen als
+    eine CSV-Datei — kein separater Export-Button in `FeedPropertiesView`.
+  - Format: CSV, damit die Daten direkt in Excel/Numbers/Google Sheets
+    weiterverarbeitet werden können.
+  - Voraussetzung: Setzt voraus, dass 14.1 und 14.2 bereits implementiert sind,
+    da der Export auf deren Datenmodell aufbaut.
 
 ---
 
@@ -1229,6 +1255,7 @@ Folgende Reihenfolge berücksichtigt Abhängigkeiten. Features mit (*) sind Vora
 7. **Feature 5.2** — Regeln Settings-Design (Drag & Drop Liste, alle 3 Aktionen) — erledigt
 8. **Feature 16.1/16.2** — Intelligente Ordner (eigener Sidebar-Abschnitt, Sheet, Live-Vorschau, 3 vordefinierte) — erledigt
 9. **Feature 3.2** — Smart Filter erweitern — entfällt, durch Intelligente Ordner ersetzt
+9a. **Feature 3.4** — Intelligente Ordner kompakter darstellen (Zeilenhöhe 36pt → 30pt)
 
 ### Phase 3 — Benachrichtigungen
 10. **Feature 10.3** * — Badge-Zähler App-Icon + Einstellungs-Kategorie Benachrichtigungen — erledigt
@@ -1267,10 +1294,12 @@ Folgende Reihenfolge berücksichtigt Abhängigkeiten. Features mit (*) sind Vora
 30. **Feature 11.1** — Lesedauer im Reader anzeigen — erledigt; keine Anzeige in der Artikel-Liste
 31. **Feature 11.2** — Lesefortschritt (Fortschrittsbalken, Scroll-Position speichern) — zurückgestellt
 32. **Feature 1.8** — Vollartikel-Extraktion entfernt; Reader bleibt Feed-Inhalt oder Originalseite
+33. **Feature 1.12** — Original-Ansicht Vor-/Zurück-Navigation (WKWebView canGoBack/canGoForward, Toolbar-Buttons, Cmd+[ / Cmd+])
 
 ### Phase 10 — Statistiken
 32. **Feature 14.1** — Lese-Statistiken (separates Fenster, Heatmap, Top Feeds, Cmd+Shift+S)
 33. **Feature 14.2** — Feed-Statistiken in Feed-Info-Ansicht integrieren
+34. **Feature 14.3** — Statistik-Daten exportieren (CSV, Export-Button im Statistik-Fenster, abhängig von 14.1/14.2)
 
 ### Phase 11 — Deep Links & Shortcuts
 34. **Feature 23.1** — Share Extension (In Feedivo öffnen aus anderen Apps)
