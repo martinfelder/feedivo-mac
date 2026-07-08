@@ -217,6 +217,9 @@
     Feed-Zeilen in derselben Sidebar.
   - Schriftgröße und Icon-Größe bleiben unverändert, nur die Zeilenhöhe/
     Innenabstände schrumpfen.
+  - Nachtrag: Intelligente-Ordner-Zeilen zusätzlich auf dieselbe Einrückstufe
+    wie eingerückte Feed-Zeilen gebracht (`leadingIndent: 34`, vorher auf Höhe
+    der Ordner-Icons selbst) — konsistent mit Feeds innerhalb eines Ordners.
 
 ---
 
