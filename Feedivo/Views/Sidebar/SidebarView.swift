@@ -329,6 +329,7 @@ struct SidebarView: View {
             .buttonStyle(
                 SidebarRowButtonStyle(
                     isSelected: selection == .smartFolder(smartFolder.id),
+                    leadingIndent: 34,
                     rowHeight: 30
                 )
             )
