@@ -695,8 +695,7 @@ private struct ReaderModeContent: View {
                     // laeuft (2,5+ Minuten ununterbrochen ~100% CPU, kein Konvergieren)
                     // — reproduzierbar mit UND ohne .textSelection(.enabled), also
                     // unabhaengig vom Speicherleck-Fix. Artikel haben hier typischerweise
-                    // nur ein paar Dutzend Bloecke (siehe TEMP-DEBUG-Logging in
-                    // ReaderPreparedArticle) — fuer diese Groessenordnung bringt Lazy-
+                    // nur ein paar Dutzend Bloecke — fuer diese Groessenordnung bringt Lazy-
                     // Laden ohnehin keinen Vorteil. Ein normales VStack rendert einmalig
                     // eager und vermeidet den kompletten Code-Pfad, in dem die Schleife
                     // nachweislich sitzt.
