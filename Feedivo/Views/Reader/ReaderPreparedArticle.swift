@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 enum ReaderContentAvailability: Equatable {
     case fullText
@@ -63,6 +64,11 @@ struct ReaderPreparedArticle: Sendable {
     let contentAvailability: ReaderContentAvailability
     let shouldShowSummaryOnlyNotice: Bool
 
+    private static let debugLogger = Logger(
+        subsystem: Bundle.main.bundleIdentifier ?? "ch.martin.Feedivo",
+        category: "ReaderPreparedArticle"
+    )
+
     /// Leerer Platzhalter fuer den ersten Render, bevor die asynchrone
     /// Vorbereitung fertig ist. Vermeidet, dass der teure Parse schon im
     /// `ReaderView.init` synchron laufen muss.
@@ -87,11 +93,29 @@ struct ReaderPreparedArticle: Sendable {
             summary: input.summary
         )
 
-        self.contentBlocks = ReaderContentRenderer.blocks(
+        let parsedContentBlocks = ReaderContentRenderer.blocks(
             summary: input.summary,
             content: input.content,
             fallbackImageURL: input.imageURL
         )
+        self.contentBlocks = parsedContentBlocks
+
+        // TEMP-DEBUG: Diagnose fuer den Scroll-Freeze-Bug (siehe CLAUDE.md Gotchas).
+        // Zeigt Block-/Bildanzahl und Rohtextlaenge, um zu pruefen, ob ein
+        // uebergrosser oder ungewoehnlich fragmentierter Artikel die SwiftUI-
+        // LazyVStack-Layoutberechnung ueberlastet. Nach Diagnose wieder entfernen.
+        let blockCount = parsedContentBlocks.count
+        let imageBlockCount = parsedContentBlocks.reduce(into: 0) { count, block in
+            if case .image = block { count += 1 }
+        }
+        let contentLength = input.content?.count ?? 0
+        let summaryLength = input.summary?.count ?? 0
+        let debugMessage = "Reader geladen: \(blockCount) Bloecke gesamt, \(imageBlockCount) davon Bilder, contentLaenge=\(contentLength), summaryLaenge=\(summaryLength)"
+        Self.debugLogger.debug("\(debugMessage, privacy: .public)")
+        // print() zusaetzlich zum Logger: OSLog-Debug-Level wird von Console.app/
+        // `log stream` standardmaessig ausgeblendet und war beim Nutzer nicht
+        // sichtbar. print() erscheint garantiert im Xcode-Debug-Konsolenfenster.
+        print("🔎 FEEDIVO-DEBUG: \(debugMessage)")
         self.contentAvailability = ReaderContentAvailability.resolved(
             content: input.content,
             summary: input.summary

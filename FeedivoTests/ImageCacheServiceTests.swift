@@ -52,6 +52,15 @@ final class ConcurrencyTrackingImageDataLoader: ImageDataLoading, @unchecked Sen
 }
 
 @MainActor
+private final class Heartbeat {
+    private(set) var count = 0
+
+    func tick() {
+        count += 1
+    }
+}
+
+@MainActor
 struct ImageCacheServiceTests {
     @Test func cacheFileNameIstStabilUndDateisystemfreundlich() throws {
         let url = try #require(URL(string: "https://example.com/assets/bild.png?size=large"))
@@ -204,6 +213,37 @@ struct ImageCacheServiceTests {
         #expect(loader.completedCount == urls.count)
         // Gleichzeitigkeit wird auf das Drossel-Limit beschränkt (nicht alle 12 auf einmal).
         #expect(loader.maxInFlight <= ImageCacheService.maxConcurrentImageDownloads, "maxInFlight=\(loader.maxInFlight) – Gleichzeitigkeit nicht gedrosselt")
+    }
+
+    /// Beweist, dass das Laden eines bereits auf der Platte gecachten Bildes den
+    /// MainActor zwischenzeitlich freigibt, statt ihn (und damit den UI-Thread)
+    /// synchron zu blockieren. Ein parallel gestarteter Heartbeat-Task auf dem
+    /// MainActor muss mindestens einmal zum Zug kommen, waehrend `image(for:)`
+    /// laeuft — sonst gab es keinen echten Suspension-Point im Cache-Hit-Pfad.
+    @Test func imageAusDiskCacheGibtMainActorZwischenzeitlichFrei() async throws {
+        let cacheDirectory = try Self.temporaryCacheDirectory()
+        let url = try #require(URL(string: "https://example.com/cached.png"))
+        let service = ImageCacheService(
+            cacheDirectory: cacheDirectory,
+            dataLoader: StubImageDataLoader(responses: [:])
+        )
+        try Self.pngData(width: 3000, height: 2000).write(to: service.cachedFileURL(for: url))
+
+        let heartbeat = Heartbeat()
+        let heartbeatTask = Task { @MainActor in
+            while !Task.isCancelled {
+                heartbeat.tick()
+                await Task.yield()
+            }
+        }
+
+        _ = await service.image(for: url)
+        heartbeatTask.cancel()
+
+        #expect(
+            heartbeat.count > 0,
+            "MainActor wurde beim Laden eines bereits gecachten Bildes blockiert, statt zwischenzeitlich anderen Code laufen zu lassen"
+        )
     }
 
     private static func temporaryCacheDirectory() throws -> URL {

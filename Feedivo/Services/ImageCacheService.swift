@@ -41,6 +41,26 @@ final class ImageCacheService: @unchecked Sendable {
         self.fileManager = fileManager
         self.autoTrimLimitInBytes = autoTrimLimitInBytes
         try? fileManager.createDirectory(at: cacheDirectory, withIntermediateDirectories: true)
+
+        // countLimit ist nur ein Hinweis an NSCache, keine harte Grenze — beim Wechseln
+        // durch viele Artikel wuchs der Speicher trotzdem auf mehrere GB (gemessen:
+        // 3,4 GB), weil grosse decodierte Vollbilder (bis ~1960x1960px = ~15 MB je
+        // Bild) einfach im RAM blieben. totalCostLimit ist bytebasiert und wird pro
+        // eingefuegtem Bild ueber `cost:` in `setObject` mit der tatsaechlichen
+        // Pixelgroesse befuellt — das begrenzt den echten Speicherverbrauch, nicht
+        // nur die Anzahl der Eintraege.
+        memoryCache.countLimit = 200
+        memoryCache.totalCostLimit = 150_000_000
+        thumbnailMemoryCache.countLimit = 200
+        thumbnailMemoryCache.totalCostLimit = 30_000_000
+    }
+
+    private static func estimatedByteCost(of image: NSImage) -> Int {
+        guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+            return 0
+        }
+
+        return cgImage.width * cgImage.height * 4
     }
 
     static func defaultCacheDirectory() -> URL {
@@ -70,7 +90,7 @@ final class ImageCacheService: @unchecked Sendable {
             return nil
         }
 
-        memoryCache.setObject(image, forKey: cacheKey)
+        memoryCache.setObject(image, forKey: cacheKey, cost: Self.estimatedByteCost(of: image))
         return image
     }
 
@@ -90,7 +110,7 @@ final class ImageCacheService: @unchecked Sendable {
             return nil
         }
 
-        thumbnailMemoryCache.setObject(image, forKey: cacheKey)
+        thumbnailMemoryCache.setObject(image, forKey: cacheKey, cost: Self.estimatedByteCost(of: image))
         return image
     }
 
@@ -185,8 +205,7 @@ final class ImageCacheService: @unchecked Sendable {
         }
 
         let fileURL = cachedFileURL(for: url)
-        if let data = try? Data(contentsOf: fileURL) {
-            touch(fileURL)
+        if let data = await readCachedFile(at: fileURL) {
             return data
         }
 
@@ -196,13 +215,35 @@ final class ImageCacheService: @unchecked Sendable {
                 return nil
             }
 
-            try? fileManager.createDirectory(at: cacheDirectory, withIntermediateDirectories: true)
-            try? data.write(to: fileURL, options: .atomic)
+            await writeCachedFile(data, to: fileURL)
             trimCacheAfterWriteIfNeeded()
             return data
         } catch {
             return nil
         }
+    }
+
+    // `image(for:)` wird aus @MainActor-Code (`CachedRemoteImageView`) aufgerufen.
+    // Diese Funktion selbst hat aber keine Actor-Isolation — ohne einen echten
+    // Suspension-Point wuerde Swift den synchronen Disk-Read + das Metadaten-Update
+    // komplett auf dem aufrufenden MainActor (= UI-Thread) ausfuehren und ihn damit
+    // waehrend des Scrollens blockieren, statt kooperativ zu unterbrechen.
+    // `Task.detached` erzwingt den Hop auf den Hintergrund-Thread-Pool.
+    private func readCachedFile(at fileURL: URL) async -> Data? {
+        await Task.detached(priority: .userInitiated) { [self] in
+            guard let data = try? Data(contentsOf: fileURL) else {
+                return nil
+            }
+            touch(fileURL)
+            return data
+        }.value
+    }
+
+    private func writeCachedFile(_ data: Data, to fileURL: URL) async {
+        await Task.detached(priority: .utility) { [self] in
+            try? fileManager.createDirectory(at: cacheDirectory, withIntermediateDirectories: true)
+            try? data.write(to: fileURL, options: .atomic)
+        }.value
     }
 
     private static func thumbnailImage(from data: Data, targetPixelSize: CGSize) -> NSImage? {

@@ -433,6 +433,13 @@ struct SQLiteReaderView: View {
     }
 
     @ViewBuilder
+    // `.textSelection(.enabled)` stand hier frueher an JEDEM einzelnen Text-Block.
+    // Per Heap-Dump (heap <pid>) verifiziert: in Kombination mit dem wiederholten
+    // Neu-Layout der Lazy-Stack beim Scrollen leakte das massenhaft AppKit-
+    // Textfeld-Objekte (NSTextFieldBezelConfiguration u.a., ~1,9 Mio. Instanzen,
+    // mehrere GB RAM). Deshalb komplett entfernt — der Artikeltitel bleibt ueber
+    // readerHeader() separat auswaehlbar, da der nur einmal pro Artikel-Laden
+    // entsteht statt bei jedem Scroll-Tick.
     private func contentBlock(_ block: ReaderContentBlock) -> some View {
         switch block {
         case .paragraph(let text):
@@ -440,7 +447,6 @@ struct SQLiteReaderView: View {
                 .font(bodyFontPreset.font(size: clampedBodyFontSize, relativeTo: .body, weight: bodyFontWeight))
                 .fontWeight(bodyFontWeight)
                 .lineSpacing(clampedLineSpacing)
-                .textSelection(.enabled)
         case .heading(let text):
             Text(text)
                 .font(bodyFontPreset.font(
@@ -450,7 +456,6 @@ struct SQLiteReaderView: View {
                 ))
                 .fontWeight(contentHeadingFontWeight)
                 .lineSpacing(clampedLineSpacing)
-                .textSelection(.enabled)
         case .quote(let text):
             HStack(alignment: .top, spacing: 12) {
                 Rectangle()
@@ -463,7 +468,6 @@ struct SQLiteReaderView: View {
                     .italic()
                     .foregroundStyle(.secondary)
                     .lineSpacing(clampedLineSpacing)
-                    .textSelection(.enabled)
             }
             .padding(.vertical, 2)
         case .listItem(let text):
@@ -477,10 +481,9 @@ struct SQLiteReaderView: View {
                     .font(bodyFontPreset.font(size: clampedBodyFontSize, relativeTo: .body, weight: bodyFontWeight))
                     .fontWeight(bodyFontWeight)
                     .lineSpacing(clampedLineSpacing)
-                    .textSelection(.enabled)
             }
         case .image(let urlString):
-            CachedRemoteImageView(url: URL(string: urlString)) { image in
+            CachedRemoteImageView(url: URL(string: urlString), targetPixelSize: readerImageTargetPixelSize) { image in
                 image
                     .resizable()
                     .scaledToFit()
@@ -491,6 +494,18 @@ struct SQLiteReaderView: View {
                     .frame(height: 180)
             }
         }
+    }
+
+    // Artikel-Bilder aus dem Web koennen deutlich groesser sein als die Breite, in der
+    // sie im Reader dargestellt werden (z. B. 6000px breite Fotos). Ohne Begrenzung
+    // decodiert ImageCacheService jedes Bild in voller Aufloesung — bei bildreichen
+    // Artikeln fuehrt das beim Scrollen zu massiver CPU-/Speicherlast bis hin zum
+    // Einfrieren der App. `clampedContentWidth` ist die maximale Darstellungsbreite,
+    // Faktor 2 deckt Retina-Displays ab.
+    private var readerImageTargetPixelSize: CGSize {
+        let retinaScale: CGFloat = 2
+        let side = clampedContentWidth * retinaScale
+        return CGSize(width: side, height: side)
     }
 
     private var readerSectionDivider: some View {
@@ -674,7 +689,18 @@ private struct ReaderModeContent: View {
                 )
             } else {
                 ScrollView(.vertical, showsIndicators: false) {
-                    LazyVStack(alignment: .leading, spacing: contentBlockSpacing) {
+                    // Bewusst KEIN LazyVStack: per Live-Sample (sample <pid>) belegt,
+                    // dass SwiftUIs LazySubviewPlacements/_LazyLayoutViewCache nach
+                    // laengerem Scrollen auf macOS 26.5.2 in eine echte Endlosschleife
+                    // laeuft (2,5+ Minuten ununterbrochen ~100% CPU, kein Konvergieren)
+                    // — reproduzierbar mit UND ohne .textSelection(.enabled), also
+                    // unabhaengig vom Speicherleck-Fix. Artikel haben hier typischerweise
+                    // nur ein paar Dutzend Bloecke (siehe TEMP-DEBUG-Logging in
+                    // ReaderPreparedArticle) — fuer diese Groessenordnung bringt Lazy-
+                    // Laden ohnehin keinen Vorteil. Ein normales VStack rendert einmalig
+                    // eager und vermeidet den kompletten Code-Pfad, in dem die Schleife
+                    // nachweislich sitzt.
+                    VStack(alignment: .leading, spacing: contentBlockSpacing) {
                         if let snapshot = state.snapshot {
                             readerHeader(snapshot)
 
@@ -701,6 +727,17 @@ private struct ReaderModeContent: View {
                             )
                         }
                     }
+                    // KEIN .textSelection(.enabled) hier: per Heap-Dump verifiziert
+                    // (heap <pid>), dass diese Kombination aus .textSelection(.enabled)
+                    // und der bei jedem Scroll-Tick neu layoutenden LazyVStack auf
+                    // dieser macOS-Version (26.5.2) massenhaft AppKit-Textfeld-Objekte
+                    // (NSTextFieldBezelConfiguration, NSCompositeAppearance,
+                    // NSConcreteAttributedString, ...) leakt — 1,9+ Millionen Instanzen
+                    // bei einem 40-Block-Artikel, mehrere GB RAM. Weder pro-Block noch
+                    // einmalig auf dem Container angewendet macht das sicher. Bis es
+                    // einen Weg ohne Leck gibt, bleibt Body-Text hier nicht auswaehlbar;
+                    // der Artikeltitel (readerHeader) ist davon nicht betroffen, da er
+                    // nur einmal pro Artikel-Laden entsteht, nicht pro Scroll-Tick.
                     .frame(maxWidth: clampedContentWidth, alignment: .leading)
                     .padding(.horizontal, 28)
                     .padding(.top, articleTopPadding)
