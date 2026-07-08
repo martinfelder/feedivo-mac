@@ -480,59 +480,94 @@ struct TimelineStore {
         _ condition: SQLiteSmartFolderConditionSnapshot,
         arguments: inout StatementArguments
     ) -> String? {
-        guard condition.conditionOperator != .olderThanDays else {
-            return nil
-        }
-
         let trimmedValue = condition.value.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedValue.isEmpty else {
             return nil
         }
 
-        let hasTagSQL = """
-            (
-                EXISTS (
-                    SELECT 1
-                    FROM article_tags at
-                    JOIN tags t ON t.id = at.tagID
-                    WHERE at.articleID = a.id
-                        AND (at.tagID = ? OR lower(t.name) = lower(?))
+        switch condition.conditionOperator {
+        case .is, .isNot:
+            let hasTagSQL = """
+                (
+                    EXISTS (
+                        SELECT 1
+                        FROM article_tags at
+                        JOIN tags t ON t.id = at.tagID
+                        WHERE at.articleID = a.id
+                            AND (at.tagID = ? OR lower(t.name) = lower(?))
+                    )
+                    OR EXISTS (
+                        SELECT 1
+                        FROM feed_tags ft
+                        JOIN tags t ON t.id = ft.tagID
+                        WHERE ft.feedID = a.feedID
+                            AND (ft.tagID = ? OR lower(t.name) = lower(?))
+                    )
                 )
-                OR EXISTS (
-                    SELECT 1
-                    FROM feed_tags ft
-                    JOIN tags t ON t.id = ft.tagID
-                    WHERE ft.feedID = a.feedID
-                        AND (ft.tagID = ? OR lower(t.name) = lower(?))
-                )
-            )
-            """
-        _ = arguments.append(contentsOf: [trimmedValue, trimmedValue, trimmedValue, trimmedValue])
+                """
+            _ = arguments.append(contentsOf: [trimmedValue, trimmedValue, trimmedValue, trimmedValue])
 
-        return condition.conditionOperator == .isNot
-            ? "NOT \(hasTagSQL)"
-            : hasTagSQL
+            return condition.conditionOperator == .isNot
+                ? "NOT \(hasTagSQL)"
+                : hasTagSQL
+        case .contains, .notContains, .startsWith, .endsWith:
+            let pattern = Self.likePattern(for: condition.conditionOperator, value: trimmedValue)
+            let hasTagSQL = """
+                (
+                    EXISTS (
+                        SELECT 1
+                        FROM article_tags at
+                        JOIN tags t ON t.id = at.tagID
+                        WHERE at.articleID = a.id
+                            AND lower(t.name) LIKE ? ESCAPE '\\'
+                    )
+                    OR EXISTS (
+                        SELECT 1
+                        FROM feed_tags ft
+                        JOIN tags t ON t.id = ft.tagID
+                        WHERE ft.feedID = a.feedID
+                            AND lower(t.name) LIKE ? ESCAPE '\\'
+                    )
+                )
+                """
+            _ = arguments.append(contentsOf: [pattern, pattern])
+
+            return condition.conditionOperator == .notContains
+                ? "NOT \(hasTagSQL)"
+                : hasTagSQL
+        case .olderThanDays:
+            return nil
+        }
     }
 
     private func feedConditionSQL(
         _ condition: SQLiteSmartFolderConditionSnapshot,
         arguments: inout StatementArguments
     ) -> String? {
-        guard condition.conditionOperator != .olderThanDays else {
-            return nil
-        }
-
         let trimmedValue = condition.value.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedValue.isEmpty else {
             return nil
         }
 
-        let matchesFeedSQL = "(a.feedID = ? OR lower(f.title) = lower(?))"
-        _ = arguments.append(contentsOf: [trimmedValue, trimmedValue])
+        switch condition.conditionOperator {
+        case .is, .isNot:
+            let matchesFeedSQL = "(a.feedID = ? OR lower(f.title) = lower(?))"
+            _ = arguments.append(contentsOf: [trimmedValue, trimmedValue])
 
-        return condition.conditionOperator == .isNot
-            ? "NOT \(matchesFeedSQL)"
-            : matchesFeedSQL
+            return condition.conditionOperator == .isNot
+                ? "NOT \(matchesFeedSQL)"
+                : matchesFeedSQL
+        case .contains, .notContains, .startsWith, .endsWith:
+            let pattern = Self.likePattern(for: condition.conditionOperator, value: trimmedValue)
+            let matchesFeedSQL = "lower(f.title) LIKE ? ESCAPE '\\'"
+            _ = arguments.append(contentsOf: [pattern])
+
+            return condition.conditionOperator == .notContains
+                ? "NOT (\(matchesFeedSQL))"
+                : matchesFeedSQL
+        case .olderThanDays:
+            return nil
+        }
     }
 
     private func statusConditionSQL(
@@ -611,7 +646,7 @@ struct TimelineStore {
 
             _ = arguments.append(contentsOf: [threshold])
             return "a.publishedAt < ?"
-        case .contains:
+        case .contains, .notContains, .startsWith, .endsWith:
             return nil
         }
     }
@@ -635,7 +670,7 @@ struct TimelineStore {
                         AND article_search MATCH ?
                 )
                 """
-        case .is, .isNot:
+        case .is, .isNot, .notContains, .startsWith, .endsWith:
             return stringConditionSQL(
                 sqlExpression: "COALESCE(a.title, '') || ' ' || COALESCE(a.summary, '') || ' ' || COALESCE(a.content, '')",
                 conditionOperator: condition.conditionOperator,
@@ -666,7 +701,16 @@ struct TimelineStore {
             _ = arguments.append(contentsOf: [trimmedValue])
             return "(\(sqlExpression) IS NULL OR lower(\(sqlExpression)) != lower(?))"
         case .contains:
-            _ = arguments.append(contentsOf: ["%\(Self.escapeLikePattern(trimmedValue).lowercased())%"])
+            _ = arguments.append(contentsOf: [Self.likePattern(for: .contains, value: trimmedValue)])
+            return "lower(\(sqlExpression)) LIKE ? ESCAPE '\\'"
+        case .notContains:
+            _ = arguments.append(contentsOf: [Self.likePattern(for: .notContains, value: trimmedValue)])
+            return "(\(sqlExpression) IS NULL OR lower(\(sqlExpression)) NOT LIKE ? ESCAPE '\\')"
+        case .startsWith:
+            _ = arguments.append(contentsOf: [Self.likePattern(for: .startsWith, value: trimmedValue)])
+            return "lower(\(sqlExpression)) LIKE ? ESCAPE '\\'"
+        case .endsWith:
+            _ = arguments.append(contentsOf: [Self.likePattern(for: .endsWith, value: trimmedValue)])
             return "lower(\(sqlExpression)) LIKE ? ESCAPE '\\'"
         case .olderThanDays:
             return nil
@@ -678,6 +722,18 @@ struct TimelineStore {
             .replacingOccurrences(of: "\\", with: "\\\\")
             .replacingOccurrences(of: "%", with: "\\%")
             .replacingOccurrences(of: "_", with: "\\_")
+    }
+
+    private nonisolated static func likePattern(for conditionOperator: SmartFolderConditionOperator, value: String) -> String {
+        let escaped = escapeLikePattern(value).lowercased()
+        switch conditionOperator {
+        case .startsWith:
+            return "\(escaped)%"
+        case .endsWith:
+            return "%\(escaped)"
+        default:
+            return "%\(escaped)%"
+        }
     }
 
     private nonisolated static func makeFTSMatchExpression(from searchText: String) -> String? {

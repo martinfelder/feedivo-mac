@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+*{box-sizing:border-box}
+body{margin:0}
+select,input,button{font-family:inherit}
+</style>
+</helmet>
+<div style="{{ rootStyle }}">
+  <div style="width:100%;max-width:640px;background:var(--bg);border-radius:13px;box-shadow:0 24px 70px var(--shadow),0 0 0 0.5px var(--border);padding:26px 28px 20px;color:var(--text)">
+
+    <div style="font-size:21px;font-weight:700;letter-spacing:-0.3px">Intelligenten Ordner erstellen</div>
+    <div style="font-size:13.5px;color:var(--text2);margin-top:3px">Dynamische Artikelansicht mit globalem UND/ODER-Operator.</div>
+
+    <div style="height:1px;background:var(--border);margin:18px 0"></div>
+
+    <div style="font-size:11px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:var(--text2);margin-bottom:7px">Name</div>
+    <input value="{{ folderName }}" onChange="{{ onFolderName }}" placeholder="Ordner benennen…" style="width:100%;padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:var(--input);color:var(--text);font-size:14px;box-shadow:0 1px 1px rgba(0,0,0,.04);outline:none" />
+
+    <button onClick="{{ toggleSidebar }}" style="display:inline-flex;align-items:center;gap:9px;margin-top:12px;background:transparent;border:none;padding:0;cursor:pointer;color:var(--text)">
+      <span style="{{ checkboxStyle }}"><sc-if value="{{ showInSidebar }}" hint-placeholder-val="{{ true }}"><span style="color:#fff;font-size:11px;font-weight:800;line-height:1">✓</span></sc-if></span>
+      <span style="font-size:13.5px;white-space:nowrap">In Sidebar anzeigen</span>
+    </button>
+
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:11px;padding:15px 16px;margin-top:18px">
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:var(--text2);margin-bottom:12px">Darstellung</div>
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <div style="{{ previewIconStyle }}">{{ previewIcon }}</div>
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <div style="display:flex;align-items:center;gap:12px">
+            <span style="font-size:12.5px;color:var(--text2);width:38px">Icon</span>
+            <div style="display:inline-flex;gap:2px;padding:3px;background:var(--track);border-radius:9px">
+              <sc-for list="{{ iconOptions }}" as="ic" hint-placeholder-count="10">
+                <button style="{{ ic.style }}" onClick="{{ ic.onClick }}">{{ ic.icon }}</button>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <span style="font-size:12.5px;color:var(--text2);width:38px">Farbe</span>
+            <div style="display:flex;gap:9px">
+              <sc-for list="{{ colorOptions }}" as="co" hint-placeholder-count="8">
+                <button style="{{ co.style }}" onClick="{{ co.onClick }}"></button>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:12px;margin-top:18px">
+      <span style="font-size:13px;color:var(--text2);font-weight:500">Operator</span>
+      <div style="display:inline-flex;gap:2px;padding:2px;background:var(--track);border-radius:8px">
+        <button style="{{ opSegAll }}" onClick="{{ setOpAll }}">Erfülle alle Bedingungen</button>
+        <button style="{{ opSegAny }}" onClick="{{ setOpAny }}">Erfülle eine Bedingung</button>
+      </div>
+    </div>
+
+    <div style="font-size:11px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:var(--text2);margin:18px 0 9px">Bedingungen</div>
+    <div style="display:flex;flex-direction:column;gap:9px">
+      <sc-for list="{{ conditionRows }}" as="item" hint-placeholder-count="1">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <div style="position:relative;flex:1 1 120px;min-width:110px">
+            <select value="{{ item.field }}" onChange="{{ item.onField }}" style="width:100%;appearance:none;-webkit-appearance:none;background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 26px 8px 11px;font-size:13px;cursor:pointer;outline:none;box-shadow:0 1px 1px rgba(0,0,0,.04)">
+              <option>Titel</option>
+              <option>Beschreibung</option>
+              <option>Autor</option>
+              <option>Feed</option>
+              <option>Kategorie</option>
+              <option>Datum</option>
+            </select>
+            <span style="position:absolute;right:9px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--text2);font-size:9px">▾</span>
+          </div>
+          <div style="position:relative;flex:1 1 110px;min-width:100px">
+            <select value="{{ item.op }}" onChange="{{ item.onOp }}" style="width:100%;appearance:none;-webkit-appearance:none;background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 26px 8px 11px;font-size:13px;cursor:pointer;outline:none;box-shadow:0 1px 1px rgba(0,0,0,.04)">
+              <option>enthält</option>
+              <option>enthält nicht</option>
+              <option>ist gleich</option>
+              <option>beginnt mit</option>
+              <option>endet mit</option>
+            </select>
+            <span style="position:absolute;right:9px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--text2);font-size:9px">▾</span>
+          </div>
+          <input value="{{ item.value }}" onChange="{{ item.onValue }}" placeholder="{{ item.placeholder }}" style="flex:2 1 150px;min-width:120px;padding:8px 11px;border-radius:8px;border:1px solid var(--border);background:var(--input);color:var(--text);font-size:13px;outline:none;box-shadow:0 1px 1px rgba(0,0,0,.04)" />
+          <button onClick="{{ item.onAdd }}" title="Bedingung hinzufügen" style="flex:none;width:28px;height:28px;border-radius:8px;border:1px solid var(--border);background:var(--card2);color:var(--text2);font-size:16px;cursor:pointer;line-height:1;display:inline-flex;align-items:center;justify-content:center">+</button>
+          <button onClick="{{ item.onRemove }}" title="Bedingung entfernen" style="{{ item.removeStyle }}">−</button>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:11px;margin-top:16px;padding:13px 15px;background:var(--card);border:1px solid var(--border);border-radius:11px">
+      <span style="width:20px;height:20px;border-radius:50%;border:2px solid var(--accent);display:inline-flex;align-items:center;justify-content:center;flex:none;position:relative">
+        <span style="width:4px;height:4px;border-radius:50%;background:var(--accent)"></span>
+        <span style="position:absolute;left:50%;top:-5px;width:1.5px;height:3px;background:var(--accent);transform:translateX(-50%)"></span>
+        <span style="position:absolute;left:50%;bottom:-5px;width:1.5px;height:3px;background:var(--accent);transform:translateX(-50%)"></span>
+        <span style="position:absolute;top:50%;left:-5px;height:1.5px;width:3px;background:var(--accent);transform:translateY(-50%)"></span>
+        <span style="position:absolute;top:50%;right:-5px;height:1.5px;width:3px;background:var(--accent);transform:translateY(-50%)"></span>
+      </span>
+      <div style="display:flex;flex-direction:column;gap:1px">
+        <span style="font-size:13.5px;font-weight:700;color:var(--text)">Live-Vorschau</span>
+        <span style="font-size:12.5px;color:var(--text2)">{{ previewText }}</span>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px">
+      <button style="padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:var(--card2);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 1px 1px rgba(0,0,0,.04)">Abbrechen</button>
+      <button style="padding:8px 20px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 1px 3px rgba(10,132,255,.45)">Speichern</button>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:700,&quot;height&quot;:700},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;light&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;tsType&quot;:&quot;string&quot;},&quot;color&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#48484B&quot;,&quot;options&quot;:[&quot;#0A84FF&quot;,&quot;#14B8A6&quot;,&quot;#FF9F0A&quot;,&quot;#30D158&quot;,&quot;#48484B&quot;,&quot;#BF5AF2&quot;,&quot;#FF453A&quot;,&quot;#FF7A00&quot;],&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  state = {
+    folderName: '',
+    showInSidebar: true,
+    icon: 'foldergear',
+    color: '#48484B',
+    operator: 'all',
+    conditions: [{ field: 'Titel', op: 'enthält', value: '' }]
+  };
+
+  constructor(props) {
+    super(props);
+    if (props && props.color) this.state.color = props.color;
+    this.COLORS = ['#0A84FF', '#14B8A6', '#FF9F0A', '#30D158', '#48484B', '#BF5AF2', '#FF453A', '#FF7A00'];
+  }
+
+  getTheme(name) {
+    if (name === 'dark') return { bg:'#28282B', card:'#323235', card2:'#3A3A3D', text:'#F5F5F7', text2:'#9A9AA0', border:'rgba(255,255,255,0.12)', accent:'#0A84FF', track:'#48484B', pill:'#6A6A6E', input:'#1F1F22', shadow:'rgba(0,0,0,0.55)', backdrop:'#161618' };
+    return { bg:'#FFFFFF', card:'#F5F5F7', card2:'#FFFFFF', text:'#1D1D1F', text2:'#86868B', border:'rgba(0,0,0,0.10)', accent:'#0A84FF', track:'#E9E9EB', pill:'#FFFFFF', input:'#FFFFFF', shadow:'rgba(0,0,0,0.20)', backdrop:'#E7E7EA' };
+  }
+
+  seg(active, t, extra) {
+    const base = { borderRadius:'6px', border:'none', fontSize:'13px', cursor:'pointer', transition:'all .15s', whiteSpace:'nowrap', padding:'5px 15px' };
+    const sel = active
+      ? { ...base, fontWeight:'600', background:t.pill, color:t.text, boxShadow:'0 1px 2px rgba(0,0,0,.14),0 0 0 0.5px rgba(0,0,0,.05)' }
+      : { ...base, fontWeight:'500', background:'transparent', color:t.text2 };
+    return { ...sel, ...(extra || {}) };
+  }
+
+  svg(children, opts) {
+    const o = opts || {};
+    return React.createElement('svg', { width: o.size || 17, height: o.size || 17, viewBox: '0 0 24 24', fill: o.fill || 'none', stroke: o.stroke === undefined ? 'currentColor' : o.stroke, strokeWidth: 1.6, strokeLinecap: 'round', strokeLinejoin: 'round', style: { display: 'block' } }, children);
+  }
+  p(d, extra) { return React.createElement('path', { d, ...(extra || {}), key: d.slice(0, 8) }); }
+
+  icons(color) {
+    const c = React.createElement;
+    return {
+      inbox: this.svg([ this.p('M3 12l2.5-7A2 2 0 0 1 7.4 4h9.2a2 2 0 0 1 1.9 1.4L21 12'), this.p('M3 12h5l1.5 2.5h5L16 12h5v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z') ]),
+      dot: this.svg([ c('circle', { cx:12, cy:12, r:6, fill:'currentColor', stroke:'none', key:'d' }) ]),
+      star: this.svg([ this.p('M12 4l2.3 4.9 5.2.7-3.8 3.6.9 5.2L12 15.9 7.4 18.4l.9-5.2L4.5 9.6l5.2-.7z') ]),
+      calendar: this.svg([ c('rect', { x:4, y:5, width:16, height:15, rx:2.5, key:'r' }), this.p('M4 9.5h16'), this.p('M8 3.5v3'), this.p('M16 3.5v3') ]),
+      eyeslash: this.svg([ this.p('M4 4l16 16'), this.p('M9.5 5.4A9 9 0 0 1 12 5c5 0 8.5 4.5 9 7-.2 1-1 2.4-2.3 3.7'), this.p('M6.4 7.6C4.6 9 3.3 10.9 3 12c.6 2.5 4 7 9 7 1.2 0 2.3-.2 3.3-.6') ]),
+      archive: this.svg([ c('rect', { x:3.5, y:4.5, width:17, height:4, rx:1.2, key:'r' }), this.p('M5 8.5V18a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8.5'), this.p('M10 12.5h4') ]),
+      bookmark: this.svg([ this.p('M7 4h10a1 1 0 0 1 1 1v15l-6-3.5L6 20V5a1 1 0 0 1 1-1z') ]),
+      tag: this.svg([ this.p('M4 4h7.2a2 2 0 0 1 1.4.6l7 7a2 2 0 0 1 0 2.8l-4.8 4.8a2 2 0 0 1-2.8 0l-7-7A2 2 0 0 1 4 11.2z'), c('circle', { cx:8, cy:8, r:1.4, fill:'currentColor', stroke:'none', key:'c' }) ]),
+      foldergear: this.svg([ this.p('M3 7a2 2 0 0 1 2-2h4l2 2.5h6a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'), c('circle', { cx:15, cy:13.5, r:2, key:'c' }), this.p('M15 10.8v.9M15 15.3v.9M12.6 13.5h.9M16.5 13.5h.9', { strokeWidth:1.2 }) ]),
+      docsearch: this.svg([ this.p('M6 3.5h7l5 5V18a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5.5a2 2 0 0 1 2-2z'), this.p('M13 3.5v5h5'), c('circle', { cx:11, cy:13.5, r:2.4, key:'c' }), this.p('M12.9 15.4L15 17.5') ])
+    };
+  }
+
+  updCond(i, k, v) { this.setState(s => ({ conditions: s.conditions.map((c, idx) => idx === i ? { ...c, [k]: v } : c) })); }
+  addCond(i) { this.setState(s => { const arr = [...s.conditions]; arr.splice(i + 1, 0, { field:'Titel', op:'enthält', value:'' }); return { conditions: arr }; }); }
+  removeCond(i) { this.setState(s => s.conditions.length > 1 ? ({ conditions: s.conditions.filter((_, idx) => idx !== i) }) : {}); }
+
+  matchCount() {
+    const s = this.state;
+    const filled = s.conditions.filter(c => c.value.trim().length > 0).length;
+    if (filled === 0) return 12483;
+    const base = s.operator === 'all' ? 5305 : 8940;
+    return Math.max(3, Math.round(base / (s.operator === 'all' ? filled : 1) + (s.conditions[0].value.length * 37) % 900));
+  }
+
+  renderVals() {
+    const t = this.getTheme(this.props.theme || 'light');
+    const s = this.state;
+    const ICONS = this.icons();
+    const iconKeys = ['inbox','dot','star','calendar','eyeslash','archive','bookmark','tag','foldergear','docsearch'];
+
+    const rootStyle = `--bg:${t.bg};--card:${t.card};--card2:${t.card2};--text:${t.text};--text2:${t.text2};--border:${t.border};--accent:${t.accent};--track:${t.track};--pill:${t.pill};--input:${t.input};--shadow:${t.shadow};display:flex;align-items:center;justify-content:center;padding:34px;background:${t.backdrop};font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',system-ui,sans-serif;-webkit-font-smoothing:antialiased`;
+
+    const iconOptions = iconKeys.map(k => {
+      const active = s.icon === k;
+      return {
+        icon: ICONS[k],
+        style: {
+          width:'30px', height:'30px', borderRadius:'6px', border:'none', cursor:'pointer', display:'inline-flex', alignItems:'center', justifyContent:'center', transition:'all .12s',
+          background: active ? t.pill : 'transparent',
+          color: active ? t.text : t.text2,
+          boxShadow: active ? '0 1px 2px rgba(0,0,0,.14),0 0 0 0.5px rgba(0,0,0,.05)' : 'none'
+        },
+        onClick: () => this.setState({ icon: k })
+      };
+    });
+
+    const colorOptions = this.COLORS.map(col => ({
+      style: {
+        width:'26px', height:'26px', borderRadius:'50%', background:col, cursor:'pointer', border:'none', padding:0, flex:'none', transition:'box-shadow .12s',
+        boxShadow: s.color === col ? `0 0 0 2px ${t.bg},0 0 0 4px ${col}` : '0 0 0 0.5px rgba(0,0,0,.15)'
+      },
+      onClick: () => this.setState({ color: col })
+    }));
+
+    const multi = s.conditions.length > 1;
+    const conditionRows = s.conditions.map((c, i) => ({
+      field: c.field, op: c.op, value: c.value,
+      placeholder: c.field === 'Datum' ? 'z. B. letzte 7 Tage' : c.field + 'text',
+      onField: e => this.updCond(i, 'field', e.target.value),
+      onOp: e => this.updCond(i, 'op', e.target.value),
+      onValue: e => this.updCond(i, 'value', e.target.value),
+      onAdd: () => this.addCond(i),
+      onRemove: () => this.removeCond(i),
+      removeStyle: {
+        flex:'none', width:'28px', height:'28px', borderRadius:'8px', border:'1px solid ' + t.border,
+        background: t.card2, color: multi ? t.text2 : t.text2, fontSize:'16px', lineHeight:1,
+        cursor: multi ? 'pointer' : 'default', opacity: multi ? 1 : 0.4,
+        display:'inline-flex', alignItems:'center', justifyContent:'center'
+      }
+    }));
+
+    const count = this.matchCount();
+    const countStr = count.toLocaleString('de-CH').replace(/,/g, '’');
+
+    return {
+      rootStyle,
+      folderName: s.folderName,
+      onFolderName: e => this.setState({ folderName: e.target.value }),
+      showInSidebar: s.showInSidebar,
+      toggleSidebar: () => this.setState({ showInSidebar: !s.showInSidebar }),
+      checkboxStyle: {
+        width:'18px', height:'18px', borderRadius:'5px', flex:'none', display:'inline-flex', alignItems:'center', justifyContent:'center', transition:'all .12s',
+        background: s.showInSidebar ? t.accent : t.input,
+        border: s.showInSidebar ? '1px solid ' + t.accent : '1px solid ' + t.border,
+        boxShadow: s.showInSidebar ? '0 1px 2px rgba(10,132,255,.4)' : '0 1px 1px rgba(0,0,0,.04)'
+      },
+      previewIcon: this.iconLarge(s),
+      previewIconStyle: {
+        width:'54px', height:'54px', borderRadius:'11px', flex:'none', display:'inline-flex', alignItems:'center', justifyContent:'center',
+        background: s.color + '22', border:'1px solid ' + s.color + '55', color: s.color
+      },
+      iconOptions, colorOptions,
+      opSegAll: this.seg(s.operator === 'all', t),
+      opSegAny: this.seg(s.operator === 'any', t),
+      setOpAll: () => this.setState({ operator: 'all' }),
+      setOpAny: () => this.setState({ operator: 'any' }),
+      conditionRows,
+      previewText: `${countStr} Artikel passen aktuell zu diesem intelligenten Ordner.`
+    };
+  }
+
+  iconLarge(s) {
+    const big = this.icons()[s.icon];
+    return React.cloneElement(big, { width: 26, height: 26, strokeWidth: 1.5 });
+  }
+}
+</script>
+</body>
+</html>

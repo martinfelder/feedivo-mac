@@ -746,6 +746,10 @@ enum L10n {
         String.localizedStringWithFormat(String(localized: "ruleWizard.preview.matchCount"), count)
     }
 
+    static func smartFolderPreviewMatchCount(count: Int) -> String {
+        String.localizedStringWithFormat(String(localized: "smartFolder.preview.matches"), count)
+    }
+
     static func settingsFeedsSelectedCount(count: Int) -> String {
         String.localizedStringWithFormat(String(localized: "settings.feeds.selectedCount"), count)
     }
@@ -784,6 +788,9 @@ enum L10n {
     static let smartFolderOperatorIs = String(localized: "smartfolder.operator.is")
     static let smartFolderOperatorIsNot = String(localized: "smartfolder.operator.isNot")
     static let smartFolderOperatorContains = String(localized: "smartfolder.operator.contains")
+    static let smartFolderOperatorNotContains = String(localized: "smartfolder.operator.notContains")
+    static let smartFolderOperatorStartsWith = String(localized: "smartfolder.operator.startsWith")
+    static let smartFolderOperatorEndsWith = String(localized: "smartfolder.operator.endsWith")
     static let smartFolderOperatorOlderThanDays = String(localized: "smartfolder.operator.olderThanDays")
     static let smartFolderStatusUnread = String(localized: "smartfolder.status.unread")
     static let smartFolderStatusRead = String(localized: "smartfolder.status.read")
@@ -844,14 +851,17 @@ enum L10n {
     static let smartFolderEditorEdit = LocalizedStringKey("smartFolder.editor.edit")
     static let smartFolderEditorDescription = LocalizedStringKey("smartFolder.editor.description")
     static let smartFolderFieldName = LocalizedStringKey("smartFolder.field.name")
+    static let smartFolderFieldNamePlaceholder = LocalizedStringKey("smartFolder.field.namePlaceholder")
     static let smartFolderAppearance = LocalizedStringKey("smartFolder.appearance")
     static let smartFolderAppearanceIcon = LocalizedStringKey("smartFolder.appearance.icon")
+    static let smartFolderAppearanceColor = LocalizedStringKey("smartFolder.appearance.color")
     static let smartFolderMatchModeOperator = LocalizedStringKey("smartFolder.matchMode.operator")
     static let smartFolderMatchModeAll = LocalizedStringKey("smartFolder.matchMode.all")
     static let smartFolderMatchModeAny = LocalizedStringKey("smartFolder.matchMode.any")
     static let smartFolderConditions = LocalizedStringKey("smartFolder.conditions")
     static let smartFolderConditionsEmpty = LocalizedStringKey("smartFolder.conditions.empty")
     static let smartFolderConditionsAdd = LocalizedStringKey("smartFolder.conditions.add")
+    static let smartFolderConditionsRemove = LocalizedStringKey("smartFolder.conditions.remove")
     static let smartFolderOperatorAnd = LocalizedStringKey("smartFolder.operator.and")
     static let smartFolderOperatorOr = LocalizedStringKey("smartFolder.operator.or")
     static let smartFolderPreview = LocalizedStringKey("smartFolder.preview")
