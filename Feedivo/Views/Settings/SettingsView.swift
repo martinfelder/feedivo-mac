@@ -346,6 +346,15 @@ private struct NewAppearanceSettingsView: View {
     @AppStorage(ReaderTypographySettings.contentWidthKey)
     private var readerContentWidth = ReaderTypography.defaultContentWidth
 
+    @AppStorage(ArticleListImagePosition.storageKey)
+    private var articleListImagePositionRawValue = ArticleListImagePosition.defaultPosition.rawValue
+
+    @AppStorage(ArticleListFeedNameVisibilitySettings.showsFeedNameKey)
+    private var articleListShowsFeedName = ArticleListFeedNameVisibilitySettings.defaultShowsFeedName
+
+    @AppStorage(ArticleListFeedNamePosition.storageKey)
+    private var articleListFeedNamePositionRawValue = ArticleListFeedNamePosition.defaultPosition.rawValue
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             NewSettingsBlock(eyebrow: "Oberfläche") {
@@ -378,6 +387,46 @@ private struct NewAppearanceSettingsView: View {
                 ) {
                     Toggle("", isOn: $appIconBadgeIsEnabled)
                         .labelsHidden()
+                }
+            }
+
+            NewSettingsBlock(eyebrow: "Artikelliste") {
+                NewSettingRow(
+                    title: L10n.settingsArticleListImagePositionTitle,
+                    description: L10n.settingsArticleListImagePositionDescription
+                ) {
+                    Picker("", selection: $articleListImagePositionRawValue) {
+                        ForEach(ArticleListImagePosition.allCases) { position in
+                            Text(position.titleKey)
+                                .tag(position.rawValue)
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.segmented)
+                    .fixedSize(horizontal: true, vertical: false)
+                }
+
+                NewSettingRow(
+                    title: L10n.settingsArticleListShowsFeedNameTitle,
+                    description: L10n.settingsArticleListShowsFeedNameDescription
+                ) {
+                    Toggle("", isOn: $articleListShowsFeedName)
+                        .labelsHidden()
+                }
+
+                NewSettingRow(
+                    title: L10n.settingsArticleListFeedNamePositionTitle,
+                    description: L10n.settingsArticleListFeedNamePositionDescription
+                ) {
+                    Picker("", selection: $articleListFeedNamePositionRawValue) {
+                        ForEach(ArticleListFeedNamePosition.allCases) { position in
+                            Text(position.titleKey)
+                                .tag(position.rawValue)
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.segmented)
+                    .fixedSize(horizontal: true, vertical: false)
                 }
             }
 
