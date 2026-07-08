@@ -771,18 +771,18 @@
 ## 19. Oberflächen-Anpassung (Customization)
 
 ### 19.1 Artikel-Liste anpassen
-- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Status:** 🔨 In Arbeit — teilweise umgesetzt
 - **Zu implementieren (Einstellungen → Darstellung):**
   - Feeds ohne ungelesene Artikel in der Seitenleiste anzeigen / ausblenden — umgesetzt
   - Vorschautext-Zeilen: 0–3 (Stepper), Standard: 2 — 0 = nur Titel + Datum
-  - Vorschaubilder in der Liste: anzeigen / ausblenden
-  - Vorschaubild-Position: Links oder Rechts
+  - Vorschaubilder in der Liste: anzeigen / ausblenden — umgesetzt 2026-07-08
+  - Vorschaubild-Position: Links oder Rechts — umgesetzt 2026-07-08 (als 3-Wege-Einstellung Links/Rechts/Aus)
   - Summary anzeigen / ausblenden
 - **Noch offen (nicht jetzt) — jetzt auch entschieden:**
   - Datum-Format: User wählt in Einstellungen (relativ "vor 2 Stunden" oder absolut "23.06.2026")
-  - Feed-Name pro Artikel: anzeigen / ausblenden in Einstellungen (nützlich in "Alle" / Smart Filter)
+  - Feed-Name pro Artikel: anzeigen / ausblenden in Einstellungen (nützlich in "Alle" / Smart Filter) — umgesetzt 2026-07-08
   - Ungelesen-Markierung: fetter Text + farbiger Punkt (beides zusammen)
-- **Entscheidung (2026-07-08) — Favicon + Position der Feedname-Zeile:**
+- **Umgesetzt (2026-07-08) — Favicon + Position der Feedname-Zeile:**
   - Vor dem Feedname-Text erscheint zusätzlich ein kleines Favicon des Feeds,
     genau so hoch wie der Text selbst. Hat ein Feed kein Favicon, erscheint an
     derselben Stelle ein generisches Platzhalter-Icon, damit der Text nicht je
@@ -1296,7 +1296,7 @@ Folgende Reihenfolge berücksichtigt Abhängigkeiten. Features mit (*) sind Vora
 
 ### Phase 7 — Customization & Einstellungen
 22. **Feature 8.2** — Neue Einstellungs-Kategorien (Benachrichtigungen, Artikel, Menubar, Darstellung erweitern)
-23. **Feature 19.1** — Artikel-Liste anpassen (Vorschautext-Zeilen, Bildposition, Datum-Format, Feed-Name, Ungelesen-Markierung)
+23. **Feature 19.1** — Artikel-Liste anpassen (Vorschautext-Zeilen, Bildposition, Datum-Format, Feed-Name, Ungelesen-Markierung) — Bildposition + Feed-Name (inkl. Favicon) 2026-07-08 erledigt, Rest offen
 24. **Feature 19.2** — Sidebar anpassen (Zähler, Favicons, Smart Filter ein/ausblenden)
 25. **Feature 19.3** — Reader anpassen (Textbreite, Artikelbild)
 26. **Feature 19.4** — Toolbar anpassen (macOS Standard `Symbolleiste anpassen...`)
