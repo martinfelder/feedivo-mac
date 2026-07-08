@@ -272,6 +272,14 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
 - **NavigationView ist deprecated:** Immer `NavigationSplitView` oder `NavigationStack`.
 - **WKWebView in SwiftUI:** Braucht einen `NSViewRepresentable`-Wrapper für macOS (siehe
   `WebContentView.swift`).
+- **`WebContentView` behält ihre WKWebView bewusst über Artikelwechsel hinweg bei** (kein
+  `.id(articleID)`, Commit `eca556f93` — Fix für den Reader-Spinner-Flash): Ein Artikelwechsel
+  ruft nur `webView.load()` auf einer bestehenden Instanz auf, statt die WKWebView neu zu
+  erzeugen. Das ist inzwischen auch die Grundlage für die Vor-/Zurück-Navigation in der
+  Original-Ansicht (Feature 1.12, `WebNavigationBoundary`/`articleLoadBoundaryItem` in
+  `WebContentView.swift`), die genau deshalb eine Artikelgrenzen-Klemmung braucht — WKWebViews
+  `backForwardList` enthält sonst auch Einträge aus vorherigen Artikeln. Vor einem `.id()` auf
+  `WebContentView` (z. B. um ein anderes Problem zu "fixen") immer beide Abhängigkeiten prüfen.
 - **Background Refresh macOS:** Läuft über `NSBackgroundActivityScheduler`, NICHT über das
   iOS-fokussierte `BGTaskScheduler`/`BGTaskSchedulerPermittedIdentifiers`.
 - **macOS Menüleiste:** Commands werden mit `.commands { }` an die `WindowGroup` gehängt,
