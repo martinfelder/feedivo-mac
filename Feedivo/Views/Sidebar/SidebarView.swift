@@ -328,7 +328,8 @@ struct SidebarView: View {
             }
             .buttonStyle(
                 SidebarRowButtonStyle(
-                    isSelected: selection == .smartFolder(smartFolder.id)
+                    isSelected: selection == .smartFolder(smartFolder.id),
+                    rowHeight: 30
                 )
             )
             .contextMenu {
