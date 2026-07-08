@@ -648,13 +648,6 @@ enum L10n {
         )
     }
 
-    static func opmlExportDescriptionCount(_ count: Int) -> String {
-        String.localizedStringWithFormat(
-            String(localized: "opml.export.descriptionCount"),
-            count
-        )
-    }
-
     static func feedDeleteConfirmationMessage(feedTitle: String) -> String {
         String.localizedStringWithFormat(
             String(localized: "feed.delete.confirmation.message"),

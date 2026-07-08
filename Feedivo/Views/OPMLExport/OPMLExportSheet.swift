@@ -2,6 +2,7 @@ import SwiftUI
 
 struct OPMLExportSheet: View {
     @Environment(\.feedivoDatabase) private var feedivoDatabase
+    @Environment(\.colorScheme) private var colorScheme
 
     let onClose: () -> Void
 
@@ -59,18 +60,26 @@ struct OPMLExportSheet: View {
         Set(opmlFeeds.flatMap(\.tagNames).compactMap(trimmed)).count
     }
 
-    private var descriptionCount: Int {
-        opmlFeeds.compactMap { trimmed($0.description) }.count
-    }
-
     var body: some View {
-        VStack(spacing: 0) {
-            header
-            bodyContent
-            footer
+        let theme = RuleDialogTheme(colorScheme: colorScheme)
+
+        VStack(alignment: .leading, spacing: 0) {
+            header(theme: theme)
+
+            Rectangle()
+                .fill(theme.border)
+                .frame(height: 1)
+
+            bodyContent(theme: theme)
+
+            Rectangle()
+                .fill(theme.border)
+                .frame(height: 1)
+
+            footer(theme: theme)
         }
-        .frame(width: 720)
-        .background(.background)
+        .frame(width: 660)
+        .background(theme.bg)
         .task {
             loadExportFeeds()
         }
@@ -84,160 +93,211 @@ struct OPMLExportSheet: View {
         }
     }
 
-    private var header: some View {
-        HStack(alignment: .top, spacing: 20) {
+    private func header(theme: RuleDialogTheme) -> some View {
+        HStack(alignment: .top, spacing: 18) {
             VStack(alignment: .leading, spacing: 5) {
                 Text(L10n.opmlExportTitle)
-                    .font(.headline)
+                    .font(.system(size: 21, weight: .bold))
+                    .tracking(-0.3)
+                    .foregroundStyle(theme.text)
 
                 Text(L10n.opmlExportDescription)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 13.5))
+                    .foregroundStyle(theme.text2)
                     .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: 430, alignment: .leading)
             }
 
             Spacer(minLength: 0)
 
             Text(L10n.opmlExportFeedCount(feedCount))
-                .font(.caption)
-                .fontWeight(.semibold)
-                .foregroundStyle(.green)
-                .padding(.horizontal, 10)
+                .font(.system(size: 12.5, weight: .bold))
+                .foregroundStyle(RuleDialogTheme.thenBadgeText)
+                .padding(.horizontal, 11)
                 .padding(.vertical, 5)
-                .background(.green.opacity(0.12), in: Capsule())
+                .background(Color(hex: 0x34C759).opacity(0.14), in: Capsule())
+                .fixedSize()
         }
-        .padding(.horizontal, 22)
-        .padding(.vertical, 18)
-        .background(.ultraThinMaterial)
-        .overlay(alignment: .bottom) {
-            Divider()
-        }
+        .padding(.horizontal, 26)
+        .padding(.top, 24)
+        .padding(.bottom, 20)
     }
 
-    private var bodyContent: some View {
-        HStack(alignment: .top, spacing: 16) {
-            optionList
-            summaryPanel
+    private func bodyContent(theme: RuleDialogTheme) -> some View {
+        HStack(alignment: .top, spacing: 20) {
+            optionList(theme: theme)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            summaryPanel(theme: theme)
+                .frame(maxWidth: .infinity, alignment: .topLeading)
         }
-        .padding(18)
+        .padding(.horizontal, 26)
+        .padding(.vertical, 22)
     }
 
-    private var optionList: some View {
+    private func optionList(theme: RuleDialogTheme) -> some View {
         VStack(spacing: 0) {
             OPMLExportOptionRow(
                 title: L10n.opmlExportFeedsAndTitles,
                 description: L10n.opmlExportFeedsAndTitlesDescription,
-                isOn: .constant(true),
-                isDisabled: true
+                isOn: true,
+                isLocked: true,
+                showTopBorder: false,
+                theme: theme,
+                onToggle: {}
             )
-
-            Divider()
-                .padding(.leading, 44)
 
             OPMLExportOptionRow(
                 title: L10n.opmlExportFolders,
                 description: L10n.opmlExportFoldersDescription,
-                isOn: $includesFolders
+                isOn: includesFolders,
+                isLocked: false,
+                showTopBorder: true,
+                theme: theme,
+                onToggle: { includesFolders.toggle() }
             )
-
-            Divider()
-                .padding(.leading, 44)
 
             OPMLExportOptionRow(
                 title: L10n.opmlExportTags,
                 description: L10n.opmlExportTagsDescription,
-                isOn: $includesTags
+                isOn: includesTags,
+                isLocked: false,
+                showTopBorder: true,
+                theme: theme,
+                onToggle: { includesTags.toggle() }
             )
-
-            Divider()
-                .padding(.leading, 44)
 
             OPMLExportOptionRow(
                 title: L10n.opmlExportDescriptions,
                 description: L10n.opmlExportDescriptionsDescription,
-                isOn: $includesDescriptions
+                isOn: includesDescriptions,
+                isLocked: false,
+                showTopBorder: true,
+                theme: theme,
+                onToggle: { includesDescriptions.toggle() }
             )
         }
-        .background(.background)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
-        .overlay {
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(.separator, lineWidth: 1)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private var summaryPanel: some View {
-        VStack(alignment: .leading, spacing: 12) {
+    private func summaryPanel(theme: RuleDialogTheme) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
             Text(L10n.opmlExportSummaryTitle)
-                .font(.caption)
-                .fontWeight(.semibold)
+                .font(.system(size: 14, weight: .bold))
+                .tracking(-0.1)
+                .foregroundStyle(theme.text)
 
-            VStack(spacing: 8) {
-                summaryRow(label: L10n.opmlExportSummaryFeeds, value: "\(feedCount)")
-                summaryRow(label: L10n.opmlExportSummaryFolders, value: includesFolders ? L10n.opmlExportFolderCount(folderCount) : L10n.commonOff)
-                summaryRow(label: L10n.opmlExportSummaryTags, value: includesTags ? L10n.opmlExportTagCount(tagCount) : L10n.commonOff)
-                summaryRow(label: L10n.opmlExportSummaryDescriptions, value: includesDescriptions ? L10n.opmlExportDescriptionCount(descriptionCount) : L10n.commonOff)
+            VStack(spacing: 0) {
+                summaryRow(theme: theme, label: L10n.opmlExportSummaryFeeds, value: "\(feedCount)", showTopBorder: false)
+                summaryRow(theme: theme, label: L10n.opmlExportSummaryFolders, value: includesFolders ? L10n.opmlExportFolderCount(folderCount) : L10n.commonOff, showTopBorder: true)
+                summaryRow(theme: theme, label: L10n.opmlExportSummaryTags, value: includesTags ? L10n.opmlExportTagCount(tagCount) : L10n.commonOff, showTopBorder: true)
+                summaryRow(theme: theme, label: L10n.opmlExportSummaryDescriptions, value: includesDescriptions ? L10n.commonOn : L10n.commonOff, showTopBorder: true)
             }
+            .padding(.top, 12)
 
             Text(OPMLService.defaultExportFilename())
-                .font(.system(.caption2, design: .monospaced))
-                .foregroundStyle(.secondary)
+                .font(.system(size: 12.5, design: .monospaced))
+                .foregroundStyle(theme.text2)
                 .textSelection(.enabled)
-                .padding(10)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.quaternary.opacity(0.6), in: RoundedRectangle(cornerRadius: 7))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(theme.input)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .stroke(theme.border, lineWidth: 1)
+                )
+                .padding(.top, 14)
         }
-        .frame(width: 240)
-        .padding(13)
-        .background(.background)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
-        .overlay {
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(.separator, lineWidth: 1)
-        }
+        .padding(.horizontal, 17)
+        .padding(.vertical, 16)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(theme.card)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(theme.border, lineWidth: 1)
+        )
     }
 
-    private var footer: some View {
-        HStack(alignment: .center, spacing: 14) {
-            Text(L10n.opmlExportFooterNote)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            Spacer(minLength: 0)
-
-            Button(L10n.commonCancel) {
-                onClose()
-            }
-
-            Button(L10n.opmlExportSaveButton) {
-                // P8: XML erst hier beim Speichern generieren (mit aktuellen
-                // Optionen), nicht bei jedem Render.
-                exportDocument = OPMLDocument(text: OPMLService.exportFeeds(opmlFeeds, options: options))
-                isExporting = true
-            }
-            .keyboardShortcut(.defaultAction)
-            .buttonStyle(.borderedProminent)
-            .disabled(feedCount == 0)
-        }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 12)
-        .background(.bar)
-        .overlay(alignment: .top) {
-            Divider()
-        }
-    }
-
-    private func summaryRow(label: String, value: String) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 10) {
+    private func summaryRow(theme: RuleDialogTheme, label: String, value: String, showTopBorder: Bool) -> some View {
+        HStack(alignment: .center, spacing: 12) {
             Text(label)
-                .foregroundStyle(.secondary)
+                .font(.system(size: 13))
+                .foregroundStyle(theme.text2)
+
             Spacer(minLength: 0)
+
             Text(value)
-                .fontWeight(.semibold)
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(theme.text)
+                .monospacedDigit()
                 .multilineTextAlignment(.trailing)
         }
-        .font(.caption)
+        .padding(.vertical, 7)
+        .overlay(alignment: .top) {
+            if showTopBorder {
+                Rectangle().fill(theme.border).frame(height: 1)
+            }
+        }
+    }
+
+    private func footer(theme: RuleDialogTheme) -> some View {
+        HStack(alignment: .center, spacing: 16) {
+            Text(L10n.opmlExportFooterNote)
+                .font(.system(size: 12.5))
+                .foregroundStyle(theme.text2)
+
+            Spacer(minLength: 0)
+
+            HStack(spacing: 10) {
+                Button {
+                    onClose()
+                } label: {
+                    Text(L10n.commonCancel)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(theme.text)
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .fill(theme.card2)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .stroke(theme.border, lineWidth: 1)
+                        )
+                        .shadow(color: .black.opacity(0.04), radius: 1, x: 0, y: 1)
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    // P8: XML erst hier beim Speichern generieren (mit aktuellen
+                    // Optionen), nicht bei jedem Render.
+                    exportDocument = OPMLDocument(text: OPMLService.exportFeeds(opmlFeeds, options: options))
+                    isExporting = true
+                } label: {
+                    Text(L10n.opmlExportSaveButton)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 22)
+                        .padding(.vertical, 8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .fill(theme.accent)
+                        )
+                        .shadow(color: theme.accent.opacity(0.45), radius: 1.5, x: 0, y: 1)
+                }
+                .buttonStyle(.plain)
+                .keyboardShortcut(.defaultAction)
+                .disabled(feedCount == 0)
+            }
+        }
+        .padding(.horizontal, 26)
+        .padding(.vertical, 16)
     }
 
     private func trimmed(_ value: String?) -> String? {
@@ -263,35 +323,88 @@ struct OPMLExportSheet: View {
     }
 }
 
+// MARK: - Options-Zeile mit Checkbox (die erste Option "Feed-URLs und Titel"
+// ist per Design immer aktiv und lässt sich nicht abwählen).
+
 private struct OPMLExportOptionRow: View {
     let title: String
     let description: String
-    @Binding var isOn: Bool
-    var isDisabled = false
+    let isOn: Bool
+    let isLocked: Bool
+    let showTopBorder: Bool
+    let theme: RuleDialogTheme
+    let onToggle: () -> Void
 
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
-            Toggle("", isOn: $isOn)
-                .labelsHidden()
-                .toggleStyle(.checkbox)
-                .disabled(isDisabled)
-                .frame(width: 18, alignment: .leading)
-                .padding(.top, 1)
+        Button(action: onToggle) {
+            HStack(alignment: .top, spacing: 13) {
+                OPMLExportCheckbox(isOn: isOn, isLocked: isLocked, theme: theme)
 
-            VStack(alignment: .leading, spacing: 3) {
-                Text(title)
-                    .font(.callout)
-                    .fontWeight(.semibold)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(title)
+                        .font(.system(size: 14, weight: .bold))
+                        .tracking(-0.1)
+                        .foregroundStyle(theme.text)
 
-                Text(description)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                    Text(description)
+                        .font(.system(size: 12.5))
+                        .foregroundStyle(theme.text2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
+            .padding(.vertical, 14)
             .frame(maxWidth: .infinity, alignment: .leading)
+            .overlay(alignment: .top) {
+                if showTopBorder {
+                    Rectangle().fill(theme.border).frame(height: 1)
+                }
+            }
         }
-        .padding(.horizontal, 13)
-        .padding(.vertical, 12)
-        .frame(minHeight: 62)
+        .buttonStyle(.plain)
+        .disabled(isLocked)
+    }
+}
+
+// MARK: - Checkbox mit gesperrtem Zustand (gedämpfte Akzentfarbe, kein Toggle)
+
+private struct OPMLExportCheckbox: View {
+    let isOn: Bool
+    let isLocked: Bool
+    let theme: RuleDialogTheme
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: 6, style: .continuous)
+            .fill(fillColor)
+            .overlay(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .stroke(borderColor, lineWidth: isLocked ? 0 : 1)
+            )
+            .overlay {
+                if isOn {
+                    Text("✓")
+                        .font(.system(size: 11, weight: .heavy))
+                        .foregroundStyle(.white)
+                }
+            }
+            .frame(width: 20, height: 20)
+            .shadow(color: shadowColor, radius: isOn && !isLocked ? 1 : 0.5, x: 0, y: 1)
+            .padding(.top, 1)
+            .animation(.easeInOut(duration: 0.12), value: isOn)
+    }
+
+    private var fillColor: Color {
+        guard isOn else {
+            return theme.input
+        }
+
+        return isLocked ? theme.accent.opacity(0.4) : theme.accent
+    }
+
+    private var borderColor: Color {
+        isOn && !isLocked ? theme.accent : theme.border
+    }
+
+    private var shadowColor: Color {
+        isOn && !isLocked ? theme.accent.opacity(0.35) : .black.opacity(0.04)
     }
 }

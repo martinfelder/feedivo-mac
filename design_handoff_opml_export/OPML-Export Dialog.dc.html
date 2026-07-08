@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+*{box-sizing:border-box}
+body{margin:0}
+select,input,button{font-family:inherit}
+</style>
+</helmet>
+<div style="{{ rootStyle }}">
+  <div style="width:100%;max-width:660px;background:var(--bg);border-radius:13px;box-shadow:0 24px 70px var(--shadow),0 0 0 0.5px var(--border);color:var(--text);overflow:hidden">
+
+    <!-- HEADER -->
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:18px;padding:24px 26px 20px">
+      <div style="min-width:0">
+        <div style="font-size:21px;font-weight:700;letter-spacing:-0.3px">OPML exportieren</div>
+        <div style="font-size:13.5px;color:var(--text2);margin-top:5px;line-height:1.5;max-width:430px">Erstelle eine OPML-Datei mit deinen Feed-Abonnements. Die Datei kann später wieder in Feedivo oder andere RSS-Reader importiert werden.</div>
+      </div>
+      <span style="flex:none;display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;background:rgba(52,199,89,.14);color:#2FA84F;font-size:12.5px;font-weight:700;white-space:nowrap">{{ feedCount }} Feeds</span>
+    </div>
+
+    <div style="height:1px;background:var(--border)"></div>
+
+    <!-- BODY -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:22px 26px">
+
+      <!-- OPTIONS -->
+      <div style="display:flex;flex-direction:column">
+        <sc-for list="{{ optionRows }}" as="o" hint-placeholder-count="4">
+          <div style="{{ o.rowStyle }}">
+            <button onClick="{{ o.onToggle }}" style="{{ o.checkboxStyle }}"><sc-if value="{{ o.checked }}" hint-placeholder-val="{{ true }}"><span style="color:#fff;font-size:11px;font-weight:800;line-height:1">✓</span></sc-if></button>
+            <div style="min-width:0">
+              <div style="font-size:14px;font-weight:700;letter-spacing:-0.1px">{{ o.title }}</div>
+              <div style="font-size:12.5px;color:var(--text2);margin-top:3px;line-height:1.45">{{ o.desc }}</div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+
+      <!-- SUMMARY -->
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 17px;align-self:start">
+        <div style="font-size:14px;font-weight:700;letter-spacing:-0.1px">Zusammenfassung</div>
+        <div style="display:flex;flex-direction:column;gap:1px;margin-top:12px">
+          <sc-for list="{{ summaryRows }}" as="r" hint-placeholder-count="4">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 0;border-top:{{ r.border }}">
+              <span style="font-size:13px;color:var(--text2)">{{ r.label }}</span>
+              <span style="font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--text)">{{ r.value }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="margin-top:14px;padding:10px 12px;background:var(--input);border:1px solid var(--border);border-radius:8px;font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:12.5px;color:var(--text2);word-break:break-all">{{ fileName }}</div>
+      </div>
+
+    </div>
+
+    <div style="height:1px;background:var(--border)"></div>
+
+    <!-- FOOTER -->
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 26px;flex-wrap:wrap">
+      <span style="font-size:12.5px;color:var(--text2)">Exportiert nur Abonnements, keine Artikel und keine Favoriten.</span>
+      <div style="display:flex;gap:10px">
+        <button style="padding:8px 18px;border-radius:8px;border:1px solid var(--border);background:var(--card2);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 1px 1px rgba(0,0,0,.04)">Abbrechen</button>
+        <button style="padding:8px 22px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 1px 3px rgba(10,132,255,.45)">Sichern…</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:728,&quot;height&quot;:560},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;light&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  state = {
+    options: [
+      { id: 'urls', title: 'Feed-URLs und Titel', desc: 'Immer enthalten. Das ist die Grundlage jeder OPML-Datei.', checked: true, locked: true },
+      { id: 'folders', title: 'Ordner-Struktur einschließen', desc: 'Feeds werden in OPML-Gruppen exportiert, damit deine Sidebar-Struktur erhalten bleibt.', checked: true },
+      { id: 'tags', title: 'Tags einschließen', desc: 'Feed-Tags werden als Kategorie-Attribut mitgeschrieben.', checked: true },
+      { id: 'desc', title: 'Feed-Beschreibungen einschließen', desc: 'Optional für Reader, die Feed-Metadaten beim Import übernehmen.', checked: false }
+    ]
+  };
+
+  getTheme(name) {
+    if (name === 'dark') return { bg:'#28282B', card:'#323235', card2:'#3A3A3D', text:'#F5F5F7', text2:'#9A9AA0', border:'rgba(255,255,255,0.12)', accent:'#0A84FF', input:'#1F1F22', shadow:'rgba(0,0,0,0.55)', backdrop:'#161618' };
+    return { bg:'#FFFFFF', card:'#F5F5F7', card2:'#FFFFFF', text:'#1D1D1F', text2:'#86868B', border:'rgba(0,0,0,0.10)', accent:'#0A84FF', input:'#FFFFFF', shadow:'rgba(0,0,0,0.20)', backdrop:'#E7E7EA' };
+  }
+
+  checkbox(checked, t, locked) {
+    return { width:'20px', height:'20px', borderRadius:'6px', flex:'none', display:'inline-flex', alignItems:'center', justifyContent:'center', cursor: locked ? 'default' : 'pointer', padding:0, marginTop:'1px', transition:'all .12s',
+      background: checked ? (locked ? t.accent + '66' : t.accent) : t.input,
+      border: checked ? '1px solid ' + (locked ? 'transparent' : t.accent) : '1px solid ' + t.border,
+      boxShadow: checked && !locked ? '0 1px 2px rgba(10,132,255,.35)' : '0 1px 1px rgba(0,0,0,.04)' };
+  }
+
+  renderVals() {
+    const t = this.getTheme(this.props.theme || 'light');
+    const s = this.state;
+
+    const rootStyle = `--bg:${t.bg};--card:${t.card};--card2:${t.card2};--text:${t.text};--text2:${t.text2};--border:${t.border};--accent:${t.accent};--input:${t.input};--shadow:${t.shadow};display:flex;align-items:center;justify-content:center;padding:34px;min-height:100vh;background:${t.backdrop};font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',system-ui,sans-serif;-webkit-font-smoothing:antialiased`;
+
+    const optionRows = s.options.map((o, idx) => ({
+      title: o.title, desc: o.desc, checked: o.checked,
+      rowStyle: { display:'flex', alignItems:'flex-start', gap:'13px', padding:'14px 0', borderTop: idx === 0 ? 'none' : '1px solid ' + t.border },
+      checkboxStyle: this.checkbox(o.checked, t, o.locked),
+      onToggle: () => { if (o.locked) return; this.setState(st => ({ options: st.options.map(x => x.id === o.id ? { ...x, checked: !x.checked } : x) })); }
+    }));
+
+    const feedCount = 73;
+    const folderCount = 18;
+    const tagsOn = s.options.find(o => o.id === 'tags').checked;
+    const descOn = s.options.find(o => o.id === 'desc').checked;
+    const foldersOn = s.options.find(o => o.id === 'folders').checked;
+
+    const summaryRows = [
+      { label: 'Feeds', value: String(feedCount) },
+      { label: 'Ordner', value: foldersOn ? folderCount + ' Ordner' : 'Aus' },
+      { label: 'Tags', value: tagsOn ? '0 Tags' : 'Aus' },
+      { label: 'Beschreibungen', value: descOn ? 'Ein' : 'Aus' }
+    ].map((r, i) => ({ ...r, border: i === 0 ? 'none' : '1px solid ' + t.border }));
+
+    return { rootStyle, feedCount, optionRows, summaryRows, fileName: 'Feedivo-Export-2026-07-08.opml' };
+  }
+}
+</script>
+</body>
+</html>
