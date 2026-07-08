@@ -2,23 +2,52 @@ import SwiftUI
 import WebKit
 import OSLog
 
+/// Bündelt den Vor-/Zurück-Zustand der Original-Ansicht für die Reader-
+/// Toolbar. Bleibt über Artikelwechsel hinweg als `@State` in
+/// `SQLiteReaderView` bestehen — passend zur WKWebView, die aus
+/// Performance-Gründen ebenfalls über Artikelwechsel hinweg weiterlebt
+/// (siehe Commit eca556f93).
+@Observable
+final class WebNavigationController {
+    private(set) var canGoBack = false
+    private(set) var canGoForward = false
+
+    fileprivate weak var webView: WKWebView?
+
+    func goBack() {
+        webView?.goBack()
+    }
+
+    func goForward() {
+        webView?.goForward()
+    }
+
+    fileprivate func updateState(canGoBack: Bool, canGoForward: Bool) {
+        self.canGoBack = canGoBack
+        self.canGoForward = canGoForward
+    }
+}
+
 struct WebContentView: NSViewRepresentable {
     let url: URL
     let inAppProfile: ArticleInAppWebProfile
+    let navigationController: WebNavigationController
     let onLoadFailure: () -> Void
 
     init(
         url: URL,
         inAppProfile: ArticleInAppWebProfile = .defaultProfile,
+        navigationController: WebNavigationController,
         onLoadFailure: @escaping () -> Void = {}
     ) {
         self.url = url
         self.inAppProfile = inAppProfile
+        self.navigationController = navigationController
         self.onLoadFailure = onLoadFailure
     }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(onLoadFailure: onLoadFailure)
+        Coordinator(navigationController: navigationController, onLoadFailure: onLoadFailure)
     }
 
     func makeNSView(context: Context) -> WKWebView {
@@ -28,6 +57,7 @@ struct WebContentView: NSViewRepresentable {
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = context.coordinator
         context.coordinator.webView = webView
+        navigationController.webView = webView
         ArticleWebContentBlocker.install(into: configuration.userContentController) {
             context.coordinator.contentBlockerDidFinish()
         }
@@ -46,6 +76,7 @@ struct WebContentView: NSViewRepresentable {
     final class Coordinator: NSObject, WKNavigationDelegate {
         weak var webView: WKWebView?
 
+        private let navigationController: WebNavigationController
         private var pendingURL: URL?
         private var pendingProfile: ArticleInAppWebProfile?
         private var loadedProfile: ArticleInAppWebProfile = .defaultProfile
@@ -56,7 +87,17 @@ struct WebContentView: NSViewRepresentable {
         private var didNotifyLoadFailure = false
         private let onLoadFailure: () -> Void
 
-        init(onLoadFailure: @escaping () -> Void) {
+        // Wird direkt vor jedem Top-Level-`load()` gesetzt (neuer Artikel
+        // oder Profilwechsel) und in `didFinish` konsumiert, um dort den
+        // neuen Artikel-Grenzpunkt zu setzen. Unterscheidet einen
+        // Top-Level-Load von einer In-Page-Navigation (Linkklick), die
+        // `didFinish` ebenfalls auslöst, aber die Grenze nicht verschieben
+        // darf.
+        private var isAwaitingTopLevelLoadCompletion = false
+        private var articleLoadBoundaryItem: WKBackForwardListItem?
+
+        init(navigationController: WebNavigationController, onLoadFailure: @escaping () -> Void) {
+            self.navigationController = navigationController
             self.onLoadFailure = onLoadFailure
             super.init()
         }
@@ -96,6 +137,7 @@ struct WebContentView: NSViewRepresentable {
             loadedURL = pendingURL
             hasLoadSucceeded = false
             didNotifyLoadFailure = false
+            isAwaitingTopLevelLoadCompletion = true
             startLoadWatchdog(for: pendingURL)
             webView.load(URLRequest(url: pendingURL))
         }
@@ -125,6 +167,20 @@ struct WebContentView: NSViewRepresentable {
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             hasLoadSucceeded = true
             loadWatchTask?.cancel()
+
+            if isAwaitingTopLevelLoadCompletion {
+                isAwaitingTopLevelLoadCompletion = false
+                articleLoadBoundaryItem = webView.backForwardList.currentItem
+            }
+
+            let isAtBoundary = webView.backForwardList.currentItem === articleLoadBoundaryItem
+            navigationController.updateState(
+                canGoBack: WebNavigationBoundary.canGoBack(
+                    webViewCanGoBack: webView.canGoBack,
+                    isAtBoundary: isAtBoundary
+                ),
+                canGoForward: webView.canGoForward
+            )
         }
 
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
