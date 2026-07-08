@@ -24,6 +24,8 @@ enum L10n {
     // sprachlich konsistenteren Key `sidebar.smartFolders.section`.
     static let sidebarSmartFoldersSection = LocalizedStringKey("sidebar.smartFolders.section")
     static let sidebarSmartFoldersEmpty = LocalizedStringKey("sidebar.smartFolders.empty")
+    static let sidebarSmartFoldersCustomSection = LocalizedStringKey("sidebar.smartFolders.custom.section")
+    static let sidebarSmartFoldersCustomEmpty = LocalizedStringKey("sidebar.smartFolders.custom.empty")
     static let sidebarSmartFolderCreate = LocalizedStringKey("sidebar.smartFolder.create")
     static let sidebarSmartFolderDelete = LocalizedStringKey("sidebar.smartFolder.delete")
     static let sidebarSmartFolderDuplicate = LocalizedStringKey("sidebar.smartFolder.duplicate")
