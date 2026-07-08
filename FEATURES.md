@@ -1255,6 +1255,46 @@
 
 ---
 
+## 27. Browser-Erweiterung (RSS-Feed hinzufügen)
+
+### 27.1 Safari-Erweiterung
+- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Voraussetzung:** Feature 23.2 (URL-Schema `feedivo://add?url=...`) muss vorher
+  bzw. im selben Zug umgesetzt werden — aktuell noch offen (Phase 11)
+- **Zu implementieren:**
+  - Safari Web Extension Target im bestehenden Xcode-Projekt, wird automatisch
+    mit Feedivo.app mitgeliefert (Aktivierung durch Nutzer in
+    Systemeinstellungen → Erweiterungen)
+  - Feed-Erkennung: `<link rel="alternate" type="application/rss+xml|atom+xml|json">`
+    im HTML-`<head>` der aktuellen Seite; Fallback-Heuristik auf gängige Pfade
+    (`/feed`, `/rss`, `/atom.xml`), falls kein Link-Tag gefunden wird
+  - Toolbar-Icon inaktiv ohne erkannten Feed, aktiv sobald mindestens einer
+    gefunden wurde
+  - Klick öffnet Popup mit Liste aller gefundenen Feeds, je Eintrag ein
+    "Zu Feedivo hinzufügen"-Button
+  - Klick auf "Hinzufügen" öffnet `feedivo://add?url=...` — Feedivo
+    aktiviert/startet sich und zeigt den bestehenden Vorschau-Dialog vor dem
+    Abonnieren (Feature 12.4); keine neue Subscribe-Logik in der App nötig
+
+### 27.2 Chrome-Erweiterung
+- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Voraussetzung:** siehe Feature 27.1 — identisches Verhalten (Erkennung,
+  Icon, Popup, Add-Flow über `feedivo://`), abhängig von Feature 23.2
+- **Zu implementieren:**
+  - Eigenständige Manifest-V3-Erweiterung (Content-Script + Popup + Background
+    Service Worker), separates Verzeichnis im Repo — kein gemeinsamer Code mit
+    der Safari-Erweiterung möglich
+  - Verteilung vorerst nur unsigned/Entwicklermodus (lokal geladen);
+    Veröffentlichung im Chrome Web Store ist ein eigener, späterer Schritt und
+    nicht Teil dieser Umsetzung
+
+### 27.3 Testing
+- Feed-Erkennungslogik (Chrome) unit-testbar unabhängig vom Browser
+- Kompletter End-to-End-Flow (Klick → `feedivo://` → Vorschau-Dialog) nur
+  manuell testbar, für beide Browser
+
+---
+
 ## Implementierungs-Reihenfolge (Empfehlung für Codex)
 
 Folgende Reihenfolge berücksichtigt Abhängigkeiten. Features mit (*) sind Voraussetzung für nachfolgende.
@@ -1321,6 +1361,7 @@ Folgende Reihenfolge berücksichtigt Abhängigkeiten. Features mit (*) sind Vora
 34. **Feature 23.1** — Share Extension (In Feedivo öffnen aus anderen Apps)
 35. **Feature 23.2** — URL-Schema `feedivo://` (add, article)
 36. **Feature 26.3** — AppIntents / Shortcuts Integration (Feed aktualisieren, hinzufügen, gelesen, exportieren)
+36a. **Feature 27.1/27.2** — Browser-Erweiterung Safari + Chrome (RSS-Feed erkennen, via `feedivo://add?url=...` hinzufügen; setzt 23.2 voraus)
 
 ### Phase 12 — Drucken & Qualität
 37. **Feature 25.1** — Drucken via Cmd+P (Reader oder Original, User wählt im Druckdialog)
