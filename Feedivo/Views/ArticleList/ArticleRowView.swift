@@ -3,6 +3,23 @@ import SwiftUI
 struct ArticleRowView: View {
     @Environment(\.interfaceTextSize) private var interfaceTextSize
 
+    @AppStorage(ArticleListImagePosition.storageKey)
+    private var imagePositionRawValue = ArticleListImagePosition.defaultPosition.rawValue
+
+    @AppStorage(ArticleListFeedNameVisibilitySettings.showsFeedNameKey)
+    private var showsFeedName = ArticleListFeedNameVisibilitySettings.defaultShowsFeedName
+
+    @AppStorage(ArticleListFeedNamePosition.storageKey)
+    private var feedNamePositionRawValue = ArticleListFeedNamePosition.defaultPosition.rawValue
+
+    private var imagePosition: ArticleListImagePosition {
+        ArticleListImagePosition.resolved(from: imagePositionRawValue)
+    }
+
+    private var feedNamePosition: ArticleListFeedNamePosition {
+        ArticleListFeedNamePosition.resolved(from: feedNamePositionRawValue)
+    }
+
     let snapshot: ArticleListItemSnapshot
     let hasAvailableTags: Bool
     let onToggleRead: () -> Void
@@ -20,20 +37,23 @@ struct ArticleRowView: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            previewImage
+            if imagePosition == .left {
+                previewImage
+            }
 
             VStack(alignment: .leading, spacing: 6) {
+                if feedNamePosition == .beforeTitle {
+                    metadataRow
+                }
+
                 Text(snapshot.title)
                     .font(interfaceTextSize.font(size: 14, weight: snapshot.isRead ? .regular : .semibold))
                     .fontWeight(snapshot.isRead ? .regular : .semibold)
                     .foregroundStyle(snapshot.isRead ? .secondary : .primary)
                     .lineLimit(2)
 
-                if !metadataText.isEmpty {
-                    Text(metadataText)
-                        .font(interfaceTextSize.font(size: 11))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
+                if feedNamePosition == .afterTitle {
+                    metadataRow
                 }
 
                 if let summary = snapshot.summary, !summary.isEmpty {
@@ -44,6 +64,10 @@ struct ArticleRowView: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+
+            if imagePosition == .right {
+                previewImage
+            }
 
             VStack {
                 unreadIndicator
@@ -185,9 +209,59 @@ struct ArticleRowView: View {
         }
     }
 
+    @ViewBuilder
+    private var metadataRow: some View {
+        if !metadataText.isEmpty {
+            HStack(spacing: 4) {
+                if showsFeedNameAndFavicon {
+                    metadataFavicon
+                        .frame(
+                            width: interfaceTextSize.scaled(11),
+                            height: interfaceTextSize.scaled(11)
+                        )
+                }
+
+                Text(metadataText)
+                    .font(interfaceTextSize.font(size: 11))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var metadataFavicon: some View {
+        if let faviconURLString = snapshot.faviconURL, let url = URL(string: faviconURLString) {
+            CachedRemoteImageView(url: url) { image in
+                image
+                    .resizable()
+                    .scaledToFit()
+            } placeholder: {
+                metadataFaviconFallback
+            }
+        } else {
+            metadataFaviconFallback
+        }
+    }
+
+    private var metadataFaviconFallback: some View {
+        Image(systemName: "dot.radiowaves.left.and.right")
+            .font(.system(size: 9))
+            .foregroundStyle(.secondary)
+    }
+
+    // Favicon nur zeigen, wenn auch tatsächlich ein Feedname angezeigt wird —
+    // ist der Feedname ausgeblendet, bleibt nur der Zeitpunkt sichtbar, ohne
+    // Favicon davor (siehe FEATURES.md 19.1, Entscheidung 2026-07-08).
+    private var showsFeedNameAndFavicon: Bool {
+        showsFeedName && snapshot.feedTitle?.isEmpty == false
+    }
+
     private var metadataText: String {
-        [
-            snapshot.feedTitle,
+        let feedNamePart = showsFeedNameAndFavicon ? snapshot.feedTitle : nil
+
+        return [
+            feedNamePart,
             snapshot.publishedAt?.feedivoRelativeDisplay
         ]
         .compactMap { value in
