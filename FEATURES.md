@@ -7,7 +7,7 @@
 > Status-Legende:
 > ✔️ Fertig | 🔨 In Arbeit (teilweise umgesetzt) | ✅ Entschieden (bereit zur Implementierung) | 💬 In Diskussion | ⏸️ Zurückgestellt
 >
-> Zuletzt aktualisiert: 2026-07-05
+> Zuletzt aktualisiert: 2026-07-08
 >
 > **SQLite Final Closure 2026-07-05:** Produktiver Feed-/Artikelpfad SQLite-first
 > abgeschlossen. `FeedivoApp` startet ohne SwiftData-`ModelContainer`, die
@@ -92,6 +92,18 @@
   `ContentView`.
 - **SQLite/GRDB 2026-07-04:** Auch das Kontextmenü der produktiven
   `SQLiteFeedArticleListView` öffnet den SQLite-first `RuleWizardView` wieder.
+
+### 1.12 Original-Ansicht: Browser-Vor-/Zurück-Navigation
+- **Status:** 💬 In Diskussion — noch nicht implementieren
+- **Wunsch (2026-07-08):**
+  - Wenn die Original-Ansicht (WKWebView, siehe Feature 1.1) aktiv ist, zusätzlich
+    eine browserartige Vor-/Zurück-Navigation einblenden.
+  - Klickt der User innerhalb der Original-Ansicht auf einen Link (z. B. auf der
+    Website weiterklickt), soll er über diese Navigation wieder zur vorherigen
+    Seite in derselben WebView zurückkommen können.
+  - Abgrenzung zu Feature 1.2: Das ist Browser-Verlaufs-Navigation innerhalb der
+    WKWebView (`canGoBack`/`canGoForward`/`goBack()`/`goForward()`), unabhängig
+    von der bestehenden Vor-/Zurück-Navigation zwischen Artikeln.
 
 ---
 
@@ -181,6 +193,12 @@
 ### 3.3 Tag-Abschnitt
 - **Status:** ✔️ Fertig
 - **Umgesetzt:** Eigene Section, feedübergreifende Filterung
+
+### 3.4 Intelligente Ordner kompakter darstellen
+- **Status:** 💬 In Diskussion — noch nicht implementieren
+- **Wunsch (2026-07-08):** Die Zeilen im Abschnitt "Intelligente Ordner" (inkl.
+  "Eigene Intelligente Ordner", siehe Feature 16) sollen kompakter dargestellt
+  werden, z. B. geringere Zeilenhöhe/Innenabstände als aktuell.
 
 ---
 
@@ -566,9 +584,15 @@
   - Vordefinierte Ordner speichern Icon und Farbe wie normale intelligente Ordner
   - `Ungelesen` verhält sich beim automatischen Gelesen-Markieren wie Feed-Listen:
     der gerade gelesene Artikel bleibt bis zum Listenwechsel sichtbar.
-  - `Mit Stern`, `Ausgeblendet` und `Gespeichert` zeigen Sidebar-Badges und
-    Artikellisten mit allen passenden Artikeln, also gelesenen und ungelesenen
-    Treffern.
+  - `Mit Stern`, `Diese Woche`, `Ausgeblendet` und `Gespeichert` sollen
+    Sidebar-Badges mit getrenntem Gelesen-/Ungelesen-Zähler zeigen (gleiches
+    ○/●-Muster wie bei `Alle Artikel` und `Heute`), und ihre Artikellisten
+    sollen immer alle passenden Artikel zeigen, unabhängig vom Gelesen-Status.
+  - ⚠️ **Zu verifizieren (2026-07-08):** Die Sidebar zeigt aktuell bei
+    `Mit Stern` und `Gespeichert` nur eine einzelne Zahl statt des getrennten
+    ○/●-Badges; `Diese Woche` war in dieser Aufzählung bisher gar nicht
+    enthalten. Vor der Umsetzung prüfen, ob das eine Regression ist oder dieser
+    Punkt nie vollständig für alle vier Ordner umgesetzt wurde.
   - V1-Entscheidung: Gemischte Operatoren oder Bedingungsgruppen werden bewusst noch nicht umgesetzt.
 
 ### 16.2 Intelligenten Ordner erstellen/bearbeiten
