@@ -32,6 +32,8 @@ struct SidebarView: View {
     private var isFoldersCollapsed = false
     @AppStorage(SidebarSectionCollapseState.Section.smartFolders.storageKey)
     private var isSmartFoldersCollapsed = false
+    @AppStorage(SidebarSectionCollapseState.Section.customSmartFolders.storageKey)
+    private var isCustomSmartFoldersCollapsed = false
     @AppStorage(SidebarFeedVisibilitySettings.showsReadFeedsKey)
     private var showsReadFeedsInSidebar = SidebarFeedVisibilitySettings.defaultShowsReadFeeds
     @State private var feedShowingProperties: FeedSidebarSnapshot?
@@ -51,7 +53,11 @@ struct SidebarView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     sidebarActionRow
-                    smartFoldersSection(
+                    defaultSmartFoldersSection(
+                        badgeSnapshot: sqliteSidebarState.smartFolderBadgeSnapshot,
+                        mixedCountsByDefaultKey: sqliteSidebarState.mixedCountsByDefaultKey
+                    )
+                    customSmartFoldersSection(
                         badgeSnapshot: sqliteSidebarState.smartFolderBadgeSnapshot,
                         mixedCountsByDefaultKey: sqliteSidebarState.mixedCountsByDefaultKey
                     )
@@ -255,64 +261,95 @@ struct SidebarView: View {
         }
     }
 
-    private func smartFoldersSection(
+    private func defaultSmartFoldersSection(
         badgeSnapshot: SmartFolderSidebarBadgeSnapshot,
         mixedCountsByDefaultKey: [String: SmartFolderMixedCounts]
     ) -> some View {
         CollapsibleSidebarSection(
             title: L10n.sidebarSmartFoldersSection,
-            isCollapsed: $isSmartFoldersCollapsed,
-            actionSystemImage: "plus",
-            actionHelp: String(localized: "sidebar.smartFolder.create")
+            isCollapsed: $isSmartFoldersCollapsed
         ) {
-            isCreatingSmartFolder = true
-        } content: {
-            let visibleSmartFolders = sqliteSidebarState.smartFolderSnapshots
+            let folders = SmartFolderSidebarGrouping.defaultFolders(from: sqliteSidebarState.smartFolderSnapshots)
 
-            if visibleSmartFolders.isEmpty {
+            if folders.isEmpty {
                 Text(L10n.sidebarSmartFoldersEmpty)
                     .font(interfaceTextSize.font(size: 13))
                     .foregroundStyle(SidebarStyle.secondaryText)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 8)
             } else {
-                ForEach(visibleSmartFolders) { smartFolder in
-                    Button {
-                        selection = .smartFolder(smartFolder.id)
-                    } label: {
-                        SmartFolderSidebarRow(
-                            smartFolder: smartFolder,
-                            badgeSnapshot: badgeSnapshot,
-                            mixedCounts: smartFolder.defaultKey.flatMap { mixedCountsByDefaultKey[$0] }
-                        )
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .buttonStyle(
-                        SidebarRowButtonStyle(
-                            isSelected: selection == .smartFolder(smartFolder.id)
-                        )
-                    )
-                    .contextMenu {
-                        Button {
-                            smartFolderEditing = sqliteSmartFolderRecord(id: smartFolder.id)
-                        } label: {
-                            Label(L10n.ruleEditButton, systemImage: "pencil")
-                        }
+                smartFolderRows(folders, badgeSnapshot: badgeSnapshot, mixedCountsByDefaultKey: mixedCountsByDefaultKey)
+            }
+        }
+    }
 
-                        Button {
-                            duplicateSmartFolder(smartFolder)
-                        } label: {
-                            Label(L10n.commonDuplicate, systemImage: "plus.square.on.square")
-                        }
+    private func customSmartFoldersSection(
+        badgeSnapshot: SmartFolderSidebarBadgeSnapshot,
+        mixedCountsByDefaultKey: [String: SmartFolderMixedCounts]
+    ) -> some View {
+        CollapsibleSidebarSection(
+            title: L10n.sidebarSmartFoldersCustomSection,
+            isCollapsed: $isCustomSmartFoldersCollapsed,
+            actionSystemImage: "plus",
+            actionHelp: String(localized: "sidebar.smartFolder.create")
+        ) {
+            isCreatingSmartFolder = true
+        } content: {
+            let folders = SmartFolderSidebarGrouping.customFolders(from: sqliteSidebarState.smartFolderSnapshots)
 
-                        Divider()
+            if folders.isEmpty {
+                Text(L10n.sidebarSmartFoldersCustomEmpty)
+                    .font(interfaceTextSize.font(size: 13))
+                    .foregroundStyle(SidebarStyle.secondaryText)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
+            } else {
+                smartFolderRows(folders, badgeSnapshot: badgeSnapshot, mixedCountsByDefaultKey: mixedCountsByDefaultKey)
+            }
+        }
+    }
 
-                        Button(role: .destructive) {
-                            smartFolderPendingDeletion = smartFolder
-                        } label: {
-                            Label(L10n.ruleDeleteButton, systemImage: "trash")
-                        }
-                    }
+    @ViewBuilder
+    private func smartFolderRows(
+        _ folders: [SQLiteSmartFolderSnapshot],
+        badgeSnapshot: SmartFolderSidebarBadgeSnapshot,
+        mixedCountsByDefaultKey: [String: SmartFolderMixedCounts]
+    ) -> some View {
+        ForEach(folders) { smartFolder in
+            Button {
+                selection = .smartFolder(smartFolder.id)
+            } label: {
+                SmartFolderSidebarRow(
+                    smartFolder: smartFolder,
+                    badgeSnapshot: badgeSnapshot,
+                    mixedCounts: smartFolder.defaultKey.flatMap { mixedCountsByDefaultKey[$0] }
+                )
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(
+                SidebarRowButtonStyle(
+                    isSelected: selection == .smartFolder(smartFolder.id)
+                )
+            )
+            .contextMenu {
+                Button {
+                    smartFolderEditing = sqliteSmartFolderRecord(id: smartFolder.id)
+                } label: {
+                    Label(L10n.ruleEditButton, systemImage: "pencil")
+                }
+
+                Button {
+                    duplicateSmartFolder(smartFolder)
+                } label: {
+                    Label(L10n.commonDuplicate, systemImage: "plus.square.on.square")
+                }
+
+                Divider()
+
+                Button(role: .destructive) {
+                    smartFolderPendingDeletion = smartFolder
+                } label: {
+                    Label(L10n.ruleDeleteButton, systemImage: "trash")
                 }
             }
         }
