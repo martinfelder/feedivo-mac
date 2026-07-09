@@ -3,6 +3,12 @@ import SwiftUI
 struct FeedRowView: View {
     @Environment(\.interfaceTextSize) private var interfaceTextSize
 
+    @AppStorage(SidebarFeedVisibilitySettings.showsUnreadCountKey)
+    private var showsUnreadCount = SidebarFeedVisibilitySettings.defaultShowsUnreadCount
+
+    @AppStorage(SidebarFeedVisibilitySettings.showsFaviconsKey)
+    private var showsFavicons = SidebarFeedVisibilitySettings.defaultShowsFavicons
+
     enum DisplayStyle {
         case regular
         case folderChild
@@ -51,7 +57,7 @@ struct FeedRowView: View {
 
             Spacer(minLength: 8)
 
-            if let badgeText = SidebarUnreadCount.badgeText(for: unreadCount) {
+            if showsUnreadCount, let badgeText = SidebarUnreadCount.badgeText(for: unreadCount) {
                 HStack(spacing: 3) {
                     Image(systemName: "circle.fill")
                         .font(.system(size: 8, weight: .semibold))
@@ -69,7 +75,8 @@ struct FeedRowView: View {
 
     @ViewBuilder
     private var faviconView: some View {
-        if let faviconURL = displayFaviconURL,
+        if showsFavicons,
+           let faviconURL = displayFaviconURL,
            let url = URL(string: faviconURL) {
             CachedRemoteImageView(url: url) { image in
                 image

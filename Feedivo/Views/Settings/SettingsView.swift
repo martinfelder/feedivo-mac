@@ -325,6 +325,12 @@ private struct NewAppearanceSettingsView: View {
     @AppStorage(SidebarFeedVisibilitySettings.showsReadFeedsKey)
     private var showsReadFeedsInSidebar = SidebarFeedVisibilitySettings.defaultShowsReadFeeds
 
+    @AppStorage(SidebarFeedVisibilitySettings.showsUnreadCountKey)
+    private var showsUnreadCountInSidebar = SidebarFeedVisibilitySettings.defaultShowsUnreadCount
+
+    @AppStorage(SidebarFeedVisibilitySettings.showsFaviconsKey)
+    private var showsFaviconsInSidebar = SidebarFeedVisibilitySettings.defaultShowsFavicons
+
     @AppStorage(AppIconBadgeSettings.isEnabledKey)
     private var appIconBadgeIsEnabled = AppIconBadgeSettings.defaultIsEnabled
 
@@ -396,6 +402,22 @@ private struct NewAppearanceSettingsView: View {
                     description: L10n.settingsSidebarShowsReadFeedsDescription
                 ) {
                     Toggle("", isOn: $showsReadFeedsInSidebar)
+                        .labelsHidden()
+                }
+
+                NewSettingRow(
+                    title: L10n.settingsSidebarShowsUnreadCountTitle,
+                    description: L10n.settingsSidebarShowsUnreadCountDescription
+                ) {
+                    Toggle("", isOn: $showsUnreadCountInSidebar)
+                        .labelsHidden()
+                }
+
+                NewSettingRow(
+                    title: L10n.settingsSidebarShowsFaviconsTitle,
+                    description: L10n.settingsSidebarShowsFaviconsDescription
+                ) {
+                    Toggle("", isOn: $showsFaviconsInSidebar)
                         .labelsHidden()
                 }
 

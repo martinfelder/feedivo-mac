@@ -820,10 +820,14 @@
     Favicon; der Zeitpunkt bleibt weiterhin eigenständig sichtbar.
 
 ### 19.2 Sidebar anpassen
-- **Status:** ✅ Entschieden — bereit zur Implementierung
-- **Zu implementieren:**
-  - Ungelesen-Zähler pro Feed: anzeigen / ausblenden
-  - Favicons: anzeigen / ausblenden
+- **Status:** ✔️ Fertig
+- **Umgesetzt (2026-07-09):**
+  - Ungelesen-Zähler pro Feed: anzeigen / ausblenden (`SidebarFeedVisibilitySettings.showsUnreadCountKey`)
+  - Favicons: anzeigen / ausblenden (`SidebarFeedVisibilitySettings.showsFaviconsKey`) — ausgeschaltet
+    zeigt jede Feed-Zeile das generische Fallback-Symbol statt des echten Favicons, damit das
+    Zeilenlayout stabil bleibt statt die Icon-Spalte zu kollabieren
+  - Beide Toggles im Einstellungen-Fenster → Darstellung → "Oberfläche", direkt neben dem
+    bestehenden "Gelesene Feeds anzeigen"-Toggle
 - **Noch offen (nicht jetzt):**
   - Sidebar-Sections komplett ausblenden
 

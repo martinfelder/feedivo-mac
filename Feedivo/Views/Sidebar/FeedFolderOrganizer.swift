@@ -3,6 +3,12 @@ import Foundation
 enum SidebarFeedVisibilitySettings {
     static let showsReadFeedsKey = "sidebar.showsReadFeeds"
     static let defaultShowsReadFeeds = true
+
+    static let showsUnreadCountKey = "sidebar.showsUnreadCount"
+    static let defaultShowsUnreadCount = true
+
+    static let showsFaviconsKey = "sidebar.showsFavicons"
+    static let defaultShowsFavicons = true
 }
 
 enum FeedFolderOrganizer {

@@ -22627,6 +22627,62 @@
         }
       }
     },
+    "settings.sidebar.showsFavicons.description" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ausgeschaltet zeigt jeder Feed ein generisches Symbol statt des echten Favicons."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When off, every feed shows a generic icon instead of its real favicon."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si cette option est désactivée, chaque flux affiche une icône générique au lieu de son véritable favicon."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se disattivata, ogni feed mostra un'icona generica invece della sua favicon reale."
+          }
+        }
+      }
+    },
+    "settings.sidebar.showsFavicons.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Favicons in der Seitenleiste anzeigen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show favicons in the sidebar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher les favicons dans la barre latérale"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra le favicon nella barra laterale"
+          }
+        }
+      }
+    },
     "settings.sidebar.showsReadFeeds.description" : {
       "localizations" : {
         "de" : {
@@ -22679,6 +22735,62 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mostra i feed letti nella barra laterale"
+          }
+        }
+      }
+    },
+    "settings.sidebar.showsUnreadCount.description" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ausgeschaltet bleibt die Anzahl ungelesener Artikel pro Feed in der Seitenleiste verborgen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When off, the unread-article count per feed stays hidden in the sidebar."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si cette option est désactivée, le nombre d'articles non lus par flux reste masqué dans la barre latérale."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se disattivata, il numero di articoli non letti per feed resta nascosto nella barra laterale."
+          }
+        }
+      }
+    },
+    "settings.sidebar.showsUnreadCount.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ungelesen-Zähler in der Seitenleiste anzeigen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show unread count in the sidebar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher le compteur de non-lus dans la barre latérale"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra il contatore dei non letti nella barra laterale"
           }
         }
       }
