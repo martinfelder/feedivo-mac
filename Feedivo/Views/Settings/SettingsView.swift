@@ -319,6 +319,9 @@ private struct NewAppearanceSettingsView: View {
     @AppStorage(InterfaceTextSize.storageKey)
     private var interfaceTextSizeRawValue = InterfaceTextSize.defaultSize.rawValue
 
+    @AppStorage(AppAppearance.storageKey)
+    private var appAppearanceRawValue = AppAppearance.defaultMode.rawValue
+
     @AppStorage(SidebarFeedVisibilitySettings.showsReadFeedsKey)
     private var showsReadFeedsInSidebar = SidebarFeedVisibilitySettings.defaultShowsReadFeeds
 
@@ -358,6 +361,21 @@ private struct NewAppearanceSettingsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             NewSettingsBlock(eyebrow: "Oberfläche") {
+                NewSettingRow(
+                    title: L10n.settingsAppearanceModePicker,
+                    description: "Legt fest, ob Feedivo unabhängig von der macOS-Systemeinstellung immer hell oder immer dunkel dargestellt wird."
+                ) {
+                    Picker("", selection: $appAppearanceRawValue) {
+                        ForEach(AppAppearance.allCases) { mode in
+                            Text(mode.titleKey)
+                                .tag(mode.rawValue)
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.segmented)
+                    .fixedSize(horizontal: true, vertical: false)
+                }
+
                 NewSettingRow(
                     title: L10n.settingsInterfaceTextSizePicker,
                     description: "App-weite Skalierung der Bedienoberfläche."

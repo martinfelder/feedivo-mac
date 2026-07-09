@@ -6,6 +6,9 @@ struct FeedivoApp: App {
     @AppStorage("appLanguage")
     private var appLanguageRawValue = AppLanguage.system.rawValue
 
+    @AppStorage(AppAppearance.storageKey)
+    private var appAppearanceRawValue = AppAppearance.defaultMode.rawValue
+
     @AppStorage(InterfaceTextSize.storageKey)
     private var interfaceTextSizeRawValue = InterfaceTextSize.defaultSize.rawValue
 
@@ -54,6 +57,7 @@ struct FeedivoApp: App {
     var body: some Scene {
         let appLanguage = AppLanguage.resolved(from: appLanguageRawValue)
         let interfaceTextSize = InterfaceTextSize.resolved(from: interfaceTextSizeRawValue)
+        let appAppearance = AppAppearance.resolved(from: appAppearanceRawValue)
 
         WindowGroup {
             ContentView(feedViewModel: feedViewModel)
@@ -63,6 +67,7 @@ struct FeedivoApp: App {
                 .environment(databaseLoadState)
                 .environment(appDelegate.pendingURLSchemeAction)
                 .dynamicTypeSize(interfaceTextSize.dynamicTypeSize)
+                .preferredColorScheme(appAppearance.colorScheme)
                 .toolbarBackground(.ultraThinMaterial, for: .windowToolbar)
                 .toolbarBackground(.visible, for: .windowToolbar)
                 .task {
@@ -104,6 +109,7 @@ struct FeedivoApp: App {
                 .environment(\.interfaceTextSize, interfaceTextSize)
                 .environment(\.feedivoDatabase, feedivoDatabase)
                 .dynamicTypeSize(interfaceTextSize.dynamicTypeSize)
+                .preferredColorScheme(appAppearance.colorScheme)
         }
         .defaultSize(width: 760, height: 560)
 
@@ -113,6 +119,7 @@ struct FeedivoApp: App {
                 .environment(\.interfaceTextSize, interfaceTextSize)
                 .environment(\.feedivoDatabase, feedivoDatabase)
                 .dynamicTypeSize(interfaceTextSize.dynamicTypeSize)
+                .preferredColorScheme(appAppearance.colorScheme)
         }
         .defaultSize(width: 920, height: 620)
 
@@ -123,6 +130,7 @@ struct FeedivoApp: App {
                     .environment(\.interfaceTextSize, interfaceTextSize)
                     .environment(\.feedivoDatabase, feedivoDatabase)
                     .dynamicTypeSize(interfaceTextSize.dynamicTypeSize)
+                    .preferredColorScheme(appAppearance.colorScheme)
             } else {
                 ContentUnavailableView(
                     L10n.articleWindowMissingTitle,
@@ -140,6 +148,7 @@ struct FeedivoApp: App {
                 .environment(\.feedivoDatabase, feedivoDatabase)
                 .environment(databaseLoadState)
                 .dynamicTypeSize(interfaceTextSize.dynamicTypeSize)
+                .preferredColorScheme(appAppearance.colorScheme)
         }
         .windowResizability(.contentSize)
     }

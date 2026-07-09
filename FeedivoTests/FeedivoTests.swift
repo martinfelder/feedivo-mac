@@ -45,6 +45,15 @@ struct FeedivoTests {
         #expect(AppLanguage.resolved(from: "unbekannt") == .system)
     }
 
+    @Test func appAppearanceLiefertColorSchemeUndFallback() {
+        #expect(AppAppearance.resolved(from: "system").colorScheme == nil)
+        #expect(AppAppearance.resolved(from: "light").colorScheme == .light)
+        #expect(AppAppearance.resolved(from: "dark").colorScheme == .dark)
+        #expect(AppAppearance.resolved(from: "unbekannt") == .system)
+        #expect(AppAppearance.allCases.count == 3)
+        #expect(AppAppearance.defaultMode == .system)
+    }
+
     @Test func interfaceTextSizeLiefertDynamicTypeSizeUndFallback() {
         #expect(InterfaceTextSize.resolved(from: "small") == .small)
         #expect(InterfaceTextSize.resolved(from: "standard") == .standard)
