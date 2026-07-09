@@ -10,19 +10,25 @@
 
 **App-Name:** Feedivo
 **Root-Ordner:** FeedivoMac
-**Entry Point:** FeedivoApp.swift
+**Entry Point:** Feedivo/App/FeedivoApp.swift
 **Bundle ID:** ch.martin.Feedivo
 **Typ:** Nativer macOS RSS Reader
 **Entwickler:** Solo (Martin)
 **Plattform:** macOS 14 Sonoma+
-**Status:** In Development
-**Aktueller Milestone:** M4 – Polish & Release
+**Status:** In Development — Kernfunktionen (M1–M4) fertig und weit darüber hinaus ausgebaut
+**Aktueller Fokus:** Härtung/Refactoring nach Feature-Ausbau (SwiftData vollständig entfernt,
+GRDB/SQLite ist jetzt alleinige Persistenz); iCloud Sync ist als Beta-Vorbereitung sichtbar,
+aber noch nicht funktional angebunden
 
-Feedivo ist ein nativer macOS RSS Reader mit Tags, automatischen Regeln und lokal
-performanter Feed-/Artikelverwaltung. iCloud Sync ist zugunsten des SQLite/GRDB-
-Performance-Umbaus zurückgestellt.
-Ziel ist eine schöne, schnelle Mac-App die sich "mac-like" anfühlt — kein iOS-Port, keine
-Electron-App. Echtes AppKit-Feeling via SwiftUI für macOS.
+Feedivo ist ein nativer macOS RSS Reader mit Tags, automatischen Regeln, intelligenten Ordnern,
+Offline-Lesen und OPML-Import/-Export. Ziel ist eine schöne, schnelle Mac-App die sich "mac-like"
+anfühlt — kein iOS-Port, keine Electron-App. Echtes AppKit-Feeling via SwiftUI für macOS.
+
+> **Hinweis zum "Implementierter Code"-Abschnitt weiter unten:** Der ist eine Momentaufnahme
+> vom 2026-06-28 und wird nicht laufend gepflegt — für den aktuellen Stand einzelner Dateien
+> die Dateien selbst lesen, nicht blind auf diesen Abschnitt verlassen. Projektübersicht,
+> Technologie-Stack, "Aktuell in Arbeit" und "Letzte Änderungen" (hier im File) werden dagegen
+> synchron zu `CLAUDE.md` gehalten.
 
 ---
 
@@ -94,17 +100,18 @@ Nach jeder relevanten Änderung prüfen und bei Bedarf aktualisieren:
 
 | Bereich | Technologie | Version / Hinweis |
 |---|---|---|
-| UI Framework | SwiftUI (macOS) | Kein AppKit direkt |
+| UI Framework | SwiftUI (macOS) | Kein AppKit direkt, punktuell `NSViewRepresentable` (z. B. WKWebView) |
 | Architektur | MVVM | `@Observable` Macro (kein ObservableObject) |
-| Navigation | NavigationSplitView | 3-Spalten: Sidebar / Liste / Detail |
-| Persistenz | Produktiv SQLite/GRDB | SwiftData ist kein produktiver Feed-/Artikelstore mehr; `FeedivoApp` startet ohne SwiftData-`ModelContainer`. Verbleibende SwiftData-Dateien sind Legacy-/Migrationsreste oder Tests. |
-| iCloud Sync | Zurückgestellt | SwiftData/CloudKit-Beta wird zugunsten SQLite/GRDB pausiert |
+| Navigation | NavigationSplitView | 3-Spalten: Sidebar / Artikelliste / Reader, plus separate Fenster (Suche, Organizer, Artikel-Popout) |
+| Persistenz | GRDB (SQLite) | Eigene Datenschicht in `Feedivo/Database/` + `Feedivo/Stores/`. SwiftData wurde vollständig entfernt (2026-07-07) |
+| iCloud Sync | Noch nicht funktional angebunden | UI-Toggle "iCloud Sync Beta" existiert (`CloudSyncSettings`), aber ohne CloudKit-Backend auf `main`. Aktive Vorarbeit auf separatem Branch `codex/icloud-sync-beta` — basiert noch auf der alten SwiftData-Architektur und muss auf GRDB/SQLite migriert werden, bevor er mergebar ist |
 | Netzwerk | URLSession + async/await | Kein Alamofire, kein Combine |
 | RSS-Parsing | FeedKit | Swift Package, URL: https://github.com/nmdias/FeedKit |
-| Bilder | CachedRemoteImageView + ImageCacheService | Lokaler Disk-Cache + NSCache, kein Kingfisher |
-| Lokalisierung | String Catalog + `String(localized:)` | Deutsch, Englisch, Französisch, Italienisch |
-| Background Refresh | NSBackgroundActivityScheduler | Basis implementiert; läuft systemfreundlich solange App läuft/im Hintergrund ist |
-| Mindest-macOS | macOS 14.0 Sonoma | SwiftUI + @Observable Macro; SQLite/GRDB-Zielarchitektur |
+| Datenbank-Package | GRDB.swift | Swift Package, URL: https://github.com/groue/GRDB.swift |
+| Bilder | AsyncImage + eigener `ImageCacheService` | Built-in SwiftUI + eigenes Disk-Caching, kein Kingfisher |
+| Artikel-Rendering | Nativer SwiftUI-Renderer (`ReaderContentRenderer`) **und** `WKWebView` (`WebContentView`) | Native Ansicht für den Lesefluss, WKWebView für "Originalartikel" |
+| Background Refresh | `NSBackgroundActivityScheduler` (`SystemBackgroundActivityRefreshScheduler`) | Kein `BGTaskScheduler` (das ist iOS-fokussiert) |
+| Mindest-macOS | macOS 14.0 Sonoma | `@Observable` Macro + moderne SwiftUI-APIs (NavigationSplitView, `.commands`, `WindowGroup(for:)`) |
 
 ---
 
@@ -2250,6 +2257,22 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 
 ## Aktuell in Arbeit
 
+> **Aktueller Stand (synchron zu CLAUDE.md, 2026-07-09):** Der SQLite/GRDB-Umbau, den die
+> folgenden Einträge als "in Arbeit" beschreiben, ist inzwischen vollständig abgeschlossen —
+> SwiftData wurde am 2026-07-07 komplett entfernt (alle 9 `@Model`-Klassen gelöscht), GRDB/
+> SQLite ist seither die alleinige Persistenzschicht (siehe ADR-007 weiter unten). Danach
+> wurden Feature 23.2 (URL-Schema `feedivo://`), Feature 27 (Browser-Erweiterung Safari +
+> Chrome), Feature 19.7 (App-interne Darstellungs-Einstellung / Dark Mode) und die
+> OPML-Import-Konzept-A-Migration abgeschlossen und auf `origin/main` gepusht. Die Einträge
+> unten sind historisch und beschreiben den Weg dorthin — für den aktuellen Stand siehe
+> "Letzte Änderungen" oben in diesem Abschnitt (neueste zuerst) sowie `CLAUDE.md`.
+>
+> Ausstehend (nicht automatisierbar, kein computer-use für native macOS-Apps in dieser
+> Umgebung): manuelle visuelle Verifikation der beiden zuletzt gelieferten Features
+> (Dark-Mode-Farbwerte First-Run/Inspector, OPML-Import/Export-Dialog Seite an Seite).
+> Nächster sinnvoller Schritt laut offenen Punkten: Entscheidung über `codex/icloud-sync-beta`
+> treffen (migrieren+mergen vs. verwerfen), da der Branch sonst weiter divergiert.
+
 - M1, M2 und M3 sind abgeschlossen.
 - 2026-07-03: Phase 1 (SwiftData-Audit und Rückfallschutz) ist technisch abgeschlossen:
   - Die produktive Feed-/Artikelnavigation läuft in `ContentView` konsequent über
@@ -2398,6 +2421,46 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 ---
 
 ## Letzte Änderungen
+
+> Ab hier (neueste zuerst) synchron zu `CLAUDE.md` gehalten. Die Einträge darunter sind
+> das ältere, sehr detaillierte AGENTS.md-eigene Changelog und bleiben unverändert stehen.
+
+- 2026-07-09: OPML-Import-Dialog auf "Konzept A" migriert (`RuleDialogTheme`) — Dialog-Rahmen/
+  Header/Divider (Commit `fc26257`), Datei-Auswahlzeile/Toolbar/Buttons/Footer/Feed-Tabelle
+  (Commit `03dd4f14`, gemeinsam mit dem Header-Task umgesetzt, da der Zwischenstand sonst
+  nicht baut — Signaturänderung an `OPMLSecondaryButtonStyle`/`OPMLPrimaryButtonStyle` betrifft
+  7 Aufrufstellen über beide Tasks). Finaler Whole-Branch-Review (Opus) fand 1 Minor-Fund
+  (verbleibende `.foregroundStyle(.secondary)`-Reste statt `theme.text2`), in Commit `235a3b7`
+  behoben. `OPMLImportFeedRow.swift` bewusst ausgenommen (geteilt mit First-Run-Assistent,
+  eigenes `FirstRunTheme`). Plan: `docs/superpowers/plans/2026-07-09-opml-import-konzept-a.md`.
+- 2026-07-09: Feature 19.7 (App-interne Darstellungs-Einstellung, echter Dark Mode) umgesetzt
+  via Subagent-Driven-Development — neues `AppAppearance`-Enum (System/Hell/Dunkel) nach
+  `AppLanguage`-Vorbild, `.preferredColorScheme(...)` auf allen 5 SwiftUI-Scenes
+  (`FeedivoApp.swift`), neues `FirstRunTheme` (nach `RuleDialogTheme`-Vorbild) ersetzt ~14
+  hartcodierte `Color.white`/RGB-Stellen im First-Run-Assistenten, Metadaten-Inspector-
+  Hintergrund auf Systemsemantikfarbe umgestellt. Finaler Whole-Branch-Review (Opus): 3 Minor-
+  Funde, 2 direkt behoben. Im selben Rutsch nebenbei entdeckt und gefixt: `OPMLImportReviewView.swift`
+  hatte ebenfalls hartcodierte `Color.white`-Stellen — auf `Color.frostedCard(for:)` umgestellt,
+  was direkt zur obigen Konzept-A-Migration führte. Spec:
+  `docs/superpowers/specs/2026-07-09-dark-mode-theme-design.md`, Plan:
+  `docs/superpowers/plans/2026-07-09-dark-mode-theme.md`.
+- 2026-07-09: Feature 27 (Browser-Erweiterung Safari + Chrome, RSS-Feed hinzufügen) umgesetzt
+  via Subagent-Driven-Development — geteilte, Node-getestete Feed-Erkennungslogik
+  (`BrowserExtensions/Shared/feedDetection.mjs`), Chrome-Erweiterung
+  (`BrowserExtensions/Chrome/`) und Safari-Erweiterung (neues Xcode-Target
+  `FeedivoSafariExtension`, manuell angelegt) mit byte-identischem Code.
+- 2026-07-09: Feature 23.2 (URL-Schema `feedivo://add`/`feedivo://article`) umgesetzt via
+  Subagent-Driven-Development — `FeedivoURLSchemeParser`, physische `Info.plist`,
+  `NSApplicationDelegateAdaptor`/`FeedivoAppDelegate`.
+- 2026-07-07: SwiftData vollständig entfernt (30-Task-Plan, Subagent-Driven-Development,
+  finaler Whole-Branch-Review). Commits `575bcee23` (Löschung der 9 `@Model`-Klassen) und
+  `90b7216cc` (Nachtrags-Cleanup: toter Code, veraltete Kommentare) auf `main` gepusht.
+  GRDB/SQLite ist seither die alleinige Persistenzschicht — die "Datenmodell (SwiftData)"-
+  Sektion weiter unten in diesem File ist damit überholt (siehe ADR-007 in `CLAUDE.md`).
+
+---
+
+**Ältere Einträge (AGENTS.md-eigenes, sehr detailliertes Changelog, nicht mehr laufend gepflegt):**
 
 - 2026-07-05: Produktiven `ArticleMetadataInspectorView` wieder an die frühere
   Artikelinfo-Darstellung angeglichen, aber SQLite-only portiert. Der Inspector
