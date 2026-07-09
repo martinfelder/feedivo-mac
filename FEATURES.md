@@ -460,6 +460,13 @@
   - Im SQLite/GRDB-Hauptpfad lädt das Suchfenster keine globale SwiftData-
     Artikelliste mehr, sondern leichte `ArticleListSnapshot`s direkt aus
     `ArticleStore.searchArticles(state:)`.
+- **Konzept-A-Teilangleichung (2026-07-09):** Kopfzeile (Suchfeld, Filter-Picker,
+  Treffer-Badge) und die beiden Preview-Panel-Buttons ("Im Reader öffnen"/"Original
+  öffnen") nutzen jetzt `RuleDialogTheme`-Tokens statt hartcodiertem `Color.blue`
+  bzw. `.borderedProminent`/`.bordered`. Bewusst NICHT angefasst: `HSplitView`,
+  native `List(selection:)`-Ergebnisliste (Tastatur-Navigation, Fokus,
+  Zeilen-Selektion), `ArticleSearchResultRow` — ein voller Card-Umbau hätte die
+  native Listen-Bedienung riskiert und war nicht Teil des angefragten Umfangs.
 
 ### 9.3 Spotlight-Integration
 - **Status:** ✅ Entschieden — bereit zur Implementierung

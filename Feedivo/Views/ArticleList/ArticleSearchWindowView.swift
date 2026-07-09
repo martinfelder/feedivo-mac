@@ -5,6 +5,7 @@ struct ArticleSearchWindowView: View {
 
     @Environment(\.feedivoDatabase) private var database
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.colorScheme) private var colorScheme
 
     // SQLite-Feed-Liste für das Filter-Dropdown (statt @Query [Feed]). Wird beim
     // Erscheinen und bei Status-Version-Bumps neu geladen.
@@ -76,7 +77,9 @@ struct ArticleSearchWindowView: View {
     }
 
     private var searchHeader: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        let theme = RuleDialogTheme(colorScheme: colorScheme)
+
+        return VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(.secondary)
@@ -97,10 +100,10 @@ struct ArticleSearchWindowView: View {
             }
             .padding(.horizontal, 9)
             .frame(height: 30)
-            .background(.background, in: RoundedRectangle(cornerRadius: 7))
+            .background(theme.input, in: RoundedRectangle(cornerRadius: 7))
             .overlay {
                 RoundedRectangle(cornerRadius: 7)
-                    .stroke(.separator.opacity(0.5), lineWidth: 1)
+                    .stroke(theme.border, lineWidth: 1)
             }
 
             HStack(spacing: 8) {
@@ -114,16 +117,16 @@ struct ArticleSearchWindowView: View {
                 Text(L10n.articleSearchMatchCount(snapshots.count))
                     .font(.caption)
                     .fontWeight(.semibold)
-                    .foregroundStyle(.blue)
+                    .foregroundStyle(theme.accent)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 5)
-                    .background(.blue.opacity(0.13), in: Capsule())
+                    .background(theme.accent.opacity(0.13), in: Capsule())
             }
             .controlSize(.small)
         }
         .padding(.horizontal, 22)
         .padding(.vertical, 14)
-        .background(Color.blue.opacity(0.08))
+        .background(theme.card)
         .overlay(alignment: .bottom) {
             Divider()
         }
@@ -254,6 +257,7 @@ struct ArticleSearchWindowView: View {
         if let selectedSnapshot {
             ArticleSearchPreviewView(
                 snapshot: selectedSnapshot,
+                theme: RuleDialogTheme(colorScheme: colorScheme),
                 onOpenInReader: { openInReaderWindow(selectedSnapshot) },
                 onOpenOriginal: { openOriginal(selectedSnapshot) }
             )
@@ -450,6 +454,7 @@ private struct ArticleSearchResultRow: View {
 
 private struct ArticleSearchPreviewView: View {
     let snapshot: ArticleListSnapshot
+    let theme: RuleDialogTheme
     let onOpenInReader: () -> Void
     let onOpenOriginal: () -> Void
 
@@ -475,17 +480,33 @@ private struct ArticleSearchPreviewView: View {
                 }
 
                 HStack(spacing: 10) {
-                    Button(L10n.articleSearchOpenInReader) {
+                    Button {
                         onOpenInReader()
+                    } label: {
+                        Text(L10n.articleSearchOpenInReader)
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(theme.accent, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.plain)
 
                     Button {
                         onOpenOriginal()
                     } label: {
                         Label(L10n.articleOpenOriginalCommand, systemImage: "safari")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(theme.text)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .background(theme.card2, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                    .stroke(theme.border, lineWidth: 1)
+                            )
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.plain)
                     .disabled(snapshot.link == nil)
                 }
                 .padding(.top, 4)
