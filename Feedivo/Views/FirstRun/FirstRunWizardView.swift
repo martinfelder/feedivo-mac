@@ -12,6 +12,7 @@ struct FirstRunWizardView: View {
     }
 
     @Environment(\.feedivoDatabase) private var feedivoDatabase
+    @Environment(\.colorScheme) private var colorScheme
     @AppStorage("markArticleReadOnSelection") private var markArticleReadOnSelection = true
     @AppStorage(BackgroundRefreshSettings.isEnabledKey) private var isBackgroundRefreshEnabled = false
     @AppStorage(BackgroundRefreshSettings.intervalMinutesKey) private var backgroundRefreshIntervalMinutes = BackgroundRefreshSettings.defaultIntervalMinutes
@@ -34,6 +35,10 @@ struct FirstRunWizardView: View {
     @State private var feedURLString = ""
     @State private var completionSummary: FirstRunCompletionSummary?
     @State private var previewController = OPMLImportPreviewController(configuration: .firstRun)
+
+    private var theme: FirstRunTheme {
+        FirstRunTheme(colorScheme: colorScheme)
+    }
 
     private var tableBodyHeight: CGFloat {
         usesCompactEmptyImportPreview ? 170 : 280
@@ -69,7 +74,7 @@ struct FirstRunWizardView: View {
         .background(
             LinearGradient(
                 colors: [
-                    Color.white.opacity(0.70),
+                    theme.card.opacity(0.70),
                     Color(nsColor: .controlBackgroundColor).opacity(0.76)
                 ],
                 startPoint: .top,
@@ -79,7 +84,7 @@ struct FirstRunWizardView: View {
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(Color.white.opacity(0.72))
+                .stroke(theme.card.opacity(0.72))
         )
         .shadow(color: .black.opacity(0.16), radius: 34, y: 20)
         .overlay(dropOverlay)
@@ -374,7 +379,7 @@ struct FirstRunWizardView: View {
                 .disabled(previewController.isPreparingPreview)
             }
             .padding(10)
-            .background(Color.white.opacity(0.64), in: RoundedRectangle(cornerRadius: 9))
+            .background(theme.card.opacity(0.64), in: RoundedRectangle(cornerRadius: 9))
             .overlay(
                 RoundedRectangle(cornerRadius: 9)
                     .stroke(Color.secondary.opacity(0.16))
@@ -398,10 +403,10 @@ struct FirstRunWizardView: View {
         }
         .buttonStyle(.plain)
         .frame(maxWidth: .infinity, minHeight: 180)
-        .background(Color(red: 0.94, green: 0.97, blue: 1.0).opacity(0.78), in: RoundedRectangle(cornerRadius: 8))
+        .background(theme.dropZoneBackground.opacity(0.78), in: RoundedRectangle(cornerRadius: 8))
         .overlay(
             RoundedRectangle(cornerRadius: 8)
-                .stroke(Color(red: 0.18, green: 0.44, blue: 0.78).opacity(0.42), style: StrokeStyle(lineWidth: 1.5, dash: [6, 4]))
+                .stroke(theme.accentStroke.opacity(0.42), style: StrokeStyle(lineWidth: 1.5, dash: [6, 4]))
         )
     }
 
@@ -552,7 +557,7 @@ struct FirstRunWizardView: View {
         }
         .padding(16)
         .frame(maxWidth: 680, alignment: .leading)
-        .background(Color.white.opacity(0.68), in: RoundedRectangle(cornerRadius: 10))
+        .background(theme.card.opacity(0.68), in: RoundedRectangle(cornerRadius: 10))
         .overlay(
             RoundedRectangle(cornerRadius: 10)
                 .stroke(Color.secondary.opacity(0.16))
@@ -636,7 +641,7 @@ struct FirstRunWizardView: View {
             }
             .padding(16)
             .frame(maxWidth: 720, alignment: .leading)
-            .background(Color.white.opacity(0.68), in: RoundedRectangle(cornerRadius: 10))
+            .background(theme.card.opacity(0.68), in: RoundedRectangle(cornerRadius: 10))
             .overlay(
                 RoundedRectangle(cornerRadius: 10)
                     .stroke(Color.secondary.opacity(0.16))
@@ -903,7 +908,7 @@ struct FirstRunWizardView: View {
         }
         .frame(maxWidth: .infinity, minHeight: 110)
         .padding(.horizontal, 18)
-        .background(Color.white.opacity(0.62), in: RoundedRectangle(cornerRadius: 10))
+        .background(theme.card.opacity(0.62), in: RoundedRectangle(cornerRadius: 10))
         .overlay(
             RoundedRectangle(cornerRadius: 10)
                 .stroke(Color.secondary.opacity(0.16))
@@ -1023,10 +1028,16 @@ struct FirstRunWizardView: View {
 }
 
 private struct FirstRunChoiceCard: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     let iconName: String
     let title: String
     let subtitle: String
     let action: () -> Void
+
+    private var theme: FirstRunTheme {
+        FirstRunTheme(colorScheme: colorScheme)
+    }
 
     var body: some View {
         Button(action: action) {
@@ -1059,7 +1070,7 @@ private struct FirstRunChoiceCard: View {
             }
             .padding(18)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-            .background(Color.white.opacity(0.64), in: RoundedRectangle(cornerRadius: 10))
+            .background(theme.card.opacity(0.64), in: RoundedRectangle(cornerRadius: 10))
             .overlay(
                 RoundedRectangle(cornerRadius: 10)
                     .stroke(Color.secondary.opacity(0.16))
@@ -1126,10 +1137,16 @@ private struct FirstRunTrafficDot: View {
 }
 
 private struct FirstRunStepRow: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     let index: Int
     let title: String
     let subtitle: String
     let isActive: Bool
+
+    private var theme: FirstRunTheme {
+        FirstRunTheme(colorScheme: colorScheme)
+    }
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
@@ -1137,7 +1154,7 @@ private struct FirstRunStepRow: View {
                 .font(.system(size: 11, weight: .bold))
                 .foregroundStyle(isActive ? .white : .secondary)
                 .frame(width: 22, height: 22)
-                .background(isActive ? Color.accentColor : Color.white.opacity(0.72), in: Circle())
+                .background(isActive ? Color.accentColor : theme.card.opacity(0.72), in: Circle())
                 .overlay(
                     Circle()
                         .stroke(isActive ? Color.accentColor : Color.secondary.opacity(0.22))
@@ -1160,9 +1177,15 @@ private struct FirstRunStepRow: View {
 }
 
 private struct FirstRunSettingsLine<Accessory: View>: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     let title: String
     let subtitle: String
     @ViewBuilder let accessory: () -> Accessory
+
+    private var theme: FirstRunTheme {
+        FirstRunTheme(colorScheme: colorScheme)
+    }
 
     var body: some View {
         HStack(spacing: 18) {
@@ -1182,7 +1205,7 @@ private struct FirstRunSettingsLine<Accessory: View>: View {
         }
         .padding(.horizontal, 14)
         .frame(minHeight: 52)
-        .background(Color.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 8))
+        .background(theme.card.opacity(0.72), in: RoundedRectangle(cornerRadius: 8))
         .overlay(
             RoundedRectangle(cornerRadius: 8)
                 .stroke(Color.secondary.opacity(0.14))
@@ -1191,7 +1214,13 @@ private struct FirstRunSettingsLine<Accessory: View>: View {
 }
 
 private struct FirstRunSegmentButtonStyle: ButtonStyle {
+    @Environment(\.colorScheme) private var colorScheme
+
     let isActive: Bool
+
+    private var theme: FirstRunTheme {
+        FirstRunTheme(colorScheme: colorScheme)
+    }
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -1201,13 +1230,13 @@ private struct FirstRunSegmentButtonStyle: ButtonStyle {
             .frame(height: 28)
             .background(
                 isActive
-                    ? Color(red: 0.18, green: 0.44, blue: 0.78).opacity(configuration.isPressed ? 0.82 : 1)
-                    : Color.white.opacity(configuration.isPressed ? 0.55 : 0.72),
+                    ? theme.accentStroke.opacity(configuration.isPressed ? 0.82 : 1)
+                    : theme.card.opacity(configuration.isPressed ? 0.55 : 0.72),
                 in: RoundedRectangle(cornerRadius: 7)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 7)
-                    .stroke(isActive ? Color(red: 0.18, green: 0.44, blue: 0.78) : Color.secondary.opacity(0.14))
+                    .stroke(isActive ? theme.accentStroke : Color.secondary.opacity(0.14))
             )
     }
 }
