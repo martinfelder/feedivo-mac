@@ -366,6 +366,22 @@
   `SQLiteFeedSubscriptionServiceTests` migriert; der Source-Test
   `feedViewModelDelegiertOPMLPreviewAnSQLiteSubscriptionService` sichert den
   Delegator gegen Rückfall.
+- **Konzept-A-Redesign (2026-07-09, Plan
+  `docs/superpowers/plans/2026-07-09-opml-import-konzept-a.md`):**
+  `OPMLImportReviewView` auf dasselbe feste `RuleDialogTheme`-Farbsystem
+  (Light/Dark) umgestellt, das der OPML-Export-Dialog bereits nutzt —
+  Dialograhmen, Header, Datei-Auswahlzeile, Toolbar, Feed-Tabellen-Chrome,
+  Footer-Checkboxen (jetzt `RuleDialogCheckbox`-Muster statt nativem
+  `Toggle`/`.checkbox`) und beide Button-Stile (`OPMLSecondaryButtonStyle`,
+  `OPMLPrimaryButtonStyle`, beide nehmen jetzt `theme: RuleDialogTheme`
+  entgegen) sind visuell identisch zum Export-Dialog. Bewusst nicht angefasst:
+  `OPMLImportFeedRow.swift` — die Zeilenkomponente wird auch vom
+  First-Run-Assistenten genutzt (eigenes `FirstRunTheme`) und funktioniert dort
+  bereits korrekt in Hell/Dunkel; eine Migration hätte den bereits gelieferten
+  First-Run-Dark-Mode-Fix riskiert. Semantische Status-/Ergebnisfarben
+  (`resultMessage`/`errorMessage`-Banner, Zeilen-Status in
+  `OPMLImportFeedRow`) blieben ebenfalls unverändert, da sie Erfolg/Fehler statt
+  Marken-Chrome ausdrücken.
 
 ### 7.2 OPML Export
 - **Status:** ✔️ Fertig

@@ -32,7 +32,9 @@ struct OPMLImportReviewView: View {
                 .fill(RuleDialogTheme(colorScheme: colorScheme).border)
                 .frame(height: 1)
             content
-            Divider()
+            Rectangle()
+                .fill(RuleDialogTheme(colorScheme: colorScheme).border)
+                .frame(height: 1)
             footer
         }
         .background(RuleDialogTheme(colorScheme: colorScheme).bg)
@@ -166,9 +168,11 @@ struct OPMLImportReviewView: View {
     @ViewBuilder
     private var dropOverlay: some View {
         if previewController.isDropTargeted {
+            let accent = RuleDialogTheme(colorScheme: colorScheme).accent
+
             RoundedRectangle(cornerRadius: 12)
-                .stroke(Color.accentColor, lineWidth: 3)
-                .background(Color.accentColor.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+                .stroke(accent, lineWidth: 3)
+                .background(accent.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
                 .overlay(
                     VStack(spacing: 8) {
                         Image(systemName: "tray.and.arrow.down")
@@ -179,22 +183,24 @@ struct OPMLImportReviewView: View {
                             .font(.system(size: 12))
                             .foregroundStyle(.secondary)
                     }
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(accent)
                 )
                 .allowsHitTesting(false)
         }
     }
 
     private var filePicker: some View {
-        HStack(spacing: 12) {
+        let theme = RuleDialogTheme(colorScheme: colorScheme)
+
+        return HStack(spacing: 12) {
             Text("OPML")
                 .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(.blue)
+                .foregroundStyle(theme.accent)
                 .frame(width: 44, height: 44)
-                .background(Color.blue.opacity(0.12), in: RoundedRectangle(cornerRadius: 9))
+                .background(theme.accent.opacity(0.12), in: RoundedRectangle(cornerRadius: 9))
                 .overlay(
                     RoundedRectangle(cornerRadius: 9)
-                        .stroke(Color.blue.opacity(0.14))
+                        .stroke(theme.accent.opacity(0.14))
                 )
 
             VStack(alignment: .leading, spacing: 3) {
@@ -214,35 +220,27 @@ struct OPMLImportReviewView: View {
             Button(L10n.opmlImportChooseFile) {
                 previewController.isFileImporterPresented = true
             }
-            .buttonStyle(OPMLSecondaryButtonStyle())
+            .buttonStyle(OPMLSecondaryButtonStyle(theme: theme))
             .disabled(previewController.isPreparingPreview)
 
             Button(L10n.opmlImportRemoveFile) {
                 resetFile()
             }
-            .buttonStyle(OPMLSecondaryButtonStyle())
+            .buttonStyle(OPMLSecondaryButtonStyle(theme: theme))
             .disabled(previewController.rows.isEmpty && previewController.errorMessage == nil)
         }
         .padding(12)
-        .background(
-            LinearGradient(
-                colors: [
-                    Color.frostedCard(for: colorScheme).opacity(0.74),
-                    Color(nsColor: .controlBackgroundColor).opacity(0.88)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            ),
-            in: RoundedRectangle(cornerRadius: 10)
-        )
+        .background(theme.card, in: RoundedRectangle(cornerRadius: 10))
         .overlay(
             RoundedRectangle(cornerRadius: 10)
-                .stroke(Color.secondary.opacity(0.18))
+                .stroke(theme.border)
         )
     }
 
     private var toolbar: some View {
-        HStack(spacing: 10) {
+        let theme = RuleDialogTheme(colorScheme: colorScheme)
+
+        return HStack(spacing: 10) {
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 12, weight: .semibold))
@@ -253,10 +251,10 @@ struct OPMLImportReviewView: View {
             .foregroundStyle(.secondary)
             .padding(.horizontal, 10)
             .frame(height: 30)
-            .background(Color.frostedCard(for: colorScheme).opacity(0.82), in: RoundedRectangle(cornerRadius: 8))
+            .background(theme.input, in: RoundedRectangle(cornerRadius: 8))
             .overlay(
                 RoundedRectangle(cornerRadius: 8)
-                    .stroke(Color.secondary.opacity(0.16))
+                    .stroke(theme.border)
             )
 
             Spacer()
@@ -273,13 +271,13 @@ struct OPMLImportReviewView: View {
             Button(L10n.opmlImportSelectAll) {
                 previewController.selectAllImportableRows()
             }
-            .buttonStyle(OPMLSecondaryButtonStyle())
+            .buttonStyle(OPMLSecondaryButtonStyle(theme: theme))
             .disabled(previewController.rows.isEmpty)
 
             Button(L10n.opmlImportDeselectAll) {
                 previewController.deselectVisibleRows()
             }
-            .buttonStyle(OPMLSecondaryButtonStyle())
+            .buttonStyle(OPMLSecondaryButtonStyle(theme: theme))
             .disabled(previewController.rows.isEmpty)
 
             Divider()
@@ -292,13 +290,15 @@ struct OPMLImportReviewView: View {
             Button(L10n.opmlImportCreateFolder) {
                 previewController.createFolder()
             }
-            .buttonStyle(OPMLSecondaryButtonStyle())
+            .buttonStyle(OPMLSecondaryButtonStyle(theme: theme))
             .disabled(previewController.newFolderName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
     }
 
     private var feedTable: some View {
-        VStack(spacing: 0) {
+        let theme = RuleDialogTheme(colorScheme: colorScheme)
+
+        return VStack(spacing: 0) {
             tableHeader
 
             ScrollView {
@@ -326,16 +326,18 @@ struct OPMLImportReviewView: View {
             }
             .frame(height: tableBodyHeight)
         }
-        .background(Color(nsColor: .textBackgroundColor))
+        .background(theme.bg)
         .clipShape(RoundedRectangle(cornerRadius: 9))
         .overlay(
             RoundedRectangle(cornerRadius: 9)
-                .stroke(Color.secondary.opacity(0.18))
+                .stroke(theme.border)
         )
     }
 
     private var tableHeader: some View {
-        HStack(spacing: 10) {
+        let theme = RuleDialogTheme(colorScheme: colorScheme)
+
+        return HStack(spacing: 10) {
             Text("")
                 .frame(width: 34, alignment: .leading)
             Text(L10n.opmlImportTableHeaderFeed)
@@ -348,11 +350,11 @@ struct OPMLImportReviewView: View {
                 .frame(width: 108, alignment: .leading)
         }
         .font(.system(size: 11, weight: .bold))
-        .foregroundStyle(.secondary)
+        .foregroundStyle(theme.text2)
         .textCase(.uppercase)
         .frame(height: 34)
         .padding(.horizontal, 12)
-        .background(Color(nsColor: .controlBackgroundColor))
+        .background(theme.card)
     }
 
     private var emptyRow: some View {
@@ -406,28 +408,59 @@ struct OPMLImportReviewView: View {
     }
 
     private var footer: some View {
-        HStack(spacing: 16) {
-            Toggle(L10n.opmlImportRefreshAfter, isOn: $previewController.refreshAfterImport)
-                .toggleStyle(.checkbox)
-            Toggle(L10n.opmlImportAllowDuplicates, isOn: $previewController.allowsDuplicates)
-                .toggleStyle(.checkbox)
-            Toggle(L10n.opmlImportAllowUnreachable, isOn: $previewController.allowsUnreachable)
-                .toggleStyle(.checkbox)
+        let theme = RuleDialogTheme(colorScheme: colorScheme)
+
+        return HStack(spacing: 16) {
+            Button {
+                previewController.refreshAfterImport.toggle()
+            } label: {
+                HStack(spacing: 8) {
+                    RuleDialogCheckbox(isOn: previewController.refreshAfterImport, theme: theme)
+                    Text(L10n.opmlImportRefreshAfter)
+                        .font(.system(size: 13))
+                        .foregroundStyle(theme.text)
+                }
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                previewController.allowsDuplicates.toggle()
+            } label: {
+                HStack(spacing: 8) {
+                    RuleDialogCheckbox(isOn: previewController.allowsDuplicates, theme: theme)
+                    Text(L10n.opmlImportAllowDuplicates)
+                        .font(.system(size: 13))
+                        .foregroundStyle(theme.text)
+                }
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                previewController.allowsUnreachable.toggle()
+            } label: {
+                HStack(spacing: 8) {
+                    RuleDialogCheckbox(isOn: previewController.allowsUnreachable, theme: theme)
+                    Text(L10n.opmlImportAllowUnreachable)
+                        .font(.system(size: 13))
+                        .foregroundStyle(theme.text)
+                }
+            }
+            .buttonStyle(.plain)
 
             Spacer()
 
             Button(L10n.opmlImportCancel) {
                 dismiss()
             }
-            .buttonStyle(OPMLSecondaryButtonStyle())
+            .buttonStyle(OPMLSecondaryButtonStyle(theme: theme))
             Button(importButtonTitle) {
                 importSelectedFeeds()
             }
-            .buttonStyle(OPMLPrimaryButtonStyle())
+            .buttonStyle(OPMLPrimaryButtonStyle(theme: theme))
             .disabled(previewController.selectedImportRows.isEmpty || previewController.isPreparingPreview || feedViewModel.isLoading)
         }
-        .padding(18)
-        .background(Color(nsColor: .controlBackgroundColor).opacity(0.9))
+        .padding(.horizontal, 26)
+        .padding(.vertical, 16)
     }
 
     private var importButtonTitle: String {
@@ -490,25 +523,30 @@ struct OPMLImportReviewView: View {
 }
 
 private struct OPMLSecondaryButtonStyle: ButtonStyle {
-    @Environment(\.colorScheme) private var colorScheme
+    let theme: RuleDialogTheme
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.system(size: 13, weight: .semibold))
-            .foregroundStyle(Color.primary)
+            .foregroundStyle(theme.text)
             .padding(.horizontal, 11)
             .frame(height: 30)
-            .background(Color.frostedCard(for: colorScheme).opacity(configuration.isPressed ? 0.62 : 0.9), in: RoundedRectangle(cornerRadius: 7))
+            .background(
+                (configuration.isPressed ? theme.card : theme.card2),
+                in: RoundedRectangle(cornerRadius: 7)
+            )
             .overlay(
                 RoundedRectangle(cornerRadius: 7)
-                    .stroke(Color.secondary.opacity(0.18))
+                    .stroke(theme.border)
             )
+            .shadow(color: .black.opacity(0.04), radius: 1, x: 0, y: 1)
             .scaleEffect(configuration.isPressed ? 0.98 : 1)
     }
 }
 
 private struct OPMLPrimaryButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
+    let theme: RuleDialogTheme
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -517,10 +555,11 @@ private struct OPMLPrimaryButtonStyle: ButtonStyle {
             .padding(.horizontal, 12)
             .frame(height: 30)
             .background(
-                (isEnabled ? Color.accentColor : Color.secondary.opacity(0.45))
+                (isEnabled ? theme.accent : Color.secondary.opacity(0.45))
                     .opacity(configuration.isPressed ? 0.82 : 1),
                 in: RoundedRectangle(cornerRadius: 7)
             )
+            .shadow(color: theme.accent.opacity(isEnabled ? 0.45 : 0), radius: 1.5, x: 0, y: 1)
             .scaleEffect(configuration.isPressed ? 0.98 : 1)
     }
 }
