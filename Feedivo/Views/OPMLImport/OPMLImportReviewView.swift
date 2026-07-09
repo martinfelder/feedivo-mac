@@ -168,11 +168,11 @@ struct OPMLImportReviewView: View {
     @ViewBuilder
     private var dropOverlay: some View {
         if previewController.isDropTargeted {
-            let accent = RuleDialogTheme(colorScheme: colorScheme).accent
+            let theme = RuleDialogTheme(colorScheme: colorScheme)
 
             RoundedRectangle(cornerRadius: 12)
-                .stroke(accent, lineWidth: 3)
-                .background(accent.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+                .stroke(theme.accent, lineWidth: 3)
+                .background(theme.accent.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
                 .overlay(
                     VStack(spacing: 8) {
                         Image(systemName: "tray.and.arrow.down")
@@ -181,9 +181,9 @@ struct OPMLImportReviewView: View {
                             .font(.system(size: 15, weight: .semibold))
                         Text(L10n.opmlImportDropOverlayHint)
                             .font(.system(size: 12))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(theme.text2)
                     }
-                    .foregroundStyle(accent)
+                    .foregroundStyle(theme.accent)
                 )
                 .allowsHitTesting(false)
         }
@@ -210,7 +210,7 @@ struct OPMLImportReviewView: View {
                     .truncationMode(.middle)
                 Text(previewController.sourceDescription)
                     .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(theme.text2)
                     .lineLimit(1)
                     .truncationMode(.tail)
             }
@@ -248,7 +248,7 @@ struct OPMLImportReviewView: View {
                     .font(.system(size: 13))
                     .lineLimit(1)
             }
-            .foregroundStyle(.secondary)
+            .foregroundStyle(theme.text2)
             .padding(.horizontal, 10)
             .frame(height: 30)
             .background(theme.input, in: RoundedRectangle(cornerRadius: 8))
@@ -372,7 +372,9 @@ struct OPMLImportReviewView: View {
     }
 
     private var previewProgressRow: some View {
-        VStack(spacing: 12) {
+        let theme = RuleDialogTheme(colorScheme: colorScheme)
+
+        return VStack(spacing: 12) {
             ProgressView()
                 .controlSize(.small)
             VStack(spacing: 5) {
@@ -382,7 +384,7 @@ struct OPMLImportReviewView: View {
                     .multilineTextAlignment(.center)
                 Text(previewController.previewProgressText)
                     .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(theme.text2)
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
             }
@@ -392,14 +394,16 @@ struct OPMLImportReviewView: View {
     }
 
     private func centeredTableMessage(title: String, subtitle: String) -> some View {
-        VStack(spacing: 5) {
+        let theme = RuleDialogTheme(colorScheme: colorScheme)
+
+        return VStack(spacing: 5) {
             Text(title)
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(.primary)
                 .multilineTextAlignment(.center)
             Text(subtitle)
                 .font(.system(size: 12))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(theme.text2)
                 .multilineTextAlignment(.center)
                 .lineLimit(2)
         }
