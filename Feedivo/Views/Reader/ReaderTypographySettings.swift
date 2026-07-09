@@ -16,4 +16,5 @@ enum ReaderTypographySettings {
     static let lineSpacingKey = "readerLineSpacing"
     static let titleLineSpacingKey = "readerTitleLineSpacing"
     static let contentWidthKey = "readerContentWidth"
+    static let showsArticleImagesKey = "readerShowsArticleImages"
 }

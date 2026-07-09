@@ -15942,6 +15942,34 @@
         }
       }
     },
+    "reader.showsArticleImages.toggle" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bilder im Artikeltext"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Images in article text"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Images dans le texte de l'article"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Immagini nel testo dell'articolo"
+          }
+        }
+      }
+    },
     "reader.titleFont.bold.toggle" : {
       "localizations" : {
         "de" : {
@@ -26861,6 +26889,9 @@
       }
     },
     "Zeigt die Anzahl ungelesener Artikel im Dock." : {
+
+    },
+    "Zeigt oder verbirgt Bilder im Artikeltext, unabhängig von den Vorschaubildern in der Artikelliste." : {
 
     },
     "Zurück" : {

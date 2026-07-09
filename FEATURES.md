@@ -832,11 +832,16 @@
   - Sidebar-Sections komplett ausblenden
 
 ### 19.3 Reader anpassen
-- **Status:** ✅ Entschieden — bereit zur Implementierung
-- **Zu implementieren:**
-  - Maximale Textbreite: umgesetzt als stufenloser Regler
-  - Titel und Artikeltext separat fett darstellen: umgesetzt in Reader-Popover und Einstellungen → Darstellung
-  - Artikelbild im Reader: anzeigen / ausblenden (separat von Vorschaubildern)
+- **Status:** ✔️ Fertig
+- **Umgesetzt (2026-07-09):**
+  - Maximale Textbreite: stufenloser Regler (bereits vorhanden)
+  - Titel und Artikeltext separat fett darstellen: bereits vorhanden in Reader-Popover und
+    Einstellungen → Darstellung
+  - Artikelbild im Reader: anzeigen / ausblenden, separat von den Vorschaubildern der Artikelliste
+    (`ReaderTypographySettings.showsArticleImagesKey`) — Toggle im Reader-Popover UND in
+    Einstellungen → Darstellung → "Artikel lesen"; blendet nur `.image`-Content-Blocks im
+    nativen Reader aus, Filterung passiert beim Rendern (`ReaderModeContent.displayedContentBlocks`),
+    nicht beim Parsen
 - **Nicht umsetzen:** Hintergrundbild / Sepia-Modus
 
 ### 19.4 Toolbar anpassen

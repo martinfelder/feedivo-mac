@@ -355,6 +355,9 @@ private struct NewAppearanceSettingsView: View {
     @AppStorage(ReaderTypographySettings.contentWidthKey)
     private var readerContentWidth = ReaderTypography.defaultContentWidth
 
+    @AppStorage(ReaderTypographySettings.showsArticleImagesKey)
+    private var readerShowsArticleImages = ReaderTypography.defaultShowsArticleImages
+
     @AppStorage(ArticleListImagePosition.storageKey)
     private var articleListImagePositionRawValue = ArticleListImagePosition.defaultPosition.rawValue
 
@@ -513,6 +516,14 @@ private struct NewAppearanceSettingsView: View {
 
                 NewSettingRow(title: L10n.readerContentWidthSlider, description: "Breite der Lesespalte im Reader.") {
                     NewSlider(value: $readerContentWidth, range: ReaderTypography.contentWidthRange, suffix: "px")
+                }
+
+                NewSettingRow(
+                    title: L10n.readerShowsArticleImagesToggle,
+                    description: "Zeigt oder verbirgt Bilder im Artikeltext, unabhängig von den Vorschaubildern in der Artikelliste."
+                ) {
+                    Toggle("", isOn: $readerShowsArticleImages)
+                        .labelsHidden()
                 }
             }
         }

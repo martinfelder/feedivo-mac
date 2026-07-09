@@ -339,6 +339,10 @@ struct FeedivoTests {
         #expect(!ReaderTypography.defaultBodyFontIsBold)
     }
 
+    @Test func readerTypographyZeigtArtikelbilderStandardmaessig() {
+        #expect(ReaderTypography.defaultShowsArticleImages)
+    }
+
     @Test func readerTypographyDefiniertEditorialReaderRhythmus() {
         #expect(ReaderTypography.articleTopPadding == 44)
         #expect(ReaderTypography.articleBottomPadding == 28)

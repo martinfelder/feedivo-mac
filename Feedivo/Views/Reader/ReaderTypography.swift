@@ -5,6 +5,7 @@ enum ReaderTypography {
     static let defaultBodyFontSize = 17.0
     static let defaultTitleFontIsBold = false
     static let defaultBodyFontIsBold = false
+    static let defaultShowsArticleImages = true
     static let bodyFontSizeRange = 14.0...24.0
 
     static let defaultLineSpacing = 5.0

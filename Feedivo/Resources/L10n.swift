@@ -67,6 +67,7 @@ enum L10n {
     static let readerTitleLineSpacingSlider = LocalizedStringKey("reader.titleLineSpacing.slider")
     static let readerLineSpacingSlider = LocalizedStringKey("reader.lineSpacing.slider")
     static let readerContentWidthSlider = LocalizedStringKey("reader.contentWidth.slider")
+    static let readerShowsArticleImagesToggle = LocalizedStringKey("reader.showsArticleImages.toggle")
     static let readerDisplayModePicker = LocalizedStringKey("reader.displayMode.picker")
     static let readerDisplayModeNative = LocalizedStringKey("reader.displayMode.native")
     static let readerDisplayModeWeb = LocalizedStringKey("reader.displayMode.web")

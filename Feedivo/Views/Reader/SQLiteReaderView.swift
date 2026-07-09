@@ -45,6 +45,9 @@ struct SQLiteReaderView: View {
     @AppStorage(ReaderTypographySettings.contentWidthKey)
     private var readerContentWidth = ReaderTypography.defaultContentWidth
 
+    @AppStorage(ReaderTypographySettings.showsArticleImagesKey)
+    private var readerShowsArticleImages = ReaderTypography.defaultShowsArticleImages
+
     @AppStorage(ReaderDisplayMode.storageKey)
     private var readerDisplayModeRawValue = ReaderDisplayMode.defaultMode.rawValue
 
@@ -337,6 +340,7 @@ struct SQLiteReaderView: View {
             webNavigationController: webNavigationController,
             originalURL: originalURL,
             clampedContentWidth: clampedContentWidth,
+            showsArticleImages: readerShowsArticleImages,
             contentBlockSpacing: contentBlockSpacing,
             imageTextDividerSpacing: imageTextDividerSpacing,
             articleTopPadding: articleTopPadding,
@@ -611,6 +615,8 @@ struct SQLiteReaderView: View {
                 displayedValue: ReaderTypography.clampedContentWidth(readerContentWidth),
                 step: ReaderTypography.contentWidthStep
             )
+
+            Toggle(L10n.readerShowsArticleImagesToggle, isOn: $readerShowsArticleImages)
         }
         .padding(16)
         .frame(width: 320)
@@ -690,6 +696,7 @@ private struct ReaderModeContent: View {
     let webNavigationController: WebNavigationController
     let originalURL: URL?
     let clampedContentWidth: CGFloat
+    let showsArticleImages: Bool
     let contentBlockSpacing: CGFloat
     let imageTextDividerSpacing: CGFloat
     let articleTopPadding: CGFloat
@@ -699,6 +706,24 @@ private struct ReaderModeContent: View {
     let readerFooter: (ArticleReaderSnapshot) -> AnyView
     let readerSectionDivider: AnyView
     let shouldShowImageTextDivider: (Int, [ReaderContentBlock]) -> Bool
+
+    // Bilder aus dem Artikeltext (separat von den Vorschaubildern der Artikelliste,
+    // Feature 19.1) lassen sich hier ausblenden. Die Filterung passiert bewusst erst
+    // beim Rendern statt beim Parsen in ReaderContentRenderer, damit contentBlocks
+    // unabhängig vom Anzeige-Toggle bleibt.
+    private var displayedContentBlocks: [ReaderContentBlock] {
+        guard !showsArticleImages else {
+            return state.preparedArticle.contentBlocks
+        }
+
+        return state.preparedArticle.contentBlocks.filter { block in
+            if case .image = block {
+                return false
+            }
+
+            return true
+        }
+    }
 
     var body: some View {
         Group {
@@ -727,11 +752,11 @@ private struct ReaderModeContent: View {
                         if let snapshot = state.snapshot {
                             readerHeader(snapshot)
 
-                            ForEach(ReaderContentBlockEntry.entries(from: state.preparedArticle.contentBlocks)) { entry in
+                            ForEach(ReaderContentBlockEntry.entries(from: displayedContentBlocks)) { entry in
                                 VStack(alignment: .leading, spacing: imageTextDividerSpacing) {
                                     contentBlock(entry.block)
 
-                                    if shouldShowImageTextDivider(entry.index, state.preparedArticle.contentBlocks) {
+                                    if shouldShowImageTextDivider(entry.index, displayedContentBlocks) {
                                         readerSectionDivider
                                     }
                                 }

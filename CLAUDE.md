@@ -426,17 +426,37 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   `origin/main` gepusht — neues `AppAppearance`-Enum, `FirstRunTheme`, Inspector-Fix.
 - OPML-Import-Dialog auf "Konzept A" (`RuleDialogTheme`) migriert und auf `origin/main`
   gepusht — visuelle Parität mit dem OPML-Export-Dialog.
+- Suchfenster (`ArticleSearchWindowView`) ebenfalls auf Konzept A (`RuleDialogTheme`) migriert
+  und gepusht (`d49833d3`) — Kopfzeile + Preview-Panel-Buttons.
+- Feature 19.2 (Sidebar anpassen: Ungelesen-Zähler + Favicons ein-/ausblendbar) umgesetzt,
+  Build/Tests grün, committed und auf `origin/main` gepusht (`70ae13e7`).
 - Ausstehend (nicht automatisierbar, kein computer-use für native macOS-Apps in dieser
-  Umgebung): manuelle visuelle Verifikation beider Features durch den Nutzer — First-Run/
+  Umgebung): manuelle visuelle Verifikation von Dark Mode/OPML-Import durch den Nutzer — First-Run/
   Inspector-Farbwerte (bewusste Startwerte, ggf. Nachjustierung) und Import/Export-Dialog
   Seite an Seite in Hell und Dunkel.
-- Nächster sinnvoller Schritt laut offenen Punkten: Entscheidung über `codex/icloud-sync-beta`
-  treffen (migrieren+mergen vs. verwerfen), da der Branch sonst weiter divergiert.
+- Feature 19.3 (Reader anpassen) abgeschlossen — Textbreite-Regler und Titel/Text-fett-Toggles
+  waren bereits vorhanden, neu ergänzt: Artikelbild im Reader anzeigen/ausblenden
+  (`ReaderTypographySettings.showsArticleImagesKey`), Toggle im Reader-Popover UND in
+  Einstellungen → Darstellung. Filterung passiert bei der Anzeige
+  (`ReaderModeContent.displayedContentBlocks`), nicht beim Parsen in `ReaderContentRenderer`.
+  Build und Tests (46/46) grün, noch nicht committed.
+- Weiterhin offen laut FEATURES.md-Entscheidung vom 2026-07-02: `codex/icloud-sync-beta` ist
+  bewusst zugunsten des SQLite/GRDB-Umbaus zurückgestellt (nicht nur unentschieden) — der Umbau
+  ist inzwischen abgeschlossen (ADR-007), eine erneute Bewertung des Branches steht noch aus.
 
 ---
 
 ## Letzte Änderungen
 
+- 2026-07-09: Feature 19.2 (Sidebar anpassen) umgesetzt — neue `@AppStorage`-Keys in
+  `SidebarFeedVisibilitySettings` für Ungelesen-Zähler und Favicon ein-/ausblendbar,
+  `FeedRowView` conditional rendering, Settings-UI-Toggles in `NewAppearanceSettingsView`,
+  L10n-Keys + `Localizable.xcstrings`-Einträge (de/en/fr/it). Build und Tests grün. Committed
+  und auf `origin/main` gepusht (`70ae13e7`).
+- 2026-07-09: Suchfenster (`ArticleSearchWindowView`) auf Konzept A (`RuleDialogTheme`)
+  migriert — Kopfzeile + `ArticleSearchPreviewView`-Buttons auf die gleichen Design-Tokens
+  wie Export-/Import-Dialog umgestellt. Build und Tests grün. Committed und gepusht
+  (`d49833d3`).
 - 2026-07-09: OPML-Import-Dialog auf "Konzept A" migriert (`RuleDialogTheme`) — Dialog-Rahmen/
   Header/Divider (Commit `fc26257`), Datei-Auswahlzeile/Toolbar/Buttons/Footer/Feed-Tabelle
   (Commit `03dd4f14`, gemeinsam mit dem Header-Task umgesetzt, da der Zwischenstand sonst
