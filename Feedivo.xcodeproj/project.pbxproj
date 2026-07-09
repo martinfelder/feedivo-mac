@@ -10,9 +10,17 @@
 		C9102A872FE5A9A300E81C7E /* FeedKit in Frameworks */ = {isa = PBXBuildFile; productRef = C9102A862FE5A9A300E81C7E /* FeedKit */; };
 		C9102A892FE5A9A300E81C7E /* XMLKit in Frameworks */ = {isa = PBXBuildFile; productRef = C9102A882FE5A9A300E81C7E /* XMLKit */; };
 		C95F7D0A3315F04A00A1B2C3 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = C95F7D093315F04A00A1B2C3 /* GRDB */; };
+		C994A9432FFF91F900158DF3 /* FeedivoSafariExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = C994A92B2FFF91F900158DF3 /* FeedivoSafariExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		C994A9412FFF91F900158DF3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = C9CE924F2FE5A90700B9C79A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = C994A92A2FFF91F900158DF3;
+			remoteInfo = FeedivoSafariExtension;
+		};
 		C9CE92652FE5A90800B9C79A /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = C9CE924F2FE5A90700B9C79A /* Project object */;
@@ -29,13 +37,35 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		C994A9482FFF91F900158DF3 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				C994A9432FFF91F900158DF3 /* FeedivoSafariExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		C994A92B2FFF91F900158DF3 /* FeedivoSafariExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = FeedivoSafariExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		C9CE92572FE5A90700B9C79A /* Feedivo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Feedivo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C9CE92642FE5A90800B9C79A /* FeedivoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FeedivoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		C9CE926E2FE5A90800B9C79A /* FeedivoUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FeedivoUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		C994A9472FFF91F900158DF3 /* Exceptions for "FeedivoSafariExtension" folder in "FeedivoSafariExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = C994A92A2FFF91F900158DF3 /* FeedivoSafariExtension */;
+		};
 		C9E6094407DF749F765F5521 /* Exceptions for "Feedivo" folder in "Feedivo" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -46,6 +76,18 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		C994A92C2FFF91F900158DF3 /* FeedivoSafariExtension */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				C994A9472FFF91F900158DF3 /* Exceptions for "FeedivoSafariExtension" folder in "FeedivoSafariExtension" target */,
+			);
+			explicitFolders = (
+				Resources/_locales,
+				Resources/images,
+			);
+			path = FeedivoSafariExtension;
+			sourceTree = "<group>";
+		};
 		C9CE92592FE5A90700B9C79A /* Feedivo */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -67,6 +109,13 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		C994A9282FFF91F900158DF3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		C9CE92542FE5A90700B9C79A /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -100,6 +149,7 @@
 				C9CE92592FE5A90700B9C79A /* Feedivo */,
 				C9CE92672FE5A90800B9C79A /* FeedivoTests */,
 				C9CE92712FE5A90800B9C79A /* FeedivoUITests */,
+				C994A92C2FFF91F900158DF3 /* FeedivoSafariExtension */,
 				C9CE92582FE5A90700B9C79A /* Products */,
 			);
 			sourceTree = "<group>";
@@ -110,6 +160,7 @@
 				C9CE92572FE5A90700B9C79A /* Feedivo.app */,
 				C9CE92642FE5A90800B9C79A /* FeedivoTests.xctest */,
 				C9CE926E2FE5A90800B9C79A /* FeedivoUITests.xctest */,
+				C994A92B2FFF91F900158DF3 /* FeedivoSafariExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -117,6 +168,28 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		C994A92A2FFF91F900158DF3 /* FeedivoSafariExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C994A9442FFF91F900158DF3 /* Build configuration list for PBXNativeTarget "FeedivoSafariExtension" */;
+			buildPhases = (
+				C994A9272FFF91F900158DF3 /* Sources */,
+				C994A9282FFF91F900158DF3 /* Frameworks */,
+				C994A9292FFF91F900158DF3 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				C994A92C2FFF91F900158DF3 /* FeedivoSafariExtension */,
+			);
+			name = FeedivoSafariExtension;
+			packageProductDependencies = (
+			);
+			productName = FeedivoSafariExtension;
+			productReference = C994A92B2FFF91F900158DF3 /* FeedivoSafariExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		C9CE92562FE5A90700B9C79A /* Feedivo */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = C9CE92782FE5A90800B9C79A /* Build configuration list for PBXNativeTarget "Feedivo" */;
@@ -124,10 +197,12 @@
 				C9CE92532FE5A90700B9C79A /* Sources */,
 				C9CE92542FE5A90700B9C79A /* Frameworks */,
 				C9CE92552FE5A90700B9C79A /* Resources */,
+				C994A9482FFF91F900158DF3 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				C994A9422FFF91F900158DF3 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				C9CE92592FE5A90700B9C79A /* Feedivo */,
@@ -195,9 +270,12 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 2650;
+				LastSwiftUpdateCheck = 2660;
 				LastUpgradeCheck = 2650;
 				TargetAttributes = {
+					C994A92A2FFF91F900158DF3 = {
+						CreatedOnToolsVersion = 26.6;
+					};
 					C9CE92562FE5A90700B9C79A = {
 						CreatedOnToolsVersion = 26.5;
 					};
@@ -232,11 +310,19 @@
 				C9CE92562FE5A90700B9C79A /* Feedivo */,
 				C9CE92632FE5A90800B9C79A /* FeedivoTests */,
 				C9CE926D2FE5A90800B9C79A /* FeedivoUITests */,
+				C994A92A2FFF91F900158DF3 /* FeedivoSafariExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		C994A9292FFF91F900158DF3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		C9CE92552FE5A90700B9C79A /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -261,6 +347,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		C994A9272FFF91F900158DF3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		C9CE92532FE5A90700B9C79A /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -285,6 +378,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		C994A9422FFF91F900158DF3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = C994A92A2FFF91F900158DF3 /* FeedivoSafariExtension */;
+			targetProxy = C994A9412FFF91F900158DF3 /* PBXContainerItemProxy */;
+		};
 		C9CE92662FE5A90800B9C79A /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = C9CE92562FE5A90700B9C79A /* Feedivo */;
@@ -298,6 +396,76 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		C994A9452FFF91F900158DF3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = X72F89J699;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = FeedivoSafariExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = FeedivoSafariExtension;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.5;
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = ch.martin.Feedivo.FeedivoSafariExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		C994A9462FFF91F900158DF3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = X72F89J699;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = FeedivoSafariExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = FeedivoSafariExtension;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.5;
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = ch.martin.Feedivo.FeedivoSafariExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
 		C9CE92762FE5A90800B9C79A /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -569,6 +737,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		C994A9442FFF91F900158DF3 /* Build configuration list for PBXNativeTarget "FeedivoSafariExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C994A9452FFF91F900158DF3 /* Debug */,
+				C994A9462FFF91F900158DF3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		C9CE92522FE5A90700B9C79A /* Build configuration list for PBXProject "Feedivo" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
