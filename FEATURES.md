@@ -900,7 +900,28 @@
   - `feedivo://add?url=https://...` — Feed direkt hinzufügen
   - `feedivo://article?id=...` — direkt zu einem Artikel springen
   - Nützlich für macOS Shortcuts, Raycast, Alfred, Automator
-  - URL-Schema in `Info.plist` registrieren
+  - URL-Schema in `Info.plist` registrieren (`CFBundleURLTypes`, Scheme `feedivo`)
+- **Implementierungsdetails (final besprochen 2026-07-09):**
+  - Einstiegspunkt: `.onOpenURL` auf `ContentView` (Inhalt der Haupt-
+    `WindowGroup` in `FeedivoApp.swift` — dort sind `openWindow` und der
+    Add-Feed-Sheet-State bereits vorhanden); Parsing via `URLComponents` —
+    `host` bestimmt die Aktion (`add`/`article`)
+  - `add`: `AddFeedSheet` (`SidebarView.swift`) bekommt neuen Init-Parameter
+    `initialURLString: String? = nil`, der `urlString` vorbefüllt; ist die URL
+    per Deep Link vorausgefüllt, ruft das Sheet beim Erscheinen einmalig
+    automatisch die bestehende Vorschau-Logik (Feature 12.4) auf — kein
+    zusätzlicher Klick nötig. Beim normalen manuellen Öffnen (Sidebar-Button)
+    kein Auto-Trigger, Verhalten bleibt unverändert
+  - `article`: `id`-Query-Item als `UUID` parsen, `openWindow(value:
+    ArticleWindowRequest(articleID:))` über die bereits bestehende
+    `WindowGroup(for: ArticleWindowRequest.self)` (Artikel-Popout); ungültige/
+    nicht existierende IDs laufen über das bestehende `loadErrorMessage`-
+    Handling in `ArticleWindowView` — kein neuer Code nötig
+  - Unbekannter Host oder fehlende/kaputte Query-Parameter: URL wird still
+    ignoriert (kein Alert, kein Crash)
+  - Testing: URL-Parsing (Scheme/Host/Query → Action) ist reine Funktion,
+    isoliert unit-testbar; End-to-End (`open feedivo://...` via Terminal) nur
+    manuell testbar
 
 ---
 
