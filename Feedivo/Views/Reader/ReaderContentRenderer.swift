@@ -268,7 +268,9 @@ enum ReaderContentRenderer {
             .filter { !$0.isEmpty }
     }
 
-    private static func htmlToPlainText(_ html: String) -> String {
+    // Nicht mehr `private`: wird auch für Vorschautexte (Artikelliste, Suche)
+    // außerhalb der strukturierten Block-Darstellung genutzt.
+    static func htmlToPlainText(_ html: String) -> String {
         let withLineBreakSpaces = stringByReplacingMatches(
             in: html,
             expression: lineBreakExpression,

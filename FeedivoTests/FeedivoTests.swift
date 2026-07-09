@@ -222,6 +222,14 @@ struct FeedivoTests {
         ])
     }
 
+    @Test func readerContentRendererWandeltHTMLInReinenVorschautextUm() {
+        let plainText = ReaderContentRenderer.htmlToPlainText(
+            #"<div style="float: center;"><img width="500" height="281" src="https://example.com/bild.jpg" alt=""/></div>Der eigentliche Vorschautext."#
+        )
+
+        #expect(plainText == "Der eigentliche Vorschautext.")
+    }
+
     @Test func readerContentRendererDekodiertEntitiesAuchInTextOhneTags() {
         let blocks = ReaderContentRenderer.blocks(
             summary: nil,

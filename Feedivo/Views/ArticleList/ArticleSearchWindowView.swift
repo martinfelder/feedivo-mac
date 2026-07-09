@@ -426,7 +426,7 @@ private struct ArticleSearchResultRow: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-                if let summary = snapshot.summary, !summary.isEmpty {
+                if let summary = snapshot.summary.map(ReaderContentRenderer.htmlToPlainText), !summary.isEmpty {
                     Text(summary)
                         .font(.callout)
                         .foregroundStyle(.secondary)
@@ -468,7 +468,7 @@ private struct ArticleSearchPreviewView: View {
                 .font(.callout)
                 .foregroundStyle(.secondary)
 
-                if let summary = snapshot.summary, !summary.isEmpty {
+                if let summary = snapshot.summary.map(ReaderContentRenderer.htmlToPlainText), !summary.isEmpty {
                     Text(summary)
                         .font(.body)
                         .foregroundStyle(.secondary)

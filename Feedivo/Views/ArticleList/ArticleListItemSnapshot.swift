@@ -19,7 +19,7 @@ struct ArticleListItemSnapshot: Equatable, Identifiable {
     init(sqliteSnapshot: ArticleListSnapshot) {
         self.id = sqliteSnapshot.id
         self.title = sqliteSnapshot.title
-        self.summary = sqliteSnapshot.summary
+        self.summary = sqliteSnapshot.summary.map(ReaderContentRenderer.htmlToPlainText)
         self.publishedAt = sqliteSnapshot.publishedAt
         self.feedID = UUID(uuidString: sqliteSnapshot.feedID)
         self.feedTitle = sqliteSnapshot.feedTitle
