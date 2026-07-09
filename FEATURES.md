@@ -1294,16 +1294,19 @@
 ## 27. Browser-Erweiterung (RSS-Feed hinzufügen)
 
 ### 27.1 Safari-Erweiterung
-- **Status:** ✅ Entschieden — bereit zur Implementierung
-- **Voraussetzung:** Feature 23.2 (URL-Schema `feedivo://add?url=...`) muss vorher
-  bzw. im selben Zug umgesetzt werden — aktuell noch offen (Phase 11)
-- **Zu implementieren:**
-  - Safari Web Extension Target im bestehenden Xcode-Projekt, wird automatisch
-    mit Feedivo.app mitgeliefert (Aktivierung durch Nutzer in
-    Systemeinstellungen → Erweiterungen)
+- **Status:** ✔️ Fertig
+- **Voraussetzung:** Feature 23.2 (URL-Schema `feedivo://add?url=...`) — erfüllt.
+- **Umgesetzt:**
+  - Safari Web Extension Target `FeedivoSafariExtension` im Xcode-Projekt
+    (manuell angelegt, Embed in Feedivo.app), Aktivierung durch Nutzer in
+    Safari → Einstellungen → Erweiterungen
   - Feed-Erkennung: `<link rel="alternate" type="application/rss+xml|atom+xml|json">`
     im HTML-`<head>` der aktuellen Seite; Fallback-Heuristik auf gängige Pfade
-    (`/feed`, `/rss`, `/atom.xml`), falls kein Link-Tag gefunden wird
+    (`/feed`, `/rss`, `/atom.xml`), falls kein Link-Tag gefunden wird —
+    getestete Referenzimplementierung in
+    `BrowserExtensions/Shared/feedDetection.mjs` (8 Node-Tests), als
+    klassisches Script in `FeedivoSafariExtension/Resources/content.js`
+    dupliziert (MV3-Content-Scripts unterstützen keine ES-Module)
   - Toolbar-Icon inaktiv ohne erkannten Feed, aktiv sobald mindestens einer
     gefunden wurde
   - Klick öffnet Popup mit Liste aller gefundenen Feeds, je Eintrag ein
@@ -1311,23 +1314,33 @@
   - Klick auf "Hinzufügen" öffnet `feedivo://add?url=...` — Feedivo
     aktiviert/startet sich und zeigt den bestehenden Vorschau-Dialog vor dem
     Abonnieren (Feature 12.4); keine neue Subscribe-Logik in der App nötig
+  - Icons aus dem bestehenden App-Icon abgeleitet (`sips`); bekannte
+    kosmetische Lücke: `images/toolbar-icon.svg` bleibt Xcodes generisches
+    Platzhalter-Symbol
+  - Manuell End-to-End verifiziert (2026-07-09): Feed-Seite → Icon aktiv,
+    Popup, Hinzufügen-Flow bis zur vorausgefüllten Vorschau; Seite ohne
+    Feed → Icon inaktiv
 
 ### 27.2 Chrome-Erweiterung
-- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Status:** ✔️ Fertig
 - **Voraussetzung:** siehe Feature 27.1 — identisches Verhalten (Erkennung,
-  Icon, Popup, Add-Flow über `feedivo://`), abhängig von Feature 23.2
-- **Zu implementieren:**
-  - Eigenständige Manifest-V3-Erweiterung (Content-Script + Popup + Background
-    Service Worker), separates Verzeichnis im Repo — kein gemeinsamer Code mit
-    der Safari-Erweiterung möglich
-  - Verteilung vorerst nur unsigned/Entwicklermodus (lokal geladen);
+  Icon, Popup, Add-Flow über `feedivo://`), abhängig von Feature 23.2 (erfüllt)
+- **Umgesetzt:**
+  - Eigenständige Manifest-V3-Erweiterung unter `BrowserExtensions/Chrome/` —
+    Content-Script, Background-Service-Worker, Popup; Code wortwörtlich
+    identisch zu den entsprechenden Safari-Dateien (Safari unterstützt den
+    `chrome.*`-Namespace als Alias zu `browser.*`)
+  - Verteilung vorerst nur unsigned/Entwicklungsmodus (lokal geladen);
     Veröffentlichung im Chrome Web Store ist ein eigener, späterer Schritt und
     nicht Teil dieser Umsetzung
+  - Manuell End-to-End verifiziert (2026-07-09): identische Szenarien wie
+    Safari
 
 ### 27.3 Testing
-- Feed-Erkennungslogik (Chrome) unit-testbar unabhängig vom Browser
+- Feed-Erkennungslogik: 8 Node-Tests (`node --test`, kein npm nötig) gegen
+  `BrowserExtensions/Shared/feedDetection.mjs`, unabhängig vom Browser
 - Kompletter End-to-End-Flow (Klick → `feedivo://` → Vorschau-Dialog) nur
-  manuell testbar, für beide Browser
+  manuell testbar, für beide Browser — durchgeführt und bestätigt (2026-07-09)
 
 ---
 
@@ -1397,7 +1410,7 @@ Folgende Reihenfolge berücksichtigt Abhängigkeiten. Features mit (*) sind Vora
 34. **Feature 23.1** — Share Extension (In Feedivo öffnen aus anderen Apps)
 35. **Feature 23.2** — URL-Schema `feedivo://` (add, article)
 36. **Feature 26.3** — AppIntents / Shortcuts Integration (Feed aktualisieren, hinzufügen, gelesen, exportieren)
-36a. **Feature 27.1/27.2** — Browser-Erweiterung Safari + Chrome (RSS-Feed erkennen, via `feedivo://add?url=...` hinzufügen; setzt 23.2 voraus)
+36a. **Feature 27.1/27.2** — Browser-Erweiterung Safari + Chrome (RSS-Feed erkennen, via `feedivo://add?url=...` hinzufügen; setzt 23.2 voraus) — erledigt
 
 ### Phase 12 — Drucken & Qualität
 37. **Feature 25.1** — Drucken via Cmd+P (Reader oder Original, User wählt im Druckdialog)
