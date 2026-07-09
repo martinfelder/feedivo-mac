@@ -86,6 +86,7 @@ struct ArticleRowView: View {
             .frame(width: 28, height: 76, alignment: .top)
         }
         .padding(.vertical, 6)
+        .padding(.leading, 8)
         .contextMenu {
             Button(snapshot.isRead ? L10n.articleRowMarkUnread : L10n.articleRowMarkRead) {
                 onToggleRead()
