@@ -36,8 +36,16 @@ struct ContentView: View {
     @State private var sqliteArticleNavigationState = SQLiteArticleNavigationState.empty
 
     @State private var feedViewModel: FeedViewModel
-    @State private var isShowingAddFeedSheet = false
-    @State private var pendingAddFeedURLString: String?
+    // Feature 23.2 / Bugfix: früher zwei getrennte @State-Properties
+    // (isShowingAddFeedSheet + pendingAddFeedURLString). Das führte bei
+    // gleichzeitiger Änderung beider Werte im selben Run-Loop-Turn zu einem
+    // Race: SwiftUI konstruierte AddFeedSheet zweimal (erst mit nil, dann mit
+    // dem echten Wert), aber @State in AddFeedSheet wird nur beim ERSTEN Bau
+    // aus init() gesetzt — die spätere Korrektur kam zu spät an. Jetzt ein
+    // einzelnes Identifiable-Item, analog zu ruleCreationRequest unten:
+    // .sheet(item:) konstruiert die View immer nur einmal, sobald ein
+    // vollständiges, nicht-nil Item vorliegt.
+    @State private var addFeedSheetRequest: AddFeedSheetRequest?
     // SQLite-Identität: Lösch-Bestätigung arbeitet auf dem Sidebar-Snapshot (String-ID).
     @State private var feedPendingDeletion: FeedSidebarSnapshot?
     @State private var isDeleteFeedConfirmationPresented = false
@@ -149,8 +157,8 @@ struct ContentView: View {
         .onChange(of: unreadArticleCount, handleUnreadArticleCountChange)
         .onChange(of: appIconBadgeIsEnabled, handleAppIconBadgeSettingChange)
         .onChange(of: hasCompletedFirstRunWizard, handleFirstRunCompletionChange)
-        .sheet(isPresented: $isShowingAddFeedSheet) {
-            AddFeedSheet(initialURLString: pendingAddFeedURLString)
+        .sheet(item: $addFeedSheetRequest) { request in
+            AddFeedSheet(initialURLString: request.initialURLString)
         }
         .onOpenURL(perform: handleOpenURL)
         .sheet(isPresented: $isShowingOPMLImportReview) {
@@ -286,8 +294,7 @@ struct ContentView: View {
 
     private func requestAddFeed() {
         isShowingFirstRunWizard = false
-        pendingAddFeedURLString = nil
-        isShowingAddFeedSheet = true
+        addFeedSheetRequest = AddFeedSheetRequest(initialURLString: nil)
     }
 
     // Feature 23.2: routet feedivo://-Deep-Links zum bestehenden Add-Feed-
@@ -301,8 +308,7 @@ struct ContentView: View {
         switch action {
         case .addFeed(let urlString):
             isShowingFirstRunWizard = false
-            pendingAddFeedURLString = urlString
-            isShowingAddFeedSheet = true
+            addFeedSheetRequest = AddFeedSheetRequest(initialURLString: urlString)
 
         case .openArticle(let articleID):
             openWindow(value: ArticleWindowRequest(articleID: articleID))
@@ -1112,4 +1118,11 @@ private struct RuleCreationRequest: Identifiable {
     init(snapshot: ArticleReaderSnapshot) {
         self.seed = RuleWizardSeed(snapshot: snapshot)
     }
+}
+
+// Bugfix (Feature 23.2, Task 3): Identifiable-Payload statt separatem Bool +
+// String?, siehe Kommentar bei addFeedSheetRequest oben.
+private struct AddFeedSheetRequest: Identifiable {
+    let id = UUID()
+    let initialURLString: String?
 }
