@@ -2,7 +2,9 @@ import AppKit
 import SwiftUI
 
 private enum SQLiteArticleInspectorStyle {
-    static let background = Color(red: 0.94, green: 0.95, blue: 0.96)
+    // Vorher hartcodiertes Fast-Weiss (blieb in Dark Mode hell). Jetzt Systemsemantikfarbe,
+    // die sich automatisch an Hell/Dunkel anpasst.
+    static let background = Color(nsColor: .controlBackgroundColor)
 }
 
 /// SQLite-Inspector für den produktiven Reader.

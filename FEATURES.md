@@ -832,6 +832,35 @@
 ### 19.6 Wo
 - Alle Customization-Optionen im Einstellungen-Fenster unter "Darstellung" (bestehend erweitern)
 
+### 19.7 App-interne Darstellungs-Einstellung (Dark Mode)
+- **Status:** ✔️ Fertig
+- **Zu implementieren:**
+  - Eigene Einstellung in Einstellungen → Darstellung: System / Hell / Dunkel
+  - Wirkt app-weit über `.preferredColorScheme(...)`, statt sich nur auf die
+    macOS-Systemeinstellung zu verlassen
+- **Umgesetzt 2026-07-09** (Spec:
+  `docs/superpowers/specs/2026-07-09-dark-mode-theme-design.md`), in 3 Schritten:
+  - **App-interne Darstellungs-Einstellung:** neuer `AppAppearance`-Enum
+    (System/Hell/Dunkel) mit `@AppStorage`-Backing, `.preferredColorScheme(...)`
+    auf allen 5 Scenes (Haupt-`WindowGroup`, Artikelsuchfenster, Organizer-
+    Fenster, Artikel-Popout-`WindowGroup`, Settings-Fenster) angewendet, damit
+    die Wahl unabhängig vom macOS-Systemzustand app-weit konsistent durchschlägt
+  - **First-Run-Assistent Dark-Mode-Fix:** eigenes `FirstRunTheme` (analog zum
+    bereits bestehenden `RuleDialogTheme`-Muster) eingeführt, damit der
+    Onboarding-Assistent beim ersten Start nicht mehr fest auf ein helles
+    Farbschema hartcodiert ist, sondern in Dunkel lesbar bleibt
+  - **Metadaten-Inspector-Fix:** `ArticleMetadataInspectorView`s Panel-
+    Hintergrund war als fast-weisser Festwert (`Color(red: 0.94, green: 0.95,
+    blue: 0.96)`) hartcodiert und blieb dadurch in Dark Mode ein heller
+    Fremdkörper im Reader-Fenster; ersetzt durch die Systemsemantikfarbe
+    `Color(nsColor: .controlBackgroundColor)`, die sich automatisch an
+    Hell/Dunkel anpasst
+- **Noch offen:** Visueller Vergleich der Inspector-Hintergrundfarbe in Dunkel
+  gegenüber der von der Spec ebenfalls vorgeschlagenen Alternative
+  `.underPageBackgroundColor` steht noch aus (per computer-use, nicht Teil der
+  automatisierten Umsetzung) — `.controlBackgroundColor` ist der aktuell
+  eingesetzte Startwert
+
 ---
 
 ## 20. Fehler- und Problembehandlung
@@ -1390,6 +1419,7 @@ Folgende Reihenfolge berücksichtigt Abhängigkeiten. Features mit (*) sind Vora
 25. **Feature 19.3** — Reader anpassen (Textbreite, Artikelbild)
 26. **Feature 19.4** — Toolbar anpassen (macOS Standard `Symbolleiste anpassen...`)
 27. **Feature 19.5** — Verhalten (Gelesen beim Öffnen, externe Links, Bilder laden, App-Start)
+27a. **Feature 19.7** — App-interne Darstellungs-Einstellung (System/Hell/Dunkel) inkl. First-Run- und Inspector-Dark-Mode-Fix — erledigt 2026-07-09
 
 ### Phase 8 — Menubar & Fenster
 28. **Feature 21.1** — Menubar-App (Dropdown, Badge, ohne Dock, konfigurierbar)
