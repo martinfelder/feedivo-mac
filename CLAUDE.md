@@ -300,6 +300,40 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
   bleibt die bekannte Doppel-Trailing-Closure-Syntax `{ action } content: { … }` weiterhin
   richtig. Bei Unsicherheit mit `swiftc -typecheck` gegen eine minimale Repro-Struct prüfen,
   nicht raten.
+- **`.sheet(isPresented:)` mit zwei getrennten `@State`-Properties (Bool + zusätzlicher
+  Wert) racet:** Werden Präsentations-Flag und abhängiger Wert (z. B. eine vorauszufüllende
+  URL) in zwei getrennten `@State`-Properties der Elternview gehalten und im selben
+  Run-Loop-Turn gesetzt, kann SwiftUI die gesheetete View **zweimal** konstruieren — einmal
+  mit dem alten/leeren Wert, bevor der zweite State committed. Da `@State` in der Kind-View
+  nur beim ersten Bau aus `init()` geseedet wird, gewinnt der leere erste Aufruf (gefunden
+  und gefixt bei Feature 23.2, `AddFeedSheet`/`ContentView.swift`, Commit `d906b41eb`).
+  Fix: **immer** `.sheet(item:)` mit einem einzelnen `Identifiable`-Payload verwenden, sobald
+  die gesheetete View mit assoziierten Daten vorbefüllt werden soll — Präsentation und Daten
+  müssen atomar in einem Wert stecken. Bestehendes Beispiel dieses Musters im Projekt:
+  `RuleCreationRequest` in `ContentView.swift`.
+- **`.onOpenURL` verpasst das Launch-Apple-Event beim Kaltstart:** SwiftUIs `.onOpenURL`
+  funktioniert zuverlässig, solange die App bereits läuft, kann aber die URL verlieren, mit
+  der die App gerade frisch gestartet wurde — das Apple Event kommt an, bevor die
+  `WindowGroup`-View-Hierarchie (und damit der `.onOpenURL`-Modifier) existiert, und es gibt
+  kein automatisches Replay (gefunden bei Feature 23.2s `feedivo://`-URL-Schema, Commit
+  `75a19143a`). Fix: `NSApplicationDelegateAdaptor` + `NSApplicationDelegate.application(_:open:)`
+  verwenden (feuert zuverlässig bei Kaltstart UND laufender App), die geparste Aktion in einem
+  gemeinsamen `@Observable`-Objekt ablegen und von der View sowohl per `.task` (deckt
+  Kaltstart ab, falls die Aktion schon wartet) als auch per `.onChange` (laufende App) mit
+  derselben guard-then-clear-Funktion konsumieren, damit dieselbe Aktion nicht doppelt
+  verarbeitet wird. Siehe `FeedivoAppDelegate.swift`/`PendingURLSchemeAction.swift`.
+- **`INFOPLIST_KEY_CFBundleURLTypes` als reines Build-Setting wird von Xcode stillschweigend
+  verworfen:** Bei `GENERATE_INFOPLIST_FILE = YES` unterstützt die `INFOPLIST_KEY_*`-Synthese
+  nachweislich nur Skalar-Werte — ein Array-of-Dictionary-Schlüssel wie `CFBundleURLTypes`
+  (z. B. für ein eigenes URL-Schema) wird beim Build nicht gemeldet, taucht aber im
+  tatsächlich generierten `Info.plist` der gebauten App nie auf (`xcodebuild build` meldet
+  trotzdem `BUILD SUCCEEDED` — nur `plutil -p` auf das generierte `Contents/Info.plist`
+  deckt das auf). Fix: physische `Info.plist`-Datei anlegen, `GENERATE_INFOPLIST_FILE = NO`
+  + `INFOPLIST_FILE = Pfad/Info.plist` setzen, und **da die Datei sonst zusätzlich als
+  gewöhnliche Resource kopiert wird**, wenn sie innerhalb eines file-system-synchronisierten
+  Ordners liegt, eine `PBXFileSystemSynchronizedBuildFileExceptionSet` ergänzen, die sie
+  von der Resources-Build-Phase ausschließt. Siehe `Feedivo/Info.plist` + `project.pbxproj`
+  (Feature 23.2, Commit `d71f74d8b`).
 
 ---
 
@@ -374,8 +408,9 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Aktuell in Arbeit
 
-- SwiftData-Vollentfernung (ADR-007) ist abgeschlossen und auf `origin/main` gepusht.
-- CLAUDE.md wurde nach der SwiftData-Entfernung grundlegend aktualisiert (dieser Durchgang).
+- Feature 23.2 (URL-Schema `feedivo://`) ist abgeschlossen und auf `origin/main` gepusht.
+- Feature 27 (Browser-Erweiterung Safari + Chrome) ist in FEATURES.md final entschieden,
+  Implementierung steht noch aus — setzt Feature 23.2 voraus (jetzt erfüllt).
 - Nächster sinnvoller Schritt laut offenen Punkten: Entscheidung über `codex/icloud-sync-beta`
   treffen (migrieren+mergen vs. verwerfen), da der Branch sonst weiter divergiert.
 
@@ -383,6 +418,15 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Letzte Änderungen
 
+- 2026-07-09: Feature 23.2 (URL-Schema `feedivo://add`/`feedivo://article`) umgesetzt via
+  Subagent-Driven-Development — `FeedivoURLSchemeParser`, physische `Info.plist` (Nachtrag,
+  da `INFOPLIST_KEY_CFBundleURLTypes` als Build-Setting stillschweigend verworfen wird),
+  `NSApplicationDelegateAdaptor`/`FeedivoAppDelegate` (Nachtrag, da `.onOpenURL` das
+  Launch-Apple-Event beim Kaltstart verpasst). Zwei echte Bugs während manueller
+  End-to-End-Verifikation gefunden und gefixt (Sheet-Race, Kaltstart). Finaler
+  Whole-Branch-Review: bereit zum Mergen. Drei neue Gotchas dokumentiert (siehe oben).
+- 2026-07-08: Feature 27 (Browser-Erweiterung Safari + Chrome, RSS-Feed hinzufügen) final
+  entschieden und in FEATURES.md aufgenommen — Voraussetzung Feature 23.2.
 - 2026-07-07: SwiftData vollständig entfernt (30-Task-Plan, Subagent-Driven-Development,
   finaler Whole-Branch-Review). Commits `575bcee23` (Löschung der 9 `@Model`-Klassen) und
   `90b7216cc` (Nachtrags-Cleanup: toter Code, veraltete Kommentare) auf `main` gepusht.
