@@ -895,17 +895,19 @@
   - Artikel-URL aus beliebiger App in Feedivo öffnen zum Lesen
 
 ### 23.2 URL-Schema (Deep Links)
-- **Status:** ✅ Entschieden — bereit zur Implementierung
+- **Status:** ✔️ Fertig
 - **Zu implementieren:**
   - `feedivo://add?url=https://...` — Feed direkt hinzufügen
   - `feedivo://article?id=...` — direkt zu einem Artikel springen
   - Nützlich für macOS Shortcuts, Raycast, Alfred, Automator
   - URL-Schema in `Info.plist` registrieren (`CFBundleURLTypes`, Scheme `feedivo`)
 - **Implementierungsdetails (final besprochen 2026-07-09):**
-  - Einstiegspunkt: `.onOpenURL` auf `ContentView` (Inhalt der Haupt-
-    `WindowGroup` in `FeedivoApp.swift` — dort sind `openWindow` und der
-    Add-Feed-Sheet-State bereits vorhanden); Parsing via `URLComponents` —
-    `host` bestimmt die Aktion (`add`/`article`)
+  - Einstiegspunkt: **nicht** `.onOpenURL` (verpasst nachweislich das
+    Launch-Apple-Event beim App-Kaltstart), sondern `NSApplicationDelegateAdaptor`
+    (`FeedivoAppDelegate`, `application(_:open:)`) — parst über
+    `FeedivoURLSchemeParser`/`URLComponents` und legt die Aktion in einem
+    gemeinsamen `@Observable PendingURLSchemeAction` ab, das `ContentView`
+    per `.task` (deckt Kaltstart ab) und `.onChange` (laufende App) konsumiert
   - `add`: `AddFeedSheet` (`SidebarView.swift`) bekommt neuen Init-Parameter
     `initialURLString: String? = nil`, der `urlString` vorbefüllt; ist die URL
     per Deep Link vorausgefüllt, ruft das Sheet beim Erscheinen einmalig
@@ -922,6 +924,18 @@
   - Testing: URL-Parsing (Scheme/Host/Query → Action) ist reine Funktion,
     isoliert unit-testbar; End-to-End (`open feedivo://...` via Terminal) nur
     manuell testbar
+- **Umgesetzt 2026-07-09:** `FeedivoURLSchemeParser`, Routing via
+  `NSApplicationDelegateAdaptor`/`FeedivoAppDelegate` (`application(_:open:)`)
+  + gemeinsamer `@Observable PendingURLSchemeAction` (`.task`/`.onChange` in
+  `ContentView`), `AddFeedSheet`-Vorbefüllung mit Auto-Vorschau; manuell
+  End-to-End getestet (App kalt gestartet + bereits laufend, gültiger
+  Artikel-Deep-Link, ungültige URLs). Die manuelle E2E-Verifikation deckte
+  unterwegs zwei echte Bugs auf, die beide gefixt wurden, bevor der Test grün
+  war: eine leere Add-Feed-Sheet durch einen SwiftUI-State-Race (Fix:
+  `.sheet(item:)` mit `Identifiable`-Payload statt zwei separater `@State`-
+  Flags) sowie ein komplett wirkungsloser Deep Link beim Kaltstart, weil
+  `.onOpenURL` das Launch-Apple-Event verpasst (Fix: Umstieg auf
+  `NSApplicationDelegateAdaptor`, siehe Implementierungsdetails oben)
 
 ---
 
