@@ -833,7 +833,7 @@
 - Alle Customization-Optionen im Einstellungen-Fenster unter "Darstellung" (bestehend erweitern)
 
 ### 19.7 App-interne Darstellungs-Einstellung (Dark Mode)
-- **Status:** ✔️ Fertig
+- **Status:** 🔨 Fertig, Feinschliff offen
 - **Zu implementieren:**
   - Eigene Einstellung in Einstellungen → Darstellung: System / Hell / Dunkel
   - Wirkt app-weit über `.preferredColorScheme(...)`, statt sich nur auf die
