@@ -78,6 +78,13 @@ extension Color {
             blue: Double(hex & 0xFF) / 255
         )
     }
+
+    /// Geteilter "Frosted-Glass-Karte"-Ton für Dialoge mit hellem Verlaufs-
+    /// Hintergrund (First-Run-Assistent, OPML-Import) — Light: reines Weiß,
+    /// Dark: derselbe leicht aufgehellte Grauton wie FirstRunTheme.card.
+    static func frostedCard(for colorScheme: ColorScheme) -> Color {
+        colorScheme == .dark ? Color(hex: 0x3A3A3D) : .white
+    }
 }
 
 // MARK: - Marker-Protokoll für Typen, die in RuleSegmentedControl/RuleDialogSelectMenu

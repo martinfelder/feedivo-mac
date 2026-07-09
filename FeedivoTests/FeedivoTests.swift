@@ -65,6 +65,12 @@ struct FeedivoTests {
         #expect(dark.card != Color.white)
     }
 
+    @Test func frostedCardLiefertUnterschiedlicheTokensFuerHellUndDunkel() {
+        #expect(Color.frostedCard(for: .light) == Color.white)
+        #expect(Color.frostedCard(for: .dark) != Color.white)
+        #expect(Color.frostedCard(for: .light) != Color.frostedCard(for: .dark))
+    }
+
     @Test func interfaceTextSizeLiefertDynamicTypeSizeUndFallback() {
         #expect(InterfaceTextSize.resolved(from: "small") == .small)
         #expect(InterfaceTextSize.resolved(from: "standard") == .standard)

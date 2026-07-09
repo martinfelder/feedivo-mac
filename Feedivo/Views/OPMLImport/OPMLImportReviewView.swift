@@ -4,6 +4,7 @@ import UniformTypeIdentifiers
 struct OPMLImportReviewView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.feedivoDatabase) private var feedivoDatabase
+    @Environment(\.colorScheme) private var colorScheme
 
     private let tableBodyHeight: CGFloat = 336
 
@@ -89,7 +90,7 @@ struct OPMLImportReviewView: View {
         .background(
             LinearGradient(
                 colors: [
-                    Color.white.opacity(0.58),
+                    Color.frostedCard(for: colorScheme).opacity(0.58),
                     Color(nsColor: .controlBackgroundColor).opacity(0.94)
                 ],
                 startPoint: .top,
@@ -238,7 +239,7 @@ struct OPMLImportReviewView: View {
         .background(
             LinearGradient(
                 colors: [
-                    Color.white.opacity(0.74),
+                    Color.frostedCard(for: colorScheme).opacity(0.74),
                     Color(nsColor: .controlBackgroundColor).opacity(0.88)
                 ],
                 startPoint: .top,
@@ -264,7 +265,7 @@ struct OPMLImportReviewView: View {
             .foregroundStyle(.secondary)
             .padding(.horizontal, 10)
             .frame(height: 30)
-            .background(Color.white.opacity(0.82), in: RoundedRectangle(cornerRadius: 8))
+            .background(Color.frostedCard(for: colorScheme).opacity(0.82), in: RoundedRectangle(cornerRadius: 8))
             .overlay(
                 RoundedRectangle(cornerRadius: 8)
                     .stroke(Color.secondary.opacity(0.16))
@@ -501,13 +502,15 @@ struct OPMLImportReviewView: View {
 }
 
 private struct OPMLSecondaryButtonStyle: ButtonStyle {
+    @Environment(\.colorScheme) private var colorScheme
+
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.system(size: 13, weight: .semibold))
             .foregroundStyle(Color.primary)
             .padding(.horizontal, 11)
             .frame(height: 30)
-            .background(Color.white.opacity(configuration.isPressed ? 0.62 : 0.9), in: RoundedRectangle(cornerRadius: 7))
+            .background(Color.frostedCard(for: colorScheme).opacity(configuration.isPressed ? 0.62 : 0.9), in: RoundedRectangle(cornerRadius: 7))
             .overlay(
                 RoundedRectangle(cornerRadius: 7)
                     .stroke(Color.secondary.opacity(0.18))
