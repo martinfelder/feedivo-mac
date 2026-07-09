@@ -916,9 +916,10 @@
     kein Auto-Trigger, Verhalten bleibt unverändert
   - `article`: `id`-Query-Item als `UUID` parsen, `openWindow(value:
     ArticleWindowRequest(articleID:))` über die bereits bestehende
-    `WindowGroup(for: ArticleWindowRequest.self)` (Artikel-Popout); ungültige/
-    nicht existierende IDs laufen über das bestehende `loadErrorMessage`-
-    Handling in `ArticleWindowView` — kein neuer Code nötig
+    `WindowGroup(for: ArticleWindowRequest.self)` (Artikel-Popout); eine
+    wohlgeformte, aber nicht existierende Artikel-ID öffnet ein leeres Popout-
+    Fenster (kein Crash, kein Alert) — `loadErrorMessage` in `ArticleWindowView`
+    greift nur bei tatsächlich geworfenen Fehlern, nicht bei "nicht gefunden"
   - Unbekannter Host oder fehlende/kaputte Query-Parameter: URL wird still
     ignoriert (kein Alert, kein Crash)
   - Testing: URL-Parsing (Scheme/Host/Query → Action) ist reine Funktion,
