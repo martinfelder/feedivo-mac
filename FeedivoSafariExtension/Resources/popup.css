@@ -3,13 +3,28 @@
 }
 
 body {
-    width: 100px;
-    padding: 10px;
-
+    width: 260px;
+    padding: 12px;
     font-family: system-ui;
-    text-align: center;
 }
 
-@media (prefers-color-scheme: dark) {
-    /* Dark Mode styles go here. */
+.feed-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.feed-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+}
+
+button {
+    font: inherit;
+    padding: 4px 8px;
+    cursor: pointer;
 }
