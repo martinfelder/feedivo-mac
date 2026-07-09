@@ -27,6 +27,12 @@ struct FeedivoApp: App {
     @AppStorage(ArticleRetentionSettings.includesProtectedArticlesKey)
     private var articleRetentionIncludesProtectedArticles = ArticleRetentionSettings.defaultIncludesProtectedArticles
 
+    // Feature 23.2: AppKit-Delegate fängt feedivo://-URLs zuverlässig ab —
+    // auch beim Kaltstart, bevor die SwiftUI-View-Hierarchie existiert (siehe
+    // FeedivoAppDelegate). Die geparste Aktion wird in dessen
+    // PendingURLSchemeAction abgelegt und unten an ContentView weitergereicht.
+    @NSApplicationDelegateAdaptor(FeedivoAppDelegate.self) private var appDelegate
+
     private let backgroundRefreshScheduler: SystemBackgroundActivityRefreshScheduler
     private let databaseLoadState = DatabaseLoadState()
     private let feedViewModel = FeedViewModel()
@@ -55,6 +61,7 @@ struct FeedivoApp: App {
                 .environment(\.interfaceTextSize, interfaceTextSize)
                 .environment(\.feedivoDatabase, feedivoDatabase)
                 .environment(databaseLoadState)
+                .environment(appDelegate.pendingURLSchemeAction)
                 .dynamicTypeSize(interfaceTextSize.dynamicTypeSize)
                 .toolbarBackground(.ultraThinMaterial, for: .windowToolbar)
                 .toolbarBackground(.visible, for: .windowToolbar)

@@ -6,6 +6,7 @@ struct ContentView: View {
     @Environment(\.feedivoDatabase) private var feedivoDatabase
     @Environment(\.openWindow) private var openWindow
     @Environment(DatabaseLoadState.self) private var databaseLoadState
+    @Environment(PendingURLSchemeAction.self) private var pendingURLSchemeAction
     @AppStorage(FirstRunWizardState.completionStorageKey) private var hasCompletedFirstRunWizard = false
     @AppStorage(FirstRunWizardState.presentationStorageKey) private var hasPresentedFirstRunWizard = false
     @AppStorage(FirstRunWizardState.hadFeedsStorageKey) private var hasHadFeedsForFirstRunWizard = false
@@ -160,7 +161,10 @@ struct ContentView: View {
         .sheet(item: $addFeedSheetRequest) { request in
             AddFeedSheet(initialURLString: request.initialURLString)
         }
-        .onOpenURL(perform: handleOpenURL)
+        .task {
+            consumePendingURLSchemeActionIfNeeded()
+        }
+        .onChange(of: pendingURLSchemeAction.action, consumePendingURLSchemeActionIfNeeded)
         .sheet(isPresented: $isShowingOPMLImportReview) {
             OPMLImportReviewView(
                 feedViewModel: feedViewModel
@@ -297,14 +301,22 @@ struct ContentView: View {
         addFeedSheetRequest = AddFeedSheetRequest(initialURLString: nil)
     }
 
-    // Feature 23.2: routet feedivo://-Deep-Links zum bestehenden Add-Feed-
-    // Sheet bzw. öffnet ein Artikel-Popout-Fenster. Unbekannte/kaputte URLs
-    // werden still ignoriert (kein Alert, kein Crash).
-    private func handleOpenURL(_ url: URL) {
-        guard let action = FeedivoURLSchemeParser.action(for: url) else {
+    // Feature 23.2: konsumiert eine über feedivo:// ausgelöste Aktion aus dem
+    // gemeinsamen PendingURLSchemeAction-Objekt (siehe FeedivoAppDelegate) — sowohl
+    // beim ersten Erscheinen (deckt den Kaltstart-Fall ab, wenn die Aktion schon
+    // wartet) als auch bei späteren Änderungen (laufende App).
+    private func consumePendingURLSchemeActionIfNeeded() {
+        guard let action = pendingURLSchemeAction.action else {
             return
         }
 
+        pendingURLSchemeAction.action = nil
+        handle(action)
+    }
+
+    // Routet eine geparste feedivo://-Aktion zum bestehenden Add-Feed-Sheet bzw.
+    // öffnet ein Artikel-Popout-Fenster.
+    private func handle(_ action: FeedivoURLSchemeAction) {
         switch action {
         case .addFeed(let urlString):
             isShowingFirstRunWizard = false
