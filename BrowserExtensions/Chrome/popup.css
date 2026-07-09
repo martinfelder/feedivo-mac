@@ -1,0 +1,30 @@
+:root {
+    color-scheme: light dark;
+}
+
+body {
+    width: 260px;
+    padding: 12px;
+    font-family: system-ui;
+}
+
+.feed-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.feed-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+}
+
+button {
+    font: inherit;
+    padding: 4px 8px;
+    cursor: pointer;
+}
