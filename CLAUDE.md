@@ -334,6 +334,16 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
   Ordners liegt, eine `PBXFileSystemSynchronizedBuildFileExceptionSet` ergänzen, die sie
   von der Resources-Build-Phase ausschließt. Siehe `Feedivo/Info.plist` + `project.pbxproj`
   (Feature 23.2, Commit `d71f74d8b`).
+- **`xcodebuild build` fügt automatisch leere Stub-Einträge in `Localizable.xcstrings` ein:**
+  Trifft der Build auf ein noch nicht katalogisiertes String-Literal in einer `Text(...)`-
+  artigen Stelle (z. B. ein hartcodierter deutscher `description`-String in einer neuen
+  Settings-Zeile), legt Xcodes String-Catalog-Kompilierung dafür selbständig einen neuen,
+  leeren Eintrag in `Localizable.xcstrings` an — ganz ohne eigenes Zutun, einfach durch einen
+  normalen `xcodebuild build`-Lauf (gefunden bei den Dark-Mode-Nachbesserungen, 2026-07-09).
+  Das ist kein Fehler und keine versehentliche Reformatierung (der Diff bleibt klein, nur der
+  neue Stub-Block kommt hinzu) — einfach nach jedem Build kurz `git status`/`git diff --stat`
+  auf `Localizable.xcstrings` prüfen und den Stub bewusst mitcommitten oder (falls der
+  String besser doch als `L10n`-Key lokalisiert werden sollte) gezielt nachpflegen.
 
 ---
 
@@ -378,6 +388,10 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 - App-Icon-Badge mit Anzahl ungelesener Artikel
 - Bild-Caching mit konfigurierbarem Limit
 - Artikel-Aufbewahrungsrichtlinien (globale + Feed-eigene Overrides)
+- App-interne Darstellungs-Einstellung (System/Hell/Dunkel, `AppAppearance`) + Dark-Mode-Fixes
+  für First-Run-Assistent (`FirstRunTheme`) und Metadaten-Inspector (Feature 19.7)
+- OPML-Import-Dialog auf das "Konzept A"-Designsystem (`RuleDialogTheme`) migriert, visuelle
+  Parität mit dem bereits migrierten OPML-Export-Dialog hergestellt
 
 ---
 
@@ -408,10 +422,14 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Aktuell in Arbeit
 
-- Feature 23.2 (URL-Schema `feedivo://`) ist abgeschlossen und auf `origin/main` gepusht.
-- Feature 27 (Browser-Erweiterung Safari + Chrome) ist abgeschlossen und auf `origin/main`
-  gepusht — neuer Ordner `BrowserExtensions/Chrome/` + neues Xcode-Target
-  `FeedivoSafariExtension`.
+- Feature 19.7 (App-interne Darstellungs-Einstellung / Dark Mode) ist abgeschlossen und auf
+  `origin/main` gepusht — neues `AppAppearance`-Enum, `FirstRunTheme`, Inspector-Fix.
+- OPML-Import-Dialog auf "Konzept A" (`RuleDialogTheme`) migriert und auf `origin/main`
+  gepusht — visuelle Parität mit dem OPML-Export-Dialog.
+- Ausstehend (nicht automatisierbar, kein computer-use für native macOS-Apps in dieser
+  Umgebung): manuelle visuelle Verifikation beider Features durch den Nutzer — First-Run/
+  Inspector-Farbwerte (bewusste Startwerte, ggf. Nachjustierung) und Import/Export-Dialog
+  Seite an Seite in Hell und Dunkel.
 - Nächster sinnvoller Schritt laut offenen Punkten: Entscheidung über `codex/icloud-sync-beta`
   treffen (migrieren+mergen vs. verwerfen), da der Branch sonst weiter divergiert.
 
@@ -419,6 +437,34 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Letzte Änderungen
 
+- 2026-07-09: OPML-Import-Dialog auf "Konzept A" migriert (`RuleDialogTheme`) — Dialog-Rahmen/
+  Header/Divider (Commit `fc26257`), Datei-Auswahlzeile/Toolbar/Buttons/Footer/Feed-Tabelle
+  (Commit `03dd4f14`, gemeinsam mit dem Header-Task umgesetzt, da der Zwischenstand sonst
+  nicht baut — Signaturänderung an `OPMLSecondaryButtonStyle`/`OPMLPrimaryButtonStyle` betrifft
+  7 Aufrufstellen über beide Tasks). Finaler Whole-Branch-Review (Opus) fand 1 Minor-Fund
+  (verbleibende `.foregroundStyle(.secondary)`-Reste statt `theme.text2`), in Commit `235a3b7`
+  behoben. `OPMLImportFeedRow.swift` bewusst ausgenommen (geteilt mit First-Run-Assistent,
+  eigenes `FirstRunTheme`). Plan: `docs/superpowers/plans/2026-07-09-opml-import-konzept-a.md`.
+- 2026-07-09: Feature 19.7 (App-interne Darstellungs-Einstellung, echter Dark Mode) umgesetzt
+  via Subagent-Driven-Development — neues `AppAppearance`-Enum (System/Hell/Dunkel) nach
+  `AppLanguage`-Vorbild, `.preferredColorScheme(...)` auf allen 5 SwiftUI-Scenes
+  (`FeedivoApp.swift`), neues `FirstRunTheme` (nach `RuleDialogTheme`-Vorbild) ersetzt ~14
+  hartcodierte `Color.white`/RGB-Stellen im First-Run-Assistenten, Metadaten-Inspector-
+  Hintergrund auf Systemsemantikfarbe umgestellt. Vor Ausführung: Selbstreview fand und
+  korrigierte einen Build-Reihenfolge-Bug (L10n-Keys mussten vor `AppAppearance.swift`
+  entstehen) sowie 2 Spec-Abweichungsrisiken (hartcodierte Dark-Farbwerte als bewusste
+  Startwerte markiert). Finaler Whole-Branch-Review (Opus): 3 Minor-Funde, 2 direkt behoben
+  (fehlendes `.preferredColorScheme` im Error-Pfad des Artikel-Popout-Fensters,
+  Testabdeckung für `FirstRunTheme` Hell/Dunkel). Im selben Rutsch nebenbei entdeckt und
+  gefixt: `OPMLImportReviewView.swift` (Import-Dialog) hatte ebenfalls hartcodierte
+  `Color.white`-Stellen, die die ursprüngliche Dark-Mode-Bestandsaufnahme übersehen hatte
+  — auf `Color.frostedCard(for:)` umgestellt (neue geteilte `Color`-Extension in
+  `RuleDialogTheme.swift`), was direkt zur obigen Konzept-A-Migration führte. Spec:
+  `docs/superpowers/specs/2026-07-09-dark-mode-theme-design.md`, Plan:
+  `docs/superpowers/plans/2026-07-09-dark-mode-theme.md`. Neuer Gotcha zu automatischen
+  `Localizable.xcstrings`-Stub-Einträgen bei `xcodebuild build` dokumentiert (siehe oben).
+  Ausstehend: manuelle visuelle Verifikation durch den Nutzer (kein computer-use für native
+  macOS-Apps in dieser Umgebung verfügbar).
 - 2026-07-09: Feature 27 (Browser-Erweiterung Safari + Chrome, RSS-Feed hinzufügen) umgesetzt
   via Subagent-Driven-Development — geteilte, Node-getestete Feed-Erkennungslogik
   (`BrowserExtensions/Shared/feedDetection.mjs`), Chrome-Erweiterung
