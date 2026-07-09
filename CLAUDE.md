@@ -409,8 +409,9 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 ## Aktuell in Arbeit
 
 - Feature 23.2 (URL-Schema `feedivo://`) ist abgeschlossen und auf `origin/main` gepusht.
-- Feature 27 (Browser-Erweiterung Safari + Chrome) ist in FEATURES.md final entschieden,
-  Implementierung steht noch aus — setzt Feature 23.2 voraus (jetzt erfüllt).
+- Feature 27 (Browser-Erweiterung Safari + Chrome) ist abgeschlossen und auf `origin/main`
+  gepusht — neuer Ordner `BrowserExtensions/Chrome/` + neues Xcode-Target
+  `FeedivoSafariExtension`.
 - Nächster sinnvoller Schritt laut offenen Punkten: Entscheidung über `codex/icloud-sync-beta`
   treffen (migrieren+mergen vs. verwerfen), da der Branch sonst weiter divergiert.
 
@@ -418,6 +419,16 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Letzte Änderungen
 
+- 2026-07-09: Feature 27 (Browser-Erweiterung Safari + Chrome, RSS-Feed hinzufügen) umgesetzt
+  via Subagent-Driven-Development — geteilte, Node-getestete Feed-Erkennungslogik
+  (`BrowserExtensions/Shared/feedDetection.mjs`), Chrome-Erweiterung
+  (`BrowserExtensions/Chrome/`) und Safari-Erweiterung (neues Xcode-Target
+  `FeedivoSafariExtension`, manuell angelegt) mit byte-identischem Code (Safari
+  unterstützt den `chrome.*`-Namespace). Ein Controller-Fehler unterwegs gefunden und
+  korrigiert: die `project.pbxproj`-Verdrahtung für das neue Xcode-Target wurde beim
+  ersten Commit versehentlich nicht mitgenommen (nachträglich in eigenem Commit
+  nachgezogen, bevor es zu Problemen führen konnte). Finaler Whole-Branch-Review
+  (inkl. echtem Clean-Build zur Verifikation der Korrektur): bereit zum Mergen.
 - 2026-07-09: Feature 23.2 (URL-Schema `feedivo://add`/`feedivo://article`) umgesetzt via
   Subagent-Driven-Development — `FeedivoURLSchemeParser`, physische `Info.plist` (Nachtrag,
   da `INFOPLIST_KEY_CFBundleURLTypes` als Build-Setting stillschweigend verworfen wird),
