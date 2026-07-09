@@ -124,20 +124,25 @@ struct FeedivoApp: App {
         .defaultSize(width: 920, height: 620)
 
         WindowGroup(for: ArticleWindowRequest.self) { $request in
-            if let request {
-                ArticleWindowView(request: request)
-                    .environment(\.locale, appLanguage.locale)
-                    .environment(\.interfaceTextSize, interfaceTextSize)
-                    .environment(\.feedivoDatabase, feedivoDatabase)
-                    .dynamicTypeSize(interfaceTextSize.dynamicTypeSize)
-                    .preferredColorScheme(appAppearance.colorScheme)
-            } else {
-                ContentUnavailableView(
-                    L10n.articleWindowMissingTitle,
-                    systemImage: "doc.text.magnifyingglass",
-                    description: Text(L10n.articleWindowMissingDescription)
-                )
+            // Gemeinsame Modifier auf einem umschließenden Group, damit auch der
+            // else-Zweig (fehlende Anfrage) Sprache/Textgröße/Darstellung erbt,
+            // statt nur der Erfolgsfall.
+            Group {
+                if let request {
+                    ArticleWindowView(request: request)
+                } else {
+                    ContentUnavailableView(
+                        L10n.articleWindowMissingTitle,
+                        systemImage: "doc.text.magnifyingglass",
+                        description: Text(L10n.articleWindowMissingDescription)
+                    )
+                }
             }
+            .environment(\.locale, appLanguage.locale)
+            .environment(\.interfaceTextSize, interfaceTextSize)
+            .environment(\.feedivoDatabase, feedivoDatabase)
+            .dynamicTypeSize(interfaceTextSize.dynamicTypeSize)
+            .preferredColorScheme(appAppearance.colorScheme)
         }
         .defaultSize(width: 900, height: 720)
 

@@ -54,6 +54,17 @@ struct FeedivoTests {
         #expect(AppAppearance.defaultMode == .system)
     }
 
+    @Test func firstRunThemeLiefertUnterschiedlicheTokensFuerHellUndDunkel() {
+        let light = FirstRunTheme(colorScheme: .light)
+        let dark = FirstRunTheme(colorScheme: .dark)
+
+        #expect(light.card != dark.card)
+        #expect(light.dropZoneBackground != dark.dropZoneBackground)
+        #expect(light.accentStroke != dark.accentStroke)
+        #expect(light.card == Color.white)
+        #expect(dark.card != Color.white)
+    }
+
     @Test func interfaceTextSizeLiefertDynamicTypeSizeUndFallback() {
         #expect(InterfaceTextSize.resolved(from: "small") == .small)
         #expect(InterfaceTextSize.resolved(from: "standard") == .standard)
