@@ -189,64 +189,187 @@ git commit -m "URL-Schema: FeedivoURLSchemeParser für feedivo://add und feedivo
 
 ### Task 2: `feedivo://`-URL-Schema im Xcode-Projekt registrieren
 
+> **Korrigiert nach fehlgeschlagenem erstem Implementierungsversuch (2026-07-09):**
+> Der ursprünglich geplante Ansatz — `INFOPLIST_KEY_CFBundleURLTypes` als reines
+> Build-Setting bei `GENERATE_INFOPLIST_FILE = YES` — baut zwar erfolgreich,
+> registriert den Schlüssel aber NICHT im generierten Info.plist (empirisch
+> verifiziert: `xcodebuild -showBuildSettings -json` zeigt, dass der äußere
+> Array-Wrapper beim Auswerten verloren geht; bekannte Xcode-Einschränkung,
+> `INFOPLIST_KEY_*`-Synthese unterstützt nur Skalar-Werte, keine
+> Array-of-Dictionary-Strukturen wie `CFBundleURLTypes`). Der folgende,
+> korrigierte Ansatz (physische `Info.plist`-Datei) wurde vom Controller selbst
+> gebaut, verifiziert (Debug + Release, inkl. `plutil`-Check des tatsächlich
+> generierten Info.plist) und funktioniert nachweislich.
+
 **Files:**
-- Modify: `Feedivo.xcodeproj/project.pbxproj` (Debug + Release Build-Konfiguration des Haupt-Targets `Feedivo`, Bundle-ID `ch.martin.Feedivo` — NICHT die Test-Targets)
+- Create: `Feedivo/Info.plist`
+- Modify: `Feedivo.xcodeproj/project.pbxproj` (Debug + Release Build-Konfiguration des Haupt-Targets `Feedivo`, Bundle-ID `ch.martin.Feedivo` — NICHT die Test-Targets; zusätzlich eine `PBXFileSystemSynchronizedBuildFileExceptionSet`, die `Info.plist` von der Resources-Build-Phase ausschließt)
 
 **Interfaces:**
 - Konsumiert von Task 3/4: macOS aktiviert/startet Feedivo automatisch bei jedem `feedivo://…`-Aufruf und liefert die URL an `.onOpenURL`.
 
-- [ ] **Step 1: Build-Setting in beiden Konfigurationen ergänzen**
+- [ ] **Step 1: Physische `Info.plist` anlegen**
+
+Erstelle `Feedivo/Info.plist` mit exakt diesem Inhalt (reproduziert 1:1 die
+bisher automatisch generierten Basis-Schlüssel — verifiziert per `plutil -p`
+gegen das vorher generierte Info.plist — plus dem neuen `CFBundleURLTypes`):
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
+	<key>CFBundleIconName</key>
+	<string>AppIcon</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleSupportedPlatforms</key>
+	<array>
+		<string>MacOSX</string>
+	</array>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>ch.martin.Feedivo</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>feedivo</string>
+			</array>
+		</dict>
+	</array>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
+	<key>NSHumanReadableCopyright</key>
+	<string></string>
+</dict>
+</plist>
+```
+
+- [ ] **Step 2: Build-Settings in `project.pbxproj` umstellen**
 
 Die beiden betroffenen Blöcke (Debug-Konfiguration `C9CE9279`, Release-
-Konfiguration `C9CE927A`) enthalten aktuell identisch:
+Konfiguration `C9CE927A`, Haupt-Target `Feedivo`) enthalten aktuell identisch:
 
 ```
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 ```
 
-Ersetze **beide** Vorkommen (Debug und Release) durch:
+Ersetze **beide** Vorkommen (per `replace_all` — der Text ist in beiden
+Konfigurationen exakt gleich und kommt in den Test-Targets nicht vor, da
+`INFOPLIST_KEY_NSHumanReadableCopyright` nur im Haupt-Target existiert) durch:
 
 ```
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleURLTypes = (
-					{
-						CFBundleTypeRole = Editor;
-						CFBundleURLName = "ch.martin.Feedivo";
-						CFBundleURLSchemes = (
-							feedivo,
-						);
-					},
-				);
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Feedivo/Info.plist;
 ```
 
-Nutze dazu einen String-Replace über die gesamte Datei (`replace_all`), da der
-Ausgangstext in beiden Konfigurationen exakt gleich lautet und in den Test-
-Targets nicht vorkommt (`INFOPLIST_KEY_NSHumanReadableCopyright` existiert nur
-im Haupt-Target).
+- [ ] **Step 3: `Info.plist` von der Resources-Build-Phase ausschließen**
 
-- [ ] **Step 2: Build ausführen**
+Da `Feedivo/Info.plist` innerhalb des file-system-synchronisierten Ordners
+`Feedivo` liegt, würde Xcode es sonst zusätzlich als gewöhnliche Ressource in
+die App kopieren (führt zu einer Build-Warnung + einer überflüssigen zweiten
+Kopie unter `Contents/Resources/Info.plist`). Füge dazu ein neues
+`PBXFileSystemSynchronizedBuildFileExceptionSet`-Objekt hinzu.
 
-Run: `xcodebuild build -project Feedivo.xcodeproj -scheme Feedivo -destination 'platform=macOS' 2>&1 | tail -30`
-Expected: `** BUILD SUCCEEDED **`
+Direkt vor `/* Begin PBXFileSystemSynchronizedRootGroup section */` einfügen
+(wähle eine neue, im Projekt noch nicht verwendete 24-stellige Hex-ID anstelle
+von `<NEUE_ID>`):
 
-- [ ] **Step 3: Registrierung im generierten Info.plist verifizieren**
+```
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		<NEUE_ID> /* Exceptions for "Feedivo" folder in "Feedivo" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = C9CE92562FE5A90700B9C79A /* Feedivo */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+```
+
+Und den bestehenden Root-Group-Block
+
+```
+		C9CE92592FE5A90700B9C79A /* Feedivo */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Feedivo;
+			sourceTree = "<group>";
+		};
+```
+
+ersetzen durch (mit derselben neuen ID):
+
+```
+		C9CE92592FE5A90700B9C79A /* Feedivo */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				<NEUE_ID> /* Exceptions for "Feedivo" folder in "Feedivo" target */,
+			);
+			path = Feedivo;
+			sourceTree = "<group>";
+		};
+```
+
+- [ ] **Step 4: Clean-Build ausführen (Debug + Release)**
+
+Run:
+```bash
+xcodebuild clean -project Feedivo.xcodeproj -scheme Feedivo -destination 'platform=macOS'
+xcodebuild build -project Feedivo.xcodeproj -scheme Feedivo -destination 'platform=macOS' 2>&1 | tail -30
+xcodebuild build -project Feedivo.xcodeproj -scheme Feedivo -destination 'platform=macOS' -configuration Release 2>&1 | tail -10
+```
+Expected: beide `** BUILD SUCCEEDED **`, keine Warnung mehr zu
+"Copy Bundle Resources build phase contains this target's Info.plist file".
+
+- [ ] **Step 5: Registrierung im generierten Info.plist verifizieren + keine Doppel-Ressource**
 
 Run:
 ```bash
 APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData -name "Feedivo.app" -newer Feedivo.xcodeproj/project.pbxproj 2>/dev/null | head -1)
 plutil -p "$APP_PATH/Contents/Info.plist" | grep -A8 CFBundleURLTypes
+ls "$APP_PATH/Contents/Resources/" | grep -i info || echo "OK: kein Info.plist in Resources"
 ```
-Expected: Ausgabe enthält `"CFBundleURLSchemes"` mit `"feedivo"` als Eintrag.
-Falls `$APP_PATH` leer ist: `xcodebuild build` erneut mit `-derivedDataPath
-build` laufen lassen und stattdessen `build/Build/Products/Debug/Feedivo.app/Contents/Info.plist` prüfen.
+Expected: Ausgabe enthält `"CFBundleURLSchemes"` mit `"feedivo"` als Eintrag,
+UND die zweite Zeile druckt `OK: kein Info.plist in Resources` (kein
+Duplikat). Falls `$APP_PATH` leer ist: `xcodebuild build` erneut mit
+`-derivedDataPath build` laufen lassen und stattdessen
+`build/Build/Products/Debug/Feedivo.app/Contents/Info.plist` prüfen.
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 6: Bestehende Scene-Configuration-Tests laufen lassen (Regressions-Check)**
+
+Run: `xcodebuild test -project Feedivo.xcodeproj -scheme Feedivo -destination 'platform=macOS' -only-testing:FeedivoTests/FeedivoAppSceneConfigurationTests 2>&1 | grep "failed on"`
+Expected: Es dürfen keine ZUSÄTZLICHEN Fehlschläge auftreten gegenüber einem
+Lauf auf dem Stand vor dieser Änderung (bekannte, vorbestehende Flakiness in
+dieser Suite ist dokumentiert, siehe CLAUDE.md „Bekannte Gotchas"). Bei
+Zweifel: `git stash`, denselben Testlauf auf dem unveränderten Stand
+wiederholen, Fehlschlag-Menge vergleichen, dann `git stash pop`.
+
+- [ ] **Step 7: Commit**
 
 ```bash
-git add Feedivo.xcodeproj/project.pbxproj
-git commit -m "URL-Schema: feedivo:// als CFBundleURLTypes registriert"
+git add Feedivo/Info.plist Feedivo.xcodeproj/project.pbxproj
+git commit -m "URL-Schema: feedivo:// via physischer Info.plist registriert"
 ```
 
 ---
