@@ -812,7 +812,7 @@ struct AddFeedSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.feedivoDatabase) private var feedivoDatabase
     @State private var viewModel = FeedViewModel()
-    @State private var urlString = ""
+    @State private var urlString: String
     @State private var discoveryResults: [FeedDiscoveryResult] = []
     @State private var selectedFeedURL: String?
     @State private var discoveryErrorMessage: String?
@@ -822,6 +822,17 @@ struct AddFeedSheet: View {
     @State private var newFolderName = ""
     @State private var availableFolderNames: [String] = []
     private let discoveryService = FeedDiscoveryService()
+
+    // Aktiviert von einem feedivo://add?url=...-Deep-Link (Feature 23.2):
+    // startet die Vorschau automatisch, ohne dass der Nutzer erneut auf
+    // "Suchen" klicken muss. Beim normalen, manuellen Öffnen (Sidebar-Button)
+    // bleibt der Ablauf unverändert (false).
+    private let shouldAutoStartDiscovery: Bool
+
+    init(initialURLString: String? = nil) {
+        self._urlString = State(initialValue: initialURLString ?? "")
+        self.shouldAutoStartDiscovery = !(initialURLString ?? "").isEmpty
+    }
 
     // Sentinel-Tag fuer die "Neuer Ordner..."-Menueauswahl. Ein Zeichen, das in
     // normalisierten Ordnernamen nicht vorkommen kann, vermeidet Kollisionen.
@@ -891,6 +902,12 @@ struct AddFeedSheet: View {
         }
         .onAppear {
             loadAvailableFolderNames()
+
+            if shouldAutoStartDiscovery {
+                Task {
+                    await performPrimaryAction()
+                }
+            }
         }
     }
 

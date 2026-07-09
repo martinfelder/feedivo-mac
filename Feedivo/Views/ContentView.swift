@@ -37,6 +37,7 @@ struct ContentView: View {
 
     @State private var feedViewModel: FeedViewModel
     @State private var isShowingAddFeedSheet = false
+    @State private var pendingAddFeedURLString: String?
     // SQLite-Identität: Lösch-Bestätigung arbeitet auf dem Sidebar-Snapshot (String-ID).
     @State private var feedPendingDeletion: FeedSidebarSnapshot?
     @State private var isDeleteFeedConfirmationPresented = false
@@ -149,8 +150,9 @@ struct ContentView: View {
         .onChange(of: appIconBadgeIsEnabled, handleAppIconBadgeSettingChange)
         .onChange(of: hasCompletedFirstRunWizard, handleFirstRunCompletionChange)
         .sheet(isPresented: $isShowingAddFeedSheet) {
-            AddFeedSheet()
+            AddFeedSheet(initialURLString: pendingAddFeedURLString)
         }
+        .onOpenURL(perform: handleOpenURL)
         .sheet(isPresented: $isShowingOPMLImportReview) {
             OPMLImportReviewView(
                 feedViewModel: feedViewModel
@@ -284,7 +286,27 @@ struct ContentView: View {
 
     private func requestAddFeed() {
         isShowingFirstRunWizard = false
+        pendingAddFeedURLString = nil
         isShowingAddFeedSheet = true
+    }
+
+    // Feature 23.2: routet feedivo://-Deep-Links zum bestehenden Add-Feed-
+    // Sheet bzw. öffnet ein Artikel-Popout-Fenster. Unbekannte/kaputte URLs
+    // werden still ignoriert (kein Alert, kein Crash).
+    private func handleOpenURL(_ url: URL) {
+        guard let action = FeedivoURLSchemeParser.action(for: url) else {
+            return
+        }
+
+        switch action {
+        case .addFeed(let urlString):
+            isShowingFirstRunWizard = false
+            pendingAddFeedURLString = urlString
+            isShowingAddFeedSheet = true
+
+        case .openArticle(let articleID):
+            openWindow(value: ArticleWindowRequest(articleID: articleID))
+        }
     }
 
     private func handleSidebarSelectionChange() {
