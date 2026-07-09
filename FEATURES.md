@@ -1314,9 +1314,9 @@
   - Klick auf "Hinzufügen" öffnet `feedivo://add?url=...` — Feedivo
     aktiviert/startet sich und zeigt den bestehenden Vorschau-Dialog vor dem
     Abonnieren (Feature 12.4); keine neue Subscribe-Logik in der App nötig
-  - Icons aus dem bestehenden App-Icon abgeleitet (`sips`); bekannte
-    kosmetische Lücke: `images/toolbar-icon.svg` bleibt Xcodes generisches
-    Platzhalter-Symbol
+  - Icons aus dem bestehenden App-Icon abgeleitet (`sips`); Toolbar-Icon
+    nutzt dieselben gebrandeten PNGs wie Chromes Action-Icon (kein
+    generisches Xcode-Platzhalter-Symbol mehr)
   - Manuell End-to-End verifiziert (2026-07-09): Feed-Seite → Icon aktiv,
     Popup, Hinzufügen-Flow bis zur vorausgefüllten Vorschau; Seite ohne
     Feed → Icon inaktiv
