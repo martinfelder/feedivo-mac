@@ -35,9 +35,22 @@
 		C9CE926E2FE5A90800B9C79A /* FeedivoUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FeedivoUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		C9E6094407DF749F765F5521 /* Exceptions for "Feedivo" folder in "Feedivo" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = C9CE92562FE5A90700B9C79A /* Feedivo */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		C9CE92592FE5A90700B9C79A /* Feedivo */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				C9E6094407DF749F765F5521 /* Exceptions for "Feedivo" folder in "Feedivo" target */,
+			);
 			path = Feedivo;
 			sourceTree = "<group>";
 		};
@@ -420,8 +433,8 @@
 				ENABLE_OUTGOING_NETWORK = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readwrite;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Feedivo/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -454,8 +467,8 @@
 				ENABLE_OUTGOING_NETWORK = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readwrite;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Feedivo/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
