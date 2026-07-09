@@ -28,21 +28,14 @@ struct OPMLImportReviewView: View {
     var body: some View {
         VStack(spacing: 0) {
             header
-            Divider()
+            Rectangle()
+                .fill(RuleDialogTheme(colorScheme: colorScheme).border)
+                .frame(height: 1)
             content
             Divider()
             footer
         }
-        .background(
-            LinearGradient(
-                colors: [
-                    Color(nsColor: .windowBackgroundColor),
-                    Color(nsColor: .controlBackgroundColor)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-        )
+        .background(RuleDialogTheme(colorScheme: colorScheme).bg)
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .frame(width: 1080, height: 680)
         .overlay(dropOverlay)
@@ -72,31 +65,26 @@ struct OPMLImportReviewView: View {
     }
 
     private var header: some View {
-        HStack(alignment: .top, spacing: 14) {
+        let theme = RuleDialogTheme(colorScheme: colorScheme)
+
+        return HStack(alignment: .top, spacing: 14) {
             VStack(alignment: .leading, spacing: 5) {
                 Text(L10n.opmlImportTitle)
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.system(size: 21, weight: .bold))
+                    .tracking(-0.3)
+                    .foregroundStyle(theme.text)
                 Text(L10n.opmlImportDescription)
-                    .font(.system(size: 13))
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 13.5))
+                    .foregroundStyle(theme.text2)
             }
 
             Spacer()
 
             statusBadge
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 17)
-        .background(
-            LinearGradient(
-                colors: [
-                    Color.frostedCard(for: colorScheme).opacity(0.58),
-                    Color(nsColor: .controlBackgroundColor).opacity(0.94)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-        )
+        .padding(.horizontal, 26)
+        .padding(.top, 24)
+        .padding(.bottom, 20)
     }
 
     private var statusBadge: some View {
