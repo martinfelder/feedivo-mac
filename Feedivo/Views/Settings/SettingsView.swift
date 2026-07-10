@@ -3,6 +3,7 @@ import SwiftUI
 private enum NewSettingsSection: String, CaseIterable, Identifiable {
     case general
     case appearance
+    case articleList
     case shortcuts
     case notifications
     case refresh
@@ -18,6 +19,8 @@ private enum NewSettingsSection: String, CaseIterable, Identifiable {
             L10n.settingsGeneralSection
         case .appearance:
             "Anzeige"
+        case .articleList:
+            "Artikelliste"
         case .shortcuts:
             L10n.shortcutsSettingsSection
         case .notifications:
@@ -39,6 +42,8 @@ private enum NewSettingsSection: String, CaseIterable, Identifiable {
             "slider.horizontal.3"
         case .appearance:
             "eye"
+        case .articleList:
+            "list.bullet"
         case .shortcuts:
             "keyboard"
         case .notifications:
@@ -69,6 +74,7 @@ struct NewSettingsView: View {
         TabView(selection: $selectedSection) {
             settingsTab(.general)
             settingsTab(.appearance)
+            settingsTab(.articleList)
             settingsTab(.shortcuts)
             settingsTab(.notifications)
             settingsTab(.refresh)
@@ -102,6 +108,8 @@ struct NewSettingsView: View {
             NewGeneralSettingsView()
         case .appearance:
             NewAppearanceSettingsView()
+        case .articleList:
+            NewArticleListSettingsView()
         case .shortcuts:
             NewShortcutsSettingsView()
         case .notifications:
@@ -366,24 +374,6 @@ private struct NewAppearanceSettingsView: View {
     @AppStorage(ReaderTypographySettings.showsArticleImagesKey)
     private var readerShowsArticleImages = ReaderTypography.defaultShowsArticleImages
 
-    @AppStorage(ArticleListImagePosition.storageKey)
-    private var articleListImagePositionRawValue = ArticleListImagePosition.defaultPosition.rawValue
-
-    @AppStorage(ArticleListFeedNameVisibilitySettings.showsFeedNameKey)
-    private var articleListShowsFeedName = ArticleListFeedNameVisibilitySettings.defaultShowsFeedName
-
-    @AppStorage(ArticleListFeedNamePosition.storageKey)
-    private var articleListFeedNamePositionRawValue = ArticleListFeedNamePosition.defaultPosition.rawValue
-
-    @AppStorage(ArticleListSummaryVisibilitySettings.showsSummaryKey)
-    private var articleListShowsSummary = ArticleListSummaryVisibilitySettings.defaultShowsSummary
-
-    @AppStorage(ArticleListSummaryLineCount.storageKey)
-    private var articleListSummaryLineCount = ArticleListSummaryLineCount.defaultValue
-
-    @AppStorage(ArticleDateDisplayMode.storageKey)
-    private var articleDateDisplayModeRawValue = ArticleDateDisplayMode.defaultMode.rawValue
-
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             NewSettingsBlock(eyebrow: "Oberfläche") {
@@ -450,82 +440,6 @@ private struct NewAppearanceSettingsView: View {
                 }
             }
 
-            NewSettingsBlock(eyebrow: "Artikelliste") {
-                NewSettingRow(
-                    title: L10n.settingsArticleListImagePositionTitle,
-                    description: L10n.settingsArticleListImagePositionDescription
-                ) {
-                    Picker("", selection: $articleListImagePositionRawValue) {
-                        ForEach(ArticleListImagePosition.allCases) { position in
-                            Text(position.titleKey)
-                                .tag(position.rawValue)
-                        }
-                    }
-                    .labelsHidden()
-                    .pickerStyle(.segmented)
-                    .fixedSize(horizontal: true, vertical: false)
-                }
-
-                NewSettingRow(
-                    title: L10n.settingsArticleListShowsFeedNameTitle,
-                    description: L10n.settingsArticleListShowsFeedNameDescription
-                ) {
-                    Toggle("", isOn: $articleListShowsFeedName)
-                        .labelsHidden()
-                }
-
-                NewSettingRow(
-                    title: L10n.settingsArticleListFeedNamePositionTitle,
-                    description: L10n.settingsArticleListFeedNamePositionDescription
-                ) {
-                    Picker("", selection: $articleListFeedNamePositionRawValue) {
-                        ForEach(ArticleListFeedNamePosition.allCases) { position in
-                            Text(position.titleKey)
-                                .tag(position.rawValue)
-                        }
-                    }
-                    .labelsHidden()
-                    .pickerStyle(.segmented)
-                    .fixedSize(horizontal: true, vertical: false)
-                }
-
-                NewSettingRow(
-                    title: L10n.settingsArticleListShowsSummaryTitle,
-                    description: L10n.settingsArticleListShowsSummaryDescription
-                ) {
-                    Toggle("", isOn: $articleListShowsSummary)
-                        .labelsHidden()
-                }
-
-                NewSettingRow(
-                    title: L10n.settingsArticleListSummaryLineCountTitle,
-                    description: L10n.settingsArticleListSummaryLineCountDescription
-                ) {
-                    Stepper(
-                        "\(articleListSummaryLineCount)",
-                        value: $articleListSummaryLineCount,
-                        in: ArticleListSummaryLineCount.allowedRange
-                    )
-                    .disabled(!articleListShowsSummary)
-                    .fixedSize()
-                }
-
-                NewSettingRow(
-                    title: L10n.settingsArticleListDateDisplayModeTitle,
-                    description: L10n.settingsArticleListDateDisplayModeDescription
-                ) {
-                    Picker("", selection: $articleDateDisplayModeRawValue) {
-                        ForEach(ArticleDateDisplayMode.allCases) { mode in
-                            Text(mode.titleKey)
-                                .tag(mode.rawValue)
-                        }
-                    }
-                    .labelsHidden()
-                    .pickerStyle(.segmented)
-                    .fixedSize(horizontal: true, vertical: false)
-                }
-            }
-
             NewSettingsBlock(eyebrow: L10n.settingsReadingSection) {
                 NewSettingRow(title: L10n.readerTitleFontPicker, description: "Schriftfamilie und Gewicht für Artikeltitel.") {
                     HStack {
@@ -577,6 +491,94 @@ private struct NewAppearanceSettingsView: View {
                 ) {
                     Toggle("", isOn: $readerShowsArticleImages)
                         .labelsHidden()
+                }
+            }
+        }
+    }
+}
+
+private struct NewArticleListSettingsView: View {
+    @AppStorage(ArticleListImagePosition.storageKey)
+    private var articleListImagePositionRawValue = ArticleListImagePosition.defaultPosition.rawValue
+
+    @AppStorage(ArticleListFeedNameVisibilitySettings.showsFeedNameKey)
+    private var articleListShowsFeedName = ArticleListFeedNameVisibilitySettings.defaultShowsFeedName
+
+    @AppStorage(ArticleListFeedNamePosition.storageKey)
+    private var articleListFeedNamePositionRawValue = ArticleListFeedNamePosition.defaultPosition.rawValue
+
+    @AppStorage(ArticleListSummaryLineCount.storageKey)
+    private var articleListSummaryLineCount = ArticleListSummaryLineCount.defaultValue
+
+    @AppStorage(ArticleDateDisplayMode.storageKey)
+    private var articleDateDisplayModeRawValue = ArticleDateDisplayMode.defaultMode.rawValue
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            NewSettingsBlock(eyebrow: "Artikelliste") {
+                NewSettingRow(
+                    title: L10n.settingsArticleListImagePositionTitle,
+                    description: L10n.settingsArticleListImagePositionDescription
+                ) {
+                    Picker("", selection: $articleListImagePositionRawValue) {
+                        ForEach(ArticleListImagePosition.allCases) { position in
+                            Text(position.titleKey)
+                                .tag(position.rawValue)
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.segmented)
+                    .fixedSize(horizontal: true, vertical: false)
+                }
+
+                NewSettingRow(
+                    title: L10n.settingsArticleListShowsFeedNameTitle,
+                    description: L10n.settingsArticleListShowsFeedNameDescription
+                ) {
+                    Toggle("", isOn: $articleListShowsFeedName)
+                        .labelsHidden()
+                }
+
+                NewSettingRow(
+                    title: L10n.settingsArticleListFeedNamePositionTitle,
+                    description: L10n.settingsArticleListFeedNamePositionDescription
+                ) {
+                    Picker("", selection: $articleListFeedNamePositionRawValue) {
+                        ForEach(ArticleListFeedNamePosition.allCases) { position in
+                            Text(position.titleKey)
+                                .tag(position.rawValue)
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.segmented)
+                    .fixedSize(horizontal: true, vertical: false)
+                }
+
+                NewSettingRow(
+                    title: L10n.settingsArticleListSummaryLineCountTitle,
+                    description: L10n.settingsArticleListSummaryLineCountDescription
+                ) {
+                    Stepper(
+                        "\(articleListSummaryLineCount)",
+                        value: $articleListSummaryLineCount,
+                        in: ArticleListSummaryLineCount.allowedRange
+                    )
+                    .fixedSize()
+                }
+
+                NewSettingRow(
+                    title: L10n.settingsArticleListDateDisplayModeTitle,
+                    description: L10n.settingsArticleListDateDisplayModeDescription
+                ) {
+                    Picker("", selection: $articleDateDisplayModeRawValue) {
+                        ForEach(ArticleDateDisplayMode.allCases) { mode in
+                            Text(mode.titleKey)
+                                .tag(mode.rawValue)
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.segmented)
+                    .fixedSize(horizontal: true, vertical: false)
                 }
             }
         }

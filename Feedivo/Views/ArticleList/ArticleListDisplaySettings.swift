@@ -59,18 +59,12 @@ enum ArticleListFeedNameVisibilitySettings {
     static let defaultShowsFeedName = true
 }
 
-/// Ob die Artikel-Zusammenfassung in der Artikelliste angezeigt wird (Feature 19.1).
-enum ArticleListSummaryVisibilitySettings {
-    static let showsSummaryKey = "articleList.showsSummary"
-    static let defaultShowsSummary = true
-}
-
 /// Anzahl der Vorschautext-Zeilen der Summary in der Artikelliste (Feature 19.1).
-/// Nur relevant, wenn `ArticleListSummaryVisibilitySettings.showsSummaryKey` an ist.
+/// 0 bedeutet: keine Zusammenfassung anzeigen (nur Titel + Datum).
 enum ArticleListSummaryLineCount {
     static let storageKey = "articleList.summaryLineCount"
     static let defaultValue = 2
-    static let allowedRange = 1...3
+    static let allowedRange = 0...3
 
     /// Fängt ungültige/veraltete gespeicherte Werte ab (z. B. durch manuelle
     /// UserDefaults-Manipulation oder künftige Range-Änderungen).

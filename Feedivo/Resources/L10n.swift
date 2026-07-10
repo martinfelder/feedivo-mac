@@ -284,8 +284,6 @@ enum L10n {
     static let settingsArticleListShowsFeedNameDescription = LocalizedStringKey("settings.articleList.showsFeedName.description")
     static let settingsArticleListFeedNamePositionTitle = LocalizedStringKey("settings.articleList.feedNamePosition.title")
     static let settingsArticleListFeedNamePositionDescription = LocalizedStringKey("settings.articleList.feedNamePosition.description")
-    static let settingsArticleListShowsSummaryTitle = LocalizedStringKey("settings.articleList.showsSummary.title")
-    static let settingsArticleListShowsSummaryDescription = LocalizedStringKey("settings.articleList.showsSummary.description")
     static let settingsArticleListSummaryLineCountTitle = LocalizedStringKey("settings.articleList.summaryLineCount.title")
     static let settingsArticleListSummaryLineCountDescription = LocalizedStringKey("settings.articleList.summaryLineCount.description")
     static let settingsArticleListDateDisplayModeTitle = LocalizedStringKey("settings.articleList.dateDisplayMode.title")

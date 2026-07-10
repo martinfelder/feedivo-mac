@@ -12,9 +12,6 @@ struct ArticleRowView: View {
     @AppStorage(ArticleListFeedNamePosition.storageKey)
     private var feedNamePositionRawValue = ArticleListFeedNamePosition.defaultPosition.rawValue
 
-    @AppStorage(ArticleListSummaryVisibilitySettings.showsSummaryKey)
-    private var showsSummary = ArticleListSummaryVisibilitySettings.defaultShowsSummary
-
     @AppStorage(ArticleListSummaryLineCount.storageKey)
     private var summaryLineCount = ArticleListSummaryLineCount.defaultValue
 
@@ -31,6 +28,10 @@ struct ArticleRowView: View {
 
     private var dateDisplayMode: ArticleDateDisplayMode {
         ArticleDateDisplayMode.resolved(from: dateDisplayModeRawValue)
+    }
+
+    private var resolvedSummaryLineCount: Int {
+        ArticleListSummaryLineCount.resolved(from: summaryLineCount)
     }
 
     let snapshot: ArticleListItemSnapshot
@@ -69,11 +70,11 @@ struct ArticleRowView: View {
                     metadataRow
                 }
 
-                if showsSummary, let summary = snapshot.summary, !summary.isEmpty {
+                if resolvedSummaryLineCount > 0, let summary = snapshot.summary, !summary.isEmpty {
                     Text(summary)
                         .font(interfaceTextSize.font(size: 13))
                         .foregroundStyle(snapshot.isRead ? .tertiary : .secondary)
-                        .lineLimit(ArticleListSummaryLineCount.resolved(from: summaryLineCount))
+                        .lineLimit(resolvedSummaryLineCount)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)

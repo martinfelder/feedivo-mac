@@ -805,12 +805,18 @@
 
 ### 19.1 Artikel-Liste anpassen
 - **Status:** ✔️ Fertig
-- **Umgesetzt (Einstellungen → Darstellung):**
+- **Eigener Settings-Tab (2026-07-10):** Alle Artikelliste-Einstellungen wurden aus dem
+  "Anzeige"-Tab in einen eigenen Tab "Artikelliste" verschoben, da der bisherige Tab
+  zu voll wurde.
+- **Umgesetzt (Einstellungen → Artikelliste):**
   - Feeds ohne ungelesene Artikel in der Seitenleiste anzeigen / ausblenden — umgesetzt
-  - Vorschautext-Zeilen: 1–3 (Stepper), Standard: 2, plus eigener An/Aus-Toggle für die Summary — umgesetzt 2026-07-10
+  - Vorschautext-Zeilen: 0–3 (Stepper), Standard: 2 — 0 = keine Zusammenfassung. Ursprünglich als
+    separater An/Aus-Toggle + Stepper 1–3 umgesetzt (2026-07-10), auf Nutzerwunsch noch am selben
+    Tag zu einem einzigen Stepper 0–3 vereinfacht (kein separater Toggle mehr nötig, da 0 dieselbe
+    Funktion abdeckt)
   - Vorschaubilder in der Liste: anzeigen / ausblenden — umgesetzt 2026-07-08
   - Vorschaubild-Position: Links oder Rechts — umgesetzt 2026-07-08 (als 3-Wege-Einstellung Links/Rechts/Aus)
-  - Summary anzeigen / ausblenden — umgesetzt 2026-07-10 (siehe Vorschautext-Zeilen)
+  - Summary anzeigen / ausblenden — umgesetzt 2026-07-10 (siehe Vorschautext-Zeilen: 0 = ausgeblendet)
   - Datum-Format: relativ ("vor 2 Stunden") oder absolut ("23.06.2026") wählbar, wirkt app-weit (Artikelliste, Sidebar-Vorschau, Reader-Inspector, Reader-Metadatenzeile, Export) — umgesetzt 2026-07-10
   - Feed-Name pro Artikel: anzeigen / ausblenden in Einstellungen (nützlich in "Alle" / Smart Filter) — umgesetzt 2026-07-08
   - Favicon + Position der Feedname-Zeile — umgesetzt 2026-07-08:

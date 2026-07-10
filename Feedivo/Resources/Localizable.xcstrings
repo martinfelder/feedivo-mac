@@ -20044,25 +20044,25 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wie viele Zeilen der Zusammenfassung in der Artikelliste angezeigt werden."
+            "value" : "Wie viele Zeilen der Zusammenfassung angezeigt werden. 0 = keine Zusammenfassung."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "How many lines of the summary are shown in the article list."
+            "value" : "How many lines of the summary are shown. 0 = no summary."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nombre de lignes du résumé affichées dans la liste des articles."
+            "value" : "Nombre de lignes du résumé affichées. 0 = aucun résumé."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Quante righe del riepilogo vengono mostrate nell'elenco articoli."
+            "value" : "Quante righe del riepilogo vengono mostrate. 0 = nessun riepilogo."
           }
         }
       }
