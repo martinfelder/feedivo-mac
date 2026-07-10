@@ -813,6 +813,11 @@
   - Summary anzeigen / ausblenden — umgesetzt 2026-07-10 (siehe Vorschautext-Zeilen)
   - Datum-Format: relativ ("vor 2 Stunden") oder absolut ("23.06.2026") wählbar, wirkt app-weit (Artikelliste, Sidebar-Vorschau, Reader-Inspector, Reader-Metadatenzeile, Export) — umgesetzt 2026-07-10
   - Feed-Name pro Artikel: anzeigen / ausblenden in Einstellungen (nützlich in "Alle" / Smart Filter) — umgesetzt 2026-07-08
+  - Favicon + Position der Feedname-Zeile — umgesetzt 2026-07-08:
+    - Vor dem Feedname-Text erscheint zusätzlich ein kleines Favicon des Feeds, genau so hoch wie der Text selbst. Hat ein Feed kein Favicon, erscheint an derselben Stelle ein generisches Platzhalter-Icon, damit der Text nicht je nach Feed unterschiedlich weit einrückt.
+    - Einstellung: Feedname-Zeile (Favicon + Feedname + Zeitpunkt) erscheint entweder **vor** dem Artikeltitel (ganz oben, linksbündig) oder **nach** dem Artikeltitel (aktuelle Position). Zeitpunkt ist an dieselbe Positions-Einstellung gebunden wie der Feedname.
+    - Standardwert: **Nach dem Titel** (entspricht dem bisherigen Verhalten — ändert für Bestandsnutzer nichts, bis sie es umstellen).
+    - Ist "Feed-Name anzeigen" ausgeschaltet, verschwinden nur Feedname und Favicon; der Zeitpunkt bleibt weiterhin eigenständig sichtbar.
   - Ungelesen-Markierung: fetter Text + farbiger Punkt (beides zusammen) — bereits seit Einführung der Artikelliste kombiniert umgesetzt, kein separater Task nötig (bestätigt 2026-07-10)
 
 ### 19.2 Sidebar anpassen
