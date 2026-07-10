@@ -10049,6 +10049,62 @@
     "Nativer macOS RSS Reader mit Tags, Regeln, Offline-Lesen und OPML." : {
 
     },
+    "menubar.articleClickBehavior.inBrowser" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Im Browser"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In browser"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dans le navigateur"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nel browser"
+          }
+        }
+      }
+    },
+    "menubar.articleClickBehavior.inFeedivo" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In Feedivo"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In Feedivo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dans Feedivo"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In Feedivo"
+          }
+        }
+      }
+    },
     "networkStatus.offline" : {
       "localizations" : {
         "de" : {
@@ -19984,6 +20040,7 @@
       }
     },
     "settings.articleList.showsSummary.description" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -20012,6 +20069,7 @@
       }
     },
     "settings.articleList.showsSummary.title" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
