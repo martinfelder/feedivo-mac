@@ -121,6 +121,16 @@ struct FeedivoApp: App {
                 .dynamicTypeSize(interfaceTextSize.dynamicTypeSize)
                 .preferredColorScheme(appAppearance.colorScheme)
         }
+
+        Window(L10n.statisticsWindowTitle, id: StatisticsWindowView.windowID) {
+            StatisticsWindowView()
+                .environment(\.locale, appLanguage.locale)
+                .environment(\.interfaceTextSize, interfaceTextSize)
+                .environment(\.feedivoDatabase, feedivoDatabase)
+                .dynamicTypeSize(interfaceTextSize.dynamicTypeSize)
+                .preferredColorScheme(appAppearance.colorScheme)
+        }
+        .defaultSize(width: 820, height: 640)
         .defaultSize(width: 920, height: 620)
 
         WindowGroup(for: ArticleWindowRequest.self) { $request in

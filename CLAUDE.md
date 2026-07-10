@@ -445,6 +445,19 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   "Symbolleiste anpassen..." per Rechtsklick), noch vor dem Commit auf Nutzerwunsch wieder
   verworfen (`git checkout` auf `SQLiteReaderView.swift`). Keine Code-Reste auf `main`, Status
   in FEATURES.md auf ⏸️ Zurückgestellt gesetzt.
+- Feature 14 (Statistiken 14.1–14.3) abgeschlossen — neues Statistik-Fenster
+  (`StatisticsWindowView`, Konzept-A-Design) mit Zeitraum-Filter (7/30/Gesamt), Heatmap
+  (91 Tage, GitHub-Stil), Top-5-Feeds/-Tags, Ø Lesezeit; Feed-Statistiken in
+  `FeedPropertiesView` integriert; CSV-Export (`StatisticsExportService` +
+  `StatisticsCSVDocument`, `.fileExporter`) kombiniert 14.1+14.2 in einer Datei. Neuer
+  `StatisticsStore` (rein lesende SQL-Aggregation, keine neue Migration). Heatmap
+  nachgebessert: feste 5-Stufen-Farb-Buckets, Legende, Monats-/Wochentag-Labels,
+  Lese-Streak (aktuell + Rekord) via neue `ReadingStatisticsSnapshot`-Computed-Properties
+  (`currentStreak`/`longestStreak`). Zwei weitere Kennzahlen ergänzt: Gesamt-Lesezeit
+  (kumuliert, `DateComponentsFormatter`) und Trend zur Vorperiode (`trendPercentage`,
+  `nil` bei Zeitraum "Gesamt" oder Vorperiode = 0) — Summary-Kachel-Reihe dafür auf
+  6 Kacheln (3×2-Grid) erweitert. Build und Tests (65/65 in FeedivoTests +
+  SQLiteStatisticsStoreTests) grün, noch nicht committed.
 - Weiterhin offen laut FEATURES.md-Entscheidung vom 2026-07-02: `codex/icloud-sync-beta` ist
   bewusst zugunsten des SQLite/GRDB-Umbaus zurückgestellt (nicht nur unentschieden) — der Umbau
   ist inzwischen abgeschlossen (ADR-007), eine erneute Bewertung des Branches steht noch aus.

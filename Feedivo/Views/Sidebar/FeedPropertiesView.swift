@@ -32,6 +32,7 @@ struct FeedPropertiesView: View {
     @State private var feedTags: [TagRecord] = []
     @State private var sqliteLogEntries: [FeedLogRecord] = []
     @State private var sqliteArticleMetrics = FeedPropertiesArticleMetricsSnapshot.empty
+    @State private var sqliteReadingStatistics = FeedReadingStatisticsSnapshot.empty
 
     private var latestArticle: ArticleListSnapshot? {
         sqliteArticleMetrics.latestArticle
@@ -110,6 +111,7 @@ struct FeedPropertiesView: View {
             loadSQLiteTags()
             loadSQLiteLogEntries()
             loadSQLiteArticleMetrics()
+            loadSQLiteReadingStatistics()
         }
         .onChange(of: selectedRefreshInterval) {
             updateRefreshInterval()
@@ -284,6 +286,21 @@ struct FeedPropertiesView: View {
             )
             propertyDivider
             propertyRow(L10n.feedPropertiesLastRefreshed, value: formattedDate(currentFeedRecord.lastRefreshedAt))
+            propertyDivider
+            propertyRow(
+                L10n.feedPropertiesAverageArticlesPerWeek,
+                value: String(format: "%.1f", sqliteReadingStatistics.averageArticlesPerWeek)
+            )
+            propertyDivider
+            propertyRow(
+                L10n.feedPropertiesReadPercentage,
+                value: String(format: "%.0f%%", sqliteReadingStatistics.readPercentage)
+            )
+            propertyDivider
+            propertyRow(
+                L10n.feedPropertiesAverageReadingMinutes,
+                value: L10n.statisticsMinutesPerDay(Int(sqliteReadingStatistics.averageReadingMinutes.rounded()))
+            )
         }
     }
 
@@ -697,6 +714,17 @@ struct FeedPropertiesView: View {
         ) ?? .empty
     }
 
+    private func loadSQLiteReadingStatistics(now: Date = Date()) {
+        guard let database = feedivoDatabase else {
+            sqliteReadingStatistics = .empty
+            return
+        }
+
+        sqliteReadingStatistics = (
+            try? StatisticsStore(database: database).feedReadingStatistics(feedID: feedID, now: now)
+        ) ?? .empty
+    }
+
     private func syncFeedRetentionSettings() {
         guard let database = feedivoDatabase else {
             return
@@ -726,6 +754,7 @@ struct FeedPropertiesView: View {
                 includeProtectedArticles: globalArticleRetentionIncludesProtectedArticles
             )
             loadSQLiteArticleMetrics()
+            loadSQLiteReadingStatistics()
         }
     }
 

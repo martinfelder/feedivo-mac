@@ -71,6 +71,63 @@ enum L10n {
     static let readerDisplayModePicker = LocalizedStringKey("reader.displayMode.picker")
     static let readerDisplayModeNative = LocalizedStringKey("reader.displayMode.native")
     static let readerDisplayModeWeb = LocalizedStringKey("reader.displayMode.web")
+    static let statisticsTimeRangeLast7Days = LocalizedStringKey("statistics.timeRange.last7Days")
+    static let statisticsTimeRangeLast30Days = LocalizedStringKey("statistics.timeRange.last30Days")
+    static let statisticsTimeRangeAll = LocalizedStringKey("statistics.timeRange.all")
+    static let statisticsCommand = String(localized: "statistics.command")
+    static let statisticsWindowTitle = String(localized: "statistics.window.title")
+    static let statisticsSubtitle = LocalizedStringKey("statistics.subtitle")
+    static let statisticsSummaryToday = LocalizedStringKey("statistics.summary.today")
+    static let statisticsSummaryThisWeek = LocalizedStringKey("statistics.summary.thisWeek")
+    static let statisticsSummaryTotal = LocalizedStringKey("statistics.summary.total")
+    static let statisticsSummaryAverageReadingTime = LocalizedStringKey("statistics.summary.averageReadingTime")
+    static let statisticsHeatmapTitle = LocalizedStringKey("statistics.heatmap.title")
+    static let statisticsTopFeedsTitle = LocalizedStringKey("statistics.topFeeds.title")
+    static let statisticsTopFeedsEmpty = LocalizedStringKey("statistics.topFeeds.empty")
+    static let statisticsTopTagsTitle = LocalizedStringKey("statistics.topTags.title")
+    static let statisticsTopTagsEmpty = LocalizedStringKey("statistics.topTags.empty")
+    static let statisticsExportButton = LocalizedStringKey("statistics.export.button")
+    static let statisticsHeatmapLegendLess = LocalizedStringKey("statistics.heatmap.legend.less")
+    static let statisticsHeatmapLegendMore = LocalizedStringKey("statistics.heatmap.legend.more")
+    static let statisticsSummaryTotalReadingTime = LocalizedStringKey("statistics.summary.totalReadingTime")
+    static let statisticsSummarySelectedRangeCount = LocalizedStringKey("statistics.summary.selectedRangeCount")
+
+    static func statisticsTrendIncrease(_ percentage: Int) -> String {
+        String.localizedStringWithFormat(
+            String(localized: "statistics.trend.increase"),
+            percentage
+        )
+    }
+
+    static func statisticsTrendDecrease(_ percentage: Int) -> String {
+        String.localizedStringWithFormat(
+            String(localized: "statistics.trend.decrease"),
+            percentage
+        )
+    }
+
+    static func statisticsHeatmapDayTooltip(_ date: String, _ count: Int) -> String {
+        String.localizedStringWithFormat(
+            String(localized: "statistics.heatmap.day.tooltip"),
+            date,
+            count
+        )
+    }
+
+    static func statisticsStreakText(current: Int, longest: Int) -> String {
+        String.localizedStringWithFormat(
+            String(localized: "statistics.streak.text"),
+            current,
+            longest
+        )
+    }
+
+    static func statisticsMinutesPerDay(_ minutes: Int) -> String {
+        String.localizedStringWithFormat(
+            String(localized: "statistics.minutesPerDay"),
+            minutes
+        )
+    }
     static let networkStatusOnline = LocalizedStringKey("networkStatus.online")
     static let networkStatusOffline = LocalizedStringKey("networkStatus.offline")
     static let refreshStatusDetailsTitle = String(localized: "refreshStatus.details.title")
@@ -332,6 +389,9 @@ enum L10n {
     static let feedPropertiesLatestArticle = LocalizedStringKey("feed.properties.latestArticle")
     static let feedPropertiesActivityTitle = LocalizedStringKey("feed.properties.activityTitle")
     static let feedPropertiesArticlesLastWeek = LocalizedStringKey("feed.properties.articlesLastWeek")
+    static let feedPropertiesAverageArticlesPerWeek = LocalizedStringKey("feed.properties.averageArticlesPerWeek")
+    static let feedPropertiesReadPercentage = LocalizedStringKey("feed.properties.readPercentage")
+    static let feedPropertiesAverageReadingMinutes = LocalizedStringKey("feed.properties.averageReadingMinutes")
     static let feedPropertiesRefreshInterval = LocalizedStringKey("feed.properties.refreshInterval")
     static let feedPropertiesNextFetch = LocalizedStringKey("feed.properties.nextFetch")
     static let feedPropertiesLastRefreshed = LocalizedStringKey("feed.properties.lastRefreshed")

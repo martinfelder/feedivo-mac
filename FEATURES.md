@@ -567,35 +567,45 @@
 ## 14. Statistiken
 
 ### 14.1 Lese-Statistiken
-- **Status:** ✅ Entschieden — bereit zur Implementierung
-- **Zu implementieren:**
-  - Separates Fenster — auslösbar via Menüleiste oder `Cmd+Shift+S`
-  - Statistiken:
-    - Artikel gelesen heute / diese Woche / gesamt
-    - Meistgelesene Feeds (Top 5)
-    - Aktivste Lesetage (Heatmap à la GitHub)
-    - Durchschnittliche Lesezeit pro Tag
-    - Meistgenutzte Tags
-  - Zeitraum wählbar: 7 Tage / 30 Tage / Gesamt
+- **Status:** ✔️ Fertig
+- **Umgesetzt (2026-07-10):**
+  - Separates Fenster (`StatisticsWindowView`, Konzept-A-Design via `RuleDialogTheme`) —
+    auslösbar via Menüleiste ("Feed" → "Statistiken...") oder `Cmd+Shift+S`
+  - Statistiken: Artikel gelesen heute/diese Woche/gesamt, Top-5-meistgelesene Feeds,
+    Aktivste Lesetage als Heatmap (letzte 91 Tage, GitHub-Stil, unabhängig vom
+    Zeitraum-Filter), Ø Lesezeit/Tag, Top-5-meistgenutzte Tags
+  - Zeitraum wählbar: 7 Tage / 30 Tage / Gesamt (`StatisticsTimeRange`), steuert Top-Feeds/
+    Top-Tags/Ø Lesezeit — die Heatmap bleibt davon unabhängig immer bei 91 Tagen
+  - Datenschicht: neuer `StatisticsStore` (rein lesende SQL-Aggregation über bestehende
+    Spalten `readAt`/`estimatedReadingMinutes`/`assignedAt`, keine neue Migration nötig)
+  - Heatmap-Nachbesserung (2026-07-10): feste 5-Stufen-Farb-Buckets statt kontinuierlicher
+    Skala relativ zum Tagesmaximum, Legende ("Weniger → Mehr"), Monats-/Wochentag-Labels
+    (Mo/Mi/Fr, GitHub-Stil), Lese-Streak (aktuelle Serie + Rekord) als
+    `ReadingStatisticsSnapshot.currentStreak`/`.longestStreak`, angezeigt neben dem
+    Heatmap-Titel
+  - Zwei weitere Kennzahlen ergänzt (2026-07-10): **Gesamt-Lesezeit** (kumuliert über die
+    komplette Historie, unabhängig vom Zeitraum-Picker, formatiert via
+    `DateComponentsFormatter`) und **Trend zur Vorperiode** (Vergleich der im gewählten
+    Zeitraum gelesenen Artikel gegen die unmittelbar davorliegende, gleich lange Periode
+    — kein Trend bei Zeitraum "Gesamt" oder wenn die Vorperiode 0 Artikel hatte). Dafür
+    Summary-Kachel-Reihe von 4 auf 6 Kacheln (3×2-Grid) erweitert.
 
 ### 14.2 Feed-Statistiken
-- **Status:** ✅ Entschieden — bereit zur Implementierung
-- **Zu implementieren:**
-  - In `FeedPropertiesView` integrieren (bestehende Feed-Info-Ansicht)
-  - Artikel pro Woche (Durchschnitt)
-  - Lese-Prozentsatz (wie viel % der Artikel werden gelesen)
-  - Durchschnittliche Lesedauer für diesen Feed
+- **Status:** ✔️ Fertig
+- **Umgesetzt (2026-07-10):**
+  - In `FeedPropertiesView` integriert (`activitySection`, neben "Artikel letzte 7 Tage")
+  - Artikel pro Woche (Ø), Lese-Prozentsatz, Ø Lesedauer — via
+    `StatisticsStore.feedReadingStatistics(feedID:)`
 
 ### 14.3 Statistik-Daten exportieren
-- **Status:** ✅ Entschieden — bereit zur Implementierung (abhängig von Feature 14.1/14.2)
-- **Entscheidung (2026-07-08):**
-  - Ein `Exportieren...`-Button im separaten Statistik-Fenster (Feature 14.1)
-    exportiert Lese-Statistiken (14.1) und Feed-Statistiken (14.2) zusammen als
-    eine CSV-Datei — kein separater Export-Button in `FeedPropertiesView`.
-  - Format: CSV, damit die Daten direkt in Excel/Numbers/Google Sheets
-    weiterverarbeitet werden können.
-  - Voraussetzung: Setzt voraus, dass 14.1 und 14.2 bereits implementiert sind,
-    da der Export auf deren Datenmodell aufbaut.
+- **Status:** ✔️ Fertig
+- **Umgesetzt (2026-07-10):**
+  - `Exportieren...`-Button im Statistik-Fenster (Feature 14.1), `.fileExporter` +
+    `StatisticsCSVDocument` (analog `OPMLDocument`) — exportiert Lese-Statistiken (14.1)
+    und Feed-Statistiken für alle Feeds (14.2) zusammen als eine CSV-Datei (kein separater
+    Export-Button in `FeedPropertiesView`, wie am 2026-07-08 entschieden)
+  - CSV-Erzeugung in `StatisticsExportService.buildCSV(...)`, inkl. korrektem
+    Anführungszeichen-/Komma-Escaping
 
 ---
 

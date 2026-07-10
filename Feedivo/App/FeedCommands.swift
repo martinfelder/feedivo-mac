@@ -30,6 +30,11 @@ struct FeedCommands: Commands {
                 openWindow(id: OrganizerWindowView.windowID)
             }
 
+            Button(L10n.statisticsCommand) {
+                openWindow(id: StatisticsWindowView.windowID)
+            }
+            .keyboardShortcut("s", modifiers: [.command, .shift])
+
             Divider()
 
             Button(L10n.feedRefreshAllCommand) {

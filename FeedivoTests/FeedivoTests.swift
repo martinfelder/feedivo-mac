@@ -677,4 +677,100 @@ struct FeedivoTests {
         #expect(enrichedArticles.first?.imageURL == "https://example.com/wp-content/uploads/artikelbild.jpg")
     }
 
+    @Test func statisticsExportServiceEscapedKommasUndAnfuehrungszeichenInCSV() {
+        let readingStatistics = ReadingStatisticsSnapshot(
+            articlesReadToday: 1,
+            articlesReadThisWeek: 2,
+            articlesReadTotal: 3,
+            topFeeds: [
+                ReadingStatisticsFeedCount(feedID: "feed-1", feedTitle: "Feed, mit \"Komma\"", faviconURL: nil, count: 5)
+            ],
+            dailyReadCounts: [],
+            averageReadingMinutesPerDay: 4.2,
+            topTags: [],
+            totalReadingMinutesAllTime: 120,
+            articlesReadInSelectedRange: 3,
+            articlesReadInPreviousPeriod: nil
+        )
+
+        let csv = StatisticsExportService.buildCSV(readingStatistics: readingStatistics, feedStatistics: [])
+
+        #expect(csv.contains(#""Feed, mit ""Komma""",5"#))
+    }
+
+    @Test func statisticsExportServiceEnthaeltAlleAbschnitte() {
+        let csv = StatisticsExportService.buildCSV(
+            readingStatistics: .empty,
+            feedStatistics: [("Example", FeedReadingStatisticsSnapshot(averageArticlesPerWeek: 3.5, readPercentage: 80, averageReadingMinutes: 6))]
+        )
+
+        #expect(csv.contains("Kennzahl,Wert"))
+        #expect(csv.contains("Meistgelesene Feeds,Anzahl"))
+        #expect(csv.contains("Meistgenutzte Tags,Anzahl"))
+        #expect(csv.contains("Feed,Artikel pro Woche (Ø),Lese-Prozentsatz,Ø Lesedauer (Minuten)"))
+        #expect(csv.contains("Example,3.5,80.0,6.0"))
+    }
+
+    private func daysAgo(_ days: Int, from reference: Date = Date()) -> Date {
+        Calendar.current.date(byAdding: .day, value: -days, to: Calendar.current.startOfDay(for: reference))!
+    }
+
+    private func readingStatistics(readDaysAgo: [Int]) -> ReadingStatisticsSnapshot {
+        var snapshot = ReadingStatisticsSnapshot.empty
+        snapshot.dailyReadCounts = readDaysAgo.map { ReadingStatisticsDailyCount(date: daysAgo($0), count: 1) }
+        return snapshot
+    }
+
+    @Test func currentStreakZaehltAufeinanderfolgendeTageBisHeute() {
+        let stats = readingStatistics(readDaysAgo: [0, 1, 2])
+        #expect(stats.currentStreak == 3)
+    }
+
+    @Test func currentStreakBleibtBisMitternachtAktivOhneHeutigenArtikel() {
+        let stats = readingStatistics(readDaysAgo: [1, 2])
+        #expect(stats.currentStreak == 2)
+    }
+
+    @Test func currentStreakIstNullBeiUnterbrochenerSerie() {
+        let stats = readingStatistics(readDaysAgo: [3])
+        #expect(stats.currentStreak == 0)
+    }
+
+    @Test func longestStreakFindetLaengsteSerieUnabhaengigVonAktuellerSerie() {
+        let stats = readingStatistics(readDaysAgo: [0, 1] + [20, 21, 22, 23, 24])
+        #expect(stats.longestStreak == 5)
+        #expect(stats.currentStreak == 2)
+    }
+
+    @Test func streaksSindNullOhneGeleseneArtikel() {
+        #expect(ReadingStatisticsSnapshot.empty.currentStreak == 0)
+        #expect(ReadingStatisticsSnapshot.empty.longestStreak == 0)
+    }
+
+    @Test func trendPercentageBerechnetAnstiegUndRueckgang() {
+        var increase = ReadingStatisticsSnapshot.empty
+        increase.articlesReadInSelectedRange = 12
+        increase.articlesReadInPreviousPeriod = 10
+        #expect(increase.trendPercentage == 20)
+
+        var decrease = ReadingStatisticsSnapshot.empty
+        decrease.articlesReadInSelectedRange = 5
+        decrease.articlesReadInPreviousPeriod = 10
+        #expect(decrease.trendPercentage == -50)
+    }
+
+    @Test func trendPercentageIstNilOhneVorperiode() {
+        var stats = ReadingStatisticsSnapshot.empty
+        stats.articlesReadInSelectedRange = 7
+        stats.articlesReadInPreviousPeriod = nil
+        #expect(stats.trendPercentage == nil)
+    }
+
+    @Test func trendPercentageIstNilBeiVorperiodeNull() {
+        var stats = ReadingStatisticsSnapshot.empty
+        stats.articlesReadInSelectedRange = 3
+        stats.articlesReadInPreviousPeriod = 0
+        #expect(stats.trendPercentage == nil)
+    }
+
 }
