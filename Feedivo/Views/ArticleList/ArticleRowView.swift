@@ -12,6 +12,12 @@ struct ArticleRowView: View {
     @AppStorage(ArticleListFeedNamePosition.storageKey)
     private var feedNamePositionRawValue = ArticleListFeedNamePosition.defaultPosition.rawValue
 
+    @AppStorage(ArticleListSummaryVisibilitySettings.showsSummaryKey)
+    private var showsSummary = ArticleListSummaryVisibilitySettings.defaultShowsSummary
+
+    @AppStorage(ArticleListSummaryLineCount.storageKey)
+    private var summaryLineCount = ArticleListSummaryLineCount.defaultValue
+
     private var imagePosition: ArticleListImagePosition {
         ArticleListImagePosition.resolved(from: imagePositionRawValue)
     }
@@ -56,11 +62,11 @@ struct ArticleRowView: View {
                     metadataRow
                 }
 
-                if let summary = snapshot.summary, !summary.isEmpty {
+                if showsSummary, let summary = snapshot.summary, !summary.isEmpty {
                     Text(summary)
                         .font(interfaceTextSize.font(size: 13))
                         .foregroundStyle(snapshot.isRead ? .tertiary : .secondary)
-                        .lineLimit(2)
+                        .lineLimit(ArticleListSummaryLineCount.resolved(from: summaryLineCount))
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
