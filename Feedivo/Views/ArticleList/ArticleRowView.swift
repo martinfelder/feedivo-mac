@@ -18,12 +18,19 @@ struct ArticleRowView: View {
     @AppStorage(ArticleListSummaryLineCount.storageKey)
     private var summaryLineCount = ArticleListSummaryLineCount.defaultValue
 
+    @AppStorage(ArticleDateDisplayMode.storageKey)
+    private var dateDisplayModeRawValue = ArticleDateDisplayMode.defaultMode.rawValue
+
     private var imagePosition: ArticleListImagePosition {
         ArticleListImagePosition.resolved(from: imagePositionRawValue)
     }
 
     private var feedNamePosition: ArticleListFeedNamePosition {
         ArticleListFeedNamePosition.resolved(from: feedNamePositionRawValue)
+    }
+
+    private var dateDisplayMode: ArticleDateDisplayMode {
+        ArticleDateDisplayMode.resolved(from: dateDisplayModeRawValue)
     }
 
     let snapshot: ArticleListItemSnapshot
@@ -269,7 +276,7 @@ struct ArticleRowView: View {
 
         return [
             feedNamePart,
-            snapshot.publishedAt?.feedivoRelativeDisplay
+            snapshot.publishedAt?.feedivoDisplay(mode: dateDisplayMode)
         ]
         .compactMap { value in
             guard let value, !value.isEmpty else {

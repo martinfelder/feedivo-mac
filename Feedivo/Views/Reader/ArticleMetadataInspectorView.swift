@@ -13,6 +13,9 @@ struct ArticleMetadataInspectorView: View {
     @Environment(\.feedivoDatabase) private var database
     @Environment(\.interfaceTextSize) private var interfaceTextSize
 
+    @AppStorage(ArticleDateDisplayMode.storageKey)
+    private var dateDisplayModeRawValue = ArticleDateDisplayMode.defaultMode.rawValue
+
     let snapshot: ArticleReaderSnapshot
     let close: () -> Void
 
@@ -396,7 +399,7 @@ struct ArticleMetadataInspectorView: View {
     }
 
     private var publishedAtText: String? {
-        currentSnapshot.publishedAt?.feedivoRelativeDisplay
+        currentSnapshot.publishedAt?.feedivoDisplay(mode: ArticleDateDisplayMode.resolved(from: dateDisplayModeRawValue))
     }
 
     private var readingTimeText: String? {

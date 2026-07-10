@@ -771,6 +771,13 @@ private struct SidebarRowButtonStyle: ButtonStyle {
 struct AddFeedSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.feedivoDatabase) private var feedivoDatabase
+
+    // Datum-Format der Feed-Vorschau folgt derselben Nutzereinstellung wie Artikelliste/
+    // Sidebar/Reader-Inspector (Feature 19.1) — keine anderen @AppStorage-Properties in
+    // diesem Struct vorhanden, daher direkt nach den @Environment-Properties platziert.
+    @AppStorage(ArticleDateDisplayMode.storageKey)
+    private var dateDisplayModeRawValue = ArticleDateDisplayMode.defaultMode.rawValue
+
     @State private var viewModel = FeedViewModel()
     @State private var urlString: String
     @State private var discoveryResults: [FeedDiscoveryResult] = []
@@ -1060,7 +1067,7 @@ struct AddFeedSheet: View {
                 Spacer(minLength: 8)
 
                 if let publishedAt = article.publishedAt {
-                    Text(publishedAt.feedivoRelativeDisplay)
+                    Text(publishedAt.feedivoDisplay(mode: ArticleDateDisplayMode.resolved(from: dateDisplayModeRawValue)))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
