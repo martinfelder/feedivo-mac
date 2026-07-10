@@ -71,7 +71,7 @@ struct FeedivoApp: App {
         let interfaceTextSize = InterfaceTextSize.resolved(from: interfaceTextSizeRawValue)
         let appAppearance = AppAppearance.resolved(from: appAppearanceRawValue)
 
-        WindowGroup {
+        WindowGroup(id: "main") {
             ContentView(feedViewModel: feedViewModel)
                 .environment(\.locale, appLanguage.locale)
                 .environment(\.interfaceTextSize, interfaceTextSize)

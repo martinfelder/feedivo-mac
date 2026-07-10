@@ -139,10 +139,6 @@ struct MenubarDropdownView: View {
 
     private func openMainWindow() {
         NSApp.activate(ignoringOtherApps: true)
-        for window in NSApp.windows where window.identifier?.rawValue.contains("main") == true {
-            window.makeKeyAndOrderFront(nil)
-            return
-        }
-        NSApp.windows.first?.makeKeyAndOrderFront(nil)
+        openWindow(id: "main")
     }
 }
