@@ -845,10 +845,13 @@
 - **Nicht umsetzen:** Hintergrundbild / Sepia-Modus
 
 ### 19.4 Toolbar anpassen
-- **Status:** ✅ Entschieden — bereit zur Implementierung
-- **Zu implementieren:**
+- **Status:** ⏸️ Zurückgestellt
+- **Ursprünglich zu implementieren:**
   - macOS-Standard `Symbolleiste anpassen...` via Rechtsklick auf Toolbar
   - User kann Items frei hinzufügen / entfernen / umsortieren
+- **Entscheidung (2026-07-10):** Umsetzung für die Reader-Toolbar versucht
+  (`.toolbar(id:)` + `ToolbarItem(id:)` je bisherigem `ControlGroup`-Bündel), noch vor dem
+  Commit wieder verworfen. Keine Code-Reste auf `main`.
 
 ### 19.5 Allgemeines Verhalten
 - **Status:** ✅ Entschieden — bereit zur Implementierung

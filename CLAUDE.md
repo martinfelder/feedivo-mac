@@ -439,7 +439,12 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   (`ReaderTypographySettings.showsArticleImagesKey`), Toggle im Reader-Popover UND in
   Einstellungen → Darstellung. Filterung passiert bei der Anzeige
   (`ReaderModeContent.displayedContentBlocks`), nicht beim Parsen in `ReaderContentRenderer`.
-  Build und Tests (46/46) grün, noch nicht committed.
+  Committed und auf `origin/main` gepusht (`c0e2b8cd`).
+- Feature 19.4 (Toolbar anpassen) zurückgestellt — Umsetzung für die Reader-Toolbar versucht
+  (`.toolbar(id:)` + `ToolbarItem(id:)` je bisherigem `ControlGroup`-Bündel, macOS-Standard
+  "Symbolleiste anpassen..." per Rechtsklick), noch vor dem Commit auf Nutzerwunsch wieder
+  verworfen (`git checkout` auf `SQLiteReaderView.swift`). Keine Code-Reste auf `main`, Status
+  in FEATURES.md auf ⏸️ Zurückgestellt gesetzt.
 - Weiterhin offen laut FEATURES.md-Entscheidung vom 2026-07-02: `codex/icloud-sync-beta` ist
   bewusst zugunsten des SQLite/GRDB-Umbaus zurückgestellt (nicht nur unentschieden) — der Umbau
   ist inzwischen abgeschlossen (ADR-007), eine erneute Bewertung des Branches steht noch aus.
