@@ -22258,6 +22258,70 @@
         }
       }
     },
+    "settings.menubar.articleClickBehavior.description" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Legt fest, ob ein Klick auf einen Artikel im Menubar-Dropdown ihn in Feedivo oder im Standardbrowser öffnet." } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Controls whether clicking an article in the menubar dropdown opens it in Feedivo or your default browser." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Définit si un clic sur un article dans le menu de la barre des menus l'ouvre dans Feedivo ou dans le navigateur par défaut." } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Stabilisce se un clic su un articolo nel menu della barra dei menu lo apre in Feedivo o nel browser predefinito." } }
+      }
+    },
+    "settings.menubar.articleClickBehavior.title" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Artikel öffnen" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Open article" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Ouvrir l'article" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Apri articolo" } }
+      }
+    },
+    "settings.menubar.articleCount.description" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Wie viele der neuesten ungelesenen Artikel im Menubar-Dropdown angezeigt werden." } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "How many of the newest unread articles are shown in the menubar dropdown." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Nombre des articles non lus les plus récents affichés dans le menu de la barre des menus." } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Quanti dei più recenti articoli non letti vengono mostrati nel menu della barra dei menu." } }
+      }
+    },
+    "settings.menubar.articleCount.title" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Artikelanzahl" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Article count" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Nombre d'articles" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Numero di articoli" } }
+      }
+    },
+    "settings.menubar.hidesDockIcon.description" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Blendet das Dock-Icon aus — Feedivo ist dann nur noch über das Menubar-Icon erreichbar. Wirkt sofort, kein Neustart nötig." } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Hides the Dock icon — Feedivo is then only reachable via the menubar icon. Takes effect immediately, no restart needed." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Masque l'icône du Dock — Feedivo n'est alors accessible que via l'icône de la barre des menus. Effet immédiat, sans redémarrage." } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Nasconde l'icona nel Dock — Feedivo sarà raggiungibile solo tramite l'icona nella barra dei menu. Ha effetto immediato, senza riavvio." } }
+      }
+    },
+    "settings.menubar.hidesDockIcon.title" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Dock-Icon ausblenden" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Hide Dock icon" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Masquer l'icône du Dock" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Nascondi icona nel Dock" } }
+      }
+    },
+    "settings.menubar.isEnabled.description" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Zeigt ein Feedivo-Icon in der Menüleiste mit Dropdown für die neuesten ungelesenen Artikel." } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Shows a Feedivo icon in the menu bar with a dropdown for the newest unread articles." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Affiche une icône Feedivo dans la barre des menus avec un menu pour les articles non lus les plus récents." } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Mostra un'icona Feedivo nella barra dei menu con un menu per gli articoli non letti più recenti." } }
+      }
+    },
+    "settings.menubar.isEnabled.title" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Menubar-Icon anzeigen" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Show menubar icon" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Afficher l'icône de la barre des menus" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Mostra icona nella barra dei menu" } }
+      }
+    },
     "settings.notifications.appIconBadge.description" : {
       "extractionState" : "stale",
       "localizations" : {

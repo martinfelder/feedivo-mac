@@ -4,6 +4,7 @@ private enum NewSettingsSection: String, CaseIterable, Identifiable {
     case general
     case appearance
     case articleList
+    case menubar
     case shortcuts
     case notifications
     case refresh
@@ -21,6 +22,8 @@ private enum NewSettingsSection: String, CaseIterable, Identifiable {
             "Anzeige"
         case .articleList:
             "Artikelliste"
+        case .menubar:
+            "Menubar"
         case .shortcuts:
             L10n.shortcutsSettingsSection
         case .notifications:
@@ -44,6 +47,8 @@ private enum NewSettingsSection: String, CaseIterable, Identifiable {
             "eye"
         case .articleList:
             "list.bullet"
+        case .menubar:
+            "menubar.rectangle"
         case .shortcuts:
             "keyboard"
         case .notifications:
@@ -75,6 +80,7 @@ struct NewSettingsView: View {
             settingsTab(.general)
             settingsTab(.appearance)
             settingsTab(.articleList)
+            settingsTab(.menubar)
             settingsTab(.shortcuts)
             settingsTab(.notifications)
             settingsTab(.refresh)
@@ -110,6 +116,8 @@ struct NewSettingsView: View {
             NewAppearanceSettingsView()
         case .articleList:
             NewArticleListSettingsView()
+        case .menubar:
+            NewMenubarSettingsView()
         case .shortcuts:
             NewShortcutsSettingsView()
         case .notifications:
@@ -579,6 +587,72 @@ private struct NewArticleListSettingsView: View {
                     .labelsHidden()
                     .pickerStyle(.segmented)
                     .fixedSize(horizontal: true, vertical: false)
+                }
+            }
+        }
+    }
+}
+
+private struct NewMenubarSettingsView: View {
+    @AppStorage(MenubarSettings.isEnabledKey)
+    private var menubarIsEnabled = MenubarSettings.defaultIsEnabled
+
+    @AppStorage(MenubarSettings.articleCountKey)
+    private var menubarArticleCount = MenubarSettings.defaultArticleCount
+
+    @AppStorage(MenubarArticleClickBehavior.storageKey)
+    private var menubarArticleClickBehaviorRawValue = MenubarArticleClickBehavior.defaultBehavior.rawValue
+
+    @AppStorage(MenubarSettings.hidesDockIconKey)
+    private var menubarHidesDockIcon = MenubarSettings.defaultHidesDockIcon
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            NewSettingsBlock(eyebrow: "Menubar") {
+                NewSettingRow(
+                    title: L10n.settingsMenubarIsEnabledTitle,
+                    description: L10n.settingsMenubarIsEnabledDescription
+                ) {
+                    Toggle("", isOn: $menubarIsEnabled)
+                        .labelsHidden()
+                }
+
+                NewSettingRow(
+                    title: L10n.settingsMenubarArticleCountTitle,
+                    description: L10n.settingsMenubarArticleCountDescription
+                ) {
+                    Stepper(
+                        "\(menubarArticleCount)",
+                        value: $menubarArticleCount,
+                        in: MenubarSettings.allowedArticleCountRange
+                    )
+                    .disabled(!menubarIsEnabled)
+                    .fixedSize()
+                }
+
+                NewSettingRow(
+                    title: L10n.settingsMenubarArticleClickBehaviorTitle,
+                    description: L10n.settingsMenubarArticleClickBehaviorDescription
+                ) {
+                    Picker("", selection: $menubarArticleClickBehaviorRawValue) {
+                        ForEach(MenubarArticleClickBehavior.allCases) { behavior in
+                            Text(behavior.titleKey)
+                                .tag(behavior.rawValue)
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.segmented)
+                    .fixedSize(horizontal: true, vertical: false)
+                    .disabled(!menubarIsEnabled)
+                }
+
+                NewSettingRow(
+                    title: L10n.settingsMenubarHidesDockIconTitle,
+                    description: L10n.settingsMenubarHidesDockIconDescription
+                ) {
+                    Toggle("", isOn: $menubarHidesDockIcon)
+                        .labelsHidden()
+                        .disabled(!menubarIsEnabled)
                 }
             }
         }
