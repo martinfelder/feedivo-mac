@@ -23,6 +23,12 @@ import SwiftUI
 /// Menubar-Icon beim Aktivieren der Einstellung nicht mehr erschien und die
 /// App ohne Dock-Icon/Menubar-Icon keinen Wiedereinstiegspunkt mehr hatte
 /// (gefunden 2026-07-10, Nutzer-Report nach der ersten Implementierung).
+///
+/// `NSStatusBar.system.statusItem(withLength:)` liefert ein Item, dessen
+/// `isVisible` auf diesem System direkt nach der Erstellung `false` ist (per
+/// Diagnose-Logging verifiziert, kein Standardverhalten laut Apple-Doku, aber
+/// reproduzierbar sowohl bei direktem Terminal-Start als auch über
+/// `open`/LaunchServices) — deshalb wird `isVisible` unten explizit gesetzt.
 @MainActor
 final class MenubarStatusItemController: NSObject {
     private let feedivoDatabase: FeedivoDatabase
@@ -133,6 +139,9 @@ final class MenubarStatusItemController: NSObject {
         guard statusItem == nil else { return }
 
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+        // Siehe Typ-Doc-Comment: `isVisible` ist auf diesem System direkt nach
+        // der Erstellung `false` und muss explizit gesetzt werden.
+        item.isVisible = true
         item.button?.target = self
         item.button?.action = #selector(togglePopover(_:))
         statusItem = item
