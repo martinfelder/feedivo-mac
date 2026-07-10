@@ -194,6 +194,8 @@ struct FeedivoApp: App {
                 .environment(\.locale, appLanguage.locale)
                 .environment(\.interfaceTextSize, interfaceTextSize)
                 .environment(\.feedivoDatabase, feedivoDatabase)
+                .dynamicTypeSize(interfaceTextSize.dynamicTypeSize)
+                .preferredColorScheme(appAppearance.colorScheme)
         } label: {
             MenubarIconLabel(unreadCount: menubarUnreadCount)
         }
