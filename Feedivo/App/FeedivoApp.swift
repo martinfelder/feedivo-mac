@@ -189,17 +189,27 @@ struct FeedivoApp: App {
         }
         .windowResizability(.contentSize)
 
-        MenuBarExtra(isInserted: $menubarIsEnabled) {
-            MenubarDropdownView(feedViewModel: feedViewModel)
-                .environment(\.locale, appLanguage.locale)
-                .environment(\.interfaceTextSize, interfaceTextSize)
-                .environment(\.feedivoDatabase, feedivoDatabase)
-                .dynamicTypeSize(interfaceTextSize.dynamicTypeSize)
-                .preferredColorScheme(appAppearance.colorScheme)
-        } label: {
-            MenubarIconLabel(unreadCount: menubarUnreadCount)
-        }
-        .menuBarExtraStyle(.window)
+        // TEMPORÄR DEAKTIVIERT (2026-07-10): Die `MenuBarExtra`-Scene-Deklaration verursacht auf
+        // dieser Xcode/macOS-Kombination einen 100%-CPU-Endlos-Spin (Layout-Thrashing) direkt beim
+        // App-Start — unabhängig von Style/Inhalt/isInserted-Wert, per Bisektion und
+        // Isolationstests verifiziert (siehe Debugging-Session 2026-07-10). Ein bedingtes
+        // Einschließen (`if menubarIsEnabled { MenuBarExtra { … } }`) würde das umgehen, löst
+        // aber einen separaten Swift-Compiler-Absturz aus ("failed to produce diagnostic for
+        // expression") — kein Workaround über Code-Struktur auf diesem Toolchain-Stand gefunden.
+        // Feature 21.1 bleibt bis zur weiteren Untersuchung (vermutlich AppKit-`NSStatusItem`
+        // statt SwiftUI `MenuBarExtra`) ohne funktionierendes Menubar-Icon; Settings-Tab und
+        // restliche Bausteine bleiben unverändert bestehen.
+        // MenuBarExtra(isInserted: $menubarIsEnabled) {
+        //     MenubarDropdownView(feedViewModel: feedViewModel)
+        //         .environment(\.locale, appLanguage.locale)
+        //         .environment(\.interfaceTextSize, interfaceTextSize)
+        //         .environment(\.feedivoDatabase, feedivoDatabase)
+        //         .dynamicTypeSize(interfaceTextSize.dynamicTypeSize)
+        //         .preferredColorScheme(appAppearance.colorScheme)
+        // } label: {
+        //     MenubarIconLabel(unreadCount: menubarUnreadCount)
+        // }
+        // .menuBarExtraStyle(.window)
     }
 
     private func scheduleBackgroundRefresh() {
