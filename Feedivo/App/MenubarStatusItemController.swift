@@ -12,9 +12,17 @@ import SwiftUI
 ///
 /// `NSHostingController` beobachtet externe Zustandsänderungen (Sprache,
 /// Textgröße, Darstellung, Ungelesen-Zähler) NICHT automatisch — anders als
-/// eine deklarative SwiftUI-Scene. Aufrufer müssen `updateUnreadCount(_:)`
-/// bzw. `updateEnvironment(...)` explizit bei jeder relevanten Änderung
-/// aufrufen (siehe `FeedivoApp.swift`).
+/// eine deklarative SwiftUI-Scene. Deshalb beobachtet dieser Controller die
+/// relevanten `UserDefaults`-Keys SELBST per KVO (siehe `observedKeys`), statt
+/// sich auf `.task`/`.onChange`-Modifier einer bestimmten SwiftUI-View zu
+/// verlassen. Eine frühere Version hängte diese Reaktivität an die
+/// `ContentView` der Haupt-`WindowGroup` — das brach, sobald der Nutzer das
+/// Hauptfenster schloss (z. B. beim Testen von „App ohne Dock-Icon", dem
+/// Kernszenario dieses Features): die View-Hierarchie inkl. `.onChange`-
+/// Handlern wird von SwiftUI beim Fenster-Schließen zerstört, wodurch das
+/// Menubar-Icon beim Aktivieren der Einstellung nicht mehr erschien und die
+/// App ohne Dock-Icon/Menubar-Icon keinen Wiedereinstiegspunkt mehr hatte
+/// (gefunden 2026-07-10, Nutzer-Report nach der ersten Implementierung).
 @MainActor
 final class MenubarStatusItemController: NSObject {
     private let feedivoDatabase: FeedivoDatabase
@@ -29,9 +37,22 @@ final class MenubarStatusItemController: NSObject {
     private let hostingController: NSHostingController<AnyView>
 
     private var unreadCount = 0
-    private var locale = Locale.current
-    private var interfaceTextSize = InterfaceTextSize.defaultSize
-    private var colorScheme: ColorScheme?
+
+    /// `UserDefaults`-Keys, deren Änderung das Menubar-Icon/Popover bzw. die
+    /// Dock-Icon-Sichtbarkeit betreffen. Per KVO beobachtet statt per SwiftUI-
+    /// `.onChange`, damit die Reaktivität nicht von der Lebensdauer eines
+    /// bestimmten Fensters abhängt — `hidesDockIconKey` gehört bewusst mit
+    /// dazu: ohne Dock-Icon ist das Menubar-Icon der einzige Wiedereinstiegs-
+    /// punkt in die App, beide Zustände müssen also aus demselben,
+    /// fenster-unabhängigen Mechanismus gepflegt werden.
+    private static let observedKeys = [
+        MenubarSettings.isEnabledKey,
+        MenubarSettings.hidesDockIconKey,
+        SQLiteDataInvalidation.statusVersionKey,
+        "appLanguage",
+        InterfaceTextSize.storageKey,
+        AppAppearance.storageKey
+    ]
 
     init(feedivoDatabase: FeedivoDatabase, feedViewModel: FeedViewModel) {
         self.feedivoDatabase = feedivoDatabase
@@ -45,11 +66,62 @@ final class MenubarStatusItemController: NSObject {
         super.init()
         popover.behavior = .transient
         popover.contentViewController = hostingController
+
+        for key in Self.observedKeys {
+            UserDefaults.standard.addObserver(self, forKeyPath: key, options: [], context: nil)
+        }
+        applyCurrentSettings()
     }
 
-    /// Legt das Status-Item an bzw. entfernt es — angebunden an
-    /// `MenubarSettings.isEnabledKey`.
-    func setEnabled(_ enabled: Bool) {
+    /// KVO-Callback für `observedKeys` — feuert unabhängig davon, ob gerade
+    /// ein SwiftUI-Fenster geöffnet ist. `nonisolated`, weil `NSObject`s
+    /// `@objc`-KVO-Mechanismus die Methode auf beliebigem Thread aufrufen
+    /// kann; die eigentliche Arbeit läuft über `Task { @MainActor in … }`
+    /// zurück im `@MainActor`-Kontext dieser Klasse.
+    nonisolated override func observeValue(
+        forKeyPath keyPath: String?,
+        of object: Any?,
+        change: [NSKeyValueChangeKey: Any]?,
+        context: UnsafeMutableRawPointer?
+    ) {
+        Task { @MainActor in
+            self.applyCurrentSettings()
+        }
+    }
+
+    /// Legt das Status-Item an bzw. entfernt es und aktualisiert Badge und
+    /// gehosteten Inhalt — liest alle relevanten Einstellungen direkt aus
+    /// `UserDefaults`, damit ein einzelner Aufruf (initial oder per KVO)
+    /// immer den vollständigen, aktuellen Zustand herstellt.
+    private func applyCurrentSettings() {
+        let defaults = UserDefaults.standard
+        let isEnabled = defaults.object(forKey: MenubarSettings.isEnabledKey) as? Bool
+            ?? MenubarSettings.defaultIsEnabled
+        setEnabled(isEnabled)
+
+        let hidesDockIcon = defaults.object(forKey: MenubarSettings.hidesDockIconKey) as? Bool
+            ?? MenubarSettings.defaultHidesDockIcon
+        NSApp.setActivationPolicy(hidesDockIcon ? .accessory : .regular)
+
+        if let sidebarFeeds = try? FeedStore(database: feedivoDatabase).sidebarFeeds() {
+            unreadCount = AppIconBadgeService.unreadCount(in: sidebarFeeds)
+            applyIconAppearance()
+        }
+
+        let appLanguageRawValue = defaults.string(forKey: "appLanguage") ?? AppLanguage.system.rawValue
+        let interfaceTextSizeRawValue = defaults.string(forKey: InterfaceTextSize.storageKey)
+            ?? InterfaceTextSize.defaultSize.rawValue
+        let appAppearanceRawValue = defaults.string(forKey: AppAppearance.storageKey)
+            ?? AppAppearance.defaultMode.rawValue
+
+        applyHostedEnvironment(
+            locale: AppLanguage.resolved(from: appLanguageRawValue).locale,
+            interfaceTextSize: InterfaceTextSize.resolved(from: interfaceTextSizeRawValue),
+            colorScheme: AppAppearance.resolved(from: appAppearanceRawValue).colorScheme
+        )
+    }
+
+    private func setEnabled(_ enabled: Bool) {
         guard enabled else {
             if let statusItem {
                 NSStatusBar.system.removeStatusItem(statusItem)
@@ -67,18 +139,6 @@ final class MenubarStatusItemController: NSObject {
         applyIconAppearance()
     }
 
-    func updateUnreadCount(_ count: Int) {
-        unreadCount = count
-        applyIconAppearance()
-    }
-
-    func updateEnvironment(locale: Locale, interfaceTextSize: InterfaceTextSize, colorScheme: ColorScheme?) {
-        self.locale = locale
-        self.interfaceTextSize = interfaceTextSize
-        self.colorScheme = colorScheme
-        applyHostedEnvironment()
-    }
-
     private func applyIconAppearance() {
         guard let button = statusItem?.button else { return }
 
@@ -90,7 +150,7 @@ final class MenubarStatusItemController: NSObject {
         button.imagePosition = .imageLeading
     }
 
-    private func applyHostedEnvironment() {
+    private func applyHostedEnvironment(locale: Locale, interfaceTextSize: InterfaceTextSize, colorScheme: ColorScheme?) {
         hostingController.rootView = AnyView(
             MenubarDropdownView(feedViewModel: feedViewModel)
                 .environment(\.feedivoDatabase, feedivoDatabase)

@@ -31,15 +31,6 @@ struct FeedivoApp: App {
     @AppStorage(ArticleRetentionSettings.includesProtectedArticlesKey)
     private var articleRetentionIncludesProtectedArticles = ArticleRetentionSettings.defaultIncludesProtectedArticles
 
-    @AppStorage(MenubarSettings.isEnabledKey)
-    private var menubarIsEnabled = MenubarSettings.defaultIsEnabled
-
-    @AppStorage(MenubarSettings.hidesDockIconKey)
-    private var menubarHidesDockIcon = MenubarSettings.defaultHidesDockIcon
-
-    @AppStorage(SQLiteDataInvalidation.statusVersionKey)
-    private var sqliteStatusVersion = 0
-
     // Feature 23.2: AppKit-Delegate fängt feedivo://-URLs zuverlässig ab —
     // auch beim Kaltstart, bevor die SwiftUI-View-Hierarchie existiert (siehe
     // FeedivoAppDelegate). Die geparste Aktion wird in dessen
@@ -112,30 +103,6 @@ struct FeedivoApp: App {
                 .onChange(of: articleRetentionIncludesProtectedArticles) {
                     cleanupExpiredArticlesIfNeeded()
                 }
-                .onChange(of: menubarHidesDockIcon) {
-                    applyDockIconVisibility()
-                }
-                .task {
-                    applyDockIconVisibility()
-                    menubarStatusItemController.setEnabled(menubarIsEnabled)
-                    updateMenubarUnreadCount()
-                    updateMenubarEnvironment()
-                }
-                .onChange(of: sqliteStatusVersion) {
-                    updateMenubarUnreadCount()
-                }
-                .onChange(of: menubarIsEnabled) {
-                    menubarStatusItemController.setEnabled(menubarIsEnabled)
-                }
-                .onChange(of: appLanguageRawValue) {
-                    updateMenubarEnvironment()
-                }
-                .onChange(of: interfaceTextSizeRawValue) {
-                    updateMenubarEnvironment()
-                }
-                .onChange(of: appAppearanceRawValue) {
-                    updateMenubarEnvironment()
-                }
         }
         .commands {
             ArticleCommands()
@@ -206,10 +173,10 @@ struct FeedivoApp: App {
         }
         .windowResizability(.contentSize)
 
-        // Feature 21.1: Kein `MenuBarExtra`-Scene-Eintrag hier — das Menubar-Icon läuft über
-        // `menubarStatusItemController` (AppKit `NSStatusItem`/`NSPopover`), siehe dessen
-        // Doc-Comment für die Begründung (SwiftUI-`MenuBarExtra` verursachte einen
-        // 100%-CPU-Endlos-Spin auf der Xcode/macOS-Kombination vom 2026-07-10).
+        // Feature 21.1: Kein `MenuBarExtra`-Scene-Eintrag hier — das Menubar-Icon läuft
+        // komplett selbstständig über `menubarStatusItemController` (AppKit `NSStatusItem`/
+        // `NSPopover`, per UserDefaults-KVO reaktiv statt an eine SwiftUI-View gebunden),
+        // siehe dessen Doc-Comment für die vollständige Begründung.
     }
 
     private func scheduleBackgroundRefresh() {
@@ -231,28 +198,6 @@ struct FeedivoApp: App {
     private func trimImageCacheToSelectedLimit() {
         try? ImageCacheService.shared.trimCache(
             toLimitInBytes: ImageCacheSettings.currentLimitInBytes
-        )
-    }
-
-    private func applyDockIconVisibility() {
-        NSApp.setActivationPolicy(menubarHidesDockIcon ? .accessory : .regular)
-    }
-
-    @MainActor
-    private func updateMenubarUnreadCount() {
-        guard let sidebarFeeds = try? FeedStore(database: feedivoDatabase).sidebarFeeds() else {
-            return
-        }
-
-        menubarStatusItemController.updateUnreadCount(AppIconBadgeService.unreadCount(in: sidebarFeeds))
-    }
-
-    @MainActor
-    private func updateMenubarEnvironment() {
-        menubarStatusItemController.updateEnvironment(
-            locale: AppLanguage.resolved(from: appLanguageRawValue).locale,
-            interfaceTextSize: InterfaceTextSize.resolved(from: interfaceTextSizeRawValue),
-            colorScheme: AppAppearance.resolved(from: appAppearanceRawValue).colorScheme
         )
     }
 
