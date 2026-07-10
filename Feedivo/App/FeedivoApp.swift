@@ -1,5 +1,6 @@
 import SwiftUI
 import Observation
+import AppKit
 
 @main
 struct FeedivoApp: App {
@@ -29,6 +30,17 @@ struct FeedivoApp: App {
 
     @AppStorage(ArticleRetentionSettings.includesProtectedArticlesKey)
     private var articleRetentionIncludesProtectedArticles = ArticleRetentionSettings.defaultIncludesProtectedArticles
+
+    @AppStorage(MenubarSettings.isEnabledKey)
+    private var menubarIsEnabled = MenubarSettings.defaultIsEnabled
+
+    @AppStorage(MenubarSettings.hidesDockIconKey)
+    private var menubarHidesDockIcon = MenubarSettings.defaultHidesDockIcon
+
+    @AppStorage(SQLiteDataInvalidation.statusVersionKey)
+    private var sqliteStatusVersion = 0
+
+    @State private var menubarUnreadCount = 0
 
     // Feature 23.2: AppKit-Delegate fängt feedivo://-URLs zuverlässig ab —
     // auch beim Kaltstart, bevor die SwiftUI-View-Hierarchie existiert (siehe
@@ -96,6 +108,16 @@ struct FeedivoApp: App {
                 }
                 .onChange(of: articleRetentionIncludesProtectedArticles) {
                     cleanupExpiredArticlesIfNeeded()
+                }
+                .onChange(of: menubarHidesDockIcon) {
+                    applyDockIconVisibility()
+                }
+                .task {
+                    applyDockIconVisibility()
+                    updateMenubarUnreadCount()
+                }
+                .onChange(of: sqliteStatusVersion) {
+                    updateMenubarUnreadCount()
                 }
         }
         .commands {
@@ -166,6 +188,16 @@ struct FeedivoApp: App {
                 .preferredColorScheme(appAppearance.colorScheme)
         }
         .windowResizability(.contentSize)
+
+        MenuBarExtra(isInserted: $menubarIsEnabled) {
+            MenubarDropdownView(feedViewModel: feedViewModel)
+                .environment(\.locale, appLanguage.locale)
+                .environment(\.interfaceTextSize, interfaceTextSize)
+                .environment(\.feedivoDatabase, feedivoDatabase)
+        } label: {
+            MenubarIconLabel(unreadCount: menubarUnreadCount)
+        }
+        .menuBarExtraStyle(.window)
     }
 
     private func scheduleBackgroundRefresh() {
@@ -188,6 +220,19 @@ struct FeedivoApp: App {
         try? ImageCacheService.shared.trimCache(
             toLimitInBytes: ImageCacheSettings.currentLimitInBytes
         )
+    }
+
+    private func applyDockIconVisibility() {
+        NSApp.setActivationPolicy(menubarHidesDockIcon ? .accessory : .regular)
+    }
+
+    @MainActor
+    private func updateMenubarUnreadCount() {
+        guard let sidebarFeeds = try? FeedStore(database: feedivoDatabase).sidebarFeeds() else {
+            return
+        }
+
+        menubarUnreadCount = AppIconBadgeService.unreadCount(in: sidebarFeeds)
     }
 
     @MainActor
