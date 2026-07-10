@@ -344,6 +344,31 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
   neue Stub-Block kommt hinzu) — einfach nach jedem Build kurz `git status`/`git diff --stat`
   auf `Localizable.xcstrings` prüfen und den Stub bewusst mitcommitten oder (falls der
   String besser doch als `L10n`-Key lokalisiert werden sollte) gezielt nachpflegen.
+- **`periphery` (Dead-Code-Scanner) hat in diesem Projekt eine hohe Fehlalarmquote bei
+  GRDB-Record-Typen:** Wird ein Typ ausschließlich über generische, aus Protokoll-Extensions
+  geerbte GRDB-Methoden erreicht (`ArticleOfflineRecord.fetchOne(db, key:)`,
+  `ArticleCountsRow.fetchOne(db, sql:)` u. ä.), erkennt periphery die Nutzung nicht und meldet
+  den Typ fälschlich als „unused" — SourceKit indiziert den generischen Self-Type-Aufruf nicht
+  als echte Referenz. Ebenso falsch gemeldet: `NSViewRepresentable`-Protokollmethoden wie
+  `dismantleNSView(_:coordinator:)`, die vom AppKit/SwiftUI-Framework selbst aufgerufen werden,
+  nicht von eigenem Code. Bei einem periphery-Cleanup **jeden Fund einzeln per Grep gegen den
+  ganzen Produktions- **und** Test-Baum verifizieren**, bevor gelöscht wird — bei der
+  Bereinigung vom 2026-07-10 waren von 221 „unused"-Funden 69 (~31 %) solche Fehlalarme.
+  Ebenfalls unterscheiden: Funde, die **nur von Tests** direkt angesprochen werden (z. B.
+  `ArticleStatusStore.status(articleID:)`, 16 Testreferenzen, aber 0 in der Produktions-App) —
+  das ist keine mechanische Dead-Code-Löschung, sondern eine Produktentscheidung (Test
+  behalten vs. beides löschen), da sonst Testabdeckung verloren geht.
+- **Offline-Artikel-Download-Backend ist bewusst quarantäniert, kein Versehen:**
+  `SQLiteOfflineStore`, `SQLiteOfflineDownloadService`, `OfflineArticleContentFetching`-
+  Protokoll, `URLSessionOfflineArticleContentFetcher` (alle in `Stores/SQLiteOfflineStore.swift`
+  / `Services/OfflineArticleContentFetching.swift`) sowie ~25 zugehörige `L10n.swift`-Keys
+  (`readerOffline*`, `settingsOffline*`) haben **keine aktive UI-Anbindung** mehr, sind aber
+  vollständig implementiert und getestet (`SQLiteOfflineDownloadServiceTests.swift`).
+  `FeedivoAppSceneConfigurationTests.swift` enthält explizite Regressionstests, die die
+  **Abwesenheit** der Offline-UI prüfen (`toggleOffline`, `saveOrRemoveOffline`,
+  `NewOfflineSettingsView` dürfen nicht existieren) — die UI-Schicht wurde also gezielt entfernt,
+  das Backend blieb stehen. Bei künftigen Dead-Code-Scans (periphery o. ä.) **nicht löschen**,
+  ohne das vorher explizit mit dem Nutzer zu klären — siehe „Offene Entscheidungen".
 
 ---
 
@@ -413,6 +438,12 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 - **Share Extension:** Noch nicht begonnen, kein konkreter Zeitplan.
 - **App Store vs. private Verteilung:** Weiterhin offen.
 
+- **Offline-Artikel-Download-Feature:** Backend + Settings-UI-Strings existieren vollständig
+  (`SQLiteOfflineStore` u. a., siehe Gotchas oben), die UI-Anbindung wurde aber gezielt entfernt
+  und ist per Regressionstest blockiert. Reaktivieren (UI wieder anbinden) oder endgültig
+  entfernen (Backend + Tests + L10n-Keys)? Bisher nicht entschieden, beim Dead-Code-Cleanup
+  vom 2026-07-10 bewusst unangetastet gelassen.
+
 **Bereits gelöst (zur Referenz):**
 - Artikel-Detail: sowohl nativer SwiftUI-Renderer als auch WKWebView (Originalartikel) —
   beide umgesetzt, nutzerseitig umschaltbar.
@@ -430,10 +461,12 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   und gepusht (`d49833d3`) — Kopfzeile + Preview-Panel-Buttons.
 - Feature 19.2 (Sidebar anpassen: Ungelesen-Zähler + Favicons ein-/ausblendbar) umgesetzt,
   Build/Tests grün, committed und auf `origin/main` gepusht (`70ae13e7`).
+- Dark Mode (Feature 19.7): manuelle visuelle Verifikation durch den Nutzer am 2026-07-10
+  abgeschlossen — `.controlBackgroundColor` bestätigt als Inspector-Hintergrundfarbe, Feature
+  vollständig fertig (siehe FEATURES.md).
 - Ausstehend (nicht automatisierbar, kein computer-use für native macOS-Apps in dieser
-  Umgebung): manuelle visuelle Verifikation von Dark Mode/OPML-Import durch den Nutzer — First-Run/
-  Inspector-Farbwerte (bewusste Startwerte, ggf. Nachjustierung) und Import/Export-Dialog
-  Seite an Seite in Hell und Dunkel.
+  Umgebung): manuelle visuelle Verifikation von OPML-Import durch den Nutzer — Import-/
+  Export-Dialog Seite an Seite in Hell und Dunkel.
 - Feature 19.3 (Reader anpassen) abgeschlossen — Textbreite-Regler und Titel/Text-fett-Toggles
   waren bereits vorhanden, neu ergänzt: Artikelbild im Reader anzeigen/ausblenden
   (`ReaderTypographySettings.showsArticleImagesKey`), Toggle im Reader-Popover UND in
@@ -477,6 +510,28 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Letzte Änderungen
 
+- 2026-07-10: Dead-Code-Bereinigung (`/ecc:refactor-clean`) — `periphery`-Scan über das
+  Feedivo-Target, jeder der 221 „unused"-Funde einzeln gegen Produktions- **und** Test-Code
+  verifiziert (nicht blind übernommen, siehe neuer Gotcha oben zur GRDB-Fehlalarmquote von
+  periphery). Entfernt: 226 Zeilen über 8 Dateien — 2 verwaiste Typen
+  (`FeedRefreshResult`/`FeedRefreshOutcome` in `FeedViewModel.swift`), 2 nie instanziierte
+  View-/Style-Structs (`SidebarRow`, `FirstRunSegmentButtonStyle`), 2 ungenutzte
+  Convenience-Initializer (`ArticleExportDocument.init(text:)`,
+  `ReaderArticleTagMetadata.init(id:name:colorHex:)`), 3 verwaiste Helper-/Wrapper-Funktionen
+  (`ArticleRetentionSettings.storedRetentionDays(in:)`/`storedMinimumArticlesPerFeed(in:)`,
+  `BackgroundRefreshService.scheduleFromStoredSettings`), 1 tote Computed Property
+  (`FeedOperationProgress.fractionCompleted`) und 75 tote `L10n.swift`-Lokalisierungs-Keys
+  (`Localizable.xcstrings` bewusst nicht mitbereinigt — verwaiste Einträge sind harmlos,
+  Xcode markiert sie beim nächsten Build automatisch als `extractionState: stale`). Bewusst
+  ausgeklammert: das komplette, per Regressionstest quarantänisierte Offline-Download-Backend
+  samt ~25 zugehöriger L10n-Keys (neuer Gotcha + neuer Eintrag unter „Offene Entscheidungen"),
+  22 Store-/ViewModel-Methoden, die nur von Tests direkt angesprochen werden (z. B.
+  `ArticleStatusStore.status(articleID:)`), sowie `SmartFilterIconColor`/`iconColor`
+  (`SmartFilter.swift`) — Löschversuch von `SmartFilterTests.swift` sofort per Test-Fehlschlag
+  aufgehalten und automatisch reverted. Build grün nach jeder Batch; einzige Testfehlschläge
+  waren die bereits dokumentierten 2 flaky-unter-Last-Tests in `FeedViewModelTests.swift`
+  (isoliert erneut grün gelaufen). Committed (`3666840`) und auf `origin/main` gepusht
+  (`6f32ac4c..36668404`).
 - 2026-07-09: Feature 19.2 (Sidebar anpassen) umgesetzt — neue `@AppStorage`-Keys in
   `SidebarFeedVisibilitySettings` für Ungelesen-Zähler und Favicon ein-/ausblendbar,
   `FeedRowView` conditional rendering, Settings-UI-Toggles in `NewAppearanceSettingsView`,

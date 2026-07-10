@@ -878,7 +878,7 @@
 - Alle Customization-Optionen im Einstellungen-Fenster unter "Darstellung" (bestehend erweitern)
 
 ### 19.7 App-interne Darstellungs-Einstellung (Dark Mode)
-- **Status:** 🔨 Fertig, Feinschliff offen
+- **Status:** ✔️ Fertig
 - **Zu implementieren:**
   - Eigene Einstellung in Einstellungen → Darstellung: System / Hell / Dunkel
   - Wirkt app-weit über `.preferredColorScheme(...)`, statt sich nur auf die
@@ -900,11 +900,10 @@
     Fremdkörper im Reader-Fenster; ersetzt durch die Systemsemantikfarbe
     `Color(nsColor: .controlBackgroundColor)`, die sich automatisch an
     Hell/Dunkel anpasst
-- **Noch offen:** Visueller Vergleich der Inspector-Hintergrundfarbe in Dunkel
-  gegenüber der von der Spec ebenfalls vorgeschlagenen Alternative
-  `.underPageBackgroundColor` steht noch aus (per computer-use, nicht Teil der
-  automatisierten Umsetzung) — `.controlBackgroundColor` ist der aktuell
-  eingesetzte Startwert
+- **Abgeschlossen 2026-07-10:** Manuelle visuelle Verifikation durch den Nutzer
+  bestätigt — `.controlBackgroundColor` bleibt der eingesetzte Wert für den
+  Inspector-Hintergrund in Dark Mode, kein Wechsel zur Spec-Alternative
+  `.underPageBackgroundColor` nötig
 
 ### 19.8 Shortcuts anpassen
 - **Status:** ✔️ Fertig
