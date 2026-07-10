@@ -375,6 +375,12 @@ private struct NewAppearanceSettingsView: View {
     @AppStorage(ArticleListFeedNamePosition.storageKey)
     private var articleListFeedNamePositionRawValue = ArticleListFeedNamePosition.defaultPosition.rawValue
 
+    @AppStorage(ArticleListSummaryVisibilitySettings.showsSummaryKey)
+    private var articleListShowsSummary = ArticleListSummaryVisibilitySettings.defaultShowsSummary
+
+    @AppStorage(ArticleListSummaryLineCount.storageKey)
+    private var articleListSummaryLineCount = ArticleListSummaryLineCount.defaultValue
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             NewSettingsBlock(eyebrow: "Oberfläche") {
@@ -478,6 +484,27 @@ private struct NewAppearanceSettingsView: View {
                     .labelsHidden()
                     .pickerStyle(.segmented)
                     .fixedSize(horizontal: true, vertical: false)
+                }
+
+                NewSettingRow(
+                    title: L10n.settingsArticleListShowsSummaryTitle,
+                    description: L10n.settingsArticleListShowsSummaryDescription
+                ) {
+                    Toggle("", isOn: $articleListShowsSummary)
+                        .labelsHidden()
+                }
+
+                NewSettingRow(
+                    title: L10n.settingsArticleListSummaryLineCountTitle,
+                    description: L10n.settingsArticleListSummaryLineCountDescription
+                ) {
+                    Stepper(
+                        "\(articleListSummaryLineCount)",
+                        value: $articleListSummaryLineCount,
+                        in: ArticleListSummaryLineCount.allowedRange
+                    )
+                    .disabled(!articleListShowsSummary)
+                    .fixedSize()
                 }
             }
 
