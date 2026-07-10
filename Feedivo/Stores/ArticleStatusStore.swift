@@ -71,6 +71,43 @@ struct ArticleStatusStore {
         )
     }
 
+    /// Markiert wirklich ALLE ungelesenen Artikel app-weit als gelesen —
+    /// im Unterschied zu `SQLiteFeedArticleListView.markRowsRead(.allVisible)`,
+    /// die nur auf die aktuell sichtbare Artikelliste wirkt. Für das
+    /// Menubar-Dropdown (Feature 21.1), wo es keine "aktuelle Auswahl" gibt.
+    func markAllUnreadAsRead() throws {
+        let now = Date()
+        var didUpdate = false
+
+        try database.write { db in
+            try db.execute(
+                sql: """
+                    UPDATE article_statuses
+                    SET isRead = 1, readAt = ?
+                    WHERE isRead = 0
+                    """,
+                arguments: [now]
+            )
+            didUpdate = db.changesCount > 0
+
+            if didUpdate {
+                try db.execute(
+                    sql: """
+                        UPDATE article_identity_history
+                        SET isRead = 1, readAt = ?
+                        WHERE isRead = 0
+                        """,
+                    arguments: [now]
+                )
+            }
+        }
+
+        if didUpdate {
+            try SQLiteUnreadCountService(database: database).rebuildAllFeedUnreadCounts()
+            SQLiteDataInvalidation.bumpStatusVersion()
+        }
+    }
+
     private func updateBooleanStatus(
         column: String,
         dateColumn: String,
