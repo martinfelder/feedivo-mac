@@ -27,21 +27,4 @@ enum ArticleRetentionSettings {
             abs(first - count) < abs(second - count)
         } ?? defaultMinimumArticlesPerFeed
     }
-
-    private static func storedRetentionDays(in defaults: UserDefaults) -> Int {
-        let storedDays = defaults.integer(forKey: retentionDaysKey)
-        guard storedDays > 0 else {
-            return defaultRetentionDays
-        }
-
-        return clampedRetentionDays(storedDays)
-    }
-
-    private static func storedMinimumArticlesPerFeed(in defaults: UserDefaults) -> Int {
-        guard defaults.object(forKey: minimumArticlesPerFeedKey) != nil else {
-            return defaultMinimumArticlesPerFeed
-        }
-
-        return clampedMinimumArticlesPerFeed(defaults.integer(forKey: minimumArticlesPerFeedKey))
-    }
 }

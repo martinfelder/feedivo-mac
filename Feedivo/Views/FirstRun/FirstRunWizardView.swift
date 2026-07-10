@@ -48,12 +48,6 @@ struct FirstRunWizardView: View {
         step == .importOPML && previewController.rows.isEmpty && !previewController.isPreparingPreview
     }
 
-    private var selectedCountText: String {
-        String.localizedStringWithFormat(String(localized: "firstRun.selectedCount"),
-                                         previewController.selectedImportRows.count,
-                                         previewController.rows.count)
-    }
-
     var body: some View {
         VStack(spacing: 0) {
             titlebar
@@ -1210,33 +1204,5 @@ private struct FirstRunSettingsLine<Accessory: View>: View {
             RoundedRectangle(cornerRadius: 8)
                 .stroke(Color.secondary.opacity(0.14))
         )
-    }
-}
-
-private struct FirstRunSegmentButtonStyle: ButtonStyle {
-    @Environment(\.colorScheme) private var colorScheme
-
-    let isActive: Bool
-
-    private var theme: FirstRunTheme {
-        FirstRunTheme(colorScheme: colorScheme)
-    }
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(size: 12, weight: .semibold))
-            .foregroundStyle(isActive ? .white : .secondary)
-            .padding(.horizontal, 10)
-            .frame(height: 28)
-            .background(
-                isActive
-                    ? theme.accentStroke.opacity(configuration.isPressed ? 0.82 : 1)
-                    : theme.card.opacity(configuration.isPressed ? 0.55 : 0.72),
-                in: RoundedRectangle(cornerRadius: 7)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 7)
-                    .stroke(isActive ? theme.accentStroke : Color.secondary.opacity(0.14))
-            )
     }
 }

@@ -21,10 +21,6 @@ struct ArticleExportDocument: FileDocument {
 
     var data: Data
 
-    init(text: String = "") {
-        self.data = Data(text.utf8)
-    }
-
     init(data: Data) {
         self.data = data
     }

@@ -6,14 +6,6 @@ struct FeedOperationProgress: Equatable {
     var completedCount: Int
     var totalCount: Int
 
-    var fractionCompleted: Double {
-        guard totalCount > 0 else {
-            return 0
-        }
-
-        return Double(completedCount) / Double(totalCount)
-    }
-
     var countText: String {
         "\(completedCount)/\(totalCount)"
     }
@@ -72,16 +64,6 @@ enum FeedRefreshItemStatusBatch {
             return updatedItem
         }
     }
-}
-
-private struct FeedRefreshResult {
-    var feedNotification: FeedRefreshNotificationResult
-    var ruleNotifications: [RuleNotificationResult]
-}
-
-private enum FeedRefreshOutcome {
-    case success(FeedRefreshResult)
-    case failure(String)
 }
 
 @Observable
@@ -458,19 +440,6 @@ final class FeedViewModel {
         }
 
         refreshItems = updatedItems
-    }
-
-    // Generisches Chunking in Batches der Größe `maxConcurrentFeedRefreshes`.
-    // Enthält bewusst keine Feed-spezifische Logik, sodass es neben `importOPMLFeeds`
-    // und `refreshAllFeeds` auch für den OPML-Vorschau-Abruf wiederverwendet
-    // werden kann (DRY — vorher war die Methode auf `[Feed]` festgelegt).
-    private func feedBatches<T>(from items: [T]) -> [[T]] {
-        guard !items.isEmpty else {
-            return []
-        }
-        return stride(from: 0, to: items.count, by: Self.maxConcurrentFeedRefreshes).map { startIndex in
-            Array(items[startIndex ..< min(startIndex + Self.maxConcurrentFeedRefreshes, items.count)])
-        }
     }
 
     private func sqliteRuleSnapshots(from database: FeedivoDatabase) -> [RuleEngine.RuleSnapshot] {

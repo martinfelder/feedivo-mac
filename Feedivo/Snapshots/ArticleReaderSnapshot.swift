@@ -5,12 +5,6 @@ struct ReaderArticleTagMetadata: Identifiable, Equatable, Sendable {
     let name: String
     let colorHex: String
 
-    init(id: String, name: String, colorHex: String) {
-        self.id = id
-        self.name = name
-        self.colorHex = colorHex
-    }
-
     init(record: TagRecord) {
         self.id = record.id
         self.name = record.name

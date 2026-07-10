@@ -725,46 +725,6 @@ private struct SidebarFolderSection<Content: View>: View {
     }
 }
 
-private struct SidebarRow: View {
-    @Environment(\.interfaceTextSize) private var interfaceTextSize
-
-    let title: LocalizedStringKey
-    let systemImage: String
-    let iconColor: Color
-    let isSelected: Bool
-    var badgeText: String? = nil
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 8) {
-                Image(systemName: systemImage)
-                    .font(interfaceTextSize.font(size: 14, weight: .semibold))
-                    .foregroundStyle(iconColor.opacity(SidebarStyle.iconOpacity))
-                    .frame(width: interfaceTextSize.scaled(20))
-
-                Text(title)
-                    .font(interfaceTextSize.font(size: 13, weight: .semibold))
-                    .lineLimit(1)
-
-                Spacer(minLength: 8)
-
-                if let badgeText {
-                    Text(badgeText)
-                        .font(interfaceTextSize.font(size: 11, weight: .semibold))
-                        .monospacedDigit()
-                        .foregroundStyle(SidebarStyle.secondaryText)
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 2)
-                        .background(SidebarStyle.activeSelection, in: Capsule())
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .buttonStyle(SidebarRowButtonStyle(isSelected: isSelected))
-    }
-}
-
 private struct SidebarRowButtonStyle: ButtonStyle {
     @Environment(\.interfaceTextSize) private var interfaceTextSize
 

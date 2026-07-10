@@ -99,25 +99,6 @@ enum BackgroundRefreshService {
     }
 
     @MainActor
-    static func scheduleFromStoredSettings(
-        userDefaults: UserDefaults = .standard,
-        scheduler: BackgroundRefreshScheduling
-    ) {
-        let isEnabled = userDefaults.bool(forKey: BackgroundRefreshSettings.isEnabledKey)
-        let storedInterval = userDefaults.integer(forKey: BackgroundRefreshSettings.intervalMinutesKey)
-        let intervalMinutes = storedInterval == 0
-            ? BackgroundRefreshSettings.defaultIntervalMinutes
-            : storedInterval
-
-        try? scheduleNextRefresh(
-            isEnabled: isEnabled,
-            intervalMinutes: intervalMinutes,
-            scheduler: scheduler,
-            userDefaults: userDefaults
-        )
-    }
-
-    @MainActor
     static func refreshAllFeeds(
         database: FeedivoDatabase,
         intervalMinutes: Int = 60,
