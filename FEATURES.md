@@ -952,14 +952,14 @@
 ## 21. Menubar-App
 
 ### 21.1 Menubar-Icon
-- **Status:** ✅ Entschieden — bereit zur Implementierung
-- **Zu implementieren:**
-  - Menubar-Icon mit Dropdown (neueste X Artikel + "Feedivo öffnen" Button)
-  - Anzahl Artikel im Dropdown: konfigurierbar in Einstellungen
-  - Schnellaktionen im Dropdown: Refresh, Alle als gelesen markieren
-  - Badge-Zähler auf Menubar-Icon: Anzahl ungelesener Artikel
-  - App ohne Dock-Icon betreibbar: Einstellung in Einstellungen (LSUIElement)
-  - Klick auf Artikel im Dropdown: In Feedivo öffnen oder im Browser — konfigurierbar
+- **Status:** ✔️ Fertig
+- **Umgesetzt (2026-07-10):**
+  - Menubar-Icon mit Dropdown (neueste X Artikel + "Feedivo öffnen" Button) — umgesetzt 2026-07-10
+  - Anzahl Artikel im Dropdown: konfigurierbar in Einstellungen — umgesetzt 2026-07-10
+  - Schnellaktionen im Dropdown: Refresh, Alle als gelesen markieren — umgesetzt 2026-07-10
+  - Badge-Zähler auf Menubar-Icon: Anzahl ungelesener Artikel — umgesetzt 2026-07-10
+  - App ohne Dock-Icon betreibbar: Einstellung in Einstellungen (LSUIElement) — umgesetzt 2026-07-10
+  - Klick auf Artikel im Dropdown: In Feedivo öffnen oder im Browser — konfigurierbar — umgesetzt 2026-07-10
 
 ---
 
@@ -1488,7 +1488,7 @@ Folgende Reihenfolge berücksichtigt Abhängigkeiten. Features mit (*) sind Vora
 27a. **Feature 19.7** — App-interne Darstellungs-Einstellung (System/Hell/Dunkel) inkl. First-Run- und Inspector-Dark-Mode-Fix — erledigt 2026-07-09
 
 ### Phase 8 — Menubar & Fenster
-28. **Feature 21.1** — Menubar-App (Dropdown, Badge, ohne Dock, konfigurierbar)
+28. **Feature 21.1** — Menubar-App (Dropdown, Badge, ohne Dock, konfigurierbar) — vollständig umgesetzt (2026-07-10)
 29. **Feature 24.1** — Mehrfenster (Cmd+Return + Kontextmenü, Fenster-Zustand speichern)
 
 ### Phase 9 — Reader Features
