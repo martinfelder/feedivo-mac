@@ -27,4 +27,20 @@ struct ArticleListDisplaySettingsTests {
     @Test func feedNameVisibilityDefaultIstAn() {
         #expect(ArticleListFeedNameVisibilitySettings.defaultShowsFeedName == true)
     }
+
+    @Test func summaryVisibilityDefaultIstAn() {
+        #expect(ArticleListSummaryVisibilitySettings.defaultShowsSummary == true)
+    }
+
+    @Test func summaryLineCountDefaultIstZwei() {
+        #expect(ArticleListSummaryLineCount.defaultValue == 2)
+    }
+
+    @Test func summaryLineCountResolvedFaengtUngueltigeWerteAb() {
+        #expect(ArticleListSummaryLineCount.resolved(from: 1) == 1)
+        #expect(ArticleListSummaryLineCount.resolved(from: 3) == 3)
+        #expect(ArticleListSummaryLineCount.resolved(from: 0) == ArticleListSummaryLineCount.defaultValue)
+        #expect(ArticleListSummaryLineCount.resolved(from: 4) == ArticleListSummaryLineCount.defaultValue)
+        #expect(ArticleListSummaryLineCount.resolved(from: -1) == ArticleListSummaryLineCount.defaultValue)
+    }
 }
