@@ -9,6 +9,18 @@ extension Date {
         return Self.shortDateFormatter.string(from: self)
     }
 
+    /// Datumsanzeige gemäß gewähltem `ArticleDateDisplayMode` (Feature 19.1).
+    /// `.relative` verhält sich identisch zu `feedivoRelativeDisplay`.
+    /// `.absolute` zeigt immer das kurze Datum, auch für den heutigen Tag.
+    func feedivoDisplay(mode: ArticleDateDisplayMode) -> String {
+        switch mode {
+        case .relative:
+            feedivoRelativeDisplay
+        case .absolute:
+            Self.shortDateFormatter.string(from: self)
+        }
+    }
+
     private static let relativeFormatter: RelativeDateTimeFormatter = {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .short

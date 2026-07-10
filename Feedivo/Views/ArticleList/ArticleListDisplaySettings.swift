@@ -78,3 +78,29 @@ enum ArticleListSummaryLineCount {
         allowedRange.contains(storedValue) ? storedValue : defaultValue
     }
 }
+
+/// Anzeigeformat für Artikel-/Feed-Zeitstempel: relativ ("vor 2 Stunden") oder
+/// absolut (kurzes Datum, z. B. "23.06.2026"). Wirkt app-weit über
+/// `Date.feedivoDisplay(mode:)` (Feature 19.1).
+enum ArticleDateDisplayMode: String, CaseIterable, Identifiable {
+    case relative
+    case absolute
+
+    static let storageKey = "articleList.dateDisplayMode"
+    static let defaultMode = ArticleDateDisplayMode.relative
+
+    var id: String { rawValue }
+
+    var titleKey: LocalizedStringKey {
+        switch self {
+        case .relative:
+            L10n.articleDateDisplayModeRelative
+        case .absolute:
+            L10n.articleDateDisplayModeAbsolute
+        }
+    }
+
+    static func resolved(from rawValue: String) -> ArticleDateDisplayMode {
+        ArticleDateDisplayMode(rawValue: rawValue) ?? defaultMode
+    }
+}

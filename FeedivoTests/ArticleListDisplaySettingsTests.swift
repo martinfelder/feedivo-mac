@@ -43,4 +43,14 @@ struct ArticleListDisplaySettingsTests {
         #expect(ArticleListSummaryLineCount.resolved(from: 4) == ArticleListSummaryLineCount.defaultValue)
         #expect(ArticleListSummaryLineCount.resolved(from: -1) == ArticleListSummaryLineCount.defaultValue)
     }
+
+    @Test func dateDisplayModeResolvedFaelltBeiUnbekanntemRohwertAufDefaultZurueck() {
+        #expect(ArticleDateDisplayMode.resolved(from: "relative") == .relative)
+        #expect(ArticleDateDisplayMode.resolved(from: "absolute") == .absolute)
+        #expect(ArticleDateDisplayMode.resolved(from: "unknown") == ArticleDateDisplayMode.defaultMode)
+    }
+
+    @Test func dateDisplayModeDefaultIstRelativ() {
+        #expect(ArticleDateDisplayMode.defaultMode == .relative)
+    }
 }

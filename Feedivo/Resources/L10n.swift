@@ -53,6 +53,8 @@ enum L10n {
     static let articleListImagePositionHidden = LocalizedStringKey("articleList.imagePosition.hidden")
     static let articleListFeedNamePositionBeforeTitle = LocalizedStringKey("articleList.feedNamePosition.beforeTitle")
     static let articleListFeedNamePositionAfterTitle = LocalizedStringKey("articleList.feedNamePosition.afterTitle")
+    static let articleDateDisplayModeRelative = LocalizedStringKey("articleDateDisplayMode.relative")
+    static let articleDateDisplayModeAbsolute = LocalizedStringKey("articleDateDisplayMode.absolute")
     static let articleRowUnread = LocalizedStringKey("articleRow.unread")
     static let readerOpenOriginal = LocalizedStringKey("reader.openOriginal")
     static let readerAppearanceButton = LocalizedStringKey("reader.appearance.button")
