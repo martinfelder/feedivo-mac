@@ -386,9 +386,20 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
   anderen gleichzeitig deklarierten Scenes dieser App (`WindowGroup` × 2, `Window` × 3,
   `Settings`) — nicht abschließend verifiziert. Nächster Lösungsansatz (noch nicht begonnen):
   AppKit-`NSStatusItem` direkt statt SwiftUI `MenuBarExtra` (Präzedenzfall für eigene
-  AppKit-Bridges: `WebContentView`, `ShortcutRecorderView`). Bis zur Entscheidung bleibt das
-  Menubar-Icon-Feature ohne aktive Scene — Settings-Tab „Menubar" existiert weiterhin, hat aber
-  keine sichtbare Wirkung mehr.
+  AppKit-Bridges: `WebContentView`, `ShortcutRecorderView`).
+  **Update 2026-07-10 (Commit `e15fa7a`):** Erfolgreich durch `MenubarStatusItemController`
+  ersetzt (`Feedivo/App/MenubarStatusItemController.swift`) — `NSStatusItem` + `NSPopover` +
+  `NSHostingController<AnyView>` (konkreter Typ nötig, da `.environment`/`.dynamicTypeSize`/
+  `.preferredColorScheme` den View-Typ bei jedem Aufruf in `ModifiedContent<...>` wandeln;
+  `hostingController.rootView` muss über die Objekt-Lebensdauer denselben generischen Typ
+  behalten). Reine Icon-Logik (Symbol/Badge-Text) als `nonisolated static func` ausgelagert
+  (mussten explizit `nonisolated` sein, da sie sonst die `@MainActor`-Isolation der
+  umschließenden Klasse erben und aus synchronen Tests heraus nicht aufrufbar sind) — testbar
+  analog `AppIconBadgeService`. `NSHostingController` beobachtet externe Zustandsänderungen
+  (Sprache/Textgröße/Darstellung/Ungelesen-Zähler) NICHT automatisch wie eine deklarative
+  SwiftUI-Scene — `FeedivoApp.swift` muss `updateEnvironment(...)`/`updateUnreadCount(_:)`
+  explizit bei jeder relevanten `.onChange` aufrufen. Verifiziert: kein CPU-Spin mehr (0,6%
+  CPU nach 16s Beobachtung, vorher 98–100%).
 
 ---
 
