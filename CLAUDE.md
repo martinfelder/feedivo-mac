@@ -369,6 +369,26 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
   `NewOfflineSettingsView` dürfen nicht existieren) — die UI-Schicht wurde also gezielt entfernt,
   das Backend blieb stehen. Bei künftigen Dead-Code-Scans (periphery o. ä.) **nicht löschen**,
   ohne das vorher explizit mit dem Nutzer zu klären — siehe „Offene Entscheidungen".
+- **`MenuBarExtra` (SwiftUI) verursacht in `FeedivoApp.swift` einen 100%-CPU-Endlos-Spin beim
+  App-Start, auskommentiert seit 2026-07-10 (Commit `572c5b6`):** Feature 21.1 fügte eine
+  `MenuBarExtra(isInserted:)`-Scene hinzu; die App startete danach nicht mehr sinnvoll (Layout-
+  Thrashing, `NSView layoutSubtreeIfNeeded`-Rekursion, `AppMenuBarExtrasController.
+  updateMenuBarExtras` beteiligt). Per Git-Worktree-Bisektion und Isolationstests verifiziert:
+  Der Bug hängt **ausschließlich an der bloßen Existenz der Scene-Deklaration** in `body` —
+  unabhängig von `.menuBarExtraStyle`, Inhalt/Label (auch mit trivialen `Text(...)`-Platzhaltern
+  reproduzierbar), Scene-Reihenfolge und dem `isInserted`-Bindungswert (tritt auch bei `false`
+  auf, da SwiftUI die Scene trotzdem konstruiert). Ein naheliegender Workaround — die Scene nur
+  bedingt in den `SceneBuilder` aufnehmen (`if menubarIsEnabled { MenuBarExtra { … } }`), sodass
+  sie bei deaktiviertem Feature gar nicht erst konstruiert wird — ist auf diesem Toolchain-Stand
+  **kein gangbarer Weg**: Er löst stattdessen einen Swift-Compiler-Absturz aus ("failed to
+  produce diagnostic for expression"), reproduzierbar auch isoliert in einer eigenen
+  `@SceneBuilder`-Property. Vermutete Ursache: Interaktion zwischen `MenuBarExtra` und den 5
+  anderen gleichzeitig deklarierten Scenes dieser App (`WindowGroup` × 2, `Window` × 3,
+  `Settings`) — nicht abschließend verifiziert. Nächster Lösungsansatz (noch nicht begonnen):
+  AppKit-`NSStatusItem` direkt statt SwiftUI `MenuBarExtra` (Präzedenzfall für eigene
+  AppKit-Bridges: `WebContentView`, `ShortcutRecorderView`). Bis zur Entscheidung bleibt das
+  Menubar-Icon-Feature ohne aktive Scene — Settings-Tab „Menubar" existiert weiterhin, hat aber
+  keine sichtbare Wirkung mehr.
 
 ---
 

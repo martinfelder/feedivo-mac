@@ -952,14 +952,20 @@
 ## 21. Menubar-App
 
 ### 21.1 Menubar-Icon
-- **Status:** ✔️ Fertig
-- **Umgesetzt (2026-07-10):**
-  - Menubar-Icon mit Dropdown (neueste X Artikel + "Feedivo öffnen" Button) — umgesetzt 2026-07-10
-  - Anzahl Artikel im Dropdown: konfigurierbar in Einstellungen — umgesetzt 2026-07-10
-  - Schnellaktionen im Dropdown: Refresh, Alle als gelesen markieren — umgesetzt 2026-07-10
-  - Badge-Zähler auf Menubar-Icon: Anzahl ungelesener Artikel — umgesetzt 2026-07-10
-  - App ohne Dock-Icon betreibbar: Einstellung in Einstellungen (LSUIElement) — umgesetzt 2026-07-10
-  - Klick auf Artikel im Dropdown: In Feedivo öffnen oder im Browser — konfigurierbar — umgesetzt 2026-07-10
+- **Status:** ⚠️ Implementiert, aber MenuBarExtra-Scene deaktiviert (Absturz-Bug, siehe CLAUDE.md-Gotcha)
+- **Umgesetzt, aber Scene auskommentiert (2026-07-10):** Alle Bausteine implementiert
+  (Settings-Typen, `ArticleStatusStore.markAllUnreadAsRead()`, `ArticleDatabase.newestUnread`,
+  `MenubarIconLabel`/`MenubarDropdownView`, Settings-Tab), aber die `MenuBarExtra`-Scene in
+  `FeedivoApp.swift` verursacht einen 100%-CPU-Endlos-Spin beim App-Start und ist deshalb seit
+  Commit `572c5b6` auskommentiert. Menubar-Icon ist in der laufenden App aktuell NICHT sichtbar,
+  Settings-Tab „Menubar" existiert, hat aber keine Wirkung. Offene Entscheidung: AppKit-
+  `NSStatusItem` statt SwiftUI `MenuBarExtra` als Neuansatz.
+  - Menubar-Icon mit Dropdown (neueste X Artikel + "Feedivo öffnen" Button) — Code fertig, Scene deaktiviert
+  - Anzahl Artikel im Dropdown: konfigurierbar in Einstellungen — Code fertig, Scene deaktiviert
+  - Schnellaktionen im Dropdown: Refresh, Alle als gelesen markieren — Code fertig, Scene deaktiviert
+  - Badge-Zähler auf Menubar-Icon: Anzahl ungelesener Artikel — Code fertig, Scene deaktiviert
+  - App ohne Dock-Icon betreibbar: Einstellung in Einstellungen (LSUIElement) — Code fertig, Scene deaktiviert
+  - Klick auf Artikel im Dropdown: In Feedivo öffnen oder im Browser — konfigurierbar — Code fertig, Scene deaktiviert
 
 ---
 
