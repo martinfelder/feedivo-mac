@@ -288,6 +288,8 @@ enum L10n {
     static let settingsArticleListShowsSummaryDescription = LocalizedStringKey("settings.articleList.showsSummary.description")
     static let settingsArticleListSummaryLineCountTitle = LocalizedStringKey("settings.articleList.summaryLineCount.title")
     static let settingsArticleListSummaryLineCountDescription = LocalizedStringKey("settings.articleList.summaryLineCount.description")
+    static let settingsArticleListDateDisplayModeTitle = LocalizedStringKey("settings.articleList.dateDisplayMode.title")
+    static let settingsArticleListDateDisplayModeDescription = LocalizedStringKey("settings.articleList.dateDisplayMode.description")
     static let settingsMarkReadOnOpenTitle = LocalizedStringKey("settings.markReadOnOpen.title")
     static let settingsMarkReadOnOpenDescription = LocalizedStringKey("settings.markReadOnOpen.description")
     static let settingsRestoreArticleWindowsTitle = LocalizedStringKey("settings.restoreArticleWindows.title")

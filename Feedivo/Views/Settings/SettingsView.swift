@@ -381,6 +381,9 @@ private struct NewAppearanceSettingsView: View {
     @AppStorage(ArticleListSummaryLineCount.storageKey)
     private var articleListSummaryLineCount = ArticleListSummaryLineCount.defaultValue
 
+    @AppStorage(ArticleDateDisplayMode.storageKey)
+    private var articleDateDisplayModeRawValue = ArticleDateDisplayMode.defaultMode.rawValue
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             NewSettingsBlock(eyebrow: "Oberfläche") {
@@ -505,6 +508,21 @@ private struct NewAppearanceSettingsView: View {
                     )
                     .disabled(!articleListShowsSummary)
                     .fixedSize()
+                }
+
+                NewSettingRow(
+                    title: L10n.settingsArticleListDateDisplayModeTitle,
+                    description: L10n.settingsArticleListDateDisplayModeDescription
+                ) {
+                    Picker("", selection: $articleDateDisplayModeRawValue) {
+                        ForEach(ArticleDateDisplayMode.allCases) { mode in
+                            Text(mode.titleKey)
+                                .tag(mode.rawValue)
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.segmented)
+                    .fixedSize(horizontal: true, vertical: false)
                 }
             }
 

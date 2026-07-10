@@ -19759,6 +19759,62 @@
         }
       }
     },
+    "settings.articleList.dateDisplayMode.description" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Legt fest, ob Zeitangaben relativ (\"vor 2 Stunden\") oder als festes Datum angezeigt werden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controls whether timestamps are shown relatively (\"2 hours ago\") or as a fixed date."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Définit si les horodatages sont affichés de façon relative (\"il y a 2 heures\") ou avec une date fixe."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stabilisce se gli orari vengono mostrati in modo relativo (\"2 ore fa\") o con una data fissa."
+          }
+        }
+      }
+    },
+    "settings.articleList.dateDisplayMode.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Datumsformat"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Date format"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Format de date"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Formato data"
+          }
+        }
+      }
+    },
     "settings.articleList.feedNamePosition.description" : {
       "localizations" : {
         "de" : {
