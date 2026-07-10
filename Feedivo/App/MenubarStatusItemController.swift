@@ -142,10 +142,15 @@ final class MenubarStatusItemController: NSObject {
     private func applyIconAppearance() {
         guard let button = statusItem?.button else { return }
 
-        button.image = NSImage(
+        let image = NSImage(
             systemSymbolName: Self.symbolName(forUnreadCount: unreadCount),
             accessibilityDescription: nil
         )
+        // Menubar-Icons müssen als Template-Bild markiert sein, damit AppKit sie
+        // automatisch korrekt in Hell/Dunkel/selektiertem Zustand einfärbt — ohne
+        // das kann das Icon je nach Systemzustand falsch oder unsichtbar wirken.
+        image?.isTemplate = true
+        button.image = image
         button.title = Self.badgeText(forUnreadCount: unreadCount)
         button.imagePosition = .imageLeading
     }
