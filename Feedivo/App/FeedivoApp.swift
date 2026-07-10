@@ -40,8 +40,6 @@ struct FeedivoApp: App {
     @AppStorage(SQLiteDataInvalidation.statusVersionKey)
     private var sqliteStatusVersion = 0
 
-    @State private var menubarUnreadCount = 0
-
     // Feature 23.2: AppKit-Delegate fängt feedivo://-URLs zuverlässig ab —
     // auch beim Kaltstart, bevor die SwiftUI-View-Hierarchie existiert (siehe
     // FeedivoAppDelegate). Die geparste Aktion wird in dessen
@@ -52,6 +50,7 @@ struct FeedivoApp: App {
     private let databaseLoadState = DatabaseLoadState()
     private let feedViewModel = FeedViewModel()
     private let feedivoDatabase: FeedivoDatabase
+    private let menubarStatusItemController: MenubarStatusItemController
 
     init() {
         ReaderFontRegistry.registerBundledFonts()
@@ -62,6 +61,10 @@ struct FeedivoApp: App {
             feedViewModel: feedViewModel
         )
         self.feedivoDatabase = database
+        self.menubarStatusItemController = MenubarStatusItemController(
+            feedivoDatabase: database,
+            feedViewModel: feedViewModel
+        )
         self.databaseLoadState.initializationError = nil
         self.databaseLoadState.isCloudSyncEnabledAtLaunch = cloudSyncIsEnabled
     }
@@ -114,10 +117,24 @@ struct FeedivoApp: App {
                 }
                 .task {
                     applyDockIconVisibility()
+                    menubarStatusItemController.setEnabled(menubarIsEnabled)
                     updateMenubarUnreadCount()
+                    updateMenubarEnvironment()
                 }
                 .onChange(of: sqliteStatusVersion) {
                     updateMenubarUnreadCount()
+                }
+                .onChange(of: menubarIsEnabled) {
+                    menubarStatusItemController.setEnabled(menubarIsEnabled)
+                }
+                .onChange(of: appLanguageRawValue) {
+                    updateMenubarEnvironment()
+                }
+                .onChange(of: interfaceTextSizeRawValue) {
+                    updateMenubarEnvironment()
+                }
+                .onChange(of: appAppearanceRawValue) {
+                    updateMenubarEnvironment()
                 }
         }
         .commands {
@@ -189,27 +206,10 @@ struct FeedivoApp: App {
         }
         .windowResizability(.contentSize)
 
-        // TEMPORÄR DEAKTIVIERT (2026-07-10): Die `MenuBarExtra`-Scene-Deklaration verursacht auf
-        // dieser Xcode/macOS-Kombination einen 100%-CPU-Endlos-Spin (Layout-Thrashing) direkt beim
-        // App-Start — unabhängig von Style/Inhalt/isInserted-Wert, per Bisektion und
-        // Isolationstests verifiziert (siehe Debugging-Session 2026-07-10). Ein bedingtes
-        // Einschließen (`if menubarIsEnabled { MenuBarExtra { … } }`) würde das umgehen, löst
-        // aber einen separaten Swift-Compiler-Absturz aus ("failed to produce diagnostic for
-        // expression") — kein Workaround über Code-Struktur auf diesem Toolchain-Stand gefunden.
-        // Feature 21.1 bleibt bis zur weiteren Untersuchung (vermutlich AppKit-`NSStatusItem`
-        // statt SwiftUI `MenuBarExtra`) ohne funktionierendes Menubar-Icon; Settings-Tab und
-        // restliche Bausteine bleiben unverändert bestehen.
-        // MenuBarExtra(isInserted: $menubarIsEnabled) {
-        //     MenubarDropdownView(feedViewModel: feedViewModel)
-        //         .environment(\.locale, appLanguage.locale)
-        //         .environment(\.interfaceTextSize, interfaceTextSize)
-        //         .environment(\.feedivoDatabase, feedivoDatabase)
-        //         .dynamicTypeSize(interfaceTextSize.dynamicTypeSize)
-        //         .preferredColorScheme(appAppearance.colorScheme)
-        // } label: {
-        //     MenubarIconLabel(unreadCount: menubarUnreadCount)
-        // }
-        // .menuBarExtraStyle(.window)
+        // Feature 21.1: Kein `MenuBarExtra`-Scene-Eintrag hier — das Menubar-Icon läuft über
+        // `menubarStatusItemController` (AppKit `NSStatusItem`/`NSPopover`), siehe dessen
+        // Doc-Comment für die Begründung (SwiftUI-`MenuBarExtra` verursachte einen
+        // 100%-CPU-Endlos-Spin auf der Xcode/macOS-Kombination vom 2026-07-10).
     }
 
     private func scheduleBackgroundRefresh() {
@@ -244,7 +244,16 @@ struct FeedivoApp: App {
             return
         }
 
-        menubarUnreadCount = AppIconBadgeService.unreadCount(in: sidebarFeeds)
+        menubarStatusItemController.updateUnreadCount(AppIconBadgeService.unreadCount(in: sidebarFeeds))
+    }
+
+    @MainActor
+    private func updateMenubarEnvironment() {
+        menubarStatusItemController.updateEnvironment(
+            locale: AppLanguage.resolved(from: appLanguageRawValue).locale,
+            interfaceTextSize: InterfaceTextSize.resolved(from: interfaceTextSizeRawValue),
+            colorScheme: AppAppearance.resolved(from: appAppearanceRawValue).colorScheme
+        )
     }
 
     @MainActor
