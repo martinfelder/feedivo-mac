@@ -128,6 +128,18 @@ struct ArticleDatabase {
         )
     }
 
+    /// Neueste ungelesene Artikel über ALLE Feeds hinweg, für das
+    /// Menubar-Dropdown (Feature 21.1). Nutzt intern `fetchUnreadArticles`
+    /// mit allen bekannten Feed-IDs statt einer Teilmenge.
+    func newestUnread(limit: Int) throws -> [ArticleListSnapshot] {
+        let allFeedIDs = try feedStore.feeds().map(\.id)
+        guard !allFeedIDs.isEmpty else {
+            return []
+        }
+
+        return try fetchUnreadArticles(feedIDs: Set(allFeedIDs), limit: limit)
+    }
+
     func fetchTodayArticles(
         feedIDs: Set<String>,
         includeRead: Bool = true,

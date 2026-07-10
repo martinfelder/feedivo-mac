@@ -145,4 +145,56 @@ struct SQLiteArticleDatabaseTests {
         #expect(counts.hiddenCount == 1)
         #expect(counts.statusCount == 4)
     }
+
+    @Test func newestUnreadLiefertArtikelUeberAlleFeedsHinwegSortiertNachDatum() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let articleDatabase = ArticleDatabase(database: database)
+
+        try feedStore.save(FeedRecord(id: "feed-a", url: "https://a.example.com/feed", title: "Feed A"))
+        try feedStore.save(FeedRecord(id: "feed-b", url: "https://b.example.com/feed", title: "Feed B"))
+
+        let olderID = try articleStore.upsert(ArticleUpsertInput(
+            feedID: "feed-a",
+            sourceID: "article-older",
+            title: "Älterer Artikel",
+            publishedAt: Date(timeIntervalSinceNow: -3600),
+            arrivedAt: Date(timeIntervalSinceNow: -3600)
+        ))
+        let newerID = try articleStore.upsert(ArticleUpsertInput(
+            feedID: "feed-b",
+            sourceID: "article-newer",
+            title: "Neuerer Artikel",
+            publishedAt: Date(),
+            arrivedAt: Date()
+        ))
+
+        let result = try articleDatabase.newestUnread(limit: 5)
+
+        #expect(result.map(\.id) == [newerID, olderID])
+    }
+
+    @Test func newestUnreadRespektiertDasLimit() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let articleDatabase = ArticleDatabase(database: database)
+
+        try feedStore.save(FeedRecord(id: "feed-a", url: "https://a.example.com/feed", title: "Feed A"))
+
+        for index in 1...5 {
+            _ = try articleStore.upsert(ArticleUpsertInput(
+                feedID: "feed-a",
+                sourceID: "article-\(index)",
+                title: "Artikel \(index)",
+                publishedAt: Date(timeIntervalSinceNow: Double(-index)),
+                arrivedAt: Date(timeIntervalSinceNow: Double(-index))
+            ))
+        }
+
+        let result = try articleDatabase.newestUnread(limit: 2)
+
+        #expect(result.count == 2)
+    }
 }
