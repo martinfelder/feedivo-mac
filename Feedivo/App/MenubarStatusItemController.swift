@@ -139,6 +139,15 @@ final class MenubarStatusItemController: NSObject {
         guard statusItem == nil else { return }
 
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+        // Ohne `autosaveName` verwaltet macOS Status-Items als anonyme
+        // "Item-N"-Slots (siehe `defaults read com.apple.controlcenter`) —
+        // wiederholt neu erzeugte anonyme Items können dort als dauerhaft
+        // "unsichtbar" (`NSStatusItem Visible Item-N = 0`) einsortiert werden
+        // und bleiben es auch nach `isVisible = true`, weil Control Center die
+        // Sichtbarkeit für diesen Slot separat verwaltet. Eine stabile,
+        // eigene `autosaveName` gibt dem Item eine persistente Identität und
+        // umgeht den anonymen Slot-Pool komplett.
+        item.autosaveName = "ch.martin.Feedivo.MenubarStatusItem"
         // Siehe Typ-Doc-Comment: `isVisible` ist auf diesem System direkt nach
         // der Erstellung `false` und muss explizit gesetzt werden.
         item.isVisible = true
