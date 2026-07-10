@@ -87,6 +87,14 @@ struct ArticleStore {
         }
     }
 
+    /// Einzelabruf per ID (Feature 21.1, Menubar-Dropdown), Standard-Pattern
+    /// analog zu `FeedStore.feed(id:)`.
+    func article(id: String) throws -> ArticleRecord? {
+        try database.read { db in
+            try ArticleRecord.fetchOne(db, key: id)
+        }
+    }
+
     func readerArticle(id: String) throws -> ArticleReaderSnapshot? {
         try database.read { db in
             var snapshot = try ArticleReaderSnapshot.fetchOne(db, sql: """
