@@ -804,30 +804,16 @@
 ## 19. Oberflächen-Anpassung (Customization)
 
 ### 19.1 Artikel-Liste anpassen
-- **Status:** 🔨 In Arbeit — teilweise umgesetzt
-- **Zu implementieren (Einstellungen → Darstellung):**
+- **Status:** ✔️ Fertig
+- **Umgesetzt (Einstellungen → Darstellung):**
   - Feeds ohne ungelesene Artikel in der Seitenleiste anzeigen / ausblenden — umgesetzt
-  - Vorschautext-Zeilen: 0–3 (Stepper), Standard: 2 — 0 = nur Titel + Datum
+  - Vorschautext-Zeilen: 1–3 (Stepper), Standard: 2, plus eigener An/Aus-Toggle für die Summary — umgesetzt 2026-07-10
   - Vorschaubilder in der Liste: anzeigen / ausblenden — umgesetzt 2026-07-08
   - Vorschaubild-Position: Links oder Rechts — umgesetzt 2026-07-08 (als 3-Wege-Einstellung Links/Rechts/Aus)
-  - Summary anzeigen / ausblenden
-- **Noch offen (nicht jetzt) — jetzt auch entschieden:**
-  - Datum-Format: User wählt in Einstellungen (relativ "vor 2 Stunden" oder absolut "23.06.2026")
+  - Summary anzeigen / ausblenden — umgesetzt 2026-07-10 (siehe Vorschautext-Zeilen)
+  - Datum-Format: relativ ("vor 2 Stunden") oder absolut ("23.06.2026") wählbar, wirkt app-weit (Artikelliste, Sidebar-Vorschau, Reader-Inspector, Reader-Metadatenzeile, Export) — umgesetzt 2026-07-10
   - Feed-Name pro Artikel: anzeigen / ausblenden in Einstellungen (nützlich in "Alle" / Smart Filter) — umgesetzt 2026-07-08
-  - Ungelesen-Markierung: fetter Text + farbiger Punkt (beides zusammen)
-- **Umgesetzt (2026-07-08) — Favicon + Position der Feedname-Zeile:**
-  - Vor dem Feedname-Text erscheint zusätzlich ein kleines Favicon des Feeds,
-    genau so hoch wie der Text selbst. Hat ein Feed kein Favicon, erscheint an
-    derselben Stelle ein generisches Platzhalter-Icon, damit der Text nicht je
-    nach Feed unterschiedlich weit einrückt.
-  - Neue Einstellung: Feedname-Zeile (Favicon + Feedname + Zeitpunkt)
-    erscheint entweder **vor** dem Artikeltitel (ganz oben, linksbündig) oder
-    **nach** dem Artikeltitel (aktuelle Position). Zeitpunkt ist an dieselbe
-    Positions-Einstellung gebunden wie der Feedname.
-  - Standardwert: **Nach dem Titel** (entspricht dem bisherigen Verhalten —
-    Update ändert für Bestandsnutzer nichts, bis sie es umstellen).
-  - Ist "Feed-Name anzeigen" ausgeschaltet, verschwinden nur Feedname und
-    Favicon; der Zeitpunkt bleibt weiterhin eigenständig sichtbar.
+  - Ungelesen-Markierung: fetter Text + farbiger Punkt (beides zusammen) — bereits seit Einführung der Artikelliste kombiniert umgesetzt, kein separater Task nötig (bestätigt 2026-07-10)
 
 ### 19.2 Sidebar anpassen
 - **Status:** ✔️ Fertig
@@ -1483,7 +1469,7 @@ Folgende Reihenfolge berücksichtigt Abhängigkeiten. Features mit (*) sind Vora
 
 ### Phase 7 — Customization & Einstellungen
 22. **Feature 8.2** — Neue Einstellungs-Kategorien (Benachrichtigungen, Artikel, Menubar, Darstellung erweitern)
-23. **Feature 19.1** — Artikel-Liste anpassen (Vorschautext-Zeilen, Bildposition, Datum-Format, Feed-Name, Ungelesen-Markierung) — Bildposition + Feed-Name (inkl. Favicon) 2026-07-08 erledigt, Rest offen
+23. **Feature 19.1** — Artikel-Liste anpassen (Vorschautext-Zeilen, Bildposition, Datum-Format, Feed-Name, Ungelesen-Markierung) — vollständig umgesetzt (2026-07-08 Bildposition + Feed-Name, 2026-07-10 Summary-Steuerung + Datum-Format)
 24. **Feature 19.2** — Sidebar anpassen (Zähler, Favicons, Smart Filter ein/ausblenden)
 25. **Feature 19.3** — Reader anpassen (Textbreite, Artikelbild)
 26. **Feature 19.4** — Toolbar anpassen (macOS Standard `Symbolleiste anpassen...`)
