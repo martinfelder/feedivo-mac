@@ -456,7 +456,18 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   (`currentStreak`/`longestStreak`). Zwei weitere Kennzahlen ergänzt: Gesamt-Lesezeit
   (kumuliert, `DateComponentsFormatter`) und Trend zur Vorperiode (`trendPercentage`,
   `nil` bei Zeitraum "Gesamt" oder Vorperiode = 0) — Summary-Kachel-Reihe dafür auf
-  6 Kacheln (3×2-Grid) erweitert. Build und Tests (65/65 in FeedivoTests +
+  6 Kacheln (3×2-Grid) erweitert. Committed und auf `origin/main` gepusht (`7d6c6cc9`).
+- Feature 19.8 (Shortcuts anpassen) abgeschlossen — neuer Settings-Tab "Shortcuts",
+  gruppiert nach Feed/Artikel/Reader, mit selbst gebautem `NSViewRepresentable`-
+  Shortcut-Recorder (`ShortcutRecorderView`, erste eigene AppKit-Bridge außer
+  `WebContentView`). Umfasst alle 12 bisherigen Menü-/Toolbar-Shortcuts (nicht die
+  `.defaultAction`-Enter-Konvention in Dialogen). Persistenz als ein JSON-
+  `@AppStorage`-Blob (`KeyboardShortcutOverrides`, drei Zustände pro Shortcut:
+  Default/angepasst/gelöscht) statt 24 Einzel-Keys. Konflikterkennung blockiert
+  mit Inline-Meldung statt automatischer Verdrängung. `ArticleCommands.swift`/
+  `FeedCommands.swift`/`SQLiteReaderView.swift` lesen jetzt dynamisch über neue
+  `View`-Extension `customizableKeyboardShortcut(_:overrides:)` statt hartcodierter
+  `.keyboardShortcut(...)`-Werte. Build und Tests (71/71 in FeedivoTests +
   SQLiteStatisticsStoreTests) grün, noch nicht committed.
 - Weiterhin offen laut FEATURES.md-Entscheidung vom 2026-07-02: `codex/icloud-sync-beta` ist
   bewusst zugunsten des SQLite/GRDB-Umbaus zurückgestellt (nicht nur unentschieden) — der Umbau

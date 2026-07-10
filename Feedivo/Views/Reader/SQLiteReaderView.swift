@@ -54,6 +54,13 @@ struct SQLiteReaderView: View {
     @AppStorage(ArticleInAppWebProfile.storageKey)
     private var articleInAppWebProfileRawValue = ArticleInAppWebProfile.defaultProfile.rawValue
 
+    @AppStorage(KeyboardShortcutOverrides.storageKey)
+    private var shortcutOverridesRawValue = KeyboardShortcutOverrides().rawValue
+
+    private var shortcutOverrides: KeyboardShortcutOverrides {
+        KeyboardShortcutOverrides.resolved(from: shortcutOverridesRawValue)
+    }
+
     init(
         articleID: String?,
         canSelectPreviousArticle: Bool = false,
@@ -202,7 +209,7 @@ struct SQLiteReaderView: View {
                         Image(systemName: "chevron.backward")
                     }
                     .help(L10n.readerWebBackCommand)
-                    .keyboardShortcut("[", modifiers: .command)
+                    .customizableKeyboardShortcut(.readerWebBack, overrides: shortcutOverrides)
                     .disabled(readerDisplayMode != .web || !webNavigationController.canGoBack)
 
                     Button {
@@ -211,7 +218,7 @@ struct SQLiteReaderView: View {
                         Image(systemName: "chevron.forward")
                     }
                     .help(L10n.readerWebForwardCommand)
-                    .keyboardShortcut("]", modifiers: .command)
+                    .customizableKeyboardShortcut(.readerWebForward, overrides: shortcutOverrides)
                     .disabled(readerDisplayMode != .web || !webNavigationController.canGoForward)
                 }
 

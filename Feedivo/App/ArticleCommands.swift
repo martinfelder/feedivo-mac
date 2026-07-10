@@ -5,18 +5,25 @@ struct ArticleCommands: Commands {
     @FocusedValue(\.articleCommandActions)
     private var articleCommandActions
 
+    @AppStorage(KeyboardShortcutOverrides.storageKey)
+    private var shortcutOverridesRawValue = KeyboardShortcutOverrides().rawValue
+
+    private var shortcutOverrides: KeyboardShortcutOverrides {
+        KeyboardShortcutOverrides.resolved(from: shortcutOverridesRawValue)
+    }
+
     var body: some Commands {
         CommandMenu(L10n.articleCommandsMenu) {
             Button(L10n.articlePreviousCommand) {
                 articleCommandActions?.selectPreviousArticle()
             }
-            .keyboardShortcut(.upArrow, modifiers: [.command])
+            .customizableKeyboardShortcut(.articleSelectPrevious, overrides: shortcutOverrides)
             .disabled(articleCommandActions?.canSelectPreviousArticle != true)
 
             Button(L10n.articleNextCommand) {
                 articleCommandActions?.selectNextArticle()
             }
-            .keyboardShortcut(.downArrow, modifiers: [.command])
+            .customizableKeyboardShortcut(.articleSelectNext, overrides: shortcutOverrides)
             .disabled(articleCommandActions?.canSelectNextArticle != true)
 
             Divider()
@@ -24,20 +31,20 @@ struct ArticleCommands: Commands {
             Button(L10n.articleSearchCommand) {
                 openWindow(id: ArticleSearchWindowView.windowID)
             }
-            .keyboardShortcut("f", modifiers: [.command])
+            .customizableKeyboardShortcut(.articleSearch, overrides: shortcutOverrides)
 
             Divider()
 
             Button(articleCommandActions?.toggleReadTitle ?? L10n.articleRowMarkRead) {
                 articleCommandActions?.toggleRead()
             }
-            .keyboardShortcut("u", modifiers: [.command, .shift])
+            .customizableKeyboardShortcut(.articleToggleRead, overrides: shortcutOverrides)
             .disabled(articleCommandActions?.canPerformActions != true)
 
             Button(articleCommandActions?.toggleStarredTitle ?? L10n.articleRowStarAdd) {
                 articleCommandActions?.toggleStarred()
             }
-            .keyboardShortcut("d", modifiers: [.command])
+            .customizableKeyboardShortcut(.articleToggleStarred, overrides: shortcutOverrides)
             .disabled(articleCommandActions?.canPerformActions != true)
 
             Button(articleCommandActions?.toggleArchivedTitle ?? L10n.articleArchiveCommand) {
@@ -50,7 +57,7 @@ struct ArticleCommands: Commands {
             Button(L10n.articleOpenInWindowCommand) {
                 articleCommandActions?.openInArticleWindow()
             }
-            .keyboardShortcut(.return, modifiers: [.command])
+            .customizableKeyboardShortcut(.articleOpenInWindow, overrides: shortcutOverrides)
             .disabled(articleCommandActions?.canPerformActions != true)
 
             Button(L10n.articleCopyLinkCommand) {

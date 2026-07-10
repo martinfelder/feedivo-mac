@@ -773,4 +773,66 @@ struct FeedivoTests {
         #expect(stats.trendPercentage == nil)
     }
 
+    @Test func keyboardShortcutSpecLiefertKorrekteAnzeigeSymbole() {
+        let commandN = KeyboardShortcutSpec(key: "n", modifiers: [.command])
+        #expect(commandN.displaySymbols == "⌘N")
+
+        // macOS-Reihenfolge ⌃⌥⇧⌘ (Control, Option, Shift, Command) — Shift kommt vor Command.
+        let commandShiftR = KeyboardShortcutSpec(key: "r", modifiers: [.command, .shift])
+        #expect(commandShiftR.displaySymbols == "⇧⌘R")
+
+        let commandUpArrow = KeyboardShortcutSpec(key: SpecialKey.upArrow.rawValue, modifiers: [.command])
+        #expect(commandUpArrow.displaySymbols == "⌘↑")
+    }
+
+    @Test func keyboardShortcutOverridesRundtripDurchJSON() {
+        var overrides = KeyboardShortcutOverrides()
+        overrides.values["feedAdd"] = .some(KeyboardShortcutSpec(key: "m", modifiers: [.command, .option]))
+        overrides.values["articleSearch"] = .some(nil)
+
+        let restored = KeyboardShortcutOverrides.resolved(from: overrides.rawValue)
+
+        #expect(restored.values["feedAdd"] == .some(KeyboardShortcutSpec(key: "m", modifiers: [.command, .option])))
+        #expect(restored.values["articleSearch"] == .some(nil))
+        #expect(restored.values["feedRefresh"] == nil)
+    }
+
+    @Test func keyboardShortcutsSettingsFaelltAufDefaultZurueckWennNichtAngepasst() {
+        let overrides = KeyboardShortcutOverrides()
+        let spec = KeyboardShortcutsSettings.spec(for: .feedAdd, in: overrides)
+        #expect(spec == CustomizableShortcut.feedAdd.defaultSpec)
+    }
+
+    @Test func keyboardShortcutsSettingsLiefertNilBeiExplizitGeloeschtemShortcut() {
+        var overrides = KeyboardShortcutOverrides()
+        overrides.values[CustomizableShortcut.articleSearch.id] = .some(nil)
+
+        let spec = KeyboardShortcutsSettings.spec(for: .articleSearch, in: overrides)
+        #expect(spec == nil)
+    }
+
+    @Test func keyboardShortcutsSettingsErkenntKonflikt() {
+        var overrides = KeyboardShortcutOverrides()
+        // feedRefresh (Default ⌘R) wird auf denselben Shortcut wie feedAdd (⌘N) umgelegt.
+        overrides.values[CustomizableShortcut.feedRefresh.id] = .some(CustomizableShortcut.feedAdd.defaultSpec)
+
+        let conflict = KeyboardShortcutsSettings.conflictingShortcut(
+            for: CustomizableShortcut.feedAdd.defaultSpec,
+            excluding: .feedAdd,
+            in: overrides
+        )
+
+        #expect(conflict == .feedRefresh)
+    }
+
+    @Test func keyboardShortcutsSettingsKeinKonfliktBeiUnterschiedlichenShortcuts() {
+        let overrides = KeyboardShortcutOverrides()
+        let conflict = KeyboardShortcutsSettings.conflictingShortcut(
+            for: KeyboardShortcutSpec(key: "z", modifiers: [.command, .option, .shift]),
+            excluding: .feedAdd,
+            in: overrides
+        )
+        #expect(conflict == nil)
+    }
+
 }

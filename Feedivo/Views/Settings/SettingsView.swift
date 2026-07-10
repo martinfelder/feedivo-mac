@@ -3,6 +3,7 @@ import SwiftUI
 private enum NewSettingsSection: String, CaseIterable, Identifiable {
     case general
     case appearance
+    case shortcuts
     case notifications
     case refresh
     case cleanup
@@ -17,6 +18,8 @@ private enum NewSettingsSection: String, CaseIterable, Identifiable {
             L10n.settingsGeneralSection
         case .appearance:
             "Anzeige"
+        case .shortcuts:
+            L10n.shortcutsSettingsSection
         case .notifications:
             L10n.settingsNotificationsSection
         case .refresh:
@@ -36,6 +39,8 @@ private enum NewSettingsSection: String, CaseIterable, Identifiable {
             "slider.horizontal.3"
         case .appearance:
             "eye"
+        case .shortcuts:
+            "keyboard"
         case .notifications:
             "bell.badge"
         case .refresh:
@@ -64,6 +69,7 @@ struct NewSettingsView: View {
         TabView(selection: $selectedSection) {
             settingsTab(.general)
             settingsTab(.appearance)
+            settingsTab(.shortcuts)
             settingsTab(.notifications)
             settingsTab(.refresh)
             settingsTab(.cleanup)
@@ -96,6 +102,8 @@ struct NewSettingsView: View {
             NewGeneralSettingsView()
         case .appearance:
             NewAppearanceSettingsView()
+        case .shortcuts:
+            NewShortcutsSettingsView()
         case .notifications:
             NewNotificationSettingsView()
         case .refresh:
@@ -1069,5 +1077,114 @@ private struct NewSettingsAboutView: View {
                 )
             }
         }
+    }
+}
+
+private struct NewShortcutsSettingsView: View {
+    @AppStorage(KeyboardShortcutOverrides.storageKey)
+    private var shortcutOverridesRawValue = KeyboardShortcutOverrides().rawValue
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(ShortcutCategory.allCases, id: \.self) { category in
+                NewSettingsBlock(eyebrow: category.titleKey) {
+                    VStack(spacing: 0) {
+                        ForEach(CustomizableShortcut.allCases.filter { $0.category == category }) { shortcut in
+                            ShortcutSettingRow(shortcut: shortcut, overridesRawValue: $shortcutOverridesRawValue)
+                        }
+                    }
+                }
+            }
+
+            Button(L10n.shortcutsResetAllButton) {
+                shortcutOverridesRawValue = KeyboardShortcutOverrides().rawValue
+            }
+            .buttonStyle(.bordered)
+        }
+    }
+}
+
+private struct ShortcutSettingRow: View {
+    let shortcut: CustomizableShortcut
+    @Binding var overridesRawValue: String
+
+    @State private var conflictMessage: String?
+
+    private static var labelColumnWidth: CGFloat { 190 }
+
+    private var overrides: KeyboardShortcutOverrides {
+        KeyboardShortcutOverrides.resolved(from: overridesRawValue)
+    }
+
+    private var spec: KeyboardShortcutSpec? {
+        KeyboardShortcutsSettings.spec(for: shortcut, in: overrides)
+    }
+
+    private var isCustomized: Bool {
+        overrides.values[shortcut.id] != nil
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            HStack(alignment: .center, spacing: 12) {
+                Text(shortcut.titleKey)
+                    .font(.system(size: 13))
+                    .foregroundStyle(.primary)
+                    .multilineTextAlignment(.trailing)
+                    .frame(width: Self.labelColumnWidth, alignment: .trailing)
+
+                ShortcutRecorderView(
+                    spec: spec,
+                    onCapture: { capture($0) },
+                    onClear: { clear() }
+                )
+
+                if isCustomized {
+                    Button {
+                        reset()
+                    } label: {
+                        Image(systemName: "arrow.uturn.backward.circle")
+                    }
+                    .buttonStyle(.plain)
+                    .help(L10n.shortcutsResetButtonHelp)
+                }
+
+                Spacer(minLength: 0)
+            }
+
+            if let conflictMessage {
+                Text(conflictMessage)
+                    .font(.system(size: 10.5))
+                    .foregroundStyle(.red)
+                    .padding(.leading, Self.labelColumnWidth + 12)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    private func capture(_ newSpec: KeyboardShortcutSpec) {
+        if let conflict = KeyboardShortcutsSettings.conflictingShortcut(for: newSpec, excluding: shortcut, in: overrides) {
+            conflictMessage = L10n.shortcutsConflictMessage(conflict.resolvedLabel)
+            return
+        }
+
+        var updated = overrides
+        updated.values[shortcut.id] = .some(newSpec)
+        overridesRawValue = updated.rawValue
+        conflictMessage = nil
+    }
+
+    private func clear() {
+        var updated = overrides
+        updated.values[shortcut.id] = .some(nil)
+        overridesRawValue = updated.rawValue
+        conflictMessage = nil
+    }
+
+    private func reset() {
+        var updated = overrides
+        updated.values.removeValue(forKey: shortcut.id)
+        overridesRawValue = updated.rawValue
+        conflictMessage = nil
     }
 }

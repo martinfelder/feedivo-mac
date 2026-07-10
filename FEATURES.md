@@ -906,6 +906,31 @@
   automatisierten Umsetzung) — `.controlBackgroundColor` ist der aktuell
   eingesetzte Startwert
 
+### 19.8 Shortcuts anpassen
+- **Status:** ✔️ Fertig
+- **Umgesetzt (2026-07-10):**
+  - Neuer Settings-Tab "Shortcuts" (`NewShortcutsSettingsView`), gruppiert nach
+    Feed/Artikel/Reader, mit selbst gebautem Shortcut-Recorder
+    (`ShortcutRecorderView`, eigene `NSViewRepresentable`-Bridge — SwiftUI hat
+    kein eingebautes Recorder-Control)
+  - Umfasst alle 12 bisherigen fest verdrahteten Menü-/Toolbar-Shortcuts (Feed
+    hinzufügen, Statistiken öffnen, Feed(s) aktualisieren, Artikel-Navigation,
+    Suche, Gelesen/Stern umschalten, In Fenster öffnen, Web-Vor/Zurück) — bewusst
+    NICHT die `.keyboardShortcut(.defaultAction)`-Stellen in Dialogen (Enter für
+    Standard-Button ist macOS-Konvention, kein umbenennbarer Befehl)
+  - Persistenz: `KeyboardShortcutOverrides`, ein JSON-`@AppStorage`-Blob
+    (`[String: KeyboardShortcutSpec?]`) statt 24 Einzel-Keys; drei Zustände pro
+    Shortcut (nicht angepasst → Default / angepasst / bewusst gelöscht)
+  - Konflikterkennung: Aufnehmen einer bereits belegten Kombination wird
+    blockiert mit Inline-Meldung "Bereits belegt durch: …" — keine automatische
+    Verdrängung der anderen Zuordnung
+  - Pflicht-Modifier: mindestens eine Modifier-Taste beim Aufnehmen erzwungen
+  - Reset pro Shortcut + globaler "Alle zurücksetzen"-Button
+  - `ArticleCommands.swift`/`FeedCommands.swift`/`SQLiteReaderView.swift` lesen
+    jetzt `KeyboardShortcutsSettings.spec(for:in:)` statt hartcodierter
+    `.keyboardShortcut(...)`-Werte (neue `View`-Extension
+    `customizableKeyboardShortcut(_:overrides:)`)
+
 ---
 
 ## 20. Fehler- und Problembehandlung

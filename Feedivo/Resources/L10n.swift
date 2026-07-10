@@ -91,6 +91,34 @@ enum L10n {
     static let statisticsHeatmapLegendMore = LocalizedStringKey("statistics.heatmap.legend.more")
     static let statisticsSummaryTotalReadingTime = LocalizedStringKey("statistics.summary.totalReadingTime")
     static let statisticsSummarySelectedRangeCount = LocalizedStringKey("statistics.summary.selectedRangeCount")
+    static let shortcutsSettingsSection = LocalizedStringKey("shortcuts.settings.section")
+    static let shortcutsCategoryFeed = LocalizedStringKey("shortcuts.category.feed")
+    static let shortcutsCategoryArticle = LocalizedStringKey("shortcuts.category.article")
+    static let shortcutsCategoryReader = LocalizedStringKey("shortcuts.category.reader")
+    static let shortcutsResetAllButton = LocalizedStringKey("shortcuts.resetAll.button")
+    static let shortcutsResetButtonHelp = String(localized: "shortcuts.reset.button.help")
+    static let shortcutsRecorderPlaceholder = LocalizedStringKey("shortcuts.recorder.placeholder")
+    static let shortcutsRecorderRecording = LocalizedStringKey("shortcuts.recorder.recording")
+    static let shortcutsClearButtonHelp = String(localized: "shortcuts.clear.button.help")
+    static let shortcutsLabelFeedAdd = LocalizedStringKey("shortcuts.label.feedAdd")
+    static let shortcutsLabelStatisticsOpen = LocalizedStringKey("shortcuts.label.statisticsOpen")
+    static let shortcutsLabelFeedRefreshAll = LocalizedStringKey("shortcuts.label.feedRefreshAll")
+    static let shortcutsLabelFeedRefresh = LocalizedStringKey("shortcuts.label.feedRefresh")
+    static let shortcutsLabelArticleSelectPrevious = LocalizedStringKey("shortcuts.label.articleSelectPrevious")
+    static let shortcutsLabelArticleSelectNext = LocalizedStringKey("shortcuts.label.articleSelectNext")
+    static let shortcutsLabelArticleSearch = LocalizedStringKey("shortcuts.label.articleSearch")
+    static let shortcutsLabelArticleToggleRead = LocalizedStringKey("shortcuts.label.articleToggleRead")
+    static let shortcutsLabelArticleToggleStarred = LocalizedStringKey("shortcuts.label.articleToggleStarred")
+    static let shortcutsLabelArticleOpenInWindow = LocalizedStringKey("shortcuts.label.articleOpenInWindow")
+    static let shortcutsLabelReaderWebBack = LocalizedStringKey("shortcuts.label.readerWebBack")
+    static let shortcutsLabelReaderWebForward = LocalizedStringKey("shortcuts.label.readerWebForward")
+
+    static func shortcutsConflictMessage(_ conflictingLabel: String) -> String {
+        String.localizedStringWithFormat(
+            String(localized: "shortcuts.conflict.message"),
+            conflictingLabel
+        )
+    }
 
     static func statisticsTrendIncrease(_ percentage: Int) -> String {
         String.localizedStringWithFormat(

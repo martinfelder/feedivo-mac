@@ -6,12 +6,19 @@ struct FeedCommands: Commands {
     @FocusedValue(\.feedCommandActions)
     private var feedCommandActions
 
+    @AppStorage(KeyboardShortcutOverrides.storageKey)
+    private var shortcutOverridesRawValue = KeyboardShortcutOverrides().rawValue
+
+    private var shortcutOverrides: KeyboardShortcutOverrides {
+        KeyboardShortcutOverrides.resolved(from: shortcutOverridesRawValue)
+    }
+
     var body: some Commands {
         CommandMenu(L10n.feedCommandsMenu) {
             Button(L10n.feedAddCommand) {
                 feedCommandActions?.requestAddFeed()
             }
-            .keyboardShortcut("n", modifiers: [.command])
+            .customizableKeyboardShortcut(.feedAdd, overrides: shortcutOverrides)
             .disabled(feedCommandActions?.canAddFeed != true)
 
             Button(L10n.feedImportOPMLCommand) {
@@ -33,20 +40,20 @@ struct FeedCommands: Commands {
             Button(L10n.statisticsCommand) {
                 openWindow(id: StatisticsWindowView.windowID)
             }
-            .keyboardShortcut("s", modifiers: [.command, .shift])
+            .customizableKeyboardShortcut(.statisticsOpen, overrides: shortcutOverrides)
 
             Divider()
 
             Button(L10n.feedRefreshAllCommand) {
                 feedCommandActions?.refreshAllFeeds()
             }
-            .keyboardShortcut("r", modifiers: [.command, .shift])
+            .customizableKeyboardShortcut(.feedRefreshAll, overrides: shortcutOverrides)
             .disabled(feedCommandActions?.canRefreshAllFeeds != true)
 
             Button(L10n.feedRefreshCommand) {
                 feedCommandActions?.refreshSelectedFeed()
             }
-            .keyboardShortcut("r", modifiers: [.command])
+            .customizableKeyboardShortcut(.feedRefresh, overrides: shortcutOverrides)
             .disabled(feedCommandActions?.canPerformFeedAction != true)
 
             Divider()
