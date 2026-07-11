@@ -1376,6 +1376,27 @@
   - Die kompakte Artikelsuche sitzt in der oberen macOS-Toolbar und filtert die
     aktuell ausgewählte Liste über SQLite/FTS, ohne ein Suchfeld in der
     mittleren Artikelliste zu zeigen
+  - Performance-Hardening-Programm (2026-07-11, Branch `perf/hardening-phase-1`,
+    per Code-Review priorisiert, via Subagent-Driven-Development umgesetzt):
+    Composite-Index `article_statuses(isHidden, isRead)` (Migration v11) und
+    Expression-Index für `ORDER BY COALESCE(publishedAt, arrivedAt)`
+    (Migration v12) für die häufigste Artikellisten-Query; Fremdschlüssel-
+    Kaskade `article_statuses -> articles` (Migration v13) behebt verwaiste
+    Status-Zeilen beim Artikel-Löschen; Artikel-Auswahl in der Liste löst
+    keinen kompletten SQL-Reload mehr aus (Navigation wird lokal aus bereits
+    geladenen Zeilen abgeleitet); `displayState` wird nur noch einmal statt
+    bis zu 3× pro Render berechnet; `ImageCacheService`-Trim läuft gedrosselt
+    (alle N Schreibvorgänge) und auf einem Hintergrund-Thread statt bei jedem
+    Bild-Download inline; OPML-Vorschau ruft Feeds tatsächlich parallel ab
+    statt MainActor-seriell, inkl. `FeedService.fetchFeed`/`parseFeed` als
+    `nonisolated` markiert (sonst hätte die projektweite
+    `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`-Einstellung den Fix in
+    Produktion wirkungslos gemacht). Während der Umsetzung zusätzlich zwei
+    echte Bugs gefunden und behoben: ein liegengebliebener `reload()`-
+    Fallback und ein Datenrennen auf dem neuen ImageCache-Trim-Zähler unter
+    gleichzeitigen Downloads. Alle 7 Tasks + Follow-up per TDD mit
+    Task-Review und finalem Whole-Branch-Review, gemergt und gepusht
+    (`fc9396f9`..`34a7a88a`).
 - **Zu beachten:**
   - SwiftData-Queries immer mit gezielten Predicates; bewusste Ausnahme ist der Default-Ordner `Ungelesen`, weil dort die Anzeigeebene gelesene Artikel für Feed-ähnliches Verhalten temporär sichtbar halten muss
   - Weiteres Lazy Loading für schwere Inhalte außerhalb der sichtbaren Listenzeilen
