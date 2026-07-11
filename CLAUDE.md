@@ -257,10 +257,21 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
   reproduzierbar (bekanntes, ungelöstes Infrastrukturproblem). Immer gezielt mit
   `-only-testing:FeedivoTests/<SuiteName>` testen.
 - **Bekannte, dauerhaft vorbestehende Testfehlschläge** (nicht neu einführen, aber auch nicht
-  grundlos als eigenen Bug behandeln): 5 Tests in `FeedivoAppSceneConfigurationTests.swift`,
-  2 flaky-unter-Last Tests in `FeedViewModelTests.swift`
+  grundlos als eigenen Bug behandeln): 9 Tests in `FeedivoAppSceneConfigurationTests.swift`
+  (Zahl am 2026-07-11 per Git-Stash-Vergleich korrigiert — vorher hier fälschlich „5"
+  dokumentiert, tatsächlich bereits vor dem `WindowGroup`→`Window`-Fix desselben Tages
+  9 Fehlschläge), 2 flaky-unter-Last Tests in `FeedViewModelTests.swift`
   (`refreshAllFeedsMitSQLiteDatabaseNutztSQLiteFirstOhneDoppeltenAbruf`,
   `refreshAllFeedsMitSQLiteDatabaseMeldetFeedBenachrichtigungen`).
+- **Hauptfenster-Szene muss `Window`, nicht `WindowGroup` sein:** `WindowGroup(id:)` ist laut
+  SwiftUI-Design für mehrere gleichzeitige Fenster-Instanzen gedacht — `openWindow(id:)`
+  gegen eine `WindowGroup` erzeugt bei jedem Aufruf eine NEUE Instanz, statt eine bestehende
+  zu fokussieren. Betraf `FeedivoApp.swift`s Hauptfenster (Klick auf „Feedivo öffnen" im
+  Menubar-Popover öffnete immer ein zusätzliches Fenster statt das bestehende zu zeigen,
+  gefunden 2026-07-11). Fix: `Window("Feedivo", id: "main")` statt `WindowGroup(id: "main")`
+  — echter Singleton-Szenentyp, den die anderen Einzelfenster der App (Suche, Organizer,
+  Statistik) bereits korrekt nutzten. Nur `WindowGroup(for: ArticleWindowRequest.self)`
+  (Artikel-Popout, bewusst mehrfach instanziierbar) bleibt zu Recht eine `WindowGroup`.
 - **GRDB statt SwiftData:** Keine `@Query`/Observation-Automatik — UI-Updates nach Mutationen
   laufen explizit über `SQLiteDataInvalidation.bumpStatusVersion()` + `.onChange(...)` in den
   Views. Wer eine Mutation schreibt und vergisst, den Statuszähler zu bumpen, bekommt eine
