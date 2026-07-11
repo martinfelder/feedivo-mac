@@ -66,6 +66,158 @@ struct SQLiteReaderView: View {
         KeyboardShortcutOverrides.resolved(from: shortcutOverridesRawValue)
     }
 
+    private func bumpToolbarRebuildGeneration() {
+        toolbarRebuildGeneration += 1
+    }
+
+    // Als eigene @ToolbarContentBuilder-Property ausgelagert statt inline in
+    // body: Der komplette Toolbar-Inhalt (~15 Controls) innerhalb der langen
+    // body-Modifier-Kette liess den Swift-Type-Checker irreführende "cannot
+    // find X in scope"-Fehler für jede NEUE Referenz am Ende der Kette werfen
+    // (verifiziert: sogar ein simpler Methodenaufruf war betroffen — kein
+    // Problem mit `toolbarRebuildGeneration` selbst, sondern mit der
+    // Gesamtkomplexität der body-Expression). Extraktion in eine separate,
+    // eigenständig typgeprüfte Property behebt das (Standard-Workaround für
+    // "expression too complex" bei grossen SwiftUI-Toolbars).
+    @ToolbarContentBuilder
+    private var readerToolbarContent: some ToolbarContent {
+        ToolbarItemGroup(placement: .primaryAction) {
+            Group {
+                Spacer()
+
+                ControlGroup {
+                    Button {
+                        openWindow(id: ArticleSearchWindowView.windowID)
+                    } label: {
+                        Image(systemName: "magnifyingglass")
+                    }
+                    .help(L10n.articleSearchCommand)
+
+                    Button {
+                        openOriginal()
+                    } label: {
+                        Image(systemName: "safari")
+                    }
+                    .help(L10n.articleOpenOriginalCommand)
+                    .disabled(originalURL == nil)
+                }
+
+                // Status-Gruppe: Regel erstellen / Stern / Archivieren / Ungelesen
+                ControlGroup {
+                    Button {
+                        if let snapshot = state.snapshot {
+                            onCreateRule(snapshot)
+                        }
+                    } label: {
+                        Image(systemName: "slider.horizontal.3")
+                    }
+                    .help(L10n.articleCreateRuleCommand)
+                    .disabled(state.snapshot == nil)
+
+                    Button {
+                        if let database {
+                            state.toggleStarred(database: database)
+                        }
+                    } label: {
+                        Image(systemName: state.snapshot?.isStarred == true ? "star.fill" : "star")
+                    }
+                    .help(state.snapshot?.isStarred == true ? L10n.articleRowStarRemove : L10n.articleRowStarAdd)
+                    .disabled(state.snapshot == nil)
+
+                    Button {
+                        if let database {
+                            state.toggleArchived(database: database)
+                        }
+                    } label: {
+                        Image(systemName: state.snapshot?.isArchived == true ? "archivebox.fill" : "archivebox")
+                    }
+                    .help(state.snapshot?.isArchived == true ? L10n.articleUnarchiveCommand : L10n.articleArchiveCommand)
+                    .disabled(state.snapshot == nil)
+
+                    Button {
+                        if let database {
+                            state.toggleRead(database: database)
+                        }
+                    } label: {
+                        Image(systemName: state.snapshot?.isRead == true ? "circle" : "circle.fill")
+                    }
+                    .help(state.snapshot?.isRead == true ? L10n.articleRowMarkUnread : L10n.articleRowMarkRead)
+                    .disabled(state.snapshot == nil)
+                }
+
+                ControlGroup {
+                    Button {
+                        copyLink()
+                    } label: {
+                        Image(systemName: "link")
+                    }
+                    .help(L10n.articleCopyLinkCommand)
+                    .disabled(originalURL == nil)
+
+                    Button {
+                        requestExportArticle()
+                    } label: {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                    .help(L10n.articleExportCommand)
+                    .disabled(state.snapshot == nil)
+                }
+
+                ControlGroup {
+                    Button {
+                        webNavigationController.goBack()
+                    } label: {
+                        Image(systemName: "chevron.backward")
+                    }
+                    .help(L10n.readerWebBackCommand)
+                    .customizableKeyboardShortcut(.readerWebBack, overrides: shortcutOverrides)
+                    .disabled(readerDisplayMode != .web || !webNavigationController.canGoBack)
+
+                    Button {
+                        webNavigationController.goForward()
+                    } label: {
+                        Image(systemName: "chevron.forward")
+                    }
+                    .help(L10n.readerWebForwardCommand)
+                    .customizableKeyboardShortcut(.readerWebForward, overrides: shortcutOverrides)
+                    .disabled(readerDisplayMode != .web || !webNavigationController.canGoForward)
+                }
+
+                Picker(L10n.readerDisplayModePicker, selection: $readerDisplayModeRawValue) {
+                    ForEach(ReaderDisplayMode.allCases) { mode in
+                        Text(mode.titleKey)
+                            .tag(mode.rawValue)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .help(L10n.readerDisplayModeToggleHelp)
+                .disabled(originalURL == nil)
+
+                Button {
+                    isAppearancePopoverPresented.toggle()
+                } label: {
+                    Image(systemName: "textformat")
+                }
+                .help(L10n.readerAppearanceButton)
+                .popover(isPresented: $isAppearancePopoverPresented, arrowEdge: .bottom) {
+                    readerAppearancePopover
+                }
+
+                Button {
+                    isMetadataInspectorPresented.toggle()
+                } label: {
+                    Label(L10n.readerInspectorButton, systemImage: "sidebar.right")
+                }
+                .labelStyle(.titleAndIcon)
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .symbolVariant(isMetadataInspectorPresented ? .fill : .none)
+                .help(L10n.readerInspectorButton)
+            }
+            .id(toolbarRebuildGeneration)
+        }
+    }
+
     init(
         articleID: String?,
         canSelectPreviousArticle: Bool = false,
@@ -139,141 +291,20 @@ struct SQLiteReaderView: View {
         // Vollbild).
         .background(FullScreenTransitionObserver(generation: $toolbarRebuildGeneration))
         .toolbar {
-            ToolbarItemGroup(placement: .primaryAction) {
-                Group {
-                    Spacer()
-
-                    ControlGroup {
-                        Button {
-                            openWindow(id: ArticleSearchWindowView.windowID)
-                        } label: {
-                            Image(systemName: "magnifyingglass")
-                        }
-                        .help(L10n.articleSearchCommand)
-
-                        Button {
-                            openOriginal()
-                        } label: {
-                            Image(systemName: "safari")
-                        }
-                        .help(L10n.articleOpenOriginalCommand)
-                        .disabled(originalURL == nil)
-                    }
-
-                    // Status-Gruppe: Regel erstellen / Stern / Archivieren / Ungelesen
-                    ControlGroup {
-                        Button {
-                            if let snapshot = state.snapshot {
-                                onCreateRule(snapshot)
-                            }
-                        } label: {
-                            Image(systemName: "slider.horizontal.3")
-                        }
-                        .help(L10n.articleCreateRuleCommand)
-                        .disabled(state.snapshot == nil)
-
-                        Button {
-                            if let database {
-                                state.toggleStarred(database: database)
-                            }
-                        } label: {
-                            Image(systemName: state.snapshot?.isStarred == true ? "star.fill" : "star")
-                        }
-                        .help(state.snapshot?.isStarred == true ? L10n.articleRowStarRemove : L10n.articleRowStarAdd)
-                        .disabled(state.snapshot == nil)
-
-                        Button {
-                            if let database {
-                                state.toggleArchived(database: database)
-                            }
-                        } label: {
-                            Image(systemName: state.snapshot?.isArchived == true ? "archivebox.fill" : "archivebox")
-                        }
-                        .help(state.snapshot?.isArchived == true ? L10n.articleUnarchiveCommand : L10n.articleArchiveCommand)
-                        .disabled(state.snapshot == nil)
-
-                        Button {
-                            if let database {
-                                state.toggleRead(database: database)
-                            }
-                        } label: {
-                            Image(systemName: state.snapshot?.isRead == true ? "circle" : "circle.fill")
-                        }
-                        .help(state.snapshot?.isRead == true ? L10n.articleRowMarkUnread : L10n.articleRowMarkRead)
-                        .disabled(state.snapshot == nil)
-                    }
-
-                    ControlGroup {
-                        Button {
-                            copyLink()
-                        } label: {
-                            Image(systemName: "link")
-                        }
-                        .help(L10n.articleCopyLinkCommand)
-                        .disabled(originalURL == nil)
-
-                        Button {
-                            requestExportArticle()
-                        } label: {
-                            Image(systemName: "square.and.arrow.up")
-                        }
-                        .help(L10n.articleExportCommand)
-                        .disabled(state.snapshot == nil)
-                    }
-
-                    ControlGroup {
-                        Button {
-                            webNavigationController.goBack()
-                        } label: {
-                            Image(systemName: "chevron.backward")
-                        }
-                        .help(L10n.readerWebBackCommand)
-                        .customizableKeyboardShortcut(.readerWebBack, overrides: shortcutOverrides)
-                        .disabled(readerDisplayMode != .web || !webNavigationController.canGoBack)
-
-                        Button {
-                            webNavigationController.goForward()
-                        } label: {
-                            Image(systemName: "chevron.forward")
-                        }
-                        .help(L10n.readerWebForwardCommand)
-                        .customizableKeyboardShortcut(.readerWebForward, overrides: shortcutOverrides)
-                        .disabled(readerDisplayMode != .web || !webNavigationController.canGoForward)
-                    }
-
-                    Picker(L10n.readerDisplayModePicker, selection: $readerDisplayModeRawValue) {
-                        ForEach(ReaderDisplayMode.allCases) { mode in
-                            Text(mode.titleKey)
-                                .tag(mode.rawValue)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .help(L10n.readerDisplayModeToggleHelp)
-                    .disabled(originalURL == nil)
-
-                    Button {
-                        isAppearancePopoverPresented.toggle()
-                    } label: {
-                        Image(systemName: "textformat")
-                    }
-                    .help(L10n.readerAppearanceButton)
-                    .popover(isPresented: $isAppearancePopoverPresented, arrowEdge: .bottom) {
-                        readerAppearancePopover
-                    }
-
-                    Button {
-                        isMetadataInspectorPresented.toggle()
-                    } label: {
-                        Label(L10n.readerInspectorButton, systemImage: "sidebar.right")
-                    }
-                    .labelStyle(.titleAndIcon)
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                    .symbolVariant(isMetadataInspectorPresented ? .fill : .none)
-                    .help(L10n.readerInspectorButton)
-                }
-                .id(toolbarRebuildGeneration)
-            }
+            readerToolbarContent
+        }
+        // Vor/Zurück-ControlGroup (readerToolbarContent) wechselt hier zwischen
+        // aktiviert/deaktiviert (.disabled(readerDisplayMode != .web || ...)) —
+        // ihre effektive Breite ändert sich dabei, ohne dass ein Fenster-Resize
+        // passiert. Toolbar gezielt neu aufbauen (Nutzer-Report 2026-07-11:
+        // Navigationspfeile für die Webansicht weiterhin überlappend). Korrekt
+        // hier in SQLiteReaderViews eigener body-Kette verankert, NICHT im
+        // gleichnamigen .onChange(of: readerDisplayMode) von ReaderModeContent
+        // weiter unten — das ist eine andere Struct ohne Zugriff auf
+        // toolbarRebuildGeneration (Ursache der vorherigen "cannot find in
+        // scope"-Fehler).
+        .onChange(of: readerDisplayModeRawValue) { _, _ in
+            bumpToolbarRebuildGeneration()
         }
     }
 
