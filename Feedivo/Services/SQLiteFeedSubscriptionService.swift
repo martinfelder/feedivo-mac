@@ -367,7 +367,7 @@ struct SQLiteFeedSubscriptionService {
         for batch in batches(pending, size: FeedViewModel.maxConcurrentFeedRefreshes) {
             await withTaskGroup(of: (Int, OPMLImportFeedStatus).self) { group in
                 for item in batch {
-                    group.addTask { @MainActor in
+                    group.addTask {
                         do {
                             _ = try await self.fetchFeed(item.cleanedURL)
                             return (item.index, .available)

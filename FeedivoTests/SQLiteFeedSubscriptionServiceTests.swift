@@ -485,6 +485,49 @@ struct SQLiteFeedSubscriptionServiceTests {
     }
 
     @MainActor
+    @Test func previewFeedsWerdenTatsaechlichParallelAbgerufen() async throws {
+        actor ConcurrencyCounter {
+            private var inFlight = 0
+            private(set) var maxInFlight = 0
+
+            func increment() {
+                inFlight += 1
+                maxInFlight = max(maxInFlight, inFlight)
+            }
+
+            func decrement() {
+                inFlight -= 1
+            }
+        }
+
+        let counter = ConcurrencyCounter()
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let service = SQLiteFeedSubscriptionService(
+            database: database,
+            fetchFeed: { urlString in
+                await counter.increment()
+                try? await Task.sleep(for: .milliseconds(30))
+                await counter.decrement()
+                return ParsedFeed(sourceURL: urlString, title: urlString, description: nil, articles: [])
+            },
+            discoverFaviconURL: { _ in nil }
+        )
+        let opmlFeeds = (1...6).map { index in
+            OPMLFeed(
+                title: "F\(index)",
+                xmlURL: "https://f\(index).example.com/feed.xml",
+                htmlURL: nil,
+                folderName: nil
+            )
+        }
+
+        _ = await service.previewOPMLFeeds(for: opmlFeeds)
+
+        let maxInFlight = await counter.maxInFlight
+        #expect(maxInFlight > 1)
+    }
+
+    @MainActor
     @Test func addFeedMitFolderNameSetztOrdnerUndLegtOrdnerRecordAn() async throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let service = SQLiteFeedSubscriptionService(
