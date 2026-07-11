@@ -152,7 +152,7 @@ struct SQLiteFeedArticleListView: View {
         }
         .toolbar {
             ToolbarItemGroup {
-                markReadMenu(visibleRows: visibleRows)
+                markReadMenu(visibleRows: displayState.visibleRows)
                 filterMenu
                 sortMenu
             }
@@ -246,36 +246,22 @@ struct SQLiteFeedArticleListView: View {
     }
 
     private var articleList: some View {
-        List(selection: $selectedArticleID) {
-            if filteredRows.isEmpty {
+        let currentDisplayState = displayState
+
+        return List(selection: $selectedArticleID) {
+            if currentDisplayState.filteredRows.isEmpty {
                 articleListEmptyState(isSearching: isSearching)
             } else {
-                ForEach(visibleRows) { row in
-                    articleRow(row, visibleRows: visibleRows)
+                ForEach(currentDisplayState.visibleRows) { row in
+                    articleRow(row, visibleRows: currentDisplayState.visibleRows)
                         .tag(row.id)
                 }
 
-                if shouldShowReadArticlesButton {
-                    showReadArticlesButton(count: hiddenReadRowCount)
+                if !showsReadArticles, currentDisplayState.hiddenReadRowCount > 0 {
+                    showReadArticlesButton(count: currentDisplayState.hiddenReadRowCount)
                 }
             }
         }
-    }
-
-    private var filteredRows: [ArticleListSnapshot] {
-        displayState.filteredRows
-    }
-
-    private var visibleRows: [ArticleListSnapshot] {
-        displayState.visibleRows
-    }
-
-    private var hiddenReadRowCount: Int {
-        displayState.hiddenReadRowCount
-    }
-
-    private var shouldShowReadArticlesButton: Bool {
-        !showsReadArticles && hiddenReadRowCount > 0
     }
 
     private var effectiveRows: [ArticleListSnapshot] {
