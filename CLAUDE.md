@@ -293,8 +293,13 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
   strukturellen Fix per direktem `NSToolbar.items`/`.view?.frame`-Logging verifizieren
   (Notification-Observer auf `didEnterFullScreenNotification` etc. in
   `FeedivoAppDelegate.applicationDidFinishLaunching`, TEMP-DEBUG-Pattern), nicht nur auf
-  Apple-Dokumentations-Vermutung vertrauen. Manuelle Nutzer-Verifikation des finalen
-  Fixes weiterhin ausstehend (kein computer-use für native macOS-Apps hier).
+  Apple-Dokumentations-Vermutung vertrauen. **Zweite Überraschung:** Der Vollbild-
+  Rebuild-Trigger selbst feuerte anfangs nie — "Vollbild" per grünem Fenster-Knopf-Klick
+  löst auf diesem System KEINEN echten macOS-Fullscreen-Space-Wechsel aus
+  (`didEnterFullScreenNotification` kam nie an), sondern nur ein normales
+  Zoomen/Maximieren (`didResizeNotification`). `FullScreenTransitionObserver`
+  (`SQLiteReaderView.swift`) beobachtet seit Commit `bb44536` zusätzlich
+  `didResizeNotification` als Rebuild-Trigger. **Vom Nutzer bestätigt behoben.**
 - **GRDB statt SwiftData:** Keine `@Query`/Observation-Automatik — UI-Updates nach Mutationen
   laufen explizit über `SQLiteDataInvalidation.bumpStatusVersion()` + `.onChange(...)` in den
   Views. Wer eine Mutation schreibt und vergisst, den Statuszähler zu bumpen, bekommt eine
