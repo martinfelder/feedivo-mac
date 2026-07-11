@@ -400,6 +400,22 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
   SwiftUI-Scene — `FeedivoApp.swift` muss `updateEnvironment(...)`/`updateUnreadCount(_:)`
   explizit bei jeder relevanten `.onChange` aufrufen. Verifiziert: kein CPU-Spin mehr (0,6%
   CPU nach 16s Beobachtung, vorher 98–100%).
+- **Duplizierte SQL-SELECT-Listen zwischen `ArticleDatabase.swift` und `TimelineStore.swift`
+  können unbemerkt auseinanderlaufen — GRDB liefert bei fehlender Spalte still `nil` statt
+  eines Fehlers:** `ArticleDatabase.swift`s privater `fetchArticles`-Helper (Basis für
+  `fetchArticles(feedID:/feedIDs:/articleIDs:)`, `fetchUnreadArticles`, `newestUnread`,
+  `fetchTodayArticles`, `fetchStarredArticles`) und `TimelineStore.swift`s Haupt-Query bauen
+  beide unabhängig voneinander dieselbe `ArticleListSnapshot`-Zeilenform aus `articles`/`feeds`/
+  `article_statuses` zusammen, statt eine gemeinsame SQL-Fragment-Konstante zu teilen. Beim
+  Menubar-Dropdown-Feature (2026-07-11) fehlte `f.faviconURL AS faviconURL` in der
+  `ArticleDatabase`-Variante — `ArticleListSnapshot.init(row:)` (`TimelineStore.swift:784`)
+  liest `row["faviconURL"]`, was GRDB bei fehlender Spalte kommentarlos zu `nil` aufwertet
+  (kein Crash, keine Warnung). Der Bug war seit der SQLite/GRDB-Migration vorhanden, aber
+  unsichtbar, weil kein Konsument von `newestUnread` vorher tatsächlich ein Favicon rendern
+  wollte — erst `MenubarArticleRowView` deckte ihn auf. Fix: fehlende Spalte ergänzt (Commit
+  `47f9ee7f`) + Regressionstest `newestUnreadLiefertFaviconURLDesFeedsMit`. Bei künftigen
+  neuen `ArticleListSnapshot`-Feldern **beide** SQL-Stellen (`ArticleDatabase.swift` UND
+  `TimelineStore.swift`) prüfen, nicht nur die naheliegendste.
 
 ---
 
