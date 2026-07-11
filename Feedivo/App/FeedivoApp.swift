@@ -63,7 +63,14 @@ struct FeedivoApp: App {
         let interfaceTextSize = InterfaceTextSize.resolved(from: interfaceTextSizeRawValue)
         let appAppearance = AppAppearance.resolved(from: appAppearanceRawValue)
 
-        WindowGroup(id: "main") {
+        // `Window` (nicht `WindowGroup`) ist hier bewusst: eine WindowGroup erlaubt
+        // laut SwiftUI-Design mehrere gleichzeitige Instanzen — jeder Aufruf von
+        // `openWindow(id: "main")` (Menubar-Popover-Button "Feedivo öffnen") hätte
+        // damit eine NEUE Instanz erzeugt statt die bestehende zu fokussieren
+        // (gefunden 2026-07-11, Nutzer-Report). `Window` ist der echte
+        // Singleton-Szenentyp, den die anderen Einzelfenster der App (Suche,
+        // Organizer, Statistik) bereits korrekt verwenden.
+        Window("Feedivo", id: "main") {
             ContentView(feedViewModel: feedViewModel)
                 .environment(\.locale, appLanguage.locale)
                 .environment(\.interfaceTextSize, interfaceTextSize)
