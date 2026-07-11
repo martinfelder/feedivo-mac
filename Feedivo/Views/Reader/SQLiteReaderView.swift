@@ -880,7 +880,17 @@ private struct FullScreenTransitionObserver: NSViewRepresentable {
             removeObservers()
             observedWindow = window
 
-            for name in [NSWindow.didEnterFullScreenNotification, NSWindow.didExitFullScreenNotification] {
+            // "Vollbild" per grünem Knopf-Klick ist auf diesem System KEIN
+            // echter macOS-Fullscreen-Space-Wechsel (didEnterFullScreenNotification
+            // feuerte in der Verifikation nie), sondern ein normales Zoomen/
+            // Maximieren des Fensters — das löst didResizeNotification aus.
+            // Alle drei Notifications bleiben registriert, falls der Nutzer
+            // später doch echten Vollbildmodus (Menü/Strg+Cmd+F) nutzt.
+            for name in [
+                NSWindow.didEnterFullScreenNotification,
+                NSWindow.didExitFullScreenNotification,
+                NSWindow.didResizeNotification
+            ] {
                 let token = NotificationCenter.default.addObserver(forName: name, object: window, queue: .main) { [generation] _ in
                     generation.wrappedValue += 1
                 }
