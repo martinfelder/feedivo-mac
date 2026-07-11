@@ -674,7 +674,6 @@ struct SQLiteFeedArticleListView: View {
             database: database,
             isEnabled: markArticleReadOnSelection
         ) else {
-            reload()
             return
         }
 
