@@ -20,6 +20,11 @@ struct SQLiteReaderView: View {
     @State private var articleExportRequest: ArticleExportRequest?
     @State private var webContentLoadFailed = false
     @State private var webNavigationController = WebNavigationController()
+    // Erzwingt einen kompletten Neuaufbau der Toolbar-Inhaltsgruppe bei jedem
+    // Vollbild-Wechsel (siehe FullScreenTransitionObserver) — Fix für einen
+    // Toolbar-Icon-Überlapp-Bug, der nach Fenster-Schliessen/App-Neustart/
+    // Vollbild reproduzierbar auftrat (Nutzer-Report 2026-07-11).
+    @State private var toolbarRebuildGeneration = 0
 
     @AppStorage(ReaderTypographySettings.titleFontPresetKey)
     private var titleFontPresetRawValue = ReaderFontPreset.system.rawValue
@@ -120,166 +125,154 @@ struct SQLiteReaderView: View {
                 articleExportRequest = nil
             }
         }
+        // TEMP-DEBUG-Erkenntnis (2026-07-11): Das Aufsplitten dieser Toolbar in
+        // mehrere unabhängige ToolbarItem/ToolbarItemGroup-Geschwister (erster
+        // Fix-Versuch) wurde per NSToolbar-Item-Frame-Logging als FALSCH
+        // verifiziert — zwei der neu entstandenen Items renderten seither
+        // dauerhaft mit identischem Frame übereinander. Zurück zur einzelnen
+        // ToolbarItemGroup; stattdessen wird die gesamte Toolbar-Inhaltsgruppe
+        // gezielt bei jedem Vollbild-Wechsel per `.id(toolbarRebuildGeneration)`
+        // komplett neu aufgebaut (siehe `FullScreenTransitionObserver` unten) —
+        // das erzwingt eine frische NSToolbarItem-Messung genau an der Stelle,
+        // die laut Nutzer-Report reproduzierbar betroffen ist (Fenster
+        // verkleinern → App beenden → neu starten → verkleinertes Fenster →
+        // Vollbild).
+        .background(FullScreenTransitionObserver(generation: $toolbarRebuildGeneration))
         .toolbar {
-            // Jede Gruppe als EIGENES ToolbarItem/ToolbarItemGroup statt einer
-            // einzigen, alles umfassenden ToolbarItemGroup: Eine ToolbarItemGroup
-            // wird von NSToolbar als EIN unteilbares Element behandelt ("always
-            // displayed together" laut Apple-Doku) — bei ~15 Controls in einer
-            // einzigen Gruppe kann NSToolbar dem zugehörigen NSToolbarItem nach
-            // bestimmten Fenster-Lebenszyklus-Übergängen (Schliessen/Wiederöffnen,
-            // Vollbild) eine zu schmale, veraltete Breite zuweisen — der
-            // eingebettete SwiftUI-Inhalt ist dann breiter als das zugewiesene
-            // NSToolbarItem und überlappt sichtbar benachbarte Toolbar-Bereiche
-            // (Nutzer-Report 2026-07-11: Icons oberhalb des Artikels überlappen
-            // nach Schliessen/Wiederöffnen/Vollbild). Mehrere kleinere, unabhängige
-            // Toolbar-Items lässt macOS bei Platzmangel einzeln ins "»"-Overflow-
-            // Menü kollabieren, statt ein einziges, zu breites Element starr
-            // darzustellen.
-            ToolbarItem(placement: .primaryAction) {
-                Spacer()
-            }
-
             ToolbarItemGroup(placement: .primaryAction) {
-                ControlGroup {
-                    Button {
-                        openWindow(id: ArticleSearchWindowView.windowID)
-                    } label: {
-                        Image(systemName: "magnifyingglass")
-                    }
-                    .help(L10n.articleSearchCommand)
+                Group {
+                    Spacer()
 
-                    Button {
-                        openOriginal()
-                    } label: {
-                        Image(systemName: "safari")
+                    ControlGroup {
+                        Button {
+                            openWindow(id: ArticleSearchWindowView.windowID)
+                        } label: {
+                            Image(systemName: "magnifyingglass")
+                        }
+                        .help(L10n.articleSearchCommand)
+
+                        Button {
+                            openOriginal()
+                        } label: {
+                            Image(systemName: "safari")
+                        }
+                        .help(L10n.articleOpenOriginalCommand)
+                        .disabled(originalURL == nil)
                     }
-                    .help(L10n.articleOpenOriginalCommand)
+
+                    // Status-Gruppe: Regel erstellen / Stern / Archivieren / Ungelesen
+                    ControlGroup {
+                        Button {
+                            if let snapshot = state.snapshot {
+                                onCreateRule(snapshot)
+                            }
+                        } label: {
+                            Image(systemName: "slider.horizontal.3")
+                        }
+                        .help(L10n.articleCreateRuleCommand)
+                        .disabled(state.snapshot == nil)
+
+                        Button {
+                            if let database {
+                                state.toggleStarred(database: database)
+                            }
+                        } label: {
+                            Image(systemName: state.snapshot?.isStarred == true ? "star.fill" : "star")
+                        }
+                        .help(state.snapshot?.isStarred == true ? L10n.articleRowStarRemove : L10n.articleRowStarAdd)
+                        .disabled(state.snapshot == nil)
+
+                        Button {
+                            if let database {
+                                state.toggleArchived(database: database)
+                            }
+                        } label: {
+                            Image(systemName: state.snapshot?.isArchived == true ? "archivebox.fill" : "archivebox")
+                        }
+                        .help(state.snapshot?.isArchived == true ? L10n.articleUnarchiveCommand : L10n.articleArchiveCommand)
+                        .disabled(state.snapshot == nil)
+
+                        Button {
+                            if let database {
+                                state.toggleRead(database: database)
+                            }
+                        } label: {
+                            Image(systemName: state.snapshot?.isRead == true ? "circle" : "circle.fill")
+                        }
+                        .help(state.snapshot?.isRead == true ? L10n.articleRowMarkUnread : L10n.articleRowMarkRead)
+                        .disabled(state.snapshot == nil)
+                    }
+
+                    ControlGroup {
+                        Button {
+                            copyLink()
+                        } label: {
+                            Image(systemName: "link")
+                        }
+                        .help(L10n.articleCopyLinkCommand)
+                        .disabled(originalURL == nil)
+
+                        Button {
+                            requestExportArticle()
+                        } label: {
+                            Image(systemName: "square.and.arrow.up")
+                        }
+                        .help(L10n.articleExportCommand)
+                        .disabled(state.snapshot == nil)
+                    }
+
+                    ControlGroup {
+                        Button {
+                            webNavigationController.goBack()
+                        } label: {
+                            Image(systemName: "chevron.backward")
+                        }
+                        .help(L10n.readerWebBackCommand)
+                        .customizableKeyboardShortcut(.readerWebBack, overrides: shortcutOverrides)
+                        .disabled(readerDisplayMode != .web || !webNavigationController.canGoBack)
+
+                        Button {
+                            webNavigationController.goForward()
+                        } label: {
+                            Image(systemName: "chevron.forward")
+                        }
+                        .help(L10n.readerWebForwardCommand)
+                        .customizableKeyboardShortcut(.readerWebForward, overrides: shortcutOverrides)
+                        .disabled(readerDisplayMode != .web || !webNavigationController.canGoForward)
+                    }
+
+                    Picker(L10n.readerDisplayModePicker, selection: $readerDisplayModeRawValue) {
+                        ForEach(ReaderDisplayMode.allCases) { mode in
+                            Text(mode.titleKey)
+                                .tag(mode.rawValue)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .help(L10n.readerDisplayModeToggleHelp)
                     .disabled(originalURL == nil)
-                }
-            }
-
-            // Status-Gruppe: Regel erstellen / Stern / Archivieren / Ungelesen
-            ToolbarItemGroup(placement: .primaryAction) {
-                ControlGroup {
-                    Button {
-                        if let snapshot = state.snapshot {
-                            onCreateRule(snapshot)
-                        }
-                    } label: {
-                        Image(systemName: "slider.horizontal.3")
-                    }
-                    .help(L10n.articleCreateRuleCommand)
-                    .disabled(state.snapshot == nil)
 
                     Button {
-                        if let database {
-                            state.toggleStarred(database: database)
-                        }
+                        isAppearancePopoverPresented.toggle()
                     } label: {
-                        Image(systemName: state.snapshot?.isStarred == true ? "star.fill" : "star")
+                        Image(systemName: "textformat")
                     }
-                    .help(state.snapshot?.isStarred == true ? L10n.articleRowStarRemove : L10n.articleRowStarAdd)
-                    .disabled(state.snapshot == nil)
+                    .help(L10n.readerAppearanceButton)
+                    .popover(isPresented: $isAppearancePopoverPresented, arrowEdge: .bottom) {
+                        readerAppearancePopover
+                    }
 
                     Button {
-                        if let database {
-                            state.toggleArchived(database: database)
-                        }
+                        isMetadataInspectorPresented.toggle()
                     } label: {
-                        Image(systemName: state.snapshot?.isArchived == true ? "archivebox.fill" : "archivebox")
+                        Label(L10n.readerInspectorButton, systemImage: "sidebar.right")
                     }
-                    .help(state.snapshot?.isArchived == true ? L10n.articleUnarchiveCommand : L10n.articleArchiveCommand)
-                    .disabled(state.snapshot == nil)
-
-                    Button {
-                        if let database {
-                            state.toggleRead(database: database)
-                        }
-                    } label: {
-                        Image(systemName: state.snapshot?.isRead == true ? "circle" : "circle.fill")
-                    }
-                    .help(state.snapshot?.isRead == true ? L10n.articleRowMarkUnread : L10n.articleRowMarkRead)
-                    .disabled(state.snapshot == nil)
+                    .labelStyle(.titleAndIcon)
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .symbolVariant(isMetadataInspectorPresented ? .fill : .none)
+                    .help(L10n.readerInspectorButton)
                 }
-            }
-
-            ToolbarItemGroup(placement: .primaryAction) {
-                ControlGroup {
-                    Button {
-                        copyLink()
-                    } label: {
-                        Image(systemName: "link")
-                    }
-                    .help(L10n.articleCopyLinkCommand)
-                    .disabled(originalURL == nil)
-
-                    Button {
-                        requestExportArticle()
-                    } label: {
-                        Image(systemName: "square.and.arrow.up")
-                    }
-                    .help(L10n.articleExportCommand)
-                    .disabled(state.snapshot == nil)
-                }
-            }
-
-            ToolbarItemGroup(placement: .primaryAction) {
-                ControlGroup {
-                    Button {
-                        webNavigationController.goBack()
-                    } label: {
-                        Image(systemName: "chevron.backward")
-                    }
-                    .help(L10n.readerWebBackCommand)
-                    .customizableKeyboardShortcut(.readerWebBack, overrides: shortcutOverrides)
-                    .disabled(readerDisplayMode != .web || !webNavigationController.canGoBack)
-
-                    Button {
-                        webNavigationController.goForward()
-                    } label: {
-                        Image(systemName: "chevron.forward")
-                    }
-                    .help(L10n.readerWebForwardCommand)
-                    .customizableKeyboardShortcut(.readerWebForward, overrides: shortcutOverrides)
-                    .disabled(readerDisplayMode != .web || !webNavigationController.canGoForward)
-                }
-            }
-
-            ToolbarItem(placement: .primaryAction) {
-                Picker(L10n.readerDisplayModePicker, selection: $readerDisplayModeRawValue) {
-                    ForEach(ReaderDisplayMode.allCases) { mode in
-                        Text(mode.titleKey)
-                            .tag(mode.rawValue)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .help(L10n.readerDisplayModeToggleHelp)
-                .disabled(originalURL == nil)
-            }
-
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    isAppearancePopoverPresented.toggle()
-                } label: {
-                    Image(systemName: "textformat")
-                }
-                .help(L10n.readerAppearanceButton)
-                .popover(isPresented: $isAppearancePopoverPresented, arrowEdge: .bottom) {
-                    readerAppearancePopover
-                }
-            }
-
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    isMetadataInspectorPresented.toggle()
-                } label: {
-                    Label(L10n.readerInspectorButton, systemImage: "sidebar.right")
-                }
-                .labelStyle(.titleAndIcon)
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-                .symbolVariant(isMetadataInspectorPresented ? .fill : .none)
-                .help(L10n.readerInspectorButton)
+                .id(toolbarRebuildGeneration)
             }
         }
     }
@@ -842,6 +835,66 @@ private struct ReaderModeContent: View {
             if newValue == .web {
                 webContentLoadFailed = false
             }
+        }
+    }
+}
+
+/// Beobachtet Vollbild-Übergänge des umschliessenden NSWindow und erhöht
+/// `generation` bei jedem Eintritt/Austritt aus dem Vollbildmodus. Genutzt von
+/// `SQLiteReaderView`, um die Toolbar-Inhaltsgruppe per `.id(generation)`
+/// gezielt neu aufzubauen — Fix für einen Icon-Überlapp-Bug in der Reader-
+/// Toolbar, der reproduzierbar nach Fenster-verkleinern → App-Neustart →
+/// Vollbild auftrat (Nutzer-Report 2026-07-11). Rein unsichtbares Hilfsview
+/// (keine eigene Darstellung), analog zu anderen AppKit-Bridges im Projekt
+/// (`WebContentView`, `ShortcutRecorderView`).
+private struct FullScreenTransitionObserver: NSViewRepresentable {
+    @Binding var generation: Int
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView(frame: .zero)
+        DispatchQueue.main.async {
+            context.coordinator.observe(window: view.window)
+        }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        context.coordinator.observe(window: nsView.window)
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(generation: $generation)
+    }
+
+    final class Coordinator {
+        private let generation: Binding<Int>
+        private weak var observedWindow: NSWindow?
+        private var tokens: [NSObjectProtocol] = []
+
+        init(generation: Binding<Int>) {
+            self.generation = generation
+        }
+
+        func observe(window: NSWindow?) {
+            guard let window, window !== observedWindow else { return }
+            removeObservers()
+            observedWindow = window
+
+            for name in [NSWindow.didEnterFullScreenNotification, NSWindow.didExitFullScreenNotification] {
+                let token = NotificationCenter.default.addObserver(forName: name, object: window, queue: .main) { [generation] _ in
+                    generation.wrappedValue += 1
+                }
+                tokens.append(token)
+            }
+        }
+
+        private func removeObservers() {
+            tokens.forEach { NotificationCenter.default.removeObserver($0) }
+            tokens.removeAll()
+        }
+
+        deinit {
+            tokens.forEach { NotificationCenter.default.removeObserver($0) }
         }
     }
 }
