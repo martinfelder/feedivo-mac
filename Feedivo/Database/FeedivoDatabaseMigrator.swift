@@ -307,6 +307,14 @@ enum FeedivoDatabaseMigrator {
             }
         }
 
+        migrator.registerMigration("v11_add_article_statuses_hidden_read_index") { database in
+            try database.create(
+                index: "idx_article_statuses_hidden_read",
+                on: "article_statuses",
+                columns: ["isHidden", "isRead"]
+            )
+        }
+
         return migrator
     }
 }

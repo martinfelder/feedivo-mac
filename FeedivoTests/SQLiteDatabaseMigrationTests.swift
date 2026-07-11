@@ -60,6 +60,14 @@ struct SQLiteDatabaseMigrationTests {
         #expect(indexNames.contains("idx_article_identity_history_last_seen"))
     }
 
+    @Test func migrationCreatesArticleStatusesHiddenReadCompositeIndex() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+
+        let indexNames = try database.debugIndexNames()
+
+        #expect(indexNames.contains("idx_article_statuses_hidden_read"))
+    }
+
     @Test func migrationCreatesArticleSearchTriggers() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
 
@@ -338,6 +346,40 @@ struct SQLiteDatabaseMigrationTests {
                 table.column("updatedAt", .datetime).notNull()
             }
             try database.create(index: "idx_feeds_url_unique", on: "feeds", columns: ["url"], unique: true)
+
+            try database.create(table: "articles") { table in
+                table.column("id", .text).primaryKey()
+                table.column("feedID", .text).notNull().references("feeds", onDelete: .cascade)
+                table.column("sourceID", .text)
+                table.column("link", .text)
+                table.column("title", .text).notNull()
+                table.column("description", .text)
+                table.column("author", .text)
+                table.column("arrivedAt", .datetime).notNull()
+                table.column("updatedAt", .datetime).notNull()
+            }
+
+            try database.create(table: "article_statuses") { table in
+                table.column("articleID", .text).primaryKey().references("articles", onDelete: .cascade)
+                table.column("isRead", .boolean).notNull().defaults(to: false)
+                table.column("isStarred", .boolean).notNull().defaults(to: false)
+                table.column("isArchived", .boolean).notNull().defaults(to: false)
+                table.column("isHidden", .boolean).notNull().defaults(to: false)
+                table.column("readAt", .datetime)
+                table.column("starredAt", .datetime)
+                table.column("archivedAt", .datetime)
+                table.column("hiddenAt", .datetime)
+                table.column("dateArrived", .datetime).notNull()
+            }
+
+            try database.create(table: "feed_logs") { table in
+                table.column("id", .text).primaryKey()
+                table.column("feedID", .text).notNull().references("feeds", onDelete: .cascade)
+                table.column("createdAt", .datetime).notNull()
+                table.column("level", .text).notNull()
+                table.column("message", .text)
+                table.column("newArticleCount", .integer).notNull()
+            }
         }
         for identifier in [
             "v2_create_tag_tables",
