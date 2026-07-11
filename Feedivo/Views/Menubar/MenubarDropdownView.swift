@@ -60,16 +60,7 @@ struct MenubarDropdownView: View {
                     Button {
                         open(article)
                     } label: {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(article.title)
-                                .lineLimit(1)
-                            if let feedTitle = article.feedTitle {
-                                Text(feedTitle)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(1)
-                            }
-                        }
+                        MenubarArticleRowView(article: article)
                     }
                     .buttonStyle(.plain)
                     .padding(.horizontal, 12)
