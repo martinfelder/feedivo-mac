@@ -272,22 +272,29 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
   — echter Singleton-Szenentyp, den die anderen Einzelfenster der App (Suche, Organizer,
   Statistik) bereits korrekt nutzten. Nur `WindowGroup(for: ArticleWindowRequest.self)`
   (Artikel-Popout, bewusst mehrfach instanziierbar) bleibt zu Recht eine `WindowGroup`.
-- **Eine einzige, alles umfassende `ToolbarItemGroup` kann bei Platzmangel überlappende
-  statt kollabierende Toolbar-Icons verursachen:** Laut Apple-Doku behandelt `NSToolbar`
-  den Inhalt einer `ToolbarItemGroup` als EIN unteilbares Element ("always displayed
-  together") — bei vielen Controls in einer einzigen Gruppe (hier: ~15 Controls in
-  `SQLiteReaderView.swift`s Reader-Toolbar) kann NSToolbar dem zugehörigen NSToolbarItem
-  nach bestimmten Fenster-Lebenszyklus-Übergängen (Schliessen/Wiederöffnen, Vollbild)
-  eine zu schmale, veraltete Breite zuweisen; der eingebettete SwiftUI-Inhalt ist dann
-  breiter als das zugewiesene NSToolbarItem und überlappt sichtbar benachbarte Bereiche
-  (Nutzer-Report 2026-07-11: Icons oberhalb des Artikels überlappen dauerhaft nach
-  Fenster-Schliessen/Wiederöffnen/Vollbild — verschwindet nicht durch Divider-Ziehen
-  oder Datenänderungen, also kein reiner SwiftUI-Re-Render-Trigger-Fall). Fix: jede
-  `ControlGroup`/jeden Picker/Button als EIGENES `ToolbarItem`/`ToolbarItemGroup`
-  deklarieren statt alles in eine Gruppe zu packen — macOS kann dann jedes Element
-  einzeln ins "»"-Overflow-Menü kollabieren. Nicht live reproduzierbar verifiziert
-  (kein computer-use für native macOS-Apps hier) — Fix basiert auf Code-Analyse des
-  einzig plausiblen strukturellen Mechanismus, manuelle Nutzer-Verifikation ausstehend.
+- **Reader-Toolbar-Icon-Overlap nach Fenster-verkleinern → App-Neustart → Vollbild
+  (Nutzer-Report 2026-07-11) — ÜBERHOLTER Fix-Versuch dokumentiert als Warnung:**
+  Erster Versuch (Commit `29e0110`, per Code-Analyse ohne Live-Verifikation): die eine
+  grosse `ToolbarItemGroup` mit ~15 Controls in mehrere unabhängige
+  `ToolbarItem`/`ToolbarItemGroup`-Geschwister aufsplitten, in der Annahme, `NSToolbar`
+  behandle eine `ToolbarItemGroup` als unteilbares Element und könne bei Platzmangel
+  nicht sauber kollabieren. **Per direktem `NSToolbar`-Item-Frame-Logging widerlegt:**
+  Dieser Fix hat das Overlap NICHT behoben, sondern selbst eines verursacht — zwei der
+  neu entstandenen Toolbar-Items renderten seither in JEDEM Log-Eintrag (App-Start bis
+  letztes Resize) mit exakt identischem Frame übereinander. `NSToolbar` kann offenbar
+  mehrere unabhängige, unbenannte `ToolbarItemGroup`-Geschwister in derselben Platzierung
+  nicht zuverlässig nebeneinander anordnen. **Tatsächlicher Fix (Commit `a4e81cd`):**
+  zurück zur einzelnen `ToolbarItemGroup`; stattdessen neue `FullScreenTransitionObserver`
+  (`NSViewRepresentable` in `SQLiteReaderView.swift`), die Vollbild-Ein-/Austritt des
+  umschliessenden `NSWindow` beobachtet und einen Zähler erhöht — die Toolbar-
+  Inhaltsgruppe trägt `.id(diesesZählers)` und wird dadurch bei jedem Vollbild-Wechsel
+  komplett neu aufgebaut, was eine frische `NSToolbarItem`-Messung erzwingt. **Lehre:**
+  Bei AppKit/`NSToolbar`-Layout-Bugs reicht Code-Analyse allein nicht — vor einem
+  strukturellen Fix per direktem `NSToolbar.items`/`.view?.frame`-Logging verifizieren
+  (Notification-Observer auf `didEnterFullScreenNotification` etc. in
+  `FeedivoAppDelegate.applicationDidFinishLaunching`, TEMP-DEBUG-Pattern), nicht nur auf
+  Apple-Dokumentations-Vermutung vertrauen. Manuelle Nutzer-Verifikation des finalen
+  Fixes weiterhin ausstehend (kein computer-use für native macOS-Apps hier).
 - **GRDB statt SwiftData:** Keine `@Query`/Observation-Automatik — UI-Updates nach Mutationen
   laufen explizit über `SQLiteDataInvalidation.bumpStatusVersion()` + `.onChange(...)` in den
   Views. Wer eine Mutation schreibt und vergisst, den Statuszähler zu bumpen, bekommt eine
