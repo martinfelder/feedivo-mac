@@ -131,6 +131,10 @@ struct SQLiteFeedArticleListView: View {
         }
         .onChange(of: selectedArticleID) {
             markSelectedArticleReadIfNeeded()
+            navigationState = SQLiteArticleNavigationState(
+                articleIDs: state.rows.map(\.id),
+                selectedArticleID: selectedArticleID
+            )
         }
         .onChange(of: state.navigationState) {
             navigationState = state.navigationState
@@ -373,7 +377,12 @@ struct SQLiteFeedArticleListView: View {
     }
 
     private var loadToken: String {
-        "\(scopeToken)#\(directTagVersion)#\(sqliteStatusVersion)#\(selectedArticleID ?? "nil")#\(debouncedSearchText)"
+        SQLiteFeedArticleListLoadToken.make(
+            scopeToken: scopeToken,
+            directTagVersion: directTagVersion,
+            sqliteStatusVersion: sqliteStatusVersion,
+            debouncedSearchText: debouncedSearchText
+        )
     }
 
     private var scopeToken: String {
