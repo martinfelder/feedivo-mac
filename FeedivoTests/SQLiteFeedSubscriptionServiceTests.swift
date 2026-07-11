@@ -3,6 +3,29 @@ import GRDB
 import Testing
 @testable import Feedivo
 
+// Bewusst außerhalb der `@MainActor`-isolierten Testfunktion UND außerhalb des
+// `@Suite`-Structs erzeugt: Ein Closure-Literal übernimmt sonst die Aktor-Isolation seines
+// Erzeugungskontexts, nicht die des Aufrufers. Würde dieser Fetcher direkt als
+// `{ urlString in await ... }`-Closure-Literal innerhalb von
+// `previewFeedsWerdenTatsaechlichParallelAbgerufen()` (einer `@MainActor @Test func`)
+// geschrieben, würde `Thread.isMainThread` innerhalb des Closures IMMER `true` liefern —
+// unabhängig davon, ob `previewOPMLFeeds`s `group.addTask`-Kind-Tasks selbst auf den
+// MainActor gepinnt sind oder nicht. Das wurde beim Schreiben dieses Tests live verifiziert
+// (per Revert/Re-Apply des `@MainActor`-Pinnings in `SQLiteFeedSubscriptionService.swift`):
+// Ein lexikalisch innerhalb der Testfunktion erzeugter Closure blieb in BEIDEN Fällen bei
+// `[true, true, true, true, true, true]` hängen. Diese freistehende, explizit
+// `nonisolated` Fabrikfunktion erzeugt den Fetcher dagegen in einem Kontext ohne
+// MainActor-Bezug, sodass `Thread.isMainThread` tatsächlich widerspiegelt, auf welchem
+// Executor der jeweilige `group.addTask`-Kind-Task läuft.
+nonisolated func makeThreadObservingFeedFetcher(
+    record: @escaping @Sendable (Bool) async -> Void
+) -> SQLiteFeedSubscriptionService.FeedFetcher {
+    { urlString in
+        await record(Thread.isMainThread)
+        return ParsedFeed(sourceURL: urlString, title: urlString, description: nil, articles: [])
+    }
+}
+
 @Suite(.serialized)
 struct SQLiteFeedSubscriptionServiceTests {
     enum CleanupFailure: Error, Equatable {
@@ -486,29 +509,22 @@ struct SQLiteFeedSubscriptionServiceTests {
 
     @MainActor
     @Test func previewFeedsWerdenTatsaechlichParallelAbgerufen() async throws {
-        actor ConcurrencyCounter {
-            private var inFlight = 0
-            private(set) var maxInFlight = 0
+        actor ThreadObservationCollector {
+            private var observations: [Bool] = []
 
-            func increment() {
-                inFlight += 1
-                maxInFlight = max(maxInFlight, inFlight)
+            func record(isMainThread: Bool) {
+                observations.append(isMainThread)
             }
 
-            func decrement() {
-                inFlight -= 1
-            }
+            var isMainThreadFlags: [Bool] { observations }
         }
 
-        let counter = ConcurrencyCounter()
+        let collector = ThreadObservationCollector()
         let database = try FeedivoDatabase.inMemoryForTests()
         let service = SQLiteFeedSubscriptionService(
             database: database,
-            fetchFeed: { urlString in
-                await counter.increment()
-                try? await Task.sleep(for: .milliseconds(30))
-                await counter.decrement()
-                return ParsedFeed(sourceURL: urlString, title: urlString, description: nil, articles: [])
+            fetchFeed: makeThreadObservingFeedFetcher { isMainThread in
+                await collector.record(isMainThread: isMainThread)
             },
             discoverFaviconURL: { _ in nil }
         )
@@ -523,8 +539,9 @@ struct SQLiteFeedSubscriptionServiceTests {
 
         _ = await service.previewOPMLFeeds(for: opmlFeeds)
 
-        let maxInFlight = await counter.maxInFlight
-        #expect(maxInFlight > 1)
+        let flags = await collector.isMainThreadFlags
+        #expect(flags.count == 6)
+        #expect(flags.contains(false))
     }
 
     @MainActor
