@@ -30,6 +30,7 @@ final class ImageCacheService: @unchecked Sendable {
     private let memoryCache = NSCache<NSURL, NSImage>()
     private let thumbnailMemoryCache = NSCache<NSString, NSImage>()
     private let trimEveryNWrites: Int
+    private let trimCounterLock = NSLock()
     private var writesSinceLastTrim = 0
 
     init(
@@ -325,16 +326,22 @@ final class ImageCacheService: @unchecked Sendable {
     // bei vielen kleinen Cache-Dateien in der Praxis O(n^2)-artig ueber einen
     // Refresh-Batch). Jetzt: nur alle `trimEveryNWrites` Schreibvorgaenge, und dann
     // auf einem Hintergrund-Thread statt inline auf dem aufrufenden Actor.
+    // `cacheImages(from:)` laedt bis zu `maxConcurrentImageDownloads` Bilder gleichzeitig,
+    // daher kann dieser Zaehler von mehreren Threads gleichzeitig gelesen/geschrieben
+    // werden — `trimCounterLock` macht Pruefung+Erhoehen+Reset atomar.
     private func trimCacheAfterWriteIfNeeded() {
         guard let limitInBytes = autoTrimLimitInBytes() else {
             return
         }
 
+        trimCounterLock.lock()
         writesSinceLastTrim += 1
         guard writesSinceLastTrim >= trimEveryNWrites else {
+            trimCounterLock.unlock()
             return
         }
         writesSinceLastTrim = 0
+        trimCounterLock.unlock()
 
         Task.detached(priority: .utility) { [self] in
             try? trimCache(toLimitInBytes: limitInBytes)
