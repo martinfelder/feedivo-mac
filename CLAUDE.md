@@ -272,6 +272,22 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
   — echter Singleton-Szenentyp, den die anderen Einzelfenster der App (Suche, Organizer,
   Statistik) bereits korrekt nutzten. Nur `WindowGroup(for: ArticleWindowRequest.self)`
   (Artikel-Popout, bewusst mehrfach instanziierbar) bleibt zu Recht eine `WindowGroup`.
+- **Eine einzige, alles umfassende `ToolbarItemGroup` kann bei Platzmangel überlappende
+  statt kollabierende Toolbar-Icons verursachen:** Laut Apple-Doku behandelt `NSToolbar`
+  den Inhalt einer `ToolbarItemGroup` als EIN unteilbares Element ("always displayed
+  together") — bei vielen Controls in einer einzigen Gruppe (hier: ~15 Controls in
+  `SQLiteReaderView.swift`s Reader-Toolbar) kann NSToolbar dem zugehörigen NSToolbarItem
+  nach bestimmten Fenster-Lebenszyklus-Übergängen (Schliessen/Wiederöffnen, Vollbild)
+  eine zu schmale, veraltete Breite zuweisen; der eingebettete SwiftUI-Inhalt ist dann
+  breiter als das zugewiesene NSToolbarItem und überlappt sichtbar benachbarte Bereiche
+  (Nutzer-Report 2026-07-11: Icons oberhalb des Artikels überlappen dauerhaft nach
+  Fenster-Schliessen/Wiederöffnen/Vollbild — verschwindet nicht durch Divider-Ziehen
+  oder Datenänderungen, also kein reiner SwiftUI-Re-Render-Trigger-Fall). Fix: jede
+  `ControlGroup`/jeden Picker/Button als EIGENES `ToolbarItem`/`ToolbarItemGroup`
+  deklarieren statt alles in eine Gruppe zu packen — macOS kann dann jedes Element
+  einzeln ins "»"-Overflow-Menü kollabieren. Nicht live reproduzierbar verifiziert
+  (kein computer-use für native macOS-Apps hier) — Fix basiert auf Code-Analyse des
+  einzig plausiblen strukturellen Mechanismus, manuelle Nutzer-Verifikation ausstehend.
 - **GRDB statt SwiftData:** Keine `@Query`/Observation-Automatik — UI-Updates nach Mutationen
   laufen explizit über `SQLiteDataInvalidation.bumpStatusVersion()` + `.onChange(...)` in den
   Views. Wer eine Mutation schreibt und vergisst, den Statuszähler zu bumpen, bekommt eine
