@@ -482,6 +482,7 @@ enum L10n {
     static let articleCreateRuleCommand = String(localized: "article.createRule.command")
     static let articleShareCommand = String(localized: "article.share.command")
     static let articleDeleteCommand = String(localized: "article.delete.command")
+    static let articleDeleteConfirmationTitle = String(localized: "article.delete.confirmation.title")
     static let articleMarkAllReadCommand = String(localized: "article.markAllRead.command")
     static let articleMarkReadMenuTitle = String(localized: "article.markRead.menu.title")
     static let articleMarkReadOlderThanOneDay = String(localized: "article.markRead.olderThanOneDay")
@@ -713,6 +714,13 @@ enum L10n {
         String.localizedStringWithFormat(
             String(localized: "feed.delete.confirmation.message"),
             feedTitle
+        )
+    }
+
+    static func articleDeleteConfirmationMessage(articleTitle: String) -> String {
+        String.localizedStringWithFormat(
+            String(localized: "article.delete.confirmation.message"),
+            articleTitle
         )
     }
 
