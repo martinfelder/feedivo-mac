@@ -1523,7 +1523,6 @@ Folgende Reihenfolge berücksichtigt Abhängigkeiten. Features mit (*) sind Vora
 ## Zurückgestellt (nach v1)
 
 - **Feature 12.2** — Feed-Suche via Discover (Feedly API kostenpflichtig)
-- **Feature 14.3** — Statistik-Daten exportieren
 - **Feature 15.2** — Feeds per Drag & Drop umsortieren
 - **Feature 18.1c** — PDF- und DOCX-Export für einzelne Artikel
 - **Feature 18.3** — Drittanbieter-Integration (Readwise, Obsidian, Pocket)
