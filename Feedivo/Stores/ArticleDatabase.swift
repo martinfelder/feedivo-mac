@@ -281,6 +281,7 @@ struct ArticleDatabase {
                     a.id,
                     a.feedID,
                     f.title AS feedTitle,
+                    f.faviconURL AS faviconURL,
                     a.title,
                     a.summary,
                     a.link,

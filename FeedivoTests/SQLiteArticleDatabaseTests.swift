@@ -175,6 +175,29 @@ struct SQLiteArticleDatabaseTests {
         #expect(result.map(\.id) == [newerID, olderID])
     }
 
+    @Test func newestUnreadLiefertFaviconURLDesFeedsMit() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let articleDatabase = ArticleDatabase(database: database)
+
+        try feedStore.save(FeedRecord(
+            id: "feed-a",
+            url: "https://a.example.com/feed",
+            title: "Feed A",
+            faviconURL: "https://a.example.com/favicon.ico"
+        ))
+        _ = try articleStore.upsert(ArticleUpsertInput(
+            feedID: "feed-a",
+            sourceID: "article-1",
+            title: "Artikel 1"
+        ))
+
+        let result = try articleDatabase.newestUnread(limit: 5)
+
+        #expect(result.first?.faviconURL == "https://a.example.com/favicon.ico")
+    }
+
     @Test func newestUnreadRespektiertDasLimit() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let feedStore = FeedStore(database: database)
