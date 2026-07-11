@@ -315,6 +315,13 @@ enum FeedivoDatabaseMigrator {
             )
         }
 
+        migrator.registerMigration("v12_add_articles_published_coalesce_index") { database in
+            try database.execute(sql: """
+                CREATE INDEX idx_articles_published_coalesce
+                ON articles(COALESCE(publishedAt, arrivedAt) DESC, arrivedAt DESC)
+                """)
+        }
+
         return migrator
     }
 }

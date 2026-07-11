@@ -68,6 +68,33 @@ struct SQLiteDatabaseMigrationTests {
         #expect(indexNames.contains("idx_article_statuses_hidden_read"))
     }
 
+    @Test func migrationCreatesArticlesPublishedCoalesceExpressionIndex() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+
+        let indexNames = try database.debugIndexNames()
+
+        #expect(indexNames.contains("idx_articles_published_coalesce"))
+    }
+
+    @Test func queryPlanForTimelineOrderByNutztCoalesceIndex() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+
+        let plan = try database.read { db in
+            try Row.fetchAll(db, sql: """
+                EXPLAIN QUERY PLAN
+                SELECT a.id
+                FROM articles a
+                JOIN feeds f ON f.id = a.feedID
+                JOIN article_statuses s ON s.articleID = a.id
+                ORDER BY COALESCE(a.publishedAt, a.arrivedAt) DESC, a.arrivedAt DESC
+                LIMIT 10
+                """)
+        }
+
+        let planDetails = plan.compactMap { row in row["detail"] as String? }.joined(separator: " | ")
+        #expect(planDetails.contains("idx_articles_published_coalesce"))
+    }
+
     @Test func migrationCreatesArticleSearchTriggers() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
 
@@ -355,6 +382,7 @@ struct SQLiteDatabaseMigrationTests {
                 table.column("title", .text).notNull()
                 table.column("description", .text)
                 table.column("author", .text)
+                table.column("publishedAt", .datetime)
                 table.column("arrivedAt", .datetime).notNull()
                 table.column("updatedAt", .datetime).notNull()
             }
