@@ -29,17 +29,21 @@ final class ImageCacheService: @unchecked Sendable {
     private let autoTrimLimitInBytes: @Sendable () -> Int64?
     private let memoryCache = NSCache<NSURL, NSImage>()
     private let thumbnailMemoryCache = NSCache<NSString, NSImage>()
+    private let trimEveryNWrites: Int
+    private var writesSinceLastTrim = 0
 
     init(
         cacheDirectory: URL = ImageCacheService.defaultCacheDirectory(),
         dataLoader: ImageDataLoading = URLSessionImageDataLoader(),
         fileManager: FileManager = .default,
-        autoTrimLimitInBytes: @escaping @Sendable () -> Int64? = { ImageCacheSettings.currentLimitInBytes }
+        autoTrimLimitInBytes: @escaping @Sendable () -> Int64? = { ImageCacheSettings.currentLimitInBytes },
+        trimEveryNWrites: Int = 20
     ) {
         self.cacheDirectory = cacheDirectory
         self.dataLoader = dataLoader
         self.fileManager = fileManager
         self.autoTrimLimitInBytes = autoTrimLimitInBytes
+        self.trimEveryNWrites = max(1, trimEveryNWrites)
         try? fileManager.createDirectory(at: cacheDirectory, withIntermediateDirectories: true)
 
         // countLimit ist nur ein Hinweis an NSCache, keine harte Grenze — beim Wechseln
@@ -316,12 +320,25 @@ final class ImageCacheService: @unchecked Sendable {
         )
     }
 
+    // Ohne Throttling loeste JEDER einzelne Bild-Download einen vollen
+    // Verzeichnis-Scan+Sort ueber den kompletten Cache aus (O(n) pro Schreibvorgang,
+    // bei vielen kleinen Cache-Dateien in der Praxis O(n^2)-artig ueber einen
+    // Refresh-Batch). Jetzt: nur alle `trimEveryNWrites` Schreibvorgaenge, und dann
+    // auf einem Hintergrund-Thread statt inline auf dem aufrufenden Actor.
     private func trimCacheAfterWriteIfNeeded() {
         guard let limitInBytes = autoTrimLimitInBytes() else {
             return
         }
 
-        try? trimCache(toLimitInBytes: limitInBytes)
+        writesSinceLastTrim += 1
+        guard writesSinceLastTrim >= trimEveryNWrites else {
+            return
+        }
+        writesSinceLastTrim = 0
+
+        Task.detached(priority: .utility) { [self] in
+            try? trimCache(toLimitInBytes: limitInBytes)
+        }
     }
 }
 

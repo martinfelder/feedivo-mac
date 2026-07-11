@@ -89,6 +89,31 @@ struct ImageCacheServiceTests {
         #expect(FileManager.default.fileExists(atPath: service.cachedFileURL(for: url).path))
     }
 
+    @Test func trimCacheWirdErstNachNSchreibvorgaengenAusgefuehrt() async throws {
+        let cacheDirectory = try Self.temporaryCacheDirectory()
+        let loader = StubImageDataLoader(responses: [:])
+        let service = ImageCacheService(
+            cacheDirectory: cacheDirectory,
+            dataLoader: loader,
+            autoTrimLimitInBytes: { 1 },
+            trimEveryNWrites: 3
+        )
+
+        let firstURL = try #require(URL(string: "https://example.com/1.png"))
+        let secondURL = try #require(URL(string: "https://example.com/2.png"))
+        loader.responses[firstURL] = try Self.pngData()
+        loader.responses[secondURL] = try Self.pngData()
+
+        _ = await service.image(for: firstURL)
+        _ = await service.image(for: secondURL)
+
+        // Nach 2 von 3 noetigen Schreibvorgaengen darf noch nicht getrimmt worden
+        // sein — beide Dateien muessen trotz limitInBytes: 1 noch vorhanden sein.
+        try await Task.sleep(for: .milliseconds(50))
+        #expect(FileManager.default.fileExists(atPath: service.cachedFileURL(for: firstURL).path))
+        #expect(FileManager.default.fileExists(atPath: service.cachedFileURL(for: secondURL).path))
+    }
+
     @Test func imageLaedtAusDiskCacheOhneNetzwerk() async throws {
         let cacheDirectory = try Self.temporaryCacheDirectory()
         let url = try #require(URL(string: "https://example.com/disk.png"))
@@ -180,7 +205,8 @@ struct ImageCacheServiceTests {
         let service = ImageCacheService(
             cacheDirectory: cacheDirectory,
             dataLoader: loader,
-            autoTrimLimitInBytes: { Int64(downloadedData.count) }
+            autoTrimLimitInBytes: { Int64(downloadedData.count) },
+            trimEveryNWrites: 1
         )
         let oldFile = service.cachedFileURL(for: oldURL)
         try Data(repeating: 1, count: downloadedData.count).write(to: oldFile)
@@ -190,6 +216,10 @@ struct ImageCacheServiceTests {
         )
 
         let image = await service.image(for: downloadedURL)
+
+        // Trim läuft auf einem Hintergrund-Thread, also kurz warten bevor die
+        // Expectations geprüft werden.
+        try await Task.sleep(for: .milliseconds(50))
 
         #expect(image != nil)
         #expect(!FileManager.default.fileExists(atPath: oldFile.path))
