@@ -189,7 +189,14 @@ final class MenubarStatusItemController: NSObject {
         if popover.isShown {
             popover.performClose(sender)
         } else {
-            NSApp.activate(ignoringOtherApps: true)
+            // Bewusst KEIN NSApp.activate(ignoringOtherApps:) hier: Das würde die
+            // gesamte App aktivieren und damit auch das Hauptfenster (falls offen)
+            // mit nach vorne bringen — genau das soll ein reiner Icon-Klick nicht
+            // tun. Ein an ein NSStatusItem angehängtes NSPopover wird vom
+            // Fenstersystem speziell behandelt und kann Klicks entgegennehmen und
+            // key werden, ohne dass die App voll aktiviert wird (gefunden 2026-07-11,
+            // Nutzer-Report: Hauptfenster kam beim Popover-Öffnen fälschlich in den
+            // Fokus).
             popover.show(relativeTo: sender.bounds, of: sender, preferredEdge: .minY)
         }
     }
