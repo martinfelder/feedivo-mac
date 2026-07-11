@@ -1,4 +1,5 @@
 import Foundation
+import GRDB
 import Observation
 
 enum SQLiteTimelineLoadScope: Equatable {
@@ -292,6 +293,24 @@ final class SQLiteFeedArticleListState {
             try store.setArchived(newValue, articleID: articleID, at: Date())
         } applyLocally: { row in
             row.isArchived = newValue
+        }
+    }
+
+    // Kein reload() nach einem fehlgeschlagenen Loeschen: reload() wuerde
+    // ueber startLoad() den gerade gesetzten .failed-Zustand sofort wieder
+    // ueberschreiben (startLoad setzt loadState = .idle, danach ggf. .loaded),
+    // und die Fehlermeldung waere fuer den Nutzer nie sichtbar gewesen.
+    @discardableResult
+    func deleteArticle(articleID: String, database: FeedivoDatabase) -> Bool {
+        do {
+            try database.write { db in
+                try db.execute(sql: "DELETE FROM articles WHERE id = ?", arguments: [articleID])
+            }
+            rows.removeAll { $0.id == articleID }
+            return true
+        } catch {
+            loadState = .failed(error.localizedDescription)
+            return false
         }
     }
 

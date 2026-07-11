@@ -1,4 +1,5 @@
 import Foundation
+import GRDB
 import Testing
 @testable import Feedivo
 
@@ -37,6 +38,51 @@ struct SQLiteFeedArticleListStateTests {
         }
 
         #expect(state.rows.first(where: { $0.id == firstID })?.isRead == true)
+    }
+
+    @Test func listStateLoeschtArtikelUndEntferntIhnAusRows() async throws {
+        let (database, firstID, secondID) = try makeDatabaseWithFeedAndArticles()
+        let state = SQLiteFeedArticleListState()
+
+        state.load(
+            feedID: "feed-1",
+            database: database,
+            selectedArticleID: firstID
+        )
+        await waitForLoad(state)
+
+        let succeeded = state.deleteArticle(articleID: firstID, database: database)
+
+        #expect(succeeded)
+        #expect(state.rows.map(\.id) == [secondID])
+        #expect(state.loadState == .loaded)
+    }
+
+    @Test func listStateSetztFailedStateWennLoeschenFehlschlaegt() async throws {
+        let (database, firstID, secondID) = try makeDatabaseWithFeedAndArticles()
+        let state = SQLiteFeedArticleListState()
+
+        state.load(
+            feedID: "feed-1",
+            database: database,
+            selectedArticleID: firstID
+        )
+        await waitForLoad(state)
+        try database.write { db in
+            try db.execute(sql: "DROP TABLE articles")
+        }
+
+        let succeeded = state.deleteArticle(articleID: firstID, database: database)
+
+        #expect(!succeeded)
+        // "rows bleibt unveraendert" heisst: der vor dem fehlgeschlagenen
+        // Loeschen geladene Zustand (beide Artikel, neuester zuerst) bleibt
+        // exakt erhalten - nicht nur der Artikel, dessen Loeschung fehlschlug.
+        #expect(state.rows.map(\.id) == [secondID, firstID])
+        guard case .failed = state.loadState else {
+            Issue.record("Erwartete .failed nach fehlgeschlagenem Loeschen, war \(state.loadState)")
+            return
+        }
     }
 
     @Test func listStateBehaeltArtikelInUngelesenSmartFolderNachToggleReadSichtbar() async throws {
