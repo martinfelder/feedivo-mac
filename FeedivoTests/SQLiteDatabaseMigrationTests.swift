@@ -105,12 +105,12 @@ struct SQLiteDatabaseMigrationTests {
         #expect(triggerNames.contains("articles_ad"))
     }
 
-    @Test func articleStatusesHaveNoForeignKeyCascadeToArticles() throws {
+    @Test func articleStatusesCascadeWhenArticleIsDeleted() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
 
         let foreignKeys = try database.debugForeignKeys(for: "article_statuses")
 
-        #expect(foreignKeys.isEmpty)
+        #expect(foreignKeys == ["articles"])
     }
 
     @Test func debugForeignKeysRejectsUnsupportedTableNames() throws {
@@ -206,7 +206,7 @@ struct SQLiteDatabaseMigrationTests {
         #expect(try rowCount(in: database, table: "smart_folder_conditions") == 0)
     }
 
-    @Test func deletingFeedCascadesToArticlesAndFeedLogsButNotArticleStatuses() throws {
+    @Test func deletingFeedCascadesToArticlesFeedLogsAndArticleStatuses() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
 
         try insertFeed(into: database, id: "feed-1")
@@ -229,7 +229,27 @@ struct SQLiteDatabaseMigrationTests {
 
         #expect(try rowCount(in: database, table: "articles") == 0)
         #expect(try rowCount(in: database, table: "feed_logs") == 0)
-        #expect(try rowCount(in: database, table: "article_statuses") == 1)
+        #expect(try rowCount(in: database, table: "article_statuses") == 0)
+    }
+
+    @Test func deletingSingleArticleCascadesToArticleStatuses() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+
+        try insertFeed(into: database, id: "feed-1")
+        try insertArticle(
+            into: database,
+            id: "article-1",
+            feedID: "feed-1",
+            sourceID: "source-1",
+            link: "https://example.com/articles/1"
+        )
+        try insertArticleStatus(into: database, articleID: "article-1")
+
+        try database.write { database in
+            try database.execute(sql: "DELETE FROM articles WHERE id = ?", arguments: ["article-1"])
+        }
+
+        #expect(try rowCount(in: database, table: "article_statuses") == 0)
     }
 
     @Test func duplicateNonEmptySourceIDPerFeedViolatesPartialUniqueIndex() throws {

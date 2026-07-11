@@ -322,6 +322,46 @@ enum FeedivoDatabaseMigrator {
                 """)
         }
 
+        migrator.registerMigration("v13_add_article_statuses_foreign_key") { database in
+            try database.create(table: "article_statuses_new") { table in
+                table.column("articleID", .text).primaryKey()
+                    .references("articles", column: "id", onDelete: .cascade)
+                table.column("isRead", .boolean).notNull().defaults(to: false)
+                table.column("isStarred", .boolean).notNull().defaults(to: false)
+                table.column("isArchived", .boolean).notNull().defaults(to: false)
+                table.column("isHidden", .boolean).notNull().defaults(to: false)
+                table.column("readAt", .datetime)
+                table.column("starredAt", .datetime)
+                table.column("archivedAt", .datetime)
+                table.column("hiddenAt", .datetime)
+                table.column("dateArrived", .datetime).notNull()
+            }
+
+            // Verwaiste Zeilen (aus dem Bug vor diesem Fix) werden bewusst NICHT
+            // mitkopiert — die neue Fremdschluessel-Spalte wuerde sie ablehnen.
+            try database.execute(sql: """
+                INSERT INTO article_statuses_new
+                SELECT
+                    s.articleID, s.isRead, s.isStarred, s.isArchived, s.isHidden,
+                    s.readAt, s.starredAt, s.archivedAt, s.hiddenAt, s.dateArrived
+                FROM article_statuses s
+                WHERE EXISTS (SELECT 1 FROM articles a WHERE a.id = s.articleID)
+                """)
+
+            try database.drop(table: "article_statuses")
+            try database.rename(table: "article_statuses_new", to: "article_statuses")
+
+            try database.create(index: "idx_article_statuses_is_read", on: "article_statuses", columns: ["isRead"])
+            try database.create(index: "idx_article_statuses_is_starred", on: "article_statuses", columns: ["isStarred"])
+            try database.create(index: "idx_article_statuses_is_archived", on: "article_statuses", columns: ["isArchived"])
+            try database.create(index: "idx_article_statuses_is_hidden", on: "article_statuses", columns: ["isHidden"])
+            try database.create(
+                index: "idx_article_statuses_hidden_read",
+                on: "article_statuses",
+                columns: ["isHidden", "isRead"]
+            )
+        }
+
         return migrator
     }
 }
