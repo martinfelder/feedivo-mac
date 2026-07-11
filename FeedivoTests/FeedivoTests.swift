@@ -36,6 +36,32 @@ struct FeedivoTests {
         }
     }
 
+    @Test func fetchFeedRuftDataLoaderNichtAufDemMainThreadAuf() async throws {
+        actor ThreadObservation {
+            private(set) var wasMainThread: Bool?
+
+            func record(_ isMainThread: Bool) {
+                wasMainThread = isMainThread
+            }
+        }
+
+        let observation = ThreadObservation()
+        let response = URLResponse(
+            url: URL(string: "https://example.com/feed.xml")!,
+            mimeType: nil,
+            expectedContentLength: -1,
+            textEncodingName: nil
+        )
+
+        _ = try? await FeedService.fetchFeed(urlString: "https://example.com/feed.xml") { _ in
+            await observation.record(Thread.isMainThread)
+            return (Data(), response)
+        }
+
+        let wasMainThread = await observation.wasMainThread
+        #expect(wasMainThread == false)
+    }
+
     @Test func appLanguageLiefertLocaleUndFallback() {
         #expect(AppLanguage(rawValue: "de")?.localeIdentifier == "de")
         #expect(AppLanguage(rawValue: "en")?.localeIdentifier == "en")

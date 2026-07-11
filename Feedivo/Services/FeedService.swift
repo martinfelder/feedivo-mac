@@ -163,13 +163,19 @@ enum FeedService {
     typealias FeedDataLoader = (URL) async throws -> (Data, URLResponse)
     typealias FeedRequestDataLoader = (URLRequest) async throws -> (Data, URLResponse)
 
-    static func fetchFeed(urlString: String) async throws -> ParsedFeed {
+    nonisolated static func fetchFeed(urlString: String) async throws -> ParsedFeed {
         try await fetchFeed(urlString: urlString) { url in
             try await URLSession.shared.data(from: url)
         }
     }
 
-    static func fetchFeed(
+    // nonisolated, damit paralleler Feed-Abruf (z. B. OPML-Vorschau) tatsaechlich
+    // ausserhalb des Main Actors laeuft — ohne diese Annotation erbt die Funktion
+    // die projektweite SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor-Einstellung und
+    // das CPU-lastige Parsing in parseFeed() liefe trotzdem auf dem Main Thread,
+    // unabhaengig davon, wie der Aufrufer isoliert ist (Callee- statt Caller-
+    // Isolation entscheidet). Analog zu den bereits nonisolated Helpern unten.
+    nonisolated static func fetchFeed(
         urlString: String,
         dataLoader: @escaping FeedDataLoader
     ) async throws -> ParsedFeed {
@@ -245,7 +251,7 @@ enum FeedService {
         return .updated(parsedFeed, responseValidators)
     }
 
-    static func parseFeed(data: Data, sourceURL: String) throws -> ParsedFeed {
+    nonisolated static func parseFeed(data: Data, sourceURL: String) throws -> ParsedFeed {
         let feed = try FeedKit.Feed(data: data)
 
         switch feed {
