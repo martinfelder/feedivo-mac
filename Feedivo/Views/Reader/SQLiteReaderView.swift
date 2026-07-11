@@ -121,9 +121,25 @@ struct SQLiteReaderView: View {
             }
         }
         .toolbar {
-            ToolbarItemGroup(placement: .primaryAction) {
+            // Jede Gruppe als EIGENES ToolbarItem/ToolbarItemGroup statt einer
+            // einzigen, alles umfassenden ToolbarItemGroup: Eine ToolbarItemGroup
+            // wird von NSToolbar als EIN unteilbares Element behandelt ("always
+            // displayed together" laut Apple-Doku) — bei ~15 Controls in einer
+            // einzigen Gruppe kann NSToolbar dem zugehörigen NSToolbarItem nach
+            // bestimmten Fenster-Lebenszyklus-Übergängen (Schliessen/Wiederöffnen,
+            // Vollbild) eine zu schmale, veraltete Breite zuweisen — der
+            // eingebettete SwiftUI-Inhalt ist dann breiter als das zugewiesene
+            // NSToolbarItem und überlappt sichtbar benachbarte Toolbar-Bereiche
+            // (Nutzer-Report 2026-07-11: Icons oberhalb des Artikels überlappen
+            // nach Schliessen/Wiederöffnen/Vollbild). Mehrere kleinere, unabhängige
+            // Toolbar-Items lässt macOS bei Platzmangel einzeln ins "»"-Overflow-
+            // Menü kollabieren, statt ein einziges, zu breites Element starr
+            // darzustellen.
+            ToolbarItem(placement: .primaryAction) {
                 Spacer()
+            }
 
+            ToolbarItemGroup(placement: .primaryAction) {
                 ControlGroup {
                     Button {
                         openWindow(id: ArticleSearchWindowView.windowID)
@@ -140,8 +156,10 @@ struct SQLiteReaderView: View {
                     .help(L10n.articleOpenOriginalCommand)
                     .disabled(originalURL == nil)
                 }
+            }
 
-                // Status-Gruppe: Regel erstellen / Stern / Archivieren / Ungelesen
+            // Status-Gruppe: Regel erstellen / Stern / Archivieren / Ungelesen
+            ToolbarItemGroup(placement: .primaryAction) {
                 ControlGroup {
                     Button {
                         if let snapshot = state.snapshot {
@@ -183,7 +201,9 @@ struct SQLiteReaderView: View {
                     .help(state.snapshot?.isRead == true ? L10n.articleRowMarkUnread : L10n.articleRowMarkRead)
                     .disabled(state.snapshot == nil)
                 }
+            }
 
+            ToolbarItemGroup(placement: .primaryAction) {
                 ControlGroup {
                     Button {
                         copyLink()
@@ -201,7 +221,9 @@ struct SQLiteReaderView: View {
                     .help(L10n.articleExportCommand)
                     .disabled(state.snapshot == nil)
                 }
+            }
 
+            ToolbarItemGroup(placement: .primaryAction) {
                 ControlGroup {
                     Button {
                         webNavigationController.goBack()
@@ -221,7 +243,9 @@ struct SQLiteReaderView: View {
                     .customizableKeyboardShortcut(.readerWebForward, overrides: shortcutOverrides)
                     .disabled(readerDisplayMode != .web || !webNavigationController.canGoForward)
                 }
+            }
 
+            ToolbarItem(placement: .primaryAction) {
                 Picker(L10n.readerDisplayModePicker, selection: $readerDisplayModeRawValue) {
                     ForEach(ReaderDisplayMode.allCases) { mode in
                         Text(mode.titleKey)
@@ -231,7 +255,9 @@ struct SQLiteReaderView: View {
                 .pickerStyle(.segmented)
                 .help(L10n.readerDisplayModeToggleHelp)
                 .disabled(originalURL == nil)
+            }
 
+            ToolbarItem(placement: .primaryAction) {
                 Button {
                     isAppearancePopoverPresented.toggle()
                 } label: {
@@ -241,7 +267,9 @@ struct SQLiteReaderView: View {
                 .popover(isPresented: $isAppearancePopoverPresented, arrowEdge: .bottom) {
                     readerAppearancePopover
                 }
+            }
 
+            ToolbarItem(placement: .primaryAction) {
                 Button {
                     isMetadataInspectorPresented.toggle()
                 } label: {
