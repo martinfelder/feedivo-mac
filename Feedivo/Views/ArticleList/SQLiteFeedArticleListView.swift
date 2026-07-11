@@ -52,6 +52,8 @@ struct SQLiteFeedArticleListView: View {
     @State private var debouncedSearchText = ""
     @State private var articleExportRequest: ArticleExportRequest?
     @State private var ruleCreationRequest: ArticleListRuleCreationRequest?
+    @State private var articlePendingDeletion: ArticleListSnapshot?
+    @State private var isDeleteArticleConfirmationPresented = false
     @State private var showsReadArticles = false
     @State private var temporarilyVisibleReadArticleIDs = Set<String>()
     // Haelt die zuletzt bekannten Zeilendaten fuer Artikel, die gerade als
@@ -149,6 +151,21 @@ struct SQLiteFeedArticleListView: View {
                 existingRules: sqliteRulesForRuleCreation(),
                 seed: request.seed
             )
+        }
+        .confirmationDialog(
+            L10n.articleDeleteConfirmationTitle,
+            isPresented: $isDeleteArticleConfirmationPresented,
+            presenting: articlePendingDeletion
+        ) { row in
+            Button(L10n.articleDeleteCommand, role: .destructive) {
+                deleteArticle(row)
+            }
+
+            Button(L10n.commonCancel, role: .cancel) {
+                articlePendingDeletion = nil
+            }
+        } message: { row in
+            Text(L10n.articleDeleteConfirmationMessage(articleTitle: row.title))
         }
         .toolbar {
             ToolbarItemGroup {
@@ -315,7 +332,7 @@ struct SQLiteFeedArticleListView: View {
                 requestExportArticle(row.id)
             },
             onDelete: {
-                deleteArticle(row.id)
+                requestDeleteArticle(row)
             },
             onMarkAllRead: {
                 markRowsRead(.allVisible)
@@ -778,23 +795,26 @@ struct SQLiteFeedArticleListView: View {
         picker.show(relativeTo: .zero, of: sourceView, preferredEdge: .minY)
     }
 
-    private func deleteArticle(_ articleID: String) {
+    private func requestDeleteArticle(_ row: ArticleListSnapshot) {
+        articlePendingDeletion = row
+        isDeleteArticleConfirmationPresented = true
+    }
+
+    private func deleteArticle(_ row: ArticleListSnapshot) {
+        articlePendingDeletion = nil
+
         guard let database else {
             return
         }
 
-        do {
-            try database.write { db in
-                try db.execute(sql: "DELETE FROM articles WHERE id = ?", arguments: [articleID])
-            }
-            if selectedArticleID == articleID {
-                selectedArticleID = nil
-            }
-            SQLiteDataInvalidation.bumpStatusVersion()
-            reload()
-        } catch {
-            reload()
+        guard state.deleteArticle(articleID: row.id, database: database) else {
+            return
         }
+
+        if selectedArticleID == row.id {
+            selectedArticleID = nil
+        }
+        SQLiteDataInvalidation.bumpStatusVersion()
     }
 
     private func updateDebouncedSearchText() async {
