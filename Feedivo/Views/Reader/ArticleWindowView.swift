@@ -68,7 +68,7 @@ struct ArticleWindowView: View {
                 ContentUnavailableView(
                     L10n.articleWindowMissingTitle,
                     systemImage: "externaldrive.badge.exclamationmark",
-                    description: Text("Die lokale Artikeldatenbank konnte nicht geöffnet werden.")
+                    description: Text(L10n.dbUnavailableDescription)
                 )
             }
         }

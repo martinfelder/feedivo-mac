@@ -14342,6 +14342,62 @@
         }
       }
     },
+    "reader.articleNotFound.description" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Artikel ist nicht mehr in der lokalen Datenbank vorhanden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The article no longer exists in the local database."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'article n'existe plus dans la base de données locale."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'articolo non è più presente nel database locale."
+          }
+        }
+      }
+    },
+    "reader.articleNotFound.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Artikel nicht gefunden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Article Not Found"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Article introuvable"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Articolo non trovato"
+          }
+        }
+      }
+    },
     "reader.bodyFont.bold.toggle" : {
       "localizations" : {
         "de" : {
@@ -15364,6 +15420,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nuovo tag"
+          }
+        }
+      }
+    },
+    "reader.inspector.noArticleLoaded" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noch kein Artikel geladen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Article Loaded Yet"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun article chargé pour l'instant"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun articolo ancora caricato"
           }
         }
       }

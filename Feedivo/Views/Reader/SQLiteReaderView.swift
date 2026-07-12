@@ -242,9 +242,9 @@ struct SQLiteReaderView: View {
                 readerContent(articleID: articleID, database: database)
             } else if database == nil {
                 ContentUnavailableView(
-                    "SQLite nicht verfügbar",
+                    L10n.dbUnavailableTitle,
                     systemImage: "externaldrive.badge.exclamationmark",
-                    description: Text("Die lokale Artikeldatenbank konnte nicht geöffnet werden.")
+                    description: Text(L10n.dbUnavailableDescription)
                 )
             } else {
                 ContentUnavailableView(
@@ -262,7 +262,7 @@ struct SQLiteReaderView: View {
                 })
                 .inspectorColumnWidth(min: 280, ideal: 318, max: 360)
             } else {
-                Text("Noch kein Artikel geladen")
+                Text(L10n.readerInspectorNoArticleLoaded)
                     .padding()
             }
         }
@@ -828,9 +828,9 @@ private struct ReaderModeContent: View {
                                 .padding(.top, 28)
                         } else {
                             ContentUnavailableView(
-                                "Artikel nicht gefunden",
+                                L10n.readerArticleNotFoundTitle,
                                 systemImage: "doc.text.magnifyingglass",
-                                description: Text(state.errorMessage ?? "Der Artikel ist nicht mehr in der lokalen Datenbank vorhanden.")
+                                description: Text(state.errorMessage ?? L10n.readerArticleNotFoundDescription)
                             )
                         }
                     }
