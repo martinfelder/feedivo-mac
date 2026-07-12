@@ -220,7 +220,7 @@ struct RuleSettingsView: View {
             loadedConditions[rule.id] = (try? ruleStore.conditions(ruleID: rule.id)) ?? []
         }
 
-        let tags = (try? TagStore(database: database).tags()) ?? []
+        let tags = TagStore.tagsIgnoringErrors(database: database)
         rules = loadedRules
         conditionsByRuleID = loadedConditions
         tagsByID = Dictionary(uniqueKeysWithValues: tags.map { ($0.id, $0) })

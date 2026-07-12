@@ -74,6 +74,30 @@ struct TagStore {
         }
     }
 
+    // MARK: - Fehler-loggende Convenience-Varianten
+
+    /// Wie `tags()`, aber loggt einen DB-Fehler über `logIfThrows` statt ihn
+    /// als „keine Tags vorhanden" zu maskieren. Rückgabewert bei Erfolg
+    /// unverändert — nur der Fehlerfall wird jetzt sichtbar statt komplett
+    /// verschluckt.
+    static func tagsIgnoringErrors(database: FeedivoDatabase) -> [TagRecord] {
+        var tags: [TagRecord] = []
+        logIfThrows(context: "Tags laden") {
+            tags = try TagStore(database: database).tags()
+        }
+        return tags
+    }
+
+    /// Wie `tagsIgnoringErrors(database:)`, aber für die feed-gebundene
+    /// Tag-Liste (`tags(feedID:)`).
+    static func tagsIgnoringErrors(database: FeedivoDatabase, feedID: String) -> [TagRecord] {
+        var tags: [TagRecord] = []
+        logIfThrows(context: "Feed-Tags laden") {
+            tags = try TagStore(database: database).tags(feedID: feedID)
+        }
+        return tags
+    }
+
     func exportTagNames(articleID: String, feedID: String) throws -> [String] {
         try database.read { db in
             try String.fetchAll(db, sql: """

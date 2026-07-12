@@ -341,7 +341,7 @@ struct ArticleSearchWindowView: View {
             return
         }
 
-        tags = (try? TagStore(database: database).tags()) ?? []
+        tags = TagStore.tagsIgnoringErrors(database: database)
     }
 
     private func loadSnapshots() {

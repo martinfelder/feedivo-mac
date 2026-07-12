@@ -633,9 +633,8 @@ struct FeedPropertiesView: View {
             return
         }
 
-        let store = TagStore(database: database)
-        tags = (try? store.tags()) ?? []
-        feedTags = (try? TagStore(database: database).tags(feedID: feedID)) ?? []
+        tags = TagStore.tagsIgnoringErrors(database: database)
+        feedTags = TagStore.tagsIgnoringErrors(database: database, feedID: feedID)
     }
 
     private func updateRefreshInterval() {

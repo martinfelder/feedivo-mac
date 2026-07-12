@@ -717,7 +717,7 @@ struct RuleWizardView: View {
             return
         }
 
-        tags = (try? TagStore(database: database).tags()) ?? []
+        tags = TagStore.tagsIgnoringErrors(database: database)
     }
 }
 
