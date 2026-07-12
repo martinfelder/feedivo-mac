@@ -75,6 +75,7 @@ struct RuleWizardView: View {
     @State private var newTagName = ""
     @State private var newTagColorHex = RuleDialogTagSwatches.colors[0]
     @State private var previewMatchingCount = 0
+    @State private var previewLoadFailed = false
     @State private var ruleError: String?
     @State private var tagError: String?
 
@@ -265,18 +266,26 @@ struct RuleWizardView: View {
             }
 
             HStack(spacing: 8) {
-                ZStack {
-                    Circle()
-                        .stroke(theme.accent, lineWidth: 2)
-                        .frame(width: 14, height: 14)
-                    Circle()
-                        .fill(theme.accent)
-                        .frame(width: 3, height: 3)
+                let previewTint = previewLoadFailed ? theme.destructiveText : theme.accent
+
+                if previewLoadFailed {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(previewTint)
+                } else {
+                    ZStack {
+                        Circle()
+                            .stroke(previewTint, lineWidth: 2)
+                            .frame(width: 14, height: 14)
+                        Circle()
+                            .fill(previewTint)
+                            .frame(width: 3, height: 3)
+                    }
                 }
 
-                Text(L10n.ruleWizardPreviewMatchCount(count: previewMatchingCount))
+                Text(previewLoadFailed ? L10n.ruleWizardPreviewError : L10n.ruleWizardPreviewMatchCount(count: previewMatchingCount))
                     .font(.system(size: 12.5, weight: .semibold))
-                    .foregroundStyle(theme.accent)
+                    .foregroundStyle(previewTint)
                     .lineLimit(1)
                     .fixedSize(horizontal: true, vertical: false)
             }
@@ -284,7 +293,7 @@ struct RuleWizardView: View {
             .padding(.vertical, 8)
             .background(
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(theme.accent.opacity(0.09))
+                    .fill((previewLoadFailed ? theme.destructiveText : theme.accent).opacity(0.09))
             )
             .padding(.top, 14)
         }
@@ -630,6 +639,7 @@ struct RuleWizardView: View {
     private func reloadPreviewCount() async {
         guard let database = feedivoDatabase else {
             previewMatchingCount = 0
+            previewLoadFailed = true
             return
         }
 
@@ -638,8 +648,10 @@ struct RuleWizardView: View {
                 conditionDrafts: activeConditionDrafts,
                 matchMode: activeMatchMode
             )
+            previewLoadFailed = false
         } catch {
             previewMatchingCount = 0
+            previewLoadFailed = true
         }
     }
 

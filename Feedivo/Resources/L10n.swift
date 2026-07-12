@@ -828,6 +828,8 @@ enum L10n {
         String.localizedStringWithFormat(String(localized: "rule.applyExisting.result"), count)
     }
 
+    static let ruleWizardPreviewError = String(localized: "ruleWizard.preview.error")
+
     static func ruleWizardPreviewMatchCount(count: Int) -> String {
         String.localizedStringWithFormat(String(localized: "ruleWizard.preview.matchCount"), count)
     }
