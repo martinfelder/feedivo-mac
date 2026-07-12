@@ -212,26 +212,8 @@ struct ArticleStore {
     private func latestArticleForFeed(feedID: String, db: Database) throws -> ArticleListSnapshot? {
         if let datedArticle = try ArticleListSnapshot.fetchOne(db, sql: """
             SELECT
-                a.id,
-                a.feedID,
-                f.title AS feedTitle,
-                f.faviconURL AS faviconURL,
-                a.title,
-                a.summary,
-                a.link,
-                a.imageURL,
-                a.publishedAt,
-                a.arrivedAt,
-                a.estimatedReadingMinutes,
-                s.isRead,
-                s.isStarred,
-                s.isArchived,
-                s.isHidden,
-                COALESCE(o.state, 'none') AS offlineStateRaw
-            FROM articles a
-            JOIN feeds f ON f.id = a.feedID
-            JOIN article_statuses s ON s.articleID = a.id
-            LEFT JOIN article_offline o ON o.articleID = a.id
+                \(ArticleListSQL.selectColumns)
+            \(ArticleListSQL.standardFromJoin)
             WHERE a.feedID = ?
                 AND a.publishedAt IS NOT NULL
             ORDER BY a.publishedAt DESC, a.arrivedAt DESC
@@ -242,26 +224,8 @@ struct ArticleStore {
 
         return try ArticleListSnapshot.fetchOne(db, sql: """
             SELECT
-                a.id,
-                a.feedID,
-                f.title AS feedTitle,
-                f.faviconURL AS faviconURL,
-                a.title,
-                a.summary,
-                a.link,
-                a.imageURL,
-                a.publishedAt,
-                a.arrivedAt,
-                a.estimatedReadingMinutes,
-                s.isRead,
-                s.isStarred,
-                s.isArchived,
-                s.isHidden,
-                COALESCE(o.state, 'none') AS offlineStateRaw
-            FROM articles a
-            JOIN feeds f ON f.id = a.feedID
-            JOIN article_statuses s ON s.articleID = a.id
-            LEFT JOIN article_offline o ON o.articleID = a.id
+                \(ArticleListSQL.selectColumns)
+            \(ArticleListSQL.standardFromJoin)
             WHERE a.feedID = ?
             ORDER BY a.arrivedAt DESC
             LIMIT 1
@@ -284,22 +248,7 @@ struct ArticleStore {
         return try database.read { db in
             try ArticleListSnapshot.fetchAll(db, sql: """
                 SELECT
-                    a.id,
-                    a.feedID,
-                    f.title AS feedTitle,
-                    f.faviconURL AS faviconURL,
-                    a.title,
-                    a.summary,
-                    a.link,
-                    a.imageURL,
-                    a.publishedAt,
-                    a.arrivedAt,
-                    a.estimatedReadingMinutes,
-                    s.isRead,
-                    s.isStarred,
-                    s.isArchived,
-                    s.isHidden,
-                    COALESCE(o.state, 'none') AS offlineStateRaw
+                    \(ArticleListSQL.selectColumns)
                 FROM article_search search
                 JOIN articles a ON a.rowid = search.rowid
                 JOIN feeds f ON f.id = a.feedID
@@ -376,26 +325,8 @@ struct ArticleStore {
         return try database.read { db in
             try ArticleListSnapshot.fetchAll(db, sql: """
                 SELECT
-                    a.id,
-                    a.feedID,
-                    f.title AS feedTitle,
-                    f.faviconURL AS faviconURL,
-                    a.title,
-                    a.summary,
-                    a.link,
-                    a.imageURL,
-                    a.publishedAt,
-                    a.arrivedAt,
-                    a.estimatedReadingMinutes,
-                    s.isRead,
-                    s.isStarred,
-                    s.isArchived,
-                    s.isHidden,
-                    COALESCE(o.state, 'none') AS offlineStateRaw
-                FROM articles a
-                JOIN feeds f ON f.id = a.feedID
-                JOIN article_statuses s ON s.articleID = a.id
-                LEFT JOIN article_offline o ON o.articleID = a.id
+                    \(ArticleListSQL.selectColumns)
+                \(ArticleListSQL.standardFromJoin)
                 \(searchJoinSQL)
                 \(whereSQL)
                 ORDER BY COALESCE(a.publishedAt, a.arrivedAt) DESC, a.arrivedAt DESC
