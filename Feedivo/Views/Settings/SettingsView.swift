@@ -69,7 +69,14 @@ struct SettingsView: View {
     static let windowID = "feedivo-settings-new"
 
     private enum Layout {
-        static let windowWidth: CGFloat = 640
+        // 640pt reichte nur für die 7 Tabs, die es beim Verschmälern auf diese Breite
+        // (Commit 6a2015486, 2026-07-06) gab. Seither kamen Artikelliste/Menubar/
+        // Shortcuts dazu (10 Tabs gesamt) — bei fixer Breite + .windowResizability(
+        // .contentSize) in FeedivoApp.swift lief die Tab-Leiste über den sichtbaren
+        // Bereich hinaus, wodurch Bereinigung/Sync/Über nicht mehr anklickbar waren
+        // (Nutzer-Report 2026-07-12). Fix: grosszügig verbreitert, damit auch der
+        // längste Tab-Titel ("Benachrichtigungen") mit den übrigen 9 Tabs Platz hat.
+        static let windowWidth: CGFloat = 880
     }
 
     @Environment(\.interfaceTextSize) private var interfaceTextSize
