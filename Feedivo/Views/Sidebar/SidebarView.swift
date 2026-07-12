@@ -336,7 +336,7 @@ struct SidebarView: View {
             .buttonStyle(
                 SidebarRowButtonStyle(
                     isSelected: selection == .smartFolder(smartFolder.id),
-                    leadingIndent: 34,
+                    leadingIndent: 6,
                     rowHeight: 30
                 )
             )
@@ -430,6 +430,7 @@ struct SidebarView: View {
             .buttonStyle(
                 SidebarRowButtonStyle(
                     isSelected: selection == .tag(tag.id),
+                    leadingIndent: 6,
                     rowHeight: 30
                 )
             )
@@ -716,7 +717,7 @@ private struct SidebarFolderSection<Content: View>: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .padding(.horizontal, 0)
+            .padding(.horizontal, 16)
             .padding(.top, 8)
             .contextMenu {
                 if let deleteEmptyFolder {
