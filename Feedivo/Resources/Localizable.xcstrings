@@ -3219,6 +3219,118 @@
         }
       }
     },
+    "articleList.empty.description.feed" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Für diesen Feed sind noch keine SQLite-Artikel gespeichert."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No SQLite articles have been saved for this feed yet."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun article SQLite n'a encore été enregistré pour ce flux."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per questo feed non è ancora stato salvato alcun articolo SQLite."
+          }
+        }
+      }
+    },
+    "articleList.empty.description.smartFilter" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Für diesen Filter sind noch keine SQLite-Artikel gespeichert."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No SQLite articles have been saved for this filter yet."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun article SQLite n'a encore été enregistré pour ce filtre."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per questo filtro non è ancora stato salvato alcun articolo SQLite."
+          }
+        }
+      }
+    },
+    "articleList.empty.description.smartFolder" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Für diesen intelligenten Ordner sind noch keine SQLite-Artikel gespeichert."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No SQLite articles have been saved for this smart folder yet."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun article SQLite n'a encore été enregistré pour ce dossier intelligent."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per questa cartella intelligente non è ancora stato salvato alcun articolo SQLite."
+          }
+        }
+      }
+    },
+    "articleList.empty.description.tag" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Für dieses Tag sind noch keine SQLite-Artikel gespeichert."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No SQLite articles have been saved for this tag yet."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun article SQLite n'a encore été enregistré pour cette étiquette."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per questo tag non è ancora stato salvato alcun articolo SQLite."
+          }
+        }
+      }
+    },
     "articleList.empty.title" : {
       "localizations" : {
         "de" : {
@@ -3383,6 +3495,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Destra"
+          }
+        }
+      }
+    },
+    "articleList.loadFailed.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Artikel konnten nicht geladen werden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Articles Could Not Be Loaded"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de charger les articles"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile caricare gli articoli"
           }
         }
       }
@@ -4563,6 +4703,62 @@
         }
       }
     },
+    "db.unavailable.description" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die lokale Artikeldatenbank konnte nicht geöffnet werden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The local article database could not be opened."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible d'ouvrir la base de données locale des articles."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile aprire il database locale degli articoli."
+          }
+        }
+      }
+    },
+    "db.unavailable.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SQLite nicht verfügbar"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SQLite Unavailable"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SQLite indisponible"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SQLite non disponibile"
+          }
+        }
+      }
+    },
     "Deutsch, Englisch, Französisch und Italienisch sind vorbereitet." : {
 
     },
@@ -5597,6 +5793,62 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "feed.notInSQLite.description" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieser Feed ist noch nicht in der lokalen Artikeldatenbank vorhanden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This feed does not exist in the local article database yet."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce flux n'existe pas encore dans la base de données locale des articles."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo feed non esiste ancora nel database locale degli articoli."
+          }
+        }
+      }
+    },
+    "feed.notInSQLite.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feed noch nicht in SQLite"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feed Not Yet in SQLite"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flux pas encore dans SQLite"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feed non ancora in SQLite"
           }
         }
       }

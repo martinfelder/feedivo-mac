@@ -183,19 +183,19 @@ struct SQLiteFeedArticleListView: View {
             switch state.loadState {
             case .missingSQLiteDatabase:
                 ContentUnavailableView(
-                    "SQLite nicht verfügbar",
+                    L10n.dbUnavailableTitle,
                     systemImage: "externaldrive.badge.exclamationmark",
-                    description: Text("Die lokale Artikeldatenbank konnte nicht geöffnet werden.")
+                    description: Text(L10n.dbUnavailableDescription)
                 )
             case .missingFeed:
                 ContentUnavailableView(
-                    "Feed noch nicht in SQLite",
+                    L10n.feedNotInSQLiteTitle,
                     systemImage: "tray",
-                    description: Text("Dieser Feed ist noch nicht in der lokalen Artikeldatenbank vorhanden.")
+                    description: Text(L10n.feedNotInSQLiteDescription)
                 )
             case .failed(let message):
                 ContentUnavailableView(
-                    "Artikel konnten nicht geladen werden",
+                    L10n.articleListLoadFailedTitle,
                     systemImage: "exclamationmark.triangle",
                     description: Text(message)
                 )
@@ -439,18 +439,18 @@ struct SQLiteFeedArticleListView: View {
 
         switch scope {
         case .feed:
-            return "Für diesen Feed sind noch keine SQLite-Artikel gespeichert."
+            return L10n.articleListEmptyDescriptionFeed
         case .tagID:
-            return "Für dieses Tag sind noch keine SQLite-Artikel gespeichert."
+            return L10n.articleListEmptyDescriptionTag
         case .smartFilter:
-            return "Für diesen Filter sind noch keine SQLite-Artikel gespeichert."
+            return L10n.articleListEmptyDescriptionSmartFilter
         case .smartFolder:
-            return "Für diesen intelligenten Ordner sind noch keine SQLite-Artikel gespeichert."
+            return L10n.articleListEmptyDescriptionSmartFolder
         }
     }
 
     private var emptyTitle: String {
-        isSearching ? L10n.articleSearchNoResultsTitle : "Keine Artikel"
+        isSearching ? L10n.articleSearchNoResultsTitle : L10n.articleListEmptyTitle
     }
 
     private var emptySystemImage: String {
