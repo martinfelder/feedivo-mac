@@ -396,20 +396,18 @@ final class FeedViewModel {
             totalFeedCount: snapshots.count
         )
 
+        // Fehlgeschlagene Feeds werden bewusst NICHT zusätzlich über `errorMessage`
+        // (-> aufdringlicher Modal-Alert) gemeldet: `recentRefreshStatus`/`refreshItems`
+        // oben speisen bereits das rechte-untere Status-Widget mit derselben
+        // Pro-Feed-Fehlerliste, das bei Fehlern zudem dauerhaft sichtbar bleibt (siehe
+        // `clearRecentRefreshStatus(after:)` in ContentView.swift) — ein Modal wäre hier
+        // reine Duplizierung (Nutzer-Report 2026-07-12).
         if summary.failedFeedTitles.isEmpty {
             lastRefreshOutcome = .success
         } else if summary.failedFeedTitles.count < snapshots.count {
             lastRefreshOutcome = .partial(failedCount: summary.failedFeedTitles.count)
-            errorMessage = L10n.feedErrorRefreshAllPartial(
-                summary.failedFeedTitles.count,
-                feedTitles: summary.failedFeedTitles.joined(separator: ", ")
-            )
         } else {
             lastRefreshOutcome = .failure
-            errorMessage = L10n.feedErrorRefreshAllPartial(
-                summary.failedFeedTitles.count,
-                feedTitles: summary.failedFeedTitles.joined(separator: ", ")
-            )
         }
     }
 
