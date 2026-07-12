@@ -48,6 +48,14 @@ struct FeedRowView: View {
                     height: interfaceTextSize.scaled(displayStyle.iconSize)
                 )
 
+            if snapshot.hasRecentError {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(interfaceTextSize.font(size: 11, weight: .semibold))
+                    .foregroundStyle(.orange)
+                    .help(L10n.feedErrorBadgeTooltip)
+                    .accessibilityLabel(Text(L10n.feedErrorBadgeTooltip))
+            }
+
             Text(displayTitle)
                 .font(interfaceTextSize.font(
                     size: displayStyle.titleSize,

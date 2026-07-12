@@ -5302,6 +5302,34 @@
         }
       }
     },
+    "feed.error.badge.tooltip" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feed nicht erreichbar — Details in den Feed-Eigenschaften"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feed unreachable — see Feed Properties for details"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flux inaccessible — voir les propriétés du flux pour plus de détails"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feed non raggiungibile — vedi le proprietà del feed per i dettagli"
+          }
+        }
+      }
+    },
     "feed.error.duplicate" : {
       "localizations" : {
         "de" : {
