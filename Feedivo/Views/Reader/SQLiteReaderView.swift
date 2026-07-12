@@ -62,14 +62,18 @@ struct SQLiteReaderView: View {
     @AppStorage(KeyboardShortcutOverrides.storageKey)
     private var shortcutOverridesRawValue = KeyboardShortcutOverrides().rawValue
 
-    // Der Artikelinfo-Inspector (ArticleMetadataInspectorView) mutiert Tags direkt in
-    // SQLite und bumpt anschliessend diesen Zaehler, aktualisiert dabei aber nur seine
+    // Der Artikelinfo-Inspector (ArticleMetadataInspectorView) mutiert Tags UND Ordner
+    // direkt in SQLite (Tags -> SidebarBadgeInvalidation, Ordner -> SQLiteDataInvalidation)
+    // und bumpt anschliessend den jeweiligen Zaehler, aktualisiert dabei aber nur seine
     // eigene lokale Snapshot-Kopie — nicht den `state.snapshot` dieser View, aus dem
-    // readerArticleMetadata die Tag-Chips im Artikel-Header rendert. Ohne diese
-    // Beobachtung blieben neu hinzugefuegte/entfernte Tags im Reader unsichtbar, bis ein
+    // readerArticleMetadata sowohl Tag-Chips als auch Ordnername im Artikel-Header
+    // rendert. Ohne diese Beobachtung blieben Aenderungen im Reader unsichtbar, bis ein
     // Artikelwechsel `state.load(...)` erneut ausloest (Nutzer-Report 2026-07-12).
     @AppStorage(SidebarBadgeInvalidation.directTagVersionKey)
     private var directTagVersion = 0
+
+    @AppStorage(SQLiteDataInvalidation.statusVersionKey)
+    private var sqliteStatusVersion = 0
 
     private var shortcutOverrides: KeyboardShortcutOverrides {
         KeyboardShortcutOverrides.resolved(from: shortcutOverridesRawValue)
@@ -79,7 +83,7 @@ struct SQLiteReaderView: View {
         toolbarRebuildGeneration += 1
     }
 
-    private func reloadAfterDirectTagChange() {
+    private func reloadCurrentArticleSnapshot() {
         guard let database, let articleID = state.snapshot?.id else {
             return
         }
@@ -287,7 +291,10 @@ struct SQLiteReaderView: View {
             onSnapshotChange(snapshot)
         }
         .onChange(of: directTagVersion) { _, _ in
-            reloadAfterDirectTagChange()
+            reloadCurrentArticleSnapshot()
+        }
+        .onChange(of: sqliteStatusVersion) { _, _ in
+            reloadCurrentArticleSnapshot()
         }
         .onDisappear {
             onSnapshotChange(nil)
