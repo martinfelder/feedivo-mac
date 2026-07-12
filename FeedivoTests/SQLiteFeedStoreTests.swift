@@ -159,4 +159,90 @@ struct SQLiteFeedStoreTests {
         #expect(loaded?.unreadCount == 7)
         #expect(loaded?.lastRefreshedAt == refreshedAt)
     }
+
+    @Test func sidebarSnapshotsMarkenFeedMitJuengstemErrorLogAlsFehlerhaft() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let store = FeedStore(database: database)
+        let logStore = FeedLogStore(database: database)
+
+        try store.save(FeedRecord(id: "feed-a", url: "https://a.example/feed.xml", title: "A"))
+        try store.save(FeedRecord(id: "feed-b", url: "https://b.example/feed.xml", title: "B"))
+
+        try logStore.append(FeedLogRecord(
+            feedID: "feed-a",
+            createdAt: Date(timeIntervalSince1970: 100),
+            level: "error",
+            message: "Netzwerkfehler"
+        ))
+        try logStore.append(FeedLogRecord(
+            feedID: "feed-b",
+            createdAt: Date(timeIntervalSince1970: 100),
+            level: "info",
+            message: "3 neue Artikel"
+        ))
+
+        let snapshots = try store.sidebarFeeds()
+
+        #expect(snapshots.first { $0.id == "feed-a" }?.hasRecentError == true)
+        #expect(snapshots.first { $0.id == "feed-b" }?.hasRecentError == false)
+    }
+
+    @Test func sidebarSnapshotsLoeschenFehlerstatusNachErfolgreichemFolgeRefresh() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let store = FeedStore(database: database)
+        let logStore = FeedLogStore(database: database)
+
+        try store.save(FeedRecord(id: "feed-a", url: "https://a.example/feed.xml", title: "A"))
+
+        try logStore.append(FeedLogRecord(
+            feedID: "feed-a",
+            createdAt: Date(timeIntervalSince1970: 100),
+            level: "error",
+            message: "Netzwerkfehler"
+        ))
+        try logStore.append(FeedLogRecord(
+            feedID: "feed-a",
+            createdAt: Date(timeIntervalSince1970: 200),
+            level: "info",
+            message: "2 neue Artikel"
+        ))
+
+        let snapshots = try store.sidebarFeeds()
+
+        #expect(snapshots.first { $0.id == "feed-a" }?.hasRecentError == false)
+    }
+
+    @Test func sidebarSnapshotsOhneLogEintraegeSindNichtFehlerhaft() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let store = FeedStore(database: database)
+
+        try store.save(FeedRecord(id: "feed-a", url: "https://a.example/feed.xml", title: "A"))
+
+        let snapshots = try store.sidebarFeeds()
+
+        #expect(snapshots.first { $0.id == "feed-a" }?.hasRecentError == false)
+    }
+
+    @Test func hasRecentErrorLiefertStatusFuerEinzelnenFeed() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let store = FeedStore(database: database)
+        let logStore = FeedLogStore(database: database)
+
+        try store.save(FeedRecord(id: "feed-a", url: "https://a.example/feed.xml", title: "A"))
+        try logStore.append(FeedLogRecord(
+            feedID: "feed-a",
+            createdAt: Date(timeIntervalSince1970: 100),
+            level: "error",
+            message: "Netzwerkfehler"
+        ))
+
+        #expect(try store.hasRecentError(feedID: "feed-a") == true)
+    }
+
+    @Test func hasRecentErrorLiefertFalseFuerUnbekannteFeedID() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let store = FeedStore(database: database)
+
+        #expect(try store.hasRecentError(feedID: "unbekannt") == false)
+    }
 }

@@ -263,7 +263,17 @@ struct FeedStore {
                         WHERE a.feedID = f.id
                             AND s.isRead = 0
                             AND s.isHidden = 0
-                    ) AS unreadCount
+                    ) AS unreadCount,
+                    COALESCE(
+                        (
+                            SELECT level = 'error'
+                            FROM feed_logs
+                            WHERE feedID = f.id
+                            ORDER BY createdAt DESC
+                            LIMIT 1
+                        ),
+                        0
+                    ) AS hasRecentError
                 FROM feeds f
                 ORDER BY f.title COLLATE NOCASE, f.id COLLATE NOCASE
                 """)
@@ -275,6 +285,21 @@ struct FeedStore {
 
                 return $0.id.localizedStandardCompare($1.id) == .orderedAscending
             }
+        }
+    }
+
+    /// Einzelfeed-Variante derselben Fehler-Ableitung wie `sidebarFeeds()` — für
+    /// `SQLiteFeedArticleListView`s Inline-Fehlerbanner, wo kein vollständiger
+    /// `FeedSidebarSnapshot` verfügbar ist (Finding 2.1/Feature 20.1, Gruppe 6).
+    func hasRecentError(feedID: String) throws -> Bool {
+        try database.read { db in
+            try Bool.fetchOne(db, sql: """
+                SELECT level = 'error'
+                FROM feed_logs
+                WHERE feedID = ?
+                ORDER BY createdAt DESC
+                LIMIT 1
+                """, arguments: [feedID]) ?? false
         }
     }
 
@@ -347,5 +372,6 @@ extension FeedSidebarSnapshot: FetchableRecord {
         faviconURL = row["faviconURL"]
         folderName = row["folderName"]
         unreadCount = row["unreadCount"]
+        hasRecentError = row["hasRecentError"]
     }
 }
