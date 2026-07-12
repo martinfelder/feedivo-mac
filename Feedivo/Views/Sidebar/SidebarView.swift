@@ -429,7 +429,8 @@ struct SidebarView: View {
             }
             .buttonStyle(
                 SidebarRowButtonStyle(
-                    isSelected: selection == .tag(tag.id)
+                    isSelected: selection == .tag(tag.id),
+                    rowHeight: 30
                 )
             )
         }
