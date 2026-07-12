@@ -32,7 +32,7 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(appSource.contains("ContentView(feedViewModel: feedViewModel)"))
     }
 
-    @Test func settingsSceneUsesOnlyNewSettingsView() throws {
+    @Test func settingsSceneUsesOnlySettingsView() throws {
         let testFileURL = URL(fileURLWithPath: #filePath)
         let projectRoot = testFileURL
             .deletingLastPathComponent()
@@ -41,7 +41,7 @@ struct FeedivoAppSceneConfigurationTests {
         let appSource = try String(contentsOf: appSourceURL, encoding: .utf8)
 
         #expect(appSource.contains("Settings {"))
-        #expect(appSource.contains("NewSettingsView()"))
+        #expect(appSource.contains("SettingsView()"))
         #expect(!appSource.contains("SettingsCommands()"))
         #expect(!appSource.contains("Einstellungen alt"))
         #expect(!appSource.contains("SettingsView.oldWindowID"))

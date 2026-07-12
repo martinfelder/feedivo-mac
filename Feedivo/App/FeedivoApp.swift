@@ -168,7 +168,7 @@ struct FeedivoApp: App {
         .defaultSize(width: 900, height: 720)
 
         Settings {
-            NewSettingsView()
+            SettingsView()
                 .environment(\.locale, appLanguage.locale)
                 .environment(\.interfaceTextSize, interfaceTextSize)
                 .environment(\.feedivoDatabase, feedivoDatabase)

@@ -1,6 +1,6 @@
 import SwiftUI
 
-private enum NewSettingsSection: String, CaseIterable, Identifiable {
+private enum SettingsSection: String, CaseIterable, Identifiable {
     case general
     case appearance
     case articleList
@@ -65,7 +65,7 @@ private enum NewSettingsSection: String, CaseIterable, Identifiable {
     }
 }
 
-struct NewSettingsView: View {
+struct SettingsView: View {
     static let windowID = "feedivo-settings-new"
 
     private enum Layout {
@@ -73,7 +73,7 @@ struct NewSettingsView: View {
     }
 
     @Environment(\.interfaceTextSize) private var interfaceTextSize
-    @State private var selectedSection = NewSettingsSection.general
+    @State private var selectedSection = SettingsSection.general
 
     var body: some View {
         TabView(selection: $selectedSection) {
@@ -95,7 +95,7 @@ struct NewSettingsView: View {
     }
 
     @ViewBuilder
-    private func settingsTab(_ section: NewSettingsSection) -> some View {
+    private func settingsTab(_ section: SettingsSection) -> some View {
         settingsContent(for: section)
             .padding(.horizontal, 28)
             .padding(.vertical, 22)
@@ -108,33 +108,33 @@ struct NewSettingsView: View {
     }
 
     @ViewBuilder
-    private func settingsContent(for section: NewSettingsSection) -> some View {
+    private func settingsContent(for section: SettingsSection) -> some View {
         switch section {
         case .general:
-            NewGeneralSettingsView()
+            GeneralSettingsView()
         case .appearance:
-            NewAppearanceSettingsView()
+            AppearanceSettingsView()
         case .articleList:
-            NewArticleListSettingsView()
+            ArticleListSettingsView()
         case .menubar:
-            NewMenubarSettingsView()
+            MenubarSettingsView()
         case .shortcuts:
-            NewShortcutsSettingsView()
+            ShortcutsSettingsView()
         case .notifications:
-            NewNotificationSettingsView()
+            NotificationSettingsView()
         case .refresh:
-            NewRefreshSettingsView()
+            RefreshSettingsView()
         case .cleanup:
-            NewCleanupSettingsView()
+            CleanupSettingsView()
         case .sync:
-            NewSyncSettingsView()
+            SyncSettingsView()
         case .about:
-            NewSettingsAboutView()
+            SettingsAboutView()
         }
     }
 }
 
-private struct NewSettingsBlock<Content: View>: View {
+private struct SettingsBlock<Content: View>: View {
     let eyebrow: LocalizedStringKey
     @ViewBuilder let content: Content
 
@@ -150,7 +150,7 @@ private struct NewSettingsBlock<Content: View>: View {
     }
 }
 
-private struct NewSettingRow<Control: View>: View {
+private struct SettingRow<Control: View>: View {
     let title: LocalizedStringKey
     let description: LocalizedStringKey
     @ViewBuilder let control: Control
@@ -181,7 +181,7 @@ private struct NewSettingRow<Control: View>: View {
     }
 }
 
-private struct NewInfoRow: View {
+private struct InfoRow: View {
     let iconName: String
     let title: LocalizedStringKey
     let description: LocalizedStringKey
@@ -213,7 +213,7 @@ private struct NewInfoRow: View {
     }
 }
 
-private struct NewGeneralSettingsView: View {
+private struct GeneralSettingsView: View {
     @AppStorage("markArticleReadOnSelection")
     private var markArticleReadOnSelection = true
 
@@ -251,8 +251,8 @@ private struct NewGeneralSettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            NewSettingsBlock(eyebrow: "System") {
-                NewSettingRow(
+            SettingsBlock(eyebrow: "System") {
+                SettingRow(
                     title: L10n.settingsLanguagePickerTitle,
                     description: "Anzeigesprache wechseln. Ein App-Neustart wird empfohlen."
                 ) {
@@ -266,7 +266,7 @@ private struct NewGeneralSettingsView: View {
                     .pickerStyle(.menu)
                 }
 
-                NewSettingRow(
+                SettingRow(
                     title: L10n.readerDisplayModePicker,
                     description: "Standardansicht für geöffnete Artikel."
                 ) {
@@ -281,7 +281,7 @@ private struct NewGeneralSettingsView: View {
                     .fixedSize(horizontal: true, vertical: false)
                 }
 
-                NewSettingRow(
+                SettingRow(
                     title: "In-App Originalansicht rendern mit",
                     description: "Auswahl nur für die eingebettete Web-Ansicht im Reader. Wird intern über WebKit umgesetzt."
                 ) {
@@ -298,7 +298,7 @@ private struct NewGeneralSettingsView: View {
                     }
                 }
 
-                NewSettingRow(
+                SettingRow(
                     title: "Original öffnen mit",
                     description: "Wähle, welcher Browser für den externen Aufruf von „Original öffnen“ genutzt wird."
                 ) {
@@ -317,7 +317,7 @@ private struct NewGeneralSettingsView: View {
                     }
                 }
 
-                NewSettingRow(
+                SettingRow(
                     title: L10n.settingsMarkReadOnOpenTitle,
                     description: L10n.settingsMarkReadOnOpenDescription
                 ) {
@@ -325,7 +325,7 @@ private struct NewGeneralSettingsView: View {
                         .labelsHidden()
                 }
 
-                NewSettingRow(
+                SettingRow(
                     title: L10n.settingsRestoreArticleWindowsTitle,
                     description: L10n.settingsRestoreArticleWindowsDescription
                 ) {
@@ -334,12 +334,12 @@ private struct NewGeneralSettingsView: View {
                 }
             }
 
-            NewCacheSettingsView()
+            CacheSettingsView()
         }
     }
 }
 
-private struct NewAppearanceSettingsView: View {
+private struct AppearanceSettingsView: View {
     @AppStorage(InterfaceTextSize.storageKey)
     private var interfaceTextSizeRawValue = InterfaceTextSize.defaultSize.rawValue
 
@@ -384,8 +384,8 @@ private struct NewAppearanceSettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            NewSettingsBlock(eyebrow: "Oberfläche") {
-                NewSettingRow(
+            SettingsBlock(eyebrow: "Oberfläche") {
+                SettingRow(
                     title: L10n.settingsAppearanceModePicker,
                     description: "Legt fest, ob Feedivo unabhängig von der macOS-Systemeinstellung immer hell oder immer dunkel dargestellt wird."
                 ) {
@@ -400,7 +400,7 @@ private struct NewAppearanceSettingsView: View {
                     .fixedSize(horizontal: true, vertical: false)
                 }
 
-                NewSettingRow(
+                SettingRow(
                     title: L10n.settingsInterfaceTextSizePicker,
                     description: "App-weite Skalierung der Bedienoberfläche."
                 ) {
@@ -415,7 +415,7 @@ private struct NewAppearanceSettingsView: View {
                     .fixedSize(horizontal: true, vertical: false)
                 }
 
-                NewSettingRow(
+                SettingRow(
                     title: L10n.settingsSidebarShowsReadFeedsTitle,
                     description: L10n.settingsSidebarShowsReadFeedsDescription
                 ) {
@@ -423,7 +423,7 @@ private struct NewAppearanceSettingsView: View {
                         .labelsHidden()
                 }
 
-                NewSettingRow(
+                SettingRow(
                     title: L10n.settingsSidebarShowsUnreadCountTitle,
                     description: L10n.settingsSidebarShowsUnreadCountDescription
                 ) {
@@ -431,7 +431,7 @@ private struct NewAppearanceSettingsView: View {
                         .labelsHidden()
                 }
 
-                NewSettingRow(
+                SettingRow(
                     title: L10n.settingsSidebarShowsFaviconsTitle,
                     description: L10n.settingsSidebarShowsFaviconsDescription
                 ) {
@@ -439,7 +439,7 @@ private struct NewAppearanceSettingsView: View {
                         .labelsHidden()
                 }
 
-                NewSettingRow(
+                SettingRow(
                     title: "Badge-Zähler am App-Icon anzeigen",
                     description: "Zeigt die Anzahl ungelesener Artikel im Dock."
                 ) {
@@ -448,8 +448,8 @@ private struct NewAppearanceSettingsView: View {
                 }
             }
 
-            NewSettingsBlock(eyebrow: L10n.settingsReadingSection) {
-                NewSettingRow(title: L10n.readerTitleFontPicker, description: "Schriftfamilie und Gewicht für Artikeltitel.") {
+            SettingsBlock(eyebrow: L10n.settingsReadingSection) {
+                SettingRow(title: L10n.readerTitleFontPicker, description: "Schriftfamilie und Gewicht für Artikeltitel.") {
                     HStack {
                         Picker("", selection: $readerTitleFontPresetRawValue) {
                             ForEach(ReaderFontPreset.allCases) { preset in
@@ -465,7 +465,7 @@ private struct NewAppearanceSettingsView: View {
                     }
                 }
 
-                NewSettingRow(title: L10n.readerBodyFontPicker, description: "Schriftfamilie und Gewicht für den Artikeltext.") {
+                SettingRow(title: L10n.readerBodyFontPicker, description: "Schriftfamilie und Gewicht für den Artikeltext.") {
                     HStack {
                         Picker("", selection: $readerBodyFontPresetRawValue) {
                             ForEach(ReaderFontPreset.allCases) { preset in
@@ -481,19 +481,19 @@ private struct NewAppearanceSettingsView: View {
                     }
                 }
 
-                NewSettingRow(title: L10n.readerBodyFontSizeSlider, description: "Größe des nativen Reader-Texts.") {
-                    NewSlider(value: $readerBodyFontSize, range: ReaderTypography.bodyFontSizeRange, suffix: "px")
+                SettingRow(title: L10n.readerBodyFontSizeSlider, description: "Größe des nativen Reader-Texts.") {
+                    SettingsSlider(value: $readerBodyFontSize, range: ReaderTypography.bodyFontSizeRange, suffix: "px")
                 }
 
-                NewSettingRow(title: L10n.readerLineSpacingSlider, description: "Vertikaler Abstand im Fließtext.") {
-                    NewSlider(value: $readerLineSpacing, range: ReaderTypography.lineSpacingRange, suffix: "px")
+                SettingRow(title: L10n.readerLineSpacingSlider, description: "Vertikaler Abstand im Fließtext.") {
+                    SettingsSlider(value: $readerLineSpacing, range: ReaderTypography.lineSpacingRange, suffix: "px")
                 }
 
-                NewSettingRow(title: L10n.readerContentWidthSlider, description: "Breite der Lesespalte im Reader.") {
-                    NewSlider(value: $readerContentWidth, range: ReaderTypography.contentWidthRange, suffix: "px")
+                SettingRow(title: L10n.readerContentWidthSlider, description: "Breite der Lesespalte im Reader.") {
+                    SettingsSlider(value: $readerContentWidth, range: ReaderTypography.contentWidthRange, suffix: "px")
                 }
 
-                NewSettingRow(
+                SettingRow(
                     title: L10n.readerShowsArticleImagesToggle,
                     description: "Zeigt oder verbirgt Bilder im Artikeltext, unabhängig von den Vorschaubildern in der Artikelliste."
                 ) {
@@ -505,7 +505,7 @@ private struct NewAppearanceSettingsView: View {
     }
 }
 
-private struct NewArticleListSettingsView: View {
+private struct ArticleListSettingsView: View {
     @AppStorage(ArticleListImagePosition.storageKey)
     private var articleListImagePositionRawValue = ArticleListImagePosition.defaultPosition.rawValue
 
@@ -523,8 +523,8 @@ private struct NewArticleListSettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            NewSettingsBlock(eyebrow: "Artikelliste") {
-                NewSettingRow(
+            SettingsBlock(eyebrow: "Artikelliste") {
+                SettingRow(
                     title: L10n.settingsArticleListImagePositionTitle,
                     description: L10n.settingsArticleListImagePositionDescription
                 ) {
@@ -539,7 +539,7 @@ private struct NewArticleListSettingsView: View {
                     .fixedSize(horizontal: true, vertical: false)
                 }
 
-                NewSettingRow(
+                SettingRow(
                     title: L10n.settingsArticleListShowsFeedNameTitle,
                     description: L10n.settingsArticleListShowsFeedNameDescription
                 ) {
@@ -547,7 +547,7 @@ private struct NewArticleListSettingsView: View {
                         .labelsHidden()
                 }
 
-                NewSettingRow(
+                SettingRow(
                     title: L10n.settingsArticleListFeedNamePositionTitle,
                     description: L10n.settingsArticleListFeedNamePositionDescription
                 ) {
@@ -562,7 +562,7 @@ private struct NewArticleListSettingsView: View {
                     .fixedSize(horizontal: true, vertical: false)
                 }
 
-                NewSettingRow(
+                SettingRow(
                     title: L10n.settingsArticleListSummaryLineCountTitle,
                     description: L10n.settingsArticleListSummaryLineCountDescription
                 ) {
@@ -574,7 +574,7 @@ private struct NewArticleListSettingsView: View {
                     .fixedSize()
                 }
 
-                NewSettingRow(
+                SettingRow(
                     title: L10n.settingsArticleListDateDisplayModeTitle,
                     description: L10n.settingsArticleListDateDisplayModeDescription
                 ) {
@@ -593,7 +593,7 @@ private struct NewArticleListSettingsView: View {
     }
 }
 
-private struct NewMenubarSettingsView: View {
+private struct MenubarSettingsView: View {
     @AppStorage(MenubarSettings.isEnabledKey)
     private var menubarIsEnabled = MenubarSettings.defaultIsEnabled
 
@@ -608,8 +608,8 @@ private struct NewMenubarSettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            NewSettingsBlock(eyebrow: "Menubar") {
-                NewSettingRow(
+            SettingsBlock(eyebrow: "Menubar") {
+                SettingRow(
                     title: L10n.settingsMenubarIsEnabledTitle,
                     description: L10n.settingsMenubarIsEnabledDescription
                 ) {
@@ -617,7 +617,7 @@ private struct NewMenubarSettingsView: View {
                         .labelsHidden()
                 }
 
-                NewSettingRow(
+                SettingRow(
                     title: L10n.settingsMenubarArticleCountTitle,
                     description: L10n.settingsMenubarArticleCountDescription
                 ) {
@@ -630,7 +630,7 @@ private struct NewMenubarSettingsView: View {
                     .fixedSize()
                 }
 
-                NewSettingRow(
+                SettingRow(
                     title: L10n.settingsMenubarArticleClickBehaviorTitle,
                     description: L10n.settingsMenubarArticleClickBehaviorDescription
                 ) {
@@ -646,7 +646,7 @@ private struct NewMenubarSettingsView: View {
                     .disabled(!menubarIsEnabled)
                 }
 
-                NewSettingRow(
+                SettingRow(
                     title: L10n.settingsMenubarHidesDockIconTitle,
                     description: L10n.settingsMenubarHidesDockIconDescription
                 ) {
@@ -659,7 +659,7 @@ private struct NewMenubarSettingsView: View {
     }
 }
 
-private struct NewSlider: View {
+private struct SettingsSlider: View {
     @Binding var value: Double
     let range: ClosedRange<Double>
     let suffix: String
@@ -677,7 +677,7 @@ private struct NewSlider: View {
     }
 }
 
-private struct NewCacheSettingsView: View {
+private struct CacheSettingsView: View {
     @AppStorage(ImageCacheSettings.limitMegabytesKey)
     private var cacheLimitMegabytes = ImageCacheSettings.defaultLimitMegabytes
 
@@ -686,15 +686,15 @@ private struct NewCacheSettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            NewSettingsBlock(eyebrow: L10n.settingsCacheSection) {
-                NewSettingRow(title: L10n.settingsCacheCurrentSize, description: "Gespeicherte Bilder und Favicons.") {
+            SettingsBlock(eyebrow: L10n.settingsCacheSection) {
+                SettingRow(title: L10n.settingsCacheCurrentSize, description: "Gespeicherte Bilder und Favicons.") {
                     Text(ImageCacheSettings.formattedByteCount(cacheSizeInBytes))
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(.secondary)
                         .monospacedDigit()
                 }
 
-                NewSettingRow(title: L10n.settingsCacheLimitPicker, description: L10n.settingsCacheDescriptionDetail) {
+                SettingRow(title: L10n.settingsCacheLimitPicker, description: L10n.settingsCacheDescriptionDetail) {
                     Picker("", selection: $cacheLimitMegabytes) {
                         ForEach(ImageCacheSettings.allowedLimitMegabytes, id: \.self) { limitMegabytes in
                             Text(L10n.settingsCacheLimit(megabytes: limitMegabytes))
@@ -762,13 +762,13 @@ private struct NewCacheSettingsView: View {
     }
 }
 
-private struct NewNotificationSettingsView: View {
+private struct NotificationSettingsView: View {
     @State private var feedNotificationAuthorizationStatus: FeedNotificationAuthorizationStatus = .unknown
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            NewSettingsBlock(eyebrow: L10n.settingsNotificationsSection) {
-                NewSettingRow(
+            SettingsBlock(eyebrow: L10n.settingsNotificationsSection) {
+                SettingRow(
                     title: L10n.settingsNotificationsPermissionTitle,
                     description: notificationPermissionDescription
                 ) {
@@ -786,13 +786,13 @@ private struct NewNotificationSettingsView: View {
                     }
                 }
 
-                NewInfoRow(
+                InfoRow(
                     iconName: "dot.radiowaves.left.and.right",
                     title: L10n.settingsNotificationsFeedTitle,
                     description: L10n.settingsNotificationsFeedDescription
                 )
 
-                NewInfoRow(
+                InfoRow(
                     iconName: "slider.horizontal.3",
                     title: L10n.settingsNotificationsRulesTitle,
                     description: L10n.settingsNotificationsRulesDescription
@@ -835,7 +835,7 @@ private struct NewNotificationSettingsView: View {
     }
 }
 
-private struct NewRefreshSettingsView: View {
+private struct RefreshSettingsView: View {
     @AppStorage(BackgroundRefreshSettings.isEnabledKey)
     private var backgroundRefreshIsEnabled = BackgroundRefreshSettings.defaultIsEnabled
 
@@ -859,18 +859,18 @@ private struct NewRefreshSettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            NewSettingsBlock(eyebrow: L10n.settingsRefreshSection) {
-                NewSettingRow(title: L10n.settingsAutomaticRefreshTitle, description: L10n.settingsAutomaticRefreshDescription) {
+            SettingsBlock(eyebrow: L10n.settingsRefreshSection) {
+                SettingRow(title: L10n.settingsAutomaticRefreshTitle, description: L10n.settingsAutomaticRefreshDescription) {
                     Toggle("", isOn: $backgroundRefreshIsEnabled)
                         .labelsHidden()
                 }
 
-                NewSettingRow(title: L10n.settingsRefreshOnLaunchTitle, description: L10n.settingsRefreshOnLaunchDescription) {
+                SettingRow(title: L10n.settingsRefreshOnLaunchTitle, description: L10n.settingsRefreshOnLaunchDescription) {
                     Toggle("", isOn: $refreshOnLaunchIsEnabled)
                         .labelsHidden()
                 }
 
-                NewSettingRow(title: L10n.settingsAutomaticRefreshIntervalPicker, description: "Gilt als Standard für neue Feeds.") {
+                SettingRow(title: L10n.settingsAutomaticRefreshIntervalPicker, description: "Gilt als Standard für neue Feeds.") {
                     Picker("", selection: $backgroundRefreshIntervalMinutes) {
                         ForEach(BackgroundRefreshSettings.allowedIntervalMinutes, id: \.self) { intervalMinutes in
                             Text(L10n.settingsAutomaticRefreshInterval(minutes: intervalMinutes))
@@ -965,7 +965,7 @@ private struct NewRefreshSettingsView: View {
     }
 }
 
-private struct NewSyncSettingsView: View {
+private struct SyncSettingsView: View {
     @Environment(DatabaseLoadState.self) private var databaseLoadState
 
     @AppStorage(CloudSyncSettings.isEnabledKey)
@@ -985,7 +985,7 @@ private struct NewSyncSettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            NewSettingsBlock(eyebrow: L10n.settingsSyncSection) {
+            SettingsBlock(eyebrow: L10n.settingsSyncSection) {
                 VStack(alignment: .leading, spacing: 16) {
                     HStack(alignment: .top, spacing: 12) {
                         Image(systemName: "icloud")
@@ -1003,7 +1003,7 @@ private struct NewSyncSettingsView: View {
                         }
                     }
 
-                    NewSettingRow(
+                    SettingRow(
                         title: L10n.settingsSyncBetaTitle,
                         description: L10n.settingsSyncRestartHint
                     ) {
@@ -1011,14 +1011,14 @@ private struct NewSyncSettingsView: View {
                             .toggleStyle(.switch)
                     }
 
-                    NewInfoRow(
+                    InfoRow(
                         iconName: hasDatabaseError ? "exclamationmark.triangle" : "checkmark.icloud",
                         title: L10n.settingsSyncStatusTitle,
                         description: LocalizedStringKey(statusLocalizationKey)
                     )
 
                     if hasDatabaseError {
-                        NewInfoRow(
+                        InfoRow(
                             iconName: "internaldrive",
                             title: L10n.settingsSyncDatabaseTitle,
                             description: L10n.settingsSyncDatabaseErrorHint
@@ -1030,7 +1030,7 @@ private struct NewSyncSettingsView: View {
     }
 }
 
-private struct NewCleanupSettingsView: View {
+private struct CleanupSettingsView: View {
     @Environment(\.feedivoDatabase) private var feedivoDatabase
 
     @AppStorage(ArticleRetentionSettings.isEnabledKey)
@@ -1050,8 +1050,8 @@ private struct NewCleanupSettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            NewSettingsBlock(eyebrow: "Alte Artikel") {
-                NewSettingRow(
+            SettingsBlock(eyebrow: "Alte Artikel") {
+                SettingRow(
                     title: L10n.settingsArticleRetentionTitle,
                     description: L10n.settingsArticleRetentionDescription
                 ) {
@@ -1059,7 +1059,7 @@ private struct NewCleanupSettingsView: View {
                         .labelsHidden()
                 }
 
-                NewSettingRow(
+                SettingRow(
                     title: L10n.settingsArticleRetentionIntervalPicker,
                     description: "Artikel werden nach diesem Zeitraum automatisch entfernt."
                 ) {
@@ -1077,7 +1077,7 @@ private struct NewCleanupSettingsView: View {
                     }
                 }
 
-                NewSettingRow(
+                SettingRow(
                     title: "Mindestens pro Feed behalten",
                     description: "So viele der neuesten Artikel bleiben pro Feed erhalten, auch wenn sie älter sind."
                 ) {
@@ -1097,7 +1097,7 @@ private struct NewCleanupSettingsView: View {
                     }
                 }
 
-                NewSettingRow(
+                SettingRow(
                     title: L10n.settingsArticleRetentionIncludesProtectedArticles,
                     description: "Auch markierte oder geschützte Artikel in die Bereinigung einbeziehen."
                 ) {
@@ -1106,7 +1106,7 @@ private struct NewCleanupSettingsView: View {
                         .disabled(!articleRetentionIsEnabled)
                 }
 
-                NewSettingRow(
+                SettingRow(
                     title: L10n.settingsArticleRetentionRunNow,
                     description: "Bereinigung direkt mit den aktuellen Einstellungen starten."
                 ) {
@@ -1160,10 +1160,10 @@ private struct NewCleanupSettingsView: View {
     }
 }
 
-private struct NewSettingsAboutView: View {
+private struct SettingsAboutView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            NewSettingsBlock(eyebrow: "Feedivo") {
+            SettingsBlock(eyebrow: "Feedivo") {
                 HStack(spacing: 14) {
                     Text("F")
                         .font(.system(size: 24, weight: .bold))
@@ -1184,14 +1184,14 @@ private struct NewSettingsAboutView: View {
                 }
             }
 
-            NewSettingsBlock(eyebrow: "Release") {
-                NewInfoRow(
+            SettingsBlock(eyebrow: "Release") {
+                InfoRow(
                     iconName: "shippingbox",
                     title: "Verteilung",
                     description: "App Store oder private Verteilung ist noch zu entscheiden."
                 )
 
-                NewInfoRow(
+                InfoRow(
                     iconName: "globe",
                     title: "Lokalisierung",
                     description: "Deutsch, Englisch, Französisch und Italienisch sind vorbereitet."
@@ -1201,14 +1201,14 @@ private struct NewSettingsAboutView: View {
     }
 }
 
-private struct NewShortcutsSettingsView: View {
+private struct ShortcutsSettingsView: View {
     @AppStorage(KeyboardShortcutOverrides.storageKey)
     private var shortcutOverridesRawValue = KeyboardShortcutOverrides().rawValue
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             ForEach(ShortcutCategory.allCases, id: \.self) { category in
-                NewSettingsBlock(eyebrow: category.titleKey) {
+                SettingsBlock(eyebrow: category.titleKey) {
                     VStack(spacing: 0) {
                         ForEach(CustomizableShortcut.allCases.filter { $0.category == category }) { shortcut in
                             ShortcutSettingRow(shortcut: shortcut, overridesRawValue: $shortcutOverridesRawValue)
