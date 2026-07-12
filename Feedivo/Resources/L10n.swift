@@ -571,6 +571,7 @@ enum L10n {
     static let feedRefreshCommand = String(localized: "feed.refresh.command")
     static let feedErrorBadgeTooltip = String(localized: "feed.error.badge.tooltip")
     static let feedErrorRetryButton = String(localized: "feed.error.retry.button")
+    static let feedErrorBannerMessage = String(localized: "feed.error.banner.message")
     static let feedRenameCommand = String(localized: "feed.rename.command")
     static let feedRenameDatabaseUnavailable = String(localized: "feed.rename.databaseUnavailable")
     static let feedRenameTitle = String(localized: "feed.rename.title")

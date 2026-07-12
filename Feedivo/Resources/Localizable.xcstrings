@@ -5330,6 +5330,34 @@
         }
       }
     },
+    "feed.error.banner.message" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der letzte Aktualisierungsversuch ist fehlgeschlagen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The last refresh attempt failed."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La dernière tentative d'actualisation a échoué."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'ultimo tentativo di aggiornamento non è riuscito."
+          }
+        }
+      }
+    },
     "feed.error.duplicate" : {
       "localizations" : {
         "de" : {

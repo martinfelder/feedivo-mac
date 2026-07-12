@@ -50,6 +50,7 @@ struct SQLiteFeedArticleListView: View {
     @Binding var searchText: String
 
     @State private var state = SQLiteFeedArticleListState()
+    @State private var feedHasRecentError = false
     @State private var debouncedSearchText = ""
     @State private var articleExportRequest: ArticleExportRequest?
     @State private var ruleCreationRequest: ArticleListRuleCreationRequest?
@@ -240,10 +241,28 @@ struct SQLiteFeedArticleListView: View {
     ) -> some View {
         VStack(spacing: 0) {
             articleListHeader
+            if feedHasRecentError, !state.rows.isEmpty, case .feed = scope, let onRetryFeed {
+                feedErrorBanner(retry: onRetryFeed)
+            }
             Divider()
             content()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+    }
+
+    private func feedErrorBanner(retry: @escaping () -> Void) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.orange)
+            Text(L10n.feedErrorBannerMessage)
+                .font(interfaceTextSize.font(size: 12))
+            Spacer()
+            Button(L10n.feedErrorRetryButton, action: retry)
+                .buttonStyle(.borderless)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(Color.orange.opacity(0.12))
     }
 
     private var articleListHeader: some View {
@@ -484,6 +503,11 @@ struct SQLiteFeedArticleListView: View {
                 database: database,
                 selectedArticleID: selectedArticleID
             )
+            if let database {
+                feedHasRecentError = (try? FeedStore(database: database).hasRecentError(feedID: feedID)) ?? false
+            } else {
+                feedHasRecentError = false
+            }
         case let .tagID(tagID):
             state.load(
                 tagID: tagID,
