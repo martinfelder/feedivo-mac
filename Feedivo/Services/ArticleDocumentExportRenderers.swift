@@ -317,11 +317,11 @@ enum ArticlePDFExportRenderer {
         var lines: [String] = []
 
         if let readerMetadata = normalizedText(readerMetadata) {
-            lines.append(#"<p class="reader-metadata">\#(escapedHTML(readerMetadata))</p>"#)
+            lines.append(#"<p class="reader-metadata">\#(ArticleExportSanitizing.escapedHTML(readerMetadata))</p>"#)
         }
 
         if let title = normalizedText(title) {
-            lines.append(#"<h1 class="reader-title">\#(escapedHTML(title))</h1>"#)
+            lines.append(#"<h1 class="reader-title">\#(ArticleExportSanitizing.escapedHTML(title))</h1>"#)
         }
 
         if let exportMetadata {
@@ -347,28 +347,28 @@ enum ArticlePDFExportRenderer {
         var lines: [String] = []
 
         if let author = normalizedText(snapshot.author) {
-            lines.append("<p><strong>Autor:</strong> \(escapedHTML(author))</p>")
+            lines.append("<p><strong>Autor:</strong> \(ArticleExportSanitizing.escapedHTML(author))</p>")
         }
 
         if let publishedAt = snapshot.publishedAt {
-            lines.append("<p><strong>Veröffentlicht:</strong> \(escapedHTML(publishedDateFormatter.string(from: publishedAt)))</p>")
+            lines.append("<p><strong>Veröffentlicht:</strong> \(ArticleExportSanitizing.escapedHTML(ArticleExportSanitizing.publishedDateFormatter.string(from: publishedAt)))</p>")
         }
 
         if let feedTitle = normalizedText(snapshot.feedTitle) {
-            lines.append("<p><strong>Feed:</strong> \(escapedHTML(feedTitle))</p>")
+            lines.append("<p><strong>Feed:</strong> \(ArticleExportSanitizing.escapedHTML(feedTitle))</p>")
         }
 
         if let link = normalizedText(snapshot.link) {
-            if isSafeLinkTarget(link) {
-                lines.append("<p><strong>Link:</strong> <a href=\"\(escapedHTMLAttribute(link))\">\(escapedHTML(link))</a></p>")
+            if ArticleExportSanitizing.isSafeLinkTarget(link) {
+                lines.append("<p><strong>Link:</strong> <a href=\"\(ArticleExportSanitizing.escapedHTMLAttribute(link))\">\(ArticleExportSanitizing.escapedHTML(link))</a></p>")
             } else {
-                lines.append("<p><strong>Link:</strong> \(escapedHTML(link))</p>")
+                lines.append("<p><strong>Link:</strong> \(ArticleExportSanitizing.escapedHTML(link))</p>")
             }
         }
 
         let tagNames = snapshot.tagNames.compactMap { normalizedText($0) }
         if !tagNames.isEmpty {
-            lines.append("<p><strong>Tags:</strong> \(escapedHTML(tagNames.joined(separator: ", ")))</p>")
+            lines.append("<p><strong>Tags:</strong> \(ArticleExportSanitizing.escapedHTML(tagNames.joined(separator: ", ")))</p>")
         }
 
         guard !lines.isEmpty else {
@@ -399,34 +399,6 @@ enum ArticlePDFExportRenderer {
         let trimmedValue = value.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmedValue.isEmpty ? nil : trimmedValue
     }
-
-    private static func escapedHTML(_ text: String) -> String {
-        text
-            .replacingOccurrences(of: "&", with: "&amp;")
-            .replacingOccurrences(of: "<", with: "&lt;")
-            .replacingOccurrences(of: ">", with: "&gt;")
-            .replacingOccurrences(of: "\"", with: "&quot;")
-    }
-
-    private static func escapedHTMLAttribute(_ text: String) -> String {
-        escapedHTML(text).replacingOccurrences(of: "'", with: "&#39;")
-    }
-
-    private static func isSafeLinkTarget(_ value: String) -> Bool {
-        guard let url = URL(string: value),
-              let scheme = url.scheme?.lowercased()
-        else {
-            return false
-        }
-
-        return ["http", "https", "mailto"].contains(scheme)
-    }
-
-    private static let publishedDateFormatter: ISO8601DateFormatter = {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime]
-        return formatter
-    }()
 
     private static func formattedCSSValue(_ value: Double) -> String {
         let roundedValue = (value * 10).rounded() / 10

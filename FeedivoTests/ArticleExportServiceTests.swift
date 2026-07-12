@@ -410,6 +410,26 @@ struct ArticleExportServiceTests {
         #expect(html.contains("Ein lesbarer Absatz."))
     }
 
+    @Test func pdfHTMLRendertUnsichereMetadatenLinksNurAlsText() {
+        let snapshot = ArticleExportSnapshot(
+            sqliteSnapshot: makeReaderSnapshot(
+                title: "Unsicherer Link",
+                link: "javascript:alert(1)",
+                content: "<p>Artikeltext</p>"
+            )
+        )
+
+        let html = ArticlePDFExportRenderer.html(
+            for: snapshot,
+            options: ArticleExportOptions(format: .pdf, includesMetadata: true),
+            style: .default,
+            assets: []
+        )
+
+        #expect(!html.contains("href=\"javascript:alert(1)\""))
+        #expect(html.contains("<strong>Link:</strong> javascript:alert(1)"))
+    }
+
     @Test func pdfPaketLaedtArtikelbilderAutomatischUndBleibtEinPDFDokument() async throws {
         let snapshot = ArticleExportSnapshot(
             sqliteSnapshot: makeReaderSnapshot(
