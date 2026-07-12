@@ -670,6 +670,7 @@ enum L10n {
     // aufgerufen und haben bewusst keinen Accessor.
     static let opmlImportAllowDuplicates = String(localized: "opml.import.allowDuplicates")
     static let opmlImportAllowUnreachable = String(localized: "opml.import.allowUnreachable")
+    static let opmlImportButtonImporting = String(localized: "opml.import.button.importing")
     static let opmlImportCancel = String(localized: "opml.import.cancel")
     static let opmlImportChooseFile = String(localized: "opml.import.chooseFile")
     static let opmlImportDescription = String(localized: "opml.import.description")

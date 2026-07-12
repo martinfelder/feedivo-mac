@@ -457,8 +457,19 @@ struct OPMLImportReviewView: View {
                 dismiss()
             }
             .buttonStyle(OPMLSecondaryButtonStyle(theme: theme))
-            Button(importButtonTitle) {
+            Button {
                 importSelectedFeeds()
+            } label: {
+                if feedViewModel.isLoading {
+                    HStack(spacing: 6) {
+                        ProgressView()
+                            .controlSize(.small)
+                            .tint(.white)
+                        Text(L10n.opmlImportButtonImporting)
+                    }
+                } else {
+                    Text(importButtonTitle)
+                }
             }
             .buttonStyle(OPMLPrimaryButtonStyle(theme: theme))
             .disabled(previewController.selectedImportRows.isEmpty || previewController.isPreparingPreview || feedViewModel.isLoading)
