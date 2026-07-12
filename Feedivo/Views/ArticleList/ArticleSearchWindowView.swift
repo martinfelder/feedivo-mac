@@ -62,10 +62,10 @@ struct ArticleSearchWindowView: View {
                 debouncedSearchText = ""
                 return
             }
-            try? await Task.sleep(nanoseconds: 250_000_000)
-            if !Task.isCancelled {
-                debouncedSearchText = searchState.searchText
+            guard await SearchDebounce.wait() else {
+                return
             }
+            debouncedSearchText = searchState.searchText
         }
         .task(id: searchLoadToken) {
             loadSnapshots()

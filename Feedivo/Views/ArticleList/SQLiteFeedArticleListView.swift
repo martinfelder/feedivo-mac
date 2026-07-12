@@ -865,8 +865,7 @@ struct SQLiteFeedArticleListView: View {
             return
         }
 
-        try? await Task.sleep(for: .milliseconds(250))
-        guard !Task.isCancelled else {
+        guard await SearchDebounce.wait() else {
             return
         }
 
