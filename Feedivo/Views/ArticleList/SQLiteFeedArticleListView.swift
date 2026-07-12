@@ -703,7 +703,11 @@ struct SQLiteFeedArticleListView: View {
             SQLiteDataInvalidation.bumpStatusVersion()
             reload()
         } catch {
-            reload()
+            // Kein reload() hier: das wuerde ueber state.load(...) den
+            // gerade gesetzten .failed-Zustand sofort wieder auf .idle/
+            // .loaded ueberschreiben (siehe SQLiteFeedArticleListState.
+            // deleteArticle fuer denselben, bereits etablierten Grund).
+            state.loadState = .failed(error.localizedDescription)
         }
     }
 
