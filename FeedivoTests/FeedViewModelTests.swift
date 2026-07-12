@@ -1,4 +1,5 @@
 import Foundation
+import GRDB
 import Testing
 @testable import Feedivo
 
@@ -317,6 +318,24 @@ struct FeedViewModelTests {
         #expect(rows.map(\.title) == ["SQLite-first Artikel"])
         #expect(viewModel.recentRefreshStatus?.newArticleCount == 1)
         #expect(viewModel.recentRefreshStatus?.failedFeedCount == 0)
+    }
+
+    @Test func refreshAllFeedsMeldetFehlerWennSnapshotsNichtGeladenWerdenKoennen() async throws {
+        let sqliteDatabase = try FeedivoDatabase.inMemoryForTests()
+        try sqliteDatabase.write { db in
+            try db.execute(sql: "DROP TABLE feeds")
+        }
+        let viewModel = makeViewModel(
+            fetchFeed: { _ in
+                Issue.record("Netzwerk-Abruf darf nicht erreicht werden, wenn schon das Laden der Snapshots fehlschlaegt.")
+                return ParsedFeed(sourceURL: "", title: "", description: nil, articles: [])
+            }
+        )
+
+        await viewModel.refreshAllFeeds(sqliteDatabase: sqliteDatabase)
+
+        #expect(viewModel.errorMessage != nil)
+        #expect(!viewModel.isLoading)
     }
 
     @MainActor

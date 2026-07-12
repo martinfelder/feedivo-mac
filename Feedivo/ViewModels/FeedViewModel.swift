@@ -311,7 +311,14 @@ final class FeedViewModel {
         }
 
         let service = sqliteFeedActionService(for: sqliteDatabase)
-        let snapshots = (try? service.refreshSnapshots()) ?? []
+
+        let snapshots: [FeedRefreshSnapshot]
+        do {
+            snapshots = try service.refreshSnapshots()
+        } catch {
+            errorMessage = error.localizedDescription
+            return
+        }
 
         guard !snapshots.isEmpty else {
             return
