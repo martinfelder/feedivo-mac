@@ -43,6 +43,34 @@ struct SQLiteTimelineStoreTests {
         #expect(snapshots.first?.feedTitle == "Example")
     }
 
+    @Test func timelineArticlesLiefertFaviconURLDesFeedsMit() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let timelineStore = TimelineStore(database: database)
+
+        try feedStore.save(FeedRecord(
+            id: "feed-a",
+            url: "https://a.example.com/feed",
+            title: "Feed A",
+            faviconURL: "https://a.example.com/favicon.ico"
+        ))
+        _ = try articleStore.upsert(ArticleUpsertInput(
+            feedID: "feed-a",
+            sourceID: "article-1",
+            title: "Artikel 1"
+        ))
+
+        let snapshots = try timelineStore.articles(
+            scope: .feed("feed-a"),
+            includeRead: true,
+            includeHidden: false,
+            limit: 20
+        )
+
+        #expect(snapshots.first?.faviconURL == "https://a.example.com/favicon.ico")
+    }
+
     @Test func timelineHonorsLimitAndSortsByPublishedThenArrivedDate() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let feedStore = FeedStore(database: database)

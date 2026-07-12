@@ -278,26 +278,8 @@ struct ArticleDatabase {
         return try database.read { db in
             try ArticleListSnapshot.fetchAll(db, sql: """
                 SELECT
-                    a.id,
-                    a.feedID,
-                    f.title AS feedTitle,
-                    f.faviconURL AS faviconURL,
-                    a.title,
-                    a.summary,
-                    a.link,
-                    a.imageURL,
-                    a.publishedAt,
-                    a.arrivedAt,
-                    a.estimatedReadingMinutes,
-                    s.isRead,
-                    s.isStarred,
-                    s.isArchived,
-                    s.isHidden,
-                    COALESCE(o.state, 'none') AS offlineStateRaw
-                FROM articles a
-                JOIN feeds f ON f.id = a.feedID
-                JOIN article_statuses s ON s.articleID = a.id
-                LEFT JOIN article_offline o ON o.articleID = a.id
+                    \(ArticleListSQL.selectColumns)
+                \(ArticleListSQL.standardFromJoin)
                 WHERE \(whereClauses.joined(separator: " AND "))
                 ORDER BY COALESCE(a.publishedAt, a.arrivedAt) DESC, a.arrivedAt DESC
                 LIMIT ?
