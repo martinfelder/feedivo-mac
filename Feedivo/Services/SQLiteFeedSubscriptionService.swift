@@ -359,6 +359,15 @@ struct SQLiteFeedSubscriptionService {
                     status: .duplicate,
                     isSelected: false
                 )
+            } else if !isSyntacticallyValidFeedURL(cleanedURL) {
+                // Offensichtlich kaputte URLs (Leerzeichen, fehlendes Schema) sofort als
+                // nicht erreichbar markieren statt einen Netzwerk-Roundtrip zu verschwenden,
+                // der ohnehin fehlschlagen würde.
+                rowsByIndex[index] = OPMLImportPreviewRow(
+                    feed: opmlFeed,
+                    status: .unreachable,
+                    isSelected: false
+                )
             } else {
                 pending.append(PendingFeed(index: index, cleanedURL: cleanedURL))
             }
@@ -479,6 +488,17 @@ struct SQLiteFeedSubscriptionService {
         }
 
         return createdTagIDs
+    }
+
+    /// Lokale Syntax-Prüfung für OPML-`xmlUrl`-Werte, bevor ein Netzwerk-Fetch versucht
+    /// wird. Verlangt nur Schema + Host (kein `http`/`https`-Zwang), damit z. B. Test-
+    /// Platzhalter wie `fail://broken` weiterhin über den echten Fetch-Pfad laufen und
+    /// nicht schon hier als "ungültig" abgefangen werden.
+    private func isSyntacticallyValidFeedURL(_ urlString: String) -> Bool {
+        guard let url = URL(string: urlString), let scheme = url.scheme, !scheme.isEmpty, url.host != nil else {
+            return false
+        }
+        return true
     }
 
     private func normalizedFeedURL(_ urlString: String) -> String {

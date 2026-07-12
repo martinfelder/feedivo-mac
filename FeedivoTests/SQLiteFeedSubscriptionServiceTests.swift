@@ -439,6 +439,30 @@ struct SQLiteFeedSubscriptionServiceTests {
     }
 
     @MainActor
+    @Test func previewMarkiertSyntaktischUngueltigeURLsSofortAlsNichtErreichbarOhneNetzwerkAufruf() async throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        var fetchCallCount = 0
+        let service = SQLiteFeedSubscriptionService(
+            database: database,
+            fetchFeed: { urlString in
+                fetchCallCount += 1
+                return ParsedFeed(sourceURL: urlString, title: "OK", description: nil, articles: [])
+            },
+            discoverFaviconURL: { _ in nil }
+        )
+
+        let rows = await service.previewOPMLFeeds(for: [
+            OPMLFeed(title: "Mit Leerzeichen", xmlURL: "not a valid url", htmlURL: nil, folderName: nil),
+            OPMLFeed(title: "Ohne Schema", xmlURL: "example.com/feed.xml", htmlURL: nil, folderName: nil),
+            OPMLFeed(title: "Gueltig", xmlURL: "https://example.com/feed.xml", htmlURL: nil, folderName: nil)
+        ])
+
+        #expect(rows.map(\.status) == [.unreachable, .unreachable, .available])
+        #expect(rows.map(\.isSelected) == [false, false, true])
+        #expect(fetchCallCount == 1)
+    }
+
+    @MainActor
     @Test func previewMeldetSichtbarenPrueffortschrittInBeidePhasen() async throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let service = SQLiteFeedSubscriptionService(
