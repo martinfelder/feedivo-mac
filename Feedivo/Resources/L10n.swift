@@ -53,6 +53,14 @@ enum L10n {
     static let articleListEmptyDescriptionSmartFilter = String(localized: "articleList.empty.description.smartFilter")
     static let articleListEmptyDescriptionSmartFolder = String(localized: "articleList.empty.description.smartFolder")
     static let articleListLoadFailedTitle = String(localized: "articleList.loadFailed.title")
+
+    static func articleListLastRefreshed(_ date: String) -> String {
+        String.localizedStringWithFormat(String(localized: "articleList.header.lastRefreshed"), date)
+    }
+
+    static func articleListRefreshFailed(_ reason: String) -> String {
+        String.localizedStringWithFormat(String(localized: "articleList.header.refreshFailed"), reason)
+    }
     static let dbUnavailableTitle = String(localized: "db.unavailable.title")
     static let dbUnavailableDescription = String(localized: "db.unavailable.description")
     static let feedNotInSQLiteTitle = String(localized: "feed.notInSQLite.title")

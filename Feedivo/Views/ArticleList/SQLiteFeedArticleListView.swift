@@ -2,6 +2,14 @@ import AppKit
 import GRDB
 import SwiftUI
 
+/// Zustand der Feed-Status-Zeile im Artikellisten-Header (nur bei `scope == .feed`).
+/// `nil` bedeutet: Feed wurde noch nie aktualisiert (weder erfolgreich noch fehlgeschlagen),
+/// Zeile bleibt dann ausgeblendet.
+private enum FeedHeaderRefreshStatus: Equatable {
+    case success(Date)
+    case failure(String)
+}
+
 struct SQLiteFeedArticleListView: View {
     @Environment(\.feedivoDatabase) private var database
     @Environment(\.interfaceTextSize) private var interfaceTextSize
@@ -9,6 +17,8 @@ struct SQLiteFeedArticleListView: View {
     private var directTagVersion = 0
     @AppStorage(SQLiteDataInvalidation.statusVersionKey)
     private var sqliteStatusVersion = 0
+    @AppStorage(ArticleDateDisplayMode.storageKey)
+    private var dateDisplayModeRawValue = ArticleDateDisplayMode.defaultMode.rawValue
     @AppStorage("markArticleReadOnSelection")
     private var markArticleReadOnSelection = true
 
@@ -51,6 +61,7 @@ struct SQLiteFeedArticleListView: View {
 
     @State private var state = SQLiteFeedArticleListState()
     @State private var feedHasRecentError = false
+    @State private var feedHeaderRefreshStatus: FeedHeaderRefreshStatus?
     @State private var debouncedSearchText = ""
     @State private var articleExportRequest: ArticleExportRequest?
     @State private var ruleCreationRequest: ArticleListRuleCreationRequest?
@@ -275,10 +286,37 @@ struct SQLiteFeedArticleListView: View {
                 .font(interfaceTextSize.font(size: 13))
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
+
+            if case .feed = scope, let feedHeaderRefreshStatus {
+                Text(feedHeaderRefreshStatusText(feedHeaderRefreshStatus))
+                    .font(interfaceTextSize.font(size: 13))
+                    .foregroundStyle(feedHeaderRefreshStatusColor(feedHeaderRefreshStatus))
+                    .lineLimit(1)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 12)
         .padding(.vertical, 7)
+    }
+
+    private func feedHeaderRefreshStatusText(_ status: FeedHeaderRefreshStatus) -> String {
+        switch status {
+        case let .success(date):
+            L10n.articleListLastRefreshed(
+                date.feedivoDisplay(mode: ArticleDateDisplayMode.resolved(from: dateDisplayModeRawValue))
+            )
+        case let .failure(reason):
+            L10n.articleListRefreshFailed(reason)
+        }
+    }
+
+    private func feedHeaderRefreshStatusColor(_ status: FeedHeaderRefreshStatus) -> Color {
+        switch status {
+        case .success:
+            .secondary
+        case .failure:
+            .orange
+        }
     }
 
     private var unreadArticleCount: Int {
@@ -504,9 +542,20 @@ struct SQLiteFeedArticleListView: View {
                 selectedArticleID: selectedArticleID
             )
             if let database {
-                feedHasRecentError = (try? FeedStore(database: database).hasRecentError(feedID: feedID)) ?? false
+                let latestLog = (try? FeedLogStore(database: database).logs(feedID: feedID, limit: 1))?.first
+                let isLatestLogAnError = latestLog.map { FeedLogEntryKind(rawValue: $0.level) == .error } ?? false
+                feedHasRecentError = isLatestLogAnError
+
+                if isLatestLogAnError, let latestLog {
+                    feedHeaderRefreshStatus = .failure(latestLog.message)
+                } else if let lastRefreshedAt = (try? FeedStore(database: database).feed(id: feedID))?.lastRefreshedAt {
+                    feedHeaderRefreshStatus = .success(lastRefreshedAt)
+                } else {
+                    feedHeaderRefreshStatus = nil
+                }
             } else {
                 feedHasRecentError = false
+                feedHeaderRefreshStatus = nil
             }
         case let .tagID(tagID):
             state.load(
