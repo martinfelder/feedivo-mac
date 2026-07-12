@@ -511,6 +511,12 @@ enum L10n {
     static let tagManagerEmptyNameError = String(localized: "tagManager.emptyName.error")
     static let tagManagerDuplicateNameError = String(localized: "tagManager.duplicateName.error")
     static let ruleValidationError = String(localized: "rule.validation.error")
+    static func ruleRegexInvalidError(pattern: String) -> String {
+        String.localizedStringWithFormat(
+            String(localized: "rule.regex.invalidError"),
+            pattern
+        )
+    }
     static let feedErrorInvalidURL = String(localized: "feed.error.invalidURL")
     static let feedErrorParsingFailed = String(localized: "feed.error.parsingFailed")
 

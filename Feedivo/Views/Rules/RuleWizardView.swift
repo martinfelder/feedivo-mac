@@ -672,6 +672,11 @@ struct RuleWizardView: View {
             return
         }
 
+        if let invalidPattern = RuleConditionOperator.firstInvalidRegexValue(in: normalizedDrafts) {
+            ruleError = L10n.ruleRegexInvalidError(pattern: invalidPattern)
+            return
+        }
+
         let ruleID = rule?.id ?? UUID().uuidString
         let sortOrder = rule?.sortOrder ?? ((existingRules.map(\.sortOrder).max() ?? -1) + 1)
         let record = RuleRecord(

@@ -18341,6 +18341,34 @@
         }
       }
     },
+    "rule.regex.invalidError" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Regex-Muster „%@“ ist ungültig."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The regex pattern \"%@\" is invalid."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le motif d'expression régulière « %@ » n'est pas valide."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il modello regex \"%@\" non è valido."
+          }
+        }
+      }
+    },
     "rule.settings.description" : {
       "localizations" : {
         "de" : {

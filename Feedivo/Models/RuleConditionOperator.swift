@@ -31,4 +31,10 @@ enum RuleConditionOperator: String, CaseIterable, Identifiable {
     static func isValidRegexPattern(_ pattern: String) -> Bool {
         (try? NSRegularExpression(pattern: pattern)) != nil
     }
+
+    static func firstInvalidRegexValue(in drafts: [RuleConditionDraft]) -> String? {
+        drafts.first { draft in
+            draft.conditionOperator == .regex && !isValidRegexPattern(draft.value)
+        }?.value
+    }
 }
