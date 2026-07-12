@@ -53,6 +53,13 @@ struct SidebarView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     sidebarActionRow
+
+                    if let errorMessage = sqliteSidebarState.errorMessage {
+                        Text(errorMessage)
+                            .foregroundStyle(.red)
+                            .font(.callout)
+                    }
+
                     defaultSmartFoldersSection(
                         badgeSnapshot: sqliteSidebarState.smartFolderBadgeSnapshot,
                         mixedCountsByDefaultKey: sqliteSidebarState.mixedCountsByDefaultKey
