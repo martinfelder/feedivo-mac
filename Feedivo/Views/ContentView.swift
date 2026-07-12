@@ -97,7 +97,15 @@ struct ContentView: View {
                     title: selectedFeed?.title ?? "",
                     selectedArticleID: $selectedSQLiteArticleID,
                     navigationState: $sqliteArticleNavigationState,
-                    searchText: .constant("")
+                    searchText: .constant(""),
+                    onRetryFeed: {
+                        Task {
+                            await feedViewModel.refreshFeed(
+                                feedID: feedID,
+                                sqliteDatabase: feedivoDatabase
+                            )
+                        }
+                    }
                 )
                     .navigationSplitViewColumnWidth(min: 280, ideal: 320, max: 400)
             } else if let tagID = selectedTagID {

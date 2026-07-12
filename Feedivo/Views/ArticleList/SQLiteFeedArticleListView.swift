@@ -44,6 +44,7 @@ struct SQLiteFeedArticleListView: View {
     }
 
     private let scope: Scope
+    let onRetryFeed: (() -> Void)?
     @Binding var selectedArticleID: String?
     @Binding var navigationState: SQLiteArticleNavigationState
     @Binding var searchText: String
@@ -75,9 +76,11 @@ struct SQLiteFeedArticleListView: View {
         title: String,
         selectedArticleID: Binding<String?>,
         navigationState: Binding<SQLiteArticleNavigationState>,
-        searchText: Binding<String>
+        searchText: Binding<String>,
+        onRetryFeed: (() -> Void)? = nil
     ) {
         self.scope = .feed(feedID: feedID, title: title)
+        self.onRetryFeed = onRetryFeed
         self._selectedArticleID = selectedArticleID
         self._navigationState = navigationState
         self._searchText = searchText
@@ -90,6 +93,7 @@ struct SQLiteFeedArticleListView: View {
         searchText: Binding<String>
     ) {
         self.scope = .tagID(tagID)
+        self.onRetryFeed = nil
         self._selectedArticleID = selectedArticleID
         self._navigationState = navigationState
         self._searchText = searchText
@@ -102,6 +106,7 @@ struct SQLiteFeedArticleListView: View {
         searchText: Binding<String>
     ) {
         self.scope = .smartFilter(smartFilter)
+        self.onRetryFeed = nil
         self._selectedArticleID = selectedArticleID
         self._navigationState = navigationState
         self._searchText = searchText
@@ -114,6 +119,7 @@ struct SQLiteFeedArticleListView: View {
         searchText: Binding<String>
     ) {
         self.scope = .smartFolder(smartFolder)
+        self.onRetryFeed = nil
         self._selectedArticleID = selectedArticleID
         self._navigationState = navigationState
         self._searchText = searchText
@@ -194,11 +200,15 @@ struct SQLiteFeedArticleListView: View {
                     description: Text(L10n.feedNotInSQLiteDescription)
                 )
             case .failed(let message):
-                ContentUnavailableView(
-                    L10n.articleListLoadFailedTitle,
-                    systemImage: "exclamationmark.triangle",
-                    description: Text(message)
-                )
+                ContentUnavailableView {
+                    Label(L10n.articleListLoadFailedTitle, systemImage: "exclamationmark.triangle")
+                } description: {
+                    Text(message)
+                } actions: {
+                    if let onRetryFeed {
+                        Button(L10n.feedErrorRetryButton, action: onRetryFeed)
+                    }
+                }
             case .idle where state.rows.isEmpty:
                 articleListContainer {
                     ProgressView()
