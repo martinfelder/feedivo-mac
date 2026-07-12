@@ -520,6 +520,7 @@ enum L10n {
     }
     static let feedErrorEmptyURL = String(localized: "feed.error.emptyURL")
     static let feedErrorAddFailed = String(localized: "feed.error.addFailed")
+    static let feedErrorAlertTitle = String(localized: "feed.error.alertTitle")
     static var feedErrorDuplicate: String {
         String(localized: "feed.error.duplicate", defaultValue: "Dieser Feed wird bereits abonniert.")
     }

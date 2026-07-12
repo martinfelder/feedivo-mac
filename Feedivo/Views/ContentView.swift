@@ -243,6 +243,28 @@ struct ContentView: View {
                 Text(L10n.databaseInitErrorMessage)
             }
         }
+        // Whole-Group-Review-Fund (Gruppe 2): feedViewModel.errorMessage wurde bei
+        // Einzel-/Alle-Feeds-Refresh und beim Löschen zwar gesetzt, aber nirgends
+        // angezeigt. Dieser Alert schließt die Lücke für alle drei Fälle.
+        .alert(
+            L10n.feedErrorAlertTitle,
+            isPresented: Binding(
+                get: { feedViewModel.errorMessage != nil },
+                set: { newValue in
+                    if !newValue {
+                        feedViewModel.errorMessage = nil
+                    }
+                }
+            )
+        ) {
+            Button(L10n.commonDone) {
+                feedViewModel.errorMessage = nil
+            }
+        } message: {
+            if let errorMessage = feedViewModel.errorMessage {
+                Text(errorMessage)
+            }
+        }
         .overlay(alignment: .bottomTrailing) {
             BottomStatusIndicators(
                 refreshProgress: feedViewModel.operationProgress,
