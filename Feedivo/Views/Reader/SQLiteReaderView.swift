@@ -62,12 +62,29 @@ struct SQLiteReaderView: View {
     @AppStorage(KeyboardShortcutOverrides.storageKey)
     private var shortcutOverridesRawValue = KeyboardShortcutOverrides().rawValue
 
+    // Der Artikelinfo-Inspector (ArticleMetadataInspectorView) mutiert Tags direkt in
+    // SQLite und bumpt anschliessend diesen Zaehler, aktualisiert dabei aber nur seine
+    // eigene lokale Snapshot-Kopie — nicht den `state.snapshot` dieser View, aus dem
+    // readerArticleMetadata die Tag-Chips im Artikel-Header rendert. Ohne diese
+    // Beobachtung blieben neu hinzugefuegte/entfernte Tags im Reader unsichtbar, bis ein
+    // Artikelwechsel `state.load(...)` erneut ausloest (Nutzer-Report 2026-07-12).
+    @AppStorage(SidebarBadgeInvalidation.directTagVersionKey)
+    private var directTagVersion = 0
+
     private var shortcutOverrides: KeyboardShortcutOverrides {
         KeyboardShortcutOverrides.resolved(from: shortcutOverridesRawValue)
     }
 
     private func bumpToolbarRebuildGeneration() {
         toolbarRebuildGeneration += 1
+    }
+
+    private func reloadAfterDirectTagChange() {
+        guard let database, let articleID = state.snapshot?.id else {
+            return
+        }
+
+        state.load(articleID: articleID, database: database, force: true)
     }
 
     // Als eigene @ToolbarContentBuilder-Property ausgelagert statt inline in
@@ -268,6 +285,9 @@ struct SQLiteReaderView: View {
         }
         .onChange(of: state.snapshot) { _, snapshot in
             onSnapshotChange(snapshot)
+        }
+        .onChange(of: directTagVersion) { _, _ in
+            reloadAfterDirectTagChange()
         }
         .onDisappear {
             onSnapshotChange(nil)
