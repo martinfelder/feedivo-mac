@@ -155,7 +155,7 @@ struct FeedRenameView: View {
 
     private func loadFeedRecord() {
         guard let database = feedivoDatabase else {
-            errorMessage = "SQLite-Datenbank ist nicht verfügbar."
+            errorMessage = L10n.feedRenameDatabaseUnavailable
             return
         }
 
@@ -171,7 +171,7 @@ struct FeedRenameView: View {
 
     private func saveDisplayTitle() {
         guard let database = feedivoDatabase else {
-            errorMessage = "SQLite-Datenbank ist nicht verfügbar."
+            errorMessage = L10n.feedRenameDatabaseUnavailable
             return
         }
 
@@ -189,7 +189,7 @@ struct FeedRenameView: View {
 
     private func restoreOriginalTitle() {
         guard let database = feedivoDatabase else {
-            errorMessage = "SQLite-Datenbank ist nicht verfügbar."
+            errorMessage = L10n.feedRenameDatabaseUnavailable
             return
         }
 

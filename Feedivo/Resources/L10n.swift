@@ -570,6 +570,7 @@ enum L10n {
     static let feedRefreshAllCommand = String(localized: "feed.refreshAll.command")
     static let feedRefreshCommand = String(localized: "feed.refresh.command")
     static let feedRenameCommand = String(localized: "feed.rename.command")
+    static let feedRenameDatabaseUnavailable = String(localized: "feed.rename.databaseUnavailable")
     static let feedRenameTitle = String(localized: "feed.rename.title")
     static let feedRenameDescription = String(localized: "feed.rename.description")
     static let feedRenameDisplayName = String(localized: "feed.rename.displayName")

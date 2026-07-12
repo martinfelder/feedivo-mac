@@ -6911,6 +6911,34 @@
         }
       }
     },
+    "feed.rename.databaseUnavailable" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SQLite-Datenbank ist nicht verfügbar."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SQLite database is unavailable."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La base de données SQLite n'est pas disponible."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il database SQLite non è disponibile."
+          }
+        }
+      }
+    },
     "feed.rename.description" : {
       "localizations" : {
         "de" : {
