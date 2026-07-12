@@ -219,6 +219,11 @@ struct ContentView: View {
         } message: { feed in
             Text(L10n.feedDeleteConfirmationMessage(feedTitle: feed.title))
         }
+        // Fehler-UX-Regel (Finding 2.4, Gruppe 6): Modal-Alert nur für
+        // App-blockierende Zustände (z. B. DB-Init-Fehler) oder destruktive
+        // Bestätigungen. Formular-/Validierungsfehler (z. B. Feed-Hinzufügen,
+        // Ordner-Name-Duplikat in SidebarView.swift) bleiben bewusst inline neben
+        // dem betroffenen Feld — kein Modal, das den Bearbeitungsfluss unterbricht.
         .alert(item: $opmlAlert) { alert in
             Alert(
                 title: Text(alert.title),
