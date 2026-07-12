@@ -175,11 +175,11 @@ enum ArticleExportService {
             "<html lang=\"de\">",
             "<head>",
             "<meta charset=\"utf-8\">",
-            "<title>\(escapedHTML(title))</title>",
+            "<title>\(ArticleExportSanitizing.escapedHTML(title))</title>",
             "</head>",
             "<body>",
             "<article>",
-            "<h1>\(escapedHTML(title))</h1>"
+            "<h1>\(ArticleExportSanitizing.escapedHTML(title))</h1>"
         ]
 
         if includesMetadata {
@@ -230,7 +230,7 @@ enum ArticleExportService {
         }
 
         if let publishedAt = snapshot.publishedAt {
-            lines.append("Veröffentlicht: \(publishedDateFormatter.string(from: publishedAt))")
+            lines.append("Veröffentlicht: \(ArticleExportSanitizing.publishedDateFormatter.string(from: publishedAt))")
         }
 
         if let feedTitle = normalizedText(snapshot.feedTitle) {
@@ -253,38 +253,32 @@ enum ArticleExportService {
         var paragraphs: [String] = []
 
         if let author = normalizedText(snapshot.author) {
-            paragraphs.append("<p>Autor: \(escapedHTML(author))</p>")
+            paragraphs.append("<p>Autor: \(ArticleExportSanitizing.escapedHTML(author))</p>")
         }
 
         if let publishedAt = snapshot.publishedAt {
-            paragraphs.append("<p>Veröffentlicht: \(escapedHTML(publishedDateFormatter.string(from: publishedAt)))</p>")
+            paragraphs.append("<p>Veröffentlicht: \(ArticleExportSanitizing.escapedHTML(ArticleExportSanitizing.publishedDateFormatter.string(from: publishedAt)))</p>")
         }
 
         if let feedTitle = normalizedText(snapshot.feedTitle) {
-            paragraphs.append("<p>Feed: \(escapedHTML(feedTitle))</p>")
+            paragraphs.append("<p>Feed: \(ArticleExportSanitizing.escapedHTML(feedTitle))</p>")
         }
 
         if let link = normalizedText(snapshot.link) {
-            if isSafeLinkTarget(link) {
-                paragraphs.append("<p>Link: <a href=\"\(escapedHTMLAttribute(link))\">\(escapedHTML(link))</a></p>")
+            if ArticleExportSanitizing.isSafeLinkTarget(link) {
+                paragraphs.append("<p>Link: <a href=\"\(ArticleExportSanitizing.escapedHTMLAttribute(link))\">\(ArticleExportSanitizing.escapedHTML(link))</a></p>")
             } else {
-                paragraphs.append("<p>Link: \(escapedHTML(link))</p>")
+                paragraphs.append("<p>Link: \(ArticleExportSanitizing.escapedHTML(link))</p>")
             }
         }
 
         let tagNames = snapshot.tagNames.compactMap { normalizedText($0) }
         if !tagNames.isEmpty {
-            paragraphs.append("<p>Tags: \(escapedHTML(tagNames.joined(separator: ", ")))</p>")
+            paragraphs.append("<p>Tags: \(ArticleExportSanitizing.escapedHTML(tagNames.joined(separator: ", ")))</p>")
         }
 
         return paragraphs
     }
-
-    private static let publishedDateFormatter: ISO8601DateFormatter = {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime]
-        return formatter
-    }()
 
     // M7: Reguläre Ausdrücke werden einmal pro App-Lebensdauer kompiliert
     // statt bei jedem Export-Aufruf neu. Die Muster sind konstant und
@@ -453,7 +447,7 @@ enum ArticleExportService {
 
     private static func replacingHTMLTagsWithSafeSubset(in html: String) -> String {
         guard let expression = safeTagExpression else {
-            return escapedHTML(html)
+            return ArticleExportSanitizing.escapedHTML(html)
         }
 
         let allowedTags: Set<String> = [
@@ -475,7 +469,7 @@ enum ArticleExportService {
             }
 
             if currentIndex < matchRange.lowerBound {
-                result += escapedHTML(decodedHTMLEntities(in: String(html[currentIndex ..< matchRange.lowerBound])))
+                result += ArticleExportSanitizing.escapedHTML(decodedHTMLEntities(in: String(html[currentIndex ..< matchRange.lowerBound])))
             }
 
             let slash = String(html[slashRange])
@@ -502,7 +496,7 @@ enum ArticleExportService {
         }
 
         if currentIndex < html.endIndex {
-            result += escapedHTML(decodedHTMLEntities(in: String(html[currentIndex ..< html.endIndex])))
+            result += ArticleExportSanitizing.escapedHTML(decodedHTMLEntities(in: String(html[currentIndex ..< html.endIndex])))
         }
 
         return result
@@ -512,12 +506,12 @@ enum ArticleExportService {
         guard
             let href = htmlAttributeValue(expression: hrefAttributeExpression, in: attributes),
             let normalizedHref = normalizedText(decodedHTMLEntities(in: href)),
-            isSafeLinkTarget(normalizedHref)
+            ArticleExportSanitizing.isSafeLinkTarget(normalizedHref)
         else {
             return "<a>"
         }
 
-        return "<a href=\"\(escapedHTMLAttribute(normalizedHref))\">"
+        return "<a href=\"\(ArticleExportSanitizing.escapedHTMLAttribute(normalizedHref))\">"
     }
 
     private static func safeImageTag(from attributes: String) -> String {
@@ -529,7 +523,7 @@ enum ArticleExportService {
             return ""
         }
 
-        return "<img src=\"\(escapedHTMLAttribute(normalizedSource))\">"
+        return "<img src=\"\(ArticleExportSanitizing.escapedHTMLAttribute(normalizedSource))\">"
     }
 
     private static func htmlAttributeValue(expression: NSRegularExpression?, in attributes: String) -> String? {
@@ -554,16 +548,6 @@ enum ArticleExportService {
         }
 
         return nil
-    }
-
-    private static func isSafeLinkTarget(_ value: String) -> Bool {
-        guard let url = URL(string: value),
-              let scheme = url.scheme?.lowercased()
-        else {
-            return false
-        }
-
-        return ["http", "https", "mailto"].contains(scheme)
     }
 
     private static func isSafeImageSource(_ value: String) -> Bool {
@@ -637,19 +621,6 @@ enum ArticleExportService {
         decoded = replacingNumericEntities(in: decoded, expression: numericEntityDecimalExpression, radix: 10)
         decoded = replacingNumericEntities(in: decoded, expression: numericEntityHexExpression, radix: 16)
         return decoded
-    }
-
-    private static func escapedHTML(_ text: String) -> String {
-        text
-            .replacingOccurrences(of: "&", with: "&amp;")
-            .replacingOccurrences(of: "<", with: "&lt;")
-            .replacingOccurrences(of: ">", with: "&gt;")
-    }
-
-    private static func escapedHTMLAttribute(_ text: String) -> String {
-        escapedHTML(text)
-            .replacingOccurrences(of: "\"", with: "&quot;")
-            .replacingOccurrences(of: "'", with: "&#39;")
     }
 
     private static func replacingNumericEntities(in text: String, expression: NSRegularExpression?, radix: Int) -> String {
@@ -812,7 +783,7 @@ enum ArticleExportPreviewRenderer {
                 flushBlocks()
                 let source = String(line.dropFirst(4).dropLast())
                 let previewSource = assetDataURLs[source] ?? source
-                html.append("<img src=\"\(escapedHTMLAttribute(previewSource))\" alt=\"\">")
+                html.append("<img src=\"\(ArticleExportSanitizing.escapedHTMLAttribute(previewSource))\" alt=\"\">")
             } else {
                 flushList()
                 flushBlockquote()
@@ -857,19 +828,6 @@ enum ArticleExportPreviewRenderer {
     }
 
     private static func inlineHTML(_ text: String) -> String {
-        escapedHTML(text)
-    }
-
-    private static func escapedHTML(_ text: String) -> String {
-        text
-            .replacingOccurrences(of: "&", with: "&amp;")
-            .replacingOccurrences(of: "<", with: "&lt;")
-            .replacingOccurrences(of: ">", with: "&gt;")
-    }
-
-    private static func escapedHTMLAttribute(_ text: String) -> String {
-        escapedHTML(text)
-            .replacingOccurrences(of: "\"", with: "&quot;")
-            .replacingOccurrences(of: "'", with: "&#39;")
+        ArticleExportSanitizing.escapedHTML(text)
     }
 }
