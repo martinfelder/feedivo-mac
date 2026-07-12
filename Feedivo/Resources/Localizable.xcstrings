@@ -4108,12 +4108,6 @@
         }
       }
     },
-    "Artikel konnten nicht geladen werden" : {
-
-    },
-    "Artikel nicht gefunden" : {
-
-    },
     "Artikel werden nach diesem Zeitraum automatisch entfernt." : {
 
     },
@@ -4791,9 +4785,6 @@
         }
       }
     },
-    "Die lokale Artikeldatenbank konnte nicht geöffnet werden." : {
-
-    },
     "Diese Feeds werden gespeichert, wenn du fortfährst. Über „Auswahl bearbeiten“ kommst du zurück zur Liste." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4822,9 +4813,6 @@
           }
         }
       }
-    },
-    "Dieser Feed ist noch nicht in der lokalen Artikeldatenbank vorhanden." : {
-
     },
     "Duplikate importieren" : {
       "extractionState" : "stale",
@@ -5060,9 +5048,6 @@
           }
         }
       }
-    },
-    "Feed noch nicht in SQLite" : {
-
     },
     "Feed prüfen" : {
       "extractionState" : "stale",
@@ -10726,9 +10711,6 @@
           }
         }
       }
-    },
-    "Noch kein Artikel geladen" : {
-
     },
     "notification.feedRefresh.summary.title" : {
       "localizations" : {
@@ -28159,9 +28141,6 @@
           }
         }
       }
-    },
-    "SQLite nicht verfügbar" : {
-
     },
     "Standardansicht für geöffnete Artikel." : {
 
