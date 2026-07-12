@@ -184,8 +184,12 @@ struct SQLiteFeedSubscriptionService {
                 )
             )
         } catch {
-            try? cleanupSQLiteSubscription(feedID: feedID)
-            try? cleanupCreatedFolder(createdFolder)
+            logIfThrows(context: "Rollback nach addFeed-Fehler (Feed/Artikel-Status löschen)") {
+                try cleanupSQLiteSubscription(feedID: feedID)
+            }
+            logIfThrows(context: "Rollback nach addFeed-Fehler (leeren Ordner entfernen)") {
+                try cleanupCreatedFolder(createdFolder)
+            }
             throw error
         }
 
@@ -272,9 +276,15 @@ struct SQLiteFeedSubscriptionService {
                 )
                 )
             } catch {
-                try? cleanupSQLiteSubscription(feedID: feedID)
-                try? cleanupCreatedTags(createdTagIDs)
-                try? cleanupCreatedFolder(createdFolder)
+                logIfThrows(context: "Rollback nach OPML-Import-Fehler (Feed/Artikel-Status löschen)") {
+                    try cleanupSQLiteSubscription(feedID: feedID)
+                }
+                logIfThrows(context: "Rollback nach OPML-Import-Fehler (neu angelegte Tags entfernen)") {
+                    try cleanupCreatedTags(createdTagIDs)
+                }
+                logIfThrows(context: "Rollback nach OPML-Import-Fehler (leeren Ordner entfernen)") {
+                    try cleanupCreatedFolder(createdFolder)
+                }
                 throw error
             }
             imported += 1
