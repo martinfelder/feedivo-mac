@@ -216,11 +216,15 @@ struct SQLiteFeedArticleListView: View {
                 }
             case .loaded where state.rows.isEmpty:
                 articleListContainer {
-                    ContentUnavailableView(
-                        emptyTitle,
-                        systemImage: emptySystemImage,
-                        description: Text(emptyDescription)
-                    )
+                    ContentUnavailableView {
+                        Label(emptyTitle, systemImage: emptySystemImage)
+                    } description: {
+                        Text(emptyDescription)
+                    } actions: {
+                        if case .feed = scope, let onRetryFeed {
+                            Button(L10n.feedRefreshCommand, action: onRetryFeed)
+                        }
+                    }
                 }
             case .idle, .loaded:
                 articleListContainer {
