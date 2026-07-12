@@ -354,7 +354,7 @@ struct ArticleSearchWindowView: View {
         do {
             snapshots = try ArticleStore(database: database).searchArticles(
                 state: committedState,
-                limit: 200
+                limit: ArticleFetchLimits.searchResults
             )
             loadErrorMessage = nil
         } catch {

@@ -156,7 +156,7 @@ struct ArticleWindowView: View {
                 scope: .all,
                 includeRead: true,
                 includeHidden: true,
-                limit: 1000
+                limit: ArticleFetchLimits.popoutNavigationIDs
             )
             .map(\.id)
         } catch {

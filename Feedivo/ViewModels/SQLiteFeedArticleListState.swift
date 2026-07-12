@@ -392,7 +392,7 @@ final class SQLiteFeedArticleListState {
             searchText: request.searchText,
             includeRead: true,
             includeHidden: request.scope.includeHidden,
-            limit: 500
+            limit: ArticleFetchLimits.mainArticleList
         )
         let navigationState = SQLiteArticleNavigationState(
             articleIDs: rows.map(\.id),
