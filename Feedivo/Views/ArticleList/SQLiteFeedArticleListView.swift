@@ -17,8 +17,6 @@ struct SQLiteFeedArticleListView: View {
     private var directTagVersion = 0
     @AppStorage(SQLiteDataInvalidation.statusVersionKey)
     private var sqliteStatusVersion = 0
-    @AppStorage(ArticleDateDisplayMode.storageKey)
-    private var dateDisplayModeRawValue = ArticleDateDisplayMode.defaultMode.rawValue
     @AppStorage("markArticleReadOnSelection")
     private var markArticleReadOnSelection = true
 
@@ -302,9 +300,11 @@ struct SQLiteFeedArticleListView: View {
     private func feedHeaderRefreshStatusText(_ status: FeedHeaderRefreshStatus) -> String {
         switch status {
         case let .success(date):
-            L10n.articleListLastRefreshed(
-                date.feedivoDisplay(mode: ArticleDateDisplayMode.resolved(from: dateDisplayModeRawValue))
-            )
+            // Bewusst immer der konkrete Zeitpunkt (Datum + Uhrzeit), nicht die relative
+            // "vor X Stunden"-Formatierung von feedivoDisplay(mode:) — der Nutzer will
+            // sehen, WANN aktualisiert wurde, nicht wie lange das her ist (Nutzer-Report
+            // 2026-07-12).
+            L10n.articleListLastRefreshed(date.formatted(date: .abbreviated, time: .shortened))
         case let .failure(reason):
             L10n.articleListRefreshFailed(reason)
         }
