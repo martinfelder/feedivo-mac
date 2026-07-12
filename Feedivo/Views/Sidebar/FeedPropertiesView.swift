@@ -746,13 +746,15 @@ struct FeedPropertiesView: View {
         }
 
         if let feedivoDatabase {
-            _ = try? ArticleRetentionCleanupService.removeExpiredSQLiteArticles(
-                database: feedivoDatabase,
-                isEnabled: globalArticleRetentionIsEnabled,
-                retentionDays: globalArticleRetentionDays,
-                minimumArticlesPerFeed: globalArticleRetentionMinimumArticlesPerFeed,
-                includeProtectedArticles: globalArticleRetentionIncludesProtectedArticles
-            )
+            logIfThrows(context: "Automatisches Retention-Cleanup nach Feed-Einstellungsänderung") {
+                _ = try ArticleRetentionCleanupService.removeExpiredSQLiteArticles(
+                    database: feedivoDatabase,
+                    isEnabled: globalArticleRetentionIsEnabled,
+                    retentionDays: globalArticleRetentionDays,
+                    minimumArticlesPerFeed: globalArticleRetentionMinimumArticlesPerFeed,
+                    includeProtectedArticles: globalArticleRetentionIncludesProtectedArticles
+                )
+            }
             loadSQLiteArticleMetrics()
             loadSQLiteReadingStatistics()
         }
