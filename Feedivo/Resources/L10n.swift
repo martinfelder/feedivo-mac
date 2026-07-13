@@ -17,6 +17,7 @@ enum L10n {
     static let sidebarAddFolderButton = LocalizedStringKey("sidebar.addFolder.button")
     static let sidebarAddFolderTitle = LocalizedStringKey("sidebar.addFolder.title")
     static let sidebarAddFolderNamePlaceholder = LocalizedStringKey("sidebar.addFolder.name.placeholder")
+    static let sidebarFolderRenameCommand = String(localized: "sidebar.folder.rename.command")
     static let sidebarSmartFiltersSection = LocalizedStringKey("sidebar.smartFilters.section")
     // Parallele Keys für die Smart-Folder-Sektion. Der alte Key
     // `sidebar.smartFilters.section` bleibt erhalten, wird aber nach diesem

@@ -252,7 +252,10 @@ struct SidebarView: View {
                         isExpanded: isExpanded,
                         deleteEmptyFolder: entry.snapshots.isEmpty && explicitFolder != nil
                             ? { feedFolderPendingDeletion = explicitFolder }
-                            : nil
+                            : nil,
+                        renameFolder: { newName in
+                            try renameFolder(from: entry.folderName, to: newName)
+                        }
                     ) {
                         toggleFolder(named: entry.folderName)
                     } content: {
@@ -487,6 +490,24 @@ struct SidebarView: View {
         sidebarDefinitionVersion += 1
     }
 
+    private func renameFolder(from oldName: String, to newName: String) throws {
+        guard let database = feedivoDatabase else {
+            throw FeedFolderRenameError.databaseUnavailable
+        }
+
+        try FeedFolderStore(database: database).renameFolder(from: oldName, to: newName)
+
+        // Ein-/Ausklapp-Zustand ist über collapsedFolderNames am alten Namen
+        // festgemacht — beim Umbenennen migrieren, damit ein zuvor eingeklappter
+        // Ordner nach der Umbenennung nicht überraschend wieder aufklappt.
+        if collapsedFolderNames.remove(oldName) != nil {
+            collapsedFolderNames.insert(newName)
+        }
+
+        SQLiteDataInvalidation.bumpStatusVersion()
+        sidebarDefinitionVersion += 1
+    }
+
     private func sqliteSmartFolderRecord(id: String) -> SmartFolderRecord? {
         guard let database = feedivoDatabase else {
             return nil
@@ -685,41 +706,93 @@ private struct CollapsibleSidebarSection<Content: View>: View {
 
 private struct SidebarFolderSection<Content: View>: View {
     @Environment(\.interfaceTextSize) private var interfaceTextSize
+    @FocusState private var isNameFieldFocused: Bool
 
     let title: String
     let isExpanded: Bool
     let deleteEmptyFolder: (() -> Void)?
+    let renameFolder: (String) throws -> Void
     let toggle: () -> Void
     @ViewBuilder let content: Content
 
+    @State private var isEditingName = false
+    @State private var editedName = ""
+    @State private var renameErrorMessage: String?
+
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Button(action: toggle) {
-                HStack(spacing: 9) {
-                    Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                        .font(interfaceTextSize.font(size: 10, weight: .bold))
-                        .foregroundStyle(SidebarStyle.secondaryText)
-                        .frame(width: interfaceTextSize.scaled(12))
+            HStack(spacing: 9) {
+                Button(action: toggle) {
+                    HStack(spacing: 9) {
+                        Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                            .font(interfaceTextSize.font(size: 10, weight: .bold))
+                            .foregroundStyle(SidebarStyle.secondaryText)
+                            .frame(width: interfaceTextSize.scaled(12))
 
-                    Image(systemName: "folder")
-                        .font(interfaceTextSize.font(size: 16, weight: .medium))
-                        .foregroundStyle(Color.accentColor)
-                        .frame(width: interfaceTextSize.scaled(20))
+                        Image(systemName: "folder")
+                            .font(interfaceTextSize.font(size: 16, weight: .medium))
+                            .foregroundStyle(Color.accentColor)
+                            .frame(width: interfaceTextSize.scaled(20))
+                    }
+                }
+                .buttonStyle(.plain)
 
+                if isEditingName {
+                    TextField(title, text: $editedName)
+                        .textFieldStyle(.plain)
+                        .font(interfaceTextSize.font(size: 13, weight: .medium))
+                        .focused($isNameFieldFocused)
+                        .onSubmit {
+                            commitOrShowError()
+                        }
+                        .onExitCommand {
+                            cancelEditing()
+                        }
+                        .onChange(of: isNameFieldFocused) { wasFocused, isFocused in
+                            // Fokusverlust (z. B. Klick woanders hin) verhält sich wie
+                            // Enter. Die Guard-Bedingung verhindert ein doppeltes
+                            // Auslösen, wenn commitOrShowError()/cancelEditing() den
+                            // Bearbeitungsmodus bereits beendet haben, bevor der Fokus
+                            // tatsächlich wechselt.
+                            if wasFocused, !isFocused, isEditingName {
+                                commitOrShowError()
+                            }
+                        }
+                } else {
                     Text(title)
                         .font(interfaceTextSize.font(size: 13, weight: .medium))
                         .foregroundStyle(SidebarStyle.primaryText.opacity(0.82))
                         .lineLimit(1)
-
-                    Spacer(minLength: 0)
+                        .contentShape(Rectangle())
+                        .onTapGesture(count: 2) {
+                            beginEditing()
+                        }
+                        .onTapGesture(count: 1) {
+                            toggle()
+                        }
                 }
-                .frame(height: interfaceTextSize.scaled(24))
-                .contentShape(Rectangle())
+
+                Spacer(minLength: 0)
             }
-            .buttonStyle(.plain)
+            .frame(height: interfaceTextSize.scaled(24))
+            .contentShape(Rectangle())
+            .onTapGesture {
+                // Fängt Klicks auf den leeren Bereich rechts vom Namen ab, damit die
+                // gesamte Zeile weiterhin wie vor dieser Änderung klickbar bleibt.
+                // Klicks auf Chevron/Icon (eigener Button) und auf den Namen (eigene
+                // Tap-Gesten oben) werden von SwiftUI vorrangig an die jeweils
+                // spezifischere View vergeben und lösen diesen Handler nicht zusätzlich aus.
+                toggle()
+            }
             .padding(.horizontal, 16)
             .padding(.top, 8)
             .contextMenu {
+                Button {
+                    beginEditing()
+                } label: {
+                    Label(L10n.sidebarFolderRenameCommand, systemImage: "pencil")
+                }
+
                 if let deleteEmptyFolder {
                     Button(role: .destructive) {
                         deleteEmptyFolder()
@@ -729,7 +802,46 @@ private struct SidebarFolderSection<Content: View>: View {
                 }
             }
 
+            if let renameErrorMessage {
+                Text(renameErrorMessage)
+                    .font(interfaceTextSize.font(size: 11))
+                    .foregroundStyle(.red)
+                    .padding(.leading, 16 + 12 + 9 + 20 + 9)
+                    .padding(.trailing, 16)
+            }
+
             content
+        }
+    }
+
+    private func beginEditing() {
+        editedName = title
+        renameErrorMessage = nil
+        isEditingName = true
+        isNameFieldFocused = true
+    }
+
+    private func cancelEditing() {
+        editedName = title
+        renameErrorMessage = nil
+        isEditingName = false
+    }
+
+    private func commitOrShowError() {
+        let trimmedName = editedName.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard trimmedName != title else {
+            isEditingName = false
+            renameErrorMessage = nil
+            return
+        }
+
+        do {
+            try renameFolder(trimmedName)
+            isEditingName = false
+            renameErrorMessage = nil
+        } catch {
+            renameErrorMessage = error.localizedDescription
         }
     }
 }
