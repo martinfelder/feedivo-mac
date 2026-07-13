@@ -379,22 +379,16 @@ struct SidebarView: View {
 
     private func feedRows(_ snapshots: [FeedSidebarSnapshot], isIndented: Bool = false) -> some View {
         ForEach(snapshots) { snapshot in
-            Button {
-                selection = .feed(snapshot.id)
-            } label: {
-                FeedRowView(
-                    snapshot: snapshot,
-                    displayStyle: isIndented ? .folderChild : .regular
-                )
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .buttonStyle(
-                SidebarRowButtonStyle(
-                    isSelected: selection == .feed(snapshot.id),
-                    leadingIndent: isIndented ? 46 : 0,
-                    rowHeight: isIndented ? 28 : 30
-                )
+            FeedRowView(
+                snapshot: snapshot,
+                displayStyle: isIndented ? .folderChild : .regular,
+                isSelected: selection == .feed(snapshot.id),
+                select: { selection = .feed(snapshot.id) },
+                renameFeed: { newName in
+                    try renameFeed(id: snapshot.id, to: newName)
+                }
             )
+            .frame(maxWidth: .infinity, alignment: .leading)
             .contextMenu {
                 Button {
                     feedRenaming = snapshot
@@ -506,6 +500,15 @@ struct SidebarView: View {
 
         SQLiteDataInvalidation.bumpStatusVersion()
         sidebarDefinitionVersion += 1
+    }
+
+    private func renameFeed(id: String, to newTitle: String) throws {
+        guard let database = feedivoDatabase else {
+            throw FeedStoreError.databaseUnavailable
+        }
+
+        try FeedStore(database: database).renameFeed(id: id, displayTitle: newTitle)
+        SQLiteDataInvalidation.bumpStatusVersion()
     }
 
     private func sqliteSmartFolderRecord(id: String) -> SmartFolderRecord? {
