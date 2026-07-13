@@ -7,7 +7,8 @@ import {
     resolveFeedTitles,
     extractFeedTitleFromXML,
     extractFeedTitleFromJSON,
-    extractFeedTitleFromContent
+    extractFeedTitleFromContent,
+    looksLikeFeedContent
 } from "./feedDetection.mjs";
 
 function fakeDocument({ title = "Beispiel-Seite", baseURI = "https://example.com/artikel", links = [] } = {}) {
@@ -60,8 +61,11 @@ test("detectFeedsFromLinkTags liefert eine leere Liste ohne Links", () => {
     assert.deepEqual(detectFeedsFromLinkTags(fakeDocument()), []);
 });
 
-test("probeFallbackFeedPaths findet erreichbare Pfade", async () => {
-    const fakeFetch = async (url) => ({ ok: url.endsWith("/feed") });
+test("probeFallbackFeedPaths findet erreichbare Pfade mit echtem Feed-Inhalt", async () => {
+    const fakeFetch = async (url) => ({
+        ok: url.endsWith("/feed"),
+        text: async () => "<rss><channel><title>Ein Feed</title></channel></rss>"
+    });
 
     assert.deepEqual(
         await probeFallbackFeedPaths("https://example.com/artikel", fakeFetch),
@@ -78,6 +82,59 @@ test("probeFallbackFeedPaths ignoriert Netzwerkfehler still", async () => {
         await probeFallbackFeedPaths("https://example.com/artikel", fakeFetch),
         []
     );
+});
+
+// Viele Seiten (v. a. SPA-Frameworks mit Client-Routing) liefern fuer JEDEN
+// Pfad HTTP 200 samt normaler HTML-Seite statt eines echten 404 ("Soft-404").
+// Nur den HTTP-Status zu pruefen reicht deshalb nicht — sonst haelt die
+// Erweiterung z. B. "/feed" faelschlich fuer einen echten Feed, obwohl dort
+// nur die normale Startseite liegt (Nutzer-Report 2026-07-13, bluewin.ch).
+test("probeFallbackFeedPaths verwirft Pfade mit Soft-404-Inhalt (200 OK, aber kein Feed-Format)", async () => {
+    const fakeFetch = async () => ({
+        ok: true,
+        text: async () => "<!DOCTYPE html><html><head><title>Startseite</title></head><body></body></html>"
+    });
+
+    assert.deepEqual(
+        await probeFallbackFeedPaths("https://example.com/artikel", fakeFetch),
+        []
+    );
+});
+
+test("probeFallbackFeedPaths akzeptiert einen echten JSON Feed", async () => {
+    const fakeFetch = async (url) => ({
+        ok: url.endsWith("/feed"),
+        text: async () => JSON.stringify({ version: "https://jsonfeed.org/version/1.1", items: [] })
+    });
+
+    assert.deepEqual(
+        await probeFallbackFeedPaths("https://example.com/artikel", fakeFetch),
+        [{ title: "/feed", url: "https://example.com/feed" }]
+    );
+});
+
+test("looksLikeFeedContent erkennt RSS am Wurzelelement", () => {
+    assert.equal(looksLikeFeedContent("<?xml version=\"1.0\"?><rss version=\"2.0\"><channel></channel></rss>"), true);
+});
+
+test("looksLikeFeedContent erkennt Atom am Wurzelelement", () => {
+    assert.equal(looksLikeFeedContent("<feed xmlns=\"http://www.w3.org/2005/Atom\"></feed>"), true);
+});
+
+test("looksLikeFeedContent erkennt RSS 1.0 (RDF) am Wurzelelement", () => {
+    assert.equal(looksLikeFeedContent("<rdf:RDF xmlns:rdf=\"...\"></rdf:RDF>"), true);
+});
+
+test("looksLikeFeedContent erkennt JSON Feed am items-Array", () => {
+    assert.equal(looksLikeFeedContent(JSON.stringify({ version: "1", items: [] })), true);
+});
+
+test("looksLikeFeedContent verwirft normale HTML-Seiten", () => {
+    assert.equal(looksLikeFeedContent("<!DOCTYPE html><html><head><title>X</title></head><body></body></html>"), false);
+});
+
+test("looksLikeFeedContent verwirft beliebigen Text", () => {
+    assert.equal(looksLikeFeedContent("weder xml noch json"), false);
 });
 
 test("detectFeeds bevorzugt Link-Tags vor der Fallback-Pfad-Heuristik, loest aber trotzdem echte Titel auf", async () => {

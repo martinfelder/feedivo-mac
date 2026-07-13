@@ -97,9 +97,29 @@ export function detectFeedsFromLinkTags(doc = document) {
     return feeds;
 }
 
+// Prueft anhand des Inhalts (nicht nur des HTTP-Status), ob eine Antwort
+// tatsaechlich wie ein Feed aussieht. Noetig, weil viele Seiten (v. a.
+// SPA-Frameworks mit Client-Routing) fuer JEDEN Pfad HTTP 200 mit der
+// normalen HTML-Seite liefern statt eines echten 404 ("Soft-404") — ein
+// reiner Status-Check haelt solche Seiten sonst faelschlich fuer Feeds
+// (Nutzer-Report 2026-07-13, bluewin.ch).
+export function looksLikeFeedContent(text) {
+    const start = text.slice(0, 500).trimStart();
+    if (/^(<\?xml|<rss[\s>]|<feed[\s>]|<rdf:rdf[\s>])/i.test(start)) {
+        return true;
+    }
+
+    try {
+        const parsed = JSON.parse(text);
+        return Array.isArray(parsed?.items);
+    } catch {
+        return false;
+    }
+}
+
 // Fallback-Heuristik, falls keine <link>-Tags gefunden wurden: prüft gängige
-// Feed-Pfade relativ zur aktuellen Origin per HEAD-Request. `fetchImpl`
-// injizierbar für Tests.
+// Feed-Pfade relativ zur aktuellen Origin und validiert den tatsächlichen
+// Inhalt (nicht nur den HTTP-Status). `fetchImpl` injizierbar für Tests.
 export async function probeFallbackFeedPaths(originURL, fetchImpl = fetch) {
     const origin = new URL(originURL).origin;
     const found = [];
@@ -107,8 +127,12 @@ export async function probeFallbackFeedPaths(originURL, fetchImpl = fetch) {
     for (const path of FALLBACK_PATHS) {
         const candidateURL = origin + path;
         try {
-            const response = await fetchImpl(candidateURL, { method: "HEAD" });
-            if (response.ok) {
+            const response = await fetchImpl(candidateURL);
+            if (!response.ok) {
+                continue;
+            }
+            const text = await response.text();
+            if (looksLikeFeedContent(text)) {
                 found.push({ title: path, url: candidateURL });
             }
         } catch {
