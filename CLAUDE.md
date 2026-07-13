@@ -249,6 +249,21 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
 
 > Diese Liste wächst während der Entwicklung. Immer ergänzen!
 
+- **Neues App-Icon zeigt nach dem Rebuild noch das alte an (macOS-Icon-Cache,
+  kein Build-Fehler):** Nach Ersetzen der PNGs in
+  `Feedivo/Assets.xcassets/AppIcon.appiconset/` zeigten Dock/Finder trotz
+  `BUILD SUCCEEDED` und korrekt konfiguriertem `CFBundleIconFile`/
+  `CFBundleIconName`/`ASSETCATALOG_COMPILER_APPICON_NAME` weiterhin das alte
+  Icon (gefunden 2026-07-13, keine laufende Alt-Instanz als Ursache). `killall
+  Dock`/`killall Finder` allein reichte nicht — erst ein tieferer Reset des
+  systemweiten IconServices-Caches behob es:
+  `sudo rm -rf /Library/Caches/com.apple.iconservices.store` plus Löschen von
+  `com.apple.dock.iconcache`/`com.apple.iconservices` unter
+  `/private/var/folders/`, danach `killall Dock`/`Finder`/`SystemUIServer`.
+  Erfordert `sudo` (Passwort-Prompt) — vom Nutzer selbst auszuführen, nicht
+  automatisierbar. Falls das immer noch nicht reicht: Ab-/Anmelden oder
+  Neustart, da IconServices auf aktuellem macOS den Cache teils erst dann
+  vollständig verwirft.
 - **SourceKit-Diagnosen sind oft falsch:** Nach praktisch jedem Edit zeigt die IDE/das
   Diagnose-System teils dutzende Fehler wie "Cannot find type X in scope" oder "No such module
   'GRDB'/'Testing'". Das sind in aller Regel veraltete/gecachte SourceKit-Zustände, KEINE echten
@@ -574,6 +589,20 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Letzte Änderungen
 
+- 2026-07-13 (Nachmittag): App-Icon erneuert. Vom Nutzer per Icon-Kitchen-Export
+  (ZIP mit `macos/AppIcon16.png` … `AppIcon1024.png` + `.icns`) bereitgestellt,
+  alle 10 in `Feedivo/Assets.xcassets/AppIcon.appiconset/Contents.json`
+  referenzierten Größen (16px–1024px) 1:1 ersetzt — Dateinamen passten exakt,
+  `Contents.json` selbst unverändert. Nach dem Rebuild zeigte Dock/Finder
+  zunächst weiterhin das alte Icon (kein Build-Fehler — `CFBundleIconFile`/
+  `CFBundleIconName`/`ASSETCATALOG_COMPILER_APPICON_NAME` zeigten korrekt auf
+  den Asset-Catalog, keine laufende Alt-Instanz gefunden), klassischer
+  macOS-Icon-Cache-Effekt: `killall Dock`/`killall Finder` allein reichte
+  nicht, erst ein tieferer, sudo-basierter Reset des systemweiten
+  IconServices-Caches (`~/Library/Caches/com.apple.iconservices.store` +
+  `com.apple.dock.iconcache`/`com.apple.iconservices` unter
+  `/private/var/folders/`) behob es — vom Nutzer bestätigt. Committed und
+  gepusht (`05425bbf3`).
 - 2026-07-13 (Mittag): Feeds in der Sidebar umbenennbar — via
   Brainstorming+Plan+Subagent-Driven-Development (2 Tasks) umgesetzt, direkter
   Nachfolger des Ordner-Umbenennen-Features vom selben Tag. Spec:
