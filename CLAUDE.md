@@ -554,6 +554,10 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Aktuell in Arbeit
 
+- **2026-07-13 (Abend): Mehrfach-Tag-Filterung in der Artikelsuche —
+  VOLLSTÄNDIG ABGESCHLOSSEN und auf `origin/main` gepusht.** Suche erlaubt
+  jetzt Auswahl mehrerer Tags gleichzeitig (Popover mit Checkboxen), mit
+  wählbarem Any/All-Verknüpfungsmodus. Details siehe „Letzte Änderungen" unten.
 - **2026-07-13 (Mittag): Feeds in der Sidebar umbenennbar — VOLLSTÄNDIG
   ABGESCHLOSSEN und auf `origin/main` gepusht.** Überträgt den Doppelklick-
   Inline-Umbenennen-Mechanismus von Ordnern auf Feeds. Bestehender
@@ -589,6 +593,33 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Letzte Änderungen
 
+- 2026-07-13 (Abend): Mehrfach-Tag-Filterung in der Artikelsuche — via
+  Brainstorming (inkl. Mockup-Vergleich über den Visual-Companion-Server für
+  die Popover-UI) + Plan + Subagent-Driven-Development (2 Tasks) umgesetzt.
+  Spec: `docs/superpowers/specs/2026-07-13-tag-suche-design.md`, Plan:
+  `docs/superpowers/plans/2026-07-13-tag-suche.md`.
+  - Bestehende Einzelauswahl-Tag-Filterung (`tagID: UUID?`) in
+    `ArticleSearchWindowState`/`ArticleSearchFilters`/`ArticleSearchQuery`
+    verallgemeinert auf `tagIDs: Set<UUID>` + neues
+    `ArticleSearchTagMatchMode`-Enum (`.any`/`.all`).
+  - **SQL-Schicht** (`ArticleStore.searchArticles(state:)`) nutzt eine
+    gemeinsame Subquery (Tags aus `article_tags` UNION `feed_tags` — erhält
+    die bestehende "Tag hängt am Artikel ODER am Feed"-Semantik), nur der
+    äußere Vergleich unterscheidet sich: `EXISTS` für "Mind. einer",
+    `COUNT(DISTINCT tagID) = N` für "Alle".
+  - **UI:** Der bisherige Einzel-`Picker` wird durch einen "Tags"/"Tags (N)"
+    -Button mit Popover ersetzt (Any/All-Segmented-Control oben, Checkbox pro
+    Tag darunter, Popover bleibt beim Toggeln offen).
+  - Cross-Task-Besonderheit: Task 1 (Datenmodell-Umbenennung) musste
+    zusätzlich einen minimalen, bewusst temporären Kompatibilitäts-Adapter in
+    der UI-Datei ergänzen, damit die App zwischen den beiden Commits
+    kompilierfähig blieb — von Task 2 vollständig durch die finale Popover-UI
+    ersetzt, vom Whole-Branch-Reviewer als korrekte Sequenzierungsentscheidung
+    bestätigt (erhält "jeder Commit baut"-Invariante).
+  - Beide Tasks clean im ersten Anlauf (keine Fix-Runde nötig). Finale
+    Whole-Branch-Review (Opus): Ready to merge: Yes, 0 Critical/Important,
+    SQL-Injection- und Argument-Bindungsreihenfolge explizit verifiziert.
+    Gepusht (`77ce3072e..f592d644c`).
 - 2026-07-13 (Nachmittag): App-Icon erneuert. Vom Nutzer per Icon-Kitchen-Export
   (ZIP mit `macos/AppIcon16.png` … `AppIcon1024.png` + `.icns`) bereitgestellt,
   alle 10 in `Feedivo/Assets.xcassets/AppIcon.appiconset/Contents.json`
