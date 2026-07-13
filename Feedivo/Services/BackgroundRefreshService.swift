@@ -112,6 +112,51 @@ enum BackgroundRefreshService {
             intervalMinutes: intervalMinutes,
             userDefaults: userDefaults
         )
+
+        cleanupExpiredArticlesIfNeeded(database: database, userDefaults: userDefaults)
+    }
+
+    /// Bereinigt abgelaufene Artikel nach jedem periodischen Hintergrund-Refresh.
+    ///
+    /// Vor diesem Fix lief `ArticleRetentionCleanupService` nur beim App-Start
+    /// (`FeedivoApp.cleanupExpiredArticlesIfNeeded`) und bei Änderungen der
+    /// Retention-Einstellungen — nie erneut während einer laufenden Session. Bei
+    /// einer dauerhaft im Hintergrund laufenden App (typisch für eine
+    /// Menüleisten-App) sammelten sich neue, über den periodischen Refresh
+    /// eintreffende Artikel dadurch unbegrenzt an, bis die App neu gestartet
+    /// wurde (Nutzer-Report 2026-07-13: "Alte Artikel bleiben trotz aktivierter
+    /// Bereinigung liegen, auch nach Tagen im Hintergrund"). `refreshAllFeeds`
+    /// ist der einzige Aufrufpfad des periodischen `NSBackgroundActivityScheduler`
+    /// (siehe `SystemBackgroundActivityRefreshScheduler.submit`) und damit die
+    /// richtige Stelle, um die Bereinigung regelmäßig erneut anzustoßen.
+    ///
+    /// Liest die Retention-Einstellungen direkt aus `UserDefaults`, da diese
+    /// Funktion außerhalb einer SwiftUI-View läuft und kein `@AppStorage` zur
+    /// Verfügung hat — bewusst `object(forKey:) as? T ?? default` statt
+    /// `bool(forKey:)`/`integer(forKey:)`, da Letztere bei einem noch nie
+    /// gespeicherten Wert `false`/`0` liefern (bei `retentionDays` würde `0` auf
+    /// den kleinsten erlaubten Wert `30` statt auf den korrekten 90-Tage-Standard
+    /// geklemmt).
+    @MainActor
+    static func cleanupExpiredArticlesIfNeeded(
+        database: FeedivoDatabase,
+        userDefaults: UserDefaults = .standard,
+        now: Date = Date()
+    ) {
+        logIfThrows(context: "Automatisches Retention-Cleanup nach Hintergrund-Refresh") {
+            _ = try ArticleRetentionCleanupService.removeExpiredSQLiteArticles(
+                database: database,
+                isEnabled: userDefaults.object(forKey: ArticleRetentionSettings.isEnabledKey) as? Bool
+                    ?? ArticleRetentionSettings.defaultIsEnabled,
+                retentionDays: userDefaults.object(forKey: ArticleRetentionSettings.retentionDaysKey) as? Int
+                    ?? ArticleRetentionSettings.defaultRetentionDays,
+                minimumArticlesPerFeed: userDefaults.object(forKey: ArticleRetentionSettings.minimumArticlesPerFeedKey) as? Int
+                    ?? ArticleRetentionSettings.defaultMinimumArticlesPerFeed,
+                includeProtectedArticles: userDefaults.object(forKey: ArticleRetentionSettings.includesProtectedArticlesKey) as? Bool
+                    ?? ArticleRetentionSettings.defaultIncludesProtectedArticles,
+                now: now
+            )
+        }
     }
 
     static func recordRefreshOutcome(
