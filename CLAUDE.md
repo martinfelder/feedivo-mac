@@ -554,6 +554,28 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Aktuell in Arbeit
 
+- **2026-07-13 (Nacht): Bugfix automatische Artikel-Bereinigung — TEILWEISE
+  ABGESCHLOSSEN, noch NICHT gepusht.** Nutzer-Report: "Alte Artikel bleiben
+  trotz aktivierter Bereinigung liegen, auch nach Tagen im Hintergrund."
+  Root Cause gefunden (via systematic-debugging): `ArticleRetentionCleanupService`
+  wurde nur beim App-Start und bei Retention-Einstellungsänderungen aufgerufen,
+  nie erneut während einer laufenden Session — der periodische Hintergrund-Refresh
+  (`BackgroundRefreshService.refreshAllFeeds`, einziger Aufrufpfad des
+  `NSBackgroundActivityScheduler`) löste nie eine Bereinigung aus. Fix (TDD, 3 neue
+  Regressionstests): `cleanupExpiredArticlesIfNeeded(database:userDefaults:now:)`
+  neu in `BackgroundRefreshService.swift`, wird jetzt am Ende jedes
+  `refreshAllFeeds`-Durchlaufs aufgerufen. Commit `99ed5fe`, lokal auf main,
+  Push steht noch aus (Nutzerbestätigung ausstehend).
+  Bei derselben Analyse zwei WEITERE, noch nicht behobene Befunde dokumentiert
+  (Nutzerentscheidung aussteht, ob/wann angegangen):
+  - Artikel ohne `publishedAt` (Feed liefert kein parsbares Datum) sind dauerhaft
+    von der Bereinigung ausgenommen (`ArticleRetentionCleanupService.swift:92-97`,
+    `shouldRemove` verlangt zwingend ein non-nil Datum unter dem Cutoff, kein
+    Fallback z. B. auf Abrufdatum).
+  - Der automatische Bereinigungspfad hat keinerlei UI-Feedback — Fehler landen
+    nur im Apple-Systemlog (`SilentErrorLogging.swift`/`AppLogger.dataAccess`),
+    nur der manuelle "Jetzt bereinigen"-Button in den Einstellungen zeigt
+    Ergebnis/Fehler an.
 - **2026-07-13 (spät Abend): Tags direkt im Reader-Header hinzufügen —
   VOLLSTÄNDIG ABGESCHLOSSEN und auf `origin/main` gepusht.** Neuer "+"-Button
   neben Ordner-/Tag-Chips im Reader-Header öffnet ein Popover mit denselben
