@@ -66,7 +66,6 @@ struct SQLiteFeedArticleListView: View {
     @State private var articlePendingDeletion: ArticleListSnapshot?
     @State private var isDeleteArticleConfirmationPresented = false
     @State private var showsReadArticles = false
-    @State private var temporarilyVisibleReadArticleIDs = Set<String>()
     // Haelt die zuletzt bekannten Zeilendaten fuer Artikel, die gerade als
     // gelesen markiert wurden. Ein Smart Folder wie "Ungelesen" hat "Status
     // ist ungelesen" als eigene SQL-Bedingung - ein Reload (ausgeloest durch
@@ -144,7 +143,6 @@ struct SQLiteFeedArticleListView: View {
             reload()
         }
         .onChange(of: scopeToken) {
-            temporarilyVisibleReadArticleIDs.removeAll()
             stickyRowSnapshots.removeAll()
         }
         .onChange(of: selectedArticleID) {
@@ -364,7 +362,11 @@ struct SQLiteFeedArticleListView: View {
             rows: effectiveRows.sorted(by: sortRows),
             showsReadArticles: showsReadArticles,
             selectedArticleID: selectedArticleID,
-            temporarilyVisibleReadArticleIDs: temporarilyVisibleReadArticleIDs,
+            // Einzige Quelle der Wahrheit: aus stickyRowSnapshots abgeleitet statt
+            // einer zweiten, separat gepflegten Menge, die mit ihr auseinanderlaufen
+            // konnte (Nutzer-Report 2026-07-12: Artikel in Smart Folder "Ungelesen"
+            // verschwanden trotz aktivem Sticky-Snapshot sofort aus der Standardansicht).
+            temporarilyVisibleReadArticleIDs: Set(stickyRowSnapshots.keys),
             filterOption: articleFilterOption
         )
     }
@@ -751,7 +753,6 @@ struct SQLiteFeedArticleListView: View {
 
         state.toggleRead(articleID: articleID, database: database)
         navigationState = state.navigationState
-        temporarilyVisibleReadArticleIDs.insert(articleID)
         if let row = state.rows.first(where: { $0.id == articleID }) {
             stickyRowSnapshots[articleID] = row
         }
@@ -768,7 +769,6 @@ struct SQLiteFeedArticleListView: View {
         }
 
         if let articleID {
-            temporarilyVisibleReadArticleIDs.insert(articleID)
             if let row = state.rows.first(where: { $0.id == articleID }) {
                 stickyRowSnapshots[articleID] = row
             }
