@@ -4,6 +4,7 @@ import {
     detectFeedsFromLinkTags,
     probeFallbackFeedPaths,
     detectFeeds,
+    resolveFeedTitles,
     extractFeedTitleFromXML,
     extractFeedTitleFromJSON,
     extractFeedTitleFromContent
@@ -79,25 +80,32 @@ test("probeFallbackFeedPaths ignoriert Netzwerkfehler still", async () => {
     );
 });
 
-test("detectFeeds bevorzugt Link-Tags vor der Fallback-Heuristik", async () => {
+test("detectFeeds bevorzugt Link-Tags vor der Fallback-Pfad-Heuristik, loest aber trotzdem echte Titel auf", async () => {
     const doc = fakeDocument({
-        links: [{ type: "application/rss+xml", href: "/feed.xml", title: "Feed" }]
+        links: [{ type: "application/rss+xml", href: "/feed.xml", title: "Linktitel" }]
     });
-    const fetchImpl = async () => {
-        throw new Error("sollte nicht aufgerufen werden");
+    const fetchImpl = async (url) => {
+        assert.equal(url, "https://example.com/feed.xml");
+        return {
+            ok: true,
+            text: async () => "<rss><channel><title>Echter Feed-Titel</title></channel></rss>"
+        };
     };
 
     assert.deepEqual(await detectFeeds(doc, fetchImpl), [
-        { title: "Feed", url: "https://example.com/feed.xml" }
+        { title: "Echter Feed-Titel", url: "https://example.com/feed.xml" }
     ]);
 });
 
-test("detectFeeds nutzt die Fallback-Heuristik, wenn keine Link-Tags gefunden wurden", async () => {
+test("detectFeeds nutzt die Fallback-Heuristik und loest danach echte Titel auf", async () => {
     const doc = fakeDocument({ links: [] });
-    const fetchImpl = async (url) => ({ ok: url.endsWith("/rss") });
+    const fetchImpl = async (url) => ({
+        ok: url.endsWith("/rss"),
+        text: async () => "<rss><channel><title>Gefundener Feed</title></channel></rss>"
+    });
 
     assert.deepEqual(await detectFeeds(doc, fetchImpl), [
-        { title: "/rss", url: "https://example.com/rss" }
+        { title: "Gefundener Feed", url: "https://example.com/rss" }
     ]);
 });
 
@@ -150,4 +158,27 @@ test("extractFeedTitleFromContent faellt auf JSON zurueck, wenn kein title-Tag e
 
 test("extractFeedTitleFromContent liefert null bei unbekanntem Inhalt", () => {
     assert.equal(extractFeedTitleFromContent("weder xml noch json"), null);
+});
+
+test("resolveFeedTitles behaelt den alten Titel bei fehlgeschlagenem Fetch", async () => {
+    const feeds = [{ title: "Alter Titel", url: "https://example.com/feed.xml" }];
+    const fetchImpl = async () => {
+        throw new Error("Netzwerkfehler");
+    };
+
+    assert.deepEqual(await resolveFeedTitles(feeds, fetchImpl), feeds);
+});
+
+test("resolveFeedTitles behaelt den alten Titel bei nicht-ok Response", async () => {
+    const feeds = [{ title: "Alter Titel", url: "https://example.com/feed.xml" }];
+    const fetchImpl = async () => ({ ok: false });
+
+    assert.deepEqual(await resolveFeedTitles(feeds, fetchImpl), feeds);
+});
+
+test("resolveFeedTitles behaelt den alten Titel, wenn der Inhalt nicht parsbar ist", async () => {
+    const feeds = [{ title: "Alter Titel", url: "https://example.com/feed.xml" }];
+    const fetchImpl = async () => ({ ok: true, text: async () => "weder xml noch json" });
+
+    assert.deepEqual(await resolveFeedTitles(feeds, fetchImpl), feeds);
 });

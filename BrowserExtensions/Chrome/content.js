@@ -55,13 +55,63 @@
         return found;
     }
 
-    async function detectFeeds() {
-        const linkFeeds = detectFeedsFromLinkTags();
-        if (linkFeeds.length > 0) {
-            return linkFeeds;
+    function decodeXMLEntities(value) {
+        return value
+            .replace(/&lt;/g, "<")
+            .replace(/&gt;/g, ">")
+            .replace(/&quot;/g, "\"")
+            .replace(/&apos;/g, "'")
+            .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)))
+            .replace(/&amp;/g, "&");
+    }
+
+    function extractFeedTitleFromXML(xmlText) {
+        const match = xmlText.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+        if (!match) {
+            return null;
         }
 
-        return probeFallbackFeedPaths();
+        let raw = match[1].trim();
+        const cdataMatch = raw.match(/^<!\[CDATA\[([\s\S]*?)\]\]>$/);
+        raw = cdataMatch ? cdataMatch[1].trim() : decodeXMLEntities(raw);
+
+        return raw.length > 0 ? raw : null;
+    }
+
+    function extractFeedTitleFromJSON(jsonText) {
+        try {
+            const parsed = JSON.parse(jsonText);
+            const title = typeof parsed?.title === "string" ? parsed.title.trim() : "";
+            return title.length > 0 ? title : null;
+        } catch {
+            return null;
+        }
+    }
+
+    function extractFeedTitleFromContent(feedText) {
+        return extractFeedTitleFromXML(feedText) ?? extractFeedTitleFromJSON(feedText);
+    }
+
+    async function resolveFeedTitles(feeds) {
+        return Promise.all(feeds.map(async (feed) => {
+            try {
+                const response = await fetch(feed.url);
+                if (!response.ok) {
+                    return feed;
+                }
+                const text = await response.text();
+                const realTitle = extractFeedTitleFromContent(text);
+                return realTitle ? { title: realTitle, url: feed.url } : feed;
+            } catch {
+                return feed;
+            }
+        }));
+    }
+
+    async function detectFeeds() {
+        const linkFeeds = detectFeedsFromLinkTags();
+        const feeds = linkFeeds.length > 0 ? linkFeeds : await probeFallbackFeedPaths();
+        return resolveFeedTitles(feeds);
     }
 
     detectFeeds().then((feeds) => {

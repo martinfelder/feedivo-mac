@@ -50,6 +50,26 @@ export function extractFeedTitleFromContent(feedText) {
     return extractFeedTitleFromXML(feedText) ?? extractFeedTitleFromJSON(feedText);
 }
 
+// Holt fuer jeden Feed-Kandidaten den echten Titel aus dem Feed-Inhalt selbst
+// (gleiche Origin wie die Seite, keine neue Extension-Permission noetig).
+// Schlaegt der Abruf fehl oder ist der Inhalt nicht parsbar, bleibt der
+// bisherige (heuristische) Titel unveraendert erhalten.
+export async function resolveFeedTitles(feeds, fetchImpl = fetch) {
+    return Promise.all(feeds.map(async (feed) => {
+        try {
+            const response = await fetchImpl(feed.url);
+            if (!response.ok) {
+                return feed;
+            }
+            const text = await response.text();
+            const realTitle = extractFeedTitleFromContent(text);
+            return realTitle ? { title: realTitle, url: feed.url } : feed;
+        } catch {
+            return feed;
+        }
+    }));
+}
+
 // Durchsucht das <head> der aktuellen Seite nach <link rel="alternate">-Tags
 // mit einem RSS/Atom/JSON-Feed-Typ. `doc` ist injizierbar für Tests (Standard:
 // globales `document`, verfügbar im Content-Script-Kontext der Erweiterung).
@@ -100,12 +120,12 @@ export async function probeFallbackFeedPaths(originURL, fetchImpl = fetch) {
 }
 
 // Kombiniert beide Erkennungswege: <link>-Tags zuerst, Fallback-Heuristik nur
-// wenn nichts gefunden wurde.
+// wenn nichts gefunden wurde. Loest danach die echten Titel auf.
 export async function detectFeeds(doc = document, fetchImpl = fetch) {
     const linkFeeds = detectFeedsFromLinkTags(doc);
-    if (linkFeeds.length > 0) {
-        return linkFeeds;
-    }
+    const feeds = linkFeeds.length > 0
+        ? linkFeeds
+        : await probeFallbackFeedPaths(doc.baseURI, fetchImpl);
 
-    return probeFallbackFeedPaths(doc.baseURI, fetchImpl);
+    return resolveFeedTitles(feeds, fetchImpl);
 }
