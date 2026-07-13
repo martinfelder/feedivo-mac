@@ -7,6 +7,49 @@ const FEED_MIME_TYPES = new Set([
 
 const FALLBACK_PATHS = ["/feed", "/rss", "/atom.xml"];
 
+function decodeXMLEntities(value) {
+    return value
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .replace(/&quot;/g, "\"")
+        .replace(/&apos;/g, "'")
+        .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)))
+        .replace(/&amp;/g, "&");
+}
+
+// Liefert den Inhalt des ERSTEN <title>-Tags im Dokument. Sowohl RSS
+// (<channel><title>) als auch Atom (<feed><title>) haben ihren Kanal-Titel
+// vor jedem Artikel-<title> — kein DOMParser noetig (existiert in Node nicht
+// und wuerde die Testbarkeit erschweren), ein simpler erster Treffer reicht.
+export function extractFeedTitleFromXML(xmlText) {
+    const match = xmlText.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+    if (!match) {
+        return null;
+    }
+
+    let raw = match[1].trim();
+    const cdataMatch = raw.match(/^<!\[CDATA\[([\s\S]*?)\]\]>$/);
+    raw = cdataMatch ? cdataMatch[1].trim() : decodeXMLEntities(raw);
+
+    return raw.length > 0 ? raw : null;
+}
+
+export function extractFeedTitleFromJSON(jsonText) {
+    try {
+        const parsed = JSON.parse(jsonText);
+        const title = typeof parsed?.title === "string" ? parsed.title.trim() : "";
+        return title.length > 0 ? title : null;
+    } catch {
+        return null;
+    }
+}
+
+// Versucht zuerst XML (RSS/Atom), dann JSON Feed. Ein "erstes <title>-Tag"-
+// Regex auf JSON-Text matched nie, faellt also automatisch sauber durch.
+export function extractFeedTitleFromContent(feedText) {
+    return extractFeedTitleFromXML(feedText) ?? extractFeedTitleFromJSON(feedText);
+}
+
 // Durchsucht das <head> der aktuellen Seite nach <link rel="alternate">-Tags
 // mit einem RSS/Atom/JSON-Feed-Typ. `doc` ist injizierbar für Tests (Standard:
 // globales `document`, verfügbar im Content-Script-Kontext der Erweiterung).

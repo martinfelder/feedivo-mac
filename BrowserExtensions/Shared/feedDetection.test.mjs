@@ -1,6 +1,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { detectFeedsFromLinkTags, probeFallbackFeedPaths, detectFeeds } from "./feedDetection.mjs";
+import {
+    detectFeedsFromLinkTags,
+    probeFallbackFeedPaths,
+    detectFeeds,
+    extractFeedTitleFromXML,
+    extractFeedTitleFromJSON,
+    extractFeedTitleFromContent
+} from "./feedDetection.mjs";
 
 function fakeDocument({ title = "Beispiel-Seite", baseURI = "https://example.com/artikel", links = [] } = {}) {
     return {
@@ -92,4 +99,55 @@ test("detectFeeds nutzt die Fallback-Heuristik, wenn keine Link-Tags gefunden wu
     assert.deepEqual(await detectFeeds(doc, fetchImpl), [
         { title: "/rss", url: "https://example.com/rss" }
     ]);
+});
+
+test("extractFeedTitleFromXML liest den Kanal-Titel aus RSS", () => {
+    const xml = "<rss><channel><title>Mein RSS-Feed</title><item><title>Artikel</title></item></channel></rss>";
+    assert.equal(extractFeedTitleFromXML(xml), "Mein RSS-Feed");
+});
+
+test("extractFeedTitleFromXML liest den Feed-Titel aus Atom", () => {
+    const xml = "<feed><title>Mein Atom-Feed</title><entry><title>Artikel</title></entry></feed>";
+    assert.equal(extractFeedTitleFromXML(xml), "Mein Atom-Feed");
+});
+
+test("extractFeedTitleFromXML entfernt CDATA-Wrapper", () => {
+    const xml = "<rss><channel><title><![CDATA[Feed & Co.]]></title></channel></rss>";
+    assert.equal(extractFeedTitleFromXML(xml), "Feed & Co.");
+});
+
+test("extractFeedTitleFromXML dekodiert XML-Entities", () => {
+    const xml = "<rss><channel><title>Tom &amp; Jerry &#39;Show&#39;</title></channel></rss>";
+    assert.equal(extractFeedTitleFromXML(xml), "Tom & Jerry 'Show'");
+});
+
+test("extractFeedTitleFromXML liefert null ohne title-Tag", () => {
+    assert.equal(extractFeedTitleFromXML("<rss><channel></channel></rss>"), null);
+});
+
+test("extractFeedTitleFromJSON liest das title-Feld eines JSON Feed", () => {
+    const json = JSON.stringify({ version: "https://jsonfeed.org/version/1.1", title: "Mein JSON Feed" });
+    assert.equal(extractFeedTitleFromJSON(json), "Mein JSON Feed");
+});
+
+test("extractFeedTitleFromJSON liefert null bei kaputtem JSON", () => {
+    assert.equal(extractFeedTitleFromJSON("{kaputt"), null);
+});
+
+test("extractFeedTitleFromJSON liefert null ohne title-Feld", () => {
+    assert.equal(extractFeedTitleFromJSON(JSON.stringify({ version: "1" })), null);
+});
+
+test("extractFeedTitleFromContent erkennt XML-Inhalt", () => {
+    const xml = "<rss><channel><title>XML-Feed</title></channel></rss>";
+    assert.equal(extractFeedTitleFromContent(xml), "XML-Feed");
+});
+
+test("extractFeedTitleFromContent faellt auf JSON zurueck, wenn kein title-Tag existiert", () => {
+    const json = JSON.stringify({ title: "JSON-Feed" });
+    assert.equal(extractFeedTitleFromContent(json), "JSON-Feed");
+});
+
+test("extractFeedTitleFromContent liefert null bei unbekanntem Inhalt", () => {
+    assert.equal(extractFeedTitleFromContent("weder xml noch json"), null);
 });
