@@ -539,6 +539,11 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Aktuell in Arbeit
 
+- **2026-07-13 (Mittag): Feeds in der Sidebar umbenennbar — VOLLSTÄNDIG
+  ABGESCHLOSSEN und auf `origin/main` gepusht.** Überträgt den Doppelklick-
+  Inline-Umbenennen-Mechanismus von Ordnern auf Feeds. Bestehender
+  `FeedRenameView`-Dialog (Original-Titel + Wiederherstellen) bleibt über das
+  Kontextmenü unverändert erreichbar. Details siehe „Letzte Änderungen" unten.
 - **2026-07-13 (später Vormittag): Ordner in der Sidebar umbenennbar — VOLLSTÄNDIG
   ABGESCHLOSSEN und auf `origin/main` gepusht.** Doppelklick auf den Ordnernamen bzw.
   neuer Kontextmenü-Eintrag „Ordner umbenennen" startet Inline-Bearbeitung. Details
@@ -569,6 +574,43 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Letzte Änderungen
 
+- 2026-07-13 (Mittag): Feeds in der Sidebar umbenennbar — via
+  Brainstorming+Plan+Subagent-Driven-Development (2 Tasks) umgesetzt, direkter
+  Nachfolger des Ordner-Umbenennen-Features vom selben Tag. Spec:
+  `docs/superpowers/specs/2026-07-13-feed-umbenennen-design.md`, Plan:
+  `docs/superpowers/plans/2026-07-13-feed-umbenennen.md`.
+  - **`FeedStoreError` bekommt `LocalizedError`-Konformität** —
+    `.emptyTitle` liefert jetzt `L10n.feedRenameEmptyName` statt einer
+    generischen Systemmeldung. Das behebt nebenbei einen Bestandsfehler im
+    schon länger existierenden `FeedRenameView`-Dialog (zeigte bei leerem
+    Namen bisher ebenfalls die hässliche generische Meldung, da niemand
+    `errorDescription` konsumierte). Neuer `.databaseUnavailable`-Fall als
+    Pendant zum Ordner-Feature.
+  - **`FeedRowView` verliert den umschließenden `Button`** — dasselbe
+    Kollisionsproblem wie bei Ordnern (ein Klick ins Inline-TextField
+    während der Bearbeitung würde sonst vom `Button` mit abgefangen).
+    Übernimmt Auswahl (Einzelklick) und Bearbeitungsstart (Doppelklick auf
+    den Namen) jetzt selbst, baut die Auswahl-/Rahmen-Optik von
+    `SidebarRowButtonStyle` manuell nach (inkl. eines zuvor nur implizit
+    ererbten `.foregroundStyle` auf dem Titel-Text, das beim Button-Wegfall
+    sonst ersatzlos verloren gegangen wäre). `SidebarRowButtonStyle` selbst
+    bleibt unverändert und wird weiterhin von Tags/Intelligenten Ordnern
+    genutzt. Bewusste kosmetische Einbuße (mit dem Nutzer abgestimmt): die
+    kurze Press-Flash-Hover-Animation beim Klicken-und-Halten entfällt für
+    Feed-Zeilen (Tags/Smart-Folders behalten sie, da sie weiterhin über
+    `SidebarRowButtonStyle` laufen).
+  - Bestehender „Feed umbenennen…"-Kontextmenü-Eintrag bleibt inhaltlich
+    unverändert und öffnet weiterhin den vollen `FeedRenameView`-Dialog
+    (Original-Titel-Anzeige + „Ursprung wiederherstellen") — kein
+    zusätzlicher Menüpunkt, um das Kontextmenü nicht zu überladen.
+  - Beide Tasks clean im ersten Anlauf (kein Fix-Round nötig, anders als
+    beim Ordner-Feature). Finale Whole-Branch-Review (Opus): Ready to merge:
+    Yes, 0 Critical/Important. Ein vom Reviewer empfohlener, noch
+    ausstehender visueller Sanity-Check: dass die Auswahl-Hervorhebung bei
+    Feeds weiterhin die volle Zeilenbreite einnimmt (per SwiftUI-
+    Layout-Logik als korrekt eingeschätzt, aber nicht live beobachtet — kein
+    computer-use für native macOS-Apps in dieser Umgebung verfügbar).
+    Gepusht (`8bb906f32..062635939`).
 - 2026-07-13 (später Vormittag): Ordner in der Sidebar umbenennbar — via
   Brainstorming+Plan+Subagent-Driven-Development (2 Tasks) umgesetzt. Spec:
   `docs/superpowers/specs/2026-07-13-ordner-umbenennen-design.md`, Plan:
