@@ -155,7 +155,20 @@ struct ArticleSearchWindowView: View {
     }
 
     private var searchTagPicker: some View {
-        Picker("", selection: $searchState.tagID) {
+        // Temporary: map single tag selection to Set<UUID>
+        let binding = Binding<UUID?>(
+            get: { searchState.tagIDs.first },
+            set: { newValue in
+                if let tagID = newValue {
+                    searchState.tagIDs = [tagID]
+                    searchState.tagMatchMode = .any
+                } else {
+                    searchState.tagIDs = []
+                }
+            }
+        )
+
+        return Picker("", selection: binding) {
             Text(L10n.articleSearchTagAll).tag(UUID?.none)
 
             ForEach(tags) { tag in
@@ -316,11 +329,16 @@ struct ArticleSearchWindowView: View {
     }
 
     private var searchLoadToken: String {
-        [
+        let tagIDString = searchState.tagIDs.isEmpty
+            ? "all-tags"
+            : searchState.tagIDs.map(\.uuidString).sorted().joined(separator: ",")
+
+        return [
             debouncedSearchText,
             searchState.field.rawValue,
             searchState.feedID?.uuidString ?? "all-feeds",
-            searchState.tagID?.uuidString ?? "all-tags",
+            tagIDString,
+            searchState.tagMatchMode.rawValue,
             searchState.dateFilter.rawValue,
             searchState.statusFilter.rawValue
         ].joined(separator: "#")

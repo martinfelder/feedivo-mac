@@ -282,24 +282,43 @@ struct ArticleStore {
             _ = arguments.append(contentsOf: [feedID])
         }
 
-        if let tagID = state.tagID?.uuidString {
-            whereClauses.append("""
-                (
+        if !state.tagIDs.isEmpty {
+            // Gemeinsame Subquery für beide Verknüpfungsmodi: alle Tags, die
+            // entweder direkt am Artikel oder am zugehörigen Feed hängen.
+            // "Mind. einer" prüft per EXISTS, ob mindestens einer der
+            // ausgewählten Tags darin vorkommt; "Alle" zählt per COUNT(DISTINCT),
+            // ob wirklich jeder ausgewählte Tag darin vorkommt.
+            let tagIDStrings = state.tagIDs.map(\.uuidString)
+            let placeholders = tagIDStrings.map { _ in "?" }.joined(separator: ", ")
+            let combinedTagsSubquery = """
+                SELECT tagID FROM article_tags WHERE articleID = a.id
+                UNION
+                SELECT tagID FROM feed_tags WHERE feedID = a.feedID
+                """
+
+            switch state.tagMatchMode {
+            case .any:
+                whereClauses.append("""
                     EXISTS (
-                        SELECT 1
-                        FROM article_tags at
-                        WHERE at.articleID = a.id
-                            AND at.tagID = ?
+                        SELECT 1 FROM (\(combinedTagsSubquery)) t
+                        WHERE t.tagID IN (\(placeholders))
                     )
-                    OR EXISTS (
-                        SELECT 1
-                        FROM feed_tags ft
-                        WHERE ft.feedID = a.feedID
-                            AND ft.tagID = ?
-                    )
-                )
-                """)
-            _ = arguments.append(contentsOf: [tagID, tagID])
+                    """)
+                for tagIDString in tagIDStrings {
+                    _ = arguments.append(contentsOf: [tagIDString])
+                }
+            case .all:
+                whereClauses.append("""
+                    (
+                        SELECT COUNT(DISTINCT t.tagID) FROM (\(combinedTagsSubquery)) t
+                        WHERE t.tagID IN (\(placeholders))
+                    ) = ?
+                    """)
+                for tagIDString in tagIDStrings {
+                    _ = arguments.append(contentsOf: [tagIDString])
+                }
+                _ = arguments.append(contentsOf: [tagIDStrings.count])
+            }
         }
 
         Self.appendDateFilterWhereClause(

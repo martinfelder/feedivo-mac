@@ -584,13 +584,168 @@ struct SQLiteArticleStoreTests {
             searchText: "swift",
             field: .title,
             feedID: feedID,
-            tagID: tagID,
+            tagIDs: [tagID],
             statusFilter: .unread
         )
 
         let snapshots = try articleStore.searchArticles(state: state, limit: 20)
 
         #expect(snapshots.map(\.id) == [newerMatchID, olderMatchID])
+    }
+
+    @Test func searchArticlesMitEinzelnemTagVerhaeltSichWieBisher() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let tagStore = TagStore(database: database)
+        let feedID = UUID()
+        let tagID = UUID()
+
+        try feedStore.save(FeedRecord(id: feedID.uuidString, url: "https://example.com/feed.xml", title: "Example"))
+        try tagStore.save(TagRecord(id: tagID.uuidString, name: "Swift", colorHex: "#ff0000"))
+
+        let taggedID = try articleStore.upsert(
+            ArticleUpsertInput(feedID: feedID.uuidString, sourceID: "tagged", title: "Tagged Article")
+        )
+        _ = try articleStore.upsert(
+            ArticleUpsertInput(feedID: feedID.uuidString, sourceID: "untagged", title: "Untagged Article")
+        )
+        try tagStore.assignTag(tagID: tagID.uuidString, toArticleID: taggedID, at: Date())
+
+        let state = ArticleSearchWindowState(feedID: feedID, tagIDs: [tagID])
+        let snapshots = try articleStore.searchArticles(state: state, limit: 20)
+
+        #expect(snapshots.map(\.id) == [taggedID])
+    }
+
+    @Test func searchArticlesMitMindEinemTagFindetArtikelMitBeliebigemDerAusgewaehltenTags() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let tagStore = TagStore(database: database)
+        let feedID = UUID()
+        let techTagID = UUID()
+        let newsTagID = UUID()
+        let sportTagID = UUID()
+
+        try feedStore.save(FeedRecord(id: feedID.uuidString, url: "https://example.com/feed.xml", title: "Example"))
+        try tagStore.save(TagRecord(id: techTagID.uuidString, name: "Tech", colorHex: "#ff0000"))
+        try tagStore.save(TagRecord(id: newsTagID.uuidString, name: "News", colorHex: "#00ff00"))
+        try tagStore.save(TagRecord(id: sportTagID.uuidString, name: "Sport", colorHex: "#0000ff"))
+
+        let techArticleID = try articleStore.upsert(
+            ArticleUpsertInput(feedID: feedID.uuidString, sourceID: "tech", title: "Tech Artikel")
+        )
+        let newsArticleID = try articleStore.upsert(
+            ArticleUpsertInput(feedID: feedID.uuidString, sourceID: "news", title: "News Artikel")
+        )
+        let sportArticleID = try articleStore.upsert(
+            ArticleUpsertInput(feedID: feedID.uuidString, sourceID: "sport", title: "Sport Artikel")
+        )
+
+        try tagStore.assignTag(tagID: techTagID.uuidString, toArticleID: techArticleID, at: Date())
+        try tagStore.assignTag(tagID: newsTagID.uuidString, toArticleID: newsArticleID, at: Date())
+        try tagStore.assignTag(tagID: sportTagID.uuidString, toArticleID: sportArticleID, at: Date())
+
+        let state = ArticleSearchWindowState(
+            feedID: feedID,
+            tagIDs: [techTagID, newsTagID],
+            tagMatchMode: .any
+        )
+
+        let snapshots = try articleStore.searchArticles(state: state, limit: 20)
+
+        #expect(Set(snapshots.map(\.id)) == [techArticleID, newsArticleID])
+    }
+
+    @Test func searchArticlesMitAlleTagsFindetNurArtikelMitAllenAusgewaehltenTags() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let tagStore = TagStore(database: database)
+        let feedID = UUID()
+        let techTagID = UUID()
+        let newsTagID = UUID()
+
+        try feedStore.save(FeedRecord(id: feedID.uuidString, url: "https://example.com/feed.xml", title: "Example"))
+        try tagStore.save(TagRecord(id: techTagID.uuidString, name: "Tech", colorHex: "#ff0000"))
+        try tagStore.save(TagRecord(id: newsTagID.uuidString, name: "News", colorHex: "#00ff00"))
+
+        let bothTagsArticleID = try articleStore.upsert(
+            ArticleUpsertInput(feedID: feedID.uuidString, sourceID: "both", title: "Beide Tags")
+        )
+        let onlyTechArticleID = try articleStore.upsert(
+            ArticleUpsertInput(feedID: feedID.uuidString, sourceID: "only-tech", title: "Nur Tech")
+        )
+
+        try tagStore.assignTag(tagID: techTagID.uuidString, toArticleID: bothTagsArticleID, at: Date())
+        try tagStore.assignTag(tagID: newsTagID.uuidString, toArticleID: bothTagsArticleID, at: Date())
+        try tagStore.assignTag(tagID: techTagID.uuidString, toArticleID: onlyTechArticleID, at: Date())
+
+        let state = ArticleSearchWindowState(
+            feedID: feedID,
+            tagIDs: [techTagID, newsTagID],
+            tagMatchMode: .all
+        )
+
+        let snapshots = try articleStore.searchArticles(state: state, limit: 20)
+
+        #expect(snapshots.map(\.id) == [bothTagsArticleID])
+    }
+
+    @Test func searchArticlesBeruecksichtigtFeedEbeneTagsInBeidenModi() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let tagStore = TagStore(database: database)
+        let feedID = UUID()
+        let feedTagID = UUID()
+        let articleTagID = UUID()
+
+        try feedStore.save(FeedRecord(id: feedID.uuidString, url: "https://example.com/feed.xml", title: "Example"))
+        try tagStore.save(TagRecord(id: feedTagID.uuidString, name: "FeedTag", colorHex: "#ff0000"))
+        try tagStore.save(TagRecord(id: articleTagID.uuidString, name: "ArticleTag", colorHex: "#00ff00"))
+        try tagStore.assignTag(tagID: feedTagID.uuidString, toFeedID: feedID.uuidString, at: Date())
+
+        let articleID = try articleStore.upsert(
+            ArticleUpsertInput(feedID: feedID.uuidString, sourceID: "article", title: "Artikel")
+        )
+        try tagStore.assignTag(tagID: articleTagID.uuidString, toArticleID: articleID, at: Date())
+
+        let anyState = ArticleSearchWindowState(
+            feedID: feedID,
+            tagIDs: [feedTagID, articleTagID],
+            tagMatchMode: .any
+        )
+        #expect(try articleStore.searchArticles(state: anyState, limit: 20).map(\.id) == [articleID])
+
+        let allState = ArticleSearchWindowState(
+            feedID: feedID,
+            tagIDs: [feedTagID, articleTagID],
+            tagMatchMode: .all
+        )
+        #expect(try articleStore.searchArticles(state: allState, limit: 20).map(\.id) == [articleID])
+    }
+
+    @Test func searchArticlesMitLeererTagAuswahlFiltertNicht() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let feedID = UUID()
+
+        try feedStore.save(FeedRecord(id: feedID.uuidString, url: "https://example.com/feed.xml", title: "Example"))
+
+        let firstID = try articleStore.upsert(
+            ArticleUpsertInput(feedID: feedID.uuidString, sourceID: "first", title: "Erster Artikel")
+        )
+        let secondID = try articleStore.upsert(
+            ArticleUpsertInput(feedID: feedID.uuidString, sourceID: "second", title: "Zweiter Artikel")
+        )
+
+        let state = ArticleSearchWindowState(feedID: feedID, tagIDs: [])
+        let snapshots = try articleStore.searchArticles(state: state, limit: 20)
+
+        #expect(Set(snapshots.map(\.id)) == [firstID, secondID])
     }
 
     @Test func searchWindowQuerySupportsFiltersWithoutSearchText() throws {

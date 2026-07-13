@@ -50,26 +50,38 @@ enum ArticleSearchStatusFilter: String, CaseIterable, Identifiable {
     }
 }
 
+enum ArticleSearchTagMatchMode: String, CaseIterable, Identifiable {
+    case any
+    case all
+
+    var id: String {
+        rawValue
+    }
+}
+
 struct ArticleSearchFilters: Equatable {
     var feedID: UUID?
-    var tagID: UUID?
+    var tagIDs: Set<UUID>
+    var tagMatchMode: ArticleSearchTagMatchMode
     var date: ArticleSearchDateFilter
     var status: ArticleSearchStatusFilter
 
     init(
         feedID: UUID? = nil,
-        tagID: UUID? = nil,
+        tagIDs: Set<UUID> = [],
+        tagMatchMode: ArticleSearchTagMatchMode = .any,
         date: ArticleSearchDateFilter = .anytime,
         status: ArticleSearchStatusFilter = .all
     ) {
         self.feedID = feedID
-        self.tagID = tagID
+        self.tagIDs = tagIDs
+        self.tagMatchMode = tagMatchMode
         self.date = date
         self.status = status
     }
 
     var isActive: Bool {
-        feedID != nil || tagID != nil || date != .anytime || status != .all
+        feedID != nil || !tagIDs.isEmpty || date != .anytime || status != .all
     }
 }
 
@@ -113,7 +125,8 @@ struct ArticleSearchWindowState: Equatable {
     var searchText: String
     var field: ArticleSearchField
     var feedID: UUID?
-    var tagID: UUID?
+    var tagIDs: Set<UUID>
+    var tagMatchMode: ArticleSearchTagMatchMode
     var dateFilter: ArticleSearchDateFilter
     var statusFilter: ArticleSearchStatusFilter
     var now: Date
@@ -123,7 +136,8 @@ struct ArticleSearchWindowState: Equatable {
         searchText: String = "",
         field: ArticleSearchField = .all,
         feedID: UUID? = nil,
-        tagID: UUID? = nil,
+        tagIDs: Set<UUID> = [],
+        tagMatchMode: ArticleSearchTagMatchMode = .any,
         dateFilter: ArticleSearchDateFilter = .anytime,
         statusFilter: ArticleSearchStatusFilter = .all,
         now: Date = Date(),
@@ -132,7 +146,8 @@ struct ArticleSearchWindowState: Equatable {
         self.searchText = searchText
         self.field = field
         self.feedID = feedID
-        self.tagID = tagID
+        self.tagIDs = tagIDs
+        self.tagMatchMode = tagMatchMode
         self.dateFilter = dateFilter
         self.statusFilter = statusFilter
         self.now = now
@@ -146,7 +161,8 @@ struct ArticleSearchWindowState: Equatable {
             scope: .allArticles,
             filters: ArticleSearchFilters(
                 feedID: feedID,
-                tagID: tagID,
+                tagIDs: tagIDs,
+                tagMatchMode: tagMatchMode,
                 date: dateFilter,
                 status: statusFilter
             ),
