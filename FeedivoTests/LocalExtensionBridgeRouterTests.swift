@@ -16,7 +16,7 @@ struct LocalExtensionBridgeRouterTests {
             method: "GET",
             path: "/status",
             queryItems: ["url": "https://example.com/feed.xml"],
-            headers: [:],
+            headers: ["x-feedivo-extension": "1"],
             body: Data()
         )
 
@@ -31,7 +31,7 @@ struct LocalExtensionBridgeRouterTests {
             checkSubscribed: { _ in true },
             addFeed: { _ in .error("sollte nicht aufgerufen werden") }
         )
-        let request = HTTPRequest(method: "GET", path: "/status", queryItems: [:], headers: [:], body: Data())
+        let request = HTTPRequest(method: "GET", path: "/status", queryItems: [:], headers: ["x-feedivo-extension": "1"], body: Data())
 
         let response = await router.handle(request)
 
@@ -48,7 +48,7 @@ struct LocalExtensionBridgeRouterTests {
             }
         )
         let body = Data("{\"url\":\"https://example.com/feed.xml\"}".utf8)
-        let request = HTTPRequest(method: "POST", path: "/add", queryItems: [:], headers: [:], body: body)
+        let request = HTTPRequest(method: "POST", path: "/add", queryItems: [:], headers: ["x-feedivo-extension": "1"], body: body)
 
         let response = await router.handle(request)
 
@@ -63,7 +63,7 @@ struct LocalExtensionBridgeRouterTests {
             addFeed: { _ in .alreadyExists }
         )
         let body = Data("{\"url\":\"https://example.com/feed.xml\"}".utf8)
-        let request = HTTPRequest(method: "POST", path: "/add", queryItems: [:], headers: [:], body: body)
+        let request = HTTPRequest(method: "POST", path: "/add", queryItems: [:], headers: ["x-feedivo-extension": "1"], body: body)
 
         let response = await router.handle(request)
 
@@ -77,7 +77,7 @@ struct LocalExtensionBridgeRouterTests {
             addFeed: { _ in .error("Netzwerkfehler") }
         )
         let body = Data("{\"url\":\"https://example.com/feed.xml\"}".utf8)
-        let request = HTTPRequest(method: "POST", path: "/add", queryItems: [:], headers: [:], body: body)
+        let request = HTTPRequest(method: "POST", path: "/add", queryItems: [:], headers: ["x-feedivo-extension": "1"], body: body)
 
         let response = await router.handle(request)
 
@@ -90,7 +90,7 @@ struct LocalExtensionBridgeRouterTests {
             checkSubscribed: { _ in false },
             addFeed: { _ in .error("sollte nicht aufgerufen werden") }
         )
-        let request = HTTPRequest(method: "POST", path: "/add", queryItems: [:], headers: [:], body: Data("kein json".utf8))
+        let request = HTTPRequest(method: "POST", path: "/add", queryItems: [:], headers: ["x-feedivo-extension": "1"], body: Data("kein json".utf8))
 
         let response = await router.handle(request)
 
@@ -102,10 +102,28 @@ struct LocalExtensionBridgeRouterTests {
             checkSubscribed: { _ in false },
             addFeed: { _ in .error("sollte nicht aufgerufen werden") }
         )
-        let request = HTTPRequest(method: "GET", path: "/unbekannt", queryItems: [:], headers: [:], body: Data())
+        let request = HTTPRequest(method: "GET", path: "/unbekannt", queryItems: [:], headers: ["x-feedivo-extension": "1"], body: Data())
 
         let response = await router.handle(request)
 
         #expect(response.statusCode == 404)
+    }
+
+    @Test func requestOhneErweiterungsHeaderLiefert403() async {
+        let router = LocalExtensionBridgeRouter(
+            checkSubscribed: { _ in true },
+            addFeed: { _ in .error("sollte nicht aufgerufen werden") }
+        )
+        let request = HTTPRequest(
+            method: "GET",
+            path: "/status",
+            queryItems: ["url": "https://example.com/feed.xml"],
+            headers: [:],
+            body: Data()
+        )
+
+        let response = await router.handle(request)
+
+        #expect(response.statusCode == 403)
     }
 }

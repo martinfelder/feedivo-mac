@@ -33,7 +33,8 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = STATUS_CHECK_TIME
 async function checkSubscribed(feedURL) {
     try {
         const response = await fetchWithTimeout(
-            `${LOCAL_SERVER_BASE_URL}/status?url=${encodeURIComponent(feedURL)}`
+            `${LOCAL_SERVER_BASE_URL}/status?url=${encodeURIComponent(feedURL)}`,
+            { headers: { "X-Feedivo-Extension": "1" } }
         );
         if (!response.ok) {
             return false;
@@ -49,7 +50,7 @@ async function addFeedViaLocalServer(feedURL) {
     try {
         const response = await fetchWithTimeout(`${LOCAL_SERVER_BASE_URL}/add`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", "X-Feedivo-Extension": "1" },
             body: JSON.stringify({ url: feedURL })
         }, ADD_FEED_TIMEOUT_MS);
         return await response.json();

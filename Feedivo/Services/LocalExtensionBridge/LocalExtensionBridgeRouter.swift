@@ -22,6 +22,21 @@ struct LocalExtensionBridgeRouter {
     }
 
     func handle(_ request: HTTPRequest) async -> HTTPResponse {
+        // Schutz vor Cross-Site-Zugriff: nur Anfragen mit dem festen
+        // Erweiterungs-Header werden verarbeitet. Eine beliebige Webseite kann
+        // per fetch() keinen eigenen Header setzen, ohne dadurch einen CORS-
+        // Preflight (OPTIONS) auszulösen — und da dieser Server keine
+        // CORS-Antwort-Header implementiert, scheitert dieser Preflight für
+        // jede fremde Origin, bevor die eigentliche Anfrage hier ankommt. Die
+        // Browser-Erweiterung selbst umgeht CORS via host_permissions und
+        // sendet den Header direkt mit.
+        guard request.headers["x-feedivo-extension"] == "1" else {
+            return .json(statusCode: 403, statusText: "Forbidden", object: [
+                "result": "error",
+                "message": "Fehlender Erweiterungs-Header"
+            ])
+        }
+
         switch (request.method, request.path) {
         case ("GET", "/status"):
             return await handleStatus(request)
