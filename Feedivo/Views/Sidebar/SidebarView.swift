@@ -388,7 +388,7 @@ struct SidebarView: View {
             .buttonStyle(
                 SidebarRowButtonStyle(
                     isSelected: selection == .feed(snapshot.id),
-                    leadingIndent: isIndented ? 34 : 0,
+                    leadingIndent: isIndented ? 46 : 0,
                     rowHeight: isIndented ? 28 : 30
                 )
             )
