@@ -248,4 +248,22 @@ struct SQLiteAdminStoreTests {
         #expect(defaultKeys.contains("all"))
         #expect(defaultKeys.contains("saved"))
     }
+
+    @Test func renameFeedRejectsEmptyTitle() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let store = FeedStore(database: database)
+        try store.save(
+            FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example")
+        )
+
+        #expect(throws: FeedStoreError.emptyTitle) {
+            try store.renameFeed(id: "feed-1", displayTitle: "   ")
+        }
+
+        #expect(try store.feed(id: "feed-1")?.title == "Example")
+    }
+
+    @Test func feedStoreErrorEmptyTitleHatFreundlicheFehlermeldung() throws {
+        #expect(FeedStoreError.emptyTitle.errorDescription == L10n.feedRenameEmptyName)
+    }
 }

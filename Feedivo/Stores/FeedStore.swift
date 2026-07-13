@@ -349,9 +349,24 @@ struct FeedStore {
     }
 }
 
-enum FeedStoreError: Error, Equatable {
+// Fehler beim Umbenennen eines Feeds. `.databaseUnavailable` wird nicht von
+// dieser Store-Methode selbst geworfen (die Datenbank ist hier bereits
+// injiziert), sondern ausschließlich vom UI-seitigen Aufrufer
+// (`SidebarView.renameFeed`), falls die `\.feedivoDatabase`-Environment fehlt.
+// `.missingFeed` bleibt ohne eigenen Text — über die aktuellen Aufrufpfade
+// nicht erreichbar und bislang nirgends speziell behandelt.
+enum FeedStoreError: Error, Equatable, LocalizedError {
     case emptyTitle
     case missingFeed
+    case databaseUnavailable
+
+    var errorDescription: String? {
+        switch self {
+        case .emptyTitle: L10n.feedRenameEmptyName
+        case .missingFeed: nil
+        case .databaseUnavailable: L10n.feedRenameDatabaseUnavailable
+        }
+    }
 }
 
 private extension Optional where Wrapped == String {
