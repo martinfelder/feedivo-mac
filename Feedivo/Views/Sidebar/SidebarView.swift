@@ -739,21 +739,11 @@ private struct SidebarFolderSection<Content: View>: View {
 
                 if isEditingName {
                     TextField(title, text: $editedName)
-                        .textFieldStyle(.plain)
+                        .textFieldStyle(.roundedBorder)
                         .font(interfaceTextSize.font(size: 13, weight: .medium))
                         .focused($isNameFieldFocused)
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 2)
-                        .background {
-                            // Heller Hintergrund macht sofort erkennbar, dass der
-                            // Ordnername gerade bearbeitbar ist — Color(nsColor:)
-                            // statt hartem Color.white, damit es im Dark Mode
-                            // automatisch die passende (dunklere) Systemfarbe nutzt.
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(Color(nsColor: .textBackgroundColor))
-                        }
                         .overlay {
-                            RoundedRectangle(cornerRadius: 4)
+                            RoundedRectangle(cornerRadius: 5)
                                 .stroke(renameErrorMessage != nil ? Color.red : Color.clear, lineWidth: 1)
                         }
                         .onSubmit {
