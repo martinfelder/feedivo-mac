@@ -554,6 +554,11 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Aktuell in Arbeit
 
+- **2026-07-13 (spät Abend): Tags direkt im Reader-Header hinzufügen —
+  VOLLSTÄNDIG ABGESCHLOSSEN und auf `origin/main` gepusht.** Neuer "+"-Button
+  neben Ordner-/Tag-Chips im Reader-Header öffnet ein Popover mit denselben
+  Zuweisungs-/Erstellungs-Optionen wie der bestehende Metadaten-Inspector.
+  Details siehe „Letzte Änderungen" unten.
 - **2026-07-13 (Abend): Mehrfach-Tag-Filterung in der Artikelsuche —
   VOLLSTÄNDIG ABGESCHLOSSEN und auf `origin/main` gepusht.** Suche erlaubt
   jetzt Auswahl mehrerer Tags gleichzeitig (Popover mit Checkboxen), mit
@@ -593,6 +598,31 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Letzte Änderungen
 
+- 2026-07-13 (spät Abend): Tags direkt im Reader-Header hinzufügen — via
+  Brainstorming + Plan + Subagent-Driven-Development (3 Tasks) umgesetzt.
+  Spec: `docs/superpowers/specs/2026-07-13-reader-tags-hinzufuegen-design.md`,
+  Plan: `docs/superpowers/plans/2026-07-13-reader-tags-hinzufuegen.md`.
+  - Die komplette Tag-Zuweisungs-/Erstellungs-UI (Toggle-Pillen für bestehende
+    Tags + Namensfeld/Farbauswahl für neue Tags), die bisher nur im
+    Metadaten-Inspector existierte, wurde in einen neuen wiederverwendbaren
+    Baustein `ArticleTagAssignmentView` extrahiert (Task 1). Der Inspector
+    nutzt ihn seither selbst (Task 2, reiner Refactor, keine
+    Verhaltensänderung).
+  - Reader-Header (`SQLiteReaderView.swift`) bekommt einen neuen "+"-Button
+    am Ende der Ordner-/Tag-Chip-Zeile, der `ArticleTagAssignmentView` in
+    einem Popover öffnet (Task 3). Die Chip-Zeile wird dafür bewusst jetzt
+    immer gerendert (vorher: gar keine Zeile bei fehlendem Ordner/Tags) —
+    sonst könnte kein erster Tag direkt aus dem Header heraus angelegt
+    werden. Tooltip nutzt den bereits vorhandenen L10n-Key
+    `L10n.articleAssignTagCommand` statt eines neuen Keys.
+  - Alle drei Tasks clean im ersten Anlauf (keine Fix-Runde nötig). Finaler
+    Whole-Branch-Review (Opus) fand 1 Important-Finding: `snapshotTags` ist
+    ein unveränderlicher Prop, der erst asynchron über den Elternview
+    nachlädt — nach dem Entfernen eines Tags blieb dessen Toggle-Pille im
+    Popover/Inspector fälschlich als "aktiv" markiert (Chip-Zeile im Header
+    selbst war davon nicht betroffen, da sie direkt `snapshot.tags` liest).
+    Fix: `.onChange(of: snapshotTags) { loadTags() }` ergänzt, Re-Review
+    (Opus) bestätigt behoben, kein Zyklus. Gepusht (`e81d4a3e0..848e60037`).
 - 2026-07-13 (Abend): Mehrfach-Tag-Filterung in der Artikelsuche — via
   Brainstorming (inkl. Mockup-Vergleich über den Visual-Companion-Server für
   die Popover-UI) + Plan + Subagent-Driven-Development (2 Tasks) umgesetzt.
