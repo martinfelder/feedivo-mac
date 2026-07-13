@@ -132,6 +132,13 @@ struct SQLiteFeedArticleListView: View {
         self._selectedArticleID = selectedArticleID
         self._navigationState = navigationState
         self._searchText = searchText
+        // "Mit Stern" soll ab dem allerersten Erscheinen gelesene UND ungelesene
+        // Artikel zeigen (Nutzer-Report 2026-07-13) - ein markierter Artikel bleibt
+        // unabhaengig vom Lese-Status wichtig. @State(initialValue:) greift nur beim
+        // allerersten Erscheinen dieser View-Identitaet; fuer Scope-Wechsel innerhalb
+        // derselben Sitzung sorgt zusaetzlich .onChange(of: scopeToken) fuer denselben
+        // Default (siehe defaultShowsReadArticles).
+        self._showsReadArticles = State(initialValue: smartFolder.defaultKey == "starred")
     }
 
     var body: some View {
@@ -144,6 +151,7 @@ struct SQLiteFeedArticleListView: View {
         }
         .onChange(of: scopeToken) {
             stickyRowSnapshots.removeAll()
+            showsReadArticles = defaultShowsReadArticles
         }
         .onChange(of: selectedArticleID) {
             markSelectedArticleReadIfNeeded()
@@ -663,6 +671,18 @@ struct SQLiteFeedArticleListView: View {
 
     private var articleSortOption: ArticleSortOption {
         ArticleSortOption.resolved(from: articleSortRawValue)
+    }
+
+    // Default fuer showsReadArticles beim Betreten eines Scopes (siehe init(smartFolder:)
+    // und .onChange(of: scopeToken)). "Mit Stern" zeigt standardmaessig gelesene UND
+    // ungelesene Artikel, alle anderen Scopes bleiben beim bisherigen Default (Nutzer-
+    // Report 2026-07-13).
+    private var defaultShowsReadArticles: Bool {
+        if case let .smartFolder(smartFolder) = scope, smartFolder.defaultKey == "starred" {
+            return true
+        }
+
+        return false
     }
 
     private var articleFilterOption: ArticleFilterOption {
