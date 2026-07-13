@@ -41,6 +41,7 @@ struct FeedivoApp: App {
     private let databaseLoadState = DatabaseLoadState()
     private let feedViewModel = FeedViewModel()
     private let feedivoDatabase: FeedivoDatabase
+    private let localExtensionBridgeServer: LocalExtensionBridgeServer
 
     init() {
         ReaderFontRegistry.registerBundledFonts()
@@ -51,11 +52,13 @@ struct FeedivoApp: App {
             feedViewModel: feedViewModel
         )
         self.feedivoDatabase = database
+        self.localExtensionBridgeServer = LocalExtensionBridgeServer(database: database)
         self.databaseLoadState.initializationError = nil
         self.databaseLoadState.isCloudSyncEnabledAtLaunch = cloudSyncIsEnabled
         // Feature 21.1: `NSStatusItem` darf erst in `applicationDidFinishLaunching` entstehen
         // (siehe `FeedivoAppDelegate`) — hier nur die Abhängigkeiten durchreichen.
         self.appDelegate.configureMenubarController(feedivoDatabase: database, feedViewModel: feedViewModel)
+        self.localExtensionBridgeServer.start()
     }
 
     var body: some Scene {
