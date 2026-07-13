@@ -539,55 +539,20 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Aktuell in Arbeit
 
-- Feature 19.7 (App-interne Darstellungs-Einstellung / Dark Mode) ist abgeschlossen und auf
-  `origin/main` gepusht — neues `AppAppearance`-Enum, `FirstRunTheme`, Inspector-Fix.
-- OPML-Import-Dialog auf "Konzept A" (`RuleDialogTheme`) migriert und auf `origin/main`
-  gepusht — visuelle Parität mit dem OPML-Export-Dialog.
-- Suchfenster (`ArticleSearchWindowView`) ebenfalls auf Konzept A (`RuleDialogTheme`) migriert
-  und gepusht (`d49833d3`) — Kopfzeile + Preview-Panel-Buttons.
-- Feature 19.2 (Sidebar anpassen: Ungelesen-Zähler + Favicons ein-/ausblendbar) umgesetzt,
-  Build/Tests grün, committed und auf `origin/main` gepusht (`70ae13e7`).
-- Dark Mode (Feature 19.7): manuelle visuelle Verifikation durch den Nutzer am 2026-07-10
-  abgeschlossen — `.controlBackgroundColor` bestätigt als Inspector-Hintergrundfarbe, Feature
-  vollständig fertig (siehe FEATURES.md).
+- **Restposten Code-Qualitäts-Review (2026-07-11er Review, Gruppen A+B+C) VOLLSTÄNDIG
+  ABGESCHLOSSEN und auf `origin/main` gepusht (2026-07-12).** Details siehe „Letzte
+  Änderungen" unten. Damit ist das gesamte Review vom 2026-07-11 abgearbeitet — keine
+  offenen Findings mehr aus diesem Durchgang.
+- **2026-07-13: Sieben kleinere Bugfixes/Features aus direkten Nutzer-Reports umgesetzt,
+  committed, gepusht und vom Nutzer im laufenden Betrieb bestätigt.** Details siehe „Letzte
+  Änderungen" unten.
 - Ausstehend (nicht automatisierbar, kein computer-use für native macOS-Apps in dieser
-  Umgebung): manuelle visuelle Verifikation von OPML-Import durch den Nutzer — Import-/
-  Export-Dialog Seite an Seite in Hell und Dunkel.
-- Feature 19.3 (Reader anpassen) abgeschlossen — Textbreite-Regler und Titel/Text-fett-Toggles
-  waren bereits vorhanden, neu ergänzt: Artikelbild im Reader anzeigen/ausblenden
-  (`ReaderTypographySettings.showsArticleImagesKey`), Toggle im Reader-Popover UND in
-  Einstellungen → Darstellung. Filterung passiert bei der Anzeige
-  (`ReaderModeContent.displayedContentBlocks`), nicht beim Parsen in `ReaderContentRenderer`.
-  Committed und auf `origin/main` gepusht (`c0e2b8cd`).
-- Feature 19.4 (Toolbar anpassen) zurückgestellt — Umsetzung für die Reader-Toolbar versucht
-  (`.toolbar(id:)` + `ToolbarItem(id:)` je bisherigem `ControlGroup`-Bündel, macOS-Standard
-  "Symbolleiste anpassen..." per Rechtsklick), noch vor dem Commit auf Nutzerwunsch wieder
-  verworfen (`git checkout` auf `SQLiteReaderView.swift`). Keine Code-Reste auf `main`, Status
-  in FEATURES.md auf ⏸️ Zurückgestellt gesetzt.
-- Feature 14 (Statistiken 14.1–14.3) abgeschlossen — neues Statistik-Fenster
-  (`StatisticsWindowView`, Konzept-A-Design) mit Zeitraum-Filter (7/30/Gesamt), Heatmap
-  (91 Tage, GitHub-Stil), Top-5-Feeds/-Tags, Ø Lesezeit; Feed-Statistiken in
-  `FeedPropertiesView` integriert; CSV-Export (`StatisticsExportService` +
-  `StatisticsCSVDocument`, `.fileExporter`) kombiniert 14.1+14.2 in einer Datei. Neuer
-  `StatisticsStore` (rein lesende SQL-Aggregation, keine neue Migration). Heatmap
-  nachgebessert: feste 5-Stufen-Farb-Buckets, Legende, Monats-/Wochentag-Labels,
-  Lese-Streak (aktuell + Rekord) via neue `ReadingStatisticsSnapshot`-Computed-Properties
-  (`currentStreak`/`longestStreak`). Zwei weitere Kennzahlen ergänzt: Gesamt-Lesezeit
-  (kumuliert, `DateComponentsFormatter`) und Trend zur Vorperiode (`trendPercentage`,
-  `nil` bei Zeitraum "Gesamt" oder Vorperiode = 0) — Summary-Kachel-Reihe dafür auf
-  6 Kacheln (3×2-Grid) erweitert. Committed und auf `origin/main` gepusht (`7d6c6cc9`).
-- Feature 19.8 (Shortcuts anpassen) abgeschlossen — neuer Settings-Tab "Shortcuts",
-  gruppiert nach Feed/Artikel/Reader, mit selbst gebautem `NSViewRepresentable`-
-  Shortcut-Recorder (`ShortcutRecorderView`, erste eigene AppKit-Bridge außer
-  `WebContentView`). Umfasst alle 12 bisherigen Menü-/Toolbar-Shortcuts (nicht die
-  `.defaultAction`-Enter-Konvention in Dialogen). Persistenz als ein JSON-
-  `@AppStorage`-Blob (`KeyboardShortcutOverrides`, drei Zustände pro Shortcut:
-  Default/angepasst/gelöscht) statt 24 Einzel-Keys. Konflikterkennung blockiert
-  mit Inline-Meldung statt automatischer Verdrängung. `ArticleCommands.swift`/
-  `FeedCommands.swift`/`SQLiteReaderView.swift` lesen jetzt dynamisch über neue
-  `View`-Extension `customizableKeyboardShortcut(_:overrides:)` statt hartcodierter
-  `.keyboardShortcut(...)`-Werte. Build und Tests (71/71 in FeedivoTests +
-  SQLiteStatisticsStoreTests) grün, noch nicht committed.
+  Umgebung): manuelle visuelle Verifikation zweier reiner UI-Änderungen aus Gruppe C
+  (OPML-Import-Button-Spinner, Regel-Vorschau-Warnsymbol) sowie die weiterhin offene
+  manuelle Verifikation von OPML-Import Hell/Dunkel (Feature 19.7-Nachgang).
+- Alle Features 19.2–19.4, 19.7, 19.8 sowie Statistiken (14.1–14.3) sind abgeschlossen,
+  committed und auf `origin/main` gepusht — Details siehe „Letzte Änderungen" unten und
+  FEATURES.md. Feature 19.4 (Toolbar anpassen) bleibt bewusst zurückgestellt (⏸️).
 - Weiterhin offen laut FEATURES.md-Entscheidung vom 2026-07-02: `codex/icloud-sync-beta` ist
   bewusst zugunsten des SQLite/GRDB-Umbaus zurückgestellt (nicht nur unentschieden) — der Umbau
   ist inzwischen abgeschlossen (ADR-007), eine erneute Bewertung des Branches steht noch aus.
@@ -596,6 +561,86 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Letzte Änderungen
 
+- 2026-07-13: Sieben Bugfixes/Features aus direkten Nutzer-Reports, jeweils einzeln
+  committed, gepusht und vom Nutzer im laufenden Betrieb bestätigt:
+  - **Reader zeigt Tags/Ordner-Zuordnung sofort statt erst nach Artikelwechsel** —
+    `ArticleMetadataInspectorView` mutierte Tags/Ordner direkt in SQLite, aktualisierte
+    dabei aber nur seine eigene lokale Snapshot-Kopie statt `SQLiteReaderState.snapshot`
+    der übergeordneten `SQLiteReaderView`. Fix: `SQLiteReaderView` beobachtet jetzt
+    zusätzlich `SidebarBadgeInvalidation.directTagVersionKey` und
+    `SQLiteDataInvalidation.statusVersionKey` und lädt den aktuellen Artikel bei Änderung
+    neu. Zwei Commits (`e188e9240` Tags, `9760ad4e7` Ordner).
+  - **Einstellungen-Fenster verbreitert (640→880pt)** — `Layout.windowWidth` war seit
+    2026-07-06 (damals 7 Tabs) nicht mehr nachgezogen worden; bei inzwischen 10 Tabs
+    (Artikelliste/Menubar/Shortcuts kamen dazu) lief die Tab-Leiste über den sichtbaren,
+    wegen `.windowResizability(.contentSize)` nicht von Hand vergrößerbaren Bereich hinaus
+    — Bereinigung/Sync/Über waren dadurch nicht mehr anklickbar. Commit `e56edbf82`.
+  - **Sidebar-Einrückung Tags/Ordner/Intelligente Ordner vereinheitlicht** —
+    `SidebarFolderSection` hatte `.padding(.horizontal, 0)` (bündig links) statt der von
+    Feeds/Tags/Abschnitts-Überschriften genutzten 10pt; jetzt 16pt für Ordner-Zeilen,
+    Tags und Intelligente Ordner (Standard + Eigene) auf `leadingIndent: 6` vereinheitlicht
+    (bewusst NICHT einfach auf die alten 34pt der Intelligenten Ordner draufaddiert,
+    sondern wie Tags behandelt). Zwei Commits (`591a005be` Tag-Zeilenhöhe 30pt wie
+    Intelligente Ordner, `378293c7d` Einrückung).
+  - **Kein aufdringlicher Modal-Alert mehr bei fehlgeschlagenem Feed-Refresh** —
+    `refreshAllFeedsWithCoordinator` setzte bei Fehlern redundant sowohl
+    `recentRefreshStatus`/`refreshItems` (speist das rechte-untere Status-Widget mit
+    Pro-Feed-Fehlerliste, bleibt bei Fehlern dauerhaft sichtbar) als auch `errorMessage`
+    (→ Modal-Alert) mit identischem Inhalt. `errorMessage`-Zuweisung entfernt. Commit
+    `d7076252a`.
+  - **Feed-Status-Zeile im Artikellisten-Header** — dritte Zeile bei einzelnem Feed:
+    „Zuletzt aktualisiert: {Datum, Uhrzeit}" bzw. „Konnte nicht aktualisiert werden:
+    {Grund}" mit dem echten Fehlertext aus `feed_logs.message`. Nutzt ausschließlich
+    bereits vorhandene Felder (`FeedRecord.lastRefreshedAt`, `feed_logs` über
+    `FeedLogStore`), keine neue Migration. Zeigt bewusst den festen Zeitpunkt
+    (`date.formatted(date:time:)`), nicht die relative „vor X Stunden"-Formatierung —
+    nach Nutzer-Korrektur direkt so angepasst. Bestehende `feedErrorBanner`-Leiste bleibt
+    zusätzlich bestehen (Nutzerentscheid). Via Brainstorming+Plan umgesetzt, Spec:
+    `docs/superpowers/specs/2026-07-12-artikelliste-feed-status-zeile-design.md`. Drei
+    Commits (`d3d16df79` Spec, `d22e64edb` Feature, `4c9cedf48` Zeitpunkt-Korrektur).
+  - **Smart Folder "Ungelesen": gelesene Artikel verschwinden nicht mehr sofort** — zwei
+    parallele States (`stickyRowSnapshots`-Dictionary und
+    `temporarilyVisibleReadArticleIDs`-Set) hielten denselben "trotz Gelesen-Status
+    sichtbar halten"-Zustand redundant und liefen auseinander (Diagnose via
+    "Gelesene anzeigen"-Test: Zeile blieb in `stickyRowSnapshots`, aber nicht in der
+    zweiten Menge). Fix: redundantes Set entfernt, Sichtbarkeit direkt aus
+    `Set(stickyRowSnapshots.keys)` abgeleitet — eine Quelle der Wahrheit statt zwei.
+    Commit `48e29cd64`.
+  - **Smart Folder "Mit Stern" zeigt standardmäßig gelesene UND ungelesene Artikel** —
+    `showsReadArticles` hatte keinen scope-spezifischen Default. Neuer
+    `defaultShowsReadArticles` (true bei `smartFolder.defaultKey == "starred"`), gesetzt
+    sowohl im `init(smartFolder:)` (State-Seed für allererstes Erscheinen) als auch in
+    `.onChange(of: scopeToken)` (für Scope-Wechsel innerhalb derselben View-Identität,
+    da `@State(initialValue:)` nur beim allerersten Erscheinen greift). Commit `0a00acfb4`.
+- 2026-07-12: Restposten Code-Qualitäts-Review (2026-07-11er Review) vollständig
+  abgearbeitet — drei unabhängige Gruppen, jede via Subagent-Driven-Development
+  (Task-Implementer → Task-Reviewer → Whole-Branch-Review) auf `main` direkt umgesetzt,
+  alle drei Whole-Branch-Reviews „Ready to merge: Yes" mit 0 Critical/Important-Funden:
+  - **Gruppe A (Verschluckte Fehler, Abschnitt 3):** 4 Tasks — u. a.
+    `logIfThrows`/`AppLogger`-Helfer für zuvor stumme `try?`-Stellen, Retention-Cleanup-
+    Fehlerlogging. Gepusht (`9dff5fed7..43befc2fa`).
+  - **Gruppe B (Code-Hygiene ohne Verhaltensänderung, Findings 2.7–2.9):** 4 Tasks —
+    `ArticleFetchLimits`-Konstanten statt 3 magischer Zahlen (2.7), gemeinsamer
+    `SearchDebounce`-Helfer statt zweier divergierender `Task.sleep`-Implementierungen
+    (2.9, mit TDD), vestigiales „New"-Präfix an 17 `SettingsView`-Typen entfernt (2.8),
+    totes `RuleViewModel.swift` gelöscht (dabei `RuleConditionDraft`/`RuleMoveDirection`
+    zuvor nach `Feedivo/Models/` ausgelagert, da dort noch produktiv genutzt). Gepusht
+    (`43befc2fa..3b76d4023`).
+  - **Gruppe C (UI-Feedback-Konsistenz, Finding 2.10 + Abschnitt 3):** 3 Tasks — OPML-
+    Import-Button zeigt Spinner + „Wird importiert..." während `feedViewModel.isLoading`
+    statt nur `.disabled` mit statischem Label (2.10); `SQLiteFeedSubscriptionService.
+    previewOPMLFeeds` validiert URL-Syntax (Schema + Host) lokal per neuem
+    `isSyntacticallyValidFeedURL`-Helper, bevor ein Netzwerk-Fetch versucht wird —
+    offensichtlich kaputte OPML-`xmlUrl`-Werte werden dadurch sofort als `.unreachable`
+    markiert statt einen Roundtrip zu verschwenden (Abschnitt 3, mit TDD-Test über
+    `fetchCallCount`-Zähler); `RuleWizardView`s Regel-Vorschau unterscheidet neu per
+    `previewLoadFailed`-State „0 Treffer" (echtes Ergebnis, Punkt-Icon + `theme.accent`)
+    von „Vorschau fehlgeschlagen" (fehlende DB oder Store-Fehler, Warndreieck +
+    `theme.destructiveText` + neuer L10n-Key `ruleWizard.preview.error`) — vorher setzten
+    beide Fälle identisch `previewMatchingCount = 0` (Abschnitt 3). Gepusht
+    (`3b76d4023..2873cfcf9`). Pläne: `docs/superpowers/plans/2026-07-12-*-restposten-
+    gruppe-{a,b,c}*.md`. Ausstehend: manuelle visuelle Verifikation der beiden reinen
+    UI-Änderungen aus Gruppe C (kein computer-use für native macOS-Apps verfügbar).
 - 2026-07-10: Dead-Code-Bereinigung (`/ecc:refactor-clean`) — `periphery`-Scan über das
   Feedivo-Target, jeder der 221 „unused"-Funde einzeln gegen Produktions- **und** Test-Code
   verifiziert (nicht blind übernommen, siehe neuer Gotcha oben zur GRDB-Fehlalarmquote von
