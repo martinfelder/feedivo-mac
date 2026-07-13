@@ -46,6 +46,9 @@ struct ArticleTagAssignmentView: View {
         .onChange(of: directTagVersion) { _, _ in
             loadTags()
         }
+        .onChange(of: snapshotTags) { _, _ in
+            loadTags()
+        }
     }
 
     private var tagCreator: some View {
