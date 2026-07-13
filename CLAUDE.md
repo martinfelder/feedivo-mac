@@ -539,6 +539,10 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Aktuell in Arbeit
 
+- **2026-07-13 (Nachmittag): Browser-Erweiterung Popup-UX-Überarbeitung VOLLSTÄNDIG
+  ABGESCHLOSSEN und auf `origin/main` gepusht.** Echte Feed-Namen, lokaler HTTP-Server
+  für Abo-Status/Hinzufügen, Popup-Redesign, plus vier vom Nutzer live gefundene und
+  gefixte Bugs. Details siehe „Letzte Änderungen" unten.
 - **Restposten Code-Qualitäts-Review (2026-07-11er Review, Gruppen A+B+C) VOLLSTÄNDIG
   ABGESCHLOSSEN und auf `origin/main` gepusht (2026-07-12).** Details siehe „Letzte
   Änderungen" unten. Damit ist das gesamte Review vom 2026-07-11 abgearbeitet — keine
@@ -561,6 +565,55 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Letzte Änderungen
 
+- 2026-07-13 (Nachmittag): Browser-Erweiterung Popup-UX-Überarbeitung — via
+  Brainstorming+Plan+Subagent-Driven-Development (8 Tasks, alle Task-Reviews clean,
+  finaler Whole-Branch-Review mit 1 Fix-Runde) umgesetzt, dann vier zusätzliche vom
+  Nutzer beim Live-Testen gefundene Bugs gefixt. Spec:
+  `docs/superpowers/specs/2026-07-13-browser-erweiterung-ux-design.md`, Plan:
+  `docs/superpowers/plans/2026-07-13-browser-erweiterung-ux.md`. Gepusht (`619aa1ef8`..
+  `36ed41745`).
+  - **Echte Feed-Namen statt Seitentitel-Heuristik** — `feedDetection.mjs`/`content.js`
+    holen jetzt den tatsächlichen Feed-Inhalt per `fetch()` und lesen den echten Titel
+    aus dem ersten `<title>`-Tag (RSS/Atom) bzw. dem `title`-Feld (JSON Feed), statt
+    `link.title || document.title || href` zu raten.
+  - **Neu: lokaler HTTP-Server in der App** (`Feedivo/Services/LocalExtensionBridge/`,
+    `127.0.0.1:51823`, eigenes `Network.framework`/`NWListener`-Wiring) — Popup kann
+    per `GET /status` prüfen, ob ein Feed schon abonniert ist, und per `POST /add`
+    direkt hinzufügen (echte Erfolgs-/Duplikat-/Fehler-Rückmeldung statt des bisherigen
+    Fire-and-Forget-`feedivo://add`-Deep-Links, der bei Nichterreichbarkeit weiterhin
+    als Fallback dient). Neues Entitlement `com.apple.security.network.server`.
+  - **Popup-Redesign** — Status-Badges ("Bereits in Feedivo"), Favicon, URL-Zweitzeile,
+    breiter (260→420px).
+  - **Vier Bugs aus Live-Nutzer-Tests gefixt** (nicht Teil des ursprünglichen Plans,
+    per systematic-debugging direkt im Anschluss behoben):
+    1. Cross-Site-CSRF auf `/add` — beliebige Webseite konnte per `fetch()` ohne
+       `Content-Type`-Header (CORS "simple request", kein Preflight) still Feeds
+       einschleusen; gefunden im finalen Whole-Branch-Review. Fix: fester
+       `X-Feedivo-Extension`-Header, den nur die Erweiterung setzt (umgeht CORS via
+       `host_permissions`), Server lehnt alles andere mit 403 ab.
+    2. **Soft-404-Fallback-Erkennung** — `probeFallbackFeedPaths()` prüfte nur den
+       HTTP-Status, nicht den Inhalt; auf SPA-Seiten mit Client-Routing (z. B.
+       `bluewin.ch`), die für JEDEN Pfad 200+HTML statt 404 liefern, hielt das
+       `/feed`/`/rss`/`/atom.xml` faelschlich für echte Feeds. Fix: neue
+       `looksLikeFeedContent()`-Prüfung validiert das tatsächliche RSS/Atom/RDF-
+       Wurzelelement bzw. JSON-Feed-`items`-Array.
+    3. **MV3-Service-Worker-Suspend verwarf Feed-Cache** — `background.js` hielt
+       erkannte Feeds nur in einer In-Memory-`Map`; Chrome beendet Hintergrund-Service-
+       Worker nach kurzer Inaktivität automatisch und verwirft dabei jeden Zustand —
+       zweites Popup-Öffnen kurz nach dem ersten zeigte dann faelschlich keine Feeds
+       mehr, obwohl die Seite nicht neu geladen wurde. Fix: `popup.js` fragt jetzt
+       direkt das Content-Script der aktiven Seite (`chrome.tabs.sendMessage`, lebt so
+       lange wie die Seite selbst) statt den Service-Worker-Cache; `background.js`
+       behält nur noch die Icon-Aktivierungslogik.
+    4. `/add`-Timeout (300ms, für `/status` gedacht) war für den echten serverseitigen
+       Feed-Fetch zu kurz, und HTTP-400-Antworten wurden faelschlich als "App läuft
+       nicht" statt als echter Fehler behandelt — beides im Task-Review vor dem Push
+       gefunden und gefixt (eigenes `ADD_FEED_TIMEOUT_MS`, JSON-Body wird jetzt bei
+       jeder empfangenen Antwort geparst).
+  - **Neuer Gotcha:** MV3-Hintergrund-Service-Worker sind ungeeignet für persistenten
+    In-Memory-Zustand über Zeit hinweg (siehe Fix 3 oben) — Zustand, der das Öffnen des
+    Popups überdauern muss, gehört ins Content-Script oder `chrome.storage`, nicht in
+    eine Modul-Variable im Service Worker.
 - 2026-07-13: Sieben Bugfixes/Features aus direkten Nutzer-Reports, jeweils einzeln
   committed, gepusht und vom Nutzer im laufenden Betrieb bestätigt:
   - **Reader zeigt Tags/Ordner-Zuordnung sofort statt erst nach Artikelwechsel** —
