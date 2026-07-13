@@ -17,6 +17,7 @@ struct SQLiteReaderView: View {
     @State private var state = SQLiteReaderState()
     @State private var isAppearancePopoverPresented = false
     @State private var isMetadataInspectorPresented = false
+    @State private var isTagAssignmentPopoverPresented = false
     @State private var articleExportRequest: ArticleExportRequest?
     @State private var webContentLoadFailed = false
     @State private var webNavigationController = WebNavigationController()
@@ -468,21 +469,20 @@ struct SQLiteReaderView: View {
         }
     }
 
-    @ViewBuilder
     private func readerArticleMetadata(_ snapshot: ArticleReaderSnapshot) -> some View {
         let folderName = FeedFolderOrganizer.normalizedFolderName(snapshot.folderName)
-        if folderName != nil || !snapshot.tags.isEmpty {
-            FlowLayout(spacing: 8) {
-                if let folderName {
-                    readerFolderChip(folderName)
-                }
-
-                ForEach(snapshot.tags) { tag in
-                    readerTagChip(tag)
-                }
+        return FlowLayout(spacing: 8) {
+            if let folderName {
+                readerFolderChip(folderName)
             }
-            .padding(.top, 2)
+
+            ForEach(snapshot.tags) { tag in
+                readerTagChip(tag)
+            }
+
+            readerAddTagButton(snapshot)
         }
+        .padding(.top, 2)
     }
 
     private var readerMetadataChipHeight: CGFloat {
@@ -522,6 +522,29 @@ struct SQLiteReaderView: View {
                 Capsule()
                     .stroke(tagColor.opacity(0.24), lineWidth: 1)
             }
+    }
+
+    private func readerAddTagButton(_ snapshot: ArticleReaderSnapshot) -> some View {
+        Button {
+            isTagAssignmentPopoverPresented.toggle()
+        } label: {
+            Image(systemName: "plus")
+                .font(interfaceTextSize.font(size: 12, weight: .semibold))
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(.secondary)
+        .frame(width: readerMetadataChipHeight, height: readerMetadataChipHeight)
+        .background(.secondary.opacity(0.08), in: Circle())
+        .overlay {
+            Circle()
+                .stroke(.secondary.opacity(0.16), lineWidth: 1)
+        }
+        .help(L10n.articleAssignTagCommand)
+        .popover(isPresented: $isTagAssignmentPopoverPresented) {
+            ArticleTagAssignmentView(articleID: snapshot.id, snapshotTags: snapshot.tags)
+                .padding(12)
+                .frame(minWidth: 260, idealWidth: 280, maxWidth: 320)
+        }
     }
 
     @ViewBuilder
