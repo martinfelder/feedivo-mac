@@ -1,9 +1,11 @@
 const NO_FEEDS_TEXT = "Kein Feed auf dieser Seite gefunden.";
+const LOCAL_SERVER_BASE_URL = "http://127.0.0.1:51823";
+const STATUS_CHECK_TIMEOUT_MS = 300;
 
 async function loadFeedsForActiveTab() {
     const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!activeTab?.id) {
-        return [];
+        return { feeds: [], favIconUrl: undefined };
     }
 
     const response = await chrome.runtime.sendMessage({
@@ -11,10 +13,129 @@ async function loadFeedsForActiveTab() {
         tabId: activeTab.id
     });
 
-    return response?.feeds ?? [];
+    return { feeds: response?.feeds ?? [], favIconUrl: activeTab.favIconUrl };
 }
 
-function renderFeeds(feeds) {
+async function fetchWithTimeout(url, options = {}, timeoutMs = STATUS_CHECK_TIMEOUT_MS) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        return await fetch(url, { ...options, signal: controller.signal });
+    } finally {
+        clearTimeout(timeoutId);
+    }
+}
+
+// Fragt den lokalen Feedivo-Server (siehe LocalExtensionBridgeServer, App-
+// seitig). Laeuft die App nicht oder antwortet der Server nicht rechtzeitig,
+// wird das still als "nicht abonniert" gewertet - kein Fehlerzustand im Popup.
+async function checkSubscribed(feedURL) {
+    try {
+        const response = await fetchWithTimeout(
+            `${LOCAL_SERVER_BASE_URL}/status?url=${encodeURIComponent(feedURL)}`
+        );
+        if (!response.ok) {
+            return false;
+        }
+        const data = await response.json();
+        return data.subscribed === true;
+    } catch {
+        return false;
+    }
+}
+
+async function addFeedViaLocalServer(feedURL) {
+    try {
+        const response = await fetchWithTimeout(`${LOCAL_SERVER_BASE_URL}/add`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url: feedURL })
+        });
+        if (!response.ok && response.status !== 500) {
+            return { result: "serverUnavailable" };
+        }
+        return await response.json();
+    } catch {
+        return { result: "serverUnavailable" };
+    }
+}
+
+function createFeedRow(feed, favIconUrl, isSubscribed) {
+    const row = document.createElement("div");
+    row.className = "feed-row";
+
+    if (favIconUrl) {
+        const icon = document.createElement("img");
+        icon.className = "feed-favicon";
+        icon.src = favIconUrl;
+        icon.alt = "";
+        row.appendChild(icon);
+    }
+
+    const textColumn = document.createElement("div");
+    textColumn.className = "feed-text";
+
+    const label = document.createElement("span");
+    label.className = "feed-title";
+    label.textContent = feed.title;
+    textColumn.appendChild(label);
+
+    const urlLabel = document.createElement("span");
+    urlLabel.className = "feed-url";
+    urlLabel.textContent = feed.url;
+    textColumn.appendChild(urlLabel);
+
+    row.appendChild(textColumn);
+
+    const button = document.createElement("button");
+    row.appendChild(button);
+
+    if (isSubscribed) {
+        button.textContent = "Bereits in Feedivo";
+        button.disabled = true;
+        row.classList.add("feed-row--subscribed");
+    } else {
+        button.textContent = "Zu Feedivo hinzufügen";
+        button.addEventListener("click", () => handleAddClick(feed, button, row));
+    }
+
+    return row;
+}
+
+async function handleAddClick(feed, button, row) {
+    button.disabled = true;
+    button.textContent = "Wird hinzugefügt …";
+
+    const outcome = await addFeedViaLocalServer(feed.url);
+
+    if (outcome.result === "added") {
+        button.textContent = "✓ Hinzugefügt";
+        row.classList.add("feed-row--added");
+        setTimeout(() => window.close(), 1500);
+        return;
+    }
+
+    if (outcome.result === "alreadyExists") {
+        button.textContent = "✓ Bereits in Feedivo";
+        row.classList.add("feed-row--added");
+        setTimeout(() => window.close(), 1500);
+        return;
+    }
+
+    if (outcome.result === "error") {
+        button.disabled = false;
+        button.textContent = "Fehler – erneut versuchen";
+        return;
+    }
+
+    // "serverUnavailable": App laeuft nicht oder Server nicht erreichbar -
+    // Fallback aufs bisherige Verhalten (App per Deep-Link starten, die den
+    // Feed beim Start selbst hinzufuegt).
+    chrome.tabs.create({ url: `feedivo://add?url=${encodeURIComponent(feed.url)}` });
+    window.close();
+}
+
+async function renderFeeds({ feeds, favIconUrl }) {
     const list = document.getElementById("feed-list");
     list.innerHTML = "";
 
@@ -25,25 +146,11 @@ function renderFeeds(feeds) {
         return;
     }
 
-    for (const feed of feeds) {
-        const row = document.createElement("div");
-        row.className = "feed-row";
+    const subscribedFlags = await Promise.all(feeds.map((feed) => checkSubscribed(feed.url)));
 
-        const label = document.createElement("span");
-        label.className = "feed-title";
-        label.textContent = feed.title;
-
-        const button = document.createElement("button");
-        button.textContent = "Zu Feedivo hinzufügen";
-        button.addEventListener("click", () => {
-            chrome.tabs.create({ url: `feedivo://add?url=${encodeURIComponent(feed.url)}` });
-            window.close();
-        });
-
-        row.appendChild(label);
-        row.appendChild(button);
-        list.appendChild(row);
-    }
+    feeds.forEach((feed, index) => {
+        list.appendChild(createFeedRow(feed, favIconUrl, subscribedFlags[index]));
+    });
 }
 
 loadFeedsForActiveTab().then(renderFeeds);

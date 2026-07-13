@@ -28,3 +28,30 @@ button {
     padding: 4px 8px;
     cursor: pointer;
 }
+
+.feed-favicon {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+
+.feed-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+}
+
+.feed-url {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 11px;
+    opacity: 0.6;
+}
+
+.feed-row--subscribed .feed-title,
+.feed-row--added .feed-title {
+    opacity: 0.75;
+}
