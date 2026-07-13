@@ -1,6 +1,7 @@
 const NO_FEEDS_TEXT = "Kein Feed auf dieser Seite gefunden.";
 const LOCAL_SERVER_BASE_URL = "http://127.0.0.1:51823";
 const STATUS_CHECK_TIMEOUT_MS = 300;
+const ADD_FEED_TIMEOUT_MS = 5000;
 
 async function loadFeedsForActiveTab() {
     const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -50,10 +51,7 @@ async function addFeedViaLocalServer(feedURL) {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ url: feedURL })
-        });
-        if (!response.ok && response.status !== 500) {
-            return { result: "serverUnavailable" };
-        }
+        }, ADD_FEED_TIMEOUT_MS);
         return await response.json();
     } catch {
         return { result: "serverUnavailable" };
