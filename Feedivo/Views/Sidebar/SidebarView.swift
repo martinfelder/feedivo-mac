@@ -742,6 +742,10 @@ private struct SidebarFolderSection<Content: View>: View {
                         .textFieldStyle(.plain)
                         .font(interfaceTextSize.font(size: 13, weight: .medium))
                         .focused($isNameFieldFocused)
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 4)
+                                .stroke(renameErrorMessage != nil ? Color.red : Color.clear, lineWidth: 1)
+                        }
                         .onSubmit {
                             commitOrShowError()
                         }
@@ -782,7 +786,12 @@ private struct SidebarFolderSection<Content: View>: View {
                 // Klicks auf Chevron/Icon (eigener Button) und auf den Namen (eigene
                 // Tap-Gesten oben) werden von SwiftUI vorrangig an die jeweils
                 // spezifischere View vergeben und lösen diesen Handler nicht zusätzlich aus.
-                toggle()
+                // Während der Bearbeitung (isEditingName) ist dieser Handler bewusst ein
+                // No-op, damit ein Klick ins TextField (Fokussieren/Cursor positionieren)
+                // nicht stattdessen den Ordner ein-/ausklappt.
+                if !isEditingName {
+                    toggle()
+                }
             }
             .padding(.horizontal, 16)
             .padding(.top, 8)
