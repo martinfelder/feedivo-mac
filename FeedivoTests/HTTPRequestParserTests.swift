@@ -40,4 +40,10 @@ struct HTTPRequestParserTests {
         let request = HTTPRequestParser.parse(Data(raw.utf8))
         #expect(request?.headers["content-length"] == "0")
     }
+
+    @Test func liefertNilBeiNegativemContentLength() {
+        let raw = "POST /add HTTP/1.1\r\nContent-Length: -1\r\n\r\n"
+        let request = HTTPRequestParser.parse(Data(raw.utf8))
+        #expect(request == nil)
+    }
 }

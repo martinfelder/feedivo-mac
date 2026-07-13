@@ -46,6 +46,13 @@ enum HTTPRequestParser {
 
         let bodyStart = headerEndRange.upperBound
         let expectedBodyLength = headers["content-length"].flatMap(Int.init) ?? 0
+
+        // Content-Length muss >= 0 sein. Negative Werte sind ungültig und würden
+        // Collection.prefix(_:) zum Absturz bringen.
+        guard expectedBodyLength >= 0 else {
+            return nil
+        }
+
         let availableBody = buffer[bodyStart...]
 
         guard availableBody.count >= expectedBodyLength else {
