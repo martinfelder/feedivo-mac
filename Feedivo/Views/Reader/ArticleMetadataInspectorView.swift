@@ -20,11 +20,7 @@ struct ArticleMetadataInspectorView: View {
     let close: () -> Void
 
     @State private var currentSnapshot: ArticleReaderSnapshot
-    @State private var assignedTags: [TagRecord] = []
-    @State private var availableTags: [TagRecord] = []
     @State private var folderNames: [String] = []
-    @State private var newTagName = ""
-    @State private var newTagColorHex = TagColorPalette.defaultColorHex
     @State private var newFolderName = ""
     @State private var isFeedFolderSectionExpanded = true
     @State private var isTagSectionExpanded = true
@@ -57,12 +53,10 @@ struct ArticleMetadataInspectorView: View {
         .background(SQLiteArticleInspectorStyle.background)
         .task {
             reloadInspectorData()
-            loadTags()
         }
         .onChange(of: snapshot) { _, newSnapshot in
             currentSnapshot = newSnapshot
             reloadInspectorData()
-            loadTags()
         }
     }
 
@@ -272,69 +266,8 @@ struct ArticleMetadataInspectorView: View {
             L10n.readerInspectorTags,
             isExpanded: $isTagSectionExpanded
         ) {
-            if assignedTags.isEmpty && availableTags.isEmpty {
-                Text(L10n.readerInspectorNoTags)
-                    .font(interfaceTextSize.font(size: ArticleInspectorTypography.primaryValueFontSize))
-                    .foregroundStyle(SidebarStyle.secondaryText)
-            } else {
-                FlowLayout(spacing: 6) {
-                    ForEach(assignedTags) { tag in
-                        tagTogglePill(tag, isActive: true)
-                    }
-
-                    ForEach(availableTags) { tag in
-                        tagTogglePill(tag, isActive: false)
-                    }
-                }
-            }
-
-            tagCreator
+            ArticleTagAssignmentView(articleID: currentSnapshot.id, snapshotTags: currentSnapshot.tags)
         }
-    }
-
-    private var tagCreator: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            sectionLabel(L10n.readerInspectorNewTag)
-
-            HStack(spacing: 6) {
-                TextField(L10n.readerInspectorAddTagPlaceholder, text: $newTagName)
-                    .textFieldStyle(.plain)
-                    .font(interfaceTextSize.font(size: ArticleInspectorTypography.controlFontSize))
-                    .padding(.horizontal, 9)
-                    .frame(height: interfaceTextSize.scaled(30))
-                    .sqliteInspectorControl()
-                    .onSubmit(addTag)
-
-                Button {
-                    addTag()
-                } label: {
-                    Image(systemName: "plus")
-                        .font(interfaceTextSize.font(size: ArticleInspectorTypography.iconFontSize, weight: .semibold))
-                }
-                .disabled(normalizedTagName(newTagName) == nil)
-                .buttonStyle(.plain)
-                .frame(width: interfaceTextSize.scaled(32), height: interfaceTextSize.scaled(30))
-                .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 7, style: .continuous)
-                        .stroke(SidebarStyle.separator, lineWidth: 1)
-                }
-                .foregroundStyle(
-                    normalizedTagName(newTagName) == nil
-                    ? SidebarStyle.secondaryText
-                    : SidebarStyle.primaryText
-                )
-            }
-
-            ColorSwatchPicker(selection: $newTagColorHex)
-        }
-        .padding(.top, 10)
-        .overlay(alignment: .top) {
-            Rectangle()
-                .fill(SidebarStyle.separator)
-                .frame(height: 1)
-        }
-        .padding(.top, 4)
     }
 
     private var contextSection: some View {
@@ -527,37 +460,8 @@ struct ArticleMetadataInspectorView: View {
         .frame(minHeight: 22)
     }
 
-    private func tagTogglePill(_ tag: TagRecord, isActive: Bool) -> some View {
-        let tagColor = TagColorPalette.color(for: tag.colorHex)
-
-        return Button {
-            toggleTag(tag, isActive: isActive)
-        } label: {
-            HStack(spacing: 5) {
-                Circle()
-                    .fill(tagColor)
-                    .frame(width: 7, height: 7)
-
-                Text(tag.name)
-                    .lineLimit(1)
-            }
-            .font(interfaceTextSize.font(size: ArticleInspectorTypography.chipFontSize, weight: .semibold))
-            .foregroundStyle(isActive ? SidebarStyle.primaryText : SidebarStyle.secondaryText)
-            .padding(.horizontal, 8)
-            .frame(minHeight: interfaceTextSize.scaled(26))
-            .background(isActive ? tagColor.opacity(0.12) : Color(nsColor: .textBackgroundColor), in: Capsule())
-            .overlay {
-                Capsule()
-                    .stroke(isActive ? tagColor.opacity(0.42) : SidebarStyle.separator, lineWidth: 1)
-            }
-        }
-        .buttonStyle(.plain)
-    }
-
     private func reloadInspectorData() {
         guard let database else {
-            assignedTags = currentSnapshot.tags.map { TagRecord(id: $0.id, name: $0.name, colorHex: $0.colorHex) }
-            availableTags = []
             folderNames = []
             return
         }
@@ -567,8 +471,6 @@ struct ArticleMetadataInspectorView: View {
                 currentSnapshot = reloadedSnapshot
             }
 
-            loadTags()
-
             let feedFolderStore = FeedFolderStore(database: database)
             let feeds = try FeedStore(database: database).feeds()
             let explicitFolders = try feedFolderStore.folders()
@@ -577,47 +479,7 @@ struct ArticleMetadataInspectorView: View {
                 explicitFolderNames: explicitFolders.map(\.name)
             )
         } catch {
-            assignedTags = currentSnapshot.tags.map { TagRecord(id: $0.id, name: $0.name, colorHex: $0.colorHex) }
-            availableTags = []
-        }
-    }
-
-    private func loadTags() {
-        guard let database else {
-            assignedTags = currentSnapshot.tags.map { TagRecord(id: $0.id, name: $0.name, colorHex: $0.colorHex) }
-            availableTags = []
             return
-        }
-
-        do {
-            let allTags = try TagStore(database: database).tags()
-            let directlyAssignedTags = try TagStore(database: database).tags(articleID: snapshot.id)
-            assignedTags = mergedAssignedTags(directTags: directlyAssignedTags)
-            availableTags = allTags.filter { tag in
-                !assignedTags.contains { $0.id == tag.id }
-            }
-        } catch {
-            assignedTags = currentSnapshot.tags.map { TagRecord(id: $0.id, name: $0.name, colorHex: $0.colorHex) }
-            availableTags = []
-        }
-    }
-
-    private func mergedAssignedTags(directTags: [TagRecord]) -> [TagRecord] {
-        var recordsByID: [String: TagRecord] = [:]
-        for tag in currentSnapshot.tags {
-            recordsByID[tag.id] = TagRecord(id: tag.id, name: tag.name, colorHex: tag.colorHex)
-        }
-        for tag in directTags {
-            recordsByID[tag.id] = tag
-        }
-
-        return recordsByID.values.sorted {
-            let nameOrder = $0.name.localizedCaseInsensitiveCompare($1.name)
-            if nameOrder != .orderedSame {
-                return nameOrder == .orderedAscending
-            }
-
-            return $0.id.localizedCaseInsensitiveCompare($1.id) == .orderedAscending
         }
     }
 
@@ -680,49 +542,6 @@ struct ArticleMetadataInspectorView: View {
         }
     }
 
-    private func toggleTag(_ tag: TagRecord, isActive: Bool) {
-        guard let database else {
-            return
-        }
-
-        do {
-            if isActive {
-                try TagStore(database: database).removeTag(tagID: tag.id, fromArticleID: currentSnapshot.id)
-            } else {
-                try TagStore(database: database).assignTag(tagID: tag.id, toArticleID: currentSnapshot.id, at: Date())
-            }
-            SidebarBadgeInvalidation.bumpDirectTagVersion()
-            reloadInspectorData()
-            loadTags()
-        } catch {
-            return
-        }
-    }
-
-    private func addTag() {
-        guard let database,
-              let normalizedName = normalizedTagName(newTagName) else {
-            return
-        }
-
-        do {
-            let existingTag = try TagStore(database: database).tags().first {
-                $0.name.caseInsensitiveCompare(normalizedName) == .orderedSame
-            }
-            let tag = existingTag ?? TagRecord(name: normalizedName, colorHex: newTagColorHex)
-            if existingTag == nil {
-                try TagStore(database: database).save(tag)
-            }
-            try TagStore(database: database).assignTag(tagID: tag.id, toArticleID: currentSnapshot.id, at: Date())
-            SidebarBadgeInvalidation.bumpDirectTagVersion()
-            newTagName = ""
-            reloadInspectorData()
-            loadTags()
-        } catch {
-            return
-        }
-    }
-
     private func copyLink() {
         guard let link = currentSnapshot.link else {
             return
@@ -739,15 +558,6 @@ struct ArticleMetadataInspectorView: View {
         }
 
         ArticleOriginalBrowserLauncher.open(originalURL)
-    }
-
-    private func normalizedTagName(_ name: String?) -> String? {
-        guard let trimmedName = name?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !trimmedName.isEmpty else {
-            return nil
-        }
-
-        return trimmedName
     }
 }
 
