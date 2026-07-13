@@ -11,6 +11,7 @@ struct ArticleSearchWindowView: View {
     // Erscheinen und bei Status-Version-Bumps neu geladen.
     @State private var feeds: [FeedRecord] = []
     @State private var tags: [TagRecord] = []
+    @State private var isTagPopoverPresented = false
     @AppStorage(SQLiteDataInvalidation.statusVersionKey)
     private var sqliteStatusVersion = 0
 
@@ -155,28 +156,67 @@ struct ArticleSearchWindowView: View {
     }
 
     private var searchTagPicker: some View {
-        // Temporary: map single tag selection to Set<UUID>
-        let binding = Binding<UUID?>(
-            get: { searchState.tagIDs.first },
-            set: { newValue in
-                if let tagID = newValue {
-                    searchState.tagIDs = [tagID]
-                    searchState.tagMatchMode = .any
+        Button {
+            isTagPopoverPresented.toggle()
+        } label: {
+            Text(tagButtonLabel)
+                .frame(maxWidth: .infinity)
+        }
+        .frame(width: 136)
+        .popover(isPresented: $isTagPopoverPresented) {
+            tagPopoverContent
+        }
+    }
+
+    private var tagButtonLabel: String {
+        searchState.tagIDs.isEmpty
+            ? L10n.articleSearchTagsButtonLabel
+            : "\(L10n.articleSearchTagsButtonLabel) (\(searchState.tagIDs.count))"
+    }
+
+    private var tagPopoverContent: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Picker("", selection: $searchState.tagMatchMode) {
+                Text(L10n.articleSearchTagMatchModeAny).tag(ArticleSearchTagMatchMode.any)
+                Text(L10n.articleSearchTagMatchModeAll).tag(ArticleSearchTagMatchMode.all)
+            }
+            .labelsHidden()
+            .pickerStyle(.segmented)
+
+            if tags.isEmpty {
+                Text(L10n.articleSearchTagsEmpty)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(tags) { tag in
+                    Toggle(tag.name, isOn: tagBinding(for: tag))
+                        .toggleStyle(.checkbox)
+                }
+            }
+        }
+        .padding(12)
+        .frame(minWidth: 180)
+    }
+
+    private func tagBinding(for tag: TagRecord) -> Binding<Bool> {
+        Binding(
+            get: {
+                guard let uuid = UUID(uuidString: tag.id) else {
+                    return false
+                }
+                return searchState.tagIDs.contains(uuid)
+            },
+            set: { isOn in
+                guard let uuid = UUID(uuidString: tag.id) else {
+                    return
+                }
+                if isOn {
+                    searchState.tagIDs.insert(uuid)
                 } else {
-                    searchState.tagIDs = []
+                    searchState.tagIDs.remove(uuid)
                 }
             }
         )
-
-        return Picker("", selection: binding) {
-            Text(L10n.articleSearchTagAll).tag(UUID?.none)
-
-            ForEach(tags) { tag in
-                Text(tag.name).tag(UUID(uuidString: tag.id))
-            }
-        }
-        .labelsHidden()
-        .frame(width: 136)
     }
 
     private var searchDatePicker: some View {
@@ -329,15 +369,11 @@ struct ArticleSearchWindowView: View {
     }
 
     private var searchLoadToken: String {
-        let tagIDString = searchState.tagIDs.isEmpty
-            ? "all-tags"
-            : searchState.tagIDs.map(\.uuidString).sorted().joined(separator: ",")
-
-        return [
+        [
             debouncedSearchText,
             searchState.field.rawValue,
             searchState.feedID?.uuidString ?? "all-feeds",
-            tagIDString,
+            searchState.tagIDs.map(\.uuidString).sorted().joined(separator: ","),
             searchState.tagMatchMode.rawValue,
             searchState.dateFilter.rawValue,
             searchState.statusFilter.rawValue
