@@ -539,6 +539,10 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Aktuell in Arbeit
 
+- **2026-07-13 (später Vormittag): Ordner in der Sidebar umbenennbar — VOLLSTÄNDIG
+  ABGESCHLOSSEN und auf `origin/main` gepusht.** Doppelklick auf den Ordnernamen bzw.
+  neuer Kontextmenü-Eintrag „Ordner umbenennen" startet Inline-Bearbeitung. Details
+  siehe „Letzte Änderungen" unten.
 - **2026-07-13 (Nachmittag): Browser-Erweiterung Popup-UX-Überarbeitung VOLLSTÄNDIG
   ABGESCHLOSSEN und auf `origin/main` gepusht.** Echte Feed-Namen, lokaler HTTP-Server
   für Abo-Status/Hinzufügen, Popup-Redesign, plus vier vom Nutzer live gefundene und
@@ -565,6 +569,34 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Letzte Änderungen
 
+- 2026-07-13 (später Vormittag): Ordner in der Sidebar umbenennbar — via
+  Brainstorming+Plan+Subagent-Driven-Development (2 Tasks) umgesetzt. Spec:
+  `docs/superpowers/specs/2026-07-13-ordner-umbenennen-design.md`, Plan:
+  `docs/superpowers/plans/2026-07-13-ordner-umbenennen.md`.
+  - **Neue Store-Methode `FeedFolderStore.renameFolder(from:to:)`** — aktualisiert
+    transaktional beide Speicherorte des namensbasierten Ordner-Modells
+    (`feed_folders`-Datensatz UND alle `feeds.folderName`-Werte), case-insensitive
+    Kollisionsprüfung (Duplikat wird abgelehnt, kein automatisches Zusammenführen),
+    reine Großschreibungskorrektur des eigenen Namens ist erlaubt. Neuer Fehlertyp
+    `FeedFolderRenameError` (`.emptyName`, `.duplicateName`, `.databaseUnavailable`),
+    6 Unit-Tests gegen echte In-Memory-GRDB-DB.
+  - **Inline-Umbenennen-UI in `SidebarFolderSection`** — Doppelklick auf den
+    Ordnernamen (Einzelklick klappt weiter ein/aus, beide Gesten sitzen bewusst auf
+    derselben View, damit SwiftUI sie korrekt disambiguiert) sowie neuer
+    Kontextmenü-Eintrag „Ordner umbenennen" starten ein natives `TextField`
+    (`.textFieldStyle(.roundedBorder)`, sieht wie ein richtiges Eingabefeld aus —
+    Nutzer-Nachbesserung nach der ersten Umsetzung, die noch einen selbstgebauten
+    Hintergrund/Rahmen hatte). Enter und Fokusverlust bestätigen gleichwertig,
+    Escape bricht ab; bei ungültigem Namen (leer/Duplikat) bleibt die Bearbeitung
+    mit rotem Rahmen + Fehlertext aktiv. `collapsedFolderNames` wird beim
+    Umbenennen migriert, damit ein eingeklappter Ordner nicht überraschend wieder
+    aufklappt.
+  - Zwei Task-Reviews: Task 1 clean im ersten Anlauf, Task 2 nach 1 Fix-Runde
+    (fehlender roter Rahmen ums TextField + eine konkurrierende Tap-Geste, die
+    Klicks im TextField während der Bearbeitung fälschlich als Ein-/Ausklapp-Klick
+    abgefangen hätte — beides plan-mandated Lücken, keine Nutzer-Design-Entscheidung
+    nötig). Finale Whole-Branch-Review (Opus): Ready to merge: Yes, 0
+    Critical/Important. Gepusht (`b9d10255e..a0ee3db11`).
 - 2026-07-13 (Nachmittag): Browser-Erweiterung Popup-UX-Überarbeitung — via
   Brainstorming+Plan+Subagent-Driven-Development (8 Tasks, alle Task-Reviews clean,
   finaler Whole-Branch-Review mit 1 Fix-Runde) umgesetzt, dann vier zusätzliche vom
