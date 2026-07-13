@@ -3,18 +3,24 @@ const LOCAL_SERVER_BASE_URL = "http://127.0.0.1:51823";
 const STATUS_CHECK_TIMEOUT_MS = 300;
 const ADD_FEED_TIMEOUT_MS = 5000;
 
+// Fragt direkt das Content-Script der aktiven Seite statt den Cache im
+// Hintergrund-Service-Worker: MV3 beendet Service Worker nach kurzer
+// Inaktivitaet automatisch und verwirft dabei jeden In-Memory-Zustand,
+// waehrend das Content-Script so lange lebt wie die Seite selbst.
 async function loadFeedsForActiveTab() {
     const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!activeTab?.id) {
         return { feeds: [], favIconUrl: undefined };
     }
 
-    const response = await chrome.runtime.sendMessage({
-        type: "feedivo-get-feeds-for-tab",
-        tabId: activeTab.id
-    });
-
-    return { feeds: response?.feeds ?? [], favIconUrl: activeTab.favIconUrl };
+    try {
+        const response = await chrome.tabs.sendMessage(activeTab.id, { type: "feedivo-get-feeds" });
+        return { feeds: response?.feeds ?? [], favIconUrl: activeTab.favIconUrl };
+    } catch {
+        // Kein Content-Script in diesem Tab (z. B. chrome://-Seiten, PDF-
+        // Viewer) oder Seite gerade erst geladen.
+        return { feeds: [], favIconUrl: activeTab.favIconUrl };
+    }
 }
 
 async function fetchWithTimeout(url, options = {}, timeoutMs = STATUS_CHECK_TIMEOUT_MS) {

@@ -138,7 +138,24 @@
         return resolveFeedTitles(feeds);
     }
 
-    detectFeeds().then((feeds) => {
+    // Das Ergebnis bleibt hier im Content-Script gespeichert (lebt so lange
+    // wie die Seite selbst) statt nur im Hintergrund-Service-Worker: MV3
+    // beendet Service Worker nach kurzer Inaktivitaet automatisch und
+    // verwirft dabei jeden In-Memory-Zustand — ein zweites Oeffnen des
+    // Popups kurz nach dem ersten fand dort dann faelschlich keine Feeds
+    // mehr (Nutzer-Report 2026-07-13). Das Popup fragt deshalb direkt
+    // dieses Content-Script statt den (unzuverlaessigen) Cache im
+    // Hintergrund-Skript.
+    const feedsPromise = detectFeeds();
+
+    feedsPromise.then((feeds) => {
         chrome.runtime.sendMessage({ type: "feedivo-feeds-detected", feeds });
+    });
+
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+        if (message?.type === "feedivo-get-feeds") {
+            feedsPromise.then((feeds) => sendResponse({ feeds }));
+            return true;
+        }
     });
 })();
