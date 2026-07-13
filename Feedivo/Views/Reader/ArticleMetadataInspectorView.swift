@@ -751,7 +751,7 @@ struct ArticleMetadataInspectorView: View {
     }
 }
 
-private extension View {
+extension View {
     func sqliteInspectorControl(cornerRadius: CGFloat = 8) -> some View {
         self
             .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
