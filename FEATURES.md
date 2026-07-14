@@ -7,7 +7,10 @@
 > Status-Legende:
 > ✔️ Fertig | 🔨 In Arbeit (teilweise umgesetzt) | ✅ Entschieden (bereit zur Implementierung) | 💬 In Diskussion | ⏸️ Zurückgestellt
 >
-> Zuletzt aktualisiert: 2026-07-08
+> Zuletzt aktualisiert: 2026-07-14 (Punch-List-Abschnitt am Dateiende gegen den
+> tatsächlichen Code-Stand abgeglichen — mehrere Einträge waren dort nicht als
+> "erledigt" markiert, obwohl der zugehörige Feature-Abschnitt oben längst
+> ✔️ Fertig zeigte; siehe CLAUDE.md 2026-07-14 für den Auslöser)
 >
 > **SQLite Final Closure 2026-07-05:** Produktiver Feed-/Artikelpfad SQLite-first
 > abgeschlossen. `FeedivoApp` startet ohne SwiftData-`ModelContainer`, die
@@ -932,16 +935,27 @@
 ## 20. Fehler- und Problembehandlung
 
 ### 20.1 Fehler-UX Konzept
-- **Status:** ✅ Entschieden — bereit zur Implementierung
-- **Zu implementieren:**
+- **Status:** 🔨 Teilweise umgesetzt (2026-07-14 per Code-Abgleich, Status-Zeile zuvor
+  noch nicht nachgezogen) — Feed-Fehler-Badge (`FeedRowView.swift`,
+  `exclamationmark.triangle.fill`), Inline-Retry über `onRetryFeed` +
+  `feedErrorBanner` (`SQLiteFeedArticleListView.swift`), Netzwerk-Status-Indikator
+  (`NetworkConnectionStatusIndicator`/`NetworkConnectionStatusMonitor` in
+  `ContentView.swift`, unten rechts statt als oberer Banner) sind vorhanden. Nicht
+  einzeln nachverifiziert: ob jede Download-Fehler-Inline-Meldung durchgängig eine
+  Retry-Option zeigt — vor einem endgültigen ✔️ Fertig gezielt gegenprüfen.
+- **Zu implementieren / zu verifizieren:**
   - Feed nicht erreichbar: Fehler-Badge (⚠️) beim Feed in der Sidebar UND Inline-Meldung in der Artikel-Liste mit "Erneut versuchen" Button
   - Netzwerk offline: Globaler Banner oben in der App
   - Download-Fehler: Inline-Meldung mit Retry-Option
   - Fehler-Log bleibt in Feed-Eigenschaften (bereits vorhanden)
 
 ### 20.2 Leere Zustände (Empty States)
-- **Status:** ✅ Entschieden — bereit zur Implementierung
-- **Zu implementieren:**
+- **Status:** 🔨 Teilweise umgesetzt (2026-07-14 per Code-Abgleich) — mehrere
+  `ContentUnavailableView`-Leerzustände existieren bereits (`ContentView.swift`,
+  `SQLiteFeedArticleListView.swift`, `ArticleSearchWindowView.swift`). Nicht
+  einzeln nachverifiziert, ob jeder der vier unten genannten Spezialfälle
+  (insbesondere "Tag ohne Artikel") wortwörtlich abgedeckt ist.
+- **Zu implementieren / zu verifizieren:**
   - Erster Start ohne Feeds: First-Run-Wizard auslösen (bereits vorhanden)
   - Feed hat keine Artikel: Erklärung + "Feed aktualisieren" Button
   - Suche ohne Resultate: Hinweis mit Suchbegriff und Vorschlag Suchbereich zu erweitern
@@ -1492,8 +1506,8 @@ Folgende Reihenfolge berücksichtigt Abhängigkeiten. Features mit (*) sind Vora
 ### Phase 4 — Feed hinzufügen & Verwaltung
 13. **Feature 4.1** — Website Feed-Suche (Auto-Erkennung, Liste gefundener Feeds) — erledigt
 14. **Feature 12.4** — Feed-Vorschau vor dem Abonnieren (5 Artikel im Sheet) — erledigt
-15. **Feature 17.3** — Automatisches Löschen (90 Tage Standard, pro Feed, Ausnahmen Stern + Archiv)
-16. **Feature 17.1** — Automatisches Offline-Speichern bei Stern (Toggle in Einstellungen) — erledigt
+15. **Feature 17.3** — Automatisches Löschen (90 Tage Standard, pro Feed, Ausnahmen Stern + Archiv) — erledigt, seither erweitert um dauerhafte Bereinigung + Status-Anzeige (siehe CLAUDE.md 2026-07-14)
+16. **Feature 17.1** — Automatisches Offline-Speichern bei Stern (Toggle in Einstellungen) — Entscheidung 2026-07-05: aus produktiver UI entfernt, Backend/Legacy-Tabellen bleiben bestehen (siehe Feature 17.1 oben)
 
 ### Phase 5 — Export & Teilen
 17. **Feature 18.1** — Artikel exportieren (Markdown/Text/HTML mit Vorschau erledigt; Offline-Bilder für Markdown/HTML als ZIP-Paket erledigt; Datei-Teilen erledigt; PDF/DOCX zurückgestellt)
@@ -1506,17 +1520,17 @@ Folgende Reihenfolge berücksichtigt Abhängigkeiten. Features mit (*) sind Vora
 21. **Feature 9.3** — Spotlight-Integration (CSSearchableItem, Toggle in Einstellungen)
 
 ### Phase 7 — Customization & Einstellungen
-22. **Feature 8.2** — Neue Einstellungs-Kategorien (Benachrichtigungen, Artikel, Menubar, Darstellung erweitern)
+22. **Feature 8.2** — Neue Einstellungs-Kategorien (Benachrichtigungen, Artikel, Menubar, Darstellung erweitern) — erledigt
 23. **Feature 19.1** — Artikel-Liste anpassen (Vorschautext-Zeilen, Bildposition, Datum-Format, Feed-Name, Ungelesen-Markierung) — vollständig umgesetzt (2026-07-08 Bildposition + Feed-Name, 2026-07-10 Summary-Steuerung + Datum-Format)
-24. **Feature 19.2** — Sidebar anpassen (Zähler, Favicons, Smart Filter ein/ausblenden)
-25. **Feature 19.3** — Reader anpassen (Textbreite, Artikelbild)
+24. **Feature 19.2** — Sidebar anpassen (Zähler, Favicons, Smart Filter ein/ausblenden) — erledigt 2026-07-09
+25. **Feature 19.3** — Reader anpassen (Textbreite, Artikelbild) — erledigt 2026-07-09
 26. **Feature 19.4** — Toolbar anpassen (macOS Standard `Symbolleiste anpassen...`)
 27. **Feature 19.5** — Verhalten (Gelesen beim Öffnen, externe Links, Bilder laden, App-Start)
 27a. **Feature 19.7** — App-interne Darstellungs-Einstellung (System/Hell/Dunkel) inkl. First-Run- und Inspector-Dark-Mode-Fix — erledigt 2026-07-09
 
 ### Phase 8 — Menubar & Fenster
 28. **Feature 21.1** — Menubar-App (Dropdown, Badge, ohne Dock, konfigurierbar) — vollständig umgesetzt (2026-07-10)
-29. **Feature 24.1** — Mehrfenster (Cmd+Return + Kontextmenü, Fenster-Zustand speichern)
+29. **Feature 24.1** — Mehrfenster (Cmd+Return + Kontextmenü, Fenster-Zustand speichern) — erledigt
 
 ### Phase 9 — Reader Features
 30. **Feature 11.1** — Lesedauer im Reader anzeigen — erledigt; keine Anzeige in der Artikel-Liste
@@ -1525,13 +1539,13 @@ Folgende Reihenfolge berücksichtigt Abhängigkeiten. Features mit (*) sind Vora
 33. **Feature 1.12** — Original-Ansicht Vor-/Zurück-Navigation (WKWebView canGoBack/canGoForward, Toolbar-Buttons, Cmd+[ / Cmd+]) — erledigt
 
 ### Phase 10 — Statistiken
-32. **Feature 14.1** — Lese-Statistiken (separates Fenster, Heatmap, Top Feeds, Cmd+Shift+S)
-33. **Feature 14.2** — Feed-Statistiken in Feed-Info-Ansicht integrieren
-34. **Feature 14.3** — Statistik-Daten exportieren (CSV, Export-Button im Statistik-Fenster, abhängig von 14.1/14.2)
+32. **Feature 14.1** — Lese-Statistiken (separates Fenster, Heatmap, Top Feeds, Cmd+Shift+S) — erledigt 2026-07-10
+33. **Feature 14.2** — Feed-Statistiken in Feed-Info-Ansicht integrieren — erledigt 2026-07-10
+34. **Feature 14.3** — Statistik-Daten exportieren (CSV, Export-Button im Statistik-Fenster, abhängig von 14.1/14.2) — erledigt 2026-07-10
 
 ### Phase 11 — Deep Links & Shortcuts
 34. **Feature 23.1** — Share Extension (In Feedivo öffnen aus anderen Apps)
-35. **Feature 23.2** — URL-Schema `feedivo://` (add, article)
+35. **Feature 23.2** — URL-Schema `feedivo://` (add, article) — erledigt
 36. **Feature 26.3** — AppIntents / Shortcuts Integration (Feed aktualisieren, hinzufügen, gelesen, exportieren)
 36a. **Feature 27.1/27.2** — Browser-Erweiterung Safari + Chrome (RSS-Feed erkennen, via `feedivo://add?url=...` hinzufügen; setzt 23.2 voraus) — erledigt
 
