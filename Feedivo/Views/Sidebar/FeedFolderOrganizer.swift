@@ -36,6 +36,33 @@ enum FeedFolderOrganizer {
         }
     }
 
+    static func folderNames(feedFolderNames: [String?], explicitFolders: [FeedFolderRecord]) -> [String] {
+        var canonicalNamesByLowercasedName: [String: String] = [:]
+
+        for folderName in feedFolderNames {
+            insert(folderName: folderName, into: &canonicalNamesByLowercasedName)
+        }
+        for folder in explicitFolders {
+            insert(folderName: folder.name, into: &canonicalNamesByLowercasedName)
+        }
+
+        let sortIndexByLowercasedName = Dictionary(
+            explicitFolders.map { ($0.name.lowercased(), $0.sortIndex) },
+            uniquingKeysWith: { first, _ in first }
+        )
+
+        return canonicalNamesByLowercasedName
+            .sorted { lhs, rhs in
+                let lhsIndex = sortIndexByLowercasedName[lhs.key] ?? Int.max
+                let rhsIndex = sortIndexByLowercasedName[rhs.key] ?? Int.max
+                if lhsIndex != rhsIndex {
+                    return lhsIndex < rhsIndex
+                }
+                return lhs.value.localizedCaseInsensitiveCompare(rhs.value) == .orderedAscending
+            }
+            .map(\.value)
+    }
+
     // Snapshot-basierte Überladungen für den SQLite-only Sidebar-Pfad. Diese
     // Helfer arbeiten ausschließlich auf FeedSidebarSnapshot.
     static func feedsWithoutFolder(from snapshots: [FeedSidebarSnapshot]) -> [FeedSidebarSnapshot] {
@@ -50,7 +77,7 @@ enum FeedFolderOrganizer {
     ) -> [(folderName: String, snapshots: [FeedSidebarSnapshot])] {
         let orderedFolderNames = folderNames(
             feedFolderNames: snapshots.map(\.folderName),
-            explicitFolderNames: folders.map(\.name)
+            explicitFolders: folders
         )
 
         var snapshotsByLowercasedName: [String: [FeedSidebarSnapshot]] = [:]
@@ -69,7 +96,10 @@ enum FeedFolderOrganizer {
 
     private static func sortedSnapshots(_ snapshots: [FeedSidebarSnapshot]) -> [FeedSidebarSnapshot] {
         snapshots.sorted {
-            $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending
+            if $0.sortIndex != $1.sortIndex {
+                return $0.sortIndex < $1.sortIndex
+            }
+            return $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending
         }
     }
 
