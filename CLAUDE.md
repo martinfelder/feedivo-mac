@@ -554,27 +554,36 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Aktuell in Arbeit
 
-- **2026-07-13 (Nacht): Bugfix automatische Artikel-Bereinigung — TEILWEISE
-  ABGESCHLOSSEN, noch NICHT gepusht.** Nutzer-Report: "Alte Artikel bleiben
-  trotz aktivierter Bereinigung liegen, auch nach Tagen im Hintergrund."
-  Root Cause gefunden (via systematic-debugging): `ArticleRetentionCleanupService`
-  wurde nur beim App-Start und bei Retention-Einstellungsänderungen aufgerufen,
-  nie erneut während einer laufenden Session — der periodische Hintergrund-Refresh
-  (`BackgroundRefreshService.refreshAllFeeds`, einziger Aufrufpfad des
-  `NSBackgroundActivityScheduler`) löste nie eine Bereinigung aus. Fix (TDD, 3 neue
-  Regressionstests): `cleanupExpiredArticlesIfNeeded(database:userDefaults:now:)`
-  neu in `BackgroundRefreshService.swift`, wird jetzt am Ende jedes
-  `refreshAllFeeds`-Durchlaufs aufgerufen. Commit `99ed5fe`, lokal auf main,
-  Push steht noch aus (Nutzerbestätigung ausstehend).
-  Bei derselben Analyse zwei WEITERE, noch nicht behobene Befunde dokumentiert
-  (Nutzerentscheidung aussteht, ob/wann angegangen):
-  - Artikel ohne `publishedAt` (Feed liefert kein parsbares Datum) sind dauerhaft
-    von der Bereinigung ausgenommen (`ArticleRetentionCleanupService.swift:92-97`,
-    `shouldRemove` verlangt zwingend ein non-nil Datum unter dem Cutoff, kein
-    Fallback z. B. auf Abrufdatum).
-  - Der automatische Bereinigungspfad hat keinerlei UI-Feedback — Fehler landen
-    nur im Apple-Systemlog (`SilentErrorLogging.swift`/`AppLogger.dataAccess`),
-    nur der manuelle "Jetzt bereinigen"-Button in den Einstellungen zeigt
+- **2026-07-13/14 (Nacht): Zwei Bugfixes automatische Artikel-Bereinigung —
+  VOLLSTÄNDIG ABGESCHLOSSEN und auf `origin/main` gepusht.** Nutzer-Report:
+  "Alte Artikel bleiben trotz aktivierter Bereinigung liegen, auch nach Tagen
+  im Hintergrund." Root-Cause-Analyse via systematic-debugging fand drei
+  unabhängige Befunde, zwei davon behoben:
+  - **Befund A (Fix, Commit `99ed5fe`):** `ArticleRetentionCleanupService`
+    wurde nur beim App-Start und bei Retention-Einstellungsänderungen
+    aufgerufen, nie erneut während einer laufenden Session — der periodische
+    Hintergrund-Refresh (`BackgroundRefreshService.refreshAllFeeds`, einziger
+    Aufrufpfad des `NSBackgroundActivityScheduler`) löste nie eine Bereinigung
+    aus. Fix (TDD, 3 neue Regressionstests): neue
+    `cleanupExpiredArticlesIfNeeded(database:userDefaults:now:)`, wird jetzt am
+    Ende jedes `refreshAllFeeds`-Durchlaufs aufgerufen. Ein Test deckt
+    gezielt einen naiven `UserDefaults.integer/bool(forKey:)`-Fallback-Bug ab
+    (fehlender gespeicherter Wert hätte sonst `retentionDays: 0` statt des
+    korrekten 90-Tage-Standards ergeben).
+  - **Befund B (Fix, Commit `b10d641`):** Artikel ohne parsbares
+    `publishedAt` waren dauerhaft von der Bereinigung ausgenommen,
+    unabhängig vom tatsächlichen Alter. Fix (TDD, 3 neue Regressionstests):
+    `SQLiteArticleRetentionCandidate` liest zusätzlich `articles.arrivedAt`
+    (NOT NULL) und bietet `effectiveDate` (`publishedAt ?? arrivedAt`) als
+    Fallback — dieselbe `COALESCE(publishedAt, arrivedAt)`-Idiomatik, die in
+    `ArticleStore.swift` für die Sortierung bereits etabliert ist. Sowohl die
+    Löschentscheidung (`shouldRemove`) als auch der
+    Mindestanzahl-pro-Feed-Schutz (`sqliteRetentionSort`) nutzen jetzt
+    `effectiveDate` konsistent.
+  - **Befund C (noch offen, keine Nutzerentscheidung):** Der automatische
+    Bereinigungspfad hat keinerlei UI-Feedback — Fehler landen nur im Apple-
+    Systemlog (`SilentErrorLogging.swift`/`AppLogger.dataAccess`), nur der
+    manuelle "Jetzt bereinigen"-Button in den Einstellungen zeigt
     Ergebnis/Fehler an.
 - **2026-07-13 (spät Abend): Tags direkt im Reader-Header hinzufügen —
   VOLLSTÄNDIG ABGESCHLOSSEN und auf `origin/main` gepusht.** Neuer "+"-Button
