@@ -466,6 +466,81 @@ struct SQLiteDatabaseMigrationTests {
 
         #expect(try rowCount(in: database, table: "feeds") == 2)
     }
+
+    @Test func migrationV15BackfilltSortIndexAusBestehenderAlphabetischerReihenfolge() throws {
+        let queue = try DatabaseQueue()
+        try FeedivoDatabaseMigrator.migrator.migrate(queue, upTo: "v14_add_article_identity_history_retention_flag")
+
+        try queue.write { db in
+            let now = Date()
+            // Wichtig: Zu diesem Zeitpunkt (nur bis v14 migriert) existiert die
+            // sortIndex-Spalte auf BEIDEN Tabellen noch nicht — sie darf in
+            // diesen INSERTs deshalb noch nicht auftauchen, sonst schlägt die
+            // Query mit "no such column: sortIndex" fehl.
+            try db.execute(
+                sql: """
+                    INSERT INTO feed_folders (id, name, createdAt, updatedAt)
+                    VALUES ('folder-tech', 'Tech', ?, ?)
+                    """,
+                arguments: [now, now]
+            )
+            // "News" existiert NUR implizit über ein Feed, ohne eigenen feed_folders-Datensatz.
+            try db.execute(
+                sql: """
+                    INSERT INTO feeds (
+                        id, url, title, folderName, refreshIntervalMinutes,
+                        isNotificationEnabled, articleRetentionOverridesGlobalSetting,
+                        articleRetentionIsEnabled, articleRetentionDays,
+                        articleRetentionMinimumArticles, articleRetentionIncludesProtectedArticles,
+                        unreadCount, createdAt, updatedAt
+                    ) VALUES
+                        ('feed-b', 'https://b.example/feed.xml', 'Beta', 'Tech', 30, 0, 0, 0, 90, 20, 0, 0, ?, ?),
+                        ('feed-a', 'https://a.example/feed.xml', 'Alpha', 'Tech', 30, 0, 0, 0, 90, 20, 0, 0, ?, ?),
+                        ('feed-z', 'https://z.example/feed.xml', 'Zulu', 'News', 30, 0, 0, 0, 90, 20, 0, 0, ?, ?),
+                        ('feed-x', 'https://x.example/feed.xml', 'Xray', NULL, 30, 0, 0, 0, 90, 20, 0, 0, ?, ?)
+                    """,
+                arguments: [now, now, now, now, now, now, now, now]
+            )
+        }
+
+        try FeedivoDatabaseMigrator.migrator.migrate(queue)
+
+        let feedSortIndexByID = try queue.read { db in
+            try Row.fetchAll(db, sql: "SELECT id, sortIndex FROM feeds")
+        }.reduce(into: [String: Int]()) { result, row in
+            result[row["id"]] = row["sortIndex"]
+        }
+        // "Tech"-Gruppe: Alpha vor Beta (alphabetisch).
+        #expect(feedSortIndexByID["feed-a"] == 0)
+        #expect(feedSortIndexByID["feed-b"] == 1)
+        // "News"-Gruppe (nur ein Feed) und "Ohne Ordner"-Gruppe (nur ein Feed)
+        // starten jeweils unabhängig bei 0.
+        #expect(feedSortIndexByID["feed-z"] == 0)
+        #expect(feedSortIndexByID["feed-x"] == 0)
+
+        let folders = try queue.read { db in
+            try Row.fetchAll(db, sql: "SELECT name, sortIndex FROM feed_folders ORDER BY sortIndex")
+        }
+        // "News" (nur implizit) wird materialisiert; alphabetisch VOR "Tech" einsortiert.
+        #expect(folders.map { $0["name"] as String } == ["News", "Tech"])
+        #expect(folders.map { $0["sortIndex"] as Int } == [0, 1])
+    }
+
+    @Test func migrationV15IstIdempotentBeiBereitsVorhandenerSpalte() throws {
+        // Regressionstest gegen versehentliches erneutes Ausführen der Migration
+        // gegen eine bereits vollständig migrierte Datenbank (Standardfall bei
+        // jedem regulären App-Start über FeedivoDatabase.inMemoryForTests()).
+        let database = try FeedivoDatabase.inMemoryForTests()
+
+        let columns = try database.read { db in
+            try Row.fetchAll(db, sql: "PRAGMA table_info(feeds)")
+        }
+        let sortIndexColumn = columns.first { ($0["name"] as String?) == "sortIndex" }
+
+        #expect(sortIndexColumn != nil)
+        #expect((sortIndexColumn?["notnull"] as Int?) == 1)
+        #expect((sortIndexColumn?["dflt_value"] as String?) == "0")
+    }
 }
 
 private func insertFeed(

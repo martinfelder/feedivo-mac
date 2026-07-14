@@ -370,6 +370,98 @@ enum FeedivoDatabaseMigrator {
             }
         }
 
+        migrator.registerMigration("v15_add_feed_and_folder_sort_index") { database in
+            try database.alter(table: "feeds") { table in
+                table.add(column: "sortIndex", .integer).notNull().defaults(to: 0)
+            }
+            try database.alter(table: "feed_folders") { table in
+                table.add(column: "sortIndex", .integer).notNull().defaults(to: 0)
+            }
+
+            try backfillFeedAndFolderSortIndex(database)
+        }
+
         return migrator
+    }
+
+    /// Vergibt sortIndex-Werte für Feeds und Ordner passend zur AKTUELLEN
+    /// alphabetischen Anzeige, damit Bestandsnutzer nach diesem Update keine
+    /// sichtbare Umsortierung erleben. Materialisiert dabei zusätzlich alle
+    /// bisher rein impliziten Ordner (nur über feeds.folderName, ohne eigenen
+    /// feed_folders-Datensatz) als echte Datensätze — reimplementiert die
+    /// case-insensitive Dedupliziierungs-/Sortierlogik von
+    /// FeedFolderOrganizer.folderNames(...) eigenständig in reinem SQL/Swift,
+    /// da FeedFolderOrganizer (Views-Schicht) zum Zeitpunkt dieser Migration
+    /// nicht von der Datenbank-Schicht importiert werden soll.
+    private static func backfillFeedAndFolderSortIndex(_ database: Database) throws {
+        let feedFolderNames = try String.fetchAll(
+            database,
+            sql: "SELECT DISTINCT folderName FROM feeds WHERE folderName IS NOT NULL"
+        )
+        let explicitFolderNames = try String.fetchAll(database, sql: "SELECT name FROM feed_folders")
+
+        var canonicalNamesByLowercasedName: [String: String] = [:]
+        for name in feedFolderNames + explicitFolderNames {
+            let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { continue }
+            let key = trimmed.lowercased()
+            if canonicalNamesByLowercasedName[key] == nil {
+                canonicalNamesByLowercasedName[key] = trimmed
+            }
+        }
+
+        let orderedFolderNames = canonicalNamesByLowercasedName.values.sorted {
+            $0.localizedCaseInsensitiveCompare($1) == .orderedAscending
+        }
+
+        let now = Date()
+        for (index, folderName) in orderedFolderNames.enumerated() {
+            try database.execute(
+                sql: "UPDATE feed_folders SET sortIndex = ? WHERE name = ? COLLATE NOCASE",
+                arguments: [index, folderName]
+            )
+
+            if database.changesCount == 0 {
+                try database.execute(
+                    sql: """
+                        INSERT INTO feed_folders (id, name, sortIndex, createdAt, updatedAt)
+                        VALUES (?, ?, ?, ?, ?)
+                        """,
+                    arguments: [UUID().uuidString, folderName, index, now, now]
+                )
+            }
+        }
+
+        struct FeedRow: FetchableRecord {
+            let id: String
+            let folderName: String?
+            let title: String
+
+            init(row: Row) {
+                id = row["id"]
+                folderName = row["folderName"]
+                title = row["title"]
+            }
+        }
+
+        let allFeeds = try FeedRow.fetchAll(database, sql: "SELECT id, folderName, title FROM feeds")
+        var feedsByNormalizedFolderKey: [String: [FeedRow]] = [:]
+        for feed in allFeeds {
+            let trimmed = feed.folderName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let key = trimmed.isEmpty ? "" : trimmed.lowercased()
+            feedsByNormalizedFolderKey[key, default: []].append(feed)
+        }
+
+        for (_, feedsInGroup) in feedsByNormalizedFolderKey {
+            let sortedFeeds = feedsInGroup.sorted {
+                $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending
+            }
+            for (index, feed) in sortedFeeds.enumerated() {
+                try database.execute(
+                    sql: "UPDATE feeds SET sortIndex = ? WHERE id = ?",
+                    arguments: [index, feed.id]
+                )
+            }
+        }
     }
 }
