@@ -220,4 +220,101 @@ struct ArticleRetentionCleanupServiceTests {
         #expect(removedCount == 2)
         #expect(Set(remainingIDs) == Set(articleIDs.prefix(10)))
     }
+
+    // MARK: - Fallback auf arrivedAt bei fehlendem publishedAt
+    //
+    // Regressionstests für Befund B aus der Bereinigungs-Analyse vom 2026-07-13:
+    // Artikel ohne parsbares Veröffentlichungsdatum (publishedAt == nil, z. B. bei
+    // Feeds ohne pubDate) waren zuvor DAUERHAFT von der Bereinigung ausgenommen,
+    // unabhängig vom tatsächlichen Alter. Fix: Fallback auf articles.arrivedAt
+    // (NOT NULL, immer vorhanden) — dieselbe COALESCE(publishedAt, arrivedAt)-Logik,
+    // die an anderer Stelle im Projekt (ArticleStore.swift Sortierung) bereits
+    // etabliert ist.
+
+    @Test func sqliteCleanupNutztArrivedAtAlsFallbackWennPublishedAtFehlt() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let now = Date(timeIntervalSince1970: 10_000_000)
+        let oldArrivedAt = now.addingTimeInterval(-91 * 24 * 60 * 60)
+        let feedID = UUID().uuidString
+
+        try FeedStore(database: database).save(FeedRecord(id: feedID, url: "https://example.com/feed.xml", title: "Feed", unreadCount: 1))
+        let expiredID = try ArticleStore(database: database).upsert(ArticleUpsertInput(
+            feedID: feedID,
+            title: "Ohne Datum, alt angekommen",
+            arrivedAt: oldArrivedAt
+        ))
+
+        let removedCount = try ArticleRetentionCleanupService.removeExpiredSQLiteArticles(
+            database: database,
+            isEnabled: true,
+            retentionDays: 90,
+            minimumArticlesPerFeed: 0,
+            now: now
+        )
+
+        #expect(removedCount == 1)
+        #expect(try ArticleStatusStore(database: database).status(articleID: expiredID) == nil)
+    }
+
+    @Test func sqliteCleanupBehaeltArtikelOhnePublishedAtWennArrivedAtAktuellIst() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let now = Date(timeIntervalSince1970: 10_000_000)
+        let recentArrivedAt = now.addingTimeInterval(-10 * 24 * 60 * 60)
+        let feedID = UUID().uuidString
+
+        try FeedStore(database: database).save(FeedRecord(id: feedID, url: "https://example.com/feed.xml", title: "Feed", unreadCount: 1))
+        let keptID = try ArticleStore(database: database).upsert(ArticleUpsertInput(
+            feedID: feedID,
+            title: "Ohne Datum, frisch angekommen",
+            arrivedAt: recentArrivedAt
+        ))
+
+        let removedCount = try ArticleRetentionCleanupService.removeExpiredSQLiteArticles(
+            database: database,
+            isEnabled: true,
+            retentionDays: 90,
+            minimumArticlesPerFeed: 0,
+            now: now
+        )
+
+        #expect(removedCount == 0)
+        #expect(try ArticleStatusStore(database: database).status(articleID: keptID) != nil)
+    }
+
+    @Test func sqliteCleanupSchuetztMindestanzahlAuchOhnePublishedAt() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let now = Date(timeIntervalSince1970: 10_000_000)
+        let feedID = UUID().uuidString
+
+        try FeedStore(database: database).save(FeedRecord(id: feedID, url: "https://example.com/feed.xml", title: "Feed"))
+        let articleStore = ArticleStore(database: database)
+        var articleIDs: [String] = []
+        for index in 0..<12 {
+            let arrivedAt = now.addingTimeInterval(-TimeInterval((100 + index) * 24 * 60 * 60))
+            articleIDs.append(try articleStore.upsert(ArticleUpsertInput(
+                feedID: feedID,
+                sourceID: "article-\(index)",
+                title: "Artikel \(index) ohne Datum",
+                arrivedAt: arrivedAt
+            )))
+        }
+
+        let removedCount = try ArticleRetentionCleanupService.removeExpiredSQLiteArticles(
+            database: database,
+            isEnabled: true,
+            retentionDays: 90,
+            minimumArticlesPerFeed: 10,
+            now: now
+        )
+
+        let remainingIDs = try TimelineStore(database: database).articles(
+            scope: .feed(feedID),
+            includeRead: true,
+            includeHidden: true,
+            limit: 10
+        ).map(\.id)
+
+        #expect(removedCount == 2)
+        #expect(Set(remainingIDs) == Set(articleIDs.prefix(10)))
+    }
 }

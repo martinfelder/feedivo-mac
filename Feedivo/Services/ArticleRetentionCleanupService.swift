@@ -31,6 +31,7 @@ enum ArticleRetentionCleanupService {
                     a.id,
                     a.feedID,
                     a.publishedAt,
+                    a.arrivedAt,
                     s.isStarred,
                     s.isArchived,
                     s.isRead,
@@ -89,10 +90,7 @@ enum ArticleRetentionCleanupService {
             return false
         }
 
-        guard
-            let publishedAt = article.publishedAt,
-            publishedAt < cutoffDate
-        else {
+        guard article.effectiveDate < cutoffDate else {
             return false
         }
 
@@ -130,8 +128,8 @@ enum ArticleRetentionCleanupService {
         _ lhs: SQLiteArticleRetentionCandidate,
         _ rhs: SQLiteArticleRetentionCandidate
     ) -> Bool {
-        let lhsDate = lhs.publishedAt ?? .distantPast
-        let rhsDate = rhs.publishedAt ?? .distantPast
+        let lhsDate = lhs.effectiveDate
+        let rhsDate = rhs.effectiveDate
         if lhsDate != rhsDate {
             return lhsDate > rhsDate
         }
@@ -241,15 +239,26 @@ private struct SQLiteArticleRetentionCandidate: FetchableRecord {
     let id: String
     let feedID: String
     let publishedAt: Date?
+    let arrivedAt: Date
     let isStarred: Bool
     let isArchived: Bool
     let isRead: Bool
     let isHidden: Bool
 
+    /// Fallback auf `arrivedAt` (NOT NULL, immer vorhanden), wenn der Feed kein
+    /// parsbares Veröffentlichungsdatum liefert — sonst blieben solche Artikel
+    /// dauerhaft von der Bereinigung ausgenommen (Befund B, Nutzer-Report
+    /// 2026-07-13). Gleiche COALESCE(publishedAt, arrivedAt)-Idiomatik wie
+    /// bereits in ArticleStore.swift für die Artikel-Sortierung etabliert.
+    var effectiveDate: Date {
+        publishedAt ?? arrivedAt
+    }
+
     init(row: Row) throws {
         id = row["id"]
         feedID = row["feedID"]
         publishedAt = row["publishedAt"]
+        arrivedAt = row["arrivedAt"]
         isStarred = row["isStarred"]
         isArchived = row["isArchived"]
         isRead = row["isRead"]
