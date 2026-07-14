@@ -114,6 +114,76 @@ struct SQLiteFeedArticleListStateTests {
         #expect(state.rows.first(where: { $0.id == firstID })?.isRead == true)
     }
 
+    // Reproduziert den Nutzer-Report (2026-07-14): "Wenn im Smart Folder
+    // Ungelesen der letzte Artikel gelesen wurde, wird die Artikelliste
+    // vollstaendig geleert." Bildet die reale Sequenz nach: einziger
+    // verbleibender ungelesener Artikel wird per Auswahl gelesen markiert
+    // (markReadIfNeeded, wie beim Oeffnen im Reader), danach loest ein
+    // erneutes state.load() - wie es der sqliteStatusVersion-Bump in der
+    // View ueber .task(id: loadToken) ausloest - eine frische SQL-Abfrage
+    // aus, die den jetzt gelesenen Artikel per Bedingung "Status ist
+    // ungelesen" korrekt ausschliesst.
+    @Test func listStateFuerLetztenArtikelInUngelesenSmartFolderNachAuswahlUndReload() async throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "SQLite Feed"))
+        let onlyID = try articleStore.upsert(
+            ArticleUpsertInput(feedID: "feed-1", sourceID: "only", title: "Einziger Artikel")
+        )
+
+        let state = SQLiteFeedArticleListState()
+        let folder = SQLiteSmartFolderSnapshot(
+            id: "smart-unread",
+            name: "Ungelesen",
+            matchMode: .all,
+            conditions: [
+                SQLiteSmartFolderConditionSnapshot(
+                    field: .status,
+                    conditionOperator: .is,
+                    value: SmartFolderStatusValue.unread.rawValue
+                )
+            ]
+        )
+
+        state.load(smartFolder: folder, database: database, selectedArticleID: onlyID)
+        await waitForLoad(state)
+        #expect(state.rows.map(\.id) == [onlyID])
+
+        let didMarkRead = state.markReadIfNeeded(articleID: onlyID, database: database, isEnabled: true)
+        await waitForRows(state) { rows in
+            rows.first(where: { $0.id == onlyID })?.isRead == true
+        }
+        #expect(didMarkRead)
+
+        // Simuliert den View-seitigen Sticky-Snapshot, der unmittelbar nach
+        // dem Markieren aus state.rows entnommen wird (siehe
+        // SQLiteFeedArticleListView.markSelectedArticleReadIfNeeded).
+        let stickySnapshot = try #require(state.rows.first(where: { $0.id == onlyID }))
+        #expect(stickySnapshot.isRead == true)
+
+        // Erneuter Scope-Load simuliert den Reload, den der
+        // sqliteStatusVersion-Bump in der View ausloest.
+        state.load(smartFolder: folder, database: database, selectedArticleID: onlyID)
+        await waitForLoad(state)
+        #expect(state.rows.isEmpty)
+
+        let merged = SQLiteArticleListDisplayState.mergingStickyRows(
+            into: state.rows,
+            stickyRowSnapshots: [onlyID: stickySnapshot]
+        )
+        let displayState = SQLiteArticleListDisplayState(
+            rows: merged,
+            showsReadArticles: false,
+            selectedArticleID: onlyID,
+            temporarilyVisibleReadArticleIDs: [onlyID],
+            filterOption: .all
+        )
+
+        #expect(!displayState.filteredRows.isEmpty)
+        #expect(displayState.visibleRows.map(\.id) == [onlyID])
+    }
+
     @Test func listStateMarkiertAusgewaehltenArtikelBeimOeffnenAlsGelesen() async throws {
         let (database, firstID, _) = try makeDatabaseWithFeedAndArticles()
         let state = SQLiteFeedArticleListState()

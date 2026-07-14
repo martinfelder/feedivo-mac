@@ -62,6 +62,32 @@ struct ArticleListQueryTests {
         #expect(merged.map(\.title) == ["Frisch"])
     }
 
+    @Test func letzterArtikelInUngelesenSmartFolderBleibtNachToggleReadAlleinSichtbar() {
+        // Reproduziert den gemeldeten Bug: wird der EINZIGE verbleibende ungelesene
+        // Artikel eines Smart Folders "Ungelesen" gelesen markiert, liefert die
+        // frische SQL-Abfrage (Bedingung "Status ist ungelesen") gar keine Zeilen
+        // mehr - genau wie beim Mehr-Artikel-Fall, nur dass hier NICHTS anderes
+        // mehr uebrig bleibt, das die Liste fuellen koennte.
+        let lastArticleNowRead = sqliteSnapshot(id: "last", title: "Zuletzt gelesen", isRead: true)
+        let freshRowsAfterReload: [ArticleListSnapshot] = []
+
+        let merged = SQLiteArticleListDisplayState.mergingStickyRows(
+            into: freshRowsAfterReload,
+            stickyRowSnapshots: ["last": lastArticleNowRead]
+        )
+
+        let state = SQLiteArticleListDisplayState(
+            rows: merged,
+            showsReadArticles: false,
+            selectedArticleID: nil,
+            temporarilyVisibleReadArticleIDs: ["last"],
+            filterOption: .all
+        )
+
+        #expect(!state.filteredRows.isEmpty)
+        #expect(state.visibleRows.map(\.id) == ["last"])
+    }
+
     @Test func articleSortOptionFaelltBeiUngueltigemRawValueAufStandardZurueck() {
         #expect(ArticleSortOption.resolved(from: "kaputt") == .newestFirst)
         #expect(ArticleSortOption.resolved(from: ArticleSortOption.title.rawValue) == .title)

@@ -230,7 +230,15 @@ struct SQLiteFeedArticleListView: View {
                     ProgressView()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
-            case .loaded where state.rows.isEmpty:
+            // effectiveRows (nicht state.rows) ist hier absichtlich massgeblich: state.rows
+            // ist die rohe SQL-Abfrage und kann bei Smart Foldern mit eigener Statusbedingung
+            // (z. B. "Status ist ungelesen") leer sein, obwaehrend stickyRowSnapshots noch
+            // einen gerade gelesenen Artikel haelt. Vorher fuehrte das dazu, dass der letzte
+            // verbleibende ungelesene Artikel beim Lesen sofort komplett aus der Liste
+            // verschwand (Nutzer-Report 2026-07-14), statt wie bei allen anderen Artikeln bis
+            // zum Scope-Wechsel sichtbar zu bleiben - dieser Zweig griff faelschlich zuerst und
+            // ueberging den sticky-bewussten articleList-Pfad komplett.
+            case .loaded where effectiveRows.isEmpty:
                 articleListContainer {
                     ContentUnavailableView {
                         Label(emptyTitle, systemImage: emptySystemImage)
