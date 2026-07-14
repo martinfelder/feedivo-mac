@@ -220,7 +220,7 @@ struct FeedRowView: View {
     }
 }
 
-private extension FeedRowView.DisplayStyle {
+extension FeedRowView.DisplayStyle {
     var horizontalSpacing: CGFloat {
         switch self {
         case .regular:

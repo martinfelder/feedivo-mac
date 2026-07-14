@@ -232,19 +232,29 @@ struct SidebarView: View {
                     .padding(.vertical, 8)
             } else {
                 let feedsWithoutFolder = FeedFolderOrganizer.feedsWithoutFolder(from: visibleSnapshots)
-                if !feedsWithoutFolder.isEmpty {
-                    feedRows(feedsWithoutFolder)
+
+                // Immer gerendert (auch wenn feedsWithoutFolder leer ist) — sonst
+                // gäbe es keine sichtbare Drop-Fläche, um die Ordner-Zuweisung
+                // eines Feeds zu entfernen, solange kein einziger Feed bereits
+                // ordnerlos ist.
+                VStack(alignment: .leading, spacing: 0) {
+                    unassignedFeedsHeader
+                    feedRows(feedsWithoutFolder, folderName: nil)
+                }
+                .dropDestination(for: FeedDragItem.self) { items, _ in
+                    guard let dragged = items.first else {
+                        return false
+                    }
+                    moveFeed(id: dragged.feedID, toFolderName: nil, targetIndex: feedsWithoutFolder.count)
+                    return true
                 }
 
-                // M9: Feeds einmal pro Ordner gruppieren statt pro Ordnername
-                // neu zu filtern (O(Folders·F) → O(F)).
-                ForEach(
-                    FeedFolderOrganizer.feedsByFolderName(
-                        in: visibleSnapshots,
-                        folders: sqliteSidebarState.feedFolders
-                    ),
-                    id: \.folderName
-                ) { entry in
+                let folderEntries = FeedFolderOrganizer.feedsByFolderName(
+                    in: visibleSnapshots,
+                    folders: sqliteSidebarState.feedFolders
+                )
+
+                ForEach(folderEntries, id: \.folderName) { entry in
                     let isExpanded = !collapsedFolderNames.contains(entry.folderName)
                     let explicitFolder = explicitFeedFolder(named: entry.folderName)
                     SidebarFolderSection(
@@ -262,13 +272,54 @@ struct SidebarView: View {
                         if isExpanded {
                             feedRows(
                                 entry.snapshots,
-                                isIndented: true
+                                isIndented: true,
+                                folderName: entry.folderName
                             )
                         }
+                    }
+                    .draggable(FolderDragItem(folderName: entry.folderName))
+                    .dropDestination(for: FeedDragItem.self) { items, _ in
+                        guard let dragged = items.first else {
+                            return false
+                        }
+                        moveFeed(id: dragged.feedID, toFolderName: entry.folderName, targetIndex: entry.snapshots.count)
+                        return true
+                    }
+                    .dropDestination(for: FolderDragItem.self) { items, location in
+                        guard let draggedFolder = items.first, draggedFolder.folderName != entry.folderName else {
+                            return false
+                        }
+
+                        let side = DropInsertionSide.of(
+                            location: location,
+                            in: CGSize(width: 0, height: interfaceTextSize.scaled(CGFloat(24)))
+                        )
+                        let currentIndex = folderEntries.firstIndex(where: { $0.folderName == entry.folderName }) ?? 0
+                        let targetIndex = side == .before ? currentIndex : currentIndex + 1
+                        moveFolder(name: draggedFolder.folderName, targetIndex: targetIndex)
+                        return true
                     }
                 }
             }
         }
+    }
+
+    private var unassignedFeedsHeader: some View {
+        HStack(spacing: 9) {
+            Image(systemName: "tray")
+                .font(interfaceTextSize.font(size: 16, weight: .medium))
+                .foregroundStyle(SidebarStyle.secondaryText)
+                .frame(width: interfaceTextSize.scaled(20))
+
+            Text(L10n.feedPropertiesNoFolder)
+                .font(interfaceTextSize.font(size: 13, weight: .medium))
+                .foregroundStyle(SidebarStyle.primaryText.opacity(0.82))
+
+            Spacer(minLength: 0)
+        }
+        .frame(height: interfaceTextSize.scaled(24))
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
     }
 
     private func defaultSmartFoldersSection(
@@ -377,8 +428,16 @@ struct SidebarView: View {
             }
     }
 
-    private func feedRows(_ snapshots: [FeedSidebarSnapshot], isIndented: Bool = false) -> some View {
-        ForEach(snapshots) { snapshot in
+    private func feedRows(
+        _ snapshots: [FeedSidebarSnapshot],
+        isIndented: Bool = false,
+        folderName: String? = nil
+    ) -> some View {
+        let rowHeight = interfaceTextSize.scaled(
+            (isIndented ? FeedRowView.DisplayStyle.folderChild : FeedRowView.DisplayStyle.regular).rowHeight
+        )
+
+        return ForEach(snapshots) { snapshot in
             FeedRowView(
                 snapshot: snapshot,
                 displayStyle: isIndented ? .folderChild : .regular,
@@ -409,6 +468,18 @@ struct SidebarView: View {
                 } label: {
                     Label(L10n.feedDeleteCommand, systemImage: "trash")
                 }
+            }
+            .draggable(FeedDragItem(feedID: snapshot.id))
+            .dropDestination(for: FeedDragItem.self) { items, location in
+                guard let dragged = items.first, dragged.feedID != snapshot.id else {
+                    return false
+                }
+
+                let side = DropInsertionSide.of(location: location, in: CGSize(width: 0, height: rowHeight))
+                let currentIndex = snapshots.firstIndex(where: { $0.id == snapshot.id }) ?? 0
+                let targetIndex = side == .before ? currentIndex : currentIndex + 1
+                moveFeed(id: dragged.feedID, toFolderName: folderName, targetIndex: targetIndex)
+                return true
             }
         }
     }
@@ -509,6 +580,24 @@ struct SidebarView: View {
 
         try FeedStore(database: database).renameFeed(id: id, displayTitle: newTitle)
         SQLiteDataInvalidation.bumpStatusVersion()
+    }
+
+    private func moveFeed(id: String, toFolderName: String?, targetIndex: Int) {
+        guard let database = feedivoDatabase else {
+            return
+        }
+
+        try? FeedStore(database: database).moveFeed(id: id, toFolderName: toFolderName, targetIndex: targetIndex)
+        SQLiteDataInvalidation.bumpStatusVersion()
+    }
+
+    private func moveFolder(name: String, targetIndex: Int) {
+        guard let database = feedivoDatabase else {
+            return
+        }
+
+        try? FeedFolderStore(database: database).moveFolder(name: name, targetIndex: targetIndex)
+        sidebarDefinitionVersion += 1
     }
 
     private func sqliteSmartFolderRecord(id: String) -> SmartFolderRecord? {
