@@ -400,6 +400,7 @@ struct SQLiteDatabaseMigrationTests {
                 table.column("id", .text).primaryKey()
                 table.column("url", .text).notNull()
                 table.column("title", .text).notNull()
+                table.column("folderName", .text)
                 table.column("refreshIntervalMinutes", .integer).notNull().defaults(to: 30)
                 table.column("unreadCount", .integer).notNull().defaults(to: 0)
                 table.column("createdAt", .datetime).notNull()
@@ -447,10 +448,17 @@ struct SQLiteDatabaseMigrationTests {
             "v3_create_feed_tag_table",
             "v4_create_article_search_index",
             "v5_create_article_offline_table",
-            "v6_create_admin_definition_tables",
             "v7_add_feed_admin_fields"
         ] {
             legacyMigrator.registerMigration(identifier) { _ in }
+        }
+        legacyMigrator.registerMigration("v6_create_admin_definition_tables") { database in
+            try database.create(table: "feed_folders") { table in
+                table.column("id", .text).primaryKey()
+                table.column("name", .text).notNull()
+                table.column("createdAt", .datetime).notNull()
+                table.column("updatedAt", .datetime).notNull()
+            }
         }
         try legacyMigrator.migrate(queue)
 
