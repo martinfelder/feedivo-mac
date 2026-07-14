@@ -256,6 +256,7 @@ struct FeedStore {
                     f.url,
                     f.faviconURL,
                     f.folderName,
+                    f.sortIndex,
                     (
                         SELECT COUNT(*)
                         FROM articles a
@@ -275,9 +276,12 @@ struct FeedStore {
                         0
                     ) AS hasRecentError
                 FROM feeds f
-                ORDER BY f.title COLLATE NOCASE, f.id COLLATE NOCASE
+                ORDER BY f.sortIndex, f.title COLLATE NOCASE, f.id COLLATE NOCASE
                 """)
             return snapshots.sorted {
+                if $0.sortIndex != $1.sortIndex {
+                    return $0.sortIndex < $1.sortIndex
+                }
                 let titleOrder = $0.title.localizedStandardCompare($1.title)
                 if titleOrder != .orderedSame {
                     return titleOrder == .orderedAscending
@@ -310,6 +314,66 @@ struct FeedStore {
         }
 
         return snapshots.filter { $0.unreadCount > 0 }
+    }
+
+    /// Weist den Feed ggf. einem neuen Ordner zu (nil = "Ohne Ordner") und
+    /// positioniert ihn an targetIndex innerhalb der Ziel-Gruppe (0-basiert,
+    /// wird auf 0...anzahlAndererFeedsInDerGruppe geklemmt). Nummeriert
+    /// anschließend NUR die Ziel-Gruppe 0...n-1 neu durch — die Quell-Gruppe
+    /// (falls der Feed den Ordner wechselt) behält ihre bestehenden
+    /// sortIndex-Werte samt Lücke; das ist harmlos, da nur die relative
+    /// Reihenfolge zählt, nicht die absoluten Werte.
+    func moveFeed(id: String, toFolderName: String?, targetIndex: Int) throws {
+        let trimmedFolderName = toFolderName?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let effectiveFolderName = (trimmedFolderName?.isEmpty ?? true) ? nil : trimmedFolderName
+
+        try database.write { db in
+            let otherFeedIDs: [String]
+            if let effectiveFolderName {
+                otherFeedIDs = try String.fetchAll(
+                    db,
+                    sql: """
+                        SELECT id FROM feeds
+                        WHERE folderName = ? COLLATE NOCASE AND id != ?
+                        ORDER BY sortIndex
+                        """,
+                    arguments: [effectiveFolderName, id]
+                )
+            } else {
+                otherFeedIDs = try String.fetchAll(
+                    db,
+                    sql: """
+                        SELECT id FROM feeds
+                        WHERE folderName IS NULL AND id != ?
+                        ORDER BY sortIndex
+                        """,
+                    arguments: [id]
+                )
+            }
+
+            var orderedIDs = otherFeedIDs
+            let clampedIndex = min(max(targetIndex, 0), orderedIDs.count)
+            orderedIDs.insert(id, at: clampedIndex)
+
+            let now = Date()
+            for (index, feedID) in orderedIDs.enumerated() {
+                if feedID == id {
+                    try db.execute(
+                        sql: """
+                            UPDATE feeds
+                            SET sortIndex = ?, folderName = ?, updatedAt = ?
+                            WHERE id = ?
+                            """,
+                        arguments: [index, effectiveFolderName, now, feedID]
+                    )
+                } else {
+                    try db.execute(
+                        sql: "UPDATE feeds SET sortIndex = ? WHERE id = ?",
+                        arguments: [index, feedID]
+                    )
+                }
+            }
+        }
     }
 
     func opmlFeedsForExport() throws -> [OPMLFeed] {
@@ -386,6 +450,7 @@ extension FeedSidebarSnapshot: FetchableRecord {
         url = row["url"]
         faviconURL = row["faviconURL"]
         folderName = row["folderName"]
+        sortIndex = row["sortIndex"]
         unreadCount = row["unreadCount"]
         hasRecentError = row["hasRecentError"]
     }

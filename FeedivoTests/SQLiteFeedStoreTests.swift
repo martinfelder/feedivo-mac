@@ -245,4 +245,91 @@ struct SQLiteFeedStoreTests {
 
         #expect(try store.hasRecentError(feedID: "unbekannt") == false)
     }
+
+    @Test func sidebarFeedsSortiertNachSortIndexNichtNachTitel() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        try feedStore.save(
+            FeedRecord(id: "feed-z", url: "https://z.example/feed.xml", title: "Zulu", sortIndex: 0)
+        )
+        try feedStore.save(
+            FeedRecord(id: "feed-a", url: "https://a.example/feed.xml", title: "Alpha", sortIndex: 1)
+        )
+
+        let snapshots = try feedStore.sidebarFeeds()
+
+        #expect(snapshots.map(\.id) == ["feed-z", "feed-a"])
+    }
+
+    @Test func moveFeedOrdnetGruppeNeuInnerhalbDesselbenOrdners() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        try feedStore.save(
+            FeedRecord(id: "feed-a", url: "https://a.example/feed.xml", title: "A", folderName: "Tech", sortIndex: 0)
+        )
+        try feedStore.save(
+            FeedRecord(id: "feed-b", url: "https://b.example/feed.xml", title: "B", folderName: "Tech", sortIndex: 1)
+        )
+        try feedStore.save(
+            FeedRecord(id: "feed-c", url: "https://c.example/feed.xml", title: "C", folderName: "Tech", sortIndex: 2)
+        )
+
+        try feedStore.moveFeed(id: "feed-c", toFolderName: "Tech", targetIndex: 0)
+
+        let orderedIDs = try feedStore.feeds()
+            .sorted { $0.sortIndex < $1.sortIndex }
+            .map(\.id)
+        #expect(orderedIDs == ["feed-c", "feed-a", "feed-b"])
+    }
+
+    @Test func moveFeedWeistNeuenOrdnerZuUndReihtAmEndeEin() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        try feedStore.save(
+            FeedRecord(id: "feed-a", url: "https://a.example/feed.xml", title: "A", folderName: "Tech", sortIndex: 0)
+        )
+        try feedStore.save(
+            FeedRecord(id: "feed-b", url: "https://b.example/feed.xml", title: "B", folderName: "News", sortIndex: 0)
+        )
+
+        try feedStore.moveFeed(id: "feed-b", toFolderName: "Tech", targetIndex: 1)
+
+        let feedB = try feedStore.feed(id: "feed-b")
+        #expect(feedB?.folderName == "Tech")
+        #expect(feedB?.sortIndex == 1)
+        let feedA = try feedStore.feed(id: "feed-a")
+        #expect(feedA?.sortIndex == 0)
+    }
+
+    @Test func moveFeedZuOhneOrdnerSetztFolderNameAufNil() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        try feedStore.save(
+            FeedRecord(id: "feed-a", url: "https://a.example/feed.xml", title: "A", folderName: "Tech", sortIndex: 0)
+        )
+
+        try feedStore.moveFeed(id: "feed-a", toFolderName: nil, targetIndex: 0)
+
+        let feed = try feedStore.feed(id: "feed-a")
+        #expect(feed?.folderName == nil)
+        #expect(feed?.sortIndex == 0)
+    }
+
+    @Test func moveFeedKlemmtTargetIndexAufGueltigenBereich() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        try feedStore.save(
+            FeedRecord(id: "feed-a", url: "https://a.example/feed.xml", title: "A", sortIndex: 0)
+        )
+        try feedStore.save(
+            FeedRecord(id: "feed-b", url: "https://b.example/feed.xml", title: "B", sortIndex: 1)
+        )
+
+        try feedStore.moveFeed(id: "feed-a", toFolderName: nil, targetIndex: 999)
+
+        let orderedIDs = try feedStore.feeds()
+            .sorted { $0.sortIndex < $1.sortIndex }
+            .map(\.id)
+        #expect(orderedIDs == ["feed-b", "feed-a"])
+    }
 }

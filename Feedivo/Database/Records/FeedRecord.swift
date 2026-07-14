@@ -11,6 +11,7 @@ struct FeedRecord: Codable, FetchableRecord, Identifiable, MutablePersistableRec
     var websiteURL: String?
     var faviconURL: String?
     var folderName: String?
+    var sortIndex: Int
     var refreshIntervalMinutes: Int
     var isNotificationEnabled: Bool
     var articleRetentionOverridesGlobalSetting: Bool
@@ -35,6 +36,7 @@ struct FeedRecord: Codable, FetchableRecord, Identifiable, MutablePersistableRec
         websiteURL: String? = nil,
         faviconURL: String? = nil,
         folderName: String? = nil,
+        sortIndex: Int = 0,
         refreshIntervalMinutes: Int = 30,
         isNotificationEnabled: Bool = false,
         articleRetentionOverridesGlobalSetting: Bool = false,
@@ -58,6 +60,7 @@ struct FeedRecord: Codable, FetchableRecord, Identifiable, MutablePersistableRec
         self.websiteURL = websiteURL
         self.faviconURL = faviconURL
         self.folderName = folderName
+        self.sortIndex = sortIndex
         self.refreshIntervalMinutes = refreshIntervalMinutes
         self.isNotificationEnabled = isNotificationEnabled
         self.articleRetentionOverridesGlobalSetting = articleRetentionOverridesGlobalSetting

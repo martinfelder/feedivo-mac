@@ -6,6 +6,7 @@ struct FeedSidebarSnapshot: Equatable, Identifiable, Sendable {
     var url: String
     var faviconURL: String?
     var folderName: String?
+    var sortIndex: Int = 0
     var unreadCount: Int
     var hasRecentError: Bool
 }
