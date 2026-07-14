@@ -93,4 +93,99 @@ struct FeedFolderStoreTests {
         let folders = try folderStore.folders()
         #expect(folders.map(\.name) == ["Tech"])
     }
+
+    @Test func materializeImplicitFoldersLegtDatensatzFuerReinImplizitenOrdnerAn() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let folderStore = FeedFolderStore(database: database)
+
+        try feedStore.save(
+            FeedRecord(id: "feed-1", url: "https://a.example/feed.xml", title: "A", folderName: "News")
+        )
+
+        try folderStore.materializeImplicitFolders()
+
+        let folders = try folderStore.folders()
+        #expect(folders.map(\.name) == ["News"])
+        #expect(folders.first?.sortIndex == 0)
+    }
+
+    @Test func materializeImplicitFoldersIstIdempotent() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let folderStore = FeedFolderStore(database: database)
+
+        try feedStore.save(
+            FeedRecord(id: "feed-1", url: "https://a.example/feed.xml", title: "A", folderName: "News")
+        )
+
+        try folderStore.materializeImplicitFolders()
+        try folderStore.materializeImplicitFolders()
+
+        let folders = try folderStore.folders()
+        #expect(folders.map(\.name) == ["News"])
+    }
+
+    @Test func materializeImplicitFoldersUeberspringtBereitsExplizitenOrdner() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let folderStore = FeedFolderStore(database: database)
+
+        try folderStore.save(FeedFolderRecord(id: "folder-1", name: "Tech", sortIndex: 0))
+        try feedStore.save(
+            FeedRecord(id: "feed-1", url: "https://a.example/feed.xml", title: "A", folderName: "Tech")
+        )
+
+        try folderStore.materializeImplicitFolders()
+
+        let folders = try folderStore.folders()
+        #expect(folders.count == 1)
+        #expect(folders.first?.id == "folder-1")
+    }
+
+    @Test func moveFolderVerschiebtOrdnerAnNeuePosition() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let folderStore = FeedFolderStore(database: database)
+        try folderStore.save(FeedFolderRecord(id: "folder-a", name: "Alpha", sortIndex: 0))
+        try folderStore.save(FeedFolderRecord(id: "folder-b", name: "Bravo", sortIndex: 1))
+        try folderStore.save(FeedFolderRecord(id: "folder-c", name: "Charlie", sortIndex: 2))
+
+        try folderStore.moveFolder(name: "Charlie", targetIndex: 0)
+
+        let orderedNames = try folderStore.folders()
+            .sorted { $0.sortIndex < $1.sortIndex }
+            .map(\.name)
+        #expect(orderedNames == ["Charlie", "Alpha", "Bravo"])
+    }
+
+    @Test func moveFolderMaterialisiertReinImplizitenOrdnerVorDemVerschieben() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let folderStore = FeedFolderStore(database: database)
+        try folderStore.save(FeedFolderRecord(id: "folder-a", name: "Alpha", sortIndex: 0))
+        try feedStore.save(
+            FeedRecord(id: "feed-1", url: "https://a.example/feed.xml", title: "A", folderName: "News")
+        )
+
+        try folderStore.moveFolder(name: "News", targetIndex: 0)
+
+        let orderedNames = try folderStore.folders()
+            .sorted { $0.sortIndex < $1.sortIndex }
+            .map(\.name)
+        #expect(orderedNames == ["News", "Alpha"])
+    }
+
+    @Test func moveFolderKlemmtTargetIndexAufGueltigenBereich() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let folderStore = FeedFolderStore(database: database)
+        try folderStore.save(FeedFolderRecord(id: "folder-a", name: "Alpha", sortIndex: 0))
+        try folderStore.save(FeedFolderRecord(id: "folder-b", name: "Bravo", sortIndex: 1))
+
+        try folderStore.moveFolder(name: "Alpha", targetIndex: 999)
+
+        let orderedNames = try folderStore.folders()
+            .sorted { $0.sortIndex < $1.sortIndex }
+            .map(\.name)
+        #expect(orderedNames == ["Bravo", "Alpha"])
+    }
 }

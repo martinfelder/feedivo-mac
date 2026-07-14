@@ -109,4 +109,96 @@ struct FeedFolderStore {
             )
         }
     }
+
+    /// Materialisiert alle Ordnernamen, die nur auf feeds.folderName existieren
+    /// aber (noch) keinen feed_folders-Datensatz haben, als echte Datensätze ans
+    /// Ende der aktuellen Ordner-Reihenfolge. Idempotent — bereits materialisierte
+    /// Ordner werden übersprungen.
+    func materializeImplicitFolders() throws {
+        try database.write { db in
+            try materializeImplicitFolders(db)
+        }
+    }
+
+    /// Transaktionslose Variante zur Wiederverwendung innerhalb einer bereits
+    /// laufenden database.write-Transaktion (siehe moveFolder unten — GRDB
+    /// erlaubt keine verschachtelten Schreibtransaktionen).
+    private func materializeImplicitFolders(_ db: Database) throws {
+        let rawFolderNames = try String.fetchAll(
+            db,
+            sql: "SELECT DISTINCT folderName FROM feeds WHERE folderName IS NOT NULL"
+        )
+        let existingLowercasedNames = Set(
+            try String.fetchAll(db, sql: "SELECT name FROM feed_folders").map { $0.lowercased() }
+        )
+
+        var canonicalNamesByLowercasedName: [String: String] = [:]
+        for rawName in rawFolderNames {
+            let trimmed = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty, !existingLowercasedNames.contains(trimmed.lowercased()) else {
+                continue
+            }
+            let key = trimmed.lowercased()
+            if canonicalNamesByLowercasedName[key] == nil {
+                canonicalNamesByLowercasedName[key] = trimmed
+            }
+        }
+
+        let namesToMaterialize = canonicalNamesByLowercasedName.values.sorted {
+            $0.localizedCaseInsensitiveCompare($1) == .orderedAscending
+        }
+
+        guard !namesToMaterialize.isEmpty else {
+            return
+        }
+
+        var nextSortIndex = try Int.fetchOne(
+            db,
+            sql: "SELECT COALESCE(MAX(sortIndex), -1) + 1 FROM feed_folders"
+        ) ?? 0
+
+        let now = Date()
+        for folderName in namesToMaterialize {
+            try db.execute(
+                sql: """
+                    INSERT INTO feed_folders (id, name, sortIndex, createdAt, updatedAt)
+                    VALUES (?, ?, ?, ?, ?)
+                    """,
+                arguments: [UUID().uuidString, folderName, nextSortIndex, now, now]
+            )
+            nextSortIndex += 1
+        }
+    }
+
+    /// Verschiebt den benannten Ordner an targetIndex innerhalb der Liste der
+    /// benannten Ordner (0-basiert, wird auf 0...anzahlAndererOrdner geklemmt).
+    /// Materialisiert den Ordner zuerst, falls er noch keinen Datensatz hat.
+    /// Nummeriert anschließend ALLE benannten Ordner 0...n-1 neu durch.
+    func moveFolder(name: String, targetIndex: Int) throws {
+        try database.write { db in
+            try materializeImplicitFolders(db)
+
+            let otherFolderNames = try String.fetchAll(
+                db,
+                sql: """
+                    SELECT name FROM feed_folders
+                    WHERE name != ? COLLATE NOCASE
+                    ORDER BY sortIndex
+                    """,
+                arguments: [name]
+            )
+
+            var orderedNames = otherFolderNames
+            let clampedIndex = min(max(targetIndex, 0), orderedNames.count)
+            orderedNames.insert(name, at: clampedIndex)
+
+            let now = Date()
+            for (index, folderName) in orderedNames.enumerated() {
+                try db.execute(
+                    sql: "UPDATE feed_folders SET sortIndex = ?, updatedAt = ? WHERE name = ? COLLATE NOCASE",
+                    arguments: [index, now, folderName]
+                )
+            }
+        }
+    }
 }

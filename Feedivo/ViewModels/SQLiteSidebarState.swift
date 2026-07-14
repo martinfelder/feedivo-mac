@@ -37,6 +37,7 @@ final class SQLiteSidebarState {
             let feedStore = FeedStore(database: database)
             let tagStore = TagStore(database: database)
             let feedFolderStore = FeedFolderStore(database: database)
+            try feedFolderStore.materializeImplicitFolders()
             let smartFolderStore = SQLiteSmartFolderStore(database: database)
             let unreadCountService = SQLiteUnreadCountService(database: database)
             let loadedSnapshots = try feedStore.sidebarFeeds(showsReadFeeds: showsReadFeeds)
