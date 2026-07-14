@@ -1,4 +1,5 @@
 import SwiftUI
+import OSLog
 
 struct SidebarView: View {
     @Environment(\.feedivoDatabase) private var feedivoDatabase
@@ -242,6 +243,7 @@ struct SidebarView: View {
                     feedRows(feedsWithoutFolder, folderName: nil)
                 }
                 .dropDestination(for: FeedDragItem.self) { items, _ in
+                    AppLogger.dataAccess.fault("TEMPDEBUG dropDestination OhneOrdner items=\(items.count, privacy: .public)")
                     guard let dragged = items.first else {
                         return false
                     }
@@ -279,6 +281,7 @@ struct SidebarView: View {
                     }
                     .draggable(FolderDragItem(folderName: entry.folderName))
                     .dropDestination(for: FeedDragItem.self) { items, _ in
+                        AppLogger.dataAccess.fault("TEMPDEBUG dropDestination FolderHeader-Feed folder=\(entry.folderName, privacy: .public) items=\(items.count, privacy: .public)")
                         guard let dragged = items.first else {
                             return false
                         }
@@ -286,6 +289,7 @@ struct SidebarView: View {
                         return true
                     }
                     .dropDestination(for: FolderDragItem.self) { items, location in
+                        AppLogger.dataAccess.fault("TEMPDEBUG dropDestination FolderHeader-Folder folder=\(entry.folderName, privacy: .public) items=\(items.count, privacy: .public)")
                         guard let draggedFolder = items.first, draggedFolder.folderName != entry.folderName else {
                             return false
                         }
@@ -474,6 +478,7 @@ struct SidebarView: View {
             }
             .draggable(FeedDragItem(feedID: snapshot.id))
             .dropDestination(for: FeedDragItem.self) { items, location in
+                AppLogger.dataAccess.fault("TEMPDEBUG dropDestination FeedRow target=\(snapshot.id, privacy: .public) items=\(items.count, privacy: .public)")
                 guard let dragged = items.first, dragged.feedID != snapshot.id else {
                     return false
                 }
@@ -590,19 +595,31 @@ struct SidebarView: View {
 
     private func moveFeed(id: String, toFolderName: String?, targetIndex: Int) {
         guard let database = feedivoDatabase else {
+            AppLogger.dataAccess.fault("TEMPDEBUG moveFeed: feedivoDatabase ist nil")
             return
         }
 
-        try? FeedStore(database: database).moveFeed(id: id, toFolderName: toFolderName, targetIndex: targetIndex)
+        do {
+            try FeedStore(database: database).moveFeed(id: id, toFolderName: toFolderName, targetIndex: targetIndex)
+            AppLogger.dataAccess.fault("TEMPDEBUG moveFeed OK id=\(id, privacy: .public) toFolderName=\(toFolderName ?? "nil", privacy: .public) targetIndex=\(targetIndex, privacy: .public)")
+        } catch {
+            AppLogger.dataAccess.fault("TEMPDEBUG moveFeed FEHLER \(error.localizedDescription, privacy: .public)")
+        }
         SQLiteDataInvalidation.bumpStatusVersion()
     }
 
     private func moveFolder(name: String, targetIndex: Int) {
         guard let database = feedivoDatabase else {
+            AppLogger.dataAccess.fault("TEMPDEBUG moveFolder: feedivoDatabase ist nil")
             return
         }
 
-        try? FeedFolderStore(database: database).moveFolder(name: name, targetIndex: targetIndex)
+        do {
+            try FeedFolderStore(database: database).moveFolder(name: name, targetIndex: targetIndex)
+            AppLogger.dataAccess.fault("TEMPDEBUG moveFolder OK name=\(name, privacy: .public) targetIndex=\(targetIndex, privacy: .public)")
+        } catch {
+            AppLogger.dataAccess.fault("TEMPDEBUG moveFolder FEHLER \(error.localizedDescription, privacy: .public)")
+        }
         sidebarDefinitionVersion += 1
     }
 
