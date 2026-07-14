@@ -523,6 +523,34 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
   verwenden — für einen wiederkehrenden/erneut zugestellten Artikel muss stattdessen ein
   gespeichertes, set-once-Datum (`history.firstSeenAt`, `status.dateArrived`) herangezogen
   werden.
+- **`SQLiteFeedArticleListView.articleContent` hatte zwei unabhängige, widersprüchliche
+  "Liste ist leer"-Prüfungen — nur eine davon war sticky-row-bewusst:** Die äußere
+  `switch state.loadState`-Weiche prüfte `case .loaded where state.rows.isEmpty` — die
+  ROHEN SQL-Zeilen, OHNE `stickyRowSnapshots` zu berücksichtigen. `articleList` selbst
+  prüft dagegen korrekt `displayState.filteredRows.isEmpty` (sticky-bewusst). Solange in
+  einem Smart Folder wie "Ungelesen" (SQL-Bedingung "Status ist ungelesen") noch mehrere
+  ungelesene Artikel übrig waren, blieb `state.rows` nach dem Lesen eines einzelnen
+  Artikels nicht leer, sodass die äußere Weiche nie griff und der korrekte,
+  sticky-bewusste `articleList`-Pfad gerendert wurde. Wurde aber der LETZTE
+  verbleibende ungelesene Artikel gelesen, wurde `state.rows` tatsächlich leer, obwohl
+  `stickyRowSnapshots` den Artikel noch hielt — die äußere Weiche griff dadurch zuerst
+  und zeigte einen komplett anderen, generischen "Keine Artikel"-Platzhalter
+  (`emptyTitle`/`emptyDescription`, eigene L10n-Keys), unter vollständiger Umgehung des
+  korrekten Pfads (Nutzer-Report 2026-07-14, gefunden nach fehlgeschlagener rein
+  logik-basierter Reproduktion per Live-`OSLog`-Diagnose + `log show`). Fix: Weiche auf
+  `case .loaded where effectiveRows.isEmpty` umgestellt (Commit `18da80d`). **Lehre:**
+  Bei mehreren Stellen, die "ist die Liste leer?" unabhängig voneinander beantworten,
+  IMMER dieselbe (sticky-/filter-bewusste) Quelle nutzen — ein Konsistenz-Check per Grep
+  auf alle `.isEmpty`-Vorkommen im selben View lohnt sich bei ähnlichen Bugs.
+- **Rein logik-/State-Ebene-Tests können einen View-Rendering-Bug übersehen, der eine
+  Ebene höher liegt:** Zwei gezielte Reproduktionstests (Fixture-Ebene und echte
+  asynchrone DB-Ebene) für genau das "letzter Artikel"-Szenario bestanden anstandslos,
+  obwohl der Bug real war — weil sie nur `SQLiteArticleListDisplayState`/`effectiveRows`
+  testeten, nicht die `articleContent`-Weiche, die diese Daten in bestimmten Fällen gar
+  nicht erst konsultierte. Bei einem "Daten sehen korrekt aus, aber UI zeigt trotzdem
+  falsch"-Verdacht: gezielt nach *mehreren* unabhängigen Entscheidungspunkten für
+  dieselbe Frage suchen (Grep auf `.isEmpty`/ähnliche Bedingungen im selben View), nicht
+  nur die naheliegendste Stelle prüfen.
 
 ---
 
@@ -707,6 +735,19 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Letzte Änderungen
 
+- 2026-07-14 (später Vormittag): Nutzer-Report — letzter ungelesener Artikel in Smart
+  Folder "Ungelesen" verschwand beim Lesen sofort komplett aus der Liste, statt wie
+  gewohnt sticky bis zum Ordnerwechsel sichtbar zu bleiben. Via systematic-debugging
+  behoben: rein logik-basierte Reproduktionsversuche (Fixture- und State-Ebene, beide
+  bestanden anstandslos) fanden den Bug NICHT — erst Live-`OSLog`-Diagnose-Logging
+  (TEMP-DEBUG-Pattern) + `log show`-Auswertung + ein vom Nutzer geschickter Screenshot
+  deckten auf, dass `articleContent`s äußere Zustandsweiche eine zweite, nicht
+  sticky-bewusste "Liste leer?"-Prüfung (`state.rows.isEmpty`) enthielt, die den
+  korrekten `articleList`-Pfad in genau diesem Fall überging. Fix (Commit `18da80d`):
+  Weiche auf `effectiveRows.isEmpty` umgestellt, ein Wort. Zwei neue Regressionstests
+  (`ArticleListQueryTests`, `SQLiteFeedArticleListStateTests`) dokumentieren das
+  korrekte Merge-Verhalten für dieses Szenario. Neuer Gotcha oben. Vom Nutzer im
+  laufenden Betrieb bestätigt behoben. Lokal auf main, NICHT gepusht.
 - 2026-07-14 (Vormittag): Bereinigte Artikel bleiben dauerhaft weg +
   Start-Reihenfolge-Fix — via Brainstorming + Spec + Plan +
   Subagent-Driven-Development (4 Tasks + 1 Fix-Runde) umgesetzt. Spec:
