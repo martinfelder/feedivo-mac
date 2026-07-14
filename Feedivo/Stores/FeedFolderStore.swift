@@ -38,7 +38,7 @@ struct FeedFolderStore {
             try FeedFolderRecord.fetchAll(db, sql: """
                 SELECT *
                 FROM feed_folders
-                ORDER BY name COLLATE NOCASE, id COLLATE NOCASE
+                ORDER BY sortIndex, name COLLATE NOCASE, id COLLATE NOCASE
                 """)
         }
     }

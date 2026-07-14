@@ -295,7 +295,10 @@ struct SidebarView: View {
                             in: CGSize(width: 0, height: interfaceTextSize.scaled(CGFloat(24)))
                         )
                         let currentIndex = folderEntries.firstIndex(where: { $0.folderName == entry.folderName }) ?? 0
-                        let targetIndex = side == .before ? currentIndex : currentIndex + 1
+                        var targetIndex = side == .before ? currentIndex : currentIndex + 1
+                        if let draggedIndex = folderEntries.firstIndex(where: { $0.folderName == draggedFolder.folderName }), draggedIndex < targetIndex {
+                            targetIndex -= 1
+                        }
                         moveFolder(name: draggedFolder.folderName, targetIndex: targetIndex)
                         return true
                     }
@@ -477,7 +480,10 @@ struct SidebarView: View {
 
                 let side = DropInsertionSide.of(location: location, in: CGSize(width: 0, height: rowHeight))
                 let currentIndex = snapshots.firstIndex(where: { $0.id == snapshot.id }) ?? 0
-                let targetIndex = side == .before ? currentIndex : currentIndex + 1
+                var targetIndex = side == .before ? currentIndex : currentIndex + 1
+                if let draggedIndex = snapshots.firstIndex(where: { $0.id == dragged.feedID }), draggedIndex < targetIndex {
+                    targetIndex -= 1
+                }
                 moveFeed(id: dragged.feedID, toFolderName: folderName, targetIndex: targetIndex)
                 return true
             }
