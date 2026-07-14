@@ -95,6 +95,7 @@ struct ArticleRetentionCleanupServiceTests {
         #expect(history?.isRead == true)
         #expect(history?.readAt == readAt)
         #expect(history?.firstSeenAt == oldDate)
+        #expect(history?.wasRemovedByRetention == true)
     }
 
     @Test func sqliteCleanupSchuetztSternUndArchivStandardmaessig() throws {

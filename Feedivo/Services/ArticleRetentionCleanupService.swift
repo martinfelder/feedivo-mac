@@ -372,6 +372,7 @@ private struct SQLiteArticleIdentityHistoryCandidate: FetchableRecord {
             history.starredAt = starredAt
             history.archivedAt = archivedAt
             history.hiddenAt = hiddenAt
+            history.wasRemovedByRetention = true
             try history.save(db)
             return
         }
@@ -393,7 +394,8 @@ private struct SQLiteArticleIdentityHistoryCandidate: FetchableRecord {
             readAt: readAt,
             starredAt: starredAt,
             archivedAt: archivedAt,
-            hiddenAt: hiddenAt
+            hiddenAt: hiddenAt,
+            wasRemovedByRetention: true
         )
         try history.insert(db)
     }
@@ -455,7 +457,7 @@ private extension Optional where Wrapped == String {
     }
 }
 
-private struct ArticleRetentionConfiguration {
+struct ArticleRetentionConfiguration {
     let isEnabled: Bool
     let cutoffDate: Date
     let minimumArticlesPerFeed: Int
