@@ -188,6 +188,125 @@ struct SQLiteArticleStoreTests {
         #expect(status?.dateArrived == firstSeenAt)
     }
 
+    @Test func upsertUeberspringtArtikelDerDurchBereinigungEntferntWurdeUndWeiterhinAbgelaufenIst() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let oldPublishedAt = Date().addingTimeInterval(-100 * 24 * 60 * 60)
+
+        try feedStore.save(FeedRecord(
+            id: "feed-1",
+            url: "https://example.com/feed.xml",
+            title: "Example",
+            articleRetentionOverridesGlobalSetting: true,
+            articleRetentionIsEnabled: true,
+            articleRetentionDays: 90
+        ))
+
+        var history = ArticleIdentityHistoryRecord(
+            id: "history-1",
+            feedID: "feed-1",
+            sourceID: "source-1",
+            link: "https://example.com/articles/1",
+            titleHash: ArticleStore.titleHash("Alter Artikel"),
+            publishedAt: oldPublishedAt,
+            firstSeenAt: oldPublishedAt,
+            lastSeenAt: oldPublishedAt,
+            lastArticleID: "deleted-article",
+            isRead: false,
+            isStarred: false,
+            isArchived: false,
+            isHidden: false,
+            readAt: nil,
+            starredAt: nil,
+            archivedAt: nil,
+            hiddenAt: nil,
+            wasRemovedByRetention: true
+        )
+        try database.write { db in
+            try history.insert(db)
+        }
+
+        let result = try articleStore.upsert([ArticleUpsertInput(
+            feedID: "feed-1",
+            sourceID: "source-1",
+            link: "https://example.com/articles/1",
+            title: "Alter Artikel",
+            publishedAt: oldPublishedAt,
+            arrivedAt: Date()
+        )])
+
+        #expect(result.articleIDs.isEmpty)
+        #expect(result.insertedArticleIDs.isEmpty)
+        let articleCount = try database.read { db in
+            try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM articles") ?? 0
+        }
+        #expect(articleCount == 0)
+    }
+
+    @Test func upsertFuegtArtikelWiederEinWennBereinigungNichtMehrGreiftUndSetztFlagZurueck() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let oldPublishedAt = Date().addingTimeInterval(-100 * 24 * 60 * 60)
+        let readAt = Date().addingTimeInterval(-90 * 24 * 60 * 60)
+
+        try feedStore.save(FeedRecord(
+            id: "feed-1",
+            url: "https://example.com/feed.xml",
+            title: "Example",
+            articleRetentionOverridesGlobalSetting: true,
+            articleRetentionIsEnabled: false,
+            articleRetentionDays: 90
+        ))
+
+        var history = ArticleIdentityHistoryRecord(
+            id: "history-1",
+            feedID: "feed-1",
+            sourceID: "source-1",
+            link: "https://example.com/articles/1",
+            titleHash: ArticleStore.titleHash("Alter Artikel"),
+            publishedAt: oldPublishedAt,
+            firstSeenAt: oldPublishedAt,
+            lastSeenAt: oldPublishedAt,
+            lastArticleID: "deleted-article",
+            isRead: true,
+            isStarred: false,
+            isArchived: false,
+            isHidden: false,
+            readAt: readAt,
+            starredAt: nil,
+            archivedAt: nil,
+            hiddenAt: nil,
+            wasRemovedByRetention: true
+        )
+        try database.write { db in
+            try history.insert(db)
+        }
+
+        let result = try articleStore.upsert([ArticleUpsertInput(
+            feedID: "feed-1",
+            sourceID: "source-1",
+            link: "https://example.com/articles/1",
+            title: "Alter Artikel",
+            publishedAt: oldPublishedAt,
+            arrivedAt: Date()
+        )])
+
+        #expect(result.insertedArticleIDs.count == 1)
+        let articleID = try #require(result.insertedArticleIDs.first)
+        let restoredHistory = try database.read { db in
+            try ArticleIdentityHistoryRecord.fetchOne(db, sql: """
+                SELECT * FROM article_identity_history WHERE feedID = ? AND sourceID = ? LIMIT 1
+                """, arguments: ["feed-1", "source-1"])
+        }
+
+        #expect(restoredHistory?.wasRemovedByRetention == false)
+        #expect(restoredHistory?.lastArticleID == articleID)
+        let status = try ArticleStatusStore(database: database).status(articleID: articleID)
+        #expect(status?.isRead == true)
+    }
+
     @Test func upsertUpdatesExistingArticleBySourceIDWithoutOverwritingStatus() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let feedStore = FeedStore(database: database)

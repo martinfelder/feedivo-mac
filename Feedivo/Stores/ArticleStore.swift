@@ -50,9 +50,11 @@ struct ArticleUpsertResult: Equatable, Sendable {
 
 struct ArticleStore {
     private let database: FeedivoDatabase
+    private let userDefaults: UserDefaults
 
-    init(database: FeedivoDatabase) {
+    init(database: FeedivoDatabase, userDefaults: UserDefaults = .standard) {
         self.database = database
+        self.userDefaults = userDefaults
     }
 
     func upsert(_ input: ArticleUpsertInput) throws -> String {
@@ -70,12 +72,15 @@ struct ArticleStore {
             var articleIDs: [String] = []
 
             for input in inputs {
-                let result = try upsert(input, db: db)
-                articleIDs.append(result.articleID)
-                if result.wasInserted {
-                    insertedArticleIDs.append(result.articleID)
-                } else {
-                    updatedArticleIDs.append(result.articleID)
+                switch try upsert(input, db: db) {
+                case .inserted(let articleID):
+                    articleIDs.append(articleID)
+                    insertedArticleIDs.append(articleID)
+                case .updated(let articleID):
+                    articleIDs.append(articleID)
+                    updatedArticleIDs.append(articleID)
+                case .skipped:
+                    break
                 }
             }
 
@@ -354,7 +359,13 @@ struct ArticleStore {
         }
     }
 
-    private func upsert(_ input: ArticleUpsertInput, db: Database) throws -> (articleID: String, wasInserted: Bool) {
+    private enum UpsertOutcome {
+        case inserted(articleID: String)
+        case updated(articleID: String)
+        case skipped
+    }
+
+    private func upsert(_ input: ArticleUpsertInput, db: Database) throws -> UpsertOutcome {
         let sourceID = input.sourceID.trimmedNonEmpty
         let link = input.link.trimmedNonEmpty
 
@@ -395,11 +406,21 @@ struct ArticleStore {
                 arguments: arguments
             )
             try saveIdentityHistory(forArticleID: articleID, input: input, db: db)
-            return (articleID, false)
+            return .updated(articleID: articleID)
+        }
+
+        let history = try findIdentityHistory(input: input, db: db)
+        if let history, history.wasRemovedByRetention {
+            let configuration = try currentRetentionConfiguration(forFeedID: input.feedID, db: db)
+            let effectiveDate = input.publishedAt ?? input.arrivedAt
+            if configuration.isEnabled, effectiveDate < configuration.cutoffDate {
+                // Artikel wurde bewusst bereinigt und ist nach aktuellen Einstellungen
+                // weiterhin abgelaufen — nicht wieder einfügen.
+                return .skipped
+            }
         }
 
         let articleID = UUID().uuidString
-        let history = try findIdentityHistory(input: input, db: db)
         var article = ArticleRecord(
             id: articleID,
             feedID: input.feedID,
@@ -432,7 +453,35 @@ struct ArticleStore {
         try status.insert(db)
         try saveIdentityHistory(forArticleID: articleID, input: input, status: status, db: db)
 
-        return (articleID, true)
+        return .inserted(articleID: articleID)
+    }
+
+    private func currentRetentionConfiguration(forFeedID feedID: String, db: Database) throws -> ArticleRetentionConfiguration {
+        let now = Date()
+        guard
+            let feed = try FeedRecord.fetchOne(db, key: feedID),
+            feed.articleRetentionOverridesGlobalSetting
+        else {
+            return ArticleRetentionConfiguration(
+                isEnabled: userDefaults.object(forKey: ArticleRetentionSettings.isEnabledKey) as? Bool
+                    ?? ArticleRetentionSettings.defaultIsEnabled,
+                retentionDays: userDefaults.object(forKey: ArticleRetentionSettings.retentionDaysKey) as? Int
+                    ?? ArticleRetentionSettings.defaultRetentionDays,
+                minimumArticlesPerFeed: userDefaults.object(forKey: ArticleRetentionSettings.minimumArticlesPerFeedKey) as? Int
+                    ?? ArticleRetentionSettings.defaultMinimumArticlesPerFeed,
+                includeProtectedArticles: userDefaults.object(forKey: ArticleRetentionSettings.includesProtectedArticlesKey) as? Bool
+                    ?? ArticleRetentionSettings.defaultIncludesProtectedArticles,
+                now: now
+            )
+        }
+
+        return ArticleRetentionConfiguration(
+            isEnabled: feed.articleRetentionIsEnabled,
+            retentionDays: feed.articleRetentionDays,
+            minimumArticlesPerFeed: feed.articleRetentionMinimumArticles,
+            includeProtectedArticles: feed.articleRetentionIncludesProtectedArticles,
+            now: now
+        )
     }
 
     private func findExistingArticleID(input: ArticleUpsertInput, db: Database) throws -> String? {
@@ -547,6 +596,7 @@ struct ArticleStore {
         history.starredAt = status.starredAt
         history.archivedAt = status.archivedAt
         history.hiddenAt = status.hiddenAt
+        history.wasRemovedByRetention = false
 
         try history.save(db)
     }
