@@ -1083,6 +1083,27 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(compactSource.contains("MARK:-SQLiteFeedActions"))
     }
 
+    @Test func startupBereinigungLaeuftVorDemStartRefreshOhneRace() throws {
+        let projectRoot = projectRootURL()
+        let appSource = try source(at: "Feedivo/App/FeedivoApp.swift", projectRoot: projectRoot)
+        let contentSource = try source(at: "Feedivo/Views/ContentView.swift", projectRoot: projectRoot)
+
+        let taskStart = try #require(appSource.range(of: ".task {"))
+        let onChangeStart = try #require(appSource.range(of: ".onChange(of: backgroundRefreshIsEnabled)"))
+        let taskBlockSource = appSource[taskStart.lowerBound..<onChangeStart.lowerBound]
+        #expect(!taskBlockSource.contains("cleanupExpiredArticlesIfNeeded()"))
+
+        let handleContentAppearStart = try #require(contentSource.range(of: "private func handleContentAppear()"))
+        let nextFunctionStart = try #require(contentSource.range(of: "private func reloadFeedSnapshots"))
+        let handleContentAppearSource = contentSource[handleContentAppearStart.lowerBound..<nextFunctionStart.lowerBound]
+
+        #expect(handleContentAppearSource.contains("BackgroundRefreshService.cleanupExpiredArticlesIfNeeded(database: feedivoDatabase)"))
+
+        let cleanupCallRange = try #require(handleContentAppearSource.range(of: "cleanupExpiredArticlesIfNeeded(database: feedivoDatabase)"))
+        let refreshCallRange = try #require(handleContentAppearSource.range(of: "refreshFeedsOnLaunchIfNeeded()"))
+        #expect(cleanupCallRange.lowerBound < refreshCallRange.lowerBound)
+    }
+
     private func projectRootURL() -> URL {
         URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()

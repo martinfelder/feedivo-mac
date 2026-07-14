@@ -86,7 +86,6 @@ struct FeedivoApp: App {
                 .toolbarBackground(.visible, for: .windowToolbar)
                 .task {
                     backfillStoredArticleMetadataIfNeeded()
-                    cleanupExpiredArticlesIfNeeded()
                     trimImageCacheToSelectedLimit()
                     scheduleBackgroundRefresh()
                 }
