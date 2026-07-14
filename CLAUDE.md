@@ -551,6 +551,19 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
   falsch"-Verdacht: gezielt nach *mehreren* unabhängigen Entscheidungspunkten für
   dieselbe Frage suchen (Grep auf `.isEmpty`/ähnliche Bedingungen im selben View), nicht
   nur die naheliegendste Stelle prüfen.
+- **`FeedStore.sidebarFeeds()` ignoriert den gespeicherten `feeds.unreadCount`-Wert
+  vollständig — berechnet stattdessen immer per Subquery neu:** Zwei bestehende Tests,
+  `sidebarSnapshotsAreSortedByTitle` und `sidebarSnapshotsCanHideReadFeeds` in
+  `SQLiteFeedStoreTests.swift`, konstruieren `FeedRecord`s mit einem gesetzten
+  `unreadCount`-Feld, ohne passende `articles`/`article_statuses`-Zeilen einzufügen — die
+  live per Subquery berechnete `unreadCount` in der Snapshot-Antwort ist deshalb immer 0,
+  nicht der im Test erwartete Wert, wodurch beide Tests fehlschlagen. Gefunden und per
+  Vorher/Nachher-Worktree-Vergleich als bereits vor dem Feeds-Drag-&-Drop-Feature (2026-07-14)
+  bestehend verifiziert (Task-3-Review, Commit `873c00231` als Basis) — keine Regression
+  durch `sortIndex`/`moveFeed`. Noch nicht gefixt, bewusst als bekannter, unabhängiger
+  Vorab-Fehlschlag dokumentiert (analog zu den 15 vorbestehenden Fehlschlägen in
+  `FeedivoAppSceneConfigurationTests.swift` und den 2 flaky-unter-Last-Tests in
+  `FeedViewModelTests.swift`).
 
 ---
 
