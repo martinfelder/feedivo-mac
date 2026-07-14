@@ -244,6 +244,67 @@ struct SQLiteArticleStoreTests {
         #expect(articleCount == 0)
     }
 
+    @Test func upsertUeberspringtArtikelOhnePublishedAtDerDurchBereinigungEntferntWurdeUndFirstSeenAtWeiterhinAbgelaufenIst() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let oldFirstSeenAt = Date().addingTimeInterval(-100 * 24 * 60 * 60)
+
+        try feedStore.save(FeedRecord(
+            id: "feed-1",
+            url: "https://example.com/feed.xml",
+            title: "Example",
+            articleRetentionOverridesGlobalSetting: true,
+            articleRetentionIsEnabled: true,
+            articleRetentionDays: 90
+        ))
+
+        var history = ArticleIdentityHistoryRecord(
+            id: "history-1",
+            feedID: "feed-1",
+            sourceID: "source-1",
+            link: "https://example.com/articles/1",
+            titleHash: ArticleStore.titleHash("Alter Artikel Ohne PublishedAt"),
+            publishedAt: nil,
+            firstSeenAt: oldFirstSeenAt,
+            lastSeenAt: oldFirstSeenAt,
+            lastArticleID: "deleted-article",
+            isRead: false,
+            isStarred: false,
+            isArchived: false,
+            isHidden: false,
+            readAt: nil,
+            starredAt: nil,
+            archivedAt: nil,
+            hiddenAt: nil,
+            wasRemovedByRetention: true
+        )
+        try database.write { db in
+            try history.insert(db)
+        }
+
+        // Artikel wird "erneut zugestellt" (Feed liefert weiterhin kein publishedAt) —
+        // arrivedAt ist bewusst JETZT (frischer Refresh-Durchlauf), nicht der alte
+        // firstSeenAt-Zeitpunkt. Vor dem Fix nutzte die Skip-Prüfung fälschlich
+        // input.arrivedAt (= jetzt) als effectiveDate und fügte den Artikel trotz
+        // wasRemovedByRetention sofort wieder ein.
+        let result = try articleStore.upsert([ArticleUpsertInput(
+            feedID: "feed-1",
+            sourceID: "source-1",
+            link: "https://example.com/articles/1",
+            title: "Alter Artikel Ohne PublishedAt",
+            publishedAt: nil,
+            arrivedAt: Date()
+        )])
+
+        #expect(result.articleIDs.isEmpty)
+        #expect(result.insertedArticleIDs.isEmpty)
+        let articleCount = try database.read { db in
+            try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM articles") ?? 0
+        }
+        #expect(articleCount == 0)
+    }
+
     @Test func upsertFuegtArtikelWiederEinWennBereinigungNichtMehrGreiftUndSetztFlagZurueck() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let feedStore = FeedStore(database: database)

@@ -412,7 +412,7 @@ struct ArticleStore {
         let history = try findIdentityHistory(input: input, db: db)
         if let history, history.wasRemovedByRetention {
             let configuration = try currentRetentionConfiguration(forFeedID: input.feedID, db: db)
-            let effectiveDate = input.publishedAt ?? input.arrivedAt
+            let effectiveDate = input.publishedAt ?? history.firstSeenAt
             if configuration.isEnabled, effectiveDate < configuration.cutoffDate {
                 // Artikel wurde bewusst bereinigt und ist nach aktuellen Einstellungen
                 // weiterhin abgelaufen — nicht wieder einfügen.
