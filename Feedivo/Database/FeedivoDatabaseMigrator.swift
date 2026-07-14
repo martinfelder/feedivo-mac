@@ -362,6 +362,14 @@ enum FeedivoDatabaseMigrator {
             )
         }
 
+        migrator.registerMigration("v14_add_article_identity_history_retention_flag") { database in
+            try database.alter(table: "article_identity_history") { table in
+                table.add(column: "wasRemovedByRetention", .boolean)
+                    .notNull()
+                    .defaults(to: false)
+            }
+        }
+
         return migrator
     }
 }

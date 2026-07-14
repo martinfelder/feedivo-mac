@@ -76,6 +76,19 @@ struct SQLiteDatabaseMigrationTests {
         #expect(indexNames.contains("idx_articles_published_coalesce"))
     }
 
+    @Test func migrationFuegtWasRemovedByRetentionSpalteZuIdentityHistoryHinzu() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+
+        let columns = try database.read { db in
+            try Row.fetchAll(db, sql: "PRAGMA table_info(article_identity_history)")
+        }
+        let column = columns.first { ($0["name"] as String?) == "wasRemovedByRetention" }
+
+        #expect(column != nil)
+        #expect((column?["notnull"] as Int?) == 1)
+        #expect((column?["dflt_value"] as String?) == "0")
+    }
+
     @Test func queryPlanForTimelineOrderByNutztCoalesceIndex() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
 

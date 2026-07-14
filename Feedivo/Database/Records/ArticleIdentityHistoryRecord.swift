@@ -21,4 +21,5 @@ struct ArticleIdentityHistoryRecord: Codable, FetchableRecord, MutablePersistabl
     var starredAt: Date?
     var archivedAt: Date?
     var hiddenAt: Date?
+    var wasRemovedByRetention: Bool = false
 }
