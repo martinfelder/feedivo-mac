@@ -143,20 +143,19 @@ enum BackgroundRefreshService {
         userDefaults: UserDefaults = .standard,
         now: Date = Date()
     ) {
-        logIfThrows(context: "Automatisches Retention-Cleanup nach Hintergrund-Refresh") {
-            _ = try ArticleRetentionCleanupService.removeExpiredSQLiteArticles(
-                database: database,
-                isEnabled: userDefaults.object(forKey: ArticleRetentionSettings.isEnabledKey) as? Bool
-                    ?? ArticleRetentionSettings.defaultIsEnabled,
-                retentionDays: userDefaults.object(forKey: ArticleRetentionSettings.retentionDaysKey) as? Int
-                    ?? ArticleRetentionSettings.defaultRetentionDays,
-                minimumArticlesPerFeed: userDefaults.object(forKey: ArticleRetentionSettings.minimumArticlesPerFeedKey) as? Int
-                    ?? ArticleRetentionSettings.defaultMinimumArticlesPerFeed,
-                includeProtectedArticles: userDefaults.object(forKey: ArticleRetentionSettings.includesProtectedArticlesKey) as? Bool
-                    ?? ArticleRetentionSettings.defaultIncludesProtectedArticles,
-                now: now
-            )
-        }
+        ArticleRetentionCleanupService.runAutomaticCleanup(
+            database: database,
+            isEnabled: userDefaults.object(forKey: ArticleRetentionSettings.isEnabledKey) as? Bool
+                ?? ArticleRetentionSettings.defaultIsEnabled,
+            retentionDays: userDefaults.object(forKey: ArticleRetentionSettings.retentionDaysKey) as? Int
+                ?? ArticleRetentionSettings.defaultRetentionDays,
+            minimumArticlesPerFeed: userDefaults.object(forKey: ArticleRetentionSettings.minimumArticlesPerFeedKey) as? Int
+                ?? ArticleRetentionSettings.defaultMinimumArticlesPerFeed,
+            includeProtectedArticles: userDefaults.object(forKey: ArticleRetentionSettings.includesProtectedArticlesKey) as? Bool
+                ?? ArticleRetentionSettings.defaultIncludesProtectedArticles,
+            userDefaults: userDefaults,
+            now: now
+        )
     }
 
     static func recordRefreshOutcome(

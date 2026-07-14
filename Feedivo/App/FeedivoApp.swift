@@ -211,15 +211,13 @@ struct FeedivoApp: App {
 
     @MainActor
     private func cleanupExpiredArticlesIfNeeded() {
-        logIfThrows(context: "Automatisches Retention-Cleanup beim App-Start") {
-            _ = try ArticleRetentionCleanupService.removeExpiredSQLiteArticles(
-                database: feedivoDatabase,
-                isEnabled: articleRetentionIsEnabled,
-                retentionDays: articleRetentionDays,
-                minimumArticlesPerFeed: articleRetentionMinimumArticlesPerFeed,
-                includeProtectedArticles: articleRetentionIncludesProtectedArticles
-            )
-        }
+        ArticleRetentionCleanupService.runAutomaticCleanup(
+            database: feedivoDatabase,
+            isEnabled: articleRetentionIsEnabled,
+            retentionDays: articleRetentionDays,
+            minimumArticlesPerFeed: articleRetentionMinimumArticlesPerFeed,
+            includeProtectedArticles: articleRetentionIncludesProtectedArticles
+        )
     }
 
     @MainActor
