@@ -5,6 +5,12 @@ enum ArticleRetentionSettings {
     static let retentionDaysKey = "articleRetention.retentionDays"
     static let minimumArticlesPerFeedKey = "articleRetention.minimumArticlesPerFeed"
     static let includesProtectedArticlesKey = "articleRetention.includesProtectedArticles"
+    static let lastAutomaticCleanupDateKey = "articleRetention.lastAutomaticCleanupDate"
+    static let lastAutomaticCleanupStatusKey = "articleRetention.lastAutomaticCleanupStatus"
+    static let lastAutomaticCleanupErrorKey = "articleRetention.lastAutomaticCleanupError"
+    static let lastAutomaticCleanupRemovedCountKey = "articleRetention.lastAutomaticCleanupRemovedCount"
+    static let statusSuccess = "success"
+    static let statusFailed = "failed"
     static let defaultIsEnabled = false
     static let defaultRetentionDays = 90
     static let defaultMinimumArticlesPerFeed = 20

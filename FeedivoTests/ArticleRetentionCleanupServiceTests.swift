@@ -317,4 +317,72 @@ struct ArticleRetentionCleanupServiceTests {
         #expect(removedCount == 2)
         #expect(Set(remainingIDs) == Set(articleIDs.prefix(10)))
     }
+
+    // MARK: - Persistenter Status für automatische Bereinigung (Befund C)
+
+    @Test func recordAutomaticCleanupSuccessSpeichertStatusUndAnzahl() throws {
+        let defaults = try temporaryUserDefaults()
+        let now = Date(timeIntervalSince1970: 5_000)
+
+        ArticleRetentionCleanupService.recordAutomaticCleanupSuccess(
+            removedCount: 7,
+            now: now,
+            userDefaults: defaults
+        )
+
+        #expect(defaults.double(forKey: ArticleRetentionSettings.lastAutomaticCleanupDateKey) == now.timeIntervalSince1970)
+        #expect(defaults.string(forKey: ArticleRetentionSettings.lastAutomaticCleanupStatusKey) == ArticleRetentionSettings.statusSuccess)
+        #expect(defaults.integer(forKey: ArticleRetentionSettings.lastAutomaticCleanupRemovedCountKey) == 7)
+        #expect(defaults.string(forKey: ArticleRetentionSettings.lastAutomaticCleanupErrorKey) == nil)
+    }
+
+    @Test func recordAutomaticCleanupFailureSpeichertStatusUndFehlermeldung() throws {
+        let defaults = try temporaryUserDefaults()
+        let now = Date(timeIntervalSince1970: 5_000)
+
+        ArticleRetentionCleanupService.recordAutomaticCleanupFailure(
+            "DB-Fehler",
+            now: now,
+            userDefaults: defaults
+        )
+
+        #expect(defaults.double(forKey: ArticleRetentionSettings.lastAutomaticCleanupDateKey) == now.timeIntervalSince1970)
+        #expect(defaults.string(forKey: ArticleRetentionSettings.lastAutomaticCleanupStatusKey) == ArticleRetentionSettings.statusFailed)
+        #expect(defaults.string(forKey: ArticleRetentionSettings.lastAutomaticCleanupErrorKey) == "DB-Fehler")
+    }
+
+    @Test func runAutomaticCleanupLoeschtArtikelUndSpeichertErfolgsstatus() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let defaults = try temporaryUserDefaults()
+        let now = Date(timeIntervalSince1970: 10_000_000)
+        let oldDate = now.addingTimeInterval(-91 * 24 * 60 * 60)
+        let feedID = UUID().uuidString
+
+        try FeedStore(database: database).save(
+            FeedRecord(id: feedID, url: "https://example.com/feed.xml", title: "Feed", unreadCount: 1)
+        )
+        let expiredID = try ArticleStore(database: database).upsert(
+            ArticleUpsertInput(feedID: feedID, title: "Alt", publishedAt: oldDate)
+        )
+
+        ArticleRetentionCleanupService.runAutomaticCleanup(
+            database: database,
+            isEnabled: true,
+            retentionDays: 90,
+            minimumArticlesPerFeed: 0,
+            userDefaults: defaults,
+            now: now
+        )
+
+        #expect(try ArticleStatusStore(database: database).status(articleID: expiredID) == nil)
+        #expect(defaults.string(forKey: ArticleRetentionSettings.lastAutomaticCleanupStatusKey) == ArticleRetentionSettings.statusSuccess)
+        #expect(defaults.integer(forKey: ArticleRetentionSettings.lastAutomaticCleanupRemovedCountKey) == 1)
+    }
+}
+
+private func temporaryUserDefaults() throws -> UserDefaults {
+    let suiteName = "FeedivoTests.ArticleRetentionCleanup.\(UUID().uuidString)"
+    let defaults = try #require(UserDefaults(suiteName: suiteName))
+    defaults.removePersistentDomain(forName: suiteName)
+    return defaults
 }

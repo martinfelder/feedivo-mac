@@ -1,5 +1,6 @@
 import Foundation
 import GRDB
+import OSLog
 
 enum ArticleRetentionCleanupService {
     @MainActor
@@ -78,6 +79,59 @@ enum ArticleRetentionCleanupService {
         }
 
         return removedCount
+    }
+
+    /// Führt eine automatische Bereinigung aus (App-Start, Hintergrund-Refresh,
+    /// Feed-Einstellungsänderung) und hält Ergebnis/Fehler persistent in
+    /// `UserDefaults` fest. Vorher landeten Fehler des automatischen Pfads
+    /// ausschließlich im Apple-Systemlog, ohne jede Sichtbarkeit in der App
+    /// selbst (Befund C, Nutzer-Report 2026-07-13). Ersetzt die zuvor an drei
+    /// Stellen duplizierte `logIfThrows { try removeExpiredSQLiteArticles(...) }`.
+    @MainActor
+    static func runAutomaticCleanup(
+        database: FeedivoDatabase,
+        isEnabled: Bool,
+        retentionDays: Int,
+        minimumArticlesPerFeed: Int = ArticleRetentionSettings.defaultMinimumArticlesPerFeed,
+        includeProtectedArticles: Bool = false,
+        userDefaults: UserDefaults = .standard,
+        now: Date = Date()
+    ) {
+        do {
+            let removedCount = try removeExpiredSQLiteArticles(
+                database: database,
+                isEnabled: isEnabled,
+                retentionDays: retentionDays,
+                minimumArticlesPerFeed: minimumArticlesPerFeed,
+                includeProtectedArticles: includeProtectedArticles,
+                now: now
+            )
+            recordAutomaticCleanupSuccess(removedCount: removedCount, now: now, userDefaults: userDefaults)
+        } catch {
+            recordAutomaticCleanupFailure(error.localizedDescription, now: now, userDefaults: userDefaults)
+            AppLogger.dataAccess.error("Automatisches Retention-Cleanup: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    static func recordAutomaticCleanupSuccess(
+        removedCount: Int,
+        now: Date = Date(),
+        userDefaults: UserDefaults = .standard
+    ) {
+        userDefaults.set(now.timeIntervalSince1970, forKey: ArticleRetentionSettings.lastAutomaticCleanupDateKey)
+        userDefaults.set(ArticleRetentionSettings.statusSuccess, forKey: ArticleRetentionSettings.lastAutomaticCleanupStatusKey)
+        userDefaults.set(removedCount, forKey: ArticleRetentionSettings.lastAutomaticCleanupRemovedCountKey)
+        userDefaults.removeObject(forKey: ArticleRetentionSettings.lastAutomaticCleanupErrorKey)
+    }
+
+    static func recordAutomaticCleanupFailure(
+        _ message: String,
+        now: Date = Date(),
+        userDefaults: UserDefaults = .standard
+    ) {
+        userDefaults.set(now.timeIntervalSince1970, forKey: ArticleRetentionSettings.lastAutomaticCleanupDateKey)
+        userDefaults.set(ArticleRetentionSettings.statusFailed, forKey: ArticleRetentionSettings.lastAutomaticCleanupStatusKey)
+        userDefaults.set(message, forKey: ArticleRetentionSettings.lastAutomaticCleanupErrorKey)
     }
 
     private static func shouldRemove(
