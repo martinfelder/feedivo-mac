@@ -398,6 +398,23 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
   neue Stub-Block kommt hinzu) — einfach nach jedem Build kurz `git status`/`git diff --stat`
   auf `Localizable.xcstrings` prüfen und den Stub bewusst mitcommitten oder (falls der
   String besser doch als `L10n`-Key lokalisiert werden sollte) gezielt nachpflegen.
+- **Der automatische Stub-Mechanismus (siehe Gotcha oben) greift NICHT bei neuen `L10n.swift`-
+  Konstanten, die nur indirekt referenziert werden:** Wird ein neuer `L10n`-Key (z. B.
+  `L10n.settingsAutomaticCleanupLastRun = LocalizedStringKey("settings.automaticCleanup.lastRun")`)
+  angelegt und ausschließlich über die Konstante verwendet (`Text(L10n.settingsAutomaticCleanupLastRun)`
+  statt eines direkten String-Literals in `Text("...")`), erkennt Xcodes String-Catalog-
+  Extraktor den Key beim Build NICHT und legt auch keinen leeren Stub in
+  `Localizable.xcstrings` an — im Gegensatz zu einem direkten Literal bleibt der Key dort
+  komplett unsichtbar, `xcodebuild build` meldet trotzdem anstandslos `BUILD SUCCEEDED`
+  (gefunden im Whole-Branch-Review des Bereinigungsstatus-Features, 2026-07-14: 7 neue
+  `L10n`-Keys für einen neuen Settings-Status-Block wurden in `L10n.swift` angelegt, aber erst
+  im finalen Review als im Katalog fehlend entdeckt — zur Laufzeit hätten sie als rohe
+  Punkt-Keys wie `settings.automaticCleanup.lastRun` gerendert). Fix ex post: Katalogeinträge
+  manuell per Python-Skript (`json.load`/`json.dump`, exaktes bestehendes Format beibehalten)
+  ergänzt. **Lehre:** Bei jedem neuen `L10n.swift`-Key, der nicht 1:1 einem bereits
+  vorhandenen, wortgleichen String-Literal entspricht, sofort danach `grep -c "<der neue
+  Punkt-Key>" Feedivo/Resources/Localizable.xcstrings` prüfen (muss > 0 sein) — nicht auf den
+  Build-Erfolg verlassen, der diese Lücke nicht aufdeckt.
 - **`periphery` (Dead-Code-Scanner) hat in diesem Projekt eine hohe Fehlalarmquote bei
   GRDB-Record-Typen:** Wird ein Typ ausschließlich über generische, aus Protokoll-Extensions
   geerbte GRDB-Methoden erreicht (`ArticleOfflineRecord.fetchOne(db, key:)`,
@@ -554,12 +571,13 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Aktuell in Arbeit
 
-- **2026-07-13/14 (Nacht): Zwei Bugfixes automatische Artikel-Bereinigung —
-  VOLLSTÄNDIG ABGESCHLOSSEN und auf `origin/main` gepusht.** Nutzer-Report:
-  "Alte Artikel bleiben trotz aktivierter Bereinigung liegen, auch nach Tagen
-  im Hintergrund." Root-Cause-Analyse via systematic-debugging fand drei
-  unabhängige Befunde, zwei davon behoben:
-  - **Befund A (Fix, Commit `99ed5fe`):** `ArticleRetentionCleanupService`
+- **2026-07-13/14 (Nacht): Drei Bugfixes automatische Artikel-Bereinigung —
+  VOLLSTÄNDIG ABGESCHLOSSEN, LOKAL AUF MAIN, NICHT gepusht (Befund-A/B-Fixes
+  bereits gepusht, Befund-C-Feature noch nicht).** Nutzer-Report: "Alte
+  Artikel bleiben trotz aktivierter Bereinigung liegen, auch nach Tagen im
+  Hintergrund." Root-Cause-Analyse via systematic-debugging fand drei
+  unabhängige Befunde, alle drei behoben:
+  - **Befund A (Fix, Commit `99ed5fe`, gepusht):** `ArticleRetentionCleanupService`
     wurde nur beim App-Start und bei Retention-Einstellungsänderungen
     aufgerufen, nie erneut während einer laufenden Session — der periodische
     Hintergrund-Refresh (`BackgroundRefreshService.refreshAllFeeds`, einziger
@@ -570,7 +588,7 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
     gezielt einen naiven `UserDefaults.integer/bool(forKey:)`-Fallback-Bug ab
     (fehlender gespeicherter Wert hätte sonst `retentionDays: 0` statt des
     korrekten 90-Tage-Standards ergeben).
-  - **Befund B (Fix, Commit `b10d641`):** Artikel ohne parsbares
+  - **Befund B (Fix, Commit `b10d641`, gepusht):** Artikel ohne parsbares
     `publishedAt` waren dauerhaft von der Bereinigung ausgenommen,
     unabhängig vom tatsächlichen Alter. Fix (TDD, 3 neue Regressionstests):
     `SQLiteArticleRetentionCandidate` liest zusätzlich `articles.arrivedAt`
@@ -580,11 +598,27 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
     Löschentscheidung (`shouldRemove`) als auch der
     Mindestanzahl-pro-Feed-Schutz (`sqliteRetentionSort`) nutzen jetzt
     `effectiveDate` konsistent.
-  - **Befund C (noch offen, keine Nutzerentscheidung):** Der automatische
-    Bereinigungspfad hat keinerlei UI-Feedback — Fehler landen nur im Apple-
-    Systemlog (`SilentErrorLogging.swift`/`AppLogger.dataAccess`), nur der
-    manuelle "Jetzt bereinigen"-Button in den Einstellungen zeigt
-    Ergebnis/Fehler an.
+  - **Befund C (Feature, Commits `b902998..61b4cb3`, 4 Commits, NICHT
+    gepusht):** Der automatische Bereinigungspfad hatte keinerlei
+    UI-Feedback — Fehler landeten nur im Apple-Systemlog
+    (`SilentErrorLogging.swift`/`AppLogger.dataAccess`). Via
+    Brainstorming+Plan+Subagent-Driven-Development (3 Tasks) behoben: neuer
+    gemeinsamer Einstiegspunkt `ArticleRetentionCleanupService.
+    runAutomaticCleanup(...)` (ersetzt die zuvor dreifach duplizierte
+    `logIfThrows { removeExpiredSQLiteArticles(...) }`-Stelle in allen drei
+    automatischen Aufrufern — App-Start, Feed-Einstellungsänderung,
+    Hintergrund-Refresh), schreibt Ergebnis/Fehler in neue
+    `UserDefaults`-Keys; neuer "Automatischer Bereinigungsstatus"-Block in
+    den Einstellungen (Tab "Alte Artikel"), analog zum bestehenden
+    Aktualisierungsstatus-Block für den Feed-Refresh. Dafür wurden
+    `statusLine`/`formattedRefreshDate` (→ `formattedAutomaticStatusDate`)
+    aus `RefreshSettingsView` zu file-privaten freien Funktionen angehoben,
+    damit beide Status-Blöcke sie teilen. Manueller "Jetzt
+    bereinigen"-Button bleibt bewusst getrennt (Nutzerentscheidung: kein
+    gemeinsamer Status). Whole-Branch-Review (Opus) fand 1 Important-Finding
+    (siehe neuer Gotcha unten zu Xcodes String-Catalog-Auto-Stub bei
+    indirekten `L10n`-Keys), behoben und re-verifiziert. Details siehe
+    „Letzte Änderungen" unten.
 - **2026-07-13 (spät Abend): Tags direkt im Reader-Header hinzufügen —
   VOLLSTÄNDIG ABGESCHLOSSEN und auf `origin/main` gepusht.** Neuer "+"-Button
   neben Ordner-/Tag-Chips im Reader-Header öffnet ein Popover mit denselben
@@ -629,6 +663,19 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Letzte Änderungen
 
+- 2026-07-13/14 (Nacht): Befund C (persistenter Status für automatische
+  Bereinigung) — via Brainstorming + Plan + Subagent-Driven-Development
+  (3 Tasks) umgesetzt. Spec:
+  `docs/superpowers/specs/2026-07-14-bereinigung-automatischer-status-design.md`,
+  Plan: `docs/superpowers/plans/2026-07-14-bereinigung-automatischer-status.md`.
+  Details siehe „Aktuell in Arbeit" oben (Befund-C-Absatz) — vollständige
+  Beschreibung von Datenschicht (`runAutomaticCleanup`), umgestellten
+  Aufrufern und UI-Status-Block dort bereits festgehalten, hier nicht
+  dupliziert. Alle drei Tasks clean im ersten Anlauf. Whole-Branch-Review
+  (Opus) fand 1 Important-Finding (fehlende L10n-Katalogeinträge für 7 neue
+  indirekte `L10n`-Keys, siehe neuer Gotcha oben), Fix-Runde behoben und
+  re-verifiziert. Commits `b902998..61b4cb3` (4 Commits) lokal auf main,
+  NICHT gepusht (Nutzerbestätigung ausstehend).
 - 2026-07-13 (spät Abend): Tags direkt im Reader-Header hinzufügen — via
   Brainstorming + Plan + Subagent-Driven-Development (3 Tasks) umgesetzt.
   Spec: `docs/superpowers/specs/2026-07-13-reader-tags-hinzufuegen-design.md`,
