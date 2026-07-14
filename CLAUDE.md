@@ -171,7 +171,7 @@ Artikel-Popouts, plus das Settings-Fenster.
 `NavigationSplitView` mit 3 Spalten (Sidebar / Artikelliste / Reader). Feed-Auswahl läuft
 komplett über String-IDs (`FeedRecord.id`, ein UUID-String) statt über Objektidentität.
 
-### Datenbank-Schema (GRDB-Migrationen, Stand: v10)
+### Datenbank-Schema (GRDB-Migrationen, Stand: v14)
 | Migration | Inhalt |
 |---|---|
 | v1_create_core_tables | `feeds`, `articles`, `article_status`, `feed_logs` |
@@ -184,6 +184,17 @@ komplett über String-IDs (`FeedRecord.id`, ein UUID-String) statt über Objekti
 | v8_drop_unique_feed_url_index | Lockert Eindeutigkeits-Constraint auf Feed-URLs |
 | v9_create_article_identity_history | Historie für Artikel-Identitätswechsel (z. B. bei URL-Änderungen) |
 | v10_add_feed_retention_minimum_articles | Mindestanzahl Artikel pro Feed bei Aufbewahrungs-Cleanup |
+| v11_add_article_statuses_hidden_read_index | Composite-Index `(isHidden, isRead)` auf `article_statuses` |
+| v12_add_articles_published_coalesce_index | Expression-Index auf `COALESCE(publishedAt, arrivedAt)` |
+| v13_add_article_statuses_foreign_key | `article_statuses` neu mit echtem Fremdschlüssel auf `articles` |
+| v14_add_article_identity_history_retention_flag | `wasRemovedByRetention`-Flag auf `article_identity_history` |
+
+**Achtung bei neuen Migrationen:** Vor dem Anlegen einer neuen Migration IMMER den
+tatsächlichen letzten Eintrag in `FeedivoDatabaseMigrator.swift` prüfen (`grep -n
+registerMigration`), nicht diese Tabelle oder eine ältere Design-Spec als Quelle der
+Wahrheit nehmen — beim Bereinigung-dauerhaft-Feature (2026-07-14) ging eine Design-Spec
+noch von `v10` als letztem Stand aus und schlug `v11` vor, obwohl v11–v13 zu diesem
+Zeitpunkt bereits existierten; der Implementierungsplan hat das korrigiert (`v14`).
 
 Volle Details je Tabelle: `Feedivo/Database/FeedivoDatabaseMigrator.swift`. Die passenden
 Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
@@ -272,11 +283,16 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
   reproduzierbar (bekanntes, ungelöstes Infrastrukturproblem). Immer gezielt mit
   `-only-testing:FeedivoTests/<SuiteName>` testen.
 - **Bekannte, dauerhaft vorbestehende Testfehlschläge** (nicht neu einführen, aber auch nicht
-  grundlos als eigenen Bug behandeln): 9 Tests in `FeedivoAppSceneConfigurationTests.swift`
-  (Zahl am 2026-07-11 per Git-Stash-Vergleich korrigiert — vorher hier fälschlich „5"
-  dokumentiert, tatsächlich bereits vor dem `WindowGroup`→`Window`-Fix desselben Tages
-  9 Fehlschläge), 2 flaky-unter-Last Tests in `FeedViewModelTests.swift`
-  (`refreshAllFeedsMitSQLiteDatabaseNutztSQLiteFirstOhneDoppeltenAbruf`,
+  grundlos als eigenen Bug behandeln): 15 Tests in `FeedivoAppSceneConfigurationTests.swift`
+  (Zahl am 2026-07-14 korrigiert — vorher hier „9" dokumentiert, Stand 2026-07-11. Beim
+  Bereinigung-dauerhaft-Feature fanden zwei unabhängige Untersuchungen — der Task-4-Reviewer
+  per disposable `git worktree`-Checkout des Basis-Commits vor dem Feature, und der finale
+  Whole-Branch-Reviewer erneut auf dem fertigen Branch — exakt dieselben 15, thematisch
+  unabhängigen Fehlschläge (u. a. Toolbar-Layout, Tag-Stores, Feed-Eigenschaften,
+  Sidebar-Reihenfolge, Artikel-Inspector, Einstellungen-Fenster, Such-/Popout-Fenster). Reine
+  Dokumentations-Drift seit 2026-07-11, vermutlich durch dazwischenliegende Feature-Durchgänge
+  angewachsen — keine Regression eines einzelnen Features), 2 flaky-unter-Last Tests in
+  `FeedViewModelTests.swift` (`refreshAllFeedsMitSQLiteDatabaseNutztSQLiteFirstOhneDoppeltenAbruf`,
   `refreshAllFeedsMitSQLiteDatabaseMeldetFeedBenachrichtigungen`).
 - **Hauptfenster-Szene muss `Window`, nicht `WindowGroup` sein:** `WindowGroup(id:)` ist laut
   SwiftUI-Design für mehrere gleichzeitige Fenster-Instanzen gedacht — `openWindow(id:)`
@@ -487,6 +503,26 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
   `47f9ee7f`) + Regressionstest `newestUnreadLiefertFaviconURLDesFeedsMit`. Bei künftigen
   neuen `ArticleListSnapshot`-Feldern **beide** SQL-Stellen (`ArticleDatabase.swift` UND
   `TimelineStore.swift`) prüfen, nicht nur die naheliegendste.
+- **Bei erneut zugestelltem Artikel ist `arrivedAt` das frische Jetzt, nicht das
+  ursprüngliche Erstsichtungsdatum:** `ArticleStore.upsert()` erhält bei jedem Feed-Refresh
+  ein neues `ArticleUpsertInput` mit `arrivedAt: refreshedAt`/`now()` (siehe
+  `SQLiteFeedRefreshService.swift`/`SQLiteFeedSubscriptionService.swift`) — auch für einen
+  Artikel, der schon lange bekannt ist und nur erneut vom Feed geliefert wird. Ein Fallback
+  wie `input.publishedAt ?? input.arrivedAt` liefert für publishedAt-lose Artikel deshalb
+  praktisch immer "jetzt", NIE ein altes Datum. Beim Bereinigung-dauerhaft-Feature
+  (2026-07-14) übernahm der Implementierungsplan genau diesen Fallback wörtlich aus der
+  Design-Spec-Pseudocode für die neue Wiedereinfüge-Sperre (`ArticleStore.swift:415`) — dadurch
+  entkamen publishedAt-lose, bereits bereinigte Artikel der Sperre und wurden trotz gesetztem
+  `wasRemovedByRetention`-Flag sofort wieder eingefügt. Im finalen Whole-Branch-Review gefunden,
+  Fix (Commit `88db711`): `history.firstSeenAt` (das beim allerersten Sehen einmalig gesetzte,
+  seither stabile Datum aus `article_identity_history`) statt `input.arrivedAt` als Fallback —
+  konsistent zur `effectiveDate`-Semantik der periodischen Bereinigung selbst
+  (`SQLiteArticleRetentionCandidate` in `ArticleRetentionCleanupService.swift`). **Lehre:** Bei
+  jeder neuen Logik, die ein "wie alt ist dieser Artikel wirklich"-Datum aus einem frischen
+  `ArticleUpsertInput` ableiten will, `input.arrivedAt` nur für einen tatsächlich neuen Artikel
+  verwenden — für einen wiederkehrenden/erneut zugestellten Artikel muss stattdessen ein
+  gespeichertes, set-once-Datum (`history.firstSeenAt`, `status.dateArrived`) herangezogen
+  werden.
 
 ---
 
@@ -571,9 +607,16 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Aktuell in Arbeit
 
+- **2026-07-14 (Vormittag): Bereinigte Artikel bleiben dauerhaft weg + Start-Reihenfolge-Fix —
+  VOLLSTÄNDIG ABGESCHLOSSEN und auf `origin/main` gepusht.** Folge-Diagnose nach den
+  Befund-A/B/C-Fixes: Nutzer meldete weiterhin, dass bereinigte Artikel beim nächsten
+  Feed-Refresh sofort wieder auftauchten, und dass die automatische Bereinigung beim
+  App-Start gelegentlich vom Start-Refresh überholt wurde. Via Brainstorming+Spec+
+  Plan+Subagent-Driven-Development (4 Tasks + 1 Fix-Runde) behoben. Details siehe
+  „Letzte Änderungen" unten.
 - **2026-07-13/14 (Nacht): Drei Bugfixes automatische Artikel-Bereinigung —
-  VOLLSTÄNDIG ABGESCHLOSSEN, LOKAL AUF MAIN, NICHT gepusht (Befund-A/B-Fixes
-  bereits gepusht, Befund-C-Feature noch nicht).** Nutzer-Report: "Alte
+  VOLLSTÄNDIG ABGESCHLOSSEN und auf `origin/main` gepusht (alle Befund-A/B/C-Fixes,
+  inzwischen im selben Rutsch wie das obige Feature gepusht).** Nutzer-Report: "Alte
   Artikel bleiben trotz aktivierter Bereinigung liegen, auch nach Tagen im
   Hintergrund." Root-Cause-Analyse via systematic-debugging fand drei
   unabhängige Befunde, alle drei behoben:
@@ -618,7 +661,8 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
     gemeinsamer Status). Whole-Branch-Review (Opus) fand 1 Important-Finding
     (siehe neuer Gotcha unten zu Xcodes String-Catalog-Auto-Stub bei
     indirekten `L10n`-Keys), behoben und re-verifiziert. Details siehe
-    „Letzte Änderungen" unten.
+    „Letzte Änderungen" unten. Gepusht (`3401236..61b4cb3`, im selben Rutsch
+    wie das Bereinigung-dauerhaft-Feature).
 - **2026-07-13 (spät Abend): Tags direkt im Reader-Header hinzufügen —
   VOLLSTÄNDIG ABGESCHLOSSEN und auf `origin/main` gepusht.** Neuer "+"-Button
   neben Ordner-/Tag-Chips im Reader-Header öffnet ein Popover mit denselben
@@ -663,6 +707,48 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Letzte Änderungen
 
+- 2026-07-14 (Vormittag): Bereinigte Artikel bleiben dauerhaft weg +
+  Start-Reihenfolge-Fix — via Brainstorming + Spec + Plan +
+  Subagent-Driven-Development (4 Tasks + 1 Fix-Runde) umgesetzt. Spec:
+  `docs/superpowers/specs/2026-07-14-bereinigung-dauerhaft-design.md`, Plan:
+  `docs/superpowers/plans/2026-07-14-bereinigung-dauerhaft.md`. Zwei
+  zusammenhängende Bugs behoben, beide Folge-Diagnosen nach den
+  Befund-A/B/C-Fixes:
+  - **Komponente 1 (Start-Reihenfolge, Task 4):** `cleanupExpiredArticlesIfNeeded()`
+    lief bisher in einem eigenen, unabhängigen `.task`-Block in `FeedivoApp.swift`,
+    ungeordnet relativ zu einem möglichen Start-Refresh (`ContentView.
+    refreshFeedsOnLaunchIfNeeded()`) — der Start-Refresh konnte gerade bereinigte
+    Artikel sofort wieder einfügen, bevor der Nutzer sie als gelöscht sah. Fix:
+    Aufruf aus dem `.task`-Block entfernt, stattdessen als allererster Schritt in
+    `ContentView.handleContentAppear()` aufgerufen (beide laufen synchron auf dem
+    MainActor, damit ist die Reihenfolge garantiert).
+  - **Komponente 2 (dauerhaftes Wiedereinfügen, Tasks 1-3):** `ArticleStore.upsert()`
+    prüfte nur, ob ein Artikel aktuell in der `articles`-Tabelle existiert — ein
+    von der Bereinigung gelöschter Artikel fehlt dort, also fügte jeder folgende
+    Feed-Refresh ihn erneut ein, sobald der Feed ihn weiterhin lieferte. Fix: neue
+    Migration v14 + Flag `wasRemovedByRetention` auf `article_identity_history`
+    (Task 1); `ArticleRetentionCleanupService` setzt das Flag beim Bereinigen auf
+    `true`, `ArticleRetentionConfiguration` modulweit sichtbar gemacht (Task 2);
+    `ArticleStore.upsert()` prüft das Flag vor dem Insert eines "neuen" Artikels
+    gegen die *aktuellen* Bereinigungs-Einstellungen (global oder Feed-Override)
+    und überspringt den Insert, falls der Artikel weiterhin abgelaufen wäre —
+    ändert der Nutzer später die Einstellungen, erscheint der Artikel regulär
+    wieder (Task 3).
+  - Alle vier Task-Reviews clean im ersten Anlauf (0 Critical/Important/Minor
+    je Task). Finaler Whole-Branch-Review (Opus) fand 1 Important-Finding: der
+    Plan übernahm aus der Design-Spec-Pseudocode `input.publishedAt ??
+    input.arrivedAt` als Datumsfallback — bei publishedAt-losen, erneut
+    zugestellten Artikeln ist `arrivedAt` aber das frische Jetzt des aktuellen
+    Refreshs, nicht das ursprüngliche Erstsichtungsdatum, wodurch diese Kategorie
+    der Sperre entkam (neuer Gotcha oben). Nutzerentscheidung: sofort fixen. Fix
+    (Commit `88db711`): `history.firstSeenAt` statt `input.arrivedAt`, neuer
+    Regressionstest. Re-Review (Opus) bestätigt: „Ready to merge: Yes". Nebenbefund
+    (2 unabhängige Untersuchungen, siehe korrigierter Gotcha oben): `CLAUDE.md`
+    dokumentierte 9 vorbestehende Fehlschläge in
+    `FeedivoAppSceneConfigurationTests.swift`, tatsächlich sind es 15 — reine
+    Dokumentations-Drift, keine Regression. Commits `d4909eb75..88db7116f`
+    (5 Commits) — gepusht (`88db7116f`), zusammen mit den zuvor unpushed
+    Befund-C-Commits (siehe unten).
 - 2026-07-13/14 (Nacht): Befund C (persistenter Status für automatische
   Bereinigung) — via Brainstorming + Plan + Subagent-Driven-Development
   (3 Tasks) umgesetzt. Spec:
@@ -674,8 +760,8 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   dupliziert. Alle drei Tasks clean im ersten Anlauf. Whole-Branch-Review
   (Opus) fand 1 Important-Finding (fehlende L10n-Katalogeinträge für 7 neue
   indirekte `L10n`-Keys, siehe neuer Gotcha oben), Fix-Runde behoben und
-  re-verifiziert. Commits `b902998..61b4cb3` (4 Commits) lokal auf main,
-  NICHT gepusht (Nutzerbestätigung ausstehend).
+  re-verifiziert. Commits `b902998..61b4cb3` (4 Commits) — gepusht
+  (zusammen mit dem obigen Bereinigung-dauerhaft-Feature).
 - 2026-07-13 (spät Abend): Tags direkt im Reader-Header hinzufügen — via
   Brainstorming + Plan + Subagent-Driven-Development (3 Tasks) umgesetzt.
   Spec: `docs/superpowers/specs/2026-07-13-reader-tags-hinzufuegen-design.md`,
