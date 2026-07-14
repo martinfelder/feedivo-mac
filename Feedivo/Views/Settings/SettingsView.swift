@@ -899,9 +899,9 @@ private struct RefreshSettingsView: View {
                     }
 
                     VStack(spacing: 5) {
-                        statusLine(title: L10n.settingsAutomaticRefreshLastRun, value: formattedRefreshDate(lastAutomaticRefreshTimestamp))
+                        statusLine(title: L10n.settingsAutomaticRefreshLastRun, value: formattedAutomaticStatusDate(lastAutomaticRefreshTimestamp))
                         statusLine(title: L10n.settingsAutomaticRefreshStatus, value: automaticRefreshStatusText)
-                        statusLine(title: L10n.settingsAutomaticRefreshNextRun, value: formattedRefreshDate(nextAutomaticRefreshTimestamp))
+                        statusLine(title: L10n.settingsAutomaticRefreshNextRun, value: formattedAutomaticStatusDate(nextAutomaticRefreshTimestamp))
 
                         if (lastAutomaticRefreshStatus == BackgroundRefreshSettings.statusFailed
                             || lastAutomaticRefreshStatus == BackgroundRefreshSettings.statusPartial),
@@ -913,38 +913,6 @@ private struct RefreshSettingsView: View {
                 }
             }
         }
-    }
-
-    private func statusLine(title: LocalizedStringKey, value: String) -> some View {
-        HStack {
-            Text(title)
-                .foregroundStyle(.tertiary)
-            Spacer()
-            Text(value)
-                .fontWeight(.medium)
-                .foregroundStyle(.secondary)
-                .monospacedDigit()
-        }
-        .font(.system(size: 11))
-        .padding(.horizontal, 9)
-        .frame(height: 26)
-        .background(Color(nsColor: .controlBackgroundColor).opacity(0.85), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-    }
-
-    private func statusLine(title: LocalizedStringKey, value: LocalizedStringKey) -> some View {
-        HStack {
-            Text(title)
-                .foregroundStyle(.tertiary)
-            Spacer()
-            Text(value)
-                .fontWeight(.medium)
-                .foregroundStyle(.secondary)
-                .monospacedDigit()
-        }
-        .font(.system(size: 11))
-        .padding(.horizontal, 9)
-        .frame(height: 26)
-        .background(Color(nsColor: .controlBackgroundColor).opacity(0.85), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
     private var automaticRefreshStatusText: LocalizedStringKey {
@@ -959,17 +927,49 @@ private struct RefreshSettingsView: View {
             L10n.settingsAutomaticRefreshStatusNever
         }
     }
+}
 
-    private func formattedRefreshDate(_ timestamp: Double) -> String {
-        guard timestamp > 0 else {
-            return String(localized: "settings.automaticRefresh.noDate")
-        }
-
-        return Date(timeIntervalSince1970: timestamp).formatted(
-            date: .abbreviated,
-            time: .shortened
-        )
+private func statusLine(title: LocalizedStringKey, value: String) -> some View {
+    HStack {
+        Text(title)
+            .foregroundStyle(.tertiary)
+        Spacer()
+        Text(value)
+            .fontWeight(.medium)
+            .foregroundStyle(.secondary)
+            .monospacedDigit()
     }
+    .font(.system(size: 11))
+    .padding(.horizontal, 9)
+    .frame(height: 26)
+    .background(Color(nsColor: .controlBackgroundColor).opacity(0.85), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+}
+
+private func statusLine(title: LocalizedStringKey, value: LocalizedStringKey) -> some View {
+    HStack {
+        Text(title)
+            .foregroundStyle(.tertiary)
+        Spacer()
+        Text(value)
+            .fontWeight(.medium)
+            .foregroundStyle(.secondary)
+            .monospacedDigit()
+    }
+    .font(.system(size: 11))
+    .padding(.horizontal, 9)
+    .frame(height: 26)
+    .background(Color(nsColor: .controlBackgroundColor).opacity(0.85), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+}
+
+private func formattedAutomaticStatusDate(_ timestamp: Double) -> String {
+    guard timestamp > 0 else {
+        return String(localized: "settings.automaticRefresh.noDate")
+    }
+
+    return Date(timeIntervalSince1970: timestamp).formatted(
+        date: .abbreviated,
+        time: .shortened
+    )
 }
 
 private struct SyncSettingsView: View {
@@ -1051,6 +1051,18 @@ private struct CleanupSettingsView: View {
 
     @AppStorage(ArticleRetentionSettings.includesProtectedArticlesKey)
     private var articleRetentionIncludesProtectedArticles = ArticleRetentionSettings.defaultIncludesProtectedArticles
+
+    @AppStorage(ArticleRetentionSettings.lastAutomaticCleanupDateKey)
+    private var lastAutomaticCleanupTimestamp = 0.0
+
+    @AppStorage(ArticleRetentionSettings.lastAutomaticCleanupStatusKey)
+    private var lastAutomaticCleanupStatus = ""
+
+    @AppStorage(ArticleRetentionSettings.lastAutomaticCleanupErrorKey)
+    private var lastAutomaticCleanupError = ""
+
+    @AppStorage(ArticleRetentionSettings.lastAutomaticCleanupRemovedCountKey)
+    private var lastAutomaticCleanupRemovedCount = 0
 
     @State private var retentionCleanupResult: String?
     @State private var retentionCleanupError: String?
@@ -1136,7 +1148,42 @@ private struct CleanupSettingsView: View {
                         .foregroundStyle(.red)
                         .frame(maxWidth: .infinity, alignment: .trailing)
                 }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Automatischer Bereinigungsstatus")
+                            .font(.system(size: 14))
+                        Text("Letzter automatischer Lauf (App-Start, Hintergrund-Refresh, Feed-Einstellungsänderung).")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.tertiary)
+                    }
+
+                    VStack(spacing: 5) {
+                        statusLine(title: L10n.settingsAutomaticCleanupLastRun, value: formattedAutomaticStatusDate(lastAutomaticCleanupTimestamp))
+                        statusLine(title: L10n.settingsAutomaticCleanupStatus, value: automaticCleanupStatusText)
+
+                        if lastAutomaticCleanupStatus == ArticleRetentionSettings.statusSuccess {
+                            statusLine(title: L10n.settingsAutomaticCleanupRemovedCount, value: "\(lastAutomaticCleanupRemovedCount)")
+                        }
+
+                        if lastAutomaticCleanupStatus == ArticleRetentionSettings.statusFailed, !lastAutomaticCleanupError.isEmpty {
+                            statusLine(title: L10n.settingsAutomaticCleanupLastError, value: lastAutomaticCleanupError)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                }
             }
+        }
+    }
+
+    private var automaticCleanupStatusText: LocalizedStringKey {
+        switch lastAutomaticCleanupStatus {
+        case ArticleRetentionSettings.statusSuccess:
+            L10n.settingsAutomaticCleanupStatusSuccess
+        case ArticleRetentionSettings.statusFailed:
+            L10n.settingsAutomaticCleanupStatusFailed
+        default:
+            L10n.settingsAutomaticCleanupStatusNever
         }
     }
 
