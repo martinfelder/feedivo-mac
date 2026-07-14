@@ -564,6 +564,28 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
   Vorab-Fehlschlag dokumentiert (analog zu den 15 vorbestehenden Fehlschlägen in
   `FeedivoAppSceneConfigurationTests.swift` und den 2 flaky-unter-Last-Tests in
   `FeedViewModelTests.swift`).
+- **`UTType(exportedAs:)` braucht trotzdem einen `Info.plist`-Eintrag, auch bei rein
+  appinterner `Transferable`-Nutzung:** Beim Feeds-Drag-&-Drop-Feature (2026-07-14) ging
+  sowohl die ursprüngliche Design-Spec als auch — nach eigener "Korrektur" während der
+  Plan-Erstellung — der Implementierungsplan davon aus, `UTType(exportedAs:)` genüge für
+  rein prozessinternes Drag & Drop (Feed-/Ordner-Zeilen innerhalb derselben Sidebar) ganz
+  ohne `UTExportedTypeDeclarations`-Eintrag, mit der Begründung, dieser sei nur für
+  Interoperabilität mit anderen Apps/Finder/Spotlight nötig. Das ist falsch: macOS
+  validiert beim tatsächlichen Drag-Betrieb trotzdem gegen die im `Info.plist`
+  deklarierten `UTExportedTypeDeclarations` — ohne passenden Eintrag meldet das System
+  zur Laufzeit `"Type ... was expected to be declared and exported in the Info.plist ...
+  but it was not found."` (per Nutzer-Report entdeckt, NICHT durch die
+  Subagent-Driven-Development-Reviews, da keiner der Reviewer die App tatsächlich
+  gestartet und eine echte Drag-Geste ausgeführt hat — reiner Build+Test-Check deckt das
+  nicht auf). Fix: zwei `UTExportedTypeDeclarations`-Einträge (`UTTypeIdentifier`,
+  `UTTypeDescription`, `UTTypeConformsTo: ["public.data"]`) in `Feedivo/Info.plist`
+  ergänzt, per `plutil -p` auf dem tatsächlich gebauten App-Bundle verifiziert (nicht nur
+  auf `BUILD SUCCEEDED` verlassen — deckt sich mit dem bereits bestehenden Gotcha zu
+  physischen `Info.plist`-Änderungen bei `CFBundleURLTypes`). **Lehre:** Bei jedem
+  eigenen `UTType(exportedAs:)` IMMER einen passenden `Info.plist`-Eintrag ergänzen,
+  unabhängig davon, ob Interoperabilität mit anderen Apps gebraucht wird — die Annahme
+  "nur für Cross-App-Interop nötig" war ein reiner Trugschluss, nicht durch Apples
+  Dokumentation gedeckt.
 
 ---
 

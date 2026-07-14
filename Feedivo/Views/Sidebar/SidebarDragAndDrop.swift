@@ -1,10 +1,15 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-// Reine In-Prozess-Nutzung (Drag & Drop nur innerhalb desselben Fensters,
-// keine Interoperabilität mit anderen Apps/Finder/Spotlight nötig) — deshalb
-// genügt UTType(exportedAs:) rein im Code, ganz ohne Info.plist-Eintrag unter
-// UTExportedTypeDeclarations.
+// UTType(exportedAs:) erzeugt zwar einen In-Prozess-UTType-Wert, aber macOS
+// validiert beim tatsächlichen Drag-&-Drop-Betrieb trotzdem gegen die im
+// Info.plist deklarierten UTExportedTypeDeclarations — auch bei rein
+// appinterner Nutzung ohne Interoperabilität mit anderen Apps. Ohne passenden
+// Eintrag dort meldet das System zur Laufzeit "Type ... was expected to be
+// declared and exported in the Info.plist ... but it was not found."
+// (gefunden per Nutzer-Report 2026-07-14, ursprüngliche Plan-Annahme "kein
+// Info.plist-Eintrag nötig" war falsch). Beide Typen sind seither in
+// Feedivo/Info.plist unter UTExportedTypeDeclarations deklariert.
 extension UTType {
     static let feedivoFeedDragItem = UTType(exportedAs: "ch.martin.Feedivo.feed-drag-item")
     static let feedivoFolderDragItem = UTType(exportedAs: "ch.martin.Feedivo.folder-drag-item")
