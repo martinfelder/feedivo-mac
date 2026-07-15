@@ -418,10 +418,10 @@ struct SidebarOutlineView: NSViewRepresentable {
                     } label: {
                         HStack(spacing: 7) {
                             Image(systemName: parent.isFoldersCollapsed ? "chevron.right" : "chevron.down")
-                                .font(.system(size: 10, weight: .bold))
+                                .font(.system(size: 13, weight: .bold))
                                 .frame(width: 12)
                             Text(L10n.sidebarFoldersSection)
-                                .font(.system(size: 11, weight: .bold))
+                                .font(.system(size: 14, weight: .bold))
                                 .textCase(.uppercase)
                         }
                         .contentShape(Rectangle())
@@ -484,10 +484,10 @@ struct SidebarOutlineView: NSViewRepresentable {
                 Button(action: toggle) {
                     HStack(spacing: 7) {
                         Image(systemName: isCollapsed ? "chevron.right" : "chevron.down")
-                            .font(.system(size: 10, weight: .bold))
+                            .font(.system(size: 13, weight: .bold))
                             .frame(width: 12)
                         Text(title)
-                            .font(.system(size: 11, weight: .bold))
+                            .font(.system(size: 14, weight: .bold))
                             .textCase(.uppercase)
                     }
                     .contentShape(Rectangle())
