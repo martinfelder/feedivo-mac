@@ -65,6 +65,26 @@
 				<string>public.data</string>
 			</array>
 		</dict>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>ch.martin.Feedivo.tag-drag-item</string>
+			<key>UTTypeDescription</key>
+			<string>Feedivo Tag Drag Item</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+		</dict>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>ch.martin.Feedivo.smart-folder-drag-item</string>
+			<key>UTTypeDescription</key>
+			<string>Feedivo Smart Folder Drag Item</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+		</dict>
 	</array>
 </dict>
 </plist>
