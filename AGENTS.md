@@ -2425,6 +2425,14 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 > Ab hier (neueste zuerst) synchron zu `CLAUDE.md` gehalten. Die Einträge darunter sind
 > das ältere, sehr detaillierte AGENTS.md-eigene Changelog und bleiben unverändert stehen.
 
+- 2026-07-15: Performance- und Feature-Integrationsaudit dokumentiert. Der
+  SQLite/GRDB-Unterbau bleibt NetNewsWire-nah, aber vor Release sind insbesondere
+  der stille In-Memory-Fallback bei Datenbankfehlern, das feste 500er-Listenlimit
+  ohne Pagination, Sortierung nach dem SQL-Limit, synchroner Timeline-Read auf
+  dem Main Actor sowie unvollständig verdrahtete Kontextmenü-, Smart-Folder- und
+  iCloud-UI-Pfade zu beheben. Vollständiger Bericht:
+  `docs/performance/feedivo-performance-feature-integration-audit-2026-07-15.md`.
+
 - 2026-07-09: OPML-Import-Dialog auf "Konzept A" migriert (`RuleDialogTheme`) — Dialog-Rahmen/
   Header/Divider (Commit `fc26257`), Datei-Auswahlzeile/Toolbar/Buttons/Footer/Feed-Tabelle
   (Commit `03dd4f14`, gemeinsam mit dem Header-Task umgesetzt, da der Zwischenstand sonst

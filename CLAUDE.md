@@ -849,6 +849,16 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Letzte Änderungen
 
+- 2026-07-15: Performance- und Feature-Integrationsaudit des produktiven
+  SQLite-/GRDB-Pfads dokumentiert und mit der lokalen NetNewsWire-Referenz
+  verglichen. Bericht:
+  `docs/performance/feedivo-performance-feature-integration-audit-2026-07-15.md`.
+  Priorisierte Befunde: stiller In-Memory-Fallback bei Datenbankfehlern, globales
+  500-Artikel-Limit ohne Pagination, Sortierung erst nach dem SQL-Limit,
+  synchroner GRDB-Read im Main-Actor-Loader, unverdrahtete Kontextaktionen,
+  irreführender iCloud-Status sowie uneinheitliche Smart-Folder-Policies. Der
+  bestehende NetNewsWire-Mechanikvergleich wurde auf den aktuellen SQLite-only-
+  Stand eingeordnet. Keine Produktivcode-Änderung in diesem Arbeitsschritt.
 - 2026-07-15: Sidebar auf AppKit NSOutlineView umgestellt (ADR-008) + Ordner-Sortier-Menü
   + TEMPDEBUG-Cleanup — vollständige Details siehe „Aktuell in Arbeit" oben, hier nicht
   dupliziert. Commits `3cc693c1f..7344983d2` auf `main`, NICHT gepusht.

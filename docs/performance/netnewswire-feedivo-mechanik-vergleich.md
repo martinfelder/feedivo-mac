@@ -1,6 +1,16 @@
 # NetNewsWire vs. Feedivo: Mechanik- und Performance-Vergleich
 
-Stand: 2026-07-03
+Stand: 2026-07-15
+
+> **Aktuelles Follow-up:** Das Audit vom 2026-07-15 hat mehrere Abweichungen
+> zwischen dem hier beschriebenen Zielbild und dem aktuellen Produktpfad
+> gefunden: festes 500er-Listenlimit ohne Pagination, Sortierung erst nach dem
+> SQL-Limit, synchroner GRDB-Read im Main-Actor-Loader sowie unvollständige
+> Feature-Verdrahtung. Der priorisierte Bericht liegt unter
+> `docs/performance/feedivo-performance-feature-integration-audit-2026-07-15.md`.
+> Die Kernaussage dieses Vergleichs bleibt bestehen: Feedivos Datenmodell ist
+> NetNewsWire-nah; die größten Lücken liegen heute an Ausführungs- und
+> Integrationsgrenzen.
 
 Diese Notiz hält die Erkenntnisse aus dem Codevergleich zwischen NetNewsWire
 (`/Users/martinfelder/Developer/NetNewsWire-main`) und Feedivo fest. Es geht

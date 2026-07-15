@@ -1105,6 +1105,13 @@
 ### 26.2 Performance bei vielen Feeds
 - **Status:** 🔨 In Arbeit — Qualitätsziel für Codex
 - **Ziel:** 500 Feeds / 100'000 Artikel flüssig
+- **Audit 2026-07-15:** Der SQLite-Unterbau ist weiterhin tragfähig, aber das
+  Qualitätsziel ist noch nicht erreicht. Der produktive Hauptlistenpfad lädt
+  fest maximal 500 Artikel ohne Pagination; alternative Sortierungen werden
+  erst nach diesem SQL-Limit im Speicher angewendet. Außerdem läuft der
+  synchrone Timeline-Read noch im `@MainActor`-Loader. Der priorisierte Befund
+  und NetNewsWire-Vergleich stehen in
+  `docs/performance/feedivo-performance-feature-integration-audit-2026-07-15.md`.
 - **Architekturentscheidung 2026-07-02:** Feedivo übernimmt für den
   Performance-kritischen Hauptpfad grundsätzlich NetNewsWires Mechanik:
   SQLite-only mit GRDB, getrennte Tabellen für Artikel und Artikelstatus,
