@@ -8,6 +8,7 @@ struct SQLiteSmartFolderSnapshot: Equatable, Identifiable, Sendable {
     var iconName: String?
     var colorHex: String?
     var defaultKey: String?
+    var defaultShowsReadArticles: Bool
 
     init(
         id: String,
@@ -16,7 +17,8 @@ struct SQLiteSmartFolderSnapshot: Equatable, Identifiable, Sendable {
         conditions: [SQLiteSmartFolderConditionSnapshot],
         iconName: String? = nil,
         colorHex: String? = nil,
-        defaultKey: String? = nil
+        defaultKey: String? = nil,
+        defaultShowsReadArticles: Bool = false
     ) {
         self.id = id
         self.name = name
@@ -25,13 +27,15 @@ struct SQLiteSmartFolderSnapshot: Equatable, Identifiable, Sendable {
         self.iconName = iconName
         self.colorHex = colorHex
         self.defaultKey = defaultKey
+        self.defaultShowsReadArticles = defaultShowsReadArticles
     }
 
     init(
         id: String = UUID().uuidString,
         name: String,
         matchMode: RuleMatchMode,
-        conditionDrafts: [SmartFolderConditionDraft]
+        conditionDrafts: [SmartFolderConditionDraft],
+        defaultShowsReadArticles: Bool = false
     ) {
         self.id = id
         self.name = name
@@ -39,6 +43,7 @@ struct SQLiteSmartFolderSnapshot: Equatable, Identifiable, Sendable {
         self.iconName = nil
         self.colorHex = nil
         self.defaultKey = nil
+        self.defaultShowsReadArticles = defaultShowsReadArticles
         self.conditions = conditionDrafts.map { draft in
             SQLiteSmartFolderConditionSnapshot(
                 field: draft.field,
@@ -55,6 +60,7 @@ struct SQLiteSmartFolderSnapshot: Equatable, Identifiable, Sendable {
         self.iconName = folder.iconName
         self.colorHex = folder.colorHex
         self.defaultKey = folder.defaultKey
+        self.defaultShowsReadArticles = folder.defaultShowsReadArticles
         self.conditions = conditions.compactMap(SQLiteSmartFolderConditionSnapshot.init(condition:))
     }
 }

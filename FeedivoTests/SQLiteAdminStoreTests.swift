@@ -249,6 +249,37 @@ struct SQLiteAdminStoreTests {
         #expect(defaultKeys.contains("saved"))
     }
 
+    @Test func smartFolderStorePersistiertUndDupliziertDefaultShowsReadArticles() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let store = SQLiteSmartFolderStore(database: database)
+
+        try store.save(
+            SmartFolderRecord(
+                id: "folder-1",
+                name: "Projekt X",
+                matchMode: RuleMatchMode.all.rawValue,
+                isShownInSidebar: true,
+                sortOrder: 0,
+                iconName: "tray.full",
+                colorHex: "#3B82F6",
+                defaultShowsReadArticles: true
+            ),
+            conditions: []
+        )
+
+        #expect(try store.folder(id: "folder-1")?.defaultShowsReadArticles == true)
+        #expect(try store.sidebarSnapshots().first?.defaultShowsReadArticles == true)
+
+        let duplicate = try store.duplicate(id: "folder-1", copyName: "Projekt X Kopie")
+        #expect(duplicate.defaultShowsReadArticles == true)
+
+        try store.restoreDefaultFolders()
+        let starredFolder = try store.folders().first { $0.defaultKey == "starred" }
+        #expect(starredFolder?.defaultShowsReadArticles == true)
+        let todayFolder = try store.folders().first { $0.defaultKey == "today" }
+        #expect(todayFolder?.defaultShowsReadArticles == false)
+    }
+
     @Test func renameFeedRejectsEmptyTitle() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let store = FeedStore(database: database)

@@ -13,6 +13,7 @@ struct SmartFolderRecord: Codable, FetchableRecord, Identifiable, MutablePersist
     var defaultKey: String?
     var iconName: String?
     var colorHex: String?
+    var defaultShowsReadArticles: Bool
     var createdAt: Date
     var updatedAt: Date
 
@@ -26,6 +27,7 @@ struct SmartFolderRecord: Codable, FetchableRecord, Identifiable, MutablePersist
         defaultKey: String? = nil,
         iconName: String? = nil,
         colorHex: String? = nil,
+        defaultShowsReadArticles: Bool = false,
         createdAt: Date = Date(),
         updatedAt: Date = Date()
     ) {
@@ -38,6 +40,7 @@ struct SmartFolderRecord: Codable, FetchableRecord, Identifiable, MutablePersist
         self.defaultKey = defaultKey
         self.iconName = iconName
         self.colorHex = colorHex
+        self.defaultShowsReadArticles = defaultShowsReadArticles
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }

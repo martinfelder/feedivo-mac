@@ -86,7 +86,8 @@ struct SQLiteSmartFolderStore {
                 sortOrder: maxSortOrder,
                 defaultKey: nil,
                 iconName: source.iconName,
-                colorHex: source.colorHex
+                colorHex: source.colorHex,
+                defaultShowsReadArticles: source.defaultShowsReadArticles
             )
             try duplicate.insert(db)
 
@@ -150,7 +151,8 @@ struct SQLiteSmartFolderStore {
                     sortOrder: nextSortOrder,
                     defaultKey: definition.defaultKey,
                     iconName: definition.iconName,
-                    colorHex: definition.colorHex
+                    colorHex: definition.colorHex,
+                    defaultShowsReadArticles: definition.defaultShowsReadArticles
                 )
                 try folder.insert(db)
 
@@ -213,7 +215,8 @@ struct SQLiteSmartFolderStore {
                     },
                     iconName: folder.iconName,
                     colorHex: folder.colorHex,
-                    defaultKey: folder.defaultKey
+                    defaultKey: folder.defaultKey,
+                    defaultShowsReadArticles: folder.defaultShowsReadArticles
                 )
             }
         }
@@ -243,6 +246,7 @@ struct SQLiteSmartFolderStore {
             defaultKey: "all",
             iconName: "tray.full",
             colorHex: "#3B82F6",
+            defaultShowsReadArticles: false,
             conditions: []
         ),
         DefaultSmartFolderDefinition(
@@ -251,6 +255,7 @@ struct SQLiteSmartFolderStore {
             defaultKey: "unread",
             iconName: "circle.fill",
             colorHex: "#14B8A6",
+            defaultShowsReadArticles: false,
             conditions: [
                 DefaultSmartFolderCondition(
                     field: .status,
@@ -265,6 +270,7 @@ struct SQLiteSmartFolderStore {
             defaultKey: "starred",
             iconName: "star.fill",
             colorHex: "#F59E0B",
+            defaultShowsReadArticles: true,
             conditions: [
                 DefaultSmartFolderCondition(
                     field: .status,
@@ -279,6 +285,7 @@ struct SQLiteSmartFolderStore {
             defaultKey: "today",
             iconName: "calendar",
             colorHex: "#22C55E",
+            defaultShowsReadArticles: false,
             conditions: [
                 DefaultSmartFolderCondition(
                     field: .date,
@@ -293,6 +300,7 @@ struct SQLiteSmartFolderStore {
             defaultKey: "hidden",
             iconName: "eye.slash",
             colorHex: "#6B7280",
+            defaultShowsReadArticles: true,
             conditions: [
                 DefaultSmartFolderCondition(
                     field: .status,
@@ -307,6 +315,7 @@ struct SQLiteSmartFolderStore {
             defaultKey: "archived",
             iconName: "archivebox",
             colorHex: "#8B5CF6",
+            defaultShowsReadArticles: false,
             conditions: [
                 DefaultSmartFolderCondition(
                     field: .status,
@@ -321,6 +330,7 @@ struct SQLiteSmartFolderStore {
             defaultKey: "thisWeek",
             iconName: "calendar",
             colorHex: "#22C55E",
+            defaultShowsReadArticles: true,
             conditions: [
                 DefaultSmartFolderCondition(
                     field: .date,
@@ -335,6 +345,7 @@ struct SQLiteSmartFolderStore {
             defaultKey: "saved",
             iconName: "bookmark",
             colorHex: "#F97316",
+            defaultShowsReadArticles: true,
             conditions: [
                 DefaultSmartFolderCondition(
                     field: .status,
@@ -361,6 +372,7 @@ private struct DefaultSmartFolderDefinition {
     let defaultKey: String
     let iconName: String
     let colorHex: String
+    let defaultShowsReadArticles: Bool
     let conditions: [DefaultSmartFolderCondition]
 }
 
