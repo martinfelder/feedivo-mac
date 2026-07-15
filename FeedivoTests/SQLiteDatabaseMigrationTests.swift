@@ -444,7 +444,6 @@ struct SQLiteDatabaseMigrationTests {
             }
         }
         for identifier in [
-            "v2_create_tag_tables",
             "v3_create_feed_tag_table",
             "v4_create_article_search_index",
             "v5_create_article_offline_table",
@@ -452,6 +451,36 @@ struct SQLiteDatabaseMigrationTests {
         ] {
             legacyMigrator.registerMigration(identifier) { _ in }
         }
+        // v2_create_tag_tables als reale Tabellenerzeugung statt Leer-Closure:
+        // spätere Migrationen (u. a. v16_add_tag_sort_index) griffen inzwischen
+        // auf die tags-Tabelle zu — ein Leer-Stub hier ließ FeedivoDatabaseMigrator
+        // die Migration fälschlich als "bereits angewendet" überspringen, ohne dass
+        // die Tabelle je existierte ("no such table: tags" beim späteren ALTER TABLE).
+        legacyMigrator.registerMigration("v2_create_tag_tables") { database in
+            try database.create(table: "tags") { table in
+                table.column("id", .text).primaryKey()
+                table.column("name", .text).notNull()
+                table.column("colorHex", .text).notNull().defaults(to: "#888888")
+                table.column("createdAt", .datetime).notNull()
+                table.column("updatedAt", .datetime).notNull()
+            }
+
+            try database.create(table: "article_tags") { table in
+                table.column("articleID", .text).notNull()
+                    .references("articles", column: "id", onDelete: .cascade)
+                table.column("tagID", .text).notNull()
+                    .references("tags", column: "id", onDelete: .cascade)
+                table.column("assignedAt", .datetime).notNull()
+                table.primaryKey(["articleID", "tagID"])
+            }
+
+            try database.create(index: "idx_tags_name_unique", on: "tags", columns: ["name"], unique: true)
+            try database.create(index: "idx_article_tags_tag_article", on: "article_tags", columns: ["tagID", "articleID"])
+        }
+        // Wie v2_create_tag_tables oben: reale Tabellenerzeugung statt eines
+        // Teil-Stubs, der nur feed_folders anlegte — v17_add_smart_folder_default_
+        // shows_read_articles griff inzwischen per ALTER TABLE auf smart_folders zu
+        // ("no such table: smart_folders"), das der alte Stub nie erzeugte.
         legacyMigrator.registerMigration("v6_create_admin_definition_tables") { database in
             try database.create(table: "feed_folders") { table in
                 table.column("id", .text).primaryKey()
@@ -459,6 +488,66 @@ struct SQLiteDatabaseMigrationTests {
                 table.column("createdAt", .datetime).notNull()
                 table.column("updatedAt", .datetime).notNull()
             }
+
+            try database.create(table: "rules") { table in
+                table.column("id", .text).primaryKey()
+                table.column("name", .text).notNull()
+                table.column("isEnabled", .boolean).notNull().defaults(to: true)
+                table.column("matchMode", .text).notNull().defaults(to: RuleMatchMode.all.rawValue)
+                table.column("action", .text).notNull().defaults(to: RuleAction.assignTag.rawValue)
+                table.column("assignTagID", .text)
+                    .references("tags", column: "id", onDelete: .setNull)
+                table.column("notificationTemplate", .text).notNull().defaults(to: "{Titel}")
+                table.column("notificationPriority", .text).notNull().defaults(to: RuleNotificationPriority.normal.rawValue)
+                table.column("sortOrder", .integer).notNull().defaults(to: 0)
+                table.column("createdAt", .datetime).notNull()
+                table.column("updatedAt", .datetime).notNull()
+            }
+
+            try database.create(table: "rule_conditions") { table in
+                table.column("id", .text).primaryKey()
+                table.column("ruleID", .text).notNull()
+                    .references("rules", column: "id", onDelete: .cascade)
+                table.column("field", .text).notNull()
+                table.column("conditionOperator", .text).notNull()
+                table.column("value", .text).notNull()
+                table.column("sortOrder", .integer).notNull().defaults(to: 0)
+            }
+
+            try database.create(table: "smart_folders") { table in
+                table.column("id", .text).primaryKey()
+                table.column("name", .text).notNull()
+                table.column("matchMode", .text).notNull().defaults(to: RuleMatchMode.all.rawValue)
+                table.column("isShownInSidebar", .boolean).notNull().defaults(to: true)
+                table.column("isDefault", .boolean).notNull().defaults(to: false)
+                table.column("sortOrder", .integer).notNull().defaults(to: 0)
+                table.column("defaultKey", .text)
+                table.column("iconName", .text)
+                table.column("colorHex", .text)
+                table.column("createdAt", .datetime).notNull()
+                table.column("updatedAt", .datetime).notNull()
+            }
+
+            try database.create(table: "smart_folder_conditions") { table in
+                table.column("id", .text).primaryKey()
+                table.column("smartFolderID", .text).notNull()
+                    .references("smart_folders", column: "id", onDelete: .cascade)
+                table.column("field", .text).notNull()
+                table.column("conditionOperator", .text).notNull()
+                table.column("value", .text).notNull()
+                table.column("sortOrder", .integer).notNull().defaults(to: 0)
+            }
+
+            try database.create(index: "idx_feed_folders_name_unique", on: "feed_folders", columns: ["name"], unique: true)
+            try database.create(index: "idx_rules_sort_order", on: "rules", columns: ["sortOrder", "name"])
+            try database.create(index: "idx_rule_conditions_rule_sort", on: "rule_conditions", columns: ["ruleID", "sortOrder"])
+            try database.create(index: "idx_smart_folders_sort_order", on: "smart_folders", columns: ["sortOrder", "name"])
+            try database.execute(sql: """
+                CREATE UNIQUE INDEX idx_smart_folders_default_key_unique
+                ON smart_folders(defaultKey)
+                WHERE defaultKey IS NOT NULL AND defaultKey <> ''
+                """)
+            try database.create(index: "idx_smart_folder_conditions_folder_sort", on: "smart_folder_conditions", columns: ["smartFolderID", "sortOrder"])
         }
         try legacyMigrator.migrate(queue)
 
