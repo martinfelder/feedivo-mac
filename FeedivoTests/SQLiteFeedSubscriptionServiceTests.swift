@@ -592,6 +592,48 @@ struct SQLiteFeedSubscriptionServiceTests {
     }
 
     @MainActor
+    @Test func addFeedRespektiertNotificationDefaultFuerNeueFeedsWennAktiviert() async throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let userDefaults = try temporaryNotificationUserDefaults()
+        userDefaults.set(true, forKey: NotificationSettings.defaultEnabledForNewFeedsKey)
+
+        let service = SQLiteFeedSubscriptionService(
+            database: database,
+            fetchFeed: { url in
+                ParsedFeed(sourceURL: url, title: "Benachrichtigter Feed", description: nil, articles: [])
+            },
+            discoverFaviconURL: { _ in nil },
+            userDefaults: userDefaults
+        )
+
+        _ = try await service.addFeed(urlString: "https://example.com/feed.xml")
+
+        let feed = try #require(try FeedStore(database: database).feeds().first)
+        #expect(feed.isNotificationEnabled == true)
+    }
+
+    @MainActor
+    @Test func addFeedRespektiertNotificationDefaultFuerNeueFeedsWennDeaktiviert() async throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let userDefaults = try temporaryNotificationUserDefaults()
+        userDefaults.set(false, forKey: NotificationSettings.defaultEnabledForNewFeedsKey)
+
+        let service = SQLiteFeedSubscriptionService(
+            database: database,
+            fetchFeed: { url in
+                ParsedFeed(sourceURL: url, title: "Unbenachrichtigter Feed", description: nil, articles: [])
+            },
+            discoverFaviconURL: { _ in nil },
+            userDefaults: userDefaults
+        )
+
+        _ = try await service.addFeed(urlString: "https://example.com/feed.xml")
+
+        let feed = try #require(try FeedStore(database: database).feeds().first)
+        #expect(feed.isNotificationEnabled == false)
+    }
+
+    @MainActor
     @Test func addFeedOhneFolderNameLaesstOrdnerLeer() async throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let service = SQLiteFeedSubscriptionService(
@@ -654,4 +696,11 @@ struct SQLiteFeedSubscriptionServiceTests {
         let feed = try #require(try FeedStore(database: database).feeds().first)
         #expect(feed.folderName == "Blogs")
     }
+}
+
+private func temporaryNotificationUserDefaults() throws -> UserDefaults {
+    let suiteName = "FeedivoTests.SQLiteFeedSubscriptionService.Notifications.\(UUID().uuidString)"
+    let defaults = try #require(UserDefaults(suiteName: suiteName))
+    defaults.removePersistentDomain(forName: suiteName)
+    return defaults
 }

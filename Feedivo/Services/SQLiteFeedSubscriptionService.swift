@@ -74,6 +74,7 @@ struct SQLiteFeedSubscriptionService {
     private let articleUpsert: ArticleUpserter
     private let afterArticleUpsert: AfterArticleUpsertHook
     private let afterOPMLTagsSave: AfterOPMLTagsSaveHook
+    private let userDefaults: UserDefaults
 
     init(
         database: FeedivoDatabase,
@@ -83,7 +84,8 @@ struct SQLiteFeedSubscriptionService {
         },
         articleUpsert: ArticleUpserter? = nil,
         afterArticleUpsert: @escaping AfterArticleUpsertHook = {},
-        afterOPMLTagsSave: @escaping AfterOPMLTagsSaveHook = {}
+        afterOPMLTagsSave: @escaping AfterOPMLTagsSaveHook = {},
+        userDefaults: UserDefaults = .standard
     ) {
         self.database = database
         self.fetchFeed = fetchFeed
@@ -93,6 +95,7 @@ struct SQLiteFeedSubscriptionService {
         }
         self.afterArticleUpsert = afterArticleUpsert
         self.afterOPMLTagsSave = afterOPMLTagsSave
+        self.userDefaults = userDefaults
     }
 
     func addFeed(
@@ -127,6 +130,7 @@ struct SQLiteFeedSubscriptionService {
             faviconURL: faviconURL,
             folderName: normalizedFolderName,
             refreshIntervalMinutes: BackgroundRefreshSettings.clampedIntervalMinutes(refreshIntervalMinutes),
+            isNotificationEnabled: NotificationSettings.isEnabledForNewFeeds(in: userDefaults),
             createdAt: now,
             updatedAt: now
         )
@@ -247,6 +251,7 @@ struct SQLiteFeedSubscriptionService {
                 websiteURL: trimmedNonEmpty(opmlFeed.htmlURL),
                 folderName: folderName,
                 refreshIntervalMinutes: clampedRefreshInterval,
+                isNotificationEnabled: NotificationSettings.isEnabledForNewFeeds(in: userDefaults),
                 createdAt: now,
                 updatedAt: now
             )
