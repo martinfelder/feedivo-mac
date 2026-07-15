@@ -141,6 +141,15 @@ struct SidebarOutlineView: NSViewRepresentable {
         /// validateDrop gepflegt, in acceptDrop/draggingExited zurückgesetzt.
         private var highlightedFolderName: String?
 
+        /// Flache ID-Sequenz (Pre-Order) des zuletzt aufgebauten Baums —
+        /// erfasst Knotenanzahl, -reihenfolge und Eltern-Kind-Zuordnung
+        /// (nicht aber Zähler/Titel/Badges, die nicht Teil der ID sind, siehe
+        /// SidebarOutlineNode.buildTree). Dient reload() dazu, reine Inhalts-
+        /// Änderungen (z. B. Ungelesen-Zähler nach jedem Artikel-Lesen) von
+        /// echten Struktur-Änderungen (neuer/entfernter/verschobener Feed,
+        /// Tag, Ordner, Smart Folder) zu unterscheiden.
+        private var lastNodeSignature: [String]?
+
         init(parent: SidebarOutlineView) {
             self.parent = parent
         }
@@ -186,11 +195,65 @@ struct SidebarOutlineView: NSViewRepresentable {
         /// bleibt unberührt — sie wird ausschließlich von den select()-
         /// Closures innerhalb der gehosteten SwiftUI-Row-Views gesetzt, nie
         /// von NSOutlineView selbst.
+        ///
+        /// Performance: `SidebarView` baut `rootNodes` bei jedem Re-Render
+        /// komplett neu auf (siehe `SidebarOutlineNode.buildTree`) — auch
+        /// dann, wenn sich nur Zähler/Titel/Badges geändert haben, z. B.
+        /// nach jedem einzelnen Artikel-Lesen (`sqliteStatusVersion` bumpt).
+        /// Ein bedingungsloses `reloadData()` würde in diesem sehr
+        /// häufigen Fall die komplette Outline (alle Feed-/Ordner-/Tag-/
+        /// Smart-Folder-Zeilen) neu aufbauen, obwohl sich die Baumstruktur
+        /// gar nicht geändert hat. Da `SidebarOutlineNode`s ID stabil ist
+        /// und ausschließlich die Entität identifiziert, nicht deren
+        /// veränderliche Felder (siehe SidebarOutlineNode.buildTree), lässt
+        /// sich anhand einer flachen ID-Sequenz zuverlässig erkennen, ob
+        /// sich die Struktur überhaupt verändert hat. Ist das nicht der
+        /// Fall, wird nur der gehostete SwiftUI-Inhalt der aktuell
+        /// sichtbaren Zeilen aktualisiert (siehe refreshAllVisibleRowContents),
+        /// ohne reloadData() — echte Struktur-Änderungen (neuer/entfernter/
+        /// verschobener Feed, Tag, Ordner, Smart Folder) lösen weiterhin ein
+        /// vollständiges reloadData() aus.
         func reload() {
             guard let outlineView else { return }
 
-            outlineView.reloadData()
+            let newSignature = Self.nodeIdentitySignature(parent.rootNodes)
+            if newSignature == lastNodeSignature {
+                refreshAllVisibleRowContents()
+            } else {
+                lastNodeSignature = newSignature
+                outlineView.reloadData()
+            }
             restoreExpansionState()
+        }
+
+        private static func nodeIdentitySignature(_ nodes: [SidebarOutlineNode]) -> [String] {
+            nodes.flatMap { [$0.id] + nodeIdentitySignature($0.children) }
+        }
+
+        /// Aktualisiert für alle aktuell sichtbaren (bereits materialisierten)
+        /// Zeilen nur den gehosteten SwiftUI-Inhalt neu (analog zu
+        /// refreshFolderRow), ohne reloadData() — für den häufigen Fall, dass
+        /// sich nur Zähler/Titel/Badges geändert haben, siehe reload().
+        /// Zeilen außerhalb des sichtbaren Bereichs werden hier bewusst nicht
+        /// angefasst (makeIfNecessary: false erzwingt keine Instanziierung);
+        /// sie zeigen beim Scrollen trotzdem sofort den aktuellen Stand, weil
+        /// outlineView(_:viewFor:item:) den Knoten grundsätzlich frisch per
+        /// ID nachschlägt statt dem ggf. veralteten `item`-Objekt zu
+        /// vertrauen (siehe dort).
+        private func refreshAllVisibleRowContents() {
+            guard let outlineView else { return }
+
+            for row in 0..<outlineView.numberOfRows {
+                guard let cachedNode = outlineView.item(atRow: row) as? SidebarOutlineNode,
+                      let node = SidebarOutlineNode.find(id: cachedNode.id, in: parent.rootNodes),
+                      let cellView = outlineView.view(atColumn: 0, row: row, makeIfNecessary: false) as? NSTableCellView,
+                      let hostingView = cellView.subviews.first as? NSHostingView<AnyView>
+                else {
+                    continue
+                }
+
+                hostingView.rootView = AnyView(rowContent(for: node))
+            }
         }
 
         private func restoreExpansionState() {
@@ -281,7 +344,13 @@ struct SidebarOutlineView: NSViewRepresentable {
         }
 
         func outlineView(_ outlineView: NSOutlineView, viewFor tableColumn: NSTableColumn?, item: Any) -> NSView? {
-            guard let node = item as? SidebarOutlineNode else { return nil }
+            guard let cachedNode = item as? SidebarOutlineNode else { return nil }
+            // `item` kann nach einer inhaltsbedingten Aktualisierung ohne
+            // reloadData() (siehe reload()/refreshAllVisibleRowContents) noch
+            // die alte Knoteninstanz sein — per ID immer den aktuellsten
+            // Stand aus rootNodes nachschlagen, damit neu ins Bild
+            // gescrollte Zeilen nie veraltete Zähler/Titel/Badges zeigen.
+            let node = SidebarOutlineNode.find(id: cachedNode.id, in: parent.rootNodes) ?? cachedNode
 
             let identifier = NSUserInterfaceItemIdentifier("SidebarOutlineCell")
             let cellView: NSTableCellView
