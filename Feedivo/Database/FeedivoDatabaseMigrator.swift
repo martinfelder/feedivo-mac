@@ -389,6 +389,16 @@ enum FeedivoDatabaseMigrator {
             try backfillTagSortIndex(database)
         }
 
+        migrator.registerMigration("v17_add_smart_folder_default_shows_read_articles") { database in
+            try database.alter(table: "smart_folders") { table in
+                table.add(column: "defaultShowsReadArticles", .boolean)
+                    .notNull()
+                    .defaults(to: false)
+            }
+
+            try backfillSmartFolderDefaultShowsReadArticles(database)
+        }
+
         return migrator
     }
 
@@ -489,5 +499,23 @@ enum FeedivoDatabaseMigrator {
                 arguments: [index, id]
             )
         }
+    }
+
+    /// Setzt defaultShowsReadArticles=1 für die vier Standard-Ordner, die
+    /// schon vor dieser Migration per fest verdrahteter Regel
+    /// (SmartFolderDefaultDisplayPolicy.alwaysShowsReadArticleKeys) immer
+    /// gelesene UND ungelesene Artikel zeigten — ihr Verhalten bleibt beim
+    /// Umstieg auf die jetzt persistierte, im Editor änderbare Einstellung
+    /// unverändert. Alle anderen Zeilen (inkl. eigener Ordner) behalten den
+    /// Spalten-Default false.
+    private static func backfillSmartFolderDefaultShowsReadArticles(_ database: Database) throws {
+        try database.execute(
+            sql: """
+                UPDATE smart_folders
+                SET defaultShowsReadArticles = 1
+                WHERE defaultKey IN (?, ?, ?, ?)
+                """,
+            arguments: ["starred", "thisWeek", "hidden", "saved"]
+        )
     }
 }

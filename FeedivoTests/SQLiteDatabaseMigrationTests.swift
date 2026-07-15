@@ -549,6 +549,56 @@ struct SQLiteDatabaseMigrationTests {
         #expect((sortIndexColumn?["notnull"] as Int?) == 1)
         #expect((sortIndexColumn?["dflt_value"] as String?) == "0")
     }
+
+    @Test func migrationV17BackfilltDefaultShowsReadArticlesFuerBestehendeStandardOrdner() throws {
+        let queue = try DatabaseQueue()
+        try FeedivoDatabaseMigrator.migrator.migrate(queue, upTo: "v16_add_tag_sort_index")
+
+        try queue.write { db in
+            let now = Date()
+            try db.execute(
+                sql: """
+                    INSERT INTO smart_folders (id, name, defaultKey, createdAt, updatedAt)
+                    VALUES
+                        ('folder-starred', 'Mit Stern', 'starred', ?, ?),
+                        ('folder-thisweek', 'Diese Woche', 'thisWeek', ?, ?),
+                        ('folder-hidden', 'Ausgeblendet', 'hidden', ?, ?),
+                        ('folder-saved', 'Gespeichert', 'saved', ?, ?),
+                        ('folder-all', 'Alle Artikel', 'all', ?, ?),
+                        ('folder-custom', 'Mein Ordner', NULL, ?, ?)
+                    """,
+                arguments: [now, now, now, now, now, now, now, now, now, now, now, now]
+            )
+        }
+
+        try FeedivoDatabaseMigrator.migrator.migrate(queue)
+
+        let valuesByID = try queue.read { db in
+            try Row.fetchAll(db, sql: "SELECT id, defaultShowsReadArticles FROM smart_folders")
+        }.reduce(into: [String: Bool]()) { result, row in
+            result[row["id"]] = row["defaultShowsReadArticles"]
+        }
+
+        #expect(valuesByID["folder-starred"] == true)
+        #expect(valuesByID["folder-thisweek"] == true)
+        #expect(valuesByID["folder-hidden"] == true)
+        #expect(valuesByID["folder-saved"] == true)
+        #expect(valuesByID["folder-all"] == false)
+        #expect(valuesByID["folder-custom"] == false)
+    }
+
+    @Test func migrationV17IstIdempotentBeiBereitsVorhandenerSpalte() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+
+        let columns = try database.read { db in
+            try Row.fetchAll(db, sql: "PRAGMA table_info(smart_folders)")
+        }
+        let column = columns.first { ($0["name"] as String?) == "defaultShowsReadArticles" }
+
+        #expect(column != nil)
+        #expect((column?["notnull"] as Int?) == 1)
+        #expect((column?["dflt_value"] as String?) == "0")
+    }
 }
 
 private func insertFeed(
