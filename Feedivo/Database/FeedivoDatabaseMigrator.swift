@@ -502,8 +502,7 @@ enum FeedivoDatabaseMigrator {
     }
 
     /// Setzt defaultShowsReadArticles=1 für die vier Standard-Ordner, die
-    /// schon vor dieser Migration per fest verdrahteter Regel
-    /// (SmartFolderDefaultDisplayPolicy.alwaysShowsReadArticleKeys) immer
+    /// schon vor dieser Migration per fest verdrahteter Regel immer
     /// gelesene UND ungelesene Artikel zeigten — ihr Verhalten bleibt beim
     /// Umstieg auf die jetzt persistierte, im Editor änderbare Einstellung
     /// unverändert. Alle anderen Zeilen (inkl. eigener Ordner) behalten den

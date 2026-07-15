@@ -213,7 +213,6 @@ struct SQLiteSidebarStateTests {
         #expect(state.mixedCountsByDefaultKey["today"]?.unread == 1)
         for defaultKey in ["starred", "thisWeek", "hidden", "saved"] {
             #expect(state.mixedCountsByDefaultKey[defaultKey] != nil)
-            #expect(SmartFolderDefaultDisplayPolicy.alwaysShowsReadArticles(defaultKey: defaultKey))
         }
     }
 }

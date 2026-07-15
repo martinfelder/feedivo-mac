@@ -155,17 +155,14 @@ struct SQLiteFeedArticleListView: View {
         self._selectedArticleID = selectedArticleID
         self._navigationState = navigationState
         self._searchText = searchText
-        // "Mit Stern" soll ab dem allerersten Erscheinen gelesene UND ungelesene
-        // Artikel zeigen (Nutzer-Report 2026-07-13) - ein markierter Artikel bleibt
-        // unabhaengig vom Lese-Status wichtig. @State(initialValue:) greift nur beim
-        // allerersten Erscheinen dieser View-Identitaet; fuer Scope-Wechsel innerhalb
-        // derselben Sitzung sorgt zusaetzlich .onChange(of: scopeToken) fuer denselben
-        // Default (siehe defaultShowsReadArticles).
-        self._showsReadArticles = State(
-            initialValue: SmartFolderDefaultDisplayPolicy.alwaysShowsReadArticles(
-                defaultKey: smartFolder.defaultKey
-            )
-        )
+        // Ein Smart Folder kann per Editor (SmartFolderEditorView) fest
+        // einstellen, ob er standardmässig gelesene UND ungelesene Artikel
+        // zeigt (z. B. "Mit Stern") oder nur ungelesene. @State(initialValue:)
+        // greift nur beim allerersten Erscheinen dieser View-Identitaet; fuer
+        // Scope-Wechsel innerhalb derselben Sitzung sorgt zusaetzlich
+        // .onChange(of: scopeToken) fuer denselben Default (siehe
+        // defaultShowsReadArticles).
+        self._showsReadArticles = State(initialValue: smartFolder.defaultShowsReadArticles)
     }
 
     var body: some View {
@@ -794,9 +791,7 @@ struct SQLiteFeedArticleListView: View {
     // Listen-Semantik mit den getrennten Sidebar-Badges synchron.
     private var defaultShowsReadArticles: Bool {
         if case let .smartFolder(smartFolder) = scope {
-            return SmartFolderDefaultDisplayPolicy.alwaysShowsReadArticles(
-                defaultKey: smartFolder.defaultKey
-            )
+            return smartFolder.defaultShowsReadArticles
         }
 
         return false

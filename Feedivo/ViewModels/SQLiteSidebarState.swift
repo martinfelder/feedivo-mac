@@ -2,19 +2,14 @@ import Foundation
 import Observation
 
 enum SmartFolderDefaultDisplayPolicy {
-    /// Standardordner mit getrennten Gelesen-/Ungelesen-Badges.
+    /// Standardordner mit getrennten Gelesen-/Ungelesen-Badges (Sidebar-
+    /// Zähler). Unabhängig von der pro Ordner änderbaren
+    /// `defaultShowsReadArticles`-Einstellung (siehe SmartFolderEditorView) —
+    /// diese Menge bleibt bewusst auf die vier eingebauten Standard-Ordner
+    /// beschränkt.
     static let mixedCountKeys: Set<String> = [
         "all", "today", "starred", "thisWeek", "hidden", "saved"
     ]
-
-    /// Diese Ansichten zeigen unabhängig vom Lesestatus immer alle Treffer.
-    static let alwaysShowsReadArticleKeys: Set<String> = [
-        "starred", "thisWeek", "hidden", "saved"
-    ]
-
-    static func alwaysShowsReadArticles(defaultKey: String?) -> Bool {
-        defaultKey.map(alwaysShowsReadArticleKeys.contains) ?? false
-    }
 }
 
 @MainActor
