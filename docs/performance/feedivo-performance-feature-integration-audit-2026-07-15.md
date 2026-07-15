@@ -38,6 +38,30 @@ an fünf Integrationsgrenzen:
 Damit ist Feedivo strukturell bereits NetNewsWire-nah, im Laufzeitverhalten und
 in der Feature-Konsistenz aber noch nicht auf demselben Reifegrad.
 
+## Umsetzungsstand nach dem Audit
+
+Die priorisierten Anwendungslücken wurden am 2026-07-15 geschlossen:
+
+- Ein Fehler beim Öffnen der On-Disk-Datenbank bleibt als blockierender
+  Startzustand sichtbar; der flüchtige technische Fallback kann nicht mehr wie
+  ein erfolgreicher leerer Datenbestand benutzt werden.
+- Die Timeline lädt 200er-Seiten nach und berechnet den Ungelesen-Zähler über
+  den vollständigen Scope. Das frühere globale Ende bei 500 Artikeln entfällt.
+- Alle Sortieroptionen werden vor `LIMIT`/`OFFSET` in SQL angewendet.
+- Timeline- und Count-Abfragen laufen über GRDBs asynchrone Datenbank-Queue;
+  auf dem Main Actor bleiben Koordination und Ergebnisübernahme.
+- `Tag zuweisen…` und `In neuem Fenster öffnen` sind im Zeilen-Kontextmenü
+  wieder an die vorhandenen Produktpfade angeschlossen.
+- Der iCloud-Schalter ist bis zu einem echten Backend deaktiviert und meldet
+  ausdrücklich „noch nicht verfügbar“.
+- Eine gemeinsame Default-Policy steuert gemischte Smart-Folder-Badges und die
+  Anzeige gelesener Artikel.
+
+Für das 100'000-Artikel-Qualitätsziel bleibt eine Messung mit Instruments offen.
+Die aktuelle Pagination verwendet stabile SQL-Sortierung mit `OFFSET`; falls
+sehr tiefe Seiten dabei messbar langsamer werden, ist Keyset-Pagination der
+nächste gezielte Optimierungsschritt.
+
 ## Priorisierte Befunde
 
 ### P1 — Datenbankfehler starten unbemerkt eine flüchtige Datenbank

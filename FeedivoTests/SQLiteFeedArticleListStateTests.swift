@@ -22,6 +22,38 @@ struct SQLiteFeedArticleListStateTests {
         #expect(state.navigationState.nextArticleID == firstID)
     }
 
+    @Test func listStateLaedtWeitereTimelineSeitenNach() async {
+        var requestedOffsets: [Int] = []
+        let first = snapshot(id: "first")
+        let second = snapshot(id: "second")
+        let state = SQLiteFeedArticleListState { request in
+            requestedOffsets.append(request.offset)
+            let rows = request.offset == 0 ? [first] : [second]
+            return SQLiteTimelineLoadResult(
+                loadState: .loaded,
+                rows: rows,
+                navigationState: SQLiteArticleNavigationState(
+                    articleIDs: rows.map(\.id),
+                    selectedArticleID: request.selectedArticleID
+                ),
+                hasMore: request.offset == 0,
+                totalUnreadCount: 2
+            )
+        }
+
+        state.load(feedID: "feed-1", database: nil, selectedArticleID: "first")
+        await waitForRows(state) { $0.map(\.id) == ["first"] }
+        #expect(state.hasMore)
+        #expect(state.totalUnreadCount == 2)
+
+        state.loadMore()
+        await waitForRows(state) { $0.map(\.id) == ["first", "second"] }
+
+        #expect(requestedOffsets == [0, 1])
+        #expect(!state.hasMore)
+        #expect(state.navigationState.nextArticleID == "second")
+    }
+
     @Test func listStateToggeltReadUndAktualisiertRows() async throws {
         let (database, firstID, _) = try makeDatabaseWithFeedAndArticles()
         let state = SQLiteFeedArticleListState()
@@ -38,6 +70,7 @@ struct SQLiteFeedArticleListStateTests {
         }
 
         #expect(state.rows.first(where: { $0.id == firstID })?.isRead == true)
+        #expect(state.totalUnreadCount == 1)
     }
 
     @Test func listStateLoeschtArtikelUndEntferntIhnAusRows() async throws {

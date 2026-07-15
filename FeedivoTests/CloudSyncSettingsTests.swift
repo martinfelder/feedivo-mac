@@ -6,6 +6,7 @@ struct CloudSyncSettingsTests {
     @Test func defaultsSindBewusstAus() {
         #expect(CloudSyncSettings.isEnabledKey == "cloudSync.isEnabled")
         #expect(CloudSyncSettings.defaultIsEnabled == false)
+        #expect(CloudSyncSettings.isAvailable == false)
         #expect(CloudSyncSettings.cloudKitContainerIdentifier == "iCloud.ch.martin.Feedivo")
     }
 
@@ -16,7 +17,7 @@ struct CloudSyncSettingsTests {
 
         defaults.set(true, forKey: CloudSyncSettings.isEnabledKey)
 
-        #expect(CloudSyncSettings.isEnabled(in: defaults) == true)
+        #expect(CloudSyncSettings.isEnabled(in: defaults) == false)
     }
 
     @Test func statusTextBeschreibtLaunchZustand() {
@@ -25,21 +26,21 @@ struct CloudSyncSettingsTests {
                 isEnabledAtLaunch: false,
                 currentIsEnabled: false,
                 hasDatabaseError: false
-            ) == "Lokal gespeichert"
+            ) == "iCloud Sync noch nicht verfügbar"
         )
         #expect(
             CloudSyncSettings.statusText(
                 isEnabledAtLaunch: false,
                 currentIsEnabled: true,
                 hasDatabaseError: false
-            ) == "iCloud Sync nach Neustart aktiv"
+            ) == "iCloud Sync noch nicht verfügbar"
         )
         #expect(
             CloudSyncSettings.statusText(
                 isEnabledAtLaunch: true,
                 currentIsEnabled: true,
                 hasDatabaseError: false
-            ) == "iCloud Sync aktiv"
+            ) == "iCloud Sync noch nicht verfügbar"
         )
         #expect(
             CloudSyncSettings.statusText(
@@ -53,7 +54,7 @@ struct CloudSyncSettingsTests {
                 isEnabledAtLaunch: true,
                 currentIsEnabled: false,
                 hasDatabaseError: false
-            ) == "iCloud Sync nach Neustart deaktiviert"
+            ) == "iCloud Sync noch nicht verfügbar"
         )
     }
 
@@ -67,13 +68,13 @@ struct CloudSyncSettingsTests {
         )
     }
 
-    @Test func statusLocalizationKeyLiefertActiveKey() {
+    @Test func statusLocalizationKeyLiefertUnavailableKey() {
         #expect(
             CloudSyncSettings.statusLocalizationKey(
                 isEnabledAtLaunch: true,
                 currentIsEnabled: true,
                 hasDatabaseError: false
-            ) == "settings.sync.status.active"
+            ) == "settings.sync.status.unavailable"
         )
     }
 
@@ -83,7 +84,7 @@ struct CloudSyncSettingsTests {
                 isEnabledAtLaunch: false,
                 currentIsEnabled: false,
                 hasDatabaseError: false
-            ) == "settings.sync.status.local"
+            ) == "settings.sync.status.unavailable"
         )
     }
 
@@ -93,7 +94,7 @@ struct CloudSyncSettingsTests {
                 isEnabledAtLaunch: false,
                 currentIsEnabled: true,
                 hasDatabaseError: false
-            ) == "settings.sync.status.restartEnable"
+            ) == "settings.sync.status.unavailable"
         )
     }
 
@@ -103,7 +104,7 @@ struct CloudSyncSettingsTests {
                 isEnabledAtLaunch: true,
                 currentIsEnabled: false,
                 hasDatabaseError: false
-            ) == "settings.sync.status.restartDisable"
+            ) == "settings.sync.status.unavailable"
         )
     }
 }

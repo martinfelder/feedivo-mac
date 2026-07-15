@@ -1,6 +1,6 @@
 import Foundation
 
-enum ArticleSortOption: String, CaseIterable, Identifiable {
+enum ArticleSortOption: String, CaseIterable, Identifiable, Sendable {
     static let storageKey = "articleList.sortOption"
 
     case newestFirst

@@ -163,7 +163,7 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(compactListSource.contains("Text(unreadArticleCountText)"))
         #expect(compactListSource.contains("interfaceTextSize.font(size:13,weight:.medium)"))
         #expect(compactListSource.contains("interfaceTextSize.font(size:13)"))
-        #expect(compactListSource.contains("privatevarunreadArticleCount:Int{state.rows.filter{rowin!row.isRead&&!row.isHidden}.count}"))
+        #expect(compactListSource.contains("privatevarunreadArticleCount:Int{state.totalUnreadCount}"))
         #expect(compactListSource.contains(".navigationTitle(\"\")"))
     }
 
@@ -279,6 +279,20 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(compactListSource.contains("RuleWizardView(existingRules:"))
         #expect(compactListSource.contains("onCreateRule:{requestRuleCreation(from:row)}"))
         #expect(!compactListSource.contains("onCreateRule:{},"))
+    }
+
+    @Test func sqliteArtikellisteVerdrahtetTagUndFensterKontextaktionen() throws {
+        let projectRoot = projectRootURL()
+        let listSource = try source(at: "Feedivo/Views/ArticleList/SQLiteFeedArticleListView.swift", projectRoot: projectRoot)
+        let compactListSource = compact(listSource)
+
+        #expect(listSource.contains("@Environment(\\.openWindow) private var openWindow"))
+        #expect(listSource.contains("@State private var tagAssignmentRequest: ArticleTagAssignmentRequest?"))
+        #expect(compactListSource.contains("ArticleTagAssignmentView(articleID:request.articleID,snapshotTags:[])"))
+        #expect(compactListSource.contains("onRequestAssignTag:{tagAssignmentRequest=ArticleTagAssignmentRequest(articleID:row.id)}"))
+        #expect(compactListSource.contains("openWindow(value:ArticleWindowRequest(articleID:articleID))"))
+        #expect(!compactListSource.contains("onRequestAssignTag:{}"))
+        #expect(!compactListSource.contains("onOpenInWindow:{}"))
     }
 
     @Test func sqliteArtikellisteMarkiertAuswahlBeimOeffnenAlsGelesen() throws {
@@ -456,11 +470,13 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(sqliteReaderSource.contains("TagStore(database: database)"))
     }
 
-    @Test func appUsesCloudSyncSettingsForModelContainer() throws {
+    @Test func appBlocksMainContentWhenSQLiteCannotBeOpened() throws {
         let projectRoot = projectRootURL()
         let appSource = try source(at: "Feedivo/App/FeedivoApp.swift", projectRoot: projectRoot)
 
-        #expect(appSource.contains("CloudSyncSettings.isEnabled()"))
+        #expect(appSource.contains("databaseOpenResult.errorDescription"))
+        #expect(appSource.contains("if let initializationError = databaseLoadState.initializationError"))
+        #expect(appSource.contains("ContentUnavailableView"))
         #expect(!appSource.contains("FeedivoModelContainerFactory.makePersistentContainer"))
         #expect(!appSource.contains("FeedivoModelContainerFactory.makeInMemoryFallbackContainer"))
         #expect(appSource.contains("databaseLoadState.isCloudSyncEnabledAtLaunch"))
@@ -493,10 +509,11 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(settingsSource.contains("@Environment(DatabaseLoadState.self)"))
         #expect(settingsSource.contains("@AppStorage(CloudSyncSettings.isEnabledKey)"))
         #expect(settingsSource.contains("L10n.settingsSyncBetaTitle"))
-        #expect(settingsSource.contains("L10n.settingsSyncRestartHint"))
+        #expect(settingsSource.contains("L10n.settingsSyncUnavailableHint"))
         #expect(settingsSource.contains("CloudSyncSettings.statusLocalizationKey"))
         #expect(settingsSource.contains("L10n.settingsSyncDatabaseTitle"))
         #expect(settingsSource.contains("Toggle(\"\", isOn: $cloudSyncIsEnabled)"))
+        #expect(settingsSource.contains(".disabled(!CloudSyncSettings.isAvailable)"))
     }
 
     @Test func appOpensAndInjectsSQLiteDatabase() throws {
@@ -710,7 +727,7 @@ struct FeedivoAppSceneConfigurationTests {
         let readerStateSource = try source(at: "Feedivo/ViewModels/SQLiteReaderState.swift", projectRoot: projectRoot)
 
         #expect(listStateSource.contains("ArticleDatabase(database: database)"))
-        #expect(listStateSource.contains("articleDatabase.timelineArticles("))
+        #expect(listStateSource.contains("articleDatabase.timelineArticlesAsync("))
         #expect(!listStateSource.contains("TimelineStore(database: database).articles("))
         #expect(!listStateSource.contains("ArticleStatusStore(database: database)"))
 

@@ -8,6 +8,8 @@ Stand: 2026-07-15
 > SQL-Limit, synchroner GRDB-Read im Main-Actor-Loader sowie unvollständige
 > Feature-Verdrahtung. Der priorisierte Bericht liegt unter
 > `docs/performance/feedivo-performance-feature-integration-audit-2026-07-15.md`.
+> Die dort priorisierten Pflichtlücken wurden anschließend am selben Tag
+> umgesetzt; offen bleibt der Messnachweis für das 100'000-Artikel-Ziel.
 > Die Kernaussage dieses Vergleichs bleibt bestehen: Feedivos Datenmodell ist
 > NetNewsWire-nah; die größten Lücken liegen heute an Ausführungs- und
 > Integrationsgrenzen.

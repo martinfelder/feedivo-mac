@@ -43,6 +43,15 @@ struct FeedivoDatabase {
         try writer.read(block)
     }
 
+    /// Führt einen Read auf GRDBs eigener Datenbank-Queue aus. Aufrufer können
+    /// dadurch nur die Ergebnisübernahme auf dem Main Actor halten, ohne die
+    /// eigentliche SQL-Abfrage dort zu blockieren.
+    func readAsync<Value: Sendable>(
+        _ block: @escaping @Sendable (Database) throws -> Value
+    ) async throws -> Value {
+        try await writer.read(block)
+    }
+
     func write<Value>(_ block: (Database) throws -> Value) throws -> Value {
         try writer.write(block)
     }

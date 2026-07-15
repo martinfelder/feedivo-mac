@@ -849,6 +849,15 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Letzte Änderungen
 
+- 2026-07-15: Pflichtlücken aus dem Performance-/Integrationsaudit umgesetzt:
+  Datenbankfehler blockieren den Produktivinhalt statt einen scheinbar leeren
+  In-Memory-Start zu erlauben; die Timeline lädt asynchron über GRDB in
+  SQL-sortierten 200er-Seiten mit vollständigem Ungelesen-Zähler nach;
+  Tag-Zuweisung und Artikelfenster sind im Zeilen-Kontextmenü verdrahtet;
+  Smart-Folder-Badge-/Lese-Defaults nutzen eine gemeinsame Policy; iCloud Sync
+  bleibt bis zu einem echten Backend sichtbar deaktiviert. Relevante Store-,
+  State-, Policy- und Source-Integrationstests ergänzt. Instruments-Messung für
+  das 100'000-Artikel-Ziel bleibt als Qualitätsnachweis offen.
 - 2026-07-15: Performance- und Feature-Integrationsaudit des produktiven
   SQLite-/GRDB-Pfads dokumentiert und mit der lokalen NetNewsWire-Referenz
   verglichen. Bericht:

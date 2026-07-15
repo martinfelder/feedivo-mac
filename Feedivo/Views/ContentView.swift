@@ -5,7 +5,6 @@ import UniformTypeIdentifiers
 struct ContentView: View {
     @Environment(\.feedivoDatabase) private var feedivoDatabase
     @Environment(\.openWindow) private var openWindow
-    @Environment(DatabaseLoadState.self) private var databaseLoadState
     @Environment(PendingURLSchemeAction.self) private var pendingURLSchemeAction
     @AppStorage(FirstRunWizardState.completionStorageKey) private var hasCompletedFirstRunWizard = false
     @AppStorage(FirstRunWizardState.presentationStorageKey) private var hasPresentedFirstRunWizard = false
@@ -230,31 +229,6 @@ struct ContentView: View {
                 message: Text(alert.message),
                 dismissButton: .default(Text(L10n.commonDone))
             )
-        }
-        // M11: Wenn die SQLite-Datenbank beim Start nicht geöffnet werden
-        // konnte, läuft die App mit einem leeren In-Memory-Fallback. Dieser
-        // Alarm erklärt das einmalig, statt die App ohne Erklärung abstürzen
-        // zu lassen. Nach dem Schließen wird der Fehler verworfen.
-        .alert(
-            L10n.databaseInitErrorTitle,
-            isPresented: Binding(
-                get: { databaseLoadState.initializationError != nil },
-                set: { newValue in
-                    if !newValue {
-                        databaseLoadState.initializationError = nil
-                    }
-                }
-            )
-        ) {
-            Button(L10n.commonDone) {
-                databaseLoadState.initializationError = nil
-            }
-        } message: {
-            if let detail = databaseLoadState.initializationError {
-                Text(verbatim: "\(L10n.databaseInitErrorMessage)\n\n\(detail)")
-            } else {
-                Text(L10n.databaseInitErrorMessage)
-            }
         }
         // Whole-Group-Review-Fund (Gruppe 2): feedViewModel.errorMessage wurde bei
         // Einzel-/Alle-Feeds-Refresh und beim Löschen zwar gesetzt, aber nirgends

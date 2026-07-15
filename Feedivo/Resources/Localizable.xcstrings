@@ -24920,6 +24920,35 @@
         }
       }
     },
+    "settings.sync.status.unavailable" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud Sync noch nicht verfügbar"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud Sync not available yet"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Synchronisation iCloud pas encore disponible"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sincronizzazione iCloud non ancora disponibile"
+          }
+        }
+      }
+    },
     "settings.sync.unavailable.description" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -24945,6 +24974,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "La sincronizzazione iCloud sarà attivata dopo la verifica del modello dati."
+          }
+        }
+      }
+    },
+    "settings.sync.unavailable.hint" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Schalter wird mit einem funktionierenden Sync-Backend freigeschaltet."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The switch will be enabled when a working sync backend is available."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le commutateur sera activé lorsqu’un service de synchronisation fonctionnel sera disponible."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’interruttore verrà abilitato quando sarà disponibile un backend di sincronizzazione funzionante."
           }
         }
       }

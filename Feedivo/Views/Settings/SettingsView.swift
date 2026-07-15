@@ -1012,14 +1012,15 @@ private struct SyncSettingsView: View {
 
                     SettingRow(
                         title: L10n.settingsSyncBetaTitle,
-                        description: L10n.settingsSyncRestartHint
+                        description: L10n.settingsSyncUnavailableHint
                     ) {
                         Toggle("", isOn: $cloudSyncIsEnabled)
                             .toggleStyle(.switch)
+                            .disabled(!CloudSyncSettings.isAvailable)
                     }
 
                     InfoRow(
-                        iconName: hasDatabaseError ? "exclamationmark.triangle" : "checkmark.icloud",
+                        iconName: hasDatabaseError ? "exclamationmark.triangle" : "icloud.slash",
                         title: L10n.settingsSyncStatusTitle,
                         description: LocalizedStringKey(statusLocalizationKey)
                     )
@@ -1032,6 +1033,11 @@ private struct SyncSettingsView: View {
                         )
                     }
                 }
+            }
+        }
+        .onAppear {
+            if !CloudSyncSettings.isAvailable {
+                cloudSyncIsEnabled = false
             }
         }
     }

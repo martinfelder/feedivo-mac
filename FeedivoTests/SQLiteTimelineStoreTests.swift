@@ -659,6 +659,45 @@ struct SQLiteTimelineStoreTests {
         #expect(counts.unread == 1)
     }
 
+    @Test func timelineSortiertVorDemLimitUndUnterstuetztSeiten() async throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let timelineStore = TimelineStore(database: database)
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example"))
+
+        var articleIDs: [String] = []
+        for index in 1...5 {
+            articleIDs.append(try articleStore.upsert(ArticleUpsertInput(
+                feedID: "feed-1",
+                sourceID: "article-\(index)",
+                title: "Artikel \(index)",
+                publishedAt: Date(timeIntervalSince1970: TimeInterval(index * 100)),
+                arrivedAt: Date(timeIntervalSince1970: TimeInterval(index * 100))
+            )))
+        }
+
+        let oldestPage = try await timelineStore.articlesAsync(
+            scope: .feed("feed-1"),
+            includeRead: true,
+            includeHidden: false,
+            sortOption: .oldestFirst,
+            limit: 2,
+            offset: 0
+        )
+        let secondPage = try await timelineStore.articlesAsync(
+            scope: .feed("feed-1"),
+            includeRead: true,
+            includeHidden: false,
+            sortOption: .oldestFirst,
+            limit: 2,
+            offset: 2
+        )
+
+        #expect(oldestPage.map(\.id) == Array(articleIDs[0...1]))
+        #expect(secondPage.map(\.id) == Array(articleIDs[2...3]))
+    }
+
     private func makeSmartFilterFixture(database: FeedivoDatabase) throws -> (String, String, String) {
         let feedStore = FeedStore(database: database)
         let articleStore = ArticleStore(database: database)

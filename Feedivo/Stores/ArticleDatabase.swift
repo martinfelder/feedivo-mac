@@ -43,6 +43,16 @@ struct ArticleDatabase {
         try feedStore.feed(id: id) != nil
     }
 
+    func feedExistsAsync(id: String) async throws -> Bool {
+        try await database.readAsync { db in
+            try Bool.fetchOne(
+                db,
+                sql: "SELECT EXISTS(SELECT 1 FROM feeds WHERE id = ?)",
+                arguments: [id]
+            ) ?? false
+        }
+    }
+
     func timelineArticles(
         scope: TimelineScope,
         searchText: String? = nil,
@@ -56,6 +66,26 @@ struct ArticleDatabase {
             includeRead: includeRead,
             includeHidden: includeHidden,
             limit: limit
+        )
+    }
+
+    func timelineArticlesAsync(
+        scope: TimelineScope,
+        searchText: String? = nil,
+        includeRead: Bool = true,
+        includeHidden: Bool = false,
+        sortOption: ArticleSortOption = .newestFirst,
+        limit: Int = 500,
+        offset: Int = 0
+    ) async throws -> [ArticleListSnapshot] {
+        try await timelineStore.articlesAsync(
+            scope: scope,
+            searchText: searchText,
+            includeRead: includeRead,
+            includeHidden: includeHidden,
+            sortOption: sortOption,
+            limit: limit,
+            offset: offset
         )
     }
 

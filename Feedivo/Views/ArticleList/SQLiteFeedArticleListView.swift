@@ -10,9 +10,16 @@ private enum FeedHeaderRefreshStatus: Equatable {
     case failure(String)
 }
 
+private struct ArticleTagAssignmentRequest: Identifiable {
+    let articleID: String
+
+    var id: String { articleID }
+}
+
 struct SQLiteFeedArticleListView: View {
     @Environment(\.feedivoDatabase) private var database
     @Environment(\.interfaceTextSize) private var interfaceTextSize
+    @Environment(\.openWindow) private var openWindow
     @AppStorage(SidebarBadgeInvalidation.directTagVersionKey)
     private var directTagVersion = 0
     @AppStorage(SQLiteDataInvalidation.statusVersionKey)
@@ -63,6 +70,7 @@ struct SQLiteFeedArticleListView: View {
     @State private var debouncedSearchText = ""
     @State private var articleExportRequest: ArticleExportRequest?
     @State private var ruleCreationRequest: ArticleListRuleCreationRequest?
+    @State private var tagAssignmentRequest: ArticleTagAssignmentRequest?
     @State private var articlePendingDeletion: ArticleListSnapshot?
     @State private var isDeleteArticleConfirmationPresented = false
     @State private var showsReadArticles = false
@@ -138,7 +146,11 @@ struct SQLiteFeedArticleListView: View {
         // allerersten Erscheinen dieser View-Identitaet; fuer Scope-Wechsel innerhalb
         // derselben Sitzung sorgt zusaetzlich .onChange(of: scopeToken) fuer denselben
         // Default (siehe defaultShowsReadArticles).
-        self._showsReadArticles = State(initialValue: smartFolder.defaultKey == "starred")
+        self._showsReadArticles = State(
+            initialValue: SmartFolderDefaultDisplayPolicy.alwaysShowsReadArticles(
+                defaultKey: smartFolder.defaultKey
+            )
+        )
     }
 
     var body: some View {
@@ -173,6 +185,15 @@ struct SQLiteFeedArticleListView: View {
                 existingRules: sqliteRulesForRuleCreation(),
                 seed: request.seed
             )
+        }
+        .sheet(item: $tagAssignmentRequest) { request in
+            VStack(alignment: .leading, spacing: 16) {
+                Text(L10n.articleAssignTagCommand)
+                    .font(.headline)
+                ArticleTagAssignmentView(articleID: request.articleID, snapshotTags: [])
+            }
+            .padding(20)
+            .frame(minWidth: 380)
         }
         .confirmationDialog(
             L10n.articleDeleteConfirmationTitle,
@@ -334,9 +355,7 @@ struct SQLiteFeedArticleListView: View {
     }
 
     private var unreadArticleCount: Int {
-        state.rows.filter { row in
-            !row.isRead && !row.isHidden
-        }.count
+        state.totalUnreadCount
     }
 
     private var unreadArticleCountText: String {
@@ -357,6 +376,19 @@ struct SQLiteFeedArticleListView: View {
                 ForEach(currentDisplayState.visibleRows) { row in
                     articleRow(row, visibleRows: currentDisplayState.visibleRows)
                         .tag(row.id)
+                }
+
+                if state.hasMore {
+                    HStack {
+                        Spacer()
+                        ProgressView()
+                            .controlSize(.small)
+                        Spacer()
+                    }
+                    .padding(.vertical, 12)
+                    .onAppear {
+                        state.loadMore()
+                    }
                 }
 
                 if !showsReadArticles, currentDisplayState.hiddenReadRowCount > 0 {
@@ -393,7 +425,10 @@ struct SQLiteFeedArticleListView: View {
     ) -> ArticleRowView {
         ArticleRowView(
             snapshot: ArticleListItemSnapshot(sqliteSnapshot: row),
-            hasAvailableTags: false,
+            // Die Zuweisungsansicht kann vorhandene Tags wählen und direkt neue
+            // Tags anlegen. Sie bleibt deshalb auch bei einer noch leeren
+            // Tag-Tabelle verfügbar.
+            hasAvailableTags: database != nil,
             onToggleRead: {
                 toggleRead(row.id)
             },
@@ -403,7 +438,9 @@ struct SQLiteFeedArticleListView: View {
             onToggleArchived: {
                 toggleArchived(row.id)
             },
-            onRequestAssignTag: {},
+            onRequestAssignTag: {
+                tagAssignmentRequest = ArticleTagAssignmentRequest(articleID: row.id)
+            },
             onCreateRule: {
                 requestRuleCreation(from: row)
             },
@@ -416,7 +453,12 @@ struct SQLiteFeedArticleListView: View {
             onShareOriginal: {
                 shareOriginal(row)
             },
-            onOpenInWindow: {},
+            onOpenInWindow: {
+                guard let articleID = UUID(uuidString: row.id) else {
+                    return
+                }
+                openWindow(value: ArticleWindowRequest(articleID: articleID))
+            },
             onExport: {
                 requestExportArticle(row.id)
             },
@@ -469,12 +511,13 @@ struct SQLiteFeedArticleListView: View {
     }
 
     private var loadToken: String {
-        SQLiteFeedArticleListLoadToken.make(
+        let baseToken = SQLiteFeedArticleListLoadToken.make(
             scopeToken: scopeToken,
             directTagVersion: directTagVersion,
             sqliteStatusVersion: sqliteStatusVersion,
             debouncedSearchText: debouncedSearchText
         )
+        return "\(baseToken)|sort:\(articleSortRawValue)"
     }
 
     private var scopeToken: String {
@@ -557,7 +600,8 @@ struct SQLiteFeedArticleListView: View {
                 feedID: feedID,
                 searchText: debouncedSearchText,
                 database: database,
-                selectedArticleID: selectedArticleID
+                selectedArticleID: selectedArticleID,
+                sortOption: articleSortOption
             )
             if let database {
                 let latestLog = (try? FeedLogStore(database: database).logs(feedID: feedID, limit: 1))?.first
@@ -580,21 +624,24 @@ struct SQLiteFeedArticleListView: View {
                 tagID: tagID,
                 searchText: debouncedSearchText,
                 database: database,
-                selectedArticleID: selectedArticleID
+                selectedArticleID: selectedArticleID,
+                sortOption: articleSortOption
             )
         case let .smartFilter(smartFilter):
             state.load(
                 smartFilter: smartFilter,
                 searchText: debouncedSearchText,
                 database: database,
-                selectedArticleID: selectedArticleID
+                selectedArticleID: selectedArticleID,
+                sortOption: articleSortOption
             )
         case let .smartFolder(smartFolder):
             state.load(
                 smartFolder: smartFolder,
                 searchText: debouncedSearchText,
                 database: database,
-                selectedArticleID: selectedArticleID
+                selectedArticleID: selectedArticleID,
+                sortOption: articleSortOption
             )
         }
         navigationState = state.navigationState
@@ -682,12 +729,13 @@ struct SQLiteFeedArticleListView: View {
     }
 
     // Default fuer showsReadArticles beim Betreten eines Scopes (siehe init(smartFolder:)
-    // und .onChange(of: scopeToken)). "Mit Stern" zeigt standardmaessig gelesene UND
-    // ungelesene Artikel, alle anderen Scopes bleiben beim bisherigen Default (Nutzer-
-    // Report 2026-07-13).
+    // und .onChange(of: scopeToken)). Die zentralisierte Policy hält die
+    // Listen-Semantik mit den getrennten Sidebar-Badges synchron.
     private var defaultShowsReadArticles: Bool {
-        if case let .smartFolder(smartFolder) = scope, smartFolder.defaultKey == "starred" {
-            return true
+        if case let .smartFolder(smartFolder) = scope {
+            return SmartFolderDefaultDisplayPolicy.alwaysShowsReadArticles(
+                defaultKey: smartFolder.defaultKey
+            )
         }
 
         return false

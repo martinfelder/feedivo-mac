@@ -8,12 +8,12 @@ import Foundation
 enum ArticleFetchLimits {
     /// Haupt-Timeline-Load der 3-Spalten-Artikelliste
     /// (`SQLiteFeedArticleListState.defaultTimelineLoader`).
-    static let mainArticleList = 500
+    static let mainArticlePage = 200
 
     /// Artikel-Popout-Fenster: lädt NUR Artikel-IDs (nicht die vollen
     /// Snapshots) für die Vor-/Zurück-Navigation über alle Artikel hinweg
-    /// (`scope: .all`) — bewusst höher als `mainArticleList`, weil hier nur
-    /// IDs statt kompletter Inhalte geladen werden.
+    /// (`scope: .all`) — bewusst höher als eine einzelne `mainArticlePage`,
+    /// weil hier nur IDs statt kompletter Inhalte geladen werden.
     static let popoutNavigationIDs = 1000
 
     /// Obergrenze für angezeigte Ergebnisse im separaten Artikel-Suchfenster.

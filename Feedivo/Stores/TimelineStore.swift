@@ -21,9 +21,60 @@ struct TimelineStore {
         searchText: String? = nil,
         includeRead: Bool,
         includeHidden: Bool,
-        limit: Int
+        sortOption: ArticleSortOption = .newestFirst,
+        limit: Int,
+        offset: Int = 0
     ) throws -> [ArticleListSnapshot] {
+        let query = makeArticlesQuery(
+            scope: scope,
+            searchText: searchText,
+            includeRead: includeRead,
+            includeHidden: includeHidden,
+            sortOption: sortOption,
+            limit: limit,
+            offset: offset
+        )
+
+        return try database.read { db in
+            try ArticleListSnapshot.fetchAll(db, sql: query.sql, arguments: query.arguments)
+        }
+    }
+
+    func articlesAsync(
+        scope: TimelineScope,
+        searchText: String? = nil,
+        includeRead: Bool,
+        includeHidden: Bool,
+        sortOption: ArticleSortOption = .newestFirst,
+        limit: Int,
+        offset: Int = 0
+    ) async throws -> [ArticleListSnapshot] {
+        let query = makeArticlesQuery(
+            scope: scope,
+            searchText: searchText,
+            includeRead: includeRead,
+            includeHidden: includeHidden,
+            sortOption: sortOption,
+            limit: limit,
+            offset: offset
+        )
+
+        return try await database.readAsync { db in
+            try ArticleListSnapshot.fetchAll(db, sql: query.sql, arguments: query.arguments)
+        }
+    }
+
+    private func makeArticlesQuery(
+        scope: TimelineScope,
+        searchText: String?,
+        includeRead: Bool,
+        includeHidden: Bool,
+        sortOption: ArticleSortOption,
+        limit: Int,
+        offset: Int
+    ) -> (sql: String, arguments: StatementArguments) {
         let safeLimit = max(1, limit)
+        let safeOffset = max(0, offset)
         let searchExpression = searchText.flatMap(Self.makeFTSMatchExpression)
         var whereClauses: [String] = []
         var arguments = StatementArguments()
@@ -81,18 +132,34 @@ struct TimelineStore {
 
         let searchJoinSQL = searchExpression == nil ? "" : "JOIN article_search ON article_search.rowid = a.rowid"
         let whereSQL = whereClauses.isEmpty ? "" : "WHERE \(whereClauses.joined(separator: " AND "))"
-        _ = arguments.append(contentsOf: [safeLimit])
+        _ = arguments.append(contentsOf: [safeLimit, safeOffset])
 
-        return try database.read { db in
-            try ArticleListSnapshot.fetchAll(db, sql: """
-                SELECT
-                    \(ArticleListSQL.selectColumns)
-                \(ArticleListSQL.standardFromJoin)
-                \(searchJoinSQL)
-                \(whereSQL)
-                ORDER BY COALESCE(a.publishedAt, a.arrivedAt) DESC, a.arrivedAt DESC
-                LIMIT ?
-                """, arguments: arguments)
+        return (
+            sql: """
+            SELECT
+                \(ArticleListSQL.selectColumns)
+            \(ArticleListSQL.standardFromJoin)
+            \(searchJoinSQL)
+            \(whereSQL)
+            ORDER BY \(Self.orderBySQL(for: sortOption))
+            LIMIT ? OFFSET ?
+            """,
+            arguments: arguments
+        )
+    }
+
+    private nonisolated static func orderBySQL(for sortOption: ArticleSortOption) -> String {
+        switch sortOption {
+        case .newestFirst:
+            "COALESCE(a.publishedAt, a.arrivedAt) DESC, a.arrivedAt DESC, a.id ASC"
+        case .oldestFirst:
+            "COALESCE(a.publishedAt, a.arrivedAt) ASC, a.arrivedAt ASC, a.id ASC"
+        case .feed:
+            "f.title COLLATE NOCASE ASC, COALESCE(a.publishedAt, a.arrivedAt) DESC, a.id ASC"
+        case .title:
+            "a.title COLLATE NOCASE ASC, COALESCE(a.publishedAt, a.arrivedAt) DESC, a.id ASC"
+        case .shortReadingTimeFirst:
+            "a.estimatedReadingMinutes IS NULL ASC, a.estimatedReadingMinutes ASC, COALESCE(a.publishedAt, a.arrivedAt) DESC, a.id ASC"
         }
     }
 
@@ -195,49 +262,49 @@ struct TimelineStore {
 
     func count(
         scope: TimelineScope,
+        searchText: String? = nil,
         includeRead: Bool,
         includeHidden: Bool
     ) throws -> Int {
+        let query = makeCountQuery(
+            scope: scope,
+            searchText: searchText,
+            includeRead: includeRead,
+            includeHidden: includeHidden
+        )
+
+        return try database.read { db in
+            try Int.fetchOne(db, sql: query.sql, arguments: query.arguments) ?? 0
+        }
+    }
+
+    func countAsync(
+        scope: TimelineScope,
+        searchText: String? = nil,
+        includeRead: Bool,
+        includeHidden: Bool
+    ) async throws -> Int {
+        let query = makeCountQuery(
+            scope: scope,
+            searchText: searchText,
+            includeRead: includeRead,
+            includeHidden: includeHidden
+        )
+
+        return try await database.readAsync { db in
+            try Int.fetchOne(db, sql: query.sql, arguments: query.arguments) ?? 0
+        }
+    }
+
+    private func makeCountQuery(
+        scope: TimelineScope,
+        searchText: String?,
+        includeRead: Bool,
+        includeHidden: Bool
+    ) -> (sql: String, arguments: StatementArguments) {
         var whereClauses: [String] = []
         var arguments = StatementArguments()
-
-        switch scope {
-        case .all:
-            break
-        case let .feed(feedID):
-            whereClauses.append("a.feedID = ?")
-            _ = arguments.append(contentsOf: [feedID])
-        case let .tag(tagID):
-            whereClauses.append("""
-                (
-                    EXISTS (
-                        SELECT 1
-                        FROM article_tags at
-                        WHERE at.articleID = a.id
-                            AND at.tagID = ?
-                    )
-                    OR EXISTS (
-                        SELECT 1
-                        FROM feed_tags ft
-                        WHERE ft.feedID = a.feedID
-                            AND ft.tagID = ?
-                    )
-                )
-                """)
-            _ = arguments.append(contentsOf: [tagID, tagID])
-        case let .smartFilter(smartFilter):
-            appendSmartFilterWhereClause(
-                smartFilter,
-                whereClauses: &whereClauses,
-                arguments: &arguments
-            )
-        case let .smartFolder(folder):
-            appendSmartFolderWhereClause(
-                folder,
-                whereClauses: &whereClauses,
-                arguments: &arguments
-            )
-        }
+        appendScopeWhereClause(scope, whereClauses: &whereClauses, arguments: &arguments)
 
         if !includeRead {
             whereClauses.append("s.isRead = 0")
@@ -247,17 +314,25 @@ struct TimelineStore {
             whereClauses.append("s.isHidden = 0")
         }
 
-        let whereSQL = whereClauses.isEmpty ? "" : "WHERE \(whereClauses.joined(separator: " AND "))"
-
-        return try database.read { db in
-            try Int.fetchOne(db, sql: """
-                SELECT COUNT(*)
-                FROM articles a
-                JOIN feeds f ON f.id = a.feedID
-                JOIN article_statuses s ON s.articleID = a.id
-                \(whereSQL)
-                """, arguments: arguments) ?? 0
+        let searchExpression = searchText.flatMap(Self.makeFTSMatchExpression)
+        if let searchExpression {
+            whereClauses.append("article_search MATCH ?")
+            _ = arguments.append(contentsOf: [searchExpression])
         }
+
+        let whereSQL = whereClauses.isEmpty ? "" : "WHERE \(whereClauses.joined(separator: " AND "))"
+        let searchJoinSQL = searchExpression == nil ? "" : "JOIN article_search ON article_search.rowid = a.rowid"
+        return (
+            sql: """
+            SELECT COUNT(*)
+            FROM articles a
+            JOIN feeds f ON f.id = a.feedID
+            JOIN article_statuses s ON s.articleID = a.id
+            \(searchJoinSQL)
+            \(whereSQL)
+            """,
+            arguments: arguments
+        )
     }
 
     func readUnreadCounts(

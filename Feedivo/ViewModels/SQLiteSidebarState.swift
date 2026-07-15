@@ -1,6 +1,22 @@
 import Foundation
 import Observation
 
+enum SmartFolderDefaultDisplayPolicy {
+    /// Standardordner mit getrennten Gelesen-/Ungelesen-Badges.
+    static let mixedCountKeys: Set<String> = [
+        "all", "today", "starred", "thisWeek", "hidden", "saved"
+    ]
+
+    /// Diese Ansichten zeigen unabhängig vom Lesestatus immer alle Treffer.
+    static let alwaysShowsReadArticleKeys: Set<String> = [
+        "starred", "thisWeek", "hidden", "saved"
+    ]
+
+    static func alwaysShowsReadArticles(defaultKey: String?) -> Bool {
+        defaultKey.map(alwaysShowsReadArticleKeys.contains) ?? false
+    }
+}
+
 @MainActor
 @Observable
 final class SQLiteSidebarState {
@@ -47,7 +63,7 @@ final class SQLiteSidebarState {
             let loadedSmartFolderBadgeSnapshot = try unreadCountService.sidebarSmartFolderBadgeSnapshot()
             let timelineStore = TimelineStore(database: database)
             var loadedMixedCounts: [String: SmartFolderMixedCounts] = [:]
-            for defaultKey in ["all", "today"] {
+            for defaultKey in SmartFolderDefaultDisplayPolicy.mixedCountKeys {
                 guard let folder = loadedSmartFolderSnapshots.first(where: { $0.defaultKey == defaultKey }) else {
                     continue
                 }

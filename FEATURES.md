@@ -340,6 +340,9 @@
   werden im bestehenden SwiftData-Code nil-sicher gelesen.
 - **Neu zu planen:** Ein späterer Sync muss auf der SQLite/GRDB-Architektur
   aufsetzen oder als bewusst getrennte zweite Schicht neu entworfen werden.
+- **UI-Entscheidung 2026-07-15:** Solange dieses Backend fehlt, ist der sichtbare
+  iCloud-Schalter deaktiviert und der Status lautet ausdrücklich „noch nicht
+  verfügbar“. Ein gespeichertes Alt-Flag aktiviert keinen scheinbaren Sync.
 
 ---
 
@@ -1106,11 +1109,11 @@
 - **Status:** 🔨 In Arbeit — Qualitätsziel für Codex
 - **Ziel:** 500 Feeds / 100'000 Artikel flüssig
 - **Audit 2026-07-15:** Der SQLite-Unterbau ist weiterhin tragfähig, aber das
-  Qualitätsziel ist noch nicht erreicht. Der produktive Hauptlistenpfad lädt
-  fest maximal 500 Artikel ohne Pagination; alternative Sortierungen werden
-  erst nach diesem SQL-Limit im Speicher angewendet. Außerdem läuft der
-  synchrone Timeline-Read noch im `@MainActor`-Loader. Der priorisierte Befund
-  und NetNewsWire-Vergleich stehen in
+  Qualitätsziel muss noch mit Instruments bestätigt werden. Die gefundenen
+  Architektur- und Integrationslücken sind umgesetzt: 200er-Pagination statt
+  globalem 500er-Ende, SQL-Sortierung vor dem Limit, asynchrone GRDB-Reads,
+  vollständige Scope-Zähler und zentralisierte Smart-Folder-Policy. Der
+  priorisierte Befund, NetNewsWire-Vergleich und Umsetzungsstand stehen in
   `docs/performance/feedivo-performance-feature-integration-audit-2026-07-15.md`.
 - **Architekturentscheidung 2026-07-02:** Feedivo übernimmt für den
   Performance-kritischen Hauptpfad grundsätzlich NetNewsWires Mechanik:

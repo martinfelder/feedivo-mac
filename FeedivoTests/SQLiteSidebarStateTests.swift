@@ -166,6 +166,16 @@ struct SQLiteSidebarStateTests {
             SmartFolderRecord(id: "smart-all", name: "Alle Artikel", defaultKey: "all"),
             conditions: []
         )
+        for defaultKey in ["starred", "thisWeek", "hidden", "saved"] {
+            try smartFolderStore.save(
+                SmartFolderRecord(
+                    id: "smart-\(defaultKey)",
+                    name: defaultKey,
+                    defaultKey: defaultKey
+                ),
+                conditions: []
+            )
+        }
         try smartFolderStore.save(
             SmartFolderRecord(id: "smart-today", name: "Heute", defaultKey: "today"),
             conditions: [
@@ -201,5 +211,9 @@ struct SQLiteSidebarStateTests {
         #expect(state.mixedCountsByDefaultKey["all"]?.unread == 1)
         #expect(state.mixedCountsByDefaultKey["today"]?.read == 1)
         #expect(state.mixedCountsByDefaultKey["today"]?.unread == 1)
+        for defaultKey in ["starred", "thisWeek", "hidden", "saved"] {
+            #expect(state.mixedCountsByDefaultKey[defaultKey] != nil)
+            #expect(SmartFolderDefaultDisplayPolicy.alwaysShowsReadArticles(defaultKey: defaultKey))
+        }
     }
 }

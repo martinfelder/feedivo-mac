@@ -2425,6 +2425,16 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 > Ab hier (neueste zuerst) synchron zu `CLAUDE.md` gehalten. Die Einträge darunter sind
 > das ältere, sehr detaillierte AGENTS.md-eigene Changelog und bleiben unverändert stehen.
 
+- 2026-07-15: Pflichtlücken aus dem Performance-/Integrationsaudit umgesetzt:
+  Datenbankfehler blockieren den Produktivinhalt statt einen scheinbar leeren
+  In-Memory-Start zu erlauben; die Timeline lädt asynchron über GRDB in
+  SQL-sortierten 200er-Seiten mit vollständigem Ungelesen-Zähler nach;
+  Tag-Zuweisung und Artikelfenster sind im Zeilen-Kontextmenü verdrahtet;
+  Smart-Folder-Badge-/Lese-Defaults nutzen eine gemeinsame Policy; iCloud Sync
+  bleibt bis zu einem echten Backend sichtbar deaktiviert. Relevante Store-,
+  State-, Policy- und Source-Integrationstests ergänzt. Instruments-Messung für
+  das 100'000-Artikel-Ziel bleibt als Qualitätsnachweis offen.
+
 - 2026-07-15: Performance- und Feature-Integrationsaudit dokumentiert. Der
   SQLite/GRDB-Unterbau bleibt NetNewsWire-nah, aber vor Release sind insbesondere
   der stille In-Memory-Fallback bei Datenbankfehlern, das feste 500er-Listenlimit

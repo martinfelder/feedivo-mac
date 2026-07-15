@@ -45,20 +45,22 @@ struct FeedivoApp: App {
 
     init() {
         ReaderFontRegistry.registerBundledFonts()
-        let cloudSyncIsEnabled = CloudSyncSettings.isEnabled()
-        let database = Self.openSQLiteDatabase()
+        let databaseOpenResult = Self.openSQLiteDatabase()
+        let database = databaseOpenResult.database
         self.backgroundRefreshScheduler = SystemBackgroundActivityRefreshScheduler(
             feedivoDatabase: database,
             feedViewModel: feedViewModel
         )
         self.feedivoDatabase = database
         self.localExtensionBridgeServer = LocalExtensionBridgeServer(database: database)
-        self.databaseLoadState.initializationError = nil
-        self.databaseLoadState.isCloudSyncEnabledAtLaunch = cloudSyncIsEnabled
+        self.databaseLoadState.initializationError = databaseOpenResult.errorDescription
+        self.databaseLoadState.isCloudSyncEnabledAtLaunch = false
         // Feature 21.1: `NSStatusItem` darf erst in `applicationDidFinishLaunching` entstehen
         // (siehe `FeedivoAppDelegate`) — hier nur die Abhängigkeiten durchreichen.
-        self.appDelegate.configureMenubarController(feedivoDatabase: database, feedViewModel: feedViewModel)
-        self.localExtensionBridgeServer.start()
+        if databaseOpenResult.errorDescription == nil {
+            self.appDelegate.configureMenubarController(feedivoDatabase: database, feedViewModel: feedViewModel)
+            self.localExtensionBridgeServer.start()
+        }
     }
 
     var body: some Scene {
@@ -74,7 +76,17 @@ struct FeedivoApp: App {
         // Singleton-Szenentyp, den die anderen Einzelfenster der App (Suche,
         // Organizer, Statistik) bereits korrekt verwenden.
         Window("Feedivo", id: "main") {
-            ContentView(feedViewModel: feedViewModel)
+            Group {
+                if let initializationError = databaseLoadState.initializationError {
+                    ContentUnavailableView {
+                        Label(L10n.databaseInitErrorTitle, systemImage: "externaldrive.badge.exclamationmark")
+                    } description: {
+                        Text(verbatim: "\(L10n.databaseInitErrorMessage)\n\n\(initializationError)")
+                    }
+                } else {
+                    ContentView(feedViewModel: feedViewModel)
+                }
+            }
                 .environment(\.locale, appLanguage.locale)
                 .environment(\.interfaceTextSize, interfaceTextSize)
                 .environment(\.feedivoDatabase, feedivoDatabase)
@@ -85,6 +97,9 @@ struct FeedivoApp: App {
                 .toolbarBackground(.ultraThinMaterial, for: .windowToolbar)
                 .toolbarBackground(.visible, for: .windowToolbar)
                 .task {
+                    guard databaseLoadState.initializationError == nil else {
+                        return
+                    }
                     backfillStoredArticleMetadataIfNeeded()
                     trimImageCacheToSelectedLimit()
                     scheduleBackgroundRefresh()
@@ -187,6 +202,9 @@ struct FeedivoApp: App {
     }
 
     private func scheduleBackgroundRefresh() {
+        guard databaseLoadState.initializationError == nil else {
+            return
+        }
         try? BackgroundRefreshService.scheduleNextRefresh(
             isEnabled: backgroundRefreshIsEnabled,
             intervalMinutes: backgroundRefreshIntervalMinutes,
@@ -194,11 +212,25 @@ struct FeedivoApp: App {
         )
     }
 
-    private static func openSQLiteDatabase() -> FeedivoDatabase {
+    private struct DatabaseOpenResult {
+        var database: FeedivoDatabase
+        var errorDescription: String?
+    }
+
+    private static func openSQLiteDatabase() -> DatabaseOpenResult {
         do {
-            return try FeedivoDatabase.open(at: FeedivoDatabaseLocation.databaseURL())
+            return DatabaseOpenResult(
+                database: try FeedivoDatabase.open(at: FeedivoDatabaseLocation.databaseURL()),
+                errorDescription: nil
+            )
         } catch {
-            return try! FeedivoDatabase.inMemoryForTests()
+            // Die Ersatzdatenbank hält die Scene technisch konstruierbar. Der
+            // Hauptinhalt bleibt jedoch blockiert, damit die flüchtige Datenbank
+            // niemals wie ein erfolgreicher, leerer Produktivstart aussieht.
+            return DatabaseOpenResult(
+                database: try! FeedivoDatabase.inMemoryForTests(),
+                errorDescription: error.localizedDescription
+            )
         }
     }
 
@@ -210,6 +242,9 @@ struct FeedivoApp: App {
 
     @MainActor
     private func cleanupExpiredArticlesIfNeeded() {
+        guard databaseLoadState.initializationError == nil else {
+            return
+        }
         ArticleRetentionCleanupService.runAutomaticCleanup(
             database: feedivoDatabase,
             isEnabled: articleRetentionIsEnabled,
@@ -231,9 +266,9 @@ struct FeedivoApp: App {
 }
 
 // Hält den Status des Datenbank-Ladevorgangs beim App-Start. Bleibt `nil`,
-// wenn die on-disk-Datenbank normal geöffnet wurde; wird gesetzt, sobald auf
-// den In-Memory-Fallback ausgewichen wurde. Über `.environment` an die
-// ContentView gereicht, die ihn einmalig als Alarm anzeigt.
+// wenn die on-disk-Datenbank normal geöffnet wurde. Bei einem Fehler bleibt
+// die Meldung für die gesamte Sitzung erhalten und blockiert den Hauptinhalt;
+// die technische Ersatzdatenbank darf nicht als leerer Produktivstand wirken.
 @Observable
 final class DatabaseLoadState {
     var initializationError: String?

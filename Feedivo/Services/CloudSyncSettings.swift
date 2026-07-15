@@ -1,11 +1,16 @@
 import Foundation
 
 enum CloudSyncSettings {
+    static let isAvailable = false
     static let isEnabledKey = "cloudSync.isEnabled"
     static let defaultIsEnabled = false
     static let cloudKitContainerIdentifier = "iCloud.ch.martin.Feedivo"
 
     static func isEnabled(in defaults: UserDefaults = .standard) -> Bool {
+        guard isAvailable else {
+            return false
+        }
+
         guard defaults.object(forKey: isEnabledKey) != nil else {
             return defaultIsEnabled
         }
@@ -20,6 +25,10 @@ enum CloudSyncSettings {
     ) -> String {
         if hasDatabaseError {
             return "Datenbank konnte nicht geladen werden"
+        }
+
+        guard isAvailable else {
+            return "iCloud Sync noch nicht verfügbar"
         }
 
         if isEnabledAtLaunch == currentIsEnabled {
@@ -38,6 +47,10 @@ enum CloudSyncSettings {
     ) -> String {
         if hasDatabaseError {
             return "settings.sync.status.databaseError"
+        }
+
+        guard isAvailable else {
+            return "settings.sync.status.unavailable"
         }
 
         if isEnabledAtLaunch == currentIsEnabled {
