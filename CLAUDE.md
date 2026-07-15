@@ -111,6 +111,8 @@ FeedivoMac/
 │   ├── Views/                          # ~55 Dateien, gruppiert nach Feature-Bereich
 │   │   ├── ContentView.swift           # Root: NavigationSplitView (3 Spalten), verwaltet Auswahl/Alerts
 │   │   ├── Sidebar/                    # Feed-/Ordner-/Tag-/SmartFolder-Liste, Feed-Eigenschaften, Umbenennen
+│   │   │   └── SidebarOutlineView.swift  # NSViewRepresentable-Bridge auf AppKit NSOutlineView (ersetzt seit
+│   │   │       2026-07-15 die alte SwiftUI-native `.draggable`/`.dropDestination`-Implementierung, siehe ADR-008)
 │   │   ├── ArticleList/                # Artikelliste, Filter/Sortierung, Export-Sheet, Suchfenster
 │   │   ├── Reader/                     # Lese-Ansicht: nativer Renderer + WKWebView, Typografie, Metadaten
 │   │   ├── Tags/                       # Tag-Verwaltung (Farben, Umbenennen, Löschen)
@@ -188,6 +190,8 @@ komplett über String-IDs (`FeedRecord.id`, ein UUID-String) statt über Objekti
 | v12_add_articles_published_coalesce_index | Expression-Index auf `COALESCE(publishedAt, arrivedAt)` |
 | v13_add_article_statuses_foreign_key | `article_statuses` neu mit echtem Fremdschlüssel auf `articles` |
 | v14_add_article_identity_history_retention_flag | `wasRemovedByRetention`-Flag auf `article_identity_history` |
+| v15_add_feed_and_folder_sort_index | `sortIndex`-Spalte auf `feeds` + `feed_folders`, für manuelle Drag&Drop-Sortierung in der NSOutlineView-Sidebar |
+| v16_add_tag_sort_index | `sortIndex`-Spalte auf `tags`, analog zu v15 — macht Tags in der Sidebar erstmals per Drag&Drop sortierbar |
 
 **Achtung bei neuen Migrationen:** Vor dem Anlegen einer neuen Migration IMMER den
 tatsächlichen letzten Eintrag in `FeedivoDatabaseMigrator.swift` prüfen (`grep -n
@@ -254,12 +258,65 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
   `codex/icloud-sync-beta`.
 - **Datum:** 2026-07-07
 
+### ADR-008: Sidebar auf AppKit NSOutlineView statt SwiftUI-natives Drag & Drop umgestellt
+- **Entscheidung:** Die komplette Sidebar (Smart Folders, Tags, Ordner/Feeds) läuft seit
+  2026-07-15 über eine einzige `NSOutlineView` (`SidebarOutlineView.swift`,
+  `NSViewRepresentable` + Coordinator als DataSource/Delegate), nach dem Vorbild von
+  NetNewsWire. Zeilen bleiben unveränderte, bestehende SwiftUI-Views (`FeedRowView` etc.),
+  eingebettet per `NSHostingView`.
+- **Grund:** SwiftUIs natives `.draggable`/`.dropDestination` (Feature 15.2) war
+  intermittierend unzuverlässig — `dropDestination` feuerte manchmal gar nicht, oder die
+  Datei-Promise-/Pasteboard-Verhandlung hing fest. Per Live-Diagnose reproduzierbar,
+  keine SwiftUI-seitige Lösung gefunden.
+- **Kern-Invariante:** `NSOutlineView` verwaltet NIE eigene Auswahl (`shouldSelectItem`
+  immer `false`, `selectionHighlightStyle = .none`) — Auswahl/Ein-Ausklappen bleiben rein
+  SwiftUI-/`@AppStorage`-gesteuert, nur per `expandItem`/`collapseItem` in die Outline
+  gespiegelt.
+- **Nebeneffekt:** Tags und Smart Folders sind dadurch jetzt erstmals auch per Drag & Drop
+  sortierbar (vorher nur Feeds/Ordner) — neue Migrationen v15/v16 (`sortIndex` auf
+  `feeds`/`feed_folders`/`tags`).
+- **Wichtiger Gotcha zur automatischen Drag-Erkennung:** siehe unten.
+- **Datum:** 2026-07-15. Umgesetzt via Brainstorming→Spec→Plan→Subagent-Driven-Development
+  (6 Tasks + Whole-Branch-Fix-Runde + Live-Fix-Runde). Commits `3cc693c1f..7344983d2` auf
+  `main`, **NICHT gepusht** (bewusster Nutzerentscheid). Live-Verifikation für Drag & Drop
+  Feed↔Ordner vom Nutzer bestätigt; Tag-/Smart-Folder-Reordering und restliche Punkte des
+  13-Punkte-Testprotokolls noch NICHT explizit durchgetestet.
+
 ---
 
 ## Bekannte Gotchas & Fallstricke
 
 > Diese Liste wächst während der Entwicklung. Immer ergänzen!
 
+- **`NSOutlineView`s automatische Drag-Erkennung funktioniert NIE mit gehostetem
+  interaktivem SwiftUI-Zeileninhalt (Button/`.onTapGesture` in einer `NSHostingView`):**
+  Bei der Sidebar-Migration auf `NSOutlineView` (ADR-008, `SidebarOutlineView.swift`,
+  2026-07-15) deckte der erste echte Live-Test auf, dass Drag & Drop trotz korrekt
+  implementiertem `pasteboardWriterForItem`/`validateDrop`/`acceptDrop` beim tatsächlichen
+  Ziehen nie feuerte. Per Diagnose-Override von `NSOutlineView.mouseDown` +
+  `/usr/bin/log show`-Auswertung (Achtung: `log` ist ein zsh-Builtin, IMMER `/usr/bin/log`
+  explizit verwenden) zweifelsfrei verifiziert: SwiftUI übersetzt seine Gesten intern in
+  eigene AppKit-Gesture-Recognizer, die `mouseDown` am Blattelement abfangen, BEVOR es je
+  bei einem `mouseDown`-Override eines Vorfahren (auch der `NSOutlineView` selbst)
+  ankommt. Genau deshalb verwendet NetNewsWire (unser architektonisches Vorbild für diese
+  Migration) rein native `NSTableCellView`s ohne SwiftUI-Hosting — dort tritt das Problem
+  gar nicht erst auf (per `gh api`-Fetch des echten NetNewsWire-Quellcodes verifiziert:
+  `SidebarCell` ist purer `NSTableCellView` mit `NSTextField`/eigenen AppKit-Views). Fix:
+  eigener `NSPanGestureRecognizer` pro Zeile (angehängt in `viewFor:item:`), der bei
+  tatsächlicher Zugbewegung (State `.began`, unterschreitet einen einfachen Klick) manuell
+  `beginDraggingSession` auslöst — läuft parallel zu SwiftUIs eigenen Recognizern, da
+  AppKit-Gesture-Recognizer sich nicht gegenseitig blockieren, sofern keine explizite
+  Exklusivität gesetzt ist. Weitere in derselben Live-Diagnose gefundene Bugs: (1)
+  `NSDraggingItem.setDraggingFrame` muss Outline-View-globale statt zeilen-lokale
+  Koordinaten nutzen (`cellView.convert(bounds, to: outlineView)`), sonst erscheint das
+  Vorschaubild am falschen Ort; (2) eine Zeilenhöhe von 24pt war als Drop-Zone zu
+  klein/unzuverlässig treffbar, 30pt behebt es; (3) native AppKit-Drop-Hervorhebung wird
+  von gehostetem SwiftUI-Zeileninhalt optisch überdeckt — braucht eine eigene
+  SwiftUI-Drop-Hervorhebung (State im Coordinator + gezieltes Neurendern nur der
+  betroffenen Zeile statt vollem `reloadData()`). **Lehre:** Bei JEDER künftigen
+  `NSOutlineView`/AppKit-Bridge in diesem Projekt, die gehosteten interaktiven
+  SwiftUI-Inhalt verwendet, sofort den `NSPanGestureRecognizer`-Workaround einplanen,
+  nicht erst bei "Drag geht nicht" neu entdecken.
 - **Neues App-Icon zeigt nach dem Rebuild noch das alte an (macOS-Icon-Cache,
   kein Build-Fehler):** Nach Ersetzen der PNGs in
   `Feedivo/Assets.xcassets/AppIcon.appiconset/` zeigten Dock/Finder trotz
@@ -670,6 +727,28 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Aktuell in Arbeit
 
+- **2026-07-15: Sidebar komplett auf AppKit NSOutlineView umgestellt (ADR-008) + Ordner-
+  Sortier-Menü — Implementierung UND Live-Verifikation abgeschlossen, NICHT gepusht
+  (Nutzerentscheid).** Ersetzt das unzuverlässige SwiftUI-native `.draggable`/
+  `.dropDestination` aus Feature 15.2. Details (Architektur, Kern-Invariante,
+  Nebeneffekt Tag-/Smart-Folder-Sortierbarkeit) siehe ADR-008 oben, kritischer
+  NSOutlineView+SwiftUI-Drag-Gotcha siehe „Bekannte Gotchas" oben. Umgesetzt via
+  Brainstorming→Spec→Plan→Subagent-Driven-Development (6 Tasks), danach zwei
+  Live-Fix-Runden direkt im Anschluss an die Verifikation durch den Nutzer. Neues Feature
+  auf Nutzerwunsch nach der ersten Live-Testrunde: Menü neben der „Ordner"-Kopfzeile mit
+  „Alphabetisch sortieren (A-Z)" (`FeedFolderStore.sortAlphabetically()`), um eine
+  versehentliche manuelle Drag&Drop-Umsortierung einfach rückgängig machen zu können.
+  Danach TEMPDEBUG-Diagnose-Logging (Live-Log-Analyse zur Drag-Fehlersuche) wieder
+  vollständig aus `SidebarOutlineView.swift` entfernt. Commits `3cc693c1f..7344983d2`
+  auf `main`. Whole-Branch-Review (Opus) fand 4 Important-Findings, 3 gefixt (fehlende
+  Empty-State-Platzhalter, zu knappes `.frame(minHeight: 200)` um die NSOutlineView,
+  Ordner-Löschen-Regression bei nicht-leeren Ordnern); 1 Finding (natives
+  Doppelklick-Expand-Verhalten) bewusst NICHT gefixt, da ein `shouldExpandItem`/
+  `shouldCollapseItem`-Fix ohne laufende App nicht verifizierbar gewesen wäre. Spec:
+  `docs/superpowers/specs/2026-07-15-sidebar-nsoutlineview-design.md`, Plan:
+  `docs/superpowers/plans/2026-07-15-sidebar-nsoutlineview.md`. Ausstehend: Tag-/
+  Smart-Folder-Reordering und restliche Punkte des 13-Punkte-Testprotokolls noch nicht
+  explizit durchgetestet; Push nach `origin/main` noch nicht erfolgt.
 - **2026-07-14 (Vormittag): Bereinigte Artikel bleiben dauerhaft weg + Start-Reihenfolge-Fix —
   VOLLSTÄNDIG ABGESCHLOSSEN und auf `origin/main` gepusht.** Folge-Diagnose nach den
   Befund-A/B/C-Fixes: Nutzer meldete weiterhin, dass bereinigte Artikel beim nächsten
@@ -770,6 +849,9 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Letzte Änderungen
 
+- 2026-07-15: Sidebar auf AppKit NSOutlineView umgestellt (ADR-008) + Ordner-Sortier-Menü
+  + TEMPDEBUG-Cleanup — vollständige Details siehe „Aktuell in Arbeit" oben, hier nicht
+  dupliziert. Commits `3cc693c1f..7344983d2` auf `main`, NICHT gepusht.
 - 2026-07-14 (später Vormittag): Nutzer-Report — letzter ungelesener Artikel in Smart
   Folder "Ungelesen" verschwand beim Lesen sofort komplett aus der Liste, statt wie
   gewohnt sticky bis zum Ordnerwechsel sichtbar zu bleiben. Via systematic-debugging

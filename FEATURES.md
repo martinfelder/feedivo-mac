@@ -619,8 +619,17 @@
 - **Umgesetzt:** `FeedFolder`, `FeedFolderOrganizer`
 
 ### 15.2 Feeds per Drag & Drop organisieren
-- **Status:** ⏸️ Zurückgestellt
-- **Grund:** Hoher Aufwand — nach v1
+- **Status:** ✔️ Fertig (erledigt 2026-07-14, seit 2026-07-15 auf AppKit NSOutlineView
+  umgestellt, siehe CLAUDE.md ADR-008 — Commits `3cc693c1f..7344983d2` auf `main`,
+  NICHT gepusht)
+- **Umgesetzt:**
+  - Feed-Ordner-Zuweisung sowie Feed- und Ordner-Reihenfolge per Drag & Drop in der Sidebar
+  - Seit 2026-07-15 zusätzlich: Tags und Smart Folders per Drag & Drop sortierbar
+    (Nebeneffekt der NSOutlineView-Migration), neues Menü „Alphabetisch sortieren (A-Z)"
+    neben der Ordner-Kopfzeile zum einfachen Rückgängigmachen einer versehentlichen
+    Umsortierung
+  - Ausstehend: Tag-/Smart-Folder-Reordering und restliche Punkte des 13-Punkte-
+    Testprotokolls aus dem Migrationsplan noch nicht explizit live durchgetestet
 
 ### 15.3 OPML-Gruppen als Ordner
 - **Status:** ✔️ Fertig
@@ -1558,7 +1567,6 @@ Folgende Reihenfolge berücksichtigt Abhängigkeiten. Features mit (*) sind Vora
 ## Zurückgestellt (nach v1)
 
 - **Feature 12.2** — Feed-Suche via Discover (Feedly API kostenpflichtig)
-- **Feature 15.2** — Feeds per Drag & Drop umsortieren
 - **Feature 18.1c** — PDF- und DOCX-Export für einzelne Artikel
 - **Feature 18.3** — Drittanbieter-Integration (Readwise, Obsidian, Pocket)
 - **Feature 26.1** — Barrierefreiheit / VoiceOver
