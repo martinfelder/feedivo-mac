@@ -624,7 +624,7 @@
 ### 15.2 Feeds per Drag & Drop organisieren
 - **Status:** ✔️ Fertig (erledigt 2026-07-14, seit 2026-07-15 auf AppKit NSOutlineView
   umgestellt, siehe CLAUDE.md ADR-008 — Commits `3cc693c1f..7344983d2` auf `main`,
-  NICHT gepusht)
+  auf `origin/main` gepusht)
 - **Umgesetzt:**
   - Feed-Ordner-Zuweisung sowie Feed- und Ordner-Reihenfolge per Drag & Drop in der Sidebar
   - Seit 2026-07-15 zusätzlich: Tags und Smart Folders per Drag & Drop sortierbar
@@ -632,7 +632,9 @@
     neben der Ordner-Kopfzeile zum einfachen Rückgängigmachen einer versehentlichen
     Umsortierung
   - Ausstehend: Tag-/Smart-Folder-Reordering und restliche Punkte des 13-Punkte-
-    Testprotokolls aus dem Migrationsplan noch nicht explizit live durchgetestet
+    Testprotokolls aus dem Migrationsplan noch nicht explizit live durchgetestet.
+    Die automatisierten Baum-, Drop-Policy-, Pasteboard-, Store- und Gruppierungs-
+    Regressionstests sind am 2026-07-15 vollständig grün.
 
 ### 15.3 OPML-Gruppen als Ordner
 - **Status:** ✔️ Fertig

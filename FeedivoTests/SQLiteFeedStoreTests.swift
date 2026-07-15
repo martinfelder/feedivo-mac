@@ -2,6 +2,23 @@ import Foundation
 import Testing
 @testable import Feedivo
 
+private func seedUnreadArticles(
+    database: FeedivoDatabase,
+    feedID: String,
+    count: Int
+) throws {
+    let articleStore = ArticleStore(database: database)
+    for index in 0..<count {
+        _ = try articleStore.upsert(
+            ArticleUpsertInput(
+                feedID: feedID,
+                sourceID: "\(feedID)-article-\(index)",
+                title: "Article \(index)"
+            )
+        )
+    }
+}
+
 struct SQLiteFeedStoreTests {
     @Test func saveFeedPersistsAndUpdatesByID() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
@@ -48,6 +65,8 @@ struct SQLiteFeedStoreTests {
 
         try store.save(FeedRecord(id: "b", url: "https://b.example/feed.xml", title: "Beta", unreadCount: 2))
         try store.save(FeedRecord(id: "a", url: "https://a.example/feed.xml", title: "Alpha", unreadCount: 1))
+        try seedUnreadArticles(database: database, feedID: "b", count: 2)
+        try seedUnreadArticles(database: database, feedID: "a", count: 1)
 
         let snapshots = try store.sidebarFeeds()
 
@@ -73,6 +92,7 @@ struct SQLiteFeedStoreTests {
 
         try store.save(FeedRecord(id: "read", url: "https://read.example/feed.xml", title: "Read", unreadCount: 0))
         try store.save(FeedRecord(id: "unread", url: "https://unread.example/feed.xml", title: "Unread", unreadCount: 3))
+        try seedUnreadArticles(database: database, feedID: "unread", count: 3)
 
         let visible = try store.sidebarFeeds(showsReadFeeds: false)
 

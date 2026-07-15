@@ -2425,6 +2425,18 @@ Aktualisiert außerdem den Dock-Badge für ungelesene Artikel über
 > Ab hier (neueste zuerst) synchron zu `CLAUDE.md` gehalten. Die Einträge darunter sind
 > das ältere, sehr detaillierte AGENTS.md-eigene Changelog und bleiben unverändert stehen.
 
+- 2026-07-15: Automatisierbaren Sidebar- und M4-Regressionslauf durchgeführt.
+  Sidebar-Baum, Drop-Policy, Pasteboard, Tag-/Ordner-Sortierung und Smart-Folder-
+  Gruppengrenzen sind grün; ebenso Feed-Anlage/Refresh, Timeline/Status, Reader,
+  Tags/Regeln, Bereinigung, OPML, Export, Onboarding, URL-Schema, Menubar,
+  Migrationen, Offline-Unterbau und Benachrichtigungen. Sechs veraltete
+  Store-Test-Fixtures an die produktive SQLite-Wahrheit angepasst: Status-Tests
+  legen wegen des Fremdschlüssels zuerst Feed und Artikel an; Sidebar-Tests
+  erzeugen echte Artikelstatusdaten statt nur `feeds.unreadCount` zu setzen.
+  Zwei Refresh-Tests verwenden aktuelle Publikationsdaten, weil nur tatsächlich
+  neue Artikel im Refresh-Status und in Benachrichtigungen zählen. Der manuelle
+  13-Punkte-Sidebar-Livetest bleibt ausstehend.
+
 - 2026-07-15: Performance-Zielbestand mit 500 Feeds und 100'000 Artikeln im
   Debug- und optimierten Release-Testprofil sowie mit Instruments Time Profiler
   gemessen. Timeline, FTS, Count und tiefste Pagination liegen bei etwa 5–133 ms;

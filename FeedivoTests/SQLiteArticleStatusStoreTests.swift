@@ -2,17 +2,38 @@ import Foundation
 import Testing
 @testable import Feedivo
 
+private func seedArticleForStatusTest(
+    database: FeedivoDatabase,
+    articleID: String = "article-1",
+    arrivedAt: Date = Date(timeIntervalSince1970: 100)
+) throws -> String {
+    let feedStore = FeedStore(database: database)
+    let articleStore = ArticleStore(database: database)
+    try feedStore.save(
+        FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example")
+    )
+    return try articleStore.upsert(
+        ArticleUpsertInput(
+            feedID: "feed-1",
+            sourceID: articleID,
+            title: "Article",
+            arrivedAt: arrivedAt
+        )
+    )
+}
+
 struct SQLiteArticleStatusStoreTests {
     @Test func ensureStatusCreatesDefaultUnreadStatus() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let store = ArticleStatusStore(database: database)
         let arrivedAt = Date(timeIntervalSince1970: 100)
+        let articleID = try seedArticleForStatusTest(database: database, arrivedAt: arrivedAt)
 
-        try store.ensureStatus(articleID: "article-1", dateArrived: arrivedAt)
+        try store.ensureStatus(articleID: articleID, dateArrived: arrivedAt)
 
-        let status = try store.status(articleID: "article-1")
+        let status = try store.status(articleID: articleID)
 
-        #expect(status?.articleID == "article-1")
+        #expect(status?.articleID == articleID)
         #expect(status?.isRead == false)
         #expect(status?.isStarred == false)
         #expect(status?.dateArrived == arrivedAt)
@@ -21,12 +42,13 @@ struct SQLiteArticleStatusStoreTests {
     @Test func ensureStatusDoesNotOverwriteExistingStatus() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let store = ArticleStatusStore(database: database)
+        let articleID = try seedArticleForStatusTest(database: database)
 
-        try store.ensureStatus(articleID: "article-1", dateArrived: Date(timeIntervalSince1970: 100))
-        try store.setRead(true, articleID: "article-1", at: Date(timeIntervalSince1970: 200))
-        try store.ensureStatus(articleID: "article-1", dateArrived: Date(timeIntervalSince1970: 300))
+        try store.ensureStatus(articleID: articleID, dateArrived: Date(timeIntervalSince1970: 100))
+        try store.setRead(true, articleID: articleID, at: Date(timeIntervalSince1970: 200))
+        try store.ensureStatus(articleID: articleID, dateArrived: Date(timeIntervalSince1970: 300))
 
-        let status = try store.status(articleID: "article-1")
+        let status = try store.status(articleID: articleID)
 
         #expect(status?.isRead == true)
         #expect(status?.readAt == Date(timeIntervalSince1970: 200))
@@ -36,13 +58,14 @@ struct SQLiteArticleStatusStoreTests {
     @Test func statusMutationsUpdateStatusValues() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let statusStore = ArticleStatusStore(database: database)
+        let articleID = try seedArticleForStatusTest(database: database)
 
-        try statusStore.ensureStatus(articleID: "article-1", dateArrived: Date(timeIntervalSince1970: 100))
-        try statusStore.setStarred(true, articleID: "article-1", at: Date(timeIntervalSince1970: 400))
-        try statusStore.setArchived(true, articleID: "article-1", at: Date(timeIntervalSince1970: 500))
-        try statusStore.setHidden(true, articleID: "article-1", at: Date(timeIntervalSince1970: 600))
+        try statusStore.ensureStatus(articleID: articleID, dateArrived: Date(timeIntervalSince1970: 100))
+        try statusStore.setStarred(true, articleID: articleID, at: Date(timeIntervalSince1970: 400))
+        try statusStore.setArchived(true, articleID: articleID, at: Date(timeIntervalSince1970: 500))
+        try statusStore.setHidden(true, articleID: articleID, at: Date(timeIntervalSince1970: 600))
 
-        let status = try statusStore.status(articleID: "article-1")
+        let status = try statusStore.status(articleID: articleID)
 
         #expect(status?.isStarred == true)
         #expect(status?.starredAt == Date(timeIntervalSince1970: 400))
@@ -55,12 +78,13 @@ struct SQLiteArticleStatusStoreTests {
     @Test func clearingStatusRemovesMatchingTimestamp() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let store = ArticleStatusStore(database: database)
+        let articleID = try seedArticleForStatusTest(database: database)
 
-        try store.ensureStatus(articleID: "article-1", dateArrived: Date(timeIntervalSince1970: 100))
-        try store.setRead(true, articleID: "article-1", at: Date(timeIntervalSince1970: 200))
-        try store.setRead(false, articleID: "article-1", at: Date(timeIntervalSince1970: 300))
+        try store.ensureStatus(articleID: articleID, dateArrived: Date(timeIntervalSince1970: 100))
+        try store.setRead(true, articleID: articleID, at: Date(timeIntervalSince1970: 200))
+        try store.setRead(false, articleID: articleID, at: Date(timeIntervalSince1970: 300))
 
-        let status = try store.status(articleID: "article-1")
+        let status = try store.status(articleID: articleID)
 
         #expect(status?.isRead == false)
         #expect(status?.readAt == nil)

@@ -278,7 +278,7 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
 - **Wichtiger Gotcha zur automatischen Drag-Erkennung:** siehe unten.
 - **Datum:** 2026-07-15. Umgesetzt via Brainstorming→Spec→Plan→Subagent-Driven-Development
   (6 Tasks + Whole-Branch-Fix-Runde + Live-Fix-Runde). Commits `3cc693c1f..7344983d2` auf
-  `main`, **NICHT gepusht** (bewusster Nutzerentscheid). Live-Verifikation für Drag & Drop
+  `main` und auf `origin/main`. Live-Verifikation für Drag & Drop
   Feed↔Ordner vom Nutzer bestätigt; Tag-/Smart-Folder-Reordering und restliche Punkte des
   13-Punkte-Testprotokolls noch NICHT explizit durchgetestet.
 
@@ -728,8 +728,8 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 ## Aktuell in Arbeit
 
 - **2026-07-15: Sidebar komplett auf AppKit NSOutlineView umgestellt (ADR-008) + Ordner-
-  Sortier-Menü — Implementierung UND Live-Verifikation abgeschlossen, NICHT gepusht
-  (Nutzerentscheid).** Ersetzt das unzuverlässige SwiftUI-native `.draggable`/
+  Sortier-Menü — Implementierung und Feed-/Ordner-Live-Verifikation abgeschlossen und
+  gepusht.** Ersetzt das unzuverlässige SwiftUI-native `.draggable`/
   `.dropDestination` aus Feature 15.2. Details (Architektur, Kern-Invariante,
   Nebeneffekt Tag-/Smart-Folder-Sortierbarkeit) siehe ADR-008 oben, kritischer
   NSOutlineView+SwiftUI-Drag-Gotcha siehe „Bekannte Gotchas" oben. Umgesetzt via
@@ -748,7 +748,7 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   `docs/superpowers/specs/2026-07-15-sidebar-nsoutlineview-design.md`, Plan:
   `docs/superpowers/plans/2026-07-15-sidebar-nsoutlineview.md`. Ausstehend: Tag-/
   Smart-Folder-Reordering und restliche Punkte des 13-Punkte-Testprotokolls noch nicht
-  explizit durchgetestet; Push nach `origin/main` noch nicht erfolgt.
+  explizit live durchgetestet.
 - **2026-07-14 (Vormittag): Bereinigte Artikel bleiben dauerhaft weg + Start-Reihenfolge-Fix —
   VOLLSTÄNDIG ABGESCHLOSSEN und auf `origin/main` gepusht.** Folge-Diagnose nach den
   Befund-A/B/C-Fixes: Nutzer meldete weiterhin, dass bereinigte Artikel beim nächsten
@@ -848,6 +848,18 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 ---
 
 ## Letzte Änderungen
+
+- 2026-07-15: Automatisierbaren Sidebar- und M4-Regressionslauf durchgeführt.
+  Sidebar-Baum, Drop-Policy, Pasteboard, Tag-/Ordner-Sortierung und Smart-Folder-
+  Gruppengrenzen sind grün; ebenso Feed-Anlage/Refresh, Timeline/Status, Reader,
+  Tags/Regeln, Bereinigung, OPML, Export, Onboarding, URL-Schema, Menubar,
+  Migrationen, Offline-Unterbau und Benachrichtigungen. Sechs veraltete
+  Store-Test-Fixtures an die produktive SQLite-Wahrheit angepasst: Status-Tests
+  legen wegen des Fremdschlüssels zuerst Feed und Artikel an; Sidebar-Tests
+  erzeugen echte Artikelstatusdaten statt nur `feeds.unreadCount` zu setzen.
+  Zwei Refresh-Tests verwenden aktuelle Publikationsdaten, weil nur tatsächlich
+  neue Artikel im Refresh-Status und in Benachrichtigungen zählen. Der manuelle
+  13-Punkte-Sidebar-Livetest bleibt ausstehend.
 
 - 2026-07-15: Performance-Zielbestand mit 500 Feeds und 100'000 Artikeln im
   Debug- und optimierten Release-Testprofil sowie mit Instruments Time Profiler

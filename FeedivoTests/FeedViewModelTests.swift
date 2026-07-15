@@ -288,7 +288,7 @@ struct FeedViewModelTests {
                                 link: "https://example.com/sqlite-first",
                                 summary: nil,
                                 content: nil,
-                                publishedAt: Date(timeIntervalSince1970: 100),
+                                publishedAt: Date(),
                                 imageURL: nil
                             )
                         ]
@@ -366,7 +366,7 @@ struct FeedViewModelTests {
                                 link: "https://example.com/notify-1",
                                 summary: nil,
                                 content: nil,
-                                publishedAt: Date(timeIntervalSince1970: 100),
+                                publishedAt: Date(),
                                 imageURL: nil
                             )
                         ]
