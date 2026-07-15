@@ -412,6 +412,9 @@ struct SidebarOutlineView: NSViewRepresentable {
                     )
                 )
             case .foldersHeader:
+                let folderCount = node.children.reduce(into: 0) { count, child in
+                    if case .folder = child.payload { count += 1 }
+                }
                 HStack {
                     Button {
                         parent.isFoldersCollapsed.toggle()
@@ -420,9 +423,14 @@ struct SidebarOutlineView: NSViewRepresentable {
                             Image(systemName: parent.isFoldersCollapsed ? "chevron.right" : "chevron.down")
                                 .font(.system(size: 13, weight: .bold))
                                 .frame(width: 12)
-                            Text(L10n.sidebarFoldersSection)
-                                .font(.system(size: 14, weight: .bold))
-                                .textCase(.uppercase)
+                            HStack(spacing: 4) {
+                                Text(L10n.sidebarFoldersSection)
+                                    .textCase(.uppercase)
+                                if folderCount > 0 {
+                                    Text("(\(folderCount))")
+                                }
+                            }
+                            .font(.system(size: 14, weight: .bold))
                         }
                         .contentShape(Rectangle())
                     }
