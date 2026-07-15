@@ -178,6 +178,21 @@ enum FeedNotificationService {
         )
     }
 
+    /// Test-Benachrichtigung für die Einstellungsseite — bewusst
+    /// `respectsMasterSwitch: false`, da ein expliziter Klick auf "Test senden"
+    /// eindeutig gewollt ist, auch wenn der Nutzer automatische Benachrichtigungen
+    /// gerade pausiert hat. Respektiert weiterhin die macOS-Berechtigung.
+    static func presentTest() async {
+        await present(
+            title: L10n.notificationTestTitle,
+            body: L10n.notificationTestBody,
+            userInfo: ["feedivoNotificationType": "test"],
+            identifierPrefix: "test",
+            isCritical: false,
+            respectsMasterSwitch: false
+        )
+    }
+
     /// Gemeinsame Delivery-Pipeline für Feed-Refresh- und Regel-Notifications.
     /// Zuvor stand die Identische Authorisierungs-+Zustell-Logik doppelt in
     /// `presentRefreshSummary` und `presentRuleSummary`.
@@ -186,8 +201,15 @@ enum FeedNotificationService {
         body: String,
         userInfo: [String: Any],
         identifierPrefix: String,
-        isCritical: Bool
+        isCritical: Bool,
+        respectsMasterSwitch: Bool = true
     ) async {
+        // Steht bewusst vor isAuthorized(): bei ausgeschaltetem Master-Schalter soll
+        // auch keine unnötige Berechtigungsanfrage bei notDetermined ausgelöst werden.
+        if respectsMasterSwitch, !NotificationSettings.isMasterEnabled() {
+            return
+        }
+
         guard await isAuthorized() else {
             return
         }
