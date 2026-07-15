@@ -271,7 +271,9 @@ struct SidebarOutlineView: NSViewRepresentable {
                 // 30pt (wie Feed-/Tag-/Smart-Folder-Zeilen) angeglichen,
                 // 2026-07-15 Nutzer-Report nach Log-Analyse.
                 return 30
-            case .smartFolder, .tag:
+            case .smartFolder:
+                return 34
+            case .tag:
                 return 30
             case .emptyPlaceholder:
                 return 28
@@ -368,7 +370,7 @@ struct SidebarOutlineView: NSViewRepresentable {
                     SidebarRowButtonStyle(
                         isSelected: parent.selection == .smartFolder(smartFolder.id),
                         leadingIndent: 6,
-                        rowHeight: 30
+                        rowHeight: 34
                     )
                 )
                 .contextMenu {
