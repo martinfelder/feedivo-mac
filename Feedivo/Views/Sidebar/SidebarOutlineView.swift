@@ -390,8 +390,12 @@ struct SidebarOutlineView: NSViewRepresentable {
                     }
                 }
             case .tagsHeader:
+                let tagCount = node.children.reduce(into: 0) { count, child in
+                    if case .tag = child.payload { count += 1 }
+                }
                 sectionHeaderRow(
                     title: L10n.sidebarTagsSection,
+                    count: tagCount,
                     isCollapsed: parent.isTagsCollapsed,
                     actionSystemImage: "tag",
                     action: parent.onTagsManageRequested,
@@ -485,6 +489,7 @@ struct SidebarOutlineView: NSViewRepresentable {
         @ViewBuilder
         private func sectionHeaderRow(
             title: LocalizedStringKey,
+            count: Int? = nil,
             isCollapsed: Bool,
             actionSystemImage: String?,
             action: (() -> Void)?,
@@ -496,9 +501,14 @@ struct SidebarOutlineView: NSViewRepresentable {
                         Image(systemName: isCollapsed ? "chevron.right" : "chevron.down")
                             .font(.system(size: 13, weight: .bold))
                             .frame(width: 12)
-                        Text(title)
-                            .font(.system(size: 14, weight: .bold))
-                            .textCase(.uppercase)
+                        HStack(spacing: 4) {
+                            Text(title)
+                                .textCase(.uppercase)
+                            if let count, count > 0 {
+                                Text("(\(count))")
+                            }
+                        }
+                        .font(.system(size: 14, weight: .bold))
                     }
                     .contentShape(Rectangle())
                 }
