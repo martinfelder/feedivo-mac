@@ -17,6 +17,26 @@ enum SidebarSmartFolderContextAction {
     case delete
 }
 
+/// NSOutlineView zeichnet für jedes Element mit isItemExpandable == true
+/// automatisch ein eigenes natives Disclosure-Dreieck im outlineTableColumn
+/// — unabhängig von indentationPerLevel/style, die nur Einrückung bzw.
+/// Zeilen-Chrome betreffen, nicht dieses Dreieck selbst. Da jede Zeile
+/// bereits ihren eigenen SwiftUI-Chevron mitbringt (siehe rowContent),
+/// führte die native Zeichnung zu einem sichtbar doppelten Pfeil pro
+/// Zeile (Nutzer-Report per Screenshot, 2026-07-15, unmittelbar bei der
+/// ersten Live-Verifikation nach der NSOutlineView-Migration gefunden).
+/// Der Standard-AppKit-Weg, das native Dreieck zu unterdrücken OHNE
+/// programmatisches expandItem/collapseItem zu beeinträchtigen (worauf
+/// unser SwiftUI-gesteuerter Expand/Collapse-Zustand angewiesen ist):
+/// frameOfOutlineCell(atRow:) auf .zero überschreiben — isItemExpandable
+/// bleibt unverändert true, AppKit zeichnet das Dreieck nur nicht mehr,
+/// weil ihm dafür kein Platz gemeldet wird.
+private final class SidebarOutlineViewControl: NSOutlineView {
+    override func frameOfOutlineCell(atRow row: Int) -> NSRect {
+        .zero
+    }
+}
+
 /// NSViewRepresentable-Bridge, die die komplette Sidebar (Smart Folders,
 /// Tags, Ordner/Feeds) als einzelne NSOutlineView rendert. Zeilen werden per
 /// NSHostingView aus den unveränderten bestehenden SwiftUI-Row-Views gebaut
@@ -49,7 +69,7 @@ struct SidebarOutlineView: NSViewRepresentable {
     let moveSmartFolder: (_ id: String, _ targetIndex: Int, _ isDefault: Bool) -> Void
 
     func makeNSView(context: Context) -> NSScrollView {
-        let outlineView = NSOutlineView()
+        let outlineView = SidebarOutlineViewControl()
         outlineView.headerView = nil
         outlineView.style = .plain
         // Eigenes SwiftUI-gesteuertes Auswahl-Highlighting (siehe FeedRowView/
