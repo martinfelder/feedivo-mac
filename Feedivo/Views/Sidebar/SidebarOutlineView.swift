@@ -46,6 +46,11 @@ struct SidebarOutlineView: NSViewRepresentable {
     let onCreateSmartFolderRequested: () -> Void
     let onCreateFolderRequested: () -> Void
 
+    let moveFeed: (_ id: String, _ toFolderName: String?, _ targetIndex: Int) -> Void
+    let moveFolder: (_ name: String, _ targetIndex: Int) -> Void
+    let moveTag: (_ id: String, _ targetIndex: Int) -> Void
+    let moveSmartFolder: (_ id: String, _ targetIndex: Int, _ isDefault: Bool) -> Void
+
     func makeNSView(context: Context) -> NSScrollView {
         let outlineView = NSOutlineView()
         outlineView.headerView = nil
@@ -59,6 +64,13 @@ struct SidebarOutlineView: NSViewRepresentable {
         outlineView.backgroundColor = .clear
         outlineView.dataSource = context.coordinator
         outlineView.delegate = context.coordinator
+        outlineView.registerForDraggedTypes([
+            .feedivoFeedDragItem,
+            .feedivoFolderDragItem,
+            .feedivoTagDragItem,
+            .feedivoSmartFolderDragItem
+        ])
+        outlineView.setDraggingSourceOperationMask(.move, forLocal: true)
 
         let column = NSTableColumn(identifier: .init("SidebarColumn"))
         column.resizingMask = .autoresizingMask
@@ -398,6 +410,95 @@ struct SidebarOutlineView: NSViewRepresentable {
                 }
             }
         }
+
+        // MARK: - Drag & Drop
+
+        func outlineView(_ outlineView: NSOutlineView, pasteboardWriterForItem item: Any) -> NSPasteboardWriting? {
+            guard let node = item as? SidebarOutlineNode, node.isDraggable else { return nil }
+
+            switch node.payload {
+            case .feed(let snapshot):
+                return SidebarFeedPasteboardItem(feedID: snapshot.id)
+            case .folder(let name):
+                return SidebarFolderPasteboardItem(folderName: name)
+            case .tag(let tag):
+                return SidebarTagPasteboardItem(tagID: tag.id)
+            case .smartFolder(let folder):
+                return SidebarSmartFolderPasteboardItem(smartFolderID: folder.id)
+            default:
+                return nil
+            }
+        }
+
+        func outlineView(
+            _ outlineView: NSOutlineView,
+            validateDrop info: NSDraggingInfo,
+            proposedItem item: Any?,
+            proposedChildIndex index: Int
+        ) -> NSDragOperation {
+            resolveDropTarget(info: info, proposedItem: item, proposedChildIndex: index) == nil ? [] : .move
+        }
+
+        func outlineView(
+            _ outlineView: NSOutlineView,
+            acceptDrop info: NSDraggingInfo,
+            item: Any?,
+            childIndex index: Int
+        ) -> Bool {
+            guard let target = resolveDropTarget(info: info, proposedItem: item, proposedChildIndex: index) else {
+                return false
+            }
+
+            switch target {
+            case .feedDrop(let folderName, let targetIndex):
+                guard let feedID = draggedID(from: info, type: .feedivoFeedDragItem) else { return false }
+                parent.moveFeed(feedID, folderName, targetIndex)
+            case .folderReorder(let targetIndex):
+                guard let folderName = draggedID(from: info, type: .feedivoFolderDragItem) else { return false }
+                parent.moveFolder(folderName, targetIndex)
+            case .tagReorder(let targetIndex):
+                guard let tagID = draggedID(from: info, type: .feedivoTagDragItem) else { return false }
+                parent.moveTag(tagID, targetIndex)
+            case .smartFolderReorder(let isDefault, let targetIndex):
+                guard let smartFolderID = draggedID(from: info, type: .feedivoSmartFolderDragItem) else { return false }
+                parent.moveSmartFolder(smartFolderID, targetIndex, isDefault)
+            }
+            return true
+        }
+
+        private func draggedID(from info: NSDraggingInfo, type: NSPasteboard.PasteboardType) -> String? {
+            info.draggingPasteboard.string(forType: type)
+        }
+
+        private func resolveDropTarget(
+            info: NSDraggingInfo,
+            proposedItem item: Any?,
+            proposedChildIndex index: Int
+        ) -> SidebarOutlineDropTarget? {
+            let proposedParent = item as? SidebarOutlineNode
+
+            let draggedNodeID: String?
+            if let feedID = draggedID(from: info, type: .feedivoFeedDragItem) {
+                draggedNodeID = "feed:\(feedID)"
+            } else if let folderName = draggedID(from: info, type: .feedivoFolderDragItem) {
+                draggedNodeID = "folder:\(folderName)"
+            } else if let tagID = draggedID(from: info, type: .feedivoTagDragItem) {
+                draggedNodeID = "tag:\(tagID)"
+            } else if let smartFolderID = draggedID(from: info, type: .feedivoSmartFolderDragItem) {
+                draggedNodeID = "smartFolder:\(smartFolderID)"
+            } else {
+                draggedNodeID = nil
+            }
+
+            guard let draggedNodeID else { return nil }
+
+            return SidebarOutlineDropPolicy.resolve(
+                draggedNodeID: draggedNodeID,
+                proposedParent: proposedParent,
+                proposedChildIndex: index,
+                rootNodes: parent.rootNodes
+            )
+        }
     }
 }
 
@@ -511,5 +612,138 @@ private struct SidebarOutlineFolderRow: View {
         } catch {
             renameErrorMessage = error.localizedDescription
         }
+    }
+}
+
+enum SidebarOutlineDropTarget: Equatable {
+    case feedDrop(folderName: String?, targetIndex: Int)
+    case folderReorder(targetIndex: Int)
+    case tagReorder(targetIndex: Int)
+    case smartFolderReorder(isDefault: Bool, targetIndex: Int)
+}
+
+/// Reine, AppKit-unabhängige Entscheidungslogik: übersetzt einen
+/// vorgeschlagenen Drop (gezogener Knoten + Zielelternknoten + Zielindex)
+/// in eine der vier erlaubten Aktionen — oder nil, falls der Drop laut den
+/// Scoping-Regeln aus der Design-Spec nicht erlaubt ist. Die eigentlichen
+/// NSOutlineViewDelegate-Methoden (validateDrop/acceptDrop) sind dünne
+/// Wrapper darum, die nur zwischen NSOutlineView-Typen und diesen reinen
+/// Swift-Werten übersetzen.
+enum SidebarOutlineDropPolicy {
+    static func resolve(
+        draggedNodeID: String,
+        proposedParent: SidebarOutlineNode?,
+        proposedChildIndex: Int,
+        rootNodes: [SidebarOutlineNode]
+    ) -> SidebarOutlineDropTarget? {
+        guard let draggedNode = SidebarOutlineNode.find(id: draggedNodeID, in: rootNodes) else {
+            return nil
+        }
+
+        switch draggedNode.payload {
+        case .feed:
+            return resolveFeedDrop(
+                draggedNode: draggedNode,
+                proposedParent: proposedParent,
+                proposedChildIndex: proposedChildIndex
+            )
+        case .folder:
+            guard let foldersHeader = rootNodes.first(where: { $0.id == "header.folders" }),
+                  proposedParent?.id == "header.folders"
+            else {
+                return nil
+            }
+            let index = clampedIndex(proposedChildIndex, siblingCount: foldersHeader.children.count, draggedID: draggedNode.id, siblings: foldersHeader.children)
+            return .folderReorder(targetIndex: index)
+        case .tag:
+            guard let tagsHeader = rootNodes.first(where: { $0.id == "header.tags" }),
+                  proposedParent?.id == "header.tags"
+            else {
+                return nil
+            }
+            let index = clampedIndex(proposedChildIndex, siblingCount: tagsHeader.children.count, draggedID: draggedNode.id, siblings: tagsHeader.children)
+            return .tagReorder(targetIndex: index)
+        case .smartFolder:
+            guard let proposedParent,
+                  proposedParent.id == "header.smartFolders.default" || proposedParent.id == "header.smartFolders.custom"
+            else {
+                return nil
+            }
+            // Ein Standard-Smart-Folder darf nur innerhalb der Standard-
+            // Gruppe bleiben, ein eigener nur innerhalb der Eigene-Gruppe —
+            // ermittelt über den Elternknoten, in dem der gezogene Knoten
+            // tatsächlich aktuell steckt.
+            guard let currentParent = parent(of: draggedNode, in: rootNodes),
+                  currentParent.id == proposedParent.id
+            else {
+                return nil
+            }
+            let isDefault = proposedParent.id == "header.smartFolders.default"
+            let index = clampedIndex(proposedChildIndex, siblingCount: proposedParent.children.count, draggedID: draggedNode.id, siblings: proposedParent.children)
+            return .smartFolderReorder(isDefault: isDefault, targetIndex: index)
+        default:
+            return nil
+        }
+    }
+
+    private static func resolveFeedDrop(
+        draggedNode: SidebarOutlineNode,
+        proposedParent: SidebarOutlineNode?,
+        proposedChildIndex: Int
+    ) -> SidebarOutlineDropTarget? {
+        guard case .feed = draggedNode.payload else { return nil }
+        guard let proposedParent else { return nil }
+
+        // Drop "auf" einen Ordner-Knoten (NSOutlineViewDropOnItemIndex): ans
+        // Ende des Ordners anhängen.
+        if case .folder(let name) = proposedParent.payload, proposedChildIndex == NSOutlineViewDropOnItemIndex {
+            return .feedDrop(folderName: name, targetIndex: proposedParent.children.count)
+        }
+
+        // Drop innerhalb des ordnerlosen Bereichs (proposedParent ==
+        // foldersHeader) oder innerhalb eines Ordners (proposedParent ist
+        // die Ordner-Zeile selbst) an einem konkreten Index.
+        if proposedParent.id == "header.folders" {
+            let index = clampedIndex(proposedChildIndex, siblingCount: proposedParent.children.count, draggedID: draggedNode.id, siblings: proposedParent.children)
+            return .feedDrop(folderName: nil, targetIndex: index)
+        }
+        if case .folder(let name) = proposedParent.payload {
+            let index = clampedIndex(proposedChildIndex, siblingCount: proposedParent.children.count, draggedID: draggedNode.id, siblings: proposedParent.children)
+            return .feedDrop(folderName: name, targetIndex: index)
+        }
+
+        return nil
+    }
+
+    /// Findet den direkten Elternknoten von `target` im Baum (nil, falls
+    /// `target` ein Wurzelknoten ist oder nicht gefunden wurde).
+    private static func parent(of target: SidebarOutlineNode, in nodes: [SidebarOutlineNode]) -> SidebarOutlineNode? {
+        for node in nodes {
+            if node.children.contains(where: { $0.id == target.id }) {
+                return node
+            }
+            if let found = parent(of: target, in: node.children) {
+                return found
+            }
+        }
+        return nil
+    }
+
+    /// Klemmt den vorgeschlagenen Index auf den gültigen Bereich und
+    /// korrigiert ihn um eins, falls der gezogene Knoten selbst vor dem
+    /// Zielindex in derselben Geschwisterliste steht (analog zur
+    /// bestehenden Logik in SidebarView.swift vor dieser Migration).
+    private static func clampedIndex(
+        _ proposedIndex: Int,
+        siblingCount: Int,
+        draggedID: String,
+        siblings: [SidebarOutlineNode]
+    ) -> Int {
+        var index = proposedIndex == NSOutlineViewDropOnItemIndex ? siblingCount : proposedIndex
+        index = min(max(index, 0), siblingCount)
+        if let draggedIndex = siblings.firstIndex(where: { $0.id == draggedID }), draggedIndex < index {
+            index -= 1
+        }
+        return index
     }
 }
