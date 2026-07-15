@@ -8,11 +8,16 @@ import UniformTypeIdentifiers
 // Gotcha, siehe CLAUDE.md, gefunden 2026-07-14 bei den beiden Vorgänger-
 // UTTypes .feedivoFeedDragItem/.feedivoFolderDragItem).
 //
-// Hinweis: .feedivoFeedDragItem und .feedivoFolderDragItem sind bereits in
-// SidebarDragAndDrop.swift deklariert; diese Datei deklariert nur die zwei
-// neuen Typen und referenziert die bestehenden über die NSPasteboard.PasteboardType
-// Erweiterung unten.
+// .feedivoFeedDragItem und .feedivoFolderDragItem waren ursprünglich in
+// SidebarDragAndDrop.swift deklariert (SwiftUI-natives Drag & Drop, seit
+// Task 6 der NSOutlineView-Migration entfernt); beide Deklarationen wurden
+// hierher übernommen, da diese Datei die einzige verbleibende Konsumentin
+// ist (NSPasteboard.PasteboardType-Erweiterung unten). Alle vier
+// UTExportedTypeDeclarations-Einträge existieren unverändert in
+// Feedivo/Info.plist.
 extension UTType {
+    static let feedivoFeedDragItem = UTType(exportedAs: "ch.martin.Feedivo.feed-drag-item")
+    static let feedivoFolderDragItem = UTType(exportedAs: "ch.martin.Feedivo.folder-drag-item")
     static let feedivoTagDragItem = UTType(exportedAs: "ch.martin.Feedivo.tag-drag-item")
     static let feedivoSmartFolderDragItem = UTType(exportedAs: "ch.martin.Feedivo.smart-folder-drag-item")
 }

@@ -61,16 +61,56 @@ struct SidebarView: View {
                             .font(.callout)
                     }
 
-                    defaultSmartFoldersSection(
+                    SidebarOutlineView(
+                        rootNodes: SidebarOutlineNode.buildTree(
+                            feedSnapshots: sqliteSidebarState.snapshots,
+                            feedFolders: sqliteSidebarState.feedFolders,
+                            tagSnapshots: sqliteSidebarState.tagSnapshots,
+                            smartFolderSnapshots: sqliteSidebarState.smartFolderSnapshots
+                        ),
+                        selection: $selection,
+                        collapsedFolderNames: $collapsedFolderNames,
+                        isSmartFoldersCollapsed: $isSmartFoldersCollapsed,
+                        isCustomSmartFoldersCollapsed: $isCustomSmartFoldersCollapsed,
+                        isTagsCollapsed: $isTagsCollapsed,
+                        isFoldersCollapsed: $isFoldersCollapsed,
                         badgeSnapshot: sqliteSidebarState.smartFolderBadgeSnapshot,
-                        mixedCountsByDefaultKey: sqliteSidebarState.mixedCountsByDefaultKey
+                        mixedCountsByDefaultKey: sqliteSidebarState.mixedCountsByDefaultKey,
+                        renameFeed: { id, newName in try renameFeed(id: id, to: newName) },
+                        renameFolder: { oldName, newName in try renameFolder(from: oldName, to: newName) },
+                        onFeedContextAction: { action, snapshot in
+                            switch action {
+                            case .rename: feedRenaming = snapshot
+                            case .showProperties: feedShowingProperties = snapshot
+                            case .delete: onRequestDeleteFeed(snapshot.id)
+                            }
+                        },
+                        onFolderContextAction: { action, name in
+                            switch action {
+                            case .rename:
+                                break // Inline-Rename läuft direkt in SidebarOutlineFolderRow; kein Dialog nötig.
+                            case .delete:
+                                if let folder = explicitFeedFolder(named: name) {
+                                    feedFolderPendingDeletion = folder
+                                }
+                            }
+                        },
+                        onSmartFolderContextAction: { action, smartFolder in
+                            switch action {
+                            case .edit: smartFolderEditing = sqliteSmartFolderRecord(id: smartFolder.id)
+                            case .duplicate: duplicateSmartFolder(smartFolder)
+                            case .delete: smartFolderPendingDeletion = smartFolder
+                            }
+                        },
+                        onTagsManageRequested: { isShowingTagManager = true },
+                        onCreateSmartFolderRequested: { isCreatingSmartFolder = true },
+                        onCreateFolderRequested: { isShowingAddFolderSheet = true },
+                        moveFeed: { id, folderName, targetIndex in moveFeed(id: id, toFolderName: folderName, targetIndex: targetIndex) },
+                        moveFolder: { name, targetIndex in moveFolder(name: name, targetIndex: targetIndex) },
+                        moveTag: { id, targetIndex in moveTag(id: id, targetIndex: targetIndex) },
+                        moveSmartFolder: { id, targetIndex, isDefault in moveSmartFolder(id: id, targetIndex: targetIndex, isDefault: isDefault) }
                     )
-                    customSmartFoldersSection(
-                        badgeSnapshot: sqliteSidebarState.smartFolderBadgeSnapshot,
-                        mixedCountsByDefaultKey: sqliteSidebarState.mixedCountsByDefaultKey
-                    )
-                    tagsSection
-                    foldersSection
+                    .frame(minHeight: 200)
                 }
                 .padding(.horizontal, 14)
                 .padding(.vertical, 12)
@@ -202,229 +242,6 @@ struct SidebarView: View {
         .help(L10n.sidebarAddFeedButton)
     }
 
-    private var tagsSection: some View {
-        CollapsibleSidebarSection(
-            title: L10n.sidebarTagsSection,
-            isCollapsed: $isTagsCollapsed,
-            actionSystemImage: "tag",
-            actionHelp: String(localized: "tagManager.manage.button")
-        ) {
-            isShowingTagManager = true
-        } content: {
-            if !sqliteSidebarState.tagSnapshots.isEmpty {
-                tagRows(sqliteSidebarState.tagSnapshots)
-            }
-        }
-    }
-
-    private var foldersSection: some View {
-        CollapsibleSidebarSection(
-            title: L10n.sidebarFoldersSection,
-            isCollapsed: $isFoldersCollapsed
-        ) {
-            // Snapshots sind bereits beim Laden via showsReadFeeds gefiltert.
-            let visibleSnapshots = sqliteSidebarState.snapshots
-
-            if visibleSnapshots.isEmpty && sqliteSidebarState.feedFolders.isEmpty {
-                Text(L10n.sidebarEmptyTitle)
-                    .font(interfaceTextSize.font(size: 13))
-                    .foregroundStyle(SidebarStyle.secondaryText)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 8)
-            } else {
-                let feedsWithoutFolder = FeedFolderOrganizer.feedsWithoutFolder(from: visibleSnapshots)
-
-                // Immer gerendert (auch wenn feedsWithoutFolder leer ist) — sonst
-                // gäbe es keine sichtbare Drop-Fläche, um die Ordner-Zuweisung
-                // eines Feeds zu entfernen, solange kein einziger Feed bereits
-                // ordnerlos ist.
-                VStack(alignment: .leading, spacing: 0) {
-                    unassignedFeedsHeader
-                    feedRows(feedsWithoutFolder, folderName: nil)
-                }
-                .dropDestination(for: FeedDragItem.self) { items, _ in
-                    AppLogger.dataAccess.fault("TEMPDEBUG dropDestination OhneOrdner items=\(items.count, privacy: .public)")
-                    guard let dragged = items.first else {
-                        return false
-                    }
-                    moveFeed(id: dragged.feedID, toFolderName: nil, targetIndex: feedsWithoutFolder.count)
-                    return true
-                }
-
-                let folderEntries = FeedFolderOrganizer.feedsByFolderName(
-                    in: visibleSnapshots,
-                    folders: sqliteSidebarState.feedFolders
-                )
-
-                ForEach(folderEntries, id: \.folderName) { entry in
-                    let isExpanded = !collapsedFolderNames.contains(entry.folderName)
-                    let explicitFolder = explicitFeedFolder(named: entry.folderName)
-                    SidebarFolderSection(
-                        title: entry.folderName,
-                        isExpanded: isExpanded,
-                        deleteEmptyFolder: entry.snapshots.isEmpty && explicitFolder != nil
-                            ? { feedFolderPendingDeletion = explicitFolder }
-                            : nil,
-                        renameFolder: { newName in
-                            try renameFolder(from: entry.folderName, to: newName)
-                        }
-                    ) {
-                        toggleFolder(named: entry.folderName)
-                    } content: {
-                        if isExpanded {
-                            feedRows(
-                                entry.snapshots,
-                                isIndented: true,
-                                folderName: entry.folderName
-                            )
-                        }
-                    }
-                    .draggable(FolderDragItem(folderName: entry.folderName))
-                    .dropDestination(for: FeedDragItem.self) { items, _ in
-                        AppLogger.dataAccess.fault("TEMPDEBUG dropDestination FolderHeader-Feed folder=\(entry.folderName, privacy: .public) items=\(items.count, privacy: .public)")
-                        guard let dragged = items.first else {
-                            return false
-                        }
-                        moveFeed(id: dragged.feedID, toFolderName: entry.folderName, targetIndex: entry.snapshots.count)
-                        return true
-                    }
-                    .dropDestination(for: FolderDragItem.self) { items, location in
-                        AppLogger.dataAccess.fault("TEMPDEBUG dropDestination FolderHeader-Folder folder=\(entry.folderName, privacy: .public) items=\(items.count, privacy: .public)")
-                        guard let draggedFolder = items.first, draggedFolder.folderName != entry.folderName else {
-                            return false
-                        }
-
-                        let side = DropInsertionSide.of(
-                            location: location,
-                            in: CGSize(width: 0, height: interfaceTextSize.scaled(CGFloat(24)))
-                        )
-                        let currentIndex = folderEntries.firstIndex(where: { $0.folderName == entry.folderName }) ?? 0
-                        var targetIndex = side == .before ? currentIndex : currentIndex + 1
-                        if let draggedIndex = folderEntries.firstIndex(where: { $0.folderName == draggedFolder.folderName }), draggedIndex < targetIndex {
-                            targetIndex -= 1
-                        }
-                        moveFolder(name: draggedFolder.folderName, targetIndex: targetIndex)
-                        return true
-                    }
-                }
-            }
-        }
-    }
-
-    private var unassignedFeedsHeader: some View {
-        HStack(spacing: 9) {
-            Image(systemName: "tray")
-                .font(interfaceTextSize.font(size: 16, weight: .medium))
-                .foregroundStyle(SidebarStyle.secondaryText)
-                .frame(width: interfaceTextSize.scaled(20))
-
-            Text(L10n.feedPropertiesNoFolder)
-                .font(interfaceTextSize.font(size: 13, weight: .medium))
-                .foregroundStyle(SidebarStyle.primaryText.opacity(0.82))
-
-            Spacer(minLength: 0)
-        }
-        .frame(height: interfaceTextSize.scaled(24))
-        .padding(.horizontal, 16)
-        .padding(.top, 8)
-    }
-
-    private func defaultSmartFoldersSection(
-        badgeSnapshot: SmartFolderSidebarBadgeSnapshot,
-        mixedCountsByDefaultKey: [String: SmartFolderMixedCounts]
-    ) -> some View {
-        CollapsibleSidebarSection(
-            title: L10n.sidebarSmartFoldersSection,
-            isCollapsed: $isSmartFoldersCollapsed
-        ) {
-            let folders = SmartFolderSidebarGrouping.defaultFolders(from: sqliteSidebarState.smartFolderSnapshots)
-
-            if folders.isEmpty {
-                Text(L10n.sidebarSmartFoldersEmpty)
-                    .font(interfaceTextSize.font(size: 13))
-                    .foregroundStyle(SidebarStyle.secondaryText)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 8)
-            } else {
-                smartFolderRows(folders, badgeSnapshot: badgeSnapshot, mixedCountsByDefaultKey: mixedCountsByDefaultKey)
-            }
-        }
-    }
-
-    private func customSmartFoldersSection(
-        badgeSnapshot: SmartFolderSidebarBadgeSnapshot,
-        mixedCountsByDefaultKey: [String: SmartFolderMixedCounts]
-    ) -> some View {
-        CollapsibleSidebarSection(
-            title: L10n.sidebarSmartFoldersCustomSection,
-            isCollapsed: $isCustomSmartFoldersCollapsed,
-            actionSystemImage: "plus",
-            actionHelp: String(localized: "sidebar.smartFolder.create")
-        ) {
-            isCreatingSmartFolder = true
-        } content: {
-            let folders = SmartFolderSidebarGrouping.customFolders(from: sqliteSidebarState.smartFolderSnapshots)
-
-            if folders.isEmpty {
-                Text(L10n.sidebarSmartFoldersCustomEmpty)
-                    .font(interfaceTextSize.font(size: 13))
-                    .foregroundStyle(SidebarStyle.secondaryText)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 8)
-            } else {
-                smartFolderRows(folders, badgeSnapshot: badgeSnapshot, mixedCountsByDefaultKey: mixedCountsByDefaultKey)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func smartFolderRows(
-        _ folders: [SQLiteSmartFolderSnapshot],
-        badgeSnapshot: SmartFolderSidebarBadgeSnapshot,
-        mixedCountsByDefaultKey: [String: SmartFolderMixedCounts]
-    ) -> some View {
-        ForEach(folders) { smartFolder in
-            Button {
-                selection = .smartFolder(smartFolder.id)
-            } label: {
-                SmartFolderSidebarRow(
-                    smartFolder: smartFolder,
-                    badgeSnapshot: badgeSnapshot,
-                    mixedCounts: smartFolder.defaultKey.flatMap { mixedCountsByDefaultKey[$0] }
-                )
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .buttonStyle(
-                SidebarRowButtonStyle(
-                    isSelected: selection == .smartFolder(smartFolder.id),
-                    leadingIndent: 6,
-                    rowHeight: 30
-                )
-            )
-            .contextMenu {
-                Button {
-                    smartFolderEditing = sqliteSmartFolderRecord(id: smartFolder.id)
-                } label: {
-                    Label(L10n.ruleEditButton, systemImage: "pencil")
-                }
-
-                Button {
-                    duplicateSmartFolder(smartFolder)
-                } label: {
-                    Label(L10n.commonDuplicate, systemImage: "plus.square.on.square")
-                }
-
-                Divider()
-
-                Button(role: .destructive) {
-                    smartFolderPendingDeletion = smartFolder
-                } label: {
-                    Label(L10n.ruleDeleteButton, systemImage: "trash")
-                }
-            }
-        }
-    }
-
     private func defaultSmartFolderSelection(excluding deletedFolder: SQLiteSmartFolderSnapshot? = nil) -> SidebarSelection? {
         sqliteSidebarState.smartFolderSnapshots
             .first { folder in
@@ -433,97 +250,6 @@ struct SidebarView: View {
             .map { folder in
                 .smartFolder(folder.id)
             }
-    }
-
-    private func feedRows(
-        _ snapshots: [FeedSidebarSnapshot],
-        isIndented: Bool = false,
-        folderName: String? = nil
-    ) -> some View {
-        let rowHeight = interfaceTextSize.scaled(
-            (isIndented ? FeedRowView.DisplayStyle.folderChild : FeedRowView.DisplayStyle.regular).rowHeight
-        )
-
-        return ForEach(snapshots) { snapshot in
-            FeedRowView(
-                snapshot: snapshot,
-                displayStyle: isIndented ? .folderChild : .regular,
-                isSelected: selection == .feed(snapshot.id),
-                select: { selection = .feed(snapshot.id) },
-                renameFeed: { newName in
-                    try renameFeed(id: snapshot.id, to: newName)
-                }
-            )
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .contextMenu {
-                Button {
-                    feedRenaming = snapshot
-                } label: {
-                    Label(L10n.feedRenameCommand, systemImage: "pencil")
-                }
-
-                Button {
-                    feedShowingProperties = snapshot
-                } label: {
-                    Label(L10n.feedPropertiesCommand, systemImage: "info.circle")
-                }
-
-                Divider()
-
-                Button(role: .destructive) {
-                    onRequestDeleteFeed(snapshot.id)
-                } label: {
-                    Label(L10n.feedDeleteCommand, systemImage: "trash")
-                }
-            }
-            .draggable(FeedDragItem(feedID: snapshot.id))
-            .dropDestination(for: FeedDragItem.self) { items, location in
-                AppLogger.dataAccess.fault("TEMPDEBUG dropDestination FeedRow target=\(snapshot.id, privacy: .public) items=\(items.count, privacy: .public)")
-                guard let dragged = items.first, dragged.feedID != snapshot.id else {
-                    return false
-                }
-
-                let side = DropInsertionSide.of(location: location, in: CGSize(width: 0, height: rowHeight))
-                let currentIndex = snapshots.firstIndex(where: { $0.id == snapshot.id }) ?? 0
-                var targetIndex = side == .before ? currentIndex : currentIndex + 1
-                if let draggedIndex = snapshots.firstIndex(where: { $0.id == dragged.feedID }), draggedIndex < targetIndex {
-                    targetIndex -= 1
-                }
-                moveFeed(id: dragged.feedID, toFolderName: folderName, targetIndex: targetIndex)
-                return true
-            }
-        }
-    }
-
-    private func tagRows(_ tags: [TagSidebarSnapshot]) -> some View {
-        ForEach(tags) { tag in
-            Button {
-                selection = .tag(tag.id)
-            } label: {
-                TagSidebarRow(
-                    tag: tag,
-                    badgeText: SidebarUnreadCount.badgeText(for: tag.articleCount)
-                )
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .buttonStyle(
-                SidebarRowButtonStyle(
-                    isSelected: selection == .tag(tag.id),
-                    leadingIndent: 6,
-                    rowHeight: 30
-                )
-            )
-        }
-    }
-
-    private func toggleFolder(named folderName: String) {
-        withAnimation(.easeInOut(duration: 0.16)) {
-            if collapsedFolderNames.contains(folderName) {
-                collapsedFolderNames.remove(folderName)
-            } else {
-                collapsedFolderNames.insert(folderName)
-            }
-        }
     }
 
     private func duplicateSmartFolder(_ smartFolder: SQLiteSmartFolderSnapshot) {
@@ -620,6 +346,31 @@ struct SidebarView: View {
         } catch {
             AppLogger.dataAccess.fault("TEMPDEBUG moveFolder FEHLER \(error.localizedDescription, privacy: .public)")
         }
+        sidebarDefinitionVersion += 1
+    }
+
+    private func moveTag(id: String, targetIndex: Int) {
+        guard let database = feedivoDatabase else { return }
+        try? TagStore(database: database).move(id: id, targetIndex: targetIndex)
+        SQLiteDataInvalidation.bumpStatusVersion()
+    }
+
+    private func moveSmartFolder(id: String, targetIndex: Int, isDefault: Bool) {
+        guard let database = feedivoDatabase else { return }
+
+        do {
+            let folders = isDefault
+                ? SmartFolderSidebarGrouping.defaultFolders(from: sqliteSidebarState.smartFolderSnapshots)
+                : SmartFolderSidebarGrouping.customFolders(from: sqliteSidebarState.smartFolderSnapshots)
+            let clampedIndex = min(max(targetIndex, 0), max(folders.count - 1, 0))
+            guard clampedIndex >= 0, clampedIndex < folders.count else { return }
+            let targetFolder = folders[clampedIndex]
+            guard targetFolder.id != id else { return }
+            try SQLiteSmartFolderStore(database: database).move(id: id, toPositionOf: targetFolder.id)
+        } catch {
+            AppLogger.dataAccess.error("moveSmartFolder fehlgeschlagen: \(error.localizedDescription, privacy: .public)")
+        }
+        SQLiteDataInvalidation.bumpStatusVersion()
         sidebarDefinitionVersion += 1
     }
 
@@ -815,157 +566,6 @@ private struct CollapsibleSidebarSection<Content: View>: View {
             if !isCollapsed {
                 content
             }
-        }
-    }
-}
-
-private struct SidebarFolderSection<Content: View>: View {
-    @Environment(\.interfaceTextSize) private var interfaceTextSize
-    @FocusState private var isNameFieldFocused: Bool
-
-    let title: String
-    let isExpanded: Bool
-    let deleteEmptyFolder: (() -> Void)?
-    let renameFolder: (String) throws -> Void
-    let toggle: () -> Void
-    @ViewBuilder let content: Content
-
-    @State private var isEditingName = false
-    @State private var editedName = ""
-    @State private var renameErrorMessage: String?
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 9) {
-                Button(action: toggle) {
-                    HStack(spacing: 9) {
-                        Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                            .font(interfaceTextSize.font(size: 10, weight: .bold))
-                            .foregroundStyle(SidebarStyle.secondaryText)
-                            .frame(width: interfaceTextSize.scaled(12))
-
-                        Image(systemName: "folder")
-                            .font(interfaceTextSize.font(size: 16, weight: .medium))
-                            .foregroundStyle(Color.accentColor)
-                            .frame(width: interfaceTextSize.scaled(20))
-                    }
-                }
-                .buttonStyle(.plain)
-
-                if isEditingName {
-                    TextField(title, text: $editedName)
-                        .textFieldStyle(.roundedBorder)
-                        .font(interfaceTextSize.font(size: 13, weight: .medium))
-                        .focused($isNameFieldFocused)
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 5)
-                                .stroke(renameErrorMessage != nil ? Color.red : Color.clear, lineWidth: 1)
-                        }
-                        .onSubmit {
-                            commitOrShowError()
-                        }
-                        .onExitCommand {
-                            cancelEditing()
-                        }
-                        .onChange(of: isNameFieldFocused) { wasFocused, isFocused in
-                            // Fokusverlust (z. B. Klick woanders hin) verhält sich wie
-                            // Enter. Die Guard-Bedingung verhindert ein doppeltes
-                            // Auslösen, wenn commitOrShowError()/cancelEditing() den
-                            // Bearbeitungsmodus bereits beendet haben, bevor der Fokus
-                            // tatsächlich wechselt.
-                            if wasFocused, !isFocused, isEditingName {
-                                commitOrShowError()
-                            }
-                        }
-                } else {
-                    Text(title)
-                        .font(interfaceTextSize.font(size: 13, weight: .medium))
-                        .foregroundStyle(SidebarStyle.primaryText.opacity(0.82))
-                        .lineLimit(1)
-                        .contentShape(Rectangle())
-                        .onTapGesture(count: 2) {
-                            beginEditing()
-                        }
-                        .onTapGesture(count: 1) {
-                            toggle()
-                        }
-                }
-
-                Spacer(minLength: 0)
-            }
-            .frame(height: interfaceTextSize.scaled(24))
-            .contentShape(Rectangle())
-            .onTapGesture {
-                // Fängt Klicks auf den leeren Bereich rechts vom Namen ab, damit die
-                // gesamte Zeile weiterhin wie vor dieser Änderung klickbar bleibt.
-                // Klicks auf Chevron/Icon (eigener Button) und auf den Namen (eigene
-                // Tap-Gesten oben) werden von SwiftUI vorrangig an die jeweils
-                // spezifischere View vergeben und lösen diesen Handler nicht zusätzlich aus.
-                // Während der Bearbeitung (isEditingName) ist dieser Handler bewusst ein
-                // No-op, damit ein Klick ins TextField (Fokussieren/Cursor positionieren)
-                // nicht stattdessen den Ordner ein-/ausklappt.
-                if !isEditingName {
-                    toggle()
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 8)
-            .contextMenu {
-                Button {
-                    beginEditing()
-                } label: {
-                    Label(L10n.sidebarFolderRenameCommand, systemImage: "pencil")
-                }
-
-                if let deleteEmptyFolder {
-                    Button(role: .destructive) {
-                        deleteEmptyFolder()
-                    } label: {
-                        Label(L10n.commonDelete, systemImage: "trash")
-                    }
-                }
-            }
-
-            if let renameErrorMessage {
-                Text(renameErrorMessage)
-                    .font(interfaceTextSize.font(size: 11))
-                    .foregroundStyle(.red)
-                    .padding(.leading, 16 + 12 + 9 + 20 + 9)
-                    .padding(.trailing, 16)
-            }
-
-            content
-        }
-    }
-
-    private func beginEditing() {
-        editedName = title
-        renameErrorMessage = nil
-        isEditingName = true
-        isNameFieldFocused = true
-    }
-
-    private func cancelEditing() {
-        editedName = title
-        renameErrorMessage = nil
-        isEditingName = false
-    }
-
-    private func commitOrShowError() {
-        let trimmedName = editedName.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        guard trimmedName != title else {
-            isEditingName = false
-            renameErrorMessage = nil
-            return
-        }
-
-        do {
-            try renameFolder(trimmedName)
-            isEditingName = false
-            renameErrorMessage = nil
-        } catch {
-            renameErrorMessage = error.localizedDescription
         }
     }
 }
