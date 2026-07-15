@@ -264,7 +264,7 @@ struct SidebarOutlineView: NSViewRepresentable {
             case .feed:
                 return 30
             case .smartFoldersHeader, .tagsHeader, .foldersHeader:
-                return 24
+                return 36
             case .folder:
                 // 24pt (wie die reinen Text-Header) erwies sich beim Live-
                 // Testen als zu kleine Drop-Zone für Feed-Drops auf Ordner —
@@ -459,6 +459,8 @@ struct SidebarOutlineView: NSViewRepresentable {
                 }
                 .foregroundStyle(SidebarStyle.sectionText)
                 .padding(.horizontal, 10)
+                .padding(.bottom, 4)
+                .frame(maxHeight: .infinity, alignment: .bottom)
             case .folder(let name):
                 SidebarOutlineFolderRow(
                     name: name,
@@ -515,6 +517,8 @@ struct SidebarOutlineView: NSViewRepresentable {
             }
             .foregroundStyle(SidebarStyle.sectionText)
             .padding(.horizontal, 10)
+            .padding(.bottom, 4)
+            .frame(maxHeight: .infinity, alignment: .bottom)
         }
 
         @ViewBuilder
