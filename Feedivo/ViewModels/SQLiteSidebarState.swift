@@ -5,7 +5,7 @@ enum SmartFolderDefaultDisplayPolicy {
     /// Standardordner mit getrennten Gelesen-/Ungelesen-Badges (Sidebar-
     /// Zähler). Unabhängig von der pro Ordner änderbaren
     /// `defaultShowsReadArticles`-Einstellung (siehe SmartFolderEditorView) —
-    /// diese Menge bleibt bewusst auf die vier eingebauten Standard-Ordner
+    /// diese Menge bleibt bewusst auf die sechs eingebauten Standard-Ordner
     /// beschränkt.
     static let mixedCountKeys: Set<String> = [
         "all", "today", "starred", "thisWeek", "hidden", "saved"
