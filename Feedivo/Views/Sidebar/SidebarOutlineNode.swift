@@ -60,20 +60,34 @@ extension SidebarOutlineNode {
         let defaultSmartFolders = SmartFolderSidebarGrouping.defaultFolders(from: smartFolderSnapshots)
         let customSmartFolders = SmartFolderSidebarGrouping.customFolders(from: smartFolderSnapshots)
 
+        let defaultSmartFolderChildren: [SidebarOutlineNode] = defaultSmartFolders.isEmpty
+            ? [SidebarOutlineNode(
+                id: "header.smartFolders.default.empty",
+                payload: .emptyPlaceholder(text: String(localized: "sidebar.smartFolders.empty"))
+              )]
+            : defaultSmartFolders.map { folder in
+                SidebarOutlineNode(id: "smartFolder:\(folder.id)", payload: .smartFolder(folder))
+            }
+
         let defaultHeader = SidebarOutlineNode(
             id: "header.smartFolders.default",
             payload: .smartFoldersHeader(isDefault: true),
-            children: defaultSmartFolders.map { folder in
+            children: defaultSmartFolderChildren
+        )
+
+        let customSmartFolderChildren: [SidebarOutlineNode] = customSmartFolders.isEmpty
+            ? [SidebarOutlineNode(
+                id: "header.smartFolders.custom.empty",
+                payload: .emptyPlaceholder(text: String(localized: "sidebar.smartFolders.custom.empty"))
+              )]
+            : customSmartFolders.map { folder in
                 SidebarOutlineNode(id: "smartFolder:\(folder.id)", payload: .smartFolder(folder))
             }
-        )
 
         let customHeader = SidebarOutlineNode(
             id: "header.smartFolders.custom",
             payload: .smartFoldersHeader(isDefault: false),
-            children: customSmartFolders.map { folder in
-                SidebarOutlineNode(id: "smartFolder:\(folder.id)", payload: .smartFolder(folder))
-            }
+            children: customSmartFolderChildren
         )
 
         let tagsHeader = SidebarOutlineNode(
@@ -98,6 +112,20 @@ extension SidebarOutlineNode {
                     SidebarOutlineNode(id: "feed:\(snapshot.id)", payload: .feed(snapshot))
                 }
             )
+        }
+
+        // Platzhalter nur, wenn es weder Feeds noch explizit angelegte Ordner
+        // gibt — analog zur alten Bedingung `visibleSnapshots.isEmpty &&
+        // sqliteSidebarState.feedFolders.isEmpty` (siehe Whole-Branch-Review-
+        // Fix 1). Ein leerer, aber explizit angelegter Ordner soll weiterhin
+        // als eigene (leere) Ordner-Zeile erscheinen, kein Platzhalter.
+        if feedSnapshots.isEmpty, feedFolders.isEmpty {
+            foldersChildren = [
+                SidebarOutlineNode(
+                    id: "header.folders.empty",
+                    payload: .emptyPlaceholder(text: String(localized: "sidebar.empty.title"))
+                )
+            ]
         }
 
         let foldersHeader = SidebarOutlineNode(

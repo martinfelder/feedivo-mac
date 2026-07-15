@@ -134,6 +134,35 @@ struct SidebarOutlineDropPolicyTests {
         #expect(result == .smartFolderReorder(isDefault: false, targetIndex: 0))
     }
 
+    @Test func feedUmsortierenBerechnetKorrektenIndexWennOrdnerAlsGeschwisterVorhandenIst() {
+        // Zwei ordnerlose Feeds UND ein Ordner (mit eigenem Feed) als
+        // Geschwister unter header.folders — deckt ab, dass die gemischte
+        // Geschwisterliste (Feeds + Ordner-Knoten) bei der Indexberechnung
+        // korrekt behandelt wird, nicht nur eine reine Feed-Geschwisterliste.
+        let nodes = SidebarOutlineNode.buildTree(
+            feedSnapshots: [
+                makeFeed(id: "feed-1", folderName: nil),
+                makeFeed(id: "feed-2", folderName: nil),
+                makeFeed(id: "feed-3", folderName: "News")
+            ],
+            feedFolders: [FeedFolderRecord(id: "f1", name: "News", sortIndex: 0)],
+            tagSnapshots: [], smartFolderSnapshots: []
+        )
+        let foldersHeader = nodes.first { $0.id == "header.folders" }!
+
+        // Geschwisterliste unter header.folders: [feed-1, feed-2, folder:News]
+        // feed-2 wird an Position 0 gezogen (vor feed-1), der Ordner-Knoten
+        // bleibt unangetastet am Ende.
+        let result = SidebarOutlineDropPolicy.resolve(
+            draggedNodeID: "feed:feed-2",
+            proposedParent: foldersHeader,
+            proposedChildIndex: 0,
+            rootNodes: nodes
+        )
+
+        #expect(result == .feedDrop(folderName: nil, targetIndex: 0))
+    }
+
     @Test func feedKannNichtInDieTagsHeaderGezogenWerden() {
         let nodes = SidebarOutlineNode.buildTree(
             feedSnapshots: [makeFeed(id: "feed-1", folderName: nil)],

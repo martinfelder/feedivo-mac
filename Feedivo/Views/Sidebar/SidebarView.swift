@@ -51,71 +51,74 @@ struct SidebarView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
-                    sidebarActionRow
+            VStack(alignment: .leading, spacing: 8) {
+                sidebarActionRow
 
-                    if let errorMessage = sqliteSidebarState.errorMessage {
-                        Text(errorMessage)
-                            .foregroundStyle(.red)
-                            .font(.callout)
-                    }
-
-                    SidebarOutlineView(
-                        rootNodes: SidebarOutlineNode.buildTree(
-                            feedSnapshots: sqliteSidebarState.snapshots,
-                            feedFolders: sqliteSidebarState.feedFolders,
-                            tagSnapshots: sqliteSidebarState.tagSnapshots,
-                            smartFolderSnapshots: sqliteSidebarState.smartFolderSnapshots
-                        ),
-                        selection: $selection,
-                        collapsedFolderNames: $collapsedFolderNames,
-                        isSmartFoldersCollapsed: $isSmartFoldersCollapsed,
-                        isCustomSmartFoldersCollapsed: $isCustomSmartFoldersCollapsed,
-                        isTagsCollapsed: $isTagsCollapsed,
-                        isFoldersCollapsed: $isFoldersCollapsed,
-                        badgeSnapshot: sqliteSidebarState.smartFolderBadgeSnapshot,
-                        mixedCountsByDefaultKey: sqliteSidebarState.mixedCountsByDefaultKey,
-                        renameFeed: { id, newName in try renameFeed(id: id, to: newName) },
-                        renameFolder: { oldName, newName in try renameFolder(from: oldName, to: newName) },
-                        onFeedContextAction: { action, snapshot in
-                            switch action {
-                            case .rename: feedRenaming = snapshot
-                            case .showProperties: feedShowingProperties = snapshot
-                            case .delete: onRequestDeleteFeed(snapshot.id)
-                            }
-                        },
-                        onFolderContextAction: { action, name in
-                            switch action {
-                            case .rename:
-                                break // Inline-Rename läuft direkt in SidebarOutlineFolderRow; kein Dialog nötig.
-                            case .delete:
-                                if let folder = explicitFeedFolder(named: name) {
-                                    feedFolderPendingDeletion = folder
-                                }
-                            }
-                        },
-                        onSmartFolderContextAction: { action, smartFolder in
-                            switch action {
-                            case .edit: smartFolderEditing = sqliteSmartFolderRecord(id: smartFolder.id)
-                            case .duplicate: duplicateSmartFolder(smartFolder)
-                            case .delete: smartFolderPendingDeletion = smartFolder
-                            }
-                        },
-                        onTagsManageRequested: { isShowingTagManager = true },
-                        onCreateSmartFolderRequested: { isCreatingSmartFolder = true },
-                        onCreateFolderRequested: { isShowingAddFolderSheet = true },
-                        moveFeed: { id, folderName, targetIndex in moveFeed(id: id, toFolderName: folderName, targetIndex: targetIndex) },
-                        moveFolder: { name, targetIndex in moveFolder(name: name, targetIndex: targetIndex) },
-                        moveTag: { id, targetIndex in moveTag(id: id, targetIndex: targetIndex) },
-                        moveSmartFolder: { id, targetIndex, isDefault in moveSmartFolder(id: id, targetIndex: targetIndex, isDefault: isDefault) }
-                    )
-                    .frame(minHeight: 200)
+                if let errorMessage = sqliteSidebarState.errorMessage {
+                    Text(errorMessage)
+                        .foregroundStyle(.red)
+                        .font(.callout)
                 }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 12)
             }
-            .scrollContentBackground(.hidden)
+            .padding(.horizontal, 14)
+            .padding(.top, 12)
+            .padding(.bottom, 8)
+
+            // Bewusst NICHT innerhalb einer SwiftUI-ScrollView — SidebarOutlineView
+            // bringt über die NSScrollView in makeNSView() bereits ihr eigenes
+            // Scrolling mit. Eine verschachtelte ScrollView würde die
+            // NSOutlineView nur auf eine kleine, intern scrollende Box begrenzen
+            // statt die gesamte verbleibende Sidebar-Höhe einzunehmen (siehe
+            // Whole-Branch-Review-Fix 2).
+            SidebarOutlineView(
+                rootNodes: SidebarOutlineNode.buildTree(
+                    feedSnapshots: sqliteSidebarState.snapshots,
+                    feedFolders: sqliteSidebarState.feedFolders,
+                    tagSnapshots: sqliteSidebarState.tagSnapshots,
+                    smartFolderSnapshots: sqliteSidebarState.smartFolderSnapshots
+                ),
+                selection: $selection,
+                collapsedFolderNames: $collapsedFolderNames,
+                isSmartFoldersCollapsed: $isSmartFoldersCollapsed,
+                isCustomSmartFoldersCollapsed: $isCustomSmartFoldersCollapsed,
+                isTagsCollapsed: $isTagsCollapsed,
+                isFoldersCollapsed: $isFoldersCollapsed,
+                badgeSnapshot: sqliteSidebarState.smartFolderBadgeSnapshot,
+                mixedCountsByDefaultKey: sqliteSidebarState.mixedCountsByDefaultKey,
+                renameFeed: { id, newName in try renameFeed(id: id, to: newName) },
+                renameFolder: { oldName, newName in try renameFolder(from: oldName, to: newName) },
+                onFeedContextAction: { action, snapshot in
+                    switch action {
+                    case .rename: feedRenaming = snapshot
+                    case .showProperties: feedShowingProperties = snapshot
+                    case .delete: onRequestDeleteFeed(snapshot.id)
+                    }
+                },
+                onFolderContextAction: { action, name in
+                    switch action {
+                    case .delete:
+                        if let folder = explicitFeedFolder(named: name) {
+                            feedFolderPendingDeletion = folder
+                        }
+                    }
+                },
+                onSmartFolderContextAction: { action, smartFolder in
+                    switch action {
+                    case .edit: smartFolderEditing = sqliteSmartFolderRecord(id: smartFolder.id)
+                    case .duplicate: duplicateSmartFolder(smartFolder)
+                    case .delete: smartFolderPendingDeletion = smartFolder
+                    }
+                },
+                onTagsManageRequested: { isShowingTagManager = true },
+                onCreateSmartFolderRequested: { isCreatingSmartFolder = true },
+                moveFeed: { id, folderName, targetIndex in moveFeed(id: id, toFolderName: folderName, targetIndex: targetIndex) },
+                moveFolder: { name, targetIndex in moveFolder(name: name, targetIndex: targetIndex) },
+                moveTag: { id, targetIndex in moveTag(id: id, targetIndex: targetIndex) },
+                moveSmartFolder: { id, targetIndex, isDefault in moveSmartFolder(id: id, targetIndex: targetIndex, isDefault: isDefault) }
+            )
+            .frame(maxHeight: .infinity)
+            .padding(.horizontal, 14)
+            .padding(.bottom, 12)
         }
         .background(SidebarStyle.background)
         .sheet(item: $feedShowingProperties) { snapshot in
@@ -342,9 +345,8 @@ struct SidebarView: View {
 
         do {
             try FeedFolderStore(database: database).moveFolder(name: name, targetIndex: targetIndex)
-            AppLogger.dataAccess.fault("TEMPDEBUG moveFolder OK name=\(name, privacy: .public) targetIndex=\(targetIndex, privacy: .public)")
         } catch {
-            AppLogger.dataAccess.fault("TEMPDEBUG moveFolder FEHLER \(error.localizedDescription, privacy: .public)")
+            AppLogger.dataAccess.error("moveFolder fehlgeschlagen: \(error.localizedDescription, privacy: .public)")
         }
         sidebarDefinitionVersion += 1
     }
@@ -506,65 +508,6 @@ struct TagSidebarRow: View {
                     .padding(.horizontal, 7)
                     .padding(.vertical, 2)
                     .background(SidebarStyle.activeSelection, in: Capsule())
-            }
-        }
-    }
-}
-
-private struct CollapsibleSidebarSection<Content: View>: View {
-    @Environment(\.interfaceTextSize) private var interfaceTextSize
-
-    let title: LocalizedStringKey
-    @Binding var isCollapsed: Bool
-    var actionSystemImage: String?
-    var actionHelp: String?
-    var isActionDisabled = false
-    var action: (() -> Void)?
-    @ViewBuilder let content: Content
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Button {
-                    withAnimation(.easeInOut(duration: 0.16)) {
-                        isCollapsed.toggle()
-                    }
-                } label: {
-                    HStack(spacing: 7) {
-                        Image(systemName: isCollapsed ? "chevron.right" : "chevron.down")
-                            .font(interfaceTextSize.font(size: 10, weight: .bold))
-                            .frame(width: interfaceTextSize.scaled(12))
-
-                        Text(title)
-                            .font(interfaceTextSize.font(size: 11, weight: .bold))
-                            .fontWeight(.bold)
-                            .textCase(.uppercase)
-                    }
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-
-                Spacer()
-
-                if let actionSystemImage, let action {
-                    Button(action: action) {
-                        Image(systemName: actionSystemImage)
-                            .font(interfaceTextSize.font(size: 12, weight: .bold))
-                            .frame(
-                                width: interfaceTextSize.scaled(22),
-                                height: interfaceTextSize.scaled(22)
-                            )
-                    }
-                    .buttonStyle(.plain)
-                    .help(actionHelp ?? "")
-                    .disabled(isActionDisabled)
-                }
-            }
-            .foregroundStyle(SidebarStyle.sectionText)
-            .padding(.horizontal, 10)
-
-            if !isCollapsed {
-                content
             }
         }
     }

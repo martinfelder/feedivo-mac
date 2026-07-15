@@ -8,7 +8,6 @@ enum SidebarFeedContextAction {
 }
 
 enum SidebarFolderContextAction {
-    case rename
     case delete
 }
 
@@ -21,9 +20,8 @@ enum SidebarSmartFolderContextAction {
 /// NSViewRepresentable-Bridge, die die komplette Sidebar (Smart Folders,
 /// Tags, Ordner/Feeds) als einzelne NSOutlineView rendert. Zeilen werden per
 /// NSHostingView aus den unveränderten bestehenden SwiftUI-Row-Views gebaut
-/// (FeedRowView, SidebarFolderSection-Header, CollapsibleSidebarSection-
-/// Header, SmartFolderSidebarRow, TagSidebarRow) — siehe Design-Spec
-/// „Zeilen-Rendering & Interaktion".
+/// (FeedRowView, SidebarOutlineFolderRow, SmartFolderSidebarRow,
+/// TagSidebarRow) — siehe Design-Spec „Zeilen-Rendering & Interaktion".
 struct SidebarOutlineView: NSViewRepresentable {
     let rootNodes: [SidebarOutlineNode]
 
@@ -44,7 +42,6 @@ struct SidebarOutlineView: NSViewRepresentable {
     let onSmartFolderContextAction: (SidebarSmartFolderContextAction, SQLiteSmartFolderSnapshot) -> Void
     let onTagsManageRequested: () -> Void
     let onCreateSmartFolderRequested: () -> Void
-    let onCreateFolderRequested: () -> Void
 
     let moveFeed: (_ id: String, _ toFolderName: String?, _ targetIndex: Int) -> Void
     let moveFolder: (_ name: String, _ targetIndex: Int) -> Void
@@ -100,7 +97,6 @@ struct SidebarOutlineView: NSViewRepresentable {
     final class Coordinator: NSObject, NSOutlineViewDataSource, NSOutlineViewDelegate {
         var parent: SidebarOutlineView
         weak var outlineView: NSOutlineView?
-        private var previousRootNodeIDs: [String] = []
 
         init(parent: SidebarOutlineView) {
             self.parent = parent
@@ -322,6 +318,7 @@ struct SidebarOutlineView: NSViewRepresentable {
                 SidebarOutlineFolderRow(
                     name: name,
                     isCollapsed: parent.collapsedFolderNames.contains(name),
+                    isEmpty: node.children.isEmpty,
                     toggle: { parent.collapsedFolderNames.formSymmetricDifference([name]) },
                     renameFolder: { newName in try parent.renameFolder(name, newName) },
                     deleteFolder: { parent.onFolderContextAction(.delete, name) }
@@ -507,6 +504,10 @@ struct SidebarOutlineView: NSViewRepresentable {
 private struct SidebarOutlineFolderRow: View {
     let name: String
     let isCollapsed: Bool
+    /// Ob der Ordner aktuell keine Feeds enthält — Löschen wird (wie in der
+    /// alten SwiftUI-Implementierung) nur für leere Ordner angeboten (siehe
+    /// Whole-Branch-Review-Fix 3).
+    let isEmpty: Bool
     let toggle: () -> Void
     let renameFolder: (String) throws -> Void
     let deleteFolder: () -> Void
@@ -568,10 +569,12 @@ private struct SidebarOutlineFolderRow: View {
                 } label: {
                     Label(L10n.sidebarFolderRenameCommand, systemImage: "pencil")
                 }
-                Button(role: .destructive) {
-                    deleteFolder()
-                } label: {
-                    Label(L10n.commonDelete, systemImage: "trash")
+                if isEmpty {
+                    Button(role: .destructive) {
+                        deleteFolder()
+                    } label: {
+                        Label(L10n.commonDelete, systemImage: "trash")
+                    }
                 }
             }
 
@@ -691,7 +694,6 @@ enum SidebarOutlineDropPolicy {
         proposedParent: SidebarOutlineNode?,
         proposedChildIndex: Int
     ) -> SidebarOutlineDropTarget? {
-        guard case .feed = draggedNode.payload else { return nil }
         guard let proposedParent else { return nil }
 
         // Drop "auf" einen Ordner-Knoten (NSOutlineViewDropOnItemIndex): ans

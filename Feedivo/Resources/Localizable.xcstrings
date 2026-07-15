@@ -4317,6 +4317,9 @@
     "Auswahl nur für die eingebettete Web-Ansicht im Reader. Wird intern über WebKit umgesetzt." : {
 
     },
+    "Automatischer Bereinigungsstatus" : {
+
+    },
     "Badge-Zähler am App-Icon anzeigen" : {
 
     },
@@ -10543,6 +10546,9 @@
       }
     },
     "Legt fest, ob Feedivo unabhängig von der macOS-Systemeinstellung immer hell oder immer dunkel dargestellt wird." : {
+
+    },
+    "Letzter automatischer Lauf (App-Start, Hintergrund-Refresh, Feed-Einstellungsänderung)." : {
 
     },
     "Letzter automatischer Lauf und nächste geplante Aktualisierung." : {
@@ -26041,6 +26047,7 @@
       }
     },
     "sidebar.smartFolder.create" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -29693,6 +29700,7 @@
       }
     },
     "tagManager.manage.button" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
