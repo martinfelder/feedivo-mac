@@ -381,6 +381,14 @@ enum FeedivoDatabaseMigrator {
             try backfillFeedAndFolderSortIndex(database)
         }
 
+        migrator.registerMigration("v16_add_tag_sort_index") { database in
+            try database.alter(table: "tags") { table in
+                table.add(column: "sortIndex", .integer).notNull().defaults(to: 0)
+            }
+
+            try backfillTagSortIndex(database)
+        }
+
         return migrator
     }
 
@@ -462,6 +470,24 @@ enum FeedivoDatabaseMigrator {
                     arguments: [index, feed.id]
                 )
             }
+        }
+    }
+
+    /// Vergibt sortIndex-Werte für Tags passend zur AKTUELLEN alphabetischen
+    /// Anzeige, damit Bestandsnutzer nach diesem Update keine sichtbare
+    /// Umsortierung erleben — identisches Muster zu
+    /// backfillFeedAndFolderSortIndex (v15).
+    private static func backfillTagSortIndex(_ database: Database) throws {
+        let orderedIDs = try String.fetchAll(
+            database,
+            sql: "SELECT id FROM tags ORDER BY name COLLATE NOCASE, id COLLATE NOCASE"
+        )
+
+        for (index, id) in orderedIDs.enumerated() {
+            try database.execute(
+                sql: "UPDATE tags SET sortIndex = ? WHERE id = ?",
+                arguments: [index, id]
+            )
         }
     }
 }

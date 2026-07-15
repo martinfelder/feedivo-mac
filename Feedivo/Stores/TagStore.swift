@@ -34,7 +34,9 @@ struct TagStore {
                     arguments: [tag.id, tag.name, tag.colorHex, now, existingID]
                 )
             } else {
+                let maxSortIndex = (try Int.fetchOne(db, sql: "SELECT MAX(sortIndex) FROM tags") ?? -1) + 1
                 var tag = tag
+                tag.sortIndex = maxSortIndex
                 try tag.insert(db)
             }
         }
@@ -45,7 +47,7 @@ struct TagStore {
             try TagRecord.fetchAll(db, sql: """
                 SELECT *
                 FROM tags
-                ORDER BY name COLLATE NOCASE, id COLLATE NOCASE
+                ORDER BY sortIndex, name COLLATE NOCASE, id COLLATE NOCASE
                 """)
         }
     }
@@ -144,7 +146,7 @@ struct TagStore {
                         )
                     ) AS articleCount
                 FROM tags t
-                ORDER BY t.name COLLATE NOCASE, t.id COLLATE NOCASE
+                ORDER BY t.sortIndex, t.name COLLATE NOCASE, t.id COLLATE NOCASE
                 """)
         }
     }
@@ -196,6 +198,32 @@ struct TagStore {
 
             if db.changesCount == 0 {
                 throw TagStoreError.missingTag
+            }
+        }
+    }
+
+    /// Verschiebt den Tag mit `id` an Index `targetIndex` innerhalb der
+    /// bestehenden Sortierreihenfolge (0-basiert, wird auf den gültigen
+    /// Bereich geklemmt) und schreibt sortIndex für alle betroffenen Tags neu
+    /// — analog zu FeedFolderStore.moveFolder.
+    func move(id: String, targetIndex: Int) throws {
+        try database.write { db in
+            let otherIDs = try String.fetchAll(
+                db,
+                sql: "SELECT id FROM tags WHERE id != ? ORDER BY sortIndex",
+                arguments: [id]
+            )
+
+            var orderedIDs = otherIDs
+            let clampedIndex = min(max(targetIndex, 0), orderedIDs.count)
+            orderedIDs.insert(id, at: clampedIndex)
+
+            let now = Date()
+            for (index, tagID) in orderedIDs.enumerated() {
+                try db.execute(
+                    sql: "UPDATE tags SET sortIndex = ?, updatedAt = ? WHERE id = ?",
+                    arguments: [index, now, tagID]
+                )
             }
         }
     }

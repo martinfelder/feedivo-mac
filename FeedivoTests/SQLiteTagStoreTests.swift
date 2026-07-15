@@ -148,7 +148,7 @@ struct SQLiteTagStoreTests {
 
         let sidebarTags = try tagStore.sidebarTags()
 
-        #expect(sidebarTags.map(\.id) == ["tag-empty", "tag-swift"])
+        #expect(sidebarTags.map(\.id) == ["tag-swift", "tag-empty"])
         #expect(sidebarTags.first { $0.id == "tag-swift" }?.articleCount == 2)
         #expect(sidebarTags.first { $0.id == "tag-empty" }?.articleCount == 0)
     }
@@ -174,5 +174,61 @@ struct SQLiteTagStoreTests {
         let sidebarTags = try tagStore.sidebarTags()
 
         #expect(sidebarTags.first { $0.id == "tag-swift" }?.articleCount == 2)
+    }
+
+    @Test func moveVerschiebtTagAnNeuePosition() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let tagStore = TagStore(database: database)
+        try tagStore.save(TagRecord(id: "tag-a", name: "Alpha", sortIndex: 0))
+        try tagStore.save(TagRecord(id: "tag-b", name: "Bravo", sortIndex: 1))
+        try tagStore.save(TagRecord(id: "tag-c", name: "Charlie", sortIndex: 2))
+
+        try tagStore.move(id: "tag-c", targetIndex: 0)
+
+        let orderedNames = try tagStore.tags()
+            .sorted { $0.sortIndex < $1.sortIndex }
+            .map(\.name)
+        #expect(orderedNames == ["Charlie", "Alpha", "Bravo"])
+    }
+
+    @Test func moveKlemmtTargetIndexAufGueltigenBereich() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let tagStore = TagStore(database: database)
+        try tagStore.save(TagRecord(id: "tag-a", name: "Alpha", sortIndex: 0))
+        try tagStore.save(TagRecord(id: "tag-b", name: "Bravo", sortIndex: 1))
+
+        try tagStore.move(id: "tag-a", targetIndex: 999)
+
+        let orderedNames = try tagStore.tags()
+            .sorted { $0.sortIndex < $1.sortIndex }
+            .map(\.name)
+        #expect(orderedNames == ["Bravo", "Alpha"])
+    }
+
+    @Test func neuerTagWirdAmEndeEingefuegtNichtBeiIndexNull() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let tagStore = TagStore(database: database)
+        try tagStore.save(TagRecord(id: "tag-a", name: "Alpha", sortIndex: 0))
+        try tagStore.save(TagRecord(id: "tag-b", name: "Bravo", sortIndex: 1))
+
+        // Bewusst ohne explizit gesetzten sortIndex gespeichert (Default 0 aus dem
+        // Initializer) — save() muss trotzdem ans Ende anhängen, nicht bei den
+        // bestehenden Tags mit sortIndex 0 landen.
+        try tagStore.save(TagRecord(id: "tag-c", name: "Charlie"))
+
+        let orderedNames = try tagStore.tags()
+            .sorted { $0.sortIndex < $1.sortIndex }
+            .map(\.name)
+        #expect(orderedNames == ["Alpha", "Bravo", "Charlie"])
+    }
+
+    @Test func tagsSortiertNachSortIndexNichtNachName() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let tagStore = TagStore(database: database)
+        try tagStore.save(TagRecord(id: "tag-z", name: "Zebra", sortIndex: 0))
+        try tagStore.save(TagRecord(id: "tag-a", name: "Apfel", sortIndex: 1))
+
+        let orderedNames = try tagStore.tags().map(\.name)
+        #expect(orderedNames == ["Zebra", "Apfel"])
     }
 }
