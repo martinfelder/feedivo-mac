@@ -39,6 +39,17 @@ struct NotificationSettingsTests {
 
         #expect(NotificationSettings.isEnabledForNewFeeds(in: defaults) == true)
     }
+
+    @Test func isEnabledForNewFeedsLiestExplizitGespeichertesFalse() throws {
+        let defaults = try temporaryUserDefaults()
+        defaults.set(false, forKey: NotificationSettings.defaultEnabledForNewFeedsKey)
+
+        #expect(NotificationSettings.isEnabledForNewFeeds(in: defaults) == false)
+
+        defaults.set(true, forKey: NotificationSettings.defaultEnabledForNewFeedsKey)
+
+        #expect(NotificationSettings.isEnabledForNewFeeds(in: defaults) == true)
+    }
 }
 
 private func temporaryUserDefaults() throws -> UserDefaults {
