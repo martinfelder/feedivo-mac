@@ -90,12 +90,19 @@ extension SidebarOutlineNode {
             children: customSmartFolderChildren
         )
 
+        let tagsChildren: [SidebarOutlineNode] = tagSnapshots.isEmpty
+            ? [SidebarOutlineNode(
+                id: "header.tags.empty",
+                payload: .emptyPlaceholder(text: String(localized: "sidebar.tags.empty"))
+              )]
+            : tagSnapshots.map { tag in
+                SidebarOutlineNode(id: "tag:\(tag.id)", payload: .tag(tag))
+            }
+
         let tagsHeader = SidebarOutlineNode(
             id: "header.tags",
             payload: .tagsHeader,
-            children: tagSnapshots.map { tag in
-                SidebarOutlineNode(id: "tag:\(tag.id)", payload: .tag(tag))
-            }
+            children: tagsChildren
         )
 
         let feedsWithoutFolder = FeedFolderOrganizer.feedsWithoutFolder(from: feedSnapshots)

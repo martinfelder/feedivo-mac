@@ -35,6 +35,7 @@ enum L10n {
     static let commonDelete = LocalizedStringKey("common.delete")
     static let commonDuplicate = LocalizedStringKey("common.duplicate")
     static let sidebarTagsSection = LocalizedStringKey("sidebar.tags.section")
+    static let sidebarTagsEmpty = LocalizedStringKey("sidebar.tags.empty")
     static let smartFilterAllArticles = LocalizedStringKey("smartFilter.allArticles")
     static let smartFilterUnread = LocalizedStringKey("smartFilter.unread")
     static let smartFilterStarred = LocalizedStringKey("smartFilter.starred")
