@@ -648,7 +648,7 @@ struct SidebarView: View {
     }
 }
 
-private struct SmartFolderSidebarRow: View {
+struct SmartFolderSidebarRow: View {
     @Environment(\.interfaceTextSize) private var interfaceTextSize
 
     let smartFolder: SQLiteSmartFolderSnapshot
@@ -725,7 +725,7 @@ private struct SmartFolderSidebarRow: View {
     }
 }
 
-private struct TagSidebarRow: View {
+struct TagSidebarRow: View {
     @Environment(\.interfaceTextSize) private var interfaceTextSize
 
     let tag: TagSidebarSnapshot
@@ -970,7 +970,7 @@ private struct SidebarFolderSection<Content: View>: View {
     }
 }
 
-private struct SidebarRowButtonStyle: ButtonStyle {
+struct SidebarRowButtonStyle: ButtonStyle {
     @Environment(\.interfaceTextSize) private var interfaceTextSize
 
     let isSelected: Bool
