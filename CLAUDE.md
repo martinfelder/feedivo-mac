@@ -849,6 +849,15 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Letzte Änderungen
 
+- 2026-07-15: Performance-Zielbestand mit 500 Feeds und 100'000 Artikeln im
+  Debug- und optimierten Release-Testprofil sowie mit Instruments Time Profiler
+  gemessen. Timeline, FTS, Count und tiefste Pagination liegen bei etwa 5–133 ms;
+  Keyset-Pagination ist damit vorerst nicht nötig. Neuer Blocker ist
+  `FeedStore.sidebarFeeds()` mit rund 10,9 s: Die korrelierte Ungelesen-
+  Unterabfrage wird pro Feed wiederholt. Nächster Schritt ist ein einmalig nach
+  `feedID` gruppierter Count-Join, danach UI-Messung. Bericht:
+  `docs/performance/sqlite-large-dataset-results.md`.
+
 - 2026-07-15: Pflichtlücken aus dem Performance-/Integrationsaudit umgesetzt:
   Datenbankfehler blockieren den Produktivinhalt statt einen scheinbar leeren
   In-Memory-Start zu erlauben; die Timeline lädt asynchron über GRDB in
@@ -856,8 +865,7 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   Tag-Zuweisung und Artikelfenster sind im Zeilen-Kontextmenü verdrahtet;
   Smart-Folder-Badge-/Lese-Defaults nutzen eine gemeinsame Policy; iCloud Sync
   bleibt bis zu einem echten Backend sichtbar deaktiviert. Relevante Store-,
-  State-, Policy- und Source-Integrationstests ergänzt. Instruments-Messung für
-  das 100'000-Artikel-Ziel bleibt als Qualitätsnachweis offen.
+  State-, Policy- und Source-Integrationstests ergänzt.
 - 2026-07-15: Performance- und Feature-Integrationsaudit des produktiven
   SQLite-/GRDB-Pfads dokumentiert und mit der lokalen NetNewsWire-Referenz
   verglichen. Bericht:

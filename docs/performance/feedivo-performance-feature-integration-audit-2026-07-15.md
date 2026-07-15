@@ -57,10 +57,13 @@ Die priorisierten Anwendungslücken wurden am 2026-07-15 geschlossen:
 - Eine gemeinsame Default-Policy steuert gemischte Smart-Folder-Badges und die
   Anzeige gelesener Artikel.
 
-Für das 100'000-Artikel-Qualitätsziel bleibt eine Messung mit Instruments offen.
-Die aktuelle Pagination verwendet stabile SQL-Sortierung mit `OFFSET`; falls
-sehr tiefe Seiten dabei messbar langsamer werden, ist Keyset-Pagination der
-nächste gezielte Optimierungsschritt.
+Die anschließende Messung mit 500 Feeds und 100'000 Artikeln bestätigt die
+Timeline-Architektur: Selbst `OFFSET 99'800` bleibt mit rund 110 ms schnell;
+Keyset-Pagination ist daher aktuell nicht nötig. Der Instruments-Time-Profiler
+hat stattdessen einen neuen Blocker im Sidebar-Pfad gefunden:
+`FeedStore.sidebarFeeds()` benötigt rund 10,9 Sekunden, weil der Ungelesen-
+Zähler als korrelierte Unterabfrage pro Feed berechnet wird. Einzelwerte und
+Folgeempfehlung stehen in `docs/performance/sqlite-large-dataset-results.md`.
 
 ## Priorisierte Befunde
 

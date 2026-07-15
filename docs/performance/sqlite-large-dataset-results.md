@@ -1,42 +1,107 @@
-# SQLite Large Dataset Performance – Lasttest Ergebnis (2026-07-04)
+# SQLite Large Dataset Performance – Lasttest Ergebnis
 
-## Ziel
-Prüfen, ob der produktive SwiftUI-Snapshot-Pfad bei größerer Datenmenge stabil und schnell genug bleibt.
+## Stand 2026-07-15: Zielbestand 500 Feeds / 100'000 Artikel
 
-## Test-Scope
-- Datei: `FeedivoTests/SQLiteLargeDatasetPerformanceTests.swift`
-- Datensatz im Testgenerator:
-  - 100 Feeds
-  - 600 Artikel pro Feed
-  - alternierende Read-Markierung
-- Assertions gegen harte Schwellen in der Suite:
-  - `timeline` All Scope < `1.8s`
-  - `timeline` Feed-Scope < `0.9s`
-  - `search` < `0.9s`
-  - `setRead + reload` < `0.4s`
-  - Feed-Unread-Summen > `1.5s`
+### Ziel und Messumgebung
 
-## Ausführung
-Getestet mit:
+Gemessen wurde der produktive GRDB-/SQLite-Lesepfad mit dem in Feature 26.2
+definierten Zielbestand:
+
+- 500 Feeds
+- 100'000 Artikel, davon 50 % gelesen
+- 200 Artikel pro Feed
+- 200er-Seiten wie in der produktiven Artikelliste
+- MacBook Pro `Mac16,7`, Apple M4 Pro, 48 GB RAM
+- macOS 26.5.2, Xcode 26
+
+Der Datensatz wird innerhalb einer Transaktion erzeugt. Der Seed ist kein
+Produktivitätsziel; er stellt lediglich sicher, dass die nachfolgenden Reads
+gegen den vollständigen Bestand laufen. Der Test schreibt seine Einzelwerte als
+Swift-Testing-Attachment in das `.xcresult`.
+
+### Gemessene Werte
+
+| Vorgang | Debug-Testprofil | Optimiertes Release-Testprofil |
+|---|---:|---:|
+| Seed 500 / 100'000 | 9'428 ms | 4'792 ms |
+| Timeline, erste 200, neueste zuerst | 57.7 ms | 57.8 ms |
+| Timeline, `OFFSET 50'000` | 96.2 ms | 96.2 ms |
+| Timeline, `OFFSET 99'800` | 109.3 ms | 110.3 ms |
+| Titel-Sortierung, `OFFSET 99'800` | 131.1 ms | 132.7 ms |
+| FTS-Suche | 5.3 ms | 4.5 ms |
+| Gesamtzahl 100'000 Artikel | 48.5 ms | 47.8 ms |
+| Sidebar-Snapshots für 500 Feeds | **10'910 ms** | **10'904 ms** |
+
+Die nahezu identischen Read-Zeiten in Debug und Release zeigen, dass die
+SQLite-Abfragen und nicht Swift-Optimierungsunterschiede die Ergebnisse prägen.
+
+### Instruments-Befund
+
+Ein 15-sekündiger Time-Profiler-Lauf wurde an den optimierten Testprozess
+angehängt. Nach dem Seed und den schnellen Timeline-Abfragen verbringt der
+Prozess den verbleibenden Messzeitraum in `sqlite3VdbeExec`, aufgerufen aus
+`FeedStore.sidebarFeeds()` (`FeedStore.swift`, Query ab Zeile 252).
+
+Die Query berechnet den Ungelesen-Zähler derzeit als korrelierte Unterabfrage
+pro Feed. Bei 500 Feeds führt der gewählte SQLite-Abfrageplan dadurch zu stark
+wiederholter Arbeit über `articles` und `article_statuses`. Der zweite
+korrelierte Lookup für den letzten Feed-Fehler ist strukturell ähnlich, bei
+einem Bestand ohne Feed-Logs aber nicht der dominante Anteil dieser Messung.
+
+### Bewertung
+
+- Die Timeline-Pagination ist auch auf der tiefsten möglichen 200er-Seite mit
+  rund 110 ms schnell. **Keyset-Pagination ist für 100'000 Artikel aktuell
+  nicht erforderlich.**
+- Alle produktnah gemessenen Timeline-/Such-/Count-Pfade liegen deutlich
+  unter einer Sekunde.
+- Das Qualitätsziel ist insgesamt **noch nicht erfüllt**, weil ein Sidebar-
+  Reload bei 500 Feeds rund 10,9 Sekunden blockiert.
+- Ein Wechsel von SwiftUI `List` zu `NSTableView` ist durch diese Messung nicht
+  begründet. Der aktuelle Engpass liegt vor dem Rendering in SQL.
+
+### Nächste Maßnahme
+
+`FeedStore.sidebarFeeds()` soll die Ungelesen-Zähler einmal gruppiert nach
+`feedID` berechnen und das Ergebnis an `feeds` joinen, statt dieselbe
+Statusmenge in einer korrelierten Unterabfrage pro Feed auszuwerten. Danach ist
+derselbe Benchmark erneut auszuführen. Erst wenn der Store-Pfad grün ist, lohnt
+sich eine separate UI-Messung von Start, Sidebar-Reload und Scrollen mit einem
+persistenten Zielbestand.
+
+Die beiden betroffenen Schwellen im Test (`sidebarFeeds()` bei 500 Feeds sowie
+100 einzelne Feed-Counts im historischen Test) sind bis zu dieser Korrektur mit
+`withKnownIssue` markiert. Sie bleiben dadurch im Testreport sichtbar, ohne die
+übrigen Performance-Regressionen zu verdecken.
+
+## Reproduzierbare Ausführung
+
+Optimierter Messlauf:
 
 ```bash
 xcodebuild test \
   -project Feedivo.xcodeproj \
   -scheme Feedivo \
+  -configuration Release \
+  ENABLE_TESTABILITY=YES \
   -destination 'platform=macOS' \
-  -only-testing:FeedivoTests/SQLiteLargeDatasetPerformanceTests/timelineQueriesSindUnterLastbedingungenSchnell \
-  -only-testing:FeedivoTests/SQLiteLargeDatasetPerformanceTests/readsUmschaltenUndTimelineNeuLadenIstEffizient \
-  -only-testing:FeedivoTests/SQLiteLargeDatasetPerformanceTests/sidebarUndArtikelCountsLassenSichSchnellBerechnen
+  -only-testing:'FeedivoTests/SQLiteLargeDatasetPerformanceTests/zielbestandMitTieferPaginationBleibtReaktionsschnell()'
 ```
 
-und Einzelausführungen für jedes der drei Szenarien als Fallback.
+Time Profiler gegen denselben Testprozess:
 
-## Ergebnis
-- `EXIT: 0`, Test-Suite vollständig grün (PASS).
-- Alle drei Performance-Zeitschwellen in der Testlogik wurden erfolgreich erreicht.
-- Die Ergebnisse sind reproduzierbar und bestätigen aktuell die Beibehaltung des SwiftUI-Snapshot-Wegs.
+```bash
+xcrun xctrace record \
+  --template 'Time Profiler' \
+  --attach <Feedivo-Testprozess-PID> \
+  --time-limit 15s \
+  --output /tmp/FeedivoPerformance.trace
+```
 
-## Entscheidung
-- Kein AppKit-/NSTableView-Refactor erforderlich.
-- NetNewsWire-nahes Verhalten bei großen Datensätzen ist mit den aktuellen Schwellwerten ausreichend.
-- Nächster Schritt: Fokus auf weitere `FeedivoApp`-Produktivitätsblöcke (Phase 8, Blocker-Beseitigung), nicht auf Timeline-UI-Retruktur.
+## Historischer Lauf 2026-07-04
+
+Der frühere Testbestand umfasste 100 Feeds und 60'000 Artikel. Seine drei
+Tests waren unter den damaligen groben Schwellwerten grün, protokollierten aber
+keine Einzelwerte und prüften weder 500 Feeds noch tiefe Pagination. Der neue
+Benchmark ersetzt diesen Lauf als maßgeblichen Nachweis für Feature 26.2; die
+kleineren Regressionstests bleiben zusätzlich erhalten.

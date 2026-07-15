@@ -1108,8 +1108,15 @@
 ### 26.2 Performance bei vielen Feeds
 - **Status:** 🔨 In Arbeit — Qualitätsziel für Codex
 - **Ziel:** 500 Feeds / 100'000 Artikel flüssig
-- **Audit 2026-07-15:** Der SQLite-Unterbau ist weiterhin tragfähig, aber das
-  Qualitätsziel muss noch mit Instruments bestätigt werden. Die gefundenen
+- **Messung 2026-07-15:** Timeline, FTS, Count und selbst `OFFSET 99'800`
+  bleiben beim Zielbestand zwischen rund 5 und 133 ms. Keyset-Pagination ist
+  deshalb aktuell nicht erforderlich. Der Instruments-Time-Profiler hat jedoch
+  einen neuen Blocker sichtbar gemacht: `FeedStore.sidebarFeeds()` benötigt
+  für 500 Feeds rund 10,9 Sekunden, weil der Ungelesen-Zähler als korrelierte
+  Unterabfrage pro Feed berechnet wird. Das Qualitätsziel bleibt bis zur
+  gruppierten Count-Query und anschließenden UI-Messung offen. Messbericht:
+  `docs/performance/sqlite-large-dataset-results.md`.
+- **Audit 2026-07-15:** Die gefundenen
   Architektur- und Integrationslücken sind umgesetzt: 200er-Pagination statt
   globalem 500er-Ende, SQL-Sortierung vor dem Limit, asynchrone GRDB-Reads,
   vollständige Scope-Zähler und zentralisierte Smart-Folder-Policy. Der
