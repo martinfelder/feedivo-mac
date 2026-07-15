@@ -772,6 +772,12 @@ private struct CacheSettingsView: View {
 private struct NotificationSettingsView: View {
     @State private var feedNotificationAuthorizationStatus: FeedNotificationAuthorizationStatus = .unknown
 
+    @AppStorage(NotificationSettings.isMasterEnabledKey)
+    private var isMasterEnabled = NotificationSettings.defaultIsMasterEnabled
+
+    @AppStorage(NotificationSettings.defaultEnabledForNewFeedsKey)
+    private var isEnabledForNewFeeds = NotificationSettings.defaultEnabledForNewFeedsDefault
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             SettingsBlock(eyebrow: L10n.settingsNotificationsSection) {
@@ -786,10 +792,41 @@ private struct NotificationSettingsView: View {
                                 await refreshNotificationAuthorizationStatus()
                             }
                         }
+                    } else if feedNotificationAuthorizationStatus == .denied {
+                        Button(L10n.settingsNotificationsPermissionOpenSystemSettings) {
+                            NotificationSettings.openSystemNotificationSettings()
+                        }
                     } else {
                         Text(permissionStatusText)
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundStyle(.secondary)
+                    }
+                }
+
+                SettingRow(
+                    title: L10n.settingsNotificationsMasterTitle,
+                    description: L10n.settingsNotificationsMasterDescription
+                ) {
+                    Toggle("", isOn: $isMasterEnabled)
+                        .labelsHidden()
+                }
+
+                SettingRow(
+                    title: L10n.settingsNotificationsNewFeedsDefaultTitle,
+                    description: L10n.settingsNotificationsNewFeedsDefaultDescription
+                ) {
+                    Toggle("", isOn: $isEnabledForNewFeeds)
+                        .labelsHidden()
+                }
+
+                SettingRow(
+                    title: L10n.settingsNotificationsTestTitle,
+                    description: L10n.settingsNotificationsTestDescription
+                ) {
+                    Button(L10n.settingsNotificationsTestButton) {
+                        Task {
+                            await FeedNotificationService.presentTest()
+                        }
                     }
                 }
 
