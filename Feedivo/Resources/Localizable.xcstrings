@@ -11153,6 +11153,62 @@
         }
       }
     },
+    "notification.test.body" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wenn du das hier siehst, funktionieren Benachrichtigungen einwandfrei."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If you see this, notifications are working correctly."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si vous voyez ceci, les notifications fonctionnent correctement."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se vedi questo messaggio, le notifiche funzionano correttamente."
+          }
+        }
+      }
+    },
+    "notification.test.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feedivo Test-Benachrichtigung"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feedivo Test Notification"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notification de test Feedivo"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notifica di prova Feedivo"
+          }
+        }
+      }
+    },
     "Oberfläche" : {
 
     },
@@ -23548,25 +23604,25 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Feed-Benachrichtigungen werden pro Feed in den Feed-Eigenschaften aktiviert."
+            "value" : "Feed-Benachrichtigungen werden pro Feed in den Feed-Eigenschaften aktiviert; der Standard für neu hinzugefügte Feeds lässt sich oben einstellen."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Feed notifications are enabled per feed in Feed Properties."
+            "value" : "Feed notifications are enabled per feed in Feed Properties; the default for newly added feeds can be set above."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Les notifications de flux sont activées par flux dans les propriétés du flux."
+            "value" : "Les notifications de flux sont activées par flux dans les propriétés du flux ; le réglage par défaut pour les nouveaux flux se trouve ci-dessus."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Le notifiche dei feed si attivano per singolo feed nelle proprietà del feed."
+            "value" : "Le notifiche dei feed si attivano per singolo feed nelle proprietà del feed; il valore predefinito per i nuovi feed si imposta qui sopra."
           }
         }
       }
@@ -23595,6 +23651,118 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Notifiche dei feed"
+          }
+        }
+      }
+    },
+    "settings.notifications.master.description" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schaltet alle Feed- und Regel-Benachrichtigungen app-weit aus, unabhängig von einzelnen Feed- oder Regel-Einstellungen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turns off all feed and rule notifications app-wide, regardless of individual feed or rule settings."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Désactive toutes les notifications de flux et de règles dans toute l'application, indépendamment des réglages individuels."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disattiva tutte le notifiche di feed e regole nell'intera app, indipendentemente dalle impostazioni individuali."
+          }
+        }
+      }
+    },
+    "settings.notifications.master.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Benachrichtigungen aktiviert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notifications Enabled"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notifications activées"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notifiche attivate"
+          }
+        }
+      }
+    },
+    "settings.notifications.newFeedsDefault.description" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Legt fest, ob neu hinzugefügte Feeds Benachrichtigungen standardmäßig aktiviert bekommen. Bestehende Feeds bleiben davon unberührt und lassen sich weiterhin einzeln in den Feed-Eigenschaften umstellen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controls whether newly added feeds have notifications enabled by default. Existing feeds are unaffected and remain individually configurable in Feed Properties."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Détermine si les flux nouvellement ajoutés ont les notifications activées par défaut. Les flux existants ne sont pas concernés et restent configurables individuellement dans leurs propriétés."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Determina se i feed appena aggiunti hanno le notifiche attivate per impostazione predefinita. I feed esistenti non sono interessati e restano configurabili singolarmente nelle proprietà del feed."
+          }
+        }
+      }
+    },
+    "settings.notifications.newFeedsDefault.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neue Feeds automatisch benachrichtigen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notify New Feeds Automatically"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notifier automatiquement les nouveaux flux"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notifica automaticamente i nuovi feed"
           }
         }
       }
@@ -23712,6 +23880,34 @@
         }
       }
     },
+    "settings.notifications.permission.openSystemSettings" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Systemeinstellungen öffnen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open System Settings"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir les réglages système"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apri Impostazioni di Sistema"
+          }
+        }
+      }
+    },
     "settings.notifications.permission.request" : {
       "localizations" : {
         "de" : {
@@ -23801,25 +23997,25 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Regelbasierte Benachrichtigungen werden danach als eigene Regel-Aktion im RuleWizard ergänzt."
+            "value" : "Regelbasierte Benachrichtigungen werden pro Regel im Regel-Assistenten konfiguriert."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rule-based notifications will then be added as a dedicated rule action in the Rule Wizard."
+            "value" : "Rule-based notifications are configured per rule in the Rule Wizard."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Les notifications basées sur des règles seront ensuite ajoutées comme action dédiée dans l’assistant de règles."
+            "value" : "Les notifications basées sur des règles se configurent par règle dans l'assistant de règles."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Le notifiche basate su regole saranno poi aggiunte come azione dedicata nel wizard delle regole."
+            "value" : "Le notifiche basate su regole si configurano per regola nella procedura guidata delle regole."
           }
         }
       }
@@ -23876,6 +24072,90 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Notifiche"
+          }
+        }
+      }
+    },
+    "settings.notifications.test.button" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Test senden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send Test"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envoyer le test"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invia prova"
+          }
+        }
+      }
+    },
+    "settings.notifications.test.description" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sendet sofort eine Beispiel-Benachrichtigung, um Zustellung und Sound zu prüfen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sends a sample notification immediately to check delivery and sound."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Envoie immédiatement une notification d'exemple pour vérifier la remise et le son."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invia immediatamente una notifica di esempio per verificare la consegna e il suono."
+          }
+        }
+      }
+    },
+    "settings.notifications.test.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Test-Benachrichtigung"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Test Notification"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notification de test"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notifica di prova"
           }
         }
       }

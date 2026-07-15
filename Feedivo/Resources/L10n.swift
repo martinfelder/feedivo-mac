@@ -388,6 +388,14 @@ enum L10n {
     static let settingsNotificationsPermissionUnknown = LocalizedStringKey("settings.notifications.permission.unknown")
     static let settingsNotificationsRulesTitle = LocalizedStringKey("settings.notifications.rules.title")
     static let settingsNotificationsRulesDescription = LocalizedStringKey("settings.notifications.rules.description")
+    static let settingsNotificationsPermissionOpenSystemSettings = LocalizedStringKey("settings.notifications.permission.openSystemSettings")
+    static let settingsNotificationsMasterTitle = LocalizedStringKey("settings.notifications.master.title")
+    static let settingsNotificationsMasterDescription = LocalizedStringKey("settings.notifications.master.description")
+    static let settingsNotificationsNewFeedsDefaultTitle = LocalizedStringKey("settings.notifications.newFeedsDefault.title")
+    static let settingsNotificationsNewFeedsDefaultDescription = LocalizedStringKey("settings.notifications.newFeedsDefault.description")
+    static let settingsNotificationsTestTitle = LocalizedStringKey("settings.notifications.test.title")
+    static let settingsNotificationsTestDescription = LocalizedStringKey("settings.notifications.test.description")
+    static let settingsNotificationsTestButton = LocalizedStringKey("settings.notifications.test.button")
     static let settingsArticleRetentionTitle = LocalizedStringKey("settings.articleRetention.title")
     static let settingsArticleRetentionIntervalPicker = LocalizedStringKey("settings.articleRetention.interval.picker")
     static let settingsArticleRetentionIncludesProtectedArticles = LocalizedStringKey("settings.articleRetention.includesProtectedArticles")
@@ -639,6 +647,8 @@ enum L10n {
         )
     }
     static let ruleNotificationFallbackRuleName = String(localized: "notification.rule.fallbackRuleName")
+    static let notificationTestTitle = String(localized: "notification.test.title")
+    static let notificationTestBody = String(localized: "notification.test.body")
     static func ruleNotificationSummaryTitle(count: Int, ruleName: String) -> String {
         String.localizedStringWithFormat(
             String(localized: "notification.rule.summary.title"),
