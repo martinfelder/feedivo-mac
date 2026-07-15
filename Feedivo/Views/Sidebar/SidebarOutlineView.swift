@@ -1,5 +1,4 @@
 import AppKit
-import OSLog
 import SwiftUI
 
 enum SidebarFeedContextAction {
@@ -35,17 +34,6 @@ enum SidebarSmartFolderContextAction {
 private final class SidebarOutlineViewControl: NSOutlineView {
     override func frameOfOutlineCell(atRow row: Int) -> NSRect {
         .zero
-    }
-
-    // TEMPDEBUG (2026-07-15): Diagnose, ob mouseDown überhaupt bei der
-    // NSOutlineView selbst ankommt, oder vorher vom SwiftUI-Inhalt der
-    // gehosteten Zeile (Button/onTapGesture in NSHostingView) konsumiert
-    // wird — Nutzer-Report "kein Drag-Vorschaubild, gar nichts passiert".
-    override func mouseDown(with event: NSEvent) {
-        let point = convert(event.locationInWindow, from: nil)
-        let row = row(at: point)
-        AppLogger.dataAccess.fault("TEMPDEBUG NSOutlineView.mouseDown row=\(row, privacy: .public) clickCount=\(event.clickCount, privacy: .public)")
-        super.mouseDown(with: event)
     }
 
     /// Sicherheitsnetz für die Ordner-Drop-Hervorhebung (siehe Coordinator.
@@ -320,7 +308,7 @@ struct SidebarOutlineView: NSViewRepresentable {
                 // .onTapGesture übersetzen sich intern in eigene AppKit-Gesture-
                 // Recognizer, die das Event am Blattelement abfangen, bevor es je
                 // bei einem mouseDown-Override eines Vorfahren ankommt — per
-                // TEMPDEBUG-mouseDown-Override auf der NSOutlineView verifiziert:
+                // temporärem Diagnose-Override auf der NSOutlineView verifiziert:
                 // feuerte beim Ziehen NIE, 2026-07-15 Nutzer-Report "kein Drag-
                 // Vorschaubild"). Fix: ein eigener NSPanGestureRecognizer, der auf
                 // derselben Event-Sequenz parallel zu SwiftUIs Recognizern
@@ -571,7 +559,6 @@ struct SidebarOutlineView: NSViewRepresentable {
             guard let outlineView, let cellView = recognizer.view else { return }
 
             let row = outlineView.row(for: cellView)
-            AppLogger.dataAccess.fault("TEMPDEBUG handleRowDragGesture state=began row=\(row, privacy: .public)")
             guard row >= 0,
                   let node = outlineView.item(atRow: row) as? SidebarOutlineNode,
                   let writer = self.outlineView(outlineView, pasteboardWriterForItem: node),
@@ -605,11 +592,7 @@ struct SidebarOutlineView: NSViewRepresentable {
         }
 
         func outlineView(_ outlineView: NSOutlineView, pasteboardWriterForItem item: Any) -> NSPasteboardWriting? {
-            guard let node = item as? SidebarOutlineNode else {
-                AppLogger.dataAccess.fault("TEMPDEBUG pasteboardWriterForItem: item ist kein SidebarOutlineNode")
-                return nil
-            }
-            AppLogger.dataAccess.fault("TEMPDEBUG pasteboardWriterForItem aufgerufen id=\(node.id, privacy: .public) isDraggable=\(node.isDraggable, privacy: .public)")
+            guard let node = item as? SidebarOutlineNode else { return nil }
             guard node.isDraggable else { return nil }
 
             switch node.payload {
@@ -633,7 +616,6 @@ struct SidebarOutlineView: NSViewRepresentable {
             proposedChildIndex index: Int
         ) -> NSDragOperation {
             let target = resolveDropTarget(info: info, proposedItem: item, proposedChildIndex: index)
-            AppLogger.dataAccess.fault("TEMPDEBUG validateDrop item=\(String(describing: (item as? SidebarOutlineNode)?.id), privacy: .public) index=\(index, privacy: .public) target=\(String(describing: target), privacy: .public)")
 
             if case .feedDrop(let folderName, _)? = target {
                 setHighlightedFolder(name: folderName)
@@ -650,7 +632,6 @@ struct SidebarOutlineView: NSViewRepresentable {
             item: Any?,
             childIndex index: Int
         ) -> Bool {
-            AppLogger.dataAccess.fault("TEMPDEBUG acceptDrop aufgerufen item=\(String(describing: (item as? SidebarOutlineNode)?.id), privacy: .public) index=\(index, privacy: .public)")
             setHighlightedFolder(name: nil)
             guard let target = resolveDropTarget(info: info, proposedItem: item, proposedChildIndex: index) else {
                 return false
