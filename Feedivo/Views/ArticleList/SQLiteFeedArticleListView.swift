@@ -10,6 +10,15 @@ private enum FeedHeaderRefreshStatus: Equatable {
     case failure(String)
 }
 
+/// Ergebnis der gebündelten Feed-Status-Abfrage (letzter Log-Eintrag +
+/// letzter erfolgreicher Refresh) für reloadFeedHeaderStatus(feedID:) — ein
+/// einzelner asynchroner DB-Roundtrip statt zweier getrennter, siehe dort.
+private struct FeedHeaderStatusResult: Sendable {
+    var isLatestLogAnError: Bool
+    var latestLogMessage: String?
+    var lastRefreshedAt: Date?
+}
+
 private struct ArticleTagAssignmentRequest: Identifiable {
     let articleID: String
 
@@ -67,6 +76,12 @@ struct SQLiteFeedArticleListView: View {
     @State private var state = SQLiteFeedArticleListState()
     @State private var feedHasRecentError = false
     @State private var feedHeaderRefreshStatus: FeedHeaderRefreshStatus?
+    // Generation-Zähler für reloadFeedHeaderStatus(feedID:): schützt gegen
+    // einen langsameren, veralteten Read, der nach einem schnellen weiteren
+    // Feed-Wechsel noch abgeschlossen wird und sonst das frischere Ergebnis
+    // überschreiben würde (die Task dort ist bewusst nicht an .task(id:)
+    // gehängt, siehe dort).
+    @State private var feedHeaderStatusRequestID = 0
     @State private var debouncedSearchText = ""
     @State private var articleExportRequest: ArticleExportRequest?
     @State private var ruleCreationRequest: ArticleListRuleCreationRequest?
@@ -603,22 +618,7 @@ struct SQLiteFeedArticleListView: View {
                 selectedArticleID: selectedArticleID,
                 sortOption: articleSortOption
             )
-            if let database {
-                let latestLog = (try? FeedLogStore(database: database).logs(feedID: feedID, limit: 1))?.first
-                let isLatestLogAnError = latestLog.map { FeedLogEntryKind(rawValue: $0.level) == .error } ?? false
-                feedHasRecentError = isLatestLogAnError
-
-                if isLatestLogAnError, let latestLog {
-                    feedHeaderRefreshStatus = .failure(latestLog.message)
-                } else if let lastRefreshedAt = (try? FeedStore(database: database).feed(id: feedID))?.lastRefreshedAt {
-                    feedHeaderRefreshStatus = .success(lastRefreshedAt)
-                } else {
-                    feedHeaderRefreshStatus = nil
-                }
-            } else {
-                feedHasRecentError = false
-                feedHeaderRefreshStatus = nil
-            }
+            reloadFeedHeaderStatus(feedID: feedID)
         case let .tagID(tagID):
             state.load(
                 tagID: tagID,
@@ -645,6 +645,67 @@ struct SQLiteFeedArticleListView: View {
             )
         }
         navigationState = state.navigationState
+    }
+
+    /// Lädt letzten Log-Eintrag und letzten erfolgreichen Refresh für die
+    /// Feed-Status-Zeile im Listenkopf. Bewusst als eigene, unabhängige Task
+    /// statt weiterhin synchron in reload(): FeedivoDatabase nutzt eine
+    /// DatabaseQueue (strikt seriell, keine parallelen Reads) — zwei
+    /// synchrone database.read {}-Aufrufe direkt nach dem asynchronen
+    /// state.load(feedID:) blockierten den Main Thread so lange, wie beide
+    /// hinter der gerade erst eingereihten Timeline-Abfrage in derselben
+    /// Warteschlange auf ihre Ausführung warten mussten — das machte den
+    /// Async-Vorteil von state.load() bei jedem Feed-Klick zunichte (Nutzer-
+    /// Report 2026-07-15: spürbare Verzögerung bis Sidebar-Markierung und
+    /// Artikelliste erscheinen). Jetzt ein einzelner readAsync()-Roundtrip.
+    private func reloadFeedHeaderStatus(feedID: String) {
+        feedHeaderStatusRequestID += 1
+        let requestID = feedHeaderStatusRequestID
+
+        guard let database else {
+            feedHasRecentError = false
+            feedHeaderRefreshStatus = nil
+            return
+        }
+
+        Task { @MainActor in
+            let result = try? await database.readAsync { db -> FeedHeaderStatusResult in
+                let latestLog = try FeedLogRecord.fetchAll(db, sql: """
+                    SELECT *
+                    FROM feed_logs
+                    WHERE feedID = ?
+                    ORDER BY createdAt DESC, id COLLATE NOCASE DESC
+                    LIMIT 1
+                    """, arguments: [feedID]).first
+                let isLatestLogAnError = latestLog.map { FeedLogEntryKind(rawValue: $0.level) == .error } ?? false
+                let lastRefreshedAt = try FeedRecord.fetchOne(db, key: feedID)?.lastRefreshedAt
+                return FeedHeaderStatusResult(
+                    isLatestLogAnError: isLatestLogAnError,
+                    latestLogMessage: latestLog?.message,
+                    lastRefreshedAt: lastRefreshedAt
+                )
+            }
+
+            // Generation-Guard: ein schnellerer, späterer Feed-Wechsel kann
+            // diesen Read längst überholt haben, bevor er zurückkommt (siehe
+            // feedHeaderStatusRequestID-Kommentar oben).
+            guard requestID == feedHeaderStatusRequestID else { return }
+
+            guard let result else {
+                feedHasRecentError = false
+                feedHeaderRefreshStatus = nil
+                return
+            }
+
+            feedHasRecentError = result.isLatestLogAnError
+            if result.isLatestLogAnError, let message = result.latestLogMessage {
+                feedHeaderRefreshStatus = .failure(message)
+            } else if let lastRefreshedAt = result.lastRefreshedAt {
+                feedHeaderRefreshStatus = .success(lastRefreshedAt)
+            } else {
+                feedHeaderRefreshStatus = nil
+            }
+        }
     }
 
     private func sortRows(_ first: ArticleListSnapshot, _ second: ArticleListSnapshot) -> Bool {
