@@ -1,4 +1,5 @@
 import AppKit
+import OSLog
 import SwiftUI
 
 enum SidebarFeedContextAction {
@@ -35,6 +36,30 @@ private final class SidebarOutlineViewControl: NSOutlineView {
     override func frameOfOutlineCell(atRow row: Int) -> NSRect {
         .zero
     }
+
+    // TEMPDEBUG (2026-07-15): Diagnose, ob mouseDown überhaupt bei der
+    // NSOutlineView selbst ankommt, oder vorher vom SwiftUI-Inhalt der
+    // gehosteten Zeile (Button/onTapGesture in NSHostingView) konsumiert
+    // wird — Nutzer-Report "kein Drag-Vorschaubild, gar nichts passiert".
+    override func mouseDown(with event: NSEvent) {
+        let point = convert(event.locationInWindow, from: nil)
+        let row = row(at: point)
+        AppLogger.dataAccess.fault("TEMPDEBUG NSOutlineView.mouseDown row=\(row, privacy: .public) clickCount=\(event.clickCount, privacy: .public)")
+        super.mouseDown(with: event)
+    }
+
+    /// Sicherheitsnetz für die Ordner-Drop-Hervorhebung (siehe Coordinator.
+    /// setHighlightedFolder): validateDrop/acceptDrop decken alle Fälle ab,
+    /// bei denen der Drag über der Outline endet — verlässt der Drag die
+    /// Sidebar komplett (Drop außerhalb, Abbruch per Escape), feuert weder
+    /// validateDrop noch acceptDrop erneut, die Hervorhebung würde sonst
+    /// hängen bleiben.
+    var onDraggingExited: (() -> Void)?
+
+    override func draggingExited(_ sender: NSDraggingInfo?) {
+        onDraggingExited?()
+        super.draggingExited(sender)
+    }
 }
 
 /// NSViewRepresentable-Bridge, die die komplette Sidebar (Smart Folders,
@@ -62,6 +87,7 @@ struct SidebarOutlineView: NSViewRepresentable {
     let onSmartFolderContextAction: (SidebarSmartFolderContextAction, SQLiteSmartFolderSnapshot) -> Void
     let onTagsManageRequested: () -> Void
     let onCreateSmartFolderRequested: () -> Void
+    let onSortFoldersAlphabetically: () -> Void
 
     let moveFeed: (_ id: String, _ toFolderName: String?, _ targetIndex: Int) -> Void
     let moveFolder: (_ name: String, _ targetIndex: Int) -> Void
@@ -101,6 +127,9 @@ struct SidebarOutlineView: NSViewRepresentable {
         scrollView.automaticallyAdjustsContentInsets = true
 
         context.coordinator.outlineView = outlineView
+        outlineView.onDraggingExited = { [weak coordinator = context.coordinator] in
+            coordinator?.setHighlightedFolder(name: nil)
+        }
         return scrollView
     }
 
@@ -118,8 +147,50 @@ struct SidebarOutlineView: NSViewRepresentable {
         var parent: SidebarOutlineView
         weak var outlineView: NSOutlineView?
 
+        /// Name des Ordners, der gerade als Ziel eines laufenden Feed-Drags
+        /// hervorgehoben werden soll (eigene SwiftUI-Hervorhebung statt
+        /// nativer AppKit-Drop-Optik, siehe SidebarOutlineFolderRow). Von
+        /// validateDrop gepflegt, in acceptDrop/draggingExited zurückgesetzt.
+        private var highlightedFolderName: String?
+
         init(parent: SidebarOutlineView) {
             self.parent = parent
+        }
+
+        /// Aktualisiert die Drop-Ziel-Hervorhebung, falls sich der Ordnername
+        /// geändert hat, und rendert nur die betroffene(n) sichtbare(n)
+        /// Zeile(n) neu (kein vollständiges reloadData() bei jedem
+        /// Mausbewegungs-Event während des Drags).
+        fileprivate func setHighlightedFolder(name: String?) {
+            guard name != highlightedFolderName else { return }
+
+            let previousName = highlightedFolderName
+            highlightedFolderName = name
+
+            if let previousName {
+                refreshFolderRow(named: previousName)
+            }
+            if let name {
+                refreshFolderRow(named: name)
+            }
+        }
+
+        private func refreshFolderRow(named name: String) {
+            guard let outlineView,
+                  let node = SidebarOutlineNode.find(id: "folder:\(name)", in: parent.rootNodes)
+            else {
+                return
+            }
+
+            let row = outlineView.row(forItem: node)
+            guard row >= 0,
+                  let cellView = outlineView.view(atColumn: 0, row: row, makeIfNecessary: false) as? NSTableCellView,
+                  let hostingView = cellView.subviews.first as? NSHostingView<AnyView>
+            else {
+                return
+            }
+
+            hostingView.rootView = AnyView(rowContent(for: node))
         }
 
         /// Baut die Outline neu auf und stellt danach den Expansion-Zustand
@@ -207,7 +278,11 @@ struct SidebarOutlineView: NSViewRepresentable {
             case .smartFoldersHeader, .tagsHeader, .foldersHeader:
                 return 24
             case .folder:
-                return 24
+                // 24pt (wie die reinen Text-Header) erwies sich beim Live-
+                // Testen als zu kleine Drop-Zone für Feed-Drops auf Ordner —
+                // 30pt (wie Feed-/Tag-/Smart-Folder-Zeilen) angeglichen,
+                // 2026-07-15 Nutzer-Report nach Log-Analyse.
+                return 30
             case .smartFolder, .tag:
                 return 30
             case .emptyPlaceholder:
@@ -238,6 +313,28 @@ struct SidebarOutlineView: NSViewRepresentable {
                     hostingView.topAnchor.constraint(equalTo: cellView.topAnchor),
                     hostingView.bottomAnchor.constraint(equalTo: cellView.bottomAnchor)
                 ])
+
+                // NSOutlineViews eigene, automatische Drag-Erkennung basiert auf
+                // mouseDown(with:), das nie ausgelöst wird, wenn die Zeile
+                // vollständig interaktiven SwiftUI-Inhalt hostet (Button/
+                // .onTapGesture übersetzen sich intern in eigene AppKit-Gesture-
+                // Recognizer, die das Event am Blattelement abfangen, bevor es je
+                // bei einem mouseDown-Override eines Vorfahren ankommt — per
+                // TEMPDEBUG-mouseDown-Override auf der NSOutlineView verifiziert:
+                // feuerte beim Ziehen NIE, 2026-07-15 Nutzer-Report "kein Drag-
+                // Vorschaubild"). Fix: ein eigener NSPanGestureRecognizer, der auf
+                // derselben Event-Sequenz parallel zu SwiftUIs Recognizern
+                // mitläuft (Gesture-Recognizer blockieren sich in AppKit nicht
+                // gegenseitig, außer bei explizit gesetzter Exklusivität/
+                // Fehlschlag-Abhängigkeit) und erst bei tatsächlicher Zugbewegung
+                // (State .began, NSPanGestureRecognizer hat eine eingebaute
+                // Mindestbewegung) selbst eine Drag-Session startet — ein reiner
+                // Klick unterschreitet diese Schwelle und bleibt unberührt.
+                let dragRecognizer = NSPanGestureRecognizer(
+                    target: self,
+                    action: #selector(handleRowDragGesture(_:))
+                )
+                cellView.addGestureRecognizer(dragRecognizer)
             }
 
             hostingView.rootView = AnyView(rowContent(for: node))
@@ -327,18 +424,51 @@ struct SidebarOutlineView: NSViewRepresentable {
                     )
                 )
             case .foldersHeader:
-                sectionHeaderRow(
-                    title: L10n.sidebarFoldersSection,
-                    isCollapsed: parent.isFoldersCollapsed,
-                    actionSystemImage: nil,
-                    action: nil,
-                    toggle: { parent.isFoldersCollapsed.toggle() }
-                )
+                HStack {
+                    Button {
+                        parent.isFoldersCollapsed.toggle()
+                    } label: {
+                        HStack(spacing: 7) {
+                            Image(systemName: parent.isFoldersCollapsed ? "chevron.right" : "chevron.down")
+                                .font(.system(size: 10, weight: .bold))
+                                .frame(width: 12)
+                            Text(L10n.sidebarFoldersSection)
+                                .font(.system(size: 11, weight: .bold))
+                                .textCase(.uppercase)
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+
+                    Spacer()
+
+                    // Ermöglicht, eine versehentliche manuelle Umsortierung
+                    // per Drag & Drop wieder rückgängig zu machen — Nutzer-
+                    // Wunsch nach der Live-Verifikation der Drag&Drop-
+                    // Migration, 2026-07-15.
+                    Menu {
+                        Button {
+                            parent.onSortFoldersAlphabetically()
+                        } label: {
+                            Label(L10n.sidebarFoldersSortAlphabetically, systemImage: "textformat.abc")
+                        }
+                    } label: {
+                        Image(systemName: "arrow.up.arrow.down")
+                            .font(.system(size: 12, weight: .bold))
+                            .frame(width: 22, height: 22)
+                    }
+                    .menuStyle(.borderlessButton)
+                    .menuIndicator(.hidden)
+                    .fixedSize()
+                }
+                .foregroundStyle(SidebarStyle.sectionText)
+                .padding(.horizontal, 10)
             case .folder(let name):
                 SidebarOutlineFolderRow(
                     name: name,
                     isCollapsed: parent.collapsedFolderNames.contains(name),
                     isEmpty: node.children.isEmpty,
+                    isDropTarget: highlightedFolderName == name,
                     toggle: { parent.collapsedFolderNames.formSymmetricDifference([name]) },
                     renameFolder: { newName in try parent.renameFolder(name, newName) },
                     deleteFolder: { parent.onFolderContextAction(.delete, name) }
@@ -430,8 +560,57 @@ struct SidebarOutlineView: NSViewRepresentable {
 
         // MARK: - Drag & Drop
 
+        /// Startet manuell eine Drag-Session, sobald der NSPanGestureRecognizer
+        /// (angehängt an jede frisch erzeugte Zeile in viewFor:item:) eine
+        /// tatsächliche Zugbewegung erkennt — siehe Erklärung dort. Nutzt
+        /// denselben NSPasteboardWriting-Aufbau wie pasteboardWriterForItem, das
+        /// bei gehostetem interaktivem SwiftUI-Inhalt nie von NSOutlineViews
+        /// eigener automatischer Drag-Erkennung erreicht wird.
+        @objc private func handleRowDragGesture(_ recognizer: NSPanGestureRecognizer) {
+            guard recognizer.state == .began else { return }
+            guard let outlineView, let cellView = recognizer.view else { return }
+
+            let row = outlineView.row(for: cellView)
+            AppLogger.dataAccess.fault("TEMPDEBUG handleRowDragGesture state=began row=\(row, privacy: .public)")
+            guard row >= 0,
+                  let node = outlineView.item(atRow: row) as? SidebarOutlineNode,
+                  let writer = self.outlineView(outlineView, pasteboardWriterForItem: node),
+                  let event = NSApp.currentEvent
+            else {
+                return
+            }
+
+            let draggingItem = NSDraggingItem(pasteboardWriter: writer)
+            // setDraggingFrame erwartet die Frame-Angabe im Koordinatensystem
+            // der Quell-View (outlineView), NICHT im lokalen Koordinatensystem
+            // der Zeile selbst — sonst erscheint das Vorschaubild am oberen
+            // Rand der Outline statt am tatsächlichen Mauszeiger (gefunden
+            // 2026-07-15 per Nutzer-Report: Zielen beim Drop war ungenau,
+            // sichtbare Rückmeldung entsprach nicht der echten Zeigerposition).
+            let frameInOutlineView = cellView.convert(cellView.bounds, to: outlineView)
+            draggingItem.setDraggingFrame(frameInOutlineView, contents: Self.dragImage(for: cellView))
+            outlineView.beginDraggingSession(with: [draggingItem], event: event, source: outlineView)
+        }
+
+        private static func dragImage(for view: NSView) -> NSImage {
+            guard view.bounds.width > 0, view.bounds.height > 0,
+                  let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds)
+            else {
+                return NSImage(size: view.bounds.size)
+            }
+            view.cacheDisplay(in: view.bounds, to: rep)
+            let image = NSImage(size: view.bounds.size)
+            image.addRepresentation(rep)
+            return image
+        }
+
         func outlineView(_ outlineView: NSOutlineView, pasteboardWriterForItem item: Any) -> NSPasteboardWriting? {
-            guard let node = item as? SidebarOutlineNode, node.isDraggable else { return nil }
+            guard let node = item as? SidebarOutlineNode else {
+                AppLogger.dataAccess.fault("TEMPDEBUG pasteboardWriterForItem: item ist kein SidebarOutlineNode")
+                return nil
+            }
+            AppLogger.dataAccess.fault("TEMPDEBUG pasteboardWriterForItem aufgerufen id=\(node.id, privacy: .public) isDraggable=\(node.isDraggable, privacy: .public)")
+            guard node.isDraggable else { return nil }
 
             switch node.payload {
             case .feed(let snapshot):
@@ -453,7 +632,16 @@ struct SidebarOutlineView: NSViewRepresentable {
             proposedItem item: Any?,
             proposedChildIndex index: Int
         ) -> NSDragOperation {
-            resolveDropTarget(info: info, proposedItem: item, proposedChildIndex: index) == nil ? [] : .move
+            let target = resolveDropTarget(info: info, proposedItem: item, proposedChildIndex: index)
+            AppLogger.dataAccess.fault("TEMPDEBUG validateDrop item=\(String(describing: (item as? SidebarOutlineNode)?.id), privacy: .public) index=\(index, privacy: .public) target=\(String(describing: target), privacy: .public)")
+
+            if case .feedDrop(let folderName, _)? = target {
+                setHighlightedFolder(name: folderName)
+            } else {
+                setHighlightedFolder(name: nil)
+            }
+
+            return target == nil ? [] : .move
         }
 
         func outlineView(
@@ -462,6 +650,8 @@ struct SidebarOutlineView: NSViewRepresentable {
             item: Any?,
             childIndex index: Int
         ) -> Bool {
+            AppLogger.dataAccess.fault("TEMPDEBUG acceptDrop aufgerufen item=\(String(describing: (item as? SidebarOutlineNode)?.id), privacy: .public) index=\(index, privacy: .public)")
+            setHighlightedFolder(name: nil)
             guard let target = resolveDropTarget(info: info, proposedItem: item, proposedChildIndex: index) else {
                 return false
             }
@@ -528,6 +718,13 @@ private struct SidebarOutlineFolderRow: View {
     /// alten SwiftUI-Implementierung) nur für leere Ordner angeboten (siehe
     /// Whole-Branch-Review-Fix 3).
     let isEmpty: Bool
+    /// Ob dieser Ordner aktuell das Ziel eines laufenden Feed-Drags ist —
+    /// eigene, SwiftUI-gezeichnete Hervorhebung, weil NSOutlineViews native
+    /// Drop-Hervorhebung vom gehosteten SwiftUI-Inhalt der Zeile überdeckt
+    /// wird (Nutzer sah beim Hovern nur eine dünne Einfüge-Linie statt einer
+    /// Box, 2026-07-15). Wird vom Coordinator in validateDrop/acceptDrop
+    /// gepflegt, siehe dort.
+    let isDropTarget: Bool
     let toggle: () -> Void
     let renameFolder: (String) throws -> Void
     let deleteFolder: () -> Void
@@ -573,8 +770,16 @@ private struct SidebarOutlineFolderRow: View {
                 } else {
                     Text(name)
                         .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(SidebarStyle.primaryText.opacity(0.82))
+                        .foregroundStyle(isDropTarget ? .white : SidebarStyle.primaryText.opacity(0.82))
                         .lineLimit(1)
+                        .padding(.horizontal, isDropTarget ? 7 : 0)
+                        .padding(.vertical, isDropTarget ? 2 : 0)
+                        .background {
+                            if isDropTarget {
+                                RoundedRectangle(cornerRadius: 5)
+                                    .fill(Color.accentColor)
+                            }
+                        }
                         .contentShape(Rectangle())
                         .onTapGesture(count: 2) { beginEditing() }
                         .onTapGesture(count: 1) { toggle() }

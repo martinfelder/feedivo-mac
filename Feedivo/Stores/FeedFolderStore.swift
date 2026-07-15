@@ -201,4 +201,28 @@ struct FeedFolderStore {
             }
         }
     }
+
+    /// Setzt die Ordner-Reihenfolge auf alphabetisch zurück — z. B. um eine
+    /// versehentliche manuelle Umsortierung per Drag & Drop rückgängig zu
+    /// machen. Betrifft nur die Ordner-Reihenfolge selbst, nicht die
+    /// Feed-Reihenfolge innerhalb der Ordner. Materialisiert zuerst rein
+    /// implizite Ordner, analog zu moveFolder.
+    func sortAlphabetically() throws {
+        try database.write { db in
+            try materializeImplicitFolders(db)
+
+            let orderedNames = try String.fetchAll(
+                db,
+                sql: "SELECT name FROM feed_folders ORDER BY name COLLATE NOCASE, id COLLATE NOCASE"
+            )
+
+            let now = Date()
+            for (index, folderName) in orderedNames.enumerated() {
+                try db.execute(
+                    sql: "UPDATE feed_folders SET sortIndex = ?, updatedAt = ? WHERE name = ? COLLATE NOCASE",
+                    arguments: [index, now, folderName]
+                )
+            }
+        }
+    }
 }

@@ -26018,6 +26018,34 @@
         }
       }
     },
+    "sidebar.folders.sortAlphabetically" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alphabetisch sortieren (A-Z)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sort Alphabetically (A-Z)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trier par ordre alphabétique (A-Z)"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ordina alfabeticamente (A-Z)"
+          }
+        }
+      }
+    },
     "sidebar.smartFilters.section" : {
       "localizations" : {
         "de" : {

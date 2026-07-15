@@ -111,6 +111,7 @@ struct SidebarView: View {
                 },
                 onTagsManageRequested: { isShowingTagManager = true },
                 onCreateSmartFolderRequested: { isCreatingSmartFolder = true },
+                onSortFoldersAlphabetically: { sortFoldersAlphabetically() },
                 moveFeed: { id, folderName, targetIndex in moveFeed(id: id, toFolderName: folderName, targetIndex: targetIndex) },
                 moveFolder: { name, targetIndex in moveFolder(name: name, targetIndex: targetIndex) },
                 moveTag: { id, targetIndex in moveTag(id: id, targetIndex: targetIndex) },
@@ -347,6 +348,17 @@ struct SidebarView: View {
             try FeedFolderStore(database: database).moveFolder(name: name, targetIndex: targetIndex)
         } catch {
             AppLogger.dataAccess.error("moveFolder fehlgeschlagen: \(error.localizedDescription, privacy: .public)")
+        }
+        sidebarDefinitionVersion += 1
+    }
+
+    private func sortFoldersAlphabetically() {
+        guard let database = feedivoDatabase else { return }
+
+        do {
+            try FeedFolderStore(database: database).sortAlphabetically()
+        } catch {
+            AppLogger.dataAccess.error("sortFoldersAlphabetically fehlgeschlagen: \(error.localizedDescription, privacy: .public)")
         }
         sidebarDefinitionVersion += 1
     }

@@ -14,6 +14,7 @@ enum L10n {
     static let feedDiscoveryResultsTitle = LocalizedStringKey("feedDiscovery.results.title")
     static let feedDiscoverySearchButton = LocalizedStringKey("feedDiscovery.search.button")
     static let sidebarFoldersSection = LocalizedStringKey("sidebar.folders.section")
+    static let sidebarFoldersSortAlphabetically = LocalizedStringKey("sidebar.folders.sortAlphabetically")
     static let sidebarAddFolderButton = LocalizedStringKey("sidebar.addFolder.button")
     static let sidebarAddFolderTitle = LocalizedStringKey("sidebar.addFolder.title")
     static let sidebarAddFolderNamePlaceholder = LocalizedStringKey("sidebar.addFolder.name.placeholder")
