@@ -727,6 +727,34 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Aktuell in Arbeit
 
+- **2026-07-15: Benachrichtigungs-Einstellungen überarbeitet (Master-Schalter, Standard
+  für neue Feeds, Test-Benachrichtigung, Systemeinstellungen-Link) — Implementierung
+  abgeschlossen, NICHT gepusht.** Bisherige Einstellungsseite zeigte nur den
+  macOS-Berechtigungsstatus plus zwei reine Info-Zeilen ohne echte Einstellungen. Neu:
+  `NotificationSettings.swift` (Master-Schalter default an, Standard-für-neue-Feeds
+  default aus, beide mit sicherem `object(forKey:) != nil`-Guard gegen den bekannten
+  UserDefaults-Default-Bug, siehe Gotcha zu `retentionDays`); Master-Schalter-Gate in
+  `FeedNotificationService.present(...)` bewusst vor `isAuthorized()`, damit kein
+  unnötiger Berechtigungs-Prompt bei ausgeschaltetem Schalter ausgelöst wird; neues
+  `presentTest()` umgeht bewusst nur den Master-Schalter, respektiert aber weiterhin die
+  macOS-Berechtigung; `SQLiteFeedSubscriptionService` verdrahtet den Neue-Feeds-Default
+  in `addFeed(...)` und `importOPMLFeeds(...)` über einen neuen injizierbaren
+  `userDefaults`-Parameter; UI-Erweiterung in `SettingsView.swift` (`NotificationSettingsView`)
+  inkl. "Systemeinstellungen öffnen"-Button bei blockierter Erlaubnis
+  (`x-apple.systempreferences:com.apple.Notifications-Settings.extension?ch.martin.Feedivo`,
+  undokumentiertes Deep-Link-Schema, Fallback-Konstante vorbereitet). Via
+  Brainstorming→Spec→Plan→Subagent-Driven-Development (5 Tasks, 1 Fix-Runde bei Task 1:
+  fehlender expliziter-false-Test bei `isEnabledForNewFeeds`, plan-mandated Finding).
+  Whole-Branch-Review (Opus): Ready to merge: Yes, 0 Critical/Important, 3 rein
+  informative Minor-Punkte (dritte `FeedRecord`-Konstruktionsstelle im
+  Refresh-Recovery-Pfad bewusst ausgenommen, Master-Schalter-Gate selbst ungetestet
+  mangels Mock-Seam für `UNUserNotificationCenter`, kosmetische xcstrings-Reihenfolge).
+  Spec: `docs/superpowers/specs/2026-07-15-benachrichtigungs-einstellungen-design.md`,
+  Plan: `docs/superpowers/plans/2026-07-15-benachrichtigungs-einstellungen.md`.
+  Nutzerentscheid: vor dem Push erst die 6-Punkte-Live-Verifikationscheckliste (Plan
+  Task 5, Step 5) manuell durchklicken — insbesondere ob der Master-Schalter tatsächlich
+  eine Benachrichtigung unterdrückt und ob der Systemeinstellungen-Deep-Link wirklich auf
+  Feedivos eigener Seite landet statt nur der allgemeinen Übersicht.
 - **2026-07-15: Sidebar komplett auf AppKit NSOutlineView umgestellt (ADR-008) + Ordner-
   Sortier-Menü — Implementierung und Feed-/Ordner-Live-Verifikation abgeschlossen und
   gepusht.** Ersetzt das unzuverlässige SwiftUI-native `.draggable`/
@@ -849,6 +877,10 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Letzte Änderungen
 
+- 2026-07-15: Benachrichtigungs-Einstellungen überarbeitet — via Brainstorming +
+  Spec + Plan + Subagent-Driven-Development (5 Tasks) umgesetzt. Details siehe
+  „Aktuell in Arbeit" oben, hier nicht dupliziert. Commits `8997a0bed..c9bc761f0`
+  auf `main`, NICHT gepusht (Nutzerentscheid: erst manuelle Live-Verifikation).
 - 2026-07-15: Automatisierbaren Sidebar- und M4-Regressionslauf durchgeführt.
   Sidebar-Baum, Drop-Policy, Pasteboard, Tag-/Ordner-Sortierung und Smart-Folder-
   Gruppengrenzen sind grün; ebenso Feed-Anlage/Refresh, Timeline/Status, Reader,
