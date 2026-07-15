@@ -27402,25 +27402,25 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kategorie"
+            "value" : "Tags"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Category"
+            "value" : "Tags"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Catégorie"
+            "value" : "Tags"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Categoria"
+            "value" : "Tag"
           }
         }
       }
