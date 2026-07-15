@@ -963,6 +963,7 @@ enum L10n {
     static let smartFolderEditorDescription = LocalizedStringKey("smartFolder.editor.description")
     static let smartFolderFieldName = LocalizedStringKey("smartFolder.field.name")
     static let smartFolderFieldNamePlaceholder = LocalizedStringKey("smartFolder.field.namePlaceholder")
+    static let smartFolderDefaultArticleVisibility = LocalizedStringKey("smartFolder.defaultArticleVisibility")
     static let smartFolderAppearance = LocalizedStringKey("smartFolder.appearance")
     static let smartFolderAppearanceIcon = LocalizedStringKey("smartFolder.appearance.icon")
     static let smartFolderAppearanceColor = LocalizedStringKey("smartFolder.appearance.color")

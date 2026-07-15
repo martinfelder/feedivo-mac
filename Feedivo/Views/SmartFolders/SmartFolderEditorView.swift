@@ -13,6 +13,7 @@ struct SmartFolderEditorView: View {
     @State private var name = ""
     @State private var matchMode = RuleMatchMode.all
     @State private var isShownInSidebar = true
+    @State private var defaultShowsReadArticles = false
     @State private var iconName = SmartFolderAppearance.defaultIconName
     @State private var colorHex = SmartFolderAppearance.defaultColorHex
     @State private var conditionDrafts = [
@@ -42,6 +43,9 @@ struct SmartFolderEditorView: View {
             nameField(theme: theme)
 
             sidebarCheckbox(theme: theme)
+                .padding(.top, 12)
+
+            articleVisibilityRow(theme: theme)
                 .padding(.top, 12)
 
             appearanceCard(theme: theme)
@@ -144,6 +148,23 @@ struct SmartFolderEditorView: View {
             }
         }
         .buttonStyle(.plain)
+    }
+
+    private func articleVisibilityRow(theme: RuleDialogTheme) -> some View {
+        HStack(spacing: 12) {
+            Text(L10n.smartFolderDefaultArticleVisibility)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(theme.text2)
+
+            RuleSegmentedControl(
+                options: [
+                    (false, LocalizedStringKey(L10n.articleListReadDisplayUnreadOnly)),
+                    (true, LocalizedStringKey(L10n.articleListReadDisplayAll))
+                ],
+                selection: $defaultShowsReadArticles,
+                theme: theme
+            )
+        }
     }
 
     // MARK: - Darstellung
@@ -376,6 +397,7 @@ struct SmartFolderEditorView: View {
         name = folder.name
         matchMode = RuleMatchMode.normalized(folder.matchMode)
         isShownInSidebar = folder.isShownInSidebar
+        defaultShowsReadArticles = folder.defaultShowsReadArticles
         iconName = SmartFolderAppearance.normalizedIconName(folder.iconName ?? SmartFolderAppearance.defaultIconName)
         colorHex = SmartFolderAppearance.normalizedColorHex(folder.colorHex ?? SmartFolderAppearance.defaultColorHex)
 
@@ -422,6 +444,7 @@ struct SmartFolderEditorView: View {
             defaultKey: folder?.defaultKey,
             iconName: iconName,
             colorHex: colorHex,
+            defaultShowsReadArticles: defaultShowsReadArticles,
             createdAt: folder?.createdAt ?? Date()
         )
         let conditions = normalizedConditionDrafts.enumerated().map { index, draft in
@@ -570,6 +593,7 @@ extension SmartFolderConditionOperator: RuleSelectOption {}
 extension SmartFolderStatusValue: RuleSelectOption {}
 extension SmartFolderDateValue: RuleSelectOption {}
 extension String: RuleSelectOption {}
+extension Bool: RuleSelectOption {}
 
 private extension SmartFolderConditionField {
     var titleKey: LocalizedStringKey { LocalizedStringKey(title) }

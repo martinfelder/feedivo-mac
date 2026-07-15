@@ -27061,6 +27061,34 @@
         }
       }
     },
+    "smartFolder.defaultArticleVisibility" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Artikel-Anzeige"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Article Display"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Affichage des articles"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Visualizzazione articoli"
+          }
+        }
+      }
+    },
     "smartFolder.dragToSort" : {
       "localizations" : {
         "de" : {
