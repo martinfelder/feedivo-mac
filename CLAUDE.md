@@ -1049,9 +1049,9 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   `docs/superpowers/specs/2026-07-16-sidebar-feeds-performance-design.md`,
   `docs/superpowers/plans/2026-07-16-sidebar-feeds-performance.md`,
   `docs/superpowers/specs/2026-07-16-feed-logs-retention-design.md`,
-  `docs/superpowers/plans/2026-07-16-feed-logs-retention.md`. Ausstehend:
-  manuelle Live-Verifikation des neuen Aufbewahrungsdauer-Pickers in den
-  Einstellungen.
+  `docs/superpowers/plans/2026-07-16-feed-logs-retention.md`. Manuelle
+  Live-Verifikation des neuen Aufbewahrungsdauer-Pickers in den
+  Einstellungen vom Nutzer bestätigt (2026-07-16): funktioniert.
 - 2026-07-16: Feature 17.3a (Bereinigung — History, Zeitplan und Hinweis) —
   VOLLSTÄNDIG ABGESCHLOSSEN inkl. 2 Nachträge, gepusht auf `origin/main`
   (`92a02b478..ee7aef28d`). Kern-Feature via Brainstorming→Spec→Plan→
