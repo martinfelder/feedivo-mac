@@ -811,6 +811,14 @@ struct FeedivoTests {
         #expect(commandUpArrow.displaySymbols == "⌘↑")
     }
 
+    @Test func keyboardShortcutSpecZeigtLeertasteAlsSonderzeichen() {
+        let plainSpace = KeyboardShortcutSpec(key: " ", modifiers: [])
+        #expect(plainSpace.displaySymbols == "␣")
+
+        let shiftSpace = KeyboardShortcutSpec(key: " ", modifiers: [.shift])
+        #expect(shiftSpace.displaySymbols == "⇧␣")
+    }
+
     @Test func keyboardShortcutOverridesRundtripDurchJSON() {
         var overrides = KeyboardShortcutOverrides()
         overrides.values["feedAdd"] = .some(KeyboardShortcutSpec(key: "m", modifiers: [.command, .option]))

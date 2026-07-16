@@ -73,13 +73,21 @@ struct KeyboardShortcutSpec: Codable, Equatable, Sendable {
         }
     }
 
-    /// Für die Einstellungen-Liste, z. B. "⌘⇧R".
+    /// Für die Einstellungen-Liste, z. B. "⌘⇧R". Leertaste wird als „␣" dargestellt,
+    /// da ein rohes Leerzeichen im Badge unsichtbar und damit verwirrend wäre.
     var displaySymbols: String {
         let modifierSymbols = ShortcutModifier.allCases
             .filter { modifiers.contains($0) }
             .map(\.symbol)
             .joined()
-        let keySymbol = SpecialKey(rawValue: key)?.displaySymbol ?? key.uppercased()
+        let keySymbol: String
+        if let specialKey = SpecialKey(rawValue: key) {
+            keySymbol = specialKey.displaySymbol
+        } else if key == " " {
+            keySymbol = "␣"
+        } else {
+            keySymbol = key.uppercased()
+        }
         return modifierSymbols + keySymbol
     }
 }
