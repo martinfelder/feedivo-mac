@@ -1120,8 +1120,8 @@ private struct CleanupSettingsView: View {
     @AppStorage(CleanupScheduleSettings.runOnWeekdayTimeKey)
     private var cleanupRunOnWeekdayTime = CleanupScheduleSettings.defaultRunOnWeekdayTime
 
-    @AppStorage(CleanupScheduleSettings.weekdayKey)
-    private var cleanupWeekday = CleanupScheduleSettings.defaultWeekday
+    @AppStorage(CleanupScheduleSettings.weekdaysKey)
+    private var cleanupWeekdaysRaw = CleanupScheduleSettings.defaultWeekdaysStored
 
     @AppStorage(CleanupScheduleSettings.timeMinutesKey)
     private var cleanupTimeMinutes = CleanupScheduleSettings.defaultTimeMinutes
@@ -1237,23 +1237,28 @@ private struct CleanupSettingsView: View {
                 }
 
                 if cleanupRunOnWeekdayTime {
-                    HStack(spacing: 12) {
-                        Spacer(minLength: 202)
-
-                        Picker("", selection: $cleanupWeekday) {
-                            ForEach(Array(Calendar.current.weekdaySymbols.enumerated()), id: \.offset) { index, symbol in
-                                Text(symbol).tag(index + 1)
+                    VStack(alignment: .leading, spacing: 2) {
+                        ForEach(Array(Calendar.current.weekdaySymbols.enumerated()), id: \.offset) { index, symbol in
+                            let weekdayNumber = index + 1
+                            HStack(spacing: 12) {
+                                Spacer(minLength: 202)
+                                Toggle(symbol, isOn: Binding(
+                                    get: { selectedWeekdays.contains(weekdayNumber) },
+                                    set: { _ in toggleWeekday(weekdayNumber) }
+                                ))
+                                .toggleStyle(.checkbox)
+                                Spacer(minLength: 0)
                             }
                         }
-                        .labelsHidden()
-                        .pickerStyle(.menu)
-                        .frame(width: 130)
 
-                        DatePicker("", selection: cleanupScheduleTimeBinding, displayedComponents: .hourAndMinute)
-                            .labelsHidden()
-                            .datePickerStyle(.stepperField)
-
-                        Spacer(minLength: 0)
+                        HStack(spacing: 12) {
+                            Spacer(minLength: 202)
+                            DatePicker("", selection: cleanupScheduleTimeBinding, displayedComponents: .hourAndMinute)
+                                .labelsHidden()
+                                .datePickerStyle(.stepperField)
+                            Spacer(minLength: 0)
+                        }
+                        .padding(.top, 4)
                     }
                     .padding(.vertical, 4)
                 }
@@ -1291,6 +1296,23 @@ private struct CleanupSettingsView: View {
         .onChange(of: sqliteStatusVersionForCleanupHistory) {
             loadCleanupHistory()
         }
+    }
+
+    private var selectedWeekdays: Set<Int> {
+        CleanupScheduleSettings.parseWeekdays(cleanupWeekdaysRaw)
+    }
+
+    private func toggleWeekday(_ weekday: Int) {
+        var current = selectedWeekdays
+        if current.contains(weekday) {
+            guard current.count > 1 else {
+                return // Mindestens ein Tag muss ausgewählt bleiben.
+            }
+            current.remove(weekday)
+        } else {
+            current.insert(weekday)
+        }
+        cleanupWeekdaysRaw = CleanupScheduleSettings.formatWeekdays(current)
     }
 
     private var cleanupScheduleTimeBinding: Binding<Date> {
