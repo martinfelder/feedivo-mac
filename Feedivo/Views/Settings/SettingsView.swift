@@ -1237,7 +1237,7 @@ private struct CleanupSettingsView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         ForEach(Self.weekdayRows, id: \.self) { row in
                             HStack(spacing: 12) {
-                                Spacer(minLength: 202)
+                                Spacer().frame(width: 202)
                                 ForEach(row, id: \.self) { weekdayNumber in
                                     Toggle(Calendar.current.weekdaySymbols[weekdayNumber - 1], isOn: Binding(
                                         get: { selectedWeekdays.contains(weekdayNumber) },
@@ -1250,7 +1250,7 @@ private struct CleanupSettingsView: View {
                         }
 
                         HStack(spacing: 12) {
-                            Spacer(minLength: 202)
+                            Spacer().frame(width: 202)
                             DatePicker("", selection: cleanupScheduleTimeBinding, displayedComponents: .hourAndMinute)
                                 .labelsHidden()
                                 .datePickerStyle(.stepperField)
