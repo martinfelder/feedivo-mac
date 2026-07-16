@@ -288,6 +288,33 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
 
 > Diese Liste wächst während der Entwicklung. Immer ergänzen!
 
+- **`json.dump()` auf die komplette `Localizable.xcstrings` anwenden formatiert die
+  gesamte ~31000-Zeilen-Datei um, statt nur neue Einträge chirurgisch einzufügen:**
+  Bei der Shortcuts-Erweiterung (2026-07-16, Task 2) nutzte das ursprüngliche
+  Python-Skript `json.dump(data, f, ensure_ascii=False, indent=2, sort_keys=True)`,
+  um 9 neue Katalogeinträge zu ergänzen. Das Ergebnis: ein Diff über praktisch die
+  gesamte Datei (~41000 geänderte Zeilen statt ~200), selbst entdeckt per
+  Diff-Stat-Kontrolle VOR dem Reviewer-Dispatch (`git diff --stat` zeigte 20653
+  Insertions/20527 Deletions für eine Datei, in der inhaltlich nur 9 Einträge
+  hinzukamen). Root Cause: Pythons `json.dump` mit Standard-`separators` erzeugt
+  `"key": value` (Leerzeichen nur nach dem Doppelpunkt), Xcodes eigenes
+  String-Catalog-Format nutzt aber durchgängig `"key" : value` (Leerzeichen VOR
+  UND nach dem Doppelpunkt) — zusätzlich sortierte `sort_keys=True` alle
+  bestehenden Schlüssel alphabetisch neu um. Xcodes Formatierung ist mit Pythons
+  `json`-Modul dabei grundsätzlich nicht byte-genau reproduzierbar (z. B. rendert
+  Xcode ein leeres Objekt als `{\n\n    }` über drei Zeilen, `json.dump` immer als
+  `{}` auf einer Zeile) — ein voller `json.load`/`json.dump`-Roundtrip der ganzen
+  Datei kann deshalb NIE eine chirurgische Einfügung liefern, unabhängig von den
+  gewählten Parametern. Fix: Datei per `git show <BASE>:...` auf den
+  Ursprungszustand zurückgesetzt, die neuen Einträge dann als reiner Text-Block
+  (mit exakt passendem `"key" : value`-Stil, per Hand bzw. per
+  `json.dumps(value, ensure_ascii=False)` nur für die einzelnen String-Werte)
+  direkt nach einem stabilen Textanker (`  "strings" : {`) eingefügt — Ergebnis:
+  253 Insertions, 0 Deletions. **Lehre:** Bei JEDER künftigen Ergänzung von
+  `Localizable.xcstrings` per Skript NIEMALS die gesamte Datei durch
+  `json.load`/`json.dump` roundtripen — immer per reiner Text-Segment-Einfügung an
+  einem eindeutigen, stabilen Anker arbeiten und per `git diff --stat` VOR dem
+  Commit verifizieren, dass nur Insertions (keine oder kaum Deletions) entstehen.
 - **`SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor` ist für das App-Target gesetzt
   — ein naives `Task.detached` um eine unveränderte synchrone Funktion
   entlastet NICHT den MainActor:** Beim finalen Whole-Branch-Review der
@@ -787,6 +814,56 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Aktuell in Arbeit
 
+- **2026-07-16: Shortcuts-Erweiterung (modifier-freie Kombinationen + 8 fehlende
+  Menü-Funktionen) — VOLLSTÄNDIG ABGESCHLOSSEN, NICHT gepusht, Live-Verifikation
+  ausstehend.** Nutzer-Report: In den Einstellungen unter „Shortcuts" (Feature 19.8)
+  ließen sich keine Ein-Zeichen-/Leertasten-Shortcuts hinterlegen, und für Artikel
+  archivieren/exportieren/Link kopieren/Original öffnen/Teilen sowie OPML Import/
+  Export/Verwaltung öffnen gab es gar keinen Shortcut-Eintrag. Umgesetzt via
+  Brainstorming→Spec→Plan→Subagent-Driven-Development (8 Tasks, alle Task-Reviews
+  clean im ersten Anlauf bis auf Task 2, siehe unten). Architektur: `CustomizableShortcut.
+  defaultSpec` von `KeyboardShortcutSpec` auf `KeyboardShortcutSpec?` umgestellt, 8 neue
+  Fälle ohne Default (`feedImportOPML`, `feedExportOPML`, `feedOrganizerOpen`,
+  `articleToggleArchived`, `articleCopyLink`, `articleOpenOriginal`,
+  `articleShareOriginal`, `articleExport`); `RecorderNSView.keyDown` verliert die
+  Modifier-Pflicht; neuer `TextEditingFocusMonitor` (`@MainActor`/`@Observable`
+  Singleton, `NSControl.textDidBeginEditingNotification`/`textDidEndEditingNotification`,
+  registriert in `FeedivoAppDelegate.applicationDidFinishLaunching`) plus
+  `KeyboardShortcutsSettings.needsTextFieldGuard(for:)` — `customizableKeyboardShortcut`
+  deaktiviert modifier-freie Shortcuts jetzt, während ein Textfeld editiert wird (sonst
+  würde ein solcher Shortcut als echtes `NSMenuItem`-Tastenkürzel jede Texteingabe
+  blockieren, siehe neuer Gotcha unten). Neue Warnzeile in den Shortcut-Einstellungen.
+  „Feed löschen" bekommt bewusst keinen Shortcut (destruktive Aktion, Nutzerentscheidung).
+  **Task 2 hatte einen selbst gefundenen und im selben Zyklus behobenen Formatierungsbug**
+  (Commit `65cbdd4c2` → Fix `f120a027b`): das ursprüngliche Python-Skript nutzte
+  `json.dump(sort_keys=True, indent=2)` ohne zu Xcodes Stil passende `separators`, was
+  die komplette ~31000-Zeilen-`Localizable.xcstrings` umformatierte/neu sortierte statt
+  nur 9 Einträge chirurgisch einzufügen — vor dem Reviewer-Dispatch per Diff-Stat-Kontrolle
+  entdeckt, per reiner Text-Segment-Einfügung an einem stabilen Anker (direkt nach
+  `"strings" : {`) korrigiert, Netto-Diff danach 253 Insertions/0 Deletions. Finaler
+  Whole-Branch-Review (Opus): „Ready to merge: With fixes" — die einzigen „Fixes" sind
+  Prozess, kein Code: die untenstehende Live-Checkliste abarbeiten und diesen Eintrag
+  hier führen (bereits erledigt). Kernrisiko laut Review: ob `.disabled(TextEditingFocusMonitor.
+  shared.isEditingText)` innerhalb von `CommandMenu`/`Commands`-Bodies (nicht nur in
+  normalen View-Bodies) tatsächlich reaktiv neu ausgewertet wird — automatisiert nicht
+  prüfbar (kein ViewInspector im Projekt), einziger Prüfstein ist Live-Test Punkt 3
+  unten. Fallback falls das fehlschlägt: `isEditingText` über einen echten SwiftUI-
+  Graph-Seam (`@Environment`/`@FocusedValue`) statt eines rohen Singleton-Reads
+  durchreichen. Spec: `docs/superpowers/specs/2026-07-16-shortcuts-modifierfrei-
+  erweiterung-design.md`, Plan: `docs/superpowers/plans/2026-07-16-shortcuts-
+  modifierfrei-erweiterung.md`. **Ausstehende manuelle Live-Verifikationscheckliste:**
+  1. Einen der 8 neuen Einträge (z. B. „Archivieren") mit Modifier-Taste belegen —
+     Menübefehl reagiert korrekt. 2. Denselben Eintrag stattdessen modifier-frei (nur
+     „J") belegen — Warnzeile erscheint, Shortcut funktioniert außerhalb von Textfeldern.
+     3. **Entscheidender Test:** bei aktivem modifier-freiem Shortcut in ein Textfeld
+     (Suche, Feed-/Ordner-Umbenennen, Tag-Name, Regel-Name) klicken und „J" tippen — der
+     Buchstabe muss im Feld ankommen, der Menübefehl darf NICHT auslösen, und nach
+     Verlassen des Feldes muss der Shortcut zügig wieder aktiv werden. 4. Leertaste als
+     modifier-freien Shortcut belegen — Badge zeigt „␣". 5. Bekannte, bewusst
+     nicht behobene Grenze gegenprüfen: Formularfeld innerhalb eines im WKWebView
+     geladenen Original-Artikels (löst keine `NSControl`-Notification aus) — falls
+     hier tatsächlich eine Kollision auftritt, als eigenen Punkt in den Gotchas unten
+     ergänzen statt stillschweigend zu ignorieren.
 - **2026-07-16: Spotlight-Integration (Feature 9.3) — VOLLSTÄNDIG ABGESCHLOSSEN,
   NICHT gepusht.** Artikel werden als Core Spotlight Items indexiert, ein Klick auf
   ein Spotlight-Resultat öffnet Feedivo direkt beim Artikel, neuer Einstellungen-
@@ -1010,6 +1087,10 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Letzte Änderungen
 
+- 2026-07-16: Shortcuts-Erweiterung (modifier-freie Kombinationen + 8 fehlende
+  Menü-Funktionen) — vollständige Details siehe „Aktuell in Arbeit" oben, hier nicht
+  dupliziert. Commits `eca8f5e..928b4c6` (9 Commits, davon 1 Selbstkorrektur-Fix in
+  Task 2) auf `main`, NICHT gepusht. Ausstehend: 5-Punkte-Live-Verifikationscheckliste.
 - 2026-07-16: `FeedStore.sidebarFeeds()`-Performance-Fix + feed_logs-
   Bereinigung (Retention) — VOLLSTÄNDIG ABGESCHLOSSEN, gepusht auf
   `origin/main` (`ee7aef28d..1b1662db8`). Ausgangspunkt: Performance-Lasttest
