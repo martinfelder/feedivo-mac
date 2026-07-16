@@ -129,6 +129,21 @@ struct SpotlightIndexingServiceTests {
         #expect(index.indexedItems.isEmpty)
         #expect(SpotlightIndexingSettings.hasBackfilled(in: defaults) == false)
     }
+
+    @Test func ensureBackfillIfNeededSchliesstVersteckteArtikelAus() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let defaults = try temporaryUserDefaults()
+        let index = FakeSpotlightIndex()
+        try FeedStore(database: database).save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Feed"))
+        let articleStore = ArticleStore(database: database)
+        let visibleID = try articleStore.upsert(ArticleUpsertInput(feedID: "feed-1", title: "Sichtbar"))
+        let hiddenID = try articleStore.upsert(ArticleUpsertInput(feedID: "feed-1", title: "Versteckt"))
+        try ArticleStatusStore(database: database).setHidden(true, articleID: hiddenID, at: Date())
+
+        try SpotlightIndexingService.ensureBackfillIfNeeded(database: database, userDefaults: defaults, index: index)
+
+        #expect(index.indexedItems.map(\.uniqueIdentifier) == [visibleID])
+    }
 }
 
 private func temporaryUserDefaults() throws -> UserDefaults {

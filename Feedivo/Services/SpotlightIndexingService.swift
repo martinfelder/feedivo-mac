@@ -91,7 +91,8 @@ enum SpotlightIndexingService {
 
         for chunk in allArticleIDs.chunked(into: backfillBatchSize) {
             let snapshots = try ArticleDatabase(database: database).fetchArticles(
-                articleIDs: Set(chunk)
+                articleIDs: Set(chunk),
+                includeHidden: false
             )
             indexArticles(snapshots, userDefaults: userDefaults, index: index)
         }
