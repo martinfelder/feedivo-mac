@@ -892,4 +892,21 @@ struct FeedivoTests {
         #expect(CustomizableShortcut.allCases.count == 20)
     }
 
+    @MainActor
+    @Test func textEditingFocusMonitorReagiertAufBeginnUndEndeNotification() async throws {
+        let center = NotificationCenter()
+        let monitor = TextEditingFocusMonitor()
+        monitor.startObserving(center: center)
+
+        #expect(monitor.isEditingText == false)
+
+        center.post(name: NSControl.textDidBeginEditingNotification, object: nil)
+        try await Task.sleep(for: .milliseconds(50))
+        #expect(monitor.isEditingText == true)
+
+        center.post(name: NSControl.textDidEndEditingNotification, object: nil)
+        try await Task.sleep(for: .milliseconds(50))
+        #expect(monitor.isEditingText == false)
+    }
+
 }

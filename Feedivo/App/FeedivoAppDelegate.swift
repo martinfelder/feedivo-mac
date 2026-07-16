@@ -33,6 +33,8 @@ final class FeedivoAppDelegate: NSObject, NSApplicationDelegate, UNUserNotificat
         // im Vordergrund explizit.
         UNUserNotificationCenter.current().delegate = self
 
+        TextEditingFocusMonitor.shared.startObserving()
+
         guard let feedivoDatabase = menubarFeedivoDatabase, let feedViewModel = menubarFeedViewModel else {
             return
         }
