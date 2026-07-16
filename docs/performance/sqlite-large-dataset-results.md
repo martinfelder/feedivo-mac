@@ -76,7 +76,7 @@ Die beiden betroffenen Schwellen im Test (`sidebarFeeds()` bei 500 Feeds sowie
 
 ### Nachmessung nach Query-Umbau (2026-07-16)
 
-`FeedStore.sidebarFeeds()` verwendet seit Commit <COMMIT_HASH> zwei
+`FeedStore.sidebarFeeds()` verwendet seit Commit `656c9b046` zwei
 gruppierte/gefensterte CTEs (`unread_counts` via `GROUP BY`,
 `latest_feed_logs` via `ROW_NUMBER() OVER PARTITION BY`) statt der beiden
 korrelierten Pro-Feed-Subqueries. Neue Messung (optimiertes
