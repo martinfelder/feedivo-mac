@@ -103,6 +103,16 @@ für eine künftige, separate Maßnahme.
 Design-Spec:
 `docs/superpowers/specs/2026-07-16-sidebar-feeds-performance-design.md`.
 
+Ergänzender Test `feedLogsRetentionHaeltSidebarFeedsSchnellBeiGrosserHistorie`
+(feed_logs-Retention-Feature, 2026-07-16) belegt zusätzlich, dass
+`sidebarFeeds()` auch nach einer groß befüllten, durch die neue
+zeitbasierte `feed_logs`-Bereinigung wieder auf ~500 Zeilen begrenzten
+Log-Historie schnell bleibt (< 1000ms) — der im Whole-Branch-Review offen
+gelassene Wirksamkeitsnachweis für die `latest_feed_logs`-CTE. Gemessener
+Wert (500 Feeds, zuvor 100'000 `feed_logs`-Zeilen auf 500 bereinigt,
+optimiertes Release-Testprofil): `PERF_METRIC
+sidebar_500_feeds_after_feedlog_retention 1.889 ms`.
+
 ## Reproduzierbare Ausführung
 
 Optimierter Messlauf:

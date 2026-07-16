@@ -81,6 +81,42 @@ private func measureMilliseconds<T>(
     return (result, elapsed)
 }
 
+private func seedFeedLogsHistory(
+    database: FeedivoDatabase,
+    feedIDs: [String],
+    entriesPerFeed: Int,
+    now: Date
+) throws {
+    try database.write { db in
+        for feedID in feedIDs {
+            for entryIndex in 0..<entriesPerFeed {
+                // Genau 1 Eintrag pro Feed bleibt innerhalb der 30-Tage-
+                // Standard-Aufbewahrung (1 Tag alt), der Rest liegt bewusst weit
+                // außerhalb (200 Tage alt) — macht die erwartete Zeilenzahl nach
+                // der Bereinigung deterministisch prüfbar.
+                let createdAt = entryIndex == 0
+                    ? now.addingTimeInterval(-1 * 24 * 60 * 60)
+                    : now.addingTimeInterval(-200 * 24 * 60 * 60)
+                try db.execute(
+                    sql: """
+                        INSERT INTO feed_logs (
+                            id, feedID, createdAt, level, message, newArticleCount
+                        ) VALUES (?, ?, ?, ?, ?, ?)
+                        """,
+                    arguments: [
+                        "\(feedID)-log-\(entryIndex)",
+                        feedID,
+                        createdAt,
+                        "info",
+                        "Refresh \(entryIndex)",
+                        1
+                    ]
+                )
+            }
+        }
+    }
+}
+
 @Suite(.serialized)
 struct SQLiteLargeDatasetPerformanceTests {
     @Test func zielbestandMitTieferPaginationBleibtReaktionsschnell() throws {
@@ -290,5 +326,48 @@ struct SQLiteLargeDatasetPerformanceTests {
         #expect(feedSnapshots.count == 100)
         #expect(totalUnread > 0)
         #expect(countElapsed < 1.5)
+    }
+
+    @Test func feedLogsRetentionHaeltSidebarFeedsSchnellBeiGrosserHistorie() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let now = Date()
+
+        let feedIDs = (0..<500).map { "feed-\($0)" }
+        try database.write { db in
+            for feedID in feedIDs {
+                try db.execute(
+                    sql: """
+                        INSERT INTO feeds (id, url, title, createdAt, updatedAt)
+                        VALUES (?, ?, ?, ?, ?)
+                        """,
+                    arguments: [feedID, "https://example.com/\(feedID).xml", "Feed \(feedID)", now, now]
+                )
+            }
+        }
+        try seedFeedLogsHistory(database: database, feedIDs: feedIDs, entriesPerFeed: 200, now: now)
+
+        let totalBeforePruning = try database.read { db in
+            try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM feed_logs") ?? 0
+        }
+        #expect(totalBeforePruning == 500 * 200)
+
+        let cutoff = Calendar.current.date(
+            byAdding: .day,
+            value: -FeedLogRetentionSettings.defaultRetentionDays,
+            to: now
+        )!
+        try FeedLogStore(database: database).deleteOlderThan(cutoff)
+
+        let totalAfterPruning = try database.read { db in
+            try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM feed_logs") ?? 0
+        }
+        #expect(totalAfterPruning == 500)
+
+        let sidebarMeasurement = try measureMilliseconds("sidebar_500_feeds_after_feedlog_retention") {
+            try feedStore.sidebarFeeds()
+        }
+        #expect(sidebarMeasurement.value.count == 500)
+        #expect(sidebarMeasurement.milliseconds < 1_000)
     }
 }
