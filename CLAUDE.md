@@ -288,6 +288,39 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
 
 > Diese Liste wächst während der Entwicklung. Immer ergänzen!
 
+- **`SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor` ist für das App-Target gesetzt
+  — ein naives `Task.detached` um eine unveränderte synchrone Funktion
+  entlastet NICHT den MainActor:** Beim finalen Whole-Branch-Review der
+  Spotlight-Integration (Feature 9.3, 2026-07-16) wurde bemängelt, dass der
+  Erst-Start-Backfill (`SpotlightIndexingService.ensureBackfillIfNeeded`)
+  synchron auf dem MainActor lief und bei großen Artikel-Beständen den
+  App-Start sichtbar blockieren konnte. Der naheliegende Fix-Vorschlag
+  (`Task.detached { ... }` um den bestehenden synchronen Aufruf) hätte NICHT
+  funktioniert: Da das App-Target `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`
+  setzt, bleiben unannotierte Funktionen implizit MainActor-isoliert — auch
+  innerhalb eines `Task.detached`, sobald man mit `await` wieder in eine
+  solche Funktion hineinspringt, springt die Ausführung zurück auf den
+  MainActor und blockiert genau wie vorher. Tatsächlicher Fix (Commit
+  `70a0cedae`): die Funktion selbst von `throws` auf `async throws`
+  umgestellt und intern `FeedivoDatabase.readAsync(_:)` (GRDBs echte
+  asynchrone Lese-API, dispatcht auf GRDBs eigene Hintergrund-Queue,
+  unabhängig von Swift-Aktor-Isolation) statt des synchronen `database.read`
+  verwendet — für BEIDE DB-Zugriffe (ID-Liste UND Pro-Chunk-Snapshot-Fetch).
+  Aufrufer feuert die Funktion seither über ein einfaches `Task { }` ab,
+  ohne auf den Abschluss zu warten. **Lehre:** Bei JEDEM Versuch, eine
+  Funktion "vom MainActor wegzubekommen", zuerst prüfen, ob die Funktion
+  selbst noch synchron/unannotiert ist — reines Verpacken in `Task`/
+  `Task.detached` reicht in diesem Projekt wegen des projektweiten
+  Default-Isolation-Settings NICHT aus, wenn die Funktion später erneut
+  `await`-basiert betreten wird; die Funktion muss echt `async` sein und
+  intern eine echt asynchrone Primitive (`readAsync`, nicht `read`)
+  verwenden. Bekannter Nebeneffekt dieser Umstellung: ein schmales,
+  benignes TOCTOU-Race auf dem `hasBackfilled`-Flag bei zwei nahezu
+  gleichzeitigen Aufrufen (z. B. App-Start + fast zeitgleicher
+  Einstellungs-Toggle) — Worst Case ist eine harmlose doppelte, aber
+  idempotente Re-Indexierung, kein Datenverlust. Bewusst nicht behoben
+  (Whole-Branch-Re-Review als Minor eingestuft, kein Merge-Blocker).
+
 - **Ohne eigenen `UNUserNotificationCenterDelegate` unterdrückt macOS
   Benachrichtigungs-Banner standardmäßig, solange die App im Vordergrund ist:**
   Beim Live-Test der Benachrichtigungs-Einstellungen (2026-07-16) meldete der
@@ -754,6 +787,43 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Aktuell in Arbeit
 
+- **2026-07-16: Spotlight-Integration (Feature 9.3) — VOLLSTÄNDIG ABGESCHLOSSEN,
+  NICHT gepusht.** Artikel werden als Core Spotlight Items indexiert, ein Klick auf
+  ein Spotlight-Resultat öffnet Feedivo direkt beim Artikel, neuer Einstellungen-
+  Schalter "Artikel in Spotlight indexieren" (Standard AN). Umgesetzt via
+  Brainstorming→Spec→Plan→Subagent-Driven-Development (7 Tasks, direkt auf main,
+  kein Worktree — etablierte Nutzerpräferenz). Architektur: neuer
+  `SpotlightIndexingService` kapselt `CSSearchableIndex` hinter injizierbarem
+  `SpotlightIndexWriting`-Protokoll (Tests berühren nie den echten System-Index),
+  `SpotlightIndexingSettings` (Schalter + Backfill-Flag, `NotificationSettings`-
+  Muster), `SpotlightContinuationParser` speist Spotlight-Klicks in die bereits
+  bestehende `feedivo://article`-Deep-Link-Pipeline (`PendingURLSchemeAction`) ein.
+  Injizierbare Closure-Hooks (`indexForSpotlight`/`deindexForSpotlight`, additive
+  Default-Parameter) in `SQLiteFeedRefreshService`, `SQLiteFeedSubscriptionService`,
+  `SQLiteFeedArticleListState.deleteArticle`, `ArticleRetentionCleanupService.
+  removeExpiredSQLiteArticles`. **Cross-Task-Design-Entscheidung nach Task-2-Review
+  (Nutzerentscheid via AskUserQuestion):** versteckte Artikel (`isHidden`) werden NIE
+  in Spotlight indexiert — `includeHidden: false` an allen drei Insert-Stellen,
+  Indexierungs-Hook in `SQLiteFeedRefreshService` bewusst NACH `applyRules(...)`
+  platziert, damit ein sofort per Regel ausgeblendeter Artikel korrekt ausgeschlossen
+  bleibt. Alle 7 Task-Reviews clean im ersten Anlauf (0 Critical/Important), bis auf
+  Task 2 (1 ⚠️-Punkt zur Hidden-Artikel-Frage, durch Nutzerentscheid + Fix-Runde
+  aufgelöst). Finaler Whole-Branch-Review (Opus): Ready to merge: With fixes — 1
+  Important-Finding (Erst-Start-Backfill blockierte synchron den MainActor bei
+  Standardschalter AN, betrifft jeden Bestandsnutzer beim Update), gefixt (Commit
+  `70a0cedae`, `async throws` + `FeedivoDatabase.readAsync` statt synchronem `read`
+  — siehe neuer Gotcha zu `SWIFT_DEFAULT_ACTOR_ISOLATION` oben) und per Re-Review
+  bestätigt. 5 Minor dokumentiert, keiner fix-bedürftig (u. a.: Hidden-Exclusion nur
+  beim Backfill unit-getestet nicht bei Refresh/Subscription; nachträglich per Regel
+  versteckte, bereits indexierte Artikel bleiben bis zur nächsten Löschung/Bereinigung
+  in Spotlight auffindbar — bewusste Limitation außerhalb des Insert/Delete-Hook-
+  Scopes; schmales benignes TOCTOU-Race auf `hasBackfilled` aus dem Concurrency-Fix).
+  Spec: `docs/superpowers/specs/2026-07-16-spotlight-integration-design.md`, Plan:
+  `docs/superpowers/plans/2026-07-16-spotlight-integration.md`. Ausstehend: manuelle
+  7-Punkte-Live-Verifikationscheckliste (Plan Task 7, Step 7) durch den Nutzer —
+  insbesondere ob Spotlight-Suche Artikel tatsächlich findet, ob der Klick auf ein
+  Resultat den richtigen Artikel öffnet, und ob das ohne zusätzlichen Info.plist-
+  Eintrag unter der App-Sandbox funktioniert.
 - **2026-07-16: Bulk-Benachrichtigungsverwaltung im Feed-Organizer — VOLLSTÄNDIG
   ABGESCHLOSSEN, NICHT gepusht.** Nutzerwunsch: "Benachrichtigen" nicht mehr für jeden
   Feed einzeln über die Feed-Eigenschaften umschalten müssen. Umgesetzt via leichtgewichtigem

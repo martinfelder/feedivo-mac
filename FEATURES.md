@@ -475,11 +475,14 @@
   native Listen-Bedienung riskiert und war nicht Teil des angefragten Umfangs.
 
 ### 9.3 Spotlight-Integration
-- **Status:** ✅ Entschieden — bereit zur Implementierung
-- **Zu implementieren:**
-  - Artikel als Core Spotlight Items indexieren via `CSSearchableItem`
-  - Klick auf Spotlight-Resultat öffnet Feedivo direkt beim Artikel (Deep Link)
-  - Einstellungen → Suche: Toggle "Artikel in Spotlight indexieren" (an/aus)
+- **Status:** ✔️ Fertig (2026-07-16)
+- **Umgesetzt:**
+  - Artikel werden als Core Spotlight Items indexiert via `CSSearchableItem`
+  - Klick auf Spotlight-Resultat öffnet Feedivo direkt beim Artikel (Deep Link über
+    die bestehende `feedivo://article`-Pipeline)
+  - Einstellungen → Allgemein: Toggle "Artikel in Spotlight indexieren" (Standard an)
+  - Versteckte Artikel (per Regel ausgeblendet) werden bewusst nie indexiert
+  - Details siehe CLAUDE.md „Aktuell in Arbeit"/Gotcha zu `SWIFT_DEFAULT_ACTOR_ISOLATION`
 
 ---
 
