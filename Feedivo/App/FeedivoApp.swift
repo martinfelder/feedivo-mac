@@ -169,6 +169,16 @@ struct FeedivoApp: App {
         .defaultSize(width: 820, height: 640)
         .defaultSize(width: 920, height: 620)
 
+        Window(L10n.cleanupHistoryTitle, id: CleanupHistoryWindowView.windowID) {
+            CleanupHistoryWindowView()
+                .environment(\.locale, appLanguage.locale)
+                .environment(\.interfaceTextSize, interfaceTextSize)
+                .environment(\.feedivoDatabase, feedivoDatabase)
+                .dynamicTypeSize(interfaceTextSize.dynamicTypeSize)
+                .preferredColorScheme(appAppearance.colorScheme)
+        }
+        .defaultSize(width: 420, height: 480)
+
         WindowGroup(for: ArticleWindowRequest.self) { $request in
             // Gemeinsame Modifier auf einem umschließenden Group, damit auch der
             // else-Zweig (fehlende Anfrage) Sprache/Textgröße/Darstellung erbt,

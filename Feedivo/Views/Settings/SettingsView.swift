@@ -1129,12 +1129,11 @@ private struct CleanupSettingsView: View {
     @AppStorage(CleanupScheduleSettings.runOnQuitKey)
     private var cleanupRunOnQuit = CleanupScheduleSettings.defaultRunOnQuit
 
-    @AppStorage(SQLiteDataInvalidation.statusVersionKey)
-    private var sqliteStatusVersionForCleanupHistory = 0
+    @Environment(\.openWindow) private var openWindow
 
     @State private var retentionCleanupResult: String?
     @State private var retentionCleanupError: String?
-    @State private var cleanupHistory: [CleanupRunRecord] = []
+    @State private var isCleanupSchedulePopoverPresented = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -1221,19 +1220,17 @@ private struct CleanupSettingsView: View {
 
             SettingsBlock(eyebrow: "Zeitplan") {
                 SettingRow(
-                    title: L10n.settingsCleanupScheduleAppStartTitle,
-                    description: L10n.settingsCleanupScheduleAppStartDescription
+                    title: L10n.settingsCleanupScheduleTitle,
+                    description: L10n.settingsCleanupScheduleDescription
                 ) {
-                    Toggle("", isOn: $cleanupRunOnAppStart)
-                        .labelsHidden()
-                }
-
-                SettingRow(
-                    title: L10n.settingsCleanupScheduleWeekdayTimeTitle,
-                    description: L10n.settingsCleanupScheduleWeekdayTimeDescription
-                ) {
-                    Toggle("", isOn: $cleanupRunOnWeekdayTime)
-                        .labelsHidden()
+                    Button {
+                        isCleanupSchedulePopoverPresented.toggle()
+                    } label: {
+                        Text(cleanupScheduleSummaryText)
+                    }
+                    .popover(isPresented: $isCleanupSchedulePopoverPresented) {
+                        cleanupSchedulePopoverContent
+                    }
                 }
 
                 if cleanupRunOnWeekdayTime {
@@ -1262,39 +1259,18 @@ private struct CleanupSettingsView: View {
                     }
                     .padding(.vertical, 4)
                 }
-
-                SettingRow(
-                    title: L10n.settingsCleanupScheduleOnQuitTitle,
-                    description: L10n.settingsCleanupScheduleOnQuitDescription
-                ) {
-                    Toggle("", isOn: $cleanupRunOnQuit)
-                        .labelsHidden()
-                }
             }
 
             SettingsBlock(eyebrow: L10n.cleanupHistoryTitle) {
-                Text(L10n.cleanupHistoryDescription)
-                    .font(.system(size: 10.5))
-                    .foregroundStyle(.secondary)
-
-                if cleanupHistory.isEmpty {
-                    Text(L10n.cleanupHistoryEmpty)
-                        .font(.system(size: 11))
-                        .foregroundStyle(.tertiary)
-                        .padding(.top, 4)
-                } else {
-                    VStack(spacing: 5) {
-                        ForEach(cleanupHistory, id: \.id) { run in
-                            cleanupHistoryRow(run)
-                        }
+                SettingRow(
+                    title: L10n.cleanupHistoryTitle,
+                    description: L10n.cleanupHistoryDescription
+                ) {
+                    Button(L10n.settingsCleanupHistoryShowButton) {
+                        openWindow(id: CleanupHistoryWindowView.windowID)
                     }
-                    .padding(.top, 4)
                 }
             }
-        }
-        .onAppear(perform: loadCleanupHistory)
-        .onChange(of: sqliteStatusVersionForCleanupHistory) {
-            loadCleanupHistory()
         }
     }
 
@@ -1315,6 +1291,36 @@ private struct CleanupSettingsView: View {
         cleanupWeekdaysRaw = CleanupScheduleSettings.formatWeekdays(current)
     }
 
+    private var cleanupSchedulePopoverContent: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Toggle(L10n.settingsCleanupScheduleAppStartTitle, isOn: $cleanupRunOnAppStart)
+                .toggleStyle(.checkbox)
+            Toggle(L10n.settingsCleanupScheduleWeekdayTimeTitle, isOn: $cleanupRunOnWeekdayTime)
+                .toggleStyle(.checkbox)
+            Toggle(L10n.settingsCleanupScheduleOnQuitTitle, isOn: $cleanupRunOnQuit)
+                .toggleStyle(.checkbox)
+        }
+        .padding(12)
+        .frame(minWidth: 220)
+    }
+
+    private var cleanupScheduleSummaryText: String {
+        var parts: [String] = []
+        if cleanupRunOnAppStart {
+            parts.append(String(localized: "settings.cleanupSchedule.appStart.title"))
+        }
+        if cleanupRunOnWeekdayTime {
+            parts.append(String(localized: "settings.cleanupSchedule.weekdayTime.title"))
+        }
+        if cleanupRunOnQuit {
+            parts.append(String(localized: "settings.cleanupSchedule.onQuit.title"))
+        }
+        guard !parts.isEmpty else {
+            return String(localized: "settings.cleanupSchedule.noneSelected")
+        }
+        return parts.joined(separator: ", ")
+    }
+
     private var cleanupScheduleTimeBinding: Binding<Date> {
         Binding(
             get: {
@@ -1328,53 +1334,6 @@ private struct CleanupSettingsView: View {
                 cleanupTimeMinutes = (components.hour ?? 0) * 60 + (components.minute ?? 0)
             }
         )
-    }
-
-    private func cleanupHistoryRow(_ run: CleanupRunRecord) -> some View {
-        HStack {
-            Text(run.executedAt.formatted(date: .abbreviated, time: .shortened))
-                .foregroundStyle(.tertiary)
-            Text(cleanupTriggerLabel(run.triggerSource))
-                .foregroundStyle(.tertiary)
-            Spacer()
-            if run.succeeded {
-                Text("\(run.deletedCount)")
-                    .fontWeight(.medium)
-                    .foregroundStyle(.secondary)
-                    .monospacedDigit()
-            } else {
-                Text(run.errorMessage ?? "")
-                    .fontWeight(.medium)
-                    .foregroundStyle(.red)
-            }
-        }
-        .font(.system(size: 11))
-        .padding(.horizontal, 9)
-        .frame(minHeight: 26)
-        .background(Color(nsColor: .controlBackgroundColor).opacity(0.85), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-    }
-
-    private func cleanupTriggerLabel(_ rawValue: String) -> LocalizedStringKey {
-        switch CleanupRunTrigger(rawValue: rawValue) {
-        case .manual, nil:
-            L10n.cleanupHistoryTriggerManual
-        case .appStart:
-            L10n.cleanupHistoryTriggerAppStart
-        case .schedule:
-            L10n.cleanupHistoryTriggerSchedule
-        case .onQuit:
-            L10n.cleanupHistoryTriggerOnQuit
-        case .settingsChange:
-            L10n.cleanupHistoryTriggerSettingsChange
-        }
-    }
-
-    private func loadCleanupHistory() {
-        guard let feedivoDatabase else {
-            cleanupHistory = []
-            return
-        }
-        cleanupHistory = (try? CleanupRunHistoryStore(database: feedivoDatabase).recentRuns()) ?? []
     }
 
     private func runArticleRetentionCleanup() {
@@ -1399,8 +1358,6 @@ private struct CleanupSettingsView: View {
             retentionCleanupResult = nil
             retentionCleanupError = error.localizedDescription
         }
-
-        loadCleanupHistory()
     }
 
     private func minimumArticlesLabel(_ count: Int) -> String {
