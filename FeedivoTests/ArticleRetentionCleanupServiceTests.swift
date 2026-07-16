@@ -497,6 +497,44 @@ struct ArticleRetentionCleanupServiceTests {
         #expect(defaults.integer(forKey: CleanupToastSignal.versionKey) == 1)
         #expect(defaults.integer(forKey: CleanupToastSignal.deletedCountKey) == 1)
     }
+
+    @Test func runAutomaticCleanupBereinigtFeedLogsUnabhaengigVonIsEnabled() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let defaults = try temporaryUserDefaults()
+        let now = Date(timeIntervalSince1970: 10_000_000)
+        let feedID = UUID().uuidString
+
+        try FeedStore(database: database).save(
+            FeedRecord(id: feedID, url: "https://example.com/feed.xml", title: "Feed")
+        )
+        try FeedLogStore(database: database).append(FeedLogRecord(
+            id: "old-log",
+            feedID: feedID,
+            createdAt: now.addingTimeInterval(-31 * 24 * 60 * 60),
+            level: "info",
+            message: "Alt"
+        ))
+        try FeedLogStore(database: database).append(FeedLogRecord(
+            id: "new-log",
+            feedID: feedID,
+            createdAt: now,
+            level: "info",
+            message: "Neu"
+        ))
+
+        ArticleRetentionCleanupService.runAutomaticCleanup(
+            database: database,
+            isEnabled: false,
+            retentionDays: 90,
+            minimumArticlesPerFeed: 0,
+            triggerSource: .manual,
+            userDefaults: defaults,
+            now: now
+        )
+
+        let remainingLogs = try FeedLogStore(database: database).logs(feedID: feedID, limit: 10)
+        #expect(remainingLogs.map(\.id) == ["new-log"])
+    }
 }
 
 private func temporaryUserDefaults() throws -> UserDefaults {

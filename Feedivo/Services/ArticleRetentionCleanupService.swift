@@ -104,6 +104,20 @@ enum ArticleRetentionCleanupService {
         userDefaults: UserDefaults = .standard,
         now: Date = Date()
     ) -> Result<Int, Error> {
+        // Feed-Log-Bereinigung läuft immer mit, unabhängig vom Artikel-
+        // Aufbewahrung-Schalter (isEnabled) — rein internes Housekeeping ohne
+        // History-/Toast-Sichtbarkeit (Feature feed_logs-Retention).
+        let feedLogCutoff = Calendar.current.date(
+            byAdding: .day,
+            value: -FeedLogRetentionSettings.retentionDays(in: userDefaults),
+            to: now
+        ) ?? now
+        do {
+            try FeedLogStore(database: database).deleteOlderThan(feedLogCutoff)
+        } catch {
+            AppLogger.dataAccess.error("Feed-Log-Bereinigung: \(error.localizedDescription, privacy: .public)")
+        }
+
         do {
             let removedCount = try removeExpiredSQLiteArticles(
                 database: database,
