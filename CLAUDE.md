@@ -755,6 +755,17 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   Task 5, Step 5) manuell durchklicken — insbesondere ob der Master-Schalter tatsächlich
   eine Benachrichtigung unterdrückt und ob der Systemeinstellungen-Deep-Link wirklich auf
   Feedivos eigener Seite landet statt nur der allgemeinen Übersicht.
+  **Live-Fix (2026-07-16, Commit `56670c4`):** Nutzer-Report — nach Erteilen der
+  macOS-Erlaubnis blieb der Status in den Einstellungen auf "noch nicht gefragt" hängen,
+  erst Schließen+Wiederöffnen des Einstellungsfensters zeigte den korrekten Stand. Via
+  systematic-debugging Root Cause gefunden: `refreshNotificationAuthorizationStatus()`
+  fragte direkt nach `requestAuthorization()` erneut `notificationSettings()` ab — macOS
+  propagiert die frisch erteilte Erlaubnis nicht synchron, die sofortige Nachfrage konnte
+  noch den alten Stand liefern. Fix: Status direkt aus dem bereits maßgeblichen
+  `Bool`-Rückgabewert von `requestAuthorization()` ableiten, keine erneute Abfrage mehr.
+  Kein automatisierter Regressionstest möglich (kein Mock-Seam für
+  `UNUserNotificationCenter` im Projekt, wie schon bei Task 3 dokumentiert) — Fix per
+  `xcodebuild build` verifiziert, Verhalten selbst bleibt manuell zu bestätigen.
 - **2026-07-15: Sidebar komplett auf AppKit NSOutlineView umgestellt (ADR-008) + Ordner-
   Sortier-Menü — Implementierung und Feed-/Ordner-Live-Verifikation abgeschlossen und
   gepusht.** Ersetzt das unzuverlässige SwiftUI-native `.draggable`/
