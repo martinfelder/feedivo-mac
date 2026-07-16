@@ -88,7 +88,7 @@ struct SpotlightIndexingServiceTests {
         #expect(SpotlightIndexingSettings.hasBackfilled(in: defaults) == false)
     }
 
-    @Test func ensureBackfillIfNeededIndexiertAlleBestehendenArtikel() throws {
+    @Test func ensureBackfillIfNeededIndexiertAlleBestehendenArtikel() async throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let defaults = try temporaryUserDefaults()
         let index = FakeSpotlightIndex()
@@ -97,26 +97,26 @@ struct SpotlightIndexingServiceTests {
         _ = try articleStore.upsert(ArticleUpsertInput(feedID: "feed-1", title: "Eins"))
         _ = try articleStore.upsert(ArticleUpsertInput(feedID: "feed-1", title: "Zwei"))
 
-        try SpotlightIndexingService.ensureBackfillIfNeeded(database: database, userDefaults: defaults, index: index)
+        try await SpotlightIndexingService.ensureBackfillIfNeeded(database: database, userDefaults: defaults, index: index)
 
         #expect(index.indexedItems.count == 2)
         #expect(SpotlightIndexingSettings.hasBackfilled(in: defaults) == true)
     }
 
-    @Test func ensureBackfillIfNeededLaeuftKeinZweitesMal() throws {
+    @Test func ensureBackfillIfNeededLaeuftKeinZweitesMal() async throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let defaults = try temporaryUserDefaults()
         let index = FakeSpotlightIndex()
         try FeedStore(database: database).save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Feed"))
         _ = try ArticleStore(database: database).upsert(ArticleUpsertInput(feedID: "feed-1", title: "Eins"))
 
-        try SpotlightIndexingService.ensureBackfillIfNeeded(database: database, userDefaults: defaults, index: index)
-        try SpotlightIndexingService.ensureBackfillIfNeeded(database: database, userDefaults: defaults, index: index)
+        try await SpotlightIndexingService.ensureBackfillIfNeeded(database: database, userDefaults: defaults, index: index)
+        try await SpotlightIndexingService.ensureBackfillIfNeeded(database: database, userDefaults: defaults, index: index)
 
         #expect(index.indexedItems.count == 1)
     }
 
-    @Test func ensureBackfillIfNeededIstNoOpWennSchalterAusIst() throws {
+    @Test func ensureBackfillIfNeededIstNoOpWennSchalterAusIst() async throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let defaults = try temporaryUserDefaults()
         defaults.set(false, forKey: SpotlightIndexingSettings.isEnabledKey)
@@ -124,13 +124,13 @@ struct SpotlightIndexingServiceTests {
         try FeedStore(database: database).save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Feed"))
         _ = try ArticleStore(database: database).upsert(ArticleUpsertInput(feedID: "feed-1", title: "Eins"))
 
-        try SpotlightIndexingService.ensureBackfillIfNeeded(database: database, userDefaults: defaults, index: index)
+        try await SpotlightIndexingService.ensureBackfillIfNeeded(database: database, userDefaults: defaults, index: index)
 
         #expect(index.indexedItems.isEmpty)
         #expect(SpotlightIndexingSettings.hasBackfilled(in: defaults) == false)
     }
 
-    @Test func ensureBackfillIfNeededSchliesstVersteckteArtikelAus() throws {
+    @Test func ensureBackfillIfNeededSchliesstVersteckteArtikelAus() async throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let defaults = try temporaryUserDefaults()
         let index = FakeSpotlightIndex()
@@ -140,7 +140,7 @@ struct SpotlightIndexingServiceTests {
         let hiddenID = try articleStore.upsert(ArticleUpsertInput(feedID: "feed-1", title: "Versteckt"))
         try ArticleStatusStore(database: database).setHidden(true, articleID: hiddenID, at: Date())
 
-        try SpotlightIndexingService.ensureBackfillIfNeeded(database: database, userDefaults: defaults, index: index)
+        try await SpotlightIndexingService.ensureBackfillIfNeeded(database: database, userDefaults: defaults, index: index)
 
         #expect(index.indexedItems.map(\.uniqueIdentifier) == [visibleID])
     }

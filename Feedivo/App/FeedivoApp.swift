@@ -1,6 +1,7 @@
 import SwiftUI
 import Observation
 import AppKit
+import OSLog
 
 @main
 struct FeedivoApp: App {
@@ -266,8 +267,23 @@ struct FeedivoApp: App {
         guard databaseLoadState.initializationError == nil else {
             return
         }
-        logIfThrows(context: "Spotlight-Backfill") {
-            try SpotlightIndexingService.ensureBackfillIfNeeded(database: feedivoDatabase)
+        // Läuft als eigener Task statt inline `await` im aufrufenden
+        // `.task { }`-Block (Whole-Branch-Review-Fund, Feature 9.3): Ein
+        // sehr großer Artikel-Bestand könnte den Backfill mehrere Sekunden
+        // dauern lassen — inline würde das den nachfolgenden
+        // `scheduleBackgroundRefresh()`-Aufruf im selben Block verzögern.
+        // `SpotlightIndexingService.ensureBackfillIfNeeded` liest inzwischen
+        // komplett über `FeedivoDatabase.readAsync` (GRDBs eigene
+        // Hintergrund-Queue) statt der vorherigen blockierenden
+        // Sync-Variante, blockiert also auch während der Laufzeit dieses
+        // Tasks nicht mehr den MainActor/App-Start.
+        let database = feedivoDatabase
+        Task {
+            do {
+                try await SpotlightIndexingService.ensureBackfillIfNeeded(database: database)
+            } catch {
+                AppLogger.dataAccess.error("Spotlight-Backfill: \(error.localizedDescription, privacy: .public)")
+            }
         }
     }
 

@@ -74,30 +74,74 @@ enum SpotlightIndexingService {
     /// `SpotlightIndexingSettings.hasBackfilledKey`). Läuft in Chunks, damit
     /// auch ein sehr großer Artikel-Bestand keine übergroße SQL-IN-Klausel
     /// erzeugt.
+    ///
+    /// Bewusst `async` und komplett über `FeedivoDatabase.readAsync` statt
+    /// der blockierenden Sync-Variante `database.read`/`ArticleDatabase.
+    /// fetchArticles` (Whole-Branch-Review-Fund, Feature 9.3): Dieses
+    /// Projekt setzt `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor` fürs
+    /// App-Target — ein unannotierter `Task.detached`-Aufruf dieser Funktion
+    /// hätte NICHT geholfen, da eine synchrone, nicht als `nonisolated`
+    /// markierte Funktion in diesem Modul trotzdem implizit MainActor-
+    /// isoliert bleibt und beim Awaiten wieder auf den MainActor
+    /// zurückspringt. `readAsync` dagegen delegiert die eigentliche
+    /// SQL-Arbeit an GRDBs eigene, echte Hintergrund-Queue (siehe
+    /// `FeedivoDatabase.readAsync`-Doc-Kommentar) — das `await` gibt den
+    /// aufrufenden Kontext währenddessen frei, unabhängig von dessen
+    /// nomineller Actor-Isolation.
     static func ensureBackfillIfNeeded(
         database: FeedivoDatabase,
         userDefaults: UserDefaults = .standard,
         index: SpotlightIndexWriting = CSSearchableIndex.default()
-    ) throws {
+    ) async throws {
         guard SpotlightIndexingSettings.isEnabled(in: userDefaults),
               !SpotlightIndexingSettings.hasBackfilled(in: userDefaults)
         else {
             return
         }
 
-        let allArticleIDs = try database.read { db in
+        let allArticleIDs = try await database.readAsync { db in
             try String.fetchAll(db, sql: "SELECT id FROM articles")
         }
 
         for chunk in allArticleIDs.chunked(into: backfillBatchSize) {
-            let snapshots = try ArticleDatabase(database: database).fetchArticles(
-                articleIDs: Set(chunk),
-                includeHidden: false
-            )
+            let snapshots = try await fetchSnapshotsAsync(forArticleIDs: chunk, database: database)
             indexArticles(snapshots, userDefaults: userDefaults, index: index)
         }
 
         SpotlightIndexingSettings.setHasBackfilled(true, in: userDefaults)
+    }
+
+    /// Lädt `ArticleListSnapshot`s für einen Chunk von Artikel-IDs komplett
+    /// auf GRDBs eigener Hintergrund-Queue (`readAsync`), statt über die
+    /// blockierende Sync-Fassade `ArticleDatabase.fetchArticles(articleIDs:)`.
+    /// Nutzt bewusst die gemeinsamen `ArticleListSQL`-Fragmente statt einer
+    /// eigenen Spaltenliste (siehe CLAUDE.md-Gotcha zu duplizierten
+    /// Artikel-SELECT-Listen). Spiegelt exakt dieselbe Filter-/Sortierlogik
+    /// wie `ArticleDatabase.fetchArticles(articleIDs:includeHidden: false)`
+    /// (versteckte Artikel ausgeschlossen, neueste zuerst).
+    private static func fetchSnapshotsAsync(
+        forArticleIDs articleIDs: [String],
+        database: FeedivoDatabase
+    ) async throws -> [ArticleListSnapshot] {
+        guard !articleIDs.isEmpty else {
+            return []
+        }
+
+        let sortedArticleIDs = Set(articleIDs).sorted()
+        let placeholders = Array(repeating: "?", count: sortedArticleIDs.count).joined(separator: ", ")
+        var arguments = StatementArguments(sortedArticleIDs)
+        _ = arguments.append(contentsOf: [sortedArticleIDs.count])
+
+        return try await database.readAsync { db in
+            try ArticleListSnapshot.fetchAll(db, sql: """
+                SELECT
+                    \(ArticleListSQL.selectColumns)
+                \(ArticleListSQL.standardFromJoin)
+                WHERE a.id IN (\(placeholders)) AND s.isHidden = 0
+                ORDER BY COALESCE(a.publishedAt, a.arrivedAt) DESC, a.arrivedAt DESC
+                LIMIT ?
+                """, arguments: arguments)
+        }
     }
 
     private static func searchableItem(for article: ArticleListSnapshot) -> CSSearchableItem {
