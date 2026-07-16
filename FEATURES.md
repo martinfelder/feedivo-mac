@@ -1126,6 +1126,27 @@
   Unterabfrage pro Feed berechnet wird. Das Qualitätsziel bleibt bis zur
   gruppierten Count-Query und anschließenden UI-Messung offen. Messbericht:
   `docs/performance/sqlite-large-dataset-results.md`.
+- **Behoben 2026-07-16:** `FeedStore.sidebarFeeds()` nutzt jetzt zwei
+  gruppierte/gefensterte CTEs (`unread_counts` via `GROUP BY`,
+  `latest_feed_logs` via `ROW_NUMBER() OVER PARTITION BY`) statt der beiden
+  korrelierten Pro-Feed-Subqueries — Laufzeit bei 500 Feeds von 10'904 ms auf
+  ~26 ms gesenkt. Whole-Branch-Review fand dabei ein Important-Finding: die
+  Tabelle `feed_logs` wurde nirgends bereinigt und wuchs unbegrenzt, wodurch
+  die neue `latest_feed_logs`-CTE (liest die komplette Tabelle) langfristig
+  wieder langsam werden könnte. Daraufhin als Folge-Feature umgesetzt:
+  zeitbasierte `feed_logs`-Bereinigung (`FeedLogRetentionSettings`, Standard
+  30 Tage, konfigurierbar in Einstellungen → Bereinigung), läuft unabhängig
+  vom Artikel-Aufbewahrung-Schalter bei jedem automatischen Bereinigungslauf
+  mit. Wirksamkeitsnachweis: bei 500 Feeds/100'000 historischen
+  `feed_logs`-Zeilen (auf 500 durch Retention bereinigt) bleibt
+  `sidebarFeeds()` bei ~1,9 ms. Beide Fixes via Brainstorming→Spec→Plan→
+  Subagent-Driven-Development umgesetzt, je ein sauberer Whole-Branch-Review
+  ("Ready to merge: Yes"). Spec/Plan:
+  `docs/superpowers/specs/2026-07-16-sidebar-feeds-performance-design.md`,
+  `docs/superpowers/specs/2026-07-16-feed-logs-retention-design.md`. Reine
+  UI-Reaktions-Messung (End-to-End-Sidebar-Reload im laufenden Betrieb)
+  weiterhin offen — das ursprüngliche Qualitätsziel bezog sich auch darauf,
+  nicht nur auf den Store-Query-Pfad.
 - **Audit 2026-07-15:** Die gefundenen
   Architektur- und Integrationslücken sind umgesetzt: 200er-Pagination statt
   globalem 500er-Ende, SQL-Sortierung vor dem Limit, asynchrone GRDB-Reads,

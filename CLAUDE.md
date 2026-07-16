@@ -1010,6 +1010,48 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Letzte Änderungen
 
+- 2026-07-16: `FeedStore.sidebarFeeds()`-Performance-Fix + feed_logs-
+  Bereinigung (Retention) — VOLLSTÄNDIG ABGESCHLOSSEN, gepusht auf
+  `origin/main` (`ee7aef28d..1b1662db8`). Ausgangspunkt: Performance-Lasttest
+  vom 2026-07-15 fand einen 10,9-Sekunden-Flaschenhals bei 500 Feeds in
+  `FeedStore.sidebarFeeds()` (`Feedivo/Stores/FeedStore.swift`) — Ungelesen-
+  Zähler und letzter Feed-Fehler wurden je als korrelierte Subquery pro Feed
+  neu berechnet. Via Brainstorming→Spec→Plan→Subagent-Driven-Development
+  (1 Task) behoben: zwei `WITH`-CTEs (`unread_counts` via `GROUP BY`,
+  `latest_feed_logs` via `ROW_NUMBER() OVER (PARTITION BY feedID ORDER BY
+  createdAt DESC)`) ersetzen die Subqueries — Laufzeit auf ~26 ms gesenkt.
+  Whole-Branch-Review (Opus): „Ready to merge: With fixes" — 1 Important-
+  Finding: die Tabelle `feed_logs` wird nirgends bereinigt (kein `DELETE FROM
+  feed_logs` im gesamten Code), wächst dadurch unbegrenzt; die neue
+  `latest_feed_logs`-CTE liest bei jedem Aufruf die komplette Tabelle
+  (O(Gesamtzahl Zeilen)) statt wie die alte Subquery nur einen indexierten
+  Pro-Feed-Zugriff (O(log n)) — der Benchmark-Seed legte zudem gar keine
+  `feed_logs`-Zeilen an, das Risiko war komplett ungemessen. Nutzerentscheid:
+  statt Query zurückzurollen oder nur den Benchmark zu erweitern, echtes
+  `feed_logs`-Pruning einführen — eigener Brainstorming→Spec→Plan→
+  Subagent-Driven-Development-Zyklus (4 Tasks): neue
+  `FeedLogRetentionSettings` (Standard 30 Tage, Werte 7/14/30/60/90
+  konfigurierbar), `FeedLogStore.deleteOlderThan(_:)` (reines `DELETE`),
+  Integration in `ArticleRetentionCleanupService.runAutomaticCleanup(...)` —
+  läuft bewusst **unabhängig** von `articleRetentionIsEnabled` (das
+  standardmäßig AUS ist; sonst bliebe das Wachstumsproblem für die meisten
+  Nutzer ungelöst), kein Eintrag in `CleanupRunHistoryStore`/Toast (reines
+  internes Housekeeping), neue Einstellungs-Zeile in `CleanupSettingsView`.
+  Wirksamkeitsnachweis: neuer Performance-Test seedet 500 Feeds/100'000
+  `feed_logs`-Zeilen, bereinigt auf 500 (1 pro Feed), misst `sidebarFeeds()`
+  danach bei ~1,9 ms. Finaler Whole-Branch-Review (Opus): „Ready to merge:
+  Yes", 0 Critical/Important, 2 Minor (dokumentiert, kein Fix nötig: `?? now`-
+  Fallback bei theoretischem `Calendar`-Fehler semantisch verkehrt aber
+  praktisch unerreichbar; feed_logs-Pruning bleibt an die bestehenden
+  Zeitplan-Trigger aus Feature 17.3a gekoppelt — bei komplett deaktivierten
+  Triggern wächst die Tabelle zwischen manuellen Bereinigungen weiter, sicher
+  solange App-Start-Trigger Standard AN bleibt). Spec/Plan:
+  `docs/superpowers/specs/2026-07-16-sidebar-feeds-performance-design.md`,
+  `docs/superpowers/plans/2026-07-16-sidebar-feeds-performance.md`,
+  `docs/superpowers/specs/2026-07-16-feed-logs-retention-design.md`,
+  `docs/superpowers/plans/2026-07-16-feed-logs-retention.md`. Ausstehend:
+  manuelle Live-Verifikation des neuen Aufbewahrungsdauer-Pickers in den
+  Einstellungen.
 - 2026-07-16: Feature 17.3a (Bereinigung — History, Zeitplan und Hinweis) —
   VOLLSTÄNDIG ABGESCHLOSSEN inkl. 2 Nachträge, gepusht auf `origin/main`
   (`92a02b478..ee7aef28d`). Kern-Feature via Brainstorming→Spec→Plan→
