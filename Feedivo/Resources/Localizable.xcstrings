@@ -61,6 +61,9 @@
         }
       }
     },
+    "%lld Tage" : {
+
+    },
     "+ " : {
 
     },
@@ -22699,6 +22702,34 @@
         }
       }
     },
+    "settings.cleanupHistory.showButton" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anzeigen…"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra…"
+          }
+        }
+      }
+    },
     "settings.cleanupSchedule.appStart.description" : {
       "localizations" : {
         "de" : {
@@ -22755,90 +22786,6 @@
         }
       }
     },
-    "settings.cleanupSchedule.onQuit.description" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bereinigung ausführen, wenn Feedivo beendet wird."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Run cleanup when Feedivo quits."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Exécuter le nettoyage à la fermeture de Feedivo."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Esegui la pulizia alla chiusura di Feedivo."
-          }
-        }
-      }
-    },
-    "settings.cleanupSchedule.onQuit.title" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Beim Beenden der App"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "On App Quit"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "À la fermeture de l'app"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Alla chiusura dell'app"
-          }
-        }
-      }
-    },
-    "settings.cleanupHistory.showButton" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Anzeigen…"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Show…"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Afficher…"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mostra…"
-          }
-        }
-      }
-    },
     "settings.cleanupSchedule.description" : {
       "localizations" : {
         "de" : {
@@ -22891,6 +22838,62 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nessun trigger selezionato"
+          }
+        }
+      }
+    },
+    "settings.cleanupSchedule.onQuit.description" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bereinigung ausführen, wenn Feedivo beendet wird."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Run cleanup when Feedivo quits."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exécuter le nettoyage à la fermeture de Feedivo."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esegui la pulizia alla chiusura di Feedivo."
+          }
+        }
+      }
+    },
+    "settings.cleanupSchedule.onQuit.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beim Beenden der App"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On App Quit"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "À la fermeture de l'app"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alla chiusura dell'app"
           }
         }
       }
