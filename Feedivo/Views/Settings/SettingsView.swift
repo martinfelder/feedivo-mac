@@ -1512,6 +1512,13 @@ private struct ShortcutSettingRow: View {
                     .foregroundStyle(.red)
                     .padding(.leading, Self.labelColumnWidth + 12)
             }
+
+            if let spec, KeyboardShortcutsSettings.needsTextFieldGuard(for: spec) {
+                Text(L10n.shortcutsModifierFreeWarning)
+                    .font(.system(size: 10.5))
+                    .foregroundStyle(.orange)
+                    .padding(.leading, Self.labelColumnWidth + 12)
+            }
         }
         .padding(.vertical, 4)
     }
