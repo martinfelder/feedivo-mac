@@ -70,6 +70,62 @@ struct SQLiteFeedRefreshServiceTests {
         #expect(logs.first?.newArticleCount == 2)
     }
 
+    @Test func refreshIndexiertNeueArtikelInSpotlight() async throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example"))
+
+        var indexedSnapshots: [ArticleListSnapshot] = []
+        let service = SQLiteFeedRefreshService(
+            database: database,
+            indexForSpotlight: { indexedSnapshots.append(contentsOf: $0) }
+        ) { url, _ in
+            .updated(
+                ParsedFeed(
+                    sourceURL: url,
+                    title: "Example",
+                    description: nil,
+                    articles: [
+                        ParsedArticle(
+                            title: "Neu",
+                            sourceID: "one",
+                            link: nil,
+                            summary: "Zusammenfassung",
+                            content: nil,
+                            publishedAt: nil,
+                            imageURL: nil
+                        )
+                    ]
+                ),
+                FeedHTTPValidators()
+            )
+        }
+
+        _ = try await service.refresh(feedID: "feed-1")
+
+        #expect(indexedSnapshots.count == 1)
+        #expect(indexedSnapshots.first?.title == "Neu")
+        #expect(indexedSnapshots.first?.feedTitle == "Example")
+    }
+
+    @Test func refreshRuftSpotlightIndexierungNichtBeiNotModifiedAuf() async throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example"))
+
+        var indexCallCount = 0
+        let service = SQLiteFeedRefreshService(
+            database: database,
+            indexForSpotlight: { _ in indexCallCount += 1 }
+        ) { _, validators in
+            .notModified(validators)
+        }
+
+        _ = try await service.refresh(feedID: "feed-1")
+
+        #expect(indexCallCount == 0)
+    }
+
     @Test func refreshNotModifiedUpdatesValidatorsAndLeavesArticlesUntouched() async throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let feedStore = FeedStore(database: database)

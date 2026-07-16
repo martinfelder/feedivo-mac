@@ -23,7 +23,9 @@ enum SQLiteFeedRefreshError: Error, Equatable {
 struct SQLiteFeedRefreshService {
     typealias Fetcher = (String, FeedHTTPValidators) async throws -> SQLiteFeedFetchResult
     typealias FaviconFetcher = (URL) async -> String?
+    typealias SpotlightIndexer = ([ArticleListSnapshot]) -> Void
 
+    private let database: FeedivoDatabase
     private let feedStore: FeedStore
     private let articleStore: ArticleStore
     private let statusStore: ArticleStatusStore
@@ -31,8 +33,9 @@ struct SQLiteFeedRefreshService {
     private let tagStore: TagStore
     private let ruleSnapshots: [RuleEngine.RuleSnapshot]
     private let now: () -> Date
-    private let fetcher: Fetcher
     private let discoverFaviconURL: FaviconFetcher
+    private let indexForSpotlight: SpotlightIndexer
+    private let fetcher: Fetcher
 
     init(
         database: FeedivoDatabase,
@@ -41,8 +44,10 @@ struct SQLiteFeedRefreshService {
         discoverFaviconURL: @escaping FaviconFetcher = { siteURL in
             await FaviconService.discoverFaviconURL(siteURL: siteURL)
         },
+        indexForSpotlight: @escaping SpotlightIndexer = { SpotlightIndexingService.indexArticles($0) },
         fetcher: @escaping Fetcher = SQLiteFeedRefreshService.defaultFetcher
     ) {
+        self.database = database
         self.feedStore = FeedStore(database: database)
         self.articleStore = ArticleStore(database: database)
         self.statusStore = ArticleStatusStore(database: database)
@@ -50,8 +55,9 @@ struct SQLiteFeedRefreshService {
         self.tagStore = TagStore(database: database)
         self.ruleSnapshots = ruleSnapshots
         self.now = now
-        self.fetcher = fetcher
         self.discoverFaviconURL = discoverFaviconURL
+        self.indexForSpotlight = indexForSpotlight
+        self.fetcher = fetcher
     }
 
     func refresh(feedID: String) async throws -> SQLiteFeedRefreshResult {
@@ -128,6 +134,20 @@ struct SQLiteFeedRefreshService {
                     feedTitle: refreshedTitle,
                     appliedAt: refreshedAt
                 )
+                // Läuft NACH applyRules, damit ein Artikel, den eine Regel
+                // sofort beim Eintreffen ausblendet (isHidden), korrekt von
+                // der Spotlight-Indexierung ausgeschlossen bleibt
+                // (includeHidden: false).
+                logIfThrows(context: "Spotlight-Indexierung nach Feed-Refresh") {
+                    guard !upsertResult.insertedArticleIDs.isEmpty else {
+                        return
+                    }
+                    let snapshotsToIndex = try ArticleDatabase(database: database).fetchArticles(
+                        articleIDs: Set(upsertResult.insertedArticleIDs),
+                        includeHidden: false
+                    )
+                    indexForSpotlight(snapshotsToIndex)
+                }
                 let unreadCount = try statusStore.unreadCount(feedID: feedID)
                 let faviconURL = await faviconURLIfNeeded(for: feed, parsedFeed: parsedFeed)
                 try feedStore.updateAfterRefresh(
