@@ -592,6 +592,40 @@ struct SQLiteFeedSubscriptionServiceTests {
     }
 
     @MainActor
+    @Test func addFeedIndexiertNeueArtikelInSpotlight() async throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        var indexedSnapshots: [ArticleListSnapshot] = []
+        let service = SQLiteFeedSubscriptionService(
+            database: database,
+            fetchFeed: { url in
+                ParsedFeed(
+                    sourceURL: url,
+                    title: "Feed",
+                    description: nil,
+                    articles: [
+                        ParsedArticle(
+                            title: "Artikel",
+                            sourceID: "one",
+                            link: nil,
+                            summary: "Zusammenfassung",
+                            content: nil,
+                            publishedAt: nil,
+                            imageURL: nil
+                        )
+                    ]
+                )
+            },
+            discoverFaviconURL: { _ in nil },
+            indexForSpotlight: { indexedSnapshots.append(contentsOf: $0) }
+        )
+
+        _ = try await service.addFeed(urlString: "https://example.com/feed.xml")
+
+        #expect(indexedSnapshots.count == 1)
+        #expect(indexedSnapshots.first?.title == "Artikel")
+    }
+
+    @MainActor
     @Test func addFeedRespektiertNotificationDefaultFuerNeueFeedsWennAktiviert() async throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let userDefaults = try temporaryNotificationUserDefaults()

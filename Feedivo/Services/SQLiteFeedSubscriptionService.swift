@@ -67,6 +67,7 @@ struct SQLiteFeedSubscriptionService {
     typealias ArticleUpserter = ([ArticleUpsertInput]) throws -> ArticleUpsertResult
     typealias AfterArticleUpsertHook = () throws -> Void
     typealias AfterOPMLTagsSaveHook = () throws -> Void
+    typealias SpotlightIndexer = ([ArticleListSnapshot]) -> Void
 
     private let database: FeedivoDatabase
     private let fetchFeed: FeedFetcher
@@ -74,6 +75,7 @@ struct SQLiteFeedSubscriptionService {
     private let articleUpsert: ArticleUpserter
     private let afterArticleUpsert: AfterArticleUpsertHook
     private let afterOPMLTagsSave: AfterOPMLTagsSaveHook
+    private let indexForSpotlight: SpotlightIndexer
     private let userDefaults: UserDefaults
 
     init(
@@ -85,6 +87,7 @@ struct SQLiteFeedSubscriptionService {
         articleUpsert: ArticleUpserter? = nil,
         afterArticleUpsert: @escaping AfterArticleUpsertHook = {},
         afterOPMLTagsSave: @escaping AfterOPMLTagsSaveHook = {},
+        indexForSpotlight: @escaping SpotlightIndexer = { SpotlightIndexingService.indexArticles($0) },
         userDefaults: UserDefaults = .standard
     ) {
         self.database = database
@@ -95,6 +98,7 @@ struct SQLiteFeedSubscriptionService {
         }
         self.afterArticleUpsert = afterArticleUpsert
         self.afterOPMLTagsSave = afterOPMLTagsSave
+        self.indexForSpotlight = indexForSpotlight
         self.userDefaults = userDefaults
     }
 
@@ -173,8 +177,18 @@ struct SQLiteFeedSubscriptionService {
                     arrivedAt: now
                 )
             }
-            _ = try articleUpsert(articleInputs)
+            let upsertResult = try articleUpsert(articleInputs)
             try afterArticleUpsert()
+            logIfThrows(context: "Spotlight-Indexierung nach Feed-Abo") {
+                guard !upsertResult.insertedArticleIDs.isEmpty else {
+                    return
+                }
+                let snapshotsToIndex = try ArticleDatabase(database: database).fetchArticles(
+                    articleIDs: Set(upsertResult.insertedArticleIDs),
+                    includeHidden: false
+                )
+                indexForSpotlight(snapshotsToIndex)
+            }
             let unreadCount = try ArticleStatusStore(database: database).unreadCount(feedID: feedID)
             try feedStore.setUnreadCount(unreadCount, feedID: feedID)
             try FeedLogStore(database: database).append(
