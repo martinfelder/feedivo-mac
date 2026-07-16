@@ -362,7 +362,7 @@ struct ContentView: View {
 
     private func handleContentAppear() {
         if let feedivoDatabase {
-            BackgroundRefreshService.cleanupExpiredArticlesIfNeeded(database: feedivoDatabase)
+            BackgroundRefreshService.cleanupOnAppStartIfNeeded(database: feedivoDatabase)
         }
         updateFirstRunWizardPresentation()
         selectDefaultSmartFolderIfNeeded()

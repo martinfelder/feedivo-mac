@@ -1114,9 +1114,9 @@ struct FeedivoAppSceneConfigurationTests {
         let nextFunctionStart = try #require(contentSource.range(of: "private func reloadFeedSnapshots"))
         let handleContentAppearSource = contentSource[handleContentAppearStart.lowerBound..<nextFunctionStart.lowerBound]
 
-        #expect(handleContentAppearSource.contains("BackgroundRefreshService.cleanupExpiredArticlesIfNeeded(database: feedivoDatabase)"))
+        #expect(handleContentAppearSource.contains("BackgroundRefreshService.cleanupOnAppStartIfNeeded(database: feedivoDatabase)"))
 
-        let cleanupCallRange = try #require(handleContentAppearSource.range(of: "cleanupExpiredArticlesIfNeeded(database: feedivoDatabase)"))
+        let cleanupCallRange = try #require(handleContentAppearSource.range(of: "cleanupOnAppStartIfNeeded(database: feedivoDatabase)"))
         let refreshCallRange = try #require(handleContentAppearSource.range(of: "refreshFeedsOnLaunchIfNeeded()"))
         #expect(cleanupCallRange.lowerBound < refreshCallRange.lowerBound)
     }

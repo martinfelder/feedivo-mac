@@ -113,36 +113,29 @@ enum BackgroundRefreshService {
             userDefaults: userDefaults
         )
 
-        cleanupExpiredArticlesIfNeeded(database: database, userDefaults: userDefaults)
+        cleanupOnScheduleIfDue(database: database, userDefaults: userDefaults)
     }
 
-    /// Bereinigt abgelaufene Artikel nach jedem periodischen Hintergrund-Refresh.
+    /// App-Start-Auslöser der Bereinigung (Feature 17.3a) — läuft nur, wenn der
+    /// Zeitplan-Schalter "Bei App-Start" aktiv ist (Standard: an, bewahrt das bisherige
+    /// Verhalten für Bestandsnutzer).
     ///
-    /// Vor diesem Fix lief `ArticleRetentionCleanupService` nur beim App-Start
-    /// (`FeedivoApp.cleanupExpiredArticlesIfNeeded`) und bei Änderungen der
-    /// Retention-Einstellungen — nie erneut während einer laufenden Session. Bei
-    /// einer dauerhaft im Hintergrund laufenden App (typisch für eine
-    /// Menüleisten-App) sammelten sich neue, über den periodischen Refresh
-    /// eintreffende Artikel dadurch unbegrenzt an, bis die App neu gestartet
-    /// wurde (Nutzer-Report 2026-07-13: "Alte Artikel bleiben trotz aktivierter
-    /// Bereinigung liegen, auch nach Tagen im Hintergrund"). `refreshAllFeeds`
-    /// ist der einzige Aufrufpfad des periodischen `NSBackgroundActivityScheduler`
-    /// (siehe `SystemBackgroundActivityRefreshScheduler.submit`) und damit die
-    /// richtige Stelle, um die Bereinigung regelmäßig erneut anzustoßen.
-    ///
-    /// Liest die Retention-Einstellungen direkt aus `UserDefaults`, da diese
-    /// Funktion außerhalb einer SwiftUI-View läuft und kein `@AppStorage` zur
-    /// Verfügung hat — bewusst `object(forKey:) as? T ?? default` statt
-    /// `bool(forKey:)`/`integer(forKey:)`, da Letztere bei einem noch nie
-    /// gespeicherten Wert `false`/`0` liefern (bei `retentionDays` würde `0` auf
-    /// den kleinsten erlaubten Wert `30` statt auf den korrekten 90-Tage-Standard
-    /// geklemmt).
+    /// Liest die Retention-Einstellungen direkt aus `UserDefaults`, da diese Funktion
+    /// außerhalb einer SwiftUI-View läuft und kein `@AppStorage` zur Verfügung hat —
+    /// bewusst `object(forKey:) as? T ?? default` statt `bool(forKey:)`/`integer(forKey:)`,
+    /// da Letztere bei einem noch nie gespeicherten Wert `false`/`0` liefern (bei
+    /// `retentionDays` würde `0` auf den kleinsten erlaubten Wert `30` statt auf den
+    /// korrekten 90-Tage-Standard geklemmt).
     @MainActor
-    static func cleanupExpiredArticlesIfNeeded(
+    static func cleanupOnAppStartIfNeeded(
         database: FeedivoDatabase,
         userDefaults: UserDefaults = .standard,
         now: Date = Date()
     ) {
+        guard CleanupScheduleSettings.runOnAppStart(in: userDefaults) else {
+            return
+        }
+
         ArticleRetentionCleanupService.runAutomaticCleanup(
             database: database,
             isEnabled: userDefaults.object(forKey: ArticleRetentionSettings.isEnabledKey) as? Bool
@@ -153,17 +146,42 @@ enum BackgroundRefreshService {
                 ?? ArticleRetentionSettings.defaultMinimumArticlesPerFeed,
             includeProtectedArticles: userDefaults.object(forKey: ArticleRetentionSettings.includesProtectedArticlesKey) as? Bool
                 ?? ArticleRetentionSettings.defaultIncludesProtectedArticles,
-            // TASK-3-NOTE (Feature 17.3a, nicht im Task-Brief erfasst): Dieser
-            // Aufrufer bedient sowohl den App-Start (via ContentView) als auch den
-            // periodischen NSBackgroundActivityScheduler-Refresh (siehe Doc-Kommentar
-            // oben) — kann den tatsächlichen Auslöser aktuell nicht unterscheiden.
-            // `.schedule` gewählt, da dieser Pfad laut Doc-Kommentar primär für den
-            // periodischen Hintergrund-Refresh existiert; spätere Tasks (Zeitplan-
-            // gesteuerter Trigger) sollten das ggf. sauber auftrennen.
+            triggerSource: .appStart,
+            userDefaults: userDefaults,
+            now: now
+        )
+    }
+
+    /// Zeitplan-Auslöser der Bereinigung (Feature 17.3a) — ersetzt den bisherigen
+    /// unbedingten Trigger bei jedem Hintergrund-Refresh-Zyklus (Befund A, 2026-07-14).
+    /// Läuft bei jedem periodischen `NSBackgroundActivityScheduler`-Tick, prüft aber
+    /// zuerst per Nachhol-Logik, ob der konfigurierte Wochentag+Uhrzeit tatsächlich
+    /// fällig ist (Standard: Schalter aus, nie fällig).
+    @MainActor
+    static func cleanupOnScheduleIfDue(
+        database: FeedivoDatabase,
+        userDefaults: UserDefaults = .standard,
+        now: Date = Date()
+    ) {
+        guard CleanupScheduleSettings.isWeekdayTimeScheduleDue(now: now, defaults: userDefaults) else {
+            return
+        }
+
+        ArticleRetentionCleanupService.runAutomaticCleanup(
+            database: database,
+            isEnabled: userDefaults.object(forKey: ArticleRetentionSettings.isEnabledKey) as? Bool
+                ?? ArticleRetentionSettings.defaultIsEnabled,
+            retentionDays: userDefaults.object(forKey: ArticleRetentionSettings.retentionDaysKey) as? Int
+                ?? ArticleRetentionSettings.defaultRetentionDays,
+            minimumArticlesPerFeed: userDefaults.object(forKey: ArticleRetentionSettings.minimumArticlesPerFeedKey) as? Int
+                ?? ArticleRetentionSettings.defaultMinimumArticlesPerFeed,
+            includeProtectedArticles: userDefaults.object(forKey: ArticleRetentionSettings.includesProtectedArticlesKey) as? Bool
+                ?? ArticleRetentionSettings.defaultIncludesProtectedArticles,
             triggerSource: .schedule,
             userDefaults: userDefaults,
             now: now
         )
+        CleanupScheduleSettings.recordScheduleRun(now: now, in: userDefaults)
     }
 
     static func recordRefreshOutcome(

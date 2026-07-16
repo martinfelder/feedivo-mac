@@ -127,15 +127,17 @@ struct BackgroundRefreshServiceTests {
         #expect(defaults.double(forKey: BackgroundRefreshSettings.nextAutomaticRefreshDateKey) == now.addingTimeInterval(30 * 60).timeIntervalSince1970)
     }
 
-    // MARK: - cleanupExpiredArticlesIfNeeded
+    // MARK: - cleanupOnAppStartIfNeeded / cleanupOnScheduleIfDue
     //
     // Regressionstests für den Bugfix vom 2026-07-13 (Nutzer-Report: "Alte Artikel
     // bleiben trotz aktivierter Bereinigung liegen, auch nach Tagen im Hintergrund").
     // Root Cause: ArticleRetentionCleanupService wurde bisher nur beim App-Start und
     // bei Einstellungsänderungen aufgerufen, nie vom periodischen Hintergrund-Refresh.
+    // Feature 17.3a spaltet den bisherigen einzelnen `cleanupExpiredArticlesIfNeeded`-
+    // Auslöser in einen App-Start-Auslöser und einen Zeitplan-Auslöser auf.
 
     @MainActor
-    @Test func cleanupExpiredArticlesIfNeededLoeschtAlteArtikelWennAktiviert() throws {
+    @Test func cleanupOnAppStartIfNeededLoeschtAlteArtikelWennAktiviert() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let defaults = try temporaryUserDefaults()
         let now = Date(timeIntervalSince1970: 10_000_000)
@@ -154,7 +156,7 @@ struct BackgroundRefreshServiceTests {
         defaults.set(0, forKey: ArticleRetentionSettings.minimumArticlesPerFeedKey)
         defaults.set(false, forKey: ArticleRetentionSettings.includesProtectedArticlesKey)
 
-        BackgroundRefreshService.cleanupExpiredArticlesIfNeeded(
+        BackgroundRefreshService.cleanupOnAppStartIfNeeded(
             database: database,
             userDefaults: defaults,
             now: now
@@ -164,7 +166,7 @@ struct BackgroundRefreshServiceTests {
     }
 
     @MainActor
-    @Test func cleanupExpiredArticlesIfNeededTutNichtsWennKeineEinstellungenGespeichertSind() throws {
+    @Test func cleanupOnAppStartIfNeededTutNichtsWennKeineEinstellungenGespeichertSind() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let defaults = try temporaryUserDefaults()
         let now = Date(timeIntervalSince1970: 10_000_000)
@@ -178,10 +180,7 @@ struct BackgroundRefreshServiceTests {
             ArticleUpsertInput(feedID: feedID, title: "Sehr alt", publishedAt: oldDate)
         )
 
-        // Bewusst KEINE Werte in defaults gesetzt — simuliert einen frischen
-        // UserDefaults-Suite, in dem @AppStorage die Defaults nur im Speicher hält,
-        // ohne sie je persistiert zu haben (Standard: Bereinigung ist deaktiviert).
-        BackgroundRefreshService.cleanupExpiredArticlesIfNeeded(
+        BackgroundRefreshService.cleanupOnAppStartIfNeeded(
             database: database,
             userDefaults: defaults,
             now: now
@@ -191,13 +190,10 @@ struct BackgroundRefreshServiceTests {
     }
 
     @MainActor
-    @Test func cleanupExpiredArticlesIfNeededNutztStandardAufbewahrungWennNurAktivierungGespeichertIst() throws {
+    @Test func cleanupOnAppStartIfNeededNutztStandardAufbewahrungWennNurAktivierungGespeichertIst() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let defaults = try temporaryUserDefaults()
         let now = Date(timeIntervalSince1970: 10_000_000)
-        // 40 Tage alt: würde bei fälschlich als 0 gelesenen retentionDays (auf 30
-        // geklemmt) gelöscht, muss aber beim korrekten 90-Tage-Standard erhalten
-        // bleiben — deckt einen naiven `.integer(forKey:)`-Fallback auf.
         let fortyDaysOld = now.addingTimeInterval(-40 * 24 * 60 * 60)
         let feedID = UUID().uuidString
 
@@ -209,17 +205,97 @@ struct BackgroundRefreshServiceTests {
         )
 
         defaults.set(true, forKey: ArticleRetentionSettings.isEnabledKey)
-        // retentionDays/minimumArticlesPerFeed/includesProtectedArticles bewusst
-        // NICHT gesetzt — müssen auf die ArticleRetentionSettings-Standardwerte
-        // zurückfallen (90 Tage), nicht auf UserDefaults' eingebaute Null-Werte.
 
-        BackgroundRefreshService.cleanupExpiredArticlesIfNeeded(
+        BackgroundRefreshService.cleanupOnAppStartIfNeeded(
             database: database,
             userDefaults: defaults,
             now: now
         )
 
         #expect(try ArticleStatusStore(database: database).status(articleID: articleID) != nil)
+    }
+
+    @MainActor
+    @Test func cleanupOnAppStartIfNeededTutNichtsWennSchalterAus() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let defaults = try temporaryUserDefaults()
+        let now = Date(timeIntervalSince1970: 10_000_000)
+        let oldDate = now.addingTimeInterval(-91 * 24 * 60 * 60)
+        let feedID = UUID().uuidString
+
+        try FeedStore(database: database).save(
+            FeedRecord(id: feedID, url: "https://example.com/feed.xml", title: "Feed", unreadCount: 1)
+        )
+        let expiredID = try ArticleStore(database: database).upsert(
+            ArticleUpsertInput(feedID: feedID, title: "Alt", publishedAt: oldDate)
+        )
+
+        defaults.set(true, forKey: ArticleRetentionSettings.isEnabledKey)
+        defaults.set(90, forKey: ArticleRetentionSettings.retentionDaysKey)
+        defaults.set(false, forKey: CleanupScheduleSettings.runOnAppStartKey)
+
+        BackgroundRefreshService.cleanupOnAppStartIfNeeded(
+            database: database,
+            userDefaults: defaults,
+            now: now
+        )
+
+        #expect(try ArticleStatusStore(database: database).status(articleID: expiredID) != nil)
+    }
+
+    @MainActor
+    @Test func cleanupOnScheduleIfDueTutNichtsWennZeitplanNichtFaellig() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let defaults = try temporaryUserDefaults()
+        let now = Date(timeIntervalSince1970: 10_000_000)
+        let oldDate = now.addingTimeInterval(-91 * 24 * 60 * 60)
+        let feedID = UUID().uuidString
+
+        try FeedStore(database: database).save(
+            FeedRecord(id: feedID, url: "https://example.com/feed.xml", title: "Feed", unreadCount: 1)
+        )
+        let expiredID = try ArticleStore(database: database).upsert(
+            ArticleUpsertInput(feedID: feedID, title: "Alt", publishedAt: oldDate)
+        )
+
+        defaults.set(true, forKey: ArticleRetentionSettings.isEnabledKey)
+        defaults.set(90, forKey: ArticleRetentionSettings.retentionDaysKey)
+        // CleanupScheduleSettings.runOnWeekdayTimeKey bewusst NICHT gesetzt → Default false.
+
+        BackgroundRefreshService.cleanupOnScheduleIfDue(database: database, userDefaults: defaults, now: now)
+
+        #expect(try ArticleStatusStore(database: database).status(articleID: expiredID) != nil)
+    }
+
+    @MainActor
+    @Test func cleanupOnScheduleIfDueLoeschtArtikelUndProtokolliertLaufWennFaellig() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let defaults = try temporaryUserDefaults()
+        let now = Date(timeIntervalSince1970: 10_000_000)
+        let oldDate = now.addingTimeInterval(-91 * 24 * 60 * 60)
+        let feedID = UUID().uuidString
+
+        try FeedStore(database: database).save(
+            FeedRecord(id: feedID, url: "https://example.com/feed.xml", title: "Feed", unreadCount: 1)
+        )
+        let expiredID = try ArticleStore(database: database).upsert(
+            ArticleUpsertInput(feedID: feedID, title: "Alt", publishedAt: oldDate)
+        )
+
+        defaults.set(true, forKey: ArticleRetentionSettings.isEnabledKey)
+        defaults.set(90, forKey: ArticleRetentionSettings.retentionDaysKey)
+        // minimumArticlesPerFeedKey explizit auf 0 — sonst würde der Standardwert
+        // (defaultMinimumArticlesPerFeed = 20) den einzigen Artikel dieses Feeds
+        // vor der Löschung schützen (Mindestanzahl-pro-Feed-Regel).
+        defaults.set(0, forKey: ArticleRetentionSettings.minimumArticlesPerFeedKey)
+        defaults.set(false, forKey: ArticleRetentionSettings.includesProtectedArticlesKey)
+        defaults.set(true, forKey: CleanupScheduleSettings.runOnWeekdayTimeKey)
+        // lastScheduleRunAtKey bewusst nie gesetzt → beim ersten Aufruf immer fällig.
+
+        BackgroundRefreshService.cleanupOnScheduleIfDue(database: database, userDefaults: defaults, now: now)
+
+        #expect(try ArticleStatusStore(database: database).status(articleID: expiredID) == nil)
+        #expect(defaults.object(forKey: CleanupScheduleSettings.lastScheduleRunAtKey) as? Date == now)
     }
 }
 
