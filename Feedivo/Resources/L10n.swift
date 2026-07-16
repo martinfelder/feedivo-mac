@@ -860,6 +860,13 @@ enum L10n {
         )
     }
 
+    static func cleanupToastMessage(count: Int) -> String {
+        String.localizedStringWithFormat(
+            String(localized: "cleanup.toast.message"),
+            count
+        )
+    }
+
     static func settingsCacheLimit(megabytes: Int) -> String {
         if megabytes >= 1_024, megabytes.isMultiple(of: 1_024) {
             return String.localizedStringWithFormat(

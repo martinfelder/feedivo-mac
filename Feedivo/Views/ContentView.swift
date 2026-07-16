@@ -23,6 +23,11 @@ struct ContentView: View {
     @State private var feedSnapshots: [FeedSidebarSnapshot] = []
     @AppStorage(SQLiteDataInvalidation.statusVersionKey)
     private var sqliteStatusVersion = 0
+    @AppStorage(CleanupToastSignal.versionKey)
+    private var cleanupToastVersion = 0
+    @AppStorage(CleanupToastSignal.deletedCountKey)
+    private var cleanupToastDeletedCount = 0
+    @State private var activeCleanupToast: CleanupToast?
 
     // columnVisibility steuert ob die Sidebar sichtbar ist.
     // .all bedeutet: alle 3 Spalten beim Start anzeigen.
@@ -264,6 +269,23 @@ struct ContentView: View {
                 .padding(.trailing, 18)
                 .padding(.bottom, 16)
         }
+        .overlay(alignment: .bottom) {
+            if let activeCleanupToast {
+                CleanupToastView(deletedCount: activeCleanupToast.deletedCount)
+                    .padding(.bottom, 16)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .animation(.snappy(duration: 0.18), value: activeCleanupToast)
+        .onChange(of: cleanupToastVersion) {
+            guard cleanupToastDeletedCount > 0 else {
+                return
+            }
+            activeCleanupToast = CleanupToast(id: cleanupToastVersion, deletedCount: cleanupToastDeletedCount)
+        }
+        .task(id: activeCleanupToast?.id) {
+            await clearCleanupToastIfNeeded()
+        }
         .task(id: recentRefreshStatusID) {
             await clearRecentRefreshStatusIfNeeded()
         }
@@ -415,6 +437,19 @@ struct ContentView: View {
         }
 
         await clearRecentRefreshStatus(after: statusID)
+    }
+
+    private func clearCleanupToastIfNeeded() async {
+        guard let toastID = activeCleanupToast?.id else {
+            return
+        }
+
+        try? await Task.sleep(for: .seconds(4))
+        guard activeCleanupToast?.id == toastID else {
+            return
+        }
+
+        activeCleanupToast = nil
     }
 
     private func requestRefreshAllFeeds() {
@@ -776,6 +811,32 @@ struct ContentView: View {
         feedViewModel.clearRecentRefreshStatus()
     }
 
+}
+
+private struct CleanupToast: Equatable {
+    let id: Int
+    let deletedCount: Int
+}
+
+private struct CleanupToastView: View {
+    let deletedCount: Int
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundStyle(.secondary)
+            Text(L10n.cleanupToastMessage(count: deletedCount))
+        }
+        .font(.system(size: 11, weight: .medium))
+        .foregroundStyle(.secondary)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 7)
+        .background(.regularMaterial, in: Capsule())
+        .overlay {
+            Capsule()
+                .stroke(.separator.opacity(0.35), lineWidth: 1)
+        }
+    }
 }
 
 enum NetworkConnectionStatus: Equatable {
