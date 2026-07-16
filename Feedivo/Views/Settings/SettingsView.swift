@@ -788,8 +788,14 @@ private struct NotificationSettingsView: View {
                     if feedNotificationAuthorizationStatus == .notDetermined {
                         Button(L10n.settingsNotificationsPermissionRequest) {
                             Task {
-                                _ = await FeedNotificationService.requestAuthorization()
-                                await refreshNotificationAuthorizationStatus()
+                                // Nach requestAuthorization() sofort erneut
+                                // notificationSettings() abzufragen, kann kurzzeitig noch
+                                // den alten Stand liefern (macOS propagiert die frisch
+                                // erteilte Erlaubnis nicht synchron) — deshalb direkt aus
+                                // dem bereits maßgeblichen Bool-Rückgabewert ableiten,
+                                // statt erneut nachzufragen.
+                                let isGranted = await FeedNotificationService.requestAuthorization()
+                                feedNotificationAuthorizationStatus = isGranted ? .authorized : .denied
                             }
                         }
                     } else if feedNotificationAuthorizationStatus == .denied {
