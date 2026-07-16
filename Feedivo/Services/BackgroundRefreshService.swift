@@ -153,6 +153,14 @@ enum BackgroundRefreshService {
                 ?? ArticleRetentionSettings.defaultMinimumArticlesPerFeed,
             includeProtectedArticles: userDefaults.object(forKey: ArticleRetentionSettings.includesProtectedArticlesKey) as? Bool
                 ?? ArticleRetentionSettings.defaultIncludesProtectedArticles,
+            // TASK-3-NOTE (Feature 17.3a, nicht im Task-Brief erfasst): Dieser
+            // Aufrufer bedient sowohl den App-Start (via ContentView) als auch den
+            // periodischen NSBackgroundActivityScheduler-Refresh (siehe Doc-Kommentar
+            // oben) — kann den tatsächlichen Auslöser aktuell nicht unterscheiden.
+            // `.schedule` gewählt, da dieser Pfad laut Doc-Kommentar primär für den
+            // periodischen Hintergrund-Refresh existiert; spätere Tasks (Zeitplan-
+            // gesteuerter Trigger) sollten das ggf. sauber auftrennen.
+            triggerSource: .schedule,
             userDefaults: userDefaults,
             now: now
         )

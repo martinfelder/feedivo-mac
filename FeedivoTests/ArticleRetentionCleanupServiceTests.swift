@@ -418,6 +418,7 @@ struct ArticleRetentionCleanupServiceTests {
             isEnabled: true,
             retentionDays: 90,
             minimumArticlesPerFeed: 0,
+            triggerSource: .manual,
             userDefaults: defaults,
             now: now
         )
@@ -425,6 +426,76 @@ struct ArticleRetentionCleanupServiceTests {
         #expect(try ArticleStatusStore(database: database).status(articleID: expiredID) == nil)
         #expect(defaults.string(forKey: ArticleRetentionSettings.lastAutomaticCleanupStatusKey) == ArticleRetentionSettings.statusSuccess)
         #expect(defaults.integer(forKey: ArticleRetentionSettings.lastAutomaticCleanupRemovedCountKey) == 1)
+    }
+
+    @Test func runAutomaticCleanupSchreibtHistoryEintragBeiErfolg() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let defaults = try temporaryUserDefaults()
+        let now = Date(timeIntervalSince1970: 10_000_000)
+        let oldDate = now.addingTimeInterval(-91 * 24 * 60 * 60)
+        let feedID = UUID().uuidString
+
+        try FeedStore(database: database).save(
+            FeedRecord(id: feedID, url: "https://example.com/feed.xml", title: "Feed", unreadCount: 1)
+        )
+        _ = try ArticleStore(database: database).upsert(
+            ArticleUpsertInput(feedID: feedID, title: "Alt", publishedAt: oldDate)
+        )
+
+        ArticleRetentionCleanupService.runAutomaticCleanup(
+            database: database,
+            isEnabled: true,
+            retentionDays: 90,
+            minimumArticlesPerFeed: 0,
+            triggerSource: .schedule,
+            userDefaults: defaults,
+            now: now
+        )
+
+        let history = try CleanupRunHistoryStore(database: database).recentRuns()
+        #expect(history.count == 1)
+        #expect(history[0].deletedCount == 1)
+        #expect(history[0].succeeded == true)
+        #expect(history[0].triggerSource == CleanupRunTrigger.schedule.rawValue)
+    }
+
+    @Test func runAutomaticCleanupSetztToastSignalNurBeiTatsaechlichGeloeschtenArtikeln() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let defaults = try temporaryUserDefaults()
+        let now = Date(timeIntervalSince1970: 10_000_000)
+
+        ArticleRetentionCleanupService.runAutomaticCleanup(
+            database: database,
+            isEnabled: true,
+            retentionDays: 90,
+            minimumArticlesPerFeed: 0,
+            triggerSource: .manual,
+            userDefaults: defaults,
+            now: now
+        )
+
+        #expect(defaults.integer(forKey: CleanupToastSignal.versionKey) == 0)
+
+        let feedID = UUID().uuidString
+        try FeedStore(database: database).save(
+            FeedRecord(id: feedID, url: "https://example.com/feed.xml", title: "Feed", unreadCount: 1)
+        )
+        _ = try ArticleStore(database: database).upsert(
+            ArticleUpsertInput(feedID: feedID, title: "Alt", publishedAt: now.addingTimeInterval(-91 * 24 * 60 * 60))
+        )
+
+        ArticleRetentionCleanupService.runAutomaticCleanup(
+            database: database,
+            isEnabled: true,
+            retentionDays: 90,
+            minimumArticlesPerFeed: 0,
+            triggerSource: .manual,
+            userDefaults: defaults,
+            now: now
+        )
+
+        #expect(defaults.integer(forKey: CleanupToastSignal.versionKey) == 1)
+        #expect(defaults.integer(forKey: CleanupToastSignal.deletedCountKey) == 1)
     }
 }
 

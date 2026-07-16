@@ -1250,22 +1250,24 @@ private struct CleanupSettingsView: View {
     }
 
     private func runArticleRetentionCleanup() {
-        do {
-            let removedCount: Int
-            if let feedivoDatabase {
-                removedCount = try ArticleRetentionCleanupService.removeExpiredSQLiteArticles(
-                    database: feedivoDatabase,
-                    isEnabled: articleRetentionIsEnabled,
-                    retentionDays: articleRetentionDays,
-                    minimumArticlesPerFeed: articleRetentionMinimumArticlesPerFeed,
-                    includeProtectedArticles: articleRetentionIncludesProtectedArticles
-                )
-            } else {
-                removedCount = 0
-            }
+        guard let feedivoDatabase else {
+            return
+        }
+
+        let result = ArticleRetentionCleanupService.runAutomaticCleanup(
+            database: feedivoDatabase,
+            isEnabled: articleRetentionIsEnabled,
+            retentionDays: articleRetentionDays,
+            minimumArticlesPerFeed: articleRetentionMinimumArticlesPerFeed,
+            includeProtectedArticles: articleRetentionIncludesProtectedArticles,
+            triggerSource: .manual
+        )
+
+        switch result {
+        case .success(let removedCount):
             retentionCleanupResult = L10n.settingsArticleRetentionResult(count: removedCount)
             retentionCleanupError = nil
-        } catch {
+        case .failure(let error):
             retentionCleanupResult = nil
             retentionCleanupError = error.localizedDescription
         }

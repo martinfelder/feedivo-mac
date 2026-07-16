@@ -85,12 +85,14 @@ enum ArticleRetentionCleanupService {
         return removedCount
     }
 
-    /// Führt eine automatische Bereinigung aus (App-Start, Hintergrund-Refresh,
-    /// Feed-Einstellungsänderung) und hält Ergebnis/Fehler persistent in
-    /// `UserDefaults` fest. Vorher landeten Fehler des automatischen Pfads
-    /// ausschließlich im Apple-Systemlog, ohne jede Sichtbarkeit in der App
-    /// selbst (Befund C, Nutzer-Report 2026-07-13). Ersetzt die zuvor an drei
-    /// Stellen duplizierte `logIfThrows { try removeExpiredSQLiteArticles(...) }`.
+    /// Führt eine Bereinigung aus (manuell oder automatisch: App-Start, Zeitplan,
+    /// App-Beenden, Feed-/Retention-Einstellungsänderung) und hält Ergebnis/Fehler
+    /// persistent in `UserDefaults` UND in der `cleanup_runs`-History fest (Feature
+    /// 17.3a). Feuert bei tatsächlich gelöschten Artikeln zusätzlich das
+    /// `CleanupToastSignal` für den In-App-Toast. Vorher landeten Fehler des
+    /// automatischen Pfads ausschließlich im Apple-Systemlog, ohne jede Sichtbarkeit in
+    /// der App selbst (Befund C, Nutzer-Report 2026-07-13).
+    @discardableResult
     @MainActor
     static func runAutomaticCleanup(
         database: FeedivoDatabase,
@@ -98,9 +100,10 @@ enum ArticleRetentionCleanupService {
         retentionDays: Int,
         minimumArticlesPerFeed: Int = ArticleRetentionSettings.defaultMinimumArticlesPerFeed,
         includeProtectedArticles: Bool = false,
+        triggerSource: CleanupRunTrigger,
         userDefaults: UserDefaults = .standard,
         now: Date = Date()
-    ) {
+    ) -> Result<Int, Error> {
         do {
             let removedCount = try removeExpiredSQLiteArticles(
                 database: database,
@@ -111,9 +114,28 @@ enum ArticleRetentionCleanupService {
                 now: now
             )
             recordAutomaticCleanupSuccess(removedCount: removedCount, now: now, userDefaults: userDefaults)
+            try? CleanupRunHistoryStore(database: database).record(
+                triggerSource: triggerSource,
+                deletedCount: removedCount,
+                succeeded: true,
+                errorMessage: nil,
+                now: now
+            )
+            if removedCount > 0 {
+                CleanupToastSignal.notify(deletedCount: removedCount, in: userDefaults)
+            }
+            return .success(removedCount)
         } catch {
             recordAutomaticCleanupFailure(error.localizedDescription, now: now, userDefaults: userDefaults)
+            try? CleanupRunHistoryStore(database: database).record(
+                triggerSource: triggerSource,
+                deletedCount: 0,
+                succeeded: false,
+                errorMessage: error.localizedDescription,
+                now: now
+            )
             AppLogger.dataAccess.error("Automatisches Retention-Cleanup: \(error.localizedDescription, privacy: .public)")
+            return .failure(error)
         }
     }
 

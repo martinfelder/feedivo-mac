@@ -258,7 +258,8 @@ struct FeedivoApp: App {
             isEnabled: articleRetentionIsEnabled,
             retentionDays: articleRetentionDays,
             minimumArticlesPerFeed: articleRetentionMinimumArticlesPerFeed,
-            includeProtectedArticles: articleRetentionIncludesProtectedArticles
+            includeProtectedArticles: articleRetentionIncludesProtectedArticles,
+            triggerSource: .settingsChange
         )
     }
 

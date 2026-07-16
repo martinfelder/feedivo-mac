@@ -750,7 +750,8 @@ struct FeedPropertiesView: View {
                 isEnabled: globalArticleRetentionIsEnabled,
                 retentionDays: globalArticleRetentionDays,
                 minimumArticlesPerFeed: globalArticleRetentionMinimumArticlesPerFeed,
-                includeProtectedArticles: globalArticleRetentionIncludesProtectedArticles
+                includeProtectedArticles: globalArticleRetentionIncludesProtectedArticles,
+                triggerSource: .settingsChange
             )
             loadSQLiteArticleMetrics()
             loadSQLiteReadingStatistics()
