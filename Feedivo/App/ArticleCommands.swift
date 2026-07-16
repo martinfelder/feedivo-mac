@@ -50,6 +50,7 @@ struct ArticleCommands: Commands {
             Button(articleCommandActions?.toggleArchivedTitle ?? L10n.articleArchiveCommand) {
                 articleCommandActions?.toggleArchived()
             }
+            .customizableKeyboardShortcut(.articleToggleArchived, overrides: shortcutOverrides)
             .disabled(articleCommandActions?.canPerformActions != true)
 
             Divider()
@@ -63,21 +64,25 @@ struct ArticleCommands: Commands {
             Button(L10n.articleCopyLinkCommand) {
                 articleCommandActions?.copyLink()
             }
+            .customizableKeyboardShortcut(.articleCopyLink, overrides: shortcutOverrides)
             .disabled(articleCommandActions?.canPerformLinkActions != true)
 
             Button(L10n.articleOpenOriginalCommand) {
                 articleCommandActions?.openOriginal()
             }
+            .customizableKeyboardShortcut(.articleOpenOriginal, overrides: shortcutOverrides)
             .disabled(articleCommandActions?.canPerformLinkActions != true)
 
             Button(L10n.articleShareCommand) {
                 articleCommandActions?.shareOriginal()
             }
+            .customizableKeyboardShortcut(.articleShareOriginal, overrides: shortcutOverrides)
             .disabled(articleCommandActions?.canPerformLinkActions != true)
 
             Button(L10n.articleExportCommand) {
                 articleCommandActions?.requestExport()
             }
+            .customizableKeyboardShortcut(.articleExport, overrides: shortcutOverrides)
             .disabled(articleCommandActions?.canPerformActions != true)
         }
     }

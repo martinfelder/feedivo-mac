@@ -24,11 +24,13 @@ struct FeedCommands: Commands {
             Button(L10n.feedImportOPMLCommand) {
                 feedCommandActions?.requestImportOPML()
             }
+            .customizableKeyboardShortcut(.feedImportOPML, overrides: shortcutOverrides)
             .disabled(feedCommandActions?.canImportOPML != true)
 
             Button(L10n.feedExportOPMLCommand) {
                 feedCommandActions?.requestExportOPML()
             }
+            .customizableKeyboardShortcut(.feedExportOPML, overrides: shortcutOverrides)
             .disabled(feedCommandActions?.canExportOPML != true)
 
             Divider()
@@ -36,6 +38,7 @@ struct FeedCommands: Commands {
             Button("Verwaltung...") {
                 openWindow(id: OrganizerWindowView.windowID)
             }
+            .customizableKeyboardShortcut(.feedOrganizerOpen, overrides: shortcutOverrides)
 
             Button(L10n.statisticsCommand) {
                 openWindow(id: StatisticsWindowView.windowID)
