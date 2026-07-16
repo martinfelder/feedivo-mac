@@ -399,6 +399,22 @@ enum FeedivoDatabaseMigrator {
             try backfillSmartFolderDefaultShowsReadArticles(database)
         }
 
+        migrator.registerMigration("v18_create_cleanup_run_history") { database in
+            try database.create(table: "cleanup_runs") { table in
+                table.column("id", .text).primaryKey()
+                table.column("executedAt", .datetime).notNull()
+                table.column("deletedCount", .integer).notNull()
+                table.column("triggerSource", .text).notNull()
+                table.column("succeeded", .boolean).notNull()
+                table.column("errorMessage", .text)
+            }
+            try database.create(
+                index: "idx_cleanup_runs_executed_at",
+                on: "cleanup_runs",
+                columns: ["executedAt"]
+            )
+        }
+
         return migrator
     }
 

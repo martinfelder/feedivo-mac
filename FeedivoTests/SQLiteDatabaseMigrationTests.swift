@@ -688,6 +688,14 @@ struct SQLiteDatabaseMigrationTests {
         #expect((column?["notnull"] as Int?) == 1)
         #expect((column?["dflt_value"] as String?) == "0")
     }
+
+    @Test func migrationCreatesCleanupRunsTable() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+
+        let tableNames = try database.debugTableNames()
+
+        #expect(tableNames.contains("cleanup_runs"))
+    }
 }
 
 private func insertFeed(
