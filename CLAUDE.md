@@ -288,6 +288,33 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
 
 > Diese Liste wächst während der Entwicklung. Immer ergänzen!
 
+- **Ohne eigenen `UNUserNotificationCenterDelegate` unterdrückt macOS
+  Benachrichtigungs-Banner standardmäßig, solange die App im Vordergrund ist:**
+  Beim Live-Test der Benachrichtigungs-Einstellungen (2026-07-16) meldete der
+  Nutzer, dass weder echte Feed-Benachrichtigungen noch die neue
+  Test-Benachrichtigung sichtbar erschienen — trotz erteilter macOS-Erlaubnis.
+  Per TEMPDEBUG-`OSLog`-Diagnose in `FeedNotificationService.swift` verifiziert:
+  `authorizationStatus()` lieferte korrekt `.authorized`, und
+  `UNUserNotificationCenter.add(request)` schlug NIE fehl — die Zustellung an
+  das System gelang also vollständig fehlerfrei. Root Cause: Feedivo hatte gar
+  keinen `UNUserNotificationCenterDelegate` gesetzt. Ohne einen registrierten
+  Delegate mit `willPresent(...)`-Implementierung entscheidet macOS
+  eigenständig, ob eine erfolgreich zugestellte Notification als Banner
+  angezeigt wird — und unterdrückt sie standardmäßig, solange die anfragende
+  App selbst gerade im Vordergrund/aktiv ist (ein reiner Vordergrund-Effekt,
+  kein Fehler und kein Berechtigungsproblem). Da der Test-Button naturgemäß nur
+  bei aktiver App geklickt werden kann, schlug er dadurch *immer* fehl, obwohl
+  der komplette Code-Pfad korrekt war. Fix (Commit `abda1f6`):
+  `FeedivoAppDelegate` konformiert jetzt zusätzlich zu
+  `UNUserNotificationCenterDelegate`, setzt sich in
+  `applicationDidFinishLaunching` als `UNUserNotificationCenter.current().delegate`
+  und implementiert `willPresent(...)` mit `completionHandler([.banner, .sound,
+  .list])`. **Lehre:** Bei JEDER Diagnose von "Notification wird nicht
+  zugestellt" zuerst per Logging verifizieren, ob `add(request)` tatsächlich
+  einen Fehler wirft — wirft es keinen, liegt das Problem nicht in der
+  Zustell-Pipeline, sondern typischerweise im fehlenden
+  `UNUserNotificationCenterDelegate`/`willPresent`, insbesondere wenn der
+  Test/Trigger nur bei aktiver App ausgelöst werden kann.
 - **`NSOutlineView`s automatische Drag-Erkennung funktioniert NIE mit gehostetem
   interaktivem SwiftUI-Zeileninhalt (Button/`.onTapGesture` in einer `NSHostingView`):**
   Bei der Sidebar-Migration auf `NSOutlineView` (ADR-008, `SidebarOutlineView.swift`,
