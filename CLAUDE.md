@@ -1010,6 +1010,28 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Letzte Änderungen
 
+- 2026-07-16: Feature 17.3a (Bereinigung — History, Zeitplan und Hinweis) —
+  VOLLSTÄNDIG ABGESCHLOSSEN inkl. 2 Nachträge, gepusht auf `origin/main`
+  (`92a02b478..ee7aef28d`). Kern-Feature via Brainstorming→Spec→Plan→
+  Subagent-Driven-Development umgesetzt: History der letzten 10
+  Bereinigungsläufe (neue Tabelle `cleanup_runs`, Migration v18,
+  `CleanupRunHistoryStore`), konfigurierbarer Zeitplan mit drei unabhängig
+  kombinierbaren Auslösern (App-Start, Wochentag+Uhrzeit mit Nachhol-Prüfung,
+  App-Beenden best-effort), In-App-Toast (`CleanupToastSignal`) bei
+  tatsächlich gelöschten Artikeln. **Nachtrag 1** (Brainstorming→Spec→Plan→
+  Inline-Ausführung): Wochentag-Auswahl von Einzel- auf Mehrfachauswahl per
+  Checkboxen umgestellt. **Nachtrag 2** (Brainstorming→Spec→Plan→Inline-
+  Ausführung): die drei Zeitplan-Auslöser als Button+Popover mit Checkboxen
+  zusammengefasst (`.menuActionDismissBehavior(.disabled)` ist auf macOS
+  nicht verfügbar — deshalb Popover statt `Menu`, analog zum bestehenden
+  Tag-Filter-Popover in `ArticleSearchWindowView`), Bereinigungsverlauf aus
+  den Einstellungen in ein eigenes Fenster verlagert
+  (`CleanupHistoryWindowView`, `Window`-Scene analog zum Statistik-Fenster).
+  Direkt im Anschluss drei kleine Live-Nachbesserungen am Wochentag-Layout
+  (Montag zuerst statt Sonntag, 3 Wochentage pro Zeile statt einer pro Zeile,
+  linksbündig statt durch zwei konkurrierende flexible Spacer zur Mitte
+  gedrängt). Ausstehend: manuelle Live-Verifikation (Popover-Mehrfachauswahl,
+  Wochentag-Layout, Verlaufsfenster-Inhalt) durch den Nutzer.
 - 2026-07-15: Benachrichtigungs-Einstellungen überarbeitet — via Brainstorming +
   Spec + Plan + Subagent-Driven-Development (5 Tasks) umgesetzt. Details siehe
   „Aktuell in Arbeit" oben, hier nicht dupliziert. Commits `8997a0bed..c9bc761f0`

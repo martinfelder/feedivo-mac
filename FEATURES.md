@@ -743,22 +743,27 @@
   separat unter `Regeln`.
 
 ### 17.3a Bereinigung — History, Zeitplan und Hinweis
-- **Status:** ⏸️ Zurückgestellt — späterer Ausbau, nicht jetzt implementieren
-- **Geplant:**
-  - History der letzten 10 Bereinigungen im Bereich `Bereinigung`
-  - Pro History-Eintrag: Zeitpunkt der Ausführung und Anzahl gelöschter Artikel
-  - Konfigurierbarer Zeitpunkt für automatische Bereinigung:
-    - bestimmter Wochentag und Uhrzeit
-    - beim Starten der App
-    - beim Beenden der App
-  - Wenn eine Bereinigung ausgeführt wird, soll Feedivo einen sichtbaren Hinweis
-    auf dem Bildschirm anzeigen, inklusive Ergebnis beziehungsweise gelöschter
-    Artikelanzahl.
-- **Offene Umsetzungsdetails:**
-  - Persistenzmodell für die letzten 10 Läufe festlegen (`@AppStorage` reicht
-    eventuell für kompakte History, SwiftData wäre robuster).
-  - Klären, ob der Bildschirmhinweis als Toast/Overlay im Hauptfenster oder als
-    macOS-Benachrichtigung plus In-App-Hinweis erscheinen soll.
+- **Status:** ✅ Umgesetzt (2026-07-16, inkl. 2 Nachträge), gepusht auf `origin/main`
+- **Umgesetzt:**
+  - History der letzten 10 Bereinigungsläufe, persistiert in eigener SQLite-
+    Tabelle `cleanup_runs` (Migration v18) über `CleanupRunHistoryStore`; pro
+    Eintrag Zeitpunkt, Auslöser, gelöschte Anzahl bzw. Fehlermeldung.
+  - Konfigurierbarer Zeitplan mit drei unabhängig kombinierbaren Auslösern:
+    App-Start, bestimmte(r) Wochentag(e) + Uhrzeit (Mehrfachauswahl per
+    Checkboxen, Nachhol-Prüfung falls Feedivo zum Zeitpunkt nicht lief), Beenden
+    der App (best-effort in `applicationWillTerminate`).
+  - In-App-Toast (`CleanupToastSignal`) erscheint automatisch, wenn ein
+    Bereinigungslauf tatsächlich Artikel gelöscht hat.
+  - **Nachtrag 1:** Wochentag-Auswahl von Einzel- auf Mehrfachauswahl
+    umgestellt (Checkboxen statt Einzel-Picker), 3 Wochentage pro Zeile,
+    Montag zuerst, linksbündig.
+  - **Nachtrag 2:** Die drei Zeitplan-Auslöser sind als Button + Popover mit
+    Checkboxen zusammengefasst (bleibt beim Anklicken offen, analog zum
+    bestehenden Tag-Filter-Popover in der Artikelsuche); der Bereinigungsverlauf
+    wurde aus den Einstellungen in ein eigenes Fenster verlagert
+    (`CleanupHistoryWindowView`, über einen "Anzeigen…"-Button geöffnet).
+- **Ausstehend:** manuelle Live-Verifikation im laufenden Betrieb (Popover-
+  Mehrfachauswahl, Wochentag-Layout, Verlaufsfenster-Inhalt) durch den Nutzer.
 
 ### 17.4 Artikel-Liste Anzeige-Logik
 - **Status:** ✅ Entschieden — siehe Feature 2.5
