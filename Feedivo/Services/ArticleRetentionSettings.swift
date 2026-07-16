@@ -16,7 +16,7 @@ enum ArticleRetentionSettings {
     static let defaultMinimumArticlesPerFeed = 20
     static let defaultIncludesProtectedArticles = false
     static let allowedRetentionDays = [30, 60, 90, 180, 365]
-    static let allowedMinimumArticlesPerFeed = [0, 10, 20, 50, 100]
+    static let allowedMinimumArticlesPerFeed = [0, 10, 20, 50, 100, 200, 300, 400, 500]
 
     static func clampedRetentionDays(_ days: Int) -> Int {
         allowedRetentionDays.min { first, second in
