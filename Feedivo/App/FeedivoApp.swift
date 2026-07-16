@@ -31,6 +31,9 @@ struct FeedivoApp: App {
     @AppStorage(ArticleRetentionSettings.includesProtectedArticlesKey)
     private var articleRetentionIncludesProtectedArticles = ArticleRetentionSettings.defaultIncludesProtectedArticles
 
+    @AppStorage(SpotlightIndexingSettings.isEnabledKey)
+    private var spotlightIndexingIsEnabled = SpotlightIndexingSettings.defaultIsEnabled
+
     // Feature 23.2: AppKit-Delegate fängt feedivo://-URLs zuverlässig ab —
     // auch beim Kaltstart, bevor die SwiftUI-View-Hierarchie existiert (siehe
     // FeedivoAppDelegate). Die geparste Aktion wird in dessen
@@ -102,6 +105,7 @@ struct FeedivoApp: App {
                     }
                     backfillStoredArticleMetadataIfNeeded()
                     trimImageCacheToSelectedLimit()
+                    ensureSpotlightBackfillIfNeeded()
                     scheduleBackgroundRefresh()
                 }
                 .onChange(of: backgroundRefreshIsEnabled) {
@@ -124,6 +128,9 @@ struct FeedivoApp: App {
                 }
                 .onChange(of: articleRetentionIncludesProtectedArticles) {
                     cleanupExpiredArticlesIfNeeded()
+                }
+                .onChange(of: spotlightIndexingIsEnabled) {
+                    handleSpotlightIndexingToggleChange()
                 }
         }
         .commands {
@@ -252,6 +259,25 @@ struct FeedivoApp: App {
             minimumArticlesPerFeed: articleRetentionMinimumArticlesPerFeed,
             includeProtectedArticles: articleRetentionIncludesProtectedArticles
         )
+    }
+
+    @MainActor
+    private func ensureSpotlightBackfillIfNeeded() {
+        guard databaseLoadState.initializationError == nil else {
+            return
+        }
+        logIfThrows(context: "Spotlight-Backfill") {
+            try SpotlightIndexingService.ensureBackfillIfNeeded(database: feedivoDatabase)
+        }
+    }
+
+    @MainActor
+    private func handleSpotlightIndexingToggleChange() {
+        if spotlightIndexingIsEnabled {
+            ensureSpotlightBackfillIfNeeded()
+        } else {
+            SpotlightIndexingService.deindexAll()
+        }
     }
 
     @MainActor

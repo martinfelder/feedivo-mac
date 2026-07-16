@@ -24945,6 +24945,90 @@
         }
       }
     },
+    "settings.spotlight.section" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suche"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recherche"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ricerca"
+          }
+        }
+      }
+    },
+    "settings.spotlight.toggle.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Artikel in Spotlight indexieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Index Articles in Spotlight"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indexer les articles dans Spotlight"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indicizza articoli in Spotlight"
+          }
+        }
+      }
+    },
+    "settings.spotlight.toggle.description" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erm\u00f6glicht, Artikel \u00fcber die macOS-Systemsuche zu finden. Rein lokale Indexierung, kein Cloud-Upload."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lets you find articles via macOS system search. Indexing happens entirely on-device, nothing is uploaded."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permet de retrouver les articles via la recherche syst\u00e8me macOS. Indexation enti\u00e8rement locale, aucun envoi dans le cloud."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consente di trovare gli articoli tramite la ricerca di sistema di macOS. Indicizzazione interamente locale, nessun caricamento nel cloud."
+          }
+        }
+      }
+    },
     "settings.sync.beta.description" : {
       "localizations" : {
         "de" : {

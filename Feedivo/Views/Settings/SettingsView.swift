@@ -239,6 +239,9 @@ private struct GeneralSettingsView: View {
     @AppStorage(ArticleWindowSettings.restoreOpenArticleWindowsOnLaunchKey)
     private var restoreOpenArticleWindowsOnLaunch = ArticleWindowSettings.defaultRestoreOpenArticleWindowsOnLaunch
 
+    @AppStorage(SpotlightIndexingSettings.isEnabledKey)
+    private var spotlightIndexingIsEnabled = SpotlightIndexingSettings.defaultIsEnabled
+
     private var availableBrowserTargets: [ArticleOriginalBrowserTarget] {
         ArticleOriginalBrowserTarget.availableTargets()
     }
@@ -337,6 +340,16 @@ private struct GeneralSettingsView: View {
                     description: L10n.settingsRestoreArticleWindowsDescription
                 ) {
                     Toggle("", isOn: $restoreOpenArticleWindowsOnLaunch)
+                        .labelsHidden()
+                }
+            }
+
+            SettingsBlock(eyebrow: L10n.settingsSpotlightSection) {
+                SettingRow(
+                    title: L10n.settingsSpotlightToggleTitle,
+                    description: L10n.settingsSpotlightToggleDescription
+                ) {
+                    Toggle("", isOn: $spotlightIndexingIsEnabled)
                         .labelsHidden()
                 }
             }
