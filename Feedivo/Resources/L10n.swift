@@ -155,6 +155,7 @@ enum L10n {
     static let shortcutsLabelArticleOpenOriginal = LocalizedStringKey("shortcuts.label.articleOpenOriginal")
     static let shortcutsLabelArticleShareOriginal = LocalizedStringKey("shortcuts.label.articleShareOriginal")
     static let shortcutsLabelArticleExport = LocalizedStringKey("shortcuts.label.articleExport")
+    static let shortcutsModifierFreeWarning = LocalizedStringKey("shortcuts.modifierFree.warning")
 
     static func shortcutsConflictMessage(_ conflictingLabel: String) -> String {
         String.localizedStringWithFormat(
