@@ -58,4 +58,22 @@ final class FeedivoAppDelegate: NSObject, NSApplicationDelegate, UNUserNotificat
             }
         }
     }
+
+    // Feature 9.3: macOS liefert einen Klick auf ein Spotlight-Suchresultat als
+    // NSUserActivity, nicht als URL — landet deshalb in einem eigenen
+    // Delegate-Callback statt in application(_:open:). Nutzt denselben
+    // PendingURLSchemeAction-Konsum-Pfad wie feedivo://article, damit
+    // ContentView beide Auslöser identisch behandelt.
+    func application(
+        _ application: NSApplication,
+        continue userActivity: NSUserActivity,
+        restorationHandler: @escaping ([any NSUserActivityRestoring]) -> Void
+    ) -> Bool {
+        guard let articleID = SpotlightContinuationParser.articleID(from: userActivity) else {
+            return false
+        }
+
+        pendingURLSchemeAction.action = .openArticle(articleID: articleID)
+        return true
+    }
 }
