@@ -43,6 +43,35 @@ final class FeedivoAppDelegate: NSObject, NSApplicationDelegate, UNUserNotificat
         )
     }
 
+    // Feature 17.3a: optionaler Auslöser "Beim Beenden der App" für die automatische
+    // Bereinigung. Bewusst fire-and-forget — `applicationWillTerminate` garantiert
+    // keine Ausführungszeit für asynchrone Arbeit, ein durch die Terminierung
+    // abgebrochener Lauf ist unkritisch, die nächste Gelegenheit (App-Start oder
+    // Zeitplan) holt ihn nach. Liest UserDefaults direkt statt @AppStorage, da dieser
+    // Delegate außerhalb einer SwiftUI-View läuft (analog zu
+    // BackgroundRefreshService.cleanupOnAppStartIfNeeded).
+    func applicationWillTerminate(_ notification: Notification) {
+        guard CleanupScheduleSettings.runOnQuit(), let feedivoDatabase = menubarFeedivoDatabase else {
+            return
+        }
+
+        let defaults = UserDefaults.standard
+        Task {
+            ArticleRetentionCleanupService.runAutomaticCleanup(
+                database: feedivoDatabase,
+                isEnabled: defaults.object(forKey: ArticleRetentionSettings.isEnabledKey) as? Bool
+                    ?? ArticleRetentionSettings.defaultIsEnabled,
+                retentionDays: defaults.object(forKey: ArticleRetentionSettings.retentionDaysKey) as? Int
+                    ?? ArticleRetentionSettings.defaultRetentionDays,
+                minimumArticlesPerFeed: defaults.object(forKey: ArticleRetentionSettings.minimumArticlesPerFeedKey) as? Int
+                    ?? ArticleRetentionSettings.defaultMinimumArticlesPerFeed,
+                includeProtectedArticles: defaults.object(forKey: ArticleRetentionSettings.includesProtectedArticlesKey) as? Bool
+                    ?? ArticleRetentionSettings.defaultIncludesProtectedArticles,
+                triggerSource: .onQuit
+            )
+        }
+    }
+
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification,
