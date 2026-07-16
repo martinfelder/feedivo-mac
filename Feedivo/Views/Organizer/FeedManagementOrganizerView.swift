@@ -77,6 +77,30 @@ struct FeedManagementOrganizerView: View {
                 }
                 .disabled(selectedFeeds.isEmpty)
                 .opacity(selectedFeeds.isEmpty ? 0.55 : 1)
+
+                RuleDialogButton(
+                    titleKey: L10n.settingsFeedsNotifySelected,
+                    style: .secondary,
+                    theme: theme,
+                    systemImage: selectedFeeds.isEmpty ? nil : "bell.fill",
+                    titleSuffix: selectedFeeds.isEmpty ? nil : " (\(selectedFeeds.count))"
+                ) {
+                    setNotificationEnabled(true, for: selectedFeeds)
+                }
+                .disabled(selectedFeeds.isEmpty)
+                .opacity(selectedFeeds.isEmpty ? 0.45 : 1)
+
+                RuleDialogButton(
+                    titleKey: L10n.settingsFeedsUnnotifySelected,
+                    style: .secondary,
+                    theme: theme,
+                    systemImage: selectedFeeds.isEmpty ? nil : "bell.slash",
+                    titleSuffix: selectedFeeds.isEmpty ? nil : " (\(selectedFeeds.count))"
+                ) {
+                    setNotificationEnabled(false, for: selectedFeeds)
+                }
+                .disabled(selectedFeeds.isEmpty)
+                .opacity(selectedFeeds.isEmpty ? 0.45 : 1)
             }
 
             if feeds.isEmpty {
@@ -93,7 +117,8 @@ struct FeedManagementOrganizerView: View {
                             isSelected: selectedFeedIDs.contains(feed.id),
                             theme: theme,
                             sqliteDatabase: feedivoDatabase,
-                            onDelete: { feedPendingDeletion = feed }
+                            onDelete: { feedPendingDeletion = feed },
+                            onToggleNotification: { toggleNotification(for: feed) }
                         ) { isSelected in
                             if isSelected {
                                 selectedFeedIDs.insert(feed.id)
@@ -210,6 +235,31 @@ struct FeedManagementOrganizerView: View {
         }
     }
 
+    private func toggleNotification(for feed: FeedRecord) {
+        setNotificationEnabled(!feed.isNotificationEnabled, for: [feed])
+    }
+
+    private func setNotificationEnabled(_ isEnabled: Bool, for feedsToUpdate: [FeedRecord]) {
+        guard let database = feedivoDatabase else {
+            errorMessage = "SQLite-Datenbank ist nicht verfügbar."
+            return
+        }
+
+        for feed in feedsToUpdate {
+            do {
+                try FeedStore(database: database).updateNotificationEnabled(id: feed.id, isEnabled: isEnabled)
+            } catch {
+                errorMessage = error.localizedDescription
+                break
+            }
+        }
+
+        if errorMessage == nil {
+            SQLiteDataInvalidation.bumpStatusVersion()
+            loadFeeds()
+        }
+    }
+
     private func loadFeeds() {
         guard let database = feedivoDatabase else {
             feeds = []
@@ -239,6 +289,7 @@ private struct FeedManagementOrganizerRow: View {
     let theme: RuleDialogTheme
     let sqliteDatabase: FeedivoDatabase?
     let onDelete: () -> Void
+    let onToggleNotification: () -> Void
     let setSelected: (Bool) -> Void
     @State private var sqliteArticleMetrics = FeedPropertiesArticleMetricsSnapshot.empty
 
@@ -266,6 +317,15 @@ private struct FeedManagementOrganizerRow: View {
             }
 
             Spacer()
+
+            Button(action: onToggleNotification) {
+                Image(systemName: feed.isNotificationEnabled ? "bell.fill" : "bell.slash")
+                    .font(.system(size: 13))
+                    .foregroundStyle(theme.text2)
+                    .frame(width: 30, height: 30)
+            }
+            .buttonStyle(.plain)
+            .help(feed.isNotificationEnabled ? L10n.settingsFeedsRowDisableNotification : L10n.settingsFeedsRowEnableNotification)
 
             Button(action: onDelete) {
                 Image(systemName: "trash")
