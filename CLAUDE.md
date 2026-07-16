@@ -754,6 +754,31 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Aktuell in Arbeit
 
+- **2026-07-16: Bulk-Benachrichtigungsverwaltung im Feed-Organizer — VOLLSTÄNDIG
+  ABGESCHLOSSEN, NICHT gepusht.** Nutzerwunsch: "Benachrichtigen" nicht mehr für jeden
+  Feed einzeln über die Feed-Eigenschaften umschalten müssen. Umgesetzt via leichtgewichtigem
+  Brainstorming+Spec (kein voller Plan/Subagent-Driven-Development-Prozess, da reine
+  Wiederverwendung bestehender Bausteine): `FeedManagementOrganizerView.swift` bekommt
+  einen Glocken-Button pro Feed-Zeile (`bell.fill`/`bell.slash` je nach
+  `feed.isNotificationEnabled`, reiner `.plain`-Icon-Button-Stil wie der bestehende
+  Papierkorb-Button) sowie zwei neue Toolbar-Buttons "Benachrichtigen (N)"/
+  "Nicht benachrichtigen (N)" für die Mehrfachauswahl, exakt nach dem Muster des
+  bestehenden "Ausgewählte löschen"-Buttons (Anzahl-Suffix, `.disabled`/`.opacity(0.45)`
+  bei leerer Auswahl). Kein neuer Store-Code — nutzt die bereits vorhandene
+  `FeedStore.updateNotificationEnabled(id:isEnabled:)` an drei neuen Stellen. Keine
+  Bestätigungs-Dialoge (jederzeit reversible Einstellungsänderung, kein Löschen). "Alle
+  Feeds" bewusst nicht separat implementiert — durch "Sichtbare auswählen" (bei leerer
+  Suche = alle Feeds) + Bulk-Button bereits abgedeckt. 4 neue L10n-Keys manuell in
+  `Localizable.xcstrings` ergänzt (Xcodes Auto-Stub-Mechanismus greift bei indirekten
+  `L10n`-Keys nicht, siehe bestehender Gotcha). `xcodebuild build` grün. Bestehende
+  Source-Sniffing-Assertion `feedPropertiesMetrikenLaufenUeberSQLite` in
+  `FeedivoAppSceneConfigurationTests.swift` (prüft per Substring-Match auf
+  whitespace-bereinigtem Quelltext, ob `FeedManagementOrganizerRow(...)` bestimmte
+  Parameter enthält) war schon vor dieser Änderung nicht erfüllbar, da `theme:theme,`
+  zwischen den geprüften Parametern liegt — keine Regression, bereits Teil der
+  vorbestehenden Testfehlschläge in dieser Datei. Spec:
+  `docs/superpowers/specs/2026-07-16-organizer-bulk-notify-design.md`. Ausstehend: manuelle
+  Live-Verifikation im laufenden Betrieb (Zeilen-Button + beide Toolbar-Buttons).
 - **2026-07-15: Benachrichtigungs-Einstellungen überarbeitet (Master-Schalter, Standard
   für neue Feeds, Test-Benachrichtigung, Systemeinstellungen-Link) — Implementierung
   abgeschlossen, NICHT gepusht.** Bisherige Einstellungsseite zeigte nur den
