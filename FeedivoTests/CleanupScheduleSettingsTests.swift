@@ -59,7 +59,7 @@ struct CleanupScheduleSettingsTests {
         let todayStart = calendar.startOfDay(for: now)
         let scheduledTime = calendar.date(byAdding: .minute, value: 60, to: todayStart)!
 
-        defaults.set(todayWeekday, forKey: CleanupScheduleSettings.weekdayKey)
+        defaults.set("\(todayWeekday)", forKey: CleanupScheduleSettings.weekdaysKey)
         defaults.set(60, forKey: CleanupScheduleSettings.timeMinutesKey)
         defaults.set(scheduledTime, forKey: CleanupScheduleSettings.lastScheduleRunAtKey)
 
@@ -74,7 +74,7 @@ struct CleanupScheduleSettingsTests {
 
         let now = Date(timeIntervalSince1970: 10_000_000)
         let todayWeekday = calendar.component(.weekday, from: now)
-        defaults.set(todayWeekday, forKey: CleanupScheduleSettings.weekdayKey)
+        defaults.set("\(todayWeekday)", forKey: CleanupScheduleSettings.weekdaysKey)
         defaults.set(60, forKey: CleanupScheduleSettings.timeMinutesKey)
 
         // Letzter Lauf liegt 3 Wochen zurück — mehrere fällige Termine wurden verpasst
@@ -97,7 +97,7 @@ struct CleanupScheduleSettingsTests {
         let todayStart = calendar.startOfDay(for: now)
         let futureTimeMinutesToday = 23 * 60 // 23:00 Uhr, noch nicht erreicht
 
-        defaults.set(todayWeekday, forKey: CleanupScheduleSettings.weekdayKey)
+        defaults.set("\(todayWeekday)", forKey: CleanupScheduleSettings.weekdaysKey)
         defaults.set(futureTimeMinutesToday, forKey: CleanupScheduleSettings.timeMinutesKey)
 
         // Letzter Lauf: exakt vor 7 Tagen zur selben (damals bereits erreichten) Zielzeit.
@@ -106,6 +106,71 @@ struct CleanupScheduleSettingsTests {
         defaults.set(lastRunAt, forKey: CleanupScheduleSettings.lastScheduleRunAtKey)
 
         #expect(CleanupScheduleSettings.isWeekdayTimeScheduleDue(now: now, calendar: calendar, defaults: defaults) == false)
+    }
+
+    @Test func parseWeekdaysLiestKommagetrennteWerte() {
+        #expect(CleanupScheduleSettings.parseWeekdays("1,3,5") == [1, 3, 5])
+    }
+
+    @Test func parseWeekdaysLiefertDefaultBeiLeeremString() {
+        #expect(CleanupScheduleSettings.parseWeekdays("") == [1])
+    }
+
+    @Test func formatWeekdaysSortiertUndVerbindet() {
+        #expect(CleanupScheduleSettings.formatWeekdays([5, 1, 3]) == "1,3,5")
+    }
+
+    @Test func weekdaysLiefertDefaultBeiFehlendemKey() throws {
+        let defaults = try temporaryUserDefaults()
+        #expect(CleanupScheduleSettings.weekdays(in: defaults) == [1])
+    }
+
+    @Test func weekdaysLiestGespeicherteMehrfachauswahl() throws {
+        let defaults = try temporaryUserDefaults()
+        defaults.set("2,4", forKey: CleanupScheduleSettings.weekdaysKey)
+        #expect(CleanupScheduleSettings.weekdays(in: defaults) == [2, 4])
+    }
+
+    @Test func isWeekdayTimeScheduleDueLiefertTrueWennEinerVonMehrerenTagenFaelligIst() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        let defaults = try temporaryUserDefaults()
+        defaults.set(true, forKey: CleanupScheduleSettings.runOnWeekdayTimeKey)
+
+        let now = Date(timeIntervalSince1970: 10_000_000)
+        let todayWeekday = calendar.component(.weekday, from: now)
+        // Ein weiterer, "unbeteiligter" Wochentag (nicht heute) wird mit ausgewählt —
+        // heute soll trotzdem als fällig erkannt werden, weil MINDESTENS einer der
+        // gewählten Tage fällig ist.
+        let otherWeekday = (todayWeekday % 7) + 1
+        defaults.set("\(todayWeekday),\(otherWeekday)", forKey: CleanupScheduleSettings.weekdaysKey)
+        defaults.set(60, forKey: CleanupScheduleSettings.timeMinutesKey) // 01:00 Uhr, heute bereits erreicht
+
+        #expect(CleanupScheduleSettings.isWeekdayTimeScheduleDue(now: now, calendar: calendar, defaults: defaults) == true)
+    }
+
+    @Test func isWeekdayTimeScheduleDueLiefertFalseWennKeinerDerMehrerenTageFaelligIst() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        let defaults = try temporaryUserDefaults()
+        defaults.set(true, forKey: CleanupScheduleSettings.runOnWeekdayTimeKey)
+
+        let now = Date(timeIntervalSince1970: 10_000_000)
+        let todayWeekday = calendar.component(.weekday, from: now)
+        let otherWeekday = (todayWeekday % 7) + 1
+        defaults.set("\(todayWeekday),\(otherWeekday)", forKey: CleanupScheduleSettings.weekdaysKey)
+        defaults.set(60, forKey: CleanupScheduleSettings.timeMinutesKey) // 01:00 Uhr
+
+        // lastRunAt liegt NACH der heutigen 01:00-Uhr-Sollzeit UND nach der Sollzeit des
+        // anderen gewählten Tages in dieser Woche — für beide Tage ist die aktuelle
+        // Woche also bereits "erledigt", keiner ist fällig.
+        let todayStart = calendar.startOfDay(for: now)
+        let todayScheduledTime = calendar.date(byAdding: .minute, value: 60, to: todayStart)!
+        let lastRunAt = todayScheduledTime.addingTimeInterval(6 * 24 * 60 * 60) // fast eine Woche später
+
+        defaults.set(lastRunAt, forKey: CleanupScheduleSettings.lastScheduleRunAtKey)
+
+        #expect(CleanupScheduleSettings.isWeekdayTimeScheduleDue(now: lastRunAt.addingTimeInterval(60), calendar: calendar, defaults: defaults) == false)
     }
 }
 

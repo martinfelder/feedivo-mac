@@ -10,8 +10,10 @@ enum CleanupScheduleSettings {
     static let runOnWeekdayTimeKey = "cleanupSchedule.runOnWeekdayTime"
     static let defaultRunOnWeekdayTime = false
 
-    static let weekdayKey = "cleanupSchedule.weekday"          // 1...7, Calendar.weekday (1 = Sonntag)
-    static let defaultWeekday = 1
+    // Kommagetrennt, z. B. "1,3,5" — Calendar.weekday-Konvention (1 = Sonntag).
+    static let weekdaysKey = "cleanupSchedule.weekdays"
+    static let defaultWeekdaysStored = "1"
+    static let defaultWeekdays: Set<Int> = [1]
 
     static let timeMinutesKey = "cleanupSchedule.timeMinutes"  // Minuten seit Mitternacht, 0...1439
     static let defaultTimeMinutes = 180                        // 03:00 Uhr
@@ -42,11 +44,24 @@ enum CleanupScheduleSettings {
         return defaults.bool(forKey: runOnQuitKey)
     }
 
-    static func weekday(in defaults: UserDefaults = .standard) -> Int {
-        guard defaults.object(forKey: weekdayKey) != nil else {
-            return defaultWeekday
+    /// Parst den kommagetrennten Rohwert zu einer Menge von Wochentagen. Liefert bei
+    /// leerem oder komplett unparsbarem Input den Default (Sonntag) statt einer leeren
+    /// Menge — eine leere Auswahl würde die Zeitplan-Prüfung sonst nie fällig werden
+    /// lassen, ohne dass das für den Nutzer sichtbar wäre.
+    static func parseWeekdays(_ raw: String) -> Set<Int> {
+        let parsed = Set(raw.split(separator: ",").compactMap { Int($0) })
+        return parsed.isEmpty ? defaultWeekdays : parsed
+    }
+
+    static func formatWeekdays(_ weekdays: Set<Int>) -> String {
+        weekdays.sorted().map(String.init).joined(separator: ",")
+    }
+
+    static func weekdays(in defaults: UserDefaults = .standard) -> Set<Int> {
+        guard let stored = defaults.string(forKey: weekdaysKey) else {
+            return defaultWeekdays
         }
-        return defaults.integer(forKey: weekdayKey)
+        return parseWeekdays(stored)
     }
 
     static func timeMinutes(in defaults: UserDefaults = .standard) -> Int {
@@ -60,10 +75,12 @@ enum CleanupScheduleSettings {
         defaults.set(now, forKey: lastScheduleRunAtKey)
     }
 
-    /// Nachhol-Prüfung: liefert true, wenn der konfigurierte Wochentag+Uhrzeit seit dem
-    /// letzten geloggten Zeitplan-Lauf bereits erreicht/verstrichen ist. Feedivo läuft
-    /// nicht durchgehend — ein verpasster Zeitpunkt wird beim nächsten Kontakt (App-Start,
-    /// Hintergrund-Refresh-Tick) nachgeholt, statt komplett auszufallen.
+    /// Nachhol-Prüfung: liefert true, wenn für MINDESTENS EINEN der konfigurierten
+    /// Wochentage die Sollzeit seit dem letzten geloggten Zeitplan-Lauf bereits
+    /// erreicht/verstrichen ist. Feedivo läuft nicht durchgehend — ein verpasster
+    /// Zeitpunkt wird beim nächsten Kontakt (App-Start, Hintergrund-Refresh-Tick)
+    /// nachgeholt, statt komplett auszufallen. Bei mehreren gewählten Wochentagen läuft
+    /// die Bereinigung entsprechend mehrfach pro Woche.
     static func isWeekdayTimeScheduleDue(
         now: Date,
         calendar: Calendar = .current,
@@ -73,12 +90,18 @@ enum CleanupScheduleSettings {
             return false
         }
 
-        let mostRecentDue = mostRecentOccurrence(
-            weekday: weekday(in: defaults),
-            timeMinutes: timeMinutes(in: defaults),
-            atOrBefore: now,
-            calendar: calendar
-        )
+        let selectedWeekdays = weekdays(in: defaults)
+        let configuredTimeMinutes = timeMinutes(in: defaults)
+        let mostRecentDue = selectedWeekdays
+            .map { weekday in
+                mostRecentOccurrence(
+                    weekday: weekday,
+                    timeMinutes: configuredTimeMinutes,
+                    atOrBefore: now,
+                    calendar: calendar
+                )
+            }
+            .max() ?? .distantPast
 
         guard let lastRunAt = defaults.object(forKey: lastScheduleRunAtKey) as? Date else {
             return true
