@@ -250,6 +250,18 @@ struct FeedStore {
     func sidebarFeeds() throws -> [FeedSidebarSnapshot] {
         try database.read { db in
             let snapshots = try FeedSidebarSnapshot.fetchAll(db, sql: """
+                WITH unread_counts AS (
+                    SELECT a.feedID AS feedID, COUNT(*) AS unreadCount
+                    FROM articles a
+                    JOIN article_statuses s ON s.articleID = a.id
+                    WHERE s.isRead = 0 AND s.isHidden = 0
+                    GROUP BY a.feedID
+                ),
+                latest_feed_logs AS (
+                    SELECT feedID, level,
+                           ROW_NUMBER() OVER (PARTITION BY feedID ORDER BY createdAt DESC) AS rn
+                    FROM feed_logs
+                )
                 SELECT
                     f.id,
                     f.title,
@@ -257,25 +269,11 @@ struct FeedStore {
                     f.faviconURL,
                     f.folderName,
                     f.sortIndex,
-                    (
-                        SELECT COUNT(*)
-                        FROM articles a
-                        JOIN article_statuses s ON s.articleID = a.id
-                        WHERE a.feedID = f.id
-                            AND s.isRead = 0
-                            AND s.isHidden = 0
-                    ) AS unreadCount,
-                    COALESCE(
-                        (
-                            SELECT level = 'error'
-                            FROM feed_logs
-                            WHERE feedID = f.id
-                            ORDER BY createdAt DESC
-                            LIMIT 1
-                        ),
-                        0
-                    ) AS hasRecentError
+                    COALESCE(uc.unreadCount, 0) AS unreadCount,
+                    COALESCE(ll.level = 'error', 0) AS hasRecentError
                 FROM feeds f
+                LEFT JOIN unread_counts uc ON uc.feedID = f.id
+                LEFT JOIN latest_feed_logs ll ON ll.feedID = f.id AND ll.rn = 1
                 ORDER BY f.sortIndex, f.title COLLATE NOCASE, f.id COLLATE NOCASE
                 """)
             return snapshots.sorted {

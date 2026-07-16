@@ -74,6 +74,35 @@ Die beiden betroffenen Schwellen im Test (`sidebarFeeds()` bei 500 Feeds sowie
 `withKnownIssue` markiert. Sie bleiben dadurch im Testreport sichtbar, ohne die
 übrigen Performance-Regressionen zu verdecken.
 
+### Nachmessung nach Query-Umbau (2026-07-16)
+
+`FeedStore.sidebarFeeds()` verwendet seit Commit <COMMIT_HASH> zwei
+gruppierte/gefensterte CTEs (`unread_counts` via `GROUP BY`,
+`latest_feed_logs` via `ROW_NUMBER() OVER PARTITION BY`) statt der beiden
+korrelierten Pro-Feed-Subqueries. Neue Messung (optimiertes
+Release-Testprofil, gleicher Zielbestand 500 Feeds / 100'000 Artikel):
+
+| Vorgang | Vorher (2026-07-15) | Nachher (2026-07-16) |
+|---|---:|---:|
+| Sidebar-Snapshots für 500 Feeds | 10'904 ms | 26 ms |
+
+Beide `withKnownIssue`-Marker aus dem vorigen Abschnitt sind entfernt worden:
+Der Marker für `sidebarMeasurement.milliseconds < 1_000` (Zielbestandstest)
+ist jetzt weit unterschritten (~26 ms statt der geforderten <1'000 ms). Der
+zweite Marker (`countElapsed < 1.5` im 100-Feed-Test
+`sidebarUndArtikelCountsLassenSichSchnellBerechnen`) war ebenfalls
+unerwartet erfüllt — dieser Test misst zusätzlich 100 sequenzielle Aufrufe
+von `TimelineStore.unreadCount(feedID:)` (eine andere, weiterhin
+unoptimierte Methode außerhalb des Scopes dieser Korrektur), bleibt bei nur
+100 Feeds aber auch mit dieser separaten korrelierten Unterabfrage klar
+unter der 1,5-Sekunden-Schwelle. `TimelineStore.unreadCount` selbst wurde
+nicht angefasst — ein analoger Bottleneck bei größerem Zielbestand (z. B.
+500+ Feeds) ist damit nicht ausgeschlossen und bliebe ein möglicher Kandidat
+für eine künftige, separate Maßnahme.
+
+Design-Spec:
+`docs/superpowers/specs/2026-07-16-sidebar-feeds-performance-design.md`.
+
 ## Reproduzierbare Ausführung
 
 Optimierter Messlauf:

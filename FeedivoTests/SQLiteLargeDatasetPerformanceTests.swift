@@ -179,11 +179,7 @@ struct SQLiteLargeDatasetPerformanceTests {
         let sidebarFeeds = sidebarMeasurement.value
         metrics.append(("sidebar_500_feeds", sidebarMeasurement.milliseconds))
         #expect(sidebarFeeds.count == 500)
-        withKnownIssue(
-            "Sidebar-Counts verwenden noch eine korrelierte Unterabfrage pro Feed; siehe Performance-Bericht vom 2026-07-15."
-        ) {
-            #expect(sidebarMeasurement.milliseconds < 1_000)
-        }
+        #expect(sidebarMeasurement.milliseconds < 1_000)
 
         let metricsText = metrics
             .map { String(format: "%@=%.3f", $0.0, $0.1) }
@@ -293,10 +289,6 @@ struct SQLiteLargeDatasetPerformanceTests {
         let countElapsed = Date().timeIntervalSince(countStart)
         #expect(feedSnapshots.count == 100)
         #expect(totalUnread > 0)
-        withKnownIssue(
-            "Per-Feed-Counts verwenden noch wiederholte Einzelabfragen; siehe Performance-Bericht vom 2026-07-15."
-        ) {
-            #expect(countElapsed < 1.5)
-        }
+        #expect(countElapsed < 1.5)
     }
 }
