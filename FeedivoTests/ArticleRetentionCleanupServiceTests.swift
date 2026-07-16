@@ -52,6 +52,53 @@ struct ArticleRetentionCleanupServiceTests {
         #expect(try ArticleStatusStore(database: database).status(articleID: expiredID) == nil)
     }
 
+    @Test func sqliteCleanupDeindexiertGeloeschteArtikelAusSpotlight() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let now = Date(timeIntervalSince1970: 10_000_000)
+        let oldDate = now.addingTimeInterval(-91 * 24 * 60 * 60)
+        let feedID = UUID().uuidString
+
+        try FeedStore(database: database).save(FeedRecord(id: feedID, url: "https://example.com/feed.xml", title: "Feed", unreadCount: 1))
+        let expiredID = try ArticleStore(database: database).upsert(
+            ArticleUpsertInput(feedID: feedID, title: "Alt", publishedAt: oldDate)
+        )
+        var deindexedIDs: [String] = []
+
+        _ = try ArticleRetentionCleanupService.removeExpiredSQLiteArticles(
+            database: database,
+            isEnabled: true,
+            retentionDays: 90,
+            minimumArticlesPerFeed: 0,
+            now: now,
+            deindexForSpotlight: { deindexedIDs.append(contentsOf: $0) }
+        )
+
+        #expect(deindexedIDs == [expiredID])
+    }
+
+    @Test func sqliteCleanupRuftDeindexNichtAufWennNichtsGeloeschtWurde() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let now = Date(timeIntervalSince1970: 10_000_000)
+        let feedID = UUID().uuidString
+
+        try FeedStore(database: database).save(FeedRecord(id: feedID, url: "https://example.com/feed.xml", title: "Feed"))
+        _ = try ArticleStore(database: database).upsert(
+            ArticleUpsertInput(feedID: feedID, title: "Neu", publishedAt: now)
+        )
+        var deindexCallCount = 0
+
+        _ = try ArticleRetentionCleanupService.removeExpiredSQLiteArticles(
+            database: database,
+            isEnabled: true,
+            retentionDays: 90,
+            minimumArticlesPerFeed: 0,
+            now: now,
+            deindexForSpotlight: { _ in deindexCallCount += 1 }
+        )
+
+        #expect(deindexCallCount == 0)
+    }
+
     @Test func sqliteCleanupSichertIdentitaetsHistorieVorDemLoeschen() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let now = Date(timeIntervalSince1970: 10_000_000)

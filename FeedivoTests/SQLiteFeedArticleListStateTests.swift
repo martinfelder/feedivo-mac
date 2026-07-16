@@ -91,6 +91,24 @@ struct SQLiteFeedArticleListStateTests {
         #expect(state.loadState == .loaded)
     }
 
+    @Test func listStateDeindexiertGeloeschtenArtikelAusSpotlight() async throws {
+        let (database, firstID, _) = try makeDatabaseWithFeedAndArticles()
+        let state = SQLiteFeedArticleListState()
+        var deindexedIDs: [String] = []
+
+        state.load(feedID: "feed-1", database: database, selectedArticleID: firstID)
+        await waitForLoad(state)
+
+        let succeeded = state.deleteArticle(
+            articleID: firstID,
+            database: database,
+            deindexForSpotlight: { deindexedIDs.append(contentsOf: $0) }
+        )
+
+        #expect(succeeded)
+        #expect(deindexedIDs == [firstID])
+    }
+
     @Test func listStateSetztFailedStateWennLoeschenFehlschlaegt() async throws {
         let (database, firstID, secondID) = try makeDatabaseWithFeedAndArticles()
         let state = SQLiteFeedArticleListState()

@@ -11,7 +11,8 @@ enum ArticleRetentionCleanupService {
         retentionDays: Int,
         minimumArticlesPerFeed: Int = ArticleRetentionSettings.defaultMinimumArticlesPerFeed,
         includeProtectedArticles: Bool = false,
-        now: Date = Date()
+        now: Date = Date(),
+        deindexForSpotlight: ([String]) -> Void = { SpotlightIndexingService.deindexArticles(ids: $0) }
     ) throws -> Int {
         let globalConfiguration = ArticleRetentionConfiguration(
             isEnabled: isEnabled,
@@ -26,6 +27,7 @@ enum ArticleRetentionCleanupService {
             now: now
         )
 
+        var removedArticleIDs: [String] = []
         let removedCount = try database.write { db in
             let candidates = try SQLiteArticleRetentionCandidate.fetchAll(db, sql: """
                 SELECT
@@ -71,11 +73,13 @@ enum ArticleRetentionCleanupService {
             try deleteSQLiteArticles(articleIDs, db: db)
             try recalculateSQLiteUnreadCounts(for: changedFeedIDs, db: db)
 
+            removedArticleIDs = articleIDs
             return articleIDs.count
         }
 
         if removedCount > 0 {
             SQLiteDataInvalidation.bumpStatusVersion()
+            deindexForSpotlight(removedArticleIDs)
         }
 
         return removedCount

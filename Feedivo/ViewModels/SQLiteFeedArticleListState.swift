@@ -378,11 +378,16 @@ final class SQLiteFeedArticleListState {
     // ueberschreiben (startLoad setzt loadState = .idle, danach ggf. .loaded),
     // und die Fehlermeldung waere fuer den Nutzer nie sichtbar gewesen.
     @discardableResult
-    func deleteArticle(articleID: String, database: FeedivoDatabase) -> Bool {
+    func deleteArticle(
+        articleID: String,
+        database: FeedivoDatabase,
+        deindexForSpotlight: ([String]) -> Void = { SpotlightIndexingService.deindexArticles(ids: $0) }
+    ) -> Bool {
         do {
             try database.write { db in
                 try db.execute(sql: "DELETE FROM articles WHERE id = ?", arguments: [articleID])
             }
+            deindexForSpotlight([articleID])
             if let deletedRow = rows.first(where: { $0.id == articleID }),
                !deletedRow.isRead,
                !deletedRow.isHidden {
