@@ -147,6 +147,14 @@ enum L10n {
     static let shortcutsLabelArticleOpenInWindow = LocalizedStringKey("shortcuts.label.articleOpenInWindow")
     static let shortcutsLabelReaderWebBack = LocalizedStringKey("shortcuts.label.readerWebBack")
     static let shortcutsLabelReaderWebForward = LocalizedStringKey("shortcuts.label.readerWebForward")
+    static let shortcutsLabelFeedImportOPML = LocalizedStringKey("shortcuts.label.feedImportOPML")
+    static let shortcutsLabelFeedExportOPML = LocalizedStringKey("shortcuts.label.feedExportOPML")
+    static let shortcutsLabelFeedOrganizerOpen = LocalizedStringKey("shortcuts.label.feedOrganizerOpen")
+    static let shortcutsLabelArticleToggleArchived = LocalizedStringKey("shortcuts.label.articleToggleArchived")
+    static let shortcutsLabelArticleCopyLink = LocalizedStringKey("shortcuts.label.articleCopyLink")
+    static let shortcutsLabelArticleOpenOriginal = LocalizedStringKey("shortcuts.label.articleOpenOriginal")
+    static let shortcutsLabelArticleShareOriginal = LocalizedStringKey("shortcuts.label.articleShareOriginal")
+    static let shortcutsLabelArticleExport = LocalizedStringKey("shortcuts.label.articleExport")
 
     static func shortcutsConflictMessage(_ conflictingLabel: String) -> String {
         String.localizedStringWithFormat(

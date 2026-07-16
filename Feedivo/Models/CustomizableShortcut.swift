@@ -17,18 +17,29 @@ enum ShortcutCategory: CaseIterable, Hashable, Sendable {
 /// Registry aller nutzerdefinierbar gemachten Tastenkombinationen. Bewusst NICHT
 /// enthalten: `.keyboardShortcut(.defaultAction)`-Stellen in Dialogen (Export-Sheet,
 /// Regel-Assistent, Tag-Manager, …) — das ist die macOS-Konvention "Enter löst den
-/// Standard-Button aus", kein eigentlicher, umbenennbarer Befehls-Shortcut.
+/// Standard-Button aus", kein eigentlicher, umbenennbarer Befehls-Shortcut. „Feed
+/// löschen" ist ebenfalls bewusst nicht enthalten — sensible, destruktive Aktion,
+/// die keinen versehentlich auslösbaren Shortcut bekommen soll (Nutzerentscheidung
+/// 2026-07-16).
 enum CustomizableShortcut: String, CaseIterable, Identifiable, Sendable {
     case feedAdd
     case statisticsOpen
     case feedRefreshAll
     case feedRefresh
+    case feedImportOPML
+    case feedExportOPML
+    case feedOrganizerOpen
     case articleSelectPrevious
     case articleSelectNext
     case articleSearch
     case articleToggleRead
     case articleToggleStarred
+    case articleToggleArchived
     case articleOpenInWindow
+    case articleCopyLink
+    case articleOpenOriginal
+    case articleShareOriginal
+    case articleExport
     case readerWebBack
     case readerWebForward
 
@@ -36,10 +47,13 @@ enum CustomizableShortcut: String, CaseIterable, Identifiable, Sendable {
 
     var category: ShortcutCategory {
         switch self {
-        case .feedAdd, .statisticsOpen, .feedRefreshAll, .feedRefresh:
+        case .feedAdd, .statisticsOpen, .feedRefreshAll, .feedRefresh,
+             .feedImportOPML, .feedExportOPML, .feedOrganizerOpen:
             .feed
         case .articleSelectPrevious, .articleSelectNext, .articleSearch,
-             .articleToggleRead, .articleToggleStarred, .articleOpenInWindow:
+             .articleToggleRead, .articleToggleStarred, .articleToggleArchived,
+             .articleOpenInWindow, .articleCopyLink, .articleOpenOriginal,
+             .articleShareOriginal, .articleExport:
             .article
         case .readerWebBack, .readerWebForward:
             .reader
@@ -59,12 +73,20 @@ enum CustomizableShortcut: String, CaseIterable, Identifiable, Sendable {
         case .statisticsOpen: L10n.shortcutsLabelStatisticsOpen
         case .feedRefreshAll: L10n.shortcutsLabelFeedRefreshAll
         case .feedRefresh: L10n.shortcutsLabelFeedRefresh
+        case .feedImportOPML: L10n.shortcutsLabelFeedImportOPML
+        case .feedExportOPML: L10n.shortcutsLabelFeedExportOPML
+        case .feedOrganizerOpen: L10n.shortcutsLabelFeedOrganizerOpen
         case .articleSelectPrevious: L10n.shortcutsLabelArticleSelectPrevious
         case .articleSelectNext: L10n.shortcutsLabelArticleSelectNext
         case .articleSearch: L10n.shortcutsLabelArticleSearch
         case .articleToggleRead: L10n.shortcutsLabelArticleToggleRead
         case .articleToggleStarred: L10n.shortcutsLabelArticleToggleStarred
+        case .articleToggleArchived: L10n.shortcutsLabelArticleToggleArchived
         case .articleOpenInWindow: L10n.shortcutsLabelArticleOpenInWindow
+        case .articleCopyLink: L10n.shortcutsLabelArticleCopyLink
+        case .articleOpenOriginal: L10n.shortcutsLabelArticleOpenOriginal
+        case .articleShareOriginal: L10n.shortcutsLabelArticleShareOriginal
+        case .articleExport: L10n.shortcutsLabelArticleExport
         case .readerWebBack: L10n.shortcutsLabelReaderWebBack
         case .readerWebForward: L10n.shortcutsLabelReaderWebForward
         }
@@ -72,8 +94,10 @@ enum CustomizableShortcut: String, CaseIterable, Identifiable, Sendable {
 
     /// Entspricht 1:1 den bisherigen hartcodierten `.keyboardShortcut(...)`-Werten,
     /// damit sich beim Einführen dieses Features für niemanden etwas ändert, der
-    /// noch nichts angepasst hat.
-    var defaultSpec: KeyboardShortcutSpec {
+    /// noch nichts angepasst hat. `nil` bedeutet „kein Default" — die 8 am
+    /// 2026-07-16 ergänzten Fälle hatten vorher überhaupt keinen Shortcut und
+    /// erscheinen deshalb in den Einstellungen zunächst als „nicht belegt".
+    var defaultSpec: KeyboardShortcutSpec? {
         switch self {
         case .feedAdd:
             KeyboardShortcutSpec(key: "n", modifiers: [.command])
@@ -83,6 +107,8 @@ enum CustomizableShortcut: String, CaseIterable, Identifiable, Sendable {
             KeyboardShortcutSpec(key: "r", modifiers: [.command, .shift])
         case .feedRefresh:
             KeyboardShortcutSpec(key: "r", modifiers: [.command])
+        case .feedImportOPML, .feedExportOPML, .feedOrganizerOpen:
+            nil
         case .articleSelectPrevious:
             KeyboardShortcutSpec(key: SpecialKey.upArrow.rawValue, modifiers: [.command])
         case .articleSelectNext:
@@ -93,6 +119,9 @@ enum CustomizableShortcut: String, CaseIterable, Identifiable, Sendable {
             KeyboardShortcutSpec(key: "u", modifiers: [.command, .shift])
         case .articleToggleStarred:
             KeyboardShortcutSpec(key: "d", modifiers: [.command])
+        case .articleToggleArchived, .articleCopyLink, .articleOpenOriginal,
+             .articleShareOriginal, .articleExport:
+            nil
         case .articleOpenInWindow:
             KeyboardShortcutSpec(key: SpecialKey.return.rawValue, modifiers: [.command])
         case .readerWebBack:

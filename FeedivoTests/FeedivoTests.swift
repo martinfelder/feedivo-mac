@@ -840,10 +840,10 @@ struct FeedivoTests {
     @Test func keyboardShortcutsSettingsErkenntKonflikt() {
         var overrides = KeyboardShortcutOverrides()
         // feedRefresh (Default ⌘R) wird auf denselben Shortcut wie feedAdd (⌘N) umgelegt.
-        overrides.values[CustomizableShortcut.feedRefresh.id] = .some(CustomizableShortcut.feedAdd.defaultSpec)
+        overrides.values[CustomizableShortcut.feedRefresh.id] = .some(CustomizableShortcut.feedAdd.defaultSpec!)
 
         let conflict = KeyboardShortcutsSettings.conflictingShortcut(
-            for: CustomizableShortcut.feedAdd.defaultSpec,
+            for: CustomizableShortcut.feedAdd.defaultSpec!,
             excluding: .feedAdd,
             in: overrides
         )
@@ -859,6 +859,29 @@ struct FeedivoTests {
             in: overrides
         )
         #expect(conflict == nil)
+    }
+
+    @Test func customizableShortcutEnthaeltAchtNeueFaelleOhneDefault() {
+        let newCases: [CustomizableShortcut] = [
+            .feedImportOPML, .feedExportOPML, .feedOrganizerOpen,
+            .articleToggleArchived, .articleCopyLink, .articleOpenOriginal,
+            .articleShareOriginal, .articleExport
+        ]
+
+        for shortcut in newCases {
+            #expect(shortcut.defaultSpec == nil, "\(shortcut.rawValue) sollte keinen Default-Shortcut haben")
+        }
+
+        #expect(CustomizableShortcut.feedImportOPML.category == .feed)
+        #expect(CustomizableShortcut.feedExportOPML.category == .feed)
+        #expect(CustomizableShortcut.feedOrganizerOpen.category == .feed)
+        #expect(CustomizableShortcut.articleToggleArchived.category == .article)
+        #expect(CustomizableShortcut.articleCopyLink.category == .article)
+        #expect(CustomizableShortcut.articleOpenOriginal.category == .article)
+        #expect(CustomizableShortcut.articleShareOriginal.category == .article)
+        #expect(CustomizableShortcut.articleExport.category == .article)
+
+        #expect(CustomizableShortcut.allCases.count == 20)
     }
 
 }
