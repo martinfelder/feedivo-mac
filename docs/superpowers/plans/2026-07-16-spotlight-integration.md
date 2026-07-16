@@ -12,6 +12,7 @@
 
 - Artikel-IDs sind UUID-Strings (`ArticleRecord.id`) — identisch zu dem, was `feedivo://article?id=` erwartet und was als Spotlight-`uniqueIdentifier` dient.
 - `ArticleListSnapshot` (aus `ArticleDatabase.fetchArticles(articleIDs:)`) enthält bereits `id`, `title`, `summary`, `feedTitle` — kein separater `FeedStore`-Join nötig.
+- Versteckte Artikel (`isHidden == true`, z. B. per Regel ausgeblendet) werden NIE in Spotlight indexiert — jeder `fetchArticles(articleIDs:)`-Aufruf für Spotlight-Zwecke übergibt explizit `includeHidden: false` (Nutzerentscheidung nach Task-2-Review, 2026-07-16). In `SQLiteFeedRefreshService.refresh()` läuft der Indexierungs-Hook deshalb bewusst NACH `applyRules(...)`, damit ein sofort per Regel ausgeblendeter Artikel korrekt ausgeschlossen bleibt.
 - Kommentare im Code auf Deutsch (Projektkonvention).
 - Neue `L10n.swift`-Keys, die nicht 1:1 einem String-Literal entsprechen, MÜSSEN manuell in `Localizable.xcstrings` ergänzt werden (Xcodes Auto-Stub greift bei indirekten Keys nicht, bekannter Gotcha).
 - Bestehende Trailing-Closure-Testaufrufe von `SQLiteFeedRefreshService(...)` binden an den LETZTEN Init-Parameter (`fetcher`) — neue Parameter MÜSSEN vor `fetcher` eingefügt werden, sonst brechen 5 bestehende Tests.
@@ -428,7 +429,8 @@ enum SpotlightIndexingService {
 
         for chunk in allArticleIDs.chunked(into: backfillBatchSize) {
             let snapshots = try ArticleDatabase(database: database).fetchArticles(
-                articleIDs: Set(chunk)
+                articleIDs: Set(chunk),
+                includeHidden: false
             )
             indexArticles(snapshots, userDefaults: userDefaults, index: index)
         }
@@ -784,21 +786,46 @@ Then, inside `refresh(feedID:)`, in the `.updated` case, replace:
 ```swift
                 let upsertResult = try articleStore.upsert(inputs)
                 let recentCutoff = now().addingTimeInterval(-48 * 60 * 60)
+                let recentNewArticleCount = try articleStore.recentlyPublishedCount(
+                    articleIDs: upsertResult.insertedArticleIDs,
+                    since: recentCutoff
+                )
+                let ruleResult = try applyRules(
+                    to: upsertResult.insertedArticleIDs,
+                    feedTitle: refreshedTitle,
+                    appliedAt: refreshedAt
+                )
+                let unreadCount = try statusStore.unreadCount(feedID: feedID)
 ```
 
 with:
 ```swift
                 let upsertResult = try articleStore.upsert(inputs)
+                let recentCutoff = now().addingTimeInterval(-48 * 60 * 60)
+                let recentNewArticleCount = try articleStore.recentlyPublishedCount(
+                    articleIDs: upsertResult.insertedArticleIDs,
+                    since: recentCutoff
+                )
+                let ruleResult = try applyRules(
+                    to: upsertResult.insertedArticleIDs,
+                    feedTitle: refreshedTitle,
+                    appliedAt: refreshedAt
+                )
+                // Läuft NACH applyRules, damit ein Artikel, den eine Regel
+                // sofort beim Eintreffen ausblendet (isHidden), korrekt von
+                // der Spotlight-Indexierung ausgeschlossen bleibt
+                // (includeHidden: false).
                 logIfThrows(context: "Spotlight-Indexierung nach Feed-Refresh") {
                     guard !upsertResult.insertedArticleIDs.isEmpty else {
                         return
                     }
                     let snapshotsToIndex = try ArticleDatabase(database: database).fetchArticles(
-                        articleIDs: Set(upsertResult.insertedArticleIDs)
+                        articleIDs: Set(upsertResult.insertedArticleIDs),
+                        includeHidden: false
                     )
                     indexForSpotlight(snapshotsToIndex)
                 }
-                let recentCutoff = now().addingTimeInterval(-48 * 60 * 60)
+                let unreadCount = try statusStore.unreadCount(feedID: feedID)
 ```
 
 - [ ] **Step 4: Run tests to verify they pass**
@@ -976,7 +1003,8 @@ with:
                     return
                 }
                 let snapshotsToIndex = try ArticleDatabase(database: database).fetchArticles(
-                    articleIDs: Set(upsertResult.insertedArticleIDs)
+                    articleIDs: Set(upsertResult.insertedArticleIDs),
+                    includeHidden: false
                 )
                 indexForSpotlight(snapshotsToIndex)
             }
