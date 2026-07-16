@@ -69,18 +69,36 @@ enum KeyboardShortcutsSettings {
             candidate != excluding && Self.spec(for: candidate, in: overrides) == spec
         }
     }
+
+    /// Modifier-freie Shortcuts (nur ein Zeichen oder Leertaste) brauchen den
+    /// `TextEditingFocusMonitor`-Schutz in `customizableKeyboardShortcut`, da sie
+    /// sonst als normales `NSMenuItem`-Tastenkürzel jede Texteingabe blockieren
+    /// würden. Als eigene Funktion extrahiert, damit sowohl die Menü-Verdrahtung
+    /// als auch die Warnzeile in den Einstellungen (Task 7) dieselbe Bedingung
+    /// nutzen, statt sie unabhängig voneinander zu duplizieren.
+    static func needsTextFieldGuard(for spec: KeyboardShortcutSpec) -> Bool {
+        spec.modifiers.isEmpty
+    }
 }
 
 extension View {
     /// Wendet den nutzerdefinierten (oder Default-)Shortcut für `shortcut` an — oder
     /// gar keinen, wenn der Nutzer ihn in den Einstellungen bewusst gelöscht hat.
+    /// Modifier-freie Shortcuts werden zusätzlich deaktiviert, solange gerade ein
+    /// Textfeld editiert wird (`TextEditingFocusMonitor`) — sonst würde z. B. das
+    /// Tippen von „j" im Suchfeld statt eines „j" den Menübefehl auslösen.
     @ViewBuilder
     func customizableKeyboardShortcut(
         _ shortcut: CustomizableShortcut,
         overrides: KeyboardShortcutOverrides
     ) -> some View {
         if let spec = KeyboardShortcutsSettings.spec(for: shortcut, in: overrides) {
-            self.keyboardShortcut(spec.keyEquivalent, modifiers: spec.eventModifiers)
+            if KeyboardShortcutsSettings.needsTextFieldGuard(for: spec) {
+                self.keyboardShortcut(spec.keyEquivalent, modifiers: spec.eventModifiers)
+                    .disabled(TextEditingFocusMonitor.shared.isEditingText)
+            } else {
+                self.keyboardShortcut(spec.keyEquivalent, modifiers: spec.eventModifiers)
+            }
         } else {
             self
         }

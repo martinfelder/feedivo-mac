@@ -909,4 +909,14 @@ struct FeedivoTests {
         #expect(monitor.isEditingText == false)
     }
 
+    @Test func needsTextFieldGuardIstWahrNurOhneModifier() {
+        let ohneModifier = KeyboardShortcutSpec(key: "j", modifiers: [])
+        let mitModifier = KeyboardShortcutSpec(key: "j", modifiers: [.command])
+        let leertasteOhneModifier = KeyboardShortcutSpec(key: " ", modifiers: [])
+
+        #expect(KeyboardShortcutsSettings.needsTextFieldGuard(for: ohneModifier) == true)
+        #expect(KeyboardShortcutsSettings.needsTextFieldGuard(for: mitModifier) == false)
+        #expect(KeyboardShortcutsSettings.needsTextFieldGuard(for: leertasteOhneModifier) == true)
+    }
+
 }
