@@ -58,9 +58,10 @@ struct ShortcutRecorderView: View {
     }
 }
 
-/// Fängt Tastendrücke ab, solange `isRecording` aktiv ist. Erzwingt mindestens
-/// eine Modifier-Taste (verhindert versehentliche Ein-Buchstaben-Shortcuts, die
-/// mit normalem Tippen kollidieren würden).
+/// Fängt Tastendrücke ab, solange `isRecording` aktiv ist. Modifier-freie Kombinationen
+/// (nur ein Zeichen oder Leertaste) sind seit 2026-07-16 bewusst erlaubt — siehe
+/// `TextEditingFocusMonitor` für den zugehörigen Textfeld-Schutzmechanismus, der
+/// verhindert, dass ein so belegter Shortcut normales Tippen blockiert.
 private final class RecorderNSView: NSView {
     var onCapture: ((String, Set<ShortcutModifier>) -> Void)?
     var onCancel: (() -> Void)?
@@ -79,10 +80,6 @@ private final class RecorderNSView: NSView {
         if event.modifierFlags.contains(.option) { modifiers.insert(.option) }
         if event.modifierFlags.contains(.shift) { modifiers.insert(.shift) }
         if event.modifierFlags.contains(.command) { modifiers.insert(.command) }
-
-        guard !modifiers.isEmpty else {
-            return
-        }
 
         let key: String
         switch event.keyCode {
