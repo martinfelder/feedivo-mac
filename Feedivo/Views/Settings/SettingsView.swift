@@ -1129,6 +1129,9 @@ private struct CleanupSettingsView: View {
     @AppStorage(CleanupScheduleSettings.runOnQuitKey)
     private var cleanupRunOnQuit = CleanupScheduleSettings.defaultRunOnQuit
 
+    @AppStorage(FeedLogRetentionSettings.retentionDaysKey)
+    private var feedLogRetentionDays = FeedLogRetentionSettings.defaultRetentionDays
+
     @Environment(\.openWindow) private var openWindow
 
     @State private var retentionCleanupResult: String?
@@ -1259,6 +1262,22 @@ private struct CleanupSettingsView: View {
                         .padding(.top, 4)
                     }
                     .padding(.vertical, 4)
+                }
+            }
+
+            SettingsBlock(eyebrow: L10n.settingsFeedLogRetentionTitle) {
+                SettingRow(
+                    title: L10n.settingsFeedLogRetentionDaysTitle,
+                    description: L10n.settingsFeedLogRetentionDaysDescription
+                ) {
+                    Picker(L10n.settingsFeedLogRetentionDaysTitle, selection: $feedLogRetentionDays) {
+                        ForEach(FeedLogRetentionSettings.allowedRetentionDays, id: \.self) { days in
+                            Text("\(days) Tage")
+                                .tag(days)
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.menu)
                 }
             }
 
