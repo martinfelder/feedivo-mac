@@ -167,7 +167,10 @@ enum BackgroundRefreshService {
             return
         }
 
-        ArticleRetentionCleanupService.runAutomaticCleanup(
+        // Zeitplan-Lauf wird nur bei Erfolg als "erledigt" markiert — schlägt die
+        // Bereinigung fehl (z. B. transienter DB-Fehler), bleibt der Wochenslot
+        // unerfüllt und der nächste Refresh-Zyklus versucht es erneut.
+        switch ArticleRetentionCleanupService.runAutomaticCleanup(
             database: database,
             isEnabled: userDefaults.object(forKey: ArticleRetentionSettings.isEnabledKey) as? Bool
                 ?? ArticleRetentionSettings.defaultIsEnabled,
@@ -180,8 +183,12 @@ enum BackgroundRefreshService {
             triggerSource: .schedule,
             userDefaults: userDefaults,
             now: now
-        )
-        CleanupScheduleSettings.recordScheduleRun(now: now, in: userDefaults)
+        ) {
+        case .success:
+            CleanupScheduleSettings.recordScheduleRun(now: now, in: userDefaults)
+        case .failure:
+            break
+        }
     }
 
     static func recordRefreshOutcome(

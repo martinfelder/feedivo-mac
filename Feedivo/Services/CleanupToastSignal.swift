@@ -8,7 +8,9 @@ enum CleanupToastSignal {
     static let deletedCountKey = "cleanupToast.deletedCount"
 
     static func notify(deletedCount: Int, in defaults: UserDefaults = .standard) {
-        defaults.set(defaults.integer(forKey: versionKey) + 1, forKey: versionKey)
+        // Payload zuerst schreiben, dann den Trigger (versionKey) zuletzt umschalten —
+        // so liest die UI beim Beobachten von versionKey immer schon den aktuellen Wert.
         defaults.set(deletedCount, forKey: deletedCountKey)
+        defaults.set(defaults.integer(forKey: versionKey) + 1, forKey: versionKey)
     }
 }
