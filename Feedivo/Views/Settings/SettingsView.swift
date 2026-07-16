@@ -1234,15 +1234,17 @@ private struct CleanupSettingsView: View {
                 }
 
                 if cleanupRunOnWeekdayTime {
-                    VStack(alignment: .leading, spacing: 2) {
-                        ForEach(Self.mondayFirstWeekdayNumbers, id: \.self) { weekdayNumber in
+                    VStack(alignment: .leading, spacing: 4) {
+                        ForEach(Self.weekdayRows, id: \.self) { row in
                             HStack(spacing: 12) {
                                 Spacer(minLength: 202)
-                                Toggle(Calendar.current.weekdaySymbols[weekdayNumber - 1], isOn: Binding(
-                                    get: { selectedWeekdays.contains(weekdayNumber) },
-                                    set: { _ in toggleWeekday(weekdayNumber) }
-                                ))
-                                .toggleStyle(.checkbox)
+                                ForEach(row, id: \.self) { weekdayNumber in
+                                    Toggle(Calendar.current.weekdaySymbols[weekdayNumber - 1], isOn: Binding(
+                                        get: { selectedWeekdays.contains(weekdayNumber) },
+                                        set: { _ in toggleWeekday(weekdayNumber) }
+                                    ))
+                                    .toggleStyle(.checkbox)
+                                }
                                 Spacer(minLength: 0)
                             }
                         }
@@ -1274,8 +1276,12 @@ private struct CleanupSettingsView: View {
     }
 
     // Calendar.weekday-Konvention: 1 = Sonntag … 7 = Samstag. Für die Anzeige wird
-    // trotzdem mit Montag begonnen, da das der gewohnten Wochenreihenfolge entspricht.
-    private static let mondayFirstWeekdayNumbers = [2, 3, 4, 5, 6, 7, 1]
+    // mit Montag begonnen und zu je 3 Wochentagen pro Zeile gruppiert.
+    private static let weekdayRows: [[Int]] = [
+        [2, 3, 4],
+        [5, 6, 7],
+        [1],
+    ]
 
     private var selectedWeekdays: Set<Int> {
         CleanupScheduleSettings.parseWeekdays(cleanupWeekdaysRaw)
