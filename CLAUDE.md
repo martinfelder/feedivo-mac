@@ -851,30 +851,45 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   ruft die bereits bestehende `openSelectedSQLiteArticleOriginal()` auf. Direkt
   ohne neuen vollen Brainstorming-Zyklus umgesetzt (kleine, klar umrissene
   Korrektur an bereits reviewtem Code, analog zu früheren „Live-Fix"-Einträgen
-  in diesem Dokument), aber weiterhin mit TDD (2 angepasste Tests statt 3,
-  69/69 grün) und Build-Verifikation. Spec/Plan-Dokumente
+  in diesem Dokument), aber weiterhin mit TDD und Build-Verifikation.
+  **Zweiter Live-Fix (2026-07-17, Commit `d30336d`):** Der erste Live-Fix ging
+  zu weit — Nutzer-Report: Rechts-Pfeil in der Web-Ansicht wechselte
+  erwartungsgemäß den Zustand, aber der Nutzer wollte eigentlich mit LINKS aus
+  der Web-Ansicht zurück zu nativ, was nach dem ersten Fix nicht mehr ging
+  (Links-Handler war komplett entfernt worden). Per Rückfrage geklärt:
+  klassisches Vorwärts-/Rückwärts-Paar gewünscht, nicht ein einzelner
+  Umschalter. Endgültiges Verhalten: Rechts wechselt NUR vorwärts (nativ→Web,
+  no-op wenn bereits Web), Links geht zurück (Web→nativ, no-op wenn bereits
+  nativ), Eingabetaste öffnet weiterhin unabhängig vom Zustand im externen
+  Browser. `ReaderArrowKeyNavigation.toggleMode` ersetzt durch
+  `rightArrowShouldSwitchToWeb(currentMode:)`/`leftArrowShouldSwitchToNative(currentMode:)`,
+  Links-Handler in `ContentView.swift` wieder ergänzt. 69/69 Tests grün, Build
+  grün. **Lehre:** Bei einem reinen Text-Beschreibung eines Tastatur-
+  Interaktionsmusters (kein Mockup/keine Skizze) reicht eine einzelne
+  Rückfrage nicht immer aus, um das exakt gewünschte Verhalten zu treffen —
+  hier waren zwei Iterationen nötig, jeweils erst nach echtem Live-Test
+  aufgedeckt, nicht vorher aus der Beschreibung ableitbar. Spec/Plan-Dokumente
   (`docs/superpowers/specs/2026-07-16-pfeiltasten-navigation-design.md`,
   `docs/superpowers/plans/2026-07-16-pfeiltasten-navigation.md`) beschreiben
-  bewusst noch den ursprünglichen (durch den Live-Fix überholten) Drei-Stufen-
-  Entwurf — historisches Dokument des Entscheidungsprozesses, nicht nachträglich
-  umgeschrieben; dieser CLAUDE.md-Eintrag ist die aktuelle Quelle der Wahrheit.
-  **Ausstehende manuelle Live-Verifikationscheckliste (aktualisiert nach dem
-  Fix):** 1. Artikel anklicken, dann Pfeil-Runter/-Hoch — Artikelliste
-  navigiert, Reader aktualisiert sich (sollte bereits ohne Code-Änderung
-  funktionieren). 2. Bei ausgewähltem Artikel Rechts-Pfeil — wechselt von
-  nativer zu Web-Ansicht. 3. Nochmals Rechts-Pfeil im Web-Zustand — wechselt
-  zurück zur nativen Ansicht (**das war der ursprüngliche Bug-Report, jetzt neu
-  zu bestätigen**). 4. Eingabetaste bei ausgewähltem Artikel — öffnet im
-  externen Standard-Browser, unabhängig vom aktuellen Ansicht-Zustand.
-  5. **Entscheidender, laut Review priorisierter Fokus-Test:** Rechts-Pfeil/
-  Eingabetaste sowohl bei fokussierter Artikelliste ALS AUCH nach Klick in den
-  Reader-Bereich testen — insbesondere während die eingebettete Web-Ansicht
-  (WKWebView) den Tastaturfokus hat (höchstes Fehlschlagrisiko laut ursprünglichem
-  Review, durch den Live-Fix nicht berührt). 6. Ohne ausgewählten Artikel bzw.
-  bei einem Artikel ohne nutzbaren Link: Rechts-Pfeil/Eingabetaste tun nichts,
-  kein Absturz. 7. Rechts-Pfeil/Eingabetaste bei fokussiertem Textfeld (Suche,
-  Umbenennen) bewegen weiterhin nur den Text-Cursor bzw. bestätigen das Feld,
-  lösen keinen Reader-Zustandswechsel aus.
+  bewusst noch den ursprünglichen (durch beide Live-Fixes überholten)
+  Drei-Stufen-Entwurf — historisches Dokument des Entscheidungsprozesses, nicht
+  nachträglich umgeschrieben; dieser CLAUDE.md-Eintrag ist die aktuelle Quelle
+  der Wahrheit. **Ausstehende manuelle Live-Verifikationscheckliste (Stand nach
+  beiden Fixes):** 1. Artikel anklicken, dann Pfeil-Runter/-Hoch — Artikelliste
+  navigiert, Reader aktualisiert sich. 2. Bei ausgewähltem Artikel in nativer
+  Ansicht Rechts-Pfeil — wechselt zur Web-Ansicht. 3. Links-Pfeil im
+  Web-Zustand — wechselt zurück zur nativen Ansicht. 4. Eingabetaste bei
+  ausgewähltem Artikel — öffnet im externen Standard-Browser, unabhängig vom
+  aktuellen Ansicht-Zustand. 5. **Entscheidender, laut Review priorisierter
+  Fokus-Test:** Rechts-/Links-Pfeil/Eingabetaste sowohl bei fokussierter
+  Artikelliste ALS AUCH nach Klick in den Reader-Bereich testen — insbesondere
+  während die eingebettete Web-Ansicht (WKWebView) den Tastaturfokus hat
+  (höchstes Fehlschlagrisiko laut ursprünglichem Review, durch beide Fixes
+  nicht berührt). 6. Ohne ausgewählten Artikel bzw. bei einem Artikel ohne
+  nutzbaren Link: alle drei Tasten tun nichts, kein Absturz. 7. Rechts-/
+  Links-Pfeil/Eingabetaste bei fokussiertem Textfeld (Suche, Umbenennen)
+  bewegen weiterhin nur den Text-Cursor bzw. bestätigen das Feld, lösen keinen
+  Reader-Zustandswechsel aus.
 - **2026-07-16: Shortcuts-Erweiterung (modifier-freie Kombinationen + 8 fehlende
   Menü-Funktionen) — VOLLSTÄNDIG ABGESCHLOSSEN, NICHT gepusht, Live-Verifikation
   ausstehend.** Nutzer-Report: In den Einstellungen unter „Shortcuts" (Feature 19.8)
