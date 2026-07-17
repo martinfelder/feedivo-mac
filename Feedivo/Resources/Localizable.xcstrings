@@ -3594,25 +3594,25 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Für diesen Feed sind noch keine SQLite-Artikel gespeichert."
+            "value" : "Dieser Feed hat noch keine gespeicherten Artikel."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No SQLite articles have been saved for this feed yet."
+            "value" : "This feed has no saved articles yet."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aucun article SQLite n'a encore été enregistré pour ce flux."
+            "value" : "Ce flux n'a pas encore d'articles enregistrés."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Per questo feed non è ancora stato salvato alcun articolo SQLite."
+            "value" : "Questo feed non ha ancora articoli salvati."
           }
         }
       }
@@ -3622,25 +3622,25 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Für diesen Filter sind noch keine SQLite-Artikel gespeichert."
+            "value" : "Für diesen Filter gibt es noch keine passenden Artikel."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No SQLite articles have been saved for this filter yet."
+            "value" : "There are no matching articles for this filter yet."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aucun article SQLite n'a encore été enregistré pour ce filtre."
+            "value" : "Il n'y a pas encore d'articles correspondant à ce filtre."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Per questo filtro non è ancora stato salvato alcun articolo SQLite."
+            "value" : "Non ci sono ancora articoli corrispondenti a questo filtro."
           }
         }
       }
@@ -3650,25 +3650,25 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Für diesen intelligenten Ordner sind noch keine SQLite-Artikel gespeichert."
+            "value" : "Für diesen intelligenten Ordner gibt es noch keine passenden Artikel."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No SQLite articles have been saved for this smart folder yet."
+            "value" : "There are no matching articles for this smart folder yet."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aucun article SQLite n'a encore été enregistré pour ce dossier intelligent."
+            "value" : "Il n'y a pas encore d'articles correspondant à ce dossier intelligent."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Per questa cartella intelligente non è ancora stato salvato alcun articolo SQLite."
+            "value" : "Non ci sono ancora articoli corrispondenti a questa cartella intelligente."
           }
         }
       }
@@ -3678,25 +3678,25 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Für dieses Tag sind noch keine SQLite-Artikel gespeichert."
+            "value" : "Diesem Tag sind noch keine Artikel zugewiesen."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No SQLite articles have been saved for this tag yet."
+            "value" : "No articles have been assigned to this tag yet."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aucun article SQLite n'a encore été enregistré pour cette étiquette."
+            "value" : "Aucun article n'a encore été attribué à cette étiquette."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Per questo tag non è ancora stato salvato alcun articolo SQLite."
+            "value" : "Nessun articolo è ancora stato assegnato a questo tag."
           }
         }
       }

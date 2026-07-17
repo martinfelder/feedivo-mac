@@ -972,16 +972,21 @@
   - Fehler-Log bleibt in Feed-Eigenschaften (bereits vorhanden)
 
 ### 20.2 Leere Zustände (Empty States)
-- **Status:** 🔨 Teilweise umgesetzt (2026-07-14 per Code-Abgleich) — mehrere
-  `ContentUnavailableView`-Leerzustände existieren bereits (`ContentView.swift`,
-  `SQLiteFeedArticleListView.swift`, `ArticleSearchWindowView.swift`). Nicht
-  einzeln nachverifiziert, ob jeder der vier unten genannten Spezialfälle
-  (insbesondere "Tag ohne Artikel") wortwörtlich abgedeckt ist.
-- **Zu implementieren / zu verifizieren:**
-  - Erster Start ohne Feeds: First-Run-Wizard auslösen (bereits vorhanden)
-  - Feed hat keine Artikel: Erklärung + "Feed aktualisieren" Button
-  - Suche ohne Resultate: Hinweis mit Suchbegriff und Vorschlag Suchbereich zu erweitern
-  - Tag ohne Artikel: Hinweis dass noch keine Artikel diesen Tag haben
+- **Status:** ✔️ Fertig (verifiziert 2026-07-17)
+- **Umgesetzt:**
+  - Erster Start ohne Feeds: First-Run-Wizard (bestehend, unverändert)
+  - Feed hat keine Artikel: `ContentUnavailableView` mit Erklärung + „Feed
+    aktualisieren"-Button (`SQLiteFeedArticleListView.swift`)
+  - Suche ohne Resultate: sowohl in der Toolbar-Suche als auch im separaten
+    Suchfenster (⌘F) — Hinweis inkl. Suchbegriff und Vorschlag, Suchbereich zu
+    erweitern
+  - Tag ohne Artikel: eigener Hinweistext pro Tag-Scope
+- **Fund + Fix (2026-07-17):** Die vier Beschreibungstexte für Feed/Tag/
+  Smart-Filter/Smart-Ordner leakten das interne Implementierungsdetail
+  „SQLite" in alle vier Sprachen (z. B. „Für diesen Feed sind noch keine
+  SQLite-Artikel gespeichert."). Auf neutrale, nutzerfreundliche Formulierungen
+  umgestellt (16 Werte: 4 Keys × 4 Sprachen in `Localizable.xcstrings`), keine
+  Codeänderung nötig.
 
 ---
 
