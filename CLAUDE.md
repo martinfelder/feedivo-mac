@@ -288,6 +288,48 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
 
 > Diese Liste wächst während der Entwicklung. Immer ergänzen!
 
+- **`WKWebView.printOperation(with:)` stürzt auf macOS zuverlässig ab — niemals für
+  echtes Drucken verwenden, stattdessen `createPDF(...)` + PDFKit:** Beim Live-Test von
+  Feature 25.1 (Artikel drucken, 2026-07-17) zeigte der Drucken-Button zunächst den
+  System-Alert „Diese App unterstützt Drucken nicht" (in beiden Reader-Ansichten, nativ
+  und Web). Root-Cause-Kette per systematic-debugging über mehrere Runden aufgelöst:
+  (1) Fehlendes Entitlement `com.apple.security.print` — App Sandbox
+  (`com.apple.security.app-sandbox`) blockiert jeden Druckversuch systemweit ohne dieses
+  Entitlement und zeigt dafür genau diesen generischen Alert, unabhängig vom
+  Druck-Code. Nach Ergänzen des Entitlements in `Feedivo.entitlements` änderte sich das
+  Verhalten zu einem echten Absturz. (2) Per `lldb`-Backtrace zweifelsfrei verifiziert
+  (`bt all` nach manuellem Reproduzieren, da kein computer-use für native macOS-Apps
+  verfügbar ist): `webView.printOperation(with:).run()`/`.runModal(for:...)` stürzt in
+  AppKits eigener Seitenaufteilungs-Validierung ab
+  (`-[NSConcretePrintOperation(NSInternal) _validatePagination]` →
+  `AppKitBreakInDebugger`, Fehlermeldung „The NSPrintOperation view's frame was not
+  initialized properly before knowsPageRange: returned") — ein seit 2017 bekanntes,
+  bis heute ungelöstes WKWebView/AppKit-Race (WebKit muss die Seitenaufteilung
+  asynchron mit dem Web-Content-Prozess abstimmen, AppKits Druckpanel fragt sie aber
+  synchron ab). Reproduzierbar identisch unabhängig von WKWebView-Instanz (offscreen
+  vs. sichtbar/im Fenster), Fenster-Zuordnung und `NSPrintInfo.shared` vs. frisch
+  konstruiert — alle diese Fixversuche änderten nichts. (3) Versuch, stattdessen
+  `printDocument:` über die Standard-Responder-Chain durchzureichen (Vorbild:
+  NetNewsWire, das laut `gh api`-Code-Suche über den gesamten Quellbaum keine einzige
+  Zeile eigenen Druck-Codes hat) scheiterte hart:
+  `NSInvalidArgumentException: -[WKWebView printDocument:]: unrecognized selector` —
+  `WKWebView` implementiert diesen Selector auf macOS schlicht nicht (NetNewsWires
+  Ansatz funktioniert nur, weil dessen Artikelansicht selbst *immer* eine WKWebView
+  ist und irgendein anderer, nicht direkt sichtbarer Mechanismus dort greift, nicht
+  weil `printDocument:` universal auf jeder WKWebView beantwortet würde). **Tatsächlicher
+  Fix:** `WKWebView.createPDF(configuration: WKPDFConfiguration())` (Apples separate,
+  asynchrone PDF-Export-API, seit macOS 11, umgeht die kaputte Print-Operation-Integration
+  komplett) erzeugt zuverlässig echte PDF-`Data`; ein gewöhnlicher, altbewährter
+  PDFKit-Druckvorgang (`PDFDocument(data:)` → `PDFView` → `NSPrintOperation(view:
+  pdfView)` → `.runModal(for:...)`) zeigt dafür den Druckdialog — komplett unabhängig
+  von WKWebViews eigener Druck-Integration. Vom Nutzer live in beiden Ansichten
+  bestätigt funktionierend. Siehe `Feedivo/Views/Reader/SQLiteReaderView.swift`
+  (`printCurrentArticle()`, `presentPrintDialog(forPDFData:)`, `ArticlePrintCoordinator`).
+  **Lehre:** Bei JEDEM künftigen Feature, das `NSPrintOperation` in Kombination mit
+  `WKWebView` verwenden will, direkt mit `createPDF(...)` + PDFKit starten — der
+  naheliegende, von Apples eigener API (`webView.printOperation(with:)`) suggerierte
+  direkte Weg ist auf macOS nicht zuverlässig nutzbar, unabhängig vom sonstigen
+  Code drumherum.
 - **`json.dump()` auf die komplette `Localizable.xcstrings` anwenden formatiert die
   gesamte ~31000-Zeilen-Datei um, statt nur neue Einträge chirurgisch einzufügen:**
   Bei der Shortcuts-Erweiterung (2026-07-16, Task 2) nutzte das ursprüngliche
