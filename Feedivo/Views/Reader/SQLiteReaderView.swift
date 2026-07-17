@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import WebKit
 
 struct SQLiteReaderView: View {
     @Environment(\.feedivoDatabase) private var database
@@ -21,6 +22,12 @@ struct SQLiteReaderView: View {
     @State private var articleExportRequest: ArticleExportRequest?
     @State private var webContentLoadFailed = false
     @State private var webNavigationController = WebNavigationController()
+    // Haelt die unsichtbare WKWebView fuer den nativen Druck-Modus fest, bis der
+    // Druckvorgang abgeschlossen ist (siehe printCurrentArticle()/ArticlePrintCoordinator
+    // unten) — sonst wuerde ARC sie vorzeitig freigeben, bevor WKNavigationDelegate.
+    // didFinish feuert.
+    @State private var offscreenPrintWebView: WKWebView?
+    @State private var articlePrintCoordinator: ArticlePrintCoordinator?
     // Erzwingt einen kompletten Neuaufbau der Toolbar-Inhaltsgruppe bei jedem
     // Vollbild-Wechsel (siehe FullScreenTransitionObserver) — Fix für einen
     // Toolbar-Icon-Überlapp-Bug, der nach Fenster-Schliessen/App-Neustart/
@@ -214,6 +221,17 @@ struct SQLiteReaderView: View {
                     .help(L10n.readerWebForwardCommand)
                     .customizableKeyboardShortcut(.readerWebForward, overrides: shortcutOverrides)
                     .disabled(readerDisplayMode != .web || !webNavigationController.canGoForward)
+                }
+
+                ControlGroup {
+                    Button {
+                        printCurrentArticle()
+                    } label: {
+                        Image(systemName: "printer")
+                    }
+                    .help(L10n.articlePrintCommand)
+                    .customizableKeyboardShortcut(.articlePrint, overrides: shortcutOverrides)
+                    .disabled(state.snapshot == nil)
                 }
 
                 Picker(L10n.readerDisplayModePicker, selection: $readerDisplayModeRawValue) {
@@ -801,6 +819,49 @@ struct SQLiteReaderView: View {
             state.errorMessage = error.localizedDescription
         }
     }
+
+    // Druckinhalt folgt der aktuellen Reader-Ansicht (kein Umschalter im Druckdialog,
+    // siehe Design-Spec 2026-07-17-artikel-drucken-design.md). Im Web-Modus wird die
+    // tatsaechlich sichtbare WKWebView 1:1 gedruckt (inkl. Original-Layout). Im nativen
+    // Modus gibt es keine dauerhaft lebende WKWebView zum Drucken — deshalb wird die
+    // bestehende Export-HTML (identisch zum HTML-Export) offscreen geladen und nach
+    // vollstaendigem Laden gedruckt (ArticlePrintCoordinator unten).
+    private func printCurrentArticle() {
+        switch readerDisplayMode {
+        case .web:
+            guard let webView = webNavigationController.webView else {
+                return
+            }
+
+            let operation = webView.printOperation(with: .shared)
+            operation.run()
+
+        case .native:
+            guard let snapshot = state.snapshot else {
+                return
+            }
+
+            let html = ArticlePDFExportRenderer.html(
+                for: ArticleExportSnapshot(sqliteSnapshot: snapshot, tagNames: snapshot.tags.map(\.name)),
+                options: ArticleExportOptions(format: .html, includesMetadata: true),
+                style: .default,
+                assets: []
+            )
+
+            // 816x1056pt entspricht ungefaehr US Letter bei 96dpi — ausreichend breit,
+            // damit die Export-CSS (max-width: 680px, siehe ArticlePDFExportStyle.default)
+            // beim Layout nicht kollabiert, obwohl die WebView nie sichtbar wird.
+            let printWebView = WKWebView(frame: CGRect(x: 0, y: 0, width: 816, height: 1056))
+            let coordinator = ArticlePrintCoordinator {
+                offscreenPrintWebView = nil
+                articlePrintCoordinator = nil
+            }
+            printWebView.navigationDelegate = coordinator
+            offscreenPrintWebView = printWebView
+            articlePrintCoordinator = coordinator
+            printWebView.loadHTMLString(html, baseURL: nil)
+        }
+    }
 }
 
 // Eigenstaendige View-Struct statt @ViewBuilder-Funktion: verhindert, dass
@@ -998,5 +1059,33 @@ private struct FullScreenTransitionObserver: NSViewRepresentable {
         deinit {
             tokens.forEach { NotificationCenter.default.removeObserver($0) }
         }
+    }
+}
+
+/// Rendert die native Reader-Export-HTML in einer unsichtbaren WKWebView und startet den
+/// nativen Druckvorgang, sobald das Laden abgeschlossen ist — WKWebView.printOperation(with:)
+/// liefert vor didFinish kein sinnvolles Ergebnis. SQLiteReaderView haelt die zugehoerige
+/// WKWebView per @State fest, bis onFinished() aufgerufen wird (sonst wuerde ARC sie
+/// vorzeitig freigeben, analog zum bestehenden WebContentView.Coordinator-Muster).
+private final class ArticlePrintCoordinator: NSObject, WKNavigationDelegate {
+    private let onFinished: () -> Void
+
+    init(onFinished: @escaping () -> Void) {
+        self.onFinished = onFinished
+        super.init()
+    }
+
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        let operation = webView.printOperation(with: .shared)
+        operation.run()
+        onFinished()
+    }
+
+    func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+        onFinished()
+    }
+
+    func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+        onFinished()
     }
 }

@@ -12,7 +12,7 @@ final class WebNavigationController {
     private(set) var canGoBack = false
     private(set) var canGoForward = false
 
-    fileprivate weak var webView: WKWebView?
+    weak var webView: WKWebView?
 
     func goBack() {
         webView?.goBack()
