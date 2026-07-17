@@ -138,6 +138,15 @@ struct FeedivoApp: App {
             ArticleCommands()
             FeedCommands()
             ViewCommands()
+            // Entfernt den von SwiftUI automatisch bereitgestellten, aber funktionslosen
+            // "Drucken..."-Menuepunkt (Datei-Menue, Standard-Tastenkombination Cmd+P).
+            // Ohne diese Entfernung kollidiert er mit dem neuen Drucken-Button in
+            // SQLiteReaderView.swift (Feature 25.1), der ebenfalls Cmd+P beansprucht —
+            // das Standard-NSMenuItem gewinnt den Tastenkombinations-Konflikt und zeigt
+            // beim Ausloesen den generischen AppKit-Fallback-Alert "Diese App
+            // unterstuetzt Drucken nicht", statt dass unser Drucken-Button reagiert
+            // (Live-Bug-Fund 2026-07-17, Nutzer-Report).
+            CommandGroup(replacing: .printItem) {}
         }
         Window(L10n.articleSearchCommand, id: ArticleSearchWindowView.windowID) {
             ArticleSearchWindowView()
