@@ -1,5 +1,4 @@
 import Foundation
-import PDFKit
 import Testing
 @testable import Feedivo
 
@@ -330,24 +329,6 @@ struct ArticleExportServiceTests {
         #expect(document.data == documentData)
     }
 
-    @Test func pdfExportErzeugtGueltigePDFDaten() {
-        let snapshot = ArticleExportSnapshot(
-            sqliteSnapshot: makeReaderSnapshot(
-                title: "PDF Export",
-                link: "https://example.com/pdf",
-                content: "<h2>Untertitel</h2><p>Ein lesbarer Absatz.</p>"
-            )
-        )
-
-        let data = ArticleExportService.data(
-            for: snapshot,
-            options: ArticleExportOptions(format: .pdf, includesMetadata: true)
-        )
-
-        #expect(data.starts(with: Data("%PDF".utf8)))
-        #expect(data.count > 500)
-    }
-
     @Test func pdfHTMLVerwendetReaderTypografieUndEingebetteteBilder() {
         let style = ArticlePDFExportStyle(
             titleFontFamily: "Literata",
@@ -430,79 +411,17 @@ struct ArticleExportServiceTests {
         #expect(html.contains("<strong>Link:</strong> javascript:alert(1)"))
     }
 
-    @Test func pdfPaketLaedtArtikelbilderAutomatischUndBleibtEinPDFDokument() async throws {
+    @Test func pdfFormatIstUeberDialogUnerreichbarUndLiefertLeereDaten() {
         let snapshot = ArticleExportSnapshot(
-            sqliteSnapshot: makeReaderSnapshot(
-                title: "PDF Bilder",
-                content: #"<p>Intro</p><img src="https://example.com/photo.png"><p>Outro</p>"#
-            )
-        )
-        let imageURL = try #require(URL(string: "https://example.com/photo.png"))
-        var progressEvents: [ArticleExportPackageProgress] = []
-
-        let package = await ArticleExportPackageBuilder.package(
-            for: snapshot,
-            options: ArticleExportOptions(format: .pdf, includesMetadata: false),
-            includesOfflineImages: false,
-            imageLoader: StubArticleExportImageLoader(payloads: [
-                imageURL: Data([0x01, 0x02, 0x03])
-            ]),
-            progress: { progressEvents.append($0) }
-        )
-
-        #expect(package.filename == "PDF Bilder.pdf")
-        #expect(package.contentType == .document)
-        #expect(package.archiveData.starts(with: Data("%PDF".utf8)))
-        #expect(package.assets.map(\.path) == ["Pictures/image-1.png"])
-        #expect(package.failedImageURLs.isEmpty)
-        #expect(progressEvents == [
-            .preparingDocument,
-            .downloadingImage(current: 1, total: 1),
-            .creatingArchive
-        ])
-    }
-
-    @Test func pdfExportPaginatesLangeArtikelUeberMehrereSeiten() {
-        let paragraphs = (1 ... 180)
-            .map { "<p>Absatz \($0): Dies ist bewusst langer Exporttext für die PDF-Paginierung.</p>" }
-            .joined()
-        let snapshot = ArticleExportSnapshot(
-            sqliteSnapshot: makeReaderSnapshot(title: "Langer PDF Export", content: paragraphs)
+            sqliteSnapshot: makeReaderSnapshot(title: "PDF", content: "<p>Text</p>")
         )
 
         let data = ArticleExportService.data(
             for: snapshot,
-            options: ArticleExportOptions(format: .pdf, includesMetadata: false)
+            options: ArticleExportOptions(format: .pdf, includesMetadata: true)
         )
 
-        #expect(pdfPageCount(in: data) > 1)
-    }
-
-    @Test func pdfExportBehältLesereihenfolgeUndStartetObenAufErsterSeite() throws {
-        let paragraphs = (1 ... 120)
-            .map { "<p>Absatz-\($0) Lesereihenfolge im PDF Export.</p>" }
-            .joined()
-        let snapshot = ArticleExportSnapshot(
-            sqliteSnapshot: makeReaderSnapshot(title: "PDF Reihenfolge", content: paragraphs)
-        )
-        let data = ArticleExportService.data(
-            for: snapshot,
-            options: ArticleExportOptions(format: .pdf, includesMetadata: false)
-        )
-        let document = try #require(PDFDocument(data: data))
-        let firstPage = try #require(document.page(at: 0))
-        let lastPage = try #require(document.page(at: document.pageCount - 1))
-        let firstPageText = firstPage.string ?? ""
-        let lastPageText = lastPage.string ?? ""
-        let titleSelection = try #require(document.findString("PDF Reihenfolge", withOptions: []).first)
-        let titleBounds = titleSelection.bounds(for: firstPage)
-        let pageBounds = firstPage.bounds(for: .mediaBox)
-
-        #expect(firstPageText.contains("PDF Reihenfolge"))
-        #expect(firstPageText.contains("Absatz-1"))
-        #expect(!firstPageText.contains("Absatz-120"))
-        #expect(lastPageText.contains("Absatz-120"))
-        #expect(titleBounds.midY > pageBounds.height * 0.65)
+        #expect(data.isEmpty)
     }
 
     @Test func docxExportErzeugtOpenXMLDokumentMitArtikeltext() {
@@ -526,22 +445,6 @@ struct ArticleExportServiceTests {
         #expect(archiveText.contains("DOCX &amp; Export"))
         #expect(archiveText.contains("Ein lesbarer Absatz."))
         #expect(!archiveText.contains("bad()"))
-    }
-
-    @Test func packageBuilderGibtPDFAlsNormalesDokumentZurueck() async {
-        let snapshot = ArticleExportSnapshot(
-            sqliteSnapshot: makeReaderSnapshot(title: "PDF Paket", content: "<p>Artikeltext</p>")
-        )
-
-        let package = await ArticleExportPackageBuilder.package(
-            for: snapshot,
-            options: ArticleExportOptions(format: .pdf, includesMetadata: false),
-            includesOfflineImages: true
-        )
-
-        #expect(package.filename == "PDF Paket.pdf")
-        #expect(package.contentType == .document)
-        #expect(package.archiveData.starts(with: Data("%PDF".utf8)))
     }
 
     @Test func packageBuilderGibtDOCXAlsNormalesDokumentZurueck() async {
@@ -711,10 +614,4 @@ private final class ConcurrencyTrackingArticleExportImageLoader: ArticleExportIm
 
         return Data(repeating: 1, count: 8)
     }
-}
-
-private func pdfPageCount(in data: Data) -> Int {
-    String(decoding: data, as: UTF8.self)
-        .components(separatedBy: "/Type /Page")
-        .count - 1
 }

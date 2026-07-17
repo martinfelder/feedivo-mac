@@ -54,6 +54,10 @@ enum ArticleExportPackageBuilder {
         options: ArticleExportOptions,
         includesOfflineImages: Bool,
         imageLoader: ArticleExportImageDataLoading = URLSessionArticleExportImageDataLoader(),
+        // Nicht mehr im Funktionskoerper verwendet, seit der PDF-spezifische Zweig unten
+        // entfernt wurde (Feature 25.1 "Drucken" ersetzt den alten CGContext-PDF-Renderer
+        // durch nativen Druck; .pdf ist ueber ArticleExportFormat.dialogFormats ohnehin nie
+        // erreichbar). Bleibt fuer Aufrufkompatibilitaet mit ArticleExportSheet.swift stehen.
         pdfStyle: ArticlePDFExportStyle = .default,
         progress: @MainActor @escaping (ArticleExportPackageProgress) -> Void = { _ in }
     ) async -> ArticleExportPackage {
@@ -61,42 +65,6 @@ enum ArticleExportPackageBuilder {
 
         let originalText = ArticleExportService.text(for: snapshot, options: options)
         let documentFilename = ArticleExportService.defaultFilename(for: snapshot, format: options.format)
-
-        if options.format == .pdf {
-            let sourceHTML = ArticleExportService.text(
-                for: snapshot,
-                options: ArticleExportOptions(format: .html, includesMetadata: options.includesMetadata)
-            )
-            let imagePackage = await imagePackage(
-                from: sourceHTML,
-                imageLoader: imageLoader,
-                progress: progress
-            )
-            let rewrittenHTML = textByReplacingImageURLs(in: sourceHTML, replacements: imagePackage.replacements)
-            progress(.creatingArchive)
-            let pdfData = ArticlePDFExportRenderer.data(
-                fromHTML: ArticlePDFExportRenderer.html(
-                    fromExportedHTML: rewrittenHTML,
-                    style: pdfStyle,
-                    assets: imagePackage.assets
-                )
-            )
-
-            let previewHTML = ArticlePDFExportRenderer.html(
-                fromExportedHTML: rewrittenHTML,
-                style: pdfStyle,
-                assets: imagePackage.assets
-            )
-
-            return ArticleExportPackage(
-                filename: documentFilename,
-                contentType: .document,
-                text: previewHTML,
-                assets: imagePackage.assets,
-                failedImageURLs: imagePackage.failedImageURLs,
-                archiveData: pdfData
-            )
-        }
 
         guard includesOfflineImages, options.format.supportsOfflineImagePackage else {
             return ArticleExportPackage(

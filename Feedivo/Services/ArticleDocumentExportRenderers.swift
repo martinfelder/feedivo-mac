@@ -1,4 +1,3 @@
-import AppKit
 import Foundation
 
 struct ArticlePDFExportStyle: Equatable, Sendable {
@@ -26,22 +25,6 @@ struct ArticlePDFExportStyle: Equatable, Sendable {
 }
 
 enum ArticlePDFExportRenderer {
-    static func data(
-        for snapshot: ArticleExportSnapshot,
-        options: ArticleExportOptions,
-        style: ArticlePDFExportStyle = .default,
-        assets: [ArticleExportPackageAsset] = []
-    ) -> Data {
-        data(
-            fromHTML: html(
-                for: snapshot,
-                options: options,
-                style: style,
-                assets: assets
-            )
-        )
-    }
-
     static func html(
         for snapshot: ArticleExportSnapshot,
         options: ArticleExportOptions,
@@ -196,94 +179,6 @@ enum ArticlePDFExportRenderer {
         </body>
         </html>
         """
-    }
-
-    static func data(fromHTML html: String) -> Data {
-        let attributedString = attributedString(fromHTML: html)
-        return pdfData(from: attributedString)
-    }
-
-    private static func attributedString(fromHTML html: String) -> NSAttributedString {
-        let data = Data(html.utf8)
-        let options: [NSAttributedString.DocumentReadingOptionKey: Any] = [
-            .documentType: NSAttributedString.DocumentType.html,
-            .characterEncoding: String.Encoding.utf8.rawValue
-        ]
-
-        return (try? NSAttributedString(
-            data: data,
-            options: options,
-            documentAttributes: nil
-        )) ?? NSAttributedString(string: html)
-    }
-
-    private static func pdfData(from attributedString: NSAttributedString) -> Data {
-        let pageSize = CGSize(width: 595, height: 842)
-        let pageInsets = NSEdgeInsets(top: 54, left: 54, bottom: 54, right: 54)
-        let contentRect = CGRect(
-            x: pageInsets.left,
-            y: pageInsets.top,
-            width: pageSize.width - pageInsets.left - pageInsets.right,
-            height: pageSize.height - pageInsets.top - pageInsets.bottom
-        )
-
-        let textStorage = NSTextStorage(attributedString: attributedString)
-        let layoutManager = NSLayoutManager()
-        textStorage.addLayoutManager(layoutManager)
-        layoutManager.ensureGlyphs(forCharacterRange: NSRange(location: 0, length: attributedString.length))
-
-        var pageRanges: [NSRange] = []
-        var glyphLocation = 0
-
-        while glyphLocation < layoutManager.numberOfGlyphs {
-            let textContainer = NSTextContainer(containerSize: contentRect.size)
-            textContainer.lineFragmentPadding = 0
-            layoutManager.addTextContainer(textContainer)
-
-            let glyphRange = layoutManager.glyphRange(for: textContainer)
-            guard glyphRange.length > 0 else {
-                break
-            }
-
-            pageRanges.append(glyphRange)
-            glyphLocation = NSMaxRange(glyphRange)
-        }
-
-        if pageRanges.isEmpty {
-            pageRanges.append(NSRange(location: 0, length: 0))
-        }
-
-        let output = NSMutableData()
-        var mediaBox = CGRect(origin: .zero, size: pageSize)
-        guard let consumer = CGDataConsumer(data: output as CFMutableData),
-              let context = CGContext(consumer: consumer, mediaBox: &mediaBox, nil)
-        else {
-            return Data()
-        }
-
-        for glyphRange in pageRanges {
-            context.beginPDFPage(nil)
-            context.saveGState()
-            NSGraphicsContext.saveGraphicsState()
-
-            context.translateBy(x: 0, y: pageSize.height)
-            context.scaleBy(x: 1, y: -1)
-            let graphicsContext = NSGraphicsContext(cgContext: context, flipped: true)
-            NSGraphicsContext.current = graphicsContext
-
-            NSColor.white.setFill()
-            CGRect(origin: .zero, size: pageSize).fill()
-
-            layoutManager.drawBackground(forGlyphRange: glyphRange, at: contentRect.origin)
-            layoutManager.drawGlyphs(forGlyphRange: glyphRange, at: contentRect.origin)
-
-            NSGraphicsContext.restoreGraphicsState()
-            context.restoreGState()
-            context.endPDFPage()
-        }
-
-        context.closePDF()
-        return output as Data
     }
 
     private static func bodyHTML(from html: String) -> String {

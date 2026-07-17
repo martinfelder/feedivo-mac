@@ -103,7 +103,11 @@ enum ArticleExportService {
         case .markdown, .plainText, .html:
             Data(text(for: snapshot, options: options).utf8)
         case .pdf:
-            ArticlePDFExportRenderer.data(for: snapshot, options: options)
+            // .pdf ist nicht in ArticleExportFormat.dialogFormats enthalten und ueber die
+            // UI nie erreichbar (Feature 25.1 "Drucken" ersetzt PDF-Export durch nativen
+            // Druckdialog samt "Als PDF sichern"). Der alte NSAttributedString/CGContext-
+            // Renderer wurde entfernt — dieser Fall dient nur noch der Exhaustivitaet.
+            Data()
         case .docx:
             ArticleDOCXExportRenderer.data(for: snapshot, options: options)
         }
