@@ -441,6 +441,16 @@ struct SQLiteReaderView: View {
         ReaderDisplayMode.resolved(from: readerDisplayModeRawValue)
     }
 
+    // Effektiver Web-Modus, wie er tatsaechlich gerendert wird (siehe ReaderModeContent.body
+    // weiter unten) — reines readerDisplayMode == .web reicht nicht: bei fehlendem
+    // originalURL oder einem Web-Ladefehler zeigt der Reader die native Ansicht, obwohl der
+    // gespeicherte (globale) Modus weiterhin .web ist. printCurrentArticle() muss dieselbe
+    // Bedingung nutzen wie das Rendering selbst, sonst druckt es im Zweifel die falsche oder
+    // eine leere Ansicht (Whole-Branch-Review-Fund, Feature 25.1).
+    private var isShowingWebContent: Bool {
+        readerDisplayMode == .web && originalURL != nil && !webContentLoadFailed
+    }
+
     private var articleInAppWebProfile: ArticleInAppWebProfile {
         ArticleInAppWebProfile.resolved(from: articleInAppWebProfileRawValue)
     }
@@ -827,16 +837,14 @@ struct SQLiteReaderView: View {
     // bestehende Export-HTML (identisch zum HTML-Export) offscreen geladen und nach
     // vollstaendigem Laden gedruckt (ArticlePrintCoordinator unten).
     private func printCurrentArticle() {
-        switch readerDisplayMode {
-        case .web:
+        if isShowingWebContent {
             guard let webView = webNavigationController.webView else {
                 return
             }
 
             let operation = webView.printOperation(with: .shared)
             operation.run()
-
-        case .native:
+        } else {
             guard let snapshot = state.snapshot else {
                 return
             }
