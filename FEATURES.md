@@ -1106,11 +1106,16 @@
 ## 25. Drucken
 
 ### 25.1 Artikel drucken
-- **Status:** ✅ Entschieden — bereit zur Implementierung
-- **Zu implementieren:**
-  - `Cmd+P` druckt den aktuellen Artikel
-  - Im Druckdialog wählt der User: Reader-Darstellung oder Original-Webseite
-  - Metadaten (Datum, Feed-Name, URL) im Druckbild optional
+- **Status:** ✅ Umgesetzt (2026-07-17)
+- **Umgesetzt:**
+  - `Cmd+P` druckt den aktuellen Artikel über den nativen macOS-Druckdialog
+  - Druckinhalt folgt automatisch der aktuellen Reader-Ansicht (nativ oder Original-
+    Webseite) — kein zusätzlicher Umschalter im Druckdialog (Nutzerentscheidung,
+    siehe `docs/superpowers/specs/2026-07-17-artikel-drucken-design.md`)
+  - Native Ansicht druckt immer mit Metadaten, kein Metadaten-Toggle im Druckdialog
+  - PDF-Export läuft ausschließlich über den Standard-PDF-Button jedes macOS-
+    Druckdialogs (kein eigener PDF-Renderer mehr — der alte, qualitativ
+    eingeschränkte `NSAttributedString`/`CGContext`-basierte Renderer wurde entfernt)
 
 ---
 
