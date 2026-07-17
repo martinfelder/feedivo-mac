@@ -31,7 +31,13 @@ enum SidebarSmartFolderContextAction {
 /// frameOfOutlineCell(atRow:) auf .zero überschreiben — isItemExpandable
 /// bleibt unverändert true, AppKit zeichnet das Dreieck nur nicht mehr,
 /// weil ihm dafür kein Platz gemeldet wird.
-private final class SidebarOutlineViewControl: NSOutlineView {
+// Nicht mehr `private`: FeedJumpKeyMonitor.swift muss diese konkrete Klasse
+// von SwiftUIs eigener, intern ebenfalls NSOutlineView-basierter List-
+// Implementierung (SwiftUIOutlineListView) unterscheiden können — ein reiner
+// `is NSOutlineView`-Check würde sonst auch die Artikelliste selbst
+// fälschlich als "Sidebar" ausschließen (live per TEMP-DEBUG gefunden,
+// 2026-07-17).
+final class SidebarOutlineViewControl: NSOutlineView {
     override func frameOfOutlineCell(atRow row: Int) -> NSRect {
         .zero
     }

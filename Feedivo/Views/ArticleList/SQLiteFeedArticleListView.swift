@@ -186,6 +186,15 @@ struct SQLiteFeedArticleListView: View {
         }
         .onChange(of: state.navigationState) {
             navigationState = state.navigationState
+            // TEMP-DEBUG-Fund (2026-07-17, automatischer Feed-Sprung): Beim
+            // Sprung wird selectedArticleID gesetzt, BEVOR state.rows fuer
+            // den neuen Feed fertig geladen sind — markSelectedArticleReadIfNeeded()
+            // aus .onChange(of: selectedArticleID) findet dann keine passende
+            // Zeile und gibt still auf, ohne erneut zu versuchen. state.navigationState
+            // aendert sich genau dann, wenn der asynchrone Reload abgeschlossen
+            // ist, deshalb hier zusaetzlich retryen. markReadIfNeeded() ist intern
+            // idempotent (!row.isRead-Guard), ein doppelter Aufruf ist risikolos.
+            markSelectedArticleReadIfNeeded()
         }
         .sheet(item: $articleExportRequest) { request in
             ArticleExportSheet(request: request) {

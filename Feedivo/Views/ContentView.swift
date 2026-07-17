@@ -743,19 +743,27 @@ struct ContentView: View {
     /// den zum Registrierungszeitpunkt.
     private func configureFeedJumpKeyMonitor() {
         FeedJumpKeyMonitor.shared.isEligible = { direction in
+            // WICHTIG: nextArticleID/previousArticleID bilden NICHT "nächster/
+            // vorheriger ungelesener Artikel" ab, sondern "nächste/vorherige
+            // Zeile in der gesamten Feed-Artikelliste (gelesen + ungelesen)" —
+            // gelesene Artikel bleiben in `rows` stehen (siehe
+            // SQLiteFeedArticleListState.swift, Kommentar bei toggleRead()).
+            // nextArticleID wird deshalb erst nil am literal letzten Artikel
+            // der GESAMTEN Feed-Historie, nicht am letzten ungelesenen — live
+            // per Diagnose-Logging gefunden (2026-07-17), nie zuvor
+            // testbar, weil der Sprung-Mechanismus vorher nie feuerte. Der
+            // korrekte Signalgeber ist stattdessen feedSnapshots.unreadCount
+            // (derselbe Wert, der auch das Sidebar-Badge speist).
+            let feedUnreadCount = feedSnapshots.first(where: { $0.id == selectedFeedID })?.unreadCount
             guard selectedFeedID != nil,
                   selectedSQLiteArticleID != nil,
-                  !isJumpingToFeedWithUnread
+                  !isJumpingToFeedWithUnread,
+                  let feedUnreadCount
             else {
                 return false
             }
 
-            switch direction {
-            case .next:
-                return sqliteArticleNavigationState.nextArticleID == nil
-            case .previous:
-                return sqliteArticleNavigationState.previousArticleID == nil
-            }
+            return feedUnreadCount == 0
         }
 
         FeedJumpKeyMonitor.shared.performJump = { direction in

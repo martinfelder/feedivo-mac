@@ -84,8 +84,19 @@ struct SQLiteReaderView: View {
         toolbarRebuildGeneration += 1
     }
 
+    // TEMP-DEBUG-Fund (2026-07-17, automatischer Feed-Sprung): benutzte
+    // vorher state.snapshot?.id (den ZULETZT geladenen Artikel) statt
+    // self.articleID (den AKTUELL ausgewaehlten). Beim Feed-Sprung feuert
+    // .onChange(of: sqliteStatusVersion) (ausgeloest durch das Markieren-
+    // als-gelesen des Zielartikels) fast zeitgleich mit dem regulaeren
+    // .task(id: articleID)-Ladevorgang fuer den neuen Artikel — state.snapshot
+    // zeigt zu diesem Zeitpunkt noch auf den ALTEN Artikel, wurde also ein
+    // force:true-Reload fuer den falschen (alten) Artikel ausgeloest, der je
+    // nach Timing den korrekten Ladevorgang ueberholen und ueberschreiben
+    // konnte ("mal geht's, mal nicht"). self.articleID ist immer die
+    // korrekte, aktuell ausgewaehlte ID.
     private func reloadCurrentArticleSnapshot() {
-        guard let database, let articleID = state.snapshot?.id else {
+        guard let database, let articleID else {
             return
         }
 

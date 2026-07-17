@@ -55,8 +55,18 @@ final class FeedJumpKeyMonitor {
         monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { @MainActor [weak self] event in
             guard let self else { return event }
 
+            // NICHT .deviceIndependentFlagsMask verwenden: Pfeiltasten setzen in
+            // event.modifierFlags immer zusätzlich .numericPad/.function (historisch
+            // von der geteilten Nutzung mit dem Nummernblock), obwohl keine
+            // Modifier-Taste gedrückt wurde — .deviceIndependentFlagsMask enthält
+            // beide Flags, wodurch diese Prüfung für JEDEN Pfeiltastendruck fälschlich
+            // "mit Modifier" ergäbe. Live per Diagnose-Logging gefunden (2026-07-17):
+            // keyCode=125 (Pfeil-Runter, kein Modifier gedrückt), aber
+            // modifierFlagsAreEmpty war dennoch false. Nur die tatsächlichen
+            // Modifier-Tasten prüfen, die ein Cmd+Pfeil-Menübefehl (siehe
+            // ArticleCommands.swift) von einem reinen Pfeiltastendruck unterscheiden.
             let modifierFlagsAreEmpty = event.modifierFlags
-                .intersection(.deviceIndependentFlagsMask)
+                .intersection([.command, .option, .control, .shift])
                 .isEmpty
             guard let direction = Self.direction(
                 for: event.specialKey,
@@ -64,12 +74,18 @@ final class FeedJumpKeyMonitor {
             ) else {
                 return event
             }
-            guard !TextEditingFocusMonitor.shared.isEditingText else { return event }
+            guard !TextEditingFocusMonitor.shared.isEditingText else {
+                return event
+            }
             guard let contentWindow = self.contentWindow, event.window === contentWindow else {
                 return event
             }
-            guard !self.firstResponderIsExcluded(in: contentWindow) else { return event }
-            guard self.isEligible(direction) else { return event }
+            guard !self.firstResponderIsExcluded(in: contentWindow) else {
+                return event
+            }
+            guard self.isEligible(direction) else {
+                return event
+            }
 
             self.performJump(direction)
             return nil
@@ -100,14 +116,24 @@ final class FeedJumpKeyMonitor {
     /// Schließt zwei bekannte, eigenständig pfeiltasten-navigierbare
     /// AppKit-Bereiche im Hauptfenster aus: das eingebettete `WKWebView`
     /// (Reader-„Web-Ansicht" — dort soll Pfeil-Hoch/-Runter normal scrollen)
-    /// und die Sidebar-`NSOutlineView` (dort soll Pfeil-Hoch/-Runter normal
-    /// zwischen Feed-Zeilen wechseln). Aufstieg durch die `superview`-Kette
-    /// ab dem First Responder — beides öffentliche AppKit-/WebKit-
-    /// Basisklassen, keine fragilen privaten Klassennamen nötig.
+    /// und die Sidebar (dort soll Pfeil-Hoch/-Runter normal zwischen
+    /// Feed-Zeilen wechseln). Aufstieg durch die `superview`-Kette ab dem
+    /// First Responder.
+    ///
+    /// WICHTIG: prüft gezielt gegen `SidebarOutlineViewControl` (die
+    /// konkrete Klasse der echten Sidebar, `SidebarOutlineView.swift`),
+    /// NICHT gegen die generische `NSOutlineView`-Basisklasse — SwiftUIs
+    /// eigene `List`-Implementierung ist auf macOS selbst intern über eine
+    /// private `NSOutlineView`-Subklasse (`SwiftUIOutlineListView`)
+    /// realisiert. Ein `is NSOutlineView`-Check hätte deshalb auch die
+    /// Artikelliste selbst fälschlich ausgeschlossen, wo der Sprung gerade
+    /// funktionieren soll (live per Diagnose-Logging gefunden,
+    /// 2026-07-17: firstResponder war `SwiftUI.SwiftUIOutlineListView`,
+    /// nicht die Sidebar).
     private func firstResponderIsExcluded(in window: NSWindow) -> Bool {
         var view = window.firstResponder as? NSView
         while let current = view {
-            if current is WKWebView || current is NSOutlineView {
+            if current is WKWebView || current is SidebarOutlineViewControl {
                 return true
             }
             view = current.superview
