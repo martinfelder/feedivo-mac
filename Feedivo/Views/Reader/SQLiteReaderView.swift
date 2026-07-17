@@ -1,4 +1,5 @@
 import AppKit
+import PDFKit
 import SwiftUI
 import WebKit
 
@@ -28,6 +29,9 @@ struct SQLiteReaderView: View {
     // didFinish feuert.
     @State private var offscreenPrintWebView: WKWebView?
     @State private var articlePrintCoordinator: ArticlePrintCoordinator?
+    // Haelt die PDFView fest, die fuer den eigentlichen Druckvorgang genutzt wird (siehe
+    // printCurrentArticle()) — sonst wuerde ARC sie waehrend runModal(...) freigeben.
+    @State private var printPDFView: PDFView?
     // Erzwingt einen kompletten Neuaufbau der Toolbar-Inhaltsgruppe bei jedem
     // Vollbild-Wechsel (siehe FullScreenTransitionObserver) — Fix für einen
     // Toolbar-Icon-Überlapp-Bug, der nach Fenster-Schliessen/App-Neustart/
@@ -831,24 +835,29 @@ struct SQLiteReaderView: View {
     }
 
     // Druckinhalt folgt der aktuellen Reader-Ansicht (kein Umschalter im Druckdialog,
-    // siehe Design-Spec 2026-07-17-artikel-drucken-design.md). Im Web-Modus wird die
-    // tatsaechlich sichtbare WKWebView 1:1 gedruckt (inkl. Original-Layout). Im nativen
-    // Modus gibt es keine dauerhaft lebende WKWebView zum Drucken — deshalb wird die
-    // bestehende Export-HTML (identisch zum HTML-Export) offscreen geladen und nach
-    // vollstaendigem Laden gedruckt (ArticlePrintCoordinator unten).
+    // siehe Design-Spec 2026-07-17-artikel-drucken-design.md). Live-Bug-Fund 2026-07-17
+    // (lldb-Backtrace): WKWebView.printOperation(with:) stuerzt in AppKits eigener
+    // Seitenaufteilungs-Validierung ab ("The NSPrintOperation view's frame was not
+    // initialized properly before knowsPageRange: returned") — ein seit Jahren bekanntes,
+    // ungeloestes WKWebView/AppKit-Problem, reproduzierbar unabhaengig von WKWebView-
+    // Instanz, Fenster-Zuordnung und NSPrintInfo.shared vs. frisch konstruiert. printDocument:
+    // (Responder-Chain) ist auf WKWebView auf dieser macOS-Version zudem gar nicht
+    // implementiert. Stattdessen: WKWebView.createPDF(...) (Apples separate, dafuer
+    // gedachte PDF-Export-API) erzeugt zuverlaessig echte PDF-Daten; ein ganz normaler,
+    // laengst bewaehrter PDFKit-Druckvorgang (NSPrintOperation(view: PDFView)) zeigt
+    // dafuer den Druckdialog — komplett unabhaengig von WKWebViews kaputter eigener
+    // Druck-Integration.
     private func printCurrentArticle() {
         if isShowingWebContent {
-            guard let webView = webNavigationController.webView, let window = webView.window else {
+            guard let webView = webNavigationController.webView else {
                 return
             }
 
-            // NSPrintOperation.run() liefert bei WKWebView-basierten Druckauftraegen
-            // zuverlaessig einen fehlerhaften "Diese App unterstuetzt Drucken nicht"-
-            // Alert statt eines echten Druckdialogs (bekanntes AppKit/WebKit-Verhalten,
-            // Live-Bug-Fund 2026-07-17) — runModal(for:...) laeuft stattdessen
-            // asynchron gegen ein echtes Fenster und funktioniert zuverlaessig.
-            let operation = webView.printOperation(with: .shared)
-            operation.runModal(for: window, delegate: nil, didRun: nil, contextInfo: nil)
+            webView.createPDF(configuration: WKPDFConfiguration()) { result in
+                if case .success(let data) = result {
+                    presentPrintDialog(forPDFData: data)
+                }
+            }
         } else {
             guard let snapshot = state.snapshot else {
                 return
@@ -865,15 +874,35 @@ struct SQLiteReaderView: View {
             // damit die Export-CSS (max-width: 680px, siehe ArticlePDFExportStyle.default)
             // beim Layout nicht kollabiert, obwohl die WebView nie sichtbar wird.
             let printWebView = WKWebView(frame: CGRect(x: 0, y: 0, width: 816, height: 1056))
-            let coordinator = ArticlePrintCoordinator {
-                offscreenPrintWebView = nil
-                articlePrintCoordinator = nil
+            let coordinator = ArticlePrintCoordinator { finishedWebView in
+                finishedWebView.createPDF(configuration: WKPDFConfiguration()) { result in
+                    if case .success(let data) = result {
+                        presentPrintDialog(forPDFData: data)
+                    }
+                    offscreenPrintWebView = nil
+                    articlePrintCoordinator = nil
+                }
             }
             printWebView.navigationDelegate = coordinator
             offscreenPrintWebView = printWebView
             articlePrintCoordinator = coordinator
             printWebView.loadHTMLString(html, baseURL: nil)
         }
+    }
+
+    private func presentPrintDialog(forPDFData data: Data) {
+        guard let pdfDocument = PDFDocument(data: data),
+              let window = NSApp.keyWindow ?? NSApp.mainWindow
+        else {
+            return
+        }
+
+        let pdfView = PDFView(frame: CGRect(x: 0, y: 0, width: 816, height: 1056))
+        pdfView.document = pdfDocument
+        printPDFView = pdfView
+
+        let operation = NSPrintOperation(view: pdfView)
+        operation.runModal(for: window, delegate: nil, didRun: nil, contextInfo: nil)
     }
 }
 
@@ -1075,50 +1104,21 @@ private struct FullScreenTransitionObserver: NSViewRepresentable {
     }
 }
 
-/// Rendert die native Reader-Export-HTML in einer unsichtbaren WKWebView und startet den
-/// nativen Druckvorgang, sobald das Laden abgeschlossen ist — WKWebView.printOperation(with:)
-/// liefert vor didFinish kein sinnvolles Ergebnis. SQLiteReaderView haelt die zugehoerige
-/// WKWebView per @State fest, bis onFinished() aufgerufen wird (sonst wuerde ARC sie
-/// vorzeitig freigeben, analog zum bestehenden WebContentView.Coordinator-Muster).
+/// Laedt die native Reader-Export-HTML in einer unsichtbaren WKWebView und erzeugt daraus
+/// per createPDF(...) echte PDF-Daten, sobald das Laden abgeschlossen ist (siehe Kommentar
+/// bei printCurrentArticle() zur Begruendung dieses Wegs statt WKWebView.printOperation).
+/// SQLiteReaderView haelt die zugehoerige WKWebView per @State fest, bis didFinish
+/// feuert (sonst wuerde ARC sie vorzeitig freigeben, analog zum bestehenden
+/// WebContentView.Coordinator-Muster).
 private final class ArticlePrintCoordinator: NSObject, WKNavigationDelegate {
-    private let onFinished: () -> Void
+    private let onFinished: (WKWebView) -> Void
 
-    init(onFinished: @escaping () -> Void) {
+    init(onFinished: @escaping (WKWebView) -> Void) {
         self.onFinished = onFinished
         super.init()
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        // Braucht ein echtes Fenster fuer runModal(for:...) — die Offscreen-WebView
-        // selbst gehoert zu keinem Fenster. Das gerade aktive App-Fenster (zum
-        // Zeitpunkt des Button-Klicks der Reader) ist dafuer die richtige Wahl.
-        guard let window = NSApp.keyWindow ?? NSApp.mainWindow else {
-            onFinished()
-            return
-        }
-
-        let operation = webView.printOperation(with: .shared)
-        operation.runModal(
-            for: window,
-            delegate: self,
-            didRun: #selector(printOperationDidRun(_:success:contextInfo:)),
-            contextInfo: nil
-        )
-    }
-
-    @objc private func printOperationDidRun(
-        _ printOperation: NSPrintOperation,
-        success: Bool,
-        contextInfo: UnsafeMutableRawPointer?
-    ) {
-        onFinished()
-    }
-
-    func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
-        onFinished()
-    }
-
-    func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
-        onFinished()
+        onFinished(webView)
     }
 }
