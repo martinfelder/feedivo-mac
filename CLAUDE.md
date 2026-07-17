@@ -972,6 +972,23 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   offen bleiben laut Nutzer-Feedback nur noch die Punkte 3–5 (Sidebar-/
   Web-Ansicht-Fokus-Ausschluss, Hintergrundfenster), die im Zuge dieser
   Live-Fix-Runde nicht explizit erneut gegengetestet wurden.
+- **2026-07-17: Ein-/Ausschalter für automatischen Feed-Sprung in den
+  Einstellungen — VOLLSTÄNDIG ABGESCHLOSSEN, NICHT gepusht.** Nutzerwunsch
+  direkt im Anschluss an die obige Live-Fix-Bestätigung: Möglichkeit, das
+  Feature wieder auszuschalten. Leichtgewichtiges Brainstorming (eine
+  Rückfrage zur Platzierung) + Direktimplementierung, kein voller Plan
+  nötig (reine Wiederverwendung bestehender Bausteine). Neue
+  `FeedJumpNavigationSettings` (`Feedivo/Views/ArticleList/
+  ArticleListDisplaySettings.swift`, Standard AN) nach dem etablierten
+  `ArticleList*Settings`-Muster; Toggle im Tab „Artikelliste" (Nutzerwahl,
+  da thematisch näher an bestehenden Listen-Einstellungen als am
+  Shortcuts-Tab). Gate sitzt in `ContentView.configureFeedJumpKeyMonitor()`s
+  `isEligible`-Closure (`guard feedJumpNavigationIsEnabled, ...`) — der
+  `NSEvent`-Monitor selbst bleibt installiert, wird bei Deaktivierung aber
+  zum reinen No-Op, kein Neustart nötig, Umschalten wirkt sofort. 2 neue
+  L10n-Keys manuell in `Localizable.xcstrings` ergänzt (Auto-Stub-Mechanismus
+  greift bei indirekten `L10n`-Keys nicht, siehe Gotcha oben), per
+  `grep -c` verifiziert. Commit `608630f`. 80/80 Tests grün, Build grün.
 - **2026-07-16/17: Pfeiltasten-Navigation (Artikelliste + Reader-Zustandswechsel) —
   VOLLSTÄNDIG ABGESCHLOSSEN INKL. LIVE-FIX, NICHT gepusht, Rest-Live-Verifikation
   ausstehend.** Nutzerwunsch: reine (modifier-freie) Pfeiltasten für grundlegende
