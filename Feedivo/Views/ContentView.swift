@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 import Network
 import UniformTypeIdentifiers
@@ -225,39 +226,6 @@ struct ContentView: View {
             openSelectedSQLiteArticleOriginal()
             return .handled
         }
-        // Automatischer Feed-Sprung: Pfeil-Runter am Ende der ungelesenen
-        // Artikel eines Feeds springt zum nächsten Feed mit ungelesenen
-        // Artikeln (Sidebar-Reihenfolge), Pfeil-Hoch symmetrisch rückwärts.
-        // Nur bei Einzel-Feed-Auswahl relevant (selectedFeedID != nil) — bei
-        // Smart Foldern/Tags gibt es kein "nächster Feed"-Konzept. Zusätzliche
-        // Bedingung selectedSQLiteArticleID != nil verhindert einen Sprung,
-        // wenn noch gar kein Artikel ausgewählt wurde (dort ist
-        // nextArticleID/previousArticleID ebenfalls nil, aber aus einem
-        // anderen Grund).
-        .onKeyPress(.downArrow) {
-            guard selectedFeedID != nil,
-                  selectedSQLiteArticleID != nil,
-                  sqliteArticleNavigationState.nextArticleID == nil,
-                  !isJumpingToFeedWithUnread
-            else {
-                return .ignored
-            }
-
-            selectNextFeedWithUnread()
-            return .handled
-        }
-        .onKeyPress(.upArrow) {
-            guard selectedFeedID != nil,
-                  selectedSQLiteArticleID != nil,
-                  sqliteArticleNavigationState.previousArticleID == nil,
-                  !isJumpingToFeedWithUnread
-            else {
-                return .ignored
-            }
-
-            selectPreviousFeedWithUnread()
-            return .handled
-        }
         // Gibt die Feed-Sprung-Sperre wieder frei, sobald der Ziel-Feed
         // seine echten Navigationsdaten geladen hat (siehe
         // isJumpingToFeedWithUnread oben). Feuert auch bei normaler
@@ -268,6 +236,7 @@ struct ContentView: View {
             }
         }
         .onAppear(perform: handleContentAppear)
+        .background(ContentWindowObserver())
         .task {
             // SQLite-Sidebar-Snapshots beim Erscheinen laden (ersetzt @Query).
             await reloadFeedSnapshots()
@@ -503,6 +472,7 @@ struct ContentView: View {
         updateAppIconBadge()
         restoreArticleWindowsIfNeeded()
         refreshFeedsOnLaunchIfNeeded()
+        configureFeedJumpKeyMonitor()
     }
 
     /// Lädt die SQLite-Sidebar-Snapshots aus `FeedStore.sidebarFeeds()` und
@@ -765,6 +735,41 @@ struct ContentView: View {
         sidebarSelection = .feed(targetFeed.id)
     }
 
+    /// Registriert die beiden `FeedJumpKeyMonitor`-Closures einmalig (nicht
+    /// bei jedem Render) und startet den Monitor. Sicher als einmalige
+    /// Registrierung, weil `@State`-Properties intern eine über Struct-
+    /// Kopien hinweg geteilte Box referenzieren — ruft die Closure später
+    /// `selectedFeedID` o. ä. auf, liest sie stets den aktuellen Wert, nicht
+    /// den zum Registrierungszeitpunkt.
+    private func configureFeedJumpKeyMonitor() {
+        FeedJumpKeyMonitor.shared.isEligible = { direction in
+            guard selectedFeedID != nil,
+                  selectedSQLiteArticleID != nil,
+                  !isJumpingToFeedWithUnread
+            else {
+                return false
+            }
+
+            switch direction {
+            case .next:
+                return sqliteArticleNavigationState.nextArticleID == nil
+            case .previous:
+                return sqliteArticleNavigationState.previousArticleID == nil
+            }
+        }
+
+        FeedJumpKeyMonitor.shared.performJump = { direction in
+            switch direction {
+            case .next:
+                selectNextFeedWithUnread()
+            case .previous:
+                selectPreviousFeedWithUnread()
+            }
+        }
+
+        FeedJumpKeyMonitor.shared.startMonitoring()
+    }
+
     private var selectedFeedID: String? {
         guard case .feed(let feedID) = sidebarSelection else {
             return nil
@@ -969,6 +974,27 @@ struct ContentView: View {
         feedViewModel.clearRecentRefreshStatus()
     }
 
+}
+
+/// Unsichtbare Bridge-View, die ausschließlich die eigene `NSWindow`-
+/// Referenz an `FeedJumpKeyMonitor.shared.contentWindow` weiterreicht —
+/// analog zu `FullScreenTransitionObserver` in `SQLiteReaderView.swift`.
+/// Grundlage für den Fenster-Identitäts-Check im NSEvent-Monitor-Fallback
+/// des automatischen Feed-Sprungs (verhindert, dass Pfeiltasten-Ereignisse
+/// in anderen Fenstern wie Suche/Organizer/Artikel-Popout fälschlich einen
+/// Feed-Sprung im Hauptfenster auslösen).
+private struct ContentWindowObserver: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView(frame: .zero)
+        DispatchQueue.main.async {
+            FeedJumpKeyMonitor.shared.contentWindow = view.window
+        }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        FeedJumpKeyMonitor.shared.contentWindow = nsView.window
+    }
 }
 
 private struct CleanupToast: Equatable {
