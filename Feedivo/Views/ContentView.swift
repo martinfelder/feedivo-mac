@@ -21,6 +21,7 @@ struct ContentView: View {
     // `FeedStore.sidebarFeeds()` vor. Die Liste wird beim Erscheinen und bei
     // Status-Version-Bumps (Feed-Anlage/-Löschung/-Refresh) neu geladen.
     @State private var feedSnapshots: [FeedSidebarSnapshot] = []
+    @State private var feedFolders: [FeedFolderRecord] = []
     @AppStorage(SQLiteDataInvalidation.statusVersionKey)
     private var sqliteStatusVersion = 0
     @AppStorage(CleanupToastSignal.versionKey)
@@ -39,6 +40,12 @@ struct ContentView: View {
     @State private var selectedSQLiteArticleID: String?
     @State private var selectedSQLiteArticleSnapshot: ArticleReaderSnapshot?
     @State private var sqliteArticleNavigationState = SQLiteArticleNavigationState.empty
+    // Feature "Automatischer Feed-Sprung": handleSidebarSelectionChange()
+    // konsumiert diesen Wert, statt selectedSQLiteArticleID beim Feed-Wechsel
+    // bedingungslos zu nullen — vermeidet ein Race zwischen dem Setzen von
+    // sidebarSelection und selectedSQLiteArticleID (analog zum bereits
+    // dokumentierten AddFeedSheet-Race weiter oben in dieser Datei).
+    @State private var pendingArticleIDAfterFeedJump: String?
     @AppStorage(ReaderDisplayMode.storageKey)
     private var readerDisplayModeRawValue = ReaderDisplayMode.defaultMode.rawValue
 
@@ -207,6 +214,37 @@ struct ContentView: View {
             }
 
             openSelectedSQLiteArticleOriginal()
+            return .handled
+        }
+        // Automatischer Feed-Sprung: Pfeil-Runter am Ende der ungelesenen
+        // Artikel eines Feeds springt zum nächsten Feed mit ungelesenen
+        // Artikeln (Sidebar-Reihenfolge), Pfeil-Hoch symmetrisch rückwärts.
+        // Nur bei Einzel-Feed-Auswahl relevant (selectedFeedID != nil) — bei
+        // Smart Foldern/Tags gibt es kein "nächster Feed"-Konzept. Zusätzliche
+        // Bedingung selectedSQLiteArticleID != nil verhindert einen Sprung,
+        // wenn noch gar kein Artikel ausgewählt wurde (dort ist
+        // nextArticleID/previousArticleID ebenfalls nil, aber aus einem
+        // anderen Grund).
+        .onKeyPress(.downArrow) {
+            guard selectedFeedID != nil,
+                  selectedSQLiteArticleID != nil,
+                  sqliteArticleNavigationState.nextArticleID == nil
+            else {
+                return .ignored
+            }
+
+            selectNextFeedWithUnread()
+            return .handled
+        }
+        .onKeyPress(.upArrow) {
+            guard selectedFeedID != nil,
+                  selectedSQLiteArticleID != nil,
+                  sqliteArticleNavigationState.previousArticleID == nil
+            else {
+                return .ignored
+            }
+
+            selectPreviousFeedWithUnread()
             return .handled
         }
         .onAppear(perform: handleContentAppear)
@@ -412,7 +450,8 @@ struct ContentView: View {
     }
 
     private func handleSidebarSelectionChange() {
-        selectedSQLiteArticleID = nil
+        selectedSQLiteArticleID = pendingArticleIDAfterFeedJump
+        pendingArticleIDAfterFeedJump = nil
         selectedSQLiteArticleSnapshot = nil
         sqliteArticleNavigationState = .empty
     }
@@ -454,9 +493,11 @@ struct ContentView: View {
     private func reloadFeedSnapshots() async {
         guard let database = feedivoDatabase else {
             feedSnapshots = []
+            feedFolders = []
             return
         }
         feedSnapshots = (try? FeedStore(database: database).sidebarFeeds()) ?? []
+        feedFolders = (try? FeedFolderStore(database: database).folders()) ?? []
         if !feedSnapshots.isEmpty {
             FirstRunWizardState.markHadFeeds(&hasHadFeedsForFirstRunWizard)
         }
@@ -658,6 +699,48 @@ struct ContentView: View {
         if selectedSQLiteArticleID != nil {
             selectedSQLiteArticleID = sqliteArticleNavigationState.nextArticleID
         }
+    }
+
+    /// Feed-Sprung am Ende der Artikelliste (Feature: automatischer Wechsel
+    /// zum nächsten Feed mit ungelesenen Artikeln). Setzt bewusst
+    /// pendingArticleIDAfterFeedJump statt direkt selectedSQLiteArticleID —
+    /// siehe Kommentar bei handleSidebarSelectionChange().
+    private func selectNextFeedWithUnread() {
+        guard let feedID = selectedFeedID, let database = feedivoDatabase else {
+            return
+        }
+
+        let orderedFeeds = SidebarFeedOrder.orderedFeeds(from: feedSnapshots, folders: feedFolders)
+        guard let targetFeed = SidebarFeedOrder.nextFeedWithUnread(after: feedID, in: orderedFeeds) else {
+            return
+        }
+
+        let unreadArticles = (try? ArticleDatabase(database: database).fetchUnreadArticles(feedIDs: [targetFeed.id])) ?? []
+        guard let firstUnreadArticleID = unreadArticles.first?.id else {
+            return
+        }
+
+        pendingArticleIDAfterFeedJump = firstUnreadArticleID
+        sidebarSelection = .feed(targetFeed.id)
+    }
+
+    private func selectPreviousFeedWithUnread() {
+        guard let feedID = selectedFeedID, let database = feedivoDatabase else {
+            return
+        }
+
+        let orderedFeeds = SidebarFeedOrder.orderedFeeds(from: feedSnapshots, folders: feedFolders)
+        guard let targetFeed = SidebarFeedOrder.previousFeedWithUnread(before: feedID, in: orderedFeeds) else {
+            return
+        }
+
+        let unreadArticles = (try? ArticleDatabase(database: database).fetchUnreadArticles(feedIDs: [targetFeed.id])) ?? []
+        guard let lastUnreadArticleID = unreadArticles.last?.id else {
+            return
+        }
+
+        pendingArticleIDAfterFeedJump = lastUnreadArticleID
+        sidebarSelection = .feed(targetFeed.id)
     }
 
     private var selectedFeedID: String? {
