@@ -155,6 +155,7 @@ enum L10n {
     static let shortcutsLabelArticleOpenOriginal = LocalizedStringKey("shortcuts.label.articleOpenOriginal")
     static let shortcutsLabelArticleShareOriginal = LocalizedStringKey("shortcuts.label.articleShareOriginal")
     static let shortcutsLabelArticleExport = LocalizedStringKey("shortcuts.label.articleExport")
+    static let shortcutsLabelArticlePrint = LocalizedStringKey("shortcuts.label.articlePrint")
     static let shortcutsModifierFreeWarning = LocalizedStringKey("shortcuts.modifierFree.warning")
 
     static func shortcutsConflictMessage(_ conflictingLabel: String) -> String {
@@ -520,6 +521,7 @@ enum L10n {
     static let articleArchiveCommand = String(localized: "article.archive.command")
     static let articleUnarchiveCommand = String(localized: "article.unarchive.command")
     static let articleExportCommand = String(localized: "article.export.command")
+    static let articlePrintCommand = String(localized: "article.print.command")
     static let articleExportSaveButton = String(localized: "article.export.save.button")
     static let articleExportPrepareTitle = String(localized: "article.export.prepare.title")
     static let articleExportPrepareMessage = String(localized: "article.export.prepare.message")

@@ -889,7 +889,12 @@ struct FeedivoTests {
         #expect(CustomizableShortcut.articleShareOriginal.category == .article)
         #expect(CustomizableShortcut.articleExport.category == .article)
 
-        #expect(CustomizableShortcut.allCases.count == 20)
+        #expect(CustomizableShortcut.allCases.count == 21)
+    }
+
+    @Test func customizableShortcutArticlePrintHatKategorieArtikelUndDefaultCommandP() {
+        #expect(CustomizableShortcut.articlePrint.category == .article)
+        #expect(CustomizableShortcut.articlePrint.defaultSpec == KeyboardShortcutSpec(key: "p", modifiers: [.command]))
     }
 
     @MainActor

@@ -40,6 +40,7 @@ enum CustomizableShortcut: String, CaseIterable, Identifiable, Sendable {
     case articleOpenOriginal
     case articleShareOriginal
     case articleExport
+    case articlePrint
     case readerWebBack
     case readerWebForward
 
@@ -53,7 +54,7 @@ enum CustomizableShortcut: String, CaseIterable, Identifiable, Sendable {
         case .articleSelectPrevious, .articleSelectNext, .articleSearch,
              .articleToggleRead, .articleToggleStarred, .articleToggleArchived,
              .articleOpenInWindow, .articleCopyLink, .articleOpenOriginal,
-             .articleShareOriginal, .articleExport:
+             .articleShareOriginal, .articleExport, .articlePrint:
             .article
         case .readerWebBack, .readerWebForward:
             .reader
@@ -87,6 +88,7 @@ enum CustomizableShortcut: String, CaseIterable, Identifiable, Sendable {
         case .articleOpenOriginal: L10n.shortcutsLabelArticleOpenOriginal
         case .articleShareOriginal: L10n.shortcutsLabelArticleShareOriginal
         case .articleExport: L10n.shortcutsLabelArticleExport
+        case .articlePrint: L10n.shortcutsLabelArticlePrint
         case .readerWebBack: L10n.shortcutsLabelReaderWebBack
         case .readerWebForward: L10n.shortcutsLabelReaderWebForward
         }
@@ -124,6 +126,8 @@ enum CustomizableShortcut: String, CaseIterable, Identifiable, Sendable {
             nil
         case .articleOpenInWindow:
             KeyboardShortcutSpec(key: SpecialKey.return.rawValue, modifiers: [.command])
+        case .articlePrint:
+            KeyboardShortcutSpec(key: "p", modifiers: [.command])
         case .readerWebBack:
             KeyboardShortcutSpec(key: "[", modifiers: [.command])
         case .readerWebForward:
