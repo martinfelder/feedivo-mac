@@ -814,6 +814,53 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Aktuell in Arbeit
 
+- **2026-07-17: Automatischer Feed-Sprung am Listenende — VOLLSTÄNDIG ABGESCHLOSSEN,
+  NICHT gepusht, Live-Verifikation ausstehend.** Nutzerwunsch: Pfeil-Runter am Ende der
+  ungelesenen Artikel eines Feeds springt zum nächsten Feed mit ungelesenen Artikeln
+  (Sidebar-Reihenfolge inkl. Ordner), wählt dort automatisch den ersten ungelesenen
+  Artikel; Pfeil-Hoch symmetrisch rückwärts (letzter ungelesener Artikel). Nur bei
+  Einzel-Feed-Auswahl, kein Wraparound. Umgesetzt via Brainstorming→Spec→Plan→
+  Subagent-Driven-Development (2 Tasks, beide Reviews clean) + einem vom finalen
+  Whole-Branch-Review (Opus) gefundenen Race-Fix. Architektur: neue reine, isoliert
+  getestete `SidebarFeedOrder.swift` (delegiert an bestehende `FeedFolderOrganizer`-
+  Bausteine, dieselben, die auch die echte NSOutlineView-Sidebar nutzt — beweisbar
+  reihenfolge-treu), verdrahtet in `ContentView.swift` über zwei neue
+  `.onKeyPress(.downArrow)`/`.onKeyPress(.upArrow)`-Handler am selben Wurzel-Container
+  wie die bestehende Rechts-/Links-/Eingabetaste-Navigation. Race-Fix beim
+  Feed-Wechsel: `handleSidebarSelectionChange()` setzte `selectedSQLiteArticleID` bei
+  jeder `sidebarSelection`-Änderung bedingungslos auf `nil` zurück — ein direkter
+  Sprung hätte die gerade gesetzte Zielartikel-Auswahl sofort wieder verloren (analog
+  zum bereits dokumentierten AddFeedSheet-Race). Gelöst über einen neuen
+  `pendingArticleIDAfterFeedJump`-State, den `handleSidebarSelectionChange()` selbst
+  konsumiert statt blind zu überschreiben — deterministisch, ohne
+  Reihenfolge-Annahmen über SwiftUIs Update-Zyklus. **Zweiter Fix aus dem
+  Whole-Branch-Review (Commit `58fbd05`):** plausible (nicht bestätigte, aber am
+  Datenfluss verifizierte) Race bei gehaltener Pfeiltaste über eine Feed-Grenze
+  hinweg — der Ziel-Feed lädt seine Navigationsdaten asynchron nach
+  (`sqliteArticleNavigationState` bleibt bis dahin `.empty`, ununterscheidbar vom
+  "Ende der Liste"-Zustand), ein zweiter Tastendruck in dieser Lücke hätte den gerade
+  erreichten Feed komplett übersprungen. Neues `isJumpingToFeedWithUnread`-Flag sperrt
+  einen erneuten Sprung, bis `sqliteArticleNavigationState` per `.onChange` erstmals
+  wieder echte (nicht-leere) Daten liefert. Bekanntes technisches Risiko (aus der
+  Spec, noch nicht live verifiziert): natives `List`-Verhalten könnte Pfeil-Hoch/-
+  Runter auch am Rand der Liste komplett konsumieren, bevor der `.onKeyPress`-Handler
+  am Wurzel-Container das Ereignis überhaupt sieht — anders als bei Rechts/Links
+  (bereits live bestätigt funktionierend), da List Hoch/Runter selbst aktiv für die
+  Zeilennavigation nutzt. Falls das live scheitert: dokumentierter Fallback über einen
+  `NSEvent`-Tastatur-Monitor (separater Folge-Task, nicht Teil dieses Features). Spec:
+  `docs/superpowers/specs/2026-07-17-naechster-feed-mit-ungelesenen-design.md`, Plan:
+  `docs/superpowers/plans/2026-07-17-naechster-feed-mit-ungelesenen.md`. **Ausstehende
+  manuelle Live-Verifikationscheckliste:** 1. Feed mit genau einem ungelesenen Artikel
+  lesen, dann nochmal Pfeil-Runter — springt zum nächsten Feed mit ungelesenen
+  Artikeln, Sidebar-Auswahl wechselt sichtbar, erster ungelesener Artikel dort
+  ausgewählt. 2. **Entscheidender Test für das technische Risiko:** falls das NICHT
+  funktioniert, ist das der Auslöser für den NSEvent-Monitor-Fallback. 3. Symmetrisch
+  mit Pfeil-Hoch. 4. **Priorisierter Test für den zweiten Fix:** Pfeil-Runter über eine
+  Feed-Grenze hinweg GEHALTEN drücken — darf den Ziel-Feed nicht überspringen. 5.
+  Normales Durchnavigieren innerhalb eines Feeds mit mehreren ungelesenen Artikeln
+  bleibt unverändert. 6. Letzter Feed mit ungelesenen Artikeln: kein Wraparound. 7.
+  Ordner-Reihenfolge wird respektiert, nicht nur alphabetisch. 8. Smart Folder/Tag-
+  Auswahl: kein Feed-Sprung.
 - **2026-07-16/17: Pfeiltasten-Navigation (Artikelliste + Reader-Zustandswechsel) —
   VOLLSTÄNDIG ABGESCHLOSSEN INKL. LIVE-FIX, NICHT gepusht, Rest-Live-Verifikation
   ausstehend.** Nutzerwunsch: reine (modifier-freie) Pfeiltasten für grundlegende
