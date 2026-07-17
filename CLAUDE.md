@@ -814,58 +814,67 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Aktuell in Arbeit
 
-- **2026-07-16: Pfeiltasten-Navigation (Artikelliste + Reader-Zustandswechsel) —
-  VOLLSTÄNDIG ABGESCHLOSSEN, NICHT gepusht, Live-Verifikation ausstehend.**
-  Nutzerwunsch: reine (modifier-freie) Pfeiltasten für grundlegende Navigation —
-  Hoch/Runter zum vorherigen/nächsten Artikel, Rechts-Pfeil von nativer Ansicht
-  zur eingebetteten Originalansicht und ein zweites Mal Rechts zum Öffnen im
-  externen Browser, Links-Pfeil zurück von Web- zu nativer Ansicht. Umgesetzt via
-  Brainstorming→Spec→Plan→Subagent-Driven-Development (2 Tasks, beide Reviews
-  clean im ersten Anlauf, 0 Critical/Important). **Rechercheergebnis vor der
-  Implementierung:** Hoch/Runter brauchen KEINEN Code — `SQLiteFeedArticleListView`s
-  `List(selection:)` ist über eine durchgängige `@Binding`-Kette an denselben State
-  gebunden wie die bestehenden ⌘↑/⌘↓-Menübefehle, macOS' native `List`-
-  Tastatursteuerung bewegt diese Selektion bei Fokus bereits per Pfeiltaste, alle
-  bestehenden `.onChange`-Seiteneffekte (Gelesen-Markierung, Sticky-Row) feuern
-  identisch zu Mausklick. Architektur für Rechts/Links: bewusst NICHT über das
-  gerade zuvor gebaute `CustomizableShortcut`/`Commands`-Menüsystem (hätte das noch
-  ungeklärte `.disabled`-Reaktivitätsrisiko in `Commands`-Bodies geerbt), sondern
-  neue reine, isoliert getestete Zustandsübergangs-Logik
-  (`ReaderArrowKeyNavigation.swift`, `rightArrowResult(currentMode:)`/
-  `leftArrowShouldSwitchToNative(currentMode:)`) plus `.onKeyPress(.rightArrow)`/
-  `.onKeyPress(.leftArrow)` am Wurzel-Container von `ContentView.body` (oberhalb
+- **2026-07-16/17: Pfeiltasten-Navigation (Artikelliste + Reader-Zustandswechsel) —
+  VOLLSTÄNDIG ABGESCHLOSSEN INKL. LIVE-FIX, NICHT gepusht, Rest-Live-Verifikation
+  ausstehend.** Nutzerwunsch: reine (modifier-freie) Pfeiltasten für grundlegende
+  Navigation — Hoch/Runter zum vorherigen/nächsten Artikel, Rechts-Pfeil steuert
+  den Reader-Ansichtswechsel. Umgesetzt via Brainstorming→Spec→Plan→
+  Subagent-Driven-Development (2 Tasks, beide Reviews clean im ersten Anlauf,
+  0 Critical/Important) + anschließendem Live-Fix nach Nutzer-Test.
+  **Rechercheergebnis vor der Implementierung:** Hoch/Runter brauchen KEINEN
+  Code — `SQLiteFeedArticleListView`s `List(selection:)` ist über eine
+  durchgängige `@Binding`-Kette an denselben State gebunden wie die bestehenden
+  ⌘↑/⌘↓-Menübefehle, macOS' native `List`-Tastatursteuerung bewegt diese
+  Selektion bei Fokus bereits per Pfeiltaste, alle bestehenden `.onChange`-
+  Seiteneffekte (Gelesen-Markierung, Sticky-Row) feuern identisch zu Mausklick.
+  Architektur bewusst NICHT über das gerade zuvor gebaute
+  `CustomizableShortcut`/`Commands`-Menüsystem (hätte das noch ungeklärte
+  `.disabled`-Reaktivitätsrisiko in `Commands`-Bodies geerbt), sondern reine,
+  isoliert getestete Zustandsübergangs-Logik (`ReaderArrowKeyNavigation.swift`)
+  plus `.onKeyPress(...)` am Wurzel-Container von `ContentView.body` (oberhalb
   der `NavigationSplitView`) — nutzt SwiftUIs Tastatur-Event-Bubbling, ein
-  fokussiertes Textfeld konsumiert Rechts/Links selbst für die Cursor-Bewegung,
-  bevor das Event dorthin blubbert (kollisionsfrei, kein `TextEditingFocusMonitor`-
-  Äquivalent nötig). Finaler Whole-Branch-Review (Opus): „Ready to merge: Yes",
-  0 Critical/Important, 1 informativer Minor-Punkt (Rechts-Pfeil-Guard nutzt
-  `ArticleOriginalURLResolver.hasUsableWebLink` — strenger als die etwas losere
-  `URL(string:)`-Prüfung des bestehenden Ansicht-Pickers, bewusst strenger statt
-  loser, kein Fix nötig). **Verbleibendes Kernrisiko laut Review (eigene
-  unabhängige Einschätzung des Reviewers, nicht nur wiederholt): Fokus-Bubbling
-  über `NavigationSplitView`-Spaltengrenzen** — der Fall „Artikelliste fokussiert"
-  sollte funktionieren (List konsumiert nur Hoch/Runter, nicht Links/Rechts), der
-  unsicherste Fall ist Links-Pfeil-Rücksprung, WÄHREND die eingebettete `WKWebView`
-  fokussiert ist (dort läuft die AppKit-Responder-Chain statt SwiftUIs
-  Fokuskette) — als Prioritätspunkt für die Live-Checkliste markiert (Punkt 5
-  unten). Fallback bei Fehlschlag: kein Redesign, sondern Anbindung über die
-  bereits bestehende `WebNavigationBoundary`/WKWebView-Key-Handling-Brücke
-  (siehe `WebContentView.swift`). Spec: `docs/superpowers/specs/2026-07-16-
-  pfeiltasten-navigation-design.md`, Plan: `docs/superpowers/plans/2026-07-16-
-  pfeiltasten-navigation.md`. **Ausstehende manuelle Live-Verifikationscheckliste:**
-  1. Artikel anklicken, dann Pfeil-Runter/-Hoch — Artikelliste navigiert, Reader
-     aktualisiert sich (sollte bereits ohne diese Code-Änderung funktionieren).
-     2. Bei ausgewähltem Artikel in nativer Ansicht Rechts-Pfeil — wechselt zur
-     eingebetteten Originalansicht. 3. Nochmals Rechts-Pfeil im Web-Zustand —
-     öffnet im externen Standard-Browser. 4. Links-Pfeil im Web-Zustand — zurück
-     zur nativen Ansicht. 5. **Entscheidender, laut Review priorisierter Test:**
-     Rechts-/Links-Pfeil sowohl bei fokussierter Artikelliste ALS AUCH nach Klick
-     in den Reader-Bereich testen — insbesondere Links-Pfeil, während die
-     eingebettete Web-Ansicht (WKWebView) den Tastaturfokus hat (höchstes
-     Fehlschlagrisiko laut Review). 6. Ohne ausgewählten Artikel bzw. bei einem
-     Artikel ohne nutzbaren Link: Rechts-/Links-Pfeil tun nichts, kein Absturz.
-     7. Rechts-Pfeil bei fokussiertem Textfeld (Suche, Umbenennen) bewegt
-     weiterhin nur den Text-Cursor.
+  fokussiertes Textfeld konsumiert die Tasten selbst für Cursor-Bewegung/
+  Bestätigung, bevor das Event dorthin blubbert (kollisionsfrei, kein
+  `TextEditingFocusMonitor`-Äquivalent nötig). Erster Whole-Branch-Review (Opus)
+  auf dem ursprünglichen Design: „Ready to merge: Yes", 0 Critical/Important.
+  **Live-Fix (2026-07-17, Commit `0d88a37`):** Nutzer-Report nach dem ersten
+  Live-Test — die ursprünglich gebaute Vorwärts-Kette (Rechts: nativ → Web →
+  Browser, Links: Web → nativ als einziger Rückweg) fühlte sich falsch an: aus
+  der Web-Ansicht führte Rechts nicht zurück zu nativ, sondern weiter zum
+  Browser. Nutzerentscheid (per Rückfrage): Rechts wird ein reiner
+  Umschalter nativ↔Web in beide Richtungen, das Öffnen im externen Browser
+  läuft stattdessen über die Eingabetaste (Return). `ReaderArrowKeyNavigation.
+  rightArrowResult(currentMode:)`/`.leftArrowShouldSwitchToNative(currentMode:)`
+  durch eine einzige `toggleMode(currentMode:) -> ReaderDisplayMode` ersetzt;
+  Links-Pfeil-Handler in `ContentView.swift` komplett entfernt (redundant, da
+  Rechts jetzt beide Richtungen abdeckt); neuer `.onKeyPress(.return)`-Handler
+  ruft die bereits bestehende `openSelectedSQLiteArticleOriginal()` auf. Direkt
+  ohne neuen vollen Brainstorming-Zyklus umgesetzt (kleine, klar umrissene
+  Korrektur an bereits reviewtem Code, analog zu früheren „Live-Fix"-Einträgen
+  in diesem Dokument), aber weiterhin mit TDD (2 angepasste Tests statt 3,
+  69/69 grün) und Build-Verifikation. Spec/Plan-Dokumente
+  (`docs/superpowers/specs/2026-07-16-pfeiltasten-navigation-design.md`,
+  `docs/superpowers/plans/2026-07-16-pfeiltasten-navigation.md`) beschreiben
+  bewusst noch den ursprünglichen (durch den Live-Fix überholten) Drei-Stufen-
+  Entwurf — historisches Dokument des Entscheidungsprozesses, nicht nachträglich
+  umgeschrieben; dieser CLAUDE.md-Eintrag ist die aktuelle Quelle der Wahrheit.
+  **Ausstehende manuelle Live-Verifikationscheckliste (aktualisiert nach dem
+  Fix):** 1. Artikel anklicken, dann Pfeil-Runter/-Hoch — Artikelliste
+  navigiert, Reader aktualisiert sich (sollte bereits ohne Code-Änderung
+  funktionieren). 2. Bei ausgewähltem Artikel Rechts-Pfeil — wechselt von
+  nativer zu Web-Ansicht. 3. Nochmals Rechts-Pfeil im Web-Zustand — wechselt
+  zurück zur nativen Ansicht (**das war der ursprüngliche Bug-Report, jetzt neu
+  zu bestätigen**). 4. Eingabetaste bei ausgewähltem Artikel — öffnet im
+  externen Standard-Browser, unabhängig vom aktuellen Ansicht-Zustand.
+  5. **Entscheidender, laut Review priorisierter Fokus-Test:** Rechts-Pfeil/
+  Eingabetaste sowohl bei fokussierter Artikelliste ALS AUCH nach Klick in den
+  Reader-Bereich testen — insbesondere während die eingebettete Web-Ansicht
+  (WKWebView) den Tastaturfokus hat (höchstes Fehlschlagrisiko laut ursprünglichem
+  Review, durch den Live-Fix nicht berührt). 6. Ohne ausgewählten Artikel bzw.
+  bei einem Artikel ohne nutzbaren Link: Rechts-Pfeil/Eingabetaste tun nichts,
+  kein Absturz. 7. Rechts-Pfeil/Eingabetaste bei fokussiertem Textfeld (Suche,
+  Umbenennen) bewegen weiterhin nur den Text-Cursor bzw. bestätigen das Feld,
+  lösen keinen Reader-Zustandswechsel aus.
 - **2026-07-16: Shortcuts-Erweiterung (modifier-freie Kombinationen + 8 fehlende
   Menü-Funktionen) — VOLLSTÄNDIG ABGESCHLOSSEN, NICHT gepusht, Live-Verifikation
   ausstehend.** Nutzer-Report: In den Einstellungen unter „Shortcuts" (Feature 19.8)
