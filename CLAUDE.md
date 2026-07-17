@@ -871,6 +871,56 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   bleibt unverändert. 6. Letzter Feed mit ungelesenen Artikeln: kein Wraparound. 7.
   Ordner-Reihenfolge wird respektiert, nicht nur alphabetisch. 8. Smart Folder/Tag-
   Auswahl: kein Feed-Sprung.
+- **2026-07-17 (Folge-Session): NSEvent-Monitor-Fallback für den automatischen
+  Feed-Sprung — VOLLSTÄNDIG ABGESCHLOSSEN, NICHT gepusht, Live-Verifikation
+  ausstehend.** Der oben dokumentierte `.onKeyPress(.downArrow)`/`.onKeyPress(.upArrow)`-
+  Primäransatz war live bestätigt wirkungslos (natives `List`-Verhalten verschluckt
+  Pfeil-Hoch/-Runter am Rand der Liste, bevor `.onKeyPress` das Ereignis sieht) — dieser
+  Durchgang ersetzt ihn durch den bereits angekündigten `NSEvent`-Monitor-Fallback.
+  Umgesetzt via Brainstorming→Spec→Plan→Subagent-Driven-Development (2 Tasks, beide
+  Reviews clean) + finalem Whole-Branch-Review (Opus): „Ready to merge: Yes", 0
+  Critical/Important. Architektur: neuer `@Observable @MainActor`-Singleton
+  `FeedJumpKeyMonitor` (`Feedivo/Services/FeedJumpKeyMonitor.swift`, strukturell analog
+  zu `TextEditingFocusMonitor`) installiert einen
+  `NSEvent.addLocalMonitorForEvents(matching: .keyDown)` — fängt Tastendrücke ab, BEVOR
+  irgendeine View (auch `List`s interne `NSTableView`) sie sieht. Prüft der Reihe nach:
+  reine Pfeiltaste ohne Modifier (`nonisolated static func direction(for:modifierFlagsAreEmpty:)`,
+  isoliert unit-getestet — 5 neue Tests), `!TextEditingFocusMonitor.shared.isEditingText`,
+  richtiges Fenster (`event.window === contentWindow`, gesetzt von einer neuen unsichtbaren
+  `ContentWindowObserver`-Bridge-View nach dem `FullScreenTransitionObserver`-Muster —
+  schließt Suchfenster/Organizer/Einstellungen/Artikel-Popout automatisch aus), First
+  Responder NICHT innerhalb von `WKWebView` oder `NSOutlineView`
+  (`firstResponderIsExcluded(in:)`, Aufstieg durch die `superview`-Kette — schließt sowohl
+  Web-Ansicht-Scrollen als auch Sidebar-Zeilennavigation aus, Letzteres ein beim Entwerfen
+  zusätzlich gefundenes, analoges Kollisionsrisiko zum bereits vom Nutzer entschiedenen
+  WKWebView-Fall), zuletzt die bereits bestehende `isEligible`-Logik. Ersetzt (nicht
+  ergänzt) die alten `.onKeyPress(.downArrow)`/`.onKeyPress(.upArrow)`-Blöcke in
+  `ContentView.swift` vollständig (waren nach dem Live-Befund ohnehin toter Code).
+  `@MainActor`-Closure-Annotation auf dem Monitor-Handler (dieselbe Brücke wie
+  `TextEditingFocusMonitor.startObserving()`), `startMonitoring()` idempotent per
+  `guard monitor == nil`. 4 Minor-Funde im Whole-Branch-Review, keiner fix-bedürftig
+  (u. a.: Kommentar-Analogie zu Button-Action-Closures ungenau — richtige Begründung ist
+  `ContentView`s stabile Root-Identität als `Window("main")`-Singleton-Szene, nicht die
+  Button-Analogie; `feedivoDatabase` via `@Environment` wird beim einmaligen
+  Closure-Capture eingefroren statt live gelesen wie `@State`, aktuell unkritisch da der
+  Environment-Wert sich nie ändert). Spec:
+  `docs/superpowers/specs/2026-07-17-feed-sprung-nsevent-monitor-design.md`, Plan:
+  `docs/superpowers/plans/2026-07-17-feed-sprung-nsevent-monitor.md`. **Ausstehende
+  manuelle Live-Verifikationscheckliste (ergänzt die obige, ersetzt sie nicht):** 1.
+  Feed mit genau einem ungelesenen Artikel lesen, dann nochmal Pfeil-Runter — springt
+  jetzt tatsächlich zum nächsten Feed mit ungelesenen Artikeln (der entscheidende, beim
+  Primäransatz fehlgeschlagene Test). 2. Symmetrisch mit Pfeil-Hoch. 3. **Neu:** in der
+  Sidebar mit Pfeiltasten durch die Feed-Liste blättern, während irgendein anderer Feed
+  zufällig „am Ende seiner ungelesenen Artikel" ist — Sidebar-Navigation bleibt normal,
+  kein Feed-Sprung. 4. **Neu:** Artikel in Web-Ansicht öffnen, in den Artikeltext klicken
+  (WKWebView hat Fokus), Pfeil-Runter drücken — Seite scrollt normal, kein Feed-Sprung.
+  5. **Neu:** Suchfenster/Organizer-Fenster öffnen, dort navigieren, während im
+  Hintergrund das Hauptfenster am Ende der ungelesenen Artikel ist — kein Feed-Sprung im
+  Hintergrundfenster. 6.-9. restliche Punkte der ursprünglichen Checkliste (normales
+  Durchnavigieren, kein Wraparound, Ordner-Reihenfolge, kein Sprung bei Smart-Folder/
+  Tag-Auswahl) unverändert gültig. 10. Rechts-/Links-Pfeil und Eingabetaste
+  (Reader-Ansichtswechsel/Original öffnen) verhalten sich weiterhin exakt wie zuvor —
+  keine Regression durch die neue globale `NSEvent`-Abfangung.
 - **2026-07-16/17: Pfeiltasten-Navigation (Artikelliste + Reader-Zustandswechsel) —
   VOLLSTÄNDIG ABGESCHLOSSEN INKL. LIVE-FIX, NICHT gepusht, Rest-Live-Verifikation
   ausstehend.** Nutzerwunsch: reine (modifier-freie) Pfeiltasten für grundlegende
