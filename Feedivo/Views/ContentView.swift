@@ -46,6 +46,15 @@ struct ContentView: View {
     // sidebarSelection und selectedSQLiteArticleID (analog zum bereits
     // dokumentierten AddFeedSheet-Race weiter oben in dieser Datei).
     @State private var pendingArticleIDAfterFeedJump: String?
+    // Sperrt einen zweiten Feed-Sprung, solange der Ziel-Feed seine
+    // Navigationsdaten noch asynchron nachlädt (SQLiteFeedArticleListState
+    // lädt Artikel per Task, sqliteArticleNavigationState bleibt bis dahin
+    // .empty — dieselbe Bedingung wie "am Ende der Liste"). Ohne diese Sperre
+    // würde eine gehaltene Pfeiltaste über die Feed-Grenze hinweg direkt
+    // weiterspringen und den gerade erreichten Feed komplett überspringen.
+    // Wird per .onChange(of: sqliteArticleNavigationState) wieder freigegeben,
+    // sobald echte (nicht-leere) Navigationsdaten für den Ziel-Feed vorliegen.
+    @State private var isJumpingToFeedWithUnread = false
     @AppStorage(ReaderDisplayMode.storageKey)
     private var readerDisplayModeRawValue = ReaderDisplayMode.defaultMode.rawValue
 
@@ -228,7 +237,8 @@ struct ContentView: View {
         .onKeyPress(.downArrow) {
             guard selectedFeedID != nil,
                   selectedSQLiteArticleID != nil,
-                  sqliteArticleNavigationState.nextArticleID == nil
+                  sqliteArticleNavigationState.nextArticleID == nil,
+                  !isJumpingToFeedWithUnread
             else {
                 return .ignored
             }
@@ -239,13 +249,23 @@ struct ContentView: View {
         .onKeyPress(.upArrow) {
             guard selectedFeedID != nil,
                   selectedSQLiteArticleID != nil,
-                  sqliteArticleNavigationState.previousArticleID == nil
+                  sqliteArticleNavigationState.previousArticleID == nil,
+                  !isJumpingToFeedWithUnread
             else {
                 return .ignored
             }
 
             selectPreviousFeedWithUnread()
             return .handled
+        }
+        // Gibt die Feed-Sprung-Sperre wieder frei, sobald der Ziel-Feed
+        // seine echten Navigationsdaten geladen hat (siehe
+        // isJumpingToFeedWithUnread oben). Feuert auch bei normaler
+        // Artikelnavigation, dort aber folgenlos (Flag ist dann bereits false).
+        .onChange(of: sqliteArticleNavigationState) { _, newValue in
+            if newValue != .empty {
+                isJumpingToFeedWithUnread = false
+            }
         }
         .onAppear(perform: handleContentAppear)
         .task {
@@ -720,6 +740,7 @@ struct ContentView: View {
             return
         }
 
+        isJumpingToFeedWithUnread = true
         pendingArticleIDAfterFeedJump = firstUnreadArticleID
         sidebarSelection = .feed(targetFeed.id)
     }
@@ -739,6 +760,7 @@ struct ContentView: View {
             return
         }
 
+        isJumpingToFeedWithUnread = true
         pendingArticleIDAfterFeedJump = lastUnreadArticleID
         sidebarSelection = .feed(targetFeed.id)
     }
