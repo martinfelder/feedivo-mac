@@ -841,13 +841,23 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   "Ende der Liste"-Zustand), ein zweiter Tastendruck in dieser Lücke hätte den gerade
   erreichten Feed komplett übersprungen. Neues `isJumpingToFeedWithUnread`-Flag sperrt
   einen erneuten Sprung, bis `sqliteArticleNavigationState` per `.onChange` erstmals
-  wieder echte (nicht-leere) Daten liefert. Bekanntes technisches Risiko (aus der
-  Spec, noch nicht live verifiziert): natives `List`-Verhalten könnte Pfeil-Hoch/-
-  Runter auch am Rand der Liste komplett konsumieren, bevor der `.onKeyPress`-Handler
-  am Wurzel-Container das Ereignis überhaupt sieht — anders als bei Rechts/Links
-  (bereits live bestätigt funktionierend), da List Hoch/Runter selbst aktiv für die
-  Zeilennavigation nutzt. Falls das live scheitert: dokumentierter Fallback über einen
-  `NSEvent`-Tastatur-Monitor (separater Folge-Task, nicht Teil dieses Features). Spec:
+  wieder echte (nicht-leere) Daten liefert. **Technisches Risiko aus der Spec LIVE
+  BESTÄTIGT (2026-07-17):** Pfeil-Runter am Ende der ungelesenen Artikel tut nichts —
+  natives `List`-Verhalten konsumiert Hoch/Runter auch am Rand der Liste komplett,
+  bevor der `.onKeyPress`-Handler am Wurzel-Container das Ereignis überhaupt sieht.
+  Anders als bei Rechts/Links (bereits live bestätigt funktionierend), da List
+  Hoch/Runter selbst aktiv für die Zeilennavigation nutzt und den Tastendruck deshalb
+  auch am Rand nicht durchreicht. **Nächster Schritt (NICHT in dieser Session
+  begonnen, bewusst auf eine neue Session mit frischem Kontext verschoben — diese
+  Session war bei Abschluss bei ~80 % Kontextfüllung und sehr hohen Kosten):**
+  dokumentierter Fallback über einen App-weiten `NSEvent.addLocalMonitorForEvents
+  (matching: .keyDown)`-Tastatur-Monitor, der Pfeil-Hoch/-Runter VOR der `List`
+  abfängt. Braucht eine neue Brücke zwischen AppKit-Ebene und SwiftUI-`@State`
+  (ähnliches Muster wie der bestehende `TextEditingFocusMonitor`, aber komplexer, da
+  der Monitor die eigentliche Sprung-Logik in `ContentView` auslösen muss, nicht nur
+  einen Bool-Flag lesen). Eigener Brainstorming→Spec→Plan-Zyklus empfohlen, kein
+  reiner Live-Fix — die Architektur-Entscheidung (wie die Brücke genau aussieht) ist
+  nicht trivial genug für eine Direktkorrektur. Spec:
   `docs/superpowers/specs/2026-07-17-naechster-feed-mit-ungelesenen-design.md`, Plan:
   `docs/superpowers/plans/2026-07-17-naechster-feed-mit-ungelesenen.md`. **Ausstehende
   manuelle Live-Verifikationscheckliste:** 1. Feed mit genau einem ungelesenen Artikel
