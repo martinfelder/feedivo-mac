@@ -919,12 +919,14 @@ struct FeedivoTests {
         #expect(KeyboardShortcutsSettings.needsTextFieldGuard(for: leertasteOhneModifier) == true)
     }
 
-    @Test func readerArrowKeyNavigationToggleWechseltVonNativeZuWeb() {
-        #expect(ReaderArrowKeyNavigation.toggleMode(currentMode: .native) == .web)
+    @Test func readerArrowKeyNavigationRechtsWechseltNurAusNativeZuWeb() {
+        #expect(ReaderArrowKeyNavigation.rightArrowShouldSwitchToWeb(currentMode: .native) == true)
+        #expect(ReaderArrowKeyNavigation.rightArrowShouldSwitchToWeb(currentMode: .web) == false)
     }
 
-    @Test func readerArrowKeyNavigationToggleWechseltVonWebZuNative() {
-        #expect(ReaderArrowKeyNavigation.toggleMode(currentMode: .web) == .native)
+    @Test func readerArrowKeyNavigationLinksWechseltNurAusWebZuNative() {
+        #expect(ReaderArrowKeyNavigation.leftArrowShouldSwitchToNative(currentMode: .web) == true)
+        #expect(ReaderArrowKeyNavigation.leftArrowShouldSwitchToNative(currentMode: .native) == false)
     }
 
 }

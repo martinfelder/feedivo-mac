@@ -159,30 +159,44 @@ struct ContentView: View {
         .onChange(of: sidebarSelection, handleSidebarSelectionChange)
         .onChange(of: selectedSQLiteArticleID, handleSQLiteArticleSelectionChange)
         // Feste, nicht über die Shortcuts-Einstellungen anpassbare Pfeiltasten-
-        // Navigation: Rechts schaltet den Reader zwischen nativer Ansicht und
-        // eingebetteter Originalansicht um, die Eingabetaste öffnet den Artikel
-        // im externen Browser. Am Wurzel-Container angehängt, damit SwiftUIs
-        // Tastatur-Event-Bubbling die Events unabhängig davon erreicht, ob die
-        // Artikelliste oder der Reader gerade den Fokus hat — beide konsumieren
-        // Rechts/Eingabetaste nicht selbst (im Gegensatz zu Hoch/Runter, die die
-        // Artikelliste bereits nativ für die Zeilennavigation nutzt). Ein
-        // fokussiertes Textfeld konsumiert Rechts/Eingabetaste für Cursor-
-        // Bewegung bzw. Bestätigung, bevor das Event hierher blubbert —
-        // kollisionsfrei. Ursprünglich als Vorwärts-Kette (nativ → Web →
-        // Browser, Links als Rückweg) gebaut, nach Live-Test-Feedback auf einen
-        // einzigen Umschalter + eigene Browser-Taste vereinfacht — Rechts sollte
-        // aus der Web-Ansicht auch wieder zurück zu nativ führen können.
+        // Navigation: Rechts wechselt nur vorwärts von nativer zu eingebetteter
+        // Originalansicht, Links geht zurück — klassisches Vorwärts-/Rückwärts-
+        // Paar. Die Eingabetaste öffnet den Artikel unabhängig vom
+        // Ansicht-Zustand im externen Browser. Am Wurzel-Container angehängt,
+        // damit SwiftUIs Tastatur-Event-Bubbling die Events unabhängig davon
+        // erreicht, ob die Artikelliste oder der Reader gerade den Fokus hat —
+        // beide konsumieren diese Tasten nicht selbst (im Gegensatz zu
+        // Hoch/Runter, die die Artikelliste bereits nativ für die
+        // Zeilennavigation nutzt). Ein fokussiertes Textfeld konsumiert
+        // Rechts/Links/Eingabetaste für Cursor-Bewegung bzw. Bestätigung, bevor
+        // das Event hierher blubbert — kollisionsfrei. Zwei vorherige Fassungen
+        // nach Live-Test-Feedback verworfen: erst eine reine Vorwärts-Kette
+        // (Rechts: nativ → Web → Browser, Links nur als Rückweg), dann ein
+        // beidseitiger Rechts-Umschalter ohne Links — beide widersprachen der
+        // gewohnten Erwartung, mit Links aus der Web-Ansicht zurückzukehren.
         .onKeyPress(.rightArrow) {
             guard selectedSQLiteArticleID != nil,
-                  ArticleOriginalURLResolver.hasUsableWebLink(selectedSQLiteArticleSnapshot?.link)
+                  ArticleOriginalURLResolver.hasUsableWebLink(selectedSQLiteArticleSnapshot?.link),
+                  ReaderArrowKeyNavigation.rightArrowShouldSwitchToWeb(
+                      currentMode: ReaderDisplayMode.resolved(from: readerDisplayModeRawValue)
+                  )
             else {
                 return .ignored
             }
 
-            readerDisplayModeRawValue = ReaderArrowKeyNavigation.toggleMode(
-                currentMode: ReaderDisplayMode.resolved(from: readerDisplayModeRawValue)
-            ).rawValue
+            readerDisplayModeRawValue = ReaderDisplayMode.web.rawValue
+            return .handled
+        }
+        .onKeyPress(.leftArrow) {
+            guard selectedSQLiteArticleID != nil,
+                  ReaderArrowKeyNavigation.leftArrowShouldSwitchToNative(
+                      currentMode: ReaderDisplayMode.resolved(from: readerDisplayModeRawValue)
+                  )
+            else {
+                return .ignored
+            }
 
+            readerDisplayModeRawValue = ReaderDisplayMode.native.rawValue
             return .handled
         }
         .onKeyPress(.return) {
