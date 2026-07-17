@@ -1,29 +1,23 @@
 import Foundation
 
 /// Reine Übergangslogik für die feste (nicht über die Shortcuts-Einstellungen
-/// anpassbare) Rechts-/Links-Pfeiltasten-Navigation im Reader: Rechts wechselt
-/// von der nativen Ansicht zur eingebetteten Originalansicht, ein zweites Mal
-/// Rechts öffnet den Artikel im externen Browser; Links geht von der
-/// Originalansicht zurück zur nativen Ansicht. Als eigener Typ isoliert, damit
-/// die Zustandsübergänge unabhängig von der `.onKeyPress`-Verdrahtung in
-/// `ContentView.swift` unit-testbar sind (SwiftUI-Tastatur-Events selbst sind
-/// in diesem Projekt nicht automatisiert testbar).
+/// anpassbare) Rechts-Pfeiltasten-Navigation im Reader: Rechts schaltet zwischen
+/// nativer Ansicht und eingebetteter Originalansicht hin und her. Das Öffnen im
+/// externen Browser läuft über eine eigene Taste (Eingabetaste), nicht über
+/// diesen Umschalter — Nutzer-Korrektur nach Live-Test: eine reine
+/// Vorwärts-Kette (nativ → Web → Browser) machte den Rückweg von Web zu nativ
+/// über Rechts unerreichbar, ein separates Links nur für den Rückweg fühlte
+/// sich uneinheitlich an. Als eigener Typ isoliert, damit die Zustandsübergänge
+/// unabhängig von der `.onKeyPress`-Verdrahtung in `ContentView.swift`
+/// unit-testbar sind (SwiftUI-Tastatur-Events selbst sind in diesem Projekt
+/// nicht automatisiert testbar).
 enum ReaderArrowKeyNavigation {
-    enum RightArrowResult: Equatable {
-        case switchToWeb
-        case openInBrowser
-    }
-
-    static func rightArrowResult(currentMode: ReaderDisplayMode) -> RightArrowResult {
+    static func toggleMode(currentMode: ReaderDisplayMode) -> ReaderDisplayMode {
         switch currentMode {
         case .native:
-            return .switchToWeb
+            return .web
         case .web:
-            return .openInBrowser
+            return .native
         }
-    }
-
-    static func leftArrowShouldSwitchToNative(currentMode: ReaderDisplayMode) -> Bool {
-        currentMode == .web
     }
 }

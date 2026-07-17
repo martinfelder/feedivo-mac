@@ -159,14 +159,19 @@ struct ContentView: View {
         .onChange(of: sidebarSelection, handleSidebarSelectionChange)
         .onChange(of: selectedSQLiteArticleID, handleSQLiteArticleSelectionChange)
         // Feste, nicht über die Shortcuts-Einstellungen anpassbare Pfeiltasten-
-        // Navigation: Rechts/Links steuern den Reader-Zustand (native ↔ Web-
-        // Ansicht ↔ externer Browser). Am Wurzel-Container angehängt, damit
-        // SwiftUIs Tastatur-Event-Bubbling die Events unabhängig davon erreicht,
-        // ob die Artikelliste oder der Reader gerade den Fokus hat — beide
-        // konsumieren Rechts/Links nicht selbst (im Gegensatz zu Hoch/Runter,
-        // die die Artikelliste bereits nativ für die Zeilennavigation nutzt).
-        // Ein fokussiertes Textfeld konsumiert Rechts/Links für die
-        // Cursor-Bewegung, bevor das Event hierher blubbert — kollisionsfrei.
+        // Navigation: Rechts schaltet den Reader zwischen nativer Ansicht und
+        // eingebetteter Originalansicht um, die Eingabetaste öffnet den Artikel
+        // im externen Browser. Am Wurzel-Container angehängt, damit SwiftUIs
+        // Tastatur-Event-Bubbling die Events unabhängig davon erreicht, ob die
+        // Artikelliste oder der Reader gerade den Fokus hat — beide konsumieren
+        // Rechts/Eingabetaste nicht selbst (im Gegensatz zu Hoch/Runter, die die
+        // Artikelliste bereits nativ für die Zeilennavigation nutzt). Ein
+        // fokussiertes Textfeld konsumiert Rechts/Eingabetaste für Cursor-
+        // Bewegung bzw. Bestätigung, bevor das Event hierher blubbert —
+        // kollisionsfrei. Ursprünglich als Vorwärts-Kette (nativ → Web →
+        // Browser, Links als Rückweg) gebaut, nach Live-Test-Feedback auf einen
+        // einzigen Umschalter + eigene Browser-Taste vereinfacht — Rechts sollte
+        // aus der Web-Ansicht auch wieder zurück zu nativ führen können.
         .onKeyPress(.rightArrow) {
             guard selectedSQLiteArticleID != nil,
                   ArticleOriginalURLResolver.hasUsableWebLink(selectedSQLiteArticleSnapshot?.link)
@@ -174,27 +179,20 @@ struct ContentView: View {
                 return .ignored
             }
 
-            switch ReaderArrowKeyNavigation.rightArrowResult(
+            readerDisplayModeRawValue = ReaderArrowKeyNavigation.toggleMode(
                 currentMode: ReaderDisplayMode.resolved(from: readerDisplayModeRawValue)
-            ) {
-            case .switchToWeb:
-                readerDisplayModeRawValue = ReaderDisplayMode.web.rawValue
-            case .openInBrowser:
-                openSelectedSQLiteArticleOriginal()
-            }
+            ).rawValue
 
             return .handled
         }
-        .onKeyPress(.leftArrow) {
+        .onKeyPress(.return) {
             guard selectedSQLiteArticleID != nil,
-                  ReaderArrowKeyNavigation.leftArrowShouldSwitchToNative(
-                      currentMode: ReaderDisplayMode.resolved(from: readerDisplayModeRawValue)
-                  )
+                  ArticleOriginalURLResolver.hasUsableWebLink(selectedSQLiteArticleSnapshot?.link)
             else {
                 return .ignored
             }
 
-            readerDisplayModeRawValue = ReaderDisplayMode.native.rawValue
+            openSelectedSQLiteArticleOriginal()
             return .handled
         }
         .onAppear(perform: handleContentAppear)
