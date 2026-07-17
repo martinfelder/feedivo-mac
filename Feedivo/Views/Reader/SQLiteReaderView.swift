@@ -838,12 +838,17 @@ struct SQLiteReaderView: View {
     // vollstaendigem Laden gedruckt (ArticlePrintCoordinator unten).
     private func printCurrentArticle() {
         if isShowingWebContent {
-            guard let webView = webNavigationController.webView else {
+            guard let webView = webNavigationController.webView, let window = webView.window else {
                 return
             }
 
+            // NSPrintOperation.run() liefert bei WKWebView-basierten Druckauftraegen
+            // zuverlaessig einen fehlerhaften "Diese App unterstuetzt Drucken nicht"-
+            // Alert statt eines echten Druckdialogs (bekanntes AppKit/WebKit-Verhalten,
+            // Live-Bug-Fund 2026-07-17) — runModal(for:...) laeuft stattdessen
+            // asynchron gegen ein echtes Fenster und funktioniert zuverlaessig.
             let operation = webView.printOperation(with: .shared)
-            operation.run()
+            operation.runModal(for: window, delegate: nil, didRun: nil, contextInfo: nil)
         } else {
             guard let snapshot = state.snapshot else {
                 return
@@ -1084,8 +1089,28 @@ private final class ArticlePrintCoordinator: NSObject, WKNavigationDelegate {
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        // Braucht ein echtes Fenster fuer runModal(for:...) — die Offscreen-WebView
+        // selbst gehoert zu keinem Fenster. Das gerade aktive App-Fenster (zum
+        // Zeitpunkt des Button-Klicks der Reader) ist dafuer die richtige Wahl.
+        guard let window = NSApp.keyWindow ?? NSApp.mainWindow else {
+            onFinished()
+            return
+        }
+
         let operation = webView.printOperation(with: .shared)
-        operation.run()
+        operation.runModal(
+            for: window,
+            delegate: self,
+            didRun: #selector(printOperationDidRun(_:success:contextInfo:)),
+            contextInfo: nil
+        )
+    }
+
+    @objc private func printOperationDidRun(
+        _ printOperation: NSPrintOperation,
+        success: Bool,
+        contextInfo: UnsafeMutableRawPointer?
+    ) {
         onFinished()
     }
 
