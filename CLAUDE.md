@@ -968,10 +968,15 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   Alle Diagnose-Logs nach Bestätigung entfernt, die Erklärkommentare zu den
   fünf Funden bleiben im Code stehen. Commit `89c6680`. 80/80 Tests grün,
   Build grün. **Damit ist die entscheidende, zuvor offene Live-Verifikation
-  aus dem Eintrag oben (Punkt 1–2, 6–10) vom Nutzer bestätigt bestanden** —
-  offen bleiben laut Nutzer-Feedback nur noch die Punkte 3–5 (Sidebar-/
-  Web-Ansicht-Fokus-Ausschluss, Hintergrundfenster), die im Zuge dieser
-  Live-Fix-Runde nicht explizit erneut gegengetestet wurden.
+  aus dem Eintrag oben (Punkt 1–2, 6–10) vom Nutzer bestätigt bestanden.**
+  **Nachtrag (2026-07-17, separate Session):** die restlichen drei Punkte
+  (3–5: Sidebar-Fokus-Ausschluss, Web-Ansicht-Fokus-Ausschluss,
+  Hintergrundfenster) wurden gezielt nachgetestet und ebenfalls vom Nutzer
+  bestätigt — kein Feed-Sprung bei Sidebar-Navigation, kein Feed-Sprung
+  beim Scrollen in der Web-Ansicht, kein Feed-Sprung im unsichtbaren
+  Hintergrund-Hauptfenster bei Suchfenster/Organizer im Vordergrund. **Damit
+  ist die komplette Live-Verifikationscheckliste für den automatischen
+  Feed-Sprung (beide Spec-Dokumente) vollständig abgehakt.**
 - **2026-07-17: Ein-/Ausschalter für automatischen Feed-Sprung in den
   Einstellungen — VOLLSTÄNDIG ABGESCHLOSSEN, NICHT gepusht.** Nutzerwunsch
   direkt im Anschluss an die obige Live-Fix-Bestätigung: Möglichkeit, das
