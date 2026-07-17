@@ -21620,6 +21620,62 @@
         }
       }
     },
+    "settings.articleList.feedJumpNavigation.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatischer Feed-Wechsel"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatic Feed Switching"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Changement de flux automatique"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cambio automatico del feed"
+          }
+        }
+      }
+    },
+    "settings.articleList.feedJumpNavigation.description" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Springt am Ende der ungelesenen Artikel eines Feeds automatisch zum nächsten Feed mit ungelesenen Artikeln."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jumps to the next feed with unread articles when you reach the end of a feed's unread articles."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passe automatiquement au flux suivant contenant des articles non lus à la fin des articles non lus du flux actuel."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passa automaticamente al feed successivo con articoli non letti al termine degli articoli non letti del feed corrente."
+          }
+        }
+      }
+    },
     "settings.articleList.summaryLineCount.title" : {
       "localizations" : {
         "de" : {

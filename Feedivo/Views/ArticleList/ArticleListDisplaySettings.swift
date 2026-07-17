@@ -59,6 +59,15 @@ enum ArticleListFeedNameVisibilitySettings {
     static let defaultShowsFeedName = true
 }
 
+/// Ob Pfeil-Runter/-Hoch am Ende/Anfang der ungelesenen Artikel eines Feeds
+/// automatisch zum nächsten/vorherigen Feed mit ungelesenen Artikeln springt
+/// (siehe `FeedJumpKeyMonitor`). Standard AN, entspricht dem bisherigen
+/// Verhalten — reines Opt-out für Nutzer, die das nicht wollen.
+enum FeedJumpNavigationSettings {
+    static let isEnabledKey = "articleList.feedJumpNavigationIsEnabled"
+    static let defaultIsEnabled = true
+}
+
 /// Anzahl der Vorschautext-Zeilen der Summary in der Artikelliste (Feature 19.1).
 /// 0 bedeutet: keine Zusammenfassung anzeigen (nur Titel + Datum).
 enum ArticleListSummaryLineCount {

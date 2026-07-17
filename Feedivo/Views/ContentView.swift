@@ -56,6 +56,8 @@ struct ContentView: View {
     // Wird per .onChange(of: sqliteArticleNavigationState) wieder freigegeben,
     // sobald echte (nicht-leere) Navigationsdaten für den Ziel-Feed vorliegen.
     @State private var isJumpingToFeedWithUnread = false
+    @AppStorage(FeedJumpNavigationSettings.isEnabledKey)
+    private var feedJumpNavigationIsEnabled = FeedJumpNavigationSettings.defaultIsEnabled
     @AppStorage(ReaderDisplayMode.storageKey)
     private var readerDisplayModeRawValue = ReaderDisplayMode.defaultMode.rawValue
 
@@ -755,7 +757,8 @@ struct ContentView: View {
             // korrekte Signalgeber ist stattdessen feedSnapshots.unreadCount
             // (derselbe Wert, der auch das Sidebar-Badge speist).
             let feedUnreadCount = feedSnapshots.first(where: { $0.id == selectedFeedID })?.unreadCount
-            guard selectedFeedID != nil,
+            guard feedJumpNavigationIsEnabled,
+                  selectedFeedID != nil,
                   selectedSQLiteArticleID != nil,
                   !isJumpingToFeedWithUnread,
                   let feedUnreadCount

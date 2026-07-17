@@ -541,6 +541,9 @@ private struct ArticleListSettingsView: View {
     @AppStorage(ArticleDateDisplayMode.storageKey)
     private var articleDateDisplayModeRawValue = ArticleDateDisplayMode.defaultMode.rawValue
 
+    @AppStorage(FeedJumpNavigationSettings.isEnabledKey)
+    private var feedJumpNavigationIsEnabled = FeedJumpNavigationSettings.defaultIsEnabled
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             SettingsBlock(eyebrow: "Artikelliste") {
@@ -607,6 +610,14 @@ private struct ArticleListSettingsView: View {
                     .labelsHidden()
                     .pickerStyle(.segmented)
                     .fixedSize(horizontal: true, vertical: false)
+                }
+
+                SettingRow(
+                    title: L10n.settingsArticleListFeedJumpNavigationTitle,
+                    description: L10n.settingsArticleListFeedJumpNavigationDescription
+                ) {
+                    Toggle("", isOn: $feedJumpNavigationIsEnabled)
+                        .labelsHidden()
                 }
             }
         }
