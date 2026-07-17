@@ -1008,4 +1008,29 @@ struct FeedivoTests {
         #expect(previous == nil)
     }
 
+    @Test func feedJumpKeyMonitorDirectionErkenntAbwaertspfeilOhneModifier() {
+        let direction = FeedJumpKeyMonitor.direction(for: .downArrow, modifierFlagsAreEmpty: true)
+        #expect(direction == .next)
+    }
+
+    @Test func feedJumpKeyMonitorDirectionErkenntAufwaertspfeilOhneModifier() {
+        let direction = FeedJumpKeyMonitor.direction(for: .upArrow, modifierFlagsAreEmpty: true)
+        #expect(direction == .previous)
+    }
+
+    @Test func feedJumpKeyMonitorDirectionIgnoriertModifierKombination() {
+        let direction = FeedJumpKeyMonitor.direction(for: .downArrow, modifierFlagsAreEmpty: false)
+        #expect(direction == nil)
+    }
+
+    @Test func feedJumpKeyMonitorDirectionIgnoriertAndereTasten() {
+        let direction = FeedJumpKeyMonitor.direction(for: .rightArrow, modifierFlagsAreEmpty: true)
+        #expect(direction == nil)
+    }
+
+    @Test func feedJumpKeyMonitorDirectionIgnoriertFehlendeSpecialKey() {
+        let direction = FeedJumpKeyMonitor.direction(for: nil, modifierFlagsAreEmpty: true)
+        #expect(direction == nil)
+    }
+
 }
