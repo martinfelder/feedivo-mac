@@ -39,6 +39,8 @@ struct ContentView: View {
     @State private var selectedSQLiteArticleID: String?
     @State private var selectedSQLiteArticleSnapshot: ArticleReaderSnapshot?
     @State private var sqliteArticleNavigationState = SQLiteArticleNavigationState.empty
+    @AppStorage(ReaderDisplayMode.storageKey)
+    private var readerDisplayModeRawValue = ReaderDisplayMode.defaultMode.rawValue
 
     @State private var feedViewModel: FeedViewModel
     // Feature 23.2 / Bugfix: früher zwei getrennte @State-Properties
@@ -156,6 +158,45 @@ struct ContentView: View {
         }
         .onChange(of: sidebarSelection, handleSidebarSelectionChange)
         .onChange(of: selectedSQLiteArticleID, handleSQLiteArticleSelectionChange)
+        // Feste, nicht über die Shortcuts-Einstellungen anpassbare Pfeiltasten-
+        // Navigation: Rechts/Links steuern den Reader-Zustand (native ↔ Web-
+        // Ansicht ↔ externer Browser). Am Wurzel-Container angehängt, damit
+        // SwiftUIs Tastatur-Event-Bubbling die Events unabhängig davon erreicht,
+        // ob die Artikelliste oder der Reader gerade den Fokus hat — beide
+        // konsumieren Rechts/Links nicht selbst (im Gegensatz zu Hoch/Runter,
+        // die die Artikelliste bereits nativ für die Zeilennavigation nutzt).
+        // Ein fokussiertes Textfeld konsumiert Rechts/Links für die
+        // Cursor-Bewegung, bevor das Event hierher blubbert — kollisionsfrei.
+        .onKeyPress(.rightArrow) {
+            guard selectedSQLiteArticleID != nil,
+                  ArticleOriginalURLResolver.hasUsableWebLink(selectedSQLiteArticleSnapshot?.link)
+            else {
+                return .ignored
+            }
+
+            switch ReaderArrowKeyNavigation.rightArrowResult(
+                currentMode: ReaderDisplayMode.resolved(from: readerDisplayModeRawValue)
+            ) {
+            case .switchToWeb:
+                readerDisplayModeRawValue = ReaderDisplayMode.web.rawValue
+            case .openInBrowser:
+                openSelectedSQLiteArticleOriginal()
+            }
+
+            return .handled
+        }
+        .onKeyPress(.leftArrow) {
+            guard selectedSQLiteArticleID != nil,
+                  ReaderArrowKeyNavigation.leftArrowShouldSwitchToNative(
+                      currentMode: ReaderDisplayMode.resolved(from: readerDisplayModeRawValue)
+                  )
+            else {
+                return .ignored
+            }
+
+            readerDisplayModeRawValue = ReaderDisplayMode.native.rawValue
+            return .handled
+        }
         .onAppear(perform: handleContentAppear)
         .task {
             // SQLite-Sidebar-Snapshots beim Erscheinen laden (ersetzt @Query).
