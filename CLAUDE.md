@@ -921,6 +921,57 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   Tag-Auswahl) unverändert gültig. 10. Rechts-/Links-Pfeil und Eingabetaste
   (Reader-Ansichtswechsel/Original öffnen) verhalten sich weiterhin exakt wie zuvor —
   keine Regression durch die neue globale `NSEvent`-Abfangung.
+- **2026-07-17 (Live-Fix-Runde nach obigem Fallback): Fünf Root Causes per
+  systematischem Live-Debugging behoben — VOM NUTZER ALS FUNKTIONIEREND
+  BESTÄTIGT, NICHT gepusht.** Der NSEvent-Monitor-Fallback tat trotz „Ready to
+  merge: Yes" live weiterhin nichts. Iterative Diagnose per TEMP-DEBUG-`OSLog`
+  + `/usr/bin/log show` (Nutzer führte die eigentlichen Tastendrücke aus, da
+  kein computer-use-Zugriff auf native macOS-Apps verfügbar ist) deckte fünf
+  unabhängige Ursachen auf, jede einzeln gefixt und neu verifiziert:
+  1. **Pfeiltasten setzen immer `.numericPad`/`.function`** in
+     `event.modifierFlags`, auch ohne gedrückte Modifier-Taste —
+     `.deviceIndependentFlagsMask` enthält beide, wodurch die
+     Modifier-Prüfung für JEDEN Pfeiltastendruck fälschlich zuschlug. Fix:
+     nur gegen `[.command, .option, .control, .shift]` prüfen.
+  2. **SwiftUIs `List` ist auf macOS selbst intern über eine
+     `NSOutlineView`-Subklasse (`SwiftUIOutlineListView`) realisiert** — ein
+     generischer `is NSOutlineView`-Check in `firstResponderIsExcluded`
+     schloss dadurch auch die Artikelliste selbst fälschlich als „Sidebar"
+     aus. Fix: `SidebarOutlineViewControl` (die konkrete Sidebar-Klasse aus
+     `SidebarOutlineView.swift`, ADR-008) von `private` auf `internal`
+     angehoben, Check darauf umgestellt statt auf die Basisklasse.
+  3. **`sqliteArticleNavigationState.nextArticleID`/`.previousArticleID`
+     bilden „nächste/vorherige Zeile in der GESAMTEN Feed-Artikelliste
+     (gelesen + ungelesen)" ab, nicht „nächster ungelesener Artikel"** —
+     gelesene Artikel bleiben in `SQLiteFeedArticleListState.rows` stehen
+     (siehe bestehender Kommentar bei `toggleRead()`). `nextArticleID` wurde
+     dadurch nie `nil` am Ende der ungelesenen Artikel, sondern erst am
+     literal letzten Artikel der gesamten Feed-Historie — ein Konzeptfehler
+     aus der ursprünglichen Feature-Planung (Feature „Automatischer
+     Feed-Sprung"), nie zuvor live testbar, weil der Auslösemechanismus vorher
+     nie feuerte. Fix: `feedSnapshots.unreadCount` (derselbe Wert, der auch
+     das Sidebar-Badge speist) als Eligibility-Signal statt Positions-Navigation.
+  4. **`markSelectedArticleReadIfNeeded()` racete gegen den asynchronen
+     Reload des Ziel-Feeds:** `.onChange(of: selectedArticleID)` feuerte beim
+     Sprung, bevor `state.rows` für den neuen Feed geladen waren, fand keine
+     passende Zeile und gab still auf, ohne erneut zu versuchen — der
+     Zielartikel wurde nicht als gelesen markiert. Fix: zusätzlicher Aufruf
+     in `.onChange(of: state.navigationState)` (feuert exakt dann, wenn der
+     Reload abgeschlossen ist; `markReadIfNeeded()` ist intern idempotent).
+  5. **`SQLiteReaderView.reloadCurrentArticleSnapshot()` lud `state.snapshot?.id`
+     (den ZULETZT geladenen, alten Artikel) statt `self.articleID` (den
+     AKTUELL ausgewählten)** — ausgelöst durch den Status-Version-Bump aus
+     Fund 4, race gegen den regulären `.task(id: articleID)`-Ladevorgang für
+     den neuen Artikel. Je nach Timing gewann der alte oder der neue
+     Ladevorgang ("mal geht's, mal nicht" — Nutzer-Report). Fix:
+     `self.articleID` statt `state.snapshot?.id` als Quelle.
+  Alle Diagnose-Logs nach Bestätigung entfernt, die Erklärkommentare zu den
+  fünf Funden bleiben im Code stehen. Commit `89c6680`. 80/80 Tests grün,
+  Build grün. **Damit ist die entscheidende, zuvor offene Live-Verifikation
+  aus dem Eintrag oben (Punkt 1–2, 6–10) vom Nutzer bestätigt bestanden** —
+  offen bleiben laut Nutzer-Feedback nur noch die Punkte 3–5 (Sidebar-/
+  Web-Ansicht-Fokus-Ausschluss, Hintergrundfenster), die im Zuge dieser
+  Live-Fix-Runde nicht explizit erneut gegengetestet wurden.
 - **2026-07-16/17: Pfeiltasten-Navigation (Artikelliste + Reader-Zustandswechsel) —
   VOLLSTÄNDIG ABGESCHLOSSEN INKL. LIVE-FIX, NICHT gepusht, Rest-Live-Verifikation
   ausstehend.** Nutzerwunsch: reine (modifier-freie) Pfeiltasten für grundlegende
