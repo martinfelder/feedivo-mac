@@ -330,6 +330,36 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
   naheliegende, von Apples eigener API (`webView.printOperation(with:)`) suggerierte
   direkte Weg ist auf macOS nicht zuverlässig nutzbar, unabhängig vom sonstigen
   Code drumherum.
+  **Nachtrag (2026-07-17, drei weitere Live-Bug-Funde direkt im Anschluss):**
+  (1) `WKPDFConfiguration()` erfasst standardmäßig (`rect == nil`) nur den aktuell
+  *sichtbaren* Ausschnitt der WebView, nicht das gesamte scrollbare Dokument — Artikel
+  wurden dadurch nach der ersten Bildschirmseite abgeschnitten. `rect` muss explizit
+  gesetzt werden, `document.documentElement.scrollHeight` (per `evaluateJavaScript`)
+  liefert die echte Inhaltshöhe. (2) Ein einzelner, auf die volle Inhaltshöhe
+  vergrößerter `rect` behebt zwar das Abschneiden, erzeugt aber nur EINE überlange
+  PDF-Seite — `createPDF(...)` paginiert nicht automatisch in mehrere Standard-Seiten.
+  Eine solche Einzelseite beim Drucken auf ein normales Blatt herunterzuskalieren
+  (`scalingMode: .pageScaleToFit` mit `PDFDocument.printOperation(for:)`, das dafür
+  eigentlich korrekt vorgesehene PDFKit-API statt `NSPrintOperation(view: pdfView)`,
+  das ebenfalls nur "Seite 1" gedruckt hätte) macht den Text bei längeren Artikeln
+  praktisch unlesbar klein — echte Mehrseiten-Paginierung muss selbst gebaut werden:
+  Inhalt in seitenhohe Abschnitte zerlegen, jeden Abschnitt einzeln per `createPDF(...)`
+  erfassen, zu einem mehrseitigen `PDFDocument` zusammenfügen (`generatePDF`/
+  `appendPage` in `SQLiteReaderView.swift`) — dabei JEDE Seite (auch die letzte) mit
+  derselben vollen Seitenhöhe rechnen, eine kürzere letzte Seite hätte eine abweichende
+  PDF-Seitengröße und dadurch eine falsch ausgerichtete letzte Druckseite zur Folge.
+  (3) Der Artikeltitel erschien im nativen Modus doppelt: `ArticleExportService.text(
+  for:options: .html)` wickelt seinen Body bereits in ein eigenes
+  `<article>...</article>`, `ArticlePDFExportRenderer` baut außen selbst ein neues
+  `<article>`-Element darum — dadurch verschachtelte `<article>`-Elemente, wodurch die
+  bestehende `removingFirstH1()`-Regex (verankert auf Stringanfang) das Titel-`<h1>`
+  nicht mehr fand. Fix: neue `removingOuterArticleWrapper(from:)` entfernt den inneren
+  Wrapper vor der H1-Entfernung — ein alter Bug, der durch den vorherigen
+  CGContext-Renderer nie sichtbar geworden war. **Zusätzlich verifiziert:** NetNewsWire
+  (Design-Spec-Vorbild für dieses Feature) hat entgegen der ursprünglichen Annahme
+  gar keinen Drucken-Menüpunkt (per `gh api`-Code-Suche im kompletten Quellbaum UND
+  `Main.storyboard` bestätigt: null Treffer für „print") — kein tatsächliches Vorbild,
+  die ursprüngliche Design-Spec-Behauptung dazu war schlicht falsch.
 - **`json.dump()` auf die komplette `Localizable.xcstrings` anwenden formatiert die
   gesamte ~31000-Zeilen-Datei um, statt nur neue Einträge chirurgisch einzufügen:**
   Bei der Shortcuts-Erweiterung (2026-07-16, Task 2) nutzte das ursprüngliche
