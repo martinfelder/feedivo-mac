@@ -81,7 +81,13 @@ struct SettingsView: View {
         // Bereich hinaus, wodurch Bereinigung/Sync/Über nicht mehr anklickbar waren
         // (Nutzer-Report 2026-07-12). Fix: grosszügig verbreitert, damit auch der
         // längste Tab-Titel ("Benachrichtigungen") mit den übrigen 9 Tabs Platz hat.
-        static let windowWidth: CGFloat = 880
+        // Erneut verbreitert 880→960pt für Feature 19.4 ("Toolbar anpassen",
+        // 2026-07-18), das einen 11. Tab ("Toolbar") ergänzt hat (Whole-Branch-Review-
+        // Fund, defensiver Fix). Diese konkrete Verbreiterung ist NICHT live verifiziert
+        // (kein computer-use für native macOS-Apps in dieser Umgebung verfügbar) — falls
+        // die Tab-Leiste trotzdem überläuft/Tabs abgeschnitten werden, muss der Wert
+        // weiter erhöht werden.
+        static let windowWidth: CGFloat = 960
     }
 
     @Environment(\.interfaceTextSize) private var interfaceTextSize
