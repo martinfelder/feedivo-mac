@@ -6,6 +6,7 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
     case articleList
     case menubar
     case shortcuts
+    case readerToolbar
     case notifications
     case refresh
     case cleanup
@@ -26,6 +27,8 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
             "Menubar"
         case .shortcuts:
             L10n.shortcutsSettingsSection
+        case .readerToolbar:
+            L10n.settingsReaderToolbarSection
         case .notifications:
             L10n.settingsNotificationsSection
         case .refresh:
@@ -51,6 +54,8 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
             "menubar.rectangle"
         case .shortcuts:
             "keyboard"
+        case .readerToolbar:
+            "rectangle.3.group"
         case .notifications:
             "bell.badge"
         case .refresh:
@@ -89,6 +94,7 @@ struct SettingsView: View {
             settingsTab(.articleList)
             settingsTab(.menubar)
             settingsTab(.shortcuts)
+            settingsTab(.readerToolbar)
             settingsTab(.notifications)
             settingsTab(.refresh)
             settingsTab(.cleanup)
@@ -127,6 +133,8 @@ struct SettingsView: View {
             MenubarSettingsView()
         case .shortcuts:
             ShortcutsSettingsView()
+        case .readerToolbar:
+            ReaderToolbarSettingsView()
         case .notifications:
             NotificationSettingsView()
         case .refresh:
@@ -1558,5 +1566,80 @@ private struct ShortcutSettingRow: View {
         updated.values.removeValue(forKey: shortcut.id)
         overridesRawValue = updated.rawValue
         conflictMessage = nil
+    }
+}
+
+private struct ReaderToolbarSettingsView: View {
+    @AppStorage(ReaderToolbarLayout.storageKey)
+    private var toolbarLayoutRawValue = ReaderToolbarLayout().rawValue
+
+    private var layout: ReaderToolbarLayout {
+        ReaderToolbarLayout.resolved(from: toolbarLayoutRawValue)
+    }
+
+    var body: some View {
+        SettingsBlock(eyebrow: L10n.settingsReaderToolbarSection) {
+            List {
+                ForEach(layout.orderedItems) { item in
+                    ReaderToolbarSettingsRow(
+                        item: item,
+                        isVisible: !layout.hiddenItemIDs.contains(item.rawValue),
+                        onToggleVisible: { toggleVisible(item) }
+                    )
+                }
+                .onMove(perform: moveItems)
+            }
+            .listStyle(.inset)
+            .frame(height: 360)
+
+            Button(L10n.readerToolbarResetButton) {
+                toolbarLayoutRawValue = ReaderToolbarLayout.resetToDefault().rawValue
+            }
+            .buttonStyle(.bordered)
+            .padding(.top, 8)
+        }
+    }
+
+    private func moveItems(from source: IndexSet, to destination: Int) {
+        var updated = layout
+        updated.move(fromOffsets: source, toOffset: destination)
+        toolbarLayoutRawValue = updated.rawValue
+    }
+
+    private func toggleVisible(_ item: ReaderToolbarItem) {
+        var updated = layout
+        updated.setHidden(!updated.hiddenItemIDs.contains(item.rawValue), for: item)
+        toolbarLayoutRawValue = updated.rawValue
+    }
+}
+
+private struct ReaderToolbarSettingsRow: View {
+    let item: ReaderToolbarItem
+    let isVisible: Bool
+    let onToggleVisible: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: item.systemImage)
+                .frame(width: 20)
+                .foregroundStyle(isVisible ? Color.primary : Color.secondary)
+
+            item.label
+                .font(.system(size: 13))
+                .foregroundStyle(isVisible ? Color.primary : Color.secondary)
+
+            Spacer()
+
+            Toggle(isOn: Binding(
+                get: { isVisible },
+                set: { _ in onToggleVisible() }
+            )) {
+                EmptyView()
+            }
+            .labelsHidden()
+            .toggleStyle(.switch)
+            .controlSize(.small)
+        }
+        .padding(.vertical, 4)
     }
 }

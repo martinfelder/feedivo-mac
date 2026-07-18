@@ -220,6 +220,8 @@ enum L10n {
     static let readerOfflineFailed = LocalizedStringKey("reader.offline.failed")
     static let readerOfflineNotSaved = LocalizedStringKey("reader.offline.notSaved")
     static let readerInspectorButton = LocalizedStringKey("reader.inspector.button")
+    static let settingsReaderToolbarSection = LocalizedStringKey("settings.readerToolbar.section")
+    static let readerToolbarResetButton = LocalizedStringKey("readerToolbar.reset.button")
     static let readerInspectorTitle = LocalizedStringKey("reader.inspector.title")
     static let readerInspectorFeed = LocalizedStringKey("reader.inspector.feed")
     static let readerInspectorPublished = LocalizedStringKey("reader.inspector.published")
