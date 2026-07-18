@@ -71,6 +71,9 @@ struct SQLiteReaderView: View {
     @AppStorage(KeyboardShortcutOverrides.storageKey)
     private var shortcutOverridesRawValue = KeyboardShortcutOverrides().rawValue
 
+    @AppStorage(ReaderToolbarLayout.storageKey)
+    private var readerToolbarLayoutRawValue = ReaderToolbarLayout().rawValue
+
     // Der Artikelinfo-Inspector (ArticleMetadataInspectorView) mutiert Tags UND Ordner
     // direkt in SQLite (Tags -> SidebarBadgeInvalidation, Ordner -> SQLiteDataInvalidation)
     // und bumpt anschliessend den jeweiligen Zaehler, aktualisiert dabei aber nur seine
@@ -86,6 +89,10 @@ struct SQLiteReaderView: View {
 
     private var shortcutOverrides: KeyboardShortcutOverrides {
         KeyboardShortcutOverrides.resolved(from: shortcutOverridesRawValue)
+    }
+
+    private var readerToolbarLayout: ReaderToolbarLayout {
+        ReaderToolbarLayout.resolved(from: readerToolbarLayoutRawValue)
     }
 
     private func bumpToolbarRebuildGeneration() {
@@ -126,147 +133,168 @@ struct SQLiteReaderView: View {
             Group {
                 Spacer()
 
-                ControlGroup {
-                    Button {
-                        openWindow(id: ArticleSearchWindowView.windowID)
-                    } label: {
-                        Image(systemName: "magnifyingglass")
-                    }
-                    .help(L10n.articleSearchCommand)
-
-                    Button {
-                        openOriginal()
-                    } label: {
-                        Image(systemName: "safari")
-                    }
-                    .help(L10n.articleOpenOriginalCommand)
-                    .disabled(originalURL == nil)
+                ForEach(readerToolbarLayout.visibleOrderedItems) { item in
+                    toolbarItemView(for: item)
                 }
-
-                // Status-Gruppe: Regel erstellen / Stern / Archivieren / Ungelesen
-                ControlGroup {
-                    Button {
-                        if let snapshot = state.snapshot {
-                            onCreateRule(snapshot)
-                        }
-                    } label: {
-                        Image(systemName: "slider.horizontal.3")
-                    }
-                    .help(L10n.articleCreateRuleCommand)
-                    .disabled(state.snapshot == nil)
-
-                    Button {
-                        if let database {
-                            state.toggleStarred(database: database)
-                        }
-                    } label: {
-                        Image(systemName: state.snapshot?.isStarred == true ? "star.fill" : "star")
-                    }
-                    .help(state.snapshot?.isStarred == true ? L10n.articleRowStarRemove : L10n.articleRowStarAdd)
-                    .disabled(state.snapshot == nil)
-
-                    Button {
-                        if let database {
-                            state.toggleArchived(database: database)
-                        }
-                    } label: {
-                        Image(systemName: state.snapshot?.isArchived == true ? "archivebox.fill" : "archivebox")
-                    }
-                    .help(state.snapshot?.isArchived == true ? L10n.articleUnarchiveCommand : L10n.articleArchiveCommand)
-                    .disabled(state.snapshot == nil)
-
-                    Button {
-                        if let database {
-                            state.toggleRead(database: database)
-                        }
-                    } label: {
-                        Image(systemName: state.snapshot?.isRead == true ? "circle" : "circle.fill")
-                    }
-                    .help(state.snapshot?.isRead == true ? L10n.articleRowMarkUnread : L10n.articleRowMarkRead)
-                    .disabled(state.snapshot == nil)
-                }
-
-                ControlGroup {
-                    Button {
-                        copyLink()
-                    } label: {
-                        Image(systemName: "link")
-                    }
-                    .help(L10n.articleCopyLinkCommand)
-                    .disabled(originalURL == nil)
-
-                    Button {
-                        requestExportArticle()
-                    } label: {
-                        Image(systemName: "square.and.arrow.up")
-                    }
-                    .help(L10n.articleExportCommand)
-                    .disabled(state.snapshot == nil)
-                }
-
-                ControlGroup {
-                    Button {
-                        webNavigationController.goBack()
-                    } label: {
-                        Image(systemName: "chevron.backward")
-                    }
-                    .help(L10n.readerWebBackCommand)
-                    .customizableKeyboardShortcut(.readerWebBack, overrides: shortcutOverrides)
-                    .disabled(readerDisplayMode != .web || !webNavigationController.canGoBack)
-
-                    Button {
-                        webNavigationController.goForward()
-                    } label: {
-                        Image(systemName: "chevron.forward")
-                    }
-                    .help(L10n.readerWebForwardCommand)
-                    .customizableKeyboardShortcut(.readerWebForward, overrides: shortcutOverrides)
-                    .disabled(readerDisplayMode != .web || !webNavigationController.canGoForward)
-                }
-
-                ControlGroup {
-                    Button {
-                        printCurrentArticle()
-                    } label: {
-                        Image(systemName: "printer")
-                    }
-                    .help(L10n.articlePrintCommand)
-                    .customizableKeyboardShortcut(.articlePrint, overrides: shortcutOverrides)
-                    .disabled(state.snapshot == nil)
-                }
-
-                Picker(L10n.readerDisplayModePicker, selection: $readerDisplayModeRawValue) {
-                    ForEach(ReaderDisplayMode.allCases) { mode in
-                        Text(mode.titleKey)
-                            .tag(mode.rawValue)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .help(L10n.readerDisplayModeToggleHelp)
-                .disabled(originalURL == nil)
-
-                Button {
-                    isAppearancePopoverPresented.toggle()
-                } label: {
-                    Image(systemName: "textformat")
-                }
-                .help(L10n.readerAppearanceButton)
-                .popover(isPresented: $isAppearancePopoverPresented, arrowEdge: .bottom) {
-                    readerAppearancePopover
-                }
-
-                Button {
-                    isMetadataInspectorPresented.toggle()
-                } label: {
-                    Label(L10n.readerInspectorButton, systemImage: "sidebar.right")
-                }
-                .labelStyle(.titleAndIcon)
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-                .symbolVariant(isMetadataInspectorPresented ? .fill : .none)
-                .help(L10n.readerInspectorButton)
             }
             .id(toolbarRebuildGeneration)
+        }
+    }
+
+    // Ehemals 6 fest verdrahtete ControlGroup-Buendel + Picker + 2 Buttons in
+    // fester Reihenfolge (siehe Git-Historie). Seit Feature "Toolbar anpassen"
+    // (2026-07-18) rendert readerToolbarContent stattdessen dynamisch ueber
+    // readerToolbarLayout.visibleOrderedItems — die alte ControlGroup-Buendelung
+    // (z. B. Stern+Archivieren+Gelesen als optische Einheit) entfaellt bewusst,
+    // da feste Buendelgrenzen bei freier Umsortierung keinen Sinn mehr ergeben.
+    // Jeder einzelne Case unten entspricht 1:1 dem vorherigen Button-/Picker-Code
+    // (Icon, .help(...), .disabled(...), .customizableKeyboardShortcut(...)
+    // unveraendert) — nur die ControlGroup-Klammerung wurde entfernt.
+    @ViewBuilder
+    private func toolbarItemView(for item: ReaderToolbarItem) -> some View {
+        switch item {
+        case .search:
+            Button {
+                openWindow(id: ArticleSearchWindowView.windowID)
+            } label: {
+                Image(systemName: "magnifyingglass")
+            }
+            .help(L10n.articleSearchCommand)
+
+        case .openOriginal:
+            Button {
+                openOriginal()
+            } label: {
+                Image(systemName: "safari")
+            }
+            .help(L10n.articleOpenOriginalCommand)
+            .disabled(originalURL == nil)
+
+        case .createRule:
+            Button {
+                if let snapshot = state.snapshot {
+                    onCreateRule(snapshot)
+                }
+            } label: {
+                Image(systemName: "slider.horizontal.3")
+            }
+            .help(L10n.articleCreateRuleCommand)
+            .disabled(state.snapshot == nil)
+
+        case .star:
+            Button {
+                if let database {
+                    state.toggleStarred(database: database)
+                }
+            } label: {
+                Image(systemName: state.snapshot?.isStarred == true ? "star.fill" : "star")
+            }
+            .help(state.snapshot?.isStarred == true ? L10n.articleRowStarRemove : L10n.articleRowStarAdd)
+            .disabled(state.snapshot == nil)
+
+        case .archive:
+            Button {
+                if let database {
+                    state.toggleArchived(database: database)
+                }
+            } label: {
+                Image(systemName: state.snapshot?.isArchived == true ? "archivebox.fill" : "archivebox")
+            }
+            .help(state.snapshot?.isArchived == true ? L10n.articleUnarchiveCommand : L10n.articleArchiveCommand)
+            .disabled(state.snapshot == nil)
+
+        case .toggleRead:
+            Button {
+                if let database {
+                    state.toggleRead(database: database)
+                }
+            } label: {
+                Image(systemName: state.snapshot?.isRead == true ? "circle" : "circle.fill")
+            }
+            .help(state.snapshot?.isRead == true ? L10n.articleRowMarkUnread : L10n.articleRowMarkRead)
+            .disabled(state.snapshot == nil)
+
+        case .copyLink:
+            Button {
+                copyLink()
+            } label: {
+                Image(systemName: "link")
+            }
+            .help(L10n.articleCopyLinkCommand)
+            .disabled(originalURL == nil)
+
+        case .export:
+            Button {
+                requestExportArticle()
+            } label: {
+                Image(systemName: "square.and.arrow.up")
+            }
+            .help(L10n.articleExportCommand)
+            .disabled(state.snapshot == nil)
+
+        case .webBack:
+            Button {
+                webNavigationController.goBack()
+            } label: {
+                Image(systemName: "chevron.backward")
+            }
+            .help(L10n.readerWebBackCommand)
+            .customizableKeyboardShortcut(.readerWebBack, overrides: shortcutOverrides)
+            .disabled(readerDisplayMode != .web || !webNavigationController.canGoBack)
+
+        case .webForward:
+            Button {
+                webNavigationController.goForward()
+            } label: {
+                Image(systemName: "chevron.forward")
+            }
+            .help(L10n.readerWebForwardCommand)
+            .customizableKeyboardShortcut(.readerWebForward, overrides: shortcutOverrides)
+            .disabled(readerDisplayMode != .web || !webNavigationController.canGoForward)
+
+        case .print:
+            Button {
+                printCurrentArticle()
+            } label: {
+                Image(systemName: "printer")
+            }
+            .help(L10n.articlePrintCommand)
+            .customizableKeyboardShortcut(.articlePrint, overrides: shortcutOverrides)
+            .disabled(state.snapshot == nil)
+
+        case .displayModePicker:
+            Picker(L10n.readerDisplayModePicker, selection: $readerDisplayModeRawValue) {
+                ForEach(ReaderDisplayMode.allCases) { mode in
+                    Text(mode.titleKey)
+                        .tag(mode.rawValue)
+                }
+            }
+            .pickerStyle(.segmented)
+            .help(L10n.readerDisplayModeToggleHelp)
+            .disabled(originalURL == nil)
+
+        case .appearance:
+            Button {
+                isAppearancePopoverPresented.toggle()
+            } label: {
+                Image(systemName: "textformat")
+            }
+            .help(L10n.readerAppearanceButton)
+            .popover(isPresented: $isAppearancePopoverPresented, arrowEdge: .bottom) {
+                readerAppearancePopover
+            }
+
+        case .inspector:
+            Button {
+                isMetadataInspectorPresented.toggle()
+            } label: {
+                Label(L10n.readerInspectorButton, systemImage: "sidebar.right")
+            }
+            .labelStyle(.titleAndIcon)
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .symbolVariant(isMetadataInspectorPresented ? .fill : .none)
+            .help(L10n.readerInspectorButton)
         }
     }
 
