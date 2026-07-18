@@ -193,7 +193,30 @@ enum ArticlePDFExportRenderer {
             return html
         }
 
-        return String(html[range])
+        return removingOuterArticleWrapper(from: String(html[range]))
+    }
+
+    // Die von ArticleExportService.text(for:options: .html) erzeugte Body-HTML wickelt
+    // ihren Inhalt bereits in ein eigenes <article>...</article> (fuer den eigenstaendigen
+    // HTML-Export gedacht) — diese Datei baut aussen selbst ein neues <article>-Element um
+    // headerHTML + body (siehe html(fromExportedHTML:...) unten), daher muss der innere
+    // Wrapper hier entfernt werden. Ohne diesen Schritt entstehen verschachtelte
+    // <article>-Elemente, und removingFirstH1() findet das Titel-<h1> nicht mehr (es steht
+    // dann nicht mehr am Stringanfang) — der Titel erschien dadurch doppelt im PDF/Druck
+    // (Live-Bug-Fund 2026-07-17, erst durch echtes WebKit-Rendering sichtbar geworden).
+    private static func removingOuterArticleWrapper(from html: String) -> String {
+        let trimmed = html.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let expression = try? NSRegularExpression(
+            pattern: #"^<article[^>]*>([\s\S]*)</article>$"#,
+            options: [.caseInsensitive]
+        ),
+        let match = expression.firstMatch(in: trimmed, range: NSRange(trimmed.startIndex ..< trimmed.endIndex, in: trimmed)),
+        let range = Range(match.range(at: 1), in: trimmed)
+        else {
+            return html
+        }
+
+        return String(trimmed[range])
     }
 
     private static func removingFirstH1(from html: String) -> String {

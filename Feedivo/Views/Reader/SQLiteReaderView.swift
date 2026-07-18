@@ -29,9 +29,6 @@ struct SQLiteReaderView: View {
     // didFinish feuert.
     @State private var offscreenPrintWebView: WKWebView?
     @State private var articlePrintCoordinator: ArticlePrintCoordinator?
-    // Haelt die PDFView fest, die fuer den eigentlichen Druckvorgang genutzt wird (siehe
-    // printCurrentArticle()) — sonst wuerde ARC sie waehrend runModal(...) freigeben.
-    @State private var printPDFView: PDFView?
     // Erzwingt einen kompletten Neuaufbau der Toolbar-Inhaltsgruppe bei jedem
     // Vollbild-Wechsel (siehe FullScreenTransitionObserver) — Fix für einen
     // Toolbar-Icon-Überlapp-Bug, der nach Fenster-Schliessen/App-Neustart/
@@ -853,10 +850,8 @@ struct SQLiteReaderView: View {
                 return
             }
 
-            webView.createPDF(configuration: WKPDFConfiguration()) { result in
-                if case .success(let data) = result {
-                    presentPrintDialog(forPDFData: data)
-                }
+            generatePDF(from: webView) { data in
+                presentPrintDialog(forPDFData: data)
             }
         } else {
             guard let snapshot = state.snapshot else {
@@ -872,13 +867,13 @@ struct SQLiteReaderView: View {
 
             // 816x1056pt entspricht ungefaehr US Letter bei 96dpi — ausreichend breit,
             // damit die Export-CSS (max-width: 680px, siehe ArticlePDFExportStyle.default)
-            // beim Layout nicht kollabiert, obwohl die WebView nie sichtbar wird.
+            // beim Layout nicht kollabiert, obwohl die WebView nie sichtbar wird. Die Hoehe
+            // ist nur ein Startwert — generatePDF(from:) ermittelt die tatsaechliche
+            // Inhaltshoehe per JavaScript, bevor createPDF(...) aufgerufen wird.
             let printWebView = WKWebView(frame: CGRect(x: 0, y: 0, width: 816, height: 1056))
             let coordinator = ArticlePrintCoordinator { finishedWebView in
-                finishedWebView.createPDF(configuration: WKPDFConfiguration()) { result in
-                    if case .success(let data) = result {
-                        presentPrintDialog(forPDFData: data)
-                    }
+                generatePDF(from: finishedWebView) { data in
+                    presentPrintDialog(forPDFData: data)
                     offscreenPrintWebView = nil
                     articlePrintCoordinator = nil
                 }
@@ -890,18 +885,83 @@ struct SQLiteReaderView: View {
         }
     }
 
+    // Live-Bug-Fund 2026-07-17: WKPDFConfiguration() erfasst standardmaessig (rect == nil)
+    // nur den aktuell sichtbaren Ausschnitt der WebView, nicht das gesamte scrollbare
+    // Dokument. Ein einzelner, auf die volle Inhaltshoehe vergroesserter rect behebt zwar
+    // das Abschneiden, erzeugt aber nur EINE einzige, ueberlange PDF-Seite — beim Drucken
+    // wird diese eine Seite dann auf ein normales Blatt herunterskaliert, wodurch der Text
+    // bei laengeren Artikeln praktisch unlesbar klein wird. createPDF(...) paginiert nicht
+    // automatisch in mehrere Standard-Seiten; das muss selbst erledigt werden: der Inhalt
+    // wird in seitenhohe Abschnitte zerlegt, jeder Abschnitt einzeln per createPDF(...)
+    // erfasst und zu einem mehrseitigen PDFDocument zusammengefuegt.
+    private func generatePDF(from webView: WKWebView, completion: @escaping (Data) -> Void) {
+        webView.evaluateJavaScript("document.documentElement.scrollHeight") { result, _ in
+            let contentHeight = (result as? NSNumber)?.doubleValue ?? Double(webView.bounds.height)
+            let pageHeight = Double(webView.bounds.height)
+            let pageWidth = webView.bounds.width
+
+            // Jede Seite bekommt bewusst dieselbe volle pageHeight (auch die letzte, ueber
+            // das tatsaechliche Inhaltsende hinaus) — eine kuerzere letzte Seite haette eine
+            // abweichende PDF-Seitengroesse zur Folge, was beim Druck zu einer falsch
+            // ausgerichteten/anders skalierten letzten Seite fuehrte (Live-Bug-Fund
+            // 2026-07-17). Ungenutzter Leerraum am Ende der letzten Seite ist unauffaellig
+            // und dem Verhalten normaler paginierter Dokumente entsprechend.
+            var pageRects: [CGRect] = []
+            var y = 0.0
+            while y < contentHeight {
+                pageRects.append(CGRect(x: 0, y: y, width: pageWidth, height: pageHeight))
+                y += pageHeight
+            }
+
+            appendPage(
+                from: webView,
+                rects: pageRects,
+                index: 0,
+                into: PDFDocument(),
+                completion: completion
+            )
+        }
+    }
+
+    private func appendPage(
+        from webView: WKWebView,
+        rects: [CGRect],
+        index: Int,
+        into document: PDFDocument,
+        completion: @escaping (Data) -> Void
+    ) {
+        guard index < rects.count else {
+            completion(document.dataRepresentation() ?? Data())
+            return
+        }
+
+        let configuration = WKPDFConfiguration()
+        configuration.rect = rects[index]
+
+        webView.createPDF(configuration: configuration) { result in
+            if case .success(let pageData) = result,
+               let singlePagePDF = PDFDocument(data: pageData),
+               let page = singlePagePDF.page(at: 0) {
+                document.insert(page, at: document.pageCount)
+            }
+
+            appendPage(from: webView, rects: rects, index: index + 1, into: document, completion: completion)
+        }
+    }
+
+    // Live-Bug-Fund 2026-07-17: NSPrintOperation(view: pdfView) behandelt die PDFView wie
+    // eine gewoehnliche NSView und druckt dadurch nur das, was in ihrem eigenen Rahmen
+    // sichtbar ist (Seite 1) — derselbe Fallstrick wie bei WKWebView.printOperation(with:).
+    // PDFDocument.printOperation(for:scalingMode:autoRotate:) ist die dafuer vorgesehene
+    // PDFKit-API, die die Seitenaufteilung des Dokuments selbst korrekt handhabt.
     private func presentPrintDialog(forPDFData data: Data) {
         guard let pdfDocument = PDFDocument(data: data),
-              let window = NSApp.keyWindow ?? NSApp.mainWindow
+              let window = NSApp.keyWindow ?? NSApp.mainWindow,
+              let operation = pdfDocument.printOperation(for: NSPrintInfo(), scalingMode: .pageScaleToFit, autoRotate: true)
         else {
             return
         }
 
-        let pdfView = PDFView(frame: CGRect(x: 0, y: 0, width: 816, height: 1056))
-        pdfView.document = pdfDocument
-        printPDFView = pdfView
-
-        let operation = NSPrintOperation(view: pdfView)
         operation.runModal(for: window, delegate: nil, didRun: nil, contextInfo: nil)
     }
 }
