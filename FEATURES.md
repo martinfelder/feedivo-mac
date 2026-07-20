@@ -877,13 +877,28 @@
 - **Nicht umsetzen:** Hintergrundbild / Sepia-Modus
 
 ### 19.4 Toolbar anpassen
-- **Status:** ⏸️ Zurückgestellt
+- **Status:** ✔️ Fertig (2026-07-20)
 - **Ursprünglich zu implementieren:**
   - macOS-Standard `Symbolleiste anpassen...` via Rechtsklick auf Toolbar
   - User kann Items frei hinzufügen / entfernen / umsortieren
-- **Entscheidung (2026-07-10):** Umsetzung für die Reader-Toolbar versucht
-  (`.toolbar(id:)` + `ToolbarItem(id:)` je bisherigem `ControlGroup`-Bündel), noch vor dem
-  Commit wieder verworfen. Keine Code-Reste auf `main`.
+- **Entscheidung (2026-07-10):** Umsetzung für die Reader-Toolbar via natives
+  `.toolbar(id:)` + `ToolbarItem(id:)` je bisherigem `ControlGroup`-Bündel versucht, noch
+  vor dem Commit wieder verworfen. Keine Code-Reste auf `main`.
+- **Umgesetzt (2026-07-20):** Statt der verworfenen nativen API eine eigene, App-interne
+  Lösung — neuer Settings-Tab „Toolbar" mit Drag&Drop-Umsortierung (`List` + `.onMove`) und
+  Sichtbarkeits-Toggle pro Icon für alle 14 Reader-Toolbar-Elemente, plus
+  „Standard wiederherstellen"-Button. Reihenfolge/Sichtbarkeit als JSON in einem
+  `@AppStorage`-Key persistiert (`ReaderToolbarLayout`, analog `KeyboardShortcutOverrides`),
+  vorwärtskompatibel (künftig neue Toolbar-Items erscheinen automatisch sichtbar am Ende).
+  Die Reader-Toolbar bleibt technisch weiterhin **eine einzige**
+  `ToolbarItemGroup(placement: .primaryAction)` (vermeidet den bekannten
+  `NSToolbar`-Icon-Overlap-Bug), rendert ihren Inhalt aber jetzt dynamisch über einen
+  exhaustiven `switch` statt hartkodierter `ControlGroup`-Bündel. Whole-Branch-Review fand
+  1 Important-Finding (11. Settings-Tab bei fixer 880pt-Fensterbreite — reproduzierte einen
+  bereits einmal aufgetretenen Tab-Leisten-Überlauf-Bug), gefixt (880→960pt). Vollständige
+  8-Punkte-Live-Verifikationscheckliste vom Nutzer bestätigt bestanden. Details:
+  `docs/superpowers/specs/2026-07-18-reader-toolbar-anpassen-design.md`,
+  `docs/superpowers/plans/2026-07-18-reader-toolbar-anpassen.md`.
 
 ### 19.5 Allgemeines Verhalten
 - **Status:** ✅ Entschieden — bereit zur Implementierung

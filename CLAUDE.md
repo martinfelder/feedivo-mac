@@ -886,6 +886,36 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Aktuell in Arbeit
 
+- **2026-07-20: Reader-Toolbar frei anpassbar (Feature 19.4) — VOLLSTÄNDIG ABGESCHLOSSEN
+  und auf `origin/main` gepusht, Live-Verifikation vom Nutzer bestätigt.** Feature 19.4
+  stand seit 2026-07-10 auf ⏸️ Zurückgestellt, da der ursprünglich geplante native
+  macOS-Ansatz (`.toolbar(id:)`/`ToolbarItem(id:)` per Rechtsklick-„Symbolleiste
+  anpassen…") vor dem Commit wieder verworfen worden war (siehe `FEATURES.md:884-886`).
+  Umgesetzt via Brainstorming→Spec→Plan→Subagent-Driven-Development (4 Tasks, alle
+  Task-Reviews clean im ersten Anlauf) — bewusst **ohne** die verworfene native API,
+  stattdessen ein neuer Settings-Tab „Toolbar" mit `List`+`.onMove`-Drag&Drop-
+  Umsortierung und Sichtbarkeits-Toggle für alle 14 Reader-Toolbar-Icons. Architektur:
+  `ReaderToolbarItem`-Enum (Registry, Task 1) + `ReaderToolbarLayout`-Struct
+  (Task 2, JSON-codierter String in einem `@AppStorage`-Key, analog
+  `KeyboardShortcutOverrides` — inkl. Vorwärtskompatibilität: künftig neue Toolbar-Items
+  erscheinen bei Bestandsnutzern automatisch sichtbar am Ende statt zu verschwinden) +
+  Settings-UI (Task 3) + `SQLiteReaderView.readerToolbarContent`-Umbau (Task 4): rendert
+  jetzt dynamisch über `ForEach` + einen exhaustiven `switch`, bleibt dabei aber bewusst
+  **eine einzige** `ToolbarItemGroup(placement: .primaryAction)` — der bereits
+  dokumentierte `NSToolbar`-Icon-Overlap-Bug (siehe Gotcha unten) hätte bei mehreren
+  Toolbar-Items sonst erneut zugeschlagen. Whole-Branch-Review (Opus) fand 1
+  Important-Finding: der neue 11. Settings-Tab bei der bis dahin fixen, nicht
+  größenveränderbaren 880pt-Fensterbreite reproduzierte exakt das bereits einmal
+  aufgetretene Tab-Leisten-Überlauf-Problem (640→880pt-Fix bei 10 Tabs, 2026-07-12) —
+  keiner der 4 Einzel-Task-Reviews konnte das sehen, da keine Task die Fensterbreite
+  „besitzt". Fix: `windowWidth` 880→960pt (Commit `5beab9ab`), Re-Review bestätigt.
+  Pre-Flight-Check vor Task-Start fand zusätzlich einen Plan/Spec-Widerspruch beim
+  Reset-Button-Label (Plan wollte den bestehenden Key „Alle zurücksetzen"
+  wiederverwenden, Spec verlangt explizit „Standard wiederherstellen") — per
+  Nutzerentscheid vor Task 3 korrigiert, Spec-Wortlaut gilt. Spec:
+  `docs/superpowers/specs/2026-07-18-reader-toolbar-anpassen-design.md`, Plan:
+  `docs/superpowers/plans/2026-07-18-reader-toolbar-anpassen.md`. Alle Commits `18557ba`
+  (Start) .. `5beab9ab` (Whole-Branch-Fix), gepusht `ada4d48d..5beab9ab`.
 - **2026-07-17: Automatischer Feed-Sprung am Listenende — VOLLSTÄNDIG ABGESCHLOSSEN,
   NICHT gepusht, Live-Verifikation ausstehend.** Nutzerwunsch: Pfeil-Runter am Ende der
   ungelesenen Artikel eines Feeds springt zum nächsten Feed mit ungelesenen Artikeln
@@ -1415,6 +1445,10 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Letzte Änderungen
 
+- 2026-07-20: Reader-Toolbar frei anpassbar (Feature 19.4) — vollständige Details siehe
+  „Aktuell in Arbeit" oben, hier nicht dupliziert. Commits `18557ba..5beab9ab` auf `main`,
+  gepusht (`ada4d48d..5beab9ab`). FEATURES.md 19.4 von „⏸️ Zurückgestellt" auf
+  „✔️ Fertig" aktualisiert.
 - 2026-07-16: Shortcuts-Erweiterung (modifier-freie Kombinationen + 8 fehlende
   Menü-Funktionen) — vollständige Details siehe „Aktuell in Arbeit" oben, hier nicht
   dupliziert. Commits `eca8f5e..928b4c6` (9 Commits, davon 1 Selbstkorrektur-Fix in
