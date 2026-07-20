@@ -917,7 +917,10 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   `docs/superpowers/plans/2026-07-18-reader-toolbar-anpassen.md`. Alle Commits `18557ba`
   (Start) .. `5beab9ab` (Whole-Branch-Fix), gepusht `ada4d48d..5beab9ab`.
 - **2026-07-17: Automatischer Feed-Sprung am Listenende — VOLLSTÄNDIG ABGESCHLOSSEN,
-  NICHT gepusht, Live-Verifikation ausstehend.** Nutzerwunsch: Pfeil-Runter am Ende der
+  gepusht, komplette Live-Verifikationscheckliste abgehakt (siehe Nachtrag weiter unten
+  im selben Themenblock — Korrektur 2026-07-20: der ursprünglich hier vermerkte
+  "NICHT gepusht"-Status war veraltet, tatsächlich längst auf `origin/main`).**
+  Nutzerwunsch: Pfeil-Runter am Ende der
   ungelesenen Artikel eines Feeds springt zum nächsten Feed mit ungelesenen Artikeln
   (Sidebar-Reihenfolge inkl. Ordner), wählt dort automatisch den ersten ungelesenen
   Artikel; Pfeil-Hoch symmetrisch rückwärts (letzter ungelesener Artikel). Nur bei
@@ -974,8 +977,9 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   Ordner-Reihenfolge wird respektiert, nicht nur alphabetisch. 8. Smart Folder/Tag-
   Auswahl: kein Feed-Sprung.
 - **2026-07-17 (Folge-Session): NSEvent-Monitor-Fallback für den automatischen
-  Feed-Sprung — VOLLSTÄNDIG ABGESCHLOSSEN, NICHT gepusht, Live-Verifikation
-  ausstehend.** Der oben dokumentierte `.onKeyPress(.downArrow)`/`.onKeyPress(.upArrow)`-
+  Feed-Sprung — VOLLSTÄNDIG ABGESCHLOSSEN, gepusht, komplette
+  Live-Verifikationscheckliste abgehakt (Korrektur 2026-07-20: "NICHT gepusht" war
+  veraltet).** Der oben dokumentierte `.onKeyPress(.downArrow)`/`.onKeyPress(.upArrow)`-
   Primäransatz war live bestätigt wirkungslos (natives `List`-Verhalten verschluckt
   Pfeil-Hoch/-Runter am Rand der Liste, bevor `.onKeyPress` das Ereignis sieht) — dieser
   Durchgang ersetzt ihn durch den bereits angekündigten `NSEvent`-Monitor-Fallback.
@@ -1025,7 +1029,8 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   keine Regression durch die neue globale `NSEvent`-Abfangung.
 - **2026-07-17 (Live-Fix-Runde nach obigem Fallback): Fünf Root Causes per
   systematischem Live-Debugging behoben — VOM NUTZER ALS FUNKTIONIEREND
-  BESTÄTIGT, NICHT gepusht.** Der NSEvent-Monitor-Fallback tat trotz „Ready to
+  BESTÄTIGT, gepusht (Korrektur 2026-07-20: "NICHT gepusht" war veraltet).** Der
+  NSEvent-Monitor-Fallback tat trotz „Ready to
   merge: Yes" live weiterhin nichts. Iterative Diagnose per TEMP-DEBUG-`OSLog`
   + `/usr/bin/log show` (Nutzer führte die eigentlichen Tastendrücke aus, da
   kein computer-use-Zugriff auf native macOS-Apps verfügbar ist) deckte fünf
@@ -1080,7 +1085,8 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   ist die komplette Live-Verifikationscheckliste für den automatischen
   Feed-Sprung (beide Spec-Dokumente) vollständig abgehakt.**
 - **2026-07-17: Ein-/Ausschalter für automatischen Feed-Sprung in den
-  Einstellungen — VOLLSTÄNDIG ABGESCHLOSSEN, NICHT gepusht.** Nutzerwunsch
+  Einstellungen — VOLLSTÄNDIG ABGESCHLOSSEN, gepusht (Korrektur 2026-07-20:
+  "NICHT gepusht" war veraltet).** Nutzerwunsch
   direkt im Anschluss an die obige Live-Fix-Bestätigung: Möglichkeit, das
   Feature wieder auszuschalten. Leichtgewichtiges Brainstorming (eine
   Rückfrage zur Platzierung) + Direktimplementierung, kein voller Plan
@@ -1097,8 +1103,10 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   greift bei indirekten `L10n`-Keys nicht, siehe Gotcha oben), per
   `grep -c` verifiziert. Commit `608630f`. 80/80 Tests grün, Build grün.
 - **2026-07-16/17: Pfeiltasten-Navigation (Artikelliste + Reader-Zustandswechsel) —
-  VOLLSTÄNDIG ABGESCHLOSSEN INKL. LIVE-FIX, NICHT gepusht, Rest-Live-Verifikation
-  ausstehend.** Nutzerwunsch: reine (modifier-freie) Pfeiltasten für grundlegende
+  VOLLSTÄNDIG ABGESCHLOSSEN INKL. LIVE-FIX, gepusht (Korrektur 2026-07-20:
+  "NICHT gepusht" war veraltet), Rest-Live-Verifikation laut diesem Eintrag zuletzt
+  noch offen (Stand unklar, ggf. beim Nutzer nachfragen statt hier zu vermuten).**
+  Nutzerwunsch: reine (modifier-freie) Pfeiltasten für grundlegende
   Navigation — Hoch/Runter zum vorherigen/nächsten Artikel, Rechts-Pfeil steuert
   den Reader-Ansichtswechsel. Umgesetzt via Brainstorming→Spec→Plan→
   Subagent-Driven-Development (2 Tasks, beide Reviews clean im ersten Anlauf,
@@ -1173,8 +1181,10 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   bewegen weiterhin nur den Text-Cursor bzw. bestätigen das Feld, lösen keinen
   Reader-Zustandswechsel aus.
 - **2026-07-16: Shortcuts-Erweiterung (modifier-freie Kombinationen + 8 fehlende
-  Menü-Funktionen) — VOLLSTÄNDIG ABGESCHLOSSEN, NICHT gepusht, Live-Verifikation
-  ausstehend.** Nutzer-Report: In den Einstellungen unter „Shortcuts" (Feature 19.8)
+  Menü-Funktionen) — VOLLSTÄNDIG ABGESCHLOSSEN, gepusht (Korrektur 2026-07-20:
+  "NICHT gepusht" war veraltet), Live-Verifikationsstatus laut diesem Eintrag
+  zuletzt noch offen (ggf. beim Nutzer nachfragen statt hier zu vermuten).**
+  Nutzer-Report: In den Einstellungen unter „Shortcuts" (Feature 19.8)
   ließen sich keine Ein-Zeichen-/Leertasten-Shortcuts hinterlegen, und für Artikel
   archivieren/exportieren/Link kopieren/Original öffnen/Teilen sowie OPML Import/
   Export/Verwaltung öffnen gab es gar keinen Shortcut-Eintrag. Umgesetzt via
@@ -1223,7 +1233,8 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
      hier tatsächlich eine Kollision auftritt, als eigenen Punkt in den Gotchas unten
      ergänzen statt stillschweigend zu ignorieren.
 - **2026-07-16: Spotlight-Integration (Feature 9.3) — VOLLSTÄNDIG ABGESCHLOSSEN,
-  NICHT gepusht.** Artikel werden als Core Spotlight Items indexiert, ein Klick auf
+  gepusht (Korrektur 2026-07-20: "NICHT gepusht" war veraltet).** Artikel werden
+  als Core Spotlight Items indexiert, ein Klick auf
   ein Spotlight-Resultat öffnet Feedivo direkt beim Artikel, neuer Einstellungen-
   Schalter "Artikel in Spotlight indexieren" (Standard AN). Umgesetzt via
   Brainstorming→Spec→Plan→Subagent-Driven-Development (7 Tasks, direkt auf main,
@@ -1260,7 +1271,8 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   Resultat den richtigen Artikel öffnet, und ob das ohne zusätzlichen Info.plist-
   Eintrag unter der App-Sandbox funktioniert.
 - **2026-07-16: Bulk-Benachrichtigungsverwaltung im Feed-Organizer — VOLLSTÄNDIG
-  ABGESCHLOSSEN, NICHT gepusht.** Nutzerwunsch: "Benachrichtigen" nicht mehr für jeden
+  ABGESCHLOSSEN, gepusht (Korrektur 2026-07-20: "NICHT gepusht" war veraltet).**
+  Nutzerwunsch: "Benachrichtigen" nicht mehr für jeden
   Feed einzeln über die Feed-Eigenschaften umschalten müssen. Umgesetzt via leichtgewichtigem
   Brainstorming+Spec (kein voller Plan/Subagent-Driven-Development-Prozess, da reine
   Wiederverwendung bestehender Bausteine): `FeedManagementOrganizerView.swift` bekommt
@@ -1286,7 +1298,8 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   Live-Verifikation im laufenden Betrieb (Zeilen-Button + beide Toolbar-Buttons).
 - **2026-07-15: Benachrichtigungs-Einstellungen überarbeitet (Master-Schalter, Standard
   für neue Feeds, Test-Benachrichtigung, Systemeinstellungen-Link) — Implementierung
-  abgeschlossen, NICHT gepusht.** Bisherige Einstellungsseite zeigte nur den
+  abgeschlossen, gepusht (Korrektur 2026-07-20: "NICHT gepusht" war veraltet).**
+  Bisherige Einstellungsseite zeigte nur den
   macOS-Berechtigungsstatus plus zwei reine Info-Zeilen ohne echte Einstellungen. Neu:
   `NotificationSettings.swift` (Master-Schalter default an, Standard-für-neue-Feeds
   default aus, beide mit sicherem `object(forKey:) != nil`-Guard gegen den bekannten
@@ -1445,6 +1458,18 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Letzte Änderungen
 
+- 2026-07-20: CLAUDE.md-Korrektur — 9 veraltete „NICHT gepusht"-Vermerke in „Aktuell in
+  Arbeit" (Automatischer Feed-Sprung, NSEvent-Monitor-Fallback + Live-Fix-Runde,
+  Ein-/Ausschalter, Pfeiltasten-Navigation, Shortcuts-Erweiterung, Spotlight-Integration,
+  Bulk-Benachrichtigungsverwaltung, Benachrichtigungs-Einstellungen) berichtigt — alle
+  zugehörigen Commits waren tatsächlich längst auf `origin/main`, per
+  `git merge-base --is-ancestor` gegen jeden einzelnen Commit verifiziert. Fund entstand
+  dadurch, dass eine frühere Antwort in dieser Session diese Notizen unreflektiert
+  übernommen hatte, statt sie gegen den echten Git-Stand zu prüfen — vom Nutzer
+  zurecht hinterfragt. **Lehre:** Push-Status-Aussagen aus CLAUDE.md-Notizen nie ungeprüft
+  wiedergeben, immer gegen `git log`/`git merge-base --is-ancestor origin/main` verifizieren,
+  bevor sie als aktueller Stand kommuniziert werden — Notizen in diesem Dokument werden
+  offenbar nicht in jeder Session konsequent nachgezogen, sobald tatsächlich gepusht wird.
 - 2026-07-20: Reader-Toolbar frei anpassbar (Feature 19.4) — vollständige Details siehe
   „Aktuell in Arbeit" oben, hier nicht dupliziert. Commits `18557ba..5beab9ab` auf `main`,
   gepusht (`ada4d48d..5beab9ab`). FEATURES.md 19.4 von „⏸️ Zurückgestellt" auf
