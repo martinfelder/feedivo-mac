@@ -1104,9 +1104,8 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   `grep -c` verifiziert. Commit `608630f`. 80/80 Tests grün, Build grün.
 - **2026-07-16/17: Pfeiltasten-Navigation (Artikelliste + Reader-Zustandswechsel) —
   VOLLSTÄNDIG ABGESCHLOSSEN INKL. LIVE-FIX, gepusht (Korrektur 2026-07-20:
-  "NICHT gepusht" war veraltet), Rest-Live-Verifikation laut diesem Eintrag zuletzt
-  noch offen (Stand unklar, ggf. beim Nutzer nachfragen statt hier zu vermuten).**
-  Nutzerwunsch: reine (modifier-freie) Pfeiltasten für grundlegende
+  "NICHT gepusht" war veraltet), komplette Live-Verifikationscheckliste vom Nutzer
+  bestätigt durchgetestet.** Nutzerwunsch: reine (modifier-freie) Pfeiltasten für grundlegende
   Navigation — Hoch/Runter zum vorherigen/nächsten Artikel, Rechts-Pfeil steuert
   den Reader-Ansichtswechsel. Umgesetzt via Brainstorming→Spec→Plan→
   Subagent-Driven-Development (2 Tasks, beide Reviews clean im ersten Anlauf,
@@ -1182,9 +1181,8 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   Reader-Zustandswechsel aus.
 - **2026-07-16: Shortcuts-Erweiterung (modifier-freie Kombinationen + 8 fehlende
   Menü-Funktionen) — VOLLSTÄNDIG ABGESCHLOSSEN, gepusht (Korrektur 2026-07-20:
-  "NICHT gepusht" war veraltet), Live-Verifikationsstatus laut diesem Eintrag
-  zuletzt noch offen (ggf. beim Nutzer nachfragen statt hier zu vermuten).**
-  Nutzer-Report: In den Einstellungen unter „Shortcuts" (Feature 19.8)
+  "NICHT gepusht" war veraltet), komplette Live-Verifikationscheckliste vom Nutzer
+  bestätigt durchgetestet.** Nutzer-Report: In den Einstellungen unter „Shortcuts" (Feature 19.8)
   ließen sich keine Ein-Zeichen-/Leertasten-Shortcuts hinterlegen, und für Artikel
   archivieren/exportieren/Link kopieren/Original öffnen/Teilen sowie OPML Import/
   Export/Verwaltung öffnen gab es gar keinen Shortcut-Eintrag. Umgesetzt via
