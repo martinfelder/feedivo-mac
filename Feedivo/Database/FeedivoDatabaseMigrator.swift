@@ -164,7 +164,7 @@ enum FeedivoDatabaseMigrator {
             try database.create(table: "article_offline") { table in
                 table.column("articleID", .text).primaryKey()
                     .references("articles", column: "id", onDelete: .cascade)
-                table.column("state", .text).notNull().defaults(to: ArticleOfflineState.none.rawValue)
+                table.column("state", .text).notNull().defaults(to: "none")
                 table.column("content", .text)
                 table.column("requestedAt", .datetime)
                 table.column("savedAt", .datetime)
