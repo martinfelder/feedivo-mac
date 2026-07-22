@@ -40,6 +40,5 @@ struct ArticleListSQLTests {
         #expect(unwrapped.title == "Artikel 1")
         #expect(unwrapped.summary == "Kurzfassung")
         #expect(unwrapped.isRead == false)
-        #expect(unwrapped.offlineState == .none)
     }
 }

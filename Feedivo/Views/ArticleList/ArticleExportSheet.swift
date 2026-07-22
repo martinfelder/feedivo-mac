@@ -106,11 +106,6 @@ struct ArticleExportSheet: View {
     }
 
     private var contentSourceLabel: String {
-        if request.snapshot.offlineState.isAvailable,
-           request.snapshot.offlineContent?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false {
-            return L10n.articleExportSourceOffline
-        }
-
         if request.snapshot.content?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false {
             return L10n.articleExportSourceFeedContent
         }

@@ -120,16 +120,10 @@ struct ArticleStore {
                     s.isRead,
                     s.isStarred,
                     s.isArchived,
-                    s.isHidden,
-                    COALESCE(o.state, 'none') AS offlineStateRaw,
-                    o.content AS offlineContent,
-                    o.requestedAt AS offlineRequestedAt,
-                    o.savedAt AS offlineSavedAt,
-                    o.errorMessage AS offlineErrorMessage
+                    s.isHidden
                 FROM articles a
                 JOIN feeds f ON f.id = a.feedID
                 JOIN article_statuses s ON s.articleID = a.id
-                LEFT JOIN article_offline o ON o.articleID = a.id
                 WHERE a.id = ?
                 """, arguments: [id])
 
@@ -258,7 +252,6 @@ struct ArticleStore {
                 JOIN articles a ON a.rowid = search.rowid
                 JOIN feeds f ON f.id = a.feedID
                 JOIN article_statuses s ON s.articleID = a.id
-                LEFT JOIN article_offline o ON o.articleID = a.id
                 WHERE article_search MATCH ?
                     \(hiddenClause)
                 ORDER BY COALESCE(a.publishedAt, a.arrivedAt) DESC, a.arrivedAt DESC
@@ -740,11 +733,6 @@ extension ArticleReaderSnapshot: FetchableRecord {
         isStarred = row["isStarred"]
         isArchived = row["isArchived"]
         isHidden = row["isHidden"]
-        offlineStateRaw = row["offlineStateRaw"]
-        offlineContent = row["offlineContent"]
-        offlineRequestedAt = row["offlineRequestedAt"]
-        offlineSavedAt = row["offlineSavedAt"]
-        offlineErrorMessage = row["offlineErrorMessage"]
     }
 }
 

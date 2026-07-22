@@ -253,7 +253,7 @@ enum ArticlePDFExportRenderer {
         ReaderMetadataFormatter.metadataParts(
             feedName: snapshot.feedTitle,
             readingTime: ReaderMetadataFormatter.readingTimeText(
-                content: preferredContent(for: snapshot),
+                content: snapshot.content,
                 summary: snapshot.summary
             ),
             publishedAt: snapshot.publishedAt
@@ -298,15 +298,6 @@ enum ArticlePDFExportRenderer {
         \(lines.joined(separator: "\n"))
         </section>
         """
-    }
-
-    private static func preferredContent(for snapshot: ArticleExportSnapshot) -> String? {
-        if snapshot.offlineState.isAvailable,
-           let offlineContent = normalizedText(snapshot.offlineContent) {
-            return offlineContent
-        }
-
-        return snapshot.content
     }
 
     private static func normalizedText(_ value: String?) -> String? {

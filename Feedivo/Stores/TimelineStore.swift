@@ -839,6 +839,5 @@ extension ArticleListSnapshot: FetchableRecord {
         isArchived = row["isArchived"]
         isHidden = row["isHidden"]
         faviconURL = row["faviconURL"]
-        offlineStateRaw = row["offlineStateRaw"]
     }
 }

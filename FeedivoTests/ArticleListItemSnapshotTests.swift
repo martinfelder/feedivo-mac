@@ -35,7 +35,6 @@ struct ArticleListItemSnapshotTests {
         #expect(!snapshot.isArchived)
         #expect(!snapshot.isHidden)
         #expect(snapshot.hasOriginalURL)
-        #expect(snapshot.offlineState == .none)
         #expect(snapshot.imageURL == "https://example.com/sqlite-bild.jpg")
     }
 }

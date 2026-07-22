@@ -61,8 +61,6 @@ struct ArticleExportSnapshot {
     let publishedAt: Date?
     let feedTitle: String?
     let tagNames: [String]
-    let offlineState: ArticleOfflineState
-    let offlineContent: String?
 
     init(sqliteSnapshot: ArticleReaderSnapshot, tagNames: [String] = []) {
         self.title = sqliteSnapshot.title
@@ -75,8 +73,6 @@ struct ArticleExportSnapshot {
         self.tagNames = tagNames.sorted {
             $0.localizedCaseInsensitiveCompare($1) == .orderedAscending
         }
-        self.offlineState = sqliteSnapshot.offlineState
-        self.offlineContent = sqliteSnapshot.offlineContent
     }
 }
 
@@ -146,7 +142,7 @@ enum ArticleExportService {
             lines.append("")
         }
 
-        let bodyLines = markdownBodyLines(from: preferredContent(for: snapshot) ?? snapshot.summary)
+        let bodyLines = markdownBodyLines(from: normalizedText(snapshot.content) ?? snapshot.summary)
 
         if bodyLines.isEmpty {
             return lines.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines) + "\n"
@@ -168,7 +164,7 @@ enum ArticleExportService {
             lines.append("")
         }
 
-        lines.append(contentsOf: plainBodyLines(from: preferredContent(for: snapshot) ?? snapshot.summary))
+        lines.append(contentsOf: plainBodyLines(from: normalizedText(snapshot.content) ?? snapshot.summary))
         return lines.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines) + "\n"
     }
 
@@ -195,7 +191,7 @@ enum ArticleExportService {
             }
         }
 
-        if let body = normalizedText(preferredContent(for: snapshot) ?? snapshot.summary) {
+        if let body = normalizedText(normalizedText(snapshot.content) ?? snapshot.summary) {
             lines.append(sanitizedHTMLBody(from: body))
         }
 
@@ -316,15 +312,6 @@ enum ArticleExportService {
     private static let numericEntityHexExpression: NSRegularExpression? = try? NSRegularExpression(
         pattern: #"&#x([0-9a-fA-F]+);"#
     )
-
-    private static func preferredContent(for snapshot: ArticleExportSnapshot) -> String? {
-        if snapshot.offlineState.isAvailable,
-           let offlineContent = normalizedText(snapshot.offlineContent) {
-            return offlineContent
-        }
-
-        return normalizedText(snapshot.content)
-    }
 
     private static func markdownBodyLines(from htmlOrText: String?) -> [String] {
         guard let htmlOrText = normalizedText(htmlOrText) else {

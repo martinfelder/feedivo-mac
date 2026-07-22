@@ -31,13 +31,4 @@ struct ArticleReaderSnapshot: Equatable, Identifiable, Sendable {
     var isArchived: Bool
     var isHidden: Bool
     var tags: [ReaderArticleTagMetadata] = []
-    var offlineStateRaw: String = ArticleOfflineState.none.rawValue
-    var offlineContent: String?
-    var offlineRequestedAt: Date?
-    var offlineSavedAt: Date?
-    var offlineErrorMessage: String?
-
-    var offlineState: ArticleOfflineState {
-        ArticleOfflineState(rawValue: offlineStateRaw) ?? .none
-    }
 }

@@ -24,24 +24,6 @@ struct ArticleExportServiceTests {
         #expect(markdown.contains("- Erster Punkt"))
     }
 
-    @Test func markdownExportBevorzugtOfflineContentVorFeedContentUndSummary() {
-        let snapshot = ArticleExportSnapshot(
-            sqliteSnapshot: makeReaderSnapshot(
-                title: "Offline",
-                summary: "Summary",
-                content: "Feed Content",
-                offlineStateRaw: ArticleOfflineState.fullText.rawValue,
-                offlineContent: "<p>Gespeicherter Volltext</p>"
-            )
-        )
-
-        let markdown = ArticleExportService.markdown(for: snapshot)
-
-        #expect(markdown.contains("Gespeicherter Volltext"))
-        #expect(!markdown.contains("Feed Content"))
-        #expect(!markdown.contains("Summary"))
-    }
-
     @Test func markdownExportVerarbeitetUnvollstaendigesHTMLOhneAppKitHTMLImporter() {
         let snapshot = ArticleExportSnapshot(
             sqliteSnapshot: makeReaderSnapshot(
@@ -496,39 +478,6 @@ struct ArticleExportServiceTests {
         #expect(ArticleExportService.defaultFilename(for: snapshot, format: .docx) == "Swift-RSS- Was ist neu.docx")
     }
 
-    @Test func sqliteExportSnapshotNutztOfflineVolltextUndTags() {
-        let snapshot = ArticleExportSnapshot(
-            sqliteSnapshot: ArticleReaderSnapshot(
-                id: "article-1",
-                feedID: "feed-1",
-                feedTitle: "SQLite Feed",
-                title: "SQLite Artikel",
-                link: "https://example.com/article",
-                summary: "Kurzfassung",
-                content: "<p>Feed-Inhalt</p>",
-                imageURL: nil,
-                author: "Autorin",
-                publishedAt: Date(timeIntervalSince1970: 1_000),
-                arrivedAt: Date(timeIntervalSince1970: 1_100),
-                estimatedReadingMinutes: nil,
-                isRead: false,
-                isStarred: false,
-                isArchived: false,
-                isHidden: false,
-                offlineStateRaw: ArticleOfflineState.fullText.rawValue,
-                offlineContent: "<article>Offline-Volltext</article>"
-            ),
-            tagNames: ["Swift", "RSS"]
-        )
-
-        let markdown = ArticleExportService.markdown(for: snapshot)
-
-        #expect(markdown.contains("Offline-Volltext"))
-        #expect(!markdown.contains("Feed-Inhalt"))
-        #expect(markdown.contains("SQLite Feed"))
-        #expect(markdown.contains("RSS, Swift"))
-    }
-
     @Test func exportDialogBietetVorerstNurMarkdownTextUndHTMLAn() {
         #expect(ArticleExportFormat.dialogFormats == [.markdown, .plainText, .html])
         #expect(!ArticleExportFormat.dialogFormats.contains(.pdf))
@@ -548,9 +497,7 @@ private func makeReaderSnapshot(
     content: String? = nil,
     imageURL: String? = nil,
     author: String? = nil,
-    publishedAt: Date? = nil,
-    offlineStateRaw: String = ArticleOfflineState.none.rawValue,
-    offlineContent: String? = nil
+    publishedAt: Date? = nil
 ) -> ArticleReaderSnapshot {
     ArticleReaderSnapshot(
         id: "article-1",
@@ -568,9 +515,7 @@ private func makeReaderSnapshot(
         isRead: false,
         isStarred: false,
         isArchived: false,
-        isHidden: false,
-        offlineStateRaw: offlineStateRaw,
-        offlineContent: offlineContent
+        isHidden: false
     )
 }
 
