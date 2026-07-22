@@ -750,6 +750,7 @@ git commit -m "Refactor: Offline-Felder aus Snapshots, SQL-JOINs und Export-Pfad
 ### Task 2: Backend-Dateien löschen
 
 **Files:**
+- Modify: `Feedivo/Database/FeedivoDatabaseMigrator.swift:167` (Plan-Korrektur, siehe unten)
 - Delete: `Feedivo/Stores/SQLiteOfflineStore.swift`
 - Delete: `Feedivo/Services/OfflineArticleContentFetching.swift`
 - Delete: `Feedivo/Database/Records/ArticleOfflineRecord.swift`
@@ -759,7 +760,33 @@ git commit -m "Refactor: Offline-Felder aus Snapshots, SQL-JOINs und Export-Pfad
 - Consumes: Task 1 muss abgeschlossen sein — sonst brechen andere Dateien beim Löschen von `ArticleOfflineState` (definiert in `ArticleOfflineRecord.swift`).
 - Produces: Keine — nach diesem Task existieren `SQLiteOfflineStore`, `SQLiteOfflineDownloadService`, `OfflineArticleContentFetching`, `ArticleOfflineState`, `ArticleOfflineRecord` nirgends mehr im Quellbaum.
 
-- [ ] **Step 1: Vier Dateien löschen**
+**Plan-Korrektur (gefunden beim ersten Ausführungsversuch von Task 2):** Die alte,
+nie zu ändernde `v5_create_article_offline_table`-Migration referenziert
+`ArticleOfflineState.none.rawValue` als Spalten-Default (Zeile 167). Ohne Fix
+kann `ArticleOfflineRecord.swift` (definiert dieses Enum) nie gelöscht werden.
+Lösung: Der symbolische Verweis wird durch seinen exakten Laufzeitwert ersetzt
+(`ArticleOfflineState.none` hat als `String`-RawValue-Enum-Fall ohne expliziten
+RawValue automatisch den Wert `"none"` — identisch zu `.rawValue`). Das ist
+**keine** inhaltliche Änderung der Migration (identisches SQL, identisches
+Verhalten für Bestandsnutzer), sondern eine reine Kompilier-Entkopplung vom
+gelöschten Symbol — im Unterschied zu einer echten nachträglichen
+Schema-/Verhaltens-Änderung, die die Projektkonvention verbietet.
+
+- [ ] **Step 1: v5-Migration von `ArticleOfflineState`-Symbol entkoppeln**
+
+`old_string`:
+
+```swift
+                table.column("state", .text).notNull().defaults(to: ArticleOfflineState.none.rawValue)
+```
+
+`new_string`:
+
+```swift
+                table.column("state", .text).notNull().defaults(to: "none")
+```
+
+- [ ] **Step 2: Vier Dateien löschen**
 
 ```bash
 git rm Feedivo/Stores/SQLiteOfflineStore.swift
@@ -768,14 +795,22 @@ git rm Feedivo/Database/Records/ArticleOfflineRecord.swift
 git rm FeedivoTests/SQLiteOfflineDownloadServiceTests.swift
 ```
 
-- [ ] **Step 2: Build verifizieren**
+- [ ] **Step 3: Build verifizieren**
 
 Run: `xcodebuild build -project Feedivo.xcodeproj -scheme Feedivo -destination 'platform=macOS'`
 Expected: BUILD SUCCEEDED
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 4: Migrationstest gegen den geänderten Default-Wert verifizieren**
+
+Run: `xcodebuild test -project Feedivo.xcodeproj -scheme Feedivo -destination 'platform=macOS' -only-testing:FeedivoTests/SQLiteDatabaseMigrationTests -parallel-testing-enabled NO`
+Expected: PASS (bestätigt, dass die v5-Migration mit dem Literal-String weiterhin fehlerfrei läuft — die Tabelle wird ohnehin in Task 3 wieder gedroppt, hier zählt nur, dass die Migrationskette bis dahin durchläuft)
+
+- [ ] **Step 5: Commit**
 
 ```bash
+git add Feedivo/Database/FeedivoDatabaseMigrator.swift
+git commit -m "Fix: v5-Migration von ArticleOfflineState-Symbol entkoppelt (identisches Verhalten, Plan-Korrektur vor Task 2)"
+git rm Feedivo/Stores/SQLiteOfflineStore.swift Feedivo/Services/OfflineArticleContentFetching.swift Feedivo/Database/Records/ArticleOfflineRecord.swift FeedivoTests/SQLiteOfflineDownloadServiceTests.swift
 git commit -m "Chore: Offline-Backend (SQLiteOfflineStore, OfflineArticleContentFetching, ArticleOfflineRecord) geloescht (Task 2/4)"
 ```
 
