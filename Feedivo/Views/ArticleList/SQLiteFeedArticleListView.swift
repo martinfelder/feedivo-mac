@@ -343,7 +343,7 @@ struct SQLiteFeedArticleListView: View {
 
             if case .feed = scope, let feedHeaderRefreshStatus {
                 Text(feedHeaderRefreshStatusText(feedHeaderRefreshStatus))
-                    .font(interfaceTextSize.font(size: 13))
+                    .font(interfaceTextSize.font(size: 11))
                     .foregroundStyle(feedHeaderRefreshStatusColor(feedHeaderRefreshStatus))
                     .lineLimit(1)
             }
