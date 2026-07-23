@@ -498,15 +498,16 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
   reproduzierbar (bekanntes, ungelöstes Infrastrukturproblem). Immer gezielt mit
   `-only-testing:FeedivoTests/<SuiteName>` testen.
 - **Bekannte, dauerhaft vorbestehende Testfehlschläge** (nicht neu einführen, aber auch nicht
-  grundlos als eigenen Bug behandeln): 15 Tests in `FeedivoAppSceneConfigurationTests.swift`
-  (Zahl am 2026-07-14 korrigiert — vorher hier „9" dokumentiert, Stand 2026-07-11. Beim
-  Bereinigung-dauerhaft-Feature fanden zwei unabhängige Untersuchungen — der Task-4-Reviewer
-  per disposable `git worktree`-Checkout des Basis-Commits vor dem Feature, und der finale
-  Whole-Branch-Reviewer erneut auf dem fertigen Branch — exakt dieselben 15, thematisch
-  unabhängigen Fehlschläge (u. a. Toolbar-Layout, Tag-Stores, Feed-Eigenschaften,
-  Sidebar-Reihenfolge, Artikel-Inspector, Einstellungen-Fenster, Such-/Popout-Fenster). Reine
-  Dokumentations-Drift seit 2026-07-11, vermutlich durch dazwischenliegende Feature-Durchgänge
-  angewachsen — keine Regression eines einzelnen Features), 2 flaky-unter-Last Tests in
+  grundlos als eigenen Bug behandeln): 17 Tests in `FeedivoAppSceneConfigurationTests.swift`
+  (Zahl am 2026-07-23 korrigiert — vorher hier „15" dokumentiert, Stand 2026-07-14. Beim
+  Offline-Feature-Entfernen-Plan fanden zwei unabhängige Untersuchungen im selben
+  Subagent-Driven-Development-Durchgang — der Task-4-Implementer per `git stash`/`git stash
+  pop` gegen den Basis-Commit vor dem Task, und der Task-4-Reviewer erneut per isoliertem
+  `git worktree add` auf demselben Basis-Commit — exakt dieselben 17, byte-identischen
+  Testnamen bereits VOR diesem Feature fehlschlagend. Reine Dokumentations-Drift seit
+  2026-07-14, vermutlich durch dazwischenliegende Feature-Durchgänge angewachsen — keine
+  Regression durch das Offline-Feature-Entfernen selbst, das die beiden einzigen Tests, die
+  es an dieser Suite änderte, sauber zum Bestehen brachte), 2 flaky-unter-Last Tests in
   `FeedViewModelTests.swift` (`refreshAllFeedsMitSQLiteDatabaseNutztSQLiteFirstOhneDoppeltenAbruf`,
   `refreshAllFeedsMitSQLiteDatabaseMeldetFeedBenachrichtigungen`).
 - **Hauptfenster-Szene muss `Window`, nicht `WindowGroup` sein:** `WindowGroup(id:)` ist laut
@@ -1436,6 +1437,12 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Letzte Änderungen
 
+- 2026-07-23: CLAUDE.md-Korrektur — Zahl der bekannten, vorbestehenden Testfehlschläge in
+  `FeedivoAppSceneConfigurationTests.swift` von „15" auf „17" korrigiert (siehe Gotcha oben).
+  Fund entstand aus dem Offline-Feature-Entfernen-Plan (Task 4), wo der tatsächliche Lauf
+  17 statt der dokumentierten 15 Fehlschläge zeigte — per isoliertem Vorher/Nachher-Vergleich
+  gegen den Basis-Commit als reine, unabhängig von diesem Feature entstandene Doku-Drift
+  bestätigt, keine Regression.
 - 2026-07-20: Offline-Artikel-Download-Feature vollständig entfernt (Backend, DB-Tabelle
   `article_offline` per neuer Migration `v19_drop_article_offline_table`, Kopplung an
   Artikel-Export entkoppelt, 23 unbenutzte L10n-Keys + 3 zugehörige xcstrings-Fehlermeldungs-
