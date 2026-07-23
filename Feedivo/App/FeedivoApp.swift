@@ -98,8 +98,7 @@ struct FeedivoApp: App {
                 .environment(appDelegate.pendingURLSchemeAction)
                 .dynamicTypeSize(interfaceTextSize.dynamicTypeSize)
                 .preferredColorScheme(appAppearance.colorScheme)
-                .toolbarBackground(.ultraThinMaterial, for: .windowToolbar)
-                .toolbarBackground(.visible, for: .windowToolbar)
+                .toolbarBackground(.hidden, for: .windowToolbar)
                 .task {
                     guard databaseLoadState.initializationError == nil else {
                         return
