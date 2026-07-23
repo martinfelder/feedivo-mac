@@ -338,6 +338,33 @@ struct FeedViewModelTests {
         #expect(!viewModel.isLoading)
     }
 
+    // Root-Cause-Fund (Nutzer-Report 2026-07-23): zwei automatische Refresh-
+    // Ausloeser (App-Start-Refresh, Hintergrund-Scheduler-Tick) konnten beim
+    // App-Start nahezu gleichzeitig feuern und zeigten dem Nutzer dann
+    // faelschlich einen "Aktualisierung laeuft bereits"-Alert, obwohl keiner
+    // der beiden Ausloeser eine Nutzeraktion war. Automatische Aufrufer
+    // uebergeben seither `isAutomatic: true` und treten bei Kollision still
+    // zurueck, ohne `errorMessage` zu setzen.
+    @Test func refreshAllFeedsAutomatischerAufrufUeberspringtStillOhneFehlermeldungBeiLaufendemRefresh() async throws {
+        let sqliteDatabase = try FeedivoDatabase.inMemoryForTests()
+        let viewModel = makeViewModel()
+        viewModel.isLoading = true
+
+        await viewModel.refreshAllFeeds(sqliteDatabase: sqliteDatabase, isAutomatic: true)
+
+        #expect(viewModel.errorMessage == nil)
+    }
+
+    @Test func refreshAllFeedsManuellerAufrufZeigtWeiterhinFehlermeldungBeiLaufendemRefresh() async throws {
+        let sqliteDatabase = try FeedivoDatabase.inMemoryForTests()
+        let viewModel = makeViewModel()
+        viewModel.isLoading = true
+
+        await viewModel.refreshAllFeeds(sqliteDatabase: sqliteDatabase)
+
+        #expect(viewModel.errorMessage == L10n.feedErrorAlreadyRunning)
+    }
+
     @MainActor
     @Test func refreshAllFeedsMitSQLiteDatabaseMeldetFeedBenachrichtigungen() async throws {
         let sqliteDatabase = try FeedivoDatabase.inMemoryForTests()

@@ -607,7 +607,7 @@ struct ContentView: View {
 
         didRunRefreshForLaunch = true
         Task {
-            await refreshAllFeeds()
+            await refreshAllFeeds(isAutomatic: true)
             BackgroundRefreshService.recordRefreshOutcome(
                 from: feedViewModel,
                 intervalMinutes: backgroundRefreshIntervalMinutes
@@ -616,7 +616,7 @@ struct ContentView: View {
     }
 
     @MainActor
-    private func refreshAllFeeds() async {
+    private func refreshAllFeeds(isAutomatic: Bool = false) async {
         // SQLite-first: Snapshots lädt FeedViewModel aus FeedStore.feeds(). Der
         // optionale Container wird für den Regel-Kontext (Rule-Snapshots)
         // benötigt; ohne Datenbank wird der Refresh übersprungen.
@@ -624,7 +624,8 @@ struct ContentView: View {
             return
         }
         await feedViewModel.refreshAllFeeds(
-            sqliteDatabase: database
+            sqliteDatabase: database,
+            isAutomatic: isAutomatic
         )
     }
 

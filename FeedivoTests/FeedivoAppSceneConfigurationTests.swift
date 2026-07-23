@@ -305,7 +305,7 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(appSource.contains("private let feedViewModel"))
         #expect(appSource.contains("ContentView(feedViewModel: feedViewModel)"))
         #expect(appSource.contains("feedViewModel: feedViewModel"))
-        #expect(compact(contentSource).contains("refreshAllFeeds(sqliteDatabase:database)"))
+        #expect(compact(contentSource).contains("refreshAllFeeds(sqliteDatabase:database,isAutomatic:isAutomatic)"))
         #expect(contentSource.contains("refreshFeedsOnLaunchIfNeeded()"))
         #expect(schedulerSource.contains("feedViewModel: FeedViewModel"))
     }
@@ -595,7 +595,7 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(contentSource.contains("SQLiteReaderView("))
         #expect(contentSource.contains("selectedSQLiteArticleID"))
         #expect(contentSource.contains("handleSQLiteArticleSnapshotChange"))
-        #expect(compactContentSource.contains("refreshAllFeeds(sqliteDatabase:database)"))
+        #expect(compactContentSource.contains("refreshAllFeeds(sqliteDatabase:database,isAutomatic:isAutomatic)"))
     }
 
     @Test func contentViewNutztSQLiteFeedArticleListFuerSelectedFeed() throws {
@@ -824,7 +824,7 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(contentSource.contains("@Environment(\\.feedivoDatabase) private var feedivoDatabase"))
         #expect(compactContentSource.contains("refreshFeed(feedID:feedID,sqliteDatabase:feedivoDatabase)"))
         #expect(compactContentSource.contains("guardletdatabase=feedivoDatabaseelse{return}"))
-        #expect(compactContentSource.contains("refreshAllFeeds(sqliteDatabase:database)"))
+        #expect(compactContentSource.contains("refreshAllFeeds(sqliteDatabase:database,isAutomatic:isAutomatic)"))
     }
 
     @Test func addFeedSheetUebergibtSQLiteDatabaseAnFeedViewModel() throws {

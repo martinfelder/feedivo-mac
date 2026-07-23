@@ -303,10 +303,20 @@ final class FeedViewModel {
     }
 
     /// SQLite-first Refresh-All: Snapshots werden aus `FeedStore.feeds()` geladen.
+    ///
+    /// `isAutomatic` unterscheidet einen vom Nutzer ausgelösten Refresh (Menü,
+    /// Menubar-Button) von einem automatischen (App-Start-Refresh,
+    /// Hintergrund-Scheduler-Tick). Kollidiert ein automatischer Aufruf mit
+    /// einem bereits laufenden Refresh, tritt er still zurück statt eine
+    /// nutzersichtbare Fehlermeldung zu setzen — der Nutzer hat in diesem Fall
+    /// nichts falsch gemacht, zwei interne Ausloeser sind sich nur in die
+    /// Quere gekommen (Root-Cause-Fund 2026-07-23).
     @MainActor
-    func refreshAllFeeds(sqliteDatabase: FeedivoDatabase) async {
+    func refreshAllFeeds(sqliteDatabase: FeedivoDatabase, isAutomatic: Bool = false) async {
         guard !isLoading else {
-            errorMessage = L10n.feedErrorAlreadyRunning
+            if !isAutomatic {
+                errorMessage = L10n.feedErrorAlreadyRunning
+            }
             return
         }
 

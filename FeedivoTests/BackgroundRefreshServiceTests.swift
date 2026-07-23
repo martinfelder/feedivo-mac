@@ -297,6 +297,41 @@ struct BackgroundRefreshServiceTests {
         #expect(try ArticleStatusStore(database: database).status(articleID: expiredID) == nil)
         #expect(defaults.object(forKey: CleanupScheduleSettings.lastScheduleRunAtKey) as? Date == now)
     }
+
+    // Root-Cause-Fund (Nutzer-Report 2026-07-23): `NSBackgroundActivityScheduler`
+    // (Foundation) kennt kein `earliestBeginDate` (anders als `BGTaskRequest`
+    // aus dem hier bewusst nicht genutzten BackgroundTasks-Framework) — der
+    // allererste Tick nach `schedule(...)` konnte dadurch praktisch sofort
+    // feuern und kollidierte beim App-Start mit dem separaten "Feeds beim
+    // App-Start aktualisieren"-Refresh. `isPrematureTick` ist die daraus
+    // extrahierte, direkt testbare Entscheidungslogik, die `submit(_:)`
+    // seither im Scheduler-Callback selbst durchsetzt.
+    @Test func isPrematureTickIstFalseOhneEarliestBeginDate() {
+        #expect(!BackgroundRefreshService.isPrematureTick(
+            earliestBeginDate: nil,
+            now: Date(timeIntervalSince1970: 1_000)
+        ))
+    }
+
+    @Test func isPrematureTickIstTrueVorDerEarliestBeginDate() {
+        let earliestBeginDate = Date(timeIntervalSince1970: 2_000)
+        #expect(BackgroundRefreshService.isPrematureTick(
+            earliestBeginDate: earliestBeginDate,
+            now: Date(timeIntervalSince1970: 1_000)
+        ))
+    }
+
+    @Test func isPrematureTickIstFalseAbDerEarliestBeginDate() {
+        let earliestBeginDate = Date(timeIntervalSince1970: 2_000)
+        #expect(!BackgroundRefreshService.isPrematureTick(
+            earliestBeginDate: earliestBeginDate,
+            now: earliestBeginDate
+        ))
+        #expect(!BackgroundRefreshService.isPrematureTick(
+            earliestBeginDate: earliestBeginDate,
+            now: Date(timeIntervalSince1970: 3_000)
+        ))
+    }
 }
 
 private func temporaryUserDefaults() throws -> UserDefaults {

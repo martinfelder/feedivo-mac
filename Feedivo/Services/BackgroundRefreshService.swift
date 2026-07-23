@@ -33,6 +33,29 @@ final class SystemBackgroundActivityRefreshScheduler: BackgroundRefreshSchedulin
         scheduler.interval = TimeInterval(request.intervalMinutes * 60)
         scheduler.tolerance = TimeInterval(max(60, request.intervalMinutes * 60 / 4))
         scheduler.schedule { [feedivoDatabase, feedViewModel] completionHandler in
+            // `NSBackgroundActivityScheduler` (Foundation) kennt anders als
+            // `BGTaskRequest` (das hier bewusst nicht genutzte, iOS-fokussierte
+            // BackgroundTasks-Framework) KEIN `earliestBeginDate` — der eigene
+            // Apple-Header dokumentiert für den allerersten Tick nur "run by
+            // the OS at a time that best accommodates system-wide factors",
+            // ohne untere Zeitschranke. In der Praxis feuerte dieser erste Tick
+            // teils fast sofort nach `schedule(...)`, wodurch er beim App-Start
+            // mit dem separaten "Feeds beim App-Start aktualisieren"-Refresh
+            // kollidierte (Root-Cause-Fund 2026-07-23, Nutzer-Report: "Feed-
+            // Fehler: Aktualisierung läuft bereits" bei praktisch jedem
+            // App-Start). Fix: die bereits berechnete `earliestBeginDate`
+            // selbst durchsetzen, statt sie einer nicht existierenden
+            // System-API anzuvertrauen — ein zu frueher Tick wird ohne
+            // Refresh sofort abgeschlossen, der naechste natuerliche Tick
+            // (nach `interval`) uebernimmt dann.
+            guard !BackgroundRefreshService.isPrematureTick(
+                earliestBeginDate: request.earliestBeginDate,
+                now: Date()
+            ) else {
+                completionHandler(.finished)
+                return
+            }
+
             Task { @MainActor in
                 await BackgroundRefreshService.refreshAllFeeds(
                     database: feedivoDatabase,
@@ -58,6 +81,21 @@ final class SystemBackgroundActivityRefreshScheduler: BackgroundRefreshSchedulin
 
 enum BackgroundRefreshService {
     static let taskIdentifier = "ch.martin.Feedivo.refresh"
+
+    /// Reine Entscheidungslogik dafür, ob ein `NSBackgroundActivityScheduler`-
+    /// Tick übersprungen werden soll, weil er vor der geplanten
+    /// `earliestBeginDate` liegt. Ausgelagert, damit die Logik selbst (anders
+    /// als die reine Berechnung von `earliestBeginDate` in
+    /// `BackgroundRefreshSettings`, die schon vorher getestet war) direkt
+    /// unit-getestet werden kann, statt nur innerhalb des ungetesteten
+    /// `NSBackgroundActivityScheduler`-Callbacks zu leben — genau diese Lücke
+    /// war der Root-Cause-Fund vom 2026-07-23.
+    static func isPrematureTick(earliestBeginDate: Date?, now: Date) -> Bool {
+        guard let earliestBeginDate else {
+            return false
+        }
+        return now < earliestBeginDate
+    }
 
     static func scheduleNextRefresh(
         isEnabled: Bool,
@@ -105,7 +143,7 @@ enum BackgroundRefreshService {
         userDefaults: UserDefaults = .standard,
         feedViewModel: FeedViewModel
     ) async {
-        await feedViewModel.refreshAllFeeds(sqliteDatabase: database)
+        await feedViewModel.refreshAllFeeds(sqliteDatabase: database, isAutomatic: true)
 
         recordRefreshOutcome(
             from: feedViewModel,
