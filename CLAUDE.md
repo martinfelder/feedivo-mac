@@ -287,6 +287,44 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
 
 > Diese Liste wächst während der Entwicklung. Immer ergänzen!
 
+- **`NSBackgroundActivityScheduler` (Foundation) kennt kein `earliestBeginDate` —
+  anders als `BGTaskRequest` aus dem hier bewusst nicht genutzten, iOS-fokussierten
+  `BackgroundTasks`-Framework:** Nutzer-Report (2026-07-23): der Feed-Fehler-Alert
+  „Eine Aktualisierung läuft bereits" erschien bei praktisch jedem App-Start, auch
+  bei komplett frischem Kaltstart. Root-Cause per systematic-debugging: `Background
+  RefreshService.scheduleNextRefresh(...)` berechnete korrekt eine
+  `earliestBeginDate = jetzt + intervalMinutes` und reichte sie über
+  `BackgroundRefreshRequest` weiter — der ursprüngliche erste Fix-Versuch setzte
+  diesen Wert dann per `scheduler.earliestBeginDate = request.earliestBeginDate` auf
+  den echten `NSBackgroundActivityScheduler`, was **nicht kompiliert**
+  (`NSBackgroundActivityScheduler` hat dieses Property schlicht nicht — verifiziert
+  per `NSBackgroundActivityScheduler.h`-Header direkt aus dem SDK). Der eigene
+  Apple-Doc-Kommentar der Klasse beschreibt für den ersten Tick nur "run by the OS
+  at a time that best accommodates system-wide factors" ohne untere Zeitschranke —
+  in der Praxis feuerte dieser erste Tick teils fast sofort nach `schedule(...)`
+  und kollidierte dadurch mit dem separaten, ebenfalls beim App-Start laufenden
+  "Feeds beim App-Start aktualisieren"-Refresh (`ContentView.
+  refreshFeedsOnLaunchIfNeeded()`) — beide riefen dieselbe `FeedViewModel.
+  refreshAllFeeds(sqliteDatabase:)` auf einem geteilten `FeedViewModel` auf, dessen
+  einfache `isLoading`-Sperre den zweiten, praktisch zeitgleichen Aufruf mit der
+  nutzersichtbaren Fehlermeldung quittierte. **Tatsächlicher Fix** (Commit
+  `cb60943`): die bereits berechnete `earliestBeginDate` selbst im Scheduler-
+  Callback durchsetzen (`BackgroundRefreshService.isPrematureTick(earliestBeginDate:
+  now:)`, eine bewusst ausgelagerte, pure und direkt unit-testbare Entscheidung) —
+  ein zu früher Tick schließt sofort ohne Refresh ab, der nächste natürliche Tick
+  (nach `interval`) übernimmt. Als zweite, unabhängige Absicherung unterscheidet
+  `FeedViewModel.refreshAllFeeds(sqliteDatabase:isAutomatic:)` jetzt automatische
+  von nutzerausgelösten Aufrufen — kollidiert ein automatischer Aufruf trotzdem mit
+  einem laufenden Refresh, tritt er still zurück statt eine Fehlermeldung zu
+  setzen; manuelle Aufrufe (Menü, Menubar-Button) zeigen sie weiterhin. **Lehre:**
+  Bei JEDER künftigen Verwechslungsgefahr zwischen `NSBackgroundActivityScheduler`
+  (macOS, Foundation, XPC-Activity-API) und `BGTaskScheduler`/`BGTaskRequest`
+  (iOS-fokussiertes `BackgroundTasks`-Framework, das dieses Projekt bewusst nicht
+  nutzt) die tatsächliche Property-Liste direkt im SDK-Header verifizieren
+  (`NSBackgroundActivityScheduler.h`), nicht aus API-Ähnlichkeit zu `BGTaskRequest`
+  raten — ein Compile-Fehler deckte das hier sofort auf, aber die zugrunde
+  liegende Fehlannahme hätte auch subtiler (falscher Property-Name, der zufällig
+  existiert) unentdeckt bleiben können.
 - **`WKWebView.printOperation(with:)` stürzt auf macOS zuverlässig ab — niemals für
   echtes Drucken verwenden, stattdessen `createPDF(...)` + PDFKit:** Beim Live-Test von
   Feature 25.1 (Artikel drucken, 2026-07-17) zeigte der Drucken-Button zunächst den
@@ -1437,6 +1475,17 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Letzte Änderungen
 
+- 2026-07-23: Bugfix — Kollision zwischen App-Start-Refresh und Hintergrund-Scheduler
+  behoben (Nutzer-Report: "Feed-Fehler: Aktualisierung läuft bereits" bei praktisch
+  jedem App-Start). Via systematic-debugging: `NSBackgroundActivityScheduler` kennt
+  kein `earliestBeginDate`, der allererste Tick feuerte dadurch praktisch sofort und
+  kollidierte mit dem separaten "Feeds beim App-Start aktualisieren"-Refresh. Neue,
+  direkt testbare `BackgroundRefreshService.isPrematureTick(...)` erzwingt die
+  Wartezeit selbst; `FeedViewModel.refreshAllFeeds(sqliteDatabase:isAutomatic:)`
+  unterscheidet zusätzlich automatische von nutzerausgelösten Aufrufen als zweite,
+  unabhängige Absicherung. TDD (5 neue Tests), 17 bekannte Vorabfehlschläge in
+  `FeedivoAppSceneConfigurationTests` unverändert. Details siehe neuer Gotcha oben.
+  Commit `cb60943`, lokal auf `main`, NICHT gepusht.
 - 2026-07-23: CLAUDE.md-Korrektur — Zahl der bekannten, vorbestehenden Testfehlschläge in
   `FeedivoAppSceneConfigurationTests.swift` von „15" auf „17" korrigiert (siehe Gotcha oben).
   Fund entstand aus dem Offline-Feature-Entfernen-Plan (Task 4), wo der tatsächliche Lauf
