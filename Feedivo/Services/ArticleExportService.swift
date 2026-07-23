@@ -5,8 +5,6 @@ enum ArticleExportFormat: String, CaseIterable, Identifiable {
     case markdown
     case plainText
     case html
-    case pdf
-    case docx
 
     static let dialogFormats: [ArticleExportFormat] = [
         .markdown,
@@ -24,10 +22,6 @@ enum ArticleExportFormat: String, CaseIterable, Identifiable {
             "txt"
         case .html:
             "html"
-        case .pdf:
-            "pdf"
-        case .docx:
-            "docx"
         }
     }
 
@@ -39,10 +33,6 @@ enum ArticleExportFormat: String, CaseIterable, Identifiable {
             .plainText
         case .html:
             .html
-        case .pdf:
-            .pdf
-        case .docx:
-            .docxDocument
         }
     }
 }
@@ -89,24 +79,11 @@ enum ArticleExportService {
             plainText(for: snapshot, includesMetadata: options.includesMetadata)
         case .html:
             htmlText(for: snapshot, includesMetadata: options.includesMetadata)
-        case .pdf, .docx:
-            plainText(for: snapshot, includesMetadata: options.includesMetadata)
         }
     }
 
     static func data(for snapshot: ArticleExportSnapshot, options: ArticleExportOptions) -> Data {
-        switch options.format {
-        case .markdown, .plainText, .html:
-            Data(text(for: snapshot, options: options).utf8)
-        case .pdf:
-            // .pdf ist nicht in ArticleExportFormat.dialogFormats enthalten und ueber die
-            // UI nie erreichbar (Feature 25.1 "Drucken" ersetzt PDF-Export durch nativen
-            // Druckdialog samt "Als PDF sichern"). Der alte NSAttributedString/CGContext-
-            // Renderer wurde entfernt — dieser Fall dient nur noch der Exhaustivitaet.
-            Data()
-        case .docx:
-            ArticleDOCXExportRenderer.data(for: snapshot, options: options)
-        }
+        Data(text(for: snapshot, options: options).utf8)
     }
 
     static func previewText(for snapshot: ArticleExportSnapshot, options: ArticleExportOptions) -> String {

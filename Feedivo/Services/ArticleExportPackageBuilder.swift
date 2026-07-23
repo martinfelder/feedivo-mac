@@ -54,11 +54,6 @@ enum ArticleExportPackageBuilder {
         options: ArticleExportOptions,
         includesOfflineImages: Bool,
         imageLoader: ArticleExportImageDataLoading = URLSessionArticleExportImageDataLoader(),
-        // Nicht mehr im Funktionskoerper verwendet, seit der PDF-spezifische Zweig unten
-        // entfernt wurde (Feature 25.1 "Drucken" ersetzt den alten CGContext-PDF-Renderer
-        // durch nativen Druck; .pdf ist ueber ArticleExportFormat.dialogFormats ohnehin nie
-        // erreichbar). Bleibt fuer Aufrufkompatibilitaet mit ArticleExportSheet.swift stehen.
-        pdfStyle: ArticlePDFExportStyle = .default,
         progress: @MainActor @escaping (ArticleExportPackageProgress) -> Void = { _ in }
     ) async -> ArticleExportPackage {
         progress(.preparingDocument)
@@ -264,7 +259,7 @@ enum ArticleExportPackageBuilder {
 
 private extension ArticleExportFormat {
     var supportsOfflineImagePackage: Bool {
-        self == .markdown || self == .html || self == .pdf
+        self == .markdown || self == .html
     }
 }
 

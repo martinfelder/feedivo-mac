@@ -357,7 +357,7 @@ struct ArticleExportServiceTests {
 
         let html = ArticlePDFExportRenderer.html(
             for: snapshot,
-            options: ArticleExportOptions(format: .pdf, includesMetadata: true),
+            options: ArticleExportOptions(format: .html, includesMetadata: true),
             style: .default,
             assets: []
         )
@@ -384,65 +384,13 @@ struct ArticleExportServiceTests {
 
         let html = ArticlePDFExportRenderer.html(
             for: snapshot,
-            options: ArticleExportOptions(format: .pdf, includesMetadata: true),
+            options: ArticleExportOptions(format: .html, includesMetadata: true),
             style: .default,
             assets: []
         )
 
         #expect(!html.contains("href=\"javascript:alert(1)\""))
         #expect(html.contains("<strong>Link:</strong> javascript:alert(1)"))
-    }
-
-    @Test func pdfFormatIstUeberDialogUnerreichbarUndLiefertLeereDaten() {
-        let snapshot = ArticleExportSnapshot(
-            sqliteSnapshot: makeReaderSnapshot(title: "PDF", content: "<p>Text</p>")
-        )
-
-        let data = ArticleExportService.data(
-            for: snapshot,
-            options: ArticleExportOptions(format: .pdf, includesMetadata: true)
-        )
-
-        #expect(data.isEmpty)
-    }
-
-    @Test func docxExportErzeugtOpenXMLDokumentMitArtikeltext() {
-        let snapshot = ArticleExportSnapshot(
-            sqliteSnapshot: makeReaderSnapshot(
-                title: "DOCX & Export",
-                link: "https://example.com/docx",
-                content: "<p>Ein <strong>lesbarer</strong> Absatz.</p><script>bad()</script>"
-            )
-        )
-
-        let data = ArticleExportService.data(
-            for: snapshot,
-            options: ArticleExportOptions(format: .docx, includesMetadata: true)
-        )
-        let archiveText = String(decoding: data, as: UTF8.self)
-
-        #expect(data.starts(with: Data([0x50, 0x4b, 0x03, 0x04])))
-        #expect(archiveText.contains("[Content_Types].xml"))
-        #expect(archiveText.contains("word/document.xml"))
-        #expect(archiveText.contains("DOCX &amp; Export"))
-        #expect(archiveText.contains("Ein lesbarer Absatz."))
-        #expect(!archiveText.contains("bad()"))
-    }
-
-    @Test func packageBuilderGibtDOCXAlsNormalesDokumentZurueck() async {
-        let snapshot = ArticleExportSnapshot(
-            sqliteSnapshot: makeReaderSnapshot(title: "DOCX Paket", content: "<p>Artikeltext</p>")
-        )
-
-        let package = await ArticleExportPackageBuilder.package(
-            for: snapshot,
-            options: ArticleExportOptions(format: .docx, includesMetadata: false),
-            includesOfflineImages: true
-        )
-
-        #expect(package.filename == "DOCX Paket.docx")
-        #expect(package.contentType == .document)
-        #expect(package.archiveData.starts(with: Data([0x50, 0x4b, 0x03, 0x04])))
     }
 
     @Test func metadatenEnthaltenAutorFeedUndTags() {
@@ -474,14 +422,14 @@ struct ArticleExportServiceTests {
         #expect(ArticleExportService.defaultFilename(for: snapshot, format: .markdown) == "Swift-RSS- Was ist neu.md")
         #expect(ArticleExportService.defaultFilename(for: snapshot, format: .plainText) == "Swift-RSS- Was ist neu.txt")
         #expect(ArticleExportService.defaultFilename(for: snapshot, format: .html) == "Swift-RSS- Was ist neu.html")
-        #expect(ArticleExportService.defaultFilename(for: snapshot, format: .pdf) == "Swift-RSS- Was ist neu.pdf")
-        #expect(ArticleExportService.defaultFilename(for: snapshot, format: .docx) == "Swift-RSS- Was ist neu.docx")
     }
 
-    @Test func exportDialogBietetVorerstNurMarkdownTextUndHTMLAn() {
+    // PDF/DOCX endgueltig gestrichen (Nutzerentscheid 2026-07-23): PDF-Bedarf ist
+    // durch den separaten Drucken-Dialog (Feature 25.1) abgedeckt, DOCX wird nicht
+    // mehr angeboten. dialogFormats deckt seither alle Faelle von ArticleExportFormat ab.
+    @Test func exportDialogBietetAlleUnterstuetztenFormateAn() {
+        #expect(ArticleExportFormat.dialogFormats == ArticleExportFormat.allCases)
         #expect(ArticleExportFormat.dialogFormats == [.markdown, .plainText, .html])
-        #expect(!ArticleExportFormat.dialogFormats.contains(.pdf))
-        #expect(!ArticleExportFormat.dialogFormats.contains(.docx))
     }
 }
 

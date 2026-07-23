@@ -32,39 +32,9 @@ struct ArticleExportSheet: View {
     @State private var isExporting = false
     @State private var preparedPackage: ArticleExportPackage?
     @State private var exportStatus: ArticleExportStatus = .idle
-    @AppStorage(ReaderTypographySettings.titleFontPresetKey)
-    private var readerTitleFontPresetRawValue = ReaderFontPreset.system.rawValue
-    @AppStorage(ReaderTypographySettings.bodyFontPresetKey)
-    private var readerBodyFontPresetRawValue = ReaderFontPreset.system.rawValue
-    @AppStorage(ReaderTypographySettings.titleFontIsBoldKey)
-    private var readerTitleFontIsBold = ReaderTypography.defaultTitleFontIsBold
-    @AppStorage(ReaderTypographySettings.bodyFontIsBoldKey)
-    private var readerBodyFontIsBold = ReaderTypography.defaultBodyFontIsBold
-    @AppStorage(ReaderTypographySettings.bodyFontSizeKey)
-    private var readerBodyFontSize = ReaderTypography.defaultBodyFontSize
-    @AppStorage(ReaderTypographySettings.lineSpacingKey)
-    private var readerLineSpacing = ReaderTypography.defaultLineSpacing
-    @AppStorage(ReaderTypographySettings.titleLineSpacingKey)
-    private var readerTitleLineSpacing = ReaderTypography.defaultTitleLineSpacing
-    @AppStorage(ReaderTypographySettings.contentWidthKey)
-    private var readerContentWidth = ReaderTypography.defaultContentWidth
 
     private var options: ArticleExportOptions {
         ArticleExportOptions(format: selectedFormat, includesMetadata: includesMetadata)
-    }
-
-    private var pdfStyle: ArticlePDFExportStyle {
-        ArticlePDFExportStyle(
-            titleFontFamily: pdfFontFamily(for: ReaderFontPreset.resolved(from: readerTitleFontPresetRawValue)),
-            bodyFontFamily: pdfFontFamily(for: ReaderFontPreset.resolved(from: readerBodyFontPresetRawValue)),
-            titleFontIsBold: readerTitleFontIsBold,
-            bodyFontIsBold: readerBodyFontIsBold,
-            titleFontSize: ReaderTypography.defaultTitleFontSize,
-            bodyFontSize: ReaderTypography.clampedBodyFontSize(readerBodyFontSize),
-            lineSpacing: ReaderTypography.clampedLineSpacing(readerLineSpacing),
-            titleLineSpacing: ReaderTypography.clampedTitleLineSpacing(readerTitleLineSpacing),
-            contentWidth: ReaderTypography.clampedContentWidth(readerContentWidth)
-        )
     }
 
     private var exportText: String {
@@ -327,23 +297,6 @@ struct ArticleExportSheet: View {
                     assets: preparedPackage?.assets ?? []
                 )
             )
-        case .pdf:
-            ArticleExportHTMLPreview(
-                html: preparedPackage?.text ?? ArticlePDFExportRenderer.html(
-                    for: request.snapshot,
-                    options: options,
-                    style: pdfStyle,
-                    assets: []
-                )
-            )
-        case .docx:
-            ScrollView {
-                Text(previewText)
-                    .font(.system(.caption, design: .serif))
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(12)
-            }
         }
     }
 
@@ -430,17 +383,6 @@ struct ArticleExportSheet: View {
         format == .markdown || format == .html
     }
 
-    private func pdfFontFamily(for preset: ReaderFontPreset) -> String {
-        switch preset {
-        case .system:
-            "-apple-system"
-        case .serif:
-            "New York, Georgia, serif"
-        default:
-            "\(preset.fontNames.first ?? preset.title), -apple-system"
-        }
-    }
-
     private func preparePackageAndShowPreview() {
         exportStatus = .preparingDocument
         preparedPackage = nil
@@ -450,7 +392,6 @@ struct ArticleExportSheet: View {
                 for: request.snapshot,
                 options: options,
                 includesOfflineImages: includesOfflineImages && canIncludeOfflineImages,
-                pdfStyle: pdfStyle,
                 progress: { progress in
                     exportStatus = ArticleExportStatus(progress: progress)
                 }
@@ -624,10 +565,6 @@ private extension ArticleExportFormat {
             L10n.articleExportFormatPlainText
         case .html:
             L10n.articleExportFormatHTML
-        case .pdf:
-            L10n.articleExportFormatPDF
-        case .docx:
-            L10n.articleExportFormatDOCX
         }
     }
 
@@ -639,10 +576,6 @@ private extension ArticleExportFormat {
             L10n.articleExportFormatPlainTextDescription
         case .html:
             L10n.articleExportFormatHTMLDescription
-        case .pdf:
-            L10n.articleExportFormatPDFDescription
-        case .docx:
-            L10n.articleExportFormatDOCXDescription
         }
     }
 
@@ -654,10 +587,6 @@ private extension ArticleExportFormat {
             L10n.articleExportPlainTextPreview
         case .html:
             L10n.articleExportHTMLPreview
-        case .pdf:
-            L10n.articleExportPDFPreview
-        case .docx:
-            L10n.articleExportDOCXPreview
         }
     }
 }
