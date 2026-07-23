@@ -445,7 +445,8 @@ struct SQLiteDatabaseMigrationTests {
             "v3_create_feed_tag_table",
             "v4_create_article_search_index",
             "v5_create_article_offline_table",
-            "v7_add_feed_admin_fields"
+            "v7_add_feed_admin_fields",
+            "v19_drop_article_offline_table"
         ] {
             legacyMigrator.registerMigration(identifier) { _ in }
         }
