@@ -775,7 +775,8 @@
 ## 18. Artikel exportieren
 
 ### 18.1 Einzelnen Artikel exportieren
-- **Status:** 🔨 Markdown/Text/HTML inkl. Offline-Bilder umgesetzt / PDF und DOCX zurückgestellt
+- **Status:** ✔️ Fertig — Markdown/Text/HTML inkl. Offline-Bilder; PDF/DOCX endgültig
+  gestrichen (siehe 18.1c)
 - **Umgesetzt 18.1a:**
   - Einzelartikel-Export über Artikel-Kontextmenü, Reader-Toolbar und macOS-Menü
     `Artikel`.
@@ -803,25 +804,29 @@
     Bild-Download, ZIP-Erstellung und Öffnen des Speichern-Dialogs.
   - ZIP und Text laufen über denselben stabilen FileDocument-Exportpfad; dadurch
     vermeidet der Dialog konkurrierende `.fileExporter` Präsentationen.
-- **Zurückgestellt 18.1c: PDF und DOCX**
-  - PDF (`.pdf`) und Word-Dokument (`.docx`) werden vorerst nicht mehr im
-    Exportdialog angeboten.
-  - Grund: PDF-Layout und DOCX-Ausgabe brauchen einen eigenen späteren Slice mit
-    klarerem Layout-Anspruch statt weiterem Polish im aktuellen Exportdialog.
-  - Entscheidung vom 2026-06-26: PDF und DOCX bleiben auf Weiteres
+- **Gestrichen 18.1c: PDF und DOCX (endgültige Entscheidung, Update 2026-07-23)**
+  - PDF und Word-Dokument (`.docx`) werden im Exportdialog nicht angeboten
+    (`ArticleExportFormat.dialogFormats` enthält nur Markdown/Text/HTML).
+  - PDF-Bedarf ist durch den separaten Drucken-Dialog (Feature 25.1,
+    `ArticlePDFExportRenderer` + PDFKit) abgedeckt — kein zusätzlicher
+    PDF-Dateiexport geplant.
+  - DOCX wird gar nicht mehr angeboten werden, endgültig gestrichen statt nur
     zurückgestellt.
+  - Der dadurch tote `.pdf`/`.docx`-Code (`ArticleExportFormat`-Cases,
+    `ArticleDOCXExportRenderer`, zugehörige Switches/L10n-Keys) wurde am
+    2026-07-23 vollständig entfernt.
 - **Umgesetzt 18.1d: Datei teilen**
   - Im Vorschau-Schritt kann die vorbereitete Exportdatei über `Teilen...` an das
     macOS Share Sheet übergeben werden.
-- **Später:** PDF, DOCX, Batch-Export und ggf. reichere DOCX-Layouts bleiben
-  eigene Slices.
+- **Später:** Batch-Export bleibt ein eigener Slice (siehe 18.2).
 
 ### 18.2 Mehrere Artikel exportieren (Batch)
 - **Status:** ✅ Entschieden — bereit zur Implementierung
 - **Zu implementieren:**
   - Mehrfachauswahl in der Artikel-Liste via `Cmd+Klick`
   - Export-Dialog mit Ausgabe-Wahl: ein Dokument pro Artikel (ZIP) oder alles in eine Datei
-  - Gilt für alle Formate aus Feature 18.1
+  - Gilt für die Formate aus Feature 18.1 (Markdown, Text, HTML — kein PDF/DOCX,
+    siehe 18.1c)
 
 ### 18.3 Drittanbieter-Integration
 - **Status:** ⏸️ Zurückgestellt
