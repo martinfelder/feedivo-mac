@@ -82,13 +82,13 @@ FeedivoMac/
 │   │       ├── RuleRecord.swift, RuleConditionRecord.swift
 │   │       ├── SmartFolderRecord.swift, SmartFolderConditionRecord.swift
 │   │       ├── FeedFolderRecord.swift, FeedLogRecord.swift
-│   │       └── ArticleOfflineRecord.swift, ArticleIdentityHistoryRecord.swift
+│   │       └── ArticleIdentityHistoryRecord.swift
 │   │
 │   ├── Stores/                         # Query-/Mutation-Layer über den Records (ein Store pro Tabelle/Domäne)
 │   │   ├── FeedStore.swift, ArticleStore.swift, ArticleStatusStore.swift
 │   │   ├── TagStore.swift, FeedFolderStore.swift, FeedLogStore.swift
 │   │   ├── SQLiteRuleStore.swift, SQLiteRuleEvaluationStore.swift
-│   │   ├── SQLiteSmartFolderStore.swift, SQLiteOfflineStore.swift
+│   │   ├── SQLiteSmartFolderStore.swift
 │   │   └── TimelineStore.swift, ArticleDatabase.swift
 │   │
 │   ├── Models/                         # Reine Value-Type-Enums (KEINE SwiftData @Model mehr!)
@@ -132,7 +132,6 @@ FeedivoMac/
 │   │   ├── OPMLService.swift / OPMLDocument.swift             # OPML Import/Export
 │   │   ├── ArticleExportService.swift + ArticleExportPackageBuilder.swift + ArticleDocumentExportRenderers.swift
 │   │   ├── ArticleRetentionSettings.swift / ArticleRetentionCleanupService.swift  # Aufbewahrungslimits
-│   │   ├── OfflineArticleContentFetching.swift  # Offline-Volltext-Speicherung
 │   │   ├── BackgroundRefreshService.swift + *Settings.swift    # Hintergrund-Refresh (NSBackgroundActivityScheduler)
 │   │   ├── FaviconService.swift, ImageCacheService.swift, AppIconBadgeService.swift
 │   │   └── FeedDiscoveryService.swift, FeedNotificationService.swift, CloudSyncSettings.swift, …
@@ -180,7 +179,6 @@ komplett über String-IDs (`FeedRecord.id`, ein UUID-String) statt über Objekti
 | v2_create_tag_tables | `tags`, `article_tags` |
 | v3_create_feed_tag_table | `feed_tags` |
 | v4_create_article_search_index | Volltextsuche für Artikel |
-| v5_create_article_offline_table | Offline-Artikelinhalte |
 | v6_create_admin_definition_tables | Regeln, Regelbedingungen, intelligente Ordner + deren Bedingungen |
 | v7_add_feed_admin_fields | Zusätzliche Feed-Verwaltungsfelder |
 | v8_drop_unique_feed_url_index | Lockert Eindeutigkeits-Constraint auf Feed-URLs |
@@ -192,6 +190,7 @@ komplett über String-IDs (`FeedRecord.id`, ein UUID-String) statt über Objekti
 | v14_add_article_identity_history_retention_flag | `wasRemovedByRetention`-Flag auf `article_identity_history` |
 | v15_add_feed_and_folder_sort_index | `sortIndex`-Spalte auf `feeds` + `feed_folders`, für manuelle Drag&Drop-Sortierung in der NSOutlineView-Sidebar |
 | v16_add_tag_sort_index | `sortIndex`-Spalte auf `tags`, analog zu v15 — macht Tags in der Sidebar erstmals per Drag&Drop sortierbar |
+| v19_drop_article_offline_table | Entfernt `article_offline` (Feature "Offline-Artikel-Download" vollständig entfernt, 2026-07-20) — Hinweis: v17/v18 fehlen in dieser Tabelle, das ist eine vorbestehende Dokumentationslücke außerhalb des Scopes dieser Änderung |
 
 **Achtung bei neuen Migrationen:** Vor dem Anlegen einer neuen Migration IMMER den
 tatsächlichen letzten Eintrag in `FeedivoDatabaseMigrator.swift` prüfen (`grep -n
@@ -661,17 +660,6 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
   `ArticleStatusStore.status(articleID:)`, 16 Testreferenzen, aber 0 in der Produktions-App) —
   das ist keine mechanische Dead-Code-Löschung, sondern eine Produktentscheidung (Test
   behalten vs. beides löschen), da sonst Testabdeckung verloren geht.
-- **Offline-Artikel-Download-Backend ist bewusst quarantäniert, kein Versehen:**
-  `SQLiteOfflineStore`, `SQLiteOfflineDownloadService`, `OfflineArticleContentFetching`-
-  Protokoll, `URLSessionOfflineArticleContentFetcher` (alle in `Stores/SQLiteOfflineStore.swift`
-  / `Services/OfflineArticleContentFetching.swift`) sowie ~25 zugehörige `L10n.swift`-Keys
-  (`readerOffline*`, `settingsOffline*`) haben **keine aktive UI-Anbindung** mehr, sind aber
-  vollständig implementiert und getestet (`SQLiteOfflineDownloadServiceTests.swift`).
-  `FeedivoAppSceneConfigurationTests.swift` enthält explizite Regressionstests, die die
-  **Abwesenheit** der Offline-UI prüfen (`toggleOffline`, `saveOrRemoveOffline`,
-  `NewOfflineSettingsView` dürfen nicht existieren) — die UI-Schicht wurde also gezielt entfernt,
-  das Backend blieb stehen. Bei künftigen Dead-Code-Scans (periphery o. ä.) **nicht löschen**,
-  ohne das vorher explizit mit dem Nutzer zu klären — siehe „Offene Entscheidungen".
 - **`MenuBarExtra` (SwiftUI) verursacht in `FeedivoApp.swift` einen 100%-CPU-Endlos-Spin beim
   App-Start, auskommentiert seit 2026-07-10 (Commit `572c5b6`):** Feature 21.1 fügte eine
   `MenuBarExtra(isInserted:)`-Scene hinzu; die App startete danach nicht mehr sinnvoll (Layout-
@@ -870,12 +858,6 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 - **Monetarisierung:** Kostenlos / einmaliger Kauf / nie im App Store? — weiterhin offen.
 - **Share Extension:** Noch nicht begonnen, kein konkreter Zeitplan.
 - **App Store vs. private Verteilung:** Weiterhin offen.
-
-- **Offline-Artikel-Download-Feature:** Backend + Settings-UI-Strings existieren vollständig
-  (`SQLiteOfflineStore` u. a., siehe Gotchas oben), die UI-Anbindung wurde aber gezielt entfernt
-  und ist per Regressionstest blockiert. Reaktivieren (UI wieder anbinden) oder endgültig
-  entfernen (Backend + Tests + L10n-Keys)? Bisher nicht entschieden, beim Dead-Code-Cleanup
-  vom 2026-07-10 bewusst unangetastet gelassen.
 
 **Bereits gelöst (zur Referenz):**
 - Artikel-Detail: sowohl nativer SwiftUI-Renderer als auch WKWebView (Originalartikel) —
@@ -1456,6 +1438,12 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Letzte Änderungen
 
+- 2026-07-20: Offline-Artikel-Download-Feature vollständig entfernt (Backend, DB-Tabelle
+  `article_offline` per neuer Migration `v19_drop_article_offline_table`, Kopplung an
+  Artikel-Export entkoppelt, 23 unbenutzte L10n-Keys + 3 zugehörige xcstrings-Fehlermeldungs-
+  Keys entfernt, Offline-spezifische Tests gelöscht/angepasst). Vier Tasks via
+  Brainstorming→Spec→Plan→Subagent-Driven-Development. Entscheidung: endgültig entfernen
+  statt reaktivieren (siehe ehemaliger Eintrag unter „Offene Entscheidungen").
 - 2026-07-20: CLAUDE.md-Korrektur — 9 veraltete „NICHT gepusht"-Vermerke in „Aktuell in
   Arbeit" (Automatischer Feed-Sprung, NSEvent-Monitor-Fallback + Live-Fix-Runde,
   Ein-/Ausschalter, Pfeiltasten-Navigation, Shortcuts-Erweiterung, Spotlight-Integration,

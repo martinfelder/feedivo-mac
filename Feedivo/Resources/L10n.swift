@@ -212,13 +212,6 @@ enum L10n {
     static let refreshStatusItemSucceeded = String(localized: "refreshStatus.item.succeeded")
     static let refreshStatusItemFailed = String(localized: "refreshStatus.item.failed")
     static let refreshStatusNoNewArticles = String(localized: "refreshStatus.noNewArticles")
-    static let readerOfflineSave = LocalizedStringKey("reader.offline.save")
-    static let readerOfflineRemove = LocalizedStringKey("reader.offline.remove")
-    static let readerOfflineSaving = LocalizedStringKey("reader.offline.saving")
-    static let readerOfflineFullTextAvailable = LocalizedStringKey("reader.offline.fullTextAvailable")
-    static let readerOfflineFeedContentAvailable = LocalizedStringKey("reader.offline.feedContentAvailable")
-    static let readerOfflineFailed = LocalizedStringKey("reader.offline.failed")
-    static let readerOfflineNotSaved = LocalizedStringKey("reader.offline.notSaved")
     static let readerInspectorButton = LocalizedStringKey("reader.inspector.button")
     static let settingsReaderToolbarSection = LocalizedStringKey("settings.readerToolbar.section")
     static let readerToolbarResetButton = LocalizedStringKey("readerToolbar.reset.button")
@@ -238,10 +231,7 @@ enum L10n {
     static let readerInspectorNewTag = LocalizedStringKey("reader.inspector.newTag")
     static let readerInspectorAddTagPlaceholder = LocalizedStringKey("reader.inspector.addTag.placeholder")
     static let readerInspectorNoTags = LocalizedStringKey("reader.inspector.noTags")
-    static let readerInspectorOfflineAndContentSection = LocalizedStringKey("reader.inspector.offlineAndContentSection")
     static let readerInspectorContextSection = LocalizedStringKey("reader.inspector.contextSection")
-    static let readerInspectorOfflineStatus = LocalizedStringKey("reader.inspector.offlineStatus")
-    static let readerInspectorOfflineDetail = LocalizedStringKey("reader.inspector.offlineDetail")
     static let readerInspectorSourceSection = LocalizedStringKey("reader.inspector.sourceSection")
     static let readerInspectorOriginalLink = LocalizedStringKey("reader.inspector.originalLink")
     static let readerInspectorUnavailable = LocalizedStringKey("reader.inspector.unavailable")
@@ -388,16 +378,6 @@ enum L10n {
     static let settingsCacheDescriptionDetail = LocalizedStringKey("settings.cache.description.detail")
     static let settingsCacheRefreshSize = LocalizedStringKey("settings.cache.refreshSize")
     static let settingsCacheClear = LocalizedStringKey("settings.cache.clear")
-    static let settingsOfflineSection = LocalizedStringKey("settings.offline.section")
-    static let settingsOfflineDescription = LocalizedStringKey("settings.offline.description")
-    static let settingsOfflineManualTitle = LocalizedStringKey("settings.offline.manual.title")
-    static let settingsOfflineManualDescription = LocalizedStringKey("settings.offline.manual.description")
-    static let settingsOfflineFeedContentTitle = LocalizedStringKey("settings.offline.feedContent.title")
-    static let settingsOfflineFeedContentDescription = LocalizedStringKey("settings.offline.feedContent.description")
-    static let settingsOfflineAutomationTitle = LocalizedStringKey("settings.offline.automation.title")
-    static let settingsOfflineAutomationDescription = LocalizedStringKey("settings.offline.automation.description")
-    static let settingsOfflineAutoSaveStarredTitle = LocalizedStringKey("settings.offline.autoSaveStarred.title")
-    static let settingsOfflineAutoSaveStarredDescription = LocalizedStringKey("settings.offline.autoSaveStarred.description")
     static let settingsNotificationsSection = LocalizedStringKey("settings.notifications.section")
     static let settingsNotificationsFeedTitle = LocalizedStringKey("settings.notifications.feed.title")
     static let settingsNotificationsFeedDescription = LocalizedStringKey("settings.notifications.feed.description")
@@ -481,8 +461,6 @@ enum L10n {
     static let articleRowStarAdd = String(localized: "articleRow.star.add")
     static let articleRowStarredText = String(localized: "articleRow.starred")
     static let articleRowUnreadText = String(localized: "articleRow.unread")
-    static let articleRowOfflineAvailable = String(localized: "articleRow.offline.available")
-    static let articleRowOfflineFailed = String(localized: "articleRow.offline.failed")
     static let articleRowMarkRead = String(localized: "articleRow.markRead")
     static let articleRowMarkUnread = String(localized: "articleRow.markUnread")
     static let articleListShowReadButtonFormat = String(localized: "articleList.showRead.button")
@@ -615,12 +593,6 @@ enum L10n {
     static let feedErrorAlertTitle = String(localized: "feed.error.alertTitle")
     static var feedErrorDuplicate: String {
         String(localized: "feed.error.duplicate", defaultValue: "Dieser Feed wird bereits abonniert.")
-    }
-    static var offlineArchiveErrorTitle: String {
-        String(localized: "offline.archive.error.title", defaultValue: "Archivieren fehlgeschlagen")
-    }
-    static var offlineArchiveErrorMessage: String {
-        String(localized: "offline.archive.error.message", defaultValue: "Die Offline-Kopie konnte nicht gespeichert werden.")
     }
     /// Titel des Alarms, wenn die SQLite-Datenbank beim Start nicht geöffnet
     /// werden konnte und auf den In-Memory-Fallback ausgewichen wurde (M11).

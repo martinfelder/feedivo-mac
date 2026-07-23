@@ -231,28 +231,6 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(compactInspectorSource.contains("removeTag(tagID:tag.id,fromArticleID:currentSnapshot.id)"))
     }
 
-    @Test func offlineArtikelKopienSindNichtMehrImProduktivenUIPfadVerdrahtet() throws {
-        let projectRoot = projectRootURL()
-        let settingsSource = try source(at: "Feedivo/Views/Settings/SettingsView.swift", projectRoot: projectRoot)
-        let sqliteReaderSource = try source(at: "Feedivo/Views/Reader/SQLiteReaderView.swift", projectRoot: projectRoot)
-        let rowSource = try source(at: "Feedivo/Views/ArticleList/ArticleRowView.swift", projectRoot: projectRoot)
-        let listSource = try source(at: "Feedivo/Views/ArticleList/SQLiteFeedArticleListView.swift", projectRoot: projectRoot)
-        let contentSource = try source(at: "Feedivo/Views/ContentView.swift", projectRoot: projectRoot)
-        let preparedSource = try source(at: "Feedivo/Views/Reader/ReaderPreparedArticle.swift", projectRoot: projectRoot)
-
-        #expect(!settingsSource.contains("case offline"))
-        #expect(!settingsSource.contains("NewOfflineSettingsView"))
-        #expect(!settingsSource.contains("OfflineArticleStorageSummary"))
-        #expect(!sqliteReaderSource.contains("SQLiteOfflineDownloadService"))
-        #expect(!sqliteReaderSource.contains("toggleOffline"))
-        #expect(!rowSource.contains("onSaveOrRemoveOffline"))
-        #expect(!rowSource.contains("offlineIndicator"))
-        #expect(!listSource.contains("SQLiteOfflineDownloadService"))
-        #expect(!listSource.contains("saveOrRemoveOffline"))
-        #expect(!contentSource.contains("automaticallySaveStarredArticles"))
-        #expect(!preparedSource.contains("offlineContent"))
-    }
-
     @Test func sqliteReaderVerdrahtetRegelErstellenMitRuleWizard() throws {
         let projectRoot = projectRootURL()
         let readerSource = try source(at: "Feedivo/Views/Reader/SQLiteReaderView.swift", projectRoot: projectRoot)
@@ -781,7 +759,6 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(!contentSource.contains("@State private var selectedArticle: Article?"))
         #expect(!contentSource.contains("@State private var articleNavigationState"))
         #expect(!contentSource.contains("@State private var articleViewModel"))
-        #expect(!contentSource.contains("@State private var offlineDownloadService = OfflineDownloadService()"))
         #expect(!contentSource.contains("\n                ReaderView("))
         #expect(!contentSource.contains("swiftDataArticleCommandActions"))
         #expect(!contentSource.contains("requestExportArticle(_ article: Article)"))
