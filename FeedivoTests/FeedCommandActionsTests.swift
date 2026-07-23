@@ -94,4 +94,69 @@ struct FeedCommandActionsTests {
 
         #expect(didRefreshAllFeeds)
     }
+
+    // Root-Cause-Fund (Nutzer-Report 2026-07-23): ohne Equatable-Konformität
+    // kann SwiftUI zwei bei jedem ContentView.body-Durchlauf frisch gebaute
+    // FeedCommandActions-Werte nicht auf Gleichheit prüfen und publiziert
+    // jeden Durchlauf über `.focusedSceneValue(...)` als "geändert" — bei
+    // mehreren Durchläufen im selben Frame die SwiftUI-Warnung "FocusedValue
+    // update tried to update multiple times per frame". Der Vergleich ignoriert
+    // bewusst die Closures (nicht vergleichbar, aber immer stabile
+    // Ruecksprünge in dieselben Methoden).
+    @Test func gleicheDatenfelderSindGleichTrotzUnterschiedlicherClosures() {
+        let lhs = FeedCommandActions(
+            selectedFeed: nil,
+            requestAddFeed: {},
+            requestImportOPML: {},
+            requestExportOPML: {},
+            refreshAllFeeds: {},
+            refreshSelectedFeed: {},
+            requestDelete: {},
+            hasFeeds: true
+        )
+        let rhs = FeedCommandActions(
+            selectedFeed: nil,
+            requestAddFeed: { print("anderer Rueckruf") },
+            requestImportOPML: {},
+            requestExportOPML: {},
+            refreshAllFeeds: {},
+            refreshSelectedFeed: {},
+            requestDelete: {},
+            hasFeeds: true
+        )
+
+        #expect(lhs == rhs)
+    }
+
+    @Test func unterschiedlicherSelectedFeedMachtWerteUngleich() {
+        let feed = FeedSidebarSnapshot(
+            id: "1",
+            title: "Feed",
+            url: "https://example.com/feed.xml",
+            unreadCount: 0,
+            hasRecentError: false
+        )
+        let lhs = FeedCommandActions(
+            selectedFeed: nil,
+            requestAddFeed: {},
+            requestImportOPML: {},
+            requestExportOPML: {},
+            refreshAllFeeds: {},
+            refreshSelectedFeed: {},
+            requestDelete: {},
+            hasFeeds: true
+        )
+        let rhs = FeedCommandActions(
+            selectedFeed: feed,
+            requestAddFeed: {},
+            requestImportOPML: {},
+            requestExportOPML: {},
+            refreshAllFeeds: {},
+            refreshSelectedFeed: {},
+            requestDelete: {},
+            hasFeeds: true
+        )
+
+        #expect(lhs != rhs)
+    }
 }

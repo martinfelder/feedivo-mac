@@ -1,6 +1,13 @@
 import SwiftUI
 
-struct ArticleCommandActions {
+// Equatable, damit SwiftUIs `.focusedValue(...)` zwei bei jedem
+// ContentView.body-Durchlauf frisch gebaute Werte auf Gleichheit prüfen kann,
+// statt jeden Durchlauf als "geändert" zu publizieren — sonst SwiftUI-Warnung
+// "FocusedValue update tried to update multiple times per frame" bei
+// mehreren Durchläufen im selben Frame (Root-Cause-Fund 2026-07-23). Der
+// Vergleich betrachtet bewusst nur die Datenfelder, nicht die Closures (nicht
+// vergleichbar, aber immer stabile Rücksprünge in dieselben Methoden).
+struct ArticleCommandActions: Equatable {
     let canPerformActions: Bool
     let canPerformLinkActions: Bool
     let toggleReadTitle: String
@@ -18,6 +25,16 @@ struct ArticleCommandActions {
     let canSelectNextArticle: Bool
     let selectPreviousArticle: () -> Void
     let selectNextArticle: () -> Void
+
+    static func == (lhs: ArticleCommandActions, rhs: ArticleCommandActions) -> Bool {
+        lhs.canPerformActions == rhs.canPerformActions
+            && lhs.canPerformLinkActions == rhs.canPerformLinkActions
+            && lhs.toggleReadTitle == rhs.toggleReadTitle
+            && lhs.toggleStarredTitle == rhs.toggleStarredTitle
+            && lhs.toggleArchivedTitle == rhs.toggleArchivedTitle
+            && lhs.canSelectPreviousArticle == rhs.canSelectPreviousArticle
+            && lhs.canSelectNextArticle == rhs.canSelectNextArticle
+    }
 
     init(
         canPerformActions: Bool,

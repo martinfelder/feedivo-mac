@@ -110,4 +110,63 @@ struct ArticleCommandActionsTests {
         #expect(archivedActions.toggleArchivedTitle == L10n.articleUnarchiveCommand)
         #expect(unarchivedActions.toggleArchivedTitle == L10n.articleArchiveCommand)
     }
+
+    // Root-Cause-Fund (Nutzer-Report 2026-07-23): ohne Equatable-Konformität
+    // publiziert `ContentView` bei jedem body-Durchlauf einen als "geändert"
+    // erkannten `articleCommandActions`-Wert über `.focusedValue(...)`, auch
+    // wenn sich inhaltlich nichts geändert hat — Ursache der SwiftUI-Warnung
+    // "FocusedValue update tried to update multiple times per frame".
+    @Test func gleicheDatenfelderSindGleichTrotzUnterschiedlicherClosures() {
+        let lhs = ArticleCommandActions(
+            canPerformActions: true,
+            canPerformLinkActions: true,
+            toggleReadTitle: L10n.articleRowMarkRead,
+            toggleStarredTitle: L10n.articleRowStarAdd,
+            toggleArchivedTitle: L10n.articleArchiveCommand,
+            toggleRead: {},
+            toggleStarred: {},
+            copyLink: {},
+            openOriginal: {}
+        )
+        let rhs = ArticleCommandActions(
+            canPerformActions: true,
+            canPerformLinkActions: true,
+            toggleReadTitle: L10n.articleRowMarkRead,
+            toggleStarredTitle: L10n.articleRowStarAdd,
+            toggleArchivedTitle: L10n.articleArchiveCommand,
+            toggleRead: { print("anderer Rueckruf") },
+            toggleStarred: {},
+            copyLink: {},
+            openOriginal: {}
+        )
+
+        #expect(lhs == rhs)
+    }
+
+    @Test func unterschiedlichesCanPerformActionsMachtWerteUngleich() {
+        let lhs = ArticleCommandActions(
+            canPerformActions: true,
+            canPerformLinkActions: true,
+            toggleReadTitle: L10n.articleRowMarkRead,
+            toggleStarredTitle: L10n.articleRowStarAdd,
+            toggleArchivedTitle: L10n.articleArchiveCommand,
+            toggleRead: {},
+            toggleStarred: {},
+            copyLink: {},
+            openOriginal: {}
+        )
+        let rhs = ArticleCommandActions(
+            canPerformActions: false,
+            canPerformLinkActions: true,
+            toggleReadTitle: L10n.articleRowMarkRead,
+            toggleStarredTitle: L10n.articleRowStarAdd,
+            toggleArchivedTitle: L10n.articleArchiveCommand,
+            toggleRead: {},
+            toggleStarred: {},
+            copyLink: {},
+            openOriginal: {}
+        )
+
+        #expect(lhs != rhs)
+    }
 }
