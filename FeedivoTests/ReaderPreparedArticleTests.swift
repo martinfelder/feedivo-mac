@@ -31,6 +31,31 @@ struct ReaderPreparedArticleTests {
         #expect(input.imageURL == "https://example.com/bild.jpg")
         #expect(input.link == "https://example.com/artikel")
         #expect(input.feedTitle == "SQLite Feed")
+        #expect(input.author == "Martin")
         #expect(input.publishedAt == Date(timeIntervalSince1970: 100))
+    }
+
+    // Nutzerwunsch (2026-07-23): Autor in der Reader-Metadaten-Zeile anzeigen,
+    // zwischen Lesezeit und Datum.
+    @Test func metadataTextEnthaeltAutorZwischenLesezeitUndDatum() {
+        let input = ReaderArticleInput(
+            summary: nil,
+            content: "<p>Ein ausreichend langer Absatz fuer die Lesezeitberechnung.</p>",
+            contentFingerprint: nil,
+            imageURL: nil,
+            link: nil,
+            feedTitle: "SQLite Feed",
+            author: "Martin",
+            publishedAt: Date(timeIntervalSince1970: 100)
+        )
+
+        let prepared = ReaderPreparedArticle(input: input)
+
+        #expect(prepared.metadataText.contains("Martin"))
+        let readingTimeRange = prepared.metadataText.range(of: prepared.readingTimeText ?? "")
+        let authorRange = prepared.metadataText.range(of: "Martin")
+        if let readingTimeRange, let authorRange {
+            #expect(readingTimeRange.upperBound <= authorRange.lowerBound)
+        }
     }
 }

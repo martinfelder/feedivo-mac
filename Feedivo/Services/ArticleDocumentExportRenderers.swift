@@ -256,6 +256,7 @@ enum ArticlePDFExportRenderer {
                 content: snapshot.content,
                 summary: snapshot.summary
             ),
+            author: snapshot.author,
             publishedAt: snapshot.publishedAt
         )
         .joined(separator: " · ")

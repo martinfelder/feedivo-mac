@@ -18,10 +18,11 @@ enum ReaderMetadataFormatter {
         return L10n.readerReadingTime(minutes: minutes)
     }
 
-    static func metadataParts(feedName: String?, readingTime: String?, publishedAt: Date?) -> [String] {
+    static func metadataParts(feedName: String?, readingTime: String?, author: String?, publishedAt: Date?) -> [String] {
         [
             feedName,
             readingTime,
+            author,
             publishedAt?.feedivoDisplay(mode: currentDateDisplayMode)
         ]
         .compactMap { value in

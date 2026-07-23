@@ -38,6 +38,7 @@ struct ReaderArticleInput: Sendable {
     let imageURL: String?
     let link: String?
     let feedTitle: String?
+    let author: String?
     let publishedAt: Date?
 }
 
@@ -50,6 +51,7 @@ extension ReaderArticleInput {
             imageURL: snapshot.imageURL,
             link: snapshot.link,
             feedTitle: snapshot.feedTitle,
+            author: snapshot.author,
             publishedAt: snapshot.publishedAt
         )
     }
@@ -74,6 +76,7 @@ struct ReaderPreparedArticle: Sendable {
             imageURL: nil,
             link: nil,
             feedTitle: nil,
+            author: nil,
             publishedAt: nil
         )
     )
@@ -103,6 +106,7 @@ struct ReaderPreparedArticle: Sendable {
         self.metadataText = ReaderMetadataFormatter.metadataParts(
             feedName: input.feedTitle,
             readingTime: readingTimeText,
+            author: input.author,
             publishedAt: input.publishedAt
         )
         .joined(separator: " · ")
