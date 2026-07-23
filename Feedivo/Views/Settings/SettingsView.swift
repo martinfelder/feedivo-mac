@@ -1432,7 +1432,7 @@ private struct SettingsAboutView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Feedivo")
                             .font(.system(size: 15, weight: .semibold))
-                        Text("Nativer macOS RSS Reader mit Tags, Regeln, Offline-Lesen und OPML.")
+                        Text("Nativer macOS RSS Reader mit Tags, Regeln und OPML.")
                             .font(.system(size: 11))
                             .foregroundStyle(.secondary)
                         Text("M4 Polish & Release")

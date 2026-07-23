@@ -97,7 +97,6 @@ struct FeedivoDatabase {
              "tags",
              "article_tags",
              "feed_tags",
-             "article_offline",
              "feed_folders",
              "rules",
              "rule_conditions",

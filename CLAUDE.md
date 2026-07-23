@@ -20,8 +20,8 @@
 GRDB/SQLite ist jetzt alleinige Persistenz); iCloud Sync ist als Beta-Vorbereitung sichtbar,
 aber noch nicht funktional angebunden
 
-Feedivo ist ein nativer macOS RSS Reader mit Tags, automatischen Regeln, intelligenten Ordnern,
-Offline-Lesen und OPML-Import/-Export. Ziel ist eine schöne, schnelle Mac-App die sich "mac-like"
+Feedivo ist ein nativer macOS RSS Reader mit Tags, automatischen Regeln, intelligenten Ordnern
+und OPML-Import/-Export. Ziel ist eine schöne, schnelle Mac-App die sich "mac-like"
 anfühlt — kein iOS-Port, keine Electron-App. Echtes AppKit-Feeling via SwiftUI für macOS.
 
 ---
@@ -648,8 +648,7 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
   Build-Erfolg verlassen, der diese Lücke nicht aufdeckt.
 - **`periphery` (Dead-Code-Scanner) hat in diesem Projekt eine hohe Fehlalarmquote bei
   GRDB-Record-Typen:** Wird ein Typ ausschließlich über generische, aus Protokoll-Extensions
-  geerbte GRDB-Methoden erreicht (`ArticleOfflineRecord.fetchOne(db, key:)`,
-  `ArticleCountsRow.fetchOne(db, sql:)` u. ä.), erkennt periphery die Nutzung nicht und meldet
+  geerbte GRDB-Methoden erreicht (`ArticleCountsRow.fetchOne(db, sql:)` u. ä.), erkennt periphery die Nutzung nicht und meldet
   den Typ fälschlich als „unused" — SourceKit indiziert den generischen Self-Type-Aufruf nicht
   als echte Referenz. Ebenso falsch gemeldet: `NSViewRepresentable`-Protokollmethoden wie
   `dismantleNSView(_:coordinator:)`, die vom AppKit/SwiftUI-Framework selbst aufgerufen werden,
@@ -809,7 +808,6 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 - [x] Tag-System (erstellen, Farbe, zuweisen, verwalten)
 - [x] Smart Filter / intelligente Ordner mit eigenem Editor und Bedingungen
 - [x] `RuleEngine` inkl. Regel-Assistent (Wizard) und Einstellungs-UI
-- [x] Offline-Unterstützung: Artikel-Volltext wird beim Abruf in SQLite gespeichert
 - [x] Background Refresh (`NSBackgroundActivityScheduler` statt `BGTaskScheduler`)
 - [ ] **iCloud Sync via CloudKit** — UI-Toggle existiert ("iCloud Sync Beta"), aber ohne
       funktionales Backend auf `main`; Vorarbeit auf Branch `codex/icloud-sync-beta`
@@ -1443,7 +1441,15 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   Artikel-Export entkoppelt, 23 unbenutzte L10n-Keys + 3 zugehörige xcstrings-Fehlermeldungs-
   Keys entfernt, Offline-spezifische Tests gelöscht/angepasst). Vier Tasks via
   Brainstorming→Spec→Plan→Subagent-Driven-Development. Entscheidung: endgültig entfernen
-  statt reaktivieren (siehe ehemaliger Eintrag unter „Offene Entscheidungen").
+  statt reaktivieren (siehe ehemaliger Eintrag unter „Offene Entscheidungen"). Whole-Branch-
+  Review (Opus): Ready to merge: Yes, 0 Critical/Important. 3 Minor-Nachbesserungen direkt
+  im Anschluss umgesetzt: About-Panel bewarb noch „Offline-Lesen" als Feature (entfernt),
+  toter `"article_offline"`-Whitelist-Eintrag in `FeedivoDatabase.debugForeignKeys(for:)`
+  entfernt, verbliebene Offline-Erwähnungen in dieser Datei (Projektübersicht, periphery-
+  Gotcha-Beispiel `ArticleOfflineRecord.fetchOne`, M3-Milestone-Checkbox) bereinigt. Ein
+  vierter Reviewer-Fund war ein Fehlalarm: `L10n.articleExportSourceOffline` ist laut
+  Plan-Global-Constraint bewusst unangetastet geblieben (Design-Spec-Entscheidung, die
+  Konstante bleibt stehen, nur ihre eine Verwendungsstelle entfiel in Task 1).
 - 2026-07-20: CLAUDE.md-Korrektur — 9 veraltete „NICHT gepusht"-Vermerke in „Aktuell in
   Arbeit" (Automatischer Feed-Sprung, NSEvent-Monitor-Fallback + Live-Fix-Runde,
   Ein-/Ausschalter, Pfeiltasten-Navigation, Shortcuts-Erweiterung, Spotlight-Integration,
