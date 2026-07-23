@@ -17,7 +17,6 @@ struct SQLiteDatabaseMigrationTests {
         #expect(tableNames.contains("article_tags"))
         #expect(tableNames.contains("feed_tags"))
         #expect(tableNames.contains("article_search"))
-        #expect(tableNames.contains("article_offline"))
         #expect(tableNames.contains("feed_folders"))
         #expect(tableNames.contains("rules"))
         #expect(tableNames.contains("rule_conditions"))
@@ -47,7 +46,6 @@ struct SQLiteDatabaseMigrationTests {
         #expect(indexNames.contains("idx_tags_name_unique"))
         #expect(indexNames.contains("idx_article_tags_tag_article"))
         #expect(indexNames.contains("idx_feed_tags_tag_feed"))
-        #expect(indexNames.contains("idx_article_offline_state"))
         #expect(indexNames.contains("idx_feed_folders_name_unique"))
         #expect(indexNames.contains("idx_rules_sort_order"))
         #expect(indexNames.contains("idx_rule_conditions_rule_sort"))
@@ -695,6 +693,16 @@ struct SQLiteDatabaseMigrationTests {
         let tableNames = try database.debugTableNames()
 
         #expect(tableNames.contains("cleanup_runs"))
+    }
+
+    @Test func migrationV19EntferntArticleOfflineTabelleUndIndex() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+
+        let tableNames = try database.debugTableNames()
+        let indexNames = try database.debugIndexNames()
+
+        #expect(!tableNames.contains("article_offline"))
+        #expect(!indexNames.contains("idx_article_offline_state"))
     }
 }
 

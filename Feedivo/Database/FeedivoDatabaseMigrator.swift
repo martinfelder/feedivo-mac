@@ -415,6 +415,11 @@ enum FeedivoDatabaseMigrator {
             )
         }
 
+        migrator.registerMigration("v19_drop_article_offline_table") { database in
+            try database.drop(index: "idx_article_offline_state")
+            try database.drop(table: "article_offline")
+        }
+
         return migrator
     }
 
