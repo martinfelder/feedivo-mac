@@ -713,8 +713,10 @@
     Offline-/Originalartikel-Kopien.
   - Artikelzeile, Reader-Toolbar und Einstellungen bieten keine Offline-Kopie-
     Aktionen mehr an.
-  - Alte Offline-Tabellen/Typen bleiben vorerst als Migrations-/Legacy-Rest
-    bestehen, werden vom produktiven Reader aber nicht bevorzugt oder erzeugt.
+  - **Update 2026-07-23:** Das komplette Offline-Backend (Tabelle `article_offline`,
+    `SQLiteOfflineStore`, `OfflineArticleContentFetching`, ~25 zugehörige L10n-Keys)
+    wurde endgültig entfernt statt als Legacy-Rest zu bleiben — neue Migration
+    `v19_drop_article_offline_table`, siehe ADR in `CLAUDE.md`.
 
 ### 17.2 Artikel-Zustände
 - **Status:** ✅ Entschieden — siehe Feature 22.1
@@ -784,8 +786,9 @@
     monospaced Textvorschau sichtbar.
   - Optional einschließbare Metadaten: Titel, Autor, Veröffentlichungsdatum,
     Feed-Name, URL und Tags.
-  - Export bevorzugt gespeicherten Offline-Inhalt, fällt sonst auf Feed-Inhalt
-    oder Summary zurück.
+  - Export nutzt den Feed-Inhalt, fällt sonst auf die Summary zurück (Stand
+    2026-07-23, nach Entfernung des Offline-Backends — zuvor bevorzugt aus
+    gespeichertem Offline-Inhalt).
 - **Umgesetzt 18.1b: Offline-Bilder für Markdown/HTML-Export**
   - Bei Markdown und HTML gibt es eine Option, Bilder offline einzuschließen.
   - Der Export erzeugt dafür ein ZIP-Paket mit der Artikeldatei im Root und dem
