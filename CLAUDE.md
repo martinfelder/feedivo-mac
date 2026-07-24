@@ -905,6 +905,53 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Aktuell in Arbeit
 
+- **2026-07-24: iCloud Sync Phase 1 (CKSyncEngine-Fundament, nur Tags) — Implementierung
+  ABGESCHLOSSEN, automatisierte Verifikation grün, manuelle Live-Verifikation NOCH
+  AUSSTEHEND.** Baut ein erstes, bewusst eingeschränktes Sync-Fundament auf `CKSyncEngine`
+  (seit iOS 17/macOS 14 Apples empfohlener Nachfolger zum älteren `CKDatabaseSubscription`+
+  manueller Fetch-Change-Token-Verwaltung) — synchronisiert in dieser Phase ausschließlich
+  die `tags`-Tabelle, alle anderen Tabellen (Feeds/Ordner/Regeln/Smart Folders/Artikel-Status)
+  bleiben bewusst außen vor. Umgesetzt via Brainstorming→Spec→Plan→Subagent-Driven-Development
+  (6 Tasks): Task 1 `CloudSyncPendingChangeStore` + Migration v21 (lokale Warteschlange für
+  noch nicht hochgeladene Änderungen), Task 2 `CloudSyncTagMapping` (reine, zustandslose
+  `TagRecord`↔`CKRecord`-Übersetzung), Task 3 `CloudSyncEngine`/`CloudSyncStatus` (der
+  eigentliche `CKSyncEngine`-Wrapper), Task 4 `CloudSyncSettings`-Refactor (`isAvailable`
+  jetzt fest `true`, das alte „App-Neustart nötig"-Konzept vollständig entfernt) +
+  `TagStore`-Verdrahtung (alle 5 Mutationsmethoden markieren betroffene Tags jetzt als
+  pending-sync), Task 5 Settings-UI (`SyncSettingsView`) live an `CloudSyncEngine`/
+  `CloudSyncStatus` angebunden — Start/Stop beim Umlegen des Schalters wirkt sofort, kein
+  Neustart mehr nötig. **Task 3 durchlief zwei Fix-Runden im Review, beide behoben und
+  re-verifiziert:** einmal fehlende Fehlerprotokollierung an mehreren zuvor stumm
+  verschluckenden `try?`-Stellen (Commits `3530e440`/`5859347d`, analog zum bereits
+  etablierten `logIfThrows`/`AppLogger`-Muster aus dem 2026-07-12er Restposten-Review), und
+  eine Race Condition zwischen `start()`/`stop()` (ebenfalls in `3530e440` behoben). Task 6
+  (dieser Eintrag) deckt nur die automatisierbaren Schritte ab: gezielter Testlauf
+  (`CloudSyncPendingChangeStoreTests`, `CloudSyncTagMappingTests`, `CloudSyncSettingsTests`,
+  `SQLiteTagStoreTests`, 31/31 grün — bei Standard-Parallelisierung ein einzelner
+  Fehlschlag durch eine `UserDefaults.standard`-Race zwischen zwei Tests, mit
+  `-parallel-testing-enabled NO` reproduzierbar sauber grün, siehe bestehender
+  Parallel-Testing-Gotcha weiter unten) sowie ein voller `xcodebuild build` (BUILD
+  SUCCEEDED). **Die manuelle Live-Verifikation aus Spec/Plan Task 6 Schritt 3 (App
+  starten, „iCloud Sync Beta" aktivieren, Tag anlegen/umbenennen/löschen, im
+  CloudKit-Dashboard unter `https://icloud.developer.apple.com/dashboard/` gegenprüfen,
+  ob die `CKRecord`s in der `FeedivoZone` korrekt erscheinen) ist NICHT durchgeführt
+  worden** — das erfordert einen Nutzer am eigenen Mac mit angemeldetem iCloud-Konto und
+  Browser-Zugriff auf das Dashboard, außerhalb dieser Umgebung. **Zusätzliche, ebenfalls
+  ungeklärte Voraussetzung dafür: ob Task 0 (die iCloud/CloudKit-Capability in Xcodes
+  Signing & Capabilities einmalig manuell aktivieren) bereits erledigt wurde, ist von
+  hier aus nicht feststellbar** — auch das eine reine Xcode-UI-Aktion ohne
+  Kommandozeilen-Spur. Die Pull-Richtung (Cloud → lokal) bleibt laut Spec ohnehin bis zu
+  einem zweiten Testgerät grundsätzlich unverifiziert, unabhängig vom Stand der übrigen
+  Checkliste. **Phase 2 (restliche Tabellen: Feeds/Ordner/Regeln/Smart Folders/
+  Artikel-Status), Phase 3 (Feld-Ebene-Konfliktauflösung + Merge-Dialog bei
+  Erst-Aktivierung mit bereits vorhandenen lokalen Daten) und Phase 4 (Härtung) sind
+  jeweils eigene, separate künftige Brainstorming/Plan-Zyklen — nicht Teil dieses Plans.**
+  Spec: `docs/superpowers/specs/2026-07-24-icloud-sync-phase1-design.md`, Plan:
+  `docs/superpowers/plans/2026-07-24-icloud-sync-phase1.md`. Commits `584e0482..4f04da81`
+  lokal auf `main`, Push-Status siehe `git log`/`git status` zum Zeitpunkt der Lektüre
+  dieses Eintrags (hier bewusst keine Momentaufnahme dupliziert, siehe Lehre im
+  CLAUDE.md-Korrektur-Eintrag vom 2026-07-20 zu veralteten Push-Status-Vermerken).
+
 - **2026-07-20: Reader-Toolbar frei anpassbar (Feature 19.4) — VOLLSTÄNDIG ABGESCHLOSSEN
   und auf `origin/main` gepusht, Live-Verifikation vom Nutzer bestätigt.** Feature 19.4
   stand seit 2026-07-10 auf ⏸️ Zurückgestellt, da der ursprünglich geplante native
