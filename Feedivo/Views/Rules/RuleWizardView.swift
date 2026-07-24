@@ -122,7 +122,7 @@ struct RuleWizardView: View {
         .padding(.top, 26)
         .padding(.bottom, 20)
         .padding(.horizontal, 28)
-        .frame(width: 600)
+        .frame(width: 680)
         .background(theme.bg)
         .onAppear {
             loadInitialState()
