@@ -48,7 +48,7 @@ anfühlt — kein iOS-Port, keine Electron-App. Echtes AppKit-Feeling via SwiftU
 | Architektur | MVVM | `@Observable` Macro (kein ObservableObject) |
 | Navigation | NavigationSplitView | 3-Spalten: Sidebar / Artikelliste / Reader, plus separate Fenster (Suche, Organizer, Artikel-Popout) |
 | Persistenz | GRDB (SQLite) | Eigene Datenschicht in `Feedivo/Database/` + `Feedivo/Stores/`. SwiftData wurde vollständig entfernt (2026-07-07) |
-| iCloud Sync | Phase 2a implementiert (Feeds/Ordner/Regeln/benutzerdefinierte Intelligente Ordner) | `CKSyncEngine`-Fundament (`Feedivo/Services/CloudSync/`), seit 2026-07-24 schrittweise ausgebaut — Phase 1 synct `tags`, Phase 2a erweitert das jetzt Registry-basierte `CloudSyncEngine` zusätzlich um `feeds` (nur Konfigurationsfelder, keine Refresh-Metadaten/`unreadCount`), `feed_folders`, `rules`+`rule_conditions` sowie benutzerdefinierte `smart_folders`+`smart_folder_conditions` (eingebaute Standard-Ordner bleiben bewusst ausgeschlossen). Toggle wirkt weiterhin sofort ohne Neustart. Artikelstatus bleibt für eine spätere Phase offen. Automatisierte Tests (162/162 grün) + Release-Build grün; Live-Verifikation über das CloudKit Dashboard steht für alle 4 neuen Tabellen noch aus (Push-Richtung), Pull-Richtung weiterhin ungetestet mangels Zweitgerät. Der alte, SwiftData-basierte Branch `codex/icloud-sync-beta` ist vollständig überholt (ADR-007) |
+| iCloud Sync | Phase 2a implementiert (Feeds/Ordner/Regeln/benutzerdefinierte Intelligente Ordner) | `CKSyncEngine`-Fundament (`Feedivo/Services/CloudSync/`), seit 2026-07-24 schrittweise ausgebaut — Phase 1 synct `tags`, Phase 2a erweitert das jetzt Registry-basierte `CloudSyncEngine` zusätzlich um `feeds` (nur Konfigurationsfelder, keine Refresh-Metadaten/`unreadCount`), `feed_folders`, `rules`+`rule_conditions` sowie benutzerdefinierte `smart_folders`+`smart_folder_conditions` (eingebaute Standard-Ordner bleiben bewusst ausgeschlossen). Toggle wirkt weiterhin sofort ohne Neustart. Artikelstatus bleibt für eine spätere Phase offen. Automatisierte Tests (162/162 grün) + Release-Build grün; Live-Verifikation über das CloudKit Dashboard steht für alle 4 neuen Tabellen noch aus (Push-Richtung), Pull-Richtung weiterhin ungetestet mangels Zweitgerät. Der ursprünglich für iCloud Sync vorgesehene, SwiftData-basierte Alt-Branch ist überholt und wurde gelöscht (ADR-007) |
 | Netzwerk | URLSession + async/await | Kein Alamofire, kein Combine |
 | RSS-Parsing | FeedKit | Swift Package, URL: https://github.com/nmdias/FeedKit |
 | Datenbank-Package | GRDB.swift | Swift Package, URL: https://github.com/groue/GRDB.swift |
@@ -255,8 +255,8 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
   `isCloudKitEnabled` an SwiftData hing, existiert dadurch nicht mehr. Ein neuer,
   GRDB-kompatibler Sync-Mechanismus wurde am 2026-07-24 als Phase 1 (CKSyncEngine-Fundament,
   nur Tags) umgesetzt — siehe den entsprechenden Eintrag unter „Aktuell in Arbeit" weiter
-  unten. Der ursprünglich hierfür vorgesehene Branch `codex/icloud-sync-beta` (SwiftData-
-  basiert) ist dadurch vollständig überholt und wird nicht mehr weiterverfolgt.
+  unten. Der ursprünglich hierfür vorgesehene, SwiftData-basierte Branch ist dadurch
+  vollständig überholt und wurde gelöscht (nicht mehr weiterverfolgt).
 - **Datum:** 2026-07-07
 
 ### ADR-008: Sidebar auf AppKit NSOutlineView statt SwiftUI-natives Drag & Drop umgestellt
@@ -936,7 +936,7 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 - **Repo:** https://github.com/martinfelder/feedivo-mac (private)
 - **Branch-Strategie:** `main` = stabil, direkt bearbeitet (kein durchgängiges Feature-Branch-
   Modell mehr in der aktuellen Praxis); vereinzelt längerlebige Branches für größere,
-  eigenständige Vorhaben (z. B. `codex/icloud-sync-beta`, `codex/sqlite-grdb-foundation`)
+  eigenständige Vorhaben (z. B. `codex/sqlite-grdb-foundation`)
 - **Push-Konvention:** Nie ohne explizite Nutzerbestätigung nach `origin/main` pushen
 
 ---
@@ -949,8 +949,8 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   Merge-Dialog bei Erst-Aktivierung) und Phase 4 (Härtung) — wann werden diese angegangen?
   Zusätzlich weiterhin offen für Phase 2a spezifisch: die manuelle Live-Verifikation gegen
   echtes CloudKit (Push-Richtung für alle 4 neuen Tabellen, Pull-Richtung wie in Phase 1
-  mangels Zweitgerät). Der alte `codex/icloud-sync-beta`-Branch (SwiftData-basiert) ist
-  überholt und nicht mehr relevant.
+  mangels Zweitgerät). Der alte, SwiftData-basierte Sync-Beta-Branch war bereits überholt
+  und wurde am 2026-07-24 gelöscht.
 - **Bekanntes, bewusst noch nicht behobenes Risiko aus dem Phase-2a-Whole-Branch-Review:**
   `FeedFolderStore.materializeImplicitFolders()` kann bei Multi-Geräte-Pull doppelte,
   gleichnamige `feed_folders`-Zeilen erzeugen (frische Zufalls-UUID pro Gerät, nicht
@@ -1178,8 +1178,8 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
      `handleFailedSave` aufgerufen. Re-Review (Opus) verifizierte den kompletten
      Laufzeit-Pfad Ende-zu-Ende und bestätigte: „Ready to merge: Yes". Zusätzlich 4
      veraltete CLAUDE.md-Abschnitte (Tech-Stack-Tabelle, ADR-007, M3-Checkbox, Offene
-     Entscheidungen) im selben Fix korrigiert, die noch den überholten
-     `codex/icloud-sync-beta`-Zustand beschrieben.
+     Entscheidungen) im selben Fix korrigiert, die noch den überholten Zustand des
+     alten SwiftData-basierten Sync-Beta-Branches beschrieben.
   2. **Manuelle Live-Verifikation deckte einen ZWEITEN, davon unabhängigen Bug auf, den
      kein Review finden konnte** (Commit `91f1179`, per systematic-debugging gefunden):
      Trotz Statuszeile „iCloud Sync aktiv" und einem frisch angelegten Testtag erschien
@@ -1814,9 +1814,10 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 - Alle Features 19.2–19.4, 19.7, 19.8 sowie Statistiken (14.1–14.3) sind abgeschlossen,
   committed und auf `origin/main` gepusht — Details siehe „Letzte Änderungen" unten und
   FEATURES.md. Feature 19.4 (Toolbar anpassen) bleibt bewusst zurückgestellt (⏸️).
-- Weiterhin offen laut FEATURES.md-Entscheidung vom 2026-07-02: `codex/icloud-sync-beta` ist
-  bewusst zugunsten des SQLite/GRDB-Umbaus zurückgestellt (nicht nur unentschieden) — der Umbau
-  ist inzwischen abgeschlossen (ADR-007), eine erneute Bewertung des Branches steht noch aus.
+- Der laut FEATURES.md-Entscheidung vom 2026-07-02 zugunsten des SQLite/GRDB-Umbaus
+  zurückgestellte alte iCloud-Sync-Beta-Branch (SwiftData-basiert) ist nach Abschluss des
+  Umbaus (ADR-007) endgültig überholt und wurde am 2026-07-24 gelöscht — keine erneute
+  Bewertung mehr nötig.
 
 ---
 
