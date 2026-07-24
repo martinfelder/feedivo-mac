@@ -461,6 +461,23 @@ enum FeedivoDatabaseMigrator {
             try database.execute(sql: "UPDATE cloud_sync_pending_changes SET recordType = 'Tag' WHERE recordType = 'tag'")
         }
 
+        migrator.registerMigration("v23_add_feed_config_updated_at") { database in
+            // Separates Vergleichsfeld für die Feed-Sync-Konfliktauflösung (Task 4), UNABHÄNGIG
+            // von `updatedAt` — `updatedAt` wird auch von FeedStore.updateAfterRefresh(...) bei
+            // JEDEM reinen RSS-Refresh gesetzt (Refresh-Metadaten wie lastETag/
+            // lastHTTPStatusCode, keine Sync-relevante Konfiguration). Würde die Konflikt-
+            // auflösung `updatedAt` nutzen, würde ein rein lokaler Refresh das lokale Feed immer
+            // "neuer" erscheinen lassen als den CloudKit-Server-Stand, unabhängig davon, ob sich
+            // tatsächlich ein Konfigurationsfeld geändert hat. `configUpdatedAt` wird NUR von den
+            // Konfigurations-Mutationsmethoden aktualisiert (Task 4) — hier nur Schema + Backfill.
+            // Gleicher `.defaults(to:)`-Fix wie in v22: `.defaults(sql: "CURRENT_TIMESTAMP")`
+            // scheitert auf einer nicht-leeren Tabelle mit "Cannot add a column with
+            // non-constant default", `.defaults(to: Date())` erzeugt ein echtes SQL-Literal.
+            try database.alter(table: "feeds") { table in
+                table.add(column: "configUpdatedAt", .datetime).notNull().defaults(to: Date())
+            }
+        }
+
         return migrator
     }
 

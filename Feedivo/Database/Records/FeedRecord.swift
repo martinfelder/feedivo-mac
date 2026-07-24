@@ -27,6 +27,14 @@ struct FeedRecord: Codable, FetchableRecord, Identifiable, MutablePersistableRec
     var unreadCount: Int
     var createdAt: Date
     var updatedAt: Date
+    /// Last-Write-Wins-Vergleichsfeld für die Feed-Sync-Konfliktauflösung (iCloud Sync Phase 2a),
+    /// UNABHÄNGIG von `updatedAt`. `updatedAt` wird auch von `FeedStore.updateAfterRefresh(...)`
+    /// bei jedem reinen RSS-Refresh gesetzt (Refresh-Metadaten, keine Sync-relevante
+    /// Konfiguration) — würde die Konfliktauflösung stattdessen `updatedAt` nutzen, würde ein
+    /// rein lokaler Refresh das Feed immer "neuer" als den CloudKit-Server-Stand erscheinen
+    /// lassen. `configUpdatedAt` wird ausschließlich von den Konfigurations-Mutationsmethoden
+    /// aktualisiert (Task 4 dieses Plans) — dieser Struct-Eintrag selbst setzt nur Schema/Default.
+    var configUpdatedAt: Date
 
     init(
         id: String = UUID().uuidString,
@@ -51,7 +59,8 @@ struct FeedRecord: Codable, FetchableRecord, Identifiable, MutablePersistableRec
         lastHTTPStatusCode: Int? = nil,
         unreadCount: Int = 0,
         createdAt: Date = Date(),
-        updatedAt: Date = Date()
+        updatedAt: Date = Date(),
+        configUpdatedAt: Date = Date()
     ) {
         self.id = id
         self.url = url
@@ -76,5 +85,6 @@ struct FeedRecord: Codable, FetchableRecord, Identifiable, MutablePersistableRec
         self.unreadCount = unreadCount
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+        self.configUpdatedAt = configUpdatedAt
     }
 }

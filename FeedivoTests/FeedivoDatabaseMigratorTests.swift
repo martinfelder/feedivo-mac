@@ -101,4 +101,31 @@ struct FeedivoDatabaseMigratorTests {
         }
         #expect(recordType == "Feed")
     }
+
+    // Migration v23 (iCloud Sync Phase 2a, Task 2): fügt `configUpdatedAt` zu `feeds` hinzu —
+    // ein von `updatedAt` UNABHÄNGIGES Last-Write-Wins-Vergleichsfeld für den späteren Feed-Sync
+    // (Task 4), da `updatedAt` auch bei reinen Refresh-Metadaten-Änderungen (FeedStore.
+    // updateAfterRefresh) aktualisiert wird und deshalb als Konflikt-Zeitstempel ungeeignet wäre.
+    @Test func migrationV23FuegtConfigUpdatedAtZuFeedsHinzuUndBackfilledBestandszeilen() throws {
+        let queue = try DatabaseQueue()
+        try FeedivoDatabaseMigrator.migrator.migrate(queue, upTo: "v22_add_updated_at_to_condition_tables")
+
+        try queue.write { db in
+            let now = Date()
+            try db.execute(
+                sql: """
+                    INSERT INTO feeds (id, url, title, originalTitle, sortIndex, refreshIntervalMinutes, isNotificationEnabled, articleRetentionOverridesGlobalSetting, articleRetentionIsEnabled, articleRetentionDays, articleRetentionMinimumArticles, articleRetentionIncludesProtectedArticles, unreadCount, createdAt, updatedAt)
+                    VALUES ('feed-1', 'https://example.com/feed', 'Test', 'Test', 0, 30, 0, 0, 0, 90, 20, 0, 0, ?, ?)
+                    """,
+                arguments: [now, now]
+            )
+        }
+
+        try FeedivoDatabaseMigrator.migrator.migrate(queue)
+
+        let configUpdatedAt = try queue.read { db in
+            try Date.fetchOne(db, sql: "SELECT configUpdatedAt FROM feeds WHERE id = 'feed-1'")
+        }
+        #expect(configUpdatedAt != nil)
+    }
 }
