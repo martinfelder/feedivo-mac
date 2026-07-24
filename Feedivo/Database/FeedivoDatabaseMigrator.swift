@@ -437,6 +437,30 @@ enum FeedivoDatabaseMigrator {
             }
         }
 
+        migrator.registerMigration("v22_add_updated_at_to_condition_tables") { database in
+            // SQLite lehnt `ALTER TABLE ADD COLUMN ... DEFAULT CURRENT_TIMESTAMP` auf einer
+            // NICHT-leeren Tabelle mit "Cannot add a column with non-constant default" ab —
+            // verifiziert per direktem sqlite3-CLI-Test. CURRENT_TIMESTAMP ist ein Funktions-
+            // aufruf, kein echtes Konstante. `.defaults(to: Date())` erzeugt dagegen ein
+            // echtes SQL-Literal (den einmalig zum Migrationszeitpunkt berechneten Wert) und
+            // backfillt damit gleichzeitig alle Bestandszeilen mit "jetzt".
+            let migrationTimestamp = Date()
+            try database.alter(table: "rule_conditions") { table in
+                table.add(column: "updatedAt", .datetime).notNull().defaults(to: migrationTimestamp)
+            }
+            try database.alter(table: "smart_folder_conditions") { table in
+                table.add(column: "updatedAt", .datetime).notNull().defaults(to: migrationTimestamp)
+            }
+
+            // Housekeeping im selben Zug: TagStore.enqueuePendingSync nutzte bisher den
+            // Ad-hoc-String "tag" für CloudSyncPendingChangeRecord.recordType, während
+            // CloudSyncTagMapping.recordType "Tag" ist (CKRecord-Typ). Die neue,
+            // Registry-basierte CloudSyncEngine (Task 3) braucht denselben String-Raum für
+            // beide Zwecke — bestehende, noch nicht hochgeladene Zeilen werden hier einmalig
+            // vereinheitlicht.
+            try database.execute(sql: "UPDATE cloud_sync_pending_changes SET recordType = 'Tag' WHERE recordType = 'tag'")
+        }
+
         return migrator
     }
 

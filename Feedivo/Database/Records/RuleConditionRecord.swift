@@ -11,6 +11,7 @@ struct RuleConditionRecord: Codable, FetchableRecord, MutablePersistableRecord, 
     var value: String
     var sortOrder: Int
     var groupIndex: Int
+    var updatedAt: Date
 
     init(
         id: String = UUID().uuidString,
@@ -19,7 +20,8 @@ struct RuleConditionRecord: Codable, FetchableRecord, MutablePersistableRecord, 
         conditionOperator: String,
         value: String,
         sortOrder: Int = 0,
-        groupIndex: Int = 0
+        groupIndex: Int = 0,
+        updatedAt: Date = Date()
     ) {
         self.id = id
         self.ruleID = ruleID
@@ -28,5 +30,6 @@ struct RuleConditionRecord: Codable, FetchableRecord, MutablePersistableRecord, 
         self.value = value
         self.sortOrder = sortOrder
         self.groupIndex = groupIndex
+        self.updatedAt = updatedAt
     }
 }

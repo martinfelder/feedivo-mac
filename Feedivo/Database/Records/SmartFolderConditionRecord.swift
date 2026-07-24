@@ -10,6 +10,7 @@ struct SmartFolderConditionRecord: Codable, FetchableRecord, MutablePersistableR
     var conditionOperator: String
     var value: String
     var sortOrder: Int
+    var updatedAt: Date
 
     init(
         id: String = UUID().uuidString,
@@ -17,7 +18,8 @@ struct SmartFolderConditionRecord: Codable, FetchableRecord, MutablePersistableR
         field: String,
         conditionOperator: String,
         value: String,
-        sortOrder: Int = 0
+        sortOrder: Int = 0,
+        updatedAt: Date = Date()
     ) {
         self.id = id
         self.smartFolderID = smartFolderID
@@ -25,5 +27,6 @@ struct SmartFolderConditionRecord: Codable, FetchableRecord, MutablePersistableR
         self.conditionOperator = conditionOperator
         self.value = value
         self.sortOrder = sortOrder
+        self.updatedAt = updatedAt
     }
 }
