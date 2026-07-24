@@ -1063,10 +1063,14 @@ private struct SyncSettingsView: View {
         databaseLoadState.initializationError != nil
     }
 
+    // TODO(Task 5, iCloud-Sync-Phase-1-Plan): sobald `CloudSyncStatus` per
+    // `@Environment(CloudSyncStatus.self)` verdrahtet ist, hier den echten Sync-Status
+    // statt des Platzhalters `.idle` verwenden (siehe
+    // docs/superpowers/plans/2026-07-24-icloud-sync-phase1.md, Task 5 Step 3).
     private var statusLocalizationKey: String {
         CloudSyncSettings.statusLocalizationKey(
-            isEnabledAtLaunch: databaseLoadState.isCloudSyncEnabledAtLaunch,
-            currentIsEnabled: cloudSyncIsEnabled,
+            isEnabled: cloudSyncIsEnabled,
+            syncState: .idle,
             hasDatabaseError: hasDatabaseError
         )
     }

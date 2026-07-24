@@ -231,4 +231,26 @@ struct SQLiteTagStoreTests {
         let orderedNames = try tagStore.tags().map(\.name)
         #expect(orderedNames == ["Zebra", "Apfel"])
     }
+
+    @Test func saveMarkiertTagAlsPendingSyncWennAktiviert() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
+        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        let store = TagStore(database: database)
+
+        try store.save(TagRecord(id: "tag-1", name: "Wichtig"))
+
+        let pending = try CloudSyncPendingChangeStore(database: database).pendingChanges()
+        #expect(pending.map(\.id) == ["tag-1"])
+    }
+
+    @Test func saveMarkiertNichtsWennSyncDeaktiviert() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey)
+        let store = TagStore(database: database)
+
+        try store.save(TagRecord(id: "tag-1", name: "Wichtig"))
+
+        #expect(try CloudSyncPendingChangeStore(database: database).pendingChanges().isEmpty)
+    }
 }

@@ -13,6 +13,15 @@ struct TagStore {
         self.database = database
     }
 
+    /// Markiert `tagID` als ausstehende Sync-Änderung, falls iCloud Sync aktiv ist. Läuft
+    /// bewusst INNERHALB derselben `database.write`-Transaktion wie die fachliche Mutation
+    /// (atomar — kein Zwischenzustand, in dem der Tag geändert, aber nicht als sync-pending
+    /// markiert ist).
+    private func enqueuePendingSync(_ db: Database, tagID: String, changeType: CloudSyncChangeType) throws {
+        guard CloudSyncSettings.isEnabled() else { return }
+        try CloudSyncPendingChangeStore.enqueue(db, recordType: "tag", recordName: tagID, changeType: changeType)
+    }
+
     func save(_ tag: TagRecord) throws {
         try database.write { db in
             let existingID = try String.fetchOne(db, sql: """
@@ -39,6 +48,8 @@ struct TagStore {
                 tag.sortIndex = maxSortIndex
                 try tag.insert(db)
             }
+
+            try enqueuePendingSync(db, tagID: tag.id, changeType: .save)
         }
     }
 
@@ -199,6 +210,8 @@ struct TagStore {
             if db.changesCount == 0 {
                 throw TagStoreError.missingTag
             }
+
+            try enqueuePendingSync(db, tagID: id, changeType: .save)
         }
     }
 
@@ -224,6 +237,7 @@ struct TagStore {
                     sql: "UPDATE tags SET sortIndex = ?, updatedAt = ? WHERE id = ?",
                     arguments: [index, now, tagID]
                 )
+                try enqueuePendingSync(db, tagID: tagID, changeType: .save)
             }
         }
     }
@@ -242,6 +256,8 @@ struct TagStore {
             if db.changesCount == 0 {
                 throw TagStoreError.missingTag
             }
+
+            try enqueuePendingSync(db, tagID: id, changeType: .save)
         }
     }
 
@@ -278,6 +294,8 @@ struct TagStore {
                     """,
                 arguments: [id]
             )
+
+            try enqueuePendingSync(db, tagID: id, changeType: .delete)
         }
     }
 }

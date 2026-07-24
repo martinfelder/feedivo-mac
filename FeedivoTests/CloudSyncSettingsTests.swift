@@ -3,10 +3,10 @@ import Testing
 @testable import Feedivo
 
 struct CloudSyncSettingsTests {
-    @Test func defaultsSindBewusstAus() {
+    @Test func defaultsUndVerfuegbarkeit() {
         #expect(CloudSyncSettings.isEnabledKey == "cloudSync.isEnabled")
         #expect(CloudSyncSettings.defaultIsEnabled == false)
-        #expect(CloudSyncSettings.isAvailable == false)
+        #expect(CloudSyncSettings.isAvailable == true)
         #expect(CloudSyncSettings.cloudKitContainerIdentifier == "iCloud.ch.martin.Feedivo")
     }
 
@@ -17,94 +17,45 @@ struct CloudSyncSettingsTests {
 
         defaults.set(true, forKey: CloudSyncSettings.isEnabledKey)
 
-        #expect(CloudSyncSettings.isEnabled(in: defaults) == false)
+        #expect(CloudSyncSettings.isEnabled(in: defaults) == true)
     }
 
-    @Test func statusTextBeschreibtLaunchZustand() {
+    @Test func statusLocalizationKeyLiefertDatabaseErrorUnabhaengigVonAllemAnderen() {
         #expect(
-            CloudSyncSettings.statusText(
-                isEnabledAtLaunch: false,
-                currentIsEnabled: false,
-                hasDatabaseError: false
-            ) == "iCloud Sync noch nicht verfügbar"
-        )
-        #expect(
-            CloudSyncSettings.statusText(
-                isEnabledAtLaunch: false,
-                currentIsEnabled: true,
-                hasDatabaseError: false
-            ) == "iCloud Sync noch nicht verfügbar"
-        )
-        #expect(
-            CloudSyncSettings.statusText(
-                isEnabledAtLaunch: true,
-                currentIsEnabled: true,
-                hasDatabaseError: false
-            ) == "iCloud Sync noch nicht verfügbar"
-        )
-        #expect(
-            CloudSyncSettings.statusText(
-                isEnabledAtLaunch: true,
-                currentIsEnabled: true,
-                hasDatabaseError: true
-            ) == "Datenbank konnte nicht geladen werden"
-        )
-        #expect(
-            CloudSyncSettings.statusText(
-                isEnabledAtLaunch: true,
-                currentIsEnabled: false,
-                hasDatabaseError: false
-            ) == "iCloud Sync noch nicht verfügbar"
+            CloudSyncSettings.statusLocalizationKey(isEnabled: true, syncState: .idle, hasDatabaseError: true)
+                == "settings.sync.status.databaseError"
         )
     }
 
-    @Test func statusLocalizationKeyLiefertDatabaseErrorKey() {
+    @Test func statusLocalizationKeyLiefertLocalWennDeaktiviert() {
         #expect(
-            CloudSyncSettings.statusLocalizationKey(
-                isEnabledAtLaunch: true,
-                currentIsEnabled: true,
-                hasDatabaseError: true
-            ) == "settings.sync.status.databaseError"
+            CloudSyncSettings.statusLocalizationKey(isEnabled: false, syncState: .idle, hasDatabaseError: false)
+                == "settings.sync.status.local"
         )
     }
 
-    @Test func statusLocalizationKeyLiefertUnavailableKey() {
+    @Test func statusLocalizationKeyLiefertActiveBeiIdleUndSyncing() {
         #expect(
-            CloudSyncSettings.statusLocalizationKey(
-                isEnabledAtLaunch: true,
-                currentIsEnabled: true,
-                hasDatabaseError: false
-            ) == "settings.sync.status.unavailable"
+            CloudSyncSettings.statusLocalizationKey(isEnabled: true, syncState: .idle, hasDatabaseError: false)
+                == "settings.sync.status.active"
+        )
+        #expect(
+            CloudSyncSettings.statusLocalizationKey(isEnabled: true, syncState: .syncing, hasDatabaseError: false)
+                == "settings.sync.status.active"
         )
     }
 
-    @Test func statusLocalizationKeyLiefertLocalKey() {
+    @Test func statusLocalizationKeyLiefertAccountUnavailable() {
         #expect(
-            CloudSyncSettings.statusLocalizationKey(
-                isEnabledAtLaunch: false,
-                currentIsEnabled: false,
-                hasDatabaseError: false
-            ) == "settings.sync.status.unavailable"
+            CloudSyncSettings.statusLocalizationKey(isEnabled: true, syncState: .accountUnavailable, hasDatabaseError: false)
+                == "settings.sync.status.accountUnavailable"
         )
     }
 
-    @Test func statusLocalizationKeyLiefertRestartEnableKey() {
+    @Test func statusLocalizationKeyLiefertError() {
         #expect(
-            CloudSyncSettings.statusLocalizationKey(
-                isEnabledAtLaunch: false,
-                currentIsEnabled: true,
-                hasDatabaseError: false
-            ) == "settings.sync.status.unavailable"
-        )
-    }
-
-    @Test func statusLocalizationKeyLiefertRestartDisableKey() {
-        #expect(
-            CloudSyncSettings.statusLocalizationKey(
-                isEnabledAtLaunch: true,
-                currentIsEnabled: false,
-                hasDatabaseError: false
-            ) == "settings.sync.status.unavailable"
+            CloudSyncSettings.statusLocalizationKey(isEnabled: true, syncState: .error("Netzwerkfehler"), hasDatabaseError: false)
+                == "settings.sync.status.error"
         )
     }
 }
