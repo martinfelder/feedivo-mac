@@ -8,11 +8,22 @@ struct FeedStore {
         self.database = database
     }
 
+    /// Markiert `feedID` als ausstehende Sync-Änderung, falls iCloud Sync aktiv ist. Läuft
+    /// bewusst INNERHALB derselben `database.write`-Transaktion wie die fachliche Mutation
+    /// (atomar — kein Zwischenzustand, in dem der Feed geändert, aber nicht als sync-pending
+    /// markiert ist). Analog zu `TagStore.enqueuePendingSync`.
+    private func enqueuePendingSync(_ db: Database, feedID: String, changeType: CloudSyncChangeType) throws {
+        guard CloudSyncSettings.isEnabled() else { return }
+        try CloudSyncPendingChangeStore.enqueue(db, recordType: CloudSyncFeedMapping.recordType, recordName: feedID, changeType: changeType)
+    }
+
     func save(_ feed: FeedRecord) throws {
         try database.write { db in
             var feed = feed
             try feed.save(db)
+            try enqueuePendingSync(db, feedID: feed.id, changeType: .save)
         }
+        CloudSyncEngine.notifyPendingChangesAvailable(database: database)
     }
 
     func feed(id: String) throws -> FeedRecord? {
@@ -55,16 +66,20 @@ struct FeedStore {
                     UPDATE feeds
                     SET title = ?,
                         originalTitle = COALESCE(NULLIF(originalTitle, ''), title),
-                        updatedAt = ?
+                        updatedAt = ?,
+                        configUpdatedAt = ?
                     WHERE id = ?
                     """,
-                arguments: [title, Date(), id]
+                arguments: [title, Date(), Date(), id]
             )
 
             if db.changesCount == 0 {
                 throw FeedStoreError.missingFeed
             }
+
+            try enqueuePendingSync(db, feedID: id, changeType: .save)
         }
+        CloudSyncEngine.notifyPendingChangesAvailable(database: database)
     }
 
     func restoreOriginalTitle(id: String) throws {
@@ -73,16 +88,20 @@ struct FeedStore {
                 sql: """
                     UPDATE feeds
                     SET title = COALESCE(NULLIF(originalTitle, ''), title),
-                        updatedAt = ?
+                        updatedAt = ?,
+                        configUpdatedAt = ?
                     WHERE id = ?
                     """,
-                arguments: [Date(), id]
+                arguments: [Date(), Date(), id]
             )
 
             if db.changesCount == 0 {
                 throw FeedStoreError.missingFeed
             }
+
+            try enqueuePendingSync(db, feedID: id, changeType: .save)
         }
+        CloudSyncEngine.notifyPendingChangesAvailable(database: database)
     }
 
     func updateRefreshInterval(id: String, minutes: Int) throws {
@@ -90,16 +109,19 @@ struct FeedStore {
             try db.execute(
                 sql: """
                     UPDATE feeds
-                    SET refreshIntervalMinutes = ?, updatedAt = ?
+                    SET refreshIntervalMinutes = ?, updatedAt = ?, configUpdatedAt = ?
                     WHERE id = ?
                     """,
-                arguments: [BackgroundRefreshSettings.clampedIntervalMinutes(minutes), Date(), id]
+                arguments: [BackgroundRefreshSettings.clampedIntervalMinutes(minutes), Date(), Date(), id]
             )
 
             if db.changesCount == 0 {
                 throw FeedStoreError.missingFeed
             }
+
+            try enqueuePendingSync(db, feedID: id, changeType: .save)
         }
+        CloudSyncEngine.notifyPendingChangesAvailable(database: database)
     }
 
     func updateFolderName(id: String, folderName: String?) throws {
@@ -107,16 +129,19 @@ struct FeedStore {
             try db.execute(
                 sql: """
                     UPDATE feeds
-                    SET folderName = ?, updatedAt = ?
+                    SET folderName = ?, updatedAt = ?, configUpdatedAt = ?
                     WHERE id = ?
                     """,
-                arguments: [FeedFolderOrganizer.normalizedFolderName(folderName), Date(), id]
+                arguments: [FeedFolderOrganizer.normalizedFolderName(folderName), Date(), Date(), id]
             )
 
             if db.changesCount == 0 {
                 throw FeedStoreError.missingFeed
             }
+
+            try enqueuePendingSync(db, feedID: id, changeType: .save)
         }
+        CloudSyncEngine.notifyPendingChangesAvailable(database: database)
     }
 
     func updateNotificationEnabled(id: String, isEnabled: Bool) throws {
@@ -124,16 +149,19 @@ struct FeedStore {
             try db.execute(
                 sql: """
                     UPDATE feeds
-                    SET isNotificationEnabled = ?, updatedAt = ?
+                    SET isNotificationEnabled = ?, updatedAt = ?, configUpdatedAt = ?
                     WHERE id = ?
                     """,
-                arguments: [isEnabled, Date(), id]
+                arguments: [isEnabled, Date(), Date(), id]
             )
 
             if db.changesCount == 0 {
                 throw FeedStoreError.missingFeed
             }
+
+            try enqueuePendingSync(db, feedID: id, changeType: .save)
         }
+        CloudSyncEngine.notifyPendingChangesAvailable(database: database)
     }
 
     func updateRetentionSettings(
@@ -153,7 +181,8 @@ struct FeedStore {
                         articleRetentionDays = ?,
                         articleRetentionMinimumArticles = ?,
                         articleRetentionIncludesProtectedArticles = ?,
-                        updatedAt = ?
+                        updatedAt = ?,
+                        configUpdatedAt = ?
                     WHERE id = ?
                     """,
                 arguments: [
@@ -163,6 +192,7 @@ struct FeedStore {
                     ArticleRetentionSettings.clampedMinimumArticlesPerFeed(minimumArticles),
                     includesProtectedArticles,
                     Date(),
+                    Date(),
                     id
                 ]
             )
@@ -170,11 +200,15 @@ struct FeedStore {
             if db.changesCount == 0 {
                 throw FeedStoreError.missingFeed
             }
+
+            try enqueuePendingSync(db, feedID: id, changeType: .save)
         }
+        CloudSyncEngine.notifyPendingChangesAvailable(database: database)
     }
 
     func delete(id: String) throws {
         try database.write { db in
+            try enqueuePendingSync(db, feedID: id, changeType: .delete)
             try db.execute(
                 sql: """
                     DELETE FROM feeds
@@ -183,6 +217,7 @@ struct FeedStore {
                 arguments: [id]
             )
         }
+        CloudSyncEngine.notifyPendingChangesAvailable(database: database)
     }
 
     func updateAfterRefresh(
@@ -359,19 +394,21 @@ struct FeedStore {
                     try db.execute(
                         sql: """
                             UPDATE feeds
-                            SET sortIndex = ?, folderName = ?, updatedAt = ?
+                            SET sortIndex = ?, folderName = ?, updatedAt = ?, configUpdatedAt = ?
                             WHERE id = ?
                             """,
-                        arguments: [index, effectiveFolderName, now, feedID]
+                        arguments: [index, effectiveFolderName, now, now, feedID]
                     )
                 } else {
                     try db.execute(
-                        sql: "UPDATE feeds SET sortIndex = ? WHERE id = ?",
-                        arguments: [index, feedID]
+                        sql: "UPDATE feeds SET sortIndex = ?, configUpdatedAt = ? WHERE id = ?",
+                        arguments: [index, now, feedID]
                     )
                 }
+                try enqueuePendingSync(db, feedID: feedID, changeType: .save)
             }
         }
+        CloudSyncEngine.notifyPendingChangesAvailable(database: database)
     }
 
     func opmlFeedsForExport() throws -> [OPMLFeed] {

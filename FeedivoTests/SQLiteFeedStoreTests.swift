@@ -352,4 +352,95 @@ struct SQLiteFeedStoreTests {
             .map(\.id)
         #expect(orderedIDs == ["feed-b", "feed-a"])
     }
+
+    // MARK: - iCloud Sync (Phase 2a, Task 4)
+
+    @Test func saveMarkiertFeedAlsPendingSyncWennAktiviert() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
+        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        let store = FeedStore(database: database)
+
+        try store.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Beispiel"))
+
+        let pending = try CloudSyncPendingChangeStore(database: database).pendingChanges()
+        #expect(pending.map(\.id) == ["feed-1"])
+    }
+
+    @Test func saveMarkiertNichtsWennSyncDeaktiviert() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey)
+        let store = FeedStore(database: database)
+
+        try store.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Beispiel"))
+
+        #expect(try CloudSyncPendingChangeStore(database: database).pendingChanges().isEmpty)
+    }
+
+    @Test func deleteMarkiertFeedAlsPendingDeleteWennAktiviert() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let store = FeedStore(database: database)
+        try store.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Beispiel"))
+
+        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
+        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+
+        try store.delete(id: "feed-1")
+
+        let pending = try CloudSyncPendingChangeStore(database: database).pendingChanges()
+        #expect(pending.map(\.id) == ["feed-1"])
+        #expect(pending.first?.changeType == .delete)
+    }
+
+    @Test func moveFeedMarkiertAlleUmsortiertenFeedsAlsPendingSync() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
+        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+
+        let store = FeedStore(database: database)
+        let feedA = FeedRecord(id: "feed-a", url: "https://a.example.com", title: "A", sortIndex: 0)
+        let feedB = FeedRecord(id: "feed-b", url: "https://b.example.com", title: "B", sortIndex: 1)
+        try store.save(feedA)
+        try store.save(feedB)
+
+        try store.moveFeed(id: "feed-b", toFolderName: nil, targetIndex: 0)
+
+        let pendingChangeStore = CloudSyncPendingChangeStore(database: database)
+        let pendingIDs = Set(try pendingChangeStore.pendingChanges().map(\.id))
+        #expect(pendingIDs.contains("feed-a"))
+        #expect(pendingIDs.contains("feed-b"))
+    }
+
+    @Test func updateAfterRefreshMarkiertFeedNichtAlsPendingSync() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let store = FeedStore(database: database)
+        try store.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Beispiel"))
+
+        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
+        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+
+        try store.updateAfterRefresh(
+            feedID: "feed-1",
+            title: "Neuer Titel",
+            websiteURL: nil,
+            validators: FeedHTTPValidators(eTag: "etag-1", lastModified: nil, contentHash: nil, lastStatusCode: 200),
+            unreadCount: 3,
+            refreshedAt: Date()
+        )
+
+        #expect(try CloudSyncPendingChangeStore(database: database).pendingChanges().isEmpty)
+    }
+
+    @Test func setUnreadCountMarkiertFeedNichtAlsPendingSync() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let store = FeedStore(database: database)
+        try store.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Beispiel"))
+
+        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
+        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+
+        try store.setUnreadCount(5, feedID: "feed-1")
+
+        #expect(try CloudSyncPendingChangeStore(database: database).pendingChanges().isEmpty)
+    }
 }

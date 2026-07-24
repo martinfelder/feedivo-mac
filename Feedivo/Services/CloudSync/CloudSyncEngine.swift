@@ -35,7 +35,8 @@ final class CloudSyncEngine: NSObject {
     /// `AppIconBadgeService`-Muster, siehe Gotcha zu `SWIFT_DEFAULT_ACTOR_ISOLATION` in
     /// CLAUDE.md).
     private nonisolated static let registry: [String: any CloudSyncRecordMapping.Type] = [
-        CloudSyncTagMapping.recordType: CloudSyncTagMapping.self
+        CloudSyncTagMapping.recordType: CloudSyncTagMapping.self,
+        CloudSyncFeedMapping.recordType: CloudSyncFeedMapping.self
     ]
 
     nonisolated static func mapping(forRecordType recordType: String) -> (any CloudSyncRecordMapping.Type)? {

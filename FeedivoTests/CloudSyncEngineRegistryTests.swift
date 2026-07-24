@@ -12,6 +12,12 @@ struct CloudSyncEngineRegistryTests {
         #expect(mapping is CloudSyncTagMapping.Type)
     }
 
+    @Test func registryLoestFeedRecordTypeAufCloudSyncFeedMappingAuf() {
+        let mapping = CloudSyncEngine.mapping(forRecordType: "Feed")
+
+        #expect(mapping is CloudSyncFeedMapping.Type)
+    }
+
     @Test func registryLiefertNilFuerUnbekanntenRecordType() {
         let mapping = CloudSyncEngine.mapping(forRecordType: "UnknownType")
 
