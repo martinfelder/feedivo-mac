@@ -198,7 +198,7 @@ struct RuleSettingsView: View {
             .map { rule in
                 let conditionToken = (conditionsByRuleID[rule.id] ?? [])
                     .sorted { $0.sortOrder < $1.sortOrder }
-                    .map { "\($0.field):\($0.conditionOperator):\($0.value):\($0.sortOrder)" }
+                    .map { "\($0.field):\($0.conditionOperator):\($0.value):\($0.sortOrder):\($0.groupIndex)" }
                     .joined(separator: ",")
                 return "\(rule.id):\(rule.isEnabled):\(rule.matchMode):\(rule.action):\(rule.sortOrder):\(conditionToken)"
             }
