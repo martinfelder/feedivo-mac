@@ -46,6 +46,7 @@ struct FeedivoApp: App {
     private let feedViewModel = FeedViewModel()
     private let feedivoDatabase: FeedivoDatabase
     private let localExtensionBridgeServer: LocalExtensionBridgeServer
+    private let cloudSyncEngine: CloudSyncEngine
 
     init() {
         ReaderFontRegistry.registerBundledFonts()
@@ -57,13 +58,16 @@ struct FeedivoApp: App {
         )
         self.feedivoDatabase = database
         self.localExtensionBridgeServer = LocalExtensionBridgeServer(database: database)
+        self.cloudSyncEngine = CloudSyncEngine(database: database)
         self.databaseLoadState.initializationError = databaseOpenResult.errorDescription
-        self.databaseLoadState.isCloudSyncEnabledAtLaunch = false
         // Feature 21.1: `NSStatusItem` darf erst in `applicationDidFinishLaunching` entstehen
         // (siehe `FeedivoAppDelegate`) — hier nur die Abhängigkeiten durchreichen.
         if databaseOpenResult.errorDescription == nil {
             self.appDelegate.configureMenubarController(feedivoDatabase: database, feedViewModel: feedViewModel)
             self.localExtensionBridgeServer.start()
+        }
+        if databaseOpenResult.errorDescription == nil, CloudSyncSettings.isEnabled() {
+            self.cloudSyncEngine.start()
         }
     }
 
@@ -216,6 +220,8 @@ struct FeedivoApp: App {
                 .environment(\.interfaceTextSize, interfaceTextSize)
                 .environment(\.feedivoDatabase, feedivoDatabase)
                 .environment(databaseLoadState)
+                .environment(cloudSyncEngine.status)
+                .environment(\.cloudSyncEngine, cloudSyncEngine)
                 .dynamicTypeSize(interfaceTextSize.dynamicTypeSize)
                 .preferredColorScheme(appAppearance.colorScheme)
         }
@@ -333,5 +339,4 @@ struct FeedivoApp: App {
 @Observable
 final class DatabaseLoadState {
     var initializationError: String?
-    var isCloudSyncEnabledAtLaunch = false
 }

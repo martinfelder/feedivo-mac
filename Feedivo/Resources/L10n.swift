@@ -432,6 +432,7 @@ enum L10n {
     static let settingsSyncUnavailableHint = LocalizedStringKey("settings.sync.unavailable.hint")
     static let settingsSyncDatabaseTitle = LocalizedStringKey("settings.sync.database.title")
     static let settingsSyncDatabaseErrorHint = LocalizedStringKey("settings.sync.databaseError.hint")
+    static let settingsSyncBetaScopeHint = LocalizedStringKey("settings.sync.beta.scopeHint")
     static let feedProgressRefreshAllTitle = String(localized: "feed.progress.refreshAll.title")
     static let feedPropertiesDetailsTitle = LocalizedStringKey("feed.properties.detailsTitle")
     static let feedPropertiesOriginalTitle = LocalizedStringKey("feed.properties.originalTitle")

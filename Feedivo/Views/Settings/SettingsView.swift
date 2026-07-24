@@ -1055,6 +1055,8 @@ private func formattedAutomaticStatusDate(_ timestamp: Double) -> String {
 
 private struct SyncSettingsView: View {
     @Environment(DatabaseLoadState.self) private var databaseLoadState
+    @Environment(CloudSyncStatus.self) private var cloudSyncStatus
+    @Environment(\.cloudSyncEngine) private var cloudSyncEngine
 
     @AppStorage(CloudSyncSettings.isEnabledKey)
     private var cloudSyncIsEnabled = CloudSyncSettings.defaultIsEnabled
@@ -1063,14 +1065,10 @@ private struct SyncSettingsView: View {
         databaseLoadState.initializationError != nil
     }
 
-    // TODO(Task 5, iCloud-Sync-Phase-1-Plan): sobald `CloudSyncStatus` per
-    // `@Environment(CloudSyncStatus.self)` verdrahtet ist, hier den echten Sync-Status
-    // statt des Platzhalters `.idle` verwenden (siehe
-    // docs/superpowers/plans/2026-07-24-icloud-sync-phase1.md, Task 5 Step 3).
     private var statusLocalizationKey: String {
         CloudSyncSettings.statusLocalizationKey(
             isEnabled: cloudSyncIsEnabled,
-            syncState: .idle,
+            syncState: cloudSyncStatus.state,
             hasDatabaseError: hasDatabaseError
         )
     }
@@ -1097,15 +1095,14 @@ private struct SyncSettingsView: View {
 
                     SettingRow(
                         title: L10n.settingsSyncBetaTitle,
-                        description: L10n.settingsSyncUnavailableHint
+                        description: L10n.settingsSyncBetaScopeHint
                     ) {
                         Toggle("", isOn: $cloudSyncIsEnabled)
                             .toggleStyle(.switch)
-                            .disabled(!CloudSyncSettings.isAvailable)
                     }
 
                     InfoRow(
-                        iconName: hasDatabaseError ? "exclamationmark.triangle" : "icloud.slash",
+                        iconName: hasDatabaseError ? "exclamationmark.triangle" : "icloud",
                         title: L10n.settingsSyncStatusTitle,
                         description: LocalizedStringKey(statusLocalizationKey)
                     )
@@ -1120,9 +1117,11 @@ private struct SyncSettingsView: View {
                 }
             }
         }
-        .onAppear {
-            if !CloudSyncSettings.isAvailable {
-                cloudSyncIsEnabled = false
+        .onChange(of: cloudSyncIsEnabled) {
+            if cloudSyncIsEnabled {
+                cloudSyncEngine?.start()
+            } else {
+                cloudSyncEngine?.stop()
             }
         }
     }
@@ -1651,5 +1650,16 @@ private struct ReaderToolbarSettingsRow: View {
             .controlSize(.small)
         }
         .padding(.vertical, 4)
+    }
+}
+
+private struct CloudSyncEngineKey: EnvironmentKey {
+    static let defaultValue: CloudSyncEngine? = nil
+}
+
+extension EnvironmentValues {
+    var cloudSyncEngine: CloudSyncEngine? {
+        get { self[CloudSyncEngineKey.self] }
+        set { self[CloudSyncEngineKey.self] = newValue }
     }
 }

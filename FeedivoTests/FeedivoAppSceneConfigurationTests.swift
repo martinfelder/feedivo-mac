@@ -457,7 +457,6 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(appSource.contains("ContentUnavailableView"))
         #expect(!appSource.contains("FeedivoModelContainerFactory.makePersistentContainer"))
         #expect(!appSource.contains("FeedivoModelContainerFactory.makeInMemoryFallbackContainer"))
-        #expect(appSource.contains("databaseLoadState.isCloudSyncEnabledAtLaunch"))
     }
 
     @Test func settingsSceneReceivesDatabaseLoadState() throws {
@@ -480,18 +479,20 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(entitlementsSource.contains("<string>iCloud.ch.martin.Feedivo</string>"))
     }
 
-    @Test func syncSettingsExposeBetaToggleAndRestartHint() throws {
+    @Test func syncSettingsExposeBetaToggleAndLiveStatus() throws {
         let projectRoot = projectRootURL()
         let settingsSource = try source(at: "Feedivo/Views/Settings/SettingsView.swift", projectRoot: projectRoot)
 
         #expect(settingsSource.contains("@Environment(DatabaseLoadState.self)"))
+        #expect(settingsSource.contains("@Environment(CloudSyncStatus.self)"))
+        #expect(settingsSource.contains("@Environment(\\.cloudSyncEngine)"))
         #expect(settingsSource.contains("@AppStorage(CloudSyncSettings.isEnabledKey)"))
         #expect(settingsSource.contains("L10n.settingsSyncBetaTitle"))
-        #expect(settingsSource.contains("L10n.settingsSyncUnavailableHint"))
+        #expect(settingsSource.contains("L10n.settingsSyncBetaScopeHint"))
         #expect(settingsSource.contains("CloudSyncSettings.statusLocalizationKey"))
         #expect(settingsSource.contains("L10n.settingsSyncDatabaseTitle"))
         #expect(settingsSource.contains("Toggle(\"\", isOn: $cloudSyncIsEnabled)"))
-        #expect(settingsSource.contains(".disabled(!CloudSyncSettings.isAvailable)"))
+        #expect(settingsSource.contains(".onChange(of: cloudSyncIsEnabled)"))
     }
 
     @Test func appOpensAndInjectsSQLiteDatabase() throws {
