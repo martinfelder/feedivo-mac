@@ -1475,6 +1475,54 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Letzte Änderungen
 
+- 2026-07-24: Feature „Freie Gruppierung von Regel-Bedingungen (UND/ODER)" im
+  Power-User-Modus des Regel-Assistenten — VOLLSTÄNDIG ABGESCHLOSSEN und gepusht
+  (`77d13d74..0b83521a`). Ersetzt den bisherigen globalen „Treffer bei: Alle
+  Bedingungen / Eine reicht"-Umschalter durch explizite, umrandete Gruppen-Boxen:
+  jede Box intern UND-verknüpft, die Boxen untereinander ODER-verknüpft (z. B.
+  `(A UND B) ODER (C UND D) ODER E`), eine Verschachtelungsebene. Umgesetzt via
+  Brainstorming→Spec→Plan→Subagent-Driven-Development (7 Tasks, alle Task-Reviews
+  clean im ersten Anlauf, 0 Critical/Important) + finaler Whole-Branch-Review
+  (Opus). Architektur: neues `groupIndex: Int`-Feld (Default 0) auf
+  `RuleConditionRecord`/`RuleConditionDraft`, Migration `v20_add_rule_condition_
+  group_index` mit Backfill aus dem bisherigen `rules.matchMode` (`"all"` → eine
+  gemeinsame Gruppe, `"any"` → je eigene Gruppe pro Bedingung in
+  `sortOrder`-Reihenfolge — bestehende Regeln verhalten sich nach dem Update
+  identisch weiter). `RuleEngine.matches()` gruppiert per
+  `Dictionary(grouping:by:\.groupIndex)` + `.contains { allSatisfy }` statt den
+  globalen `matchMode`-Parameter zu befragen; neue, reine und isoliert getestete
+  `RuleConditionGroupLayout.swift` kapselt die Gruppierungs-/Entfernungslogik
+  (Muster wie `SidebarFeedOrder.swift`). `RuleSettingsFormatter.conditionSummary`
+  setzt Klammern nur bei mehr als einer Gruppe UND mehr als einer Bedingung pro
+  Gruppe. `RuleMatchMode` (der Typ) bleibt vollständig bestehen — wird weiterhin
+  unabhängig von Smart Folders genutzt, nur die *Regeln*-Seite verlor ihre
+  Abhängigkeit davon. **Whole-Branch-Review fand einen echten, nur aus
+  Gesamtsicht sichtbaren Integrationsfehler:** `RuleSettingsView.
+  matchingCountsReloadToken` (eine Datei außerhalb aller 6 Task-Diffs)
+  berücksichtigte `groupIndex` nicht — nach reinem Umgruppieren einer Regel
+  (identische Feld/Operator/Wert/sortOrder-Tupel, nur `groupIndex` unterschiedlich)
+  feuerte der `.task(id:)`-Reload nicht, die angezeigte Trefferzahl blieb veraltet
+  stehen (der Zusammenfassungstext selbst war korrekt, da er direkt aus
+  `conditions` liest). Sofort per 1-Wort-Fix behoben (Commit `0b83521a`). Zwei
+  weitere während der Umsetzung gefundene Stolpersteine: `extension RuleMatchMode:
+  RuleSelectOption {}` musste von `RuleWizardView.swift` nach
+  `SmartFolderEditorView.swift` verschoben (nicht gelöscht) werden, da
+  `SmartFolderEditorView.swift`s eigener Match-Mode-Umschalter modulweit auf
+  dieser Konformität aufbaut; ein Source-Sniffing-Test in
+  `FeedivoAppSceneConfigurationTests.swift` prüfte die exakte alte
+  Aufrufsyntax und musste mitgeändert werden. 120/120 relevante Tests grün,
+  Build (Debug + Release) grün, genau die bekannten 17 vorbestehenden
+  `FeedivoAppSceneConfigurationTests`-Fehlschläge unverändert (keine neuen
+  Regressionen). Ausstehend: manuelle 13-Punkte-Live-Verifikationscheckliste
+  (Gruppen anlegen/löschen, ODER-Trenner, Migration bei Bestandsregeln,
+  Simple-Modus unverändert) durch den Nutzer. Spec:
+  `docs/superpowers/specs/2026-07-24-regel-bedingungen-gruppierung-design.md`,
+  Plan: `docs/superpowers/plans/2026-07-24-regel-bedingungen-gruppierung.md`.
+- 2026-07-24: CLAUDE.md-Korrektur — der Push-Status-Vermerk „lokal auf main,
+  NICHT gepusht" beim Eintrag vom 2026-07-23 (Commit `cb60943`, Kollision
+  App-Start-Refresh/Hintergrund-Scheduler) war veraltet — der Commit ist
+  längst auf `origin/main` (per `git merge-base --is-ancestor` verifiziert).
+  Reiner Dokumentations-Nachtrag, keine Code-Änderung.
 - 2026-07-23: Bugfix — Kollision zwischen App-Start-Refresh und Hintergrund-Scheduler
   behoben (Nutzer-Report: "Feed-Fehler: Aktualisierung läuft bereits" bei praktisch
   jedem App-Start). Via systematic-debugging: `NSBackgroundActivityScheduler` kennt
@@ -1485,7 +1533,7 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   unterscheidet zusätzlich automatische von nutzerausgelösten Aufrufen als zweite,
   unabhängige Absicherung. TDD (5 neue Tests), 17 bekannte Vorabfehlschläge in
   `FeedivoAppSceneConfigurationTests` unverändert. Details siehe neuer Gotcha oben.
-  Commit `cb60943`, lokal auf `main`, NICHT gepusht.
+  Commit `cb60943`, gepusht (siehe Korrektur oben).
 - 2026-07-23: CLAUDE.md-Korrektur — Zahl der bekannten, vorbestehenden Testfehlschläge in
   `FeedivoAppSceneConfigurationTests.swift` von „15" auf „17" korrigiert (siehe Gotcha oben).
   Fund entstand aus dem Offline-Feature-Entfernen-Plan (Task 4), wo der tatsächliche Lauf
