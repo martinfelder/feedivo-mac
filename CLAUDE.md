@@ -48,7 +48,7 @@ anfühlt — kein iOS-Port, keine Electron-App. Echtes AppKit-Feeling via SwiftU
 | Architektur | MVVM | `@Observable` Macro (kein ObservableObject) |
 | Navigation | NavigationSplitView | 3-Spalten: Sidebar / Artikelliste / Reader, plus separate Fenster (Suche, Organizer, Artikel-Popout) |
 | Persistenz | GRDB (SQLite) | Eigene Datenschicht in `Feedivo/Database/` + `Feedivo/Stores/`. SwiftData wurde vollständig entfernt (2026-07-07) |
-| iCloud Sync | Noch nicht funktional angebunden | UI-Toggle "iCloud Sync Beta" existiert (`CloudSyncSettings`), aber ohne CloudKit-Backend auf `main`. Aktive Vorarbeit auf separatem Branch `codex/icloud-sync-beta` — basiert noch auf der alten SwiftData-Architektur und muss auf GRDB/SQLite migriert werden, bevor er mergebar ist |
+| iCloud Sync | Phase 1 implementiert (nur Tags) | `CKSyncEngine`-Fundament seit 2026-07-24 auf `main` (`Feedivo/Services/CloudSync/`) — synchronisiert bisher ausschließlich die `tags`-Tabelle, Toggle wirkt sofort ohne Neustart. Restliche Tabellen (Feeds/Ordner/Regeln/Intelligente Ordner/Artikelstatus) folgen in Phase 2. Live-Verifikation über das CloudKit Dashboard steht noch aus. Der alte, SwiftData-basierte Branch `codex/icloud-sync-beta` ist vollständig überholt (ADR-007) |
 | Netzwerk | URLSession + async/await | Kein Alamofire, kein Combine |
 | RSS-Parsing | FeedKit | Swift Package, URL: https://github.com/nmdias/FeedKit |
 | Datenbank-Package | GRDB.swift | Swift Package, URL: https://github.com/groue/GRDB.swift |
@@ -252,9 +252,11 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
   Dateien, finale Löschung der 9 Model-Dateien), umgesetzt über Subagent-Driven-Development mit
   Task- und finalem Whole-Branch-Review.
 - **Konsequenz für iCloud Sync:** Die CloudKit-Anbindung, die ursprünglich über
-  `isCloudKitEnabled` an SwiftData hing, existiert dadurch aktuell nicht mehr. Ein neuer,
-  GRDB-kompatibler Sync-Mechanismus ist Ziel des (aktuell pausierten) Branches
-  `codex/icloud-sync-beta`.
+  `isCloudKitEnabled` an SwiftData hing, existiert dadurch nicht mehr. Ein neuer,
+  GRDB-kompatibler Sync-Mechanismus wurde am 2026-07-24 als Phase 1 (CKSyncEngine-Fundament,
+  nur Tags) umgesetzt — siehe den entsprechenden Eintrag unter „Aktuell in Arbeit" weiter
+  unten. Der ursprünglich hierfür vorgesehene Branch `codex/icloud-sync-beta` (SwiftData-
+  basiert) ist dadurch vollständig überholt und wird nicht mehr weiterverfolgt.
 - **Datum:** 2026-07-07
 
 ### ADR-008: Sidebar auf AppKit NSOutlineView statt SwiftUI-natives Drag & Drop umgestellt
@@ -848,9 +850,10 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 - [x] Smart Filter / intelligente Ordner mit eigenem Editor und Bedingungen
 - [x] `RuleEngine` inkl. Regel-Assistent (Wizard) und Einstellungs-UI
 - [x] Background Refresh (`NSBackgroundActivityScheduler` statt `BGTaskScheduler`)
-- [ ] **iCloud Sync via CloudKit** — UI-Toggle existiert ("iCloud Sync Beta"), aber ohne
-      funktionales Backend auf `main`; Vorarbeit auf Branch `codex/icloud-sync-beta`
-      pausiert und muss noch auf GRDB/SQLite migriert werden (siehe ADR-007)
+- [ ] **iCloud Sync via CloudKit** — Phase 1 (CKSyncEngine-Fundament, nur Tags) seit
+      2026-07-24 auf `main` implementiert, Live-Verifikation noch ausstehend. Phase 2
+      (restliche Tabellen), Phase 3 (Feld-Ebene-Konflikte + Merge-Dialog) und Phase 4
+      (Härtung) stehen noch aus — Checkbox bleibt deshalb offen
 
 ### M4 – Polish & Release — größtenteils ✅
 - [x] OPML Import (mit Vorschau/Review-Screen, Duplikat-Erkennung)
@@ -890,8 +893,10 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Offene Entscheidungen
 
-- **iCloud Sync:** Wann und wie wird `codex/icloud-sync-beta` auf GRDB/SQLite migriert und
-  gemergt? Bis dahin bleibt der Settings-Toggle ein reiner UI-Platzhalter ohne Funktion.
+- **iCloud Sync:** Phase 1 (nur Tags) ist seit 2026-07-24 implementiert (siehe „Aktuell in
+  Arbeit"). Offen: wann werden Phase 2 (restliche Tabellen), Phase 3 (Feld-Ebene-Konflikte +
+  Merge-Dialog bei Erst-Aktivierung) und Phase 4 (Härtung) angegangen? Der alte
+  `codex/icloud-sync-beta`-Branch (SwiftData-basiert) ist überholt und nicht mehr relevant.
 - **Monetarisierung:** Kostenlos / einmaliger Kauf / nie im App Store? — weiterhin offen.
 - **Share Extension:** Noch nicht begonnen, kein konkreter Zeitplan.
 - **App Store vs. private Verteilung:** Weiterhin offen.

@@ -51,6 +51,7 @@ struct TagStore {
 
             try enqueuePendingSync(db, tagID: tag.id, changeType: .save)
         }
+        CloudSyncEngine.notifyPendingChangesAvailable(database: database)
     }
 
     func tags() throws -> [TagRecord] {
@@ -213,6 +214,7 @@ struct TagStore {
 
             try enqueuePendingSync(db, tagID: id, changeType: .save)
         }
+        CloudSyncEngine.notifyPendingChangesAvailable(database: database)
     }
 
     /// Verschiebt den Tag mit `id` an Index `targetIndex` innerhalb der
@@ -240,6 +242,7 @@ struct TagStore {
                 try enqueuePendingSync(db, tagID: tagID, changeType: .save)
             }
         }
+        CloudSyncEngine.notifyPendingChangesAvailable(database: database)
     }
 
     func updateColor(id: String, colorHex: String) throws {
@@ -259,6 +262,7 @@ struct TagStore {
 
             try enqueuePendingSync(db, tagID: id, changeType: .save)
         }
+        CloudSyncEngine.notifyPendingChangesAvailable(database: database)
     }
 
     func removeTag(tagID: String, fromFeedID feedID: String) throws {
@@ -297,5 +301,6 @@ struct TagStore {
 
             try enqueuePendingSync(db, tagID: id, changeType: .delete)
         }
+        CloudSyncEngine.notifyPendingChangesAvailable(database: database)
     }
 }

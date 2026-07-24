@@ -19,6 +19,14 @@ final class CloudSyncEngine: NSObject {
     private var syncEngine: CKSyncEngine?
     private var startTask: Task<Void, Never>?
 
+    /// Prozessweite Referenz auf die aktuell laufende Engine-Instanz, einmalig von
+    /// `FeedivoApp` beim Start gesetzt (siehe `register(_:)`). Ermöglicht `TagStore` (und
+    /// künftig weiteren Stores), die laufende Engine sofort über eine neue ausstehende
+    /// Änderung zu informieren, statt nur die App-eigene Warteschlange zu befüllen — ohne
+    /// Dependency Injection durch alle TagStore-Aufrufstellen im gesamten Projekt
+    /// durchzureichen.
+    private static var current: CloudSyncEngine?
+
     init(database: FeedivoDatabase) {
         self.database = database
         self.pendingChangeStore = CloudSyncPendingChangeStore(database: database)
@@ -64,23 +72,7 @@ final class CloudSyncEngine: NSObject {
                 UserDefaults.standard.set(true, forKey: Self.hasCreatedZoneKey)
             }
 
-            do {
-                let pending = try pendingChangeStore.pendingChanges()
-                if !pending.isEmpty {
-                    let changes: [CKSyncEngine.PendingRecordZoneChange] = pending.map { change in
-                        let recordID = CloudSyncTagMapping.recordID(forTagID: change.id)
-                        switch change.changeType {
-                        case .save:
-                            return .saveRecord(recordID)
-                        case .delete:
-                            return .deleteRecord(recordID)
-                        }
-                    }
-                    engine.state.add(pendingRecordZoneChanges: changes)
-                }
-            } catch {
-                AppLogger.dataAccess.error("iCloud Sync: Ausstehende Aenderungen konnten nicht geladen werden: \(error.localizedDescription, privacy: .public)")
-            }
+            Self.notifyPendingChangesAvailable(database: database)
 
             status.state = .idle
         }
@@ -91,6 +83,36 @@ final class CloudSyncEngine: NSObject {
         startTask = nil
         syncEngine = nil
         status.state = .idle
+    }
+
+    /// Registriert die eine, prozessweite `CloudSyncEngine`-Instanz. Wird einmalig von
+    /// `FeedivoApp.init()` aufgerufen.
+    static func register(_ engine: CloudSyncEngine) {
+        current = engine
+    }
+
+    /// Informiert die laufende Engine über alle aktuell in der App-eigenen Warteschlange
+    /// stehenden Änderungen. Aufrufer (z. B. `TagStore`-Mutationen) rufen dies nach einer
+    /// erfolgreichen Transaktion auf, damit neue Änderungen sofort gesendet werden, statt
+    /// erst beim nächsten `start()` (App-Neustart oder Sync-Toggle aus/an) nachgeholt zu
+    /// werden. Läuft Sync gerade nicht (Toggle aus, oder App noch beim Start), ist dieser
+    /// Aufruf ein No-Op — die Änderung bleibt in der Warteschlange stehen und wird beim
+    /// nächsten `start()` ohnehin rehydriert.
+    static func notifyPendingChangesAvailable(database: FeedivoDatabase) {
+        guard let syncEngine = current?.syncEngine else { return }
+        guard let pending = try? CloudSyncPendingChangeStore(database: database).pendingChanges(), !pending.isEmpty else {
+            return
+        }
+        let changes: [CKSyncEngine.PendingRecordZoneChange] = pending.map { change in
+            let recordID = CloudSyncTagMapping.recordID(forTagID: change.id)
+            switch change.changeType {
+            case .save:
+                return .saveRecord(recordID)
+            case .delete:
+                return .deleteRecord(recordID)
+            }
+        }
+        syncEngine.state.add(pendingRecordZoneChanges: changes)
     }
 
     private static func loadStateSerialization() -> CKSyncEngine.State.Serialization? {
@@ -242,6 +264,7 @@ extension CloudSyncEngine: CKSyncEngineDelegate {
         } else {
             do {
                 try pendingChangeStore.enqueue(recordType: "tag", recordName: failedSave.record.recordID.recordName, changeType: .save)
+                Self.notifyPendingChangesAvailable(database: database)
             } catch {
                 AppLogger.dataAccess.error("iCloud Sync: Erneuter Sync-Versuch nach Konflikt konnte nicht eingeplant werden: \(error.localizedDescription, privacy: .public)")
             }

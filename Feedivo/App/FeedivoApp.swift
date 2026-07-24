@@ -59,6 +59,13 @@ struct FeedivoApp: App {
         self.feedivoDatabase = database
         self.localExtensionBridgeServer = LocalExtensionBridgeServer(database: database)
         self.cloudSyncEngine = CloudSyncEngine(database: database)
+        // Prozessweite Registrierung, siehe CloudSyncEngine.register(_:) — ermöglicht
+        // TagStore-Mutationen, die laufende Engine sofort über neue ausstehende Änderungen
+        // zu informieren (Fix Whole-Branch-Review: Runtime-Mutationen erreichten sonst nie
+        // die laufende CKSyncEngine, nur einen App-Neustart). Bewusst unabhängig davon, ob
+        // Sync aktuell aktiv ist — solange die Engine nicht gestartet wurde, ist jeder
+        // Benachrichtigungsversuch ein No-Op (siehe notifyPendingChangesAvailable-Guard).
+        CloudSyncEngine.register(self.cloudSyncEngine)
         self.databaseLoadState.initializationError = databaseOpenResult.errorDescription
         // Feature 21.1: `NSStatusItem` darf erst in `applicationDidFinishLaunching` entstehen
         // (siehe `FeedivoAppDelegate`) — hier nur die Abhängigkeiten durchreichen.
