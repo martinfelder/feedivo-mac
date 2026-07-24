@@ -19223,6 +19223,34 @@
         }
       }
     },
+    "ruleWizard.addGroup" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ODER-Gruppe hinzufügen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add OR group"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajouter un groupe OU"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiungi gruppo OR"
+          }
+        }
+      }
+    },
     "ruleWizard.conditions.title" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -20323,6 +20351,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rimuovi condizione"
+          }
+        }
+      }
+    },
+    "ruleWizard.removeGroup" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gruppe entfernen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove group"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprimer le groupe"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rimuovi gruppo"
           }
         }
       }

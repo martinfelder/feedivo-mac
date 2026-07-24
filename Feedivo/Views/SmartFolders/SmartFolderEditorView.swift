@@ -594,6 +594,7 @@ extension SmartFolderStatusValue: RuleSelectOption {}
 extension SmartFolderDateValue: RuleSelectOption {}
 extension String: RuleSelectOption {}
 extension Bool: RuleSelectOption {}
+extension RuleMatchMode: RuleSelectOption {}
 
 private extension SmartFolderConditionField {
     var titleKey: LocalizedStringKey { LocalizedStringKey(title) }

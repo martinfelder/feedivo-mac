@@ -737,7 +737,6 @@ struct RuleWizardView: View {
 // geteilt mit dem Intelligenten-Ordner-Dialog)
 
 extension RuleWizardMode: RuleSelectOption {}
-extension RuleMatchMode: RuleSelectOption {}
 extension RuleAction: RuleSelectOption {}
 
 // MARK: - Switch
