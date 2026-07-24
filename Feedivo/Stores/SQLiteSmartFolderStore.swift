@@ -8,10 +8,41 @@ struct SQLiteSmartFolderStore {
         self.database = database
     }
 
+    /// Markiert eine lokale Ordner- oder Bedingungszeile als ausstehende Sync-Änderung, falls
+    /// iCloud Sync aktiv ist. Läuft bewusst INNERHALB derselben `database.write`-Transaktion
+    /// wie die fachliche Mutation — analog zu `FeedStore`/`FeedFolderStore`/`TagStore`/
+    /// `SQLiteRuleStore`.
+    private func enqueuePendingSync(_ db: Database, recordType: String, recordName: String, changeType: CloudSyncChangeType) throws {
+        guard CloudSyncSettings.isEnabled() else { return }
+        try CloudSyncPendingChangeStore.enqueue(db, recordType: recordType, recordName: recordName, changeType: changeType)
+    }
+
+    // `smart_folder_conditions.smartFolderID` hat `ON DELETE CASCADE` (`PRAGMA foreign_keys = ON`
+    // ist aktiv, siehe FeedivoDatabase.swift) — die alten Bedingungs-IDs müssen deshalb VOR dem
+    // `DELETE FROM smart_folder_conditions` ermittelt und als `.delete` enqueued werden, sonst
+    // sind sie danach nicht mehr abfragbar. Eingebaute Ordner (`isDefault == true`) syncen nie —
+    // NUR das Enqueuen wird deshalb übersprungen (`guard !folder.isDefault` VOR jedem
+    // `enqueuePendingSync`-Aufruf), das Delete-all-then-reinsert-Verhalten für Bedingungen
+    // läuft unverändert für ALLE Ordner (default oder nicht) — ein früherer Entwurf, der die
+    // komplette Bedingungslogik hinter einem einzigen `guard !folder.isDefault else { return }`
+    // versteckte, brach `smartFolderStoreSpeichertOrdnerMitConditionsUndSnapshots()` in
+    // `SQLiteAdminStoreTests.swift` (ein Aufruf mit `isDefault: true` UND Bedingungen), weil er
+    // die Bedingungen für Default-Ordner gar nicht mehr persistierte.
     func save(_ folder: SmartFolderRecord, conditions: [SmartFolderConditionRecord]) throws {
         try database.write { db in
             var folder = folder
             try folder.save(db)
+
+            if !folder.isDefault {
+                try enqueuePendingSync(db, recordType: CloudSyncSmartFolderMapping.recordType, recordName: folder.id, changeType: .save)
+            }
+
+            let existingConditionIDs = try String.fetchAll(db, sql: "SELECT id FROM smart_folder_conditions WHERE smartFolderID = ?", arguments: [folder.id])
+            if !folder.isDefault {
+                for conditionID in existingConditionIDs {
+                    try enqueuePendingSync(db, recordType: CloudSyncSmartFolderConditionMapping.recordType, recordName: conditionID, changeType: .delete)
+                }
+            }
 
             try db.execute(
                 sql: """
@@ -25,8 +56,12 @@ struct SQLiteSmartFolderStore {
                 var condition = condition
                 condition.smartFolderID = folder.id
                 try condition.insert(db)
+                if !folder.isDefault {
+                    try enqueuePendingSync(db, recordType: CloudSyncSmartFolderConditionMapping.recordType, recordName: condition.id, changeType: .save)
+                }
             }
         }
+        CloudSyncEngine.notifyPendingChangesAvailable(database: database)
     }
 
     func folders() throws -> [SmartFolderRecord] {
@@ -61,11 +96,20 @@ struct SQLiteSmartFolderStore {
                     """,
                 arguments: [isShownInSidebar, Date(), id]
             )
+
+            let isDefault = try Bool.fetchOne(db, sql: "SELECT isDefault FROM smart_folders WHERE id = ?", arguments: [id]) ?? true
+            guard !isDefault else { return }
+            try enqueuePendingSync(db, recordType: CloudSyncSmartFolderMapping.recordType, recordName: id, changeType: .save)
         }
+        CloudSyncEngine.notifyPendingChangesAvailable(database: database)
     }
 
+    // Die Kopie ist immer `isDefault: false` (siehe Konstruktor unten) — enqueued deshalb
+    // IMMER, unabhängig davon, ob der Quell-Ordner selbst ein eingebauter Ordner war.
+    // `database.write { ... }` reicht hier den Rückgabewert des Closures (`SmartFolderRecord`)
+    // durch — `notifyPendingChangesAvailable` steht deshalb NACH dem `write`-Aufruf, nicht darin.
     func duplicate(id: String, copyName: String) throws -> SmartFolderRecord {
-        try database.write { db in
+        let duplicate = try database.write { db -> SmartFolderRecord in
             guard let source = try SmartFolderRecord.fetchOne(db, sql: """
                 SELECT *
                 FROM smart_folders
@@ -90,6 +134,7 @@ struct SQLiteSmartFolderStore {
                 defaultShowsReadArticles: source.defaultShowsReadArticles
             )
             try duplicate.insert(db)
+            try enqueuePendingSync(db, recordType: CloudSyncSmartFolderMapping.recordType, recordName: duplicateID, changeType: .save)
 
             let conditions = try Self.fetchConditions(db, folderID: source.id)
             for (index, condition) in conditions.enumerated() {
@@ -102,10 +147,13 @@ struct SQLiteSmartFolderStore {
                     sortOrder: index
                 )
                 try copiedCondition.insert(db)
+                try enqueuePendingSync(db, recordType: CloudSyncSmartFolderConditionMapping.recordType, recordName: copiedCondition.id, changeType: .save)
             }
 
             return duplicate
         }
+        CloudSyncEngine.notifyPendingChangesAvailable(database: database)
+        return duplicate
     }
 
     func move(id sourceID: String, toPositionOf targetID: String) throws {
@@ -130,8 +178,11 @@ struct SQLiteSmartFolderStore {
                         """,
                     arguments: [index, Date(), folder.id]
                 )
+                guard !folder.isDefault else { continue }
+                try enqueuePendingSync(db, recordType: CloudSyncSmartFolderMapping.recordType, recordName: folder.id, changeType: .save)
             }
         }
+        CloudSyncEngine.notifyPendingChangesAvailable(database: database)
     }
 
     func restoreDefaultFolders() throws {
@@ -173,8 +224,23 @@ struct SQLiteSmartFolderStore {
         }
     }
 
+    // `smart_folder_conditions.smartFolderID` hat `ON DELETE CASCADE` — die betroffenen
+    // Bedingungs-IDs müssen VOR dem `DELETE FROM smart_folders`-Statement ermittelt und als
+    // `.delete` enqueued werden, weil SQLite ihre Zeilen bei diesem einen Statement bereits
+    // mitlöscht (siehe Doku oben bei `save`). Eingebaute Ordner (`isDefault == true`) syncen
+    // nie — die fachliche Löschung läuft trotzdem für ALLE Ordner, nur ohne Enqueue.
     func delete(id: String) throws {
         try database.write { db in
+            let isDefault = try Bool.fetchOne(db, sql: "SELECT isDefault FROM smart_folders WHERE id = ?", arguments: [id]) ?? true
+
+            if !isDefault {
+                let conditionIDs = try String.fetchAll(db, sql: "SELECT id FROM smart_folder_conditions WHERE smartFolderID = ?", arguments: [id])
+                for conditionID in conditionIDs {
+                    try enqueuePendingSync(db, recordType: CloudSyncSmartFolderConditionMapping.recordType, recordName: conditionID, changeType: .delete)
+                }
+                try enqueuePendingSync(db, recordType: CloudSyncSmartFolderMapping.recordType, recordName: id, changeType: .delete)
+            }
+
             try db.execute(
                 sql: """
                     DELETE FROM smart_folders
@@ -183,6 +249,7 @@ struct SQLiteSmartFolderStore {
                 arguments: [id]
             )
         }
+        CloudSyncEngine.notifyPendingChangesAvailable(database: database)
     }
 
     func sidebarSnapshots() throws -> [SQLiteSmartFolderSnapshot] {
