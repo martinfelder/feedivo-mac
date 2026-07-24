@@ -5,4 +5,5 @@ struct RuleConditionDraft: Identifiable, Equatable {
     var field: RuleConditionField
     var conditionOperator: RuleConditionOperator
     var value: String
+    var groupIndex: Int = 0
 }

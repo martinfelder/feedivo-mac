@@ -705,6 +705,106 @@ struct SQLiteDatabaseMigrationTests {
         #expect(!tableNames.contains("article_offline"))
         #expect(!indexNames.contains("idx_article_offline_state"))
     }
+    @Test func migrationV20FuegtGroupIndexSpalteHinzu() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+
+        let columns = try database.read { db in
+            try Row.fetchAll(db, sql: "PRAGMA table_info(rule_conditions)")
+        }
+        let column = columns.first { ($0["name"] as String?) == "groupIndex" }
+
+        #expect(column != nil)
+        #expect((column?["notnull"] as Int?) == 1)
+        #expect((column?["dflt_value"] as String?) == "0")
+    }
+
+    @Test func migrationV20BackfilltGroupIndexFuerAllMatchModeAlsEineGruppe() throws {
+        let queue = try DatabaseQueue()
+        try FeedivoDatabaseMigrator.migrator.migrate(queue, upTo: "v19_drop_article_offline_table")
+
+        try queue.write { db in
+            let now = Date()
+            try db.execute(
+                sql: """
+                    INSERT INTO rules (id, name, isEnabled, matchMode, action, notificationTemplate, notificationPriority, sortOrder, createdAt, updatedAt)
+                    VALUES ('rule-all', 'Alle-Regel', 1, 'all', 'assignTag', '{Titel}', 'normal', 0, ?, ?)
+                    """,
+                arguments: [now, now]
+            )
+            try db.execute(
+                sql: """
+                    INSERT INTO rule_conditions (id, ruleID, field, conditionOperator, value, sortOrder)
+                    VALUES
+                        ('cond-1', 'rule-all', 'title', 'contains', 'Swift', 0),
+                        ('cond-2', 'rule-all', 'summary', 'contains', 'macOS', 1),
+                        ('cond-3', 'rule-all', 'author', 'contains', 'Apple', 2)
+                    """
+            )
+        }
+
+        try FeedivoDatabaseMigrator.migrator.migrate(queue)
+
+        let groupIndexByID = try queue.read { db in
+            try Row.fetchAll(db, sql: "SELECT id, groupIndex FROM rule_conditions ORDER BY sortOrder")
+        }.reduce(into: [String: Int]()) { result, row in
+            result[row["id"]] = row["groupIndex"]
+        }
+
+        #expect(groupIndexByID["cond-1"] == 0)
+        #expect(groupIndexByID["cond-2"] == 0)
+        #expect(groupIndexByID["cond-3"] == 0)
+    }
+
+    @Test func migrationV20BackfilltGroupIndexFuerAnyMatchModeAlsEinzelgruppenInSortOrderReihenfolge() throws {
+        let queue = try DatabaseQueue()
+        try FeedivoDatabaseMigrator.migrator.migrate(queue, upTo: "v19_drop_article_offline_table")
+
+        try queue.write { db in
+            let now = Date()
+            try db.execute(
+                sql: """
+                    INSERT INTO rules (id, name, isEnabled, matchMode, action, notificationTemplate, notificationPriority, sortOrder, createdAt, updatedAt)
+                    VALUES ('rule-any', 'Any-Regel', 1, 'any', 'assignTag', '{Titel}', 'normal', 0, ?, ?)
+                    """,
+                arguments: [now, now]
+            )
+            // Bewusst NICHT in sortOrder-Reihenfolge eingefügt, um zu verifizieren,
+            // dass der Backfill wirklich nach sortOrder sortiert, nicht nach
+            // Einfüge-/ID-Reihenfolge.
+            try db.execute(
+                sql: """
+                    INSERT INTO rule_conditions (id, ruleID, field, conditionOperator, value, sortOrder)
+                    VALUES
+                        ('cond-c', 'rule-any', 'author', 'contains', 'Apple', 2),
+                        ('cond-a', 'rule-any', 'title', 'contains', 'Swift', 0),
+                        ('cond-b', 'rule-any', 'summary', 'contains', 'macOS', 1)
+                    """
+            )
+        }
+
+        try FeedivoDatabaseMigrator.migrator.migrate(queue)
+
+        let groupIndexByID = try queue.read { db in
+            try Row.fetchAll(db, sql: "SELECT id, groupIndex FROM rule_conditions")
+        }.reduce(into: [String: Int]()) { result, row in
+            result[row["id"]] = row["groupIndex"]
+        }
+
+        #expect(groupIndexByID["cond-a"] == 0)
+        #expect(groupIndexByID["cond-b"] == 1)
+        #expect(groupIndexByID["cond-c"] == 2)
+    }
+
+    @Test func migrationV20IstIdempotentBeiBereitsVorhandenerSpalte() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+
+        let columns = try database.read { db in
+            try Row.fetchAll(db, sql: "PRAGMA table_info(rule_conditions)")
+        }
+        let groupIndexColumns = columns.filter { ($0["name"] as String?) == "groupIndex" }
+
+        #expect(groupIndexColumns.count == 1)
+    }
 }
 
 private func insertFeed(

@@ -420,6 +420,14 @@ enum FeedivoDatabaseMigrator {
             try database.drop(table: "article_offline")
         }
 
+        migrator.registerMigration("v20_add_rule_condition_group_index") { database in
+            try database.alter(table: "rule_conditions") { table in
+                table.add(column: "groupIndex", .integer).notNull().defaults(to: 0)
+            }
+
+            try backfillRuleConditionGroupIndex(database)
+        }
+
         return migrator
     }
 
@@ -537,5 +545,33 @@ enum FeedivoDatabaseMigrator {
                 """,
             arguments: ["starred", "thisWeek", "hidden", "saved"]
         )
+    }
+
+    /// Befüllt groupIndex für Bestandsregeln anhand des bisherigen rules.matchMode:
+    /// "all" -> eine gemeinsame Gruppe (groupIndex 0 für alle Bedingungen, entspricht
+    /// dem Spaltendefault, kein UPDATE nötig). "any" -> jede Bedingung bekommt eine
+    /// eigene Gruppe (fortlaufender groupIndex in sortOrder-Reihenfolge), damit jede
+    /// für sich allein weiterhin ausreicht wie beim bisherigen ODER-Verhalten.
+    private static func backfillRuleConditionGroupIndex(_ database: Database) throws {
+        let anyModeRuleIDs = try String.fetchAll(
+            database,
+            sql: "SELECT id FROM rules WHERE matchMode = ?",
+            arguments: [RuleMatchMode.any.rawValue]
+        )
+
+        for ruleID in anyModeRuleIDs {
+            let conditionIDs = try String.fetchAll(
+                database,
+                sql: "SELECT id FROM rule_conditions WHERE ruleID = ? ORDER BY sortOrder, id COLLATE NOCASE",
+                arguments: [ruleID]
+            )
+
+            for (index, conditionID) in conditionIDs.enumerated() {
+                try database.execute(
+                    sql: "UPDATE rule_conditions SET groupIndex = ? WHERE id = ?",
+                    arguments: [index, conditionID]
+                )
+            }
+        }
     }
 }
