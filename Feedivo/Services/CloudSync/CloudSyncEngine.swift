@@ -169,7 +169,21 @@ final class CloudSyncEngine: NSObject {
         // nicht — deshalb hier zusätzlich explizit `sendChanges()` anstoßen (Apples dokumentierte
         // "manual override" für genau diesen Fall), statt uns nur auf automatische Planung zu
         // verlassen.
-        Task {
+        //
+        // **Bewusst `Task.detached`, nicht `Task { ... }`:** Diese Methode wird auch aus
+        // `handleFailedSave` heraus aufgerufen (Konfliktauflösungspfad), der selbst innerhalb
+        // von `CKSyncEngineDelegate.handleEvent` läuft. `sendChanges()` ruft intern wieder in
+        // den Delegate zurück (`nextRecordZoneChangeBatch`) — ein normaler, nicht-detachter
+        // `Task {}` erbt den Actor-/Ausführungskontext des aufrufenden Delegate-Callbacks und
+        // wird von CKSyncEngine deshalb weiterhin als "innerhalb des Callbacks" betrachtet, was
+        // zu einem Fatal Error führt ("BUG IN CLIENT OF CLOUDKIT: Cannot await a call into
+        // CKSyncEngine from within a delegate callback ... Try performing this in a detached
+        // Task", live reproduziert 2026-07-24 beim wiederholten Testen der Sync-Status-
+        // Übersicht, sobald ein echter Server-Konflikt auftrat). `Task.detached` verlässt den
+        // Actor-Kontext vollständig und ist an allen drei Aufrufstellen dieser Methode sicher
+        // (auch an den beiden unkritischen: `start()` und Store-Mutationen außerhalb jedes
+        // Delegate-Callbacks).
+        Task.detached {
             do {
                 try await syncEngine.sendChanges()
             } catch {
