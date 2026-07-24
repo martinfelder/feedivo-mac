@@ -245,8 +245,7 @@ struct RuleSettingsView: View {
             )
 
             counts[rule.id] = (try? store.matchingArticleCount(
-                conditionDrafts: drafts,
-                matchMode: RuleMatchMode.normalized(rule.matchMode)
+                conditionDrafts: drafts
             )) ?? 0
         }
 
@@ -411,7 +410,7 @@ private struct RuleSettingsRow: View {
                     .foregroundStyle(theme.text)
                     .lineLimit(1)
 
-                Text(RuleSettingsFormatter.conditionSummary(for: rule, conditions: conditions))
+                Text(RuleSettingsFormatter.conditionSummary(conditions: conditions))
                     .font(.system(size: 12))
                     .foregroundStyle(theme.text2)
                     .lineLimit(2)
@@ -567,21 +566,41 @@ private struct RuleActionPill: View {
 }
 
 enum RuleSettingsFormatter {
-    static func conditionSummary(
-        for rule: RuleRecord,
-        conditions: [RuleConditionRecord]
-    ) -> String {
-        let conditionDrafts = conditionDrafts(for: conditions)
-        guard !conditionDrafts.isEmpty else {
+    static func conditionSummary(conditions: [RuleConditionRecord]) -> String {
+        guard !conditions.isEmpty else {
             return L10n.ruleSummaryNoCondition
         }
 
-        let connector = RuleMatchMode.normalized(rule.matchMode) == .all ? L10n.ruleSummaryAll : L10n.ruleSummaryAny
-        return conditionDrafts
-            .map { draft in
-                conditionDescription(draft)
+        let groupedConditions = Dictionary(grouping: conditions, by: \.groupIndex)
+        let orderedGroupIndices = groupedConditions.keys.sorted { lhs, rhs in
+            let lhsMinSortOrder = groupedConditions[lhs]?.map(\.sortOrder).min() ?? 0
+            let rhsMinSortOrder = groupedConditions[rhs]?.map(\.sortOrder).min() ?? 0
+            return lhsMinSortOrder < rhsMinSortOrder
+        }
+        let hasMultipleGroups = orderedGroupIndices.count > 1
+
+        let groupDescriptions = orderedGroupIndices.compactMap { groupIndex -> String? in
+            guard let groupConditions = groupedConditions[groupIndex] else {
+                return nil
             }
-            .joined(separator: " \(connector) ")
+
+            let drafts = conditionDrafts(for: groupConditions)
+            guard !drafts.isEmpty else {
+                return nil
+            }
+
+            let joined = drafts
+                .map { draft in conditionDescription(draft) }
+                .joined(separator: " \(L10n.ruleSummaryAll) ")
+
+            return (hasMultipleGroups && drafts.count > 1) ? "(\(joined))" : joined
+        }
+
+        guard !groupDescriptions.isEmpty else {
+            return L10n.ruleSummaryNoCondition
+        }
+
+        return groupDescriptions.joined(separator: " \(L10n.ruleSummaryAny) ")
     }
 
     static func conditionDrafts(for conditions: [RuleConditionRecord]) -> [RuleConditionDraft] {
@@ -597,7 +616,8 @@ enum RuleSettingsFormatter {
                 return RuleConditionDraft(
                     field: field,
                     conditionOperator: conditionOperator,
-                    value: condition.value
+                    value: condition.value,
+                    groupIndex: condition.groupIndex
                 )
         }
     }
