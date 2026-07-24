@@ -98,7 +98,8 @@ struct SQLiteRuleStore {
                     field: condition.field,
                     conditionOperator: condition.conditionOperator,
                     value: condition.value,
-                    sortOrder: index
+                    sortOrder: index,
+                    groupIndex: condition.groupIndex
                 )
                 try copiedCondition.insert(db)
             }
@@ -167,7 +168,6 @@ struct SQLiteRuleStore {
                     id: id,
                     name: rule.name,
                     isEnabled: rule.isEnabled,
-                    conditionMatchMode: rule.matchMode,
                     actionRaw: rule.action,
                     notificationTemplate: rule.notificationTemplate,
                     notificationPriorityRaw: rule.notificationPriority,
@@ -177,7 +177,8 @@ struct SQLiteRuleStore {
                             field: condition.field,
                             conditionOperator: condition.conditionOperator,
                             value: condition.value,
-                            sortOrder: condition.sortOrder
+                            sortOrder: condition.sortOrder,
+                            groupIndex: condition.groupIndex
                         )
                     },
                     assignTag: tag.map { tag in

@@ -9,13 +9,11 @@ struct SQLiteRuleEvaluationStore {
     }
 
     func matchingArticleCount(
-        conditionDrafts: [RuleConditionDraft],
-        matchMode: RuleMatchMode
+        conditionDrafts: [RuleConditionDraft]
     ) throws -> Int {
         let snapshots = try articleRuleSnapshots()
         return RuleEngine.matchingArticleCount(
             conditionDrafts: conditionDrafts,
-            matchMode: matchMode,
             articles: snapshots
         )
     }

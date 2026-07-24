@@ -18,8 +18,7 @@ struct SQLiteRuleEvaluationStoreTests {
             conditionDrafts: [
                 RuleConditionDraft(field: .title, conditionOperator: .contains, value: "Swift"),
                 RuleConditionDraft(field: .feedTitle, conditionOperator: .contains, value: "Mac")
-            ],
-            matchMode: .all
+            ]
         )
 
         #expect(count == 1)
@@ -44,7 +43,6 @@ struct SQLiteRuleEvaluationStoreTests {
             id: UUID(),
             name: "Swift",
             isEnabled: true,
-            conditionMatchMode: RuleMatchMode.all.rawValue,
             actionRaw: RuleAction.assignTag.rawValue,
             notificationTemplate: "{Titel}",
             notificationPriorityRaw: RuleNotificationPriority.normal.rawValue,
@@ -63,7 +61,6 @@ struct SQLiteRuleEvaluationStoreTests {
             id: UUID(),
             name: "Spoiler",
             isEnabled: true,
-            conditionMatchMode: RuleMatchMode.all.rawValue,
             actionRaw: RuleAction.hideArticle.rawValue,
             notificationTemplate: "{Titel}",
             notificationPriorityRaw: RuleNotificationPriority.normal.rawValue,

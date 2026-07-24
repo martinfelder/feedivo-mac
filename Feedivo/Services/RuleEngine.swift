@@ -6,13 +6,13 @@ enum RuleEngine {
         var conditionOperator: String
         var value: String
         var sortOrder: Int
+        var groupIndex: Int = 0
     }
 
     struct RuleSnapshot: Equatable, Sendable {
         var id: UUID
         var name: String
         var isEnabled: Bool
-        var conditionMatchMode: String
         var actionRaw: String
         var notificationTemplate: String
         var notificationPriorityRaw: String
@@ -53,12 +53,12 @@ enum RuleEngine {
         var conditionOperator: String
         var lowercasedValue: String
         var regularExpression: NSRegularExpression?
+        var groupIndex: Int
     }
 
     private struct PreparedRuleSnapshot {
         let rule: RuleSnapshot
         let conditions: [NormalizedCondition]
-        let matchMode: RuleMatchMode
     }
 
     static func applySQLiteRules(
@@ -76,7 +76,6 @@ enum RuleEngine {
             for preparedRule in preparedRules {
                 guard matches(
                     conditions: preparedRule.conditions,
-                    matchMode: preparedRule.matchMode,
                     article: article
                 ) else {
                     continue
@@ -122,7 +121,6 @@ enum RuleEngine {
 
     static func matchingArticleCount(
         conditionDrafts: [RuleConditionDraft],
-        matchMode: RuleMatchMode,
         articles: [ArticleRuleSnapshot]
     ) -> Int {
         let conditions = normalizedConditions(from: conditionDrafts)
@@ -131,7 +129,7 @@ enum RuleEngine {
         }
 
         return articles.reduce(0) { count, article in
-            matches(conditions: conditions, matchMode: matchMode, article: article)
+            matches(conditions: conditions, article: article)
                 ? count + 1
                 : count
         }
@@ -150,26 +148,22 @@ enum RuleEngine {
 
             return PreparedRuleSnapshot(
                 rule: rule,
-                conditions: conditions,
-                matchMode: RuleMatchMode.normalized(rule.conditionMatchMode)
+                conditions: conditions
             )
         }
     }
 
     private static func matches(
         conditions: [NormalizedCondition],
-        matchMode: RuleMatchMode,
         article: ArticleRuleSnapshot
     ) -> Bool {
-        switch matchMode {
-        case .all:
-            return conditions.allSatisfy { condition in
-                matches(condition: condition, article: article)
-            }
-        case .any:
-            return conditions.contains { condition in
-                matches(condition: condition, article: article)
-            }
+        let groups = Dictionary(grouping: conditions, by: \.groupIndex)
+        guard !groups.isEmpty else {
+            return false
+        }
+
+        return groups.values.contains { group in
+            group.allSatisfy { condition in matches(condition: condition, article: article) }
         }
     }
 
@@ -190,7 +184,8 @@ enum RuleEngine {
                 normalizedCondition(
                     field: condition.field,
                     conditionOperator: condition.conditionOperator,
-                    value: condition.value
+                    value: condition.value,
+                    groupIndex: condition.groupIndex
                 )
             }
     }
@@ -200,7 +195,8 @@ enum RuleEngine {
             normalizedCondition(
                 field: draft.field.rawValue,
                 conditionOperator: draft.conditionOperator.rawValue,
-                value: draft.value
+                value: draft.value,
+                groupIndex: draft.groupIndex
             )
         }
     }
@@ -208,7 +204,8 @@ enum RuleEngine {
     private static func normalizedCondition(
         field: String,
         conditionOperator: String,
-        value: String
+        value: String,
+        groupIndex: Int
     ) -> NormalizedCondition? {
         let trimmedValue = value.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedValue.isEmpty else {
@@ -228,7 +225,8 @@ enum RuleEngine {
             field: field,
             conditionOperator: conditionOperator,
             lowercasedValue: trimmedValue.lowercased(),
-            regularExpression: expression
+            regularExpression: expression,
+            groupIndex: groupIndex
         )
     }
 

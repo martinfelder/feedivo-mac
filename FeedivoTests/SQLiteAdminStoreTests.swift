@@ -117,7 +117,6 @@ struct SQLiteAdminStoreTests {
         let snapshots = try store.ruleSnapshots()
 
         #expect(snapshots.map(\.name) == ["Swift-Regel"])
-        #expect(snapshots.first?.conditionMatchMode == RuleMatchMode.any.rawValue)
         #expect(snapshots.first?.conditions.map(\.value) == ["Swift"])
         #expect(snapshots.first?.assignTag?.name == "Swift")
     }
