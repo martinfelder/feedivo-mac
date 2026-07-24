@@ -1,10 +1,11 @@
 import Foundation
 import CloudKit
+import GRDB
 
 /// Reine, CloudKit-Netzwerk-freie Mapping-Funktionen zwischen `TagRecord` (GRDB) und `CKRecord`
 /// (CloudKit). `CKRecord`-Konstruktion selbst löst keinen Netzwerkzugriff aus — direkt
 /// unit-testbar ohne echtes CloudKit-Konto.
-enum CloudSyncTagMapping {
+enum CloudSyncTagMapping: CloudSyncRecordMapping {
     static let recordType = "Tag"
     static let zoneName = "FeedivoZone"
 
@@ -46,5 +47,34 @@ enum CloudSyncTagMapping {
             createdAt: ckRecord.creationDate ?? Date(),
             updatedAt: ckRecord.modificationDate ?? Date()
         )
+    }
+
+    // MARK: - CloudSyncRecordMapping
+
+    static func recordID(forLocalID id: String) -> CKRecord.ID {
+        recordID(forTagID: id)
+    }
+
+    static func makeCKRecord(fromLocalID id: String, database: FeedivoDatabase) throws -> CKRecord? {
+        let tags = try TagStore(database: database).tags()
+        guard let tag = tags.first(where: { $0.id == id }) else { return nil }
+        return makeCKRecord(from: tag)
+    }
+
+    static func applyIncoming(_ record: CKRecord, database: FeedivoDatabase) throws {
+        guard var incoming = tagRecord(from: record) else { return }
+        try database.write { db in
+            try incoming.save(db)
+        }
+    }
+
+    static func applyIncomingDeletion(recordID: CKRecord.ID, database: FeedivoDatabase) throws {
+        try database.write { db in
+            try db.execute(sql: "DELETE FROM tags WHERE id = ?", arguments: [recordID.recordName])
+        }
+    }
+
+    static func localUpdatedAt(forLocalID id: String, database: FeedivoDatabase) throws -> Date? {
+        try TagStore(database: database).tags().first(where: { $0.id == id })?.updatedAt
     }
 }

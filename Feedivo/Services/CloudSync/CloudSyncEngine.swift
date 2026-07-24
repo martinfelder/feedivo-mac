@@ -27,6 +27,40 @@ final class CloudSyncEngine: NSObject {
     /// durchzureichen.
     private static var current: CloudSyncEngine?
 
+    /// Registry aller syncbaren Tabellen, Schlüssel = `CloudSyncRecordMapping.recordType`.
+    /// Erweitert in den Folge-Tasks um Feed/FeedFolder/Rule/RuleCondition/SmartFolder/
+    /// SmartFolderCondition. `nonisolated`, da rein statischer, unveränderlicher Inhalt (keine
+    /// Instanz-/Actor-Zustandsabhängigkeit) — ermöglicht synchronen Zugriff aus Tests heraus,
+    /// ohne dass diese selbst `@MainActor`/`async` sein müssen (analog zum bestehenden
+    /// `AppIconBadgeService`-Muster, siehe Gotcha zu `SWIFT_DEFAULT_ACTOR_ISOLATION` in
+    /// CLAUDE.md).
+    private nonisolated static let registry: [String: any CloudSyncRecordMapping.Type] = [
+        CloudSyncTagMapping.recordType: CloudSyncTagMapping.self
+    ]
+
+    nonisolated static func mapping(forRecordType recordType: String) -> (any CloudSyncRecordMapping.Type)? {
+        registry[recordType]
+    }
+
+    /// Sortiert eingehende Records so, dass "Eltern"-Typen (die von keiner anderen Tabelle per
+    /// Fremdschlüssel referenziert werden) vor ihren "Kind"-Typen stehen — `rule_conditions`/
+    /// `smart_folder_conditions` haben einen `ON DELETE CASCADE`-Fremdschlüssel auf ihre
+    /// Elterntabelle UND `PRAGMA foreign_keys = ON` ist aktiv (`FeedivoDatabase.swift`). Träfe
+    /// eine Bedingungszeile lokal ein, BEVOR ihre Regel/ihr Intelligenter Ordner existiert,
+    /// würde der Insert mit einem Fremdschlüssel-Fehler scheitern. `CKSyncEngine` garantiert
+    /// innerhalb eines Batches keine Reihenfolge — dieses Sortieren deckt den Normalfall ab
+    /// (Eltern + Kinder werden zusammen bearbeitet und kommen im selben Batch an).
+    private nonisolated static let childRecordTypes: Set<String> = ["RuleCondition", "SmartFolderCondition"]
+
+    nonisolated static func sortedByDependencyOrder(_ records: [CKRecord]) -> [CKRecord] {
+        records.sorted { lhs, rhs in
+            let lhsIsChild = childRecordTypes.contains(lhs.recordType)
+            let rhsIsChild = childRecordTypes.contains(rhs.recordType)
+            if lhsIsChild == rhsIsChild { return false }
+            return !lhsIsChild
+        }
+    }
+
     init(database: FeedivoDatabase) {
         self.database = database
         self.pendingChangeStore = CloudSyncPendingChangeStore(database: database)
@@ -103,8 +137,9 @@ final class CloudSyncEngine: NSObject {
         guard let pending = try? CloudSyncPendingChangeStore(database: database).pendingChanges(), !pending.isEmpty else {
             return
         }
-        let changes: [CKSyncEngine.PendingRecordZoneChange] = pending.map { change in
-            let recordID = CloudSyncTagMapping.recordID(forTagID: change.id)
+        let changes: [CKSyncEngine.PendingRecordZoneChange] = pending.compactMap { change in
+            guard let mapping = Self.mapping(forRecordType: change.recordType) else { return nil }
+            let recordID = mapping.recordID(forLocalID: change.id)
             switch change.changeType {
             case .save:
                 return .saveRecord(recordID)
@@ -170,8 +205,8 @@ extension CloudSyncEngine: CKSyncEngineDelegate {
             }
 
         case .fetchedRecordZoneChanges(let changes):
-            for modification in changes.modifications {
-                await applyIncomingRecord(modification.record)
+            for modification in Self.sortedByDependencyOrder(changes.modifications.map(\.record)) {
+                await applyIncomingRecord(modification)
             }
             for deletion in changes.deletions {
                 await applyIncomingDeletion(deletion.recordID)
@@ -207,40 +242,38 @@ extension CloudSyncEngine: CKSyncEngineDelegate {
     }
 
     private func record(forPendingChange recordID: CKRecord.ID) async -> CKRecord? {
-        let tags: [TagRecord]
+        guard
+            let pendingChange = try? pendingChangeStore.pendingChange(recordName: recordID.recordName),
+            let mapping = Self.mapping(forRecordType: pendingChange.recordType)
+        else {
+            return nil
+        }
         do {
-            tags = try TagStore(database: database).tags()
+            return try mapping.makeCKRecord(fromLocalID: recordID.recordName, database: database)
         } catch {
-            AppLogger.dataAccess.error("iCloud Sync: Tags fuer ausstehende Aenderung konnten nicht geladen werden: \(error.localizedDescription, privacy: .public)")
+            AppLogger.dataAccess.error("iCloud Sync: CKRecord fuer ausstehende Aenderung konnte nicht gebaut werden: \(error.localizedDescription, privacy: .public)")
             return nil
         }
-        guard let tag = tags.first(where: { $0.id == recordID.recordName }) else {
-            return nil
-        }
-        return CloudSyncTagMapping.makeCKRecord(from: tag)
     }
 
     private func applyIncomingRecord(_ record: CKRecord) async {
-        guard var incoming = CloudSyncTagMapping.tagRecord(from: record) else { return }
+        guard let mapping = Self.mapping(forRecordType: record.recordType) else { return }
         do {
-            try database.write { db in
-                try incoming.save(db)
-            }
+            try mapping.applyIncoming(record, database: database)
         } catch {
-            AppLogger.dataAccess.error("iCloud Sync: Eingehender Tag konnte nicht gespeichert werden: \(error.localizedDescription, privacy: .public)")
+            AppLogger.dataAccess.error("iCloud Sync: Eingehender \(record.recordType, privacy: .public)-Record konnte nicht gespeichert werden: \(error.localizedDescription, privacy: .public)")
             return
         }
         SQLiteDataInvalidation.bumpStatusVersion()
     }
 
     private func applyIncomingDeletion(_ recordID: CKRecord.ID) async {
-        do {
-            try database.write { db in
-                try db.execute(sql: "DELETE FROM tags WHERE id = ?", arguments: [recordID.recordName])
+        for mapping in Self.registry.values {
+            do {
+                try mapping.applyIncomingDeletion(recordID: recordID, database: database)
+            } catch {
+                AppLogger.dataAccess.error("iCloud Sync: Eingehende Loeschung (\(mapping.recordType, privacy: .public)) fehlgeschlagen: \(error.localizedDescription, privacy: .public)")
             }
-        } catch {
-            AppLogger.dataAccess.error("iCloud Sync: Eingehende Tag-Loeschung fehlgeschlagen: \(error.localizedDescription, privacy: .public)")
-            return
         }
         SQLiteDataInvalidation.bumpStatusVersion()
     }
@@ -254,7 +287,7 @@ extension CloudSyncEngine: CKSyncEngineDelegate {
     }
 
     /// Last-Write-Wins: bei einem Server-Konflikt (`.serverRecordChanged`) gewinnt die Seite mit
-    /// dem neueren Zeitstempel (`CKRecord.modificationDate` vs. `TagRecord.updatedAt`).
+    /// dem neueren Zeitstempel (`CKRecord.modificationDate` vs. dem lokalen `updatedAt`).
     private func handleFailedSave(_ failedSave: CKSyncEngine.Event.SentRecordZoneChanges.FailedRecordSave) async {
         guard failedSave.error.code == .serverRecordChanged else {
             status.state = .error(failedSave.error.localizedDescription)
@@ -262,24 +295,25 @@ extension CloudSyncEngine: CKSyncEngineDelegate {
             return
         }
 
-        guard let serverRecord = failedSave.error.serverRecord else { return }
+        guard let serverRecord = failedSave.error.serverRecord,
+              let mapping = Self.mapping(forRecordType: failedSave.record.recordType)
+        else { return }
 
-        let tags: [TagRecord]
+        let localUpdatedAt: Date?
         do {
-            tags = try TagStore(database: database).tags()
+            localUpdatedAt = try mapping.localUpdatedAt(forLocalID: failedSave.record.recordID.recordName, database: database)
         } catch {
-            AppLogger.dataAccess.error("iCloud Sync: Lokaler Tag-Bestand fuer Konfliktaufloesung konnte nicht geladen werden: \(error.localizedDescription, privacy: .public)")
+            AppLogger.dataAccess.error("iCloud Sync: Lokaler Stand fuer Konfliktaufloesung konnte nicht geladen werden: \(error.localizedDescription, privacy: .public)")
             return
         }
 
-        let localTag = tags.first { $0.id == failedSave.record.recordID.recordName }
-        let serverIsNewer = (serverRecord.modificationDate ?? .distantPast) > (localTag?.updatedAt ?? .distantPast)
+        let serverIsNewer = (serverRecord.modificationDate ?? .distantPast) > (localUpdatedAt ?? .distantPast)
 
         if serverIsNewer {
             await applyIncomingRecord(serverRecord)
         } else {
             do {
-                try pendingChangeStore.enqueue(recordType: "tag", recordName: failedSave.record.recordID.recordName, changeType: .save)
+                try pendingChangeStore.enqueue(recordType: mapping.recordType, recordName: failedSave.record.recordID.recordName, changeType: .save)
                 Self.notifyPendingChangesAvailable(database: database)
             } catch {
                 AppLogger.dataAccess.error("iCloud Sync: Erneuter Sync-Versuch nach Konflikt konnte nicht eingeplant werden: \(error.localizedDescription, privacy: .public)")

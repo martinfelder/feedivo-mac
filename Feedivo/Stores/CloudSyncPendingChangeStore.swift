@@ -42,4 +42,16 @@ struct CloudSyncPendingChangeStore {
                 """)
         }
     }
+
+    /// Liefert die Pending-Change-Zeile für eine einzelne `recordName`, falls vorhanden — nötig,
+    /// um beim Ausliefern eines ausstehenden Batches (`nextRecordZoneChangeBatch`) den
+    /// `recordType` zu einer bloßen `CKRecord.ID` zu ermitteln (die ID selbst trägt den Typ
+    /// nicht mit).
+    func pendingChange(recordName: String) throws -> CloudSyncPendingChangeRecord? {
+        try database.read { db in
+            try CloudSyncPendingChangeRecord.fetchOne(db, sql: """
+                SELECT * FROM cloud_sync_pending_changes WHERE id = ?
+                """, arguments: [recordName])
+        }
+    }
 }

@@ -19,7 +19,7 @@ struct TagStore {
     /// markiert ist).
     private func enqueuePendingSync(_ db: Database, tagID: String, changeType: CloudSyncChangeType) throws {
         guard CloudSyncSettings.isEnabled() else { return }
-        try CloudSyncPendingChangeStore.enqueue(db, recordType: "tag", recordName: tagID, changeType: changeType)
+        try CloudSyncPendingChangeStore.enqueue(db, recordType: CloudSyncTagMapping.recordType, recordName: tagID, changeType: changeType)
     }
 
     func save(_ tag: TagRecord) throws {
