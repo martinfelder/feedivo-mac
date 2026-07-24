@@ -26,11 +26,30 @@ struct FeedFolderStore {
         self.database = database
     }
 
+    /// Markiert `folderID` als ausstehende Sync-Änderung, falls iCloud Sync aktiv ist. Läuft
+    /// bewusst INNERHALB derselben `database.write`-Transaktion wie die fachliche Mutation —
+    /// analog zu `FeedStore.enqueuePendingSync`/`TagStore.enqueuePendingSync`.
+    private func enqueuePendingSync(_ db: Database, folderID: String, changeType: CloudSyncChangeType) throws {
+        guard CloudSyncSettings.isEnabled() else { return }
+        try CloudSyncPendingChangeStore.enqueue(db, recordType: CloudSyncFeedFolderMapping.recordType, recordName: folderID, changeType: changeType)
+    }
+
+    /// Markiert einen FEED (nicht Ordner) als ausstehende Sync-Änderung — gebraucht in
+    /// `renameFolder`, da `folderName` ausschließlich auf dem Feed-Record lebt (siehe
+    /// `CloudSyncFeedMapping`-Dokumentation) und ein Ordner-Umbenennen deshalb auch alle
+    /// betroffenen Feeds erneut synct, nicht nur den Ordner-Record selbst.
+    private func enqueueFeedPendingSync(_ db: Database, feedID: String) throws {
+        guard CloudSyncSettings.isEnabled() else { return }
+        try CloudSyncPendingChangeStore.enqueue(db, recordType: CloudSyncFeedMapping.recordType, recordName: feedID, changeType: .save)
+    }
+
     func save(_ folder: FeedFolderRecord) throws {
         try database.write { db in
             var folder = folder
             try folder.save(db)
+            try enqueuePendingSync(db, folderID: folder.id, changeType: .save)
         }
+        CloudSyncEngine.notifyPendingChangesAvailable(database: database)
     }
 
     func folders() throws -> [FeedFolderRecord] {
@@ -45,6 +64,7 @@ struct FeedFolderStore {
 
     func delete(id: String) throws {
         try database.write { db in
+            try enqueuePendingSync(db, folderID: id, changeType: .delete)
             try db.execute(
                 sql: """
                     DELETE FROM feed_folders
@@ -53,6 +73,7 @@ struct FeedFolderStore {
                 arguments: [id]
             )
         }
+        CloudSyncEngine.notifyPendingChangesAvailable(database: database)
     }
 
     // Ordner sind in Feedivo namensbasiert (kein FK-Konzept, das Feeds referenzieren) —
@@ -88,14 +109,29 @@ struct FeedFolderStore {
                 throw FeedFolderRenameError.duplicateName
             }
 
+            // Betroffene Feed-IDs VOR dem UPDATE ermitteln, damit sie anschließend einzeln
+            // als sync-pending markiert werden können — `folderName` ist ein syncbares
+            // Feed-Konfigurationsfeld (siehe `CloudSyncFeedMapping`), ein Ordner-Umbenennen
+            // muss deshalb auch jeden betroffenen Feed erneut hochladen, nicht nur den
+            // Ordner-Record selbst (siehe Design-Spec-Begründung).
+            let affectedFeedIDs = try String.fetchAll(
+                db,
+                sql: "SELECT id FROM feeds WHERE folderName = ? COLLATE NOCASE",
+                arguments: [oldName]
+            )
+
             try db.execute(
                 sql: """
                     UPDATE feeds
-                    SET folderName = ?
+                    SET folderName = ?, configUpdatedAt = ?
                     WHERE folderName = ? COLLATE NOCASE
                     """,
-                arguments: [trimmedName, oldName]
+                arguments: [trimmedName, Date(), oldName]
             )
+
+            for feedID in affectedFeedIDs {
+                try enqueueFeedPendingSync(db, feedID: feedID)
+            }
 
             // Aktualisiert nur, falls ein expliziter Datensatz existiert — 0 betroffene
             // Zeilen ist hier kein Fehler und deckt rein implizite Ordner ab.
@@ -107,7 +143,17 @@ struct FeedFolderStore {
                     """,
                 arguments: [trimmedName, Date(), oldName]
             )
+
+            let folderID = try String.fetchOne(
+                db,
+                sql: "SELECT id FROM feed_folders WHERE name = ? COLLATE NOCASE",
+                arguments: [trimmedName]
+            )
+            if let folderID {
+                try enqueuePendingSync(db, folderID: folderID, changeType: .save)
+            }
         }
+        CloudSyncEngine.notifyPendingChangesAvailable(database: database)
     }
 
     /// Materialisiert alle Ordnernamen, die nur auf feeds.folderName existieren
@@ -198,8 +244,17 @@ struct FeedFolderStore {
                     sql: "UPDATE feed_folders SET sortIndex = ?, updatedAt = ? WHERE name = ? COLLATE NOCASE",
                     arguments: [index, now, folderName]
                 )
+                let folderID = try String.fetchOne(
+                    db,
+                    sql: "SELECT id FROM feed_folders WHERE name = ? COLLATE NOCASE",
+                    arguments: [folderName]
+                )
+                if let folderID {
+                    try enqueuePendingSync(db, folderID: folderID, changeType: .save)
+                }
             }
         }
+        CloudSyncEngine.notifyPendingChangesAvailable(database: database)
     }
 
     /// Setzt die Ordner-Reihenfolge auf alphabetisch zurück — z. B. um eine
@@ -222,7 +277,16 @@ struct FeedFolderStore {
                     sql: "UPDATE feed_folders SET sortIndex = ?, updatedAt = ? WHERE name = ? COLLATE NOCASE",
                     arguments: [index, now, folderName]
                 )
+                let folderID = try String.fetchOne(
+                    db,
+                    sql: "SELECT id FROM feed_folders WHERE name = ? COLLATE NOCASE",
+                    arguments: [folderName]
+                )
+                if let folderID {
+                    try enqueuePendingSync(db, folderID: folderID, changeType: .save)
+                }
             }
         }
+        CloudSyncEngine.notifyPendingChangesAvailable(database: database)
     }
 }

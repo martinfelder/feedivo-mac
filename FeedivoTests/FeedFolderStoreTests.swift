@@ -188,4 +188,92 @@ struct FeedFolderStoreTests {
             .map(\.name)
         #expect(orderedNames == ["Bravo", "Alpha"])
     }
+
+    // MARK: - iCloud Sync (Phase 2a, Task 5)
+
+    @Test func renameFolderMarkiertAlleBetroffenenFeedsAlsPendingSync() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
+        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+
+        let feedStore = FeedStore(database: database)
+        let folderStore = FeedFolderStore(database: database)
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://a.example.com", title: "A", folderName: "Alt"))
+        try folderStore.save(FeedFolderRecord(id: "folder-1", name: "Alt"))
+
+        try folderStore.renameFolder(from: "Alt", to: "Neu")
+
+        let pendingIDs = Set(try CloudSyncPendingChangeStore(database: database).pendingChanges().map(\.id))
+        #expect(pendingIDs.contains("feed-1"))
+        #expect(pendingIDs.contains("folder-1"))
+    }
+
+    @Test func saveMarkiertOrdnerAlsPendingSyncWennAktiviert() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
+        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        let folderStore = FeedFolderStore(database: database)
+
+        try folderStore.save(FeedFolderRecord(id: "folder-1", name: "Tech"))
+
+        let pending = try CloudSyncPendingChangeStore(database: database).pendingChanges()
+        #expect(pending.map(\.id) == ["folder-1"])
+    }
+
+    @Test func saveMarkiertNichtsWennSyncDeaktiviert() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey)
+        let folderStore = FeedFolderStore(database: database)
+
+        try folderStore.save(FeedFolderRecord(id: "folder-1", name: "Tech"))
+
+        #expect(try CloudSyncPendingChangeStore(database: database).pendingChanges().isEmpty)
+    }
+
+    @Test func deleteMarkiertOrdnerAlsPendingDeleteWennAktiviert() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let folderStore = FeedFolderStore(database: database)
+        try folderStore.save(FeedFolderRecord(id: "folder-1", name: "Tech"))
+
+        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
+        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+
+        try folderStore.delete(id: "folder-1")
+
+        let pending = try CloudSyncPendingChangeStore(database: database).pendingChanges()
+        #expect(pending.map(\.id) == ["folder-1"])
+        #expect(pending.first?.changeType == .delete)
+    }
+
+    @Test func moveFolderMarkiertAlleUmsortiertenOrdnerAlsPendingSync() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
+        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+
+        let folderStore = FeedFolderStore(database: database)
+        try folderStore.save(FeedFolderRecord(id: "folder-a", name: "Alpha", sortIndex: 0))
+        try folderStore.save(FeedFolderRecord(id: "folder-b", name: "Bravo", sortIndex: 1))
+
+        try folderStore.moveFolder(name: "Bravo", targetIndex: 0)
+
+        let pendingIDs = Set(try CloudSyncPendingChangeStore(database: database).pendingChanges().map(\.id))
+        #expect(pendingIDs.contains("folder-a"))
+        #expect(pendingIDs.contains("folder-b"))
+    }
+
+    @Test func sortAlphabeticallyMarkiertAlleOrdnerAlsPendingSync() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
+        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+
+        let folderStore = FeedFolderStore(database: database)
+        try folderStore.save(FeedFolderRecord(id: "folder-b", name: "Bravo", sortIndex: 0))
+        try folderStore.save(FeedFolderRecord(id: "folder-a", name: "Alpha", sortIndex: 1))
+
+        try folderStore.sortAlphabetically()
+
+        let pendingIDs = Set(try CloudSyncPendingChangeStore(database: database).pendingChanges().map(\.id))
+        #expect(pendingIDs.contains("folder-a"))
+        #expect(pendingIDs.contains("folder-b"))
+    }
 }

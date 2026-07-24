@@ -36,7 +36,8 @@ final class CloudSyncEngine: NSObject {
     /// CLAUDE.md).
     private nonisolated static let registry: [String: any CloudSyncRecordMapping.Type] = [
         CloudSyncTagMapping.recordType: CloudSyncTagMapping.self,
-        CloudSyncFeedMapping.recordType: CloudSyncFeedMapping.self
+        CloudSyncFeedMapping.recordType: CloudSyncFeedMapping.self,
+        CloudSyncFeedFolderMapping.recordType: CloudSyncFeedFolderMapping.self
     ]
 
     nonisolated static func mapping(forRecordType recordType: String) -> (any CloudSyncRecordMapping.Type)? {
