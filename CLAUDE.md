@@ -48,7 +48,7 @@ anfühlt — kein iOS-Port, keine Electron-App. Echtes AppKit-Feeling via SwiftU
 | Architektur | MVVM | `@Observable` Macro (kein ObservableObject) |
 | Navigation | NavigationSplitView | 3-Spalten: Sidebar / Artikelliste / Reader, plus separate Fenster (Suche, Organizer, Artikel-Popout) |
 | Persistenz | GRDB (SQLite) | Eigene Datenschicht in `Feedivo/Database/` + `Feedivo/Stores/`. SwiftData wurde vollständig entfernt (2026-07-07) |
-| iCloud Sync | Phase 1 implementiert (nur Tags) | `CKSyncEngine`-Fundament seit 2026-07-24 auf `main` (`Feedivo/Services/CloudSync/`) — synchronisiert bisher ausschließlich die `tags`-Tabelle, Toggle wirkt sofort ohne Neustart. Restliche Tabellen (Feeds/Ordner/Regeln/Intelligente Ordner/Artikelstatus) folgen in Phase 2. Live-Verifikation über das CloudKit Dashboard steht noch aus. Der alte, SwiftData-basierte Branch `codex/icloud-sync-beta` ist vollständig überholt (ADR-007) |
+| iCloud Sync | Phase 2a implementiert (Feeds/Ordner/Regeln/benutzerdefinierte Intelligente Ordner) | `CKSyncEngine`-Fundament (`Feedivo/Services/CloudSync/`), seit 2026-07-24 schrittweise ausgebaut — Phase 1 synct `tags`, Phase 2a erweitert das jetzt Registry-basierte `CloudSyncEngine` zusätzlich um `feeds` (nur Konfigurationsfelder, keine Refresh-Metadaten/`unreadCount`), `feed_folders`, `rules`+`rule_conditions` sowie benutzerdefinierte `smart_folders`+`smart_folder_conditions` (eingebaute Standard-Ordner bleiben bewusst ausgeschlossen). Toggle wirkt weiterhin sofort ohne Neustart. Artikelstatus bleibt für eine spätere Phase offen. Automatisierte Tests (162/162 grün) + Release-Build grün; Live-Verifikation über das CloudKit Dashboard steht für alle 4 neuen Tabellen noch aus (Push-Richtung), Pull-Richtung weiterhin ungetestet mangels Zweitgerät. Der alte, SwiftData-basierte Branch `codex/icloud-sync-beta` ist vollständig überholt (ADR-007) |
 | Netzwerk | URLSession + async/await | Kein Alamofire, kein Combine |
 | RSS-Parsing | FeedKit | Swift Package, URL: https://github.com/nmdias/FeedKit |
 | Datenbank-Package | GRDB.swift | Swift Package, URL: https://github.com/groue/GRDB.swift |
@@ -289,6 +289,26 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
 
 > Diese Liste wächst während der Entwicklung. Immer ergänzen!
 
+- **GRDBs `.alter(table:) { $0.add(column:...).defaults(sql: "CURRENT_TIMESTAMP") }` scheitert
+  auf einer nicht-leeren Tabelle:** Bei iCloud Sync Phase 2a (2026-07-24, Task 1: Migration
+  v22, `updatedAt` auf `rule_conditions`/`smart_folder_conditions`) hätte der ursprünglich vom
+  Implementierungsplan wörtlich vorgeschlagene Migrationscode
+  (`.defaults(sql: "CURRENT_TIMESTAMP")`) bei JEDEM Bestandsnutzer mit vorhandenen Regeln oder
+  Intelligenten Ordnern einen Migrations-Crash beim nächsten App-Start ausgelöst — SQLite lehnt
+  `ALTER TABLE ... ADD COLUMN` mit einem Nicht-Konstanten-Default ab (`CURRENT_TIMESTAMP` ist
+  ein Funktionsaufruf, kein echtes SQL-Literal) mit `"Cannot add a column with non-constant
+  default"`, sobald die Tabelle bereits Zeilen enthält (auf einer leeren Tabelle funktioniert
+  es unauffällig, was den Fehler in einem frischen Test-Setup leicht übersehen lässt). Per
+  direktem `sqlite3`-CLI-Test verifiziert, noch vor dem eigentlichen Task-Review vom
+  Implementierer selbst gefunden und behoben (dieselbe Falle wäre in Task 2, Migration v23,
+  `feeds.configUpdatedAt`, identisch aufgetreten und wurde dort gleich mitgefixt). Fix:
+  `.defaults(to: Date())` statt `.defaults(sql: "CURRENT_TIMESTAMP")` — erzeugt ein echtes,
+  einmalig zum Migrationszeitpunkt berechnetes SQL-Literal, backfillt damit gleichzeitig alle
+  Bestandszeilen korrekt mit "jetzt". **Lehre:** Bei JEDER künftigen `ALTER TABLE ADD COLUMN`-
+  Migration mit einem Datums-/Zeitstempel-Default IMMER `.defaults(to: <Swift-Wert>)`
+  verwenden, nie `.defaults(sql: "CURRENT_TIMESTAMP")` — und einen neuen Migrationstest
+  IMMER gegen eine Tabelle mit mindestens einer vorab eingefügten Bestandszeile schreiben
+  (nicht nur gegen eine leere Tabelle), da der Fehler sonst unbemerkt bleibt.
 - **`NSBackgroundActivityScheduler` (Foundation) kennt kein `earliestBeginDate` —
   anders als `BGTaskRequest` aus dem hier bewusst nicht genutzten, iOS-fokussierten
   `BackgroundTasks`-Framework:** Nutzer-Report (2026-07-23): der Feed-Fehler-Alert
@@ -893,10 +913,14 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Offene Entscheidungen
 
-- **iCloud Sync:** Phase 1 (nur Tags) ist seit 2026-07-24 implementiert (siehe „Aktuell in
-  Arbeit"). Offen: wann werden Phase 2 (restliche Tabellen), Phase 3 (Feld-Ebene-Konflikte +
-  Merge-Dialog bei Erst-Aktivierung) und Phase 4 (Härtung) angegangen? Der alte
-  `codex/icloud-sync-beta`-Branch (SwiftData-basiert) ist überholt und nicht mehr relevant.
+- **iCloud Sync:** Phase 1 (nur Tags) und Phase 2a (Feeds/Ordner/Regeln/benutzerdefinierte
+  Intelligente Ordner) sind seit 2026-07-24 implementiert (siehe „Aktuell in Arbeit"). Offen:
+  Artikelstatus-Sync (bisher in keiner Phase enthalten), Phase 3 (Feld-Ebene-Konflikte +
+  Merge-Dialog bei Erst-Aktivierung) und Phase 4 (Härtung) — wann werden diese angegangen?
+  Zusätzlich weiterhin offen für Phase 2a spezifisch: die manuelle Live-Verifikation gegen
+  echtes CloudKit (Push-Richtung für alle 4 neuen Tabellen, Pull-Richtung wie in Phase 1
+  mangels Zweitgerät). Der alte `codex/icloud-sync-beta`-Branch (SwiftData-basiert) ist
+  überholt und nicht mehr relevant.
 - **Monetarisierung:** Kostenlos / einmaliger Kauf / nie im App Store? — weiterhin offen.
 - **Share Extension:** Noch nicht begonnen, kein konkreter Zeitplan.
 - **App Store vs. private Verteilung:** Weiterhin offen.
@@ -909,6 +933,71 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 ---
 
 ## Aktuell in Arbeit
+
+- **2026-07-24 (weitere Folge-Session): iCloud Sync Phase 2a (Feeds/Ordner/Regeln/
+  benutzerdefinierte Intelligente Ordner) — Implementierung ABGESCHLOSSEN, automatisierte
+  Verifikation grün, manuelle Live-Verifikation NOCH AUSSTEHEND.** Baut auf dem in Phase 1
+  etablierten `CKSyncEngine`-Fundament auf und baut `CloudSyncEngine` von einer Tag-spezifischen
+  Klasse zu einer generischen, Registry-basierten Engine um (neues `CloudSyncRecordMapping`-
+  Protokoll, ein Mapping-Typ pro syncbarer Tabelle). Umgesetzt via Brainstorming→Spec→Plan→
+  Subagent-Driven-Development (7 Tasks, jeder mit eigenem Task-Review — alle im ersten Anlauf
+  clean, keine Fix-Runde nötig): Task 1 Migration v22 (`updatedAt` auf `rule_conditions`/
+  `smart_folder_conditions`, Backfill), Task 2 Migration v23 (`feeds.configUpdatedAt` als von
+  `updatedAt` bewusst getrenntes Konfliktauflösungsfeld — `updatedAt` wird auch von jedem reinen
+  Feed-Refresh gesetzt, ein rein lokaler Refresh alle 30 Min. hätte das Feed sonst immer "neuer"
+  als den CloudKit-Server-Stand erscheinen lassen), Task 3 `CloudSyncRecordMapping`-Protokoll +
+  Umbau von `CloudSyncEngine` auf Registry-Dispatch (verhaltenserhaltender Refactor für Tags,
+  per unveränderter Phase-1-Testsuite verifiziert) + abhängigkeitsbewusste Sortierung
+  eingehender Records (Eltern vor Kind-Bedingungszeilen, wegen aktivem
+  `PRAGMA foreign_keys = ON`), Task 4 Feed-Sync (`CloudSyncFeedMapping`, syncbare Teilmenge NUR
+  Konfigurationsfelder — `lastRefreshedAt`/`lastETag`/`lastModified`/`lastBodyHash`/
+  `lastHTTPStatusCode`/`unreadCount` bleiben bewusst rein lokal/gerätespezifisch), Task 5
+  Feed-Ordner-Sync (`CloudSyncFeedFolderMapping`, inkl. Feed-Requeue bei Ordner-Umbenennung),
+  Task 6 Regel-Sync (`CloudSyncRuleMapping`/`CloudSyncRuleConditionMapping`, kaskadenbewusstes
+  Enqueue vor kaskadierendem `DELETE`), Task 7 Intelligente-Ordner-Sync
+  (`CloudSyncSmartFolderMapping`/`CloudSyncSmartFolderConditionMapping`, **nur für
+  `isDefault == false`** — eingebaute Standard-Ordner wie „Ungelesen" werden nie synct, um
+  Duplikate zu vermeiden; `restoreDefaultFolders()` bleibt unangetastet). Alle Records teilen
+  sich weiterhin dieselbe CloudKit-Zone `"FeedivoZone"`, Konfliktauflösung bleibt Last-Write-Wins
+  wie in Phase 1.
+  **Zwei während der Task-Implementierung selbst gefundene und behobene Bugs (kein separater
+  Whole-Branch-Review nötig, da jeder Task bereits durch seine eigene Regressionssuite
+  abgesichert war):** (1) Task 1: der ursprünglich vom Plan wörtlich vorgeschlagene
+  `ALTER TABLE ... DEFAULT CURRENT_TIMESTAMP`-Migrationscode hätte bei jedem Bestandsnutzer mit
+  vorhandenen Regeln/Intelligenten Ordnern einen Migrations-Crash ausgelöst (SQLite lehnt
+  `ADD COLUMN` mit einem Nicht-Konstanten-Default auf einer nicht-leeren Tabelle ab, siehe neuer
+  Gotcha oben) — noch vor dem Task-Review selbst gefunden und in beiden neuen Migrationen (v22
+  UND v23) einheitlich per `.defaults(to: Date())` gefixt. (2) Task 7: der Plan-Code für
+  `SQLiteSmartFolderStore.save()` hätte bei `isDefault == true`-Ordnern die Bedingungspersistenz
+  stillschweigend übersprungen (zu breites `isDefault`-Gate) — beim Ausführen der VOLLEN
+  Regressionssuite (nicht nur der neuen Task-7-Tests) vor dem Commit aufgefallen und korrigiert.
+  **Task 8 (dieser Eintrag) deckt nur die automatisierbaren Abschlussschritte ab:** gezielter
+  Testlauf über alle 15 CloudSync-/Store-/Migrations-relevanten Suiten
+  (`CloudSyncEngineRegistryTests`, `CloudSyncTagMappingTests`, `CloudSyncFeedMappingTests`,
+  `CloudSyncFeedFolderMappingTests`, `CloudSyncRuleMappingTests`,
+  `CloudSyncRuleConditionMappingTests`, `CloudSyncSmartFolderMappingTests`,
+  `CloudSyncPendingChangeStoreTests`, `CloudSyncSettingsTests`, `SQLiteTagStoreTests`,
+  `SQLiteFeedStoreTests`, `FeedFolderStoreTests`, `SQLiteRuleStoreTests`,
+  `SQLiteSmartFolderStoreTests`, `FeedivoDatabaseMigratorTests`), 162/162 Tests grün (mit
+  `-parallel-testing-enabled NO`, siehe bestehender Parallel-Testing-Gotcha), sowie ein voller
+  `xcodebuild build -configuration Release` (BUILD SUCCEEDED, 0 Fehler). **Die manuelle
+  Live-Verifikation gegen echtes CloudKit (analog zu Phase 1: Feed anlegen/umbenennen/
+  verschieben/löschen, Ordner umbenennen, Regel mit Bedingungen anlegen/bearbeiten/löschen,
+  benutzerdefinierten Intelligenten Ordner mit Bedingungen anlegen/löschen — jeweils im
+  CloudKit-Dashboard unter `https://icloud.developer.apple.com/dashboard/` gegenprüfen, sowie
+  die Bestätigung, dass eingebaute Intelligente Ordner dort NICHT erscheinen) ist NICHT
+  durchgeführt worden** — das erfordert wie in Phase 1 einen Nutzer am eigenen Mac mit
+  angemeldetem iCloud-Konto und Browser-Zugriff auf das Dashboard, außerhalb dieser Umgebung.
+  Die Push-Richtung ist damit für alle 4 neuen Tabellen (Feeds/Ordner/Regeln+Bedingungen/
+  benutzerdefinierte Intelligente Ordner+Bedingungen) bislang nur durch automatisierte Tests,
+  NICHT live gegen den echten CloudKit-Server abgesichert. Die Pull-Richtung (Cloud → lokal)
+  bleibt wie in Phase 1 bis zu einem zweiten Testgerät grundsätzlich unverifiziert, unabhängig
+  vom Stand der übrigen Checkliste. Spec:
+  `docs/superpowers/specs/2026-07-24-icloud-sync-phase2a-design.md`, Plan:
+  `docs/superpowers/plans/2026-07-24-icloud-sync-phase2a.md`. Commits `a6620711..47eb6057`
+  (Tasks 1–7) lokal auf `main`, Push-Status siehe `git log`/`git status` zum Lesezeitpunkt (hier
+  bewusst keine Momentaufnahme dupliziert, siehe Lehre im 2026-07-20er CLAUDE.md-Korrektur-
+  Eintrag zu veralteten Push-Status-Vermerken).
 
 - **2026-07-24: iCloud Sync Phase 1 (CKSyncEngine-Fundament, nur Tags) — Implementierung
   ABGESCHLOSSEN, automatisierte Verifikation grün, manuelle Live-Verifikation NOCH
