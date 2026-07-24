@@ -112,6 +112,12 @@ final class CloudSyncEngine: NSObject {
                 UserDefaults.standard.set(true, forKey: Self.hasCreatedZoneKey)
             }
 
+            do {
+                try Self.backfillAllExistingRecords(database: database)
+            } catch {
+                AppLogger.dataAccess.error("iCloud Sync: Backfill bestehender Eintraege fehlgeschlagen: \(error.localizedDescription, privacy: .public)")
+            }
+
             Self.notifyPendingChangesAvailable(database: database)
 
             status.state = .idle
@@ -168,6 +174,56 @@ final class CloudSyncEngine: NSObject {
                 try await syncEngine.sendChanges()
             } catch {
                 AppLogger.dataAccess.error("iCloud Sync: Sofortiges Senden fehlgeschlagen: \(error.localizedDescription, privacy: .public)")
+            }
+        }
+    }
+
+    /// Reiht alle aktuell existierenden lokalen Zeilen aller registrierten Tabellen erneut als
+    /// `.save` in die Pending-Sync-Queue ein — läuft bei JEDEM `start()`, kein einmaliges Flag
+    /// (siehe Design-Spec `docs/superpowers/specs/2026-07-24-icloud-sync-phase2a-backfill-design.md`).
+    /// Deckt sowohl echte Altbestände (vor Sync-Aktivierung angelegt) als auch Bearbeitungen ab,
+    /// die passierten, während Sync ausgeschaltet war — `TagStore`/`FeedStore`/etc. markieren
+    /// Mutationen nur dann als pending, wenn `CloudSyncSettings.isEnabled()` zum
+    /// Mutationszeitpunkt bereits `true` war. Ein erneutes `.save` für eine bereits
+    /// unveränderte, längst synchronisierte Zeile ist harmlos (CloudKit behandelt es als
+    /// inhaltlich identisches Update). Löschungen, die während Sync-aus passierten, werden
+    /// bewusst NICHT nachträglich gemeldet — das kennt nur den aktuellen lokalen Stand.
+    ///
+    /// `nonisolated`, analog zu `mapping(forRecordType:)`/`sortedByDependencyOrder` oben —
+    /// ermöglicht synchronen Zugriff aus Tests heraus, ohne dass diese selbst `@MainActor`/
+    /// `async` sein müssen. Sichtbarkeit bewusst `internal` (nicht `private`), damit Tests die
+    /// Methode direkt aufrufen können.
+    ///
+    /// **Lese- und Schreibphase sind bewusst strikt voneinander getrennt:**
+    /// `mapping.allLocalIDs(database:)` nutzt intern `database.read`. GRDBs `DatabaseQueue` ist
+    /// laut eigenem Quellcode (`SerializedDatabase.sync`:
+    /// `GRDBPrecondition(!watchdog.allows(db), "Database methods are not reentrant.")`)
+    /// NICHT reentrant — ein `database.read`-Aufruf von INNERHALB eines bereits laufenden
+    /// `database.write`-Blocks auf DERSELBEN `DatabaseQueue` würde deshalb hart per Precondition
+    /// abstürzen, nicht nur ein Deadlock-Risiko sein. Alle lokalen IDs werden deshalb zuerst
+    /// vollständig über mehrere unabhängige `read`-Zugriffe eingesammelt, bevor überhaupt ein
+    /// einziger `database.write`-Block geöffnet wird, der dann nur noch reine INSERT/REPLACE-
+    /// Statements gegen `cloud_sync_pending_changes` ausführt.
+    nonisolated static func backfillAllExistingRecords(database: FeedivoDatabase) throws {
+        var idsByMapping: [(mapping: any CloudSyncRecordMapping.Type, ids: [String])] = []
+        for mapping in Self.registry.values {
+            do {
+                let ids = try mapping.allLocalIDs(database: database)
+                idsByMapping.append((mapping, ids))
+            } catch {
+                AppLogger.dataAccess.error("iCloud Sync: Backfill-Lesen fuer \(mapping.recordType, privacy: .public) fehlgeschlagen: \(error.localizedDescription, privacy: .public)")
+            }
+        }
+
+        try database.write { db in
+            for (mapping, ids) in idsByMapping {
+                do {
+                    for id in ids {
+                        try CloudSyncPendingChangeStore.enqueue(db, recordType: mapping.recordType, recordName: id, changeType: .save)
+                    }
+                } catch {
+                    AppLogger.dataAccess.error("iCloud Sync: Backfill-Einreihen fuer \(mapping.recordType, privacy: .public) fehlgeschlagen: \(error.localizedDescription, privacy: .public)")
+                }
             }
         }
     }

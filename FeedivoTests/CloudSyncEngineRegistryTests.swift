@@ -63,4 +63,28 @@ struct CloudSyncEngineRegistryTests {
 
         #expect(sorted.map(\.recordType) == ["Rule", "RuleCondition"])
     }
+
+    @Test func backfillAllExistingRecordsEnqueuedAlleBestehendenZeilenAlsSave() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        try TagStore(database: database).save(TagRecord(id: "tag-1", name: "Alt", colorHex: "#000000"))
+        try FeedStore(database: database).save(FeedRecord(id: "feed-1", url: "https://a.example.com", title: "A"))
+
+        try CloudSyncEngine.backfillAllExistingRecords(database: database)
+
+        let pending = try CloudSyncPendingChangeStore(database: database).pendingChanges()
+        let pendingIDs = Set(pending.map(\.id))
+        #expect(pendingIDs.contains("tag-1"))
+        #expect(pendingIDs.contains("feed-1"))
+        #expect(pending.allSatisfy { $0.changeType == .save })
+    }
+
+    @Test func backfillAllExistingRecordsSchliesstDefaultIntelligenteOrdnerAus() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        try SQLiteSmartFolderStore(database: database).restoreDefaultFolders()
+
+        try CloudSyncEngine.backfillAllExistingRecords(database: database)
+
+        let pending = try CloudSyncPendingChangeStore(database: database).pendingChanges()
+        #expect(pending.isEmpty)
+    }
 }
