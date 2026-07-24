@@ -60,4 +60,25 @@ struct CloudSyncPendingChangeStoreTests {
         let store = CloudSyncPendingChangeStore(database: database)
         #expect(try store.pendingChanges().count == 1)
     }
+
+    @Test func pendingCountsLeereTabelleLiefertLeeresDictionary() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let store = CloudSyncPendingChangeStore(database: database)
+
+        #expect(try store.pendingCounts().isEmpty)
+    }
+
+    @Test func pendingCountsGruppiertNachRecordType() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let store = CloudSyncPendingChangeStore(database: database)
+
+        try store.enqueue(recordType: "Tag", recordName: "tag-1", changeType: .save)
+        try store.enqueue(recordType: "Tag", recordName: "tag-2", changeType: .save)
+        try store.enqueue(recordType: "Feed", recordName: "feed-1", changeType: .save)
+
+        let counts = try store.pendingCounts()
+        #expect(counts["Tag"] == 2)
+        #expect(counts["Feed"] == 1)
+        #expect(counts.count == 2)
+    }
 }

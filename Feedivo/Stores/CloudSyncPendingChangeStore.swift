@@ -54,4 +54,20 @@ struct CloudSyncPendingChangeStore {
                 """, arguments: [recordName])
         }
     }
+
+    /// Anzahl ausstehender Änderungen je `recordType`, für die Sync-Status-Übersicht in den
+    /// Einstellungen (siehe Design-Spec
+    /// `docs/superpowers/specs/2026-07-24-icloud-sync-status-uebersicht-design.md`).
+    func pendingCounts() throws -> [String: Int] {
+        struct RecordTypeCount: FetchableRecord, Decodable {
+            let recordType: String
+            let count: Int
+        }
+        return try database.read { db in
+            let rows = try RecordTypeCount.fetchAll(db, sql: """
+                SELECT recordType, COUNT(*) AS count FROM cloud_sync_pending_changes GROUP BY recordType
+                """)
+            return Dictionary(uniqueKeysWithValues: rows.map { ($0.recordType, $0.count) })
+        }
+    }
 }
