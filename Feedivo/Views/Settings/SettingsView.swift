@@ -1057,9 +1057,25 @@ private struct SyncSettingsView: View {
     @Environment(DatabaseLoadState.self) private var databaseLoadState
     @Environment(CloudSyncStatus.self) private var cloudSyncStatus
     @Environment(\.cloudSyncEngine) private var cloudSyncEngine
+    @Environment(\.feedivoDatabase) private var feedivoDatabase
 
     @AppStorage(CloudSyncSettings.isEnabledKey)
     private var cloudSyncIsEnabled = CloudSyncSettings.defaultIsEnabled
+
+    @AppStorage(CloudSyncActivityStatus.lastRunDateKey)
+    private var syncActivityLastRunTimestamp = 0.0
+
+    @AppStorage(CloudSyncActivityStatus.statusKey)
+    private var syncActivityStatusRaw = ""
+
+    @AppStorage(CloudSyncActivityStatus.lastErrorMessageKey)
+    private var syncActivityErrorMessage = ""
+
+    @AppStorage(SQLiteDataInvalidation.statusVersionKey)
+    private var sqliteStatusVersionForSyncActivity = 0
+
+    @State private var syncActivityPendingCounts: [String: Int] = [:]
+    @State private var isSyncActivityDetailsExpanded = false
 
     private var hasDatabaseError: Bool {
         databaseLoadState.initializationError != nil
@@ -1114,6 +1130,16 @@ private struct SyncSettingsView: View {
                             description: L10n.settingsSyncDatabaseErrorHint
                         )
                     }
+
+                    CloudSyncActivityStatusBlock(
+                        cloudSyncIsEnabled: cloudSyncIsEnabled,
+                        isAccountUnavailable: cloudSyncStatus.state == .accountUnavailable,
+                        lastRunTimestamp: syncActivityLastRunTimestamp,
+                        statusRaw: syncActivityStatusRaw,
+                        errorMessage: syncActivityErrorMessage,
+                        pendingCounts: syncActivityPendingCounts,
+                        isDetailsExpanded: $isSyncActivityDetailsExpanded
+                    )
                 }
             }
         }
@@ -1124,6 +1150,109 @@ private struct SyncSettingsView: View {
                 cloudSyncEngine?.stop()
             }
         }
+        .onAppear(perform: loadSyncActivityPendingCounts)
+        .onChange(of: sqliteStatusVersionForSyncActivity) {
+            loadSyncActivityPendingCounts()
+        }
+    }
+
+    private func loadSyncActivityPendingCounts() {
+        guard let feedivoDatabase else {
+            syncActivityPendingCounts = [:]
+            return
+        }
+        syncActivityPendingCounts = (try? CloudSyncPendingChangeStore(database: feedivoDatabase).pendingCounts()) ?? [:]
+    }
+}
+
+private struct CloudSyncActivityStatusBlock: View {
+    let cloudSyncIsEnabled: Bool
+    let isAccountUnavailable: Bool
+    let lastRunTimestamp: Double
+    let statusRaw: String
+    let errorMessage: String
+    let pendingCounts: [String: Int]
+    @Binding var isDetailsExpanded: Bool
+
+    private var isActiveAndAvailable: Bool {
+        cloudSyncIsEnabled && !isAccountUnavailable
+    }
+
+    private var totalPendingCount: Int {
+        pendingCounts.values.reduce(0, +)
+    }
+
+    private var stateText: String {
+        guard isActiveAndAvailable else {
+            return cloudSyncIsEnabled
+                ? String(localized: "settings.sync.activity.state.accountUnavailable")
+                : String(localized: "settings.sync.activity.state.disabled")
+        }
+        if statusRaw == CloudSyncActivityStatus.statusFailed {
+            return String.localizedStringWithFormat(String(localized: "settings.sync.activity.state.error"), errorMessage)
+        }
+        if totalPendingCount > 0 {
+            return String.localizedStringWithFormat(String(localized: "settings.sync.activity.state.pending"), totalPendingCount)
+        }
+        return String(localized: "settings.sync.activity.state.synced")
+    }
+
+    private var lastRunText: String {
+        guard lastRunTimestamp > 0 else {
+            return String(localized: "settings.sync.activity.neverRun")
+        }
+        return Date(timeIntervalSince1970: lastRunTimestamp).formatted(date: .abbreviated, time: .shortened)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(L10n.settingsSyncActivityTitle)
+                    .font(.system(size: 14))
+                Text(L10n.settingsSyncActivityDescription)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.tertiary)
+            }
+
+            VStack(spacing: 5) {
+                statusLine(title: L10n.settingsSyncActivityStatusRow, value: stateText)
+                statusLine(title: L10n.settingsSyncActivityLastRunRow, value: lastRunText)
+            }
+            .frame(maxWidth: .infinity)
+            .opacity(isActiveAndAvailable ? 1 : 0.55)
+
+            Button {
+                withAnimation(.easeInOut(duration: 0.16)) {
+                    isDetailsExpanded.toggle()
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    Text(isDetailsExpanded ? L10n.settingsSyncActivityDetailsHide : L10n.settingsSyncActivityDetailsShow)
+                    Image(systemName: isDetailsExpanded ? "chevron.down" : "chevron.right")
+                }
+                .font(.system(size: 10.5))
+                .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+
+            if isDetailsExpanded {
+                VStack(spacing: 5) {
+                    ForEach(CloudSyncActivityCategory.allCases, id: \.self) { category in
+                        statusLine(title: category.localizedTitle, value: categoryValueText(for: category))
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .opacity(isActiveAndAvailable ? 1 : 0.55)
+            }
+        }
+    }
+
+    private func categoryValueText(for category: CloudSyncActivityCategory) -> String {
+        let count = category.pendingCount(in: pendingCounts)
+        guard count > 0 else {
+            return String(localized: "settings.sync.activity.state.synced")
+        }
+        return String.localizedStringWithFormat(String(localized: "settings.sync.activity.category.pending"), count)
     }
 }
 
