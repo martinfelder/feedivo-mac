@@ -957,6 +957,61 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   dieses Eintrags (hier bewusst keine Momentaufnahme dupliziert, siehe Lehre im
   CLAUDE.md-Korrektur-Eintrag vom 2026-07-20 zu veralteten Push-Status-Vermerken).
 
+- **2026-07-24 (Folge-Session): iCloud Sync Phase 1 — finaler Whole-Branch-Review-Fix +
+  Live-Verifikation VOLLSTÄNDIG ABGESCHLOSSEN UND BESTÄTIGT ERFOLGREICH.** Direkter
+  Anschluss an den obigen Eintrag, drei Teile:
+  1. **Finaler Whole-Branch-Review (Opus) fand einen echten, nur aus Gesamtsicht
+     sichtbaren Critical-Bug** (Commit `061b4715`): Laufzeit-`TagStore`-Mutationen
+     markierten Tags zwar korrekt in der lokalen `CloudSyncPendingChangeStore`-Warteschlange,
+     benachrichtigten aber nie die LAUFENDE `CKSyncEngine`-Instanz —
+     `engine.state.add(pendingRecordZoneChanges:)` lief nur einmalig in `start()`. Während
+     einer laufenden Session wäre dadurch NICHTS live gesynct worden, sondern erst nach
+     einem Neustart/Toggle-Aus-An. Kein Einzel-Task-Review hätte das sehen können (Task 3
+     sah nur `CloudSyncEngine.swift`, Task 4 nur `TagStore.swift`, beide Dateien für sich
+     genommen korrekt). Fix: neue `CloudSyncEngine.current`-Referenz (statisch, per neuer
+     `register(_:)`-Methode einmalig in `FeedivoApp.init()` gesetzt) +
+     `notifyPendingChangesAvailable(database:)`, von allen 5 `TagStore`-Mutationsmethoden
+     nach dem jeweiligen `database.write` sowie vom Konflikt-Retry-Pfad in
+     `handleFailedSave` aufgerufen. Re-Review (Opus) verifizierte den kompletten
+     Laufzeit-Pfad Ende-zu-Ende und bestätigte: „Ready to merge: Yes". Zusätzlich 4
+     veraltete CLAUDE.md-Abschnitte (Tech-Stack-Tabelle, ADR-007, M3-Checkbox, Offene
+     Entscheidungen) im selben Fix korrigiert, die noch den überholten
+     `codex/icloud-sync-beta`-Zustand beschrieben.
+  2. **Manuelle Live-Verifikation deckte einen ZWEITEN, davon unabhängigen Bug auf, den
+     kein Review finden konnte** (Commit `91f1179`, per systematic-debugging gefunden):
+     Trotz Statuszeile „iCloud Sync aktiv" und einem frisch angelegten Testtag erschien
+     zunächst kein Record im CloudKit Dashboard. Root Cause: `automaticallySync = true`
+     verlässt sich laut Apples eigener WWDC23-Session „Sync to iCloud with CKSyncEngine"
+     auf den System-Task-Scheduler, der erst Systembedingungen (Akku, Netzwerk, …)
+     konsultiert, bevor er tatsächlich sendet — das kann beliebig lange dauern und ist für
+     eine interaktive App, bei der der Nutzer eine zeitnahe Bestätigung erwartet, nicht
+     ausreichend. Fix: `notifyPendingChangesAvailable(database:)` ruft nach
+     `state.add(...)` jetzt zusätzlich explizit `syncEngine.sendChanges()` in einem eigenen
+     `Task` auf (Apples dokumentierte „manual override" für genau diesen Fall). Ein
+     zweiter, kleinerer Diagnose-Umweg dabei: der CloudKit-Dashboard-Records-Browser
+     meldete nach dem Fix zunächst „No records found" bzw. „Field 'recordName' is not
+     marked queryable" — beides reine Tooling-Eigenheiten des Dashboards (Queryable-Indexe
+     für neu angelegte Record-Types müssen erst über „Deploy Schema Changes…" bestätigt
+     werden, bevor Browser-Abfragen sie zuverlässig finden), **kein** Zeichen eines
+     fehlgeschlagenen Syncs. Der tatsächliche Beweis kam aus dem Dashboard-„Logs"-Tab
+     (Operation-Filter `RecordSave`): ein einzelnes, echtes `RecordSave`-Ereignis mit
+     `overallStatus: SUCCESS`, `recordInsertCount: 5`, `returnedRecordTypes: "Tag"`,
+     `zone: "FeedivoZone"` — die App hatte den kompletten, seit Sync-Aktivierung
+     angesammelten Rückstand (inkl. des allerersten, vor dem Fix erfolglos angelegten
+     Testtags, der die ganze Zeit korrekt in der lokalen Warteschlange lag) in einem
+     einzigen Batch erfolgreich hochgeladen — genau das erwartete Verhalten der
+     Warteschlangen-Architektur aus Task 1.
+  3. **Damit ist die Push-Richtung (lokal → CloudKit) der komplette Phase-1-Sync-Pipeline
+     live bestätigt funktionsfähig** (Toggle aktivieren → Tag anlegen → Record erscheint
+     in CloudKit, ohne Neustart). Task 0 (iCloud/CloudKit-Capability in Xcode) war beim
+     Live-Test bereits korrekt eingerichtet (Signing Identity/Provisioning Profile im
+     Build-Log bestätigt). **Weiterhin unverifiziert, wie von Anfang an geplant:** die
+     Pull-Richtung (Cloud → lokal) — dafür wird ein zweites Testgerät benötigt. Phase 2
+     (restliche Tabellen), Phase 3 (Feld-Ebene-Konfliktauflösung + Merge-Dialog) und
+     Phase 4 (Härtung) bleiben eigene, künftige Zyklen. Commits `61b4715` (sic:
+     `061b4715`) und `91f1179` lokal auf `main`, Push-Status siehe `git log`/`git status`
+     zum Lesezeitpunkt.
+
 - **2026-07-20: Reader-Toolbar frei anpassbar (Feature 19.4) — VOLLSTÄNDIG ABGESCHLOSSEN
   und auf `origin/main` gepusht, Live-Verifikation vom Nutzer bestätigt.** Feature 19.4
   stand seit 2026-07-10 auf ⏸️ Zurückgestellt, da der ursprünglich geplante native
