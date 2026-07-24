@@ -870,10 +870,12 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 - [x] Smart Filter / intelligente Ordner mit eigenem Editor und Bedingungen
 - [x] `RuleEngine` inkl. Regel-Assistent (Wizard) und Einstellungs-UI
 - [x] Background Refresh (`NSBackgroundActivityScheduler` statt `BGTaskScheduler`)
-- [ ] **iCloud Sync via CloudKit** — Phase 1 (CKSyncEngine-Fundament, nur Tags) seit
-      2026-07-24 auf `main` implementiert, Live-Verifikation noch ausstehend. Phase 2
-      (restliche Tabellen), Phase 3 (Feld-Ebene-Konflikte + Merge-Dialog) und Phase 4
-      (Härtung) stehen noch aus — Checkbox bleibt deshalb offen
+- [ ] **iCloud Sync via CloudKit** — Phase 1 (CKSyncEngine-Fundament, nur Tags) und
+      Phase 2a (Feeds/Ordner/Regeln+Bedingungen/benutzerdefinierte Intelligente Ordner)
+      seit 2026-07-24 auf `main` implementiert (Tests grün), Live-Verifikation gegen
+      das echte CloudKit Dashboard für Phase 2a noch ausstehend. Phase 2b (Artikelstatus),
+      Phase 3 (Feld-Ebene-Konflikte + Merge-Dialog) und Phase 4 (Härtung) stehen noch
+      aus — Checkbox bleibt deshalb offen
 
 ### M4 – Polish & Release — größtenteils ✅
 - [x] OPML Import (mit Vorschau/Review-Screen, Duplikat-Erkennung)
