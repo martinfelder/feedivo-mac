@@ -64,7 +64,7 @@ struct CloudSyncRuleConditionMappingTests {
     @Test func makeCKRecordFromLocalIDLiefertNilFuerUnbekannteID() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
 
-        let record = try CloudSyncRuleConditionMapping.makeCKRecord(fromLocalID: "unbekannt", database: database)
+        let record = try CloudSyncRuleConditionMapping.makeCKRecord(fromLocalID: "unbekannt", existing: nil, database: database)
 
         #expect(record == nil)
     }
@@ -78,7 +78,7 @@ struct CloudSyncRuleConditionMappingTests {
             ]
         )
 
-        let record = try CloudSyncRuleConditionMapping.makeCKRecord(fromLocalID: "cond-1", database: database)
+        let record = try CloudSyncRuleConditionMapping.makeCKRecord(fromLocalID: "cond-1", existing: nil, database: database)
 
         #expect(record?["field"] as? String == "title")
         #expect(record?["value"] as? String == "Test")
@@ -167,5 +167,19 @@ struct CloudSyncRuleConditionMappingTests {
         let ids = try CloudSyncRuleConditionMapping.allLocalIDs(database: database)
 
         #expect(Set(ids) == Set(["cond-1", "cond-2"]))
+    }
+
+    @Test func makeCKRecordFromLocalIDMitExistingBehaeltSystemfelder() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        try SQLiteRuleStore(database: database).save(
+            RuleRecord(id: "rule-1", name: "Wichtig", sortOrder: 0),
+            conditions: [RuleConditionRecord(id: "cond-1", ruleID: "rule-1", field: "title", conditionOperator: "contains", value: "Test")]
+        )
+        let existing = CKRecord(recordType: "RuleCondition", recordID: CloudSyncRuleConditionMapping.recordID(forLocalID: "cond-1"))
+
+        let record = try CloudSyncRuleConditionMapping.makeCKRecord(fromLocalID: "cond-1", existing: existing, database: database)
+
+        #expect(record === existing)
+        #expect(record?["value"] as? String == "Test")
     }
 }

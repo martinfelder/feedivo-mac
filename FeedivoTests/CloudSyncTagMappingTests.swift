@@ -61,4 +61,15 @@ struct CloudSyncTagMappingTests {
 
         #expect(Set(ids) == Set(["tag-1", "tag-2"]))
     }
+
+    @Test func makeCKRecordFromLocalIDMitExistingBehaeltSystemfelder() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        try TagStore(database: database).save(TagRecord(id: "tag-1", name: "Wichtig", colorHex: "#FF0000", sortIndex: 3))
+        let existing = CKRecord(recordType: "Tag", recordID: CloudSyncTagMapping.recordID(forTagID: "tag-1"))
+
+        let record = try CloudSyncTagMapping.makeCKRecord(fromLocalID: "tag-1", existing: existing, database: database)
+
+        #expect(record === existing)
+        #expect(record?["name"] as? String == "Wichtig")
+    }
 }

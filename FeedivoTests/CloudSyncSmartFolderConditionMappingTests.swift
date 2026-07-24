@@ -61,7 +61,7 @@ struct CloudSyncSmartFolderConditionMappingTests {
     @Test func makeCKRecordFromLocalIDLiefertNilFuerUnbekannteID() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
 
-        let record = try CloudSyncSmartFolderConditionMapping.makeCKRecord(fromLocalID: "unbekannt", database: database)
+        let record = try CloudSyncSmartFolderConditionMapping.makeCKRecord(fromLocalID: "unbekannt", existing: nil, database: database)
 
         #expect(record == nil)
     }
@@ -75,7 +75,7 @@ struct CloudSyncSmartFolderConditionMappingTests {
             ]
         )
 
-        let record = try CloudSyncSmartFolderConditionMapping.makeCKRecord(fromLocalID: "cond-1", database: database)
+        let record = try CloudSyncSmartFolderConditionMapping.makeCKRecord(fromLocalID: "cond-1", existing: nil, database: database)
 
         #expect(record?["field"] as? String == "status")
         #expect(record?["value"] as? String == "unread")
@@ -163,5 +163,19 @@ struct CloudSyncSmartFolderConditionMappingTests {
         let ids = try CloudSyncSmartFolderConditionMapping.allLocalIDs(database: database)
 
         #expect(ids == ["cond-custom"])
+    }
+
+    @Test func makeCKRecordFromLocalIDMitExistingBehaeltSystemfelder() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        try SQLiteSmartFolderStore(database: database).save(
+            SmartFolderRecord(id: "folder-1", name: "Meine Auswahl", sortOrder: 0),
+            conditions: [SmartFolderConditionRecord(id: "cond-1", smartFolderID: "folder-1", field: "status", conditionOperator: "is", value: "unread")]
+        )
+        let existing = CKRecord(recordType: "SmartFolderCondition", recordID: CloudSyncSmartFolderConditionMapping.recordID(forLocalID: "cond-1"))
+
+        let record = try CloudSyncSmartFolderConditionMapping.makeCKRecord(fromLocalID: "cond-1", existing: existing, database: database)
+
+        #expect(record === existing)
+        #expect(record?["value"] as? String == "unread")
     }
 }

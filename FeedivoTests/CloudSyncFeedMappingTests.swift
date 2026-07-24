@@ -71,7 +71,7 @@ struct CloudSyncFeedMappingTests {
     @Test func makeCKRecordFromLocalIDLiefertNilFuerUnbekannteID() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
 
-        let record = try CloudSyncFeedMapping.makeCKRecord(fromLocalID: "unbekannt", database: database)
+        let record = try CloudSyncFeedMapping.makeCKRecord(fromLocalID: "unbekannt", existing: nil, database: database)
 
         #expect(record == nil)
     }
@@ -81,7 +81,7 @@ struct CloudSyncFeedMappingTests {
         let store = FeedStore(database: database)
         try store.save(FeedRecord(id: "feed-1", url: "https://example.com/feed", title: "Beispiel", refreshIntervalMinutes: 45))
 
-        let record = try CloudSyncFeedMapping.makeCKRecord(fromLocalID: "feed-1", database: database)
+        let record = try CloudSyncFeedMapping.makeCKRecord(fromLocalID: "feed-1", existing: nil, database: database)
 
         #expect(record?["url"] as? String == "https://example.com/feed")
         #expect(record?["refreshIntervalMinutes"] as? Int == 45)
@@ -167,5 +167,16 @@ struct CloudSyncFeedMappingTests {
         let ids = try CloudSyncFeedMapping.allLocalIDs(database: database)
 
         #expect(Set(ids) == Set(["feed-1", "feed-2"]))
+    }
+
+    @Test func makeCKRecordFromLocalIDMitExistingBehaeltSystemfelder() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        try FeedStore(database: database).save(FeedRecord(id: "feed-1", url: "https://example.com/feed", title: "Beispiel", refreshIntervalMinutes: 45))
+        let existing = CKRecord(recordType: "Feed", recordID: CloudSyncFeedMapping.recordID(forLocalID: "feed-1"))
+
+        let record = try CloudSyncFeedMapping.makeCKRecord(fromLocalID: "feed-1", existing: existing, database: database)
+
+        #expect(record === existing)
+        #expect(record?["url"] as? String == "https://example.com/feed")
     }
 }

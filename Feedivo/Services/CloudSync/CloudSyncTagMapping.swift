@@ -55,10 +55,10 @@ enum CloudSyncTagMapping: CloudSyncRecordMapping {
         recordID(forTagID: id)
     }
 
-    static func makeCKRecord(fromLocalID id: String, database: FeedivoDatabase) throws -> CKRecord? {
+    static func makeCKRecord(fromLocalID id: String, existing: CKRecord?, database: FeedivoDatabase) throws -> CKRecord? {
         let tags = try TagStore(database: database).tags()
         guard let tag = tags.first(where: { $0.id == id }) else { return nil }
-        return makeCKRecord(from: tag)
+        return makeCKRecord(from: tag, existing: existing)
     }
 
     static func applyIncoming(_ record: CKRecord, database: FeedivoDatabase) throws {

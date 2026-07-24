@@ -327,7 +327,7 @@ extension CloudSyncEngine: CKSyncEngineDelegate {
             return nil
         }
         do {
-            return try mapping.makeCKRecord(fromLocalID: recordID.recordName, database: database)
+            return try mapping.makeCKRecord(fromLocalID: recordID.recordName, existing: nil, database: database)
         } catch {
             AppLogger.dataAccess.error("iCloud Sync: CKRecord fuer ausstehende Aenderung konnte nicht gebaut werden: \(error.localizedDescription, privacy: .public)")
             return nil

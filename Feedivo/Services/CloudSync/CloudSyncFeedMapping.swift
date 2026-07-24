@@ -88,9 +88,9 @@ enum CloudSyncFeedMapping: CloudSyncRecordMapping {
 
     // MARK: - CloudSyncRecordMapping
 
-    static func makeCKRecord(fromLocalID id: String, database: FeedivoDatabase) throws -> CKRecord? {
+    static func makeCKRecord(fromLocalID id: String, existing: CKRecord?, database: FeedivoDatabase) throws -> CKRecord? {
         guard let feed = try FeedStore(database: database).feed(id: id) else { return nil }
-        return makeCKRecord(from: feed)
+        return makeCKRecord(from: feed, existing: existing)
     }
 
     static func applyIncoming(_ record: CKRecord, database: FeedivoDatabase) throws {

@@ -71,7 +71,7 @@ struct CloudSyncRuleMappingTests {
     @Test func makeCKRecordFromLocalIDLiefertNilFuerUnbekannteID() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
 
-        let record = try CloudSyncRuleMapping.makeCKRecord(fromLocalID: "unbekannt", database: database)
+        let record = try CloudSyncRuleMapping.makeCKRecord(fromLocalID: "unbekannt", existing: nil, database: database)
 
         #expect(record == nil)
     }
@@ -83,7 +83,7 @@ struct CloudSyncRuleMappingTests {
             conditions: []
         )
 
-        let record = try CloudSyncRuleMapping.makeCKRecord(fromLocalID: "rule-1", database: database)
+        let record = try CloudSyncRuleMapping.makeCKRecord(fromLocalID: "rule-1", existing: nil, database: database)
 
         #expect(record?["name"] as? String == "Wichtig")
         #expect(record?["sortOrder"] as? Int == 3)
@@ -152,5 +152,16 @@ struct CloudSyncRuleMappingTests {
         let ids = try CloudSyncRuleMapping.allLocalIDs(database: database)
 
         #expect(Set(ids) == Set(["rule-1", "rule-2"]))
+    }
+
+    @Test func makeCKRecordFromLocalIDMitExistingBehaeltSystemfelder() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        try SQLiteRuleStore(database: database).save(RuleRecord(id: "rule-1", name: "Wichtig", sortOrder: 0), conditions: [])
+        let existing = CKRecord(recordType: "Rule", recordID: CloudSyncRuleMapping.recordID(forLocalID: "rule-1"))
+
+        let record = try CloudSyncRuleMapping.makeCKRecord(fromLocalID: "rule-1", existing: existing, database: database)
+
+        #expect(record === existing)
+        #expect(record?["name"] as? String == "Wichtig")
     }
 }

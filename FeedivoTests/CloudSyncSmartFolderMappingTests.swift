@@ -75,7 +75,7 @@ struct CloudSyncSmartFolderMappingTests {
     @Test func makeCKRecordFromLocalIDLiefertNilFuerUnbekannteID() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
 
-        let record = try CloudSyncSmartFolderMapping.makeCKRecord(fromLocalID: "unbekannt", database: database)
+        let record = try CloudSyncSmartFolderMapping.makeCKRecord(fromLocalID: "unbekannt", existing: nil, database: database)
 
         #expect(record == nil)
     }
@@ -86,7 +86,7 @@ struct CloudSyncSmartFolderMappingTests {
         let defaultFolder = try SQLiteSmartFolderStore(database: database).folders().first { $0.defaultKey == "unread" }
         let defaultFolderID = try #require(defaultFolder?.id)
 
-        let record = try CloudSyncSmartFolderMapping.makeCKRecord(fromLocalID: defaultFolderID, database: database)
+        let record = try CloudSyncSmartFolderMapping.makeCKRecord(fromLocalID: defaultFolderID, existing: nil, database: database)
 
         #expect(record == nil)
     }
@@ -98,7 +98,7 @@ struct CloudSyncSmartFolderMappingTests {
             conditions: []
         )
 
-        let record = try CloudSyncSmartFolderMapping.makeCKRecord(fromLocalID: "folder-1", database: database)
+        let record = try CloudSyncSmartFolderMapping.makeCKRecord(fromLocalID: "folder-1", existing: nil, database: database)
 
         #expect(record?["name"] as? String == "Meine Auswahl")
         #expect(record?["sortOrder"] as? Int == 3)
@@ -207,5 +207,16 @@ struct CloudSyncSmartFolderMappingTests {
         let ids = try CloudSyncSmartFolderMapping.allLocalIDs(database: database)
 
         #expect(ids == ["custom-1"])
+    }
+
+    @Test func makeCKRecordFromLocalIDMitExistingBehaeltSystemfelder() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        try SQLiteSmartFolderStore(database: database).save(SmartFolderRecord(id: "folder-1", name: "Meine Auswahl", sortOrder: 0), conditions: [])
+        let existing = CKRecord(recordType: "SmartFolder", recordID: CloudSyncSmartFolderMapping.recordID(forLocalID: "folder-1"))
+
+        let record = try CloudSyncSmartFolderMapping.makeCKRecord(fromLocalID: "folder-1", existing: existing, database: database)
+
+        #expect(record === existing)
+        #expect(record?["name"] as? String == "Meine Auswahl")
     }
 }

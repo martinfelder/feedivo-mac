@@ -53,9 +53,9 @@ enum CloudSyncSmartFolderMapping: CloudSyncRecordMapping {
 
     // MARK: - CloudSyncRecordMapping
 
-    static func makeCKRecord(fromLocalID id: String, database: FeedivoDatabase) throws -> CKRecord? {
+    static func makeCKRecord(fromLocalID id: String, existing: CKRecord?, database: FeedivoDatabase) throws -> CKRecord? {
         guard let folder = try SQLiteSmartFolderStore(database: database).folder(id: id), !folder.isDefault else { return nil }
-        return makeCKRecord(from: folder)
+        return makeCKRecord(from: folder, existing: existing)
     }
 
     static func applyIncoming(_ record: CKRecord, database: FeedivoDatabase) throws {

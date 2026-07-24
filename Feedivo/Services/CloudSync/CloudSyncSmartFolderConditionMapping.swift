@@ -45,12 +45,12 @@ enum CloudSyncSmartFolderConditionMapping: CloudSyncRecordMapping {
 
     // MARK: - CloudSyncRecordMapping
 
-    static func makeCKRecord(fromLocalID id: String, database: FeedivoDatabase) throws -> CKRecord? {
+    static func makeCKRecord(fromLocalID id: String, existing: CKRecord?, database: FeedivoDatabase) throws -> CKRecord? {
         let condition = try database.read { db in
             try SmartFolderConditionRecord.fetchOne(db, sql: "SELECT * FROM smart_folder_conditions WHERE id = ?", arguments: [id])
         }
         guard let condition else { return nil }
-        return makeCKRecord(from: condition)
+        return makeCKRecord(from: condition, existing: existing)
     }
 
     static func applyIncoming(_ record: CKRecord, database: FeedivoDatabase) throws {

@@ -48,7 +48,7 @@ struct CloudSyncFeedFolderMappingTests {
     @Test func makeCKRecordFromLocalIDLiefertNilFuerUnbekannteID() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
 
-        let record = try CloudSyncFeedFolderMapping.makeCKRecord(fromLocalID: "unbekannt", database: database)
+        let record = try CloudSyncFeedFolderMapping.makeCKRecord(fromLocalID: "unbekannt", existing: nil, database: database)
 
         #expect(record == nil)
     }
@@ -58,7 +58,7 @@ struct CloudSyncFeedFolderMappingTests {
         let store = FeedFolderStore(database: database)
         try store.save(FeedFolderRecord(id: "folder-1", name: "Tech", sortIndex: 4))
 
-        let record = try CloudSyncFeedFolderMapping.makeCKRecord(fromLocalID: "folder-1", database: database)
+        let record = try CloudSyncFeedFolderMapping.makeCKRecord(fromLocalID: "folder-1", existing: nil, database: database)
 
         #expect(record?["name"] as? String == "Tech")
         #expect(record?["sortIndex"] as? Int == 4)
@@ -128,5 +128,16 @@ struct CloudSyncFeedFolderMappingTests {
         let ids = try CloudSyncFeedFolderMapping.allLocalIDs(database: database)
 
         #expect(Set(ids) == Set(["folder-1", "folder-2"]))
+    }
+
+    @Test func makeCKRecordFromLocalIDMitExistingBehaeltSystemfelder() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        try FeedFolderStore(database: database).save(FeedFolderRecord(id: "folder-1", name: "Tech", sortIndex: 0))
+        let existing = CKRecord(recordType: "FeedFolder", recordID: CloudSyncFeedFolderMapping.recordID(forLocalID: "folder-1"))
+
+        let record = try CloudSyncFeedFolderMapping.makeCKRecord(fromLocalID: "folder-1", existing: existing, database: database)
+
+        #expect(record === existing)
+        #expect(record?["name"] as? String == "Tech")
     }
 }

@@ -19,7 +19,7 @@ protocol CloudSyncRecordMapping {
     /// Lädt die aktuelle lokale Zeile und mapped sie zu einem `CKRecord` (für den Upload).
     /// Liefert `nil`, falls die Zeile lokal nicht mehr existiert (z. B. zwischenzeitlich
     /// gelöscht, aber noch in der Pending-Changes-Warteschlange).
-    static func makeCKRecord(fromLocalID id: String, database: FeedivoDatabase) throws -> CKRecord?
+    static func makeCKRecord(fromLocalID id: String, existing: CKRecord?, database: FeedivoDatabase) throws -> CKRecord?
 
     /// Übernimmt ein eingehendes `CKRecord` in die lokale Datenbank (Upsert).
     static func applyIncoming(_ record: CKRecord, database: FeedivoDatabase) throws
