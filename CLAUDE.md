@@ -1008,10 +1008,10 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
        Cache→`existing:`-Datenflusskette Ende-zu-Ende über beide Tasks hinweg. Spec:
        `docs/superpowers/specs/2026-07-24-icloud-sync-konfliktaufloesung-fix-design.md`, Plan:
        `docs/superpowers/plans/2026-07-24-icloud-sync-konfliktaufloesung-fix.md`.
-  **Weiterhin ausstehend:** Die eigentliche Live-Verifikation des Konfliktauflösungs-Fixes
-  (sollten die 94 hängenden Elemente jetzt auf 0 sinken, keine wiederholten
-  `.serverRecordChanged`-Fehler, keine erneute 429-Drosselung) — das war der ganze Zweck des
-  Fixes, aber in dieser Session noch nicht vom Nutzer bestätigt.
+  **Live-Verifikation des Konfliktauflösungs-Fixes vom Nutzer bestätigt erfolgreich:** nach
+  erneutem Sync-Anstoß sind die 94 zuvor dauerhaft hängenden Elemente auf "Ausstehend: 0"
+  gesunken, keine wiederholten `.serverRecordChanged`-Fehler mehr in der Konsole. Beide
+  Durchgänge dieser Session sind damit vollständig abgeschlossen und bestätigt funktionsfähig.
 
 - **2026-07-24 (weitere Folge-Session): iCloud Sync Phase 2a (Feeds/Ordner/Regeln/
   benutzerdefinierte Intelligente Ordner) — Implementierung ABGESCHLOSSEN, automatisierte
