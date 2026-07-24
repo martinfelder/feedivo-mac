@@ -273,6 +273,7 @@ extension CloudSyncEngine: CKSyncEngineDelegate {
             for deletion in changes.deletions {
                 await applyIncomingDeletion(deletion.recordID)
             }
+            CloudSyncActivityStatus.recordSuccess()
 
         case .sentRecordZoneChanges(let changes):
             for saved in changes.savedRecords {
@@ -284,6 +285,7 @@ extension CloudSyncEngine: CKSyncEngineDelegate {
             for failedSave in changes.failedRecordSaves {
                 await handleFailedSave(failedSave)
             }
+            recordSyncActivityOutcome(failedRecordSaves: changes.failedRecordSaves)
 
         default:
             break
@@ -380,6 +382,22 @@ extension CloudSyncEngine: CKSyncEngineDelegate {
             } catch {
                 AppLogger.dataAccess.error("iCloud Sync: Erneuter Sync-Versuch nach Konflikt konnte nicht eingeplant werden: \(error.localizedDescription, privacy: .public)")
             }
+        }
+    }
+
+    /// Aktualisiert den persistenten Sync-Aktivitätsstatus nach einem abgeschlossenen
+    /// Sende-Batch. `.serverRecordChanged`-Konflikte zählen NICHT als Fehler — die werden
+    /// bereits automatisch aufgelöst (siehe `handleFailedSave` oben), das ist normaler
+    /// Multi-Geräte-Betrieb. Siehe Design-Spec
+    /// `docs/superpowers/specs/2026-07-24-icloud-sync-status-uebersicht-design.md`.
+    private func recordSyncActivityOutcome(failedRecordSaves: [CKSyncEngine.Event.SentRecordZoneChanges.FailedRecordSave]) {
+        let realFailureMessages = failedRecordSaves
+            .filter { $0.error.code != .serverRecordChanged }
+            .map(\.error.localizedDescription)
+        if let firstFailureMessage = realFailureMessages.first {
+            CloudSyncActivityStatus.recordFailure(firstFailureMessage)
+        } else {
+            CloudSyncActivityStatus.recordSuccess()
         }
     }
 }
