@@ -97,12 +97,21 @@ final class CloudSyncEngine: NSObject {
         guard let data = UserDefaults.standard.data(forKey: stateSerializationKey) else {
             return nil
         }
-        return try? JSONDecoder().decode(CKSyncEngine.State.Serialization.self, from: data)
+        do {
+            return try JSONDecoder().decode(CKSyncEngine.State.Serialization.self, from: data)
+        } catch {
+            AppLogger.dataAccess.error("iCloud Sync: Gespeicherter Sync-Status konnte nicht gelesen werden: \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
     }
 
     private static func persist(_ serialization: CKSyncEngine.State.Serialization) {
-        guard let data = try? JSONEncoder().encode(serialization) else { return }
-        UserDefaults.standard.set(data, forKey: stateSerializationKey)
+        do {
+            let data = try JSONEncoder().encode(serialization)
+            UserDefaults.standard.set(data, forKey: stateSerializationKey)
+        } catch {
+            AppLogger.dataAccess.error("iCloud Sync: Sync-Status konnte nicht gespeichert werden: \(error.localizedDescription, privacy: .public)")
+        }
     }
 }
 
@@ -160,7 +169,14 @@ extension CloudSyncEngine: CKSyncEngineDelegate {
     }
 
     private func record(forPendingChange recordID: CKRecord.ID) async -> CKRecord? {
-        guard let tag = (try? TagStore(database: database).tags())?.first(where: { $0.id == recordID.recordName }) else {
+        let tags: [TagRecord]
+        do {
+            tags = try TagStore(database: database).tags()
+        } catch {
+            AppLogger.dataAccess.error("iCloud Sync: Tags fuer ausstehende Aenderung konnten nicht geladen werden: \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
+        guard let tag = tags.first(where: { $0.id == recordID.recordName }) else {
             return nil
         }
         return CloudSyncTagMapping.makeCKRecord(from: tag)
@@ -210,7 +226,15 @@ extension CloudSyncEngine: CKSyncEngineDelegate {
 
         guard let serverRecord = failedSave.error.serverRecord else { return }
 
-        let localTag = (try? TagStore(database: database).tags())?.first { $0.id == failedSave.record.recordID.recordName }
+        let tags: [TagRecord]
+        do {
+            tags = try TagStore(database: database).tags()
+        } catch {
+            AppLogger.dataAccess.error("iCloud Sync: Lokaler Tag-Bestand fuer Konfliktaufloesung konnte nicht geladen werden: \(error.localizedDescription, privacy: .public)")
+            return
+        }
+
+        let localTag = tags.first { $0.id == failedSave.record.recordID.recordName }
         let serverIsNewer = (serverRecord.modificationDate ?? .distantPast) > (localTag?.updatedAt ?? .distantPast)
 
         if serverIsNewer {
