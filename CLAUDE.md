@@ -972,6 +972,47 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Aktuell in Arbeit
 
+- **2026-07-24 (weitere Folge-Session): iCloud Sync Status-Übersicht + Konfliktauflösungs-Fix —
+  BEIDE VOLLSTÄNDIG ABGESCHLOSSEN UND NACH `origin/main` GEPUSHT (`1c6cc393..d55da333`).**
+  Zwei zusammenhängende Durchgänge in derselben Session:
+  1. **Sync-Status-Übersicht** (neuer Block im Sync-Tab: globale Statuszeile
+     "Synchron"/"Ausstehend (N)"/"Fehler: …" + Zeitpunkt, aufklappbare Aufschlüsselung nach
+     Datenart) — via Brainstorming→Spec→Plan→Subagent-Driven-Development (5 Tasks + ein
+     Whole-Branch-Review-Fix-Durchgang: stale Pending-Count nach erfolgreichem Sync, fehlende
+     Statusfarbe laut Spec, "Synchron" fälschlich vor dem allerersten Lauf, stille
+     Fehlerbehandlung). Neue Typen: `CloudSyncActivityStatus` (persistent, UserDefaults),
+     `CloudSyncActivityCategory` (7 rohe recordTypes → 5 Anzeige-Kategorien),
+     `CloudSyncPendingChangeStore.pendingCounts()`. Spec:
+     `docs/superpowers/specs/2026-07-24-icloud-sync-status-uebersicht-design.md`, Plan:
+     `docs/superpowers/plans/2026-07-24-icloud-sync-status-uebersicht.md`.
+  2. **Live-Testen dieser neuen Übersicht deckte zwei echte, vorbestehende Bugs auf** (kein
+     Zusammenhang mit der neuen UI selbst, beide aus Phase 1/2a geerbt):
+     - Ein `CKSyncEngine`-Reentrancy-Absturz (`Fatal error: BUG IN CLIENT OF CLOUDKIT`), wenn
+       `notifyPendingChangesAvailable`s manueller `sendChanges()`-Aufruf aus dem
+       Konfliktauflösungspfad (`handleFailedSave`, selbst innerhalb des
+       `CKSyncEngineDelegate`-Callbacks) heraus lief — Fix: `Task.detached` statt `Task {}`,
+       siehe neuer Gotcha oben. Direkt gefixt, gepusht.
+     - Ein tieferliegender Konfliktauflösungs-Bug: `makeCKRecord(fromLocalID:database:)` baute
+       bei JEDEM Sendeversuch ein jungfräuliches `CKRecord` ohne Server-Systemfelder — jeder
+       bereits serverseitig existierende Datensatz (94 Stück live per SQLite-Abfrage verifiziert)
+       scheiterte dadurch garantiert und dauerhaft mit `.serverRecordChanged` ("record to insert
+       already exists"). Zusätzlich dequeued `handleFailedSave` nie bei "Server gewinnt", und
+       `.sentRecordZoneChanges` löste pro Konflikt einen eigenen `sendChanges()`-Aufruf aus
+       (plausible Mit-Ursache einer live beobachteten CloudKit-429-Drosselung). Eigener
+       Brainstorming→Spec→Plan→Subagent-Driven-Development-Zyklus (2 Tasks): `existing:
+       CKRecord?`-Parameter durch alle 7 `CloudSyncRecordMapping`-Typen durchgereicht (der dafür
+       bereits vorbereitete, aber nie genutzte Parameter auf `makeCKRecord(from:existing:)`),
+       neuer In-Memory-Cache `knownServerRecordsByID` in `CloudSyncEngine`, `applyIncomingRecord`/
+       `handleFailedSave` liefern jetzt `Bool`, gebündelter Resend-Trigger. Whole-Branch-Review
+       (Opus): "Ready to merge: Yes", 0 Critical/Important — verifizierte die komplette
+       Cache→`existing:`-Datenflusskette Ende-zu-Ende über beide Tasks hinweg. Spec:
+       `docs/superpowers/specs/2026-07-24-icloud-sync-konfliktaufloesung-fix-design.md`, Plan:
+       `docs/superpowers/plans/2026-07-24-icloud-sync-konfliktaufloesung-fix.md`.
+  **Weiterhin ausstehend:** Die eigentliche Live-Verifikation des Konfliktauflösungs-Fixes
+  (sollten die 94 hängenden Elemente jetzt auf 0 sinken, keine wiederholten
+  `.serverRecordChanged`-Fehler, keine erneute 429-Drosselung) — das war der ganze Zweck des
+  Fixes, aber in dieser Session noch nicht vom Nutzer bestätigt.
+
 - **2026-07-24 (weitere Folge-Session): iCloud Sync Phase 2a (Feeds/Ordner/Regeln/
   benutzerdefinierte Intelligente Ordner) — Implementierung ABGESCHLOSSEN, automatisierte
   Verifikation grün, manuelle Live-Verifikation NOCH AUSSTEHEND.** Baut auf dem in Phase 1
