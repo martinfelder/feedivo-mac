@@ -113,6 +113,22 @@ final class CloudSyncEngine: NSObject {
             }
         }
         syncEngine.state.add(pendingRecordZoneChanges: changes)
+
+        // `automaticallySync` verlässt sich auf Apples System-Task-Scheduler und sendet nicht
+        // sofort (siehe WWDC23 "Sync to iCloud with CKSyncEngine": der Scheduler konsultiert
+        // erst Systembedingungen wie Akku/Netzwerk, bevor er tatsächlich sendet — das kann
+        // beliebig lange dauern). Für eine interaktive App, bei der der Nutzer nach einer
+        // Änderung eine zeitnahe Sync-Bestätigung erwartet, reicht automatisches Planen allein
+        // nicht — deshalb hier zusätzlich explizit `sendChanges()` anstoßen (Apples dokumentierte
+        // "manual override" für genau diesen Fall), statt uns nur auf automatische Planung zu
+        // verlassen.
+        Task {
+            do {
+                try await syncEngine.sendChanges()
+            } catch {
+                AppLogger.dataAccess.error("iCloud Sync: Sofortiges Senden fehlgeschlagen: \(error.localizedDescription, privacy: .public)")
+            }
+        }
     }
 
     private static func loadStateSerialization() -> CKSyncEngine.State.Serialization? {
