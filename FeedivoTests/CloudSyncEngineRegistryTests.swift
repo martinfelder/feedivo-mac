@@ -18,6 +18,36 @@ struct CloudSyncEngineRegistryTests {
         #expect(mapping is CloudSyncFeedMapping.Type)
     }
 
+    @Test func registryLoestFeedFolderRecordTypeAufCloudSyncFeedFolderMappingAuf() {
+        let mapping = CloudSyncEngine.mapping(forRecordType: "FeedFolder")
+
+        #expect(mapping is CloudSyncFeedFolderMapping.Type)
+    }
+
+    @Test func registryLoestRuleRecordTypeAufCloudSyncRuleMappingAuf() {
+        let mapping = CloudSyncEngine.mapping(forRecordType: "Rule")
+
+        #expect(mapping is CloudSyncRuleMapping.Type)
+    }
+
+    @Test func registryLoestRuleConditionRecordTypeAufCloudSyncRuleConditionMappingAuf() {
+        let mapping = CloudSyncEngine.mapping(forRecordType: "RuleCondition")
+
+        #expect(mapping is CloudSyncRuleConditionMapping.Type)
+    }
+
+    @Test func registryLoestSmartFolderRecordTypeAufCloudSyncSmartFolderMappingAuf() {
+        let mapping = CloudSyncEngine.mapping(forRecordType: "SmartFolder")
+
+        #expect(mapping is CloudSyncSmartFolderMapping.Type)
+    }
+
+    @Test func registryLoestSmartFolderConditionRecordTypeAufCloudSyncSmartFolderConditionMappingAuf() {
+        let mapping = CloudSyncEngine.mapping(forRecordType: "SmartFolderCondition")
+
+        #expect(mapping is CloudSyncSmartFolderConditionMapping.Type)
+    }
+
     @Test func registryLiefertNilFuerUnbekanntenRecordType() {
         let mapping = CloudSyncEngine.mapping(forRecordType: "UnknownType")
 

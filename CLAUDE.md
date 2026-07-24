@@ -923,6 +923,14 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   echtes CloudKit (Push-Richtung für alle 4 neuen Tabellen, Pull-Richtung wie in Phase 1
   mangels Zweitgerät). Der alte `codex/icloud-sync-beta`-Branch (SwiftData-basiert) ist
   überholt und nicht mehr relevant.
+- **Bekanntes, bewusst noch nicht behobenes Risiko aus dem Phase-2a-Whole-Branch-Review:**
+  `FeedFolderStore.materializeImplicitFolders()` kann bei Multi-Geräte-Pull doppelte,
+  gleichnamige `feed_folders`-Zeilen erzeugen (frische Zufalls-UUID pro Gerät, nicht
+  sync-eingereiht, kollidiert mit der ID-basierten Ordner-Synchronisierung aus Task 5).
+  Betrifft nur Pull-Richtung, die ohnehin noch unverifiziert ist — muss vor/während der
+  Pull-Verifikation oder in Phase 2b adressiert werden (Dedupe nach Name beim Anwenden
+  eingehender Records, oder deterministische statt zufällige UUID-Ableitung). Details
+  siehe „Aktuell in Arbeit" (Whole-Branch-Review-Eintrag).
 - **Monetarisierung:** Kostenlos / einmaliger Kauf / nie im App Store? — weiterhin offen.
 - **Share Extension:** Noch nicht begonnen, kein konkreter Zeitplan.
 - **App Store vs. private Verteilung:** Weiterhin offen.
@@ -1000,6 +1008,41 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   (Tasks 1–7) lokal auf `main`, Push-Status siehe `git log`/`git status` zum Lesezeitpunkt (hier
   bewusst keine Momentaufnahme dupliziert, siehe Lehre im 2026-07-20er CLAUDE.md-Korrektur-
   Eintrag zu veralteten Push-Status-Vermerken).
+
+- **2026-07-24 (Folge-Session): iCloud Sync Phase 2a — finaler Whole-Branch-Review, 0
+  Critical, 1 Important (dokumentiert statt code-gefixt), 1 Minor-Testlücke geschlossen.**
+  Der finale Whole-Branch-Review fand keinen mergeblockierenden Fehler, aber einen echten,
+  nur aus Gesamtsicht sichtbaren **Important-Befund zum Multi-Geräte-Verhalten beim Pull,
+  der laut ausdrücklicher Reviewer-Empfehlung für diesen push-only/Ein-Geräte-Meilenstein
+  nur dokumentiert, nicht code-gefixt werden muss:** `FeedFolderStore.
+  materializeImplicitFolders()` (aufgerufen aus `SQLiteSidebarState.swift` bei jedem
+  Sidebar-Load) legt für jeden nur implizit über `feeds.folderName` existierenden
+  Ordnernamen eine neue `feed_folders`-Zeile mit einer frischen zufälligen UUID an — und
+  reiht diese bewusst NICHT in die CloudSync-Warteschlange ein (für sich genommen korrekt,
+  da Ordner-Identität in dieser App namensbasiert ist, nicht ID-basiert). Das kollidiert
+  aber mit Task 5s neuer, ID-basierter Ordner-Synchronisierung: legt Gerät A einen Ordner
+  „Technik" an und synct ihn (ID `UUID-A`), während Gerät B unabhängig davon seine eigene
+  „Technik"-Zeile materialisiert (ID `UUID-B`), bevor `UUID-A` per Pull ankommt, fügt der
+  eingehende Record beim Upsert-nach-Primärschlüssel eine ZWEITE „Technik"-Zeile in
+  `feed_folders` auf Gerät B ein — die Sidebar würde danach zwei „Technik"-Ordner
+  anzeigen. Dieses Risiko betrifft ausschließlich die Multi-Geräte-PULL-Richtung, die
+  diese Phase laut Spec ohnehin schon bewusst als unverifiziert zurückstellt (nur
+  Push-Richtung live-getestet, Single-Device). **Kein Merge-Blocker für diesen
+  Meilenstein, aber als bekannte Limitation zu tracken statt stillschweigend
+  mitzuschiffen** — vor bzw. während der Pull-Richtung-Live-Verifikation oder spätestens
+  in Phase 2b muss das behoben werden, z. B. durch Dedupe eingehender `FeedFolder`-Records
+  nach Name beim Anwenden, oder durch eine deterministische (statt zufällige) UUID-
+  Ableitung aus dem Ordnernamen bei `materializeImplicitFolders()`. Siehe auch neuer
+  Eintrag unter „Offene Entscheidungen" unten.
+  **Zusätzlich unabhängig behoben (1 der 3 Minor-Funde, die anderen 2 — verwaiste
+  Pending-Change-Zeile bei Rollback-Fehlschlag in `SQLiteFeedSubscriptionService.swift`,
+  O(n)-Ordner-Lookup in `CloudSyncFeedFolderMapping` — vom Reviewer selbst als
+  geringwertig/unwesentlich eingestuft und bewusst nicht angefasst):**
+  `CloudSyncEngineRegistryTests.swift` prüfte bisher nur 2 der 7 registrierten
+  Record-Types (`Tag`, `Feed`) gegen `CloudSyncEngine.mapping(forRecordType:)` — um 5
+  neue Tests ergänzt (`FeedFolder`, `Rule`, `RuleCondition`, `SmartFolder`,
+  `SmartFolderCondition`), je eine Assertion pro Typ, im bereits etablierten Stil der
+  Datei. 167/167 Tests grün, Release-Build grün.
 
 - **2026-07-24: iCloud Sync Phase 1 (CKSyncEngine-Fundament, nur Tags) — Implementierung
   ABGESCHLOSSEN, automatisierte Verifikation grün, manuelle Live-Verifikation NOCH
