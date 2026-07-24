@@ -677,7 +677,7 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(!wizardSource.contains("RuleEngine.matchingArticleCount("))
         #expect(compactSettingsSource.contains("letsnapshots=trySQLiteRuleStore(database:database).ruleSnapshots()"))
         #expect(compactSettingsSource.contains("SQLiteRuleEvaluationStore(database:database).applyRulesToExistingArticles(snapshots)"))
-        #expect(compactWizardSource.contains("SQLiteRuleEvaluationStore(database:database).matchingArticleCount(conditionDrafts:activeConditionDrafts,matchMode:activeMatchMode)"))
+        #expect(compactWizardSource.contains("SQLiteRuleEvaluationStore(database:database).matchingArticleCount(conditionDrafts:activeConditionDrafts)"))
     }
 
     @Test func sqliteArticleListSearchLaedtUeberSQLiteState() throws {

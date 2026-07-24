@@ -66,7 +66,6 @@ struct RuleWizardView: View {
     @State private var name = ""
     @State private var isEnabled = true
     @State private var action = RuleAction.assignTag
-    @State private var matchMode = RuleMatchMode.all
     @State private var conditionDrafts = [
         RuleConditionDraft(field: .title, conditionOperator: .contains, value: "")
     ]
@@ -216,53 +215,22 @@ struct RuleWizardView: View {
             }
 
             if mode == .power {
-                HStack(spacing: 10) {
-                    Text(L10n.ruleWizardMatchModeLabel)
-                        .font(.system(size: 12.5))
-                        .foregroundStyle(theme.text2)
-
-                    RuleSegmentedControl(
-                        options: RuleMatchMode.allCases.map { ($0, $0.titleKey) },
-                        selection: $matchMode,
-                        theme: theme
-                    )
-                }
-                .padding(.top, 13)
-            }
-
-            VStack(spacing: 9) {
-                ForEach(activeConditionDraftIDs, id: \.self) { draftID in
-                    if let index = conditionDrafts.firstIndex(where: { $0.id == draftID }) {
-                        RuleConditionRow(
-                            draft: $conditionDrafts[index],
-                            showRemove: mode == .power && conditionDrafts.count > 1,
-                            theme: theme,
-                            onRemove: { removeCondition(id: draftID) }
-                        )
+                powerModeConditionGroups(theme: theme)
+                    .padding(.top, 13)
+            } else {
+                VStack(spacing: 9) {
+                    ForEach(activeConditionDraftIDs, id: \.self) { draftID in
+                        if let index = conditionDrafts.firstIndex(where: { $0.id == draftID }) {
+                            RuleConditionRow(
+                                draft: $conditionDrafts[index],
+                                showRemove: false,
+                                theme: theme,
+                                onRemove: {}
+                            )
+                        }
                     }
                 }
-            }
-            .padding(.top, 13)
-
-            if mode == .power {
-                Button {
-                    conditionDrafts.append(
-                        RuleConditionDraft(field: .title, conditionOperator: .contains, value: "")
-                    )
-                } label: {
-                    (Text("+ ") + Text(L10n.ruleWizardAddCondition))
-                        .font(.system(size: 12.5, weight: .semibold))
-                        .foregroundStyle(theme.accent)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 7)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
-                                .foregroundStyle(theme.border)
-                        )
-                }
-                .buttonStyle(.plain)
-                .padding(.top, 10)
+                .padding(.top, 13)
             }
 
             HStack(spacing: 8) {
@@ -307,6 +275,47 @@ struct RuleWizardView: View {
             RoundedRectangle(cornerRadius: 11, style: .continuous)
                 .stroke(theme.border, lineWidth: 1)
         )
+    }
+
+    // MARK: - Bedingungsgruppen (Power-User-Modus)
+
+    @ViewBuilder
+    private func powerModeConditionGroups(theme: RuleDialogTheme) -> some View {
+        let groups = RuleConditionGroupLayout.groupedDraftIDs(conditionDrafts)
+
+        VStack(spacing: 10) {
+            ForEach(Array(groups.enumerated()), id: \.offset) { offset, draftIDs in
+                if offset > 0 {
+                    RuleConditionGroupOrDivider(theme: theme)
+                }
+
+                RuleConditionGroupBox(
+                    conditionDrafts: $conditionDrafts,
+                    draftIDs: draftIDs,
+                    showRemoveGroup: groups.count > 1,
+                    theme: theme,
+                    onAddCondition: { addCondition(toGroupContaining: draftIDs.first) },
+                    onRemoveCondition: { removeCondition(id: $0) },
+                    onRemoveGroup: { removeGroup(containing: draftIDs.first) }
+                )
+            }
+
+            Button {
+                addGroup()
+            } label: {
+                (Text("+ ") + Text(L10n.ruleWizardAddGroup))
+                    .font(.system(size: 12.5, weight: .semibold))
+                    .foregroundStyle(theme.accent)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 7)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                            .foregroundStyle(theme.border)
+                    )
+            }
+            .buttonStyle(.plain)
+        }
     }
 
     // MARK: - DANN-Karte
@@ -547,17 +556,12 @@ struct RuleWizardView: View {
         mode == .simple ? Array(conditionDrafts.prefix(1)) : conditionDrafts
     }
 
-    private var activeMatchMode: RuleMatchMode {
-        mode == .simple ? .all : matchMode
-    }
-
     private var previewReloadToken: String {
-        let conditionToken = activeConditionDrafts
+        activeConditionDrafts
             .map { draft in
-                "\(draft.field.rawValue):\(draft.conditionOperator.rawValue):\(draft.value)"
+                "\(draft.groupIndex):\(draft.field.rawValue):\(draft.conditionOperator.rawValue):\(draft.value)"
             }
             .joined(separator: "|")
-        return "\(activeMatchMode.rawValue)|\(conditionToken)"
     }
 
     private func loadInitialState() {
@@ -580,7 +584,6 @@ struct RuleWizardView: View {
         name = rule.name
         isEnabled = rule.isEnabled
         action = RuleAction.normalized(rule.action)
-        matchMode = RuleMatchMode.normalized(rule.matchMode)
 
         if let database = feedivoDatabase {
             let conditions = (try? SQLiteRuleStore(database: database).conditions(ruleID: rule.id)) ?? []
@@ -598,7 +601,36 @@ struct RuleWizardView: View {
     }
 
     private func removeCondition(id: UUID) {
-        conditionDrafts.removeAll { $0.id == id }
+        conditionDrafts = RuleConditionGroupLayout.removingCondition(id: id, from: conditionDrafts)
+    }
+
+    private func addCondition(toGroupContaining draftID: UUID?) {
+        guard let draftID,
+              let groupIndex = conditionDrafts.first(where: { $0.id == draftID })?.groupIndex
+        else {
+            return
+        }
+
+        conditionDrafts.append(
+            RuleConditionDraft(field: .title, conditionOperator: .contains, value: "", groupIndex: groupIndex)
+        )
+    }
+
+    private func addGroup() {
+        let newGroupIndex = RuleConditionGroupLayout.nextGroupIndex(in: conditionDrafts)
+        conditionDrafts.append(
+            RuleConditionDraft(field: .title, conditionOperator: .contains, value: "", groupIndex: newGroupIndex)
+        )
+    }
+
+    private func removeGroup(containing draftID: UUID?) {
+        guard let draftID,
+              let groupIndex = conditionDrafts.first(where: { $0.id == draftID })?.groupIndex
+        else {
+            return
+        }
+
+        conditionDrafts = RuleConditionGroupLayout.removingGroup(groupIndex, from: conditionDrafts)
     }
 
     private func cancelTagCreation() {
@@ -645,8 +677,7 @@ struct RuleWizardView: View {
 
         do {
             previewMatchingCount = try SQLiteRuleEvaluationStore(database: database).matchingArticleCount(
-                conditionDrafts: activeConditionDrafts,
-                matchMode: activeMatchMode
+                conditionDrafts: activeConditionDrafts
             )
             previewLoadFailed = false
         } catch {
@@ -671,7 +702,8 @@ struct RuleWizardView: View {
             return RuleConditionDraft(
                 field: draft.field,
                 conditionOperator: draft.conditionOperator,
-                value: value
+                value: value,
+                groupIndex: draft.groupIndex
             )
         }
 
@@ -695,7 +727,7 @@ struct RuleWizardView: View {
             id: ruleID,
             name: trimmedName,
             isEnabled: isEnabled,
-            matchMode: activeMatchMode.rawValue,
+            matchMode: rule?.matchMode ?? RuleMatchMode.all.rawValue,
             action: action.rawValue,
             assignTagID: action == .assignTag ? selectedTagID : nil,
             notificationTemplate: rule?.notificationTemplate ?? "{Titel}",
@@ -710,7 +742,8 @@ struct RuleWizardView: View {
                 field: draft.field.rawValue,
                 conditionOperator: draft.conditionOperator.rawValue,
                 value: draft.value,
-                sortOrder: index
+                sortOrder: index,
+                groupIndex: draft.groupIndex
             )
         }
 
@@ -842,6 +875,85 @@ private struct RuleConditionRow: View {
                 .help(L10n.ruleWizardRemoveCondition)
             }
         }
+    }
+}
+
+// MARK: - Bedingungsgruppen-Box
+
+private struct RuleConditionGroupBox: View {
+    @Binding var conditionDrafts: [RuleConditionDraft]
+    let draftIDs: [UUID]
+    let showRemoveGroup: Bool
+    let theme: RuleDialogTheme
+    let onAddCondition: () -> Void
+    let onRemoveCondition: (UUID) -> Void
+    let onRemoveGroup: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            ForEach(draftIDs, id: \.self) { draftID in
+                if let index = conditionDrafts.firstIndex(where: { $0.id == draftID }) {
+                    RuleConditionRow(
+                        draft: $conditionDrafts[index],
+                        showRemove: conditionDrafts.count > 1,
+                        theme: theme,
+                        onRemove: { onRemoveCondition(draftID) }
+                    )
+                }
+            }
+
+            HStack(spacing: 8) {
+                Button(action: onAddCondition) {
+                    (Text("+ ") + Text(L10n.ruleWizardAddCondition))
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(theme.accent)
+                }
+                .buttonStyle(.plain)
+
+                if showRemoveGroup {
+                    Spacer()
+
+                    Button(action: onRemoveGroup) {
+                        Text(L10n.ruleWizardRemoveGroup)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(theme.destructiveText)
+                    }
+                    .buttonStyle(.plain)
+                    .help(L10n.ruleWizardRemoveGroup)
+                }
+            }
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                .fill(theme.card2)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                .stroke(theme.border, lineWidth: 1)
+        )
+    }
+}
+
+// MARK: - "ODER"-Trenner zwischen zwei Gruppen-Boxen
+
+private struct RuleConditionGroupOrDivider: View {
+    let theme: RuleDialogTheme
+
+    var body: some View {
+        Text(verbatim: L10n.ruleSummaryAny)
+            .font(.system(size: 10.5, weight: .heavy))
+            .tracking(0.6)
+            .foregroundStyle(theme.text2)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 3)
+            .background(
+                Capsule().fill(theme.card2)
+            )
+            .overlay(
+                Capsule().stroke(theme.border, lineWidth: 1)
+            )
+            .frame(maxWidth: .infinity, alignment: .center)
     }
 }
 

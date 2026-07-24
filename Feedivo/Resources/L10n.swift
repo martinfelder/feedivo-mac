@@ -283,14 +283,6 @@ enum L10n {
     static let ruleWizardNewTag = LocalizedStringKey("ruleWizard.newTag")
     static let ruleWizardNewTagName = LocalizedStringKey("ruleWizard.newTagName")
     static let ruleWizardNameLabel = LocalizedStringKey("ruleWizard.name.label")
-    // Hinweis: ruleWizardMatchModeLabel bewusst NICHT hier entfernt (abweichend vom
-    // ursprünglichen Task-5-Brief) — ihre einzige Verwendungsstelle
-    // (RuleWizardView.swift:220) gehört zur Matchmode-UI-Zeile 218-231, die laut
-    // Plan/Brief selbst erst in Task 6 entfernt wird. Ein sofortiges Entfernen hier
-    // hätte einen zweiten, unerwarteten Build-Fehler an dieser Stelle erzeugt
-    // (zusätzlich zum einzigen für Task 5 vorgesehenen Fehler bei
-    // RuleWizardView.swift:649) — Widerspruch im Brief, siehe Task-5-Report.
-    static let ruleWizardMatchModeLabel = LocalizedStringKey("ruleWizard.matchMode.label")
     static let ruleWizardIfBadge = LocalizedStringKey("ruleWizard.if.badge")
     static let ruleWizardIfDescription = LocalizedStringKey("ruleWizard.if.description")
     static let ruleWizardThenBadge = LocalizedStringKey("ruleWizard.then.badge")
