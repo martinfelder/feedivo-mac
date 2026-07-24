@@ -14,6 +14,17 @@ final class CloudSyncEngine: NSObject {
 
     private let database: FeedivoDatabase
     private let pendingChangeStore: CloudSyncPendingChangeStore
+
+    /// Kurzlebiger Zwischenspeicher für Server-Records aus aufgelösten Konflikten — wird von
+    /// `handleFailedSave` beim "lokal gewinnt"-Pfad befüllt und von `record(forPendingChange:)`
+    /// konsultiert, damit der nächste Sendeversuch die korrekten Server-Systemfelder
+    /// (Change-Tag) wiederverwendet, statt erneut ein jungfräuliches CKRecord zu bauen (das
+    /// sonst garantiert wieder mit `.serverRecordChanged` scheitern würde). Rein In-Memory,
+    /// bewusst nicht persistiert — überlebt einen Konflikt-Retry innerhalb derselben Sync-
+    /// Session; nach einem App-Neustart liefert der nächste Sendeversuch ohnehin erneut den
+    /// aktuellen Server-Stand über einen neuen `.serverRecordChanged`-Fehler. Siehe Design-Spec
+    /// `docs/superpowers/specs/2026-07-24-icloud-sync-konfliktaufloesung-fix-design.md`.
+    private var knownServerRecordsByID: [CKRecord.ID: CKRecord] = [:]
     let status = CloudSyncStatus()
 
     private var syncEngine: CKSyncEngine?
@@ -296,8 +307,14 @@ extension CloudSyncEngine: CKSyncEngineDelegate {
             for deletedID in changes.deletedRecordIDs {
                 dequeuePendingChange(recordName: deletedID.recordName)
             }
+            var needsResend = false
             for failedSave in changes.failedRecordSaves {
-                await handleFailedSave(failedSave)
+                if await handleFailedSave(failedSave) {
+                    needsResend = true
+                }
+            }
+            if needsResend {
+                Self.notifyPendingChangesAvailable(database: database)
             }
             recordSyncActivityOutcome(failedRecordSaves: changes.failedRecordSaves)
 
@@ -327,22 +344,26 @@ extension CloudSyncEngine: CKSyncEngineDelegate {
             return nil
         }
         do {
-            return try mapping.makeCKRecord(fromLocalID: recordID.recordName, existing: nil, database: database)
+            let existing = knownServerRecordsByID[recordID]
+            let record = try mapping.makeCKRecord(fromLocalID: recordID.recordName, existing: existing, database: database)
+            knownServerRecordsByID.removeValue(forKey: recordID)
+            return record
         } catch {
             AppLogger.dataAccess.error("iCloud Sync: CKRecord fuer ausstehende Aenderung konnte nicht gebaut werden: \(error.localizedDescription, privacy: .public)")
             return nil
         }
     }
 
-    private func applyIncomingRecord(_ record: CKRecord) async {
-        guard let mapping = Self.mapping(forRecordType: record.recordType) else { return }
+    private func applyIncomingRecord(_ record: CKRecord) async -> Bool {
+        guard let mapping = Self.mapping(forRecordType: record.recordType) else { return false }
         do {
             try mapping.applyIncoming(record, database: database)
         } catch {
             AppLogger.dataAccess.error("iCloud Sync: Eingehender \(record.recordType, privacy: .public)-Record konnte nicht gespeichert werden: \(error.localizedDescription, privacy: .public)")
-            return
+            return false
         }
         SQLiteDataInvalidation.bumpStatusVersion()
+        return true
     }
 
     private func applyIncomingDeletion(_ recordID: CKRecord.ID) async {
@@ -366,35 +387,45 @@ extension CloudSyncEngine: CKSyncEngineDelegate {
 
     /// Last-Write-Wins: bei einem Server-Konflikt (`.serverRecordChanged`) gewinnt die Seite mit
     /// dem neueren Zeitstempel (`CKRecord.modificationDate` vs. dem lokalen `updatedAt`).
-    private func handleFailedSave(_ failedSave: CKSyncEngine.Event.SentRecordZoneChanges.FailedRecordSave) async {
+    /// Liefert `true`, wenn dieses Element einen erneuten Sendeversuch braucht (der Aufrufer in
+    /// `handleEvent` bündelt daraus höchstens EINEN `notifyPendingChangesAvailable`-Aufruf pro
+    /// Batch, statt einem pro Konflikt — siehe Design-Spec
+    /// `docs/superpowers/specs/2026-07-24-icloud-sync-konfliktaufloesung-fix-design.md`).
+    private func handleFailedSave(_ failedSave: CKSyncEngine.Event.SentRecordZoneChanges.FailedRecordSave) async -> Bool {
         guard failedSave.error.code == .serverRecordChanged else {
             status.state = .error(failedSave.error.localizedDescription)
             AppLogger.dataAccess.error("iCloud Sync: Record-Save fehlgeschlagen: \(failedSave.error.localizedDescription, privacy: .public)")
-            return
+            return false
         }
 
         guard let serverRecord = failedSave.error.serverRecord,
               let mapping = Self.mapping(forRecordType: failedSave.record.recordType)
-        else { return }
+        else { return false }
 
         let localUpdatedAt: Date?
         do {
             localUpdatedAt = try mapping.localUpdatedAt(forLocalID: failedSave.record.recordID.recordName, database: database)
         } catch {
             AppLogger.dataAccess.error("iCloud Sync: Lokaler Stand fuer Konfliktaufloesung konnte nicht geladen werden: \(error.localizedDescription, privacy: .public)")
-            return
+            return false
         }
 
         let serverIsNewer = (serverRecord.modificationDate ?? .distantPast) > (localUpdatedAt ?? .distantPast)
 
         if serverIsNewer {
-            await applyIncomingRecord(serverRecord)
+            let applied = await applyIncomingRecord(serverRecord)
+            if applied {
+                dequeuePendingChange(recordName: failedSave.record.recordID.recordName)
+            }
+            return false
         } else {
+            knownServerRecordsByID[failedSave.record.recordID] = serverRecord
             do {
                 try pendingChangeStore.enqueue(recordType: mapping.recordType, recordName: failedSave.record.recordID.recordName, changeType: .save)
-                Self.notifyPendingChangesAvailable(database: database)
+                return true
             } catch {
                 AppLogger.dataAccess.error("iCloud Sync: Erneuter Sync-Versuch nach Konflikt konnte nicht eingeplant werden: \(error.localizedDescription, privacy: .public)")
+                return false
             }
         }
     }
