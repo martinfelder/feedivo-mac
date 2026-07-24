@@ -289,6 +289,34 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
 
 > Diese Liste wächst während der Entwicklung. Immer ergänzen!
 
+- **`CKSyncEngine`s manueller `sendChanges()`-Aufruf per einfachem `Task { }` stürzt ab, sobald
+  er aus einem Delegate-Callback heraus (z. B. Konfliktauflösung) erneut ausgelöst wird —
+  braucht zwingend `Task.detached`:** Beim Live-Testen der Sync-Status-Übersicht (2026-07-24)
+  meldete die App wiederholt `Fatal error: BUG IN CLIENT OF CLOUDKIT: Cannot await a call into
+  CKSyncEngine from within a delegate callback if that function will end up calling back into
+  the delegate. ... Try performing this in a detached Task.` Root Cause: `CloudSyncEngine.
+  notifyPendingChangesAvailable(database:)` (aus Phase 1, `Feedivo/Services/CloudSync/
+  CloudSyncEngine.swift`) löst nach `state.add(pendingRecordZoneChanges:)` bewusst zusätzlich
+  `syncEngine.sendChanges()` manuell aus (Apples eigene "manual override" gegen die
+  System-Scheduler-Verzögerung von `automaticallySync`), verpackt in einen gewöhnlichen,
+  nicht-detachten `Task { ... }`. Diese Methode wird von drei Stellen aufgerufen — zwei davon
+  unkritisch (`start()`, Store-Mutationen nach UI-Aktionen), die dritte aber aus
+  `handleFailedSave(_:)` heraus, dem Last-Write-Wins-Konfliktauflösungspfad, der selbst
+  innerhalb von `CKSyncEngineDelegate.handleEvent(_:syncEngine:)` läuft. `sendChanges()` ruft
+  intern wieder in den Delegate zurück (`nextRecordZoneChangeBatch`) — ein normaler,
+  nicht-detachter `Task {}` erbt dabei den Ausführungskontext des aufrufenden Delegate-Callbacks
+  und wird von CKSyncEngine deshalb weiterhin als "innerhalb des Callbacks" gewertet, was den
+  Fatal Error auslöst. Das Muster existierte unverändert seit Phase 1, ohne je zu crashen — erst
+  das wiederholte Live-Testen der neuen Status-Übersicht (schnell hintereinander Tags/Feeds
+  anlegen/löschen) erzeugte offenbar zum ersten Mal echte Server-Konflikte und traf damit den
+  betroffenen Pfad. Fix: `Task.detached { ... }` statt `Task { ... }` — genau die von der
+  Fehlermeldung selbst empfohlene Lösung, sicher an allen drei Aufrufstellen dieser Methode.
+  **Lehre:** Bei JEDEM manuellen `CKSyncEngine`-Methodenaufruf (`sendChanges()`,
+  `fetchChanges()`), der aus einer Funktion heraus erfolgen könnte, die auch von innerhalb eines
+  `CKSyncEngineDelegate`-Callbacks aufgerufen wird, immer `Task.detached` statt eines einfachen
+  `Task {}` verwenden — unabhängig davon, ob der jeweilige Aufrufpfad beim Schreiben des Codes
+  gerade harmlos aussieht, da CKSyncEngines Reentrancy-Prüfung nicht zwischen "aktuell sicherem"
+  und "später unsicher werdendem" Aufrufkontext unterscheidet.
 - **GRDBs `.alter(table:) { $0.add(column:...).defaults(sql: "CURRENT_TIMESTAMP") }` scheitert
   auf einer nicht-leeren Tabelle:** Bei iCloud Sync Phase 2a (2026-07-24, Task 1: Migration
   v22, `updatedAt` auf `rule_conditions`/`smart_folder_conditions`) hätte der ursprünglich vom
