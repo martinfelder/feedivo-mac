@@ -428,6 +428,15 @@ enum FeedivoDatabaseMigrator {
             try backfillRuleConditionGroupIndex(database)
         }
 
+        migrator.registerMigration("v21_create_cloud_sync_pending_changes") { database in
+            try database.create(table: "cloud_sync_pending_changes") { table in
+                table.column("id", .text).primaryKey()
+                table.column("recordType", .text).notNull()
+                table.column("changeType", .text).notNull()
+                table.column("queuedAt", .datetime).notNull()
+            }
+        }
+
         return migrator
     }
 
