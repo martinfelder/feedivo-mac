@@ -1012,6 +1012,43 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
      `061b4715`) und `91f1179` lokal auf `main`, Push-Status siehe `git log`/`git status`
      zum Lesezeitpunkt.
 
+- **2026-07-24 (Folge-Session, Teil 2): iCloud Sync Phase 1 — Löschrichtung ebenfalls live
+  bestätigt, ein reproduzierter Fehlalarm und ein offenes Rätsel dokumentiert.**
+  - **Löschen live verifiziert:** Tag in Feedivo gelöscht → CloudKit-Dashboard-„Logs"-Tab
+    zeigte ein neues `RecordDelete`-Ereignis, `overallStatus: SUCCESS`,
+    `recordDeleteCount: 1`, `operationGroupName: CKSyncEngine-SendChanges-Manual` — exakt
+    dieselbe Push-Pipeline (`notifyPendingChangesAvailable` → `sendChanges()`) wie beim
+    Anlegen, nur mit `.deleteRecord` statt `.saveRecord`. Damit sind Anlegen UND Löschen
+    für die Push-Richtung live bestätigt.
+  - **Lehre zur eigenen Verifikationsdisziplin:** Ein erster Versuch, den Nutzer-Tag-Namen
+    „SyncTest" im Dashboard-Records-Browser exakt zu finden, schlug fehl
+    („No records found"), obwohl der Sync laut Logs erfolgreich war — der Nutzer fragte
+    zu Recht nach, woher die Behauptung „der Tag war dabei" eigentlich kam, und die
+    ehrliche Antwort war: aus zeitlicher Nähe geraten, nicht direkt belegt. Eine gezielte
+    Nachfrage mit `FILTER BY name = SyncTest` (statt eines pauschalen `sortIndex`-Sortier-
+    Workarounds) fand die Records dann tatsächlich — der Records-Browser selbst ist also
+    grundsätzlich nutzbar, reagiert aber inkonsistent je nach genauer Abfrageform
+    (vermutlich weiterhin die bereits notierte Index-Deployment-Verzögerung). **Für
+    künftige Live-Verifikation gilt deshalb: Aggregat-Zahlen aus den Logs (`recordInsertCount`
+    etc.) beweisen NUR, dass irgendetwas Passendes gesendet wurde — für eine Aussage über
+    einen KONKRETEN Datensatz ist ein expliziter `FILTER BY <Feld> = <Wert>`-Records-Query
+    nötig, keine Annahme aus Timing.**
+  - **Ein zweiter, scheinbarer Fehlalarm klärte sich als Nutzeraktion:** Nach dem Löschen
+    zeigte eine Nachfrage 0 statt der erwarteten 1 verbleibenden „SyncTest"-Records — der
+    Nutzer hatte den zweiten, redundanten Testeintrag zwischenzeitlich selbst manuell im
+    Dashboard entfernt. Kein App-seitiger Bug, aber ein Beispiel dafür, dass der
+    CloudKit-Zustand während einer Live-Debugging-Session auch von außerhalb der App
+    verändert werden kann — bei künftigen Unstimmigkeiten diese Möglichkeit aktiv
+    mit-abfragen, nicht nur App-seitige Bugs vermuten.
+  - **Offenes, unbestätigtes Rätsel (kein Blocker, aber im Blick behalten):** Bei einem der
+    App-Neustarts (⌘R in Xcode, kein Clean/Erase) war der iCloud-Sync-Toggle
+    „komischerweise" deaktiviert, obwohl `CloudSyncSettings.isEnabledKey` über
+    `UserDefaults.standard` persistiert wird und ein normaler Neustart das eigentlich nicht
+    zurücksetzen sollte. Nicht reproduziert, nicht root-caused — falls das erneut auftritt,
+    gezielt untersuchen (z. B. ob sich Signing Identity/Bundle-Kontext zwischen Builds
+    geändert hat, oder ob eine App-Sandbox-Container-Neuzuweisung durch Xcode dahinter
+    steckt).
+
 - **2026-07-20: Reader-Toolbar frei anpassbar (Feature 19.4) — VOLLSTÄNDIG ABGESCHLOSSEN
   und auf `origin/main` gepusht, Live-Verifikation vom Nutzer bestätigt.** Feature 19.4
   stand seit 2026-07-10 auf ⏸️ Zurückgestellt, da der ursprünglich geplante native
