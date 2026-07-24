@@ -17,6 +17,7 @@ final class CloudSyncEngine: NSObject {
     let status = CloudSyncStatus()
 
     private var syncEngine: CKSyncEngine?
+    private var startTask: Task<Void, Never>?
 
     init(database: FeedivoDatabase) {
         self.database = database
@@ -25,12 +26,21 @@ final class CloudSyncEngine: NSObject {
     }
 
     func start() {
-        guard syncEngine == nil else { return }
+        guard syncEngine == nil, startTask == nil else { return }
 
-        Task {
+        startTask = Task {
             let container = CKContainer(identifier: CloudSyncSettings.cloudKitContainerIdentifier)
 
-            let accountStatus = (try? await container.accountStatus()) ?? .couldNotDetermine
+            let accountStatus: CKAccountStatus
+            do {
+                accountStatus = try await container.accountStatus()
+            } catch {
+                AppLogger.dataAccess.error("iCloud Sync: Konto-Status konnte nicht ermittelt werden: \(error.localizedDescription, privacy: .public)")
+                accountStatus = .couldNotDetermine
+            }
+
+            guard !Task.isCancelled else { return }
+
             guard accountStatus == .available else {
                 status.state = .accountUnavailable
                 return
@@ -45,6 +55,8 @@ final class CloudSyncEngine: NSObject {
             configuration.automaticallySync = true
 
             let engine = CKSyncEngine(configuration)
+
+            guard !Task.isCancelled else { return }
             self.syncEngine = engine
 
             if !UserDefaults.standard.bool(forKey: Self.hasCreatedZoneKey) {
@@ -52,17 +64,22 @@ final class CloudSyncEngine: NSObject {
                 UserDefaults.standard.set(true, forKey: Self.hasCreatedZoneKey)
             }
 
-            if let pending = try? pendingChangeStore.pendingChanges(), !pending.isEmpty {
-                let changes: [CKSyncEngine.PendingRecordZoneChange] = pending.map { change in
-                    let recordID = CloudSyncTagMapping.recordID(forTagID: change.id)
-                    switch change.changeType {
-                    case .save:
-                        return .saveRecord(recordID)
-                    case .delete:
-                        return .deleteRecord(recordID)
+            do {
+                let pending = try pendingChangeStore.pendingChanges()
+                if !pending.isEmpty {
+                    let changes: [CKSyncEngine.PendingRecordZoneChange] = pending.map { change in
+                        let recordID = CloudSyncTagMapping.recordID(forTagID: change.id)
+                        switch change.changeType {
+                        case .save:
+                            return .saveRecord(recordID)
+                        case .delete:
+                            return .deleteRecord(recordID)
+                        }
                     }
+                    engine.state.add(pendingRecordZoneChanges: changes)
                 }
-                engine.state.add(pendingRecordZoneChanges: changes)
+            } catch {
+                AppLogger.dataAccess.error("iCloud Sync: Ausstehende Aenderungen konnten nicht geladen werden: \(error.localizedDescription, privacy: .public)")
             }
 
             status.state = .idle
@@ -70,6 +87,8 @@ final class CloudSyncEngine: NSObject {
     }
 
     func stop() {
+        startTask?.cancel()
+        startTask = nil
         syncEngine = nil
         status.state = .idle
     }
@@ -113,10 +132,10 @@ extension CloudSyncEngine: CKSyncEngineDelegate {
 
         case .sentRecordZoneChanges(let changes):
             for saved in changes.savedRecords {
-                try? pendingChangeStore.dequeue(recordName: saved.recordID.recordName)
+                dequeuePendingChange(recordName: saved.recordID.recordName)
             }
             for deletedID in changes.deletedRecordIDs {
-                try? pendingChangeStore.dequeue(recordName: deletedID.recordName)
+                dequeuePendingChange(recordName: deletedID.recordName)
             }
             for failedSave in changes.failedRecordSaves {
                 await handleFailedSave(failedSave)
@@ -149,17 +168,35 @@ extension CloudSyncEngine: CKSyncEngineDelegate {
 
     private func applyIncomingRecord(_ record: CKRecord) async {
         guard var incoming = CloudSyncTagMapping.tagRecord(from: record) else { return }
-        try? database.write { db in
-            try incoming.save(db)
+        do {
+            try database.write { db in
+                try incoming.save(db)
+            }
+        } catch {
+            AppLogger.dataAccess.error("iCloud Sync: Eingehender Tag konnte nicht gespeichert werden: \(error.localizedDescription, privacy: .public)")
+            return
         }
         SQLiteDataInvalidation.bumpStatusVersion()
     }
 
     private func applyIncomingDeletion(_ recordID: CKRecord.ID) async {
-        try? database.write { db in
-            try db.execute(sql: "DELETE FROM tags WHERE id = ?", arguments: [recordID.recordName])
+        do {
+            try database.write { db in
+                try db.execute(sql: "DELETE FROM tags WHERE id = ?", arguments: [recordID.recordName])
+            }
+        } catch {
+            AppLogger.dataAccess.error("iCloud Sync: Eingehende Tag-Loeschung fehlgeschlagen: \(error.localizedDescription, privacy: .public)")
+            return
         }
         SQLiteDataInvalidation.bumpStatusVersion()
+    }
+
+    private func dequeuePendingChange(recordName: String) {
+        do {
+            try pendingChangeStore.dequeue(recordName: recordName)
+        } catch {
+            AppLogger.dataAccess.error("iCloud Sync: Pending-Change konnte nicht entfernt werden: \(error.localizedDescription, privacy: .public)")
+        }
     }
 
     /// Last-Write-Wins: bei einem Server-Konflikt (`.serverRecordChanged`) gewinnt die Seite mit
@@ -179,7 +216,11 @@ extension CloudSyncEngine: CKSyncEngineDelegate {
         if serverIsNewer {
             await applyIncomingRecord(serverRecord)
         } else {
-            try? pendingChangeStore.enqueue(recordType: "tag", recordName: failedSave.record.recordID.recordName, changeType: .save)
+            do {
+                try pendingChangeStore.enqueue(recordType: "tag", recordName: failedSave.record.recordID.recordName, changeType: .save)
+            } catch {
+                AppLogger.dataAccess.error("iCloud Sync: Erneuter Sync-Versuch nach Konflikt konnte nicht eingeplant werden: \(error.localizedDescription, privacy: .public)")
+            }
         }
     }
 }
