@@ -8,10 +8,28 @@ struct SQLiteRuleStore {
         self.database = database
     }
 
+    /// Markiert eine lokale Regel- oder Bedingungszeile als ausstehende Sync-Änderung, falls
+    /// iCloud Sync aktiv ist. Läuft bewusst INNERHALB derselben `database.write`-Transaktion
+    /// wie die fachliche Mutation — analog zu `FeedStore`/`FeedFolderStore`/`TagStore`.
+    private func enqueuePendingSync(_ db: Database, recordType: String, recordName: String, changeType: CloudSyncChangeType) throws {
+        guard CloudSyncSettings.isEnabled() else { return }
+        try CloudSyncPendingChangeStore.enqueue(db, recordType: recordType, recordName: recordName, changeType: changeType)
+    }
+
+    // `rule_conditions.ruleID` hat `ON DELETE CASCADE` (`PRAGMA foreign_keys = ON` ist aktiv,
+    // siehe FeedivoDatabase.swift) — die alten Bedingungs-IDs müssen deshalb VOR dem
+    // `DELETE FROM rule_conditions` ermittelt und als `.delete` enqueued werden, sonst sind sie
+    // danach nicht mehr abfragbar.
     func save(_ rule: RuleRecord, conditions: [RuleConditionRecord]) throws {
         try database.write { db in
             var rule = rule
             try rule.save(db)
+            try enqueuePendingSync(db, recordType: CloudSyncRuleMapping.recordType, recordName: rule.id, changeType: .save)
+
+            let existingConditionIDs = try String.fetchAll(db, sql: "SELECT id FROM rule_conditions WHERE ruleID = ?", arguments: [rule.id])
+            for conditionID in existingConditionIDs {
+                try enqueuePendingSync(db, recordType: CloudSyncRuleConditionMapping.recordType, recordName: conditionID, changeType: .delete)
+            }
 
             try db.execute(
                 sql: """
@@ -25,8 +43,10 @@ struct SQLiteRuleStore {
                 var condition = condition
                 condition.ruleID = rule.id
                 try condition.insert(db)
+                try enqueuePendingSync(db, recordType: CloudSyncRuleConditionMapping.recordType, recordName: condition.id, changeType: .save)
             }
         }
+        CloudSyncEngine.notifyPendingChangesAvailable(database: database)
     }
 
     func rules() throws -> [RuleRecord] {
@@ -61,11 +81,16 @@ struct SQLiteRuleStore {
                     """,
                 arguments: [isEnabled, Date(), id]
             )
+            try enqueuePendingSync(db, recordType: CloudSyncRuleMapping.recordType, recordName: id, changeType: .save)
         }
+        CloudSyncEngine.notifyPendingChangesAvailable(database: database)
     }
 
     func duplicate(id: String, copyName: String) throws -> RuleRecord {
-        try database.write { db in
+        // `database.write { ... }` reicht hier den Rückgabewert des Closures (`RuleRecord`)
+        // durch — `notifyPendingChangesAvailable` steht deshalb NACH dem `write`-Aufruf, nicht
+        // darin.
+        let duplicate = try database.write { db -> RuleRecord in
             guard let source = try RuleRecord.fetchOne(db, sql: """
                 SELECT *
                 FROM rules
@@ -89,6 +114,7 @@ struct SQLiteRuleStore {
                 sortOrder: maxSortOrder
             )
             try duplicate.insert(db)
+            try enqueuePendingSync(db, recordType: CloudSyncRuleMapping.recordType, recordName: duplicateID, changeType: .save)
 
             let conditions = try Self.fetchConditions(db, ruleID: source.id)
             for (index, condition) in conditions.enumerated() {
@@ -102,10 +128,13 @@ struct SQLiteRuleStore {
                     groupIndex: condition.groupIndex
                 )
                 try copiedCondition.insert(db)
+                try enqueuePendingSync(db, recordType: CloudSyncRuleConditionMapping.recordType, recordName: copiedCondition.id, changeType: .save)
             }
 
             return duplicate
         }
+        CloudSyncEngine.notifyPendingChangesAvailable(database: database)
+        return duplicate
     }
 
     func move(id sourceID: String, toPositionOf targetID: String) throws {
@@ -130,12 +159,24 @@ struct SQLiteRuleStore {
                         """,
                     arguments: [index, Date(), rule.id]
                 )
+                try enqueuePendingSync(db, recordType: CloudSyncRuleMapping.recordType, recordName: rule.id, changeType: .save)
             }
         }
+        CloudSyncEngine.notifyPendingChangesAvailable(database: database)
     }
 
+    // `rule_conditions.ruleID` hat `ON DELETE CASCADE` — die betroffenen Bedingungs-IDs müssen
+    // VOR dem `DELETE FROM rules`-Statement ermittelt und als `.delete` enqueued werden, weil
+    // SQLite ihre Zeilen bei diesem einen Statement bereits mitlöscht (siehe Doku oben bei
+    // `save`).
     func delete(id: String) throws {
         try database.write { db in
+            let conditionIDs = try String.fetchAll(db, sql: "SELECT id FROM rule_conditions WHERE ruleID = ?", arguments: [id])
+            for conditionID in conditionIDs {
+                try enqueuePendingSync(db, recordType: CloudSyncRuleConditionMapping.recordType, recordName: conditionID, changeType: .delete)
+            }
+            try enqueuePendingSync(db, recordType: CloudSyncRuleMapping.recordType, recordName: id, changeType: .delete)
+
             try db.execute(
                 sql: """
                     DELETE FROM rules
@@ -144,6 +185,7 @@ struct SQLiteRuleStore {
                 arguments: [id]
             )
         }
+        CloudSyncEngine.notifyPendingChangesAvailable(database: database)
     }
 
     func ruleSnapshots() throws -> [RuleEngine.RuleSnapshot] {
