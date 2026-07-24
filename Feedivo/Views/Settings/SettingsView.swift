@@ -1,3 +1,4 @@
+import OSLog
 import SwiftUI
 
 private enum SettingsSection: String, CaseIterable, Identifiable {
@@ -1154,6 +1155,16 @@ private struct SyncSettingsView: View {
         .onChange(of: sqliteStatusVersionForSyncActivity) {
             loadSyncActivityPendingCounts()
         }
+        .onChange(of: syncActivityLastRunTimestamp) {
+            // CloudSyncEngine.dequeuePendingChange löscht erledigte Pending-Change-Zeilen,
+            // ruft dabei aber (bewusst, siehe Whole-Branch-Review) nicht
+            // SQLiteDataInvalidation.bumpStatusVersion() auf. Ohne diesen zusätzlichen Trigger
+            // würde die Ausstehend-Anzahl nach einem erfolgreichen Sync erst beim nächsten
+            // Öffnen der Einstellungen aktualisiert. syncActivityLastRunTimestamp wird dagegen
+            // bei JEDEM abgeschlossenen Sync-Versuch (Erfolg UND Fehler) neu geschrieben, ist
+            // also ein zuverlässiger Reload-Auslöser direkt nach jedem Sync-Ereignis.
+            loadSyncActivityPendingCounts()
+        }
     }
 
     private func loadSyncActivityPendingCounts() {
@@ -1161,7 +1172,16 @@ private struct SyncSettingsView: View {
             syncActivityPendingCounts = [:]
             return
         }
-        syncActivityPendingCounts = (try? CloudSyncPendingChangeStore(database: feedivoDatabase).pendingCounts()) ?? [:]
+        do {
+            syncActivityPendingCounts = try CloudSyncPendingChangeStore(database: feedivoDatabase).pendingCounts()
+        } catch {
+            // Ein echter Lesefehler wäre sonst von "0 ausstehende Änderungen" nicht zu
+            // unterscheiden gewesen — in einem Feature, dessen einziger Zweck eine korrekte
+            // Statusanzeige ist, muss das zumindest geloggt werden. UI fällt weiterhin auf
+            // ein leeres Dictionary zurück (kein Absturz, kein Verhaltensunterschied).
+            AppLogger.dataAccess.error("Laden der ausstehenden CloudSync-Änderungen fehlgeschlagen: \(error.localizedDescription, privacy: .public)")
+            syncActivityPendingCounts = [:]
+        }
     }
 }
 
@@ -1197,6 +1217,47 @@ private struct CloudSyncActivityStatusBlock: View {
         return String(localized: "settings.sync.activity.state.synced")
     }
 
+    /// Farbe für die Status-Zeile, nach EXAKT derselben Prioritätslogik wie `stateText`
+    /// abgeleitet (inaktiv → Fehler → ausstehend → synchron), damit Text und Farbe nie
+    /// auseinanderlaufen können. Abweichend von `stateText` verlangt der "synchron"-Fall
+    /// hier zusätzlich `statusRaw == .statusSuccess` (statt nur "nicht fehlgeschlagen") —
+    /// sonst hätte ein noch nie gelaufener Sync (leeres `statusRaw`, keine ausstehenden
+    /// Änderungen) fälschlich die grüne Erfolgsfarbe neben "Noch nie synchronisiert"
+    /// gezeigt (Whole-Branch-Review-Fund, Finding 3).
+    private var stateColor: Color {
+        guard isActiveAndAvailable else {
+            return .secondary
+        }
+        if statusRaw == CloudSyncActivityStatus.statusFailed {
+            return .red
+        }
+        if totalPendingCount > 0 {
+            return .secondary
+        }
+        if statusRaw == CloudSyncActivityStatus.statusSuccess {
+            return .green
+        }
+        return .secondary
+    }
+
+    /// SF-Symbol-Name für die Status-Zeile, dieselbe Prioritätslogik wie `stateColor`.
+    /// `nil` bedeutet: kein Icon (inaktiv/ausstehend/nie gelaufen-und-nichts-ausstehend).
+    private var stateIconName: String? {
+        guard isActiveAndAvailable else {
+            return nil
+        }
+        if statusRaw == CloudSyncActivityStatus.statusFailed {
+            return "exclamationmark.triangle"
+        }
+        if totalPendingCount > 0 {
+            return nil
+        }
+        if statusRaw == CloudSyncActivityStatus.statusSuccess {
+            return "checkmark.circle.fill"
+        }
+        return nil
+    }
+
     private var lastRunText: String {
         guard lastRunTimestamp > 0 else {
             return String(localized: "settings.sync.activity.neverRun")
@@ -1215,7 +1276,12 @@ private struct CloudSyncActivityStatusBlock: View {
             }
 
             VStack(spacing: 5) {
-                statusLine(title: L10n.settingsSyncActivityStatusRow, value: stateText)
+                coloredStatusLine(
+                    title: L10n.settingsSyncActivityStatusRow,
+                    value: stateText,
+                    color: stateColor,
+                    iconName: stateIconName
+                )
                 statusLine(title: L10n.settingsSyncActivityLastRunRow, value: lastRunText)
             }
             .frame(maxWidth: .infinity)
@@ -1253,6 +1319,34 @@ private struct CloudSyncActivityStatusBlock: View {
             return String(localized: "settings.sync.activity.state.synced")
         }
         return String.localizedStringWithFormat(String(localized: "settings.sync.activity.category.pending"), count)
+    }
+
+    /// Wie `statusLine(title:value:)`, aber mit einstellbarer Farbe + optionalem Icon.
+    /// Bewusst lokal auf `CloudSyncActivityStatusBlock` beschränkt (kein Umbau der geteilten
+    /// `statusLine`-Helfer, die auch von anderen Settings-Bereichen neutral/grau genutzt
+    /// werden) — nur die eine globale Sync-Status-Zeile bekommt laut Design-Spec eine
+    /// Farbcodierung, die "Zuletzt synchronisiert"-Zeile und die Pro-Kategorie-Detailzeilen
+    /// bleiben bewusst neutral.
+    private func coloredStatusLine(title: LocalizedStringKey, value: String, color: Color, iconName: String?) -> some View {
+        HStack {
+            Text(title)
+                .foregroundStyle(.tertiary)
+            Spacer()
+            HStack(spacing: 4) {
+                if let iconName {
+                    Image(systemName: iconName)
+                        .foregroundStyle(color)
+                }
+                Text(value)
+                    .fontWeight(.medium)
+                    .foregroundStyle(color)
+                    .monospacedDigit()
+            }
+        }
+        .font(.system(size: 11))
+        .padding(.horizontal, 9)
+        .frame(height: 26)
+        .background(Color(nsColor: .controlBackgroundColor).opacity(0.85), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 }
 
