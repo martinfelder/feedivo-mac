@@ -51,4 +51,14 @@ struct CloudSyncTagMappingTests {
 
         #expect(CloudSyncTagMapping.tagRecord(from: ckRecord) == nil)
     }
+
+    @Test func allLocalIDsListetAlleTagsAuf() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        try TagStore(database: database).save(TagRecord(id: "tag-1", name: "Wichtig", colorHex: "#FF0000", sortIndex: 0))
+        try TagStore(database: database).save(TagRecord(id: "tag-2", name: "Später", colorHex: "#00FF00", sortIndex: 1))
+
+        let ids = try CloudSyncTagMapping.allLocalIDs(database: database)
+
+        #expect(Set(ids) == Set(["tag-1", "tag-2"]))
+    }
 }

@@ -143,4 +143,14 @@ struct CloudSyncRuleMappingTests {
 
         #expect(localUpdatedAt == nil)
     }
+
+    @Test func allLocalIDsListetAlleRegelnAuf() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        try SQLiteRuleStore(database: database).save(RuleRecord(id: "rule-1", name: "Wichtig", sortOrder: 0), conditions: [])
+        try SQLiteRuleStore(database: database).save(RuleRecord(id: "rule-2", name: "Später", sortOrder: 1), conditions: [])
+
+        let ids = try CloudSyncRuleMapping.allLocalIDs(database: database)
+
+        #expect(Set(ids) == Set(["rule-1", "rule-2"]))
+    }
 }

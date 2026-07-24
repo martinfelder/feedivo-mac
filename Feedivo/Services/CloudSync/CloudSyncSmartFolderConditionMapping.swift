@@ -78,4 +78,15 @@ enum CloudSyncSmartFolderConditionMapping: CloudSyncRecordMapping {
             try Date.fetchOne(db, sql: "SELECT updatedAt FROM smart_folder_conditions WHERE id = ?", arguments: [id])
         }
     }
+
+    static func allLocalIDs(database: FeedivoDatabase) throws -> [String] {
+        try database.read { db in
+            try String.fetchAll(db, sql: """
+                SELECT sfc.id
+                FROM smart_folder_conditions sfc
+                JOIN smart_folders sf ON sf.id = sfc.smartFolderID
+                WHERE sf.isDefault = 0
+                """)
+        }
+    }
 }

@@ -153,4 +153,19 @@ struct CloudSyncRuleConditionMappingTests {
 
         #expect(localUpdatedAt == nil)
     }
+
+    @Test func allLocalIDsListetAlleBedingungenAuf() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        try SQLiteRuleStore(database: database).save(
+            RuleRecord(id: "rule-1", name: "Wichtig", sortOrder: 0),
+            conditions: [
+                RuleConditionRecord(id: "cond-1", ruleID: "rule-1", field: "title", conditionOperator: "contains", value: "Test"),
+                RuleConditionRecord(id: "cond-2", ruleID: "rule-1", field: "title", conditionOperator: "contains", value: "Anderes", sortOrder: 1)
+            ]
+        )
+
+        let ids = try CloudSyncRuleConditionMapping.allLocalIDs(database: database)
+
+        #expect(Set(ids) == Set(["cond-1", "cond-2"]))
+    }
 }

@@ -158,4 +158,14 @@ struct CloudSyncFeedMappingTests {
 
         #expect(localUpdatedAt == nil)
     }
+
+    @Test func allLocalIDsListetAlleFeedsAuf() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        try FeedStore(database: database).save(FeedRecord(id: "feed-1", url: "https://a.example.com", title: "A"))
+        try FeedStore(database: database).save(FeedRecord(id: "feed-2", url: "https://b.example.com", title: "B"))
+
+        let ids = try CloudSyncFeedMapping.allLocalIDs(database: database)
+
+        #expect(Set(ids) == Set(["feed-1", "feed-2"]))
+    }
 }

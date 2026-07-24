@@ -155,4 +155,10 @@ enum CloudSyncFeedMapping: CloudSyncRecordMapping {
     static func localUpdatedAt(forLocalID id: String, database: FeedivoDatabase) throws -> Date? {
         try FeedStore(database: database).feed(id: id)?.configUpdatedAt
     }
+
+    static func allLocalIDs(database: FeedivoDatabase) throws -> [String] {
+        try database.read { db in
+            try String.fetchAll(db, sql: "SELECT id FROM feeds")
+        }
+    }
 }

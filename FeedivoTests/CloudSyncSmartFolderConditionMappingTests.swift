@@ -150,4 +150,18 @@ struct CloudSyncSmartFolderConditionMappingTests {
 
         #expect(localUpdatedAt == nil)
     }
+
+    /// Kernklausel: Bedingungen, die zu einem eingebauten Ordner gehören (z. B. "Ungelesen"),
+    /// dürfen NIE im Backfill landen — der JOIN gegen `smart_folders.isDefault` muss das filtern.
+    @Test func allLocalIDsListetNurBedingungenNichtDefaultOrdnerAuf() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let store = SQLiteSmartFolderStore(database: database)
+        try store.restoreDefaultFolders()
+        let customCondition = SmartFolderConditionRecord(id: "cond-custom", smartFolderID: "custom-1", field: "status", conditionOperator: "is", value: "unread")
+        try store.save(SmartFolderRecord(id: "custom-1", name: "Meine Auswahl", isDefault: false), conditions: [customCondition])
+
+        let ids = try CloudSyncSmartFolderConditionMapping.allLocalIDs(database: database)
+
+        #expect(ids == ["cond-custom"])
+    }
 }

@@ -119,4 +119,14 @@ struct CloudSyncFeedFolderMappingTests {
 
         #expect(localUpdatedAt == nil)
     }
+
+    @Test func allLocalIDsListetAlleOrdnerAuf() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        try FeedFolderStore(database: database).save(FeedFolderRecord(id: "folder-1", name: "Tech"))
+        try FeedFolderStore(database: database).save(FeedFolderRecord(id: "folder-2", name: "News"))
+
+        let ids = try CloudSyncFeedFolderMapping.allLocalIDs(database: database)
+
+        #expect(Set(ids) == Set(["folder-1", "folder-2"]))
+    }
 }

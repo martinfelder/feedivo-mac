@@ -194,4 +194,18 @@ struct CloudSyncSmartFolderMappingTests {
 
         #expect(localUpdatedAt == nil)
     }
+
+    /// Kernklausel dieses Backfill-Tests: eingebaute Ordner (`isDefault == true`, angelegt über
+    /// `restoreDefaultFolders()`) dürfen NIE im Backfill landen — nur der eine benutzerdefinierte
+    /// Ordner darf in der Liste erscheinen.
+    @Test func allLocalIDsSchliesstDefaultOrdnerAus() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let store = SQLiteSmartFolderStore(database: database)
+        try store.restoreDefaultFolders()
+        try store.save(SmartFolderRecord(id: "custom-1", name: "Meine Auswahl", isDefault: false), conditions: [])
+
+        let ids = try CloudSyncSmartFolderMapping.allLocalIDs(database: database)
+
+        #expect(ids == ["custom-1"])
+    }
 }

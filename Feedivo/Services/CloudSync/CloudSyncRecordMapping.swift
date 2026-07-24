@@ -34,6 +34,11 @@ protocol CloudSyncRecordMapping {
     /// Lokaler Änderungszeitpunkt für die Last-Write-Wins-Konfliktauflösung, `nil` falls die
     /// Zeile nicht mehr existiert.
     static func localUpdatedAt(forLocalID id: String, database: FeedivoDatabase) throws -> Date?
+
+    /// Alle aktuell existierenden lokalen IDs dieser Tabelle — Grundlage für den Backfill
+    /// bestehender Zeilen bei jedem `CloudSyncEngine.start()` (siehe Design-Spec
+    /// `docs/superpowers/specs/2026-07-24-icloud-sync-phase2a-backfill-design.md`).
+    static func allLocalIDs(database: FeedivoDatabase) throws -> [String]
 }
 
 extension CloudSyncRecordMapping {

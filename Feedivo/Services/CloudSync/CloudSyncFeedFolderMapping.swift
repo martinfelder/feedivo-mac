@@ -56,4 +56,10 @@ enum CloudSyncFeedFolderMapping: CloudSyncRecordMapping {
     static func localUpdatedAt(forLocalID id: String, database: FeedivoDatabase) throws -> Date? {
         try FeedFolderStore(database: database).folders().first(where: { $0.id == id })?.updatedAt
     }
+
+    static func allLocalIDs(database: FeedivoDatabase) throws -> [String] {
+        try database.read { db in
+            try String.fetchAll(db, sql: "SELECT id FROM feed_folders")
+        }
+    }
 }

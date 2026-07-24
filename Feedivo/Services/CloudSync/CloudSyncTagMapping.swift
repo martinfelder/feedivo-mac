@@ -77,4 +77,10 @@ enum CloudSyncTagMapping: CloudSyncRecordMapping {
     static func localUpdatedAt(forLocalID id: String, database: FeedivoDatabase) throws -> Date? {
         try TagStore(database: database).tags().first(where: { $0.id == id })?.updatedAt
     }
+
+    static func allLocalIDs(database: FeedivoDatabase) throws -> [String] {
+        try database.read { db in
+            try String.fetchAll(db, sql: "SELECT id FROM tags")
+        }
+    }
 }

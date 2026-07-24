@@ -73,4 +73,10 @@ enum CloudSyncRuleMapping: CloudSyncRecordMapping {
     static func localUpdatedAt(forLocalID id: String, database: FeedivoDatabase) throws -> Date? {
         try SQLiteRuleStore(database: database).rule(id: id)?.updatedAt
     }
+
+    static func allLocalIDs(database: FeedivoDatabase) throws -> [String] {
+        try database.read { db in
+            try String.fetchAll(db, sql: "SELECT id FROM rules")
+        }
+    }
 }

@@ -80,4 +80,10 @@ enum CloudSyncSmartFolderMapping: CloudSyncRecordMapping {
     static func localUpdatedAt(forLocalID id: String, database: FeedivoDatabase) throws -> Date? {
         try SQLiteSmartFolderStore(database: database).folder(id: id)?.updatedAt
     }
+
+    static func allLocalIDs(database: FeedivoDatabase) throws -> [String] {
+        try database.read { db in
+            try String.fetchAll(db, sql: "SELECT id FROM smart_folders WHERE isDefault = 0")
+        }
+    }
 }

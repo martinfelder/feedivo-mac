@@ -83,4 +83,10 @@ enum CloudSyncRuleConditionMapping: CloudSyncRecordMapping {
             try Date.fetchOne(db, sql: "SELECT updatedAt FROM rule_conditions WHERE id = ?", arguments: [id])
         }
     }
+
+    static func allLocalIDs(database: FeedivoDatabase) throws -> [String] {
+        try database.read { db in
+            try String.fetchAll(db, sql: "SELECT id FROM rule_conditions")
+        }
+    }
 }
