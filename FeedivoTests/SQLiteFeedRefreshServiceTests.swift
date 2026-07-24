@@ -30,7 +30,8 @@ struct SQLiteFeedRefreshServiceTests {
                             summary: "Summary one",
                             content: "Content one",
                             publishedAt: Date(timeIntervalSince1970: 1_000),
-                            imageURL: "https://example.com/one.jpg"
+                            imageURL: "https://example.com/one.jpg",
+                            author: "Autor Eins"
                         ),
                         ParsedArticle(
                             title: "Two",
@@ -66,6 +67,7 @@ struct SQLiteFeedRefreshServiceTests {
         #expect(feed?.lastETag == "etag-1")
         #expect(articleCount == 2)
         #expect(firstArticle?.content == "Content one")
+        #expect(firstArticle?.author == "Autor Eins")
         #expect(logs.first?.level == "info")
         #expect(logs.first?.newArticleCount == 2)
     }

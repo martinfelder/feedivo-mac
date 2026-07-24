@@ -145,6 +145,7 @@ struct ReaderArticleCacheKey: Hashable, Sendable {
     let imageURL: String?
     let link: String?
     let feedTitle: String?
+    let author: String?
     let publishedAt: Date?
 }
 
@@ -156,6 +157,7 @@ extension ReaderArticleInput {
             imageURL: imageURL,
             link: link,
             feedTitle: feedTitle,
+            author: author,
             publishedAt: publishedAt
         )
     }

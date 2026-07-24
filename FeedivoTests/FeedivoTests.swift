@@ -475,6 +475,100 @@ struct FeedivoTests {
         #expect(result.articles.first?.summary == "Kurze Zusammenfassung")
     }
 
+    @Test func feedServiceLiestRSSAutorAusDublinCoreCreator() throws {
+        let rss = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/">
+            <channel>
+                <title>Feedivo Test Feed</title>
+                <item>
+                    <title>Artikel mit dc:creator</title>
+                    <link>https://example.com/dc-creator-artikel</link>
+                    <dc:creator>Erika Musterfrau</dc:creator>
+                    <author>autor@example.com (Sollte ignoriert werden)</author>
+                </item>
+            </channel>
+        </rss>
+        """
+
+        let result = try FeedService.parseFeed(data: Data(rss.utf8), sourceURL: "https://example.com/feed.xml")
+
+        // dc:creator ist bei den meisten realen Feeds (z. B. WordPress) der
+        // frei lesbare Autorenname, waehrend das RSS-2.0-<author>-Element laut
+        // Spezifikation eigentlich die E-Mail-Adresse enthalten muss und
+        // deshalb selten sinnvoll lesbar ist -- dc:creator hat Vorrang.
+        #expect(result.articles.first?.author == "Erika Musterfrau")
+    }
+
+    @Test func feedServiceLiestRSSAutorAusAuthorElementOhneDublinCore() throws {
+        let rss = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <rss version="2.0">
+            <channel>
+                <title>Feedivo Test Feed</title>
+                <item>
+                    <title>Artikel ohne dc:creator</title>
+                    <link>https://example.com/author-artikel</link>
+                    <author>Max Mustermann</author>
+                </item>
+            </channel>
+        </rss>
+        """
+
+        let result = try FeedService.parseFeed(data: Data(rss.utf8), sourceURL: "https://example.com/feed.xml")
+
+        #expect(result.articles.first?.author == "Max Mustermann")
+    }
+
+    @Test func feedServiceLiestAtomAutorAusErstemAuthorElement() throws {
+        let atom = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <feed xmlns="http://www.w3.org/2005/Atom">
+            <title>Feedivo Atom Test Feed</title>
+            <entry>
+                <title>Atom-Artikel mit Autor</title>
+                <id>tag:example.org,2026:1</id>
+                <link rel="alternate" href="https://example.com/atom-artikel" />
+                <author>
+                    <name>Anna Autorin</name>
+                </author>
+            </entry>
+        </feed>
+        """
+
+        let result = try FeedService.parseFeed(data: Data(atom.utf8), sourceURL: "https://example.com/feed.atom")
+
+        #expect(result.articles.first?.author == "Anna Autorin")
+    }
+
+    @Test func feedServiceLiestJSONFeedAutorAusItemUndFaelltAufFeedAutorZurueck() throws {
+        let json = """
+        {
+            "version": "https://jsonfeed.org/version/1",
+            "title": "Feedivo JSON Test Feed",
+            "author": { "name": "Feed-Standardautor" },
+            "items": [
+                {
+                    "id": "item-mit-eigenem-autor",
+                    "title": "Artikel mit eigenem Autor",
+                    "content_text": "Inhalt",
+                    "author": { "name": "Item-Autor" }
+                },
+                {
+                    "id": "item-ohne-eigenen-autor",
+                    "title": "Artikel ohne eigenen Autor",
+                    "content_text": "Inhalt"
+                }
+            ]
+        }
+        """
+
+        let result = try FeedService.parseFeed(data: Data(json.utf8), sourceURL: "https://example.com/feed.json")
+
+        #expect(result.articles.first { $0.title == "Artikel mit eigenem Autor" }?.author == "Item-Autor")
+        #expect(result.articles.first { $0.title == "Artikel ohne eigenen Autor" }?.author == "Feed-Standardautor")
+    }
+
     @Test func feedServiceLiestArtikelbildAusMediaThumbnail() throws {
         let rss = """
         <?xml version="1.0" encoding="UTF-8"?>

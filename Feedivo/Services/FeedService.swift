@@ -84,6 +84,7 @@ struct ParsedArticle: Sendable {
     let content: String?
     let publishedAt: Date?
     let imageURL: String?
+    let author: String?
 
     init(
         title: String,
@@ -92,7 +93,8 @@ struct ParsedArticle: Sendable {
         summary: String?,
         content: String?,
         publishedAt: Date?,
-        imageURL: String?
+        imageURL: String?,
+        author: String? = nil
     ) {
         self.title = title
         self.sourceID = sourceID
@@ -101,6 +103,7 @@ struct ParsedArticle: Sendable {
         self.content = content
         self.publishedAt = publishedAt
         self.imageURL = imageURL
+        self.author = author
     }
 
     func copy(imageURL: String?) -> ParsedArticle {
@@ -111,7 +114,8 @@ struct ParsedArticle: Sendable {
             summary: summary,
             content: content,
             publishedAt: publishedAt,
-            imageURL: imageURL
+            imageURL: imageURL,
+            author: author
         )
     }
 }
@@ -283,7 +287,13 @@ enum FeedService {
                     ?? cleanImageURL(item.iTunes?.image?.attributes?.href, relativeTo: baseURL)
                     ?? firstImageURL(from: item.enclosure, relativeTo: baseURL)
                     ?? firstImageURL(inHTML: item.content?.encoded, relativeTo: baseURL)
-                    ?? firstImageURL(inHTML: item.description, relativeTo: baseURL)
+                    ?? firstImageURL(inHTML: item.description, relativeTo: baseURL),
+                // dc:creator ist bei den meisten realen Feeds (WordPress etc.)
+                // der frei lesbare Autorenname; das RSS-2.0-<author>-Element
+                // verlangt laut Spezifikation eigentlich eine E-Mail-Adresse
+                // und ist deshalb seltener sinnvoll lesbar -- dc:creator hat
+                // Vorrang, <author> bleibt Fallback.
+                author: item.dublinCore?.creator ?? item.author
             )
         } ?? []
 
@@ -312,7 +322,8 @@ enum FeedService {
                 publishedAt: entry.published ?? entry.updated,
                 imageURL: firstImageURL(in: entry.media, relativeTo: baseURL)
                     ?? firstImageURL(inHTML: entry.content?.text, relativeTo: baseURL)
-                    ?? firstImageURL(inHTML: entry.summary?.text, relativeTo: baseURL)
+                    ?? firstImageURL(inHTML: entry.summary?.text, relativeTo: baseURL),
+                author: entry.authors?.first?.name
             )
         } ?? []
 
@@ -343,7 +354,10 @@ enum FeedService {
                 content: item.contentHtml ?? item.contentText,
                 publishedAt: item.datePublished ?? item.dateModified,
                 imageURL: cleanImageURL(item.image, relativeTo: baseURL)
-                    ?? cleanImageURL(item.bannerImage, relativeTo: baseURL)
+                    ?? cleanImageURL(item.bannerImage, relativeTo: baseURL),
+                // JSON-Feed-Spezifikation: fehlt der Autor am Item, gilt der
+                // Feed-weite Standardautor (falls vorhanden) als Autor des Items.
+                author: item.author?.name ?? jsonFeed.author?.name
             )
         } ?? []
 

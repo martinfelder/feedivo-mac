@@ -119,6 +119,7 @@ struct SQLiteFeedRefreshService {
                         summary: article.summary,
                         content: article.content,
                         imageURL: article.imageURL,
+                        author: article.author,
                         publishedAt: article.publishedAt,
                         arrivedAt: refreshedAt
                     )

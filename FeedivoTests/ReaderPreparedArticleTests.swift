@@ -58,4 +58,34 @@ struct ReaderPreparedArticleTests {
             #expect(readingTimeRange.upperBound <= authorRange.lowerBound)
         }
     }
+
+    // Regression: ReaderArticleCacheKey ignorierte bisher author, wodurch ein
+    // erneuter Feed-Refresh mit neu hinzugekommenem Autor innerhalb derselben
+    // App-Session an einer bereits gecachten (identischen bis auf author)
+    // ReaderPreparedArticle vorbeilief -- der Autor blieb bis zur naechsten
+    // Cache-Verdraengung unsichtbar.
+    @Test func cacheKeyUnterscheidetSichBeiUnterschiedlichemAutor() {
+        let inputMitAutor = ReaderArticleInput(
+            summary: "Kurzfassung",
+            content: "<p>Volltext</p>",
+            contentFingerprint: ReaderArticleTextFingerprint.make(from: "<p>Volltext</p>"),
+            imageURL: nil,
+            link: "https://example.com/artikel",
+            feedTitle: "SQLite Feed",
+            author: "Martin",
+            publishedAt: Date(timeIntervalSince1970: 100)
+        )
+        let inputOhneAutor = ReaderArticleInput(
+            summary: "Kurzfassung",
+            content: "<p>Volltext</p>",
+            contentFingerprint: ReaderArticleTextFingerprint.make(from: "<p>Volltext</p>"),
+            imageURL: nil,
+            link: "https://example.com/artikel",
+            feedTitle: "SQLite Feed",
+            author: nil,
+            publishedAt: Date(timeIntervalSince1970: 100)
+        )
+
+        #expect(inputMitAutor.cacheKey != inputOhneAutor.cacheKey)
+    }
 }
