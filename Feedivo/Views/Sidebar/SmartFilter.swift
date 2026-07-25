@@ -35,36 +35,6 @@ enum SmartFilter: String, CaseIterable, Identifiable, Hashable, Sendable {
         rawValue
     }
 
-    var title: LocalizedStringKey {
-        switch self {
-        case .allArticles:
-            return L10n.smartFilterAllArticles
-        case .unread:
-            return L10n.smartFilterUnread
-        case .starred:
-            return L10n.smartFilterStarred
-        case .today:
-            return L10n.smartFilterToday
-        case .hidden:
-            return L10n.smartFilterHidden
-        }
-    }
-
-    var systemImage: String {
-        switch self {
-        case .allArticles:
-            return "tray.full"
-        case .unread:
-            return "circle.fill"
-        case .starred:
-            return "star.fill"
-        case .today:
-            return "calendar"
-        case .hidden:
-            return "eye.slash"
-        }
-    }
-
     var iconColor: SmartFilterIconColor {
         switch self {
         case .allArticles:

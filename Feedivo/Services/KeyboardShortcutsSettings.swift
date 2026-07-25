@@ -47,8 +47,6 @@ struct KeyboardShortcutOverrides: Equatable {
 }
 
 enum KeyboardShortcutsSettings {
-    static let storageKey = KeyboardShortcutOverrides.storageKey
-
     static func spec(
         for shortcut: CustomizableShortcut,
         in overrides: KeyboardShortcutOverrides

@@ -15,7 +15,7 @@ struct BackgroundRefreshServiceTests {
         )
 
         #expect(scheduler.submittedRequests.isEmpty)
-        #expect(scheduler.cancelledIdentifiers == [BackgroundRefreshService.taskIdentifier])
+        #expect(scheduler.cancelCallCount == 1)
     }
 
     @Test func scheduleNextRefreshPlantTaskMitGeklemmtemStartdatum() throws {
@@ -115,7 +115,6 @@ struct BackgroundRefreshServiceTests {
 
         BackgroundRefreshService.recordRefreshPartial(
             "2 Feeds nicht erreichbar",
-            failedCount: 2,
             now: now,
             intervalMinutes: 30,
             userDefaults: defaults
@@ -344,7 +343,7 @@ private func temporaryUserDefaults() throws -> UserDefaults {
 private final class RecordingBackgroundTaskScheduler: BackgroundRefreshScheduling {
     let errorToThrow: Error?
     private(set) var submittedRequests: [BackgroundRefreshRequest] = []
-    private(set) var cancelledIdentifiers: [String] = []
+    private(set) var cancelCallCount: Int = 0
 
     init(errorToThrow: Error? = nil) {
         self.errorToThrow = errorToThrow
@@ -358,8 +357,8 @@ private final class RecordingBackgroundTaskScheduler: BackgroundRefreshSchedulin
         submittedRequests.append(request)
     }
 
-    func cancel(identifier: String) {
-        cancelledIdentifiers.append(identifier)
+    func cancel() {
+        cancelCallCount += 1
     }
 }
 

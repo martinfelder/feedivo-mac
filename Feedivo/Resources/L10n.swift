@@ -5,7 +5,6 @@ enum L10n {
     static let contentNoFeedSelectedDescription = LocalizedStringKey("content.noFeedSelected.description")
     static let contentNoArticleSelectedTitle = LocalizedStringKey("content.noArticleSelected.title")
     static let contentNoArticleSelectedDescription = LocalizedStringKey("content.noArticleSelected.description")
-    static let sidebarEmptyTitle = LocalizedStringKey("sidebar.empty.title")
     static let sidebarAddFeedButton = LocalizedStringKey("sidebar.addFeed.button")
     static let sidebarAddFeedTitle = LocalizedStringKey("sidebar.addFeed.title")
     static let sidebarAddFeedDescription = LocalizedStringKey("sidebar.addFeed.description")
@@ -19,7 +18,6 @@ enum L10n {
     static let sidebarAddFolderTitle = LocalizedStringKey("sidebar.addFolder.title")
     static let sidebarAddFolderNamePlaceholder = LocalizedStringKey("sidebar.addFolder.name.placeholder")
     static let sidebarFolderRenameCommand = String(localized: "sidebar.folder.rename.command")
-    static let sidebarSmartFiltersSection = LocalizedStringKey("sidebar.smartFilters.section")
     // Parallele Keys für die Smart-Folder-Sektion. Der alte Key
     // `sidebar.smartFilters.section` bleibt erhalten, wird aber nach diesem
     // Task nirgends mehr referenziert. Neue View-Stellen nutzen den
@@ -27,7 +25,6 @@ enum L10n {
     static let sidebarSmartFoldersSection = LocalizedStringKey("sidebar.smartFolders.section")
     static let sidebarSmartFoldersEmpty = LocalizedStringKey("sidebar.smartFolders.empty")
     static let sidebarSmartFoldersCustomSection = LocalizedStringKey("sidebar.smartFolders.custom.section")
-    static let sidebarSmartFoldersCustomEmpty = LocalizedStringKey("sidebar.smartFolders.custom.empty")
     static let sidebarSmartFolderDelete = LocalizedStringKey("sidebar.smartFolder.delete")
     static let sidebarFeedPreviewEmpty = LocalizedStringKey("sidebar.feedPreview.empty")
     static let sidebarFeedPreviewRecent = LocalizedStringKey("sidebar.feedPreview.recent")
@@ -35,12 +32,6 @@ enum L10n {
     static let commonDelete = LocalizedStringKey("common.delete")
     static let commonDuplicate = LocalizedStringKey("common.duplicate")
     static let sidebarTagsSection = LocalizedStringKey("sidebar.tags.section")
-    static let sidebarTagsEmpty = LocalizedStringKey("sidebar.tags.empty")
-    static let smartFilterAllArticles = LocalizedStringKey("smartFilter.allArticles")
-    static let smartFilterUnread = LocalizedStringKey("smartFilter.unread")
-    static let smartFilterStarred = LocalizedStringKey("smartFilter.starred")
-    static let smartFilterToday = LocalizedStringKey("smartFilter.today")
-    static let smartFilterHidden = LocalizedStringKey("smartFilter.hidden")
     static let smartFolderErrorNameRequired = String(localized: "smartFolder.error.nameRequired")
     static let commonCancel = LocalizedStringKey("common.cancel")
     static let commonAdd = LocalizedStringKey("common.add")
@@ -92,7 +83,6 @@ enum L10n {
     static let settingsMenubarArticleClickBehaviorDescription = LocalizedStringKey("settings.menubar.articleClickBehavior.description")
     static let settingsMenubarHidesDockIconTitle = LocalizedStringKey("settings.menubar.hidesDockIcon.title")
     static let settingsMenubarHidesDockIconDescription = LocalizedStringKey("settings.menubar.hidesDockIcon.description")
-    static let articleRowUnread = LocalizedStringKey("articleRow.unread")
     static let readerOpenOriginal = LocalizedStringKey("reader.openOriginal")
     static let readerAppearanceButton = LocalizedStringKey("reader.appearance.button")
     static let readerAppearanceTitle = LocalizedStringKey("reader.appearance.title")
@@ -280,7 +270,6 @@ enum L10n {
     static let ruleWizardAddGroup = LocalizedStringKey("ruleWizard.addGroup")
     static let ruleWizardRemoveGroup = LocalizedStringKey("ruleWizard.removeGroup")
     static let ruleWizardSave = LocalizedStringKey("ruleWizard.save")
-    static let ruleWizardNewTag = LocalizedStringKey("ruleWizard.newTag")
     static let ruleWizardNewTagName = LocalizedStringKey("ruleWizard.newTagName")
     static let ruleWizardNameLabel = LocalizedStringKey("ruleWizard.name.label")
     static let ruleWizardIfBadge = LocalizedStringKey("ruleWizard.if.badge")
@@ -351,13 +340,6 @@ enum L10n {
     static let settingsAutomaticRefreshStatusFailed = LocalizedStringKey("settings.automaticRefresh.status.failed")
     static let settingsAutomaticRefreshStatusPartial = LocalizedStringKey("settings.automaticRefresh.status.partial")
     static let settingsAutomaticRefreshStatusNever = LocalizedStringKey("settings.automaticRefresh.status.never")
-    static let settingsAutomaticCleanupLastRun = LocalizedStringKey("settings.automaticCleanup.lastRun")
-    static let settingsAutomaticCleanupStatus = LocalizedStringKey("settings.automaticCleanup.status")
-    static let settingsAutomaticCleanupRemovedCount = LocalizedStringKey("settings.automaticCleanup.removedCount")
-    static let settingsAutomaticCleanupLastError = LocalizedStringKey("settings.automaticCleanup.lastError")
-    static let settingsAutomaticCleanupStatusSuccess = LocalizedStringKey("settings.automaticCleanup.status.success")
-    static let settingsAutomaticCleanupStatusFailed = LocalizedStringKey("settings.automaticCleanup.status.failed")
-    static let settingsAutomaticCleanupStatusNever = LocalizedStringKey("settings.automaticCleanup.status.never")
     static let settingsGeneralSection = LocalizedStringKey("settings.general.section")
     static let settingsFeedsSection = LocalizedStringKey("settings.feeds.section")
     static let settingsFeedsDescription = LocalizedStringKey("settings.feeds.description")
@@ -373,7 +355,6 @@ enum L10n {
     static let settingsFeedsRowEnableNotification = LocalizedStringKey("settings.feeds.row.enableNotification")
     static let settingsFeedsRowDisableNotification = LocalizedStringKey("settings.feeds.row.disableNotification")
     static let settingsCacheSection = LocalizedStringKey("settings.cache.section")
-    static let settingsCacheDescription = LocalizedStringKey("settings.cache.description")
     static let settingsCacheCurrentSize = LocalizedStringKey("settings.cache.currentSize")
     static let settingsCacheLimitPicker = LocalizedStringKey("settings.cache.limit.picker")
     static let settingsCacheDescriptionDetail = LocalizedStringKey("settings.cache.description.detail")
@@ -404,14 +385,10 @@ enum L10n {
     static let settingsArticleRetentionDescription = LocalizedStringKey("settings.articleRetention.description")
     static let settingsArticleRetentionRunNow = LocalizedStringKey("settings.articleRetention.runNow")
     static let settingsCleanupScheduleAppStartTitle = LocalizedStringKey("settings.cleanupSchedule.appStart.title")
-    static let settingsCleanupScheduleAppStartDescription = LocalizedStringKey("settings.cleanupSchedule.appStart.description")
     static let settingsCleanupScheduleWeekdayTimeTitle = LocalizedStringKey("settings.cleanupSchedule.weekdayTime.title")
-    static let settingsCleanupScheduleWeekdayTimeDescription = LocalizedStringKey("settings.cleanupSchedule.weekdayTime.description")
     static let settingsCleanupScheduleOnQuitTitle = LocalizedStringKey("settings.cleanupSchedule.onQuit.title")
-    static let settingsCleanupScheduleOnQuitDescription = LocalizedStringKey("settings.cleanupSchedule.onQuit.description")
     static let settingsCleanupScheduleTitle = LocalizedStringKey("settings.cleanupSchedule.title")
     static let settingsCleanupScheduleDescription = LocalizedStringKey("settings.cleanupSchedule.description")
-    static let settingsCleanupScheduleNoneSelected = LocalizedStringKey("settings.cleanupSchedule.noneSelected")
     static let settingsCleanupHistoryShowButton = LocalizedStringKey("settings.cleanupHistory.showButton")
     static let cleanupHistoryTitle = LocalizedStringKey("cleanup.history.title")
     static let cleanupHistoryDescription = LocalizedStringKey("cleanup.history.description")
@@ -428,8 +405,6 @@ enum L10n {
     static let settingsSyncBetaTitle = LocalizedStringKey("settings.sync.beta.title")
     static let settingsSyncBetaDescription = LocalizedStringKey("settings.sync.beta.description")
     static let settingsSyncStatusTitle = LocalizedStringKey("settings.sync.status.title")
-    static let settingsSyncRestartHint = LocalizedStringKey("settings.sync.restart.hint")
-    static let settingsSyncUnavailableHint = LocalizedStringKey("settings.sync.unavailable.hint")
     static let settingsSyncDatabaseTitle = LocalizedStringKey("settings.sync.database.title")
     static let settingsSyncDatabaseErrorHint = LocalizedStringKey("settings.sync.databaseError.hint")
     static let settingsSyncBetaScopeHint = LocalizedStringKey("settings.sync.beta.scopeHint")
@@ -500,7 +475,6 @@ enum L10n {
     static let articleSearchFieldSummary = String(localized: "article.search.field.summary")
     static let articleSearchFieldContent = String(localized: "article.search.field.content")
     static let articleSearchFeedAll = String(localized: "article.search.feed.all")
-    static let articleSearchTagAll = String(localized: "article.search.tag.all")
     static let articleSearchTagsButtonLabel = String(localized: "article.search.tags.button.label")
     static let articleSearchTagMatchModeAny = String(localized: "article.search.tag.matchMode.any")
     static let articleSearchTagMatchModeAll = String(localized: "article.search.tag.matchMode.all")
@@ -548,7 +522,6 @@ enum L10n {
     static let articleExportMetadataDescription = String(localized: "article.export.metadata.description")
     static let articleExportOfflineImagesToggle = String(localized: "article.export.offlineImages.toggle")
     static let articleExportOfflineImagesDescription = String(localized: "article.export.offlineImages.description")
-    static let articleExportOfflineImagesLoading = String(localized: "article.export.offlineImages.loading")
     static let articleExportStatusPreparingDocument = String(localized: "article.export.status.preparingDocument")
     static let articleExportStatusDownloadingImage = String(localized: "article.export.status.downloadingImage")
     static let articleExportStatusCreatingArchive = String(localized: "article.export.status.creatingArchive")
@@ -773,14 +746,6 @@ enum L10n {
     static let feedDeleteConfirmButton = String(localized: "feed.delete.confirmButton")
     static let feedDeleteConfirmationTitle = String(localized: "feed.delete.confirmation.title")
 
-    static func opmlImportResultMessage(imported: Int, skippedDuplicates: Int) -> String {
-        String.localizedStringWithFormat(
-            String(localized: "opml.import.result.message"),
-            imported,
-            skippedDuplicates
-        )
-    }
-
     static func opmlExportFeedCount(_ count: Int) -> String {
         String.localizedStringWithFormat(
             String(localized: "opml.export.feedCount"),
@@ -821,13 +786,6 @@ enum L10n {
             String(localized: "feed.error.refreshAllPartial"),
             count,
             feedTitles
-        )
-    }
-
-    static func feedLogRefreshed(newArticleCount: Int) -> String {
-        String.localizedStringWithFormat(
-            String(localized: "feed.log.refreshed"),
-            newArticleCount
         )
     }
 
@@ -911,10 +869,6 @@ enum L10n {
 
     static func smartFolderPreviewMatchCount(count: Int) -> String {
         String.localizedStringWithFormat(String(localized: "smartFolder.preview.matches"), count)
-    }
-
-    static func settingsFeedsSelectedCount(count: Int) -> String {
-        String.localizedStringWithFormat(String(localized: "settings.feeds.selectedCount"), count)
     }
 
     static func feedPropertiesArticlesLastWeekCount(_ count: Int) -> String {

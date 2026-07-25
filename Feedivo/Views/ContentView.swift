@@ -80,7 +80,6 @@ struct ContentView: View {
     @State private var articleExportRequest: ArticleExportRequest?
     @State private var ruleCreationRequest: RuleCreationRequest?
     @State private var opmlAlert: OPMLAlert?
-    @State private var isMetadataInspectorPresented = false
     @State private var isShowingFirstRunWizard = false
     @State private var isFirstRunWizardDismissedForSession = false
     @State private var didRestoreArticleWindowsForLaunch = false

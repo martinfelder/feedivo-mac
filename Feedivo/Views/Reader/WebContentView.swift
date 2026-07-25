@@ -159,7 +159,7 @@ struct WebContentView: NSViewRepresentable {
                         return
                     }
 
-                    self.notifyFailure(nil)
+                    self.notifyFailure()
                 }
             }
         }
@@ -184,20 +184,18 @@ struct WebContentView: NSViewRepresentable {
         }
 
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
-            let _ = error
-            notifyFailure(error)
+            notifyFailure()
         }
 
         func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
-            let _ = error
-            notifyFailure(error)
+            notifyFailure()
         }
 
         func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
-            notifyFailure(nil)
+            notifyFailure()
         }
 
-        private func notifyFailure(_ error: Error?) {
+        private func notifyFailure() {
             loadWatchTask?.cancel()
             loadedURL = nil
             isAwaitingTopLevelLoadCompletion = false

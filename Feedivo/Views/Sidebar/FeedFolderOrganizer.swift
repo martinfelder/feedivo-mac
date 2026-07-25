@@ -13,13 +13,6 @@ enum SidebarFeedVisibilitySettings {
 
 enum FeedFolderOrganizer {
 
-    static func folderNames(feedFolderNames: [String], explicitFolderNames: [String]) -> [String] {
-        folderNames(
-            feedFolderNames: feedFolderNames.map(Optional.some),
-            explicitFolderNames: explicitFolderNames.map(Optional.some)
-        )
-    }
-
     static func folderNames(feedFolderNames: [String?], explicitFolderNames: [String?]) -> [String] {
         var canonicalNamesByLowercasedName: [String: String] = [:]
 

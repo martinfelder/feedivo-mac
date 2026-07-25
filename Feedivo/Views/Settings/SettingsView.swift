@@ -67,8 +67,6 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
 }
 
 struct SettingsView: View {
-    static let windowID = "feedivo-settings-new"
-
     private enum Layout {
         // 640pt reichte nur für die 7 Tabs, die es beim Verschmälern auf diese Breite
         // (Commit 6a2015486, 2026-07-06) gab. Seither kamen Artikelliste/Menubar/
@@ -86,7 +84,6 @@ struct SettingsView: View {
         static let windowWidth: CGFloat = 960
     }
 
-    @Environment(\.interfaceTextSize) private var interfaceTextSize
     @State private var selectedSection = SettingsSection.general
 
     var body: some View {

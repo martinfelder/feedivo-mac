@@ -146,7 +146,7 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(listSource.contains("List(selection: $selectedArticleID)"))
         #expect(listSource.contains(".tag(row.id)"))
         #expect(listSource.contains(".toolbar"))
-        #expect(listSource.contains("markReadMenu(visibleRows:"))
+        #expect(listSource.contains("markReadMenu()"))
         #expect(listSource.contains("filterMenu"))
         #expect(listSource.contains("sortMenu"))
         #expect(!listSource.contains("ScrollViewReader"))

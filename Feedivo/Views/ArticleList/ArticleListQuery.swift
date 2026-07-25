@@ -9,10 +9,6 @@ enum ArticleSearchField: String, CaseIterable, Identifiable {
     var id: String {
         rawValue
     }
-
-    static func resolved(from rawValue: String) -> ArticleSearchField {
-        ArticleSearchField(rawValue: rawValue) ?? .all
-    }
 }
 
 enum ArticleSearchScope: String, CaseIterable, Identifiable {
@@ -21,10 +17,6 @@ enum ArticleSearchScope: String, CaseIterable, Identifiable {
 
     var id: String {
         rawValue
-    }
-
-    static func resolved(from rawValue: String) -> ArticleSearchScope {
-        ArticleSearchScope(rawValue: rawValue) ?? .currentView
     }
 }
 
@@ -114,10 +106,6 @@ struct ArticleSearchQuery: Equatable {
 
     var normalizedText: String {
         text.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    var isActive: Bool {
-        !normalizedText.isEmpty || filters.isActive
     }
 }
 

@@ -233,7 +233,7 @@ struct SQLiteFeedArticleListView: View {
         }
         .toolbar {
             ToolbarItemGroup {
-                markReadMenu(visibleRows: displayState.visibleRows)
+                markReadMenu()
                 filterMenu
                 sortMenu
             }
@@ -395,7 +395,7 @@ struct SQLiteFeedArticleListView: View {
                 articleListEmptyState(isSearching: isSearching)
             } else {
                 ForEach(currentDisplayState.visibleRows) { row in
-                    articleRow(row, visibleRows: currentDisplayState.visibleRows)
+                    articleRow(row)
                         .tag(row.id)
                 }
 
@@ -441,8 +441,7 @@ struct SQLiteFeedArticleListView: View {
     }
 
     private func articleRow(
-        _ row: ArticleListSnapshot,
-        visibleRows: [ArticleListSnapshot]
+        _ row: ArticleListSnapshot
     ) -> ArticleRowView {
         ArticleRowView(
             snapshot: ArticleListItemSnapshot(sqliteSnapshot: row),
@@ -810,7 +809,7 @@ struct SQLiteFeedArticleListView: View {
         ArticleFilterOption.resolved(from: articleFilterRawValue)
     }
 
-    private func markReadMenu(visibleRows: [ArticleListSnapshot]) -> some View {
+    private func markReadMenu() -> some View {
         Menu {
             ForEach(ArticleMarkReadOption.allCases) { option in
                 Button {

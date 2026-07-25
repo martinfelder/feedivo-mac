@@ -3,7 +3,6 @@ import OSLog
 
 struct SidebarView: View {
     @Environment(\.feedivoDatabase) private var feedivoDatabase
-    @Environment(\.interfaceTextSize) private var interfaceTextSize
 
     @Binding var selection: SidebarSelection?
     let onRequestAddFeed: () -> Void

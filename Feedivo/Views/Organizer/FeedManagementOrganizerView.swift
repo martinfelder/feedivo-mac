@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct FeedManagementOrganizerView: View {
-    @Environment(\.interfaceTextSize) private var interfaceTextSize
     @Environment(\.feedivoDatabase) private var feedivoDatabase
     @Environment(\.colorScheme) private var colorScheme
 

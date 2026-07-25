@@ -7,11 +7,11 @@ struct BackgroundRefreshRequest {
 
 protocol BackgroundRefreshScheduling {
     func submit(_ request: BackgroundRefreshRequest) throws
-    func cancel(identifier: String)
+    func cancel()
 }
 
 extension BackgroundRefreshScheduling {
-    func cancel(identifier: String) {}
+    func cancel() {}
 }
 
 @MainActor
@@ -69,7 +69,7 @@ final class SystemBackgroundActivityRefreshScheduler: BackgroundRefreshSchedulin
         self.scheduler = scheduler
     }
 
-    func cancel(identifier: String) {
+    func cancel() {
         guard scheduler != nil else {
             return
         }
@@ -110,7 +110,7 @@ enum BackgroundRefreshService {
             intervalMinutes: clampedIntervalMinutes,
             now: now
         ) else {
-            scheduler.cancel(identifier: taskIdentifier)
+            scheduler.cancel()
             userDefaults.removeObject(forKey: BackgroundRefreshSettings.nextAutomaticRefreshDateKey)
             return
         }
@@ -244,10 +244,9 @@ enum BackgroundRefreshService {
                 intervalMinutes: intervalMinutes,
                 userDefaults: userDefaults
             )
-        case .partial(let failedCount):
+        case .partial:
             recordRefreshPartial(
                 viewModel.errorMessage ?? "",
-                failedCount: failedCount,
                 intervalMinutes: intervalMinutes,
                 userDefaults: userDefaults
             )
@@ -293,7 +292,6 @@ enum BackgroundRefreshService {
     /// wurden erfolgreich aktualisiert, nur eine Teilmenge ist fehlgeschlagen.
     static func recordRefreshPartial(
         _ message: String,
-        failedCount: Int,
         now: Date = Date(),
         intervalMinutes: Int,
         userDefaults: UserDefaults = .standard

@@ -36,10 +36,6 @@ struct ArticleStatusStore {
         try SQLiteUnreadCountService(database: database).unreadCount(feedID: feedID)
     }
 
-    func sidebarSmartFolderBadgeSnapshot() throws -> SmartFolderSidebarBadgeSnapshot {
-        try SQLiteUnreadCountService(database: database).sidebarSmartFolderBadgeSnapshot()
-    }
-
     /// Setzt `isRead` UND markiert den Status als sync-relevant (iCloud Sync Phase 2b) —
     /// im Unterschied zu `setArchived`/`setHidden`, die außerhalb des Sync-Scopes bleiben.
     func setRead(_ isRead: Bool, articleID: String, at date: Date?) throws {

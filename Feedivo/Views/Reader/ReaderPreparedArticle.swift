@@ -1,7 +1,6 @@
 import Foundation
 
 enum ReaderContentAvailability: Equatable {
-    case fullText
     case feedContent
     case summaryOnly
     case empty

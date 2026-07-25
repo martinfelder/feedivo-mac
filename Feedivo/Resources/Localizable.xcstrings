@@ -742,6 +742,7 @@
       }
     },
     "article.export.offlineImages.loading" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -2663,6 +2664,7 @@
       }
     },
     "article.search.tag.all" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -6060,6 +6062,7 @@
       }
     },
     "feed.log.refreshed" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "variations" : {
@@ -13571,6 +13574,7 @@
       }
     },
     "opml.import.result.message" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "variations" : {
@@ -19265,6 +19269,7 @@
       }
     },
     "ruleWizard.newTag" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -21145,6 +21150,7 @@
       }
     },
     "settings.automaticCleanup.lastError" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -21173,6 +21179,7 @@
       }
     },
     "settings.automaticCleanup.lastRun" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -21201,6 +21208,7 @@
       }
     },
     "settings.automaticCleanup.removedCount" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -21229,6 +21237,7 @@
       }
     },
     "settings.automaticCleanup.status" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -21257,6 +21266,7 @@
       }
     },
     "settings.automaticCleanup.status.failed" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -21285,6 +21295,7 @@
       }
     },
     "settings.automaticCleanup.status.never" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -21313,6 +21324,7 @@
       }
     },
     "settings.automaticCleanup.status.success" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -21867,6 +21879,7 @@
       }
     },
     "settings.cache.description" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -22187,6 +22200,7 @@
       }
     },
     "settings.cleanupSchedule.appStart.description" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -22299,6 +22313,7 @@
       }
     },
     "settings.cleanupSchedule.onQuit.description" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -22383,6 +22398,7 @@
       }
     },
     "settings.cleanupSchedule.weekdayTime.description" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -22936,6 +22952,7 @@
       }
     },
     "settings.feeds.selectedCount" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "variations" : {
@@ -25118,314 +25135,6 @@
         }
       }
     },
-    "settings.sync.reset.section" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sync zurücksetzen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reset Sync"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Réinitialiser la synchronisation"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reimposta sincronizzazione"
-          }
-        }
-      }
-    },
-    "settings.sync.reset.soft.button" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lokalen Sync-Zustand zurücksetzen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reset Local Sync State"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Réinitialiser l'état de synchronisation local"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reimposta lo stato di sincronizzazione locale"
-          }
-        }
-      }
-    },
-    "settings.sync.reset.soft.confirmTitle" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sync-Zustand zurücksetzen?"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reset Sync State?"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Réinitialiser l'état de synchronisation ?"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reimpostare lo stato di sincronizzazione?"
-          }
-        }
-      }
-    },
-    "settings.sync.reset.soft.confirmMessage" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Setzt den Sync-Zustand auf diesem Gerät zurück und lädt alle lokalen Daten erneut zu iCloud hoch. Die iCloud-Daten selbst bleiben unverändert."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Resets the sync state on this device and re-uploads all local data to iCloud. The iCloud data itself remains unchanged."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Réinitialise l'état de synchronisation sur cet appareil et retélécharge toutes les données locales vers iCloud. Les données iCloud elles-mêmes restent inchangées."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reimposta lo stato di sincronizzazione su questo dispositivo e ricarica tutti i dati locali su iCloud. I dati su iCloud stessi rimangono invariati."
-          }
-        }
-      }
-    },
-    "settings.sync.reset.hard.button" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "iCloud-Daten komplett zurücksetzen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Completely Reset iCloud Data"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Réinitialiser complètement les données iCloud"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reimposta completamente i dati iCloud"
-          }
-        }
-      }
-    },
-    "settings.sync.reset.hard.sheetTitle" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "iCloud-Daten komplett zurücksetzen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Completely Reset iCloud Data"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Réinitialiser complètement les données iCloud"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reimposta completamente i dati iCloud"
-          }
-        }
-      }
-    },
-    "settings.sync.reset.hard.warning" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Löscht sämtliche iCloud-Sync-Daten dieser App vollständig und baut sie danach komplett neu aus dem aktuellen Stand dieses Geräts auf. Das betrifft ALLE Geräte, auf denen iCloud Sync für Feedivo aktiviert ist — jedes andere Gerät muss sich danach eigenständig neu einrichten. Diese Aktion kann nicht rückgängig gemacht werden."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Completely deletes all of this app's iCloud sync data and rebuilds it from scratch using this device's current state. This affects ALL devices with iCloud Sync enabled for Feedivo — every other device will need to re-set itself up afterwards. This action cannot be undone."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Supprime entièrement toutes les données de synchronisation iCloud de cette application et les reconstruit à partir de l'état actuel de cet appareil. Cela concerne TOUS les appareils sur lesquels la synchronisation iCloud est activée pour Feedivo — chaque autre appareil devra se reconfigurer lui-même par la suite. Cette action est irréversible."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Elimina completamente tutti i dati di sincronizzazione iCloud di questa app e li ricostruisce da zero a partire dallo stato attuale di questo dispositivo. Questo riguarda TUTTI i dispositivi su cui la sincronizzazione iCloud è attiva per Feedivo: ogni altro dispositivo dovrà riconfigurarsi autonomamente in seguito. Questa azione non può essere annullata."
-          }
-        }
-      }
-    },
-    "settings.sync.reset.hard.confirmFieldLabel" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zum Bestätigen ZURÜCKSETZEN eingeben:"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Type ZURÜCKSETZEN to confirm:"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tapez ZURÜCKSETZEN pour confirmer :"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Digita ZURÜCKSETZEN per confermare:"
-          }
-        }
-      }
-    },
-    "settings.sync.reset.hard.confirmButton" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Endgültig zurücksetzen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reset Permanently"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Réinitialiser définitivement"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reimposta definitivamente"
-          }
-        }
-      }
-    },
-    "settings.sync.reset.successMessage" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zurückgesetzt."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reset complete."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Réinitialisation terminée."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reimpostazione completata."
-          }
-        }
-      }
-    },
-    "settings.sync.reset.errorMessage" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zurücksetzen fehlgeschlagen: %@"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reset failed: %@"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Échec de la réinitialisation : %@"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reimpostazione non riuscita: %@"
-          }
-        }
-      }
-    },
     "settings.sync.activity.detailsShow" : {
       "localizations" : {
         "de" : {
@@ -25875,7 +25584,316 @@
         }
       }
     },
+    "settings.sync.reset.errorMessage" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zurücksetzen fehlgeschlagen: %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset failed: %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Échec de la réinitialisation : %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reimpostazione non riuscita: %@"
+          }
+        }
+      }
+    },
+    "settings.sync.reset.hard.button" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud-Daten komplett zurücksetzen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Completely Reset iCloud Data"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réinitialiser complètement les données iCloud"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reimposta completamente i dati iCloud"
+          }
+        }
+      }
+    },
+    "settings.sync.reset.hard.confirmButton" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Endgültig zurücksetzen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset Permanently"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réinitialiser définitivement"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reimposta definitivamente"
+          }
+        }
+      }
+    },
+    "settings.sync.reset.hard.confirmFieldLabel" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zum Bestätigen ZURÜCKSETZEN eingeben:"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Type ZURÜCKSETZEN to confirm:"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tapez ZURÜCKSETZEN pour confirmer :"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Digita ZURÜCKSETZEN per confermare:"
+          }
+        }
+      }
+    },
+    "settings.sync.reset.hard.sheetTitle" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud-Daten komplett zurücksetzen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Completely Reset iCloud Data"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réinitialiser complètement les données iCloud"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reimposta completamente i dati iCloud"
+          }
+        }
+      }
+    },
+    "settings.sync.reset.hard.warning" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Löscht sämtliche iCloud-Sync-Daten dieser App vollständig und baut sie danach komplett neu aus dem aktuellen Stand dieses Geräts auf. Das betrifft ALLE Geräte, auf denen iCloud Sync für Feedivo aktiviert ist — jedes andere Gerät muss sich danach eigenständig neu einrichten. Diese Aktion kann nicht rückgängig gemacht werden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Completely deletes all of this app's iCloud sync data and rebuilds it from scratch using this device's current state. This affects ALL devices with iCloud Sync enabled for Feedivo — every other device will need to re-set itself up afterwards. This action cannot be undone."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprime entièrement toutes les données de synchronisation iCloud de cette application et les reconstruit à partir de l'état actuel de cet appareil. Cela concerne TOUS les appareils sur lesquels la synchronisation iCloud est activée pour Feedivo — chaque autre appareil devra se reconfigurer lui-même par la suite. Cette action est irréversible."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elimina completamente tutti i dati di sincronizzazione iCloud di questa app e li ricostruisce da zero a partire dallo stato attuale di questo dispositivo. Questo riguarda TUTTI i dispositivi su cui la sincronizzazione iCloud è attiva per Feedivo: ogni altro dispositivo dovrà riconfigurarsi autonomamente in seguito. Questa azione non può essere annullata."
+          }
+        }
+      }
+    },
+    "settings.sync.reset.section" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sync zurücksetzen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset Sync"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réinitialiser la synchronisation"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reimposta sincronizzazione"
+          }
+        }
+      }
+    },
+    "settings.sync.reset.soft.button" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lokalen Sync-Zustand zurücksetzen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset Local Sync State"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réinitialiser l'état de synchronisation local"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reimposta lo stato di sincronizzazione locale"
+          }
+        }
+      }
+    },
+    "settings.sync.reset.soft.confirmMessage" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Setzt den Sync-Zustand auf diesem Gerät zurück und lädt alle lokalen Daten erneut zu iCloud hoch. Die iCloud-Daten selbst bleiben unverändert."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resets the sync state on this device and re-uploads all local data to iCloud. The iCloud data itself remains unchanged."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réinitialise l'état de synchronisation sur cet appareil et retélécharge toutes les données locales vers iCloud. Les données iCloud elles-mêmes restent inchangées."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reimposta lo stato di sincronizzazione su questo dispositivo e ricarica tutti i dati locali su iCloud. I dati su iCloud stessi rimangono invariati."
+          }
+        }
+      }
+    },
+    "settings.sync.reset.soft.confirmTitle" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sync-Zustand zurücksetzen?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset Sync State?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réinitialiser l'état de synchronisation ?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reimpostare lo stato di sincronizzazione?"
+          }
+        }
+      }
+    },
+    "settings.sync.reset.successMessage" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zurückgesetzt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset complete."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réinitialisation terminée."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reimpostazione completata."
+          }
+        }
+      }
+    },
     "settings.sync.restart.hint" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -26221,6 +26239,7 @@
       }
     },
     "settings.sync.unavailable.hint" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -27626,6 +27645,7 @@
       }
     },
     "sidebar.smartFilters.section" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {

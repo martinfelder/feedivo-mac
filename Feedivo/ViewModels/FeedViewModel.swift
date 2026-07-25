@@ -489,23 +489,6 @@ final class FeedViewModel {
         }
     }
 
-    private func normalizedFeedURL(_ urlString: String) -> String {
-        urlString
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .lowercased()
-    }
-
-    private func incrementOperationProgress() {
-        guard var operationProgress else {
-            return
-        }
-
-        operationProgress.completedCount = min(
-            operationProgress.completedCount + 1,
-            operationProgress.totalCount
-        )
-        self.operationProgress = operationProgress
-    }
 }
 
 struct OPMLImportResult: Equatable {

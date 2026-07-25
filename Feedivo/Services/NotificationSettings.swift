@@ -10,8 +10,6 @@ enum NotificationSettings {
 
     static let appSpecificSystemSettingsURLString =
         "x-apple.systempreferences:com.apple.Notifications-Settings.extension?ch.martin.Feedivo"
-    static let fallbackSystemSettingsURLString =
-        "x-apple.systempreferences:com.apple.preference.notifications"
 
     /// Liest den Master-Schalter sicher aus `UserDefaults`. Ein naives
     /// `UserDefaults.bool(forKey:)` liefert bei fehlendem Key `false` statt des
@@ -33,11 +31,11 @@ enum NotificationSettings {
     }
 
     /// Springt zur App-eigenen Benachrichtigungsseite in den Systemeinstellungen.
-    /// Bewusst ohne Laufzeit-Fallback auf `fallbackSystemSettingsURLString`:
+    /// Bewusst ohne Laufzeit-Fallback auf die allgemeine Übersichtsseite:
     /// `NSWorkspace.open(_:)` liefert kein verlässliches Signal, ob die private
     /// URL tatsächlich auf der App-eigenen Seite statt nur der allgemeinen
-    /// Übersicht gelandet ist. Welche der beiden Konstanten hier verwendet wird,
-    /// ist stattdessen eine Code-Entscheidung nach manueller Live-Verifikation.
+    /// Übersicht gelandet ist. Welche URL hier verwendet wird, ist stattdessen
+    /// eine Code-Entscheidung nach manueller Live-Verifikation.
     static func openSystemNotificationSettings() {
         guard let url = URL(string: appSpecificSystemSettingsURLString) else {
             return
