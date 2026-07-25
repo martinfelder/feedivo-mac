@@ -137,6 +137,13 @@ final class CloudSyncEngine: NSObject {
     }
 
     func stop() {
+        // Muss auf JEDEM Teardown-Pfad geleert werden (normales Ausschalten, Soft Reset, Hard
+        // Reset — beide Resets rufen intern stop() auf): ein Hard Reset löscht die komplette
+        // CloudKit-Zone, ein hier noch zwischengespeicherter Server-Record mit einem
+        // Change-Tag für einen jetzt gelöschten Datensatz würde sonst beim nächsten Sendeversuch
+        // dauerhaft scheitern — genau die Fehlerklasse, die dieses Reset-Feature eigentlich
+        // beheben soll.
+        knownServerRecordsByID.removeAll()
         startTask?.cancel()
         startTask = nil
         syncEngine = nil
@@ -184,7 +191,11 @@ final class CloudSyncEngine: NSObject {
     /// Zustand komplett unangetastet und die Engine wird wieder in ihren vorherigen Zustand
     /// versetzt, damit der Nutzer es erneut versuchen kann.
     func resetCloudZoneAndLocalState(database: FeedivoDatabase) async throws {
-        let wasRunning = syncEngine != nil
+        // `startTask != nil` zählt bewusst mit: ein noch laufender start()-Task hat `syncEngine`
+        // evtl. noch nicht gesetzt, ist aber konzeptionell bereits "läuft/startet gerade" — ohne
+        // diese zweite Bedingung würde ein fehlgeschlagenes Zone-Löschen die Engine in diesem
+        // schmalen Zeitfenster faelschlich NICHT neu starten.
+        let wasRunning = syncEngine != nil || startTask != nil
         stop()
 
         let container = CKContainer(identifier: CloudSyncSettings.cloudKitContainerIdentifier)
@@ -312,6 +323,13 @@ final class CloudSyncEngine: NSObject {
                 }
             }
         }
+
+        // Ohne diesen Bump bleibt die Ausstehend-Anzeige in den Einstellungen (die auf
+        // `SQLiteDataInvalidation.statusVersionKey` per .onChange reagiert) während des
+        // kompletten Reset-Backfills bei "0 ausstehend" hängen, obwohl gerade tausende
+        // Änderungen frisch eingereiht wurden — sie würde erst beim nächsten, unabhängigen
+        // Trigger (z. B. dem nächsten regulären Sync-Fortschritt) aktualisiert.
+        SQLiteDataInvalidation.bumpStatusVersion()
     }
 
     private static func loadStateSerialization() -> CKSyncEngine.State.Serialization? {

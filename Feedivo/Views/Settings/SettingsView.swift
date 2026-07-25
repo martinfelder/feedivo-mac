@@ -1147,15 +1147,31 @@ private struct SyncSettingsView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 12) {
                         Button(L10n.settingsSyncResetSoftButton) {
+                            // Verhindert, dass eine veraltete Erfolgs-/Fehlermeldung eines
+                            // früheren Resets neben der (nach dem Backfill-Fix jetzt live
+                            // aktualisierten) Ausstehend-Anzeige stehen bleibt, während der
+                            // Nutzer einen neuen Reset erwägt.
+                            resetErrorMessage = nil
+                            resetSuccessMessage = nil
                             isShowingSoftResetConfirmation = true
                         }
                         .disabled(isResetting || feedivoDatabase == nil || cloudSyncEngine == nil)
 
                         Button(L10n.settingsSyncResetHardButton, role: .destructive) {
+                            resetErrorMessage = nil
+                            resetSuccessMessage = nil
                             hardResetConfirmationText = ""
                             isShowingHardResetSheet = true
                         }
-                        .disabled(isResetting || feedivoDatabase == nil || cloudSyncEngine == nil)
+                        // Zusätzlich zu den bestehenden Bedingungen: ist iCloud Sync
+                        // deaktiviert, würde resetCloudZoneAndLocalState zwar die geteilte
+                        // CloudKit-Zone löschen (betrifft alle anderen Geräte!), aber
+                        // resetLocalState() startet die Engine anschließend NICHT neu
+                        // (isEnabled-Check) — die Zone bliebe dauerhaft leer statt, wie im
+                        // Warnhinweis versprochen, aus dem lokalen Stand neu aufgebaut zu
+                        // werden. Der Button muss deshalb deaktiviert bleiben, solange Sync
+                        // aus ist.
+                        .disabled(isResetting || feedivoDatabase == nil || cloudSyncEngine == nil || !cloudSyncIsEnabled)
 
                         if isResetting {
                             ProgressView()
