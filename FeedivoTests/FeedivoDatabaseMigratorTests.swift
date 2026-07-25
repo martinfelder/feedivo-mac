@@ -166,4 +166,26 @@ struct FeedivoDatabaseMigratorTests {
         let statusSyncUpdatedAt: Date? = row?["statusSyncUpdatedAt"]
         #expect(statusSyncUpdatedAt == nil)
     }
+
+    @Test func migrationV25ErstelltOrphanedArticleStatusUpdatesTabelle() throws {
+        let queue = try DatabaseQueue()
+        try FeedivoDatabaseMigrator.migrator.migrate(queue, upTo: "v24_add_article_status_sync_updated_at")
+
+        try FeedivoDatabaseMigrator.migrator.migrate(queue)
+
+        try queue.write { db in
+            try db.execute(
+                sql: """
+                    INSERT INTO orphaned_article_status_updates (articleID, isRead, isStarred, readAt, starredAt, receivedAt)
+                    VALUES ('article-unbekannt', 1, 0, ?, NULL, ?)
+                    """,
+                arguments: [Date(), Date()]
+            )
+        }
+
+        let count = try queue.read { db in
+            try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM orphaned_article_status_updates") ?? 0
+        }
+        #expect(count == 1)
+    }
 }

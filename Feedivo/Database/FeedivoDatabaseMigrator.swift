@@ -495,6 +495,22 @@ enum FeedivoDatabaseMigrator {
             }
         }
 
+        migrator.registerMigration("v25_create_orphaned_article_status_updates") { database in
+            // Fängt eingehende Artikelstatus-Updates für Artikel ab, die lokal noch nicht
+            // existieren (Artikel selbst werden nie synct — Feed-Refresh ist rein lokal).
+            // KEIN Fremdschlüssel auf articles.id, das ist genau der Fall, den diese Tabelle
+            // abfängt. Siehe Design-Spec
+            // docs/superpowers/specs/2026-07-25-icloud-sync-phase2b-design.md, Abschnitt 4.
+            try database.create(table: "orphaned_article_status_updates") { table in
+                table.column("articleID", .text).primaryKey()
+                table.column("isRead", .boolean).notNull()
+                table.column("isStarred", .boolean).notNull()
+                table.column("readAt", .datetime)
+                table.column("starredAt", .datetime)
+                table.column("receivedAt", .datetime).notNull()
+            }
+        }
+
         return migrator
     }
 
