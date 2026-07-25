@@ -478,6 +478,23 @@ enum FeedivoDatabaseMigrator {
             }
         }
 
+        migrator.registerMigration("v24_add_article_status_sync_updated_at") { database in
+            // Bewusst OHNE Default (weder `.notNull()` noch `.defaults(...)`) — anders als
+            // v22/v23. Diese Spalte dient nicht nur als Last-Write-Wins-Zeitstempel, sondern
+            // gleichzeitig als Sync-Eligibility-Filter: NULL bedeutet "dieser Artikelstatus
+            // wurde vom Nutzer nie bewusst verändert" und bleibt komplett außerhalb der
+            // Sync-Betrachtung (Sparse Sync, siehe Design-Spec
+            // docs/superpowers/specs/2026-07-25-icloud-sync-phase2b-design.md, Abschnitt 2).
+            // Ein `.defaults(to: Date())` wie bei v22/v23 würde ALLE Bestandszeilen (auch
+            // nie berührte) fälschlich als "berührt" markieren. NULL ist immer ein gültiges
+            // Konstanten-Default, umgeht dadurch auch den bekannten
+            // CURRENT_TIMESTAMP-Migrationscrash-Gotcha, ohne das Problem überhaupt erst zu
+            // berühren.
+            try database.alter(table: "article_statuses") { table in
+                table.add(column: "statusSyncUpdatedAt", .datetime)
+            }
+        }
+
         return migrator
     }
 

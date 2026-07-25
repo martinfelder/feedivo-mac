@@ -14,6 +14,10 @@ struct ArticleStatusRecord: Codable, FetchableRecord, MutablePersistableRecord, 
     var archivedAt: Date?
     var hiddenAt: Date?
     var dateArrived: Date
+    /// Last-Write-Wins-Zeitstempel UND Sync-Eligibility-Filter für iCloud Sync Phase 2b —
+    /// `nil` bedeutet "nie vom Nutzer bewusst verändert", bleibt außerhalb jeder
+    /// Sync-Betrachtung. Siehe `CloudSyncArticleStatusMapping`.
+    var statusSyncUpdatedAt: Date?
 
     init(
         articleID: String,
@@ -25,7 +29,8 @@ struct ArticleStatusRecord: Codable, FetchableRecord, MutablePersistableRecord, 
         starredAt: Date? = nil,
         archivedAt: Date? = nil,
         hiddenAt: Date? = nil,
-        dateArrived: Date = Date()
+        dateArrived: Date = Date(),
+        statusSyncUpdatedAt: Date? = nil
     ) {
         self.articleID = articleID
         self.isRead = isRead
@@ -37,5 +42,6 @@ struct ArticleStatusRecord: Codable, FetchableRecord, MutablePersistableRecord, 
         self.archivedAt = archivedAt
         self.hiddenAt = hiddenAt
         self.dateArrived = dateArrived
+        self.statusSyncUpdatedAt = statusSyncUpdatedAt
     }
 }

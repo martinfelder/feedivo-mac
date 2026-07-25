@@ -128,4 +128,42 @@ struct FeedivoDatabaseMigratorTests {
         }
         #expect(configUpdatedAt != nil)
     }
+
+    @Test func migrationV24FuegtStatusSyncUpdatedAtHinzuUndLaesstBestandszeilenNull() throws {
+        let queue = try DatabaseQueue()
+        try FeedivoDatabaseMigrator.migrator.migrate(queue, upTo: "v23_add_feed_config_updated_at")
+
+        try queue.write { db in
+            let now = Date()
+            try db.execute(
+                sql: """
+                    INSERT INTO feeds (id, url, title, originalTitle, sortIndex, refreshIntervalMinutes, isNotificationEnabled, articleRetentionOverridesGlobalSetting, articleRetentionIsEnabled, articleRetentionDays, articleRetentionMinimumArticles, articleRetentionIncludesProtectedArticles, unreadCount, createdAt, updatedAt)
+                    VALUES ('feed-1', 'https://example.com/feed', 'Test', 'Test', 0, 30, 0, 0, 0, 90, 20, 0, 0, ?, ?)
+                    """,
+                arguments: [now, now]
+            )
+            try db.execute(
+                sql: """
+                    INSERT INTO articles (id, feedID, title, arrivedAt, updatedAt)
+                    VALUES ('article-1', 'feed-1', 'Titel', ?, ?)
+                    """,
+                arguments: [now, now]
+            )
+            try db.execute(
+                sql: """
+                    INSERT INTO article_statuses (articleID, isRead, isStarred, isArchived, isHidden, dateArrived)
+                    VALUES ('article-1', 0, 0, 0, 0, ?)
+                    """,
+                arguments: [now]
+            )
+        }
+
+        try FeedivoDatabaseMigrator.migrator.migrate(queue)
+
+        let row = try queue.read { db in
+            try Row.fetchOne(db, sql: "SELECT statusSyncUpdatedAt FROM article_statuses WHERE articleID = 'article-1'")
+        }
+        let statusSyncUpdatedAt: Date? = row?["statusSyncUpdatedAt"]
+        #expect(statusSyncUpdatedAt == nil)
+    }
 }
