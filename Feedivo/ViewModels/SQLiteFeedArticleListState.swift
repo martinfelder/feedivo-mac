@@ -385,8 +385,10 @@ final class SQLiteFeedArticleListState {
     ) -> Bool {
         do {
             try database.write { db in
+                try CloudSyncArticleStatusMapping.enqueueDeletionIfSynced(articleIDs: [articleID], db: db)
                 try db.execute(sql: "DELETE FROM articles WHERE id = ?", arguments: [articleID])
             }
+            CloudSyncEngine.notifyPendingChangesAvailable(database: database)
             deindexForSpotlight([articleID])
             if let deletedRow = rows.first(where: { $0.id == articleID }),
                !deletedRow.isRead,

@@ -497,6 +497,24 @@ struct SQLiteFeedArticleListStateTests {
         #expect(state.rows.map(\.id) == ["neu"])
     }
 
+    @Test func deleteArticleEnqueuedLoeschungFuerSynchronisiertenStatus() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
+        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try FeedStore(database: database).save(FeedRecord(id: "feed-1", url: "https://example.com/feed", title: "Feed"))
+        let articleID = try ArticleStore(database: database).upsert(
+            ArticleUpsertInput(feedID: "feed-1", sourceID: "a", title: "Titel", arrivedAt: Date())
+        )
+        try ArticleStatusStore(database: database).setRead(true, articleID: articleID, at: Date())
+        let state = SQLiteFeedArticleListState()
+
+        let didDelete = state.deleteArticle(articleID: articleID, database: database, deindexForSpotlight: { _ in })
+
+        #expect(didDelete == true)
+        let pending = try CloudSyncPendingChangeStore(database: database).pendingChanges()
+        #expect(pending.contains { $0.id == articleID && $0.recordType == CloudSyncArticleStatusMapping.recordType && $0.changeType == .delete })
+    }
+
     private func makeDatabaseWithFeedAndArticles() throws -> (FeedivoDatabase, String, String) {
         let database = try FeedivoDatabase.inMemoryForTests()
         let feedStore = FeedStore(database: database)
