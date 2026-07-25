@@ -24,6 +24,7 @@ struct SQLiteFeedRefreshService {
     typealias Fetcher = (String, FeedHTTPValidators) async throws -> SQLiteFeedFetchResult
     typealias FaviconFetcher = (URL) async -> String?
     typealias SpotlightIndexer = ([ArticleListSnapshot]) -> Void
+    typealias ArticleImageEnricher = ([ParsedArticle]) async -> [ParsedArticle]
 
     private let database: FeedivoDatabase
     private let feedStore: FeedStore
@@ -36,6 +37,7 @@ struct SQLiteFeedRefreshService {
     private let discoverFaviconURL: FaviconFetcher
     private let indexForSpotlight: SpotlightIndexer
     private let fetcher: Fetcher
+    private let enrichArticleImages: ArticleImageEnricher
 
     init(
         database: FeedivoDatabase,
@@ -45,6 +47,25 @@ struct SQLiteFeedRefreshService {
             await FaviconService.discoverFaviconURL(siteURL: siteURL)
         },
         indexForSpotlight: @escaping SpotlightIndexer = { SpotlightIndexingService.indexArticles($0) },
+        // Standard bewusst ein No-Op statt der echten Anreicherung — anders als
+        // sonst in diesem Projekt üblich (Defaults sind sonst die echte
+        // Implementierung). `FeedService.enrichArticleImagesIfNeeded` lädt bei
+        // fehlendem Bild die Artikelseite über echtes Netzwerk, und die
+        // bestehende Testsuite konstruiert diesen Service an vielen Stellen mit
+        // Fixture-Artikeln, deren `link` auf echte erreichbare URLs zeigt — ein
+        // Netzwerk-Default hier würde diese Tests unbemerkt netzwerkabhängig
+        // machen. Der produktive Aufrufer (SQLiteFeedActionService) setzt den
+        // echten Wert explizit.
+        //
+        // WICHTIG: `enrichArticleImages` steht bewusst VOR `fetcher`, nicht
+        // danach — `fetcher` muss der letzte Parameter bleiben, weil bestehende
+        // Tests ihn per Trailing-Closure-Syntax setzen (`{ url, validators in
+        // ... }`). Ein Parameter nach `fetcher` würde die Trailing-Closure
+        // stattdessen an diesen neuen Parameter binden (Swift bindet immer an
+        // den letzten Parameter) und mit „expects 1 argument, but 2 were used"
+        // nicht mehr kompilieren — exakt der bereits einmal in diesem Projekt
+        // aufgetretene Fallstrick (siehe Git-Historie zu dieser Datei).
+        enrichArticleImages: @escaping ArticleImageEnricher = { $0 },
         fetcher: @escaping Fetcher = SQLiteFeedRefreshService.defaultFetcher
     ) {
         self.database = database
@@ -58,6 +79,7 @@ struct SQLiteFeedRefreshService {
         self.discoverFaviconURL = discoverFaviconURL
         self.indexForSpotlight = indexForSpotlight
         self.fetcher = fetcher
+        self.enrichArticleImages = enrichArticleImages
     }
 
     func refresh(feedID: String) async throws -> SQLiteFeedRefreshResult {
@@ -110,7 +132,8 @@ struct SQLiteFeedRefreshService {
                 let refreshedTitle = parsedFeed.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                     ? feed.title
                     : parsedFeed.title
-                let inputs = parsedFeed.articles.map { article in
+                let enrichedArticles = await enrichArticleImages(parsedFeed.articles)
+                let inputs = enrichedArticles.map { article in
                     ArticleUpsertInput(
                         feedID: feedID,
                         sourceID: article.sourceID,

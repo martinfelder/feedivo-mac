@@ -10,6 +10,7 @@ struct SQLiteFeedActionService {
     private let fetchFeed: @Sendable (String) async throws -> ParsedFeed
     private let fetchFeedConditionally: @Sendable (String, FeedHTTPValidators) async throws -> ConditionalFeedFetchResult
     private let discoverFaviconURL: @Sendable (URL) async -> String?
+    private let enrichArticleImages: SQLiteFeedRefreshService.ArticleImageEnricher
 
     init(
         database: FeedivoDatabase,
@@ -17,12 +18,26 @@ struct SQLiteFeedActionService {
         fetchFeedConditionally: @escaping @Sendable (String, FeedHTTPValidators) async throws -> ConditionalFeedFetchResult = FeedService.fetchFeedConditionally,
         discoverFaviconURL: @escaping @Sendable (URL) async -> String? = { siteURL in
             await FaviconService.discoverFaviconURL(siteURL: siteURL)
+        },
+        // Anders als die No-Op-Defaults in SQLiteFeedRefreshService/
+        // SQLiteFeedSubscriptionService/SQLiteFeedRefreshCoordinator: dieser
+        // Service ist der zentrale, produktive Durchgangspunkt für ALLE
+        // Feed-Aktionen (Feed hinzufügen, Einzel-Refresh, Batch-Refresh —
+        // aufgerufen von FeedViewModel und LocalExtensionBridgeServer) und hat
+        // selbst keine eigene Testsuite, die auf einen sicheren No-Op-Default
+        // angewiesen wäre. Deshalb hier bewusst der echte Standard, damit die
+        // Bildanreicherung (FeedService.enrichArticleImagesIfNeeded) für
+        // Artikel ohne RSS-eigenes Bild automatisch greift, ohne dass jeder
+        // Aufrufer sie einzeln aktivieren muss.
+        enrichArticleImages: @escaping SQLiteFeedRefreshService.ArticleImageEnricher = { articles in
+            await FeedService.enrichArticleImagesIfNeeded(in: articles)
         }
     ) {
         self.database = database
         self.fetchFeed = fetchFeed
         self.fetchFeedConditionally = fetchFeedConditionally
         self.discoverFaviconURL = discoverFaviconURL
+        self.enrichArticleImages = enrichArticleImages
     }
 
     func addFeed(
@@ -33,7 +48,8 @@ struct SQLiteFeedActionService {
         let service = SQLiteFeedSubscriptionService(
             database: database,
             fetchFeed: fetchFeed,
-            discoverFaviconURL: discoverFaviconURL
+            discoverFaviconURL: discoverFaviconURL,
+            enrichArticleImages: enrichArticleImages
         )
         _ = try await service.addFeed(
             urlString: urlString,
@@ -49,6 +65,7 @@ struct SQLiteFeedActionService {
         let service = SQLiteFeedRefreshService(
             database: database,
             ruleSnapshots: ruleSnapshots,
+            enrichArticleImages: enrichArticleImages,
             fetcher: fetcher
         )
         let result = try await service.refresh(feedID: feedID)
@@ -84,6 +101,7 @@ struct SQLiteFeedActionService {
             database: database,
             batchSize: batchSize,
             ruleSnapshots: ruleSnapshots,
+            enrichArticleImages: enrichArticleImages,
             fetcher: fetcher
         )
         return await coordinator.refreshAllFeeds(snapshots)

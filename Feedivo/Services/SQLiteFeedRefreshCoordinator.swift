@@ -18,11 +18,21 @@ struct SQLiteFeedRefreshCoordinator {
     private let ruleSnapshots: [RuleEngine.RuleSnapshot]
     private let batchSize: Int
     private let fetcher: SQLiteFeedRefreshService.Fetcher
+    private let enrichArticleImages: SQLiteFeedRefreshService.ArticleImageEnricher
 
     init(
         database: FeedivoDatabase,
         batchSize: Int = FeedViewModel.maxConcurrentFeedRefreshes,
         ruleSnapshots: [RuleEngine.RuleSnapshot] = [],
+        // Standard bewusst ein No-Op — dieselbe Begründung wie in
+        // SQLiteFeedRefreshService: schützt SQLiteFeedRefreshCoordinatorTests
+        // vor unbeabsichtigten echten Netzwerkaufrufen. Der produktive Aufrufer
+        // (SQLiteFeedActionService) setzt den echten Wert explizit.
+        //
+        // WICHTIG: steht bewusst VOR `fetcher` — `fetcher` muss der letzte
+        // Parameter bleiben, weil bestehende Tests ihn per Trailing-Closure
+        // setzen. Siehe ausführliche Begründung in SQLiteFeedRefreshService.swift.
+        enrichArticleImages: @escaping SQLiteFeedRefreshService.ArticleImageEnricher = { $0 },
         fetcher: @escaping SQLiteFeedRefreshService.Fetcher = { urlString, validators in
             switch try await FeedService.fetchFeedConditionally(urlString: urlString, validators: validators) {
             case .updated(let feed, let validators):
@@ -36,6 +46,7 @@ struct SQLiteFeedRefreshCoordinator {
         self.ruleSnapshots = ruleSnapshots
         self.batchSize = batchSize
         self.fetcher = fetcher
+        self.enrichArticleImages = enrichArticleImages
     }
 
     private func batches<T>(_ items: [T], size: Int) -> [[T]] {
@@ -69,7 +80,7 @@ struct SQLiteFeedRefreshCoordinator {
         for batch in batches(snapshots, size: batchSize) {
             await withTaskGroup(of: SQLiteFeedRefreshCoordinatorOutcome.self) { group in
                 for snapshot in batch {
-                    group.addTask { [database, ruleSnapshots, fetcher] in
+                    group.addTask { [database, ruleSnapshots, fetcher, enrichArticleImages] in
                         do {
                             let feedID = snapshot.id.uuidString
                             let feedStore = FeedStore(database: database)
@@ -86,6 +97,7 @@ struct SQLiteFeedRefreshCoordinator {
                             let service = SQLiteFeedRefreshService(
                                 database: database,
                                 ruleSnapshots: ruleSnapshots,
+                                enrichArticleImages: enrichArticleImages,
                                 fetcher: fetcher
                             )
                             let result = try await service.refresh(feedID: feedID)

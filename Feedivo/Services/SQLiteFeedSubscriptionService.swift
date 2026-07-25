@@ -68,6 +68,7 @@ struct SQLiteFeedSubscriptionService {
     typealias AfterArticleUpsertHook = () throws -> Void
     typealias AfterOPMLTagsSaveHook = () throws -> Void
     typealias SpotlightIndexer = ([ArticleListSnapshot]) -> Void
+    typealias ArticleImageEnricher = SQLiteFeedRefreshService.ArticleImageEnricher
 
     private let database: FeedivoDatabase
     private let fetchFeed: FeedFetcher
@@ -77,6 +78,7 @@ struct SQLiteFeedSubscriptionService {
     private let afterOPMLTagsSave: AfterOPMLTagsSaveHook
     private let indexForSpotlight: SpotlightIndexer
     private let userDefaults: UserDefaults
+    private let enrichArticleImages: ArticleImageEnricher
 
     init(
         database: FeedivoDatabase,
@@ -88,7 +90,13 @@ struct SQLiteFeedSubscriptionService {
         afterArticleUpsert: @escaping AfterArticleUpsertHook = {},
         afterOPMLTagsSave: @escaping AfterOPMLTagsSaveHook = {},
         indexForSpotlight: @escaping SpotlightIndexer = { SpotlightIndexingService.indexArticles($0) },
-        userDefaults: UserDefaults = .standard
+        userDefaults: UserDefaults = .standard,
+        // Standard bewusst ein No-Op — dieselbe Begründung wie in
+        // SQLiteFeedRefreshService: schützt die bestehende, umfangreiche
+        // Testsuite (SQLiteFeedSubscriptionServiceTests) vor unbeabsichtigten
+        // echten Netzwerkaufrufen. Der produktive Aufrufer
+        // (SQLiteFeedActionService) setzt den echten Wert explizit.
+        enrichArticleImages: @escaping ArticleImageEnricher = { $0 }
     ) {
         self.database = database
         self.fetchFeed = fetchFeed
@@ -100,6 +108,7 @@ struct SQLiteFeedSubscriptionService {
         self.afterOPMLTagsSave = afterOPMLTagsSave
         self.indexForSpotlight = indexForSpotlight
         self.userDefaults = userDefaults
+        self.enrichArticleImages = enrichArticleImages
     }
 
     func addFeed(
@@ -164,7 +173,8 @@ struct SQLiteFeedSubscriptionService {
 
             try feedStore.save(feedRecord)
 
-            let articleInputs = parsedFeed.articles.map { article in
+            let enrichedArticles = await enrichArticleImages(parsedFeed.articles)
+            let articleInputs = enrichedArticles.map { article in
                 ArticleUpsertInput(
                     feedID: feedID,
                     sourceID: article.sourceID,
@@ -313,6 +323,7 @@ struct SQLiteFeedSubscriptionService {
                 do {
                     let refreshResult = try await SQLiteFeedRefreshService(
                     database: database,
+                    enrichArticleImages: enrichArticleImages,
                     fetcher: { [fetchFeed] url, _ in
                         .updated(try await fetchFeed(url), FeedHTTPValidators())
                     }

@@ -72,6 +72,68 @@ struct SQLiteFeedRefreshServiceTests {
         #expect(logs.first?.newArticleCount == 2)
     }
 
+    // Regressionstest für den enrichArticleImages-Verdrahtungsfix: die Closure
+    // muss vor dem ArticleUpsertInput-Mapping aufgerufen werden und ihr
+    // Ergebnis muss tatsächlich gespeichert werden — nicht das rohe
+    // article.imageURL aus dem Feed-Parse. Siehe CLAUDE.md-Regressionsbefund
+    // zu Commit 0e4ae0a6 (2026-07-07), der den letzten produktiven Aufruf
+    // versehentlich mitentfernt hatte.
+    @Test func refreshRuftEnrichArticleImagesAufUndSpeichertDerenErgebnis() async throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Old"))
+
+        var receivedArticles: [ParsedArticle] = []
+        let service = SQLiteFeedRefreshService(
+            database: database,
+            enrichArticleImages: { articles in
+                receivedArticles = articles
+                return articles.map { article in
+                    ParsedArticle(
+                        title: article.title,
+                        sourceID: article.sourceID,
+                        link: article.link,
+                        summary: article.summary,
+                        content: article.content,
+                        publishedAt: article.publishedAt,
+                        imageURL: "https://example.com/enriched.jpg",
+                        author: article.author
+                    )
+                }
+            },
+            fetcher: { url, _ in
+                .updated(
+                    ParsedFeed(
+                        sourceURL: url,
+                        title: "Example",
+                        description: nil,
+                        siteURL: nil,
+                        articles: [
+                            ParsedArticle(
+                                title: "Ohne Bild",
+                                sourceID: "one",
+                                link: "https://example.com/one",
+                                summary: nil,
+                                content: nil,
+                                publishedAt: Date(timeIntervalSince1970: 1_000),
+                                imageURL: nil
+                            )
+                        ]
+                    ),
+                    FeedHTTPValidators()
+                )
+            }
+        )
+
+        let result = try await service.refresh(feedID: "feed-1")
+        let storedArticle = try articleStore.readerArticle(id: result.insertedArticleIDs[0])
+
+        #expect(receivedArticles.count == 1)
+        #expect(receivedArticles.first?.imageURL == nil)
+        #expect(storedArticle?.imageURL == "https://example.com/enriched.jpg")
+    }
+
     @Test func refreshIndexiertNeueArtikelInSpotlight() async throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let feedStore = FeedStore(database: database)

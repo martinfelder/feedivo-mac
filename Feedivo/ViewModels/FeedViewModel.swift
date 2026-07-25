@@ -180,7 +180,8 @@ final class FeedViewModel {
         let service = SQLiteFeedSubscriptionService(
             database: sqliteDatabase,
             fetchFeed: fetchFeed,
-            discoverFaviconURL: discoverFaviconURL
+            discoverFaviconURL: discoverFaviconURL,
+            enrichArticleImages: enrichArticleImages
         )
         let sqliteResult = try await service.importOPMLFeeds(
             opmlFeeds,
@@ -466,7 +467,8 @@ final class FeedViewModel {
             database: database,
             fetchFeed: fetchFeed,
             fetchFeedConditionally: fetchFeedConditionally,
-            discoverFaviconURL: discoverFaviconURL
+            discoverFaviconURL: discoverFaviconURL,
+            enrichArticleImages: enrichArticleImages
         )
     }
 
