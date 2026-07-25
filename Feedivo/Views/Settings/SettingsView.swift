@@ -1070,6 +1070,13 @@ private struct SyncSettingsView: View {
     @State private var syncActivityPendingCounts: [String: Int] = [:]
     @State private var isSyncActivityDetailsExpanded = false
 
+    @State private var isResetting = false
+    @State private var resetErrorMessage: String?
+    @State private var resetSuccessMessage: String?
+    @State private var isShowingSoftResetConfirmation = false
+    @State private var isShowingHardResetSheet = false
+    @State private var hardResetConfirmationText = ""
+
     private var hasDatabaseError: Bool {
         databaseLoadState.initializationError != nil
     }
@@ -1135,6 +1142,40 @@ private struct SyncSettingsView: View {
                     )
                 }
             }
+
+            SettingsBlock(eyebrow: L10n.settingsSyncResetSection) {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 12) {
+                        Button(L10n.settingsSyncResetSoftButton) {
+                            isShowingSoftResetConfirmation = true
+                        }
+                        .disabled(isResetting || feedivoDatabase == nil || cloudSyncEngine == nil)
+
+                        Button(L10n.settingsSyncResetHardButton, role: .destructive) {
+                            hardResetConfirmationText = ""
+                            isShowingHardResetSheet = true
+                        }
+                        .disabled(isResetting || feedivoDatabase == nil || cloudSyncEngine == nil)
+
+                        if isResetting {
+                            ProgressView()
+                                .controlSize(.small)
+                        }
+                    }
+
+                    if let resetErrorMessage {
+                        Text(resetErrorMessage)
+                            .font(.system(size: 11))
+                            .foregroundStyle(.red)
+                    }
+
+                    if let resetSuccessMessage {
+                        Text(resetSuccessMessage)
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
         }
         .onChange(of: cloudSyncIsEnabled) {
             if cloudSyncIsEnabled {
@@ -1157,6 +1198,30 @@ private struct SyncSettingsView: View {
             // also ein zuverlässiger Reload-Auslöser direkt nach jedem Sync-Ereignis.
             loadSyncActivityPendingCounts()
         }
+        .confirmationDialog(
+            L10n.settingsSyncResetSoftConfirmTitle,
+            isPresented: $isShowingSoftResetConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button(L10n.settingsSyncResetSoftButton, role: .destructive) {
+                performSoftReset()
+            }
+            Button(L10n.commonCancel, role: .cancel) {}
+        } message: {
+            Text(L10n.settingsSyncResetSoftConfirmMessage)
+        }
+        .sheet(isPresented: $isShowingHardResetSheet) {
+            CloudSyncHardResetSheet(
+                confirmationText: $hardResetConfirmationText,
+                onConfirm: {
+                    isShowingHardResetSheet = false
+                    performHardReset()
+                },
+                onCancel: {
+                    isShowingHardResetSheet = false
+                }
+            )
+        }
     }
 
     private func loadSyncActivityPendingCounts() {
@@ -1174,6 +1239,79 @@ private struct SyncSettingsView: View {
             AppLogger.dataAccess.error("Laden der ausstehenden CloudSync-Änderungen fehlgeschlagen: \(error.localizedDescription, privacy: .public)")
             syncActivityPendingCounts = [:]
         }
+    }
+
+    private func performSoftReset() {
+        guard let cloudSyncEngine, let feedivoDatabase else { return }
+        isResetting = true
+        resetErrorMessage = nil
+        resetSuccessMessage = nil
+        cloudSyncEngine.resetLocalState(database: feedivoDatabase)
+        resetSuccessMessage = L10n.settingsSyncResetSuccessMessage
+        loadSyncActivityPendingCounts()
+        isResetting = false
+    }
+
+    private func performHardReset() {
+        guard let cloudSyncEngine, let feedivoDatabase else { return }
+        isResetting = true
+        resetErrorMessage = nil
+        resetSuccessMessage = nil
+        Task {
+            do {
+                try await cloudSyncEngine.resetCloudZoneAndLocalState(database: feedivoDatabase)
+                resetSuccessMessage = L10n.settingsSyncResetSuccessMessage
+            } catch {
+                resetErrorMessage = L10n.settingsSyncResetErrorMessage(reason: error.localizedDescription)
+            }
+            loadSyncActivityPendingCounts()
+            isResetting = false
+        }
+    }
+}
+
+private struct CloudSyncHardResetSheet: View {
+    @Binding var confirmationText: String
+    let onConfirm: () -> Void
+    let onCancel: () -> Void
+
+    private static let requiredConfirmationText = "ZURÜCKSETZEN"
+
+    private var isConfirmEnabled: Bool {
+        confirmationText == Self.requiredConfirmationText
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text(L10n.settingsSyncResetHardSheetTitle)
+                .font(.system(size: 15, weight: .semibold))
+
+            Text(L10n.settingsSyncResetHardWarning)
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(L10n.settingsSyncResetHardConfirmFieldLabel)
+                    .font(.system(size: 11, weight: .medium))
+
+                TextField(Self.requiredConfirmationText, text: $confirmationText)
+                    .textFieldStyle(.roundedBorder)
+            }
+
+            HStack {
+                Spacer()
+                Button(L10n.commonCancel) {
+                    onCancel()
+                }
+                Button(L10n.settingsSyncResetHardConfirmButton, role: .destructive) {
+                    onConfirm()
+                }
+                .disabled(!isConfirmEnabled)
+            }
+        }
+        .padding(24)
+        .frame(width: 420)
     }
 }
 
