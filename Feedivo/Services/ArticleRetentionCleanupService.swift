@@ -80,6 +80,7 @@ enum ArticleRetentionCleanupService {
         if removedCount > 0 {
             SQLiteDataInvalidation.bumpStatusVersion()
             deindexForSpotlight(removedArticleIDs)
+            CloudSyncEngine.notifyPendingChangesAvailable(database: database)
         }
 
         return removedCount
@@ -276,6 +277,8 @@ enum ArticleRetentionCleanupService {
         for chunk in articleIDs.chunked(into: 400) {
             let placeholders = Array(repeating: "?", count: chunk.count).joined(separator: ", ")
             let arguments = StatementArguments(chunk)
+
+            try CloudSyncArticleStatusMapping.enqueueDeletionIfSynced(articleIDs: chunk, db: db)
 
             try db.execute(
                 sql: "DELETE FROM article_statuses WHERE articleID IN (\(placeholders))",

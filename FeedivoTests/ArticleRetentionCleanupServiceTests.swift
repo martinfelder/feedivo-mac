@@ -99,6 +99,35 @@ struct ArticleRetentionCleanupServiceTests {
         #expect(deindexCallCount == 0)
     }
 
+    @Test func removeExpiredArticlesEnqueuedLoeschungFuerSynchronisierteStatus() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
+        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try FeedStore(database: database).save(FeedRecord(id: "feed-1", url: "https://example.com/feed", title: "Feed"))
+        let alterTag = Date(timeIntervalSince1970: 0)
+        let articleID = try ArticleStore(database: database).upsert(
+            ArticleUpsertInput(feedID: "feed-1", sourceID: "alt", title: "Titel", publishedAt: alterTag, arrivedAt: alterTag)
+        )
+        try ArticleStatusStore(database: database).setStarred(true, articleID: articleID, at: Date())
+        try ArticleStatusStore(database: database).setStarred(false, articleID: articleID, at: nil)
+
+        // minimumArticlesPerFeed: 0 ist zwingend nötig — der Standardwert (20) würde den
+        // einzigen Artikel dieses Feeds unabhängig vom Alter über die
+        // Mindestanzahl-pro-Feed-Regel vor der Löschung schützen (siehe
+        // protectedSQLiteArticleIDs), analog zu den bestehenden Lösch-Tests in dieser Datei.
+        let removedCount = try ArticleRetentionCleanupService.removeExpiredSQLiteArticles(
+            database: database,
+            isEnabled: true,
+            retentionDays: 1,
+            minimumArticlesPerFeed: 0,
+            now: Date(timeIntervalSince1970: 100_000_000)
+        )
+
+        #expect(removedCount == 1)
+        let pending = try CloudSyncPendingChangeStore(database: database).pendingChanges()
+        #expect(pending.contains { $0.id == articleID && $0.recordType == CloudSyncArticleStatusMapping.recordType && $0.changeType == .delete })
+    }
+
     @Test func sqliteCleanupSichertIdentitaetsHistorieVorDemLoeschen() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let now = Date(timeIntervalSince1970: 10_000_000)
