@@ -444,9 +444,34 @@ struct ArticleStore {
             dateArrived: history?.firstSeenAt ?? input.arrivedAt
         )
         try status.insert(db)
+        try Self.applyOrphanedStatusUpdateIfPresent(articleID: articleID, db: db)
         try saveIdentityHistory(forArticleID: articleID, input: input, status: status, db: db)
 
         return .inserted(articleID: articleID)
+    }
+
+    /// Übernimmt einen wartenden, verwaisten Artikelstatus (iCloud Sync Phase 2b) — ein
+    /// Status, der per iCloud ankam, BEVOR der zugehörige Artikel lokal existierte. Läuft
+    /// direkt nach dem Insert der frischen `article_statuses`-Zeile, in derselben
+    /// Transaktion. `statusSyncUpdatedAt` wird bewusst auf `orphan.receivedAt` gesetzt (lokaler
+    /// Empfangszeitpunkt des Orphans, nicht der ursprüngliche `CKRecord.modificationDate` des
+    /// Absenders) — akzeptierte, dokumentierte Vereinfachung: ein Folgekonflikt auf genau
+    /// diesem Status unmittelbar nach der Reconciliation könnte dadurch in einem schmalen
+    /// Zeitfenster fälschlich "lokal gewinnt" statt "Server gewinnt" auflösen. Siehe
+    /// Design-Spec docs/superpowers/specs/2026-07-25-icloud-sync-phase2b-design.md,
+    /// Abschnitt 4.
+    static func applyOrphanedStatusUpdateIfPresent(articleID: String, db: Database) throws {
+        guard let orphan = try OrphanedArticleStatusUpdateRecord.fetchOne(db, key: articleID) else { return }
+
+        try db.execute(
+            sql: """
+                UPDATE article_statuses
+                SET isRead = ?, isStarred = ?, readAt = ?, starredAt = ?, statusSyncUpdatedAt = ?
+                WHERE articleID = ?
+                """,
+            arguments: [orphan.isRead, orphan.isStarred, orphan.readAt, orphan.starredAt, orphan.receivedAt, articleID]
+        )
+        try orphan.delete(db)
     }
 
     private func currentRetentionConfiguration(forFeedID feedID: String, db: Database) throws -> ArticleRetentionConfiguration {

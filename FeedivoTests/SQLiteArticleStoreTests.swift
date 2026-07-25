@@ -1004,4 +1004,49 @@ struct SQLiteArticleStoreTests {
 
         #expect(count == 0)
     }
+
+    @Test func upsertWendetWartendenVerwaistenStatusAn() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        try FeedStore(database: database).save(FeedRecord(id: "feed-1", url: "https://example.com/feed", title: "Feed"))
+        let articleID = "artikel-vorab-bekannt"
+        try database.write { db in
+            var orphan = OrphanedArticleStatusUpdateRecord(
+                articleID: articleID,
+                isRead: true,
+                isStarred: true,
+                readAt: Date(timeIntervalSince1970: 100),
+                starredAt: Date(timeIntervalSince1970: 200),
+                receivedAt: Date(timeIntervalSince1970: 300)
+            )
+            try orphan.insert(db)
+        }
+
+        // Simuliert den Reconciliation-Aufruf, den `ArticleStore.upsert()` intern direkt nach
+        // dem Einfügen einer neuen `article_statuses`-Zeile ausführt (siehe Step 4) — hier
+        // isoliert getestet, ohne den kompletten Upsert-Pfad (der eine neue UUID vergäbe,
+        // nicht `articleID`) durchlaufen zu müssen.
+        try database.write { db in
+            var article = ArticleRecord(
+                id: articleID,
+                feedID: "feed-1",
+                title: "Titel",
+                arrivedAt: Date(),
+                updatedAt: Date()
+            )
+            try article.insert(db)
+            var status = ArticleStatusRecord(articleID: articleID, dateArrived: Date())
+            try status.insert(db)
+            try ArticleStore.applyOrphanedStatusUpdateIfPresent(articleID: articleID, db: db)
+        }
+
+        let status = try ArticleStatusStore(database: database).status(articleID: articleID)
+        #expect(status?.isRead == true)
+        #expect(status?.isStarred == true)
+        #expect(status?.statusSyncUpdatedAt != nil)
+
+        let orphan = try database.read { db in
+            try OrphanedArticleStatusUpdateRecord.fetchOne(db, key: articleID)
+        }
+        #expect(orphan == nil)
+    }
 }
