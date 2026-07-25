@@ -392,6 +392,23 @@ struct SQLiteFeedStoreTests {
         #expect(pending.first?.changeType == .delete)
     }
 
+    @Test func deleteEnqueuedLoeschungFuerSynchronisierteArtikelStatusDesFeeds() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
+        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        let store = FeedStore(database: database)
+        try store.save(FeedRecord(id: "feed-1", url: "https://example.com/feed", title: "Feed"))
+        let articleID = try ArticleStore(database: database).upsert(
+            ArticleUpsertInput(feedID: "feed-1", sourceID: "a", title: "Titel", arrivedAt: Date())
+        )
+        try ArticleStatusStore(database: database).setStarred(true, articleID: articleID, at: Date())
+
+        try store.delete(id: "feed-1")
+
+        let pending = try CloudSyncPendingChangeStore(database: database).pendingChanges()
+        #expect(pending.contains { $0.id == articleID && $0.recordType == CloudSyncArticleStatusMapping.recordType && $0.changeType == .delete })
+    }
+
     @Test func moveFeedMarkiertAlleUmsortiertenFeedsAlsPendingSync() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)

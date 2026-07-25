@@ -209,6 +209,13 @@ struct FeedStore {
     func delete(id: String) throws {
         try database.write { db in
             try enqueuePendingSync(db, feedID: id, changeType: .delete)
+
+            // Artikel-IDs VOR dem eigentlichen DELETE lesen — die FK-Kaskade entfernt
+            // articles/article_statuses unsichtbar für den Anwendungscode, danach wäre
+            // hier nichts mehr abfragbar (iCloud Sync Phase 2b, Löschpropagierung).
+            let articleIDs = try String.fetchAll(db, sql: "SELECT id FROM articles WHERE feedID = ?", arguments: [id])
+            try CloudSyncArticleStatusMapping.enqueueDeletionIfSynced(articleIDs: articleIDs, db: db)
+
             try db.execute(
                 sql: """
                     DELETE FROM feeds
