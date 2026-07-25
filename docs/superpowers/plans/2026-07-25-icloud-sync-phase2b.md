@@ -1242,7 +1242,7 @@ git commit -m "Feature: Bereinigung alter verwaister Artikelstatus-Updates in ru
 ### Task 7: Löschpropagierung — `ArticleRetentionCleanupService.deleteSQLiteArticles`
 
 **Files:**
-- Modify: `Feedivo/Services/ArticleRetentionCleanupService.swift:261-275`
+- Modify: `Feedivo/Services/ArticleRetentionCleanupService.swift:261-275` (`deleteSQLiteArticles`) und `:80-86` (`removeExpiredSQLiteArticles`'s `if removedCount > 0`-Block)
 - Test: `FeedivoTests/ArticleRetentionCleanupServiceTests.swift`
 
 **Interfaces:**
@@ -1306,6 +1306,31 @@ In `Feedivo/Services/ArticleRetentionCleanupService.swift`, die private Methode 
                 arguments: arguments
             )
         }
+    }
+```
+
+Zusätzlich, in derselben Datei, den bestehenden Block am Ende von `removeExpiredSQLiteArticles`:
+
+```swift
+        if removedCount > 0 {
+            SQLiteDataInvalidation.bumpStatusVersion()
+            deindexForSpotlight(removedArticleIDs)
+        }
+
+        return removedCount
+    }
+```
+
+ersetzen durch (Global Constraint: jede Mutation, die einen Pending-Change enqueued, ruft danach `CloudSyncEngine.notifyPendingChangesAvailable(database:)` auf — `deleteSQLiteArticles` enqueued jetzt, aber `removeExpiredSQLiteArticles` als öffentlicher Entry Point hat diesen Aufruf bisher nicht):
+
+```swift
+        if removedCount > 0 {
+            SQLiteDataInvalidation.bumpStatusVersion()
+            deindexForSpotlight(removedArticleIDs)
+            CloudSyncEngine.notifyPendingChangesAvailable(database: database)
+        }
+
+        return removedCount
     }
 ```
 
