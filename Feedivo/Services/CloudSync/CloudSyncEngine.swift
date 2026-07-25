@@ -174,6 +174,35 @@ final class CloudSyncEngine: NSObject {
         }
     }
 
+    /// Löscht zusätzlich zum lokalen Zustand (siehe `resetLocalState`) die komplette
+    /// `FeedivoZone` in CloudKit und lässt sie beim nächsten `start()` komplett neu aus dem
+    /// lokalen Stand aufbauen. Betrifft ALLE Geräte des Nutzers — jedes andere Gerät hat danach
+    /// einen `stateSerialization`-Stand gegenüber einer nicht mehr existierenden Zone und muss
+    /// sich beim nächsten eigenen Sync-Versuch eigenständig neu einrichten (siehe Design-Spec,
+    /// Abschnitt "Hard Reset"). Schlägt der Netzwerkaufruf fehl (außer `.zoneNotFound`, das
+    /// bereits eine gelöschte Zone bedeutet und deshalb kein Fehler ist), bleibt der lokale
+    /// Zustand komplett unangetastet und die Engine wird wieder in ihren vorherigen Zustand
+    /// versetzt, damit der Nutzer es erneut versuchen kann.
+    func resetCloudZoneAndLocalState(database: FeedivoDatabase) async throws {
+        let wasRunning = syncEngine != nil
+        stop()
+
+        let container = CKContainer(identifier: CloudSyncSettings.cloudKitContainerIdentifier)
+        do {
+            _ = try await container.privateCloudDatabase.deleteRecordZone(withID: CloudSyncTagMapping.zoneID())
+        } catch let error as CKError where error.code == .zoneNotFound {
+            // Zone existiert bereits nicht mehr (z. B. vorheriger Hard Reset ohne Neustart) —
+            // aus Nutzersicht kein Fehler, einfach mit dem lokalen Reset fortfahren.
+        } catch {
+            if wasRunning {
+                start()
+            }
+            throw error
+        }
+
+        resetLocalState(database: database)
+    }
+
     /// Registriert die eine, prozessweite `CloudSyncEngine`-Instanz. Wird einmalig von
     /// `FeedivoApp.init()` aufgerufen.
     static func register(_ engine: CloudSyncEngine) {
