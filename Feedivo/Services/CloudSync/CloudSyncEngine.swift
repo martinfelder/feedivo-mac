@@ -9,8 +9,8 @@ import OSLog
 /// Einstellungen wirkt sofort).
 @MainActor
 final class CloudSyncEngine: NSObject {
-    private static let stateSerializationKey = "cloudSync.stateSerialization"
-    private static let hasCreatedZoneKey = "cloudSync.hasCreatedZone"
+    static let stateSerializationKey = "cloudSync.stateSerialization"
+    static let hasCreatedZoneKey = "cloudSync.hasCreatedZone"
 
     private let database: FeedivoDatabase
     private let pendingChangeStore: CloudSyncPendingChangeStore
@@ -141,6 +141,37 @@ final class CloudSyncEngine: NSObject {
         startTask = nil
         syncEngine = nil
         status.state = .idle
+    }
+
+    /// Setzt den kompletten lokalen Sync-Zustand zurück: laufende Engine anhalten, gespeicherten
+    /// CKSyncEngine-Zustand + Zone-Erzeugt-Flag löschen, lokale Pending-Warteschlange und
+    /// verwaiste Artikelstatus-Einträge leeren, persistenten Aktivitätsstatus zurücksetzen. Ist
+    /// iCloud Sync aktiviert, wird die Engine anschließend neu gestartet — das löst automatisch
+    /// einen vollständigen Backfill aus (`start()` ruft `backfillAllExistingRecords` bei jedem
+    /// Start auf, kein einmaliges Flag), der alle lokalen Daten erneut als "zu senden" einreiht.
+    /// Die CloudKit-Zone selbst bleibt dabei unangetastet — siehe
+    /// `resetCloudZoneAndLocalState` für die zerstörerische Variante. Siehe Design-Spec
+    /// docs/superpowers/specs/2026-07-25-icloud-sync-reset-design.md.
+    func resetLocalState(database: FeedivoDatabase, userDefaults: UserDefaults = .standard) {
+        stop()
+        userDefaults.removeObject(forKey: Self.stateSerializationKey)
+        userDefaults.removeObject(forKey: Self.hasCreatedZoneKey)
+
+        do {
+            try CloudSyncPendingChangeStore(database: database).deleteAll()
+        } catch {
+            AppLogger.dataAccess.error("iCloud Sync Reset: Pending-Warteschlange konnte nicht geleert werden: \(error.localizedDescription, privacy: .public)")
+        }
+        do {
+            try OrphanedArticleStatusUpdateStore(database: database).deleteAll()
+        } catch {
+            AppLogger.dataAccess.error("iCloud Sync Reset: Verwaiste Artikelstatus-Einträge konnten nicht geleert werden: \(error.localizedDescription, privacy: .public)")
+        }
+        CloudSyncActivityStatus.reset(userDefaults: userDefaults)
+
+        if CloudSyncSettings.isEnabled(in: userDefaults) {
+            start()
+        }
     }
 
     /// Registriert die eine, prozessweite `CloudSyncEngine`-Instanz. Wird einmalig von
