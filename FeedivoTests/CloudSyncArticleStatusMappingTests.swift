@@ -126,6 +126,7 @@ struct CloudSyncArticleStatusMappingTests {
         #expect(afterDeletion != nil)
         #expect(afterDeletion?.isRead == false)
         #expect(afterDeletion?.isStarred == false)
+        #expect(afterDeletion?.syncStableID == status.syncStableID)
     }
 
     @Test func applyIncomingDeletionEntferntVerwaistenEintrag() throws {

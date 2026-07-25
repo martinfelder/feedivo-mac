@@ -119,14 +119,18 @@ enum CloudSyncArticleStatusMapping: CloudSyncRecordMapping {
     /// entfernen, obwohl `articles` die Zeile noch hat; jede Artikellisten-Abfrage nutzt
     /// aber einen INNER JOIN auf `article_statuses`, wodurch der Artikel unsichtbar würde,
     /// obwohl der Nutzer den Feed weiterhin abonniert hat (gefunden im Whole-Branch-Review
-    /// von Phase 2b). Existiert lokal keine Zeile mit dieser `syncStableID`, ist das
-    /// UPDATE ein No-Op — zusätzlich wird ein ggf. wartender Orphan-Eintrag entfernt.
+    /// von Phase 2b). `syncStableID` bleibt dabei BEWUSST erhalten (nicht NULL) — sie wird
+    /// nirgends sonst automatisch neu berechnet, ein Zurücksetzen würde die Zeile dauerhaft
+    /// aus jeder künftigen Sync-Betrachtung ausschließen, selbst wenn der Nutzer den Artikel
+    /// später erneut liest/mit Stern markiert (gefunden im Task-12-Re-Review). Existiert
+    /// lokal keine Zeile mit dieser `syncStableID`, ist das UPDATE ein No-Op — zusätzlich
+    /// wird ein ggf. wartender Orphan-Eintrag entfernt.
     static func applyIncomingDeletion(recordID: CKRecord.ID, database: FeedivoDatabase) throws {
         try database.write { db in
             try db.execute(
                 sql: """
                     UPDATE article_statuses
-                    SET isRead = 0, isStarred = 0, readAt = NULL, starredAt = NULL, statusSyncUpdatedAt = NULL, syncStableID = NULL
+                    SET isRead = 0, isStarred = 0, readAt = NULL, starredAt = NULL, statusSyncUpdatedAt = NULL
                     WHERE syncStableID = ?
                     """,
                 arguments: [recordID.recordName]

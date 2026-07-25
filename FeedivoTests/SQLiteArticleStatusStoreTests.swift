@@ -1,4 +1,5 @@
 import Foundation
+import CloudKit
 import Testing
 @testable import Feedivo
 
@@ -229,8 +230,11 @@ struct SQLiteArticleStatusStoreTests {
 
         try store.setStarred(true, articleID: articleID, at: Date())
 
+        // Der enqueuede recordName ist die syncStableID (nicht die lokale articleID) —
+        // siehe iCloud Sync Phase 2b Stable-Identity-Fix, Task 12 Re-Review Finding 1.
+        let status = try store.status(articleID: articleID)
         let pending = try CloudSyncPendingChangeStore(database: database).pendingChanges()
-        #expect(pending.contains { $0.id == articleID && $0.recordType == CloudSyncArticleStatusMapping.recordType })
+        #expect(pending.contains { $0.id == status?.syncStableID && $0.recordType == CloudSyncArticleStatusMapping.recordType })
     }
 
     @Test func setReadEnqueuedKeinenPendingChangeWennSyncDeaktiviert() throws {
@@ -243,5 +247,28 @@ struct SQLiteArticleStatusStoreTests {
 
         let pending = try CloudSyncPendingChangeStore(database: database).pendingChanges()
         #expect(pending.isEmpty)
+    }
+
+    /// Beweist den vollen Round-Trip, nicht nur dass irgendein Pending-Change enqueued wird:
+    /// der enqueued `recordName` muss sich tatsächlich über
+    /// `CloudSyncArticleStatusMapping.makeCKRecord(fromLocalID:existing:database:)` wieder zu
+    /// einem echten `CKRecord` auflösen lassen — genau der Schritt, der in der ursprünglichen
+    /// Task-12-Umsetzung kaputt war, weil `enqueuePendingSync` weiterhin die rohe lokale
+    /// `articleID` statt der `syncStableID` enqueuete (iCloud Sync Phase 2b Stable-Identity-Fix,
+    /// Re-Review-Finding 1).
+    @Test func setReadEnqueuedPendingChangeDieSichZuEinemCKRecordAufloesenLaesst() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
+        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        let store = ArticleStatusStore(database: database)
+        let articleID = try seedArticleForStatusTest(database: database)
+
+        try store.setRead(true, articleID: articleID, at: Date())
+
+        let pending = try CloudSyncPendingChangeStore(database: database).pendingChanges()
+        let pendingChange = try #require(pending.first { $0.recordType == CloudSyncArticleStatusMapping.recordType })
+        let record = try CloudSyncArticleStatusMapping.makeCKRecord(fromLocalID: pendingChange.id, existing: nil, database: database)
+        #expect(record != nil)
+        #expect(record?["isRead"] as? Bool == true)
     }
 }

@@ -129,11 +129,22 @@ struct ArticleStatusStore {
     }
 
     /// Markiert `articleID` als ausstehende Sync-Änderung, falls iCloud Sync aktiv ist —
-    /// analog zu `TagStore.enqueuePendingSync`.
+    /// übersetzt intern auf die für CloudKit relevante `syncStableID` (iCloud Sync Phase 2b
+    /// Stable-Identity-Fix, Task 12 Re-Review) — analog zu
+    /// `CloudSyncArticleStatusMapping.enqueueDeletionIfSynced`. Ohne diese Übersetzung würde
+    /// `CloudSyncEngine` später versuchen, das CKRecord über `makeCKRecord(fromLocalID:)`
+    /// aufzubauen, das `syncStableID` erwartet — mit der rohen lokalen `articleID` als `id`
+    /// würde die Lookup fehlschlagen und die Änderung stillschweigend verworfen werden.
     private func enqueuePendingSync(_ db: Database, articleIDs: [String], changeType: CloudSyncChangeType) throws {
-        guard CloudSyncSettings.isEnabled() else { return }
-        for articleID in articleIDs {
-            try CloudSyncPendingChangeStore.enqueue(db, recordType: CloudSyncArticleStatusMapping.recordType, recordName: articleID, changeType: changeType)
+        guard CloudSyncSettings.isEnabled(), !articleIDs.isEmpty else { return }
+        let placeholders = Array(repeating: "?", count: articleIDs.count).joined(separator: ", ")
+        let stableIDs = try String.fetchAll(
+            db,
+            sql: "SELECT syncStableID FROM article_statuses WHERE syncStableID IS NOT NULL AND articleID IN (\(placeholders))",
+            arguments: StatementArguments(articleIDs)
+        )
+        for stableID in stableIDs {
+            try CloudSyncPendingChangeStore.enqueue(db, recordType: CloudSyncArticleStatusMapping.recordType, recordName: stableID, changeType: changeType)
         }
     }
 
