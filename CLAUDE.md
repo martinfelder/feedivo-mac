@@ -48,7 +48,7 @@ anfühlt — kein iOS-Port, keine Electron-App. Echtes AppKit-Feeling via SwiftU
 | Architektur | MVVM | `@Observable` Macro (kein ObservableObject) |
 | Navigation | NavigationSplitView | 3-Spalten: Sidebar / Artikelliste / Reader, plus separate Fenster (Suche, Organizer, Artikel-Popout) |
 | Persistenz | GRDB (SQLite) | Eigene Datenschicht in `Feedivo/Database/` + `Feedivo/Stores/`. SwiftData wurde vollständig entfernt (2026-07-07) |
-| iCloud Sync | Phase 2a implementiert (Feeds/Ordner/Regeln/benutzerdefinierte Intelligente Ordner) | `CKSyncEngine`-Fundament (`Feedivo/Services/CloudSync/`), seit 2026-07-24 schrittweise ausgebaut — Phase 1 synct `tags`, Phase 2a erweitert das jetzt Registry-basierte `CloudSyncEngine` zusätzlich um `feeds` (nur Konfigurationsfelder, keine Refresh-Metadaten/`unreadCount`), `feed_folders`, `rules`+`rule_conditions` sowie benutzerdefinierte `smart_folders`+`smart_folder_conditions` (eingebaute Standard-Ordner bleiben bewusst ausgeschlossen). Toggle wirkt weiterhin sofort ohne Neustart. Artikelstatus bleibt für eine spätere Phase offen. Automatisierte Tests (162/162 grün) + Release-Build grün; Live-Verifikation über das CloudKit Dashboard steht für alle 4 neuen Tabellen noch aus (Push-Richtung), Pull-Richtung weiterhin ungetestet mangels Zweitgerät. Der ursprünglich für iCloud Sync vorgesehene, SwiftData-basierte Alt-Branch ist überholt und wurde gelöscht (ADR-007) |
+| iCloud Sync | Phase 2b implementiert (Tags/Feeds/Ordner/Regeln/benutzerdefinierte Intelligente Ordner/Artikelstatus) + Sync-Reset-UI | `CKSyncEngine`-Fundament (`Feedivo/Services/CloudSync/`), seit 2026-07-24 schrittweise ausgebaut — Phase 1 synct `tags`, Phase 2a erweitert das Registry-basierte `CloudSyncEngine` zusätzlich um `feeds` (nur Konfigurationsfelder, keine Refresh-Metadaten/`unreadCount`), `feed_folders`, `rules`+`rule_conditions` sowie benutzerdefinierte `smart_folders`+`smart_folder_conditions` (eingebaute Standard-Ordner bleiben bewusst ausgeschlossen), Phase 2b (2026-07-25) ergänzt Artikelstatus (Gelesen/Stern) inkl. Löschpropagierung — dafür war ein Nachfolge-Fix nötig, da `article_statuses.articleID` pro Gerät zufällig ist (siehe Gotcha zur ArticleStatus-Sync-Identität unten), Fix nutzt stattdessen eine deterministische `syncStableID`. Zusätzlich eine Soft-/Hard-Reset-UI für den Sync-Zustand. Toggle wirkt weiterhin sofort ohne Neustart. Automatisierte Tests + Release-Build für alle Phasen grün; Live-Verifikation über das CloudKit Dashboard steht für Phase 2a/2b weiterhin aus (Push-Richtung), Pull-Richtung app-weit ungetestet mangels Zweitgerät. Phase 3 (Feld-Ebene-Konfliktauflösung + Merge-Dialog) und Phase 4 (Härtung) noch nicht begonnen. Der ursprünglich für iCloud Sync vorgesehene, SwiftData-basierte Alt-Branch ist überholt und wurde gelöscht (ADR-007) |
 | Netzwerk | URLSession + async/await | Kein Alamofire, kein Combine |
 | RSS-Parsing | FeedKit | Swift Package, URL: https://github.com/nmdias/FeedKit |
 | Datenbank-Package | GRDB.swift | Swift Package, URL: https://github.com/groue/GRDB.swift |
@@ -948,12 +948,13 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 - [x] Smart Filter / intelligente Ordner mit eigenem Editor und Bedingungen
 - [x] `RuleEngine` inkl. Regel-Assistent (Wizard) und Einstellungs-UI
 - [x] Background Refresh (`NSBackgroundActivityScheduler` statt `BGTaskScheduler`)
-- [ ] **iCloud Sync via CloudKit** — Phase 1 (CKSyncEngine-Fundament, nur Tags) und
-      Phase 2a (Feeds/Ordner/Regeln+Bedingungen/benutzerdefinierte Intelligente Ordner)
-      seit 2026-07-24 auf `main` implementiert (Tests grün), Live-Verifikation gegen
-      das echte CloudKit Dashboard für Phase 2a noch ausstehend. Phase 2b (Artikelstatus),
-      Phase 3 (Feld-Ebene-Konflikte + Merge-Dialog) und Phase 4 (Härtung) stehen noch
-      aus — Checkbox bleibt deshalb offen
+- [ ] **iCloud Sync via CloudKit** — Phase 1 (CKSyncEngine-Fundament, nur Tags), Phase 2a
+      (Feeds/Ordner/Regeln+Bedingungen/benutzerdefinierte Intelligente Ordner) und Phase 2b
+      (Artikelstatus — Gelesen/Stern) seit 2026-07-24/25 auf `main` implementiert (Tests
+      grün), dazu eine Soft-/Hard-Reset-UI für den Sync-Zustand. Live-Verifikation gegen
+      das echte CloudKit Dashboard für Phase 2a/2b sowie die Pull-Richtung app-weit noch
+      ausstehend. Phase 3 (Feld-Ebene-Konflikte + Merge-Dialog) und Phase 4 (Härtung)
+      stehen noch aus — Checkbox bleibt deshalb offen
 
 ### M4 – Polish & Release — größtenteils ✅
 - [x] OPML Import (mit Vorschau/Review-Screen, Duplikat-Erkennung)
@@ -993,14 +994,15 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Offene Entscheidungen
 
-- **iCloud Sync:** Phase 1 (nur Tags) und Phase 2a (Feeds/Ordner/Regeln/benutzerdefinierte
-  Intelligente Ordner) sind seit 2026-07-24 implementiert (siehe „Aktuell in Arbeit"). Offen:
-  Artikelstatus-Sync (bisher in keiner Phase enthalten), Phase 3 (Feld-Ebene-Konflikte +
-  Merge-Dialog bei Erst-Aktivierung) und Phase 4 (Härtung) — wann werden diese angegangen?
-  Zusätzlich weiterhin offen für Phase 2a spezifisch: die manuelle Live-Verifikation gegen
-  echtes CloudKit (Push-Richtung für alle 4 neuen Tabellen, Pull-Richtung wie in Phase 1
-  mangels Zweitgerät). Der alte, SwiftData-basierte Sync-Beta-Branch war bereits überholt
-  und wurde am 2026-07-24 gelöscht.
+- **iCloud Sync:** Phase 1 (nur Tags), Phase 2a (Feeds/Ordner/Regeln/benutzerdefinierte
+  Intelligente Ordner) und Phase 2b (Artikelstatus — Gelesen/Stern, inkl. Löschpropagierung)
+  sind seit 2026-07-24/25 implementiert (siehe „Aktuell in Arbeit"), dazu eine Soft-/Hard-
+  Reset-UI für den Sync-Zustand. Offen: Phase 3 (Feld-Ebene-Konflikte + Merge-Dialog bei
+  Erst-Aktivierung) und Phase 4 (Härtung) — wann werden diese angegangen? Zusätzlich
+  weiterhin offen für Phase 2a/2b: die manuelle Live-Verifikation gegen echtes CloudKit
+  (Push-Richtung für alle 5 sync-relevanten Tabellen inkl. Artikelstatus), Pull-Richtung
+  app-weit weiterhin ungetestet mangels Zweitgerät. Der alte, SwiftData-basierte
+  Sync-Beta-Branch war bereits überholt und wurde am 2026-07-24 gelöscht.
 - **Bekanntes, bewusst noch nicht behobenes Risiko aus dem Phase-2a-Whole-Branch-Review:**
   `FeedFolderStore.materializeImplicitFolders()` kann bei Multi-Geräte-Pull doppelte,
   gleichnamige `feed_folders`-Zeilen erzeugen (frische Zufalls-UUID pro Gerät, nicht
@@ -1022,6 +1024,57 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Aktuell in Arbeit
 
+- **2026-07-25 (Folge-Session): iCloud Sync zurücksetzen (Soft-/Hard-Reset-UI) — VOLLSTÄNDIG
+  ABGESCHLOSSEN, gepusht.** Neuer Bereich in den Sync-Einstellungen: „Sync zurücksetzen"
+  bietet einen Soft-Reset (nur lokale Sync-Metadaten/Warteschlange leeren, nächster Sync
+  synct alles neu ab) und einen Hard-Reset (zusätzlich die komplette CloudKit-Zone
+  `FeedivoZone` serverseitig löschen — für den Fall, dass der Cloud-Zustand selbst
+  kaputt/inkonsistent ist). Umgesetzt via Brainstorming→Spec→Plan→Subagent-Driven-
+  Development (4 Tasks): Task 1 `deleteAll()`-Primitiven auf den relevanten Pending-
+  Change-/Mapping-Stores, Task 2 `CloudSyncEngine.resetLocalState()` (Soft Reset),
+  Task 3 `CloudSyncEngine.resetCloudZoneAndLocalState()` (Hard Reset), Task 4 L10n-Keys
+  + UI-Anbindung. Whole-Branch-Review fand mehrere Findings, direkt gefixt: ein
+  Cache-Leak (`knownServerRecordsByID` wurde beim Reset nicht geleert — ein
+  Hard-Reset hätte dadurch stale Server-Record-Referenzen überlebt), ein fehlendes
+  Gate gegen einen Hard-Reset während eines laufenden Syncs, eine veraltete
+  Pending-Anzeige nach dem Reset, eine `wasRunning`-Race beim Neustart des
+  `CKSyncEngine` nach dem Reset, sowie veraltete Reset-Erfolgsmeldungen im UI. Spec/
+  Plan: `docs/superpowers/specs/2026-07-25-icloud-sync-reset-design.md`,
+  `docs/superpowers/plans/2026-07-25-icloud-sync-reset.md`. Commits `26bc06b7..
+  a1ab3f02` auf `main`, gepusht. Ausstehend: manuelle Live-Verifikation (Soft-Reset
+  dann erneuter Sync, Hard-Reset dann Zone im CloudKit-Dashboard tatsächlich
+  leer/neu angelegt).
+- **2026-07-25: iCloud Sync Phase 2b (Artikelstatus-Sync — Gelesen/Stern) — VOLLSTÄNDIG
+  ABGESCHLOSSEN inkl. kritischem Nachfolge-Fix, gepusht.** Erstmals wird auch der
+  Lese-/Stern-Status einzelner Artikel über `CKSyncEngine` synchronisiert (bisher nur
+  Tags/Feeds/Ordner/Regeln/benutzerdefinierte Intelligente Ordner). Spec/Plan:
+  `docs/superpowers/specs/2026-07-25-icloud-sync-phase2b-design.md`,
+  `docs/superpowers/plans/2026-07-25-icloud-sync-phase2b.md`. Umgesetzt via
+  Brainstorming→Spec→Plan→Subagent-Driven-Development (10 Tasks: Migration v24
+  `statusSyncUpdatedAt`, Migration v25 + `OrphanedArticleStatusUpdateRecord`/-Store,
+  `CloudSyncArticleStatusMapping` + Registry-Eintrag, `ArticleStatusStore` markiert
+  Gelesen/Stern-Änderungen als sync-relevant, Reconciliation-Hook für verwaiste
+  Artikelstatus in `ArticleStore.upsert`, Bereinigung alter verwaister Updates in
+  `runAutomaticCleanup`, Löschpropagierung bei Retention-Cleanup/Einzel-Artikel-
+  Löschung/Feed-Löschung-Kaskade, Task 10 voller Regressionslauf + Release-Build ohne
+  eigenen Diff). **Kritischer, erst im Whole-Branch-Review gefundener
+  Architekturfehler:** `article_statuses.articleID` ist pro Gerät zufällig (jedes
+  Gerät entdeckt denselben RSS-Artikel unabhängig per eigenem Feed-Refresh und vergibt
+  eine eigene `UUID().uuidString`) — der ursprüngliche `CloudSyncArticleStatusMapping`
+  keyte den `CKRecord` direkt über diese lokale ID, wodurch ein von Gerät A
+  hochgeladener Status auf Gerät B NIE gefunden werden konnte. Details, Root Cause und
+  alle drei Teilfunde (Mapping selbst, `enqueuePendingSync` blieb auf der alten ID
+  hängen, `applyIncomingDeletion` nullte `syncStableID`) siehe Gotcha
+  „`article_statuses.articleID` ist pro Gerät zufällig" oben. Behoben in einem
+  eigenen Stable-Identity-Fix-Nachfolgeplan (Tasks 11–13,
+  `docs/superpowers/plans/2026-07-25-icloud-sync-phase2b-stable-identity-fix.md`):
+  neue `syncStableID` (SHA256-Hash aus `feedID`+`sourceID`/`link`/`titleHash`),
+  Migration v26 backfillt Bestandszeilen per Swift-Loop. Tests grün (mit dem bereits
+  bekannten, vorbestehenden Flaky-Test `listStateToggeltReadUndAktualisiertRows` als
+  einzigem Ausreißer, siehe bestehender Gotcha-Eintrag zu bekannten
+  Vorabfehlschlägen), Release-Build grün. Commits `6ca98a4b..a9c36107` auf `main`,
+  gepusht. **Ausstehend:** Live-Verifikation gegen echtes CloudKit (Push-Richtung),
+  Pull-Richtung app-weit weiterhin ungetestet mangels Zweitgerät.
 - **2026-07-24 (weitere Folge-Session): iCloud Sync Status-Übersicht + Konfliktauflösungs-Fix —
   BEIDE VOLLSTÄNDIG ABGESCHLOSSEN UND NACH `origin/main` GEPUSHT (`1c6cc393..d55da333`).**
   Zwei zusammenhängende Durchgänge in derselben Session:
