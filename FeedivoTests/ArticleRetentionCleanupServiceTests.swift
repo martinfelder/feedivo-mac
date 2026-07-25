@@ -110,6 +110,12 @@ struct ArticleRetentionCleanupServiceTests {
         )
         try ArticleStatusStore(database: database).setStarred(true, articleID: articleID, at: Date())
         try ArticleStatusStore(database: database).setStarred(false, articleID: articleID, at: nil)
+        // `enqueueDeletionIfSynced` (Task 12, iCloud Sync Phase 2b Stable-Identity-Fix) enqueued
+        // seit der Umstellung die geräteübergreifend stabile `syncStableID`, nicht mehr die
+        // lokale `articleID` — muss VOR der Löschung erfasst werden, da die eigentliche Zeile
+        // danach nicht mehr existiert.
+        let syncStableID = try ArticleStatusStore(database: database).status(articleID: articleID)?.syncStableID
+        #expect(syncStableID != nil)
 
         // minimumArticlesPerFeed: 0 ist zwingend nötig — der Standardwert (20) würde den
         // einzigen Artikel dieses Feeds unabhängig vom Alter über die
@@ -125,7 +131,7 @@ struct ArticleRetentionCleanupServiceTests {
 
         #expect(removedCount == 1)
         let pending = try CloudSyncPendingChangeStore(database: database).pendingChanges()
-        #expect(pending.contains { $0.id == articleID && $0.recordType == CloudSyncArticleStatusMapping.recordType && $0.changeType == .delete })
+        #expect(pending.contains { $0.id == syncStableID && $0.recordType == CloudSyncArticleStatusMapping.recordType && $0.changeType == .delete })
     }
 
     @Test func sqliteCleanupSichertIdentitaetsHistorieVorDemLoeschen() throws {

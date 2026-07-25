@@ -402,11 +402,17 @@ struct SQLiteFeedStoreTests {
             ArticleUpsertInput(feedID: "feed-1", sourceID: "a", title: "Titel", arrivedAt: Date())
         )
         try ArticleStatusStore(database: database).setStarred(true, articleID: articleID, at: Date())
+        // `enqueueDeletionIfSynced` (Task 12, iCloud Sync Phase 2b Stable-Identity-Fix) enqueued
+        // seit der Umstellung die geräteübergreifend stabile `syncStableID`, nicht mehr die
+        // lokale `articleID` — muss VOR der Feed-Löschung (kaskadiert auf den Artikel) erfasst
+        // werden, da die eigentliche Zeile danach nicht mehr existiert.
+        let syncStableID = try ArticleStatusStore(database: database).status(articleID: articleID)?.syncStableID
+        #expect(syncStableID != nil)
 
         try store.delete(id: "feed-1")
 
         let pending = try CloudSyncPendingChangeStore(database: database).pendingChanges()
-        #expect(pending.contains { $0.id == articleID && $0.recordType == CloudSyncArticleStatusMapping.recordType && $0.changeType == .delete })
+        #expect(pending.contains { $0.id == syncStableID && $0.recordType == CloudSyncArticleStatusMapping.recordType && $0.changeType == .delete })
     }
 
     @Test func moveFeedMarkiertAlleUmsortiertenFeedsAlsPendingSync() throws {

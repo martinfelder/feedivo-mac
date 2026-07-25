@@ -23,6 +23,15 @@ struct ArticleStatusStore {
         }
     }
 
+    /// Lookup über die geräteübergreifend stabile Identität (iCloud Sync Phase 2b) —
+    /// Gegenstück zu `status(articleID:)` für den CloudSync-Layer, der eingehende Records
+    /// nicht über die lokale `articleID` identifizieren kann.
+    func status(syncStableID: String) throws -> ArticleStatusRecord? {
+        try database.read { db in
+            try ArticleStatusRecord.fetchOne(db, sql: "SELECT * FROM article_statuses WHERE syncStableID = ?", arguments: [syncStableID])
+        }
+    }
+
     func unreadCount(feedID: String) throws -> Int {
         try SQLiteUnreadCountService(database: database).unreadCount(feedID: feedID)
     }

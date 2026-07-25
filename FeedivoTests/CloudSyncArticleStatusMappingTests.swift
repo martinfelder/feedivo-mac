@@ -4,145 +4,151 @@ import GRDB
 import Testing
 @testable import Feedivo
 
-private func seedArticle(database: FeedivoDatabase, articleID: String = "article-1", feedID: String = "feed-1") throws -> String {
+private func seedArticle(database: FeedivoDatabase, articleID: String = "article-1", feedID: String = "feed-1", sourceID: String = "article-1", title: String = "Titel") throws -> String {
     try FeedStore(database: database).save(FeedRecord(id: feedID, url: "https://example.com/\(feedID)", title: "Feed"))
     return try ArticleStore(database: database).upsert(
-        ArticleUpsertInput(feedID: feedID, sourceID: articleID, title: "Titel", arrivedAt: Date(timeIntervalSince1970: 100))
+        ArticleUpsertInput(feedID: feedID, sourceID: sourceID, title: title, arrivedAt: Date(timeIntervalSince1970: 100))
     )
 }
 
-/// Setzt `article_statuses.statusSyncUpdatedAt` direkt per SQL. `ArticleStatusStore.setRead`/
-/// `.setStarred` setzen diese Spalte erst ab Task 4 (siehe Plan) — dieser Task (3) testet nur
-/// `CloudSyncArticleStatusMapping` selbst, unabhängig davon, WER die Spalte später befüllt.
-/// Direkt gegen die Spalte zu schreiben hält diesen Testfall unabhängig von der noch
-/// ausstehenden Task-4-Implementierung.
-private func markStatusSyncUpdatedAt(database: FeedivoDatabase, articleID: String, at date: Date = Date()) throws {
-    try database.write { db in
-        try db.execute(sql: "UPDATE article_statuses SET statusSyncUpdatedAt = ? WHERE articleID = ?", arguments: [date, articleID])
-    }
-}
-
 struct CloudSyncArticleStatusMappingTests {
-    @Test func makeCKRecordMapptIsReadUndIsStarred() {
-        let status = ArticleStatusRecord(
-            articleID: "article-1",
-            isRead: true,
-            isStarred: true,
-            readAt: Date(timeIntervalSince1970: 100),
-            starredAt: Date(timeIntervalSince1970: 200),
-            statusSyncUpdatedAt: Date(timeIntervalSince1970: 300)
-        )
+    @Test func makeCKRecordMapptIsReadUndIsStarredUndNutztSyncStableIDAlsRecordID() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let articleID = try seedArticle(database: database)
+        var status = try ArticleStatusStore(database: database).status(articleID: articleID)!
+        status.isRead = true
+        status.isStarred = true
+        status.readAt = Date(timeIntervalSince1970: 100)
+        status.starredAt = Date(timeIntervalSince1970: 200)
 
         let record = CloudSyncArticleStatusMapping.makeCKRecord(from: status)
 
         #expect(record.recordType == "ArticleStatus")
+        #expect(record.recordID.recordName == status.syncStableID)
         #expect(record["isRead"] as? Bool == true)
         #expect(record["isStarred"] as? Bool == true)
         #expect(record["readAt"] as? Date == Date(timeIntervalSince1970: 100))
         #expect(record["starredAt"] as? Date == Date(timeIntervalSince1970: 200))
     }
 
-    @Test func allLocalIDsListetNurBeruehrteStatusAuf() throws {
+    @Test func allLocalIDsListetSyncStableIDsNurBeruehrterStatusAuf() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
-        let unberuehrtID = try seedArticle(database: database, articleID: "unberuehrt", feedID: "feed-1")
-        let beruehrtID = try seedArticle(database: database, articleID: "beruehrt", feedID: "feed-1")
+        let unberuehrtID = try seedArticle(database: database, articleID: "unberuehrt", sourceID: "s-unberuehrt")
+        let beruehrtID = try seedArticle(database: database, articleID: "beruehrt", sourceID: "s-beruehrt")
         try ArticleStatusStore(database: database).setRead(true, articleID: beruehrtID, at: Date())
-        // `ArticleStatusStore.setRead` setzt `statusSyncUpdatedAt` erst ab Task 4 — hier direkt
-        // simuliert, um das "berührt"-Kriterium unabhängig von Task 4 zu testen.
-        try markStatusSyncUpdatedAt(database: database, articleID: beruehrtID)
+        let beruehrterStatus = try ArticleStatusStore(database: database).status(articleID: beruehrtID)!
 
         let ids = try CloudSyncArticleStatusMapping.allLocalIDs(database: database)
 
-        #expect(ids == [beruehrtID])
+        #expect(ids == [beruehrterStatus.syncStableID])
         _ = unberuehrtID
     }
 
     @Test func makeCKRecordFromLocalIDLiefertNilFuerUnbekannteID() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
 
-        let record = try CloudSyncArticleStatusMapping.makeCKRecord(fromLocalID: "unbekannt", existing: nil, database: database)
+        let record = try CloudSyncArticleStatusMapping.makeCKRecord(fromLocalID: "unbekannt-hash", existing: nil, database: database)
 
         #expect(record == nil)
     }
 
-    @Test func localUpdatedAtLiefertStatusSyncUpdatedAt() throws {
+    @Test func localUpdatedAtLiefertStatusSyncUpdatedAtUeberSyncStableID() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let articleID = try seedArticle(database: database)
-        let touchedAt = Date(timeIntervalSince1970: 5_000)
-        try ArticleStatusStore(database: database).setRead(true, articleID: articleID, at: touchedAt)
-        // `ArticleStatusStore.setRead` setzt `statusSyncUpdatedAt` erst ab Task 4 — hier direkt
-        // simuliert, um `localUpdatedAt` unabhängig von Task 4 zu testen.
-        try markStatusSyncUpdatedAt(database: database, articleID: articleID, at: touchedAt)
+        try ArticleStatusStore(database: database).setRead(true, articleID: articleID, at: Date())
+        let status = try ArticleStatusStore(database: database).status(articleID: articleID)!
 
-        let localUpdatedAt = try CloudSyncArticleStatusMapping.localUpdatedAt(forLocalID: articleID, database: database)
+        let localUpdatedAt = try CloudSyncArticleStatusMapping.localUpdatedAt(forLocalID: status.syncStableID!, database: database)
 
         #expect(localUpdatedAt != nil)
     }
 
-    @Test func applyIncomingAktualisiertBestehendenArtikelStatus() throws {
+    @Test func applyIncomingAktualisiertBestehendenArtikelStatusUeberSyncStableID() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let articleID = try seedArticle(database: database)
-        let record = CKRecord(recordType: "ArticleStatus", recordID: CloudSyncArticleStatusMapping.recordID(forLocalID: articleID))
+        let status = try ArticleStatusStore(database: database).status(articleID: articleID)!
+        let record = CKRecord(recordType: "ArticleStatus", recordID: CloudSyncArticleStatusMapping.recordID(forLocalID: status.syncStableID!))
         record["isRead"] = true as CKRecordValue
         record["isStarred"] = false as CKRecordValue
 
         try CloudSyncArticleStatusMapping.applyIncoming(record, database: database)
 
-        let status = try ArticleStatusStore(database: database).status(articleID: articleID)
-        #expect(status?.isRead == true)
-        #expect(status?.isStarred == false)
+        let updated = try ArticleStatusStore(database: database).status(articleID: articleID)
+        #expect(updated?.isRead == true)
+        #expect(updated?.isStarred == false)
     }
 
-    @Test func applyIncomingLegtVerwaistenEintragAnFuerUnbekannteArticleID() throws {
+    @Test func applyIncomingSimuliertZweitesGeraetMitAndererLokalerArticleID() throws {
+        // Zwei unabhängige "Geräte": beide kennen denselben logischen Artikel (gleicher
+        // feedID+sourceID), aber jedes hat seine EIGENE lokale articleID-UUID — genau das
+        // Szenario, das der ursprüngliche Bug nicht abdeckte. Ein von "Gerät A" gesendeter
+        // Status muss auf "Gerät B" trotzdem ankommen.
+        let deviceA = try FeedivoDatabase.inMemoryForTests()
+        let deviceB = try FeedivoDatabase.inMemoryForTests()
+        let articleIDOnA = try seedArticle(database: deviceA, articleID: "a-local-id", feedID: "feed-1", sourceID: "guid-shared", title: "Geteilter Titel")
+        let articleIDOnB = try seedArticle(database: deviceB, articleID: "b-local-id", feedID: "feed-1", sourceID: "guid-shared", title: "Geteilter Titel")
+        #expect(articleIDOnA != articleIDOnB)
+
+        try ArticleStatusStore(database: deviceA).setRead(true, articleID: articleIDOnA, at: Date())
+        let statusOnA = try ArticleStatusStore(database: deviceA).status(articleID: articleIDOnA)!
+        let record = CloudSyncArticleStatusMapping.makeCKRecord(from: statusOnA)
+
+        try CloudSyncArticleStatusMapping.applyIncoming(record, database: deviceB)
+
+        let statusOnB = try ArticleStatusStore(database: deviceB).status(articleID: articleIDOnB)
+        #expect(statusOnB?.isRead == true)
+    }
+
+    @Test func applyIncomingLegtVerwaistenEintragAnFuerUnbekanntesSyncStableID() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
-        let record = CKRecord(recordType: "ArticleStatus", recordID: CloudSyncArticleStatusMapping.recordID(forLocalID: "unbekannt"))
+        let record = CKRecord(recordType: "ArticleStatus", recordID: CloudSyncArticleStatusMapping.recordID(forLocalID: "unbekannt-hash"))
         record["isRead"] = true as CKRecordValue
         record["isStarred"] = false as CKRecordValue
 
         try CloudSyncArticleStatusMapping.applyIncoming(record, database: database)
 
         let orphan = try database.read { db in
-            try OrphanedArticleStatusUpdateRecord.fetchOne(db, key: "unbekannt")
+            try OrphanedArticleStatusUpdateRecord.fetchOne(db, key: "unbekannt-hash")
         }
         #expect(orphan?.isRead == true)
         #expect(orphan?.isStarred == false)
     }
 
-    @Test func applyIncomingDeletionEntferntStatusUndVerwaistenEintrag() throws {
+    @Test func applyIncomingDeletionSetztStatusAufDefaultsWennArtikelLokalNochExistiert() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let articleID = try seedArticle(database: database)
         try ArticleStatusStore(database: database).setRead(true, articleID: articleID, at: Date())
+        let status = try ArticleStatusStore(database: database).status(articleID: articleID)!
+
+        try CloudSyncArticleStatusMapping.applyIncomingDeletion(recordID: CloudSyncArticleStatusMapping.recordID(forLocalID: status.syncStableID!), database: database)
+
+        let afterDeletion = try ArticleStatusStore(database: database).status(articleID: articleID)
+        #expect(afterDeletion != nil)
+        #expect(afterDeletion?.isRead == false)
+        #expect(afterDeletion?.isStarred == false)
+    }
+
+    @Test func applyIncomingDeletionEntferntVerwaistenEintrag() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
         try database.write { db in
-            var orphan = OrphanedArticleStatusUpdateRecord(articleID: "verwaist", isRead: true, isStarred: false, readAt: nil, starredAt: nil, receivedAt: Date())
+            var orphan = OrphanedArticleStatusUpdateRecord(articleID: "verwaist-hash", isRead: true, isStarred: false, readAt: nil, starredAt: nil, receivedAt: Date())
             try orphan.insert(db)
         }
 
-        try CloudSyncArticleStatusMapping.applyIncomingDeletion(recordID: CloudSyncArticleStatusMapping.recordID(forLocalID: articleID), database: database)
-        try CloudSyncArticleStatusMapping.applyIncomingDeletion(recordID: CloudSyncArticleStatusMapping.recordID(forLocalID: "verwaist"), database: database)
+        try CloudSyncArticleStatusMapping.applyIncomingDeletion(recordID: CloudSyncArticleStatusMapping.recordID(forLocalID: "verwaist-hash"), database: database)
 
-        // Design-Spec Abschnitt 3: `applyIncomingDeletion` löscht die `article_statuses`-Zeile
-        // vollständig (`DELETE FROM article_statuses WHERE articleID = ?`) — die Zeile
-        // existiert danach nicht mehr, `status(articleID:)` liefert deshalb `nil`, nicht einen
-        // auf Default zurückgesetzten Datensatz.
-        let status = try ArticleStatusStore(database: database).status(articleID: articleID)
-        #expect(status == nil)
         let orphan = try database.read { db in
-            try OrphanedArticleStatusUpdateRecord.fetchOne(db, key: "verwaist")
+            try OrphanedArticleStatusUpdateRecord.fetchOne(db, key: "verwaist-hash")
         }
         #expect(orphan == nil)
     }
 
-    @Test func enqueueDeletionIfSyncedEnqueuedNurBeruehrteIDs() throws {
+    @Test func enqueueDeletionIfSyncedEnqueuedSyncStableIDNurFuerBeruehrteIDs() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
-        let beruehrtID = try seedArticle(database: database, articleID: "beruehrt", feedID: "feed-1")
-        let unberuehrtID = try seedArticle(database: database, articleID: "unberuehrt", feedID: "feed-1")
+        let beruehrtID = try seedArticle(database: database, articleID: "beruehrt", sourceID: "s-beruehrt")
+        let unberuehrtID = try seedArticle(database: database, articleID: "unberuehrt", sourceID: "s-unberuehrt")
         try ArticleStatusStore(database: database).setStarred(true, articleID: beruehrtID, at: Date())
-        // `ArticleStatusStore.setStarred` setzt `statusSyncUpdatedAt` erst ab Task 4 — hier
-        // direkt simuliert, um "berührt" unabhängig von Task 4 zu testen.
-        try markStatusSyncUpdatedAt(database: database, articleID: beruehrtID)
-        // Sync erst NACH dem Seeding aktivieren — sonst würde `FeedStore.save` (aufgerufen aus
-        // `seedArticle`) selbst schon einen "Feed"-Pending-Change enqueuen und die unten
-        // geprüfte, auf `ArticleStatus` beschränkte Erwartung verfälschen.
+        let beruehrterStatus = try ArticleStatusStore(database: database).status(articleID: beruehrtID)!
         UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
         defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
 
@@ -151,7 +157,7 @@ struct CloudSyncArticleStatusMappingTests {
         }
 
         let pending = try CloudSyncPendingChangeStore(database: database).pendingChanges()
-        #expect(pending.map(\.id) == [beruehrtID])
+        #expect(pending.map(\.id) == [beruehrterStatus.syncStableID])
         #expect(pending.first?.changeType == .delete)
     }
 }

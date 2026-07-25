@@ -506,13 +506,19 @@ struct SQLiteFeedArticleListStateTests {
             ArticleUpsertInput(feedID: "feed-1", sourceID: "a", title: "Titel", arrivedAt: Date())
         )
         try ArticleStatusStore(database: database).setRead(true, articleID: articleID, at: Date())
+        // `enqueueDeletionIfSynced` (Task 12, iCloud Sync Phase 2b Stable-Identity-Fix) enqueued
+        // seit der Umstellung die geräteübergreifend stabile `syncStableID`, nicht mehr die
+        // lokale `articleID` — muss VOR der Löschung erfasst werden, da die eigentliche Zeile
+        // danach nicht mehr existiert.
+        let syncStableID = try ArticleStatusStore(database: database).status(articleID: articleID)?.syncStableID
+        #expect(syncStableID != nil)
         let state = SQLiteFeedArticleListState()
 
         let didDelete = state.deleteArticle(articleID: articleID, database: database, deindexForSpotlight: { _ in })
 
         #expect(didDelete == true)
         let pending = try CloudSyncPendingChangeStore(database: database).pendingChanges()
-        #expect(pending.contains { $0.id == articleID && $0.recordType == CloudSyncArticleStatusMapping.recordType && $0.changeType == .delete })
+        #expect(pending.contains { $0.id == syncStableID && $0.recordType == CloudSyncArticleStatusMapping.recordType && $0.changeType == .delete })
     }
 
     private func makeDatabaseWithFeedAndArticles() throws -> (FeedivoDatabase, String, String) {
