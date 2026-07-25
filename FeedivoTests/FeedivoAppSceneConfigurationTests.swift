@@ -75,7 +75,7 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(settingsSource.contains("case refresh"))
         #expect(settingsSource.contains("case cleanup"))
         #expect(settingsSource.contains("case sync"))
-        #expect(settingsSource.contains("case about"))
+        #expect(!settingsSource.contains("case about"))
         #expect(!settingsSource.contains("case feeds"))
         #expect(!settingsSource.contains("case folders"))
         #expect(!settingsSource.contains("case rules"))

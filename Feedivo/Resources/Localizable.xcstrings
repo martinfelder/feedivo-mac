@@ -1,342 +1,6 @@
 {
   "sourceLanguage" : "de",
   "strings" : {
-    "settings.readerToolbar.section" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Toolbar"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Toolbar"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Barre d'outils"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Barra degli strumenti"
-          }
-        }
-      }
-    },
-    "readerToolbar.reset.button" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Standard wiederherstellen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Restore Defaults"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Restaurer les valeurs par défaut"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ripristina impostazioni predefinite"
-          }
-        }
-      }
-    },
-    "shortcuts.label.feedImportOPML" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "OPML importieren"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Import OPML"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Importer OPML"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Importa OPML"
-          }
-        }
-      }
-    },
-    "shortcuts.label.feedExportOPML" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "OPML exportieren"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Export OPML"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Exporter OPML"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Esporta OPML"
-          }
-        }
-      }
-    },
-    "shortcuts.label.feedOrganizerOpen" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Verwaltung öffnen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Open management"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ouvrir la gestion"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apri gestione"
-          }
-        }
-      }
-    },
-    "shortcuts.label.articleToggleArchived" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Archivieren"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Archive"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Archiver"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Archivia"
-          }
-        }
-      }
-    },
-    "shortcuts.label.articleCopyLink" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Link kopieren"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Copy link"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Copier le lien"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Copia link"
-          }
-        }
-      }
-    },
-    "shortcuts.label.articleOpenOriginal" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Original öffnen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Open original"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ouvrir l'original"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apri originale"
-          }
-        }
-      }
-    },
-    "shortcuts.label.articleShareOriginal" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Teilen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Share"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Partager"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Condividi"
-          }
-        }
-      }
-    },
-    "shortcuts.label.articleExport" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Exportieren"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Export"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Exporter"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Esporta"
-          }
-        }
-      }
-    },
-    "shortcuts.label.articlePrint" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Drucken"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Print"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Imprimer"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stampa"
-          }
-        }
-      }
-    },
-    "shortcuts.modifierFree.warning" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ohne Zusatztaste – pausiert automatisch, während ein Textfeld fokussiert ist (außer bei Textfeldern innerhalb eines geladenen Original-Artikels)."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No modifier key — automatically pauses while a text field is focused (except for text fields inside a loaded original article)."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sans touche de modification — se met en pause automatiquement pendant qu'un champ de texte est actif (sauf pour les champs de texte à l'intérieur d'un article original chargé)."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Senza tasto modificatore — si mette in pausa automaticamente mentre un campo di testo è attivo (tranne per i campi di testo all'interno di un articolo originale caricato)."
-          }
-        }
-      }
-    },
     "" : {
 
     },
@@ -596,9 +260,6 @@
 
     },
     "Anzeigesprache wechseln. Ein App-Neustart wird empfohlen." : {
-
-    },
-    "App Store oder private Verteilung ist noch zu entscheiden." : {
 
     },
     "App-weite Skalierung der Bedienoberfläche." : {
@@ -5367,9 +5028,6 @@
         }
       }
     },
-    "Deutsch, Englisch, Französisch und Italienisch sind vorbereitet." : {
-
-    },
     "Die ausgewählten Feeds wurden gespeichert. Hinweise zeigen dir, was noch Aufmerksamkeit braucht." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -5630,9 +5288,6 @@
           }
         }
       }
-    },
-    "F" : {
-
     },
     "Feed" : {
       "extractionState" : "stale",
@@ -11023,9 +10678,6 @@
         }
       }
     },
-    "Lokalisierung" : {
-
-    },
     "Löschen" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -11054,9 +10706,6 @@
           }
         }
       }
-    },
-    "M4 Polish & Release" : {
-
     },
     "Menubar" : {
 
@@ -17183,6 +16832,34 @@
         }
       }
     },
+    "readerToolbar.reset.button" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standard wiederherstellen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore Defaults"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restaurer les valeurs par défaut"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ripristina impostazioni predefinite"
+          }
+        }
+      }
+    },
     "Refresh-Intervall" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -17684,9 +17361,6 @@
       }
     },
     "Reihenfolge, Sichtbarkeit und Bedingungen der Seitenleisten-Ordner verwalten." : {
-
-    },
-    "Release" : {
 
     },
     "rule.action.assignTag" : {
@@ -19422,6 +19096,7 @@
       }
     },
     "ruleWizard.matchMode.label" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -20839,6 +20514,62 @@
         }
       }
     },
+    "settings.articleList.feedJumpNavigation.description" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Springt am Ende der ungelesenen Artikel eines Feeds automatisch zum nächsten Feed mit ungelesenen Artikeln."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jumps to the next feed with unread articles when you reach the end of a feed's unread articles."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passe automatiquement au flux suivant contenant des articles non lus à la fin des articles non lus du flux actuel."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passa automaticamente al feed successivo con articoli non letti al termine degli articoli non letti del feed corrente."
+          }
+        }
+      }
+    },
+    "settings.articleList.feedJumpNavigation.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatischer Feed-Wechsel"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatic Feed Switching"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Changement de flux automatique"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cambio automatico del feed"
+          }
+        }
+      }
+    },
     "settings.articleList.feedNamePosition.description" : {
       "localizations" : {
         "de" : {
@@ -21089,62 +20820,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Quante righe del riepilogo vengono mostrate. 0 = nessun riepilogo."
-          }
-        }
-      }
-    },
-    "settings.articleList.feedJumpNavigation.title" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Automatischer Feed-Wechsel"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Automatic Feed Switching"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Changement de flux automatique"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cambio automatico del feed"
-          }
-        }
-      }
-    },
-    "settings.articleList.feedJumpNavigation.description" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Springt am Ende der ungelesenen Artikel eines Feeds automatisch zum nächsten Feed mit ungelesenen Artikeln."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Jumps to the next feed with unread articles when you reach the end of a feed's unread articles."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Passe automatiquement au flux suivant contenant des articles non lus à la fin des articles non lus du flux actuel."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Passa automaticamente al feed successivo con articoli non letti al termine degli articoli non letti del feed corrente."
           }
         }
       }
@@ -24714,6 +24389,34 @@
         }
       }
     },
+    "settings.readerToolbar.section" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toolbar"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toolbar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Barre d'outils"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Barra degli strumenti"
+          }
+        }
+      }
+    },
     "settings.reading.section" : {
       "localizations" : {
         "de" : {
@@ -25247,6 +24950,34 @@
         }
       }
     },
+    "settings.sync.activity.category.pending" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld ausstehend"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld pending"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld en attente"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld in attesa"
+          }
+        }
+      }
+    },
     "settings.sync.activity.category.rules" : {
       "localizations" : {
         "de" : {
@@ -25327,34 +25058,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tag"
-          }
-        }
-      }
-    },
-    "settings.sync.activity.category.pending" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld ausstehend"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld pending"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld en attente"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld in attesa"
           }
         }
       }
@@ -25723,6 +25426,34 @@
         }
       }
     },
+    "settings.sync.beta.scopeHint" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In dieser frühen Beta wird zunächst nur Tags synchronisiert."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This early beta currently syncs tags only."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cette bêta précoce ne synchronise pour l’instant que les tags."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questa beta iniziale sincronizza per ora solo i tag."
+          }
+        }
+      }
+    },
     "settings.sync.beta.title" : {
       "localizations" : {
         "de" : {
@@ -25892,6 +25623,35 @@
         }
       }
     },
+    "settings.sync.status.accountUnavailable" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kein iCloud-Konto angemeldet"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No iCloud account signed in"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun compte iCloud connecté"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun account iCloud connesso"
+          }
+        }
+      }
+    },
     "settings.sync.status.active" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -25921,90 +25681,6 @@
         }
       }
     },
-    "settings.sync.beta.scopeHint" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "In dieser frühen Beta wird zunächst nur Tags synchronisiert."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This early beta currently syncs tags only."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cette bêta précoce ne synchronise pour l’instant que les tags."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Questa beta iniziale sincronizza per ora solo i tag."
-          }
-        }
-      }
-    },
-    "settings.sync.status.accountUnavailable" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kein iCloud-Konto angemeldet"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No iCloud account signed in"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aucun compte iCloud connecté"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nessun account iCloud connesso"
-          }
-        }
-      }
-    },
-    "settings.sync.status.error" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Synchronisierung fehlgeschlagen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sync failed"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Échec de la synchronisation"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sincronizzazione non riuscita"
-          }
-        }
-      }
-    },
     "settings.sync.status.databaseError" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -26030,6 +25706,35 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Impossibile caricare il database"
+          }
+        }
+      }
+    },
+    "settings.sync.status.error" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Synchronisierung fehlgeschlagen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sync failed"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Échec de la synchronisation"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sincronizzazione non riuscita"
           }
         }
       }
@@ -26407,6 +26112,62 @@
     "shortcuts.label.%@" : {
 
     },
+    "shortcuts.label.articleCopyLink" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Link kopieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy link"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copier le lien"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copia link"
+          }
+        }
+      }
+    },
+    "shortcuts.label.articleExport" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exporter"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esporta"
+          }
+        }
+      }
+    },
     "shortcuts.label.articleOpenInWindow" : {
       "localizations" : {
         "de" : {
@@ -26431,6 +26192,62 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Apri in finestra"
+          }
+        }
+      }
+    },
+    "shortcuts.label.articleOpenOriginal" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Original öffnen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open original"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir l'original"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apri originale"
+          }
+        }
+      }
+    },
+    "shortcuts.label.articlePrint" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drucken"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Print"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Imprimer"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stampa"
           }
         }
       }
@@ -26519,6 +26336,62 @@
         }
       }
     },
+    "shortcuts.label.articleShareOriginal" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Teilen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Partager"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Condividi"
+          }
+        }
+      }
+    },
+    "shortcuts.label.articleToggleArchived" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Archivieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Archive"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Archiver"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Archivia"
+          }
+        }
+      }
+    },
     "shortcuts.label.articleToggleRead" : {
       "localizations" : {
         "de" : {
@@ -26599,6 +26472,90 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aggiungi feed"
+          }
+        }
+      }
+    },
+    "shortcuts.label.feedExportOPML" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OPML exportieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export OPML"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exporter OPML"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esporta OPML"
+          }
+        }
+      }
+    },
+    "shortcuts.label.feedImportOPML" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OPML importieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import OPML"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importer OPML"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importa OPML"
+          }
+        }
+      }
+    },
+    "shortcuts.label.feedOrganizerOpen" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verwaltung öffnen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open management"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir la gestion"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apri gestione"
           }
         }
       }
@@ -26739,6 +26696,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Apri statistiche"
+          }
+        }
+      }
+    },
+    "shortcuts.modifierFree.warning" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ohne Zusatztaste – pausiert automatisch, während ein Textfeld fokussiert ist (außer bei Textfeldern innerhalb eines geladenen Original-Artikels)."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No modifier key — automatically pauses while a text field is focused (except for text fields inside a loaded original article)."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sans touche de modification — se met en pause automatiquement pendant qu'un champ de texte est actif (sauf pour les champs de texte à l'intérieur d'un article original chargé)."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Senza tasto modificatore — si mette in pausa automaticamente mentre un campo di testo è attivo (tranne per i campi di testo all'interno di un articolo originale caricato)."
           }
         }
       }
@@ -31239,9 +31224,6 @@
         }
       }
     },
-    "Über" : {
-
-    },
     "UND" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -31270,9 +31252,6 @@
           }
         }
       }
-    },
-    "Verteilung" : {
-
     },
     "Vertikaler Abstand im Fließtext." : {
 

@@ -12,7 +12,6 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
     case refresh
     case cleanup
     case sync
-    case about
 
     var id: String { rawValue }
 
@@ -38,8 +37,6 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
             "Bereinigung"
         case .sync:
             L10n.settingsSyncSection
-        case .about:
-            "Über"
         }
     }
 
@@ -65,8 +62,6 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
             "trash"
         case .sync:
             "icloud"
-        case .about:
-            "info.circle"
         }
     }
 }
@@ -106,7 +101,6 @@ struct SettingsView: View {
             settingsTab(.refresh)
             settingsTab(.cleanup)
             settingsTab(.sync)
-            settingsTab(.about)
         }
         .font(.system(size: 12))
         .controlSize(.small)
@@ -150,8 +144,6 @@ struct SettingsView: View {
             CleanupSettingsView()
         case .sync:
             SyncSettingsView()
-        case .about:
-            SettingsAboutView()
         }
     }
 }
@@ -1641,47 +1633,6 @@ private struct CleanupSettingsView: View {
 
     private func minimumArticlesLabel(_ count: Int) -> String {
         count == 0 ? "Keine Mindestanzahl" : "\(count) Artikel"
-    }
-}
-
-private struct SettingsAboutView: View {
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            SettingsBlock(eyebrow: "Feedivo") {
-                HStack(spacing: 14) {
-                    Text("F")
-                        .font(.system(size: 24, weight: .bold))
-                        .foregroundStyle(Color.accentColor)
-                        .frame(width: 48, height: 48)
-                        .background(Color.accentColor.opacity(0.14), in: RoundedRectangle(cornerRadius: 10))
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Feedivo")
-                            .font(.system(size: 15, weight: .semibold))
-                        Text("Nativer macOS RSS Reader mit Tags, Regeln und OPML.")
-                            .font(.system(size: 11))
-                            .foregroundStyle(.secondary)
-                        Text("M4 Polish & Release")
-                            .font(.system(size: 10))
-                            .foregroundStyle(.tertiary)
-                    }
-                }
-            }
-
-            SettingsBlock(eyebrow: "Release") {
-                InfoRow(
-                    iconName: "shippingbox",
-                    title: "Verteilung",
-                    description: "App Store oder private Verteilung ist noch zu entscheiden."
-                )
-
-                InfoRow(
-                    iconName: "globe",
-                    title: "Lokalisierung",
-                    description: "Deutsch, Englisch, Französisch und Italienisch sind vorbereitet."
-                )
-            }
-        }
     }
 }
 
