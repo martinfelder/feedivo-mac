@@ -1036,7 +1036,7 @@ struct SQLiteArticleStoreTests {
             try article.insert(db)
             var status = ArticleStatusRecord(articleID: articleID, dateArrived: Date())
             try status.insert(db)
-            try ArticleStore.applyOrphanedStatusUpdateIfPresent(articleID: articleID, db: db)
+            try ArticleStore.applyOrphanedStatusUpdateIfPresent(articleID: articleID, syncStableID: articleID, db: db)
         }
 
         let status = try ArticleStatusStore(database: database).status(articleID: articleID)
@@ -1046,6 +1046,64 @@ struct SQLiteArticleStoreTests {
 
         let orphan = try database.read { db in
             try OrphanedArticleStatusUpdateRecord.fetchOne(db, key: articleID)
+        }
+        #expect(orphan == nil)
+    }
+
+    @Test func upsertBerechnetSyncStableIDFuerNeuenArtikel() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        try FeedStore(database: database).save(FeedRecord(id: "feed-1", url: "https://example.com/feed", title: "Feed"))
+
+        let articleID = try ArticleStore(database: database).upsert(
+            ArticleUpsertInput(feedID: "feed-1", sourceID: "guid-abc", title: "Titel")
+        )
+
+        let status = try ArticleStatusStore(database: database).status(articleID: articleID)
+        let expected = CloudSyncArticleStatusMapping.stableRecordName(
+            feedID: "feed-1",
+            sourceID: "guid-abc",
+            link: nil,
+            titleHash: ArticleStore.titleHash("Titel")
+        )
+        #expect(status?.syncStableID == expected)
+    }
+
+    @Test func upsertWendetVerwaistenStatusUeberSyncStableIDAn() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        try FeedStore(database: database).save(FeedRecord(id: "feed-1", url: "https://example.com/feed", title: "Feed"))
+        let stableID = CloudSyncArticleStatusMapping.stableRecordName(
+            feedID: "feed-1",
+            sourceID: "guid-xyz",
+            link: nil,
+            titleHash: ArticleStore.titleHash("Anderer Titel")
+        )
+        try database.write { db in
+            var orphan = OrphanedArticleStatusUpdateRecord(
+                articleID: stableID,
+                isRead: true,
+                isStarred: true,
+                readAt: Date(timeIntervalSince1970: 100),
+                starredAt: Date(timeIntervalSince1970: 200),
+                receivedAt: Date(timeIntervalSince1970: 300)
+            )
+            try orphan.insert(db)
+        }
+
+        // Simuliert ein zweites, unabhängiges Gerät: derselbe logische Artikel (gleicher
+        // feedID+sourceID), aber der Upsert-Aufruf selbst vergibt intern eine FRISCHE,
+        // von der wartenden Orphan-Zeile komplett unabhängige lokale articleID-UUID —
+        // genau das Szenario, das den ursprünglichen Bug ausmachte.
+        let articleID = try ArticleStore(database: database).upsert(
+            ArticleUpsertInput(feedID: "feed-1", sourceID: "guid-xyz", title: "Anderer Titel")
+        )
+
+        let status = try ArticleStatusStore(database: database).status(articleID: articleID)
+        #expect(status?.isRead == true)
+        #expect(status?.isStarred == true)
+        #expect(status?.syncStableID == stableID)
+
+        let orphan = try database.read { db in
+            try OrphanedArticleStatusUpdateRecord.fetchOne(db, key: stableID)
         }
         #expect(orphan == nil)
     }

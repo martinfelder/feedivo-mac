@@ -511,6 +511,20 @@ enum FeedivoDatabaseMigrator {
             }
         }
 
+        migrator.registerMigration("v26_add_article_status_sync_stable_id") { database in
+            // Nullable, kein Default — SQLite hat keine SHA256-Funktion, daher wird die
+            // Spalte hier per ALTER TABLE angelegt und Bestandszeilen anschließend per
+            // Swift-Loop befüllt (analog zu backfillRuleConditionGroupIndex/
+            // backfillFeedAndFolderSortIndex weiter unten in dieser Datei). Siehe Design-
+            // Begründung in CloudSyncArticleStatusMapping.stableRecordName.
+            try database.alter(table: "article_statuses") { table in
+                table.add(column: "syncStableID", .text)
+            }
+            try database.create(index: "idx_article_statuses_sync_stable_id", on: "article_statuses", columns: ["syncStableID"])
+
+            try backfillArticleStatusSyncStableID(database)
+        }
+
         return migrator
     }
 
@@ -592,6 +606,46 @@ enum FeedivoDatabaseMigrator {
                     arguments: [index, feed.id]
                 )
             }
+        }
+    }
+
+    /// Berechnet `syncStableID` für ALLE bestehenden `article_statuses`-Zeilen (Migration
+    /// v26) — pro Zeile ein Join gegen `articles` für `feedID`/`sourceID`/`link`/`title`,
+    /// dieselbe Priorisierung wie `CloudSyncArticleStatusMapping.stableRecordName`.
+    private static func backfillArticleStatusSyncStableID(_ database: Database) throws {
+        struct Row: FetchableRecord {
+            let articleID: String
+            let feedID: String
+            let sourceID: String?
+            let link: String?
+            let title: String
+
+            init(row: GRDB.Row) throws {
+                articleID = row["articleID"]
+                feedID = row["feedID"]
+                sourceID = row["sourceID"]
+                link = row["link"]
+                title = row["title"]
+            }
+        }
+
+        let rows = try Row.fetchAll(database, sql: """
+            SELECT s.articleID AS articleID, a.feedID AS feedID, a.sourceID AS sourceID, a.link AS link, a.title AS title
+            FROM article_statuses s
+            JOIN articles a ON a.id = s.articleID
+            """)
+
+        for row in rows {
+            let stableID = CloudSyncArticleStatusMapping.stableRecordName(
+                feedID: row.feedID,
+                sourceID: row.sourceID,
+                link: row.link,
+                titleHash: ArticleStore.titleHash(row.title)
+            )
+            try database.execute(
+                sql: "UPDATE article_statuses SET syncStableID = ? WHERE articleID = ?",
+                arguments: [stableID, row.articleID]
+            )
         }
     }
 

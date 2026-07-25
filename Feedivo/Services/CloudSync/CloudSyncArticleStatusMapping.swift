@@ -1,5 +1,6 @@
 import Foundation
 import CloudKit
+import CryptoKit
 import GRDB
 
 /// Mapping für die syncbare TEILMENGE der `article_statuses`-Tabelle — NUR `isRead`/
@@ -12,6 +13,22 @@ import GRDB
 /// hat den Status je bewusst verändert) — siehe Abschnitt 3 der Design-Spec.
 enum CloudSyncArticleStatusMapping: CloudSyncRecordMapping {
     static let recordType = "ArticleStatus"
+
+    /// Geräteübergreifend deterministische Identität für einen Artikel-Status — Artikel
+    /// selbst werden nie synct (jedes Gerät entdeckt denselben RSS-Artikel unabhängig per
+    /// eigenem Feed-Refresh und vergibt dabei eine eigene, rein lokale UUID als
+    /// `articles.id`). Diese Funktion liefert stattdessen einen aus inhaltlichen Merkmalen
+    /// abgeleiteten Hash, der auf JEDEM Gerät identisch berechnet wird — exakt dieselbe
+    /// Prioritätsreihenfolge (`sourceID` vor `link` vor `titleHash`) wie die bestehende
+    /// `ArticleStore.findExistingArticleID`/`findIdentityHistory`-Identitätslogik, damit
+    /// beide Konzepte konsistent bleiben. `feedID` ist bereits geräteübergreifend stabil,
+    /// da Feeds per CloudKit-Sync-ID übernommen werden (Phase 2a), nicht unabhängig neu
+    /// erzeugt.
+    static func stableRecordName(feedID: String, sourceID: String?, link: String?, titleHash: String) -> String {
+        let identityComponent = sourceID ?? link ?? titleHash
+        let digest = SHA256.hash(data: Data("\(feedID)|\(identityComponent)".utf8))
+        return digest.map { String(format: "%02x", $0) }.joined()
+    }
 
     static func makeCKRecord(from status: ArticleStatusRecord, existing: CKRecord? = nil) -> CKRecord {
         let record = existing ?? CKRecord(recordType: recordType, recordID: recordID(forLocalID: status.articleID))

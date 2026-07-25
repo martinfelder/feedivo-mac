@@ -18,6 +18,11 @@ struct ArticleStatusRecord: Codable, FetchableRecord, MutablePersistableRecord, 
     /// `nil` bedeutet "nie vom Nutzer bewusst verändert", bleibt außerhalb jeder
     /// Sync-Betrachtung. Siehe `CloudSyncArticleStatusMapping`.
     var statusSyncUpdatedAt: Date?
+    /// Geräteübergreifend deterministische Identität (SHA256 aus feedID + sourceID/link/
+    /// titleHash) — für JEDE Zeile gesetzt (unabhängig von statusSyncUpdatedAt), da eingehende
+    /// Reconciliation eine lokale Zeile unabhängig davon finden muss, ob dieses Gerät den
+    /// Status je selbst berührt hat. Siehe `CloudSyncArticleStatusMapping.stableRecordName`.
+    var syncStableID: String?
 
     init(
         articleID: String,
@@ -30,7 +35,8 @@ struct ArticleStatusRecord: Codable, FetchableRecord, MutablePersistableRecord, 
         archivedAt: Date? = nil,
         hiddenAt: Date? = nil,
         dateArrived: Date = Date(),
-        statusSyncUpdatedAt: Date? = nil
+        statusSyncUpdatedAt: Date? = nil,
+        syncStableID: String? = nil
     ) {
         self.articleID = articleID
         self.isRead = isRead
@@ -43,5 +49,6 @@ struct ArticleStatusRecord: Codable, FetchableRecord, MutablePersistableRecord, 
         self.hiddenAt = hiddenAt
         self.dateArrived = dateArrived
         self.statusSyncUpdatedAt = statusSyncUpdatedAt
+        self.syncStableID = syncStableID
     }
 }

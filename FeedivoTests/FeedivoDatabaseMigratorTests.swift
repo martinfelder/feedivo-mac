@@ -188,4 +188,51 @@ struct FeedivoDatabaseMigratorTests {
         }
         #expect(count == 1)
     }
+
+    @Test func migrationV26FuegtSyncStableIDHinzuUndBackfilledBestandszeilen() throws {
+        let queue = try DatabaseQueue()
+        try FeedivoDatabaseMigrator.migrator.migrate(queue, upTo: "v25_create_orphaned_article_status_updates")
+
+        try queue.write { db in
+            let now = Date()
+            try db.execute(
+                sql: """
+                    INSERT INTO feeds (id, url, title, originalTitle, sortIndex, refreshIntervalMinutes, isNotificationEnabled, articleRetentionOverridesGlobalSetting, articleRetentionIsEnabled, articleRetentionDays, articleRetentionMinimumArticles, articleRetentionIncludesProtectedArticles, unreadCount, createdAt, updatedAt, configUpdatedAt)
+                    VALUES ('feed-1', 'https://example.com/feed', 'Test', 'Test', 0, 30, 0, 0, 0, 90, 20, 0, 0, ?, ?, ?)
+                    """,
+                arguments: [now, now, now]
+            )
+            try db.execute(
+                sql: """
+                    INSERT INTO articles (id, feedID, sourceID, title, arrivedAt, updatedAt)
+                    VALUES ('article-1', 'feed-1', 'guid-123', 'Titel', ?, ?)
+                    """,
+                arguments: [now, now]
+            )
+            try db.execute(
+                sql: """
+                    INSERT INTO article_statuses (articleID, isRead, isStarred, isArchived, isHidden, dateArrived)
+                    VALUES ('article-1', 0, 0, 0, 0, ?)
+                    """,
+                arguments: [now]
+            )
+        }
+
+        try FeedivoDatabaseMigrator.migrator.migrate(queue)
+
+        let syncStableID = try queue.read { db in
+            try String.fetchOne(db, sql: "SELECT syncStableID FROM article_statuses WHERE articleID = 'article-1'")
+        }
+        #expect(syncStableID != nil)
+        #expect(syncStableID?.isEmpty == false)
+
+        // Deterministisch: derselbe feedID+sourceID muss immer denselben Hash ergeben.
+        let expected = CloudSyncArticleStatusMapping.stableRecordName(
+            feedID: "feed-1",
+            sourceID: "guid-123",
+            link: nil,
+            titleHash: ArticleStore.titleHash("Titel")
+        )
+        #expect(syncStableID == expected)
+    }
 }
