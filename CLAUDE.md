@@ -289,6 +289,51 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
 
 > Diese Liste wächst während der Entwicklung. Immer ergänzen!
 
+- **`article_statuses.articleID` ist pro Gerät zufällig — eine iCloud-Sync-Identität, die
+  direkt darauf aufbaut, kann geräteübergreifend NIE matchen:** Beim Whole-Branch-Review von
+  iCloud Sync Phase 2b (Artikelstatus-Sync, 2026-07-25) fand der Reviewer einen kritischen
+  Architekturfehler, den keiner der 9 Einzel-Task-Reviews sehen konnte: Artikel selbst werden
+  in keiner Phase synct — jedes Gerät entdeckt denselben RSS-Artikel unabhängig per eigenem
+  Feed-Refresh und vergibt dabei via `ArticleStore.upsert()` eine eigene, zufällige
+  `UUID().uuidString` als `articles.id`. Der ursprüngliche `CloudSyncArticleStatusMapping`
+  keyte den `ArticleStatus`-`CKRecord` direkt über diese lokale `articleID` — dadurch konnte
+  ein von Gerät A hochgeladener Status auf Gerät B NIE gefunden werden (Gerät B hat denselben
+  logischen Artikel unter einer anderen UUID), landete dauerhaft in
+  `orphaned_article_status_updates` und wurde nach 90 Tagen kommentarlos verworfen.
+  Gelesen/Stern-Sync zwischen zwei Geräten funktionierte dadurch faktisch nicht — trotz
+  86/86 grüner Tests in allen 9 Einzel-Tasks, da jeder Test dieselbe In-Memory-DB mit
+  derselben `articleID` auf "Sender"- und "Empfänger"-Seite nutzte und damit exakt die
+  Falschannahme mit-testete. **Fix:** neue, aus `feedID`+`sourceID`/`link`/`titleHash`
+  abgeleitete `syncStableID` (SHA256-Hash, siehe `CloudSyncArticleStatusMapping.
+  stableRecordName`) — dieselbe Priorisierung wie die bereits bestehende
+  `ArticleStore.findExistingArticleID`/`findIdentityHistory`-Identitätslogik, `feedID` ist
+  bereits geräteübergreifend stabil (Feeds werden per CloudKit-Sync-ID übernommen, nicht
+  unabhängig neu erzeugt). Wird für JEDE neu eingefügte `article_statuses`-Zeile berechnet
+  (nicht nur berührte — sonst könnte ein Gerät, das einen Status nie selbst berührt hat,
+  einen eingehenden Status trotzdem nicht zuordnen), Migration v26 backfillt Bestandszeilen
+  per Swift-Loop (SQLite hat keine SHA256-Funktion). **Zweiter, beim ersten Fix-Review
+  gefundener Folgefehler:** `ArticleStatusStore.enqueuePendingSync` (der primäre Live-Sync-
+  Pfad über `setRead`/`setStarred`/`markAllUnreadAsRead`) blieb zunächst auf der alten
+  lokalen `articleID` hängen, während `makeCKRecord(fromLocalID:)` bereits auf `syncStableID`
+  umgestellt war — jedes `.save` wäre dadurch stillschweigend als `nil` verworfen worden und
+  hätte den gesamten Fix wirkungslos gemacht. Sofort in derselben Fix-Runde behoben (per
+  Round-Trip-Test verifiziert: `setRead` → Pending-Change lesen → echtes
+  `makeCKRecord(fromLocalID:)` → nicht-`nil`). **Dritter Fund:** `applyIncomingDeletion`
+  nullte `syncStableID` beim Zurücksetzen einer Zeile auf Defaults — da nirgends sonst
+  `syncStableID` nachträglich neu berechnet wird, hätte das die Zeile dauerhaft aus jeder
+  künftigen Sync-Betrachtung ausgeschlossen, selbst nach erneutem Lesen/Stern-Setzen durch
+  den Nutzer. Ebenfalls sofort behoben (Reset lässt `syncStableID` jetzt unangetastet).
+  **Lehre:** Bei JEDEM künftigen Sync-Mapping für eine Tabelle, deren Zeilen auf MEHREREN
+  Geräten unabhängig voneinander neu entstehen können (nicht nur auf einem Gerät erzeugt und
+  dann verteilt, wie bei Tags/Feeds/Regeln), reicht die lokale Primärschlüssel-Spalte NICHT
+  als `CKRecord.ID`-Basis — und Tests müssen das Zwei-Geräte-Szenario mit zwei UNABHÄNGIGEN
+  In-Memory-Datenbanken und zwei UNTERSCHIEDLICHEN lokalen IDs für denselben logischen
+  Datensatz abbilden, sonst bleibt genau diese Klasse von Fehlern für jeden Einzel-Task-
+  Review unsichtbar. Zusätzlich: bei einer Identitäts-Umstellung IMMER alle Enqueue-Pfade
+  durchsuchen (nicht nur den, den der aktuelle Task explizit ändert) — der Live-Sync-Pfad
+  (`enqueuePendingSync`) lag außerhalb des ursprünglich geänderten Dateiumfangs und wäre
+  fast unentdeckt geblieben.
+
 - **`CKSyncEngine`s manueller `sendChanges()`-Aufruf per einfachem `Task { }` stürzt ab, sobald
   er aus einem Delegate-Callback heraus (z. B. Konfliktauflösung) erneut ausgelöst wird —
   braucht zwingend `Task.detached`:** Beim Live-Testen der Sync-Status-Übersicht (2026-07-24)
@@ -597,7 +642,12 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
   Regression durch das Offline-Feature-Entfernen selbst, das die beiden einzigen Tests, die
   es an dieser Suite änderte, sauber zum Bestehen brachte), 2 flaky-unter-Last Tests in
   `FeedViewModelTests.swift` (`refreshAllFeedsMitSQLiteDatabaseNutztSQLiteFirstOhneDoppeltenAbruf`,
-  `refreshAllFeedsMitSQLiteDatabaseMeldetFeedBenachrichtigungen`).
+  `refreshAllFeedsMitSQLiteDatabaseMeldetFeedBenachrichtigungen`), sowie ein dritter,
+  unabhängig davon flaky-unter-Last Test `listStateToggeltReadUndAktualisiertRows` in
+  `SQLiteFeedArticleListStateTests.swift` (gefunden während iCloud Sync Phase 2b Task 8,
+  2026-07-25 — per `git stash`-Baseline-Vergleich sowohl vom Implementierer als auch vom
+  Task-Reviewer unabhängig als bereits vor diesem Feature bestehend verifiziert, keine
+  Regression durch die Artikelstatus-Sync-Löschpropagierung).
 - **Hauptfenster-Szene muss `Window`, nicht `WindowGroup` sein:** `WindowGroup(id:)` ist laut
   SwiftUI-Design für mehrere gleichzeitige Fenster-Instanzen gedacht — `openWindow(id:)`
   gegen eine `WindowGroup` erzeugt bei jedem Aufruf eine NEUE Instanz, statt eine bestehende
