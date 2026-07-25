@@ -535,6 +535,35 @@ struct ArticleRetentionCleanupServiceTests {
         let remainingLogs = try FeedLogStore(database: database).logs(feedID: feedID, limit: 10)
         #expect(remainingLogs.map(\.id) == ["new-log"])
     }
+
+    @Test func runAutomaticCleanupEntferntAlteVerwaisteArtikelStatusEintraege() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let now = Date(timeIntervalSince1970: 10_000_000)
+        try database.write { db in
+            var alt = OrphanedArticleStatusUpdateRecord(
+                articleID: "alt",
+                isRead: true,
+                isStarred: false,
+                readAt: nil,
+                starredAt: nil,
+                receivedAt: now.addingTimeInterval(-200 * 86_400)
+            )
+            try alt.insert(db)
+        }
+
+        _ = ArticleRetentionCleanupService.runAutomaticCleanup(
+            database: database,
+            isEnabled: false,
+            retentionDays: 90,
+            triggerSource: .appStart,
+            now: now
+        )
+
+        let remaining = try database.read { db in
+            try OrphanedArticleStatusUpdateRecord.fetchAll(db)
+        }
+        #expect(remaining.isEmpty)
+    }
 }
 
 private func temporaryUserDefaults() throws -> UserDefaults {

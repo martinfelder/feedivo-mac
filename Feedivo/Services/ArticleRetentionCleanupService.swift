@@ -118,6 +118,20 @@ enum ArticleRetentionCleanupService {
             AppLogger.dataAccess.error("Feed-Log-Bereinigung: \(error.localizedDescription, privacy: .public)")
         }
 
+        // Verwaiste eingehende Artikelstatus-Updates bereinigen (iCloud Sync Phase 2b) — läuft
+        // wie die Feed-Log-Bereinigung immer mit, unabhängig von `isEnabled` (Artikel-
+        // Aufbewahrung): eine deaktivierte Artikel-Aufbewahrung würde sonst dazu führen, dass
+        // niemals abgeholte verwaiste Status (z. B. für einen längst deabonnierten Feed)
+        // unbegrenzt wachsen. Nutzt `retentionDays`, falls Artikel-Aufbewahrung aktiv ist,
+        // sonst einen festen 90-Tage-Fallback.
+        let orphanCutoffDays = isEnabled ? retentionDays : 90
+        let orphanCutoff = Calendar.current.date(byAdding: .day, value: -orphanCutoffDays, to: now) ?? now
+        do {
+            try OrphanedArticleStatusUpdateStore(database: database).deleteOlderThan(orphanCutoff)
+        } catch {
+            AppLogger.dataAccess.error("Bereinigung verwaister Artikelstatus-Updates: \(error.localizedDescription, privacy: .public)")
+        }
+
         do {
             let removedCount = try removeExpiredSQLiteArticles(
                 database: database,
