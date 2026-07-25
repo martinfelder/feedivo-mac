@@ -184,4 +184,64 @@ struct SQLiteArticleStatusStoreTests {
         #expect(hiddenFeed?.unreadCount == 0)
         #expect(visibleFeed?.unreadCount == 1)
     }
+
+    @Test func setReadSetztStatusSyncUpdatedAt() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let store = ArticleStatusStore(database: database)
+        let articleID = try seedArticleForStatusTest(database: database)
+
+        try store.setRead(true, articleID: articleID, at: Date())
+
+        let status = try store.status(articleID: articleID)
+        #expect(status?.statusSyncUpdatedAt != nil)
+    }
+
+    @Test func setReadSetztStatusSyncUpdatedAtAuchBeiRevertAufFalse() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let store = ArticleStatusStore(database: database)
+        let articleID = try seedArticleForStatusTest(database: database)
+        try store.setRead(true, articleID: articleID, at: Date())
+
+        try store.setRead(false, articleID: articleID, at: nil)
+
+        let status = try store.status(articleID: articleID)
+        #expect(status?.isRead == false)
+        #expect(status?.statusSyncUpdatedAt != nil)
+    }
+
+    @Test func setArchivedLaesstStatusSyncUpdatedAtUnveraendert() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let store = ArticleStatusStore(database: database)
+        let articleID = try seedArticleForStatusTest(database: database)
+
+        try store.setArchived(true, articleID: articleID, at: Date())
+
+        let status = try store.status(articleID: articleID)
+        #expect(status?.statusSyncUpdatedAt == nil)
+    }
+
+    @Test func setReadEnqueuedPendingChangeWennSyncAktiv() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
+        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        let store = ArticleStatusStore(database: database)
+        let articleID = try seedArticleForStatusTest(database: database)
+
+        try store.setStarred(true, articleID: articleID, at: Date())
+
+        let pending = try CloudSyncPendingChangeStore(database: database).pendingChanges()
+        #expect(pending.contains { $0.id == articleID && $0.recordType == CloudSyncArticleStatusMapping.recordType })
+    }
+
+    @Test func setReadEnqueuedKeinenPendingChangeWennSyncDeaktiviert() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey)
+        let store = ArticleStatusStore(database: database)
+        let articleID = try seedArticleForStatusTest(database: database)
+
+        try store.setStarred(true, articleID: articleID, at: Date())
+
+        let pending = try CloudSyncPendingChangeStore(database: database).pendingChanges()
+        #expect(pending.isEmpty)
+    }
 }

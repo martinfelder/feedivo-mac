@@ -31,23 +31,29 @@ struct ArticleStatusStore {
         try SQLiteUnreadCountService(database: database).sidebarSmartFolderBadgeSnapshot()
     }
 
+    /// Setzt `isRead` UND markiert den Status als sync-relevant (iCloud Sync Phase 2b) —
+    /// im Unterschied zu `setArchived`/`setHidden`, die außerhalb des Sync-Scopes bleiben.
     func setRead(_ isRead: Bool, articleID: String, at date: Date?) throws {
         try updateBooleanStatus(
             column: "isRead",
             dateColumn: "readAt",
             value: isRead,
             articleID: articleID,
-            date: date
+            date: date,
+            marksSyncTouched: true
         )
     }
 
+    /// Setzt `isStarred` UND markiert den Status als sync-relevant (iCloud Sync Phase 2b) —
+    /// im Unterschied zu `setArchived`/`setHidden`, die außerhalb des Sync-Scopes bleiben.
     func setStarred(_ isStarred: Bool, articleID: String, at date: Date?) throws {
         try updateBooleanStatus(
             column: "isStarred",
             dateColumn: "starredAt",
             value: isStarred,
             articleID: articleID,
-            date: date
+            date: date,
+            marksSyncTouched: true
         )
     }
 
@@ -57,7 +63,8 @@ struct ArticleStatusStore {
             dateColumn: "archivedAt",
             value: isArchived,
             articleID: articleID,
-            date: date
+            date: date,
+            marksSyncTouched: false
         )
     }
 
@@ -67,7 +74,8 @@ struct ArticleStatusStore {
             dateColumn: "hiddenAt",
             value: isHidden,
             articleID: articleID,
-            date: date
+            date: date,
+            marksSyncTouched: false
         )
     }
 
@@ -77,20 +85,21 @@ struct ArticleStatusStore {
     /// Menubar-Dropdown (Feature 21.1), wo es keine "aktuelle Auswahl" gibt.
     func markAllUnreadAsRead() throws {
         let now = Date()
-        var didUpdate = false
+        var touchedArticleIDs: [String] = []
 
         try database.write { db in
+            touchedArticleIDs = try String.fetchAll(db, sql: "SELECT articleID FROM article_statuses WHERE isRead = 0")
+
             try db.execute(
                 sql: """
                     UPDATE article_statuses
-                    SET isRead = 1, readAt = ?
+                    SET isRead = 1, readAt = ?, statusSyncUpdatedAt = ?
                     WHERE isRead = 0
                     """,
-                arguments: [now]
+                arguments: [now, now]
             )
-            didUpdate = db.changesCount > 0
 
-            if didUpdate {
+            if !touchedArticleIDs.isEmpty {
                 try db.execute(
                     sql: """
                         UPDATE article_identity_history
@@ -99,12 +108,23 @@ struct ArticleStatusStore {
                         """,
                     arguments: [now]
                 )
+                try enqueuePendingSync(db, articleIDs: touchedArticleIDs, changeType: .save)
             }
         }
 
-        if didUpdate {
+        if !touchedArticleIDs.isEmpty {
             try SQLiteUnreadCountService(database: database).rebuildAllFeedUnreadCounts()
             SQLiteDataInvalidation.bumpStatusVersion()
+            CloudSyncEngine.notifyPendingChangesAvailable(database: database)
+        }
+    }
+
+    /// Markiert `articleID` als ausstehende Sync-Änderung, falls iCloud Sync aktiv ist —
+    /// analog zu `TagStore.enqueuePendingSync`.
+    private func enqueuePendingSync(_ db: Database, articleIDs: [String], changeType: CloudSyncChangeType) throws {
+        guard CloudSyncSettings.isEnabled() else { return }
+        for articleID in articleIDs {
+            try CloudSyncPendingChangeStore.enqueue(db, recordType: CloudSyncArticleStatusMapping.recordType, recordName: articleID, changeType: changeType)
         }
     }
 
@@ -113,19 +133,31 @@ struct ArticleStatusStore {
         dateColumn: String,
         value: Bool,
         articleID: String,
-        date: Date?
+        date: Date?,
+        marksSyncTouched: Bool
     ) throws {
         let timestamp = value ? date : nil
         var didUpdate = false
         try database.write { db in
-            try db.execute(
-                sql: """
-                    UPDATE article_statuses
-                    SET \(column) = ?, \(dateColumn) = ?
-                    WHERE articleID = ?
-                    """,
-                arguments: [value, timestamp, articleID]
-            )
+            if marksSyncTouched {
+                try db.execute(
+                    sql: """
+                        UPDATE article_statuses
+                        SET \(column) = ?, \(dateColumn) = ?, statusSyncUpdatedAt = ?
+                        WHERE articleID = ?
+                        """,
+                    arguments: [value, timestamp, Date(), articleID]
+                )
+            } else {
+                try db.execute(
+                    sql: """
+                        UPDATE article_statuses
+                        SET \(column) = ?, \(dateColumn) = ?
+                        WHERE articleID = ?
+                        """,
+                    arguments: [value, timestamp, articleID]
+                )
+            }
             didUpdate = db.changesCount > 0
 
             if didUpdate {
@@ -142,10 +174,17 @@ struct ArticleStatusStore {
             if column == "isRead" || column == "isHidden" {
                 try SQLiteUnreadCountService.rebuildFeedUnreadCount(forArticleID: articleID, db: db)
             }
+
+            if didUpdate, marksSyncTouched {
+                try enqueuePendingSync(db, articleIDs: [articleID], changeType: .save)
+            }
         }
 
         if didUpdate {
             SQLiteDataInvalidation.bumpStatusVersion()
+            if marksSyncTouched {
+                CloudSyncEngine.notifyPendingChangesAvailable(database: database)
+            }
         }
     }
 
