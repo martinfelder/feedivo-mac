@@ -36,4 +36,28 @@ struct OrphanedArticleStatusUpdateStoreTests {
         }
         #expect(remaining.map(\.articleID) == ["neu"])
     }
+
+    @Test func deleteAllLeertDieGesamteTabelleUnabhaengigVomAlter() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let store = OrphanedArticleStatusUpdateStore(database: database)
+        try database.write { db in
+            var eintrag = OrphanedArticleStatusUpdateRecord(
+                articleID: "artikel-1",
+                isRead: true,
+                isStarred: false,
+                readAt: Date(),
+                starredAt: nil,
+                receivedAt: Date()
+            )
+            try eintrag.insert(db)
+        }
+
+        let deletedCount = try store.deleteAll()
+
+        #expect(deletedCount == 1)
+        let remaining = try database.read { db in
+            try OrphanedArticleStatusUpdateRecord.fetchAll(db)
+        }
+        #expect(remaining.isEmpty)
+    }
 }

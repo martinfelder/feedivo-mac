@@ -42,6 +42,17 @@ struct CloudSyncActivityStatusTests {
         #expect(CloudSyncActivityStatus.lastRunSucceeded(userDefaults: defaults) == true)
         #expect(CloudSyncActivityStatus.lastErrorMessage(userDefaults: defaults) == nil)
     }
+
+    @Test func resetLoeschtAlleDreiKeysUndLiefertDanachWiederNilUeberall() throws {
+        let defaults = try temporaryUserDefaults()
+        CloudSyncActivityStatus.recordFailure("Netzwerkfehler", userDefaults: defaults)
+
+        CloudSyncActivityStatus.reset(userDefaults: defaults)
+
+        #expect(CloudSyncActivityStatus.lastRunAt(userDefaults: defaults) == nil)
+        #expect(CloudSyncActivityStatus.lastRunSucceeded(userDefaults: defaults) == nil)
+        #expect(CloudSyncActivityStatus.lastErrorMessage(userDefaults: defaults) == nil)
+    }
 }
 
 private func temporaryUserDefaults() throws -> UserDefaults {

@@ -17,4 +17,16 @@ struct OrphanedArticleStatusUpdateStore {
             return db.changesCount
         }
     }
+
+    /// Leert die komplette Tabelle bedingungslos, unabhängig vom Alter — genutzt vom
+    /// iCloud-Sync-Reset (`CloudSyncEngine.resetLocalState`), der alle bereits als unzustellbar
+    /// erkannten Artikelstatus-Einträge verwirft, statt auf die reguläre 90-Tage-Frist
+    /// (`deleteOlderThan(_:)`) zu warten.
+    @discardableResult
+    func deleteAll() throws -> Int {
+        try database.write { db in
+            try db.execute(sql: "DELETE FROM orphaned_article_status_updates")
+            return db.changesCount
+        }
+    }
 }

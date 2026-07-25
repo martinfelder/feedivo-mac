@@ -43,4 +43,14 @@ enum CloudSyncActivityStatus {
         userDefaults.set(statusFailed, forKey: statusKey)
         userDefaults.set(message, forKey: lastErrorMessageKey)
     }
+
+    /// Setzt den persistierten Sync-Aktivitätsstatus vollständig zurück — genutzt vom
+    /// iCloud-Sync-Reset (`CloudSyncEngine.resetLocalState`), damit die Statusanzeige in den
+    /// Einstellungen danach wieder "Noch nie synchronisiert" statt eines veralteten Standes
+    /// zeigt.
+    static func reset(userDefaults: UserDefaults = .standard) {
+        userDefaults.removeObject(forKey: lastRunDateKey)
+        userDefaults.removeObject(forKey: statusKey)
+        userDefaults.removeObject(forKey: lastErrorMessageKey)
+    }
 }

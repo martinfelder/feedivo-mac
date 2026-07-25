@@ -35,6 +35,15 @@ struct CloudSyncPendingChangeStore {
         }
     }
 
+    /// Leert die komplette Warteschlange bedingungslos — genutzt vom iCloud-Sync-Reset
+    /// (`CloudSyncEngine.resetLocalState`), der alle ausstehenden Änderungen verwirft, bevor ein
+    /// vollständiger Backfill sie neu einreiht.
+    func deleteAll() throws {
+        try database.write { db in
+            try db.execute(sql: "DELETE FROM cloud_sync_pending_changes")
+        }
+    }
+
     func pendingChanges() throws -> [CloudSyncPendingChangeRecord] {
         try database.read { db in
             try CloudSyncPendingChangeRecord.fetchAll(db, sql: """

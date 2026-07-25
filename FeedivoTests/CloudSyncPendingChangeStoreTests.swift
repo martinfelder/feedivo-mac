@@ -81,4 +81,16 @@ struct CloudSyncPendingChangeStoreTests {
         #expect(counts["Feed"] == 1)
         #expect(counts.count == 2)
     }
+
+    @Test func deleteAllLeertDieGesamteTabelle() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let store = CloudSyncPendingChangeStore(database: database)
+
+        try store.enqueue(recordType: "Tag", recordName: "tag-1", changeType: .save)
+        try store.enqueue(recordType: "Feed", recordName: "feed-1", changeType: .save)
+
+        try store.deleteAll()
+
+        #expect(try store.pendingChanges().isEmpty)
+    }
 }
