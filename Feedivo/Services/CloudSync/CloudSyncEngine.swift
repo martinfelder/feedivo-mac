@@ -52,7 +52,8 @@ final class CloudSyncEngine: NSObject {
         CloudSyncRuleMapping.recordType: CloudSyncRuleMapping.self,
         CloudSyncRuleConditionMapping.recordType: CloudSyncRuleConditionMapping.self,
         CloudSyncSmartFolderMapping.recordType: CloudSyncSmartFolderMapping.self,
-        CloudSyncSmartFolderConditionMapping.recordType: CloudSyncSmartFolderConditionMapping.self
+        CloudSyncSmartFolderConditionMapping.recordType: CloudSyncSmartFolderConditionMapping.self,
+        CloudSyncArticleStatusMapping.recordType: CloudSyncArticleStatusMapping.self
     ]
 
     nonisolated static func mapping(forRecordType recordType: String) -> (any CloudSyncRecordMapping.Type)? {

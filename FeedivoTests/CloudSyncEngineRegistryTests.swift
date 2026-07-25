@@ -48,6 +48,12 @@ struct CloudSyncEngineRegistryTests {
         #expect(mapping is CloudSyncSmartFolderConditionMapping.Type)
     }
 
+    @Test func registryLoestArticleStatusRecordTypeAufCloudSyncArticleStatusMappingAuf() {
+        let mapping = CloudSyncEngine.mapping(forRecordType: "ArticleStatus")
+
+        #expect(mapping is CloudSyncArticleStatusMapping.Type)
+    }
+
     @Test func registryLiefertNilFuerUnbekanntenRecordType() {
         let mapping = CloudSyncEngine.mapping(forRecordType: "UnknownType")
 
