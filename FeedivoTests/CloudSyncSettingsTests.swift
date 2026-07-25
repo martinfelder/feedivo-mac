@@ -6,7 +6,6 @@ struct CloudSyncSettingsTests {
     @Test func defaultsUndVerfuegbarkeit() {
         #expect(CloudSyncSettings.isEnabledKey == "cloudSync.isEnabled")
         #expect(CloudSyncSettings.defaultIsEnabled == false)
-        #expect(CloudSyncSettings.isAvailable == true)
         #expect(CloudSyncSettings.cloudKitContainerIdentifier == "iCloud.ch.martin.Feedivo")
     }
 

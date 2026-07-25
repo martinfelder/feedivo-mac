@@ -269,7 +269,7 @@ struct SQLiteLargeDatasetPerformanceTests {
 
         let searchStart = Date()
         let searchResults = try articleStore.searchArticles(
-            matching: "Article 42",
+            state: ArticleSearchWindowState(searchText: "Article 42"),
             includeHidden: false,
             limit: 100
         )
@@ -313,13 +313,13 @@ struct SQLiteLargeDatasetPerformanceTests {
         try seedLargeSQLiteDataset(database: database, feedCount: 100, articlesPerFeed: 600)
 
         let feedStore = FeedStore(database: database)
-        let timelineStore = TimelineStore(database: database)
+        let statusStore = ArticleStatusStore(database: database)
         let countStart = Date()
 
         let feedSnapshots = try feedStore.sidebarFeeds()
         var totalUnread = 0
         for index in 0..<feedSnapshots.count {
-            totalUnread += try timelineStore.unreadCount(feedID: "feed-\(index)")
+            totalUnread += try statusStore.unreadCount(feedID: "feed-\(index)")
         }
 
         let countElapsed = Date().timeIntervalSince(countStart)

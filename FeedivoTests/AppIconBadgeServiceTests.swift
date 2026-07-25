@@ -10,9 +10,9 @@ struct AppIconBadgeServiceTests {
     // `FeedSidebarSnapshot.unreadCount` (Summe), ohne SwiftData-`Feed`-Objekte.
     @Test func unreadCountAusSidebarSnapshotsSummiert() {
         let snapshots = [
-            FeedSidebarSnapshot(id: "1", title: "A", url: "u", faviconURL: nil, folderName: nil, unreadCount: 4, hasRecentError: false),
-            FeedSidebarSnapshot(id: "2", title: "B", url: "u", faviconURL: nil, folderName: nil, unreadCount: 0, hasRecentError: false),
-            FeedSidebarSnapshot(id: "3", title: "C", url: "u", faviconURL: nil, folderName: nil, unreadCount: 6, hasRecentError: false)
+            FeedSidebarSnapshot(id: "1", title: "A", faviconURL: nil, folderName: nil, unreadCount: 4, hasRecentError: false),
+            FeedSidebarSnapshot(id: "2", title: "B", faviconURL: nil, folderName: nil, unreadCount: 0, hasRecentError: false),
+            FeedSidebarSnapshot(id: "3", title: "C", faviconURL: nil, folderName: nil, unreadCount: 6, hasRecentError: false)
         ]
 
         #expect(AppIconBadgeService.unreadCount(in: snapshots) == 10)

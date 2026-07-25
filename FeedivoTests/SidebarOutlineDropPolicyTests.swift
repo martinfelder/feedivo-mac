@@ -6,8 +6,7 @@ import Testing
 struct SidebarOutlineDropPolicyTests {
     private func makeFeed(id: String, folderName: String?) -> FeedSidebarSnapshot {
         FeedSidebarSnapshot(
-            id: id, title: id, url: "https://example.com/\(id).xml",
-            faviconURL: nil, folderName: folderName, sortIndex: 0,
+            id: id, title: id, faviconURL: nil, folderName: folderName, sortIndex: 0,
             unreadCount: 0, hasRecentError: false
         )
     }

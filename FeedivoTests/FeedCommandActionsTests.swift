@@ -132,7 +132,6 @@ struct FeedCommandActionsTests {
         let feed = FeedSidebarSnapshot(
             id: "1",
             title: "Feed",
-            url: "https://example.com/feed.xml",
             unreadCount: 0,
             hasRecentError: false
         )

@@ -232,35 +232,6 @@ struct ArticleStore {
     }
 
     func searchArticles(
-        matching query: String,
-        includeHidden: Bool = false,
-        limit: Int = 100
-    ) throws -> [ArticleListSnapshot] {
-        let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedQuery.isEmpty else {
-            return []
-        }
-
-        let safeLimit = max(1, limit)
-        let hiddenClause = includeHidden ? "" : "AND s.isHidden = 0"
-
-        return try database.read { db in
-            try ArticleListSnapshot.fetchAll(db, sql: """
-                SELECT
-                    \(ArticleListSQL.selectColumns)
-                FROM article_search search
-                JOIN articles a ON a.rowid = search.rowid
-                JOIN feeds f ON f.id = a.feedID
-                JOIN article_statuses s ON s.articleID = a.id
-                WHERE article_search MATCH ?
-                    \(hiddenClause)
-                ORDER BY COALESCE(a.publishedAt, a.arrivedAt) DESC, a.arrivedAt DESC
-                LIMIT ?
-                """, arguments: [trimmedQuery, safeLimit])
-        }
-    }
-
-    func searchArticles(
         state: ArticleSearchWindowState,
         includeHidden: Bool = false,
         limit: Int = 100

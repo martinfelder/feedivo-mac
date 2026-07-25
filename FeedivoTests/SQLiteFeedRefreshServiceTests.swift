@@ -56,11 +56,7 @@ struct SQLiteFeedRefreshServiceTests {
         }
         let firstArticle = try articleStore.readerArticle(id: result.insertedArticleIDs[0])
 
-        #expect(result.feedID == "feed-1")
         #expect(result.insertedArticleIDs.count == 2)
-        #expect(result.updatedArticleIDs.isEmpty)
-        #expect(result.unreadCount == 2)
-        #expect(result.isNotModified == false)
         #expect(feed?.title == "Example")
         #expect(feed?.websiteURL == "https://example.com")
         #expect(feed?.unreadCount == 2)
@@ -219,9 +215,7 @@ struct SQLiteFeedRefreshServiceTests {
         let logs = try logStore.logs(feedID: "feed-1", limit: 5)
 
         #expect(result.insertedArticleIDs.isEmpty)
-        #expect(result.updatedArticleIDs.isEmpty)
-        #expect(result.unreadCount == 1)
-        #expect(result.isNotModified == true)
+        #expect(feed?.unreadCount == 1)
         #expect(feed?.lastETag == "new-etag")
         #expect(feed?.lastHTTPStatusCode == 304)
         #expect(article?.title == "Existing")
@@ -294,8 +288,6 @@ struct SQLiteFeedRefreshServiceTests {
         let status = try statusStore.status(articleID: existingID)
 
         #expect(result.insertedArticleIDs.isEmpty)
-        #expect(result.updatedArticleIDs == [existingID])
-        #expect(result.unreadCount == 0)
         #expect(article?.title == "New Title")
         #expect(article?.link == "https://example.com/changed")
         #expect(status?.isRead == true)

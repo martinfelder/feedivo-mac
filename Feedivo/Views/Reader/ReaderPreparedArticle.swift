@@ -59,9 +59,6 @@ extension ReaderArticleInput {
 struct ReaderPreparedArticle: Sendable {
     let contentBlocks: [ReaderContentBlock]
     let metadataText: String
-    let readingTimeText: String?
-    let originalURL: URL?
-    let contentAvailability: ReaderContentAvailability
     let shouldShowSummaryOnlyNotice: Bool
 
     /// Leerer Platzhalter fuer den ersten Render, bevor die asynchrone
@@ -95,12 +92,7 @@ struct ReaderPreparedArticle: Sendable {
             fallbackImageURL: input.imageURL
         )
         self.contentBlocks = parsedContentBlocks
-        self.contentAvailability = ReaderContentAvailability.resolved(
-            content: input.content,
-            summary: input.summary
-        )
         self.shouldShowSummaryOnlyNotice = false
-        self.readingTimeText = readingTimeText
 
         self.metadataText = ReaderMetadataFormatter.metadataParts(
             feedName: input.feedTitle,
@@ -109,12 +101,6 @@ struct ReaderPreparedArticle: Sendable {
             publishedAt: input.publishedAt
         )
         .joined(separator: " · ")
-
-        if let link = input.link, let url = URL(string: link), url.scheme != nil {
-            self.originalURL = url
-        } else {
-            self.originalURL = nil
-        }
     }
 
 }

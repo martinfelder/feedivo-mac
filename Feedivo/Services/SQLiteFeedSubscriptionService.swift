@@ -1,13 +1,6 @@
 import Foundation
 import GRDB
 
-struct SQLiteFeedSubscriptionResult: Equatable, Sendable {
-    var feedID: String
-    var importedCount: Int
-    var skippedDuplicateCount: Int
-    var failedFeedTitles: [String]
-}
-
 struct SQLiteOPMLImportResult: Equatable, Sendable {
     var total: Int
     var imported: Int
@@ -115,7 +108,7 @@ struct SQLiteFeedSubscriptionService {
         urlString: String,
         refreshIntervalMinutes: Int = 60,
         folderName: String? = nil
-    ) async throws -> SQLiteFeedSubscriptionResult {
+    ) async throws {
         let cleanedURL = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleanedURL.isEmpty else {
             throw SQLiteFeedSubscriptionError.emptyURL
@@ -221,13 +214,6 @@ struct SQLiteFeedSubscriptionService {
             }
             throw error
         }
-
-        return SQLiteFeedSubscriptionResult(
-            feedID: feedID,
-            importedCount: 1,
-            skippedDuplicateCount: 0,
-            failedFeedTitles: []
-        )
     }
 
     func importOPMLFeeds(

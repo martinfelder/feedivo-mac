@@ -1038,15 +1038,6 @@ enum NetworkConnectionStatus: Equatable {
     case online
     case offline
 
-    var localizationKey: String {
-        switch self {
-        case .online:
-            "networkStatus.online"
-        case .offline:
-            "networkStatus.offline"
-        }
-    }
-
     var titleKey: LocalizedStringKey {
         switch self {
         case .online:

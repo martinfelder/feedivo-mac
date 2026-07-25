@@ -23,12 +23,4 @@ enum SidebarSectionCollapseState {
             }
         }
     }
-
-    static func toggle(_ section: Section, in collapsedSections: inout Set<Section>) {
-        if collapsedSections.contains(section) {
-            collapsedSections.remove(section)
-        } else {
-            collapsedSections.insert(section)
-        }
-    }
 }

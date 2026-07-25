@@ -54,20 +54,17 @@ enum ArticleSearchTagMatchMode: String, CaseIterable, Identifiable {
 struct ArticleSearchFilters: Equatable {
     var feedID: UUID?
     var tagIDs: Set<UUID>
-    var tagMatchMode: ArticleSearchTagMatchMode
     var date: ArticleSearchDateFilter
     var status: ArticleSearchStatusFilter
 
     init(
         feedID: UUID? = nil,
         tagIDs: Set<UUID> = [],
-        tagMatchMode: ArticleSearchTagMatchMode = .any,
         date: ArticleSearchDateFilter = .anytime,
         status: ArticleSearchStatusFilter = .all
     ) {
         self.feedID = feedID
         self.tagIDs = tagIDs
-        self.tagMatchMode = tagMatchMode
         self.date = date
         self.status = status
     }
@@ -79,29 +76,14 @@ struct ArticleSearchFilters: Equatable {
 
 struct ArticleSearchQuery: Equatable {
     var text: String
-    var field: ArticleSearchField
-    var scope: ArticleSearchScope
     var filters: ArticleSearchFilters
-    var includesHeavyContent: Bool
-    var now: Date
-    var calendar: Calendar
 
     init(
         text: String = "",
-        field: ArticleSearchField = .all,
-        scope: ArticleSearchScope = .currentView,
-        filters: ArticleSearchFilters = ArticleSearchFilters(),
-        includesHeavyContent: Bool = true,
-        now: Date = Date(),
-        calendar: Calendar = .current
+        filters: ArticleSearchFilters = ArticleSearchFilters()
     ) {
         self.text = text
-        self.field = field
-        self.scope = scope
         self.filters = filters
-        self.includesHeavyContent = includesHeavyContent
-        self.now = now
-        self.calendar = calendar
     }
 
     var normalizedText: String {
@@ -145,17 +127,12 @@ struct ArticleSearchWindowState: Equatable {
     var query: ArticleSearchQuery {
         ArticleSearchQuery(
             text: searchText,
-            field: field,
-            scope: .allArticles,
             filters: ArticleSearchFilters(
                 feedID: feedID,
                 tagIDs: tagIDs,
-                tagMatchMode: tagMatchMode,
                 date: dateFilter,
                 status: statusFilter
-            ),
-            now: now,
-            calendar: calendar
+            )
         )
     }
 }

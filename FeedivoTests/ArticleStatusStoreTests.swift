@@ -17,7 +17,6 @@ struct ArticleStatusStoreTests {
             let articleID = try articleStore.upsert(
                 ArticleUpsertInput(feedID: feed.id, sourceID: "article-\(index)", title: "Artikel \(index)")
             )
-            try statusStore.ensureStatus(articleID: articleID, dateArrived: Date())
             articleIDs.append(articleID)
         }
 

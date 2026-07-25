@@ -117,32 +117,6 @@ struct SQLiteTimelineStoreTests {
         #expect(snapshots.map(\.id) == [threeID, twoID])
     }
 
-    @Test func unreadCountIgnoresReadAndHiddenArticles() throws {
-        let database = try FeedivoDatabase.inMemoryForTests()
-        let feedStore = FeedStore(database: database)
-        let articleStore = ArticleStore(database: database)
-        let statusStore = ArticleStatusStore(database: database)
-        let timelineStore = TimelineStore(database: database)
-
-        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example"))
-
-        _ = try articleStore.upsert(
-            ArticleUpsertInput(feedID: "feed-1", sourceID: "unread", title: "Unread")
-        )
-        let readID = try articleStore.upsert(
-            ArticleUpsertInput(feedID: "feed-1", sourceID: "read", title: "Read")
-        )
-        let hiddenID = try articleStore.upsert(
-            ArticleUpsertInput(feedID: "feed-1", sourceID: "hidden", title: "Hidden")
-        )
-        try statusStore.setRead(true, articleID: readID, at: Date(timeIntervalSince1970: 200))
-        try statusStore.setHidden(true, articleID: hiddenID, at: Date(timeIntervalSince1970: 300))
-
-        let count = try timelineStore.unreadCount(feedID: "feed-1")
-
-        #expect(count == 1)
-    }
-
     @Test func markReadForFeedScopeErfasstAuchNichtGeladeneArtikelJenseitsDesListenLimits() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let feedStore = FeedStore(database: database)
@@ -179,7 +153,6 @@ struct SQLiteTimelineStoreTests {
 
         #expect(visibleRows.count == 2)
         #expect(changedCount == 6)
-        #expect(try timelineStore.unreadCount(feedID: "feed-1") == 0)
         #expect(try feedStore.feed(id: "feed-1")?.unreadCount == 0)
     }
 

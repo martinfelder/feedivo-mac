@@ -28,12 +28,10 @@ struct ArticleListItemSnapshotTests {
         #expect(snapshot.title == "SQLite Artikel")
         #expect(snapshot.summary == "SQLite Kurzfassung")
         #expect(snapshot.publishedAt == Date(timeIntervalSince1970: 200))
-        #expect(snapshot.feedID == feedID)
         #expect(snapshot.feedTitle == "SQLite Feed")
         #expect(snapshot.isRead)
         #expect(snapshot.isStarred)
         #expect(!snapshot.isArchived)
-        #expect(!snapshot.isHidden)
         #expect(snapshot.hasOriginalURL)
         #expect(snapshot.imageURL == "https://example.com/sqlite-bild.jpg")
     }

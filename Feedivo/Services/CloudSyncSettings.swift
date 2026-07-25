@@ -5,7 +5,6 @@ import Foundation
 /// kein Neustart nötig — anders als der ursprüngliche, überholte SwiftData-Plan
 /// (docs/superpowers/specs/2026-07-01-icloud-sync-beta-design.md).
 enum CloudSyncSettings {
-    static let isAvailable = true
     static let isEnabledKey = "cloudSync.isEnabled"
     static let defaultIsEnabled = false
     static let cloudKitContainerIdentifier = "iCloud.ch.martin.Feedivo"

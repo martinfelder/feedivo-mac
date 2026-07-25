@@ -40,7 +40,6 @@ struct FeedViewModelTests {
             enrichArticleImages: enrichArticleImages,
             notifyFeedRefresh: notifyFeedRefresh,
             notifyRuleNotifications: notifyRuleNotifications,
-            articleRetentionDefaults: articleRetentionDefaults,
             minimumRefreshStatusDuration: minimumRefreshStatusDuration
         )
     }
@@ -80,7 +79,9 @@ struct FeedViewModelTests {
             sqliteDatabase: sqliteDatabase
         )
 
-        let feed = try #require(try FeedStore(database: sqliteDatabase).feed(url: "https://example.com/feed.xml"))
+        let feed = try #require(
+            try FeedStore(database: sqliteDatabase).feeds().first { $0.url == "https://example.com/feed.xml" }
+        )
         let rows = try TimelineStore(database: sqliteDatabase).articles(
             scope: .feed(feed.id),
             includeRead: true,
@@ -160,7 +161,9 @@ struct FeedViewModelTests {
             sqliteDatabase: sqliteDatabase
         )
 
-        let sqliteFeed = try #require(try FeedStore(database: sqliteDatabase).feed(url: "https://example.com/imported.xml"))
+        let sqliteFeed = try #require(
+            try FeedStore(database: sqliteDatabase).feeds().first { $0.url == "https://example.com/imported.xml" }
+        )
         let rows = try TimelineStore(database: sqliteDatabase).articles(
             scope: .feed(sqliteFeed.id),
             includeRead: true,
@@ -238,9 +241,9 @@ struct FeedViewModelTests {
         let secondID = UUID()
         let thirdID = UUID()
         let items = [
-            FeedRefreshItem(feedID: firstID, feedTitle: "Feed 1", feedURL: "https://example.com/1.xml", status: .pending),
-            FeedRefreshItem(feedID: secondID, feedTitle: "Feed 2", feedURL: "https://example.com/2.xml", status: .pending),
-            FeedRefreshItem(feedID: thirdID, feedTitle: "Feed 3", feedURL: "https://example.com/3.xml", status: .failed)
+            FeedRefreshItem(feedID: firstID, feedTitle: "Feed 1", status: .pending),
+            FeedRefreshItem(feedID: secondID, feedTitle: "Feed 2", status: .pending),
+            FeedRefreshItem(feedID: thirdID, feedTitle: "Feed 3", status: .failed)
         ]
 
         let updatedItems = FeedRefreshItemStatusBatch.updatedItems(

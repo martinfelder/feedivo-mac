@@ -36,9 +36,7 @@ enum ArticleRetentionCleanupService {
                     a.publishedAt,
                     a.arrivedAt,
                     s.isStarred,
-                    s.isArchived,
-                    s.isRead,
-                    s.isHidden
+                    s.isArchived
                 FROM articles a
                 JOIN article_statuses s ON s.articleID = a.id
                 """)
@@ -353,8 +351,6 @@ private struct SQLiteArticleRetentionCandidate: FetchableRecord {
     let arrivedAt: Date
     let isStarred: Bool
     let isArchived: Bool
-    let isRead: Bool
-    let isHidden: Bool
 
     /// Fallback auf `arrivedAt` (NOT NULL, immer vorhanden), wenn der Feed kein
     /// parsbares Veröffentlichungsdatum liefert — sonst blieben solche Artikel
@@ -372,8 +368,6 @@ private struct SQLiteArticleRetentionCandidate: FetchableRecord {
         arrivedAt = row["arrivedAt"]
         isStarred = row["isStarred"]
         isArchived = row["isArchived"]
-        isRead = row["isRead"]
-        isHidden = row["isHidden"]
     }
 }
 

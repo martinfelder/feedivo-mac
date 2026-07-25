@@ -163,19 +163,6 @@ struct TimelineStore {
         }
     }
 
-    func unreadCount(feedID: String) throws -> Int {
-        try database.read { db in
-            try Int.fetchOne(db, sql: """
-                SELECT COUNT(*)
-                FROM articles a
-                JOIN article_statuses s ON s.articleID = a.id
-                WHERE a.feedID = ?
-                    AND s.isRead = 0
-                    AND s.isHidden = 0
-                """, arguments: [feedID]) ?? 0
-        }
-    }
-
     @discardableResult
     func markRead(
         scope: TimelineScope,

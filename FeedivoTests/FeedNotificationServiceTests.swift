@@ -44,7 +44,6 @@ struct FeedNotificationServiceTests {
             )
         )
 
-        #expect(summary.newArticleCount == 5)
         #expect(summary.feedTitles == ["Heise", "Mac & i"])
         #expect(summary.title == "5 neue Artikel")
         #expect(summary.body == "Heise, Mac & i")

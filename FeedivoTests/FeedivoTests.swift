@@ -119,9 +119,7 @@ struct FeedivoTests {
     }
 
     @Test func networkConnectionStatusLiefertAnzeigeDaten() {
-        #expect(NetworkConnectionStatus.online.localizationKey == "networkStatus.online")
         #expect(NetworkConnectionStatus.online.systemImageName == "wifi")
-        #expect(NetworkConnectionStatus.offline.localizationKey == "networkStatus.offline")
         #expect(NetworkConnectionStatus.offline.systemImageName == "wifi.slash")
     }
 
@@ -1030,11 +1028,11 @@ struct FeedivoTests {
 
     @Test func sidebarFeedOrderOrdnetUnfolderteFeedsVorOrdnernEin() {
         let unfoldered = FeedSidebarSnapshot(
-            id: "u1", title: "Unfoldered", url: "https://u1", faviconURL: nil,
+            id: "u1", title: "Unfoldered", faviconURL: nil,
             folderName: nil, sortIndex: 0, unreadCount: 0, hasRecentError: false
         )
         let foldered = FeedSidebarSnapshot(
-            id: "f1", title: "Foldered", url: "https://f1", faviconURL: nil,
+            id: "f1", title: "Foldered", faviconURL: nil,
             folderName: "Ordner A", sortIndex: 0, unreadCount: 0, hasRecentError: false
         )
         let folders = [FeedFolderRecord(name: "Ordner A", sortIndex: 0)]
@@ -1046,11 +1044,11 @@ struct FeedivoTests {
 
     @Test func sidebarFeedOrderRespektiertOrdnerReihenfolge() {
         let feedInB = FeedSidebarSnapshot(
-            id: "b1", title: "In B", url: "https://b1", faviconURL: nil,
+            id: "b1", title: "In B", faviconURL: nil,
             folderName: "Ordner B", sortIndex: 0, unreadCount: 0, hasRecentError: false
         )
         let feedInA = FeedSidebarSnapshot(
-            id: "a1", title: "In A", url: "https://a1", faviconURL: nil,
+            id: "a1", title: "In A", faviconURL: nil,
             folderName: "Ordner A", sortIndex: 0, unreadCount: 0, hasRecentError: false
         )
         let folders = [
@@ -1065,9 +1063,9 @@ struct FeedivoTests {
 
     @Test func sidebarFeedOrderNextFeedWithUnreadUeberspringtFeedsOhneUngelesene() {
         let feeds = [
-            FeedSidebarSnapshot(id: "1", title: "A", url: "https://1", faviconURL: nil, folderName: nil, sortIndex: 0, unreadCount: 0, hasRecentError: false),
-            FeedSidebarSnapshot(id: "2", title: "B", url: "https://2", faviconURL: nil, folderName: nil, sortIndex: 1, unreadCount: 0, hasRecentError: false),
-            FeedSidebarSnapshot(id: "3", title: "C", url: "https://3", faviconURL: nil, folderName: nil, sortIndex: 2, unreadCount: 5, hasRecentError: false)
+            FeedSidebarSnapshot(id: "1", title: "A", faviconURL: nil, folderName: nil, sortIndex: 0, unreadCount: 0, hasRecentError: false),
+            FeedSidebarSnapshot(id: "2", title: "B", faviconURL: nil, folderName: nil, sortIndex: 1, unreadCount: 0, hasRecentError: false),
+            FeedSidebarSnapshot(id: "3", title: "C", faviconURL: nil, folderName: nil, sortIndex: 2, unreadCount: 5, hasRecentError: false)
         ]
 
         let next = SidebarFeedOrder.nextFeedWithUnread(after: "1", in: feeds)
@@ -1077,7 +1075,7 @@ struct FeedivoTests {
 
     @Test func sidebarFeedOrderNextFeedWithUnreadLiefertNilAmEnde() {
         let feeds = [
-            FeedSidebarSnapshot(id: "1", title: "A", url: "https://1", faviconURL: nil, folderName: nil, sortIndex: 0, unreadCount: 3, hasRecentError: false)
+            FeedSidebarSnapshot(id: "1", title: "A", faviconURL: nil, folderName: nil, sortIndex: 0, unreadCount: 3, hasRecentError: false)
         ]
 
         let next = SidebarFeedOrder.nextFeedWithUnread(after: "1", in: feeds)
@@ -1087,9 +1085,9 @@ struct FeedivoTests {
 
     @Test func sidebarFeedOrderPreviousFeedWithUnreadUeberspringtFeedsOhneUngelesene() {
         let feeds = [
-            FeedSidebarSnapshot(id: "1", title: "A", url: "https://1", faviconURL: nil, folderName: nil, sortIndex: 0, unreadCount: 5, hasRecentError: false),
-            FeedSidebarSnapshot(id: "2", title: "B", url: "https://2", faviconURL: nil, folderName: nil, sortIndex: 1, unreadCount: 0, hasRecentError: false),
-            FeedSidebarSnapshot(id: "3", title: "C", url: "https://3", faviconURL: nil, folderName: nil, sortIndex: 2, unreadCount: 0, hasRecentError: false)
+            FeedSidebarSnapshot(id: "1", title: "A", faviconURL: nil, folderName: nil, sortIndex: 0, unreadCount: 5, hasRecentError: false),
+            FeedSidebarSnapshot(id: "2", title: "B", faviconURL: nil, folderName: nil, sortIndex: 1, unreadCount: 0, hasRecentError: false),
+            FeedSidebarSnapshot(id: "3", title: "C", faviconURL: nil, folderName: nil, sortIndex: 2, unreadCount: 0, hasRecentError: false)
         ]
 
         let previous = SidebarFeedOrder.previousFeedWithUnread(before: "3", in: feeds)
@@ -1099,7 +1097,7 @@ struct FeedivoTests {
 
     @Test func sidebarFeedOrderPreviousFeedWithUnreadLiefertNilAmAnfang() {
         let feeds = [
-            FeedSidebarSnapshot(id: "1", title: "A", url: "https://1", faviconURL: nil, folderName: nil, sortIndex: 0, unreadCount: 3, hasRecentError: false)
+            FeedSidebarSnapshot(id: "1", title: "A", faviconURL: nil, folderName: nil, sortIndex: 0, unreadCount: 3, hasRecentError: false)
         ]
 
         let previous = SidebarFeedOrder.previousFeedWithUnread(before: "1", in: feeds)

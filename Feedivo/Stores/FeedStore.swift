@@ -32,18 +32,6 @@ struct FeedStore {
         }
     }
 
-    // Legacy-Helfer: Feed-URLs sind nicht eindeutig, neue Call-Sites sollten per ID laden.
-    func feed(url: String) throws -> FeedRecord? {
-        try database.read { db in
-            try FeedRecord.fetchOne(db, sql: """
-                SELECT *
-                FROM feeds
-                WHERE url = ?
-                LIMIT 1
-                """, arguments: [url])
-        }
-    }
-
     func feeds() throws -> [FeedRecord] {
         try database.read { db in
             try FeedRecord.fetchAll(db, sql: """
@@ -332,21 +320,6 @@ struct FeedStore {
         }
     }
 
-    /// Einzelfeed-Variante derselben Fehler-Ableitung wie `sidebarFeeds()` — für
-    /// `SQLiteFeedArticleListView`s Inline-Fehlerbanner, wo kein vollständiger
-    /// `FeedSidebarSnapshot` verfügbar ist (Finding 2.1/Feature 20.1, Gruppe 6).
-    func hasRecentError(feedID: String) throws -> Bool {
-        try database.read { db in
-            try Bool.fetchOne(db, sql: """
-                SELECT level = 'error'
-                FROM feed_logs
-                WHERE feedID = ?
-                ORDER BY createdAt DESC
-                LIMIT 1
-                """, arguments: [feedID]) ?? false
-        }
-    }
-
     func sidebarFeeds(showsReadFeeds: Bool) throws -> [FeedSidebarSnapshot] {
         let snapshots = try sidebarFeeds()
         guard !showsReadFeeds else {
@@ -489,7 +462,6 @@ extension FeedSidebarSnapshot: FetchableRecord {
     init(row: Row) throws {
         id = row["id"]
         title = row["title"]
-        url = row["url"]
         faviconURL = row["faviconURL"]
         folderName = row["folderName"]
         sortIndex = row["sortIndex"]

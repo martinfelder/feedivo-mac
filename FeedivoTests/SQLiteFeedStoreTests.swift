@@ -129,18 +129,6 @@ struct SQLiteFeedStoreTests {
         ])
     }
 
-    @Test func feedByURLFindsExistingRecordLegacyMehrdeutig() throws {
-        let database = try FeedivoDatabase.inMemoryForTests()
-        let store = FeedStore(database: database)
-
-        try store.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example"))
-
-        let loaded = try store.feed(url: "https://example.com/feed.xml")
-
-        #expect(loaded?.id == "feed-1")
-        #expect(loaded?.title == "Example")
-    }
-
     @Test func updateAfterRefreshStoresValidatorsAndUnreadCount() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let store = FeedStore(database: database)
@@ -241,29 +229,6 @@ struct SQLiteFeedStoreTests {
         let snapshots = try store.sidebarFeeds()
 
         #expect(snapshots.first { $0.id == "feed-a" }?.hasRecentError == false)
-    }
-
-    @Test func hasRecentErrorLiefertStatusFuerEinzelnenFeed() throws {
-        let database = try FeedivoDatabase.inMemoryForTests()
-        let store = FeedStore(database: database)
-        let logStore = FeedLogStore(database: database)
-
-        try store.save(FeedRecord(id: "feed-a", url: "https://a.example/feed.xml", title: "A"))
-        try logStore.append(FeedLogRecord(
-            feedID: "feed-a",
-            createdAt: Date(timeIntervalSince1970: 100),
-            level: "error",
-            message: "Netzwerkfehler"
-        ))
-
-        #expect(try store.hasRecentError(feedID: "feed-a") == true)
-    }
-
-    @Test func hasRecentErrorLiefertFalseFuerUnbekannteFeedID() throws {
-        let database = try FeedivoDatabase.inMemoryForTests()
-        let store = FeedStore(database: database)
-
-        #expect(try store.hasRecentError(feedID: "unbekannt") == false)
     }
 
     @Test func sidebarFeedsSortiertNachSortIndexNichtNachTitel() throws {

@@ -8,15 +8,6 @@ struct ArticleStatusStore {
         self.database = database
     }
 
-    func ensureStatus(articleID: String, dateArrived: Date) throws {
-        try database.write { db in
-            if try ArticleStatusRecord.fetchOne(db, key: articleID) == nil {
-                var status = ArticleStatusRecord(articleID: articleID, dateArrived: dateArrived)
-                try status.insert(db)
-            }
-        }
-    }
-
     func status(articleID: String) throws -> ArticleStatusRecord? {
         try database.read { db in
             try ArticleStatusRecord.fetchOne(db, key: articleID)

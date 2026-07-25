@@ -11,8 +11,6 @@ struct ArticleWindowRequest: Codable, Hashable, Identifiable {
 struct ArticleWindowView: View {
     @Environment(\.feedivoDatabase) private var database
 
-    let request: ArticleWindowRequest
-
     @State private var selectedArticleID: String
     @State private var articleIDs: [String] = []
     @State private var articleSnapshot: ArticleReaderSnapshot?
@@ -20,7 +18,6 @@ struct ArticleWindowView: View {
     @State private var loadErrorMessage: String?
 
     init(request: ArticleWindowRequest) {
-        self.request = request
         self._selectedArticleID = State(initialValue: request.articleID.uuidString)
     }
 

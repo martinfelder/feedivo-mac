@@ -41,7 +41,7 @@ struct SQLitePerformanceSmokeTests {
 
         let start = Date()
         let snapshots = try timelineStore.articles(scope: .all, includeRead: false, includeHidden: false, limit: 50)
-        let count = try timelineStore.unreadCount(feedID: "feed-42")
+        let count = try statusStore.unreadCount(feedID: "feed-42")
         let elapsed = Date().timeIntervalSince(start)
 
         #expect(snapshots.count == 50)

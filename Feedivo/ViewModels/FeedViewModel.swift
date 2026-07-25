@@ -2,7 +2,6 @@ import Foundation
 import Observation
 
 struct FeedOperationProgress: Equatable {
-    var title: String
     var completedCount: Int
     var totalCount: Int
 
@@ -40,7 +39,6 @@ struct FeedRefreshItem: Identifiable, Equatable, Sendable {
 
     var feedID: UUID
     var feedTitle: String
-    var feedURL: String
     var status: FeedRefreshItemStatus
 }
 
@@ -76,7 +74,6 @@ final class FeedViewModel {
     private let enrichArticleImages: @Sendable ([ParsedArticle]) async -> [ParsedArticle]
     private let notifyFeedRefresh: ([FeedRefreshNotificationResult]) async -> Void
     private let notifyRuleNotifications: ([RuleNotificationResult]) async -> Void
-    private let articleRetentionDefaults: UserDefaults
     private let minimumRefreshStatusDuration: Duration
 
     var isLoading = false
@@ -111,7 +108,6 @@ final class FeedViewModel {
         notifyRuleNotifications: @escaping ([RuleNotificationResult]) async -> Void = { results in
             await FeedNotificationService.presentRuleSummary(for: results)
         },
-        articleRetentionDefaults: UserDefaults = .standard,
         minimumRefreshStatusDuration: Duration = .milliseconds(700)
     ) {
         self.fetchFeed = fetchFeed
@@ -120,7 +116,6 @@ final class FeedViewModel {
         self.enrichArticleImages = enrichArticleImages
         self.notifyFeedRefresh = notifyFeedRefresh
         self.notifyRuleNotifications = notifyRuleNotifications
-        self.articleRetentionDefaults = articleRetentionDefaults
         self.minimumRefreshStatusDuration = minimumRefreshStatusDuration
     }
 
@@ -174,7 +169,7 @@ final class FeedViewModel {
 
         guard let sqliteDatabase else {
             errorMessage = L10n.feedErrorAddFailed
-            return OPMLImportResult(total: opmlFeeds.count, imported: 0, skippedDuplicates: 0)
+            return OPMLImportResult(imported: 0, skippedDuplicates: 0)
         }
 
         let service = SQLiteFeedSubscriptionService(
@@ -200,7 +195,6 @@ final class FeedViewModel {
         }
 
         return OPMLImportResult(
-            total: sqliteResult.total,
             imported: sqliteResult.imported,
             skippedDuplicates: sqliteResult.skippedDuplicates
         )
@@ -366,13 +360,11 @@ final class FeedViewModel {
             FeedRefreshItem(
                 feedID: snapshot.id,
                 feedTitle: snapshot.title,
-                feedURL: snapshot.url,
                 status: .pending
             )
         }
         let refreshStatusStart = ContinuousClock().now
         operationProgress = FeedOperationProgress(
-            title: L10n.feedProgressRefreshAllTitle,
             completedCount: 0,
             totalCount: snapshots.count
         )
@@ -494,7 +486,6 @@ final class FeedViewModel {
 }
 
 struct OPMLImportResult: Equatable {
-    let total: Int
     let imported: Int
     let skippedDuplicates: Int
 }

@@ -47,13 +47,6 @@ struct BackgroundRefreshSettingsTests {
         #expect(nextRefreshDate == now.addingTimeInterval(30 * 60))
     }
 
-    @Test func statusTextBeschreibtGespeichertenStatus() {
-        #expect(BackgroundRefreshSettings.statusText(for: BackgroundRefreshSettings.statusSuccess) == "Erfolgreich")
-        #expect(BackgroundRefreshSettings.statusText(for: BackgroundRefreshSettings.statusFailed) == "Fehlgeschlagen")
-        #expect(BackgroundRefreshSettings.statusText(for: nil) == "Noch nicht gelaufen")
-        #expect(BackgroundRefreshSettings.statusText(for: "unbekannt") == "Noch nicht gelaufen")
-    }
-
     @Test func refreshOnLaunchIstStandardmaessigAus() {
         #expect(BackgroundRefreshSettings.refreshOnLaunchIsEnabledKey == "backgroundRefresh.refreshOnLaunchIsEnabled")
         #expect(BackgroundRefreshSettings.defaultRefreshOnLaunchIsEnabled == false)

@@ -6,12 +6,8 @@ enum SQLiteFeedFetchResult: Sendable {
 }
 
 struct SQLiteFeedRefreshResult: Equatable, Sendable {
-    var feedID: String
     var feedTitle: String
     var insertedArticleIDs: [String]
-    var updatedArticleIDs: [String]
-    var unreadCount: Int
-    var isNotModified: Bool
     var ruleNotifications: [RuleNotificationResult] = []
     var newArticleCount: Int = 0
 }
@@ -119,12 +115,8 @@ struct SQLiteFeedRefreshService {
                 ))
 
                 return SQLiteFeedRefreshResult(
-                    feedID: feedID,
                     feedTitle: feed.title,
                     insertedArticleIDs: [],
-                    updatedArticleIDs: [],
-                    unreadCount: unreadCount,
-                    isNotModified: true,
                     newArticleCount: 0
                 )
 
@@ -193,12 +185,8 @@ struct SQLiteFeedRefreshService {
                 ))
 
                 return SQLiteFeedRefreshResult(
-                    feedID: feedID,
                     feedTitle: refreshedTitle,
                     insertedArticleIDs: upsertResult.insertedArticleIDs,
-                    updatedArticleIDs: upsertResult.updatedArticleIDs,
-                    unreadCount: unreadCount,
-                    isNotModified: false,
                     ruleNotifications: ruleResult.notifications,
                     newArticleCount: recentNewArticleCount
                 )

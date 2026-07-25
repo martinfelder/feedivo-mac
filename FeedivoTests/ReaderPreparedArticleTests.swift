@@ -52,7 +52,11 @@ struct ReaderPreparedArticleTests {
         let prepared = ReaderPreparedArticle(input: input)
 
         #expect(prepared.metadataText.contains("Martin"))
-        let readingTimeRange = prepared.metadataText.range(of: prepared.readingTimeText ?? "")
+        let readingTimeText = ReaderMetadataFormatter.readingTimeText(
+            content: input.content,
+            summary: input.summary
+        )
+        let readingTimeRange = prepared.metadataText.range(of: readingTimeText ?? "")
         let authorRange = prepared.metadataText.range(of: "Martin")
         if let readingTimeRange, let authorRange {
             #expect(readingTimeRange.upperBound <= authorRange.lowerBound)

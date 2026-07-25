@@ -51,7 +51,7 @@ struct SQLiteFeedActionService {
             discoverFaviconURL: discoverFaviconURL,
             enrichArticleImages: enrichArticleImages
         )
-        _ = try await service.addFeed(
+        try await service.addFeed(
             urlString: urlString,
             refreshIntervalMinutes: refreshIntervalMinutes,
             folderName: folderName

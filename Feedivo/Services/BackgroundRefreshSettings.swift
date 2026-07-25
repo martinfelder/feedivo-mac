@@ -37,15 +37,4 @@ enum BackgroundRefreshSettings {
     static func nextScheduledRefreshDate(intervalMinutes: Int, now: Date = Date()) -> Date {
         now.addingTimeInterval(TimeInterval(clampedIntervalMinutes(intervalMinutes) * 60))
     }
-
-    static func statusText(for status: String?) -> String {
-        switch status {
-        case statusSuccess:
-            "Erfolgreich"
-        case statusFailed:
-            "Fehlgeschlagen"
-        default:
-            "Noch nicht gelaufen"
-        }
-    }
 }

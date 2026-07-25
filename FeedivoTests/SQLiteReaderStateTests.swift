@@ -14,7 +14,6 @@ struct SQLiteReaderStateTests {
         #expect(state.snapshot?.id == articleID)
         #expect(state.snapshot?.title == "SQLite Artikel")
         #expect(state.preparedArticle.metadataText.contains("SQLite Feed"))
-        #expect(state.preparedArticle.contentAvailability == .feedContent)
         #expect(state.isLoading == false)
     }
 

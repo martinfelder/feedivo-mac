@@ -2,35 +2,6 @@ import Testing
 @testable import Feedivo
 
 struct FirstRunWizardStateTests {
-    @Test func wizardWirdNurBeiLeeremFeedBestandUndOhneAbschlussAngezeigt() {
-        #expect(FirstRunWizardState.shouldPresent(feedCount: 0, hasCompletedWizard: false))
-        #expect(!FirstRunWizardState.shouldPresent(feedCount: 1, hasCompletedWizard: false))
-    }
-
-    @Test func wizardWirdBeiLeeremFeedBestandNachFrueheremAbschlussNichtErneutAngezeigt() {
-        #expect(
-            !FirstRunWizardState.shouldPresent(
-                feedCount: 0,
-                hasCompletedWizard: true,
-                wasDismissedThisSession: false
-            )
-        )
-    }
-
-    @Test func wizardBleibtNachSpaeterDauerhaftAusgeblendet() {
-        var hasCompletedWizard = false
-
-        FirstRunWizardState.markCompleted(&hasCompletedWizard)
-
-        #expect(
-            !FirstRunWizardState.shouldPresent(
-                feedCount: 0,
-                hasCompletedWizard: hasCompletedWizard,
-                wasDismissedThisSession: false
-            )
-        )
-    }
-
     @Test func wizardWirdNachImportAlsAbgeschlossenMarkiert() {
         var hasCompletedWizard = false
 
@@ -39,46 +10,19 @@ struct FirstRunWizardStateTests {
         #expect(hasCompletedWizard)
     }
 
-    @Test func wizardWirdNachEinmaligerAnzeigeNichtErneutBeiLeererAppGezeigt() {
+    @Test func wizardWirdNachEinmaligerAnzeigeAlsPraesentiertMarkiert() {
         var hasBeenPresented = false
 
         FirstRunWizardState.markPresented(&hasBeenPresented)
 
-        #expect(
-            !FirstRunWizardState.shouldPresent(
-                feedCount: 0,
-                hasCompletedWizard: false,
-                hasBeenPresented: hasBeenPresented
-            )
-        )
+        #expect(hasBeenPresented)
     }
 
-    @Test func wizardWirdNachSpaeterGeloeschtenFeedsNichtWiederGezeigt() {
+    @Test func wizardWirdNachSpaeterGeloeschtenFeedsAlsHadFeedsMarkiert() {
         var hasHadFeeds = false
 
         FirstRunWizardState.markHadFeeds(&hasHadFeeds)
 
-        #expect(
-            !FirstRunWizardState.shouldPresent(
-                feedCount: 0,
-                hasCompletedWizard: false,
-                hasHadFeeds: hasHadFeeds
-            )
-        )
-    }
-
-    @Test func sichtbarerWizardBleibtNachImportOffenBisAktivGestartetWird() {
-        #expect(
-            FirstRunWizardState.shouldKeepPresentedUntilUserStarts(
-                isPresented: true,
-                wasDismissedThisSession: false
-            )
-        )
-        #expect(
-            !FirstRunWizardState.shouldKeepPresentedUntilUserStarts(
-                isPresented: true,
-                wasDismissedThisSession: true
-            )
-        )
+        #expect(hasHadFeeds)
     }
 }

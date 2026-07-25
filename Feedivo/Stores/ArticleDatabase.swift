@@ -39,10 +39,6 @@ struct ArticleDatabase {
         self.timelineStore = TimelineStore(database: database)
     }
 
-    func feedExists(id: String) throws -> Bool {
-        try feedStore.feed(id: id) != nil
-    }
-
     func feedExistsAsync(id: String) async throws -> Bool {
         try await database.readAsync { db in
             try Bool.fetchOne(
@@ -168,67 +164,6 @@ struct ArticleDatabase {
         }
 
         return try fetchUnreadArticles(feedIDs: Set(allFeedIDs), limit: limit)
-    }
-
-    func fetchTodayArticles(
-        feedIDs: Set<String>,
-        includeRead: Bool = true,
-        includeHidden: Bool = false,
-        limit: Int = 500,
-        now: Date = Date(),
-        calendar: Calendar = .current
-    ) throws -> [ArticleListSnapshot] {
-        guard !feedIDs.isEmpty else {
-            return []
-        }
-
-        let sortedFeedIDs = feedIDs.sorted()
-        let placeholders = Self.placeholders(count: sortedFeedIDs.count)
-        let startOfDay = calendar.startOfDay(for: now)
-        let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)
-            ?? startOfDay.addingTimeInterval(24 * 60 * 60)
-        var arguments = StatementArguments(sortedFeedIDs)
-        _ = arguments.append(contentsOf: [startOfDay, endOfDay])
-
-        return try fetchArticles(
-            whereSQL: "a.feedID IN (\(placeholders)) AND a.publishedAt >= ? AND a.publishedAt < ?",
-            arguments: arguments,
-            includeRead: includeRead,
-            includeHidden: includeHidden,
-            limit: limit
-        )
-    }
-
-    func fetchStarredArticles(
-        feedIDs: Set<String>,
-        includeHidden: Bool = false,
-        limit: Int = 500
-    ) throws -> [ArticleListSnapshot] {
-        guard !feedIDs.isEmpty else {
-            return []
-        }
-
-        let sortedFeedIDs = feedIDs.sorted()
-        let placeholders = Self.placeholders(count: sortedFeedIDs.count)
-        return try fetchArticles(
-            whereSQL: "a.feedID IN (\(placeholders)) AND s.isStarred = 1",
-            arguments: StatementArguments(sortedFeedIDs),
-            includeRead: true,
-            includeHidden: includeHidden,
-            limit: limit
-        )
-    }
-
-    func searchArticles(
-        matching query: String,
-        includeHidden: Bool = false,
-        limit: Int = 500
-    ) throws -> [ArticleListSnapshot] {
-        try articleStore.searchArticles(
-            matching: query,
-            includeHidden: includeHidden,
-            limit: limit
-        )
     }
 
     func searchArticles(

@@ -10,7 +10,6 @@ struct FeedRefreshNotificationResult: Equatable, Sendable {
 struct FeedNotificationSummary: Equatable, Sendable {
     var title: String
     var body: String
-    var newArticleCount: Int
     var feedTitles: [String]
 }
 
@@ -74,7 +73,6 @@ enum FeedNotificationService {
         return FeedNotificationSummary(
             title: L10n.feedNotificationSummaryTitle(newArticleCount),
             body: feedTitles.joined(separator: ", "),
-            newArticleCount: newArticleCount,
             feedTitles: feedTitles
         )
     }

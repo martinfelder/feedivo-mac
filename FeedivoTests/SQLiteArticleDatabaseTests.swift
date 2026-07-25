@@ -24,7 +24,6 @@ struct SQLiteArticleDatabaseTests {
         let rows = try articleDatabase.timelineArticles(scope: .feed("feed-1"), includeRead: true)
         let readerSnapshot = try articleDatabase.readerArticle(id: articleID)
 
-        #expect(try articleDatabase.feedExists(id: "feed-1"))
         #expect(rows.map(\.id) == [articleID])
         #expect(readerSnapshot?.title == "Erster Artikel")
         #expect(readerSnapshot?.content == "Volltext")
@@ -92,8 +91,6 @@ struct SQLiteArticleDatabaseTests {
         #expect(try articleDatabase.fetchArticles(feedIDs: ["feed-1", "feed-2"]).map(\.id) == [feedTwoStarredID, feedOneUnreadID, feedOneReadID])
         #expect(try articleDatabase.fetchArticles(articleIDs: [feedOneReadID, feedTwoStarredID]).map(\.id) == [feedTwoStarredID, feedOneReadID])
         #expect(try articleDatabase.fetchUnreadArticles(feedIDs: ["feed-1", "feed-2"]).map(\.id) == [feedTwoStarredID, feedOneUnreadID])
-        #expect(try articleDatabase.fetchTodayArticles(feedIDs: ["feed-1", "feed-2"]).map(\.id) == [feedTwoStarredID, feedOneUnreadID])
-        #expect(try articleDatabase.fetchStarredArticles(feedIDs: ["feed-1", "feed-2"]).map(\.id) == [feedTwoStarredID])
     }
 
     @Test func articleDatabaseLiefertSucheUndAggregierteCounts() throws {
@@ -137,7 +134,6 @@ struct SQLiteArticleDatabaseTests {
 
         let counts = try articleDatabase.articleCounts(feedIDs: ["feed-1"])
 
-        #expect(try articleDatabase.searchArticles(matching: "SQLite").map(\.id) == [starredID, readID])
         #expect(counts.totalCount == 4)
         #expect(counts.unreadCount == 2)
         #expect(counts.starredCount == 1)

@@ -7,7 +7,6 @@ struct SidebarOutlineNodeTests {
         FeedSidebarSnapshot(
             id: id,
             title: title,
-            url: "https://example.com/\(id).xml",
             faviconURL: nil,
             folderName: folderName,
             sortIndex: sortIndex,
