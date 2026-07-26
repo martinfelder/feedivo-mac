@@ -17,9 +17,9 @@ struct TagStore {
     /// bewusst INNERHALB derselben `database.write`-Transaktion wie die fachliche Mutation
     /// (atomar — kein Zwischenzustand, in dem der Tag geändert, aber nicht als sync-pending
     /// markiert ist).
-    private func enqueuePendingSync(_ db: Database, tagID: String, changeType: CloudSyncChangeType) throws {
+    private func enqueuePendingSync(_ db: Database, tagID: String, changeType: CloudSyncChangeType, changedFields: [String]? = nil) throws {
         guard CloudSyncSettings.isEnabled() else { return }
-        try CloudSyncPendingChangeStore.enqueue(db, recordType: CloudSyncTagMapping.recordType, recordName: tagID, changeType: changeType)
+        try CloudSyncPendingChangeStore.enqueue(db, recordType: CloudSyncTagMapping.recordType, recordName: tagID, changeType: changeType, changedFields: changedFields)
     }
 
     func save(_ tag: TagRecord) throws {
@@ -212,7 +212,7 @@ struct TagStore {
                 throw TagStoreError.missingTag
             }
 
-            try enqueuePendingSync(db, tagID: id, changeType: .save)
+            try enqueuePendingSync(db, tagID: id, changeType: .save, changedFields: ["name"])
         }
         CloudSyncEngine.notifyPendingChangesAvailable(database: database)
     }
@@ -239,7 +239,7 @@ struct TagStore {
                     sql: "UPDATE tags SET sortIndex = ?, updatedAt = ? WHERE id = ?",
                     arguments: [index, now, tagID]
                 )
-                try enqueuePendingSync(db, tagID: tagID, changeType: .save)
+                try enqueuePendingSync(db, tagID: tagID, changeType: .save, changedFields: ["sortIndex"])
             }
         }
         CloudSyncEngine.notifyPendingChangesAvailable(database: database)
@@ -260,7 +260,7 @@ struct TagStore {
                 throw TagStoreError.missingTag
             }
 
-            try enqueuePendingSync(db, tagID: id, changeType: .save)
+            try enqueuePendingSync(db, tagID: id, changeType: .save, changedFields: ["colorHex"])
         }
         CloudSyncEngine.notifyPendingChangesAvailable(database: database)
     }
