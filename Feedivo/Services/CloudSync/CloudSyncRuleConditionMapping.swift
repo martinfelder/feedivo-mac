@@ -12,6 +12,8 @@ import OSLog
 /// Retry-/Warteschlangen-Infrastruktur).
 enum CloudSyncRuleConditionMapping: CloudSyncRecordMapping {
     static let recordType = "RuleCondition"
+    static let askFields: Set<String> = ["value"]
+    static let autoFields: Set<String> = ["field", "conditionOperator", "groupIndex", "sortOrder"]
 
     static func makeCKRecord(from condition: RuleConditionRecord, existing: CKRecord? = nil) -> CKRecord {
         let record = existing ?? CKRecord(recordType: recordType, recordID: recordID(forLocalID: condition.id))

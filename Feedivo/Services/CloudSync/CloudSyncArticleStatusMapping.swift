@@ -19,6 +19,8 @@ import GRDB
 /// Siehe `stableRecordName` unten für die Herleitung.
 enum CloudSyncArticleStatusMapping: CloudSyncRecordMapping {
     static let recordType = "ArticleStatus"
+    static let askFields: Set<String> = []
+    static let autoFields: Set<String> = []
 
     /// Geräteübergreifend deterministische Identität für einen Artikel-Status — exakt
     /// dieselbe Prioritätsreihenfolge (`sourceID` vor `link` vor `titleHash`) wie die

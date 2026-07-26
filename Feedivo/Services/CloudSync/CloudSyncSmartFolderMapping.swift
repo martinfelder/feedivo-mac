@@ -11,6 +11,8 @@ import GRDB
 /// gesetztem `defaultKey`, falls ein zukünftiger Bug oder ein anderer Client das doch sendet.
 enum CloudSyncSmartFolderMapping: CloudSyncRecordMapping {
     static let recordType = "SmartFolder"
+    static let askFields: Set<String> = ["name"]
+    static let autoFields: Set<String> = ["matchMode", "isShownInSidebar", "sortOrder", "iconName", "colorHex", "defaultShowsReadArticles"]
 
     static func makeCKRecord(from folder: SmartFolderRecord, existing: CKRecord? = nil) -> CKRecord {
         let record = existing ?? CKRecord(recordType: recordType, recordID: recordID(forLocalID: folder.id))

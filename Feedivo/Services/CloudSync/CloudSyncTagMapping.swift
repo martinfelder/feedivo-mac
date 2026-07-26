@@ -8,6 +8,8 @@ import GRDB
 enum CloudSyncTagMapping: CloudSyncRecordMapping {
     static let recordType = "Tag"
     static let zoneName = "FeedivoZone"
+    static let askFields: Set<String> = ["name"]
+    static let autoFields: Set<String> = ["colorHex", "sortIndex"]
 
     static func zoneID() -> CKRecordZone.ID {
         CKRecordZone.ID(zoneName: zoneName, ownerName: CKCurrentUserDefaultName)

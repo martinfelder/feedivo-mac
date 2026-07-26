@@ -7,6 +7,8 @@ import GRDB
 /// direkt das korrekte Last-Write-Wins-Feld, keine separate `configUpdatedAt`-Spalte nötig.
 enum CloudSyncFeedFolderMapping: CloudSyncRecordMapping {
     static let recordType = "FeedFolder"
+    static let askFields: Set<String> = ["name"]
+    static let autoFields: Set<String> = ["sortIndex"]
 
     static func makeCKRecord(from folder: FeedFolderRecord, existing: CKRecord? = nil) -> CKRecord {
         let record = existing ?? CKRecord(recordType: recordType, recordID: recordID(forLocalID: folder.id))

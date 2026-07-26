@@ -39,6 +39,16 @@ protocol CloudSyncRecordMapping {
     /// bestehender Zeilen bei jedem `CloudSyncEngine.start()` (siehe Design-Spec
     /// `docs/superpowers/specs/2026-07-24-icloud-sync-phase2a-backfill-design.md`).
     static func allLocalIDs(database: FeedivoDatabase) throws -> [String]
+
+    /// Feldnamen (exakt die CKRecord-Schlüssel aus `makeCKRecord`), bei denen ein Feld-Konflikt
+    /// (beide Seiten haben dieses Feld unterschiedlich geändert) dem Nutzer zur Entscheidung
+    /// vorgelegt wird (`pending_sync_conflicts`), statt automatisch aufgelöst zu werden. Siehe
+    /// Design-Spec `docs/superpowers/specs/2026-07-26-icloud-sync-phase3-design.md`, Abschnitt 3.
+    static var askFields: Set<String> { get }
+
+    /// Feldnamen, bei denen ein Konflikt automatisch über die bestehende Ganz-Record-
+    /// Last-Write-Wins-Logik aufgelöst wird — kein Dialog.
+    static var autoFields: Set<String> { get }
 }
 
 extension CloudSyncRecordMapping {

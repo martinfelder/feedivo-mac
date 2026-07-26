@@ -8,6 +8,8 @@ import GRDB
 /// statt `.cascade` — im Gegensatz zu `rule_conditions.ruleID`, siehe `CloudSyncRuleConditionMapping`).
 enum CloudSyncRuleMapping: CloudSyncRecordMapping {
     static let recordType = "Rule"
+    static let askFields: Set<String> = ["name"]
+    static let autoFields: Set<String> = ["isEnabled", "matchMode", "action", "assignTagID", "notificationTemplate", "notificationPriority", "sortOrder"]
 
     static func makeCKRecord(from rule: RuleRecord, existing: CKRecord? = nil) -> CKRecord {
         let record = existing ?? CKRecord(recordType: recordType, recordID: recordID(forLocalID: rule.id))

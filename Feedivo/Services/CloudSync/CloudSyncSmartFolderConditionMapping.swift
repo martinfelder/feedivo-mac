@@ -10,6 +10,8 @@ import OSLog
 /// durch eine zusätzliche Prüfung hier.
 enum CloudSyncSmartFolderConditionMapping: CloudSyncRecordMapping {
     static let recordType = "SmartFolderCondition"
+    static let askFields: Set<String> = ["value"]
+    static let autoFields: Set<String> = ["field", "conditionOperator", "sortOrder"]
 
     static func makeCKRecord(from condition: SmartFolderConditionRecord, existing: CKRecord? = nil) -> CKRecord {
         let record = existing ?? CKRecord(recordType: recordType, recordID: recordID(forLocalID: condition.id))

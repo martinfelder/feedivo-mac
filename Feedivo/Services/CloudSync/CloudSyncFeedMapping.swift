@@ -12,6 +12,13 @@ import GRDB
 /// Konfigurationsänderungen eines anderen Geräts kollidieren können.
 enum CloudSyncFeedMapping: CloudSyncRecordMapping {
     static let recordType = "Feed"
+    static let askFields: Set<String> = ["title"]
+    static let autoFields: Set<String> = [
+        "folderName", "sortIndex", "refreshIntervalMinutes", "isNotificationEnabled",
+        "articleRetentionOverridesGlobalSetting", "articleRetentionIsEnabled",
+        "articleRetentionDays", "articleRetentionMinimumArticles",
+        "articleRetentionIncludesProtectedArticles"
+    ]
 
     /// Reine, aus einem `CKRecord` gelesene Konfigurationswerte — Zwischenformat für
     /// `applyIncoming`, das zwischen "Feed existiert lokal bereits" (partielles UPDATE) und
