@@ -29,9 +29,9 @@ struct FeedFolderStore {
     /// Markiert `folderID` als ausstehende Sync-Änderung, falls iCloud Sync aktiv ist. Läuft
     /// bewusst INNERHALB derselben `database.write`-Transaktion wie die fachliche Mutation —
     /// analog zu `FeedStore.enqueuePendingSync`/`TagStore.enqueuePendingSync`.
-    private func enqueuePendingSync(_ db: Database, folderID: String, changeType: CloudSyncChangeType) throws {
+    private func enqueuePendingSync(_ db: Database, folderID: String, changeType: CloudSyncChangeType, changedFields: [String]? = nil) throws {
         guard CloudSyncSettings.isEnabled() else { return }
-        try CloudSyncPendingChangeStore.enqueue(db, recordType: CloudSyncFeedFolderMapping.recordType, recordName: folderID, changeType: changeType)
+        try CloudSyncPendingChangeStore.enqueue(db, recordType: CloudSyncFeedFolderMapping.recordType, recordName: folderID, changeType: changeType, changedFields: changedFields)
     }
 
     /// Markiert einen FEED (nicht Ordner) als ausstehende Sync-Änderung — gebraucht in
@@ -150,7 +150,7 @@ struct FeedFolderStore {
                 arguments: [trimmedName]
             )
             if let folderID {
-                try enqueuePendingSync(db, folderID: folderID, changeType: .save)
+                try enqueuePendingSync(db, folderID: folderID, changeType: .save, changedFields: ["name"])
             }
         }
         CloudSyncEngine.notifyPendingChangesAvailable(database: database)
@@ -250,7 +250,7 @@ struct FeedFolderStore {
                     arguments: [folderName]
                 )
                 if let folderID {
-                    try enqueuePendingSync(db, folderID: folderID, changeType: .save)
+                    try enqueuePendingSync(db, folderID: folderID, changeType: .save, changedFields: ["sortIndex"])
                 }
             }
         }
@@ -283,7 +283,7 @@ struct FeedFolderStore {
                     arguments: [folderName]
                 )
                 if let folderID {
-                    try enqueuePendingSync(db, folderID: folderID, changeType: .save)
+                    try enqueuePendingSync(db, folderID: folderID, changeType: .save, changedFields: ["sortIndex"])
                 }
             }
         }
