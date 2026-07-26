@@ -12,9 +12,9 @@ struct SQLiteSmartFolderStore {
     /// iCloud Sync aktiv ist. Läuft bewusst INNERHALB derselben `database.write`-Transaktion
     /// wie die fachliche Mutation — analog zu `FeedStore`/`FeedFolderStore`/`TagStore`/
     /// `SQLiteRuleStore`.
-    private func enqueuePendingSync(_ db: Database, recordType: String, recordName: String, changeType: CloudSyncChangeType) throws {
+    private func enqueuePendingSync(_ db: Database, recordType: String, recordName: String, changeType: CloudSyncChangeType, changedFields: [String]? = nil) throws {
         guard CloudSyncSettings.isEnabled() else { return }
-        try CloudSyncPendingChangeStore.enqueue(db, recordType: recordType, recordName: recordName, changeType: changeType)
+        try CloudSyncPendingChangeStore.enqueue(db, recordType: recordType, recordName: recordName, changeType: changeType, changedFields: changedFields)
     }
 
     // `smart_folder_conditions.smartFolderID` hat `ON DELETE CASCADE` (`PRAGMA foreign_keys = ON`
@@ -28,13 +28,23 @@ struct SQLiteSmartFolderStore {
     // versteckte, brach `smartFolderStoreSpeichertOrdnerMitConditionsUndSnapshots()` in
     // `SQLiteAdminStoreTests.swift` (ein Aufruf mit `isDefault: true` UND Bedingungen), weil er
     // die Bedingungen für Default-Ordner gar nicht mehr persistierte.
+    //
+    // `save(_:conditions:)` ist ein genereller Upsert — der Intelligente-Ordner-Editor ruft ihn
+    // bei JEDER Speicherung auf, egal welches Feld sich geändert hat (anders als bei
+    // Tag/Feed/FeedFolder, wo jede Store-Methode genau ein Feld ändert). Deshalb wird VOR dem
+    // Schreiben der bestehende Ordner-Stand geladen und per `changedSmartFolderFields` gegen den
+    // neuen verglichen, um `changedFields` korrekt zu berechnen — analog zu `SQLiteRuleStore`
+    // (Task 9). Die Bedingungszeilen selbst bleiben bewusst außerhalb dieses Diffs — sie werden
+    // wholesale ersetzt (DELETE + Re-Insert), ein Feld-Ebene-Diff pro Bedingungszeile ist nicht
+    // Teil dieser Aufgabe.
     func save(_ folder: SmartFolderRecord, conditions: [SmartFolderConditionRecord]) throws {
         try database.write { db in
+            let existingFolder = try Self.fetchFolders(db).first { $0.id == folder.id }
             var folder = folder
             try folder.save(db)
 
             if !folder.isDefault {
-                try enqueuePendingSync(db, recordType: CloudSyncSmartFolderMapping.recordType, recordName: folder.id, changeType: .save)
+                try enqueuePendingSync(db, recordType: CloudSyncSmartFolderMapping.recordType, recordName: folder.id, changeType: .save, changedFields: Self.changedSmartFolderFields(old: existingFolder, new: folder))
             }
 
             let existingConditionIDs = try String.fetchAll(db, sql: "SELECT id FROM smart_folder_conditions WHERE smartFolderID = ?", arguments: [folder.id])
@@ -62,6 +72,23 @@ struct SQLiteSmartFolderStore {
             }
         }
         CloudSyncEngine.notifyPendingChangesAvailable(database: database)
+    }
+
+    /// Vergleicht den alten gegen den neuen Ordner-Stand und liefert exakt die Feldnamen, die
+    /// sich tatsächlich geändert haben — `nil` (kein Tracking) falls `existingFolder` `nil` ist
+    /// (echte Neuanlage, kein Feld-Merge sinnvoll) oder sich kein Feld geändert hat. Feldnamen
+    /// entsprechen exakt den CKRecord-Schlüsseln aus `CloudSyncSmartFolderMapping.makeCKRecord`.
+    private static func changedSmartFolderFields(old existingFolder: SmartFolderRecord?, new folder: SmartFolderRecord) -> [String]? {
+        guard let existingFolder else { return nil }
+        var changed: [String] = []
+        if existingFolder.name != folder.name { changed.append("name") }
+        if existingFolder.matchMode != folder.matchMode { changed.append("matchMode") }
+        if existingFolder.isShownInSidebar != folder.isShownInSidebar { changed.append("isShownInSidebar") }
+        if existingFolder.sortOrder != folder.sortOrder { changed.append("sortOrder") }
+        if existingFolder.iconName != folder.iconName { changed.append("iconName") }
+        if existingFolder.colorHex != folder.colorHex { changed.append("colorHex") }
+        if existingFolder.defaultShowsReadArticles != folder.defaultShowsReadArticles { changed.append("defaultShowsReadArticles") }
+        return changed.isEmpty ? nil : changed
     }
 
     func folders() throws -> [SmartFolderRecord] {
@@ -99,7 +126,7 @@ struct SQLiteSmartFolderStore {
 
             let isDefault = try Bool.fetchOne(db, sql: "SELECT isDefault FROM smart_folders WHERE id = ?", arguments: [id]) ?? true
             guard !isDefault else { return }
-            try enqueuePendingSync(db, recordType: CloudSyncSmartFolderMapping.recordType, recordName: id, changeType: .save)
+            try enqueuePendingSync(db, recordType: CloudSyncSmartFolderMapping.recordType, recordName: id, changeType: .save, changedFields: ["isShownInSidebar"])
         }
         CloudSyncEngine.notifyPendingChangesAvailable(database: database)
     }
@@ -179,7 +206,7 @@ struct SQLiteSmartFolderStore {
                     arguments: [index, Date(), folder.id]
                 )
                 guard !folder.isDefault else { continue }
-                try enqueuePendingSync(db, recordType: CloudSyncSmartFolderMapping.recordType, recordName: folder.id, changeType: .save)
+                try enqueuePendingSync(db, recordType: CloudSyncSmartFolderMapping.recordType, recordName: folder.id, changeType: .save, changedFields: ["sortOrder"])
             }
         }
         CloudSyncEngine.notifyPendingChangesAvailable(database: database)
