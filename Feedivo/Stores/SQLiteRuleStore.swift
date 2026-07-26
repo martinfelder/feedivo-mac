@@ -11,20 +11,29 @@ struct SQLiteRuleStore {
     /// Markiert eine lokale Regel- oder Bedingungszeile als ausstehende Sync-Änderung, falls
     /// iCloud Sync aktiv ist. Läuft bewusst INNERHALB derselben `database.write`-Transaktion
     /// wie die fachliche Mutation — analog zu `FeedStore`/`FeedFolderStore`/`TagStore`.
-    private func enqueuePendingSync(_ db: Database, recordType: String, recordName: String, changeType: CloudSyncChangeType) throws {
+    private func enqueuePendingSync(_ db: Database, recordType: String, recordName: String, changeType: CloudSyncChangeType, changedFields: [String]? = nil) throws {
         guard CloudSyncSettings.isEnabled() else { return }
-        try CloudSyncPendingChangeStore.enqueue(db, recordType: recordType, recordName: recordName, changeType: changeType)
+        try CloudSyncPendingChangeStore.enqueue(db, recordType: recordType, recordName: recordName, changeType: changeType, changedFields: changedFields)
     }
 
     // `rule_conditions.ruleID` hat `ON DELETE CASCADE` (`PRAGMA foreign_keys = ON` ist aktiv,
     // siehe FeedivoDatabase.swift) — die alten Bedingungs-IDs müssen deshalb VOR dem
     // `DELETE FROM rule_conditions` ermittelt und als `.delete` enqueued werden, sonst sind sie
     // danach nicht mehr abfragbar.
+    //
+    // `save(_:conditions:)` ist ein genereller Upsert — der Regel-Editor ruft ihn bei JEDER
+    // Speicherung auf, egal welches Feld sich geändert hat (anders als bei Tag/Feed/FeedFolder,
+    // wo jede Store-Methode genau ein Feld ändert). Deshalb wird VOR dem Schreiben der
+    // bestehende Rule-Stand geladen und per `changedRuleFields` gegen den neuen verglichen, um
+    // `changedFields` korrekt zu berechnen. Die Bedingungszeilen selbst bleiben bewusst
+    // außerhalb dieses Diffs — sie werden wholesale ersetzt (DELETE + Re-Insert), ein
+    // Feld-Ebene-Diff pro Bedingungszeile ist nicht Teil dieser Aufgabe.
     func save(_ rule: RuleRecord, conditions: [RuleConditionRecord]) throws {
         try database.write { db in
+            let existingRule = try Self.fetchRules(db).first { $0.id == rule.id }
             var rule = rule
             try rule.save(db)
-            try enqueuePendingSync(db, recordType: CloudSyncRuleMapping.recordType, recordName: rule.id, changeType: .save)
+            try enqueuePendingSync(db, recordType: CloudSyncRuleMapping.recordType, recordName: rule.id, changeType: .save, changedFields: Self.changedRuleFields(old: existingRule, new: rule))
 
             let existingConditionIDs = try String.fetchAll(db, sql: "SELECT id FROM rule_conditions WHERE ruleID = ?", arguments: [rule.id])
             for conditionID in existingConditionIDs {
@@ -47,6 +56,24 @@ struct SQLiteRuleStore {
             }
         }
         CloudSyncEngine.notifyPendingChangesAvailable(database: database)
+    }
+
+    /// Vergleicht den alten gegen den neuen Rule-Stand und liefert exakt die Feldnamen, die sich
+    /// tatsächlich geändert haben — `nil` (kein Tracking) falls `existingRule` `nil` ist (echte
+    /// Neuanlage, kein Feld-Merge sinnvoll) oder sich kein Feld geändert hat. Feldnamen
+    /// entsprechen exakt den CKRecord-Schlüsseln aus `CloudSyncRuleMapping.makeCKRecord`.
+    private static func changedRuleFields(old existingRule: RuleRecord?, new rule: RuleRecord) -> [String]? {
+        guard let existingRule else { return nil }
+        var changed: [String] = []
+        if existingRule.name != rule.name { changed.append("name") }
+        if existingRule.isEnabled != rule.isEnabled { changed.append("isEnabled") }
+        if existingRule.matchMode != rule.matchMode { changed.append("matchMode") }
+        if existingRule.action != rule.action { changed.append("action") }
+        if existingRule.assignTagID != rule.assignTagID { changed.append("assignTagID") }
+        if existingRule.notificationTemplate != rule.notificationTemplate { changed.append("notificationTemplate") }
+        if existingRule.notificationPriority != rule.notificationPriority { changed.append("notificationPriority") }
+        if existingRule.sortOrder != rule.sortOrder { changed.append("sortOrder") }
+        return changed.isEmpty ? nil : changed
     }
 
     func rules() throws -> [RuleRecord] {
@@ -81,7 +108,7 @@ struct SQLiteRuleStore {
                     """,
                 arguments: [isEnabled, Date(), id]
             )
-            try enqueuePendingSync(db, recordType: CloudSyncRuleMapping.recordType, recordName: id, changeType: .save)
+            try enqueuePendingSync(db, recordType: CloudSyncRuleMapping.recordType, recordName: id, changeType: .save, changedFields: ["isEnabled"])
         }
         CloudSyncEngine.notifyPendingChangesAvailable(database: database)
     }
@@ -159,7 +186,7 @@ struct SQLiteRuleStore {
                         """,
                     arguments: [index, Date(), rule.id]
                 )
-                try enqueuePendingSync(db, recordType: CloudSyncRuleMapping.recordType, recordName: rule.id, changeType: .save)
+                try enqueuePendingSync(db, recordType: CloudSyncRuleMapping.recordType, recordName: rule.id, changeType: .save, changedFields: ["sortOrder"])
             }
         }
         CloudSyncEngine.notifyPendingChangesAvailable(database: database)
