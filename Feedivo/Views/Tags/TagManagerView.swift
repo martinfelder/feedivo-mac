@@ -18,15 +18,16 @@ struct TagManagerView: View {
         RuleDialogTheme(colorScheme: colorScheme)
     }
 
+    private var canAddTag: Bool {
+        TagViewModel.normalizedTagName(newTagName) != nil
+    }
+
     var body: some View {
         Group {
             if showsDoneButton {
-                content
-                    .padding(24)
-                    .frame(width: 520)
-                    .frame(minHeight: 420)
+                sheetBody
             } else {
-                content
+                organizerInlineContent
             }
         }
         .confirmationDialog(
@@ -56,7 +57,7 @@ struct TagManagerView: View {
         }
     }
 
-    private var content: some View {
+    private var organizerInlineContent: some View {
         VStack(alignment: .leading, spacing: 22) {
             OrganizerSectionHeader(
                 title: L10n.tagManagerTitle,
@@ -70,14 +71,87 @@ struct TagManagerView: View {
             if let errorMessage {
                 Text(errorMessage)
                     .font(.callout)
-                    .foregroundStyle(.red)
-            }
-
-            if showsDoneButton {
-                footer
+                    .foregroundStyle(theme.destructiveText)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    // MARK: - Sheet-Chrome (Konzept A, analog OPML-Import: feste Kopf-/Fußzeile
+    // mit Haarlinien-Trennern statt frei schwebendem Inhalt)
+
+    private var sheetBody: some View {
+        VStack(spacing: 0) {
+            header
+            dialogDivider
+            paddedContent
+            dialogDivider
+            footer
+        }
+        .background(theme.bg)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .frame(width: 640)
+        .frame(minHeight: 420)
+    }
+
+    private var dialogDivider: some View {
+        Rectangle()
+            .fill(theme.border)
+            .frame(height: 1)
+    }
+
+    private var header: some View {
+        HStack(alignment: .top, spacing: 14) {
+            VStack(alignment: .leading, spacing: 5) {
+                Text(L10n.tagManagerTitle)
+                    .font(.system(size: 21, weight: .bold))
+                    .tracking(-0.3)
+                    .foregroundStyle(theme.text)
+                Text(L10n.tagManagerDescription)
+                    .font(.system(size: 13.5))
+                    .foregroundStyle(theme.text2)
+            }
+
+            Spacer()
+
+            tagCountBadge
+        }
+        .padding(.horizontal, 26)
+        .padding(.top, 24)
+        .padding(.bottom, 20)
+    }
+
+    private var tagCountBadge: some View {
+        Text(tagCountText)
+            .font(.system(size: 12, weight: .semibold))
+            .foregroundStyle(theme.text2)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .background(theme.card, in: Capsule())
+            .overlay(
+                Capsule().stroke(theme.border, lineWidth: 1)
+            )
+    }
+
+    private var tagCountText: String {
+        String.localizedStringWithFormat(String(localized: "tagManager.tagCount"), tags.count)
+    }
+
+    private var paddedContent: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            newTagForm
+
+            tagList
+
+            if let errorMessage {
+                Text(errorMessage)
+                    .font(.callout)
+                    .foregroundStyle(theme.destructiveText)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 18)
+        .padding(.vertical, 16)
     }
 
     private var newTagForm: some View {
@@ -93,7 +167,7 @@ struct TagManagerView: View {
                     text: $newTagName,
                     theme: theme
                 )
-                .frame(maxWidth: 300)
+                .frame(width: 220)
 
                 HStack(spacing: 9) {
                     ForEach(TagColorPalette.colors, id: \.self) { colorHex in
@@ -113,15 +187,20 @@ struct TagManagerView: View {
 
                 RuleDialogButton(
                     titleKey: L10n.commonAdd,
-                    style: .primary,
+                    style: canAddTag ? .primary : .secondary,
                     theme: theme
                 ) {
                     createTag()
                 }
-                .disabled(TagViewModel.normalizedTagName(newTagName) == nil)
-                .opacity(TagViewModel.normalizedTagName(newTagName) == nil ? 0.4 : 1)
+                .disabled(!canAddTag)
             }
         }
+        .padding(14)
+        .background(theme.card, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(theme.border, lineWidth: 1)
+        )
     }
 
     private var tagList: some View {
@@ -129,9 +208,15 @@ struct TagManagerView: View {
             if tags.isEmpty {
                 ContentUnavailableView(L10n.tagManagerNoTags, systemImage: "tag")
                     .frame(maxWidth: .infinity, minHeight: 180)
+                    .background(theme.bg)
+                    .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 9, style: .continuous)
+                            .stroke(theme.border, lineWidth: 1)
+                    )
             } else {
-                VStack(alignment: .leading, spacing: 12) {
-                    ForEach(tags) { tag in
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(Array(tags.enumerated()), id: \.element.id) { index, tag in
                         TagManagerRow(
                             tag: tag,
                             tags: tags,
@@ -141,9 +226,22 @@ struct TagManagerView: View {
                                 tagPendingDeletion = tag
                             }
                         )
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+
+                        if index < tags.count - 1 {
+                            Rectangle()
+                                .fill(theme.border)
+                                .frame(height: 1)
+                        }
                     }
                 }
-                .padding(.top, 4)
+                .background(theme.bg)
+                .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        .stroke(theme.border, lineWidth: 1)
+                )
             }
         }
     }
@@ -151,11 +249,17 @@ struct TagManagerView: View {
     private var footer: some View {
         HStack {
             Spacer()
-            Button(L10n.commonDone) {
+            RuleDialogButton(
+                titleKey: L10n.commonDone,
+                style: .primary,
+                theme: theme
+            ) {
                 dismiss()
             }
             .keyboardShortcut(.defaultAction)
         }
+        .padding(.horizontal, 26)
+        .padding(.vertical, 16)
     }
 
     private func createTag() {
@@ -257,7 +361,7 @@ private struct TagManagerRow: View {
                     text: $draftName,
                     theme: theme
                 )
-                .frame(maxWidth: 300)
+                .frame(width: 190)
                 .onAppear {
                     draftName = tag.name
                 }
@@ -322,7 +426,7 @@ private struct TagManagerRow: View {
             if let rowErrorMessage {
                 Text(rowErrorMessage)
                     .font(.callout)
-                    .foregroundStyle(.red)
+                    .foregroundStyle(theme.destructiveText)
             }
         }
     }
