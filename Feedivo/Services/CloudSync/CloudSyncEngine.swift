@@ -732,32 +732,34 @@ extension CloudSyncEngine: CKSyncEngineDelegate {
         let wholeRecordLocalUpdatedAt = try? CloudSyncArticleStatusMapping.localUpdatedAt(forLocalID: localRecord.recordID.recordName, database: database)
         let wholeRecordServerModificationDate = serverRecord.modificationDate
 
-        let mergedRecord = serverRecord
-        if Self.articleStatusFieldLocalWins(
-            fieldTimestampLocal: localRecord["readAt"] as? Date,
-            fieldTimestampServer: serverRecord["readAt"] as? Date,
+        let mergedRecord = Self.mergeArticleStatusRecords(
+            localRecord: localRecord,
+            serverRecord: serverRecord,
             wholeRecordLocalUpdatedAt: wholeRecordLocalUpdatedAt,
             wholeRecordServerModificationDate: wholeRecordServerModificationDate
-        ) {
-            mergedRecord["isRead"] = localRecord["isRead"]
-            mergedRecord["readAt"] = localRecord["readAt"]
-        }
-        if Self.articleStatusFieldLocalWins(
-            fieldTimestampLocal: localRecord["starredAt"] as? Date,
-            fieldTimestampServer: serverRecord["starredAt"] as? Date,
-            wholeRecordLocalUpdatedAt: wholeRecordLocalUpdatedAt,
-            wholeRecordServerModificationDate: wholeRecordServerModificationDate
-        ) {
-            mergedRecord["isStarred"] = localRecord["isStarred"]
-            mergedRecord["starredAt"] = localRecord["starredAt"]
-        }
+        )
 
-        // Review-Fund C1 (identischer Bug wie im allgemeinen Feld-Merge-Pfad): NICHT
-        // `applyIncomingRecord`+`dequeuePendingChange` — das schreibt nur lokal, laedt den
-        // lokal gewonnenen Merge aber nie zu CloudKit hoch, und die Pending-Change waere
-        // danach unwiederbringlich aus der Warteschlange verschwunden. Stattdessen cachen +
-        // erneut einreihen + Resend anfordern, exakt wie beim Ganz-Record- und
-        // Feld-Merge-Pfad oben.
+        // Review-Fund NEW-1 (Folgefehler aus dem C1-Fix): Anders als beim allgemeinen
+        // Feld-Merge-Pfad, dessen "Auto"-Felder per Konstruktion IMMER den LOKALEN Wert nehmen
+        // (siehe `resolveFieldMerge`/`autoOverlays` — dort ist ein reiner Re-Upload ohne lokales
+        // Schreiben deshalb äquivalent zum Merge, die lokale DB hat den Auto-Feld-Wert ja
+        // bereits), ist die ArticleStatus-Entscheidung GENUIN bidirektional:
+        // `articleStatusFieldLocalWins` kann den SERVER-Wert gewinnen lassen. Würde diese
+        // Entscheidung NUR gecacht+resent (wie zunächst beim C1-Fix umgesetzt), bliebe die
+        // lokale Zeile auf ihrem alten Stand stehen — und der NÄCHSTE Sendeversuch baut über
+        // `record(forPendingChange:)` → `CloudSyncArticleStatusMapping.
+        // makeCKRecord(fromLocalID:existing:database:)` JEDES Feld erneut aus genau dieser
+        // (weiterhin veralteten) lokalen Zeile auf den gecachten `mergedRecord` auf — der
+        // gerade getroffene "Server gewinnt"-Entscheid würde dadurch beim Senden lautlos wieder
+        // durch den alten lokalen Wert überschrieben. Der Merge muss deshalb ZUERST lokal
+        // angewendet werden (macht die lokale Zeile zur "Wahrheit" für den nächsten
+        // `makeCKRecord`-Aufruf), DANACH — wie beim C1-Fix — gecacht + erneut eingereiht +
+        // Resend angefordert (falls ein Feld lokal gewonnen hat, muss dieser Merge weiterhin zu
+        // CloudKit hochgeladen werden; ein reines lokales Schreiben ohne Resend würde diesen
+        // Fall verpassen). Bewusst NICHT dequeued — das lokale Anwenden ist kein Ersatz für den
+        // Upload.
+        _ = await applyIncomingRecord(mergedRecord)
+
         knownServerRecordsByID[localRecord.recordID] = mergedRecord
         do {
             try pendingChangeStore.enqueue(recordType: CloudSyncArticleStatusMapping.recordType, recordName: localRecord.recordID.recordName, changeType: .save)
@@ -768,8 +770,45 @@ extension CloudSyncEngine: CKSyncEngineDelegate {
         }
     }
 
+    /// Baut den gemergten `CKRecord` für einen ArticleStatus-Konflikt — reine, direkt testbare
+    /// Kernlogik von `handleArticleStatusConflict`, extrahiert analog zu `resolveFieldMerge`
+    /// oben (Review-Fund I1-Pattern): `CKSyncEngine.Event.SentRecordZoneChanges.
+    /// FailedRecordSave` hat keinen öffentlichen Initializer, `handleArticleStatusConflict`
+    /// selbst lässt sich deshalb nicht direkt testen — `CKRecord` dagegen schon. Mutiert (und
+    /// liefert) `serverRecord` selbst; anders als beim allgemeinen Feld-Merge-Pfad ist das hier
+    /// unproblematisch, da `handleArticleStatusConflict` keinen Abbruchzweig kennt, der ein
+    /// unangetastetes `serverRecord` bräuchte (ArticleStatus hat nie ein "Fragen"-Feld,
+    /// `askFields` ist immer leer).
+    nonisolated static func mergeArticleStatusRecords(
+        localRecord: CKRecord,
+        serverRecord: CKRecord,
+        wholeRecordLocalUpdatedAt: Date?,
+        wholeRecordServerModificationDate: Date?
+    ) -> CKRecord {
+        let mergedRecord = serverRecord
+        if articleStatusFieldLocalWins(
+            fieldTimestampLocal: localRecord["readAt"] as? Date,
+            fieldTimestampServer: serverRecord["readAt"] as? Date,
+            wholeRecordLocalUpdatedAt: wholeRecordLocalUpdatedAt,
+            wholeRecordServerModificationDate: wholeRecordServerModificationDate
+        ) {
+            mergedRecord["isRead"] = localRecord["isRead"]
+            mergedRecord["readAt"] = localRecord["readAt"]
+        }
+        if articleStatusFieldLocalWins(
+            fieldTimestampLocal: localRecord["starredAt"] as? Date,
+            fieldTimestampServer: serverRecord["starredAt"] as? Date,
+            wholeRecordLocalUpdatedAt: wholeRecordLocalUpdatedAt,
+            wholeRecordServerModificationDate: wholeRecordServerModificationDate
+        ) {
+            mergedRecord["isStarred"] = localRecord["isStarred"]
+            mergedRecord["starredAt"] = localRecord["starredAt"]
+        }
+        return mergedRecord
+    }
+
     /// Reine, direkt testbare Kernlogik der Pro-Feld-Zeitstempel-Entscheidung für EIN einzelnes
-    /// `ArticleStatus`-Feld (`readAt`/`starredAt`) — siehe `handleArticleStatusConflict` oben.
+    /// `ArticleStatus`-Feld (`readAt`/`starredAt`) — siehe `mergeArticleStatusRecords` oben.
     /// Fällt auf den Gesamt-Record-Zeitstempel zurück, sobald mindestens eine Seite kein
     /// Feld-spezifisches Datum hat: `ArticleStatusStore` setzt `readAt`/`starredAt` bewusst auf
     /// `NULL`, wenn der Nutzer einen Artikel als ungelesen markiert bzw. den Stern entfernt —

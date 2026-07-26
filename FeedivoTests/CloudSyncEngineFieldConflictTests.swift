@@ -1,5 +1,6 @@
 import Foundation
 import CloudKit
+import GRDB
 import Testing
 @testable import Feedivo
 
@@ -169,6 +170,71 @@ struct CloudSyncEngineFieldConflictTests {
         )
 
         #expect(localWins == true)
+    }
+
+    // MARK: - NEW-1: ArticleStatus-Merge muss auch bei "Server gewinnt" lokal ankommen
+
+    @Test func handleArticleStatusConflictWendetServerGewonneneFelderTatsaechlichLokalAn() throws {
+        // Reproduziert exakt den vom Review gefundenen Folgefehler des C1-Fixes: dieses Gerät
+        // ist "veraltet" (alter statusSyncUpdatedAt, lokal isRead=false ohne readAt), der
+        // Server hat bereits isRead=true mit einem echten readAt — articleStatusFieldLocalWins
+        // muss den SERVER gewinnen lassen. Der eigentliche Bug lag darin, dass diese
+        // Entscheidung vorher NUR gecacht/erneut eingereiht, aber NIE lokal geschrieben wurde —
+        // die lokale Zeile wäre dauerhaft bei isRead=false stehen geblieben, obwohl der Server
+        // längst isRead=true kennt.
+        let database = try FeedivoDatabase.inMemoryForTests()
+        try FeedStore(database: database).save(FeedRecord(id: "feed-1", url: "https://example.com/feed-1", title: "Feed"))
+        let articleID = try ArticleStore(database: database).upsert(
+            ArticleUpsertInput(feedID: "feed-1", sourceID: "article-1", title: "Titel", arrivedAt: Date(timeIntervalSince1970: 100))
+        )
+        // `ArticleStatusStore.setRead(...)` stempelt `statusSyncUpdatedAt` bewusst IMMER mit
+        // dem echten `Date()` (jetzt) — unabhängig vom übergebenen `at:`-Parameter, der nur
+        // `readAt` setzt (siehe `updateBooleanStatus`). Um einen "alten"/veralteten
+        // `statusSyncUpdatedAt`-Stand zu simulieren, muss die Spalte danach direkt per SQL
+        // überschrieben werden.
+        try ArticleStatusStore(database: database).setRead(false, articleID: articleID, at: nil)
+        try database.write { db in
+            try db.execute(sql: "UPDATE article_statuses SET statusSyncUpdatedAt = ? WHERE articleID = ?", arguments: [Date(timeIntervalSince1970: 1000), articleID])
+        }
+        let localStatus = try ArticleStatusStore(database: database).status(articleID: articleID)!
+        let stableID = localStatus.syncStableID!
+
+        let recordID = CloudSyncArticleStatusMapping.recordID(forLocalID: stableID)
+        let localRecord = CKRecord(recordType: "ArticleStatus", recordID: recordID)
+        localRecord["isRead"] = false as CKRecordValue
+        localRecord["isStarred"] = false as CKRecordValue
+        // Kein readAt gesetzt — entspricht dem lokalen Zurücksetzen (readAt = NULL).
+
+        let serverRecord = CKRecord(recordType: "ArticleStatus", recordID: recordID)
+        let serverReadAt = Date(timeIntervalSince1970: 5000)
+        serverRecord["isRead"] = true as CKRecordValue
+        serverRecord["isStarred"] = false as CKRecordValue
+        serverRecord["readAt"] = serverReadAt as CKRecordValue
+
+        let wholeRecordLocalUpdatedAt = try CloudSyncArticleStatusMapping.localUpdatedAt(forLocalID: stableID, database: database)
+
+        let mergedRecord = CloudSyncEngine.mergeArticleStatusRecords(
+            localRecord: localRecord,
+            serverRecord: serverRecord,
+            wholeRecordLocalUpdatedAt: wholeRecordLocalUpdatedAt,
+            // Ein Gesamt-Record-Datum, das GRÖSSER als der lokale statusSyncUpdatedAt-Stand ist
+            // — Server gewinnt eindeutig über den Fallback, da localRecord kein readAt trägt.
+            wholeRecordServerModificationDate: Date(timeIntervalSince1970: 6000)
+        )
+
+        // Server muss auf Ebene des gemergten Records gewonnen haben.
+        #expect(mergedRecord["isRead"] as? Bool == true)
+        #expect(mergedRecord["readAt"] as? Date == serverReadAt)
+
+        // Der eigentliche NEW-1-Fix: exakt das, was `handleArticleStatusConflict` jetzt
+        // zusätzlich (vor dem Cachen/Wiedereinreihen) tut — den Merge lokal anwenden.
+        try CloudSyncArticleStatusMapping.applyIncoming(mergedRecord, database: database)
+
+        // Die LOKALE Datenbank-Zeile muss jetzt das Server-Ergebnis widerspiegeln, nicht nur
+        // der (für den nächsten Sendeversuch gecachte) CKRecord.
+        let updated = try ArticleStatusStore(database: database).status(articleID: articleID)
+        #expect(updated?.isRead == true)
+        #expect(updated?.readAt == serverReadAt)
     }
 
     @Test func articleStatusFieldLocalWinsNutztFeldZeitstempelWennBeideVorhanden() {
