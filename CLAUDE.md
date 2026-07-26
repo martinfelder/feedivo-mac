@@ -1109,11 +1109,12 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   Brainstorming→Spec→Plan→Subagent-Driven-Development (15 Tasks), Spec:
   `docs/superpowers/specs/2026-07-26-icloud-sync-phase3-design.md`, Plan:
   `docs/superpowers/plans/2026-07-26-icloud-sync-phase3.md`.
-  - **Feld-Ebene-Konfliktauflösung (Tasks 1–10):** Migration v27 macht Bedingungs-IDs
+  - **Feld-Ebene-Konfliktauflösung (Tasks 1–10):** Task 1 macht Bedingungs-IDs
     (`RuleCondition`/`SmartFolderCondition`) über einen Speicher-Lade-Speicher-Zyklus
     stabil (Voraussetzung für sinnvolles Feld-Diffing auf Bedingungsebene, siehe
-    dokumentierte Limitation weiter unten), Migration v28 legt eine neue
-    `PendingSyncConflictStore`-Tabelle an. Jeder `CloudSyncRecordMapping`-Typ bekommt eine
+    dokumentierte Limitation weiter unten) — reine Code-Änderungen, keine Migration.
+    Migration v27 legt das `changedFields`-Feld auf `cloud_sync_pending_changes` an (Task 2),
+    Migration v28 legt eine neue `PendingSyncConflictStore`-Tabelle an. Jeder `CloudSyncRecordMapping`-Typ bekommt eine
     neue `askFields`/`autoFields`-Policy (welche Felder bei einem Konflikt den Nutzer
     fragen vs. automatisch zusammenführen) — für Tag, FeedFolder, Feed, Rule, SmartFolder
     und ArticleStatus. `CloudSyncEngine.handleFailedSave` komplett neu geschrieben: statt
