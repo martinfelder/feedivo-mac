@@ -1215,9 +1215,20 @@ private struct SyncSettingsView: View {
             if cloudSyncIsEnabled {
                 // Erst-Aktivierungs-Merge-Dialog MUSS vor dem allerersten start() laufen
                 // (siehe CloudSyncFirstActivationView-Kommentar) — start() selbst läuft erst
-                // im onContinue-Callback des Sheets unten, nicht hier direkt.
+                // im onContinue-Callback des Sheets unten, nicht hier direkt. Review-Fix
+                // (Task 14, Critical 2): pendingFirstActivationKey wird HIER gesetzt, im
+                // selben Moment wie das Anzeigen des Dialogs, NICHT erst wenn der Dialog
+                // fertig ist — FeedivoApp.init() verweigert dadurch bei einem App-Neustart
+                // vor abgeschlossenem Dialog den blinden start()-Aufruf (siehe dortiger
+                // Kommentar). Erst applyDecisions()/„Weiter" in CloudSyncFirstActivationView
+                // setzt das Flag wieder zurück.
+                CloudSyncSettings.setPendingFirstActivation(true)
                 showingFirstActivationSheet = true
             } else {
+                // Sync wird ausgeschaltet — eine eventuell noch offene Erst-Aktivierungs-
+                // Entscheidung aus einem vorherigen Einschalt-Versuch ist damit hinfällig,
+                // ein erneutes Einschalten löst ohnehin wieder eine frische Analyse aus.
+                CloudSyncSettings.setPendingFirstActivation(false)
                 cloudSyncEngine?.stop()
             }
         }
@@ -1226,6 +1237,17 @@ private struct SyncSettingsView: View {
         }
         .onAppear(perform: loadSyncActivityPendingCounts)
         .onAppear(perform: loadPendingConflictCount)
+        .onAppear {
+            // Review-Fix (Task 14, Critical 2): deckt den Fall ab, dass die App beendet wurde,
+            // während der Erst-Aktivierungs-Dialog noch offen war (Toggle bereits „an", aber
+            // keine Entscheidung getroffen) — FeedivoApp.init() hat deshalb bewusst NICHT
+            // gestartet. Sobald der Nutzer diesen Einstellungen-Tab erneut öffnet, erscheint
+            // der Dialog automatisch wieder, statt dass Sync dauerhaft (und ohne erkennbaren
+            // Grund für den Nutzer) im „an, aber nie gestartet"-Zustand hängen bleibt.
+            if cloudSyncIsEnabled && CloudSyncSettings.hasPendingFirstActivation() {
+                showingFirstActivationSheet = true
+            }
+        }
         .onChange(of: sqliteStatusVersionForSyncActivity) {
             loadSyncActivityPendingCounts()
             loadPendingConflictCount()

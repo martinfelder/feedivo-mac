@@ -43,6 +43,15 @@ struct CloudSyncFirstActivationView: View {
                 Spacer()
                 Button(L10n.firstActivationContinue) {
                     applyDecisions()
+                    // Review-Fix (Task 14, Critical 2): erst HIER, beim tatsächlichen
+                    // Abschluss des Erst-Aktivierungs-Ablaufs, wird die Sperre wieder
+                    // aufgehoben — siehe CloudSyncSettings.pendingFirstActivationKey und
+                    // FeedivoApp.init(). Muss vor onContinue() (löst CloudSyncEngine.start()
+                    // aus) geschehen, auch wenn es für den aktuellen start()-Aufruf selbst
+                    // keine Rolle spielt — die Reihenfolge macht den Zustand während des
+                    // gesamten Übergangs konsistent, falls onContinue() künftig einmal
+                    // asynchron würde.
+                    CloudSyncSettings.setPendingFirstActivation(false)
                     onContinue()
                     dismiss()
                 }

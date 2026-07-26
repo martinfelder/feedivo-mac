@@ -19,13 +19,29 @@ enum CloudSyncFirstActivationAnalyzer {
     /// entgegen (siehe `fetchExistingCloudRecords` für den echten `CKQuery`-Aufruf). Case-
     /// insensitiver Namensvergleich, exakt wie der bestehende Duplikat-Check in
     /// `FeedFolderStore.renameFolder`.
+    ///
+    /// **Selbst-Match-Ausschluss (Review-Fix, Task 14):** Da `CKRecord.ID.recordName` für Tags/
+    /// FeedFolders identisch mit der lokalen `id` ist (siehe `CloudSyncTagMapping.recordID(forTagID:)`/
+    /// `CloudSyncFeedFolderMapping.recordID(forLocalID:)`), matcht ein bereits synchronisierter
+    /// Datensatz bei jeder erneuten Aktivierung (Aus→Ein-Toggle, nicht nur der allerersten
+    /// überhaupt) sonst zwangsläufig SICH SELBST über den Namen — die Analyse läuft laut Design
+    /// bewusst bei JEDEM Off→On-Übergang erneut, nicht nur beim ersten Mal. Ohne diesen
+    /// Ausschluss würde ein solcher Selbst-Match als echte Kollision gemeldet, deren
+    /// vorausgewählte Standardaktion „Zusammenführen" ist — ein Merge von `oldTagID == newTagID`
+    /// lässt `remapTagReferences` jede Zuordnung fälschlich als „hat newTag schon" erkennen und
+    /// löschen, dann den Tag selbst löschen: vollständiger, nicht wiederherstellbarer Datenverlust
+    /// für genau den Tag, der eigentlich nur bestätigt schon synct. Ein Datensatz, dessen lokale
+    /// `id` bereits dem `recordName` des matchenden Cloud-Records entspricht, ist deshalb NIE
+    /// eine Kollision — er ist derselbe, bereits synchronisierte Datensatz.
     static func findCollisions(database: FeedivoDatabase, tagRecords: [CKRecord], folderRecords: [CKRecord]) throws -> [FirstActivationCollision] {
         var collisions: [FirstActivationCollision] = []
 
         let localTags = try TagStore(database: database).tags()
         for cloudRecord in tagRecords {
             guard let cloudName = cloudRecord["name"] as? String else { continue }
-            if let match = localTags.first(where: { $0.name.caseInsensitiveCompare(cloudName) == .orderedSame }) {
+            if let match = localTags.first(where: {
+                $0.name.caseInsensitiveCompare(cloudName) == .orderedSame && $0.id != cloudRecord.recordID.recordName
+            }) {
                 collisions.append(FirstActivationCollision(recordType: CloudSyncTagMapping.recordType, name: match.name, localID: match.id, cloudRecordID: cloudRecord.recordID))
             }
         }
@@ -33,7 +49,9 @@ enum CloudSyncFirstActivationAnalyzer {
         let localFolders = try FeedFolderStore(database: database).folders()
         for cloudRecord in folderRecords {
             guard let cloudName = cloudRecord["name"] as? String else { continue }
-            if let match = localFolders.first(where: { $0.name.caseInsensitiveCompare(cloudName) == .orderedSame }) {
+            if let match = localFolders.first(where: {
+                $0.name.caseInsensitiveCompare(cloudName) == .orderedSame && $0.id != cloudRecord.recordID.recordName
+            }) {
                 collisions.append(FirstActivationCollision(recordType: CloudSyncFeedFolderMapping.recordType, name: match.name, localID: match.id, cloudRecordID: cloudRecord.recordID))
             }
         }

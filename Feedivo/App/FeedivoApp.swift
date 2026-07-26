@@ -73,7 +73,20 @@ struct FeedivoApp: App {
             self.appDelegate.configureMenubarController(feedivoDatabase: database, feedViewModel: feedViewModel)
             self.localExtensionBridgeServer.start()
         }
-        if databaseOpenResult.errorDescription == nil, CloudSyncSettings.isEnabled() {
+        // Review-Fix (Task 14, Critical 2): NICHT mehr blind nach `isEnabled()` starten — der
+        // Erst-Aktivierungs-Dialog (`CloudSyncFirstActivationView`) muss laut Design VOR dem
+        // allerersten `start()` je Aktivierung laufen. `isEnabledKey` selbst flippt aber sofort
+        // beim Umlegen des UI-Schalters, lange bevor der Dialog per „Weiter" abgeschlossen ist —
+        // beendet der Nutzer die App, während der Dialog noch offen ist, wäre `isEnabled()`
+        // bereits persistent `true`, ohne dass je eine Entscheidung getroffen wurde.
+        // `shouldAutoStartSyncEngineAtLaunch` verweigert den Start zusätzlich, solange
+        // `pendingFirstActivationKey` noch gesetzt ist — der Dialog erscheint dann beim
+        // nächsten Öffnen des Sync-Einstellungen-Tabs erneut (siehe `SyncSettingsView.onAppear`).
+        if databaseOpenResult.errorDescription == nil,
+           CloudSyncSettings.shouldAutoStartSyncEngineAtLaunch(
+               isEnabled: CloudSyncSettings.isEnabled(),
+               hasPendingFirstActivation: CloudSyncSettings.hasPendingFirstActivation()
+           ) {
             self.cloudSyncEngine.start()
         }
     }
