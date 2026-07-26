@@ -953,9 +953,11 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
       (Artikelstatus — Gelesen/Stern) seit 2026-07-24/25 auf `main` implementiert (Tests
       grün), dazu eine Soft-/Hard-Reset-UI für den Sync-Zustand. Push-Richtung für Feed,
       Rule/RuleCondition, SmartFolder/SmartFolderCondition und ArticleStatus seit
-      2026-07-26 live gegen das echte CloudKit Dashboard bestätigt (siehe „Aktuell in
-      Arbeit"); FeedFolder-Push, Löschpropagierung, tatsächliche Reset-Ausführung und die
-      Pull-Richtung app-weit weiterhin ausstehend. Phase 3 (Feld-Ebene-Konflikte + Merge-Dialog) und Phase 4 (Härtung)
+      2026-07-26 live gegen das echte CloudKit Dashboard bestätigt, ebenso die
+      Löschpropagierung für Feed→ArticleStatus, Rule→RuleCondition und
+      SmartFolder→SmartFolderCondition (siehe „Aktuell in Arbeit"); FeedFolder-Push,
+      tatsächliche Reset-Ausführung und die Pull-Richtung app-weit weiterhin ausstehend.
+      Phase 3 (Feld-Ebene-Konflikte + Merge-Dialog) und Phase 4 (Härtung)
       stehen noch aus — Checkbox bleibt deshalb offen
 
 ### M4 – Polish & Release — größtenteils ✅
@@ -1001,10 +1003,11 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   sind seit 2026-07-24/25 implementiert (siehe „Aktuell in Arbeit"), dazu eine Soft-/Hard-
   Reset-UI für den Sync-Zustand. Push-Richtung für Feed, Rule/RuleCondition,
   SmartFolder/SmartFolderCondition und ArticleStatus seit 2026-07-26 live gegen das echte
-  CloudKit Dashboard bestätigt. Offen: Phase 3 (Feld-Ebene-Konflikte + Merge-Dialog bei
-  Erst-Aktivierung) und Phase 4 (Härtung) — wann werden diese angegangen? Zusätzlich
-  weiterhin offen für Phase 2a/2b: FeedFolder-Push separat verifizieren, Löschpropagierung
-  live testen, tatsächliche Ausführung von Soft-/Hard-Reset, sowie die Pull-Richtung
+  CloudKit Dashboard bestätigt, ebenso die Löschpropagierung für Feed→ArticleStatus,
+  Rule→RuleCondition und SmartFolder→SmartFolderCondition. Offen: Phase 3 (Feld-Ebene-
+  Konflikte + Merge-Dialog bei Erst-Aktivierung) und Phase 4 (Härtung) — wann werden diese
+  angegangen? Zusätzlich weiterhin offen für Phase 2a/2b: FeedFolder-Push separat
+  verifizieren, tatsächliche Ausführung von Soft-/Hard-Reset, sowie die Pull-Richtung
   app-weit weiterhin ungetestet mangels Zweitgerät. Der alte, SwiftData-basierte
   Sync-Beta-Branch war bereits überholt und wurde am 2026-07-24 gelöscht.
 - **Bekanntes, bewusst noch nicht behobenes Risiko aus dem Phase-2a-Whole-Branch-Review:**
@@ -1060,6 +1063,30 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   zweites Gerät). **Ergebnis:** Push-Richtung für alle in Phase 2a/2b neu hinzugekommenen
   Tabellen ist damit erstmals nicht mehr nur testabgesichert, sondern live gegen den
   echten CloudKit-Server bestätigt.
+- **2026-07-26 (direkte Folge-Session): Live-Verifikation Löschpropagierung gegen echtes
+  CloudKit-Dashboard — ERSTMALS DURCHGEFÜHRT UND BESTÄTIGT.** Direkter Anschluss an den
+  obigen Push-Verifikations-Durchgang, deckt die dort offen gelassene Lücke. In der
+  laufenden App: den zuvor angelegten Test-Feed („ZZZ-SyncTest-Feed"/„Apple Newsroom",
+  siehe Nebenfund unten) gelöscht (nachdem zuvor ein Artikel daraus als gelesen + mit
+  Stern markiert wurde, um einen zugehörigen `ArticleStatus`-Datensatz zu erzeugen), dann
+  die Test-Regel „ZZZ-SyncTest-Rule" über die Organizer-Verwaltung sowie den
+  Test-Smart-Folder „ZZZ-SyncTest-SmartFolder" über das Sidebar-Kontextmenü gelöscht. Alle
+  drei Löschungen erzeugten je einen frischen `RecordDelete`-Log-Eintrag mit
+  `overallStatus: SUCCESS` und exakt `recordDeleteCount: 2` — passend zum erwarteten
+  Eltern+Kind-Kaskadenmuster: Feed-Löschung → `Feed` + propagierter `ArticleStatus`;
+  Regel-Löschung → `Rule` + `RuleCondition`; Smart-Folder-Löschung → `SmartFolder` +
+  `SmartFolderCondition`. Damit ist auch die Löschpropagierung (nicht nur Anlegen/Ändern)
+  für alle drei getesteten Pfade live gegen den echten CloudKit-Server bestätigt.
+  **Nebenfund (dokumentiert, nicht weiter verfolgt):** Der zuvor manuell umbenannte
+  Test-Feed zeigte beim erneuten Ansehen (~1 Std. später) wieder seinen ursprünglichen
+  Titel „Apple Newsroom" statt „ZZZ-SyncTest-Feed" — „Original Titel" und URL in den
+  Feed-Eigenschaften bestätigten, dass es derselbe Feed war (keine Dublette). Zeitlich
+  passend zu einem zwischenzeitlich gelaufenen automatischen Refresh-Zyklus (Feed-Log
+  zeigte bereits 5 Einträge) — spricht dafür, dass ein regulärer Feed-Refresh den
+  manuell gesetzten Titel überschreibt, nicht für einen iCloud-Sync-Fehler. Nicht
+  root-caused, keine Reproduktion mit exaktem Zeitpunkt — falls das erneut aussagekräftig
+  beobachtet wird, als eigenen Bug-Report mit systematic-debugging aufgreifen statt hier
+  weiterzuspekulieren.
 - **2026-07-25 (Folge-Session): iCloud Sync zurücksetzen (Soft-/Hard-Reset-UI) — VOLLSTÄNDIG
   ABGESCHLOSSEN, gepusht.** Neuer Bereich in den Sync-Einstellungen: „Sync zurücksetzen"
   bietet einen Soft-Reset (nur lokale Sync-Metadaten/Warteschlange leeren, nächster Sync
