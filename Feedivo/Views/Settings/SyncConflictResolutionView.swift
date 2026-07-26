@@ -20,7 +20,7 @@ struct SyncConflictResolutionView: View {
                         .sorted(by: { $0.key < $1.key }),
                     id: \.key
                 ) { _, group in
-                    Section(group.first?.recordType ?? "") {
+                    Section(groupHeaderTitle(for: group)) {
                         ForEach(group) { conflict in
                             conflictRow(conflict)
                         }
@@ -43,6 +43,89 @@ struct SyncConflictResolutionView: View {
                 Button(L10n.commonOK) { errorMessage = nil }
             } message: {
                 Text(errorMessage ?? "")
+            }
+        }
+    }
+
+    /// Baut den Gruppen-Header-Titel für einen Konflikt (z. B. "Regel: Intune Artikel") —
+    /// Whole-Branch-Review-Fix zu Task 11: die ursprüngliche Version zeigte hier nur den
+    /// rohen `recordType` ("Rule"), wodurch zwei Konflikte auf verschiedenen Regeln optisch
+    /// nicht unterscheidbar waren. Fällt auf den reinen Typ-Namen zurück, falls der Datensatz
+    /// (z. B. weil er inzwischen lokal gelöscht wurde) nicht mehr gefunden werden kann.
+    private func groupHeaderTitle(for group: [PendingSyncConflictRecord]) -> String {
+        guard let first = group.first else { return "" }
+        let typeLabel = Self.recordTypeLabel(forRecordType: first.recordType)
+        guard let feedivoDatabase,
+              let name = Self.displayName(
+                  forRecordType: first.recordType,
+                  recordName: first.recordName,
+                  database: feedivoDatabase
+              ) else {
+            return typeLabel
+        }
+        return "\(typeLabel): \(name)"
+    }
+
+    /// Nutzerverständliche Kurzbezeichnung für einen `recordType` (unabhängig vom konkreten
+    /// Datensatz) — reiner Fallback-Text, falls kein Name ermittelt werden kann. Bewusst nicht
+    /// `private` (anders als `tableName(forRecordType:)` oben) — reine, DB-freie Switch-Logik,
+    /// direkt per `@testable import Feedivo` testbar (siehe `SyncConflictResolutionViewTests`).
+    static func recordTypeLabel(forRecordType recordType: String) -> String {
+        switch recordType {
+        case "Tag": return L10n.syncConflictsRecordTypeTag
+        case "Feed": return L10n.syncConflictsRecordTypeFeed
+        case "FeedFolder": return L10n.syncConflictsRecordTypeFeedFolder
+        case "Rule": return L10n.syncConflictsRecordTypeRule
+        case "RuleCondition": return L10n.syncConflictsRecordTypeRuleCondition
+        case "SmartFolder": return L10n.syncConflictsRecordTypeSmartFolder
+        case "SmartFolderCondition": return L10n.syncConflictsRecordTypeSmartFolderCondition
+        default: return recordType
+        }
+    }
+
+    /// Liest den tatsächlichen Anzeigenamen des betroffenen Datensatzes direkt per GRDB-
+    /// `fetchOne(db, key:)` (`recordName` ist die lokale Primärschlüssel-ID) — bewusst ohne
+    /// Umweg über TagStore/FeedStore/FeedFolderStore/SQLiteRuleStore/SQLiteSmartFolderStore,
+    /// da keiner dieser Stores durchgängig eine einfache Ein-Datensatz-nach-ID-Methode anbietet
+    /// (TagStore/FeedFolderStore z. B. gar keine) und dieser Lookup ein reiner, isolierter
+    /// Phase-3-Anzeigebedarf ist, kein allgemeiner Store-Anwendungsfall (analog zur Begründung
+    /// bei `applyServerFieldValue` oben). `RuleCondition`/`SmartFolderCondition` haben selbst
+    /// keinen eigenen Namen — zeigt stattdessen den Namen der übergeordneten Regel/des
+    /// übergeordneten Intelligenten Ordners. Liefert `nil`, wenn der Datensatz (z. B. durch
+    /// zwischenzeitliches lokales Löschen) nicht mehr existiert — der Aufrufer fällt dann auf
+    /// den reinen Typ-Namen zurück, statt abzustürzen oder eine leere Zeile zu zeigen. Bewusst
+    /// nicht `private` — direkt gegen eine echte In-Memory-`FeedivoDatabase` testbar (siehe
+    /// `SyncConflictResolutionViewTests`), inkl. des Eltern-Lookups für Bedingungszeilen und des
+    /// Fallback-Falls "Datensatz existiert nicht mehr".
+    static func displayName(
+        forRecordType recordType: String,
+        recordName: String,
+        database: FeedivoDatabase
+    ) -> String? {
+        try? database.read { db -> String? in
+            switch recordType {
+            case "Tag":
+                return try TagRecord.fetchOne(db, key: recordName)?.name
+            case "Feed":
+                return try FeedRecord.fetchOne(db, key: recordName)?.title
+            case "FeedFolder":
+                return try FeedFolderRecord.fetchOne(db, key: recordName)?.name
+            case "Rule":
+                return try RuleRecord.fetchOne(db, key: recordName)?.name
+            case "RuleCondition":
+                guard let condition = try RuleConditionRecord.fetchOne(db, key: recordName) else {
+                    return nil
+                }
+                return try RuleRecord.fetchOne(db, key: condition.ruleID)?.name
+            case "SmartFolder":
+                return try SmartFolderRecord.fetchOne(db, key: recordName)?.name
+            case "SmartFolderCondition":
+                guard let condition = try SmartFolderConditionRecord.fetchOne(db, key: recordName) else {
+                    return nil
+                }
+                return try SmartFolderRecord.fetchOne(db, key: condition.smartFolderID)?.name
+            default:
+                return nil
             }
         }
     }

@@ -441,6 +441,16 @@ enum L10n {
     static let syncConflictsTitle = LocalizedStringKey("sync.conflicts.title")
     static let syncConflictsThisDevice = LocalizedStringKey("sync.conflicts.thisDevice")
     static let syncConflictsOtherDevice = LocalizedStringKey("sync.conflicts.otherDevice")
+    // Nutzerverständliche Kurzbezeichnung je recordType für die Gruppen-Kopfzeile im
+    // Konflikt-Sheet (z. B. "Regel: Intune Artikel") — siehe Whole-Branch-Review-Fix
+    // zu Task 11, Design-Spec Abschnitt 5.
+    static let syncConflictsRecordTypeTag = String(localized: "sync.conflicts.recordType.tag")
+    static let syncConflictsRecordTypeFeed = String(localized: "sync.conflicts.recordType.feed")
+    static let syncConflictsRecordTypeFeedFolder = String(localized: "sync.conflicts.recordType.feedFolder")
+    static let syncConflictsRecordTypeRule = String(localized: "sync.conflicts.recordType.rule")
+    static let syncConflictsRecordTypeRuleCondition = String(localized: "sync.conflicts.recordType.ruleCondition")
+    static let syncConflictsRecordTypeSmartFolder = String(localized: "sync.conflicts.recordType.smartFolder")
+    static let syncConflictsRecordTypeSmartFolderCondition = String(localized: "sync.conflicts.recordType.smartFolderCondition")
     static func syncConflictsBadge(_ count: Int) -> String {
         String.localizedStringWithFormat(String(localized: "sync.conflicts.badge"), count)
     }
