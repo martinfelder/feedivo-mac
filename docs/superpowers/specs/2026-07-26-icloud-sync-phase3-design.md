@@ -98,7 +98,7 @@ der Dialoge klein und auf die Fälle beschränkt, wo tatsächlich Inhalt verlore
 | Tabelle | Felder | „Fragen"-Felder | „Auto"-Felder |
 |---|---|---|---|
 | `Tag` | name, colorHex, sortIndex | `name` | colorHex, sortIndex |
-| `Feed` | title, folderName, sortIndex, refreshIntervalMinutes, isNotificationEnabled, 4× Retention-Felder | `title` | alles andere; die 4 Retention-Felder als **eine Gruppe** behandelt (bei Konflikt: ganze Gruppe auto, nicht einzeln) |
+| `Feed` | title, folderName, sortIndex, refreshIntervalMinutes, isNotificationEnabled, 5× Retention-Felder | `title` | alles andere; die 5 Retention-Felder (`articleRetentionOverridesGlobalSetting`/`IsEnabled`/`Days`/`MinimumArticles`/`IncludesProtectedArticles`) als **eine Gruppe** behandelt (bei Konflikt: ganze Gruppe auto, nicht einzeln) |
 | `FeedFolder` | name, sortIndex | `name` | sortIndex |
 | `Rule` | name, isActive, matchMode/groupIndex, actionType, actionTagID | `name` | alles andere |
 | `RuleCondition` | field, operator, value, groupIndex, sortOrder | `value` | field, operator, groupIndex, sortOrder |
@@ -242,7 +242,50 @@ Geräten sauber vollständig möglich — zumindest die Push-Seite eines künstl
 Konflikts (schnelles Hintereinander-Ändern auf demselben Gerät, analog zum bereits
 dokumentierten Live-Test-Muster aus Phase 2a/2b) ist im Nachgang manuell antestbar.
 
-## 10. Migrations-Übersicht
+## 10. Zusatzfix: ID-Instabilität bei `RuleCondition`/`SmartFolderCondition`
+
+**Während der Implementierungsplanung entdeckt, vom Nutzer als zusätzlicher Scope
+bestätigt:** `SQLiteRuleStore.save(_:conditions:)` und `SQLiteSmartFolderStore.save(_:conditions:)`
+löschen bei jedem Speichern ALLE Bedingungen einer Regel/eines Intelligenten Ordners und fügen
+die übergebene Liste komplett neu ein. Sowohl `RuleWizardView.swift` (Zeile ~740) als auch
+`SmartFolderEditorView.swift` (Zeile ~452) vergeben dabei für JEDE Bedingung eine brandneue
+`UUID().uuidString` — unabhängig davon, ob die Bedingung neu, unverändert oder nur im Wert
+bearbeitet wurde. Die Rückverfolgung zeigt: `RuleConditionDraft`/`SmartFolderConditionDraft`
+haben zwar selbst ein `id: UUID`-Feld, aber sowohl das Laden bestehender Bedingungen
+(`RuleSettingsFormatter.conditionDrafts(for:)`, `SmartFolderFormatter.drafts(for:)`) als auch
+die Normalisierungsschritte vor dem Speichern (`RuleWizardView.normalizedDrafts`,
+`SmartFolderEditorView.normalizeConditionFolderValue`/`normalizedConditionFolderValue`/
+`normalizedConditionDrafts`) rekonstruieren die Drafts jeweils OHNE die bestehende ID
+durchzureichen — jede Rekonstruktion verwirft die Identität und lässt den Default `= UUID()`
+neu greifen.
+
+**Auswirkung ohne Fix:** Da `CKRecord.ID`-Konflikte nur auftreten können, wenn zwei Geräte
+dieselbe existierende ID verändern, würde die in Abschnitt 2/3 beschriebene Feld-Ebene-
+Konfliktauflösung für `RuleCondition`/`SmartFolderCondition` niemals greifen — jede Bearbeitung
+sieht aus CloudKit-Sicht wie „alte ID löschen, komplett neue ID anlegen" aus, nie wie ein
+Feld-Konflikt auf derselben ID.
+
+**Fix (Teil dieses Implementierungsplans):** Die bestehende ID durchgängig durchreichen statt
+verwerfen, an allen sechs betroffenen Stellen:
+1. `RuleSettingsFormatter.conditionDrafts(for:)` (`RuleSettingsView.swift:606`): `id:
+   UUID(uuidString: condition.id) ?? UUID()` beim Draft-Aufbau ergänzen.
+2. `RuleWizardView.normalizedDrafts`-Closure (`RuleWizardView.swift:696`): `id: draft.id`
+   ergänzen.
+3. `RuleWizardView`s finale `RuleConditionRecord`-Konstruktion (`RuleWizardView.swift:739`):
+   `id: UUID().uuidString` → `id: draft.id.uuidString`.
+4. `SmartFolderFormatter.drafts(for:)` (`SmartFolderFormatter.swift:40`): `id:
+   UUID(uuidString: condition.id) ?? UUID()` beim Draft-Aufbau ergänzen.
+5. `SmartFolderEditorView`s drei Normalisierungs-Helfer (`SmartFolderEditorView.swift:520`,
+   `536`, `566`): `id: draft.id` in jeder rekonstruierten `SmartFolderConditionDraft` ergänzen.
+6. `SmartFolderEditorView`s finale `SmartFolderConditionRecord`-Konstruktion
+   (`SmartFolderEditorView.swift:451`): `id: UUID().uuidString` → `id: draft.id.uuidString`.
+
+Neu hinzugefügte Bedingungen (über die "+"-Buttons in beiden Editoren) behalten weiterhin ihre
+frische, zufällige `id` — nur bereits bestehende, aus der Datenbank geladene Bedingungen
+behalten künftig ihre ursprüngliche Identität über den gesamten Bearbeitungs-/Speicherzyklus
+hinweg. Kein Schema-/Migrations-Bedarf — reine Swift-seitige Identitätskorrektur.
+
+## 11. Migrations-Übersicht
 
 | Migration | Inhalt |
 |---|---|
