@@ -165,10 +165,18 @@ Schalters):**
   3 lokale Ordner werden mit der Cloud abgeglichen") mit einem „Fortfahren"-Button, kein
   Entscheidungsbedarf.
 - Kollisionen gefunden → pro Kollision eine Zeile mit Namen und zwei Optionen:
-  - **„Zusammenführen"** (empfohlen, vorausgewählt): die lokale Zeile wird auf die
-    Cloud-`recordID` umgebogen (referenzierende Fremdschlüssel wie `feeds.folderName` bleiben
-    über den Namen ohnehin stabil, betrifft nur die interne `feed_folders.id`/`tags.id`), die
-    alte lokale Zeile geht in der zusammengeführten auf.
+  - **„Zusammenführen"** (empfohlen, vorausgewählt): Verhalten unterscheidet sich je nach
+    Referenzierungsart der Tabelle:
+    - **`FeedFolder`:** `feeds.folderName` ist ein reiner Namens-String (kein Fremdschlüssel
+      auf `feed_folders.id`) — die alte lokale `feed_folders`-Zeile kann einfach gelöscht
+      werden, keine Feed-Referenz muss angepasst werden, da sie ohnehin über den (identischen)
+      Namen weiterläuft.
+    - **`Tag`:** `article_tags.tagID`/`feed_tags.tagID` referenzieren echt über die ID, nicht
+      über den Namen. Hier müssen vor dem Löschen der alten lokalen `tags`-Zeile ALLE
+      `article_tags`/`feed_tags`-Zeilen mit der alten lokalen `tagID` auf die Cloud-`recordID`
+      umgeschrieben werden — mit Dedupe-Schutz (falls für dieselbe `articleID`/`feedID` bereits
+      eine Zuordnung zur Cloud-`tagID` existiert, wird die alte Zeile nur gelöscht statt
+      dupliziert, um einen doppelten Zuordnungs-Datensatz zu vermeiden).
   - **„Beide behalten"**: lokale Zeile bekommt automatisch einen disambiguierenden
     Namenszusatz (z. B. „Technik (2)"), bleibt als eigenständige Zeile bestehen und wird
     regulär als neuer Cloud-Record hochgeladen.
