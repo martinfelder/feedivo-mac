@@ -104,6 +104,13 @@ struct CloudSyncEngineFieldConflictTests {
         #expect(resolution.unresolvedFields.map(\.fieldName) == ["name"])
         // Das Auto-Feld wird zwar BERECHNET (steckt im Ergebnis), aber ...
         #expect(resolution.autoOverlays.keys.contains("colorHex"))
+        // Whole-Branch-Review-Fund (Important 4d): nur die Existenz des Schlüssels zu prüfen
+        // hätte einen VERTAUSCHTEN lokalen/Server-Wert (z. B. versehentlich `serverValue` statt
+        // `localValue` als Overlay übernommen) unentdeckt durchgelassen — Auto-Felder müssen
+        // laut Policy IMMER den LOKALEN Wert gewinnen (siehe `resolveFieldMerge`/`.autoResolved`
+        // oben), das Overlay muss deshalb exakt `localRecord["colorHex"]` widerspiegeln, nicht
+        // `serverRecord["colorHex"]`.
+        #expect(resolution.autoOverlays["colorHex"] as? String == "#FF0000")
         // ... die Records selbst dürfen dabei NICHT mutiert worden sein — erst der Aufrufer
         // (handleFailedSave) entscheidet anhand von hasUnresolvedConflict, ob überhaupt etwas
         // angewendet wird (Review-Fund I1).
@@ -129,6 +136,9 @@ struct CloudSyncEngineFieldConflictTests {
 
         #expect(resolution.hasUnresolvedConflict == false)
         #expect(resolution.autoOverlays.keys.contains("colorHex"))
+        // Whole-Branch-Review-Fund (Important 4d): siehe Kommentar oben — der Wert selbst muss
+        // dem LOKALEN Wert entsprechen, nicht dem Server-Wert.
+        #expect(resolution.autoOverlays["colorHex"] as? String == "#FF0000")
     }
 
     @Test func resolveFieldMergeMarkiertUnbekanntesFeldAlsUnrecognized() {

@@ -71,6 +71,11 @@ struct SQLiteRuleStoreChangedFieldsTests {
         try store.save(rule, conditions: [])
 
         let change = try CloudSyncPendingChangeStore(database: database).pendingChange(recordName: "rule-1")
+        // Whole-Branch-Review-Fund (Important 4c): `change?.changedFields == nil` allein wird
+        // auch dann erfüllt, wenn `change` selbst `nil` ist — d. h. dieser Test hätte selbst
+        // ein komplett entferntes Rule-Sync-Enqueueing NICHT bemerkt. Zuerst explizit
+        // sicherstellen, dass die Pending-Sync-Zeile tatsächlich existiert.
+        #expect(change != nil)
         #expect(change?.changedFields == nil)
     }
 
@@ -91,6 +96,9 @@ struct SQLiteRuleStoreChangedFieldsTests {
         try store.save(rule, conditions: [])
 
         let change = try CloudSyncPendingChangeStore(database: database).pendingChange(recordName: "rule-1")
+        // Whole-Branch-Review-Fund (Important 4c): siehe Kommentar oben — erst die Existenz der
+        // Pending-Sync-Zeile selbst prüfen, bevor `changedFields == nil` ausgewertet wird.
+        #expect(change != nil)
         #expect(change?.changedFields == nil)
     }
 
