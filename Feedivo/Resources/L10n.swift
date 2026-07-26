@@ -461,6 +461,13 @@ enum L10n {
     static let firstActivationContinue = LocalizedStringKey("sync.firstActivation.continue")
     static let firstActivationMerge = LocalizedStringKey("sync.firstActivation.merge")
     static let firstActivationKeepBoth = LocalizedStringKey("sync.firstActivation.keepBoth")
+    /// Whole-Branch-Review-Fund (Important 3): `applyDecisions()` in
+    /// `CloudSyncFirstActivationView` darf einen fehlgeschlagenen Merge/Beide-behalten-Versuch
+    /// nicht länger stillschweigend verschlucken und trotzdem zu `start()` weiterlaufen —
+    /// dieser Format-String listet die betroffenen Einträge in einem Fehler-Alert auf.
+    static func firstActivationMergeFailedMessage(_ names: String) -> String {
+        String.localizedStringWithFormat(String(localized: "sync.firstActivation.mergeFailedMessage"), names)
+    }
     static let feedProgressRefreshAllTitle = String(localized: "feed.progress.refreshAll.title")
     static let feedPropertiesDetailsTitle = LocalizedStringKey("feed.properties.detailsTitle")
     static let feedPropertiesOriginalTitle = LocalizedStringKey("feed.properties.originalTitle")

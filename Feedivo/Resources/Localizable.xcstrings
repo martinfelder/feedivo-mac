@@ -505,6 +505,35 @@
         }
       }
     },
+    "sync.firstActivation.mergeFailedMessage" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Folgende Einträge konnten nicht verarbeitet werden: %@. Bitte die Entscheidung anpassen und erneut auf „Weiter“ tippen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The following items could not be processed: %@. Adjust your decision and tap “Continue” again."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les éléments suivants n'ont pas pu être traités : %@. Ajustez votre décision puis appuyez à nouveau sur « Continuer »."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I seguenti elementi non è stato possibile elaborarli: %@. Modifica la decisione e tocca di nuovo “Continua”."
+          }
+        }
+      }
+    },
     "" : {
 
     },

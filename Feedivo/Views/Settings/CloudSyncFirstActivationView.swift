@@ -21,6 +21,16 @@ struct CloudSyncFirstActivationView: View {
     @State private var isLoading = true
     @State private var collisions: [CloudSyncFirstActivationAnalyzer.FirstActivationCollision] = []
     @State private var decisions: [String: Bool] = [:] // Schlüssel: cloudRecordID.recordName, true = zusammenführen
+    /// Whole-Branch-Review-Fund (Important 3): nicht-`nil`, sobald mindestens eine
+    /// Merge-/Beide-behalten-Entscheidung in `applyDecisions()` fehlgeschlagen ist — zeigt
+    /// einen Fehler-Alert, statt (wie zuvor) den Fehler nur zu loggen und trotzdem zu
+    /// `start()` weiterzulaufen. Das Sheet bleibt in diesem Fall offen: der Nutzer kann seine
+    /// Entscheidung im Picker anpassen (z. B. „Zusammenführen" statt „Beide behalten") und
+    /// erneut auf „Weiter" tippen — `applyDecisions()` ist absichtlich idempotent gehalten
+    /// (dieselbe, beim Laden einmalig eingefrorene `collision.name` wird bei jedem erneuten
+    /// Versuch als Grundlage genutzt), ein erneuter Klick ist deshalb ein echter Retry, keine
+    /// Doppel-Anwendung.
+    @State private var mergeFailureMessage: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -42,7 +52,12 @@ struct CloudSyncFirstActivationView: View {
             HStack {
                 Spacer()
                 Button(L10n.firstActivationContinue) {
-                    applyDecisions()
+                    // Whole-Branch-Review-Fund (Important 3): nur bei VOLLSTÄNDIGEM Erfolg
+                    // (keine einzige fehlgeschlagene Kollision) tatsächlich fortfahren — bei
+                    // jedem Fehlschlag bleibt das Sheet offen und zeigt den Alert weiter unten,
+                    // statt den Nutzer im Unklaren zu lassen, während `start()` bereits mit
+                    // einem unaufgelösten Duplikat losläuft.
+                    guard applyDecisions() else { return }
                     // Review-Fix (Task 14, Critical 2): erst HIER, beim tatsächlichen
                     // Abschluss des Erst-Aktivierungs-Ablaufs, wird die Sperre wieder
                     // aufgehoben — siehe CloudSyncSettings.pendingFirstActivationKey und
@@ -62,6 +77,16 @@ struct CloudSyncFirstActivationView: View {
         .padding(20)
         .frame(minWidth: 420, minHeight: 300)
         .task { await loadCollisions() }
+        .alert(L10n.commonError, isPresented: Binding(
+            get: { mergeFailureMessage != nil },
+            set: { newValue in
+                if !newValue { mergeFailureMessage = nil }
+            }
+        )) {
+            Button(L10n.commonOK) { mergeFailureMessage = nil }
+        } message: {
+            Text(mergeFailureMessage ?? "")
+        }
     }
 
     @ViewBuilder
@@ -94,8 +119,19 @@ struct CloudSyncFirstActivationView: View {
         isLoading = false
     }
 
-    private func applyDecisions() {
-        guard let feedivoDatabase else { return }
+    /// Wendet alle getroffenen Merge-/Beide-behalten-Entscheidungen an. Liefert `true`, wenn
+    /// ALLE Kollisionen erfolgreich verarbeitet wurden — nur dann darf der Aufrufer mit
+    /// `start()` fortfahren. Whole-Branch-Review-Fund (Important 3): die ursprüngliche Version
+    /// fing Fehler pro Kollision nur ab, loggte sie und lief unbeirrt weiter bis zu
+    /// `setPendingFirstActivation(false)`/`onContinue()` — schlägt z. B. `keepBoth` fehl, weil
+    /// der disambiguierte Name („X (2)") selbst schon existiert (UNIQUE-Index auf
+    /// `tags.name`), würde die Sync-Engine trotzdem mit einem weiterhin unaufgelösten Duplikat
+    /// starten, ohne dass der Nutzer davon je erfährt. Jetzt: Fehlschläge werden gesammelt und
+    /// als Alert angezeigt (siehe `mergeFailureMessage`), der Aufrufer bricht ab statt
+    /// fortzufahren.
+    private func applyDecisions() -> Bool {
+        guard let feedivoDatabase else { return true }
+        var failedCollisionNames: [String] = []
         for collision in collisions {
             let shouldMerge = decisions[collision.cloudRecordID.recordName] ?? true
             do {
@@ -106,13 +142,24 @@ struct CloudSyncFirstActivationView: View {
                 }
             } catch {
                 AppLogger.dataAccess.error("iCloud Sync: Erst-Aktivierungs-Entscheidung konnte nicht angewendet werden: \(error.localizedDescription, privacy: .public)")
+                failedCollisionNames.append(collision.name)
             }
         }
         // Store-Konvention (siehe CLAUDE.md-Gotcha „GRDB statt SwiftData"): weder `merge`
         // noch `keepBoth` bumpen selbst den Statuszähler — ohne diesen Aufruf würde die
-        // Sidebar nach einem Merge (z. B. verschwundener Duplikat-Tag) nicht neu laden.
+        // Sidebar nach einem Merge (z. B. verschwundener Duplikat-Tag) nicht neu laden. Läuft
+        // bewusst auch bei Teilfehlschlägen, damit die erfolgreich verarbeiteten Kollisionen
+        // sofort sichtbar werden, während der Nutzer die fehlgeschlagenen im Alert anpasst.
         if !collisions.isEmpty {
             SQLiteDataInvalidation.bumpStatusVersion()
         }
+
+        guard failedCollisionNames.isEmpty else {
+            mergeFailureMessage = L10n.firstActivationMergeFailedMessage(
+                failedCollisionNames.joined(separator: ", ")
+            )
+            return false
+        }
+        return true
     }
 }
