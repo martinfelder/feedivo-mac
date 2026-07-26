@@ -1073,6 +1073,10 @@ private struct SyncSettingsView: View {
     @State private var pendingConflictCount = 0
     @State private var showingConflictSheet = false
 
+    // Erst-Aktivierungs-Merge-Dialog (Phase 3, Task 14) — erscheint beim Einschalten des
+    // Sync-Schalters VOR dem eigentlichen CloudSyncEngine.start(), siehe .onChange unten.
+    @State private var showingFirstActivationSheet = false
+
     @State private var isResetting = false
     @State private var resetErrorMessage: String?
     @State private var resetSuccessMessage: String?
@@ -1209,10 +1213,16 @@ private struct SyncSettingsView: View {
         }
         .onChange(of: cloudSyncIsEnabled) {
             if cloudSyncIsEnabled {
-                cloudSyncEngine?.start()
+                // Erst-Aktivierungs-Merge-Dialog MUSS vor dem allerersten start() laufen
+                // (siehe CloudSyncFirstActivationView-Kommentar) — start() selbst läuft erst
+                // im onContinue-Callback des Sheets unten, nicht hier direkt.
+                showingFirstActivationSheet = true
             } else {
                 cloudSyncEngine?.stop()
             }
+        }
+        .sheet(isPresented: $showingFirstActivationSheet) {
+            CloudSyncFirstActivationView(onContinue: { cloudSyncEngine?.start() })
         }
         .onAppear(perform: loadSyncActivityPendingCounts)
         .onAppear(perform: loadPendingConflictCount)

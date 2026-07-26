@@ -454,6 +454,13 @@ enum L10n {
     static func syncConflictsBadge(_ count: Int) -> String {
         String.localizedStringWithFormat(String(localized: "sync.conflicts.badge"), count)
     }
+    // Erst-Aktivierungs-Merge-Dialog (Phase 3, Task 14) — Sheet vor dem allerersten
+    // CloudSyncEngine.start(), siehe Design-Spec Abschnitt 6.
+    static let firstActivationTitle = LocalizedStringKey("sync.firstActivation.title")
+    static let firstActivationNoCollisions = LocalizedStringKey("sync.firstActivation.noCollisions")
+    static let firstActivationContinue = LocalizedStringKey("sync.firstActivation.continue")
+    static let firstActivationMerge = LocalizedStringKey("sync.firstActivation.merge")
+    static let firstActivationKeepBoth = LocalizedStringKey("sync.firstActivation.keepBoth")
     static let feedProgressRefreshAllTitle = String(localized: "feed.progress.refreshAll.title")
     static let feedPropertiesDetailsTitle = LocalizedStringKey("feed.properties.detailsTitle")
     static let feedPropertiesOriginalTitle = LocalizedStringKey("feed.properties.originalTitle")
