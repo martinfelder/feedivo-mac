@@ -169,32 +169,47 @@ struct SyncConflictResolutionView: View {
     }
 
     private func resolve(_ conflict: PendingSyncConflictRecord, keepLocal: Bool) {
-        guard let feedivoDatabase, let mapping = CloudSyncEngine.mapping(forRecordType: conflict.recordType) else { return }
+        guard let feedivoDatabase else { return }
         do {
-            if !keepLocal {
-                try applyServerFieldValue(conflict, mapping: mapping, database: feedivoDatabase)
-            }
-            // `keepLocal == true`: der lokale Wert steht bereits in der Tabelle (er wurde nie
-            // überschrieben, siehe Task 5) — nur den Konflikt-Eintrag entfernen und den
-            // nächsten regulären Sendeversuch anstoßen.
-            guard let conflictID = conflict.id else { return }
-            try PendingSyncConflictStore(database: feedivoDatabase).resolve(id: conflictID)
-            try CloudSyncPendingChangeStore(database: feedivoDatabase).enqueue(
-                recordType: conflict.recordType,
-                recordName: conflict.recordName,
-                changeType: .save
-            )
-            CloudSyncEngine.notifyPendingChangesAvailable(database: feedivoDatabase)
-            // Weder `PendingSyncConflictStore.resolve(id:)` noch `CloudSyncPendingChangeStore.
-            // enqueue(...)` bumpen selbst den Statuszähler (Store-Konvention: das ist Aufgabe
-            // des Aufrufers, siehe CLAUDE.md-Gotcha „GRDB statt SwiftData") — ohne diesen
-            // Aufruf bliebe das „Konflikte: N"-Badge im Sync-Tab nach dem Schließen dieses
-            // Sheets auf dem alten Stand stehen.
-            SQLiteDataInvalidation.bumpStatusVersion()
+            try Self.resolveConflict(conflict, keepLocal: keepLocal, database: feedivoDatabase)
             loadConflicts()
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    /// Kernlogik von `resolve(_:keepLocal:)` — nimmt die Datenbank explizit entgegen statt sie
+    /// über `@Environment` zu lesen, analog zu `displayName(forRecordType:recordName:database:)`
+    /// oben. Extrahiert, weil `resolve` selbst (View-Methode, liest `@Environment`) VOR diesem
+    /// Whole-Branch-Review-Fix komplett ungetestet war — der einzige Produktionscode-Pfad, der
+    /// Nutzerdaten bei der Konfliktauflösung tatsächlich mutiert. Bewusst nicht `private`,
+    /// siehe `SyncConflictResolutionViewTests`.
+    static func resolveConflict(
+        _ conflict: PendingSyncConflictRecord,
+        keepLocal: Bool,
+        database: FeedivoDatabase
+    ) throws {
+        guard let mapping = CloudSyncEngine.mapping(forRecordType: conflict.recordType) else { return }
+        if !keepLocal {
+            try applyServerFieldValue(conflict, mapping: mapping, database: database)
+        }
+        // `keepLocal == true`: der lokale Wert steht bereits in der Tabelle (er wurde nie
+        // überschrieben, siehe Task 5) — nur den Konflikt-Eintrag entfernen und den
+        // nächsten regulären Sendeversuch anstoßen.
+        guard let conflictID = conflict.id else { return }
+        try PendingSyncConflictStore(database: database).resolve(id: conflictID)
+        try CloudSyncPendingChangeStore(database: database).enqueue(
+            recordType: conflict.recordType,
+            recordName: conflict.recordName,
+            changeType: .save
+        )
+        CloudSyncEngine.notifyPendingChangesAvailable(database: database)
+        // Weder `PendingSyncConflictStore.resolve(id:)` noch `CloudSyncPendingChangeStore.
+        // enqueue(...)` bumpen selbst den Statuszähler (Store-Konvention: das ist Aufgabe
+        // des Aufrufers, siehe CLAUDE.md-Gotcha „GRDB statt SwiftData") — ohne diesen
+        // Aufruf bliebe das „Konflikte: N"-Badge im Sync-Tab nach dem Schließen dieses
+        // Sheets auf dem alten Stand stehen.
+        SQLiteDataInvalidation.bumpStatusVersion()
     }
 
     /// Schreibt den Server-Wert für GENAU dieses eine Feld in die lokale Tabelle — über einen
@@ -204,8 +219,10 @@ struct SyncConflictResolutionView: View {
     /// Parameter selbst dient hier nur als Existenz-Beweis (der Aufrufer hat bereits
     /// verifiziert, dass für `conflict.recordType` ein registriertes Mapping existiert, bevor
     /// überhaupt ein SQL-Statement gebaut wird) — die eigentliche Tabellennamens-Auflösung
-    /// läuft bewusst über die eigene, lokale `tableName(forRecordType:)`-Zuordnung.
-    private func applyServerFieldValue(
+    /// läuft bewusst über die eigene, lokale `tableName(forRecordType:)`-Zuordnung. Bewusst
+    /// nicht `private` (wie `resolveConflict` oben) — direkt aus
+    /// `SyncConflictResolutionViewTests` testbar.
+    static func applyServerFieldValue(
         _ conflict: PendingSyncConflictRecord,
         mapping: any CloudSyncRecordMapping.Type,
         database: FeedivoDatabase

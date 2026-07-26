@@ -415,7 +415,15 @@ extension CloudSyncEngine: CKSyncEngineDelegate {
         }
     }
 
-    private func record(forPendingChange recordID: CKRecord.ID) async -> CKRecord? {
+    /// Baut den `CKRecord` für den nächsten Sendeversuch einer ausstehenden Änderung —
+    /// konsultiert `knownServerRecordsByID`, damit ein zwischengespeicherter Server-Record
+    /// (z. B. aus einem aufgelösten Konflikt) wiederverwendet statt ein jungfräuliches
+    /// `CKRecord` neu erzeugt wird (siehe `CloudSyncTagMapping.makeCKRecord`s
+    /// `existing ?? CKRecord(...)`-Muster). Bewusst `internal` statt `private` — direkt aus
+    /// Tests heraus aufrufbar, um genau diesen Cache-Konsultations-Pfad zu verifizieren (siehe
+    /// `CloudSyncEngineFieldConflictTests`, Critical-1-Regressionstest), ohne den Umweg über
+    /// einen echten `CKSyncEngine`-Sendezyklus nehmen zu müssen.
+    func record(forPendingChange recordID: CKRecord.ID) async -> CKRecord? {
         guard
             let pendingChange = try? pendingChangeStore.pendingChange(recordName: recordID.recordName),
             let mapping = Self.mapping(forRecordType: pendingChange.recordType)
@@ -544,9 +552,33 @@ extension CloudSyncEngine: CKSyncEngineDelegate {
             return await resolveWholeRecordLastWriteWins(failedSave: failedSave, serverRecord: serverRecord, mapping: mapping)
         }
 
+        return handleFieldMergeConflict(
+            recordID: failedSave.record.recordID,
+            localRecord: failedSave.record,
+            serverRecord: serverRecord,
+            changedFields: changedFields,
+            mapping: mapping
+        )
+    }
+
+    /// Feld-Merge-Konfliktbehandlung für einen Sendefehler mit vollständigem Feld-Tracking —
+    /// enthält den kompletten Ask-/Auto-Merge-Zweig aus `handleFailedSave`, extrahiert in eine
+    /// eigene, direkt mit rohen `CKRecord`s testbare Methode (analog zu
+    /// `handleArticleStatusConflict` oben) — `CKSyncEngine.Event.SentRecordZoneChanges.
+    /// FailedRecordSave` hat keinen öffentlichen Initializer, `handleFailedSave` selbst lässt
+    /// sich deshalb nicht direkt aus Tests heraus aufrufen. Bewusst `internal`, siehe
+    /// `CloudSyncEngineFieldConflictTests` (u. a. der Critical-1-Regressionstest für die
+    /// "Dieses Gerät"-Konvergenz).
+    func handleFieldMergeConflict(
+        recordID: CKRecord.ID,
+        localRecord: CKRecord,
+        serverRecord: CKRecord,
+        changedFields: [String],
+        mapping: any CloudSyncRecordMapping.Type
+    ) -> Bool {
         let resolution = Self.resolveFieldMerge(
             changedFields: changedFields,
-            localRecord: failedSave.record,
+            localRecord: localRecord,
             serverRecord: serverRecord,
             askFields: mapping.askFields,
             autoFields: mapping.autoFields
@@ -567,7 +599,7 @@ extension CloudSyncEngine: CKSyncEngineDelegate {
                 do {
                     try PendingSyncConflictStore(database: database).record(
                         recordType: mapping.recordType,
-                        recordName: failedSave.record.recordID.recordName,
+                        recordName: recordID.recordName,
                         fieldName: unresolved.fieldName,
                         localValue: Self.describeForDisplay(unresolved.localValue),
                         serverValue: Self.describeForDisplay(unresolved.serverValue)
@@ -576,11 +608,23 @@ extension CloudSyncEngine: CKSyncEngineDelegate {
                     AppLogger.dataAccess.error("iCloud Sync: Konflikt konnte nicht vermerkt werden: \(error.localizedDescription, privacy: .public)")
                 }
             }
-            // Datensatz bleibt lokal auf dem aktuellen Vor-Konflikt-Stand stehen: weder wird der
-            // Server-Stand übernommen noch ein erneuter Sendeversuch eingeplant, bis der Nutzer
-            // im Konflikt-Sheet entscheidet (siehe Task 11). `serverRecord` selbst wurde in
-            // `resolveFieldMerge` nie mutiert (siehe I1) — dieser Abbruch hat keine
-            // Nebenwirkungen auf das CKRecord.
+            // Whole-Branch-Review-Fund (Critical 1): `serverRecord` muss auch hier zwischen-
+            // gespeichert werden, genau wie in den anderen drei Konfliktzweigen unten
+            // (Auto-Merge, Ganz-Record-LWW, ArticleStatus) — sonst baut der nächste
+            // Sendeversuch (ausgelöst von `SyncConflictResolutionView.resolve(keepLocal:)`,
+            // egal welche Entscheidung der Nutzer trifft) über `record(forPendingChange:)` ein
+            // JUNGFRÄULICHES `CKRecord` ohne Server-Change-Tag, scheitert garantiert erneut mit
+            // `.serverRecordChanged`, `handleFailedSave` läuft erneut in dieses Feld-Merge und
+            // legt einen NEUEN Konflikt-Eintrag an (der alte wurde ja bereits vom Nutzer-Sheet
+            // gelöscht) — "Dieses Gerät" würde dadurch NIE konvergieren, der Nutzer löst
+            // denselben Konflikt endlos erneut auf. Reines Zwischenspeichern hier hat keine
+            // Nebenwirkung: es wird nichts angewendet/geschrieben, nur die Systemfelder für
+            // einen künftigen Rebuild vorgehalten. Datensatz bleibt lokal auf dem aktuellen
+            // Vor-Konflikt-Stand stehen: weder wird der Server-Stand übernommen noch ein
+            // erneuter Sendeversuch eingeplant, bis der Nutzer im Konflikt-Sheet entscheidet
+            // (siehe Task 11). `serverRecord` selbst wurde in `resolveFieldMerge` nie mutiert
+            // (siehe I1) — dieser Abbruch hat keine Nebenwirkungen auf das CKRecord.
+            knownServerRecordsByID[recordID] = serverRecord
             SQLiteDataInvalidation.bumpStatusVersion()
             return false
         }
@@ -606,13 +650,17 @@ extension CloudSyncEngine: CKSyncEngineDelegate {
         for (fieldName, value) in resolution.autoOverlays {
             mergedRecord[fieldName] = value
         }
-        knownServerRecordsByID[failedSave.record.recordID] = mergedRecord
+        knownServerRecordsByID[recordID] = mergedRecord
         do {
+            // `changedFields` ist hier bereits exakt der Wert, den `handleFailedSave` zuvor aus
+            // der Pending-Change-Zeile gelesen hat (bzw. der von einem Test direkt übergebene
+            // Wert) — erneutes Einreihen mit demselben Feld-Set, damit ein wiederholter
+            // Konflikt erneut feld-genau statt Ganz-Record aufgelöst wird.
             try pendingChangeStore.enqueue(
                 recordType: mapping.recordType,
-                recordName: failedSave.record.recordID.recordName,
+                recordName: recordID.recordName,
                 changeType: .save,
-                changedFields: pendingChange?.changedFields
+                changedFields: changedFields
             )
             return true
         } catch {

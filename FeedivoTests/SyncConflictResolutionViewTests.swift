@@ -1,4 +1,5 @@
 import Foundation
+import CloudKit
 import Testing
 @testable import Feedivo
 
@@ -133,5 +134,86 @@ struct SyncConflictResolutionViewTests {
         let name = SyncConflictResolutionView.displayName(forRecordType: "Irgendwas", recordName: "egal", database: database)
 
         #expect(name == nil)
+    }
+
+    // MARK: - resolveConflict(_:keepLocal:database:) — Whole-Branch-Review-Fund (Important 4a):
+    // Der einzige Produktionscode-Pfad, der bei einer Konfliktauflösung tatsächlich
+    // Nutzerdaten mutiert, hatte bislang NULL Tests.
+
+    @Test func resolveConflictMitServerWertWahlSchreibtDenServerWertLokalUndEntferntDenKonflikt() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        try TagStore(database: database).save(TagRecord(id: "tag-1", name: "Lokal-Neu", colorHex: "#FF0000", sortIndex: 0))
+        try PendingSyncConflictStore(database: database).record(
+            recordType: "Tag",
+            recordName: "tag-1",
+            fieldName: "name",
+            localValue: "Lokal-Neu",
+            serverValue: "Server-Neu"
+        )
+        let conflict = try PendingSyncConflictStore(database: database).conflicts().first!
+
+        try SyncConflictResolutionView.resolveConflict(conflict, keepLocal: false, database: database)
+
+        let tag = try TagStore(database: database).tags().first { $0.id == "tag-1" }
+        #expect(tag?.name == "Server-Neu")
+        #expect(try PendingSyncConflictStore(database: database).conflicts().isEmpty)
+
+        // Der Datensatz muss erneut zum Senden eingereiht sein (der jetzt lokal übernommene
+        // Server-Wert muss ja seinerseits wieder als Bestätigung hochgeladen werden können).
+        let pendingChange = try CloudSyncPendingChangeStore(database: database).pendingChange(recordName: "tag-1")
+        #expect(pendingChange != nil)
+    }
+
+    /// Critical 1 (Whole-Branch-Review): reproduziert exakt den Konvergenz-Bug — ohne den Fix
+    /// in `handleFieldMergeConflict` (Ask-Zweig cacht `serverRecord` NICHT in
+    /// `knownServerRecordsByID`) würde `engine.record(forPendingChange:)` nach einer
+    /// "Dieses Gerät"-Entscheidung ein jungfräuliches `CKRecord` bauen (kein Server-Change-Tag)
+    /// statt den zwischengespeicherten Server-Record wiederzuverwenden — CloudKit würde den
+    /// nächsten Sendeversuch garantiert erneut mit `.serverRecordChanged` ablehnen, der Konflikt
+    /// käme endlos zurück. Dieser Test lief VOR dem Critical-1-Fix zuverlässig fehlschlagend
+    /// durch (per manueller Verifikation gegen den Vor-Fix-Stand von `handleFieldMergeConflict`
+    /// bestätigt, siehe Report) und ist jetzt grün.
+    @MainActor
+    @Test func keepLocalKonvergiertWeilDerServerRecordAusDemAskZweigGecachtWird() async throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        try TagStore(database: database).save(TagRecord(id: "tag-1", name: "Lokal-Neu", colorHex: "#FF0000", sortIndex: 0))
+        try CloudSyncPendingChangeStore(database: database).enqueue(
+            recordType: "Tag", recordName: "tag-1", changeType: .save, changedFields: ["name"]
+        )
+
+        let recordID = CKRecord.ID(recordName: "tag-1")
+        let localRecord = CKRecord(recordType: "Tag", recordID: recordID)
+        localRecord["name"] = "Lokal-Neu" as CKRecordValue
+        localRecord["colorHex"] = "#FF0000" as CKRecordValue
+
+        let serverRecord = CKRecord(recordType: "Tag", recordID: recordID)
+        serverRecord["name"] = "Server-Neu" as CKRecordValue
+        serverRecord["colorHex"] = "#FF0000" as CKRecordValue
+
+        let engine = CloudSyncEngine(database: database)
+        let resendRequested = engine.handleFieldMergeConflict(
+            recordID: recordID,
+            localRecord: localRecord,
+            serverRecord: serverRecord,
+            changedFields: ["name"],
+            mapping: CloudSyncTagMapping.self
+        )
+        #expect(resendRequested == false) // "name" ist ein Ask-Feld — kein automatischer Resend.
+
+        let conflictsBeforeResolution = try PendingSyncConflictStore(database: database).conflicts()
+        #expect(conflictsBeforeResolution.count == 1)
+        let conflict = conflictsBeforeResolution[0]
+
+        // Nutzer entscheidet "Dieses Gerät" — genau der Pfad aus `SyncConflictResolutionView`.
+        try SyncConflictResolutionView.resolveConflict(conflict, keepLocal: true, database: database)
+
+        #expect(try PendingSyncConflictStore(database: database).conflicts().isEmpty)
+
+        // Der nächste Sendeversuch MUSS den zwischengespeicherten Server-Record wiederverwenden
+        // (echte Objektidentität — genau das Muster, das `CloudSyncTagMapping.makeCKRecord`s
+        // `existing ?? CKRecord(...)` nutzt, um Server-Systemfelder/Change-Tag zu erhalten),
+        // NICHT ein jungfräuliches CKRecord neu bauen.
+        let rebuiltRecord = await engine.record(forPendingChange: recordID)
+        #expect(rebuiltRecord === serverRecord)
     }
 }
