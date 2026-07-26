@@ -928,6 +928,47 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
   unabhängig davon, ob Interoperabilität mit anderen Apps gebraucht wird — die Annahme
   "nur für Cross-App-Interop nötig" war ein reiner Trugschluss, nicht durch Apples
   Dokumentation gedeckt.
+- **Kollisions-/Duplikaterkennung gegen eine Menge, die bereits synchronisierte, mit dem
+  lokalen Datensatz IDENTISCHE Einträge enthalten kann, muss Selbst-Treffer per ID
+  ausschließen — sonst Datenverlust bei erneuter Sync-Aktivierung:** Der schwerwiegendste
+  Fund des gesamten iCloud-Sync-Phase-3-Plans (Task-14-Review, 2026-07-26, siehe „Aktuell
+  in Arbeit"): `CloudSyncFirstActivationAnalyzer.findCollisions` (Task 12) verglich lokale
+  Tags/FeedFolders gegen bereits in CloudKit vorhandene Datensätze rein nach
+  Groß-/Kleinschreibungs-unabhängigem Namen, ohne vorher Datensätze auszuschließen, deren
+  lokale ID bereits exakt der `recordID.recordName` des passenden Cloud-Datensatzes
+  entspricht. Schaltet ein Nutzer iCloud Sync AUS und dann wieder EIN (nachdem der erste
+  Sync-Durchlauf längst gelaufen war), matchte dadurch JEDER bereits synchronisierte
+  Tag/Ordner fälschlich als „Kollision" mit sich selbst. Da „Zusammenführen" in der neuen
+  `CloudSyncFirstActivationView`-UI standardmäßig vorausgewählt ist, hätte ein Nutzer, der
+  den Dialog einfach bestätigt, `CloudSyncFirstActivationMerger.mergeTag(X, X)` ausgelöst
+  — den Tag/Ordner mit sich selbst zusammengeführt, was den lokalen Ausgangsdatensatz samt
+  ALLER `article_tags`/`feed_tags`-Zuordnungen unwiederbringlich gelöscht hätte. **Weder
+  Task 12s (Analyzer) noch Task 13s (Merger) eigener, isolierter Task-Review fand das** —
+  beide Bausteine waren für sich genommen tatsächlich korrekt; der Fehler wurde erst
+  sichtbar, als Task 14 beide in einen echten Re-Aktivierungs-Flow gegen ein lokales
+  `TagStore`/`FeedFolderStore` verdrahtete, das bereits zuvor synchronisierte Zeilen
+  enthielt — exakt das Szenario, das ein rein Fixture-basierter Unit-Test mit frischen,
+  noch nie synchronisierten Test-IDs nicht abdeckt. Fix (Commit `1a01ca65`):
+  `findCollisions` schließt jetzt Kandidaten aus, deren lokale ID bereits dem
+  `recordID.recordName` des Cloud-Treffers entspricht, bevor der Namensvergleich
+  überhaupt läuft. **Lehre:** Bei JEDER künftigen Duplikat-/Kollisionserkennung, die gegen
+  eine Menge läuft, die bereits synchronisierte, dem lokalen Datensatz per ID
+  entsprechende Einträge enthalten kann, IMMER zuerst nach ID ausschließen, nicht nur nach
+  Inhalts-/Namens-Gleichheit vergleichen — und ein aufgeteilter Task-Review von Bausteinen,
+  die erst gemeinsam in einem späteren Task verdrahtet werden, kann diese Klasse von
+  Fehlern strukturell nicht sehen; ein finaler Whole-Branch-Review sollte solche
+  Foundation-Bausteine (hier: die Tasks 12/13) gezielt noch einmal im Licht der später
+  hinzugekommenen echten Verdrahtung neu prüfen, nicht nur erneut die bestehenden Tests
+  laufen lassen. **Zweiter, unabhängiger CRITICAL-Fund derselben Review-Runde (Ordnungs-
+  Lücke, kein Datenverlust, aber dieselbe Sicherheitsklasse):** `FeedivoApp.swift` rief
+  `cloudSyncEngine.start()` bei jedem App-Start bedingungslos auf, sobald `isEnabled`
+  bereits als `true` persistiert war — umging das komplette Erst-Aktivierungs-Gate, falls
+  die App beendet wurde, während der Merge-Dialog noch offen war (`@AppStorage` setzt
+  `isEnabled` sofort beim Umlegen des Schalters, noch bevor der Dialog abgeschlossen ist).
+  Gefixt über ein neues, persistiertes `pendingFirstActivationKey`-Flag (gesetzt beim
+  Erscheinen des Sheets, nur bei echtem Abschluss gelöscht), das eine neue
+  `shouldAutoStartSyncEngineAtLaunch(...)`-Prüfung an beiden tatsächlichen
+  `start()`-Aufrufstellen gated.
 
 ---
 
@@ -949,16 +990,21 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 - [x] `RuleEngine` inkl. Regel-Assistent (Wizard) und Einstellungs-UI
 - [x] Background Refresh (`NSBackgroundActivityScheduler` statt `BGTaskScheduler`)
 - [ ] **iCloud Sync via CloudKit** — Phase 1 (CKSyncEngine-Fundament, nur Tags), Phase 2a
-      (Feeds/Ordner/Regeln+Bedingungen/benutzerdefinierte Intelligente Ordner) und Phase 2b
-      (Artikelstatus — Gelesen/Stern) seit 2026-07-24/25 auf `main` implementiert (Tests
-      grün), dazu eine Soft-/Hard-Reset-UI für den Sync-Zustand. Push-Richtung für Feed,
-      Rule/RuleCondition, SmartFolder/SmartFolderCondition und ArticleStatus seit
-      2026-07-26 live gegen das echte CloudKit Dashboard bestätigt, ebenso die
-      Löschpropagierung für Feed→ArticleStatus, Rule→RuleCondition und
-      SmartFolder→SmartFolderCondition (siehe „Aktuell in Arbeit"); FeedFolder-Push,
-      tatsächliche Reset-Ausführung und die Pull-Richtung app-weit weiterhin ausstehend.
-      Phase 3 (Feld-Ebene-Konflikte + Merge-Dialog) und Phase 4 (Härtung)
-      stehen noch aus — Checkbox bleibt deshalb offen
+      (Feeds/Ordner/Regeln+Bedingungen/benutzerdefinierte Intelligente Ordner), Phase 2b
+      (Artikelstatus — Gelesen/Stern) und seit 2026-07-26 auch Phase 3 (Feld-Ebene-
+      Konfliktauflösung + Erst-Aktivierungs-Merge-Dialog) sind auf `main` implementiert
+      (automatisierte Tests grün, Release-Build grün), dazu eine Soft-/Hard-Reset-UI für
+      den Sync-Zustand. Push-Richtung für Feed, Rule/RuleCondition,
+      SmartFolder/SmartFolderCondition und ArticleStatus seit 2026-07-26 live gegen das
+      echte CloudKit Dashboard bestätigt, ebenso die Löschpropagierung für
+      Feed→ArticleStatus, Rule→RuleCondition und SmartFolder→SmartFolderCondition (siehe
+      „Aktuell in Arbeit"); FeedFolder-Push, tatsächliche Reset-Ausführung und die
+      Pull-Richtung app-weit weiterhin ausstehend. Phase 3s Feld-Ebene-Konfliktauflösung
+      und Erst-Aktivierungs-Kollisionserkennung sind bislang ausschließlich durch
+      automatisierte Tests (In-Memory-GRDB + gemockte `CKRecord`s) abgesichert, NICHT
+      live gegen zwei echte Geräte bzw. einen echten CKContainer verifiziert. Phase 4
+      (Härtung) steht als eigener, noch nicht begonnener Zyklus weiterhin aus —
+      Checkbox bleibt deshalb offen
 
 ### M4 – Polish & Release — größtenteils ✅
 - [x] OPML Import (mit Vorschau/Review-Screen, Duplikat-Erkennung)
@@ -999,17 +1045,35 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 ## Offene Entscheidungen
 
 - **iCloud Sync:** Phase 1 (nur Tags), Phase 2a (Feeds/Ordner/Regeln/benutzerdefinierte
-  Intelligente Ordner) und Phase 2b (Artikelstatus — Gelesen/Stern, inkl. Löschpropagierung)
-  sind seit 2026-07-24/25 implementiert (siehe „Aktuell in Arbeit"), dazu eine Soft-/Hard-
+  Intelligente Ordner), Phase 2b (Artikelstatus — Gelesen/Stern, inkl. Löschpropagierung)
+  und seit 2026-07-26 auch Phase 3 (Feld-Ebene-Konfliktauflösung + Erst-Aktivierungs-
+  Merge-Dialog) sind implementiert (siehe „Aktuell in Arbeit"), dazu eine Soft-/Hard-
   Reset-UI für den Sync-Zustand. Push-Richtung für Feed, Rule/RuleCondition,
   SmartFolder/SmartFolderCondition und ArticleStatus seit 2026-07-26 live gegen das echte
   CloudKit Dashboard bestätigt, ebenso die Löschpropagierung für Feed→ArticleStatus,
-  Rule→RuleCondition und SmartFolder→SmartFolderCondition. Offen: Phase 3 (Feld-Ebene-
-  Konflikte + Merge-Dialog bei Erst-Aktivierung) und Phase 4 (Härtung) — wann werden diese
-  angegangen? Zusätzlich weiterhin offen für Phase 2a/2b: FeedFolder-Push separat
-  verifizieren, tatsächliche Ausführung von Soft-/Hard-Reset, sowie die Pull-Richtung
-  app-weit weiterhin ungetestet mangels Zweitgerät. Der alte, SwiftData-basierte
-  Sync-Beta-Branch war bereits überholt und wurde am 2026-07-24 gelöscht.
+  Rule→RuleCondition und SmartFolder→SmartFolderCondition. Offen: Phase 3s Feld-Ebene-
+  Konfliktauflösung und Erst-Aktivierungs-Kollisionserkennung sind bislang NUR
+  automatisiert getestet (In-Memory-GRDB + gemockte `CKRecord`s), nicht live gegen zwei
+  echte Geräte bzw. einen echten CKContainer verifiziert — dafür bräuchte es entweder ein
+  zweites Testgerät (ein echter, gleichzeitig auf beiden Seiten laufender Feld-Konflikt)
+  oder ein CloudKit-Dashboard-seitig manuell angelegtes Namens-Duplikat
+  (Erst-Aktivierungs-Kollisionserkennung). Phase 4 (Härtung) steht als eigener, noch
+  nicht begonnener Zyklus weiterhin aus — wann wird das angegangen? Zusätzlich weiterhin
+  offen für Phase 2a/2b: FeedFolder-Push separat verifizieren, tatsächliche Ausführung
+  von Soft-/Hard-Reset, sowie die Pull-Richtung app-weit weiterhin ungetestet mangels
+  Zweitgerät. Der alte, SwiftData-basierte Sync-Beta-Branch war bereits überholt und
+  wurde am 2026-07-24 gelöscht.
+- **Bewusste, dokumentierte Limitation aus Phase 3 (kein Bug, siehe „Aktuell in
+  Arbeit"):** `RuleCondition`/`SmartFolderCondition`-Zeilen werden bei jedem Speichern
+  der übergeordneten Rule/SmartFolder komplett gelöscht und neu eingefügt — kein Task im
+  Phase-3-Plan verdrahtet `changedFields`-Tracking für diese Kind-Zeilen. Die in Task 3
+  definierte `askFields`/`autoFields`-Policy für `RuleCondition`/`SmartFolderCondition`
+  ist dadurch aktuell unerreichbarer Code — Bedingungszeilen fallen bei einem Konflikt
+  weiterhin auf das alte, ganze-Zeile-Last-Write-Wins zurück statt auf Feld-Ebene zu
+  mergen. Sicher (kein Datenverlust), nur weniger granular als bei
+  Tag/FeedFolder/Feed/Rule/SmartFolder/ArticleStatus selbst. Müsste in einem eigenen
+  Folge-Task (analog zu Tasks 9/10 für Rule/SmartFolder selbst) nachgezogen werden, falls
+  Feld-Ebene-Genauigkeit auch für einzelne Bedingungszeilen gewünscht ist.
 - **Bekanntes, bewusst noch nicht behobenes Risiko aus dem Phase-2a-Whole-Branch-Review:**
   `FeedFolderStore.materializeImplicitFolders()` kann bei Multi-Geräte-Pull doppelte,
   gleichnamige `feed_folders`-Zeilen erzeugen (frische Zufalls-UUID pro Gerät, nicht
@@ -1030,6 +1094,97 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 ---
 
 ## Aktuell in Arbeit
+
+- **2026-07-26 (Folge-Session): iCloud Sync Phase 3 (Feld-Ebene-Konfliktauflösung +
+  Erst-Aktivierungs-Merge-Dialog) — VOLLSTÄNDIG ABGESCHLOSSEN, automatisierte Tests grün,
+  Release-Build grün, Live-Verifikation NOCH AUSSTEHEND.** Baut auf dem in Phase 1/2a/2b
+  etablierten `CKSyncEngine`-Fundament auf und schließt zwei in der ursprünglichen
+  Planung bewusst zurückgestellte Lücken: (1) bisher war JEDE Konfliktauflösung reines
+  Last-Write-Wins auf ganzer-Datensatz-Ebene — ein Konflikt zwischen zwei Geräten verlor
+  immer die komplette Änderung der unterlegenen Seite, selbst wenn beide Seiten
+  unterschiedliche, nicht überlappende Felder geändert hatten; (2) eine Erst-Aktivierung
+  von iCloud Sync auf einem Gerät mit bereits vorhandenen lokalen Tags/Ordnern und einem
+  bereits zuvor synchronisierten zweiten Gerät konnte gleichnamige, aber ID-verschiedene
+  Duplikate erzeugen, ohne dass der Nutzer je darauf hingewiesen wurde. Umgesetzt via
+  Brainstorming→Spec→Plan→Subagent-Driven-Development (15 Tasks), Spec:
+  `docs/superpowers/specs/2026-07-26-icloud-sync-phase3-design.md`, Plan:
+  `docs/superpowers/plans/2026-07-26-icloud-sync-phase3.md`.
+  - **Feld-Ebene-Konfliktauflösung (Tasks 1–10):** Migration v27 macht Bedingungs-IDs
+    (`RuleCondition`/`SmartFolderCondition`) über einen Speicher-Lade-Speicher-Zyklus
+    stabil (Voraussetzung für sinnvolles Feld-Diffing auf Bedingungsebene, siehe
+    dokumentierte Limitation weiter unten), Migration v28 legt eine neue
+    `PendingSyncConflictStore`-Tabelle an. Jeder `CloudSyncRecordMapping`-Typ bekommt eine
+    neue `askFields`/`autoFields`-Policy (welche Felder bei einem Konflikt den Nutzer
+    fragen vs. automatisch zusammenführen) — für Tag, FeedFolder, Feed, Rule, SmartFolder
+    und ArticleStatus. `CloudSyncEngine.handleFailedSave` komplett neu geschrieben: statt
+    reinem Server- oder Client-Wins vergleicht es jetzt Feld für Feld anhand eines neuen
+    `changedFields`-Trackings (JSON-Array, das `TagStore`/`FeedFolderStore`/`FeedStore`/
+    `SQLiteRuleStore`/`SQLiteSmartFolderStore` bei jeder Mutation zusätzlich zur
+    Pending-Change-Warteschlange mitschreiben — z. B. markiert `renameFolder` NUR `name`
+    als geändert, `moveFolder`/`sortAlphabetically` NUR `sortIndex`); automatisch
+    zusammenführbare Felder (`autoFields`) werden ohne Rückfrage gemerged, für
+    `askFields`-Felder mit echtem Konflikt entsteht ein `PendingSyncConflictRecord` zur
+    späteren Nutzerentscheidung. Task 5 durchlief 3 Fix-Runden — u. a. wurde eine
+    "Server gewinnt"-Entscheidung durch ein erneutes lokales Senden stillschweigend
+    wieder überschrieben, bevor der Fix (`applyIncomingRecord(mergedRecord)` zusätzlich
+    lokal anwenden) das behob.
+  - **Konflikt-UI (Task 11):** neue `SyncConflictResolutionView` + ein Konflikte-Badge
+    in `SyncSettingsView` — zeigt jeden offenen `askFields`-Konflikt mit dem tatsächlichen
+    Anzeigenamen des betroffenen Datensatzes (Tag-/Feed-/Ordner-/Regel-/Smart-Folder-Name,
+    bei Bedingungszeilen der Name des übergeordneten Datensatzes) statt nur dem rohen
+    `recordType` (Fix-Round-Finding — war im Implementierungsplan selbst so
+    vorgeschrieben, widersprach aber der eigentlichen Design-Spec; Nutzerentscheid:
+    sofort fixen statt dokumentieren).
+  - **Erst-Aktivierungs-Duplikat-Erkennung + Merge (Tasks 12–14):** neuer
+    `CloudSyncFirstActivationAnalyzer` (rein lesend, keine Seiteneffekte) erkennt
+    Groß-/Kleinschreibungs-unabhängige Namens-Duplikate zwischen lokalen und bereits in
+    CloudKit vorhandenen Tags/FeedFolders; `CloudSyncFirstActivationMerger` bietet pro
+    Duplikat „Zusammenführen" (PK-Rename der lokalen Zeile auf die Cloud-ID unter
+    `PRAGMA defer_foreign_keys = ON`, dedupe-geschütztes Nachziehen aller
+    `article_tags`/`feed_tags`-Zuordnungen in einer Transaktion — der ursprünglich vom
+    Plan wörtlich vorgeschlagene FK-Remap-Code war nachweislich fehlerhaft, unter diesem
+    Projekts `PRAGMA foreign_keys = ON` reproduzierbar ein echter SQLite-Fehler 19, vom
+    Implementierer selbst noch vor dem Review gefunden und ersetzt) oder „Beide
+    behalten"; `CloudSyncFirstActivationView` verdrahtet beides in den Sync-Toggle.
+  - **Zwei CRITICAL-Funde im Task-14-Review — die schwerwiegendsten des gesamten
+    15-Task-Plans, sofort gefixt, Commit `1a01ca65`:** (1) eine echte
+    Datenverlust-Falle durch fehlende Selbst-Kollisions-Ausschluss beim erneuten
+    Aktivieren von Sync, (2) eine Start-Reihenfolge-Lücke, die das komplette
+    Erst-Aktivierungs-Gate umgehen konnte, falls die App beendet wurde, während der
+    Merge-Dialog noch offen war. Beide Details siehe neuer Gotcha oben
+    („Kollisions-/Duplikaterkennung..."). Bemerkenswert: Tasks 12 UND 13 hatten jeweils
+    einen eigenen, saubere Task-Review (0 Findings, keine Fix-Runde) — der Fehler war
+    nur aus der Verdrahtungsperspektive von Task 14 sichtbar, nicht aus der isolierten
+    Analyzer-/Merger-Logik selbst.
+  - **Bewusste, dokumentierte Limitation (KEIN Bug):** `RuleCondition`/
+    `SmartFolderCondition`-Zeilen werden bei jedem Speichern der übergeordneten
+    Rule/SmartFolder komplett gelöscht und neu eingefügt — kein Task in diesem Plan
+    verdrahtet `changedFields`-Tracking für diese Kind-Zeilen. Die in Task 3 definierte
+    `askFields`/`autoFields`-Policy für `RuleCondition`/`SmartFolderCondition` ist dadurch
+    aktuell unerreichbarer Code — Bedingungszeilen fallen bei einem Konflikt weiterhin auf
+    das alte, ganze-Zeile-Last-Write-Wins zurück statt auf Feld-Ebene zu mergen. Sicher
+    (kein Datenverlust), nur weniger granular. Siehe auch „Offene Entscheidungen".
+  - **Task 15 (dieser Eintrag) deckt nur die automatisierbaren Abschlussschritte ab:**
+    gezielter Testlauf über alle 24 in diesem Plan berührten/neuen Suiten (aufgeteilt in
+    3 `xcodebuild test`-Aufrufe zur Übersichtlichkeit, alle 24 `-only-testing:`-Flags
+    wurden korrekt berücksichtigt — keine Suite fehlte in den drei Teilläufen), 48+47+94
+    = 189/189 Tests grün, sowie ein voller `xcodebuild build -configuration Release`
+    (BUILD SUCCEEDED). Die bereits bekannten, vorbestehenden 17 Fehlschläge in
+    `FeedivoAppSceneConfigurationTests.swift` und die 2-3 flaky-unter-Last-Tests waren
+    laut Plan bewusst NICHT Teil dieser gezielten Suiten-Auswahl — diese Session macht
+    keine Aussage über deren aktuellen Status.
+  - **Weiterhin unverifiziert (nicht automatisierbar in dieser Umgebung):** Feld-Ebene-
+    Konfliktauflösung UND Erst-Aktivierungs-Kollisionserkennung sind ausschließlich gegen
+    In-Memory-GRDB-Datenbanken und gemockte `CKRecord`-Objekte getestet — nie gegen einen
+    echten `CKContainer`/zwei echte Geräte. Für eine echte Live-Verifikation bräuchte es
+    entweder ein zweites Testgerät (für einen echten, gleichzeitig auf beiden Seiten
+    laufenden Feld-Konflikt) oder ein CloudKit-Dashboard-seitig manuell angelegtes
+    Namens-Duplikat (für die Erst-Aktivierungs-Kollisionserkennung). Ebenso
+    unverifiziert: sämtliches visuelles/interaktives SwiftUI-Verhalten der drei neuen
+    Views (`SyncConflictResolutionView`, `CloudSyncFirstActivationView`, das neue
+    Konflikte-Badge) — kein computer-use für native macOS-Apps in dieser Umgebung
+    verfügbar. M3-Checkbox „iCloud Sync via CloudKit" bleibt deshalb weiterhin offen
+    (Phase 4 — Härtung — steht als eigener, noch nicht begonnener Zyklus aus).
 
 - **2026-07-26: Live-Verifikation iCloud Sync Phase 2a/2b (Push-Richtung) gegen echtes
   CloudKit-Dashboard — ERSTMALS DURCHGEFÜHRT, ALLE VIER GEPRÜFTEN RECORD-TYPES BESTÄTIGT.**
@@ -1989,6 +2144,17 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Letzte Änderungen
 
+- 2026-07-26: iCloud Sync Phase 3 (Feld-Ebene-Konfliktauflösung + Erst-Aktivierungs-
+  Merge-Dialog) — vollständige Details siehe „Aktuell in Arbeit" oben, hier nicht
+  dupliziert. 15 Tasks via Brainstorming→Spec→Plan→Subagent-Driven-Development, Task 14
+  fand die zwei schwerwiegendsten Findings des gesamten Plans (Selbst-Kollisions-
+  Datenverlust-Falle + Start-Reihenfolge-Lücke bei der Erst-Aktivierungssperre, beide
+  sofort gefixt). Task 15 (Regressionslauf + Release-Build): 189/189 gezielte Tests
+  grün, Release-Build grün. Spec: `docs/superpowers/specs/2026-07-26-icloud-sync-phase3-
+  design.md`, Plan: `docs/superpowers/plans/2026-07-26-icloud-sync-phase3.md`. Commits
+  `d1abdbd5..1a01ca65` auf `main`, NICHT gepusht (Nutzerbestätigung vor Push laut
+  Projektkonvention ausstehend). Ausstehend: Live-Verifikation gegen echtes CloudKit/ein
+  zweites Testgerät, sämtliche visuelle/interaktive Verifikation der drei neuen Views.
 - 2026-07-24: Feature „Freie Gruppierung von Regel-Bedingungen (UND/ODER)" im
   Power-User-Modus des Regel-Assistenten — VOLLSTÄNDIG ABGESCHLOSSEN und gepusht
   (`77d13d74..0b83521a`). Ersetzt den bisherigen globalen „Treffer bei: Alle
