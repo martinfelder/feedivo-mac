@@ -10,19 +10,32 @@ struct SyncConflictResolutionView: View {
     @Environment(\.feedivoDatabase) private var feedivoDatabase
     @Environment(\.dismiss) private var dismiss
     @State private var conflicts: [PendingSyncConflictRecord] = []
+    @State private var isLoading = true
     @State private var errorMessage: String?
 
     var body: some View {
         NavigationStack {
-            List {
-                ForEach(
-                    Dictionary(grouping: conflicts, by: { "\($0.recordType)|\($0.recordName)" })
-                        .sorted(by: { $0.key < $1.key }),
-                    id: \.key
-                ) { _, group in
-                    Section(groupHeaderTitle(for: group)) {
-                        ForEach(group) { conflict in
-                            conflictRow(conflict)
+            Group {
+                if isLoading {
+                    ProgressView()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if conflicts.isEmpty {
+                    ContentUnavailableView(
+                        L10n.syncConflictsEmptyTitle,
+                        systemImage: "checkmark.circle"
+                    )
+                } else {
+                    List {
+                        ForEach(
+                            Dictionary(grouping: conflicts, by: { "\($0.recordType)|\($0.recordName)" })
+                                .sorted(by: { $0.key < $1.key }),
+                            id: \.key
+                        ) { _, group in
+                            Section(groupHeaderTitle(for: group)) {
+                                ForEach(group) { conflict in
+                                    conflictRow(conflict)
+                                }
+                            }
                         }
                     }
                 }
@@ -33,6 +46,18 @@ struct SyncConflictResolutionView: View {
                     Button(L10n.commonDone) { dismiss() }
                 }
             }
+            // Ohne diesen expliziten Frame berechnet macOS die Sheet-Fenstergröße einmalig
+            // anhand des allerersten Layout-Durchlaufs — der findet statt, BEVOR das
+            // asynchrone `.task` unten `conflicts` befüllt (`isLoading` startet als `true`,
+            // eine `ProgressView` ohne eigenen Frame hätte ebenfalls eine winzige Idealgröße).
+            // Live gegen eine echte, direkt in die SQLite-DB eingefügte Testzeile reproduziert
+            // (2026-07-26): das Sheet öffnete sich mit korrektem Titel, aber komplett leerem
+            // Inhalt — nur Titelzeile + „Fertig"-Button, keine einzige Konfliktzeile sichtbar,
+            // obwohl `pending_sync_conflicts` nachweislich Zeilen enthielt.
+            // `CloudSyncFirstActivationView` (dieselbe Sheet-Präsentation aus
+            // `SyncSettingsView`) hat genau deshalb bereits `.frame(minWidth: 420, minHeight:
+            // 300)` — dieselbe Konstante hier übernommen.
+            .frame(minWidth: 420, minHeight: 300)
             .task { loadConflicts() }
             .alert(L10n.commonError, isPresented: Binding(
                 get: { errorMessage != nil },
@@ -160,6 +185,7 @@ struct SyncConflictResolutionView: View {
     }
 
     private func loadConflicts() {
+        defer { isLoading = false }
         guard let feedivoDatabase else { return }
         do {
             conflicts = try PendingSyncConflictStore(database: feedivoDatabase).conflicts()

@@ -85,6 +85,34 @@
         }
       }
     },
+    "sync.conflicts.emptyTitle" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Konflikte"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Conflicts"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun conflit"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun conflitto"
+          }
+        }
+      }
+    },
     "sync.conflicts.recordType.feed" : {
       "localizations" : {
         "de" : {

@@ -735,6 +735,34 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
   die gesheetete View mit assoziierten Daten vorbefüllt werden soll — Präsentation und Daten
   müssen atomar in einem Wert stecken. Bestehendes Beispiel dieses Musters im Projekt:
   `RuleCreationRequest` in `ContentView.swift`.
+- **Ein macOS-`.sheet` ohne expliziten `.frame(minWidth:minHeight:)` kann bei asynchron
+  geladenem Inhalt (z. B. `List` + `.task { lädt @State }`) komplett leer erscheinen, obwohl
+  die Daten korrekt geladen werden:** Beim Live-Test von iCloud Sync Phase 3
+  (`SyncConflictResolutionView`, 2026-07-26) meldete der Nutzer, dass das „Sync-Konflikte"-
+  Sheet trotz nachweislich vorhandener Zeilen in `pending_sync_conflicts` (per direktem
+  `sqlite3`-Read bestätigt) komplett leer blieb — nur Titel + „Fertig"-Button, keine einzige
+  Konfliktzeile, reproduzierbar über mehrere Versuche. Per systematic-debugging (Live-
+  Reproduktion mit synthetisch per `sqlite3` eingefügter Testzeile statt echtem CloudKit-
+  Konflikt, computer-use-Screenshot des tatsächlich winzigen Sheets) verifiziert: macOS
+  berechnet die Sheet-Fenstergröße einmalig anhand des allerersten Layout-Durchlaufs — der
+  findet statt, BEVOR das asynchrone `.task` `conflicts` befüllt (Startzustand: leeres
+  Array). Ohne eigenen `.frame`-Modifier ergibt das eine winzige/leere Idealgröße, die auch
+  nach dem Befüllen der Liste NICHT automatisch nachwächst — die Zeilen existieren technisch
+  in der View-Hierarchie, sind aber innerhalb des eingefrorenen kleinen Sheet-Fensters nicht
+  sichtbar. `CloudSyncFirstActivationView` (dieselbe Sheet-Präsentationsstelle in
+  `SyncSettingsView`) hatte dieses Problem bereits erkannt und trägt deshalb
+  `.frame(minWidth: 420, minHeight: 300)` — `SyncConflictResolutionView` hatte diesen Frame
+  schlicht vergessen. Fix: denselben `.frame(minWidth: 420, minHeight: 300)` ergänzt, dazu
+  ein `isLoading`-State (Default `true`) mit `ProgressView`, damit die Sheet-Größe von Anfang
+  an stabil ist und der Nutzer „lädt noch" von „0 Konflikte" unterscheiden kann. Live erneut
+  gegen eine synthetische Testzeile verifiziert (inkl. „Dieses Gerät"/„Anderes Gerät"-Buttons,
+  die den Server-Wert korrekt in die Tabelle schreiben) — Fix bestätigt. **Lehre:** Bei JEDEM
+  künftigen `.sheet`, dessen Inhalt asynchron/verzögert befüllt wird (nicht sofort beim ersten
+  Layout vorhanden), IMMER einen expliziten `.frame(minWidth:minHeight:)` setzen — unabhängig
+  davon, ob der Inhalt eine `List`, ein `VStack` oder sonstiges ist. Ein fehlender Frame äußert
+  sich NICHT als Absturz oder Fehlermeldung, sondern als scheinbar leerer/winziger Sheet-Inhalt
+  trotz korrekt geladener Daten — schwer von einem echten Daten-/Query-Bug zu unterscheiden,
+  ohne die Fenstergröße selbst zu inspizieren.
 - **`.onOpenURL` verpasst das Launch-Apple-Event beim Kaltstart:** SwiftUIs `.onOpenURL`
   funktioniert zuverlässig, solange die App bereits läuft, kann aber die URL verlieren, mit
   der die App gerade frisch gestartet wurde — das Apple Event kommt an, bevor die

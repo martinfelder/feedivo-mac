@@ -441,6 +441,11 @@ enum L10n {
     static let syncConflictsTitle = LocalizedStringKey("sync.conflicts.title")
     static let syncConflictsThisDevice = LocalizedStringKey("sync.conflicts.thisDevice")
     static let syncConflictsOtherDevice = LocalizedStringKey("sync.conflicts.otherDevice")
+    // Leerer Zustand nach dem Laden — kommt in der Praxis kaum vor (das Badge zeigt das
+    // Sheet ja nur bei count > 0 an), ist aber der Bugfix-Anlass: ohne dedizierte
+    // Lade-/Leer-Zustände war für den Nutzer nicht unterscheidbar, ob 0 Konflikte oder ein
+    // Rendering-Fehler vorlag.
+    static let syncConflictsEmptyTitle = String(localized: "sync.conflicts.emptyTitle")
     // Nutzerverständliche Kurzbezeichnung je recordType für die Gruppen-Kopfzeile im
     // Konflikt-Sheet (z. B. "Regel: Intune Artikel") — siehe Whole-Branch-Review-Fix
     // zu Task 11, Design-Spec Abschnitt 5.
