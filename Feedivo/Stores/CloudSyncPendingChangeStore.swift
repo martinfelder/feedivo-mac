@@ -11,20 +11,21 @@ struct CloudSyncPendingChangeStore {
         self.database = database
     }
 
-    func enqueue(recordType: String, recordName: String, changeType: CloudSyncChangeType) throws {
+    func enqueue(recordType: String, recordName: String, changeType: CloudSyncChangeType, changedFields: [String]? = nil) throws {
         try database.write { db in
-            try Self.enqueue(db, recordType: recordType, recordName: recordName, changeType: changeType)
+            try Self.enqueue(db, recordType: recordType, recordName: recordName, changeType: changeType, changedFields: changedFields)
         }
     }
 
     /// Variante für Aufrufer, die bereits in einer eigenen `database.write`-Transaktion stecken
     /// (z. B. `TagStore`) — hält die fachliche Mutation und das Pending-Change-Markieren atomar.
-    static func enqueue(_ db: Database, recordType: String, recordName: String, changeType: CloudSyncChangeType) throws {
+    static func enqueue(_ db: Database, recordType: String, recordName: String, changeType: CloudSyncChangeType, changedFields: [String]? = nil) throws {
         var change = CloudSyncPendingChangeRecord(
             id: recordName,
             recordType: recordType,
             changeType: changeType,
-            queuedAt: Date()
+            queuedAt: Date(),
+            changedFields: changedFields
         )
         try change.save(db)
     }

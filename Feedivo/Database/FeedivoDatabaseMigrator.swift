@@ -525,6 +525,12 @@ enum FeedivoDatabaseMigrator {
             try backfillArticleStatusSyncStableID(database)
         }
 
+        migrator.registerMigration("v27_add_changed_fields_to_pending_changes") { database in
+            try database.alter(table: "cloud_sync_pending_changes") { table in
+                table.add(column: "changedFields", .text)
+            }
+        }
+
         return migrator
     }
 

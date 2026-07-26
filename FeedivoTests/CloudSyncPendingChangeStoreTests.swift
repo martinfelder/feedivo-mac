@@ -93,4 +93,24 @@ struct CloudSyncPendingChangeStoreTests {
 
         #expect(try store.pendingChanges().isEmpty)
     }
+
+    @Test func enqueueSpeichertChangedFieldsAlsJSON() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let store = CloudSyncPendingChangeStore(database: database)
+
+        try store.enqueue(recordType: "Tag", recordName: "tag-1", changeType: .save, changedFields: ["name"])
+
+        let change = try store.pendingChange(recordName: "tag-1")
+        #expect(change?.changedFields == ["name"])
+    }
+
+    @Test func enqueueOhneChangedFieldsBleibtNil() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let store = CloudSyncPendingChangeStore(database: database)
+
+        try store.enqueue(recordType: "Tag", recordName: "tag-1", changeType: .delete)
+
+        let change = try store.pendingChange(recordName: "tag-1")
+        #expect(change?.changedFields == nil)
+    }
 }
