@@ -1067,6 +1067,12 @@ private struct SyncSettingsView: View {
     @State private var syncActivityPendingCounts: [String: Int] = [:]
     @State private var isSyncActivityDetailsExpanded = false
 
+    // Feld-Ebene-Konfliktauflösung (Phase 3) — Badge + Sheet direkt neben der bestehenden
+    // Sync-Status-Zeile. `pendingConflictCount` wird nach demselben Muster wie
+    // `syncActivityPendingCounts` über `sqliteStatusVersionForSyncActivity` aktuell gehalten.
+    @State private var pendingConflictCount = 0
+    @State private var showingConflictSheet = false
+
     @State private var isResetting = false
     @State private var resetErrorMessage: String?
     @State private var resetSuccessMessage: String?
@@ -1137,6 +1143,17 @@ private struct SyncSettingsView: View {
                         pendingCounts: syncActivityPendingCounts,
                         isDetailsExpanded: $isSyncActivityDetailsExpanded
                     )
+
+                    if pendingConflictCount > 0 {
+                        Button(action: { showingConflictSheet = true }) {
+                            HStack {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundStyle(.orange)
+                                Text(L10n.syncConflictsBadge(pendingConflictCount))
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
             }
 
@@ -1198,8 +1215,13 @@ private struct SyncSettingsView: View {
             }
         }
         .onAppear(perform: loadSyncActivityPendingCounts)
+        .onAppear(perform: loadPendingConflictCount)
         .onChange(of: sqliteStatusVersionForSyncActivity) {
             loadSyncActivityPendingCounts()
+            loadPendingConflictCount()
+        }
+        .sheet(isPresented: $showingConflictSheet) {
+            SyncConflictResolutionView()
         }
         .onChange(of: syncActivityLastRunTimestamp) {
             // CloudSyncEngine.dequeuePendingChange löscht erledigte Pending-Change-Zeilen,
@@ -1251,6 +1273,23 @@ private struct SyncSettingsView: View {
             // ein leeres Dictionary zurück (kein Absturz, kein Verhaltensunterschied).
             AppLogger.dataAccess.error("Laden der ausstehenden CloudSync-Änderungen fehlgeschlagen: \(error.localizedDescription, privacy: .public)")
             syncActivityPendingCounts = [:]
+        }
+    }
+
+    private func loadPendingConflictCount() {
+        guard let feedivoDatabase else {
+            pendingConflictCount = 0
+            return
+        }
+        do {
+            pendingConflictCount = try PendingSyncConflictStore(database: feedivoDatabase).count()
+        } catch {
+            // Analog zu `loadSyncActivityPendingCounts()`: ein echter Lesefehler soll nicht
+            // stillschweigend als "keine Konflikte" erscheinen, ohne dass er zumindest geloggt
+            // wird. UI fällt weiterhin auf 0 zurück (kein Absturz, Badge bleibt einfach
+            // ausgeblendet).
+            AppLogger.dataAccess.error("Laden der ausstehenden Sync-Konflikte fehlgeschlagen: \(error.localizedDescription, privacy: .public)")
+            pendingConflictCount = 0
         }
     }
 

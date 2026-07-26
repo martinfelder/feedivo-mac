@@ -40,6 +40,8 @@ enum L10n {
     static let commonBack = String(localized: "common.back")
     static let commonOn = String(localized: "common.on")
     static let commonOff = String(localized: "common.off")
+    static let commonError = LocalizedStringKey("common.error")
+    static let commonOK = LocalizedStringKey("common.ok")
     static let articleListEmptyTitle = String(localized: "articleList.empty.title")
     static let articleListEmptyDescription = LocalizedStringKey("articleList.empty.description")
     static let articleListEmptyDescriptionFeed = String(localized: "articleList.empty.description.feed")
@@ -431,6 +433,16 @@ enum L10n {
     static let settingsSyncResetSuccessMessage = String(localized: "settings.sync.reset.successMessage")
     static func settingsSyncResetErrorMessage(reason: String) -> String {
         String.localizedStringWithFormat(String(localized: "settings.sync.reset.errorMessage"), reason)
+    }
+    // Feld-Ebene-Konfliktauflösung (Phase 3) — Sheet + Badge im Sync-Tab. Dot-Keys bewusst
+    // unter "sync.conflicts.*" statt "settings.sync.conflicts.*", da SyncConflictResolutionView
+    // ein eigenständiges Sheet ist, keine reine Settings-Tab-Unteransicht (das Badge im
+    // Sync-Tab selbst nutzt syncConflictsBadge mit).
+    static let syncConflictsTitle = LocalizedStringKey("sync.conflicts.title")
+    static let syncConflictsThisDevice = LocalizedStringKey("sync.conflicts.thisDevice")
+    static let syncConflictsOtherDevice = LocalizedStringKey("sync.conflicts.otherDevice")
+    static func syncConflictsBadge(_ count: Int) -> String {
+        String.localizedStringWithFormat(String(localized: "sync.conflicts.badge"), count)
     }
     static let feedProgressRefreshAllTitle = String(localized: "feed.progress.refreshAll.title")
     static let feedPropertiesDetailsTitle = LocalizedStringKey("feed.properties.detailsTitle")
