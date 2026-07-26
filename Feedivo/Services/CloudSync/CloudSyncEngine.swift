@@ -464,12 +464,46 @@ extension CloudSyncEngine: CKSyncEngineDelegate {
         }
     }
 
-    /// Last-Write-Wins: bei einem Server-Konflikt (`.serverRecordChanged`) gewinnt die Seite mit
-    /// dem neueren Zeitstempel (`CKRecord.modificationDate` vs. dem lokalen `updatedAt`).
-    /// Liefert `true`, wenn dieses Element einen erneuten Sendeversuch braucht (der Aufrufer in
-    /// `handleEvent` bündelt daraus höchstens EINEN `notifyPendingChangesAvailable`-Aufruf pro
-    /// Batch, statt einem pro Konflikt — siehe Design-Spec
-    /// `docs/superpowers/specs/2026-07-24-icloud-sync-konfliktaufloesung-fix-design.md`).
+    /// Ergebnis einer Feld-Ebene-Konfliktentscheidung für EIN Feld — Rückgabewert der reinen,
+    /// direkt testbaren `mergeDecision`-Funktion unten.
+    enum FieldMergeDecision: Equatable {
+        case noConflict
+        case autoResolved
+        case needsUserDecision
+    }
+
+    /// Reine, `nonisolated` und direkt testbare Kernlogik der Feld-Ebene-Konfliktauflösung
+    /// (Phase 3) — nimmt für EIN einzelnes Feld lokalen und Server-Wert entgegen und
+    /// entscheidet nach der `CloudSyncRecordMapping`-Policy. Getrennt von `handleFailedSave`
+    /// selbst, damit sie ohne echtes `CKSyncEngine`/`CKRecord.ID`-Setup unit-testbar ist.
+    nonisolated static func mergeDecision(
+        fieldName: String,
+        localValue: CKRecordValue?,
+        serverValue: CKRecordValue?,
+        askFields: Set<String>,
+        autoFields: Set<String>
+    ) -> FieldMergeDecision {
+        guard let localValue, let serverValue, !valuesEqual(localValue, serverValue) else {
+            return .noConflict
+        }
+        if askFields.contains(fieldName) {
+            return .needsUserDecision
+        }
+        return .autoResolved
+    }
+
+    private nonisolated static func valuesEqual(_ lhs: CKRecordValue, _ rhs: CKRecordValue) -> Bool {
+        if let lhsString = lhs as? String, let rhsString = rhs as? String { return lhsString == rhsString }
+        if let lhsInt = lhs as? Int, let rhsInt = rhs as? Int { return lhsInt == rhsInt }
+        if let lhsBool = lhs as? Bool, let rhsBool = rhs as? Bool { return lhsBool == rhsBool }
+        if let lhsDouble = lhs as? Double, let rhsDouble = rhs as? Double { return lhsDouble == rhsDouble }
+        return false
+    }
+
+    /// Last-Write-Wins auf Ganz-Record-Ebene, ODER Feld-Ebene-Merge, falls die zugehörige
+    /// Pending-Change-Zeile ein `changedFields` trägt (Phase 3). `ArticleStatus` nimmt einen
+    /// eigenen, dritten Pfad (Pro-Feld-Zeitstempel über `readAt`/`starredAt`, kein Dialog).
+    /// Liefert `true`, wenn dieses Element einen erneuten Sendeversuch braucht.
     private func handleFailedSave(_ failedSave: CKSyncEngine.Event.SentRecordZoneChanges.FailedRecordSave) async -> Bool {
         guard failedSave.error.code == .serverRecordChanged else {
             status.state = .error(failedSave.error.localizedDescription)
@@ -481,6 +515,79 @@ extension CloudSyncEngine: CKSyncEngineDelegate {
               let mapping = Self.mapping(forRecordType: failedSave.record.recordType)
         else { return false }
 
+        if mapping.recordType == CloudSyncArticleStatusMapping.recordType {
+            return await handleArticleStatusConflict(localRecord: failedSave.record, serverRecord: serverRecord)
+        }
+
+        let pendingChange = try? pendingChangeStore.pendingChange(recordName: failedSave.record.recordID.recordName)
+
+        guard let changedFields = pendingChange?.changedFields, !changedFields.isEmpty else {
+            // Kein Feld-Tracking für diese Pending-Change (Altbestand oder Löschung) — bisheriges
+            // Ganz-Record-Last-Write-Wins.
+            return await resolveWholeRecordLastWriteWins(failedSave: failedSave, serverRecord: serverRecord, mapping: mapping)
+        }
+
+        var mergedRecord = serverRecord
+        var hasUnresolvedConflict = false
+        for fieldName in changedFields {
+            let localValue = failedSave.record[fieldName]
+            let serverValue = serverRecord[fieldName]
+            let decision = Self.mergeDecision(
+                fieldName: fieldName,
+                localValue: localValue,
+                serverValue: serverValue,
+                askFields: mapping.askFields,
+                autoFields: mapping.autoFields
+            )
+            switch decision {
+            case .noConflict:
+                continue
+            case .autoResolved:
+                mergedRecord[fieldName] = localValue
+            case .needsUserDecision:
+                hasUnresolvedConflict = true
+                do {
+                    try PendingSyncConflictStore(database: database).record(
+                        recordType: mapping.recordType,
+                        recordName: failedSave.record.recordID.recordName,
+                        fieldName: fieldName,
+                        localValue: Self.describeForDisplay(localValue),
+                        serverValue: Self.describeForDisplay(serverValue)
+                    )
+                } catch {
+                    AppLogger.dataAccess.error("iCloud Sync: Konflikt konnte nicht vermerkt werden: \(error.localizedDescription, privacy: .public)")
+                }
+            }
+        }
+
+        if hasUnresolvedConflict {
+            // Datensatz bleibt lokal auf dem aktuellen Vor-Konflikt-Stand stehen: weder wird der
+            // Server-Stand übernommen noch ein erneuter Sendeversuch eingeplant, bis der Nutzer
+            // im Konflikt-Sheet entscheidet (siehe Task 11).
+            SQLiteDataInvalidation.bumpStatusVersion()
+            return false
+        }
+
+        let applied = await applyIncomingRecord(mergedRecord)
+        if applied {
+            dequeuePendingChange(recordName: failedSave.record.recordID.recordName)
+        }
+        return false
+    }
+
+    private nonisolated static func describeForDisplay(_ value: CKRecordValue?) -> String {
+        if let stringValue = value as? String { return stringValue }
+        if let value { return String(describing: value) }
+        return ""
+    }
+
+    /// Bisheriges Verhalten (Phase 1/2a/2b), unverändert — für Pending-Changes ohne bekannte
+    /// Feldgranularität.
+    private func resolveWholeRecordLastWriteWins(
+        failedSave: CKSyncEngine.Event.SentRecordZoneChanges.FailedRecordSave,
+        serverRecord: CKRecord,
+        mapping: any CloudSyncRecordMapping.Type
+    ) async -> Bool {
         let localUpdatedAt: Date?
         do {
             localUpdatedAt = try mapping.localUpdatedAt(forLocalID: failedSave.record.recordID.recordName, database: database)
@@ -507,6 +614,33 @@ extension CloudSyncEngine: CKSyncEngineDelegate {
                 return false
             }
         }
+    }
+
+    /// Sonderregel für `ArticleStatus` (siehe Design-Spec Abschnitt 4): `isRead`/`isStarred`
+    /// werden UNABHÄNGIG voneinander per eigenem Zeitstempel (`readAt`/`starredAt`) aufgelöst,
+    /// kein Dialog — niedrige Tragweite, ein falscher Status ist mit einem Klick korrigiert.
+    private func handleArticleStatusConflict(localRecord: CKRecord, serverRecord: CKRecord) async -> Bool {
+        let mergedRecord = serverRecord
+
+        let localReadAt = localRecord["readAt"] as? Date
+        let serverReadAt = serverRecord["readAt"] as? Date
+        if (localReadAt ?? .distantPast) > (serverReadAt ?? .distantPast) {
+            mergedRecord["isRead"] = localRecord["isRead"]
+            mergedRecord["readAt"] = localRecord["readAt"]
+        }
+
+        let localStarredAt = localRecord["starredAt"] as? Date
+        let serverStarredAt = serverRecord["starredAt"] as? Date
+        if (localStarredAt ?? .distantPast) > (serverStarredAt ?? .distantPast) {
+            mergedRecord["isStarred"] = localRecord["isStarred"]
+            mergedRecord["starredAt"] = localRecord["starredAt"]
+        }
+
+        let applied = await applyIncomingRecord(mergedRecord)
+        if applied {
+            dequeuePendingChange(recordName: localRecord.recordID.recordName)
+        }
+        return false
     }
 
     /// Aktualisiert den persistenten Sync-Aktivitätsstatus nach einem abgeschlossenen
