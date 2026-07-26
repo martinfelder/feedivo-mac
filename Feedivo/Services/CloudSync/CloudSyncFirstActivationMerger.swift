@@ -65,11 +65,63 @@ enum CloudSyncFirstActivationMerger {
             case CloudSyncTagMapping.recordType:
                 try db.execute(sql: "UPDATE tags SET name = ?, updatedAt = ? WHERE id = ?", arguments: [newName, Date(), collision.localID])
             case CloudSyncFeedFolderMapping.recordType:
-                try db.execute(sql: "UPDATE feed_folders SET name = ?, updatedAt = ? WHERE id = ?", arguments: [newName, Date(), collision.localID])
+                try keepBothFeedFolder(db, collision: collision, newName: newName)
             default:
                 break
             }
         }
+    }
+
+    /// Whole-Branch-Review-Fund (Critical 2): Das Ordner-Modell dieser App ist NAMENS-basiert,
+    /// nicht ID-basiert — jede `feeds`-Zeile trägt ihren Ordner über den String-Wert
+    /// `folderName`, nicht über einen Fremdschlüssel auf `feed_folders.id`. Ein reines
+    /// Umbenennen der `feed_folders`-Zeile (wie ursprünglich hier implementiert) hinterlässt
+    /// deshalb eine LEERE, umbenannte Ordner-Zeile, während alle bisherigen Feeds weiterhin
+    /// `folderName == collision.name` tragen — `FeedFolderStore.materializeImplicitFolders()`
+    /// (regulärer Sidebar-Ladepfad) würde für diese verwaisten Feeds beim nächsten Laden eine
+    /// DRITTE, frisch-zufällige Ordner-Zeile mit demselben alten Namen anlegen und damit exakt
+    /// den Duplikat-Ordner-Fall wieder herstellen, den dieser gesamte Erst-Aktivierungs-Dialog
+    /// verhindern soll. Fix: exakt dasselbe zweistufige Muster wie
+    /// `FeedFolderStore.renameFolder` — betroffene Feed-IDs vor dem Update ermitteln, sowohl
+    /// `feeds.folderName` (+ `configUpdatedAt`, dasselbe Konfliktauflösungsfeld wie bei einem
+    /// regulären Ordner-Umbenennen) als auch die `feed_folders`-Zeile selbst umschreiben, und
+    /// jeden betroffenen Feed als sync-pending mit `changedFields: ["folderName"]` markieren
+    /// (analog `FeedStore.updateFolderName`) — nur so wird die geänderte Ordner-Zuordnung auch
+    /// tatsächlich zu CloudKit hochgeladen, nicht nur lokal verschoben.
+    private static func keepBothFeedFolder(
+        _ db: Database,
+        collision: CloudSyncFirstActivationAnalyzer.FirstActivationCollision,
+        newName: String
+    ) throws {
+        let affectedFeedIDs = try String.fetchAll(
+            db,
+            sql: "SELECT id FROM feeds WHERE folderName = ? COLLATE NOCASE",
+            arguments: [collision.name]
+        )
+
+        try db.execute(
+            sql: """
+                UPDATE feeds
+                SET folderName = ?, configUpdatedAt = ?
+                WHERE folderName = ? COLLATE NOCASE
+                """,
+            arguments: [newName, Date(), collision.name]
+        )
+
+        for feedID in affectedFeedIDs {
+            try CloudSyncPendingChangeStore.enqueue(
+                db,
+                recordType: CloudSyncFeedMapping.recordType,
+                recordName: feedID,
+                changeType: .save,
+                changedFields: ["folderName"]
+            )
+        }
+
+        try db.execute(
+            sql: "UPDATE feed_folders SET name = ?, updatedAt = ? WHERE id = ?",
+            arguments: [newName, Date(), collision.localID]
+        )
     }
 
     /// Schreibt `article_tags`/`feed_tags`-Zeilen mit `oldTagID` auf `newTagID` um — mit
