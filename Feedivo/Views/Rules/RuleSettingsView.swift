@@ -614,6 +614,7 @@ enum RuleSettingsFormatter {
                 }
 
                 return RuleConditionDraft(
+                    id: UUID(uuidString: condition.id) ?? UUID(),
                     field: field,
                     conditionOperator: conditionOperator,
                     value: condition.value,

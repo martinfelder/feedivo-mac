@@ -449,7 +449,7 @@ struct SmartFolderEditorView: View {
         )
         let conditions = normalizedConditionDrafts.enumerated().map { index, draft in
             SmartFolderConditionRecord(
-                id: UUID().uuidString,
+                id: draft.id.uuidString,
                 smartFolderID: folderID,
                 field: draft.field.rawValue,
                 conditionOperator: draft.conditionOperator.rawValue,
@@ -527,6 +527,7 @@ struct SmartFolderEditorView: View {
         }
 
         return SmartFolderConditionDraft(
+            id: draft.id,
             field: draft.field,
             conditionOperator: draft.conditionOperator,
             value: normalizedValue
@@ -541,6 +542,7 @@ struct SmartFolderEditorView: View {
         let value = draft.value.trimmingCharacters(in: .whitespacesAndNewlines)
         if let normalizedValue = normalizedFeedFolderValue(for: value) {
             return SmartFolderConditionDraft(
+                id: draft.id,
                 field: draft.field,
                 conditionOperator: draft.conditionOperator,
                 value: normalizedValue
@@ -548,6 +550,7 @@ struct SmartFolderEditorView: View {
         }
 
         return SmartFolderConditionDraft(
+            id: draft.id,
             field: draft.field,
             conditionOperator: draft.conditionOperator,
             value: value
@@ -571,10 +574,12 @@ struct SmartFolderEditorView: View {
             }
 
             return SmartFolderConditionDraft(
+                id: draft.id,
                 field: draft.field,
                 conditionOperator: draft.conditionOperator,
                 value: normalizedConditionFolderValue(
                     SmartFolderConditionDraft(
+                        id: draft.id,
                         field: draft.field,
                         conditionOperator: draft.conditionOperator,
                         value: value

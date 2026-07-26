@@ -46,6 +46,7 @@ enum SmartFolderFormatter {
             }
 
             return SmartFolderConditionDraft(
+                id: UUID(uuidString: condition.id) ?? UUID(),
                 field: field,
                 conditionOperator: conditionOperator,
                 value: condition.value

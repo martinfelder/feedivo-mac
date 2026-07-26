@@ -700,6 +700,7 @@ struct RuleWizardView: View {
             }
 
             return RuleConditionDraft(
+                id: draft.id,
                 field: draft.field,
                 conditionOperator: draft.conditionOperator,
                 value: value,
@@ -737,7 +738,7 @@ struct RuleWizardView: View {
         )
         let conditions = normalizedDrafts.enumerated().map { index, draft in
             RuleConditionRecord(
-                id: UUID().uuidString,
+                id: draft.id.uuidString,
                 ruleID: ruleID,
                 field: draft.field.rawValue,
                 conditionOperator: draft.conditionOperator.rawValue,
