@@ -726,7 +726,13 @@ extension CloudSyncEngine: CKSyncEngineDelegate {
     /// Sonderregel für `ArticleStatus` (siehe Design-Spec Abschnitt 4): `isRead`/`isStarred`
     /// werden UNABHÄNGIG voneinander per eigenem Zeitstempel (`readAt`/`starredAt`) aufgelöst,
     /// kein Dialog — niedrige Tragweite, ein falscher Status ist mit einem Klick korrigiert.
-    private func handleArticleStatusConflict(localRecord: CKRecord, serverRecord: CKRecord) async -> Bool {
+    /// Sichtbarkeit bewusst `internal` (nicht `private`), damit dieser Pfad direkt aus Tests
+    /// heraus mit zwei echten `CKRecord`-Instanzen aufgerufen werden kann (analog zu
+    /// `backfillAllExistingRecords`/`sortedByDependencyOrder` oben) — `CKSyncEngine.Event.
+    /// SentRecordZoneChanges.FailedRecordSave` selbst hat keinen öffentlichen Initializer,
+    /// diese Methode braucht aber gar keinen (nimmt nur zwei `CKRecord`s entgegen, berührt
+    /// `syncEngine` nicht), siehe Test `handleArticleStatusConflictWendetServerGewonneneFelderTatsaechlichLokalAn`.
+    func handleArticleStatusConflict(localRecord: CKRecord, serverRecord: CKRecord) async -> Bool {
         // Review-Fund C2: Gesamt-Record-Zeitstempel als Fallback für die Faelle, in denen ein
         // Feld-spezifisches Datum fehlt (siehe `articleStatusFieldLocalWins` unten).
         let wholeRecordLocalUpdatedAt = try? CloudSyncArticleStatusMapping.localUpdatedAt(forLocalID: localRecord.recordID.recordName, database: database)
@@ -758,7 +764,14 @@ extension CloudSyncEngine: CKSyncEngineDelegate {
         // CloudKit hochgeladen werden; ein reines lokales Schreiben ohne Resend würde diesen
         // Fall verpassen). Bewusst NICHT dequeued — das lokale Anwenden ist kein Ersatz für den
         // Upload.
-        _ = await applyIncomingRecord(mergedRecord)
+        //
+        // Minor-Fund (Round-2-Re-Review): schlägt das lokale Schreiben fehl, NICHT trotzdem mit
+        // Cachen+Wiedereinreihen fortfahren — genau das wäre wieder NEW-1s Fehlerbild (ein
+        // stiller Fallback auf die weiterhin veraltete lokale Zeile beim nächsten Sendeversuch).
+        // Stattdessen abbrechen und den nächsten regulären Konfliktversuch (der beim nächsten
+        // Sendeversuch ohnehin erneut anläuft) übernehmen lassen — analog zu
+        // `resolveWholeRecordLastWriteWins`, das sein eigenes `applied`-Ergebnis ebenfalls prüft.
+        guard await applyIncomingRecord(mergedRecord) else { return false }
 
         knownServerRecordsByID[localRecord.recordID] = mergedRecord
         do {
