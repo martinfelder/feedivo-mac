@@ -19,13 +19,42 @@ struct CloudSyncPendingChangeStore {
 
     /// Variante für Aufrufer, die bereits in einer eigenen `database.write`-Transaktion stecken
     /// (z. B. `TagStore`) — hält die fachliche Mutation und das Pending-Change-Markieren atomar.
+    ///
+    /// **`changedFields`-Vereinigung statt Überschreiben (Review-Fund I3):** Ein zweiter
+    /// `enqueue`-Aufruf für dieselbe `recordName` (z. B. Nutzer benennt einen Tag um, ändert
+    /// dann sofort die Farbe, BEVOR die erste Änderung gesynct wurde) darf das bereits
+    /// vermerkte `changedFields` der ersten Mutation nicht verwerfen — sonst verliert das
+    /// zuerst geänderte Feld seinen Feld-Ebene-Schutz und fällt stillschweigend auf
+    /// Ganz-Record-Last-Write-Wins zurück. Wird `changedFields: nil` übergeben (wie es
+    /// `backfillAllExistingRecords` bei JEDEM `start()` bedingungslos für jede lokale Zeile
+    /// tut), bedeutet das „keine neue Feld-Information", NICHT „vorhandene löschen" — sonst
+    /// würde jeder App-Neustart/Sync-Toggle ein bereits Feld-Ebene-getracktes Pending sofort
+    /// wieder auf `nil` zurücksetzen.
     static func enqueue(_ db: Database, recordType: String, recordName: String, changeType: CloudSyncChangeType, changedFields: [String]? = nil) throws {
+        let existing = try CloudSyncPendingChangeRecord.fetchOne(
+            db,
+            sql: "SELECT * FROM cloud_sync_pending_changes WHERE id = ?",
+            arguments: [recordName]
+        )
+
+        let mergedChangedFields: [String]?
+        switch (existing?.changedFields, changedFields) {
+        case (nil, nil):
+            mergedChangedFields = nil
+        case (let existingFields?, nil):
+            mergedChangedFields = existingFields
+        case (nil, let newFields?):
+            mergedChangedFields = newFields
+        case (let existingFields?, let newFields?):
+            mergedChangedFields = Array(Set(existingFields).union(newFields))
+        }
+
         var change = CloudSyncPendingChangeRecord(
             id: recordName,
             recordType: recordType,
             changeType: changeType,
             queuedAt: Date(),
-            changedFields: changedFields
+            changedFields: mergedChangedFields
         )
         try change.save(db)
     }

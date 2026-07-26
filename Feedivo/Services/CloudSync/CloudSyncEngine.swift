@@ -483,12 +483,29 @@ extension CloudSyncEngine: CKSyncEngineDelegate {
         askFields: Set<String>,
         autoFields: Set<String>
     ) -> FieldMergeDecision {
-        guard let localValue, let serverValue, !valuesEqual(localValue, serverValue) else {
-            return .noConflict
+        // Review-Fund C4: `nil` gegen einen echten Wert (Feld lokal gelöscht/zurückgesetzt,
+        // z. B. `Feed.folderName` auf `nil` gesetzt, um den Feed aus einem Ordner zu entfernen)
+        // ist eine ECHTE Differenz, kein "keine Änderung" — das ursprüngliche
+        // `guard let localValue, let serverValue, ...` behandelte nil-vs-Wert fälschlich als
+        // `.noConflict`, wodurch das Feld nie durch askFields/autoFields lief und
+        // stillschweigend beim Server-Stand blieb.
+        let areEqual: Bool
+        switch (localValue, serverValue) {
+        case (nil, nil):
+            areEqual = true
+        case (nil, _), (_, nil):
+            areEqual = false
+        case let (lhs?, rhs?):
+            areEqual = valuesEqual(lhs, rhs)
         }
+        guard !areEqual else { return .noConflict }
         if askFields.contains(fieldName) {
             return .needsUserDecision
         }
+        // Kein askFields-Treffer: gilt sowohl für explizit gelistete autoFields als auch für ein
+        // (eigentlich nicht vorgesehenes) Feld, das in keiner der beiden Policies auftaucht —
+        // bewusster Fallback auf "autoResolved" statt eines Absturzes/undefinierten Verhaltens
+        // (siehe Review-Fund I2, wird beim Aufrufer geloggt).
         return .autoResolved
     }
 
@@ -527,52 +544,142 @@ extension CloudSyncEngine: CKSyncEngineDelegate {
             return await resolveWholeRecordLastWriteWins(failedSave: failedSave, serverRecord: serverRecord, mapping: mapping)
         }
 
-        var mergedRecord = serverRecord
-        var hasUnresolvedConflict = false
-        for fieldName in changedFields {
-            let localValue = failedSave.record[fieldName]
-            let serverValue = serverRecord[fieldName]
-            let decision = Self.mergeDecision(
-                fieldName: fieldName,
-                localValue: localValue,
-                serverValue: serverValue,
-                askFields: mapping.askFields,
-                autoFields: mapping.autoFields
-            )
-            switch decision {
-            case .noConflict:
-                continue
-            case .autoResolved:
-                mergedRecord[fieldName] = localValue
-            case .needsUserDecision:
-                hasUnresolvedConflict = true
+        let resolution = Self.resolveFieldMerge(
+            changedFields: changedFields,
+            localRecord: failedSave.record,
+            serverRecord: serverRecord,
+            askFields: mapping.askFields,
+            autoFields: mapping.autoFields
+        )
+
+        // Review-Fund I2: ein Feldname aus `changedFields`, der weder in `askFields` noch in
+        // `autoFields` der Mapping-Policy auftaucht, ist ein Zeichen für auseinanderlaufende
+        // Feld-Listen (genau die Klasse Bug, die dieses Projekt bereits einmal bei duplizierten
+        // SQL-SELECT-Listen getroffen hat, siehe CLAUDE.md-Gotcha) — `mergeDecision` fällt in
+        // diesem Fall defensiv auf `.autoResolved` zurück, das wird hier zusätzlich geloggt
+        // statt still zu bleiben.
+        for fieldName in resolution.unrecognizedFieldNames {
+            AppLogger.dataAccess.error("iCloud Sync: Feld \(fieldName, privacy: .public) aus changedFields ist weder in askFields noch in autoFields von \(mapping.recordType, privacy: .public) bekannt — faellt auf autoResolved zurueck.")
+        }
+
+        if resolution.hasUnresolvedConflict {
+            for unresolved in resolution.unresolvedFields {
                 do {
                     try PendingSyncConflictStore(database: database).record(
                         recordType: mapping.recordType,
                         recordName: failedSave.record.recordID.recordName,
-                        fieldName: fieldName,
-                        localValue: Self.describeForDisplay(localValue),
-                        serverValue: Self.describeForDisplay(serverValue)
+                        fieldName: unresolved.fieldName,
+                        localValue: Self.describeForDisplay(unresolved.localValue),
+                        serverValue: Self.describeForDisplay(unresolved.serverValue)
                     )
                 } catch {
                     AppLogger.dataAccess.error("iCloud Sync: Konflikt konnte nicht vermerkt werden: \(error.localizedDescription, privacy: .public)")
                 }
             }
-        }
-
-        if hasUnresolvedConflict {
             // Datensatz bleibt lokal auf dem aktuellen Vor-Konflikt-Stand stehen: weder wird der
             // Server-Stand übernommen noch ein erneuter Sendeversuch eingeplant, bis der Nutzer
-            // im Konflikt-Sheet entscheidet (siehe Task 11).
+            // im Konflikt-Sheet entscheidet (siehe Task 11). `serverRecord` selbst wurde in
+            // `resolveFieldMerge` nie mutiert (siehe I1) — dieser Abbruch hat keine
+            // Nebenwirkungen auf das CKRecord.
             SQLiteDataInvalidation.bumpStatusVersion()
             return false
         }
 
-        let applied = await applyIncomingRecord(mergedRecord)
-        if applied {
-            dequeuePendingChange(recordName: failedSave.record.recordID.recordName)
+        // Review-Fund C1: Der gemergte Record muss zu CloudKit HOCHGELADEN werden, nicht nur
+        // lokal übernommen — `applyIncomingRecord` schreibt ausschließlich in die lokale
+        // SQLite-DB, nie zurück zu CloudKit. Ein `applyIncomingRecord`+`dequeuePendingChange`
+        // hier hätte den lokal gewonnenen Auto-Feld-Wert (der ja bereits aus der lokalen Zeile
+        // selbst stammt) redundant lokal neu geschrieben, den eigentlichen Merge aber NIE
+        // hochgeladen und die Pending-Change dabei endgültig aus der Warteschlange entfernt —
+        // die zwei Geräte wären danach dauerhaft auseinandergelaufen, ohne jede Chance auf einen
+        // erneuten Versuch. Stattdessen: exakt dasselbe Muster wie beim bestehenden
+        // "lokal gewinnt"-Zweig in `resolveWholeRecordLastWriteWins` — den (jetzt gemergten)
+        // Server-Record für seine Systemfelder/Change-Tag zwischenspeichern, die Änderung
+        // erneut einreihen (mit dem bisherigen `changedFields`, damit ein wiederholter Konflikt
+        // erneut feld-genau statt Ganz-Record aufgelöst wird) und einen Resend anfordern.
+        // `record(forPendingChange:)` baut beim nächsten Sendeversuch ohnehin JEDES Feld frisch
+        // aus der aktuellen lokalen Zeile auf dieses zwischengespeicherte Record auf
+        // (`mapping.makeCKRecord(fromLocalID:existing:database:)`) — das Overlay hier stellt
+        // zusätzlich sicher, dass der zwischengespeicherte Record schon für sich genommen den
+        // korrekten Merge-Zustand widerspiegelt.
+        let mergedRecord = serverRecord
+        for (fieldName, value) in resolution.autoOverlays {
+            mergedRecord[fieldName] = value
         }
-        return false
+        knownServerRecordsByID[failedSave.record.recordID] = mergedRecord
+        do {
+            try pendingChangeStore.enqueue(
+                recordType: mapping.recordType,
+                recordName: failedSave.record.recordID.recordName,
+                changeType: .save,
+                changedFields: pendingChange?.changedFields
+            )
+            return true
+        } catch {
+            AppLogger.dataAccess.error("iCloud Sync: Erneuter Sync-Versuch nach Feld-Merge konnte nicht eingeplant werden: \(error.localizedDescription, privacy: .public)")
+            return false
+        }
+    }
+
+    /// Ergebnis der reinen Feld-Merge-Entscheidungs-Schleife über alle `changedFields` eines
+    /// Records — von `handleFailedSave` verwendet, extrahiert in eine eigene, `nonisolated`
+    /// und direkt testbare Funktion (`resolveFieldMerge` unten), damit sich auch der Fall
+    /// "gemischte Auto- und Fragen-Felder in einem Record" ohne echtes `CKSyncEngine`-Event-
+    /// Setup testen lässt — `CKRecord` selbst lässt sich in Tests problemlos direkt
+    /// konstruieren, `CKSyncEngine.Event.SentRecordZoneChanges.FailedRecordSave` nicht.
+    struct FieldMergeResolution {
+        /// Lokale Werte für Felder, die per `.autoResolved` gewonnen haben. Der Aufrufer darf
+        /// diese NUR anwenden/cachen, wenn `hasUnresolvedConflict == false` ist (siehe I1: bei
+        /// einem "Fragen"-Konflikt darf NICHTS davon irgendwo geschrieben werden).
+        var autoOverlays: [String: CKRecordValue?] = [:]
+        /// Felder, die eine Nutzerentscheidung brauchen — Name + lokaler/Server-Wert für die
+        /// Anzeige im Konflikt-Sheet (Task 11).
+        var unresolvedFields: [(fieldName: String, localValue: CKRecordValue?, serverValue: CKRecordValue?)] = []
+        /// Feldnamen aus `changedFields`, die weder in `askFields` noch in `autoFields` der
+        /// Mapping-Policy auftauchen (Review-Fund I2) — nur zum Loggen durch den Aufrufer.
+        var unrecognizedFieldNames: [String] = []
+
+        var hasUnresolvedConflict: Bool { !unresolvedFields.isEmpty }
+    }
+
+    nonisolated static func resolveFieldMerge(
+        changedFields: [String],
+        localRecord: CKRecord,
+        serverRecord: CKRecord,
+        askFields: Set<String>,
+        autoFields: Set<String>
+    ) -> FieldMergeResolution {
+        var resolution = FieldMergeResolution()
+        for fieldName in changedFields {
+            let localValue = localRecord[fieldName]
+            let serverValue = serverRecord[fieldName]
+
+            if !askFields.contains(fieldName), !autoFields.contains(fieldName) {
+                resolution.unrecognizedFieldNames.append(fieldName)
+            }
+
+            let decision = mergeDecision(
+                fieldName: fieldName,
+                localValue: localValue,
+                serverValue: serverValue,
+                askFields: askFields,
+                autoFields: autoFields
+            )
+            switch decision {
+            case .noConflict:
+                continue
+            case .autoResolved:
+                // `updateValue(forKey:)` statt Subscript-Zuweisung: ein lokal auf `nil`
+                // zurückgesetztes Feld (z. B. `Feed.folderName`) muss als ECHTES `nil` im
+                // Overlay landen, damit es beim späteren Anwenden das Feld auf dem `CKRecord`
+                // tatsächlich löscht — `dict[key] = nil` würde den Eintrag hier hingegen
+                // wieder entfernen statt ein explizites `nil` zu speichern.
+                resolution.autoOverlays.updateValue(localValue, forKey: fieldName)
+            case .needsUserDecision:
+                resolution.unresolvedFields.append((fieldName, localValue, serverValue))
+            }
+        }
+        return resolution
     }
 
     private nonisolated static func describeForDisplay(_ value: CKRecordValue?) -> String {
@@ -620,27 +727,65 @@ extension CloudSyncEngine: CKSyncEngineDelegate {
     /// werden UNABHÄNGIG voneinander per eigenem Zeitstempel (`readAt`/`starredAt`) aufgelöst,
     /// kein Dialog — niedrige Tragweite, ein falscher Status ist mit einem Klick korrigiert.
     private func handleArticleStatusConflict(localRecord: CKRecord, serverRecord: CKRecord) async -> Bool {
-        let mergedRecord = serverRecord
+        // Review-Fund C2: Gesamt-Record-Zeitstempel als Fallback für die Faelle, in denen ein
+        // Feld-spezifisches Datum fehlt (siehe `articleStatusFieldLocalWins` unten).
+        let wholeRecordLocalUpdatedAt = try? CloudSyncArticleStatusMapping.localUpdatedAt(forLocalID: localRecord.recordID.recordName, database: database)
+        let wholeRecordServerModificationDate = serverRecord.modificationDate
 
-        let localReadAt = localRecord["readAt"] as? Date
-        let serverReadAt = serverRecord["readAt"] as? Date
-        if (localReadAt ?? .distantPast) > (serverReadAt ?? .distantPast) {
+        let mergedRecord = serverRecord
+        if Self.articleStatusFieldLocalWins(
+            fieldTimestampLocal: localRecord["readAt"] as? Date,
+            fieldTimestampServer: serverRecord["readAt"] as? Date,
+            wholeRecordLocalUpdatedAt: wholeRecordLocalUpdatedAt,
+            wholeRecordServerModificationDate: wholeRecordServerModificationDate
+        ) {
             mergedRecord["isRead"] = localRecord["isRead"]
             mergedRecord["readAt"] = localRecord["readAt"]
         }
-
-        let localStarredAt = localRecord["starredAt"] as? Date
-        let serverStarredAt = serverRecord["starredAt"] as? Date
-        if (localStarredAt ?? .distantPast) > (serverStarredAt ?? .distantPast) {
+        if Self.articleStatusFieldLocalWins(
+            fieldTimestampLocal: localRecord["starredAt"] as? Date,
+            fieldTimestampServer: serverRecord["starredAt"] as? Date,
+            wholeRecordLocalUpdatedAt: wholeRecordLocalUpdatedAt,
+            wholeRecordServerModificationDate: wholeRecordServerModificationDate
+        ) {
             mergedRecord["isStarred"] = localRecord["isStarred"]
             mergedRecord["starredAt"] = localRecord["starredAt"]
         }
 
-        let applied = await applyIncomingRecord(mergedRecord)
-        if applied {
-            dequeuePendingChange(recordName: localRecord.recordID.recordName)
+        // Review-Fund C1 (identischer Bug wie im allgemeinen Feld-Merge-Pfad): NICHT
+        // `applyIncomingRecord`+`dequeuePendingChange` — das schreibt nur lokal, laedt den
+        // lokal gewonnenen Merge aber nie zu CloudKit hoch, und die Pending-Change waere
+        // danach unwiederbringlich aus der Warteschlange verschwunden. Stattdessen cachen +
+        // erneut einreihen + Resend anfordern, exakt wie beim Ganz-Record- und
+        // Feld-Merge-Pfad oben.
+        knownServerRecordsByID[localRecord.recordID] = mergedRecord
+        do {
+            try pendingChangeStore.enqueue(recordType: CloudSyncArticleStatusMapping.recordType, recordName: localRecord.recordID.recordName, changeType: .save)
+            return true
+        } catch {
+            AppLogger.dataAccess.error("iCloud Sync: Erneuter Sync-Versuch nach ArtikelStatus-Merge konnte nicht eingeplant werden: \(error.localizedDescription, privacy: .public)")
+            return false
         }
-        return false
+    }
+
+    /// Reine, direkt testbare Kernlogik der Pro-Feld-Zeitstempel-Entscheidung für EIN einzelnes
+    /// `ArticleStatus`-Feld (`readAt`/`starredAt`) — siehe `handleArticleStatusConflict` oben.
+    /// Fällt auf den Gesamt-Record-Zeitstempel zurück, sobald mindestens eine Seite kein
+    /// Feld-spezifisches Datum hat: `ArticleStatusStore` setzt `readAt`/`starredAt` bewusst auf
+    /// `NULL`, wenn der Nutzer einen Artikel als ungelesen markiert bzw. den Stern entfernt —
+    /// ohne diesen Fallback würde `nil ?? .distantPast` ein bewusstes Zurücksetzen IMMER gegen
+    /// jede Gegenseite mit einem echten Datum verlieren lassen, selbst wenn das Zurücksetzen
+    /// klar die neuere Aktion war (Review-Fund C2).
+    nonisolated static func articleStatusFieldLocalWins(
+        fieldTimestampLocal: Date?,
+        fieldTimestampServer: Date?,
+        wholeRecordLocalUpdatedAt: Date?,
+        wholeRecordServerModificationDate: Date?
+    ) -> Bool {
+        if let fieldTimestampLocal, let fieldTimestampServer {
+            return fieldTimestampLocal > fieldTimestampServer
+        }
+        return (wholeRecordLocalUpdatedAt ?? .distantPast) > (wholeRecordServerModificationDate ?? .distantPast)
     }
 
     /// Aktualisiert den persistenten Sync-Aktivitätsstatus nach einem abgeschlossenen
