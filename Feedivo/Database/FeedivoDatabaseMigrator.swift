@@ -531,6 +531,18 @@ enum FeedivoDatabaseMigrator {
             }
         }
 
+        migrator.registerMigration("v28_create_pending_sync_conflicts") { database in
+            try database.create(table: "pending_sync_conflicts") { table in
+                table.autoIncrementedPrimaryKey("id")
+                table.column("recordType", .text).notNull()
+                table.column("recordName", .text).notNull()
+                table.column("fieldName", .text).notNull()
+                table.column("localValue", .text).notNull()
+                table.column("serverValue", .text).notNull()
+                table.column("detectedAt", .datetime).notNull()
+            }
+        }
+
         return migrator
     }
 
