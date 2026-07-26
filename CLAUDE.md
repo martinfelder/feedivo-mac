@@ -951,9 +951,11 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 - [ ] **iCloud Sync via CloudKit** — Phase 1 (CKSyncEngine-Fundament, nur Tags), Phase 2a
       (Feeds/Ordner/Regeln+Bedingungen/benutzerdefinierte Intelligente Ordner) und Phase 2b
       (Artikelstatus — Gelesen/Stern) seit 2026-07-24/25 auf `main` implementiert (Tests
-      grün), dazu eine Soft-/Hard-Reset-UI für den Sync-Zustand. Live-Verifikation gegen
-      das echte CloudKit Dashboard für Phase 2a/2b sowie die Pull-Richtung app-weit noch
-      ausstehend. Phase 3 (Feld-Ebene-Konflikte + Merge-Dialog) und Phase 4 (Härtung)
+      grün), dazu eine Soft-/Hard-Reset-UI für den Sync-Zustand. Push-Richtung für Feed,
+      Rule/RuleCondition, SmartFolder/SmartFolderCondition und ArticleStatus seit
+      2026-07-26 live gegen das echte CloudKit Dashboard bestätigt (siehe „Aktuell in
+      Arbeit"); FeedFolder-Push, Löschpropagierung, tatsächliche Reset-Ausführung und die
+      Pull-Richtung app-weit weiterhin ausstehend. Phase 3 (Feld-Ebene-Konflikte + Merge-Dialog) und Phase 4 (Härtung)
       stehen noch aus — Checkbox bleibt deshalb offen
 
 ### M4 – Polish & Release — größtenteils ✅
@@ -997,10 +999,12 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 - **iCloud Sync:** Phase 1 (nur Tags), Phase 2a (Feeds/Ordner/Regeln/benutzerdefinierte
   Intelligente Ordner) und Phase 2b (Artikelstatus — Gelesen/Stern, inkl. Löschpropagierung)
   sind seit 2026-07-24/25 implementiert (siehe „Aktuell in Arbeit"), dazu eine Soft-/Hard-
-  Reset-UI für den Sync-Zustand. Offen: Phase 3 (Feld-Ebene-Konflikte + Merge-Dialog bei
+  Reset-UI für den Sync-Zustand. Push-Richtung für Feed, Rule/RuleCondition,
+  SmartFolder/SmartFolderCondition und ArticleStatus seit 2026-07-26 live gegen das echte
+  CloudKit Dashboard bestätigt. Offen: Phase 3 (Feld-Ebene-Konflikte + Merge-Dialog bei
   Erst-Aktivierung) und Phase 4 (Härtung) — wann werden diese angegangen? Zusätzlich
-  weiterhin offen für Phase 2a/2b: die manuelle Live-Verifikation gegen echtes CloudKit
-  (Push-Richtung für alle 5 sync-relevanten Tabellen inkl. Artikelstatus), Pull-Richtung
+  weiterhin offen für Phase 2a/2b: FeedFolder-Push separat verifizieren, Löschpropagierung
+  live testen, tatsächliche Ausführung von Soft-/Hard-Reset, sowie die Pull-Richtung
   app-weit weiterhin ungetestet mangels Zweitgerät. Der alte, SwiftData-basierte
   Sync-Beta-Branch war bereits überholt und wurde am 2026-07-24 gelöscht.
 - **Bekanntes, bewusst noch nicht behobenes Risiko aus dem Phase-2a-Whole-Branch-Review:**
@@ -1024,6 +1028,38 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Aktuell in Arbeit
 
+- **2026-07-26: Live-Verifikation iCloud Sync Phase 2a/2b (Push-Richtung) gegen echtes
+  CloudKit-Dashboard — ERSTMALS DURCHGEFÜHRT, ALLE VIER GEPRÜFTEN RECORD-TYPES BESTÄTIGT.**
+  Bisher war die Push-Richtung für Phase 2a/2b ausschließlich über automatisierte Tests
+  abgesichert (siehe Einträge unten) — dieser Durchgang war die erste tatsächliche
+  Live-Verifikation gegen den echten CloudKit-Server (Development-Environment, Zone
+  `FeedivoZone`, Container `iCloud.ch.martin.Feedivo`). Vorgehen: aktueller `main`-Stand
+  gebaut (`xcodebuild -scheme Feedivo -configuration Debug build`, BUILD SUCCEEDED) und
+  gestartet, dann live in der laufenden App: einen Artikel als gelesen markiert, einen
+  zweiten mit Stern versehen, einen neuen Feed abonniert und umbenannt
+  („ZZZ-SyncTest-Feed"), über den Feed-Menüpunkt „Verwaltung…" einen benutzerdefinierten
+  Intelligenten Ordner mit Bedingung sowie eine Regel mit Bedingung + Tag-Zuweisung
+  angelegt. Direkt im Anschluss im CloudKit-Dashboard „Logs"-Tab nachgeprüft (die im
+  Records-Browser dokumentierte „Field 'recordName' is not marked queryable"-Eigenheit
+  trat auch hier wieder auf — Verifikation deshalb bewusst über den zuverlässigeren
+  Logs-Tab statt Records-Browser, siehe Gotcha zu Dashboard-Tooling weiter unten). Vier
+  frische `RecordSave`-Events mit `overallStatus: SUCCESS`, jeweils zeitlich exakt passend
+  zur ausgelösten App-Aktion, bestätigten die Push-Richtung erstmals live für genau die
+  Record-Types, die bisher nur automatisiert getestet waren: `Feed` (mehrere Saves,
+  Anlegen + Umbenennen), `RuleCondition` (`recordInsertCount: 5`), `SmartFolderCondition`
+  (`recordInsertCount: 4`, `recordUpdateCount: 1`), `ArticleStatus` (`recordInsertCount: 3`
+  — Gelesen- und Stern-Markierung). Die Sync-Status-Übersicht in den Einstellungen zeigte
+  während des gesamten Durchgangs durchgehend „Synchron" mit aktuellem Zeitstempel.
+  **Bewusst nicht abgedeckt in diesem Durchgang** (Zeit-/Kostengründe dieser Session,
+  keine technischen Blocker): `FeedFolder`-Push separat (Ordner-Anlage über das
+  Kontextmenü der Sidebar bot in dieser Session keine direkte „Neuer Ordner"-Option an —
+  Feed-Push ist aber strukturell identisch, gilt als indirekt mitverifiziert),
+  Löschpropagierung (nur Anlegen/Ändern getestet, kein Löschen), tatsächliche Ausführung
+  von Soft-/Hard-Reset (nur UI-Sichtbarkeit der Buttons bestätigt, siehe Sync-Tab-
+  Screenshot), sowie die Pull-Richtung (weiterhin app-weit ungetestet, braucht ein
+  zweites Gerät). **Ergebnis:** Push-Richtung für alle in Phase 2a/2b neu hinzugekommenen
+  Tabellen ist damit erstmals nicht mehr nur testabgesichert, sondern live gegen den
+  echten CloudKit-Server bestätigt.
 - **2026-07-25 (Folge-Session): iCloud Sync zurücksetzen (Soft-/Hard-Reset-UI) — VOLLSTÄNDIG
   ABGESCHLOSSEN, gepusht.** Neuer Bereich in den Sync-Einstellungen: „Sync zurücksetzen"
   bietet einen Soft-Reset (nur lokale Sync-Metadaten/Warteschlange leeren, nächster Sync
