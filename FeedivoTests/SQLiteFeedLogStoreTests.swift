@@ -70,4 +70,39 @@ struct SQLiteFeedLogStoreTests {
 
         #expect(deletedCount == 0)
     }
+
+    @Test func latestAttemptTimesLiefertNeuestenZeitstempelJeFeed() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let logStore = FeedLogStore(database: database)
+
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://one.example/feed.xml", title: "One"))
+        try feedStore.save(FeedRecord(id: "feed-2", url: "https://two.example/feed.xml", title: "Two"))
+        try feedStore.save(FeedRecord(id: "feed-3", url: "https://three.example/feed.xml", title: "Three"))
+
+        try logStore.append(FeedLogRecord(
+            feedID: "feed-1",
+            createdAt: Date(timeIntervalSince1970: 1_000),
+            level: "info",
+            message: "Alt"
+        ))
+        try logStore.append(FeedLogRecord(
+            feedID: "feed-1",
+            createdAt: Date(timeIntervalSince1970: 2_000),
+            level: "error",
+            message: "Neu, aber fehlgeschlagen"
+        ))
+        try logStore.append(FeedLogRecord(
+            feedID: "feed-2",
+            createdAt: Date(timeIntervalSince1970: 500),
+            level: "info",
+            message: "Einziger Versuch"
+        ))
+
+        let attemptTimes = try logStore.latestAttemptTimes()
+
+        #expect(attemptTimes["feed-1"] == Date(timeIntervalSince1970: 2_000))
+        #expect(attemptTimes["feed-2"] == Date(timeIntervalSince1970: 500))
+        #expect(attemptTimes["feed-3"] == nil)
+    }
 }

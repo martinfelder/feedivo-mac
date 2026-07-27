@@ -27,6 +27,31 @@ struct FeedLogStore {
         }
     }
 
+    /// Letzter Abrufversuch je Feed — unabhängig vom Ergebnis (Erfolg, „Nicht
+    /// geändert" ODER Fehler), da `SQLiteFeedRefreshService.refresh` in allen
+    /// drei Fällen einen `FeedLogRecord` schreibt. Grundlage für
+    /// `FeedRefreshThrottle` in `SQLiteFeedRefreshCoordinator` — eine
+    /// gruppierte Query statt einer Einzelabfrage pro Feed (analog der
+    /// `latest_feed_logs`-CTE in `FeedStore.sidebarFeeds()`).
+    func latestAttemptTimes() throws -> [String: Date] {
+        try database.read { db in
+            let rows = try Row.fetchAll(db, sql: """
+                SELECT feedID, MAX(createdAt) AS lastAttemptAt
+                FROM feed_logs
+                GROUP BY feedID
+                """)
+            var result: [String: Date] = [:]
+            for row in rows {
+                guard let feedID = row["feedID"] as String?,
+                      let lastAttemptAt = row["lastAttemptAt"] as Date? else {
+                    continue
+                }
+                result[feedID] = lastAttemptAt
+            }
+            return result
+        }
+    }
+
     /// Löscht alle feed_logs-Einträge, die älter sind als cutoffDate
     /// (Feature feed_logs-Retention) — reines Housekeeping ohne
     /// Nebenbedingungen, anders als die Artikel-Bereinigung (keine
