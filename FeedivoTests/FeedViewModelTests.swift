@@ -323,6 +323,39 @@ struct FeedViewModelTests {
         #expect(viewModel.recentRefreshStatus?.failedFeedCount == 0)
     }
 
+    // Whole-Branch-Review-Fund (2026-07-27, Finding 1): ein per Refresh-
+    // Throttling übersprungener Feed (`summary.skippedFeedIDs`) stand vor
+    // diesem Fix in keiner der beiden Listen, die die Statuszeile auflösen
+    // (`succeededFeedIDs`/`failedFeedIDs`) — seine Zeile blieb dadurch bis
+    // zu 120s als "Wartet…" (`.pending`) hängen, obwohl der Refresh-
+    // Durchlauf längst fertig war. Dieser Test seedet einen `feed_logs`-
+    // Eintrag mit `createdAt` unmittelbar vor dem Aufruf, sodass der Feed
+    // (Standard-Mindestabstand 9 Minuten) garantiert gedrosselt wird.
+    @MainActor
+    @Test func refreshAllFeedsMitSQLiteDatabaseLoestGedrosseltenFeedAlsErledigtStattDauerhaftWartetAuf() async throws {
+        let sqliteDatabase = try FeedivoDatabase.inMemoryForTests()
+        let feedID = UUID().uuidString
+        try FeedStore(database: sqliteDatabase).save(
+            FeedRecord(id: feedID, url: "https://example.com/feed.xml", title: "Gedrosselter Feed")
+        )
+        try FeedLogStore(database: sqliteDatabase).append(
+            FeedLogRecord(feedID: feedID, createdAt: Date(), level: "info", message: "Nicht geändert")
+        )
+
+        let viewModel = makeViewModel(
+            fetchFeed: { _ in
+                Issue.record("Ein gedrosselter Feed darf keinen Netzwerk-Refresh auslösen.")
+                return ParsedFeed(sourceURL: "", title: "", description: nil, articles: [])
+            },
+            discoverFaviconURL: { _ in nil }
+        )
+
+        await viewModel.refreshAllFeeds(sqliteDatabase: sqliteDatabase)
+
+        #expect(viewModel.refreshItems.map(\.status) == [.succeeded])
+        #expect(!viewModel.isLoading)
+    }
+
     @Test func refreshAllFeedsMeldetFehlerWennSnapshotsNichtGeladenWerdenKoennen() async throws {
         let sqliteDatabase = try FeedivoDatabase.inMemoryForTests()
         try sqliteDatabase.write { db in

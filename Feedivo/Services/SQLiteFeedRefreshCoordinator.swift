@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 struct SQLiteFeedRefreshCoordinatorSummary: Equatable {
     var notificationResults: [FeedRefreshNotificationResult]
@@ -35,9 +36,13 @@ struct SQLiteFeedRefreshCoordinator {
         // dedupliziert gleichzeitig laufende Anfragen für dieselbe siteURL
         // innerhalb desselben Refresh-All-Batches (NetNewsWire-Vergleich,
         // 2026-07-27). Standard ist die echte Discovery, kein No-Op wie bei
-        // enrichArticleImages/fetcher — bestehende Tests, die diesen
-        // Parameter nicht setzen, rufen ohnehin keinen Refresh mit echtem
-        // Netzwerkzugriff auf.
+        // enrichArticleImages/fetcher. ACHTUNG (Whole-Branch-Review-Fund,
+        // 2026-07-27, verifiziert): bestehende Coordinator-Tests, die diesen
+        // Parameter nicht setzen, aber ein `siteURL` ohne `faviconURL`
+        // liefern, lösen dadurch weiterhin einen echten HTTP-Favicon-
+        // Discovery-Aufruf aus (vorbestehendes Verhalten, nicht durch diesen
+        // Parameter verursacht) — die Testsuite ist dadurch nicht
+        // netzwerk-hermetisch.
         discoverFavicon: @escaping @Sendable (URL) async -> String? = { siteURL in
             await FaviconService.discoverFaviconURL(siteURL: siteURL)
         },
@@ -97,8 +102,17 @@ struct SQLiteFeedRefreshCoordinator {
         // das nur bei Erfolg gesetzt wird und in der UI als „Zuletzt
         // aktualisiert" erscheint. Ein Lesefehler hier führt bewusst NICHT
         // dazu, dass gar nicht refresht wird (fail open) — refreshAllFeeds
-        // selbst hat keine throws-Signatur.
-        let lastAttemptTimes = (try? FeedLogStore(database: database).latestAttemptTimes()) ?? [:]
+        // selbst hat keine throws-Signatur. Das Verschlucken bleibt aber
+        // NICHT still (Whole-Branch-Review-Fund, 2026-07-27): der Fehler
+        // landet über AppLogger.dataAccess im Apple-Systemlog, analog zum
+        // bereits etablierten Muster in ArticleRetentionCleanupService.swift.
+        let lastAttemptTimes: [String: Date]
+        do {
+            lastAttemptTimes = try FeedLogStore(database: database).latestAttemptTimes()
+        } catch {
+            AppLogger.dataAccess.error("Refresh-Throttling: feed_logs nicht lesbar, refreshe ungedrosselt: \(error.localizedDescription, privacy: .public)")
+            lastAttemptTimes = [:]
+        }
         let currentDate = now()
         var eligibleSnapshots: [FeedRefreshSnapshot] = []
         var skippedFeedIDs: [UUID] = []

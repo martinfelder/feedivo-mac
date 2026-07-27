@@ -1,4 +1,5 @@
 import Foundation
+import GRDB
 import Testing
 @testable import Feedivo
 
@@ -181,6 +182,54 @@ struct SQLiteFeedRefreshCoordinatorTests {
         #expect(try logStore.logs(feedID: neverAttemptedFeedID, limit: 10).count == 1)
     }
 
+    // Whole-Branch-Review-Fund (2026-07-27, Finding 2): das ursprüngliche
+    // `try? FeedLogStore(...).latestAttemptTimes()` verschluckte einen
+    // Lesefehler beim Throttle-Read komplett still. Fail-open (lieber
+    // ungedrosselt refreshen als gar nicht) bleibt die richtige Policy —
+    // dieser Test beweist, dass sie bei defekter `feed_logs`-Tabelle
+    // weiterhin greift: der Feed wird trotz fehlgeschlagenem Throttle-Read
+    // NICHT übersprungen, der `fetcher` wird tatsächlich aufgerufen. (Die
+    // fehlende `feed_logs`-Tabelle lässt den NACHGELAGERTEN Log-Schreibzugriff
+    // von `SQLiteFeedRefreshService.refresh` bewusst absichtlich weiterhin
+    // fehlschlagen — das ist ein unabhängiger, hier nicht relevanter
+    // Kollateraleffekt derselben Tabelle, deshalb wird hier nur
+    // `skippedFeedIDs`/der tatsächliche Fetcher-Aufruf geprüft, nicht
+    // `succeededFeedIDs`.) Die eigentliche Fehlerprotokollierung über
+    // `AppLogger.dataAccess` selbst ist mangels Test-Seam für `os.Logger`
+    // nicht direkt prüfbar.
+    @MainActor
+    @Test func refreshAllFeedsRefreshtUngedrosseltWennFeedLogsNichtLesbarSind() async throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let feedID = UUID().uuidString
+        try feedStore.save(FeedRecord(id: feedID, url: "https://example.com/feed.xml", title: "Feed"))
+
+        // Simuliert einen Lesefehler beim Throttle-Read: `latestAttemptTimes()`
+        // selektiert aus `feed_logs`, eine fehlende Tabelle lässt `try` fehlschlagen.
+        try database.write { db in
+            try db.execute(sql: "DROP TABLE feed_logs")
+        }
+
+        let fetcherCallCounter = FetcherCallCounter()
+        let coordinator = SQLiteFeedRefreshCoordinator(
+            database: database,
+            fetcher: { url, validators in
+                await fetcherCallCounter.increment()
+                return .updated(
+                    ParsedFeed(sourceURL: url, title: "Feed", description: nil, articles: []),
+                    FeedHTTPValidators(lastStatusCode: 200)
+                )
+            }
+        )
+
+        let summary = await coordinator.refreshAllFeeds([
+            FeedRefreshSnapshot(id: UUID(uuidString: feedID) ?? UUID(), title: "Feed", url: "https://example.com/feed.xml")
+        ])
+
+        #expect(summary.skippedFeedIDs.isEmpty)
+        #expect(await fetcherCallCounter.count == 1)
+    }
+
     @MainActor
     @Test func refreshAllFeedsDedupliziertFaviconDiscoveryFuerDieselbeSiteURL() async throws {
         let database = try FeedivoDatabase.inMemoryForTests()
@@ -226,6 +275,11 @@ struct SQLiteFeedRefreshCoordinatorTests {
 }
 
 private actor FaviconDiscoveryCallCounter {
+    private(set) var count = 0
+    func increment() { count += 1 }
+}
+
+private actor FetcherCallCounter {
     private(set) var count = 0
     func increment() { count += 1 }
 }

@@ -385,6 +385,16 @@ final class FeedViewModel {
                 updateRefreshItemStatus(for: snapshot.id, status: .succeeded)
             } else if summary.failedFeedIDs.contains(snapshot.id) {
                 updateRefreshItemStatus(for: snapshot.id, status: .failed)
+            } else if summary.skippedFeedIDs.contains(snapshot.id) {
+                // Gedrosselte Feeds (Refresh-Throttling, Mindestabstand pro Feed) stehen
+                // weder in succeededFeedIDs noch in failedFeedIDs — ohne diesen Zweig
+                // bliebe ihre Statuszeile bis zu 120s als "Wartet…" hängen, obwohl der
+                // Refresh-Durchlauf längst fertig ist (Whole-Branch-Review-Fund,
+                // 2026-07-27). Werden bewusst als `.succeeded` aufgelöst statt eines
+                // eigenen `.skipped`-Status: ein gedrosselter Feed wurde genau DESHALB
+                // übersprungen, weil er bereits aktuell ist — semantisch "erfolgreich",
+                // kein neuer Zustand/L10n-Key nötig.
+                updateRefreshItemStatus(for: snapshot.id, status: .succeeded)
             }
         }
 

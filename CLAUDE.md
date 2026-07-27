@@ -2175,7 +2175,8 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 - 2026-07-27 (direkte Folge-Session): Refresh-Throttling + zwei Perf-Nachzügler aus dem
   obigen NetNewsWire-Vergleich umgesetzt — VOLLSTÄNDIG ABGESCHLOSSEN, gezielter
-  Regressionslauf und Release-relevanter Build grün, NICHT gepusht. Deckt genau die drei
+  Regressionslauf und Debug-Build grün (`xcodebuild build`, ohne `-configuration Release`),
+  NICHT gepusht. Deckt genau die drei
   im Eintrag direkt darunter als "noch offen" gelisteten Punkte ab. Umgesetzt via
   Brainstorming→Spec→Plan→Subagent-Driven-Development (6 Tasks + Abschluss-Task 7): (1)
   **Refresh-Throttling** (Tasks 1–3): neue, reine `FeedRefreshThrottle.shouldSkip(...)`-
