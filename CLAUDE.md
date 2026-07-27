@@ -2173,6 +2173,48 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Letzte Änderungen
 
+- 2026-07-27 (direkte Folge-Session): Refresh-Throttling + zwei Perf-Nachzügler aus dem
+  obigen NetNewsWire-Vergleich umgesetzt — VOLLSTÄNDIG ABGESCHLOSSEN, gezielter
+  Regressionslauf und Release-relevanter Build grün, NICHT gepusht. Deckt genau die drei
+  im Eintrag direkt darunter als "noch offen" gelisteten Punkte ab. Umgesetzt via
+  Brainstorming→Spec→Plan→Subagent-Driven-Development (6 Tasks + Abschluss-Task 7): (1)
+  **Refresh-Throttling** (Tasks 1–3): neue, reine `FeedRefreshThrottle.shouldSkip(...)`-
+  Entscheidungsfunktion (Mindestabstand 9 Minuten, analog NetNewsWires
+  `LocalAccountRefresher`), gespeist aus einer neuen `FeedLogStore.latestAttemptTimes()`
+  (letzter Versuchszeitpunkt je Feed aus `feed_logs`, kein neues Schema/keine Migration
+  nötig), in `SQLiteFeedRefreshCoordinator.refreshAllFeeds(...)` verdrahtet — greift
+  bewusst NUR beim "alle Feeds aktualisieren"-Pfad, nicht bei einem gezielten
+  Einzel-Feed-Refresh. (2) **`rebuildAllFeedUnreadCounts()`-CTE-Fix** (Task 4): dieselbe
+  `GROUP BY`-CTE-Umstellung wie beim bereits gefixten `sidebarFeeds()`-Performance-Bug vom
+  2026-07-16 (siehe Gotcha-artiger Eintrag dort), jetzt auch für den globalen
+  Ungelesen-Zähler-Rebuild-Pfad — ersetzt N korrelierte Pro-Feed-Subqueries durch eine
+  einzige gruppierte Aggregation. (3) **Favicon-Single-Flight-Dedup** (Tasks 5–6): neuer
+  `FaviconDiscoveryCoordinator`-Actor dedupliziert gleichzeitige Favicon-Discovery-Anfragen
+  für dieselbe Site-URL (mehrere Feeds vom selben Host lösten bisher unabhängige, redundante
+  Netzwerk-Roundtrips aus), in `SQLiteFeedRefreshCoordinator` verdrahtet. Alle 6 Task-
+  Reviews kamen mit „Spec ✅ / Task quality: Approved" zurück, 0 Critical/Important-Funde —
+  nur einige Minor-Findings ins Ledger geparkt, kein Fix-Loop nötig: (a) ein theoretisches,
+  praktisch unerreichbares Silent-Swallow-Muster in `FeedLogStore.latestAttemptTimes`, (b)
+  eine vorbestehende, nicht durch Task 3 verursachte dreifache Summary-Konstruktion in
+  `SQLiteFeedRefreshCoordinator`, (c) ein fehlender expliziter Test für den Fail-Open-Pfad
+  bei einem `latestAttemptTimes()`-Fehler, (d) eine brief-vorgegebene, rein theoretische
+  Timing-Annahme in einem `FaviconDiscoveryCoordinator`-Test (kein Code-Defekt), (e) die
+  `SQLiteFeedRefreshCoordinatorTests`-Suite ist nicht netzwerk-hermetisch (echte
+  `FaviconService`-Discovery-Aufrufe in Tests, vorbestehend seit vor diesem Plan). Task 7
+  (dieser Eintrag) deckt nur die automatisierbaren Abschlussschritte ab: gezielter
+  Testlauf über alle 6 berührten Suiten (`FeedRefreshThrottleTests`,
+  `SQLiteFeedLogStoreTests`, `SQLiteFeedRefreshCoordinatorTests`,
+  `SQLiteUnreadCountServiceTests`, `FaviconDiscoveryCoordinatorTests`,
+  `SQLiteFeedRefreshServiceTests`, mit `-parallel-testing-enabled NO`), 28/28 Tests grün,
+  sowie ein voller `xcodebuild build` (BUILD SUCCEEDED). Spec:
+  `docs/superpowers/specs/2026-07-27-refresh-throttling-perf-nachzuegler-design.md`, Plan:
+  `docs/superpowers/plans/2026-07-27-refresh-throttling-perf-nachzuegler.md`. Commits
+  `7ab3774` (Task 1), `d5c5591` (Task 2), `62f7ee13` (Task 3), `82af009d` (Task 4),
+  `239c2b77` (Task 5), `9681ae1e` (Task 6) auf `main`, NICHT gepusht (Nutzerbestätigung vor
+  Push laut Projektkonvention ausstehend). Manuelle Live-Verifikation (Throttling bei
+  wiederholtem "Alle aktualisieren" innerhalb der 9-Minuten-Schwelle, Ungelesen-Zähler nach
+  Rebuild, Favicon-Dedup bei mehreren Feeds desselben Hosts) noch nicht durchgeführt.
+
 - 2026-07-27: Zwei Performance-Fixes aus einem aktualisierten NetNewsWire-Vergleich
   umgesetzt (TDD), Details siehe `docs/performance/` (ältere Audits vom 15./16.07.) plus
   frischer Recherche im lokalen NetNewsWire-Klon (`/Users/martinfelder/Developer/
