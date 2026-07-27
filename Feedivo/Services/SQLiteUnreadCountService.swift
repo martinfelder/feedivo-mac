@@ -36,9 +36,19 @@ struct SQLiteUnreadCountService {
     func rebuildAllFeedUnreadCounts() throws -> [String: Int] {
         try database.write { db in
             let feedIDs = try String.fetchAll(db, sql: "SELECT id FROM feeds ORDER BY id COLLATE NOCASE")
+            let groupedCounts = try Self.groupedUnreadCounts(db: db)
             var counts: [String: Int] = [:]
             for feedID in feedIDs {
-                counts[feedID] = try Self.rebuildFeedUnreadCount(feedID: feedID, db: db)
+                let unreadCount = groupedCounts[feedID] ?? 0
+                try db.execute(
+                    sql: """
+                        UPDATE feeds
+                        SET unreadCount = ?, updatedAt = ?
+                        WHERE id = ?
+                        """,
+                    arguments: [unreadCount, Date(), feedID]
+                )
+                counts[feedID] = unreadCount
             }
             return counts
         }
@@ -56,6 +66,28 @@ struct SQLiteUnreadCountService {
 
     static func totalUnreadCount(db: Database) throws -> Int {
         try Int.fetchOne(db, sql: totalUnreadCountSQL) ?? 0
+    }
+
+    /// Ungelesen-Zähler für ALLE Feeds in einer einzigen gruppierten Query
+    /// statt einer korrelierten Subquery pro Feed — dasselbe Muster wie die
+    /// `unread_counts`-CTE in `FeedStore.sidebarFeeds()` (Fix vom
+    /// 2026-07-16, 10,9s auf ~2ms bei 500 Feeds gesenkt). Feeds ohne
+    /// ungelesene Artikel tauchen hier NICHT auf — der Aufrufer muss für sie
+    /// selbst auf 0 zurückfallen.
+    private static func groupedUnreadCounts(db: Database) throws -> [String: Int] {
+        let rows = try Row.fetchAll(db, sql: """
+            SELECT a.feedID AS feedID, COUNT(*) AS unreadCount
+            FROM article_statuses s
+            JOIN articles a ON a.id = s.articleID
+            WHERE s.isRead = 0 AND s.isHidden = 0
+            GROUP BY a.feedID
+            """)
+        var result: [String: Int] = [:]
+        for row in rows {
+            guard let feedID = row["feedID"] as String? else { continue }
+            result[feedID] = row["unreadCount"] as Int? ?? 0
+        }
+        return result
     }
 
     @discardableResult
