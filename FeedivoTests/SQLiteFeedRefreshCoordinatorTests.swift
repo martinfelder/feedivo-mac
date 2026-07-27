@@ -134,4 +134,50 @@ struct SQLiteFeedRefreshCoordinatorTests {
             )
         )
     }
+
+    @MainActor
+    @Test func refreshAllFeedsUeberspringtFeedMitZuKurzZurueckliegendemVersuch() async throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let logStore = FeedLogStore(database: database)
+        let recentlyAttemptedFeedID = UUID().uuidString
+        let staleAttemptFeedID = UUID().uuidString
+        let neverAttemptedFeedID = UUID().uuidString
+        let now = Date(timeIntervalSince1970: 100_000)
+
+        try feedStore.save(FeedRecord(id: recentlyAttemptedFeedID, url: "https://example.com/recent.xml", title: "Recent"))
+        try feedStore.save(FeedRecord(id: staleAttemptFeedID, url: "https://example.com/stale.xml", title: "Stale"))
+        try feedStore.save(FeedRecord(id: neverAttemptedFeedID, url: "https://example.com/never.xml", title: "Never"))
+
+        try logStore.append(FeedLogRecord(
+            feedID: recentlyAttemptedFeedID,
+            createdAt: now.addingTimeInterval(-5 * 60),
+            level: "info",
+            message: "Nicht geändert"
+        ))
+        try logStore.append(FeedLogRecord(
+            feedID: staleAttemptFeedID,
+            createdAt: now.addingTimeInterval(-10 * 60),
+            level: "info",
+            message: "Nicht geändert"
+        ))
+
+        let coordinator = SQLiteFeedRefreshCoordinator(
+            database: database,
+            now: { now },
+            fetcher: { _, _ in .notModified(FeedHTTPValidators(lastStatusCode: 304)) }
+        )
+
+        let summary = await coordinator.refreshAllFeeds([
+            FeedRefreshSnapshot(id: UUID(uuidString: recentlyAttemptedFeedID) ?? UUID(), title: "Recent", url: "https://example.com/recent.xml"),
+            FeedRefreshSnapshot(id: UUID(uuidString: staleAttemptFeedID) ?? UUID(), title: "Stale", url: "https://example.com/stale.xml"),
+            FeedRefreshSnapshot(id: UUID(uuidString: neverAttemptedFeedID) ?? UUID(), title: "Never", url: "https://example.com/never.xml")
+        ])
+
+        #expect(summary.skippedFeedIDs == [UUID(uuidString: recentlyAttemptedFeedID)])
+        #expect(summary.succeededFeedIDs.count == 2)
+        #expect(try logStore.logs(feedID: recentlyAttemptedFeedID, limit: 10).count == 1)
+        #expect(try logStore.logs(feedID: staleAttemptFeedID, limit: 10).count == 2)
+        #expect(try logStore.logs(feedID: neverAttemptedFeedID, limit: 10).count == 1)
+    }
 }

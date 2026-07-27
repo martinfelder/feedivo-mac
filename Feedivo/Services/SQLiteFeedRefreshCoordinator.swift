@@ -6,6 +6,7 @@ struct SQLiteFeedRefreshCoordinatorSummary: Equatable {
     var failedFeedTitles: [String]
     var failedFeedIDs: [UUID]
     var succeededFeedIDs: [UUID]
+    var skippedFeedIDs: [UUID] = []
 }
 
 enum SQLiteFeedRefreshCoordinatorOutcome: Sendable {
@@ -17,6 +18,8 @@ struct SQLiteFeedRefreshCoordinator {
     private let database: FeedivoDatabase
     private let ruleSnapshots: [RuleEngine.RuleSnapshot]
     private let batchSize: Int
+    private let now: () -> Date
+    private let minimumRefreshInterval: TimeInterval
     private let fetcher: SQLiteFeedRefreshService.Fetcher
     private let enrichArticleImages: SQLiteFeedRefreshService.ArticleImageEnricher
 
@@ -24,6 +27,8 @@ struct SQLiteFeedRefreshCoordinator {
         database: FeedivoDatabase,
         batchSize: Int = FeedViewModel.maxConcurrentFeedRefreshes,
         ruleSnapshots: [RuleEngine.RuleSnapshot] = [],
+        now: @escaping () -> Date = Date.init,
+        minimumRefreshInterval: TimeInterval = 9 * 60,
         // Standard bewusst ein No-Op — dieselbe Begründung wie in
         // SQLiteFeedRefreshService: schützt SQLiteFeedRefreshCoordinatorTests
         // vor unbeabsichtigten echten Netzwerkaufrufen. Der produktive Aufrufer
@@ -45,6 +50,8 @@ struct SQLiteFeedRefreshCoordinator {
         self.database = database
         self.ruleSnapshots = ruleSnapshots
         self.batchSize = batchSize
+        self.now = now
+        self.minimumRefreshInterval = minimumRefreshInterval
         self.fetcher = fetcher
         self.enrichArticleImages = enrichArticleImages
     }
@@ -71,13 +78,48 @@ struct SQLiteFeedRefreshCoordinator {
             )
         }
 
+        // Mindestabstand pro Feed (NetNewsWire-Vergleich, 2026-07-27):
+        // feed_logs wird bei JEDEM Abrufversuch geschrieben (Erfolg, „Nicht
+        // geändert" UND Fehler) — im Unterschied zu feeds.lastRefreshedAt,
+        // das nur bei Erfolg gesetzt wird und in der UI als „Zuletzt
+        // aktualisiert" erscheint. Ein Lesefehler hier führt bewusst NICHT
+        // dazu, dass gar nicht refresht wird (fail open) — refreshAllFeeds
+        // selbst hat keine throws-Signatur.
+        let lastAttemptTimes = (try? FeedLogStore(database: database).latestAttemptTimes()) ?? [:]
+        let currentDate = now()
+        var eligibleSnapshots: [FeedRefreshSnapshot] = []
+        var skippedFeedIDs: [UUID] = []
+        for snapshot in snapshots {
+            let lastAttemptAt = lastAttemptTimes[snapshot.id.uuidString]
+            if FeedRefreshThrottle.shouldSkip(
+                lastAttemptAt: lastAttemptAt,
+                now: currentDate,
+                minimumInterval: minimumRefreshInterval
+            ) {
+                skippedFeedIDs.append(snapshot.id)
+            } else {
+                eligibleSnapshots.append(snapshot)
+            }
+        }
+
+        guard !eligibleSnapshots.isEmpty else {
+            return SQLiteFeedRefreshCoordinatorSummary(
+                notificationResults: [],
+                ruleNotificationResults: [],
+                failedFeedTitles: [],
+                failedFeedIDs: [],
+                succeededFeedIDs: [],
+                skippedFeedIDs: skippedFeedIDs
+            )
+        }
+
         var notificationResults: [FeedRefreshNotificationResult] = []
         var ruleNotificationResults: [RuleNotificationResult] = []
         var failedFeedTitles: [String] = []
         var failedFeedIDs: [UUID] = []
         var succeededFeedIDs: [UUID] = []
 
-        for batch in batches(snapshots, size: batchSize) {
+        for batch in batches(eligibleSnapshots, size: batchSize) {
             await withTaskGroup(of: SQLiteFeedRefreshCoordinatorOutcome.self) { group in
                 for snapshot in batch {
                     group.addTask { [database, ruleSnapshots, fetcher, enrichArticleImages] in
@@ -135,7 +177,8 @@ struct SQLiteFeedRefreshCoordinator {
             ruleNotificationResults: ruleNotificationResults,
             failedFeedTitles: failedFeedTitles,
             failedFeedIDs: failedFeedIDs,
-            succeededFeedIDs: succeededFeedIDs
+            succeededFeedIDs: succeededFeedIDs,
+            skippedFeedIDs: skippedFeedIDs
         )
     }
 
