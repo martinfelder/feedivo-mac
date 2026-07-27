@@ -267,22 +267,39 @@ struct SQLiteFeedRefreshService {
 
         let articles = try articleStore.ruleSnapshots(articleIDs: articleIDs, feedTitle: feedTitle)
         let result = RuleEngine.applySQLiteRules(ruleSnapshots, to: articles)
-        for articleID in result.hiddenArticleIDs {
-            try statusStore.setHidden(true, articleID: articleID, at: appliedAt)
-        }
-        for assignment in result.tagAssignments {
-            try tagStore.save(
-                TagRecord(
-                    id: assignment.tag.id,
-                    name: assignment.tag.name,
-                    colorHex: assignment.tag.colorHex
+
+        // Persistiert alle Treffer eines Refreshs in EINER Transaktion statt einer
+        // Transaktion pro Treffer (Performance-Fix aus dem NetNewsWire-Vergleich,
+        // 2026-07-27) — deshalb die `in db:`-Batch-Overloads statt der öffentlichen,
+        // je eigenen `database.write` öffnenden Methoden. Die Statusversion/Sync-
+        // Benachrichtigung wird danach bewusst nur einmal für den ganzen Batch
+        // ausgelöst, nicht pro Einzeltreffer.
+        try database.write { db in
+            for articleID in result.hiddenArticleIDs {
+                try statusStore.setHidden(true, articleID: articleID, at: appliedAt, in: db)
+            }
+            for assignment in result.tagAssignments {
+                try tagStore.save(
+                    TagRecord(
+                        id: assignment.tag.id,
+                        name: assignment.tag.name,
+                        colorHex: assignment.tag.colorHex
+                    ),
+                    in: db
                 )
-            )
-            try tagStore.assignTag(
-                tagID: assignment.tag.id,
-                toArticleID: assignment.articleID,
-                at: appliedAt
-            )
+                try tagStore.assignTag(
+                    tagID: assignment.tag.id,
+                    toArticleID: assignment.articleID,
+                    at: appliedAt,
+                    in: db
+                )
+            }
+        }
+        if !result.hiddenArticleIDs.isEmpty {
+            SQLiteDataInvalidation.bumpStatusVersion()
+        }
+        if !result.tagAssignments.isEmpty {
+            CloudSyncEngine.notifyPendingChangesAvailable(database: database)
         }
 
         return result

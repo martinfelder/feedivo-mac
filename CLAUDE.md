@@ -2173,6 +2173,35 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Letzte Änderungen
 
+- 2026-07-27: Zwei Performance-Fixes aus einem aktualisierten NetNewsWire-Vergleich
+  umgesetzt (TDD), Details siehe `docs/performance/` (ältere Audits vom 15./16.07.) plus
+  frischer Recherche im lokalen NetNewsWire-Klon (`/Users/martinfelder/Developer/
+  NetNewsWire-main`): (1) `PRAGMA synchronous = NORMAL` in `FeedivoDatabase.swift`
+  ergänzt (bislang GRDB-Default FULL) — NetNewsWire setzt dieselbe Pragma bei ebenfalls
+  einer einzigen, serialisierten `DatabaseQueue`-Verbindung bewusst explizit, mit der
+  Begründung, dass WAL bei diesem Zugriffsmuster nichts bringt, FULL-Synchronität aber
+  unnötig viele fsyncs pro Transaktion erzwingt — GRDBs `DatabasePool`/WAL-Wechsel wurde
+  daher bewusst NICHT verfolgt (identische NetNewsWire-eigene Begründung im Quellcode-
+  Kommentar von `FMDatabase+Extras.swift` gefunden). (2) `SQLiteFeedRefreshService.
+  applyRules()` schrieb bisher für jeden Regel-Treffer eines Feed-Refreshs eine eigene
+  GRDB-Transaktion (je ein `setHidden`- bzw. `tagStore.save`/`assignTag`-Aufruf pro
+  Artikel — 3N Commits statt 1). Neue `in db:`-Batch-Overloads auf `ArticleStatusStore.
+  setHidden`/`TagStore.save`/`TagStore.assignTag` (GRDBs `DatabaseWriter.write` ist nicht
+  reentrant, ein zweiter `database.write`-Aufruf von innerhalb einer laufenden Transaktion
+  würde abstürzen) erlauben jetzt eine einzige `database.write`-Transaktion für den
+  gesamten Batch — dasselbe Muster, das `SQLiteRuleEvaluationStore.
+  applyRulesToExistingArticles` (Regel rückwirkend auf Bestandsartikel anwenden) bereits
+  vorher nutzte, hier aber für den Refresh-Pfad fehlte. Regressionstest (GRDB-SQL-Trace
+  zählt `COMMIT TRANSACTION`-Anweisungen) verifiziert, dass die Commit-Zahl jetzt
+  unabhängig von der Trefferzahl konstant bleibt (vorher 42 vs. 58 Commits bei 1 vs. 5
+  Treffern, nachher identisch). Betroffene Testsuiten (`ArticleStatusStoreTests`,
+  `SQLiteArticleStatusStoreTests`, `SQLiteTagStoreTests`, `TagStoreChangedFieldsTests`,
+  `RuleEngineTests`, `SQLiteRuleEvaluationStoreTests`, `SQLiteFeedRefreshServiceTests`)
+  grün, Release-relevanter Debug-Build grün. Noch offen aus demselben Vergleich (nicht in
+  dieser Session umgesetzt): Refresh-Throttling/Host-Blocklist analog NetNewsWires
+  `LocalAccountRefresher` (Mindestabstand pro Feed, bekannte Nicht-Feed-Hosts), Favicon-
+  Single-Flight-Dedup, `rebuildAllFeedUnreadCounts()` auf gruppierte CTE umstellen.
+
 - 2026-07-26: iCloud Sync Phase 3 (Feld-Ebene-Konfliktauflösung + Erst-Aktivierungs-
   Merge-Dialog) — vollständige Details siehe „Aktuell in Arbeit" oben, hier nicht
   dupliziert. 15 Tasks via Brainstorming→Spec→Plan→Subagent-Driven-Development, Task 14

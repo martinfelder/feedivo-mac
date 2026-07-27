@@ -341,4 +341,119 @@ struct SQLiteFeedRefreshServiceTests {
         #expect(result.newArticleCount == 1)
         #expect(logs.first?.newArticleCount == 1)
     }
+
+    // Regressionstest für den Performance-Fix aus dem NetNewsWire-Vergleich
+    // (2026-07-27): applyRules() schrieb bisher für jeden Regel-Treffer eine
+    // eigene GRDB-Transaktion (je ein setHidden- bzw. tagStore.save/assignTag-
+    // Aufruf pro Artikel) — die Anzahl der COMMITs wuchs damit linear mit der
+    // Trefferzahl. Jetzt läuft die gesamte Regel-Persistenz eines Refreshs in
+    // EINER Transaktion, daher darf die COMMIT-Zahl nicht mehr mit der
+    // Trefferzahl wachsen. Gemessen über GRDBs SQL-Trace (zählt "COMMIT
+    // TRANSACTION"-Anweisungen), nicht über Implementierungsdetails der Stores.
+    @Test func applyRulesPersistiertTrefferInEinerTransaktionUnabhaengigVonDerTrefferzahl() async throws {
+        let commitsForOneMatch = try await commitCountForRefresh(matchingArticleCount: 1)
+        let commitsForFiveMatches = try await commitCountForRefresh(matchingArticleCount: 5)
+
+        #expect(commitsForOneMatch == commitsForFiveMatches)
+    }
+
+    private final class CommitCounter: @unchecked Sendable {
+        private let lock = NSLock()
+        private var value = 0
+
+        func increment() {
+            lock.lock()
+            value += 1
+            lock.unlock()
+        }
+
+        var count: Int {
+            lock.lock()
+            defer { lock.unlock() }
+            return value
+        }
+    }
+
+    private func commitCountForRefresh(matchingArticleCount: Int) async throws -> Int {
+        let commits = CommitCounter()
+        var configuration = Configuration()
+        configuration.prepareDatabase { database in
+            try database.execute(sql: "PRAGMA foreign_keys = ON")
+            database.trace(options: .statement) { event in
+                guard case .statement(let statementEvent) = event else { return }
+                if statementEvent.sql.uppercased().hasPrefix("COMMIT") {
+                    commits.increment()
+                }
+            }
+        }
+        let queue = try DatabaseQueue(configuration: configuration)
+        try FeedivoDatabaseMigrator.migrator.migrate(queue)
+        let database = FeedivoDatabase(writer: queue)
+
+        let feedStore = FeedStore(database: database)
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Feed"))
+
+        let tag = RuleEngine.TagSnapshot(id: "tag-1", name: "Auto", colorHex: "#3B82F6")
+        let tagRule = RuleEngine.RuleSnapshot(
+            id: UUID(),
+            name: "Tag alles",
+            isEnabled: true,
+            actionRaw: RuleAction.assignTag.rawValue,
+            notificationTemplate: "{Titel}",
+            notificationPriorityRaw: RuleNotificationPriority.normal.rawValue,
+            sortOrder: 0,
+            conditions: [
+                RuleEngine.RuleConditionSnapshot(
+                    field: RuleConditionField.title.rawValue,
+                    conditionOperator: RuleConditionOperator.contains.rawValue,
+                    value: "Artikel",
+                    sortOrder: 0
+                )
+            ],
+            assignTag: tag
+        )
+        let hideRule = RuleEngine.RuleSnapshot(
+            id: UUID(),
+            name: "Verstecke alles",
+            isEnabled: true,
+            actionRaw: RuleAction.hideArticle.rawValue,
+            notificationTemplate: "{Titel}",
+            notificationPriorityRaw: RuleNotificationPriority.normal.rawValue,
+            sortOrder: 1,
+            conditions: [
+                RuleEngine.RuleConditionSnapshot(
+                    field: RuleConditionField.title.rawValue,
+                    conditionOperator: RuleConditionOperator.contains.rawValue,
+                    value: "Artikel",
+                    sortOrder: 0
+                )
+            ],
+            assignTag: nil
+        )
+
+        let articles = (0..<matchingArticleCount).map { index in
+            ParsedArticle(
+                title: "Artikel \(index)",
+                sourceID: "id-\(index)",
+                link: "https://example.com/\(index)",
+                summary: nil,
+                content: nil,
+                publishedAt: Date(timeIntervalSince1970: Double(index)),
+                imageURL: nil
+            )
+        }
+
+        let service = SQLiteFeedRefreshService(
+            database: database,
+            ruleSnapshots: [tagRule, hideRule]
+        ) { url, _ in
+            .updated(
+                ParsedFeed(sourceURL: url, title: "Feed", description: nil, siteURL: nil, articles: articles),
+                FeedHTTPValidators()
+            )
+        }
+
+        _ = try await service.refresh(feedID: "feed-1")
+        return commits.count
+    }
 }

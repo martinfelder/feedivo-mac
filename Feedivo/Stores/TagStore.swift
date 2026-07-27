@@ -24,34 +24,44 @@ struct TagStore {
 
     func save(_ tag: TagRecord) throws {
         try database.write { db in
-            let existingID = try String.fetchOne(db, sql: """
-                SELECT id
-                FROM tags
-                WHERE id = ? OR name = ?
-                ORDER BY CASE WHEN id = ? THEN 0 ELSE 1 END
-                LIMIT 1
-                """, arguments: [tag.id, tag.name, tag.id])
-            let now = Date()
-
-            if let existingID {
-                try db.execute(
-                    sql: """
-                        UPDATE tags
-                        SET id = ?, name = ?, colorHex = ?, updatedAt = ?
-                        WHERE id = ?
-                        """,
-                    arguments: [tag.id, tag.name, tag.colorHex, now, existingID]
-                )
-            } else {
-                let maxSortIndex = (try Int.fetchOne(db, sql: "SELECT MAX(sortIndex) FROM tags") ?? -1) + 1
-                var tag = tag
-                tag.sortIndex = maxSortIndex
-                try tag.insert(db)
-            }
-
-            try enqueuePendingSync(db, tagID: tag.id, changeType: .save)
+            try save(tag, in: db)
         }
         CloudSyncEngine.notifyPendingChangesAvailable(database: database)
+    }
+
+    /// Batch-Variante für Aufrufer, die bereits innerhalb einer eigenen
+    /// `database.write`-Transaktion stehen (z. B. RuleEngine-Anwendung nach Feed-Refresh,
+    /// siehe `SQLiteFeedRefreshService.applyRules`). GRDBs `DatabaseWriter.write` ist nicht
+    /// reentrant — ein erneuter `database.write`-Aufruf von hier aus würde abstürzen. Löst
+    /// bewusst NICHT `CloudSyncEngine.notifyPendingChangesAvailable` aus — das übernimmt der
+    /// Batch-Aufrufer einmalig nach Abschluss der gesamten Transaktion.
+    func save(_ tag: TagRecord, in db: Database) throws {
+        let existingID = try String.fetchOne(db, sql: """
+            SELECT id
+            FROM tags
+            WHERE id = ? OR name = ?
+            ORDER BY CASE WHEN id = ? THEN 0 ELSE 1 END
+            LIMIT 1
+            """, arguments: [tag.id, tag.name, tag.id])
+        let now = Date()
+
+        if let existingID {
+            try db.execute(
+                sql: """
+                    UPDATE tags
+                    SET id = ?, name = ?, colorHex = ?, updatedAt = ?
+                    WHERE id = ?
+                    """,
+                arguments: [tag.id, tag.name, tag.colorHex, now, existingID]
+            )
+        } else {
+            let maxSortIndex = (try Int.fetchOne(db, sql: "SELECT MAX(sortIndex) FROM tags") ?? -1) + 1
+            var tag = tag
+            tag.sortIndex = maxSortIndex
+            try tag.insert(db)
+        }
+
+        try enqueuePendingSync(db, tagID: tag.id, changeType: .save)
     }
 
     func tags() throws -> [TagRecord] {
@@ -165,13 +175,19 @@ struct TagStore {
 
     func assignTag(tagID: String, toArticleID articleID: String, at assignedAt: Date) throws {
         try database.write { db in
-            var assignment = ArticleTagRecord(
-                articleID: articleID,
-                tagID: tagID,
-                assignedAt: assignedAt
-            )
-            try assignment.insert(db, onConflict: .ignore)
+            try assignTag(tagID: tagID, toArticleID: articleID, at: assignedAt, in: db)
         }
+    }
+
+    /// Batch-Variante für Aufrufer, die bereits innerhalb einer eigenen
+    /// `database.write`-Transaktion stehen — siehe Kommentar an `save(_:in:)`.
+    func assignTag(tagID: String, toArticleID articleID: String, at assignedAt: Date, in db: Database) throws {
+        var assignment = ArticleTagRecord(
+            articleID: articleID,
+            tagID: tagID,
+            assignedAt: assignedAt
+        )
+        try assignment.insert(db, onConflict: .ignore)
     }
 
     func assignTag(tagID: String, toFeedID feedID: String, at assignedAt: Date) throws {

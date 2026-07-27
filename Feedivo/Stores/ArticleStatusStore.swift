@@ -75,6 +75,22 @@ struct ArticleStatusStore {
         )
     }
 
+    /// Batch-Variante für Aufrufer, die bereits innerhalb einer eigenen
+    /// `database.write`-Transaktion stehen — siehe Kommentar an der privaten
+    /// `updateBooleanStatus(...,in:)`-Overload.
+    @discardableResult
+    func setHidden(_ isHidden: Bool, articleID: String, at date: Date?, in db: Database) throws -> Bool {
+        try updateBooleanStatus(
+            column: "isHidden",
+            dateColumn: "hiddenAt",
+            value: isHidden,
+            articleID: articleID,
+            date: date,
+            marksSyncTouched: false,
+            in: db
+        )
+    }
+
     /// Markiert wirklich ALLE ungelesenen Artikel app-weit als gelesen —
     /// im Unterschied zu `SQLiteFeedArticleListView.markRowsRead(.allVisible)`,
     /// die nur auf die aktuell sichtbare Artikelliste wirkt. Für das
@@ -143,48 +159,17 @@ struct ArticleStatusStore {
         date: Date?,
         marksSyncTouched: Bool
     ) throws {
-        let timestamp = value ? date : nil
         var didUpdate = false
         try database.write { db in
-            if marksSyncTouched {
-                try db.execute(
-                    sql: """
-                        UPDATE article_statuses
-                        SET \(column) = ?, \(dateColumn) = ?, statusSyncUpdatedAt = ?
-                        WHERE articleID = ?
-                        """,
-                    arguments: [value, timestamp, Date(), articleID]
-                )
-            } else {
-                try db.execute(
-                    sql: """
-                        UPDATE article_statuses
-                        SET \(column) = ?, \(dateColumn) = ?
-                        WHERE articleID = ?
-                        """,
-                    arguments: [value, timestamp, articleID]
-                )
-            }
-            didUpdate = db.changesCount > 0
-
-            if didUpdate {
-                try syncIdentityHistory(
-                    articleID: articleID,
-                    column: column,
-                    dateColumn: dateColumn,
-                    value: value,
-                    timestamp: timestamp,
-                    db: db
-                )
-            }
-
-            if column == "isRead" || column == "isHidden" {
-                try SQLiteUnreadCountService.rebuildFeedUnreadCount(forArticleID: articleID, db: db)
-            }
-
-            if didUpdate, marksSyncTouched {
-                try enqueuePendingSync(db, articleIDs: [articleID], changeType: .save)
-            }
+            didUpdate = try updateBooleanStatus(
+                column: column,
+                dateColumn: dateColumn,
+                value: value,
+                articleID: articleID,
+                date: date,
+                marksSyncTouched: marksSyncTouched,
+                in: db
+            )
         }
 
         if didUpdate {
@@ -193,6 +178,67 @@ struct ArticleStatusStore {
                 CloudSyncEngine.notifyPendingChangesAvailable(database: database)
             }
         }
+    }
+
+    /// Batch-Variante für Aufrufer, die bereits innerhalb einer eigenen
+    /// `database.write`-Transaktion stehen (z. B. RuleEngine-Anwendung nach Feed-Refresh,
+    /// siehe `SQLiteFeedRefreshService.applyRules`). GRDBs `DatabaseWriter.write` ist nicht
+    /// reentrant — ein erneuter `database.write`-Aufruf von hier aus würde abstürzen. Löst
+    /// bewusst NICHT `SQLiteDataInvalidation.bumpStatusVersion()`/`CloudSyncEngine.
+    /// notifyPendingChangesAvailable` aus — das übernimmt der Batch-Aufrufer einmalig nach
+    /// Abschluss der gesamten Transaktion, statt pro Einzelaufruf.
+    @discardableResult
+    private func updateBooleanStatus(
+        column: String,
+        dateColumn: String,
+        value: Bool,
+        articleID: String,
+        date: Date?,
+        marksSyncTouched: Bool,
+        in db: Database
+    ) throws -> Bool {
+        let timestamp = value ? date : nil
+        if marksSyncTouched {
+            try db.execute(
+                sql: """
+                    UPDATE article_statuses
+                    SET \(column) = ?, \(dateColumn) = ?, statusSyncUpdatedAt = ?
+                    WHERE articleID = ?
+                    """,
+                arguments: [value, timestamp, Date(), articleID]
+            )
+        } else {
+            try db.execute(
+                sql: """
+                    UPDATE article_statuses
+                    SET \(column) = ?, \(dateColumn) = ?
+                    WHERE articleID = ?
+                    """,
+                arguments: [value, timestamp, articleID]
+            )
+        }
+        let didUpdate = db.changesCount > 0
+
+        if didUpdate {
+            try syncIdentityHistory(
+                articleID: articleID,
+                column: column,
+                dateColumn: dateColumn,
+                value: value,
+                timestamp: timestamp,
+                db: db
+            )
+        }
+
+        if column == "isRead" || column == "isHidden" {
+            try SQLiteUnreadCountService.rebuildFeedUnreadCount(forArticleID: articleID, db: db)
+        }
+
+        if didUpdate, marksSyncTouched {
+            try enqueuePendingSync(db, articleIDs: [articleID], changeType: .save)
+        }
+
+        return didUpdate
     }
 
     private func syncIdentityHistory(

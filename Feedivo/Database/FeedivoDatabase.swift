@@ -21,6 +21,16 @@ struct FeedivoDatabase {
         var configuration = Configuration()
         configuration.prepareDatabase { database in
             try database.execute(sql: "PRAGMA foreign_keys = ON")
+            // NetNewsWire setzt dieselbe Pragma bewusst explizit (siehe
+            // FMDatabase+Extras.swift), mit der Begründung, dass eine einzige,
+            // serialisierte Verbindung (hier: GRDBs DatabaseQueue) von WAL nicht
+            // profitiert, FULL-Synchronität (GRDBs Default) aber unnötig viele
+            // fsyncs pro Transaktion erzwingt. NORMAL bleibt bei einem App-Crash
+            // weiterhin sicher; nur ein OS-Crash/Stromausfall könnte im
+            // Extremfall die letzte, noch nicht auf Platte geschriebene
+            // Transaktion verlieren — ein für einen RSS-Reader akzeptabler
+            // Trade-off, den NetNewsWire selbst eingeht.
+            try database.execute(sql: "PRAGMA synchronous = NORMAL")
         }
 
         let queue = try DatabaseQueue(path: fileURL.path, configuration: configuration)
@@ -32,6 +42,16 @@ struct FeedivoDatabase {
         var configuration = Configuration()
         configuration.prepareDatabase { database in
             try database.execute(sql: "PRAGMA foreign_keys = ON")
+            // NetNewsWire setzt dieselbe Pragma bewusst explizit (siehe
+            // FMDatabase+Extras.swift), mit der Begründung, dass eine einzige,
+            // serialisierte Verbindung (hier: GRDBs DatabaseQueue) von WAL nicht
+            // profitiert, FULL-Synchronität (GRDBs Default) aber unnötig viele
+            // fsyncs pro Transaktion erzwingt. NORMAL bleibt bei einem App-Crash
+            // weiterhin sicher; nur ein OS-Crash/Stromausfall könnte im
+            // Extremfall die letzte, noch nicht auf Platte geschriebene
+            // Transaktion verlieren — ein für einen RSS-Reader akzeptabler
+            // Trade-off, den NetNewsWire selbst eingeht.
+            try database.execute(sql: "PRAGMA synchronous = NORMAL")
         }
 
         let queue = try DatabaseQueue(configuration: configuration)
