@@ -180,4 +180,52 @@ struct SQLiteFeedRefreshCoordinatorTests {
         #expect(try logStore.logs(feedID: staleAttemptFeedID, limit: 10).count == 2)
         #expect(try logStore.logs(feedID: neverAttemptedFeedID, limit: 10).count == 1)
     }
+
+    @MainActor
+    @Test func refreshAllFeedsDedupliziertFaviconDiscoveryFuerDieselbeSiteURL() async throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let firstFeedID = UUID().uuidString
+        let secondFeedID = UUID().uuidString
+        try feedStore.save(FeedRecord(id: firstFeedID, url: "https://example.com/first.xml", title: "Feed 1"))
+        try feedStore.save(FeedRecord(id: secondFeedID, url: "https://example.com/second.xml", title: "Feed 2"))
+
+        let discoveryCounter = FaviconDiscoveryCallCounter()
+        let coordinator = SQLiteFeedRefreshCoordinator(
+            database: database,
+            discoverFavicon: { _ in
+                await discoveryCounter.increment()
+                try? await Task.sleep(nanoseconds: 50_000_000)
+                return "https://shared-site.example/favicon.ico"
+            },
+            fetcher: { url, _ in
+                .updated(
+                    ParsedFeed(
+                        sourceURL: url,
+                        title: "Feed",
+                        description: nil,
+                        siteURL: "https://shared-site.example",
+                        articles: []
+                    ),
+                    FeedHTTPValidators(lastStatusCode: 200)
+                )
+            }
+        )
+
+        _ = await coordinator.refreshAllFeeds([
+            FeedRefreshSnapshot(id: UUID(uuidString: firstFeedID) ?? UUID(), title: "Feed 1", url: "https://example.com/first.xml"),
+            FeedRefreshSnapshot(id: UUID(uuidString: secondFeedID) ?? UUID(), title: "Feed 2", url: "https://example.com/second.xml")
+        ])
+
+        #expect(await discoveryCounter.count == 1)
+        let firstFeed = try feedStore.feed(id: firstFeedID)
+        let secondFeed = try feedStore.feed(id: secondFeedID)
+        #expect(firstFeed?.faviconURL == "https://shared-site.example/favicon.ico")
+        #expect(secondFeed?.faviconURL == "https://shared-site.example/favicon.ico")
+    }
+}
+
+private actor FaviconDiscoveryCallCounter {
+    private(set) var count = 0
+    func increment() { count += 1 }
 }

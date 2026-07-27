@@ -20,6 +20,8 @@ struct SQLiteFeedRefreshCoordinator {
     private let batchSize: Int
     private let now: () -> Date
     private let minimumRefreshInterval: TimeInterval
+    private let faviconDiscoveryCoordinator = FaviconDiscoveryCoordinator()
+    private let discoverFavicon: @Sendable (URL) async -> String?
     private let fetcher: SQLiteFeedRefreshService.Fetcher
     private let enrichArticleImages: SQLiteFeedRefreshService.ArticleImageEnricher
 
@@ -29,6 +31,16 @@ struct SQLiteFeedRefreshCoordinator {
         ruleSnapshots: [RuleEngine.RuleSnapshot] = [],
         now: @escaping () -> Date = Date.init,
         minimumRefreshInterval: TimeInterval = 9 * 60,
+        // Wird an den gemeinsamen FaviconDiscoveryCoordinator durchgereicht —
+        // dedupliziert gleichzeitig laufende Anfragen für dieselbe siteURL
+        // innerhalb desselben Refresh-All-Batches (NetNewsWire-Vergleich,
+        // 2026-07-27). Standard ist die echte Discovery, kein No-Op wie bei
+        // enrichArticleImages/fetcher — bestehende Tests, die diesen
+        // Parameter nicht setzen, rufen ohnehin keinen Refresh mit echtem
+        // Netzwerkzugriff auf.
+        discoverFavicon: @escaping @Sendable (URL) async -> String? = { siteURL in
+            await FaviconService.discoverFaviconURL(siteURL: siteURL)
+        },
         // Standard bewusst ein No-Op — dieselbe Begründung wie in
         // SQLiteFeedRefreshService: schützt SQLiteFeedRefreshCoordinatorTests
         // vor unbeabsichtigten echten Netzwerkaufrufen. Der produktive Aufrufer
@@ -52,6 +64,7 @@ struct SQLiteFeedRefreshCoordinator {
         self.batchSize = batchSize
         self.now = now
         self.minimumRefreshInterval = minimumRefreshInterval
+        self.discoverFavicon = discoverFavicon
         self.fetcher = fetcher
         self.enrichArticleImages = enrichArticleImages
     }
@@ -122,7 +135,7 @@ struct SQLiteFeedRefreshCoordinator {
         for batch in batches(eligibleSnapshots, size: batchSize) {
             await withTaskGroup(of: SQLiteFeedRefreshCoordinatorOutcome.self) { group in
                 for snapshot in batch {
-                    group.addTask { [database, ruleSnapshots, fetcher, enrichArticleImages] in
+                    group.addTask { [database, ruleSnapshots, fetcher, enrichArticleImages, faviconDiscoveryCoordinator, discoverFavicon] in
                         do {
                             let feedID = snapshot.id.uuidString
                             let feedStore = FeedStore(database: database)
@@ -139,6 +152,9 @@ struct SQLiteFeedRefreshCoordinator {
                             let service = SQLiteFeedRefreshService(
                                 database: database,
                                 ruleSnapshots: ruleSnapshots,
+                                discoverFaviconURL: { siteURL in
+                                    await faviconDiscoveryCoordinator.discover(siteURL: siteURL, using: discoverFavicon)
+                                },
                                 enrichArticleImages: enrichArticleImages,
                                 fetcher: fetcher
                             )
