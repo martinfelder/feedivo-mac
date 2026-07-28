@@ -1,5 +1,6 @@
 import Foundation
 import GRDB
+import Observation
 import Testing
 @testable import Feedivo
 
@@ -71,6 +72,29 @@ struct SQLiteFeedArticleListStateTests {
 
         #expect(state.rows.first(where: { $0.id == firstID })?.isRead == true)
         #expect(state.totalUnreadCount == 1)
+    }
+
+    @Test func listStateUeberschreibtRowsNichtBeiInhaltlichIdentischemErneutenLoad() async throws {
+        let (database, firstID, _) = try makeDatabaseWithFeedAndArticles()
+        let state = SQLiteFeedArticleListState()
+
+        state.load(feedID: "feed-1", database: database, selectedArticleID: firstID)
+        await waitForLoad(state)
+
+        var didChangeRows = false
+        withObservationTracking {
+            _ = state.rows
+        } onChange: {
+            didChangeRows = true
+        }
+
+        // Erneuter Load mit identischem Scope/Inhalt — simuliert einen
+        // redundanten Reload-Trigger (z. B. durch einen Bump, der den
+        // aktuellen Scope gar nicht betrifft).
+        state.load(feedID: "feed-1", database: database, selectedArticleID: firstID)
+        await waitForLoad(state)
+
+        #expect(didChangeRows == false)
     }
 
     @Test func listStateLoeschtArtikelUndEntferntIhnAusRows() async throws {

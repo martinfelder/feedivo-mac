@@ -8,12 +8,16 @@ enum SearchDebounce {
     /// Wartezeit, bis ein eingegebener Suchtext als "fertig getippt" gilt.
     static let delayMilliseconds = 250
 
-    /// Wartet `delayMilliseconds` ab. Gibt `true` zurück, wenn die Wartezeit
-    /// ungestört durchgelaufen ist, `false`, wenn der aufrufende `Task`
-    /// währenddessen abgebrochen wurde (z. B. weil `.task(id:)` durch neue
-    /// Texteingabe neu gestartet wurde).
-    static func wait() async -> Bool {
-        try? await Task.sleep(for: .milliseconds(delayMilliseconds))
+    /// Wartet `milliseconds` ab (Standard: `delayMilliseconds`, für
+    /// Sucheingabe). Gibt `true` zurück, wenn die Wartezeit ungestört
+    /// durchgelaufen ist, `false`, wenn der aufrufende `Task` währenddessen
+    /// abgebrochen wurde (z. B. weil `.task(id:)` durch einen neuen Wert
+    /// neu gestartet wurde). Der Parameter erlaubt Wiederverwendung für
+    /// andere Debounce-Zwecke mit abweichender Wartezeit (z. B.
+    /// Status-Version-Bündelung), statt einer dritten, abweichenden
+    /// `Task.sleep`-Implementierung.
+    static func wait(milliseconds: Int = delayMilliseconds) async -> Bool {
+        try? await Task.sleep(for: .milliseconds(milliseconds))
         return !Task.isCancelled
     }
 }

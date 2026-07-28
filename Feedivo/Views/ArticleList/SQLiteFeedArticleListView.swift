@@ -83,6 +83,17 @@ struct SQLiteFeedArticleListView: View {
     // gehängt, siehe dort).
     @State private var feedHeaderStatusRequestID = 0
     @State private var debouncedSearchText = ""
+    // Gebündelte, verzögerte Sicht auf sqliteStatusVersion (NetNewsWire-
+    // Vergleich, 2026-07-28) — mehrere Bumps innerhalb der Debounce-
+    // Wartezeit (z. B. Refresh-All über viele Feeds) lösen dadurch nur
+    // EINEN Reload aus statt N. Siehe updateDebouncedStatusVersion().
+    @State private var debouncedStatusVersion = 0
+    // Verhindert einen unnötigen zusätzlichen Reload beim allerersten
+    // Erscheinen: debouncedStatusVersion startet bei 0, sqliteStatusVersion
+    // hat aber meist schon einen realen persistierten Wert — ohne diese
+    // Ausnahme würde der erste loadToken mit dem falschen Wert 0 gebaut und
+    // 200ms später durch den korrekten Wert nochmal invalidiert.
+    @State private var hasInitializedDebouncedStatusVersion = false
     @State private var articleExportRequest: ArticleExportRequest?
     @State private var ruleCreationRequest: ArticleListRuleCreationRequest?
     @State private var tagAssignmentRequest: ArticleTagAssignmentRequest?
@@ -169,6 +180,9 @@ struct SQLiteFeedArticleListView: View {
         articleContent
         .task(id: searchText) {
             await updateDebouncedSearchText()
+        }
+        .task(id: sqliteStatusVersion) {
+            await updateDebouncedStatusVersion()
         }
         .task(id: loadToken) {
             reload()
@@ -534,7 +548,7 @@ struct SQLiteFeedArticleListView: View {
         let baseToken = SQLiteFeedArticleListLoadToken.make(
             scopeToken: scopeToken,
             directTagVersion: directTagVersion,
-            sqliteStatusVersion: sqliteStatusVersion,
+            sqliteStatusVersion: debouncedStatusVersion,
             debouncedSearchText: debouncedSearchText
         )
         return "\(baseToken)|sort:\(articleSortRawValue)"
@@ -945,6 +959,9 @@ struct SQLiteFeedArticleListView: View {
 
         state.toggleStarred(articleID: articleID, database: database)
         navigationState = state.navigationState
+        if let row = state.rows.first(where: { $0.id == articleID }) {
+            stickyRowSnapshots[articleID] = row
+        }
     }
 
     private func toggleArchived(_ articleID: String) {
@@ -954,6 +971,9 @@ struct SQLiteFeedArticleListView: View {
 
         state.toggleArchived(articleID: articleID, database: database)
         navigationState = state.navigationState
+        if let row = state.rows.first(where: { $0.id == articleID }) {
+            stickyRowSnapshots[articleID] = row
+        }
     }
 
     private func requestExportArticle(_ articleID: String) {
@@ -1059,6 +1079,28 @@ struct SQLiteFeedArticleListView: View {
         }
 
         debouncedSearchText = searchText
+    }
+
+    // Bündelt mehrere Bumps von sqliteStatusVersion innerhalb der
+    // Wartezeit zu einem einzigen Reload-Trigger (NetNewsWire-Vergleich,
+    // 2026-07-28) — kürzere Wartezeit als die Sucheingabe-Debounce, da
+    // hier kein Tippen abgewartet wird, sondern nur ein kurzes Fenster für
+    // zeitlich nah beieinanderliegende Mutationen (z. B. Refresh-All über
+    // viele Feeds).
+    private static let statusVersionDebounceMilliseconds = 200
+
+    private func updateDebouncedStatusVersion() async {
+        guard hasInitializedDebouncedStatusVersion else {
+            hasInitializedDebouncedStatusVersion = true
+            debouncedStatusVersion = sqliteStatusVersion
+            return
+        }
+
+        guard await SearchDebounce.wait(milliseconds: Self.statusVersionDebounceMilliseconds) else {
+            return
+        }
+
+        debouncedStatusVersion = sqliteStatusVersion
     }
 }
 
