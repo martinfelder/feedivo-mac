@@ -6,6 +6,31 @@ Regeln, intelligenten Ordnern und OPML-Import/-Export.
 
 > Privates Solo-Projekt in aktiver Entwicklung.
 
+## Screenshots
+
+![Hauptansicht: Sidebar, Artikelliste und nativer Reader](docs/screenshots/hauptansicht.png)
+*3-Spalten-Navigation mit Ordnern, Tags und intelligenten Ordnern in der Sidebar, Artikelliste in der Mitte, nativer Reader rechts.*
+
+<table>
+<tr>
+<td width="50%">
+
+![Regel-Editor im Power-User-Modus mit UND/ODER-Bedingungsgruppen](docs/screenshots/regeln-power-user.png)
+*Regel-Editor (Power-User-Modus) — verschachtelte UND/ODER-Bedingungsgruppen weisen automatisch Tags zu, blenden Artikel aus oder lösen Benachrichtigungen aus.*
+
+</td>
+<td width="50%">
+
+![Editor für einen intelligenten Ordner mit Bedingungen und Live-Vorschau](docs/screenshots/intelligenter-ordner.png)
+*Intelligenter Ordner mit eigenem Bedingungs-Editor, Icon/Farbwahl und Live-Vorschau der Trefferzahl.*
+
+</td>
+</tr>
+</table>
+
+![Einstellungen: Anzeige-Tab mit Oberflächen- und Lese-Optionen](docs/screenshots/einstellungen-anzeige.png)
+*Einstellungen → Anzeige — App-weite Textgröße, Hell/Dunkel/System, Schriftarten und Layout-Feinschliff für den Reader.*
+
 ## Features
 
 - **3-Spalten-Navigation** (Sidebar / Artikelliste / Reader) via
