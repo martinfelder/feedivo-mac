@@ -74,7 +74,11 @@ static func inlineRuns(fromHTML html: String) -> [ReaderInlineRun]
 
 Erkennt per Regex (gleicher „gut genug, keine echte HTML-Engine"-Stil wie der Rest der
 Datei) `<a href="...">`, `<b>`/`<strong>`, `<i>`/`<em>` sowie `style="color:...\"` auf
-diesen Tags. Eine Ebene Verschachtelung wird unterstützt (z. B. `<b><a href="...">Link
+diesen Tags. **Nachtrag (nach Rückfrage vor der Plan-Erstellung):** `style="color:...\"`
+wird zusätzlich auf `<span>` erkannt (reines "Style-only"-Tag ohne eigene Bold/Italic/
+Link-Bedeutung) — das ist der in echtem Artikel-HTML weit überwiegende Fall für farbigen
+Text, `<span style="color:...">` ohne diese Erweiterung hätte das Farb-Feature in der
+Praxis kaum sichtbar gemacht. Eine Ebene Verschachtelung wird unterstützt (z. B. `<b><a href="...">Link
 </a></b>` — Bold-Flag wird an den inneren Link-Run vererbt) durch rekursives Parsen des
 Tag-Inhalts. Verschachtelung des **gleichen** Tags (`<b>a<b>b</b>c</b>`) wird nicht
 unterstützt (Regex kann Verschachtelungstiefe nicht zählen) — bestehende Einschränkung,
