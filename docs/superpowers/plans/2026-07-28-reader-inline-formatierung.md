@@ -1215,15 +1215,29 @@ berücksichtigt wurden).
 Folgende Punkte sind nicht automatisierbar (kein computer-use für native
 macOS-Apps) und müssen vom Nutzer live geprüft werden:
 1. Artikel mit Fettschrift im Originaltext öffnen — native Reader-Ansicht zeigt
-   die Stellen fett.
-2. Artikel mit Kursivschrift — zeigt kursiv.
-3. Artikel mit einem Link im Fließtext — Link ist farbig/erkennbar, Klick öffnet
+   die Stellen fett — **mit der Standard-Schriftart (`.system`)**.
+2. Artikel mit Kursivschrift — zeigt kursiv — ebenfalls mit `.system`.
+3. **Entscheidender, vom finalen Whole-Branch-Review priorisierter Test:**
+   dieselben zwei Artikel mit einer gebündelten Reader-Schriftart öffnen (z. B.
+   Noto Serif, in den Reader-Einstellungen auswählbar), NICHT nur `.system`.
+   Die gebündelten Schrift-Presets liefern nur eine "Regular"-`.ttf`-Datei
+   pro Familie — ob SwiftUI/AppKit dafür zuverlässig einen Fett-/Kursiv-Schnitt
+   synthetisiert, ist unverifiziert und könnte dazu führen, dass Fett/Kursiv
+   bei gebündelten Schriftarten unsichtbar bleibt. Falls das der Fall ist, ist
+   das ein Code-Fix (schriftartbezogene Bold/Italic-Auflösung statt reinem
+   `inlinePresentationIntent`), keine reine Doku-Anmerkung.
+4. Artikel mit einem Link im Fließtext — Link ist farbig/erkennbar, Klick öffnet
    die Ziel-URL im Standardbrowser (nicht in-App).
-4. Artikel mit farbig ausgezeichnetem Text (`<span style="color:...">`) — Farbe
+5. Artikel mit farbig ausgezeichnetem Text (`<span style="color:...">`) — Farbe
    erscheint im Hellmodus.
-5. Denselben Artikel im Dunkelmodus öffnen — falls die Originalfarbe zu wenig
+6. Denselben Artikel im Dunkelmodus öffnen — falls die Originalfarbe zu wenig
    Kontrast hätte, erscheint Standardtextfarbe statt der Originalfarbe.
-6. Artikelliste-Vorschau und Suchfenster zeigen weiterhin unformatierten
+7. **Zusätzlich (aus dem Whole-Branch-Review):** ein Artikel mit farbig
+   ausgezeichnetem Text INNERHALB eines Zitat-Blocks (`<blockquote>`) —
+   prüfen, ob die Farbe die gedämpfte `.secondary`-Zitat-Darstellung
+   unerwünscht überschreibt (bekannter, als kosmetisch eingestufter
+   Randfall aus dem Review, kein Blocker, aber gegenzuprüfen).
+8. Artikelliste-Vorschau und Suchfenster zeigen weiterhin unformatierten
    Vorschautext (unverändertes Verhalten, kein Regressionsrisiko, aber bewusst
    gegenzuprüfen).
 
