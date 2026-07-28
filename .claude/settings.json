@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.command // empty' | { read -r cmd; case \"$cmd\" in *\"git push\"*) bash scripts/bump_version.sh \"$cmd\" ;; esac; } >> /tmp/feedivo-bump-hook.log 2>&1 || true",
+            "timeout": 120,
+            "statusMessage": "Feedivo Build-Nummer wird hochgezaehlt..."
+          }
+        ]
+      }
+    ]
+  }
+}
