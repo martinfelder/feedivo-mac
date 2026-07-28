@@ -405,6 +405,26 @@ struct FeedivoTests {
         ])
     }
 
+    @Test func readerContentRendererTrimmtLeerzeichenAuchNachEntfernenLeererRandRuns() {
+        // Regression: "<p> <b> fett </b> </p>" enthält vor dem Trimmen einen
+        // reinen Leerzeichen-Run vor und nach dem <b>-Run — nach deren Entfernung
+        // wird der <b>-Run selbst zum neuen ersten/letzten Run und muss dann
+        // ERNEUT auf führende/nachgestellte Leerzeichen geprüft werden. Vor
+        // diesem Fix blieb " fett " (mit Leerzeichen) übrig, statt wie vor
+        // diesem Feature "fett" (ohne).
+        let blocks = ReaderContentRenderer.blocks(
+            summary: nil,
+            content: "<p> <b> fett </b> </p>",
+            fallbackImageURL: nil
+        )
+
+        #expect(blocks == [
+            .paragraph([
+                ReaderInlineRun(text: "fett", isBold: true, isItalic: false, linkURL: nil, colorHex: nil)
+            ])
+        ])
+    }
+
     @Test func readerContentRendererFiltertEinzelnesBulletZeichenAusListArtefakt() {
         // Regression: ein Listenmarker-Artefakt ("•"), das nach dem Entfernen der
         // <ul>/<ol>-Container-Tags als eigenständiger "Absatz" übrig bleibt, darf

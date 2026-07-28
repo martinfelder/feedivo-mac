@@ -54,5 +54,13 @@ struct ReaderInlineRunAttributedStringTests {
         let attributed = runs.attributedString(colorScheme: .light)
 
         #expect(String(attributed.characters) == "Vor fett danach")
+
+        // Regression: nach der `+=`-Verkettung mehrerer Segmente muss das
+        // Fett-Attribut des mittleren Runs erhalten bleiben, nicht nur der
+        // reine Text.
+        let boldRun = attributed.runs.first { run in
+            String(attributed[run.range].characters) == "fett"
+        }
+        #expect(boldRun?.inlinePresentationIntent == .stronglyEmphasized)
     }
 }

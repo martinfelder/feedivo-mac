@@ -182,6 +182,8 @@ enum ReaderContentRenderer {
             return blocks
         }
 
+        // Fallback ohne erkannte Block-Tags (z. B. loser summary-Text): liefert nur
+        // unformatierte Runs, siehe Limitations-Hinweis auf splitIntoParagraphRuns.
         return paragraphs(fromPreparedHTML: htmlOrText).map { .paragraph($0) }
     }
 
@@ -310,9 +312,15 @@ enum ReaderContentRenderer {
 
     /// Zerlegt HTML mit `<br>`/Block-Grenzen in mehrere Absätze (ein Aufruf von
     /// `paragraphs(fromPreparedHTML:)` liefert die Zeilengrenzen als reine
-    /// Strings), parst dann jede Zeile einzeln auf Inline-Formatierung — die
-    /// Grenzen selbst müssen weiterhin auf Basis von reinem Text erkannt werden,
-    /// da `<br>`/Block-Tags Absatzgrenzen markieren, keine Formatierung.
+    /// Strings).
+    ///
+    /// Achtung: erkennt KEINE Inline-Formatierung — `paragraphs(fromPreparedHTML:)`
+    /// hat den Text bereits über `htmlToPlainText` zu reinem Text reduziert, die
+    /// Tags sind an dieser Stelle bereits weg. Betrifft vor allem den
+    /// summary-Fallback (RSS <description>) und jeden Text außerhalb von
+    /// <p>/<div>/<h*>/<li>/<blockquote> — für solchen Text bleibt Fett/Kursiv/
+    /// Link/Farbe unerkannt. Bewusst akzeptierte Limitation dieser ersten
+    /// Ausbaustufe, kein Bug.
     private static func splitIntoParagraphRuns(fromPreparedHTML htmlOrText: String) -> [[ReaderInlineRun]] {
         paragraphs(fromPreparedHTML: htmlOrText).map { [ReaderInlineRun(text: $0, isBold: false, isItalic: false, linkURL: nil, colorHex: nil)] }
     }
@@ -329,7 +337,17 @@ enum ReaderContentRenderer {
         return runs
     }
 
-    private static func rawInlineRuns(fromHTML html: String) -> [ReaderInlineRun] {
+    /// Maximale Rekursionstiefe für verschachtelte Inline-Tags — schützt gegen
+    /// ungetrautes Feed-HTML mit exzessiv tiefer Verschachtelung. Ab dieser
+    /// Tiefe wird der verbleibende Inhalt als reiner Text behandelt statt
+    /// weiter zu rekursieren.
+    private static let maxInlineNestingDepth = 8
+
+    private static func rawInlineRuns(fromHTML html: String, depth: Int = 0) -> [ReaderInlineRun] {
+        guard depth < maxInlineNestingDepth else {
+            return plainInlineRuns(fromHTML: html)
+        }
+
         let range = NSRange(html.startIndex ..< html.endIndex, in: html)
         let matches = inlineTagExpression.matches(in: html, range: range)
         guard !matches.isEmpty else {
@@ -353,7 +371,7 @@ enum ReaderContentRenderer {
 
             let tag = String(html[tagRange]).lowercased()
             let attributes = String(html[attributesRange])
-            let innerRuns = rawInlineRuns(fromHTML: String(html[innerRange]))
+            let innerRuns = rawInlineRuns(fromHTML: String(html[innerRange]), depth: depth + 1)
             runs.append(contentsOf: applyingInlineStyle(tag: tag, attributes: attributes, to: innerRuns))
 
             currentIndex = matchRange.upperBound
@@ -383,7 +401,7 @@ enum ReaderContentRenderer {
         let isBold = tag == "b" || tag == "strong"
         let isItalic = tag == "i" || tag == "em"
         let linkURL = tag == "a" ? safeLinkURL(fromAttributes: attributes) : nil
-        let colorHex = colorHex(fromAttributes: attributes)
+        let styleColorHex = colorHex(fromAttributes: attributes)
 
         return innerRuns.map { run in
             ReaderInlineRun(
@@ -391,7 +409,7 @@ enum ReaderContentRenderer {
                 isBold: run.isBold || isBold,
                 isItalic: run.isItalic || isItalic,
                 linkURL: run.linkURL ?? linkURL,
-                colorHex: run.colorHex ?? colorHex
+                colorHex: run.colorHex ?? styleColorHex
             )
         }
     }
@@ -457,32 +475,39 @@ enum ReaderContentRenderer {
     }
 
     private static func trimOuterWhitespace(_ runs: inout [ReaderInlineRun]) {
-        guard !runs.isEmpty else {
-            return
-        }
+        // Läuft in einer Schleife: das Entfernen leerer Runs (z. B. der reine
+        // Leerzeichen-Run zwischen "<p> " und "<b>fett</b>") kann einen neuen,
+        // bis dahin inneren Run zum neuen ersten/letzten Run machen, der selbst
+        // noch führende/nachgestellte Leerzeichen trägt ("<p> <b> fett </b> </p>"
+        // soll am Ende genau "fett" ergeben, nicht " fett "). Bricht ab, sobald
+        // sich nichts mehr ändert.
+        var previousCount = -1
+        while !runs.isEmpty && runs.count != previousCount {
+            previousCount = runs.count
 
-        if let first = runs.first {
-            runs[0] = ReaderInlineRun(
-                text: String(first.text.drop { $0 == " " }),
-                isBold: first.isBold,
-                isItalic: first.isItalic,
-                linkURL: first.linkURL,
-                colorHex: first.colorHex
-            )
-        }
+            if let first = runs.first {
+                runs[0] = ReaderInlineRun(
+                    text: String(first.text.drop { $0 == " " }),
+                    isBold: first.isBold,
+                    isItalic: first.isItalic,
+                    linkURL: first.linkURL,
+                    colorHex: first.colorHex
+                )
+            }
 
-        if let last = runs.last {
-            let trimmedText = String(String(last.text.reversed()).drop { $0 == " " }.reversed())
-            runs[runs.count - 1] = ReaderInlineRun(
-                text: trimmedText,
-                isBold: last.isBold,
-                isItalic: last.isItalic,
-                linkURL: last.linkURL,
-                colorHex: last.colorHex
-            )
-        }
+            if let last = runs.last {
+                let trimmedText = String(String(last.text.reversed()).drop { $0 == " " }.reversed())
+                runs[runs.count - 1] = ReaderInlineRun(
+                    text: trimmedText,
+                    isBold: last.isBold,
+                    isItalic: last.isItalic,
+                    linkURL: last.linkURL,
+                    colorHex: last.colorHex
+                )
+            }
 
-        runs.removeAll { $0.text.isEmpty }
+            runs.removeAll { $0.text.isEmpty }
+        }
     }
 
     private static func paragraphs(fromPreparedHTML htmlOrText: String) -> [String] {
