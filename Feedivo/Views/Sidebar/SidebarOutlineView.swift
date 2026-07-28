@@ -809,6 +809,7 @@ private struct SidebarOutlineFolderRow: View {
     let renameFolder: (String) throws -> Void
     let deleteFolder: () -> Void
 
+    @Environment(\.interfaceTextSize) private var interfaceTextSize
     @State private var isEditingName = false
     @State private var editedName = ""
     @State private var renameErrorMessage: String?
@@ -820,13 +821,13 @@ private struct SidebarOutlineFolderRow: View {
                 Button(action: toggle) {
                     HStack(spacing: 9) {
                         Image(systemName: isCollapsed ? "chevron.right" : "chevron.down")
-                            .font(.system(size: 10, weight: .bold))
+                            .font(interfaceTextSize.font(size: 10, weight: .bold))
                             .foregroundStyle(SidebarStyle.secondaryText)
-                            .frame(width: 12)
+                            .frame(width: interfaceTextSize.scaled(12))
                         Image(systemName: "folder")
-                            .font(.system(size: 16, weight: .medium))
+                            .font(interfaceTextSize.font(size: 16, weight: .medium))
                             .foregroundStyle(Color.accentColor)
-                            .frame(width: 20)
+                            .frame(width: interfaceTextSize.scaled(20))
                     }
                 }
                 .buttonStyle(.plain)
@@ -834,7 +835,7 @@ private struct SidebarOutlineFolderRow: View {
                 if isEditingName {
                     TextField(name, text: $editedName)
                         .textFieldStyle(.roundedBorder)
-                        .font(.system(size: 13, weight: .medium))
+                        .font(interfaceTextSize.font(size: 13, weight: .medium))
                         .focused($isNameFieldFocused)
                         .overlay {
                             RoundedRectangle(cornerRadius: 5)
@@ -849,7 +850,7 @@ private struct SidebarOutlineFolderRow: View {
                         }
                 } else {
                     Text(name)
-                        .font(.system(size: 13, weight: .medium))
+                        .font(interfaceTextSize.font(size: 13, weight: .medium))
                         .foregroundStyle(isDropTarget ? .white : SidebarStyle.primaryText.opacity(0.82))
                         .lineLimit(1)
                         .padding(.horizontal, isDropTarget ? 7 : 0)
@@ -885,9 +886,9 @@ private struct SidebarOutlineFolderRow: View {
 
             if let renameErrorMessage {
                 Text(renameErrorMessage)
-                    .font(.system(size: 11))
+                    .font(interfaceTextSize.font(size: 11))
                     .foregroundStyle(.red)
-                    .padding(.leading, 16 + 12 + 9 + 20 + 9)
+                    .padding(.leading, 16 + interfaceTextSize.scaled(12) + 9 + interfaceTextSize.scaled(20) + 9)
                     .padding(.trailing, 16)
             }
         }
