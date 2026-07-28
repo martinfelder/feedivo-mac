@@ -69,17 +69,27 @@ VERSION_LABEL="${MARKETING_VERSION} (${NEW_BUILD})"
 TODAY="$(date +%Y-%m-%d)"
 
 # Commit-Historie seit dem letzten Versions-Bump fuer den Changelog-Eintrag einsammeln.
-# Gibt es noch keinen "chore: Version"-Commit (allererster automatischer Bump), als
-# Startpunkt stattdessen den Commit nehmen, der CHANGELOG.md eingefuehrt hat - sonst
-# wuerde der erste Eintrag die komplette bisherige Projekthistorie auflisten.
+# Gibt es bereits einen "chore: Version"-Commit, ab dort EXKLUSIV zaehlen (dessen
+# eigene Bump-Botschaft ist reines Boilerplate). Gibt es noch keinen (allererster
+# automatischer Bump), stattdessen ab dem PARENT des Commits zaehlen, der
+# CHANGELOG.md eingefuehrt hat - INKLUSIV, damit dessen eigene, echte Commit-
+# Botschaft nicht verloren geht (sonst waere der erste Eintrag leer, weil genau
+# dieser Commit der aktuelle HEAD ist). Ohne beides: komplette Historie.
 LAST_BUMP_SHA="$(git log --grep='^chore: Version ' -1 --format=%H 2>/dev/null || true)"
-if [ -z "$LAST_BUMP_SHA" ]; then
-  LAST_BUMP_SHA="$(git log --diff-filter=A --format=%H -- "$CHANGELOG" 2>/dev/null | tail -1 || true)"
-fi
 if [ -n "$LAST_BUMP_SHA" ]; then
   RANGE="${LAST_BUMP_SHA}..HEAD"
 else
-  RANGE="HEAD"
+  CHANGELOG_ADDED_SHA="$(git log --diff-filter=A --format=%H -- "$CHANGELOG" 2>/dev/null | tail -1 || true)"
+  if [ -n "$CHANGELOG_ADDED_SHA" ]; then
+    PARENT_SHA="$(git rev-parse "${CHANGELOG_ADDED_SHA}^" 2>/dev/null || true)"
+    if [ -n "$PARENT_SHA" ]; then
+      RANGE="${PARENT_SHA}..HEAD"
+    else
+      RANGE="HEAD"
+    fi
+  else
+    RANGE="HEAD"
+  fi
 fi
 COMMIT_LINES="$(git log "$RANGE" --no-merges --format='- %s' 2>/dev/null | grep -v '^- chore: Version ' || true)"
 if [ -z "$COMMIT_LINES" ]; then

@@ -12,7 +12,7 @@ Commit-Nachrichten seit dem letzten Versions-Bump — für Details siehe `git lo
 
 ## [1.0 (2)] - 2026-07-28
 
-- (keine Commit-Nachrichten seit dem letzten Bump gefunden)
+- Feat: README, Changelog und automatische Versionierung eingerichtet
 
 ## [1.0 (1)] - 2026-07-28
 
