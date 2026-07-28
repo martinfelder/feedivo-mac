@@ -645,13 +645,13 @@ struct SQLiteReaderView: View {
     // entsteht statt bei jedem Scroll-Tick.
     private func contentBlock(_ block: ReaderContentBlock) -> some View {
         switch block {
-        case .paragraph(let text):
-            Text(text)
+        case .paragraph(let runs):
+            Text(runs.plainText)
                 .font(bodyFontPreset.font(size: clampedBodyFontSize, relativeTo: .body, weight: bodyFontWeight))
                 .fontWeight(bodyFontWeight)
                 .lineSpacing(clampedLineSpacing)
-        case .heading(let text):
-            Text(text)
+        case .heading(let runs):
+            Text(runs.plainText)
                 .font(bodyFontPreset.font(
                     size: min(clampedBodyFontSize + 5, CGFloat(ReaderTypography.defaultTitleFontSize - 2)),
                     relativeTo: .title3,
@@ -659,13 +659,13 @@ struct SQLiteReaderView: View {
                 ))
                 .fontWeight(contentHeadingFontWeight)
                 .lineSpacing(clampedLineSpacing)
-        case .quote(let text):
+        case .quote(let runs):
             HStack(alignment: .top, spacing: 12) {
                 Rectangle()
                     .fill(.secondary.opacity(0.35))
                     .frame(width: 3)
 
-                Text(text)
+                Text(runs.plainText)
                     .font(bodyFontPreset.font(size: clampedBodyFontSize, relativeTo: .body, weight: bodyFontWeight))
                     .fontWeight(bodyFontWeight)
                     .italic()
@@ -673,14 +673,14 @@ struct SQLiteReaderView: View {
                     .lineSpacing(clampedLineSpacing)
             }
             .padding(.vertical, 2)
-        case .listItem(let text):
+        case .listItem(let runs):
             HStack(alignment: .firstTextBaseline, spacing: 10) {
                 Text(verbatim: "•")
                     .font(bodyFontPreset.font(size: clampedBodyFontSize, relativeTo: .body, weight: bodyFontWeight))
                     .fontWeight(bodyFontWeight)
                     .foregroundStyle(.secondary)
 
-                Text(text)
+                Text(runs.plainText)
                     .font(bodyFontPreset.font(size: clampedBodyFontSize, relativeTo: .body, weight: bodyFontWeight))
                     .fontWeight(bodyFontWeight)
                     .lineSpacing(clampedLineSpacing)

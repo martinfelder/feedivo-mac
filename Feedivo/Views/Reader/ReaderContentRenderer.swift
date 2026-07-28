@@ -1,11 +1,42 @@
 import Foundation
 
+/// Ein einzelnes, zusammenhängendes Textstück innerhalb eines Reader-Content-Blocks
+/// mit optionaler Inline-Formatierung (Fett/Kursiv/Link/Farbe). Reiner, SwiftUI-
+/// unabhängiger Sendable-Werttyp — die Umwandlung in `AttributedString` passiert
+/// erst an der Rendering-Grenze (siehe ReaderInlineRun+AttributedString.swift).
+struct ReaderInlineRun: Equatable, Sendable {
+    let text: String
+    let isBold: Bool
+    let isItalic: Bool
+    let linkURL: URL?
+    let colorHex: String?
+}
+
 enum ReaderContentBlock: Equatable, Sendable {
-    case paragraph(String)
-    case heading(String)
-    case quote(String)
-    case listItem(String)
+    case paragraph([ReaderInlineRun])
+    case heading([ReaderInlineRun])
+    case quote([ReaderInlineRun])
+    case listItem([ReaderInlineRun])
     case image(urlString: String)
+
+    /// Erzeugt einen einzelnen, unformatierten Run — deckt den bisherigen
+    /// "reiner Text ohne Formatierung"-Fall ab, damit bestehender Aufrufcode wie
+    /// `.paragraph("Text")` unverändert kompiliert.
+    static func paragraph(_ text: String) -> Self {
+        .paragraph([ReaderInlineRun(text: text, isBold: false, isItalic: false, linkURL: nil, colorHex: nil)])
+    }
+
+    static func heading(_ text: String) -> Self {
+        .heading([ReaderInlineRun(text: text, isBold: false, isItalic: false, linkURL: nil, colorHex: nil)])
+    }
+
+    static func quote(_ text: String) -> Self {
+        .quote([ReaderInlineRun(text: text, isBold: false, isItalic: false, linkURL: nil, colorHex: nil)])
+    }
+
+    static func listItem(_ text: String) -> Self {
+        .listItem([ReaderInlineRun(text: text, isBold: false, isItalic: false, linkURL: nil, colorHex: nil)])
+    }
 }
 
 struct ReaderContentBlockEntry: Identifiable, Equatable, Sendable {
@@ -38,14 +69,14 @@ extension ReaderContentBlock: Identifiable {
     // Blöcken eine Vorkommensnummer, damit SwiftUI eindeutige Listen-IDs erhält.
     var id: String {
         switch self {
-        case .paragraph(let text):
-            return compactID(prefix: "p", value: text)
-        case .heading(let text):
-            return compactID(prefix: "h", value: text)
-        case .quote(let text):
-            return compactID(prefix: "q", value: text)
-        case .listItem(let text):
-            return compactID(prefix: "li", value: text)
+        case .paragraph(let runs):
+            return compactID(prefix: "p", value: runs.plainText)
+        case .heading(let runs):
+            return compactID(prefix: "h", value: runs.plainText)
+        case .quote(let runs):
+            return compactID(prefix: "q", value: runs.plainText)
+        case .listItem(let runs):
+            return compactID(prefix: "li", value: runs.plainText)
         case .image(let urlString):
             return compactID(prefix: "img", value: urlString)
         }
@@ -53,6 +84,14 @@ extension ReaderContentBlock: Identifiable {
 
     private func compactID(prefix: String, value: String) -> String {
         "\(prefix):\(value.count):\(value.hashValue)"
+    }
+}
+
+extension Array where Element == ReaderInlineRun {
+    /// Reiner, verketteter Text ohne Formatierungsinformation — Basis für die
+    /// inhaltsbasierte Block-Identität oben.
+    var plainText: String {
+        map(\.text).joined()
     }
 }
 

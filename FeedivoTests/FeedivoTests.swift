@@ -136,6 +136,14 @@ struct FeedivoTests {
         ])
     }
 
+    @Test func readerContentBlockKonstruktionMitPlainStringErzeugtEinzelnenUnformatiertenRun() {
+        let block = ReaderContentBlock.paragraph("Einfacher Text")
+
+        #expect(block == .paragraph([
+            ReaderInlineRun(text: "Einfacher Text", isBold: false, isItalic: false, linkURL: nil, colorHex: nil)
+        ]))
+    }
+
     @Test func readerContentBlockIDBleibtKompaktFuerLangeArtikeltexte() {
         let longParagraph = String(repeating: "Langer Artikeltext ", count: 200)
         let block = ReaderContentBlock.paragraph(longParagraph)
