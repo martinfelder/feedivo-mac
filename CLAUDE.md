@@ -143,8 +143,16 @@ FeedivoMac/
 │       ├── L10n.swift + Localizable.xcstrings   # Vollständig lokalisierte Strings (Deutsch/Englisch)
 │       └── Fonts/                      # Gebündelte Reader-Schriften
 │
-├── FeedivoTests/                       # Swift-Testing-Suiten (kein XCTest), ~64 Testdateien
+├── FeedivoTests/                       # Swift-Testing-Suiten (kein XCTest), 126 Testdateien in
+│                                        # Unterordnern, die Feedivo/ spiegeln (App/, Database/,
+│                                        # Extensions/, Models/, Snapshots/, Stores/, Services/
+│                                        # inkl. Services/CloudSync/, ViewModels/, Views/) - seit
+│                                        # 2026-07-28 (vorher komplett flach)
 ├── Feedivo.xcodeproj
+├── scripts/                            # Repo-Automatisierung (Versionierung/Release) + l10n/
+├── docs/                               # Design-Prototypen/-Handoffs, superpowers-Plans/Specs
+│                                        # (nach Monat sortiert), Performance-Audits
+├── README.md, CHANGELOG.md             # GitHub-Landingpage + automatisch gepflegte Versionshistorie
 └── CLAUDE.md                           # Diese Datei
 ```
 
