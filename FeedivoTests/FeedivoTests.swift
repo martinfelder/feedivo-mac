@@ -405,6 +405,23 @@ struct FeedivoTests {
         ])
     }
 
+    @Test func readerContentRendererFiltertEinzelnesBulletZeichenAusListArtefakt() {
+        // Regression: ein Listenmarker-Artefakt ("•"), das nach dem Entfernen der
+        // <ul>/<ol>-Container-Tags als eigenständiger "Absatz" übrig bleibt, darf
+        // NICHT als eigener .paragraph-Block gerendert werden — vor Task 3 gab es
+        // dafür einen expliziten Filter (`where paragraph != "•"`), der bei der
+        // Umstellung auf run-basierte Absätze versehentlich verloren ging.
+        let blocks = ReaderContentRenderer.blocks(
+            summary: nil,
+            content: "<ul>•<li>Punkt</li></ul>",
+            fallbackImageURL: nil
+        )
+
+        #expect(blocks == [
+            .listItem("Punkt")
+        ])
+    }
+
     @Test func readerContentRendererWandeltHTMLInReinenVorschautextUm() {
         let plainText = ReaderContentRenderer.htmlToPlainText(
             #"<div style="float: center;"><img width="500" height="281" src="https://example.com/bild.jpg" alt=""/></div>Der eigentliche Vorschautext."#

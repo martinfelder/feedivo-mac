@@ -282,7 +282,7 @@ enum ReaderContentRenderer {
             replacement: ""
         )
 
-        for runs in splitIntoParagraphRuns(fromPreparedHTML: htmlWithoutListContainers) {
+        for runs in splitIntoParagraphRuns(fromPreparedHTML: htmlWithoutListContainers) where runs.plainText != "•" {
             blocks.append(.paragraph(runs))
         }
     }
