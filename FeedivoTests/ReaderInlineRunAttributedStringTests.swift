@@ -13,6 +13,26 @@ struct ReaderInlineRunAttributedStringTests {
         #expect(attributed.link == URL(string: "https://example.com"))
     }
 
+    @Test func attributedStringUnterstreichtLinks() {
+        let runs = [
+            ReaderInlineRun(text: "Text", isBold: false, isItalic: false, linkURL: URL(string: "https://example.com"), colorHex: nil)
+        ]
+
+        let attributed = runs.attributedString(colorScheme: .light)
+
+        #expect(attributed.runs.first?.underlineStyle == .single)
+    }
+
+    @Test func attributedStringUnterstreichtTextOhneLinkNicht() {
+        let runs = [
+            ReaderInlineRun(text: "Text", isBold: false, isItalic: false, linkURL: nil, colorHex: nil)
+        ]
+
+        let attributed = runs.attributedString(colorScheme: .light)
+
+        #expect(attributed.runs.first?.underlineStyle == nil)
+    }
+
     @Test func attributedStringSetztFettUndKursivIntent() {
         let runs = [
             ReaderInlineRun(text: "Text", isBold: true, isItalic: true, linkURL: nil, colorHex: nil)

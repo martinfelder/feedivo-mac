@@ -4,7 +4,10 @@ extension Array where Element == ReaderInlineRun {
     /// Baut aus den Runs eines Reader-Content-Blocks eine einzige
     /// `AttributedString` — Fett/Kursiv über `inlinePresentationIntent` (von
     /// `Text(AttributedString)` automatisch gerendert), Link über `.link`
-    /// (macht den Bereich automatisch tippbar), Farbe nur wenn
+    /// (macht den Bereich automatisch tippbar) plus durchgängiger
+    /// Unterstreichung (SwiftUI `Text` unterstützt kein Hover-Tracking für
+    /// einzelne Textbereiche innerhalb eines Fließtext-Absatzes, daher fest
+    /// statt nur bei Mauszeiger-Hover), Farbe nur wenn
     /// `ReaderInlineColorSafety` gegen den aktuellen Farbmodus zustimmt.
     func attributedString(colorScheme: ColorScheme) -> AttributedString {
         let backgroundLuminance = colorScheme == .dark
@@ -29,6 +32,7 @@ extension Array where Element == ReaderInlineRun {
 
             if let linkURL = run.linkURL {
                 segment.link = linkURL
+                segment.underlineStyle = .single
             }
 
             if
