@@ -2211,8 +2211,9 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   `docs/superpowers/specs/2026-07-27-refresh-throttling-perf-nachzuegler-design.md`, Plan:
   `docs/superpowers/plans/2026-07-27-refresh-throttling-perf-nachzuegler.md`. Commits
   `7ab3774` (Task 1), `d5c5591` (Task 2), `62f7ee13` (Task 3), `82af009d` (Task 4),
-  `239c2b77` (Task 5), `9681ae1e` (Task 6) auf `main`, NICHT gepusht (Nutzerbestätigung vor
-  Push laut Projektkonvention ausstehend). Manuelle Live-Verifikation (Throttling bei
+  `239c2b77` (Task 5), `9681ae1e` (Task 6) auf `main`, gepusht (Korrektur 2026-07-28:
+  "NICHT gepusht" war veraltet — per `git merge-base --is-ancestor` gegen `origin/main`
+  verifiziert, alle sechs Commits waren bereits enthalten). Manuelle Live-Verifikation (Throttling bei
   wiederholtem "Alle aktualisieren" innerhalb der 9-Minuten-Schwelle, Ungelesen-Zähler nach
   Rebuild, Favicon-Dedup bei mehreren Feeds desselben Hosts) noch nicht durchgeführt.
 
