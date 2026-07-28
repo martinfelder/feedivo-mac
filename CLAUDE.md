@@ -2173,6 +2173,71 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Letzte Änderungen
 
+- 2026-07-28: Reader Inline-Formatierung (Fett/Kursiv/Links/Farben aus Artikel-HTML)
+  — VOLLSTÄNDIG ABGESCHLOSSEN, gepusht (`b54818a9..5c35e57b`), vom Nutzer nach
+  eigener manueller Live-Verifikation als funktionierend bestätigt. Der native
+  SwiftUI-Reader (`ReaderContentRenderer`/`SQLiteReaderView`) reduzierte Artikel-HTML
+  bisher beim Parsen pauschal auf reinen Block-Text — `<a href>`, `<b>`/`<strong>`,
+  `<i>`/`<em>` gingen dabei komplett verloren (die WKWebView-„Originalartikel"-Ansicht
+  war davon nie betroffen). Umgesetzt via Brainstorming→Spec→Plan→
+  Subagent-Driven-Development (4 Tasks + Whole-Branch-Review), Spec:
+  `docs/superpowers/specs/2026-07-28-reader-inline-formatierung-design.md`, Plan:
+  `docs/superpowers/plans/2026-07-28-reader-inline-formatierung.md`. Architektur:
+  `ReaderContentBlock`-Fälle tragen jetzt `[ReaderInlineRun]` (neuer reiner
+  Sendable-Werttyp: Text + Fett/Kursiv-Flags + optionale Link-URL + optionaler
+  Hex-Farbwert) statt `String` — bewusst NICHT direkt `AttributedString` im Modell,
+  da Attribut-Gleichheitsvergleiche in Tests brüchig wären. Neuer rekursiver
+  Regex-Parser `ReaderContentRenderer.inlineRuns(fromHTML:)` erkennt `<a href>` (nur
+  `http`/`https`-Schema, `javascript:`/`data:`/`file:` werden verworfen),
+  `<b>`/`<strong>`, `<i>`/`<em>` sowie `style="color:...\"` auf diesen Tags PLUS
+  zusätzlich auf `<span>` (Nachtrag vor Plan-Erstellung — `<span style="color:...">`
+  ist der in echtem Artikel-HTML weit überwiegende Fall für farbigen Text). Neuer,
+  pure Policy-Typ `ReaderInlineColorSafety` prüft geparste Hex-Farben zur Render-Zeit
+  gegen eine vereinfachte Kontrast-Kennzahl (Hell-/Dunkelmodus-Referenzhelligkeit,
+  Schwelle 2.5:1) — bei zu wenig Kontrast bleibt die Standard-Textfarbe erhalten.
+  Neue `[ReaderInlineRun] -> AttributedString`-Konvertierung
+  (`ReaderInlineRun+AttributedString.swift`) speist `Text(AttributedString)` statt
+  `Text(String)`; `SQLiteReaderView` bekommt `.environment(\.openURL, ...)` mit
+  explizitem `NSWorkspace.shared.open(url)`, damit Links garantiert im
+  Standardbrowser statt in-App öffnen. **Zwei echte Funde unterwegs:** (1) Task 3
+  (Plan-Bug, nicht Implementierer-Fehler): beim Schreiben des Plans wurde ein
+  bestehender `where paragraph != "•"`-Filter (entfernt verwaiste
+  Bullet-Zeichen-Artefakte aus `<ul>`-Resten) versehentlich weggelassen — im
+  Task-Review gefunden, in derselben Fix-Runde restauriert samt Regressionstest.
+  (2) Whole-Branch-Review (Opus) fand über alle 4 Tasks hinweg zwei Important-Funde:
+  einen irreführenden Kommentar auf `splitIntoParagraphRuns` (behauptete
+  fälschlich, sie erkenne Inline-Formatierung — der Text ist an dieser Stelle
+  bereits zu Plain-Text reduziert, betrifft v. a. den `summary`-Fallback/RSS
+  `<description>` sowie jeden Text außerhalb von `<p>`/`<div>`/`<h*>`/`<li>`/
+  `<blockquote>`, korrigiert + als bewusst akzeptierte Limitation dokumentiert),
+  und dass Fett/Kursiv nie gegen eine gebündelte Reader-Schriftart getestet wurde
+  (die gebündelten Fonts liefern nur eine Regular-`.ttf` pro Familie, kein echter
+  Bold/Italic-Schnitt — nur `.system`/`.serif` haben garantiert echte Schnitte).
+  Letzteres wurde NICHT code-gefixt, sondern als priorisierter Schritt in die
+  manuelle Live-Verifikationscheckliste aufgenommen. **Nachträglicher
+  Nutzerwunsch (separater Durchgang, direkt im Anschluss):** Links sollten beim
+  Hovern unterstrichen werden — SwiftUI `Text(AttributedString)` unterstützt aber
+  kein Hover-Tracking für einzelne Textbereiche innerhalb eines Fließtext-Absatzes
+  (nur ganze Views können `.onHover`); echtes Hover-only hätte einen Umbau auf
+  AppKit `NSTextView` gebraucht (analog ADR-008). Nutzerentscheid nach Rückfrage:
+  Links stattdessen durchgängig unterstreichen (`segment.underlineStyle = .single`
+  in der AttributedString-Konvertierung), kein größerer Umbau. Alle Tests grün
+  (109 zuletzt), Debug- und Release-Build grün.
+- 2026-07-28: Zwei kleinere Bugfixes aus direkten Nutzer-Reports, jeweils gepusht:
+  (1) Gelesen-/Ungelesen-Zahlen bei benutzerdefinierten Intelligenten Ordnern —
+  `SQLiteSidebarState.load()` berechnete `mixedCounts` (die zwei Kreis-Badges)
+  bisher nur für die 6 eingebauten Standard-Ordner (hartcodierte
+  `defaultKey`-Liste `SmartFolderDefaultDisplayPolicy.mixedCountKeys`), obwohl die
+  zugrundeliegende `TimelineStore.readUnreadCounts(scope:includeHidden:)`-Query
+  längst generisch für jeden Smart Folder funktioniert — Schleife läuft jetzt über
+  ALLE geladenen Smart-Folder-Snapshots, Dictionary-Schlüssel von `defaultKey` auf
+  `folder.id` umgestellt (`mixedCountsByDefaultKey` → `mixedCountsByFolderID`).
+  (2) Ordner-Bezeichnung in der Sidebar skalierte nicht mit der
+  Oberflächenschrift-Größe-Einstellung — `SidebarOutlineFolderRow` war als
+  einzige Sidebar-Zeilenart ohne `@Environment(\.interfaceTextSize)`, Fonts/
+  Icon-Frames waren fest verdrahtet statt wie bei Feed-/Tag-/Smart-Folder-Zeilen
+  über `interfaceTextSize.font(...)`/`.scaled(...)` zu skalieren — auf dasselbe
+  etablierte Muster umgestellt.
 - 2026-07-27 (direkte Folge-Session): Refresh-Throttling + zwei Perf-Nachzügler aus dem
   obigen NetNewsWire-Vergleich umgesetzt — VOLLSTÄNDIG ABGESCHLOSSEN, gezielter
   Regressionslauf und Debug-Build grün (`xcodebuild build`, ohne `-configuration Release`),
