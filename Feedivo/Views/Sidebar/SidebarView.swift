@@ -83,7 +83,7 @@ struct SidebarView: View {
                 isTagsCollapsed: $isTagsCollapsed,
                 isFoldersCollapsed: $isFoldersCollapsed,
                 badgeSnapshot: sqliteSidebarState.smartFolderBadgeSnapshot,
-                mixedCountsByDefaultKey: sqliteSidebarState.mixedCountsByDefaultKey,
+                mixedCountsByFolderID: sqliteSidebarState.mixedCountsByFolderID,
                 renameFeed: { id, newName in try renameFeed(id: id, to: newName) },
                 renameFolder: { oldName, newName in try renameFolder(from: oldName, to: newName) },
                 onFeedContextAction: { action, snapshot in

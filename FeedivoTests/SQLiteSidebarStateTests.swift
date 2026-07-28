@@ -207,12 +207,41 @@ struct SQLiteSidebarStateTests {
 
         state.load(database: database, showsReadFeeds: true)
 
-        #expect(state.mixedCountsByDefaultKey["all"]?.read == 2)
-        #expect(state.mixedCountsByDefaultKey["all"]?.unread == 1)
-        #expect(state.mixedCountsByDefaultKey["today"]?.read == 1)
-        #expect(state.mixedCountsByDefaultKey["today"]?.unread == 1)
+        #expect(state.mixedCountsByFolderID["smart-all"]?.read == 2)
+        #expect(state.mixedCountsByFolderID["smart-all"]?.unread == 1)
+        #expect(state.mixedCountsByFolderID["smart-today"]?.read == 1)
+        #expect(state.mixedCountsByFolderID["smart-today"]?.unread == 1)
         for defaultKey in ["starred", "thisWeek", "hidden", "saved"] {
-            #expect(state.mixedCountsByDefaultKey[defaultKey] != nil)
+            #expect(state.mixedCountsByFolderID["smart-\(defaultKey)"] != nil)
         }
+    }
+
+    @MainActor
+    @Test func loadComputesMixedCountsForCustomSmartFoldersToo() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let statusStore = ArticleStatusStore(database: database)
+        let smartFolderStore = SQLiteSmartFolderStore(database: database)
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example"))
+        try smartFolderStore.save(
+            SmartFolderRecord(id: "custom-1", name: "Mein Ordner"),
+            conditions: []
+        )
+
+        let readID = try articleStore.upsert(
+            ArticleUpsertInput(feedID: "feed-1", sourceID: "read-1", title: "Gelesen")
+        )
+        _ = try articleStore.upsert(
+            ArticleUpsertInput(feedID: "feed-1", sourceID: "unread-1", title: "Ungelesen")
+        )
+        try statusStore.setRead(true, articleID: readID, at: Date(timeIntervalSince1970: 100))
+
+        let state = SQLiteSidebarState()
+
+        state.load(database: database, showsReadFeeds: true)
+
+        #expect(state.mixedCountsByFolderID["custom-1"]?.read == 1)
+        #expect(state.mixedCountsByFolderID["custom-1"]?.unread == 1)
     }
 }

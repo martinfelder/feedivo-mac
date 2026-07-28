@@ -72,7 +72,7 @@ struct SidebarOutlineView: NSViewRepresentable {
     @Binding var isFoldersCollapsed: Bool
 
     let badgeSnapshot: SmartFolderSidebarBadgeSnapshot
-    let mixedCountsByDefaultKey: [String: SmartFolderMixedCounts]
+    let mixedCountsByFolderID: [String: SmartFolderMixedCounts]
 
     let renameFeed: (_ id: String, _ newTitle: String) throws -> Void
     let renameFolder: (_ oldName: String, _ newName: String) throws -> Void
@@ -437,7 +437,7 @@ struct SidebarOutlineView: NSViewRepresentable {
                     SmartFolderSidebarRow(
                         smartFolder: smartFolder,
                         badgeSnapshot: parent.badgeSnapshot,
-                        mixedCounts: smartFolder.defaultKey.flatMap { parent.mixedCountsByDefaultKey[$0] }
+                        mixedCounts: parent.mixedCountsByFolderID[smartFolder.id]
                     )
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }

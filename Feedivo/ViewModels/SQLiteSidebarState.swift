@@ -1,17 +1,6 @@
 import Foundation
 import Observation
 
-enum SmartFolderDefaultDisplayPolicy {
-    /// Standardordner mit getrennten Gelesen-/Ungelesen-Badges (Sidebar-
-    /// Zähler). Unabhängig von der pro Ordner änderbaren
-    /// `defaultShowsReadArticles`-Einstellung (siehe SmartFolderEditorView) —
-    /// diese Menge bleibt bewusst auf die sechs eingebauten Standard-Ordner
-    /// beschränkt.
-    static let mixedCountKeys: Set<String> = [
-        "all", "today", "starred", "thisWeek", "hidden", "saved"
-    ]
-}
-
 @MainActor
 @Observable
 final class SQLiteSidebarState {
@@ -20,7 +9,7 @@ final class SQLiteSidebarState {
     private(set) var feedFolders: [FeedFolderRecord] = []
     private(set) var smartFolderSnapshots: [SQLiteSmartFolderSnapshot] = []
     private(set) var smartFolderBadgeSnapshot = SmartFolderSidebarBadgeSnapshot.empty
-    private(set) var mixedCountsByDefaultKey: [String: SmartFolderMixedCounts] = [:]
+    private(set) var mixedCountsByFolderID: [String: SmartFolderMixedCounts] = [:]
     private(set) var totalUnreadCount = 0
     private(set) var errorMessage: String?
 
@@ -35,7 +24,7 @@ final class SQLiteSidebarState {
             feedFolders = []
             smartFolderSnapshots = []
             smartFolderBadgeSnapshot = .empty
-            mixedCountsByDefaultKey = [:]
+            mixedCountsByFolderID = [:]
             snapshotsByFeedID = [:]
             tagSnapshotsByID = [:]
             visibleFeedIDs = []
@@ -58,12 +47,8 @@ final class SQLiteSidebarState {
             let loadedSmartFolderBadgeSnapshot = try unreadCountService.sidebarSmartFolderBadgeSnapshot()
             let timelineStore = TimelineStore(database: database)
             var loadedMixedCounts: [String: SmartFolderMixedCounts] = [:]
-            for defaultKey in SmartFolderDefaultDisplayPolicy.mixedCountKeys {
-                guard let folder = loadedSmartFolderSnapshots.first(where: { $0.defaultKey == defaultKey }) else {
-                    continue
-                }
-
-                loadedMixedCounts[defaultKey] = try timelineStore.readUnreadCounts(
+            for folder in loadedSmartFolderSnapshots {
+                loadedMixedCounts[folder.id] = try timelineStore.readUnreadCounts(
                     scope: .smartFolder(folder),
                     includeHidden: folder.includesHiddenArticles
                 )
@@ -73,7 +58,7 @@ final class SQLiteSidebarState {
             feedFolders = loadedFeedFolders
             smartFolderSnapshots = loadedSmartFolderSnapshots
             smartFolderBadgeSnapshot = loadedSmartFolderBadgeSnapshot
-            mixedCountsByDefaultKey = loadedMixedCounts
+            mixedCountsByFolderID = loadedMixedCounts
             snapshotsByFeedID = Dictionary(uniqueKeysWithValues: loadedSnapshots.map { ($0.id, $0) })
             tagSnapshotsByID = Dictionary(uniqueKeysWithValues: loadedTagSnapshots.map { ($0.id, $0) })
             visibleFeedIDs = Set(loadedSnapshots.map(\.id))
@@ -85,7 +70,7 @@ final class SQLiteSidebarState {
             feedFolders = []
             smartFolderSnapshots = []
             smartFolderBadgeSnapshot = .empty
-            mixedCountsByDefaultKey = [:]
+            mixedCountsByFolderID = [:]
             snapshotsByFeedID = [:]
             tagSnapshotsByID = [:]
             visibleFeedIDs = []
