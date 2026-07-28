@@ -7,6 +7,7 @@ struct SQLiteReaderView: View {
     @Environment(\.feedivoDatabase) private var database
     @Environment(\.interfaceTextSize) private var interfaceTextSize
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.colorScheme) private var colorScheme
 
     let articleID: String?
     let canSelectPreviousArticle: Bool
@@ -334,6 +335,10 @@ struct SQLiteReaderView: View {
                 )
             }
         }
+        .environment(\.openURL, OpenURLAction { url in
+            NSWorkspace.shared.open(url)
+            return .handled
+        })
         .navigationTitle(state.snapshot?.title ?? "")
         .inspector(isPresented: $isMetadataInspectorPresented) {
             if let snapshot = state.snapshot {
@@ -646,12 +651,12 @@ struct SQLiteReaderView: View {
     private func contentBlock(_ block: ReaderContentBlock) -> some View {
         switch block {
         case .paragraph(let runs):
-            Text(runs.plainText)
+            Text(runs.attributedString(colorScheme: colorScheme))
                 .font(bodyFontPreset.font(size: clampedBodyFontSize, relativeTo: .body, weight: bodyFontWeight))
                 .fontWeight(bodyFontWeight)
                 .lineSpacing(clampedLineSpacing)
         case .heading(let runs):
-            Text(runs.plainText)
+            Text(runs.attributedString(colorScheme: colorScheme))
                 .font(bodyFontPreset.font(
                     size: min(clampedBodyFontSize + 5, CGFloat(ReaderTypography.defaultTitleFontSize - 2)),
                     relativeTo: .title3,
@@ -665,7 +670,7 @@ struct SQLiteReaderView: View {
                     .fill(.secondary.opacity(0.35))
                     .frame(width: 3)
 
-                Text(runs.plainText)
+                Text(runs.attributedString(colorScheme: colorScheme))
                     .font(bodyFontPreset.font(size: clampedBodyFontSize, relativeTo: .body, weight: bodyFontWeight))
                     .fontWeight(bodyFontWeight)
                     .italic()
@@ -680,7 +685,7 @@ struct SQLiteReaderView: View {
                     .fontWeight(bodyFontWeight)
                     .foregroundStyle(.secondary)
 
-                Text(runs.plainText)
+                Text(runs.attributedString(colorScheme: colorScheme))
                     .font(bodyFontPreset.font(size: clampedBodyFontSize, relativeTo: .body, weight: bodyFontWeight))
                     .fontWeight(bodyFontWeight)
                     .lineSpacing(clampedLineSpacing)
