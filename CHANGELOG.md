@@ -10,6 +10,10 @@ Commit-Nachrichten seit dem letzten Versions-Bump — für Details siehe `git lo
 
 <!-- versions -->
 
+## [1.0 (2)] - 2026-07-28
+
+- (keine Commit-Nachrichten seit dem letzten Bump gefunden)
+
 ## [1.0 (1)] - 2026-07-28
 
 Erste getrackte Version. Ab hier zählt die Build-Nummer bei jedem Push nach
