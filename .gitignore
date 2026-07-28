@@ -3,4 +3,6 @@
 .worktrees/
 
 build/
+build_release/
 *.log
+*.xcresult/
