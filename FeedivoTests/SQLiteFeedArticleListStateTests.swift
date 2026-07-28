@@ -91,6 +91,21 @@ struct SQLiteFeedArticleListStateTests {
         #expect(state.loadState == .loaded)
     }
 
+    @Test func listStateLoeschtArtikelUndAktualisiertFeedsUnreadCountSpalte() async throws {
+        let (database, firstID, _) = try makeDatabaseWithFeedAndArticles()
+        try SQLiteUnreadCountService(database: database).rebuildFeedUnreadCount(feedID: "feed-1")
+        let state = SQLiteFeedArticleListState()
+
+        state.load(feedID: "feed-1", database: database, selectedArticleID: firstID)
+        await waitForLoad(state)
+
+        let succeeded = state.deleteArticle(articleID: firstID, database: database)
+
+        #expect(succeeded)
+        let feedAfterDelete = try FeedStore(database: database).feed(id: "feed-1")
+        #expect(feedAfterDelete?.unreadCount == 1)
+    }
+
     @Test func listStateDeindexiertGeloeschtenArtikelAusSpotlight() async throws {
         let (database, firstID, _) = try makeDatabaseWithFeedAndArticles()
         let state = SQLiteFeedArticleListState()

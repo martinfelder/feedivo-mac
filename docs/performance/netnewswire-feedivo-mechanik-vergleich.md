@@ -1,6 +1,13 @@
 # NetNewsWire vs. Feedivo: Mechanik- und Performance-Vergleich
 
-Stand: 2026-07-15
+Stand: 2026-07-15 (siehe unten: Update 2026-07-28 zu Render-/Lade-Performance)
+
+> **Update 2026-07-28:** Gezielter Vergleich der Artikel-Lade-/Render-Pipeline
+> (Nutzer-Eindruck: NetNewsWire fühlt sich beim Laden/Rendern von Artikeln
+> spürbar schneller an als Feedivo). Neuer Abschnitt
+> „Update 2026-07-28: Render-/Lade-Performance-Vergleich" weiter unten, direkt
+> nach diesem Einleitungsblock. Ergänzt/aktualisiert die Aussagen zu Abschnitt 2
+> (Artikelliste) und 8 (Reader) unten um konkrete, code-belegte Detailpunkte.
 
 > **Aktuelles Follow-up:** Das Audit vom 2026-07-15 hat mehrere Abweichungen
 > zwischen dem hier beschriebenen Zielbild und dem aktuellen Produktpfad
@@ -18,6 +25,76 @@ Diese Notiz hält die Erkenntnisse aus dem Codevergleich zwischen NetNewsWire
 (`/Users/martinfelder/Developer/NetNewsWire-main`) und Feedivo fest. Es geht
 nicht um Design, sondern um Mechanik: Feed-Verwaltung, Refresh, Persistenz,
 Artikelliste, Suche und Reader.
+
+## Update 2026-07-28: Render-/Lade-Performance-Vergleich
+
+Auslöser: Nutzer-Eindruck, dass Laden/Rendern von Artikeln in NetNewsWire
+spürbar schneller wirkt als in Feedivo. Zwei parallele Codevergleiche (Feedivo
+Produktpfad + NetNewsWire-Klon) ergaben folgendes Bild — Kurzfazit vorweg:
+Feedivo ist inzwischen solide (Pagination, async Reads, CTE-Fixes,
+Reader-Cache), NetNewsWire gewinnt vor allem durch **native
+AppKit-Zellwiederverwendung mit fester Zeilenhöhe** und **mehrschichtiges
+In-Memory-Caching**, das SwiftUIs deklarativen Neu-Render-Reflex komplett
+umgeht.
+
+### Vergleichstabelle
+
+| Bereich | Feedivo (aktuell) | NetNewsWire | Auswirkung |
+|---|---|---|---|
+| Artikelliste-UI | SwiftUI `List`, variable Zeilenhöhe (Auto-Layout pro Zeile) | `NSTableView`, **eine feste, einmalig berechnete Zeilenhöhe** für die ganze Tabelle | Größter Einzelfaktor — NNW muss beim Scrollen nie Text-Layout neu berechnen |
+| Reload-Granularität bei Statusänderung | Globaler `bumpStatusVersion()`-Zähler → **jede** offene Liste macht vollen SQL-Reload (200er-Page) | Diff-Check (`representSameArticlesInSameOrder`) → bei unveränderter Reihenfolge nur `reloadVisibleCells()`, sonst gezieltes Zell-Reload | Feedivo re-queried bei jedem einzelnen "gelesen markiert" den ganzen sichtbaren Scope |
+| Article-Objekt-Caching | Keins — jede Query baut frische `ArticleListSnapshot`-Structs aus SQL | In-Memory `articlesCache`/`StatusCache` (thread-safe, `OSAllocatedUnfairLock`) pro Account | NNW vermeidet wiederholtes Parsen/Alloc identischer Artikel über mehrere Reloads |
+| Ungelesen-Zähler | Live-CTE-Aggregation bei jedem Sidebar-Reload (aktuell ~26ms bei 500 Feeds, skaliert mit `feed_logs`-Größe) | Denormalisiert im Speicher (`[feedID: Int]`-Dictionary), gezielt inkrementell aktualisiert | NNW: O(1) Lesezugriff statt SQL-Query pro Sidebar-Refresh |
+| Reader-HTML (Web-Modus) | WKWebView wiederverwendet ✓ (bereits wie NNW) | WKWebView wiederverwendet + **statisch gecachtes Template/CSS**, nur Body-Platzhalter ausgetauscht | Feedivo lädt bei jedem Artikel serialisiertes HTML neu zusammen statt Template-Substitution |
+| Favicon-Prefetch | Lazy pro sichtbarer Zeile via `CachedRemoteImageView.task` | Aktiver **Prefetch für die gesamte neue Artikelmenge**, sobald `articles` gesetzt wird | NNW hat Icons schon im Cache, bevor die Zelle sichtbar wird |
+| DB-Journal-Mode | `DatabaseQueue` + `PRAGMA synchronous=NORMAL` (seit 2026-07-27) ✓ | `DatabaseQueue` + `PRAGMA synchronous=NORMAL`, **plus `setShouldCacheStatements(true)`** | Feedivo fehlt Statement-Caching (SQL wird bei jedem Call neu geparst) |
+| Refresh-Throttling | 9-Min-Minimum via `FeedRefreshThrottle` (seit 2026-07-27, ungepusht) ✓ | 9-Min-Minimum + Cache-Control-Header + **Content-Hash-Vergleich nach 200 OK** + Reddit-Sonderfall + Bad-Host-Liste | Feedivo prüft nach 200 OK nicht, ob der Body inhaltlich identisch zum letzten Mal ist |
+| Sortierung großer Listen | In SQL (`ORDER BY` vor `LIMIT`) ✓ | Größtenteils **in Swift nach dem Fetch** (`sortedByDate`) | Kein Nachteil für Feedivo — SQL-seitig ist strukturell eher vorteilhaft |
+
+### Kern-Belege (Feedivo)
+
+- Pagination: `ArticleFetchLimits.mainArticlePage = 200` (`Feedivo/Extensions/ArticleFetchLimits.swift:11`), Nachladen via `SQLiteFeedArticleListState.loadMore()` (`Feedivo/ViewModels/SQLiteFeedArticleListState.swift:248-284`).
+- Globaler Invalidierungs-Zähler: `SQLiteDataInvalidation.bumpStatusVersion()` (`Feedivo/Database/SQLiteDataInvalidation.swift:3-12`), **44 Aufrufstellen** app-weit; jeder Bump triggert `.task(id: loadToken)` in jeder offenen `SQLiteFeedArticleListView` (Zeile 173-175, 533-557) sowie einen vollen Sidebar-Reload in `ContentView.swift:245-248, 484-495`.
+- Kein Article-Objekt-Cache: `ArticleListSnapshot`/`ArticleListItemSnapshot` werden bei jedem Reload frisch aus SQL gebaut (`ArticleListSQL.swift:8-31`, `ArticleListItemSnapshot.swift:1-29`).
+- Sidebar-Ungelesen-Zähler: `FeedStore.sidebarFeeds()` (`Feedivo/Stores/FeedStore.swift:280-321`) rechnet per CTE live aus `article_statuses`, obwohl `feeds.unreadCount` als denormalisierte Spalte bereits existiert und gepflegt wird (an anderer Stelle genutzt, nicht hier). Aufruf erfolgt zudem **synchron** (`database.read{}`, nicht `readAsync`) in `ContentView.reloadFeedSnapshots()` (`ContentView.swift:483-495`) — MainActor-Jank-Risiko bei großem `feed_logs`-Bestand, da die `latest_feed_logs`-CTE die komplette Tabelle scannt.
+- Reader-Caching bereits vorhanden: `ReaderPreparedArticleCache` (24 Einträge, Fingerprint-Key, `ReaderPreparedArticle.swift:108-180`), Parsing läuft in `Task.detached` (`SQLiteReaderState.swift:60-64`) — kein MainActor-Blocking. WKWebView wird bereits über Artikelwechsel hinweg wiederverwendet (`WebContentView.swift`, Kommentar Zeile 5-9, Commit `eca556f93`).
+- Favicon-/Bild-Cache: zweistufig (`NSCache` + Disk, SHA256-Dateinamen), gedrosselt auf 4 parallele Downloads, `Task.detached` für Disk-I/O (`ImageCacheService.swift:30-31, 57-60, 127-167, 237-252`) — aber Laden ist lazy pro sichtbarer Zeile, kein Prefetch beim Scope-Wechsel.
+
+### Kern-Belege (NetNewsWire)
+
+- Feste Zeilenhöhe: `calculateRowHeight()` mit Lorem-Ipsum-Prototyp, einmalig gesetzt via `tableView.rowHeight` (`TimelineViewController.swift:804-818, 897-901`) — kein Auto-Layout-Pass pro sichtbarer Zeile beim Scrollen.
+- Diff-optimiertes Reload: `representSameArticlesInSameOrder`-Check vor jedem Listen-Update, bei Gleichheit nur `reloadVisibleCells()` statt vollem `reloadData()` (`TimelineViewController.swift:117-153`).
+- In-Memory-Objekt-Caches: `articlesCache`/`StatusCache`, beide `OSAllocatedUnfairLock`-geschützt (`ArticlesTable.swift:25`, `StatusesTable.swift:246-279`).
+- Ungelesen-Zähler denormalisiert im Speicher: `Account.unreadCounts: [String: Int]` (`Account.swift:247`), adaptive Batch-Strategie beim initialen Befüllen (`Account.swift:1332-1349`), inkrementelle Updates statt Live-Aggregation.
+- Reader-Template-Caching: `ArticleRenderer.defaultTemplate`/`defaultStyleSheet` als `static let`, nur Body-Platzhalter wird pro Artikel ersetzt (`ArticleRenderer.swift:154-191`); eine WKWebView-Instanz lebt über die gesamte Session (`DetailWebViewController.swift:94, 280-321`).
+- Aktiver Favicon-Prefetch beim Setzen der Artikelmenge: `IconImageCache.prefetchImagesForArticles(articles)` (`IconImageCache.swift:61-89`, Aufruf `TimelineViewController.swift:151`).
+- Refresh-Throttling inkl. Content-Hash-Dedupe nach 200 OK: `LocalAccountRefresher.swift:283-290, 464-598`.
+- `setShouldCacheStatements(true)` + `PRAGMA synchronous=1`, `journal_mode=DELETE` (bewusst kein WAL bei Single-Connection): `DatabaseQueue.swift:138-145`.
+
+### Priorisierte Empfehlungen für Feedivo
+
+**Schnell, hoher Impact:**
+
+1. **Gezielte statt globale Reload-Invalidierung.** `stickyRowSnapshots` mildert nur das Symptom (Verschwinden), löst aber nicht das Grundproblem: `bumpStatusVersion()` ist ein einziger globaler Zähler für alle Mutationsarten. Feinere Granularität (getrennte Versionszähler pro Scope-Kategorie, oder ein direktes "diese ID hat sich geändert"-Signal) würde den Rebuild-Rhythmus stark reduzieren — analog zu NNWs `representSameArticlesInSameOrder`-Check vor dem Reload.
+2. **GRDB-Statement-Caching prüfen/erzwingen** als Äquivalent zu `setShouldCacheStatements(true)`, insbesondere für die Hot-Path-Queries (Timeline, Sidebar-CTE).
+3. **Content-Hash-Vergleich nach 200 OK** ergänzen/verifizieren — Feedivo hat laut CLAUDE.md bereits `lastBodyHash` als Feld; prüfen, ob es beim Refresh tatsächlich zum Skip-Parse genutzt wird oder nur gespeichert.
+
+**Mittlerer Aufwand, spürbarer Effekt:**
+
+4. **Feste/vorab berechnete Zeilenhöhe statt Auto-Layout pro Zeile** in `ArticleRowView`, falls die Zeilenhöhe ohnehin meist uniform sein kann. Vermutlich größter Einzelhebel (NNWs Faktor 1), aber erst prüfen, ob Feedivos variable Thumbnail-Größen/2-3-zeilige Summaries (Feature 19.1) eine feste Höhe optisch zulassen.
+5. **Denormalisierte, im Speicher gehaltene Ungelesen-Zähler statt Live-CTE für die Sidebar.** ~~`feeds.unreadCount` existiert bereits und wird gepflegt, wird aber von `sidebarFeeds()` nicht gelesen. Falls die Pflege wirklich konsistent ist, könnte die Sidebar direkt daraus lesen statt der CTE.~~
+   **Umgesetzt und wieder verworfen (2026-07-28):** Vor dem Umstieg wurde die tatsächliche Pflege von `feeds.unreadCount` app-weit auditiert (Memory `feed-unread-count-invariant.md` war veraltet/SwiftData-Ära und daher nicht verlässlich) — dabei fanden sich drei echte Lücken: `SQLiteFeedArticleListState.deleteArticle()`, `CloudSyncArticleStatusMapping.applyIncoming(...)` und `.applyIncomingDeletion(...)` aktualisierten die Spalte nicht. Alle drei wurden gefixt (TDD, je ein Regressionstest). Der eigentliche Umstieg von `sidebarFeeds()` auf die Spalte wurde danach implementiert, testgetrieben — und durch einen bereits bestehenden Test wieder verworfen: `SQLiteSidebarStateTests.loadIgnoresStaleFeedUnreadCountCache()` verlangt explizit, dass ein veralteter `feeds.unreadCount`-Wert ignoriert wird und die Sidebar live aus `article_statuses` rechnet — exakt die Absicherung, die der Architektur-Kommentar in `SQLiteUnreadCountService.swift` beschreibt ("damit ein veralteter `feeds.unreadCount`-Cache keine falschen Badges anzeigen kann"). Das ist ein bewusster Korrektheit-vor-Performance-Trade-off des Projekts, kein Versehen — die Live-CTE bleibt seit dem 2026-07-16-Fix mit ~26ms bei 500 Feeds ohnehin schnell genug. `sidebarFeeds()` liest deshalb weiterhin live; die drei Pflege-Fixes bleiben trotzdem bestehen, da `feeds.unreadCount` auch von anderen Konsumenten (Refresh-Ergebnis, potenzielle künftige Nutzung) korrekt sein muss.
+6. **`ContentView.reloadFeedSnapshots()` auf `readAsync` umstellen** — einer der wenigen verbliebenen synchronen MainActor-DB-Reads im Hot-Path. **Umgesetzt (2026-07-28):** neue `FeedStore.sidebarFeedsAsync()` (nutzt GRDBs `readAsync`), `ContentView.reloadFeedSnapshots()` ruft sie jetzt statt der synchronen `sidebarFeeds()` auf.
+
+**Größer, eher optional:**
+
+7. **HTML-Template-Caching für den nativen Reader** — Feedivos `ReaderPreparedArticleCache` deckt Re-Navigation bereits ab; ein NNW-artiges Template-System wäre eher für den WKWebView-Pfad relevant, aber Feedivo nutzt standardmäßig den nativen SwiftUI-Renderer — Konzept nicht 1:1 übertragbar.
+8. **Aktiver Favicon-Prefetch beim Scope-Wechsel** statt lazy pro Zeile — glättet das erste Aufpoppen von Favicons, reiner Wahrnehmungs-Polish, kein Kern-Performance-Thema.
+
+**Bewusst NICHT von NetNewsWire übernehmen:**
+
+- Verzicht auf Pagination — Feedivos 200er-Seiten + Nachladen sind für sehr große Feeds der bessere Ansatz.
+- Direkter Umstieg auf `NSTableView`/AppKit — wäre ein Architekturbruch gegen ADR-004/005 (SwiftUI-first); Punkt 4 (feste Zeilenhöhe) kann den Großteil des Effekts vermutlich auch innerhalb von SwiftUI erreichen.
 
 ## Aktualisierte Momentaufnahme nach SQLite-Feed-/Artikel-Umbau
 

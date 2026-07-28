@@ -94,6 +94,14 @@ enum CloudSyncArticleStatusMapping: CloudSyncRecordMapping {
             let localExists = try Bool.fetchOne(db, sql: "SELECT EXISTS(SELECT 1 FROM article_statuses WHERE syncStableID = ?)", arguments: [stableID]) ?? false
 
             if localExists {
+                // feedID VOR dem UPDATE lesen, damit rebuildFeedUnreadCount
+                // danach den betroffenen Feed kennt — isRead/isStarred selbst
+                // ändern die Zeilenidentität nicht, nur der Zeitpunkt zählt.
+                let feedID = try String.fetchOne(db, sql: """
+                    SELECT a.feedID FROM articles a
+                    JOIN article_statuses s ON s.articleID = a.id
+                    WHERE s.syncStableID = ?
+                    """, arguments: [stableID])
                 try db.execute(
                     sql: """
                         UPDATE article_statuses
@@ -102,6 +110,9 @@ enum CloudSyncArticleStatusMapping: CloudSyncRecordMapping {
                         """,
                     arguments: [incoming.isRead, incoming.isStarred, incoming.readAt, incoming.starredAt, modificationDate, stableID]
                 )
+                if let feedID {
+                    try SQLiteUnreadCountService.rebuildFeedUnreadCount(feedID: feedID, db: db)
+                }
             } else {
                 var orphan = OrphanedArticleStatusUpdateRecord(
                     articleID: stableID,
@@ -129,6 +140,13 @@ enum CloudSyncArticleStatusMapping: CloudSyncRecordMapping {
     /// wird ein ggf. wartender Orphan-Eintrag entfernt.
     static func applyIncomingDeletion(recordID: CKRecord.ID, database: FeedivoDatabase) throws {
         try database.write { db in
+            // feedID VOR dem Reset lesen — der Reset setzt isRead zurück auf
+            // 0 (wieder ungelesen), feeds.unreadCount muss das nachziehen.
+            let feedID = try String.fetchOne(db, sql: """
+                SELECT a.feedID FROM articles a
+                JOIN article_statuses s ON s.articleID = a.id
+                WHERE s.syncStableID = ?
+                """, arguments: [recordID.recordName])
             try db.execute(
                 sql: """
                     UPDATE article_statuses
@@ -138,6 +156,9 @@ enum CloudSyncArticleStatusMapping: CloudSyncRecordMapping {
                 arguments: [recordID.recordName]
             )
             try db.execute(sql: "DELETE FROM orphaned_article_status_updates WHERE articleID = ?", arguments: [recordID.recordName])
+            if let feedID {
+                try SQLiteUnreadCountService.rebuildFeedUnreadCount(feedID: feedID, db: db)
+            }
         }
     }
 

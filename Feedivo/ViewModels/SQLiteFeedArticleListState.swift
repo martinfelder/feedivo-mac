@@ -386,7 +386,15 @@ final class SQLiteFeedArticleListState {
         do {
             try database.write { db in
                 try CloudSyncArticleStatusMapping.enqueueDeletionIfSynced(articleIDs: [articleID], db: db)
+                // feedID VOR dem DELETE lesen — danach ist die Zeile weg und
+                // rebuildFeedUnreadCount(forArticleID:) könnte den Feed nicht
+                // mehr finden (dieselbe Reihenfolge wie bei der Artikel-ID-
+                // Historie weiter oben in dieser Datei).
+                let feedID = try String.fetchOne(db, sql: "SELECT feedID FROM articles WHERE id = ?", arguments: [articleID])
                 try db.execute(sql: "DELETE FROM articles WHERE id = ?", arguments: [articleID])
+                if let feedID {
+                    try SQLiteUnreadCountService.rebuildFeedUnreadCount(feedID: feedID, db: db)
+                }
             }
             CloudSyncEngine.notifyPendingChangesAvailable(database: database)
             deindexForSpotlight([articleID])

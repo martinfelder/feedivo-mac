@@ -487,7 +487,7 @@ struct ContentView: View {
             feedFolders = []
             return
         }
-        feedSnapshots = (try? FeedStore(database: database).sidebarFeeds()) ?? []
+        feedSnapshots = (try? await FeedStore(database: database).sidebarFeedsAsync()) ?? []
         feedFolders = (try? FeedFolderStore(database: database).folders()) ?? []
         if !feedSnapshots.isEmpty {
             FirstRunWizardState.markHadFeeds(&hasHadFeedsForFirstRunWizard)

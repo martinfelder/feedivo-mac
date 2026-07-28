@@ -278,45 +278,67 @@ struct FeedStore {
     }
 
     func sidebarFeeds() throws -> [FeedSidebarSnapshot] {
-        try database.read { db in
-            let snapshots = try FeedSidebarSnapshot.fetchAll(db, sql: """
-                WITH unread_counts AS (
-                    SELECT a.feedID AS feedID, COUNT(*) AS unreadCount
-                    FROM articles a
-                    JOIN article_statuses s ON s.articleID = a.id
-                    WHERE s.isRead = 0 AND s.isHidden = 0
-                    GROUP BY a.feedID
-                ),
-                latest_feed_logs AS (
-                    SELECT feedID, level,
-                           ROW_NUMBER() OVER (PARTITION BY feedID ORDER BY createdAt DESC) AS rn
-                    FROM feed_logs
-                )
-                SELECT
-                    f.id,
-                    f.title,
-                    f.url,
-                    f.faviconURL,
-                    f.folderName,
-                    f.sortIndex,
-                    COALESCE(uc.unreadCount, 0) AS unreadCount,
-                    COALESCE(ll.level = 'error', 0) AS hasRecentError
-                FROM feeds f
-                LEFT JOIN unread_counts uc ON uc.feedID = f.id
-                LEFT JOIN latest_feed_logs ll ON ll.feedID = f.id AND ll.rn = 1
-                ORDER BY f.sortIndex, f.title COLLATE NOCASE, f.id COLLATE NOCASE
-                """)
-            return snapshots.sorted {
-                if $0.sortIndex != $1.sortIndex {
-                    return $0.sortIndex < $1.sortIndex
-                }
-                let titleOrder = $0.title.localizedStandardCompare($1.title)
-                if titleOrder != .orderedSame {
-                    return titleOrder == .orderedAscending
-                }
+        try database.read { db in try Self.querySidebarFeeds(db) }
+    }
 
-                return $0.id.localizedStandardCompare($1.id) == .orderedAscending
+    /// Async-Variante für Aufrufer auf dem MainActor (z. B. `ContentView.
+    /// reloadFeedSnapshots()`) — läuft auf GRDBs eigener DB-Queue statt den
+    /// MainActor für die Dauer der Query zu blockieren.
+    func sidebarFeedsAsync() async throws -> [FeedSidebarSnapshot] {
+        try await database.readAsync { db in try Self.querySidebarFeeds(db) }
+    }
+
+    /// Aggregiert `unreadCount` weiterhin LIVE aus `article_statuses` statt
+    /// aus der denormalisierten Spalte `feeds.unreadCount` zu lesen — bewusst
+    /// so belassen (Performance-Vergleich mit NetNewsWire, 2026-07-28): ein
+    /// Umstieg auf die Spalte wurde geprüft und wieder verworfen, siehe
+    /// `SQLiteSidebarStateTests.loadIgnoresStaleFeedUnreadCountCache()`, die
+    /// exakt das Gegenteil testet und bereits vor diesem Versuch bestand.
+    /// Zusammen mit dem Architektur-Kommentar in
+    /// `SQLiteUnreadCountService.swift` ist das ein bewusster
+    /// Korrektheit-vor-Performance-Trade-off: die CTE ist seit dem
+    /// 2026-07-16-Fix mit ~26ms bei 500 Feeds bereits schnell genug, ein
+    /// veralteter `feeds.unreadCount`-Wert (z. B. durch eine künftig neu
+    /// hinzukommende Mutationsstelle, die die Spalte vergisst) soll aber nie
+    /// ein falsches Sidebar-Badge zeigen können.
+    private static func querySidebarFeeds(_ db: Database) throws -> [FeedSidebarSnapshot] {
+        let snapshots = try FeedSidebarSnapshot.fetchAll(db, sql: """
+            WITH unread_counts AS (
+                SELECT a.feedID AS feedID, COUNT(*) AS unreadCount
+                FROM articles a
+                JOIN article_statuses s ON s.articleID = a.id
+                WHERE s.isRead = 0 AND s.isHidden = 0
+                GROUP BY a.feedID
+            ),
+            latest_feed_logs AS (
+                SELECT feedID, level,
+                       ROW_NUMBER() OVER (PARTITION BY feedID ORDER BY createdAt DESC) AS rn
+                FROM feed_logs
+            )
+            SELECT
+                f.id,
+                f.title,
+                f.url,
+                f.faviconURL,
+                f.folderName,
+                f.sortIndex,
+                COALESCE(uc.unreadCount, 0) AS unreadCount,
+                COALESCE(ll.level = 'error', 0) AS hasRecentError
+            FROM feeds f
+            LEFT JOIN unread_counts uc ON uc.feedID = f.id
+            LEFT JOIN latest_feed_logs ll ON ll.feedID = f.id AND ll.rn = 1
+            ORDER BY f.sortIndex, f.title COLLATE NOCASE, f.id COLLATE NOCASE
+            """)
+        return snapshots.sorted {
+            if $0.sortIndex != $1.sortIndex {
+                return $0.sortIndex < $1.sortIndex
             }
+            let titleOrder = $0.title.localizedStandardCompare($1.title)
+            if titleOrder != .orderedSame {
+                return titleOrder == .orderedAscending
+            }
+
+            return $0.id.localizedStandardCompare($1.id) == .orderedAscending
         }
     }
 

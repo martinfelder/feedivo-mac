@@ -99,6 +99,33 @@ struct CloudSyncArticleStatusMappingTests {
         #expect(statusOnB?.isRead == true)
     }
 
+    @Test func applyIncomingAktualisiertFeedsUnreadCountSpalte() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let articleID = try seedArticle(database: database)
+        try SQLiteUnreadCountService(database: database).rebuildFeedUnreadCount(feedID: "feed-1")
+        let status = try ArticleStatusStore(database: database).status(articleID: articleID)!
+        let record = CKRecord(recordType: "ArticleStatus", recordID: CloudSyncArticleStatusMapping.recordID(forLocalID: status.syncStableID!))
+        record["isRead"] = true as CKRecordValue
+        record["isStarred"] = false as CKRecordValue
+
+        try CloudSyncArticleStatusMapping.applyIncoming(record, database: database)
+
+        let feed = try FeedStore(database: database).feed(id: "feed-1")
+        #expect(feed?.unreadCount == 0)
+    }
+
+    @Test func applyIncomingDeletionAktualisiertFeedsUnreadCountSpalte() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let articleID = try seedArticle(database: database)
+        try ArticleStatusStore(database: database).setRead(true, articleID: articleID, at: Date())
+        let status = try ArticleStatusStore(database: database).status(articleID: articleID)!
+
+        try CloudSyncArticleStatusMapping.applyIncomingDeletion(recordID: CloudSyncArticleStatusMapping.recordID(forLocalID: status.syncStableID!), database: database)
+
+        let feed = try FeedStore(database: database).feed(id: "feed-1")
+        #expect(feed?.unreadCount == 1)
+    }
+
     @Test func applyIncomingLegtVerwaistenEintragAnFuerUnbekanntesSyncStableID() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let record = CKRecord(recordType: "ArticleStatus", recordID: CloudSyncArticleStatusMapping.recordID(forLocalID: "unbekannt-hash"))
