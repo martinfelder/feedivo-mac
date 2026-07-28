@@ -131,7 +131,11 @@ struct FeedivoTests {
         )
 
         #expect(blocks == [
-            .paragraph("Erster Absatz."),
+            .paragraph([
+                ReaderInlineRun(text: "Erster ", isBold: false, isItalic: false, linkURL: nil, colorHex: nil),
+                ReaderInlineRun(text: "Absatz", isBold: true, isItalic: false, linkURL: nil, colorHex: nil),
+                ReaderInlineRun(text: ".", isBold: false, isItalic: false, linkURL: nil, colorHex: nil)
+            ]),
             .paragraph("Zweiter Absatz.")
         ])
     }
@@ -240,7 +244,10 @@ struct FeedivoTests {
             .paragraph("Ein normaler Absatz."),
             .quote("Ein zitiertes Argument."),
             .listItem("Erster Punkt"),
-            .listItem("Zweiter Punkt mit Betonung")
+            .listItem([
+                ReaderInlineRun(text: "Zweiter Punkt mit ", isBold: false, isItalic: false, linkURL: nil, colorHex: nil),
+                ReaderInlineRun(text: "Betonung", isBold: true, isItalic: false, linkURL: nil, colorHex: nil)
+            ])
         ])
     }
 
@@ -276,7 +283,125 @@ struct FeedivoTests {
 
         #expect(blocks == [
             .paragraph("AT&T < Telekom — …"),
-            .paragraph("Link: öffnen Neue Zeile")
+            .paragraph([
+                ReaderInlineRun(text: "Link: ", isBold: false, isItalic: false, linkURL: nil, colorHex: nil),
+                ReaderInlineRun(text: "öffnen", isBold: false, isItalic: false, linkURL: URL(string: "https://example.com"), colorHex: nil),
+                ReaderInlineRun(text: " Neue Zeile", isBold: false, isItalic: false, linkURL: nil, colorHex: nil)
+            ])
+        ])
+    }
+
+    @Test func readerContentRendererErkenntKursivSchrift() {
+        let blocks = ReaderContentRenderer.blocks(
+            summary: nil,
+            content: "<p>Ein <em>betonter</em> Satz.</p>",
+            fallbackImageURL: nil
+        )
+
+        #expect(blocks == [
+            .paragraph([
+                ReaderInlineRun(text: "Ein ", isBold: false, isItalic: false, linkURL: nil, colorHex: nil),
+                ReaderInlineRun(text: "betonter", isBold: false, isItalic: true, linkURL: nil, colorHex: nil),
+                ReaderInlineRun(text: " Satz.", isBold: false, isItalic: false, linkURL: nil, colorHex: nil)
+            ])
+        ])
+    }
+
+    @Test func readerContentRendererVerwirftUnsichereLinkSchemata() {
+        let blocks = ReaderContentRenderer.blocks(
+            summary: nil,
+            content: #"<p>Klick <a href="javascript:alert(1)">hier</a>.</p>"#,
+            fallbackImageURL: nil
+        )
+
+        #expect(blocks == [
+            .paragraph([
+                ReaderInlineRun(text: "Klick ", isBold: false, isItalic: false, linkURL: nil, colorHex: nil),
+                ReaderInlineRun(text: "hier", isBold: false, isItalic: false, linkURL: nil, colorHex: nil),
+                ReaderInlineRun(text: ".", isBold: false, isItalic: false, linkURL: nil, colorHex: nil)
+            ])
+        ])
+    }
+
+    @Test func readerContentRendererIgnoriertDataHrefAttribute() {
+        let blocks = ReaderContentRenderer.blocks(
+            summary: nil,
+            content: #"<p><a data-href="https://tracking.example.com/click">Text</a></p>"#,
+            fallbackImageURL: nil
+        )
+
+        #expect(blocks == [
+            .paragraph([
+                ReaderInlineRun(text: "Text", isBold: false, isItalic: false, linkURL: nil, colorHex: nil)
+            ])
+        ])
+    }
+
+    @Test func readerContentRendererUebernimmtHexFarbeAusSpanStyle() {
+        let blocks = ReaderContentRenderer.blocks(
+            summary: nil,
+            content: #"<p>Ein <span style="color:#FF0000">roter</span> Begriff.</p>"#,
+            fallbackImageURL: nil
+        )
+
+        #expect(blocks == [
+            .paragraph([
+                ReaderInlineRun(text: "Ein ", isBold: false, isItalic: false, linkURL: nil, colorHex: nil),
+                ReaderInlineRun(text: "roter", isBold: false, isItalic: false, linkURL: nil, colorHex: "#FF0000"),
+                ReaderInlineRun(text: " Begriff.", isBold: false, isItalic: false, linkURL: nil, colorHex: nil)
+            ])
+        ])
+    }
+
+    @Test func readerContentRendererIgnoriertUngueltigeFarbwerte() {
+        let blocks = ReaderContentRenderer.blocks(
+            summary: nil,
+            content: #"<p>Kein <span style="color:notacolor">Wert</span>.</p>"#,
+            fallbackImageURL: nil
+        )
+
+        #expect(blocks == [
+            .paragraph([
+                ReaderInlineRun(text: "Kein ", isBold: false, isItalic: false, linkURL: nil, colorHex: nil),
+                ReaderInlineRun(text: "Wert", isBold: false, isItalic: false, linkURL: nil, colorHex: nil),
+                ReaderInlineRun(text: ".", isBold: false, isItalic: false, linkURL: nil, colorHex: nil)
+            ])
+        ])
+    }
+
+    @Test func readerContentRendererIgnoriertBackgroundColorStattTextfarbe() {
+        let blocks = ReaderContentRenderer.blocks(
+            summary: nil,
+            content: #"<p>Kein <span style="background-color:#FF0000">Text</span>.</p>"#,
+            fallbackImageURL: nil
+        )
+
+        #expect(blocks == [
+            .paragraph([
+                ReaderInlineRun(text: "Kein ", isBold: false, isItalic: false, linkURL: nil, colorHex: nil),
+                ReaderInlineRun(text: "Text", isBold: false, isItalic: false, linkURL: nil, colorHex: nil),
+                ReaderInlineRun(text: ".", isBold: false, isItalic: false, linkURL: nil, colorHex: nil)
+            ])
+        ])
+    }
+
+    @Test func readerContentRendererVerschachteltFettUndLinkEineEbene() {
+        let blocks = ReaderContentRenderer.blocks(
+            summary: nil,
+            content: #"<p><b><a href="https://example.com">Wichtiger Link</a></b></p>"#,
+            fallbackImageURL: nil
+        )
+
+        #expect(blocks == [
+            .paragraph([
+                ReaderInlineRun(
+                    text: "Wichtiger Link",
+                    isBold: true,
+                    isItalic: false,
+                    linkURL: URL(string: "https://example.com"),
+                    colorHex: nil
+                )
+            ])
         ])
     }
 

@@ -128,6 +128,26 @@ enum ReaderContentRenderer {
         pattern: #"&(#x[0-9A-Fa-f]+|#[0-9]+|[A-Za-z][A-Za-z0-9]+);"#,
         options: []
     )
+    private static let inlineTagExpression = try! NSRegularExpression(
+        pattern: #"<(a|b|strong|i|em|span)\b([^>]*)>(.*?)</\1>"#,
+        options: [.caseInsensitive, .dotMatchesLineSeparators]
+    )
+    private static let hrefAttributeExpression = try! NSRegularExpression(
+        pattern: #"(?:^|\s)href\s*=\s*["']([^"']*)["']"#,
+        options: [.caseInsensitive]
+    )
+    private static let styleAttributeExpression = try! NSRegularExpression(
+        pattern: #"style\s*=\s*["']([^"']*)["']"#,
+        options: [.caseInsensitive]
+    )
+    // Reihenfolge der Alternative bewusst 6-stellig VOR 3-stellig: NSRegularExpression
+    // wählt bei einer Alternation die erste passende Variante an dieser Position, nicht
+    // die längste — bei "3 vor 6" hätte "#FF0000" nur "#FF0" (die ersten 3 Hex-Ziffern)
+    // gematcht, der Rest wäre abgeschnitten worden.
+    private static let colorDeclarationExpression = try! NSRegularExpression(
+        pattern: #"(?:^|;)\s*color\s*:\s*(#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{3})"#,
+        options: [.caseInsensitive]
+    )
 
     static func blocks(summary: String?, content: String?, fallbackImageURL: String?) -> [ReaderContentBlock] {
         let source = preferredText(content: content, summary: summary)
@@ -262,30 +282,207 @@ enum ReaderContentRenderer {
             replacement: ""
         )
 
-        for paragraph in paragraphs(fromPreparedHTML: htmlWithoutListContainers) where paragraph != "•" {
-            blocks.append(.paragraph(paragraph))
+        for runs in splitIntoParagraphRuns(fromPreparedHTML: htmlWithoutListContainers) {
+            blocks.append(.paragraph(runs))
         }
     }
 
     private static func appendTextBlock(from html: String, tag: String, to blocks: inout [ReaderContentBlock]) {
-        let text = normalizedWhitespace(htmlToPlainText(html))
-        guard !text.isEmpty else {
+        let runs = inlineRuns(fromHTML: html)
+        guard !runs.isEmpty else {
             return
         }
 
         if tag.hasPrefix("h") {
-            blocks.append(.heading(text))
+            blocks.append(.heading(runs))
             return
         }
 
         switch tag {
         case "blockquote":
-            blocks.append(.quote(text))
+            blocks.append(.quote(runs))
         case "li":
-            blocks.append(.listItem(text))
+            blocks.append(.listItem(runs))
         default:
-            blocks.append(.paragraph(text))
+            blocks.append(.paragraph(runs))
         }
+    }
+
+    /// Zerlegt HTML mit `<br>`/Block-Grenzen in mehrere Absätze (ein Aufruf von
+    /// `paragraphs(fromPreparedHTML:)` liefert die Zeilengrenzen als reine
+    /// Strings), parst dann jede Zeile einzeln auf Inline-Formatierung — die
+    /// Grenzen selbst müssen weiterhin auf Basis von reinem Text erkannt werden,
+    /// da `<br>`/Block-Tags Absatzgrenzen markieren, keine Formatierung.
+    private static func splitIntoParagraphRuns(fromPreparedHTML htmlOrText: String) -> [[ReaderInlineRun]] {
+        paragraphs(fromPreparedHTML: htmlOrText).map { [ReaderInlineRun(text: $0, isBold: false, isItalic: false, linkURL: nil, colorHex: nil)] }
+    }
+
+    /// Erkennt Inline-Formatierung (Fett/Kursiv/Link/Farbe) in HTML-Text und
+    /// zerlegt ihn in Runs. Eine Ebene Verschachtelung unterschiedlicher Tags
+    /// wird unterstützt (z. B. `<b><a href="...">Link</a></b>`); Verschachtelung
+    /// des GLEICHEN Tags (`<b>a<b>b</b>c</b>`) nicht — Regex kann
+    /// Verschachtelungstiefe nicht zählen (bestehende Einschränkung dieser
+    /// Datei, analog zu `structuredBlockExpression` auf Block-Ebene).
+    static func inlineRuns(fromHTML html: String) -> [ReaderInlineRun] {
+        var runs = rawInlineRuns(fromHTML: html)
+        trimOuterWhitespace(&runs)
+        return runs
+    }
+
+    private static func rawInlineRuns(fromHTML html: String) -> [ReaderInlineRun] {
+        let range = NSRange(html.startIndex ..< html.endIndex, in: html)
+        let matches = inlineTagExpression.matches(in: html, range: range)
+        guard !matches.isEmpty else {
+            return plainInlineRuns(fromHTML: html)
+        }
+
+        var runs: [ReaderInlineRun] = []
+        var currentIndex = html.startIndex
+
+        for match in matches {
+            guard
+                let matchRange = Range(match.range, in: html),
+                let tagRange = Range(match.range(at: 1), in: html),
+                let attributesRange = Range(match.range(at: 2), in: html),
+                let innerRange = Range(match.range(at: 3), in: html)
+            else {
+                continue
+            }
+
+            runs.append(contentsOf: plainInlineRuns(fromHTML: String(html[currentIndex ..< matchRange.lowerBound])))
+
+            let tag = String(html[tagRange]).lowercased()
+            let attributes = String(html[attributesRange])
+            let innerRuns = rawInlineRuns(fromHTML: String(html[innerRange]))
+            runs.append(contentsOf: applyingInlineStyle(tag: tag, attributes: attributes, to: innerRuns))
+
+            currentIndex = matchRange.upperBound
+        }
+
+        runs.append(contentsOf: plainInlineRuns(fromHTML: String(html[currentIndex ..< html.endIndex])))
+        return runs
+    }
+
+    private static func plainInlineRuns(fromHTML html: String) -> [ReaderInlineRun] {
+        let text = normalizedInlineWhitespace(htmlToPlainText(html))
+        guard !text.isEmpty else {
+            return []
+        }
+        return [ReaderInlineRun(text: text, isBold: false, isItalic: false, linkURL: nil, colorHex: nil)]
+    }
+
+    private static func applyingInlineStyle(
+        tag: String,
+        attributes: String,
+        to innerRuns: [ReaderInlineRun]
+    ) -> [ReaderInlineRun] {
+        guard !innerRuns.isEmpty else {
+            return []
+        }
+
+        let isBold = tag == "b" || tag == "strong"
+        let isItalic = tag == "i" || tag == "em"
+        let linkURL = tag == "a" ? safeLinkURL(fromAttributes: attributes) : nil
+        let colorHex = colorHex(fromAttributes: attributes)
+
+        return innerRuns.map { run in
+            ReaderInlineRun(
+                text: run.text,
+                isBold: run.isBold || isBold,
+                isItalic: run.isItalic || isItalic,
+                linkURL: run.linkURL ?? linkURL,
+                colorHex: run.colorHex ?? colorHex
+            )
+        }
+    }
+
+    private static func safeLinkURL(fromAttributes attributes: String) -> URL? {
+        guard
+            let match = hrefAttributeExpression.firstMatch(in: attributes, range: NSRange(attributes.startIndex ..< attributes.endIndex, in: attributes)),
+            let hrefRange = Range(match.range(at: 1), in: attributes)
+        else {
+            return nil
+        }
+
+        let value = String(attributes[hrefRange]).trimmingCharacters(in: .whitespacesAndNewlines)
+        guard
+            let url = URL(string: value),
+            let scheme = url.scheme?.lowercased(),
+            scheme == "http" || scheme == "https"
+        else {
+            return nil
+        }
+
+        return url
+    }
+
+    private static func colorHex(fromAttributes attributes: String) -> String? {
+        guard
+            let styleMatch = styleAttributeExpression.firstMatch(in: attributes, range: NSRange(attributes.startIndex ..< attributes.endIndex, in: attributes)),
+            let styleValueRange = Range(styleMatch.range(at: 1), in: attributes)
+        else {
+            return nil
+        }
+
+        let styleValue = String(attributes[styleValueRange])
+        guard
+            let colorMatch = colorDeclarationExpression.firstMatch(in: styleValue, range: NSRange(styleValue.startIndex ..< styleValue.endIndex, in: styleValue)),
+            let colorRange = Range(colorMatch.range(at: 1), in: styleValue)
+        else {
+            return nil
+        }
+
+        return String(styleValue[colorRange]).uppercased()
+    }
+
+    /// Wie `normalizedWhitespace`, aber ohne die Außenränder zu trimmen — das
+    /// übernimmt `trimOuterWhitespace` über die gesamte Run-Liste hinweg, sonst
+    /// gingen Leerzeichen an Segmentgrenzen verloren (z. B. "Text vor
+    /// <b>fett</b> danach").
+    private static func normalizedInlineWhitespace(_ text: String) -> String {
+        var result = ""
+        var previousWasWhitespace = false
+        for character in text {
+            if character.isWhitespace {
+                if !previousWasWhitespace {
+                    result.append(" ")
+                }
+                previousWasWhitespace = true
+            } else {
+                result.append(character)
+                previousWasWhitespace = false
+            }
+        }
+        return result
+    }
+
+    private static func trimOuterWhitespace(_ runs: inout [ReaderInlineRun]) {
+        guard !runs.isEmpty else {
+            return
+        }
+
+        if let first = runs.first {
+            runs[0] = ReaderInlineRun(
+                text: String(first.text.drop { $0 == " " }),
+                isBold: first.isBold,
+                isItalic: first.isItalic,
+                linkURL: first.linkURL,
+                colorHex: first.colorHex
+            )
+        }
+
+        if let last = runs.last {
+            let trimmedText = String(String(last.text.reversed()).drop { $0 == " " }.reversed())
+            runs[runs.count - 1] = ReaderInlineRun(
+                text: trimmedText,
+                isBold: last.isBold,
+                isItalic: last.isItalic,
+                linkURL: last.linkURL,
+                colorHex: last.colorHex
+            )
+        }
+
+        runs.removeAll { $0.text.isEmpty }
     }
 
     private static func paragraphs(fromPreparedHTML htmlOrText: String) -> [String] {
