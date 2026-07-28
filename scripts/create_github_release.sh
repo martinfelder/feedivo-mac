@@ -8,11 +8,21 @@
 # explizit ein Release veroeffentlicht werden soll. Fragt vor dem eigentlichen
 # `gh release create` interaktiv nach Bestaetigung.
 #
+# Mit --dry-run zeigt es nur Tag/Titel/Notes-Vorschau, baut NICHTS, fragt
+# NICHT nach Bestaetigung und veroeffentlicht nichts.
+#
 # Voraussetzungen: `gh` CLI installiert und eingeloggt (`gh auth status`),
 # lokales Xcode-Signing fuer Release-Builds konfiguriert. Das Ergebnis ist ein
 # lokal signierter, NICHT notarisierter Build - beim Oeffnen auf einem anderen
 # Mac ist ggf. Rechtsklick -> "Oeffnen" noetig (Gatekeeper).
 set -euo pipefail
+
+DRY_RUN=0
+for arg in "$@"; do
+  case "$arg" in
+    --dry-run) DRY_RUN=1 ;;
+  esac
+done
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && git rev-parse --show-toplevel)"
 cd "$REPO_ROOT"
@@ -42,7 +52,11 @@ fi
 VERSION_LABEL="${MARKETING_VERSION} (${BUILD_NUMBER})"
 TAG="v${MARKETING_VERSION}-${BUILD_NUMBER}"
 
+TAG_EXISTS=0
 if git rev-parse "$TAG" >/dev/null 2>&1 || gh release view "$TAG" >/dev/null 2>&1; then
+  TAG_EXISTS=1
+fi
+if [ "$TAG_EXISTS" = "1" ] && [ "$DRY_RUN" != "1" ]; then
   echo "create_github_release.sh: Tag/Release '$TAG' existiert bereits. Erst einen neuen Bump pushen, dann erneut versuchen." >&2
   exit 1
 fi
@@ -62,12 +76,22 @@ if [ ! -s "$NOTES_FILE" ]; then
 fi
 
 echo "Release-Vorschau"
-echo "  Tag:      $TAG"
+echo "  Tag:      $TAG$( [ "$TAG_EXISTS" = "1" ] && echo " (existiert bereits!)" )"
 echo "  Titel:    Feedivo ${VERSION_LABEL}"
 echo "  Notes aus: $CHANGELOG (oberster Eintrag)"
 echo "---"
 cat "$NOTES_FILE"
 echo "---"
+
+if [ "$DRY_RUN" = "1" ]; then
+  echo "--- DRY RUN: kein Build, keine Bestaetigungsfrage, kein Release veroeffentlicht ---"
+  if [ "$TAG_EXISTS" = "1" ]; then
+    echo "Hinweis: Tag/Release '$TAG' existiert bereits - ein echter Lauf wuerde an dieser Stelle abbrechen."
+  fi
+  rm -f "$NOTES_FILE"
+  exit 0
+fi
+
 read -r -p "Release wirklich bauen und auf GitHub veroeffentlichen? [y/N] " CONFIRM
 if [[ ! "$CONFIRM" =~ ^[Yy]$ ]]; then
   echo "Abgebrochen."
