@@ -10,6 +10,11 @@ Commit-Nachrichten seit dem letzten Versions-Bump — für Details siehe `git lo
 
 <!-- versions -->
 
+## [1.0 (7)] - 2026-07-28
+
+- Docs: Projektstruktur-Diagramm in CLAUDE.md an die aufgeräumte Ablage angepasst
+- Cleanup: Projekt-Ablage aufgeraeumt (Punkte 2-6 aus Struktur-Review)
+
 ## [1.0 (6)] - 2026-07-28
 
 - Cleanup: Versehentlich committete xcresult-Testartefakte entfernt
