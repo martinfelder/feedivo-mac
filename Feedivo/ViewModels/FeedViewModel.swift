@@ -391,9 +391,12 @@ final class FeedViewModel {
                 // bliebe ihre Statuszeile bis zu 120s als "Wartet…" hängen, obwohl der
                 // Refresh-Durchlauf längst fertig ist (Whole-Branch-Review-Fund,
                 // 2026-07-27). Werden bewusst als `.succeeded` aufgelöst statt eines
-                // eigenen `.skipped`-Status: ein gedrosselter Feed wurde genau DESHALB
-                // übersprungen, weil er bereits aktuell ist — semantisch "erfolgreich",
-                // kein neuer Zustand/L10n-Key nötig.
+                // eigenen `.skipped`-Status, um keinen neuen Zustand/L10n-Key
+                // einzuführen — auch wenn der letzte Versuch vor der Drossel-Schwelle
+                // fehlgeschlagen sein könnte (FeedRefreshThrottle.shouldSkip ist rein
+                // zeitbasiert über feed_logs, nicht erfolgsbasiert): dem Nutzer wird
+                // hier bewusst nicht zwischen "gerade erfolgreich" und "kürzlich schon
+                // versucht" unterschieden, beides zeigt sich gleich als abgeschlossen.
                 updateRefreshItemStatus(for: snapshot.id, status: .succeeded)
             }
         }

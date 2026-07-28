@@ -2240,7 +2240,7 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   Treffern, nachher identisch). Betroffene Testsuiten (`ArticleStatusStoreTests`,
   `SQLiteArticleStatusStoreTests`, `SQLiteTagStoreTests`, `TagStoreChangedFieldsTests`,
   `RuleEngineTests`, `SQLiteRuleEvaluationStoreTests`, `SQLiteFeedRefreshServiceTests`)
-  grün, Release-relevanter Debug-Build grün. Noch offen aus demselben Vergleich (nicht in
+  grün, Debug-Build grün (`xcodebuild build`, ohne `-configuration Release`). Noch offen aus demselben Vergleich (nicht in
   dieser Session umgesetzt): Refresh-Throttling/Host-Blocklist analog NetNewsWires
   `LocalAccountRefresher` (Mindestabstand pro Feed, bekannte Nicht-Feed-Hosts), Favicon-
   Single-Flight-Dedup, `rebuildAllFeedUnreadCounts()` auf gruppierte CTE umstellen.
