@@ -10,6 +10,10 @@ Commit-Nachrichten seit dem letzten Versions-Bump — für Details siehe `git lo
 
 <!-- versions -->
 
+## [1.0 (6)] - 2026-07-28
+
+- Cleanup: Versehentlich committete xcresult-Testartefakte entfernt
+
 ## [1.0 (5)] - 2026-07-28
 
 - Feat: --dry-run fuer create_github_release.sh ergaenzt
