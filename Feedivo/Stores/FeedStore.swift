@@ -302,7 +302,7 @@ struct FeedStore {
     /// hinzukommende Mutationsstelle, die die Spalte vergisst) soll aber nie
     /// ein falsches Sidebar-Badge zeigen können.
     private static func querySidebarFeeds(_ db: Database) throws -> [FeedSidebarSnapshot] {
-        let snapshots = try FeedSidebarSnapshot.fetchAll(db, sql: """
+        let snapshots = try SQLRequest<FeedSidebarSnapshot>(sql: """
             WITH unread_counts AS (
                 SELECT a.feedID AS feedID, COUNT(*) AS unreadCount
                 FROM articles a
@@ -328,7 +328,7 @@ struct FeedStore {
             LEFT JOIN unread_counts uc ON uc.feedID = f.id
             LEFT JOIN latest_feed_logs ll ON ll.feedID = f.id AND ll.rn = 1
             ORDER BY f.sortIndex, f.title COLLATE NOCASE, f.id COLLATE NOCASE
-            """)
+            """, cached: true).fetchAll(db)
         return snapshots.sorted {
             if $0.sortIndex != $1.sortIndex {
                 return $0.sortIndex < $1.sortIndex
@@ -481,7 +481,12 @@ private extension Optional where Wrapped == String {
 }
 
 extension FeedSidebarSnapshot: FetchableRecord {
-    init(row: Row) throws {
+    // nonisolated noetig, da das App-Target SWIFT_DEFAULT_ACTOR_ISOLATION =
+    // MainActor setzt — ohne diese Annotation waere die FetchableRecord-
+    // Konformität MainActor-isoliert und SQLRequest<FeedSidebarSnapshot>s
+    // generischer, Sendable-vorausgesetzter fetchAll(_:)-Pfad wuerde nicht
+    // kompilieren.
+    nonisolated init(row: Row) throws {
         id = row["id"]
         title = row["title"]
         faviconURL = row["faviconURL"]

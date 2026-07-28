@@ -36,7 +36,7 @@ struct TimelineStore {
         )
 
         return try database.read { db in
-            try ArticleListSnapshot.fetchAll(db, sql: query.sql, arguments: query.arguments)
+            try SQLRequest<ArticleListSnapshot>(sql: query.sql, arguments: query.arguments, cached: true).fetchAll(db)
         }
     }
 
@@ -60,7 +60,7 @@ struct TimelineStore {
         )
 
         return try await database.readAsync { db in
-            try ArticleListSnapshot.fetchAll(db, sql: query.sql, arguments: query.arguments)
+            try SQLRequest<ArticleListSnapshot>(sql: query.sql, arguments: query.arguments, cached: true).fetchAll(db)
         }
     }
 
@@ -810,7 +810,12 @@ struct TimelineStore {
 }
 
 extension ArticleListSnapshot: FetchableRecord {
-    init(row: Row) throws {
+    // nonisolated noetig, da das App-Target SWIFT_DEFAULT_ACTOR_ISOLATION =
+    // MainActor setzt — ohne diese Annotation waere die FetchableRecord-
+    // Konformität MainActor-isoliert und SQLRequest<ArticleListSnapshot>s
+    // generischer, Sendable-vorausgesetzter fetchAll(_:)-Pfad wuerde nicht
+    // kompilieren (siehe analoger Fix bei FeedSidebarSnapshot).
+    nonisolated init(row: Row) throws {
         id = row["id"]
         feedID = row["feedID"]
         feedTitle = row["feedTitle"]
