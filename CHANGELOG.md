@@ -10,6 +10,10 @@ Commit-Nachrichten seit dem letzten Versions-Bump — für Details siehe `git lo
 
 <!-- versions -->
 
+## [1.0 (8)] - 2026-07-28
+
+- Docs: Screenshots und Screenshots-Sektion im README ergänzt
+
 ## [1.0 (7)] - 2026-07-28
 
 - Docs: Projektstruktur-Diagramm in CLAUDE.md an die aufgeräumte Ablage angepasst
