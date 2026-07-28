@@ -34,6 +34,27 @@ struct ArticleRowView: View {
         ArticleListSummaryLineCount.resolved(from: summaryLineCount)
     }
 
+    // Feste, aus den Anzeige-Einstellungen berechnete Zeilenhöhe statt
+    // natürlicher Inhaltsgröße (NetNewsWire-Vergleich, 2026-07-28) — macht
+    // jede Zeile innerhalb derselben Einstellungs-Kombination exakt gleich
+    // hoch, damit SwiftUIs List nicht pro sichtbarer Zeile Text-Layout neu
+    // berechnen muss. Siehe ArticleRowHeightMetrics.
+    private var rowHeight: CGFloat {
+        ArticleRowHeightMetrics.height(
+            interfaceTextSize: interfaceTextSize,
+            imagePosition: imagePosition,
+            summaryLineCount: resolvedSummaryLineCount
+        )
+    }
+
+    private var rowContentHeight: CGFloat {
+        ArticleRowHeightMetrics.contentHeight(
+            interfaceTextSize: interfaceTextSize,
+            imagePosition: imagePosition,
+            summaryLineCount: resolvedSummaryLineCount
+        )
+    }
+
     let snapshot: ArticleListItemSnapshot
     let hasAvailableTags: Bool
     let onToggleRead: () -> Void
@@ -97,10 +118,11 @@ struct ArticleRowView: View {
                 .buttonStyle(.plain)
                 .help(snapshot.isStarred ? L10n.articleRowStarRemove : L10n.articleRowStarAdd)
             }
-            .frame(width: 28, height: 76, alignment: .top)
+            .frame(width: 28, height: rowContentHeight, alignment: .top)
         }
         .padding(.vertical, 6)
         .padding(.leading, 8)
+        .frame(height: rowHeight, alignment: .top)
         .contextMenu {
             Button(snapshot.isRead ? L10n.articleRowMarkUnread : L10n.articleRowMarkRead) {
                 onToggleRead()
