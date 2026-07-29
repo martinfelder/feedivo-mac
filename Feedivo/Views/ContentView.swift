@@ -99,7 +99,6 @@ struct ContentView: View {
             SidebarView(
                 selection: $sidebarSelection,
                 onRequestAddFeed: requestAddFeed,
-                onRequestRefreshAllFeeds: requestRefreshAllFeeds,
                 onRequestDeleteFeed: requestDeleteFeed
             )
                 .navigationSplitViewColumnWidth(min: 200, ideal: 260, max: 420)
@@ -535,12 +534,6 @@ struct ContentView: View {
         }
 
         activeCleanupToast = nil
-    }
-
-    private func requestRefreshAllFeeds() {
-        Task {
-            await refreshAllFeeds()
-        }
     }
 
     private func requestImportOPML() {

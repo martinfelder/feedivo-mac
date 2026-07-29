@@ -6,7 +6,6 @@ struct SidebarView: View {
 
     @Binding var selection: SidebarSelection?
     let onRequestAddFeed: () -> Void
-    let onRequestRefreshAllFeeds: () -> Void
     let onRequestDeleteFeed: (String) -> Void
     // Bump bei direkter Artikel→Tag-Zuweisung (siehe SidebarBadgeInvalidation).
     // Status-Toggles, Artikel-Zahl und Feed/Tag-Struktur werden automatisch über
@@ -18,12 +17,10 @@ struct SidebarView: View {
     init(
         selection: Binding<SidebarSelection?>,
         onRequestAddFeed: @escaping () -> Void,
-        onRequestRefreshAllFeeds: @escaping () -> Void,
         onRequestDeleteFeed: @escaping (String) -> Void
     ) {
         self._selection = selection
         self.onRequestAddFeed = onRequestAddFeed
-        self.onRequestRefreshAllFeeds = onRequestRefreshAllFeeds
         self.onRequestDeleteFeed = onRequestDeleteFeed
     }
     @AppStorage(SidebarSectionCollapseState.Section.tags.storageKey)
@@ -51,7 +48,7 @@ struct SidebarView: View {
     var body: some View {
         VStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 8) {
-                sidebarActionRow
+                sidebarHeaderRow
 
                 if let errorMessage = sqliteSidebarState.errorMessage {
                     Text(errorMessage)
@@ -197,25 +194,35 @@ struct SidebarView: View {
         }
     }
 
-    private var sidebarActionRow: some View {
-        HStack(spacing: 10) {
-            Button {
-                onRequestRefreshAllFeeds()
-            } label: {
-                Image(systemName: "arrow.clockwise")
-                    .font(.system(size: 15, weight: .semibold))
-                    .frame(width: 24, height: 24)
+    // Feed-Aktualisierung läuft ohnehin automatisch im Hintergrund und bleibt über
+    // das Feed-Menü (⌘⇧R) erreichbar - die Sidebar zeigt bewusst nur noch eine
+    // einzige Aktion (siehe Design-Vorschlag "Ein Symbol, ein Gedanke").
+    private var sidebarHeaderRow: some View {
+        HStack {
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(Color.accentColor)
+                    .frame(width: 9, height: 9)
+
+                Text("Feedivo")
+                    .font(.system(size: 16, weight: .bold))
+
+                if sqliteSidebarState.totalUnreadCount > 0 {
+                    Text("\(sqliteSidebarState.totalUnreadCount)")
+                        .font(.system(size: 10.5, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 2)
+                        .background(Color.primary.opacity(0.05), in: Capsule())
+                }
             }
-            .buttonStyle(.borderless)
-            .disabled(sqliteSidebarState.snapshots.isEmpty)
-            .help(L10n.feedRefreshAllCommand)
+
+            Spacer(minLength: 12)
 
             createSidebarItemMenu
-                .buttonStyle(.borderless)
-                .font(.system(size: 15, weight: .semibold))
-                .frame(width: 24, height: 24)
         }
         .padding(.horizontal, 2)
+        .padding(.vertical, 4)
     }
 
     private var createSidebarItemMenu: some View {
@@ -241,7 +248,14 @@ struct SidebarView: View {
             }
         } label: {
             Image(systemName: "plus")
+                .font(.system(size: 17, weight: .bold))
+                .foregroundStyle(.white)
+                .frame(width: 30, height: 30)
+                .background(Color.accentColor, in: Circle())
         }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
         .help(L10n.sidebarAddFeedButton)
     }
 

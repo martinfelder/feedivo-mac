@@ -880,11 +880,21 @@ struct FeedivoAppSceneConfigurationTests {
         let sidebarSource = try source(at: "Feedivo/Views/Sidebar/SidebarView.swift", projectRoot: projectRoot)
         let compactSidebarSource = compact(sidebarSource)
 
-        #expect(sidebarSource.contains("private var sidebarActionRow: some View"))
-        #expect(compactSidebarSource.contains("sidebarActionRowsmartFoldersSection(badgeSnapshot:sqliteSidebarState.smartFolderBadgeSnapshot)"))
-        #expect(compactSidebarSource.contains("Button{onRequestRefreshAllFeeds()}label:{Image(systemName:\"arrow.clockwise\")"))
-        #expect(compactSidebarSource.contains(".font(.system(size:15,weight:.semibold)).frame(width:24,height:24)"))
-        #expect(compactSidebarSource.contains("createSidebarItemMenu.buttonStyle(.borderless).font(.system(size:15,weight:.semibold)).frame(width:24,height:24)"))
+        #expect(sidebarSource.contains("private var sidebarHeaderRow: some View"))
+
+        let headerRowCall = try #require(compactSidebarSource.range(of: "sidebarHeaderRow"))
+        let outlineViewCall = try #require(compactSidebarSource.range(of: "SidebarOutlineView("))
+        #expect(headerRowCall.lowerBound < outlineViewCall.lowerBound)
+
+        // Kein separater Refresh-Button mehr in der Sidebar - Aktualisieren läuft
+        // automatisch im Hintergrund und bleibt über das Feed-Menü (⌘⇧R) erreichbar
+        // (siehe Design-Vorschlag "Ein Symbol, ein Gedanke").
+        #expect(!sidebarSource.contains("arrow.clockwise"))
+        #expect(!sidebarSource.contains("onRequestRefreshAllFeeds"))
+
+        // Die einzige verbleibende Aktion ist ein gefüllter "+"-Kreis ohne Menü-Chevron.
+        #expect(compactSidebarSource.contains(".menuStyle(.borderlessButton).menuIndicator(.hidden)"))
+        #expect(compactSidebarSource.contains("background(Color.accentColor,in:Circle())"))
         #expect(!sidebarSource.contains("ToolbarItemGroup(placement: .navigation)"))
     }
 
@@ -1100,7 +1110,12 @@ struct FeedivoAppSceneConfigurationTests {
     }
 
     private func projectRootURL() -> URL {
+        // #filePath liegt seit der Testordner-Reorganisation vom 2026-07-28
+        // (FeedivoTests/App/... statt vormals flach direkt unter FeedivoTests/)
+        // eine Ebene tiefer als zuvor - braucht deshalb einen dritten Schritt
+        // nach oben, um wieder beim echten Repo-Root (FeedivoMac/) anzukommen.
         URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
     }
