@@ -13,6 +13,11 @@ siehe `git log`.
 
 <!-- versions -->
 
+## [1.0 (10)] - 2026-07-29
+
+- Feat: Sidebar-Kopfzeile auf minimalen Ein-Symbol-Stil umgestellt
+- Chore: Versions-Bump/Changelog/Release nur noch manuell auf Anfrage
+
 ## [1.0 (9)] - 2026-07-29
 
 - Fix: Schriftgrösse in den Einstellungen um 1pt erhöht
