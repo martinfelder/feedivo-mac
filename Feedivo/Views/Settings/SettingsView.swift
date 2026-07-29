@@ -172,7 +172,7 @@ private struct SettingRow<Control: View>: View {
         VStack(alignment: .leading, spacing: 3) {
             HStack(alignment: .firstTextBaseline, spacing: 12) {
                 Text(title)
-                    .font(.system(size: 13))
+                    .font(.system(size: 14))
                     .foregroundStyle(.primary)
                     .multilineTextAlignment(.trailing)
                     .frame(width: Self.labelColumnWidth, alignment: .trailing)
@@ -183,7 +183,7 @@ private struct SettingRow<Control: View>: View {
             }
 
             Text(description)
-                .font(.system(size: 10.5))
+                .font(.system(size: 11.5))
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.leading, Self.labelColumnWidth + 12)
