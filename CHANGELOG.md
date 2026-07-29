@@ -10,6 +10,10 @@ Commit-Nachrichten seit dem letzten Versions-Bump — für Details siehe `git lo
 
 <!-- versions -->
 
+## [1.0 (9)] - 2026-07-29
+
+- Fix: Schriftgrösse in den Einstellungen um 1pt erhöht
+
 ## [1.0 (8)] - 2026-07-28
 
 - Docs: Screenshots und Screenshots-Sektion im README ergänzt
