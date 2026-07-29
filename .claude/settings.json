@@ -1,17 +1,2 @@
 {
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash scripts/bump_version.sh >> /tmp/feedivo-bump-hook.log 2>&1 || true",
-            "timeout": 120,
-            "statusMessage": "Feedivo Build-Nummer wird hochgezaehlt..."
-          }
-        ]
-      }
-    ]
-  }
 }

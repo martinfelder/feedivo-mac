@@ -6,7 +6,8 @@
 #
 # WICHTIG: Wird NIE automatisch aufgerufen (kein Hook) - nur manuell, wenn
 # explizit ein Release veroeffentlicht werden soll. Fragt vor dem eigentlichen
-# `gh release create` interaktiv nach Bestaetigung.
+# `gh release create` interaktiv nach Bestaetigung. Wird IMMER als Pre-Release
+# markiert (--prerelease), nicht als "Latest Release".
 #
 # Mit --dry-run zeigt es nur Tag/Titel/Notes-Vorschau, baut NICHTS, fragt
 # NICHT nach Bestaetigung und veroeffentlicht nichts.
@@ -119,10 +120,11 @@ ZIP_PATH="$BUILD_DIR/Feedivo-${TAG}.zip"
 echo "Packe $APP_PATH -> $ZIP_PATH"
 /usr/bin/ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$ZIP_PATH"
 
-echo "Erstelle GitHub Release $TAG..."
+echo "Erstelle GitHub Release $TAG (als Pre-Release)..."
 gh release create "$TAG" "$ZIP_PATH" \
   --title "Feedivo ${VERSION_LABEL}" \
-  --notes-file "$NOTES_FILE"
+  --notes-file "$NOTES_FILE" \
+  --prerelease
 
 rm -f "$NOTES_FILE"
 echo "create_github_release.sh: Release $TAG veroeffentlicht."

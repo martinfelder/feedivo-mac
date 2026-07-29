@@ -3,10 +3,13 @@
 Alle nennenswerten Änderungen an Feedivo werden hier dokumentiert. Format lose
 angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/).
 
-Diese Datei wird automatisch nach jedem erfolgreichen `git push` nach
-`origin/main` um einen neuen Eintrag ergänzt (siehe `scripts/bump_version.sh`
-und den PostToolUse-Hook in `.claude/settings.json`). Die Einträge listen die
-Commit-Nachrichten seit dem letzten Versions-Bump — für Details siehe `git log`.
+Diese Datei wird NICHT mehr automatisch nach jedem Push aktualisiert (der
+frühere PostToolUse-Hook in `.claude/settings.json` wurde ab Build 9 entfernt).
+Ein neuer Eintrag entsteht nur noch, wenn explizit ein Versions-Bump gewünscht
+wird (`scripts/bump_version.sh`, manuell aufgerufen) — dadurch können mehrere
+Pushes/Änderungen unter derselben Build-Nummer gesammelt werden. Die Einträge
+listen die Commit-Nachrichten seit dem letzten Versions-Bump — für Details
+siehe `git log`.
 
 <!-- versions -->
 

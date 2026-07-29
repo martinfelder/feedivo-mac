@@ -2,13 +2,11 @@
 # Zaehlt die Build-Nummer (CURRENT_PROJECT_VERSION in Feedivo.xcodeproj/project.pbxproj)
 # hoch, ergaenzt CHANGELOG.md um einen neuen Eintrag und pusht den Bump-Commit.
 #
-# Wird nach JEDEM Bash-Aufruf durch den PostToolUse-Hook in .claude/settings.json
-# aufgerufen (nicht nur nach git push) - die Entscheidung, ob tatsaechlich etwas zu
-# bumpen ist, trifft dieses Skript selbst anhand des echten Git-Zustands, nicht
-# anhand des ausgeloesten Befehlstexts. Grund: reines Text-Matching auf "git push"
-# im Bash-Befehl loest faelschlich auch dann aus, wenn dieser String nur zufaellig
-# irgendwo im Befehl vorkommt (z. B. in einem Kommentar, einer Testausgabe oder wie
-# hier im eigenen Test-Snippet) - siehe CHANGELOG-Eintrag zu Build 3.
+# WICHTIG: Wird NICHT mehr automatisch aufgerufen (kein Hook mehr in
+# .claude/settings.json, siehe CHANGELOG-Eintrag zu Build 9) - nur noch manuell,
+# wenn der Nutzer explizit einen Versions-Bump moechte. So koennen mehrere
+# Pushes/Aenderungen unter derselben Build-Nummer gesammelt werden, bevor
+# irgendwann bewusst gebumpt wird.
 #
 # Bump-Bedingung: aktueller Branch ist "main" UND lokaler HEAD ist identisch mit
 # dem lokal bekannten origin/main (also tatsaechlich gepusht) UND dieser HEAD wurde

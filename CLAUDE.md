@@ -1075,6 +1075,14 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   Modell mehr in der aktuellen Praxis); vereinzelt längerlebige Branches für größere,
   eigenständige Vorhaben (z. B. `codex/sqlite-grdb-foundation`)
 - **Push-Konvention:** Nie ohne explizite Nutzerbestätigung nach `origin/main` pushen
+- **Versions-Bump/Changelog/Release-Konvention (seit Build 9, 2026-07-29):** Build-Nummer
+  (`scripts/bump_version.sh`) und `CHANGELOG.md`-Eintrag werden NICHT mehr automatisch bei
+  jedem Push aktualisiert (der frühere PostToolUse-Hook in `.claude/settings.json` wurde
+  entfernt) — nur noch, wenn der Nutzer explizit einen Bump verlangt. So können mehrere
+  Pushes/Änderungen unter derselben Build-Nummer gesammelt werden. Verlangt der Nutzer
+  einen Bump, danach zusätzlich `scripts/create_github_release.sh` ausführen (baut Release-
+  Konfiguration, veröffentlicht als GitHub Release) — dieses Skript markiert das Release
+  seit demselben Datum IMMER als Pre-Release (`--prerelease`), nie als "Latest Release".
 
 ---
 
