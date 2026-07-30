@@ -44,6 +44,11 @@ struct SidebarView: View {
     @State private var sqliteSidebarState = SQLiteSidebarState()
     @State private var collapsedFolderNames: Set<String> = []
     @State private var sidebarDefinitionVersion = 0
+    // Eigenes Popover statt `Menu`: macOS erzwingt bei sichtbaren Menu-Controls
+    // seit der "Liquid Glass"-Systemoptik immer die native Pillen-Chrome, auch
+    // mit .menuStyle(.borderlessButton) — ein eigener Button+Popover umgeht das
+    // (gleiches Muster wie RuleDialogSelectMenu in RuleDialogTheme.swift).
+    @State private var isCreateSidebarItemMenuExpanded = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -197,11 +202,18 @@ struct SidebarView: View {
     // Feed-Aktualisierung läuft ohnehin automatisch im Hintergrund und bleibt über
     // das Feed-Menü (⌘⇧R) erreichbar - die Sidebar zeigt bewusst nur noch eine
     // einzige Aktion (siehe Design-Vorschlag "Ein Symbol, ein Gedanke").
+    // Feste Blautöne statt Color.accentColor/.opacity(): eine transparente
+    // Überlagerung mischt sich je nach darunterliegendem Hintergrund unterschiedlich
+    // (wirkte grau statt blau); feste Werte sehen unabhängig vom System-Akzent
+    // immer wie im Referenz-Screenshot aus.
+    private static let feedivoBlue = Color(hex: 0x3D5FEE)
+    private static let feedivoBlueSoft = Color(hex: 0xE7ECFE)
+
     private var sidebarHeaderRow: some View {
         HStack {
             HStack(spacing: 8) {
                 Circle()
-                    .fill(Color.accentColor)
+                    .fill(Self.feedivoBlue)
                     .frame(width: 9, height: 9)
 
                 Text("Feedivo")
@@ -209,11 +221,11 @@ struct SidebarView: View {
 
                 if sqliteSidebarState.totalUnreadCount > 0 {
                     Text("\(sqliteSidebarState.totalUnreadCount)")
-                        .font(.system(size: 10.5, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, 7)
+                        .font(.system(size: 11.5, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 8)
                         .padding(.vertical, 2)
-                        .background(Color.primary.opacity(0.05), in: Capsule())
+                        .background(Self.feedivoBlue, in: Capsule())
                 }
             }
 
@@ -226,37 +238,54 @@ struct SidebarView: View {
     }
 
     private var createSidebarItemMenu: some View {
-        Menu {
-            Button {
-                onRequestAddFeed()
-            } label: {
-                Label {
-                    Text(L10n.feedAddCommand)
-                } icon: {
-                    Image(systemName: "dot.radiowaves.left.and.right")
-                }
-            }
-
-            Button {
-                isShowingAddFolderSheet = true
-            } label: {
-                Label {
-                    Text(L10n.sidebarAddFolderButton)
-                } icon: {
-                    Image(systemName: "folder.badge.plus")
-                }
-            }
+        Button {
+            isCreateSidebarItemMenuExpanded = true
         } label: {
             Image(systemName: "plus")
-                .font(.system(size: 17, weight: .bold))
-                .foregroundStyle(.white)
+                .font(.system(size: 15, weight: .bold))
+                .foregroundStyle(Self.feedivoBlue)
                 .frame(width: 30, height: 30)
-                .background(Color.accentColor, in: Circle())
+                .background(Self.feedivoBlueSoft, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
         }
-        .menuStyle(.borderlessButton)
-        .menuIndicator(.hidden)
-        .fixedSize()
+        .buttonStyle(.plain)
         .help(L10n.sidebarAddFeedButton)
+        .popover(isPresented: $isCreateSidebarItemMenuExpanded, arrowEdge: .bottom) {
+            VStack(alignment: .leading, spacing: 0) {
+                Button {
+                    isCreateSidebarItemMenuExpanded = false
+                    onRequestAddFeed()
+                } label: {
+                    Label {
+                        Text(L10n.feedAddCommand)
+                    } icon: {
+                        Image(systemName: "dot.radiowaves.left.and.right")
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
+
+                Button {
+                    isCreateSidebarItemMenuExpanded = false
+                    isShowingAddFolderSheet = true
+                } label: {
+                    Label {
+                        Text(L10n.sidebarAddFolderButton)
+                    } icon: {
+                        Image(systemName: "folder.badge.plus")
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
+            }
+            .padding(.vertical, 4)
+            .frame(minWidth: 200)
+        }
     }
 
     private func defaultSmartFolderSelection(excluding deletedFolder: SQLiteSmartFolderSnapshot? = nil) -> SidebarSelection? {
@@ -468,7 +497,8 @@ struct SmartFolderSidebarRow: View {
                     .foregroundStyle(.gray)
                     .padding(.horizontal, 7)
                     .padding(.vertical, 2)
-                    .background(Color.gray.opacity(SidebarStyle.activeSelectionOpacity), in: Capsule())
+                    .background(SidebarStyle.secondaryBadgeFill, in: Capsule())
+                    .overlay(Capsule().strokeBorder(SidebarStyle.secondaryBadgeBorder, lineWidth: 0.75))
                 }
 
                 if mixedCounts.unread > 0 {
@@ -497,7 +527,12 @@ struct SmartFolderSidebarRow: View {
                 .foregroundStyle(isUnreadBadge ? Color.accentColor : SidebarStyle.secondaryText)
                 .padding(.horizontal, 7)
                 .padding(.vertical, 2)
-                .background(SidebarStyle.activeSelection, in: Capsule())
+                .background(isUnreadBadge ? SidebarStyle.activeSelection : SidebarStyle.secondaryBadgeFill, in: Capsule())
+                .overlay {
+                    if !isUnreadBadge {
+                        Capsule().strokeBorder(SidebarStyle.secondaryBadgeBorder, lineWidth: 0.75)
+                    }
+                }
             }
         }
     }
@@ -532,7 +567,8 @@ struct TagSidebarRow: View {
                     .foregroundStyle(SidebarStyle.secondaryText)
                     .padding(.horizontal, 7)
                     .padding(.vertical, 2)
-                    .background(SidebarStyle.activeSelection, in: Capsule())
+                    .background(SidebarStyle.secondaryBadgeFill, in: Capsule())
+                    .overlay(Capsule().strokeBorder(SidebarStyle.secondaryBadgeBorder, lineWidth: 0.75))
             }
         }
     }

@@ -15,4 +15,10 @@ enum SidebarStyle {
     static let activeSelection = Color.accentColor.opacity(activeSelectionOpacity)
     static let activeBorder = Color.accentColor.opacity(activeBorderOpacity)
     static let separator = Color.primary.opacity(0.08)
+
+    // Graue Zähler-Pille (z. B. Gesamtanzahl bei "Alle Artikel", "Mit Stern",
+    // "Heute") - heller Rahmen statt blauem Tint, damit sie sich klar vom
+    // blauen Ungelesen-Badge abhebt.
+    static let secondaryBadgeFill = Color.gray.opacity(0.10)
+    static let secondaryBadgeBorder = Color.gray.opacity(0.45)
 }
