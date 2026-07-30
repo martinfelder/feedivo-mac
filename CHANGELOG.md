@@ -13,6 +13,10 @@ siehe `git log`.
 
 <!-- versions -->
 
+## [1.0 (11)] - 2026-07-30
+
+- Feat: Sidebar-Header in Blau + graue Zähler-Badges mit dunklerem Rahmen
+
 ## [1.0 (10)] - 2026-07-29
 
 - Feat: Sidebar-Kopfzeile auf minimalen Ein-Symbol-Stil umgestellt
