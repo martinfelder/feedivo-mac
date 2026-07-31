@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 /// Abstraktion über das tatsächliche Netzwerk-Fetching, damit Aufrufer
 /// (UpdateChecker) austauschbar/testbar bleiben, ohne eine eigene
@@ -42,6 +43,11 @@ struct GitHubReleaseCheckService: GitHubReleaseFetching {
         }
 
         var request = URLRequest(url: url)
+        // Fix Whole-Branch-Review (Important): expliziter Timeout statt der
+        // URLSession-Vorgabe von 60s - ein instabiles/Captive-Portal-Netzwerk
+        // würde sonst den manuellen Check-Button (und die dahinter liegende
+        // isUpdateCheckInFlight-Sperre) unnötig lange blockieren.
+        request.timeoutInterval = 15
         // Liefert body_html zusätzlich zum rohen body-Feld - GitHub rendert das
         // Markdown server-seitig, wir brauchen dafür keinen eigenen Parser.
         request.setValue("application/vnd.github.html+json", forHTTPHeaderField: "Accept")
@@ -66,6 +72,10 @@ struct GitHubReleaseCheckService: GitHubReleaseFetching {
         do {
             return try decoder.decode([GitHubRelease].self, from: data)
         } catch {
+            // Fix Whole-Branch-Review (Minor, fix-now): der echte DecodingError
+            // (Feld/Typ-Mismatch) ging bisher komplett verloren - loggen, bevor
+            // er durch den generischen .decodingFailed ersetzt wird.
+            AppLogger.dataAccess.error("GitHub-Release-Decoding fehlgeschlagen: \(error.localizedDescription, privacy: .public)")
             throw GitHubReleaseCheckError.decodingFailed
         }
     }

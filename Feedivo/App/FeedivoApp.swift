@@ -44,6 +44,21 @@ struct FeedivoApp: App {
     @State private var updateCheckReleasePresentation: GitHubRelease?
     @State private var showsUpdateCheckUpToDateAlert = false
     @State private var updateCheckErrorMessage: String?
+    // Fix Whole-Branch-Review (Important): verhindert parallele/wiederholte
+    // Update-Checks per Menü, während bereits einer läuft (analog zum
+    // isChecking-Guard in AboutSettingsView.swift, hier aber ohne Spinner-UI,
+    // da der App-Menü-Pfad kein eigenes View-Rendering für Zwischenzustände hat).
+    @State private var isUpdateCheckInFlight = false
+
+    // Fix Whole-Branch-Review (Important): `performManualUpdateCheck()` muss das
+    // Hauptfenster öffnen/fokussieren, bevor der Check läuft — die Sheet-/Alert-
+    // Modifier hängen am Content von `Window("Feedivo", id: "main")`. Ist das
+    // Fenster geschlossen (App läuft weiter über den Menubar-Status-Item, siehe
+    // MenubarStatusItemController), hätte weder das Sheet noch der Alert einen
+    // sichtbaren Ort zum Erscheinen. `openWindow(id:)` gegen die bereits als
+    // `Window` (nicht `WindowGroup`) deklarierte Singleton-Szene ist idempotent —
+    // bringt ein bereits offenes Fenster nur nach vorn, erzeugt keine Dublette.
+    @Environment(\.openWindow) private var openWindow
 
     // Feature 23.2: AppKit-Delegate fängt feedivo://-URLs zuverlässig ab —
     // auch beim Kaltstart, bevor die SwiftUI-View-Hierarchie existiert (siehe
@@ -389,6 +404,22 @@ struct FeedivoApp: App {
     }
 
     private func performManualUpdateCheck() {
+        // Fix Whole-Branch-Review (Important): Hauptfenster öffnen/fokussieren,
+        // BEVOR der Check läuft - sonst hängen Sheet/Alert an einem geschlossenen
+        // Fenster und erscheinen entweder gar nicht oder überraschend erst beim
+        // nächsten Öffnen des Fensters. Siehe Kommentar an openWindow oben.
+        openWindow(id: "main")
+
+        // Fix Whole-Branch-Review (Important): Re-Entrancy-Guard - wiederholte
+        // Klicks während ein Check bereits läuft dürfen keine weiteren,
+        // parallelen GitHub-API-Aufrufe auslösen (60 Requests/Stunde-Budget ohne
+        // Authentifizierung). Läuft bereits einer, einfach nichts tun - auch das
+        // Badge bleibt in diesem Fall unangetastet.
+        guard !isUpdateCheckInFlight else {
+            return
+        }
+        isUpdateCheckInFlight = true
+
         // Nutzer schaut gerade hin - Badge sofort weg, unabhängig vom Ergebnis.
         updateCheckHasUnseenUpdate = false
         Task {
@@ -401,6 +432,7 @@ struct FeedivoApp: App {
             case .failed(let message):
                 updateCheckErrorMessage = message
             }
+            isUpdateCheckInFlight = false
         }
     }
 
