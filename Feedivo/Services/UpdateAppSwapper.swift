@@ -8,8 +8,11 @@ protocol UpdateAppSwapping: Sendable {
     /// `UpdateInstallLocationGranting`).
     func replaceCurrentApp(at currentAppURL: URL, withNewAppAt newAppURL: URL) throws
 
-    /// Startet die App an `appURL` neu und beendet den aktuellen Prozess.
-    func relaunchAndQuit(appURL: URL)
+    /// Startet die App an `appURL` neu und beendet bei Erfolg den aktuellen Prozess.
+    /// Liefert `false`, wenn der Neustart fehlschlug - die aktuelle App bleibt dann
+    /// bewusst weiterlaufen (kein Zustand ohne laufende App), der Aufrufer muss in
+    /// diesem Fall selbst einen Fehler anzeigen.
+    func relaunchAndQuit(appURL: URL) async -> Bool
 }
 
 struct FileManagerUpdateAppSwapper: UpdateAppSwapping {
@@ -21,12 +24,16 @@ struct FileManagerUpdateAppSwapper: UpdateAppSwapping {
         }
     }
 
-    func relaunchAndQuit(appURL: URL) {
-        let configuration = NSWorkspace.OpenConfiguration()
-        NSWorkspace.shared.openApplication(at: appURL, configuration: configuration) { _, _ in
-            DispatchQueue.main.async {
-                NSApplication.shared.terminate(nil)
-            }
+    func relaunchAndQuit(appURL: URL) async -> Bool {
+        do {
+            _ = try await NSWorkspace.shared.openApplication(at: appURL, configuration: NSWorkspace.OpenConfiguration())
+        } catch {
+            return false
         }
+
+        await MainActor.run {
+            NSApplication.shared.terminate(nil)
+        }
+        return true
     }
 }
