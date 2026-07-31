@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+    <channel>
+        <title>Feedivo</title>
+        <link>https://raw.githubusercontent.com/martinfelder/feedivo-mac/main/docs/appcast.xml</link>
+        <description>Feedivo Release-Updates</description>
+        <language>de</language>
+        <!-- create_github_release.sh fügt hier bei jedem Release ein neues <item> ein -->
+    </channel>
+</rss>
