@@ -41,7 +41,7 @@ struct UpdateCheckerTests {
 
         let outcome = await checker.check(currentMarketingVersion: "1.0", currentBuildNumber: 11)
 
-        #expect(outcome == .upToDate)
+        #expect(outcome == .upToDate(latestKnownRelease: makeRelease(tag: "v1.0-11")))
     }
 
     @Test func checkLiefertUpToDateBeiLeererReleaseListe() async {
@@ -50,7 +50,7 @@ struct UpdateCheckerTests {
 
         let outcome = await checker.check(currentMarketingVersion: "1.0", currentBuildNumber: 11)
 
-        #expect(outcome == .upToDate)
+        #expect(outcome == .upToDate(latestKnownRelease: nil))
     }
 
     @Test func checkLiefertUpToDateBeiUnknownVergleichsergebnis() async {
@@ -59,7 +59,7 @@ struct UpdateCheckerTests {
 
         let outcome = await checker.check(currentMarketingVersion: "1.0", currentBuildNumber: 11)
 
-        #expect(outcome == .upToDate)
+        #expect(outcome == .upToDate(latestKnownRelease: makeRelease(tag: "nightly")))
     }
 
     @Test func checkLiefertFailedBeiFehlerImFetcher() async {

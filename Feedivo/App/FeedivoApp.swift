@@ -43,6 +43,9 @@ struct FeedivoApp: App {
 
     @State private var updateCheckReleasePresentation: GitHubRelease?
     @State private var showsUpdateCheckUpToDateAlert = false
+    // Nutzerwunsch: der "Kein Update"-Dialog soll zusätzlich zeigen, was
+    // installiert ist und was aktuell auf GitHub als Release existiert.
+    @State private var updateCheckUpToDateRelease: GitHubRelease?
     @State private var updateCheckErrorMessage: String?
     // Fix Whole-Branch-Review (Important): verhindert parallele/wiederholte
     // Update-Checks per Menü, während bereits einer läuft (analog zum
@@ -195,6 +198,8 @@ struct FeedivoApp: App {
                 }
                 .alert(L10n.updateCheckUpToDateTitle, isPresented: $showsUpdateCheckUpToDateAlert) {
                     Button(L10n.commonOK, role: .cancel) {}
+                } message: {
+                    Text(updateCheckUpToDateMessage)
                 }
                 .alert(
                     L10n.updateCheckErrorTitle,
@@ -410,6 +415,17 @@ struct FeedivoApp: App {
         )
     }
 
+    // Nutzerwunsch: zeigt im "Kein Update"-Dialog zusätzlich die installierte
+    // und die aktuell auf GitHub gefundene Version - Zeilenumbruch kommt aus
+    // dem lokalisierten Format-String selbst (\n in Localizable.xcstrings).
+    private var updateCheckUpToDateMessage: String {
+        let installedVersion = "\(AppVersionInfo.marketingVersion) (\(AppVersionInfo.buildNumber))"
+        if let tagName = updateCheckUpToDateRelease?.tagName {
+            return L10n.updateCheckUpToDateMessage(installedVersion: installedVersion, latestReleaseTag: tagName)
+        }
+        return L10n.updateCheckUpToDateMessageNoRelease(installedVersion: installedVersion)
+    }
+
     private func performManualUpdateCheck() {
         // Fix Whole-Branch-Review (Important): Hauptfenster öffnen/fokussieren,
         // BEVOR der Check läuft - sonst hängen Sheet/Alert an einem geschlossenen
@@ -434,7 +450,8 @@ struct FeedivoApp: App {
             switch outcome {
             case .updateAvailable(let release):
                 updateCheckReleasePresentation = release
-            case .upToDate:
+            case .upToDate(let latestKnownRelease):
+                updateCheckUpToDateRelease = latestKnownRelease
                 showsUpdateCheckUpToDateAlert = true
             case .failed(let message):
                 updateCheckErrorMessage = message

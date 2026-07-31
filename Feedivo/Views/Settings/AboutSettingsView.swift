@@ -18,6 +18,7 @@ struct AboutSettingsView: View {
     @State private var isChecking = false
     @State private var releasePresentation: GitHubRelease?
     @State private var showsUpToDateAlert = false
+    @State private var upToDateRelease: GitHubRelease?
     @State private var errorMessage: String?
 
     var body: some View {
@@ -86,6 +87,8 @@ struct AboutSettingsView: View {
         }
         .alert(L10n.updateCheckUpToDateTitle, isPresented: $showsUpToDateAlert) {
             Button(L10n.commonOK, role: .cancel) {}
+        } message: {
+            Text(upToDateMessage)
         }
         .alert(
             L10n.updateCheckErrorTitle,
@@ -116,11 +119,22 @@ struct AboutSettingsView: View {
             switch outcome {
             case .updateAvailable(let release):
                 releasePresentation = release
-            case .upToDate:
+            case .upToDate(let latestKnownRelease):
+                upToDateRelease = latestKnownRelease
                 showsUpToDateAlert = true
             case .failed(let message):
                 errorMessage = message
             }
         }
+    }
+
+    // Nutzerwunsch: zeigt im "Kein Update"-Dialog zusätzlich die installierte
+    // und die aktuell auf GitHub gefundene Version.
+    private var upToDateMessage: String {
+        let installedVersion = "\(AppVersionInfo.marketingVersion) (\(AppVersionInfo.buildNumber))"
+        if let tagName = upToDateRelease?.tagName {
+            return L10n.updateCheckUpToDateMessage(installedVersion: installedVersion, latestReleaseTag: tagName)
+        }
+        return L10n.updateCheckUpToDateMessageNoRelease(installedVersion: installedVersion)
     }
 }

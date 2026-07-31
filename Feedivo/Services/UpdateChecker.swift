@@ -6,7 +6,11 @@ import Foundation
 /// Reaktion zeigen, kein einfaches "still fehlgeschlagen" per throw.
 enum UpdateCheckOutcome: Equatable {
     case updateAvailable(GitHubRelease)
-    case upToDate
+    // Führt das zuletzt auf GitHub gefundene Release mit - nil nur, wenn die
+    // Release-Liste komplett leer war. Aufrufer zeigen damit im "Kein
+    // Update"-Dialog zusätzlich zur installierten Version auch die aktuell
+    // auf GitHub verfügbare Version an.
+    case upToDate(latestKnownRelease: GitHubRelease?)
     case failed(String)
 }
 
@@ -24,7 +28,7 @@ struct UpdateChecker {
         do {
             let releases = try await releaseFetching.fetchReleases()
             guard let latest = releases.first else {
-                return .upToDate
+                return .upToDate(latestKnownRelease: nil)
             }
 
             switch UpdateVersionComparator.compare(
@@ -35,7 +39,7 @@ struct UpdateChecker {
             case .updateAvailable(let release):
                 return .updateAvailable(release)
             case .upToDate, .unknown:
-                return .upToDate
+                return .upToDate(latestKnownRelease: latest)
             }
         } catch {
             return .failed(error.localizedDescription)

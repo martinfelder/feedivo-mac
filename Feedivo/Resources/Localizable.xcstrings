@@ -1,6 +1,62 @@
 {
   "sourceLanguage" : "de",
   "strings" : {
+    "updateCheck.upToDate.message" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installiert: %@\nNeueste Version auf GitHub: %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installed: %@\nLatest version on GitHub: %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installée : %@\nDernière version sur GitHub : %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installata: %@\nUltima versione su GitHub: %@"
+          }
+        }
+      }
+    },
+    "updateCheck.upToDate.message.noRelease" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installiert: %@\n(Auf GitHub wurden keine Releases gefunden.)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installed: %@\n(No releases found on GitHub.)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installée : %@\n(Aucune version trouvée sur GitHub.)"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installata: %@\n(Nessuna versione trovata su GitHub.)"
+          }
+        }
+      }
+    },
     "updateCheck.pendingBadge" : {
       "localizations" : {
         "de" : {

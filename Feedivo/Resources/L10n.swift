@@ -1152,4 +1152,10 @@ enum L10n {
         String.localizedStringWithFormat(String(localized: "updateCheck.versionLabel"), marketingVersion, buildNumber)
     }
     static let updateCheckPendingBadge = LocalizedStringKey("updateCheck.pendingBadge")
+    static func updateCheckUpToDateMessage(installedVersion: String, latestReleaseTag: String) -> String {
+        String.localizedStringWithFormat(String(localized: "updateCheck.upToDate.message"), installedVersion, latestReleaseTag)
+    }
+    static func updateCheckUpToDateMessageNoRelease(installedVersion: String) -> String {
+        String.localizedStringWithFormat(String(localized: "updateCheck.upToDate.message.noRelease"), installedVersion)
+    }
 }
