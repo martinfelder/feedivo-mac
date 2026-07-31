@@ -35,6 +35,16 @@ struct FeedivoApp: App {
     @AppStorage(SpotlightIndexingSettings.isEnabledKey)
     private var spotlightIndexingIsEnabled = SpotlightIndexingSettings.defaultIsEnabled
 
+    @AppStorage(UpdateCheckSettings.isAutomaticCheckEnabledKey)
+    private var updateCheckIsAutomaticCheckEnabled = UpdateCheckSettings.defaultIsAutomaticCheckEnabled
+
+    @AppStorage(UpdateCheckSettings.hasUnseenUpdateKey)
+    private var updateCheckHasUnseenUpdate = UpdateCheckSettings.defaultHasUnseenUpdate
+
+    @State private var updateCheckReleasePresentation: GitHubRelease?
+    @State private var showsUpdateCheckUpToDateAlert = false
+    @State private var updateCheckErrorMessage: String?
+
     // Feature 23.2: AppKit-Delegate fängt feedivo://-URLs zuverlässig ab —
     // auch beim Kaltstart, bevor die SwiftUI-View-Hierarchie existiert (siehe
     // FeedivoAppDelegate). Die geparste Aktion wird in dessen
@@ -131,6 +141,7 @@ struct FeedivoApp: App {
                     trimImageCacheToSelectedLimit()
                     ensureSpotlightBackfillIfNeeded()
                     scheduleBackgroundRefresh()
+                    performSilentUpdateCheckIfNeeded()
                 }
                 .onChange(of: backgroundRefreshIsEnabled) {
                     scheduleBackgroundRefresh()
@@ -156,11 +167,49 @@ struct FeedivoApp: App {
                 .onChange(of: spotlightIndexingIsEnabled) {
                     handleSpotlightIndexingToggleChange()
                 }
+                .sheet(item: $updateCheckReleasePresentation) { release in
+                    UpdateAvailableSheet(
+                        release: release,
+                        onOpenOnGitHub: {
+                            NSWorkspace.shared.open(release.htmlURL)
+                        },
+                        onDismiss: {
+                            updateCheckReleasePresentation = nil
+                        }
+                    )
+                }
+                .alert(L10n.updateCheckUpToDateTitle, isPresented: $showsUpdateCheckUpToDateAlert) {
+                    Button(L10n.commonOK, role: .cancel) {}
+                }
+                .alert(
+                    L10n.updateCheckErrorTitle,
+                    isPresented: Binding(
+                        get: { updateCheckErrorMessage != nil },
+                        set: { isPresented in
+                            if !isPresented {
+                                updateCheckErrorMessage = nil
+                            }
+                        }
+                    )
+                ) {
+                    Button(L10n.commonOK, role: .cancel) {}
+                } message: {
+                    Text(updateCheckErrorMessage ?? "")
+                }
         }
         .commands {
             ArticleCommands()
             FeedCommands()
             ViewCommands()
+            CommandGroup(after: .appInfo) {
+                Button(
+                    updateCheckHasUnseenUpdate
+                        ? "• \(L10n.updateCheckMenuItem)"
+                        : L10n.updateCheckMenuItem
+                ) {
+                    performManualUpdateCheck()
+                }
+            }
             // Entfernt den von SwiftUI automatisch bereitgestellten, aber funktionslosen
             // "Drucken..."-Menuepunkt (Datei-Menue, Standard-Tastenkombination Cmd+P).
             // Ohne diese Entfernung kollidiert er mit dem neuen Drucken-Button in
@@ -328,6 +377,46 @@ struct FeedivoApp: App {
                 try await SpotlightIndexingService.ensureBackfillIfNeeded(database: database)
             } catch {
                 AppLogger.dataAccess.error("Spotlight-Backfill: \(error.localizedDescription, privacy: .public)")
+            }
+        }
+    }
+
+    private func performManualUpdateCheck() {
+        // Nutzer schaut gerade hin - Badge sofort weg, unabhängig vom Ergebnis.
+        updateCheckHasUnseenUpdate = false
+        Task {
+            let outcome = await UpdateChecker().check(
+                currentMarketingVersion: AppVersionInfo.marketingVersion,
+                currentBuildNumber: AppVersionInfo.buildNumber
+            )
+            switch outcome {
+            case .updateAvailable(let release):
+                updateCheckReleasePresentation = release
+            case .upToDate:
+                showsUpdateCheckUpToDateAlert = true
+            case .failed(let message):
+                updateCheckErrorMessage = message
+            }
+        }
+    }
+
+    private func performSilentUpdateCheckIfNeeded() {
+        guard updateCheckIsAutomaticCheckEnabled else {
+            return
+        }
+        Task {
+            let outcome = await UpdateChecker().check(
+                currentMarketingVersion: AppVersionInfo.marketingVersion,
+                currentBuildNumber: AppVersionInfo.buildNumber
+            )
+            switch outcome {
+            case .updateAvailable:
+                updateCheckHasUnseenUpdate = true
+            case .upToDate:
+                updateCheckHasUnseenUpdate = false
+            case .failed(let message):
+                // Bewusst keine UI-Unterbrechung beim stillen Start-Check - nur Log.
+                AppLogger.dataAccess.error("Update-Check (Start): \(message, privacy: .public)")
             }
         }
     }

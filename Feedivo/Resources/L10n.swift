@@ -1137,4 +1137,7 @@ enum L10n {
     }
     static let updateCheckOpenOnGitHubButton = LocalizedStringKey("updateCheck.openOnGitHub.button")
     static let updateCheckDismissButton = LocalizedStringKey("updateCheck.dismiss.button")
+    static let updateCheckMenuItem = String(localized: "updateCheck.menuItem")
+    static let updateCheckUpToDateTitle = LocalizedStringKey("updateCheck.upToDate.title")
+    static let updateCheckErrorTitle = LocalizedStringKey("updateCheck.error.title")
 }
