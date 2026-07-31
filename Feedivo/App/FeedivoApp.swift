@@ -216,12 +216,19 @@ struct FeedivoApp: App {
             ArticleCommands()
             FeedCommands()
             ViewCommands()
+            // Bewusst statischer Titel (kein "•"-Präfix mehr bei hasUnseenUpdate) — ein
+            // dynamischer Menü-Titel zwingt SwiftUI, das komplette App-Menü live per
+            // NSMenu.setItemArray: neu aufzubauen, was hier reproduzierbar zu einem
+            // AppKit-internen Absturz führte (NSRangeException in
+            // NSContextMenuImpl.preferredViewHeightForMenuItemAtIndex:, ausgelöst durch
+            // die neuere "Liquid Glass"-Menü-Darstellung, die intern per NSTableView
+            // rendert und beim Live-Umbau des Item-Arrays race'd — Nutzer-Report
+            // 2026-07-31, reproduziert direkt nach "Nach Updates suchen…" +
+            // Bestätigen des "Kein Update"-Alerts). Der Badge-Hinweis lebt jetzt nur
+            // noch im "Über"-Tab, hasUnseenUpdate wird weiterhin gepflegt, aber nicht
+            // mehr für den Menü-Titel verwendet.
             CommandGroup(after: .appInfo) {
-                Button(
-                    updateCheckHasUnseenUpdate
-                        ? "• \(L10n.updateCheckMenuItem)"
-                        : L10n.updateCheckMenuItem
-                ) {
+                Button(L10n.updateCheckMenuItem) {
                     performManualUpdateCheck()
                 }
             }

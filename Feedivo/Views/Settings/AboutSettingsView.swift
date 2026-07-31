@@ -58,6 +58,20 @@ struct AboutSettingsView: View {
                     if isChecking {
                         ProgressView()
                             .controlSize(.small)
+                    } else if hasUnseenUpdate {
+                        // Ersetzt den ursprünglich im App-Menü geplanten "•"-Präfix am
+                        // Menü-Titel (siehe Kommentar in FeedivoApp.swift) — ein
+                        // dynamischer NSMenu-Titel löste dort einen AppKit-Absturz aus.
+                        // Als reine SwiftUI-View ist dieses Badge hier unkritisch, da es
+                        // kein NSMenu-Item-Array live umbaut.
+                        HStack(spacing: 4) {
+                            Circle()
+                                .fill(Color.orange)
+                                .frame(width: 6, height: 6)
+                            Text(L10n.updateCheckPendingBadge)
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundStyle(.orange)
+                        }
                     }
                 }
                 .padding(.top, 4)
