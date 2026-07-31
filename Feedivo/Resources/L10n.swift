@@ -1132,4 +1132,9 @@ enum L10n {
     static let firstRunTableHeaderFolder = String(localized: "firstRun.tableHeader.folder")
     static let firstRunTableHeaderStatus = String(localized: "firstRun.tableHeader.status")
     static let firstRunTitlebarTitle = String(localized: "firstRun.titlebar.title")
+    static func updateCheckAvailableTitle(tagName: String) -> String {
+        String.localizedStringWithFormat(String(localized: "updateCheck.available.title"), tagName)
+    }
+    static let updateCheckOpenOnGitHubButton = LocalizedStringKey("updateCheck.openOnGitHub.button")
+    static let updateCheckDismissButton = LocalizedStringKey("updateCheck.dismiss.button")
 }
