@@ -3,7 +3,9 @@ import Foundation
 protocol UpdateArchiveExtracting: Sendable {
     /// Entpackt die ZIP-Datei in ein neues temporäres Verzeichnis, entfernt das
     /// Quarantäne-Flag von der enthaltenen .app und liefert deren URL zurück.
-    func extractAndUnquarantine(zipURL: URL) throws -> URL
+    /// `nonisolated` + `async`, damit `ditto`/`xattr` (Process.waitUntilExit blockiert)
+    /// nicht synchron auf dem MainActor laufen (Whole-Branch-Review-Fund).
+    nonisolated func extractAndUnquarantine(zipURL: URL) async throws -> URL
 }
 
 /// Nutzt `ditto` (dasselbe Tool, mit dem `scripts/create_github_release.sh` die ZIP
@@ -13,7 +15,7 @@ protocol UpdateArchiveExtracting: Sendable {
 /// veröffentlichte Prüfsumme verifiziert (siehe UpdateInstaller) - das ist der
 /// Vertrauensanker, der die Quarantäne-Entfernung rechtfertigt.
 struct DittoUpdateArchiveExtractor: UpdateArchiveExtracting {
-    func extractAndUnquarantine(zipURL: URL) throws -> URL {
+    nonisolated func extractAndUnquarantine(zipURL: URL) async throws -> URL {
         let destinationDirectory = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: destinationDirectory, withIntermediateDirectories: true)
@@ -30,7 +32,7 @@ struct DittoUpdateArchiveExtractor: UpdateArchiveExtracting {
         return appURL
     }
 
-    private func run(_ executablePath: String, arguments: [String]) throws {
+    nonisolated private func run(_ executablePath: String, arguments: [String]) throws {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: executablePath)
         process.arguments = arguments

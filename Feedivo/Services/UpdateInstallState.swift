@@ -16,6 +16,7 @@ enum UpdateInstallError: Equatable, LocalizedError {
     case unzipFailed
     case folderAccessDenied
     case replaceFailed
+    case relaunchFailed
 
     var errorDescription: String? {
         switch self {
@@ -29,6 +30,8 @@ enum UpdateInstallError: Equatable, LocalizedError {
             String(localized: "updateInstall.error.folderAccessDenied")
         case .replaceFailed:
             String(localized: "updateInstall.error.replaceFailed")
+        case .relaunchFailed:
+            String(localized: "updateInstall.error.relaunchFailed")
         }
     }
 
@@ -39,7 +42,7 @@ enum UpdateInstallError: Equatable, LocalizedError {
         switch self {
         case .downloadFailed, .checksumMismatch, .unzipFailed:
             true
-        case .folderAccessDenied, .replaceFailed:
+        case .folderAccessDenied, .replaceFailed, .relaunchFailed:
             false
         }
     }

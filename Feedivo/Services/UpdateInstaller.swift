@@ -18,7 +18,15 @@ final class UpdateInstaller {
     private let currentAppURL: URL
 
     private var extractedAppURL: URL?
-    private var isCancelled = false
+
+    // Ersetzt ein vorheriges, geteiltes isCancelled-Bool: ein einzelnes Bool konnte von
+    // einem zweiten startDownloadAndVerify-Aufruf zurückgesetzt werden, während der
+    // ERSTE (eigentlich schon abgebrochene) Aufruf noch lief - seine guard-Checks gegen
+    // das dann bereits wieder auf false stehende Flag hätten fälschlich "nicht
+    // abgebrochen" ergeben und den State des zweiten, echten Versuchs überschrieben
+    // (Whole-Branch-Review-Fund). Jeder Aufruf erhöht den Zähler und merkt sich seine
+    // eigene Generation lokal - nur die zuletzt gestartete Generation darf noch state setzen.
+    private var currentGeneration = 0
 
     // Hinweis zur Abweichung von der Brief-Vorlage: Die Standardwerte für
     // `downloader`/`extractor`/`locationGrantor`/`swapper` sind hier `nil` statt direkt
@@ -48,7 +56,8 @@ final class UpdateInstaller {
     }
 
     func startDownloadAndVerify(release: GitHubRelease) async {
-        isCancelled = false
+        currentGeneration += 1
+        let myGeneration = currentGeneration
         extractedAppURL = nil
 
         guard let zipAsset = GitHubReleaseAsset.zipAsset(in: release.assets) else {
@@ -62,30 +71,32 @@ final class UpdateInstaller {
             let zipURL = try await downloader.download(from: zipAsset.browserDownloadURL) { [weak self] fraction, downloaded, total in
                 guard let self else { return }
                 Task { @MainActor in
-                    guard !self.isCancelled else { return }
+                    guard myGeneration == self.currentGeneration else { return }
                     self.state = .downloading(fractionCompleted: fraction, downloadedBytes: downloaded, totalBytes: total)
                 }
             }
-            guard !isCancelled else { return }
+            guard myGeneration == currentGeneration else { return }
 
             state = .verifying
             try await verifyChecksum(zipURL: zipURL, release: release)
-            guard !isCancelled else { return }
+            guard myGeneration == currentGeneration else { return }
 
-            let appURL = try extractor.extractAndUnquarantine(zipURL: zipURL)
-            guard !isCancelled else { return }
+            let appURL = try await extractor.extractAndUnquarantine(zipURL: zipURL)
+            guard myGeneration == currentGeneration else { return }
 
             extractedAppURL = appURL
             state = .readyToInstall
         } catch let error as UpdateInstallError {
+            guard myGeneration == currentGeneration else { return }
             state = .failed(error)
         } catch {
+            guard myGeneration == currentGeneration else { return }
             state = .failed(.downloadFailed)
         }
     }
 
     func cancelDownload() {
-        isCancelled = true
+        currentGeneration += 1
         state = .idle
     }
 
@@ -97,11 +108,18 @@ final class UpdateInstaller {
             _ = try await locationGrantor.grantedInstallDirectory(
                 currentAppDirectory: currentAppURL.deletingLastPathComponent()
             )
-            try swapper.replaceCurrentApp(at: currentAppURL, withNewAppAt: extractedAppURL)
+            try await swapper.replaceCurrentApp(at: currentAppURL, withNewAppAt: extractedAppURL)
+            // Der Austausch ist ab hier bereits erfolgreich abgeschlossen - extractedAppURL
+            // zeigt auf einen jetzt nicht mehr existierenden Pfad (replaceItemAt verschiebt
+            // die Quelle). Löschen, damit ein erneuter install()-Versuch nach einem
+            // fehlgeschlagenen Neustart NICHT nochmal versucht, dieselbe (verschwundene)
+            // Datei zu verschieben (Whole-Branch-Review-Fund: sonst endlose .replaceFailed-
+            // Schleife trotz bereits erfolgreich installierter neuer Version).
+            self.extractedAppURL = nil
 
             let relaunched = await swapper.relaunchAndQuit(appURL: currentAppURL)
             if !relaunched {
-                state = .failed(.replaceFailed)
+                state = .failed(.relaunchFailed)
             }
         } catch let error as UpdateInstallError {
             state = .failed(error)
@@ -120,11 +138,20 @@ final class UpdateInstaller {
             throw UpdateInstallError.checksumMismatch
         }
 
-        let zipData = try Data(contentsOf: zipURL)
-        let computedHex = UpdateChecksumVerifier.sha256Hex(of: zipData)
+        let computedHex = try await computeChecksum(zipURL: zipURL)
 
         guard UpdateChecksumVerifier.matches(computedHex: computedHex, expectedHex: expectedHex) else {
             throw UpdateInstallError.checksumMismatch
         }
+    }
+
+    // nonisolated + async, damit das Lesen der kompletten ZIP-Datei plus SHA256-Hashing
+    // (potenziell mehrere MB) NICHT synchron auf dem MainActor läuft und die UI währenddessen
+    // einfriert (Whole-Branch-Review-Fund, siehe auch den bereits bestehenden CLAUDE.md-
+    // Gotcha zur Spotlight-Backfill-Funktion: Task.detached allein reicht dafür nicht,
+    // die Funktion selbst muss nonisolated+async sein).
+    nonisolated private func computeChecksum(zipURL: URL) async throws -> String {
+        let zipData = try Data(contentsOf: zipURL)
+        return UpdateChecksumVerifier.sha256Hex(of: zipData)
     }
 }

@@ -1174,6 +1174,7 @@ enum L10n {
     static let updateInstallErrorUnzipFailed = "updateInstall.error.unzipFailed"
     static let updateInstallErrorFolderAccessDenied = "updateInstall.error.folderAccessDenied"
     static let updateInstallErrorReplaceFailed = "updateInstall.error.replaceFailed"
+    static let updateInstallErrorRelaunchFailed = "updateInstall.error.relaunchFailed"
     static let updateInstallFolderPickerMessage = "updateInstall.folderPicker.message"
     static let updateInstallFolderPickerPrompt = "updateInstall.folderPicker.prompt"
     static let updateCheckDownloadButton = LocalizedStringKey("updateCheck.download.button")
@@ -1184,6 +1185,7 @@ enum L10n {
     static let updateCheckReadyToInstallMessage = LocalizedStringKey("updateCheck.readyToInstall.message")
     static let updateCheckReadyToInstallButton = LocalizedStringKey("updateCheck.readyToInstall.button")
     static let updateCheckRetryButton = LocalizedStringKey("updateCheck.retry.button")
+    static let updateCheckQuitButton = LocalizedStringKey("updateCheck.quit.button")
     // Korrektur nach Task-10-Review (Nutzerentscheid: fixen): .installing zeigte
     // fälschlich denselben Text wie .readyToInstall an - eigener Key für "Wird
     // installiert...", damit der Nutzer während des laufenden Austauschs nicht liest,

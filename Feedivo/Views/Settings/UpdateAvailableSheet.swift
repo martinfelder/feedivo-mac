@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 /// Mini-Reader-Sheet für Release-Notes eines gefundenen Updates.
 /// Rendert release.bodyHTML über dieselbe ReaderContentRenderer/
@@ -278,12 +279,18 @@ struct UpdateAvailableSheet: View {
                 Task { await installer.install() }
             }
         case .failed(let error):
-            RuleDialogButton(titleKey: L10n.updateCheckRetryButton, style: .primary, theme: theme) {
-                Task {
-                    if error.requiresFullRedownload {
-                        await installer.startDownloadAndVerify(release: release)
-                    } else {
-                        await installer.install()
+            if error == .relaunchFailed {
+                RuleDialogButton(titleKey: L10n.updateCheckQuitButton, style: .primary, theme: theme) {
+                    NSApplication.shared.terminate(nil)
+                }
+            } else {
+                RuleDialogButton(titleKey: L10n.updateCheckRetryButton, style: .primary, theme: theme) {
+                    Task {
+                        if error.requiresFullRedownload {
+                            await installer.startDownloadAndVerify(release: release)
+                        } else {
+                            await installer.install()
+                        }
                     }
                 }
             }

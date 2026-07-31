@@ -20,7 +20,7 @@ private struct FakeDownloader: UpdateAssetDownloading {
 private struct FakeExtractor: UpdateArchiveExtracting {
     var result: Result<URL, Error>
 
-    func extractAndUnquarantine(zipURL: URL) throws -> URL {
+    func extractAndUnquarantine(zipURL: URL) async throws -> URL {
         try result.get()
     }
 }
@@ -38,7 +38,7 @@ private final class FakeSwapper: UpdateAppSwapping, @unchecked Sendable {
     var relaunchSucceeds = true
     var didRelaunch = false
 
-    func replaceCurrentApp(at currentAppURL: URL, withNewAppAt newAppURL: URL) throws {
+    func replaceCurrentApp(at currentAppURL: URL, withNewAppAt newAppURL: URL) async throws {
         if let replaceError { throw replaceError }
     }
 
@@ -214,7 +214,13 @@ struct UpdateInstallerTests {
         #expect(swapper.didRelaunch)
     }
 
-    @Test func fehlgeschlagenerNeustartFuehrtZuReplaceFailedStattStillerBlockade() async {
+    // Korrektur nach finaler Whole-Branch-Review (Nutzerentscheid: fixen): der Austausch
+    // (replaceItemAt) selbst war hier bereits erfolgreich - nur der anschließende Neustart
+    // schlug fehl. `.replaceFailed` hätte "Erneut versuchen" fälschlich dazu gebracht, den
+    // (nicht mehr existierenden) extrahierten App-Ordner erneut verschieben zu wollen -
+    // endlose Fehlschlagsschleife trotz bereits erfolgreicher Installation. Erwartet jetzt
+    // den eigenen `.relaunchFailed`-Fall statt `.replaceFailed`.
+    @Test func fehlgeschlagenerNeustartFuehrtZuRelaunchFailedStattStillerBlockade() async {
         let zipContent = "fake-zip-bytes".data(using: .utf8)!
         let expectedHex = UpdateChecksumVerifier.sha256Hex(of: zipContent)
         let (release, downloadResults) = makeRelease(zipContent: zipContent, checksumContent: expectedHex)
@@ -232,7 +238,7 @@ struct UpdateInstallerTests {
         await installer.startDownloadAndVerify(release: release)
         await installer.install()
 
-        #expect(installer.state == .failed(.replaceFailed))
+        #expect(installer.state == .failed(.relaunchFailed))
         #expect(!swapper.didRelaunch)
     }
 

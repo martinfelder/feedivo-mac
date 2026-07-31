@@ -1,6 +1,62 @@
 {
   "sourceLanguage" : "de",
   "strings" : {
+    "updateCheck.quit.button" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jetzt beenden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quit Now"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quitter maintenant"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esci ora"
+          }
+        }
+      }
+    },
+    "updateInstall.error.relaunchFailed" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die neue Version wurde installiert, konnte aber nicht automatisch gestartet werden. Bitte beende Feedivo und öffne es erneut."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The new version was installed but couldn't be started automatically. Please quit Feedivo and reopen it."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La nouvelle version a été installée mais n'a pas pu être démarrée automatiquement. Veuillez quitter Feedivo et le rouvrir."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La nuova versione è stata installata ma non è stato possibile avviarla automaticamente. Chiudi Feedivo e riaprilo."
+          }
+        }
+      }
+    },
     "updateCheck.download.button" : {
       "localizations" : {
         "de" : {

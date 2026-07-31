@@ -12,6 +12,7 @@ struct UpdateInstallErrorTests {
     @Test func ordnerZugriffUndAustauschFehlerBrauchenKeinenNeuenDownload() {
         #expect(!UpdateInstallError.folderAccessDenied.requiresFullRedownload)
         #expect(!UpdateInstallError.replaceFailed.requiresFullRedownload)
+        #expect(!UpdateInstallError.relaunchFailed.requiresFullRedownload)
     }
 
     @Test func jederFehlerHatEineNichtLeereBeschreibung() {
@@ -20,7 +21,8 @@ struct UpdateInstallErrorTests {
             .checksumMismatch,
             .unzipFailed,
             .folderAccessDenied,
-            .replaceFailed
+            .replaceFailed,
+            .relaunchFailed
         ] {
             #expect(!(error.errorDescription ?? "").isEmpty)
         }
