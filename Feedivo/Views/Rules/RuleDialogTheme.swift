@@ -38,7 +38,7 @@ struct RuleDialogTheme {
             text = Color(hex: 0xF5F5F7)
             text2 = Color(hex: 0x9A9AA0)
             border = Color.white.opacity(0.12)
-            accent = Color(hex: 0x0A84FF)
+            accent = Color(hex: 0x3D5FEE)
             track = Color(hex: 0x48484B)
             pill = Color(hex: 0x6A6A6E)
             input = Color(hex: 0x1F1F22)
@@ -53,7 +53,7 @@ struct RuleDialogTheme {
             text = Color(hex: 0x1D1D1F)
             text2 = Color(hex: 0x86868B)
             border = Color.black.opacity(0.10)
-            accent = Color(hex: 0x0A84FF)
+            accent = Color(hex: 0x3D5FEE)
             track = Color(hex: 0xE9E9EB)
             pill = Color(hex: 0xFFFFFF)
             input = Color(hex: 0xFFFFFF)
@@ -66,7 +66,7 @@ struct RuleDialogTheme {
         destructiveText = Color(hex: 0xD70015)
         destructiveTint = Color(hex: 0xFF453A).opacity(0.10)
         destructiveBorder = Color(hex: 0xFF453A).opacity(0.35)
-        selectionTint = Color(hex: 0x0A84FF).opacity(0.05)
+        selectionTint = Color(hex: 0x3D5FEE).opacity(0.05)
     }
 }
 
@@ -261,7 +261,7 @@ struct RuleDialogCheckbox: View {
                 }
             }
             .frame(width: 18, height: 18)
-            .shadow(color: isOn ? Color(hex: 0x0A84FF).opacity(0.4) : .black.opacity(0.04), radius: isOn ? 1 : 0.5, x: 0, y: 1)
+            .shadow(color: isOn ? Color(hex: 0x3D5FEE).opacity(0.4) : .black.opacity(0.04), radius: isOn ? 1 : 0.5, x: 0, y: 1)
             .animation(.easeInOut(duration: 0.12), value: isOn)
     }
 }

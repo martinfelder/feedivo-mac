@@ -240,7 +240,7 @@ struct ArticleRowView: View {
                 .frame(width: 8, height: 8)
         } else {
             Circle()
-                .fill(.blue)
+                .fill(Color.accentColor)
                 .frame(width: 8, height: 8)
                 .help(L10n.articleRowUnreadText)
         }

@@ -102,7 +102,7 @@ struct ArticleMetadataInspectorView: View {
     private var statusStrip: some View {
         HStack(spacing: 6) {
             Circle()
-                .fill(currentSnapshot.isRead ? Color.green : Color.blue)
+                .fill(currentSnapshot.isRead ? Color.green : Color.accentColor)
                 .frame(width: 8, height: 8)
 
             Text(currentSnapshot.isRead ? L10n.articleRowMarkUnread : L10n.articleRowMarkRead)
