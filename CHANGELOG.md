@@ -13,6 +13,27 @@ siehe `git log`.
 
 <!-- versions -->
 
+## [1.0 (12)] - 2026-07-31
+
+- chore: Xcode-Workspace-State
+- Text: "Aktuell verfügbare Version" statt Fehlertext bei leerer Release-Liste
+- Fix: "Kein Update"-Dialog auf eigenes Sheet umgestellt (Farbe + Zeile fehlten)
+- Feat: Versionsnummer in Update-Dialogen grün/rot einfärben
+- Text: "Neuste verfügbare Version" statt "Neueste Version auf GitHub"
+- Feat: "Kein Update"-Dialog zeigt installierte + aktuelle GitHub-Version
+- Fix: AppKit-Absturz durch dynamischen Menü-Titel behoben (Nutzer-Report)
+- Fix: Whole-Branch-Review-Befunde behoben (Fenster-Fallback, Re-Entrancy-Guard, Decoding-Fehler-Logging)
+- Feat: Neuer Settings-Tab „Über" mit Update-Check (Task 6)
+- Refactor: Duplizierten UpdateChecker-Aufruf in FeedivoApp.swift zusammengeführt (Task 5 Review-Fix)
+- Feat: App-Menü + stiller Start-Check für Update-Prüfung (Task 5)
+- Fix: Links in UpdateAvailableSheet öffnen zuverlässig im Standardbrowser (Task 4 Review-Fix)
+- Feat: UpdateAvailableSheet (Mini-Reader für Release-Notes) (Task 4)
+- Feat: Stateless UpdateChecker-Orchestrator + UpdateCheckSettings (Task 3)
+- Feat: GitHubReleaseCheckService für Update-Prüfung (Task 2)
+- Feat: GitHubRelease-Modell + Versionsvergleich für Update-Prüfung (Task 1)
+- Docs: Implementierungsplan für Update-Prüfung über GitHub Releases
+- Docs: Design-Spec für Update-Prüfung über GitHub Releases
+
 ## [1.0 (11)] - 2026-07-30
 
 - Feat: Sidebar-Header in Blau + graue Zähler-Badges mit dunklerem Rahmen
