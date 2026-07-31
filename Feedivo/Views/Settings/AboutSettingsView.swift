@@ -88,7 +88,7 @@ struct AboutSettingsView: View {
         .alert(L10n.updateCheckUpToDateTitle, isPresented: $showsUpToDateAlert) {
             Button(L10n.commonOK, role: .cancel) {}
         } message: {
-            Text(upToDateMessage)
+            upToDateMessage
         }
         .alert(
             L10n.updateCheckErrorTitle,
@@ -128,13 +128,17 @@ struct AboutSettingsView: View {
         }
     }
 
-    // Nutzerwunsch: zeigt im "Kein Update"-Dialog zusätzlich die installierte
-    // und die aktuell auf GitHub gefundene Version.
-    private var upToDateMessage: String {
+    // Nutzerwunsch: zeigt im "Kein Update"-Dialog die installierte Version
+    // grün eingefärbt (bestätigt aktuell) - siehe identischer Kommentar in
+    // FeedivoApp.swift, dieselbe Logik unabhängig für diesen Aufrufort.
+    @ViewBuilder
+    private var upToDateMessage: some View {
         let installedVersion = "\(AppVersionInfo.marketingVersion) (\(AppVersionInfo.buildNumber))"
-        if let tagName = upToDateRelease?.tagName {
-            return L10n.updateCheckUpToDateMessage(installedVersion: installedVersion, latestReleaseTag: tagName)
+        if upToDateRelease != nil {
+            Text(L10n.updateCheckInstalledLabelPrefix)
+                + Text(installedVersion).foregroundColor(.green).fontWeight(.semibold)
+        } else {
+            Text(L10n.updateCheckUpToDateMessageNoRelease(installedVersion: installedVersion))
         }
-        return L10n.updateCheckUpToDateMessageNoRelease(installedVersion: installedVersion)
     }
 }

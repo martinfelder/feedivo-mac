@@ -18,6 +18,10 @@ struct UpdateAvailableSheet: View {
         ReaderContentRenderer.blocks(summary: nil, content: release.bodyHTML, fallbackImageURL: nil)
     }
 
+    private var installedVersion: String {
+        "\(AppVersionInfo.marketingVersion) (\(AppVersionInfo.buildNumber))"
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 4) {
@@ -29,6 +33,18 @@ struct UpdateAvailableSheet: View {
                         .font(.system(size: 12))
                         .foregroundStyle(.secondary)
                 }
+
+                // Nutzerwunsch: installierte Version rot (veraltet), gefolgt
+                // von der neuen, verfügbaren Version - Pendant zur grünen
+                // Anzeige im "Kein Update"-Dialog (FeedivoApp.swift/
+                // AboutSettingsView.swift).
+                (
+                    Text(L10n.updateCheckInstalledLabelPrefix)
+                        + Text(installedVersion).foregroundColor(.red).fontWeight(.semibold)
+                        + Text(verbatim: " → ")
+                        + Text(release.tagName)
+                )
+                .font(.system(size: 12))
             }
 
             ScrollView {

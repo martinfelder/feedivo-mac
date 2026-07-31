@@ -1,30 +1,30 @@
 {
   "sourceLanguage" : "de",
   "strings" : {
-    "updateCheck.upToDate.message" : {
+    "updateCheck.installedLabelPrefix" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Installiert: %@\nNeuste verfügbare Version: %@"
+            "value" : "Installiert: "
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Installed: %@\nLatest available version: %@"
+            "value" : "Installed: "
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Installée : %@\nDernière version disponible : %@"
+            "value" : "Installée : "
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Installata: %@\nUltima versione disponibile: %@"
+            "value" : "Installata: "
           }
         }
       }

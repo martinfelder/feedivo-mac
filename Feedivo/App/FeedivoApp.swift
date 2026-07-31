@@ -199,7 +199,7 @@ struct FeedivoApp: App {
                 .alert(L10n.updateCheckUpToDateTitle, isPresented: $showsUpdateCheckUpToDateAlert) {
                     Button(L10n.commonOK, role: .cancel) {}
                 } message: {
-                    Text(updateCheckUpToDateMessage)
+                    updateCheckUpToDateMessage
                 }
                 .alert(
                     L10n.updateCheckErrorTitle,
@@ -415,15 +415,20 @@ struct FeedivoApp: App {
         )
     }
 
-    // Nutzerwunsch: zeigt im "Kein Update"-Dialog zusätzlich die installierte
-    // und die aktuell auf GitHub gefundene Version - Zeilenumbruch kommt aus
-    // dem lokalisierten Format-String selbst (\n in Localizable.xcstrings).
-    private var updateCheckUpToDateMessage: String {
+    // Nutzerwunsch: zeigt im "Kein Update"-Dialog die installierte Version
+    // grün eingefärbt (bestätigt aktuell) - nur die Versionsnummer selbst
+    // trägt die Farbe, per Text-Konkatenation statt eines einzelnen
+    // formatierten Strings. Ohne gefundenes Release (leere GitHub-Liste)
+    // bleibt der Hinweistext ungefärbt, da dort kein Vergleich stattfand.
+    @ViewBuilder
+    private var updateCheckUpToDateMessage: some View {
         let installedVersion = "\(AppVersionInfo.marketingVersion) (\(AppVersionInfo.buildNumber))"
-        if let tagName = updateCheckUpToDateRelease?.tagName {
-            return L10n.updateCheckUpToDateMessage(installedVersion: installedVersion, latestReleaseTag: tagName)
+        if updateCheckUpToDateRelease != nil {
+            Text(L10n.updateCheckInstalledLabelPrefix)
+                + Text(installedVersion).foregroundColor(.green).fontWeight(.semibold)
+        } else {
+            Text(L10n.updateCheckUpToDateMessageNoRelease(installedVersion: installedVersion))
         }
-        return L10n.updateCheckUpToDateMessageNoRelease(installedVersion: installedVersion)
     }
 
     private func performManualUpdateCheck() {
