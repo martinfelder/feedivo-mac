@@ -2041,3 +2041,43 @@ computer-use für native macOS-Apps in dieser Umgebung verfügbar ist:
 git status --short
 # Falls leer: nichts zu committen, Plan abgeschlossen.
 ```
+
+---
+
+## Nachtrag: Fix-Welle nach finaler Whole-Branch-Review (Nutzerentscheid: fixen)
+
+Die finale Review fand vier Befunde, die keine Einzel-Task-Review sehen konnte:
+
+1. **Kritisch:** `install()` meldete einen fehlgeschlagenen Neustart als `.replaceFailed`,
+   obwohl `replaceItemAt` die neue App bereits erfolgreich verschoben hatte - "Erneut
+   versuchen" hätte dieselbe (nicht mehr existierende) Quelldatei erneut zu verschieben
+   versucht → endlose Fehlschlagsschleife trotz bereits erfolgreicher Installation.
+   Fix: neuer `UpdateInstallError.relaunchFailed`-Fall, `extractedAppURL` wird nach
+   erfolgreichem Austausch gelöscht, UI zeigt einen "Jetzt beenden"-Button statt "Erneut
+   versuchen" für diesen Fall.
+2. **Kritisch:** `relaunchAndQuit` rief `openApplication` mit Standard-Konfiguration auf
+   demselben, gerade noch laufenden Bundle-Pfad auf - da `createsNewApplicationInstance`
+   standardmäßig `false` ist, aktiviert macOS wahrscheinlich nur die bereits laufende
+   (alte) Instanz statt eine neue zu starten, `terminate(nil)` beendet sie danach. Fix:
+   `configuration.createsNewApplicationInstance = true`.
+3. **Wichtig:** Der komplette Verifikations-/Entpack-/Austausch-Pfad lief synchron auf dem
+   MainActor (implizit durch `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`, derselbe bereits
+   dokumentierte Gotcha wie beim Spotlight-Backfill) - bei größeren Downloads würde die UI
+   dabei einfrieren. Fix: `UpdateArchiveExtracting.extractAndUnquarantine`,
+   `UpdateAppSwapping.replaceCurrentApp` und die SHA256-Berechnung sind jetzt `nonisolated`
+   (+ async, wo nötig).
+4. **Wichtig:** Das geteilte `isCancelled`-Bool wurde von einem zweiten
+   `startDownloadAndVerify`-Aufruf zurückgesetzt, während ein erster, eigentlich schon
+   abgebrochener Aufruf noch lief - dessen `guard`-Prüfungen gegen das dann wieder auf
+   `false` stehende Flag hätten fälschlich "nicht abgebrochen" ergeben und den State des
+   zweiten, echten Versuchs überschreiben können. Fix: Generationszähler
+   (`currentGeneration`) statt geteiltem Bool, jeder Aufruf prüft gegen seine eigene,
+   lokal gemerkte Generation.
+
+Der bestrittene Befund zum Security-Scoped-Bookmark-Entitlement (App-Scope-Entitlement
+angeblich nötig) bleibt bewusst offen für den manuellen Live-Test - nach eigener Einschätzung
+wahrscheinlich ein Fehlalarm (das Standard-Apple-Muster für "Zugriff auf eine vom Nutzer im
+Open-Panel gewählte Datei über Neustarts hinweg merken" braucht laut Dokumentation kein
+zusätzliches Entitlement über `files.user-selected.read-write` hinaus), zeigt sich aber sofort
+beim Live-Test (Checkliste Punkt 5: Ordner-Dialog darf beim zweiten Update nicht erneut
+erscheinen).
