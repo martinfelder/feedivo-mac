@@ -293,7 +293,6 @@ struct SQLiteReaderView: View {
             }
             .labelStyle(.titleAndIcon)
             .buttonStyle(.bordered)
-            .controlSize(.small)
             .symbolVariant(isMetadataInspectorPresented ? .fill : .none)
             .help(L10n.readerInspectorButton)
         }
