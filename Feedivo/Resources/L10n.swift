@@ -1160,4 +1160,18 @@ enum L10n {
     static func updateCheckLatestAvailableLabel(tagName: String) -> String {
         String.localizedStringWithFormat(String(localized: "updateCheck.latestAvailableLabel"), tagName)
     }
+    // Kategorie-Überschriften für die gruppierten Changelog-Zeilen im
+    // Update-verfügbar-Dialog, siehe UpdateReleaseNoteCategorizer.
+    static let updateCheckCategoryFeature = LocalizedStringKey("updateCheck.category.feature")
+    static let updateCheckCategoryDesign = LocalizedStringKey("updateCheck.category.design")
+    static let updateCheckCategoryFix = LocalizedStringKey("updateCheck.category.fix")
+    static let updateCheckCategoryRefactor = LocalizedStringKey("updateCheck.category.refactor")
+    static let updateCheckCategoryText = LocalizedStringKey("updateCheck.category.text")
+    static let updateCheckCategoryDocs = LocalizedStringKey("updateCheck.category.docs")
+    static let updateCheckCategoryOther = LocalizedStringKey("updateCheck.category.other")
+    static let updateInstallErrorDownloadFailed = "updateInstall.error.downloadFailed"
+    static let updateInstallErrorChecksumMismatch = "updateInstall.error.checksumMismatch"
+    static let updateInstallErrorUnzipFailed = "updateInstall.error.unzipFailed"
+    static let updateInstallErrorFolderAccessDenied = "updateInstall.error.folderAccessDenied"
+    static let updateInstallErrorReplaceFailed = "updateInstall.error.replaceFailed"
 }
