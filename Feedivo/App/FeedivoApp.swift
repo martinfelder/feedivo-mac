@@ -381,14 +381,18 @@ struct FeedivoApp: App {
         }
     }
 
+    private func runUpdateCheck() async -> UpdateCheckOutcome {
+        await UpdateChecker().check(
+            currentMarketingVersion: AppVersionInfo.marketingVersion,
+            currentBuildNumber: AppVersionInfo.buildNumber
+        )
+    }
+
     private func performManualUpdateCheck() {
         // Nutzer schaut gerade hin - Badge sofort weg, unabhängig vom Ergebnis.
         updateCheckHasUnseenUpdate = false
         Task {
-            let outcome = await UpdateChecker().check(
-                currentMarketingVersion: AppVersionInfo.marketingVersion,
-                currentBuildNumber: AppVersionInfo.buildNumber
-            )
+            let outcome = await runUpdateCheck()
             switch outcome {
             case .updateAvailable(let release):
                 updateCheckReleasePresentation = release
@@ -405,10 +409,7 @@ struct FeedivoApp: App {
             return
         }
         Task {
-            let outcome = await UpdateChecker().check(
-                currentMarketingVersion: AppVersionInfo.marketingVersion,
-                currentBuildNumber: AppVersionInfo.buildNumber
-            )
+            let outcome = await runUpdateCheck()
             switch outcome {
             case .updateAvailable:
                 updateCheckHasUnseenUpdate = true
