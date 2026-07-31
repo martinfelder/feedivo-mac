@@ -1555,6 +1555,11 @@ Füge in `Feedivo/Resources/L10n.swift` (an derselben Stelle wie in Task 4) hinz
     static let updateCheckReadyToInstallMessage = LocalizedStringKey("updateCheck.readyToInstall.message")
     static let updateCheckReadyToInstallButton = LocalizedStringKey("updateCheck.readyToInstall.button")
     static let updateCheckRetryButton = LocalizedStringKey("updateCheck.retry.button")
+    // Korrektur nach Task-10-Review (Nutzerentscheid: fixen): .installing zeigte
+    // fälschlich denselben Text wie .readyToInstall an - eigener Key für "Wird
+    // installiert...", damit der Nutzer während des laufenden Austauschs nicht liest,
+    // als hätte er "Jetzt neu starten" noch nicht geklickt.
+    static let updateCheckInstallingLabel = LocalizedStringKey("updateCheck.installing.label")
 ```
 
 - [ ] **Step 2: xcstrings-Einträge ergänzen**
@@ -1730,6 +1735,34 @@ Füge in `Feedivo/Resources/Localizable.xcstrings` direkt nach `"strings" : {` e
         }
       }
     },
+    "updateCheck.installing.label" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird installiert…"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installing…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installation en cours…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installazione in corso…"
+          }
+        }
+      }
+    },
 ```
 
 Verifiziere mit `git diff --stat Feedivo/Resources/Localizable.xcstrings`: nur Insertions.
@@ -1770,7 +1803,7 @@ Ersetze die komplette `footer(theme:)`-Methode durch:
             case .installing:
                 HStack(spacing: 8) {
                     ProgressView().controlSize(.small)
-                    Text(L10n.updateCheckReadyToInstallMessage)
+                    Text(L10n.updateCheckInstallingLabel)
                         .font(.system(size: 12.5))
                         .foregroundStyle(theme.text2)
                 }
