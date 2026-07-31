@@ -1,6 +1,62 @@
 {
   "sourceLanguage" : "de",
   "strings" : {
+    "updateInstall.folderPicker.message" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feedivo braucht einmalig deine Erlaubnis, sich selbst zu aktualisieren. Wähle den Ordner, in dem Feedivo aktuell liegt (meist „Programme“)."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feedivo needs your permission once to update itself. Choose the folder where Feedivo currently lives (usually \"Applications\")."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feedivo a besoin, une seule fois, de votre autorisation pour se mettre à jour. Choisissez le dossier où se trouve actuellement Feedivo (généralement « Applications »)."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feedivo ha bisogno, una sola volta, del tuo permesso per aggiornarsi da solo. Scegli la cartella in cui si trova attualmente Feedivo (di solito \"Applicazioni\")."
+          }
+        }
+      }
+    },
+    "updateInstall.folderPicker.prompt" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zugriff erlauben"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow Access"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autoriser l'accès"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consenti accesso"
+          }
+        }
+      }
+    },
     "updateInstall.error.checksumMismatch" : {
       "localizations" : {
         "de" : {

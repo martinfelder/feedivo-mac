@@ -1174,4 +1174,6 @@ enum L10n {
     static let updateInstallErrorUnzipFailed = "updateInstall.error.unzipFailed"
     static let updateInstallErrorFolderAccessDenied = "updateInstall.error.folderAccessDenied"
     static let updateInstallErrorReplaceFailed = "updateInstall.error.replaceFailed"
+    static let updateInstallFolderPickerMessage = "updateInstall.folderPicker.message"
+    static let updateInstallFolderPickerPrompt = "updateInstall.folderPicker.prompt"
 }
