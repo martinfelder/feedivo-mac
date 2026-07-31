@@ -12,6 +12,7 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
     case refresh
     case cleanup
     case sync
+    case about
 
     var id: String { rawValue }
 
@@ -37,6 +38,8 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
             "Bereinigung"
         case .sync:
             L10n.settingsSyncSection
+        case .about:
+            L10n.settingsAboutSection
         }
     }
 
@@ -62,6 +65,8 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
             "trash"
         case .sync:
             "icloud"
+        case .about:
+            "info.circle"
         }
     }
 }
@@ -98,6 +103,7 @@ struct SettingsView: View {
             settingsTab(.refresh)
             settingsTab(.cleanup)
             settingsTab(.sync)
+            settingsTab(.about)
         }
         .font(.system(size: 12))
         .controlSize(.small)
@@ -141,11 +147,13 @@ struct SettingsView: View {
             CleanupSettingsView()
         case .sync:
             SyncSettingsView()
+        case .about:
+            AboutSettingsView()
         }
     }
 }
 
-private struct SettingsBlock<Content: View>: View {
+struct SettingsBlock<Content: View>: View {
     let eyebrow: LocalizedStringKey
     @ViewBuilder let content: Content
 
@@ -161,7 +169,7 @@ private struct SettingsBlock<Content: View>: View {
     }
 }
 
-private struct SettingRow<Control: View>: View {
+struct SettingRow<Control: View>: View {
     let title: LocalizedStringKey
     let description: LocalizedStringKey
     @ViewBuilder let control: Control
@@ -192,7 +200,7 @@ private struct SettingRow<Control: View>: View {
     }
 }
 
-private struct InfoRow: View {
+struct InfoRow: View {
     let iconName: String
     let title: LocalizedStringKey
     let description: LocalizedStringKey

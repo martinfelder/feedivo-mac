@@ -1140,4 +1140,15 @@ enum L10n {
     static let updateCheckMenuItem = String(localized: "updateCheck.menuItem")
     static let updateCheckUpToDateTitle = LocalizedStringKey("updateCheck.upToDate.title")
     static let updateCheckErrorTitle = LocalizedStringKey("updateCheck.error.title")
+    static let settingsAboutSection = LocalizedStringKey("settings.about.section")
+    static let updateCheckAutomaticCheckTitle = LocalizedStringKey("updateCheck.automaticCheck.title")
+    static let updateCheckAutomaticCheckDescription = LocalizedStringKey("updateCheck.automaticCheck.description")
+    // Bewusst String (nicht LocalizedStringKey) wie updateCheckMenuItem selbst -
+    // beide werden in AboutSettingsView im selben Ternary-Ausdruck verwendet
+    // (isChecking ? updateCheckCheckingButton : updateCheckMenuItem), Swift
+    // verlangt dafür identische Typen in beiden Zweigen.
+    static let updateCheckCheckingButton = String(localized: "updateCheck.checking.button")
+    static func updateCheckVersionLabel(marketingVersion: String, buildNumber: Int) -> String {
+        String.localizedStringWithFormat(String(localized: "updateCheck.versionLabel"), marketingVersion, buildNumber)
+    }
 }
