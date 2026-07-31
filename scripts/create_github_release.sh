@@ -52,6 +52,7 @@ fi
 
 VERSION_LABEL="${MARKETING_VERSION} (${BUILD_NUMBER})"
 TAG="v${MARKETING_VERSION}-${BUILD_NUMBER}"
+ZIP_PATH="$BUILD_DIR/Feedivo-${TAG}.zip"
 
 TAG_EXISTS=0
 if git rev-parse "$TAG" >/dev/null 2>&1 || gh release view "$TAG" >/dev/null 2>&1; then
@@ -83,6 +84,7 @@ echo "  Notes aus: $CHANGELOG (oberster Eintrag)"
 echo "---"
 cat "$NOTES_FILE"
 echo "---"
+echo "  Zusätzliches Asset: $(basename "$ZIP_PATH").sha256 (SHA256-Prüfsumme)"
 
 if [ "$DRY_RUN" = "1" ]; then
   echo "--- DRY RUN: kein Build, keine Bestaetigungsfrage, kein Release veroeffentlicht ---"
@@ -116,12 +118,15 @@ if [ -z "$APP_PATH" ] || [ ! -d "$APP_PATH" ]; then
   exit 1
 fi
 
-ZIP_PATH="$BUILD_DIR/Feedivo-${TAG}.zip"
 echo "Packe $APP_PATH -> $ZIP_PATH"
 /usr/bin/ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$ZIP_PATH"
 
+CHECKSUM_PATH="${ZIP_PATH}.sha256"
+echo "Berechne SHA256-Prüfsumme -> $CHECKSUM_PATH"
+shasum -a 256 "$ZIP_PATH" | awk '{print $1}' > "$CHECKSUM_PATH"
+
 echo "Erstelle GitHub Release $TAG (als Pre-Release)..."
-gh release create "$TAG" "$ZIP_PATH" \
+gh release create "$TAG" "$ZIP_PATH" "$CHECKSUM_PATH" \
   --title "Feedivo ${VERSION_LABEL}" \
   --notes-file "$NOTES_FILE" \
   --prerelease
