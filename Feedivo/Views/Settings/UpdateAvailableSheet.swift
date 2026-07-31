@@ -55,6 +55,10 @@ struct UpdateAvailableSheet: View {
         }
         .padding(20)
         .frame(minWidth: 420, minHeight: 320)
+        .environment(\.openURL, OpenURLAction { url in
+            NSWorkspace.shared.open(url)
+            return .handled
+        })
     }
 
     @ViewBuilder
