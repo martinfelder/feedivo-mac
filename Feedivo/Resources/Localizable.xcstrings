@@ -29,30 +29,58 @@
         }
       }
     },
-    "updateCheck.upToDate.message.noRelease" : {
+    "updateCheck.latestAvailableLabel" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Installiert: %@\n(Auf GitHub wurden keine Releases gefunden.)"
+            "value" : "Neuste verfügbare Version: %@"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Installed: %@\n(No releases found on GitHub.)"
+            "value" : "Latest available version: %@"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Installée : %@\n(Aucune version trouvée sur GitHub.)"
+            "value" : "Dernière version disponible : %@"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Installata: %@\n(Nessuna versione trovata su GitHub.)"
+            "value" : "Ultima versione disponibile: %@"
+          }
+        }
+      }
+    },
+    "updateCheck.noReleaseFoundHint" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auf GitHub wurden keine Releases gefunden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No releases found on GitHub."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucune version trouvée sur GitHub."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessuna versione trovata su GitHub."
           }
         }
       }

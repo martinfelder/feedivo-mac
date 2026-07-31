@@ -1152,12 +1152,13 @@ enum L10n {
         String.localizedStringWithFormat(String(localized: "updateCheck.versionLabel"), marketingVersion, buildNumber)
     }
     static let updateCheckPendingBadge = LocalizedStringKey("updateCheck.pendingBadge")
-    static func updateCheckUpToDateMessageNoRelease(installedVersion: String) -> String {
-        String.localizedStringWithFormat(String(localized: "updateCheck.upToDate.message.noRelease"), installedVersion)
-    }
     // Präfix für die farbig eingefärbte Versionsnummer (grün = aktuell, rot =
     // veraltet) in beiden Update-Check-Dialogen - bewusst nur der Präfix als
     // eigener Text-Baustein, damit nur die Versionsnummer selbst eingefärbt
     // wird, nicht der ganze Satz.
     static let updateCheckInstalledLabelPrefix = LocalizedStringKey("updateCheck.installedLabelPrefix")
+    static func updateCheckLatestAvailableLabel(tagName: String) -> String {
+        String.localizedStringWithFormat(String(localized: "updateCheck.latestAvailableLabel"), tagName)
+    }
+    static let updateCheckNoReleaseFoundHint = LocalizedStringKey("updateCheck.noReleaseFoundHint")
 }

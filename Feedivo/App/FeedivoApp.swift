@@ -196,10 +196,14 @@ struct FeedivoApp: App {
                         }
                     )
                 }
-                .alert(L10n.updateCheckUpToDateTitle, isPresented: $showsUpdateCheckUpToDateAlert) {
-                    Button(L10n.commonOK, role: .cancel) {}
-                } message: {
-                    updateCheckUpToDateMessage
+                .sheet(isPresented: $showsUpdateCheckUpToDateAlert) {
+                    UpdateUpToDateSheet(
+                        installedVersion: "\(AppVersionInfo.marketingVersion) (\(AppVersionInfo.buildNumber))",
+                        latestKnownRelease: updateCheckUpToDateRelease,
+                        onDismiss: {
+                            showsUpdateCheckUpToDateAlert = false
+                        }
+                    )
                 }
                 .alert(
                     L10n.updateCheckErrorTitle,
@@ -413,22 +417,6 @@ struct FeedivoApp: App {
             currentMarketingVersion: AppVersionInfo.marketingVersion,
             currentBuildNumber: AppVersionInfo.buildNumber
         )
-    }
-
-    // Nutzerwunsch: zeigt im "Kein Update"-Dialog die installierte Version
-    // grün eingefärbt (bestätigt aktuell) - nur die Versionsnummer selbst
-    // trägt die Farbe, per Text-Konkatenation statt eines einzelnen
-    // formatierten Strings. Ohne gefundenes Release (leere GitHub-Liste)
-    // bleibt der Hinweistext ungefärbt, da dort kein Vergleich stattfand.
-    @ViewBuilder
-    private var updateCheckUpToDateMessage: some View {
-        let installedVersion = "\(AppVersionInfo.marketingVersion) (\(AppVersionInfo.buildNumber))"
-        if updateCheckUpToDateRelease != nil {
-            Text(L10n.updateCheckInstalledLabelPrefix)
-                + Text(installedVersion).foregroundColor(.green).fontWeight(.semibold)
-        } else {
-            Text(L10n.updateCheckUpToDateMessageNoRelease(installedVersion: installedVersion))
-        }
     }
 
     private func performManualUpdateCheck() {
