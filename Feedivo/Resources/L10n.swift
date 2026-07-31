@@ -1176,4 +1176,12 @@ enum L10n {
     static let updateInstallErrorReplaceFailed = "updateInstall.error.replaceFailed"
     static let updateInstallFolderPickerMessage = "updateInstall.folderPicker.message"
     static let updateInstallFolderPickerPrompt = "updateInstall.folderPicker.prompt"
+    static let updateCheckDownloadButton = LocalizedStringKey("updateCheck.download.button")
+    static func updateCheckDownloadProgress(percent: Int, downloaded: String, total: String) -> String {
+        String.localizedStringWithFormat(String(localized: "updateCheck.download.progressFormat"), percent, downloaded, total)
+    }
+    static let updateCheckVerifyingLabel = LocalizedStringKey("updateCheck.verifying.label")
+    static let updateCheckReadyToInstallMessage = LocalizedStringKey("updateCheck.readyToInstall.message")
+    static let updateCheckReadyToInstallButton = LocalizedStringKey("updateCheck.readyToInstall.button")
+    static let updateCheckRetryButton = LocalizedStringKey("updateCheck.retry.button")
 }

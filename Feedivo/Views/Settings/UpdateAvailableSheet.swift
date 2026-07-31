@@ -20,6 +20,8 @@ struct UpdateAvailableSheet: View {
 
     @Environment(\.colorScheme) private var colorScheme
 
+    @State private var installer = UpdateInstaller()
+
     private var blocks: [ReaderContentBlock] {
         ReaderContentRenderer.blocks(summary: nil, content: release.bodyHTML, fallbackImageURL: nil)
     }
@@ -162,25 +164,104 @@ struct UpdateAvailableSheet: View {
         }
     }
 
+    @ViewBuilder
     private func footer(theme: RuleDialogTheme) -> some View {
-        HStack(spacing: 10) {
-            Spacer(minLength: 0)
+        VStack(alignment: .leading, spacing: 10) {
+            switch installer.state {
+            case .idle:
+                EmptyView()
+            case .downloading(let fraction, let downloaded, let total):
+                downloadProgressView(fraction: fraction, downloaded: downloaded, total: total, theme: theme)
+            case .verifying:
+                HStack(spacing: 8) {
+                    ProgressView().controlSize(.small)
+                    Text(L10n.updateCheckVerifyingLabel)
+                        .font(.system(size: 12.5))
+                        .foregroundStyle(theme.text2)
+                }
+            case .readyToInstall:
+                Text(L10n.updateCheckReadyToInstallMessage)
+                    .font(.system(size: 12.5, weight: .semibold))
+                    .foregroundStyle(theme.text)
+            case .installing:
+                HStack(spacing: 8) {
+                    ProgressView().controlSize(.small)
+                    Text(L10n.updateCheckReadyToInstallMessage)
+                        .font(.system(size: 12.5))
+                        .foregroundStyle(theme.text2)
+                }
+            case .failed(let error):
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(error.errorDescription ?? "")
+                        .font(.system(size: 12.5, weight: .semibold))
+                        .foregroundStyle(theme.destructiveText)
 
-            RuleDialogButton(titleKey: L10n.updateCheckDismissButton, style: .secondary, theme: theme) {
-                onDismiss()
+                    Button(L10n.updateCheckOpenOnGitHubButton) {
+                        onOpenOnGitHub()
+                    }
+                    .buttonStyle(.plain)
+                    .font(.system(size: 12))
+                    .foregroundStyle(theme.linkText)
+                }
             }
 
-            RuleDialogButton(
-                titleKey: L10n.updateCheckOpenOnGitHubButton,
-                style: .primary,
-                theme: theme,
-                systemImage: "arrow.up.right"
-            ) {
-                onOpenOnGitHub()
+            HStack(spacing: 10) {
+                Spacer(minLength: 0)
+                footerButtons(theme: theme)
             }
         }
         .padding(.horizontal, 24)
         .padding(.vertical, 16)
+    }
+
+    @ViewBuilder
+    private func downloadProgressView(fraction: Double, downloaded: Int64, total: Int64, theme: RuleDialogTheme) -> some View {
+        let formatter: ByteCountFormatter = {
+            let formatter = ByteCountFormatter()
+            formatter.countStyle = .file
+            return formatter
+        }()
+
+        VStack(alignment: .leading, spacing: 4) {
+            ProgressView(value: fraction)
+            Text(L10n.updateCheckDownloadProgress(
+                percent: Int(fraction * 100),
+                downloaded: formatter.string(fromByteCount: downloaded),
+                total: formatter.string(fromByteCount: total)
+            ))
+            .font(.system(size: 11.5))
+            .foregroundStyle(theme.text2)
+        }
+    }
+
+    @ViewBuilder
+    private func footerButtons(theme: RuleDialogTheme) -> some View {
+        switch installer.state {
+        case .idle:
+            RuleDialogButton(titleKey: L10n.updateCheckDownloadButton, style: .primary, theme: theme) {
+                Task { await installer.startDownloadAndVerify(release: release) }
+            }
+        case .downloading:
+            RuleDialogButton(titleKey: L10n.commonCancel, style: .secondary, theme: theme) {
+                installer.cancelDownload()
+            }
+        case .verifying, .installing:
+            EmptyView()
+        case .readyToInstall:
+            RuleDialogButton(titleKey: L10n.updateCheckReadyToInstallButton, style: .primary, theme: theme) {
+                Task { await installer.install() }
+            }
+        case .failed(let error):
+            RuleDialogButton(titleKey: L10n.updateCheckRetryButton, style: .primary, theme: theme) {
+                Task {
+                    if error.requiresFullRedownload {
+                        await installer.startDownloadAndVerify(release: release)
+                    } else {
+                        await installer.install()
+                    }
+                }
+            }
+        }
     }
 
     @ViewBuilder
