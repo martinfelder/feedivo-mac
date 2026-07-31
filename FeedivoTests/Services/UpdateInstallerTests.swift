@@ -49,6 +49,32 @@ private final class FakeSwapper: UpdateAppSwapping, @unchecked Sendable {
     }
 }
 
+private actor DownloadGate {
+    private var continuation: CheckedContinuation<Void, Never>?
+    private var isReleased = false
+
+    func wait() async {
+        if isReleased { return }
+        await withCheckedContinuation { continuation = $0 }
+    }
+
+    func release() {
+        isReleased = true
+        continuation?.resume()
+        continuation = nil
+    }
+}
+
+private struct GatedFakeDownloader: UpdateAssetDownloading {
+    let gate: DownloadGate
+    let resultURL: URL
+
+    func download(from url: URL, onProgress: @escaping @Sendable (Double, Int64, Int64) -> Void) async throws -> URL {
+        await gate.wait()
+        return resultURL
+    }
+}
+
 // Zwei Abweichungen von der Brief-Vorlage, beide via systematic-debugging
 // (echter xcodebuild-Testlauf + Root-Cause-Analyse) gefunden, nicht geraten:
 //
@@ -239,6 +265,49 @@ struct UpdateInstallerTests {
         )
 
         installer.cancelDownload()
+
+        #expect(installer.state == .idle)
+    }
+
+    // Korrektur nach Task-9-Review (Nutzerentscheid: nachbessern): der obige Test prüft nur
+    // cancelDownload() auf einer bereits-.idle-Instanz - er würde identisch "bestehen", selbst
+    // wenn cancelDownload() gar nichts täte. Dieser Test nutzt stattdessen einen steuerbaren
+    // Gated-Fake, um einen ECHT laufenden Download abzubrechen und zu prüfen, dass der
+    // guard-!isCancelled-Check nach dem Warten korrekt greift und der Endzustand bei .idle
+    // bleibt statt zu .readyToInstall weiterzulaufen.
+    @Test func abbruchWaehrendLaufendemDownloadLaesstZustandBeiIdleStattWeiterzumachen() async {
+        let gate = DownloadGate()
+        let release = GitHubRelease(
+            tagName: "v1.0-14",
+            name: nil,
+            htmlURL: URL(string: "https://github.com/martinfelder/feedivo-mac/releases/tag/v1.0-14")!,
+            bodyHTML: nil,
+            publishedAt: nil,
+            assets: [
+                GitHubReleaseAsset(name: "Feedivo-v1.0-14.zip", browserDownloadURL: URL(string: "https://example.com/Feedivo-v1.0-14.zip")!)
+            ]
+        )
+
+        let installer = UpdateInstaller(
+            downloader: GatedFakeDownloader(gate: gate, resultURL: zipURL),
+            extractor: FakeExtractor(result: .success(extractedAppURL)),
+            locationGrantor: FakeLocationGrantor(result: .success(currentAppURL.deletingLastPathComponent())),
+            swapper: FakeSwapper(),
+            currentAppURL: currentAppURL
+        )
+
+        let downloadTask = Task { await installer.startDownloadAndVerify(release: release) }
+
+        // Wartet, bis die State-Machine tatsächlich .downloading erreicht hat, bevor
+        // abgebrochen wird - sonst würde der Test nur gegen .idle statt gegen einen
+        // echt laufenden Download antreten.
+        while installer.state == .idle {
+            await Task.yield()
+        }
+
+        installer.cancelDownload()
+        await gate.release()
+        await downloadTask.value
 
         #expect(installer.state == .idle)
     }
