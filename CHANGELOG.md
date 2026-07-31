@@ -13,6 +13,34 @@ siehe `git log`.
 
 <!-- versions -->
 
+## [1.0 (14)] - 2026-07-31
+
+- Fix: @concurrent statt nonisolated - MainActor-Blockade tatsächlich behoben
+- Fix: Whole-Branch-Review-Befunde behoben (Neustart-Fehler, App-Aktivierung, MainActor-Blockade, Cancel-Race)
+- Docs: Plan-Nachtrag nach finaler Whole-Branch-Review (4 Befunde)
+- Feat: Release-Skript veröffentlicht zusätzlich eine SHA256-Prüfsummen-Datei
+- Fix: Eigener Text für laufenden Installationsschritt statt "Bereit zu installieren"
+- Fix: Plan-Korrektur nach Task-10-Review (eigener Text für .installing)
+- Fix: Dialog jederzeit über "Später"-Button schließbar
+- Fix: Plan-Korrektur nach Task-10-Review (Später-Button ergänzt)
+- Feat: Update-Dialog um Herunterladen & installieren erweitert
+- Design: Update-Dialog auf Konzept-A-Theme umgestellt + Changelog kategorisiert
+- Test: Echter Abbruch-während-Download-Test statt trivialem Idle-Check
+- Fix: Plan-Korrektur nach Task-9-Review (echter Abbruch-Test statt trivialem Test)
+- Feat: UpdateInstaller-Orchestrator (Download→Verifikation→Installation)
+- Fix: relaunchAndQuit meldet Neustart-Erfolg zurück statt bedingungslos zu beenden
+- Fix: Plan-Korrektur nach Task-8-Review (relaunchAndQuit meldet Erfolg zurück)
+- Feat: Atomarer App-Austausch + Neustart für Update-Installation
+- Feat: Einmalige Programme-Ordner-Berechtigung für Update-Installation
+- Feat: Entpacken + Quarantäne-Entfernung für heruntergeladene Updates
+- Feat: URLSession-Download mit Fortschritt für Update-Assets
+- Feat: UpdateInstallState/-Error State-Machine-Vokabular
+- Feat: UpdateChecksumVerifier für SHA256-Verifikation von Update-Downloads
+- Test: Asset-Auswahl (ZIP/Prüfsumme) isoliert abgedeckt
+- Feat: GitHubRelease liest Release-Assets (ZIP + Prüfsumme)
+- Docs: Implementierungsplan für In-App-Update-Download/-Installation
+- Docs: Design-Spec für In-App-Update-Download/-Installation
+
 ## [1.0 (13)] - 2026-07-31
 
 - chore: Xcode-Workspace-State
