@@ -1,0 +1,130 @@
+import Foundation
+import Observation
+
+/// Orchestriert Download -> Verifikation -> Entpacken -> Installation eines
+/// GitHub-Releases. Alle I/O-Grenzen sind injizierbare Protokolle (siehe
+/// UpdateAssetDownloading/UpdateArchiveExtracting/UpdateInstallLocationGranting/
+/// UpdateAppSwapping) - macht die komplette Sequenzierungslogik hier ohne echtes
+/// Netzwerk/Dateisystem/GUI testbar (siehe UpdateInstallerTests).
+@Observable
+@MainActor
+final class UpdateInstaller {
+    private(set) var state: UpdateInstallState = .idle
+
+    private let downloader: UpdateAssetDownloading
+    private let extractor: UpdateArchiveExtracting
+    private let locationGrantor: UpdateInstallLocationGranting
+    private let swapper: UpdateAppSwapping
+    private let currentAppURL: URL
+
+    private var extractedAppURL: URL?
+    private var isCancelled = false
+
+    // Hinweis zur Abweichung von der Brief-Vorlage: Die Standardwerte für
+    // `downloader`/`extractor`/`locationGrantor`/`swapper` sind hier `nil` statt direkt
+    // die konkreten Typen - ein echter, reproduzierbarer Build-Fehler (siehe
+    // task-9-report.md), da `SecurityScopedInstallLocationGrantor` explizit
+    // `@MainActor` ist: Swift wertet Default-Parameter-Ausdrücke NICHT in der
+    // Isolation der umschließenden Funktion aus (auch wenn `UpdateInstaller` selbst
+    // `@MainActor` ist), sondern in einem eigenen, synchronen, nicht-isolierten
+    // Kontext - "call to main actor-isolated initializer 'init()' in a synchronous
+    // nonisolated context". Die Instanziierung stattdessen in den Initializer-Body zu
+    // verlegen (der wegen der Klassen-Isolation tatsächlich auf dem MainActor läuft)
+    // behebt das, ohne das Aufrufverhalten für Produktivcode oder Tests zu ändern -
+    // alle Tests in UpdateInstallerTests.swift übergeben ohnehin jeden Parameter
+    // explizit und nutzen diese Defaults nie.
+    init(
+        downloader: UpdateAssetDownloading? = nil,
+        extractor: UpdateArchiveExtracting? = nil,
+        locationGrantor: UpdateInstallLocationGranting? = nil,
+        swapper: UpdateAppSwapping? = nil,
+        currentAppURL: URL = Bundle.main.bundleURL
+    ) {
+        self.downloader = downloader ?? URLSessionUpdateAssetDownloader()
+        self.extractor = extractor ?? DittoUpdateArchiveExtractor()
+        self.locationGrantor = locationGrantor ?? SecurityScopedInstallLocationGrantor()
+        self.swapper = swapper ?? FileManagerUpdateAppSwapper()
+        self.currentAppURL = currentAppURL
+    }
+
+    func startDownloadAndVerify(release: GitHubRelease) async {
+        isCancelled = false
+        extractedAppURL = nil
+
+        guard let zipAsset = GitHubReleaseAsset.zipAsset(in: release.assets) else {
+            state = .failed(.downloadFailed)
+            return
+        }
+
+        state = .downloading(fractionCompleted: 0, downloadedBytes: 0, totalBytes: 0)
+
+        do {
+            let zipURL = try await downloader.download(from: zipAsset.browserDownloadURL) { [weak self] fraction, downloaded, total in
+                guard let self else { return }
+                Task { @MainActor in
+                    guard !self.isCancelled else { return }
+                    self.state = .downloading(fractionCompleted: fraction, downloadedBytes: downloaded, totalBytes: total)
+                }
+            }
+            guard !isCancelled else { return }
+
+            state = .verifying
+            try await verifyChecksum(zipURL: zipURL, release: release)
+            guard !isCancelled else { return }
+
+            let appURL = try extractor.extractAndUnquarantine(zipURL: zipURL)
+            guard !isCancelled else { return }
+
+            extractedAppURL = appURL
+            state = .readyToInstall
+        } catch let error as UpdateInstallError {
+            state = .failed(error)
+        } catch {
+            state = .failed(.downloadFailed)
+        }
+    }
+
+    func cancelDownload() {
+        isCancelled = true
+        state = .idle
+    }
+
+    func install() async {
+        guard let extractedAppURL else { return }
+        state = .installing
+
+        do {
+            _ = try await locationGrantor.grantedInstallDirectory(
+                currentAppDirectory: currentAppURL.deletingLastPathComponent()
+            )
+            try swapper.replaceCurrentApp(at: currentAppURL, withNewAppAt: extractedAppURL)
+
+            let relaunched = await swapper.relaunchAndQuit(appURL: currentAppURL)
+            if !relaunched {
+                state = .failed(.replaceFailed)
+            }
+        } catch let error as UpdateInstallError {
+            state = .failed(error)
+        } catch {
+            state = .failed(.replaceFailed)
+        }
+    }
+
+    private func verifyChecksum(zipURL: URL, release: GitHubRelease) async throws {
+        guard let checksumAsset = GitHubReleaseAsset.checksumAsset(in: release.assets) else {
+            throw UpdateInstallError.checksumMismatch
+        }
+
+        let checksumFileURL = try await downloader.download(from: checksumAsset.browserDownloadURL) { _, _, _ in }
+        guard let expectedHex = try? String(contentsOf: checksumFileURL, encoding: .utf8) else {
+            throw UpdateInstallError.checksumMismatch
+        }
+
+        let zipData = try Data(contentsOf: zipURL)
+        let computedHex = UpdateChecksumVerifier.sha256Hex(of: zipData)
+
+        guard UpdateChecksumVerifier.matches(computedHex: computedHex, expectedHex: expectedHex) else {
+            throw UpdateInstallError.checksumMismatch
+        }
+    }
+}
