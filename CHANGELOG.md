@@ -13,6 +13,10 @@ siehe `git log`.
 
 <!-- versions -->
 
+## [1.0 (15)] - 2026-07-31
+
+- chore: Xcode-Workspace-State
+
 ## [1.0 (14)] - 2026-07-31
 
 - Fix: @concurrent statt nonisolated - MainActor-Blockade tatsächlich behoben
