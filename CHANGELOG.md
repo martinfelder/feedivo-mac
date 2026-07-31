@@ -13,6 +13,14 @@ siehe `git log`.
 
 <!-- versions -->
 
+## [1.0 (13)] - 2026-07-31
+
+- chore: Xcode-Workspace-State
+- Design: Artikelinfos-Button in der Reader-Toolbar auf normale Schriftgröße gebracht
+- Design: Schrift im Artikelinfos-Panel vergrößert
+- Design: App-Name, Ungelesen-Zähler und Plus-Button in der Sidebar vergrößert
+- Design: Einheitliches Blau in der ganzen App
+
 ## [1.0 (12)] - 2026-07-31
 
 - chore: Xcode-Workspace-State
