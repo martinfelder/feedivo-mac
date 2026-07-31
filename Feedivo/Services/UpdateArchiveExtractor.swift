@@ -3,9 +3,13 @@ import Foundation
 protocol UpdateArchiveExtracting: Sendable {
     /// Entpackt die ZIP-Datei in ein neues temporäres Verzeichnis, entfernt das
     /// Quarantäne-Flag von der enthaltenen .app und liefert deren URL zurück.
-    /// `nonisolated` + `async`, damit `ditto`/`xattr` (Process.waitUntilExit blockiert)
-    /// nicht synchron auf dem MainActor laufen (Whole-Branch-Review-Fund).
-    nonisolated func extractAndUnquarantine(zipURL: URL) async throws -> URL
+    /// `@concurrent` + `async`, damit `ditto`/`xattr` (Process.waitUntilExit blockiert)
+    /// nicht synchron auf dem MainActor laufen (Whole-Branch-Review-Fund). Reines
+    /// `nonisolated` reicht dafür NICHT: bei aktivem `SWIFT_APPROACHABLE_CONCURRENCY`
+    /// (`NonisolatedNonsendingByDefault`) läuft eine `nonisolated async`-Funktion weiterhin
+    /// auf dem Actor des Aufrufers - `@concurrent` erzwingt den tatsächlichen Wechsel auf
+    /// den globalen Concurrent-Executor.
+    @concurrent func extractAndUnquarantine(zipURL: URL) async throws -> URL
 }
 
 /// Nutzt `ditto` (dasselbe Tool, mit dem `scripts/create_github_release.sh` die ZIP
@@ -15,7 +19,7 @@ protocol UpdateArchiveExtracting: Sendable {
 /// veröffentlichte Prüfsumme verifiziert (siehe UpdateInstaller) - das ist der
 /// Vertrauensanker, der die Quarantäne-Entfernung rechtfertigt.
 struct DittoUpdateArchiveExtractor: UpdateArchiveExtracting {
-    nonisolated func extractAndUnquarantine(zipURL: URL) async throws -> URL {
+    @concurrent func extractAndUnquarantine(zipURL: URL) async throws -> URL {
         let destinationDirectory = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: destinationDirectory, withIntermediateDirectories: true)

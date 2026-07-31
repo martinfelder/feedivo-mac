@@ -145,12 +145,15 @@ final class UpdateInstaller {
         }
     }
 
-    // nonisolated + async, damit das Lesen der kompletten ZIP-Datei plus SHA256-Hashing
+    // @concurrent + async, damit das Lesen der kompletten ZIP-Datei plus SHA256-Hashing
     // (potenziell mehrere MB) NICHT synchron auf dem MainActor läuft und die UI währenddessen
     // einfriert (Whole-Branch-Review-Fund, siehe auch den bereits bestehenden CLAUDE.md-
     // Gotcha zur Spotlight-Backfill-Funktion: Task.detached allein reicht dafür nicht,
-    // die Funktion selbst muss nonisolated+async sein).
-    nonisolated private func computeChecksum(zipURL: URL) async throws -> String {
+    // die Funktion selbst muss echt vom MainActor wegspringen). Reines `nonisolated` reicht
+    // dafür NICHT: bei aktivem `SWIFT_APPROACHABLE_CONCURRENCY`
+    // (`NonisolatedNonsendingByDefault`) läuft eine `nonisolated async`-Funktion weiterhin
+    // auf dem Actor des Aufrufers - `@concurrent` erzwingt den tatsächlichen Wechsel.
+    @concurrent private func computeChecksum(zipURL: URL) async throws -> String {
         let zipData = try Data(contentsOf: zipURL)
         return UpdateChecksumVerifier.sha256Hex(of: zipData)
     }
