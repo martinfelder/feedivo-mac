@@ -998,11 +998,21 @@ git commit -m "Feat: Einmalige Programme-Ordner-Berechtigung für Update-Install
 
 **Interfaces:**
 - Produces: `protocol UpdateAppSwapping: Sendable { func replaceCurrentApp(at: URL,
-  withNewAppAt: URL) throws; func relaunchAndQuit(appURL: URL) }`; `struct
+  withNewAppAt: URL) throws; func relaunchAndQuit(appURL: URL) async -> Bool }`; `struct
   FileManagerUpdateAppSwapper: UpdateAppSwapping`
 
 Kein Unit-Test (echter Dateisystem-Austausch + App-Beenden, siehe Global Constraints) —
 manuell live verifiziert (letzter, riskantester Schritt der gesamten Kette).
+
+**Korrektur nach Task-8-Review (Nutzerentscheid: fixen statt akzeptieren):** Die ursprüngliche
+Fassung von `relaunchAndQuit` rief `terminate(nil)` bedingungslos im Completion-Handler auf,
+unabhängig davon, ob `openApplication` tatsächlich erfolgreich war - schlug der Neustart fehl
+(z. B. beschädigtes Bundle, Gatekeeper-Problem), hätte sich die alte, funktionierende App
+trotzdem beendet und der Nutzer hätte gar keine laufende Instanz mehr gehabt, ohne
+Fehlermeldung. Fix: `relaunchAndQuit` liefert jetzt `async -> Bool` (true = Neustart
+erfolgreich, alte Instanz wurde beendet; false = Neustart fehlgeschlagen, alte Instanz läuft
+bewusst weiter) - der Aufrufer (Task 9) entscheidet anhand des Rückgabewerts, ob er
+`.failed(.replaceFailed)` setzt.
 
 - [ ] **Step 1: Datei anlegen**
 
@@ -1017,8 +1027,11 @@ protocol UpdateAppSwapping: Sendable {
     /// `UpdateInstallLocationGranting`).
     func replaceCurrentApp(at currentAppURL: URL, withNewAppAt newAppURL: URL) throws
 
-    /// Startet die App an `appURL` neu und beendet den aktuellen Prozess.
-    func relaunchAndQuit(appURL: URL)
+    /// Startet die App an `appURL` neu und beendet bei Erfolg den aktuellen Prozess.
+    /// Liefert `false`, wenn der Neustart fehlschlug - die aktuelle App bleibt dann
+    /// bewusst weiterlaufen (kein Zustand ohne laufende App), der Aufrufer muss in
+    /// diesem Fall selbst einen Fehler anzeigen.
+    func relaunchAndQuit(appURL: URL) async -> Bool
 }
 
 struct FileManagerUpdateAppSwapper: UpdateAppSwapping {
@@ -1030,13 +1043,17 @@ struct FileManagerUpdateAppSwapper: UpdateAppSwapping {
         }
     }
 
-    func relaunchAndQuit(appURL: URL) {
-        let configuration = NSWorkspace.OpenConfiguration()
-        NSWorkspace.shared.openApplication(at: appURL, configuration: configuration) { _, _ in
-            DispatchQueue.main.async {
-                NSApplication.shared.terminate(nil)
-            }
+    func relaunchAndQuit(appURL: URL) async -> Bool {
+        do {
+            _ = try await NSWorkspace.shared.openApplication(at: appURL, configuration: NSWorkspace.OpenConfiguration())
+        } catch {
+            return false
         }
+
+        await MainActor.run {
+            NSApplication.shared.terminate(nil)
+        }
+        return true
     }
 }
 ```
@@ -1112,14 +1129,17 @@ private struct FakeLocationGrantor: UpdateInstallLocationGranting {
 
 private final class FakeSwapper: UpdateAppSwapping, @unchecked Sendable {
     var replaceError: Error?
+    var relaunchSucceeds = true
     var didRelaunch = false
 
     func replaceCurrentApp(at currentAppURL: URL, withNewAppAt newAppURL: URL) throws {
         if let replaceError { throw replaceError }
     }
 
-    func relaunchAndQuit(appURL: URL) {
+    func relaunchAndQuit(appURL: URL) async -> Bool {
+        guard relaunchSucceeds else { return false }
         didRelaunch = true
+        return true
     }
 }
 
@@ -1230,6 +1250,28 @@ struct UpdateInstallerTests {
         await installer.install()
 
         #expect(swapper.didRelaunch)
+    }
+
+    @Test func fehlgeschlagenerNeustartFuehrtZuReplaceFailedStattStillerBlockade() async {
+        let zipContent = "fake-zip-bytes".data(using: .utf8)!
+        let expectedHex = UpdateChecksumVerifier.sha256Hex(of: zipContent)
+        let (release, downloadResults) = makeRelease(zipContent: zipContent, checksumContent: expectedHex)
+        let swapper = FakeSwapper()
+        swapper.relaunchSucceeds = false
+
+        let installer = UpdateInstaller(
+            downloader: FakeDownloader(resultsByURLSuffix: downloadResults),
+            extractor: FakeExtractor(result: .success(extractedAppURL)),
+            locationGrantor: FakeLocationGrantor(result: .success(currentAppURL.deletingLastPathComponent())),
+            swapper: swapper,
+            currentAppURL: currentAppURL
+        )
+
+        await installer.startDownloadAndVerify(release: release)
+        await installer.install()
+
+        #expect(installer.state == .failed(.replaceFailed))
+        #expect(!swapper.didRelaunch)
     }
 
     @Test func abgelehnterOrdnerZugriffFuehrtZuFolderAccessDenied() async {
@@ -1362,7 +1404,11 @@ final class UpdateInstaller {
                 currentAppDirectory: currentAppURL.deletingLastPathComponent()
             )
             try swapper.replaceCurrentApp(at: currentAppURL, withNewAppAt: extractedAppURL)
-            swapper.relaunchAndQuit(appURL: currentAppURL)
+
+            let relaunched = await swapper.relaunchAndQuit(appURL: currentAppURL)
+            if !relaunched {
+                state = .failed(.replaceFailed)
+            }
         } catch let error as UpdateInstallError {
             state = .failed(error)
         } catch {
