@@ -217,14 +217,14 @@ struct SidebarView: View {
                     .frame(width: 9, height: 9)
 
                 Text("Feedivo")
-                    .font(.system(size: 16, weight: .bold))
+                    .font(.system(size: 18, weight: .bold))
 
                 if sqliteSidebarState.totalUnreadCount > 0 {
                     Text("\(sqliteSidebarState.totalUnreadCount)")
-                        .font(.system(size: 11.5, weight: .bold))
+                        .font(.system(size: 13, weight: .bold))
                         .foregroundStyle(.white)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 2)
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 3)
                         .background(Self.feedivoBlue, in: Capsule())
                 }
             }
@@ -242,10 +242,10 @@ struct SidebarView: View {
             isCreateSidebarItemMenuExpanded = true
         } label: {
             Image(systemName: "plus")
-                .font(.system(size: 15, weight: .bold))
+                .font(.system(size: 17, weight: .bold))
                 .foregroundStyle(Self.feedivoBlue)
-                .frame(width: 30, height: 30)
-                .background(Self.feedivoBlueSoft, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                .frame(width: 34, height: 34)
+                .background(Self.feedivoBlueSoft, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
         }
         .buttonStyle(.plain)
         .help(L10n.sidebarAddFeedButton)
