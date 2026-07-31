@@ -86,5 +86,11 @@
 			</array>
 		</dict>
 	</array>
+	<key>SUFeedURL</key>
+	<string>https://raw.githubusercontent.com/martinfelder/feedivo-mac/main/docs/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>tMoZQKDmZhEFAyf8qPNY2bW22SYHEippirJTrOy4Si0=</string>
+	<key>SUEnableInstallerLauncherService</key>
+	<true/>
 </dict>
 </plist>
