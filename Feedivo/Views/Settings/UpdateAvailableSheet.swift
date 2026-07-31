@@ -186,7 +186,7 @@ struct UpdateAvailableSheet: View {
             case .installing:
                 HStack(spacing: 8) {
                     ProgressView().controlSize(.small)
-                    Text(L10n.updateCheckReadyToInstallMessage)
+                    Text(L10n.updateCheckInstallingLabel)
                         .font(.system(size: 12.5))
                         .foregroundStyle(theme.text2)
                 }

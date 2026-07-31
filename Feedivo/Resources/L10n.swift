@@ -1184,4 +1184,9 @@ enum L10n {
     static let updateCheckReadyToInstallMessage = LocalizedStringKey("updateCheck.readyToInstall.message")
     static let updateCheckReadyToInstallButton = LocalizedStringKey("updateCheck.readyToInstall.button")
     static let updateCheckRetryButton = LocalizedStringKey("updateCheck.retry.button")
+    // Korrektur nach Task-10-Review (Nutzerentscheid: fixen): .installing zeigte
+    // fälschlich denselben Text wie .readyToInstall an - eigener Key für "Wird
+    // installiert...", damit der Nutzer während des laufenden Austauschs nicht liest,
+    // als hätte er "Jetzt neu starten" noch nicht geklickt.
+    static let updateCheckInstallingLabel = LocalizedStringKey("updateCheck.installing.label")
 }
