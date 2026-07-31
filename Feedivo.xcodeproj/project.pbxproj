@@ -11,6 +11,7 @@
 		C9102A892FE5A9A300E81C7E /* XMLKit in Frameworks */ = {isa = PBXBuildFile; productRef = C9102A882FE5A9A300E81C7E /* XMLKit */; };
 		C95F7D0A3315F04A00A1B2C3 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = C95F7D093315F04A00A1B2C3 /* GRDB */; };
 		C994A9432FFF91F900158DF3 /* FeedivoSafariExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = C994A92B2FFF91F900158DF3 /* FeedivoSafariExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		5EC653E1B64E4AC6B4BAA672 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 247129D860AD47D7917A4FFE /* Sparkle */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -123,6 +124,7 @@
 				C95F7D0A3315F04A00A1B2C3 /* GRDB in Frameworks */,
 				C9102A872FE5A9A300E81C7E /* FeedKit in Frameworks */,
 				C9102A892FE5A9A300E81C7E /* XMLKit in Frameworks */,
+					5EC653E1B64E4AC6B4BAA672 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -212,6 +214,7 @@
 				C95F7D093315F04A00A1B2C3 /* GRDB */,
 				C9102A862FE5A9A300E81C7E /* FeedKit */,
 				C9102A882FE5A9A300E81C7E /* XMLKit */,
+					247129D860AD47D7917A4FFE /* Sparkle */,
 			);
 			productName = Feedivo;
 			productReference = C9CE92572FE5A90700B9C79A /* Feedivo.app */;
@@ -300,6 +303,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				C95F7D083315F04A00A1B2C3 /* XCRemoteSwiftPackageReference "GRDB" */,
+				4905542D7DF447DCA584173C /* XCRemoteSwiftPackageReference "Sparkle" */,
 				C9102A852FE5A9A300E81C7E /* XCRemoteSwiftPackageReference "FeedKit" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -801,6 +805,14 @@
 				minimumVersion = 7.0.0;
 			};
 		};
+		4905542D7DF447DCA584173C /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.6.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -818,6 +830,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = C95F7D083315F04A00A1B2C3 /* XCRemoteSwiftPackageReference "GRDB" */;
 			productName = GRDB;
+		};
+		247129D860AD47D7917A4FFE /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4905542D7DF447DCA584173C /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
