@@ -1790,12 +1790,38 @@ Ersetze die komplette `footer(theme:)`-Methode durch:
             }
 
             HStack(spacing: 10) {
+                // Korrektur nach Task-10-Review (Nutzerentscheid: umsetzen): ohne diesen
+                // Button gäbe es in keinem Zustand mehr eine Möglichkeit, den Dialog zu
+                // schließen, ohne den Download zu starten - onDismiss() wäre unerreichbar.
+                // Bewusst nur in .idle/.failed sichtbar (kein aktiver Vorgang, der beim
+                // Schließen des Sheets samt seines @State-gehaltenen UpdateInstaller
+                // stillschweigend verloren ginge); während .downloading übernimmt
+                // "Abbrechen" dieselbe Rolle, .verifying/.installing/.readyToInstall sind
+                // bewusst kurze, nicht abbrechbare Zwischenschritte.
+                if showsDismissButton {
+                    Button(L10n.updateCheckDismissButton) {
+                        onDismiss()
+                    }
+                    .buttonStyle(.plain)
+                    .font(.system(size: 12.5, weight: .medium))
+                    .foregroundStyle(theme.text2)
+                }
+
                 Spacer(minLength: 0)
                 footerButtons(theme: theme)
             }
         }
         .padding(.horizontal, 24)
         .padding(.vertical, 16)
+    }
+
+    private var showsDismissButton: Bool {
+        switch installer.state {
+        case .idle, .failed:
+            true
+        default:
+            false
+        }
     }
 
     @ViewBuilder
