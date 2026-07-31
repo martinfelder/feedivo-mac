@@ -1160,5 +1160,4 @@ enum L10n {
     static func updateCheckLatestAvailableLabel(tagName: String) -> String {
         String.localizedStringWithFormat(String(localized: "updateCheck.latestAvailableLabel"), tagName)
     }
-    static let updateCheckNoReleaseFoundHint = LocalizedStringKey("updateCheck.noReleaseFoundHint")
 }

@@ -29,15 +29,12 @@ struct UpdateUpToDateSheet: View {
                 )
                 .font(.system(size: 13))
 
-                if let tagName = latestKnownRelease?.tagName {
-                    Text(L10n.updateCheckLatestAvailableLabel(tagName: tagName))
-                        .font(.system(size: 13))
-                        .foregroundStyle(.secondary)
-                } else {
-                    Text(L10n.updateCheckNoReleaseFoundHint)
-                        .font(.system(size: 13))
-                        .foregroundStyle(.secondary)
-                }
+                // Ohne Antwort von GitHub (leere Release-Liste) ist die installierte
+                // Version selbst der beste bekannte Wert - kein Fehlertext, da das
+                // kein Problem, sondern nur eine fehlende Information ist.
+                Text(L10n.updateCheckLatestAvailableLabel(tagName: latestKnownRelease?.tagName ?? installedVersion))
+                    .font(.system(size: 13))
+                    .foregroundStyle(.secondary)
             }
 
             HStack {
