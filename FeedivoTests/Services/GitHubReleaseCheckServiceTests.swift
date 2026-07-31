@@ -14,7 +14,17 @@ struct GitHubReleaseCheckServiceTests {
         "prerelease": true,
         "published_at": "2026-07-30T18:21:00Z",
         "body": "- Feat: Sidebar-Header in Blau",
-        "body_html": "<ul>\\n<li>Feat: Sidebar-Header in Blau</li>\\n</ul>"
+        "body_html": "<ul>\\n<li>Feat: Sidebar-Header in Blau</li>\\n</ul>",
+        "assets": [
+          {
+            "name": "Feedivo-v1.0-11.zip",
+            "browser_download_url": "https://github.com/martinfelder/feedivo-mac/releases/download/v1.0-11/Feedivo-v1.0-11.zip"
+          },
+          {
+            "name": "Feedivo-v1.0-11.zip.sha256",
+            "browser_download_url": "https://github.com/martinfelder/feedivo-mac/releases/download/v1.0-11/Feedivo-v1.0-11.zip.sha256"
+          }
+        ]
       },
       {
         "html_url": "https://github.com/martinfelder/feedivo-mac/releases/tag/v1.0-10",
@@ -52,5 +62,17 @@ struct GitHubReleaseCheckServiceTests {
         #expect(throws: GitHubReleaseCheckError.decodingFailed) {
             try GitHubReleaseCheckService.decodeReleases(from: garbage)
         }
+    }
+
+    @Test func decodeReleasesLiestAssetsUndFaelltAufLeeresArrayZurueckWennAssetsFehlt() throws {
+        let releases = try GitHubReleaseCheckService.decodeReleases(from: Self.sampleReleaseListJSON)
+
+        #expect(releases[0].assets.count == 2)
+        #expect(releases[0].assets[0].name == "Feedivo-v1.0-11.zip")
+        #expect(releases[0].assets[0].browserDownloadURL.absoluteString == "https://github.com/martinfelder/feedivo-mac/releases/download/v1.0-11/Feedivo-v1.0-11.zip")
+        #expect(releases[0].assets[1].name == "Feedivo-v1.0-11.zip.sha256")
+        // Zweiter Release in der Fixture hat bewusst KEIN "assets"-Feld im JSON - muss
+        // trotzdem sauber auf ein leeres Array zurueckfallen statt einen Decoding-Fehler zu werfen.
+        #expect(releases[1].assets.isEmpty)
     }
 }
