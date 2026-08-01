@@ -131,6 +131,9 @@ gh release create "$TAG" "$ZIP_PATH" "$CHECKSUM_PATH" \
   --notes-file "$NOTES_FILE" \
   --prerelease
 
+# Notes-Inhalt VOR dem Loeschen von $NOTES_FILE sichern - wird weiter unten
+# fuer den Appcast-CDATA-Block gebraucht, aber die Datei selbst ist ab hier weg.
+RELEASE_NOTES_CONTENT="$(cat "$NOTES_FILE")"
 rm -f "$NOTES_FILE"
 echo "create_github_release.sh: Release $TAG veroeffentlicht."
 
@@ -142,6 +145,10 @@ if [ -z "$SIGN_UPDATE_TOOL" ]; then
 fi
 ED_SIGNATURE_LINE="$("$SIGN_UPDATE_TOOL" "$ZIP_PATH")"
 ED_SIGNATURE="$(echo "$ED_SIGNATURE_LINE" | grep -oE 'sparkle:edSignature="[^"]*"' | sed -E 's/sparkle:edSignature="([^"]*)"/\1/')"
+if [ -z "$ED_SIGNATURE" ]; then
+  echo "create_github_release.sh: Konnte edSignature nicht aus sign_update-Ausgabe extrahieren: $ED_SIGNATURE_LINE" >&2
+  exit 1
+fi
 ZIP_LENGTH="$(stat -f%z "$ZIP_PATH")"
 
 echo "Aktualisiere docs/appcast.xml..."
@@ -149,7 +156,7 @@ APPCAST_PATH="$REPO_ROOT/docs/appcast.xml"
 NEW_ITEM="    <item>
       <title>${TAG}</title>
       <pubDate>$(date -u +"%a, %d %b %Y %H:%M:%S +0000")</pubDate>
-      <description><![CDATA[$(cat "$NOTES_FILE")]]></description>
+      <description><![CDATA[${RELEASE_NOTES_CONTENT}]]></description>
       <enclosure url=\"https://github.com/martinfelder/feedivo-mac/releases/download/${TAG}/$(basename "$ZIP_PATH")\"
                  sparkle:version=\"${BUILD_NUMBER}\"
                  sparkle:shortVersionString=\"${MARKETING_VERSION}\"
