@@ -111,7 +111,7 @@ xcodebuild \
   -destination 'platform=macOS' \
   clean build
 
-APP_PATH="$(find "$BUILD_DIR/Build/Products/$CONFIGURATION" -maxdepth 1 -name '*.app' | head -1)"
+APP_PATH="$(find "$BUILD_DIR/Build/Products/$CONFIGURATION" -maxdepth 1 -name '*.app' -print -quit)"
 if [ -z "$APP_PATH" ] || [ ! -d "$APP_PATH" ]; then
   echo "create_github_release.sh: Konnte die gebaute .app nicht unter $BUILD_DIR/Build/Products/$CONFIGURATION finden." >&2
   rm -f "$NOTES_FILE"
@@ -138,7 +138,14 @@ rm -f "$NOTES_FILE"
 echo "create_github_release.sh: Release $TAG veroeffentlicht."
 
 echo "Signiere ZIP für Sparkle (EdDSA)..."
-SIGN_UPDATE_TOOL="$(find "$HOME/Library/Developer/Xcode/DerivedData" -path "*sparkle*/artifacts/sparkle/Sparkle/bin/sign_update" 2>/dev/null | head -1)"
+# Fix Whole-Branch-Review (Important 3): `find ... | head -1` ist unter
+# `set -euo pipefail` riskant, sobald `find` mehr als einen Treffer liefert
+# (normal bei mehreren DerivedData-Verzeichnissen) - `head -1` beendet sich
+# nach der ersten Zeile, `find` bekommt dadurch SIGPIPE, und die Pipeline
+# kann mit einem Nicht-Null-Status abbrechen - hier ERST NACH dem bereits
+# veröffentlichten `gh release create` oben. `-print -quit` stoppt `find`
+# selbst nach dem ersten Treffer, ganz ohne Pipe/SIGPIPE-Risiko.
+SIGN_UPDATE_TOOL="$(find "$HOME/Library/Developer/Xcode/DerivedData" -path "*sparkle*/artifacts/sparkle/Sparkle/bin/sign_update" -print -quit 2>/dev/null)"
 if [ -z "$SIGN_UPDATE_TOOL" ]; then
   echo "create_github_release.sh: sign_update-Tool nicht gefunden - Appcast wird NICHT aktualisiert. Bitte Xcode-Build einmal ausführen (löst SPM-Artefakte auf) und erneut versuchen." >&2
   exit 1
@@ -174,6 +181,15 @@ path, new_item = sys.argv[1], sys.argv[2]
 with open(path, "r", encoding="utf-8") as f:
     content = f.read()
 anchor = "<!-- create_github_release.sh fügt hier bei jedem Release ein neues <item> ein -->"
+# Fix Whole-Branch-Review (Important 4): str.replace() ist bei fehlendem
+# Anker ein stiller No-Op - ohne diese Prüfung würde das Skript trotzdem mit
+# `git add`/`git commit` weiterlaufen (der bereits veröffentlichte
+# GitHub-Release ist da längst live), und `git commit` würde erst danach mit
+# einer verwirrenden "nothing to commit"-Meldung scheitern, weil de facto
+# nichts geändert wurde (z. B. nach einer Hand-Bearbeitung von
+# docs/appcast.xml, die den Anker-Kommentar entfernt hat).
+if anchor not in content:
+    sys.exit("create_github_release.sh: Anker nicht in appcast.xml gefunden - Abbruch.")
 content = content.replace(anchor, anchor + "\n" + new_item)
 with open(path, "w", encoding="utf-8") as f:
     f.write(content)

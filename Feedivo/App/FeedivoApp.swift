@@ -198,7 +198,17 @@ struct FeedivoApp: App {
             CommandGroup(after: .appInfo) {
                 Button(L10n.updateCheckMenuItem) {
                     openWindow(id: "main")
-                    sparkleUpdateCoordinator.checkForUpdatesManually()
+                    // Fix Whole-Branch-Review (Important 2): `checkForUpdatesManually()`
+                    // ist für Homebrew-Installationen ein stiller No-Op (Sparkle bleibt
+                    // dort komplett inaktiv, siehe SparkleUpdateCoordinator.start()) -
+                    // ohne diese Weiche gab der Menübefehl Homebrew-Nutzern nie
+                    // irgendeine Rückmeldung. showHomebrewHint() zeigt stattdessen den
+                    // .failed-Alert mit dem Homebrew-Hinweistext.
+                    if sparkleUpdateCoordinator.isHomebrewInstall {
+                        sparkleUpdateCoordinator.showHomebrewHint()
+                    } else {
+                        sparkleUpdateCoordinator.checkForUpdatesManually()
+                    }
                 }
             }
             // Entfernt den von SwiftUI automatisch bereitgestellten, aber funktionslosen
@@ -282,6 +292,16 @@ struct FeedivoApp: App {
                 .environment(databaseLoadState)
                 .environment(cloudSyncEngine.status)
                 .environment(\.cloudSyncEngine, cloudSyncEngine)
+                // Fix Whole-Branch-Review (Critical 2): `Settings { }` ist eine
+                // eigene Scene, unabhängig von `Window("Feedivo", id: "main")` -
+                // erbt dessen `.environment`-Werte NICHT automatisch (dasselbe
+                // bereits bestehende Muster wie oben bei cloudSyncEngine/
+                // feedivoDatabase/databaseLoadState). Ohne diese Zeile war
+                // `AboutSettingsView.coordinator` (liest \.sparkleUpdateCoordinator)
+                // immer nil - manueller Check-Button, Homebrew-Hinweis,
+                // Automatisch-Check-Toggle und Unseen-Update-Badge waren dadurch
+                // alle wirkungslos.
+                .environment(\.sparkleUpdateCoordinator, sparkleUpdateCoordinator)
                 .dynamicTypeSize(interfaceTextSize.dynamicTypeSize)
                 .preferredColorScheme(appAppearance.colorScheme)
         }
@@ -419,7 +439,18 @@ private struct SparkleUpdatePresentationModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .sheet(isPresented: isUpdateAvailablePresented) {
-                if case .updateAvailable(let release) = coordinator.state {
+                // Fix Whole-Branch-Review (Critical 1): `isUpdateAvailablePresented`
+                // bleibt für den kompletten In-Flight-Verlauf true (.updateAvailable ->
+                // .downloading -> .extracting -> .readyToInstall -> .installing), aber
+                // diese Content-Closure wertet bei JEDER state-Änderung neu aus - ein
+                // `if case .updateAvailable(let release) = coordinator.state`-Pattern-
+                // Match trifft nur im allerersten Zustand zu, ab .downloading rendert
+                // die Closure sonst EmptyView() (kein SparkleReleaseInfo aus den
+                // übrigen state-Fällen extrahierbar) - ein leeres Sheet ohne Fortschritt
+                // oder Install-Button. `coordinator.currentRelease` bleibt über den
+                // gesamten Vorgang hinweg gesetzt (siehe SparkleUpdateCoordinator) und
+                // ist damit die richtige Quelle für die Sheet-Sichtbarkeit.
+                if let release = coordinator.currentRelease {
                     UpdateAvailableSheet(
                         release: release,
                         onOpenOnGitHub: { NSWorkspace.shared.open(release.htmlURL) },

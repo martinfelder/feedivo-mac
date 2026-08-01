@@ -15,12 +15,29 @@ import OSLog
 final class SparkleUpdateCoordinator: NSObject {
     private(set) var state: SparkleUpdateState = .idle
     private(set) var hasUnseenUpdate = false
+    // Fix Whole-Branch-Review (Critical 1): `state` allein reicht nicht aus, um
+    // UpdateAvailableSheet über den kompletten In-Flight-Verlauf (.updateAvailable
+    // -> .downloading -> .extracting -> .readyToInstall -> .installing) hinweg zu
+    // befüllen - nur der .updateAvailable-Fall trägt ein SparkleReleaseInfo, jeder
+    // Folgezustand nicht. FeedivoApp.swifts Sheet-Content-Closure wertet bei jeder
+    // state-Änderung neu aus; ohne einen separaten, über den ganzen Vorgang hinweg
+    // gültigen Zwischenspeicher rendert die Closure ab .downloading EmptyView() -
+    // ein leeres Sheet ohne Fortschritt/Install-Button. currentRelease wird beim
+    // Auffinden eines Updates gesetzt und erst beim vollständigen Verlassen des
+    // Update-Vorgangs (Abbruch oder erfolgreiche Installation) wieder geleert.
+    private(set) var currentRelease: SparkleReleaseInfo?
     let isHomebrewInstall: Bool
 
     private var updater: SPUUpdater?
-    private var pendingUpdateChoice: ((SPUUserUpdateChoice) -> Void)?
-    private var pendingInstallChoice: ((SPUUserUpdateChoice) -> Void)?
-    private var pendingCancellation: (() -> Void)?
+    // Fix Whole-Branch-Review (Important 7): von `private` auf `internal`
+    // (keinen Modifier) gelockert, damit `SparkleUpdateCoordinatorTests`
+    // (`@testable import Feedivo`, gleiches Modul) die Continuation-Auflösung
+    // von `installUpdate()`/`cancelDownload()` isoliert prüfen kann, ohne den
+    // kompletten SPUUserDriver-Callback-Pfad nachstellen zu müssen - `private`
+    // wäre selbst über `@testable` aus einer anderen Datei nicht sichtbar.
+    var pendingUpdateChoice: ((SPUUserUpdateChoice) -> Void)?
+    var pendingInstallChoice: ((SPUUserUpdateChoice) -> Void)?
+    var pendingCancellation: (() -> Void)?
 
     override init() {
         self.isHomebrewInstall = HomebrewInstallationDetector.isHomebrewCaskInstall(
@@ -67,6 +84,19 @@ final class SparkleUpdateCoordinator: NSObject {
         updater?.checkForUpdates()
     }
 
+    /// Fix Whole-Branch-Review (Important 2): `checkForUpdatesManually()` ist für
+    /// Homebrew-Installationen ein stiller No-Op (siehe Guard oben, Sparkle bleibt
+    /// dort komplett inaktiv, `start()` erzeugt gar keinen SPUUpdater) - der
+    /// App-Menü-Befehl "Nach Updates suchen…" rief das bisher unbedingt auf und gab
+    /// Homebrew-Nutzern dadurch nie irgendeine Rückmeldung. Diese Methode setzt
+    /// stattdessen `state` auf `.failed(...)` mit dem bereits bestehenden
+    /// Homebrew-Hinweistext - der `.failed`-Alert in
+    /// `SparkleUpdatePresentationModifier` übernimmt die Anzeige, ohne dass der
+    /// Menübefehl selbst `state` direkt setzen müsste (bleibt `private(set)`).
+    func showHomebrewHint() {
+        state = .failed(String(localized: "updateCheck.homebrewHint"))
+    }
+
     /// Bindet den bestehenden "Automatischer Check"-Schalter (AboutSettingsView,
     /// @AppStorage(UpdateCheckSettings.isAutomaticCheckEnabledKey)) an Sparkles
     /// eigenes automatisches-Check-Verhalten - ohne diesen Aufruf würde der
@@ -104,9 +134,35 @@ final class SparkleUpdateCoordinator: NSObject {
         }
     }
 
+    /// Fix Whole-Branch-Review (Important 1): löste bisher ausschließlich
+    /// `pendingCancellation` auf und setzte `state = .idle` - eine noch offene
+    /// `pendingUpdateChoice`/`pendingInstallChoice`-Continuation (aus
+    /// `showUpdateFound`/`showReadyToInstallAndRelaunch`, jeweils per
+    /// `withCheckedContinuation` erzeugt) wurde dabei NIE aufgelöst. Jeder
+    /// Dismiss-Pfad des Sheets (onDismiss, beide `isPresented`-set-Closures in
+    /// FeedivoApp.swift) läuft über diese Methode - das ließ Sparkles
+    /// Continuation dauerhaft offen (Leak) und Sparkle erfuhr nie, dass der
+    /// Nutzer abgebrochen hat, wodurch ein späterer `checkForUpdatesManually()`
+    /// Sparkle ggf. noch mitten in der alten Session vorfand und wirkungslos
+    /// blieb. Fix: zuerst eine noch ausstehende Choice-Continuation mit
+    /// `.dismiss` auflösen (dieselbe Priorisierung `pendingUpdateChoice` vor
+    /// `pendingInstallChoice` wie in `installUpdate()`, da sich beide laut
+    /// Sparkles Protokollablauf gegenseitig ausschließen) - nur wenn keine von
+    /// beiden gesetzt ist (z. B. während eines laufenden Downloads, der über
+    /// `showDownloadInitiated(cancellation:)` läuft), auf die alte
+    /// `pendingCancellation`-Closure zurückfallen.
     func cancelDownload() {
-        pendingCancellation?()
+        if let choice = pendingUpdateChoice {
+            pendingUpdateChoice = nil
+            choice(.dismiss)
+        } else if let choice = pendingInstallChoice {
+            pendingInstallChoice = nil
+            choice(.dismiss)
+        } else {
+            pendingCancellation?()
+        }
         pendingCancellation = nil
+        currentRelease = nil
         state = .idle
     }
 }
@@ -138,14 +194,39 @@ extension SparkleUpdateCoordinator: SPUUserDriver {
     }
 
     func showUpdateFound(with appcastItem: SUAppcastItem, state updateState: SPUUserUpdateState) async -> SPUUserUpdateChoice {
+        // Fix Whole-Branch-Review (Important 5): `appcastItem.displayVersionString`
+        // allein liefert nur `sparkle:shortVersionString` (z. B. "1.0", vom
+        // Release-Skript geschrieben) - verliert dadurch die Build-Nummer, die im
+        // Rest der App (installedVersion hier, AppVersionInfo überall sonst) immer
+        // als "1.0 (15)" formatiert wird. "Version 1.0 verfügbar" neben
+        // "installiert: 1.0 (15)" ist kaum vergleichbar. `versionString` trägt die
+        // rohe `sparkle:version` (= Build-Nummer, siehe
+        // scripts/create_github_release.sh) - beide zusammen ergeben wieder das
+        // gewohnte "1.0 (15)"-Format.
         let info = SparkleReleaseInfo(
-            tagName: appcastItem.displayVersionString,
+            tagName: "\(appcastItem.displayVersionString) (\(appcastItem.versionString))",
             name: appcastItem.title,
             htmlURL: appcastItem.infoURL ?? URL(string: "https://github.com/martinfelder/feedivo-mac/releases")!,
             bodyHTML: appcastItem.itemDescription
         )
-        self.state = .updateAvailable(info)
+        currentRelease = info
         hasUnseenUpdate = true
+        // Fix Whole-Branch-Review (Important 6): das entfernte, alte
+        // `performSilentUpdateCheckIfNeeded()` zeigte für einen automatischen/
+        // stillen Check bewusst KEIN UI, nur ein Badge. Diese Methode wird
+        // sowohl von automatischen (Sparkles `automaticallyChecksForUpdates`)
+        // als auch von nutzerausgelösten (`checkForUpdatesManually()`) Checks
+        // aufgerufen - `updateState.userInitiated` unterscheidet beide Fälle.
+        // Nur bei einem nutzerausgelösten Check wird `state` auf
+        // `.updateAvailable` gesetzt (löst das Sheet in
+        // SparkleUpdatePresentationModifier aus); ein automatischer Fund kurz
+        // nach dem App-Start würde sonst ungefragt ein modales Sheet über den
+        // Nutzer werfen - genau das, was der alte Code verhinderte. Die
+        // Continuation bleibt in beiden Fällen offen (siehe withCheckedContinuation
+        // unten), damit ein späterer Klick weiterhin funktioniert.
+        if updateState.userInitiated {
+            self.state = .updateAvailable(info)
+        }
         return await withCheckedContinuation { continuation in
             pendingUpdateChoice = { choice in continuation.resume(returning: choice) }
         }
@@ -195,6 +276,7 @@ extension SparkleUpdateCoordinator: SPUUserDriver {
     }
 
     func showUpdateInstalledAndRelaunched(_ relaunched: Bool) async {
+        currentRelease = nil
         state = .idle
     }
 
