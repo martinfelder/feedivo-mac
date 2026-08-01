@@ -6,5 +6,35 @@
         <description>Feedivo Release-Updates</description>
         <language>de</language>
         <!-- create_github_release.sh fügt hier bei jedem Release ein neues <item> ein -->
+        <item>
+            <title>v1.0-16</title>
+            <pubDate>Fri, 01 Aug 2026 12:03:00 +0000</pubDate>
+            <description><![CDATA[
+- fix: showUpdateFound() wartet nicht mehr auf nie kommende Continuation bei stillem Fund
+- fix: Whole-Branch-Review-Funde für Sparkle/Homebrew-Migration behoben
+- docs: CLAUDE.md um Sparkle-Update/Homebrew-Vertrieb ergänzt
+- feat: create_github_release.sh aktualisiert Homebrew-Cask-Formel im Tap-Repo
+- fix: NOTES_FILE-Race und stille ED_SIGNATURE-Extraktion in create_github_release.sh behoben
+- feat: create_github_release.sh signiert Releases für Sparkle und pflegt appcast.xml
+- refactor: alten Eigenbau-Update-Installer und GitHub-API-Check-Stack entfernt (durch Sparkle ersetzt)
+- refactor: Update-UI liest jetzt SparkleUpdateCoordinator statt GitHub-API-Stack
+- refactor: FeedivoApp.swift auf SparkleUpdateCoordinator umgestellt
+- fix: installUpdate() löst pendingUpdateChoice statt es zu ignorieren
+- feat: SparkleUpdateCoordinator kapselt SPUUpdater hinter eigenem SPUUserDriver
+- feat: SparkleUpdateState/SparkleReleaseInfo als neue Update-Datentypen
+- feat: Sparkle-Appcast-Grundgerüst angelegt
+- feat: HomebrewInstallationDetector erkennt Caskroom-Installationen
+- build: Sparkle Info.plist-Keys und Sandbox-Entitlement-Ausnahme ergänzt
+- build: Sparkle-Paket als Abhängigkeit hinzugefügt (noch ungenutzt)
+- docs: Implementierungsplan für Sparkle-Update + Homebrew-Vertrieb
+- docs: Design-Spec für Sparkle-Update + Homebrew-Vertrieb
+            ]]></description>
+            <enclosure url="https://github.com/martinfelder/feedivo-mac/releases/download/v1.0-16/Feedivo-v1.0-16.zip"
+                       sparkle:version="16"
+                       sparkle:shortVersionString="1.0"
+                       sparkle:edSignature="XhG9HOK/LzyS8jqavrK6XBTK4WfRzmT5bp6TIOZtQlyWskJ9gz1qPEFFrTwCxf55BCsSghI1LUCzZLca8/jBDQ=="
+                       length="18093158"
+                       type="application/octet-stream"/>
+        </item>
     </channel>
 </rss>
