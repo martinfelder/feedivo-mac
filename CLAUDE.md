@@ -55,6 +55,7 @@ anfühlt — kein iOS-Port, keine Electron-App. Echtes AppKit-Feeling via SwiftU
 | Bilder | AsyncImage + eigener `ImageCacheService` | Built-in SwiftUI + eigenes Disk-Caching, kein Kingfisher |
 | Artikel-Rendering | Nativer SwiftUI-Renderer (`ReaderContentRenderer`) **und** `WKWebView` (`WebContentView`) | Native Ansicht für den Lesefluss, WKWebView für "Originalartikel" |
 | Background Refresh | `NSBackgroundActivityScheduler` (`SystemBackgroundActivityRefreshScheduler`) | Kein `BGTaskScheduler` (das ist iOS-fokussiert) |
+| App-Update | Sparkle 2.x (Swift Package, `SparkleUpdateCoordinator`) | Ersetzt seit 2026-07-31 den kompletten Eigenbau-Installer (siehe ADR-009) — Grund war ein reproduzierter App-Sandbox-Root-Cause-Fund, kein reiner Komfort-Umstieg. Appcast unter `docs/appcast.xml`, ausgeliefert über `https://raw.githubusercontent.com/martinfelder/feedivo-mac/main/docs/appcast.xml`. Zusätzlicher Vertriebskanal: Homebrew Cask (`martinfelder/homebrew-feedivo`, `Casks/feedivo.rb`) — bei einer per Cask erkannten Installation (`HomebrewInstallationDetector`) wird bewusst gar kein `SPUUpdater` erzeugt, Updates laufen dort ausschließlich über `brew upgrade`. Details siehe ADR-009, neuer Gotcha zur Quarantäne-Root-Cause und „Aktuell in Arbeit" unten |
 | Mindest-macOS | macOS 14.0 Sonoma | `@Observable` Macro + moderne SwiftUI-APIs (NavigationSplitView, `.commands`, `WindowGroup(for:)`) |
 
 ---
@@ -290,6 +291,38 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
   `main` und auf `origin/main`. Live-Verifikation für Drag & Drop
   Feed↔Ordner vom Nutzer bestätigt; Tag-/Smart-Folder-Reordering und restliche Punkte des
   13-Punkte-Testprotokolls noch NICHT explizit durchgetestet.
+
+### ADR-009: Eigenbau-Update-Installer durch Sparkle ersetzt
+- **Entscheidung:** Der komplett selbst gebaute Update-Installer (`UpdateInstaller`,
+  `UpdateArchiveExtractor`, `UpdateAppSwapper`, `UpdateChecker`, `GitHubRelease` u. a. —
+  11 Produktions- + 7 Testdateien, vollständig gelöscht) ist seit 2026-07-31 durch das
+  etablierte Sparkle-Framework (2.9.4, Swift Package) ersetzt. Neuer
+  `SparkleUpdateCoordinator` (`Feedivo/Services/SparkleUpdateCoordinator.swift`) kapselt
+  `SPUUpdater` + eine eigene `SPUUserDriver`-Konformität, damit die bereits gestylte UI
+  (`UpdateAvailableSheet`, `UpdateUpToDateSheet` etc.) erhalten bleibt.
+- **Grund:** Kein reiner Komfort-/Wartungsaufwand-Umstieg, sondern ein per Live-Debugging
+  reproduzierter Architekturfehler des Eigenbaus: **App Sandbox verbietet einem
+  sandboxed Prozess kategorisch, das `com.apple.quarantine`-Extended-Attribute von der
+  frisch heruntergeladenen, entpackten Update-`.app` zu entfernen** — weder per
+  `xattr -dr`-Subprozess noch über die native `URLResourceValues.quarantineProperties`-API
+  gelingt das unter Sandbox, verifiziert durch Reproduktion mit einem eigenen, identisch
+  signierten Sandbox-Testprogramm (Details siehe neuer Gotcha unten). Der alte
+  `UpdateAppSwapper` konnte die selbst heruntergeladene neue Version deshalb nie
+  quarantäne-frei an die Stelle der laufenden App setzen — ein struktureller, nicht
+  code-seitig behebbarer Defekt, kein Bug im eigentlichen Sinn. Sparkle löst das über
+  seinen eigenen, bewusst NICHT sandboxed `Autoupdate`-Hilfsprozess plus
+  `SUEnableInstallerLauncherService`/eine gezielte mach-lookup-Entitlement-Ausnahme
+  (`-spks`/`-spki`) — die App-Sandbox der Haupt-App selbst bleibt dabei unangetastet.
+- **Zusätzlicher Vertriebskanal:** Parallel zur Sparkle-Anbindung wurde ein Homebrew Cask
+  (`martinfelder/homebrew-feedivo`, `Casks/feedivo.rb`) eingerichtet. Eine per
+  `HomebrewInstallationDetector.isHomebrewCaskInstall(bundleURL:)` erkannte
+  Caskroom-Installation unterdrückt bewusst die Erzeugung eines `SPUUpdater` überhaupt —
+  Homebrew-Nutzer aktualisieren ausschließlich über `brew upgrade`, ein gleichzeitig
+  laufender Sparkle-Updater hätte dort zu konkurrierenden, sich gegenseitig
+  überschreibenden Update-Pfaden geführt.
+- **Umsetzung:** 14-Task-Plan via Brainstorming→Spec→Plan→Subagent-Driven-Development.
+  Details, Status und die dabei gefundenen Bugs siehe „Aktuell in Arbeit" unten.
+- **Datum:** 2026-07-31.
 
 ---
 
@@ -1006,6 +1039,63 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
   `shouldAutoStartSyncEngineAtLaunch(...)`-Prüfung an beiden tatsächlichen
   `start()`-Aufrufstellen gated.
 
+- **App Sandbox verbietet einem sandboxed Prozess kategorisch, `com.apple.quarantine`
+  von einer selbst heruntergeladenen Datei zu entfernen — weder per `xattr`-Subprozess
+  noch über die native API, unabhängig vom gewählten Weg:** Root-Cause-Fund einer
+  Live-Debugging-Session (2026-07-31), der den alten Eigenbau-Update-Installer
+  (`UpdateInstaller`/`UpdateAppSwapper` u. a., siehe ADR-009) strukturell unreparierbar
+  machte und den Umstieg auf Sparkle auslöste: eine vom Eigenbau selbst heruntergeladene
+  und entpackte neue App-Version trägt das vom Download vergebene
+  `com.apple.quarantine`-Extended-Attribute — ohne dessen Entfernung verweigert
+  Gatekeeper beim nächsten Start der geswapten App den Start mit einem
+  "nicht verifizierter Entwickler"-artigen Dialog, unabhängig davon, dass die App
+  korrekt signiert ist. Zwei naheliegende Entfernungswege wurden geprüft, **beide
+  scheitern unter App Sandbox kategorisch, nicht nur gelegentlich:** (1) ein
+  `Process`/`xattr -dr com.apple.quarantine <Pfad>`-Subprozessaufruf (App Sandbox
+  erlaubt zwar das Starten des Subprozesses selbst, der Subprozess erbt aber keine
+  erweiterten Rechte auf fremde Extended Attributes und scheitert mit einem
+  Berechtigungsfehler), (2) die dafür vorgesehene native Cocoa-API
+  `URLResourceValues.quarantineProperties` (dieselbe Sandbox-Beschränkung gilt
+  identisch für die native API — kein reiner Subprozess-Artefakt). Verifiziert durch
+  Reproduktion mit einem eigenen, minimalen, identisch signierten und identisch
+  sandboxed Testprogramm, das ausschließlich diese eine Operation versucht — beide Wege
+  schlagen dort isoliert und reproduzierbar fehl, ohne jede weitere Eigenbau-Logik als
+  mögliche Fehlerquelle. **Lehre:** Ein selbst gebauter Update-Installer, der die eigene
+  App unter App Sandbox in-place ersetzen will, ist kein lösbares Implementierungsproblem,
+  sondern ein grundsätzlicher Plattform-Constraint — die einzige praktikable Lösung ist
+  ein etabliertes Framework wie Sparkle, dessen `Autoupdate`-Hilfsprozess bewusst
+  außerhalb der Sandbox der Haupt-App läuft (siehe ADR-009). Bei jedem künftigen
+  „selbst gebauten Installer/Updater unter App Sandbox"-Vorhaben zuerst genau diese
+  Quarantäne-Entfernung isoliert gegenprüfen, bevor Zeit in die übrige Installer-Logik
+  investiert wird.
+
+- **Ein im Implementierungsplan wörtlich vorgegebener Codeblock kann selbst einen echten
+  Bug enthalten — „übernimm dieses Draft-Code unverändert" ersetzt nicht die eigene
+  Korrektheitsprüfung:** Beim Sparkle-Umstieg (2026-07-31) fanden sich in genau zwei
+  Tasks, deren Implementierung stellenweise wörtlich aus dem Plandokument übernommen
+  werden sollte, je ein eigenständiger, plan-autorierter (nicht implementierer-
+  verursachter) Bug, beide erst im jeweiligen Task-Review gefunden: (1) Task 7
+  (`SparkleUpdateCoordinator`): die im Plan vorgegebene `installUpdate()`-Logik löste
+  nur `pendingInstallChoice` auf (die von `showReadyToInstallAndRelaunch` gesetzte
+  Continuation), niemals aber `pendingUpdateChoice` (die von `showUpdateFound` gesetzte,
+  frühere Continuation) — ein Klick auf „Installieren" bei einem gerade gefundenen
+  Update wäre dadurch ein stiller, dauerhafter No-Op mit einer geleakten
+  Sparkle-Continuation gewesen, exakt die erste echte Interaktion, die ein Nutzer mit
+  dem neuen Update-Flow hätte. Fix: `installUpdate()` löst jetzt das jeweils aktuell
+  gesetzte der beiden Closures auf. (2) Task 11 (`scripts/create_github_release.sh`):
+  die geplante Einfügestelle für den neuen Appcast-Signier-/Update-Code lag NACH der
+  bereits bestehenden `rm -f "$NOTES_FILE"`-Zeile, obwohl der neue Code den Inhalt von
+  `$NOTES_FILE` weiterhin braucht — jeder echte Release-Lauf wäre direkt nach dem
+  bereits öffentlich sichtbaren, nicht mehr rückgängig zu machenden GitHub-Release-
+  Schritt abgestürzt, noch bevor der Appcast überhaupt aktualisiert wurde. Fix: Notiz-
+  Inhalt vor dem Löschen in eine Variable zwischenspeichern. **Lehre:** Eine
+  Plan-Anweisung wie „übernimm diesen Codeblock unverändert" beschreibt nur die
+  gewünschte Herkunft/den gewünschten Umfang des Codes, nicht dessen Korrektheit — der
+  Draft-Code selbst muss beim Implementieren genauso unabhängig verifiziert werden wie
+  selbst geschriebener Code, insbesondere bei Zustandsverwaltung (welche von mehreren
+  Continuations/Variablen gerade „die aktuelle" ist) und bei Einfügereihenfolge relativ
+  zu bestehenden, bereits ausgeführten Zeilen.
+
 ---
 
 ## Milestone-Plan
@@ -1138,6 +1228,78 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 ---
 
 ## Aktuell in Arbeit
+
+- **2026-07-31: Sparkle-Update + Homebrew-Vertrieb — VOLLSTÄNDIG ABGESCHLOSSEN, Debug- und
+  Release-Build grün, gezielter Testlauf grün, echte Live-Verifikation eines Update-Zyklus
+  NOCH AUSSTEHEND.** Ersetzt den kompletten Eigenbau-Update-Installer durch Sparkle 2.9.4
+  und ergänzt Homebrew Cask als zweiten Vertriebskanal — Details/Begründung
+  (App-Sandbox-Quarantäne-Root-Cause) siehe ADR-009 und der neue Gotcha dazu oben. 14-Task-
+  Plan via Brainstorming→Spec→Plan→Subagent-Driven-Development, alle Commits bereits auf
+  `main`.
+  - **Automatisiert abgeschlossen und verifiziert:** Task 1 (Sparkle-SPM-Paket, manueller
+    pbxproj-Edit an 6 Stellen), Task 3 (`SUFeedURL`/`SUPublicEDKey`/
+    `SUEnableInstallerLauncherService` in Info.plist, mach-lookup-Entitlement-Ausnahme —
+    die App-Sandbox selbst bleibt unangetastet), Task 4
+    (`HomebrewInstallationDetector.isHomebrewCaskInstall(bundleURL:)`, TDD), Task 5
+    (`docs/appcast.xml`, ausgeliefert über `raw.githubusercontent.com` — die CDN-
+    Propagierung brauchte nach dem ersten Push ein paar Minuten und lieferte kurzzeitig
+    404, erwartetes Verhalten, kein Bug), Task 6 (neue reine Werttypen
+    `SparkleUpdateState`/`SparkleReleaseInfo` statt `GitHubRelease`/`UpdateInstallState`),
+    Task 7 (`SparkleUpdateCoordinator` als `SPUUserDriver` — das tatsächlich installierte
+    Sparkle 2.9.4 verlangte 3 Methoden mehr als der ursprüngliche Plan-Entwurf annahm,
+    gegen den echten installierten `SPUUserDriver.h`-Header verifiziert, nicht nur aus
+    einem Build-Fehler geraten; **hier auch ein Critical-Fund, siehe neuer Gotcha zu
+    plan-autorierten Bugs oben**), Task 8 (`FeedivoApp.swift` umgestellt — Implementierer
+    wich bewusst von der geplanten wörtlichen `.sheet`/`.alert`-Inline-Kette ab und
+    extrahierte einen `SparkleUpdatePresentationModifier: ViewModifier`, da die geplante
+    Inline-Fassung einen echten, reproduzierten Swift-Typchecker-Timeout auslöste — als
+    verhaltensgleich verifiziert), Task 9 (`UpdateAvailableSheet`/`AboutSettingsView`/
+    `UpdateUpToDateSheet` umgestellt, neuer `L10n.updateCheckHomebrewHint`-Key; der
+    `.updateAvailable`-Primärbutton ruft bewusst `coordinator?.installUpdate()` auf, nicht
+    `checkForUpdatesManually()` — nur das löst die in Task 7 gefixte Continuation korrekt
+    aus), Task 10 (11 Produktions- + 7 Testdateien des alten Eigenbau-Stacks vollständig
+    gelöscht, `UpdateCheckSettings.swift` bewusst erhalten — wird weiterhin für den
+    Automatisch-prüfen-Schalter gebraucht), Task 11 (`scripts/create_github_release.sh`
+    signiert Releases jetzt mit `sign_update` und pflegt `docs/appcast.xml` — **zweiter
+    Critical-Fund, siehe neuer Gotcha oben**, zusätzlich eine Absicherung gegen einen
+    stillen Pipeline-Fehlschlag ergänzt, falls sich `sign_update`s Ausgabeformat je
+    ändert), Task 13 (Release-Skript aktualisiert bei jedem künftigen Release zusätzlich
+    die Cask-Formel im Tap-Repo, eigenes Bestätigungsgate getrennt von Task 11s;
+    gezielt auf dieselbe Variablen-Lebenszyklus-Bugklasse wie Tasks 7/11 re-geprüft —
+    hier keine gefunden). Alle drei projektspezifischen neuen Testsuiten
+    (`HomebrewInstallationDetectorTests`: 4 Tests, `SparkleReleaseInfoTests`: 2 Tests)
+    plus die unverändert bestehende `UpdateReleaseNoteCategorizerTests` (6 Tests) grün,
+    12/12 insgesamt. Debug- UND Release-Build grün (Task 14, dieser Eintrag). Grep-
+    Kontrolle bestätigt: keine Code-Referenzen auf `UpdateInstaller`/
+    `GitHubReleaseCheckService`/`UpdateChecker` mehr — die drei verbleibenden Treffer sind
+    ausschließlich erklärende Kommentare, die den entfernten Alt-Stack als historischen
+    Kontext benennen.
+  - **Manuell durchgeführt und vom Nutzer/Controller bestätigt:** Task 2
+    (EdDSA-Signierschlüsselpaar per Sparkles `generate_keys`, lief unerwartet ohne
+    GUI-Prompt durch — Public Key `tMoZQKDmZhEFAyf8qPNY2bW22SYHEippirJTrOy4Si0=`, privater
+    Schlüssel im Login-Keychain bestätigt, korrekterweise nirgends committed). Task 12
+    (neues öffentliches Repo `martinfelder/homebrew-feedivo` nach expliziter
+    Nutzerbestätigung angelegt, `Casks/feedivo.rb` mit der echten v1.0-15-Version/SHA256/
+    URL befüllt — **vollständiger echter End-to-End-Zyklus auf diesem Rechner
+    durchgeführt und unabhängig bestätigt:** `brew tap` → `brew install --cask feedivo` →
+    `brew audit --cask feedivo` (sauber, keine Funde) → `brew uninstall --cask feedivo` →
+    `brew untap`, danach die bereits vorhandene entwicklerseitige `/Applications/
+    Feedivo.app` (Build 14) unverändert wiederhergestellt. Zwei reine
+    Umgebungs-Eigenheiten dabei notiert, kein Code-Änderungsbedarf: Homebrews
+    Tap-Trust-on-first-use-Abfrage (lokal, pro Nutzer, einmalig) und eine bereits
+    vorhandene Dev-Build-App am Installationsziel (von Homebrews eigener
+    „existiert bereits"-Ablehnung korrekt abgefangen, erwartetes Verhalten).
+  - **Weiterhin unverifiziert, explizit nicht Teil dieses Plans/dieser Session:** ein
+    echter, kompletter Sparkle-Update-Zyklus (echter Download → echte Installation →
+    echter Neustart über die neue Version) wurde NICHT durchgeführt — bislang
+    ausschließlich build-/unit-test-verifiziert plus der eine echte
+    `brew install --cask`-Zyklus oben. Ebenso unverifiziert: dass ein per Homebrew
+    installierter Nutzer tatsächlich NIE einen In-App-Update-Prompt sieht (die
+    `HomebrewInstallationDetector`-Gate-Logik selbst ist per TDD abgesichert, aber nicht
+    live gegen eine echte Cask-Installation der laufenden App durchgespielt). Dieselbe
+    Kategorie „manuelle Live-Verifikation ausstehend, braucht ein echtes Zweitszenario"
+    wie bei etlichen früheren Features in diesem Dokument (z. B. iCloud Sync Pull-
+    Richtung) — nicht simulierbar, nicht vorgetäuscht.
 
 - **2026-07-26 (Folge-Session): iCloud Sync Phase 3 (Feld-Ebene-Konfliktauflösung +
   Erst-Aktivierungs-Merge-Dialog) — VOLLSTÄNDIG ABGESCHLOSSEN, automatisierte Tests grün,
