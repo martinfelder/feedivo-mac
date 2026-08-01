@@ -78,9 +78,30 @@ final class SparkleUpdateCoordinator: NSObject {
         updater?.automaticallyChecksForUpdates = enabled
     }
 
+    /// Der Nutzer kann "Installieren" von zwei verschiedenen Dialogen aus
+    /// auslösen: entweder direkt bei "Update gefunden" (löst
+    /// `pendingUpdateChoice` auf, was Sparkles Download/Extraktion startet)
+    /// oder erst bei "Bereit zur Installation" (löst `pendingInstallChoice`
+    /// auf, was den eigentlichen Installations-/Neustart-Vorgang startet).
+    /// KRITISCHER FIX (Task-Review-Fund): Die ursprüngliche Fassung löste
+    /// ausschließlich `pendingInstallChoice` auf - `pendingUpdateChoice`
+    /// wurde zwar in `showUpdateFound(with:state:)` gesetzt, aber nie
+    /// irgendwo gelesen/aufgerufen. Der "Installieren"-Klick auf ein frisch
+    /// gefundenes Update war dadurch ein dauerhafter No-Op, und Sparkles
+    /// Continuation blieb für immer offen - die interne Download-Pipeline
+    /// kam nie in Gang. Fix: zuerst `pendingUpdateChoice` prüfen (falls
+    /// gesetzt, sind wir im "Update gefunden"-Dialog), sonst
+    /// `pendingInstallChoice` (falls gesetzt, sind wir im "Bereit zur
+    /// Installation"-Dialog) - die beiden Zustände schließen sich laut
+    /// Sparkles Protokollablauf gegenseitig aus.
     func installUpdate() {
-        pendingInstallChoice?(.install)
-        pendingInstallChoice = nil
+        if let choice = pendingUpdateChoice {
+            pendingUpdateChoice = nil
+            choice(.install)
+        } else {
+            pendingInstallChoice?(.install)
+            pendingInstallChoice = nil
+        }
     }
 
     func cancelDownload() {
