@@ -133,3 +133,52 @@ gh release create "$TAG" "$ZIP_PATH" "$CHECKSUM_PATH" \
 
 rm -f "$NOTES_FILE"
 echo "create_github_release.sh: Release $TAG veroeffentlicht."
+
+echo "Signiere ZIP für Sparkle (EdDSA)..."
+SIGN_UPDATE_TOOL="$(find "$HOME/Library/Developer/Xcode/DerivedData" -path "*sparkle*/artifacts/sparkle/Sparkle/bin/sign_update" 2>/dev/null | head -1)"
+if [ -z "$SIGN_UPDATE_TOOL" ]; then
+  echo "create_github_release.sh: sign_update-Tool nicht gefunden - Appcast wird NICHT aktualisiert. Bitte Xcode-Build einmal ausführen (löst SPM-Artefakte auf) und erneut versuchen." >&2
+  exit 1
+fi
+ED_SIGNATURE_LINE="$("$SIGN_UPDATE_TOOL" "$ZIP_PATH")"
+ED_SIGNATURE="$(echo "$ED_SIGNATURE_LINE" | grep -oE 'sparkle:edSignature="[^"]*"' | sed -E 's/sparkle:edSignature="([^"]*)"/\1/')"
+ZIP_LENGTH="$(stat -f%z "$ZIP_PATH")"
+
+echo "Aktualisiere docs/appcast.xml..."
+APPCAST_PATH="$REPO_ROOT/docs/appcast.xml"
+NEW_ITEM="    <item>
+      <title>${TAG}</title>
+      <pubDate>$(date -u +"%a, %d %b %Y %H:%M:%S +0000")</pubDate>
+      <description><![CDATA[$(cat "$NOTES_FILE")]]></description>
+      <enclosure url=\"https://github.com/martinfelder/feedivo-mac/releases/download/${TAG}/$(basename "$ZIP_PATH")\"
+                 sparkle:version=\"${BUILD_NUMBER}\"
+                 sparkle:shortVersionString=\"${MARKETING_VERSION}\"
+                 sparkle:edSignature=\"${ED_SIGNATURE}\"
+                 length=\"${ZIP_LENGTH}\"
+                 type=\"application/octet-stream\"/>
+    </item>"
+# Fügt das neue <item> direkt nach dem stabilen Kommentar-Anker in der
+# channel-Sektion ein (siehe docs/appcast.xml-Grundgerüst, Task 5) - nicht
+# per XML-Parser-Roundtrip, um das Formatierungs-Risiko aus dem bekannten
+# Localizable.xcstrings-Gotcha nicht zu wiederholen.
+python3 - "$APPCAST_PATH" "$NEW_ITEM" <<'PYEOF'
+import sys
+path, new_item = sys.argv[1], sys.argv[2]
+with open(path, "r", encoding="utf-8") as f:
+    content = f.read()
+anchor = "<!-- create_github_release.sh fügt hier bei jedem Release ein neues <item> ein -->"
+content = content.replace(anchor, anchor + "\n" + new_item)
+with open(path, "w", encoding="utf-8") as f:
+    f.write(content)
+PYEOF
+
+git -C "$REPO_ROOT" add docs/appcast.xml
+git -C "$REPO_ROOT" commit -m "chore: Appcast-Eintrag für ${TAG}"
+
+read -r -p "Appcast-Commit nach origin/main pushen? [y/N] " PUSH_CONFIRM
+if [[ "$PUSH_CONFIRM" =~ ^[Yy]$ ]]; then
+  git -C "$REPO_ROOT" push
+  echo "create_github_release.sh: Appcast gepusht."
+else
+  echo "create_github_release.sh: Appcast-Commit lokal, NICHT gepusht (manuell nachholen: git push)."
+fi
