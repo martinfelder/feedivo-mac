@@ -13,6 +13,11 @@ siehe `git log`.
 
 <!-- versions -->
 
+## [1.0 (17)] - 2026-08-01
+
+- fix: sign_update-Suche berücksichtigt eigenen -derivedDataPath des Release-Builds
+- chore: Appcast-Eintrag für v1.0-16 (manuell nachgetragen)
+
 ## [1.0 (16)] - 2026-08-01
 
 - fix: showUpdateFound() wartet nicht mehr auf nie kommende Continuation bei stillem Fund
