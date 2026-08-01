@@ -35,32 +35,24 @@ struct FeedivoApp: App {
     @AppStorage(SpotlightIndexingSettings.isEnabledKey)
     private var spotlightIndexingIsEnabled = SpotlightIndexingSettings.defaultIsEnabled
 
-    @AppStorage(UpdateCheckSettings.isAutomaticCheckEnabledKey)
-    private var updateCheckIsAutomaticCheckEnabled = UpdateCheckSettings.defaultIsAutomaticCheckEnabled
+    // Sparkle-Umstellung (2026-07-31): ersetzt den kompletten alten
+    // UpdateChecker/GitHubRelease-basierten State (AppStorage-Flags,
+    // Sheet-/Alert-Presentation-States, In-Flight-Guard) durch einen
+    // einzigen Coordinator, der SPUUpdater kapselt (siehe
+    // SparkleUpdateCoordinator.swift).
+    @State private var sparkleUpdateCoordinator = SparkleUpdateCoordinator()
 
-    @AppStorage(UpdateCheckSettings.hasUnseenUpdateKey)
-    private var updateCheckHasUnseenUpdate = UpdateCheckSettings.defaultHasUnseenUpdate
-
-    @State private var updateCheckReleasePresentation: GitHubRelease?
-    @State private var showsUpdateCheckUpToDateAlert = false
-    // Nutzerwunsch: der "Kein Update"-Dialog soll zusätzlich zeigen, was
-    // installiert ist und was aktuell auf GitHub als Release existiert.
-    @State private var updateCheckUpToDateRelease: GitHubRelease?
-    @State private var updateCheckErrorMessage: String?
-    // Fix Whole-Branch-Review (Important): verhindert parallele/wiederholte
-    // Update-Checks per Menü, während bereits einer läuft (analog zum
-    // isChecking-Guard in AboutSettingsView.swift, hier aber ohne Spinner-UI,
-    // da der App-Menü-Pfad kein eigenes View-Rendering für Zwischenzustände hat).
-    @State private var isUpdateCheckInFlight = false
-
-    // Fix Whole-Branch-Review (Important): `performManualUpdateCheck()` muss das
-    // Hauptfenster öffnen/fokussieren, bevor der Check läuft — die Sheet-/Alert-
-    // Modifier hängen am Content von `Window("Feedivo", id: "main")`. Ist das
-    // Fenster geschlossen (App läuft weiter über den Menubar-Status-Item, siehe
-    // MenubarStatusItemController), hätte weder das Sheet noch der Alert einen
-    // sichtbaren Ort zum Erscheinen. `openWindow(id:)` gegen die bereits als
-    // `Window` (nicht `WindowGroup`) deklarierte Singleton-Szene ist idempotent —
-    // bringt ein bereits offenes Fenster nur nach vorn, erzeugt keine Dublette.
+    // Fix Whole-Branch-Review (Important, ursprünglich für den mittlerweile
+    // entfernten `performManualUpdateCheck()` dokumentiert, gilt unverändert
+    // für den `sparkleUpdateCoordinator.checkForUpdatesManually()`-Aufruf im
+    // "Nach Updates suchen…"-Menübefehl): Hauptfenster öffnen/fokussieren,
+    // bevor der Check läuft — die Sheet-/Alert-Modifier hängen am Content von
+    // `Window("Feedivo", id: "main")`. Ist das Fenster geschlossen (App läuft
+    // weiter über den Menubar-Status-Item, siehe MenubarStatusItemController),
+    // hätte weder das Sheet noch der Alert einen sichtbaren Ort zum
+    // Erscheinen. `openWindow(id:)` gegen die bereits als `Window` (nicht
+    // `WindowGroup`) deklarierte Singleton-Szene ist idempotent — bringt ein
+    // bereits offenes Fenster nur nach vorn, erzeugt keine Dublette.
     @Environment(\.openWindow) private var openWindow
 
     // Feature 23.2: AppKit-Delegate fängt feedivo://-URLs zuverlässig ab —
@@ -159,7 +151,7 @@ struct FeedivoApp: App {
                     trimImageCacheToSelectedLimit()
                     ensureSpotlightBackfillIfNeeded()
                     scheduleBackgroundRefresh()
-                    performSilentUpdateCheckIfNeeded()
+                    sparkleUpdateCoordinator.start()
                 }
                 .onChange(of: backgroundRefreshIsEnabled) {
                     scheduleBackgroundRefresh()
@@ -185,41 +177,8 @@ struct FeedivoApp: App {
                 .onChange(of: spotlightIndexingIsEnabled) {
                     handleSpotlightIndexingToggleChange()
                 }
-                .sheet(item: $updateCheckReleasePresentation) { release in
-                    UpdateAvailableSheet(
-                        release: release,
-                        onOpenOnGitHub: {
-                            NSWorkspace.shared.open(release.htmlURL)
-                        },
-                        onDismiss: {
-                            updateCheckReleasePresentation = nil
-                        }
-                    )
-                }
-                .sheet(isPresented: $showsUpdateCheckUpToDateAlert) {
-                    UpdateUpToDateSheet(
-                        installedVersion: "\(AppVersionInfo.marketingVersion) (\(AppVersionInfo.buildNumber))",
-                        latestKnownRelease: updateCheckUpToDateRelease,
-                        onDismiss: {
-                            showsUpdateCheckUpToDateAlert = false
-                        }
-                    )
-                }
-                .alert(
-                    L10n.updateCheckErrorTitle,
-                    isPresented: Binding(
-                        get: { updateCheckErrorMessage != nil },
-                        set: { isPresented in
-                            if !isPresented {
-                                updateCheckErrorMessage = nil
-                            }
-                        }
-                    )
-                ) {
-                    Button(L10n.commonOK, role: .cancel) {}
-                } message: {
-                    Text(updateCheckErrorMessage ?? "")
-                }
+                .modifier(SparkleUpdatePresentationModifier(coordinator: sparkleUpdateCoordinator))
+                .environment(\.sparkleUpdateCoordinator, sparkleUpdateCoordinator)
         }
         .commands {
             ArticleCommands()
@@ -238,7 +197,8 @@ struct FeedivoApp: App {
             // mehr für den Menü-Titel verwendet.
             CommandGroup(after: .appInfo) {
                 Button(L10n.updateCheckMenuItem) {
-                    performManualUpdateCheck()
+                    openWindow(id: "main")
+                    sparkleUpdateCoordinator.checkForUpdatesManually()
                 }
             }
             // Entfernt den von SwiftUI automatisch bereitgestellten, aber funktionslosen
@@ -412,65 +372,6 @@ struct FeedivoApp: App {
         }
     }
 
-    private func runUpdateCheck() async -> UpdateCheckOutcome {
-        await UpdateChecker().check(
-            currentMarketingVersion: AppVersionInfo.marketingVersion,
-            currentBuildNumber: AppVersionInfo.buildNumber
-        )
-    }
-
-    private func performManualUpdateCheck() {
-        // Fix Whole-Branch-Review (Important): Hauptfenster öffnen/fokussieren,
-        // BEVOR der Check läuft - sonst hängen Sheet/Alert an einem geschlossenen
-        // Fenster und erscheinen entweder gar nicht oder überraschend erst beim
-        // nächsten Öffnen des Fensters. Siehe Kommentar an openWindow oben.
-        openWindow(id: "main")
-
-        // Fix Whole-Branch-Review (Important): Re-Entrancy-Guard - wiederholte
-        // Klicks während ein Check bereits läuft dürfen keine weiteren,
-        // parallelen GitHub-API-Aufrufe auslösen (60 Requests/Stunde-Budget ohne
-        // Authentifizierung). Läuft bereits einer, einfach nichts tun - auch das
-        // Badge bleibt in diesem Fall unangetastet.
-        guard !isUpdateCheckInFlight else {
-            return
-        }
-        isUpdateCheckInFlight = true
-
-        // Nutzer schaut gerade hin - Badge sofort weg, unabhängig vom Ergebnis.
-        updateCheckHasUnseenUpdate = false
-        Task {
-            let outcome = await runUpdateCheck()
-            switch outcome {
-            case .updateAvailable(let release):
-                updateCheckReleasePresentation = release
-            case .upToDate(let latestKnownRelease):
-                updateCheckUpToDateRelease = latestKnownRelease
-                showsUpdateCheckUpToDateAlert = true
-            case .failed(let message):
-                updateCheckErrorMessage = message
-            }
-            isUpdateCheckInFlight = false
-        }
-    }
-
-    private func performSilentUpdateCheckIfNeeded() {
-        guard updateCheckIsAutomaticCheckEnabled else {
-            return
-        }
-        Task {
-            let outcome = await runUpdateCheck()
-            switch outcome {
-            case .updateAvailable:
-                updateCheckHasUnseenUpdate = true
-            case .upToDate:
-                updateCheckHasUnseenUpdate = false
-            case .failed(let message):
-                // Bewusst keine UI-Unterbrechung beim stillen Start-Check - nur Log.
-                AppLogger.dataAccess.error("Update-Check (Start): \(message, privacy: .public)")
-            }
-        }
-    }
-
     @MainActor
     private func handleSpotlightIndexingToggleChange() {
         if spotlightIndexingIsEnabled {
@@ -498,4 +399,84 @@ struct FeedivoApp: App {
 @Observable
 final class DatabaseLoadState {
     var initializationError: String?
+}
+
+// Bündelt die Sheet-/Alert-Präsentation für den Sparkle-Update-Vorgang als
+// eigenen `ViewModifier` statt inline in `FeedivoApp.body`s Modifierkette.
+// Grund: Die Kette am Content von `Window("Feedivo", id: "main")` ist bereits
+// sehr lang (mehrere `.environment`, `.task`, sechs `.onChange`) - inline
+// gebaute `Binding(get:set:)`-Ausdrücke für zwei `.sheet` + ein `.alert`
+// ließen den Swift-Typchecker dort reproduzierbar mit "the compiler is
+// unable to type-check this expression in reasonable time" scheitern (per
+// `xcodebuild build` verifiziert, auch nach Auslagerung der reinen Bindings
+// in Computed Properties blieb der Fehler bestehen - erst die Auslagerung
+// der kompletten `.sheet`/`.sheet`/`.alert`-Anwendung in einen eigenen
+// `ViewModifier.body(content:)` mit eigener, unabhängig typgeprüfter
+// Funktion behob es). Verhalten ist unverändert zum ursprünglichen Plan.
+private struct SparkleUpdatePresentationModifier: ViewModifier {
+    let coordinator: SparkleUpdateCoordinator
+
+    func body(content: Content) -> some View {
+        content
+            .sheet(isPresented: isUpdateAvailablePresented) {
+                if case .updateAvailable(let release) = coordinator.state {
+                    UpdateAvailableSheet(
+                        release: release,
+                        onOpenOnGitHub: { NSWorkspace.shared.open(release.htmlURL) },
+                        onDismiss: { coordinator.cancelDownload() }
+                    )
+                }
+            }
+            .sheet(isPresented: isUpToDatePresented) {
+                UpdateUpToDateSheet(
+                    installedVersion: "\(AppVersionInfo.marketingVersion) (\(AppVersionInfo.buildNumber))",
+                    onDismiss: { coordinator.cancelDownload() }
+                )
+            }
+            .alert(
+                L10n.updateCheckErrorTitle,
+                isPresented: isErrorPresented
+            ) {
+                Button(L10n.commonOK, role: .cancel) {}
+            } message: {
+                if case .failed(let message) = coordinator.state {
+                    Text(message)
+                }
+            }
+    }
+
+    private var isUpdateAvailablePresented: Binding<Bool> {
+        Binding(
+            get: {
+                switch coordinator.state {
+                case .updateAvailable, .downloading, .extracting, .readyToInstall, .installing:
+                    return true
+                default:
+                    return false
+                }
+            },
+            set: { isPresented in
+                if !isPresented { coordinator.cancelDownload() }
+            }
+        )
+    }
+
+    private var isUpToDatePresented: Binding<Bool> {
+        Binding(
+            get: { coordinator.state == .upToDate },
+            set: { _ in }
+        )
+    }
+
+    private var isErrorPresented: Binding<Bool> {
+        Binding(
+            get: {
+                if case .failed = coordinator.state { return true }
+                return false
+            },
+            set: { isPresented in
+                if !isPresented { coordinator.cancelDownload() }
+            }
+        )
+    }
 }
