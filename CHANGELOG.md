@@ -13,6 +13,27 @@ siehe `git log`.
 
 <!-- versions -->
 
+## [1.0 (16)] - 2026-08-01
+
+- fix: showUpdateFound() wartet nicht mehr auf nie kommende Continuation bei stillem Fund
+- fix: Whole-Branch-Review-Funde für Sparkle/Homebrew-Migration behoben
+- docs: CLAUDE.md um Sparkle-Update/Homebrew-Vertrieb ergänzt
+- feat: create_github_release.sh aktualisiert Homebrew-Cask-Formel im Tap-Repo
+- fix: NOTES_FILE-Race und stille ED_SIGNATURE-Extraktion in create_github_release.sh behoben
+- feat: create_github_release.sh signiert Releases für Sparkle und pflegt appcast.xml
+- refactor: alten Eigenbau-Update-Installer und GitHub-API-Check-Stack entfernt (durch Sparkle ersetzt)
+- refactor: Update-UI liest jetzt SparkleUpdateCoordinator statt GitHub-API-Stack
+- refactor: FeedivoApp.swift auf SparkleUpdateCoordinator umgestellt
+- fix: installUpdate() löst pendingUpdateChoice statt es zu ignorieren
+- feat: SparkleUpdateCoordinator kapselt SPUUpdater hinter eigenem SPUUserDriver
+- feat: SparkleUpdateState/SparkleReleaseInfo als neue Update-Datentypen
+- feat: Sparkle-Appcast-Grundgerüst angelegt
+- feat: HomebrewInstallationDetector erkennt Caskroom-Installationen
+- build: Sparkle Info.plist-Keys und Sandbox-Entitlement-Ausnahme ergänzt
+- build: Sparkle-Paket als Abhängigkeit hinzugefügt (noch ungenutzt)
+- docs: Implementierungsplan für Sparkle-Update + Homebrew-Vertrieb
+- docs: Design-Spec für Sparkle-Update + Homebrew-Vertrieb
+
 ## [1.0 (15)] - 2026-07-31
 
 - chore: Xcode-Workspace-State
