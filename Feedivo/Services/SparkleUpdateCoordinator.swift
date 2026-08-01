@@ -221,12 +221,30 @@ extension SparkleUpdateCoordinator: SPUUserDriver {
         // `.updateAvailable` gesetzt (löst das Sheet in
         // SparkleUpdatePresentationModifier aus); ein automatischer Fund kurz
         // nach dem App-Start würde sonst ungefragt ein modales Sheet über den
-        // Nutzer werfen - genau das, was der alte Code verhinderte. Die
-        // Continuation bleibt in beiden Fällen offen (siehe withCheckedContinuation
-        // unten), damit ein späterer Klick weiterhin funktioniert.
-        if updateState.userInitiated {
-            self.state = .updateAvailable(info)
+        // Nutzer werfen - genau das, was der alte Code verhinderte.
+        //
+        // KRITISCHER REGRESSIONS-FIX (Re-Review nach obigem Fix): Für den
+        // automatischen Fall wurde hier weiterhin bedingungslos per
+        // `withCheckedContinuation` auf eine Nutzerentscheidung gewartet, die
+        // NIE kommt (kein Sheet, kein Button, der `pendingUpdateChoice`
+        // auflöst) - Sparkles `SPUUIBasedUpdateDriver` betrachtet sich dadurch
+        // dauerhaft als "zeigt gerade ein Update", die App implementiert die
+        // optionale `showUpdateInFocus()`-Methode nicht, wodurch ein späterer
+        // manueller Check (`checkForUpdatesManually()`) auf diesen feststeckenden
+        // Zustand trifft und wirkungslos verpufft - `state` bleibt dabei auf
+        // `.checking` hängen, ohne dass je ein Driver-Callback feuert. Fix:
+        // für einen automatischen Fund sofort `.dismiss` zurückgeben statt auf
+        // eine Continuation zu warten - schließt Sparkles Update-Session für
+        // diesen stillen Fund sauber ab (entspricht der Semantik des früher
+        // entfernten `performSilentUpdateCheckIfNeeded()`: nur Badge, keine
+        // hängende UI-Session), `currentRelease`/`hasUnseenUpdate` bleiben
+        // gesetzt, damit das Badge weiterhin sichtbar ist. Ein späterer
+        // manueller Check startet dadurch eine komplett frische Sparkle-
+        // Session und zeigt das Sheet korrekt.
+        guard updateState.userInitiated else {
+            return .dismiss
         }
+        self.state = .updateAvailable(info)
         return await withCheckedContinuation { continuation in
             pendingUpdateChoice = { choice in continuation.resume(returning: choice) }
         }
