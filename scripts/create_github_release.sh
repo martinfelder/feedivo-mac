@@ -145,7 +145,16 @@ echo "Signiere ZIP für Sparkle (EdDSA)..."
 # kann mit einem Nicht-Null-Status abbrechen - hier ERST NACH dem bereits
 # veröffentlichten `gh release create` oben. `-print -quit` stoppt `find`
 # selbst nach dem ersten Treffer, ganz ohne Pipe/SIGPIPE-Risiko.
-SIGN_UPDATE_TOOL="$(find "$HOME/Library/Developer/Xcode/DerivedData" -path "*sparkle*/artifacts/sparkle/Sparkle/bin/sign_update" -print -quit 2>/dev/null)"
+# Live-Release-Fund (2026-08-01): dieses Skript baut mit einem eigenen
+# -derivedDataPath ($BUILD_DIR statt der Standard-Xcode-DerivedData) - dessen
+# SourcePackages-Ordner ist komplett getrennt von
+# ~/Library/Developer/Xcode/DerivedData/Feedivo-*/SourcePackages, wo
+# sign_update sonst normalerweise aufgelöst wird. Ohne diesen zusätzlichen
+# Suchpfad schlägt die Signierung bei JEDEM echten Release-Lauf fehl -
+# reproduziert beim allerersten echten Release nach der Sparkle-Umstellung
+# (v1.0-16): GitHub-Release war zu dem Zeitpunkt bereits veröffentlicht,
+# Appcast blieb ohne manuellen Nacheingriff dauerhaft ohne den neuen Eintrag.
+SIGN_UPDATE_TOOL="$(find "$BUILD_DIR/SourcePackages" "$HOME/Library/Developer/Xcode/DerivedData" -path "*sparkle*/artifacts/sparkle/Sparkle/bin/sign_update" -print -quit 2>/dev/null)"
 if [ -z "$SIGN_UPDATE_TOOL" ]; then
   echo "create_github_release.sh: sign_update-Tool nicht gefunden - Appcast wird NICHT aktualisiert. Bitte Xcode-Build einmal ausführen (löst SPM-Artefakte auf) und erneut versuchen." >&2
   exit 1
