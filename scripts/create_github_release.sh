@@ -189,3 +189,36 @@ if [[ "$PUSH_CONFIRM" =~ ^[Yy]$ ]]; then
 else
   echo "create_github_release.sh: Appcast-Commit lokal, NICHT gepusht (manuell nachholen: git push)."
 fi
+
+TAP_REPO_DIR="$HOME/Developer/homebrew-feedivo"
+if [ ! -d "$TAP_REPO_DIR" ]; then
+  echo "Klone Tap-Repo nach $TAP_REPO_DIR..."
+  git clone https://github.com/martinfelder/homebrew-feedivo.git "$TAP_REPO_DIR"
+fi
+
+echo "Aktualisiere Homebrew-Cask-Formel..."
+cd "$TAP_REPO_DIR"
+git pull --ff-only
+NEW_SHA256="$(shasum -a 256 "$ZIP_PATH" | awk '{print $1}')"
+python3 - "$TAP_REPO_DIR/Casks/feedivo.rb" "$MARKETING_VERSION,$BUILD_NUMBER" "$NEW_SHA256" <<'PYEOF'
+import re
+import sys
+path, version, sha256 = sys.argv[1], sys.argv[2], sys.argv[3]
+with open(path, "r", encoding="utf-8") as f:
+    content = f.read()
+content = re.sub(r'version "[^"]*"', f'version "{version}"', content, count=1)
+content = re.sub(r'sha256 "[^"]*"', f'sha256 "{sha256}"', content, count=1)
+with open(path, "w", encoding="utf-8") as f:
+    f.write(content)
+PYEOF
+git add Casks/feedivo.rb
+git commit -m "feat: Feedivo ${VERSION_LABEL}"
+
+read -r -p "Homebrew-Cask-Update nach martinfelder/homebrew-feedivo pushen? [y/N] " TAP_PUSH_CONFIRM
+if [[ "$TAP_PUSH_CONFIRM" =~ ^[Yy]$ ]]; then
+  git push
+  echo "create_github_release.sh: Homebrew-Cask-Formel gepusht."
+else
+  echo "create_github_release.sh: Cask-Commit lokal in $TAP_REPO_DIR, NICHT gepusht (manuell nachholen: cd $TAP_REPO_DIR && git push)."
+fi
+cd "$REPO_ROOT"
