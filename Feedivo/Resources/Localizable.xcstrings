@@ -1,6 +1,22 @@
 {
   "sourceLanguage" : "de",
   "strings" : {
+    "updateCheck.homebrewHint" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Über Homebrew installiert — aktualisiere mit „brew upgrade --cask feedivo“."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installed via Homebrew — update with “brew upgrade --cask feedivo”."
+          }
+        }
+      }
+    },
     "updateCheck.quit.button" : {
       "localizations" : {
         "de" : {

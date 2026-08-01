@@ -1,8 +1,7 @@
 import SwiftUI
 
-/// Zeigt "Kein Update verfügbar" mit installierter Version (grün, da
-/// bestätigt aktuell) und der zuletzt auf GitHub gefundenen Version als
-/// zweite Zeile.
+/// Zeigt "Kein Update verfügbar" mit der installierten Version (grün, da
+/// bestätigt aktuell).
 ///
 /// Eigene View statt `.alert()`: macOS' `.alert()` wird intern über
 /// `NSAlert` gerendert, dessen `informativeText` reinen Plain-Text
@@ -12,9 +11,13 @@ import SwiftUI
 /// trotz korrektem Text-Konkatenations-Code unfarbig). Ein eigenes Sheet
 /// (wie das bereits bestehende `UpdateAvailableSheet`) rendert echtes
 /// SwiftUI und respektiert Farb-Modifikatoren.
+///
+/// Zeigt seit der Sparkle-Umstellung (Task 9) keine zweite Zeile mit einer
+/// "zuletzt bekannten Version" mehr - Sparkles `showUpdateNotFoundWithError`
+/// liefert dafür keinen Wert mehr (das war eine GitHub-API-Spezialität des
+/// entfernten UpdateChecker-Stacks).
 struct UpdateUpToDateSheet: View {
     let installedVersion: String
-    let latestKnownRelease: GitHubRelease?
     let onDismiss: () -> Void
 
     var body: some View {
@@ -22,20 +25,11 @@ struct UpdateUpToDateSheet: View {
             Text(L10n.updateCheckUpToDateTitle)
                 .font(.system(size: 15, weight: .semibold))
 
-            VStack(alignment: .leading, spacing: 4) {
-                (
-                    Text(L10n.updateCheckInstalledLabelPrefix)
-                        + Text(installedVersion).foregroundColor(.green).fontWeight(.semibold)
-                )
-                .font(.system(size: 13))
-
-                // Ohne Antwort von GitHub (leere Release-Liste) ist die installierte
-                // Version selbst der beste bekannte Wert - kein Fehlertext, da das
-                // kein Problem, sondern nur eine fehlende Information ist.
-                Text(L10n.updateCheckLatestAvailableLabel(tagName: latestKnownRelease?.tagName ?? installedVersion))
-                    .font(.system(size: 13))
-                    .foregroundStyle(.secondary)
-            }
+            (
+                Text(L10n.updateCheckInstalledLabelPrefix)
+                    + Text(installedVersion).foregroundColor(.green).fontWeight(.semibold)
+            )
+            .font(.system(size: 13))
 
             HStack {
                 Spacer()

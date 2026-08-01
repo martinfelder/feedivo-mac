@@ -15,13 +15,12 @@ import AppKit
 /// ihrem Commit-Präfix ("Feat:", "Fix:", "Design:", ...) in Gruppen mit Icon
 /// sortiert, statt als eine unsortierte Liste roher Commit-Nachrichten zu erscheinen.
 struct UpdateAvailableSheet: View {
-    let release: GitHubRelease
+    let release: SparkleReleaseInfo
     let onOpenOnGitHub: () -> Void
     let onDismiss: () -> Void
 
     @Environment(\.colorScheme) private var colorScheme
-
-    @State private var installer = UpdateInstaller()
+    @Environment(\.sparkleUpdateCoordinator) private var coordinator
 
     private var blocks: [ReaderContentBlock] {
         ReaderContentRenderer.blocks(summary: nil, content: release.bodyHTML, fallbackImageURL: nil)
@@ -168,12 +167,18 @@ struct UpdateAvailableSheet: View {
     @ViewBuilder
     private func footer(theme: RuleDialogTheme) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            switch installer.state {
-            case .idle:
+            // .idle/.checking/.upToDate treten praktisch nie auf, während dieses Sheet
+            // sichtbar ist (FeedivoApp.swift präsentiert es nur für .updateAvailable bis
+            // .installing, siehe SparkleUpdatePresentationModifier) - rein defensiv für
+            // Exhaustivität und den `coordinator == nil`-Fallback (?? .idle) mitbehandelt.
+            // .updateAvailable selbst braucht keinen eigenen Statustext, der Download-Button
+            // in footerButtons() trägt die eigentliche Handlung.
+            switch coordinator?.state ?? .idle {
+            case .idle, .checking, .updateAvailable, .upToDate:
                 EmptyView()
             case .downloading(let fraction, let downloaded, let total):
                 downloadProgressView(fraction: fraction, downloaded: downloaded, total: total, theme: theme)
-            case .verifying:
+            case .extracting:
                 HStack(spacing: 8) {
                     ProgressView().controlSize(.small)
                     Text(L10n.updateCheckVerifyingLabel)
@@ -191,9 +196,9 @@ struct UpdateAvailableSheet: View {
                         .font(.system(size: 12.5))
                         .foregroundStyle(theme.text2)
                 }
-            case .failed(let error):
+            case .failed(let message):
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(error.errorDescription ?? "")
+                    Text(message)
                         .font(.system(size: 12.5, weight: .semibold))
                         .foregroundStyle(theme.destructiveText)
 
@@ -210,11 +215,11 @@ struct UpdateAvailableSheet: View {
                 // Korrektur nach Task-10-Review (Nutzerentscheid: umsetzen): ohne diesen
                 // Button gäbe es in keinem Zustand mehr eine Möglichkeit, den Dialog zu
                 // schließen, ohne den Download zu starten - onDismiss() wäre unerreichbar.
-                // Bewusst nur in .idle/.failed sichtbar (kein aktiver Vorgang, der beim
-                // Schließen des Sheets samt seines @State-gehaltenen UpdateInstaller
-                // stillschweigend verloren ginge); während .downloading übernimmt
-                // "Abbrechen" dieselbe Rolle, .verifying/.installing/.readyToInstall sind
-                // bewusst kurze, nicht abbrechbare Zwischenschritte.
+                // Bewusst nur in .idle/.checking/.updateAvailable/.upToDate/.failed sichtbar
+                // (kein aktiver, unterbrechbarer Vorgang im SparkleUpdateCoordinator);
+                // während .downloading übernimmt "Abbrechen" dieselbe Rolle,
+                // .extracting/.installing/.readyToInstall sind bewusst kurze, nicht
+                // abbrechbare Zwischenschritte.
                 if showsDismissButton {
                     Button(L10n.updateCheckDismissButton) {
                         onDismiss()
@@ -233,8 +238,8 @@ struct UpdateAvailableSheet: View {
     }
 
     private var showsDismissButton: Bool {
-        switch installer.state {
-        case .idle, .failed:
+        switch coordinator?.state ?? .idle {
+        case .idle, .checking, .updateAvailable, .upToDate, .failed:
             true
         default:
             false
@@ -263,36 +268,40 @@ struct UpdateAvailableSheet: View {
 
     @ViewBuilder
     private func footerButtons(theme: RuleDialogTheme) -> some View {
-        switch installer.state {
-        case .idle:
+        switch coordinator?.state ?? .idle {
+        case .idle, .checking:
+            // Defensiver Fallback (coordinator == nil, oder state ist zwischen zwei
+            // Vorgängen kurz auf .idle zurückgefallen) - startet einen frischen Check.
             RuleDialogButton(titleKey: L10n.updateCheckDownloadButton, style: .primary, theme: theme) {
-                Task { await installer.startDownloadAndVerify(release: release) }
+                coordinator?.checkForUpdatesManually()
+            }
+        case .updateAvailable:
+            // Löst Sparkles offene "Update gefunden"-Continuation auf (pendingUpdateChoice
+            // in SparkleUpdateCoordinator) - genau das startet den eigentlichen Download,
+            // NICHT ein erneuter checkForUpdatesManually()-Aufruf.
+            RuleDialogButton(titleKey: L10n.updateCheckDownloadButton, style: .primary, theme: theme) {
+                coordinator?.installUpdate()
             }
         case .downloading:
             RuleDialogButton(titleKey: L10n.commonCancel, style: .secondary, theme: theme) {
-                installer.cancelDownload()
+                coordinator?.cancelDownload()
             }
-        case .verifying, .installing:
+        case .extracting, .installing, .upToDate:
             EmptyView()
         case .readyToInstall:
+            // Löst Sparkles offene "Bereit zur Installation"-Continuation auf
+            // (pendingInstallChoice) - dieselbe installUpdate()-Methode wie oben,
+            // SparkleUpdateCoordinator unterscheidet selbst anhand des gesetzten Pending-Feldes.
             RuleDialogButton(titleKey: L10n.updateCheckReadyToInstallButton, style: .primary, theme: theme) {
-                Task { await installer.install() }
+                coordinator?.installUpdate()
             }
-        case .failed(let error):
-            if error == .relaunchFailed {
-                RuleDialogButton(titleKey: L10n.updateCheckQuitButton, style: .primary, theme: theme) {
-                    NSApplication.shared.terminate(nil)
-                }
-            } else {
-                RuleDialogButton(titleKey: L10n.updateCheckRetryButton, style: .primary, theme: theme) {
-                    Task {
-                        if error.requiresFullRedownload {
-                            await installer.startDownloadAndVerify(release: release)
-                        } else {
-                            await installer.install()
-                        }
-                    }
-                }
+        case .failed:
+            // SparkleUpdateState.failed(String) unterscheidet nicht mehr zwischen
+            // "Neu-Download nötig" und "Relaunch fehlgeschlagen" wie der alte,
+            // eigene UpdateInstallError - ein einheitlicher Neuversuch per Check
+            // ist der einzige noch sinnvolle nächste Schritt.
+            RuleDialogButton(titleKey: L10n.updateCheckRetryButton, style: .primary, theme: theme) {
+                coordinator?.checkForUpdatesManually()
             }
         }
     }

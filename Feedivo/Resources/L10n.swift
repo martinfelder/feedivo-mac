@@ -1143,6 +1143,7 @@ enum L10n {
     static let settingsAboutSection = LocalizedStringKey("settings.about.section")
     static let updateCheckAutomaticCheckTitle = LocalizedStringKey("updateCheck.automaticCheck.title")
     static let updateCheckAutomaticCheckDescription = LocalizedStringKey("updateCheck.automaticCheck.description")
+    static let updateCheckHomebrewHint = LocalizedStringKey("updateCheck.homebrewHint")
     // Bewusst String (nicht LocalizedStringKey) wie updateCheckMenuItem selbst -
     // beide werden in AboutSettingsView im selben Ternary-Ausdruck verwendet
     // (isChecking ? updateCheckCheckingButton : updateCheckMenuItem), Swift

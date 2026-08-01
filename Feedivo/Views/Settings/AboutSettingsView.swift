@@ -3,23 +3,25 @@ import AppKit
 import SwiftUI
 
 /// Neuer Settings-Tab "Über": App-Icon, Version, manueller Update-Check-
-/// Button und ein Schalter für den stillen Start-Check. Ruft denselben
-/// stateless UpdateChecker wie das App-Menü auf, hält aber bewusst eigenen,
-/// lokalen Präsentationszustand (siehe Abweichung von der Spec im Plan-Header) -
-/// vermeidet, dass ein hier ausgelöster Check gleichzeitig im Hauptfenster
-/// ein Sheet öffnet, falls beide Fenster offen sind.
+/// Button und ein Schalter für den automatischen Sparkle-Check. Liest den
+/// Update-Zustand direkt aus dem zentralen SparkleUpdateCoordinator (Environment,
+/// Task 7/8) statt eigenen lokalen Präsentationszustand zu halten - Sheet-/
+/// Alert-Präsentation läuft seit Task 8 zentral über FeedivoApp.swift
+/// (SparkleUpdatePresentationModifier), damit nicht zwei unabhängige
+/// Präsentationsorte um denselben Coordinator-State konkurrieren.
 struct AboutSettingsView: View {
+    @Environment(\.sparkleUpdateCoordinator) private var coordinator
+
     @AppStorage(UpdateCheckSettings.isAutomaticCheckEnabledKey)
     private var isAutomaticCheckEnabled = UpdateCheckSettings.defaultIsAutomaticCheckEnabled
 
-    @AppStorage(UpdateCheckSettings.hasUnseenUpdateKey)
-    private var hasUnseenUpdate = UpdateCheckSettings.defaultHasUnseenUpdate
+    private var isChecking: Bool {
+        coordinator?.state == .checking
+    }
 
-    @State private var isChecking = false
-    @State private var releasePresentation: GitHubRelease?
-    @State private var showsUpToDateAlert = false
-    @State private var upToDateRelease: GitHubRelease?
-    @State private var errorMessage: String?
+    private var hasUnseenUpdate: Bool {
+        coordinator?.hasUnseenUpdate ?? false
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -48,86 +50,48 @@ struct AboutSettingsView: View {
                 ) {
                     Toggle("", isOn: $isAutomaticCheckEnabled)
                         .labelsHidden()
+                        .onChange(of: isAutomaticCheckEnabled) { _, newValue in
+                            coordinator?.setAutomaticChecksEnabled(newValue)
+                        }
                 }
 
-                HStack(spacing: 8) {
-                    Button(isChecking ? L10n.updateCheckCheckingButton : L10n.updateCheckMenuItem) {
-                        performCheck()
-                    }
-                    .disabled(isChecking)
+                if coordinator?.isHomebrewInstall == true {
+                    // Bei Homebrew-Installationen bleibt SPUUpdater komplett inaktiv
+                    // (siehe SparkleUpdateCoordinator.start()) - ein Such-Button hätte
+                    // hier keine Wirkung, Updates laufen ausschließlich über
+                    // `brew upgrade --cask feedivo`.
+                    Text(L10n.updateCheckHomebrewHint)
+                        .font(.system(size: 11.5))
+                        .foregroundStyle(.secondary)
+                        .padding(.top, 4)
+                } else {
+                    HStack(spacing: 8) {
+                        Button(isChecking ? L10n.updateCheckCheckingButton : L10n.updateCheckMenuItem) {
+                            coordinator?.checkForUpdatesManually()
+                        }
+                        .disabled(isChecking)
 
-                    if isChecking {
-                        ProgressView()
-                            .controlSize(.small)
-                    } else if hasUnseenUpdate {
-                        // Ersetzt den ursprünglich im App-Menü geplanten "•"-Präfix am
-                        // Menü-Titel (siehe Kommentar in FeedivoApp.swift) — ein
-                        // dynamischer NSMenu-Titel löste dort einen AppKit-Absturz aus.
-                        // Als reine SwiftUI-View ist dieses Badge hier unkritisch, da es
-                        // kein NSMenu-Item-Array live umbaut.
-                        HStack(spacing: 4) {
-                            Circle()
-                                .fill(Color.orange)
-                                .frame(width: 6, height: 6)
-                            Text(L10n.updateCheckPendingBadge)
-                                .font(.system(size: 11, weight: .medium))
-                                .foregroundStyle(.orange)
+                        if isChecking {
+                            ProgressView()
+                                .controlSize(.small)
+                        } else if hasUnseenUpdate {
+                            // Ersetzt den ursprünglich im App-Menü geplanten "•"-Präfix am
+                            // Menü-Titel (siehe Kommentar in FeedivoApp.swift) — ein
+                            // dynamischer NSMenu-Titel löste dort einen AppKit-Absturz aus.
+                            // Als reine SwiftUI-View ist dieses Badge hier unkritisch, da es
+                            // kein NSMenu-Item-Array live umbaut.
+                            HStack(spacing: 4) {
+                                Circle()
+                                    .fill(Color.orange)
+                                    .frame(width: 6, height: 6)
+                                Text(L10n.updateCheckPendingBadge)
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundStyle(.orange)
+                            }
                         }
                     }
+                    .padding(.top, 4)
                 }
-                .padding(.top, 4)
-            }
-        }
-        .sheet(item: $releasePresentation) { release in
-            UpdateAvailableSheet(
-                release: release,
-                onOpenOnGitHub: { NSWorkspace.shared.open(release.htmlURL) },
-                onDismiss: { releasePresentation = nil }
-            )
-        }
-        .sheet(isPresented: $showsUpToDateAlert) {
-            UpdateUpToDateSheet(
-                installedVersion: "\(AppVersionInfo.marketingVersion) (\(AppVersionInfo.buildNumber))",
-                latestKnownRelease: upToDateRelease,
-                onDismiss: {
-                    showsUpToDateAlert = false
-                }
-            )
-        }
-        .alert(
-            L10n.updateCheckErrorTitle,
-            isPresented: Binding(
-                get: { errorMessage != nil },
-                set: { isPresented in
-                    if !isPresented {
-                        errorMessage = nil
-                    }
-                }
-            )
-        ) {
-            Button(L10n.commonOK, role: .cancel) {}
-        } message: {
-            Text(errorMessage ?? "")
-        }
-    }
-
-    private func performCheck() {
-        hasUnseenUpdate = false
-        isChecking = true
-        Task {
-            let outcome = await UpdateChecker().check(
-                currentMarketingVersion: AppVersionInfo.marketingVersion,
-                currentBuildNumber: AppVersionInfo.buildNumber
-            )
-            isChecking = false
-            switch outcome {
-            case .updateAvailable(let release):
-                releasePresentation = release
-            case .upToDate(let latestKnownRelease):
-                upToDateRelease = latestKnownRelease
-                showsUpToDateAlert = true
-            case .failed(let message):
-                errorMessage = message
             }
         }
     }
