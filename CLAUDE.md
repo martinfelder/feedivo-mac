@@ -55,7 +55,7 @@ anfühlt — kein iOS-Port, keine Electron-App. Echtes AppKit-Feeling via SwiftU
 | Bilder | AsyncImage + eigener `ImageCacheService` | Built-in SwiftUI + eigenes Disk-Caching, kein Kingfisher |
 | Artikel-Rendering | Nativer SwiftUI-Renderer (`ReaderContentRenderer`) **und** `WKWebView` (`WebContentView`) | Native Ansicht für den Lesefluss, WKWebView für "Originalartikel" |
 | Background Refresh | `NSBackgroundActivityScheduler` (`SystemBackgroundActivityRefreshScheduler`) | Kein `BGTaskScheduler` (das ist iOS-fokussiert) |
-| App-Update | Sparkle 2.x (Swift Package, `SparkleUpdateCoordinator`) | Ersetzt seit 2026-07-31 den kompletten Eigenbau-Installer (siehe ADR-009) — Grund war ein reproduzierter App-Sandbox-Root-Cause-Fund, kein reiner Komfort-Umstieg. Appcast unter `docs/appcast.xml`, ausgeliefert über `https://raw.githubusercontent.com/martinfelder/feedivo-mac/main/docs/appcast.xml`. Zusätzlicher Vertriebskanal: Homebrew Cask (`martinfelder/homebrew-feedivo`, `Casks/feedivo.rb`) — bei einer per Cask erkannten Installation (`HomebrewInstallationDetector`) wird bewusst gar kein `SPUUpdater` erzeugt, Updates laufen dort ausschließlich über `brew upgrade`. Details siehe ADR-009, neuer Gotcha zur Quarantäne-Root-Cause und „Aktuell in Arbeit" unten |
+| App-Update | Sparkle 2.x (Swift Package, `SparkleUpdateCoordinator`) | Ersetzt seit 2026-07-31 den kompletten Eigenbau-Installer (siehe ADR-009) — Grund war ein reproduzierter App-Sandbox-Root-Cause-Fund, kein reiner Komfort-Umstieg. Appcast unter `docs/appcast.xml`, ausgeliefert über `https://raw.githubusercontent.com/martinfelder/feedivo-mac/main/docs/appcast.xml`. Zusätzlicher Vertriebskanal: Homebrew Cask (`martinfelder/homebrew-feedivo`, `Casks/feedivo.rb`) — bei einer per Cask erkannten Installation (`HomebrewInstallationDetector`) wird bewusst gar kein `SPUUpdater` erzeugt, Updates laufen dort ausschließlich über `brew upgrade`. **Seit 2026-08-02 (ADR-010) nutzt `SparkleUpdateCoordinator` Sparkles eigenen `SPUStandardUserDriver` statt einer komplett selbstgebauten `SPUUserDriver`-Konformität** — derselbe erste, echte End-to-End-Update-Zyklus (Developer-ID-signiert, notarisiert, gestapelt, Download→Installation→Neustart) ist damit live verifiziert erfolgreich. `create_github_release.sh` signiert seit demselben Datum mit "Developer ID Application" (`method: developer-id`-Export) statt "Apple Development" und notarisiert/staplet jeden Release automatisch (App-Store-Connect-API-Key, nicht `--keychain-profile`). Details siehe ADR-009, ADR-010 und die neuen Gotchas zu Notarisierung/Signing sowie „Aktuell in Arbeit" unten |
 | Mindest-macOS | macOS 14.0 Sonoma | `@Observable` Macro + moderne SwiftUI-APIs (NavigationSplitView, `.commands`, `WindowGroup(for:)`) |
 
 ---
@@ -324,12 +324,160 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
   Details, Status und die dabei gefundenen Bugs siehe „Aktuell in Arbeit" unten.
 - **Datum:** 2026-07-31.
 
+### ADR-010: Eigener SPUUserDriver durch Sparkles SPUStandardUserDriver ersetzt
+- **Entscheidung:** `SparkleUpdateCoordinator` implementiert seit 2026-08-02 nicht mehr
+  selbst das komplette `SPUUserDriver`-Protokoll (eigene SwiftUI-Sheets für "Update
+  gefunden"/"Bereit zur Installation"/"Wird installiert", eigener `SparkleUpdateState`-
+  Enum, eigene Continuation-Verwaltung) — stattdessen wird Sparkles eigener,
+  produktiv erprobter `SPUStandardUserDriver` verwendet (`SPUStandardUserDriver(
+  hostBundle:delegate:)`), exakt nach dem Vorbild von NetNewsWires echter,
+  produktiver Sparkle-Integration (`AppDelegate.swift`, lokal geklont unter
+  `/Users/martinfelder/Developer/NetNewsWire-main`).
+- **Grund:** Nach dem ersten erfolgreichen Aufbau der Developer-ID-Signing- und
+  Notarisierungs-Pipeline (siehe Nachtrag zu ADR-009 unten) blieb der eigentliche
+  Update-Installationsvorgang live reproduzierbar hängen bzw. relaunchte die App
+  nicht zuverlässig. Root-Cause-Kette über mehrere Live-Debugging-Runden (2026-08-02):
+  (1) Ein eigenes SwiftUI-`.sheet`, das auch im `.installing`-Zustand sichtbar blieb,
+  blockierte AppKits automatische App-Terminierung, die Sparkle per Quit-AppleEvent
+  auslöst, damit der externe Relauncher den Dateitausch abschließen kann — per
+  Unified-Log wortwörtlich verifiziert: `"App termination blocked by modal sheet"`.
+  (2) Ein erster Fix (Sheet-Sichtbarkeit per State-Ausschluss von `.installing`) linderte
+  das Symptom nur teilweise — der Dateitausch gelang danach zwar (installierte Version
+  auf der Platte änderte sich korrekt), aber die App relaunchte sich nicht zuverlässig.
+  (3) Ein zweiter, gezielterer Fix (synchroner, direkter `NSWindow.endSheet(_:)`-Aufruf
+  statt der asynchron über `Task { @MainActor in ... }` laufenden SwiftUI-State-
+  Aktualisierung — exakt das Muster, das Sparkles eigener `SPUStandardUserDriver` intern
+  selbst nutzt, siehe `SPUStandardUserDriver.m: showInstallingUpdateWithApplicationTerminated:`)
+  löste auch das nicht zuverlässig. Der Vergleich mit NetNewsWires tatsächlicher
+  Produktions-Codebase zeigte: NetNewsWire deklariert zwar Konformität zu
+  `SPUStandardUserDriverDelegate`/`SPUUpdaterDelegate`, implementiert davon aber NICHT
+  EINE EINZIGE optionale Methode — die komplette UI/Fensterlebenszyklus-Verantwortung
+  liegt vollständig bei Sparkles eigenem, von den Maintainern gegen genau diese Klasse
+  von Terminierungs-/Fensterlebenszyklus-Fallstricken abgesicherten Code. Nach der
+  Umstellung war der erste komplette End-to-End-Zyklus (Download → Notarisierungs-
+  Gatekeeper-Check → Installation → App-Terminierung → Dateitausch → Neustart) live
+  sofort erfolgreich.
+- **Konsequenz:** `UpdateAvailableSheet.swift`, `UpdateUpToDateSheet.swift`,
+  `SparkleUpdateState.swift`, `SparkleReleaseInfo.swift` sowie die zugehörigen Tests
+  wurden komplett entfernt (kompletter eigener Sheet-/State-Code unnötig geworden).
+  `AboutSettingsView` zeigt keinen eigenen Lade-Spinner/Update-Badge mehr beim manuellen
+  Check — Sparkle zeigt Fortschritt/Ergebnis jetzt in seinen eigenen nativen Fenstern,
+  analog zu NetNewsWires Einfachheit. `SparkleUpdateCoordinator` bleibt als dünner
+  Wrapper bestehen (Homebrew-Erkennung, `checkForUpdatesManually()`,
+  `setAutomaticChecksEnabled(_:)`, ein einfacher `NSAlert`-Hinweis für Homebrew-Nutzer
+  statt eines eigenen Sheets).
+- **Lehre:** Bei jedem künftigen "eigene UI über eine fremde, komplexe System-API legen"-
+  Vorhaben (hier: eigene SwiftUI-Präsentation über Sparkles Callback-Protokoll) zuerst
+  prüfen, ob eine echte, produktiv laufende Referenz-Implementierung (nicht nur
+  Beispiel-/Demo-Code) existiert, die dieselbe Aufgabe bereits löst — ein Abgleich
+  gegen NetNewsWires tatsächliche Codebase (nicht nur deren Doku) haette die spätere,
+  mehrstufige Fehlersuche an Fensterlebenszyklus-/Terminierungs-Timing-Details von
+  Anfang an vermeidbar gemacht. Zwei aufeinanderfolgende, jeweils plausible und einzeln
+  live verifizierte Detail-Fixes reichten nicht aus, weil das grundsätzliche
+  Architektur-Risiko (komplett eigener `SPUUserDriver` statt Sparkles eigenem Standard-
+  Driver) bestehen blieb — passend zum "3+ fehlgeschlagene Fixversuche → Architektur
+  hinterfragen"-Prinzip.
+- **Datum:** 2026-08-02.
+
 ---
 
 ## Bekannte Gotchas & Fallstricke
 
 > Diese Liste wächst während der Entwicklung. Immer ergänzen!
 
+- **Sparkle-Updates NIEMALS aus einer von Xcode gestarteten/debuggten App testen —
+  weder Debug- noch ein einfacher lokaler Release-Build genügen:** Live-Debugging
+  (2026-08-01/02) zeigte per `codesign -dv`: bei einem via Xcode gestarteten Build
+  (egal ob Debug oder ein simples `xcodebuild -configuration Release build` in
+  DerivedData) hat der eingebettete `Autoupdate`-Hilfsprozess (Sparkle.framework)
+  `TeamIdentifier=not set` — Xcodes normaler lokaler Build-/Codesign-Schritt signiert
+  die von Sparkle mitgelieferten Hilfs-Binaries (Autoupdate/Installer.xpc/Updater.app)
+  NICHT mit der vollen Developer-ID-Identität nach, unabhängig vom sonstigen
+  Signing-Setup des Haupt-Targets. Sparkle erkennt das (`SUPlainInstaller.m`, Vergleich
+  von `installerTeamIdentifier` gegen die Team-ID des neu heruntergeladenen Updates)
+  und überspringt bewusst den atomaren Dateitausch (`"Skipping atomic rename/swap and
+  gatekeeper scan because Autoupdate is not signed with same identity..."`) — das ist
+  offizielles, dokumentiertes Sparkle-Verhalten (macOS 13+, siehe Kommentar in
+  `SUPlainInstaller.m: performInitialInstallation`), kein Bug. Ein echter, im Feld
+  laufender Selbst-Update-Test braucht immer eine über die volle `archive` +
+  `-exportArchive`-Kette (`method: developer-id`) gebaute, Developer-ID-signierte
+  UND notarisierte `.app`, eigenständig gestartet (Doppelklick/`open`), niemals über
+  den Xcode-"Run"-Knopf oder einen angehängten Debugger.
+- **`xcrun notarytool --keychain-profile` funktioniert zuverlässig bei interaktiven/
+  inline getippten Aufrufen, schlägt aber reproduzierbar mit "No Keychain password
+  item found for profile" fehl, sobald derselbe Aufruf aus einer AUSGEFÜHRTEN
+  Skriptdatei (`./datei.sh`) kommt:** Live isoliert (2026-08-01/02) über mehrere
+  Kontrollversuche — Warp UND Terminal.app ausgeschlossen (identischer Fehler in
+  beiden), Smart-Quotes-Verunreinigung beim Copy-Paste ausgeschlossen (auch von Hand
+  getippt reproduzierbar), Session-Scoping der macOS Data-Protection-Keychain
+  vermutet, aber nicht abschließend bewiesen. Sauber reproduziert mit einer
+  minimalen, isolierten Testdatei: `xcrun notarytool history --keychain-profile
+  NAME` direkt getippt → Erfolg; dieselbe Zeile in eine ausführbare `.sh`-Datei
+  geschrieben und per `./datei.sh` ausgeführt → zuverlässig derselbe "nicht
+  gefunden"-Fehler. **Lösung/Empfehlung (auch Apples eigene für CI/Automatisierung):**
+  App-Store-Connect-API-Key-Authentifizierung (`--key <Pfad-zur-.p8-Datei> --key-id
+  <ID> --issuer <Issuer-ID>`) statt `--keychain-profile` — liest nur eine Datei direkt
+  ein, keinerlei Keychain-Zugriff, funktioniert dadurch identisch in jedem Kontext.
+  `.p8`-Datei liegt projektweit unter `~/.appstoreconnect/private_keys/
+  AuthKey_<KeyID>.p8` (chmod 600), Key-ID/Issuer-ID sind in `create_github_release.sh`
+  fest hinterlegt (keine Geheimnisse für sich genommen, nur zusammen mit der
+  `.p8`-Datei nutzbar).
+- **`xcodebuild -exportArchive` mit `method: developer-id` + `signingStyle: automatic`
+  kann auf der Kommandozeile ein BESTEHENDES, passendes Provisioning-Profil finden,
+  aber kein neues erzeugen — dafür ist einmalig die Xcode-GUI nötig:** Beim allerersten
+  Export dieser Art schlug der Export mit `error: exportArchive No profiles for
+  'ch.martin.Feedivo' were found` fehl, obwohl `~/Library/MobileDevice/Provisioning
+  Profiles/` schlicht noch nie befüllt worden war (`ls` bestätigte: Ordner existierte
+  nicht). Fix: einmalig in Xcode **Product → Archive** + im Organizer **Distribute
+  App → Developer ID/Direct Distribution** komplett durchlaufen lassen — das legt das
+  passende Profil an, aber unter dem NEUEREN Speicherort
+  `~/Library/Developer/Xcode/UserData/Provisioning Profiles/`, nicht dem klassischen
+  `~/Library/MobileDevice/Provisioning Profiles/`, den `xcodebuild -exportArchive`
+  auf der Kommandozeile durchsucht — das passende `.provisionprofile` (zu erkennen am
+  Namen "Mac Team **Direct** Provisioning Profile", nicht am regulären "Mac Team
+  Provisioning Profile") muss deshalb zusätzlich manuell an den klassischen Ort
+  kopiert werden, bevor Kommandozeilen-Exports funktionieren.
+- **Beim Toggeln einer Capability (z. B. iCloud) in Xcodes Signing-&-Capabilities-UI
+  IMMER per `git diff` prüfen, was sich tatsächlich in den `.entitlements`-Dateien
+  geändert hat — Xcode kann dabei sowohl bestehende Container-Zuordnungen leeren als
+  auch stillschweigend eine ZWEITE, Konfigurations-spezifische Entitlements-Datei
+  anlegen:** Ein Aus-/wieder-Anschalten der iCloud-Capability (2026-08-02, zur
+  Fehlersuche beim fehlenden Provisioning-Profil) leerte `com.apple.developer.
+  icloud-container-identifiers`/`icloud-services` in der bestehenden `Feedivo.
+  entitlements` (Debug-Konfiguration) komplett UND legte parallel eine neue
+  `FeedivoRelease.entitlements` (Release-Konfiguration, `CODE_SIGN_ENTITLEMENTS`-
+  Pointer im `.pbxproj` entsprechend umgebogen) an, deren Container-Liste ebenfalls
+  leer blieb — nur der reine CloudKit-Service-Haken war gesetzt. Für dieses Projekt
+  mit CKSyncEngine-basiertem iCloud Sync (siehe M3-Abschnitt) ein potenziell
+  datenkritischer Vorgang. Immer `git diff -- '*.entitlements'` nach JEDER
+  Capability-Interaktion in Xcode prüfen, nicht nur nach einem Build-Fehler.
+- **`find -path "*sparkle*/artifacts/sparkle/Sparkle/bin/sign_update"` matcht NIE,
+  wenn "sparkle" nur innerhalb des bereits fest im Muster stehenden Suffix-Teils
+  vorkommt, nicht davor:** `find -path` verlangt, dass der GESAMTE gefundene Pfad
+  gegen das komplette Glob-Muster passt — `*sparkle*` braucht eine EIGENE, vom Rest
+  des Musters unabhängige Fundstelle für den Substring "sparkle" irgendwo VOR
+  `/artifacts/sparkle/Sparkle/bin/sign_update`. Der tatsächliche, reale Pfad
+  (`.../SourcePackages/artifacts/sparkle/Sparkle/bin/sign_update`) hat aber genau
+  davor nur "SourcePackages" stehen — kein zweites "sparkle" — wodurch das Muster
+  nie traf und `create_github_release.sh` bei JEDEM echten Release-Lauf mit
+  "sign_update-Tool nicht gefunden" abbrach (Appcast blieb dadurch unaktualisiert,
+  obwohl GitHub-Release + Notarisierung bereits erfolgreich durchgelaufen waren).
+  Fix: Muster auf `*/Sparkle/bin/sign_update` vereinfacht (matcht den tatsächlichen
+  Pfad korrekt UND schließt die parallel existierende Legacy-Variante
+  `.../Sparkle/bin/old_dsa_scripts/sign_update` weiterhin sauber aus, da dort direkt
+  vor `sign_update` "old_dsa_scripts" statt "bin" steht). **Lehre:** Bei jedem
+  `find -path`-Muster mit einem Wildcard-Segment, das denselben Substring enthält
+  wie ein bereits fest im Muster stehender späterer Teil, den tatsächlichen
+  Ziel-Pfad einmal konkret ausgeben lassen und das Muster dagegen verifizieren,
+  statt aus der Musterlogik allein auf Korrektheit zu schließen.
+- **`raw.githubusercontent.com` setzt `Cache-Control: max-age=300` auf `docs/
+  appcast.xml` — ein frisch gepushter neuer Appcast-Eintrag kann bis zu 5 Minuten
+  lang von einer bereits vorher fetchenden App/einem lokalen URL-Cache als "nicht
+  gefunden" erscheinen, obwohl der Server längst die neue Version ausliefert**
+  (`curl -sI` zeigt das via `cache-control`-Header direkt). Kein Bug, reines
+  Timing — bei einem "Update wird nicht gefunden, obwohl der Appcast doch aktuell
+  ist"-Verdacht immer zuerst den Cache-Header prüfen und ein paar Minuten warten,
+  bevor an der eigentlichen Update-Logik gesucht wird.
 - **`article_statuses.articleID` ist pro Gerät zufällig — eine iCloud-Sync-Identität, die
   direkt darauf aufbaut, kann geräteübergreifend NIE matchen:** Beim Whole-Branch-Review von
   iCloud Sync Phase 2b (Artikelstatus-Sync, 2026-07-25) fand der Reviewer einen kritischen
@@ -1228,6 +1376,71 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 ---
 
 ## Aktuell in Arbeit
+
+- **2026-08-02: Sparkle-Update-Zyklus erstmals vollständig End-to-End verifiziert
+  (Notarisierung, Developer-ID-Signing, SPUStandardUserDriver) — ABGESCHLOSSEN.**
+  Direkte Folge-Session zu den 2026-07-31er Sparkle/Homebrew-Grundlagen: der dort
+  bewusst offen gelassene "echter Update-Zyklus noch nie live getestet"-Punkt wurde
+  in dieser Session vollständig geschlossen, nach einem langen, mehrstufigen
+  Live-Debugging-Marathon über den kompletten Vormittag. Ausgangspunkt: Nutzer
+  testete "Nach Updates suchen" zum ersten Mal live — Update wurde gefunden,
+  Download lief, Installation blieb aber dauerhaft bei "Wird installiert" hängen.
+  **Drei voneinander unabhängige, nacheinander gefundene Root Causes, jede einzeln
+  live per Unified-Log/codesign/spctl verifiziert:**
+  1. **Signing-Pipeline lieferte nie Developer-ID-signierte, notarisierte Releases.**
+     `create_github_release.sh` baute bisher mit einfachem `xcodebuild build` statt
+     `archive`+`-exportArchive`, wodurch selbst das bereits veröffentlichte,
+     offizielle v1.0-16-Release nur mit "Apple Development" signiert und von
+     Gatekeeper abgelehnt wurde (`spctl -a -vv` → `rejected`) — ein Problem, das
+     auch echte Endnutzer beim ersten Öffnen getroffen hätte, nicht nur Sparkles
+     Selbst-Update. Ursache: kein "Developer ID Application"-Zertifikat im
+     Schlüsselbund (nur "Apple Development") — der Account hatte zu diesem
+     Zeitpunkt gerade erst eine bezahlte Apple-Developer-Program-Mitgliedschaft
+     erhalten. Nutzer erstellte das Zertifikat live über Xcodes Accounts-UI.
+     `create_github_release.sh` umgestellt auf `archive` + `-exportArchive`
+     (`method: developer-id`, neue `scripts/release_export_options.plist`) +
+     `notarytool submit --wait` + `stapler staple`, jeweils VOR dem Verteil-Zip.
+     Unterwegs zwei weitere, eigenständige Blocker gefunden und behoben: fehlendes
+     lokales Provisioning-Profil (brauchte einmaligen Xcode-GUI-Archive-Durchlauf,
+     neues Profil lag am neueren Xcode-Speicherort, musste an den klassischen für
+     Kommandozeilen-Exports kopiert werden) und eine versehentlich durch
+     Capability-Toggling in Xcode geleerte iCloud-Container-Zuordnung in gleich
+     ZWEI Entitlements-Dateien (Debug + der dabei neu entstandenen
+     `FeedivoRelease.entitlements`) — beide wiederhergestellt.
+  2. **`notarytool --keychain-profile` versagt spezifisch bei Ausführung aus einer
+     Skriptdatei, nicht bei interaktiven Aufrufen** (siehe neuer Gotcha oben) —
+     durch eine lange Kette einzeln widerlegter Hypothesen isoliert (Smart Quotes,
+     Warp- vs. Terminal.app-Unterschiede, Session-Scoping, versteckte
+     Autorisierungs-Dialoge — alle einzeln per Log/Kontrollversuch ausgeschlossen),
+     bis eine minimale, isolierte Reproduktionsdatei den Unterschied klar zeigte:
+     inline getippt → Erfolg, als `.sh`-Datei ausgeführt → zuverlässig derselbe
+     Fehler. Fix: Umstellung von `--keychain-profile` auf App-Store-Connect-API-Key-
+     Authentifizierung (liest nur eine `.p8`-Datei, kein Keychain-Zugriff mehr
+     nötig) — dieselbe Methode, die Apple für CI/Automatisierung selbst empfiehlt.
+  3. **Der eigentliche Installations-Hänger war ein Architektur-Problem im eigenen
+     Code, kein Signing-/Notarisierungs-Thema mehr** — siehe ADR-010 oben für die
+     volle Herleitung. Kurzfassung: eigenes SwiftUI-`.sheet` blockierte AppKits
+     automatische App-Terminierung während Sparkles Installationsschritt
+     ("App termination blocked by modal sheet", live im Unified Log). Zwei
+     aufeinanderfolgende, gezielte Detail-Fixes (State-Ausschluss von
+     `.installing`, dann ein synchroner direkter `NSWindow.endSheet(_:)`-Aufruf)
+     linderten das Symptom nur graduell (Dateitausch gelang, Neustart blieb
+     unzuverlässig) — erst der Architektur-Wechsel auf Sparkles eigenen
+     `SPUStandardUserDriver` (exakt nach dem Vorbild von NetNewsWires echter
+     Produktions-Codebase, lokal unter `/Users/martinfelder/Developer/
+     NetNewsWire-main` verglichen) behob es beim ersten Versuch vollständig.
+  **Ergebnis:** v1.0-21 ist der erste Release, bei dem der komplette Zyklus
+  (Appcast-Fund → Download → Notarisierungs-/Gatekeeper-Prüfung → Installation →
+  App-Terminierung → Dateitausch → automatischer Neustart als neue Version) vom
+  Nutzer live am eigenen Mac bestätigt vollständig funktioniert hat — bislang
+  ausschließlich `/Applications`-Installation getestet (kein Homebrew-Cask-Zyklus
+  in dieser Session). `SparkleUpdateCoordinator` ist dadurch strukturell deutlich
+  kleiner geworden (kein eigener State/Continuation-Code mehr), `UpdateAvailableSheet`/
+  `UpdateUpToDateSheet`/`SparkleUpdateState`/`SparkleReleaseInfo` komplett entfernt.
+  Alle Commits auf `main`, gepusht. M3-Milestone-Checkbox zu Sparkle/Update bleibt
+  unangetastet (betrifft primär iCloud Sync, nicht App-Update), aber der lange
+  offene "echter Update-Zyklus ungetestet"-Punkt aus dem 2026-07-31er Eintrag ist
+  hiermit geschlossen.
 
 - **2026-07-31: Sparkle-Update + Homebrew-Vertrieb — VOLLSTÄNDIG ABGESCHLOSSEN, Debug- und
   Release-Build grün, gezielter Testlauf grün, echte Live-Verifikation eines Update-Zyklus
