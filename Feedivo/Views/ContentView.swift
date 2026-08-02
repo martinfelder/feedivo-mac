@@ -206,7 +206,6 @@ struct ContentView: View {
                 readerTabsState.openInActiveTab(articleID: newValue)
             }
         }
-        .onChange(of: selectedSQLiteArticleID, handleSQLiteArticleSelectionChange)
         // Feste, nicht über die Shortcuts-Einstellungen anpassbare Pfeiltasten-
         // Navigation: Rechts wechselt nur vorwärts von nativer zu eingebetteter
         // Originalansicht, Links geht zurück — klassisches Vorwärts-/Rückwärts-
@@ -474,15 +473,6 @@ struct ContentView: View {
         selectedSQLiteArticleID = pendingArticleIDAfterFeedJump
         pendingArticleIDAfterFeedJump = nil
         sqliteArticleNavigationState = .empty
-    }
-
-    private func handleSQLiteArticleSelectionChange() {
-        guard selectedSQLiteArticleID != nil else {
-            selectedSQLiteArticleSnapshot = nil
-            return
-        }
-
-        selectedSQLiteArticleSnapshot = nil
     }
 
     private func handleSQLiteArticleSnapshotChange(_ snapshot: ArticleReaderSnapshot?) {
