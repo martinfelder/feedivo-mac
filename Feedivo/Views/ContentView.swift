@@ -951,12 +951,12 @@ struct ContentView: View {
     }
 
     private func reloadSelectedSQLiteArticleSnapshot(database: FeedivoDatabase) {
-        guard let selectedSQLiteArticleID else {
+        guard let activeArticleID = readerTabsState.activeArticleID else {
             selectedSQLiteArticleSnapshot = nil
             return
         }
 
-        selectedSQLiteArticleSnapshot = try? ArticleStore(database: database).readerArticle(id: selectedSQLiteArticleID)
+        selectedSQLiteArticleSnapshot = try? ArticleStore(database: database).readerArticle(id: activeArticleID)
     }
 
     private func copySelectedSQLiteArticleLink() {
