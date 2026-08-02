@@ -235,4 +235,39 @@ struct FeedivoDatabaseMigratorTests {
         )
         #expect(syncStableID == expected)
     }
+
+    @Test func migrationV29ErgaenztIndizesFuerCloudSyncTabellen() throws {
+        let queue = try DatabaseQueue()
+        try FeedivoDatabaseMigrator.migrator.migrate(queue, upTo: "v28_create_pending_sync_conflicts")
+
+        try queue.write { db in
+            try db.execute(
+                sql: """
+                    INSERT INTO cloud_sync_pending_changes (id, recordType, changeType, queuedAt)
+                    VALUES ('change-1', 'Tag', 'save', ?)
+                    """,
+                arguments: [Date()]
+            )
+            try db.execute(
+                sql: """
+                    INSERT INTO pending_sync_conflicts (recordType, recordName, fieldName, localValue, serverValue, detectedAt)
+                    VALUES ('Tag', 'tag-1', 'name', 'Alt', 'Neu', ?)
+                    """,
+                arguments: [Date()]
+            )
+        }
+
+        try FeedivoDatabaseMigrator.migrator.migrate(queue)
+
+        let indexNames = try queue.read { db -> Set<String> in
+            let pendingChangesIndexes = try Row.fetchAll(db, sql: "PRAGMA index_list(cloud_sync_pending_changes)")
+                .compactMap { $0["name"] as String? }
+            let conflictIndexes = try Row.fetchAll(db, sql: "PRAGMA index_list(pending_sync_conflicts)")
+                .compactMap { $0["name"] as String? }
+            return Set(pendingChangesIndexes).union(conflictIndexes)
+        }
+
+        #expect(indexNames.contains("idx_cloud_sync_pending_changes_record_type"))
+        #expect(indexNames.contains("idx_pending_sync_conflicts_record_type_name"))
+    }
 }

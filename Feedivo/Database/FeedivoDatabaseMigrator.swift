@@ -543,6 +543,26 @@ enum FeedivoDatabaseMigrator {
             }
         }
 
+        migrator.registerMigration("v29_add_cloud_sync_indexes") { database in
+            // `CloudSyncPendingChangeStore.pendingCounts()` (speist die Sync-Status-Übersicht
+            // in den Einstellungen) gruppiert nach recordType — bislang ein Full-Table-Scan
+            // über cloud_sync_pending_changes, da nur der Primärschlüssel indiziert war.
+            // Solange die Warteschlange klein bleibt unkritisch, wird aber bei länger
+            // unterbrochenem iCloud Sync relevant. Gleiches Argument für
+            // pending_sync_conflicts, das die Konfliktauflösungs-UI nach recordType/recordName
+            // filtert.
+            try database.create(
+                index: "idx_cloud_sync_pending_changes_record_type",
+                on: "cloud_sync_pending_changes",
+                columns: ["recordType"]
+            )
+            try database.create(
+                index: "idx_pending_sync_conflicts_record_type_name",
+                on: "pending_sync_conflicts",
+                columns: ["recordType", "recordName"]
+            )
+        }
+
         return migrator
     }
 
