@@ -7,6 +7,19 @@
         <language>de</language>
         <!-- create_github_release.sh fügt hier bei jedem Release ein neues <item> ein -->
     <item>
+      <title>v1.0-19</title>
+      <pubDate>Sun, 02 Aug 2026 06:08:32 +0000</pubDate>
+      <description><![CDATA[
+- fix: Update-Sheet blockiert AppKit-Terminierung während Sparkle-Installation
+- chore: Appcast-Eintrag für v1.0-18]]></description>
+      <enclosure url="https://github.com/martinfelder/feedivo-mac/releases/download/v1.0-19/Feedivo-v1.0-19.zip"
+                 sparkle:version="19"
+                 sparkle:shortVersionString="1.0"
+                 sparkle:edSignature="Ih13M7S/zstvAEuA3w5dPXeRdlKuEoa90G0vDzyAJYIe+OmDEN/rY5/6WH/2akKiyLgWhWz0hMJlg/Yah46KAw=="
+                 length="18404737"
+                 type="application/octet-stream"/>
+    </item>
+    <item>
       <title>v1.0-18</title>
       <pubDate>Sun, 02 Aug 2026 05:58:35 +0000</pubDate>
       <description><![CDATA[
