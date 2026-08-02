@@ -1,10 +1,11 @@
 import SwiftUI
 import AppKit
 
-/// Chrome-Register-artige Tab-Leiste über dem Reader-Bereich des
-/// Hauptfensters. Rein präsentational — DB-Mutationen (Tab aktivieren,
-/// schließen, neu anlegen) laufen ausschließlich über die vom Parent
-/// übergebenen Closures, siehe docs/superpowers/specs/2026-08/
+/// Safari-artige Tab-Leiste über dem Reader-Bereich des Hauptfensters —
+/// freistehende, abgerundete Tab-Pillen mit Abstand zueinander statt
+/// aneinandergereihter Chrome-Register. Rein präsentational — DB-Mutationen
+/// (Tab aktivieren, schließen, neu anlegen) laufen ausschließlich über die
+/// vom Parent übergebenen Closures, siehe docs/superpowers/specs/2026-08/
 /// 2026-08-02-artikel-tabs-design.md.
 struct ReaderTabBarView: View {
     let tabs: [ReaderTab]
@@ -17,7 +18,7 @@ struct ReaderTabBarView: View {
     @State private var metadataByArticleID: [String: ArticleListSnapshot] = [:]
 
     var body: some View {
-        HStack(spacing: 0) {
+        HStack(spacing: 4) {
             ForEach(tabs) { tab in
                 tabView(for: tab)
             }
@@ -72,6 +73,7 @@ struct ReaderTabBarView: View {
         let onClose: () -> Void
 
         @State private var isHovering = false
+        @Environment(\.interfaceTextSize) private var interfaceTextSize
 
         var body: some View {
             HStack(spacing: 6) {
@@ -79,7 +81,7 @@ struct ReaderTabBarView: View {
                     .frame(width: 14, height: 14)
 
                 Text(displayTitle)
-                    .font(.system(size: 11))
+                    .font(interfaceTextSize.font(size: 12, weight: .semibold))
                     .lineLimit(1)
                     .truncationMode(.tail)
 
@@ -92,10 +94,14 @@ struct ReaderTabBarView: View {
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
-            .frame(minWidth: 60, maxWidth: 160)
+            .frame(minWidth: 90, maxWidth: 220)
             .background(
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(isActive ? Color(nsColor: .controlBackgroundColor) : Color.clear)
+                    .fill(
+                        isActive
+                            ? Color(nsColor: .controlBackgroundColor)
+                            : Color(nsColor: .controlBackgroundColor).opacity(isHovering ? 0.5 : 0.25)
+                    )
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
