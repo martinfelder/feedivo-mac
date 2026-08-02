@@ -156,4 +156,84 @@ struct ReaderTabsStateTests {
 
         #expect(state.activeTabID == activeID)
     }
+
+    @Test func persistiertOffeneTabsBeiAktivierterEinstellung() {
+        let defaults = UserDefaults(suiteName: #function)!
+        defaults.removePersistentDomain(forName: #function)
+        defer { defaults.removePersistentDomain(forName: #function) }
+        defaults.set(true, forKey: ReaderTabsSettings.restoreTabsOnLaunchKey)
+        let state = ReaderTabsState(userDefaults: defaults)
+
+        state.openInActiveTab(articleID: "article-1")
+        state.openInNewBackgroundTab(articleID: "article-2")
+
+        #expect(ReaderTabsSettings.savedArticleIDs(defaults: defaults) == ["article-1", "article-2"])
+        #expect(ReaderTabsSettings.savedActiveArticleID(defaults: defaults) == "article-1")
+    }
+
+    @Test func persistiertNichtsBeiDeaktivierterEinstellung() {
+        let defaults = UserDefaults(suiteName: #function)!
+        defaults.removePersistentDomain(forName: #function)
+        defer { defaults.removePersistentDomain(forName: #function) }
+        defaults.set(false, forKey: ReaderTabsSettings.restoreTabsOnLaunchKey)
+        let state = ReaderTabsState(userDefaults: defaults)
+
+        state.openInActiveTab(articleID: "article-1")
+
+        #expect(ReaderTabsSettings.savedArticleIDs(defaults: defaults).isEmpty)
+    }
+
+    @Test func persistiertAuchNachSchliessenDesLetztenTabs() {
+        let defaults = UserDefaults(suiteName: #function)!
+        defaults.removePersistentDomain(forName: #function)
+        defer { defaults.removePersistentDomain(forName: #function) }
+        defaults.set(true, forKey: ReaderTabsSettings.restoreTabsOnLaunchKey)
+        let state = ReaderTabsState(userDefaults: defaults)
+        state.openInActiveTab(articleID: "article-1")
+
+        state.closeTab(id: state.tabs[0].id)
+
+        #expect(ReaderTabsSettings.savedArticleIDs(defaults: defaults).isEmpty)
+        #expect(ReaderTabsSettings.savedActiveArticleID(defaults: defaults) == nil)
+    }
+
+    @Test func restoreIfEnabledStelltGespeicherteTabsUndAktivenTabWiederHer() {
+        let defaults = UserDefaults(suiteName: #function)!
+        defaults.removePersistentDomain(forName: #function)
+        defer { defaults.removePersistentDomain(forName: #function) }
+        defaults.set(true, forKey: ReaderTabsSettings.restoreTabsOnLaunchKey)
+        ReaderTabsSettings.save(articleIDs: ["article-1", "article-2"], activeArticleID: "article-2", defaults: defaults)
+
+        let state = ReaderTabsState(userDefaults: defaults)
+        state.restoreIfEnabled()
+
+        #expect(state.tabs.map(\.articleID) == ["article-1", "article-2"])
+        #expect(state.activeArticleID == "article-2")
+    }
+
+    @Test func restoreIfEnabledTutNichtsBeiDeaktivierterEinstellung() {
+        let defaults = UserDefaults(suiteName: #function)!
+        defaults.removePersistentDomain(forName: #function)
+        defer { defaults.removePersistentDomain(forName: #function) }
+        defaults.set(false, forKey: ReaderTabsSettings.restoreTabsOnLaunchKey)
+        ReaderTabsSettings.save(articleIDs: ["article-1"], activeArticleID: "article-1", defaults: defaults)
+
+        let state = ReaderTabsState(userDefaults: defaults)
+        state.restoreIfEnabled()
+
+        #expect(state.tabs.isEmpty)
+    }
+
+    @Test func restoreIfEnabledFaelltAufErstenTabZurueckWennGespeicherterAktiverArtikelFehlt() {
+        let defaults = UserDefaults(suiteName: #function)!
+        defaults.removePersistentDomain(forName: #function)
+        defer { defaults.removePersistentDomain(forName: #function) }
+        defaults.set(true, forKey: ReaderTabsSettings.restoreTabsOnLaunchKey)
+        ReaderTabsSettings.save(articleIDs: ["article-1", "article-2"], activeArticleID: "article-unbekannt", defaults: defaults)
+
+        let state = ReaderTabsState(userDefaults: defaults)
+        state.restoreIfEnabled()
+
+        #expect(state.activeArticleID == "article-1")
+    }
 }

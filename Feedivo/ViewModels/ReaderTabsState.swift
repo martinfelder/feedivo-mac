@@ -24,9 +24,14 @@ struct ReaderTab: Identifiable, Equatable, Sendable {
 final class ReaderTabsState {
     private(set) var tabs: [ReaderTab] = []
     private(set) var activeTabID: ReaderTab.ID?
+    private let userDefaults: UserDefaults
 
     var activeArticleID: String? {
         tabs.first(where: { $0.id == activeTabID })?.articleID
+    }
+
+    init(userDefaults: UserDefaults = .standard) {
+        self.userDefaults = userDefaults
     }
 
     /// Einzelklick auf einen Artikel in der Liste: aktualisiert den Inhalt
@@ -37,9 +42,11 @@ final class ReaderTabsState {
             let newTab = ReaderTab(articleID: articleID)
             tabs.append(newTab)
             self.activeTabID = newTab.id
+            persistIfEnabled()
             return
         }
         tabs[index].articleID = articleID
+        persistIfEnabled()
     }
 
     /// ⌘-Klick / Kontextmenü "In neuem Tab öffnen": legt einen neuen Tab an,
@@ -52,6 +59,7 @@ final class ReaderTabsState {
         if activeTabID == nil {
             activeTabID = newTab.id
         }
+        persistIfEnabled()
         return newTab.id
     }
 
@@ -75,7 +83,10 @@ final class ReaderTabsState {
         let wasActive = activeTabID == id
         tabs.remove(at: index)
 
-        guard wasActive else { return }
+        guard wasActive else {
+            persistIfEnabled()
+            return
+        }
 
         if tabs.isEmpty {
             activeTabID = nil
@@ -84,11 +95,13 @@ final class ReaderTabsState {
         } else {
             activeTabID = tabs[tabs.count - 1].id
         }
+        persistIfEnabled()
     }
 
     func activateTab(id: ReaderTab.ID) {
         guard tabs.contains(where: { $0.id == id }) else { return }
         activeTabID = id
+        persistIfEnabled()
     }
 
     /// Kein Wraparound am Ende — konsistent mit der bestehenden
@@ -98,6 +111,7 @@ final class ReaderTabsState {
         let nextIndex = index + 1
         guard nextIndex < tabs.count else { return }
         self.activeTabID = tabs[nextIndex].id
+        persistIfEnabled()
     }
 
     func activatePreviousTab() {
@@ -105,5 +119,36 @@ final class ReaderTabsState {
         let previousIndex = index - 1
         guard previousIndex >= 0 else { return }
         self.activeTabID = tabs[previousIndex].id
+        persistIfEnabled()
+    }
+
+    private func persistIfEnabled() {
+        guard ReaderTabsSettings.isRestoreOnLaunchEnabled(defaults: userDefaults) else { return }
+        ReaderTabsSettings.save(
+            articleIDs: tabs.map(\.articleID),
+            activeArticleID: activeArticleID,
+            defaults: userDefaults
+        )
+    }
+
+    /// Beim App-Start aufzurufen (ContentView), stellt gespeicherte Tabs
+    /// wieder her, falls die Einstellung aktiv ist. Ist der gespeicherte
+    /// aktive Artikel nicht mehr unter den wiederhergestellten Tabs (z. B.
+    /// durch eine zwischenzeitliche Schema-Änderung), fällt es auf den
+    /// ersten Tab zurück.
+    func restoreIfEnabled() {
+        guard ReaderTabsSettings.isRestoreOnLaunchEnabled(defaults: userDefaults) else { return }
+        let savedIDs = ReaderTabsSettings.savedArticleIDs(defaults: userDefaults)
+        guard !savedIDs.isEmpty else { return }
+
+        let restoredTabs = savedIDs.map { ReaderTab(articleID: $0) }
+        tabs = restoredTabs
+
+        let savedActiveArticleID = ReaderTabsSettings.savedActiveArticleID(defaults: userDefaults)
+        if let savedActiveArticleID, let matchingTab = restoredTabs.first(where: { $0.articleID == savedActiveArticleID }) {
+            activeTabID = matchingTab.id
+        } else {
+            activeTabID = restoredTabs.first?.id
+        }
     }
 }
