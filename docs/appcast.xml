@@ -7,6 +7,18 @@
         <language>de</language>
         <!-- create_github_release.sh fügt hier bei jedem Release ein neues <item> ein -->
     <item>
+      <title>v1.0-18</title>
+      <pubDate>Sun, 02 Aug 2026 05:58:35 +0000</pubDate>
+      <description><![CDATA[
+- chore: Appcast-Eintrag für v1.0-17]]></description>
+      <enclosure url="https://github.com/martinfelder/feedivo-mac/releases/download/v1.0-18/Feedivo-v1.0-18.zip"
+                 sparkle:version="18"
+                 sparkle:shortVersionString="1.0"
+                 sparkle:edSignature="pkplbuVHXQrfFb8+HcHo/vdlHuqeiUW16dXqkHPAHywKQMHukB6+6qZzVlmVWK9HP389SsOynmvADhlJwnDLDA=="
+                 length="18404631"
+                 type="application/octet-stream"/>
+    </item>
+    <item>
       <title>v1.0-17</title>
       <pubDate>Sun, 02 Aug 2026 05:43:05 +0000</pubDate>
       <description><![CDATA[
