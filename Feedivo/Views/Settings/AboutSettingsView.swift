@@ -16,7 +16,7 @@ struct AboutSettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            SettingsBlock(eyebrow: L10n.settingsAboutSection) {
+            GeneralSettingsSection(label: Text(L10n.settingsAboutSection) + Text(":")) {
                 HStack(spacing: 12) {
                     Image(nsImage: NSApplication.shared.applicationIconImage)
                         .resizable()
@@ -35,16 +35,16 @@ struct AboutSettingsView: View {
                 }
                 .padding(.bottom, 8)
 
-                SettingRow(
-                    title: L10n.updateCheckAutomaticCheckTitle,
-                    description: L10n.updateCheckAutomaticCheckDescription
-                ) {
-                    Toggle("", isOn: $isAutomaticCheckEnabled)
-                        .labelsHidden()
-                        .onChange(of: isAutomaticCheckEnabled) { _, newValue in
-                            coordinator?.setAutomaticChecksEnabled(newValue)
-                        }
+                Toggle(isOn: $isAutomaticCheckEnabled) {
+                    Text(L10n.updateCheckAutomaticCheckTitle)
+                        .font(.system(size: 13))
                 }
+                .toggleStyle(.checkbox)
+                .tint(Color.settingsBoldAccent)
+                .onChange(of: isAutomaticCheckEnabled) { _, newValue in
+                    coordinator?.setAutomaticChecksEnabled(newValue)
+                }
+                GeneralSettingsHelp(L10n.updateCheckAutomaticCheckDescription)
 
                 if coordinator?.isHomebrewInstall == true {
                     // Bei Homebrew-Installationen bleibt SPUUpdater komplett inaktiv

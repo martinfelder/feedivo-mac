@@ -153,53 +153,6 @@ struct SettingsView: View {
     }
 }
 
-struct SettingsBlock<Content: View>: View {
-    let eyebrow: LocalizedStringKey
-    @ViewBuilder let content: Content
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(eyebrow)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(.secondary)
-
-            content
-        }
-        .padding(.bottom, 16)
-    }
-}
-
-struct SettingRow<Control: View>: View {
-    let title: LocalizedStringKey
-    let description: LocalizedStringKey
-    @ViewBuilder let control: Control
-
-    private static var labelColumnWidth: CGFloat { 190 }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            HStack(alignment: .firstTextBaseline, spacing: 12) {
-                Text(title)
-                    .font(.system(size: 14))
-                    .foregroundStyle(.primary)
-                    .multilineTextAlignment(.trailing)
-                    .frame(width: Self.labelColumnWidth, alignment: .trailing)
-
-                control
-
-                Spacer(minLength: 0)
-            }
-
-            Text(description)
-                .font(.system(size: 11.5))
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.leading, Self.labelColumnWidth + 12)
-        }
-        .padding(.vertical, 4)
-    }
-}
-
 struct InfoRow: View {
     let iconName: String
     let title: LocalizedStringKey
@@ -229,6 +182,125 @@ struct InfoRow: View {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .stroke(Color.primary.opacity(0.08), lineWidth: 1)
         }
+    }
+}
+
+// Bold-Akzent für den Allgemein-Tab (Design B aus dem Einstellungen-Redesign-Vergleich,
+// 2026-08-02). Farbcode vom Nutzer exakt vorgegeben (#3E5FED) — bewusst identisch in
+// Hell/Dunkel, kein aufgehellter Dark-Wert, analog zu RuleDialogTheme.accent (0x3D5FEE),
+// das dieselbe Farbfamilie ebenfalls ohne separate Dark-Variante nutzt. `Color(hex:)`
+// kommt aus RuleDialogTheme.swift, hier bewusst wiederverwendet statt dupliziert.
+// Nicht `private`: wird auch aus `AboutSettingsView.swift` (eigene Datei) referenziert,
+// seit Design D auf alle Einstellungen-Tabs ausgerollt wurde.
+extension Color {
+    static let settingsBoldAccent = Color(hex: 0x3E5FED)
+}
+
+// Ersetzt den nativen `Picker(pickerStyle: .segmented)` für den Reader-Modus: das native
+// NSSegmentedControl lässt sich nicht auf eine akzentgefüllte, freischwebende Pille in
+// einer getönten Spur umstellen (nur System-Tinting möglich). Bewusst als eigener, kleiner
+// Baustein statt Wiederverwendung von RuleSegmentedControl — dessen ausgewählter Zustand
+// ist dort bewusst weiß/grau statt akzentgefüllt (anderes visuelles Muster, siehe
+// RuleDialogTheme.pill), hier ist exakt die akzentgefüllte Pille aus dem abgestimmten
+// Mockup verlangt.
+struct GeneralSettingsSegmentedControl: View {
+    let options: [(value: String, title: LocalizedStringKey)]
+    @Binding var selection: String
+
+    var body: some View {
+        HStack(spacing: 2) {
+            ForEach(options, id: \.value) { option in
+                let isSelected = option.value == selection
+
+                Button {
+                    selection = option.value
+                } label: {
+                    Text(option.title)
+                        .font(.system(size: 12.5, weight: isSelected ? .semibold : .regular))
+                        .foregroundStyle(isSelected ? Color.white : Color.primary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 5)
+                        .background(
+                            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                                .fill(isSelected ? Color.settingsBoldAccent : Color.clear)
+                        )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(2)
+        .background(
+            RoundedRectangle(cornerRadius: 7, style: .continuous)
+                .fill(Color.settingsBoldAccent.opacity(0.10))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 7, style: .continuous)
+                .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+        )
+        .fixedSize(horizontal: true, vertical: false)
+        .animation(.easeInOut(duration: 0.12), value: selection)
+    }
+}
+
+// Design D ("Formular", TablePlus-Vorbild, 2026-08-02): ein fettes Abschnittslabel links
+// pro Sektion statt eines rechtsbündigen Labels pro Feld. Ersetzt seit dem vollständigen
+// Rollout auf alle 11 Einstellungen-Tabs die alten `SettingsBlock`/`SettingRow`-Bausteine
+// komplett (beide gelöscht, keine Verwendung mehr im Projekt). `label` ist `Text` statt
+// `LocalizedStringKey`, damit Aufrufer bei Bedarf einen Doppelpunkt anhängen können
+// (`Text(L10n.x) + Text(":")`), ohne neue L10n-Keys für reine Interpunktion anzulegen.
+struct GeneralSettingsSection<Content: View>: View {
+    let label: Text
+    @ViewBuilder let content: Content
+
+    private static var labelColumnWidth: CGFloat { 96 }
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 20) {
+            label
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.primary)
+                .multilineTextAlignment(.trailing)
+                .frame(width: Self.labelColumnWidth, alignment: .trailing)
+
+            VStack(alignment: .leading, spacing: 12) {
+                content
+            }
+        }
+        .padding(.vertical, 16)
+    }
+}
+
+// Design D: "Label  Kontrolle" in einer Zeile statt SettingRows rechtsbündiger
+// Label-Spalte — die Beschriftung steht jetzt direkt links neben ihrer Kontrolle.
+struct GeneralSettingsRow<Control: View>: View {
+    let title: LocalizedStringKey
+    @ViewBuilder let control: Control
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Text(title)
+                .font(.system(size: 13))
+                .foregroundStyle(.primary)
+
+            control
+
+            Spacer(minLength: 0)
+        }
+    }
+}
+
+struct GeneralSettingsHelp: View {
+    let text: LocalizedStringKey
+
+    init(_ text: LocalizedStringKey) {
+        self.text = text
+    }
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: 11.5))
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
     }
 }
 
@@ -273,11 +345,8 @@ private struct GeneralSettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            SettingsBlock(eyebrow: "System") {
-                SettingRow(
-                    title: L10n.settingsLanguagePickerTitle,
-                    description: "Anzeigesprache wechseln. Ein App-Neustart wird empfohlen."
-                ) {
+            GeneralSettingsSection(label: Text("System:")) {
+                GeneralSettingsRow(title: L10n.settingsLanguagePickerTitle) {
                     Picker("", selection: $appLanguageRawValue) {
                         ForEach(AppLanguage.allCases) { language in
                             Text(language.titleKey)
@@ -287,26 +356,17 @@ private struct GeneralSettingsView: View {
                     .labelsHidden()
                     .pickerStyle(.menu)
                 }
+                GeneralSettingsHelp("Anzeigesprache wechseln. Ein App-Neustart wird empfohlen.")
 
-                SettingRow(
-                    title: L10n.readerDisplayModePicker,
-                    description: "Standardansicht für geöffnete Artikel."
-                ) {
-                    Picker("", selection: $readerDisplayModeRawValue) {
-                        ForEach(ReaderDisplayMode.allCases) { mode in
-                            Text(mode.titleKey)
-                                .tag(mode.rawValue)
-                        }
-                    }
-                    .labelsHidden()
-                    .pickerStyle(.segmented)
-                    .fixedSize(horizontal: true, vertical: false)
+                GeneralSettingsRow(title: L10n.readerDisplayModePicker) {
+                    GeneralSettingsSegmentedControl(
+                        options: ReaderDisplayMode.allCases.map { ($0.rawValue, $0.titleKey) },
+                        selection: $readerDisplayModeRawValue
+                    )
                 }
+                GeneralSettingsHelp("Standardansicht für geöffnete Artikel.")
 
-                SettingRow(
-                    title: "In-App Originalansicht rendern mit",
-                    description: "Auswahl nur für die eingebettete Web-Ansicht im Reader. Wird intern über WebKit umgesetzt."
-                ) {
+                GeneralSettingsRow(title: "In-App Originalansicht rendern mit") {
                     Picker("", selection: $articleInAppWebProfileRawValue) {
                         ForEach(ArticleInAppWebProfile.allCases) { profile in
                             Text(profile.title)
@@ -319,11 +379,9 @@ private struct GeneralSettingsView: View {
                         articleInAppWebProfileRawValue = selectedInAppWebProfile.rawValue
                     }
                 }
+                GeneralSettingsHelp("Auswahl nur für die eingebettete Web-Ansicht im Reader. Wird intern über WebKit umgesetzt.")
 
-                SettingRow(
-                    title: "Original öffnen mit",
-                    description: "Wähle, welcher Browser für den externen Aufruf von „Original öffnen“ genutzt wird."
-                ) {
+                GeneralSettingsRow(title: "Original öffnen mit") {
                     Picker("", selection: $articleOriginalBrowserTargetRawValue) {
                         ForEach(availableBrowserTargets) { target in
                             Text(target.title)
@@ -338,35 +396,42 @@ private struct GeneralSettingsView: View {
                         }
                     }
                 }
+                GeneralSettingsHelp("Wähle, welcher Browser für den externen Aufruf von „Original öffnen“ genutzt wird.")
 
-                SettingRow(
-                    title: L10n.settingsMarkReadOnOpenTitle,
-                    description: L10n.settingsMarkReadOnOpenDescription
-                ) {
-                    Toggle("", isOn: $markArticleReadOnSelection)
-                        .labelsHidden()
+                Toggle(isOn: $markArticleReadOnSelection) {
+                    Text(L10n.settingsMarkReadOnOpenTitle)
+                        .font(.system(size: 13))
                 }
+                .toggleStyle(.checkbox)
+                .tint(Color.settingsBoldAccent)
+                GeneralSettingsHelp(L10n.settingsMarkReadOnOpenDescription)
 
-                SettingRow(
-                    title: L10n.settingsRestoreArticleWindowsTitle,
-                    description: L10n.settingsRestoreArticleWindowsDescription
-                ) {
-                    Toggle("", isOn: $restoreOpenArticleWindowsOnLaunch)
-                        .labelsHidden()
+                Toggle(isOn: $restoreOpenArticleWindowsOnLaunch) {
+                    Text(L10n.settingsRestoreArticleWindowsTitle)
+                        .font(.system(size: 13))
                 }
+                .toggleStyle(.checkbox)
+                .tint(Color.settingsBoldAccent)
+                GeneralSettingsHelp(L10n.settingsRestoreArticleWindowsDescription)
             }
 
-            SettingsBlock(eyebrow: L10n.settingsSpotlightSection) {
-                SettingRow(
-                    title: L10n.settingsSpotlightToggleTitle,
-                    description: L10n.settingsSpotlightToggleDescription
-                ) {
-                    Toggle("", isOn: $spotlightIndexingIsEnabled)
-                        .labelsHidden()
+            Divider()
+
+            GeneralSettingsSection(label: Text(L10n.settingsSpotlightSection) + Text(":")) {
+                Toggle(isOn: $spotlightIndexingIsEnabled) {
+                    Text(L10n.settingsSpotlightToggleTitle)
+                        .font(.system(size: 13))
                 }
+                .toggleStyle(.checkbox)
+                .tint(Color.settingsBoldAccent)
+                GeneralSettingsHelp(L10n.settingsSpotlightToggleDescription)
             }
 
-            CacheSettingsView()
+            Divider()
+
+            GeneralSettingsSection(label: Text(L10n.settingsCacheSection) + Text(":")) {
+                CacheSettingsView()
+            }
         }
     }
 }
@@ -416,122 +481,119 @@ private struct AppearanceSettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            SettingsBlock(eyebrow: "Oberfläche") {
-                SettingRow(
-                    title: L10n.settingsAppearanceModePicker,
-                    description: "Legt fest, ob Feedivo unabhängig von der macOS-Systemeinstellung immer hell oder immer dunkel dargestellt wird."
-                ) {
-                    Picker("", selection: $appAppearanceRawValue) {
-                        ForEach(AppAppearance.allCases) { mode in
-                            Text(mode.titleKey)
-                                .tag(mode.rawValue)
-                        }
-                    }
-                    .labelsHidden()
-                    .pickerStyle(.segmented)
-                    .fixedSize(horizontal: true, vertical: false)
+            GeneralSettingsSection(label: Text("Oberfläche:")) {
+                GeneralSettingsRow(title: L10n.settingsAppearanceModePicker) {
+                    GeneralSettingsSegmentedControl(
+                        options: AppAppearance.allCases.map { ($0.rawValue, $0.titleKey) },
+                        selection: $appAppearanceRawValue
+                    )
                 }
+                GeneralSettingsHelp("Legt fest, ob Feedivo unabhängig von der macOS-Systemeinstellung immer hell oder immer dunkel dargestellt wird.")
 
-                SettingRow(
-                    title: L10n.settingsInterfaceTextSizePicker,
-                    description: "App-weite Skalierung der Bedienoberfläche."
-                ) {
-                    Picker("", selection: $interfaceTextSizeRawValue) {
-                        ForEach(InterfaceTextSize.allCases) { textSize in
-                            Text(textSize.titleKey)
-                                .tag(textSize.rawValue)
-                        }
-                    }
-                    .labelsHidden()
-                    .pickerStyle(.segmented)
-                    .fixedSize(horizontal: true, vertical: false)
+                GeneralSettingsRow(title: L10n.settingsInterfaceTextSizePicker) {
+                    GeneralSettingsSegmentedControl(
+                        options: InterfaceTextSize.allCases.map { ($0.rawValue, $0.titleKey) },
+                        selection: $interfaceTextSizeRawValue
+                    )
                 }
+                GeneralSettingsHelp("App-weite Skalierung der Bedienoberfläche.")
 
-                SettingRow(
-                    title: L10n.settingsSidebarShowsReadFeedsTitle,
-                    description: L10n.settingsSidebarShowsReadFeedsDescription
-                ) {
-                    Toggle("", isOn: $showsReadFeedsInSidebar)
-                        .labelsHidden()
+                Toggle(isOn: $showsReadFeedsInSidebar) {
+                    Text(L10n.settingsSidebarShowsReadFeedsTitle)
+                        .font(.system(size: 13))
                 }
+                .toggleStyle(.checkbox)
+                .tint(Color.settingsBoldAccent)
+                GeneralSettingsHelp(L10n.settingsSidebarShowsReadFeedsDescription)
 
-                SettingRow(
-                    title: L10n.settingsSidebarShowsUnreadCountTitle,
-                    description: L10n.settingsSidebarShowsUnreadCountDescription
-                ) {
-                    Toggle("", isOn: $showsUnreadCountInSidebar)
-                        .labelsHidden()
+                Toggle(isOn: $showsUnreadCountInSidebar) {
+                    Text(L10n.settingsSidebarShowsUnreadCountTitle)
+                        .font(.system(size: 13))
                 }
+                .toggleStyle(.checkbox)
+                .tint(Color.settingsBoldAccent)
+                GeneralSettingsHelp(L10n.settingsSidebarShowsUnreadCountDescription)
 
-                SettingRow(
-                    title: L10n.settingsSidebarShowsFaviconsTitle,
-                    description: L10n.settingsSidebarShowsFaviconsDescription
-                ) {
-                    Toggle("", isOn: $showsFaviconsInSidebar)
-                        .labelsHidden()
+                Toggle(isOn: $showsFaviconsInSidebar) {
+                    Text(L10n.settingsSidebarShowsFaviconsTitle)
+                        .font(.system(size: 13))
                 }
+                .toggleStyle(.checkbox)
+                .tint(Color.settingsBoldAccent)
+                GeneralSettingsHelp(L10n.settingsSidebarShowsFaviconsDescription)
 
-                SettingRow(
-                    title: "Badge-Zähler am App-Icon anzeigen",
-                    description: "Zeigt die Anzahl ungelesener Artikel im Dock."
-                ) {
-                    Toggle("", isOn: $appIconBadgeIsEnabled)
-                        .labelsHidden()
+                Toggle(isOn: $appIconBadgeIsEnabled) {
+                    Text("Badge-Zähler am App-Icon anzeigen")
+                        .font(.system(size: 13))
                 }
+                .toggleStyle(.checkbox)
+                .tint(Color.settingsBoldAccent)
+                GeneralSettingsHelp("Zeigt die Anzahl ungelesener Artikel im Dock.")
             }
 
-            SettingsBlock(eyebrow: L10n.settingsReadingSection) {
-                SettingRow(title: L10n.readerTitleFontPicker, description: "Schriftfamilie und Gewicht für Artikeltitel.") {
-                    HStack {
-                        Picker("", selection: $readerTitleFontPresetRawValue) {
-                            ForEach(ReaderFontPreset.allCases) { preset in
-                                Text(preset.title)
-                                    .tag(preset.rawValue)
-                            }
+            Divider()
+
+            GeneralSettingsSection(label: Text(L10n.settingsReadingSection) + Text(":")) {
+                GeneralSettingsRow(title: L10n.readerTitleFontPicker) {
+                    Picker("", selection: $readerTitleFontPresetRawValue) {
+                        ForEach(ReaderFontPreset.allCases) { preset in
+                            Text(preset.title)
+                                .tag(preset.rawValue)
                         }
-                        .labelsHidden()
-                        .pickerStyle(.menu)
-                        .frame(width: 120, alignment: .leading)
-
-                        Toggle("Fett", isOn: $readerTitleFontIsBold)
                     }
-                }
+                    .labelsHidden()
+                    .pickerStyle(.menu)
+                    .frame(width: 120, alignment: .leading)
 
-                SettingRow(title: L10n.readerBodyFontPicker, description: "Schriftfamilie und Gewicht für den Artikeltext.") {
-                    HStack {
-                        Picker("", selection: $readerBodyFontPresetRawValue) {
-                            ForEach(ReaderFontPreset.allCases) { preset in
-                                Text(preset.title)
-                                    .tag(preset.rawValue)
-                            }
+                    Toggle(isOn: $readerTitleFontIsBold) {
+                        Text("Fett").font(.system(size: 13))
+                    }
+                    .toggleStyle(.checkbox)
+                    .tint(Color.settingsBoldAccent)
+                }
+                GeneralSettingsHelp("Schriftfamilie und Gewicht für Artikeltitel.")
+
+                GeneralSettingsRow(title: L10n.readerBodyFontPicker) {
+                    Picker("", selection: $readerBodyFontPresetRawValue) {
+                        ForEach(ReaderFontPreset.allCases) { preset in
+                            Text(preset.title)
+                                .tag(preset.rawValue)
                         }
-                        .labelsHidden()
-                        .pickerStyle(.menu)
-                        .frame(width: 120, alignment: .leading)
-
-                        Toggle("Fett", isOn: $readerBodyFontIsBold)
                     }
-                }
+                    .labelsHidden()
+                    .pickerStyle(.menu)
+                    .frame(width: 120, alignment: .leading)
 
-                SettingRow(title: L10n.readerBodyFontSizeSlider, description: "Größe des nativen Reader-Texts.") {
+                    Toggle(isOn: $readerBodyFontIsBold) {
+                        Text("Fett").font(.system(size: 13))
+                    }
+                    .toggleStyle(.checkbox)
+                    .tint(Color.settingsBoldAccent)
+                }
+                GeneralSettingsHelp("Schriftfamilie und Gewicht für den Artikeltext.")
+
+                GeneralSettingsRow(title: L10n.readerBodyFontSizeSlider) {
                     SettingsSlider(value: $readerBodyFontSize, range: ReaderTypography.bodyFontSizeRange, suffix: "px")
                 }
+                GeneralSettingsHelp("Größe des nativen Reader-Texts.")
 
-                SettingRow(title: L10n.readerLineSpacingSlider, description: "Vertikaler Abstand im Fließtext.") {
+                GeneralSettingsRow(title: L10n.readerLineSpacingSlider) {
                     SettingsSlider(value: $readerLineSpacing, range: ReaderTypography.lineSpacingRange, suffix: "px")
                 }
+                GeneralSettingsHelp("Vertikaler Abstand im Fließtext.")
 
-                SettingRow(title: L10n.readerContentWidthSlider, description: "Breite der Lesespalte im Reader.") {
+                GeneralSettingsRow(title: L10n.readerContentWidthSlider) {
                     SettingsSlider(value: $readerContentWidth, range: ReaderTypography.contentWidthRange, suffix: "px")
                 }
+                GeneralSettingsHelp("Breite der Lesespalte im Reader.")
 
-                SettingRow(
-                    title: L10n.readerShowsArticleImagesToggle,
-                    description: "Zeigt oder verbirgt Bilder im Artikeltext, unabhängig von den Vorschaubildern in der Artikelliste."
-                ) {
-                    Toggle("", isOn: $readerShowsArticleImages)
-                        .labelsHidden()
+                Toggle(isOn: $readerShowsArticleImages) {
+                    Text(L10n.readerShowsArticleImagesToggle)
+                        .font(.system(size: 13))
                 }
+                .toggleStyle(.checkbox)
+                .tint(Color.settingsBoldAccent)
+                GeneralSettingsHelp("Zeigt oder verbirgt Bilder im Artikeltext, unabhängig von den Vorschaubildern in der Artikelliste.")
             }
         }
     }
@@ -558,49 +620,32 @@ private struct ArticleListSettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            SettingsBlock(eyebrow: "Artikelliste") {
-                SettingRow(
-                    title: L10n.settingsArticleListImagePositionTitle,
-                    description: L10n.settingsArticleListImagePositionDescription
-                ) {
-                    Picker("", selection: $articleListImagePositionRawValue) {
-                        ForEach(ArticleListImagePosition.allCases) { position in
-                            Text(position.titleKey)
-                                .tag(position.rawValue)
-                        }
-                    }
-                    .labelsHidden()
-                    .pickerStyle(.segmented)
-                    .fixedSize(horizontal: true, vertical: false)
+            GeneralSettingsSection(label: Text("Artikelliste:")) {
+                GeneralSettingsRow(title: L10n.settingsArticleListImagePositionTitle) {
+                    GeneralSettingsSegmentedControl(
+                        options: ArticleListImagePosition.allCases.map { ($0.rawValue, $0.titleKey) },
+                        selection: $articleListImagePositionRawValue
+                    )
                 }
+                GeneralSettingsHelp(L10n.settingsArticleListImagePositionDescription)
 
-                SettingRow(
-                    title: L10n.settingsArticleListShowsFeedNameTitle,
-                    description: L10n.settingsArticleListShowsFeedNameDescription
-                ) {
-                    Toggle("", isOn: $articleListShowsFeedName)
-                        .labelsHidden()
+                Toggle(isOn: $articleListShowsFeedName) {
+                    Text(L10n.settingsArticleListShowsFeedNameTitle)
+                        .font(.system(size: 13))
                 }
+                .toggleStyle(.checkbox)
+                .tint(Color.settingsBoldAccent)
+                GeneralSettingsHelp(L10n.settingsArticleListShowsFeedNameDescription)
 
-                SettingRow(
-                    title: L10n.settingsArticleListFeedNamePositionTitle,
-                    description: L10n.settingsArticleListFeedNamePositionDescription
-                ) {
-                    Picker("", selection: $articleListFeedNamePositionRawValue) {
-                        ForEach(ArticleListFeedNamePosition.allCases) { position in
-                            Text(position.titleKey)
-                                .tag(position.rawValue)
-                        }
-                    }
-                    .labelsHidden()
-                    .pickerStyle(.segmented)
-                    .fixedSize(horizontal: true, vertical: false)
+                GeneralSettingsRow(title: L10n.settingsArticleListFeedNamePositionTitle) {
+                    GeneralSettingsSegmentedControl(
+                        options: ArticleListFeedNamePosition.allCases.map { ($0.rawValue, $0.titleKey) },
+                        selection: $articleListFeedNamePositionRawValue
+                    )
                 }
+                GeneralSettingsHelp(L10n.settingsArticleListFeedNamePositionDescription)
 
-                SettingRow(
-                    title: L10n.settingsArticleListSummaryLineCountTitle,
-                    description: L10n.settingsArticleListSummaryLineCountDescription
-                ) {
+                GeneralSettingsRow(title: L10n.settingsArticleListSummaryLineCountTitle) {
                     Stepper(
                         "\(articleListSummaryLineCount)",
                         value: $articleListSummaryLineCount,
@@ -608,29 +653,23 @@ private struct ArticleListSettingsView: View {
                     )
                     .fixedSize()
                 }
+                GeneralSettingsHelp(L10n.settingsArticleListSummaryLineCountDescription)
 
-                SettingRow(
-                    title: L10n.settingsArticleListDateDisplayModeTitle,
-                    description: L10n.settingsArticleListDateDisplayModeDescription
-                ) {
-                    Picker("", selection: $articleDateDisplayModeRawValue) {
-                        ForEach(ArticleDateDisplayMode.allCases) { mode in
-                            Text(mode.titleKey)
-                                .tag(mode.rawValue)
-                        }
-                    }
-                    .labelsHidden()
-                    .pickerStyle(.segmented)
-                    .fixedSize(horizontal: true, vertical: false)
+                GeneralSettingsRow(title: L10n.settingsArticleListDateDisplayModeTitle) {
+                    GeneralSettingsSegmentedControl(
+                        options: ArticleDateDisplayMode.allCases.map { ($0.rawValue, $0.titleKey) },
+                        selection: $articleDateDisplayModeRawValue
+                    )
                 }
+                GeneralSettingsHelp(L10n.settingsArticleListDateDisplayModeDescription)
 
-                SettingRow(
-                    title: L10n.settingsArticleListFeedJumpNavigationTitle,
-                    description: L10n.settingsArticleListFeedJumpNavigationDescription
-                ) {
-                    Toggle("", isOn: $feedJumpNavigationIsEnabled)
-                        .labelsHidden()
+                Toggle(isOn: $feedJumpNavigationIsEnabled) {
+                    Text(L10n.settingsArticleListFeedJumpNavigationTitle)
+                        .font(.system(size: 13))
                 }
+                .toggleStyle(.checkbox)
+                .tint(Color.settingsBoldAccent)
+                GeneralSettingsHelp(L10n.settingsArticleListFeedJumpNavigationDescription)
             }
         }
     }
@@ -651,19 +690,16 @@ private struct MenubarSettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            SettingsBlock(eyebrow: "Menubar") {
-                SettingRow(
-                    title: L10n.settingsMenubarIsEnabledTitle,
-                    description: L10n.settingsMenubarIsEnabledDescription
-                ) {
-                    Toggle("", isOn: $menubarIsEnabled)
-                        .labelsHidden()
+            GeneralSettingsSection(label: Text("Menubar:")) {
+                Toggle(isOn: $menubarIsEnabled) {
+                    Text(L10n.settingsMenubarIsEnabledTitle)
+                        .font(.system(size: 13))
                 }
+                .toggleStyle(.checkbox)
+                .tint(Color.settingsBoldAccent)
+                GeneralSettingsHelp(L10n.settingsMenubarIsEnabledDescription)
 
-                SettingRow(
-                    title: L10n.settingsMenubarArticleCountTitle,
-                    description: L10n.settingsMenubarArticleCountDescription
-                ) {
+                GeneralSettingsRow(title: L10n.settingsMenubarArticleCountTitle) {
                     Stepper(
                         "\(menubarArticleCount)",
                         value: $menubarArticleCount,
@@ -672,31 +708,25 @@ private struct MenubarSettingsView: View {
                     .disabled(!menubarIsEnabled)
                     .fixedSize()
                 }
+                GeneralSettingsHelp(L10n.settingsMenubarArticleCountDescription)
 
-                SettingRow(
-                    title: L10n.settingsMenubarArticleClickBehaviorTitle,
-                    description: L10n.settingsMenubarArticleClickBehaviorDescription
-                ) {
-                    Picker("", selection: $menubarArticleClickBehaviorRawValue) {
-                        ForEach(MenubarArticleClickBehavior.allCases) { behavior in
-                            Text(behavior.titleKey)
-                                .tag(behavior.rawValue)
-                        }
-                    }
-                    .labelsHidden()
-                    .pickerStyle(.segmented)
-                    .fixedSize(horizontal: true, vertical: false)
+                GeneralSettingsRow(title: L10n.settingsMenubarArticleClickBehaviorTitle) {
+                    GeneralSettingsSegmentedControl(
+                        options: MenubarArticleClickBehavior.allCases.map { ($0.rawValue, $0.titleKey) },
+                        selection: $menubarArticleClickBehaviorRawValue
+                    )
                     .disabled(!menubarIsEnabled)
                 }
+                GeneralSettingsHelp(L10n.settingsMenubarArticleClickBehaviorDescription)
 
-                SettingRow(
-                    title: L10n.settingsMenubarHidesDockIconTitle,
-                    description: L10n.settingsMenubarHidesDockIconDescription
-                ) {
-                    Toggle("", isOn: $menubarHidesDockIcon)
-                        .labelsHidden()
-                        .disabled(!menubarIsEnabled)
+                Toggle(isOn: $menubarHidesDockIcon) {
+                    Text(L10n.settingsMenubarHidesDockIconTitle)
+                        .font(.system(size: 13))
                 }
+                .toggleStyle(.checkbox)
+                .tint(Color.settingsBoldAccent)
+                .disabled(!menubarIsEnabled)
+                GeneralSettingsHelp(L10n.settingsMenubarHidesDockIconDescription)
             }
         }
     }
@@ -711,6 +741,7 @@ private struct SettingsSlider: View {
         HStack(spacing: 10) {
             Slider(value: $value, in: range)
                 .frame(width: 110)
+                .tint(Color.settingsBoldAccent)
             Text("\(Int(value)) \(suffix)")
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
@@ -728,46 +759,45 @@ private struct CacheSettingsView: View {
     @State private var errorMessage: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            SettingsBlock(eyebrow: L10n.settingsCacheSection) {
-                SettingRow(title: L10n.settingsCacheCurrentSize, description: "Gespeicherte Bilder und Favicons.") {
-                    Text(ImageCacheSettings.formattedByteCount(cacheSizeInBytes))
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                        .monospacedDigit()
-                }
+        Group {
+            GeneralSettingsRow(title: L10n.settingsCacheCurrentSize) {
+                Text(ImageCacheSettings.formattedByteCount(cacheSizeInBytes))
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+            }
+            GeneralSettingsHelp("Gespeicherte Bilder und Favicons.")
 
-                SettingRow(title: L10n.settingsCacheLimitPicker, description: L10n.settingsCacheDescriptionDetail) {
-                    Picker("", selection: $cacheLimitMegabytes) {
-                        ForEach(ImageCacheSettings.allowedLimitMegabytes, id: \.self) { limitMegabytes in
-                            Text(L10n.settingsCacheLimit(megabytes: limitMegabytes))
-                                .tag(limitMegabytes)
-                        }
-                    }
-                    .labelsHidden()
-                    .pickerStyle(.menu)
-                    .onChange(of: cacheLimitMegabytes) { _, newValue in
-                        cacheLimitMegabytes = ImageCacheSettings.resolvedLimitMegabytes(newValue)
-                        trimCacheToSelectedLimit()
+            GeneralSettingsRow(title: L10n.settingsCacheLimitPicker) {
+                Picker("", selection: $cacheLimitMegabytes) {
+                    ForEach(ImageCacheSettings.allowedLimitMegabytes, id: \.self) { limitMegabytes in
+                        Text(L10n.settingsCacheLimit(megabytes: limitMegabytes))
+                            .tag(limitMegabytes)
                     }
                 }
+                .labelsHidden()
+                .pickerStyle(.menu)
+                .onChange(of: cacheLimitMegabytes) { _, newValue in
+                    cacheLimitMegabytes = ImageCacheSettings.resolvedLimitMegabytes(newValue)
+                    trimCacheToSelectedLimit()
+                }
+            }
+            GeneralSettingsHelp(L10n.settingsCacheDescriptionDetail)
 
-                HStack {
-                    Spacer()
-                    Button(L10n.settingsCacheRefreshSize) {
-                        refreshCacheSize()
-                    }
-                    Button(L10n.settingsCacheClear, role: .destructive) {
-                        clearCache()
-                    }
-                    .disabled(cacheSizeInBytes == 0)
+            HStack(spacing: 8) {
+                Button(L10n.settingsCacheRefreshSize) {
+                    refreshCacheSize()
                 }
+                Button(L10n.settingsCacheClear, role: .destructive) {
+                    clearCache()
+                }
+                .disabled(cacheSizeInBytes == 0)
+            }
 
-                if let errorMessage {
-                    Text(errorMessage)
-                        .font(.caption)
-                        .foregroundStyle(.red)
-                }
+            if let errorMessage {
+                Text(errorMessage)
+                    .font(.caption)
+                    .foregroundStyle(.red)
             }
         }
         .task {
@@ -816,11 +846,8 @@ private struct NotificationSettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            SettingsBlock(eyebrow: L10n.settingsNotificationsSection) {
-                SettingRow(
-                    title: L10n.settingsNotificationsPermissionTitle,
-                    description: notificationPermissionDescription
-                ) {
+            GeneralSettingsSection(label: Text(L10n.settingsNotificationsSection) + Text(":")) {
+                GeneralSettingsRow(title: L10n.settingsNotificationsPermissionTitle) {
                     if feedNotificationAuthorizationStatus == .notDetermined {
                         Button(L10n.settingsNotificationsPermissionRequest) {
                             Task {
@@ -844,33 +871,32 @@ private struct NotificationSettingsView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+                GeneralSettingsHelp(notificationPermissionDescription)
 
-                SettingRow(
-                    title: L10n.settingsNotificationsMasterTitle,
-                    description: L10n.settingsNotificationsMasterDescription
-                ) {
-                    Toggle("", isOn: $isMasterEnabled)
-                        .labelsHidden()
+                Toggle(isOn: $isMasterEnabled) {
+                    Text(L10n.settingsNotificationsMasterTitle)
+                        .font(.system(size: 13))
                 }
+                .toggleStyle(.checkbox)
+                .tint(Color.settingsBoldAccent)
+                GeneralSettingsHelp(L10n.settingsNotificationsMasterDescription)
 
-                SettingRow(
-                    title: L10n.settingsNotificationsNewFeedsDefaultTitle,
-                    description: L10n.settingsNotificationsNewFeedsDefaultDescription
-                ) {
-                    Toggle("", isOn: $isEnabledForNewFeeds)
-                        .labelsHidden()
+                Toggle(isOn: $isEnabledForNewFeeds) {
+                    Text(L10n.settingsNotificationsNewFeedsDefaultTitle)
+                        .font(.system(size: 13))
                 }
+                .toggleStyle(.checkbox)
+                .tint(Color.settingsBoldAccent)
+                GeneralSettingsHelp(L10n.settingsNotificationsNewFeedsDefaultDescription)
 
-                SettingRow(
-                    title: L10n.settingsNotificationsTestTitle,
-                    description: L10n.settingsNotificationsTestDescription
-                ) {
+                GeneralSettingsRow(title: L10n.settingsNotificationsTestTitle) {
                     Button(L10n.settingsNotificationsTestButton) {
                         Task {
                             await FeedNotificationService.presentTest()
                         }
                     }
                 }
+                GeneralSettingsHelp(L10n.settingsNotificationsTestDescription)
 
                 InfoRow(
                     iconName: "dot.radiowaves.left.and.right",
@@ -945,18 +971,24 @@ private struct RefreshSettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            SettingsBlock(eyebrow: L10n.settingsRefreshSection) {
-                SettingRow(title: L10n.settingsAutomaticRefreshTitle, description: L10n.settingsAutomaticRefreshDescription) {
-                    Toggle("", isOn: $backgroundRefreshIsEnabled)
-                        .labelsHidden()
+            GeneralSettingsSection(label: Text(L10n.settingsRefreshSection) + Text(":")) {
+                Toggle(isOn: $backgroundRefreshIsEnabled) {
+                    Text(L10n.settingsAutomaticRefreshTitle)
+                        .font(.system(size: 13))
                 }
+                .toggleStyle(.checkbox)
+                .tint(Color.settingsBoldAccent)
+                GeneralSettingsHelp(L10n.settingsAutomaticRefreshDescription)
 
-                SettingRow(title: L10n.settingsRefreshOnLaunchTitle, description: L10n.settingsRefreshOnLaunchDescription) {
-                    Toggle("", isOn: $refreshOnLaunchIsEnabled)
-                        .labelsHidden()
+                Toggle(isOn: $refreshOnLaunchIsEnabled) {
+                    Text(L10n.settingsRefreshOnLaunchTitle)
+                        .font(.system(size: 13))
                 }
+                .toggleStyle(.checkbox)
+                .tint(Color.settingsBoldAccent)
+                GeneralSettingsHelp(L10n.settingsRefreshOnLaunchDescription)
 
-                SettingRow(title: L10n.settingsAutomaticRefreshIntervalPicker, description: "Gilt als Standard für neue Feeds.") {
+                GeneralSettingsRow(title: L10n.settingsAutomaticRefreshIntervalPicker) {
                     Picker("", selection: $backgroundRefreshIntervalMinutes) {
                         ForEach(BackgroundRefreshSettings.allowedIntervalMinutes, id: \.self) { intervalMinutes in
                             Text(L10n.settingsAutomaticRefreshInterval(minutes: intervalMinutes))
@@ -967,6 +999,7 @@ private struct RefreshSettingsView: View {
                     .pickerStyle(.menu)
                     .disabled(!backgroundRefreshIsEnabled)
                 }
+                GeneralSettingsHelp("Gilt als Standard für neue Feeds.")
 
                 VStack(alignment: .leading, spacing: 8) {
                     VStack(alignment: .leading, spacing: 4) {
@@ -1106,7 +1139,7 @@ private struct SyncSettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            SettingsBlock(eyebrow: L10n.settingsSyncSection) {
+            GeneralSettingsSection(label: Text(L10n.settingsSyncSection) + Text(":")) {
                 VStack(alignment: .leading, spacing: 16) {
                     HStack(alignment: .top, spacing: 12) {
                         Image(systemName: "icloud")
@@ -1124,13 +1157,12 @@ private struct SyncSettingsView: View {
                         }
                     }
 
-                    SettingRow(
-                        title: L10n.settingsSyncBetaTitle,
-                        description: L10n.settingsSyncBetaScopeHint
-                    ) {
+                    GeneralSettingsRow(title: L10n.settingsSyncBetaTitle) {
                         Toggle("", isOn: $cloudSyncIsEnabled)
                             .toggleStyle(.switch)
+                            .tint(Color.settingsBoldAccent)
                     }
+                    GeneralSettingsHelp(L10n.settingsSyncBetaScopeHint)
 
                     InfoRow(
                         iconName: hasDatabaseError ? "exclamationmark.triangle" : "icloud",
@@ -1169,7 +1201,7 @@ private struct SyncSettingsView: View {
                 }
             }
 
-            SettingsBlock(eyebrow: L10n.settingsSyncResetSection) {
+            GeneralSettingsSection(label: Text(L10n.settingsSyncResetSection) + Text(":")) {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 12) {
                         Button(L10n.settingsSyncResetSoftButton) {
@@ -1613,19 +1645,16 @@ private struct CleanupSettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            SettingsBlock(eyebrow: "Alte Artikel") {
-                SettingRow(
-                    title: L10n.settingsArticleRetentionTitle,
-                    description: L10n.settingsArticleRetentionDescription
-                ) {
-                    Toggle("", isOn: $articleRetentionIsEnabled)
-                        .labelsHidden()
+            GeneralSettingsSection(label: Text("Alte Artikel:")) {
+                Toggle(isOn: $articleRetentionIsEnabled) {
+                    Text(L10n.settingsArticleRetentionTitle)
+                        .font(.system(size: 13))
                 }
+                .toggleStyle(.checkbox)
+                .tint(Color.settingsBoldAccent)
+                GeneralSettingsHelp(L10n.settingsArticleRetentionDescription)
 
-                SettingRow(
-                    title: L10n.settingsArticleRetentionIntervalPicker,
-                    description: "Artikel werden nach diesem Zeitraum automatisch entfernt."
-                ) {
+                GeneralSettingsRow(title: L10n.settingsArticleRetentionIntervalPicker) {
                     Picker(L10n.settingsArticleRetentionIntervalPicker, selection: $articleRetentionDays) {
                         ForEach(ArticleRetentionSettings.allowedRetentionDays, id: \.self) { days in
                             Text(L10n.settingsArticleRetentionInterval(days: days))
@@ -1639,11 +1668,9 @@ private struct CleanupSettingsView: View {
                         articleRetentionDays = ArticleRetentionSettings.clampedRetentionDays(articleRetentionDays)
                     }
                 }
+                GeneralSettingsHelp("Artikel werden nach diesem Zeitraum automatisch entfernt.")
 
-                SettingRow(
-                    title: "Mindestens pro Feed behalten",
-                    description: "So viele der neuesten Artikel bleiben pro Feed erhalten, auch wenn sie älter sind."
-                ) {
+                GeneralSettingsRow(title: "Mindestens pro Feed behalten") {
                     Picker("Mindestens pro Feed behalten", selection: $articleRetentionMinimumArticlesPerFeed) {
                         ForEach(ArticleRetentionSettings.allowedMinimumArticlesPerFeed, id: \.self) { count in
                             Text(minimumArticlesLabel(count))
@@ -1659,25 +1686,24 @@ private struct CleanupSettingsView: View {
                         )
                     }
                 }
+                GeneralSettingsHelp("So viele der neuesten Artikel bleiben pro Feed erhalten, auch wenn sie älter sind.")
 
-                SettingRow(
-                    title: L10n.settingsArticleRetentionIncludesProtectedArticles,
-                    description: "Auch markierte oder geschützte Artikel in die Bereinigung einbeziehen."
-                ) {
-                    Toggle("", isOn: $articleRetentionIncludesProtectedArticles)
-                        .labelsHidden()
-                        .disabled(!articleRetentionIsEnabled)
+                Toggle(isOn: $articleRetentionIncludesProtectedArticles) {
+                    Text(L10n.settingsArticleRetentionIncludesProtectedArticles)
+                        .font(.system(size: 13))
                 }
+                .toggleStyle(.checkbox)
+                .tint(Color.settingsBoldAccent)
+                .disabled(!articleRetentionIsEnabled)
+                GeneralSettingsHelp("Auch markierte oder geschützte Artikel in die Bereinigung einbeziehen.")
 
-                SettingRow(
-                    title: L10n.settingsArticleRetentionRunNow,
-                    description: "Bereinigung direkt mit den aktuellen Einstellungen starten."
-                ) {
+                GeneralSettingsRow(title: L10n.settingsArticleRetentionRunNow) {
                     Button(L10n.settingsArticleRetentionRunNow) {
                         runArticleRetentionCleanup()
                     }
                     .disabled(!articleRetentionIsEnabled)
                 }
+                GeneralSettingsHelp("Bereinigung direkt mit den aktuellen Einstellungen starten.")
 
                 if let retentionCleanupResult {
                     Text(retentionCleanupResult)
@@ -1694,11 +1720,8 @@ private struct CleanupSettingsView: View {
                 }
             }
 
-            SettingsBlock(eyebrow: "Zeitplan") {
-                SettingRow(
-                    title: L10n.settingsCleanupScheduleTitle,
-                    description: L10n.settingsCleanupScheduleDescription
-                ) {
+            GeneralSettingsSection(label: Text("Zeitplan:")) {
+                GeneralSettingsRow(title: L10n.settingsCleanupScheduleTitle) {
                     Button {
                         isCleanupSchedulePopoverPresented.toggle()
                     } label: {
@@ -1708,6 +1731,7 @@ private struct CleanupSettingsView: View {
                         cleanupSchedulePopoverContent
                     }
                 }
+                GeneralSettingsHelp(L10n.settingsCleanupScheduleDescription)
 
                 if cleanupRunOnWeekdayTime {
                     VStack(alignment: .leading, spacing: 4) {
@@ -1738,11 +1762,8 @@ private struct CleanupSettingsView: View {
                 }
             }
 
-            SettingsBlock(eyebrow: L10n.settingsFeedLogRetentionTitle) {
-                SettingRow(
-                    title: L10n.settingsFeedLogRetentionDaysTitle,
-                    description: L10n.settingsFeedLogRetentionDaysDescription
-                ) {
+            GeneralSettingsSection(label: Text(L10n.settingsFeedLogRetentionTitle) + Text(":")) {
+                GeneralSettingsRow(title: L10n.settingsFeedLogRetentionDaysTitle) {
                     Picker(L10n.settingsFeedLogRetentionDaysTitle, selection: $feedLogRetentionDays) {
                         ForEach(FeedLogRetentionSettings.allowedRetentionDays, id: \.self) { days in
                             Text("\(days) Tage")
@@ -1752,17 +1773,16 @@ private struct CleanupSettingsView: View {
                     .labelsHidden()
                     .pickerStyle(.menu)
                 }
+                GeneralSettingsHelp(L10n.settingsFeedLogRetentionDaysDescription)
             }
 
-            SettingsBlock(eyebrow: L10n.cleanupHistoryTitle) {
-                SettingRow(
-                    title: L10n.cleanupHistoryTitle,
-                    description: L10n.cleanupHistoryDescription
-                ) {
+            GeneralSettingsSection(label: Text(L10n.cleanupHistoryTitle) + Text(":")) {
+                GeneralSettingsRow(title: L10n.cleanupHistoryTitle) {
                     Button(L10n.settingsCleanupHistoryShowButton) {
                         openWindow(id: CleanupHistoryWindowView.windowID)
                     }
                 }
+                GeneralSettingsHelp(L10n.cleanupHistoryDescription)
             }
         }
     }
@@ -1873,7 +1893,7 @@ private struct ShortcutsSettingsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             ForEach(ShortcutCategory.allCases, id: \.self) { category in
-                SettingsBlock(eyebrow: category.titleKey) {
+                GeneralSettingsSection(label: Text(category.titleKey) + Text(":")) {
                     VStack(spacing: 0) {
                         ForEach(CustomizableShortcut.allCases.filter { $0.category == category }) { shortcut in
                             ShortcutSettingRow(shortcut: shortcut, overridesRawValue: $shortcutOverridesRawValue)
@@ -1991,7 +2011,7 @@ private struct ReaderToolbarSettingsView: View {
     }
 
     var body: some View {
-        SettingsBlock(eyebrow: L10n.settingsReaderToolbarSection) {
+        GeneralSettingsSection(label: Text(L10n.settingsReaderToolbarSection) + Text(":")) {
             List {
                 ForEach(layout.orderedItems) { item in
                     ReaderToolbarSettingsRow(
