@@ -7,6 +7,24 @@
         <language>de</language>
         <!-- create_github_release.sh fügt hier bei jedem Release ein neues <item> ein -->
     <item>
+      <title>v1.0-22</title>
+      <pubDate>Sun, 02 Aug 2026 12:20:07 +0000</pubDate>
+      <description><![CDATA[
+- feat: Einstellungen-Fenster auf Design D ("Formular") umgestellt — alle 11 Tabs
+- docs: README-Screenshots aktualisiert (Hauptansicht, Regel-Editor, Intelligenter Ordner, Einstellungen)
+- docs: README um Sparkle-Auto-Update-Feature und Homebrew-Installationsanleitung ergänzt
+- chore: geteiltes Feedivo-Xcode-Scheme eingecheckt
+- feat: create_github_release.sh signiert mit Developer ID, notarisiert und staplet
+- docs: Sparkle-Notarisierung + SPUStandardUserDriver-Umstellung in CLAUDE.md dokumentiert
+- chore: Appcast-Eintrag für v1.0-21]]></description>
+      <enclosure url="https://github.com/martinfelder/feedivo-mac/releases/download/v1.0-22/Feedivo-v1.0-22.zip"
+                 sparkle:version="22"
+                 sparkle:shortVersionString="1.0"
+                 sparkle:edSignature="XKwziQAuSx3UfPNW64UKFLPcYyir8rOkRx8k8TWMKbsSdF9Maok3J7qd8UNp0my9kM60QVTCkIqgIGuflYKzBw=="
+                 length="18319793"
+                 type="application/octet-stream"/>
+    </item>
+    <item>
       <title>v1.0-21</title>
       <pubDate>Sun, 02 Aug 2026 07:07:59 +0000</pubDate>
       <description><![CDATA[
