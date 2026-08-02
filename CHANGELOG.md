@@ -13,6 +13,11 @@ siehe `git log`.
 
 <!-- versions -->
 
+## [1.0 (20)] - 2026-08-02
+
+- fix: Sheet schließt synchron per AppKit statt über asynchrone SwiftUI-Bindung
+- chore: Appcast-Eintrag für v1.0-19
+
 ## [1.0 (19)] - 2026-08-02
 
 - fix: Update-Sheet blockiert AppKit-Terminierung während Sparkle-Installation
