@@ -13,9 +13,36 @@
 # NICHT nach Bestaetigung und veroeffentlicht nichts.
 #
 # Voraussetzungen: `gh` CLI installiert und eingeloggt (`gh auth status`),
-# lokales Xcode-Signing fuer Release-Builds konfiguriert. Das Ergebnis ist ein
-# lokal signierter, NICHT notarisierter Build - beim Oeffnen auf einem anderen
-# Mac ist ggf. Rechtsklick -> "Oeffnen" noetig (Gatekeeper).
+# ein "Developer ID Application"-Zertifikat im Login-Schluesselbund (siehe
+# `security find-identity -v -p codesigning`), sowie eine App-Store-Connect-
+# API-Key-Datei unter ~/.appstoreconnect/private_keys/AuthKey_<KeyID>.p8
+# (App Store Connect -> Nutzer und Zugriff -> Integrationen -> Schluessel).
+#
+# Nutzt bewusst API-Key-Authentifizierung statt `notarytool --keychain-
+# profile`: Live-Debugging (2026-08-01) zeigte reproduzierbar, dass ein per
+# `store-credentials` angelegtes Keychain-Profil zuverlaessig funktioniert,
+# wenn `notarytool` interaktiv/inline aufgerufen wird, aber IMMER mit "No
+# Keychain password item found" fehlschlaegt, sobald derselbe Aufruf aus
+# einer ausgefuehrten Skriptdatei (`./datei.sh`) heraus passiert - unabhaengig
+# von Terminal-App (Warp UND Terminal.app betroffen), Smart-Quotes oder
+# Session-Kontext (alle einzeln ausgeschlossen). Passt zu Apples eigener
+# Empfehlung, fuer nicht-interaktive/automatisierte Notarisierung API-Keys
+# statt Keychain-Profilen zu verwenden - API-Key-Auth liest nur eine Datei,
+# ganz ohne Keychain-Zugriff, und umgeht das Problem strukturell.
+#
+# Baut ueber `archive` + `-exportArchive` mit `method: developer-id`
+# (scripts/release_export_options.plist) statt eines einfachen
+# `xcodebuild build` - nur der Export-Schritt signiert die .app inkl. aller
+# eingebetteten Sparkle-Hilfsprozesse (Autoupdate/Installer.xpc/Updater.app)
+# tatsaechlich mit der Developer-ID-Identitaet statt mit "Apple Development".
+# Ohne matchende Team-ID zwischen Autoupdate und dem neuen Update ueberspringt
+# Sparkle beim Installieren den atomaren Swap und der Update-Vorgang haengt
+# dauerhaft bei "Wird installiert" fest (Root Cause vom 2026-08-01 direkt live
+# reproduziert und verifiziert, siehe CLAUDE.md/ADR-009-Nachtrag). Reicht die
+# fertig signierte .app danach bei Apple zur Notarisierung ein (`notarytool
+# submit --wait`) und heftet das Ticket an (`stapler staple`), BEVOR das fuer
+# GitHub verteilte Zip gepackt wird - ein echter Endnutzer bekommt dadurch
+# keinen Gatekeeper-Ablehnungsdialog mehr beim ersten Oeffnen.
 set -euo pipefail
 
 DRY_RUN=0
@@ -33,6 +60,12 @@ CHANGELOG="CHANGELOG.md"
 SCHEME="Feedivo"
 CONFIGURATION="Release"
 BUILD_DIR="$REPO_ROOT/build_release"
+ARCHIVE_PATH="$BUILD_DIR/Feedivo.xcarchive"
+EXPORT_PATH="$BUILD_DIR/Export"
+EXPORT_OPTIONS_PLIST="$REPO_ROOT/scripts/release_export_options.plist"
+ASC_KEY_ID="AGDRL5HNM4"
+ASC_ISSUER_ID="69a6de6f-211d-47e3-e053-5b8c7c11a4d1"
+ASC_KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8"
 
 if ! command -v gh >/dev/null 2>&1; then
   echo "create_github_release.sh: 'gh' CLI nicht gefunden. Bitte installieren (brew install gh) und 'gh auth login' ausfuehren." >&2
@@ -102,21 +135,48 @@ if [[ ! "$CONFIRM" =~ ^[Yy]$ ]]; then
   exit 0
 fi
 
-echo "Baue Release-Konfiguration..."
+if ! security find-identity -v -p codesigning 2>/dev/null | grep -q "Developer ID Application"; then
+  echo "create_github_release.sh: Kein 'Developer ID Application'-Zertifikat im Login-Schluesselbund gefunden (siehe 'security find-identity -v -p codesigning'). Ohne dieses Zertifikat signiert Xcode die exportierte .app nicht mit der Developer-ID-Identitaet, wodurch Sparkles Autoupdate-Hilfsprozess beim naechsten Update-Versuch erneut den atomaren Swap ueberspringt und dauerhaft bei 'Wird installiert' haengenbleibt." >&2
+  rm -f "$NOTES_FILE"
+  exit 1
+fi
+if [ ! -f "$ASC_KEY_PATH" ]; then
+  echo "create_github_release.sh: App-Store-Connect-API-Key nicht gefunden unter $ASC_KEY_PATH. Bitte .p8-Datei von App Store Connect (Nutzer und Zugriff -> Integrationen -> Schluessel) dorthin ablegen." >&2
+  rm -f "$NOTES_FILE"
+  exit 1
+fi
+
+echo "Baue Release-Konfiguration (archive)..."
 rm -rf "$BUILD_DIR"
 xcodebuild \
   -scheme "$SCHEME" \
   -configuration "$CONFIGURATION" \
   -derivedDataPath "$BUILD_DIR" \
+  -archivePath "$ARCHIVE_PATH" \
   -destination 'platform=macOS' \
-  clean build
+  clean archive
 
-APP_PATH="$(find "$BUILD_DIR/Build/Products/$CONFIGURATION" -maxdepth 1 -name '*.app' -print -quit)"
+echo "Exportiere Archiv mit Developer-ID-Signing (method: developer-id)..."
+xcodebuild -exportArchive \
+  -archivePath "$ARCHIVE_PATH" \
+  -exportPath "$EXPORT_PATH" \
+  -exportOptionsPlist "$EXPORT_OPTIONS_PLIST"
+
+APP_PATH="$(find "$EXPORT_PATH" -maxdepth 1 -name '*.app' -print -quit)"
 if [ -z "$APP_PATH" ] || [ ! -d "$APP_PATH" ]; then
-  echo "create_github_release.sh: Konnte die gebaute .app nicht unter $BUILD_DIR/Build/Products/$CONFIGURATION finden." >&2
+  echo "create_github_release.sh: Konnte die exportierte .app nicht unter $EXPORT_PATH finden." >&2
   rm -f "$NOTES_FILE"
   exit 1
 fi
+
+echo "Reiche $APP_PATH zur Notarisierung bei Apple ein (kann mehrere Minuten dauern)..."
+NOTARIZE_ZIP="$BUILD_DIR/Feedivo-notarize-submission.zip"
+/usr/bin/ditto -c -k --keepParent "$APP_PATH" "$NOTARIZE_ZIP"
+xcrun notarytool submit "$NOTARIZE_ZIP" --key "$ASC_KEY_PATH" --key-id "$ASC_KEY_ID" --issuer "$ASC_ISSUER_ID" --wait
+rm -f "$NOTARIZE_ZIP"
+
+echo "Heftet Notarisierungs-Ticket an $APP_PATH an (stapler staple)..."
+xcrun stapler staple "$APP_PATH"
 
 echo "Packe $APP_PATH -> $ZIP_PATH"
 /usr/bin/ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$ZIP_PATH"
@@ -154,7 +214,7 @@ echo "Signiere ZIP für Sparkle (EdDSA)..."
 # reproduziert beim allerersten echten Release nach der Sparkle-Umstellung
 # (v1.0-16): GitHub-Release war zu dem Zeitpunkt bereits veröffentlicht,
 # Appcast blieb ohne manuellen Nacheingriff dauerhaft ohne den neuen Eintrag.
-SIGN_UPDATE_TOOL="$(find "$BUILD_DIR/SourcePackages" "$HOME/Library/Developer/Xcode/DerivedData" -path "*sparkle*/artifacts/sparkle/Sparkle/bin/sign_update" -print -quit 2>/dev/null)"
+SIGN_UPDATE_TOOL="$(find "$BUILD_DIR/SourcePackages" "$HOME/Library/Developer/Xcode/DerivedData" -path "*/Sparkle/bin/sign_update" -print -quit 2>/dev/null)"
 if [ -z "$SIGN_UPDATE_TOOL" ]; then
   echo "create_github_release.sh: sign_update-Tool nicht gefunden - Appcast wird NICHT aktualisiert. Bitte Xcode-Build einmal ausführen (löst SPM-Artefakte auf) und erneut versuchen." >&2
   exit 1
