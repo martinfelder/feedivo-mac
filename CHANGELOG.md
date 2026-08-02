@@ -24,9 +24,6 @@ siehe `git log`.
   nächsten Start der App wiederhergestellt werden sollen
 - Verbesserung: Die Tab-Leiste sieht jetzt aus wie in Safari
 - Verschiedene kleinere Korrekturen rund um die neue Tab-Funktion
-- docs: Implementierungsplan für Artikel-Tabs im Reader-Bereich
-- docs: Design-Spec für Artikel-Tabs im Reader-Bereich
-- chore: Appcast-Eintrag für v1.0-22
 
 ## [1.0 (22)] - 2026-08-02
 
