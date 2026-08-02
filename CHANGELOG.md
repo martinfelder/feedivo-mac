@@ -13,6 +13,11 @@ siehe `git log`.
 
 <!-- versions -->
 
+## [1.0 (21)] - 2026-08-02
+
+- refactor: Sparkle-Integration auf SPUStandardUserDriver umgestellt (wie NetNewsWire)
+- chore: Appcast-Eintrag für v1.0-20
+
 ## [1.0 (20)] - 2026-08-02
 
 - fix: Sheet schließt synchron per AppKit statt über asynchrone SwiftUI-Bindung
