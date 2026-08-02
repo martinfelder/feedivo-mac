@@ -2,6 +2,7 @@ import Foundation
 import Observation
 import Sparkle
 import OSLog
+import AppKit
 
 /// Ersetzt den entfernten UpdateInstaller/UpdateChecker-Stack vollständig.
 /// Kapselt SPUUpdater + eine eigene SPUUserDriver-Konformität, damit die
@@ -289,7 +290,34 @@ extension SparkleUpdateCoordinator: SPUUserDriver {
         }
     }
 
+    /// Fix (2026-08-02, live per Unified-Log verifiziert): Sparkles eigener
+    /// `SPUStandardUserDriver` schließt sein Status-Fenster in genau diesem
+    /// Callback synchron per direktem AppKit-Aufruf (`[_statusController close]`),
+    /// bevor `applicationTerminated` erstmals `true` wird - nicht über eine
+    /// deklarative Bindung. Grund: Ein rein state-gesteuertes SwiftUI-`.sheet`
+    /// reagiert asynchron (unser bisheriger Code setzte `state` nur innerhalb
+    /// eines `Task { @MainActor in ... }`), Sparkle schickt das Quit-AppleEvent
+    /// aber ggf. bevor dieses Update tatsächlich das angehängte NSWindow-Sheet
+    /// gelöst hat - AppKit verweigert dann die Terminierung mit "App termination
+    /// blocked by modal sheet", die App hängt für immer bei "Wird installiert".
+    /// Schließt deshalb bei `applicationTerminated == false` (dem Aufruf VOR dem
+    /// eigentlichen Quit-Versuch) alle angehängten Sheets sofort und synchron
+    /// über AppKit selbst, unabhängig von SwiftUIs Render-Zyklus.
     nonisolated func showInstallingUpdate(withApplicationTerminated applicationTerminated: Bool, retryTerminatingApplication: @escaping () -> Void) {
+        if !applicationTerminated {
+            let closeAttachedSheets = {
+                for window in NSApp.windows {
+                    if let sheet = window.attachedSheet {
+                        window.endSheet(sheet)
+                    }
+                }
+            }
+            if Thread.isMainThread {
+                closeAttachedSheets()
+            } else {
+                DispatchQueue.main.sync(execute: closeAttachedSheets)
+            }
+        }
         Task { @MainActor in self.state = .installing }
     }
 
