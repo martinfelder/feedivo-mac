@@ -43,6 +43,10 @@ enum CustomizableShortcut: String, CaseIterable, Identifiable, Sendable {
     case articlePrint
     case readerWebBack
     case readerWebForward
+    case readerNewTab
+    case readerCloseTab
+    case readerNextTab
+    case readerPreviousTab
 
     var id: String { rawValue }
 
@@ -56,7 +60,8 @@ enum CustomizableShortcut: String, CaseIterable, Identifiable, Sendable {
              .articleOpenInWindow, .articleCopyLink, .articleOpenOriginal,
              .articleShareOriginal, .articleExport, .articlePrint:
             .article
-        case .readerWebBack, .readerWebForward:
+        case .readerWebBack, .readerWebForward, .readerNewTab, .readerCloseTab,
+             .readerNextTab, .readerPreviousTab:
             .reader
         }
     }
@@ -91,6 +96,10 @@ enum CustomizableShortcut: String, CaseIterable, Identifiable, Sendable {
         case .articlePrint: L10n.shortcutsLabelArticlePrint
         case .readerWebBack: L10n.shortcutsLabelReaderWebBack
         case .readerWebForward: L10n.shortcutsLabelReaderWebForward
+        case .readerNewTab: L10n.shortcutsLabelReaderNewTab
+        case .readerCloseTab: L10n.shortcutsLabelReaderCloseTab
+        case .readerNextTab: L10n.shortcutsLabelReaderNextTab
+        case .readerPreviousTab: L10n.shortcutsLabelReaderPreviousTab
         }
     }
 
@@ -132,6 +141,14 @@ enum CustomizableShortcut: String, CaseIterable, Identifiable, Sendable {
             KeyboardShortcutSpec(key: "[", modifiers: [.command])
         case .readerWebForward:
             KeyboardShortcutSpec(key: "]", modifiers: [.command])
+        case .readerNewTab:
+            KeyboardShortcutSpec(key: "t", modifiers: [.command])
+        case .readerCloseTab:
+            KeyboardShortcutSpec(key: "w", modifiers: [.command])
+        case .readerNextTab:
+            KeyboardShortcutSpec(key: "]", modifiers: [.command, .shift])
+        case .readerPreviousTab:
+            KeyboardShortcutSpec(key: "[", modifiers: [.command, .shift])
         }
     }
 }
