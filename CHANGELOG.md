@@ -13,6 +13,16 @@ siehe `git log`.
 
 <!-- versions -->
 
+## [1.0 (24)] - 2026-08-02
+
+- fix: Sidebar-Plus-Button im Dark Mode korrekt hinterlegt
+- style: Artikel-Tabs an Kapsel-Sprache der Reader-Chips angeglichen
+- style: Release-Notes im Sparkle-Dialog mit Überschrift und Abschnitten
+- fix: Sparkle-Update-Dialog zeigt Release-Notes jetzt als echte Liste
+- chore: Appcast-Eintrag für v1.0-23
+- docs: Restliche technische Zeilen aus dem v1.0-23-Changelog-Eintrag entfernt
+- docs: Changelog-Eintrag für v1.0-23 in einfacher Sprache umformuliert
+
 ## [1.0 (23)] - 2026-08-02
 
 - Neu: Artikel lassen sich jetzt in Tabs öffnen, ähnlich wie im Browser —
