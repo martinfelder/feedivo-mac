@@ -13,6 +13,16 @@ siehe `git log`.
 
 <!-- versions -->
 
+## [1.0 (22)] - 2026-08-02
+
+- feat: Einstellungen-Fenster auf Design D ("Formular") umgestellt — alle 11 Tabs
+- docs: README-Screenshots aktualisiert (Hauptansicht, Regel-Editor, Intelligenter Ordner, Einstellungen)
+- docs: README um Sparkle-Auto-Update-Feature und Homebrew-Installationsanleitung ergänzt
+- chore: geteiltes Feedivo-Xcode-Scheme eingecheckt
+- feat: create_github_release.sh signiert mit Developer ID, notarisiert und staplet
+- docs: Sparkle-Notarisierung + SPUStandardUserDriver-Umstellung in CLAUDE.md dokumentiert
+- chore: Appcast-Eintrag für v1.0-21
+
 ## [1.0 (21)] - 2026-08-02
 
 - refactor: Sparkle-Integration auf SPUStandardUserDriver umgestellt (wie NetNewsWire)
