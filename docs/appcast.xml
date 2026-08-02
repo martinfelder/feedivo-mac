@@ -7,6 +7,25 @@
         <language>de</language>
         <!-- create_github_release.sh fügt hier bei jedem Release ein neues <item> ein -->
     <item>
+      <title>v1.0-25</title>
+      <pubDate>Sun, 02 Aug 2026 17:25:44 +0000</pubDate>
+      <description><![CDATA[<div style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #1d1d1f;">
+<h1 style="margin: 0 0 4px 0; font-size: 20px;"><span style="color: #3E5FED;">Feedivo 1.0 (25)</span> <span>– 2026-08-02</span></h1>
+<hr style="border: none; border-top: 1px solid #d0d0d5; margin: 8px 0 18px 0;">
+<h2 style="font-size: 15px; margin: 16px 0 4px 0;">🔧 Verbesserungen</h2>
+<hr style="border: none; border-top: 1px solid #e5e5ea; margin: 0 0 8px 0;">
+<ul style="margin: 0 0 4px 0; padding-left: 20px;">
+<li>Die Sync-Übersicht in den Einstellungen bleibt jetzt auch bei vielen wartenden Änderungen schnell</li>
+</ul>
+</div>]]></description>
+      <enclosure url="https://github.com/martinfelder/feedivo-mac/releases/download/v1.0-25/Feedivo-v1.0-25.zip"
+                 sparkle:version="25"
+                 sparkle:shortVersionString="1.0"
+                 sparkle:edSignature="Kph+k777+u6vSZnKi8x1qAFT3RzeQh0dGgnTQs2fYsf9ophpoNZNpCcFbOT79Kd5+PpibUDUOQfFs4OFS2Z/Bg=="
+                 length="18387777"
+                 type="application/octet-stream"/>
+    </item>
+    <item>
       <title>v1.0-24</title>
       <pubDate>Sun, 02 Aug 2026 17:03:26 +0000</pubDate>
       <description><![CDATA[<div style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #1d1d1f;">
