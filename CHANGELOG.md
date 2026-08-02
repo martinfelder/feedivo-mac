@@ -15,19 +15,15 @@ siehe `git log`.
 
 ## [1.0 (23)] - 2026-08-02
 
-- style: Tab-Leiste im Safari-Stil, Schriftgröße und Breite angepasst
-- fix: Whole-Branch-Review-Funde am Artikel-Tabs-Feature beheben
-- feat: Menübefehle für Tab-Aktionen (Neu/Schließen/Wechseln) verdrahten
-- feat: Vier neue Tastenkürzel-Fälle für Tab-Aktionen (Modell)
-- feat: Kontextmenü-Eintrag "In neuem Tab öffnen"
-- fix: reloadSelectedSQLiteArticleSnapshot auf aktiven Tab statt Listenauswahl umstellen
-- fix: toten, schädlichen handleSQLiteArticleSelectionChange-Handler entfernen
-- fix: Snapshot-Pipeline und Gelesen-Markierung an aktiven Tab statt Listenauswahl koppeln
-- feat: Tab-Leiste im Reader-Bereich rendern und verdrahten
-- feat: ReaderTabsState in ContentView verdrahten (Bridging von selectedSQLiteArticleID)
-- feat: Einstellungen-Schalter für Tab-Wiederherstellung beim Neustart
-- feat: Optionale Persistenz offener Reader-Tabs (ReaderTabsSettings)
-- feat: ReaderTabsState-Kernmodell für Artikel-Tabs im Reader
+- Neu: Artikel lassen sich jetzt in Tabs öffnen, ähnlich wie im Browser —
+  so können mehrere Artikel gleichzeitig offen bleiben
+- Neu: Ein Artikel kann per Rechtsklick oder ⌘-Klick in einem neuen Tab
+  geöffnet werden, statt den aktuell angezeigten zu ersetzen
+- Neu: Tabs lassen sich per Tastenkürzel öffnen, schließen und wechseln
+- Neu: In den Einstellungen kann festgelegt werden, ob offene Tabs beim
+  nächsten Start der App wiederhergestellt werden sollen
+- Verbesserung: Die Tab-Leiste sieht jetzt aus wie in Safari
+- Verschiedene kleinere Korrekturen rund um die neue Tab-Funktion
 - docs: Implementierungsplan für Artikel-Tabs im Reader-Bereich
 - docs: Design-Spec für Artikel-Tabs im Reader-Bereich
 - chore: Appcast-Eintrag für v1.0-22
