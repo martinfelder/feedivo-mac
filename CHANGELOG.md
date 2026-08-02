@@ -15,9 +15,8 @@ siehe `git log`.
 
 ## [1.0 (25)] - 2026-08-02
 
-- perf: Indizes auf recordType für iCloud-Sync-Warteschlangentabellen ergänzt
-- chore: Appcast-Eintrag für v1.0-24
-- docs: Changelog-Eintrag für v1.0-24 in einfacher Sprache umformuliert
+- Verbesserung: Die Sync-Übersicht in den Einstellungen bleibt jetzt auch bei
+  vielen wartenden Änderungen schnell
 
 ## [1.0 (24)] - 2026-08-02
 
