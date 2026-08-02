@@ -7,6 +7,19 @@
         <language>de</language>
         <!-- create_github_release.sh fügt hier bei jedem Release ein neues <item> ein -->
     <item>
+      <title>v1.0-21</title>
+      <pubDate>Sun, 02 Aug 2026 07:07:59 +0000</pubDate>
+      <description><![CDATA[
+- refactor: Sparkle-Integration auf SPUStandardUserDriver umgestellt (wie NetNewsWire)
+- chore: Appcast-Eintrag für v1.0-20]]></description>
+      <enclosure url="https://github.com/martinfelder/feedivo-mac/releases/download/v1.0-21/Feedivo-v1.0-21.zip"
+                 sparkle:version="21"
+                 sparkle:shortVersionString="1.0"
+                 sparkle:edSignature="ihzlgIB4kquIXrl3DW/BxMUbxCZubi7NeFR2TFls8+hq9SeSXxiaExH2xjomJs8BthnDE8VROsvSPA0NZXqfAw=="
+                 length="18293149"
+                 type="application/octet-stream"/>
+    </item>
+    <item>
       <title>v1.0-20</title>
       <pubDate>Sun, 02 Aug 2026 06:17:05 +0000</pubDate>
       <description><![CDATA[
