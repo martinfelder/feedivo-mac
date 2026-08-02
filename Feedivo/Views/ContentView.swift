@@ -175,7 +175,6 @@ struct ContentView: View {
                         database: feedivoDatabase,
                         onActivate: { tabID in
                             readerTabsState.activateTab(id: tabID)
-                            markActiveReaderTabArticleReadIfNeeded()
                         },
                         onClose: { tabID in
                             readerTabsState.closeTab(id: tabID)
@@ -474,7 +473,6 @@ struct ContentView: View {
     private func handleSidebarSelectionChange() {
         selectedSQLiteArticleID = pendingArticleIDAfterFeedJump
         pendingArticleIDAfterFeedJump = nil
-        selectedSQLiteArticleSnapshot = nil
         sqliteArticleNavigationState = .empty
     }
 
@@ -488,12 +486,13 @@ struct ContentView: View {
     }
 
     private func handleSQLiteArticleSnapshotChange(_ snapshot: ArticleReaderSnapshot?) {
-        guard selectedSQLiteArticleID != nil else {
+        guard readerTabsState.activeArticleID != nil else {
             selectedSQLiteArticleSnapshot = nil
             return
         }
 
         selectedSQLiteArticleSnapshot = snapshot
+        markActiveReaderTabArticleReadIfNeeded(snapshot: snapshot)
     }
 
     @AppStorage("markArticleReadOnSelection") private var markArticleReadOnSelection = true
@@ -505,14 +504,15 @@ struct ContentView: View {
     /// bräuchte dafür zwingend eine passende Zeile in `state.rows`, die hier
     /// nicht garantiert ist. Nutzt direkt `ArticleStatusStore`, das
     /// unabhängig von jeder geladenen Liste per Artikel-ID schreibt.
-    private func markActiveReaderTabArticleReadIfNeeded() {
+    private func markActiveReaderTabArticleReadIfNeeded(snapshot: ArticleReaderSnapshot?) {
         guard markArticleReadOnSelection,
-              let database = feedivoDatabase,
-              let articleID = readerTabsState.activeArticleID
+              let feedivoDatabase,
+              let snapshot,
+              !snapshot.isRead
         else { return }
 
         do {
-            try ArticleStatusStore(database: database).setRead(true, articleID: articleID, at: Date())
+            try ArticleStatusStore(database: feedivoDatabase).setRead(true, articleID: snapshot.id, at: Date())
         } catch {
             AppLogger.dataAccess.error("Konnte Artikel beim Tab-Wechsel nicht als gelesen markieren: \(error, privacy: .public)")
         }
