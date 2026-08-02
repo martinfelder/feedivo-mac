@@ -15,13 +15,12 @@ siehe `git log`.
 
 ## [1.0 (24)] - 2026-08-02
 
-- fix: Sidebar-Plus-Button im Dark Mode korrekt hinterlegt
-- style: Artikel-Tabs an Kapsel-Sprache der Reader-Chips angeglichen
-- style: Release-Notes im Sparkle-Dialog mit Überschrift und Abschnitten
-- fix: Sparkle-Update-Dialog zeigt Release-Notes jetzt als echte Liste
-- chore: Appcast-Eintrag für v1.0-23
-- docs: Restliche technische Zeilen aus dem v1.0-23-Changelog-Eintrag entfernt
-- docs: Changelog-Eintrag für v1.0-23 in einfacher Sprache umformuliert
+- Verbesserung: Die Tab-Leiste beim Lesen von Artikeln passt jetzt besser zum
+  restlichen Erscheinungsbild der App
+- Verbesserung: Der Plus-Knopf oben in der Seitenleiste sieht im dunklen
+  Modus jetzt richtig aus
+- Verbesserung: Die Liste der Neuerungen im Update-Fenster wird jetzt
+  übersichtlicher mit Überschrift und Absätzen angezeigt
 
 ## [1.0 (23)] - 2026-08-02
 
