@@ -17,31 +17,47 @@ struct ReaderTabBarView: View {
 
     @State private var metadataByArticleID: [String: ArticleListSnapshot] = [:]
 
+    // Reagiert zusätzlich auf statusVersion (nicht nur auf die Tab-Menge), damit
+    // der Unread-Punkt verschwindet, sobald ein Hintergrund-Tab durch Aktivierung
+    // als gelesen markiert wird — ohne das würde metadataByArticleID nach dem
+    // ersten Laden stehen bleiben und beim erneuten Deaktivieren des Tabs
+    // fälschlich wieder einen Punkt zeigen (isRead wäre nie neu geladen worden).
+    @AppStorage(SQLiteDataInvalidation.statusVersionKey)
+    private var sqliteStatusVersion = 0
+
+    private struct MetadataReloadKey: Equatable {
+        let articleIDs: [String]
+        let statusVersion: Int
+    }
+
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 6) {
             ForEach(tabs) { tab in
                 tabView(for: tab)
             }
 
             Button(action: onNewTab) {
                 Image(systemName: "plus")
-                    .font(.system(size: 12, weight: .medium))
-                    .frame(width: 22, height: 22)
+                    .font(.system(size: 11, weight: .semibold))
             }
             .buttonStyle(.plain)
-            .padding(.leading, 4)
-            .padding(.bottom, 4)
+            .foregroundStyle(.secondary)
+            .frame(width: 26, height: 26)
+            .background(.secondary.opacity(0.08), in: Circle())
+            .overlay {
+                Circle().stroke(.secondary.opacity(0.16), lineWidth: 1)
+            }
             .help(L10n.readerTabNewCommand)
 
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, 6)
-        .padding(.top, 6)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
         .background(Color(nsColor: .windowBackgroundColor))
         .overlay(alignment: .bottom) {
             Divider()
         }
-        .task(id: tabs.map(\.articleID)) {
+        .task(id: MetadataReloadKey(articleIDs: tabs.map(\.articleID), statusVersion: sqliteStatusVersion)) {
             await loadMetadata()
         }
     }
@@ -51,10 +67,12 @@ struct ReaderTabBarView: View {
         let metadata = metadataByArticleID[tab.articleID]
         let isActive = tab.id == activeTabID
         let displayTitle = metadata?.title ?? L10n.readerTabArticleUnavailable
+        let isUnvisited = !isActive && metadata?.isRead == false
 
         TabRow(
             displayTitle: displayTitle,
             isActive: isActive,
+            isUnvisited: isUnvisited,
             faviconContent: { faviconView(for: metadata) },
             onActivate: { onActivate(tab.id) },
             onClose: { onClose(tab.id) }
@@ -65,9 +83,15 @@ struct ReaderTabBarView: View {
     /// `@State private var isHovering` eine eigene, pro Tab stabile
     /// Identität hat (ein `@State` in einem `@ViewBuilder`-Funktionsergebnis
     /// würde bei jedem Neuaufbau von `tabs` zurückgesetzt).
+    // Kapsel-Form + ruhige `secondary.opacity(...)`-Füllung übernehmen bewusst
+    // dieselbe Chip-Sprache wie Ordner-/Tag-Chips im Artikel-Header darunter
+    // (readerFolderChip/readerTagChip in SQLiteReaderView.swift) — Tabs sollen
+    // sich wie ein natürlicher Teil dieses bestehenden Systems lesen statt wie
+    // eine separat aufgeklebte Browser-Adressleiste.
     private struct TabRow<Favicon: View>: View {
         let displayTitle: String
         let isActive: Bool
+        let isUnvisited: Bool
         @ViewBuilder let faviconContent: () -> Favicon
         let onActivate: () -> Void
         let onClose: () -> Void
@@ -79,6 +103,17 @@ struct ReaderTabBarView: View {
             HStack(spacing: 6) {
                 faviconContent()
                     .frame(width: 14, height: 14)
+                    .overlay(alignment: .topTrailing) {
+                        if isUnvisited {
+                            Circle()
+                                .fill(Color.accentColor)
+                                .frame(width: 7, height: 7)
+                                .overlay {
+                                    Circle().stroke(Color(nsColor: .windowBackgroundColor), lineWidth: 1.5)
+                                }
+                                .offset(x: 3, y: -3)
+                        }
+                    }
 
                 Text(displayTitle)
                     .font(interfaceTextSize.font(size: 12, weight: .semibold))
@@ -90,22 +125,23 @@ struct ReaderTabBarView: View {
                         .font(.system(size: 9, weight: .semibold))
                 }
                 .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
                 .opacity(isActive || isHovering ? 0.6 : 0)
             }
             .padding(.horizontal, 10)
-            .padding(.vertical, 6)
+            .padding(.vertical, 7)
             .frame(minWidth: 90, maxWidth: 220)
             .background(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                Capsule()
                     .fill(
                         isActive
-                            ? Color(nsColor: .controlBackgroundColor)
-                            : Color(nsColor: .controlBackgroundColor).opacity(isHovering ? 0.5 : 0.25)
+                            ? Color.accentColor.opacity(0.12)
+                            : Color.secondary.opacity(isHovering ? 0.14 : 0.08)
                     )
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .strokeBorder(isActive ? Color(nsColor: .separatorColor) : Color.clear)
+                Capsule()
+                    .strokeBorder(isActive ? Color.accentColor.opacity(0.32) : Color.clear, lineWidth: 1)
             )
             .contentShape(Rectangle())
             .onTapGesture(perform: onActivate)
