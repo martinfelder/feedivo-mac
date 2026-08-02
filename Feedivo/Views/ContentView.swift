@@ -39,6 +39,7 @@ struct ContentView: View {
     @State private var sidebarSelection: SidebarSelection?
 
     @State private var selectedSQLiteArticleID: String?
+    @State private var readerTabsState = ReaderTabsState()
     @State private var selectedSQLiteArticleSnapshot: ArticleReaderSnapshot?
     @State private var sqliteArticleNavigationState = SQLiteArticleNavigationState.empty
     // Feature "Automatischer Feed-Sprung": handleSidebarSelectionChange()
@@ -174,6 +175,14 @@ struct ContentView: View {
 
         }
         .onChange(of: sidebarSelection, handleSidebarSelectionChange)
+        .onChange(of: selectedSQLiteArticleID) { _, newValue in
+            guard let newValue else { return }
+            if NSEvent.modifierFlags.contains(.command) {
+                readerTabsState.openInNewBackgroundTab(articleID: newValue)
+            } else {
+                readerTabsState.openInActiveTab(articleID: newValue)
+            }
+        }
         .onChange(of: selectedSQLiteArticleID, handleSQLiteArticleSelectionChange)
         // Feste, nicht über die Shortcuts-Einstellungen anpassbare Pfeiltasten-
         // Navigation: Rechts wechselt nur vorwärts von nativer zu eingebetteter
@@ -464,6 +473,7 @@ struct ContentView: View {
     }
 
     private func handleContentAppear() {
+        readerTabsState.restoreIfEnabled()
         if let feedivoDatabase {
             BackgroundRefreshService.cleanupOnAppStartIfNeeded(database: feedivoDatabase)
         }
