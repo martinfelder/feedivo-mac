@@ -13,6 +13,10 @@ siehe `git log`.
 
 <!-- versions -->
 
+## [1.0 (18)] - 2026-08-02
+
+- chore: Appcast-Eintrag für v1.0-17
+
 ## [1.0 (17)] - 2026-08-01
 
 - fix: sign_update-Suche berücksichtigt eigenen -derivedDataPath des Release-Builds
