@@ -13,6 +13,25 @@ siehe `git log`.
 
 <!-- versions -->
 
+## [1.0 (23)] - 2026-08-02
+
+- style: Tab-Leiste im Safari-Stil, Schriftgröße und Breite angepasst
+- fix: Whole-Branch-Review-Funde am Artikel-Tabs-Feature beheben
+- feat: Menübefehle für Tab-Aktionen (Neu/Schließen/Wechseln) verdrahten
+- feat: Vier neue Tastenkürzel-Fälle für Tab-Aktionen (Modell)
+- feat: Kontextmenü-Eintrag "In neuem Tab öffnen"
+- fix: reloadSelectedSQLiteArticleSnapshot auf aktiven Tab statt Listenauswahl umstellen
+- fix: toten, schädlichen handleSQLiteArticleSelectionChange-Handler entfernen
+- fix: Snapshot-Pipeline und Gelesen-Markierung an aktiven Tab statt Listenauswahl koppeln
+- feat: Tab-Leiste im Reader-Bereich rendern und verdrahten
+- feat: ReaderTabsState in ContentView verdrahten (Bridging von selectedSQLiteArticleID)
+- feat: Einstellungen-Schalter für Tab-Wiederherstellung beim Neustart
+- feat: Optionale Persistenz offener Reader-Tabs (ReaderTabsSettings)
+- feat: ReaderTabsState-Kernmodell für Artikel-Tabs im Reader
+- docs: Implementierungsplan für Artikel-Tabs im Reader-Bereich
+- docs: Design-Spec für Artikel-Tabs im Reader-Bereich
+- chore: Appcast-Eintrag für v1.0-22
+
 ## [1.0 (22)] - 2026-08-02
 
 - feat: Einstellungen-Fenster auf Design D ("Formular") umgestellt — alle 11 Tabs
