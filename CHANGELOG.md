@@ -13,6 +13,12 @@ siehe `git log`.
 
 <!-- versions -->
 
+## [1.0 (25)] - 2026-08-02
+
+- perf: Indizes auf recordType für iCloud-Sync-Warteschlangentabellen ergänzt
+- chore: Appcast-Eintrag für v1.0-24
+- docs: Changelog-Eintrag für v1.0-24 in einfacher Sprache umformuliert
+
 ## [1.0 (24)] - 2026-08-02
 
 - Verbesserung: Die Tab-Leiste beim Lesen von Artikeln passt jetzt besser zum
