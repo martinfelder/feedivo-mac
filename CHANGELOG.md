@@ -13,6 +13,11 @@ siehe `git log`.
 
 <!-- versions -->
 
+## [1.0 (19)] - 2026-08-02
+
+- fix: Update-Sheet blockiert AppKit-Terminierung während Sparkle-Installation
+- chore: Appcast-Eintrag für v1.0-18
+
 ## [1.0 (18)] - 2026-08-02
 
 - chore: Appcast-Eintrag für v1.0-17
