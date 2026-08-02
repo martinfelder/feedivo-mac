@@ -181,7 +181,11 @@ struct ContentView: View {
                             readerTabsState.activateTab(id: tabID)
                         },
                         onClose: { tabID in
+                            let closedArticleID = readerTabsState.tabs.first(where: { $0.id == tabID })?.articleID
                             readerTabsState.closeTab(id: tabID)
+                            if closedArticleID == selectedSQLiteArticleID {
+                                selectedSQLiteArticleID = nil
+                            }
                         },
                         onNewTab: {
                             readerTabsState.duplicateActiveTab()
@@ -204,10 +208,17 @@ struct ContentView: View {
         .onChange(of: sidebarSelection, handleSidebarSelectionChange)
         .onChange(of: selectedSQLiteArticleID) { _, newValue in
             guard let newValue else { return }
-            if NSEvent.modifierFlags.contains(.command) {
+            if readerTabsState.isArticleKeyboardNavigationInProgress {
+                readerTabsState.openInActiveTab(articleID: newValue)
+            } else if NSEvent.modifierFlags.contains(.command) {
                 readerTabsState.openInNewBackgroundTab(articleID: newValue)
             } else {
                 readerTabsState.openInActiveTab(articleID: newValue)
+            }
+        }
+        .onChange(of: readerTabsState.activeArticleID) { _, newValue in
+            if newValue == nil {
+                selectedSQLiteArticleSnapshot = nil
             }
         }
         // Feste, nicht über die Shortcuts-Einstellungen anpassbare Pfeiltasten-
@@ -726,13 +737,21 @@ struct ContentView: View {
 
     private func selectPreviousArticle() {
         if selectedSQLiteArticleID != nil {
+            readerTabsState.markArticleKeyboardNavigationInProgress()
             selectedSQLiteArticleID = sqliteArticleNavigationState.previousArticleID
+            DispatchQueue.main.async {
+                readerTabsState.clearArticleKeyboardNavigationInProgress()
+            }
         }
     }
 
     private func selectNextArticle() {
         if selectedSQLiteArticleID != nil {
+            readerTabsState.markArticleKeyboardNavigationInProgress()
             selectedSQLiteArticleID = sqliteArticleNavigationState.nextArticleID
+            DispatchQueue.main.async {
+                readerTabsState.clearArticleKeyboardNavigationInProgress()
+            }
         }
     }
 
@@ -901,7 +920,7 @@ struct ContentView: View {
             openOriginal: openSelectedSQLiteArticleOriginal,
             shareOriginal: shareSelectedSQLiteArticleOriginal,
             openInArticleWindow: {
-                openSQLiteArticleInWindow(articleID: selectedSQLiteArticleID)
+                openSQLiteArticleInWindow(articleID: readerTabsState.activeArticleID)
             },
             requestExport: {
                 if let snapshot = selectedSQLiteArticleSnapshot {
@@ -919,7 +938,11 @@ struct ContentView: View {
             },
             closeReaderTab: {
                 guard let activeTabID = readerTabsState.activeTabID else { return }
+                let closedArticleID = readerTabsState.activeArticleID
                 readerTabsState.closeTab(id: activeTabID)
+                if closedArticleID == selectedSQLiteArticleID {
+                    selectedSQLiteArticleID = nil
+                }
             },
             activateNextReaderTab: {
                 readerTabsState.activateNextTab()
@@ -929,7 +952,8 @@ struct ContentView: View {
             },
             canCloseReaderTab: readerTabsState.activeTabID != nil,
             canActivateNextReaderTab: readerTabsState.canActivateNextTab,
-            canActivatePreviousReaderTab: readerTabsState.canActivatePreviousTab
+            canActivatePreviousReaderTab: readerTabsState.canActivatePreviousTab,
+            canOpenNewReaderTab: selectedSQLiteArticleSnapshot != nil || selectedSQLiteArticleID != nil
         )
     }
 

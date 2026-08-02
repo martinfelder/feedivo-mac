@@ -30,6 +30,23 @@ final class ReaderTabsState {
         tabs.first(where: { $0.id == activeTabID })?.articleID
     }
 
+    /// Von ContentViews selectPreviousArticle()/selectNextArticle() (⌘↓/⌘↑)
+    /// gesetzt, bevor sie selectedSQLiteArticleID mutieren. Unterscheidet eine
+    /// durch Tastenkürzel ausgelöste Artikelnavigation von einem echten
+    /// ⌘-Klick mit der Maus — beide setzen NSEvent.modifierFlags.contains(.command)
+    /// auf true, müssen aber unterschiedlich behandelt werden: Tastenkürzel
+    /// navigiert normal im aktiven Tab weiter, ⌘-Klick öffnet einen neuen
+    /// Hintergrund-Tab und markiert den Artikel noch nicht als gelesen.
+    private(set) var isArticleKeyboardNavigationInProgress = false
+
+    func markArticleKeyboardNavigationInProgress() {
+        isArticleKeyboardNavigationInProgress = true
+    }
+
+    func clearArticleKeyboardNavigationInProgress() {
+        isArticleKeyboardNavigationInProgress = false
+    }
+
     init(userDefaults: UserDefaults = .standard) {
         self.userDefaults = userDefaults
     }

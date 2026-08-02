@@ -32,6 +32,7 @@ struct ArticleCommandActions: Equatable {
     let canCloseReaderTab: Bool
     let canActivateNextReaderTab: Bool
     let canActivatePreviousReaderTab: Bool
+    let canOpenNewReaderTab: Bool
 
     static func == (lhs: ArticleCommandActions, rhs: ArticleCommandActions) -> Bool {
         lhs.canPerformActions == rhs.canPerformActions
@@ -44,6 +45,7 @@ struct ArticleCommandActions: Equatable {
             && lhs.canCloseReaderTab == rhs.canCloseReaderTab
             && lhs.canActivateNextReaderTab == rhs.canActivateNextReaderTab
             && lhs.canActivatePreviousReaderTab == rhs.canActivatePreviousReaderTab
+            && lhs.canOpenNewReaderTab == rhs.canOpenNewReaderTab
     }
 
     init(
@@ -70,7 +72,8 @@ struct ArticleCommandActions: Equatable {
         activatePreviousReaderTab: @escaping () -> Void = {},
         canCloseReaderTab: Bool = false,
         canActivateNextReaderTab: Bool = false,
-        canActivatePreviousReaderTab: Bool = false
+        canActivatePreviousReaderTab: Bool = false,
+        canOpenNewReaderTab: Bool = false
     ) {
         self.canPerformActions = canPerformActions
         self.canPerformLinkActions = canPerformLinkActions
@@ -96,6 +99,7 @@ struct ArticleCommandActions: Equatable {
         self.canCloseReaderTab = canCloseReaderTab
         self.canActivateNextReaderTab = canActivateNextReaderTab
         self.canActivatePreviousReaderTab = canActivatePreviousReaderTab
+        self.canOpenNewReaderTab = canOpenNewReaderTab
     }
 
 }

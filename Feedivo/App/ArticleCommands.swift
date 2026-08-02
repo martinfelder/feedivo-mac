@@ -67,7 +67,7 @@ struct ArticleCommands: Commands {
                 articleCommandActions?.newReaderTab()
             }
             .customizableKeyboardShortcut(.readerNewTab, overrides: shortcutOverrides)
-            .disabled(articleCommandActions?.canPerformActions != true)
+            .disabled(articleCommandActions?.canOpenNewReaderTab != true)
 
             Button(L10n.readerTabCloseCommand) {
                 articleCommandActions?.closeReaderTab()

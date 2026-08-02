@@ -201,7 +201,9 @@ struct SQLiteFeedArticleListView: View {
             showsReadArticles = defaultShowsReadArticles
         }
         .onChange(of: selectedArticleID) {
-            markSelectedArticleReadIfNeeded()
+            if readerTabsState.isArticleKeyboardNavigationInProgress || !NSEvent.modifierFlags.contains(.command) {
+                markSelectedArticleReadIfNeeded()
+            }
             navigationState = SQLiteArticleNavigationState(
                 articleIDs: state.rows.map(\.id),
                 selectedArticleID: selectedArticleID
