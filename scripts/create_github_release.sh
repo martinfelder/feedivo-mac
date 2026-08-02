@@ -197,6 +197,37 @@ RELEASE_NOTES_CONTENT="$(cat "$NOTES_FILE")"
 rm -f "$NOTES_FILE"
 echo "create_github_release.sh: Release $TAG veroeffentlicht."
 
+# Sparkles Update-Dialog rendert die <description> als HTML (WKWebView), nicht
+# als Markdown wie GitHub - reine "- Punkt"-Zeilen mit Zeilenumbruechen wuerden
+# dort zu einem einzigen verschmolzenen Absatz kollabieren (HTML ignoriert
+# einfache Newlines). Deshalb hier zusaetzlich eine echte HTML-Aufzaehlung aus
+# denselben Changelog-Zeilen bauen, nur fuer den Appcast - die GitHub-Release-
+# Notes oben bleiben unveraendert reines Markdown (GitHub rendert das selbst).
+RELEASE_NOTES_HTML="$(python3 - "$RELEASE_NOTES_CONTENT" <<'PYEOF'
+import html
+import sys
+
+text = sys.argv[1]
+items = []
+current = None
+for line in text.splitlines():
+    if line.startswith("- "):
+        if current is not None:
+            items.append(current)
+        current = line[2:].strip()
+    elif line.strip() and current is not None:
+        current += " " + line.strip()
+if current is not None:
+    items.append(current)
+
+if items:
+    rendered = "<ul>\n" + "\n".join(f"<li>{html.escape(item)}</li>" for item in items) + "\n</ul>"
+else:
+    rendered = f"<p>{html.escape(text.strip())}</p>"
+print(rendered)
+PYEOF
+)"
+
 echo "Signiere ZIP für Sparkle (EdDSA)..."
 # Fix Whole-Branch-Review (Important 3): `find ... | head -1` ist unter
 # `set -euo pipefail` riskant, sobald `find` mehr als einen Treffer liefert
@@ -232,7 +263,7 @@ APPCAST_PATH="$REPO_ROOT/docs/appcast.xml"
 NEW_ITEM="    <item>
       <title>${TAG}</title>
       <pubDate>$(date -u +"%a, %d %b %Y %H:%M:%S +0000")</pubDate>
-      <description><![CDATA[${RELEASE_NOTES_CONTENT}]]></description>
+      <description><![CDATA[${RELEASE_NOTES_HTML}]]></description>
       <enclosure url=\"https://github.com/martinfelder/feedivo-mac/releases/download/${TAG}/$(basename "$ZIP_PATH")\"
                  sparkle:version=\"${BUILD_NUMBER}\"
                  sparkle:shortVersionString=\"${MARKETING_VERSION}\"

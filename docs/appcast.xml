@@ -9,16 +9,14 @@
     <item>
       <title>v1.0-23</title>
       <pubDate>Sun, 02 Aug 2026 15:42:34 +0000</pubDate>
-      <description><![CDATA[
-- Neu: Artikel lassen sich jetzt in Tabs öffnen, ähnlich wie im Browser —
-  so können mehrere Artikel gleichzeitig offen bleiben
-- Neu: Ein Artikel kann per Rechtsklick oder ⌘-Klick in einem neuen Tab
-  geöffnet werden, statt den aktuell angezeigten zu ersetzen
-- Neu: Tabs lassen sich per Tastenkürzel öffnen, schließen und wechseln
-- Neu: In den Einstellungen kann festgelegt werden, ob offene Tabs beim
-  nächsten Start der App wiederhergestellt werden sollen
-- Verbesserung: Die Tab-Leiste sieht jetzt aus wie in Safari
-- Verschiedene kleinere Korrekturen rund um die neue Tab-Funktion]]></description>
+      <description><![CDATA[<ul>
+<li>Neu: Artikel lassen sich jetzt in Tabs öffnen, ähnlich wie im Browser — so können mehrere Artikel gleichzeitig offen bleiben</li>
+<li>Neu: Ein Artikel kann per Rechtsklick oder ⌘-Klick in einem neuen Tab geöffnet werden, statt den aktuell angezeigten zu ersetzen</li>
+<li>Neu: Tabs lassen sich per Tastenkürzel öffnen, schließen und wechseln</li>
+<li>Neu: In den Einstellungen kann festgelegt werden, ob offene Tabs beim nächsten Start der App wiederhergestellt werden sollen</li>
+<li>Verbesserung: Die Tab-Leiste sieht jetzt aus wie in Safari</li>
+<li>Verschiedene kleinere Korrekturen rund um die neue Tab-Funktion</li>
+</ul>]]></description>
       <enclosure url="https://github.com/martinfelder/feedivo-mac/releases/download/v1.0-23/Feedivo-v1.0-23.zip"
                  sparkle:version="23"
                  sparkle:shortVersionString="1.0"
