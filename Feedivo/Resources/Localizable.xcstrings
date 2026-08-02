@@ -1,6 +1,38 @@
 {
   "sourceLanguage" : "de",
   "strings" : {
+    "reader.tab.new" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neuer Tab"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Tab"
+          }
+        }
+      }
+    },
+    "reader.tab.articleUnavailable" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Artikel nicht mehr verfügbar"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Article no longer available"
+          }
+        }
+      }
+    },
     "settings.articleList.restoreTabsOnLaunch.title" : {
       "localizations" : {
         "de" : {

@@ -100,6 +100,12 @@ enum L10n {
     static let readerDisplayModePicker = LocalizedStringKey("reader.displayMode.picker")
     static let readerDisplayModeNative = LocalizedStringKey("reader.displayMode.native")
     static let readerDisplayModeWeb = LocalizedStringKey("reader.displayMode.web")
+    static let readerTabNewCommand = LocalizedStringKey("reader.tab.new")
+    // String(localized:) statt LocalizedStringKey, weil ReaderTabBarView.displayTitle den Wert
+    // per `metadata?.title ?? L10n.readerTabArticleUnavailable` mit einem String? kombiniert —
+    // ein `??` zwischen String? und LocalizedStringKey kompiliert nicht (Build-Fehler beim
+    // wörtlichen Brief-Code verifiziert). Gleiches Muster wie readerArticleNotFoundTitle oben.
+    static let readerTabArticleUnavailable = String(localized: "reader.tab.articleUnavailable")
     static let statisticsTimeRangeLast7Days = LocalizedStringKey("statistics.timeRange.last7Days")
     static let statisticsTimeRangeLast30Days = LocalizedStringKey("statistics.timeRange.last30Days")
     static let statisticsTimeRangeAll = LocalizedStringKey("statistics.timeRange.all")

@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 import Network
+import OSLog
 import UniformTypeIdentifiers
 
 struct ContentView: View {
@@ -163,15 +164,38 @@ struct ContentView: View {
             // SPALTE 3: Reader — Inhalt des ausgewählten Artikels. Die Toolbar
             // bleibt auch ohne Auswahl sichtbar; SQLiteReaderView zeigt intern
             // den Leerzustand und deaktiviert die artikelabhängigen Buttons.
-            SQLiteReaderView(
-                articleID: selectedSQLiteArticleID,
-                canSelectPreviousArticle: sqliteArticleNavigationState.previousArticleID != nil,
-                canSelectNextArticle: sqliteArticleNavigationState.nextArticleID != nil,
-                selectPreviousArticle: selectPreviousArticle,
-                selectNextArticle: selectNextArticle,
-                onSnapshotChange: handleSQLiteArticleSnapshotChange,
-                onCreateRule: requestRuleCreation
-            )
+            // Zeigt seit den Artikel-Tabs den Artikel des AKTIVEN TABS statt
+            // direkt der Listenauswahl — beide werden über das Bridging in
+            // .onChange(of: selectedSQLiteArticleID) unten synchron gehalten.
+            VStack(spacing: 0) {
+                if !readerTabsState.tabs.isEmpty {
+                    ReaderTabBarView(
+                        tabs: readerTabsState.tabs,
+                        activeTabID: readerTabsState.activeTabID,
+                        database: feedivoDatabase,
+                        onActivate: { tabID in
+                            readerTabsState.activateTab(id: tabID)
+                            markActiveReaderTabArticleReadIfNeeded()
+                        },
+                        onClose: { tabID in
+                            readerTabsState.closeTab(id: tabID)
+                        },
+                        onNewTab: {
+                            readerTabsState.duplicateActiveTab()
+                        }
+                    )
+                }
+
+                SQLiteReaderView(
+                    articleID: readerTabsState.activeArticleID,
+                    canSelectPreviousArticle: sqliteArticleNavigationState.previousArticleID != nil,
+                    canSelectNextArticle: sqliteArticleNavigationState.nextArticleID != nil,
+                    selectPreviousArticle: selectPreviousArticle,
+                    selectNextArticle: selectNextArticle,
+                    onSnapshotChange: handleSQLiteArticleSnapshotChange,
+                    onCreateRule: requestRuleCreation
+                )
+            }
 
         }
         .onChange(of: sidebarSelection, handleSidebarSelectionChange)
@@ -201,7 +225,7 @@ struct ContentView: View {
         // beidseitiger Rechts-Umschalter ohne Links — beide widersprachen der
         // gewohnten Erwartung, mit Links aus der Web-Ansicht zurückzukehren.
         .onKeyPress(.rightArrow) {
-            guard selectedSQLiteArticleID != nil,
+            guard readerTabsState.activeArticleID != nil,
                   ArticleOriginalURLResolver.hasUsableWebLink(selectedSQLiteArticleSnapshot?.link),
                   ReaderArrowKeyNavigation.rightArrowShouldSwitchToWeb(
                       currentMode: ReaderDisplayMode.resolved(from: readerDisplayModeRawValue)
@@ -214,7 +238,7 @@ struct ContentView: View {
             return .handled
         }
         .onKeyPress(.leftArrow) {
-            guard selectedSQLiteArticleID != nil,
+            guard readerTabsState.activeArticleID != nil,
                   ReaderArrowKeyNavigation.leftArrowShouldSwitchToNative(
                       currentMode: ReaderDisplayMode.resolved(from: readerDisplayModeRawValue)
                   )
@@ -226,7 +250,7 @@ struct ContentView: View {
             return .handled
         }
         .onKeyPress(.return) {
-            guard selectedSQLiteArticleID != nil,
+            guard readerTabsState.activeArticleID != nil,
                   ArticleOriginalURLResolver.hasUsableWebLink(selectedSQLiteArticleSnapshot?.link)
             else {
                 return .ignored
@@ -470,6 +494,28 @@ struct ContentView: View {
         }
 
         selectedSQLiteArticleSnapshot = snapshot
+    }
+
+    @AppStorage("markArticleReadOnSelection") private var markArticleReadOnSelection = true
+
+    /// Listenunabhängige Gelesen-Markierung für den Fall, dass ein Tab
+    /// aktiviert wird, dessen Artikel nicht (mehr) in der aktuell
+    /// sichtbaren Artikelliste steht — die bestehende
+    /// `markSelectedArticleReadIfNeeded()` in SQLiteFeedArticleListView
+    /// bräuchte dafür zwingend eine passende Zeile in `state.rows`, die hier
+    /// nicht garantiert ist. Nutzt direkt `ArticleStatusStore`, das
+    /// unabhängig von jeder geladenen Liste per Artikel-ID schreibt.
+    private func markActiveReaderTabArticleReadIfNeeded() {
+        guard markArticleReadOnSelection,
+              let database = feedivoDatabase,
+              let articleID = readerTabsState.activeArticleID
+        else { return }
+
+        do {
+            try ArticleStatusStore(database: database).setRead(true, articleID: articleID, at: Date())
+        } catch {
+            AppLogger.dataAccess.error("Konnte Artikel beim Tab-Wechsel nicht als gelesen markieren: \(error, privacy: .public)")
+        }
     }
 
     private func handleContentAppear() {
