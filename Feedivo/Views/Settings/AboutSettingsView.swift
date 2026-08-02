@@ -2,26 +2,17 @@
 import AppKit
 import SwiftUI
 
-/// Neuer Settings-Tab "Über": App-Icon, Version, manueller Update-Check-
-/// Button und ein Schalter für den automatischen Sparkle-Check. Liest den
-/// Update-Zustand direkt aus dem zentralen SparkleUpdateCoordinator (Environment,
-/// Task 7/8) statt eigenen lokalen Präsentationszustand zu halten - Sheet-/
-/// Alert-Präsentation läuft seit Task 8 zentral über FeedivoApp.swift
-/// (SparkleUpdatePresentationModifier), damit nicht zwei unabhängige
-/// Präsentationsorte um denselben Coordinator-State konkurrieren.
+/// Settings-Tab "Über": App-Icon, Version, manueller Update-Check-Button und
+/// ein Schalter für den automatischen Sparkle-Check. Seit der Umstellung auf
+/// Sparkles eigenen `SPUStandardUserDriver` (2026-08-02, analog NetNewsWire)
+/// zeigt Sparkle Fortschritt/Ergebnis eines Checks in seinen EIGENEN nativen
+/// Fenstern - diese View hält deshalb bewusst keinen lokalen "wird gerade
+/// geprüft"/"Update gefunden"-Zustand mehr (kein Spinner, kein Badge).
 struct AboutSettingsView: View {
     @Environment(\.sparkleUpdateCoordinator) private var coordinator
 
     @AppStorage(UpdateCheckSettings.isAutomaticCheckEnabledKey)
     private var isAutomaticCheckEnabled = UpdateCheckSettings.defaultIsAutomaticCheckEnabled
-
-    private var isChecking: Bool {
-        coordinator?.state == .checking
-    }
-
-    private var hasUnseenUpdate: Bool {
-        coordinator?.hasUnseenUpdate ?? false
-    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -65,30 +56,8 @@ struct AboutSettingsView: View {
                         .foregroundStyle(.secondary)
                         .padding(.top, 4)
                 } else {
-                    HStack(spacing: 8) {
-                        Button(isChecking ? L10n.updateCheckCheckingButton : L10n.updateCheckMenuItem) {
-                            coordinator?.checkForUpdatesManually()
-                        }
-                        .disabled(isChecking)
-
-                        if isChecking {
-                            ProgressView()
-                                .controlSize(.small)
-                        } else if hasUnseenUpdate {
-                            // Ersetzt den ursprünglich im App-Menü geplanten "•"-Präfix am
-                            // Menü-Titel (siehe Kommentar in FeedivoApp.swift) — ein
-                            // dynamischer NSMenu-Titel löste dort einen AppKit-Absturz aus.
-                            // Als reine SwiftUI-View ist dieses Badge hier unkritisch, da es
-                            // kein NSMenu-Item-Array live umbaut.
-                            HStack(spacing: 4) {
-                                Circle()
-                                    .fill(Color.orange)
-                                    .frame(width: 6, height: 6)
-                                Text(L10n.updateCheckPendingBadge)
-                                    .font(.system(size: 11, weight: .medium))
-                                    .foregroundStyle(.orange)
-                            }
-                        }
+                    Button(L10n.updateCheckMenuItem) {
+                        coordinator?.checkForUpdatesManually()
                     }
                     .padding(.top, 4)
                 }
