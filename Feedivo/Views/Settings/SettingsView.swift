@@ -618,6 +618,9 @@ private struct ArticleListSettingsView: View {
     @AppStorage(FeedJumpNavigationSettings.isEnabledKey)
     private var feedJumpNavigationIsEnabled = FeedJumpNavigationSettings.defaultIsEnabled
 
+    @AppStorage(ReaderTabsSettings.restoreTabsOnLaunchKey)
+    private var restoreReaderTabsOnLaunch = ReaderTabsSettings.defaultRestoreTabsOnLaunch
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             GeneralSettingsSection(label: Text("Artikelliste:")) {
@@ -670,6 +673,13 @@ private struct ArticleListSettingsView: View {
                 .toggleStyle(.checkbox)
                 .tint(Color.settingsBoldAccent)
                 GeneralSettingsHelp(L10n.settingsArticleListFeedJumpNavigationDescription)
+
+                Toggle(isOn: $restoreReaderTabsOnLaunch) {
+                    Text(L10n.settingsArticleListRestoreTabsOnLaunchTitle)
+                        .font(.system(size: 13))
+                }
+                .toggleStyle(.checkbox)
+                .tint(Color.settingsBoldAccent)
             }
         }
     }

@@ -1,6 +1,22 @@
 {
   "sourceLanguage" : "de",
   "strings" : {
+    "settings.articleList.restoreTabsOnLaunch.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Offene Tabs beim Neustart wiederherstellen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore open tabs on launch"
+          }
+        }
+      }
+    },
     "updateCheck.homebrewHint" : {
       "localizations" : {
         "de" : {

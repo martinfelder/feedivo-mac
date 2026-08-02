@@ -319,6 +319,7 @@ enum L10n {
     static let settingsArticleListSummaryLineCountDescription = LocalizedStringKey("settings.articleList.summaryLineCount.description")
     static let settingsArticleListFeedJumpNavigationTitle = LocalizedStringKey("settings.articleList.feedJumpNavigation.title")
     static let settingsArticleListFeedJumpNavigationDescription = LocalizedStringKey("settings.articleList.feedJumpNavigation.description")
+    static let settingsArticleListRestoreTabsOnLaunchTitle = LocalizedStringKey("settings.articleList.restoreTabsOnLaunch.title")
     static let settingsArticleListDateDisplayModeTitle = LocalizedStringKey("settings.articleList.dateDisplayMode.title")
     static let settingsArticleListDateDisplayModeDescription = LocalizedStringKey("settings.articleList.dateDisplayMode.description")
     static let settingsMarkReadOnOpenTitle = LocalizedStringKey("settings.markReadOnOpen.title")
