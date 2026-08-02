@@ -911,7 +911,25 @@ struct ContentView: View {
             canSelectPreviousArticle: sqliteArticleNavigationState.previousArticleID != nil,
             canSelectNextArticle: sqliteArticleNavigationState.nextArticleID != nil,
             selectPreviousArticle: selectPreviousArticle,
-            selectNextArticle: selectNextArticle
+            selectNextArticle: selectNextArticle,
+            newReaderTab: {
+                if !readerTabsState.duplicateActiveTab(), let selectedSQLiteArticleID {
+                    readerTabsState.openInActiveTab(articleID: selectedSQLiteArticleID)
+                }
+            },
+            closeReaderTab: {
+                guard let activeTabID = readerTabsState.activeTabID else { return }
+                readerTabsState.closeTab(id: activeTabID)
+            },
+            activateNextReaderTab: {
+                readerTabsState.activateNextTab()
+            },
+            activatePreviousReaderTab: {
+                readerTabsState.activatePreviousTab()
+            },
+            canCloseReaderTab: readerTabsState.activeTabID != nil,
+            canActivateNextReaderTab: readerTabsState.canActivateNextTab,
+            canActivatePreviousReaderTab: readerTabsState.canActivatePreviousTab
         )
     }
 

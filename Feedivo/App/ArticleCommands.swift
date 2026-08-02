@@ -61,6 +61,32 @@ struct ArticleCommands: Commands {
             .customizableKeyboardShortcut(.articleOpenInWindow, overrides: shortcutOverrides)
             .disabled(articleCommandActions?.canPerformActions != true)
 
+            Divider()
+
+            Button(L10n.readerTabNewCommand) {
+                articleCommandActions?.newReaderTab()
+            }
+            .customizableKeyboardShortcut(.readerNewTab, overrides: shortcutOverrides)
+            .disabled(articleCommandActions?.canPerformActions != true)
+
+            Button(L10n.readerTabCloseCommand) {
+                articleCommandActions?.closeReaderTab()
+            }
+            .customizableKeyboardShortcut(.readerCloseTab, overrides: shortcutOverrides)
+            .disabled(articleCommandActions?.canCloseReaderTab != true)
+
+            Button(L10n.readerTabNextCommand) {
+                articleCommandActions?.activateNextReaderTab()
+            }
+            .customizableKeyboardShortcut(.readerNextTab, overrides: shortcutOverrides)
+            .disabled(articleCommandActions?.canActivateNextReaderTab != true)
+
+            Button(L10n.readerTabPreviousCommand) {
+                articleCommandActions?.activatePreviousReaderTab()
+            }
+            .customizableKeyboardShortcut(.readerPreviousTab, overrides: shortcutOverrides)
+            .disabled(articleCommandActions?.canActivatePreviousReaderTab != true)
+
             Button(L10n.articleCopyLinkCommand) {
                 articleCommandActions?.copyLink()
             }

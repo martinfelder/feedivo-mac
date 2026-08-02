@@ -106,6 +106,9 @@ enum L10n {
     // ein `??` zwischen String? und LocalizedStringKey kompiliert nicht (Build-Fehler beim
     // wörtlichen Brief-Code verifiziert). Gleiches Muster wie readerArticleNotFoundTitle oben.
     static let readerTabArticleUnavailable = String(localized: "reader.tab.articleUnavailable")
+    static let readerTabCloseCommand = LocalizedStringKey("reader.tab.close")
+    static let readerTabNextCommand = LocalizedStringKey("reader.tab.next")
+    static let readerTabPreviousCommand = LocalizedStringKey("reader.tab.previous")
     static let statisticsTimeRangeLast7Days = LocalizedStringKey("statistics.timeRange.last7Days")
     static let statisticsTimeRangeLast30Days = LocalizedStringKey("statistics.timeRange.last30Days")
     static let statisticsTimeRangeAll = LocalizedStringKey("statistics.timeRange.all")

@@ -25,6 +25,13 @@ struct ArticleCommandActions: Equatable {
     let canSelectNextArticle: Bool
     let selectPreviousArticle: () -> Void
     let selectNextArticle: () -> Void
+    let newReaderTab: () -> Void
+    let closeReaderTab: () -> Void
+    let activateNextReaderTab: () -> Void
+    let activatePreviousReaderTab: () -> Void
+    let canCloseReaderTab: Bool
+    let canActivateNextReaderTab: Bool
+    let canActivatePreviousReaderTab: Bool
 
     static func == (lhs: ArticleCommandActions, rhs: ArticleCommandActions) -> Bool {
         lhs.canPerformActions == rhs.canPerformActions
@@ -34,6 +41,9 @@ struct ArticleCommandActions: Equatable {
             && lhs.toggleArchivedTitle == rhs.toggleArchivedTitle
             && lhs.canSelectPreviousArticle == rhs.canSelectPreviousArticle
             && lhs.canSelectNextArticle == rhs.canSelectNextArticle
+            && lhs.canCloseReaderTab == rhs.canCloseReaderTab
+            && lhs.canActivateNextReaderTab == rhs.canActivateNextReaderTab
+            && lhs.canActivatePreviousReaderTab == rhs.canActivatePreviousReaderTab
     }
 
     init(
@@ -53,7 +63,14 @@ struct ArticleCommandActions: Equatable {
         canSelectPreviousArticle: Bool = false,
         canSelectNextArticle: Bool = false,
         selectPreviousArticle: @escaping () -> Void = {},
-        selectNextArticle: @escaping () -> Void = {}
+        selectNextArticle: @escaping () -> Void = {},
+        newReaderTab: @escaping () -> Void = {},
+        closeReaderTab: @escaping () -> Void = {},
+        activateNextReaderTab: @escaping () -> Void = {},
+        activatePreviousReaderTab: @escaping () -> Void = {},
+        canCloseReaderTab: Bool = false,
+        canActivateNextReaderTab: Bool = false,
+        canActivatePreviousReaderTab: Bool = false
     ) {
         self.canPerformActions = canPerformActions
         self.canPerformLinkActions = canPerformLinkActions
@@ -72,6 +89,13 @@ struct ArticleCommandActions: Equatable {
         self.canSelectNextArticle = canSelectNextArticle
         self.selectPreviousArticle = selectPreviousArticle
         self.selectNextArticle = selectNextArticle
+        self.newReaderTab = newReaderTab
+        self.closeReaderTab = closeReaderTab
+        self.activateNextReaderTab = activateNextReaderTab
+        self.activatePreviousReaderTab = activatePreviousReaderTab
+        self.canCloseReaderTab = canCloseReaderTab
+        self.canActivateNextReaderTab = canActivateNextReaderTab
+        self.canActivatePreviousReaderTab = canActivatePreviousReaderTab
     }
 
 }

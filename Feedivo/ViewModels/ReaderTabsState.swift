@@ -122,6 +122,16 @@ final class ReaderTabsState {
         persistIfEnabled()
     }
 
+    var canActivateNextTab: Bool {
+        guard let activeTabID, let index = tabs.firstIndex(where: { $0.id == activeTabID }) else { return false }
+        return index + 1 < tabs.count
+    }
+
+    var canActivatePreviousTab: Bool {
+        guard let activeTabID, let index = tabs.firstIndex(where: { $0.id == activeTabID }) else { return false }
+        return index > 0
+    }
+
     private func persistIfEnabled() {
         guard ReaderTabsSettings.isRestoreOnLaunchEnabled(defaults: userDefaults) else { return }
         ReaderTabsSettings.save(
