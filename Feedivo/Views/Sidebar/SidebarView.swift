@@ -202,12 +202,15 @@ struct SidebarView: View {
     // Feed-Aktualisierung läuft ohnehin automatisch im Hintergrund und bleibt über
     // das Feed-Menü (⌘⇧R) erreichbar - die Sidebar zeigt bewusst nur noch eine
     // einzige Aktion (siehe Design-Vorschlag "Ein Symbol, ein Gedanke").
-    // Feste Blautöne statt Color.accentColor/.opacity(): eine transparente
+    // Fester Blauton statt Color.accentColor/.opacity(): eine transparente
     // Überlagerung mischt sich je nach darunterliegendem Hintergrund unterschiedlich
-    // (wirkte grau statt blau); feste Werte sehen unabhängig vom System-Akzent
-    // immer wie im Referenz-Screenshot aus.
+    // (wirkte grau statt blau); ein fester Wert sieht unabhängig vom System-Akzent
+    // immer wie im Referenz-Screenshot aus. Gilt für Punkt/Badge oben — der
+    // "+"-Button selbst nutzt bewusst die neutrale `secondary.opacity(...)`-Füllung
+    // (identisch zum "+"-Button der Reader-Tab-Leiste), da das feste, sehr helle
+    // feedivoBlueSoft (0xE7ECFE) im Dark Mode nicht angepasst war (Nutzer-Report
+    // 2026-08-02).
     private static let feedivoBlue = Color(hex: 0x3D5FEE)
-    private static let feedivoBlueSoft = Color(hex: 0xE7ECFE)
 
     private var sidebarHeaderRow: some View {
         HStack {
@@ -245,7 +248,11 @@ struct SidebarView: View {
                 .font(.system(size: 17, weight: .bold))
                 .foregroundStyle(Self.feedivoBlue)
                 .frame(width: 34, height: 34)
-                .background(Self.feedivoBlueSoft, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .background(.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .stroke(.secondary.opacity(0.16), lineWidth: 1)
+                }
         }
         .buttonStyle(.plain)
         .help(L10n.sidebarAddFeedButton)
