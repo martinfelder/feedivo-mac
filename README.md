@@ -54,7 +54,33 @@ Regeln, intelligenten Ordnern und OPML-Import/-Export.
   benutzerdefinierte Intelligente Ordner und Artikelstatus (Gelesen/Stern)
   inkl. Feld-Ebene-Konfliktauflösung; noch nicht abschließend gehärtet
   (siehe [`CLAUDE.md`](CLAUDE.md))
+- **Automatische Updates** über [Sparkle](https://sparkle-project.org) —
+  Developer-ID-signierte, notarisierte Releases, In-App-Prüfung + Installation
+  ohne Umweg über den App Store (bei Installation via Homebrew läuft das
+  Update stattdessen über `brew upgrade`, siehe Installation unten)
 - Vollständig lokalisiert (Deutsch/Englisch)
+
+## Installation
+
+### Über Homebrew (empfohlen)
+
+```bash
+brew tap martinfelder/feedivo
+brew install --cask feedivo
+```
+
+Updates laufen bei einer Homebrew-Installation ausschließlich über
+`brew upgrade --cask feedivo` — die App erkennt das automatisch und
+deaktiviert dafür die eingebaute Sparkle-Update-Prüfung.
+
+### Manueller Download
+
+Aktuelle, signierte und notarisierte Releases stehen unter
+[GitHub Releases](https://github.com/martinfelder/feedivo-mac/releases) zum
+direkten Download bereit (`.zip`, entpacken und in den Programme-Ordner
+ziehen). Diese Variante prüft und installiert Updates automatisch über
+Sparkle (Menü „Feedivo" → „Nach Updates suchen…", zusätzlich ein
+automatischer Hintergrund-Check).
 
 ## Tech-Stack
 
@@ -93,10 +119,15 @@ xcodebuild -scheme Feedivo -destination 'platform=macOS' test \
 
 ## Versionierung & Releases
 
-Die Marketing-Version steht fest bei `1.0`; die **Build-Nummer** zählt bei
-jedem erfolgreichen `git push` nach `origin/main` automatisch hoch (siehe
-[`.claude/settings.json`](.claude/settings.json) und
-[`scripts/bump_version.sh`](scripts/bump_version.sh)). Jeder Bump ergänzt
+Die Marketing-Version steht fest bei `1.0`; die **Build-Nummer** wird nur auf
+expliziten Wunsch manuell hochgezählt:
+
+```bash
+bash scripts/bump_version.sh
+```
+
+(Kein automatischer Hook mehr bei jedem Push — dadurch können mehrere Pushes
+unter derselben Build-Nummer gesammelt werden.) Jeder Bump ergänzt
 gleichzeitig einen Eintrag in [`CHANGELOG.md`](CHANGELOG.md) mit den seit dem
 letzten Bump gepushten Commit-Nachrichten.
 
@@ -107,10 +138,20 @@ expliziten Wunsch, per:
 bash scripts/create_github_release.sh
 ```
 
-Das Skript baut die Release-Konfiguration, packt die `.app`, liest den
-obersten Eintrag aus `CHANGELOG.md` als Release-Notes und veröffentlicht
-über die `gh` CLI ein GitHub Release (Tag `v<Version>-<Build>`) — nach
-interaktiver Bestätigung.
+Das Skript baut über `xcodebuild archive` + `-exportArchive`
+(`method: developer-id`), signiert die `.app` mit dem "Developer ID
+Application"-Zertifikat, reicht sie bei Apple zur Notarisierung ein und
+heftet das Ticket an (`stapler staple`) — das Ergebnis läuft ohne
+Gatekeeper-Warnung auf jedem Mac. Anschließend liest es den obersten Eintrag
+aus `CHANGELOG.md` als Release-Notes, veröffentlicht über die `gh` CLI ein
+GitHub Release (Tag `v<Version>-<Build>`), signiert das Release-Zip für
+Sparkle (EdDSA) und pflegt `docs/appcast.xml` sowie die Homebrew-Cask-Formel
+im [Tap-Repo](https://github.com/martinfelder/homebrew-feedivo) nach —
+jeweils nach interaktiver Bestätigung. Voraussetzungen: `gh` CLI eingeloggt,
+ein "Developer ID Application"-Zertifikat im Schlüsselbund sowie ein
+App-Store-Connect-API-Key unter
+`~/.appstoreconnect/private_keys/AuthKey_<KeyID>.p8` für die Notarisierung
+(Details siehe [`CLAUDE.md`](CLAUDE.md)).
 
 ## Lizenz
 
