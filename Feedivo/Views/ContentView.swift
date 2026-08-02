@@ -113,7 +113,8 @@ struct ContentView: View {
                     smartFolder: smartFolder,
                     selectedArticleID: $selectedSQLiteArticleID,
                     navigationState: $sqliteArticleNavigationState,
-                    searchText: .constant("")
+                    searchText: .constant(""),
+                    readerTabsState: readerTabsState
                 )
                     .navigationSplitViewColumnWidth(min: 280, ideal: 320, max: 400)
             } else if let feedID = selectedFeedID {
@@ -123,6 +124,7 @@ struct ContentView: View {
                     selectedArticleID: $selectedSQLiteArticleID,
                     navigationState: $sqliteArticleNavigationState,
                     searchText: .constant(""),
+                    readerTabsState: readerTabsState,
                     onRetryFeed: {
                         Task {
                             await feedViewModel.refreshFeed(
@@ -138,7 +140,8 @@ struct ContentView: View {
                     tagID: tagID,
                     selectedArticleID: $selectedSQLiteArticleID,
                     navigationState: $sqliteArticleNavigationState,
-                    searchText: .constant("")
+                    searchText: .constant(""),
+                    readerTabsState: readerTabsState
                 )
                     .navigationSplitViewColumnWidth(min: 280, ideal: 320, max: 400)
             } else if let smartFilter = selectedSmartFilter {
@@ -146,7 +149,8 @@ struct ContentView: View {
                     smartFilter: smartFilter,
                     selectedArticleID: $selectedSQLiteArticleID,
                     navigationState: $sqliteArticleNavigationState,
-                    searchText: .constant("")
+                    searchText: .constant(""),
+                    readerTabsState: readerTabsState
                 )
                     .navigationSplitViewColumnWidth(min: 280, ideal: 320, max: 400)
             } else {

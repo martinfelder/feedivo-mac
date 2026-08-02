@@ -543,6 +543,7 @@ enum L10n {
     static let articlePreviousCommand = String(localized: "article.previous.command")
     static let articleNextCommand = String(localized: "article.next.command")
     static let articleSearchCommand = String(localized: "article.search.command")
+    static let articleOpenInNewTabCommand = String(localized: "article.openInNewTab.command")
     static let articleOpenInWindowCommand = String(localized: "article.openInWindow.command")
     static let articleCopyLinkCommand = String(localized: "article.copyLink.command")
     static let articleOpenOriginalCommand = String(localized: "article.openOriginal.command")

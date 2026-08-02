@@ -65,6 +65,7 @@ struct ArticleRowView: View {
     let onCopyLink: () -> Void
     let onOpenOriginal: () -> Void
     let onShareOriginal: () -> Void
+    let onOpenInNewTab: () -> Void
     let onOpenInWindow: () -> Void
     let onExport: () -> Void
     let onDelete: () -> Void
@@ -148,6 +149,10 @@ struct ArticleRowView: View {
             }
 
             Divider()
+
+            Button(L10n.articleOpenInNewTabCommand) {
+                onOpenInNewTab()
+            }
 
             Button(L10n.articleOpenInWindowCommand) {
                 onOpenInWindow()

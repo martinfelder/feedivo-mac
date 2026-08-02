@@ -68,6 +68,7 @@ struct SQLiteFeedArticleListView: View {
     }
 
     private let scope: Scope
+    private let readerTabsState: ReaderTabsState
     let onRetryFeed: (() -> Void)?
     @Binding var selectedArticleID: String?
     @Binding var navigationState: SQLiteArticleNavigationState
@@ -120,9 +121,11 @@ struct SQLiteFeedArticleListView: View {
         selectedArticleID: Binding<String?>,
         navigationState: Binding<SQLiteArticleNavigationState>,
         searchText: Binding<String>,
+        readerTabsState: ReaderTabsState,
         onRetryFeed: (() -> Void)? = nil
     ) {
         self.scope = .feed(feedID: feedID, title: title)
+        self.readerTabsState = readerTabsState
         self.onRetryFeed = onRetryFeed
         self._selectedArticleID = selectedArticleID
         self._navigationState = navigationState
@@ -133,9 +136,11 @@ struct SQLiteFeedArticleListView: View {
         tagID: String,
         selectedArticleID: Binding<String?>,
         navigationState: Binding<SQLiteArticleNavigationState>,
-        searchText: Binding<String>
+        searchText: Binding<String>,
+        readerTabsState: ReaderTabsState
     ) {
         self.scope = .tagID(tagID)
+        self.readerTabsState = readerTabsState
         self.onRetryFeed = nil
         self._selectedArticleID = selectedArticleID
         self._navigationState = navigationState
@@ -146,9 +151,11 @@ struct SQLiteFeedArticleListView: View {
         smartFilter: SmartFilter,
         selectedArticleID: Binding<String?>,
         navigationState: Binding<SQLiteArticleNavigationState>,
-        searchText: Binding<String>
+        searchText: Binding<String>,
+        readerTabsState: ReaderTabsState
     ) {
         self.scope = .smartFilter(smartFilter)
+        self.readerTabsState = readerTabsState
         self.onRetryFeed = nil
         self._selectedArticleID = selectedArticleID
         self._navigationState = navigationState
@@ -159,9 +166,11 @@ struct SQLiteFeedArticleListView: View {
         smartFolder: SQLiteSmartFolderSnapshot,
         selectedArticleID: Binding<String?>,
         navigationState: Binding<SQLiteArticleNavigationState>,
-        searchText: Binding<String>
+        searchText: Binding<String>,
+        readerTabsState: ReaderTabsState
     ) {
         self.scope = .smartFolder(smartFolder)
+        self.readerTabsState = readerTabsState
         self.onRetryFeed = nil
         self._selectedArticleID = selectedArticleID
         self._navigationState = navigationState
@@ -486,6 +495,9 @@ struct SQLiteFeedArticleListView: View {
             },
             onShareOriginal: {
                 shareOriginal(row)
+            },
+            onOpenInNewTab: {
+                readerTabsState.openInNewBackgroundTab(articleID: row.id)
             },
             onOpenInWindow: {
                 guard let articleID = UUID(uuidString: row.id) else {
