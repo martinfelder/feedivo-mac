@@ -200,14 +200,17 @@ echo "create_github_release.sh: Release $TAG veroeffentlicht."
 # Sparkles Update-Dialog rendert die <description> als HTML (WKWebView), nicht
 # als Markdown wie GitHub - reine "- Punkt"-Zeilen mit Zeilenumbruechen wuerden
 # dort zu einem einzigen verschmolzenen Absatz kollabieren (HTML ignoriert
-# einfache Newlines). Deshalb hier zusaetzlich eine echte HTML-Aufzaehlung aus
-# denselben Changelog-Zeilen bauen, nur fuer den Appcast - die GitHub-Release-
-# Notes oben bleiben unveraendert reines Markdown (GitHub rendert das selbst).
-RELEASE_NOTES_HTML="$(python3 - "$RELEASE_NOTES_CONTENT" <<'PYEOF'
+# einfache Newlines). Deshalb hier zusaetzlich eine gestylte HTML-Fassung aus
+# denselben Changelog-Zeilen bauen (Versions-Ueberschrift, Trennlinien,
+# nach Praefix in Abschnitte gruppiert), nur fuer den Appcast - die GitHub-
+# Release-Notes oben bleiben unveraendert reines Markdown (GitHub rendert
+# das selbst). Vorbild: Sparkle-Update-Dialog anderer Apps (z. B. DockDoor).
+RELEASE_NOTES_HTML="$(python3 - "$RELEASE_NOTES_CONTENT" "$VERSION_LABEL" "$(date -u +%Y-%m-%d)" <<'PYEOF'
 import html
 import sys
 
-text = sys.argv[1]
+text, version_label, release_date = sys.argv[1], sys.argv[2], sys.argv[3]
+
 items = []
 current = None
 for line in text.splitlines():
@@ -220,11 +223,47 @@ for line in text.splitlines():
 if current is not None:
     items.append(current)
 
-if items:
-    rendered = "<ul>\n" + "\n".join(f"<li>{html.escape(item)}</li>" for item in items) + "\n</ul>"
-else:
-    rendered = f"<p>{html.escape(text.strip())}</p>"
-print(rendered)
+# Reihenfolge ist bewusst fest (nicht alphabetisch) - "Neu" vor "Verbesserung"
+# vor allem Uebrigen, unabhaengig von der Reihenfolge im Changelog.
+SECTIONS = [
+    ("Neu:", "✨ Neue Funktionen"),
+    ("Verbesserung:", "🔧 Verbesserungen"),
+]
+OTHER_TITLE = "🐛 Sonstiges"
+
+grouped = {title: [] for _, title in SECTIONS}
+grouped[OTHER_TITLE] = []
+for item in items:
+    matched = False
+    for prefix, title in SECTIONS:
+        if item.startswith(prefix):
+            grouped[title].append(item[len(prefix):].strip())
+            matched = True
+            break
+    if not matched:
+        grouped[OTHER_TITLE].append(item)
+
+ACCENT = "#3E5FED"
+parts = [
+    '<div style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #1d1d1f;">',
+    '<h1 style="margin: 0 0 4px 0; font-size: 20px;">'
+    f'<span style="color: {ACCENT};">Feedivo {html.escape(version_label)}</span>'
+    f' <span>– {html.escape(release_date)}</span></h1>',
+    '<hr style="border: none; border-top: 1px solid #d0d0d5; margin: 8px 0 18px 0;">',
+]
+for title in [t for _, t in SECTIONS] + [OTHER_TITLE]:
+    entries = grouped[title]
+    if not entries:
+        continue
+    parts.append(f'<h2 style="font-size: 15px; margin: 16px 0 4px 0;">{html.escape(title)}</h2>')
+    parts.append('<hr style="border: none; border-top: 1px solid #e5e5ea; margin: 0 0 8px 0;">')
+    parts.append('<ul style="margin: 0 0 4px 0; padding-left: 20px;">')
+    for entry in entries:
+        parts.append(f"<li>{html.escape(entry)}</li>")
+    parts.append("</ul>")
+parts.append("</div>")
+
+print("\n".join(parts))
 PYEOF
 )"
 
