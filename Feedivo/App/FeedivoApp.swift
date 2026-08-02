@@ -480,8 +480,19 @@ private struct SparkleUpdatePresentationModifier: ViewModifier {
         Binding(
             get: {
                 switch coordinator.state {
-                case .updateAvailable, .downloading, .extracting, .readyToInstall, .installing:
+                case .updateAvailable, .downloading, .extracting, .readyToInstall:
                     return true
+                // .installing bewusst ausgeschlossen: Sparkle fordert genau in diesem
+                // Zustand per Quit-AppleEvent das Beenden der App an, damit der externe
+                // Autoupdate/Updater-Relauncher den Dateitausch abschließen kann. Bleibt
+                // dieses Sheet dabei geöffnet, verweigert AppKit die automatische
+                // Terminierung ("App termination blocked by modal sheet", live per
+                // Unified-Log verifiziert, 2026-08-02) - die App hängt dadurch für immer
+                // bei "Wird installiert", unabhängig von Signing/Notarisierung. Das Sheet
+                // schließt sich hier bewusst kurz bevor die App ohnehin beendet und neu
+                // gestartet wird - ein UI-Übergang in diesem Moment ist erwartet.
+                case .installing:
+                    return false
                 default:
                     return false
                 }
