@@ -7,6 +7,31 @@
         <language>de</language>
         <!-- create_github_release.sh fügt hier bei jedem Release ein neues <item> ein -->
     <item>
+      <title>v1.0-26</title>
+      <pubDate>Tue, 04 Aug 2026 12:31:20 +0000</pubDate>
+      <description><![CDATA[<div style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #1d1d1f;">
+<h1 style="margin: 0 0 4px 0; font-size: 20px;"><span style="color: #3E5FED;">Feedivo 1.0 (26)</span> <span>– 2026-08-04</span></h1>
+<hr style="border: none; border-top: 1px solid #d0d0d5; margin: 8px 0 18px 0;">
+<h2 style="font-size: 15px; margin: 16px 0 4px 0;">🐛 Sonstiges</h2>
+<hr style="border: none; border-top: 1px solid #e5e5ea; margin: 0 0 8px 0;">
+<ul style="margin: 0 0 4px 0; padding-left: 20px;">
+<li>docs: Spec/Plan/Optimierungsliste für Punkt 3 (Bild-Anreicherung im Hintergrund)</li>
+<li>fix: Bild-Anreicherung — COALESCE schützt bestehende Bilder vor Reset bei erneutem Refresh</li>
+<li>perf: Feed-Refresh — Bild-Anreicherung läuft nicht mehr blockierend</li>
+<li>feat: ArticleStore.updateImageURL für gezieltes Nachtragen einzelner Artikelbilder</li>
+<li>perf: Feed-Refresh — echte Warteschlange statt fester Batches, kürzerer Fetch-Timeout</li>
+<li>chore: Appcast-Eintrag für v1.0-25</li>
+<li>docs: Changelog-Eintrag für v1.0-25 in einfacher Sprache umformuliert</li>
+</ul>
+</div>]]></description>
+      <enclosure url="https://github.com/martinfelder/feedivo-mac/releases/download/v1.0-26/Feedivo-v1.0-26.zip"
+                 sparkle:version="26"
+                 sparkle:shortVersionString="1.0"
+                 sparkle:edSignature="ArcLmhUpZDeF4v/+/2pDzOOhi6OOcgi6Mk4zCKLdG83lwuB2jO1EQJhqrUcSfExOonXmnvQVi/THCihg5+paCQ=="
+                 length="18392456"
+                 type="application/octet-stream"/>
+    </item>
+    <item>
       <title>v1.0-25</title>
       <pubDate>Sun, 02 Aug 2026 17:25:44 +0000</pubDate>
       <description><![CDATA[<div style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #1d1d1f;">
