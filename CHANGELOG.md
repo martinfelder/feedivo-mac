@@ -13,6 +13,16 @@ siehe `git log`.
 
 <!-- versions -->
 
+## [1.0 (26)] - 2026-08-04
+
+- docs: Spec/Plan/Optimierungsliste für Punkt 3 (Bild-Anreicherung im Hintergrund)
+- fix: Bild-Anreicherung — COALESCE schützt bestehende Bilder vor Reset bei erneutem Refresh
+- perf: Feed-Refresh — Bild-Anreicherung läuft nicht mehr blockierend
+- feat: ArticleStore.updateImageURL für gezieltes Nachtragen einzelner Artikelbilder
+- perf: Feed-Refresh — echte Warteschlange statt fester Batches, kürzerer Fetch-Timeout
+- chore: Appcast-Eintrag für v1.0-25
+- docs: Changelog-Eintrag für v1.0-25 in einfacher Sprache umformuliert
+
 ## [1.0 (25)] - 2026-08-02
 
 - Verbesserung: Die Sync-Übersicht in den Einstellungen bleibt jetzt auch bei
