@@ -218,6 +218,13 @@ struct FeedivoApp: App {
             // beim Ausloesen den generischen AppKit-Fallback-Alert "Diese App
             // unterstuetzt Drucken nicht", statt dass unser Drucken-Button reagiert
             // (Live-Bug-Fund 2026-07-17, Nutzer-Report).
+            #if DEBUG
+            CommandGroup(after: .toolbar) {
+                Button("Render-Benchmark öffnen") {
+                    openWindow(id: ArticleListRenderBenchmarkView.windowID)
+                }
+            }
+            #endif
             CommandGroup(replacing: .printItem) {}
         }
         Window(L10n.articleSearchCommand, id: ArticleSearchWindowView.windowID) {
@@ -259,6 +266,18 @@ struct FeedivoApp: App {
                 .preferredColorScheme(appAppearance.colorScheme)
         }
         .defaultSize(width: 420, height: 480)
+
+        #if DEBUG
+        Window("Render-Benchmark", id: ArticleListRenderBenchmarkView.windowID) {
+            ArticleListRenderBenchmarkView()
+                .environment(\.locale, appLanguage.locale)
+                .environment(\.interfaceTextSize, interfaceTextSize)
+                .environment(\.feedivoDatabase, feedivoDatabase)
+                .dynamicTypeSize(interfaceTextSize.dynamicTypeSize)
+                .preferredColorScheme(appAppearance.colorScheme)
+        }
+        .defaultSize(width: 480, height: 640)
+        #endif
 
         WindowGroup(for: ArticleWindowRequest.self) { $request in
             // Gemeinsame Modifier auf einem umschließenden Group, damit auch der
