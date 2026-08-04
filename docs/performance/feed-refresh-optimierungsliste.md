@@ -137,7 +137,7 @@ Vergleichsquellen NetNewsWire: `Modules/Account/Sources/Account/LocalAccount/Loc
       langsames Feed jetzt nach ~20s statt ~60s abbricht (nicht praktikabel
       automatisiert zu testen).
 
-- [ ] **3. Bild-Anreicherung aus dem synchronen Refresh-Pfad lösen.**
+- [x] **3. Bild-Anreicherung aus dem synchronen Refresh-Pfad lösen.** *(erledigt 2026-08-04)*
       Statt blockierend während `SQLiteFeedRefreshService.refresh(feedID:)`
       zu laufen, entweder (a) lazy beim tatsächlichen Anzeigen der
       Artikelliste/des Readers nachladen (asynchron, außerhalb des
@@ -145,6 +145,56 @@ Vergleichsquellen NetNewsWire: `Modules/Account/Sources/Account/LocalAccount/Loc
       Hintergrund-Batch-Job mit eigenem, großzügigerem Zeitbudget. Braucht
       vermutlich eigenen Brainstorming/Spec-Durchgang, da UI-Verhalten
       (wann erscheint das Bild?) betroffen ist — kein reiner Perf-Fix.
+      **Umsetzung:** Variante (b) gewählt (Brainstorming-Entscheidung des
+      Nutzers). Neue Artikel werden sofort mit dem feed-eigenen Bild (oder
+      ohne) gespeichert; ein nicht-awaiteter Hintergrund-`Task` je Feed holt
+      fehlende Bilder danach nach und schreibt nur die `imageURL`-Spalte
+      gezielt zurück (neue `ArticleStore.updateImageURL(articleID:imageURL:)`,
+      statt vollem Upsert). Kandidaten-Ermittlung nutzt den bereits
+      bestehenden Spotlight-Snapshot-Abruf mit (kein zusätzlicher DB-Zugriff).
+      Umgesetzt via Brainstorming→Spec→Plan→Subagent-Driven-Development
+      (2 Tasks: `ArticleStore.updateImageURL`,
+      `SQLiteFeedRefreshService`-Umbau). Spec:
+      `docs/superpowers/specs/2026-08/2026-08-04-feed-refresh-bild-anreicherung-hintergrund-design.md`,
+      Plan:
+      `docs/superpowers/plans/2026-08/2026-08-04-feed-refresh-bild-anreicherung-hintergrund.md`.
+      **Zwei echte Funde unterwegs, beide behoben:** (1) Task 2s Implementer
+      widersprach zurecht dem im Plan ursprünglich vorgesehenen ersten Test —
+      dieser prüfte „direkt nach `refresh()` noch kein Bild" per Wanduhrzeit-
+      Vergleich, was unter diesem Projekt (`SWIFT_DEFAULT_ACTOR_ISOLATION =
+      MainActor`) deterministisch falsch lag, da `refresh()` und der neue
+      Hintergrund-Task dieselbe MainActor-Warteschlange teilen und Letzterer
+      durch einen späteren `await`-Punkt in `refresh()` (Favicon-Discovery)
+      bereits fertig sein kann, bevor `refresh()` selbst zurückkehrt — auf ein
+      deterministisches Timeout-Rennen umgestellt. (2) **Finaler Whole-Branch-
+      Review fand einen echten Critical-Bug, den keine der beiden Einzel-Task-
+      Reviews sehen konnte** (zeigt sich erst über zwei Refresh-Zyklen hinweg):
+      da Anreicherung jetzt nur noch für neu eingefügte Artikel läuft, hätte
+      `ArticleStore.upsert`s weiterhin hartes `imageURL = ?` im Update-Zweig
+      ein vom Hintergrund-Task gefundenes Bild beim nächsten Refresh desselben
+      Artikels **garantiert und dauerhaft** auf `NULL` zurückgesetzt (keine
+      erneute Anreicherung mehr, da der Artikel nicht mehr „neu" ist) —
+      ursprünglich in der Spec fälschlich als „behoben nebenbei" statt „neu
+      eingeführt" dokumentiert. Fix: `imageURL = COALESCE(?, imageURL)` statt
+      hartem Overwrite, plus Regressionstests auf beiden Ebenen (Store direkt,
+      und End-to-End über zwei `refresh()`-Aufrufe). Zusätzlich im selben Fund
+      behoben: der Timeout-Test aus (1) nutzte ein nicht-cancellation-aware
+      Gate — bei einer künftigen Regression hätte das die Testsuite hängen
+      lassen statt sauber nach 2s fehlzuschlagen (bekanntes, in `CLAUDE.md`
+      dokumentiertes Schmerzthema in diesem Projekt) — auf cancellable
+      `Task.sleep` umgestellt. Whole-Branch-Review nach Fix-Runde: „Ready to
+      merge" (alle Findings adressiert, keine neuen Regressionen).
+      **Bewusst zurückgestellt (dokumentiert, nicht blockierend):** ein
+      Write pro angereichertem Artikel statt gebündelter Transaktion (gleiche
+      Fehlerklasse, die der Refresh-Throttling-Nachzügler vom 2026-07-27 für
+      `applyRules` bereits behoben hat — hier weniger kritisch, da im nicht-
+      blockierenden Hintergrund-Task); kein feedübergreifendes Concurrency-
+      Limit für die Hintergrund-Anreicherung (bewusste Scope-Entscheidung,
+      siehe Spec); versteckte (regelbasiert ausgeblendete) Artikel bekommen
+      kein Bild-Backfill (Verhaltensänderung ggü. altem Code, nicht explizit
+      spezifiziert). **Noch offen:** Live-Verifikation im laufenden Betrieb
+      (Bild erscheint nach kurzer Verzögerung nach dem Refresh, verschwindet
+      NICHT beim nächsten Refresh desselben Artikels mehr).
 
 - [ ] **4. Einfaches 429-/4xx-Backoff analog `DownloadSession`.**
       Neue, leichtgewichtige In-Memory- oder persistente Sperre pro Host
