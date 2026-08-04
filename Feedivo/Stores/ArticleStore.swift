@@ -100,6 +100,22 @@ struct ArticleStore {
         }
     }
 
+    /// Aktualisiert gezielt nur die `imageURL`-Spalte eines bereits
+    /// existierenden Artikels — kein voller Upsert. Genutzt von der
+    /// nachgelagerten Bild-Anreicherung nach einem Feed-Refresh
+    /// (Optimierungsliste Punkt 3,
+    /// docs/performance/feed-refresh-optimierungsliste.md), wo der Artikel
+    /// bereits vollständig gespeichert ist und nur sein Bild nachträglich
+    /// gefunden wurde.
+    func updateImageURL(articleID: String, imageURL: String) throws {
+        try database.write { db in
+            try db.execute(
+                sql: "UPDATE articles SET imageURL = ? WHERE id = ?",
+                arguments: [imageURL, articleID]
+            )
+        }
+    }
+
     func readerArticle(id: String) throws -> ArticleReaderSnapshot? {
         try database.read { db in
             var snapshot = try ArticleReaderSnapshot.fetchOne(db, sql: """

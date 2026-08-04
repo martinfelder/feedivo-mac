@@ -1016,4 +1016,20 @@ struct SQLiteArticleStoreTests {
         }
         #expect(orphan == nil)
     }
+
+    @Test func updateImageURLAktualisiertNurDieBildURLEinesBestehendenArtikels() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Feed"))
+        let articleID = try articleStore.upsert(
+            ArticleUpsertInput(feedID: "feed-1", sourceID: "one", title: "Titel", imageURL: nil)
+        )
+
+        try articleStore.updateImageURL(articleID: articleID, imageURL: "https://example.com/found.jpg")
+
+        let article = try articleStore.article(id: articleID)
+        #expect(article?.imageURL == "https://example.com/found.jpg")
+        #expect(article?.title == "Titel")
+    }
 }
