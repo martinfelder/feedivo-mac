@@ -196,12 +196,32 @@ enum FeedService {
         return try parseFeed(data: data, sourceURL: urlString)
     }
 
+    // Dedizierte Session für den Refresh-Pfad statt `URLSession.shared`
+    // (Optimierungsliste Punkt 2, docs/performance/feed-refresh-optimierungsliste.md,
+    // 2026-08-04) — analog NetNewsWires eigener `DownloadSession`, die ebenfalls eine
+    // von der App-weiten Shared-Session getrennte Session mit kürzerem Timeout nutzt.
+    // Ein kürzerer Timeout (20s statt der URLSession.shared-Default von 60s) begrenzt,
+    // wie lange ein einzelner toter/langsamer Feed einen Slot der Warteschlange in
+    // `SQLiteFeedRefreshCoordinator` (Optimierungsliste Punkt 1) blockieren kann.
+    // Bewusst NUR für `fetchFeedConditionally` (den Refresh-Pfad) — Favicon-Discovery
+    // und Bild-Anreicherung (separater Optimierungslisten-Punkt 3) bleiben vorerst auf
+    // `URLSession.shared`, analog NetNewsWires eigener Trennung (`DownloadSession` ist
+    // dort ebenfalls ausschließlich für Feed-Downloads zuständig).
+    static func makeFeedDownloadSessionConfiguration() -> URLSessionConfiguration {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.timeoutIntervalForRequest = 20
+        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
+        return configuration
+    }
+
+    private static let feedDownloadSession = URLSession(configuration: makeFeedDownloadSessionConfiguration())
+
     static func fetchFeedConditionally(
         urlString: String,
         validators: FeedHTTPValidators
     ) async throws -> ConditionalFeedFetchResult {
         try await fetchFeedConditionally(urlString: urlString, validators: validators) { request in
-            try await URLSession.shared.data(for: request)
+            try await feedDownloadSession.data(for: request)
         }
     }
 

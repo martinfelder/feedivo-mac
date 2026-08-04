@@ -272,6 +272,85 @@ struct SQLiteFeedRefreshCoordinatorTests {
         #expect(firstFeed?.faviconURL == "https://shared-site.example/favicon.ico")
         #expect(secondFeed?.faviconURL == "https://shared-site.example/favicon.ico")
     }
+
+    // Optimierungsliste Punkt 1 (docs/performance/feed-refresh-optimierungsliste.md,
+    // 2026-08-03): feste Batches à `batchSize` warteten bisher darauf, dass der
+    // GESAMTE Batch fertig ist, bevor der nächste startet — ein einzelner langsamer
+    // Feed im ersten Batch hielt dadurch Feeds im zweiten Batch auf, obwohl längst
+    // ein freier Slot da wäre. Dieser Test hätte gegen den alten Batch-Code
+    // fehlgeschlagen: bei batchSize 2 und 4 Feeds (slow, fast0, fast1, fast2) wäre
+    // fast2 erst nach Abschluss von Batch 1 (also erst nach Ablauf der 200ms von
+    // "slow") gestartet.
+    // Erster Anlauf dieses Tests nutzte Wanduhrzeiten (feste Schwelle, dann relativer
+    // Vergleich start(fast2) < finish(slow)) — beides flackerte, sobald diese Suite
+    // gemeinsam mit anderen Testsuiten lief: Swift Testing führt async Tests standard-
+    // mäßig nebenläufig aus, und unter der dadurch entstehenden Konkurrenz um den
+    // kooperativen Thread-Pool konnte selbst ein "sofortiger" Task erst nach über 2s
+    // tatsächlich starten — deutlich länger als die künstlichen 200-400ms der
+    // "langsamen" Testfeeds. Deshalb jetzt eine deterministische Variante ganz ohne
+    // Wanduhrzeiten: "slow" blockiert an einem Gate, das der Test selbst erst öffnet,
+    // NACHDEM er aktiv beobachtet hat, dass fast2 bereits gestartet ist (oder ein
+    // großzügiges Timeout erreicht wurde). Unter dem alten, festen Batch-Code KANN
+    // fast2 nie starten, solange "slow" (im selben Batch) blockiert — das Gate würde
+    // dadurch nie erreichbar geöffnet, der Test schlägt nach dem Timeout fehl, statt
+    // auf eine bestimmte Ausführungsgeschwindigkeit angewiesen zu sein.
+    @MainActor
+    @Test func refreshAllFeedsFuelltFreieSlotsSofortNachStattAufGanzenBatchZuWarten() async throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let slowFeedID = UUID().uuidString
+        let fastFeedIDs = (0 ..< 3).map { _ in UUID().uuidString }
+
+        try feedStore.save(FeedRecord(id: slowFeedID, url: "https://example.com/slow.xml", title: "Slow"))
+        for (index, feedID) in fastFeedIDs.enumerated() {
+            try feedStore.save(FeedRecord(id: feedID, url: "https://example.com/fast\(index).xml", title: "Fast \(index)"))
+        }
+
+        let slowGate = RefreshTestGate()
+        let startedURLs = RefreshTestStartedURLs()
+
+        let coordinator = SQLiteFeedRefreshCoordinator(
+            database: database,
+            batchSize: 2,
+            fetcher: { url, _ in
+                await startedURLs.markStarted(url)
+                if url == "https://example.com/slow.xml" {
+                    await slowGate.wait()
+                }
+                return .updated(
+                    ParsedFeed(sourceURL: url, title: "Feed", description: nil, articles: []),
+                    FeedHTTPValidators(lastStatusCode: 200)
+                )
+            }
+        )
+
+        let snapshots = [
+            FeedRefreshSnapshot(id: UUID(uuidString: slowFeedID) ?? UUID(), title: "Slow", url: "https://example.com/slow.xml")
+        ] + fastFeedIDs.enumerated().map { index, feedID in
+            FeedRefreshSnapshot(id: UUID(uuidString: feedID) ?? UUID(), title: "Fast \(index)", url: "https://example.com/fast\(index).xml")
+        }
+
+        let refreshTask = Task { await coordinator.refreshAllFeeds(snapshots) }
+
+        // fast2 ist der 4. Feed — bei alten festen 2er-Batches (Batch 1: slow+fast0,
+        // Batch 2: fast1+fast2) kann er NIE starten, solange "slow" (Batch 1) noch
+        // nicht fertig ist — und "slow" wird hier absichtlich erst nach dieser
+        // Beobachtung freigegeben. Bis zu 5s pollen (100ms-Schritte), dann Gate in
+        // jedem Fall öffnen, damit kein Task hängen bleibt.
+        var fast2StartedWhileSlowBlocked = false
+        for _ in 0 ..< 50 {
+            if await startedURLs.contains("https://example.com/fast2.xml") {
+                fast2StartedWhileSlowBlocked = true
+                break
+            }
+            try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
+        }
+
+        await slowGate.open()
+        _ = await refreshTask.value
+
+        #expect(fast2StartedWhileSlowBlocked)
+    }
 }
 
 private actor FaviconDiscoveryCallCounter {
@@ -282,4 +361,40 @@ private actor FaviconDiscoveryCallCounter {
 private actor FetcherCallCounter {
     private(set) var count = 0
     func increment() { count += 1 }
+}
+
+/// Blockiert `wait()`-Aufrufer, bis `open()` gerufen wird — unabhängig davon, ob
+/// `wait()` vor oder nach `open()` aufgerufen wurde (spätere `wait()`-Aufrufe nach
+/// `open()` kehren sofort zurück).
+private actor RefreshTestGate {
+    private var isOpen = false
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+
+    func wait() async {
+        if isOpen {
+            return
+        }
+        await withCheckedContinuation { continuation in
+            waiters.append(continuation)
+        }
+    }
+
+    func open() {
+        isOpen = true
+        let toResume = waiters
+        waiters = []
+        for continuation in toResume {
+            continuation.resume()
+        }
+    }
+}
+
+private actor RefreshTestStartedURLs {
+    private var urls: Set<String> = []
+    func markStarted(_ url: String) {
+        urls.insert(url)
+    }
+    func contains(_ url: String) -> Bool {
+        urls.contains(url)
+    }
 }

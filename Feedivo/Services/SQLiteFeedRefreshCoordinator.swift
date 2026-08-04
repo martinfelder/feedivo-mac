@@ -74,15 +74,6 @@ struct SQLiteFeedRefreshCoordinator {
         self.enrichArticleImages = enrichArticleImages
     }
 
-    private func batches<T>(_ items: [T], size: Int) -> [[T]] {
-        guard !items.isEmpty else {
-            return []
-        }
-        return stride(from: 0, to: items.count, by: size).map { start in
-            Array(items[start ..< min(start + size, items.count)])
-        }
-    }
-
     func refreshAllFeeds(
         _ snapshots: [FeedRefreshSnapshot]
     ) async -> SQLiteFeedRefreshCoordinatorSummary {
@@ -146,59 +137,77 @@ struct SQLiteFeedRefreshCoordinator {
         var failedFeedIDs: [UUID] = []
         var succeededFeedIDs: [UUID] = []
 
-        for batch in batches(eligibleSnapshots, size: batchSize) {
-            await withTaskGroup(of: SQLiteFeedRefreshCoordinatorOutcome.self) { group in
-                for snapshot in batch {
-                    group.addTask { [database, ruleSnapshots, fetcher, enrichArticleImages, faviconDiscoveryCoordinator, discoverFavicon] in
-                        do {
-                            let feedID = snapshot.id.uuidString
-                            let feedStore = FeedStore(database: database)
-                            if try feedStore.feed(id: feedID) == nil {
-                                try feedStore.save(
-                                    FeedRecord(
-                                        id: feedID,
-                                        url: snapshot.url,
-                                        title: snapshot.title
-                                    )
+        // Echte Warteschlange statt fester Batches (Optimierungsliste Punkt 1,
+        // docs/performance/feed-refresh-optimierungsliste.md, 2026-08-03; NetNewsWire-
+        // Vergleich: DownloadSession füllt ihre Warteschlange ebenfalls sofort nach,
+        // sobald ein Slot frei wird, statt in festen Gruppen zu warten). Vorher wartete
+        // `for batch in batches(...)` auf den KOMPLETTEN Batch, bevor der nächste
+        // startete — ein einzelner langsamer Feed im Batch hielt dadurch bereits
+        // fertige Nachbarn UND den Start des nächsten Batches auf, obwohl längst ein
+        // freier Slot da wäre. `iterator` wird hier bewusst nur synchron zwischen den
+        // `await`-Punkten mutiert (nie innerhalb eines `group.addTask`-Kindtasks), das
+        // ist datenrace-frei.
+        var iterator = eligibleSnapshots.makeIterator()
+
+        await withTaskGroup(of: SQLiteFeedRefreshCoordinatorOutcome.self) { group in
+            func addNextTaskIfAvailable() {
+                guard let snapshot = iterator.next() else {
+                    return
+                }
+                group.addTask { [database, ruleSnapshots, fetcher, enrichArticleImages, faviconDiscoveryCoordinator, discoverFavicon] in
+                    do {
+                        let feedID = snapshot.id.uuidString
+                        let feedStore = FeedStore(database: database)
+                        if try feedStore.feed(id: feedID) == nil {
+                            try feedStore.save(
+                                FeedRecord(
+                                    id: feedID,
+                                    url: snapshot.url,
+                                    title: snapshot.title
                                 )
-                            }
-
-                            let service = SQLiteFeedRefreshService(
-                                database: database,
-                                ruleSnapshots: ruleSnapshots,
-                                discoverFaviconURL: { siteURL in
-                                    await faviconDiscoveryCoordinator.discover(siteURL: siteURL, using: discoverFavicon)
-                                },
-                                enrichArticleImages: enrichArticleImages,
-                                fetcher: fetcher
                             )
-                            let result = try await service.refresh(feedID: feedID)
-                            return .success(
-                                snapshot.id,
-                                FeedRefreshNotificationResult(
-                                    feedTitle: result.feedTitle,
-                                    newArticleCount: result.newArticleCount,
-                                    isNotificationEnabled: snapshot.isNotificationEnabled
-                                ),
-                                result.ruleNotifications
-                            )
-                        } catch {
-                            return .failure(snapshot.id, snapshot.title)
                         }
-                    }
-                }
 
-                for await outcome in group {
-                    switch outcome {
-                    case .success(let feedID, let result, let ruleNotifications):
-                        notificationResults.append(result)
-                        succeededFeedIDs.append(feedID)
-                        ruleNotificationResults.append(contentsOf: ruleNotifications)
-                    case .failure(let feedID, let failedTitle):
-                        failedFeedIDs.append(feedID)
-                        failedFeedTitles.append(failedTitle)
+                        let service = SQLiteFeedRefreshService(
+                            database: database,
+                            ruleSnapshots: ruleSnapshots,
+                            discoverFaviconURL: { siteURL in
+                                await faviconDiscoveryCoordinator.discover(siteURL: siteURL, using: discoverFavicon)
+                            },
+                            enrichArticleImages: enrichArticleImages,
+                            fetcher: fetcher
+                        )
+                        let result = try await service.refresh(feedID: feedID)
+                        return .success(
+                            snapshot.id,
+                            FeedRefreshNotificationResult(
+                                feedTitle: result.feedTitle,
+                                newArticleCount: result.newArticleCount,
+                                isNotificationEnabled: snapshot.isNotificationEnabled
+                            ),
+                            result.ruleNotifications
+                        )
+                    } catch {
+                        return .failure(snapshot.id, snapshot.title)
                     }
                 }
+            }
+
+            for _ in 0 ..< min(batchSize, eligibleSnapshots.count) {
+                addNextTaskIfAvailable()
+            }
+
+            while let outcome = await group.next() {
+                switch outcome {
+                case .success(let feedID, let result, let ruleNotifications):
+                    notificationResults.append(result)
+                    succeededFeedIDs.append(feedID)
+                    ruleNotificationResults.append(contentsOf: ruleNotifications)
+                case .failure(let feedID, let failedTitle):
+                    failedFeedIDs.append(feedID)
+                    failedFeedTitles.append(failedTitle)
+                }
+                addNextTaskIfAvailable()
             }
         }
 

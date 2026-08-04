@@ -111,6 +111,21 @@ struct FeedServiceConditionalFetchTests {
         #expect(validators.lastStatusCode == 200)
     }
 
+    // Optimierungsliste Punkt 2 (docs/performance/feed-refresh-optimierungsliste.md,
+    // 2026-08-04): `fetchFeedConditionally` nutzte bisher `URLSession.shared` mit
+    // dessen Default-Timeout von 60s — ein einzelner toter/langsamer Feed konnte
+    // dadurch einen Warteschlangen-Slot im Refresh-Coordinator bis zu 60s
+    // blockieren. Reiner Konfigurations-Test statt eines echten Netzwerk-Timeout-
+    // Tests (der 20s warten müsste) — prüft direkt die Werte, die in die dedizierte
+    // Session einfließen.
+    @Test func feedDownloadSessionConfigurationNutztKuerzerenTimeoutAlsDenSharedDefault() {
+        let configuration = FeedService.makeFeedDownloadSessionConfiguration()
+
+        #expect(configuration.timeoutIntervalForRequest == 20)
+        #expect(configuration.timeoutIntervalForRequest < URLSessionConfiguration.default.timeoutIntervalForRequest)
+        #expect(configuration.requestCachePolicy == .reloadIgnoringLocalCacheData)
+    }
+
     private static func rssData(title: String) -> Data {
         Data(
             """
