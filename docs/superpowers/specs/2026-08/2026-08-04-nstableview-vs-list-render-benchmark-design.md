@@ -146,3 +146,34 @@ Löschvorgang (neue Dateien + die eine `Window`-Scene-Zeile in
   ausgeklammertes Symptom).
 - Jede Aussage zur produktiven Migration selbst — dieser Plan liefert nur
   die Entscheidungsgrundlage dafür.
+
+## Nachtrag (2026-08-04): Ergebnis der Live-Verifikation
+
+Alle 7 Implementierungs-Tasks umgesetzt (Task-Reviews clean), plus ein
+finaler Whole-Branch-Review (Opus), der drei Important-Funde aufdeckte, die
+den geplanten Vergleich sonst verzerrt hätten: fehlende `@MainActor`-
+Annotation an `NativeArticleTableViewCoordinatorTests` (latente Instanz des
+Task-7-Fundes), unerreichbare Fixture-Bild-URLs (kein Bild wäre je sichtbar
+geworden, die Flacker-Hypothese aus Abschnitt 5 wäre unbeobachtbar gewesen),
+und ein hardcodiertes Anzeige-Einstellungs-Set im Prototyp statt der echten
+`interfaceTextSize`/`@AppStorage`-Werte, die die Baseline (`ArticleRowView`)
+bereits berücksichtigt. Alle drei sowie zwei Minor-Funde in einer Fix-Welle
+behoben, per Re-Review bestätigt.
+
+Der Nutzer hat den Debug-Build gestartet, das Render-Benchmark-Fenster
+geöffnet, zwischen Baseline und Prototyp umgeschaltet und in beiden
+Varianten gescrollt. **Ergebnis: Der `NSTableView`-Prototyp fühlte sich
+beim Scrollen spürbar flüssiger an als die SwiftUI-`List`-Baseline.**
+
+Die in Abschnitt 5 als primäres Signal vorgesehene Instruments-Messung
+wurde **nicht** durchgeführt — der Nutzer hat den subjektiven
+Scroll-Eindruck bewusst als für sich ausreichend erklärt. Das Ergebnis ist
+damit ein qualitatives, nicht quantitativ belegtes Positiv-Signal, keine
+belastbare Kennzahl.
+
+**Entscheidung:** Migrieren / Verwerfen / weitere Messung nötig — **noch
+nicht getroffen.** Dieser Spike liefert nur die Entscheidungsgrundlage
+(qualitativ positiv); ob und in welchem Umfang die produktive Artikelliste
+tatsächlich auf `NSTableView` migriert wird, ist ein separater, künftiger
+Brainstorming-/Plan-Zyklus. Der Spike-Code bleibt bis dahin unverändert
+liegen (rückstandsfrei entfernbar, siehe Abschnitt 6).

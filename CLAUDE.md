@@ -1377,41 +1377,68 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Aktuell in Arbeit
 
-- **2026-08-04: NSTableView-vs-List-Render-Benchmark — Spike-Infrastruktur VOLLSTÄNDIG
-  ABGESCHLOSSEN, entscheidende manuelle Instruments-Live-Messung noch AUSSTEHEND.**
-  Rein `#if DEBUG`-gated, von Produktivcode komplett isolierter Prototyp unter
-  `Feedivo/Views/ArticleList/RenderBenchmark/` (+ ein kleiner Debug-Fenster/Menüeintrag-
-  Zusatz in `FeedivoApp.swift`), der die aktuelle SwiftUI-`List`-Artikelliste einer
-  echten `NSTableView`-Umsetzung nebeneinanderstellt — Zweck ist ausschließlich, eine
-  belastbare Entscheidungsgrundlage zu sammeln, ob eine künftige Migration der
-  Artikelliste auf AppKit lohnt. Design/Plan:
+- **2026-08-04: NSTableView-vs-List-Render-Benchmark — Spike-Infrastruktur UND manuelle
+  Live-Verifikation ABGESCHLOSSEN, qualitatives Ergebnis: Prototyp wirkt flüssiger, aber
+  OHNE Instruments-Messung (Nutzerentscheid).** Rein `#if DEBUG`-gated, von Produktivcode
+  komplett isolierter Prototyp unter `Feedivo/Views/ArticleList/RenderBenchmark/` (+ ein
+  kleiner Debug-Fenster/Menüeintrag-Zusatz in `FeedivoApp.swift`), der die aktuelle
+  SwiftUI-`List`-Artikelliste einer echten `NSTableView`-Umsetzung nebeneinanderstellt —
+  Zweck ist ausschließlich, eine belastbare Entscheidungsgrundlage zu sammeln, ob eine
+  künftige Migration der Artikelliste auf AppKit lohnt. Design/Plan:
   `docs/superpowers/specs/2026-08/2026-08-04-nstableview-vs-list-render-benchmark-design.md`,
   `docs/superpowers/plans/2026-08/2026-08-04-nstableview-vs-list-render-benchmark.md`. Alle
   7 Implementierungs-Tasks (synthetisches Fixture, Stale-Load-Guard, native AppKit-Zelle,
   NSTableView-Wrapper+Coordinator, SwiftUI-Baseline+Umschalter, Debug-Fenster+Menüeintrag,
-  automatisierte Proxy-Metrik) sind umgesetzt, Tasks 1–6 mit sauberen Task-Reviews. Task 7
-  (dieser Eintrag) ergänzt einen einzelnen headless AppKit-Layout-Test
-  (`FeedivoTests/ArticleListRenderBenchmarkTests.swift`) als reinen Regressions-Wächter für
-  den Prototyp selbst — **kein A/B-Beweis gegen die SwiftUI-Baseline**, da `List` ihren
-  internen Render-Server erst mit echtem Fenster/Compositor aufbaut und dafür headless
-  nicht fair gemessen werden kann. Gemessener Referenzwert (Debug-Build, dieser Rechner):
-  `PERF_METRIC native_table_view_layout_1000_rows ≈ 51 ms` bei 1.000 synthetischen Zeilen —
-  weit unter der als reine Absturz-/Hänger-Absicherung gedachten 2-Sekunden-Testschwelle,
-  taugt aber ausdrücklich nur als grober Anhaltspunkt für die AppKit-Seite, nicht als
-  Vergleichszahl. **Der eigentliche, entscheidungsrelevante Vergleich ist die manuelle
-  Instruments-Messung beider Ansichten durch den Nutzer selbst — noch nicht durchgeführt.**
-  Ebenfalls noch ausstehend: die manuelle GUI-Verifikation des in Task 6 gebauten
-  Debug-Fensters/Menüeintrags (Umschalten zwischen beiden Implementierungen live in der
-  laufenden App). Nebenfund beim Schreiben des Tests: der im Plan wörtlich vorgegebene
-  Testcode crashte reproduzierbar mit einem vom Main Thread Checker erzwungenen `SIGABRT`
-  beim `NSWindow`-Aufbau, da Swift-Testing-`@Test`-Funktionen (anders als das alte XCTest)
-  standardmäßig auf einem Hintergrund-Thread laufen und das `FeedivoTests`-Target (im
-  Gegensatz zum App-Target) kein `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor` gesetzt hat —
-  behoben durch eine zusätzliche `@MainActor`-Annotation an der Testfunktion, sonst
-  unveränderter Testcode. **Wichtig: Diese Session hat ausschließlich die Mess-Infrastruktur
-  gebaut — die eigentliche Architekturfrage (Umstieg auf `NSTableView` ja/nein) ist NICHT
-  entschieden**, das braucht die oben genannte manuelle Instruments-Verifikation als
-  Grundlage.
+  automatisierte Proxy-Metrik) sind umgesetzt, alle mit sauberen Task-Reviews. Ein
+  einzelner headless AppKit-Layout-Test (`FeedivoTests/ArticleListRenderBenchmarkTests.swift`,
+  Task 7) dient als reiner Regressions-Wächter für den Prototyp selbst — **kein A/B-Beweis
+  gegen die SwiftUI-Baseline**, da `List` ihren internen Render-Server erst mit echtem
+  Fenster/Compositor aufbaut und dafür headless nicht fair gemessen werden kann. Gemessener
+  Referenzwert (Debug-Build, dieser Rechner): `PERF_METRIC native_table_view_layout_1000_rows
+  ≈ 51 ms` bei 1.000 synthetischen Zeilen — weit unter der als reine Absturz-/Hänger-
+  Absicherung gedachten 2-Sekunden-Testschwelle, taugt aber ausdrücklich nur als grober
+  Anhaltspunkt für die AppKit-Seite, nicht als Vergleichszahl. Nebenfund bei Task 7: der im
+  Plan wörtlich vorgegebene Testcode crashte reproduzierbar mit einem vom Main Thread
+  Checker erzwungenen `SIGABRT` beim `NSWindow`-Aufbau, da Swift-Testing-`@Test`-Funktionen
+  (anders als das alte XCTest) standardmäßig auf einem Hintergrund-Thread laufen und das
+  `FeedivoTests`-Target (im Gegensatz zum App-Target) kein
+  `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor` gesetzt hat — behoben durch eine zusätzliche
+  `@MainActor`-Annotation an der Testfunktion.
+  **Finaler Whole-Branch-Review (Opus) fand drei Important-Funde, alle in einer Fix-Welle
+  behoben und per Re-Review bestätigt:** (1) `NativeArticleTableViewCoordinatorTests`
+  (Task 4) hatte dieselbe `@MainActor`-Lücke wie oben, nur bislang folgenlos, weil der
+  Main Thread Checker `NSTableView`-Zugriffe (anders als `NSWindow`) nicht instrumentiert —
+  latent, aber real; ergänzt. (2) Die Fixture (Task 1) verwendete unerreichbare
+  `https://example.com/...`-Bild-URLs — da `ImageCacheService` Fehlschläge nicht negativ
+  cacht, hätte JEDE Zellwiederverwendung beim Scrollen einen erneuten, ewig fehlschlagenden
+  Netzwerk-Request ausgelöst, wodurch nie ein Bild sichtbar wurde und die eigentlich zu
+  testende Flacker-Hypothese gar nicht beobachtbar gewesen wäre — behoben durch eine einmalig
+  zur Laufzeit erzeugte 8×8-PNG-Datei unter einer `file://`-URL. (3) Der native Prototyp
+  ignorierte die echten Anzeige-Einstellungen des Nutzers (`interfaceTextSize`,
+  `ArticleListImagePosition`, `ArticleListSummaryLineCount`) und nutzte stattdessen feste
+  Standardwerte, während die SwiftUI-Baseline (`ArticleRowView`) diese Einstellungen ganz
+  normal berücksichtigt — bei Abweichung von den Standardwerten hätten beide Seiten
+  unterschiedliche Zeilenhöhen/Schriftgrößen gehabt, was den Vergleich verzerrt hätte;
+  behoben, indem `NativeArticleTableView` dieselben Environment-/`@AppStorage`-Werte liest
+  und in die Zellen durchreicht. Zusätzlich zwei Minor-Fixes (unnötiges `reloadData()` bei
+  reiner Auswahländerung; ein Kommentar-Platzierungsfehler in `FeedivoApp.swift`).
+  **Live-Verifikation durch den Nutzer (2026-08-04):** Debug-Build gestartet, Render-
+  Benchmark-Fenster über „Ansicht → Render-Benchmark öffnen" geöffnet (Hinweis: Xcodes
+  „Product → Profile" baut standardmäßig die Release-Konfiguration, in der der
+  `#if DEBUG`-Menüeintrag fehlt — Instruments muss stattdessen an den bereits per ⌘R
+  laufenden Debug-Prozess angehängt werden, nicht neu darüber starten), zwischen Baseline
+  und Prototyp umgeschaltet und in beiden Varianten gescrollt. **Ergebnis: der
+  NSTableView-Prototyp fühlte sich beim Scrollen spürbar flüssiger an als die SwiftUI-
+  List-Baseline.** Keine Instruments-Messung durchgeführt — der Nutzer hat den subjektiven
+  Eindruck bewusst als für sich ausreichend erklärt, statt die im Design-Dokument als
+  primäres Signal vorgesehene Instruments-Zahl noch einzuholen. **Wichtig: Das ist ein
+  qualitatives, nicht quantitativ belegtes Positiv-Signal für einen Umstieg — die
+  eigentliche Architekturentscheidung (Migration der produktiven Artikelliste auf
+  `NSTableView`, ja/nein/Umfang) ist damit NICHT automatisch getroffen**, sondern müsste in
+  einem eigenen, neuen Brainstorming/Plan-Zyklus separat entschieden und umgesetzt werden,
+  falls gewünscht. Der komplette Spike bleibt bis zu dieser Entscheidung unverändert im
+  Code liegen (rückstandsfrei entfernbar: Ordner `Feedivo/Views/ArticleList/RenderBenchmark/`
+  + zwei Stellen in `FeedivoApp.swift` + vier Testdateien unter `FeedivoTests/`).
 
 - **2026-08-02: Sparkle-Update-Zyklus erstmals vollständig End-to-End verifiziert
   (Notarisierung, Developer-ID-Signing, SPUStandardUserDriver) — ABGESCHLOSSEN.**
