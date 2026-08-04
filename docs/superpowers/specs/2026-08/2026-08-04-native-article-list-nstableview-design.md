@@ -101,7 +101,8 @@ Produktivcode, gated ausschließlich über den neuen Settings-Schalter):
   `NSTableViewDelegate`, `NSMenuDelegate`:
   - Zeilenzahl = `visibleRows.count` + Trailing-Rows (siehe unten)
   - Kontextmenü: `menuNeedsUpdate(_:)` baut das Menü frisch anhand von
-    `tableView.clickedRow`, identische 12 Einträge/Titel/Aktivierungsbedingungen wie
+    `tableView.clickedRow`, identische 13 Aktions-Einträge (+ 3 Trenner)/Titel/
+    Aktivierungsbedingungen wie
     `ArticleRowView.contextMenu` heute (Gelesen/Ungelesen, Stern, Trenner, Archiv,
     Tag zuweisen [disabled ohne `hasAvailableTags`], Regel erstellen, Trenner, In neuem
     Tab öffnen, In Fenster öffnen, Link kopieren [disabled ohne `hasOriginalURL`],
@@ -206,7 +207,7 @@ mehrtägiger Live-Verifikation im Alltagsbetrieb ansteht.
   Rendering selbst zu vergleichen (unmöglich headless, siehe Spike-Erkenntnis).
 - **Whole-Branch-Review** nach Abschluss aller Implementierungs-Tasks.
 - **Manuelle Live-Verifikation durch den Nutzer** (Release-Build, Schalter aktiviert,
-  über mehrere Tage Alltagsbetrieb): Kontextmenü (alle 12 Einträge inkl. disabled-
+  über mehrere Tage Alltagsbetrieb): Kontextmenü (alle 13 Aktions-Einträge inkl. disabled-
   Zustände), Pagination bei einem Feed mit vielen Artikeln, "N gelesene anzeigen"-
   Footer, Tastaturnavigation (Pfeiltasten, bestehender automatischer Feed-Sprung-
   Mechanismus), alle Anzeige-Einstellungs-Kombinationen (Bildposition × Feedname-
