@@ -68,35 +68,75 @@ struct SQLiteFeedRefreshServiceTests {
         #expect(logs.first?.newArticleCount == 2)
     }
 
-    // Regressionstest für den enrichArticleImages-Verdrahtungsfix: die Closure
-    // muss vor dem ArticleUpsertInput-Mapping aufgerufen werden und ihr
-    // Ergebnis muss tatsächlich gespeichert werden — nicht das rohe
-    // article.imageURL aus dem Feed-Parse. Siehe CLAUDE.md-Regressionsbefund
-    // zu Commit 0e4ae0a6 (2026-07-07), der den letzten produktiven Aufruf
-    // versehentlich mitentfernt hatte.
-    @Test func refreshRuftEnrichArticleImagesAufUndSpeichertDerenErgebnis() async throws {
+    // Optimierungsliste Punkt 3 (docs/performance/feed-refresh-optimierungsliste.md,
+    // 2026-08-04): enrichArticleImages lief bisher synchron VOR dem Insert und
+    // blockierte damit den Abschluss von refresh() — dieser Test beweist, dass ein
+    // Artikel ohne Feed-eigenes Bild SOFORT (ohne auf die Anreicherung zu warten)
+    // ohne imageURL gespeichert wird, obwohl eine echte, "erfolgreiche"
+    // enrichArticleImages-Closure übergeben wird.
+    @Test func refreshSpeichertArtikelSofortOhneAufBildAnreicherungZuWarten() async throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let feedStore = FeedStore(database: database)
         let articleStore = ArticleStore(database: database)
         try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Old"))
 
-        var receivedArticles: [ParsedArticle] = []
+        let neverOpens = SingleShotSignal()
         let service = SQLiteFeedRefreshService(
             database: database,
             enrichArticleImages: { articles in
-                receivedArticles = articles
-                return articles.map { article in
-                    ParsedArticle(
-                        title: article.title,
-                        sourceID: article.sourceID,
-                        link: article.link,
-                        summary: article.summary,
-                        content: article.content,
-                        publishedAt: article.publishedAt,
-                        imageURL: "https://example.com/enriched.jpg",
-                        author: article.author
-                    )
-                }
+                await neverOpens.wait()
+                return articles.map { $0.copy(imageURL: "https://example.com/enriched.jpg") }
+            },
+            fetcher: { url, _ in
+                .updated(
+                    ParsedFeed(
+                        sourceURL: url,
+                        title: "Example",
+                        description: nil,
+                        siteURL: nil,
+                        articles: [
+                            ParsedArticle(
+                                title: "Ohne Bild",
+                                sourceID: "one",
+                                link: "https://example.com/one",
+                                summary: nil,
+                                content: nil,
+                                publishedAt: Date(timeIntervalSince1970: 1_000),
+                                imageURL: nil
+                            )
+                        ]
+                    ),
+                    FeedHTTPValidators()
+                )
+            }
+        )
+
+        let result = try await withRefreshTimeout(seconds: 2) {
+            try await service.refresh(feedID: "feed-1")
+        }
+        let storedArticle = try articleStore.readerArticle(id: result.insertedArticleIDs[0])
+
+        #expect(storedArticle?.imageURL == nil)
+    }
+
+    // Gegenstück zum obigen Test: der Hintergrund-Task holt das Bild tatsächlich
+    // nach. Nutzt den onDeferredImageEnrichmentComplete-Hook + ein deterministisches
+    // Signal statt Task.sleep/Wanduhrzeiten (Lehre aus Optimierungsliste Punkt 1 —
+    // siehe dortige Regressionstest-Historie zu geflackerten Zeit-basierten Tests).
+    @Test func refreshReichertFehlendeBilderImHintergrundAnUndAktualisiertDenArtikel() async throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Old"))
+
+        let enrichmentDone = SingleShotSignal()
+        let service = SQLiteFeedRefreshService(
+            database: database,
+            enrichArticleImages: { articles in
+                articles.map { $0.copy(imageURL: "https://example.com/enriched.jpg") }
+            },
+            onDeferredImageEnrichmentComplete: {
+                Task { await enrichmentDone.fire() }
             },
             fetcher: { url, _ in
                 .updated(
@@ -123,10 +163,9 @@ struct SQLiteFeedRefreshServiceTests {
         )
 
         let result = try await service.refresh(feedID: "feed-1")
-        let storedArticle = try articleStore.readerArticle(id: result.insertedArticleIDs[0])
+        await enrichmentDone.wait()
 
-        #expect(receivedArticles.count == 1)
-        #expect(receivedArticles.first?.imageURL == nil)
+        let storedArticle = try articleStore.readerArticle(id: result.insertedArticleIDs[0])
         #expect(storedArticle?.imageURL == "https://example.com/enriched.jpg")
     }
 
@@ -455,5 +494,48 @@ struct SQLiteFeedRefreshServiceTests {
 
         _ = try await service.refresh(feedID: "feed-1")
         return commits.count
+    }
+}
+
+private actor SingleShotSignal {
+    private var continuation: CheckedContinuation<Void, Never>?
+    private var hasFired = false
+
+    func wait() async {
+        if hasFired {
+            return
+        }
+        await withCheckedContinuation { continuation = $0 }
+    }
+
+    func fire() {
+        hasFired = true
+        continuation?.resume()
+        continuation = nil
+    }
+}
+
+private enum RefreshTestTimeoutError: Error {
+    case timedOut
+}
+
+private func withRefreshTimeout<T: Sendable>(
+    seconds: Double,
+    operation: @escaping @Sendable () async throws -> T
+) async throws -> T {
+    try await withThrowingTaskGroup(of: T.self) { group in
+        group.addTask {
+            try await operation()
+        }
+        group.addTask {
+            try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+            throw RefreshTestTimeoutError.timedOut
+        }
+
+        guard let result = try await group.next() else {
+            throw RefreshTestTimeoutError.timedOut
+        }
+        group.cancelAll()
+        return result
     }
 }

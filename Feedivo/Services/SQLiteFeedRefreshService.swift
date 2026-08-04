@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 enum SQLiteFeedFetchResult: Sendable {
     case updated(ParsedFeed, FeedHTTPValidators)
@@ -21,6 +22,7 @@ struct SQLiteFeedRefreshService {
     typealias FaviconFetcher = (URL) async -> String?
     typealias SpotlightIndexer = ([ArticleListSnapshot]) -> Void
     typealias ArticleImageEnricher = ([ParsedArticle]) async -> [ParsedArticle]
+    typealias DeferredImageEnrichmentObserver = @Sendable () -> Void
 
     private let database: FeedivoDatabase
     private let feedStore: FeedStore
@@ -34,6 +36,7 @@ struct SQLiteFeedRefreshService {
     private let indexForSpotlight: SpotlightIndexer
     private let fetcher: Fetcher
     private let enrichArticleImages: ArticleImageEnricher
+    private let onDeferredImageEnrichmentComplete: DeferredImageEnrichmentObserver?
 
     init(
         database: FeedivoDatabase,
@@ -62,6 +65,10 @@ struct SQLiteFeedRefreshService {
         // nicht mehr kompilieren — exakt der bereits einmal in diesem Projekt
         // aufgetretene Fallstrick (siehe Git-Historie zu dieser Datei).
         enrichArticleImages: @escaping ArticleImageEnricher = { $0 },
+        // Test-Hook für deterministisches Warten auf den Hintergrund-Task der
+        // Bild-Anreicherung (Optimierungsliste Punkt 3) — produktiv ungenutzt
+        // (Standard nil), kein Verhalten geändert.
+        onDeferredImageEnrichmentComplete: DeferredImageEnrichmentObserver? = nil,
         fetcher: @escaping Fetcher = SQLiteFeedRefreshService.defaultFetcher
     ) {
         self.database = database
@@ -76,6 +83,7 @@ struct SQLiteFeedRefreshService {
         self.indexForSpotlight = indexForSpotlight
         self.fetcher = fetcher
         self.enrichArticleImages = enrichArticleImages
+        self.onDeferredImageEnrichmentComplete = onDeferredImageEnrichmentComplete
     }
 
     func refresh(feedID: String) async throws -> SQLiteFeedRefreshResult {
@@ -124,8 +132,7 @@ struct SQLiteFeedRefreshService {
                 let refreshedTitle = parsedFeed.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                     ? feed.title
                     : parsedFeed.title
-                let enrichedArticles = await enrichArticleImages(parsedFeed.articles)
-                let inputs = enrichedArticles.map { article in
+                let inputs = parsedFeed.articles.map { article in
                     ArticleUpsertInput(
                         feedID: feedID,
                         sourceID: article.sourceID,
@@ -154,15 +161,15 @@ struct SQLiteFeedRefreshService {
                 // sofort beim Eintreffen ausblendet (isHidden), korrekt von
                 // der Spotlight-Indexierung ausgeschlossen bleibt
                 // (includeHidden: false).
-                logIfThrows(context: "Spotlight-Indexierung nach Feed-Refresh") {
-                    guard !upsertResult.insertedArticleIDs.isEmpty else {
-                        return
+                if !upsertResult.insertedArticleIDs.isEmpty {
+                    logIfThrows(context: "Snapshot-Abruf für neu eingefügte Artikel nach Feed-Refresh") {
+                        let insertedSnapshots = try ArticleDatabase(database: database).fetchArticles(
+                            articleIDs: Set(upsertResult.insertedArticleIDs),
+                            includeHidden: false
+                        )
+                        indexForSpotlight(insertedSnapshots)
+                        scheduleDeferredImageEnrichmentIfNeeded(for: insertedSnapshots)
                     }
-                    let snapshotsToIndex = try ArticleDatabase(database: database).fetchArticles(
-                        articleIDs: Set(upsertResult.insertedArticleIDs),
-                        includeHidden: false
-                    )
-                    indexForSpotlight(snapshotsToIndex)
                 }
                 let unreadCount = try statusStore.unreadCount(feedID: feedID)
                 let faviconURL = await faviconURLIfNeeded(for: feed, parsedFeed: parsedFeed)
@@ -201,6 +208,73 @@ struct SQLiteFeedRefreshService {
                 newArticleCount: 0
             ))
             throw error
+        }
+    }
+
+    // Startet einen von refresh() unabhängigen Hintergrund-Task für Artikel,
+    // die weder im Feed selbst noch beim Parsen ein Bild bekommen haben
+    // (Optimierungsliste Punkt 3, docs/performance/feed-refresh-optimierungsliste.md).
+    // refresh() wartet NICHT auf diesen Task — der Feed gilt sofort als fertig
+    // aktualisiert, sobald sein Inhalt gespeichert ist.
+    private func scheduleDeferredImageEnrichmentIfNeeded(for snapshots: [ArticleListSnapshot]) {
+        let candidates = snapshots.filter { $0.imageURL == nil && $0.link != nil }
+        guard !candidates.isEmpty else {
+            return
+        }
+
+        let enrichArticleImages = self.enrichArticleImages
+        let database = self.database
+        let onComplete = self.onDeferredImageEnrichmentComplete
+
+        Task {
+            await Self.enrichAndPersistImages(
+                candidates: candidates,
+                database: database,
+                enrichArticleImages: enrichArticleImages
+            )
+            onComplete?()
+        }
+    }
+
+    // Nutzt Platzhalter-ParsedArticle-Werte für enrichArticleImages, da diese
+    // Closure nur `.link` liest und nur `.imageURL` über `.copy(imageURL:)`
+    // zurückschreibt (siehe FeedService.enrichArticleImagesIfNeeded) — Titel/
+    // Summary/Content werden hier nicht gebraucht, der Artikel existiert
+    // bereits vollständig in der Datenbank. zip(candidates, enriched) ist
+    // sicher, da enrichArticleImagesIfNeeded Ein- und Ausgabe-Array garantiert
+    // gleich lang und index-gleich hält.
+    private static func enrichAndPersistImages(
+        candidates: [ArticleListSnapshot],
+        database: FeedivoDatabase,
+        enrichArticleImages: ArticleImageEnricher
+    ) async {
+        let placeholders = candidates.map { candidate in
+            ParsedArticle(
+                title: "",
+                link: candidate.link,
+                summary: nil,
+                content: nil,
+                publishedAt: nil,
+                imageURL: nil
+            )
+        }
+        let enriched = await enrichArticleImages(placeholders)
+
+        let articleStore = ArticleStore(database: database)
+        var didUpdateAny = false
+        for (candidate, result) in zip(candidates, enriched) {
+            guard let imageURL = result.imageURL else {
+                continue
+            }
+            do {
+                try articleStore.updateImageURL(articleID: candidate.id, imageURL: imageURL)
+                didUpdateAny = true
+            } catch {
+                AppLogger.dataAccess.error("Nachträgliche Bild-Anreicherung: Speichern für Artikel \(candidate.id, privacy: .public) fehlgeschlagen: \(error.localizedDescription, privacy: .public)")
+            }
+        }
+        if didUpdateAny {
+            SQLiteDataInvalidation.bumpStatusVersion()
         }
     }
 
