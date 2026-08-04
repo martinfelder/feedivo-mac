@@ -19,19 +19,14 @@ struct SQLiteFeedActionService {
         discoverFaviconURL: @escaping @Sendable (URL) async -> String? = { siteURL in
             await FaviconService.discoverFaviconURL(siteURL: siteURL)
         },
-        // Anders als die No-Op-Defaults in SQLiteFeedRefreshService/
-        // SQLiteFeedSubscriptionService/SQLiteFeedRefreshCoordinator: dieser
-        // Service ist der zentrale, produktive Durchgangspunkt für ALLE
-        // Feed-Aktionen (Feed hinzufügen, Einzel-Refresh, Batch-Refresh —
-        // aufgerufen von FeedViewModel und LocalExtensionBridgeServer) und hat
-        // selbst keine eigene Testsuite, die auf einen sicheren No-Op-Default
-        // angewiesen wäre. Deshalb hier bewusst der echte Standard, damit die
-        // Bildanreicherung (FeedService.enrichArticleImagesIfNeeded) für
-        // Artikel ohne RSS-eigenes Bild automatisch greift, ohne dass jeder
-        // Aufrufer sie einzeln aktivieren muss.
-        enrichArticleImages: @escaping SQLiteFeedRefreshService.ArticleImageEnricher = { articles in
-            await FeedService.enrichArticleImagesIfNeeded(in: articles)
-        }
+        // Nutzerentscheidung (2026-08-04): Artikel sollen exakt so dargestellt
+        // werden, wie sie vom Feed geliefert werden — kein zusätzlicher
+        // Netzwerkabruf der Originalseite, um ein fehlendes Bild zu "erraten".
+        // Bis 2026-08-04 stand hier bewusst der echte Standard
+        // (FeedService.enrichArticleImagesIfNeeded), jetzt derselbe No-Op wie
+        // in SQLiteFeedRefreshService/SQLiteFeedSubscriptionService/
+        // SQLiteFeedRefreshCoordinator.
+        enrichArticleImages: @escaping SQLiteFeedRefreshService.ArticleImageEnricher = { $0 }
     ) {
         self.database = database
         self.fetchFeed = fetchFeed

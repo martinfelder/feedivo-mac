@@ -2564,6 +2564,30 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Letzte Änderungen
 
+- 2026-08-04: Netzwerk-basierte Bild-Anreicherung deaktiviert (Nutzerentscheidung, minimaler
+  Umfang). Die erst im Verlauf desselben Tages gebaute Bild-Anreicherung
+  (`FeedService.enrichArticleImagesIfNeeded` — ruft bei fehlendem RSS-eigenem Bild die
+  Original-Artikelseite per Netzwerk ab und sucht dort nach `og:image`/`twitter:image`,
+  siehe Commits `bc6a753`/`7d5e3ee` und `docs/superpowers/specs/2026-08/
+  2026-08-04-feed-refresh-bild-anreicherung-hintergrund-design.md`) hatte den Effekt, dass
+  Artikel ohne Bild im Feed trotzdem oft ein Bild zeigten — vom Nutzer als unerwünscht
+  eingestuft: Artikel sollen exakt so dargestellt werden, wie sie vom Feed ausgeliefert
+  werden, ohne zusätzlichen Netzwerkabruf zum "Erraten" eines fehlenden Bildes. Statt der
+  besprochenen vollständigen Entfernung (Code + Tests + Doku) bewusst die minimale,
+  reversible Variante gewählt: die beiden einzigen produktiven Verdrahtungsstellen, die den
+  echten Enricher statt des sonst projektweit üblichen No-Op-Defaults (`{ $0 }`) gesetzt
+  hatten, umgestellt — `FeedViewModel.init` ([FeedViewModel.swift:102](Feedivo/ViewModels/FeedViewModel.swift:102),
+  deckt alle App-UI-Pfade ab) und `SQLiteFeedActionService.init`
+  ([SQLiteFeedActionService.swift:32](Feedivo/Services/SQLiteFeedActionService.swift:32), Fallback für
+  `LocalExtensionBridgeServer`, den Browser-Erweiterungs-HTTP-Server). Die Feed-eigene
+  Bildextraktion (`media:content`, RSS-`enclosure`, `<img>` in `content:encoded`/
+  `description`, Atom-Content/Summary, JSON-Feed-`image` — alles direkt aus dem bereits
+  ausgelieferten Feed-Inhalt, kein zusätzlicher Request) bleibt unverändert. `FeedService.
+  enrichArticleImagesIfNeeded` selbst samt Helfern und eigener Testsuite bleibt im Code
+  bestehen (aktuell ungenutzte, aber dokumentierte Fähigkeit) — bei Bedarf jederzeit durch
+  Rückgängigmachen dieser zwei Default-Änderungen reaktivierbar. Build (Debug) und die vier
+  betroffenen Testsuiten (`FeedViewModelTests`, `SQLiteFeedSubscriptionServiceTests`,
+  `SQLiteFeedRefreshCoordinatorTests`, `FeedServiceConditionalFetchTests`, 45/45) grün.
 - 2026-07-28: Reader Inline-Formatierung (Fett/Kursiv/Links/Farben aus Artikel-HTML)
   — VOLLSTÄNDIG ABGESCHLOSSEN, gepusht (`b54818a9..5c35e57b`), vom Nutzer nach
   eigener manueller Live-Verifikation als funktionierend bestätigt. Der native

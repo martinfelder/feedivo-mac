@@ -99,9 +99,12 @@ final class FeedViewModel {
         discoverFaviconURL: @escaping @Sendable (URL) async -> String? = { siteURL in
             await FaviconService.discoverFaviconURL(siteURL: siteURL)
         },
-        enrichArticleImages: @escaping @Sendable ([ParsedArticle]) async -> [ParsedArticle] = { articles in
-            await FeedService.enrichArticleImagesIfNeeded(in: articles)
-        },
+        // Nutzerentscheidung (2026-08-04): Artikel sollen exakt so dargestellt
+        // werden, wie sie vom Feed geliefert werden — kein zusätzlicher
+        // Netzwerkabruf der Originalseite, um ein fehlendes Bild zu "erraten"
+        // (FeedService.enrichArticleImagesIfNeeded bleibt als Fähigkeit
+        // bestehen, ist hier aber bewusst nicht mehr verdrahtet).
+        enrichArticleImages: @escaping @Sendable ([ParsedArticle]) async -> [ParsedArticle] = { $0 },
         notifyFeedRefresh: @escaping ([FeedRefreshNotificationResult]) async -> Void = { results in
             await FeedNotificationService.presentRefreshSummary(for: results)
         },
