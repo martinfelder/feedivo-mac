@@ -210,6 +210,13 @@ struct FeedivoApp: App {
                     }
                 }
             }
+            #if DEBUG
+            CommandGroup(after: .toolbar) {
+                Button("Render-Benchmark öffnen") {
+                    openWindow(id: ArticleListRenderBenchmarkView.windowID)
+                }
+            }
+            #endif
             // Entfernt den von SwiftUI automatisch bereitgestellten, aber funktionslosen
             // "Drucken..."-Menuepunkt (Datei-Menue, Standard-Tastenkombination Cmd+P).
             // Ohne diese Entfernung kollidiert er mit dem neuen Drucken-Button in
@@ -218,13 +225,6 @@ struct FeedivoApp: App {
             // beim Ausloesen den generischen AppKit-Fallback-Alert "Diese App
             // unterstuetzt Drucken nicht", statt dass unser Drucken-Button reagiert
             // (Live-Bug-Fund 2026-07-17, Nutzer-Report).
-            #if DEBUG
-            CommandGroup(after: .toolbar) {
-                Button("Render-Benchmark öffnen") {
-                    openWindow(id: ArticleListRenderBenchmarkView.windowID)
-                }
-            }
-            #endif
             CommandGroup(replacing: .printItem) {}
         }
         Window(L10n.articleSearchCommand, id: ArticleSearchWindowView.windowID) {

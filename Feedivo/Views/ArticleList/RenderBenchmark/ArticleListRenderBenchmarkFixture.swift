@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 
 #if DEBUG
@@ -9,6 +10,39 @@ import Foundation
 /// schnell, dieser Benchmark isoliert ausschließlich die Render-Variable.
 enum ArticleListRenderBenchmarkFixture {
     static let defaultCount = 1_000
+
+    // Whole-Branch-Review-Fund: `https://example.com/...`-URLs lösen NIE auf
+    // echte Bilder auf. `ImageCacheService` cached fehlgeschlagene Fetches
+    // nicht negativ, wodurch jeder `NativeArticleRowCellView.configure(...)`-
+    // Aufruf (also jede Zellwiederverwendung beim Scrollen) zwei live
+    // fehlschlagende Netzwerk-Requests auslöst — auf ewig, ohne dass je ein
+    // Bild sichtbar wird. Das hätte den eigentlichen Zweck des Benchmarks
+    // (die Bild-Flicker-Hypothese beobachten) unmöglich gemacht und die
+    // native Seite unfair zusätzlich belastet. Fix: eine einzige, lokal
+    // erzeugte PNG-Datei per `file://`-URL, für jeden Snapshot mit Bild
+    // wiederverwendet — der tatsächliche Bildinhalt ist für diesen Benchmark
+    // irrelevant, nur ein garantiert erfolgreicher, cachefähiger Ladevorgang
+    // zählt.
+    private static let generatedImageURL: URL = {
+        let size = NSSize(width: 8, height: 8)
+        let image = NSImage(size: size)
+        image.lockFocus()
+        NSColor.systemBlue.setFill()
+        NSRect(origin: .zero, size: size).fill()
+        image.unlockFocus()
+
+        guard let tiffData = image.tiffRepresentation,
+              let bitmap = NSBitmapImageRep(data: tiffData),
+              let pngData = bitmap.representation(using: .png, properties: [:])
+        else {
+            preconditionFailure("Konnte kein PNG für den Render-Benchmark erzeugen")
+        }
+
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("render-benchmark-fixture-image.png")
+        try? pngData.write(to: url)
+        return url
+    }()
 
     static func makeSnapshots(count: Int = defaultCount) -> [ArticleListSnapshot] {
         (0 ..< count).map(makeSnapshot)
@@ -29,7 +63,7 @@ enum ArticleListRenderBenchmarkFixture {
             title: makeWords(prefix: "Titelwort", wordCount: titleWordCount, seed: index),
             summary: hasSummary ? makeWords(prefix: "Zusammenfassung", wordCount: summaryWordCount, seed: index) : nil,
             link: "https://example.com/benchmark/article/\(index)",
-            imageURL: hasImage ? "https://example.com/benchmark/image/\(index).jpg" : nil,
+            imageURL: hasImage ? generatedImageURL.absoluteString : nil,
             publishedAt: publishedAt,
             arrivedAt: publishedAt,
             estimatedReadingMinutes: hasSummary ? 1 + (index % 8) : nil,
@@ -37,7 +71,7 @@ enum ArticleListRenderBenchmarkFixture {
             isStarred: index % 11 == 0,
             isArchived: false,
             isHidden: false,
-            faviconURL: hasImage ? "https://example.com/benchmark/favicon/\(feedIndex).png" : nil
+            faviconURL: hasImage ? generatedImageURL.absoluteString : nil
         )
     }
 

@@ -17,6 +17,18 @@ final class NativeArticleRowCellView: NSTableCellView {
     private lazy var textStack = NSStackView(views: [titleField, metadataRow, summaryField])
     private lazy var rootStack = NSStackView(views: [unreadIndicator, previewImageView, textStack, starButton])
 
+    // Whole-Branch-Review-Fund: diese vier Constraints trugen bisher feste,
+    // unskalierte Literale (56/11/24pt) — gespeichert als Properties, damit
+    // `configure(...)` ihre `.constant` je `interfaceTextSize` aktualisieren
+    // kann, analog zu `ArticleRowView.previewImageSide`/`.scaled(11)`/
+    // `.scaled(24)` auf der SwiftUI-Baseline-Seite.
+    private var previewImageWidthConstraint: NSLayoutConstraint!
+    private var previewImageHeightConstraint: NSLayoutConstraint!
+    private var faviconWidthConstraint: NSLayoutConstraint!
+    private var faviconHeightConstraint: NSLayoutConstraint!
+    private var starButtonWidthConstraint: NSLayoutConstraint!
+    private var starButtonHeightConstraint: NSLayoutConstraint!
+
     /// Erhöht sich bei jedem `configure(...)`-Aufruf — dient
     /// `NativeArticleImageLoadGuard` als "aktueller Stand dieser Zelle".
     private var currentLoadToken = 0
@@ -69,16 +81,14 @@ final class NativeArticleRowCellView: NSTableCellView {
         ])
 
         previewImageView.imageScaling = .scaleProportionallyUpOrDown
-        NSLayoutConstraint.activate([
-            previewImageView.widthAnchor.constraint(equalToConstant: 56),
-            previewImageView.heightAnchor.constraint(equalToConstant: 56)
-        ])
+        previewImageWidthConstraint = previewImageView.widthAnchor.constraint(equalToConstant: 56)
+        previewImageHeightConstraint = previewImageView.heightAnchor.constraint(equalToConstant: 56)
+        NSLayoutConstraint.activate([previewImageWidthConstraint, previewImageHeightConstraint])
 
         faviconImageView.imageScaling = .scaleProportionallyUpOrDown
-        NSLayoutConstraint.activate([
-            faviconImageView.widthAnchor.constraint(equalToConstant: 11),
-            faviconImageView.heightAnchor.constraint(equalToConstant: 11)
-        ])
+        faviconWidthConstraint = faviconImageView.widthAnchor.constraint(equalToConstant: 11)
+        faviconHeightConstraint = faviconImageView.heightAnchor.constraint(equalToConstant: 11)
+        NSLayoutConstraint.activate([faviconWidthConstraint, faviconHeightConstraint])
 
         titleField.maximumNumberOfLines = 2
         titleField.lineBreakMode = .byTruncatingTail
@@ -94,25 +104,37 @@ final class NativeArticleRowCellView: NSTableCellView {
         starButton.isBordered = false
         starButton.target = self
         starButton.action = #selector(starButtonTapped)
-        NSLayoutConstraint.activate([
-            starButton.widthAnchor.constraint(equalToConstant: 24),
-            starButton.heightAnchor.constraint(equalToConstant: 24)
-        ])
+        starButtonWidthConstraint = starButton.widthAnchor.constraint(equalToConstant: 24)
+        starButtonHeightConstraint = starButton.heightAnchor.constraint(equalToConstant: 24)
+        NSLayoutConstraint.activate([starButtonWidthConstraint, starButtonHeightConstraint])
     }
 
-    func configure(with snapshot: ArticleListSnapshot, onToggleStarred: @escaping () -> Void) {
+    func configure(with snapshot: ArticleListSnapshot, interfaceTextSize: InterfaceTextSize, onToggleStarred: @escaping () -> Void) {
         currentLoadToken += 1
         let loadToken = currentLoadToken
         starButtonAction = onToggleStarred
+
+        // Whole-Branch-Review-Fund: diese Zelle verwendete bisher überall
+        // unskalierte Literale statt `interfaceTextSize.scaled(...)` wie die
+        // SwiftUI-Baseline (`ArticleRowView`) — dadurch renderten beide
+        // Benchmark-Varianten sichtbar unterschiedlich, sobald die
+        // Textgröße-Einstellung nicht auf "Standard" stand.
+        previewImageWidthConstraint.constant = interfaceTextSize.scaled(56)
+        previewImageHeightConstraint.constant = interfaceTextSize.scaled(56)
+        faviconWidthConstraint.constant = interfaceTextSize.scaled(11)
+        faviconHeightConstraint.constant = interfaceTextSize.scaled(11)
+        starButtonWidthConstraint.constant = interfaceTextSize.scaled(24)
+        starButtonHeightConstraint.constant = interfaceTextSize.scaled(24)
 
         unreadIndicator.layer?.backgroundColor = snapshot.isRead
             ? NSColor.clear.cgColor
             : NSColor.controlAccentColor.cgColor
 
         titleField.stringValue = snapshot.title
-        titleField.font = .systemFont(ofSize: 14, weight: snapshot.isRead ? .regular : .semibold)
+        titleField.font = .systemFont(ofSize: interfaceTextSize.scaled(14), weight: snapshot.isRead ? .regular : .semibold)
         titleField.textColor = snapshot.isRead ? .secondaryLabelColor : .labelColor
 
+        metadataField.font = .systemFont(ofSize: interfaceTextSize.scaled(11))
         metadataField.stringValue = [
             snapshot.feedTitle,
             snapshot.publishedAt.map(Self.dateFormatter.string)
@@ -120,6 +142,7 @@ final class NativeArticleRowCellView: NSTableCellView {
         .compactMap { $0 }
         .joined(separator: " · ")
 
+        summaryField.font = .systemFont(ofSize: interfaceTextSize.scaled(13))
         summaryField.stringValue = snapshot.summary ?? ""
         summaryField.isHidden = snapshot.summary == nil
 
