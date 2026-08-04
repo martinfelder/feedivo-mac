@@ -1032,4 +1032,40 @@ struct SQLiteArticleStoreTests {
         #expect(article?.imageURL == "https://example.com/found.jpg")
         #expect(article?.title == "Titel")
     }
+
+    // Whole-Branch-Review-Fund (2026-08-04, Optimierungsliste Punkt 3): Da die
+    // Bild-Anreicherung seit diesem Feature nur noch für neu eingefügte Artikel
+    // läuft, ging das bisherige "UPDATE articles SET imageURL = ?" im Update-Zweig
+    // von upsert() das im Hintergrund nachträglich gefundene Bild beim NÄCHSTEN
+    // Refresh desselben, weiterhin bild-losen Feed-Eintrags kommentarlos wieder
+    // verloren (imageURL: nil aus dem erneuten RSS-Eintrag überschrieb den
+    // bestehenden Wert mit NULL) — und zwar dauerhaft, da der Artikel danach nie
+    // wieder als "neu eingefügt" gilt und somit nie wieder angereichert wird.
+    // COALESCE(?, imageURL) im UPDATE stellt sicher, dass ein NULL-Eingabewert ein
+    // bestehendes, nicht-NULL-Bild nie überschreibt, ein echter neuer Bild-Wert
+    // aus dem Feed aber weiterhin normal übernommen wird.
+    @Test func upsertUeberschreibtBestehendesBildNichtMitNullBeiErneutemUpsertOhneBild() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Feed"))
+
+        let input = ArticleUpsertInput(
+            feedID: "feed-1",
+            sourceID: "one",
+            link: "https://example.com/articles/1",
+            title: "Titel",
+            imageURL: nil
+        )
+        let articleID = try articleStore.upsert(input)
+        try articleStore.updateImageURL(articleID: articleID, imageURL: "https://example.com/found.jpg")
+
+        // Derselbe Artikel wird erneut upsertet (Feed liefert weiterhin kein Bild) —
+        // vor dem Fix hätte das den zuvor im Hintergrund gefundenen Bildwert genullt.
+        let secondArticleID = try articleStore.upsert(input)
+
+        #expect(secondArticleID == articleID)
+        let article = try articleStore.article(id: articleID)
+        #expect(article?.imageURL == "https://example.com/found.jpg")
+    }
 }

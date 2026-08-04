@@ -376,7 +376,7 @@ struct ArticleStore {
                         title = ?,
                         summary = ?,
                         content = ?,
-                        imageURL = ?,
+                        imageURL = COALESCE(?, imageURL),
                         author = ?,
                         publishedAt = ?,
                         updatedAt = ?,

@@ -73,18 +73,24 @@ struct SQLiteFeedRefreshServiceTests {
     // blockierte damit den Abschluss von refresh() — dieser Test beweist, dass ein
     // Artikel ohne Feed-eigenes Bild SOFORT (ohne auf die Anreicherung zu warten)
     // ohne imageURL gespeichert wird, obwohl eine echte, "erfolgreiche"
-    // enrichArticleImages-Closure übergeben wird.
+    // enrichArticleImages-Closure übergeben wird. Die blockierende Wartezeit MUSS
+    // cancellation-aware sein (hier `Task.sleep`, nicht ein einfacher, nie
+    // resumeter `withCheckedContinuation`) — nur so kann der
+    // `withRefreshTimeout`-Helper unten sie beim Auslaufen des 2s-Timeouts per
+    // `group.cancelAll()` tatsächlich abbrechen. Andernfalls würde eine künftige
+    // Regression (synchrone Anreicherung wieder in refresh() eingebaut) nicht
+    // sauber nach 2s fehlschlagen, sondern den gesamten Testprozess unbegrenzt
+    // hängen lassen.
     @Test func refreshSpeichertArtikelSofortOhneAufBildAnreicherungZuWarten() async throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let feedStore = FeedStore(database: database)
         let articleStore = ArticleStore(database: database)
         try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Old"))
 
-        let neverOpens = SingleShotSignal()
         let service = SQLiteFeedRefreshService(
             database: database,
             enrichArticleImages: { articles in
-                await neverOpens.wait()
+                try? await Task.sleep(nanoseconds: 60 * 1_000_000_000)
                 return articles.map { $0.copy(imageURL: "https://example.com/enriched.jpg") }
             },
             fetcher: { url, _ in
@@ -167,6 +173,68 @@ struct SQLiteFeedRefreshServiceTests {
 
         let storedArticle = try articleStore.readerArticle(id: result.insertedArticleIDs[0])
         #expect(storedArticle?.imageURL == "https://example.com/enriched.jpg")
+    }
+
+    // Whole-Branch-Review-Fund (2026-08-04): deckt denselben Bug wie
+    // SQLiteArticleStoreTests.upsertUeberschreibtBestehendesBildNichtMitNullBeiErneutemUpsertOhneBild
+    // ab, hier aber Ende-zu-Ende über zwei echte refresh()-Zyklen desselben
+    // Service statt direkt über ArticleStore.upsert(). Erster Refresh: Artikel
+    // ohne Feed-eigenes Bild wird im Hintergrund erfolgreich angereichert
+    // (deterministisch über onDeferredImageEnrichmentComplete abgewartet, wie im
+    // Test oben). Zweiter Refresh mit demselben sourceID/Feed (also UPDATE-Zweig
+    // in ArticleStore.upsert, nicht INSERT) und weiterhin ohne Bild im
+    // RSS-Payload — das im ersten Zyklus gefundene Bild darf dabei nicht
+    // verloren gehen, obwohl der Artikel beim zweiten Refresh nicht mehr in
+    // insertedArticleIDs auftaucht und deshalb nie wieder angereichert wird.
+    @Test func refreshBehaeltImHintergrundGefundenesBildBeiZweitemRefreshOhneFeedEigenesBild() async throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Old"))
+
+        let enrichmentDone = SingleShotSignal()
+        let parsedArticleOhneBild = ParsedArticle(
+            title: "Ohne Bild",
+            sourceID: "one",
+            link: "https://example.com/one",
+            summary: nil,
+            content: nil,
+            publishedAt: Date(timeIntervalSince1970: 1_000),
+            imageURL: nil
+        )
+        let service = SQLiteFeedRefreshService(
+            database: database,
+            enrichArticleImages: { articles in
+                articles.map { $0.copy(imageURL: "https://example.com/enriched.jpg") }
+            },
+            onDeferredImageEnrichmentComplete: {
+                Task { await enrichmentDone.fire() }
+            },
+            fetcher: { url, _ in
+                .updated(
+                    ParsedFeed(
+                        sourceURL: url,
+                        title: "Example",
+                        description: nil,
+                        siteURL: nil,
+                        articles: [parsedArticleOhneBild]
+                    ),
+                    FeedHTTPValidators()
+                )
+            }
+        )
+
+        let firstResult = try await service.refresh(feedID: "feed-1")
+        await enrichmentDone.wait()
+        let articleAfterFirstRefresh = try articleStore.readerArticle(id: firstResult.insertedArticleIDs[0])
+        #expect(articleAfterFirstRefresh?.imageURL == "https://example.com/enriched.jpg")
+
+        // Zweiter Refresh: derselbe Artikel (gleiche sourceID), Feed liefert
+        // weiterhin kein Bild — geht über den UPDATE-Zweig von upsert().
+        _ = try await service.refresh(feedID: "feed-1")
+
+        let articleAfterSecondRefresh = try articleStore.readerArticle(id: firstResult.insertedArticleIDs[0])
+        #expect(articleAfterSecondRefresh?.imageURL == "https://example.com/enriched.jpg")
     }
 
     @Test func refreshIndexiertNeueArtikelInSpotlight() async throws {
