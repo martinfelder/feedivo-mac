@@ -672,13 +672,39 @@ enum L10n {
     static let feedRefreshDiagnosticsDescription = String(localized: "feed.refreshDiagnostics.description")
     static let feedRefreshDiagnosticsEmptyTitle = String(localized: "feed.refreshDiagnostics.empty.title")
     static let feedRefreshDiagnosticsEmptyDescription = String(localized: "feed.refreshDiagnostics.empty.description")
-    static let feedRefreshDiagnosticsRetryAllButton = String(localized: "feed.refreshDiagnostics.retryAll.button")
-    static let feedRefreshDiagnosticsReloadListButton = String(localized: "feed.refreshDiagnostics.reloadList.button")
+    static let feedRefreshDiagnosticsRetryAllButton = LocalizedStringKey("feed.refreshDiagnostics.retryAll.button")
+    static let feedRefreshDiagnosticsReloadListButton = LocalizedStringKey("feed.refreshDiagnostics.reloadList.button")
     static let feedRefreshDiagnosticsOpenWebsiteButton = String(localized: "feed.refreshDiagnostics.openWebsite.button")
     static func feedRefreshDiagnosticsConsecutiveFailures(_ count: Int) -> String {
         String.localizedStringWithFormat(
             String(localized: "feed.refreshDiagnostics.consecutiveFailures"),
             count
+        )
+    }
+    static let feedRefreshDiagnosticsSearchPlaceholder = LocalizedStringKey("feed.refreshDiagnostics.search.placeholder")
+    static let feedRefreshDiagnosticsColumnFeed = String(localized: "feed.refreshDiagnostics.column.feed")
+    static let feedRefreshDiagnosticsColumnError = String(localized: "feed.refreshDiagnostics.column.error")
+    static let feedRefreshDiagnosticsColumnLastAttempt = String(localized: "feed.refreshDiagnostics.column.lastAttempt")
+    static let feedRefreshDiagnosticsColumnFailureCount = String(localized: "feed.refreshDiagnostics.column.failureCount")
+    static let feedRefreshDiagnosticsColumnActions = String(localized: "feed.refreshDiagnostics.column.actions")
+    static let feedRefreshDiagnosticsSeverityNew = String(localized: "feed.refreshDiagnostics.severity.new")
+    static func feedRefreshDiagnosticsFooterFeedCount(_ count: Int) -> String {
+        String.localizedStringWithFormat(
+            String(localized: "feed.refreshDiagnostics.footer.feedCount"),
+            count
+        )
+    }
+    static func feedRefreshDiagnosticsFooterLastChecked(_ relative: String) -> String {
+        String.localizedStringWithFormat(
+            String(localized: "feed.refreshDiagnostics.footer.lastChecked"),
+            relative
+        )
+    }
+    static let feedRefreshDiagnosticsSearchNoResultsTitle = String(localized: "feed.refreshDiagnostics.search.noResults.title")
+    static func feedRefreshDiagnosticsSearchNoResultsDescription(searchText: String) -> String {
+        String.localizedStringWithFormat(
+            String(localized: "feed.refreshDiagnostics.search.noResults.description"),
+            searchText
         )
     }
     static let feedErrorBadgeTooltip = String(localized: "feed.error.badge.tooltip")
