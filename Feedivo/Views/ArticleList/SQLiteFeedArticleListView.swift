@@ -35,6 +35,8 @@ struct SQLiteFeedArticleListView: View {
     private var sqliteStatusVersion = 0
     @AppStorage("markArticleReadOnSelection")
     private var markArticleReadOnSelection = true
+    @AppStorage(NativeArticleListSettings.isEnabledKey)
+    private var usesNativeArticleList = NativeArticleListSettings.defaultIsEnabled
 
     private enum Scope {
         case feed(feedID: String, title: String)
@@ -412,33 +414,67 @@ struct SQLiteFeedArticleListView: View {
         }
     }
 
+    @ViewBuilder
     private var articleList: some View {
         let currentDisplayState = displayState
 
-        return List(selection: $selectedArticleID) {
-            if currentDisplayState.filteredRows.isEmpty {
-                articleListEmptyState(isSearching: isSearching)
-            } else {
-                ForEach(currentDisplayState.visibleRows) { row in
-                    articleRow(row)
-                        .tag(row.id)
-                }
-
-                if state.hasMore {
-                    HStack {
-                        Spacer()
-                        ProgressView()
-                            .controlSize(.small)
-                        Spacer()
+        if usesNativeArticleList {
+            NativeArticleListTableView(
+                rows: currentDisplayState.visibleRows,
+                hasMore: state.hasMore,
+                hiddenReadRowCount: currentDisplayState.hiddenReadRowCount,
+                showsReadArticles: showsReadArticles,
+                selectedArticleID: $selectedArticleID,
+                hasAvailableTags: database != nil,
+                onToggleRead: toggleRead,
+                onToggleStarred: toggleStarred,
+                onToggleArchived: toggleArchived,
+                onRequestAssignTag: { articleID in
+                    tagAssignmentRequest = ArticleTagAssignmentRequest(articleID: articleID)
+                },
+                onCreateRule: requestRuleCreation,
+                onCopyLink: copyLink,
+                onOpenOriginal: openOriginal,
+                onShareOriginal: shareOriginal,
+                onOpenInNewTab: { articleID in
+                    readerTabsState.openInNewBackgroundTab(articleID: articleID)
+                },
+                onOpenInWindow: { articleID in
+                    guard let uuid = UUID(uuidString: articleID) else { return }
+                    openWindow(value: ArticleWindowRequest(articleID: uuid))
+                },
+                onExport: requestExportArticle,
+                onDelete: requestDeleteArticle,
+                onMarkAllRead: { markRowsRead(.allVisible) },
+                onLoadMore: { state.loadMore() },
+                onShowReadArticles: { showsReadArticles = true }
+            )
+        } else {
+            List(selection: $selectedArticleID) {
+                if currentDisplayState.filteredRows.isEmpty {
+                    articleListEmptyState(isSearching: isSearching)
+                } else {
+                    ForEach(currentDisplayState.visibleRows) { row in
+                        articleRow(row)
+                            .tag(row.id)
                     }
-                    .padding(.vertical, 12)
-                    .onAppear {
-                        state.loadMore()
-                    }
-                }
 
-                if !showsReadArticles, currentDisplayState.hiddenReadRowCount > 0 {
-                    showReadArticlesButton(count: currentDisplayState.hiddenReadRowCount)
+                    if state.hasMore {
+                        HStack {
+                            Spacer()
+                            ProgressView()
+                                .controlSize(.small)
+                            Spacer()
+                        }
+                        .padding(.vertical, 12)
+                        .onAppear {
+                            state.loadMore()
+                        }
+                    }
+
+                    if !showsReadArticles, currentDisplayState.hiddenReadRowCount > 0 {
+                        showReadArticlesButton(count: currentDisplayState.hiddenReadRowCount)
+                    }
                 }
             }
         }
