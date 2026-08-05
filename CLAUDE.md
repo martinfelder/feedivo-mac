@@ -1768,8 +1768,21 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   selben Fenster, nicht nur auf die Observation-Kette der einen betroffenen
   View selbst — ein einzelner synchroner MainActor-Blocker irgendwo im
   selben Fenster kann jede noch so korrekte Observation-Implementierung
-  unbrauchbar erscheinen lassen. **Status:** Fix committed, noch NICHT
-  gepusht (Projektkonvention: Push erst nach expliziter Nutzerbestätigung).
+  unbrauchbar erscheinen lassen. **Status:** Fix committed und gepusht
+  (Commit `133bf17`, Teil von v1.0-27) — der ursprüngliche „noch NICHT
+  gepusht"-Vermerk hier war veraltet.
+  **Nachtrag 4 (2026-08-05, Re-Verifikation nach v1.0-27):** dieselbe
+  T1→T2-Messung (Bump bis Reader-`.onChange` feuert) mit frischer, danach
+  wieder vollständig entfernter TEMP-DEBUG-Instrumentierung erneut live
+  durchgeführt — diesmal per `computer-use`-Tool selbst durch mehrere
+  ungelesene Artikel geklickt statt den Nutzer dafür zu bitten. Zwei saubere
+  Messungen (echter Bump, kein bereits-gelesen-No-op): **69ms und 68ms** —
+  deckungsgleich mit der nach dem Fix dokumentierten 58-67ms-Spanne, kein
+  Rückfall auf die alten ~225ms. Bestätigt: der Sidebar-Async-Fix hält auch
+  nach dem Release stand. Nebenbefund beim Aufsetzen der Instrumentierung:
+  `log stream` filtert `Logger.debug(...)`-Zeilen standardmäßig heraus,
+  auch mit passendem `--predicate`— braucht zusätzlich `--level debug`,
+  sonst bleibt der Stream trotz korrekt feuernder Log-Aufrufe leer.
 
 - **2026-08-05: Reader-Ladeverzögerung (~1s bei Artikelauswahl) — TEILWEISE BEHOBEN
   (GRDB DatabaseQueue → DatabasePool), Rest-Ursache identifiziert, Fix für nächste
