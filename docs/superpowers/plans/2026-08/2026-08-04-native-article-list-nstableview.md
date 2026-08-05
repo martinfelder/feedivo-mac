@@ -228,11 +228,11 @@ git commit -m "feat: Settings-Schalter für native Artikelliste (Beta)"
 
 ---
 
-## Task 2: Produktiv-Zelle für die Hauptartikelliste (`NativeArticleRowCellView`)
+## Task 2: Produktiv-Zelle für die Hauptartikelliste (`NativeArticleListRowCellView`)
 
 **Files:**
-- Create: `Feedivo/Views/ArticleList/Native/NativeArticleRowCellView.swift`
-- Test: `FeedivoTests/Views/ArticleList/Native/NativeArticleRowCellViewTests.swift`
+- Create: `Feedivo/Views/ArticleList/Native/NativeArticleListRowCellView.swift`
+- Test: `FeedivoTests/Views/ArticleList/Native/NativeArticleListRowCellViewTests.swift`
 
 **Interfaces:**
 - Consumes: `ArticleListSnapshot` (`Feedivo/Snapshots/ArticleListSnapshot.swift`),
@@ -247,7 +247,7 @@ git commit -m "feat: Settings-Schalter für native Artikelliste (Beta)"
   bleibt unverändert, wird nur importiert/aufgerufen), `L10n.articleRowUnreadText`,
   `L10n.articleRowStarredText`, `L10n.articleRowStarAdd`, `L10n.articleRowStarRemove`
   (`Feedivo/Resources/L10n.swift`).
-- Produces: `NativeArticleRowCellView` (finale Klasse, `NSTableCellView`-Subklasse) mit
+- Produces: `NativeArticleListRowCellView` (finale Klasse, `NSTableCellView`-Subklasse) mit
   `func configure(with snapshot: ArticleListSnapshot, interfaceTextSize: InterfaceTextSize,
   imagePosition: ArticleListImagePosition, feedNamePosition: ArticleListFeedNamePosition,
   showsFeedName: Bool, summaryLineCount: Int, dateDisplayMode: ArticleDateDisplayMode,
@@ -267,17 +267,17 @@ beiden reinen, isolierten Formatierungsfunktionen `metadataText` und
 
 - [ ] **Step 1: Fehlschlagende Tests für die reinen Formatierungsfunktionen schreiben**
 
-Neue Datei `FeedivoTests/Views/ArticleList/Native/NativeArticleRowCellViewTests.swift`:
+Neue Datei `FeedivoTests/Views/ArticleList/Native/NativeArticleListRowCellViewTests.swift`:
 
 ```swift
 import Foundation
 import Testing
 @testable import Feedivo
 
-struct NativeArticleRowCellViewTests {
+struct NativeArticleListRowCellViewTests {
     @Test func metadataTextKombiniertFeednameUndDatumMitTrennzeichen() {
         let date = Date(timeIntervalSinceReferenceDate: 0)
-        let text = NativeArticleRowCellView.metadataText(
+        let text = NativeArticleListRowCellView.metadataText(
             feedTitle: "Beispiel-Feed",
             publishedAt: date,
             showsFeedNameAndFavicon: true,
@@ -288,7 +288,7 @@ struct NativeArticleRowCellViewTests {
 
     @Test func metadataTextLaesstFeednameWegWennNichtGezeigt() {
         let date = Date(timeIntervalSinceReferenceDate: 0)
-        let text = NativeArticleRowCellView.metadataText(
+        let text = NativeArticleListRowCellView.metadataText(
             feedTitle: "Beispiel-Feed",
             publishedAt: date,
             showsFeedNameAndFavicon: false,
@@ -298,7 +298,7 @@ struct NativeArticleRowCellViewTests {
     }
 
     @Test func metadataTextIstLeerOhneFeednameUndDatum() {
-        let text = NativeArticleRowCellView.metadataText(
+        let text = NativeArticleListRowCellView.metadataText(
             feedTitle: nil,
             publishedAt: nil,
             showsFeedNameAndFavicon: true,
@@ -315,7 +315,7 @@ struct NativeArticleRowCellViewTests {
             isRead: false, isStarred: true, isArchived: false,
             isHidden: false, faviconURL: nil
         )
-        let label = NativeArticleRowCellView.accessibilityLabel(for: snapshot)
+        let label = NativeArticleListRowCellView.accessibilityLabel(for: snapshot)
         #expect(label == "Titel, \(L10n.articleRowUnreadText), \(L10n.articleRowStarredText)")
     }
 
@@ -327,7 +327,7 @@ struct NativeArticleRowCellViewTests {
             isRead: true, isStarred: false, isArchived: false,
             isHidden: false, faviconURL: nil
         )
-        let label = NativeArticleRowCellView.accessibilityLabel(for: snapshot)
+        let label = NativeArticleListRowCellView.accessibilityLabel(for: snapshot)
         #expect(label == "Titel")
     }
 }
@@ -335,12 +335,12 @@ struct NativeArticleRowCellViewTests {
 
 - [ ] **Step 2: Testlauf verifizieren, dass er fehlschlägt (Typ existiert noch nicht)**
 
-Run: `xcodebuild test -project Feedivo.xcodeproj -scheme Feedivo -destination 'platform=macOS' -only-testing:FeedivoTests/NativeArticleRowCellViewTests -parallel-testing-enabled NO`
-Expected: FAIL — `Cannot find 'NativeArticleRowCellView' in scope` (Compile-Fehler).
+Run: `xcodebuild test -project Feedivo.xcodeproj -scheme Feedivo -destination 'platform=macOS' -only-testing:FeedivoTests/NativeArticleListRowCellViewTests -parallel-testing-enabled NO`
+Expected: FAIL — `Cannot find 'NativeArticleListRowCellView' in scope` (Compile-Fehler).
 
-- [ ] **Step 3: `NativeArticleRowCellView` implementieren**
+- [ ] **Step 3: `NativeArticleListRowCellView` implementieren**
 
-Neue Datei `Feedivo/Views/ArticleList/Native/NativeArticleRowCellView.swift`:
+Neue Datei `Feedivo/Views/ArticleList/Native/NativeArticleListRowCellView.swift`:
 
 ```swift
 import AppKit
@@ -350,7 +350,7 @@ import AppKit
 /// eigenständige Klasse — kein Umbau des Spike-Codes). Volle Parität mit
 /// `ArticleRowView` (SwiftUI-Baseline): Bildposition, Feedname-Position,
 /// variable Zusammenfassungszeilen, Datumsanzeige-Modus, Barrierefreiheit.
-final class NativeArticleRowCellView: NSTableCellView {
+final class NativeArticleListRowCellView: NSTableCellView {
     private let unreadIndicator = NSView()
     private let previewImageView = NSImageView()
     private let faviconImageView = NSImageView()
@@ -604,7 +604,7 @@ final class NativeArticleRowCellView: NSTableCellView {
 
 - [ ] **Step 4: Testlauf verifizieren, dass alle Tests grün sind**
 
-Run: `xcodebuild test -project Feedivo.xcodeproj -scheme Feedivo -destination 'platform=macOS' -only-testing:FeedivoTests/NativeArticleRowCellViewTests -parallel-testing-enabled NO`
+Run: `xcodebuild test -project Feedivo.xcodeproj -scheme Feedivo -destination 'platform=macOS' -only-testing:FeedivoTests/NativeArticleListRowCellViewTests -parallel-testing-enabled NO`
 Expected: alle 5 Tests grün.
 
 - [ ] **Step 5: Build verifizieren**
@@ -615,9 +615,9 @@ Expected: `BUILD SUCCEEDED`.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add Feedivo/Views/ArticleList/Native/NativeArticleRowCellView.swift \
-  FeedivoTests/Views/ArticleList/Native/NativeArticleRowCellViewTests.swift
-git commit -m "feat: NativeArticleRowCellView — Produktiv-Zelle mit voller ArticleRowView-Parität"
+git add Feedivo/Views/ArticleList/Native/NativeArticleListRowCellView.swift \
+  FeedivoTests/Views/ArticleList/Native/NativeArticleListRowCellViewTests.swift
+git commit -m "feat: NativeArticleListRowCellView — Produktiv-Zelle mit voller ArticleRowView-Parität"
 ```
 
 ---
@@ -631,7 +631,7 @@ git commit -m "feat: NativeArticleRowCellView — Produktiv-Zelle mit voller Art
 
 **Interfaces:**
 - Consumes: `ArticleListSnapshot`, `ArticleOriginalURLResolver.hasUsableWebLink(_ link: String?) -> Bool`
-  (`Feedivo/ViewModels/ArticleURLHelpers.swift`), `NativeArticleRowCellView.configure(...)`
+  (`Feedivo/ViewModels/ArticleURLHelpers.swift`), `NativeArticleListRowCellView.configure(...)`
   (Task 2), `L10n.articleRowMarkUnread/.articleRowMarkRead/.articleRowStarRemove/
   .articleRowStarAdd/.articleUnarchiveCommand/.articleArchiveCommand/
   .articleAssignTagCommand/.articleCreateRuleCommand/.articleOpenInNewTabCommand/
@@ -921,7 +921,7 @@ final class NativeArticleListCoordinator: NSObject, NSTableViewDataSource, NSTab
         case trailing(TrailingRowKind)
     }
 
-    private static let contentIdentifier = NSUserInterfaceItemIdentifier("NativeArticleRowCellView")
+    private static let contentIdentifier = NSUserInterfaceItemIdentifier("NativeArticleListRowCellView")
     private static let loadMoreIdentifier = NSUserInterfaceItemIdentifier("NativeArticleListLoadMoreCellView")
     private static let showReadButtonIdentifier = NSUserInterfaceItemIdentifier("NativeArticleListShowReadButtonCellView")
 
@@ -987,8 +987,8 @@ final class NativeArticleListCoordinator: NSObject, NSTableViewDataSource, NSTab
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
         switch rowKind(atRow: row) {
         case let .content(snapshot):
-            let cell = (tableView.makeView(withIdentifier: Self.contentIdentifier, owner: self) as? NativeArticleRowCellView)
-                ?? NativeArticleRowCellView(frame: .zero)
+            let cell = (tableView.makeView(withIdentifier: Self.contentIdentifier, owner: self) as? NativeArticleListRowCellView)
+                ?? NativeArticleListRowCellView(frame: .zero)
             cell.identifier = Self.contentIdentifier
             cell.configure(
                 with: snapshot,
@@ -1608,7 +1608,7 @@ Neue Datei
 import AppKit
 
 /// Reine AppKit-Zelle für die native Suchfenster-Ergebnisliste — schlankeres
-/// Pendant zu `NativeArticleRowCellView`, nach dem Vorbild der SwiftUI-
+/// Pendant zu `NativeArticleListRowCellView`, nach dem Vorbild der SwiftUI-
 /// Baseline `ArticleSearchResultRow` (kein Kontextmenü, kein Stern-Button,
 /// dafür ein "Original öffnen"-Button).
 final class NativeArticleSearchResultCellView: NSTableCellView {
@@ -2100,7 +2100,7 @@ git commit -m "feat: Suchfenster-Ergebnisliste hinter native-Schalter verdrahten
 
 - [ ] **Step 1: Alle neuen Testsuiten gemeinsam ausführen**
 
-Run: `xcodebuild test -project Feedivo.xcodeproj -scheme Feedivo -destination 'platform=macOS' -only-testing:FeedivoTests/ArticleListDisplaySettingsTests -only-testing:FeedivoTests/NativeArticleRowCellViewTests -only-testing:FeedivoTests/NativeArticleListCoordinatorTests -only-testing:FeedivoTests/NativeArticleListTableViewTests -only-testing:FeedivoTests/NativeArticleSearchResultCellViewTests -only-testing:FeedivoTests/NativeArticleSearchResultTableViewTests -parallel-testing-enabled NO`
+Run: `xcodebuild test -project Feedivo.xcodeproj -scheme Feedivo -destination 'platform=macOS' -only-testing:FeedivoTests/ArticleListDisplaySettingsTests -only-testing:FeedivoTests/NativeArticleListRowCellViewTests -only-testing:FeedivoTests/NativeArticleListCoordinatorTests -only-testing:FeedivoTests/NativeArticleListTableViewTests -only-testing:FeedivoTests/NativeArticleSearchResultCellViewTests -only-testing:FeedivoTests/NativeArticleSearchResultTableViewTests -parallel-testing-enabled NO`
 Expected: alle Tests grün.
 
 - [ ] **Step 2: Bestehende, von diesem Plan berührte Suiten erneut laufen lassen**
