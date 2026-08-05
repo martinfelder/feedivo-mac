@@ -112,8 +112,11 @@ enum ArticleDateDisplayMode: String, CaseIterable, Identifiable {
 /// NSTableView-basierte, reine-AppKit-Implementierung statt der
 /// SwiftUI-`List` gerendert werden (siehe docs/superpowers/specs/2026-08/
 /// 2026-08-04-native-article-list-nstableview-design.md). Ein gemeinsamer
-/// Schalter für beide Listen, Standard AUS bis zur Live-Verifikation.
+/// Schalter für beide Listen. Nach erfolgreicher Live-Verifikation
+/// (2026-08-05) auf Standard AN umgestellt — der Schalter bleibt als
+/// Rückfalloption bestehen, die alte SwiftUI-`List`-Implementierung ist
+/// weiterhin vollständig vorhanden.
 enum NativeArticleListSettings {
     static let isEnabledKey = "articleList.usesNativeTableView"
-    static let defaultIsEnabled = false
+    static let defaultIsEnabled = true
 }

@@ -13,10 +13,19 @@ final class NativeArticleListRowCellView: NSTableCellView {
     private let metadataField = NSTextField(labelWithString: "")
     private let summaryField = NSTextField(labelWithString: "")
     private let starButton = NSButton(image: NSImage(), target: nil, action: nil)
+    // Füllt den Raum zwischen Ungelesen-Punkt (oben) und Stern (unten) in
+    // `accessoryStack` — Pendant zu SwiftUIs `Spacer(minLength: 8)` in
+    // `ArticleRowView`. Niedrige Content-Hugging-Priorität lässt NSStackView
+    // ausschließlich diese View wachsen, Punkt und Stern bleiben an ihrer
+    // fixen Größe.
+    private let accessorySpacer = NSView()
 
     private lazy var metadataRow = NSStackView(views: [faviconImageView, metadataField])
     private lazy var textStack = NSStackView(views: [titleField, metadataRow, summaryField])
-    private lazy var rootStack = NSStackView(views: [unreadIndicator, previewImageView, textStack, starButton])
+    // Ungelesen-Punkt oben, Stern unten in einer eigenen rechten Spalte —
+    // identisch zu `ArticleRowView`s `VStack { unreadIndicator; Spacer(...); Button(...) }`.
+    private lazy var accessoryStack = NSStackView(views: [unreadIndicator, accessorySpacer, starButton])
+    private lazy var rootStack = NSStackView(views: [previewImageView, textStack, accessoryStack])
 
     private var previewImageWidthConstraint: NSLayoutConstraint!
     private var previewImageHeightConstraint: NSLayoutConstraint!
@@ -69,8 +78,14 @@ final class NativeArticleListRowCellView: NSTableCellView {
             unreadIndicator.widthAnchor.constraint(equalToConstant: 8),
             unreadIndicator.heightAnchor.constraint(equalToConstant: 8)
         ])
+        // Lässt ausschließlich accessorySpacer wachsen, damit Punkt oben und
+        // Stern unten bleiben statt sich in der Mitte zu treffen.
+        accessorySpacer.setContentHuggingPriority(.defaultLow, for: .vertical)
 
         previewImageView.imageScaling = .scaleProportionallyUpOrDown
+        previewImageView.wantsLayer = true
+        previewImageView.layer?.cornerRadius = 6
+        previewImageView.layer?.masksToBounds = true
         previewImageWidthConstraint = previewImageView.widthAnchor.constraint(equalToConstant: 56)
         previewImageHeightConstraint = previewImageView.heightAnchor.constraint(equalToConstant: 56)
         NSLayoutConstraint.activate([previewImageWidthConstraint, previewImageHeightConstraint])
@@ -81,14 +96,22 @@ final class NativeArticleListRowCellView: NSTableCellView {
         NSLayoutConstraint.activate([faviconWidthConstraint, faviconHeightConstraint])
 
         titleField.maximumNumberOfLines = 2
-        titleField.lineBreakMode = .byTruncatingTail
+        // .byWordWrapping (nicht .byTruncatingTail!) ist nötig, damit der
+        // Titel wie in ArticleRowView (`.lineLimit(2)`) über mehrere Zeilen
+        // umbricht, statt nach der ersten Zeile abgeschnitten zu werden —
+        // .byTruncatingTail kürzt nur EINE Zeile, es bricht nie um.
+        titleField.lineBreakMode = .byWordWrapping
+        titleField.cell?.wraps = true
 
         metadataField.font = .systemFont(ofSize: 11)
         metadataField.textColor = .secondaryLabelColor
 
         summaryField.font = .systemFont(ofSize: 13)
         summaryField.textColor = .secondaryLabelColor
-        summaryField.lineBreakMode = .byTruncatingTail
+        // Gleicher Umbruch-Fix wie beim Titel — summaryLineCount soll
+        // tatsächlich mehrzeilig darstellen, nicht einzeilig abschneiden.
+        summaryField.lineBreakMode = .byWordWrapping
+        summaryField.cell?.wraps = true
 
         starButton.imagePosition = .imageOnly
         starButton.isBordered = false
@@ -97,6 +120,13 @@ final class NativeArticleListRowCellView: NSTableCellView {
         starButtonWidthConstraint = starButton.widthAnchor.constraint(equalToConstant: 24)
         starButtonHeightConstraint = starButton.heightAnchor.constraint(equalToConstant: 24)
         NSLayoutConstraint.activate([starButtonWidthConstraint, starButtonHeightConstraint])
+
+        accessoryStack.orientation = .vertical
+        accessoryStack.alignment = .centerX
+        accessoryStack.spacing = 0
+        NSLayoutConstraint.activate([
+            accessoryStack.widthAnchor.constraint(equalToConstant: 28)
+        ])
     }
 
     func configure(
@@ -140,6 +170,9 @@ final class NativeArticleListRowCellView: NSTableCellView {
         faviconImageView.isHidden = !showsFeedNameAndFavicon
 
         summaryField.font = .systemFont(ofSize: interfaceTextSize.scaled(13 as CGFloat))
+        // Tertiär bei gelesenen Artikeln, sonst sekundär — identisch zu
+        // ArticleRowView`s `.foregroundStyle(snapshot.isRead ? .tertiary : .secondary)`.
+        summaryField.textColor = snapshot.isRead ? .tertiaryLabelColor : .secondaryLabelColor
         summaryField.maximumNumberOfLines = summaryLineCount
         if let summary = snapshot.summary, !summary.isEmpty, summaryLineCount > 0 {
             summaryField.stringValue = summary
@@ -166,10 +199,11 @@ final class NativeArticleListRowCellView: NSTableCellView {
 
         // Bildposition links/rechts/aus spiegeln ArticleListImagePosition —
         // identisch zu `ArticleRowView`s `imagePosition == .left`-Verzweigung.
-        rootStack.removeArrangedSubview(unreadIndicator)
+        // accessoryStack (Ungelesen-Punkt + Stern, rechte Spalte) bleibt
+        // immer als letztes Element stehen, nur previewImageView wandert.
         rootStack.removeArrangedSubview(previewImageView)
         rootStack.removeArrangedSubview(textStack)
-        rootStack.removeArrangedSubview(starButton)
+        rootStack.removeArrangedSubview(accessoryStack)
         previewImageView.isHidden = imagePosition == .hidden
         switch imagePosition {
         case .left:
@@ -181,16 +215,27 @@ final class NativeArticleListRowCellView: NSTableCellView {
                 rootStack.addArrangedSubview(previewImageView)
             }
         }
-        rootStack.addArrangedSubview(starButton)
-        rootStack.insertArrangedSubview(unreadIndicator, at: 0)
+        rootStack.addArrangedSubview(accessoryStack)
 
         starButton.image = NSImage(
             systemSymbolName: snapshot.isStarred ? "star.fill" : "star",
             accessibilityDescription: snapshot.isStarred ? L10n.articleRowStarRemove : L10n.articleRowStarAdd
         )
+        // Gelb wenn gesetzt, sonst sekundär — identisch zu ArticleRowView`s
+        // `.foregroundStyle(snapshot.isStarred ? .yellow : .secondary)`.
+        starButton.contentTintColor = snapshot.isStarred ? .systemYellow : .secondaryLabelColor
 
-        previewImageView.image = nil
-        faviconImageView.image = nil
+        // Grauer, abgerundeter Platzhalter mit doc.text-Symbol, bis das
+        // echte Bild geladen ist bzw. wenn keins vorhanden ist — identisch
+        // zu ArticleRowView`s `placeholderImage`.
+        previewImageView.layer?.backgroundColor = NSColor.secondaryLabelColor.withAlphaComponent(0.12).cgColor
+        previewImageView.imageScaling = .scaleNone
+        previewImageView.image = NSImage(systemSymbolName: "doc.text", accessibilityDescription: nil)
+        previewImageView.contentTintColor = .secondaryLabelColor
+        // Fallback-Symbol bis das echte Favicon geladen ist bzw. wenn keins
+        // vorhanden ist — identisch zu ArticleRowView`s `metadataFaviconFallback`.
+        faviconImageView.image = NSImage(systemSymbolName: "dot.radiowaves.left.and.right", accessibilityDescription: nil)
+        faviconImageView.contentTintColor = .secondaryLabelColor
 
         if imagePosition != .hidden, let imageURLString = snapshot.imageURL, let imageURL = URL(string: imageURLString) {
             let side = interfaceTextSize.scaled(56 as CGFloat)
@@ -205,6 +250,7 @@ final class NativeArticleListRowCellView: NSTableCellView {
                           currentToken: self.currentLoadToken
                       )
                 else { return }
+                self.previewImageView.imageScaling = .scaleProportionallyUpOrDown
                 self.previewImageView.image = image
             }
         }

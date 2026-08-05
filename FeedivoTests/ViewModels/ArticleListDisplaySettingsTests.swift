@@ -53,8 +53,8 @@ struct ArticleListDisplaySettingsTests {
         #expect(ArticleDateDisplayMode.defaultMode == .relative)
     }
 
-    @Test func nativeArticleListSettingsDefaultIstAus() {
-        #expect(NativeArticleListSettings.defaultIsEnabled == false)
+    @Test func nativeArticleListSettingsDefaultIstAn() {
+        #expect(NativeArticleListSettings.defaultIsEnabled == true)
         #expect(NativeArticleListSettings.isEnabledKey == "articleList.usesNativeTableView")
     }
 }
