@@ -1,6 +1,62 @@
 {
   "sourceLanguage" : "de",
   "strings" : {
+    "settings.articleList.usesNativeTableView.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Native Artikelliste (Beta)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Native Article List (Beta)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Liste d'articles native (bêta)"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elenco articoli nativo (beta)"
+          }
+        }
+      }
+    },
+    "settings.articleList.usesNativeTableView.description" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rendert die Artikelliste über eine schnellere, native AppKit-Ansicht statt der bisherigen SwiftUI-Liste. Beta — bei Problemen einfach wieder deaktivieren."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Renders the article list using a faster, native AppKit view instead of the current SwiftUI list. Beta — just turn it off again if something looks wrong."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Affiche la liste d'articles via une vue AppKit native plus rapide au lieu de la liste SwiftUI actuelle. Bêta — désactivez-la simplement en cas de problème."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Visualizza l'elenco articoli tramite una vista AppKit nativa più veloce invece dell'attuale elenco SwiftUI. Beta — disattivala semplicemente in caso di problemi."
+          }
+        }
+      }
+    },
     "" : {
 
     },

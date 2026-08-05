@@ -107,3 +107,13 @@ enum ArticleDateDisplayMode: String, CaseIterable, Identifiable {
         ArticleDateDisplayMode(rawValue: rawValue) ?? defaultMode
     }
 }
+
+/// Ob die Hauptartikelliste und die Suchfenster-Ergebnisliste über eine
+/// NSTableView-basierte, reine-AppKit-Implementierung statt der
+/// SwiftUI-`List` gerendert werden (siehe docs/superpowers/specs/2026-08/
+/// 2026-08-04-native-article-list-nstableview-design.md). Ein gemeinsamer
+/// Schalter für beide Listen, Standard AUS bis zur Live-Verifikation.
+enum NativeArticleListSettings {
+    static let isEnabledKey = "articleList.usesNativeTableView"
+    static let defaultIsEnabled = false
+}

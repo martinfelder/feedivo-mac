@@ -621,6 +621,9 @@ private struct ArticleListSettingsView: View {
     @AppStorage(ReaderTabsSettings.restoreTabsOnLaunchKey)
     private var restoreReaderTabsOnLaunch = ReaderTabsSettings.defaultRestoreTabsOnLaunch
 
+    @AppStorage(NativeArticleListSettings.isEnabledKey)
+    private var usesNativeArticleList = NativeArticleListSettings.defaultIsEnabled
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             GeneralSettingsSection(label: Text("Artikelliste:")) {
@@ -680,6 +683,14 @@ private struct ArticleListSettingsView: View {
                 }
                 .toggleStyle(.checkbox)
                 .tint(Color.settingsBoldAccent)
+
+                Toggle(isOn: $usesNativeArticleList) {
+                    Text(L10n.settingsArticleListUsesNativeTableViewTitle)
+                        .font(.system(size: 13))
+                }
+                .toggleStyle(.checkbox)
+                .tint(Color.settingsBoldAccent)
+                GeneralSettingsHelp(L10n.settingsArticleListUsesNativeTableViewDescription)
             }
         }
     }
