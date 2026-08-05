@@ -45,7 +45,7 @@ struct SQLiteRuleEvaluationStore {
             }
 
             if appliedCount > 0 {
-                SQLiteDataInvalidation.bumpStatusVersion()
+                SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
             }
 
             return appliedCount

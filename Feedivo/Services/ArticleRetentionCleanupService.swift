@@ -76,7 +76,7 @@ enum ArticleRetentionCleanupService {
         }
 
         if removedCount > 0 {
-            SQLiteDataInvalidation.bumpStatusVersion()
+            SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
             deindexForSpotlight(removedArticleIDs)
             CloudSyncEngine.notifyPendingChangesAvailable(database: database)
         }

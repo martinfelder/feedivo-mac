@@ -535,7 +535,7 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(viewModelSource.contains("SQLiteFeedSubscriptionService"))
         #expect(compactViewModelSource.contains("service.importOPMLFeeds("))
         #expect(compactViewModelSource.contains("service.addFeed("))
-        #expect(viewModelSource.contains("SQLiteDataInvalidation.bumpStatusVersion()"))
+        #expect(viewModelSource.contains("SQLiteDataInvalidationSignal.shared.bumpStatusVersion()"))
     }
 
     @Test func feedViewModelDelegiertOPMLPreviewAnSQLiteSubscriptionService() throws {

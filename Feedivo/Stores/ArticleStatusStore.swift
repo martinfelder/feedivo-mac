@@ -126,7 +126,7 @@ struct ArticleStatusStore {
 
         if !touchedArticleIDs.isEmpty {
             try SQLiteUnreadCountService(database: database).rebuildAllFeedUnreadCounts()
-            SQLiteDataInvalidation.bumpStatusVersion()
+            SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
             CloudSyncEngine.notifyPendingChangesAvailable(database: database)
         }
     }
@@ -173,7 +173,7 @@ struct ArticleStatusStore {
         }
 
         if didUpdate {
-            SQLiteDataInvalidation.bumpStatusVersion()
+            SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
             if marksSyncTouched {
                 CloudSyncEngine.notifyPendingChangesAvailable(database: database)
             }
@@ -184,7 +184,7 @@ struct ArticleStatusStore {
     /// `database.write`-Transaktion stehen (z. B. RuleEngine-Anwendung nach Feed-Refresh,
     /// siehe `SQLiteFeedRefreshService.applyRules`). GRDBs `DatabaseWriter.write` ist nicht
     /// reentrant — ein erneuter `database.write`-Aufruf von hier aus würde abstürzen. Löst
-    /// bewusst NICHT `SQLiteDataInvalidation.bumpStatusVersion()`/`CloudSyncEngine.
+    /// bewusst NICHT `SQLiteDataInvalidationSignal.shared.bumpStatusVersion()`/`CloudSyncEngine.
     /// notifyPendingChangesAvailable` aus — das übernimmt der Batch-Aufrufer einmalig nach
     /// Abschluss der gesamten Transaktion, statt pro Einzelaufruf.
     @discardableResult
