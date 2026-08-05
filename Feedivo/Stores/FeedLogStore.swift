@@ -104,6 +104,14 @@ struct FeedLogStore {
                     ) AS rn
                 FROM feed_logs
             )
+            -- Kein COALESCE auf s.consecutiveFailureCount nötig: Für jede Zeile hier
+            -- gilt l.level = 'error' (WHERE unten) UND l ist laut `latest`-CTE der
+            -- neueste Log-Eintrag des Feeds — dessen successBoundary ist per
+            -- Fensterdefinition immer 0 (die kumulative Summe VOR der ersten Zeile
+            -- ist leer). Der neueste Eintrag eines Feeds mit level = 'error' erfüllt
+            -- damit IMMER `successBoundary = 0 AND level = 'error'` und wird deshalb
+            -- garantiert in `streaks` mitgezählt — der LEFT JOIN kann für diese
+            -- Zeilen also nie NULL liefern.
             SELECT
                 f.id AS feedID,
                 f.title AS feedTitle,
@@ -113,12 +121,12 @@ struct FeedLogStore {
                 l.createdAt AS lastAttemptAt,
                 l.message AS errorMessage,
                 l.httpStatusCode AS httpStatusCode,
-                COALESCE(s.consecutiveFailureCount, 1) AS consecutiveFailureCount
+                s.consecutiveFailureCount AS consecutiveFailureCount
             FROM feeds f
             JOIN latest l ON l.feedID = f.id AND l.rn = 1
             LEFT JOIN streaks s ON s.feedID = f.id
             WHERE l.level = 'error'
-            ORDER BY l.createdAt DESC
+            ORDER BY l.createdAt DESC, f.title COLLATE NOCASE
             """, cached: true).fetchAll(db)
     }
 

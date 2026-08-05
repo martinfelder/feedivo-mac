@@ -166,6 +166,54 @@ struct SQLiteFeedLogStoreTests {
         #expect(diagnostic.consecutiveFailureCount == 1)
     }
 
+    @Test func failureDiagnosticsZaehltErstenJemalsProtokolliertenFehlerAlsSerieEins() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let logStore = FeedLogStore(database: database)
+
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example"))
+        try logStore.append(FeedLogRecord(
+            feedID: "feed-1",
+            createdAt: Date(timeIntervalSince1970: 1_000),
+            level: "error",
+            message: "Erster Versuch schlägt fehl"
+        ))
+
+        let diagnostics = try logStore.failureDiagnostics()
+
+        #expect(diagnostics.count == 1)
+        #expect(diagnostics[0].consecutiveFailureCount == 1)
+    }
+
+    @Test func failureDiagnosticsBrichtGleichstandBeiIdentischemZeitstempelDeterministischAuf() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let logStore = FeedLogStore(database: database)
+
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example"))
+        let sharedTimestamp = Date(timeIntervalSince1970: 2_000)
+        try logStore.append(FeedLogRecord(
+            id: "aaa-first",
+            feedID: "feed-1",
+            createdAt: sharedTimestamp,
+            level: "error",
+            message: "Erster Fehler am selben Zeitstempel"
+        ))
+        try logStore.append(FeedLogRecord(
+            id: "zzz-second",
+            feedID: "feed-1",
+            createdAt: sharedTimestamp,
+            level: "error",
+            message: "Zweiter Fehler am selben Zeitstempel"
+        ))
+
+        let diagnostics = try logStore.failureDiagnostics()
+
+        #expect(diagnostics.count == 1)
+        #expect(diagnostics[0].consecutiveFailureCount == 2)
+        #expect(diagnostics[0].errorMessage == "Zweiter Fehler am selben Zeitstempel")
+    }
+
     @Test func failureDiagnosticsZaehltAufeinanderfolgendeFehlschlaegeKorrekt() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let feedStore = FeedStore(database: database)

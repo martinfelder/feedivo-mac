@@ -22,6 +22,15 @@ struct FeedRefreshDiagnosticsWindowView: View {
         VStack(alignment: .leading, spacing: 12) {
             header
 
+            // Zeigt einen stillen `FeedViewModel.deleteFeed`/`refreshFeed`-Fehlschlag
+            // sichtbar an — beide Methoden werfen nicht, sondern setzen nur
+            // `errorMessage`, das dieses Fenster sonst nirgends konsumiert hätte.
+            if let errorMessage = feedViewModel.errorMessage {
+                Text(errorMessage)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
+
             if diagnostics.isEmpty {
                 emptyState
             } else {
@@ -180,12 +189,20 @@ struct FeedRefreshDiagnosticsWindowView: View {
     }
 
     private func delete(_ diagnostic: FeedFailureDiagnostic) {
+        // Dialog-Dismiss ist unabhängig vom Ausgang — schließt nur das
+        // confirmationDialog, behauptet keinen Erfolg.
         feedPendingDeletion = nil
         guard let feedivoDatabase else {
             return
         }
         feedViewModel.deleteFeed(feedID: diagnostic.feedID, sqliteDatabase: feedivoDatabase)
-        diagnostics.removeAll { $0.feedID == diagnostic.feedID }
+        // `deleteFeed` wirft nicht — ein Fehlschlag landet nur in
+        // `feedViewModel.errorMessage` (siehe Fehlerbanner oben). Die Zeile darf
+        // deshalb nur bei tatsächlichem Erfolg entfernt werden, sonst würde die
+        // UI einen gelöschten Feed vortäuschen, der in Wahrheit noch existiert.
+        if feedViewModel.errorMessage == nil {
+            diagnostics.removeAll { $0.feedID == diagnostic.feedID }
+        }
     }
 }
 
