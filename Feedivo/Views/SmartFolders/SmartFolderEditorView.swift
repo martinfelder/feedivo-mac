@@ -4,8 +4,6 @@ struct SmartFolderEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.feedivoDatabase) private var feedivoDatabase
     @Environment(\.colorScheme) private var colorScheme
-    @AppStorage(SQLiteDataInvalidation.statusVersionKey) private var sqliteStatusVersion = 0
-    @AppStorage(SidebarBadgeInvalidation.directTagVersionKey) private var directTagVersion = 0
 
     let folder: SmartFolderRecord?
     let existingFolders: [SmartFolderRecord]
@@ -385,7 +383,7 @@ struct SmartFolderEditorView: View {
             .map { "\($0.field.rawValue):\($0.conditionOperator.rawValue):\($0.value)" }
             .joined(separator: "|")
 
-        return "\(name)#\(matchMode.rawValue)#\(conditionToken)#\(sqliteStatusVersion)#\(directTagVersion)"
+        return "\(name)#\(matchMode.rawValue)#\(conditionToken)#\(SQLiteDataInvalidationSignal.shared.statusVersion)#\(SidebarBadgeInvalidationSignal.shared.directTagVersion)"
     }
 
     private func loadInitialState() {
@@ -460,7 +458,7 @@ struct SmartFolderEditorView: View {
 
         do {
             try SQLiteSmartFolderStore(database: database).save(record, conditions: conditions)
-            SQLiteDataInvalidation.bumpStatusVersion()
+            SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
             errorMessage = nil
             dismiss()
         } catch {

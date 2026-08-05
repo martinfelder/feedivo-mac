@@ -4,8 +4,6 @@ import UniformTypeIdentifiers
 struct SmartFolderSettingsView: View {
     @Environment(\.feedivoDatabase) private var feedivoDatabase
     @Environment(\.colorScheme) private var colorScheme
-    @AppStorage(SQLiteDataInvalidation.statusVersionKey) private var sqliteStatusVersion = 0
-    @AppStorage(SidebarBadgeInvalidation.directTagVersionKey) private var directTagVersion = 0
 
     @State private var folders: [SmartFolderRecord] = []
     @State private var conditionsByFolderID: [String: [SmartFolderConditionRecord]] = [:]
@@ -158,11 +156,11 @@ struct SmartFolderSettingsView: View {
         }
         .joined(separator: "#")
 
-        return "\(folderToken)#\(sqliteStatusVersion)#\(directTagVersion)"
+        return "\(folderToken)#\(SQLiteDataInvalidationSignal.shared.statusVersion)#\(SidebarBadgeInvalidationSignal.shared.directTagVersion)"
     }
 
     private var folderReloadToken: String {
-        "\(sqliteStatusVersion)"
+        "\(SQLiteDataInvalidationSignal.shared.statusVersion)"
     }
 
     private var orderedFolders: [SmartFolderRecord] {
@@ -228,7 +226,7 @@ struct SmartFolderSettingsView: View {
             id: folder.id,
             copyName: "\(SmartFolderFormatter.displayName(for: folder)) Kopie"
         )
-        SQLiteDataInvalidation.bumpStatusVersion()
+        SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
         loadFolders()
     }
 
@@ -241,7 +239,7 @@ struct SmartFolderSettingsView: View {
             id: folder.id,
             isShownInSidebar: isShownInSidebar
         )
-        SQLiteDataInvalidation.bumpStatusVersion()
+        SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
         loadFolders()
     }
 
@@ -251,7 +249,7 @@ struct SmartFolderSettingsView: View {
         }
 
         try? SQLiteSmartFolderStore(database: database).delete(id: folder.id)
-        SQLiteDataInvalidation.bumpStatusVersion()
+        SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
         loadFolders()
     }
 
@@ -261,7 +259,7 @@ struct SmartFolderSettingsView: View {
         }
 
         try? SQLiteSmartFolderStore(database: database).restoreDefaultFolders()
-        SQLiteDataInvalidation.bumpStatusVersion()
+        SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
         loadFolders()
     }
 
@@ -271,7 +269,7 @@ struct SmartFolderSettingsView: View {
         }
 
         try? SQLiteSmartFolderStore(database: database).move(id: sourceID, toPositionOf: targetID)
-        SQLiteDataInvalidation.bumpStatusVersion()
+        SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
         loadFolders()
     }
 }

@@ -151,7 +151,7 @@ struct CloudSyncFirstActivationView: View {
         // bewusst auch bei Teilfehlschlägen, damit die erfolgreich verarbeiteten Kollisionen
         // sofort sichtbar werden, während der Nutzer die fehlgeschlagenen im Alert anpasst.
         if !collisions.isEmpty {
-            SQLiteDataInvalidation.bumpStatusVersion()
+            SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
         }
 
         guard failedCollisionNames.isEmpty else {

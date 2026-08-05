@@ -235,7 +235,7 @@ struct SyncConflictResolutionView: View {
         // des Aufrufers, siehe CLAUDE.md-Gotcha „GRDB statt SwiftData") — ohne diesen
         // Aufruf bliebe das „Konflikte: N"-Badge im Sync-Tab nach dem Schließen dieses
         // Sheets auf dem alten Stand stehen.
-        SQLiteDataInvalidation.bumpStatusVersion()
+        SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
     }
 
     /// Schreibt den Server-Wert für GENAU dieses eine Feld in die lokale Tabelle — über einen

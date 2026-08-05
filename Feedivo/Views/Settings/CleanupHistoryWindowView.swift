@@ -7,8 +7,6 @@ struct CleanupHistoryWindowView: View {
     static let windowID = "cleanup-history-window"
 
     @Environment(\.feedivoDatabase) private var feedivoDatabase
-    @AppStorage(SQLiteDataInvalidation.statusVersionKey)
-    private var sqliteStatusVersionForCleanupHistory = 0
 
     @State private var cleanupHistory: [CleanupRunRecord] = []
 
@@ -34,7 +32,7 @@ struct CleanupHistoryWindowView: View {
         }
         .padding(16)
         .onAppear(perform: loadCleanupHistory)
-        .onChange(of: sqliteStatusVersionForCleanupHistory) {
+        .onChange(of: SQLiteDataInvalidationSignal.shared.statusVersion) {
             loadCleanupHistory()
         }
     }

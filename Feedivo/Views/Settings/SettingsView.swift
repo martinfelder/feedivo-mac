@@ -1123,9 +1123,6 @@ private struct SyncSettingsView: View {
     @AppStorage(CloudSyncActivityStatus.lastErrorMessageKey)
     private var syncActivityErrorMessage = ""
 
-    @AppStorage(SQLiteDataInvalidation.statusVersionKey)
-    private var sqliteStatusVersionForSyncActivity = 0
-
     @State private var syncActivityPendingCounts: [String: Int] = [:]
     @State private var isSyncActivityDetailsExpanded = false
 
@@ -1309,7 +1306,7 @@ private struct SyncSettingsView: View {
                 showingFirstActivationSheet = true
             }
         }
-        .onChange(of: sqliteStatusVersionForSyncActivity) {
+        .onChange(of: SQLiteDataInvalidationSignal.shared.statusVersion) {
             loadSyncActivityPendingCounts()
             loadPendingConflictCount()
         }
