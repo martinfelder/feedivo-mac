@@ -16,4 +16,9 @@ struct CustomizableShortcutTests {
         #expect(CustomizableShortcut.readerNextTab.defaultSpec == KeyboardShortcutSpec(key: "]", modifiers: [.command, .shift]))
         #expect(CustomizableShortcut.readerPreviousTab.defaultSpec == KeyboardShortcutSpec(key: "[", modifiers: [.command, .shift]))
     }
+
+    @Test func feedRefreshDiagnosticsOpenGehoertZurFeedKategorieOhneDefault() {
+        #expect(CustomizableShortcut.feedRefreshDiagnosticsOpen.category == .feed)
+        #expect(CustomizableShortcut.feedRefreshDiagnosticsOpen.defaultSpec == nil)
+    }
 }

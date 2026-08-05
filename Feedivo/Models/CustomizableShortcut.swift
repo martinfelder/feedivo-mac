@@ -29,6 +29,7 @@ enum CustomizableShortcut: String, CaseIterable, Identifiable, Sendable {
     case feedImportOPML
     case feedExportOPML
     case feedOrganizerOpen
+    case feedRefreshDiagnosticsOpen
     case articleSelectPrevious
     case articleSelectNext
     case articleSearch
@@ -53,7 +54,8 @@ enum CustomizableShortcut: String, CaseIterable, Identifiable, Sendable {
     var category: ShortcutCategory {
         switch self {
         case .feedAdd, .statisticsOpen, .feedRefreshAll, .feedRefresh,
-             .feedImportOPML, .feedExportOPML, .feedOrganizerOpen:
+             .feedImportOPML, .feedExportOPML, .feedOrganizerOpen,
+             .feedRefreshDiagnosticsOpen:
             .feed
         case .articleSelectPrevious, .articleSelectNext, .articleSearch,
              .articleToggleRead, .articleToggleStarred, .articleToggleArchived,
@@ -82,6 +84,7 @@ enum CustomizableShortcut: String, CaseIterable, Identifiable, Sendable {
         case .feedImportOPML: L10n.shortcutsLabelFeedImportOPML
         case .feedExportOPML: L10n.shortcutsLabelFeedExportOPML
         case .feedOrganizerOpen: L10n.shortcutsLabelFeedOrganizerOpen
+        case .feedRefreshDiagnosticsOpen: L10n.shortcutsLabelFeedRefreshDiagnosticsOpen
         case .articleSelectPrevious: L10n.shortcutsLabelArticleSelectPrevious
         case .articleSelectNext: L10n.shortcutsLabelArticleSelectNext
         case .articleSearch: L10n.shortcutsLabelArticleSearch
@@ -118,7 +121,8 @@ enum CustomizableShortcut: String, CaseIterable, Identifiable, Sendable {
             KeyboardShortcutSpec(key: "r", modifiers: [.command, .shift])
         case .feedRefresh:
             KeyboardShortcutSpec(key: "r", modifiers: [.command])
-        case .feedImportOPML, .feedExportOPML, .feedOrganizerOpen:
+        case .feedImportOPML, .feedExportOPML, .feedOrganizerOpen,
+             .feedRefreshDiagnosticsOpen:
             nil
         case .articleSelectPrevious:
             KeyboardShortcutSpec(key: SpecialKey.upArrow.rawValue, modifiers: [.command])
