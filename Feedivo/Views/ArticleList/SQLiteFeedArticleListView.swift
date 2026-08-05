@@ -419,36 +419,51 @@ struct SQLiteFeedArticleListView: View {
         let currentDisplayState = displayState
 
         if usesNativeArticleList {
-            NativeArticleListTableView(
-                rows: currentDisplayState.visibleRows,
-                hasMore: state.hasMore,
-                hiddenReadRowCount: currentDisplayState.hiddenReadRowCount,
-                showsReadArticles: showsReadArticles,
-                selectedArticleID: $selectedArticleID,
-                hasAvailableTags: database != nil,
-                onToggleRead: toggleRead,
-                onToggleStarred: toggleStarred,
-                onToggleArchived: toggleArchived,
-                onRequestAssignTag: { articleID in
-                    tagAssignmentRequest = ArticleTagAssignmentRequest(articleID: articleID)
-                },
-                onCreateRule: requestRuleCreation,
-                onCopyLink: copyLink,
-                onOpenOriginal: openOriginal,
-                onShareOriginal: shareOriginal,
-                onOpenInNewTab: { articleID in
-                    readerTabsState.openInNewBackgroundTab(articleID: articleID)
-                },
-                onOpenInWindow: { articleID in
-                    guard let uuid = UUID(uuidString: articleID) else { return }
-                    openWindow(value: ArticleWindowRequest(articleID: uuid))
-                },
-                onExport: requestExportArticle,
-                onDelete: requestDeleteArticle,
-                onMarkAllRead: { markRowsRead(.allVisible) },
-                onLoadMore: { state.loadMore() },
-                onShowReadArticles: { showsReadArticles = true }
-            )
+            // Das gilt zusätzlich zur äußeren `articleContent`-Weiche
+            // (`case .loaded where effectiveRows.isEmpty`) — die prüft nur den
+            // ungefilterten, gemergten Zeilensatz. `filteredRows` wendet
+            // zusätzlich den vom Nutzer gewählten Filter (Alle/Ungelesen/Mit
+            // Stern/Archiviert/Heute) an: ein Feed mit Artikeln, bei dem der
+            // Nutzer auf "Mit Stern" filtert und nichts markiert ist, hat leere
+            // `filteredRows`, aber nicht-leere `effectiveRows` — die äußere
+            // Weiche greift dann nicht. Die `List`-Variante unten prüft das
+            // bereits selbst; ohne diesen Guard bliebe die native Ansicht in
+            // genau diesem Fall komplett leer/blank statt den Empty-State zu
+            // zeigen.
+            if currentDisplayState.filteredRows.isEmpty {
+                articleListEmptyState(isSearching: isSearching)
+            } else {
+                NativeArticleListTableView(
+                    rows: currentDisplayState.visibleRows,
+                    hasMore: state.hasMore,
+                    hiddenReadRowCount: currentDisplayState.hiddenReadRowCount,
+                    showsReadArticles: showsReadArticles,
+                    selectedArticleID: $selectedArticleID,
+                    hasAvailableTags: database != nil,
+                    onToggleRead: toggleRead,
+                    onToggleStarred: toggleStarred,
+                    onToggleArchived: toggleArchived,
+                    onRequestAssignTag: { articleID in
+                        tagAssignmentRequest = ArticleTagAssignmentRequest(articleID: articleID)
+                    },
+                    onCreateRule: requestRuleCreation,
+                    onCopyLink: copyLink,
+                    onOpenOriginal: openOriginal,
+                    onShareOriginal: shareOriginal,
+                    onOpenInNewTab: { articleID in
+                        readerTabsState.openInNewBackgroundTab(articleID: articleID)
+                    },
+                    onOpenInWindow: { articleID in
+                        guard let uuid = UUID(uuidString: articleID) else { return }
+                        openWindow(value: ArticleWindowRequest(articleID: uuid))
+                    },
+                    onExport: requestExportArticle,
+                    onDelete: requestDeleteArticle,
+                    onMarkAllRead: { markRowsRead(.allVisible) },
+                    onLoadMore: { state.loadMore() },
+                    onShowReadArticles: { showsReadArticles = true }
+                )
+            }
         } else {
             List(selection: $selectedArticleID) {
                 if currentDisplayState.filteredRows.isEmpty {

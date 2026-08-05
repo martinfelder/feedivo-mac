@@ -26,7 +26,7 @@ final class NativeArticleListRowCellView: NSTableCellView {
     private var starButtonHeightConstraint: NSLayoutConstraint!
 
     /// Erhöht sich bei jedem `configure(...)`-Aufruf — dient
-    /// `NativeArticleImageLoadGuard` als "aktueller Stand dieser Zelle".
+    /// `NativeArticleListImageLoadGuard` als "aktueller Stand dieser Zelle".
     private var currentLoadToken = 0
     private var starButtonAction: (() -> Void)?
 
