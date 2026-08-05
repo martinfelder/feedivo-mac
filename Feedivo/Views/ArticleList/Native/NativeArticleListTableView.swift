@@ -65,6 +65,13 @@ struct NativeArticleListTableView: NSViewRepresentable {
         tableView.delegate = context.coordinator
         tableView.dataSource = context.coordinator
         tableView.menu = NSMenu()
+        // `NSMenu.autoenablesItems` defaultet auf `true` — AppKit würde dann
+        // jeden Menüeintrag mit passendem Target/Action (jeder `ClosureMenuItem`
+        // ist sein eigenes Target) automatisch wieder aktivieren, unabhängig vom
+        // manuell gesetzten `isEnabled`. Ohne diese Zeile wären deaktivierte
+        // Einträge ("Tag zuweisen" ohne Tags, "Link kopieren"/"Original öffnen"/
+        // "Teilen" ohne nutzbare URL) trotzdem klickbar.
+        tableView.menu?.autoenablesItems = false
         tableView.menu?.delegate = context.coordinator
         context.coordinator.weakTableView = tableView
 
@@ -119,12 +126,28 @@ struct NativeArticleListTableView: NSViewRepresentable {
             coordinator.rows = rows
         }
 
+        // `isApplyingProgrammaticSelection` verhindert, dass diese rein
+        // synchronisierenden `selectRowIndexes`/`deselectAll`-Aufrufe über
+        // `tableViewSelectionDidChange` erneut `onSelectionChanged` feuern und
+        // damit den soeben von SwiftUI gesetzten `selectedArticleID`-Wert mit
+        // `nil` überschreiben — siehe ausführlicher Kommentar am Property in
+        // `NativeArticleListCoordinator.swift`. Konkret betroffen: der
+        // automatische "zum nächsten Feed mit ungelesenen Artikeln springen"
+        // -Mechanismus setzt `selectedArticleID` bewusst, BEVOR die Zeilen des
+        // neuen Feeds geladen sind — `rows` enthält hier dann noch die alten
+        // Zeilen, `firstIndex(where:)` scheitert, und ohne die Sperre würde
+        // `deselectAll` den gerade gesetzten Zielartikel sofort wieder auf
+        // `nil` zurücksetzen.
         if let selectedArticleID, let index = rows.firstIndex(where: { $0.id == selectedArticleID }) {
             if tableView.selectedRow != index {
+                coordinator.isApplyingProgrammaticSelection = true
                 tableView.selectRowIndexes(IndexSet(integer: index), byExtendingSelection: false)
+                coordinator.isApplyingProgrammaticSelection = false
             }
         } else if tableView.selectedRow != -1 {
+            coordinator.isApplyingProgrammaticSelection = true
             tableView.deselectAll(nil)
+            coordinator.isApplyingProgrammaticSelection = false
         }
     }
 

@@ -112,8 +112,18 @@ final class NativeArticleListCoordinator: NSObject, NSTableViewDataSource, NSTab
             // Diese Zeile wird nur angefragt, wenn sie tatsächlich sichtbar wird
             // (NSTableView ruft `viewFor` ausschließlich für sichtbare/bald
             // sichtbare Zeilen auf) — genau das ersetzt SwiftUIs
-            // `.onAppear`-Trigger für `state.loadMore()`.
-            onLoadMore?()
+            // `.onAppear`-Trigger für `state.loadMore()`. Wichtig: `viewFor` läuft
+            // während `reloadData()`/Layout, was wiederum innerhalb von SwiftUIs
+            // `updateNSView`-Aufruf (also innerhalb von SwiftUIs eigenem
+            // View-Update-Durchlauf) passiert — `onLoadMore` mutiert am Ende
+            // `@Observable`-Zustand (`state.loadMore()` setzt u. a.
+            // `isLoadingMore`), ein synchroner Aufruf hier wäre also "State
+            // während eines View-Updates ändern", was SwiftUI explizit als
+            // undefiniertes Verhalten dokumentiert. Deshalb um einen
+            // Runloop-Durchlauf verzögert auslösen, statt direkt hier.
+            Task { @MainActor [weak self] in
+                self?.onLoadMore?()
+            }
             let cell = (tableView.makeView(withIdentifier: Self.loadMoreIdentifier, owner: self) as? NativeArticleListLoadMoreCellView)
                 ?? NativeArticleListLoadMoreCellView(frame: .zero)
             cell.identifier = Self.loadMoreIdentifier
@@ -158,7 +168,19 @@ final class NativeArticleListCoordinator: NSObject, NSTableViewDataSource, NSTab
         return false
     }
 
+    /// Wird von `NativeArticleListTableView.updateNSView` rund um jeden
+    /// programmatischen `selectRowIndexes`/`deselectAll`-Aufruf gesetzt (State-
+    /// Sync SwiftUI → NSTableView). Verhindert, dass diese rein synchronisierenden
+    /// Aufrufe über `tableViewSelectionDidChange` erneut `onSelectionChanged`
+    /// feuern und damit den gerade gesetzten SwiftUI-Zustand mit `nil`
+    /// überschreiben — betrifft konkret den "zum nächsten Feed mit ungelesenen
+    /// Artikeln springen"-Fall: `selectedArticleID` wird dort bewusst VOR dem
+    /// Laden der neuen Feed-Zeilen gesetzt, `updateNSView` sieht dann kurzzeitig
+    /// noch die alten `rows` und würde ohne diese Sperre `deselectAll` auslösen.
+    var isApplyingProgrammaticSelection = false
+
     func tableViewSelectionDidChange(_ notification: Notification) {
+        guard !isApplyingProgrammaticSelection else { return }
         guard let tableView = notification.object as? NSTableView else { return }
         let selectedRow = tableView.selectedRow
         guard selectedRow >= 0, case let .content(snapshot) = rowKind(atRow: selectedRow) else {
@@ -181,79 +203,101 @@ final class NativeArticleListCoordinator: NSObject, NSTableViewDataSource, NSTab
         else {
             return
         }
-        for item in buildContextMenu(for: snapshot).items {
+        for item in contextMenuItems(for: snapshot) {
             menu.addItem(item)
         }
     }
 
     // MARK: Kontextmenü (pure, direkt testbar)
 
-    func buildContextMenu(for snapshot: ArticleListSnapshot) -> NSMenu {
-        let menu = NSMenu()
+    /// Baut die rohen Menüeinträge — OHNE sie in ein `NSMenu` zu verpacken.
+    /// Wichtig: `NSMenuItem` kann immer nur einem einzigen `NSMenu` gleichzeitig
+    /// gehören. `menuNeedsUpdate(_:)` fügt diese Items direkt in das vom System
+    /// übergebene `menu` ein — würde stattdessen `buildContextMenu(for:).items`
+    /// (Items, die bereits einem frisch gebauten `NSMenu` gehören) erneut in ein
+    /// zweites Menü eingefügt, wirft AppKit
+    /// `NSInternalInconsistencyException: "Item to be inserted into menu already
+    /// is in another menu"` — reproduzierbar bei jedem Rechtsklick.
+    func contextMenuItems(for snapshot: ArticleListSnapshot) -> [NSMenuItem] {
         let hasOriginalURL = ArticleOriginalURLResolver.hasUsableWebLink(snapshot.link)
 
-        menu.addItem(makeItem(
+        var items: [NSMenuItem] = []
+
+        items.append(makeItem(
             title: snapshot.isRead ? L10n.articleRowMarkUnread : L10n.articleRowMarkRead
         ) { [weak self] in self?.onToggleRead?(snapshot.id) })
 
-        menu.addItem(makeItem(
+        items.append(makeItem(
             title: snapshot.isStarred ? L10n.articleRowStarRemove : L10n.articleRowStarAdd
         ) { [weak self] in self?.onToggleStarred?(snapshot.id) })
 
-        menu.addItem(.separator())
+        items.append(.separator())
 
-        menu.addItem(makeItem(
+        items.append(makeItem(
             title: snapshot.isArchived ? L10n.articleUnarchiveCommand : L10n.articleArchiveCommand
         ) { [weak self] in self?.onToggleArchived?(snapshot.id) })
 
-        menu.addItem(makeItem(
+        items.append(makeItem(
             title: L10n.articleAssignTagCommand,
             isEnabled: hasAvailableTags
         ) { [weak self] in self?.onRequestAssignTag?(snapshot.id) })
 
-        menu.addItem(makeItem(title: L10n.articleCreateRuleCommand) { [weak self] in
+        items.append(makeItem(title: L10n.articleCreateRuleCommand) { [weak self] in
             self?.onCreateRule?(snapshot)
         })
 
-        menu.addItem(.separator())
+        items.append(.separator())
 
-        menu.addItem(makeItem(title: L10n.articleOpenInNewTabCommand) { [weak self] in
+        items.append(makeItem(title: L10n.articleOpenInNewTabCommand) { [weak self] in
             self?.onOpenInNewTab?(snapshot.id)
         })
 
-        menu.addItem(makeItem(title: L10n.articleOpenInWindowCommand) { [weak self] in
+        items.append(makeItem(title: L10n.articleOpenInWindowCommand) { [weak self] in
             self?.onOpenInWindow?(snapshot.id)
         })
 
-        menu.addItem(makeItem(
+        items.append(makeItem(
             title: L10n.articleCopyLinkCommand,
             isEnabled: hasOriginalURL
         ) { [weak self] in self?.onCopyLink?(snapshot) })
 
-        menu.addItem(makeItem(
+        items.append(makeItem(
             title: L10n.articleOpenOriginalCommand,
             isEnabled: hasOriginalURL
         ) { [weak self] in self?.onOpenOriginal?(snapshot) })
 
-        menu.addItem(makeItem(
+        items.append(makeItem(
             title: L10n.articleShareCommand,
             isEnabled: hasOriginalURL
         ) { [weak self] in self?.onShareOriginal?(snapshot) })
 
-        menu.addItem(makeItem(title: L10n.articleExportCommand) { [weak self] in
+        items.append(makeItem(title: L10n.articleExportCommand) { [weak self] in
             self?.onExport?(snapshot.id)
         })
 
-        menu.addItem(makeItem(title: L10n.articleDeleteCommand) { [weak self] in
+        items.append(makeItem(title: L10n.articleDeleteCommand) { [weak self] in
             self?.onDelete?(snapshot)
         })
 
-        menu.addItem(.separator())
+        items.append(.separator())
 
-        menu.addItem(makeItem(title: L10n.articleMarkAllReadCommand) { [weak self] in
+        items.append(makeItem(title: L10n.articleMarkAllReadCommand) { [weak self] in
             self?.onMarkAllRead?()
         })
 
+        return items
+    }
+
+    /// Dünner Wrapper um `contextMenuItems(for:)`, der die Items in ein neues
+    /// `NSMenu` verpackt — bleibt aus Kompatibilitätsgründen für bestehende
+    /// Tests bestehen, die direkt gegen ein `NSMenu` prüfen. Wird von
+    /// `menuNeedsUpdate(_:)` selbst NICHT mehr verwendet (siehe Kommentar dort).
+    func buildContextMenu(for snapshot: ArticleListSnapshot) -> NSMenu {
+        let menu = NSMenu()
+        menu.autoenablesItems = false
+        for item in contextMenuItems(for: snapshot) {
+            menu.addItem(item)
+        }
         return menu
     }
 

@@ -106,7 +106,7 @@ struct NativeArticleListCoordinatorTests {
         #expect(reportedID == nil)
     }
 
-    @Test func buildContextMenuHatZwoelfEintraegePlusDreiTrenner() {
+    @Test func buildContextMenuHatDreizehnEintraegePlusDreiTrenner() {
         let coordinator = NativeArticleListCoordinator()
         coordinator.hasAvailableTags = true
         let menu = coordinator.buildContextMenu(for: makeSnapshot())
@@ -162,4 +162,86 @@ struct NativeArticleListCoordinatorTests {
 
         #expect(toggledReadID == "a1")
     }
+
+    // Regressionstest für den CRITICAL-Fund des finalen Whole-Branch-Reviews:
+    // `menuNeedsUpdate(_:)` rief früher `buildContextMenu(for:).items` auf und
+    // fügte diese — bereits einem ANDEREN, intern von `buildContextMenu`
+    // gebauten `NSMenu` gehörenden — Items erneut in das vom System übergebene
+    // `menu` ein. `NSMenuItem` kann aber nur einem einzigen `NSMenu`
+    // gleichzeitig gehören, AppKit wirft dafür
+    // `NSInternalInconsistencyException: "Item to be inserted into menu already
+    // is in another menu"` — das feuerte bei JEDEM Rechtsklick auf eine Zeile.
+    // Dieser Test konstruiert eine ECHTE `NSTableView` + ein ECHTES `NSMenu`
+    // (nicht nur `buildContextMenu(for:)` isoliert) und ruft `menuNeedsUpdate`
+    // exakt so auf, wie es AppKit vor dem Öffnen eines Kontextmenüs tut — vor
+    // dem Fix hätte bereits der erste Aufruf abgestürzt.
+    @Test func menuNeedsUpdateBefuelltEinEchtesMenuOhneAbsturz() {
+        let coordinator = NativeArticleListCoordinator()
+        coordinator.hasAvailableTags = true
+        let snapshot = makeSnapshot(id: "a1", link: nil)
+        coordinator.rows = [snapshot]
+
+        let tableView = FakeClickedRowTableView()
+        tableView.addTableColumn(NSTableColumn(identifier: NSUserInterfaceItemIdentifier("main")))
+        tableView.dataSource = coordinator
+        tableView.reloadData()
+        tableView.fakeClickedRow = 0
+        coordinator.weakTableView = tableView
+
+        let menu = NSMenu()
+        menu.autoenablesItems = false
+        menu.delegate = coordinator
+
+        coordinator.menuNeedsUpdate(menu)
+
+        #expect(menu.items.count == 16)
+        #expect(menu.items.filter(\.isSeparatorItem).count == 3)
+
+        // Ein zweiter Aufruf (z. B. zweiter Rechtsklick auf dieselbe oder eine
+        // andere Zeile) darf ebenfalls nicht abstürzen — `menuNeedsUpdate` baut
+        // die Items bei jedem Aufruf neu aus `contextMenuItems(for:)`.
+        coordinator.menuNeedsUpdate(menu)
+        #expect(menu.items.count == 16)
+    }
+
+    // Regressionstest für den zweiten (IMPORTANT-)Fund: `NSMenu.autoenablesItems`
+    // defaultet auf `true` — ohne `autoenablesItems = false` würde AppKit jeden
+    // Eintrag mit gültigem Target/Action (jeder `ClosureMenuItem` ist sein
+    // eigenes Target) beim `-update`-Durchlauf automatisch wieder aktivieren,
+    // unabhängig vom manuell gesetzten `isEnabled` — ein deaktiviertes
+    // "Tag zuweisen" ohne Tags wäre dadurch trotzdem klickbar.
+    @Test func menuNeedsUpdateBleibtNachMenuUpdateDeaktiviertWennAutoenablesItemsAus() {
+        let coordinator = NativeArticleListCoordinator()
+        coordinator.hasAvailableTags = false
+        let snapshot = makeSnapshot(id: "a1", link: nil)
+        coordinator.rows = [snapshot]
+
+        let tableView = FakeClickedRowTableView()
+        tableView.addTableColumn(NSTableColumn(identifier: NSUserInterfaceItemIdentifier("main")))
+        tableView.dataSource = coordinator
+        tableView.reloadData()
+        tableView.fakeClickedRow = 0
+        coordinator.weakTableView = tableView
+
+        let menu = NSMenu()
+        menu.autoenablesItems = false
+        menu.delegate = coordinator
+
+        coordinator.menuNeedsUpdate(menu)
+        menu.update()
+
+        let tagItem = menu.items.first { $0.title == L10n.articleAssignTagCommand }
+        let copyLinkItem = menu.items.first { $0.title == L10n.articleCopyLinkCommand }
+        #expect(tagItem?.isEnabled == false)
+        #expect(copyLinkItem?.isEnabled == false)
+    }
+}
+
+/// Test-Double für `NSTableView.clickedRow` — die echte Property ist
+/// read-only und lässt sich nicht per KVC oder Event-Synthese ohne echtes
+/// Fenster zuverlässig setzen. `clickedRow` ist als ObjC-`dynamic`-Property
+/// deklariert und damit überschreibbar.
+private final class FakeClickedRowTableView: NSTableView {
+    var fakeClickedRow: Int = -1
+    override var clickedRow: Int { fakeClickedRow }
 }
