@@ -1377,6 +1377,106 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Aktuell in Arbeit
 
+- **2026-08-05: Reader-Ladeverzögerung (~1s bei Artikelauswahl) — TEILWEISE BEHOBEN
+  (GRDB DatabaseQueue → DatabasePool), Rest-Ursache identifiziert, Fix für nächste
+  Session zurückgestellt.** Nutzer-Report: Artikel erscheint nach Auswahl in der
+  Artikelliste erst nach ~1 Sekunde im Reader. Per systematic-debugging mit
+  temporärer `OSLog`-Instrumentierung (TEMP-DEBUG-Pattern, `log stream`) live
+  gemessen statt geraten — zwei unabhängige Root Causes gefunden und einer davon
+  behoben:
+  1. **Redundante Dreifach-Ladevorgänge (behoben, Commit siehe unten):**
+     `SQLiteReaderState.load(articleID:database:force:)`s Schutzlogik gegen
+     SwiftUI-Re-Render-Schleifen erlaubte einen Abbruch+Neustart, sobald ein
+     bereits laufender Ladevorgang für dieselbe `articleID` erneut angestoßen
+     wurde (`activeLoadTask != nil` im alten Guard) — per Live-Log verifiziert,
+     dass bei praktisch jeder Artikelauswahl `.task(id: articleID)` ein zweites
+     Mal für dieselbe ID feuerte, während der erste Ladevorgang noch lief, und
+     dadurch einen kompletten dritten, redundanten DB-Read+Prepare-Durchlauf
+     auslöste. `Task.detached`-Cancellation stoppt eine bereits gestartete
+     synchrone GRDB-Abfrage nicht mehr — alle drei Reads liefen tatsächlich zu
+     Ende, nur das letzte Ergebnis wurde angewendet. Fix:
+     `guard force || loadedArticleID != articleID else { return }` (entfernt
+     `activeLoadTask != nil` aus der Bedingung) — ein bereits laufender
+     Ladevorgang für dieselbe ID darf jetzt einfach zu Ende laufen statt neu zu
+     starten. Reduziert 3 Reads auf 1, hatte für sich allein aber kaum Einfluss
+     auf die wahrgenommene Gesamtzeit (~650-750ms statt ~600-950ms) — der
+     eigentliche Flaschenhals lag woanders (Punkt 2).
+  2. **GRDB `DatabaseQueue`-Read-Kontention (behoben):** Selbst mit nur einem
+     Read blieb ein trivialer, indexierter Einzelzeilen-Read
+     (`ArticleStore.readerArticle(id:)`, PK-Join über `articles`/`feeds`/
+     `article_statuses`) bei ~350-500ms hängen, statt der erwarteten <10ms. Ursache:
+     `FeedivoDatabase.open(at:)` nutzte eine GRDB `DatabaseQueue` — eine EINZIGE,
+     vollständig serialisierte SQLite-Verbindung, die JEDEN Lese- und
+     Schreibzugriff app-weit nacheinander abarbeitet. Markiert der Nutzer beim
+     Auswählen einen Artikel als gelesen, löst das
+     `SQLiteDataInvalidation.bumpStatusVersion()` aus — die Artikelliste lädt
+     sich daraufhin selbst komplett neu (mit 200ms-Debounce,
+     `SQLiteFeedArticleListView.swift:1155`), eine deutlich teurere Abfrage als
+     der triviale Einzelartikel-Read des Readers, der zur exakt gleichen Zeit in
+     derselben Warteschlange steckenblieb. Fix: `DatabaseQueue` durch
+     `DatabasePool` ersetzt (`FeedivoDatabase.swift:36`) — aktiviert automatisch
+     SQLites WAL-Journal-Modus (verifiziert im lokal ausgecheckten
+     GRDB.swift-Quellcode, `DatabasePool.swift`, `setUpWALMode`) und erlaubt
+     dadurch mehrere ECHT PARALLELE Lesezugriffe gleichzeitig zu einem laufenden
+     Schreibzugriff (WAL-Snapshot-Isolation) — Schreibzugriffe bleiben weiterhin
+     serialisiert (ein Writer), nur Reads müssen nicht mehr hintereinander
+     warten. Da `FeedivoDatabase` bereits `any DatabaseWriter` kapselt (dem
+     gemeinsamen GRDB-Protokoll von `DatabaseQueue` UND `DatabasePool`), musste
+     KEIN Aufrufer in Stores/Services angepasst werden — reine, lokal
+     eingegrenzte Änderung an zwei Zeilen. `inMemoryForTests()` bleibt bewusst
+     auf `DatabaseQueue`: `DatabasePool` benötigt eine echte Datei, da jede
+     `:memory:`-Verbindung sonst ihre eigene, isolierte Datenbank wäre (~126
+     Testdateien nutzen `inMemoryForTests()`, keine Anpassung nötig). Live
+     verifiziert per `lsof` auf den laufenden Prozess: `feedivo.sqlite-wal`/
+     `-shm`-Dateien sowie mehrere parallele offene Connections zum
+     sandboxed-Container-DB-Pfad bestätigt aktiv. Nach diesem Fix sank die
+     eigentliche DB-Read-Zeit auf ~150-200ms, Gesamtzeit bis sichtbarem Artikel
+     auf ~415-690ms (vorher ~650-950ms) — vom Nutzer live bestätigt als „viel
+     schneller".
+  3. **VERBLEIBENDE, NICHT BEHOBENE Restursache (für neue Session
+     zurückgestellt):** eine sehr konstante ~220-250ms-Lücke zwischen dem
+     Abschluss des Gelesen-Markierens (`ArticleStatusStore.
+     updateBooleanStatus`, `bumpStatusVersion()`) und dem Moment, in dem
+     IRGENDEINE View auf die Statusänderung reagiert — live zweifelsfrei
+     nachgewiesen, dass sowohl die Artikelliste (`.task(id:
+     sqliteStatusVersion)`) als auch der Reader (`.onChange(of:
+     sqliteStatusVersion)`) exakt zur gleichen Millisekunde feuern, sich also
+     NICHT gegenseitig blockieren — beide warten stattdessen auf denselben,
+     vorgelagerten Effekt. Bei einem erneuten Auswählen eines BEREITS gelesenen
+     Artikels (kein `bumpStatusVersion()`-Aufruf nötig, kein Status-Schreiben)
+     sinkt die Gesamtzeit auf ~120-140ms — exakt der erreichbare Bestwert ohne
+     diese Lücke. Root Cause: SwiftUIs `@AppStorage`/`UserDefaults`-
+     Änderungsbenachrichtigung selbst hat auf diesem System eine konsistente
+     ~220-250ms-Latenz, bevor `.onChange`/`.task(id:)`-Observer reagieren —
+     vermutlich verschärft durch die Zahl der gleichzeitig auf denselben
+     `sqliteStatusVersion`-Key registrierten `@AppStorage`-Beobachter (mindestens
+     7 Views app-weit: `ContentView`, `SidebarView`,
+     `SQLiteFeedArticleListView`, `SQLiteReaderView`, `ReaderTabBarView`,
+     `SettingsView`, `CleanupHistoryWindowView`). **Nächster Schritt (Nutzer-
+     Entscheidung: in einer NEUEN Session angehen, nicht in dieser):**
+     `SQLiteDataInvalidation` (aktuell `@AppStorage`/`UserDefaults`-basiert) auf
+     ein natives `@Observable`-Signal umstellen, das SwiftUIs eigene, deutlich
+     schnellere Observation-Machinerie nutzt statt UserDefaults-Notifications.
+     **Achtung, großer Umfang:** `bumpStatusVersion()`/`directTagVersionKey` sind
+     der zentrale, app-weite Reaktivitätsmechanismus seit dem SwiftData-Ausbau
+     (ADR-007) — „Keine @Query/Observation-Automatik — UI-Updates nach
+     Mutationen laufen explizit über SQLiteDataInvalidation.
+     bumpStatusVersion() + .onChange(...) in den Views" — eine Umstellung
+     betrifft potenziell JEDEN Mutations-Pfad der App, nicht nur den Reader.
+     Braucht einen eigenen Brainstorming→Spec→Plan-Zyklus, kein Direktfix.
+  Betroffene Dateien (Fix, nicht Diagnose): `Feedivo/Database/FeedivoDatabase.swift`
+  (`DatabaseQueue` → `DatabasePool`), `Feedivo/ViewModels/SQLiteReaderState.swift`
+  (Guard-Fix). Temporäre `PerfDebugTemp.swift`-Instrumentierung (OSLog-Zeitstempel,
+  TEMP-DEBUG-Pattern) wieder vollständig entfernt, nie committed. Build + gezielter
+  Regressionslauf grün (`FeedivoDatabaseMigratorTests`, `SQLiteDatabaseMigrationTests`,
+  `SQLiteArticleDatabaseTests`, `SQLiteArticleStoreTests`, `ArticleStatusStoreTests`,
+  `SQLiteArticleStatusStoreTests`, `SQLiteReaderStateTests`, 94/94 Tests). Dabei
+  bestätigt: `SQLiteFeedArticleListStateTests` ist bereits auf dem unveränderten
+  Baseline-Commit flaky (mehr fehlgeschlagene Tests OHNE diesen Fix als mit) — keine
+  neue Regression, siehe bestehender Gotcha-Eintrag zu
+  `listStateToggeltReadUndAktualisiertRows`, der offenbar nur die Spitze eines
+  größeren, vorbestehenden Flakiness-Problems dieser Suite ist.
+
 - **2026-08-05: Native Artikelliste (NSTableView-Migration) — VOLLSTÄNDIG ABGESCHLOSSEN,
   gemergt nach `main`, gepusht, Standard jetzt AN.** Direkte Folge des Render-Benchmark-
   Spikes vom Vortag (siehe Eintrag darunter) — echte Produktiv-Migration statt reinem
