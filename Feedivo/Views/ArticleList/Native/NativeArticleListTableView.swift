@@ -62,6 +62,13 @@ struct NativeArticleListTableView: NSViewRepresentable {
         tableView.usesAutomaticRowHeights = false
         tableView.selectionHighlightStyle = .regular
         tableView.allowsMultipleSelection = false
+        // NSTableView zeichnet standardmäßig KEINE Trennlinien zwischen
+        // Zeilen — anders als SwiftUIs `List`, die das automatisch tut.
+        // `.solidHorizontalGridLineMask` + eine dezente Gridfarbe (angelehnt
+        // an `NSColor.separatorColor`) stellt die vertraute Trennlinie
+        // zwischen Artikeln wieder her.
+        tableView.gridStyleMask = .solidHorizontalGridLineMask
+        tableView.gridColor = .separatorColor
         tableView.delegate = context.coordinator
         tableView.dataSource = context.coordinator
         tableView.menu = NSMenu()
