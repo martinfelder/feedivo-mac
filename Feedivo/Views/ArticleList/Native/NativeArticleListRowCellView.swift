@@ -200,7 +200,7 @@ final class NativeArticleListRowCellView: NSTableCellView {
                     targetPixelSize: CGSize(width: side * 2, height: side * 2)
                 )
                 guard let self,
-                      NativeArticleImageLoadGuard.shouldApplyLoadedImage(
+                      NativeArticleListImageLoadGuard.shouldApplyLoadedImage(
                           requestedToken: loadToken,
                           currentToken: self.currentLoadToken
                       )
@@ -213,7 +213,7 @@ final class NativeArticleListRowCellView: NSTableCellView {
             Task { [weak self] in
                 let image = await ImageCacheService.shared.image(for: faviconURL)
                 guard let self,
-                      NativeArticleImageLoadGuard.shouldApplyLoadedImage(
+                      NativeArticleListImageLoadGuard.shouldApplyLoadedImage(
                           requestedToken: loadToken,
                           currentToken: self.currentLoadToken
                       )
