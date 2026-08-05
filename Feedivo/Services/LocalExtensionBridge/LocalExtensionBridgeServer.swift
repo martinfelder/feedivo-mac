@@ -143,7 +143,7 @@ final class LocalExtensionBridgeServer {
                 urlString: urlString,
                 refreshIntervalMinutes: BackgroundRefreshSettings.defaultIntervalMinutes
             )
-            SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
+            SQLiteDataInvalidation.shared.bumpStatusVersion()
             return .added
         } catch SQLiteFeedSubscriptionError.duplicateFeed {
             return .alreadyExists

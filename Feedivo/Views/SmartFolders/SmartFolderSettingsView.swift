@@ -156,11 +156,11 @@ struct SmartFolderSettingsView: View {
         }
         .joined(separator: "#")
 
-        return "\(folderToken)#\(SQLiteDataInvalidationSignal.shared.statusVersion)#\(SidebarBadgeInvalidationSignal.shared.directTagVersion)"
+        return "\(folderToken)#\(SQLiteDataInvalidation.shared.statusVersion)#\(SidebarBadgeInvalidation.shared.directTagVersion)"
     }
 
     private var folderReloadToken: String {
-        "\(SQLiteDataInvalidationSignal.shared.statusVersion)"
+        "\(SQLiteDataInvalidation.shared.statusVersion)"
     }
 
     private var orderedFolders: [SmartFolderRecord] {
@@ -226,7 +226,7 @@ struct SmartFolderSettingsView: View {
             id: folder.id,
             copyName: "\(SmartFolderFormatter.displayName(for: folder)) Kopie"
         )
-        SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
+        SQLiteDataInvalidation.shared.bumpStatusVersion()
         loadFolders()
     }
 
@@ -239,7 +239,7 @@ struct SmartFolderSettingsView: View {
             id: folder.id,
             isShownInSidebar: isShownInSidebar
         )
-        SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
+        SQLiteDataInvalidation.shared.bumpStatusVersion()
         loadFolders()
     }
 
@@ -249,7 +249,7 @@ struct SmartFolderSettingsView: View {
         }
 
         try? SQLiteSmartFolderStore(database: database).delete(id: folder.id)
-        SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
+        SQLiteDataInvalidation.shared.bumpStatusVersion()
         loadFolders()
     }
 
@@ -259,7 +259,7 @@ struct SmartFolderSettingsView: View {
         }
 
         try? SQLiteSmartFolderStore(database: database).restoreDefaultFolders()
-        SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
+        SQLiteDataInvalidation.shared.bumpStatusVersion()
         loadFolders()
     }
 
@@ -269,7 +269,7 @@ struct SmartFolderSettingsView: View {
         }
 
         try? SQLiteSmartFolderStore(database: database).move(id: sourceID, toPositionOf: targetID)
-        SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
+        SQLiteDataInvalidation.shared.bumpStatusVersion()
         loadFolders()
     }
 }

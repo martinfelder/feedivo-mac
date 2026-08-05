@@ -89,7 +89,7 @@ final class MenubarStatusItemController: NSObject {
         observeStatusVersionSignal()
     }
 
-    /// Beobachtet `SQLiteDataInvalidationSignal.shared.statusVersion` — der
+    /// Beobachtet `SQLiteDataInvalidation.shared.statusVersion` — der
     /// bisherige KVO-Mechanismus (`observedKeys`) funktioniert nur mit
     /// `UserDefaults`-Keys, nicht mit `@Observable`-Properties.
     /// `withObservationTracking` beobachtet nur EIN einziges Mal; `onChange`
@@ -97,7 +97,7 @@ final class MenubarStatusItemController: NSObject {
     /// des Observation-Frameworks für Nicht-SwiftUI-Beobachter).
     private func observeStatusVersionSignal() {
         withObservationTracking {
-            _ = SQLiteDataInvalidationSignal.shared.statusVersion
+            _ = SQLiteDataInvalidation.shared.statusVersion
         } onChange: { [weak self] in
             Task { @MainActor in
                 self?.statusVersionObservationFireCount += 1

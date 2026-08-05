@@ -113,8 +113,8 @@ struct FeedViewModelTests {
 
     @MainActor
     @Test func importOPMLFeedsAktualisiertNeueFeedsDirektNachDemImport() async throws {
-        SQLiteDataInvalidationSignal.shared.reset()
-        let initialStatusVersion = SQLiteDataInvalidationSignal.shared.statusVersion
+        SQLiteDataInvalidation.shared.reset()
+        let initialStatusVersion = SQLiteDataInvalidation.shared.statusVersion
         let sqliteDatabase = try FeedivoDatabase.inMemoryForTests()
         let viewModel = makeViewModel(
             fetchFeed: { urlString in
@@ -173,7 +173,7 @@ struct FeedViewModelTests {
         #expect(viewModel.errorMessage == nil)
         #expect(!viewModel.isLoading)
         #expect(viewModel.operationProgress == nil)
-        #expect(SQLiteDataInvalidationSignal.shared.statusVersion > initialStatusVersion)
+        #expect(SQLiteDataInvalidation.shared.statusVersion > initialStatusVersion)
     }
 
     @Test func opmlImportPreviewDelegiertAnSQLiteSubscriptionService() async throws {

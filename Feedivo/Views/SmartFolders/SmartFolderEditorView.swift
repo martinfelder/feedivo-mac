@@ -383,7 +383,7 @@ struct SmartFolderEditorView: View {
             .map { "\($0.field.rawValue):\($0.conditionOperator.rawValue):\($0.value)" }
             .joined(separator: "|")
 
-        return "\(name)#\(matchMode.rawValue)#\(conditionToken)#\(SQLiteDataInvalidationSignal.shared.statusVersion)#\(SidebarBadgeInvalidationSignal.shared.directTagVersion)"
+        return "\(name)#\(matchMode.rawValue)#\(conditionToken)#\(SQLiteDataInvalidation.shared.statusVersion)#\(SidebarBadgeInvalidation.shared.directTagVersion)"
     }
 
     private func loadInitialState() {
@@ -458,7 +458,7 @@ struct SmartFolderEditorView: View {
 
         do {
             try SQLiteSmartFolderStore(database: database).save(record, conditions: conditions)
-            SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
+            SQLiteDataInvalidation.shared.bumpStatusVersion()
             errorMessage = nil
             dismiss()
         } catch {

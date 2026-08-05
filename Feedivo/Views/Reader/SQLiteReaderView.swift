@@ -347,10 +347,10 @@ struct SQLiteReaderView: View {
         .onChange(of: state.snapshot) { _, snapshot in
             onSnapshotChange(snapshot)
         }
-        .onChange(of: SidebarBadgeInvalidationSignal.shared.directTagVersion) { _, _ in
+        .onChange(of: SidebarBadgeInvalidation.shared.directTagVersion) { _, _ in
             reloadCurrentArticleSnapshot()
         }
-        .onChange(of: SQLiteDataInvalidationSignal.shared.statusVersion) { _, _ in
+        .onChange(of: SQLiteDataInvalidation.shared.statusVersion) { _, _ in
             reloadCurrentArticleSnapshot()
         }
         .onDisappear {

@@ -229,7 +229,7 @@ struct FeedManagementOrganizerView: View {
 
         selectedFeedIDs.subtract(feedsToDelete.map(\.id))
         if errorMessage == nil {
-            SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
+            SQLiteDataInvalidation.shared.bumpStatusVersion()
             loadFeeds()
         }
     }
@@ -254,7 +254,7 @@ struct FeedManagementOrganizerView: View {
         }
 
         if errorMessage == nil {
-            SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
+            SQLiteDataInvalidation.shared.bumpStatusVersion()
             loadFeeds()
         }
     }

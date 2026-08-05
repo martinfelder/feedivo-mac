@@ -30,27 +30,13 @@ enum SmartFolderSidebarBadge {
     }
 }
 
-/// Invalidierung für das Sidebar-Badge-Caching. Direkte Artikel→Tag-Zuweisungen
-/// (nicht über den Feed) werden nicht von den Skalar-Counts oder den beobachteten
-/// @Querys erfasst — daher bumpen die Zuweisungs-Stellen diesen Zähler, worauf
-/// die Sidebar ihre Badges neu berechnet. UserDefaults ist thread-sicher, daher
-/// nonisolated aufrufbar (auch aus dem RuleEngine-Pfad).
-enum SidebarBadgeInvalidation {
-    static let directTagVersionKey = "sidebarBadgeDirectTagVersion"
-
-    static func bumpDirectTagVersion() {
-        let defaults = UserDefaults.standard
-        defaults.set(defaults.integer(forKey: directTagVersionKey) + 1, forKey: directTagVersionKey)
-    }
-}
-
-/// Ersetzt `SidebarBadgeInvalidation`s `UserDefaults`/`@AppStorage`-
-/// Mechanismus durch natives SwiftUI-`@Observable`, analog zu
-/// `SQLiteDataInvalidationSignal` (siehe dort für die volle Begründung).
+/// Ersetzt einen vormaligen `UserDefaults`/`@AppStorage`-Mechanismus durch
+/// natives SwiftUI-`@Observable`, analog zu `SQLiteDataInvalidation` (siehe
+/// dort für die volle Begründung).
 @MainActor
 @Observable
-final class SidebarBadgeInvalidationSignal {
-    static let shared = SidebarBadgeInvalidationSignal()
+final class SidebarBadgeInvalidation {
+    static let shared = SidebarBadgeInvalidation()
     private init() {}
 
     private(set) var directTagVersion = 0

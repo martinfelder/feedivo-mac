@@ -54,7 +54,7 @@ struct ReaderTabBarView: View {
         .overlay(alignment: .bottom) {
             Divider()
         }
-        .task(id: MetadataReloadKey(articleIDs: tabs.map(\.articleID), statusVersion: SQLiteDataInvalidationSignal.shared.statusVersion)) {
+        .task(id: MetadataReloadKey(articleIDs: tabs.map(\.articleID), statusVersion: SQLiteDataInvalidation.shared.statusVersion)) {
             await loadMetadata()
         }
     }

@@ -288,7 +288,7 @@ struct TagManagerView: View {
                     colorHex: TagViewModel.normalizedColorHex(newTagColorHex)
                 )
             )
-            SidebarBadgeInvalidationSignal.shared.bumpDirectTagVersion()
+            SidebarBadgeInvalidation.shared.bumpDirectTagVersion()
             newTagName = ""
             errorMessage = nil
             reloadTags()
@@ -325,7 +325,7 @@ struct TagManagerView: View {
 
         do {
             try TagStore(database: database).deleteTag(id: tag.id)
-            SidebarBadgeInvalidationSignal.shared.bumpDirectTagVersion()
+            SidebarBadgeInvalidation.shared.bumpDirectTagVersion()
             reloadTags()
         } catch {
             errorMessage = error.localizedDescription
@@ -449,7 +449,7 @@ private struct TagManagerRow: View {
 
         do {
             try TagStore(database: database).renameTag(id: tag.id, name: normalizedName)
-            SidebarBadgeInvalidationSignal.shared.bumpDirectTagVersion()
+            SidebarBadgeInvalidation.shared.bumpDirectTagVersion()
             rowErrorMessage = nil
             draftName = normalizedName
             reloadTags()
@@ -468,7 +468,7 @@ private struct TagManagerRow: View {
 
         do {
             try TagStore(database: database).updateColor(id: tag.id, colorHex: colorHex)
-            SidebarBadgeInvalidationSignal.shared.bumpDirectTagVersion()
+            SidebarBadgeInvalidation.shared.bumpDirectTagVersion()
             rowErrorMessage = nil
             reloadTags()
         } catch {

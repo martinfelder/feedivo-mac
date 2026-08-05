@@ -71,7 +71,7 @@ struct ArticleSearchWindowView: View {
         .task(id: searchLoadToken) {
             loadSnapshots()
         }
-        .task(id: SQLiteDataInvalidationSignal.shared.statusVersion) {
+        .task(id: SQLiteDataInvalidation.shared.statusVersion) {
             loadFeeds()
             loadTags()
         }

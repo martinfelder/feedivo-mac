@@ -535,7 +535,7 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(viewModelSource.contains("SQLiteFeedSubscriptionService"))
         #expect(compactViewModelSource.contains("service.importOPMLFeeds("))
         #expect(compactViewModelSource.contains("service.addFeed("))
-        #expect(viewModelSource.contains("SQLiteDataInvalidationSignal.shared.bumpStatusVersion()"))
+        #expect(viewModelSource.contains("SQLiteDataInvalidation.shared.bumpStatusVersion()"))
     }
 
     @Test func feedViewModelDelegiertOPMLPreviewAnSQLiteSubscriptionService() throws {
@@ -843,7 +843,7 @@ struct FeedivoAppSceneConfigurationTests {
         let compactSidebarSource = compact(sidebarSource)
 
         #expect(sidebarSource.contains("@Environment(\\.feedivoDatabase) private var feedivoDatabase"))
-        #expect(sidebarSource.contains("SQLiteDataInvalidationSignal.shared.statusVersion"))
+        #expect(sidebarSource.contains("SQLiteDataInvalidation.shared.statusVersion"))
         #expect(sidebarSource.contains("@State private var sqliteSidebarState = SQLiteSidebarState()"))
         #expect(compactSidebarSource.contains("sqliteSidebarState.load(database:feedivoDatabase,showsReadFeeds:showsReadFeedsInSidebar)"))
         // Sidebar ist SQLite-only: Feeds werden direkt aus den Snapshots gerendert,
@@ -851,7 +851,7 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(compactSidebarSource.contains("letvisibleSnapshots=sqliteSidebarState.snapshots"))
         #expect(compactSidebarSource.contains("FeedRowView(snapshot:snapshot,"))
         #expect(!sidebarSource.contains("@Query(sort: \\Feed.title) private var feeds: [Feed]"))
-        #expect(compactSidebarSource.contains("\\(SQLiteDataInvalidationSignal.shared.statusVersion)#\\(SidebarBadgeInvalidationSignal.shared.directTagVersion)#\\(showsReadFeedsInSidebar)#\\(sidebarDefinitionVersion)#\\(sqliteSidebarState.snapshots.count)"))
+        #expect(compactSidebarSource.contains("\\(SQLiteDataInvalidation.shared.statusVersion)#\\(SidebarBadgeInvalidation.shared.directTagVersion)#\\(showsReadFeedsInSidebar)#\\(sidebarDefinitionVersion)#\\(sqliteSidebarState.snapshots.count)"))
     }
 
     @Test func sidebarTagBadgesNutzenSQLiteSnapshots() throws {
@@ -1004,7 +1004,7 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(source.contains("try TagStore(database: database).removeTag"))
         #expect(source.contains("tagID: tag.id"))
         #expect(source.contains("fromFeedID: feedID"))
-        #expect(source.contains("SidebarBadgeInvalidationSignal.shared.bumpDirectTagVersion()"))
+        #expect(source.contains("SidebarBadgeInvalidation.shared.bumpDirectTagVersion()"))
     }
 
     @Test func feedPropertiesViewLaedtFeedLogsAusSQLite() throws {

@@ -4,7 +4,7 @@ import SwiftUI
 /// Kapselt die TagStore-Zugriffslogik, die zuvor nur in ArticleMetadataInspectorView lag.
 /// Genutzt sowohl vom Metadaten-Inspector (eingebettete Sektion) als auch vom
 /// "+"-Button-Popover im Reader-Header (SQLiteReaderView) — beide Aufrufer synchronisieren
-/// sich automatisch über SidebarBadgeInvalidation.directTagVersionKey.
+/// sich automatisch über SidebarBadgeInvalidation.shared.directTagVersion.
 struct ArticleTagAssignmentView: View {
     @Environment(\.feedivoDatabase) private var database
     @Environment(\.interfaceTextSize) private var interfaceTextSize
@@ -40,7 +40,7 @@ struct ArticleTagAssignmentView: View {
         .task(id: articleID) {
             loadTags()
         }
-        .onChange(of: SidebarBadgeInvalidationSignal.shared.directTagVersion) { _, _ in
+        .onChange(of: SidebarBadgeInvalidation.shared.directTagVersion) { _, _ in
             loadTags()
         }
         .onChange(of: snapshotTags) { _, _ in
@@ -176,7 +176,7 @@ struct ArticleTagAssignmentView: View {
             } else {
                 try TagStore(database: database).assignTag(tagID: tag.id, toArticleID: articleID, at: Date())
             }
-            SidebarBadgeInvalidationSignal.shared.bumpDirectTagVersion()
+            SidebarBadgeInvalidation.shared.bumpDirectTagVersion()
             loadTags()
         } catch {
             return
@@ -198,7 +198,7 @@ struct ArticleTagAssignmentView: View {
                 try TagStore(database: database).save(tag)
             }
             try TagStore(database: database).assignTag(tagID: tag.id, toArticleID: articleID, at: Date())
-            SidebarBadgeInvalidationSignal.shared.bumpDirectTagVersion()
+            SidebarBadgeInvalidation.shared.bumpDirectTagVersion()
             newTagName = ""
             loadTags()
         } catch {

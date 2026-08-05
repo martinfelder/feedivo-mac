@@ -1306,7 +1306,7 @@ private struct SyncSettingsView: View {
                 showingFirstActivationSheet = true
             }
         }
-        .onChange(of: SQLiteDataInvalidationSignal.shared.statusVersion) {
+        .onChange(of: SQLiteDataInvalidation.shared.statusVersion) {
             loadSyncActivityPendingCounts()
             loadPendingConflictCount()
         }
@@ -1316,7 +1316,7 @@ private struct SyncSettingsView: View {
         .onChange(of: syncActivityLastRunTimestamp) {
             // CloudSyncEngine.dequeuePendingChange löscht erledigte Pending-Change-Zeilen,
             // ruft dabei aber (bewusst, siehe Whole-Branch-Review) nicht
-            // SQLiteDataInvalidation.bumpStatusVersion() auf. Ohne diesen zusätzlichen Trigger
+            // SQLiteDataInvalidation.shared.bumpStatusVersion() auf. Ohne diesen zusätzlichen Trigger
             // würde die Ausstehend-Anzahl nach einem erfolgreichen Sync erst beim nächsten
             // Öffnen der Einstellungen aktualisiert. syncActivityLastRunTimestamp wird dagegen
             // bei JEDEM abgeschlossenen Sync-Versuch (Erfolg UND Fehler) neu geschrieben, ist

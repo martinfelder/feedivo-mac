@@ -285,7 +285,7 @@ struct ContentView: View {
             // SQLite-Sidebar-Snapshots beim Erscheinen laden (ersetzt @Query).
             await reloadFeedSnapshots()
         }
-        .onChange(of: SQLiteDataInvalidationSignal.shared.statusVersion) {
+        .onChange(of: SQLiteDataInvalidation.shared.statusVersion) {
             // Bei Anlage/Löschung/Refresh (Status-Version-Bump) Snapshots neu
             // laden, damit First-Run, Badge und Feed-Menü aktuell bleiben.
             Task { await reloadFeedSnapshots() }

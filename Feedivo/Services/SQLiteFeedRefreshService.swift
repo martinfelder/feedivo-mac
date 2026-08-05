@@ -274,7 +274,7 @@ struct SQLiteFeedRefreshService {
             }
         }
         if didUpdateAny {
-            SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
+            SQLiteDataInvalidation.shared.bumpStatusVersion()
         }
     }
 
@@ -370,7 +370,7 @@ struct SQLiteFeedRefreshService {
             }
         }
         if !result.hiddenArticleIDs.isEmpty {
-            SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
+            SQLiteDataInvalidation.shared.bumpStatusVersion()
         }
         if !result.tagAssignments.isEmpty {
             CloudSyncEngine.notifyPendingChangesAvailable(database: database)

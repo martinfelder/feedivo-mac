@@ -516,7 +516,7 @@ struct ArticleMetadataInspectorView: View {
 
         do {
             try FeedStore(database: database).updateFolderName(id: currentSnapshot.feedID, folderName: folderName)
-            SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
+            SQLiteDataInvalidation.shared.bumpStatusVersion()
             reloadInspectorData()
         } catch {
             return
@@ -534,7 +534,7 @@ struct ArticleMetadataInspectorView: View {
                 FeedFolderRecord(name: normalizedFolderName)
             )
             try FeedStore(database: database).updateFolderName(id: currentSnapshot.feedID, folderName: normalizedFolderName)
-            SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
+            SQLiteDataInvalidation.shared.bumpStatusVersion()
             newFolderName = ""
             reloadInspectorData()
         } catch {

@@ -194,7 +194,7 @@ final class FeedViewModel {
             )
         }
         if sqliteResult.imported > 0 {
-            SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
+            SQLiteDataInvalidation.shared.bumpStatusVersion()
         }
 
         return OPMLImportResult(
@@ -245,7 +245,7 @@ final class FeedViewModel {
                 refreshIntervalMinutes: BackgroundRefreshSettings.defaultIntervalMinutes,
                 folderName: folderName
             )
-            SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
+            SQLiteDataInvalidation.shared.bumpStatusVersion()
         } catch let error as LocalizedError {
             errorMessage = error.errorDescription ?? L10n.feedErrorAddFailed
         } catch {
@@ -284,7 +284,7 @@ final class FeedViewModel {
                 feedID: feedID,
                 ruleSnapshots: sqliteRuleSnapshots(from: sqliteDatabase)
             )
-            SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
+            SQLiteDataInvalidation.shared.bumpStatusVersion()
             await notifyFeedRefresh([
                 FeedRefreshNotificationResult(
                     feedTitle: result.refreshResult.feedTitle,
@@ -404,7 +404,7 @@ final class FeedViewModel {
             }
         }
 
-        SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
+        SQLiteDataInvalidation.shared.bumpStatusVersion()
         await notifyFeedRefresh(summary.notificationResults)
         await notifyRuleNotifications(summary.ruleNotificationResults)
         await waitForMinimumRefreshStatusDuration(since: refreshStatusStart)
@@ -492,7 +492,7 @@ final class FeedViewModel {
         if let sqliteDatabase {
             do {
                 try sqliteFeedActionService(for: sqliteDatabase).deleteFeed(feedID: feedID)
-                SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
+                SQLiteDataInvalidation.shared.bumpStatusVersion()
             } catch {
                 errorMessage = error.localizedDescription
             }

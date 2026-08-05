@@ -4,19 +4,19 @@ import Testing
 @MainActor
 struct SidebarBadgeInvalidationSignalTests {
     @Test func bumpDirectTagVersionErhoehtDenZaehler() {
-        SidebarBadgeInvalidationSignal.shared.reset()
-        let initial = SidebarBadgeInvalidationSignal.shared.directTagVersion
+        SidebarBadgeInvalidation.shared.reset()
+        let initial = SidebarBadgeInvalidation.shared.directTagVersion
 
-        SidebarBadgeInvalidationSignal.shared.bumpDirectTagVersion()
+        SidebarBadgeInvalidation.shared.bumpDirectTagVersion()
 
-        #expect(SidebarBadgeInvalidationSignal.shared.directTagVersion == initial + 1)
+        #expect(SidebarBadgeInvalidation.shared.directTagVersion == initial + 1)
     }
 
     @Test func resetSetztAufNullZurueck() {
-        SidebarBadgeInvalidationSignal.shared.bumpDirectTagVersion()
+        SidebarBadgeInvalidation.shared.bumpDirectTagVersion()
 
-        SidebarBadgeInvalidationSignal.shared.reset()
+        SidebarBadgeInvalidation.shared.reset()
 
-        #expect(SidebarBadgeInvalidationSignal.shared.directTagVersion == 0)
+        #expect(SidebarBadgeInvalidation.shared.directTagVersion == 0)
     }
 }

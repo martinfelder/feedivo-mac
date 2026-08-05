@@ -1377,6 +1377,104 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Aktuell in Arbeit
 
+- **2026-08-05: `@AppStorage`/`UserDefaults`→`@Observable`-Migration der SQLite-
+  Invalidierungssignale — VOLLSTÄNDIG ABGESCHLOSSEN (Tasks 1-8, alle reviewed),
+  Live-Perf-Verifikation NOCH AUSSTEHEND.** Direkte Folgearbeit zum darunter
+  dokumentierten Reader-Ladeverzögerung-Fund vom selben Tag: dort wurde als
+  verbleibende, nicht behobene Ursache identifiziert, dass SwiftUIs
+  `@AppStorage`/`UserDefaults`-Änderungsbenachrichtigung auf diesem System eine
+  konsistente ~220-250ms-Latenz hat, bevor `.onChange`/`.task(id:)`-Observer
+  reagieren — verschärft durch mindestens 7 app-weit gleichzeitig auf denselben
+  `sqliteData.statusVersion`-Key registrierte `@AppStorage`-Beobachter. Diese
+  Session ersetzt den zentralen, seit dem SwiftData-Ausbau (ADR-007) app-weiten
+  Reaktivitätsmechanismus (`SQLiteDataInvalidation.bumpStatusVersion()` +
+  `SidebarBadgeInvalidation.bumpDirectTagVersion()`, beide vormals
+  `UserDefaults`-basiert) durch zwei native `@MainActor`/`@Observable`-Singletons
+  mit identischer Methoden-/Property-Semantik (`shared.statusVersion`/
+  `shared.bumpStatusVersion()` bzw. `shared.directTagVersion`/
+  `shared.bumpDirectTagVersion()`), die SwiftUIs eigene, deutlich schnellere
+  Observation-Machinerie nutzen statt `UserDefaults`-Notifications. Umgesetzt
+  via Brainstorming→Spec→Plan→Subagent-Driven-Development (8 Tasks): Task 1
+  legte beide neuen `@Observable`-Typen bewusst als Koexistenz NEBEN der alten
+  `enum`-API an (unter den Zwischennamen `SQLiteDataInvalidationSignal`/
+  `SidebarBadgeInvalidationSignal`, da die Zielnamen noch von der alten API
+  belegt waren), Tasks 2-7 migrierten alle Aufrufer schichtweise (Reader-/
+  Artikelliste-Views, Sidebar-/Feed-Verwaltungs-Views, Settings-/SmartFolder-/
+  Sync-Views, Store-/Service-/ViewModel-Schicht, `MenubarStatusItemController`
+  — von KVO auf `UserDefaults` auf `withObservationTracking` umgestellt —,
+  sowie `CloudSyncEngine.swift` als Actor-Isolations-Sonderfall). **Task 8
+  (dieser Eintrag)** entfernte die alte `UserDefaults`-basierte `enum`-API
+  vollständig (ersatzlos gelöscht aus `Feedivo/Database/
+  SQLiteDataInvalidation.swift` und den Zeilen 33-45 von `Feedivo/Views/
+  Sidebar/SidebarUnreadCount.swift`) und benannte die beiden `@Observable`-
+  Klassen final von `SQLiteDataInvalidationSignal`/
+  `SidebarBadgeInvalidationSignal` auf die jetzt freien Namen
+  `SQLiteDataInvalidation`/`SidebarBadgeInvalidation` um — reine, mechanische
+  Textersetzung über 30 Dateien (`Feedivo` + `FeedivoTests`), keine
+  Logikänderung. Die beiden zugehörigen Testklassen-NAMEN
+  (`SidebarBadgeInvalidationSignalTests`, `SQLiteDataInvalidationTests`) blieben
+  dabei bewusst unverändert (nur der jeweils getestete Typ wurde umbenannt,
+  nicht die Testklasse selbst — deckt sich mit der Spec-Vorgabe). Beim
+  finalen Verifikations-Grep (Step 1, exakt wie im Plan vorgegeben) fanden
+  sich vier reine Kommentar-Fundstellen (`FeedivoDatabase.swift`,
+  `SettingsView.swift`, `CloudSyncEngine.swift`, `ArticleTagAssignmentView.swift`),
+  die noch auf die alten, jetzt nicht mehr existierenden `UserDefaults`-Key-
+  Symbolnamen (`.statusVersionKey`/`.directTagVersionKey`) bzw. auf die alte,
+  parameterlose statische Aufrufsyntax verwiesen — kein Kompilierfehler (reine
+  Prosa-Kommentare), aber seit der Umbenennung fachlich veraltet/irreführend;
+  bei dieser Gelegenheit auf die korrekte `shared.`-Instanzsyntax korrigiert
+  (kein eigener Task-Scope-Verstoß, da unmittelbare Konsequenz der
+  Umbenennung selbst). Build (`xcodebuild build -scheme Feedivo -configuration
+  Debug`) grün. Gezielter Regressionslauf (Step 6, `-parallel-testing-enabled
+  NO`, 8 Suiten) zeigte auf den ersten Blick 26 fehlschlagende Tests (25 in
+  `FeedivoAppSceneConfigurationTests`, 1 in `SQLiteFeedArticleListStateTests`)
+  — da das in CLAUDE.md zuletzt am 2026-07-23 dokumentierte „17"
+  vorbestehende Fehlschläge in `FeedivoAppSceneConfigurationTests.swift" davon
+  abweicht (bereits damals als driftende, nicht bei jeder Session
+  nachgezogene Zahl bekannt, siehe bestehender Gotcha-Eintrag „15"→„17"),
+  wurde die tatsächliche Baseline nicht aus der Doku übernommen, sondern per
+  `git worktree add` gegen den Commit unmittelbar VOR Task 1 (`7b28690`) neu
+  gemessen: identischer Testlauf dort lieferte exakt dieselben 25
+  fehlschlagenden Testnamen (byte-identisch, „38 issues" in beiden Läufen) in
+  `FeedivoAppSceneConfigurationTests` sowie 5 (statt 1) fehlschlagende Tests
+  in der bereits als flaky-unter-Last dokumentierten
+  `SQLiteFeedArticleListStateTests`-Suite — die Migration führt also
+  nachweislich ZU KEINEN neuen Testfehlschlägen, die Differenz bei
+  `SQLiteFeedArticleListStateTests` liegt im bekannten Flakiness-Rahmen
+  (diesmal sogar weniger Fehlschläge als Baseline). Alle übrigen sechs
+  benannten Suiten (`CloudSyncEngineRegistryTests`, `FeedViewModelTests`,
+  `MenubarStatusItemControllerTests`, `SQLiteReaderStateTests`, sowie die
+  beiden neuen `SQLiteDataInvalidationTests`/`SidebarBadgeInvalidationSignalTests`)
+  liefen grün. Nebenbefund (kein Regressions-, sondern ein bereits vor Task 1
+  bestehender Tooling-Befund, identisch in Baseline- und Nachher-Lauf
+  reproduziert): der direktoriumsbasierte Selektor
+  `-only-testing:FeedivoTests/Services/CloudSync` wählt in diesem Xcode-Stand
+  0 Tests aus (vermutlich eine Pfad-/Suite-Namens-Eigenheit von
+  `xcodebuild`/Swift Testing bei Verzeichnis- statt Klassen-Selektoren) — die
+  darin enthaltene, explizit im Plan benannte `CloudSyncEngineRegistryTests`-
+  Suite lief über ihren eigenen, separaten `-only-testing:`-Eintrag trotzdem
+  korrekt und grün; keine der ~18 CloudSync-Testdateien referenziert die
+  umbenannte API direkt (per Grep verifiziert), sodass hieraus kein
+  Blindspot für diese Migration entsteht. **Ausstehend (bewusst nicht Teil
+  dieser Session, siehe Scope-Anpassung im Task-8-Auftrag):** die ursprünglich
+  als Step 7 geplante Live-Verifikation der Reader-Ladezeit (per temporärer
+  `OSLog`-Instrumentierung soll geprüft werden, ob die Zeit von Artikelauswahl
+  bis sichtbarem Inhalt sich jetzt auch bei Selektionen, die einen
+  Status-Bump auslösen, der zuvor nur bei „kein Bump nötig"-Selektionen
+  erreichten ~120-140ms-Bestzeit annähert, statt der vorher gemessenen
+  ~415-690ms) — das erfordert einen Nutzer, der in der laufenden, echten
+  App 2-3 ungelesene Artikel auswählt, während parallel `log stream`
+  mitläuft; als Subagent ohne Möglichkeit, mit einer laufenden nativen
+  macOS-GUI-App zu interagieren, nicht durchführbar. Muss vom Nutzer selbst
+  nachgeholt werden, analog zu den zahlreichen anderen „manuelle
+  Live-Verifikation ausstehend"-Einträgen in diesem Dokument. Betroffene
+  Dateien (Auswahl, vollständige Liste per `git show --stat` auf dem
+  Task-8-Commit): `Feedivo/Database/SQLiteDataInvalidation.swift`,
+  `Feedivo/Views/Sidebar/SidebarUnreadCount.swift` (beide Kern-Umbenennung),
+  plus 28 weitere Aufrufer-Dateien in `Feedivo/` und `FeedivoTests/` (reine
+  Textersetzung `...Signal` → ohne `...Signal`) sowie die vier oben genannten
+  Kommentar-Korrekturen.
+
 - **2026-08-05: Reader-Ladeverzögerung (~1s bei Artikelauswahl) — TEILWEISE BEHOBEN
   (GRDB DatabaseQueue → DatabasePool), Rest-Ursache identifiziert, Fix für nächste
   Session zurückgestellt.** Nutzer-Report: Artikel erscheint nach Auswahl in der

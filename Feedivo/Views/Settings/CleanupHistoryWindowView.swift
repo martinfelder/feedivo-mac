@@ -32,7 +32,7 @@ struct CleanupHistoryWindowView: View {
         }
         .padding(16)
         .onAppear(perform: loadCleanupHistory)
-        .onChange(of: SQLiteDataInvalidationSignal.shared.statusVersion) {
+        .onChange(of: SQLiteDataInvalidation.shared.statusVersion) {
             loadCleanupHistory()
         }
     }

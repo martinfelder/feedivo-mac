@@ -36,7 +36,7 @@ struct FeedivoDatabase {
         // jeden Lese- UND Schreibzugriff über eine einzige SQLite-Verbindung.
         // Per Live-Log (log stream) verifiziert: markiert der Nutzer einen
         // Artikel beim Auswaehlen als gelesen, reagieren mehrere Views
-        // unabhaengig auf denselben SQLiteDataInvalidation.bumpStatusVersion()
+        // unabhaengig auf denselben SQLiteDataInvalidation.shared.bumpStatusVersion()
         // — u. a. laedt die Artikelliste sich selbst (mit 200ms Debounce) komplett
         // neu, waehrend der Reader zeitgleich nur den einen neu ausgewaehlten
         // Artikel per PK nachladen will. Auf einer DatabaseQueue muss dieser an

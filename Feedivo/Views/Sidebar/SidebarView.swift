@@ -310,7 +310,7 @@ struct SidebarView: View {
             id: smartFolder.id,
             copyName: "\(smartFolder.name) Kopie"
         )
-        SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
+        SQLiteDataInvalidation.shared.bumpStatusVersion()
         sidebarDefinitionVersion += 1
     }
 
@@ -320,7 +320,7 @@ struct SidebarView: View {
         }
 
         try? SQLiteSmartFolderStore(database: database).delete(id: smartFolder.id)
-        SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
+        SQLiteDataInvalidation.shared.bumpStatusVersion()
         sidebarDefinitionVersion += 1
     }
 
@@ -337,7 +337,7 @@ struct SidebarView: View {
 
         try? FeedFolderStore(database: database).delete(id: folder.id)
         collapsedFolderNames.remove(folder.name)
-        SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
+        SQLiteDataInvalidation.shared.bumpStatusVersion()
         sidebarDefinitionVersion += 1
     }
 
@@ -355,7 +355,7 @@ struct SidebarView: View {
             collapsedFolderNames.insert(newName)
         }
 
-        SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
+        SQLiteDataInvalidation.shared.bumpStatusVersion()
         sidebarDefinitionVersion += 1
     }
 
@@ -365,7 +365,7 @@ struct SidebarView: View {
         }
 
         try FeedStore(database: database).renameFeed(id: id, displayTitle: newTitle)
-        SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
+        SQLiteDataInvalidation.shared.bumpStatusVersion()
     }
 
     private func moveFeed(id: String, toFolderName: String?, targetIndex: Int) {
@@ -380,7 +380,7 @@ struct SidebarView: View {
         } catch {
             AppLogger.dataAccess.fault("TEMPDEBUG moveFeed FEHLER \(error.localizedDescription, privacy: .public)")
         }
-        SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
+        SQLiteDataInvalidation.shared.bumpStatusVersion()
     }
 
     private func moveFolder(name: String, targetIndex: Int) {
@@ -411,7 +411,7 @@ struct SidebarView: View {
     private func moveTag(id: String, targetIndex: Int) {
         guard let database = feedivoDatabase else { return }
         try? TagStore(database: database).move(id: id, targetIndex: targetIndex)
-        SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
+        SQLiteDataInvalidation.shared.bumpStatusVersion()
     }
 
     private func moveSmartFolder(id: String, targetIndex: Int, isDefault: Bool) {
@@ -429,7 +429,7 @@ struct SidebarView: View {
         } catch {
             AppLogger.dataAccess.error("moveSmartFolder fehlgeschlagen: \(error.localizedDescription, privacy: .public)")
         }
-        SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
+        SQLiteDataInvalidation.shared.bumpStatusVersion()
         sidebarDefinitionVersion += 1
     }
 
@@ -454,7 +454,7 @@ struct SidebarView: View {
         // (Unread-Counts, Titel) werden über sqliteStatusVersion erfasst. Die
         // SQLite-Feed-IDs stehen vor dem ersten Laden noch nicht zur Verfügung,
         // deshalb wird hier nicht auf Snapshots zurückgegriffen.
-        return "\(SQLiteDataInvalidationSignal.shared.statusVersion)#\(SidebarBadgeInvalidationSignal.shared.directTagVersion)#\(showsReadFeedsInSidebar)#\(sidebarDefinitionVersion)#\(sqliteSidebarState.snapshots.count)"
+        return "\(SQLiteDataInvalidation.shared.statusVersion)#\(SidebarBadgeInvalidation.shared.directTagVersion)#\(showsReadFeedsInSidebar)#\(sidebarDefinitionVersion)#\(sqliteSidebarState.snapshots.count)"
     }
 }
 

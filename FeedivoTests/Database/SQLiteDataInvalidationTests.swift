@@ -4,29 +4,29 @@ import Testing
 @MainActor
 struct SQLiteDataInvalidationTests {
     @Test func bumpStatusVersionErhoehtDenZaehler() {
-        SQLiteDataInvalidationSignal.shared.reset()
-        let initial = SQLiteDataInvalidationSignal.shared.statusVersion
+        SQLiteDataInvalidation.shared.reset()
+        let initial = SQLiteDataInvalidation.shared.statusVersion
 
-        SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
+        SQLiteDataInvalidation.shared.bumpStatusVersion()
 
-        #expect(SQLiteDataInvalidationSignal.shared.statusVersion == initial + 1)
+        #expect(SQLiteDataInvalidation.shared.statusVersion == initial + 1)
     }
 
     @Test func mehrfachesBumpenErhoehtKumulativ() {
-        SQLiteDataInvalidationSignal.shared.reset()
+        SQLiteDataInvalidation.shared.reset()
 
-        SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
-        SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
-        SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
+        SQLiteDataInvalidation.shared.bumpStatusVersion()
+        SQLiteDataInvalidation.shared.bumpStatusVersion()
+        SQLiteDataInvalidation.shared.bumpStatusVersion()
 
-        #expect(SQLiteDataInvalidationSignal.shared.statusVersion == 3)
+        #expect(SQLiteDataInvalidation.shared.statusVersion == 3)
     }
 
     @Test func resetSetztAufNullZurueck() {
-        SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
+        SQLiteDataInvalidation.shared.bumpStatusVersion()
 
-        SQLiteDataInvalidationSignal.shared.reset()
+        SQLiteDataInvalidation.shared.reset()
 
-        #expect(SQLiteDataInvalidationSignal.shared.statusVersion == 0)
+        #expect(SQLiteDataInvalidation.shared.statusVersion == 0)
     }
 }

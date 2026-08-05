@@ -188,7 +188,7 @@ struct SQLiteFeedArticleListView: View {
         .task(id: searchText) {
             await updateDebouncedSearchText()
         }
-        .task(id: SQLiteDataInvalidationSignal.shared.statusVersion) {
+        .task(id: SQLiteDataInvalidation.shared.statusVersion) {
             await updateDebouncedStatusVersion()
         }
         .task(id: loadToken) {
@@ -608,7 +608,7 @@ struct SQLiteFeedArticleListView: View {
     private var loadToken: String {
         let baseToken = SQLiteFeedArticleListLoadToken.make(
             scopeToken: scopeToken,
-            directTagVersion: SidebarBadgeInvalidationSignal.shared.directTagVersion,
+            directTagVersion: SidebarBadgeInvalidation.shared.directTagVersion,
             sqliteStatusVersion: debouncedStatusVersion,
             debouncedSearchText: debouncedSearchText
         )
@@ -1002,7 +1002,7 @@ struct SQLiteFeedArticleListView: View {
                 includeHidden: scope.includeHidden,
                 option: option
             )
-            SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
+            SQLiteDataInvalidation.shared.bumpStatusVersion()
             reload()
         } catch {
             // Kein reload() hier: das wuerde ueber state.load(...) den
@@ -1126,7 +1126,7 @@ struct SQLiteFeedArticleListView: View {
         if selectedArticleID == row.id {
             selectedArticleID = nil
         }
-        SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
+        SQLiteDataInvalidation.shared.bumpStatusVersion()
     }
 
     private func updateDebouncedSearchText() async {
@@ -1153,7 +1153,7 @@ struct SQLiteFeedArticleListView: View {
     private func updateDebouncedStatusVersion() async {
         guard hasInitializedDebouncedStatusVersion else {
             hasInitializedDebouncedStatusVersion = true
-            debouncedStatusVersion = SQLiteDataInvalidationSignal.shared.statusVersion
+            debouncedStatusVersion = SQLiteDataInvalidation.shared.statusVersion
             return
         }
 
@@ -1161,7 +1161,7 @@ struct SQLiteFeedArticleListView: View {
             return
         }
 
-        debouncedStatusVersion = SQLiteDataInvalidationSignal.shared.statusVersion
+        debouncedStatusVersion = SQLiteDataInvalidation.shared.statusVersion
     }
 }
 

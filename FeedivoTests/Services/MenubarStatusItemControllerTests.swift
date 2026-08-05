@@ -35,7 +35,7 @@ struct MenubarStatusItemControllerTests {
         // (`statusVersionObservationFireCount` ist ein testbarer Zähler, der
         // ausschließlich zu diesem Zweck existiert — siehe Kommentar am Property
         // selbst in `MenubarStatusItemController.swift`).
-        SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
+        SQLiteDataInvalidation.shared.bumpStatusVersion()
         var attemptsAfterFirstBump = 0
         while controller.statusVersionObservationFireCount < 1 && attemptsAfterFirstBump < 50 {
             await Task.yield()
@@ -53,7 +53,7 @@ struct MenubarStatusItemControllerTests {
         // Menubar-Live-Aktualisierung wäre in Produktion nach dem ersten Update
         // still kaputt, während der ursprüngliche Einzel-Bump-Test dennoch grün
         // geblieben wäre.
-        SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
+        SQLiteDataInvalidation.shared.bumpStatusVersion()
         var attemptsAfterSecondBump = 0
         while controller.statusVersionObservationFireCount < 2 && attemptsAfterSecondBump < 50 {
             await Task.yield()

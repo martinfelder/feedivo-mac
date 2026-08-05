@@ -325,11 +325,11 @@ final class CloudSyncEngine: NSObject {
         }
 
         // Ohne diesen Bump bleibt die Ausstehend-Anzeige in den Einstellungen (die auf
-        // `SQLiteDataInvalidation.statusVersionKey` per .onChange reagiert) während des
+        // `SQLiteDataInvalidation.shared.statusVersion` per .onChange reagiert) während des
         // kompletten Reset-Backfills bei "0 ausstehend" hängen, obwohl gerade tausende
         // Änderungen frisch eingereiht wurden — sie würde erst beim nächsten, unabhängigen
         // Trigger (z. B. dem nächsten regulären Sync-Fortschritt) aktualisiert.
-        SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
+        SQLiteDataInvalidation.shared.bumpStatusVersion()
     }
 
     private static func loadStateSerialization() -> CKSyncEngine.State.Serialization? {
@@ -449,7 +449,7 @@ extension CloudSyncEngine: CKSyncEngineDelegate {
             AppLogger.dataAccess.error("iCloud Sync: Eingehender \(record.recordType, privacy: .public)-Record konnte nicht gespeichert werden: \(error.localizedDescription, privacy: .public)")
             return false
         }
-        SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
+        SQLiteDataInvalidation.shared.bumpStatusVersion()
         return true
     }
 
@@ -461,7 +461,7 @@ extension CloudSyncEngine: CKSyncEngineDelegate {
                 AppLogger.dataAccess.error("iCloud Sync: Eingehende Loeschung (\(mapping.recordType, privacy: .public)) fehlgeschlagen: \(error.localizedDescription, privacy: .public)")
             }
         }
-        SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
+        SQLiteDataInvalidation.shared.bumpStatusVersion()
     }
 
     private func dequeuePendingChange(recordName: String) {
@@ -625,7 +625,7 @@ extension CloudSyncEngine: CKSyncEngineDelegate {
             // (siehe Task 11). `serverRecord` selbst wurde in `resolveFieldMerge` nie mutiert
             // (siehe I1) — dieser Abbruch hat keine Nebenwirkungen auf das CKRecord.
             knownServerRecordsByID[recordID] = serverRecord
-            SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
+            SQLiteDataInvalidation.shared.bumpStatusVersion()
             return false
         }
 
