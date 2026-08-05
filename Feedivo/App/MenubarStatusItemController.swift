@@ -44,6 +44,16 @@ final class MenubarStatusItemController: NSObject {
 
     private var unreadCount = 0
 
+    /// Zählt, wie oft `observeStatusVersionSignal()`s `onChange`-Callback bereits
+    /// gefeuert hat — ausschließlich zu Testzwecken (siehe
+    /// `MenubarStatusItemControllerTests.reagiertAufStatusVersionSignalOhneAbsturz()`).
+    /// `withObservationTracking` beobachtet pro Aufruf nur EIN einziges Mal; dieser
+    /// Zähler beweist, dass die Selbstregistrierung nach jedem Feuern tatsächlich
+    /// erneut aktiv ist, statt nur "kein Absturz nach dem ersten Bump" zu zeigen —
+    /// ein versehentlich entfernter `self?.observeStatusVersionSignal()`-Selbstaufruf
+    /// würde den Zähler nach dem ersten Feuern nicht mehr weiterzählen lassen.
+    private(set) var statusVersionObservationFireCount = 0
+
     /// `UserDefaults`-Keys, deren Änderung das Menubar-Icon/Popover bzw. die
     /// Dock-Icon-Sichtbarkeit betreffen. Per KVO beobachtet statt per SwiftUI-
     /// `.onChange`, damit die Reaktivität nicht von der Lebensdauer eines
@@ -90,6 +100,7 @@ final class MenubarStatusItemController: NSObject {
             _ = SQLiteDataInvalidationSignal.shared.statusVersion
         } onChange: { [weak self] in
             Task { @MainActor in
+                self?.statusVersionObservationFireCount += 1
                 self?.applyCurrentSettings()
                 self?.observeStatusVersionSignal()
             }

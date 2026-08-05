@@ -29,21 +29,36 @@ struct MenubarStatusItemControllerTests {
             feedivoDatabase: database,
             feedViewModel: feedViewModel
         )
-        _ = controller // Referenz halten, ARC darf den Controller nicht vor Testende freigeben
 
+        // Erster Bump: verifiziert nicht nur "kein Absturz", sondern auch, dass
+        // `withObservationTracking`s `onChange`-Callback tatsächlich einmal feuert
+        // (`statusVersionObservationFireCount` ist ein testbarer Zähler, der
+        // ausschließlich zu diesem Zweck existiert — siehe Kommentar am Property
+        // selbst in `MenubarStatusItemController.swift`).
         SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
+        var attemptsAfterFirstBump = 0
+        while controller.statusVersionObservationFireCount < 1 && attemptsAfterFirstBump < 50 {
+            await Task.yield()
+            attemptsAfterFirstBump += 1
+        }
+        #expect(controller.statusVersionObservationFireCount == 1)
 
-        // withObservationTracking feuert asynchron über Task { @MainActor in ... } —
-        // ein kurzer Yield genügt, damit der Callback vor der Assertion durchläuft.
-        await Task.yield()
-
-        // Kein Absturz bis hierhin ist die eigentliche Assertion dieses Tests:
-        // verifiziert, dass die Observation-Anbindung nicht crasht und der
-        // Controller nach einem Bump weiterhin ansprechbar ist. `FeedViewModel()`
-        // ohne Argumente ist gültig — alle Initializer-Parameter haben Defaults
-        // (verifiziert gegen `Feedivo/ViewModels/FeedViewModel.swift:96-115`),
-        // `MenubarStatusItemController(feedivoDatabase:feedViewModel:)` entspricht
-        // exakt dem echten Aufruf in `FeedivoAppDelegate.swift:42-45`.
-        #expect(true)
+        // Zweiter Bump: der eigentliche Regressionsschutz aus dem Review.
+        // `withObservationTracking` beobachtet pro Aufruf nur EIN einziges Mal —
+        // dieser zweite Bump beweist, dass sich die Beobachtung nach dem ersten
+        // Feuern tatsächlich SELBST neu registriert hat
+        // (`self?.observeStatusVersionSignal()` innerhalb von `onChange`). Würde
+        // dieser Selbstaufruf versehentlich entfernt, bliebe der Zähler nach dem
+        // ersten Bump für immer bei 1 stehen, unabhängig von weiteren Bumps — die
+        // Menubar-Live-Aktualisierung wäre in Produktion nach dem ersten Update
+        // still kaputt, während der ursprüngliche Einzel-Bump-Test dennoch grün
+        // geblieben wäre.
+        SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
+        var attemptsAfterSecondBump = 0
+        while controller.statusVersionObservationFireCount < 2 && attemptsAfterSecondBump < 50 {
+            await Task.yield()
+            attemptsAfterSecondBump += 1
+        }
+        #expect(controller.statusVersionObservationFireCount == 2)
     }
 }
