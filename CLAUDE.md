@@ -1377,6 +1377,74 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Aktuell in Arbeit
 
+- **2026-08-05: Feed-Status-Fenster als dichte Tabelle mit sichtbaren Aktionen —
+  VOLLSTÄNDIG ABGESCHLOSSEN (4 Tasks, alle einzeln clean reviewed), automatisierte
+  Tests + Debug- + Release-Build grün, manuelle Live-Verifikation NOCH AUSSTEHEND.**
+  Redesign des mit Feature 32 (`FeedRefreshDiagnosticsWindowView`, siehe die drei
+  Einträge direkt darüber vom selben Tag) neu eingeführten Feed-Status-Fensters: von
+  einer schlichten Liste mit ausschließlich per Rechtsklick-Kontextmenü erreichbaren
+  Aktionen auf eine dichte Tabelle im „Konzept A"-Design (`RuleDialogTheme`, das
+  bereits Export-/Import-Dialog und Suchfenster prägt) umgestellt — alle fünf zuvor
+  nur im Kontextmenü versteckten Aktionen (Aktualisieren, Eigenschaften, Website
+  öffnen, XML-Adresse kopieren, Löschen) sind jetzt als permanent sichtbare
+  Icon-Buttons pro Zeile vorhanden. Umgesetzt via Brainstorming→Spec→Plan→
+  Subagent-Driven-Development (4 Tasks): Task 1 reine, isoliert getestete
+  Filter-/Sortier-/Schweregrad-Logik (`FeedStatusTableLogicTests`, 9 Tests: Suche
+  nach Titel/URL case-insensitive, Sortierung nach Fehlschlägen absteigend,
+  Schweregrad neutral/amber/rot bei 1/2-4/≥5 Fehlschlägen), Task 2 neue L10n-Keys
+  für Spaltenköpfe/Suche/Fußzeile, Task 3 View-Umbau auf die dichte Tabelle selbst.
+  Alle drei Implementierungs-Tasks kamen mit clean Task-Reviews zurück (0
+  Critical/Important) — **sechs Minor-Funde aus Task 3s Review wurden bewusst NICHT
+  gefixt, sondern für eine spätere Whole-Branch-Review-Triage zurückgestellt** (Eigenschaften
+  des Plan-Designs selbst, keine Implementierungsfehler):
+  1. Deaktivierter Wiederholen-Icon-Button hat während eines laufenden „Alle erneut
+     versuchen" kein abgedunkeltes visuelles Feedback (`FeedRefreshDiagnosticsWindowView.swift`
+     ~Zeile 457/616-628) — das alte, native Kontextmenü bekam Greyed-out-Styling
+     kostenlos, der neue Icon-Button dimmt nicht.
+  2. Die Tabellen-`ScrollView` ist fest auf `.frame(maxHeight: 360)` gedeckelt
+     (~Zeile 195), unabhängig von der Fenstergröße — ein größeres Fenster zeigt
+     keine zusätzlichen Zeilen.
+  3. Fußzeilen-Feed-Anzahl und „Alle erneut versuchen" nutzen die volle
+     `diagnostics`-Liste statt der suchgefilterten `visibleDiagnostics`
+     (~Zeile 295, 350) — die Fußzeilen-Anzahl spiegelt einen aktiven Suchfilter
+     nicht wider.
+  4. Das rein dekorative Sortier-Chevron neben „Fehlschläge" ist akzentgefärbt
+     (~Zeile 219), wirkt dadurch optisch klickbar, obwohl die Sortierung fest/nicht
+     interaktiv ist.
+  5. `retry(_:)` setzt `isBusy` nicht (~Zeile 329-335) — schnelle Klicks über mehrere
+     Zeilen hinweg können gegen `FeedViewModel.refreshFeed`s internen
+     Reentrancy-Schutz still verpuffen; vorbestehendes Verhalten, jetzt aber
+     sichtbarer, da Wiederholen nicht mehr im Kontextmenü versteckt ist.
+  6. Ein reiner Prozess-Hinweis (kein Code-Defekt): der ursprüngliche Task-3-Report
+     zeigte zunächst elidierte/abgeschnittene Build-Log-Belege statt des vollen Logs
+     rund um die Erfolgsmeldung.
+  Task 4 (dieser Eintrag) deckt nur die automatisierbaren Abschlussschritte ab:
+  gezielter Testlauf `FeedStatusTableLogicTests` (9/9 grün), voller
+  `xcodebuild build -configuration Debug` (BUILD SUCCEEDED) und voller
+  `xcodebuild build -configuration Release` (BUILD SUCCEEDED, 0 Fehler — deckt u. a.
+  ab, dass die in Task 2 ergänzten `Localizable.xcstrings`-Einträge korrekt
+  formatiert sind, da der String-Catalog-Compile-Schritt in beiden Konfigurationen
+  läuft). **Weiterhin unverifiziert, da kein computer-use für native macOS-Apps in
+  dieser Umgebung verfügbar ist — 7-Punkte-Live-Checkliste, vom Nutzer selbst
+  abzuarbeiten:** 1. Feed-Menü → „Feed-Status…" öffnet das Fenster im neuen
+  Tabellen-Layout. 2. Ist kein Feed fehlgeschlagen: grüner Erfolgs-Leerzustand wie
+  bisher. 3. Bei fehlgeschlagenen Feeds: Spalten Feed/Fehler/Zuletzt/Fehlschläge/
+  Aktionen befüllt, Fehlschläge-Badge-Farbe passt zur jeweiligen Anzahl (1 neutral,
+  2-4 amber, ≥5 rot). 4. Tippen ins Suchfeld filtert sichtbar nach Titel und nach
+  URL; bei keinem Treffer erscheint „Keine Treffer" statt einer leeren Fläche. 5.
+  Alle fünf Icon-Buttons pro Zeile funktionieren identisch zum bisherigen
+  Rechtsklick-Menü: Aktualisieren, Eigenschaften (öffnet Sheet), Website öffnen (nur
+  sichtbar wenn URL vorhanden), XML-Adresse kopieren, Löschen (fragt nach
+  Bestätigung). 6. Fußzeile zeigt korrekte Anzahl + „zuletzt geprüft vor …" nach
+  „Neu laden" bzw. nach jeder Aktion. 7. Hell-/Dunkelmodus: Farben stimmen in beiden
+  Darstellungen (Fenster einmal bei Hell- und einmal bei Dunkelmodus öffnen). Spec/
+  Plan: `docs/superpowers/specs/2026-08/2026-08-05-feed-status-tabellenansicht-design.md`,
+  `docs/superpowers/plans/2026-08/2026-08-05-feed-status-tabellenansicht.md`. Commits
+  `ae4be66..3bac82d` auf `main` (lokal, Push-Status siehe `git log`/
+  `git merge-base --is-ancestor origin/main` zum Lesezeitpunkt prüfen statt diesen
+  Vermerk ungeprüft zu übernehmen — siehe bestehende Lehre zu Push-Status-Aussagen
+  weiter unten in diesem Dokument).
+
 - **2026-08-05: `@AppStorage`/`UserDefaults`→`@Observable`-Migration der SQLite-
   Invalidierungssignale — VOLLSTÄNDIG ABGESCHLOSSEN (Tasks 1-8, alle reviewed),
   Live-Perf-Verifikation NOCH AUSSTEHEND.** Direkte Folgearbeit zum darunter
