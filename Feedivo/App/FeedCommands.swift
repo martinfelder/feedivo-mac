@@ -45,6 +45,11 @@ struct FeedCommands: Commands {
             }
             .customizableKeyboardShortcut(.statisticsOpen, overrides: shortcutOverrides)
 
+            Button(L10n.feedRefreshDiagnosticsCommand) {
+                openWindow(id: FeedRefreshDiagnosticsWindowView.windowID)
+            }
+            .customizableKeyboardShortcut(.feedRefreshDiagnosticsOpen, overrides: shortcutOverrides)
+
             Divider()
 
             Button(L10n.feedRefreshAllCommand) {
