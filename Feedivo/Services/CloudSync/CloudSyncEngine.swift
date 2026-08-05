@@ -286,10 +286,14 @@ final class CloudSyncEngine: NSObject {
     /// inhaltlich identisches Update). Löschungen, die während Sync-aus passierten, werden
     /// bewusst NICHT nachträglich gemeldet — das kennt nur den aktuellen lokalen Stand.
     ///
-    /// `nonisolated`, analog zu `mapping(forRecordType:)`/`sortedByDependencyOrder` oben —
-    /// ermöglicht synchronen Zugriff aus Tests heraus, ohne dass diese selbst `@MainActor`/
-    /// `async` sein müssen. Sichtbarkeit bewusst `internal` (nicht `private`), damit Tests die
-    /// Methode direkt aufrufen können.
+    /// **`@MainActor`-isoliert** (implizit über das Projekt-Default
+    /// `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`) — seit der `@AppStorage`→`@Observable`-
+    /// Migration (2026-08-05) NICHT mehr `nonisolated`, weil die Methode am Ende
+    /// `SQLiteDataInvalidation.shared.bumpStatusVersion()` aufruft, ein selbst
+    /// `@MainActor`-isoliertes Singleton. Aufrufer UND Tests müssen deshalb `@MainActor` sein
+    /// (siehe `CloudSyncEngineRegistryTests.swift`, dort im selben Zuge ergänzt). Sichtbarkeit
+    /// bleibt bewusst `internal` (nicht `private`), damit Tests die Methode direkt aufrufen
+    /// können.
     ///
     /// **Lese- und Schreibphase sind bewusst strikt voneinander getrennt:**
     /// `mapping.allLocalIDs(database:)` nutzt intern `database.read`. GRDBs `DatabaseQueue` ist

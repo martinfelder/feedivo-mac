@@ -87,9 +87,13 @@ struct SQLiteFeedArticleListView: View {
     // Wartezeit (z. B. Refresh-All über viele Feeds) lösen dadurch nur
     // EINEN Reload aus statt N. Siehe updateDebouncedStatusVersion().
     @State private var debouncedStatusVersion = 0
-    // Verhindert einen unnötigen zusätzlichen Reload beim allerersten
-    // Erscheinen: debouncedStatusVersion startet bei 0, sqliteStatusVersion
-    // hat aber meist schon einen realen persistierten Wert — ohne diese
+    // Verhindert einen unnötigen zusätzlichen Reload bei jeder nach dem
+    // App-Start neu erzeugten View-Instanz (z. B. Suchfenster, Artikel-
+    // Popout, Scope-Wechsel): debouncedStatusVersion startet bei jeder
+    // neuen Instanz bei 0, sqliteStatusVersion kann durch vorherige
+    // Mutationen in derselben Session aber schon > 0 sein (der Zähler
+    // selbst persistiert seit der @Observable-Migration NICHT mehr über
+    // App-Neustarts hinweg, siehe SQLiteDataInvalidation) — ohne diese
     // Ausnahme würde der erste loadToken mit dem falschen Wert 0 gebaut und
     // 200ms später durch den korrekten Wert nochmal invalidiert.
     @State private var hasInitializedDebouncedStatusVersion = false

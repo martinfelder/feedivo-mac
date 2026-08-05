@@ -1128,7 +1128,7 @@ private struct SyncSettingsView: View {
 
     // Feld-Ebene-Konfliktauflösung (Phase 3) — Badge + Sheet direkt neben der bestehenden
     // Sync-Status-Zeile. `pendingConflictCount` wird nach demselben Muster wie
-    // `syncActivityPendingCounts` über `sqliteStatusVersionForSyncActivity` aktuell gehalten.
+    // `syncActivityPendingCounts` über `SQLiteDataInvalidation.shared.statusVersion` aktuell gehalten.
     @State private var pendingConflictCount = 0
     @State private var showingConflictSheet = false
 

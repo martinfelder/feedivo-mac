@@ -22,7 +22,7 @@ struct MenubarStatusItemControllerTests {
     }
 
     @MainActor
-    @Test func reagiertAufStatusVersionSignalOhneAbsturz() async throws {
+    @Test func reagiertWiederholtAufStatusVersionSignal() async throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let feedViewModel = FeedViewModel()
         let controller = MenubarStatusItemController(

@@ -1474,6 +1474,32 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   plus 28 weitere Aufrufer-Dateien in `Feedivo/` und `FeedivoTests/` (reine
   Textersetzung `...Signal` → ohne `...Signal`) sowie die vier oben genannten
   Kommentar-Korrekturen.
+  **Nachtrag (finale Whole-Branch-Review-Fixes, direkt im Anschluss, ein
+  gemeinsamer Commit):** fünf veraltete/falsche Kommentare korrigiert (kein
+  Verhaltensunterschied) — u. a. der Doc-Kommentar über
+  `CloudSyncEngine.backfillAllExistingRecords` behauptete noch, die Methode
+  sei `nonisolated`; das ist seit Task 7 falsch (implizit `@MainActor`-
+  isoliert, weil sie `SQLiteDataInvalidation.shared.bumpStatusVersion()`
+  aufruft) und wurde entsprechend korrigiert. Zwei Klarstellungen dazu, die
+  beim Lesen dieses Eintrags leicht übersehen werden:
+  a) Die beiden neuen Singleton-Zähler (`SQLiteDataInvalidation.shared.
+  statusVersion`, `SidebarBadgeInvalidation.shared.directTagVersion`)
+  persistieren NICHT mehr über App-Neustarts hinweg (reiner In-Memory-
+  Zustand, anders als die alte `UserDefaults`-basierte Version) — das ist
+  sicher, weil alle Konsumenten die Zähler nur als relative Änderungs-
+  Erkennung nutzen, verglichen gegen eigenen `@State`, der ebenfalls bei
+  jedem Prozessstart bei 0 beginnt; nirgends wird ein Versionsstand über
+  einen App-Start hinweg persistiert verglichen (per Grep verifiziert).
+  b) Für die oben noch offene Live-Perf-Verifikation: `SQLiteFeedArticleListView`
+  hat weiterhin ihre eigene, unabhängige 200ms-Debounce-Logik (aus dem
+  NetNewsWire-Batching-Feature vom 2026-07-27,
+  `statusVersionDebounceMilliseconds`) BEVOR sie `loadToken` neu aufbaut —
+  die Artikelliste bleibt deshalb bewusst weiterhin ~200ms hinter einer
+  Statusänderung zurück, das ist KEINE fehlgeschlagene Migration. Der
+  Reader-Pfad (`SQLiteReaderView.swift`, `.onChange` auf `statusVersion`,
+  undebounced) ist der Pfad, den diese Migration tatsächlich sichtbar
+  beschleunigen sollte — dort sollte die Verbesserung beim Live-Test
+  sichtbar werden.
 
 - **2026-08-05: Reader-Ladeverzögerung (~1s bei Artikelauswahl) — TEILWEISE BEHOBEN
   (GRDB DatabaseQueue → DatabasePool), Rest-Ursache identifiziert, Fix für nächste

@@ -46,7 +46,7 @@ final class MenubarStatusItemController: NSObject {
 
     /// Zählt, wie oft `observeStatusVersionSignal()`s `onChange`-Callback bereits
     /// gefeuert hat — ausschließlich zu Testzwecken (siehe
-    /// `MenubarStatusItemControllerTests.reagiertAufStatusVersionSignalOhneAbsturz()`).
+    /// `MenubarStatusItemControllerTests.reagiertWiederholtAufStatusVersionSignal()`).
     /// `withObservationTracking` beobachtet pro Aufruf nur EIN einziges Mal; dieser
     /// Zähler beweist, dass die Selbstregistrierung nach jedem Feuern tatsächlich
     /// erneut aktiv ist, statt nur "kein Absturz nach dem ersten Bump" zu zeigen —
