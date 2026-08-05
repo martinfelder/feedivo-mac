@@ -70,6 +70,7 @@ struct CloudSyncEngineRegistryTests {
         #expect(sorted.map(\.recordType) == ["Rule", "RuleCondition"])
     }
 
+    @MainActor
     @Test func backfillAllExistingRecordsEnqueuedAlleBestehendenZeilenAlsSave() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         try TagStore(database: database).save(TagRecord(id: "tag-1", name: "Alt", colorHex: "#000000"))
@@ -84,6 +85,7 @@ struct CloudSyncEngineRegistryTests {
         #expect(pending.allSatisfy { $0.changeType == .save })
     }
 
+    @MainActor
     @Test func backfillAllExistingRecordsSchliesstDefaultIntelligenteOrdnerAus() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         try SQLiteSmartFolderStore(database: database).restoreDefaultFolders()

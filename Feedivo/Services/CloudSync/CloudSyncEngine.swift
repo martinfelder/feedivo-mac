@@ -301,7 +301,7 @@ final class CloudSyncEngine: NSObject {
     /// vollständig über mehrere unabhängige `read`-Zugriffe eingesammelt, bevor überhaupt ein
     /// einziger `database.write`-Block geöffnet wird, der dann nur noch reine INSERT/REPLACE-
     /// Statements gegen `cloud_sync_pending_changes` ausführt.
-    nonisolated static func backfillAllExistingRecords(database: FeedivoDatabase) throws {
+    static func backfillAllExistingRecords(database: FeedivoDatabase) throws {
         var idsByMapping: [(mapping: any CloudSyncRecordMapping.Type, ids: [String])] = []
         for mapping in Self.registry.values {
             do {
@@ -329,7 +329,7 @@ final class CloudSyncEngine: NSObject {
         // kompletten Reset-Backfills bei "0 ausstehend" hängen, obwohl gerade tausende
         // Änderungen frisch eingereiht wurden — sie würde erst beim nächsten, unabhängigen
         // Trigger (z. B. dem nächsten regulären Sync-Fortschritt) aktualisiert.
-        SQLiteDataInvalidation.bumpStatusVersion()
+        SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
     }
 
     private static func loadStateSerialization() -> CKSyncEngine.State.Serialization? {
@@ -449,7 +449,7 @@ extension CloudSyncEngine: CKSyncEngineDelegate {
             AppLogger.dataAccess.error("iCloud Sync: Eingehender \(record.recordType, privacy: .public)-Record konnte nicht gespeichert werden: \(error.localizedDescription, privacy: .public)")
             return false
         }
-        SQLiteDataInvalidation.bumpStatusVersion()
+        SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
         return true
     }
 
@@ -461,7 +461,7 @@ extension CloudSyncEngine: CKSyncEngineDelegate {
                 AppLogger.dataAccess.error("iCloud Sync: Eingehende Loeschung (\(mapping.recordType, privacy: .public)) fehlgeschlagen: \(error.localizedDescription, privacy: .public)")
             }
         }
-        SQLiteDataInvalidation.bumpStatusVersion()
+        SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
     }
 
     private func dequeuePendingChange(recordName: String) {
@@ -625,7 +625,7 @@ extension CloudSyncEngine: CKSyncEngineDelegate {
             // (siehe Task 11). `serverRecord` selbst wurde in `resolveFieldMerge` nie mutiert
             // (siehe I1) — dieser Abbruch hat keine Nebenwirkungen auf das CKRecord.
             knownServerRecordsByID[recordID] = serverRecord
-            SQLiteDataInvalidation.bumpStatusVersion()
+            SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
             return false
         }
 
