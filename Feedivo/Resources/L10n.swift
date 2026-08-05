@@ -155,6 +155,7 @@ enum L10n {
     static let shortcutsLabelFeedImportOPML = LocalizedStringKey("shortcuts.label.feedImportOPML")
     static let shortcutsLabelFeedExportOPML = LocalizedStringKey("shortcuts.label.feedExportOPML")
     static let shortcutsLabelFeedOrganizerOpen = LocalizedStringKey("shortcuts.label.feedOrganizerOpen")
+    static let shortcutsLabelFeedRefreshDiagnosticsOpen = LocalizedStringKey("shortcuts.label.feedRefreshDiagnosticsOpen")
     static let shortcutsLabelArticleToggleArchived = LocalizedStringKey("shortcuts.label.articleToggleArchived")
     static let shortcutsLabelArticleCopyLink = LocalizedStringKey("shortcuts.label.articleCopyLink")
     static let shortcutsLabelArticleOpenOriginal = LocalizedStringKey("shortcuts.label.articleOpenOriginal")
@@ -666,6 +667,20 @@ enum L10n {
     static let feedAddCommand = String(localized: "feed.add.command")
     static let feedRefreshAllCommand = String(localized: "feed.refreshAll.command")
     static let feedRefreshCommand = String(localized: "feed.refresh.command")
+    static let feedRefreshDiagnosticsCommand = String(localized: "feed.refreshDiagnostics.command")
+    static let feedRefreshDiagnosticsWindowTitle = String(localized: "feed.refreshDiagnostics.windowTitle")
+    static let feedRefreshDiagnosticsDescription = String(localized: "feed.refreshDiagnostics.description")
+    static let feedRefreshDiagnosticsEmptyTitle = String(localized: "feed.refreshDiagnostics.empty.title")
+    static let feedRefreshDiagnosticsEmptyDescription = String(localized: "feed.refreshDiagnostics.empty.description")
+    static let feedRefreshDiagnosticsRetryAllButton = String(localized: "feed.refreshDiagnostics.retryAll.button")
+    static let feedRefreshDiagnosticsReloadListButton = String(localized: "feed.refreshDiagnostics.reloadList.button")
+    static let feedRefreshDiagnosticsOpenWebsiteButton = String(localized: "feed.refreshDiagnostics.openWebsite.button")
+    static func feedRefreshDiagnosticsConsecutiveFailures(_ count: Int) -> String {
+        String.localizedStringWithFormat(
+            String(localized: "feed.refreshDiagnostics.consecutiveFailures"),
+            count
+        )
+    }
     static let feedErrorBadgeTooltip = String(localized: "feed.error.badge.tooltip")
     static let feedErrorRetryButton = String(localized: "feed.error.retry.button")
     static let feedErrorBannerMessage = String(localized: "feed.error.banner.message")
