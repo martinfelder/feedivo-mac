@@ -1500,6 +1500,63 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   undebounced) ist der Pfad, den diese Migration tatsächlich sichtbar
   beschleunigen sollte — dort sollte die Verbesserung beim Live-Test
   sichtbar werden.
+  **Nachtrag 2 (2026-08-05, Live-Perf-Messung NACHGEHOLT — ÜBERRASCHENDES,
+  NICHT wie erwartet positives Ergebnis, neue offene Frage):** Die oben als
+  „vom Nutzer nachzuholen" dokumentierte Live-Verifikation wurde direkt im
+  Anschluss durchgeführt — TEMP-DEBUG-`OSLog`-Instrumentierung an denselben
+  vier Messpunkten wie in der 2026-08-05er Reader-Ladeverzögerung-Diagnose
+  unten (T0 `markSelectedArticleReadIfNeeded()`, T1 unmittelbar nach
+  `SQLiteDataInvalidation.shared.bumpStatusVersion()`, T2 im Feuern von
+  `SQLiteReaderView`s `.onChange(of: SQLiteDataInvalidation.shared.
+  statusVersion)`, T3/T4 Start/Ende von `SQLiteReaderState.load()`), Nutzer
+  wählte in der frisch gebauten, instrumentierten App live 6 ungelesene
+  Artikel aus, danach Instrumentierung wieder vollständig entfernt (nie
+  committet, wie beim vorherigen Mal). **Ergebnis bei vier sauberen,
+  isolierten Einzelmessungen:** T0→T1 (Artikelauswahl bis DB-Write+Bump)
+  durchgehend sehr schnell (3-9ms) — das ist die erwartete, bereits durch
+  die DatabasePool-Migration und diese `@Observable`-Migration abgesicherte
+  Strecke. **Aber T1→T2 (Bump bis `.onChange` im Reader feuert) lag bei
+  ALLEN vier Messungen konsistent bei 225-228ms** — praktisch identisch zur
+  ursprünglich für die alte `@AppStorage`/`UserDefaults`-Mechanik gemessenen
+  ~220-250ms-Latenz, die diese gesamte Migration eigentlich beheben sollte.
+  Gesamtzeit T0→T4 (Artikelauswahl bis sichtbarer Reader-Inhalt): 498-681ms
+  — in derselben Größenordnung wie der bereits VOR dieser Migration
+  gemessene Zwischenstand (~415-690ms nach DatabasePool-Fix, siehe Eintrag
+  unten), NICHT die erhoffte Annäherung an die ~120-140ms-Bestzeit. **Die
+  `@Observable`-Migration selbst ist nach doppelter unabhängiger Code-Review
+  (Task-5-Actor-Isolations-Check + finale Whole-Branch-Review) nachweislich
+  architektonisch korrekt und lückenlos umgesetzt** — alle 15 Lesestellen
+  von `.statusVersion`/`.directTagVersion` wurden als korrekt innerhalb von
+  `body`/`.onChange(of:)`/`.task(id:)` verifiziert, echte SwiftUI-
+  Observation-Tracking-Aktivierung bestätigt. Die konsistente ~225ms-
+  Verzögerung liegt deshalb vermutlich NICHT (mehr) an der
+  `UserDefaults`-Benachrichtigung selbst, sondern an einer bislang
+  unidentifizierten anderen Ursache mit zufällig sehr ähnlicher
+  Größenordnung — mögliche Kandidaten, jeweils NICHT verifiziert, nur als
+  Ausgangshypothesen für eine künftige Diagnose-Session notiert: (a)
+  `SearchDebounce.delayMilliseconds = 250`
+  (`Feedivo/Extensions/SearchDebounce.swift`) oder
+  `SQLiteFeedArticleListView.statusVersionDebounceMilliseconds = 200`
+  könnten trotz ihrer eigentlich anderen Zuständigkeit indirekt die
+  MainActor-Verarbeitungsreihenfolge beeinflussen; (b) SwiftUIs
+  Update-Koaleszierung könnte bei `SQLiteReaderView`s ungewöhnlich großem
+  `body` (bereits an anderer Stelle als Typechecker-Problem dokumentiert,
+  siehe Kommentar dort zu „~15 Controls") langsamer greifen als erwartet;
+  (c) ein noch unbekannter dritter Effekt. **Lehre, konsistent mit dem
+  bestehenden Gotcha zu SourceKit-Fehldiagnosen und dem Grundsatz
+  „Verifikation vor Behauptung":** eine architektonisch korrekt verifizierte
+  Migration kann trotzdem das gemessene Nutzerproblem nicht lösen, wenn die
+  ursprüngliche Root-Cause-Diagnose (hier: „`UserDefaults`-Notification-
+  Latenz ist die Ursache") unvollständig oder falsch war — nur eine echte
+  Vorher-/Nachher-Messung deckt das auf, keine Code-Review, egal wie
+  gründlich. **Nächster Schritt (bewusst NICHT in dieser Session begonnen):**
+  eigener neuer systematic-debugging-Durchgang mit frischer TEMP-DEBUG-
+  Instrumentierung, die gezielt zwischen T1 und T2 weitere Zwischenpunkte
+  setzt (z. B. unmittelbar vor/nach `CloudSyncEngine.
+  notifyPendingChangesAvailable(database:)`, das nach jedem Bump
+  synchron aufgerufen wird, sowie ein Zeitstempel direkt beim Betreten von
+  `SQLiteReaderView.body`), um die 225ms-Lücke tatsächlich einzugrenzen statt
+  weiter zu vermuten.
 
 - **2026-08-05: Reader-Ladeverzögerung (~1s bei Artikelauswahl) — TEILWEISE BEHOBEN
   (GRDB DatabaseQueue → DatabasePool), Rest-Ursache identifiziert, Fix für nächste
