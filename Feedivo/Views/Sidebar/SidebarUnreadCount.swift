@@ -44,6 +44,27 @@ enum SidebarBadgeInvalidation {
     }
 }
 
+/// Ersetzt `SidebarBadgeInvalidation`s `UserDefaults`/`@AppStorage`-
+/// Mechanismus durch natives SwiftUI-`@Observable`, analog zu
+/// `SQLiteDataInvalidationSignal` (siehe dort für die volle Begründung).
+@MainActor
+@Observable
+final class SidebarBadgeInvalidationSignal {
+    static let shared = SidebarBadgeInvalidationSignal()
+    private init() {}
+
+    private(set) var directTagVersion = 0
+
+    func bumpDirectTagVersion() {
+        directTagVersion += 1
+    }
+
+    /// Nur für Tests.
+    func reset() {
+        directTagVersion = 0
+    }
+}
+
 enum SmartFolderSidebarBadgeKind: Equatable {
     case unread
     case starred
