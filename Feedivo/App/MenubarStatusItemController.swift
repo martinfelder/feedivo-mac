@@ -54,7 +54,6 @@ final class MenubarStatusItemController: NSObject {
     private static let observedKeys = [
         MenubarSettings.isEnabledKey,
         MenubarSettings.hidesDockIconKey,
-        SQLiteDataInvalidation.statusVersionKey,
         "appLanguage",
         InterfaceTextSize.storageKey,
         AppAppearance.storageKey
@@ -77,6 +76,24 @@ final class MenubarStatusItemController: NSObject {
             UserDefaults.standard.addObserver(self, forKeyPath: key, options: [], context: nil)
         }
         applyCurrentSettings()
+        observeStatusVersionSignal()
+    }
+
+    /// Beobachtet `SQLiteDataInvalidationSignal.shared.statusVersion` — der
+    /// bisherige KVO-Mechanismus (`observedKeys`) funktioniert nur mit
+    /// `UserDefaults`-Keys, nicht mit `@Observable`-Properties.
+    /// `withObservationTracking` beobachtet nur EIN einziges Mal; `onChange`
+    /// registriert sich deshalb bei jedem Feuern selbst neu (Standardmuster
+    /// des Observation-Frameworks für Nicht-SwiftUI-Beobachter).
+    private func observeStatusVersionSignal() {
+        withObservationTracking {
+            _ = SQLiteDataInvalidationSignal.shared.statusVersion
+        } onChange: { [weak self] in
+            Task { @MainActor in
+                self?.applyCurrentSettings()
+                self?.observeStatusVersionSignal()
+            }
+        }
     }
 
     /// KVO-Callback für `observedKeys` — feuert unabhängig davon, ob gerade
