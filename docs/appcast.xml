@@ -7,6 +7,32 @@
         <language>de</language>
         <!-- create_github_release.sh fügt hier bei jedem Release ein neues <item> ein -->
     <item>
+      <title>v1.0-27</title>
+      <pubDate>Wed, 05 Aug 2026 13:44:05 +0000</pubDate>
+      <description><![CDATA[<div style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #1d1d1f;">
+<h1 style="margin: 0 0 4px 0; font-size: 20px;"><span style="color: #3E5FED;">Feedivo 1.0 (27)</span> <span>– 2026-08-05</span></h1>
+<hr style="border: none; border-top: 1px solid #d0d0d5; margin: 8px 0 18px 0;">
+<h2 style="font-size: 15px; margin: 16px 0 4px 0;">🔧 Verbesserungen</h2>
+<hr style="border: none; border-top: 1px solid #e5e5ea; margin: 0 0 8px 0;">
+<ul style="margin: 0 0 4px 0; padding-left: 20px;">
+<li>Neue, spürbar flüssigere Artikelliste ist jetzt standardmäßig aktiv (inkl. mehrerer kleinerer Nachbesserungen bei Zeilenumbrüchen, Trennlinien und der Darstellung der Zusammenfassung)</li>
+<li>Artikel werden nach dem Auswählen spürbar schneller im Lesebereich angezeigt</li>
+<li>Artikel ohne eigenes Bild im Feed werden nicht mehr künstlich mit einem von der Originalseite nachgeladenen Bild ergänzt — die Ansicht entspricht jetzt genau dem, was der Feed liefert</li>
+</ul>
+<h2 style="font-size: 15px; margin: 16px 0 4px 0;">🐛 Sonstiges</h2>
+<hr style="border: none; border-top: 1px solid #e5e5ea; margin: 0 0 8px 0;">
+<ul style="margin: 0 0 4px 0; padding-left: 20px;">
+<li>Fehlerbehebung: Absturz behoben, der beim Scrollen auftreten konnte, wenn die Bildvorschau in der Artikelliste ausgeschaltet war</li>
+</ul>
+</div>]]></description>
+      <enclosure url="https://github.com/martinfelder/feedivo-mac/releases/download/v1.0-27/Feedivo-v1.0-27.zip"
+                 sparkle:version="27"
+                 sparkle:shortVersionString="1.0"
+                 sparkle:edSignature="INdzBtXOTKyJ3j1MFm/RHJlXq6gmlQNmPW94h764kjexcO+LhZR72mFj/8dbtGpRG9nR7FfyiZ0phMoC6ZCwDQ=="
+                 length="18482817"
+                 type="application/octet-stream"/>
+    </item>
+    <item>
       <title>v1.0-26</title>
       <pubDate>Tue, 04 Aug 2026 12:31:20 +0000</pubDate>
       <description><![CDATA[<div style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #1d1d1f;">
