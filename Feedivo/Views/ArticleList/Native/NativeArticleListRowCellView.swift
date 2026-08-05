@@ -217,7 +217,18 @@ final class NativeArticleListRowCellView: NSTableCellView {
         // identisch zu `ArticleRowView`s `imagePosition == .left`-Verzweigung.
         // accessoryStack (Ungelesen-Punkt + Stern, rechte Spalte) bleibt
         // immer als letztes Element stehen, nur previewImageView wandert.
-        rootStack.removeArrangedSubview(previewImageView)
+        //
+        // Absturz-Fix: anders als textStack/accessoryStack (die JEDEN
+        // configure()-Durchlauf wieder hinzugefügt werden) wird
+        // previewImageView bei Bildposition „aus" bewusst NICHT wieder
+        // arrangiert — beim nächsten Wiederverwenden dieser Zelle war sie
+        // dann kein Mitglied von rootStack mehr, und ein erneutes
+        // `removeArrangedSubview(previewImageView)` ließ AppKit mit
+        // "View is not (and has to be) in stack view" abstürzen. Nur
+        // entfernen, wenn tatsächlich (noch) Mitglied.
+        if rootStack.arrangedSubviews.contains(previewImageView) {
+            rootStack.removeArrangedSubview(previewImageView)
+        }
         rootStack.removeArrangedSubview(textStack)
         rootStack.removeArrangedSubview(accessoryStack)
         previewImageView.isHidden = imagePosition == .hidden
