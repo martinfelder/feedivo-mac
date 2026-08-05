@@ -174,8 +174,14 @@ final class NativeArticleListRowCellView: NSTableCellView {
         // ArticleRowView`s `.foregroundStyle(snapshot.isRead ? .tertiary : .secondary)`.
         summaryField.textColor = snapshot.isRead ? .tertiaryLabelColor : .secondaryLabelColor
         summaryField.maximumNumberOfLines = summaryLineCount
-        if let summary = snapshot.summary, !summary.isEmpty, summaryLineCount > 0 {
-            summaryField.stringValue = summary
+        // `snapshot.summary` enthält rohes HTML aus dem Feed — ArticleRowView
+        // bekommt den Text nie direkt, sondern über `ArticleListItemSnapshot.init`,
+        // das ihn per `ReaderContentRenderer.htmlToPlainText` umwandelt. Diese
+        // Zelle liest den SQL-Snapshot direkt, muss dieselbe Umwandlung also
+        // selbst anwenden — sonst blieben rohe Tags wie `<p>` sichtbar.
+        let plainSummary = snapshot.summary.map(ReaderContentRenderer.htmlToPlainText)
+        if let plainSummary, !plainSummary.isEmpty, summaryLineCount > 0 {
+            summaryField.stringValue = plainSummary
             summaryField.isHidden = false
         } else {
             summaryField.stringValue = ""
