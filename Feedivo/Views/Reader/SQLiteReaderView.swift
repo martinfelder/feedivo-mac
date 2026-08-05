@@ -82,12 +82,6 @@ struct SQLiteReaderView: View {
     // readerArticleMetadata sowohl Tag-Chips als auch Ordnername im Artikel-Header
     // rendert. Ohne diese Beobachtung blieben Aenderungen im Reader unsichtbar, bis ein
     // Artikelwechsel `state.load(...)` erneut ausloest (Nutzer-Report 2026-07-12).
-    @AppStorage(SidebarBadgeInvalidation.directTagVersionKey)
-    private var directTagVersion = 0
-
-    @AppStorage(SQLiteDataInvalidation.statusVersionKey)
-    private var sqliteStatusVersion = 0
-
     private var shortcutOverrides: KeyboardShortcutOverrides {
         KeyboardShortcutOverrides.resolved(from: shortcutOverridesRawValue)
     }
@@ -353,10 +347,10 @@ struct SQLiteReaderView: View {
         .onChange(of: state.snapshot) { _, snapshot in
             onSnapshotChange(snapshot)
         }
-        .onChange(of: directTagVersion) { _, _ in
+        .onChange(of: SidebarBadgeInvalidationSignal.shared.directTagVersion) { _, _ in
             reloadCurrentArticleSnapshot()
         }
-        .onChange(of: sqliteStatusVersion) { _, _ in
+        .onChange(of: SQLiteDataInvalidationSignal.shared.statusVersion) { _, _ in
             reloadCurrentArticleSnapshot()
         }
         .onDisappear {

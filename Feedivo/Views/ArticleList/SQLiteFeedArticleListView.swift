@@ -29,10 +29,6 @@ struct SQLiteFeedArticleListView: View {
     @Environment(\.feedivoDatabase) private var database
     @Environment(\.interfaceTextSize) private var interfaceTextSize
     @Environment(\.openWindow) private var openWindow
-    @AppStorage(SidebarBadgeInvalidation.directTagVersionKey)
-    private var directTagVersion = 0
-    @AppStorage(SQLiteDataInvalidation.statusVersionKey)
-    private var sqliteStatusVersion = 0
     @AppStorage("markArticleReadOnSelection")
     private var markArticleReadOnSelection = true
     @AppStorage(NativeArticleListSettings.isEnabledKey)
@@ -192,7 +188,7 @@ struct SQLiteFeedArticleListView: View {
         .task(id: searchText) {
             await updateDebouncedSearchText()
         }
-        .task(id: sqliteStatusVersion) {
+        .task(id: SQLiteDataInvalidationSignal.shared.statusVersion) {
             await updateDebouncedStatusVersion()
         }
         .task(id: loadToken) {
@@ -612,7 +608,7 @@ struct SQLiteFeedArticleListView: View {
     private var loadToken: String {
         let baseToken = SQLiteFeedArticleListLoadToken.make(
             scopeToken: scopeToken,
-            directTagVersion: directTagVersion,
+            directTagVersion: SidebarBadgeInvalidationSignal.shared.directTagVersion,
             sqliteStatusVersion: debouncedStatusVersion,
             debouncedSearchText: debouncedSearchText
         )
@@ -1006,7 +1002,7 @@ struct SQLiteFeedArticleListView: View {
                 includeHidden: scope.includeHidden,
                 option: option
             )
-            SQLiteDataInvalidation.bumpStatusVersion()
+            SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
             reload()
         } catch {
             // Kein reload() hier: das wuerde ueber state.load(...) den
@@ -1130,7 +1126,7 @@ struct SQLiteFeedArticleListView: View {
         if selectedArticleID == row.id {
             selectedArticleID = nil
         }
-        SQLiteDataInvalidation.bumpStatusVersion()
+        SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
     }
 
     private func updateDebouncedSearchText() async {
@@ -1157,7 +1153,7 @@ struct SQLiteFeedArticleListView: View {
     private func updateDebouncedStatusVersion() async {
         guard hasInitializedDebouncedStatusVersion else {
             hasInitializedDebouncedStatusVersion = true
-            debouncedStatusVersion = sqliteStatusVersion
+            debouncedStatusVersion = SQLiteDataInvalidationSignal.shared.statusVersion
             return
         }
 
@@ -1165,7 +1161,7 @@ struct SQLiteFeedArticleListView: View {
             return
         }
 
-        debouncedStatusVersion = sqliteStatusVersion
+        debouncedStatusVersion = SQLiteDataInvalidationSignal.shared.statusVersion
     }
 }
 

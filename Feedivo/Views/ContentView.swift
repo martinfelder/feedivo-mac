@@ -24,8 +24,6 @@ struct ContentView: View {
     // Status-Version-Bumps (Feed-Anlage/-Löschung/-Refresh) neu geladen.
     @State private var feedSnapshots: [FeedSidebarSnapshot] = []
     @State private var feedFolders: [FeedFolderRecord] = []
-    @AppStorage(SQLiteDataInvalidation.statusVersionKey)
-    private var sqliteStatusVersion = 0
     @AppStorage(CleanupToastSignal.versionKey)
     private var cleanupToastVersion = 0
     @AppStorage(CleanupToastSignal.deletedCountKey)
@@ -287,7 +285,7 @@ struct ContentView: View {
             // SQLite-Sidebar-Snapshots beim Erscheinen laden (ersetzt @Query).
             await reloadFeedSnapshots()
         }
-        .onChange(of: sqliteStatusVersion) {
+        .onChange(of: SQLiteDataInvalidationSignal.shared.statusVersion) {
             // Bei Anlage/Löschung/Refresh (Status-Version-Bump) Snapshots neu
             // laden, damit First-Run, Badge und Feed-Menü aktuell bleiben.
             Task { await reloadFeedSnapshots() }

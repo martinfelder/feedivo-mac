@@ -17,9 +17,6 @@ struct ArticleTagAssignmentView: View {
     @State private var newTagName = ""
     @State private var newTagColorHex = TagColorPalette.defaultColorHex
 
-    @AppStorage(SidebarBadgeInvalidation.directTagVersionKey)
-    private var directTagVersion = 0
-
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             if assignedTags.isEmpty && availableTags.isEmpty {
@@ -43,7 +40,7 @@ struct ArticleTagAssignmentView: View {
         .task(id: articleID) {
             loadTags()
         }
-        .onChange(of: directTagVersion) { _, _ in
+        .onChange(of: SidebarBadgeInvalidationSignal.shared.directTagVersion) { _, _ in
             loadTags()
         }
         .onChange(of: snapshotTags) { _, _ in
@@ -179,7 +176,7 @@ struct ArticleTagAssignmentView: View {
             } else {
                 try TagStore(database: database).assignTag(tagID: tag.id, toArticleID: articleID, at: Date())
             }
-            SidebarBadgeInvalidation.bumpDirectTagVersion()
+            SidebarBadgeInvalidationSignal.shared.bumpDirectTagVersion()
             loadTags()
         } catch {
             return
@@ -201,7 +198,7 @@ struct ArticleTagAssignmentView: View {
                 try TagStore(database: database).save(tag)
             }
             try TagStore(database: database).assignTag(tagID: tag.id, toArticleID: articleID, at: Date())
-            SidebarBadgeInvalidation.bumpDirectTagVersion()
+            SidebarBadgeInvalidationSignal.shared.bumpDirectTagVersion()
             newTagName = ""
             loadTags()
         } catch {

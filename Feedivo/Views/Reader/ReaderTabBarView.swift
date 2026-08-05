@@ -22,9 +22,6 @@ struct ReaderTabBarView: View {
     // als gelesen markiert wird — ohne das würde metadataByArticleID nach dem
     // ersten Laden stehen bleiben und beim erneuten Deaktivieren des Tabs
     // fälschlich wieder einen Punkt zeigen (isRead wäre nie neu geladen worden).
-    @AppStorage(SQLiteDataInvalidation.statusVersionKey)
-    private var sqliteStatusVersion = 0
-
     private struct MetadataReloadKey: Equatable {
         let articleIDs: [String]
         let statusVersion: Int
@@ -57,7 +54,7 @@ struct ReaderTabBarView: View {
         .overlay(alignment: .bottom) {
             Divider()
         }
-        .task(id: MetadataReloadKey(articleIDs: tabs.map(\.articleID), statusVersion: sqliteStatusVersion)) {
+        .task(id: MetadataReloadKey(articleIDs: tabs.map(\.articleID), statusVersion: SQLiteDataInvalidationSignal.shared.statusVersion)) {
             await loadMetadata()
         }
     }

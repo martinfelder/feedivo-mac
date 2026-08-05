@@ -12,8 +12,6 @@ struct ArticleSearchWindowView: View {
     @State private var feeds: [FeedRecord] = []
     @State private var tags: [TagRecord] = []
     @State private var isTagPopoverPresented = false
-    @AppStorage(SQLiteDataInvalidation.statusVersionKey)
-    private var sqliteStatusVersion = 0
     @AppStorage(NativeArticleListSettings.isEnabledKey)
     private var usesNativeArticleList = NativeArticleListSettings.defaultIsEnabled
 
@@ -73,7 +71,7 @@ struct ArticleSearchWindowView: View {
         .task(id: searchLoadToken) {
             loadSnapshots()
         }
-        .task(id: sqliteStatusVersion) {
+        .task(id: SQLiteDataInvalidationSignal.shared.statusVersion) {
             loadFeeds()
             loadTags()
         }
