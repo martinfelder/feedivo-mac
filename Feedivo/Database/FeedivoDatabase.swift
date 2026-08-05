@@ -21,21 +21,41 @@ struct FeedivoDatabase {
         var configuration = Configuration()
         configuration.prepareDatabase { database in
             try database.execute(sql: "PRAGMA foreign_keys = ON")
-            // NetNewsWire setzt dieselbe Pragma bewusst explizit (siehe
-            // FMDatabase+Extras.swift), mit der Begründung, dass eine einzige,
-            // serialisierte Verbindung (hier: GRDBs DatabaseQueue) von WAL nicht
-            // profitiert, FULL-Synchronität (GRDBs Default) aber unnötig viele
-            // fsyncs pro Transaktion erzwingt. NORMAL bleibt bei einem App-Crash
+            // NORMAL statt GRDBs FULL-Default: bleibt bei einem App-Crash
             // weiterhin sicher; nur ein OS-Crash/Stromausfall könnte im
             // Extremfall die letzte, noch nicht auf Platte geschriebene
             // Transaktion verlieren — ein für einen RSS-Reader akzeptabler
-            // Trade-off, den NetNewsWire selbst eingeht.
+            // Trade-off (auch NetNewsWire geht ihn ein, siehe
+            // FMDatabase+Extras.swift). NORMAL ist ausserdem genau die von
+            // SQLite selbst empfohlene Einstellung im WAL-Modus (siehe unten).
             try database.execute(sql: "PRAGMA synchronous = NORMAL")
         }
 
-        let queue = try DatabaseQueue(path: fileURL.path, configuration: configuration)
-        try FeedivoDatabaseMigrator.migrator.migrate(queue)
-        return FeedivoDatabase(writer: queue)
+        // DatabasePool statt DatabaseQueue (2026-08-05, Nutzer-Report "Artikel
+        // erscheint erst nach ~1s"): eine DatabaseQueue serialisiert AUSNAHMSLOS
+        // jeden Lese- UND Schreibzugriff über eine einzige SQLite-Verbindung.
+        // Per Live-Log (log stream) verifiziert: markiert der Nutzer einen
+        // Artikel beim Auswaehlen als gelesen, reagieren mehrere Views
+        // unabhaengig auf denselben SQLiteDataInvalidation.bumpStatusVersion()
+        // — u. a. laedt die Artikelliste sich selbst (mit 200ms Debounce) komplett
+        // neu, waehrend der Reader zeitgleich nur den einen neu ausgewaehlten
+        // Artikel per PK nachladen will. Auf einer DatabaseQueue muss dieser an
+        // sich triviale, indexierte Einzelzeilen-Read hinter der viel teureren
+        // Listen-Abfrage in der Warteschlange warten, was den gemessenen
+        // ~600-900ms-Reader-Delay erklaerte. DatabasePool aktiviert automatisch
+        // SQLites WAL-Journal-Modus (siehe GRDB.swift/DatabasePool.swift,
+        // setUpWALMode) und erlaubt dadurch mehrere ECHT PARALLELE Lesezugriffe
+        // gleichzeitig zu einem laufenden Schreibzugriff (WAL-Snapshot-Isolation)
+        // — Schreibzugriffe bleiben weiterhin serialisiert (ein Writer), nur
+        // Reads muessen nicht mehr hintereinander warten. `FeedivoDatabase`
+        // kapselt bereits `any DatabaseWriter` (dem gemeinsamen GRDB-Protokoll
+        // von DatabaseQueue UND DatabasePool) — kein Aufrufer in Stores/Services
+        // musste dafuer angepasst werden. `inMemoryForTests()` bleibt bewusst
+        // auf DatabaseQueue: DatabasePool benoetigt eine echte Datei, da jede
+        // `:memory:`-Verbindung sonst ihre eigene, isolierte Datenbank waere.
+        let pool = try DatabasePool(path: fileURL.path, configuration: configuration)
+        try FeedivoDatabaseMigrator.migrator.migrate(pool)
+        return FeedivoDatabase(writer: pool)
     }
 
     static func inMemoryForTests() throws -> FeedivoDatabase {

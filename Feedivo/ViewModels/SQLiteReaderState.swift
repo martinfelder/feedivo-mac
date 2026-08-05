@@ -20,7 +20,26 @@ final class SQLiteReaderState {
         // dafuer keine Task-Identitaet vor). Ohne diese Sperre setzt jeder
         // erneute Aufruf snapshot/isLoading zurueck, was einen Re-Render
         // ausloest, der .task(id:) wieder feuert — Endlosschleife.
-        guard force || loadedArticleID != articleID || activeLoadTask != nil else {
+        //
+        // TEMP-DEBUG-Fund (2026-08-05, Reader-Ladeverzoegerung): ein
+        // erneuter, nicht erzwungener Aufruf fuer dieselbe articleID WAEHREND
+        // bereits ein Ladevorgang laeuft (activeLoadTask != nil) loeste hier
+        // bisher trotzdem einen Abbruch+Neustart aus — per Live-Log
+        // (log stream) verifiziert: bei praktisch jeder Artikelauswahl feuert
+        // .task(id: articleID) ein zweites Mal fuer dieselbe ID, WAEHREND der
+        // erste Ladevorgang noch laeuft, und startete dadurch einen kompletten
+        // dritten, redundanten DB-Read+Prepare-Durchlauf. Da alle DB-Zugriffe
+        // ueber eine einzige, serialisierte GRDB-DatabaseQueue laufen, hat das
+        // die Reader-Ladezeit spuerbar verlaengert (~600-900ms statt einem
+        // einzelnen schnellen PK-Read). `Task.detached`-Cancellation stoppt
+        // die bereits gestartete synchrone SQLite-Abfrage ohnehin nicht mehr
+        // — der Abbruch verhinderte also nur das Anwenden des Ergebnisses,
+        // nicht die Arbeit selbst. Ein bereits laufender Ladevorgang fuer
+        // dieselbe ID darf deshalb einfach zu Ende laufen, statt neu zu
+        // starten; das bricht die oben beschriebene Schleifen-Absicherung
+        // nicht, da ein reines No-Op (kein State-Reset) ohnehin keinen
+        // erneuten Re-Render und damit kein erneutes Feuern ausloest.
+        guard force || loadedArticleID != articleID else {
             return
         }
 
