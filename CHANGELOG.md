@@ -13,6 +13,60 @@ siehe `git log`.
 
 <!-- versions -->
 
+## [1.0 (27)] - 2026-08-05
+
+- fix: SQLiteSidebarState.load() blockiert MainActor nicht mehr synchron
+- docs: Live-Perf-Messung der @Observable-Migration dokumentiert (Ergebnis nicht wie erhofft)
+- docs: veraltete Kommentare nach @Observable-Migration korrigiert, CLAUDE.md ergänzt
+- refactor: alte UserDefaults-Invalidierungs-API entfernt, @Observable-Typen final umbenannt
+- refactor: CloudSyncEngine auf @Observable-Invalidierungssignal umgestellt, backfillAllExistingRecords MainActor-isoliert
+- fix: MenubarStatusItemController-Test beweist Selbstregistrierung statt nur Absturzfreiheit
+- refactor: MenubarStatusItemController beobachtet SQLiteDataInvalidationSignal statt KVO auf UserDefaults-Key
+- refactor: Store-/Service-/ViewModel-Schicht auf @Observable-Invalidierungssignal umgestellt
+- refactor: Settings-/SmartFolder-/Sync-Views auf @Observable-Invalidierungssignale umgestellt
+- refactor: Sidebar-/Feed-Verwaltungs-Views auf @Observable-Invalidierungssignale umgestellt
+- refactor: Reader-/Artikelliste-Views auf @Observable-Invalidierungssignale umgestellt
+- feat: @Observable-Singletons für SQLite-Invalidierung ergänzt (Koexistenz mit UserDefaults-API)
+- docs: Implementierungsplan für @AppStorage→@Observable-Migration
+- docs: Design-Spec für @AppStorage→@Observable-Migration (SQLiteDataInvalidation)
+- docs: Reader-Ladeverzögerung-Diagnose und offene @AppStorage-Latenz in CLAUDE.md dokumentiert
+- fix: Reader-Ladeverzögerung durch GRDB DatabasePool + redundante Reloads behoben
+- fix: Absturz bei Bildposition "aus" in der nativen Artikelliste behoben
+- docs: Native Artikelliste (NSTableView-Migration) in CLAUDE.md dokumentiert
+- fix: mehr Abstand unterhalb der Trennlinie in der nativen Artikelliste
+- fix: HTML-Tags in der Zusammenfassung der nativen Artikelliste entfernt
+- fix: Trennlinien zwischen Artikeln in der nativen Liste ergänzt
+- fix: native Artikelliste — Zeilenumbruch-Bug behoben, Standard auf AN gestellt
+- fix: native Hauptliste — fehlender Empty-State bei gefilterten Ergebnissen + Kommentar-Korrektur
+- fix: native Suchergebnisliste — Return-Taste, Selection-Race, Datumsformat
+- fix: native Artikelliste — Kontextmenü-Absturz, autoenablesItems, Selection-Race, loadMore-Timing
+- fix: dedicated NativeArticleListImageLoadGuard — RenderBenchmark spike's guard is #if DEBUG-only, production cell needs it in Release too
+- feat: Suchfenster-Ergebnisliste hinter native-Schalter verdrahten
+- feat: NativeArticleSearchResultTableView — native Suchfenster-Ergebnisliste
+- feat: NativeArticleSearchResultCellView — Zelle für die Suchfenster-Liste
+- feat: Hauptartikelliste hinter native-Schalter verdrahten
+- feat: NativeArticleListTableView — NSViewRepresentable-Wrapper für die Hauptliste
+- fix: guard rowKind(atRow:) against negative indices (crash on right-click outside rows)
+- feat: NativeArticleListCoordinator — DataSource/Delegate/Kontextmenü
+- feat: NativeArticleListRowCellView — Produktiv-Zelle mit voller ArticleRowView-Parität
+- fix(plan): NativeArticleRowCellView in NativeArticleListRowCellView umbenannt
+- feat: Settings-Schalter für native Artikelliste (Beta)
+- docs: Implementierungsplan für native Artikelliste + Kontextmenü-Zahl korrigiert
+- docs: Spec für native Artikelliste (NSTableView-Migration)
+- docs: Render-Benchmark — Whole-Branch-Review-Fixes + Ergebnis der Live-Verifikation
+- fix: Render-Benchmark-Spike — Whole-Branch-Review-Funde behoben
+- test: Proxy-Metrik für nativen Artikel-Render-Benchmark + Doku-Nachtrag
+- feat: Debug-only Fenster + Menüeintrag für Artikel-Render-Benchmark
+- feat: SwiftUI-Baseline + Umschalter-Container für Artikel-Render-Benchmark
+- feat: NSTableView-Wrapper + Coordinator für Artikel-Render-Benchmark
+- feat: native AppKit-Zelle für Artikel-Render-Benchmark
+- feat: Stale-Load-Guard für native Artikel-Zellwiederverwendung
+- feat: synthetisches Fixture für NSTableView-vs-List-Render-Benchmark
+- docs: Implementierungsplan — NSTableView-vs-List-Render-Benchmark
+- docs: Spec — NSTableView-vs-List-Render-Benchmark für Artikelliste
+- fix: Bild-Anreicherung deaktiviert — Artikel zeigen nur noch feed-eigene Bilder
+- chore: Appcast-Eintrag für v1.0-26
+
 ## [1.0 (26)] - 2026-08-04
 
 - docs: Spec/Plan/Optimierungsliste für Punkt 3 (Bild-Anreicherung im Hintergrund)
