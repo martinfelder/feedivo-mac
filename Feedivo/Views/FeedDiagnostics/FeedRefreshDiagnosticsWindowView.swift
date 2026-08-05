@@ -63,8 +63,8 @@ struct FeedRefreshDiagnosticsWindowView: View {
                 footer
             }
         }
+        .frame(minWidth: 700, maxWidth: .infinity, minHeight: 420, maxHeight: .infinity, alignment: .top)
         .background(theme.bg)
-        .frame(minWidth: 700, minHeight: 420)
         .task {
             await reload()
         }
@@ -192,7 +192,7 @@ struct FeedRefreshDiagnosticsWindowView: View {
                     }
                 }
             }
-            .frame(maxHeight: 360)
+            .frame(maxHeight: .infinity)
         }
         .background(theme.card2)
         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
@@ -292,7 +292,7 @@ struct FeedRefreshDiagnosticsWindowView: View {
     }
 
     private var footerStatusText: String {
-        let feedCountText = L10n.feedRefreshDiagnosticsFooterFeedCount(diagnostics.count)
+        let feedCountText = L10n.feedRefreshDiagnosticsFooterFeedCount(visibleDiagnostics.count)
         guard let lastReloadedAt else {
             return feedCountText
         }
@@ -330,6 +330,10 @@ struct FeedRefreshDiagnosticsWindowView: View {
     private func retry(_ diagnostic: FeedFailureDiagnostic) async {
         guard let feedivoDatabase else {
             return
+        }
+        isBusy = true
+        defer {
+            isBusy = false
         }
         await feedViewModel.refreshFeed(feedID: diagnostic.feedID, sqliteDatabase: feedivoDatabase)
         await reload()

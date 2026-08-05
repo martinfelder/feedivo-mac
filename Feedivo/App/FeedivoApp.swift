@@ -275,7 +275,7 @@ struct FeedivoApp: App {
                 .dynamicTypeSize(interfaceTextSize.dynamicTypeSize)
                 .preferredColorScheme(appAppearance.colorScheme)
         }
-        .defaultSize(width: 520, height: 480)
+        .defaultSize(width: 960, height: 620)
 
         #if DEBUG
         Window("Render-Benchmark", id: ArticleListRenderBenchmarkView.windowID) {

@@ -1378,8 +1378,9 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 ## Aktuell in Arbeit
 
 - **2026-08-05: Feed-Status-Fenster als dichte Tabelle mit sichtbaren Aktionen —
-  VOLLSTÄNDIG ABGESCHLOSSEN (4 Tasks, alle einzeln clean reviewed), automatisierte
-  Tests + Debug- + Release-Build grün, manuelle Live-Verifikation NOCH AUSSTEHEND.**
+  VOLLSTÄNDIG ABGESCHLOSSEN (4 Tasks + Whole-Branch-Review-Fix-Welle, alle clean
+  reviewed bzw. re-verifiziert), automatisierte Tests + Debug- + Release-Build
+  grün, manuelle Live-Verifikation NOCH AUSSTEHEND.**
   Redesign des mit Feature 32 (`FeedRefreshDiagnosticsWindowView`, siehe die drei
   Einträge direkt darüber vom selben Tag) neu eingeführten Feed-Status-Fensters: von
   einer schlichten Liste mit ausschließlich per Rechtsklick-Kontextmenü erreichbaren
@@ -1418,6 +1419,75 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   6. Ein reiner Prozess-Hinweis (kein Code-Defekt): der ursprüngliche Task-3-Report
      zeigte zunächst elidierte/abgeschnittene Build-Log-Belege statt des vollen Logs
      rund um die Erfolgsmeldung.
+  **Finaler Whole-Branch-Review (direkt im Anschluss) korrigierte drei dieser
+  sechs Task-3-Einstufungen und fand zwei weitere, komplett neue Important-Funde
+  — alle fünf in einer gemeinsamen Fix-Welle behoben:**
+  1. Veraltete `.defaultSize(width: 520, height: 480)` in `FeedivoApp.swift`
+     (Zeile 278, Stand vor der Tabellen-Umstellung) liegt UNTER dem neuen
+     Tabellen-Content-Minimum von 700pt (`.frame(minWidth: 700, ...)`,
+     `FeedRefreshDiagnosticsWindowView.swift` Zeile 67) — macOS klemmt das
+     Fenster beim Öffnen dadurch auf exakt 700pt, bei denen der flexiblen
+     Fehler-Spalte nach den vier festen Spalten (170+90+118+150pt) + Abständen/
+     Padding nur noch ~36pt bleiben. Die Fehlermeldung — der eigentliche Zweck
+     des Fensters — war dadurch bis zum manuellen Vergrößern praktisch
+     unlesbar, ein neuer Important-Fund, den keiner der drei Einzel-Task-
+     Reviews sehen konnte (Task 1/2 berühren `FeedivoApp.swift` gar nicht,
+     Task 3 änderte nur die View-Datei). Fix: `960×620`.
+  2. `.background(theme.bg)` stand vor `.frame(minWidth:minHeight:)`
+     (Zeile 66-67) statt danach — malt dadurch nur die natürliche Content-
+     Größe des VStack, nicht den durch die Mindestgröße erzwungenen
+     Zusatzraum. Im „Keine Treffer"-Zustand (fixer ~150pt-Block, deutlich
+     unter der 420pt-Mindesthöhe) waren unthemed Systemhintergrund-Bänder
+     oben/unten sichtbar — OHNE dass der Nutzer das Fenster überhaupt
+     vergrößern musste, ein eigenständiger, über Fund 2 (ScrollView-Deckel)
+     hinausgehender Bug. Fix: Reihenfolge getauscht + `maxWidth: .infinity,
+     maxHeight: .infinity, alignment: .top` ergänzt; zusätzlich die
+     Tabellen-`ScrollView` (Fund 2 oben, Zeile 195) von `.frame(maxHeight:
+     360)` auf `.frame(maxHeight: .infinity)` umgestellt, damit die Tabelle
+     den jetzt korrekt gefüllten Platz auch tatsächlich nutzt statt bei
+     fixer Deckelhöhe stehenzubleiben — beide Änderungen waren nur gemeinsam
+     wirksam.
+  3. Fund 5 (`retry(_:)` setzt `isBusy` nicht) war in der Task-3-Review als
+     „vorbestehendes Verhalten, jetzt nur sichtbarer" unterbewertet — der
+     Whole-Branch-Reviewer stellte richtig: es ist kein stilles No-op mehr,
+     sondern ein sichtbarer, störender roter Fehlerbanner. Da die Zeilen-
+     Wiederholen-Buttons jetzt permanent sichtbar sind statt im Kontextmenü
+     versteckt, ist „Wiederholen bei Zeile A klicken, während A noch läuft
+     sofort Wiederholen bei Zeile B klicken" eine ganz natürliche, einen
+     Klick entfernte Interaktion — `FeedViewModel.refreshFeed`s interner
+     Reentrancy-Guard (`guard !isLoading else { errorMessage =
+     L10n.feedErrorAlreadyRunning; return }`) quittiert den zweiten Klick mit
+     genau diesem Banner, der bis zur nächsten erfolgreichen Aktion stehen
+     bleibt. Fix: `retry(_:)` setzt jetzt `isBusy = true`/
+     `defer { isBusy = false }`, exakt wie `retryAll()` es bereits tut — die
+     pro Zeile bereits vorhandene `.disabled(isRetryDisabled)`-Bindung
+     (`isRetryDisabled: isBusy`) greift dadurch jetzt auch beim
+     Einzel-Retry.
+  4. (Minor, im selben Rutsch mitgefixt) Die Hälfte von Fund 3, die die
+     Fußzeilen-Anzahl betrifft (Zeile 295): `footerStatusText` nutzte
+     `diagnostics.count` statt `visibleDiagnostics.count` — bei aktivem
+     Suchfilter mit 0 Treffern zeigte die Fläche darüber „Keine Treffer", die
+     Fußzeile direkt darunter aber weiterhin die volle ungefilterte Anzahl
+     (z. B. „12 Feeds mit Fehlern") — zwei widersprüchliche Aussagen
+     übereinander auf einen Blick. Fix: `visibleDiagnostics.count`.
+     `retryAll()`s Verhalten (wiederholt bewusst ALLE Feeds, nicht nur die
+     sichtbaren) bleibt unverändert — „alle erneut versuchen" ist als
+     Aktion sinnvoll auf die komplette Liste bezogen, nicht nur auf den
+     gerade aktiven Suchfilter, das ist kein Bug.
+  **Weiterhin bewusst zurückgestellt** (reine Kosmetik-/Robustheitsfunde ohne
+  Verhaltensrisiko, nicht Teil dieser Fix-Welle): Fund 1 (deaktivierter
+  Wiederholen-Icon-Button dimmt während eines laufenden „Alle erneut
+  versuchen" nicht ab — fehlendes visuelles Feedback, kein Funktionsfehler,
+  der Button ist korrekt disabled), Fund 4 (das rein dekorative
+  Sortier-Chevron neben „Fehlschläge" ist akzentgefärbt, wirkt dadurch
+  optisch klickbar, obwohl die Sortierung fest ist), sowie zwei vom
+  Whole-Branch-Reviewer neu gefundene Minor-Punkte: `FeedStatusTableLogic.
+  sortedByFailureCountDescending` hat keinen Tiebreaker bei gleicher
+  Fehlschlagszahl (Reihenfolge zwischen zwei Feeds mit z. B. je 3
+  Fehlschlägen ist instabil/implementierungsabhängig), und die festen
+  Spaltenbreiten (170/90/118/150pt) sind gegen die deutschen/englischen
+  Spaltenkopf-Texte bemessen — längere französische/italienische
+  Übersetzungen könnten umbrechen oder abgeschnitten werden.
   Task 4 (dieser Eintrag) deckt nur die automatisierbaren Abschlussschritte ab:
   gezielter Testlauf `FeedStatusTableLogicTests` (9/9 grün), voller
   `xcodebuild build -configuration Debug` (BUILD SUCCEEDED) und voller
@@ -1437,13 +1507,19 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   sichtbar wenn URL vorhanden), XML-Adresse kopieren, Löschen (fragt nach
   Bestätigung). 6. Fußzeile zeigt korrekte Anzahl + „zuletzt geprüft vor …" nach
   „Neu laden" bzw. nach jeder Aktion. 7. Hell-/Dunkelmodus: Farben stimmen in beiden
-  Darstellungen (Fenster einmal bei Hell- und einmal bei Dunkelmodus öffnen). Spec/
+  Darstellungen (Fenster einmal bei Hell- und einmal bei Dunkelmodus öffnen). 8.
+  **Neu (deckt Whole-Branch-Review-Fund 1 ab):** Fenster ohne manuelles Vergrößern
+  öffnen — ist die Fehlerspalte lesbar (nicht auf ~36pt zusammengequetscht)? Spec/
   Plan: `docs/superpowers/specs/2026-08/2026-08-05-feed-status-tabellenansicht-design.md`,
   `docs/superpowers/plans/2026-08/2026-08-05-feed-status-tabellenansicht.md`. Commits
-  `ae4be66..3bac82d` auf `main` (lokal, Push-Status siehe `git log`/
-  `git merge-base --is-ancestor origin/main` zum Lesezeitpunkt prüfen statt diesen
-  Vermerk ungeprüft zu übernehmen — siehe bestehende Lehre zu Push-Status-Aussagen
-  weiter unten in diesem Dokument).
+  `ae4be66..3bac82d` (4 Tasks) + ein separater Whole-Branch-Review-Fix-Commit
+  (Fenstergröße, Hintergrund/Frame-Reihenfolge, Retry-Reentrancy, Fußzeile) auf
+  `main` (lokal, Push-Status siehe `git log`/`git merge-base --is-ancestor
+  origin/main` zum Lesezeitpunkt prüfen statt diesen Vermerk ungeprüft zu
+  übernehmen — siehe bestehende Lehre zu Push-Status-Aussagen weiter unten in
+  diesem Dokument). Fix-Welle: Build (Debug) BUILD SUCCEEDED,
+  `FeedStatusTableLogicTests` erneut 9/9 grün (keine der vier Code-Fixes berührt
+  diese Testdatei, reiner Regressions-Check).
 
 - **2026-08-05: `@AppStorage`/`UserDefaults`→`@Observable`-Migration der SQLite-
   Invalidierungssignale — VOLLSTÄNDIG ABGESCHLOSSEN (Tasks 1-8, alle reviewed),
