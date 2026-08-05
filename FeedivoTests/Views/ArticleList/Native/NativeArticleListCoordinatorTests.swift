@@ -50,6 +50,22 @@ struct NativeArticleListCoordinatorTests {
         #expect(coordinator.rowKind(atRow: 1) == nil)
     }
 
+    // Regressionstest: `NSTableView.clickedRow` liefert -1, wenn ein
+    // Rechtsklick keine Zeile trifft (z. B. leerer Bereich unterhalb der
+    // letzten Zeile oder eine komplett leere Liste). `rowKind(atRow:)` muss
+    // dafür nil liefern statt `rows[-1]` abstürzen zu lassen — sowohl bei
+    // einem leeren Coordinator als auch bei einem mit Inhalts-/Trailing-Rows.
+    @Test func rowKindLiefertNilBeiNegativemRowIndex() {
+        let leererCoordinator = NativeArticleListCoordinator()
+        #expect(leererCoordinator.rowKind(atRow: -1) == nil)
+
+        let coordinator = NativeArticleListCoordinator()
+        coordinator.rows = [makeSnapshot(id: "a1")]
+        coordinator.hasMoreIndicatorVisible = true
+        coordinator.showReadArticlesButtonCount = 3
+        #expect(coordinator.rowKind(atRow: -1) == nil)
+    }
+
     @Test func tableViewSelectionDidChangeMeldetAusgewaehlteID() {
         let coordinator = NativeArticleListCoordinator()
         let snapshots = [makeSnapshot(id: "a1"), makeSnapshot(id: "a2"), makeSnapshot(id: "a3")]

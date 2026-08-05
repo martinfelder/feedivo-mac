@@ -63,6 +63,13 @@ final class NativeArticleListCoordinator: NSObject, NSTableViewDataSource, NSTab
     }
 
     func rowKind(atRow row: Int) -> RowKind? {
+        // `NSTableView.clickedRow` liefert -1, wenn ein Rechtsklick keine
+        // Zeile trifft (z. B. leerer Bereich unterhalb der letzten Zeile oder
+        // eine komplett leere Liste) — ohne diese Guard würde `row < rows.count`
+        // für -1 immer zutreffen und `rows[-1]` abstürzen.
+        guard row >= 0 else {
+            return nil
+        }
         if row < rows.count {
             return .content(rows[row])
         }
