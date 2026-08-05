@@ -150,7 +150,7 @@ final class NativeArticleListCoordinator: NSObject, NSTableViewDataSource, NSTab
                 interfaceTextSize: interfaceTextSize,
                 imagePosition: imagePosition,
                 summaryLineCount: summaryLineCount
-            )
+            ) + NativeArticleListRowCellView.extraHeightForTopInset
         case .trailing, nil:
             NativeArticleListTrailingRowMetrics.height
         }

@@ -6,6 +6,16 @@ import AppKit
 /// `ArticleRowView` (SwiftUI-Baseline): Bildposition, Feedname-Position,
 /// variable Zusammenfassungszeilen, Datumsanzeige-Modus, Barrierefreiheit.
 final class NativeArticleListRowCellView: NSTableCellView {
+    /// Abstand zwischen der Trennlinie (oberer Zeilenrand) und dem Beginn
+    /// des Zeileninhalts. Größer als der ursprüngliche, an `ArticleRowView`s
+    /// `.padding(.vertical, 6)` angelehnte Wert — Nutzerwunsch nach mehr
+    /// Luft unterhalb der Trennlinie. `NativeArticleListCoordinator.
+    /// heightOfRow` addiert `extraHeightForTopInset` auf die geteilte
+    /// `ArticleRowHeightMetrics`, damit der zusätzliche Abstand nicht auf
+    /// Kosten des unteren Innenabstands geht.
+    static let topInset: CGFloat = 10
+    static let extraHeightForTopInset: CGFloat = topInset - 6
+
     private let unreadIndicator = NSView()
     private let previewImageView = NSImageView()
     private let faviconImageView = NSImageView()
@@ -59,7 +69,7 @@ final class NativeArticleListRowCellView: NSTableCellView {
         NSLayoutConstraint.activate([
             rootStack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8),
             rootStack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8),
-            rootStack.topAnchor.constraint(equalTo: topAnchor, constant: 6),
+            rootStack.topAnchor.constraint(equalTo: topAnchor, constant: Self.topInset),
             rootStack.bottomAnchor.constraint(lessThanOrEqualTo: bottomAnchor, constant: -6)
         ])
 

@@ -124,7 +124,7 @@ struct NativeArticleListTableView: NSViewRepresentable {
             interfaceTextSize: interfaceTextSize,
             imagePosition: coordinator.imagePosition,
             summaryLineCount: coordinator.summaryLineCount
-        )
+        ) + NativeArticleListRowCellView.extraHeightForTopInset
 
         if Self.needsReload(current: rows, previous: coordinator.rows) {
             coordinator.rows = rows
