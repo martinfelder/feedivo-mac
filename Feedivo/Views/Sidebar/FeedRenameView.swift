@@ -180,7 +180,7 @@ struct FeedRenameView: View {
                 id: feedID,
                 displayTitle: displayTitle
             )
-            SQLiteDataInvalidation.bumpStatusVersion()
+            SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
             dismiss()
         } catch {
             errorMessage = error.localizedDescription
@@ -195,7 +195,7 @@ struct FeedRenameView: View {
 
         do {
             try FeedStore(database: database).restoreOriginalTitle(id: feedID)
-            SQLiteDataInvalidation.bumpStatusVersion()
+            SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
             loadFeedRecord()
         } catch {
             errorMessage = error.localizedDescription

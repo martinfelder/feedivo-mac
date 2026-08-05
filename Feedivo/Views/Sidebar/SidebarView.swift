@@ -10,10 +10,6 @@ struct SidebarView: View {
     // Bump bei direkter Artikel→Tag-Zuweisung (siehe SidebarBadgeInvalidation).
     // Status-Toggles, Artikel-Zahl und Feed/Tag-Struktur werden automatisch über
     // die Signatur bzw. die SQLite-Snapshots erfasst.
-    @AppStorage(SidebarBadgeInvalidation.directTagVersionKey)
-    private var directTagVersion = 0
-    @AppStorage(SQLiteDataInvalidation.statusVersionKey)
-    private var sqliteStatusVersion = 0
     init(
         selection: Binding<SidebarSelection?>,
         onRequestAddFeed: @escaping () -> Void,
@@ -314,7 +310,7 @@ struct SidebarView: View {
             id: smartFolder.id,
             copyName: "\(smartFolder.name) Kopie"
         )
-        SQLiteDataInvalidation.bumpStatusVersion()
+        SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
         sidebarDefinitionVersion += 1
     }
 
@@ -324,7 +320,7 @@ struct SidebarView: View {
         }
 
         try? SQLiteSmartFolderStore(database: database).delete(id: smartFolder.id)
-        SQLiteDataInvalidation.bumpStatusVersion()
+        SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
         sidebarDefinitionVersion += 1
     }
 
@@ -341,7 +337,7 @@ struct SidebarView: View {
 
         try? FeedFolderStore(database: database).delete(id: folder.id)
         collapsedFolderNames.remove(folder.name)
-        SQLiteDataInvalidation.bumpStatusVersion()
+        SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
         sidebarDefinitionVersion += 1
     }
 
@@ -359,7 +355,7 @@ struct SidebarView: View {
             collapsedFolderNames.insert(newName)
         }
 
-        SQLiteDataInvalidation.bumpStatusVersion()
+        SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
         sidebarDefinitionVersion += 1
     }
 
@@ -369,7 +365,7 @@ struct SidebarView: View {
         }
 
         try FeedStore(database: database).renameFeed(id: id, displayTitle: newTitle)
-        SQLiteDataInvalidation.bumpStatusVersion()
+        SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
     }
 
     private func moveFeed(id: String, toFolderName: String?, targetIndex: Int) {
@@ -384,7 +380,7 @@ struct SidebarView: View {
         } catch {
             AppLogger.dataAccess.fault("TEMPDEBUG moveFeed FEHLER \(error.localizedDescription, privacy: .public)")
         }
-        SQLiteDataInvalidation.bumpStatusVersion()
+        SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
     }
 
     private func moveFolder(name: String, targetIndex: Int) {
@@ -415,7 +411,7 @@ struct SidebarView: View {
     private func moveTag(id: String, targetIndex: Int) {
         guard let database = feedivoDatabase else { return }
         try? TagStore(database: database).move(id: id, targetIndex: targetIndex)
-        SQLiteDataInvalidation.bumpStatusVersion()
+        SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
     }
 
     private func moveSmartFolder(id: String, targetIndex: Int, isDefault: Bool) {
@@ -433,7 +429,7 @@ struct SidebarView: View {
         } catch {
             AppLogger.dataAccess.error("moveSmartFolder fehlgeschlagen: \(error.localizedDescription, privacy: .public)")
         }
-        SQLiteDataInvalidation.bumpStatusVersion()
+        SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
         sidebarDefinitionVersion += 1
     }
 
@@ -458,7 +454,7 @@ struct SidebarView: View {
         // (Unread-Counts, Titel) werden über sqliteStatusVersion erfasst. Die
         // SQLite-Feed-IDs stehen vor dem ersten Laden noch nicht zur Verfügung,
         // deshalb wird hier nicht auf Snapshots zurückgegriffen.
-        return "\(sqliteStatusVersion)#\(directTagVersion)#\(showsReadFeedsInSidebar)#\(sidebarDefinitionVersion)#\(sqliteSidebarState.snapshots.count)"
+        return "\(SQLiteDataInvalidationSignal.shared.statusVersion)#\(SidebarBadgeInvalidationSignal.shared.directTagVersion)#\(showsReadFeedsInSidebar)#\(sidebarDefinitionVersion)#\(sqliteSidebarState.snapshots.count)"
     }
 }
 

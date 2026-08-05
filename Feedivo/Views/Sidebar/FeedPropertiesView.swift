@@ -595,7 +595,7 @@ struct FeedPropertiesView: View {
             try TagStore(database: database).save(tag)
             try TagStore(database: database).assignTag(tagID: tag.id, toFeedID: feedID, at: Date())
             loadSQLiteTags()
-            SidebarBadgeInvalidation.bumpDirectTagVersion()
+            SidebarBadgeInvalidationSignal.shared.bumpDirectTagVersion()
         } catch {
             // Die Bearbeitung bleibt lokal im Sheet; ein späterer Versuch kann erneut speichern.
         }
@@ -612,7 +612,7 @@ struct FeedPropertiesView: View {
                 fromFeedID: feedID
             )
             loadSQLiteTags()
-            SidebarBadgeInvalidation.bumpDirectTagVersion()
+            SidebarBadgeInvalidationSignal.shared.bumpDirectTagVersion()
         } catch {
             // Die sichtbare Liste wird erst nach erfolgreicher SQLite-Mutation aktualisiert.
         }
@@ -648,7 +648,7 @@ struct FeedPropertiesView: View {
                 minutes: selectedRefreshInterval
             )
             loadSQLiteFeedDetails()
-            SQLiteDataInvalidation.bumpStatusVersion()
+            SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
         } catch {
             selectedRefreshInterval = currentFeedRecord.refreshIntervalMinutes
         }
@@ -665,7 +665,7 @@ struct FeedPropertiesView: View {
                 folderName: folderName
             )
             loadSQLiteFeedDetails()
-            SQLiteDataInvalidation.bumpStatusVersion()
+            SQLiteDataInvalidationSignal.shared.bumpStatusVersion()
         } catch {
             folderName = currentFeedRecord.folderName ?? ""
         }
