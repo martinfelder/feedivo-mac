@@ -4,7 +4,7 @@ import Testing
 
 struct SQLiteSidebarStateTests {
     @MainActor
-    @Test func loadReadsSnapshotsAndTotalUnreadCount() throws {
+    @Test func loadReadsSnapshotsAndTotalUnreadCount() async throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let store = FeedStore(database: database)
         let articleStore = ArticleStore(database: database)
@@ -17,7 +17,7 @@ struct SQLiteSidebarStateTests {
         _ = try articleStore.upsert(ArticleUpsertInput(feedID: "feed-2", sourceID: "two-c", title: "Two C"))
         let state = SQLiteSidebarState()
 
-        state.load(database: database, showsReadFeeds: true)
+        await state.load(database: database, showsReadFeeds: true)
 
         #expect(state.snapshots.map(\.id) == ["feed-1", "feed-2"])
         #expect(state.totalUnreadCount == 5)
@@ -25,7 +25,7 @@ struct SQLiteSidebarStateTests {
     }
 
     @MainActor
-    @Test func loadIgnoresStaleFeedUnreadCountCache() throws {
+    @Test func loadIgnoresStaleFeedUnreadCountCache() async throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let feedStore = FeedStore(database: database)
         let articleStore = ArticleStore(database: database)
@@ -38,7 +38,7 @@ struct SQLiteSidebarStateTests {
         try feedStore.setUnreadCount(9, feedID: "feed-1")
         let state = SQLiteSidebarState()
 
-        state.load(database: database, showsReadFeeds: true)
+        await state.load(database: database, showsReadFeeds: true)
 
         #expect(state.snapshot(forFeedID: "feed-1")?.unreadCount == 0)
         #expect(state.totalUnreadCount == 0)
@@ -46,7 +46,7 @@ struct SQLiteSidebarStateTests {
     }
 
     @MainActor
-    @Test func loadReadsTagSnapshotsForSidebarBadges() throws {
+    @Test func loadReadsTagSnapshotsForSidebarBadges() async throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let feedStore = FeedStore(database: database)
         let articleStore = ArticleStore(database: database)
@@ -59,14 +59,14 @@ struct SQLiteSidebarStateTests {
         try tagStore.assignTag(tagID: "tag-1", toArticleID: articleID, at: Date(timeIntervalSince1970: 100))
         let state = SQLiteSidebarState()
 
-        state.load(database: database, showsReadFeeds: true)
+        await state.load(database: database, showsReadFeeds: true)
 
         #expect(state.tagSnapshots.map(\.id) == ["tag-1"])
         #expect(state.tagSnapshot(id: "tag-1")?.articleCount == 1)
     }
 
     @MainActor
-    @Test func loadReadsSmartFolderBadgeSnapshotFromSQLiteStatuses() throws {
+    @Test func loadReadsSmartFolderBadgeSnapshotFromSQLiteStatuses() async throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let feedStore = FeedStore(database: database)
         let articleStore = ArticleStore(database: database)
@@ -86,7 +86,7 @@ struct SQLiteSidebarStateTests {
         try statusStore.setHidden(true, articleID: hiddenID, at: Date(timeIntervalSince1970: 100))
         let state = SQLiteSidebarState()
 
-        state.load(database: database, showsReadFeeds: true)
+        await state.load(database: database, showsReadFeeds: true)
 
         #expect(state.smartFolderBadgeSnapshot.unread == 2)
         #expect(state.smartFolderBadgeSnapshot.starred == 1)
@@ -95,7 +95,7 @@ struct SQLiteSidebarStateTests {
     }
 
     @MainActor
-    @Test func loadReadsFeedFoldersAndSmartFolderSnapshots() throws {
+    @Test func loadReadsFeedFoldersAndSmartFolderSnapshots() async throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         try FeedFolderStore(database: database).save(FeedFolderRecord(id: "folder-1", name: "Technik"))
         try SQLiteSmartFolderStore(database: database).save(
@@ -122,7 +122,7 @@ struct SQLiteSidebarStateTests {
         )
         let state = SQLiteSidebarState()
 
-        state.load(database: database, showsReadFeeds: true)
+        await state.load(database: database, showsReadFeeds: true)
 
         #expect(state.feedFolders.map(\.name) == ["Technik"])
         #expect(state.smartFolderSnapshots.map(\.id) == ["smart-1"])
@@ -130,7 +130,7 @@ struct SQLiteSidebarStateTests {
     }
 
     @MainActor
-    @Test func visibleSnapshotsFollowSQLiteVisibility() throws {
+    @Test func visibleSnapshotsFollowSQLiteVisibility() async throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let store = FeedStore(database: database)
         let articleStore = ArticleStore(database: database)
@@ -144,7 +144,7 @@ struct SQLiteSidebarStateTests {
         _ = try articleStore.upsert(ArticleUpsertInput(feedID: unreadFeedID, sourceID: "unread-d", title: "Unread D"))
         let state = SQLiteSidebarState()
 
-        state.load(database: database, showsReadFeeds: false)
+        await state.load(database: database, showsReadFeeds: false)
 
         // Bei showsReadFeeds=false darf nur der ungelesene Feed in den Snapshots
         // auftauchen; die Sichtbarkeit ist vollständig in SQLite geklärt.
@@ -154,7 +154,7 @@ struct SQLiteSidebarStateTests {
     }
 
     @MainActor
-    @Test func loadComputesMixedCountsForAllArticlesAndTodayDefaultFolders() throws {
+    @Test func loadComputesMixedCountsForAllArticlesAndTodayDefaultFolders() async throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let feedStore = FeedStore(database: database)
         let articleStore = ArticleStore(database: database)
@@ -205,7 +205,7 @@ struct SQLiteSidebarStateTests {
 
         let state = SQLiteSidebarState()
 
-        state.load(database: database, showsReadFeeds: true)
+        await state.load(database: database, showsReadFeeds: true)
 
         #expect(state.mixedCountsByFolderID["smart-all"]?.read == 2)
         #expect(state.mixedCountsByFolderID["smart-all"]?.unread == 1)
@@ -217,7 +217,7 @@ struct SQLiteSidebarStateTests {
     }
 
     @MainActor
-    @Test func loadComputesMixedCountsForCustomSmartFoldersToo() throws {
+    @Test func loadComputesMixedCountsForCustomSmartFoldersToo() async throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let feedStore = FeedStore(database: database)
         let articleStore = ArticleStore(database: database)
@@ -239,7 +239,7 @@ struct SQLiteSidebarStateTests {
 
         let state = SQLiteSidebarState()
 
-        state.load(database: database, showsReadFeeds: true)
+        await state.load(database: database, showsReadFeeds: true)
 
         #expect(state.mixedCountsByFolderID["custom-1"]?.read == 1)
         #expect(state.mixedCountsByFolderID["custom-1"]?.unread == 1)

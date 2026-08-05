@@ -1557,6 +1557,75 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   synchron aufgerufen wird, sowie ein Zeitstempel direkt beim Betreten von
   `SQLiteReaderView.body`), um die 225ms-Lücke tatsächlich einzugrenzen statt
   weiter zu vermuten.
+  **Nachtrag 3 (2026-08-05, direkte Folgesitzung — ROOT CAUSE GEFUNDEN UND
+  BEHOBEN, live verifiziert):** Der oben skizzierte nächste Schritt wurde
+  direkt im Anschluss umgesetzt. Feinere TEMP-DEBUG-Instrumentierung (u. a.
+  ein Zeitstempel beim Betreten von `SQLiteReaderView.body` sowie an Start/
+  Ende von `SidebarView`s `.task(id: sqliteSidebarReloadToken)`) zeigte:
+  `SQLiteReaderView.body` wurde bereits ~28ms nach dem Bump mit dem NEUEN
+  `statusVersion`-Wert neu ausgewertet — die `@Observable`-Kette selbst war
+  also nie das Problem. Das `.onChange(of: statusVersion)`-Callback feuerte
+  aber erst exakt in dem Moment, in dem `SidebarView`s eigener Reload-Task
+  fertig wurde (konstant 178-188ms Dauer). **Root Cause:** `SQLiteSidebarState.
+  load(database:showsReadFeeds:)` (`Feedivo/ViewModels/SQLiteSidebarState.swift`)
+  führte bis dahin 6-7 SQL-Abfragen — inkl. einer Schleife mit einer weiteren
+  Abfrage PRO Smart Folder — komplett SYNCHRON auf dem MainActor aus, ohne
+  ein einziges `await`/`readAsync` in der ganzen Datei. Ausgelöst wird das von
+  `.task(id: sqliteSidebarReloadToken)` in `SidebarView.swift`, das bei JEDER
+  `SQLiteDataInvalidation`/`SidebarBadgeInvalidation`-Änderung feuert — also
+  bei praktisch jeder Nutzerinteraktion (Gelesen markieren, Stern setzen,
+  Tag ändern, …). Diese Kaskade blockierte den MainActor jedes Mal für
+  ~180-230ms, wodurch ALLES andere auf dem MainActor (u. a. der Readers
+  `.onChange`) so lange warten musste — unabhängig vom darunterliegenden
+  Reaktivitätsmechanismus. **Das erklärt, warum weder die DatabasePool-
+  Migration noch die `@AppStorage`→`@Observable`-Migration diese Latenz
+  beheben konnten: die ursprüngliche Diagnose („`UserDefaults`-Notification-
+  Latenz") war von Anfang an unvollständig — der eigentliche Blocker war
+  diese synchrone Sidebar-Reload-Kaskade, ein strukturell identisches Problem
+  zu dem bereits einmal bei der Spotlight-Backfill behobenen Muster (siehe
+  Gotcha zu `SWIFT_DEFAULT_ACTOR_ISOLATION`/`readAsync` weiter oben), hier
+  aber nie nachgezogen.** **Fix:** `load()` von synchron auf `async`
+  umgestellt, die komplette Lese-Kaskade in `Task.detached(priority:
+  .userInitiated)` ausgelagert (exakt das bereits etablierte Muster aus
+  `SQLiteReaderState.load()`) — nur die finale Ergebnisübernahme in die
+  `@Observable`-Properties bleibt auf dem MainActor. Neue private
+  `Sendable`-Hilfsstruct `LoadedSidebarData` trägt das Ergebnis über die
+  Task-Grenze zurück. Aufrufer in `SidebarView.swift` mit `await` versehen,
+  alle 8 bestehenden Tests in `SQLiteSidebarStateTests.swift` auf `async
+  throws`/`await` umgestellt (reine Mechanik, keine Assertion geändert).
+  **Live-Verifikation nach dem Fix (gleiche Instrumentierung, 5 unabhängige
+  Artikelauswahlen):** T1→T2 (Bump bis `.onChange` im Reader feuert) sank
+  von konstant 225-228ms auf konstant 58-67ms — eine Verbesserung um
+  ~170ms pro Interaktion, reproduzierbar über alle 5 Messungen. Der
+  Sidebar-Reload-Task selbst braucht jetzt zwar tendenziell etwas länger in
+  absoluter Wall-Clock-Zeit (läuft ja jetzt auf einem Hintergrund-Thread
+  statt exklusiv auf dem MainActor), blockiert aber nicht mehr den Reader.
+  **Regressionslauf:** 36/36 Tests grün (`SQLiteSidebarStateTests`,
+  `SQLiteReaderStateTests`, `SQLiteFeedArticleListStateTests`,
+  `ArticleStatusStoreTests`, `-parallel-testing-enabled NO`) — inkl. des
+  sonst gelegentlich flaky `listStateToggeltReadUndAktualisiertRows`, das in
+  diesem Lauf grün war. Der Source-Sniffing-Test
+  `sidebarViewLaedtSQLiteSidebarState` hat einen vorbestehenden, per direktem
+  A/B-Vergleich (Stash gegen sauberen committeten Stand) als NICHT durch
+  diesen Fix verursacht verifizierten Fehlschlag bei einer völlig anderen,
+  unveränderten Assertion (`FeedRowView(snapshot:snapshot,`) — Teil der
+  bereits bekannten 25 vorbestehenden Fehlschläge in
+  `FeedivoAppSceneConfigurationTests`. **Lehre, ergänzend zum bereits
+  dokumentierten Grundsatz „Verifikation vor Behauptung":** eine
+  architektonisch korrekt verifizierte Migration (hier: die
+  `@Observable`-Umstellung) kann komplett wirkungslos bleiben, wenn die
+  ursprüngliche Root-Cause-Diagnose unvollständig war — erst eine WEITERE
+  Runde granularerer Live-Instrumentierung (nicht mehr nur an den Endpunkten
+  T1/T2, sondern auch an den dazwischenliegenden `.task`/`.onChange`-Stellen
+  paralleler Beobachter desselben Signals) deckte den tatsächlichen
+  MainActor-Blocker auf. Bei jeder künftigen "warum reagiert View X nicht
+  sofort auf ein @Observable-Signal"-Frage lohnt sich der Blick auf ALLE
+  anderen gleichzeitig auf dasselbe Signal reagierenden Views/Tasks im
+  selben Fenster, nicht nur auf die Observation-Kette der einen betroffenen
+  View selbst — ein einzelner synchroner MainActor-Blocker irgendwo im
+  selben Fenster kann jede noch so korrekte Observation-Implementierung
+  unbrauchbar erscheinen lassen. **Status:** Fix committed, noch NICHT
+  gepusht (Projektkonvention: Push erst nach expliziter Nutzerbestätigung).
 
 - **2026-08-05: Reader-Ladeverzögerung (~1s bei Artikelauswahl) — TEILWEISE BEHOBEN
   (GRDB DatabaseQueue → DatabasePool), Rest-Ursache identifiziert, Fix für nächste

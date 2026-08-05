@@ -191,7 +191,7 @@ struct SidebarView: View {
             }
         }
         .task(id: sqliteSidebarReloadToken) {
-            sqliteSidebarState.load(database: feedivoDatabase, showsReadFeeds: showsReadFeedsInSidebar)
+            await sqliteSidebarState.load(database: feedivoDatabase, showsReadFeeds: showsReadFeedsInSidebar)
         }
     }
 
