@@ -14,6 +14,8 @@ struct ArticleSearchWindowView: View {
     @State private var isTagPopoverPresented = false
     @AppStorage(SQLiteDataInvalidation.statusVersionKey)
     private var sqliteStatusVersion = 0
+    @AppStorage(NativeArticleListSettings.isEnabledKey)
+    private var usesNativeArticleList = NativeArticleListSettings.defaultIsEnabled
 
     @State private var searchState = ArticleSearchWindowState()
     @State private var snapshots: [ArticleListSnapshot] = []
@@ -239,53 +241,69 @@ struct ArticleSearchWindowView: View {
         .frame(width: 122)
     }
 
+    @ViewBuilder
     private var resultList: some View {
-        List(snapshots) { snapshot in
-            ArticleSearchResultRow(snapshot: snapshot) {
-                openOriginal(snapshot)
-            }
-            .contentShape(Rectangle())
-            .gesture(
-                TapGesture(count: 2)
-                    .onEnded {
-                        openInReaderWindow(snapshot)
-                    }
-                    .exclusively(before: TapGesture(count: 1).onEnded {
-                        selectedResultID = snapshot.id
-                        isResultListFocused = true
-                    })
+        if usesNativeArticleList {
+            NativeArticleSearchResultTableView(
+                snapshots: snapshots,
+                selectedID: $selectedResultID,
+                onOpenOriginal: openOriginal,
+                onOpenInReader: openInReaderWindow
             )
-            .listRowBackground(
-                snapshot.id == selectedResultID
-                    ? Color.accentColor.opacity(0.15)
-                    : Color.clear
-            )
-            .accessibilityAddTraits(snapshot.id == selectedResultID ? [.isSelected] : [])
-        }
-        .listStyle(.inset)
-        .frame(minWidth: 260, idealWidth: 340)
-        .focusable()
-        .focused($isResultListFocused)
-        .onKeyPress(.downArrow) {
-            selectAdjacentResult(offset: 1)
-            return .handled
-        }
-        .onKeyPress(.upArrow) {
-            selectAdjacentResult(offset: -1)
-            return .handled
-        }
-        .onKeyPress(.return) {
-            if let selectedSnapshot {
-                openInReaderWindow(selectedSnapshot)
+            .frame(minWidth: 260, idealWidth: 340)
+            .task(id: snapshots.map(\.id)) {
+                if selectedResultID == nil || !snapshots.contains(where: { $0.id == selectedResultID }) {
+                    selectedResultID = snapshots.first?.id
+                }
             }
-            return .handled
-        }
-        .task(id: snapshots.map(\.id)) {
-            // Nach jeder neuen Suche/Filteraenderung eine sinnvolle Tastatur-Ausgangsposition
-            // setzen: bestehende Auswahl behalten, falls sie noch in den Treffern vorkommt,
-            // sonst den ersten Treffer vorauswaehlen.
-            if selectedResultID == nil || !snapshots.contains(where: { $0.id == selectedResultID }) {
-                selectedResultID = snapshots.first?.id
+        } else {
+            List(snapshots) { snapshot in
+                ArticleSearchResultRow(snapshot: snapshot) {
+                    openOriginal(snapshot)
+                }
+                .contentShape(Rectangle())
+                .gesture(
+                    TapGesture(count: 2)
+                        .onEnded {
+                            openInReaderWindow(snapshot)
+                        }
+                        .exclusively(before: TapGesture(count: 1).onEnded {
+                            selectedResultID = snapshot.id
+                            isResultListFocused = true
+                        })
+                )
+                .listRowBackground(
+                    snapshot.id == selectedResultID
+                        ? Color.accentColor.opacity(0.15)
+                        : Color.clear
+                )
+                .accessibilityAddTraits(snapshot.id == selectedResultID ? [.isSelected] : [])
+            }
+            .listStyle(.inset)
+            .frame(minWidth: 260, idealWidth: 340)
+            .focusable()
+            .focused($isResultListFocused)
+            .onKeyPress(.downArrow) {
+                selectAdjacentResult(offset: 1)
+                return .handled
+            }
+            .onKeyPress(.upArrow) {
+                selectAdjacentResult(offset: -1)
+                return .handled
+            }
+            .onKeyPress(.return) {
+                if let selectedSnapshot {
+                    openInReaderWindow(selectedSnapshot)
+                }
+                return .handled
+            }
+            .task(id: snapshots.map(\.id)) {
+                // Nach jeder neuen Suche/Filteraenderung eine sinnvolle Tastatur-Ausgangsposition
+                // setzen: bestehende Auswahl behalten, falls sie noch in den Treffern vorkommt,
+                // sonst den ersten Treffer vorauswaehlen.
+                if selectedResultID == nil || !snapshots.contains(where: { $0.id == selectedResultID }) {
+                    selectedResultID = snapshots.first?.id
+                }
             }
         }
     }
