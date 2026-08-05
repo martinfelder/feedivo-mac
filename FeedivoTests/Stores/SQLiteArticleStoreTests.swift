@@ -419,6 +419,56 @@ struct SQLiteArticleStoreTests {
         #expect(readerArticle?.arrivedAt == originalArrivedAt)
     }
 
+    /// Realer Fall (googlewatchblog.de, 2026-08-05): die Website ändert die
+    /// Permalink-Struktur eines Artikels (z. B. bei einer nachträglichen
+    /// Überarbeitung), sodass dessen neuer Link zufällig mit dem bereits
+    /// gespeicherten Link eines ANDEREN, unabhängigen Artikels desselben
+    /// Feeds kollidiert. Ohne Schutz verletzt das UPDATE die partielle
+    /// UNIQUE-Index-Beschränkung `idx_articles_feed_link_unique`
+    /// (feedID, link) — die komplette `database.write`-Transaktion des
+    /// Batch-Upserts wird zurückgerollt, wodurch der GESAMTE Feed-Refresh
+    /// bei jedem Versuch erneut fehlschlägt (siehe CLAUDE.md-Gotcha).
+    @Test func upsertBehaeltAltenLinkWennNeuerLinkBereitsEinemAnderenArtikelDesselbenFeedsGehoert() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example"))
+
+        let articleBID = try articleStore.upsert(
+            ArticleUpsertInput(
+                feedID: "feed-1",
+                sourceID: "source-b",
+                link: "https://example.com/articles/shared-slug",
+                title: "Artikel B"
+            )
+        )
+        let articleAID = try articleStore.upsert(
+            ArticleUpsertInput(
+                feedID: "feed-1",
+                sourceID: "source-a",
+                link: "https://example.com/articles/original-a",
+                title: "Artikel A"
+            )
+        )
+
+        let secondID = try articleStore.upsert(
+            ArticleUpsertInput(
+                feedID: "feed-1",
+                sourceID: "source-a",
+                link: "https://example.com/articles/shared-slug",
+                title: "Artikel A (aktualisiert)"
+            )
+        )
+
+        #expect(secondID == articleAID)
+        let updatedA = try articleStore.readerArticle(id: articleAID)
+        let unchangedB = try articleStore.readerArticle(id: articleBID)
+        #expect(updatedA?.title == "Artikel A (aktualisiert)")
+        #expect(updatedA?.link == "https://example.com/articles/original-a")
+        #expect(unchangedB?.link == "https://example.com/articles/shared-slug")
+    }
+
     @Test func upsertFallsBackToLinkWhenSourceIDIsMissing() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let feedStore = FeedStore(database: database)

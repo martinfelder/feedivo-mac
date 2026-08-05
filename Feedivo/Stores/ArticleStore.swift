@@ -351,12 +351,36 @@ struct ArticleStore {
 
         if let articleID = try findExistingArticleID(input: input, db: db) {
             let sourceIDAssignment = sourceID == nil ? "" : "sourceID = COALESCE(sourceID, ?),"
+
+            // Manche Websites ändern nachträglich die Permalink-Struktur eines
+            // Artikels (z. B. bei einer Überarbeitung) — der neue Link kann dabei
+            // zufällig mit dem bereits gespeicherten Link eines ANDEREN,
+            // unabhängigen Artikels desselben Feeds kollidieren (realer Fall:
+            // googlewatchblog.de, 2026-08-05, siehe CLAUDE.md-Gotcha). Ein
+            // ungeprüftes UPDATE würde dann die partielle UNIQUE-Index-
+            // Beschränkung `idx_articles_feed_link_unique` (feedID, link)
+            // verletzen und die komplette Batch-Transaktion zurückrollen,
+            // wodurch der GESAMTE Feed-Refresh bei jedem Versuch erneut
+            // fehlschlägt. In diesem Fall wird der Link bewusst NICHT
+            // überschrieben — alle anderen Felder werden trotzdem aktualisiert.
+            let linkBelongsToDifferentArticle: Bool
+            if let link {
+                linkBelongsToDifferentArticle = try String.fetchOne(db, sql: """
+                    SELECT id FROM articles WHERE feedID = ? AND link = ? AND id != ?
+                    """, arguments: [input.feedID, link, articleID]) != nil
+            } else {
+                linkBelongsToDifferentArticle = false
+            }
+            let linkAssignment = linkBelongsToDifferentArticle ? "" : "link = ?,"
+
             var arguments = StatementArguments()
             if let sourceID {
                 _ = arguments.append(contentsOf: [sourceID])
             }
+            if !linkBelongsToDifferentArticle {
+                _ = arguments.append(contentsOf: [link])
+            }
             _ = arguments.append(contentsOf: [
-                link,
                 input.title,
                 input.summary,
                 input.content,
@@ -372,7 +396,7 @@ struct ArticleStore {
                 sql: """
                     UPDATE articles
                     SET \(sourceIDAssignment)
-                        link = ?,
+                        \(linkAssignment)
                         title = ?,
                         summary = ?,
                         content = ?,
