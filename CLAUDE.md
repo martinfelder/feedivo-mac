@@ -1377,6 +1377,96 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Aktuell in Arbeit
 
+- **2026-08-05: Native Artikelliste (NSTableView-Migration) — VOLLSTÄNDIG ABGESCHLOSSEN,
+  gemergt nach `main`, gepusht, Standard jetzt AN.** Direkte Folge des Render-Benchmark-
+  Spikes vom Vortag (siehe Eintrag darunter) — echte Produktiv-Migration statt reinem
+  Prototyp. Sowohl die Hauptartikelliste (`SQLiteFeedArticleListView`) als auch die
+  Suchfenster-Ergebnisliste (`ArticleSearchWindowView`) bekommen eine NSTableView-basierte,
+  reine-AppKit-Zellen-Implementierung (`Feedivo/Views/ArticleList/Native/`, kein
+  `#if DEBUG` — bewusst eigenständiger Code, kein Umbau des Spikes, der unverändert als
+  Regressionswächter bestehen bleibt) hinter einem gemeinsamen Settings-Schalter
+  (`NativeArticleListSettings`, Tab „Artikelliste"). Umgesetzt via
+  Brainstorming→Spec→Plan→Subagent-Driven-Development (9 Tasks), eigener Branch
+  `feature/native-article-list-nstableview`, per Fast-Forward nach `main` gemergt. Spec:
+  `docs/superpowers/specs/2026-08/2026-08-04-native-article-list-nstableview-design.md`,
+  Plan: `docs/superpowers/plans/2026-08/2026-08-04-native-article-list-nstableview.md`.
+  **Architekturentscheidung:** reine AppKit-Zellen statt gehosteter SwiftUI-Zeilen
+  (`NSHostingView`), um den eigentlichen Performance-Zweck der Migration nicht durch
+  erneuten SwiftUI-Render-Overhead pro Zeile zu unterlaufen — Kontextmenüs laufen über
+  `NSMenuDelegate` + `tableView.clickedRow`.
+  **Drei echte Bugs während der Task-Umsetzung selbst gefunden und behoben** (alle vor
+  dem finalen Review): (1) Xcode-Build-Kollision — zwei gleichnamige
+  `NativeArticleRowCellView.swift`-Dateien (Spike + neue Produktivklasse) kollidierten
+  über identische `.stringsdata`-Zwischendateinamen, unabhängig vom Ordner; Fix: neue
+  Klasse in `NativeArticleListRowCellView` umbenannt (Spike blieb unangetastet). (2)
+  Crash bei Rechtsklick außerhalb einer Zeile — `NativeArticleListCoordinator.
+  rowKind(atRow:)` prüfte nicht auf negative Indizes, `NSTableView.clickedRow == -1`
+  führte zu `rows[-1]`; Fix: `guard row >= 0`. (3) Release-Build schlug fehl — die
+  wiederverwendete `NativeArticleImageLoadGuard`-Hilfsklasse lag `#if DEBUG`-gated im
+  Spike-Ordner, wurde aber von der Produktivzelle unbedingt gebraucht; Fix: eigene,
+  nicht-DEBUG-gated Kopie `NativeArticleListImageLoadGuard` in `Native/` (Spike-Ordner
+  blieb unangetastet — dieselbe Umbenennungs-Strategie wie bei Fund 1).
+  **Finaler Whole-Branch-Review (Opus, mit empirisch kompilierten AppKit-Testprogrammen
+  statt reiner Inferenz) fand 2 Critical + 4 Important, alle in einer Fix-Welle behoben
+  und unabhängig re-verifiziert:** Kontextmenü crashte bei JEDEM Rechtsklick
+  (`NSMenu.addItem` lehnt Items ab, die bereits einem anderen Menü gehören —
+  `buildContextMenu` gab ein fertiges `NSMenu` zurück, dessen Items erneut in das echte
+  Menü eingefügt wurden; Fix: reiner `contextMenuItems(for:) -> [NSMenuItem]`-Builder);
+  deaktivierte Menüeinträge wurden von AppKits `NSMenu.autoenablesItems` (Standard
+  `true`) automatisch wieder aktiviert, unabhängig vom manuell gesetzten `isEnabled`
+  (Fix: `autoenablesItems = false`); native Hauptliste zeigte KEINEN Leerzustand, wenn
+  der Filter (nicht die Suche) null Treffer ergab — ein Analysefehler im Plan selbst
+  (`effectiveRows` ≠ `filteredRows`); programmatische Selektions-Synchronisierung
+  (`deselectAll`) schrieb `nil` in die SwiftUI-Bindung zurück und konnte dadurch den
+  automatischen „nächster Feed mit ungelesenen Artikeln"-Sprung sabotieren (Fix:
+  `isApplyingProgrammaticSelection`-Sperre); Return-Taste im Suchfenster öffnete nach
+  Pfeiltasten-Navigation den falschen (zuletzt angeklickten, nicht den aktuell
+  ausgewählten) Artikel; `state.loadMore()` feuerte synchron während SwiftUIs eigenem
+  View-Update-Durchlauf. Re-Review bestätigte alle 9 Findings behoben, keine neue
+  Breakage, Spike-Ordner nachweislich unangetastet (`git diff --name-only` geprüft).
+  **Nach dem Merge, in derselben Session, vier weitere echte Bugs durch direkte
+  Live-Nutzung (Nutzer-Screenshots Alt- vs. Neu-Design) gefunden und sofort behoben**
+  (kein neuer Plan-Zyklus, direkte Fixes auf `main`): (1) Titel/Zusammenfassung wurden
+  einzeilig abgeschnitten statt mehrzeilig umzubrechen — `titleField`/`summaryField`
+  nutzten `.byTruncatingTail` statt `.byWordWrapping`, ein Fehler im ursprünglichen
+  Plan-Code selbst, der durch alle Reviews rutschte (`.byTruncatingTail` kürzt nur EINE
+  Zeile, bricht nie um). (2) Ungelesen-Punkt saß links am Zeilenanfang statt wie in
+  `ArticleRowView` rechts über dem Stern — neue `accessoryStack`-Spalte (Punkt oben,
+  Stern unten, dazwischen ein spacer mit niedriger Content-Hugging-Priorität) behebt
+  das, zusätzlich Stern-Gelbfärbung, Bild-Platzhalter mit abgerundeten Ecken, Favicon-
+  Fallback-Symbol und tertiäre statt sekundäre Zusammenfassungsfarbe bei gelesenen
+  Artikeln ergänzt. (3) `NSTableView` zeichnet anders als SwiftUIs `List` standardmäßig
+  KEINE Trennlinien zwischen Zeilen — `gridStyleMask = .solidHorizontalGridLineMask` +
+  `gridColor = .separatorColor` ergänzt (bisher nur für die Hauptliste, Suchfenster
+  noch offen, siehe unten). (4) Die Zusammenfassung zeigte rohe HTML-Tags wie `<p>` —
+  die Zelle las `snapshot.summary` direkt aus dem SQL-Snapshot, während der SwiftUI-Pfad
+  über `ArticleListItemSnapshot.init` immer durch `ReaderContentRenderer.
+  htmlToPlainText` läuft; Fix: dieselbe Umwandlung jetzt auch in der Zelle. Danach noch
+  ein reiner Polish-Wunsch umgesetzt: oberer Zeilenabstand von 6pt auf 10pt erhöht
+  (`NativeArticleListRowCellView.topInset`/`.extraHeightForTopInset`), ohne die geteilte
+  `ArticleRowHeightMetrics` anzufassen (die auch die alte SwiftUI-Liste nutzt).
+  **Ergebnis:** Nutzer hat nach Live-Test bestätigt, dass die native Liste „einen
+  Unterschied macht" — `NativeArticleListSettings.defaultIsEnabled` von `false` auf
+  `true` gestellt, ohne weitere mehrtägige Testphase (ursprünglich in der Spec
+  vorgesehen, aber laut Nutzerentscheid nicht mehr nötig). Alte SwiftUI-`List`-
+  Implementierung bleibt vollständig als Rückfalloption im Code bestehen (nicht
+  gelöscht). Alle 20 Commits (Spec, Plan, 9 Tasks, Fix-Welle, 4 Live-Fixes) gepusht nach
+  `origin/main` (`060c8d7..e7025e9`). **Offen:** Trennlinien im Suchfenster (separate
+  `NativeArticleSearchResultTableView`-Implementierung) sind noch nicht ergänzt — nur
+  auf der Hauptliste gefixt, da nur die dort live getestet wurde; ein paar aus dem
+  finalen Review als „ship as-is" triagierte Minor-Funde bleiben bewusst offen (u. a.
+  fehlende `isStarred`/`isArchived`-Kontextmenü-Test-Abdeckung, keine rote Einfärbung
+  des „Löschen"-Menüeintrags — AppKit-`NSMenuItem` kennt kein `role: .destructive`-
+  Äquivalent, kein Test für `NativeArticleSearchResultCellView.configure(...)` selbst).
+  **Lehre:** Gleich zwei der insgesamt neun während dieser Session gefundenen Bugs
+  (Zeilenumbruch-Modus, fehlende HTML-Umwandlung) waren AppKit/SwiftUI-Parität-Lücken,
+  die kein automatisierter Test und kein noch so gründlicher Code-Review (auch nicht der
+  mit empirisch kompilierten AppKit-Testprogrammen) aufdecken konnte, weil sie sich nur
+  im tatsächlich gerenderten Ergebnis zeigen — bestätigt erneut den bereits mehrfach in
+  diesem Dokument festgehaltenen Grundsatz, dass rein visuelle/Rendering-Aspekte einer
+  AppKit-Bridge ohne echte Live-Verifikation durch den Nutzer nicht als abgesichert
+  gelten dürfen, unabhängig davon, wie viele automatisierte Reviews vorher grün waren.
+
 - **2026-08-04: NSTableView-vs-List-Render-Benchmark — Spike-Infrastruktur UND manuelle
   Live-Verifikation ABGESCHLOSSEN, qualitatives Ergebnis: Prototyp wirkt flüssiger, aber
   OHNE Instruments-Messung (Nutzerentscheid).** Rein `#if DEBUG`-gated, von Produktivcode
