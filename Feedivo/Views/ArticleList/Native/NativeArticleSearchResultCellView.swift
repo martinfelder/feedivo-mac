@@ -15,13 +15,6 @@ final class NativeArticleSearchResultCellView: NSTableCellView {
 
     private var openOriginalAction: (() -> Void)?
 
-    private static let dateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .short
-        formatter.timeStyle = .short
-        return formatter
-    }()
-
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         configureLayout()
@@ -76,12 +69,13 @@ final class NativeArticleSearchResultCellView: NSTableCellView {
         openOriginalAction = onOpenOriginal
 
         titleField.stringValue = snapshot.title
-        metadataField.stringValue = [
-            snapshot.feedTitle,
-            snapshot.publishedAt.map(Self.dateFormatter.string)
-        ]
-        .compactMap { $0 }
-        .joined(separator: " · ")
+        // Geteilter Formatierer (`formattedArticleDate`, definiert in
+        // `ArticleSearchWindowView.swift`) statt eines eigenen `DateFormatter`
+        // — sonst zeigt dasselbe Suchergebnis je nach aktiver Listen-
+        // Implementierung ein anderes Datumsformat UND ein anderes
+        // nil-Datum-Verhalten (SwiftUI-Baseline zeigt "Unbekannt" statt den
+        // Datumsteil ganz wegzulassen).
+        metadataField.stringValue = "\(snapshot.feedTitle) · \(formattedArticleDate(snapshot.publishedAt))"
 
         if let summary = Self.summaryText(from: snapshot.summary) {
             summaryField.stringValue = summary

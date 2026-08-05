@@ -589,7 +589,13 @@ private struct ArticleSearchPreviewView: View {
     }
 }
 
-private func formattedArticleDate(_ date: Date?) -> String {
+/// Geteilter Datums-Formatierer für die Suchergebnis-Zeile — sowohl die
+/// SwiftUI-Baseline (`ArticleSearchResultRow` in dieser Datei) als auch die
+/// native AppKit-Zelle (`NativeArticleSearchResultCellView`) nutzen ihn, damit
+/// dasselbe Suchergebnis unabhängig von der aktiven Listen-Implementierung
+/// identisch formatiert wird (vorher hatte die native Zelle einen eigenen,
+/// abweichenden `DateFormatter`).
+func formattedArticleDate(_ date: Date?) -> String {
     guard let date else {
         return "Unbekannt"
     }
