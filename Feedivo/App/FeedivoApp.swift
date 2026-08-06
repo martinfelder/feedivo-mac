@@ -210,13 +210,6 @@ struct FeedivoApp: App {
                     }
                 }
             }
-            #if DEBUG
-            CommandGroup(after: .toolbar) {
-                Button("Render-Benchmark öffnen") {
-                    openWindow(id: ArticleListRenderBenchmarkView.windowID)
-                }
-            }
-            #endif
             // Entfernt den von SwiftUI automatisch bereitgestellten, aber funktionslosen
             // "Drucken..."-Menuepunkt (Datei-Menue, Standard-Tastenkombination Cmd+P).
             // Ohne diese Entfernung kollidiert er mit dem neuen Drucken-Button in
@@ -276,18 +269,6 @@ struct FeedivoApp: App {
                 .preferredColorScheme(appAppearance.colorScheme)
         }
         .defaultSize(width: 960, height: 620)
-
-        #if DEBUG
-        Window("Render-Benchmark", id: ArticleListRenderBenchmarkView.windowID) {
-            ArticleListRenderBenchmarkView()
-                .environment(\.locale, appLanguage.locale)
-                .environment(\.interfaceTextSize, interfaceTextSize)
-                .environment(\.feedivoDatabase, feedivoDatabase)
-                .dynamicTypeSize(interfaceTextSize.dynamicTypeSize)
-                .preferredColorScheme(appAppearance.colorScheme)
-        }
-        .defaultSize(width: 480, height: 640)
-        #endif
 
         WindowGroup(for: ArticleWindowRequest.self) { $request in
             // Gemeinsame Modifier auf einem umschließenden Group, damit auch der
