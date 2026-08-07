@@ -540,9 +540,12 @@ struct SQLiteReaderView: View {
     }
 
     private var youTubeVideoHintBanner: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 10) {
             Image(systemName: "play.rectangle.fill")
-                .foregroundStyle(Color.accentColor)
+                .foregroundStyle(.white)
+                .font(.system(size: 13, weight: .semibold))
+                .frame(width: 26, height: 26)
+                .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 7))
 
             Text(L10n.readerYouTubeVideoHintMessage)
                 .font(interfaceTextSize.font(size: 12))
@@ -553,11 +556,17 @@ struct SQLiteReaderView: View {
                 webContentLoadFailed = false
                 readerDisplayModeRawValue = ReaderDisplayMode.web.rawValue
             }
-            .buttonStyle(.borderless)
+            .buttonStyle(.borderedProminent)
+            .controlSize(.small)
+            .fixedSize(horizontal: true, vertical: false)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
-        .background(Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(Color.accentColor.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+        .overlay {
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.accentColor.opacity(0.25), lineWidth: 1)
+        }
     }
 
     private func readerArticleMetadata(_ snapshot: ArticleReaderSnapshot) -> some View {
