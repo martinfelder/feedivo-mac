@@ -17031,6 +17031,62 @@
         }
       }
     },
+    "reader.youTubeVideoHint.button" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Original-Ansicht öffnen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Original View"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir la vue originale"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apri visualizzazione originale"
+          }
+        }
+      }
+    },
+    "reader.youTubeVideoHint.message" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dies ist ein YouTube-Video. In der Original-Ansicht kannst du es abspielen und dich bei YouTube anmelden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This is a YouTube video. Switch to the original view to watch it and sign in to YouTube."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ceci est une vidéo YouTube. Passez à la vue originale pour la regarder et vous connecter à YouTube."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo è un video di YouTube. Passa alla visualizzazione originale per guardarlo e accedere a YouTube."
+          }
+        }
+      }
+    },
     "reader.readability.error.emptyResult" : {
       "extractionState" : "stale",
       "localizations" : {

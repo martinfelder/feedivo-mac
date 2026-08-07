@@ -86,6 +86,8 @@ enum L10n {
     static let settingsMenubarHidesDockIconTitle = LocalizedStringKey("settings.menubar.hidesDockIcon.title")
     static let settingsMenubarHidesDockIconDescription = LocalizedStringKey("settings.menubar.hidesDockIcon.description")
     static let readerOpenOriginal = LocalizedStringKey("reader.openOriginal")
+    static let readerYouTubeVideoHintMessage = LocalizedStringKey("reader.youTubeVideoHint.message")
+    static let readerYouTubeVideoHintButton = LocalizedStringKey("reader.youTubeVideoHint.button")
     static let readerAppearanceButton = LocalizedStringKey("reader.appearance.button")
     static let readerAppearanceTitle = LocalizedStringKey("reader.appearance.title")
     static let readerTitleFontPicker = LocalizedStringKey("reader.titleFont.picker")

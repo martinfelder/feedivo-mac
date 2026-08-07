@@ -531,8 +531,32 @@ struct SQLiteReaderView: View {
             .buttonStyle(.plain)
             .disabled(originalURL == nil)
 
+            if YouTubeVideoLink.isVideoURL(originalURL) {
+                youTubeVideoHintBanner
+            }
+
             readerArticleMetadata(snapshot)
         }
+    }
+
+    private var youTubeVideoHintBanner: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "play.rectangle.fill")
+                .foregroundStyle(Color.accentColor)
+
+            Text(L10n.readerYouTubeVideoHintMessage)
+                .font(interfaceTextSize.font(size: 12))
+
+            Spacer()
+
+            Button(L10n.readerYouTubeVideoHintButton) {
+                readerDisplayModeRawValue = ReaderDisplayMode.web.rawValue
+            }
+            .buttonStyle(.borderless)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
     }
 
     private func readerArticleMetadata(_ snapshot: ArticleReaderSnapshot) -> some View {
