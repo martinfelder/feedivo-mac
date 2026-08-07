@@ -7,6 +7,37 @@
         <language>de</language>
         <!-- create_github_release.sh fügt hier bei jedem Release ein neues <item> ein -->
     <item>
+      <title>v1.0-29</title>
+      <pubDate>Fri, 07 Aug 2026 10:47:38 +0000</pubDate>
+      <description><![CDATA[<div style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #1d1d1f;">
+<h1 style="margin: 0 0 4px 0; font-size: 20px;"><span style="color: #3E5FED;">Feedivo 1.0 (29)</span> <span>– 2026-08-07</span></h1>
+<hr style="border: none; border-top: 1px solid #d0d0d5; margin: 8px 0 18px 0;">
+<h2 style="font-size: 15px; margin: 16px 0 4px 0;">🐛 Sonstiges</h2>
+<hr style="border: none; border-top: 1px solid #e5e5ea; margin: 0 0 8px 0;">
+<ul style="margin: 0 0 4px 0; padding-left: 20px;">
+<li>fix: Automatischer Feed-Sprung blieb nach Ein-Artikel-Feed dauerhaft hängen</li>
+<li>design: Versionshistorie direkt im Info-Tab statt separatem Fenster (Fortsetzung)</li>
+<li>design: Versionshistorie direkt im Info-Tab statt separatem Fenster</li>
+<li>fix: Bundle-Kopie von CHANGELOG.md vor jedem Release erneut synchronisieren</li>
+<li>feat: GitHub-Link und Versionshistorie-Button im Info-Tab ergänzen</li>
+<li>feat: Versionshistorie-Fenster (VersionHistoryWindowView) ergänzen</li>
+<li>feat: L10n-Keys für GitHub-Link und Versionshistorie ergänzen</li>
+<li>feat: CHANGELOG.md als Bundle-Resource aufnehmen, bump_version.sh hält sie synchron</li>
+<li>feat: reinen ChangelogParser für CHANGELOG.md-Versionseinträge ergänzen</li>
+<li>docs: Implementierungsplan für GitHub-Link + Versionshistorie im Info-Tab</li>
+<li>docs: Design-Spec für GitHub-Link + Versionshistorie im Info-Tab</li>
+<li>chore: Appcast-Eintrag für v1.0-28</li>
+<li>docs: Changelog-Eintrag für v1.0 (28) in einfacher Sprache umformuliert</li>
+</ul>
+</div>]]></description>
+      <enclosure url="https://github.com/martinfelder/feedivo-mac/releases/download/v1.0-29/Feedivo-v1.0-29.zip"
+                 sparkle:version="29"
+                 sparkle:shortVersionString="1.0"
+                 sparkle:edSignature="K1fHWF5i4U5M4Y5um0GA3u+Lkt8YuFQZ9ePBUaQZrBCQQxS1y7zd/636zvWn9dGEA7QCMCDsYEWdDGqgOMIPCQ=="
+                 length="18730638"
+                 type="application/octet-stream"/>
+    </item>
+    <item>
       <title>v1.0-28</title>
       <pubDate>Fri, 07 Aug 2026 07:43:29 +0000</pubDate>
       <description><![CDATA[<div style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #1d1d1f;">
