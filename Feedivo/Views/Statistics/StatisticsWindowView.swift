@@ -78,6 +78,7 @@ struct StatisticsWindowView: View {
         VStack(alignment: .leading, spacing: 20) {
             heroSection(theme: theme)
             overviewStrip(theme: theme)
+            habitsSection(theme: theme)
 
             HStack(alignment: .top, spacing: 20) {
                 topFeedsCard(theme: theme)
@@ -89,6 +90,67 @@ struct StatisticsWindowView: View {
         }
         .padding(.horizontal, 26)
         .padding(.vertical, 22)
+    }
+
+    private func habitsSection(theme: RuleDialogTheme) -> some View {
+        VStack(alignment: .leading, spacing: 13) {
+            sectionHeader(theme: theme, title: L10n.statisticsSectionHabitsTitle, subtitle: L10n.statisticsSectionHabitsSubtitle)
+
+            HStack(alignment: .top, spacing: 16) {
+                sectionCard(theme: theme) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        cardTitle(theme: theme, L10n.statisticsHabitsWeekdayTitle)
+                        StatisticsWeekdayBarsView(weekdayCounts: statistics.weekdayCounts, theme: theme)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+
+                sectionCard(theme: theme) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        cardTitle(theme: theme, L10n.statisticsHabitsDaypartTitle)
+                        StatisticsDaypartBarsView(daypartCounts: statistics.daypartCounts, theme: theme)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+            }
+        }
+    }
+
+    private func sectionHeader(theme: RuleDialogTheme, title: LocalizedStringKey, subtitle: LocalizedStringKey) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(.system(size: 15, weight: .bold))
+                .tracking(-0.15)
+                .foregroundStyle(theme.text)
+
+            Text(subtitle)
+                .font(.system(size: 12))
+                .foregroundStyle(theme.text2)
+        }
+    }
+
+    private func cardTitle(theme: RuleDialogTheme, _ title: LocalizedStringKey) -> some View {
+        Text(title)
+            .font(.system(size: 12.5, weight: .bold))
+            .textCase(.uppercase)
+            .tracking(0.4)
+            .foregroundStyle(theme.text2)
+            .padding(.bottom, 14)
+    }
+
+    @ViewBuilder
+    private func sectionCard<Content: View>(theme: RuleDialogTheme, @ViewBuilder content: () -> Content) -> some View {
+        content()
+            .padding(.horizontal, 17)
+            .padding(.vertical, 16)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(theme.card)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(theme.border, lineWidth: 1)
+            )
     }
 
     // Schmale 3-Werte-Leiste: gelesen im Zeitraum + Trend, Ø Artikel/Tag, Lesezeit
