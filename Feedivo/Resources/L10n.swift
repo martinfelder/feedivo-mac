@@ -1264,8 +1264,7 @@ enum L10n {
     static let updateCheckAutomaticCheckDescription = LocalizedStringKey("updateCheck.automaticCheck.description")
     static let updateCheckHomebrewHint = LocalizedStringKey("updateCheck.homebrewHint")
     static let settingsAboutGitHubLink = LocalizedStringKey("settings.about.githubLink")
-    static let settingsAboutVersionHistoryButton = LocalizedStringKey("settings.about.versionHistoryButton")
-    static let versionHistoryWindowTitle = LocalizedStringKey("versionHistory.window.title")
+    static let versionHistorySectionTitle = LocalizedStringKey("versionHistory.window.title")
     static let versionHistoryEmptyState = LocalizedStringKey("versionHistory.window.empty")
     static let versionHistoryOlderVersionsLink = LocalizedStringKey("versionHistory.window.olderVersionsLink")
     // Bewusst String (nicht LocalizedStringKey) wie updateCheckMenuItem selbst -

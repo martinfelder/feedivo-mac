@@ -49,4 +49,33 @@ struct UpdateReleaseNoteCategorizerTests {
 
         #expect(displayRuns.first?.text == "Zwei Leerzeichen")
     }
+
+    @Test func erkenntDeutschePraefixeAlsAequivalenteDerEnglischenKategorien() {
+        #expect(UpdateReleaseNoteCategorizer.categorize("Neu: Etwas Neues").category == .feature)
+        #expect(UpdateReleaseNoteCategorizer.categorize("Verbesserung: Etwas Besseres").category == .feature)
+        #expect(UpdateReleaseNoteCategorizer.categorize("Fehlerbehebung: Ein Bug").category == .fix)
+        #expect(UpdateReleaseNoteCategorizer.categorize("Cleanup: Aufgeräumt").category == .refactor)
+        #expect(UpdateReleaseNoteCategorizer.categorize("Test: Neue Tests").category == .other)
+    }
+
+    @Test func stringPraefixWirdAusDemAngezeigtenTextEntfernt() {
+        let (category, displayText) = UpdateReleaseNoteCategorizer.categorize("Fehlerbehebung: Ein Artikel-Link wurde überschrieben")
+
+        #expect(category == .fix)
+        #expect(displayText == "Ein Artikel-Link wurde überschrieben")
+    }
+
+    @Test func stringOhneDoppelpunktLandetInSonstigesUnveraendert() {
+        let (category, displayText) = UpdateReleaseNoteCategorizer.categorize("Ein Satz ohne Praefix")
+
+        #expect(category == .other)
+        #expect(displayText == "Ein Satz ohne Praefix")
+    }
+
+    @Test func stringMitUnbekanntemPraefixLandetInSonstigesUnveraendert() {
+        let (category, displayText) = UpdateReleaseNoteCategorizer.categorize("Whatever: Irgendetwas")
+
+        #expect(category == .other)
+        #expect(displayText == "Whatever: Irgendetwas")
+    }
 }

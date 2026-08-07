@@ -29,34 +29,6 @@
         }
       }
     },
-    "settings.about.versionHistoryButton" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Versionshistorie anzeigen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Show Version History"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Afficher l'historique des versions"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mostra cronologia versioni"
-          }
-        }
-      }
-    },
     "versionHistory.window.title" : {
       "localizations" : {
         "de" : {
