@@ -7,6 +7,33 @@
         <language>de</language>
         <!-- create_github_release.sh fügt hier bei jedem Release ein neues <item> ein -->
     <item>
+      <title>v1.0-30</title>
+      <pubDate>Fri, 07 Aug 2026 15:12:04 +0000</pubDate>
+      <description><![CDATA[<div style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #1d1d1f;">
+<h1 style="margin: 0 0 4px 0; font-size: 20px;"><span style="color: #3E5FED;">Feedivo 1.0 (30)</span> <span>– 2026-08-07</span></h1>
+<hr style="border: none; border-top: 1px solid #d0d0d5; margin: 8px 0 18px 0;">
+<h2 style="font-size: 15px; margin: 16px 0 4px 0;">🐛 Sonstiges</h2>
+<hr style="border: none; border-top: 1px solid #e5e5ea; margin: 0 0 8px 0;">
+<ul style="margin: 0 0 4px 0; padding-left: 20px;">
+<li>feat: YouTube-Kanäle können jetzt direkt als Feed abonniert werden</li>
+<li>design: YouTube-Hinweis-Banner moderner gestaltet</li>
+<li>fix: Hinweis-Button setzt Web-Ladefehler-Status zurueck</li>
+<li>feat: Hinweis-Banner für YouTube-Videos im nativen Reader</li>
+<li>feat: YouTube-Video-Link-Erkennung für den Reader-Hinweis</li>
+<li>fix: YouTube-Kanal-Erkennung durch Consent-Cookie-Bypass</li>
+<li>chore: Localizable.xcstrings neu sortiert (Xcode String-Catalog-Editor)</li>
+<li>design: Klarstellung zu WKWebView-Session-Persistenz ergänzt</li>
+<li>design: YouTube-Video-Hinweis im nativen Reader</li>
+</ul>
+</div>]]></description>
+      <enclosure url="https://github.com/martinfelder/feedivo-mac/releases/download/v1.0-30/Feedivo-v1.0-30.zip"
+                 sparkle:version="30"
+                 sparkle:shortVersionString="1.0"
+                 sparkle:edSignature="Ibl8ga60t2athqclT8kC/4prSIqpKjGKUQvmQuCOieQ4pPa4yYru1UTNdTS39SX5Nxgup49AeY74D2sc5LivCQ=="
+                 length="18733323"
+                 type="application/octet-stream"/>
+    </item>
+    <item>
       <title>v1.0-29</title>
       <pubDate>Fri, 07 Aug 2026 10:47:38 +0000</pubDate>
       <description><![CDATA[<div style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #1d1d1f;">
