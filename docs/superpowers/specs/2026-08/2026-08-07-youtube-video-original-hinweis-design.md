@@ -33,7 +33,12 @@ YouTube-Video ist — mit einem direkten Weg, in die Original-Ansicht zu wechsel
 - Kein eingebetteter Video-Player im nativen Reader (vom Nutzer explizit nicht gewünscht —
   die bestehende Original-Ansicht reicht aus, u. a. weil dort auch Kommentare sichtbar sind
   und ein Login möglich ist).
-- Keine YouTube-spezifische Anmeldung/Session-Verwaltung innerhalb von Feedivo.
+- Keine YouTube-spezifische Anmeldung/Session-Verwaltung innerhalb von Feedivo — dafür ist
+  kein zusätzlicher Code nötig. `WebContentView.swift:54` erstellt die `WKWebViewConfiguration`
+  ohne eigene `websiteDataStore`-Zuweisung, wodurch Apples persistenter Standard-Datenspeicher
+  (`WKWebsiteDataStore.default()`) greift: ein einmaliger Login innerhalb der
+  Original-Ansicht bleibt über Artikelwechsel und App-Neustarts hinweg erhalten, gespeichert
+  im Sandbox-Container der App — unabhängig und getrennt von Safari/Chrome.
 - Keine Erkennung über die Feed-Quelle oder das `yt:videoId`-Feld — reine Link-Erkennung
   reicht (siehe „Betrachtete Ansätze").
 
