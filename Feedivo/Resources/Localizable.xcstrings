@@ -31761,6 +31761,14 @@
         "it" : { "stringUnit" : { "state" : "translated", "value" : "di fila" } }
       }
     },
+    "statistics.hero.streakTitle" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Serie" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Streak" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Série" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Serie" } }
+      }
+    },
     "statistics.hero.longestStreak" : {
       "localizations" : {
         "de" : { "stringUnit" : { "state" : "translated", "value" : "Längste Serie: %d Tage" } },

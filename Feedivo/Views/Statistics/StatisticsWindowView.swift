@@ -303,7 +303,7 @@ struct StatisticsWindowView: View {
 
     private func heroStreakColumn(theme: RuleDialogTheme) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(L10n.statisticsHeatmapTitle)
+            Text(L10n.statisticsHeroStreakTitle)
                 .font(.system(size: 11, weight: .semibold))
                 .textCase(.uppercase)
                 .tracking(0.6)
@@ -447,10 +447,16 @@ struct StatisticsWindowView: View {
         }
         feedViewModel.deleteFeed(feedID: candidate.feedID, sqliteDatabase: feedivoDatabase)
         // deleteFeed wirft nicht — ein Fehlschlag landet nur in feedViewModel.errorMessage.
-        // Die Zeile darf deshalb nur bei tatsächlichem Erfolg entfernt werden, sonst würde
-        // die UI ein gelöschtes Feed vortäuschen, das in Wahrheit noch existiert.
+        // Nur bei tatsächlichem Erfolg neu laden, sonst würde die UI ein gelöschtes Feed
+        // vortäuschen, das in Wahrheit noch existiert. Design-Spec-Vorgabe: nach
+        // erfolgreicher Löschung lädt das Fenster seine kompletten Daten neu
+        // (loadStatistics()) statt nur lokal die Feed-Gesundheit-Zeile zu entfernen —
+        // sonst zeigen Hero/Übersicht/Gewohnheiten/"Top-Feeds nach Lesezeit" bis zum
+        // nächsten Zeitraum-Wechsel weiterhin Daten, die den gerade gelöschten Feed
+        // einschließen. loadStatistics() lädt feedHealthCandidates ohnehin als Teil
+        // seiner normalen Arbeit neu, die Zeile verschwindet dadurch automatisch mit.
         if feedViewModel.errorMessage == nil {
-            feedHealthCandidates.removeAll { $0.feedID == candidate.feedID }
+            loadStatistics()
         }
     }
 

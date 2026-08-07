@@ -121,7 +121,20 @@ struct StatisticsStore {
                     AND (? IS NULL OR s.readAt >= ?)
                 """, arguments: [rangeStart, rangeStart]) ?? 0
 
-            let dayCount = Self.dayCount(forRangeStart: rangeStart, now: now)
+            // Bei "Gesamt" (rangeStart == nil) gibt es kein Festdatum, ab dem der
+            // Zeitraum beginnt — ohne diesen Fallback würde dayCount(forRangeStart:)
+            // seinen eigenen nil-Default (1 Tag) greifen und "Ø pro Tag" damit auf den
+            // rohen Gesamtwert aufblasen (z. B. 3421 statt eines echten Durchschnitts).
+            // Der tatsächliche Datenbeginn (frühester Artikel-Zugang) ersetzt hier das
+            // fehlende Festdatum — analog zu feedReadingStatistics(feedID:now:), das
+            // dasselbe Problem bereits über MIN(a.arrivedAt) löst.
+            let effectiveDayCountStart: Date?
+            if let rangeStart {
+                effectiveDayCountStart = rangeStart
+            } else {
+                effectiveDayCountStart = try Date.fetchOne(db, sql: "SELECT MIN(arrivedAt) FROM articles")
+            }
+            let dayCount = Self.dayCount(forRangeStart: effectiveDayCountStart, now: now)
             let averageReadingMinutesPerDay = dayCount > 0 ? totalReadingMinutes / Double(dayCount) : 0
 
             let totalReadingMinutesAllTime = try Int.fetchOne(db, sql: """

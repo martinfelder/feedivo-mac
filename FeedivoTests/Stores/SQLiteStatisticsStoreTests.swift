@@ -301,6 +301,47 @@ struct SQLiteStatisticsStoreTests {
         #expect(stats.averageArticlesPerDay == 2)
     }
 
+    @Test func readingStatisticsBerechnetSinnvollenDurchschnittBeiGesamtZeitraum() throws {
+        // Regressionstest für Finding 1 (Whole-Branch-Review): bei .all (Zeitraum
+        // "Gesamt") ist rangeStart nil — ohne den Fix in StatisticsStore.swift würde
+        // dayCount(forRangeStart:) seinen eigenen 1-Tag-Fallback greifen und
+        // averageArticlesPerDay/averageReadingMinutesPerDay auf den rohen Gesamtwert
+        // aufblasen statt einen echten Durchschnitt zu liefern.
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let statusStore = ArticleStatusStore(database: database)
+        let statisticsStore = StatisticsStore(database: database)
+        let now = Self.now
+
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example"))
+
+        // 10 Artikel über 10 Tage verteilt (arrivedAt/readAt jeweils am selben Tag,
+        // ältester Artikel vor 9 Tagen) — ein echter Durchschnitt sollte damit klein
+        // (nahe 1 Artikel/Tag) sein, nicht die rohe Summe von 10.
+        for offset in 0..<10 {
+            let articleID = try makeArticle(
+                feedID: "feed-1",
+                sourceID: "day-\(offset)",
+                title: "Artikel Tag \(offset)",
+                arrivedAt: now.addingTimeInterval(-Double(offset) * 24 * 60 * 60),
+                estimatedReadingMinutes: 5,
+                articleStore: articleStore
+            )
+            try statusStore.setRead(true, articleID: articleID, at: now.addingTimeInterval(-Double(offset) * 24 * 60 * 60))
+        }
+
+        let stats = try statisticsStore.readingStatistics(range: .all, now: now)
+
+        #expect(stats.articlesReadInSelectedRange == 10)
+        // Nicht die rohe Summe (10) — echter Durchschnitt über die tatsächliche
+        // Datenspanne (~10 Tage), also klar unter 2.
+        #expect(stats.averageArticlesPerDay > 0)
+        #expect(stats.averageArticlesPerDay < 2)
+        #expect(stats.averageReadingMinutesPerDay > 0)
+        #expect(stats.averageReadingMinutesPerDay < 10)
+    }
+
     @Test func feedHealthCandidatesIgnoriertFeedsUnterMindestArtikelzahl() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let feedStore = FeedStore(database: database)

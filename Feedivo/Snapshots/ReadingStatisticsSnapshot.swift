@@ -104,9 +104,11 @@ struct ReadingStatisticsSnapshot: Equatable, Sendable {
         return (Double(articlesReadInSelectedRange - previous) / Double(previous)) * 100
     }
 
-    /// `dailyReadCounts` enthält nur Tage MIT gelesenen Artikeln (die SQL-Query
-    /// filtert `isRead = 1` vor dem `GROUP BY`) — Abwesenheit eines Tages bedeutet
-    /// bereits "0 gelesen", ein zusätzlicher Nullwert-Check ist nicht nötig.
+    /// `dailyReadCounts` enthält nur Tage MIT gelesenen Artikeln — `StatisticsStore`
+    /// liest ausschließlich `readAt`-Zeitstempel mit `isRead = 1` und zählt sie
+    /// Swift-seitig per Dictionary-Tally pro Tag zusammen (kein SQL-`GROUP BY` mehr).
+    /// Abwesenheit eines Tages bedeutet bereits "0 gelesen", ein zusätzlicher
+    /// Nullwert-Check ist nicht nötig.
     ///
     /// Zählt bis heute rückwärts, bleibt aber bis Mitternacht aktiv, auch wenn
     /// heute noch nichts gelesen wurde — sonst würde die Serie jeden Morgen

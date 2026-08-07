@@ -131,6 +131,7 @@ enum L10n {
     static let statisticsSummarySelectedRangeCount = LocalizedStringKey("statistics.summary.selectedRangeCount")
     static let statisticsHeatmapRange = LocalizedStringKey("statistics.heatmap.range")
     static let statisticsHeroStreakLabel = LocalizedStringKey("statistics.hero.streakLabel")
+    static let statisticsHeroStreakTitle = LocalizedStringKey("statistics.hero.streakTitle")
     static let statisticsOverviewAverageArticlesPerDay = LocalizedStringKey("statistics.overview.averageArticlesPerDay")
     static let statisticsSectionHabitsTitle = LocalizedStringKey("statistics.section.habits.title")
     static let statisticsSectionHabitsSubtitle = LocalizedStringKey("statistics.section.habits.subtitle")

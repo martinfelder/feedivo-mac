@@ -761,6 +761,18 @@ enum FeedivoDatabaseMigrator {
     /// Berechnet `estimatedReadingMinutes` für ALLE bestehenden `articles`-Zeilen mit
     /// NULL-Wert (Migration v30) — nutzt ReaderMetadataFormatter.estimatedMinutes mit
     /// dem content und summary der Artikel.
+    ///
+    /// Verarbeitet die Artikel in begrenzten Batches statt alle passenden Zeilen
+    /// (inkl. voller Artikel-HTML-Bodies) auf einmal in den Speicher zu laden — bei
+    /// einem großen Bestandsarchiv (Aufbewahrung ist standardmäßig deaktiviert) könnte
+    /// ein einziger `SELECT id, content, summary FROM articles WHERE
+    /// estimatedReadingMinutes IS NULL` sonst einen mehrere hundert MB bis GB großen
+    /// Allokationsspitzenwert beim App-Start auslösen (Whole-Branch-Review-Fund).
+    /// Erst wird nur die (leichte) ID-Liste geladen, dann werden `content`/`summary`
+    /// pro Batch nachgeladen — zu jedem Zeitpunkt ist höchstens ein Batch voller
+    /// Artikel-Bodies im Speicher, nicht der komplette Rückstand.
+    private static let backfillArticleEstimatedReadingMinutesBatchSize = 500
+
     private static func backfillArticleEstimatedReadingMinutes(_ database: Database) throws {
         struct Row: FetchableRecord {
             let id: String
@@ -774,18 +786,40 @@ enum FeedivoDatabaseMigrator {
             }
         }
 
-        let rows = try Row.fetchAll(database, sql: """
-            SELECT id, content, summary FROM articles WHERE estimatedReadingMinutes IS NULL
-            """)
+        let articleIDs = try String.fetchAll(
+            database,
+            sql: "SELECT id FROM articles WHERE estimatedReadingMinutes IS NULL"
+        )
 
-        for row in rows {
-            guard let minutes = ReaderMetadataFormatter.estimatedMinutes(content: row.content, summary: row.summary) else {
-                continue
-            }
-            try database.execute(
-                sql: "UPDATE articles SET estimatedReadingMinutes = ? WHERE id = ?",
-                arguments: [minutes, row.id]
+        for chunk in articleIDs.chunked(into: backfillArticleEstimatedReadingMinutesBatchSize) {
+            let placeholders = chunk.map { _ in "?" }.joined(separator: ", ")
+            let rows = try Row.fetchAll(
+                database,
+                sql: "SELECT id, content, summary FROM articles WHERE id IN (\(placeholders))",
+                arguments: StatementArguments(chunk)
             )
+
+            for row in rows {
+                guard let minutes = ReaderMetadataFormatter.estimatedMinutes(content: row.content, summary: row.summary) else {
+                    continue
+                }
+                try database.execute(
+                    sql: "UPDATE articles SET estimatedReadingMinutes = ? WHERE id = ?",
+                    arguments: [minutes, row.id]
+                )
+            }
+        }
+    }
+}
+
+private extension Array {
+    func chunked(into size: Int) -> [[Element]] {
+        guard size > 0 else {
+            return [self]
+        }
+
+        return stride(from: 0, to: count, by: size).map { startIndex in
+            Array(self[startIndex..<Swift.min(startIndex + size, count)])
         }
     }
 }
