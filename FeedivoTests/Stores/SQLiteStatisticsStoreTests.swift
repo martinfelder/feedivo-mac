@@ -300,4 +300,73 @@ struct SQLiteStatisticsStoreTests {
 
         #expect(stats.averageArticlesPerDay == 2)
     }
+
+    @Test func feedHealthCandidatesIgnoriertFeedsUnterMindestArtikelzahl() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let statisticsStore = StatisticsStore(database: database)
+        let now = Self.now
+
+        try feedStore.save(FeedRecord(id: "feed-neu", url: "https://example.com/feed.xml", title: "Frisch abonniert"))
+        _ = try makeArticle(feedID: "feed-neu", sourceID: "a1", title: "Einziger Artikel", arrivedAt: now, estimatedReadingMinutes: 5, articleStore: articleStore)
+
+        let candidates = try statisticsStore.feedHealthCandidates()
+
+        #expect(candidates.isEmpty)
+    }
+
+    @Test func feedHealthCandidatesSortiertNachNiedrigsterLesequote() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let statusStore = ArticleStatusStore(database: database)
+        let statisticsStore = StatisticsStore(database: database)
+        let now = Self.now
+
+        try feedStore.save(FeedRecord(id: "feed-ignoriert", url: "https://a.example/feed.xml", title: "Ignoriert"))
+        try feedStore.save(FeedRecord(id: "feed-gut-gelesen", url: "https://b.example/feed.xml", title: "Gut gelesen"))
+
+        for index in 0..<20 {
+            let articleID = try makeArticle(feedID: "feed-ignoriert", sourceID: "ignoriert-\(index)", title: "Artikel \(index)", arrivedAt: now, estimatedReadingMinutes: 5, articleStore: articleStore)
+            if index == 0 {
+                try statusStore.setRead(true, articleID: articleID, at: now)
+            }
+        }
+
+        for index in 0..<20 {
+            let articleID = try makeArticle(feedID: "feed-gut-gelesen", sourceID: "gut-\(index)", title: "Artikel \(index)", arrivedAt: now, estimatedReadingMinutes: 5, articleStore: articleStore)
+            if index < 18 {
+                try statusStore.setRead(true, articleID: articleID, at: now)
+            }
+        }
+
+        let candidates = try statisticsStore.feedHealthCandidates()
+
+        #expect(candidates.count == 2)
+        #expect(candidates.first?.feedTitle == "Ignoriert")
+        #expect(candidates.first?.totalCount == 20)
+        #expect(candidates.first?.unreadCount == 19)
+        #expect(candidates.first?.readPercentage == 5)
+    }
+
+    @Test func feedHealthCandidatesBegrenztAufFuenfEintraege() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let statisticsStore = StatisticsStore(database: database)
+        let now = Self.now
+
+        for feedIndex in 0..<7 {
+            let feedID = "feed-\(feedIndex)"
+            try feedStore.save(FeedRecord(id: feedID, url: "https://example.com/\(feedIndex)/feed.xml", title: "Feed \(feedIndex)"))
+            for articleIndex in 0..<20 {
+                _ = try makeArticle(feedID: feedID, sourceID: "\(feedIndex)-\(articleIndex)", title: "Artikel", arrivedAt: now, estimatedReadingMinutes: 5, articleStore: articleStore)
+            }
+        }
+
+        let candidates = try statisticsStore.feedHealthCandidates()
+
+        #expect(candidates.count == 5)
+    }
 }

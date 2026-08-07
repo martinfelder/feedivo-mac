@@ -1,5 +1,13 @@
 import Foundation
 
+struct ReadingStatisticsFeedHealth: Equatable, Sendable {
+    var feedID: String
+    var feedTitle: String
+    var unreadCount: Int
+    var totalCount: Int
+    var readPercentage: Double
+}
+
 struct ReadingStatisticsFeedTime: Equatable, Sendable {
     var feedID: String
     var feedTitle: String

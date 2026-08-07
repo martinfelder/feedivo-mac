@@ -199,6 +199,38 @@ struct StatisticsStore {
         }
     }
 
+    /// Feeds, die der Nutzer abonniert hat, aber kaum liest — Kandidaten zum Abbestellen
+    /// (Feature: Feed-Gesundheit). All-time, unabhängig vom Zeitraum-Picker: "kaum gelesen"
+    /// ist ein Langzeit-Signal. `minimumArticleCount` schützt frisch abonnierte Feeds mit
+    /// nur wenigen Artikeln davor, fälschlich als "ignoriert" zu erscheinen.
+    func feedHealthCandidates(minimumArticleCount: Int = 20, limit: Int = 5) throws -> [ReadingStatisticsFeedHealth] {
+        try database.read { db in
+            try Row.fetchAll(db, sql: """
+                SELECT f.id AS feedID, f.title AS feedTitle,
+                       COUNT(*) AS totalCount,
+                       SUM(CASE WHEN s.isRead = 1 THEN 1 ELSE 0 END) AS readCount
+                FROM articles a
+                JOIN article_statuses s ON s.articleID = a.id
+                JOIN feeds f ON f.id = a.feedID
+                GROUP BY f.id
+                HAVING totalCount >= ?
+                ORDER BY (CAST(readCount AS REAL) / totalCount) ASC, f.title COLLATE NOCASE
+                LIMIT ?
+                """, arguments: [minimumArticleCount, limit])
+                .map { row -> ReadingStatisticsFeedHealth in
+                    let totalCount: Int = row["totalCount"]
+                    let readCount: Int = row["readCount"]
+                    return ReadingStatisticsFeedHealth(
+                        feedID: row["feedID"],
+                        feedTitle: row["feedTitle"],
+                        unreadCount: totalCount - readCount,
+                        totalCount: totalCount,
+                        readPercentage: totalCount > 0 ? Double(readCount) / Double(totalCount) * 100 : 0
+                    )
+                }
+        }
+    }
+
     private static func dayCount(forRangeStart start: Date?, now: Date) -> Int {
         guard let start else {
             return 1
