@@ -10,6 +10,7 @@ import SwiftUI
 /// geprüft"/"Update gefunden"-Zustand mehr (kein Spinner, kein Badge).
 struct AboutSettingsView: View {
     @Environment(\.sparkleUpdateCoordinator) private var coordinator
+    @Environment(\.openWindow) private var openWindow
 
     @AppStorage(UpdateCheckSettings.isAutomaticCheckEnabledKey)
     private var isAutomaticCheckEnabled = UpdateCheckSettings.defaultIsAutomaticCheckEnabled
@@ -61,7 +62,20 @@ struct AboutSettingsView: View {
                     }
                     .padding(.top, 4)
                 }
+
+                Link(destination: Self.repositoryURL) {
+                    Text(L10n.settingsAboutGitHubLink)
+                        .font(.system(size: 13))
+                }
+                .padding(.top, 12)
+
+                Button(L10n.settingsAboutVersionHistoryButton) {
+                    openWindow(id: VersionHistoryWindowView.windowID)
+                }
+                .padding(.top, 4)
             }
         }
     }
+
+    private static let repositoryURL = URL(string: "https://github.com/martinfelder/feedivo-mac")!
 }
