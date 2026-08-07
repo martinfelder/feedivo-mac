@@ -270,4 +270,48 @@ struct FeedivoDatabaseMigratorTests {
         #expect(indexNames.contains("idx_cloud_sync_pending_changes_record_type"))
         #expect(indexNames.contains("idx_pending_sync_conflicts_record_type_name"))
     }
+
+    @Test func migrationV30BackfilltFehlendeLesezeitUndLaesstBestehendeWerteUnangetastet() throws {
+        let queue = try DatabaseQueue()
+        try FeedivoDatabaseMigrator.migrator.migrate(queue, upTo: "v29_add_cloud_sync_indexes")
+
+        try queue.write { db in
+            let now = Date()
+            try db.execute(
+                sql: """
+                    INSERT INTO feeds (id, url, title, refreshIntervalMinutes, unreadCount, createdAt, updatedAt)
+                    VALUES ('feed-1', 'https://example.com/feed.xml', 'Test', 30, 0, ?, ?)
+                    """,
+                arguments: [now, now]
+            )
+
+            let longContent = Array(repeating: "wort", count: 400).joined(separator: " ")
+            try db.execute(
+                sql: """
+                    INSERT INTO articles (id, feedID, title, content, arrivedAt, updatedAt, estimatedReadingMinutes)
+                    VALUES ('article-null', 'feed-1', 'Ohne Lesezeit', ?, ?, ?, NULL)
+                    """,
+                arguments: [longContent, now, now]
+            )
+            try db.execute(
+                sql: """
+                    INSERT INTO articles (id, feedID, title, content, arrivedAt, updatedAt, estimatedReadingMinutes)
+                    VALUES ('article-existing', 'feed-1', 'Mit Lesezeit', ?, ?, ?, 7)
+                    """,
+                arguments: [longContent, now, now]
+            )
+        }
+
+        try FeedivoDatabaseMigrator.migrator.migrate(queue)
+
+        let backfilled = try queue.read { db in
+            try Int.fetchOne(db, sql: "SELECT estimatedReadingMinutes FROM articles WHERE id = 'article-null'")
+        }
+        let untouched = try queue.read { db in
+            try Int.fetchOne(db, sql: "SELECT estimatedReadingMinutes FROM articles WHERE id = 'article-existing'")
+        }
+
+        #expect(backfilled == 2)
+        #expect(untouched == 7)
+    }
 }

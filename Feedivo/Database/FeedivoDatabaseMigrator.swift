@@ -563,6 +563,14 @@ enum FeedivoDatabaseMigrator {
             )
         }
 
+        migrator.registerMigration("v30_backfill_article_estimated_reading_minutes") { database in
+            // estimatedReadingMinutes wurde bisher nie beim Anlegen/Aktualisieren von Artikeln
+            // befüllt (siehe Fix in ArticleUpsertInput-Aufrufstellen) — Bestandsartikel haben
+            // dadurch ausnahmslos NULL. SQLite hat keine Wortzähl-Funktion, daher Swift-Loop
+            // (analog backfillArticleStatusSyncStableID, Migration v26).
+            try backfillArticleEstimatedReadingMinutes(database)
+        }
+
         return migrator
     }
 
@@ -747,6 +755,37 @@ enum FeedivoDatabaseMigrator {
                     arguments: [index, conditionID]
                 )
             }
+        }
+    }
+
+    /// Berechnet `estimatedReadingMinutes` für ALLE bestehenden `articles`-Zeilen mit
+    /// NULL-Wert (Migration v30) — nutzt ReaderMetadataFormatter.estimatedMinutes mit
+    /// dem content und summary der Artikel.
+    private static func backfillArticleEstimatedReadingMinutes(_ database: Database) throws {
+        struct Row: FetchableRecord {
+            let id: String
+            let content: String?
+            let summary: String?
+
+            init(row: GRDB.Row) throws {
+                id = row["id"]
+                content = row["content"]
+                summary = row["summary"]
+            }
+        }
+
+        let rows = try Row.fetchAll(database, sql: """
+            SELECT id, content, summary FROM articles WHERE estimatedReadingMinutes IS NULL
+            """)
+
+        for row in rows {
+            guard let minutes = ReaderMetadataFormatter.estimatedMinutes(content: row.content, summary: row.summary) else {
+                continue
+            }
+            try database.execute(
+                sql: "UPDATE articles SET estimatedReadingMinutes = ? WHERE id = ?",
+                arguments: [minutes, row.id]
+            )
         }
     }
 }
