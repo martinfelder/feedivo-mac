@@ -13,6 +13,18 @@ siehe `git log`.
 
 <!-- versions -->
 
+## [1.0 (30)] - 2026-08-07
+
+- feat: YouTube-Kanäle können jetzt direkt als Feed abonniert werden
+- design: YouTube-Hinweis-Banner moderner gestaltet
+- fix: Hinweis-Button setzt Web-Ladefehler-Status zurueck
+- feat: Hinweis-Banner für YouTube-Videos im nativen Reader
+- feat: YouTube-Video-Link-Erkennung für den Reader-Hinweis
+- fix: YouTube-Kanal-Erkennung durch Consent-Cookie-Bypass
+- chore: Localizable.xcstrings neu sortiert (Xcode String-Catalog-Editor)
+- design: Klarstellung zu WKWebView-Session-Persistenz ergänzt
+- design: YouTube-Video-Hinweis im nativen Reader
+
 ## [1.0 (29)] - 2026-08-07
 
 - fix: Automatischer Feed-Sprung blieb nach Ein-Artikel-Feed dauerhaft hängen
