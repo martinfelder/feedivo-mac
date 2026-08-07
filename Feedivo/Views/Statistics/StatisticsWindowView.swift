@@ -79,14 +79,7 @@ struct StatisticsWindowView: View {
             heroSection(theme: theme)
             overviewStrip(theme: theme)
             habitsSection(theme: theme)
-
-            HStack(alignment: .top, spacing: 20) {
-                topFeedsCard(theme: theme)
-                    .frame(maxWidth: .infinity, alignment: .topLeading)
-
-                topTagsCard(theme: theme)
-                    .frame(maxWidth: .infinity, alignment: .topLeading)
-            }
+            attentionSection(theme: theme)
         }
         .padding(.horizontal, 26)
         .padding(.vertical, 22)
@@ -336,59 +329,57 @@ struct StatisticsWindowView: View {
         .frame(maxHeight: .infinity, alignment: .center)
     }
 
-    private func topFeedsCard(theme: RuleDialogTheme) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text(L10n.statisticsTopFeedsTitle)
-                .font(.system(size: 14, weight: .bold))
-                .tracking(-0.1)
-                .foregroundStyle(theme.text)
-                .padding(.bottom, 12)
+    private func attentionSection(theme: RuleDialogTheme) -> some View {
+        VStack(alignment: .leading, spacing: 13) {
+            sectionHeader(theme: theme, title: L10n.statisticsSectionAttentionTitle, subtitle: L10n.statisticsSectionAttentionSubtitle)
 
-            if statistics.topFeedsByTime.isEmpty {
-                Text(L10n.statisticsTopFeedsEmpty)
-                    .font(.system(size: 12.5))
-                    .foregroundStyle(theme.text2)
-            } else {
-                VStack(spacing: 0) {
-                    ForEach(Array(statistics.topFeedsByTime.enumerated()), id: \.offset) { index, feed in
-                        topFeedRow(theme: theme, feed: feed, showTopBorder: index > 0)
+            HStack(alignment: .top, spacing: 16) {
+                sectionCard(theme: theme) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        cardTitle(theme: theme, L10n.statisticsAttentionFeedsTitle)
+                        if statistics.topFeedsByTime.isEmpty {
+                            Text(L10n.statisticsAttentionEmpty)
+                                .font(.system(size: 12.5))
+                                .foregroundStyle(theme.text2)
+                        } else {
+                            StatisticsRankListView(
+                                rows: statistics.topFeedsByTime,
+                                theme: theme,
+                                minutes: { $0.minutes },
+                                title: { $0.feedTitle },
+                                meta: { "\($0.articleCount) Artikel" },
+                                icon: { feed in AnyView(feedFaviconView(feed: feed)) }
+                            )
+                        }
                     }
                 }
-            }
-        }
-        .padding(.horizontal, 17)
-        .padding(.vertical, 16)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(theme.card)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(theme.border, lineWidth: 1)
-        )
-    }
+                .frame(maxWidth: .infinity, alignment: .topLeading)
 
-    private func topFeedRow(theme: RuleDialogTheme, feed: ReadingStatisticsFeedTime, showTopBorder: Bool) -> some View {
-        HStack(spacing: 10) {
-            feedFaviconView(feed: feed)
-                .frame(width: 16, height: 16)
-
-            Text(feed.feedTitle)
-                .font(.system(size: 13))
-                .foregroundStyle(theme.text)
-                .lineLimit(1)
-
-            Spacer(minLength: 8)
-
-            Text("\(feed.minutes) min")
-                .font(.system(size: 13, weight: .bold))
-                .foregroundStyle(theme.text)
-                .monospacedDigit()
-        }
-        .padding(.vertical, 7)
-        .overlay(alignment: .top) {
-            if showTopBorder {
-                Rectangle().fill(theme.border).frame(height: 1)
+                sectionCard(theme: theme) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        cardTitle(theme: theme, L10n.statisticsAttentionTagsTitle)
+                        if statistics.topTagsByTime.isEmpty {
+                            Text(L10n.statisticsAttentionEmpty)
+                                .font(.system(size: 12.5))
+                                .foregroundStyle(theme.text2)
+                        } else {
+                            StatisticsRankListView(
+                                rows: statistics.topTagsByTime,
+                                theme: theme,
+                                minutes: { $0.minutes },
+                                title: { $0.name },
+                                meta: { "\($0.articleCount) Artikel" },
+                                icon: { tag in
+                                    AnyView(
+                                        Circle()
+                                            .fill(TagColorPalette.color(for: tag.colorHex))
+                                    )
+                                }
+                            )
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .topLeading)
             }
         }
     }
@@ -400,70 +391,12 @@ struct StatisticsWindowView: View {
                 image
                     .resizable()
                     .scaledToFit()
-                    .clipShape(RoundedRectangle(cornerRadius: 3))
+                    .clipShape(RoundedRectangle(cornerRadius: 5))
             } placeholder: {
                 Image(systemName: "dot.radiowaves.up.forward")
             }
         } else {
             Image(systemName: "dot.radiowaves.up.forward")
-        }
-    }
-
-    private func topTagsCard(theme: RuleDialogTheme) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text(L10n.statisticsTopTagsTitle)
-                .font(.system(size: 14, weight: .bold))
-                .tracking(-0.1)
-                .foregroundStyle(theme.text)
-                .padding(.bottom, 12)
-
-            if statistics.topTagsByTime.isEmpty {
-                Text(L10n.statisticsTopTagsEmpty)
-                    .font(.system(size: 12.5))
-                    .foregroundStyle(theme.text2)
-            } else {
-                VStack(spacing: 0) {
-                    ForEach(Array(statistics.topTagsByTime.enumerated()), id: \.offset) { index, tag in
-                        topTagRow(theme: theme, tag: tag, showTopBorder: index > 0)
-                    }
-                }
-            }
-        }
-        .padding(.horizontal, 17)
-        .padding(.vertical, 16)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(theme.card)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(theme.border, lineWidth: 1)
-        )
-    }
-
-    private func topTagRow(theme: RuleDialogTheme, tag: ReadingStatisticsTagTime, showTopBorder: Bool) -> some View {
-        HStack(spacing: 10) {
-            Circle()
-                .fill(TagColorPalette.color(for: tag.colorHex))
-                .frame(width: 10, height: 10)
-
-            Text(tag.name)
-                .font(.system(size: 13))
-                .foregroundStyle(theme.text)
-                .lineLimit(1)
-
-            Spacer(minLength: 8)
-
-            Text("\(tag.minutes) min")
-                .font(.system(size: 13, weight: .bold))
-                .foregroundStyle(theme.text)
-                .monospacedDigit()
-        }
-        .padding(.vertical, 7)
-        .overlay(alignment: .top) {
-            if showTopBorder {
-                Rectangle().fill(theme.border).frame(height: 1)
-            }
         }
     }
 
