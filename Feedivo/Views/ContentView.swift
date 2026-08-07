@@ -279,6 +279,25 @@ struct ContentView: View {
                 isJumpingToFeedWithUnread = false
             }
         }
+        // Sicherheitsnetz zum obigen onChange: bei einem Feed mit GENAU EINEM
+        // Artikel ist dessen real geladener Navigationszustand (kein Vorgänger,
+        // kein Nachfolger) wertgleich mit .empty (siehe
+        // SQLiteArticleNavigationStateTests.
+        // navigationIstWertgleichZuEmptyBeiGenauEinemArtikel) - SwiftUIs
+        // .onChange feuert dann NIE, weil sich der Wert (aus Sicht von
+        // Equatable) gegenüber dem beim Reset gesetzten .empty gar nicht
+        // "ändert". Ohne dieses Sicherheitsnetz bliebe isJumpingToFeedWithUnread
+        // nach einem Sprung auf einen solchen Feed dauerhaft hängen (bestätigter
+        // Live-Bug, 2026-08-07) und würde jeden weiteren automatischen
+        // Feed-Sprung bis zum nächsten App-Neustart verhindern. `.task(id:)`
+        // bricht sich selbst ab und startet neu, sobald sich selectedFeedID
+        // erneut ändert - ein rascher Doppelsprung wird dadurch nicht verfrüht
+        // freigegeben.
+        .task(id: selectedFeedID) {
+            try? await Task.sleep(for: .milliseconds(400))
+            guard !Task.isCancelled else { return }
+            isJumpingToFeedWithUnread = false
+        }
         .onAppear(perform: handleContentAppear)
         .background(ContentWindowObserver())
         .task {
