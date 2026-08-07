@@ -260,6 +260,15 @@ struct FeedivoApp: App {
         }
         .defaultSize(width: 420, height: 480)
 
+        Window(L10n.versionHistoryWindowTitle, id: VersionHistoryWindowView.windowID) {
+            VersionHistoryWindowView()
+                .environment(\.locale, appLanguage.locale)
+                .environment(\.interfaceTextSize, interfaceTextSize)
+                .dynamicTypeSize(interfaceTextSize.dynamicTypeSize)
+                .preferredColorScheme(appAppearance.colorScheme)
+        }
+        .defaultSize(width: 480, height: 560)
+
         Window(L10n.feedRefreshDiagnosticsWindowTitle, id: FeedRefreshDiagnosticsWindowView.windowID) {
             FeedRefreshDiagnosticsWindowView()
                 .environment(\.locale, appLanguage.locale)
