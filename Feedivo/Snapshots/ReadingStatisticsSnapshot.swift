@@ -1,17 +1,19 @@
 import Foundation
 
-struct ReadingStatisticsFeedCount: Equatable, Sendable {
+struct ReadingStatisticsFeedTime: Equatable, Sendable {
     var feedID: String
     var feedTitle: String
     var faviconURL: String?
-    var count: Int
+    var minutes: Int
+    var articleCount: Int
 }
 
-struct ReadingStatisticsTagCount: Equatable, Sendable {
+struct ReadingStatisticsTagTime: Equatable, Sendable {
     var tagID: String
     var name: String
     var colorHex: String
-    var count: Int
+    var minutes: Int
+    var articleCount: Int
 }
 
 struct ReadingStatisticsDailyCount: Equatable, Sendable {
@@ -53,10 +55,10 @@ struct ReadingStatisticsSnapshot: Equatable, Sendable {
     var articlesReadToday: Int
     var articlesReadThisWeek: Int
     var articlesReadTotal: Int
-    var topFeeds: [ReadingStatisticsFeedCount]
+    var topFeedsByTime: [ReadingStatisticsFeedTime]
     var dailyReadCounts: [ReadingStatisticsDailyCount]
     var averageReadingMinutesPerDay: Double
-    var topTags: [ReadingStatisticsTagCount]
+    var topTagsByTime: [ReadingStatisticsTagTime]
     var weekdayCounts: [ReadingStatisticsWeekdayCount]
     var daypartCounts: [ReadingStatisticsDaypartCount]
     var averageArticlesPerDay: Double
@@ -72,10 +74,10 @@ struct ReadingStatisticsSnapshot: Equatable, Sendable {
         articlesReadToday: 0,
         articlesReadThisWeek: 0,
         articlesReadTotal: 0,
-        topFeeds: [],
+        topFeedsByTime: [],
         dailyReadCounts: [],
         averageReadingMinutesPerDay: 0,
-        topTags: [],
+        topTagsByTime: [],
         weekdayCounts: [],
         daypartCounts: [],
         averageArticlesPerDay: 0,

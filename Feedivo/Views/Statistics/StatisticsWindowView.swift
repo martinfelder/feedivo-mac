@@ -216,13 +216,13 @@ struct StatisticsWindowView: View {
                 .foregroundStyle(theme.text)
                 .padding(.bottom, 12)
 
-            if statistics.topFeeds.isEmpty {
+            if statistics.topFeedsByTime.isEmpty {
                 Text(L10n.statisticsTopFeedsEmpty)
                     .font(.system(size: 12.5))
                     .foregroundStyle(theme.text2)
             } else {
                 VStack(spacing: 0) {
-                    ForEach(Array(statistics.topFeeds.enumerated()), id: \.offset) { index, feed in
+                    ForEach(Array(statistics.topFeedsByTime.enumerated()), id: \.offset) { index, feed in
                         topFeedRow(theme: theme, feed: feed, showTopBorder: index > 0)
                     }
                 }
@@ -240,7 +240,7 @@ struct StatisticsWindowView: View {
         )
     }
 
-    private func topFeedRow(theme: RuleDialogTheme, feed: ReadingStatisticsFeedCount, showTopBorder: Bool) -> some View {
+    private func topFeedRow(theme: RuleDialogTheme, feed: ReadingStatisticsFeedTime, showTopBorder: Bool) -> some View {
         HStack(spacing: 10) {
             feedFaviconView(feed: feed)
                 .frame(width: 16, height: 16)
@@ -252,7 +252,7 @@ struct StatisticsWindowView: View {
 
             Spacer(minLength: 8)
 
-            Text("\(feed.count)")
+            Text("\(feed.minutes) min")
                 .font(.system(size: 13, weight: .bold))
                 .foregroundStyle(theme.text)
                 .monospacedDigit()
@@ -266,7 +266,7 @@ struct StatisticsWindowView: View {
     }
 
     @ViewBuilder
-    private func feedFaviconView(feed: ReadingStatisticsFeedCount) -> some View {
+    private func feedFaviconView(feed: ReadingStatisticsFeedTime) -> some View {
         if let faviconURL = feed.faviconURL, let url = URL(string: faviconURL) {
             CachedRemoteImageView(url: url) { image in
                 image
@@ -289,13 +289,13 @@ struct StatisticsWindowView: View {
                 .foregroundStyle(theme.text)
                 .padding(.bottom, 12)
 
-            if statistics.topTags.isEmpty {
+            if statistics.topTagsByTime.isEmpty {
                 Text(L10n.statisticsTopTagsEmpty)
                     .font(.system(size: 12.5))
                     .foregroundStyle(theme.text2)
             } else {
                 VStack(spacing: 0) {
-                    ForEach(Array(statistics.topTags.enumerated()), id: \.offset) { index, tag in
+                    ForEach(Array(statistics.topTagsByTime.enumerated()), id: \.offset) { index, tag in
                         topTagRow(theme: theme, tag: tag, showTopBorder: index > 0)
                     }
                 }
@@ -313,7 +313,7 @@ struct StatisticsWindowView: View {
         )
     }
 
-    private func topTagRow(theme: RuleDialogTheme, tag: ReadingStatisticsTagCount, showTopBorder: Bool) -> some View {
+    private func topTagRow(theme: RuleDialogTheme, tag: ReadingStatisticsTagTime, showTopBorder: Bool) -> some View {
         HStack(spacing: 10) {
             Circle()
                 .fill(TagColorPalette.color(for: tag.colorHex))
@@ -326,7 +326,7 @@ struct StatisticsWindowView: View {
 
             Spacer(minLength: 8)
 
-            Text("\(tag.count)")
+            Text("\(tag.minutes) min")
                 .font(.system(size: 13, weight: .bold))
                 .foregroundStyle(theme.text)
                 .monospacedDigit()

@@ -38,43 +38,48 @@ struct StatisticsStore {
 
             let rangeStart = range.startDate(relativeTo: now)
 
-            let topFeeds = try Row.fetchAll(db, sql: """
-                SELECT f.id AS feedID, f.title AS feedTitle, f.faviconURL AS faviconURL, COUNT(*) AS count
+            let topFeedsByTime = try Row.fetchAll(db, sql: """
+                SELECT f.id AS feedID, f.title AS feedTitle, f.faviconURL AS faviconURL,
+                       COALESCE(SUM(a.estimatedReadingMinutes), 0) AS minutes, COUNT(*) AS articleCount
                 FROM article_statuses s
                 JOIN articles a ON a.id = s.articleID
                 JOIN feeds f ON f.id = a.feedID
                 WHERE s.isRead = 1
                     AND (? IS NULL OR s.readAt >= ?)
                 GROUP BY f.id
-                ORDER BY count DESC, f.title COLLATE NOCASE
+                ORDER BY minutes DESC, f.title COLLATE NOCASE
                 LIMIT ?
                 """, arguments: [rangeStart, rangeStart, Self.topListLimit])
                 .map {
-                    ReadingStatisticsFeedCount(
+                    ReadingStatisticsFeedTime(
                         feedID: $0["feedID"],
                         feedTitle: $0["feedTitle"],
                         faviconURL: $0["faviconURL"],
-                        count: $0["count"]
+                        minutes: $0["minutes"],
+                        articleCount: $0["articleCount"]
                     )
                 }
 
-            let topTags = try Row.fetchAll(db, sql: """
-                SELECT t.id AS tagID, t.name AS name, t.colorHex AS colorHex, COUNT(*) AS count
+            let topTagsByTime = try Row.fetchAll(db, sql: """
+                SELECT t.id AS tagID, t.name AS name, t.colorHex AS colorHex,
+                       COALESCE(SUM(a.estimatedReadingMinutes), 0) AS minutes, COUNT(*) AS articleCount
                 FROM article_tags at
                 JOIN tags t ON t.id = at.tagID
                 JOIN article_statuses s ON s.articleID = at.articleID
+                JOIN articles a ON a.id = s.articleID
                 WHERE s.isRead = 1
                     AND (? IS NULL OR s.readAt >= ?)
                 GROUP BY t.id
-                ORDER BY count DESC, t.name COLLATE NOCASE
+                ORDER BY minutes DESC, t.name COLLATE NOCASE
                 LIMIT ?
                 """, arguments: [rangeStart, rangeStart, Self.topListLimit])
                 .map {
-                    ReadingStatisticsTagCount(
+                    ReadingStatisticsTagTime(
                         tagID: $0["tagID"],
                         name: $0["name"],
                         colorHex: $0["colorHex"],
-                        count: $0["count"]
+                        minutes: $0["minutes"],
+                        articleCount: $0["articleCount"]
                     )
                 }
 
@@ -145,10 +150,10 @@ struct StatisticsStore {
                 articlesReadToday: articlesReadToday,
                 articlesReadThisWeek: articlesReadThisWeek,
                 articlesReadTotal: articlesReadTotal,
-                topFeeds: topFeeds,
+                topFeedsByTime: topFeedsByTime,
                 dailyReadCounts: dailyReadCounts,
                 averageReadingMinutesPerDay: averageReadingMinutesPerDay,
-                topTags: topTags,
+                topTagsByTime: topTagsByTime,
                 weekdayCounts: weekdayCounts,
                 daypartCounts: daypartCounts,
                 averageArticlesPerDay: averageArticlesPerDay,

@@ -24,15 +24,15 @@ enum StatisticsExportService {
         lines.append(csvRow(["Ø Lesezeit pro Tag (Minuten)", formattedNumber(readingStatistics.averageReadingMinutesPerDay)]))
         lines.append("")
 
-        lines.append("Meistgelesene Feeds,Anzahl")
-        for feed in readingStatistics.topFeeds {
-            lines.append(csvRow([feed.feedTitle, "\(feed.count)"]))
+        lines.append("Meistgelesene Feeds,Artikel,Lesezeit (Minuten)")
+        for feed in readingStatistics.topFeedsByTime {
+            lines.append(csvRow([feed.feedTitle, "\(feed.articleCount)", "\(feed.minutes)"]))
         }
         lines.append("")
 
-        lines.append("Meistgenutzte Tags,Anzahl")
-        for tag in readingStatistics.topTags {
-            lines.append(csvRow([tag.name, "\(tag.count)"]))
+        lines.append("Meistgenutzte Tags,Artikel,Lesezeit (Minuten)")
+        for tag in readingStatistics.topTagsByTime {
+            lines.append(csvRow([tag.name, "\(tag.articleCount)", "\(tag.minutes)"]))
         }
         lines.append("")
 

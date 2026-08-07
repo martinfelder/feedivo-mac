@@ -970,12 +970,12 @@ struct FeedivoTests {
             articlesReadToday: 1,
             articlesReadThisWeek: 2,
             articlesReadTotal: 3,
-            topFeeds: [
-                ReadingStatisticsFeedCount(feedID: "feed-1", feedTitle: "Feed, mit \"Komma\"", faviconURL: nil, count: 5)
+            topFeedsByTime: [
+                ReadingStatisticsFeedTime(feedID: "feed-1", feedTitle: "Feed, mit \"Komma\"", faviconURL: nil, minutes: 5, articleCount: 1)
             ],
             dailyReadCounts: [],
             averageReadingMinutesPerDay: 4.2,
-            topTags: [],
+            topTagsByTime: [],
             weekdayCounts: [],
             daypartCounts: [],
             averageArticlesPerDay: 0,
@@ -986,7 +986,7 @@ struct FeedivoTests {
 
         let csv = StatisticsExportService.buildCSV(readingStatistics: readingStatistics, feedStatistics: [])
 
-        #expect(csv.contains(#""Feed, mit ""Komma""",5"#))
+        #expect(csv.contains(#""Feed, mit ""Komma""",1,5"#))
     }
 
     @Test func statisticsExportServiceEnthaeltAlleAbschnitte() {
@@ -996,8 +996,8 @@ struct FeedivoTests {
         )
 
         #expect(csv.contains("Kennzahl,Wert"))
-        #expect(csv.contains("Meistgelesene Feeds,Anzahl"))
-        #expect(csv.contains("Meistgenutzte Tags,Anzahl"))
+        #expect(csv.contains("Meistgelesene Feeds,Artikel,Lesezeit (Minuten)"))
+        #expect(csv.contains("Meistgenutzte Tags,Artikel,Lesezeit (Minuten)"))
         #expect(csv.contains("Feed,Artikel pro Woche (Ø),Lese-Prozentsatz,Ø Lesedauer (Minuten)"))
         #expect(csv.contains("Example,3.5,80.0,6.0"))
     }

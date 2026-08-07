@@ -48,7 +48,7 @@ struct SQLiteStatisticsStoreTests {
         #expect(stats.articlesReadTotal == 3)
     }
 
-    @Test func readingStatisticsRankedTopFeedsUndRespektiertZeitraum() throws {
+    @Test func readingStatisticsRankedTopFeedsNachLesezeitUndRespektiertZeitraum() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let feedStore = FeedStore(database: database)
         let articleStore = ArticleStore(database: database)
@@ -56,39 +56,51 @@ struct SQLiteStatisticsStoreTests {
         let statisticsStore = StatisticsStore(database: database)
         let now = Self.now
 
-        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Beliebt"))
-        try feedStore.save(FeedRecord(id: "feed-2", url: "https://other.example/feed.xml", title: "Selten"))
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Wenig Zeit, viele Artikel"))
+        try feedStore.save(FeedRecord(id: "feed-2", url: "https://other.example/feed.xml", title: "Viel Zeit, ein Artikel"))
 
         for index in 0..<3 {
             let articleID = try makeArticle(
                 feedID: "feed-1",
-                sourceID: "popular-\(index)",
-                title: "Artikel \(index)",
+                sourceID: "short-\(index)",
+                title: "Kurzartikel \(index)",
                 arrivedAt: now,
-                estimatedReadingMinutes: 5,
+                estimatedReadingMinutes: 1,
                 articleStore: articleStore
             )
             try statusStore.setRead(true, articleID: articleID, at: now)
         }
+
+        let longArticle = try makeArticle(
+            feedID: "feed-2",
+            sourceID: "long",
+            title: "Langartikel",
+            arrivedAt: now,
+            estimatedReadingMinutes: 30,
+            articleStore: articleStore
+        )
+        try statusStore.setRead(true, articleID: longArticle, at: now)
 
         let oldArticle = try makeArticle(
             feedID: "feed-2",
             sourceID: "outside-range",
             title: "Außerhalb des Zeitraums",
             arrivedAt: now,
-            estimatedReadingMinutes: 5,
+            estimatedReadingMinutes: 99,
             articleStore: articleStore
         )
         try statusStore.setRead(true, articleID: oldArticle, at: now.addingTimeInterval(-40 * 24 * 60 * 60))
 
         let last7Days = try statisticsStore.readingStatistics(range: .last7Days, now: now)
 
-        #expect(last7Days.topFeeds.count == 1)
-        #expect(last7Days.topFeeds.first?.feedTitle == "Beliebt")
-        #expect(last7Days.topFeeds.first?.count == 3)
+        #expect(last7Days.topFeedsByTime.count == 2)
+        #expect(last7Days.topFeedsByTime.first?.feedTitle == "Viel Zeit, ein Artikel")
+        #expect(last7Days.topFeedsByTime.first?.minutes == 30)
+        #expect(last7Days.topFeedsByTime.first?.articleCount == 1)
+        #expect(last7Days.topFeedsByTime.last?.minutes == 3)
     }
 
-    @Test func readingStatisticsRankedTopTags() throws {
+    @Test func readingStatisticsRankedTopTagsNachLesezeit() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
         let feedStore = FeedStore(database: database)
         let articleStore = ArticleStore(database: database)
@@ -100,15 +112,16 @@ struct SQLiteStatisticsStoreTests {
         try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example"))
         try tagStore.save(TagRecord(id: "tag-swift", name: "Swift", colorHex: "#123456"))
 
-        let articleID = try makeArticle(feedID: "feed-1", sourceID: "tagged", title: "Getaggt", arrivedAt: now, estimatedReadingMinutes: 5, articleStore: articleStore)
+        let articleID = try makeArticle(feedID: "feed-1", sourceID: "tagged", title: "Getaggt", arrivedAt: now, estimatedReadingMinutes: 12, articleStore: articleStore)
         try statusStore.setRead(true, articleID: articleID, at: now)
         try tagStore.assignTag(tagID: "tag-swift", toArticleID: articleID, at: now)
 
         let stats = try statisticsStore.readingStatistics(range: .all, now: now)
 
-        #expect(stats.topTags.count == 1)
-        #expect(stats.topTags.first?.name == "Swift")
-        #expect(stats.topTags.first?.count == 1)
+        #expect(stats.topTagsByTime.count == 1)
+        #expect(stats.topTagsByTime.first?.name == "Swift")
+        #expect(stats.topTagsByTime.first?.minutes == 12)
+        #expect(stats.topTagsByTime.first?.articleCount == 1)
     }
 
     @Test func readingStatisticsBerechnetDurchschnittlicheLesezeitProTag() throws {
