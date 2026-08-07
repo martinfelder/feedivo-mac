@@ -15,43 +15,25 @@ siehe `git log`.
 
 ## [1.0 (28)] - 2026-08-07
 
-- fix: Whole-Branch-Review-Funde am Lesestatistiken-Fenster behoben
-- fix: Fehlerbanner für fehlgeschlagenes Abbestellen im Statistik-Fenster
-- feat: Feed-Gesundheit-Abschnitt mit funktionierendem Abbestellen
-- feat: Aufmerksamkeit-Abschnitt — Top-Feeds/Tags als Rangliste nach Lesezeit
-- feat: Gewohnheiten-Abschnitt (Wochentag-/Tageszeit-Balken) im Statistik-Fenster
-- feat: Überblick-Leiste ersetzt 6-Kacheln-Raster im Statistik-Fenster
-- feat: Hero-Bereich (Serie + vergrößerte Heatmap) im Statistik-Fenster
-- feat: Erkenntnis-Satz für Statistik-Hero (regelbasiert, keine KI)
-- feat: L10n-Keys für den Lesestatistiken-Umbau (de/en/fr/it)
-- feat: Feed-Gesundheit-Kandidaten (kaum gelesene Feeds) in StatisticsStore
-- feat: Top-Feeds/Top-Tags nach Lesezeit statt Artikelanzahl sortiert
-- feat: Wochentag-/Tageszeit-Aggregation + Zeitzonen-Fix für Lese-Statistiken
-- feat: Migration v30 — rückwirkender Backfill der Artikel-Lesezeit
-- fix: Lesezeit wird beim Anlegen/Aktualisieren von Artikeln persistiert
-- docs: Implementierungsplan für Lesestatistiken-Neugliederung hinzugefügt
-- docs: Design-Spec für Lesestatistiken-Neugliederung hinzugefügt
-- refactor: Render-Benchmark-Spike entfernt
-- fix: Button-Text im Feed-Status-Fenster auf "Alle aktualisieren" geändert
-- docs: Nachtrag 4 zur Sidebar-Async-Fix-Re-Verifikation nachgetragen
-- fix: Whole-Branch-Review-Funde am Feed-Status-Fenster (Fenstergröße, Hintergrund, Retry-Reentrancy)
-- docs: Feed-Status-Tabellen-Redesign in CLAUDE.md vermerkt
-- feat: Feed-Status-Fenster als dichte Tabelle mit sichtbaren Aktionen
-- feat: L10n-Keys für Feed-Status-Tabelle (Spalten, Suche, Fußzeile)
-- feat: reine Filter-/Sortier-/Schweregrad-Logik für Feed-Status-Tabelle
-- docs: Umsetzungsplan für Feed-Status-Tabellenansicht
-- docs: Spec für Feed-Status-Fenster als dichte Tabelle
-- fix: Artikel-Update überschreibt Link nicht mehr bei Kollision mit anderem Artikel
-- fix: Feed-Status-Fenster — stiller Löschfehler + fehlende SQL-Regressionstests
-- feat: Feed-Status-Fenster über Feed-Menü erreichbar
-- feat: FeedRefreshDiagnosticsWindowView
-- feat: CustomizableShortcut.feedRefreshDiagnosticsOpen für Feed-Status-Fenster
-- feat: L10n-Keys für Feed-Status-Diagnose-Fenster
-- feat: FeedLogStore.failureDiagnostics() für Feed-Status-Diagnose-Fenster
-- docs: Implementierungsplan für Feed-Status-Diagnose-Fenster
-- docs: Design-Spec für Feed-Status-Diagnose-Fenster
-- chore: Appcast-Eintrag für v1.0-27
-- docs: Changelog-Eintrag für v1.0-27 in einfacher Sprache umformuliert
+- Neu: Das Statistik-Fenster wurde komplett neu gestaltet — ein großer
+  Bereich mit Leseserie und Aktivitäts-Kalender oben, darunter eigene
+  Abschnitte für Lesegewohnheiten (wann du typischerweise liest), wofür
+  deine Lesezeit wirklich draufgeht (Top-Feeds/Tags) und Feeds, die du
+  kaum liest
+- Neu: Feeds, die du abonniert, aber kaum liest, kannst du jetzt direkt
+  aus dem Statistik-Fenster abbestellen
+- Neu: Ein kurzer Hinweissatz zeigt an, wann du typischerweise am meisten
+  liest
+- Fehlerbehebung: Die angezeigte Lesezeit war bisher immer 0 — sie wird
+  jetzt korrekt berechnet, auch rückwirkend für bereits vorhandene Artikel
+- Verbesserung: Meistgelesene Feeds und Tags werden jetzt nach
+  tatsächlicher Lesezeit sortiert statt nur nach Artikelanzahl
+- Neu: Das Feed-Status-Fenster (über das Feed-Menü erreichbar) zeigt
+  fehlgeschlagene Feeds jetzt als übersichtliche Tabelle mit direkt
+  anklickbaren Aktionen (Aktualisieren, Eigenschaften, Website öffnen,
+  Adresse kopieren, Löschen) statt nur im Rechtsklick-Menü
+- Fehlerbehebung: Ein Artikel-Link wurde in seltenen Fällen versehentlich
+  überschrieben, wenn er mit einem anderen Artikel kollidierte
 
 ## [1.0 (27)] - 2026-08-05
 
