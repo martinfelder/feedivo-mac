@@ -143,7 +143,11 @@ struct SQLiteFeedRefreshService {
                         imageURL: article.imageURL,
                         author: article.author,
                         publishedAt: article.publishedAt,
-                        arrivedAt: refreshedAt
+                        arrivedAt: refreshedAt,
+                        estimatedReadingMinutes: ReaderMetadataFormatter.estimatedMinutes(
+                            content: article.content,
+                            summary: article.summary
+                        )
                     )
                 }
                 let upsertResult = try articleStore.upsert(inputs)

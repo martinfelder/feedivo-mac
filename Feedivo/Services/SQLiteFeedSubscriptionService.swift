@@ -178,7 +178,11 @@ struct SQLiteFeedSubscriptionService {
                     imageURL: article.imageURL,
                     author: article.author,
                     publishedAt: article.publishedAt,
-                    arrivedAt: now
+                    arrivedAt: now,
+                    estimatedReadingMinutes: ReaderMetadataFormatter.estimatedMinutes(
+                        content: article.content,
+                        summary: article.summary
+                    )
                 )
             }
             let upsertResult = try articleUpsert(articleInputs)

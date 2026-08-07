@@ -3,6 +3,21 @@ import Foundation
 enum ReaderMetadataFormatter {
     private static let wordsPerMinute = 200
 
+    /// Persistierbare Lesezeit-Schätzung — nutzt dieselbe Wortzahl-Logik wie die
+    /// Reader-Anzeige (`readingTimeText`), damit beide nie auseinanderlaufen. Wird
+    /// sowohl beim Anlegen/Aktualisieren eines Artikels (`ArticleUpsertInput.
+    /// estimatedReadingMinutes`) als auch beim Bestands-Backfill (Migration v30)
+    /// verwendet.
+    static func estimatedMinutes(content: String?, summary: String?) -> Int? {
+        let text = preferredText(content: content, summary: summary)
+        let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedText.isEmpty else {
+            return nil
+        }
+
+        return minutes(for: trimmedText)
+    }
+
     static func readingTimeText(content: String?, summary: String?) -> String? {
         let text = preferredText(content: content, summary: summary)
         guard !text.isEmpty else {
@@ -13,9 +28,12 @@ enum ReaderMetadataFormatter {
     }
 
     static func readingTimeText(for text: String) -> String {
+        L10n.readerReadingTime(minutes: minutes(for: text))
+    }
+
+    private static func minutes(for text: String) -> Int {
         let words = wordCount(in: text)
-        let minutes = max(1, Int(ceil(Double(words) / Double(wordsPerMinute))))
-        return L10n.readerReadingTime(minutes: minutes)
+        return max(1, Int(ceil(Double(words) / Double(wordsPerMinute))))
     }
 
     static func metadataParts(feedName: String?, readingTime: String?, author: String?, publishedAt: Date?) -> [String] {
