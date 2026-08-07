@@ -22,6 +22,14 @@ struct StatisticsWindowView: View {
         VStack(alignment: .leading, spacing: 0) {
             header(theme: theme)
 
+            if let errorMessage = feedViewModel.errorMessage {
+                Text(errorMessage)
+                    .font(.system(size: 11))
+                    .foregroundStyle(theme.destructiveText)
+                    .padding(.horizontal, 26)
+                    .padding(.bottom, 8)
+            }
+
             Rectangle()
                 .fill(theme.border)
                 .frame(height: 1)

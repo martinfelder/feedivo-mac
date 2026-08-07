@@ -13,7 +13,7 @@ struct StatisticsFeedHealthListView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            ForEach(Array(candidates.enumerated()), id: \.offset) { index, candidate in
+            ForEach(Array(candidates.enumerated()), id: \.element.feedID) { index, candidate in
                 row(candidate)
                     .padding(.vertical, 10)
                     .overlay(alignment: .top) {
