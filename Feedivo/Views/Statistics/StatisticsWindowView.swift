@@ -12,6 +12,9 @@ struct StatisticsWindowView: View {
     @State private var feedStatistics: [(feedTitle: String, statistics: FeedReadingStatisticsSnapshot)] = []
     @State private var isExporting = false
     @State private var exportDocument: StatisticsCSVDocument?
+    @State private var feedViewModel = FeedViewModel()
+    @State private var feedHealthCandidates: [ReadingStatisticsFeedHealth] = []
+    @State private var feedPendingUnsubscribe: ReadingStatisticsFeedHealth?
 
     var body: some View {
         let theme = RuleDialogTheme(colorScheme: colorScheme)
@@ -46,6 +49,28 @@ struct StatisticsWindowView: View {
             contentType: .commaSeparatedText,
             defaultFilename: StatisticsExportService.defaultExportFilename()
         ) { _ in }
+        .confirmationDialog(
+            L10n.feedDeleteConfirmationTitle,
+            isPresented: Binding(
+                get: { feedPendingUnsubscribe != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        feedPendingUnsubscribe = nil
+                    }
+                }
+            ),
+            presenting: feedPendingUnsubscribe
+        ) { candidate in
+            Button(L10n.feedDeleteConfirmButton, role: .destructive) {
+                unsubscribe(candidate)
+            }
+
+            Button(L10n.commonCancel, role: .cancel) {
+                feedPendingUnsubscribe = nil
+            }
+        } message: { candidate in
+            Text(L10n.feedDeleteConfirmationMessage(feedTitle: candidate.feedTitle))
+        }
     }
 
     private func header(theme: RuleDialogTheme) -> some View {
@@ -80,6 +105,7 @@ struct StatisticsWindowView: View {
             overviewStrip(theme: theme)
             habitsSection(theme: theme)
             attentionSection(theme: theme)
+            feedHealthSection(theme: theme)
         }
         .padding(.horizontal, 26)
         .padding(.vertical, 22)
@@ -384,6 +410,42 @@ struct StatisticsWindowView: View {
         }
     }
 
+    private func feedHealthSection(theme: RuleDialogTheme) -> some View {
+        VStack(alignment: .leading, spacing: 13) {
+            sectionHeader(theme: theme, title: L10n.statisticsSectionFeedHealthTitle, subtitle: L10n.statisticsSectionFeedHealthSubtitle)
+
+            if feedHealthCandidates.isEmpty {
+                sectionCard(theme: theme) {
+                    Text(L10n.statisticsFeedHealthEmpty)
+                        .font(.system(size: 12.5))
+                        .foregroundStyle(theme.text2)
+                }
+            } else {
+                sectionCard(theme: theme) {
+                    StatisticsFeedHealthListView(
+                        candidates: feedHealthCandidates,
+                        theme: theme,
+                        onUnsubscribeTapped: { feedPendingUnsubscribe = $0 }
+                    )
+                }
+            }
+        }
+    }
+
+    private func unsubscribe(_ candidate: ReadingStatisticsFeedHealth) {
+        feedPendingUnsubscribe = nil
+        guard let feedivoDatabase else {
+            return
+        }
+        feedViewModel.deleteFeed(feedID: candidate.feedID, sqliteDatabase: feedivoDatabase)
+        // deleteFeed wirft nicht — ein Fehlschlag landet nur in feedViewModel.errorMessage.
+        // Die Zeile darf deshalb nur bei tatsächlichem Erfolg entfernt werden, sonst würde
+        // die UI ein gelöschtes Feed vortäuschen, das in Wahrheit noch existiert.
+        if feedViewModel.errorMessage == nil {
+            feedHealthCandidates.removeAll { $0.feedID == candidate.feedID }
+        }
+    }
+
     @ViewBuilder
     private func feedFaviconView(feed: ReadingStatisticsFeedTime) -> some View {
         if let faviconURL = feed.faviconURL, let url = URL(string: faviconURL) {
@@ -436,9 +498,12 @@ struct StatisticsWindowView: View {
             feedStatistics = try feeds.map { feed in
                 (feed.title, try statisticsStore.feedReadingStatistics(feedID: feed.id))
             }
+
+            feedHealthCandidates = try statisticsStore.feedHealthCandidates()
         } catch {
             statistics = .empty
             feedStatistics = []
+            feedHealthCandidates = []
         }
     }
 }
