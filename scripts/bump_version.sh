@@ -34,6 +34,7 @@ cd "$REPO_ROOT"
 
 PBXPROJ="Feedivo.xcodeproj/project.pbxproj"
 CHANGELOG="CHANGELOG.md"
+BUNDLED_CHANGELOG="Feedivo/Resources/CHANGELOG.md"
 MARKER_FILE="$(git rev-parse --git-dir)/feedivo-last-bumped-sha"
 
 # Nur auf main bumpen - Feature-Branches/Worktrees sollen die Buildnummer nicht anfassen.
@@ -151,7 +152,13 @@ awk -v entryfile="$ENTRY_FILE" '
 mv "${CHANGELOG}.tmp" "$CHANGELOG"
 rm -f "$ENTRY_FILE"
 
-git add "$PBXPROJ" "$CHANGELOG"
+# Im App-Bundle gezeigte Kopie fuer das "Versionshistorie"-Fenster
+# (VersionHistoryWindowView.swift) synchron halten - liegt im file-system-
+# synchronisierten Resources-Ordner, wird dadurch automatisch als Bundle-Resource
+# mitgebaut, ohne manuelle project.pbxproj-Aenderung.
+cp "$CHANGELOG" "$BUNDLED_CHANGELOG"
+
+git add "$PBXPROJ" "$CHANGELOG" "$BUNDLED_CHANGELOG"
 git commit -m "chore: Version ${VERSION_LABEL}" >/dev/null
 git push origin "$CURRENT_BRANCH" >/dev/null
 
