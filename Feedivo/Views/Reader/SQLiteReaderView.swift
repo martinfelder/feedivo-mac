@@ -550,6 +550,7 @@ struct SQLiteReaderView: View {
             Spacer()
 
             Button(L10n.readerYouTubeVideoHintButton) {
+                webContentLoadFailed = false
                 readerDisplayModeRawValue = ReaderDisplayMode.web.rawValue
             }
             .buttonStyle(.borderless)
