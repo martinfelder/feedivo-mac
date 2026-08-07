@@ -77,7 +77,7 @@ struct StatisticsWindowView: View {
     private func bodyContent(theme: RuleDialogTheme) -> some View {
         VStack(alignment: .leading, spacing: 20) {
             summaryTiles(theme: theme)
-            heatmapCard(theme: theme)
+            heroSection(theme: theme)
 
             HStack(alignment: .top, spacing: 20) {
                 topFeedsCard(theme: theme)
@@ -178,34 +178,88 @@ struct StatisticsWindowView: View {
         )
     }
 
-    private func heatmapCard(theme: RuleDialogTheme) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
+    private func heroSection(theme: RuleDialogTheme) -> some View {
+        HStack(spacing: 0) {
+            heroStreakColumn(theme: theme)
+                .frame(width: 200)
+
+            Rectangle()
+                .fill(theme.border)
+                .frame(width: 1)
+
+            heroHeatmapColumn(theme: theme)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(theme.card)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(theme.border, lineWidth: 1)
+        )
+    }
+
+    private func heroStreakColumn(theme: RuleDialogTheme) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(L10n.statisticsHeatmapTitle)
+                .font(.system(size: 11, weight: .semibold))
+                .textCase(.uppercase)
+                .tracking(0.6)
+                .foregroundStyle(theme.text2)
+
+            Text("\(statistics.currentStreak)")
+                .font(.system(size: 56, weight: .heavy))
+                .tracking(-1.5)
+                .foregroundStyle(theme.text)
+                .monospacedDigit()
+
+            Text(L10n.statisticsHeroStreakLabel)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(theme.text2)
+
+            Text(L10n.statisticsHeroLongestStreak(statistics.longestStreak))
+                .font(.system(size: 12))
+                .foregroundStyle(theme.text2)
+                .padding(.top, 10)
+
+            if let insight = ReadingStatisticsInsight.generate(
+                weekdayCounts: statistics.weekdayCounts,
+                daypartCounts: statistics.daypartCounts
+            ) {
+                Text(insight)
+                    .font(.system(size: 12))
+                    .italic()
+                    .foregroundStyle(theme.text2)
+                    .padding(.top, 16)
+                    .overlay(alignment: .top) {
+                        Rectangle().fill(theme.border).frame(height: 1)
+                    }
+            }
+        }
+        .padding(22)
+        .frame(maxHeight: .infinity, alignment: .center)
+    }
+
+    private func heroHeatmapColumn(theme: RuleDialogTheme) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline) {
                 Text(L10n.statisticsHeatmapTitle)
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.system(size: 13, weight: .bold))
                     .tracking(-0.1)
                     .foregroundStyle(theme.text)
 
                 Spacer(minLength: 8)
 
-                Text(L10n.statisticsStreakText(current: statistics.currentStreak, longest: statistics.longestStreak))
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(theme.text2)
+                Text(L10n.statisticsHeatmapRange)
+                    .font(.system(size: 11))
+                    .foregroundStyle(theme.tertiaryText)
             }
 
             StatisticsHeatmapView(dailyCounts: statistics.dailyReadCounts, theme: theme)
         }
-        .padding(.horizontal, 17)
-        .padding(.vertical, 16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(theme.card)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(theme.border, lineWidth: 1)
-        )
+        .padding(20)
+        .frame(maxHeight: .infinity, alignment: .center)
     }
 
     private func topFeedsCard(theme: RuleDialogTheme) -> some View {

@@ -31661,34 +31661,6 @@
         }
       }
     },
-    "statistics.streak.text" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "🔥 %d Tage · Rekord %d"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "🔥 %d days · Best %d"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "🔥 %d jours · Record %d"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "🔥 %d giorni · Record %d"
-          }
-        }
-      }
-    },
     "statistics.subtitle" : {
       "localizations" : {
         "de" : {

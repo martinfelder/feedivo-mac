@@ -10,8 +10,8 @@ struct StatisticsHeatmapView: View {
     let theme: RuleDialogTheme
 
     private static let dayCount = 91
-    private static let cellSize: CGFloat = 12
-    private static let cellSpacing: CGFloat = 3
+    private static let cellSize: CGFloat = 18
+    private static let cellSpacing: CGFloat = 4
     private static let monthLabelHeight: CGFloat = 14
     /// Stufen 1…4 (plus Stufe 0 = kein Artikel) — feste Buckets statt
     /// kontinuierlicher Opacity relativ zum Tagesmaximum, damit ein einzelner
@@ -131,7 +131,7 @@ struct StatisticsHeatmapView: View {
                 ForEach(Array(columns.enumerated()), id: \.offset) { _, column in
                     VStack(spacing: Self.cellSpacing) {
                         ForEach(Array(column.enumerated()), id: \.offset) { _, cell in
-                            RoundedRectangle(cornerRadius: 2, style: .continuous)
+                            RoundedRectangle(cornerRadius: 4, style: .continuous)
                                 .fill(color(for: cell))
                                 .frame(width: Self.cellSize, height: Self.cellSize)
                                 .help(helpText(for: cell))

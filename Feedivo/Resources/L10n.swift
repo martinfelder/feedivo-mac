@@ -214,14 +214,6 @@ enum L10n {
         )
     }
 
-    static func statisticsStreakText(current: Int, longest: Int) -> String {
-        String.localizedStringWithFormat(
-            String(localized: "statistics.streak.text"),
-            current,
-            longest
-        )
-    }
-
     static func statisticsMinutesPerDay(_ minutes: Int) -> String {
         String.localizedStringWithFormat(
             String(localized: "statistics.minutesPerDay"),
