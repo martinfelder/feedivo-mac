@@ -31773,6 +31773,254 @@
         }
       }
     },
+    "statistics.heatmap.range" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "letzte 91 Tage" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "last 91 days" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "91 derniers jours" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "ultimi 91 giorni" } }
+      }
+    },
+    "statistics.hero.streakLabel" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "in Folge gelesen" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "in a row" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "d'affilée" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "di fila" } }
+      }
+    },
+    "statistics.hero.longestStreak" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Längste Serie: %d Tage" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Longest streak: %d days" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Plus longue série : %d jours" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Serie più lunga: %d giorni" } }
+      }
+    },
+    "statistics.insight.peak" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Du liest am meisten am %1$@ %2$@." } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "You read the most on %1$@ %2$@." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Tu lis le plus souvent le %1$@ %2$@." } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Di solito leggi il %1$@ %2$@." } }
+      }
+    },
+    "statistics.insight.daypart.morning" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "morgens" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "mornings" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "matin" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "mattina" } }
+      }
+    },
+    "statistics.insight.daypart.midday" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "mittags" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "middays" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "midi" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "mezzogiorno" } }
+      }
+    },
+    "statistics.insight.daypart.afternoon" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "nachmittags" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "afternoons" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "après-midi" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "pomeriggio" } }
+      }
+    },
+    "statistics.insight.daypart.evening" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "abends" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "evenings" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "soir" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "sera" } }
+      }
+    },
+    "statistics.insight.daypart.night" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "nachts" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "nights" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "nuit" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "notte" } }
+      }
+    },
+    "statistics.insight.weekendQuiet" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : " — am Wochenende bleibt der Reader meist zu." } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : " — on weekends, the reader mostly stays closed." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : " — le week-end, le lecteur reste généralement fermé." } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : " — nel weekend, il lettore resta perlopiù chiuso." } }
+      }
+    },
+    "statistics.overview.averageArticlesPerDay" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Ø Artikel/Tag" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Avg. articles/day" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Articles/jour (moy.)" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Articoli/giorno (media)" } }
+      }
+    },
+    "statistics.section.habits.title" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Gewohnheiten" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Habits" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Habitudes" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Abitudini" } }
+      }
+    },
+    "statistics.section.habits.subtitle" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Wann du typischerweise liest" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "When you typically read" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Quand tu lis habituellement" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Quando leggi di solito" } }
+      }
+    },
+    "statistics.habits.weekday.title" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Wochentag" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Day of week" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Jour de la semaine" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Giorno della settimana" } }
+      }
+    },
+    "statistics.habits.daypart.title" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Tageszeit" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Time of day" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Moment de la journée" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Momento della giornata" } }
+      }
+    },
+    "statistics.daypart.morning" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Morgens" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Morning" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Matin" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Mattina" } }
+      }
+    },
+    "statistics.daypart.midday" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Mittags" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Midday" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Midi" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Mezzogiorno" } }
+      }
+    },
+    "statistics.daypart.afternoon" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Nachmittags" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Afternoon" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Après-midi" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Pomeriggio" } }
+      }
+    },
+    "statistics.daypart.evening" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Abends" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Evening" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Soir" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Sera" } }
+      }
+    },
+    "statistics.daypart.night" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Nachts" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Night" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Nuit" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Notte" } }
+      }
+    },
+    "statistics.section.attention.title" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Aufmerksamkeit" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Attention" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Attention" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Attenzione" } }
+      }
+    },
+    "statistics.section.attention.subtitle" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Wo deine Lesezeit wirklich hingeht — nicht nur die Artikelanzahl" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Where your reading time really goes — not just article count" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Où va vraiment ton temps de lecture — pas seulement le nombre d'articles" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Dove va davvero il tuo tempo di lettura — non solo il numero di articoli" } }
+      }
+    },
+    "statistics.attention.feeds.title" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Top-Feeds nach Lesezeit" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Top feeds by reading time" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Top flux par temps de lecture" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Feed principali per tempo di lettura" } }
+      }
+    },
+    "statistics.attention.tags.title" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Top-Tags nach Lesezeit" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Top tags by reading time" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Top tags par temps de lecture" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Tag principali per tempo di lettura" } }
+      }
+    },
+    "statistics.attention.empty" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Noch keine Daten" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "No data yet" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Pas encore de données" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Nessun dato ancora" } }
+      }
+    },
+    "statistics.section.feedHealth.title" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Feed-Gesundheit" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Feed health" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Santé des flux" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Salute dei feed" } }
+      }
+    },
+    "statistics.section.feedHealth.subtitle" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Diese Feeds sammelst du, liest sie aber kaum — Kandidaten zum Abbestellen" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "You collect these feeds but barely read them — candidates to unsubscribe" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Tu accumules ces flux mais tu les lis à peine — candidats au désabonnement" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Raccogli questi feed ma li leggi a malapena — candidati alla disiscrizione" } }
+      }
+    },
+    "statistics.feedHealth.counts" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "%1$d ungelesen · %2$d insgesamt" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "%1$d unread · %2$d total" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "%1$d non lus · %2$d au total" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "%1$d non letti · %2$d totali" } }
+      }
+    },
+    "statistics.feedHealth.readPercentage" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "%d %% gelesen" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "%d%% read" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "%d %% lus" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "%d%% letti" } }
+      }
+    },
+    "statistics.feedHealth.unsubscribeButton" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Abbestellen" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Unsubscribe" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Se désabonner" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Annulla iscrizione" } }
+      }
+    },
+    "statistics.feedHealth.empty" : {
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Alle Feeds gut genutzt" } },
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "All feeds are well used" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Tous les flux sont bien utilisés" } },
+        "it" : { "stringUnit" : { "state" : "translated", "value" : "Tutti i feed sono ben utilizzati" } }
+      }
+    },
     "statistics.summary.thisWeek" : {
       "localizations" : {
         "de" : {

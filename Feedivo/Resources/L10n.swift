@@ -129,6 +129,27 @@ enum L10n {
     static let statisticsHeatmapLegendMore = LocalizedStringKey("statistics.heatmap.legend.more")
     static let statisticsSummaryTotalReadingTime = LocalizedStringKey("statistics.summary.totalReadingTime")
     static let statisticsSummarySelectedRangeCount = LocalizedStringKey("statistics.summary.selectedRangeCount")
+    static let statisticsHeatmapRange = LocalizedStringKey("statistics.heatmap.range")
+    static let statisticsHeroStreakLabel = LocalizedStringKey("statistics.hero.streakLabel")
+    static let statisticsOverviewAverageArticlesPerDay = LocalizedStringKey("statistics.overview.averageArticlesPerDay")
+    static let statisticsSectionHabitsTitle = LocalizedStringKey("statistics.section.habits.title")
+    static let statisticsSectionHabitsSubtitle = LocalizedStringKey("statistics.section.habits.subtitle")
+    static let statisticsHabitsWeekdayTitle = LocalizedStringKey("statistics.habits.weekday.title")
+    static let statisticsHabitsDaypartTitle = LocalizedStringKey("statistics.habits.daypart.title")
+    static let statisticsDaypartMorning = LocalizedStringKey("statistics.daypart.morning")
+    static let statisticsDaypartMidday = LocalizedStringKey("statistics.daypart.midday")
+    static let statisticsDaypartAfternoon = LocalizedStringKey("statistics.daypart.afternoon")
+    static let statisticsDaypartEvening = LocalizedStringKey("statistics.daypart.evening")
+    static let statisticsDaypartNight = LocalizedStringKey("statistics.daypart.night")
+    static let statisticsSectionAttentionTitle = LocalizedStringKey("statistics.section.attention.title")
+    static let statisticsSectionAttentionSubtitle = LocalizedStringKey("statistics.section.attention.subtitle")
+    static let statisticsAttentionFeedsTitle = LocalizedStringKey("statistics.attention.feeds.title")
+    static let statisticsAttentionTagsTitle = LocalizedStringKey("statistics.attention.tags.title")
+    static let statisticsAttentionEmpty = LocalizedStringKey("statistics.attention.empty")
+    static let statisticsSectionFeedHealthTitle = LocalizedStringKey("statistics.section.feedHealth.title")
+    static let statisticsSectionFeedHealthSubtitle = LocalizedStringKey("statistics.section.feedHealth.subtitle")
+    static let statisticsFeedHealthUnsubscribeButton = LocalizedStringKey("statistics.feedHealth.unsubscribeButton")
+    static let statisticsFeedHealthEmpty = LocalizedStringKey("statistics.feedHealth.empty")
     static let shortcutsSettingsSection = LocalizedStringKey("shortcuts.settings.section")
     static let shortcutsCategoryFeed = LocalizedStringKey("shortcuts.category.feed")
     static let shortcutsCategoryArticle = LocalizedStringKey("shortcuts.category.article")
@@ -205,6 +226,53 @@ enum L10n {
         String.localizedStringWithFormat(
             String(localized: "statistics.minutesPerDay"),
             minutes
+        )
+    }
+
+    static func statisticsHeroLongestStreak(_ days: Int) -> String {
+        String.localizedStringWithFormat(
+            String(localized: "statistics.hero.longestStreak"),
+            days
+        )
+    }
+
+    static func statisticsInsightPeak(weekday: String, daypart: String) -> String {
+        String.localizedStringWithFormat(
+            String(localized: "statistics.insight.peak"),
+            weekday,
+            daypart
+        )
+    }
+
+    static func statisticsInsightDaypartPhrase(_ daypart: ReadingStatisticsDaypart) -> String {
+        switch daypart {
+        case .morning:
+            return String(localized: "statistics.insight.daypart.morning")
+        case .midday:
+            return String(localized: "statistics.insight.daypart.midday")
+        case .afternoon:
+            return String(localized: "statistics.insight.daypart.afternoon")
+        case .evening:
+            return String(localized: "statistics.insight.daypart.evening")
+        case .night:
+            return String(localized: "statistics.insight.daypart.night")
+        }
+    }
+
+    static let statisticsInsightWeekendQuiet = String(localized: "statistics.insight.weekendQuiet")
+
+    static func statisticsFeedHealthCounts(unread: Int, total: Int) -> String {
+        String.localizedStringWithFormat(
+            String(localized: "statistics.feedHealth.counts"),
+            unread,
+            total
+        )
+    }
+
+    static func statisticsFeedHealthReadPercentage(_ percentage: Int) -> String {
+        String.localizedStringWithFormat(
+            String(localized: "statistics.feedHealth.readPercentage"),
+            percentage
         )
     }
     static let networkStatusOnline = LocalizedStringKey("networkStatus.online")
