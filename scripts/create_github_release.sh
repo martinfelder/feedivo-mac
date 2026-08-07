@@ -146,6 +146,19 @@ if [ ! -f "$ASC_KEY_PATH" ]; then
   exit 1
 fi
 
+# Bundle-Kopie von CHANGELOG.md (fuer VersionHistoryWindowView.swift) synchron
+# halten - ein Nachtrags-Commit (z. B. "in einfacher Sprache umformuliert") kann
+# CHANGELOG.md nach dem letzten bump_version.sh-Lauf veraendert haben, ohne die
+# Bundle-Kopie nachzuziehen. Vor dem eigentlichen Build erneut synchronisieren,
+# damit die ausgelieferte .app immer den finalen Changelog-Text zeigt.
+BUNDLED_CHANGELOG="Feedivo/Resources/CHANGELOG.md"
+if ! diff -q "$CHANGELOG" "$BUNDLED_CHANGELOG" > /dev/null 2>&1; then
+  echo "create_github_release.sh: $BUNDLED_CHANGELOG ist nicht mehr synchron mit $CHANGELOG - synchronisiere..."
+  cp "$CHANGELOG" "$BUNDLED_CHANGELOG"
+  git add "$BUNDLED_CHANGELOG"
+  git commit -m "chore: Bundle-Kopie von CHANGELOG.md synchronisieren"
+fi
+
 echo "Baue Release-Konfiguration (archive)..."
 rm -rf "$BUILD_DIR"
 xcodebuild \
