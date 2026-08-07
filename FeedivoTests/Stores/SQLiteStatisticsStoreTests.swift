@@ -230,4 +230,61 @@ struct SQLiteStatisticsStoreTests {
 
         #expect(last7Days.totalReadingMinutesAllTime == 25)
     }
+
+    @Test func readingStatisticsGruppiertNachWochentagUndTageszeitZeitzonenkorrekt() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let statusStore = ArticleStatusStore(database: database)
+        let statisticsStore = StatisticsStore(database: database)
+
+        // Dienstag, 20 Uhr UTC — in einer Zeitzone UTC-6 (z. B. amerikanisches Festland)
+        // ist das lokal noch Dienstag 14 Uhr (Nachmittag), nicht Abend. Ein SQL-date()/
+        // strftime()-basiertes Bucketing würde hier UTC-Dienstagabend liefern statt der
+        // lokalen Realität.
+        var utc = Calendar(identifier: .gregorian)
+        utc.timeZone = TimeZone(identifier: "UTC")!
+        let readAt = utc.date(from: DateComponents(year: 2026, month: 8, day: 4, hour: 20))!
+
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example"))
+        let articleID = try articleStore.upsert(ArticleUpsertInput(
+            feedID: "feed-1",
+            sourceID: "a1",
+            title: "Artikel",
+            arrivedAt: readAt,
+            estimatedReadingMinutes: 5
+        ))
+        try statusStore.setRead(true, articleID: articleID, at: readAt)
+
+        var localCalendar = Calendar(identifier: .gregorian)
+        localCalendar.timeZone = TimeZone(identifier: "America/Chicago")!
+        let stats = try statisticsStore.readingStatistics(range: .all, now: readAt, calendar: localCalendar)
+
+        let expectedWeekday = localCalendar.component(.weekday, from: readAt)
+        let expectedDaypart = ReadingStatisticsDaypart.from(hour: localCalendar.component(.hour, from: readAt))
+
+        #expect(stats.weekdayCounts.first { $0.weekday == expectedWeekday }?.count == 1)
+        #expect(stats.daypartCounts.first { $0.daypart == expectedDaypart }?.count == 1)
+        #expect(expectedDaypart == .afternoon)
+    }
+
+    @Test func readingStatisticsBerechnetDurchschnittlicheArtikelProTag() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let feedStore = FeedStore(database: database)
+        let articleStore = ArticleStore(database: database)
+        let statusStore = ArticleStatusStore(database: database)
+        let statisticsStore = StatisticsStore(database: database)
+        let now = Self.now
+
+        try feedStore.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Example"))
+
+        for index in 0..<14 {
+            let articleID = try makeArticle(feedID: "feed-1", sourceID: "a\(index)", title: "Artikel \(index)", arrivedAt: now, estimatedReadingMinutes: 5, articleStore: articleStore)
+            try statusStore.setRead(true, articleID: articleID, at: now)
+        }
+
+        let stats = try statisticsStore.readingStatistics(range: .last7Days, now: now)
+
+        #expect(stats.averageArticlesPerDay == 2)
+    }
 }

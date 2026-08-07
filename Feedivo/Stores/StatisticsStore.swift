@@ -14,9 +14,12 @@ struct StatisticsStore {
         self.database = database
     }
 
-    func readingStatistics(range: StatisticsTimeRange, now: Date = Date()) throws -> ReadingStatisticsSnapshot {
+    func readingStatistics(
+        range: StatisticsTimeRange,
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) throws -> ReadingStatisticsSnapshot {
         try database.read { db in
-            let calendar = Calendar.current
             let startOfToday = calendar.startOfDay(for: now)
             let startOfThisWeek = calendar.date(byAdding: .day, value: -7, to: now) ?? now
             let heatmapStart = calendar.date(byAdding: .day, value: -(Self.heatmapDayCount - 1), to: startOfToday) ?? startOfToday
@@ -75,20 +78,35 @@ struct StatisticsStore {
                     )
                 }
 
-            let dailyReadCounts = try Row.fetchAll(db, sql: """
-                SELECT date(readAt) AS day, COUNT(*) AS count
-                FROM article_statuses
-                WHERE isRead = 1 AND readAt >= ?
-                GROUP BY day
-                ORDER BY day
+            let readTimestamps = try Date.fetchAll(db, sql: """
+                SELECT readAt FROM article_statuses WHERE isRead = 1 AND readAt >= ?
                 """, arguments: [heatmapStart])
-                .compactMap { row -> ReadingStatisticsDailyCount? in
-                    let dayString: String = row["day"]
-                    guard let date = Self.dayFormatter.date(from: dayString) else {
-                        return nil
-                    }
-                    return ReadingStatisticsDailyCount(date: date, count: row["count"])
-                }
+
+            var dailyTally: [Date: Int] = [:]
+            var weekdayTally: [Int: Int] = [:]
+            var daypartTally: [ReadingStatisticsDaypart: Int] = [:]
+
+            for readAt in readTimestamps {
+                let day = calendar.startOfDay(for: readAt)
+                dailyTally[day, default: 0] += 1
+
+                let weekday = calendar.component(.weekday, from: readAt)
+                weekdayTally[weekday, default: 0] += 1
+
+                let hour = calendar.component(.hour, from: readAt)
+                let daypart = ReadingStatisticsDaypart.from(hour: hour)
+                daypartTally[daypart, default: 0] += 1
+            }
+
+            let dailyReadCounts = dailyTally
+                .map { ReadingStatisticsDailyCount(date: $0.key, count: $0.value) }
+                .sorted { $0.date < $1.date }
+            let weekdayCounts = weekdayTally
+                .map { ReadingStatisticsWeekdayCount(weekday: $0.key, count: $0.value) }
+                .sorted { $0.weekday < $1.weekday }
+            let daypartCounts = ReadingStatisticsDaypart.allCases.map {
+                ReadingStatisticsDaypartCount(daypart: $0, count: daypartTally[$0] ?? 0)
+            }
 
             let totalReadingMinutes = try Double.fetchOne(db, sql: """
                 SELECT COALESCE(SUM(a.estimatedReadingMinutes), 0)
@@ -113,6 +131,8 @@ struct StatisticsStore {
                 WHERE isRead = 1 AND (? IS NULL OR readAt >= ?)
                 """, arguments: [rangeStart, rangeStart]) ?? 0
 
+            let averageArticlesPerDay = dayCount > 0 ? Double(articlesReadInSelectedRange) / Double(dayCount) : 0
+
             var articlesReadInPreviousPeriod: Int?
             if let previousPeriod = range.previousPeriodRange(relativeTo: now) {
                 articlesReadInPreviousPeriod = try Int.fetchOne(db, sql: """
@@ -129,6 +149,9 @@ struct StatisticsStore {
                 dailyReadCounts: dailyReadCounts,
                 averageReadingMinutesPerDay: averageReadingMinutesPerDay,
                 topTags: topTags,
+                weekdayCounts: weekdayCounts,
+                daypartCounts: daypartCounts,
+                averageArticlesPerDay: averageArticlesPerDay,
                 totalReadingMinutesAllTime: totalReadingMinutesAllTime,
                 articlesReadInSelectedRange: articlesReadInSelectedRange,
                 articlesReadInPreviousPeriod: articlesReadInPreviousPeriod
@@ -179,12 +202,4 @@ struct StatisticsStore {
         let seconds = now.timeIntervalSince(start)
         return max(1, Int((seconds / 86_400).rounded(.up)))
     }
-
-    private static let dayFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        formatter.timeZone = TimeZone(identifier: "UTC")
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        return formatter
-    }()
 }

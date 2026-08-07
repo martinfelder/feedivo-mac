@@ -19,6 +19,36 @@ struct ReadingStatisticsDailyCount: Equatable, Sendable {
     var count: Int
 }
 
+enum ReadingStatisticsDaypart: Int, CaseIterable, Equatable, Sendable {
+    case morning
+    case midday
+    case afternoon
+    case evening
+    case night
+
+    /// Feste, nicht-überlappende Stundenbuckets — decken alle 24 Stunden lückenlos ab.
+    static func from(hour: Int) -> ReadingStatisticsDaypart {
+        switch hour {
+        case 6...10: return .morning
+        case 11...13: return .midday
+        case 14...17: return .afternoon
+        case 18...22: return .evening
+        default: return .night // 23, 0...5
+        }
+    }
+}
+
+struct ReadingStatisticsWeekdayCount: Equatable, Sendable {
+    /// `Calendar`-Komponente `.weekday`: 1 = Sonntag … 7 = Samstag.
+    var weekday: Int
+    var count: Int
+}
+
+struct ReadingStatisticsDaypartCount: Equatable, Sendable {
+    var daypart: ReadingStatisticsDaypart
+    var count: Int
+}
+
 struct ReadingStatisticsSnapshot: Equatable, Sendable {
     var articlesReadToday: Int
     var articlesReadThisWeek: Int
@@ -27,6 +57,9 @@ struct ReadingStatisticsSnapshot: Equatable, Sendable {
     var dailyReadCounts: [ReadingStatisticsDailyCount]
     var averageReadingMinutesPerDay: Double
     var topTags: [ReadingStatisticsTagCount]
+    var weekdayCounts: [ReadingStatisticsWeekdayCount]
+    var daypartCounts: [ReadingStatisticsDaypartCount]
+    var averageArticlesPerDay: Double
     /// Gesamte Lesezeit über die komplette Historie, unabhängig vom Zeitraum-Picker.
     var totalReadingMinutesAllTime: Int
     /// Gelesene Artikel im aktuell gewählten Zeitraum (7/30 Tage/Gesamt).
@@ -43,6 +76,9 @@ struct ReadingStatisticsSnapshot: Equatable, Sendable {
         dailyReadCounts: [],
         averageReadingMinutesPerDay: 0,
         topTags: [],
+        weekdayCounts: [],
+        daypartCounts: [],
+        averageArticlesPerDay: 0,
         totalReadingMinutesAllTime: 0,
         articlesReadInSelectedRange: 0,
         articlesReadInPreviousPeriod: nil

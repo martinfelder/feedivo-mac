@@ -976,6 +976,9 @@ struct FeedivoTests {
             dailyReadCounts: [],
             averageReadingMinutesPerDay: 4.2,
             topTags: [],
+            weekdayCounts: [],
+            daypartCounts: [],
+            averageArticlesPerDay: 0,
             totalReadingMinutesAllTime: 120,
             articlesReadInSelectedRange: 3,
             articlesReadInPreviousPeriod: nil
