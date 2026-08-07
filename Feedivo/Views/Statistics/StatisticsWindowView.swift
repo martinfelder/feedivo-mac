@@ -76,8 +76,8 @@ struct StatisticsWindowView: View {
 
     private func bodyContent(theme: RuleDialogTheme) -> some View {
         VStack(alignment: .leading, spacing: 20) {
-            summaryTiles(theme: theme)
             heroSection(theme: theme)
+            overviewStrip(theme: theme)
 
             HStack(alignment: .top, spacing: 20) {
                 topFeedsCard(theme: theme)
@@ -91,31 +91,33 @@ struct StatisticsWindowView: View {
         .padding(.vertical, 22)
     }
 
-    // 6 Kacheln statt 4 (Gesamt-Lesezeit + Trend zur Vorperiode ergänzt) — dafür
-    // Umbau von einer HStack auf ein 3-spaltiges Grid, damit es bei der
-    // Fensterbreite (defaultSize 820pt) nicht zu eng wird.
-    private func summaryTiles(theme: RuleDialogTheme) -> some View {
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 14), count: 3), spacing: 14) {
-            summaryTile(theme: theme, title: L10n.statisticsSummaryToday, value: "\(statistics.articlesReadToday)")
-            summaryTile(theme: theme, title: L10n.statisticsSummaryThisWeek, value: "\(statistics.articlesReadThisWeek)")
-            summaryTile(theme: theme, title: L10n.statisticsSummaryTotal, value: "\(statistics.articlesReadTotal)")
-            summaryTile(
+    // Schmale 3-Werte-Leiste: gelesen im Zeitraum + Trend, Ø Artikel/Tag, Lesezeit
+    private func overviewStrip(theme: RuleDialogTheme) -> some View {
+        HStack(spacing: 0) {
+            overviewItem(
                 theme: theme,
-                title: L10n.statisticsSummaryAverageReadingTime,
-                value: L10n.statisticsMinutesPerDay(Int(statistics.averageReadingMinutesPerDay.rounded()))
-            )
-            summaryTile(
-                theme: theme,
-                title: L10n.statisticsSummaryTotalReadingTime,
-                value: formattedTotalReadingTime
-            )
-            summaryTile(
-                theme: theme,
-                title: L10n.statisticsSummarySelectedRangeCount,
                 value: "\(statistics.articlesReadInSelectedRange)",
+                label: L10n.statisticsSummarySelectedRangeCount,
                 trend: trendText
             )
+            overviewItem(
+                theme: theme,
+                value: formattedNumber(statistics.averageArticlesPerDay),
+                label: L10n.statisticsOverviewAverageArticlesPerDay
+            )
+            overviewItem(
+                theme: theme,
+                value: formattedTotalReadingTime,
+                label: L10n.statisticsSummaryTotalReadingTime,
+                showsTrailingBorder: false
+            )
         }
+        .background(theme.card)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(theme.border, lineWidth: 1)
+        )
     }
 
     private var formattedTotalReadingTime: String {
@@ -143,39 +145,49 @@ struct StatisticsWindowView: View {
         return (L10n.statisticsTrendDecrease(abs(roundedPercentage)), .red)
     }
 
-    private func summaryTile(
+    private func overviewItem(
         theme: RuleDialogTheme,
-        title: LocalizedStringKey,
         value: String,
-        trend: (text: String, color: Color)? = nil
+        label: LocalizedStringKey,
+        trend: (text: String, color: Color)? = nil,
+        showsTrailingBorder: Bool = true
     ) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title)
-                .font(.system(size: 12.5))
-                .foregroundStyle(theme.text2)
-
+        HStack(alignment: .firstTextBaseline, spacing: 9) {
             Text(value)
-                .font(.system(size: 22, weight: .bold))
-                .foregroundStyle(theme.text)
+                .font(.system(size: 19, weight: .bold))
+                .tracking(-0.2)
                 .monospacedDigit()
+                .foregroundStyle(theme.text)
+
+            Text(label)
+                .font(.system(size: 12))
+                .foregroundStyle(theme.text2)
 
             if let trend {
                 Text(trend.text)
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(trend.color)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(
+                        RoundedRectangle(cornerRadius: 5, style: .continuous)
+                            .fill(trend.color.opacity(0.14))
+                    )
+                    .padding(.leading, 4)
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
+        .padding(.horizontal, 18)
+        .padding(.vertical, 13)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(theme.card)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(theme.border, lineWidth: 1)
-        )
+        .overlay(alignment: .trailing) {
+            if showsTrailingBorder {
+                Rectangle().fill(theme.border).frame(width: 1)
+            }
+        }
+    }
+
+    private func formattedNumber(_ value: Double) -> String {
+        String(format: "%.1f", value)
     }
 
     private func heroSection(theme: RuleDialogTheme) -> some View {
