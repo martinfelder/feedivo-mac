@@ -121,6 +121,24 @@ struct FeedDiscoveryServiceTests {
         }
     }
 
+    @Test func websiteHTMLRequestSetztConsentCookieFuerYouTubeHosts() {
+        let request = FeedDiscoveryService.websiteHTMLRequest(for: URL(string: "https://www.youtube.com/@Apple")!)
+
+        #expect(request.value(forHTTPHeaderField: "Cookie") == "CONSENT=YES+cb.20210328-17-p0.en+FX+000")
+    }
+
+    @Test func websiteHTMLRequestErkenntYouTubeHostOhneWWWPraefix() {
+        let request = FeedDiscoveryService.websiteHTMLRequest(for: URL(string: "https://youtube.com/@Apple")!)
+
+        #expect(request.value(forHTTPHeaderField: "Cookie") == "CONSENT=YES+cb.20210328-17-p0.en+FX+000")
+    }
+
+    @Test func websiteHTMLRequestSetztKeinConsentCookieFuerAndereHosts() {
+        let request = FeedDiscoveryService.websiteHTMLRequest(for: URL(string: "https://example.com")!)
+
+        #expect(request.value(forHTTPHeaderField: "Cookie") == nil)
+    }
+
     @Test func discoverFeedsLiefertMaximalFuenfVorschauArtikelNeuesteZuerst() async throws {
         let calendar = Calendar(identifier: .gregorian)
         let service = FeedDiscoveryService(

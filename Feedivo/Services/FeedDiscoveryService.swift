@@ -105,13 +105,34 @@ struct FeedDiscoveryService {
     }
 
     private static func loadWebsiteHTML(from url: URL) async throws -> String {
-        let (data, response) = try await URLSession.shared.data(from: url)
+        let (data, response) = try await URLSession.shared.data(for: websiteHTMLRequest(for: url))
         if let httpResponse = response as? HTTPURLResponse,
            !(200 ... 299).contains(httpResponse.statusCode) {
             throw FeedDiscoveryError.httpError(httpResponse.statusCode)
         }
 
         return String(data: data, encoding: .utf8) ?? String(decoding: data, as: UTF8.self)
+    }
+
+    /// Google leitet Anfragen aus der EU/EWR/Schweiz ohne vorhandenes Consent-Cookie auf eine
+    /// Cookie-Zustimmungsseite (consent.youtube.com) statt der echten Kanalseite um — diese
+    /// Zustimmungsseite enthält kein `<link rel="alternate">`-Feed-Tag, wodurch die Erkennung
+    /// für YouTube-Kanal-URLs sonst fälschlich "nichts gefunden" meldet. Ein vorab gesetztes
+    /// Consent-Cookie (verbreitete, von vielen RSS-Readern/Scrapern genutzte Umgehung) lässt
+    /// Google die reale Seite direkt ausliefern.
+    static func websiteHTMLRequest(for url: URL) -> URLRequest {
+        var request = URLRequest(url: url)
+        if isYouTubeHost(url.host) {
+            request.setValue(youTubeConsentBypassCookie, forHTTPHeaderField: "Cookie")
+        }
+        return request
+    }
+
+    private static let youTubeConsentBypassCookie = "CONSENT=YES+cb.20210328-17-p0.en+FX+000"
+
+    private static func isYouTubeHost(_ host: String?) -> Bool {
+        guard let host = host?.lowercased() else { return false }
+        return host == "youtube.com" || host.hasSuffix(".youtube.com")
     }
 
     private static func feedLinkCandidates(in html: String, baseURL: URL) -> [FeedLinkCandidate] {
