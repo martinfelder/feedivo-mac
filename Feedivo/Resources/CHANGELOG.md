@@ -13,6 +13,22 @@ siehe `git log`.
 
 <!-- versions -->
 
+## [1.0 (29)] - 2026-08-07
+
+- fix: Automatischer Feed-Sprung blieb nach Ein-Artikel-Feed dauerhaft hängen
+- design: Versionshistorie direkt im Info-Tab statt separatem Fenster (Fortsetzung)
+- design: Versionshistorie direkt im Info-Tab statt separatem Fenster
+- fix: Bundle-Kopie von CHANGELOG.md vor jedem Release erneut synchronisieren
+- feat: GitHub-Link und Versionshistorie-Button im Info-Tab ergänzen
+- feat: Versionshistorie-Fenster (VersionHistoryWindowView) ergänzen
+- feat: L10n-Keys für GitHub-Link und Versionshistorie ergänzen
+- feat: CHANGELOG.md als Bundle-Resource aufnehmen, bump_version.sh hält sie synchron
+- feat: reinen ChangelogParser für CHANGELOG.md-Versionseinträge ergänzen
+- docs: Implementierungsplan für GitHub-Link + Versionshistorie im Info-Tab
+- docs: Design-Spec für GitHub-Link + Versionshistorie im Info-Tab
+- chore: Appcast-Eintrag für v1.0-28
+- docs: Changelog-Eintrag für v1.0 (28) in einfacher Sprache umformuliert
+
 ## [1.0 (28)] - 2026-08-07
 
 - Neu: Das Statistik-Fenster wurde komplett neu gestaltet — ein großer
