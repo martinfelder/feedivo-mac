@@ -16,6 +16,7 @@ import OSLog
 struct CloudSyncFirstActivationView: View {
     @Environment(\.feedivoDatabase) private var feedivoDatabase
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
     let onContinue: () -> Void
 
     @State private var isLoading = true
@@ -42,76 +43,23 @@ struct CloudSyncFirstActivationView: View {
     /// Doppel-Anwendung.
     @State private var mergeFailureMessage: String?
 
+    // MARK: - Sheet-Chrome (Konzept A, analog TagManagerView/OPMLExportSheet: feste Kopf-/
+    // Fußzeile mit Haarlinien-Trennern statt frei schwebendem Inhalt, siehe RuleDialogTheme.swift)
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text(L10n.firstActivationTitle)
-                .font(.title2.bold())
+        let theme = RuleDialogTheme(colorScheme: colorScheme)
 
-            // Verbesserung nach Nutzer-Feedback: der Dialog nannte bisher nicht, WAS er
-            // eigentlich prüft (nur Tags/Ordner, nicht Feeds/Regeln/Artikelstatus — die laufen
-            // über den separaten Last-Write-Wins-Konfliktpfad nach der Aktivierung). Immer
-            // sichtbar, unabhängig vom Lade-/Ergebniszustand.
-            Text(L10n.firstActivationScopeNote)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-
-            if isLoading {
-                ProgressView()
-                    .frame(maxWidth: .infinity, alignment: .center)
-            } else {
-                if checkFailed {
-                    Label(
-                        checkFailedIsMissingIndex ? L10n.firstActivationCheckFailedMissingIndex : L10n.firstActivationCheckFailed,
-                        systemImage: "exclamationmark.triangle.fill"
-                    )
-                    .foregroundStyle(.orange)
-                }
-                if collisions.isEmpty {
-                    // Bei fehlgeschlagenem Check bewusst KEINE positive "keine Duplikate
-                    // gefunden"-Meldung mehr zeigen — die Warnung oben ersetzt sie, statt beide
-                    // widersprüchlichen Aussagen übereinander darzustellen.
-                    if !checkFailed {
-                        Text(L10n.firstActivationNoCollisions)
-                            .foregroundStyle(.secondary)
-                    }
-                } else {
-                    // Bei einem Teilfehlschlag (z. B. Tags-Abfrage erfolgreich, Ordner-Abfrage
-                    // nicht) können trotzdem bereits gefundene Kollisionen vorliegen — die
-                    // Warnung UND die Liste erscheinen dann gemeinsam, statt echte Funde zu
-                    // verstecken.
-                    List(collisions, id: \.cloudRecordID.recordName) { collision in
-                        collisionRow(collision)
-                    }
-                }
-            }
-
-            HStack {
-                Spacer()
-                Button(L10n.firstActivationContinue) {
-                    // Whole-Branch-Review-Fund (Important 3): nur bei VOLLSTÄNDIGEM Erfolg
-                    // (keine einzige fehlgeschlagene Kollision) tatsächlich fortfahren — bei
-                    // jedem Fehlschlag bleibt das Sheet offen und zeigt den Alert weiter unten,
-                    // statt den Nutzer im Unklaren zu lassen, während `start()` bereits mit
-                    // einem unaufgelösten Duplikat losläuft.
-                    guard applyDecisions() else { return }
-                    // Review-Fix (Task 14, Critical 2): erst HIER, beim tatsächlichen
-                    // Abschluss des Erst-Aktivierungs-Ablaufs, wird die Sperre wieder
-                    // aufgehoben — siehe CloudSyncSettings.pendingFirstActivationKey und
-                    // FeedivoApp.init(). Muss vor onContinue() (löst CloudSyncEngine.start()
-                    // aus) geschehen, auch wenn es für den aktuellen start()-Aufruf selbst
-                    // keine Rolle spielt — die Reihenfolge macht den Zustand während des
-                    // gesamten Übergangs konsistent, falls onContinue() künftig einmal
-                    // asynchron würde.
-                    CloudSyncSettings.setPendingFirstActivation(false)
-                    onContinue()
-                    dismiss()
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(isLoading)
-            }
+        VStack(spacing: 0) {
+            header(theme: theme)
+            dialogDivider(theme)
+            bodyContent(theme: theme)
+            dialogDivider(theme)
+            footer(theme: theme)
         }
-        .padding(20)
-        .frame(minWidth: 420, minHeight: 300)
+        .background(theme.bg)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .frame(width: 500)
+        .frame(minHeight: 340)
         .task { await loadCollisions() }
         .alert(L10n.commonError, isPresented: Binding(
             get: { mergeFailureMessage != nil },
@@ -125,17 +73,198 @@ struct CloudSyncFirstActivationView: View {
         }
     }
 
-    @ViewBuilder
-    private func collisionRow(_ collision: CloudSyncFirstActivationAnalyzer.FirstActivationCollision) -> some View {
-        let key = collision.cloudRecordID.recordName
-        Picker(collision.name, selection: Binding(
-            get: { decisions[key] ?? true },
-            set: { decisions[key] = $0 }
-        )) {
-            Text(L10n.firstActivationMerge).tag(true)
-            Text(L10n.firstActivationKeepBoth).tag(false)
+    private func dialogDivider(_ theme: RuleDialogTheme) -> some View {
+        Rectangle()
+            .fill(theme.border)
+            .frame(height: 1)
+    }
+
+    private func header(theme: RuleDialogTheme) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(L10n.firstActivationTitle)
+                .font(.system(size: 21, weight: .bold))
+                .tracking(-0.3)
+                .foregroundStyle(theme.text)
+
+            // Verbesserung nach Nutzer-Feedback: der Dialog nannte bisher nicht, WAS er
+            // eigentlich prüft (nur Tags/Ordner, nicht Feeds/Regeln/Artikelstatus — die laufen
+            // über den separaten Last-Write-Wins-Konfliktpfad nach der Aktivierung). Immer
+            // sichtbar, unabhängig vom Lade-/Ergebniszustand.
+            Text(L10n.firstActivationScopeNote)
+                .font(.system(size: 13.5))
+                .foregroundStyle(theme.text2)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .pickerStyle(.segmented)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 26)
+        .padding(.top, 24)
+        .padding(.bottom, 20)
+    }
+
+    private func bodyContent(theme: RuleDialogTheme) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            if isLoading {
+                HStack {
+                    Spacer()
+                    ProgressView()
+                        .padding(.vertical, 36)
+                    Spacer()
+                }
+            } else {
+                if checkFailed {
+                    statusBanner(
+                        theme: theme,
+                        icon: "exclamationmark.triangle.fill",
+                        tint: .orange,
+                        text: checkFailedIsMissingIndex ? L10n.firstActivationCheckFailedMissingIndex : L10n.firstActivationCheckFailed
+                    )
+                }
+                if collisions.isEmpty {
+                    // Bei fehlgeschlagenem Check bewusst KEINE positive "keine Duplikate
+                    // gefunden"-Meldung mehr zeigen — die Warnung oben ersetzt sie, statt beide
+                    // widersprüchlichen Aussagen übereinander darzustellen.
+                    if !checkFailed {
+                        statusBanner(
+                            theme: theme,
+                            icon: "checkmark.circle.fill",
+                            tint: RuleDialogTheme.switchOn,
+                            text: L10n.firstActivationNoCollisions
+                        )
+                    }
+                } else {
+                    // Bei einem Teilfehlschlag (z. B. Tags-Abfrage erfolgreich, Ordner-Abfrage
+                    // nicht) können trotzdem bereits gefundene Kollisionen vorliegen — die
+                    // Warnung UND die Liste erscheinen dann gemeinsam, statt echte Funde zu
+                    // verstecken.
+                    collisionList(theme: theme)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 26)
+        .padding(.vertical, 22)
+    }
+
+    /// Einheitliche Statuszeile für Erfolg/Warnung — Ton (Icon + getönte Kapsel-Fläche) folgt
+    /// derselben Sprache wie die Vorschau-Statuszeile im Regel-Assistenten
+    /// (`RuleWizardView.previewMatchCount`/`.previewError`).
+    private func statusBanner(theme: RuleDialogTheme, icon: String, tint: Color, text: LocalizedStringKey) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(tint)
+                .frame(width: 16)
+
+            Text(text)
+                .font(.system(size: 12.5, weight: .medium))
+                .foregroundStyle(theme.text)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 13)
+        .padding(.vertical, 11)
+        .background(
+            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                .fill(tint.opacity(0.09))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                .stroke(tint.opacity(0.25), lineWidth: 1)
+        )
+    }
+
+    private func collisionList(theme: RuleDialogTheme) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(Array(collisions.enumerated()), id: \.element.cloudRecordID.recordName) { index, collision in
+                    collisionRow(collision, theme: theme)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 12)
+
+                    if index < collisions.count - 1 {
+                        dialogDivider(theme)
+                    }
+                }
+            }
+        }
+        .frame(maxHeight: 260)
+        .background(theme.card, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(theme.border, lineWidth: 1)
+        )
+    }
+
+    @ViewBuilder
+    private func collisionRow(_ collision: CloudSyncFirstActivationAnalyzer.FirstActivationCollision, theme: RuleDialogTheme) -> some View {
+        let key = collision.cloudRecordID.recordName
+
+        VStack(alignment: .leading, spacing: 9) {
+            HStack(spacing: 8) {
+                Text(collision.name)
+                    .font(.system(size: 13.5, weight: .semibold))
+                    .foregroundStyle(theme.text)
+                    .lineLimit(1)
+
+                // Wiederverwendet dieselbe Typ-Bezeichnung wie im Konflikt-Sheet
+                // (`SyncConflictResolutionView.recordTypeLabel`), damit "Tag" vs. "Ordner"
+                // app-weit konsistent benannt bleibt.
+                Text(SyncConflictResolutionView.recordTypeLabel(forRecordType: collision.recordType))
+                    .font(.system(size: 10.5, weight: .semibold))
+                    .foregroundStyle(theme.text2)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 2)
+                    .background(theme.card2, in: Capsule())
+                    .overlay(
+                        Capsule().stroke(theme.border, lineWidth: 1)
+                    )
+
+                Spacer(minLength: 0)
+            }
+
+            RuleSegmentedControl(
+                options: [(true, L10n.firstActivationMerge), (false, L10n.firstActivationKeepBoth)],
+                selection: Binding(
+                    get: { decisions[key] ?? true },
+                    set: { decisions[key] = $0 }
+                ),
+                theme: theme,
+                fullWidth: true
+            )
+        }
+    }
+
+    private func footer(theme: RuleDialogTheme) -> some View {
+        HStack {
+            Spacer()
+            RuleDialogButton(
+                titleKey: L10n.firstActivationContinue,
+                style: isLoading ? .secondary : .primary,
+                theme: theme
+            ) {
+                // Whole-Branch-Review-Fund (Important 3): nur bei VOLLSTÄNDIGEM Erfolg
+                // (keine einzige fehlgeschlagene Kollision) tatsächlich fortfahren — bei
+                // jedem Fehlschlag bleibt das Sheet offen und zeigt den Alert weiter unten,
+                // statt den Nutzer im Unklaren zu lassen, während `start()` bereits mit
+                // einem unaufgelösten Duplikat losläuft.
+                guard applyDecisions() else { return }
+                // Review-Fix (Task 14, Critical 2): erst HIER, beim tatsächlichen
+                // Abschluss des Erst-Aktivierungs-Ablaufs, wird die Sperre wieder
+                // aufgehoben — siehe CloudSyncSettings.pendingFirstActivationKey und
+                // FeedivoApp.init(). Muss vor onContinue() (löst CloudSyncEngine.start()
+                // aus) geschehen, auch wenn es für den aktuellen start()-Aufruf selbst
+                // keine Rolle spielt — die Reihenfolge macht den Zustand während des
+                // gesamten Übergangs konsistent, falls onContinue() künftig einmal
+                // asynchron würde.
+                CloudSyncSettings.setPendingFirstActivation(false)
+                onContinue()
+                dismiss()
+            }
+            .keyboardShortcut(.defaultAction)
+            .disabled(isLoading)
+        }
+        .padding(.horizontal, 26)
+        .padding(.vertical, 16)
     }
 
     private func loadCollisions() async {
