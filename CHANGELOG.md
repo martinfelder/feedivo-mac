@@ -13,6 +13,13 @@ siehe `git log`.
 
 <!-- versions -->
 
+## [1.0 (31)] - 2026-08-09
+
+- design: iCloud-Sync-Erstaktivierungs-Dialog auf Konzept A umgestellt
+- fix: iCloud-Sync-Erstaktivierungs-Dialog zeigt echten Duplikat-Check-Status
+- docs: Implementierungsplan YouTube-Video-Hinweis nachtragen
+- chore: Appcast-Eintrag für v1.0-30
+
 ## [1.0 (30)] - 2026-08-07
 
 - feat: YouTube-Kanäle können jetzt direkt als Feed abonniert werden
