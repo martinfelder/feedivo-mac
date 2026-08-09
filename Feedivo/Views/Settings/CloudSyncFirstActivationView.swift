@@ -21,6 +21,16 @@ struct CloudSyncFirstActivationView: View {
     @State private var isLoading = true
     @State private var collisions: [CloudSyncFirstActivationAnalyzer.FirstActivationCollision] = []
     @State private var decisions: [String: Bool] = [:] // Schlüssel: cloudRecordID.recordName, true = zusammenführen
+    /// Verbesserung nach Nutzer-Feedback zum Dialog: `true`, wenn mindestens eine der beiden
+    /// CloudKit-Abfragen in `loadCollisions()` fehlgeschlagen ist (z. B. kein Netz). Ohne dieses
+    /// Flag sah der Dialog bei "Prüfung fehlgeschlagen" optisch identisch aus wie bei "Prüfung
+    /// erfolgreich, keine Duplikate gefunden" — beides zeigte denselben positiven Text.
+    @State private var checkFailed = false
+    /// Zweiter Bugfix (Nutzer-Report 2026-08-08, per `/usr/bin/log stream` verifiziert): `true`,
+    /// wenn der Fehlschlag konkret der bekannte CloudKit-Schema-Fehler "Field 'recordName' is not
+    /// marked queryable" ist (siehe `CloudSyncFirstActivationAnalyzer.isMissingQueryableIndexError`)
+    /// — steuert, ob die generische oder die gezielte, actionable Warnung angezeigt wird.
+    @State private var checkFailedIsMissingIndex = false
     /// Whole-Branch-Review-Fund (Important 3): nicht-`nil`, sobald mindestens eine
     /// Merge-/Beide-behalten-Entscheidung in `applyDecisions()` fehlgeschlagen ist — zeigt
     /// einen Fehler-Alert, statt (wie zuvor) den Fehler nur zu loggen und trotzdem zu
@@ -37,15 +47,41 @@ struct CloudSyncFirstActivationView: View {
             Text(L10n.firstActivationTitle)
                 .font(.title2.bold())
 
+            // Verbesserung nach Nutzer-Feedback: der Dialog nannte bisher nicht, WAS er
+            // eigentlich prüft (nur Tags/Ordner, nicht Feeds/Regeln/Artikelstatus — die laufen
+            // über den separaten Last-Write-Wins-Konfliktpfad nach der Aktivierung). Immer
+            // sichtbar, unabhängig vom Lade-/Ergebniszustand.
+            Text(L10n.firstActivationScopeNote)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+
             if isLoading {
                 ProgressView()
                     .frame(maxWidth: .infinity, alignment: .center)
-            } else if collisions.isEmpty {
-                Text(L10n.firstActivationNoCollisions)
-                    .foregroundStyle(.secondary)
             } else {
-                List(collisions, id: \.cloudRecordID.recordName) { collision in
-                    collisionRow(collision)
+                if checkFailed {
+                    Label(
+                        checkFailedIsMissingIndex ? L10n.firstActivationCheckFailedMissingIndex : L10n.firstActivationCheckFailed,
+                        systemImage: "exclamationmark.triangle.fill"
+                    )
+                    .foregroundStyle(.orange)
+                }
+                if collisions.isEmpty {
+                    // Bei fehlgeschlagenem Check bewusst KEINE positive "keine Duplikate
+                    // gefunden"-Meldung mehr zeigen — die Warnung oben ersetzt sie, statt beide
+                    // widersprüchlichen Aussagen übereinander darzustellen.
+                    if !checkFailed {
+                        Text(L10n.firstActivationNoCollisions)
+                            .foregroundStyle(.secondary)
+                    }
+                } else {
+                    // Bei einem Teilfehlschlag (z. B. Tags-Abfrage erfolgreich, Ordner-Abfrage
+                    // nicht) können trotzdem bereits gefundene Kollisionen vorliegen — die
+                    // Warnung UND die Liste erscheinen dann gemeinsam, statt echte Funde zu
+                    // verstecken.
+                    List(collisions, id: \.cloudRecordID.recordName) { collision in
+                        collisionRow(collision)
+                    }
                 }
             }
 
@@ -104,7 +140,9 @@ struct CloudSyncFirstActivationView: View {
 
     private func loadCollisions() async {
         let container = CKContainer(identifier: CloudSyncSettings.cloudKitContainerIdentifier)
-        let (tags, folders) = await CloudSyncFirstActivationAnalyzer.fetchExistingCloudRecords(container: container)
+        let (tags, folders, fetchFailed, missingQueryableIndex) = await CloudSyncFirstActivationAnalyzer.fetchExistingCloudRecords(container: container)
+        checkFailed = fetchFailed
+        checkFailedIsMissingIndex = missingQueryableIndex
 
         guard let feedivoDatabase else {
             isLoading = false

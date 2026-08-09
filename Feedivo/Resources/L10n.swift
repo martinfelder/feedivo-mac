@@ -542,7 +542,24 @@ enum L10n {
     // Erst-Aktivierungs-Merge-Dialog (Phase 3, Task 14) — Sheet vor dem allerersten
     // CloudSyncEngine.start(), siehe Design-Spec Abschnitt 6.
     static let firstActivationTitle = LocalizedStringKey("sync.firstActivation.title")
+    /// Verbesserung nach Nutzer-Feedback: immer sichtbarer Hinweis, WAS der Erst-Aktivierungs-
+    /// Dialog eigentlich prüft (nur Tags/Ordner) — der Dialog sagte das bisher nirgends, "keine
+    /// Duplikate gefunden" konnte fälschlich als "alles wurde geprüft" gelesen werden.
+    static let firstActivationScopeNote = LocalizedStringKey("sync.firstActivation.scopeNote")
     static let firstActivationNoCollisions = LocalizedStringKey("sync.firstActivation.noCollisions")
+    /// Verbesserung nach Nutzer-Feedback: `CloudSyncFirstActivationAnalyzer.fetchExistingCloudRecords`
+    /// lieferte bei einem CloudKit-Fehlschlag bisher leere Arrays, wodurch der Dialog denselben
+    /// Text wie bei einer erfolgreichen "keine Duplikate"-Prüfung zeigte — nicht mehr
+    /// unterscheidbar für den Nutzer. Dieser Text ersetzt `firstActivationNoCollisions` in genau
+    /// diesem Fall.
+    static let firstActivationCheckFailed = LocalizedStringKey("sync.firstActivation.checkFailed")
+    /// Zweiter Bugfix (Nutzer-Report 2026-08-08): der generische `firstActivationCheckFailed`-
+    /// Text traf den tatsächlichen, per Live-Log verifizierten Fehler ("Field 'recordName' is not
+    /// marked queryable" — fehlender CloudKit-Schema-Index) nicht — klang nach Netzwerkproblem,
+    /// obwohl es ein einmaliges Schema-Konfigurationsproblem im CloudKit Dashboard ist. Dieser
+    /// Text ersetzt `firstActivationCheckFailed` genau in diesem Fall (siehe
+    /// `CloudSyncFirstActivationAnalyzer.isMissingQueryableIndexError`).
+    static let firstActivationCheckFailedMissingIndex = LocalizedStringKey("sync.firstActivation.checkFailedMissingIndex")
     static let firstActivationContinue = LocalizedStringKey("sync.firstActivation.continue")
     static let firstActivationMerge = LocalizedStringKey("sync.firstActivation.merge")
     static let firstActivationKeepBoth = LocalizedStringKey("sync.firstActivation.keepBoth")

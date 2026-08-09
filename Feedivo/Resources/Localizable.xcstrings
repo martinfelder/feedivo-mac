@@ -33520,6 +33520,64 @@
         }
       }
     },
+    "sync.firstActivation.checkFailed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prüfung auf Duplikate war nicht möglich (z. B. kein Netzwerk). Die Synchronisierung wird trotzdem fortgesetzt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Duplicate check could not run (e.g. no network). Sync will continue anyway."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La vérification des doublons n'a pas pu être effectuée (par ex. pas de réseau). La synchronisation continue quand même."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non è stato possibile eseguire il controllo dei duplicati (ad es. nessuna rete). La sincronizzazione continuerà comunque."
+          }
+        }
+      }
+    },
+    "sync.firstActivation.checkFailedMissingIndex" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prüfung nicht möglich: Im CloudKit-Schema fehlt ein Queryable-Index auf „Record Name“ für Tags/Ordner. Im CloudKit Dashboard unter Schema → Tag/FeedFolder → Indexes ergänzen. Die Synchronisierung wird trotzdem fortgesetzt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check not possible: the CloudKit schema is missing a queryable index on “Record Name” for tags/folders. Add it in the CloudKit Dashboard under Schema → Tag/FeedFolder → Indexes. Sync will continue anyway."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vérification impossible : le schéma CloudKit ne dispose pas d'un index interrogeable sur « Record Name » pour les tags/dossiers. Ajoutez-le dans le CloudKit Dashboard sous Schema → Tag/FeedFolder → Indexes. La synchronisation continue quand même."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verifica non possibile: nello schema CloudKit manca un indice interrogabile su “Record Name” per tag/cartelle. Aggiungilo nel CloudKit Dashboard in Schema → Tag/FeedFolder → Indexes. La sincronizzazione continuerà comunque."
+          }
+        }
+      }
+    },
     "sync.firstActivation.continue" : {
       "localizations" : {
         "de" : {
@@ -33657,6 +33715,35 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nessun duplicato trovato — la sincronizzazione può iniziare."
+          }
+        }
+      }
+    },
+    "sync.firstActivation.scopeNote" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geprüft werden Namenskonflikte bei Tags und Ordnern mit bereits vorhandenen iCloud-Daten."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checks for name conflicts between tags and folders and data already in iCloud."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vérifie les conflits de noms entre les tags et les dossiers avec les données déjà présentes dans iCloud."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verifica i conflitti di nome tra tag e cartelle con i dati già presenti in iCloud."
           }
         }
       }

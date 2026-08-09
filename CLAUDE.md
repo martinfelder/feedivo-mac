@@ -385,6 +385,60 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
 
 > Diese Liste wächst während der Entwicklung. Immer ergänzen!
 
+- **„Field 'recordName' is not marked queryable" ist NICHT nur eine Dashboard-Records-Browser-
+  Eigenheit — der Fehler tritt auch bei echten `CKQuery`-Aufrufen aus App-Code auf, wenn im
+  CloudKit-Schema für den betroffenen Record-Type kein Queryable-Index auf dem Systemfeld
+  `recordName` gesetzt ist:** Bisher (siehe die beiden Live-Verifikations-Einträge vom
+  2026-07-24/26 weiter unten) war dieser exakte Fehlertext nur beim manuellen Nachschauen im
+  CloudKit-Dashboard-Records-Browser aufgetreten und wurde dort korrekt als reine
+  Tooling-Eigenheit eingeordnet (Queryable-Index muss erst per „Deploy Schema Changes…"
+  propagiert werden, bevor der Browser zuverlässig Treffer findet). Beim Erst-Aktivierungs-
+  Dialog (`CloudSyncFirstActivationView`/`-Analyzer`) zeigte sich am 2026-08-08 per
+  Nutzer-Report + `/usr/bin/log stream`-Live-Diagnose: derselbe Fehler tritt auch bei einem
+  ganz gewöhnlichen `CKQuery(recordType:predicate: NSPredicate(value: true))`-Aufruf
+  (`database.records(matching:inZoneWith:)`) aus echtem App-Code auf, wirft dabei
+  `CKError.invalidArguments` und lässt die Abfrage komplett scheitern — kein Browser-Rendering-
+  Problem, sondern ein reales, für App-seitige Queries wirksames Schema-Konfigurationsdefizit.
+  Root Cause: für die Record-Types „Tag"/„FeedFolder" fehlt im CloudKit-Schema (Development-
+  Umgebung) ein Queryable-Index auf `recordName` — muss einmalig manuell im CloudKit Dashboard
+  ergänzt werden (Schema → Record Type → Indexes → „Record Name" als Queryable hinzufügen),
+  vor einem Live-Release zusätzlich per „Deploy Schema Changes" auf Production übertragen. Kein
+  Code-Fix möglich, kein `cktool` auf diesem Rechner installiert (`which cktool` → not found),
+  also nur über die Dashboard-UI behebbar. **Lehre:** Bei künftigen CloudKit-Query-Fehlern mit
+  genau diesem Fehlertext nicht vorschnell als "nur Dashboard-Anzeige-Eigenheit" abtun — echte
+  App-Queries können denselben fehlenden Index genauso treffen. `CloudSyncFirstActivationAnalyzer.
+  isMissingQueryableIndexError(_:)` erkennt den Fehler jetzt gezielt und zeigt eine actionable
+  Meldung statt einer generischen "Prüfung fehlgeschlagen (Netzwerk?)"-Warnung. **Live-
+  Verifikation (2026-08-08):** Fix bestätigt — der „Add Index"-Dialog im aktuellen CloudKit
+  Dashboard hat 4 Felder (nicht 3, wie zunächst vermutet): „Record Type" (Dropdown, z. B. „Tag"),
+  „Name" (freier Text, reine Bezeichnung des Index selbst — nicht der indizierte Feldname), „Type"
+  (Dropdown, hier „QUERYABLE" wählen), und erst NACH Auswahl von „Type" erscheint ein viertes
+  Feld „Field" (Dropdown mit den tatsächlichen Feldern des Record-Type, u. a. den Systemfeldern
+  `createdTimestamp`/`modifiedTimestamp`/`recordName` sowie den eigenen Feldern wie `name`/
+  `colorHex`/`sortIndex`) — dort `recordName` auswählen. Für „Tag" UND „FeedFolder" je einen
+  solchen Index ergänzt, direkt danach zeigte der Dialog in der App keine Fehlermeldung mehr.
+- **`xcodebuild test -only-testing:...` kann nach einer reinen Testdatei-Änderung (neue Test-
+  Methode, kein Produktivcode geändert) den ALTEN, gecachten Test-Bundle ohne jeden Rebuild-
+  Versuch wiederverwenden und trotzdem „TEST SUCCEEDED" melden — mit der VORHERIGEN Testanzahl,
+  ohne die neuen Tests überhaupt auszuführen, und OHNE jede Fehlermeldung, selbst wenn der neue
+  Testcode gar nicht kompilieren würde:** Beim TDD-RED-Schritt für
+  `CloudSyncFirstActivationAnalyzer.isMissingQueryableIndexError` (2026-08-08) meldete ein
+  direkt nach dem Hinzufügen der (bewusst noch fehlschlagenden) Tests ausgeführtes
+  `xcodebuild test -only-testing:...` fälschlich „TEST SUCCEEDED" mit der alten Testanzahl (9
+  statt der erwarteten 12) — keine Compile-Fehler im Log, keine Erwähnung der geänderten
+  Testdatei im Build-Log überhaupt (kein `SwiftCompile`-Eintrag dafür). Reproduzierbar über zwei
+  aufeinanderfolgende identische Aufrufe. Erst `xcodebuild clean` gefolgt von
+  `build-for-testing` deckte den tatsächlichen, erwarteten Compile-Fehler auf
+  (`has no member 'isMissingQueryableIndexError'`). Nach der eigentlichen Implementierung lief
+  ein normaler (nicht-cleaner) `build-for-testing` dann wieder korrekt und erkannte
+  Änderungen zuverlässig — der Aussetzer trat nur bei diesem einen RED-Schritt auf, Ursache
+  nicht abschließend geklärt (vermutlich ein Timing-/Dateisystem-Event-Problem des neuen
+  Build-Systems, ähnlich der bereits dokumentierten SourceKit-Diagnose-Unzuverlässigkeit, hier
+  aber den tatsächlichen `xcodebuild`-Testlauf selbst betreffend, nicht nur die IDE-Anzeige).
+  **Lehre:** Bei einem verdächtig unveränderten Testergebnis nach einer Testdatei-Änderung
+  (gleiche Testanzahl, keine neuen Tests in der Ausgabe sichtbar) nicht blind auf „TEST
+  SUCCEEDED" vertrauen — mit `xcodebuild clean` + `build-for-testing` gegenprüfen, bevor man
+  eine RED-Bestätigung oder ein GREEN-Ergebnis als echt akzeptiert.
 - **Sparkle-Updates NIEMALS aus einer von Xcode gestarteten/debuggten App testen —
   weder Debug- noch ein einfacher lokaler Release-Build genügen:** Live-Debugging
   (2026-08-01/02) zeigte per `codesign -dv`: bei einem via Xcode gestarteten Build

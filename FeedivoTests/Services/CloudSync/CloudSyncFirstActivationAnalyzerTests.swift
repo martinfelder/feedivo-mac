@@ -94,4 +94,48 @@ struct CloudSyncFirstActivationAnalyzerTests {
 
         #expect(collisions.isEmpty)
     }
+
+    // Bugfix (Nutzer-Report 2026-08-08): der Erst-Aktivierungs-Dialog zeigte "Prüfung nicht
+    // möglich" trotz vorhandener Netzwerkverbindung. Root Cause: die FeedivoZone wird erst in
+    // CloudSyncEngine.start() angelegt (siehe CloudSyncEngine.swift:122-125), dieser Dialog
+    // fragt aber bewusst VOR start() ab — bei der allerersten Aktivierung existiert die Zone auf
+    // dem Server deshalb noch nicht, ein CKQuery dagegen wirft CKError.zoneNotFound. Das ist kein
+    // echter Fehlschlag (es bedeutet nur "keine Cloud-Daten vorhanden"), muss also von einem
+    // echten Fehlschlag (z. B. Netzwerk) unterscheidbar sein.
+    @Test func isMissingZoneErrorErkenntZoneNotFound() {
+        let error = CKError(.zoneNotFound)
+        #expect(CloudSyncFirstActivationAnalyzer.isMissingZoneError(error))
+    }
+
+    @Test func isMissingZoneErrorLehntEchteNetzwerkfehlerAb() {
+        let error = CKError(.networkUnavailable)
+        #expect(!CloudSyncFirstActivationAnalyzer.isMissingZoneError(error))
+    }
+
+    @Test func isMissingZoneErrorLehntNichtCKErrorsAb() {
+        struct DummyError: Error {}
+        #expect(!CloudSyncFirstActivationAnalyzer.isMissingZoneError(DummyError()))
+    }
+
+    // Zweiter Bugfix (Live-Log-Nachweis 2026-08-08, /usr/bin/log stream): die zoneNotFound-
+    // Behandlung allein löste das Nutzer-Report-Symptom NICHT — der tatsächliche Fehler war
+    // "Field 'recordName' is not marked queryable" (CKError.invalidArguments), weil im CloudKit-
+    // Schema für "Tag"/"FeedFolder" kein Queryable-Index auf recordName gesetzt ist. Anders als
+    // zoneNotFound darf das NICHT automatisch als Erfolg behandelt werden (wir könnten echte
+    // Duplikate übersehen) — stattdessen bekommt der Nutzer eine gezielte, actionable Meldung
+    // statt der generischen "Prüfung nicht möglich"-Warnung.
+    @Test func isMissingQueryableIndexErrorErkenntFehlendenIndex() {
+        let error = CKError(.invalidArguments, userInfo: [NSLocalizedDescriptionKey: "Field 'recordName' is not marked queryable"])
+        #expect(CloudSyncFirstActivationAnalyzer.isMissingQueryableIndexError(error))
+    }
+
+    @Test func isMissingQueryableIndexErrorLehntAndereInvalidArgumentsFehlerAb() {
+        let error = CKError(.invalidArguments, userInfo: [NSLocalizedDescriptionKey: "Some other invalid arguments issue"])
+        #expect(!CloudSyncFirstActivationAnalyzer.isMissingQueryableIndexError(error))
+    }
+
+    @Test func isMissingQueryableIndexErrorLehntNichtCKErrorsAb() {
+        struct DummyError: Error {}
+        #expect(!CloudSyncFirstActivationAnalyzer.isMissingQueryableIndexError(DummyError()))
+    }
 }
