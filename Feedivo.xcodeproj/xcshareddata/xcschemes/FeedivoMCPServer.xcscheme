@@ -15,9 +15,9 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "C9CE92562FE5A90700B9C79A"
-               BuildableName = "Feedivo.app"
-               BlueprintName = "Feedivo"
+               BlueprintIdentifier = "C990BC7B302C9BE40022D2F8"
+               BuildableName = "FeedivoMCPServer"
+               BlueprintName = "FeedivoMCPServer"
                ReferencedContainer = "container:Feedivo.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -27,43 +27,13 @@
       buildConfiguration = "Debug"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
-      shouldUseLaunchSchemeArgsEnv = "YES"
-      shouldAutocreateTestPlan = "YES">
-      <Testables>
-         <TestableReference
-            skipped = "NO"
-            parallelizable = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "C9CE92632FE5A90800B9C79A"
-               BuildableName = "FeedivoTests.xctest"
-               BlueprintName = "FeedivoTests"
-               ReferencedContainer = "container:Feedivo.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
-         <TestableReference
-            skipped = "NO"
-            parallelizable = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "C9CE926D2FE5A90800B9C79A"
-               BuildableName = "FeedivoUITests.xctest"
-               BlueprintName = "FeedivoUITests"
-               ReferencedContainer = "container:Feedivo.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
-         <TestableReference
-            skipped = "NO"
-            parallelizable = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "C990BCCF302CA0BE0022D2F8"
-               BuildableName = "FeedivoMCPServerTests.xctest"
-               BlueprintName = "FeedivoMCPServerTests"
-               ReferencedContainer = "container:Feedivo.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
-      </Testables>
+      shouldUseLaunchSchemeArgsEnv = "YES">
+      <TestPlans>
+         <TestPlanReference
+            reference = "container:FeedivoMCPServer.xctestplan"
+            default = "YES">
+         </TestPlanReference>
+      </TestPlans>
    </TestAction>
    <LaunchAction
       buildConfiguration = "Debug"
@@ -75,14 +45,15 @@
       debugDocumentVersioning = "YES"
       debugServiceExtension = "internal"
       allowLocationSimulation = "YES"
+      viewDebuggingEnabled = "No"
       queueDebuggingEnableBacktraceRecording = "Yes">
       <BuildableProductRunnable
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "C9CE92562FE5A90700B9C79A"
-            BuildableName = "Feedivo.app"
-            BlueprintName = "Feedivo"
+            BlueprintIdentifier = "C990BC7B302C9BE40022D2F8"
+            BuildableName = "FeedivoMCPServer"
+            BlueprintName = "FeedivoMCPServer"
             ReferencedContainer = "container:Feedivo.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -97,9 +68,9 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "C9CE92562FE5A90700B9C79A"
-            BuildableName = "Feedivo.app"
-            BlueprintName = "Feedivo"
+            BlueprintIdentifier = "C990BC7B302C9BE40022D2F8"
+            BuildableName = "FeedivoMCPServer"
+            BlueprintName = "FeedivoMCPServer"
             ReferencedContainer = "container:Feedivo.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

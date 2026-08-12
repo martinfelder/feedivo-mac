@@ -1,0 +1,30 @@
+{
+  "configurations" : [
+    {
+      "id" : "887D9778-9AE7-4931-B2C1-05BED550EEB4",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : false,
+    "performanceAntipatternCheckerEnabled" : true,
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:Feedivo.xcodeproj",
+      "identifier" : "C990BC7B302C9BE40022D2F8",
+      "name" : "FeedivoMCPServer"
+    }
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:Feedivo.xcodeproj",
+        "identifier" : "C990BCCF302CA0BE0022D2F8",
+        "name" : "FeedivoMCPServerTests"
+      }
+    }
+  ],
+  "version" : 1
+}
