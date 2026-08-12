@@ -18,13 +18,14 @@ let server = Server(
     )
 )
 
-// Task 10 ergänzt hier einen weiteren Eintrag.
 var availableTools: [Tool] = [
     ListFeedsTool.definition,
     ListFoldersTool.definition,
     ListTagsTool.definition,
     SearchArticlesTool.definition,
     GetArticleTool.definition,
+    ListSmartFoldersTool.definition,
+    GetSmartFolderArticlesTool.definition,
 ]
 
 await server.withMethodHandler(ListTools.self) { _ in
@@ -43,7 +44,10 @@ await server.withMethodHandler(CallTool.self) { params in
         return try SearchArticlesTool.call(database: database, arguments: params.arguments)
     case "get_article":
         return try GetArticleTool.call(database: database, arguments: params.arguments)
-    // Task 10 ergänzt hier einen weiteren case.
+    case "list_smart_folders":
+        return try ListSmartFoldersTool.call(database: database)
+    case "get_smart_folder_articles":
+        return try GetSmartFolderArticlesTool.call(database: database, arguments: params.arguments)
     default:
         return .init(content: [.text("Unbekanntes Tool: \(params.name)")], isError: true)
     }
