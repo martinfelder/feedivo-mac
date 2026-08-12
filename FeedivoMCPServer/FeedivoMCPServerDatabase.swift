@@ -33,24 +33,38 @@ struct FeedivoMCPServerDatabase {
             throw FeedivoMCPServerDatabaseError.databaseFileNotFound(fileURL)
         }
 
-        // Bewusst KEIN `configuration.readonly = true`: SQLite kann eine WAL-Datenbank
-        // nicht read-only öffnen, wenn die zugehörige "-shm"-Datei fehlt — diese Datei
-        // existiert nur, solange mindestens eine offene Verbindung besteht, und
-        // verschwindet z. B. wenn Feedivo komplett beendet wurde. Der zentrale
-        // Anwendungsfall dieses Servers ("funktioniert auch ohne laufende Feedivo-App")
-        // wäre dadurch kaputt. Stattdessen wird eine normale Verbindung geöffnet (kann bei
-        // Bedarf die fehlende "-shm"-Datei anlegen), die Schreibsperre aber zusätzlich hart
-        // auf SQLite-Ebene über `PRAGMA query_only = ON` erzwungen — lehnt jede schreibende
-        // SQL-Anweisung ab, bietet dieselbe Garantie wie `readonly = true`.
+        // Bewusst `configuration.readonly = true` (NICHT nur eine manuell gesetzte
+        // `PRAGMA query_only = ON`): Ein vorheriger Versuch, die Schreibsperre allein über
+        // `configuration.prepareDatabase { PRAGMA query_only = ON }` zu erzwingen, erwies sich
+        // per eigenem Nachbau als wirkungslos — GRDBs `DatabaseQueue.read { … }`/`.write { … }`
+        // verwalten `PRAGMA query_only` intern selbst (`Database.beginReadOnly()`/
+        // `endReadOnly()`, siehe GRDB.swift/GRDB/Core/Database.swift) und setzen es nach JEDEM
+        // `.read`-Block automatisch wieder auf `0` zurück, sobald `configuration.readonly` nicht
+        // gesetzt ist — unabhängig vom eigenen `prepareDatabase`-Hook. Ein späterer `.write`-
+        // Aufruf würde dadurch trotz der eigenen Pragma-Setzung klaglos durchgehen (empirisch
+        // reproduziert: `read` gefolgt von `write` legte tatsächlich eine Tabelle an). Nur
+        // `configuration.readonly = true` liefert echten Schreibschutz, da GRDBs eigene
+        // Read-Only-Verwaltung dann von vornherein gar nicht erst eingreift (`if
+        // configuration.readonly { return }` in `beginReadOnly`/`endReadOnly`) und SQLite die
+        // Verbindung selbst mit `SQLITE_OPEN_READONLY` öffnet.
+        //
+        // `DatabaseQueue` (NICHT `DatabasePool`) mit `readonly = true` öffnet zusätzlich in den
+        // beiden praktisch relevanten Fällen erfolgreich: laufende Feedivo-App (aktives "-wal")
+        // und sauber beendete Feedivo-App (vorhandenes, aber leeres "-wal" — Feedivo nutzt seit
+        // dem DatabasePool-Umstieg im Haupt-Target durchgehend WAL-Modus, das "-wal" wird beim
+        // allerersten Öffnen angelegt und danach nie mehr gelöscht). Nur ein komplett fehlendes
+        // "-wal" (kein Feedivo-Datenbank-Zustand, der durch normalen Betrieb entsteht) würde
+        // hier noch scheitern — `DatabasePool` bräuchte dafür ohnehin einen Schreibzugriff beim
+        // WAL-Setup, den `readonly = true` grundsätzlich verbietet. Die Pool-Parallelität von
+        // `DatabasePool` wird für einen rein lesenden, single-connection MCP-Server ohnehin
+        // nicht gebraucht.
         var configuration = Configuration()
         configuration.busyMode = .timeout(5)
-        configuration.prepareDatabase { db in
-            try db.execute(sql: "PRAGMA query_only = ON")
-        }
+        configuration.readonly = true
 
         do {
-            let pool = try DatabasePool(path: fileURL.path, configuration: configuration)
-            return FeedivoMCPServerDatabase(core: FeedivoDatabase(writer: pool))
+            let queue = try DatabaseQueue(path: fileURL.path, configuration: configuration)
+            return FeedivoMCPServerDatabase(core: FeedivoDatabase(writer: queue))
         } catch {
             throw FeedivoMCPServerDatabaseError.openFailed(description: "\(error)")
         }
