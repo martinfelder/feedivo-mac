@@ -29,7 +29,7 @@ enum GetSmartFolderArticlesTool {
         let results = try timeline.articles(
             scope: .smartFolder(snapshot),
             includeRead: true,
-            includeHidden: false,
+            includeHidden: snapshot.includesHiddenArticles,
             limit: limit
         )
 
