@@ -9,7 +9,7 @@ enum HTMLPlainTextConverter {
         var text = html
 
         let blockTags = [
-            "</p>", "<br>", "<br/>", "<br />",
+            "<p>", "</p>", "<br>", "<br/>", "<br />",
             "</div>", "</li>", "</h1>", "</h2>", "</h3>", "</h4>", "</h5>", "</h6>",
         ]
         for tag in blockTags {
