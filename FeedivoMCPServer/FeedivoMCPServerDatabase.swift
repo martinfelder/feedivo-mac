@@ -33,9 +33,20 @@ struct FeedivoMCPServerDatabase {
             throw FeedivoMCPServerDatabaseError.databaseFileNotFound(fileURL)
         }
 
+        // Bewusst KEIN `configuration.readonly = true`: SQLite kann eine WAL-Datenbank
+        // nicht read-only öffnen, wenn die zugehörige "-shm"-Datei fehlt — diese Datei
+        // existiert nur, solange mindestens eine offene Verbindung besteht, und
+        // verschwindet z. B. wenn Feedivo komplett beendet wurde. Der zentrale
+        // Anwendungsfall dieses Servers ("funktioniert auch ohne laufende Feedivo-App")
+        // wäre dadurch kaputt. Stattdessen wird eine normale Verbindung geöffnet (kann bei
+        // Bedarf die fehlende "-shm"-Datei anlegen), die Schreibsperre aber zusätzlich hart
+        // auf SQLite-Ebene über `PRAGMA query_only = ON` erzwungen — lehnt jede schreibende
+        // SQL-Anweisung ab, bietet dieselbe Garantie wie `readonly = true`.
         var configuration = Configuration()
-        configuration.readonly = true
         configuration.busyMode = .timeout(5)
+        configuration.prepareDatabase { db in
+            try db.execute(sql: "PRAGMA query_only = ON")
+        }
 
         do {
             let pool = try DatabasePool(path: fileURL.path, configuration: configuration)

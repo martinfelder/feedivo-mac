@@ -18,7 +18,7 @@ let server = Server(
     )
 )
 
-var availableTools: [Tool] = [
+let availableTools: [Tool] = [
     ListFeedsTool.definition,
     ListFoldersTool.definition,
     ListTagsTool.definition,

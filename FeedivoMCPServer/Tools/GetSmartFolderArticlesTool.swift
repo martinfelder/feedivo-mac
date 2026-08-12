@@ -1,4 +1,5 @@
 import MCP
+import Foundation
 
 enum GetSmartFolderArticlesTool {
     static let definition = Tool(
@@ -24,7 +25,9 @@ enum GetSmartFolderArticlesTool {
             return .init(content: [.text("Kein Intelligenter Ordner mit ID \(folderID) gefunden.")], isError: true)
         }
 
-        let limit = arguments?["limit"]?.intValue ?? 50
+        // Obergrenze 200: ein Client könnte sonst z. B. limit: 100000 anfragen und
+        // faktisch die komplette Datenbank in eine einzige Antwort schreiben.
+        let limit = min(arguments?["limit"]?.intValue ?? 50, 200)
         let timeline = TimelineStore(database: database.core)
         let results = try timeline.articles(
             scope: .smartFolder(snapshot),
@@ -37,7 +40,11 @@ enum GetSmartFolderArticlesTool {
             return .init(content: [.text("Keine Artikel in \"\(snapshot.name)\".")], isError: false)
         }
 
-        let lines = results.map { "[\($0.id)] \($0.title) — \($0.feedTitle)" }
+        let dateFormatter = ISO8601DateFormatter()
+        let lines = results.map { article -> String in
+            let dateString = dateFormatter.string(from: article.publishedAt ?? article.arrivedAt)
+            return "[\(article.id)] \(article.title) — \(article.feedTitle) (\(dateString))"
+        }
         return .init(content: [.text(lines.joined(separator: "\n"))], isError: false)
     }
 }

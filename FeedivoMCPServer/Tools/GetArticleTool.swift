@@ -1,4 +1,5 @@
 import MCP
+import Foundation
 
 enum GetArticleTool {
     static let definition = Tool(
@@ -28,10 +29,12 @@ enum GetArticleTool {
 
         let plainContent = HTMLPlainTextConverter.plainText(fromHTML: article.content ?? article.summary ?? "")
         let tagNames = article.tags.map(\.name).joined(separator: ", ")
+        let dateString = ISO8601DateFormatter().string(from: article.publishedAt ?? article.arrivedAt)
 
         let text = """
             Titel: \(article.title)
             Feed: \(article.feedTitle)
+            Datum: \(dateString)
             Link: \(article.link ?? "—")
             Autor: \(article.author ?? "—")
             Tags: \(tagNames.isEmpty ? "—" : tagNames)

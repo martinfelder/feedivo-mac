@@ -28,4 +28,40 @@ struct HTMLPlainTextConverterTests {
         let result = HTMLPlainTextConverter.plainText(fromHTML: html)
         #expect(result == "Eins\n\nZwei")
     }
+
+    @Test("Dekodiert dezimale und hexadezimale numerische Entities")
+    func dekodiertNumerischeEntities() {
+        // &#8217; = RIGHT SINGLE QUOTATION MARK (’), &#8211; = EN DASH (–),
+        // &#x2019; = dieselbe RIGHT SINGLE QUOTATION MARK hexadezimal notiert.
+        let html = "It&#8217;s a test &#8211; really &#x2019;nuff said."
+        let result = HTMLPlainTextConverter.plainText(fromHTML: html)
+        #expect(result == "It’s a test – really ’nuff said.")
+    }
+
+    @Test("Ungültige numerische Entity bleibt unverändert stehen")
+    func ungueltigeNumerischeEntityBleibtUnveraendert() {
+        // Kein gültiges Unicode.Scalar (Surrogate-Halbpaar) — darf nicht abstürzen.
+        let html = "Kaputt: &#xD800; Ende."
+        let result = HTMLPlainTextConverter.plainText(fromHTML: html)
+        #expect(result == "Kaputt: &#xD800; Ende.")
+    }
+
+    @Test("Verschachtelte Entity &amp;lt; wird nicht doppelt dekodiert")
+    func verschachtelteEntityWirdNichtDoppeltDekodiert() {
+        // Korrektes Einzeldurchlauf-Verhalten: &amp;lt; steht für die literale
+        // Zeichenfolge "&lt;" (4 Zeichen), NICHT für "<".
+        let html = "&amp;lt;"
+        let result = HTMLPlainTextConverter.plainText(fromHTML: html)
+        #expect(result == "&lt;")
+    }
+
+    @Test("Numerische Form von &amp; (&#38;) wird nicht zu einer weiteren Entity")
+    func numerischeAmpFormWirdNichtWeiterInterpretiert() {
+        // &#38; dekodiert zu "&", danach folgt literal "amp;" — darf NICHT
+        // nochmal als &amp; interpretiert werden, da die numerische Dekodierung
+        // bereits der letzte Schritt ist.
+        let html = "&#38;amp;"
+        let result = HTMLPlainTextConverter.plainText(fromHTML: html)
+        #expect(result == "&amp;")
+    }
 }
