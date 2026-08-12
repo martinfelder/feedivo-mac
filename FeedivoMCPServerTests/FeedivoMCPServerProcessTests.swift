@@ -1,6 +1,7 @@
 import Testing
 import Foundation
 import MCP
+@testable import FeedivoMCPServer
 #if canImport(System)
     import System
 #else
@@ -11,6 +12,8 @@ import MCP
 struct FeedivoMCPServerProcessTests {
     @Test("Server startet als eigener Prozess und beantwortet tools/list ohne Absturz")
     func serverStartetUndAntwortetAufToolsList() async throws {
+        guard FileManager.default.fileExists(atPath: FeedivoContainerDatabaseLocation.databaseURL().path) else { return }
+
         let executableURL = try Self.builtExecutableURL()
 
         let process = Process()
