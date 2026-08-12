@@ -18,12 +18,13 @@ let server = Server(
     )
 )
 
-// Tasks 9–10 ergänzen hier jeweils einen Eintrag.
+// Task 10 ergänzt hier einen weiteren Eintrag.
 var availableTools: [Tool] = [
     ListFeedsTool.definition,
     ListFoldersTool.definition,
     ListTagsTool.definition,
     SearchArticlesTool.definition,
+    GetArticleTool.definition,
 ]
 
 await server.withMethodHandler(ListTools.self) { _ in
@@ -40,7 +41,9 @@ await server.withMethodHandler(CallTool.self) { params in
         return try ListTagsTool.call(database: database)
     case "search_articles":
         return try SearchArticlesTool.call(database: database, arguments: params.arguments)
-    // Tasks 9–10 ergänzen hier weitere cases.
+    case "get_article":
+        return try GetArticleTool.call(database: database, arguments: params.arguments)
+    // Task 10 ergänzt hier einen weiteren case.
     default:
         return .init(content: [.text("Unbekanntes Tool: \(params.name)")], isError: true)
     }
