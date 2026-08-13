@@ -14,11 +14,19 @@
 		C990BC85302C9DC60022D2F8 /* MCP in Frameworks */ = {isa = PBXBuildFile; productRef = C990BC84302C9DC60022D2F8 /* MCP */; };
 		C990BCDE302CA9CE0022D2F8 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = C990BCDD302CA9CE0022D2F8 /* GRDB */; };
 		C990BD09302CB77C0022D2F8 /* FeedKit in Frameworks */ = {isa = PBXBuildFile; productRef = C990BD08302CB77C0022D2F8 /* FeedKit */; };
+		C990C59A302D70390022D2F8 /* FeedivoMCPServer in Embed MCP Server */ = {isa = PBXBuildFile; fileRef = C990BC7C302C9BE40022D2F8 /* FeedivoMCPServer */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		C994A9432FFF91F900158DF3 /* FeedivoSafariExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = C994A92B2FFF91F900158DF3 /* FeedivoSafariExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
 		C990BCD9302CA3300022D2F8 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = C9CE924F2FE5A90700B9C79A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = C990BC7B302C9BE40022D2F8;
+			remoteInfo = FeedivoMCPServer;
+		};
+		C990C59B302D70680022D2F8 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = C9CE924F2FE5A90700B9C79A /* Project object */;
 			proxyType = 1;
@@ -57,6 +65,17 @@
 			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 1;
+		};
+		C990C599302D6FBF0022D2F8 /* Embed MCP Server */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 6;
+			files = (
+				C990C59A302D70390022D2F8 /* FeedivoMCPServer in Embed MCP Server */,
+			);
+			name = "Embed MCP Server";
+			runOnlyForDeploymentPostprocessing = 0;
 		};
 		C994A9482FFF91F900158DF3 /* Embed Foundation Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
@@ -427,10 +446,12 @@
 				C9CE92542FE5A90700B9C79A /* Frameworks */,
 				C9CE92552FE5A90700B9C79A /* Resources */,
 				C994A9482FFF91F900158DF3 /* Embed Foundation Extensions */,
+				C990C599302D6FBF0022D2F8 /* Embed MCP Server */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				C990C59C302D70680022D2F8 /* PBXTargetDependency */,
 				C994A9422FFF91F900158DF3 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
@@ -643,6 +664,11 @@
 			isa = PBXTargetDependency;
 			target = C990BC7B302C9BE40022D2F8 /* FeedivoMCPServer */;
 			targetProxy = C990BCD9302CA3300022D2F8 /* PBXContainerItemProxy */;
+		};
+		C990C59C302D70680022D2F8 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = C990BC7B302C9BE40022D2F8 /* FeedivoMCPServer */;
+			targetProxy = C990C59B302D70680022D2F8 /* PBXContainerItemProxy */;
 		};
 		C994A9422FFF91F900158DF3 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
