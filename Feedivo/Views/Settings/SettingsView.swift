@@ -1646,17 +1646,13 @@ private struct MCPServerSettingsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             GeneralSettingsSection(label: Text("KI-Zugriff (MCP):")) {
-                Toggle(isOn: $isEnabled) {
+                Toggle(isOn: isEnabledBinding) {
                     Text("MCP-Server aktivieren")
                         .font(.system(size: 13))
                 }
                 .toggleStyle(.checkbox)
                 .tint(Color.settingsBoldAccent)
                 .disabled(!isLoaded)
-                .onChange(of: isEnabled) { _, newValue in
-                    guard isLoaded else { return }
-                    saveEnabled(newValue)
-                }
                 GeneralSettingsHelp(
                     "Erlaubt einer angeschlossenen KI (z. B. Claude Desktop) lesenden Zugriff auf deine Feeds, Ordner, Tags und Artikel (inkl. Gelesen-/Stern-Status) über den Model Context Protocol. Rein lesend — die KI kann nichts ändern. Nach einer Änderung muss der KI-Client (z. B. Claude Desktop) neu gestartet werden, damit sie wirkt."
                 )
@@ -1701,6 +1697,29 @@ private struct MCPServerSettingsView: View {
           }
         }
         """
+    }
+
+    // Custom Binding statt `$isEnabled` + `.onChange(of:)` (Task-3-Review-Fix, 2026-08-14):
+    // `load()` setzt `isEnabled` programmatisch VOR `isLoaded = true`, beides im selben
+    // synchronen Ausführungsschritt (die Store-Methode `isEnabled()` ist nicht suspendierend).
+    // Ein `.onChange(of: isEnabled)`-Handler liest `isLoaded` aber erst beim tatsächlichen
+    // Feuern des Callbacks — also potenziell NACH beiden Zuweisungen, nicht zum Zeitpunkt des
+    // `isEnabled`-Sprungs eingefroren. War der Schalter beim Öffnen bereits aktiviert, hätte
+    // der `guard isLoaded else { return }`-Schutz dadurch nicht zuverlässig gegriffen und
+    // `saveEnabled(true)` wäre unnötig beim reinen Laden aufgerufen worden (harmlos, aber bei
+    // einem transienten DB-Fehler wäre die Fehlermeldung ganz ohne Nutzerinteraktion
+    // aufgeblitzt). Der Setter dieses Bindings feuert dagegen AUSSCHLIESSLICH bei echter
+    // Nutzerinteraktion über den `Toggle` — `load()` schreibt `isEnabled` direkt als
+    // `@State`-Property, nicht über dieses Binding, und löst den Setter deshalb nie aus.
+    private var isEnabledBinding: Binding<Bool> {
+        Binding(
+            get: { isEnabled },
+            set: { newValue in
+                isEnabled = newValue
+                guard isLoaded else { return }
+                saveEnabled(newValue)
+            }
+        )
     }
 
     private func load() async {
