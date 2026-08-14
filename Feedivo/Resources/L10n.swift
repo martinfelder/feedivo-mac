@@ -514,6 +514,13 @@ enum L10n {
     static func settingsSyncResetErrorMessage(reason: String) -> String {
         String.localizedStringWithFormat(String(localized: "settings.sync.reset.errorMessage"), reason)
     }
+    // KI-Zugriff (MCP-Server-Schalter) — neuer Settings-Tab, siehe MCPServerSettingsView.
+    static let settingsMCPServerSectionTitle = LocalizedStringKey("settings.mcpServer.sectionTitle")
+    static let settingsMCPServerToggleTitle = LocalizedStringKey("settings.mcpServer.toggleTitle")
+    static let settingsMCPServerToggleDescription = LocalizedStringKey("settings.mcpServer.toggleDescription")
+    static let settingsMCPServerConnectionRowTitle = LocalizedStringKey("settings.mcpServer.connectionRowTitle")
+    static let settingsMCPServerCopyButton = LocalizedStringKey("settings.mcpServer.copyButton")
+    static let settingsMCPServerSnippetDescription = LocalizedStringKey("settings.mcpServer.snippetDescription")
     // Feld-Ebene-Konfliktauflösung (Phase 3) — Sheet + Badge im Sync-Tab. Dot-Keys bewusst
     // unter "sync.conflicts.*" statt "settings.sync.conflicts.*", da SyncConflictResolutionView
     // ein eigenständiges Sheet ist, keine reine Settings-Tab-Unteransicht (das Badge im

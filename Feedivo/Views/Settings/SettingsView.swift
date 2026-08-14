@@ -1645,17 +1645,15 @@ private struct MCPServerSettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            GeneralSettingsSection(label: Text("KI-Zugriff (MCP):")) {
+            GeneralSettingsSection(label: Text(L10n.settingsMCPServerSectionTitle)) {
                 Toggle(isOn: isEnabledBinding) {
-                    Text("MCP-Server aktivieren")
+                    Text(L10n.settingsMCPServerToggleTitle)
                         .font(.system(size: 13))
                 }
                 .toggleStyle(.checkbox)
                 .tint(Color.settingsBoldAccent)
                 .disabled(!isLoaded)
-                GeneralSettingsHelp(
-                    "Erlaubt einer angeschlossenen KI (z. B. Claude Desktop) lesenden Zugriff auf deine Feeds, Ordner, Tags und Artikel (inkl. Gelesen-/Stern-Status) über den Model Context Protocol. Rein lesend — die KI kann nichts ändern. Nach einer Änderung muss der KI-Client (z. B. Claude Desktop) neu gestartet werden, damit sie wirkt."
-                )
+                GeneralSettingsHelp(L10n.settingsMCPServerToggleDescription)
 
                 if let saveErrorMessage {
                     Text(saveErrorMessage)
@@ -1663,8 +1661,8 @@ private struct MCPServerSettingsView: View {
                         .foregroundStyle(.red)
                 }
 
-                GeneralSettingsRow(title: "Verbindung einrichten") {
-                    Button("Kopieren") {
+                GeneralSettingsRow(title: L10n.settingsMCPServerConnectionRowTitle) {
+                    Button(L10n.settingsMCPServerCopyButton) {
                         copyConfigSnippet()
                     }
                 }
@@ -1675,9 +1673,7 @@ private struct MCPServerSettingsView: View {
                     .padding(8)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                GeneralSettingsHelp(
-                    "Diesen Eintrag in die Konfigurationsdatei deines KI-Clients einfügen (bei Claude Desktop: ~/Library/Application Support/Claude/claude_desktop_config.json)."
-                )
+                GeneralSettingsHelp(L10n.settingsMCPServerSnippetDescription)
             }
         }
         .task {
