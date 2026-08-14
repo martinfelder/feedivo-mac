@@ -571,6 +571,21 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
   (gleiche Testanzahl, keine neuen Tests in der Ausgabe sichtbar) nicht blind auf „TEST
   SUCCEEDED" vertrauen — mit `xcodebuild clean` + `build-for-testing` gegenprüfen, bevor man
   eine RED-Bestätigung oder ein GREEN-Ergebnis als echt akzeptiert.
+- **`xcodebuild test -only-testing:<Target>/<Suite>/<einzelne Testmethode>` (Einzelmethoden-
+  Selektor) kann „TEST SUCCEEDED" melden, obwohl `totalTestCount: 0` ist — ein davon
+  UNABHÄNGIGER Fehlalarm als der oben dokumentierte „stale test bundle"-Gotcha:** Gefunden und
+  von zwei unabhängigen Seiten bestätigt (Task-Implementierer UND Task-Reviewer, jeweils
+  eigener Lauf) beim MCP-Server-Schalter-Feature (2026-08-14, Task 1, Migration v31). Der
+  Aufruf `xcodebuild test -only-testing:FeedivoTests/FeedivoDatabaseMigratorTests/
+  migrationV31...` liefert `** TEST SUCCEEDED **`, aber `xcrun xcresulttool get test-results
+  summary` auf das erzeugte `.xcresult`-Bundle zeigt `"totalTestCount" : 0` — der einzelne Test
+  lief in Wirklichkeit gar nicht. Der volle Suiten-Selektor
+  (`-only-testing:FeedivoTests/FeedivoDatabaseMigratorTests`, ohne die letzte Methoden-Ebene)
+  funktioniert dagegen zuverlässig korrekt. **Lehre:** Bei einem `-only-testing`-Aufruf mit
+  Einzelmethoden-Granularität IMMER zusätzlich `xcrun xcresulttool get test-results summary`
+  auf das `.xcresult`-Bundle prüfen (oder direkt den vollen Suiten-Selektor verwenden) — ein
+  bloßes „TEST SUCCEEDED" allein ist bei dieser Granularität kein verlässlicher Nachweis, dass
+  überhaupt ein Test gelaufen ist.
 - **Sparkle-Updates NIEMALS aus einer von Xcode gestarteten/debuggten App testen —
   weder Debug- noch ein einfacher lokaler Release-Build genügen:** Live-Debugging
   (2026-08-01/02) zeigte per `codesign -dv`: bei einem via Xcode gestarteten Build
