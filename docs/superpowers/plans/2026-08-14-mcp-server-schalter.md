@@ -113,7 +113,7 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 - Consumes: `FeedivoDatabase.inMemoryForTests() throws -> FeedivoDatabase` (Testfixture), `FeedivoDatabase.read`/`.write` (bestehendes Muster, siehe `Feedivo/Stores/FeedLogStore.swift`)
 - Produces: `MCPServerSettingsStore(database: FeedivoDatabase)`, `.isEnabled() throws -> Bool`, `.setEnabled(_ isEnabled: Bool) throws` — wird von Task 3 (Settings-UI) und Task 4 (Server-Flag-Prüfung) konsumiert.
 
-- [ ] **Step 1: Fehlschlagenden Test schreiben**
+- [x] **Step 1: Fehlschlagenden Test schreiben**
 
 ```swift
 import Testing
@@ -144,12 +144,12 @@ struct MCPServerSettingsStoreTests {
 }
 ```
 
-- [ ] **Step 2: Test ausführen, Fehlschlag verifizieren**
+- [x] **Step 2: Test ausführen, Fehlschlag verifizieren**
 
 Run: `xcodebuild -project Feedivo.xcodeproj -scheme Feedivo -destination 'platform=macOS' test -only-testing:FeedivoTests/MCPServerSettingsStoreTests`
 Expected: FAIL mit „cannot find 'MCPServerSettingsStore' in scope"
 
-- [ ] **Step 3: Implementierung schreiben**
+- [x] **Step 3: Implementierung schreiben**
 
 ```swift
 import Foundation
@@ -176,12 +176,12 @@ struct MCPServerSettingsStore {
 }
 ```
 
-- [ ] **Step 4: Test erneut ausführen, Erfolg verifizieren**
+- [x] **Step 4: Test erneut ausführen, Erfolg verifizieren**
 
 Run: `xcodebuild -project Feedivo.xcodeproj -scheme Feedivo -destination 'platform=macOS' test -only-testing:FeedivoTests/MCPServerSettingsStoreTests`
 Expected: `TEST SUCCEEDED`, beide Tests grün
 
-- [ ] **Step 5 [MANUELL — erfordert Xcode-GUI]: Target Membership für `FeedivoMCPServer` ergänzen**
+- [x] **Step 5 [MANUELL — erfordert Xcode-GUI]: Target Membership für `FeedivoMCPServer` ergänzen** (committed: `af9a8a2`)
 
 Neue Dateien unter `Feedivo/Stores/` bekommen KEINE automatische `FeedivoMCPServer`-Target-Membership (anders als Dateien direkt unter `FeedivoMCPServer/`). Task 4 braucht `MCPServerSettingsStore` aber auch im Server-Target.
 
@@ -195,7 +195,7 @@ xcodebuild -project Feedivo.xcodeproj -scheme FeedivoMCPServer -configuration De
 
 Expected: `BUILD SUCCEEDED` (schlägt vor dem Ergänzen der Target Membership mit „cannot find type 'MCPServerSettingsStore' in scope" fehl, sobald Task 4 den Typ referenziert — an dieser Stelle in Task 2 baut `FeedivoMCPServer` noch unverändert durch, da der Typ noch nirgends im Server-Target aufgerufen wird; die Membership trotzdem jetzt schon ergänzen, damit Task 4 nicht erneut zu Xcode wechseln muss).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit** (committed: `edf4999`)
 
 ```bash
 git add Feedivo/Stores/MCPServerSettingsStore.swift FeedivoTests/Stores/MCPServerSettingsStoreTests.swift
