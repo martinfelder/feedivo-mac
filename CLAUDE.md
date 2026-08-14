@@ -56,6 +56,7 @@ anfühlt — kein iOS-Port, keine Electron-App. Echtes AppKit-Feeling via SwiftU
 | Artikel-Rendering | Nativer SwiftUI-Renderer (`ReaderContentRenderer`) **und** `WKWebView` (`WebContentView`) | Native Ansicht für den Lesefluss, WKWebView für "Originalartikel" |
 | Background Refresh | `NSBackgroundActivityScheduler` (`SystemBackgroundActivityRefreshScheduler`) | Kein `BGTaskScheduler` (das ist iOS-fokussiert) |
 | App-Update | Sparkle 2.x (Swift Package, `SparkleUpdateCoordinator`) | Ersetzt seit 2026-07-31 den kompletten Eigenbau-Installer (siehe ADR-009) — Grund war ein reproduzierter App-Sandbox-Root-Cause-Fund, kein reiner Komfort-Umstieg. Appcast unter `docs/appcast.xml`, ausgeliefert über `https://raw.githubusercontent.com/martinfelder/feedivo-mac/main/docs/appcast.xml`. Zusätzlicher Vertriebskanal: Homebrew Cask (`martinfelder/homebrew-feedivo`, `Casks/feedivo.rb`) — bei einer per Cask erkannten Installation (`HomebrewInstallationDetector`) wird bewusst gar kein `SPUUpdater` erzeugt, Updates laufen dort ausschließlich über `brew upgrade`. **Seit 2026-08-02 (ADR-010) nutzt `SparkleUpdateCoordinator` Sparkles eigenen `SPUStandardUserDriver` statt einer komplett selbstgebauten `SPUUserDriver`-Konformität** — derselbe erste, echte End-to-End-Update-Zyklus (Developer-ID-signiert, notarisiert, gestapelt, Download→Installation→Neustart) ist damit live verifiziert erfolgreich. `create_github_release.sh` signiert seit demselben Datum mit "Developer ID Application" (`method: developer-id`-Export) statt "Apple Development" und notarisiert/staplet jeden Release automatisch (App-Store-Connect-API-Key, nicht `--keychain-profile`). Details siehe ADR-009, ADR-010 und die neuen Gotchas zu Notarisierung/Signing sowie „Aktuell in Arbeit" unten |
+| MCP-Anbindung | `FeedivoMCPServer` (separates Command-Line-Tool-Target, `modelcontextprotocol/swift-sdk`, stdio) | Seit 2026-08-14 (v1, read-only, 7 Tools): eigenes Xcode-Target `FeedivoMCPServer` teilt sich per Target Membership Quellcode mit dem Haupt-Target (kein separates Swift Package), öffnet die produktive SQLite-DB direkt und unabhängig davon, ob die Feedivo-App läuft. Ins `Feedivo.app`-Bundle eingebettet (Copy-Files-Phase, Destination „Executables", Code Sign On Copy). Details siehe ADR-011 und der neue Gotcha zu GRDBs `PRAGMA query_only`-Verhalten unten |
 | Mindest-macOS | macOS 14.0 Sonoma | `@Observable` Macro + moderne SwiftUI-APIs (NavigationSplitView, `.commands`, `WindowGroup(for:)`) |
 
 ---
@@ -149,6 +150,20 @@ FeedivoMac/
 │                                        # Extensions/, Models/, Snapshots/, Stores/, Services/
 │                                        # inkl. Services/CloudSync/, ViewModels/, Views/) - seit
 │                                        # 2026-07-28 (vorher komplett flach)
+├── FeedivoMCPServer/                    # Command-Line-Tool-Target: read-only MCP-Server (stdio,
+│                                        # modelcontextprotocol/swift-sdk), teilt sich Quellcode mit
+│                                        # Feedivo/ per Xcode Target Membership statt eigenem Package.
+│                                        # FeedivoMCPServerDatabase.swift (readonly-DatabaseQueue-Öffnen,
+│                                        # siehe ADR-011 + Gotcha zu PRAGMA query_only unten),
+│                                        # FeedivoContainerDatabaseLocation.swift (DB-Pfad im App-
+│                                        # Sandbox-Container aus einem unsandboxed Prozess heraus),
+│                                        # HTMLPlainTextConverter.swift, main.swift (Bootstrap),
+│                                        # Tools/ (list_feeds, list_folders, list_tags, search_articles,
+│                                        # get_article, list_smart_folders, get_smart_folder_articles)
+├── FeedivoMCPServerTests/               # Swift-Testing-Suiten für FeedivoMCPServer — NICHT per
+│                                        # `xcodebuild test` ausführbar (TEST_HOST-Limitation bei
+│                                        # Command-Line-Tool-Targets, siehe Gotcha unten), nur
+│                                        # build-verifiziert + per Live-stdio-Smoke-Test abgesichert
 ├── Feedivo.xcodeproj
 ├── scripts/                            # Repo-Automatisierung (Versionierung/Release) + l10n/
 ├── docs/                               # Design-Prototypen/-Handoffs, superpowers-Plans/Specs
@@ -379,11 +394,128 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
   hinterfragen"-Prinzip.
 - **Datum:** 2026-08-02.
 
+### ADR-011: Read-only MCP-Server als separates Command-Line-Tool-Target (kein eigenes Package)
+- **Entscheidung:** `FeedivoMCPServer` ist ein eigenes, neu angelegtes Xcode-Target vom Typ
+  `com.apple.product-type.tool` (Command-Line-Tool) — **kein** separates Swift Package. Es teilt
+  sich seinen gesamten benötigten Quellcode (Records, Stores, Snapshots, `FeedivoDatabase`) über
+  Xcode-Target-Membership mit dem Haupt-Target `Feedivo`, statt eine eigene Modul-Grenze/eigenen
+  Package-Manifest-Baum zu pflegen. Kommunikation läuft über stdio-Transport des offiziellen
+  `modelcontextprotocol/swift-sdk` (Produkt `MCP`). Der Server verbindet sich direkt und
+  eigenständig mit der bereits vorhandenen SQLite-Datenbank im App-Sandbox-Container von Feedivo
+  (`FeedivoContainerDatabaseLocation.swift` rekonstruiert den Container-Pfad manuell, da ein
+  unsandboxed Prozess FileManagers automatische Container-Umleitung nicht bekommt) — unabhängig
+  davon, ob die Feedivo-App gerade läuft. Führt bewusst NIE `FeedivoDatabaseMigrator` aus, setzt
+  eine bereits existierende, aktuelle Datenbank voraus. v1 (2026-08-14) ist read-only und
+  umfasst 7 Tools: `list_feeds`, `list_folders`, `list_tags`, `search_articles`, `get_article`,
+  `list_smart_folders`, `get_smart_folder_articles`.
+- **Grund für Target-Membership statt eigenem Package:** Direkter Zugriff auf denselben,
+  bereits etablierten GRDB-Store-/Record-/Snapshot-Code, ohne diesen in eine gemeinsame,
+  eigens zu pflegende Bibliothek extrahieren zu müssen — bei einem reinen Lese-Client, der
+  nie eigenständig weiterentwickelt wird, war der Package-Split-Aufwand (eigenes Manifest,
+  eigene Versionierung, API-Sichtbarkeits-Disziplin) laut Nutzerentscheidung nicht
+  gerechtfertigt. Kehrseite: Target 2 [MANUELL] (das eigentliche Anlegen des Targets in
+  Xcodes GUI, inkl. sukzessivem Ergänzen der Target-Membership für jede fehlende Symbol-
+  Abhängigkeit) und Task 11 [MANUELL] (Einbetten ins App-Bundle per Copy-Files-Build-Phase)
+  konnten nicht automatisiert werden — reine Xcode-Projektdatei-Bearbeitung, vom Nutzer
+  selbst anhand präziser, per Grep identifizierter fehlender Symbole durchgeführt.
+- **Bekannte, akzeptierte Einschränkung:** `xcodebuild test` kann `FeedivoMCPServerTests`
+  strukturell nicht ausführen — Xcodes Build-System akzeptiert `com.apple.product-type.tool`-
+  Targets nicht als gültigen `TEST_HOST` für die `test`-Aktion, unabhängig von der Konfiguration
+  (verifiziert über mehrere unabhängige Diagnosewinkel: Scheme-XML, Test-Plan-JSON, Build-
+  Settings, `PRODUCT_NAME` — kein Fix gefunden, als projektweite Standardgrenze akzeptiert).
+  Nutzerentscheidung: Tests werden als echter Swift-Testing-Quellcode mitgeschrieben und bei
+  jeder Task per `xcodebuild build` kompilierverifiziert, aber nicht laufzeitverifiziert über
+  `xcodebuild test` — Absicherung stattdessen über echte Live-stdio-JSON-RPC-Smoke-Tests
+  (manuell gestarteter, gebauter Prozess + echter `initialize`/`tools/call`-Roundtrip) durch
+  Implementierer und Reviewer.
+- **Umsetzung:** 12-Task-Plan via Brainstorming→Spec→Plan→Subagent-Driven-Development (Tasks
+  1, 3–10 automatisiert; Tasks 2, 11, 12 `[MANUELL]`, vom Nutzer selbst ausgeführt). Finaler
+  Whole-Branch-Review (opus) fand 1 Critical (Haupt-App-Scheme referenzierte versehentlich das
+  Test-Target und brach dadurch `xcodebuild test` für das GESAMTE Hauptprojekt) + 5 Important +
+  3 Minor — alle in einer Fix-Runde behoben. Ein scoped Re-Review dieser Fix-Runde deckte einen
+  weiteren, eigenständigen kritischen Folgefehler auf (siehe neuer Gotcha zu GRDBs
+  `PRAGMA query_only`-Verhalten direkt unten) — nach einer zweiten Fix-/Re-Review-Runde
+  vollständig behoben und unabhängig bestätigt. Live-Verifikation in Claude Desktop (Task 12)
+  erfolgreich, inkl. des entscheidenden Tests „funktioniert auch ohne jeden laufenden
+  Feedivo-Prozess" (sowohl `/Applications`-Instanz als auch eine zusätzlich gefundene,
+  an einen `debugserver` gehängte Xcode-Debug-Build-Instanz beendet, Abfragen liefen
+  weiterhin korrekt). Spec: `docs/superpowers/specs/2026-08-12-feedivo-mcp-server-design.md`,
+  Plan: `docs/superpowers/plans/2026-08-12-feedivo-mcp-server.md`. Commits `4ed7498..ac2a3eb`
+  auf `main`, gepusht (`d586d01..ac2a3eb`).
+- **Datum:** 2026-08-14.
+
 ---
 
 ## Bekannte Gotchas & Fallstricke
 
 > Diese Liste wächst während der Entwicklung. Immer ergänzen!
+
+- **GRDBs `DatabaseQueue`/`DatabasePool` setzen `PRAGMA query_only` bei JEDEM `.read()`-Block
+  intern selbst wieder zurück — eine manuell per `configuration.prepareDatabase` gesetzte
+  `PRAGMA query_only = ON` bietet dadurch KEINEN belastbaren Schreibschutz, sobald
+  `configuration.readonly` nicht gesetzt ist:** Beim `FeedivoMCPServer`-Whole-Branch-Review
+  (2026-08-14, siehe ADR-011) ersetzte ein erster Fix-Versuch das ursprüngliche
+  `configuration.readonly = true` durch `DatabasePool` + manuell gesetzte
+  `PRAGMA query_only = ON` (Begründung: SQLite kann eine WAL-Datenbank nicht read-only öffnen,
+  wenn die zugehörige `-shm`-Datei fehlt — ein Zustand, der eintreten kann, wenn Feedivo
+  komplett beendet ist). Ein Re-Review fand daraufhin einen ersten Bug (`DatabasePool.init`
+  führt beim Öffnen zwingend ein WAL-Setup aus, das bei fehlender/leerer `-wal`-Datei selbst
+  einen Schreibvorgang ausführt, den `PRAGMA query_only` ablehnt — der Server startete dadurch
+  NIE, wenn Feedivo nicht lief, exakt der Fall, den der Fix beheben sollte). Der naheliegende
+  Folgefix (`DatabaseQueue` statt `DatabasePool`, `PRAGMA query_only` beibehalten, vermeidet den
+  WAL-Setup-Schreibzugriff) behob das Öffnungsproblem, enthielt aber einen ZWEITEN,
+  unabhängigen und schwerwiegenderen Bug: GRDBs `Database.beginReadOnly()`/`endReadOnly()`
+  (`GRDB/Core/Database.swift`, aufgerufen aus `DatabaseQueue.read`/`.write`) verwalten
+  `PRAGMA query_only` intern selbst — `beginReadOnly()` setzt es auf `1`, `endReadOnly()` setzt
+  es nach jedem `.read()`-Block automatisch wieder auf `0` zurück, sofern
+  `configuration.readonly == false` (beide Methoden haben ein frühes `if configuration.readonly
+  { return }`, das diesen internen Mechanismus komplett deaktiviert, wenn die Config selbst
+  bereits readonly ist). Empirisch reproduziert (isoliertes SwiftPM-Testharness mit GRDB aus
+  demselben Checkout, echte Kopien der Produktions-DB): ein `queue.read { … }` gefolgt von
+  `queue.write { CREATE TABLE … }` legte tatsächlich eine Tabelle an, obwohl vorher
+  `PRAGMA query_only = ON` per `prepareDatabase` gesetzt worden war — die gesamte Absicherung
+  war wirkungslos, sobald irgendein `.read()` gelaufen war. **Tatsächlicher, korrekter Fix:**
+  `configuration.readonly = true` mit `DatabaseQueue` (NICHT `DatabasePool`) — liefert echten,
+  über `SQLITE_OPEN_READONLY` durchgesetzten Schreibschutz (GRDBs interne Read-Only-Verwaltung
+  greift dann von vornherein gar nicht erst ein) UND öffnet erfolgreich in allen praktisch
+  erreichbaren Zuständen (laufende App mit aktivem `-wal`, sauber beendete App mit leerem,
+  aber vorhandenem `-wal`, sowie — ein beim zweiten Re-Review zusätzlich entdeckter, dritter
+  funktionierender Fall — vorhandenes `-wal` OHNE `-shm`, was die ursprüngliche Prämisse des
+  ersten Fix-Versuchs widerlegt: fehlendes `-shm` allein ist unkritisch, nur ein komplett
+  fehlendes `-wal` scheitert). Ein komplett fehlendes `-wal` ist für Feedivo praktisch
+  unerreichbar, da das Haupt-Target seit dem `DatabasePool`-Umstieg (2026-08-05, siehe unten)
+  durchgehend WAL-Modus nutzt und SQLite die `-wal`/`-shm`-Sidecar-Dateien beim normalen
+  Schließen nicht löscht (empirisch verifiziert: sowohl `close()` als auch reines `deinit`
+  lassen ein 0-Byte-`-wal` zurück). **Lehre:** Bei JEDEM künftigen Versuch, eine GRDB-
+  Datenbankverbindung nachträglich per `PRAGMA query_only` statt über `configuration.readonly`
+  hart auf Lesen zu beschränken, davon ausgehen, dass GRDBs eigene interne Read-Only-Buchhaltung
+  diese manuelle Pragma-Setzung bei jedem regulären `.read()`-Aufruf stillschweigend wieder
+  aufhebt — ein Test, der nur „öffnet die Verbindung erfolgreich" und „ein isolierter
+  `.write()`-Aufruf OHNE vorheriges `.read()` schlägt fehl" prüft, deckt genau diese Lücke
+  NICHT auf (der ursprüngliche Task-4-Test `schreibversucheSchlagenFehl` hätte unter der
+  `query_only`-Variante als Fehlalarm-Grün durchlaufen, da er kein `.read()` vor dem `.write()`
+  ausführt). Nur `configuration.readonly = true` ist als echte, robuste Schreibsperre
+  verifiziert.
+- **`xcodebuild test` kann ein Command-Line-Tool-Target (`com.apple.product-type.tool`) NICHT
+  als `TEST_HOST` für die zugehörige Test-Suite akzeptieren, unabhängig von der Konfiguration —
+  betrifft `FeedivoMCPServerTests`, siehe ADR-011:** Egal wie Scheme (`.xcscheme`-XML), Test-
+  Plan (`.xctestplan`-JSON), Build-Settings oder `PRODUCT_NAME` konfiguriert werden — `xcodebuild
+  test` bricht mit „Could not find test host" ab. Über mehrere unabhängige Diagnosewinkel
+  verifiziert, kein Fix gefunden; als projektweite, strukturelle Xcode-Einschränkung akzeptiert
+  (Entscheidung des Nutzers). Konsequenz für dieses Target: Tests werden weiterhin als echter
+  Swift-Testing-Quellcode geschrieben und bei jeder Änderung per `xcodebuild build` (reine
+  Kompilierverifikation) abgesichert, aber nie per `xcodebuild test` laufzeitverifiziert — echte
+  Laufzeitabsicherung läuft stattdessen über manuell gestartete, echte stdio-JSON-RPC-Smoke-Tests
+  gegen den gebauten Prozess (`initialize`→`notifications/initialized`→`tools/call`), auch gegen
+  die echte, laufende Produktions-Datenbank des Nutzers. **Ein zusätzlich in derselben Session
+  gefundener, davon unabhängiger Bug desselben Symptoms:** `Feedivo.xcscheme` (das Scheme des
+  HAUPT-Targets, nicht von `FeedivoMCPServer`) hatte versehentlich eine `TestableReference` auf
+  `FeedivoMCPServerTests` erhalten — das brach dadurch `xcodebuild test` für das GESAMTE
+  Hauptprojekt (nicht nur den MCP-Server), da dieselbe strukturelle TEST_HOST-Einschränkung dort
+  ebenfalls griff. Fix: `TestableReference` aus `Feedivo.xcscheme` entfernt — bei künftigen
+  „warum bricht `xcodebuild test` für `Feedivo` plötzlich komplett ab"-Fällen als Erstes
+  `git diff -- '*.xcscheme'` prüfen, nicht nur den offensichtlichsten Verdächtigen (das
+  zuletzt geänderte Target selbst).
 
 - **„Field 'recordName' is not marked queryable" ist NICHT nur eine Dashboard-Records-Browser-
   Eigenheit — der Fehler tritt auch bei echten `CKQuery`-Aufrufen aus App-Code auf, wenn im
@@ -1357,6 +1489,8 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   für First-Run-Assistent (`FirstRunTheme`) und Metadaten-Inspector (Feature 19.7)
 - OPML-Import-Dialog auf das "Konzept A"-Designsystem (`RuleDialogTheme`) migriert, visuelle
   Parität mit dem bereits migrierten OPML-Export-Dialog hergestellt
+- Read-only MCP-Server (`FeedivoMCPServer`, 7 Tools) für Zugriff aus Claude Desktop/Claude Code
+  auf die echten Feedivo-Daten, ins App-Bundle eingebettet, siehe ADR-011
 
 ---
 
@@ -1430,6 +1564,40 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 ---
 
 ## Aktuell in Arbeit
+
+- **2026-08-12 bis 2026-08-14: Read-only MCP-Server für Feedivo (v1) — VOLLSTÄNDIG
+  ABGESCHLOSSEN, gepusht, live in Claude Desktop verifiziert.** Neues Command-Line-
+  Tool-Target `FeedivoMCPServer` (stdio-`MCP`-SDK, Target-Membership-Sharing mit dem
+  Haupt-Target statt eigenem Package, siehe ADR-011) — 7 read-only Tools
+  (`list_feeds`, `list_folders`, `list_tags`, `search_articles`, `get_article`,
+  `list_smart_folders`, `get_smart_folder_articles`), funktioniert unabhängig davon,
+  ob Feedivo läuft. Umgesetzt via Brainstorming→Spec→Plan→Subagent-Driven-Development
+  (12 Tasks, davon Tasks 2/11/12 `[MANUELL]` vom Nutzer selbst ausgeführt — Xcode-
+  Target-Membership-Einrichtung per präzisen, vom Controller ermittelten fehlenden
+  Symbolen; Copy-Files-Einbettung ins App-Bundle; Live-Verifikation in Claude Desktop).
+  **Zwei aufeinanderfolgende, jeweils per Re-Review gefundene Bugs in der finalen
+  Fix-Runde des Whole-Branch-Reviews, beide behoben und unabhängig bestätigt:** (1)
+  ein Critical-Fund brach versehentlich `xcodebuild test` für das GESAMTE
+  Hauptprojekt (`Feedivo.xcscheme` referenzierte fälschlich `FeedivoMCPServerTests`);
+  (2) der ursprüngliche Fix für „Server öffnet auch ohne laufende Feedivo-App" erwies
+  sich selbst als kaputt (`DatabasePool` + `PRAGMA query_only`), ein Zwischenfix
+  (`DatabaseQueue` + `PRAGMA query_only`) als wirkungslos für echten Schreibschutz —
+  siehe der neue, ausführliche Gotcha zu GRDBs `PRAGMA query_only`-Reset-Verhalten
+  weiter unten. Finaler, korrekter Fix: `configuration.readonly = true` mit
+  `DatabaseQueue`. **Live-Verifikation (Task 12) durch den Nutzer UND parallel
+  unabhängig durch den Controller über dieselben MCP-Tools:** echte, aktuelle
+  Artikel korrekt zurückgegeben, sauberer Klartext statt rohem HTML, korrektes
+  Datum. Entscheidender Test bestanden: sowohl die produktive `/Applications`-
+  Instanz als auch eine zusätzlich beim Gegenchecken entdeckte, an einen
+  `debugserver`/LLDB gehängte Xcode-Debug-Build-Instanz (ignorierte normales Beenden
+  und `SIGTERM`, nur per Kill des `debugserver`-Prozesses selbst lösbar) vollständig
+  beendet — Abfragen funktionierten weiterhin fehlerfrei. Bekannte, akzeptierte
+  Einschränkung: `xcodebuild test` kann Command-Line-Tool-Targets strukturell nicht
+  als `TEST_HOST` verwenden — Tests existieren als echter, kompilierverifizierter
+  Swift-Testing-Quellcode, laufzeitverifiziert stattdessen über echte stdio-Smoke-
+  Tests (siehe Gotchas). Spec: `docs/superpowers/specs/2026-08-12-feedivo-mcp-
+  server-design.md`, Plan: `docs/superpowers/plans/2026-08-12-feedivo-mcp-server.md`.
+  Commits `4ed7498..ac2a3eb` auf `main`, gepusht (`d586d01..ac2a3eb`).
 
 - **2026-08-05: Feed-Status-Fenster als dichte Tabelle mit sichtbaren Aktionen —
   VOLLSTÄNDIG ABGESCHLOSSEN (4 Tasks + Whole-Branch-Review-Fix-Welle, alle clean
@@ -3278,6 +3446,9 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Letzte Änderungen
 
+- 2026-08-14: Read-only MCP-Server für Feedivo (v1, 7 Tools) — vollständige Details
+  siehe „Aktuell in Arbeit" und ADR-011 oben, hier nicht dupliziert. Commits
+  `4ed7498..ac2a3eb` auf `main`, gepusht (`d586d01..ac2a3eb`).
 - 2026-08-04: Netzwerk-basierte Bild-Anreicherung deaktiviert (Nutzerentscheidung, minimaler
   Umfang). Die erst im Verlauf desselben Tages gebaute Bild-Anreicherung
   (`FeedService.enrichArticleImagesIfNeeded` — ruft bei fehlendem RSS-eigenem Bild die
