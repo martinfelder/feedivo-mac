@@ -1505,7 +1505,7 @@ find ~/Library/Developer/Xcode/DerivedData -path "*/Feedivo.app/Contents/MacOS/F
 6. **Wichtiger Test:** Feedivo komplett beenden (⌘Q), die obigen Fragen erneut stellen — die Abfragen sollten weiterhin funktionieren (read-only Zugriff funktioniert auch ohne laufende App).
 7. **Wichtiger Test:** Feedivo wieder öffnen, während Claude Desktop weiterhin verbunden ist, eine Abfrage stellen — sollte weiterhin funktionieren (paralleler Lesezugriff neben einer laufenden App, dank WAL-Modus).
 
-- [ ] **Nutzer bestätigt:** Alle 7 Schritte durchgeführt, Ergebnisse stimmen mit dem tatsächlichen Feedivo-Inhalt überein, funktioniert sowohl bei laufender als auch bei beendeter App.
+- [x] **Nutzer bestätigt:** Alle 7 Schritte durchgeführt, Ergebnisse stimmen mit dem tatsächlichen Feedivo-Inhalt überein, funktioniert sowohl bei laufender als auch bei beendeter App (zusätzlich vom Koordinator unabhängig gegengeprüft, inkl. Beenden einer zweiten, an einen Xcode-Debugserver gehängten Feedivo-Instanz).
 
 ---
 
