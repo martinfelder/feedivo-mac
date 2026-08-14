@@ -23,4 +23,28 @@ struct MCPServerSettingsStoreTests {
         try store.setEnabled(false)
         #expect(try store.isEnabled() == false)
     }
+
+    @Test("Fehlende Tabelle wird fail-closed als false behandelt")
+    func fehlendeTabelleWirdFailClosedAlsFalseBehandelt() throws {
+        // Simuliert eine Datenbank, die nur bis vor Migration v31 migriert wurde
+        // (z. B. weil Feedivo seit dem Update auf diese Version noch nicht
+        // gestartet wurde) — die Store-Methode darf dabei NICHT crashen und
+        // NICHT true zurückgeben.
+        //
+        // Gespiegelt aus FeedivoMCPServerTests/MCPServerAccessGateTests.swift
+        // (identischer Test gegen MCPServerSettingsStore aus dem
+        // FeedivoMCPServer-Target) — das FeedivoMCPServerTests-Target kann in
+        // diesem Projekt strukturell nie per `xcodebuild test` ausgeführt
+        // werden ("Could not find test host" bei Command-Line-Tool-Targets),
+        // dieser Test hier läuft dagegen ganz normal über das Haupt-App-
+        // Test-Target und verifiziert damit dasselbe sicherheitskritische
+        // Fail-Closed-Verhalten tatsächlich zur Laufzeit.
+        let queue = try DatabaseQueue()
+        try FeedivoDatabaseMigrator.migrator.migrate(queue, upTo: "v30_backfill_article_estimated_reading_minutes")
+        let database = FeedivoDatabase(writer: queue)
+        let store = MCPServerSettingsStore(database: database)
+
+        let isEnabled = (try? store.isEnabled()) ?? false
+        #expect(isEnabled == false)
+    }
 }
