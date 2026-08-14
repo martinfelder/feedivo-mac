@@ -10,6 +10,17 @@ do {
     exit(1)
 }
 
+let accessSettings = MCPServerSettingsStore(database: database.core)
+let isAccessEnabled = (try? accessSettings.isEnabled()) ?? false
+guard isAccessEnabled else {
+    let message = """
+        Feedivo MCP Server ist deaktiviert. Aktiviere ihn unter \
+        Feedivo → Einstellungen → KI-Zugriff.\n
+        """
+    FileHandle.standardError.write(Data(message.utf8))
+    exit(1)
+}
+
 let server = Server(
     name: "feedivo-mcp-server",
     version: "1.0.0",
