@@ -195,6 +195,7 @@
 				Stores/FeedFolderStore.swift,
 				Stores/FeedLogStore.swift,
 				Stores/FeedStore.swift,
+				Stores/MCPServerSettingsStore.swift,
 				Stores/OrphanedArticleStatusUpdateStore.swift,
 				Stores/PendingSyncConflictStore.swift,
 				Stores/SQLiteRuleEvaluationStore.swift,
