@@ -106,7 +106,7 @@ xcodebuild -project Feedivo.xcodeproj -scheme FeedivoMCPServer -configuration De
 
    Falls Fehler wie `cannot find type 'X' in scope` erscheinen: die betroffene Datei existiert im `Feedivo`-Target, wurde aber in Schritt 5 nicht mit ausgewählt — die fehlende Datei nachträglich per File Inspector → Target Membership ergänzen und erneut bauen. Wiederholen, bis `BUILD SUCCEEDED`.
 
-- [ ] **Nutzer bestätigt:** Alle 8 Schritte durchgeführt, `xcodebuild -scheme FeedivoMCPServer build` liefert `BUILD SUCCEEDED`, `xcodebuild -scheme FeedivoMCPServer -destination 'platform=macOS' test` liefert (mit dem leeren Standard-Test-Template) ebenfalls `TEST SUCCEEDED`.
+- [x] **Nutzer bestätigt:** Alle 8 Schritte durchgeführt, `xcodebuild -scheme FeedivoMCPServer build` liefert `BUILD SUCCEEDED` (committed: `8975d2e`). `xcodebuild test` schlägt strukturell fehl (Command-Line-Tool-Target kein gültiger TEST_HOST) — laut Nutzerentscheid genügt der Build-Erfolg als Abschlusskriterium, siehe SDD-Ledger.
 
 ---
 
