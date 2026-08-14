@@ -12,6 +12,7 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
     case refresh
     case cleanup
     case sync
+    case mcpServer
     case about
 
     var id: String { rawValue }
@@ -38,6 +39,8 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
             "Bereinigung"
         case .sync:
             L10n.settingsSyncSection
+        case .mcpServer:
+            "KI-Zugriff"
         case .about:
             L10n.settingsAboutSection
         }
@@ -65,6 +68,8 @@ private enum SettingsSection: String, CaseIterable, Identifiable {
             "trash"
         case .sync:
             "icloud"
+        case .mcpServer:
+            "sparkles"
         case .about:
             "info.circle"
         }
@@ -86,7 +91,13 @@ struct SettingsView: View {
         // (kein computer-use für native macOS-Apps in dieser Umgebung verfügbar) — falls
         // die Tab-Leiste trotzdem überläuft/Tabs abgeschnitten werden, muss der Wert
         // weiter erhöht werden.
-        static let windowWidth: CGFloat = 960
+        // Erneut verbreitert 960→1040pt für den neuen "KI-Zugriff"-Tab (12. Tab,
+        // 2026-08-14) — dieselbe defensive Anpassung wie bei jedem vorherigen neuen
+        // Tab (640→880→960, siehe Kommentare oben). NICHT live verifiziert (kein
+        // computer-use für native macOS-Apps in dieser Umgebung verfügbar) — falls
+        // die Tab-Leiste trotzdem überläuft/Tabs abgeschnitten werden, muss der Wert
+        // weiter erhöht werden.
+        static let windowWidth: CGFloat = 1040
     }
 
     @State private var selectedSection = SettingsSection.general
@@ -103,6 +114,7 @@ struct SettingsView: View {
             settingsTab(.refresh)
             settingsTab(.cleanup)
             settingsTab(.sync)
+            settingsTab(.mcpServer)
             settingsTab(.about)
         }
         .font(.system(size: 12))
@@ -147,6 +159,8 @@ struct SettingsView: View {
             CleanupSettingsView()
         case .sync:
             SyncSettingsView()
+        case .mcpServer:
+            MCPServerSettingsView()
         case .about:
             AboutSettingsView()
         }
@@ -1619,6 +1633,97 @@ private struct CloudSyncActivityStatusBlock: View {
         .padding(.horizontal, 9)
         .frame(height: 26)
         .background(Color(nsColor: .controlBackgroundColor).opacity(0.85), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+}
+
+private struct MCPServerSettingsView: View {
+    @Environment(\.feedivoDatabase) private var feedivoDatabase
+
+    @State private var isEnabled = false
+    @State private var isLoaded = false
+    @State private var saveErrorMessage: String?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            GeneralSettingsSection(label: Text("KI-Zugriff (MCP):")) {
+                Toggle(isOn: $isEnabled) {
+                    Text("MCP-Server aktivieren")
+                        .font(.system(size: 13))
+                }
+                .toggleStyle(.checkbox)
+                .tint(Color.settingsBoldAccent)
+                .disabled(!isLoaded)
+                .onChange(of: isEnabled) { _, newValue in
+                    guard isLoaded else { return }
+                    saveEnabled(newValue)
+                }
+                GeneralSettingsHelp(
+                    "Erlaubt einer angeschlossenen KI (z. B. Claude Desktop) lesenden Zugriff auf deine Feeds, Ordner, Tags und Artikel (inkl. Gelesen-/Stern-Status) über den Model Context Protocol. Rein lesend — die KI kann nichts ändern. Nach einer Änderung muss der KI-Client (z. B. Claude Desktop) neu gestartet werden, damit sie wirkt."
+                )
+
+                if let saveErrorMessage {
+                    Text(saveErrorMessage)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.red)
+                }
+
+                GeneralSettingsRow(title: "Verbindung einrichten") {
+                    Button("Kopieren") {
+                        copyConfigSnippet()
+                    }
+                }
+                Text(configSnippet)
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
+                    .padding(8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                GeneralSettingsHelp(
+                    "Diesen Eintrag in die Konfigurationsdatei deines KI-Clients einfügen (bei Claude Desktop: ~/Library/Application Support/Claude/claude_desktop_config.json)."
+                )
+            }
+        }
+        .task {
+            await load()
+        }
+    }
+
+    private var mcpServerExecutablePath: String {
+        Bundle.main.bundlePath + "/Contents/MacOS/FeedivoMCPServer"
+    }
+
+    private var configSnippet: String {
+        """
+        {
+          "mcpServers": {
+            "feedivo": { "command": "\(mcpServerExecutablePath)" }
+          }
+        }
+        """
+    }
+
+    private func load() async {
+        guard let feedivoDatabase else { return }
+        let store = MCPServerSettingsStore(database: feedivoDatabase)
+        isEnabled = (try? store.isEnabled()) ?? false
+        isLoaded = true
+    }
+
+    private func saveEnabled(_ newValue: Bool) {
+        guard let feedivoDatabase else { return }
+        let store = MCPServerSettingsStore(database: feedivoDatabase)
+        do {
+            try store.setEnabled(newValue)
+            saveErrorMessage = nil
+        } catch {
+            saveErrorMessage = "Konnte Einstellung nicht speichern: \(error.localizedDescription)"
+        }
+    }
+
+    private func copyConfigSnippet() {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(configSnippet, forType: .string)
     }
 }
 
