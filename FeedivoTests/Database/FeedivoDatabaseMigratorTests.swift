@@ -314,4 +314,21 @@ struct FeedivoDatabaseMigratorTests {
         #expect(backfilled == 2)
         #expect(untouched == 7)
     }
+
+    @Test func migrationV31LegtMcpServerSettingsMitDeaktiviertemStandardwertAn() throws {
+        let queue = try DatabaseQueue()
+        try FeedivoDatabaseMigrator.migrator.migrate(queue, upTo: "v30_backfill_article_estimated_reading_minutes")
+
+        try FeedivoDatabaseMigrator.migrator.migrate(queue)
+
+        let isEnabled = try queue.read { db in
+            try Bool.fetchOne(db, sql: "SELECT isEnabled FROM mcp_server_settings WHERE id = 1")
+        }
+        #expect(isEnabled == false)
+
+        let rowCount = try queue.read { db in
+            try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM mcp_server_settings")
+        }
+        #expect(rowCount == 1)
+    }
 }

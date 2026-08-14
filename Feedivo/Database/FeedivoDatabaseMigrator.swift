@@ -571,6 +571,23 @@ enum FeedivoDatabaseMigrator {
             try backfillArticleEstimatedReadingMinutes(database)
         }
 
+        migrator.registerMigration("v31_create_mcp_server_settings") { database in
+            // Zweckgebundene Single-Row-Tabelle statt einer generischen Key-Value-
+            // Settings-Tabelle (YAGNI). Bewusst SQLite statt UserDefaults: UserDefaults-
+            // Schreibvorgänge werden von cfprefsd gepuffert und nicht sofort auf die
+            // Plist-Datei durchgeschrieben — FeedivoMCPServer (ein separater,
+            // unsandboxed Prozess) könnte kurz nach einem Toggle-Wechsel noch den alten
+            // Wert sehen. GRDB/WAL bietet dagegen eine bereits in diesem Projekt
+            // ausführlich verifizierte Cross-Process-Konsistenzgarantie (siehe Gotcha
+            // zu PRAGMA query_only in CLAUDE.md). Standard `isEnabled = false` —
+            // Freigabe an einen externen KI-Prozess ist bewusstes Opt-in.
+            try database.create(table: "mcp_server_settings") { table in
+                table.column("id", .integer).primaryKey()
+                table.column("isEnabled", .boolean).notNull().defaults(to: false)
+            }
+            try database.execute(sql: "INSERT INTO mcp_server_settings (id, isEnabled) VALUES (1, 0)")
+        }
+
         return migrator
     }
 
