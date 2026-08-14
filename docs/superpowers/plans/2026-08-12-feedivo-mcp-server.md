@@ -1456,9 +1456,9 @@ find ~/Library/Developer/Xcode/DerivedData -path "*/Feedivo.app/Contents/MacOS/F
 
 Expected: Der `find`-Befehl liefert genau einen Treffer.
 
-- [ ] **Nutzer bestätigt:** Copy-Files-Phase eingerichtet, Build erfolgreich, Binary im Bundle gefunden.
+- [x] **Nutzer bestätigt:** Copy-Files-Phase eingerichtet, Build erfolgreich, Binary im Bundle gefunden (verifiziert: gültiges signiertes Mach-O arm64, Team-ID `X72F89J699`, Hardened Runtime aktiv).
 
-- [ ] **Commit (durch den Nutzer selbst, da die pbxproj-Änderung nur in Xcode entstehen kann):**
+- [x] **Commit (durch den Nutzer selbst, da die pbxproj-Änderung nur in Xcode entstehen kann):** (committed: `ac2a3eb`)
 
 ```bash
 git add Feedivo.xcodeproj/project.pbxproj
