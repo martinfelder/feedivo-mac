@@ -56,7 +56,7 @@ anfühlt — kein iOS-Port, keine Electron-App. Echtes AppKit-Feeling via SwiftU
 | Artikel-Rendering | Nativer SwiftUI-Renderer (`ReaderContentRenderer`) **und** `WKWebView` (`WebContentView`) | Native Ansicht für den Lesefluss, WKWebView für "Originalartikel" |
 | Background Refresh | `NSBackgroundActivityScheduler` (`SystemBackgroundActivityRefreshScheduler`) | Kein `BGTaskScheduler` (das ist iOS-fokussiert) |
 | App-Update | Sparkle 2.x (Swift Package, `SparkleUpdateCoordinator`) | Ersetzt seit 2026-07-31 den kompletten Eigenbau-Installer (siehe ADR-009) — Grund war ein reproduzierter App-Sandbox-Root-Cause-Fund, kein reiner Komfort-Umstieg. Appcast unter `docs/appcast.xml`, ausgeliefert über `https://raw.githubusercontent.com/martinfelder/feedivo-mac/main/docs/appcast.xml`. Zusätzlicher Vertriebskanal: Homebrew Cask (`martinfelder/homebrew-feedivo`, `Casks/feedivo.rb`) — bei einer per Cask erkannten Installation (`HomebrewInstallationDetector`) wird bewusst gar kein `SPUUpdater` erzeugt, Updates laufen dort ausschließlich über `brew upgrade`. **Seit 2026-08-02 (ADR-010) nutzt `SparkleUpdateCoordinator` Sparkles eigenen `SPUStandardUserDriver` statt einer komplett selbstgebauten `SPUUserDriver`-Konformität** — derselbe erste, echte End-to-End-Update-Zyklus (Developer-ID-signiert, notarisiert, gestapelt, Download→Installation→Neustart) ist damit live verifiziert erfolgreich. `create_github_release.sh` signiert seit demselben Datum mit "Developer ID Application" (`method: developer-id`-Export) statt "Apple Development" und notarisiert/staplet jeden Release automatisch (App-Store-Connect-API-Key, nicht `--keychain-profile`). Details siehe ADR-009, ADR-010 und die neuen Gotchas zu Notarisierung/Signing sowie „Aktuell in Arbeit" unten |
-| MCP-Anbindung | `FeedivoMCPServer` (separates Command-Line-Tool-Target, `modelcontextprotocol/swift-sdk`, stdio) | Seit 2026-08-14 (v1, read-only, 7 Tools): eigenes Xcode-Target `FeedivoMCPServer` teilt sich per Target Membership Quellcode mit dem Haupt-Target (kein separates Swift Package), öffnet die produktive SQLite-DB direkt und unabhängig davon, ob die Feedivo-App läuft. Ins `Feedivo.app`-Bundle eingebettet (Copy-Files-Phase, Destination „Executables", Code Sign On Copy). Details siehe ADR-011 und der neue Gotcha zu GRDBs `PRAGMA query_only`-Verhalten unten |
+| MCP-Anbindung | `FeedivoMCPServer` (separates Command-Line-Tool-Target, `modelcontextprotocol/swift-sdk`, stdio) | Seit 2026-08-14 (v1, read-only, 7 Tools): eigenes Xcode-Target `FeedivoMCPServer` teilt sich per Target Membership Quellcode mit dem Haupt-Target (kein separates Swift Package), öffnet die produktive SQLite-DB direkt und unabhängig davon, ob die Feedivo-App läuft. Ins `Feedivo.app`-Bundle eingebettet (Copy-Files-Phase, Destination „Executables", Code Sign On Copy). **Standardmäßig deaktiviert (Opt-in)** — Nutzer aktiviert den Zugriff explizit über den neuen Settings-Tab „KI-Zugriff" (`MCPServerSettingsView`, `MCPServerSettingsStore`, Migration v31 legt die Tabelle `mcp_server_settings` an); der Server prüft das Flag fail-closed direkt nach dem Öffnen der DB, vor jeder Tool-Registrierung — fehlende Tabelle/Zeile wird identisch wie „deaktiviert" behandelt. Derselbe Tab zeigt einen kopierbaren Claude-Desktop-Config-Snippet. Details siehe ADR-011 und der neue Gotcha zu GRDBs `PRAGMA query_only`-Verhalten unten |
 | Mindest-macOS | macOS 14.0 Sonoma | `@Observable` Macro + moderne SwiftUI-APIs (NavigationSplitView, `.commands`, `WindowGroup(for:)`) |
 
 ---
@@ -3461,6 +3461,33 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Letzte Änderungen
 
+- 2026-08-14 (Folge-Session): MCP-Server Ein/Aus-Schalter + Verbindungs-Hilfe —
+  VOLLSTÄNDIG ABGESCHLOSSEN, Whole-Branch-Review „Ready to merge: Yes" nach einer
+  Fix-Runde. Neuer Settings-Tab „KI-Zugriff": Schalter (Standard AUS, Opt-in — der
+  Server exponiert ohne aktives Einschalten keinerlei Daten) + kopierbarer Claude-
+  Desktop-Config-Snippet (`Bundle.main.bundlePath`-basiert, funktioniert für Debug-
+  und Release-Installationen gleichermaßen). Neue Tabelle `mcp_server_settings`
+  (Migration v31, Single-Row) statt `UserDefaults` — bewusste Abweichung von der
+  sonstigen Projekt-Konvention, da `UserDefaults`/`cfprefsd` keine Cross-Process-
+  Konsistenzgarantie bietet, GRDB/WAL dagegen schon (siehe Gotcha zu GRDBs
+  `PRAGMA query_only`-Verhalten). `FeedivoMCPServer/main.swift` prüft das Flag
+  fail-closed direkt nach dem Öffnen der DB, vor jeder Tool-Registrierung und vor
+  dem Start des stdio-Transports — Server startet erst gar nicht, wenn deaktiviert.
+  Whole-Branch-Review (opus) fand nach den 5 Einzel-Tasks zwei Important-Funde: der
+  Fail-closed-Test hatte keine tatsächlich ausführbare Testabdeckung (lag nur im
+  strukturell nie laufenden `FeedivoMCPServerTests`-Target — jetzt zusätzlich nach
+  `FeedivoTests/Stores/MCPServerSettingsStoreTests.swift` gespiegelt, läuft dort
+  echt); die 6 rohen deutschen Strings im neuen Tab hätten bei jedem Build
+  automatische xcstrings-Stubs erzeugt UND dabei beobachtbar zwei bereits
+  vollständig übersetzte Bestandskeys (`reader.youTubeVideoHint.message`/`.button`)
+  gelöscht — auf L10n-Keys umgestellt, behebt beides zugleich. Spec:
+  `docs/superpowers/specs/2026-08/2026-08-14-mcp-server-schalter-design.md`, Plan:
+  `docs/superpowers/plans/2026-08-14-mcp-server-schalter.md`. Commits
+  `de2306d..6d27bd7` auf `main`, Push-Status siehe `git log`/`git status` zum
+  Lesezeitpunkt. Bewusst zurückgestellt für v1.1 (kein Merge-Blocker): kein Live-
+  Reconnect bei „Aus" während einer bereits laufenden Client-Sitzung — ein
+  bestehender Server-Prozess liest das Flag nur einmal beim Start, ein Abschalten
+  wirkt erst nach Neustart des MCP-Clients (im UI-Hilfetext bereits kommuniziert).
 - 2026-08-14: Read-only MCP-Server für Feedivo (v1, 7 Tools) — vollständige Details
   siehe „Aktuell in Arbeit" und ADR-011 oben, hier nicht dupliziert. Commits
   `4ed7498..ac2a3eb` auf `main`, gepusht (`d586d01..ac2a3eb`).
