@@ -22,6 +22,20 @@ struct CloudSyncSettingsStore {
         self.database = database
     }
 
+    /// Prüft, ob Migration v33 auf dieser Datenbank bereits gelaufen ist.
+    ///
+    /// Gedacht für `FeedivoMCPServer`, der den Migrator bewusst nie ausführt (ADR-011) und
+    /// deshalb auf eine ältere Datenbank treffen kann, wenn Feedivo seit dem Update nicht
+    /// gestartet wurde. In diesem Zustand liefert `isEnabled(in:)` fail-closed `false` — was für
+    /// sich genommen sicher ist, aber nicht ausreicht: `ArticleStatusStore.updateBooleanStatus`
+    /// setzt `statusSyncUpdatedAt` weiterhin unbedingt (gated nur über `marksSyncTouched`), die
+    /// Zeile sieht für den Sync-Layer dadurch neuer aus als jede eingehende Remote-Änderung,
+    /// ohne je gepusht worden zu sein. Der Server verweigert deshalb lieber den Schreibzugriff,
+    /// statt still in diesen Zustand hineinzuschreiben.
+    static func hasSettingsTable(in db: Database) -> Bool {
+        (try? db.tableExists("cloud_sync_settings")) ?? false
+    }
+
     /// Liest das Flag ueber eine **bereits offene** Transaktions-Verbindung.
     ///
     /// Das ist die Variante, die alle `enqueuePendingSync`-Gates verwenden: sie laufen bereits

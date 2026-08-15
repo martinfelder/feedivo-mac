@@ -27,11 +27,27 @@ struct FeedivoMCPServerWritableDatabase {
             try database.execute(sql: "PRAGMA foreign_keys = ON")
         }
 
+        let pool: DatabasePool
         do {
-            let pool = try DatabasePool(path: fileURL.path, configuration: configuration)
-            return FeedivoMCPServerWritableDatabase(core: FeedivoDatabase(writer: pool))
+            pool = try DatabasePool(path: fileURL.path, configuration: configuration)
         } catch {
             throw FeedivoMCPServerDatabaseError.openFailed(description: "\(error)")
         }
+
+        // Schema-Precondition: Ohne Migration v33 fehlt `cloud_sync_settings`, und die
+        // Store-Gates koennen nicht erkennen, ob iCloud Sync aktiv ist — sie reihen dann
+        // fail-closed nichts ein, waehrend `ArticleStatusStore` `statusSyncUpdatedAt` trotzdem
+        // setzt. Die Zeile gilt fuer den Sync-Layer danach als neuer als jede eingehende
+        // Remote-Aenderung, ohne je gepusht worden zu sein — zwei per iCloud verbundene Geraete
+        // koennen dadurch still auseinanderlaufen. Lieber gar keinen Schreibzugriff anbieten,
+        // als still in diesen Zustand hineinzuschreiben.
+        let hasSettingsTable = (try? pool.read { db in
+            CloudSyncSettingsStore.hasSettingsTable(in: db)
+        }) ?? false
+        guard hasSettingsTable else {
+            throw FeedivoMCPServerDatabaseError.schemaOutdated
+        }
+
+        return FeedivoMCPServerWritableDatabase(core: FeedivoDatabase(writer: pool))
     }
 }

@@ -5,6 +5,33 @@ import GRDB
 
 @Suite("CloudSyncSettingsStore")
 struct CloudSyncSettingsStoreTests {
+    @Test("hasSettingsTable erkennt eine vollstaendig migrierte Datenbank")
+    func hasSettingsTableErkenntMigrierteDatenbank() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+
+        let vorhanden = try database.read { db in
+            CloudSyncSettingsStore.hasSettingsTable(in: db)
+        }
+        #expect(vorhanden == true)
+    }
+
+    @Test("hasSettingsTable erkennt eine Datenbank ohne Migration v33")
+    func hasSettingsTableErkenntVeralteteDatenbank() throws {
+        // Genau der Zustand, den FeedivoMCPServer vorfindet, wenn Feedivo seit dem Update nicht
+        // gestartet wurde (der Server fuehrt den Migrator bewusst nie aus, siehe ADR-011).
+        // Ohne diese Erkennung wuerde er weiterschreiben, ohne fuer iCloud einzureihen —
+        // waehrend statusSyncUpdatedAt trotzdem gesetzt wird, was eingehende Aenderungen vom
+        // Zweitgeraet per Last-Write-Wins dauerhaft unterdruecken kann.
+        let queue = try DatabaseQueue()
+        try FeedivoDatabaseMigrator.migrator.migrate(queue, upTo: "v32_add_mcp_server_write_access")
+        let database = FeedivoDatabase(writer: queue)
+
+        let vorhanden = try database.read { db in
+            CloudSyncSettingsStore.hasSettingsTable(in: db)
+        }
+        #expect(vorhanden == false)
+    }
+
     @Test("Standardwert nach Migration ist deaktiviert")
     func standardwertIstDeaktiviert() throws {
         let database = try FeedivoDatabase.inMemoryForTests()

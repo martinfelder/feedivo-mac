@@ -4,6 +4,10 @@ import GRDB
 enum FeedivoMCPServerDatabaseError: Error, CustomStringConvertible, Equatable {
     case databaseFileNotFound(URL)
     case openFailed(description: String)
+    /// Die Datenbank ist älter als diese Server-Version (Migration v33 fehlt). Betrifft nur den
+    /// Schreibzugriff — siehe `CloudSyncSettingsStore.hasSettingsTable(in:)` für die Begründung,
+    /// warum Schreiben in diesem Zustand riskanter ist, als gar nicht zu schreiben.
+    case schemaOutdated
 
     var description: String {
         switch self {
@@ -11,6 +15,13 @@ enum FeedivoMCPServerDatabaseError: Error, CustomStringConvertible, Equatable {
             return "Feedivo-Datenbank nicht gefunden unter \(url.path). Wurde Feedivo mindestens einmal gestartet?"
         case .openFailed(let description):
             return "Feedivo-Datenbank konnte nicht geöffnet werden: \(description)"
+        case .schemaOutdated:
+            return """
+                Die Feedivo-Datenbank ist älter als diese Version (Tabelle `cloud_sync_settings` \
+                fehlt). Starte Feedivo einmal, damit die Datenbank aktualisiert wird — bis dahin \
+                bleibt der Schreibzugriff deaktiviert, weil Statusänderungen sonst nicht mit \
+                iCloud synchronisiert würden. Lesen funktioniert weiterhin.
+                """
         }
     }
 
