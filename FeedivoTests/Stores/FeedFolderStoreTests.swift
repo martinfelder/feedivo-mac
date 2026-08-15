@@ -193,8 +193,7 @@ struct FeedFolderStoreTests {
 
     @Test func renameFolderMarkiertAlleBetroffenenFeedsAlsPendingSync() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
 
         let feedStore = FeedStore(database: database)
         let folderStore = FeedFolderStore(database: database)
@@ -210,8 +209,7 @@ struct FeedFolderStoreTests {
 
     @Test func saveMarkiertOrdnerAlsPendingSyncWennAktiviert() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
         let folderStore = FeedFolderStore(database: database)
 
         try folderStore.save(FeedFolderRecord(id: "folder-1", name: "Tech"))
@@ -222,7 +220,7 @@ struct FeedFolderStoreTests {
 
     @Test func saveMarkiertNichtsWennSyncDeaktiviert() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
-        UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey)
+        // Standard einer frischen Datenbank ist bereits "aus" (Migration v33).
         let folderStore = FeedFolderStore(database: database)
 
         try folderStore.save(FeedFolderRecord(id: "folder-1", name: "Tech"))
@@ -235,8 +233,7 @@ struct FeedFolderStoreTests {
         let folderStore = FeedFolderStore(database: database)
         try folderStore.save(FeedFolderRecord(id: "folder-1", name: "Tech"))
 
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
 
         try folderStore.delete(id: "folder-1")
 
@@ -247,8 +244,7 @@ struct FeedFolderStoreTests {
 
     @Test func moveFolderMarkiertAlleUmsortiertenOrdnerAlsPendingSync() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
 
         let folderStore = FeedFolderStore(database: database)
         try folderStore.save(FeedFolderRecord(id: "folder-a", name: "Alpha", sortIndex: 0))
@@ -263,8 +259,7 @@ struct FeedFolderStoreTests {
 
     @Test func sortAlphabeticallyMarkiertAlleOrdnerAlsPendingSync() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
 
         let folderStore = FeedFolderStore(database: database)
         try folderStore.save(FeedFolderRecord(id: "folder-b", name: "Bravo", sortIndex: 0))

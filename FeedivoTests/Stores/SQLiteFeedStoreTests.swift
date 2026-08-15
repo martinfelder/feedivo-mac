@@ -322,8 +322,7 @@ struct SQLiteFeedStoreTests {
 
     @Test func saveMarkiertFeedAlsPendingSyncWennAktiviert() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
         let store = FeedStore(database: database)
 
         try store.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Beispiel"))
@@ -334,7 +333,7 @@ struct SQLiteFeedStoreTests {
 
     @Test func saveMarkiertNichtsWennSyncDeaktiviert() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
-        UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey)
+        // Standard einer frischen Datenbank ist bereits "aus" (Migration v33).
         let store = FeedStore(database: database)
 
         try store.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Beispiel"))
@@ -347,8 +346,7 @@ struct SQLiteFeedStoreTests {
         let store = FeedStore(database: database)
         try store.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Beispiel"))
 
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
 
         try store.delete(id: "feed-1")
 
@@ -359,8 +357,7 @@ struct SQLiteFeedStoreTests {
 
     @Test func deleteEnqueuedLoeschungFuerSynchronisierteArtikelStatusDesFeeds() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
         let store = FeedStore(database: database)
         try store.save(FeedRecord(id: "feed-1", url: "https://example.com/feed", title: "Feed"))
         let articleID = try ArticleStore(database: database).upsert(
@@ -382,8 +379,7 @@ struct SQLiteFeedStoreTests {
 
     @Test func moveFeedMarkiertAlleUmsortiertenFeedsAlsPendingSync() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
 
         let store = FeedStore(database: database)
         let feedA = FeedRecord(id: "feed-a", url: "https://a.example.com", title: "A", sortIndex: 0)
@@ -404,8 +400,7 @@ struct SQLiteFeedStoreTests {
         let store = FeedStore(database: database)
         try store.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Beispiel"))
 
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
 
         try store.updateAfterRefresh(
             feedID: "feed-1",
@@ -424,8 +419,7 @@ struct SQLiteFeedStoreTests {
         let store = FeedStore(database: database)
         try store.save(FeedRecord(id: "feed-1", url: "https://example.com/feed.xml", title: "Beispiel"))
 
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
 
         try store.setUnreadCount(5, feedID: "feed-1")
 

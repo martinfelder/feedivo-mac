@@ -7,8 +7,7 @@ struct FeedFolderStoreChangedFieldsTests {
         let database = try FeedivoDatabase.inMemoryForTests()
         let store = FeedFolderStore(database: database)
         try store.save(FeedFolderRecord(id: "folder-1", name: "Alt", sortIndex: 0, createdAt: Date(), updatedAt: Date()))
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
 
         try store.renameFolder(from: "Alt", to: "Neu")
 
@@ -17,16 +16,13 @@ struct FeedFolderStoreChangedFieldsTests {
     }
 
     @Test func moveFolderMarkiertNurSortIndexAlsGeaendert() throws {
-        // Cleanup vor dem Test
-        UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
-
+        // Standard einer frischen Datenbank ist bereits "aus" (Migration v33), kein Cleanup nötig.
         let database = try FeedivoDatabase.inMemoryForTests()
         let store = FeedFolderStore(database: database)
         try store.save(FeedFolderRecord(id: "folder-a", name: "Alpha", sortIndex: 0))
         try store.save(FeedFolderRecord(id: "folder-b", name: "Bravo", sortIndex: 1))
         try store.save(FeedFolderRecord(id: "folder-c", name: "Charlie", sortIndex: 2))
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
 
         try store.moveFolder(name: "Bravo", targetIndex: 0)
 
@@ -41,16 +37,13 @@ struct FeedFolderStoreChangedFieldsTests {
     }
 
     @Test func sortAlphabeticallyMarkiertNurSortIndexAlsGeaendert() throws {
-        // Cleanup vor dem Test
-        UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
-
+        // Standard einer frischen Datenbank ist bereits "aus" (Migration v33), kein Cleanup nötig.
         let database = try FeedivoDatabase.inMemoryForTests()
         let store = FeedFolderStore(database: database)
         try store.save(FeedFolderRecord(id: "folder-b", name: "Bravo", sortIndex: 0))
         try store.save(FeedFolderRecord(id: "folder-a", name: "Alpha", sortIndex: 1))
         try store.save(FeedFolderRecord(id: "folder-c", name: "Charlie", sortIndex: 2))
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
 
         try store.sortAlphabetically()
 

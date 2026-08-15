@@ -13,7 +13,7 @@ struct FeedStore {
     /// (atomar — kein Zwischenzustand, in dem der Feed geändert, aber nicht als sync-pending
     /// markiert ist). Analog zu `TagStore.enqueuePendingSync`.
     private func enqueuePendingSync(_ db: Database, feedID: String, changeType: CloudSyncChangeType, changedFields: [String]? = nil) throws {
-        guard CloudSyncSettings.isEnabled() else { return }
+        guard CloudSyncSettingsStore.isEnabled(in: db) else { return }
         try CloudSyncPendingChangeStore.enqueue(db, recordType: CloudSyncFeedMapping.recordType, recordName: feedID, changeType: changeType, changedFields: changedFields)
     }
 

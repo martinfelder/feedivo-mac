@@ -30,7 +30,7 @@ struct FeedFolderStore {
     /// bewusst INNERHALB derselben `database.write`-Transaktion wie die fachliche Mutation —
     /// analog zu `FeedStore.enqueuePendingSync`/`TagStore.enqueuePendingSync`.
     private func enqueuePendingSync(_ db: Database, folderID: String, changeType: CloudSyncChangeType, changedFields: [String]? = nil) throws {
-        guard CloudSyncSettings.isEnabled() else { return }
+        guard CloudSyncSettingsStore.isEnabled(in: db) else { return }
         try CloudSyncPendingChangeStore.enqueue(db, recordType: CloudSyncFeedFolderMapping.recordType, recordName: folderID, changeType: changeType, changedFields: changedFields)
     }
 
@@ -39,7 +39,7 @@ struct FeedFolderStore {
     /// `CloudSyncFeedMapping`-Dokumentation) und ein Ordner-Umbenennen deshalb auch alle
     /// betroffenen Feeds erneut synct, nicht nur den Ordner-Record selbst.
     private func enqueueFeedPendingSync(_ db: Database, feedID: String) throws {
-        guard CloudSyncSettings.isEnabled() else { return }
+        guard CloudSyncSettingsStore.isEnabled(in: db) else { return }
         try CloudSyncPendingChangeStore.enqueue(db, recordType: CloudSyncFeedMapping.recordType, recordName: feedID, changeType: .save)
     }
 
