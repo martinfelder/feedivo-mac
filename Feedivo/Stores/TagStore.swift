@@ -17,8 +17,12 @@ struct TagStore {
     /// bewusst INNERHALB derselben `database.write`-Transaktion wie die fachliche Mutation
     /// (atomar — kein Zwischenzustand, in dem der Tag geändert, aber nicht als sync-pending
     /// markiert ist).
+    ///
+    /// Liest das Aktiv-Flag ueber `db` aus `cloud_sync_settings` statt aus UserDefaults, damit
+    /// auch Mutationen aus dem unsandboxed FeedivoMCPServer-Prozess korrekt greifen (siehe
+    /// CloudSyncSettingsStore).
     private func enqueuePendingSync(_ db: Database, tagID: String, changeType: CloudSyncChangeType, changedFields: [String]? = nil) throws {
-        guard CloudSyncSettings.isEnabled() else { return }
+        guard CloudSyncSettingsStore.isEnabled(in: db) else { return }
         try CloudSyncPendingChangeStore.enqueue(db, recordType: CloudSyncTagMapping.recordType, recordName: tagID, changeType: changeType, changedFields: changedFields)
     }
 

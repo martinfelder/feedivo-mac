@@ -3,20 +3,11 @@ import Testing
 @testable import Feedivo
 
 struct TagStoreChangedFieldsTests {
-    init() {
-        // Explizite Cleanup vor jedem Test-Run, um Isolation zu gewährleisten
-        UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey)
-    }
-
     @Test func renameTagMarkiertNurNameAlsGeaendert() throws {
-        // Cleanup vor dem Test
-        UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
-
         let database = try FeedivoDatabase.inMemoryForTests()
         let store = TagStore(database: database)
         try store.save(TagRecord(id: "tag-1", name: "Alt", colorHex: "#FF0000", sortIndex: 0))
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
 
         try store.renameTag(id: "tag-1", name: "Neu")
 
@@ -25,14 +16,10 @@ struct TagStoreChangedFieldsTests {
     }
 
     @Test func updateColorMarkiertNurColorHexAlsGeaendert() throws {
-        // Cleanup vor dem Test
-        UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
-
         let database = try FeedivoDatabase.inMemoryForTests()
         let store = TagStore(database: database)
         try store.save(TagRecord(id: "tag-1", name: "Alt", colorHex: "#FF0000", sortIndex: 0))
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
 
         try store.updateColor(id: "tag-1", colorHex: "#00FF00")
 
@@ -41,16 +28,12 @@ struct TagStoreChangedFieldsTests {
     }
 
     @Test func moveMarkiertNurSortIndexAlsGeaendert() throws {
-        // Cleanup vor dem Test
-        UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
-
         let database = try FeedivoDatabase.inMemoryForTests()
         let store = TagStore(database: database)
         try store.save(TagRecord(id: "tag-1", name: "Tag1", colorHex: "#FF0000", sortIndex: 0))
         try store.save(TagRecord(id: "tag-2", name: "Tag2", colorHex: "#00FF00", sortIndex: 1))
         try store.save(TagRecord(id: "tag-3", name: "Tag3", colorHex: "#0000FF", sortIndex: 2))
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
 
         try store.move(id: "tag-1", targetIndex: 2)
 

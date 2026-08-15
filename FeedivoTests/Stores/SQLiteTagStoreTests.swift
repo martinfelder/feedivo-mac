@@ -234,8 +234,7 @@ struct SQLiteTagStoreTests {
 
     @Test func saveMarkiertTagAlsPendingSyncWennAktiviert() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
         let store = TagStore(database: database)
 
         try store.save(TagRecord(id: "tag-1", name: "Wichtig"))
@@ -246,7 +245,7 @@ struct SQLiteTagStoreTests {
 
     @Test func saveMarkiertNichtsWennSyncDeaktiviert() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
-        UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey)
+        // Standard einer frischen Datenbank ist bereits "aus" (Migration v33).
         let store = TagStore(database: database)
 
         try store.save(TagRecord(id: "tag-1", name: "Wichtig"))
