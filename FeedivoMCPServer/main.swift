@@ -61,6 +61,12 @@ if let writableDatabase {
     ])
 }
 
+// Verbindungsvermerk fuer den Einstellungen-Tab: haelt fest, wann zuletzt ein Client den Server
+// startete und wie viele Werkzeuge er dabei bekam. Die Anzahl stammt bewusst aus der TATSAECHLICH
+// aufgebauten Liste — weicht sie spaeter von den Schaltern ab, sitzt der Client noch auf einer
+// veralteten Liste und muss neu gestartet werden.
+FeedivoMCPServerConnectionRecorder.record(toolCount: availableTools.count)
+
 await server.withMethodHandler(ListTools.self) { _ in
     .init(tools: availableTools)
 }
