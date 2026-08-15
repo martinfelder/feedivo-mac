@@ -193,6 +193,7 @@
 				Stores/ArticleStore.swift,
 				Stores/CleanupRunHistoryStore.swift,
 				Stores/CloudSyncPendingChangeStore.swift,
+				Stores/CloudSyncSettingsStore.swift,
 				Stores/FeedFolderStore.swift,
 				Stores/FeedLogStore.swift,
 				Stores/FeedStore.swift,

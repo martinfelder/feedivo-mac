@@ -599,6 +599,30 @@ enum FeedivoDatabaseMigrator {
             }
         }
 
+        migrator.registerMigration("v33_create_cloud_sync_settings") { database in
+            // Spiegel des iCloud-Sync-Aktiv-Flags fuer Cross-Process-Zugriff. Quelle der
+            // Wahrheit bleibt UserDefaults (CloudSyncSettings.isEnabledKey, an den UI-Schalter
+            // gebunden) — diese Zeile wird bei jedem App-Start und bei jedem Umlegen des
+            // Schalters abgeglichen (CloudSyncSettingsStore.mirrorFromUserDefaults).
+            //
+            // Grund: FeedivoMCPServer ist bewusst unsandboxed (ADR-011), sein
+            // UserDefaults.standard zeigt auf eine andere Preferences-Domaene als die der
+            // sandboxed App. Die Store-Gates (TagStore/ArticleStatusStore/... enqueuePendingSync)
+            // lasen deshalb dort immer `false` und haben MCP-Schreibvorgaenge nie in die
+            // Sync-Warteschlange eingereiht — waehrend statusSyncUpdatedAt trotzdem gesetzt
+            // wurde, was zusaetzlich eingehende Remote-Aenderungen per Last-Write-Wins
+            // dauerhaft unterdrueckt haette.
+            //
+            // Standard bewusst hart 0 statt eines UserDefaults-Backfills: haelt die
+            // Database-Schicht frei von UserDefaults-Wissen und macht `inMemoryForTests()`
+            // deterministisch (der Migrator laeuft dort in jedem Test).
+            try database.create(table: "cloud_sync_settings") { table in
+                table.column("id", .integer).primaryKey()
+                table.column("isEnabled", .boolean).notNull().defaults(to: false)
+            }
+            try database.execute(sql: "INSERT INTO cloud_sync_settings (id, isEnabled) VALUES (1, 0)")
+        }
+
         return migrator
     }
 

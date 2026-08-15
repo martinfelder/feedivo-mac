@@ -343,4 +343,40 @@ struct FeedivoDatabaseMigratorTests {
         }
         #expect(writeAccessIsEnabled == false)
     }
+
+    @Test func migrationV33LegtCloudSyncSettingsMitDeaktiviertemStandardwertAn() throws {
+        let queue = try DatabaseQueue()
+        try FeedivoDatabaseMigrator.migrator.migrate(queue, upTo: "v32_add_mcp_server_write_access")
+
+        try FeedivoDatabaseMigrator.migrator.migrate(queue)
+
+        let isEnabled = try queue.read { db in
+            try Bool.fetchOne(db, sql: "SELECT isEnabled FROM cloud_sync_settings WHERE id = 1")
+        }
+        #expect(isEnabled == false)
+
+        let rowCount = try queue.read { db in
+            try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM cloud_sync_settings")
+        }
+        #expect(rowCount == 1)
+    }
+
+    @Test func migrationV33IgnoriertUserDefaultsUndBleibtDeterministisch() throws {
+        // Bewusste Abweichung von der urspruenglichen Design-Spec: der Backfill des
+        // bestehenden UserDefaults-Werts passiert NICHT hier, sondern beim App-Start
+        // (siehe CloudSyncSettingsStore.mirrorFromUserDefaults / FeedivoApp.init).
+        // Dadurch liefert eine frische Test-Datenbank IMMER false, unabhaengig davon,
+        // was ein anderer, parallel laufender Test gerade in UserDefaults.standard
+        // hinterlassen hat.
+        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
+        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+
+        let queue = try DatabaseQueue()
+        try FeedivoDatabaseMigrator.migrator.migrate(queue)
+
+        let isEnabled = try queue.read { db in
+            try Bool.fetchOne(db, sql: "SELECT isEnabled FROM cloud_sync_settings WHERE id = 1")
+        }
+        #expect(isEnabled == false)
+    }
 }
