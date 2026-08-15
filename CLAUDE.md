@@ -1689,13 +1689,25 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
      `UPDATE cloud_sync_settings SET isEnabled = 0;` von Hand setzen, App starten → Wert
      steht danach wieder auf `1`.
   5. App **laufen lassen** (nicht beenden), MCP-Schreibvorgang aus Claude Desktop absetzen →
-     erscheint der `RecordSave` im CloudKit-Dashboard, ohne die App neu zu starten? Erwartung
-     laut Whole-Branch-Review: **nein** — `MCPWriteObserver`
-     (`Feedivo/Services/MCPWriteObserver.swift:18-32`) bumpt nur die Invalidierungs-Zähler und
-     ruft nie `CloudSyncEngine.notifyPendingChangesAvailable(database:)`, sodass eine laufende
-     `CKSyncEngine` von der neu eingereihten Änderung nichts erfährt. Kein Datenverlust (die
-     Warteschlange ist durabel, der nächste `start()` oder jede spätere In-App-Mutation holt es
-     nach), reine Push-Latenz. Als eigener Folge-Task vorgemerkt.
+     erscheint der `RecordSave` im CloudKit-Dashboard, ohne die App neu zu starten? Erwartung:
+     **ja**. Der Whole-Branch-Review hatte hier ursprünglich **nein** erwartet —
+     `MCPWriteObserver` bumpte nur die Invalidierungs-Zähler und meldete der laufenden
+     `CKSyncEngine` nie, dass etwas Neues in der Warteschlange steht (kein Datenverlust, reine
+     Push-Latenz bis zum nächsten `start()`). **Direkt im Anschluss behoben, Commit `7e7126ba`:**
+     neue `CloudSyncEngine.notifyPendingChangesAvailableUsingRegisteredEngine()` — Variante ohne
+     Datenbank-Parameter, da der `CFNotificationCenter`-Callback ein nicht-capturing
+     `@convention(c)`-Zeiger ist und keine `FeedivoDatabase`-Referenz mitführen kann; sie nutzt
+     die Datenbank der bereits registrierten Engine. Aufgerufen aus
+     `MCPWriteObserver.startObserving()`. Dieser Checklistenpunkt ist damit von „erwarteter
+     Fehlschlag" zu „muss funktionieren" geworden.
+     **Nebenbefund bei diesem Fix:** der bestehende `MCPWriteObserverTests`-Notification-Test
+     wurde durch den zusätzlichen Test in derselben Suite flaky — Swift Testing parallelisiert
+     Tests **innerhalb** einer Suite, unabhängig von `-parallel-testing-enabled NO` (das nur
+     XCTests prozessweite Parallelisierung betrifft), und der Test hing an einer festen
+     300ms-Wartezeit auf die notifyd-Zustellung. Per `git stash`-Baseline als tatsächlich durch
+     die eigene Änderung ausgelöst verifiziert (Baseline grün, danach rot) statt als Flakiness
+     abgetan; behoben durch `.serialized` auf der Suite plus Polling statt fester Wartezeit
+     (drei Kombinationsläufe hintereinander grün).
   **Bekannte, bewusst nicht in diesem Durchgang behobene Grenze:** `FeedivoMCPServer` führt
   den Migrator bewusst nie aus (ADR-011). Läuft er gegen eine Datenbank, in der Migration v33
   noch nicht angewendet wurde — etwa weil Feedivo seit dem Update nicht gestartet wurde,
