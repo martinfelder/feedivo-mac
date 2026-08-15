@@ -22,8 +22,7 @@ struct SQLiteRuleStoreChangedFieldsTests {
             notificationPriority: RuleNotificationPriority.normal.rawValue, sortOrder: 0, createdAt: Date()
         )
         try store.save(original, conditions: [])
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
 
         var updated = original
         updated.name = "Neu"
@@ -42,8 +41,7 @@ struct SQLiteRuleStoreChangedFieldsTests {
             notificationPriority: RuleNotificationPriority.normal.rawValue, sortOrder: 0, createdAt: Date()
         )
         try store.save(rule, conditions: [])
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
 
         try store.updateEnabled(id: "rule-1", isEnabled: false)
 
@@ -65,8 +63,7 @@ struct SQLiteRuleStoreChangedFieldsTests {
             notificationPriority: RuleNotificationPriority.normal.rawValue, sortOrder: 0, createdAt: Date()
         )
         try store.save(rule, conditions: [])
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
 
         try store.save(rule, conditions: [])
 
@@ -84,8 +81,7 @@ struct SQLiteRuleStoreChangedFieldsTests {
     /// bleiben (volle Feldübertragung, kein Feld-Ebene-Tracking für Neuanlagen).
     @Test func saveBeiNeuanlageMarkiertKeineChangedFields() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
 
         let store = SQLiteRuleStore(database: database)
         let rule = RuleRecord(
@@ -121,8 +117,7 @@ struct SQLiteRuleStoreChangedFieldsTests {
                 RuleConditionRecord(id: "cond-b", ruleID: "rule-1", field: "title", conditionOperator: "contains", value: "alt-b")
             ]
         )
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
 
         // Zweite Speicherung: 3 neue Bedingungszeilen (unabhängig von den alten IDs) ersetzen
         // die vorherigen 2 komplett.
@@ -164,8 +159,7 @@ struct SQLiteRuleStoreChangedFieldsTests {
         try store.save(RuleRecord(id: "rule-a", name: "Alpha", sortOrder: 0), conditions: [])
         try store.save(RuleRecord(id: "rule-b", name: "Bravo", sortOrder: 1), conditions: [])
         try store.save(RuleRecord(id: "rule-c", name: "Charlie", sortOrder: 2), conditions: [])
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
 
         try store.move(id: "rule-b", toPositionOf: "rule-a")
 

@@ -23,8 +23,7 @@ struct SQLiteSmartFolderStoreChangedFieldsTests {
             createdAt: Date(), updatedAt: Date()
         )
         try store.save(original, conditions: [])
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
 
         var updated = original
         updated.name = "Neu"
@@ -44,8 +43,7 @@ struct SQLiteSmartFolderStoreChangedFieldsTests {
             createdAt: Date(), updatedAt: Date()
         )
         try store.save(folder, conditions: [])
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
 
         try store.updateSidebarVisibility(id: "folder-1", isShownInSidebar: false)
 
@@ -68,8 +66,7 @@ struct SQLiteSmartFolderStoreChangedFieldsTests {
             createdAt: Date(), updatedAt: Date()
         )
         try store.save(folder, conditions: [])
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
 
         try store.save(folder, conditions: [])
 
@@ -82,8 +79,7 @@ struct SQLiteSmartFolderStoreChangedFieldsTests {
     /// (volle Feldübertragung, kein Feld-Ebene-Tracking für Neuanlagen).
     @Test func saveBeiNeuanlageMarkiertKeineChangedFields() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
 
         let store = SQLiteSmartFolderStore(database: database)
         let folder = SmartFolderRecord(
@@ -117,8 +113,7 @@ struct SQLiteSmartFolderStoreChangedFieldsTests {
                 SmartFolderConditionRecord(id: "cond-b", smartFolderID: "folder-1", field: "title", conditionOperator: "contains", value: "alt-b")
             ]
         )
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
 
         // Zweite Speicherung: 3 neue Bedingungszeilen (unabhängig von den alten IDs) ersetzen die
         // vorherigen 2 komplett.
@@ -160,8 +155,7 @@ struct SQLiteSmartFolderStoreChangedFieldsTests {
         try store.save(SmartFolderRecord(id: "folder-a", name: "Alpha", sortOrder: 0), conditions: [])
         try store.save(SmartFolderRecord(id: "folder-b", name: "Bravo", sortOrder: 1), conditions: [])
         try store.save(SmartFolderRecord(id: "folder-c", name: "Charlie", sortOrder: 2), conditions: [])
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
 
         try store.move(id: "folder-b", toPositionOf: "folder-a")
 
@@ -183,8 +177,7 @@ struct SQLiteSmartFolderStoreChangedFieldsTests {
         let store = SQLiteSmartFolderStore(database: database)
         try store.save(SmartFolderRecord(id: "folder-default", name: "Ungelesen", isDefault: true, sortOrder: 0), conditions: [])
         try store.save(SmartFolderRecord(id: "folder-b", name: "Bravo", isDefault: false, sortOrder: 1), conditions: [])
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
 
         try store.move(id: "folder-b", toPositionOf: "folder-default")
 

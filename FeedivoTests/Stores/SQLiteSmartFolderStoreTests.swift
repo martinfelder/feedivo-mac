@@ -13,8 +13,7 @@ import Testing
 struct SQLiteSmartFolderStoreTests {
     @Test func saveMarkiertBenutzerdefiniertenOrdnerUndBedingungenAlsPendingSyncWennAktiviert() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
 
         let store = SQLiteSmartFolderStore(database: database)
         try store.save(
@@ -30,7 +29,8 @@ struct SQLiteSmartFolderStoreTests {
 
     @Test func saveMarkiertNichtsWennSyncDeaktiviert() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
-        UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey)
+        // Eine frische In-Memory-Testdatenbank steht nach Migration v33 deterministisch auf
+        // "aus" — kein explizites Zurücksetzen mehr nötig.
 
         let store = SQLiteSmartFolderStore(database: database)
         try store.save(
@@ -47,8 +47,7 @@ struct SQLiteSmartFolderStoreTests {
     /// enqueuen, selbst wenn Sync aktiviert ist — nur die fachliche Mutation läuft.
     @Test func saveMarkiertNichtsFuerDefaultOrdnerAuchWennSyncAktiviert() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
 
         let store = SQLiteSmartFolderStore(database: database)
         try store.save(
@@ -71,8 +70,7 @@ struct SQLiteSmartFolderStoreTests {
             ]
         )
 
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
 
         // Editieren: Bedingungsliste wird komplett ersetzt (bestehendes save()-Verhalten:
         // delete-all-then-reinsert) — die alte Bedingungs-ID muss als .delete enqueued
@@ -96,8 +94,7 @@ struct SQLiteSmartFolderStoreTests {
         let store = SQLiteSmartFolderStore(database: database)
         try store.save(SmartFolderRecord(id: "folder-1", name: "Meine Auswahl", isDefault: false, sortOrder: 0), conditions: [])
 
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
 
         try store.updateSidebarVisibility(id: "folder-1", isShownInSidebar: false)
 
@@ -112,8 +109,7 @@ struct SQLiteSmartFolderStoreTests {
         try store.restoreDefaultFolders()
         let defaultFolder = try #require(try store.folders().first { $0.defaultKey == "unread" })
 
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
 
         try store.updateSidebarVisibility(id: defaultFolder.id, isShownInSidebar: false)
 
@@ -131,8 +127,7 @@ struct SQLiteSmartFolderStoreTests {
         try store.save(SmartFolderRecord(id: "folder-a", name: "A", isDefault: false, sortOrder: 100), conditions: [])
         try store.save(SmartFolderRecord(id: "folder-b", name: "B", isDefault: false, sortOrder: 101), conditions: [])
 
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
 
         // Verschiebt "folder-b" an die Position des eingebauten Ordners — alle dazwischen
         // liegenden Ordner (inkl. des Default-Ordners selbst) bekommen ein neues sortOrder,
@@ -149,8 +144,7 @@ struct SQLiteSmartFolderStoreTests {
     // könnte theoretisch noch existieren, obwohl ihre Löschung bereits enqueued wurde).
     @Test func deleteBenutzerdefiniertenOrdnerEnqueuedLoeschungenFuerOrdnerUndAlleBedingungen() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
 
         let store = SQLiteSmartFolderStore(database: database)
         let folder = SmartFolderRecord(id: "folder-1", name: "Meine Auswahl", isDefault: false)
@@ -178,8 +172,7 @@ struct SQLiteSmartFolderStoreTests {
         try store.restoreDefaultFolders()
         let defaultFolder = try #require(try store.folders().first { $0.defaultKey == "unread" })
 
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
 
         try store.delete(id: defaultFolder.id)
 
@@ -197,8 +190,7 @@ struct SQLiteSmartFolderStoreTests {
             ]
         )
 
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
 
         let duplicate = try store.duplicate(id: "folder-1", copyName: "Kopie")
         let duplicateConditionID = try store.conditions(folderID: duplicate.id).first?.id
@@ -223,8 +215,7 @@ struct SQLiteSmartFolderStoreTests {
         try store.restoreDefaultFolders()
         let defaultFolder = try #require(try store.folders().first { $0.defaultKey == "unread" })
 
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
 
         let duplicate = try store.duplicate(id: defaultFolder.id, copyName: "Kopie von Ungelesen")
 
@@ -240,8 +231,7 @@ struct SQLiteSmartFolderStoreTests {
     /// niemals eine ausstehende Änderung erzeugen.
     @Test func restoreDefaultFoldersEnqueuedNiemalsPendingSync() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
 
         let store = SQLiteSmartFolderStore(database: database)
         try store.restoreDefaultFolders()

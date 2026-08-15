@@ -10,8 +10,7 @@ import Testing
 struct SQLiteRuleStoreTests {
     @Test func saveMarkiertRegelUndBedingungenAlsPendingSyncWennAktiviert() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
 
         let store = SQLiteRuleStore(database: database)
         try store.save(
@@ -27,7 +26,8 @@ struct SQLiteRuleStoreTests {
 
     @Test func saveMarkiertNichtsWennSyncDeaktiviert() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
-        UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey)
+        // Eine frische In-Memory-Testdatenbank steht nach Migration v33 deterministisch auf
+        // "aus" — kein explizites Zurücksetzen mehr nötig.
 
         let store = SQLiteRuleStore(database: database)
         try store.save(
@@ -50,8 +50,7 @@ struct SQLiteRuleStoreTests {
             ]
         )
 
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
 
         // Editieren: Bedingungsliste wird komplett ersetzt (bestehendes save()-Verhalten:
         // delete-all-then-reinsert) — die alte Bedingungs-ID muss als .delete enqueued
@@ -75,8 +74,7 @@ struct SQLiteRuleStoreTests {
         let store = SQLiteRuleStore(database: database)
         try store.save(RuleRecord(id: "rule-1", name: "Test", sortOrder: 0), conditions: [])
 
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
 
         try store.updateEnabled(id: "rule-1", isEnabled: false)
 
@@ -91,8 +89,7 @@ struct SQLiteRuleStoreTests {
         try store.save(RuleRecord(id: "rule-a", name: "A", sortOrder: 0), conditions: [])
         try store.save(RuleRecord(id: "rule-b", name: "B", sortOrder: 1), conditions: [])
 
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
 
         try store.move(id: "rule-b", toPositionOf: "rule-a")
 
@@ -108,8 +105,7 @@ struct SQLiteRuleStoreTests {
         let condition = RuleConditionRecord(id: "cond-1", ruleID: "rule-1", field: "title", conditionOperator: "contains", value: "x")
         try store.save(rule, conditions: [condition])
 
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
 
         try store.delete(id: "rule-1")
 
@@ -137,8 +133,7 @@ struct SQLiteRuleStoreTests {
             ]
         )
 
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
 
         let duplicate = try store.duplicate(id: "rule-1", copyName: "Kopie")
         let duplicateConditionID = try store.conditions(ruleID: duplicate.id).first?.id

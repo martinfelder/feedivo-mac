@@ -13,7 +13,7 @@ struct SQLiteSmartFolderStore {
     /// wie die fachliche Mutation — analog zu `FeedStore`/`FeedFolderStore`/`TagStore`/
     /// `SQLiteRuleStore`.
     private func enqueuePendingSync(_ db: Database, recordType: String, recordName: String, changeType: CloudSyncChangeType, changedFields: [String]? = nil) throws {
-        guard CloudSyncSettings.isEnabled() else { return }
+        guard CloudSyncSettingsStore.isEnabled(in: db) else { return }
         try CloudSyncPendingChangeStore.enqueue(db, recordType: recordType, recordName: recordName, changeType: changeType, changedFields: changedFields)
     }
 

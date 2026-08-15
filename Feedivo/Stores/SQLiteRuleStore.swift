@@ -12,7 +12,7 @@ struct SQLiteRuleStore {
     /// iCloud Sync aktiv ist. Läuft bewusst INNERHALB derselben `database.write`-Transaktion
     /// wie die fachliche Mutation — analog zu `FeedStore`/`FeedFolderStore`/`TagStore`.
     private func enqueuePendingSync(_ db: Database, recordType: String, recordName: String, changeType: CloudSyncChangeType, changedFields: [String]? = nil) throws {
-        guard CloudSyncSettings.isEnabled() else { return }
+        guard CloudSyncSettingsStore.isEnabled(in: db) else { return }
         try CloudSyncPendingChangeStore.enqueue(db, recordType: recordType, recordName: recordName, changeType: changeType, changedFields: changedFields)
     }
 
