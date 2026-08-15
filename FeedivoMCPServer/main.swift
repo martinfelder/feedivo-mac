@@ -54,7 +54,11 @@ var availableTools: [Tool] = [
 ]
 
 if let writableDatabase {
-    availableTools.append(UpdateArticleStatusTool.definition)
+    availableTools.append(contentsOf: [
+        UpdateArticleStatusTool.definition,
+        AssignTagTool.definition,
+        RemoveTagTool.definition,
+    ])
 }
 
 await server.withMethodHandler(ListTools.self) { _ in
@@ -82,6 +86,16 @@ await server.withMethodHandler(CallTool.self) { params in
             return .init(content: [.text("Schreibzugriff ist nicht aktiviert.")], isError: true)
         }
         return try UpdateArticleStatusTool.call(readDatabase: database, writeDatabase: writableDatabase, arguments: params.arguments)
+    case "assign_tag":
+        guard let writableDatabase else {
+            return .init(content: [.text("Schreibzugriff ist nicht aktiviert.")], isError: true)
+        }
+        return try AssignTagTool.call(readDatabase: database, writeDatabase: writableDatabase, arguments: params.arguments)
+    case "remove_tag":
+        guard let writableDatabase else {
+            return .init(content: [.text("Schreibzugriff ist nicht aktiviert.")], isError: true)
+        }
+        return try RemoveTagTool.call(readDatabase: database, writeDatabase: writableDatabase, arguments: params.arguments)
     default:
         return .init(content: [.text("Unbekanntes Tool: \(params.name)")], isError: true)
     }
