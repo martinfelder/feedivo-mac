@@ -1708,6 +1708,38 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
      die eigene Änderung ausgelöst verifiziert (Baseline grün, danach rot) statt als Flakiness
      abgetan; behoben durch `.serialized` auf der Suite plus Polling statt fester Wartezeit
      (drei Kombinationsläufe hintereinander grün).
+  **Bei genau dieser Live-Verifikation gefundener, davon unabhängiger Altbug — behoben,
+  Commit `83d67d56`:** Punkt 3 schlug fehl, die Warteschlange blieb bei 7 Einträgen stehen.
+  Per systematic-debugging auf der Produktions-DB diagnostiziert: alle 7 waren
+  `ArticleStatus`-`save`-Aufträge, deren `syncStableID` in `article_statuses` **nicht mehr
+  existierte** (10300 vorhandene Zeilen, davon 0 ohne `syncStableID` — also kein NULL-Problem).
+  `makeCKRecord(fromLocalID:)` liefert für sie `nil`, `CKSyncEngine` wiederholte den Versuch
+  endlos (im Log alle ~1,6 s `CKErrorDomain Code=2`/partialFailure) und **blockierte dadurch
+  jeden weiteren ArticleStatus-Upload**. Root Cause: `CloudSyncArticleStatusMapping.
+  enqueueDeletionIfSynced` gated SEIN GESAMTES Verhalten auf den Sync-Aktiv-Status — wurde ein
+  Artikel gelöscht, während Sync gerade aus war, reihte es weder ein `delete` ein (korrekt)
+  noch räumte es einen bereits wartenden `save` auf (falsch); die `article_statuses`-Zeile
+  verschwand per Kaskade trotzdem. Beim Wiedereinschalten von Sync blockierte der verwaiste
+  Auftrag ab da alles. **Die naheliegende Reihenfolge-Hypothese (Kaskade löscht, bevor die
+  Löschpropagierung lesen kann) wurde geprüft und WIDERLEGT** — alle drei bekannten Löschpfade
+  (`SQLiteFeedArticleListState.deleteArticle`, `ArticleRetentionCleanupService`,
+  `FeedStore.delete`) lesen bereits vor dem physischen `DELETE` in derselben Transaktion. Fix
+  trennt beide Belange: das `delete` an CloudKit zu melden bleibt sync-gated, das Aufräumen
+  eines wartenden Eintrags läuft unbedingt. Zweite, unabhängig gefundene Lücke im
+  `addFeed`-Rollback-Pfad (`SQLiteFeedSubscriptionService.cleanupSQLiteSubscription` löschte
+  `article_statuses` ganz ohne Aufräum-Aufruf) mitbehoben. Migration
+  `v34_cleanup_orphaned_article_status_pending_changes` bereinigt Bestandsdaten —
+  ausschließlich `save`-Einträge, denn ein wartender `delete` ohne lokale Zeile ist der
+  ERWÜNSCHTE Zustand nach regulärer Löschpropagierung. 178 CloudSync-Tests grün. **Live
+  bestätigt:** nach der Migration Warteschlange leer, danach Punkt 5 erfolgreich
+  (MCP-Schreibvorgang bei laufender App → `CKModifyRecordsOperation` 5 s später →
+  Warteschlange leer, ohne Neustart). **Lehre:** Ein Gate, das über „soll nach außen gemeldet
+  werden?" entscheidet, darf nicht gleichzeitig über „muss lokal aufgeräumt werden?"
+  entscheiden — die zweite Frage ist vom Sync-Zustand unabhängig, weil die Daten unabhängig
+  davon verschwinden. **Offener Nebenbefund (kein Fehler, aber irreführend):** die Meldung
+  „iCloud Sync: Sofortiges Senden fehlgeschlagen" erscheint auch beim normalen Konfliktzyklus
+  (erster Sendeversuch kollidiert, Engine holt den Server-Record und sendet erfolgreich
+  erneut) — sie liest sich wie ein Endzustand, ist aber oft nur ein Zwischenschritt.
   **Ehemalige Grenze bei veralteter Datenbank — inzwischen geschlossen (Commit `0d906d32`,
   siehe unten):** `FeedivoMCPServer` führt den Migrator bewusst nie aus (ADR-011). Läuft er
   gegen eine Datenbank, in der Migration v33 noch nicht angewendet wurde — etwa weil Feedivo
