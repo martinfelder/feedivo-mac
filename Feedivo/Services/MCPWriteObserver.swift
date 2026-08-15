@@ -23,6 +23,15 @@ enum MCPWriteObserver {
                 Task { @MainActor in
                     SQLiteDataInvalidation.shared.bumpStatusVersion()
                     SidebarBadgeInvalidation.shared.bumpDirectTagVersion()
+                    // Seit der DB-Spiegelung des Sync-Flags (Migration v33) reihen die
+                    // Store-Gates auch MCP-Schreibvorgaenge korrekt in
+                    // cloud_sync_pending_changes ein — ohne diesen Aufruf erfaehrt eine
+                    // LAUFENDE CKSyncEngine davon aber nichts, und der Push passiert erst beim
+                    // naechsten start() (App-Neustart) oder bei der naechsten In-App-Mutation.
+                    // Kein Datenverlust (die Warteschlange ist durabel), aber unnoetige
+                    // Push-Latenz, solange Feedivo durchgehend laeuft. Ist Sync aus oder noch
+                    // keine Engine registriert, ist der Aufruf ein No-Op.
+                    CloudSyncEngine.notifyPendingChangesAvailableUsingRegisteredEngine()
                 }
             },
             MCPWriteNotificationName.darwin,

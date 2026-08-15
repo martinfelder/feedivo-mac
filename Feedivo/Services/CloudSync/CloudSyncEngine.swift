@@ -227,6 +227,24 @@ final class CloudSyncEngine: NSObject {
     /// werden. Läuft Sync gerade nicht (Toggle aus, oder App noch beim Start), ist dieser
     /// Aufruf ein No-Op — die Änderung bleibt in der Warteschlange stehen und wird beim
     /// nächsten `start()` ohnehin rehydriert.
+    /// Variante ohne Datenbank-Parameter für Aufrufer, die selbst keine `FeedivoDatabase`-
+    /// Referenz mitführen können — konkret `MCPWriteObserver`, dessen
+    /// `CFNotificationCenter`-Callback ein nicht-capturing `@convention(c)`-Funktionszeiger ist
+    /// und deshalb ausschließlich globale/statische Symbole referenzieren darf. Nutzt die
+    /// Datenbank der bereits registrierten Engine.
+    ///
+    /// Hintergrund: Seit der DB-Spiegelung des Sync-Flags (Migration v33) landen Schreibvorgänge
+    /// aus dem `FeedivoMCPServer`-Prozess korrekt in `cloud_sync_pending_changes` — eine laufende
+    /// `CKSyncEngine` erfuhr davon aber nichts, weil `MCPWriteObserver` nur die
+    /// Invalidierungszähler bumpte. Der Push passierte dadurch erst beim nächsten `start()`
+    /// (App-Neustart) oder bei der nächsten In-App-Mutation: kein Datenverlust, aber unnötige
+    /// Push-Latenz, solange Feedivo durchgehend läuft. Strukturell derselbe Fund wie im
+    /// iCloud-Sync-Phase-1-Whole-Branch-Review, dort für die App-eigenen Store-Mutationen gelöst.
+    static func notifyPendingChangesAvailableUsingRegisteredEngine() {
+        guard let current else { return }
+        notifyPendingChangesAvailable(database: current.database)
+    }
+
     static func notifyPendingChangesAvailable(database: FeedivoDatabase) {
         guard let syncEngine = current?.syncEngine else { return }
         guard let pending = try? CloudSyncPendingChangeStore(database: database).pendingChanges(), !pending.isEmpty else {
