@@ -1687,7 +1687,9 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   Claude Desktop am eigenen Mac und ist vom Nutzer selbst durchzuführen (kein
   computer-use für native macOS-Apps in dieser Umgebung verfügbar). **Phasen 2–4
   (Feed-Verwaltung, neue Lese-Tools, Such-Verbesserungen) sind eigene, noch nicht
-  begonnene Folge-Zyklen.**
+  begonnene Folge-Zyklen.** Commits `6765127..cc03628` (Tasks 1–7, 8 Commits) lokal
+  auf `main`, NICHT gepusht (Nutzerbestätigung vor Push laut Projektkonvention
+  ausstehend).
 
 - **2026-08-12 bis 2026-08-14: Read-only MCP-Server für Feedivo (v1) — VOLLSTÄNDIG
   ABGESCHLOSSEN, gepusht, live in Claude Desktop verifiziert.** Neues Command-Line-
