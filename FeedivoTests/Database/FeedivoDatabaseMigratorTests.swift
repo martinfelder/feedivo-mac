@@ -361,6 +361,76 @@ struct FeedivoDatabaseMigratorTests {
         #expect(rowCount == 1)
     }
 
+    /// Regressionstest für den auf der Produktions-DB beobachteten Bug (2026-08-15, siehe
+    /// `CloudSyncArticleStatusMapping.enqueueDeletionIfSynced`-Dokumentation): verwaiste
+    /// `save`-Pending-Changes für `ArticleStatus` — deren `article_statuses`-Zeile längst
+    /// gelöscht wurde — blockierten jeden weiteren Sync-Upload, da `CKSyncEngine` sie endlos
+    /// erneut zu senden versuchte, ohne je ein gültiges `CKRecord` bauen zu können. Diese
+    /// Migration räumt bereits vorhandene Bestandszeilen einmalig auf; der eigentliche Fix
+    /// (kein neuer Löschpfad darf künftig solche Waisen erzeugen) sitzt in
+    /// `CloudSyncArticleStatusMapping.enqueueDeletionIfSynced` selbst.
+    @Test func migrationV34RaeumtVerwaisteArticleStatusPendingSavesAufUndLaesstGueltigeEintraegeUnangetastet() throws {
+        let queue = try DatabaseQueue()
+        try FeedivoDatabaseMigrator.migrator.migrate(queue, upTo: "v33_create_cloud_sync_settings")
+
+        try queue.write { db in
+            let now = Date()
+            try db.execute(
+                sql: """
+                    INSERT INTO feeds (id, url, title, refreshIntervalMinutes, unreadCount, createdAt, updatedAt)
+                    VALUES ('feed-1', 'https://example.com/feed', 'Test', 30, 0, ?, ?)
+                    """,
+                arguments: [now, now]
+            )
+            try db.execute(
+                sql: """
+                    INSERT INTO articles (id, feedID, title, arrivedAt, updatedAt)
+                    VALUES ('article-1', 'feed-1', 'Titel', ?, ?)
+                    """,
+                arguments: [now, now]
+            )
+            // Diese Zeile bleibt bestehen — ihr `save`-Pending-Change ('gueltig-stable-id')
+            // darf die Migration nicht entfernen.
+            try db.execute(
+                sql: """
+                    INSERT INTO article_statuses (articleID, isRead, isStarred, isArchived, isHidden, dateArrived, syncStableID)
+                    VALUES ('article-1', 1, 0, 0, 0, ?, 'gueltig-stable-id')
+                    """,
+                arguments: [now]
+            )
+
+            try db.execute(
+                sql: "INSERT INTO cloud_sync_pending_changes (id, recordType, changeType, queuedAt) VALUES (?, 'ArticleStatus', 'save', ?)",
+                arguments: ["gueltig-stable-id", now]
+            )
+            // Verwaist: keine article_statuses-Zeile mit dieser syncStableID existiert (mehr).
+            try db.execute(
+                sql: "INSERT INTO cloud_sync_pending_changes (id, recordType, changeType, queuedAt) VALUES (?, 'ArticleStatus', 'save', ?)",
+                arguments: ["verwaist-stable-id", now]
+            )
+            // Ebenfalls ohne passende Zeile, aber ein `delete`-Auftrag — das ist der ERWÜNSCHTE
+            // Zustand nach einer regulären Löschpropagierung, kein Bug, muss unangetastet
+            // bleiben.
+            try db.execute(
+                sql: "INSERT INTO cloud_sync_pending_changes (id, recordType, changeType, queuedAt) VALUES (?, 'ArticleStatus', 'delete', ?)",
+                arguments: ["bereits-geloescht-stable-id", now]
+            )
+            // Anderer recordType, ebenfalls ohne passenden Datensatz — darf von dieser
+            // ArticleStatus-spezifischen Aufräumaktion nicht berührt werden.
+            try db.execute(
+                sql: "INSERT INTO cloud_sync_pending_changes (id, recordType, changeType, queuedAt) VALUES (?, 'Tag', 'save', ?)",
+                arguments: ["tag-1", now]
+            )
+        }
+
+        try FeedivoDatabaseMigrator.migrator.migrate(queue)
+
+        let remainingIDs = try queue.read { db in
+            try String.fetchAll(db, sql: "SELECT id FROM cloud_sync_pending_changes ORDER BY id")
+        }
+        #expect(remainingIDs == ["bereits-geloescht-stable-id", "gueltig-stable-id", "tag-1"])
+    }
+
     @Test func migrationV33IgnoriertUserDefaultsUndBleibtDeterministisch() throws {
         // Bewusste Abweichung von der urspruenglichen Design-Spec: der Backfill des
         // bestehenden UserDefaults-Werts passiert NICHT hier, sondern beim App-Start

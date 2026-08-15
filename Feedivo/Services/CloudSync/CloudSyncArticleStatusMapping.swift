@@ -177,24 +177,66 @@ enum CloudSyncArticleStatusMapping: CloudSyncRecordMapping {
     }
 
     /// Enqueued `.delete` für die `syncStableID` jeder `articleID` aus `articleIDs`, deren
-    /// Status je synchronisiert wurde (`statusSyncUpdatedAt IS NOT NULL`) — No-Op für nie
-    /// synchronisierte Zeilen und wenn iCloud Sync gerade deaktiviert ist. Aufrufer
-    /// (Löschpropagierung, Tasks 7/8/9 der ursprünglichen Phase-2b-Implementierung)
+    /// Status je synchronisiert wurde (`statusSyncUpdatedAt IS NOT NULL`) UND iCloud Sync
+    /// gerade aktiv ist — Löschungen, die während Sync-aus passieren, werden bewusst NICHT an
+    /// CloudKit gemeldet (siehe `CloudSyncEngine.backfillAllExistingRecords`-Kommentar).
+    /// Aufrufer (Löschpropagierung, Tasks 7/8/9 der ursprünglichen Phase-2b-Implementierung)
     /// arbeiten mit lokalen `articleID`s (das ist, was sie beim Löschen kennen) — diese
     /// Methode übersetzt intern auf die für CloudKit relevante `syncStableID`.
+    ///
+    /// **Wichtig, unabhängig vom Sync-Aktiv-Status:** JEDE bereits in
+    /// `cloud_sync_pending_changes` wartende Änderung für eine dieser IDs wird entfernt, falls
+    /// hier kein `.delete` dafür eingereiht wird — sonst bliebe ein bereits vorhandener
+    /// `save`-Eintrag (z. B. entstanden, während Sync noch an war) für immer unerfüllbar
+    /// stehen, sobald die zugehörige `article_statuses`-Zeile gleich verschwindet: ein späterer
+    /// Sendeversuch findet über `makeCKRecord(fromLocalID:)` keine Zeile mehr, liefert `nil`,
+    /// und `CKSyncEngine` versucht die Änderung endlos erneut zu senden — blockiert dabei auch
+    /// jeden weiteren ArticleStatus-Upload. Auf der Produktions-DB beobachtet (2026-08-15):
+    /// Nutzer aktiviert Sync → Status wird geändert (`save` eingereiht) → Sync wird deaktiviert
+    /// → Artikel wird gelöscht (dieser Guard war bisher `CloudSyncSettingsStore.isEnabled`,
+    /// hat deshalb NICHTS getan) → Sync wird wieder aktiviert → verwaister `save`-Eintrag
+    /// blockiert seither jeden Push. Siehe Root-Cause-Report unter
+    /// `.superpowers/sdd/2026-08-15-cloud-sync-settings-db-spiegelung/orphaned-pending-changes-report.md`.
     static func enqueueDeletionIfSynced(articleIDs: [String], db: Database) throws {
-        guard CloudSyncSettingsStore.isEnabled(in: db), !articleIDs.isEmpty else { return }
+        guard !articleIDs.isEmpty else { return }
         let placeholders = Array(repeating: "?", count: articleIDs.count).joined(separator: ", ")
-        let syncedStableIDs = try String.fetchAll(
+
+        // ALLE syncStableIDs der betroffenen Artikel lesen (nicht nur die mit gesetztem
+        // `statusSyncUpdatedAt`) — ein evtl. bereits bestehender Pending-Change-Eintrag für
+        // eine dieser IDs muss in JEDEM Fall aufgeräumt werden, unabhängig davon, ob diese
+        // konkrete Zeile gerade als "berührt" gilt.
+        let stableIDs = try String.fetchAll(
+            db,
+            sql: """
+                SELECT syncStableID FROM article_statuses
+                WHERE syncStableID IS NOT NULL AND articleID IN (\(placeholders))
+                """,
+            arguments: StatementArguments(articleIDs)
+        )
+        guard !stableIDs.isEmpty else { return }
+
+        let touchedStableIDs = try Set(String.fetchAll(
             db,
             sql: """
                 SELECT syncStableID FROM article_statuses
                 WHERE statusSyncUpdatedAt IS NOT NULL AND syncStableID IS NOT NULL AND articleID IN (\(placeholders))
                 """,
             arguments: StatementArguments(articleIDs)
-        )
-        for stableID in syncedStableIDs {
-            try CloudSyncPendingChangeStore.enqueue(db, recordType: recordType, recordName: stableID, changeType: .delete)
+        ))
+
+        let isSyncEnabled = CloudSyncSettingsStore.isEnabled(in: db)
+        for stableID in stableIDs {
+            if isSyncEnabled, touchedStableIDs.contains(stableID) {
+                // `enqueue` ist ein Upsert auf `id` — ersetzt einen evtl. bereits wartenden
+                // `save`-Eintrag für dieselbe ID automatisch durch dieses `.delete`.
+                try CloudSyncPendingChangeStore.enqueue(db, recordType: recordType, recordName: stableID, changeType: .delete)
+            } else {
+                // Entweder ist Sync gerade aus, oder die Zeile wurde nie sync-relevant berührt
+                // — in beiden Fällen wird keine Löschung an CloudKit gemeldet. Ein trotzdem
+                // vorhandener Pending-Change-Eintrag (z. B. ein `save` aus einer Zeit, als Sync
+                // noch an war) darf aber NICHT stehen bleiben.
+                try db.execute(sql: "DELETE FROM cloud_sync_pending_changes WHERE id = ?", arguments: [stableID])
+            }
         }
     }
 }

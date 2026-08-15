@@ -187,4 +187,41 @@ struct CloudSyncArticleStatusMappingTests {
         #expect(pending.map(\.id) == [beruehrterStatus.syncStableID])
         #expect(pending.first?.changeType == .delete)
     }
+
+    /// Regressionstest fuer den auf der Produktions-DB beobachteten Bug (2026-08-15): ein
+    /// Artikel-Status wird synct (Sync AN, `save` wird eingereiht), Sync wird DANACH
+    /// deaktiviert, und ERST DANN wird der Artikel geloescht. `enqueueDeletionIfSynced` gatete
+    /// bisher komplett auf `CloudSyncSettingsStore.isEnabled(in:)` — bei deaktiviertem Sync tat
+    /// die Methode ueberhaupt nichts, obwohl der bereits vorhandene `save`-Pending-Change-
+    /// Eintrag gerade dadurch unerfuellbar wird (seine `article_statuses`-Zeile verschwindet
+    /// gleich). Der verwaiste Eintrag blieb dauerhaft in `cloud_sync_pending_changes` stehen
+    /// und blockierte nach erneuter Sync-Aktivierung jeden weiteren ArticleStatus-Upload, da
+    /// `CKSyncEngine` ihn endlos erneut zu senden versuchte, ohne je ein passendes `CKRecord`
+    /// bauen zu koennen.
+    @Test func enqueueDeletionIfSyncedRaeumtVerwaistenPendingSaveAufWennSyncGeradeDeaktiviertIst() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let articleID = try seedArticle(database: database)
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
+        try ArticleStatusStore(database: database).setRead(true, articleID: articleID, at: Date())
+        let status = try ArticleStatusStore(database: database).status(articleID: articleID)!
+        let stableID = try #require(status.syncStableID)
+
+        // Vorbedingung: das `setRead` oben hat bereits einen echten `save`-Pending-Change
+        // eingereiht, waehrend Sync noch aktiv war.
+        let pendingBefore = try CloudSyncPendingChangeStore(database: database).pendingChanges()
+        #expect(pendingBefore.map(\.id) == [stableID])
+        #expect(pendingBefore.first?.changeType == .save)
+
+        // Sync wird deaktiviert, BEVOR der Artikel geloescht wird.
+        try CloudSyncSettingsStore(database: database).setEnabled(false)
+
+        try database.write { db in
+            try CloudSyncArticleStatusMapping.enqueueDeletionIfSynced(articleIDs: [articleID], db: db)
+            try db.execute(sql: "DELETE FROM article_statuses WHERE articleID = ?", arguments: [articleID])
+            try db.execute(sql: "DELETE FROM articles WHERE id = ?", arguments: [articleID])
+        }
+
+        let pendingAfter = try CloudSyncPendingChangeStore(database: database).pendingChanges()
+        #expect(pendingAfter.isEmpty, "Kein Pending-Change-Eintrag darf nach dem Loeschen auf eine nicht mehr existierende article_statuses-Zeile zeigen")
+    }
 }

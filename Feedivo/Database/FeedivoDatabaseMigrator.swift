@@ -623,6 +623,44 @@ enum FeedivoDatabaseMigrator {
             try database.execute(sql: "INSERT INTO cloud_sync_settings (id, isEnabled) VALUES (1, 0)")
         }
 
+        migrator.registerMigration("v34_cleanup_orphaned_article_status_pending_changes") { database in
+            // Einmaliges Bereinigen von Bestandsdaten (kein Schema-Wechsel): Ein Bug in
+            // `CloudSyncArticleStatusMapping.enqueueDeletionIfSynced` (siehe Root-Cause-Report
+            // unter `.superpowers/sdd/2026-08-15-cloud-sync-settings-db-spiegelung/
+            // orphaned-pending-changes-report.md`) konnte einen bereits eingereihten
+            // `save`-Pending-Change fuer `ArticleStatus` verwaisen lassen, wenn Sync GERADE
+            // deaktiviert war, waehrend der zugehoerige Artikel geloescht wurde — die
+            // `article_statuses`-Zeile existiert danach nicht mehr, der Auftrag konnte nie
+            // wieder erfuellt werden. `CKSyncEngine` versuchte ihn seither bei jedem Sync-
+            // Versuch endlos erneut zu senden und blockierte dadurch JEDEN weiteren
+            // ArticleStatus-Upload (auf der Produktions-DB live beobachtet: 7 betroffene
+            // Zeilen, wiederkehrende `CKErrorDomain Code=2`-Fehlschlaege im Log).
+            //
+            // Nur `changeType = 'save'` wird entfernt — ein wartender `delete`-Auftrag ohne
+            // passende `article_statuses`-Zeile ist der ERWUENSCHTE Zustand nach einer
+            // regulaeren Loeschpropagierung (die lokale Zeile ist ja bereits weg, genau das
+            // soll an CloudKit gemeldet werden) und darf nicht angetastet werden. Andere
+            // recordTypes (Tag/Feed/...) sind von diesem Bug nicht betroffen (deren Loeschpfade
+            // hatten dieselbe Race nicht) und bleiben deshalb ebenfalls unberuehrt.
+            //
+            // Bewusst als Migration statt als App-Start-Aufraeumschritt: reine, idempotente
+            // SQL-Bereinigung von Bestandsdaten ohne UserDefaults-Abhaengigkeit, exakt das
+            // bereits etablierte Muster fuer einmalige Datenkorrekturen in diesem Projekt (z. B.
+            // v13 verwaiste article_statuses-Zeilen, v22 veralteter recordType-String). Ein
+            // App-Start-Hook haette denselben Effekt bei laufender App neu bewerten muessen (bei
+            // JEDEM Start), waere fuer eine reine Einmalbereinigung unnoetig — und
+            // `FeedivoMCPServer` fuehrt den Migrator ohnehin nie aus (ADR-011), ein
+            // App-Start-Hook dort haette diese Bestandsdaten also gar nicht erreicht.
+            try database.execute(sql: """
+                DELETE FROM cloud_sync_pending_changes
+                WHERE recordType = 'ArticleStatus'
+                  AND changeType = 'save'
+                  AND id NOT IN (
+                      SELECT syncStableID FROM article_statuses WHERE syncStableID IS NOT NULL
+                  )
+                """)
+        }
+
         return migrator
     }
 

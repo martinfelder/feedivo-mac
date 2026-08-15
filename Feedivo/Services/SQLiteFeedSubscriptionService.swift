@@ -460,6 +460,15 @@ struct SQLiteFeedSubscriptionService {
 
     private func cleanupSQLiteSubscription(feedID: String) throws {
         try database.write { db in
+            // Artikel-IDs VOR dem eigentlichen Löschen lesen, damit ein eventuell schon
+            // vorhandener Pending-Change-Eintrag (in der Praxis unwahrscheinlich, da dieser
+            // Rollback nur bei einem sofortigen addFeed-Fehler läuft, aber nicht ausgeschlossen)
+            // korrekt aufgeräumt wird — sonst bliebe er als unerfüllbarer Auftrag stehen, sobald
+            // die zugehörige article_statuses-Zeile gleich verschwindet (siehe
+            // CloudSyncArticleStatusMapping.enqueueDeletionIfSynced-Dokumentation).
+            let articleIDs = try String.fetchAll(db, sql: "SELECT id FROM articles WHERE feedID = ?", arguments: [feedID])
+            try CloudSyncArticleStatusMapping.enqueueDeletionIfSynced(articleIDs: articleIDs, db: db)
+
             try db.execute(
                 sql: """
                     DELETE FROM article_statuses
