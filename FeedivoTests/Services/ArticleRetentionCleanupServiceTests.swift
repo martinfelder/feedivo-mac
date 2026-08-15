@@ -101,8 +101,7 @@ struct ArticleRetentionCleanupServiceTests {
 
     @Test func removeExpiredArticlesEnqueuedLoeschungFuerSynchronisierteStatus() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
         try FeedStore(database: database).save(FeedRecord(id: "feed-1", url: "https://example.com/feed", title: "Feed"))
         let alterTag = Date(timeIntervalSince1970: 0)
         let articleID = try ArticleStore(database: database).upsert(

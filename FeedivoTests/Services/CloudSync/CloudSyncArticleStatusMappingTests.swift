@@ -177,8 +177,7 @@ struct CloudSyncArticleStatusMappingTests {
         let unberuehrtID = try seedArticle(database: database, articleID: "unberuehrt", sourceID: "s-unberuehrt")
         try ArticleStatusStore(database: database).setStarred(true, articleID: beruehrtID, at: Date())
         let beruehrterStatus = try ArticleStatusStore(database: database).status(articleID: beruehrtID)!
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
 
         try database.write { db in
             try CloudSyncArticleStatusMapping.enqueueDeletionIfSynced(articleIDs: [beruehrtID, unberuehrtID], db: db)

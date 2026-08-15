@@ -189,8 +189,7 @@ struct SQLiteArticleStatusStoreTests {
 
     @Test func setReadEnqueuedPendingChangeWennSyncAktiv() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
         let store = ArticleStatusStore(database: database)
         let articleID = try seedArticleForStatusTest(database: database)
 
@@ -205,7 +204,8 @@ struct SQLiteArticleStatusStoreTests {
 
     @Test func setReadEnqueuedKeinenPendingChangeWennSyncDeaktiviert() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
-        UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey)
+        // Frische Test-Datenbank steht nach Migration v33 deterministisch auf "aus" —
+        // kein manuelles Zurücksetzen mehr nötig.
         let store = ArticleStatusStore(database: database)
         let articleID = try seedArticleForStatusTest(database: database)
 
@@ -224,8 +224,7 @@ struct SQLiteArticleStatusStoreTests {
     /// Re-Review-Finding 1).
     @Test func setReadEnqueuedPendingChangeDieSichZuEinemCKRecordAufloesenLaesst() throws {
         let database = try FeedivoDatabase.inMemoryForTests()
-        UserDefaults.standard.set(true, forKey: CloudSyncSettings.isEnabledKey)
-        defer { UserDefaults.standard.removeObject(forKey: CloudSyncSettings.isEnabledKey) }
+        try CloudSyncSettingsStore(database: database).setEnabled(true)
         let store = ArticleStatusStore(database: database)
         let articleID = try seedArticleForStatusTest(database: database)
 

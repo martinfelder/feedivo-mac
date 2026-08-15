@@ -139,7 +139,7 @@ struct ArticleStatusStore {
     /// aufzubauen, das `syncStableID` erwartet — mit der rohen lokalen `articleID` als `id`
     /// würde die Lookup fehlschlagen und die Änderung stillschweigend verworfen werden.
     private func enqueuePendingSync(_ db: Database, articleIDs: [String], changeType: CloudSyncChangeType) throws {
-        guard CloudSyncSettings.isEnabled(), !articleIDs.isEmpty else { return }
+        guard CloudSyncSettingsStore.isEnabled(in: db), !articleIDs.isEmpty else { return }
         let placeholders = Array(repeating: "?", count: articleIDs.count).joined(separator: ", ")
         let stableIDs = try String.fetchAll(
             db,

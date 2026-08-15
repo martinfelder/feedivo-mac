@@ -183,7 +183,7 @@ enum CloudSyncArticleStatusMapping: CloudSyncRecordMapping {
     /// arbeiten mit lokalen `articleID`s (das ist, was sie beim Löschen kennen) — diese
     /// Methode übersetzt intern auf die für CloudKit relevante `syncStableID`.
     static func enqueueDeletionIfSynced(articleIDs: [String], db: Database) throws {
-        guard CloudSyncSettings.isEnabled(), !articleIDs.isEmpty else { return }
+        guard CloudSyncSettingsStore.isEnabled(in: db), !articleIDs.isEmpty else { return }
         let placeholders = Array(repeating: "?", count: articleIDs.count).joined(separator: ", ")
         let syncedStableIDs = try String.fetchAll(
             db,
