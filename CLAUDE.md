@@ -1744,10 +1744,21 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   Warteschlange leer, ohne Neustart). **Lehre:** Ein Gate, das über „soll nach außen gemeldet
   werden?" entscheidet, darf nicht gleichzeitig über „muss lokal aufgeräumt werden?"
   entscheiden — die zweite Frage ist vom Sync-Zustand unabhängig, weil die Daten unabhängig
-  davon verschwinden. **Offener Nebenbefund (kein Fehler, aber irreführend):** die Meldung
-  „iCloud Sync: Sofortiges Senden fehlgeschlagen" erscheint auch beim normalen Konfliktzyklus
-  (erster Sendeversuch kollidiert, Engine holt den Server-Record und sendet erfolgreich
-  erneut) — sie liest sich wie ein Endzustand, ist aber oft nur ein Zwischenschritt.
+  davon verschwinden. **Direkt im Anschluss mitbehoben (Nebenbefund der Diagnose):** die
+  Meldung „iCloud Sync: Sofortiges Senden fehlgeschlagen" erschien auch beim normalen
+  Konfliktzyklus (erster Sendeversuch kollidiert, Engine holt den Server-Record und sendet
+  erfolgreich erneut) — sie las sich wie ein Endzustand, war aber oft nur ein Zwischenschritt,
+  und führte bei genau dieser Diagnose kurzzeitig auf eine falsche Fährte. Jetzt auf Stufe
+  `notice` (statt `error`) mit klarstellendem Text („Sendeversuch nicht vollständig
+  erfolgreich (Änderungen bleiben in der Warteschlange)"). Zusätzlich löst die neue,
+  isoliert getestete `CloudSyncEngine.describeSendChangesFailure(_:)` den bei
+  `CKError.partialFailure` (Code 2, der mit Abstand häufigste Sendefehler) sonst unsichtbaren
+  Detailfehler auf: `localizedDescription` liefert dort nur „Failed to send changes", die
+  eigentliche Ursache steckt pro Datensatz in `partialErrorsByItemID` — protokolliert wird
+  jetzt Record-Name plus numerischer `CKError.Code` (sortiert, damit zwei Logeinträge
+  vergleichbar bleiben). **Genau diese Information fehlte bei der Diagnose am 2026-08-15
+  vollständig** — Apples eigenes CloudKit-Log schwärzt die Details als `<private>`, weshalb
+  die Ursache nur über direkte `sqlite3`-Abfragen auf die Produktions-DB zu finden war.
   **Ehemalige Grenze bei veralteter Datenbank — inzwischen geschlossen (Commit `0d906d32`,
   siehe unten):** `FeedivoMCPServer` führt den Migrator bewusst nie aus (ADR-011). Läuft er
   gegen eine Datenbank, in der Migration v33 noch nicht angewendet wurde — etwa weil Feedivo

@@ -288,9 +288,52 @@ final class CloudSyncEngine: NSObject {
             do {
                 try await syncEngine.sendChanges()
             } catch {
-                AppLogger.dataAccess.error("iCloud Sync: Sofortiges Senden fehlgeschlagen: \(error.localizedDescription, privacy: .public)")
+                // Bewusst `notice` statt `error`: Ein fehlgeschlagener Sendeversuch ist hier
+                // haeufig nur ein ZWISCHENSCHRITT, kein Endzustand — der Standardfall
+                // `.serverRecordChanged` loest die Konfliktaufloesung aus, die den Server-Record
+                // holt und anschliessend erfolgreich erneut sendet. Als `error` geloggt las sich
+                // das wie ein Abbruch und fuehrte am 2026-08-15 bei der Live-Diagnose auf eine
+                // falsche Faehrte. Die betroffenen Aenderungen bleiben in jedem Fall in
+                // `cloud_sync_pending_changes` stehen und werden erneut versucht.
+                AppLogger.dataAccess.notice("iCloud Sync: Sendeversuch nicht vollstaendig erfolgreich (Aenderungen bleiben in der Warteschlange): \(Self.describeSendChangesFailure(error), privacy: .public)")
             }
         }
+    }
+
+    /// Baut aus einem `sendChanges()`-Fehler eine Beschreibung, die tatsaechlich weiterhilft.
+    ///
+    /// Hintergrund: `CKError.partialFailure` (Code 2) ist der mit Abstand haeufigste Sendefehler,
+    /// und ausgerechnet dort liefert `localizedDescription` nur das nichtssagende "Failed to send
+    /// changes" — die eigentliche Ursache steckt pro Datensatz in `partialErrorsByItemID`. Bei
+    /// der Live-Diagnose am 2026-08-15 (verwaiste Pending-Changes, siehe CLAUDE.md) war deshalb
+    /// weder aus dem App-Log noch aus dem CloudKit-Systemlog erkennbar, WELCHER Datensatz WARUM
+    /// scheiterte — Apples eigenes Log schwaerzt die Details als `<private>`. Diese Funktion
+    /// loest sie auf: Record-Name plus numerischer `CKError.Code`, der ohne Abhaengigkeit von
+    /// lokalisierten Texten nachschlagbar bleibt.
+    ///
+    /// `nonisolated`, damit sie ohne `@MainActor`-Kontext aus Tests heraus aufrufbar ist (analog
+    /// zur `registry`).
+    nonisolated static func describeSendChangesFailure(_ error: Error) -> String {
+        guard let ckError = error as? CKError else {
+            return error.localizedDescription
+        }
+
+        guard let partialErrors = ckError.partialErrorsByItemID, !partialErrors.isEmpty else {
+            return "\(ckError.localizedDescription) (CKError-Code \(ckError.errorCode))"
+        }
+
+        // Sortiert, damit dieselbe Fehlerlage immer identisch protokolliert wird — sonst waere
+        // beim Vergleich zweier Logeintraege nicht erkennbar, ob sich etwas geaendert hat.
+        let details = partialErrors
+            .map { itemID, itemError -> String in
+                let name = (itemID as? CKRecord.ID)?.recordName ?? "\(itemID)"
+                let code = (itemError as? CKError).map { "\($0.errorCode)" } ?? "?"
+                return "\(name) (CKError-Code \(code))"
+            }
+            .sorted()
+            .joined(separator: ", ")
+
+        return "\(partialErrors.count) Datensatz/Datensaetze abgelehnt: \(details)"
     }
 
     /// Reiht alle aktuell existierenden lokalen Zeilen aller registrierten Tabellen erneut als
