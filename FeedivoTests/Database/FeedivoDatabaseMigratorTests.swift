@@ -331,4 +331,16 @@ struct FeedivoDatabaseMigratorTests {
         }
         #expect(rowCount == 1)
     }
+
+    @Test func migrationV32FuegtWriteAccessIsEnabledSpalteHinzu() throws {
+        let queue = try DatabaseQueue()
+        try FeedivoDatabaseMigrator.migrator.migrate(queue, upTo: "v31_create_mcp_server_settings")
+
+        try FeedivoDatabaseMigrator.migrator.migrate(queue)
+
+        let writeAccessIsEnabled = try queue.read { db in
+            try Bool.fetchOne(db, sql: "SELECT writeAccessIsEnabled FROM mcp_server_settings WHERE id = 1")
+        }
+        #expect(writeAccessIsEnabled == false)
+    }
 }

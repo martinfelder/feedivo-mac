@@ -19,4 +19,16 @@ struct MCPServerSettingsStore {
             try db.execute(sql: "UPDATE mcp_server_settings SET isEnabled = ? WHERE id = 1", arguments: [isEnabled])
         }
     }
+
+    func isWriteAccessEnabled() throws -> Bool {
+        try database.read { db in
+            try Bool.fetchOne(db, sql: "SELECT writeAccessIsEnabled FROM mcp_server_settings WHERE id = 1") ?? false
+        }
+    }
+
+    func setWriteAccessEnabled(_ isEnabled: Bool) throws {
+        try database.write { db in
+            try db.execute(sql: "UPDATE mcp_server_settings SET writeAccessIsEnabled = ? WHERE id = 1", arguments: [isEnabled])
+        }
+    }
 }

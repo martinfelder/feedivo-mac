@@ -24,6 +24,28 @@ struct MCPServerSettingsStoreTests {
         #expect(try store.isEnabled() == false)
     }
 
+    @Test("Standardwert für Schreibzugriff nach Migration ist deaktiviert")
+    func standardwertSchreibzugriffIstDeaktiviert() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let store = MCPServerSettingsStore(database: database)
+
+        #expect(try store.isWriteAccessEnabled() == false)
+    }
+
+    @Test("setWriteAccessEnabled persistiert den neuen Wert unabhängig vom Hauptschalter")
+    func setWriteAccessEnabledPersistiertWert() throws {
+        let database = try FeedivoDatabase.inMemoryForTests()
+        let store = MCPServerSettingsStore(database: database)
+
+        try store.setWriteAccessEnabled(true)
+        #expect(try store.isWriteAccessEnabled() == true)
+        // Hauptschalter bleibt vom Schreibzugriff-Flag unberührt.
+        #expect(try store.isEnabled() == false)
+
+        try store.setWriteAccessEnabled(false)
+        #expect(try store.isWriteAccessEnabled() == false)
+    }
+
     @Test("Fehlende Tabelle wird fail-closed als false behandelt")
     func fehlendeTabelleWirdFailClosedAlsFalseBehandelt() throws {
         // Simuliert eine Datenbank, die nur bis vor Migration v31 migriert wurde

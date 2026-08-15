@@ -588,6 +588,17 @@ enum FeedivoDatabaseMigrator {
             try database.execute(sql: "INSERT INTO mcp_server_settings (id, isEnabled) VALUES (1, 0)")
         }
 
+        migrator.registerMigration("v32_add_mcp_server_write_access") { database in
+            // Zweiter, vom Hauptschalter unabhängiger Flag — Schreibzugriff ist ein
+            // bewusst separates Opt-in mit größerer Vertrauensgrenze als reines Lesen
+            // (siehe MCP-Server-V2-Phase-1-Design). Standard `false`, ADD COLUMN mit
+            // konstantem Bool-Default ist unproblematisch (anders als bei einem
+            // Datums-/CURRENT_TIMESTAMP-Default, siehe bestehender Gotcha dazu).
+            try database.alter(table: "mcp_server_settings") { table in
+                table.add(column: "writeAccessIsEnabled", .boolean).notNull().defaults(to: false)
+            }
+        }
+
         return migrator
     }
 
