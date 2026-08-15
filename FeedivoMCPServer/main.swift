@@ -21,6 +21,20 @@ guard isAccessEnabled else {
     exit(1)
 }
 
+let isWriteAccessEnabled = (try? accessSettings.isWriteAccessEnabled()) ?? false
+var writableDatabase: FeedivoMCPServerWritableDatabase?
+if isWriteAccessEnabled {
+    do {
+        writableDatabase = try FeedivoMCPServerWritableDatabase.open()
+    } catch {
+        let message = """
+            Feedivo MCP Server: Schreibzugriff konnte nicht aktiviert werden (\(error)), \
+            Server läuft nur lesend weiter.\n
+            """
+        FileHandle.standardError.write(Data(message.utf8))
+    }
+}
+
 let server = Server(
     name: "feedivo-mcp-server",
     version: "1.0.0",
@@ -29,7 +43,7 @@ let server = Server(
     )
 )
 
-let availableTools: [Tool] = [
+var availableTools: [Tool] = [
     ListFeedsTool.definition,
     ListFoldersTool.definition,
     ListTagsTool.definition,
