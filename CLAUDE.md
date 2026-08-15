@@ -1626,7 +1626,7 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   App — `CloudSyncSettings.isEnabled()` liefert dort praktisch immer `false`, egal was der
   Nutzer in den App-Einstellungen tatsächlich eingeschaltet hat. Konkrete Folge: MCP-
   Schreibvorgänge (`update_article_status`, `assign_tag`, `remove_tag`, siehe MCP-Server-V2-
-  Phase-1-Eintrag direkt darunter) landeten NIE in der lokalen iCloud-Sync-Warteschinge
+  Phase-1-Eintrag direkt darunter) landeten NIE in der lokalen iCloud-Sync-Warteschlange
   (`cloud_sync_pending_changes`), obwohl der Nutzer Sync in der App aktiv hatte — schlimmer
   noch: `statusSyncUpdatedAt` wurde bei jedem MCP-Schreibvorgang trotzdem aktualisiert,
   wodurch der Last-Write-Wins-Vergleich der Phase-3-Konfliktauflösung eine später
@@ -1679,8 +1679,8 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   4. Bestandsnutzer-/Selbstheilungs-Fall: Sync eingeschaltet lassen, App beenden,
      `UPDATE cloud_sync_settings SET isEnabled = 0;` von Hand setzen, App starten → Wert
      steht danach wieder auf `1`.
-  Spec: `docs/superpowers/specs/2026-08/2026-08-15-icloud-sync-settings-db-spiegelung-
-  design.md`, Plan: `docs/superpowers/plans/2026-08-15-icloud-sync-settings-db-
+  Spec: `docs/superpowers/specs/2026-08/2026-08-15-cloud-sync-settings-db-spiegelung-
+  design.md`, Plan: `docs/superpowers/plans/2026-08-15-cloud-sync-settings-db-
   spiegelung.md`. Commits `d114218a..a72af588` (Tasks 1–6) + ein Doku-Commit (Task 7) lokal
   auf `main`, NICHT gepusht (Nutzerbestätigung vor Push laut Projektkonvention ausstehend).
 
