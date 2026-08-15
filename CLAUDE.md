@@ -1620,18 +1620,27 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 ## Aktuell in Arbeit
 
 - **2026-08-15: iCloud-Sync-Settings-DB-Spiegelung (Cross-Process-Fix für MCP-Schreibzugriff)
-  — Implementierung ABGESCHLOSSEN, automatisierte Verifikation grün, manuelle 4-Punkte-
+  — Implementierung ABGESCHLOSSEN, automatisierte Verifikation grün, manuelle 5-Punkte-
   Live-Checkliste NOCH AUSSTEHEND.** Root Cause: `FeedivoMCPServer` ist ein separater,
   unsandboxed Prozess und sieht dadurch eine ANDERE `UserDefaults`-Domäne als die sandboxed
   App — `CloudSyncSettings.isEnabled()` liefert dort praktisch immer `false`, egal was der
-  Nutzer in den App-Einstellungen tatsächlich eingeschaltet hat. Konkrete Folge: MCP-
-  Schreibvorgänge (`update_article_status`, `assign_tag`, `remove_tag`, siehe MCP-Server-V2-
-  Phase-1-Eintrag direkt darunter) landeten NIE in der lokalen iCloud-Sync-Warteschlange
-  (`cloud_sync_pending_changes`), obwohl der Nutzer Sync in der App aktiv hatte — schlimmer
-  noch: `statusSyncUpdatedAt` wurde bei jedem MCP-Schreibvorgang trotzdem aktualisiert,
-  wodurch der Last-Write-Wins-Vergleich der Phase-3-Konfliktauflösung eine später
-  eintreffende, echte Remote-Änderung für diesen Datensatz dauerhaft als „älter" verworfen
-  hätte — ein stiller Datenverlust-Pfad, nicht nur eine fehlende Synchronisierung. Umgesetzt
+  Nutzer in den App-Einstellungen tatsächlich eingeschaltet hat. **Tatsächliche Reichweite
+  geringer als der Tool-Name-Dreiklang vermuten lässt:** von den drei MCP-Schreib-Tools
+  (`update_article_status`, `assign_tag`, `remove_tag`, siehe MCP-Server-V2-Phase-1-Eintrag
+  direkt darunter) war nur `update_article_status` betroffen, und dort nur `isRead`/
+  `isStarred` (`ArticleStatusStore.setRead`/`.setStarred`, `marksSyncTouched: true`) —
+  `isHidden` läuft mit `marksSyncTouched: false` und enqueued ohnehin nie.
+  `assign_tag`/`remove_tag` (`TagStore.assignTag(toArticleID:in:)`, `TagStore.swift:188-195`;
+  `TagStore.removeTag(fromArticleID:)`, `TagStore.swift:300-308`) reihen grundsätzlich NICHTS
+  in die Sync-Warteschlange ein — Artikel↔Tag-Zuordnungen sind kein synchronisierter
+  Record-Typ (kein `ArticleTag`-Eintrag in der CloudSync-Registry) und waren von diesem Bug
+  nie betroffen. Konkrete Folge: ein `isRead`/`isStarred`-Aufruf über `update_article_status`
+  landete dadurch NIE in der lokalen iCloud-Sync-Warteschlange (`cloud_sync_pending_changes`),
+  obwohl der Nutzer Sync in der App aktiv hatte — schlimmer noch: `statusSyncUpdatedAt` wurde
+  bei jedem solchen Aufruf trotzdem aktualisiert, wodurch der Last-Write-Wins-Vergleich der
+  Phase-3-Konfliktauflösung eine später eintreffende, echte Remote-Änderung für diesen
+  Datensatz dauerhaft als „älter" verworfen hätte — ein stiller Datenverlust-Pfad, nicht nur
+  eine fehlende Synchronisierung. Umgesetzt
   via Brainstorming→Spec→Plan→Subagent-Driven-Development (7 Tasks): Task 1 Migration
   `v33_create_cloud_sync_settings` + neuer `CloudSyncSettingsStore`
   (`Feedivo/Stores/CloudSyncSettingsStore.swift`, Single-Row-Tabelle, hart mit `0`
@@ -1666,7 +1675,7 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   Regressionslauf über alle 3 Task-7-Testbatches grün (61+59+72 = 192 Tests, inkl. der als
   flaky-unter-Last bekannten `SQLiteFeedArticleListStateTests`-Suite, die in diesem Lauf
   ohne jeden Fehlschlag durchlief), Release-Build für beide Schemes (`Feedivo` UND
-  `FeedivoMCPServer`) grün. **Ausstehende manuelle Live-Verifikation (4 Punkte, braucht die
+  `FeedivoMCPServer`) grün. **Ausstehende manuelle Live-Verifikation (5 Punkte, braucht die
   echte Produktions-DB + Claude Desktop + CloudKit-Dashboard-Zugriff, nicht in dieser
   Umgebung automatisierbar):**
   1. iCloud Sync in den Einstellungen einschalten → `sqlite3` auf die Produktions-DB:
@@ -1679,9 +1688,28 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   4. Bestandsnutzer-/Selbstheilungs-Fall: Sync eingeschaltet lassen, App beenden,
      `UPDATE cloud_sync_settings SET isEnabled = 0;` von Hand setzen, App starten → Wert
      steht danach wieder auf `1`.
+  5. App **laufen lassen** (nicht beenden), MCP-Schreibvorgang aus Claude Desktop absetzen →
+     erscheint der `RecordSave` im CloudKit-Dashboard, ohne die App neu zu starten? Erwartung
+     laut Whole-Branch-Review: **nein** — `MCPWriteObserver`
+     (`Feedivo/Services/MCPWriteObserver.swift:18-32`) bumpt nur die Invalidierungs-Zähler und
+     ruft nie `CloudSyncEngine.notifyPendingChangesAvailable(database:)`, sodass eine laufende
+     `CKSyncEngine` von der neu eingereihten Änderung nichts erfährt. Kein Datenverlust (die
+     Warteschlange ist durabel, der nächste `start()` oder jede spätere In-App-Mutation holt es
+     nach), reine Push-Latenz. Als eigener Folge-Task vorgemerkt.
+  **Bekannte, bewusst nicht in diesem Durchgang behobene Grenze:** `FeedivoMCPServer` führt
+  den Migrator bewusst nie aus (ADR-011). Läuft er gegen eine Datenbank, in der Migration v33
+  noch nicht angewendet wurde — etwa weil Feedivo seit dem Update nicht gestartet wurde,
+  während Claude Desktop den Server unabhängig davon startet —, fehlt die Tabelle
+  `cloud_sync_settings`; `CloudSyncSettingsStore.isEnabled(in:)` fängt den daraus
+  resultierenden SQL-Fehler ab und liefert fail-closed `false`, es wird nichts eingereiht.
+  `ArticleStatusStore.updateBooleanStatus` setzt `statusSyncUpdatedAt` in diesem Fenster aber
+  weiterhin unbedingt (gated nur über `marksSyncTouched`, nicht über das Sync-Flag), sodass
+  genau die Last-Write-Wins-Unterdrückung auftritt, die dieser Fix beheben soll. Keine
+  Regression (identisch zum Zustand davor) und heilt nach einem einzigen App-Start — aber ein
+  Leser dieses Fixes darf nicht annehmen, der Pfad sei vollständig geschlossen.
   Spec: `docs/superpowers/specs/2026-08/2026-08-15-cloud-sync-settings-db-spiegelung-
   design.md`, Plan: `docs/superpowers/plans/2026-08-15-cloud-sync-settings-db-
-  spiegelung.md`. Commits `d114218a..a72af588` (Tasks 1–6) + ein Doku-Commit (Task 7) lokal
+  spiegelung.md`. Commits `0b7d0ebd..a72af588` (Tasks 1–6) + ein Doku-Commit (Task 7) lokal
   auf `main`, NICHT gepusht (Nutzerbestätigung vor Push laut Projektkonvention ausstehend).
 
 - **2026-08-14/15: MCP-Server V2 Phase 1 (Schreibzugriff-Fundament) — Implementierung
