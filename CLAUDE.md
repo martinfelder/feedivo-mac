@@ -215,6 +215,7 @@ komplett über String-IDs (`FeedRecord.id`, ein UUID-String) statt über Objekti
 | v15_add_feed_and_folder_sort_index | `sortIndex`-Spalte auf `feeds` + `feed_folders`, für manuelle Drag&Drop-Sortierung in der NSOutlineView-Sidebar |
 | v16_add_tag_sort_index | `sortIndex`-Spalte auf `tags`, analog zu v15 — macht Tags in der Sidebar erstmals per Drag&Drop sortierbar |
 | v19_drop_article_offline_table | Entfernt `article_offline` (Feature "Offline-Artikel-Download" vollständig entfernt, 2026-07-20) — Hinweis: v17/v18 fehlen in dieser Tabelle, das ist eine vorbestehende Dokumentationslücke außerhalb des Scopes dieser Änderung |
+| v33_create_cloud_sync_settings | Single-Row-Tabelle `cloud_sync_settings` — DB-Spiegel des iCloud-Sync-Aktiv-Flags, damit der unsandboxed `FeedivoMCPServer`-Prozess den echten Wert sieht (UserDefaults bleibt Quelle der Wahrheit, Abgleich bei App-Start + Schalter-Umlegen) — Hinweis: v20–v32 fehlen ebenfalls in dieser Tabelle, dieselbe vorbestehende Dokumentationslücke wie bei v17/v18 |
 
 **Achtung bei neuen Migrationen:** Vor dem Anlegen einer neuen Migration IMMER den
 tatsächlichen letzten Eintrag in `FeedivoDatabaseMigrator.swift` prüfen (`grep -n
@@ -450,6 +451,22 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
 
 > Diese Liste wächst während der Entwicklung. Immer ergänzen!
 
+- **GRDB-Datenbankzugriffe sind nicht reentrant — ein `database.read`/`database.write` von
+  innerhalb eines bestehenden `db: Database`-Blocks crasht zur Laufzeit:** GRDB erzwingt das
+  mit `GRDBPrecondition(currentReader == nil, "Database methods are not reentrant.")`
+  (`DatabasePool.swift:340`, für `DatabaseQueue` in `DatabaseQueue.swift:445` dokumentiert).
+  Aufgefallen beim Planen der iCloud-Sync-Settings-DB-Spiegelung (2026-08-15): die Design-Spec
+  schlug vor, die 8 `enqueuePendingSync`-Gates auf
+  `CloudSyncSettingsStore(database: self.database).isEnabled()` umzustellen, und nannte das
+  „rein mechanisch" — tatsächlich laufen alle diese Gates bereits INNERHALB einer offenen
+  `database.write`-Transaktion (Parameter `db: Database`), der Vorschlag wäre in jedem Test
+  (`inMemoryForTests()` = `DatabaseQueue`, eine einzige serialisierte Verbindung) sofort
+  gecrasht. **Lehre:** Bei jeder neuen Hilfsfunktion, die aus einer bestehenden Store-Methode
+  heraus die Datenbank lesen will, zuerst prüfen, ob die aufrufende Methode einen
+  `db: Database`-Parameter hat — wenn ja, MUSS die Hilfsfunktion diesen `db` entgegennehmen
+  (`static func isEnabled(in db: Database)`) statt sich eine eigene Verbindung zu holen. Das
+  ist zugleich fachlich richtiger: der Lesevorgang sieht garantiert denselben Zustand wie die
+  Mutation, die er begleitet.
 - **GRDBs `DatabaseQueue`/`DatabasePool` setzen `PRAGMA query_only` bei JEDEM `.read()`-Block
   intern selbst wieder zurück — eine manuell per `configuration.prepareDatabase` gesetzte
   `PRAGMA query_only = ON` bietet dadurch KEINEN belastbaren Schreibschutz, sobald
@@ -1331,19 +1348,21 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
   falsch"-Verdacht: gezielt nach *mehreren* unabhängigen Entscheidungspunkten für
   dieselbe Frage suchen (Grep auf `.isEmpty`/ähnliche Bedingungen im selben View), nicht
   nur die naheliegendste Stelle prüfen.
-- **`FeedStore.sidebarFeeds()` ignoriert den gespeicherten `feeds.unreadCount`-Wert
-  vollständig — berechnet stattdessen immer per Subquery neu:** Zwei bestehende Tests,
+- **ÜBERHOLT/korrigiert (2026-08-15): `FeedStore.sidebarFeeds()`/`unreadCount`-Testlücke ist
+  längst behoben, nicht mehr aktuell.** Dieser Eintrag behauptete ursprünglich (2026-07-14),
   `sidebarSnapshotsAreSortedByTitle` und `sidebarSnapshotsCanHideReadFeeds` in
-  `SQLiteFeedStoreTests.swift`, konstruieren `FeedRecord`s mit einem gesetzten
-  `unreadCount`-Feld, ohne passende `articles`/`article_statuses`-Zeilen einzufügen — die
-  live per Subquery berechnete `unreadCount` in der Snapshot-Antwort ist deshalb immer 0,
-  nicht der im Test erwartete Wert, wodurch beide Tests fehlschlagen. Gefunden und per
-  Vorher/Nachher-Worktree-Vergleich als bereits vor dem Feeds-Drag-&-Drop-Feature (2026-07-14)
-  bestehend verifiziert (Task-3-Review, Commit `873c00231` als Basis) — keine Regression
-  durch `sortIndex`/`moveFeed`. Noch nicht gefixt, bewusst als bekannter, unabhängiger
-  Vorab-Fehlschlag dokumentiert (analog zu den 15 vorbestehenden Fehlschlägen in
-  `FeedivoAppSceneConfigurationTests.swift` und den 2 flaky-unter-Last-Tests in
-  `FeedViewModelTests.swift`).
+  `SQLiteFeedStoreTests.swift` würden fehlschlagen, weil sie `FeedRecord.unreadCount` direkt
+  setzen, ohne passende `articles`/`article_statuses`-Zeilen einzufügen. Beim Task-7-Abschluss
+  der iCloud-Sync-Settings-DB-Spiegelung (2026-08-15) per direktem Blick in die aktuelle
+  Testdatei UND per echtem Testlauf verifiziert: beide Tests sind heute grün — sie nutzen
+  inzwischen einen `seedUnreadArticles(database:feedID:count:)`-Helfer (Datei-Zeile 5), der
+  echte `article_statuses`-Zeilen anlegt, statt nur das `unreadCount`-Feld direkt zu setzen.
+  Wann genau der Fix passierte, ist aus dem aktuellen Code allein nicht ersichtlich (keine
+  Git-Archäologie im Rahmen dieser Session betrieben) — reine Dokumentations-Korrektur, kein
+  neuer Fix. **Lehre:** Auch als „bewusst nicht gefixt" dokumentierte Vorab-Fehlschläge
+  können durch spätere, unabhängige Änderungen stillschweigend behoben werden — bei jedem
+  Verdacht auf einen dokumentierten Altfehlschlag lohnt sich ein kurzer Blick in die
+  aktuelle Testdatei, bevor man den Eintrag als weiterhin gültig übernimmt.
 - **`UTType(exportedAs:)` braucht trotzdem einen `Info.plist`-Eintrag, auch bei rein
   appinterner `Transferable`-Nutzung:** Beim Feeds-Drag-&-Drop-Feature (2026-07-14) ging
   sowohl die ursprüngliche Design-Spec als auch — nach eigener "Korrektur" während der
@@ -1599,6 +1618,71 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 ---
 
 ## Aktuell in Arbeit
+
+- **2026-08-15: iCloud-Sync-Settings-DB-Spiegelung (Cross-Process-Fix für MCP-Schreibzugriff)
+  — Implementierung ABGESCHLOSSEN, automatisierte Verifikation grün, manuelle 4-Punkte-
+  Live-Checkliste NOCH AUSSTEHEND.** Root Cause: `FeedivoMCPServer` ist ein separater,
+  unsandboxed Prozess und sieht dadurch eine ANDERE `UserDefaults`-Domäne als die sandboxed
+  App — `CloudSyncSettings.isEnabled()` liefert dort praktisch immer `false`, egal was der
+  Nutzer in den App-Einstellungen tatsächlich eingeschaltet hat. Konkrete Folge: MCP-
+  Schreibvorgänge (`update_article_status`, `assign_tag`, `remove_tag`, siehe MCP-Server-V2-
+  Phase-1-Eintrag direkt darunter) landeten NIE in der lokalen iCloud-Sync-Warteschinge
+  (`cloud_sync_pending_changes`), obwohl der Nutzer Sync in der App aktiv hatte — schlimmer
+  noch: `statusSyncUpdatedAt` wurde bei jedem MCP-Schreibvorgang trotzdem aktualisiert,
+  wodurch der Last-Write-Wins-Vergleich der Phase-3-Konfliktauflösung eine später
+  eintreffende, echte Remote-Änderung für diesen Datensatz dauerhaft als „älter" verworfen
+  hätte — ein stiller Datenverlust-Pfad, nicht nur eine fehlende Synchronisierung. Umgesetzt
+  via Brainstorming→Spec→Plan→Subagent-Driven-Development (7 Tasks): Task 1 Migration
+  `v33_create_cloud_sync_settings` + neuer `CloudSyncSettingsStore`
+  (`Feedivo/Stores/CloudSyncSettingsStore.swift`, Single-Row-Tabelle, hart mit `0`
+  initialisiert) + Target-Membership für `FeedivoMCPServer`; Task 2 verdrahtet die
+  Spiegelung — `FeedivoApp.init` ruft `mirrorFromUserDefaults()` unbedingt auf (vor dem
+  Start des `LocalExtensionBridgeServer`, der selbst schon Feeds anlegen kann),
+  `SyncSettingsView.onChange` spiegelt zusätzlich jedes Umlegen des Schalters live, Fehler
+  laufen über den bestehenden `logIfThrows`-Helfer. Tasks 3–6 stellen insgesamt **8 Gates**
+  (nicht 7 wie ursprünglich in der Design-Spec angenommen — `FeedFolderStore` hat tatsächlich
+  zwei unabhängige Gate-Stellen) von `CloudSyncSettings.isEnabled()` auf
+  `CloudSyncSettingsStore.isEnabled(in: db)` um: `TagStore` (Task 3), `ArticleStatusStore` +
+  `CloudSyncArticleStatusMapping` (Task 4), `FeedStore` + `FeedFolderStore` (Task 5),
+  `SQLiteRuleStore` + `SQLiteSmartFolderStore` (Task 6) — dabei **15** (nicht 17)
+  Testdateien von direktem `UserDefaults`-Zugriff auf
+  `CloudSyncSettingsStore(database:).setEnabled(true)` migriert, die übrigen ursprünglich in
+  der Spec genannten Kandidaten waren nachweislich unbetroffen. **Bewusst NICHT umgestellt**
+  (laufen nur im App-Prozess, wo `UserDefaults` weiterhin die Quelle der Wahrheit bleibt):
+  `FeedivoApp.swift:116` (`shouldAutoStartSyncEngineAtLaunch`-Aufruf) und
+  `CloudSyncEngine.swift:179` (`isEnabled(in: userDefaults)`).
+  **Drei Abweichungen von der ursprünglichen Design-Spec:**
+  1. Die Gates lesen über die statische, nicht werfende `CloudSyncSettingsStore.
+     isEnabled(in: db)` statt über die von der Spec vorgeschlagene Instanz-API — alle Gates
+     laufen bereits innerhalb einer offenen `database.write`-Transaktion, in der GRDB einen
+     erneuten Datenbankzugriff mit `GRDBPrecondition(currentReader == nil, "Database methods
+     are not reentrant.")` verbietet (siehe neuer Gotcha oben). Der Spec-Vorschlag wäre in
+     jedem Test sofort gecrasht.
+  2. Der Backfill des bestehenden `UserDefaults`-Werts läuft beim App-Start
+     (`FeedivoApp.init` → `mirrorFromUserDefaults()`) statt wie ursprünglich geplant in der
+     Migration selbst (Nutzerentscheidung) — hält die Database-Schicht frei von
+     `UserDefaults`-Wissen und macht `inMemoryForTests()` deterministisch.
+  3. 15 statt 17 Testdateien, 8 statt 7 Gates (s. o.).
+  Regressionslauf über alle 3 Task-7-Testbatches grün (61+59+72 = 192 Tests, inkl. der als
+  flaky-unter-Last bekannten `SQLiteFeedArticleListStateTests`-Suite, die in diesem Lauf
+  ohne jeden Fehlschlag durchlief), Release-Build für beide Schemes (`Feedivo` UND
+  `FeedivoMCPServer`) grün. **Ausstehende manuelle Live-Verifikation (4 Punkte, braucht die
+  echte Produktions-DB + Claude Desktop + CloudKit-Dashboard-Zugriff, nicht in dieser
+  Umgebung automatisierbar):**
+  1. iCloud Sync in den Einstellungen einschalten → `sqlite3` auf die Produktions-DB:
+     `SELECT isEnabled FROM cloud_sync_settings;` muss `1` liefern; ausschalten → `0`.
+  2. App **beenden**, MCP-Schreibzugriff aktiv, über Claude Desktop `update_article_status`
+     auf einen Artikel → danach `SELECT COUNT(*) FROM cloud_sync_pending_changes WHERE
+     recordType = 'ArticleStatus';` muss > 0 sein (vor diesem Fix: immer 0).
+  3. App starten → CloudKit-Dashboard-„Logs"-Tab zeigt ein `RecordSave` mit
+     `overallStatus: SUCCESS` für den Record-Typ `ArticleStatus`.
+  4. Bestandsnutzer-/Selbstheilungs-Fall: Sync eingeschaltet lassen, App beenden,
+     `UPDATE cloud_sync_settings SET isEnabled = 0;` von Hand setzen, App starten → Wert
+     steht danach wieder auf `1`.
+  Spec: `docs/superpowers/specs/2026-08/2026-08-15-icloud-sync-settings-db-spiegelung-
+  design.md`, Plan: `docs/superpowers/plans/2026-08-15-icloud-sync-settings-db-
+  spiegelung.md`. Commits `d114218a..a72af588` (Tasks 1–6) + ein Doku-Commit (Task 7) lokal
+  auf `main`, NICHT gepusht (Nutzerbestätigung vor Push laut Projektkonvention ausstehend).
 
 - **2026-08-14/15: MCP-Server V2 Phase 1 (Schreibzugriff-Fundament) — Implementierung
   ABGESCHLOSSEN, automatisierte Verifikation grün, manuelle 9-Punkte-Live-Checkliste
