@@ -661,6 +661,25 @@ enum FeedivoDatabaseMigrator {
                 """)
         }
 
+        migrator.registerMigration("v35_add_mcp_server_last_connection") { database in
+            // Verbindungsnachweis fuer den Einstellungen-Tab "KI-Zugriff": Der Nutzer konnte
+            // bisher nicht erkennen, ob je ein KI-Client verbunden war. Am 2026-08-15 lief ein
+            // Serverprozess stundenlang mit einer veralteten Werkzeugliste (7 statt 10), ohne
+            // dass das irgendwo sichtbar war.
+            //
+            // Beide Spalten nullable: "noch nie verbunden" ist ein eigener Zustand, den die UI
+            // anders darstellt als eine tatsaechliche Verbindung.
+            //
+            // `lastConnectedToolCount` haelt fest, wie viele Werkzeuge der Server beim LETZTEN
+            // START angeboten hat — nicht, wie viele er nach den aktuellen Schaltern anbieten
+            // wuerde. Genau die Differenz zeigt dem Nutzer, dass ein laufender Client noch auf
+            // einer veralteten Liste sitzt und neu gestartet werden muss.
+            try database.alter(table: "mcp_server_settings") { table in
+                table.add(column: "lastConnectedAt", .datetime)
+                table.add(column: "lastConnectedToolCount", .integer)
+            }
+        }
+
         return migrator
     }
 

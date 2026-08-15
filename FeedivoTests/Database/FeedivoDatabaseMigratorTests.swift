@@ -449,4 +449,20 @@ struct FeedivoDatabaseMigratorTests {
         }
         #expect(isEnabled == false)
     }
+
+    @Test func migrationV35FuegtVerbindungsspaltenHinzu() throws {
+        let queue = try DatabaseQueue()
+        try FeedivoDatabaseMigrator.migrator.migrate(queue, upTo: "v34_cleanup_orphaned_article_status_pending_changes")
+
+        try FeedivoDatabaseMigrator.migrator.migrate(queue)
+
+        // Beide Spalten sind bewusst nullable: "noch nie verbunden" ist ein eigener,
+        // anzuzeigender Zustand und darf nicht als "verbunden am 1.1.1970" erscheinen.
+        let zeile = try queue.read { db in
+            try Row.fetchOne(db, sql: "SELECT lastConnectedAt, lastConnectedToolCount FROM mcp_server_settings WHERE id = 1")
+        }
+        #expect(zeile != nil)
+        #expect(zeile?["lastConnectedAt"] == nil)
+        #expect(zeile?["lastConnectedToolCount"] == nil)
+    }
 }
