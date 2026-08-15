@@ -1708,21 +1708,32 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
      die eigene Änderung ausgelöst verifiziert (Baseline grün, danach rot) statt als Flakiness
      abgetan; behoben durch `.serialized` auf der Suite plus Polling statt fester Wartezeit
      (drei Kombinationsläufe hintereinander grün).
-  **Bekannte, bewusst nicht in diesem Durchgang behobene Grenze:** `FeedivoMCPServer` führt
-  den Migrator bewusst nie aus (ADR-011). Läuft er gegen eine Datenbank, in der Migration v33
-  noch nicht angewendet wurde — etwa weil Feedivo seit dem Update nicht gestartet wurde,
-  während Claude Desktop den Server unabhängig davon startet —, fehlt die Tabelle
-  `cloud_sync_settings`; `CloudSyncSettingsStore.isEnabled(in:)` fängt den daraus
-  resultierenden SQL-Fehler ab und liefert fail-closed `false`, es wird nichts eingereiht.
-  `ArticleStatusStore.updateBooleanStatus` setzt `statusSyncUpdatedAt` in diesem Fenster aber
-  weiterhin unbedingt (gated nur über `marksSyncTouched`, nicht über das Sync-Flag), sodass
-  genau die Last-Write-Wins-Unterdrückung auftritt, die dieser Fix beheben soll. Keine
-  Regression (identisch zum Zustand davor) und heilt nach einem einzigen App-Start — aber ein
-  Leser dieses Fixes darf nicht annehmen, der Pfad sei vollständig geschlossen.
+  **Ehemalige Grenze bei veralteter Datenbank — inzwischen geschlossen (Commit `0d906d32`,
+  siehe unten):** `FeedivoMCPServer` führt den Migrator bewusst nie aus (ADR-011). Läuft er
+  gegen eine Datenbank, in der Migration v33 noch nicht angewendet wurde — etwa weil Feedivo
+  seit dem Update nicht gestartet wurde, während Claude Desktop den Server unabhängig davon
+  startet —, fehlt die Tabelle `cloud_sync_settings`; `CloudSyncSettingsStore.isEnabled(in:)`
+  fängt den daraus resultierenden SQL-Fehler ab und liefert fail-closed `false`, es wird nichts
+  eingereiht. `ArticleStatusStore.updateBooleanStatus` setzte `statusSyncUpdatedAt` in diesem
+  Fenster aber weiterhin unbedingt (gated nur über `marksSyncTouched`, nicht über das
+  Sync-Flag), sodass genau die Last-Write-Wins-Unterdrückung auftrat, die dieser Fix beheben
+  soll — kein Datenverlust auf der eigenen Seite, aber zwei per iCloud verbundene Geräte
+  konnten still auseinanderlaufen. **Fix:** `FeedivoMCPServerWritableDatabase.open()` prüft
+  jetzt per `CloudSyncSettingsStore.hasSettingsTable(in:)` (bewusst in `Feedivo/Stores/`
+  platziert, damit sie beiden Targets gehört und aus `FeedivoTests` echt testbar ist — das
+  `FeedivoMCPServerTests`-Target läuft strukturell nie, siehe Gotcha oben) und wirft bei
+  fehlender Tabelle `FeedivoMCPServerDatabaseError.schemaOutdated`. Der Server läuft dann
+  lesend weiter und bietet die drei Schreib-Tools gar nicht erst an, statt still in einen
+  Zustand hineinzuschreiben, aus dem heraus nie gepusht wird; die Fehlermeldung auf stderr
+  nennt die Abhilfe („Starte Feedivo einmal"). **Gewählt wurde bewusst diese Variante und
+  nicht die naheliegende Alternative,** `statusSyncUpdatedAt` an dasselbe Gate zu hängen: das
+  wäre eine Semantik-Änderung am regulären „Sync ist aus"-Pfad der App gewesen, also weit über
+  das eigentliche Problem hinaus.
   Spec: `docs/superpowers/specs/2026-08/2026-08-15-cloud-sync-settings-db-spiegelung-
   design.md`, Plan: `docs/superpowers/plans/2026-08-15-cloud-sync-settings-db-
-  spiegelung.md`. Commits `0b7d0ebd..a72af588` (Tasks 1–6) + ein Doku-Commit (Task 7) lokal
-  auf `main`, NICHT gepusht (Nutzerbestätigung vor Push laut Projektkonvention ausstehend).
+  spiegelung.md`. Commits `0b7d0ebd..a72af588` (Tasks 1–6) + Doku-Commits (Task 7) + die
+  beiden Nachtrags-Fixes aus dem Whole-Branch-Review (`7e7126ba` CKSyncEngine-Benachrichtigung,
+  `0d906d32` Schema-Precondition), alle auf `origin/main` gepusht.
 
 - **2026-08-14/15: MCP-Server V2 Phase 1 (Schreibzugriff-Fundament) — Implementierung
   ABGESCHLOSSEN, automatisierte Verifikation grün, manuelle 9-Punkte-Live-Checkliste
