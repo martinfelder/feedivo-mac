@@ -515,7 +515,27 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
   ebenfalls griff. Fix: `TestableReference` aus `Feedivo.xcscheme` entfernt — bei künftigen
   „warum bricht `xcodebuild test` für `Feedivo` plötzlich komplett ab"-Fällen als Erstes
   `git diff -- '*.xcscheme'` prüfen, nicht nur den offensichtlichsten Verdächtigen (das
-  zuletzt geänderte Target selbst).
+  zuletzt geänderte Target selbst). **Nachtrag (2026-08-14/15, MCP-Server V2 Phase 1 —
+  Schreibzugriff-Fundament, siehe „Aktuell in Arbeit"):** die Lücke ist noch größer als
+  ursprünglich dokumentiert — nicht nur `xcodebuild test`/`build-for-testing` scheitern
+  strukturell an `FeedivoMCPServerTests` (Abbruch mit „Could not find test host", noch
+  bevor irgendetwas kompiliert wird), sondern auch das eigentlich naheliegende
+  `xcodebuild build -scheme FeedivoMCPServer` kompiliert `FeedivoMCPServerTests` GAR
+  NICHT erst mit — per direktem Blick in die Scheme-XML verifiziert: die `BuildAction`
+  des `FeedivoMCPServer`-Schemes listet ausschließlich das `FeedivoMCPServer`-Produkt
+  selbst, keine `BuildActionEntry` für das Test-Target. Es gibt damit in diesem Projekt
+  KEINEN einzigen `xcodebuild`-Aufruf, der eine `FeedivoMCPServerTests`-Quelldatei
+  compile-verifizieren kann. Alle Testdateien, die im Zuge dieses Plans neu zu
+  `FeedivoMCPServerTests` hinzukamen (Tasks 3–6: `FeedivoMCPServerWritableDatabaseTests`,
+  Tool-Tests für `update_article_status`/`assign_tag`/`remove_tag`,
+  `MCPWriteNotifierTests`) wurden deshalb NICHT durch einen Build-Lauf abgesichert,
+  sondern ausschließlich durch sorgfältiges manuelles Gegenlesen gegen bereits
+  kompilierende, bewährte Code-Muster im selben Target (API-Signaturen jeweils direkt
+  gegen die aufgerufenen echten Quelldateien abgeglichen). **Lehre:** Bei diesem Target
+  nicht nur davon ausgehen, dass `test`/`build-for-testing` nicht funktionieren, sondern
+  explizit prüfen (Scheme-XML oder ein Testlauf-Versuch), ob überhaupt IRGENDEIN
+  `xcodebuild`-Befehl die Testdatei kompiliert, bevor man sich auf „der Build war ja
+  grün" als Testabsicherung verlässt.
 
 - **„Field 'recordName' is not marked queryable" ist NICHT nur eine Dashboard-Records-Browser-
   Eigenheit — der Fehler tritt auch bei echten `CKQuery`-Aufrufen aus App-Code auf, wenn im
@@ -1579,6 +1599,95 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 ---
 
 ## Aktuell in Arbeit
+
+- **2026-08-14/15: MCP-Server V2 Phase 1 (Schreibzugriff-Fundament) — Implementierung
+  ABGESCHLOSSEN, automatisierte Verifikation grün, manuelle 9-Punkte-Live-Checkliste
+  NOCH AUSSTEHEND.** Erste Ausbaustufe nach dem read-only v1-Server (siehe Eintrag
+  direkt darunter): `FeedivoMCPServer` bekommt einen zweiten, vom Hauptschalter
+  unabhängigen Schalter „Schreibzugriff erlauben" (Migration v32,
+  `mcp_server_settings.writeAccessIsEnabled`, Standard `false` — bewusst separates
+  Opt-in mit größerer Vertrauensgrenze als reines Lesen) sowie drei neue Schreib-Tools
+  (`update_article_status` — Gelesen/Stern/Versteckt setzen, `assign_tag`,
+  `remove_tag`). Eine zweite, tatsächlich schreibende `DatabasePool`-Verbindung
+  (`FeedivoMCPServerWritableDatabase`) wird nur geöffnet, wenn der Schreibzugriff-
+  Schalter aktiv ist — `main.swift` registriert die drei Schreib-Tools dann zusätzlich
+  zu den bestehenden 7 Lese-Tools (10 statt 7 in `tools/list`). Da Feedivo selbst
+  Statusänderungen nur über `SQLiteDataInvalidation`/`SidebarBadgeInvalidation`
+  (in-process `@Observable`-Zähler, siehe bestehender Gotcha weiter unten) erfährt,
+  die ein externer Prozess wie der MCP-Server nicht auslösen kann, ergänzt Task 6
+  einen Cross-Process-Live-Refresh-Mechanismus über Darwin-Notifications
+  (`MCPWriteNotifier`/`MCPWriteObserver`, geteilte Namenskonstante
+  `Feedivo/Services/MCPWriteNotificationName.swift`) — nach jedem erfolgreichen
+  Schreib-Tool-Aufruf postet der Server eine Darwin-Notification, die die laufende
+  Feedivo-App (falls geöffnet) beobachtet und daraufhin ihre eigenen
+  Invalidierungs-Zähler bumpt, damit Artikelliste/Sidebar sich ohne Ordnerwechsel
+  oder Neustart aktualisieren. Umgesetzt via Brainstorming→Spec→Plan→
+  Subagent-Driven-Development (7 Tasks, alle Task-Reviews clean/„Approved" im ersten
+  Anlauf). Spec: `docs/superpowers/specs/2026-08/2026-08-14-mcp-server-v2-phase1-
+  schreibzugriff-design.md`, Plan: `docs/superpowers/plans/2026-08-14-mcp-server-v2-
+  phase1-schreibzugriff.md`.
+  **Sanktionierte Abweichung in Task 6:** der Plan sah für das neue geteilte File
+  `Feedivo/Services/MCPWriteNotificationName.swift` eine manuelle Xcode-GUI-Target-
+  Membership-Ergänzung vor (Schritt 2) — ohne interaktive Xcode-GUI in dieser
+  autonomen Ausführung stattdessen über einen direkten, minimalen Ein-Zeilen-Edit an
+  `Feedivo.xcodeproj/project.pbxproj` gelöst (neue Datei alphabetisch korrekt in
+  dasselbe `membershipExceptions`-Array eingefügt, das bereits Commit `af9a8a2` als
+  exaktes historisches Vorbild nutzt) — vom Task-Reviewer als korrekt verifiziert
+  (alphabetische Platzierung, einzelne Zeile, keine sonstigen Änderungen, Build
+  referenziert das Symbol erfolgreich).
+  **Automatisierte Verifikation (Task 7, dieser Eintrag):** voller Debug-Build für
+  beide Schemes (`Feedivo` UND `FeedivoMCPServer`) grün, gezielter Regressionslauf
+  über `FeedivoDatabaseMigratorTests`/`MCPServerSettingsStoreTests`/
+  `MCPWriteObserverTests` (18 Tests in 3 Suiten, `-parallel-testing-enabled NO`)
+  grün, voller Release-Build grün. **Live-stdio-Smoke-Test:** das im Plan
+  vorgesehene Vorgehen (Scratch-Kopie der Produktions-DB, Schreibzugriff-Schalter
+  dort aktivieren, gebauten Prozess dagegen starten) ist für den fertig kompilierten
+  Binary NICHT durchführbar — `FeedivoContainerDatabaseLocation.databaseURL()`
+  baut den Datenbankpfad fest aus `FileManager.default.homeDirectoryForCurrentUser`
+  zusammen, ohne CLI-Argument- oder Umgebungsvariablen-Override; per isoliertem
+  Testprogramm empirisch verifiziert, dass `homeDirectoryForCurrentUser` die
+  `$HOME`-Umgebungsvariable NICHT berücksichtigt (liefert immer den echten
+  Account-Home-Pfad aus der Passwortdatenbank, unabhängig vom Prozessumfeld) — der
+  Binary lässt sich dadurch ohne Quellcode-Änderung (außerhalb des Scopes dieser
+  reinen CLAUDE.md-Aufgabe) nicht auf eine Scratch-DB umleiten. Statt ersatzweise
+  den Schreibzugriff-Schalter kurzzeitig in der ECHTEN Produktions-DB umzulegen
+  (riskant, auch mit exaktem Restore vermeidbar — die reale DB zeigte beim
+  Vorab-Check bereits `isEnabled = 1`, der Server also potenziell aktiv im Einsatz),
+  wurde bewusst die konservativere Variante gewählt: ein echter, gebauter
+  `FeedivoMCPServer`-Prozess (Debug-Build) wurde per echter newline-delimitierter
+  `initialize`→`notifications/initialized`→`tools/list`-JSON-RPC-Sequenz gegen die
+  echte, UNVERÄNDERTE Produktions-DB gestartet — rein lesend, `tools/call` wurde zu
+  keinem Zeitpunkt aufgerufen. Ergebnis: Handshake erfolgreich, `tools/list` liefert
+  korrekt genau 7 Tools (passend zum realen, unangetasteten
+  `writeAccessIsEnabled = 0`) — verifiziert damit den kompletten Protokoll-/
+  Gating-Pfad des tatsächlich kompilierten Binarys end-to-end, OHNE jede Daten-
+  mutation. Vorher-/Nachher-Check per `sqlite3` bestätigt: `mcp_server_settings`
+  in der echten Produktions-DB unverändert (`isEnabled = 1, writeAccessIsEnabled =
+  0`, identisch zum Ausgangszustand). Der im Plan vorgesehene positive Fall (Schalter
+  AN → 10 Tools, echter `update_article_status`-Schreibvorgang verifiziert per
+  `sqlite3`) konnte dadurch NICHT gegen den echten Binary demonstriert werden — diese
+  Lücke ist durch die code-seitige Testabdeckung aus Tasks 4–6
+  (`FeedivoMCPServerWritableDatabaseTests`, Tool-Tests, `MCPWriteObserverTests`,
+  siehe auch der erweiterte Gotcha zu `FeedivoMCPServerTests`/TEST_HOST weiter unten)
+  sowie durch die ausstehende manuelle Live-Checkliste unten abgedeckt.
+  **Zurückgestellte Minor-Funde aus den 6 Task-Reviews** (keiner blockierend, keine
+  Aktion jetzt nötig): fehlende `isHidden`-Testabdeckung in Task 4 (aus dem
+  Plan-Text geerbt), fehlende Testabdeckung für „`remove_tag` mit unbekannter
+  `articleID`" in Task 5 (ebenfalls aus dem Plan-Text geerbt), ein akzeptierter
+  TOCTOU-Hinweis zwischen Existenz-Check und Schreibverbindung (geringes Risiko bei
+  einem lokalen Single-User-Server), ein leicht zu weit gefasster Doc-Kommentar in
+  `FeedivoMCPServerWritableDatabase.swift` zum Schreibmodus-Abgleich mit der
+  Haupt-App, sowie ein `saveErrorMessage`-Überschreibungs-Randfall in der Settings-UI,
+  wenn die Speicher-Aufrufe beider Schalter verkettet werden (Task 2, aus dem
+  wörtlichen Plan-Code geerbt). **Ausstehend:** die manuelle 9-Punkte-Live-
+  Verifikationscheckliste aus Plan-Task 7/Schritt 5 (Schalter-Sichtbarkeit/
+  -Abhängigkeit, Persistenz nach Neustart, echte Schreibvorgänge aus Claude Desktop
+  inkl. sichtbarem Live-Refresh in der geöffneten App, Fehlerverhalten bei falscher
+  `articleID`, Tool-Liste nach Deaktivierung) erfordert eine laufende Feedivo-App +
+  Claude Desktop am eigenen Mac und ist vom Nutzer selbst durchzuführen (kein
+  computer-use für native macOS-Apps in dieser Umgebung verfügbar). **Phasen 2–4
+  (Feed-Verwaltung, neue Lese-Tools, Such-Verbesserungen) sind eigene, noch nicht
+  begonnene Folge-Zyklen.**
 
 - **2026-08-12 bis 2026-08-14: Read-only MCP-Server für Feedivo (v1) — VOLLSTÄNDIG
   ABGESCHLOSSEN, gepusht, live in Claude Desktop verifiziert.** Neues Command-Line-
