@@ -1620,8 +1620,16 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 ## Aktuell in Arbeit
 
 - **2026-08-15: iCloud-Sync-Settings-DB-Spiegelung (Cross-Process-Fix für MCP-Schreibzugriff)
-  — Implementierung ABGESCHLOSSEN, automatisierte Verifikation grün, manuelle 5-Punkte-
-  Live-Checkliste NOCH AUSSTEHEND.** Root Cause: `FeedivoMCPServer` ist ein separater,
+  — VOLLSTÄNDIG ABGESCHLOSSEN, automatisierte Verifikation grün, manuelle 5-Punkte-
+  Live-Checkliste am selben Tag KOMPLETT DURCHLAUFEN UND BESTANDEN.** Ergebnisse: 1. Spiegel
+  folgt dem Schalter ✓; 2. MCP-Schreibvorgang bei BEENDETER App wird eingereiht (Zähler 1
+  statt bisher immer 0 — der eigentliche Nachweis des Fixes) ✓; 3. Upload beim App-Start,
+  Zähler zurück auf 0 ✓; 4. Selbstheilung des Spiegels nach manueller DB-Manipulation ✓;
+  5. Upload bei LAUFENDER App ohne Neustart ✓ (erst durch den Nachtrags-Fix `7e7126ba`
+  möglich, siehe unten). Die Checkliste deckte dabei zusätzlich einen unabhängigen Altbug auf
+  (verwaiste Pending-Changes, Commit `83d67d56`, siehe unten) — ohne diese manuelle
+  Verifikation wäre er unentdeckt geblieben, da er sich ausschließlich als „iCloud Sync lädt
+  still nichts mehr hoch" äußerte, ohne jede nutzersichtbare Fehlermeldung. Root Cause: `FeedivoMCPServer` ist ein separater,
   unsandboxed Prozess und sieht dadurch eine ANDERE `UserDefaults`-Domäne als die sandboxed
   App — `CloudSyncSettings.isEnabled()` liefert dort praktisch immer `false`, egal was der
   Nutzer in den App-Einstellungen tatsächlich eingeschaltet hat. **Tatsächliche Reichweite
