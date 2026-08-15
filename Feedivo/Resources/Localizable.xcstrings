@@ -62,25 +62,25 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Erlaubt einer angeschlossenen KI (z. B. Claude Desktop) lesenden Zugriff auf deine Feeds, Ordner, Tags und Artikel (inkl. Gelesen-/Stern-Status) über den Model Context Protocol. Rein lesend — die KI kann nichts ändern. Nach einer Änderung muss der KI-Client (z. B. Claude Desktop) neu gestartet werden, damit sie wirkt."
+            "value" : "Erlaubt einer angeschlossenen KI (z. B. Claude Desktop) lesenden Zugriff auf deine Feeds, Ordner, Tags und Artikel (inkl. Gelesen-/Stern-Status) über den Model Context Protocol. Standardmäßig rein lesend — Schreibzugriff kann unten zusätzlich aktiviert werden. Nach einer Änderung muss der KI-Client (z. B. Claude Desktop) neu gestartet werden, damit sie wirkt."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Allows a connected AI (e.g. Claude Desktop) read-only access to your feeds, folders, tags, and articles (including read/starred status) via the Model Context Protocol. Read-only — the AI cannot change anything. After a change, the AI client (e.g. Claude Desktop) must be restarted for it to take effect."
+            "value" : "Allows a connected AI (e.g. Claude Desktop) read-only access to your feeds, folders, tags, and articles (including read/starred status) via the Model Context Protocol. Read-only by default — write access can additionally be enabled below. After a change, the AI client (e.g. Claude Desktop) must be restarted for it to take effect."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Permet à une IA connectée (par ex. Claude Desktop) d'accéder en lecture seule à vos flux, dossiers, tags et articles (y compris le statut lu/favori) via le Model Context Protocol. Lecture seule — l'IA ne peut rien modifier. Après une modification, le client IA (par ex. Claude Desktop) doit être redémarré pour que cela prenne effet."
+            "value" : "Permet à une IA connectée (par ex. Claude Desktop) d'accéder en lecture seule à vos flux, dossiers, tags et articles (y compris le statut lu/favori) via le Model Context Protocol. Lecture seule par défaut — l'accès en écriture peut être activé séparément ci-dessous. Après une modification, le client IA (par ex. Claude Desktop) doit être redémarré pour que cela prenne effet."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Consente a un'IA collegata (ad es. Claude Desktop) l'accesso in sola lettura ai tuoi feed, cartelle, tag e articoli (incluso lo stato letto/preferito) tramite il Model Context Protocol. Solo lettura — l'IA non può modificare nulla. Dopo una modifica, il client IA (ad es. Claude Desktop) deve essere riavviato affinché abbia effetto."
+            "value" : "Consente a un'IA collegata (ad es. Claude Desktop) l'accesso in sola lettura ai tuoi feed, cartelle, tag e articoli (incluso lo stato letto/preferito) tramite il Model Context Protocol. Sola lettura per impostazione predefinita — l'accesso in scrittura può essere attivato separatamente qui sotto. Dopo una modifica, il client IA (ad es. Claude Desktop) deve essere riavviato affinché abbia effetto."
           }
         }
       }

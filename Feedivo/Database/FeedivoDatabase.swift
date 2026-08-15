@@ -19,6 +19,15 @@ struct FeedivoDatabase {
         )
 
         var configuration = Configuration()
+        // busyMode auf 5s-Timeout statt GRDBs Default .immediateError (2026-08-14,
+        // MCP-Server-V2-Phase-1-Whole-Branch-Review): seit FeedivoMCPServer bei
+        // aktiviertem Schreibzugriff ein ZWEITER Prozess sein kann, der denselben
+        // SQLite-Write-Lock haelt (FeedivoMCPServerWritableDatabase setzt bereits
+        // denselben Timeout), wuerde die App sonst sofort mit SQLITE_BUSY
+        // scheitern, waehrend der MCP-Server geduldig wartet — Asymmetrie zulasten
+        // der eigentlichen, nutzersichtbaren App. Ohne einen zweiten Writer-Prozess
+        // (Stand vor diesem Feature) war das harmlos, da es nur einen Writer gab.
+        configuration.busyMode = .timeout(5)
         configuration.prepareDatabase { database in
             try database.execute(sql: "PRAGMA foreign_keys = ON")
             // NORMAL statt GRDBs FULL-Default: bleibt bei einem App-Crash
