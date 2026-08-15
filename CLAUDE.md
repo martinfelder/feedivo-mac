@@ -215,7 +215,8 @@ komplett über String-IDs (`FeedRecord.id`, ein UUID-String) statt über Objekti
 | v15_add_feed_and_folder_sort_index | `sortIndex`-Spalte auf `feeds` + `feed_folders`, für manuelle Drag&Drop-Sortierung in der NSOutlineView-Sidebar |
 | v16_add_tag_sort_index | `sortIndex`-Spalte auf `tags`, analog zu v15 — macht Tags in der Sidebar erstmals per Drag&Drop sortierbar |
 | v19_drop_article_offline_table | Entfernt `article_offline` (Feature "Offline-Artikel-Download" vollständig entfernt, 2026-07-20) — Hinweis: v17/v18 fehlen in dieser Tabelle, das ist eine vorbestehende Dokumentationslücke außerhalb des Scopes dieser Änderung |
-| v33_create_cloud_sync_settings | Single-Row-Tabelle `cloud_sync_settings` — DB-Spiegel des iCloud-Sync-Aktiv-Flags, damit der unsandboxed `FeedivoMCPServer`-Prozess den echten Wert sieht (UserDefaults bleibt Quelle der Wahrheit, Abgleich bei App-Start + Schalter-Umlegen) — Hinweis: v20–v32 fehlen ebenfalls in dieser Tabelle, dieselbe vorbestehende Dokumentationslücke wie bei v17/v18 |
+| v33_create_cloud_sync_settings | Single-Row-Tabelle `cloud_sync_settings` — DB-Spiegel des iCloud-Sync-Aktiv-Flags, damit der unsandboxed `FeedivoMCPServer`-Prozess den echten Wert sieht (UserDefaults bleibt Quelle der Wahrheit, Abgleich bei App-Start + Schalter-Umlegen) — Hinweis: v20–v32 sowie v34 fehlen ebenfalls in dieser Tabelle, dieselbe vorbestehende Dokumentationslücke wie bei v17/v18 |
+| v35_add_mcp_server_last_connection | `lastConnectedAt` + `lastConnectedToolCount` auf `mcp_server_settings` — Verbindungsnachweis für den Einstellungen-Tab „KI-Zugriff"; der Server schreibt beide bei jedem Start, bewusst unabhängig vom Schreibzugriff-Schalter |
 
 **Achtung bei neuen Migrationen:** Vor dem Anlegen einer neuen Migration IMMER den
 tatsächlichen letzten Eintrag in `FeedivoDatabaseMigrator.swift` prüfen (`grep -n
@@ -1618,6 +1619,86 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 ---
 
 ## Aktuell in Arbeit
+
+- **2026-08-15: KI-Zugriff-Tab verständlicher gestaltet — Implementierung ABGESCHLOSSEN,
+  automatisierte Verifikation grün, manuelle 4-Punkte-Live-Checkliste NOCH AUSSTEHEND.**
+  Anlass war die Live-Verifikation vom selben Tag (siehe Eintrag direkt darunter): dabei fiel
+  auf, dass ein `FeedivoMCPServer`-Prozess stundenlang mit einer veralteten Werkzeugliste
+  (7 statt 10) weiterlief, weil Claude Desktop nach dem Umlegen des Schreibzugriff-Schalters
+  nicht neu gestartet worden war — und dass der Einstellungen-Tab „KI-Zugriff" das
+  nirgends sichtbar machte. Er bestand bis dahin nur aus zwei Schaltern plus einem
+  Konfigurationsschnipsel ohne Erklärung, wohin dieser gehört. Der Tab gliedert sich jetzt
+  in drei Bereiche: **Zugriff** (die beiden bestehenden Schalter, Beschreibung in
+  Alltagssprache statt MCP-Jargon — „Eine verbundene KI darf deine Feeds, Ordner, Tags und
+  Artikel lesen …", MCP nur noch als technische Fußnote am Satzende), **Einrichtung**
+  (drei nummerierte Schritte: Konfiguration kopieren → in die konkret benannte Datei des
+  erkannten Clients einfügen → Client neu starten, mit ausdrücklichem Hinweis, dass er
+  sonst die alten Einstellungen weiternutzt) und **Status** (wann zuletzt ein Client
+  verbunden war, mit wie vielen Werkzeugen und in welchem Umfang — „nur lesend" vs.
+  „inkl. Schreibzugriff"). Umgesetzt via Brainstorming→Spec→Plan→Plan-Ausführung
+  (6 Tasks, TDD je Baustein). Drei neue, isoliert getestete Bausteine:
+  `MCPClientDetector` (`Feedivo/Services/`, erkennt installierte KI-Clients),
+  `MCPConnectionStatusText` (`Feedivo/Services/`, reine Textformatierung) und
+  `FeedivoMCPServerConnectionRecorder` (`FeedivoMCPServer/`, schreibt den Vermerk beim
+  Serverstart über eine eigene, kurzlebige Verbindung).
+  **Bewusste Entscheidungen, die beim späteren Lesen sonst falsch wirken:**
+  1. **Nur Claude Desktop wird erkannt** (`com.anthropic.claudefordesktop`). ChatGPT und
+     Ollama sind auf diesem Rechner installiert, werden aber absichtlich NICHT erkannt —
+     für sie ist weder gesichert, ob sie MCP über eine Konfigurationsdatei einbinden, noch
+     wo diese läge. Einen Client zu nennen, ohne einen Pfad angeben zu können, würde nur
+     falsche Erwartungen wecken. Ein weiterer Client ist später eine zusätzliche Zeile in
+     `MCPClientDetector.supportedClients`.
+  2. **Die Erkennung läuft über LaunchServices** (`NSWorkspace.urlForApplication(
+     withBundleIdentifier:)`), NIEMALS über einen Dateizugriff auf `/Applications` —
+     Feedivo ist sandboxed und darf dort nicht frei lesen, die LaunchServices-Abfrage ist
+     dagegen erlaubt.
+  3. **Der Server schreibt den Verbindungsvermerk unabhängig vom Schreibzugriff-Schalter.**
+     Das weicht die „rein lesend"-Zusage bewusst auf, aber eng begrenzt: vermerkt wird
+     ausschließlich, DASS und mit wie vielen Werkzeugen sich ein Client verbunden hat —
+     die Zusage gilt weiterhin uneingeschränkt für INHALTE (Artikel, Tags, Status, Feeds).
+     Ohne diese Ausnahme könnte der Statusbereich bei ausgeschaltetem Schreibzugriff nichts
+     anzeigen, also genau in der Standardkonfiguration nichts leisten. Ein fehlgeschlagener
+     Vermerk blockiert den Serverstart nie (Fehler wird auf stderr protokolliert und
+     verschluckt), ein Lesefehler in der App zeigt denselben Zustand wie „noch nie
+     verbunden".
+  4. **`lastConnectedToolCount` hält fest, wie viele Werkzeuge beim LETZTEN START angeboten
+     wurden** — nicht, wie viele die aktuellen Schalter ergäben. Genau diese Differenz ist
+     das Signal, dass ein laufender Client noch auf einer veralteten Liste sitzt.
+  Migration `v35_add_mcp_server_last_connection` (beide Spalten nullable — „noch nie
+  verbunden" ist ein eigener, anders dargestellter Zustand). Neue Store-Methoden
+  `MCPServerSettingsStore.lastConnection()`/`.recordConnection(at:toolCount:)` samt neuem
+  Werttyp `MCPConnectionRecord`. Neun L10n-Keys ergänzt bzw. geändert, jeweils in allen
+  vier Sprachen (de/en/fr/it — der Plan nannte nur de/en, alle bestehenden
+  `mcpServer`-Keys haben aber vier, deshalb konsistent ergänzt); Einfügung ausschließlich
+  per Text-Anker, `git diff --stat` bestätigte 112+140 reine Insertions bzw. 16/16 bei den
+  geänderten Werten. `settings.mcpServer.snippetDescription` wird nicht mehr verwendet,
+  Konstante und Katalogeintrag bleiben bewusst bestehen (Entfernen wäre eigener Scope).
+  **Verifikation:** 33/33 Tests in fünf Suiten grün (`MCPClientDetectorTests`,
+  `MCPConnectionStatusTextTests`, `MCPServerSettingsStoreTests`,
+  `FeedivoDatabaseMigratorTests`, `MCPWriteObserverTests`), Debug- UND Release-Build für
+  BEIDE Schemes (`Feedivo`, `FeedivoMCPServer`) grün. Ein Plan-Fehler fiel im RED-Schritt
+  auf: der vorgegebene Testcode für `MCPServerSettingsStoreTests` nutzt `Date`, die Datei
+  importierte aber kein `Foundation` — ergänzt. Nebenbefund bei der Spalten-/Typprüfung
+  gegen eine **Kopie** der Produktions-DB: `grdb_migrations` enthielt dort bereits
+  `v35_add_mcp_server_last_connection`, die laufende App-Instanz hatte die neue Migration
+  also schon auf echten Daten fehlerfrei angewendet.
+  **Bekannte Einschränkung:** `FeedivoMCPServerConnectionRecorder` konnte nicht im echten
+  Serverprozess gegen eine Testdatenbank geprüft werden — `FeedivoContainerDatabaseLocation.
+  databaseURL()` ist fest verdrahtet und `homeDirectoryForCurrentUser` ignoriert `$HOME`
+  (empirisch belegt am 2026-08-14); zusätzlich läuft `FeedivoMCPServerTests` in diesem
+  Projekt strukturell nie. Abgesichert wurde stattdessen über eine Spalten-/Typprüfung
+  gegen eine Kopie (`2026-08-15 16:02:44.000|10`).
+  **Ausstehende manuelle Live-Verifikation (4 Punkte, vom Nutzer durchzuführen):**
+  1. Tab öffnen → „Claude Desktop" wird als erkannter Client genannt, der angezeigte Pfad
+     stimmt (`~/Library/Application Support/Claude/claude_desktop_config.json`).
+  2. Claude Desktop neu starten → Statuszeile zeigt danach Zeitpunkt und Werkzeug-Anzahl.
+  3. Schreibzugriff umschalten, Client neu starten → Anzahl wechselt zwischen 7 und 10.
+  4. Bei **ausgeschaltetem** Schreibzugriff prüfen, dass der Vermerk trotzdem geschrieben
+     wird (das ist die bewusste Ausnahme aus Punkt 3 oben).
+  Spec: `docs/superpowers/specs/2026-08/2026-08-15-ki-zugriff-tab-verstaendlichkeit-
+  design.md`, Plan: `docs/superpowers/plans/2026-08-15-ki-zugriff-tab-verstaendlichkeit.md`.
+  Commits `579d5071..4a592d65` (5 Tasks) + Doku-Commit auf `main`, Push-Status siehe
+  `git log`/`git merge-base --is-ancestor origin/main` zum Lesezeitpunkt.
 
 - **2026-08-15: iCloud-Sync-Settings-DB-Spiegelung (Cross-Process-Fix für MCP-Schreibzugriff)
   — VOLLSTÄNDIG ABGESCHLOSSEN, automatisierte Verifikation grün, manuelle 5-Punkte-
