@@ -1640,6 +1640,7 @@ private struct MCPServerSettingsView: View {
     @Environment(\.feedivoDatabase) private var feedivoDatabase
 
     @State private var isEnabled = false
+    @State private var isWriteAccessEnabled = false
     @State private var isLoaded = false
     @State private var saveErrorMessage: String?
 
@@ -1654,6 +1655,17 @@ private struct MCPServerSettingsView: View {
                 .tint(Color.settingsBoldAccent)
                 .disabled(!isLoaded)
                 GeneralSettingsHelp(L10n.settingsMCPServerToggleDescription)
+
+                Toggle(isOn: isWriteAccessEnabledBinding) {
+                    Text(L10n.settingsMCPServerWriteAccessToggleTitle)
+                        .font(.system(size: 13))
+                }
+                .toggleStyle(.checkbox)
+                .tint(Color.settingsBoldAccent)
+                .disabled(!isLoaded || !isEnabled)
+                .padding(.leading, 20)
+                GeneralSettingsHelp(L10n.settingsMCPServerWriteAccessToggleDescription)
+                    .padding(.leading, 20)
 
                 if let saveErrorMessage {
                     Text(saveErrorMessage)
@@ -1714,6 +1726,27 @@ private struct MCPServerSettingsView: View {
                 isEnabled = newValue
                 guard isLoaded else { return }
                 saveEnabled(newValue)
+
+                // Schaltet der Nutzer den Hauptschalter aus, muss der Schreibzugriff-Schalter
+                // mit zurückgesetzt werden — sonst bliebe ein still im Hintergrund weiter
+                // aktiver Schreib-Flag bestehen, der beim erneuten Einschalten des
+                // Hauptschalters überraschend wieder wirksam würde, ohne dass der Nutzer sich
+                // daran erinnert, ihn selbst gesetzt zu haben.
+                if !newValue, isWriteAccessEnabled {
+                    isWriteAccessEnabled = false
+                    saveWriteAccessEnabled(false)
+                }
+            }
+        )
+    }
+
+    private var isWriteAccessEnabledBinding: Binding<Bool> {
+        Binding(
+            get: { isWriteAccessEnabled },
+            set: { newValue in
+                isWriteAccessEnabled = newValue
+                guard isLoaded else { return }
+                saveWriteAccessEnabled(newValue)
             }
         )
     }
@@ -1722,6 +1755,7 @@ private struct MCPServerSettingsView: View {
         guard let feedivoDatabase else { return }
         let store = MCPServerSettingsStore(database: feedivoDatabase)
         isEnabled = (try? store.isEnabled()) ?? false
+        isWriteAccessEnabled = (try? store.isWriteAccessEnabled()) ?? false
         isLoaded = true
     }
 
@@ -1730,6 +1764,17 @@ private struct MCPServerSettingsView: View {
         let store = MCPServerSettingsStore(database: feedivoDatabase)
         do {
             try store.setEnabled(newValue)
+            saveErrorMessage = nil
+        } catch {
+            saveErrorMessage = "Konnte Einstellung nicht speichern: \(error.localizedDescription)"
+        }
+    }
+
+    private func saveWriteAccessEnabled(_ newValue: Bool) {
+        guard let feedivoDatabase else { return }
+        let store = MCPServerSettingsStore(database: feedivoDatabase)
+        do {
+            try store.setWriteAccessEnabled(newValue)
             saveErrorMessage = nil
         } catch {
             saveErrorMessage = "Konnte Einstellung nicht speichern: \(error.localizedDescription)"

@@ -169,6 +169,62 @@
         }
       }
     },
+    "settings.mcpServer.writeAccessToggleDescription" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erlaubt Claude, Artikelstatus (Gelesen/Stern/Versteckt) zu ändern und Tags zuzuweisen. Erfordert vorher aktivierten KI-Zugriff."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allows Claude to change article status (read, starred, hidden) and assign tags. Requires AI Access to be enabled first."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permet à Claude de modifier le statut des articles (lu, favori, masqué) et d'attribuer des tags. Nécessite que l'accès IA soit activé au préalable."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consente a Claude di modificare lo stato degli articoli (letto, preferito, nascosto) e di assegnare tag. Richiede che l'accesso IA sia già attivo."
+          }
+        }
+      }
+    },
+    "settings.mcpServer.writeAccessToggleTitle" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schreibzugriff erlauben"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow Write Access"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autoriser l'accès en écriture"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consenti accesso in scrittura"
+          }
+        }
+      }
+    },
     "" : {
 
     },
