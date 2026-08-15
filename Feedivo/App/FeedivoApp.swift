@@ -90,6 +90,15 @@ struct FeedivoApp: App {
         // Feature 21.1: `NSStatusItem` darf erst in `applicationDidFinishLaunching` entstehen
         // (siehe `FeedivoAppDelegate`) — hier nur die Abhängigkeiten durchreichen.
         if databaseOpenResult.errorDescription == nil {
+            // Spiegelt das iCloud-Sync-Flag aus UserDefaults (Quelle der Wahrheit, an den
+            // UI-Schalter gebunden) in die Datenbank — von dort lesen es die Store-Gates,
+            // damit auch der unsandboxed FeedivoMCPServer-Prozess den korrekten Wert sieht
+            // (siehe CloudSyncSettingsStore). Bewusst VOR localExtensionBridgeServer.start():
+            // der Bridge-Server kann Feeds anlegen und damit Store-Mutationen ausloesen, die
+            // das Flag bereits lesen.
+            logIfThrows(context: "CloudSync-Flag in Datenbank spiegeln") {
+                try CloudSyncSettingsStore(database: database).mirrorFromUserDefaults()
+            }
             self.appDelegate.configureMenubarController(feedivoDatabase: database, feedViewModel: feedViewModel)
             self.localExtensionBridgeServer.start()
         }

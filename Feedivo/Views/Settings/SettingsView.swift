@@ -1284,6 +1284,15 @@ private struct SyncSettingsView: View {
             }
         }
         .onChange(of: cloudSyncIsEnabled) {
+            // Spiegelt den Schalter sofort in die Datenbank — von dort lesen die Store-Gates
+            // (siehe CloudSyncSettingsStore). Muss vor cloudSyncEngine?.stop() bzw. vor dem
+            // Erst-Aktivierungs-Sheet laufen, damit keine Mutation dazwischen noch den alten
+            // Wert sieht.
+            if let feedivoDatabase {
+                logIfThrows(context: "CloudSync-Flag in Datenbank spiegeln") {
+                    try CloudSyncSettingsStore(database: feedivoDatabase).setEnabled(cloudSyncIsEnabled)
+                }
+            }
             if cloudSyncIsEnabled {
                 // Erst-Aktivierungs-Merge-Dialog MUSS vor dem allerersten start() laufen
                 // (siehe CloudSyncFirstActivationView-Kommentar) — start() selbst läuft erst

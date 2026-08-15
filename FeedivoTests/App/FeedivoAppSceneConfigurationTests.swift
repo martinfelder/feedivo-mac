@@ -1109,6 +1109,21 @@ struct FeedivoAppSceneConfigurationTests {
         #expect(cleanupCallRange.lowerBound < refreshCallRange.lowerBound)
     }
 
+    @Test func appInitSpiegeltCloudSyncFlagInDieDatenbank() throws {
+        // Ohne diesen Aufruf bliebe cloud_sync_settings bei einem Bestandsnutzer, der iCloud
+        // Sync laengst aktiviert hat, nach dem Update auf 0 stehen — alle Store-Gates wuerden
+        // stillschweigend aufhoeren zu synchronisieren.
+        let projectRoot = projectRootURL()
+        let appSource = try source(at: "Feedivo/App/FeedivoApp.swift", projectRoot: projectRoot)
+        #expect(appSource.contains("mirrorFromUserDefaults()"))
+    }
+
+    @Test func syncSettingsSpiegeltSchalterAenderungInDieDatenbank() throws {
+        let projectRoot = projectRootURL()
+        let settingsSource = try source(at: "Feedivo/Views/Settings/SettingsView.swift", projectRoot: projectRoot)
+        #expect(settingsSource.contains("CloudSyncSettingsStore(database: feedivoDatabase).setEnabled(cloudSyncIsEnabled)"))
+    }
+
     private func projectRootURL() -> URL {
         // #filePath liegt seit der Testordner-Reorganisation vom 2026-07-28
         // (FeedivoTests/App/... statt vormals flach direkt unter FeedivoTests/)
