@@ -53,6 +53,10 @@ var availableTools: [Tool] = [
     GetSmartFolderArticlesTool.definition,
 ]
 
+if let writableDatabase {
+    availableTools.append(UpdateArticleStatusTool.definition)
+}
+
 await server.withMethodHandler(ListTools.self) { _ in
     .init(tools: availableTools)
 }
@@ -73,6 +77,11 @@ await server.withMethodHandler(CallTool.self) { params in
         return try ListSmartFoldersTool.call(database: database)
     case "get_smart_folder_articles":
         return try GetSmartFolderArticlesTool.call(database: database, arguments: params.arguments)
+    case "update_article_status":
+        guard let writableDatabase else {
+            return .init(content: [.text("Schreibzugriff ist nicht aktiviert.")], isError: true)
+        }
+        return try UpdateArticleStatusTool.call(readDatabase: database, writeDatabase: writableDatabase, arguments: params.arguments)
     default:
         return .init(content: [.text("Unbekanntes Tool: \(params.name)")], isError: true)
     }
