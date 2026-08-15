@@ -66,39 +66,49 @@ await server.withMethodHandler(ListTools.self) { _ in
 }
 
 await server.withMethodHandler(CallTool.self) { params in
+    let result: CallTool.Result
     switch params.name {
     case "list_feeds":
-        return try ListFeedsTool.call(database: database)
+        result = try ListFeedsTool.call(database: database)
     case "list_folders":
-        return try ListFoldersTool.call(database: database)
+        result = try ListFoldersTool.call(database: database)
     case "list_tags":
-        return try ListTagsTool.call(database: database)
+        result = try ListTagsTool.call(database: database)
     case "search_articles":
-        return try SearchArticlesTool.call(database: database, arguments: params.arguments)
+        result = try SearchArticlesTool.call(database: database, arguments: params.arguments)
     case "get_article":
-        return try GetArticleTool.call(database: database, arguments: params.arguments)
+        result = try GetArticleTool.call(database: database, arguments: params.arguments)
     case "list_smart_folders":
-        return try ListSmartFoldersTool.call(database: database)
+        result = try ListSmartFoldersTool.call(database: database)
     case "get_smart_folder_articles":
-        return try GetSmartFolderArticlesTool.call(database: database, arguments: params.arguments)
+        result = try GetSmartFolderArticlesTool.call(database: database, arguments: params.arguments)
     case "update_article_status":
         guard let writableDatabase else {
-            return .init(content: [.text("Schreibzugriff ist nicht aktiviert.")], isError: true)
+            result = .init(content: [.text("Schreibzugriff ist nicht aktiviert.")], isError: true)
+            break
         }
-        return try UpdateArticleStatusTool.call(readDatabase: database, writeDatabase: writableDatabase, arguments: params.arguments)
+        result = try UpdateArticleStatusTool.call(readDatabase: database, writeDatabase: writableDatabase, arguments: params.arguments)
     case "assign_tag":
         guard let writableDatabase else {
-            return .init(content: [.text("Schreibzugriff ist nicht aktiviert.")], isError: true)
+            result = .init(content: [.text("Schreibzugriff ist nicht aktiviert.")], isError: true)
+            break
         }
-        return try AssignTagTool.call(readDatabase: database, writeDatabase: writableDatabase, arguments: params.arguments)
+        result = try AssignTagTool.call(readDatabase: database, writeDatabase: writableDatabase, arguments: params.arguments)
     case "remove_tag":
         guard let writableDatabase else {
-            return .init(content: [.text("Schreibzugriff ist nicht aktiviert.")], isError: true)
+            result = .init(content: [.text("Schreibzugriff ist nicht aktiviert.")], isError: true)
+            break
         }
-        return try RemoveTagTool.call(readDatabase: database, writeDatabase: writableDatabase, arguments: params.arguments)
+        result = try RemoveTagTool.call(readDatabase: database, writeDatabase: writableDatabase, arguments: params.arguments)
     default:
-        return .init(content: [.text("Unbekanntes Tool: \(params.name)")], isError: true)
+        result = .init(content: [.text("Unbekanntes Tool: \(params.name)")], isError: true)
     }
+
+    if result.isError != true, MCPWriteNotifier.writeToolNames.contains(params.name) {
+        MCPWriteNotifier.notifyDidWrite()
+    }
+
+    return result
 }
 
 let transport = StdioTransport()
