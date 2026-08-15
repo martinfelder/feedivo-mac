@@ -523,6 +523,11 @@ enum L10n {
     static let settingsMCPServerSnippetDescription = LocalizedStringKey("settings.mcpServer.snippetDescription")
     static let settingsMCPServerWriteAccessToggleTitle = LocalizedStringKey("settings.mcpServer.writeAccessToggleTitle")
     static let settingsMCPServerWriteAccessToggleDescription = LocalizedStringKey("settings.mcpServer.writeAccessToggleDescription")
+    static let settingsMCPServerStepCopy = LocalizedStringKey("settings.mcpServer.step.copy")
+    static let settingsMCPServerStepPaste = LocalizedStringKey("settings.mcpServer.step.paste")
+    static let settingsMCPServerStepRestart = LocalizedStringKey("settings.mcpServer.step.restart")
+    static let settingsMCPServerNoClientFound = LocalizedStringKey("settings.mcpServer.noClientFound")
+    static let settingsMCPServerStatusRowTitle = LocalizedStringKey("settings.mcpServer.statusRowTitle")
     // Feld-Ebene-Konfliktauflösung (Phase 3) — Sheet + Badge im Sync-Tab. Dot-Keys bewusst
     // unter "sync.conflicts.*" statt "settings.sync.conflicts.*", da SyncConflictResolutionView
     // ein eigenständiges Sheet ist, keine reine Settings-Tab-Unteransicht (das Badge im

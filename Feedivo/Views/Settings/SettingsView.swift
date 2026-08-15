@@ -1652,6 +1652,8 @@ private struct MCPServerSettingsView: View {
     @State private var isWriteAccessEnabled = false
     @State private var isLoaded = false
     @State private var saveErrorMessage: String?
+    @State private var lastConnection: MCPConnectionRecord?
+    @State private var detectedClient: MCPClient?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -1682,19 +1684,46 @@ private struct MCPServerSettingsView: View {
                         .foregroundStyle(.red)
                 }
 
-                GeneralSettingsRow(title: L10n.settingsMCPServerConnectionRowTitle) {
-                    Button(L10n.settingsMCPServerCopyButton) {
-                        copyConfigSnippet()
+                if let detectedClient {
+                    GeneralSettingsRow(title: L10n.settingsMCPServerConnectionRowTitle) {
+                        Button(L10n.settingsMCPServerCopyButton) {
+                            copyConfigSnippet()
+                        }
                     }
+                    Text(L10n.settingsMCPServerStepCopy)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                    Text(configSnippet)
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                        .padding(8)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+                    Text(L10n.settingsMCPServerStepPaste)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                    Text(verbatim: detectedClient.configPath)
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+
+                    Text(L10n.settingsMCPServerStepRestart)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                } else {
+                    GeneralSettingsHelp(L10n.settingsMCPServerNoClientFound)
                 }
-                Text(configSnippet)
-                    .font(.system(size: 11, design: .monospaced))
+
+                GeneralSettingsRow(title: L10n.settingsMCPServerStatusRowTitle) {
+                    Text(verbatim: MCPConnectionStatusText.text(
+                        for: lastConnection,
+                        isWriteAccessEnabled: isWriteAccessEnabled
+                    ))
+                    .font(.system(size: 11))
                     .foregroundStyle(.secondary)
-                    .textSelection(.enabled)
-                    .padding(8)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                GeneralSettingsHelp(L10n.settingsMCPServerSnippetDescription)
+                }
             }
         }
         .task {
@@ -1765,6 +1794,8 @@ private struct MCPServerSettingsView: View {
         let store = MCPServerSettingsStore(database: feedivoDatabase)
         isEnabled = (try? store.isEnabled()) ?? false
         isWriteAccessEnabled = (try? store.isWriteAccessEnabled()) ?? false
+        lastConnection = try? store.lastConnection()
+        detectedClient = MCPClientDetector.installedClients().first
         isLoaded = true
     }
 

@@ -1,6 +1,146 @@
 {
   "sourceLanguage" : "de",
   "strings" : {
+    "settings.mcpServer.noClientFound" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Es wurde kein unterstützter KI-Client gefunden. Feedivo unterstützt derzeit Claude Desktop."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No supported AI client found. Feedivo currently supports Claude Desktop."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun client IA pris en charge n'a été trouvé. Feedivo prend actuellement en charge Claude Desktop."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun client IA supportato trovato. Feedivo supporta attualmente Claude Desktop."
+          }
+        }
+      }
+    },
+    "settings.mcpServer.statusRowTitle" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Status"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Status"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "État"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stato"
+          }
+        }
+      }
+    },
+    "settings.mcpServer.step.copy" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1. Konfiguration kopieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1. Copy the configuration"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1. Copier la configuration"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1. Copia la configurazione"
+          }
+        }
+      }
+    },
+    "settings.mcpServer.step.paste" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2. In diese Datei einfügen:"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2. Paste it into this file:"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2. Coller dans ce fichier :"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2. Incollala in questo file:"
+          }
+        }
+      }
+    },
+    "settings.mcpServer.step.restart" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3. KI-Client neu starten — sonst nutzt er weiter die alten Einstellungen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3. Restart the AI client — otherwise it keeps using the old settings."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3. Redémarrer le client IA — sinon il continue d'utiliser les anciens réglages."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3. Riavvia il client IA — altrimenti continuerà a usare le vecchie impostazioni."
+          }
+        }
+      }
+    },
     "settings.mcpServer.status.connected" : {
       "localizations" : {
         "de" : {
@@ -118,25 +258,25 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "KI-Zugriff (MCP):"
+            "value" : "KI-Zugriff:"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "AI Access (MCP):"
+            "value" : "AI Access:"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Accès IA (MCP) :"
+            "value" : "Accès IA :"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Accesso IA (MCP):"
+            "value" : "Accesso IA:"
           }
         }
       }
@@ -146,25 +286,25 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "MCP-Server aktivieren"
+            "value" : "Zugriff für KI-Assistenten erlauben"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Enable MCP Server"
+            "value" : "Allow access for AI assistants"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Activer le serveur MCP"
+            "value" : "Autoriser l'accès pour les assistants IA"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Attiva server MCP"
+            "value" : "Consenti l'accesso agli assistenti IA"
           }
         }
       }
@@ -174,25 +314,25 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Erlaubt einer angeschlossenen KI (z. B. Claude Desktop) lesenden Zugriff auf deine Feeds, Ordner, Tags und Artikel (inkl. Gelesen-/Stern-Status) über den Model Context Protocol. Standardmäßig rein lesend — Schreibzugriff kann unten zusätzlich aktiviert werden. Nach einer Änderung muss der KI-Client (z. B. Claude Desktop) neu gestartet werden, damit sie wirkt."
+            "value" : "Eine verbundene KI (z. B. Claude Desktop) darf deine Feeds, Ordner, Tags und Artikel lesen — auch Gelesen- und Stern-Status. Ändern darf sie nichts, solange du unten keinen Schreibzugriff erlaubst. Technisch läuft das über das Model Context Protocol (MCP)."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Allows a connected AI (e.g. Claude Desktop) read-only access to your feeds, folders, tags, and articles (including read/starred status) via the Model Context Protocol. Read-only by default — write access can additionally be enabled below. After a change, the AI client (e.g. Claude Desktop) must be restarted for it to take effect."
+            "value" : "A connected AI (e.g. Claude Desktop) may read your feeds, folders, tags, and articles — including read and starred status. It cannot change anything unless you allow write access below. Technically this runs over the Model Context Protocol (MCP)."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Permet à une IA connectée (par ex. Claude Desktop) d'accéder en lecture seule à vos flux, dossiers, tags et articles (y compris le statut lu/favori) via le Model Context Protocol. Lecture seule par défaut — l'accès en écriture peut être activé séparément ci-dessous. Après une modification, le client IA (par ex. Claude Desktop) doit être redémarré pour que cela prenne effet."
+            "value" : "Une IA connectée (par ex. Claude Desktop) peut lire vos flux, dossiers, tags et articles — y compris les statuts lu et favori. Elle ne peut rien modifier tant que vous n'autorisez pas l'accès en écriture ci-dessous. Techniquement, cela passe par le Model Context Protocol (MCP)."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Consente a un'IA collegata (ad es. Claude Desktop) l'accesso in sola lettura ai tuoi feed, cartelle, tag e articoli (incluso lo stato letto/preferito) tramite il Model Context Protocol. Sola lettura per impostazione predefinita — l'accesso in scrittura può essere attivato separatamente qui sotto. Dopo una modifica, il client IA (ad es. Claude Desktop) deve essere riavviato affinché abbia effetto."
+            "value" : "Un'IA connessa (ad es. Claude Desktop) può leggere i tuoi feed, le cartelle, i tag e gli articoli — inclusi gli stati letto e preferito. Non può modificare nulla finché non consenti l'accesso in scrittura qui sotto. Tecnicamente questo avviene tramite il Model Context Protocol (MCP)."
           }
         }
       }
@@ -202,25 +342,25 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Verbindung einrichten"
+            "value" : "Einrichtung"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Set Up Connection"
+            "value" : "Setup"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Configurer la connexion"
+            "value" : "Configuration"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Configura connessione"
+            "value" : "Configurazione"
           }
         }
       }
