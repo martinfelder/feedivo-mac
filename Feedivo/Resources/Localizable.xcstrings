@@ -1,1042 +1,6 @@
 {
   "sourceLanguage" : "de",
   "strings" : {
-    "settings.mcpServer.troubleshoot.backup" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vor jedem automatischen Eintrag legt Feedivo eine Sicherungskopie neben der Datei an (Endung .feedivo-backup)."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Before each automatic entry, Feedivo places a backup next to the file (suffix .feedivo-backup)."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Avant chaque saisie automatique, Feedivo place une copie de sauvegarde à côté du fichier (extension .feedivo-backup)."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Prima di ogni inserimento automatico, Feedivo crea una copia di backup accanto al file (estensione .feedivo-backup)."
-          }
-        }
-      }
-    },
-    "settings.mcpServer.troubleshoot.existingEntries" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Datei enthält schon Einträge: Nur den inneren feedivo-Block in das vorhandene mcpServers einsortieren — die Datei nicht ersetzen."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "File already has entries: insert only the inner feedivo block into the existing mcpServers — do not replace the file."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Le fichier contient déjà des entrées : insérez uniquement le bloc feedivo dans le mcpServers existant — ne remplacez pas le fichier."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Il file contiene già voci: inserisci solo il blocco feedivo nel mcpServers esistente — non sostituire il file."
-          }
-        }
-      }
-    },
-    "settings.mcpServer.troubleshoot.missingFile" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Datei gibt es noch nicht: Der Knopf Automatisch eintragen… legt sie an. Beim Kopieren legst du sie selbst an, mit dem Schnipsel als vollständigem Inhalt."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "File doesn't exist yet: the Enter automatically… button creates it. When copying, create it yourself with the snippet as the complete content."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Le fichier n'existe pas encore : le bouton Saisir automatiquement… le crée. En copiant, créez-le vous-même avec l'extrait comme contenu complet."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Il file non esiste ancora: il pulsante Inserisci automaticamente… lo crea. Copiando, crealo tu stesso con il frammento come contenuto completo."
-          }
-        }
-      }
-    },
-    "settings.mcpServer.troubleshoot.noAutoEntry" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kein Eintragen-Knopf bei VS Code, Zed und Claude Code: Die ersten beiden erlauben Kommentare in ihren Dateien, die ein automatischer Eintrag löschen würde. Claude Code hat keine Konfigurationsdatei, sondern einen Terminal-Befehl."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No entry button for VS Code, Zed and Claude Code: the first two allow comments in their files, which an automatic entry would delete. Claude Code has no configuration file, only a terminal command."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pas de bouton de saisie pour VS Code, Zed et Claude Code : les deux premiers autorisent les commentaires dans leurs fichiers, qu'une saisie automatique supprimerait. Claude Code n'a pas de fichier de configuration, mais une commande de terminal."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nessun pulsante di inserimento per VS Code, Zed e Claude Code: i primi due consentono commenti nei loro file, che un inserimento automatico eliminerebbe. Claude Code non ha un file di configurazione, ma un comando da terminale."
-          }
-        }
-      }
-    },
-    "settings.mcpServer.troubleshootDisclosure" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wenn etwas nicht passt"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "If something doesn't fit"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Si quelque chose ne va pas"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Se qualcosa non torna"
-          }
-        }
-      }
-    },
-    "settings.mcpServer.permissions.always" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Immer: Feeds, Ordner, Tags und Artikel lesen — samt Gelesen- und Stern-Status. Suchen und Intelligente Ordner abrufen."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Always: read feeds, folders, tags and articles — including read and star status. Search and retrieve smart folders."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Toujours : lire les flux, dossiers, tags et articles — y compris les statuts lu et favori. Rechercher et consulter les dossiers intelligents."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sempre: leggere feed, cartelle, tag e articoli — inclusi gli stati letto e preferito. Cercare e consultare le cartelle intelligenti."
-          }
-        }
-      }
-    },
-    "settings.mcpServer.permissions.never" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Auch mit Schreibzugriff unmöglich: Feeds abonnieren oder löschen, Ordner, Regeln und Intelligente Ordner ändern, Tags anlegen oder löschen, Artikeltexte ändern, Artikel löschen."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Impossible even with write access: subscribing to or deleting feeds, changing folders, rules and smart folders, creating or deleting tags, editing article text, deleting articles."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Impossible même avec l'accès en écriture : s'abonner à des flux ou les supprimer, modifier dossiers, règles et dossiers intelligents, créer ou supprimer des tags, modifier le texte des articles, supprimer des articles."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Impossibile anche con l'accesso in scrittura: abbonarsi a feed o eliminarli, modificare cartelle, regole e cartelle intelligenti, creare o eliminare tag, modificare il testo degli articoli, eliminare articoli."
-          }
-        }
-      }
-    },
-    "settings.mcpServer.permissions.revoke" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rückgängig: Schalter ausschalten und den KI-Client neu starten."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "To revoke: turn the switch off and restart the AI client."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pour révoquer : désactiver l'interrupteur et redémarrer le client IA."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Per revocare: disattiva l’interruttore e riavvia il client IA."
-          }
-        }
-      }
-    },
-    "settings.mcpServer.permissions.withWrite" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mit Schreibzugriff zusätzlich: Gelesen, Stern und Versteckt setzen. Bestehende Tags zuweisen und entfernen."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "With write access additionally: set read, star and hidden. Assign and remove existing tags."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Avec l'accès en écriture, en plus : définir lu, favori et masqué. Attribuer et retirer des tags existants."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Con l'accesso in scrittura, in più: impostare letto, preferito e nascosto. Assegnare e rimuovere tag esistenti."
-          }
-        }
-      }
-    },
-    "settings.mcpServer.permissionsDisclosure" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Was die KI genau darf"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "What the AI is allowed to do"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ce que l'IA est autorisée à faire"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cosa può fare l’IA"
-          }
-        }
-      }
-    },
-    "settings.mcpServer.restartHint" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wirkt erst, wenn du den KI-Client danach neu startest."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Takes effect only after you restart the AI client."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Prend effet seulement après le redémarrage du client IA."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ha effetto solo dopo aver riavviato il client IA."
-          }
-        }
-      }
-    },
-    "settings.mcpServer.status.staleToolList" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Der verbundene Client kennt %1$d von %2$d Werkzeugen — starte ihn neu."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The connected client knows %1$d of %2$d tools — restart it."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Le client connecté connaît %1$d outils sur %2$d — redémarrez-le."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Il client connesso conosce %1$d strumenti su %2$d — riavvialo."
-          }
-        }
-      }
-    },
-    "settings.mcpServer.clientPicker" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "KI-Client"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AI client"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Client IA"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Client IA"
-          }
-        }
-      }
-    },
-    "settings.mcpServer.enterButton" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Automatisch eintragen…"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enter automatically…"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Saisir automatiquement…"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Inserisci automaticamente…"
-          }
-        }
-      }
-    },
-    "settings.mcpServer.enterSuccess" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Eingetragen. Eine Sicherungskopie der bisherigen Datei liegt daneben."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Entered. A backup of the previous file is next to it."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Saisi. Une copie de sauvegarde du fichier précédent se trouve à côté."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Inserito. Una copia di backup del file precedente si trova accanto."
-          }
-        }
-      }
-    },
-    "settings.mcpServer.installedSuffix" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "(installiert)"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "(installed)"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "(installé)"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "(installato)"
-          }
-        }
-      }
-    },
-    "settings.mcpServer.step.run" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "2. Befehl im Terminal ausführen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "2. Run the command in Terminal"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "2. Exécuter la commande dans le Terminal"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "2. Esegui il comando nel Terminale"
-          }
-        }
-      }
-    },
-    "settings.mcpServer.status.notConnected" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nicht verbunden"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Not connected"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Non connecté"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Non connesso"
-          }
-        }
-      }
-    },
-    "settings.mcpServer.status.session" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@ — %2$d Werkzeuge"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@ — %2$d tools"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@ — %2$d outils"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@ — %2$d strumenti"
-          }
-        }
-      }
-    },
-    "settings.mcpServer.status.sessionGrouped" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@ (%2$d Verbindungen) — %3$d Werkzeuge"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@ (%2$d connections) — %3$d tools"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@ (%2$d connexions) — %3$d outils"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@ (%2$d connessioni) — %3$d strumenti"
-          }
-        }
-      }
-    },
-    "settings.mcpServer.noClientFound" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Es wurde kein unterstützter KI-Client gefunden. Feedivo unterstützt derzeit Claude Desktop."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No supported AI client found. Feedivo currently supports Claude Desktop."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aucun client IA pris en charge n'a été trouvé. Feedivo prend actuellement en charge Claude Desktop."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nessun client IA supportato trovato. Feedivo supporta attualmente Claude Desktop."
-          }
-        }
-      }
-    },
-    "settings.mcpServer.statusRowTitle" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Status"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Status"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "État"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stato"
-          }
-        }
-      }
-    },
-    "settings.mcpServer.step.copy" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1. Konfiguration kopieren"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1. Copy the configuration"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1. Copier la configuration"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1. Copia la configurazione"
-          }
-        }
-      }
-    },
-    "settings.mcpServer.step.paste" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "2. In diese Datei einfügen:"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "2. Paste it into this file:"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "2. Coller dans ce fichier :"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "2. Incollala in questo file:"
-          }
-        }
-      }
-    },
-    "settings.mcpServer.step.restart" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "3. KI-Client neu starten — sonst nutzt er weiter die alten Einstellungen."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "3. Restart the AI client — otherwise it keeps using the old settings."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "3. Redémarrer le client IA — sinon il continue d'utiliser les anciens réglages."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "3. Riavvia il client IA — altrimenti continuerà a usare le vecchie impostazioni."
-          }
-        }
-      }
-    },
-    "settings.mcpServer.status.connected" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zuletzt verbunden: %1$@ · %2$d Werkzeuge (%3$@)"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Last connected: %1$@ · %2$d tools (%3$@)"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dernière connexion : %1$@ · %2$d outils (%3$@)"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ultima connessione: %1$@ · %2$d strumenti (%3$@)"
-          }
-        }
-      }
-    },
-    "settings.mcpServer.status.neverConnected" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Noch nie verbunden — Schritte oben ausführen."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Never connected — follow the steps above."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Jamais connecté — suivez les étapes ci-dessus."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mai connesso — segui i passaggi qui sopra."
-          }
-        }
-      }
-    },
-    "settings.mcpServer.status.scopeReadOnly" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "nur lesend"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "read-only"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "lecture seule"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "sola lettura"
-          }
-        }
-      }
-    },
-    "settings.mcpServer.status.scopeWithWriteAccess" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "inkl. Schreibzugriff"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "incl. write access"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "avec accès en écriture"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "con accesso in scrittura"
-          }
-        }
-      }
-    },
-    "settings.mcpServer.sectionTitle" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "KI-Zugriff:"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AI Access:"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Accès IA :"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Accesso IA:"
-          }
-        }
-      }
-    },
-    "settings.mcpServer.toggleTitle" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zugriff für KI-Assistenten erlauben"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Allow access for AI assistants"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Autoriser l'accès pour les assistants IA"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Consenti l'accesso agli assistenti IA"
-          }
-        }
-      }
-    },
-    "settings.mcpServer.toggleDescription" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Eine verbundene KI (z. B. Claude Desktop) darf deine Feeds, Ordner, Tags und Artikel lesen — auch Gelesen- und Stern-Status. Ändern darf sie nichts, solange du unten keinen Schreibzugriff erlaubst. Technisch läuft das über das Model Context Protocol (MCP)."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "A connected AI (e.g. Claude Desktop) may read your feeds, folders, tags, and articles — including read and starred status. It cannot change anything unless you allow write access below. Technically this runs over the Model Context Protocol (MCP)."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Une IA connectée (par ex. Claude Desktop) peut lire vos flux, dossiers, tags et articles — y compris les statuts lu et favori. Elle ne peut rien modifier tant que vous n'autorisez pas l'accès en écriture ci-dessous. Techniquement, cela passe par le Model Context Protocol (MCP)."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Un'IA connessa (ad es. Claude Desktop) può leggere i tuoi feed, le cartelle, i tag e gli articoli — inclusi gli stati letto e preferito. Non può modificare nulla finché non consenti l'accesso in scrittura qui sotto. Tecnicamente questo avviene tramite il Model Context Protocol (MCP)."
-          }
-        }
-      }
-    },
-    "settings.mcpServer.connectionRowTitle" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Einrichtung"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Setup"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Configuration"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Configurazione"
-          }
-        }
-      }
-    },
-    "settings.mcpServer.copyButton" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kopieren"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Copy"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Copier"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Copia"
-          }
-        }
-      }
-    },
-    "settings.mcpServer.snippetDescription" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Diesen Eintrag in die Konfigurationsdatei deines KI-Clients einfügen (bei Claude Desktop: ~/Library/Application Support/Claude/claude_desktop_config.json)."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Paste this entry into your AI client's configuration file (for Claude Desktop: ~/Library/Application Support/Claude/claude_desktop_config.json)."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Collez cette entrée dans le fichier de configuration de votre client IA (pour Claude Desktop : ~/Library/Application Support/Claude/claude_desktop_config.json)."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Incolla questa voce nel file di configurazione del tuo client IA (per Claude Desktop: ~/Library/Application Support/Claude/claude_desktop_config.json)."
-          }
-        }
-      }
-    },
-    "settings.mcpServer.writeAccessToggleDescription" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Erlaubt einer verbundenen KI, Gelesen-, Stern- und Versteckt-Status zu ändern und bestehende Tags zuzuweisen oder zu entfernen. Neue Tags anlegen kann sie nicht. Erfordert vorher aktivierten KI-Zugriff."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lets a connected AI change read, star and hidden status and assign or remove existing tags. It cannot create new tags. Requires AI access to be enabled first."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Permet à une IA connectée de modifier les statuts lu, favori et masqué, et d'attribuer ou retirer des tags existants. Elle ne peut pas créer de tags. Nécessite l'accès IA activé au préalable."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Consente a un'IA connessa di modificare gli stati letto, preferito e nascosto e di assegnare o rimuovere tag esistenti. Non può creare nuovi tag. Richiede l'accesso IA già attivato."
-          }
-        }
-      }
-    },
-    "settings.mcpServer.writeAccessToggleTitle" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Schreibzugriff erlauben"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Allow Write Access"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Autoriser l'accès en écriture"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Consenti accesso in scrittura"
-          }
-        }
-      }
-    },
     "" : {
 
     },
@@ -12437,6 +11401,9 @@
         }
       }
     },
+    "KI-Zugriff" : {
+
+    },
     "Legt fest, ob Feedivo unabhängig von der macOS-Systemeinstellung immer hell oder immer dunkel dargestellt wird." : {
 
     },
@@ -18067,62 +17034,6 @@
         }
       }
     },
-    "reader.youTubeVideoHint.button" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Original-Ansicht öffnen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Open Original View"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ouvrir la vue originale"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apri visualizzazione originale"
-          }
-        }
-      }
-    },
-    "reader.youTubeVideoHint.message" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dies ist ein YouTube-Video. In der Original-Ansicht kannst du es abspielen und dich bei YouTube anmelden."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This is a YouTube video. Switch to the original view to watch it and sign in to YouTube."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ceci est une vidéo YouTube. Passez à la vue originale pour la regarder et vous connecter à YouTube."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Questo è un video di YouTube. Passa alla visualizzazione originale per guardarlo e accedere a YouTube."
-          }
-        }
-      }
-    },
     "reader.readability.error.emptyResult" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -18762,6 +17673,62 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Avanti nella vista originale"
+          }
+        }
+      }
+    },
+    "reader.youTubeVideoHint.button" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Original-Ansicht öffnen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Original View"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir la vue originale"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apri visualizzazione originale"
+          }
+        }
+      }
+    },
+    "reader.youTubeVideoHint.message" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dies ist ein YouTube-Video. In der Original-Ansicht kannst du es abspielen und dich bei YouTube anmelden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This is a YouTube video. Switch to the original view to watch it and sign in to YouTube."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ceci est une vidéo YouTube. Passez à la vue originale pour la regarder et vous connecter à YouTube."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo è un video di YouTube. Passa alla visualizzazione originale per guardarlo e accedere a YouTube."
           }
         }
       }
@@ -25588,6 +24555,1042 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Segna gli articoli come letti all'apertura"
+          }
+        }
+      }
+    },
+    "settings.mcpServer.clientPicker" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "KI-Client"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI client"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Client IA"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Client IA"
+          }
+        }
+      }
+    },
+    "settings.mcpServer.connectionRowTitle" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einrichtung"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Setup"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configuration"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configurazione"
+          }
+        }
+      }
+    },
+    "settings.mcpServer.copyButton" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copier"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copia"
+          }
+        }
+      }
+    },
+    "settings.mcpServer.enterButton" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatisch eintragen…"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter automatically…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saisir automatiquement…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inserisci automaticamente…"
+          }
+        }
+      }
+    },
+    "settings.mcpServer.enterSuccess" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eingetragen. Eine Sicherungskopie der bisherigen Datei liegt daneben."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entered. A backup of the previous file is next to it."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saisi. Une copie de sauvegarde du fichier précédent se trouve à côté."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inserito. Una copia di backup del file precedente si trova accanto."
+          }
+        }
+      }
+    },
+    "settings.mcpServer.installedSuffix" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "(installiert)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "(installed)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "(installé)"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "(installato)"
+          }
+        }
+      }
+    },
+    "settings.mcpServer.noClientFound" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Es wurde kein unterstützter KI-Client gefunden. Feedivo unterstützt derzeit Claude Desktop."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No supported AI client found. Feedivo currently supports Claude Desktop."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun client IA pris en charge n'a été trouvé. Feedivo prend actuellement en charge Claude Desktop."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun client IA supportato trovato. Feedivo supporta attualmente Claude Desktop."
+          }
+        }
+      }
+    },
+    "settings.mcpServer.permissions.always" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Immer: Feeds, Ordner, Tags und Artikel lesen — samt Gelesen- und Stern-Status. Suchen und Intelligente Ordner abrufen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Always: read feeds, folders, tags and articles — including read and star status. Search and retrieve smart folders."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toujours : lire les flux, dossiers, tags et articles — y compris les statuts lu et favori. Rechercher et consulter les dossiers intelligents."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sempre: leggere feed, cartelle, tag e articoli — inclusi gli stati letto e preferito. Cercare e consultare le cartelle intelligenti."
+          }
+        }
+      }
+    },
+    "settings.mcpServer.permissions.never" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auch mit Schreibzugriff unmöglich: Feeds abonnieren oder löschen, Ordner, Regeln und Intelligente Ordner ändern, Tags anlegen oder löschen, Artikeltexte ändern, Artikel löschen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible even with write access: subscribing to or deleting feeds, changing folders, rules and smart folders, creating or deleting tags, editing article text, deleting articles."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible même avec l'accès en écriture : s'abonner à des flux ou les supprimer, modifier dossiers, règles et dossiers intelligents, créer ou supprimer des tags, modifier le texte des articles, supprimer des articles."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile anche con l'accesso in scrittura: abbonarsi a feed o eliminarli, modificare cartelle, regole e cartelle intelligenti, creare o eliminare tag, modificare il testo degli articoli, eliminare articoli."
+          }
+        }
+      }
+    },
+    "settings.mcpServer.permissions.revoke" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rückgängig: Schalter ausschalten und den KI-Client neu starten."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To revoke: turn the switch off and restart the AI client."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pour révoquer : désactiver l'interrupteur et redémarrer le client IA."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per revocare: disattiva l’interruttore e riavvia il client IA."
+          }
+        }
+      }
+    },
+    "settings.mcpServer.permissions.withWrite" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit Schreibzugriff zusätzlich: Gelesen, Stern und Versteckt setzen. Bestehende Tags zuweisen und entfernen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "With write access additionally: set read, star and hidden. Assign and remove existing tags."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avec l'accès en écriture, en plus : définir lu, favori et masqué. Attribuer et retirer des tags existants."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Con l'accesso in scrittura, in più: impostare letto, preferito e nascosto. Assegnare e rimuovere tag esistenti."
+          }
+        }
+      }
+    },
+    "settings.mcpServer.permissionsDisclosure" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Was die KI genau darf"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What the AI is allowed to do"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce que l'IA est autorisée à faire"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cosa può fare l’IA"
+          }
+        }
+      }
+    },
+    "settings.mcpServer.restartHint" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wirkt erst, wenn du den KI-Client danach neu startest."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Takes effect only after you restart the AI client."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prend effet seulement après le redémarrage du client IA."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ha effetto solo dopo aver riavviato il client IA."
+          }
+        }
+      }
+    },
+    "settings.mcpServer.sectionTitle" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "KI-Zugriff:"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI Access:"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accès IA :"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accesso IA:"
+          }
+        }
+      }
+    },
+    "settings.mcpServer.snippetDescription" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diesen Eintrag in die Konfigurationsdatei deines KI-Clients einfügen (bei Claude Desktop: ~/Library/Application Support/Claude/claude_desktop_config.json)."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paste this entry into your AI client's configuration file (for Claude Desktop: ~/Library/Application Support/Claude/claude_desktop_config.json)."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collez cette entrée dans le fichier de configuration de votre client IA (pour Claude Desktop : ~/Library/Application Support/Claude/claude_desktop_config.json)."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Incolla questa voce nel file di configurazione del tuo client IA (per Claude Desktop: ~/Library/Application Support/Claude/claude_desktop_config.json)."
+          }
+        }
+      }
+    },
+    "settings.mcpServer.status.connected" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zuletzt verbunden: %1$@ · %2$d Werkzeuge (%3$@)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Last connected: %1$@ · %2$d tools (%3$@)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dernière connexion : %1$@ · %2$d outils (%3$@)"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ultima connessione: %1$@ · %2$d strumenti (%3$@)"
+          }
+        }
+      }
+    },
+    "settings.mcpServer.status.neverConnected" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noch nie verbunden — Schritte oben ausführen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Never connected — follow the steps above."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jamais connecté — suivez les étapes ci-dessus."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mai connesso — segui i passaggi qui sopra."
+          }
+        }
+      }
+    },
+    "settings.mcpServer.status.notConnected" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nicht verbunden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not connected"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non connecté"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non connesso"
+          }
+        }
+      }
+    },
+    "settings.mcpServer.status.scopeReadOnly" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "nur lesend"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "read-only"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "lecture seule"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "sola lettura"
+          }
+        }
+      }
+    },
+    "settings.mcpServer.status.scopeWithWriteAccess" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "inkl. Schreibzugriff"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "incl. write access"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "avec accès en écriture"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "con accesso in scrittura"
+          }
+        }
+      }
+    },
+    "settings.mcpServer.status.session" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ — %2$d Werkzeuge"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ — %2$d tools"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ — %2$d outils"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ — %2$d strumenti"
+          }
+        }
+      }
+    },
+    "settings.mcpServer.status.sessionGrouped" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$d Verbindungen) — %3$d Werkzeuge"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$d connections) — %3$d tools"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$d connexions) — %3$d outils"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (%2$d connessioni) — %3$d strumenti"
+          }
+        }
+      }
+    },
+    "settings.mcpServer.status.staleToolList" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der verbundene Client kennt %1$d von %2$d Werkzeugen — starte ihn neu."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The connected client knows %1$d of %2$d tools — restart it."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le client connecté connaît %1$d outils sur %2$d — redémarrez-le."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il client connesso conosce %1$d strumenti su %2$d — riavvialo."
+          }
+        }
+      }
+    },
+    "settings.mcpServer.statusRowTitle" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Status"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Status"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "État"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stato"
+          }
+        }
+      }
+    },
+    "settings.mcpServer.step.copy" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1. Konfiguration kopieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1. Copy the configuration"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1. Copier la configuration"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1. Copia la configurazione"
+          }
+        }
+      }
+    },
+    "settings.mcpServer.step.paste" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2. In diese Datei einfügen:"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2. Paste it into this file:"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2. Coller dans ce fichier :"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2. Incollala in questo file:"
+          }
+        }
+      }
+    },
+    "settings.mcpServer.step.restart" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3. KI-Client neu starten — sonst nutzt er weiter die alten Einstellungen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3. Restart the AI client — otherwise it keeps using the old settings."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3. Redémarrer le client IA — sinon il continue d'utiliser les anciens réglages."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3. Riavvia il client IA — altrimenti continuerà a usare le vecchie impostazioni."
+          }
+        }
+      }
+    },
+    "settings.mcpServer.step.run" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2. Befehl im Terminal ausführen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2. Run the command in Terminal"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2. Exécuter la commande dans le Terminal"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2. Esegui il comando nel Terminale"
+          }
+        }
+      }
+    },
+    "settings.mcpServer.toggleDescription" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eine verbundene KI (z. B. Claude Desktop) darf deine Feeds, Ordner, Tags und Artikel lesen — auch Gelesen- und Stern-Status. Ändern darf sie nichts, solange du unten keinen Schreibzugriff erlaubst. Technisch läuft das über das Model Context Protocol (MCP)."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A connected AI (e.g. Claude Desktop) may read your feeds, folders, tags, and articles — including read and starred status. It cannot change anything unless you allow write access below. Technically this runs over the Model Context Protocol (MCP)."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Une IA connectée (par ex. Claude Desktop) peut lire vos flux, dossiers, tags et articles — y compris les statuts lu et favori. Elle ne peut rien modifier tant que vous n'autorisez pas l'accès en écriture ci-dessous. Techniquement, cela passe par le Model Context Protocol (MCP)."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un'IA connessa (ad es. Claude Desktop) può leggere i tuoi feed, le cartelle, i tag e gli articoli — inclusi gli stati letto e preferito. Non può modificare nulla finché non consenti l'accesso in scrittura qui sotto. Tecnicamente questo avviene tramite il Model Context Protocol (MCP)."
+          }
+        }
+      }
+    },
+    "settings.mcpServer.toggleTitle" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zugriff für KI-Assistenten erlauben"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow access for AI assistants"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autoriser l'accès pour les assistants IA"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consenti l'accesso agli assistenti IA"
+          }
+        }
+      }
+    },
+    "settings.mcpServer.troubleshoot.backup" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vor jedem automatischen Eintrag legt Feedivo eine Sicherungskopie neben der Datei an (Endung .feedivo-backup)."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Before each automatic entry, Feedivo places a backup next to the file (suffix .feedivo-backup)."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avant chaque saisie automatique, Feedivo place une copie de sauvegarde à côté du fichier (extension .feedivo-backup)."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prima di ogni inserimento automatico, Feedivo crea una copia di backup accanto al file (estensione .feedivo-backup)."
+          }
+        }
+      }
+    },
+    "settings.mcpServer.troubleshoot.existingEntries" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Datei enthält schon Einträge: Nur den inneren feedivo-Block in das vorhandene mcpServers einsortieren — die Datei nicht ersetzen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "File already has entries: insert only the inner feedivo block into the existing mcpServers — do not replace the file."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le fichier contient déjà des entrées : insérez uniquement le bloc feedivo dans le mcpServers existant — ne remplacez pas le fichier."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il file contiene già voci: inserisci solo il blocco feedivo nel mcpServers esistente — non sostituire il file."
+          }
+        }
+      }
+    },
+    "settings.mcpServer.troubleshoot.missingFile" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Datei gibt es noch nicht: Der Knopf Automatisch eintragen… legt sie an. Beim Kopieren legst du sie selbst an, mit dem Schnipsel als vollständigem Inhalt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "File doesn't exist yet: the Enter automatically… button creates it. When copying, create it yourself with the snippet as the complete content."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le fichier n'existe pas encore : le bouton Saisir automatiquement… le crée. En copiant, créez-le vous-même avec l'extrait comme contenu complet."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il file non esiste ancora: il pulsante Inserisci automaticamente… lo crea. Copiando, crealo tu stesso con il frammento come contenuto completo."
+          }
+        }
+      }
+    },
+    "settings.mcpServer.troubleshoot.noAutoEntry" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kein Eintragen-Knopf bei VS Code, Zed und Claude Code: Die ersten beiden erlauben Kommentare in ihren Dateien, die ein automatischer Eintrag löschen würde. Claude Code hat keine Konfigurationsdatei, sondern einen Terminal-Befehl."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No entry button for VS Code, Zed and Claude Code: the first two allow comments in their files, which an automatic entry would delete. Claude Code has no configuration file, only a terminal command."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pas de bouton de saisie pour VS Code, Zed et Claude Code : les deux premiers autorisent les commentaires dans leurs fichiers, qu'une saisie automatique supprimerait. Claude Code n'a pas de fichier de configuration, mais une commande de terminal."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun pulsante di inserimento per VS Code, Zed e Claude Code: i primi due consentono commenti nei loro file, che un inserimento automatico eliminerebbe. Claude Code non ha un file di configurazione, ma un comando da terminale."
+          }
+        }
+      }
+    },
+    "settings.mcpServer.troubleshootDisclosure" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wenn etwas nicht passt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If something doesn't fit"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si quelque chose ne va pas"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se qualcosa non torna"
+          }
+        }
+      }
+    },
+    "settings.mcpServer.writeAccessToggleDescription" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erlaubt einer verbundenen KI, Gelesen-, Stern- und Versteckt-Status zu ändern und bestehende Tags zuzuweisen oder zu entfernen. Neue Tags anlegen kann sie nicht. Erfordert vorher aktivierten KI-Zugriff."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lets a connected AI change read, star and hidden status and assign or remove existing tags. It cannot create new tags. Requires AI access to be enabled first."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permet à une IA connectée de modifier les statuts lu, favori et masqué, et d'attribuer ou retirer des tags existants. Elle ne peut pas créer de tags. Nécessite l'accès IA activé au préalable."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consente a un'IA connessa di modificare gli stati letto, preferito e nascosto e di assegnare o rimuovere tag esistenti. Non può creare nuovi tag. Richiede l'accesso IA già attivato."
+          }
+        }
+      }
+    },
+    "settings.mcpServer.writeAccessToggleTitle" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schreibzugriff erlauben"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow Write Access"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autoriser l'accès en écriture"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Consenti accesso in scrittura"
           }
         }
       }
