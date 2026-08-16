@@ -1691,42 +1691,25 @@ private struct MCPServerSettingsView: View {
                         .font(.system(size: 11))
                         .foregroundStyle(.red)
                 }
+            }
 
-                setupSection
-
-                GeneralSettingsRow(title: L10n.settingsMCPServerStatusRowTitle) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        let zeilen = MCPConnectionStatusText.activeLines(for: activeSessions)
-                        if zeilen.isEmpty {
-                            connectionStatusLine(
-                                text: String(localized: "settings.mcpServer.status.notConnected"),
-                                isConnected: false
-                            )
-                            // Bei bestehender Verbindung waere dieser Text redundant — er
-                            // beantwortet "wann zuletzt", nicht "wer jetzt".
-                            Text(verbatim: MCPConnectionStatusText.text(
-                                for: lastConnection,
-                                isWriteAccessEnabled: isWriteAccessEnabled
-                            ))
-                            .font(.system(size: 11))
-                            .foregroundStyle(.secondary)
-                        } else {
-                            ForEach(zeilen, id: \.self) { zeile in
-                                connectionStatusLine(text: zeile, isConnected: true)
-                            }
-                        }
-
-                        if let hinweis = MCPConnectionStatusText.staleToolListLine(
-                            sessions: activeSessions,
-                            isAccessEnabled: isEnabled,
-                            isWriteAccessEnabled: isWriteAccessEnabled
-                        ) {
-                            Text(verbatim: hinweis)
-                                .font(.system(size: 11))
-                                .foregroundStyle(.orange)
-                        }
-                    }
+            // Die Anleitung erscheint erst, wenn sie etwas bewirken kann: Bei ausgeschaltetem
+            // Zugriff waere ein Konfigurationsschnipsel nur Ballast.
+            if isEnabled {
+                GeneralSettingsSection(
+                    label: Text(L10n.settingsMCPServerConnectionRowTitle) + Text(":")
+                ) {
+                    setupSection
                 }
+            }
+
+            // Bleibt bewusst auch bei ausgeschaltetem Zugriff sichtbar: Der Abschnitt beschreibt
+            // einen Zustand, statt zu einer Handlung aufzufordern — „zuletzt verbunden" ist auch
+            // dann eine sinnvolle Auskunft.
+            GeneralSettingsSection(
+                label: Text(L10n.settingsMCPServerStatusRowTitle) + Text(":")
+            ) {
+                statusSection
             }
         }
         .task {
@@ -1753,6 +1736,43 @@ private struct MCPServerSettingsView: View {
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
         }
+    }
+
+    /// Wer gerade verbunden ist — und ob er die aktuelle Werkzeugliste kennt.
+    @ViewBuilder
+    private var statusSection: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            let zeilen = MCPConnectionStatusText.activeLines(for: activeSessions)
+            if zeilen.isEmpty {
+                connectionStatusLine(
+                    text: String(localized: "settings.mcpServer.status.notConnected"),
+                    isConnected: false
+                )
+                // Bei bestehender Verbindung waere dieser Text redundant — er
+                // beantwortet "wann zuletzt", nicht "wer jetzt".
+                Text(verbatim: MCPConnectionStatusText.text(
+                    for: lastConnection,
+                    isWriteAccessEnabled: isWriteAccessEnabled
+                ))
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+            } else {
+                ForEach(zeilen, id: \.self) { zeile in
+                    connectionStatusLine(text: zeile, isConnected: true)
+                }
+            }
+
+            if let hinweis = MCPConnectionStatusText.staleToolListLine(
+                sessions: activeSessions,
+                isAccessEnabled: isEnabled,
+                isWriteAccessEnabled: isWriteAccessEnabled
+            ) {
+                Text(verbatim: hinweis)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.orange)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     /// Was die KI mit und ohne Schreibzugriff tatsächlich darf.
@@ -1786,7 +1806,7 @@ private struct MCPServerSettingsView: View {
     @ViewBuilder
     private var setupSection: some View {
         if let client = selectedClient {
-            GeneralSettingsRow(title: L10n.settingsMCPServerConnectionRowTitle) {
+            GeneralSettingsRow(title: L10n.settingsMCPServerClientPickerLabel) {
                 Picker(L10n.settingsMCPServerClientPickerLabel, selection: $selectedClientID) {
                     ForEach(clients) { eintrag in
                         Text(verbatim: clientLabel(eintrag)).tag(Optional(eintrag.id))
