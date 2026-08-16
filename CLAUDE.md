@@ -1666,10 +1666,18 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
   **Bekannte Einschränkung:** Der Platzhaltername `Unbekannt` (wenn der Elternprozess nicht
   ermittelbar ist) ist nicht lokalisiert — er wird vom Serverprozess geschrieben, der die
   Lokalisierung des App-Bundles nicht zur Verfügung hat.
-  **Ausstehende manuelle Verifikation:** 1. Tab bei laufendem Claude Desktop öffnen → grüner
-  Punkt mit „Claude". 2. Claude Desktop beenden, Tab offen lassen → binnen ~40 s „Nicht
-  verbunden". 3. Claude Desktop starten → binnen ~20 s wieder verbunden, ohne das Fenster zu
-  schließen. 4. Bei mehreren Prozessen desselben Clients erscheint eine Zeile mit Anzahl.
+  **Manuelle Live-Verifikation am 2026-08-16 VOLLSTÄNDIG DURCHLAUFEN UND BESTANDEN** (vom
+  Nutzer am eigenen Mac bestätigt, Testserver jeweils per Terminal gestartet statt über einen
+  echten KI-Client): 1. Grüner Punkt mit Client-Name und Werkzeug-Anzahl erschien („bash — 7
+  Werkzeuge"; `bash` statt `Claude` ist korrekt, da der Server von der Shell gestartet wurde).
+  2. Nach Beenden des Servers sprang die Anzeige bei GEÖFFNETEM Tab ohne Zutun auf „Nicht
+  verbunden" — belegt zugleich die 5-Sekunden-Schleife und die 40-Sekunden-Toleranz. 3. Zwei
+  parallel gestartete Server ließen die Anzeige ohne Fensterschließen zurückspringen. 4. Diese
+  beiden Sitzungen erschienen korrekt als EINE Zeile „bash (2 Verbindungen) — 7 Werkzeuge"
+  statt als zwei identische. **Nicht mit einem echten Claude-Desktop-Start verifiziert** —
+  dass der Name dort tatsächlich „Claude" lautet, ist bislang nur durch den Unit-Test der
+  Pfadableitung abgesichert (der reale Pfad `/Applications/Claude.app/Contents/Helpers/
+  disclaimer` wurde dafür als Testfall übernommen).
   Spec: `docs/superpowers/specs/2026-08/2026-08-16-mcp-live-verbindungsstatus-design.md`,
   Plan: `docs/superpowers/plans/2026-08-16-mcp-live-verbindungsstatus.md`.
   **Abgetrenntes Folgevorhaben:** Ein Einrichtungsassistent für weitere KI-Clients (Dropdown
