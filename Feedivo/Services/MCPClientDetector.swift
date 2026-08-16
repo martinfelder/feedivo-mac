@@ -1,51 +1,124 @@
 import AppKit
 import Foundation
 
-/// Ein KI-Client, der Feedivos MCP-Server über eine Konfigurationsdatei einbinden kann.
-struct MCPClient: Equatable {
-    let displayName: String
-    /// Absoluter Pfad zur Konfigurationsdatei des Clients — wird im Einstellungen-Tab als
-    /// Einrichtungsschritt angezeigt und muss deshalb direkt verwendbar sein (keine Tilde).
-    let configPath: String
+/// In welcher Form ein Client seine MCP-Server notiert.
+enum MCPClientConfigSchema: Equatable {
+    /// Flaches `{"mcpServers": {"feedivo": {"command": "…"}}}` — Claude Desktop, Cursor, Windsurf.
+    case mcpServers
+    /// Wie `mcpServers`, nur unter dem Schlüssel `servers` — VS Code.
+    case servers
+    /// `{"context_servers": {"feedivo": {"command": {"path": "…", "args": []}}}}` — Zed.
+    case contextServers
+    /// Keine Datei, sondern ein Terminal-Befehl — Claude Code.
+    case commandLine
+
+    /// Der Schlüssel, unter dem die Servereinträge liegen. `nil` beim Terminal-Befehl.
+    var rootKey: String? {
+        switch self {
+        case .mcpServers: return "mcpServers"
+        case .servers: return "servers"
+        case .contextServers: return "context_servers"
+        case .commandLine: return nil
+        }
+    }
 }
 
-/// Ermittelt, welche unterstützten KI-Clients auf diesem Mac installiert sind.
+/// Ein KI-Client, der Feedivos MCP-Server einbinden kann.
+struct MCPClient: Equatable, Identifiable {
+    let id: String
+    let displayName: String
+    /// Absoluter Pfad zur Konfigurationsdatei; `nil` bei Clients ohne Datei (Claude Code).
+    let configPath: String?
+    let schema: MCPClientConfigSchema
+    /// Ob die App laut LaunchServices installiert ist. Nur ein Hinweis für die Reihenfolge —
+    /// nicht installierte Clients bleiben wählbar.
+    let isInstalled: Bool
+
+    /// Ob Feedivo den Eintrag selbst vornehmen darf.
+    ///
+    /// Bewusst nur bei `mcpServers`: VS Code und Zed erlauben Kommentare in ihren Dateien, ein
+    /// JSON-Roundtrip würde sie stillschweigend löschen. Claude Code speichert in
+    /// `~/.claude.json` den kompletten Zustand der Kommandozeilen-App — dort gehört
+    /// `claude mcp add` hin, kein fremder Schreibzugriff.
+    var supportsAutomaticEntry: Bool {
+        schema == .mcpServers && configPath != nil
+    }
+}
+
+/// Das Verzeichnis der unterstützten KI-Clients.
 ///
-/// Die Abfrage läuft über **LaunchServices** (`NSWorkspace.urlForApplication(
-/// withBundleIdentifier:)`), nicht über einen Blick in `/Applications` — Feedivo ist sandboxed
-/// und darf dort nicht frei lesen, die LaunchServices-Abfrage ist dagegen erlaubt.
-///
-/// **Bewusst nur Claude Desktop:** Auf einem Entwicklungsrechner sind typischerweise weitere
-/// KI-Apps installiert (ChatGPT, Ollama). Für sie ist weder gesichert, ob sie MCP über eine
-/// Konfigurationsdatei einbinden, noch wo diese läge — sie zu erkennen, ohne einen Pfad nennen
-/// zu können, würde nur falsche Erwartungen wecken. Ein weiterer Client ist später eine
-/// zusätzliche Zeile in `supportedClients`.
+/// Die Installationsprüfung läuft über **LaunchServices** (`NSWorkspace.urlForApplication(
+/// withBundleIdentifier:)`), nicht über einen Blick ins Dateisystem — Feedivo ist sandboxed und
+/// darf weder `/Applications` noch `~/.cursor/` frei lesen. Aus demselben Grund kann hier NICHT
+/// geprüft werden, ob eine Konfigurationsdatei existiert: Der Pfad ist eine Angabe, kein Befund.
 enum MCPClientDetector {
-    private struct SupportedClient {
-        let bundleIdentifier: String
+    private struct Eintrag {
+        let bundleIdentifier: String?
         let displayName: String
-        let configPathComponents: [String]
+        let configPathComponents: [String]?
+        let schema: MCPClientConfigSchema
     }
 
-    private static let supportedClients: [SupportedClient] = [
-        SupportedClient(
+    /// Pfade und Schemata: Claude Desktop und VS Code wurden auf dem Entwicklungsrechner
+    /// eingesehen, Cursor, Windsurf und Zed stammen aus einer Web-Recherche vom 2026-08-16 und
+    /// sind gegen keine echte Installation geprüft. Die Bundle-Kennungen der letzten drei sind
+    /// der unsicherste Teil — schlägt die Erkennung fehl, fehlt nur das Häkchen.
+    private static let eintraege: [Eintrag] = [
+        Eintrag(
             bundleIdentifier: "com.anthropic.claudefordesktop",
             displayName: "Claude Desktop",
-            configPathComponents: ["Library", "Application Support", "Claude", "claude_desktop_config.json"]
-        )
+            configPathComponents: ["Library", "Application Support", "Claude", "claude_desktop_config.json"],
+            schema: .mcpServers
+        ),
+        Eintrag(
+            bundleIdentifier: "com.todesktop.230313mzl4w4u92",
+            displayName: "Cursor",
+            configPathComponents: [".cursor", "mcp.json"],
+            schema: .mcpServers
+        ),
+        Eintrag(
+            bundleIdentifier: "com.exafunction.windsurf",
+            displayName: "Windsurf",
+            configPathComponents: [".codeium", "windsurf", "mcp_config.json"],
+            schema: .mcpServers
+        ),
+        Eintrag(
+            bundleIdentifier: "com.microsoft.VSCode",
+            displayName: "VS Code",
+            configPathComponents: ["Library", "Application Support", "Code", "User", "mcp.json"],
+            schema: .servers
+        ),
+        Eintrag(
+            bundleIdentifier: "dev.zed.Zed",
+            displayName: "Zed",
+            configPathComponents: [".config", "zed", "settings.json"],
+            schema: .contextServers
+        ),
+        Eintrag(
+            bundleIdentifier: nil,
+            displayName: "Claude Code",
+            configPathComponents: nil,
+            schema: .commandLine
+        ),
     ]
 
-    /// `lookup` ist injizierbar, damit die Auswertung ohne tatsächlich installierte App testbar
-    /// bleibt — der Standardwert fragt LaunchServices.
-    static func installedClients(
+    /// Alle unterstützten Clients, installierte zuerst. Innerhalb beider Gruppen bleibt die
+    /// Reihenfolge des Verzeichnisses erhalten, damit die Liste zwischen zwei Aufrufen stabil ist.
+    static func allClients(
         lookup: (String) -> Bool = { NSWorkspace.shared.urlForApplication(withBundleIdentifier: $0) != nil }
     ) -> [MCPClient] {
         let home = FileManager.default.homeDirectoryForCurrentUser
-        return supportedClients
-            .filter { lookup($0.bundleIdentifier) }
-            .map { client in
-                let url = client.configPathComponents.reduce(home) { $0.appendingPathComponent($1) }
-                return MCPClient(displayName: client.displayName, configPath: url.path)
-            }
+        let clients = eintraege.map { eintrag in
+            MCPClient(
+                id: eintrag.displayName,
+                displayName: eintrag.displayName,
+                configPath: eintrag.configPathComponents.map { komponenten in
+                    komponenten.reduce(home) { $0.appendingPathComponent($1) }.path
+                },
+                schema: eintrag.schema,
+                isInstalled: eintrag.bundleIdentifier.map(lookup) ?? false
+            )
+        }
+        return clients.filter(\.isInstalled) + clients.filter { !$0.isInstalled }
     }
 }

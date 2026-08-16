@@ -1705,7 +1705,10 @@ private struct MCPServerSettingsView: View {
                     Text(L10n.settingsMCPServerStepPaste)
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
-                    Text(verbatim: detectedClient.configPath)
+                    // Zwischenschritt: `configPath` ist seit dem Client-Verzeichnis optional
+                    // (Claude Code hat keine Datei). Task 5 ersetzt diesen Block durch die
+                    // Auswahl mit eigener Fallunterscheidung.
+                    Text(verbatim: detectedClient.configPath ?? "")
                         .font(.system(size: 11, design: .monospaced))
                         .foregroundStyle(.secondary)
                         .textSelection(.enabled)
@@ -1840,7 +1843,7 @@ private struct MCPServerSettingsView: View {
         isEnabled = (try? store.isEnabled()) ?? false
         isWriteAccessEnabled = (try? store.isWriteAccessEnabled()) ?? false
         lastConnection = try? store.lastConnection()
-        detectedClient = MCPClientDetector.installedClients().first
+        detectedClient = MCPClientDetector.allClients().first
         isLoaded = true
     }
 
