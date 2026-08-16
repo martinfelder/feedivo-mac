@@ -1654,6 +1654,7 @@ private struct MCPServerSettingsView: View {
     @State private var saveErrorMessage: String?
     @State private var lastConnection: MCPConnectionRecord?
     @State private var detectedClient: MCPClient?
+    @State private var activeSessions: [MCPServerSession] = []
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -1717,18 +1718,62 @@ private struct MCPServerSettingsView: View {
                 }
 
                 GeneralSettingsRow(title: L10n.settingsMCPServerStatusRowTitle) {
-                    Text(verbatim: MCPConnectionStatusText.text(
-                        for: lastConnection,
-                        isWriteAccessEnabled: isWriteAccessEnabled
-                    ))
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
+                    VStack(alignment: .leading, spacing: 4) {
+                        let zeilen = MCPConnectionStatusText.activeLines(for: activeSessions)
+                        if zeilen.isEmpty {
+                            connectionStatusLine(
+                                text: String(localized: "settings.mcpServer.status.notConnected"),
+                                isConnected: false
+                            )
+                            // Bei bestehender Verbindung waere dieser Text redundant — er
+                            // beantwortet "wann zuletzt", nicht "wer jetzt".
+                            Text(verbatim: MCPConnectionStatusText.text(
+                                for: lastConnection,
+                                isWriteAccessEnabled: isWriteAccessEnabled
+                            ))
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                        } else {
+                            ForEach(zeilen, id: \.self) { zeile in
+                                connectionStatusLine(text: zeile, isConnected: true)
+                            }
+                        }
+                    }
                 }
             }
         }
         .task {
             await load()
         }
+        .task {
+            // Haelt die Verbindungsanzeige aktuell, solange der Tab sichtbar ist. SwiftUI bricht
+            // diese Schleife ab, sobald die Ansicht verschwindet — bei geschlossenen
+            // Einstellungen laeuft nichts.
+            while !Task.isCancelled {
+                reloadActiveSessions()
+                try? await Task.sleep(for: .seconds(5))
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func connectionStatusLine(text: String, isConnected: Bool) -> some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(isConnected ? Color.green : Color.secondary.opacity(0.5))
+                .frame(width: 8, height: 8)
+            Text(verbatim: text)
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private func reloadActiveSessions() {
+        guard let feedivoDatabase else { return }
+        // Fail-safe: Bei einem Lesefehler bleibt die Liste leer, die Anzeige sagt also
+        // "Nicht verbunden" — sie behauptet im Zweifel nie eine Verbindung.
+        activeSessions = (try? MCPServerSessionStore(database: feedivoDatabase)
+            .activeSessions(now: Date())) ?? []
     }
 
     private var mcpServerExecutablePath: String {
