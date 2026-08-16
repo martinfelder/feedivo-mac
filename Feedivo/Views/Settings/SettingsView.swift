@@ -1678,11 +1678,8 @@ private struct MCPServerSettingsView: View {
                 .toggleStyle(.checkbox)
                 .tint(Color.settingsBoldAccent)
                 .disabled(!isLoaded || !isEnabled)
-                .padding(.leading, 20)
                 GeneralSettingsHelp(L10n.settingsMCPServerWriteAccessToggleDescription)
-                    .padding(.leading, 20)
                 GeneralSettingsHelp(L10n.settingsMCPServerRestartHint)
-                    .padding(.leading, 20)
 
                 permissionsSection
 
