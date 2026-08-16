@@ -1,6 +1,146 @@
 {
   "sourceLanguage" : "de",
   "strings" : {
+    "settings.mcpServer.troubleshoot.backup" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vor jedem automatischen Eintrag legt Feedivo eine Sicherungskopie neben der Datei an (Endung .feedivo-backup)."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Before each automatic entry, Feedivo places a backup next to the file (suffix .feedivo-backup)."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avant chaque saisie automatique, Feedivo place une copie de sauvegarde à côté du fichier (extension .feedivo-backup)."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prima di ogni inserimento automatico, Feedivo crea una copia di backup accanto al file (estensione .feedivo-backup)."
+          }
+        }
+      }
+    },
+    "settings.mcpServer.troubleshoot.existingEntries" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Datei enthält schon Einträge: Nur den inneren feedivo-Block in das vorhandene mcpServers einsortieren — die Datei nicht ersetzen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "File already has entries: insert only the inner feedivo block into the existing mcpServers — do not replace the file."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le fichier contient déjà des entrées : insérez uniquement le bloc feedivo dans le mcpServers existant — ne remplacez pas le fichier."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il file contiene già voci: inserisci solo il blocco feedivo nel mcpServers esistente — non sostituire il file."
+          }
+        }
+      }
+    },
+    "settings.mcpServer.troubleshoot.missingFile" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Datei gibt es noch nicht: Der Knopf Automatisch eintragen… legt sie an. Beim Kopieren legst du sie selbst an, mit dem Schnipsel als vollständigem Inhalt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "File doesn't exist yet: the Enter automatically… button creates it. When copying, create it yourself with the snippet as the complete content."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le fichier n'existe pas encore : le bouton Saisir automatiquement… le crée. En copiant, créez-le vous-même avec l'extrait comme contenu complet."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il file non esiste ancora: il pulsante Inserisci automaticamente… lo crea. Copiando, crealo tu stesso con il frammento come contenuto completo."
+          }
+        }
+      }
+    },
+    "settings.mcpServer.troubleshoot.noAutoEntry" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kein Eintragen-Knopf bei VS Code, Zed und Claude Code: Die ersten beiden erlauben Kommentare in ihren Dateien, die ein automatischer Eintrag löschen würde. Claude Code hat keine Konfigurationsdatei, sondern einen Terminal-Befehl."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No entry button for VS Code, Zed and Claude Code: the first two allow comments in their files, which an automatic entry would delete. Claude Code has no configuration file, only a terminal command."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pas de bouton de saisie pour VS Code, Zed et Claude Code : les deux premiers autorisent les commentaires dans leurs fichiers, qu'une saisie automatique supprimerait. Claude Code n'a pas de fichier de configuration, mais une commande de terminal."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessun pulsante di inserimento per VS Code, Zed e Claude Code: i primi due consentono commenti nei loro file, che un inserimento automatico eliminerebbe. Claude Code non ha un file di configurazione, ma un comando da terminale."
+          }
+        }
+      }
+    },
+    "settings.mcpServer.troubleshootDisclosure" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wenn etwas nicht passt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If something doesn't fit"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si quelque chose ne va pas"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se qualcosa non torna"
+          }
+        }
+      }
+    },
     "settings.mcpServer.permissions.always" : {
       "localizations" : {
         "de" : {

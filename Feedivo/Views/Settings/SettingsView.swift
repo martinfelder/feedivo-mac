@@ -1843,6 +1843,22 @@ private struct MCPServerSettingsView: View {
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
             }
+
+            DisclosureGroup {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(L10n.settingsMCPServerTroubleshootMissingFile)
+                    Text(L10n.settingsMCPServerTroubleshootExistingEntries)
+                    Text(L10n.settingsMCPServerTroubleshootBackup)
+                    Text(L10n.settingsMCPServerTroubleshootNoAutoEntry)
+                }
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.top, 4)
+            } label: {
+                Text(L10n.settingsMCPServerTroubleshootDisclosure)
+                    .font(.system(size: 11))
+            }
         }
     }
 
