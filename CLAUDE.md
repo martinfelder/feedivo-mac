@@ -453,6 +453,55 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
 
 > Diese Liste wächst während der Entwicklung. Immer ergänzen!
 
+- **Ein zusätzliches Target mit `SKIP_INSTALL = NO` macht das Release-Archiv unbrauchbar —
+  `exportArchive` meldet dann irreführend „expected one {} but found developer-id", obwohl an
+  den Export-Optionen nichts falsch ist:** Beim 1.1-Release (2026-08-16) schlug der Export
+  direkt nach einem erfolgreichen `** ARCHIVE SUCCEEDED **` fehl. Root Cause: das am
+  2026-08-14 angelegte `FeedivoMCPServer`-Target (Command-Line-Tool, siehe ADR-011) trug
+  Xcodes Standardwert `SKIP_INSTALL = NO` bei `INSTALL_PATH = /usr/local/bin` — beim
+  Archivieren landete sein Binary dadurch ein ZWEITES Mal im Archiv, unter
+  `Products/usr/local/bin/FeedivoMCPServer`, zusätzlich zu `Products/Applications/Feedivo.app`.
+  Ein Archiv mit mehr als einer solchen Produktkomponente behandelt Xcode als generisches
+  Archiv und schreibt dafür **keinen `ApplicationProperties`-Schlüssel** in die
+  `Info.plist` des Archivs. `exportArchive` erkennt es ohne diesen Schlüssel nicht als
+  App-Archiv und verwirft JEDE App-Distributionsmethode (im Verbose-Log des
+  `.xcdistributionlogs`-Bundles wörtlich: `Rejected distribution method
+  <IDEDistributionMethodDeveloperID: …> because it doesn't support distributing archive`);
+  übrig bleiben nur `SaveBuiltProducts` und `ExportArchive`. Das `{}` in der Fehlermeldung
+  ist also die LEERE Menge zulässiger Methoden, kein Syntaxproblem am `method`-Wert — die
+  Meldung führt damit systematisch auf die falsche Fährte (naheliegender Fehlschluss: Xcode
+  26 habe die Methodennamen umbenannt, `developer-id` sei nicht mehr gültig). **Fix:**
+  `SKIP_INSTALL = YES` in BEIDEN Build-Konfigurationen des `FeedivoMCPServer`-Targets — die
+  Kopie unter `usr/local/bin` wird für die Auslieferung gar nicht gebraucht, der Server wird
+  bereits per Copy-Files-Phase nach `Feedivo.app/Contents/MacOS/` eingebettet (Task 11 in
+  ADR-011). Verifiziert: danach trägt das Archiv wieder `ApplicationProperties`
+  (inkl. korrektem `CFBundleShortVersionString`/`CFBundleVersion`), enthält nur noch
+  `Applications/Feedivo.app`, und der eingebettete Server ist unverändert vorhanden.
+  **Lehre:** Bei JEDEM künftig neu angelegten Nicht-App-Target (Command-Line-Tool, Helper,
+  XPC-Dienst), das ins App-Bundle eingebettet statt eigenständig ausgeliefert wird, sofort
+  `SKIP_INSTALL = YES` setzen — der Fehler zeigt sich erst beim nächsten echten
+  Release-Versuch, nicht beim normalen `xcodebuild build` und auch nicht beim Archivieren
+  selbst (das meldet weiterhin Erfolg). Diagnose-Einstieg bei ähnlichen Export-Fehlern:
+  `plutil -p <Archiv>/Info.plist` auf `ApplicationProperties` prüfen und
+  `find <Archiv>/Products -maxdepth 3` gegen ein bekanntes funktionierendes Archiv
+  vergleichen (ältere liegen unter `~/Library/Developer/Xcode/Archives/`), NICHT am
+  `method`-Wert der Export-Optionen herumprobieren.
+- **`grep -m1 'CURRENT_PROJECT_VERSION = '` auf `project.pbxproj` liefert nicht zwingend die
+  Build-Nummer der App — ein später angelegtes Target steht ggf. WEITER OBEN in der Datei:**
+  Ebenfalls beim 1.1-Release (2026-08-16) gefunden, im Dry Run des Release-Skripts. Sowohl
+  `scripts/bump_version.sh` als auch `scripts/create_github_release.sh` lasen die Build-Nummer
+  per `grep -m1`. Seit `FeedivoMCPServerTests` existiert (2026-08-14, von Xcode mit
+  `CURRENT_PROJECT_VERSION = 1` angelegt), stehen dessen Konfigurationsblöcke in
+  `project.pbxproj` VOR denen des App-Targets — beide Skripte lasen dadurch `1` statt `32`.
+  Konkrete Folgen: das Release wäre als `v1.1-1` erschienen (falscher Tag, falscher
+  Appcast-Eintrag → Sparkle hätte die neue Version als ÄLTER als die installierte Build 31
+  gesehen und gar kein Update angeboten), und der nächste `bump_version.sh`-Lauf hätte die
+  Build-Nummer per globalem `sed` von 1 auf 2 „hochgezählt" und damit alle Targets auf 2
+  zurückgesetzt. Beide Skripte lesen die Nummer jetzt als MAXIMUM aller Vorkommen
+  (`grep -o … | sort -n | tail -1`); zusätzlich wurde `FeedivoMCPServerTests` auf dieselbe
+  Build-Nummer angeglichen. **Lehre:** Vor jedem Release den Dry Run (`--dry-run`) nutzen und
+  den angezeigten Tag gegen den erwarteten prüfen — er kostet Sekunden und hat genau diesen
+  Fehler vor der Veröffentlichung abgefangen.
 - **GRDB-Datenbankzugriffe sind nicht reentrant — ein `database.read`/`database.write` von
   innerhalb eines bestehenden `db: Database`-Blocks crasht zur Laufzeit:** GRDB erzwingt das
   mit `GRDBPrecondition(currentReader == nil, "Database methods are not reentrant.")`
@@ -4054,6 +4103,38 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Letzte Änderungen
 
+- 2026-08-16: **Release 1.1 (Build 32) veröffentlicht** — erste Anhebung der
+  `MARKETING_VERSION` seit Projektbeginn (1.0 → 1.1), inhaltlich fast vollständig das
+  KI-Zugriff-/MCP-Thema (read-only Server, Schreibzugriff, Einrichtungsassistent,
+  Live-Verbindungsstatus, Erklärtexte) plus die iCloud-Sync-Korrekturen. Changelog-Eintrag
+  bewusst in Alltagssprache statt als rohe Commit-Liste (wie zuletzt bei 1.0 (28), anders
+  als bei 1.0 (29)–(31)) — 104 Commit-Betreffs wären als Release-Notes unbrauchbar gewesen.
+  Da `bump_version.sh` nur die Build-Nummer hochzählt, wurde `MARKETING_VERSION` in allen
+  10 Konfigurationsblöcken von Hand angehoben und der Bump-Ablauf (pbxproj, Changelog,
+  Bundle-Kopie, `chore: Version …`-Commit, Push, Marker-Datei) manuell nachgebildet.
+  **Zwei echte, vorher unbekannte Release-Blocker gefunden und behoben — beide Folgeschäden
+  des am 2026-08-14 hinzugefügten `FeedivoMCPServer`-Targets, beide ausführlich als neue
+  Gotchas oben dokumentiert:** (1) beide Release-Skripte lasen per `grep -m1` die
+  Build-Nummer `1` des Test-Targets statt `32` (im Dry Run abgefangen, Commit `686e921f`);
+  (2) `SKIP_INSTALL = NO` am MCP-Server-Target erzeugte ein generisches Archiv ohne
+  `ApplicationProperties`, wodurch `exportArchive` mit der irreführenden Meldung
+  „expected one {} but found developer-id" abbrach (Commit `e4f03a21`). Der erste
+  Release-Lauf scheiterte daran nach erfolgreichem Archivieren; nach dem Fix lief der
+  zweite vollständig durch. **Verifiziert (nicht nur aus dem Skript-Log übernommen):**
+  GitHub Release `v1.1-32` als Pre-Release mit beiden Assets, `spctl -a -vv` →
+  `accepted / source=Notarized Developer ID`, `stapler validate` erfolgreich,
+  `Sparkle.framework/…/Autoupdate` trägt die korrekte `TeamIdentifier` (der laut ADR-009/010
+  entscheidende Punkt für einen funktionierenden Selbst-Update-Zyklus), Appcast-Eintrag
+  live über `raw.githubusercontent.com` abrufbar (`sparkle:version="32"`,
+  `shortVersionString="1.1"`), Homebrew-Cask auf `1.1,32` mit passender SHA256 (identisch
+  zur Asset-Prüfsumme). **Prozess-Lehre:** Der erste Lauf wurde über `… | tee logfile`
+  gestartet — dadurch war der Exit-Code der von `tee` (0), obwohl das Skript selbst
+  fehlschlug. Nur die inhaltliche Log-Prüfung deckte das auf. Künftig
+  Release-/Build-Skripte ohne `tee` in eine Datei umleiten (`> log 2>&1`), sonst maskiert
+  die Pipeline jeden Fehlschlag. **Noch offen:** ein echter Selbst-Update-Zyklus von
+  Build 31 auf 32 wurde NICHT live durchgespielt (bräuchte eine installierte 1.0-31 und
+  einen Wartelauf gegen den 5-Minuten-Cache von `raw.githubusercontent.com`) — die
+  Signing-/Notarisierungs-Voraussetzungen dafür sind aber wie oben belegt erfüllt.
 - 2026-08-14 (Folge-Session): MCP-Server Ein/Aus-Schalter + Verbindungs-Hilfe —
   VOLLSTÄNDIG ABGESCHLOSSEN, Whole-Branch-Review „Ready to merge: Yes" nach einer
   Fix-Runde. Neuer Settings-Tab „KI-Zugriff": Schalter (Standard AUS, Opt-in — der
