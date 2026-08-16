@@ -39,4 +39,66 @@ struct MCPConnectionStatusTextTests {
         #expect(text.contains("lesend"))
         #expect(!text.contains("Schreibzugriff"))
     }
+
+    private func sitzung(_ pid: Int, _ name: String, _ toolCount: Int) -> MCPServerSession {
+        let zeitpunkt = Date(timeIntervalSince1970: 1_786_800_000)
+        return MCPServerSession(
+            pid: pid,
+            clientName: name,
+            startedAt: zeitpunkt,
+            toolCount: toolCount,
+            lastHeartbeatAt: zeitpunkt
+        )
+    }
+
+    @Test("Ohne aktive Sitzungen gibt es keine Zeilen")
+    func ohneSitzungenKeineZeilen() {
+        #expect(MCPConnectionStatusText.activeLines(for: []).isEmpty)
+    }
+
+    @Test("Eine Sitzung ergibt eine Zeile mit Name und Werkzeug-Anzahl")
+    func eineSitzungEineZeile() {
+        let zeilen = MCPConnectionStatusText.activeLines(for: [sitzung(1, "Claude", 10)])
+
+        #expect(zeilen.count == 1)
+        #expect(zeilen[0].contains("Claude"))
+        #expect(zeilen[0].contains("10"))
+    }
+
+    @Test("Zwei Sitzungen desselben Clients werden zu einer Zeile mit Anzahl")
+    func gleicherClientWirdZusammengefasst() {
+        // Beobachtet am 2026-08-16: Claude Desktop startet zwei Serverprozesse gleichzeitig.
+        // Zwei identische Zeilen waeren nur verwirrend.
+        let zeilen = MCPConnectionStatusText.activeLines(for: [
+            sitzung(1, "Claude", 10),
+            sitzung(2, "Claude", 10),
+        ])
+
+        #expect(zeilen.count == 1)
+        #expect(zeilen[0].contains("2"))
+    }
+
+    @Test("Unterschiedliche Werkzeug-Anzahlen bleiben getrennte Zeilen")
+    func unterschiedlicheWerkzeugzahlBleibtGetrennt() {
+        // Genau dieser Unterschied ist die interessante Information: ein Prozess sitzt noch auf
+        // einer veralteten Werkzeugliste.
+        let zeilen = MCPConnectionStatusText.activeLines(for: [
+            sitzung(1, "Claude", 7),
+            sitzung(2, "Claude", 10),
+        ])
+
+        #expect(zeilen.count == 2)
+    }
+
+    @Test("Mehrere Clients ergeben mehrere Zeilen")
+    func mehrereClientsMehrereZeilen() {
+        let zeilen = MCPConnectionStatusText.activeLines(for: [
+            sitzung(1, "Claude", 10),
+            sitzung(2, "Cursor", 7),
+        ])
+
+        #expect(zeilen.count == 2)
+        #expect(zeilen[0].contains("Claude"))
+        #expect(zeilen[1].contains("Cursor"))
+    }
 }
