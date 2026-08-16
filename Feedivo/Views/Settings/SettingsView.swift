@@ -1669,6 +1669,7 @@ private struct MCPServerSettingsView: View {
                 .tint(Color.settingsBoldAccent)
                 .disabled(!isLoaded)
                 GeneralSettingsHelp(L10n.settingsMCPServerToggleDescription)
+                GeneralSettingsHelp(L10n.settingsMCPServerRestartHint)
 
                 Toggle(isOn: isWriteAccessEnabledBinding) {
                     Text(L10n.settingsMCPServerWriteAccessToggleTitle)
@@ -1680,6 +1681,10 @@ private struct MCPServerSettingsView: View {
                 .padding(.leading, 20)
                 GeneralSettingsHelp(L10n.settingsMCPServerWriteAccessToggleDescription)
                     .padding(.leading, 20)
+                GeneralSettingsHelp(L10n.settingsMCPServerRestartHint)
+                    .padding(.leading, 20)
+
+                permissionsSection
 
                 if let saveErrorMessage {
                     Text(saveErrorMessage)
@@ -1747,6 +1752,30 @@ private struct MCPServerSettingsView: View {
             Text(verbatim: text)
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
+        }
+    }
+
+    /// Was die KI mit und ohne Schreibzugriff tatsächlich darf.
+    ///
+    /// Die Liste des Unmöglichen folgt den drei registrierten Schreib-Werkzeugen
+    /// (`update_article_status`, `assign_tag`, `remove_tag`) — kommt dort eines dazu, muss dieser
+    /// Text mitwachsen, sonst sichert er etwas zu, das nicht mehr stimmt.
+    @ViewBuilder
+    private var permissionsSection: some View {
+        DisclosureGroup {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(L10n.settingsMCPServerPermissionsAlways)
+                Text(L10n.settingsMCPServerPermissionsWithWrite)
+                Text(L10n.settingsMCPServerPermissionsNever)
+                Text(L10n.settingsMCPServerPermissionsRevoke)
+            }
+            .font(.system(size: 11))
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, 4)
+        } label: {
+            Text(L10n.settingsMCPServerPermissionsDisclosure)
+                .font(.system(size: 11))
         }
     }
 

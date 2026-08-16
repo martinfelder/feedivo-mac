@@ -1,6 +1,174 @@
 {
   "sourceLanguage" : "de",
   "strings" : {
+    "settings.mcpServer.permissions.always" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Immer: Feeds, Ordner, Tags und Artikel lesen — samt Gelesen- und Stern-Status. Suchen und Intelligente Ordner abrufen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Always: read feeds, folders, tags and articles — including read and star status. Search and retrieve smart folders."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toujours : lire les flux, dossiers, tags et articles — y compris les statuts lu et favori. Rechercher et consulter les dossiers intelligents."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sempre: leggere feed, cartelle, tag e articoli — inclusi gli stati letto e preferito. Cercare e consultare le cartelle intelligenti."
+          }
+        }
+      }
+    },
+    "settings.mcpServer.permissions.never" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auch mit Schreibzugriff unmöglich: Feeds abonnieren oder löschen, Ordner, Regeln und Intelligente Ordner ändern, Tags anlegen oder löschen, Artikeltexte ändern, Artikel löschen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible even with write access: subscribing to or deleting feeds, changing folders, rules and smart folders, creating or deleting tags, editing article text, deleting articles."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible même avec l'accès en écriture : s'abonner à des flux ou les supprimer, modifier dossiers, règles et dossiers intelligents, créer ou supprimer des tags, modifier le texte des articles, supprimer des articles."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile anche con l'accesso in scrittura: abbonarsi a feed o eliminarli, modificare cartelle, regole e cartelle intelligenti, creare o eliminare tag, modificare il testo degli articoli, eliminare articoli."
+          }
+        }
+      }
+    },
+    "settings.mcpServer.permissions.revoke" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rückgängig: Schalter ausschalten und den KI-Client neu starten."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To revoke: turn the switch off and restart the AI client."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pour révoquer : désactiver l'interrupteur et redémarrer le client IA."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Per revocare: disattiva l’interruttore e riavvia il client IA."
+          }
+        }
+      }
+    },
+    "settings.mcpServer.permissions.withWrite" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit Schreibzugriff zusätzlich: Gelesen, Stern und Versteckt setzen. Bestehende Tags zuweisen und entfernen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "With write access additionally: set read, star and hidden. Assign and remove existing tags."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avec l'accès en écriture, en plus : définir lu, favori et masqué. Attribuer et retirer des tags existants."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Con l'accesso in scrittura, in più: impostare letto, preferito e nascosto. Assegnare e rimuovere tag esistenti."
+          }
+        }
+      }
+    },
+    "settings.mcpServer.permissionsDisclosure" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Was die KI genau darf"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What the AI is allowed to do"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce que l'IA est autorisée à faire"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cosa può fare l’IA"
+          }
+        }
+      }
+    },
+    "settings.mcpServer.restartHint" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wirkt erst, wenn du den KI-Client danach neu startest."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Takes effect only after you restart the AI client."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prend effet seulement après le redémarrage du client IA."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ha effetto solo dopo aver riavviato il client IA."
+          }
+        }
+      }
+    },
     "settings.mcpServer.status.staleToolList" : {
       "localizations" : {
         "de" : {
@@ -678,25 +846,25 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Erlaubt Claude, Artikelstatus (Gelesen/Stern/Versteckt) zu ändern und Tags zuzuweisen. Erfordert vorher aktivierten KI-Zugriff."
+            "value" : "Erlaubt einer verbundenen KI, Gelesen-, Stern- und Versteckt-Status zu ändern und bestehende Tags zuzuweisen oder zu entfernen. Neue Tags anlegen kann sie nicht. Erfordert vorher aktivierten KI-Zugriff."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Allows Claude to change article status (read, starred, hidden) and assign tags. Requires AI Access to be enabled first."
+            "value" : "Lets a connected AI change read, star and hidden status and assign or remove existing tags. It cannot create new tags. Requires AI access to be enabled first."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Permet à Claude de modifier le statut des articles (lu, favori, masqué) et d'attribuer des tags. Nécessite que l'accès IA soit activé au préalable."
+            "value" : "Permet à une IA connectée de modifier les statuts lu, favori et masqué, et d'attribuer ou retirer des tags existants. Elle ne peut pas créer de tags. Nécessite l'accès IA activé au préalable."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Consente a Claude di modificare lo stato degli articoli (letto, preferito, nascosto) e di assegnare tag. Richiede che l'accesso IA sia già attivo."
+            "value" : "Consente a un'IA connessa di modificare gli stati letto, preferito e nascosto e di assegnare o rimuovere tag esistenti. Non può creare nuovi tag. Richiede l'accesso IA già attivato."
           }
         }
       }
