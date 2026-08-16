@@ -78,7 +78,12 @@ if [[ "$LAST_SUBJECT" == chore:\ Version\ * ]]; then
   exit 0
 fi
 
-CURRENT_BUILD="$(grep -m1 'CURRENT_PROJECT_VERSION = ' "$PBXPROJ" | sed -E 's/[^0-9]*([0-9]+);.*/\1/')"
+# Bewusst die HOECHSTE gefundene Build-Nummer statt der ersten (frueher grep -m1):
+# ein spaeter hinzugefuegtes Target (2026-08-14: FeedivoMCPServerTests, angelegt mit
+# CURRENT_PROJECT_VERSION = 1) landet in project.pbxproj VOR den App-Target-Configs
+# und haette den naechsten Bump sonst von 1 auf 2 zurueckgesetzt statt hochgezaehlt.
+# Alle echten Targets tragen dieselbe Nummer, das Maximum ist damit immer die richtige.
+CURRENT_BUILD="$(grep -o 'CURRENT_PROJECT_VERSION = [0-9]*;' "$PBXPROJ" | sed -E 's/[^0-9]*([0-9]+);/\1/' | sort -n | tail -1)"
 MARKETING_VERSION="$(grep -m1 'MARKETING_VERSION = ' "$PBXPROJ" | sed -E 's/.*= ([0-9.]+);.*/\1/')"
 
 if [ -z "$CURRENT_BUILD" ] || [ -z "$MARKETING_VERSION" ]; then

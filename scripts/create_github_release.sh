@@ -77,7 +77,12 @@ if ! gh auth status >/dev/null 2>&1; then
 fi
 
 MARKETING_VERSION="$(grep -m1 'MARKETING_VERSION = ' "$PBXPROJ" | sed -E 's/.*= ([0-9.]+);.*/\1/')"
-BUILD_NUMBER="$(grep -m1 'CURRENT_PROJECT_VERSION = ' "$PBXPROJ" | sed -E 's/[^0-9]*([0-9]+);.*/\1/')"
+# Bewusst die HOECHSTE gefundene Build-Nummer statt der ersten (frueher grep -m1):
+# ein spaeter hinzugefuegtes Target (2026-08-14: FeedivoMCPServerTests, angelegt mit
+# CURRENT_PROJECT_VERSION = 1) landet in project.pbxproj VOR den App-Target-Configs
+# und liess das Skript beim 1.1-Release still "v1.1-1" statt "v1.1-32" bauen wollen.
+# Alle echten Targets tragen dieselbe Nummer, das Maximum ist damit immer die richtige.
+BUILD_NUMBER="$(grep -o 'CURRENT_PROJECT_VERSION = [0-9]*;' "$PBXPROJ" | sed -E 's/[^0-9]*([0-9]+);/\1/' | sort -n | tail -1)"
 if [ -z "$MARKETING_VERSION" ] || [ -z "$BUILD_NUMBER" ]; then
   echo "create_github_release.sh: Konnte Version/Build nicht aus $PBXPROJ lesen." >&2
   exit 1
