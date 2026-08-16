@@ -7,6 +7,35 @@
         <language>de</language>
         <!-- create_github_release.sh fügt hier bei jedem Release ein neues <item> ein -->
     <item>
+      <title>v1.1-32</title>
+      <pubDate>Sun, 16 Aug 2026 18:36:29 +0000</pubDate>
+      <description><![CDATA[<div style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #1d1d1f;">
+<h1 style="margin: 0 0 4px 0; font-size: 20px;"><span style="color: #3E5FED;">Feedivo 1.1 (32)</span> <span>– 2026-08-16</span></h1>
+<hr style="border: none; border-top: 1px solid #d0d0d5; margin: 8px 0 18px 0;">
+<h2 style="font-size: 15px; margin: 16px 0 4px 0;">🐛 Sonstiges</h2>
+<hr style="border: none; border-top: 1px solid #e5e5ea; margin: 0 0 8px 0;">
+<ul style="margin: 0 0 4px 0; padding-left: 20px;">
+<li>Feedivo bringt jetzt einen eingebauten MCP-Server mit. KI-Clients wie Claude Desktop, Claude Code, Cursor, VS Code, Windsurf oder Zed können damit deine Feeds, Ordner, Tags und Artikel lesen — auch dann, wenn Feedivo gerade gar nicht läuft</li>
+<li>Der Zugriff ist standardmäßig ausgeschaltet. Du schaltest ihn im neuen Einstellungen-Tab „KI-Zugriff&quot; selbst frei</li>
+<li>Optionaler Schreibzugriff über einen zweiten, unabhängigen Schalter: Eine KI darf dann Artikel als gelesen markieren, mit Stern versehen und bestehende Tags zuweisen oder entfernen. Feeds abonnieren oder löschen, Ordner, Regeln und Intelligente Ordner ändern, neue Tags anlegen oder Artikeltexte verändern bleibt weiterhin ausgeschlossen</li>
+<li>Was eine KI ändert, erscheint sofort in der geöffneten App — ohne Ordnerwechsel oder Neustart</li>
+<li>Einrichtungshilfe direkt im Tab: Client auswählen (installierte stehen oben), passenden Konfigurationsschnipsel kopieren. Bei Claude Desktop, Cursor und Windsurf trägt Feedivo den Eintrag auf Wunsch selbst ein und legt vorher eine Sicherungskopie der Datei an</li>
+<li>Der Statusbereich zeigt live, welcher Client gerade verbunden ist und mit wie vielen Werkzeugen. Sitzt ein laufender Client noch auf einer veralteten Werkzeugliste, weist ein Hinweis darauf hin</li>
+<li>Erklärtexte zu beiden Schaltern, inklusive des Hinweises, dass Änderungen erst greifen, wenn du den KI-Client danach neu startest **Behoben**</li>
+<li>iCloud Sync: Gelesen- und Stern-Änderungen, die über eine KI vorgenommen wurden, landeten nicht in der Sync-Warteschlange — und konnten dadurch später sogar echte Änderungen vom anderen Gerät verdrängen</li>
+<li>iCloud Sync: Ein einzelner verwaister Warteschlangen-Eintrag konnte jeden weiteren Artikelstatus-Upload dauerhaft blockieren. Solche Einträge entstehen nicht mehr, bestehende werden einmalig bereinigt</li>
+<li>iCloud Sync: Die Meldung „Sofortiges Senden fehlgeschlagen&quot; erschien auch beim ganz normalen Konfliktzyklus. Sie ist jetzt korrekt eingestuft und nennt die tatsächliche Ursache</li>
+<li>KI-Zugriff: Der Schreibzugriff wird verweigert, solange die Datenbank noch nicht auf dem Stand des Updates ist — statt in einen Zustand zu schreiben, aus dem nie hochgeladen wird</li>
+</ul>
+</div>]]></description>
+      <enclosure url="https://github.com/martinfelder/feedivo-mac/releases/download/v1.1-32/Feedivo-v1.1-32.zip"
+                 sparkle:version="32"
+                 sparkle:shortVersionString="1.1"
+                 sparkle:edSignature="ajW6hyDH2pfAnWLYHT+SP+VI9GD/3C41PIUd0zzJl8SH8C1FdLJk2ikTOH/vJ0e659YtxAxMUrvR7uwLGdaaCg=="
+                 length="24930813"
+                 type="application/octet-stream"/>
+    </item>
+    <item>
       <title>v1.0-31</title>
       <pubDate>Sun, 09 Aug 2026 05:33:22 +0000</pubDate>
       <description><![CDATA[<div style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #1d1d1f;">
