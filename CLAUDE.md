@@ -948,6 +948,28 @@ Record-Structs liegen 1:1 in `Feedivo/Database/Records/`.
   `json.load`/`json.dump` roundtripen — immer per reiner Text-Segment-Einfügung an
   einem eindeutigen, stabilen Anker arbeiten und per `git diff --stat` VOR dem
   Commit verifizieren, dass nur Insertions (keine oder kaum Deletions) entstehen.
+  **Wichtiger Nachtrag (2026-08-16, per systematic-debugging geklärt): Die
+  Einfügung am Anker `  "strings" : {` setzt neue Schlüssel an den DATEIANFANG,
+  Xcode sortiert sie beim nächsten Build aber an ihren Platz in seiner eigenen
+  Reihenfolge zurück** — Ergebnis war ein Diff über ~6600 Zeilen bei **null**
+  Inhaltsänderung (strukturell verifiziert: kein Wert geändert, kein Schlüssel
+  entfernt, genau ein neuer hinzugekommen). Der früher an dieser Stelle
+  dokumentierte Rat, einen solchen Massen-Diff mit `git checkout --` zu verwerfen,
+  war **kontraproduktiv**: Er stellt den unsortierten Zustand wieder her und
+  garantiert dieselbe Umsortierung beim nächsten Build — am 2026-08-16 viermal
+  hintereinander passiert. **Richtiges Vorgehen:** Neue Schlüssel weiterhin per
+  Text-Einfügung am Anker ergänzen (das bleibt richtig, siehe oben), danach EINMAL
+  bauen und Xcodes umsortierte Fassung MITCOMMITTEN. Vor dem Commit strukturell
+  gegenprüfen statt zeilenweise — `json.load` beider Fassungen, dann Schlüsselmengen
+  und Werte vergleichen: erwartet sind 0 geänderte Werte, 0 entfernte Schlüssel.
+  Xcodes Reihenfolge ist locale-abhängig (Satzzeichen zuerst) und mit Pythons
+  `sorted()` NICHT reproduzierbar — deshalb sortieren lassen statt selbst sortieren.
+  **Zweite Ursache derselben Session:** Rohe String-Literale als `LocalizedStringKey`
+  (fünf Tab-Titel in `SettingsView.swift`, u. a. `"KI-Zugriff"` in Zeile 43) lassen
+  Xcode bei jedem Build einen leeren Katalogeintrag anlegen. Wird der verworfen,
+  entsteht er beim nächsten Build erneut — einmal mitcommitten beendet das.
+  Nebenbefund, eigener Scope: Diese fünf Tab-Titel sind dadurch leere Einträge ohne
+  Übersetzung, heißen auf en/fr/it also weiterhin „KI-Zugriff" bzw. „Bereinigung".
 - **`SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor` ist für das App-Target gesetzt
   — ein naives `Task.detached` um eine unveränderte synchrone Funktion
   entlastet NICHT den MainActor:** Beim finalen Whole-Branch-Review der
