@@ -217,6 +217,7 @@ komplett über String-IDs (`FeedRecord.id`, ein UUID-String) statt über Objekti
 | v19_drop_article_offline_table | Entfernt `article_offline` (Feature "Offline-Artikel-Download" vollständig entfernt, 2026-07-20) — Hinweis: v17/v18 fehlen in dieser Tabelle, das ist eine vorbestehende Dokumentationslücke außerhalb des Scopes dieser Änderung |
 | v33_create_cloud_sync_settings | Single-Row-Tabelle `cloud_sync_settings` — DB-Spiegel des iCloud-Sync-Aktiv-Flags, damit der unsandboxed `FeedivoMCPServer`-Prozess den echten Wert sieht (UserDefaults bleibt Quelle der Wahrheit, Abgleich bei App-Start + Schalter-Umlegen) — Hinweis: v20–v32 sowie v34 fehlen ebenfalls in dieser Tabelle, dieselbe vorbestehende Dokumentationslücke wie bei v17/v18 |
 | v35_add_mcp_server_last_connection | `lastConnectedAt` + `lastConnectedToolCount` auf `mcp_server_settings` — Verbindungsnachweis für den Einstellungen-Tab „KI-Zugriff"; der Server schreibt beide bei jedem Start, bewusst unabhängig vom Schreibzugriff-Schalter |
+| v36_create_mcp_server_sessions | Tabelle `mcp_server_sessions` (eine Zeile je laufendem `FeedivoMCPServer`-Prozess: `pid`, `clientName`, `startedAt`, `toolCount`, `lastHeartbeatAt`) — Grundlage der Live-Verbindungsanzeige im Tab „KI-Zugriff"; der Server schreibt alle 15 s ein Lebenszeichen, die App wertet Sitzungen jünger als 40 s als verbunden |
 
 **Achtung bei neuen Migrationen:** Vor dem Anlegen einer neuen Migration IMMER den
 tatsächlichen letzten Eintrag in `FeedivoDatabaseMigrator.swift` prüfen (`grep -n
@@ -1619,6 +1620,63 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 ---
 
 ## Aktuell in Arbeit
+
+- **2026-08-16: Live-Verbindungsstatus im KI-Zugriff-Tab — Implementierung ABGESCHLOSSEN,
+  automatisierte Verifikation grün, manuelle Live-Checkliste NOCH AUSSTEHEND.** Direkte
+  Folgearbeit zum Eintrag darunter: Der Tab zeigte bis dahin nur „zuletzt verbunden", nicht ob
+  gerade eine Verbindung besteht — beim Testen des Vermerks fiel auf, dass unbemerkt **zwei**
+  Serverprozesse gleichzeitig liefen. Jetzt erscheint je Sitzungsgruppe eine Zeile mit grünem
+  Punkt („● Claude — 10 Werkzeuge"), sonst ein grauer Punkt „Nicht verbunden" mit dem Zeitpunkt
+  der letzten Verbindung darunter. Migration `v36_create_mcp_server_sessions`, neue Bausteine
+  `MCPServerSessionStore` (`Feedivo/Stores/`) und `MCPClientNameResolver` (`Feedivo/Services/`),
+  erweiterter `FeedivoMCPServerConnectionRecorder`. Umgesetzt via Brainstorming→Spec→Plan→
+  Plan-Ausführung (6 Tasks, TDD je Baustein).
+  **Entscheidungen, die beim späteren Lesen sonst falsch wirken:**
+  1. **Heartbeat statt Prozessabfrage.** Eine sandboxed App kann fremde Prozesse nicht
+     zuverlässig beobachten — `kill(pid, 0)` wäre unter Sandbox unsicher und erfasste bei
+     mehreren Prozessen nur einen. Der Server schreibt deshalb alle 15 s ein Lebenszeichen in
+     seine eigene Sitzungszeile; die App wertet Sitzungen jünger als 40 s (zwei verpasste
+     Intervalle plus Puffer) als verbunden. Preis: dauerhafte Mini-Schreibvorgänge, dieselbe
+     bewusste Ausnahme von der „rein lesend"-Zusage wie beim Verbindungsvermerk — sie gilt
+     weiterhin uneingeschränkt für INHALTE (Artikel, Tags, Status, Feeds).
+  2. **Kein Ping/Pong über Darwin-Notifications**, obwohl schreibfrei und sofort: Der Server
+     hängt in der stdio-Schleife und müsste dafür einen eigenen Thread mit laufender
+     `CFRunLoop` unterhalten — deutlich mehr Nebenläufigkeit an der heikelsten Stelle, ohne
+     sichtbaren Unterschied für den Nutzer.
+  3. **Der Client-Name kommt aus dem Elternprozess-Pfad** (`getppid()` + `proc_pidpath()`, dann
+     die äußerste `.app`-Komponente ohne Endung), NICHT aus einer Liste bekannter Clients: So
+     wird auch ein Client korrekt benannt, den das Projekt gar nicht kennt, und die Ableitung
+     kann nicht veralten. Folge: angezeigt wird „Claude", nicht „Claude Desktop". Gespeichert
+     wird nur der Name, nie der Pfad. Die Ableitung liegt bewusst in `Feedivo/Services/` (per
+     Target-Membership geteilt), weil `FeedivoMCPServerTests` strukturell nie läuft.
+  4. **`pid` als Primärschlüssel mit `INSERT OR REPLACE`** — das System vergibt Prozess-IDs
+     wieder; eine tote Zeile derselben ID gehört überschrieben, nicht dupliziert. Zeilen ohne
+     Lebenszeichen seit 10 Minuten räumt der Server bei jedem Start weg.
+  5. **Gruppierung nach Name UND Werkzeug-Anzahl.** Zwei Prozesse desselben Clients ergeben
+     eine Zeile mit Anzahl („Claude (2 Verbindungen)"); unterschiedliche Werkzeug-Anzahlen
+     bleiben getrennte Zeilen — genau dann sitzt einer noch auf einer veralteten Liste.
+  **Verifikation:** 48/48 Tests in sechs Suiten grün, Debug- und Release-Build für beide
+  Schemes grün. Live gegen die echte Datenbank nachgewiesen: Sitzungseintrag (`clientName`
+  korrekt `zsh` beim Start aus der Shell) und **laufender Heartbeat** (Prozess 77814: Start
+  08:49:44, letztes Lebenszeichen 08:52:29 — mehrere Intervalle).
+  **Zwei Stolpersteine, die Zeit kosteten:** (a) Ein Testlauf mit `< /dev/null` beendet den
+  stdio-Server sofort per EOF — für einen Heartbeat-Test muss stdin offen bleiben. (b) Eine
+  Polling-Schleife auf „gibt es irgendeine Zeile" traf die alte Zeile eines Vorgängerlaufs
+  statt der neuen; bei solchen Nachweisen immer auf die konkrete `pid` filtern.
+  **Bekannte Einschränkung:** Der Platzhaltername `Unbekannt` (wenn der Elternprozess nicht
+  ermittelbar ist) ist nicht lokalisiert — er wird vom Serverprozess geschrieben, der die
+  Lokalisierung des App-Bundles nicht zur Verfügung hat.
+  **Ausstehende manuelle Verifikation:** 1. Tab bei laufendem Claude Desktop öffnen → grüner
+  Punkt mit „Claude". 2. Claude Desktop beenden, Tab offen lassen → binnen ~40 s „Nicht
+  verbunden". 3. Claude Desktop starten → binnen ~20 s wieder verbunden, ohne das Fenster zu
+  schließen. 4. Bei mehreren Prozessen desselben Clients erscheint eine Zeile mit Anzahl.
+  Spec: `docs/superpowers/specs/2026-08/2026-08-16-mcp-live-verbindungsstatus-design.md`,
+  Plan: `docs/superpowers/plans/2026-08-16-mcp-live-verbindungsstatus.md`.
+  **Abgetrenntes Folgevorhaben:** Ein Einrichtungsassistent für weitere KI-Clients (Dropdown
+  mit erkannten Clients, Anleitung oder Eintragen per Dateiauswahl) wurde bewusst als eigener
+  Zyklus zurückgestellt — er braucht Sandbox-Dateizugriff über eine Nutzer-Dateiauswahl und pro
+  Client ein anderes JSON-Format (`mcpServers` bei Claude Desktop und Cursor, `context_servers`
+  bei Zed, `servers` bei VS Code).
 
 - **2026-08-15: KI-Zugriff-Tab verständlicher gestaltet — Implementierung ABGESCHLOSSEN,
   automatisierte Verifikation grün, manuelle 4-Punkte-Live-Checkliste NOCH AUSSTEHEND.**
