@@ -77,4 +77,32 @@ enum MCPConnectionStatusText {
             )
         }
     }
+
+    /// Meldet, wenn ein LAUFENDER Client noch auf einer veralteten Werkzeugliste sitzt.
+    ///
+    /// Verglichen wird bewusst nur gegen laufende Sitzungen, nie gegen den letzten
+    /// Verbindungsvermerk: Ohne verbundenen Client holt der nächste Start ohnehin die aktuelle
+    /// Liste, ein „starte ihn neu" wäre dann falscher Rat. Bei ausgeschaltetem Zugriff läuft gar
+    /// kein Server, gegen den zu vergleichen wäre.
+    ///
+    /// Laufen mehrere Sitzungen, zählt die niedrigste abweichende Anzahl — sie gehört zum
+    /// Prozess, dem am meisten fehlt.
+    static func staleToolListLine(
+        sessions: [MCPServerSession],
+        isAccessEnabled: Bool,
+        isWriteAccessEnabled: Bool
+    ) -> String? {
+        guard isAccessEnabled, !sessions.isEmpty else { return nil }
+
+        let erwartet = MCPToolInventory.expectedToolCount(isWriteAccessEnabled: isWriteAccessEnabled)
+        guard let niedrigste = sessions.map(\.toolCount).filter({ $0 != erwartet }).min() else {
+            return nil
+        }
+
+        return String(
+            format: String(localized: "settings.mcpServer.status.staleToolList"),
+            niedrigste,
+            erwartet
+        )
+    }
 }

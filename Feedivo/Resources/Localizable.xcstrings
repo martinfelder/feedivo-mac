@@ -1,6 +1,34 @@
 {
   "sourceLanguage" : "de",
   "strings" : {
+    "settings.mcpServer.status.staleToolList" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der verbundene Client kennt %1$d von %2$d Werkzeugen — starte ihn neu."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The connected client knows %1$d of %2$d tools — restart it."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le client connecté connaît %1$d outils sur %2$d — redémarrez-le."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il client connesso conosce %1$d strumenti su %2$d — riavvialo."
+          }
+        }
+      }
+    },
     "settings.mcpServer.clientPicker" : {
       "localizations" : {
         "de" : {

@@ -1710,6 +1710,16 @@ private struct MCPServerSettingsView: View {
                                 connectionStatusLine(text: zeile, isConnected: true)
                             }
                         }
+
+                        if let hinweis = MCPConnectionStatusText.staleToolListLine(
+                            sessions: activeSessions,
+                            isAccessEnabled: isEnabled,
+                            isWriteAccessEnabled: isWriteAccessEnabled
+                        ) {
+                            Text(verbatim: hinweis)
+                                .font(.system(size: 11))
+                                .foregroundStyle(.orange)
+                        }
                     }
                 }
             }
