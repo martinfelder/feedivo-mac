@@ -1,6 +1,146 @@
 {
   "sourceLanguage" : "de",
   "strings" : {
+    "settings.mcpServer.clientPicker" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "KI-Client"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI client"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Client IA"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Client IA"
+          }
+        }
+      }
+    },
+    "settings.mcpServer.enterButton" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatisch eintragen…"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter automatically…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saisir automatiquement…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inserisci automaticamente…"
+          }
+        }
+      }
+    },
+    "settings.mcpServer.enterSuccess" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eingetragen. Eine Sicherungskopie der bisherigen Datei liegt daneben."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entered. A backup of the previous file is next to it."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saisi. Une copie de sauvegarde du fichier précédent se trouve à côté."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inserito. Una copia di backup del file precedente si trova accanto."
+          }
+        }
+      }
+    },
+    "settings.mcpServer.installedSuffix" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "(installiert)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "(installed)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "(installé)"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "(installato)"
+          }
+        }
+      }
+    },
+    "settings.mcpServer.step.run" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2. Befehl im Terminal ausführen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2. Run the command in Terminal"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2. Exécuter la commande dans le Terminal"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2. Esegui il comando nel Terminale"
+          }
+        }
+      }
+    },
     "settings.mcpServer.status.notConnected" : {
       "localizations" : {
         "de" : {

@@ -1653,7 +1653,9 @@ private struct MCPServerSettingsView: View {
     @State private var isLoaded = false
     @State private var saveErrorMessage: String?
     @State private var lastConnection: MCPConnectionRecord?
-    @State private var detectedClient: MCPClient?
+    @State private var clients: [MCPClient] = []
+    @State private var selectedClientID: String?
+    @State private var enterResultMessage: String?
     @State private var activeSessions: [MCPServerSession] = []
 
     var body: some View {
@@ -1685,40 +1687,7 @@ private struct MCPServerSettingsView: View {
                         .foregroundStyle(.red)
                 }
 
-                if let detectedClient {
-                    GeneralSettingsRow(title: L10n.settingsMCPServerConnectionRowTitle) {
-                        Button(L10n.settingsMCPServerCopyButton) {
-                            copyConfigSnippet()
-                        }
-                    }
-                    Text(L10n.settingsMCPServerStepCopy)
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                    Text(configSnippet)
-                        .font(.system(size: 11, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                        .textSelection(.enabled)
-                        .padding(8)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-
-                    Text(L10n.settingsMCPServerStepPaste)
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                    // Zwischenschritt: `configPath` ist seit dem Client-Verzeichnis optional
-                    // (Claude Code hat keine Datei). Task 5 ersetzt diesen Block durch die
-                    // Auswahl mit eigener Fallunterscheidung.
-                    Text(verbatim: detectedClient.configPath ?? "")
-                        .font(.system(size: 11, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                        .textSelection(.enabled)
-
-                    Text(L10n.settingsMCPServerStepRestart)
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                } else {
-                    GeneralSettingsHelp(L10n.settingsMCPServerNoClientFound)
-                }
+                setupSection
 
                 GeneralSettingsRow(title: L10n.settingsMCPServerStatusRowTitle) {
                     VStack(alignment: .leading, spacing: 4) {
@@ -1771,6 +1740,119 @@ private struct MCPServerSettingsView: View {
         }
     }
 
+    /// Die drei nummerierten Einrichtungsschritte für den im Dropdown gewählten Client.
+    ///
+    /// Bewusst als eigene Property statt inline im `body`: Der `body` dieser Ansicht ist bereits
+    /// groß, und der Swift-Typprüfer kapituliert bei zu langen View-Ausdrücken.
+    @ViewBuilder
+    private var setupSection: some View {
+        if let client = selectedClient {
+            GeneralSettingsRow(title: L10n.settingsMCPServerConnectionRowTitle) {
+                Picker(L10n.settingsMCPServerClientPickerLabel, selection: $selectedClientID) {
+                    ForEach(clients) { eintrag in
+                        Text(verbatim: clientLabel(eintrag)).tag(Optional(eintrag.id))
+                    }
+                }
+                .labelsHidden()
+                .frame(maxWidth: 220)
+            }
+
+            Text(L10n.settingsMCPServerStepCopy)
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+            Text(verbatim: configSnippet(for: client))
+                .font(.system(size: 11, design: .monospaced))
+                .foregroundStyle(.secondary)
+                .textSelection(.enabled)
+                .padding(8)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+            HStack(spacing: 8) {
+                Button(L10n.settingsMCPServerCopyButton) {
+                    copyToPasteboard(configSnippet(for: client))
+                }
+                if client.supportsAutomaticEntry {
+                    Button(L10n.settingsMCPServerEnterButton) {
+                        enterConfiguration(for: client)
+                    }
+                }
+            }
+
+            if let configPath = client.configPath {
+                Text(L10n.settingsMCPServerStepPaste)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                Text(verbatim: configPath)
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
+            } else {
+                // Claude Code hat keine Datei — der Befehl aus Schritt 1 wird direkt
+                // im Terminal ausgefuehrt.
+                Text(L10n.settingsMCPServerStepRun)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+            }
+
+            Text(L10n.settingsMCPServerStepRestart)
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+
+            if let enterResultMessage {
+                Text(verbatim: enterResultMessage)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private var selectedClient: MCPClient? {
+        clients.first { $0.id == selectedClientID } ?? clients.first
+    }
+
+    private func clientLabel(_ client: MCPClient) -> String {
+        guard client.isInstalled else { return client.displayName }
+        return "\(client.displayName) \(String(localized: "settings.mcpServer.installedSuffix"))"
+    }
+
+    private func configSnippet(for client: MCPClient) -> String {
+        MCPClientConfigSnippet.text(for: client.schema, executablePath: mcpServerExecutablePath)
+    }
+
+    private func copyToPasteboard(_ text: String) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
+    }
+
+    /// Öffnet die Dateiauswahl auf der Konfigurationsdatei des Clients. Erst die Bestätigung des
+    /// Nutzers verschafft Feedivo Schreibrecht — die Sandbox lässt keinen anderen Weg zu.
+    private func enterConfiguration(for client: MCPClient) {
+        guard let configPath = client.configPath else { return }
+
+        let panel = NSOpenPanel()
+        panel.directoryURL = URL(fileURLWithPath: configPath).deletingLastPathComponent()
+        panel.nameFieldStringValue = URL(fileURLWithPath: configPath).lastPathComponent
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        // Ohne das bleiben Ordner wie ~/.cursor unsichtbar.
+        panel.showsHiddenFiles = true
+
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+
+        do {
+            try MCPConfigWriter.write(
+                to: url,
+                schema: client.schema,
+                executablePath: mcpServerExecutablePath
+            )
+            enterResultMessage = String(localized: "settings.mcpServer.enterSuccess")
+        } catch {
+            enterResultMessage = error.localizedDescription
+        }
+    }
+
     private func reloadActiveSessions() {
         guard let feedivoDatabase else { return }
         // Fail-safe: Bei einem Lesefehler bleibt die Liste leer, die Anzeige sagt also
@@ -1781,16 +1863,6 @@ private struct MCPServerSettingsView: View {
 
     private var mcpServerExecutablePath: String {
         Bundle.main.bundlePath + "/Contents/MacOS/FeedivoMCPServer"
-    }
-
-    private var configSnippet: String {
-        """
-        {
-          "mcpServers": {
-            "feedivo": { "command": "\(mcpServerExecutablePath)" }
-          }
-        }
-        """
     }
 
     // Custom Binding statt `$isEnabled` + `.onChange(of:)` (Task-3-Review-Fix, 2026-08-14):
@@ -1843,7 +1915,10 @@ private struct MCPServerSettingsView: View {
         isEnabled = (try? store.isEnabled()) ?? false
         isWriteAccessEnabled = (try? store.isWriteAccessEnabled()) ?? false
         lastConnection = try? store.lastConnection()
-        detectedClient = MCPClientDetector.allClients().first
+        clients = MCPClientDetector.allClients()
+        // Vorausgewaehlt ist der erste installierte Client; `allClients()` sortiert installierte
+        // nach vorn, der erste Eintrag ist also die beste Vermutung.
+        selectedClientID = clients.first?.id
         isLoaded = true
     }
 
@@ -1869,10 +1944,6 @@ private struct MCPServerSettingsView: View {
         }
     }
 
-    private func copyConfigSnippet() {
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(configSnippet, forType: .string)
-    }
 }
 
 private struct CleanupSettingsView: View {
