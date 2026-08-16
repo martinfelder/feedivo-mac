@@ -1621,6 +1621,58 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Aktuell in Arbeit
 
+- **2026-08-16: Erklärtexte im Tab „KI-Zugriff" — Implementierung ABGESCHLOSSEN,
+  automatisierte Verifikation grün, manuelle 5-Punkte-Live-Checkliste NOCH AUSSTEHEND.**
+  Der Tab sagte zu wenig darüber, was tatsächlich zu tun ist: drei knappe Einrichtungszeilen,
+  ein einziger Satz zum Schreibzugriff. Jetzt trägt **jeder der beiden Schalter** dauerhaft den
+  Satz „Wirkt erst, wenn du den KI-Client danach neu startest", zwei Aufklappbereiche tragen die
+  ausführlichen Erklärungen, und der Statusbereich meldet von sich aus, wenn ein laufender Client
+  noch auf einer veralteten Werkzeugliste sitzt. Umgesetzt via Brainstorming→Spec→Plan→
+  Plan-Ausführung (5 Tasks, TDD je Baustein).
+  **Entscheidungen, die beim späteren Lesen sonst falsch wirken:**
+  1. **Der Neustart-Satz steht dauerhaft da, nicht zustandsabhängig.** Beim allerersten
+     Einrichten ist er am wichtigsten — und genau dann hätte ein zustandsabhängiger Hinweis noch
+     nicht ausgelöst. Das Zustandsabhängige sitzt stattdessen im Statusbereich, wo es auf echten
+     Zahlen fußt.
+  2. **Der Statusabgleich läuft NUR gegen laufende Sitzungen** (`MCPServerSession.toolCount`,
+     alle fünf Sekunden aktualisiert), nie gegen den letzten Verbindungsvermerk. Ist kein Client
+     verbunden, holt der nächste Start ohnehin die aktuelle Liste — ein „starte ihn neu" wäre
+     dann falscher Rat. Bei ganz ausgeschaltetem Zugriff wird ebenfalls nicht verglichen, weil
+     kein Server läuft. Laufen mehrere Sitzungen, zählt die niedrigste abweichende Anzahl (am
+     2026-08-16 liefen unbemerkt zwei Serverprozesse gleichzeitig).
+  3. **`MCPToolInventory` hält die erwartete Anzahl (7 lesend + 3 schreibend), aber die
+     Serverliste in `main.swift` bleibt die Wahrheit.** Die App kann den Serverprozess nicht
+     befragen; stünden die Zahlen fest im Hilfetext, würde die Aussage still falsch, sobald ein
+     Werkzeug dazukommt. `main.swift` vergleicht seine tatsächlich aufgebaute Liste gegen die
+     Konstante und schreibt bei Abweichung eine Warnung auf stderr — **der Start scheitert
+     bewusst nicht**, ein nicht startender Server wäre der größere Schaden.
+  4. **Diese Übereinstimmung ist nicht automatisiert prüfbar.** `FeedivoMCPServerTests` läuft in
+     diesem Projekt strukturell nie, und kein `xcodebuild`-Aufruf kompiliert auch nur eine Datei
+     dieses Testziels. Abgesichert ist sie durch die stderr-Warnung, Kommentare an beiden Stellen
+     und diesen Vermerk.
+  5. **Die Liste dessen, was auch mit Schreibzugriff unmöglich bleibt** (Feeds abonnieren oder
+     löschen, Ordner/Regeln/Intelligente Ordner ändern, Tags anlegen oder löschen, Artikeltexte
+     ändern, Artikel löschen), folgt den drei registrierten Schreib-Werkzeugen
+     `update_article_status`, `assign_tag`, `remove_tag`. Belegt statt behauptet: `AssignTagTool`
+     prüft die übergebene `tagID` gegen `TagStore.sidebarTags()` und lehnt unbekannte ab — es legt
+     also keine Tags an. **Kommt ein Schreib-Werkzeug dazu, MUSS dieser Text mitwachsen**, sonst
+     sichert der Tab etwas zu, das nicht mehr stimmt.
+  **Verifikation:** 49 Tests in acht Suiten grün, Debug- und Release-Build für beide Schemes grün.
+  Zwölf neue L10n-Schlüssel in allen vier Sprachen ergänzt (per Textanker, reine Insertions), dazu
+  die vier Werte von `settings.mcpServer.writeAccessToggleDescription` präzisiert („bestehende
+  Tags", „Neue Tags anlegen kann sie nicht").
+  **Ausstehende manuelle Live-Verifikation (5 Punkte, vom Nutzer durchzuführen):**
+  1. Unter beiden Schaltern steht dauerhaft der Neustart-Satz.
+  2. Beide Aufklappbereiche öffnen und schließen; die Inhalte stimmen.
+  3. Bei laufendem, verbundenem Client den Schreibzugriff einschalten und den Client **nicht** neu
+     starten → der Statusbereich meldet orange „kennt 7 von 10 Werkzeugen".
+  4. Client neu starten → die Hinweiszeile verschwindet.
+  5. Client beenden → die Hinweiszeile erscheint **nicht** erneut, obwohl der letzte Vermerk noch
+     die alte Anzahl trägt (das ist der Unterschied zwischen „laufende Sitzung" und „letzter
+     Vermerk", siehe Punkt 2 oben).
+  Spec: `docs/superpowers/specs/2026-08/2026-08-16-ki-zugriff-erklaertexte-design.md`,
+  Plan: `docs/superpowers/plans/2026-08-16-ki-zugriff-erklaertexte.md`.
+
 - **2026-08-16: Einrichtungsassistent für KI-Clients — Implementierung ABGESCHLOSSEN,
   automatisierte Verifikation grün, manuelle 5-Punkte-Live-Checkliste NOCH AUSSTEHEND.**
   Der Tab „KI-Zugriff" kannte bislang genau einen Client (Claude Desktop), während der
