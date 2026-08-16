@@ -13,6 +13,48 @@ siehe `git log`.
 
 <!-- versions -->
 
+## [1.1 (32)] - 2026-08-16
+
+**Neu: KI-Zugriff**
+
+- Feedivo bringt jetzt einen eingebauten MCP-Server mit. KI-Clients wie Claude
+  Desktop, Claude Code, Cursor, VS Code, Windsurf oder Zed können damit deine
+  Feeds, Ordner, Tags und Artikel lesen — auch dann, wenn Feedivo gerade gar
+  nicht läuft
+- Der Zugriff ist standardmäßig ausgeschaltet. Du schaltest ihn im neuen
+  Einstellungen-Tab „KI-Zugriff" selbst frei
+- Optionaler Schreibzugriff über einen zweiten, unabhängigen Schalter: Eine KI
+  darf dann Artikel als gelesen markieren, mit Stern versehen und bestehende
+  Tags zuweisen oder entfernen. Feeds abonnieren oder löschen, Ordner, Regeln
+  und Intelligente Ordner ändern, neue Tags anlegen oder Artikeltexte
+  verändern bleibt weiterhin ausgeschlossen
+- Was eine KI ändert, erscheint sofort in der geöffneten App — ohne
+  Ordnerwechsel oder Neustart
+- Einrichtungshilfe direkt im Tab: Client auswählen (installierte stehen
+  oben), passenden Konfigurationsschnipsel kopieren. Bei Claude Desktop,
+  Cursor und Windsurf trägt Feedivo den Eintrag auf Wunsch selbst ein und legt
+  vorher eine Sicherungskopie der Datei an
+- Der Statusbereich zeigt live, welcher Client gerade verbunden ist und mit
+  wie vielen Werkzeugen. Sitzt ein laufender Client noch auf einer veralteten
+  Werkzeugliste, weist ein Hinweis darauf hin
+- Erklärtexte zu beiden Schaltern, inklusive des Hinweises, dass Änderungen
+  erst greifen, wenn du den KI-Client danach neu startest
+
+**Behoben**
+
+- iCloud Sync: Gelesen- und Stern-Änderungen, die über eine KI vorgenommen
+  wurden, landeten nicht in der Sync-Warteschlange — und konnten dadurch
+  später sogar echte Änderungen vom anderen Gerät verdrängen
+- iCloud Sync: Ein einzelner verwaister Warteschlangen-Eintrag konnte jeden
+  weiteren Artikelstatus-Upload dauerhaft blockieren. Solche Einträge
+  entstehen nicht mehr, bestehende werden einmalig bereinigt
+- iCloud Sync: Die Meldung „Sofortiges Senden fehlgeschlagen" erschien auch
+  beim ganz normalen Konfliktzyklus. Sie ist jetzt korrekt eingestuft und
+  nennt die tatsächliche Ursache
+- KI-Zugriff: Der Schreibzugriff wird verweigert, solange die Datenbank noch
+  nicht auf dem Stand des Updates ist — statt in einen Zustand zu schreiben,
+  aus dem nie hochgeladen wird
+
 ## [1.0 (31)] - 2026-08-09
 
 - design: iCloud-Sync-Erstaktivierungs-Dialog auf Konzept A umgestellt
