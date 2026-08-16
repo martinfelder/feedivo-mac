@@ -168,6 +168,7 @@
 				Services/FeedNotificationService.swift,
 				Services/FeedService.swift,
 				Services/MCPClientNameResolver.swift,
+				Services/MCPToolInventory.swift,
 				Services/MCPWriteNotificationName.swift,
 				Services/NotificationSettings.swift,
 				Services/OPMLService.swift,

@@ -65,6 +65,20 @@ if let writableDatabase {
 // startete und wie viele Werkzeuge er dabei bekam. Die Anzahl stammt bewusst aus der TATSAECHLICH
 // aufgebauten Liste — weicht sie spaeter von den Schaltern ab, sitzt der Client noch auf einer
 // veralteten Liste und muss neu gestartet werden.
+// Spiegel-Kontrolle: `MCPToolInventory` sagt dem Einstellungen-Tab, wie viele Werkzeuge zu
+// erwarten sind. Driftet die Zahl von dieser Liste ab, zeigt der Tab etwas Falsches an — der
+// Start scheitert deswegen aber NICHT, ein nicht startender Server waere der groessere Schaden.
+let erwarteteWerkzeuge = MCPToolInventory.expectedToolCount(
+    isWriteAccessEnabled: writableDatabase != nil
+)
+if availableTools.count != erwarteteWerkzeuge {
+    FileHandle.standardError.write(Data("""
+    Warnung: \(availableTools.count) Werkzeuge registriert, MCPToolInventory erwartet \
+    \(erwarteteWerkzeuge). Bitte MCPToolInventory anpassen.
+
+    """.utf8))
+}
+
 FeedivoMCPServerConnectionRecorder.record(toolCount: availableTools.count)
 
 await server.withMethodHandler(ListTools.self) { _ in
