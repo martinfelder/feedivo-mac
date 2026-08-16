@@ -1621,6 +1621,81 @@ Refresh, Favicon-Erkennung (eigene HTML-Discovery + Fallback, keine Google-S2-AP
 
 ## Aktuell in Arbeit
 
+- **2026-08-16: Einrichtungsassistent für KI-Clients — Implementierung ABGESCHLOSSEN,
+  automatisierte Verifikation grün, manuelle 5-Punkte-Live-Checkliste NOCH AUSSTEHEND.**
+  Der Tab „KI-Zugriff" kannte bislang genau einen Client (Claude Desktop), während der
+  Statusbereich seit dem Live-Verbindungsstatus **jeden** verbundenen Client benennt — die
+  Einrichtung wirkte daneben halbherzig. Jetzt listet ein Dropdown **sechs** Clients,
+  installierte zuerst und mit „(installiert)" gekennzeichnet; darunter erscheinen Schnipsel
+  und Pfad passend zum gewählten Client, und wo das Format es sicher zulässt, trägt ein Knopf
+  den Eintrag nach Dateiauswahl selbst ein. Umgesetzt via Brainstorming→Spec→Plan→
+  Plan-Ausführung (6 Tasks, TDD je Baustein). Vier neue bzw. erweiterte, isoliert getestete
+  Bausteine in `Feedivo/Services/`: `MCPClientDetector` (erweitert), `MCPClientConfigSnippet`,
+  `MCPConfigMerger` (reine Funktion über `Data`) und `MCPConfigWriter`.
+  **Client-Verzeichnis (drei Schema-Varianten):** `mcpServers` flach — Claude Desktop
+  (`~/Library/Application Support/Claude/claude_desktop_config.json`), Cursor
+  (`~/.cursor/mcp.json`), Windsurf (`~/.codeium/windsurf/mcp_config.json`); `servers` —
+  VS Code (`~/Library/Application Support/Code/User/mcp.json`); `context_servers` mit
+  verschachteltem `command`-Objekt (`path`/`args`) — Zed (`~/.config/zed/settings.json`);
+  sowie Claude Code ohne Datei, dafür mit dem Terminal-Befehl `claude mcp add feedivo <Pfad>`.
+  **Entscheidungen, die beim späteren Lesen sonst falsch wirken:**
+  1. **Nicht installierte Clients bleiben wählbar.** Pfade und Formate von Cursor, Windsurf
+     und Zed stammen aus einer Web-Recherche vom 2026-08-16 und wurden nie gegen eine echte
+     Installation geprüft — diese Programme sind auf diesem Rechner nicht installiert. Ihre
+     Bundle-Kennungen (`com.todesktop.230313mzl4w4u92`, `com.exafunction.windsurf`,
+     `dev.zed.Zed`) sind der unsicherste Teil und stammen nicht einmal aus der Recherche,
+     sondern aus allgemeinem Wissen. Eine falsche Kennung kostet den Client deshalb bewusst
+     nur das Häkchen, nicht seine Verfügbarkeit. Claude Code hat gar kein App-Bundle und gilt
+     grundsätzlich nie als installiert.
+  2. **Der Pfad ist eine Angabe, kein Befund.** Die Sandbox verbietet jeden Lesezugriff auf
+     `~/.cursor/`, `~/.config/zed/` und die übrigen Orte, solange der Nutzer sie nicht selbst
+     über eine Dateiauswahl freigegeben hat — Feedivo kann also NICHT prüfen, ob eine
+     Konfigurationsdatei existiert. Formulierungen wie „gefunden" oder „bereits eingetragen"
+     wären eine Behauptung ohne Grundlage und kommen deshalb nirgends vor.
+  3. **VS Code, Zed und Claude Code bekommen bewusst KEINEN Eintragen-Knopf**
+     (`MCPClient.supportsAutomaticEntry` ist nur bei `mcpServers` mit Pfad wahr): Die ersten
+     beiden erlauben Kommentare in ihren Konfigurationsdateien, ein JSON-Roundtrip würde sie
+     stillschweigend löschen; Claude Code speichert in `~/.claude.json` den kompletten Zustand
+     der Kommandozeilen-App, dort gehört `claude mcp add` hin, kein fremder Schreibzugriff.
+     Der Kopier-Weg steht für alle sechs zur Verfügung.
+  4. **Vor jedem Schreiben eine Sicherungskopie** `<datei>.feedivo-backup`, die eine ältere
+     Kopie bewusst überschreibt (sonst schlüge jeder zweite Durchlauf fehl). Reihenfolge in
+     `MCPConfigWriter`: erst lesen, dann zusammenführen, dann sichern, erst zuletzt schreiben
+     — schlägt ein Schritt fehl, bleibt die Originaldatei unangetastet. Ungültiges JSON führt
+     zum Fehler, nie zu einem Rateversuch; alles außerhalb des eigenen `feedivo`-Schlüssels
+     bleibt erhalten (die `claude_desktop_config.json` dieses Rechners enthält daneben
+     Fensterzustände, Ordnerfreigaben und Konten).
+  **Drei Abweichungen von der Planvorgabe:** (a) Der Plan übersah, dass `configPath` durch
+  Task 1 optional wird — die bestehende `Text(verbatim: detectedClient.configPath)`-Zeile
+  hätte den Build gebrochen; als Zwischenschritt kam ein `?? ""` hinein, das Task 5 ohnehin
+  ersetzt hat. (b) Der Einrichtungsbereich liegt in einer eigenen `@ViewBuilder`-Property
+  `setupSection` statt inline im `body` — der Plan sah das nur als Ausweichlösung bei einem
+  Typprüfungs-Timeout vor, bei diesem ohnehin großen `body` war es die sicherere Variante.
+  (c) Bei Task 3 wurde der RED-Lauf übersprungen (der Test hätte mangels Typ nur einen
+  Compile-Fehler gezeigt); der GREEN-Lauf belegte danach 7 tatsächlich ausgeführte Tests.
+  **Verifikation:** 41 Tests in sieben Suiten grün (`MCPClientDetectorTests`,
+  `MCPClientConfigSnippetTests`, `MCPConfigMergerTests`, `MCPConfigWriterTests`,
+  `MCPClientNameResolverTests`, `MCPConnectionStatusTextTests`, `MCPServerSessionStoreTests`),
+  Debug- und Release-Build für beide Schemes grün. Fünf neue L10n-Schlüssel in allen vier
+  Sprachen ergänzt, per Textanker eingefügt — 140 reine Insertions, keine Deletions.
+  `settings.mcpServer.noClientFound` wird nicht mehr verwendet (nicht installierte Clients
+  bleiben ja wählbar), Konstante und Katalogeintrag bleiben bewusst bestehen.
+  **Ausstehende manuelle Live-Verifikation (5 Punkte, vom Nutzer durchzuführen):**
+  1. Dropdown zeigt sechs Clients, installierte oben mit „(installiert)".
+  2. Wechsel des Clients ändert Schnipsel **und** Pfad; bei Zed erscheint das verschachtelte
+     `command`-Objekt, bei VS Code der Schlüssel `servers`, bei Claude Code der Terminal-Befehl.
+  3. „Automatisch eintragen…" erscheint nur bei Claude Desktop, Cursor und Windsurf.
+  4. Eintragen bei Claude Desktop: Dateiauswahl öffnet im richtigen Ordner, nach Bestätigung
+     steht der Eintrag in der Datei, die übrigen Schlüssel sind unverändert, und daneben liegt
+     `claude_desktop_config.json.feedivo-backup`.
+  5. Abbrechen der Dateiauswahl hinterlässt keine Meldung und ändert nichts.
+  **Nicht im Umfang** (bewusst): Eintrag wieder entfernen (dafür gibt es den Zugriffsschalter
+  im selben Tab), Client automatisch neu starten (die Sandbox erlaubt es nicht), Codex/ChatGPT/
+  Ollama/Warp (kein gesichert bekannter datei-basierter MCP-Weg; Codex nutzt TOML) und
+  projektbezogene Konfigurationen von Cursor und VS Code.
+  Spec: `docs/superpowers/specs/2026-08/2026-08-16-mcp-einrichtungsassistent-design.md`,
+  Plan: `docs/superpowers/plans/2026-08-16-mcp-einrichtungsassistent.md`.
+
 - **2026-08-16: Live-Verbindungsstatus im KI-Zugriff-Tab — Implementierung ABGESCHLOSSEN,
   automatisierte Verifikation grün, manuelle Live-Checkliste NOCH AUSSTEHEND.** Direkte
   Folgearbeit zum Eintrag darunter: Der Tab zeigte bis dahin nur „zuletzt verbunden", nicht ob
