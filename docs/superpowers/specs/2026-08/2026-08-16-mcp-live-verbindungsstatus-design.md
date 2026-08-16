@@ -146,5 +146,11 @@ korrekt „Claude" lautet.
 3. **Name aus dem Bundle statt aus einer Client-Liste.** Funktioniert für jeden MCP-Client, auch
    für unbekannte, und kann nicht veralten. Der angezeigte Name ist deshalb „Claude", nicht
    „Claude Desktop".
-4. **~40 Sekunden Verzögerung beim Trennen** werden bewusst hingenommen. Kürzere Toleranz hieße
+4. **Ein gelegentlich leicht veralteter Lesestand wird hingenommen.** Beim Live-Test am
+   2026-08-16 war eine Änderung der App (Schalter umgelegt) erst mit spürbarer Verzögerung für
+   einen zweiten Prozess sichtbar — die WAL-Datei war auf 3,4 MB angewachsen und die App hielt
+   den Schreib-Lock. Für die Verbindungsanzeige ist das unkritisch: Die Toleranz von 40 Sekunden
+   ist um ein Vielfaches größer als solche Verzögerungen, und ein verspätet gelesener Heartbeat
+   verlängert höchstens den Moment, bis der Zustandswechsel sichtbar wird.
+5. **~40 Sekunden Verzögerung beim Trennen** werden bewusst hingenommen. Kürzere Toleranz hieße
    häufigere Schreibvorgänge für einen Zustandswechsel, den niemand in Echtzeit beobachtet.

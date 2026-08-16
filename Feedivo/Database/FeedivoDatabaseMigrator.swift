@@ -680,6 +680,23 @@ enum FeedivoDatabaseMigrator {
             }
         }
 
+        migrator.registerMigration("v36_create_mcp_server_sessions") { database in
+            // Eine Zeile je LAUFENDEM Serverprozess. Ergaenzt die v35-Spalten, ersetzt sie nicht:
+            // `mcp_server_settings.lastConnectedAt` beantwortet "wann zuletzt" (auch wenn gerade
+            // niemand verbunden ist), diese Tabelle beantwortet "wer jetzt".
+            //
+            // `pid` als Primaerschluessel mit spaeterem INSERT OR REPLACE: Das Betriebssystem
+            // vergibt Prozess-IDs wieder — ein neuer Prozess mit alter ID ueberschreibt so sauber
+            // die tote Zeile, statt eine Dublette zu erzeugen.
+            try database.create(table: "mcp_server_sessions") { table in
+                table.column("pid", .integer).primaryKey()
+                table.column("clientName", .text).notNull()
+                table.column("startedAt", .datetime).notNull()
+                table.column("toolCount", .integer).notNull()
+                table.column("lastHeartbeatAt", .datetime).notNull()
+            }
+        }
+
         return migrator
     }
 

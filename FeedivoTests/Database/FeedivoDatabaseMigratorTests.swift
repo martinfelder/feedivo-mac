@@ -465,4 +465,17 @@ struct FeedivoDatabaseMigratorTests {
         #expect(zeile?["lastConnectedAt"] == nil)
         #expect(zeile?["lastConnectedToolCount"] == nil)
     }
+
+    @Test func migrationV36LegtSitzungstabelleAn() throws {
+        let queue = try DatabaseQueue()
+        try FeedivoDatabaseMigrator.migrator.migrate(queue, upTo: "v35_add_mcp_server_last_connection")
+
+        try FeedivoDatabaseMigrator.migrator.migrate(queue)
+
+        // Die Tabelle startet leer: Sitzungen entstehen erst, wenn ein Serverprozess laeuft.
+        let spalten = try queue.read { db in
+            try db.columns(in: "mcp_server_sessions").map(\.name).sorted()
+        }
+        #expect(spalten == ["clientName", "lastHeartbeatAt", "pid", "startedAt", "toolCount"])
+    }
 }
